@@ -78,7 +78,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gsmsedtf2v.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010003
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -104,8 +104,8 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS ToBoxWin32 ToBoxUnix ToBoxOS400 ToBoxAll 
-&Scoped-Define DISPLAYED-OBJECTS ToBoxWin32 ToBoxUnix ToBoxOS400 ToBoxAll 
+&Scoped-Define ENABLED-OBJECTS ToBoxWin32 ToBoxUnix ToBoxAll 
+&Scoped-Define DISPLAYED-OBJECTS ToBoxWin32 ToBoxUnix ToBoxAll 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -140,11 +140,6 @@ DEFINE VARIABLE ToBoxAll AS LOGICAL INITIAL no
      VIEW-AS TOGGLE-BOX
      SIZE 19.4 BY .81 NO-UNDO.
 
-DEFINE VARIABLE ToBoxOS400 AS LOGICAL INITIAL no 
-     LABEL "OS400 (AS400)" 
-     VIEW-AS TOGGLE-BOX
-     SIZE 30.8 BY .81 NO-UNDO.
-
 DEFINE VARIABLE ToBoxUnix AS LOGICAL INITIAL no 
      LABEL "UNIX (Any Progress supported UNIX)" 
      VIEW-AS TOGGLE-BOX
@@ -161,8 +156,7 @@ DEFINE VARIABLE ToBoxWin32 AS LOGICAL INITIAL no
 DEFINE FRAME frMain
      ToBoxWin32 AT ROW 1.1 COL 5.6
      ToBoxUnix AT ROW 1.91 COL 5.6
-     ToBoxOS400 AT ROW 2.71 COL 5.6
-     ToBoxAll AT ROW 3.52 COL 5.6
+     ToBoxAll AT ROW 2.71 COL 5.6
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -194,7 +188,7 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW sObject ASSIGN
-         HEIGHT             = 3.38
+         HEIGHT             = 2.76
          WIDTH              = 53.6.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -227,10 +221,6 @@ ASSIGN
                 "ALL".
 
 ASSIGN 
-       ToBoxOS400:PRIVATE-DATA IN FRAME frMain     = 
-                "OS400".
-
-ASSIGN 
        ToBoxUnix:PRIVATE-DATA IN FRAME frMain     = 
                 "UNIX".
 
@@ -251,7 +241,7 @@ ASSIGN
 */  /* FRAME frMain */
 &ANALYZE-RESUME
 
-
+ 
 
 
 
@@ -266,12 +256,12 @@ DO:
     ASSIGN 
       ToBoxWin32:CHECKED = FALSE
       ToBoxUnix:CHECKED = FALSE
-      ToBoxOS400:CHECKED = FALSE.
+    .
   ELSE 
     ASSIGN
       ToBoxWin32:CHECKED = TRUE
       ToBoxUnix:CHECKED = TRUE
-      ToBoxOS400:CHECKED = TRUE.
+    .
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -281,7 +271,7 @@ END.
 &Scoped-define SELF-NAME ToBoxWin32
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL ToBoxWin32 sObject
 ON VALUE-CHANGED OF ToBoxWin32 IN FRAME frMain /* WIN32 (Win95,98,ME,NTor Win2000) */
-,ToBoxUnix,ToBoxOS400
+,ToBoxUnix
 DO:
   {set DataModified TRUE}.
   IF SELF:CHECKED THEN
@@ -324,7 +314,6 @@ DO WITH FRAME {&FRAME-NAME}:
   ASSIGN
     ToBoxWin32:SENSITIVE = FALSE
     ToBoxUnix:SENSITIVE  = FALSE
-    ToBoxOS400:SENSITIVE = FALSE
     ToBoxAll:SENSITIVE   = FALSE
     .
 
@@ -369,7 +358,6 @@ DO WITH FRAME {&FRAME-NAME}:
   ASSIGN
     ToBoxWin32:SENSITIVE = TRUE
     ToBoxUnix:SENSITIVE  = TRUE
-    ToBoxOS400:SENSITIVE = TRUE
     ToBoxAll:SENSITIVE   = TRUE
     .
 

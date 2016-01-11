@@ -21,7 +21,10 @@
 *                                                                    *
 *********************************************************************/
 
-/* _lodseqs.p - load _Sequence file from _Seqvals.d and set w/ CURRENT-VALUE */
+/* _lodseqs.p - load _Sequence file from _Seqvals.d and set w/ CURRENT-VALUE 
+
+  History:  D. McMann 08/08/02  Eliminated any sequences whose name begins "$" - Peer Direct
+*/
 
 { prodict/dictvar.i }
 { prodict/user/uservar.i }
@@ -46,7 +49,8 @@ PUT UNFORMATTED
   '  IF INDEX(seqname,".") = 0 THEN seqname = "' LDBNAME(user_dbname)
     '." + seqname.' SKIP
   '  CASE seqname:' SKIP.
-FOR EACH _Sequence WHERE _Sequence._Db-recid = drec_db NO-LOCK:
+FOR EACH _Sequence WHERE _Sequence._Db-recid = drec_db
+                     AND NOT _Sequence._Seq-name BEGINS "$" NO-LOCK:
   PUT UNFORMATTED 
     '    WHEN "' LDBNAME(user_dbname) '.' _Sequence._Seq-Name '" THEN' SKIP
     '      CURRENT-VALUE(' _Sequence._Seq-Name ',' LDBNAME(user_dbname)

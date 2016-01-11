@@ -157,12 +157,12 @@ FUNCTION setDataValue RETURNS LOGICAL
 
 
 /* Definitions of the field level widgets                               */
-DEFINE VARIABLE coCombo AS DECIMAL FORMAT ">>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
+DEFINE VARIABLE coCombo AS DECIMAL FORMAT "->>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
      LABEL "Default Logical Service" 
      VIEW-AS COMBO-BOX INNER-LINES 10
      LIST-ITEM-PAIRS "",0
      DROP-DOWN-LIST
-     SIZE 72.4 BY 1 NO-UNDO.
+     SIZE 72.4 BY 1.05 NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */
@@ -200,8 +200,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW sObject ASSIGN
-         HEIGHT             = 1.38
-         WIDTH              = 129.
+         HEIGHT             = 1.33
+         WIDTH              = 128.6.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME

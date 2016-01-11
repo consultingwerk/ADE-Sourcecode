@@ -1,4 +1,4 @@
-%If(%Or(%==(%subjectareaprop("DBlogical"),"ASDB"),%==(%subjectareaprop("DBlogical"),"AFDB"))) {
+%If(%Or(%==(%DiagramProp("DBlogical"),"ASDB"),%==(%DiagramProp("DBlogical"),"AFDB"))) {
 /*********************************************************************
 * Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
@@ -23,7 +23,7 @@
 *                                                                    *
 *********************************************************************/
 }
-%If(%Or(%==(%subjectareaprop("DBlogical"),"RYDB"),%==(%subjectareaprop("DBlogical"),"GSDB"))) {
+%If(%Or(%==(%DiagramProp("DBlogical"),"RYDB"),%==(%DiagramProp("DBlogical"),"GSDB"))) {
 /*********************************************************************
 * Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
@@ -48,7 +48,7 @@
 *                                                                    *
 *********************************************************************/
 }
-%If(%Or(%==(%subjectareaprop("DBlogical"),"ICFDB"),%==(%subjectareaprop("DBlogical"),"RVDB"))) {
+%If(%Or(%==(%DiagramProp("DBlogical"),"ICFDB"),%==(%DiagramProp("DBlogical"),"RVDB"))) {
 /*********************************************************************
 * Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *

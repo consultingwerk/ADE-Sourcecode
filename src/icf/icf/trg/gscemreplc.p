@@ -23,11 +23,6 @@
 *********************************************************************/
 TRIGGER PROCEDURE FOR REPLICATION-CREATE OF gsc_entity_mnemonic.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "gsc_entity_mnemonic"
-                      &TRIGGER-TYPE = "REPLICATION-CREATE"}
-
 {af/sup/afreplicat.i  &TABLE-NAME   = "gsc_entity_mnemonic"
                       &TABLE-FLA    = "gscem"
                       &TABLE-PK     = "entity_mnemonic"

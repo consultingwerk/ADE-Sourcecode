@@ -35,9 +35,11 @@
            04/12/02 adams@progress.com
              Cleaned up error messages, added required field markers, added
                POSSE header
+           10/31/02 adams@progress.com
+             Modified superuser access to Update Site feature
 
 ---------------------------------------------------------------------------------*/
-/*                   This .W file was created with the Progress UIB.             */
+/*              This .w file was created with the Progress AppBuilder.           */
 /*-------------------------------------------------------------------------------*/
 
 /* Create an unnamed pool to store all the widgets created 
@@ -83,14 +85,11 @@ DEFINE VARIABLE lOutNext          AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE lOutPrev          AS LOGICAL    NO-UNDO.
 
 DEFINE TEMP-TABLE ttWeb NO-UNDO
-  FIELD ttWLine         AS INTEGER
-  FIELD ttWValue        AS CHARACTER
-  INDEX ittBLine        IS UNIQUE PRIMARY
-        ttWLine         ASCENDING.
+  FIELD ttWLine   AS INTEGER
+  FIELD ttWValue  AS CHARACTER
+  INDEX ittBLine  IS UNIQUE PRIMARY ttWLine ASCENDING.
 
-DEFINE TEMP-TABLE tt_site_number  LIKE rsm_site_number
-  /* USE-INDEX owning_site_code */ .
-    
+DEFINE TEMP-TABLE tt_site_number  LIKE rsm_site_number.
 DEFINE TEMP-TABLE tt_site         LIKE rsm_site.
 DEFINE TEMP-TABLE tt_user         LIKE rsm_user.
 
@@ -270,12 +269,6 @@ PROCEDURE displayHelp :
              + '<TD>~n'
              + '<BR>~n'
              + '<A HREF="#" ID="ID_top"></A>'
-             /* This is redundant with the table header (adams)
-             + '<H1 ID="ID_top" ALIGN="CENTER">Dynamics - Site Numbers</H1>~n'
-             + '<BR>~n'
-             + '<H2 ALIGN="CENTER">Help About</H2>~n'
-             + '<HR WIDTH=80%>~n'
-             */
              + '<H3 ALIGN="CENTER"><A HREF="#link_site">Dynamics Sites</A></H3>~n'
              + '<H3 ALIGN="CENTER"><A HREF="#link_number">Dynamics Site Numbers</A></H3>~n'
              + '<HR WIDTH=80%>~n'
@@ -413,8 +406,7 @@ PROCEDURE displayIndex :
     ELSE DO:
       FIND FIRST rsm_site NO-LOCK
         WHERE rsm_site.site_code     = cLoginCode
-        AND   rsm_site.site_password = ENCODE(cLoginPassword)
-        NO-ERROR.
+        AND   rsm_site.site_password = ENCODE(cLoginPassword) NO-ERROR.
       IF AVAILABLE rsm_site THEN
         ASSIGN
           cWebIDSite = rsm_site.site_code
@@ -425,8 +417,7 @@ PROCEDURE displayIndex :
 
         FIND FIRST rsm_user NO-LOCK
           WHERE rsm_user.user_code     = cLoginCode
-          AND   rsm_user.user_password = ENCODE(cLoginPassword)
-          NO-ERROR.
+          AND   rsm_user.user_password = ENCODE(cLoginPassword) NO-ERROR.
         IF AVAILABLE rsm_user THEN
           ASSIGN
             cWebIDUser = rsm_user.user_code
@@ -674,7 +665,7 @@ PROCEDURE displayIndex :
     iWebLine = iWebLine + 1
     ttWLine  = iWebLine.
     
-  IF lIsIE THEN /* dma */
+  IF lIsIE THEN
     ttWValue = '<TR>~n'
              + '<TD COLSPAN=2 ALIGN="CENTER">~n'
              + '<INPUT TYPE="submit" NAME="wSubmitLogin" SIZE="40" VALUE="'
@@ -891,12 +882,8 @@ PROCEDURE processWebRequest :
 
   RUN outputHeader.
 
-  FOR EACH ttWeb NO-LOCK
-    BY ttWLine:
-    {&OUT}
-      ttWValue
-      SKIP
-      .
+  FOR EACH ttWeb NO-LOCK BY ttWLine:
+    {&OUT} ttWValue SKIP.
   END.
 
 END PROCEDURE.
@@ -1062,7 +1049,7 @@ PROCEDURE setHeader :
                + '&nbsp;&nbsp;'
                .
                
-    ASSIGN /* dma */
+    ASSIGN
       ttWValue = ttWValue
                + (IF lIsIE OR (NOT lIsIE AND lOutPrev) THEN
                   '<INPUT TYPE="submit" NAME="wNavigation" VALUE="Prev"' +
@@ -1077,20 +1064,16 @@ PROCEDURE setHeader :
                .
     
     ASSIGN
-      ttWValue = ttWValue
-               + '</TH>~n'
-               + '</TR>~n'
-               .
+      ttWValue = ttWValue + '</TH>~n' + '</TR>~n'.
   END.
 
-  IF  cOutColumns <> ""
+  IF cOutColumns <> ""
     AND NUM-ENTRIES(cOutColumns) = INTEGER(cOutColSpan) THEN DO:
     CREATE ttWeb.
     ASSIGN
       iWebLine = iWebLine + 1
       ttWLine  = iWebLine
-      ttWValue = ttWValue
-               + '<TR>~n'.
+      ttWValue = ttWValue + '<TR>~n'.
 
     DO iLoop = 1 TO NUM-ENTRIES(cOutColumns):
       ASSIGN
@@ -1101,8 +1084,7 @@ PROCEDURE setHeader :
     END.
 
     ASSIGN
-      ttWValue = ttWValue
-               + '</TR>~n'.
+      ttWValue = ttWValue + '</TR>~n'.
 
   END.
 
@@ -1110,9 +1092,7 @@ PROCEDURE setHeader :
   ASSIGN
     iWebLine = iWebLine + 1
     ttWLine  = iWebLine
-    ttWValue = '</THEAD>~n'
-             + '<TBODY>~n'
-             .
+    ttWValue = '</THEAD>~n' + '<TBODY>~n'.
 
 END PROCEDURE.
 
@@ -1128,7 +1108,7 @@ PROCEDURE siteMasterControl :
 /*------------------------------------------------------------------------------
   Purpose:     
   Parameters:  <none>
-  Notes:       
+  Notes:       For superusers
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cMessage         AS CHARACTER  NO-UNDO.
 
@@ -1151,7 +1131,6 @@ PROCEDURE siteMasterControl :
 
   blk_Site:
   DO WITH TRANSACTION:
-    /* IF cWebIDSite = "" AND cSiteCode = "" AND cSiteEmail = "" THEN DO: */
     IF cSiteSubmit = "" THEN DO:
       ASSIGN
         cMessage = '<LI>'
@@ -1166,20 +1145,16 @@ PROCEDURE siteMasterControl :
       ASSIGN
         cWebIDSite = "".
 
-      IF  cWebIDSite = ""
-        AND cSiteCode <> "" THEN
+      IF cSiteCode <> "" THEN
         FIND FIRST rsm_site NO-LOCK
-          WHERE rsm_site.site_code     = cSiteCode
-          AND   rsm_site.site_password = ENCODE(cSitePassword)
+          WHERE rsm_site.site_code = cSiteCode
+          AND (IF cWebIDUser = "" THEN rsm_site.site_password = ENCODE(cSitePassword) ELSE TRUE)
           NO-ERROR.
-      IF AVAILABLE rsm_site THEN
-        ASSIGN cWebIDSite = rsm_site.site_code.
-
-      IF  cWebIDSite = ""
-        AND cSiteEmail <> "" THEN
+      ELSE 
+      IF cSiteEmail <> "" THEN
         FIND FIRST rsm_site NO-LOCK
-          WHERE rsm_site.site_email    = cSiteEmail
-          AND   rsm_site.site_password = ENCODE(cSitePassword)
+          WHERE rsm_site.site_email = cSiteEmail
+          AND (IF cWebIDUser = "" THEN rsm_site.site_password = ENCODE(cSitePassword) ELSE TRUE)
           NO-ERROR.
       IF AVAILABLE rsm_site THEN
         ASSIGN cWebIDSite = rsm_site.site_code.
@@ -1199,14 +1174,14 @@ PROCEDURE siteMasterControl :
           cSiteEmail       = rsm_site.site_email
           cSiteDescription = rsm_site.site_description
           cSiteReference   = rsm_site.external_reference
-          cMessage         = '<LI>Update site information and press the Update button.' + '<BR>~n'.
+          cMessage         = '<LI>Update site information and press the Update button.'
+                           + '<LI>Required fields are marked with a red asterisk (<FONT COLOR="red">*</FONT>).'
           .
     END.
     ELSE
     IF cWebAction = "actionUpdateSite" THEN DO:
-      IF  (cSitePassword <> ""
-        OR cSitePassword2 <> "")
-      AND (cSitePassword <> cSitePassword2
+      IF  (cSitePassword <> "" OR cSitePassword2 <> "")
+        AND (cSitePassword <> cSitePassword2
         OR ENCODE(cSitePassword) <> ENCODE(cSitePassword2)) THEN DO:
         ASSIGN
           cMessage = cMessage
@@ -1231,10 +1206,7 @@ PROCEDURE siteMasterControl :
         LEAVE blk_Site.
       END.
 
-      FIND FIRST rsm_site NO-LOCK
-        WHERE rsm_site.site_code = cWebIDSite
-        NO-ERROR.
-      IF NOT AVAILABLE rsm_site THEN DO:
+      IF NOT CAN-FIND(FIRST rsm_site WHERE rsm_site.site_code = cWebIDSite) THEN DO:
         ASSIGN
           cMessage = '<FONT COLOR="red">~n'
                    + 'The site information entered is invalid.  Please correct and try again.'
@@ -1242,16 +1214,13 @@ PROCEDURE siteMasterControl :
                    + '<BR>~n'.
         LEAVE blk_Site.
       END.
-      ELSE
-        ASSIGN
-          cWebIDSite = rsm_site.site_code.
 
       FIND rsm_site EXCLUSIVE-LOCK
-        WHERE rsm_site.site_code = cWebIDSite
-        NO-ERROR.
+        WHERE rsm_site.site_code = cWebIDSite NO-ERROR.
       ASSIGN
         rsm_site.site_email         = cSiteEmail
-        rsm_site.site_password      = (IF cSitePassword <> "" AND cSitePassword2 <> "" THEN ENCODE(cSitePassword) ELSE rsm_site.site_password)
+        rsm_site.site_password      = (IF cSitePassword <> "" AND cSitePassword2 <> "" 
+                                       THEN ENCODE(cSitePassword) ELSE rsm_site.site_password)
         rsm_site.site_description   = cSiteDescription
         rsm_site.external_reference = cSiteReference
         NO-ERROR.
@@ -1303,8 +1272,7 @@ PROCEDURE siteMasterControl :
       END.
 
       FIND FIRST rsm_site NO-LOCK
-        WHERE rsm_site.site_code = cSiteCode
-        NO-ERROR.
+        WHERE rsm_site.site_code = cSiteCode NO-ERROR.
       IF AVAILABLE rsm_site THEN DO:
         ASSIGN
           cMessage = '<FONT COLOR="red">~n'
@@ -1389,7 +1357,8 @@ PROCEDURE siteMasterControl :
     ttWLine  = iWebLine
     ttWValue = '<TR>~n'
              + '<TD ALIGN="RIGHT">~n'
-             + 'Site Code<FONT COLOR="red">*</FONT>:'
+             + (IF cWebAction = "actionModifySite" THEN 'Site Code:'
+             	  ELSE 'Site Code<FONT COLOR="red">*</FONT>:')
              + '</TD>~n'
              + '<TD>~n'
              + '<INPUT TYPE="text" NAME="wSiteCode" SIZE="30" VALUE="' 
@@ -1407,7 +1376,7 @@ PROCEDURE siteMasterControl :
     ttWLine  = iWebLine
     ttWValue = '<TR>~n'
              + '<TD ALIGN="RIGHT">~n'
-             + 'e-mail address:'
+             + 'E-mail address:'
              + '</TD>~n'
              + '<TD>~n'
              + '<INPUT TYPE="text" NAME="wSiteEmail" SIZE="30" VALUE="'
@@ -1417,20 +1386,23 @@ PROCEDURE siteMasterControl :
              + '</TR>~n'
              .
 
-  CREATE ttWeb.
-  ASSIGN
-    iWebLine = iWebLine + 1
-    ttWLine  = iWebLine
-    ttWValue = '<TR>~n'
-             + '<TD ALIGN="RIGHT">~n'
-             + (IF cWebAction = "actionModifySite" THEN 'Password<FONT COLOR="red">*</FONT>:' 
-                ELSE 'New Password<FONT COLOR="red">*</FONT>:')
-             + '</TD>~n'
-             + '<TD>~n'
-             + '<INPUT TYPE="password" NAME="wSitePassword" SIZE="30">~n'
-             + '</TD>~n'
-             + '</TR>~n'
-             .
+  IF (cWebAction = "actionModifySite" AND cWebIDUser = "") 
+    OR cWebAction <> "actionModifySite" THEN DO: /*dma*/
+    CREATE ttWeb.
+    ASSIGN
+      iWebLine = iWebLine + 1
+      ttWLine  = iWebLine
+      ttWValue = '<TR>~n'
+               + '<TD ALIGN="RIGHT">~n'
+               + (IF cWebAction = "actionModifySite" THEN 'Password<FONT COLOR="red">*</FONT>:' 
+                  ELSE 'New Password<FONT COLOR="red">*</FONT>:')
+               + '</TD>~n'
+               + '<TD>~n'
+               + '<INPUT TYPE="password" NAME="wSitePassword" SIZE="30">~n'
+               + '</TD>~n'
+               + '</TR>~n'
+               .
+  END.
 
   IF cWebAction = "actionNewSite" OR cWebAction = "actionUpdateSite" THEN DO:
     CREATE ttWeb.
@@ -1462,19 +1434,6 @@ PROCEDURE siteMasterControl :
                + '</TEXTAREA>~n'
                + '</TD>~n'
                + '</TR>~n'
-               /*
-               + '<TR>~n'
-               + '<TD ALIGN="RIGHT">~n'
-               + 'Reference:'
-               + '</TD>~n'
-               + '<TD>~n'
-               + &nbps;
-               + '<INPUT TYPE="text" NAME="wSiteReference" SIZE="40" VALUE="'
-               + cSiteReference
-               + '">~n'
-               + '</TD>~n'
-               + '</TR>~n'
-               */
                .
   END.
 
@@ -1533,28 +1492,24 @@ PROCEDURE siteMasterQuery :
   DEFINE VARIABLE iCountSite    AS INTEGER     NO-UNDO.
   DEFINE VARIABLE iCountChild   AS INTEGER     NO-UNDO.
 
-  EMPTY TEMP-TABLE tt_site.
+  IF NOT TRANSACTION THEN EMPTY TEMP-TABLE tt_site. ELSE FOR EACH tt_site: DELETE tt_site. END.
 
   loop_Blk:
   DO iBrowseLoop = 1 TO iBrowseRows:
     IF iBrowseLoop = 1 THEN DO:
       IF cWebNavigation = "PREV":U AND cWebFirst <> "" THEN
         FIND FIRST rsm_site NO-LOCK
-          WHERE rsm_site.site_code = cWebFirst
-          NO-ERROR.
+          WHERE rsm_site.site_code = cWebFirst NO-ERROR.
       ELSE
       IF cWebNavigation = "NEXT":U AND cWebLast <> "" THEN
         FIND FIRST rsm_site NO-LOCK
-          WHERE rsm_site.site_code = cWebLast
-          NO-ERROR.
+          WHERE rsm_site.site_code = cWebLast NO-ERROR.
       ELSE
       IF cWebSearch <> "" THEN
         FIND FIRST rsm_site NO-LOCK
-          WHERE rsm_site.site_code BEGINS cWebSearch
-          NO-ERROR.
+          WHERE rsm_site.site_code BEGINS cWebSearch NO-ERROR.
       ELSE
-        FIND FIRST rsm_site NO-LOCK
-          NO-ERROR.
+        FIND FIRST rsm_site NO-LOCK NO-ERROR.
     END.
     ELSE DO:
       IF cWebNavigation = "PREV":U THEN 
@@ -1745,8 +1700,7 @@ PROCEDURE siteNumberControl :
 
     IF cNumberOwningSite <> "" THEN DO:
       FIND FIRST rsm_site NO-LOCK
-        WHERE rsm_site.site_code = cNumberOwningSite
-        NO-ERROR.
+        WHERE rsm_site.site_code = cNumberOwningSite NO-ERROR.
       IF NOT AVAILABLE rsm_site THEN DO:
         ASSIGN
           cMessage = cMessage
@@ -1767,8 +1721,7 @@ PROCEDURE siteNumberControl :
 
     IF cNumberAllocatedSite <> "" THEN DO:
       FIND FIRST rsm_site NO-LOCK
-        WHERE rsm_site.site_code = cNumberAllocatedSite
-        NO-ERROR.
+        WHERE rsm_site.site_code = cNumberAllocatedSite NO-ERROR.
       IF NOT AVAILABLE rsm_site THEN DO:
         ASSIGN
           cMessage = cMessage
@@ -1783,8 +1736,7 @@ PROCEDURE siteNumberControl :
     IF cNumberOverride = "YES" AND cNumberUserCode <> "" THEN DO:
       FIND FIRST rsm_user NO-LOCK
         WHERE rsm_user.user_code     = cNumberUserCode
-        AND   rsm_user.user_password = ENCODE(cNumberUserPassword)
-        NO-ERROR.
+        AND   rsm_user.user_password = ENCODE(cNumberUserPassword) NO-ERROR.
       IF AVAILABLE rsm_user THEN DO:
         IF rsm_user.maintain_system_data = YES
           AND rsm_user.maximum_authorize > iNumberMaximum THEN
@@ -1817,8 +1769,7 @@ PROCEDURE siteNumberControl :
 
     IF iNumberValue > 0 THEN DO:
       FIND FIRST rsm_site_number NO-LOCK
-        WHERE rsm_site_number.site_number      = iNumberValue
-        NO-ERROR.
+        WHERE rsm_site_number.site_number = iNumberValue NO-ERROR.
       IF AVAILABLE rsm_site_number
         AND rsm_site_number.owning_site_code <> "" THEN DO:
         ASSIGN
@@ -1874,8 +1825,7 @@ PROCEDURE siteNumberControl :
         END.
 
         FIND FIRST rsm_site_number NO-LOCK
-          WHERE rsm_site_number.site_number = iNumberCurrent
-          NO-ERROR.
+          WHERE rsm_site_number.site_number = iNumberCurrent NO-ERROR.
         IF NOT AVAILABLE rsm_site_number THEN DO:
           CREATE rsm_site_number NO-ERROR.
           ASSIGN
@@ -1933,8 +1883,7 @@ PROCEDURE siteNumberControl :
     IF lNumberAuto
       AND iNumberCurrent <> 1 THEN DO:
       FIND FIRST rsm_control EXCLUSIVE-LOCK NO-ERROR.
-      IF AVAILABLE rsm_control
-        AND rsm_control.last_number <> iNumberCurrent THEN
+      IF AVAILABLE rsm_control AND rsm_control.last_number <> iNumberCurrent THEN
         ASSIGN 
           rsm_control.last_number = iNumberCurrent.
     END.
@@ -2165,7 +2114,7 @@ PROCEDURE siteNumberQueryNum :
   DEFINE VARIABLE iValueFirst   AS INTEGER    NO-UNDO.
   DEFINE VARIABLE iValueLast    AS INTEGER    NO-UNDO.
 
-  EMPTY TEMP-TABLE tt_site_number.
+  IF NOT TRANSACTION THEN EMPTY TEMP-TABLE tt_site_number. ELSE FOR EACH tt_site_number: DELETE tt_site_number. END.
 
   ASSIGN iValueSearch = INTEGER(cWebSearch) NO-ERROR.
   ASSIGN iValueFirst  = INTEGER(cWebFirst)  NO-ERROR.
@@ -2178,22 +2127,19 @@ PROCEDURE siteNumberQueryNum :
         FIND FIRST rsm_site_number NO-LOCK
           WHERE rsm_site_number.owning_site_code = 
             (IF cWebIDUser <> "" THEN rsm_site_number.owning_site_code ELSE cWebIDSite)
-          AND   rsm_site_number.site_number = iValueFirst
-          NO-ERROR.
+          AND   rsm_site_number.site_number = iValueFirst NO-ERROR.
       ELSE
       IF cWebNavigation = "NEXT":U AND iValueLast > 0 THEN
         FIND FIRST rsm_site_number NO-LOCK
           WHERE rsm_site_number.owning_site_code = 
             (IF cWebIDUser <> "" THEN rsm_site_number.owning_site_code ELSE cWebIDSite)
-          AND rsm_site_number.site_number = iValueLast
-          NO-ERROR.
+          AND rsm_site_number.site_number = iValueLast NO-ERROR.
       ELSE
       IF iValueSearch > 0 THEN
         FIND FIRST rsm_site_number NO-LOCK
           WHERE rsm_site_number.owning_site_code = 
             (IF cWebIDUser <> "" THEN rsm_site_number.owning_site_code ELSE cWebIDSite)
-          AND   rsm_site_number.site_number = iValueSearch
-          NO-ERROR.
+          AND   rsm_site_number.site_number = iValueSearch NO-ERROR.
       ELSE
         FIND FIRST rsm_site_number NO-LOCK
           WHERE rsm_site_number.owning_site_code = 
@@ -2304,7 +2250,10 @@ PROCEDURE siteNumberQuerySite :
   DEFINE VARIABLE iValueFirst   AS INTEGER    NO-UNDO.
   DEFINE VARIABLE iValueLast    AS INTEGER    NO-UNDO.
 
-  EMPTY TEMP-TABLE tt_site_number.
+  IF NOT TRANSACTION THEN 
+  	EMPTY TEMP-TABLE tt_site_number. 
+  ELSE 
+  	FOR EACH tt_site_number: DELETE tt_site_number. END.
 
   ASSIGN iValueFirst  = INTEGER(cWebFirst)  NO-ERROR.
   ASSIGN iValueLast   = INTEGER(cWebLast)   NO-ERROR.
@@ -2330,12 +2279,10 @@ PROCEDURE siteNumberQuerySite :
       ELSE
       IF cWebSearch <> "" THEN
         FIND FIRST rsm_site_number NO-LOCK
-          WHERE rsm_site_number.owning_site_code BEGINS cWebSearch
-          NO-ERROR.
+          WHERE rsm_site_number.owning_site_code BEGINS cWebSearch NO-ERROR.
       ELSE
         FIND FIRST rsm_site_number NO-LOCK
-          USE-INDEX owning_site_code
-          NO-ERROR.
+          USE-INDEX owning_site_code NO-ERROR.
     END.
     ELSE DO:
       IF cWebNavigation = "PREV":U THEN 
@@ -2367,37 +2314,29 @@ PROCEDURE siteNumberQuerySite :
     cOutColumns = "Site Number,Owning Site,Allocated Site,Active"
     .
 
-  FIND FIRST tt_site_number NO-LOCK
-    USE-INDEX owning_site_code
-    NO-ERROR.
+  FIND FIRST tt_site_number NO-LOCK USE-INDEX owning_site_code NO-ERROR.
   IF AVAILABLE tt_site_number THEN 
     ASSIGN cWebFirst = STRING(tt_site_number.site_number).
   FIND FIRST rsm_site_number NO-LOCK
     WHERE rsm_site_number.site_number = tt_site_number.site_number
-    USE-INDEX owning_site_code
-    NO-ERROR.
+    USE-INDEX owning_site_code NO-ERROR.
   FIND PREV rsm_site_number
     WHERE rsm_site_number.owning_site_code BEGINS
       (IF cWebSearch = "" THEN rsm_site_number.owning_site_code ELSE cWebSearch)
-    USE-INDEX owning_site_code
-    NO-LOCK NO-ERROR.
+    USE-INDEX owning_site_code NO-LOCK NO-ERROR.
   IF AVAILABLE rsm_site_number THEN 
     ASSIGN lOutPrev = YES.
 
-  FIND LAST tt_site_number NO-LOCK
-    USE-INDEX owning_site_code
-    NO-ERROR.
+  FIND LAST tt_site_number NO-LOCK USE-INDEX owning_site_code NO-ERROR.
   IF AVAILABLE tt_site_number THEN 
     ASSIGN cWebLast = STRING(tt_site_number.site_number).
   FIND FIRST rsm_site_number NO-LOCK
     WHERE rsm_site_number.site_number = tt_site_number.site_number
-    USE-INDEX owning_site_code
-    NO-ERROR.
+    USE-INDEX owning_site_code NO-ERROR.
   FIND NEXT rsm_site_number
     WHERE rsm_site_number.owning_site_code BEGINS
       (IF cWebSearch = "" THEN rsm_site_number.owning_site_code ELSE cWebSearch)
-    USE-INDEX owning_site_code
-    NO-LOCK NO-ERROR.
+    USE-INDEX owning_site_code NO-LOCK NO-ERROR.
   IF AVAILABLE rsm_site_number THEN 
     ASSIGN lOutNext = YES.
 
@@ -2504,8 +2443,7 @@ PROCEDURE siteNumberReAssign :
     IF cNumberUserCode <> "" THEN DO:
      FIND FIRST rsm_user NO-LOCK
        WHERE rsm_user.user_code     = cNumberUserCode
-       AND   rsm_user.user_password = ENCODE(cNumberUserPassword)
-       NO-ERROR.
+       AND   rsm_user.user_password = ENCODE(cNumberUserPassword) NO-ERROR.
       IF AVAILABLE rsm_user THEN DO:
         IF rsm_user.maintain_system_data = YES
           AND rsm_user.maximum_authorize > iNumberMaximum THEN
@@ -2524,8 +2462,7 @@ PROCEDURE siteNumberReAssign :
 
     IF cNumberOwningSite <> "" THEN DO:
       FIND FIRST rsm_site NO-LOCK
-        WHERE rsm_site.site_code = cNumberOwningSite
-        NO-ERROR.
+        WHERE rsm_site.site_code = cNumberOwningSite NO-ERROR.
       IF NOT AVAILABLE rsm_site THEN DO:
         ASSIGN
           cMessage = cMessage
@@ -2547,8 +2484,7 @@ PROCEDURE siteNumberReAssign :
 
     IF cNumberAllocatedSite <> "" THEN DO:
       FIND FIRST rsm_site NO-LOCK
-        WHERE rsm_site.site_code = cNumberAllocatedSite
-        NO-ERROR.
+        WHERE rsm_site.site_code = cNumberAllocatedSite NO-ERROR.
       IF NOT AVAILABLE rsm_site THEN DO:
         ASSIGN
           cMessage = cMessage
@@ -2573,14 +2509,10 @@ PROCEDURE siteNumberReAssign :
 
     ASSIGN iNumberValue = INTEGER(cNumberValue) NO-ERROR.
 
-    IF iNumberValue > 0
-    THEN DO:
-
+    IF iNumberValue > 0 THEN DO:
       FIND FIRST rsm_site_number EXCLUSIVE-LOCK
-        WHERE rsm_site_number.site_number = iNumberValue
-        NO-ERROR.
-      IF NOT AVAILABLE rsm_site_number
-      THEN DO:
+        WHERE rsm_site_number.site_number = iNumberValue NO-ERROR.
+      IF NOT AVAILABLE rsm_site_number THEN DO:
         ASSIGN
           cMessage = cMessage
                    + '<FONT COLOR="red">~n'
@@ -2606,15 +2538,12 @@ PROCEDURE siteNumberReAssign :
                      + '</FONT>~n'
                      + '<BR>~n'.
         END.
-        ELSE DO:
+        ELSE
           ASSIGN
             iNumberAllocated  = iNumberAllocated + 1.
-        END.
-
       END.
 
-      IF iNumberAllocated >= iNumberMaximum
-      THEN DO:
+      IF iNumberAllocated >= iNumberMaximum THEN DO:
         ASSIGN
           cMessage = cMessage
                    + '<FONT COLOR="red">~n'
@@ -2820,8 +2749,7 @@ PROCEDURE siteUserControl :
       IF cWebIDUser = "" AND cUserCode <> "" THEN
         FIND FIRST rsm_user NO-LOCK
           WHERE rsm_user.user_code     = cUserCode
-          AND   rsm_user.user_password = ENCODE(cUserPassword)
-          NO-ERROR.
+          AND   rsm_user.user_password = ENCODE(cUserPassword) NO-ERROR.
       IF AVAILABLE rsm_user THEN
         ASSIGN cWebIDUser = rsm_user.user_code.
 
@@ -2829,8 +2757,7 @@ PROCEDURE siteUserControl :
         AND cUserEmail <> "" THEN
         FIND FIRST rsm_user NO-LOCK
           WHERE rsm_user.user_email    = cUserEmail
-          AND   rsm_user.user_password = ENCODE(cUserPassword)
-          NO-ERROR.
+          AND   rsm_user.user_password = ENCODE(cUserPassword) NO-ERROR.
       IF AVAILABLE rsm_user THEN
         ASSIGN cWebIDUser = rsm_user.user_code.
 
@@ -2882,8 +2809,7 @@ PROCEDURE siteUserControl :
       END.
 
       FIND FIRST rsm_user NO-LOCK
-        WHERE rsm_user.user_code = cWebIDUser
-        NO-ERROR.
+        WHERE rsm_user.user_code = cWebIDUser NO-ERROR.
       IF NOT AVAILABLE rsm_user THEN DO:
         ASSIGN
           cMessage = '<FONT COLOR="red">~n'
@@ -2941,8 +2867,7 @@ PROCEDURE siteUserControl :
       IF  cAuthUserCode <> "" THEN DO:
         FIND FIRST rsm_user NO-LOCK
           WHERE rsm_user.user_code     = cAuthUserCode
-          AND   rsm_user.user_password = ENCODE(cAuthUserPassword)
-          NO-ERROR.
+          AND   rsm_user.user_password = ENCODE(cAuthUserPassword) NO-ERROR.
         IF NOT AVAILABLE rsm_user THEN DO:
           ASSIGN
             cMessage = '<FONT COLOR="red">~n'
@@ -2973,8 +2898,7 @@ PROCEDURE siteUserControl :
       END.
 
       FIND FIRST rsm_user NO-LOCK
-        WHERE rsm_user.user_code = cUserCode
-        NO-ERROR.
+        WHERE rsm_user.user_code = cUserCode NO-ERROR.
       IF AVAILABLE rsm_user THEN DO:
         ASSIGN
           cMessage = '<FONT COLOR="red">~n'
@@ -3079,7 +3003,7 @@ PROCEDURE siteUserControl :
     ttWLine  = iWebLine
     ttWValue = '<TR>~n'
              + '<TD ALIGN="RIGHT">~n'
-             + 'e-mail address:'
+             + 'E-mail address:'
              + '</TD>~n'
              + '<TD>~n'
              + '<INPUT TYPE="text" NAME="wUserEmail" SIZE="30" VALUE="'
@@ -3226,7 +3150,7 @@ PROCEDURE siteUserQuery :
   Notes:       
 ------------------------------------------------------------------------------*/
 
-  EMPTY TEMP-TABLE tt_user.
+  IF NOT TRANSACTION THEN EMPTY TEMP-TABLE tt_user. ELSE FOR EACH tt_user: DELETE tt_user. END.
 
   loop_Blk:
   DO iBrowseLoop = 1 TO iBrowseRows:
@@ -3234,22 +3158,18 @@ PROCEDURE siteUserQuery :
       IF cWebNavigation = "PREV":U
       AND cWebFirst <> "" THEN
         FIND FIRST rsm_user NO-LOCK
-          WHERE rsm_user.user_code = cWebFirst
-          NO-ERROR.
+          WHERE rsm_user.user_code = cWebFirst NO-ERROR.
       ELSE
       IF cWebNavigation = "NEXT":U
       AND cWebLast <> "" THEN
         FIND FIRST rsm_user NO-LOCK
-          WHERE rsm_user.user_code = cWebLast
-          NO-ERROR.
+          WHERE rsm_user.user_code = cWebLast NO-ERROR.
       ELSE
       IF cWebSearch <> "" THEN
         FIND FIRST rsm_user NO-LOCK
-          WHERE rsm_user.user_code BEGINS cWebSearch
-          NO-ERROR.
+          WHERE rsm_user.user_code BEGINS cWebSearch NO-ERROR.
       ELSE
-        FIND FIRST rsm_user NO-LOCK
-          NO-ERROR.
+        FIND FIRST rsm_user NO-LOCK NO-ERROR.
     END.
     ELSE DO:
       IF cWebNavigation = "PREV":U THEN 
@@ -3344,29 +3264,25 @@ PROCEDURE verifyID :
 
   IF cEXWebIDSite <> "" THEN DO:
     FIND FIRST rsm_site NO-LOCK
-      WHERE ENCODE(rsm_site.site_code) = cEXWebIDSite
-      NO-ERROR.
+      WHERE ENCODE(rsm_site.site_code) = cEXWebIDSite NO-ERROR.
     ASSIGN cWebIDSite = IF AVAILABLE rsm_site THEN rsm_site.site_code ELSE "".
   END.
 
   IF cEXWebIDUser <> "" THEN DO:
     FIND FIRST rsm_user NO-LOCK
-      WHERE ENCODE(rsm_user.user_code) = cEXWebIDUser
-      NO-ERROR.
+      WHERE ENCODE(rsm_user.user_code) = cEXWebIDUser NO-ERROR.
     ASSIGN cWebIDUser = IF AVAILABLE rsm_user THEN rsm_user.user_code ELSE "".
   END.
 
   IF cWebIDSite <> "" THEN DO:
     FIND FIRST rsm_site NO-LOCK
-      WHERE rsm_site.site_code = cWebIDSite
-      NO-ERROR.
+      WHERE rsm_site.site_code = cWebIDSite NO-ERROR.
     ASSIGN cWebIDSite = IF AVAILABLE rsm_site THEN rsm_site.site_code ELSE "".
   END.
 
   IF cWebIDUser <> "" THEN DO:
     FIND FIRST rsm_user NO-LOCK
-      WHERE rsm_user.user_code = cWebIDUser
-      NO-ERROR.
+      WHERE rsm_user.user_code = cWebIDUser NO-ERROR.
     ASSIGN cWebIDUser = IF AVAILABLE rsm_user THEN rsm_user.user_code ELSE "".
   END.
 

@@ -135,7 +135,7 @@ END.
 /* Actions: adm2/support/_wizard.w ? ? ? adm2/support/_wizdel.p */
 /* SmartDataObject Wizard
 Welcome to the SmartDataObject Wizard! During the next few steps, the wizard will lead you through creating a SmartDataObject. You will define the query that you will use to retrieve data from your database(s) and define a set of field values to make available to visualization objects. Press Next to proceed.
-adm2/support/_wizntro.w,adm2/support/_wizqry.w,adm2/support/_wizfld.w,adm2/support/_wizend.w 
+adm2/support/_wizntro.w,adm2/support/_wizlog.w,adm2/support/_wizqry.w,adm2/support/_wizfld.w,adm2/support/_wizend.w 
 */
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

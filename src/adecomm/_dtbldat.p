@@ -46,6 +46,7 @@ Modified on 5/31/95 by GFS Allow display of hidden tables (not meta-schema).
             07/10/98 DLM  Added _owner and DBVERSION syntax for V9 databases
             01/18/00 DLM  Added NO-LOCK where missed.
                           Added display of File Valexp and Valmsg.
+            01/31/03 DLM  Added support for Blobs              
 
 ----------------------------------------------------------------------------*/
 { prodict/fhidden.i }
@@ -70,7 +71,7 @@ DEFINE VARIABLE word_idx    AS LOGICAL                   NO-UNDO.
 DEFINE VARIABLE temp             AS CHAR                NO-UNDO.
 DEFINE VARIABLE odbtyp  AS CHARACTER  NO-UNDO. /* list of ODBC-types */
 
-DEFINE VAR lbls AS CHAR EXTENT 14 NO-UNDO INITIAL
+DEFINE VAR lbls AS CHAR EXTENT 15 NO-UNDO INITIAL
    [ /* 1 */ "        Owner: ",
      /* 2 */ "  Record Size: ",
      /* 3 */ "        Label: ",
@@ -84,7 +85,8 @@ DEFINE VAR lbls AS CHAR EXTENT 14 NO-UNDO INITIAL
      /*11 */ "               ",
      /*12 */ ""               ,
      /*13 */ "      DB-Link: ",
-     /*14 */ " Storage Area: " 
+     /*14 */ " Storage Area: ",
+     /*15 */ "    Blob Size: "
    ].
 
 &GLOBAL-DEFINE LBL_OWNER      1
@@ -101,6 +103,7 @@ DEFINE VAR lbls AS CHAR EXTENT 14 NO-UNDO INITIAL
 &GLOBAL-DEFINE LBL_NONE       12
 &GLOBAL-DEFINE LBL_DBLINK     13
 &GLOBAL-DEFINE LBL_AREA       14
+&GLOBAL-DEFINE LBL_BSIZE      15
 
 DEFINE VAR separators AS CHAR EXTENT 6 NO-UNDO INITIAL 
 [
@@ -312,6 +315,17 @@ PROCEDURE Display_Fld_Detail_Rec:
       DOWN STREAM rpt 1 WITH FRAME rptline.
    END.
 
+   IF bField._Data-type = "BLOB" AND _Db._Db-type = "PROGRESS" THEN DO:
+     FIND FIRST _StorageObject WHERE _StorageObject._Object-Number = bField._Fld-stlen 
+                                 AND _StorageObject._Object-type = 3 NO-LOCK NO-ERROR.
+     IF AVAILABLE _StorageObject THEN DO:
+       FIND _Area where _Area._Area-number = _StorageObject._Area-number NO-LOCK.
+       RUN Display_Value (bField._Field-name, lbls[{&LBL_FLDNAME}], no).
+       RUN Display_Value (_Area._Area-name, lbls[{&LBL_AREA}], no). 
+       RUN Display_Value (bField._Fld-Misc2[1], lbls[{&LBL_BSIZE}], no).
+       DOWN STREAM rpt 1 WITH FRAME rptline.
+     END.
+   END.
    /*----- Field triggers -----*/
    FOR EACH _Field-trig OF bField NO-LOCK:
       DISPLAY STREAM rpt 

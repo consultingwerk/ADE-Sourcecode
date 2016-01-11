@@ -766,9 +766,9 @@ Global Variables: url_unsafe, url_reserved
   ASSIGN i = 0.
   DO WHILE TRUE:
     ASSIGN
-      i = i + 1  /* Next character */
-      /* ASCII value of character */
-      c = ASC(SUBSTRING(p_value, i, 1, "RAW":U)).
+      i = i + 1
+      /* ASCII value of character using single byte codepage */
+      c = ASC(SUBSTRING(p_value, i, 1, "RAW":U), "1252", "1252").
     IF c <= 31 OR c >= 127 OR INDEX(encode-list, CHR(c)) > 0 THEN DO:
       /* Replace character with %hh hexidecimal triplet */
       SUBSTRING(p_value, i, 1, "RAW":U) =

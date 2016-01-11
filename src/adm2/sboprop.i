@@ -48,7 +48,7 @@
     GLOB xcInstanceProperties {&xcInstanceProperties},
   &ENDIF
   &GLOB xcInstanceProperties {&xcInstanceProperties}~
-AppService,DataObjectNames,CascadeOnBrowse,OpenOnInit
+AppService,DataObjectNames,CascadeOnBrowse,OpenOnInit,ForeignFields
 
 /* This is the procedure to execute to set InstanceProperties at design time. */
 &IF DEFINED (ADM-PROPERTY-DLG) = 0 &THEN
@@ -128,9 +128,15 @@ AppService,DataObjectNames,CascadeOnBrowse,OpenOnInit
 &GLOBAL-DEFINE xpFilterWindow
 &GLOBAL-DEFINE xpCurrentUpdateSource
 &GLOBAL-DEFINE xpDataIsFetched
+&GLOBAL-DEFINE xpUpdateTables
+&GLOBAL-DEFINE xpDataLogicObject
+&GLOBAL-DEFINE xpDynamicData
+&GLOBAL-DEFINE xpLastCommitErrorType
+&GLOBAL-DEFINE xpLastCommitErrorKeys
 
 {src/adm2/cntnprop.i}
-
+IF NOT {&ADM-PROPS-DEFINED} THEN
+DO:
 &IF "{&ADMSuper}":U = "":U &THEN
    ghADMProps:ADD-NEW-FIELD('MasterDataObject':U, 'HANDLE':U, 0, ?, ?).
    ghADMProps:ADD-NEW-FIELD('ContainedDataColumns':U, 'CHARACTER':U, 0, ?,'':U).
@@ -154,9 +160,17 @@ AppService,DataObjectNames,CascadeOnBrowse,OpenOnInit
    ghADMProps:ADD-NEW-FIELD('FilterWindow':U, 'CHARACTER':U).
    ghADMProps:ADD-NEW-FIELD('CurrentUpdateSource':U, 'HANDLE':U).
    ghADMProps:ADD-NEW-FIELD('DataIsFetched':U, 'LOGICAL':U, 0, ?, no).
+   ghADMProps:ADD-NEW-FIELD('UpdateTables':U, 'CHARACTER':U, 0, ?, '':U). 
+   ghADMProps:ADD-NEW-FIELD('DataLogicProcedure':U, 'CHARACTER':U, 0, ?, '':U). 
+   ghADMProps:ADD-NEW-FIELD('DataLogicObject':U, 'HANDLE':U).
+   ghADMProps:ADD-NEW-FIELD('DynamicData':U, 'LOGICAL':U, 0, ?, no).
+   ghADMProps:ADD-NEW-FIELD('LastCommitErrorType':U, 'CHAR':U, 0, ?, ?).
+   ghADMProps:ADD-NEW-FIELD('LastCommitErrorKeys':U, 'CHAR':U, 0, ?, ?).
 &ENDIF
 
   {src/adm2/custom/sbopropcustom.i}
+
+END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

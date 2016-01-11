@@ -468,6 +468,7 @@ FUNCTION constructObjectsDef RETURNS LOGICAL
 ------------------------------------------------------------------------------*/    
   DEFINE VAR  l_set-position AS LOGICAL    NO-UNDO.
   DEFINE VAR  l_set-size     AS LOGICAL    NO-UNDO.
+  DEFINE VAR  iPos           AS INTEGER    NO-UNDO.
   
   /* Create and sort the tDataTree records for each object */ 
   createDataTree().
@@ -509,7 +510,7 @@ FUNCTION constructObjectsDef RETURNS LOGICAL
     FIND parent_U WHERE RECID(parent_U) eq x_U._parent-recid.
     /* Ask the SmartObject for its current settings (if it is valid).
        Also determine whether or not we can set its size explicitly.  */
-
+    
     IF NOT x_S._valid-object
     THEN ASSIGN l_set-size     = NO
                 l_set-position = NO
@@ -548,7 +549,7 @@ FUNCTION constructObjectsDef RETURNS LOGICAL
 
       IF NOT old-adm THEN
         ASSIGN cTranslatable = DYNAMIC-FUNCTION("getTranslatableProperties":U IN x_S._HANDLE).
-
+    
       /* Have settings been set correctly? This won't have happened if the
          broker is old or if the broker returned a bad list. */
       IF (ver-broker >= 1.1 AND (settings eq "":U OR settings eq ?)) OR
@@ -579,8 +580,20 @@ FUNCTION constructObjectsDef RETURNS LOGICAL
                                  "ForeignFields":U + CHR(4) + tmp-settings
           settings = "'":U + REPLACE (x_S._settings, "'":U, "~~'":U) +
                      "':U":U.
+          
         END. /* There are foreigh fields, put them into the _settings field */
+
       END.  /* If ADM2 (or greater) and ForeignFields isn't in the list */
+      ELSE IF NOT old-adm AND    /* if the data link has been removed, remove the foreign field values */
+           NOT CAN-FIND(FIRST _admlinks WHERE _admlinks._link-dest eq STRING(RECID(x_U))
+                          AND _admlinks._link-type EQ "DATA":U)  THEN
+      DO iPos = 1 TO NUM-ENTRIES(settings,CHR(3)):
+         IF ENTRY(1,ENTRY(iPos,SETTINGS,CHR(3)),CHR(4))  = "ForeignFields":U THEN
+         DO:
+            ASSIGN ENTRY(iPos,SETTINGS,CHR(3)) = "ForeignFields":U + CHR(4).
+            LEAVE.
+         END.
+      END.
     END.  /* If a valid smartObject */
 
     /* Find the _L record to use in setting position and size.  */

@@ -34,6 +34,7 @@ Arguments:
 Author: Laura Stern
 
 HISTORY
+mcmann   04/23/02   Change where schema lock is taken for on-line schema adds
 mcmann   03/26/99   Added support for MS SQL Server 7 Utilities
 McMann   02/01/00   Added Oracle Bulk Insert Menu Option
 Mario B. 05/19/99   Adjust Width Field browser integration.
@@ -76,7 +77,9 @@ nhorn    11/14/94   Added AS400 V7 Utilities. Took out Allbase Utilities.
 gfs      11/01/94   Fixed wording on menu.
 gfs      07/22/94   Changed mneumonic on "Change" from "g" to "h" for
                     better readability.
-mcmann  02/15/01    Added schema migration menu for DB2/400                    
+mcmann  02/15/01    Added schema migration menu for DB2/400    
+mcmann  03/05/02    Added new user_path for loading objects without getting
+                    a schema lock.  The *T option is moved to _usrload.p                
 
 Date Created: 01/04/93 
 ----------------------------------------------------------------------------*/
@@ -129,7 +132,7 @@ Define var num_connected as integer NO-UNDO.
 Define var Gray_Table as char extent 27 NO-UNDO init /*###*/
 [
    /*Database  */ "FCXQR-,FCXQRN,FCXQRN,FCXQRN,FCXQRN",       
-   /*Reports   */ "FCXQR-,FCXQR-,FCXQR-,FCXQR-,FCXQR-,FCXQR-,FCXQR-,FCXQ--,FCXQR-,FCXQR-",
+   /*Reports   */ "FCXQR-,FCXQR-,FCXQR-,FCXQR-,FCXQR-,FCXQR-,FCXQR-,FCXQ--,FCXQR-,FCXQR-,FCXQR-",
   &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
    /*&Schema   */ "FCXQR-,FCX---,FCX---,FCXQR-,FCX---,FCX---,FCXQR-,FCXQR-,FCXQR", 	
   &ENDIF
@@ -203,6 +206,7 @@ Define sub-menu mnu_Reports
    menu-item mi_Rpt_User      label "&User"
    menu-item mi_Rpt_TblRel    label "Table &Relations"
    menu-item mi_Rpt_Area      label "Storage &Areas"
+   MENU-ITEM mi_Rpt_Width     LABEL "Verify Data &Width"
    .
 
 Define sub-menu mnu_Database
@@ -225,7 +229,7 @@ Define sub-menu mnu_Schema
    menu-item mi_Sch_RenamFld  label "&Global Field Name Change..."
    menu-item mi_Sch_IdxEdit   label "&Index Editor..."
    menu-item mi_Sch_SeqEdit   label "&Sequence Editor..."
-   menu-item mi_Sch_SQL       label "S&QL Properties..."
+   menu-item mi_Sch_SQL       label "Adjust Field &Width..."
    .
 &ENDIF
     
@@ -1009,7 +1013,7 @@ on choose of menu-item mi_Sch_ModTbl   in menu mnu_Schema
 
 /*----- CREATE TABLE -----*/
 on choose of menu-item mi_Sch_AddTbl   in menu mnu_Schema
-   run Perform_Func ("_usrtchg,19=alpha,_usrfchg").
+   run Perform_Func ("*T:_usrtrax,_usrtchg,19=alpha,_usrfchg").
 
 /*----- DELETE TABLE -----*/
 on choose of menu-item mi_Sch_DelTbl   in menu mnu_Schema  
@@ -1033,7 +1037,7 @@ on choose of menu-item mi_Sch_IdxEdit  in menu mnu_Schema
 
 /*----- SEQUENCE EDITOR -----*/
 on choose of menu-item mi_Sch_SeqEdit  in menu mnu_Schema 
-   run Perform_Func ("_usrkchg").
+   run Perform_Func ("*T:_usrtrax,_usrkchg").
 
 /*----- SQL PROPERTIES -----*/
 on choose of menu-item mi_Sch_SQL      in menu mnu_Schema  
@@ -1091,7 +1095,7 @@ on choose of menu-item mi_Dump_IncrDF   in menu mnu_Dump
 
 /*----- LOAD DEFS -----*/
 on choose of menu-item mi_Load_Defs     in menu mnu_Load 
-   run Perform_Func ("*T,9=d,_usrload,_lodv5df,*C,_lodsddl,9=h,_usrload").
+   run Perform_Func ("9=d,_usrload").
 
 /*----- LOAD CONTENTS -----*/
 on choose of menu-item mi_Load_Contents in menu mnu_Load 
@@ -1600,6 +1604,14 @@ on choose of menu-item mi_Rpt_TblRel    in menu mnu_Reports
 /*----- AREA REPORT -----*/
 on choose of menu-item mi_Rpt_Area      in menu mnu_Reports 
    run Perform_Func ("_rptaqik").
+
+/*------WIDTH REPORT ----*/
+ON CHOOSE OF MENU-ITEM mi_Rpt_Width IN MENU mnu_reports
+  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
+   run Perform_Func ("!PROGRESS,1=a,_usrtget,_rptwdth").
+   &ELSE
+   run Perform_Func ("!PROGRESS,1=a,_guitget,_rptwdth").
+   &ENDIF
 
 /*------------------------------Tools menu-------------------------------*/
 

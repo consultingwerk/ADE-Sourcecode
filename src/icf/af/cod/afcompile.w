@@ -345,7 +345,7 @@ DEFINE VARIABLE         lv_loop         AS INTEGER      NO-UNDO.
 ASSIGN
     lv_batchfile  = SESSION:TEMP-DIRECTORY + "dir.bat":U
     lv_outputfile = SESSION:TEMP-DIRECTORY + "dir.log":U
-    ip_directory = LC(TRIM(REPLACE(ip_directory,"/":U,"\":U)))
+    ip_directory = LC(TRIM(REPLACE(ip_directory,"/":U,"~\":U)))
     lv_recurse = (IF ip_recurse = YES THEN "/s ":U ELSE " ":U).
 
 OUTPUT TO VALUE(lv_batchfile).
@@ -353,7 +353,7 @@ DO lv_loop = 1 TO NUM-ENTRIES(ip_extensions):
     PUT UNFORMATTED "dir /b/l/on":U +
                     lv_recurse +
                     ip_directory + 
-                    "\*.":U +
+                    "~\*.":U +
                     ENTRY(lv_loop, ip_extensions) +
                     (IF lv_loop = 1 THEN " > ":U ELSE " >> ":U) +
                     lv_outputfile
@@ -371,7 +371,7 @@ IF SEARCH(lv_outputfile) <> ? THEN
     INPUT STREAM ls_output FROM VALUE(lv_outputfile) NO-ECHO.
     REPEAT:
         IMPORT STREAM ls_output UNFORMATTED lv_filename.
-        IF ip_recurse  = NO THEN ASSIGN lv_filename = ip_directory + "\":U + lv_filename.
+        IF ip_recurse  = NO THEN ASSIGN lv_filename = ip_directory + "~\":U + lv_filename.
         ASSIGN
             op_file_list =  op_file_list +
                             (IF NUM-ENTRIES(op_file_list) > 0 THEN ",":U ELSE "":U) +

@@ -1,6 +1,5 @@
-<?xml version="1.0" encoding="ISO8859-1" ?>
-<dataset Transactions="4" version_date="02/23/2002" version_time="43010" version_user="admin" entity_mnemonic="GSTDF" key_field_value="3000000407.09" record_version_obj="3000000408.09" version_number_seq="2.09" import_version_number_seq="1.09"><dataset_header DisableRI="yes" DatasetObj="1007600105.08" DateFormat="mdy" FullHeader="yes" SCMManaged="no" YearOffset="1950" DatasetCode="GSCSQ" DateCreated="02/23/2002" TimeCreated="11:56:50" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="93" NumericSeparator=","><deploy_dataset_obj>1007600105.08</deploy_dataset_obj>
-<owner_site_code></owner_site_code>
+<?xml version="1.0" encoding="utf-8" ?>
+<dataset Transactions="5"><dataset_header DisableRI="yes" DatasetObj="1007600105.08" DateFormat="mdy" FullHeader="yes" SCMManaged="no" YearOffset="1950" DatasetCode="GSCSQ" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="90" NumericSeparator=","><deploy_dataset_obj>1007600105.08</deploy_dataset_obj>
 <dataset_code>GSCSQ</dataset_code>
 <dataset_description>gsc_sequence - Sequences</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -8,6 +7,9 @@
 <deploy_full_data>yes</deploy_full_data>
 <xml_generation_procedure></xml_generation_procedure>
 <default_ado_filename></default_ado_filename>
+<deploy_additions_only>yes</deploy_additions_only>
+<enable_data_versioning>yes</enable_data_versioning>
+<deletion_dataset>yes</deletion_dataset>
 <dataset_entity><dataset_entity_obj>1007600106.08</dataset_entity_obj>
 <deploy_dataset_obj>1007600105.08</deploy_dataset_obj>
 <entity_sequence>1</entity_sequence>
@@ -19,8 +21,11 @@
 <delete_related_records>yes</delete_related_records>
 <overwrite_records>yes</overwrite_records>
 <keep_own_site_data>no</keep_own_site_data>
+<use_relationship>no</use_relationship>
+<relationship_obj>0</relationship_obj>
+<deletion_action></deletion_action>
 <entity_mnemonic_description>gsc_sequence</entity_mnemonic_description>
-<entity_dbname>icfdb</entity_dbname>
+<entity_dbname>ICFDB</entity_dbname>
 </dataset_entity>
 <dataset_entity><dataset_entity_obj>1007600107.08</dataset_entity_obj>
 <deploy_dataset_obj>1007600105.08</deploy_dataset_obj>
@@ -33,11 +38,14 @@
 <delete_related_records>yes</delete_related_records>
 <overwrite_records>yes</overwrite_records>
 <keep_own_site_data>no</keep_own_site_data>
+<use_relationship>no</use_relationship>
+<relationship_obj>0</relationship_obj>
+<deletion_action></deletion_action>
 <entity_mnemonic_description>gsc_next_sequence</entity_mnemonic_description>
-<entity_dbname>icfdb</entity_dbname>
+<entity_dbname>ICFDB</entity_dbname>
 </dataset_entity>
 <table_definition><name>gsc_sequence</name>
-<dbname>ICFDB</dbname>
+<dbname>icfdb</dbname>
 <index-1>XAK1gsc_sequence,1,0,0,company_organisation_obj,0,owning_entity_mnemonic,0,sequence_tla,0</index-1>
 <index-2>XIE1gsc_sequence,0,0,0,sequence_description,0</index-2>
 <index-3>XIE2gsc_sequence,0,0,0,sequence_short_desc,0</index-3>
@@ -45,16 +53,16 @@
 <field><name>sequence_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Sequence Obj</label>
 <column-label>Seq. Obj</column-label>
 </field>
 <field><name>company_organisation_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Company Organisation Obj</label>
 <column-label>Company Organisation Obj</column-label>
 </field>
@@ -93,7 +101,7 @@
 <field><name>min_value</name>
 <data-type>integer</data-type>
 <extent>0</extent>
-<format>->>>>>>>9</format>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;9</format>
 <initial>        0</initial>
 <label>Min. Value</label>
 <column-label>Min. Value</column-label>
@@ -101,7 +109,7 @@
 <field><name>max_value</name>
 <data-type>integer</data-type>
 <extent>0</extent>
-<format>->>>>>>>9</format>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;9</format>
 <initial>        0</initial>
 <label>Max. Value</label>
 <column-label>Max. Value</column-label>
@@ -133,7 +141,7 @@
 <field><name>next_value</name>
 <data-type>integer</data-type>
 <extent>0</extent>
-<format>->>>>>>>9</format>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;9</format>
 <initial>        0</initial>
 <label>Next Value</label>
 <column-label>Next Value</column-label>
@@ -141,7 +149,7 @@
 <field><name>number_of_sequences</name>
 <data-type>integer</data-type>
 <extent>0</extent>
-<format>->>>>>9</format>
+<format>-&gt;&gt;&gt;&gt;&gt;9</format>
 <initial>      0</initial>
 <label>Number of Sequences</label>
 <column-label>Number of Seq.s</column-label>
@@ -156,20 +164,20 @@
 </field>
 </table_definition>
 <table_definition><name>gsc_next_sequence</name>
-<dbname>ICFDB</dbname>
+<dbname>icfdb</dbname>
 <index-1>XPKgsc_next_sequence,1,1,0,sequence_obj,0,next_sequence_value,0</index-1>
 <field><name>sequence_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Sequence Obj</label>
 <column-label>Seq. Obj</column-label>
 </field>
 <field><name>next_sequence_value</name>
 <data-type>integer</data-type>
 <extent>0</extent>
-<format>->>>>>>>9</format>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;9</format>
 <initial>        0</initial>
 <label>Next Sequence Value</label>
 <column-label>Next Seq. Value</column-label>
@@ -177,14 +185,30 @@
 <field><name>next_sequence_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Next Sequence Obj</label>
 <column-label>Next Seq. Obj</column-label>
 </field>
 </table_definition>
 </dataset_header>
-<dataset_records><dataset_transaction TransactionNo="1"><contained_record DB="ICFDB" Table="gsc_sequence"><sequence_obj>2259873</sequence_obj>
+<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_sequence" version_date="07/01/2002" version_time="49019" version_user="admin" deletion_flag="no" entity_mnemonic="gscsq" key_field_value="9451.24" record_version_obj="9452.24" version_number_seq="1.09" secondary_key_value="0#CHR(1)#RYCRE" import_version_number_seq="1.09"><sequence_obj>9451.24</sequence_obj>
+<company_organisation_obj>0</company_organisation_obj>
+<owning_entity_mnemonic>RYCRE</owning_entity_mnemonic>
+<sequence_tla>REL</sequence_tla>
+<sequence_short_desc>RelationshipRef</sequence_short_desc>
+<sequence_description>Relationship Reference</sequence_description>
+<min_value>1</min_value>
+<max_value>99999999</max_value>
+<sequence_format>ICFREL&amp;S_&amp;9</sequence_format>
+<auto_generate>yes</auto_generate>
+<multi_transaction>no</multi_transaction>
+<next_value>177</next_value>
+<number_of_sequences>0</number_of_sequences>
+<sequence_active>yes</sequence_active>
+</contained_record>
+</dataset_transaction>
+<dataset_transaction TransactionNo="2" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_sequence" version_date="07/01/2002" version_time="49008" version_user="admin" deletion_flag="no" entity_mnemonic="gscsq" key_field_value="2259873" record_version_obj="3000004928.09" version_number_seq="1.09" secondary_key_value="0#CHR(1)#GSMMI" import_version_number_seq="1.09"><sequence_obj>2259873</sequence_obj>
 <company_organisation_obj>0</company_organisation_obj>
 <owning_entity_mnemonic>GSMMI</owning_entity_mnemonic>
 <sequence_tla>MNU</sequence_tla>
@@ -192,7 +216,7 @@
 <sequence_description>Menu Item Reference</sequence_description>
 <min_value>1</min_value>
 <max_value>99999999</max_value>
-<sequence_format>ICF_&amp;9</sequence_format>
+<sequence_format>ICF&amp;S_&amp;9</sequence_format>
 <auto_generate>yes</auto_generate>
 <multi_transaction>no</multi_transaction>
 <next_value>204</next_value>
@@ -200,15 +224,15 @@
 <sequence_active>yes</sequence_active>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="2"><contained_record DB="ICFDB" Table="gsc_sequence"><sequence_obj>2262945</sequence_obj>
+<dataset_transaction TransactionNo="3" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_sequence" version_date="07/01/2002" version_time="49064" version_user="admin" deletion_flag="no" entity_mnemonic="gscsq" key_field_value="2262945" record_version_obj="3000004930.09" version_number_seq="1.09" secondary_key_value="0#CHR(1)#GSMRD" import_version_number_seq="1.09"><sequence_obj>2262945</sequence_obj>
 <company_organisation_obj>0</company_organisation_obj>
 <owning_entity_mnemonic>GSMRD</owning_entity_mnemonic>
 <sequence_tla>RDF</sequence_tla>
 <sequence_short_desc>Report Def.</sequence_short_desc>
-<sequence_description>Report Defenition</sequence_description>
+<sequence_description>Report Definition</sequence_description>
 <min_value>1</min_value>
 <max_value>99999999</max_value>
-<sequence_format>ASRDF_&amp;9</sequence_format>
+<sequence_format>ASRDF&amp;S_&amp;9</sequence_format>
 <auto_generate>yes</auto_generate>
 <multi_transaction>no</multi_transaction>
 <next_value>156</next_value>
@@ -216,7 +240,7 @@
 <sequence_active>yes</sequence_active>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="3"><contained_record DB="ICFDB" Table="gsc_sequence"><sequence_obj>2262946</sequence_obj>
+<dataset_transaction TransactionNo="4" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_sequence" version_date="07/01/2002" version_time="49032" version_user="admin" deletion_flag="no" entity_mnemonic="gscsq" key_field_value="2262946" record_version_obj="3000004929.09" version_number_seq="1.09" secondary_key_value="0#CHR(1)#GSMRF" import_version_number_seq="1.09"><sequence_obj>2262946</sequence_obj>
 <company_organisation_obj>0</company_organisation_obj>
 <owning_entity_mnemonic>GSMRF</owning_entity_mnemonic>
 <sequence_tla>RFM</sequence_tla>
@@ -224,7 +248,7 @@
 <sequence_description>Report Format</sequence_description>
 <min_value>1</min_value>
 <max_value>99999999</max_value>
-<sequence_format>ASRFM_&amp;9</sequence_format>
+<sequence_format>ASRFM&amp;S_&amp;9</sequence_format>
 <auto_generate>yes</auto_generate>
 <multi_transaction>no</multi_transaction>
 <next_value>218</next_value>
@@ -232,7 +256,7 @@
 <sequence_active>yes</sequence_active>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="4"><contained_record DB="ICFDB" Table="gsc_sequence"><sequence_obj>1003604197</sequence_obj>
+<dataset_transaction TransactionNo="5" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_sequence"><sequence_obj>1003604197</sequence_obj>
 <company_organisation_obj>0</company_organisation_obj>
 <owning_entity_mnemonic>GSMRD</owning_entity_mnemonic>
 <sequence_tla>SPL</sequence_tla>

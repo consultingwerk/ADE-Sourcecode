@@ -92,7 +92,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gscotful1o.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -126,6 +126,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -143,6 +144,8 @@ object_type_code object_type_description disabled layout_supported
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gscotful1o.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsc_object_type NO-LOCK ~
+    BY gsc_object_type.object_type_code INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsc_object_type NO-LOCK ~
     BY gsc_object_type.object_type_code INDEXED-REPOSITION.

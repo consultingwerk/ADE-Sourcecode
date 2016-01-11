@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          rydb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 
@@ -90,12 +90,12 @@ RowObject.layout_code RowObject.layout_narrative RowObject.layout_filename ~
 RowObject.sample_image_filename RowObject.system_owned 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define ENABLED-OBJECTS fiNarrative fiLayout fiImage 
 &Scoped-Define DISPLAYED-FIELDS RowObject.layout_name RowObject.layout_type ~
 RowObject.layout_code RowObject.layout_narrative RowObject.layout_filename ~
 RowObject.sample_image_filename RowObject.system_owned 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define DISPLAYED-OBJECTS fiNarrative fiLayout fiImage 
 
 /* Custom List Definitions                                              */
@@ -112,44 +112,44 @@ RowObject.sample_image_filename RowObject.system_owned
 /* Definitions of the field level widgets                               */
 DEFINE VARIABLE fiImage AS CHARACTER FORMAT "X(256)":U INITIAL "Sample Image Filename:" 
       VIEW-AS TEXT 
-     SIZE 23 BY .62 NO-UNDO.
+     SIZE 23 BY 1 NO-UNDO.
 
 DEFINE VARIABLE fiLayout AS CHARACTER FORMAT "X(256)":U INITIAL "Layout Filename:" 
       VIEW-AS TEXT 
-     SIZE 16.4 BY .62 NO-UNDO.
+     SIZE 16.4 BY 1 NO-UNDO.
 
 DEFINE VARIABLE fiNarrative AS CHARACTER FORMAT "X(256)":U INITIAL "Layout Narrative:" 
       VIEW-AS TEXT 
-     SIZE 16 BY .62 NO-UNDO.
+     SIZE 16 BY 1 NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME F-Main
-     RowObject.layout_name AT ROW 1 COL 27.4 COLON-ALIGNED
+     RowObject.layout_name AT ROW 1 COL 27 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 55 BY 1
-     RowObject.layout_type AT ROW 2.05 COL 27.4 COLON-ALIGNED
+          SIZE 63.2 BY 1
+     RowObject.layout_type AT ROW 2.05 COL 27 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 8.6 BY 1
-     RowObject.layout_code AT ROW 3.1 COL 27.4 COLON-ALIGNED
+     RowObject.layout_code AT ROW 3.1 COL 27 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 15.6 BY 1
-     RowObject.layout_narrative AT ROW 4.14 COL 29.4 NO-LABEL
+          SIZE 24 BY 1
+     RowObject.layout_narrative AT ROW 4.15 COL 29 NO-LABEL
           VIEW-AS EDITOR MAX-CHARS 500 SCROLLBAR-VERTICAL
-          SIZE 55 BY 8
-     RowObject.layout_filename AT ROW 12.24 COL 29.4 NO-LABEL
+          SIZE 63.2 BY 8
+     RowObject.layout_filename AT ROW 12.19 COL 29 NO-LABEL
           VIEW-AS EDITOR MAX-CHARS 70 SCROLLBAR-VERTICAL
-          SIZE 55 BY 2
-     RowObject.sample_image_filename AT ROW 14.33 COL 29.4 NO-LABEL
+          SIZE 63.2 BY 2
+     RowObject.sample_image_filename AT ROW 14.24 COL 29 NO-LABEL
           VIEW-AS EDITOR MAX-CHARS 70 SCROLLBAR-VERTICAL
-          SIZE 55 BY 2
-     RowObject.system_owned AT ROW 16.43 COL 29
+          SIZE 63.2 BY 2
+     RowObject.system_owned AT ROW 16.35 COL 29
           VIEW-AS TOGGLE-BOX
-          SIZE 19.2 BY .81
-     fiNarrative AT ROW 4.24 COL 12.6 NO-LABEL
-     fiLayout AT ROW 12.33 COL 12.6 NO-LABEL
-     fiImage AT ROW 14.33 COL 5.8 NO-LABEL
+          SIZE 19.2 BY 1
+     fiNarrative AT ROW 4.14 COL 12.6 NO-LABEL
+     fiLayout AT ROW 12.3 COL 12.6 NO-LABEL
+     fiImage AT ROW 14.35 COL 5.8 NO-LABEL
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -189,7 +189,7 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 17.19
+         HEIGHT             = 16.33
          WIDTH              = 91.6.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -236,7 +236,7 @@ ASSIGN
 */  /* FRAME F-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK vTableWin 

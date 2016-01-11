@@ -49,6 +49,10 @@ Modified:     1/98 SLK Added runtime code for SmartData's PRIVATE-DATA
           06/25/99 TSM Added support to write VISIBLE runtime attribute
                        for browse column calculated fields when they have
                        named fields (@ fieldname)
+          12/18/02 DRH Added code submitted by Alan J Copeland of 
+                       OPENLOGISTIX SYSTEMS LIMITED to make sure delimiters
+                       are properly written and read to static objects for
+                       RADIO-SETS, SELECTION-LISTS and COMBO-BOXes.  (IZ 8044)
 
 ---------------------------------------------------------------------------- */
 /* ************************************************************************* */
@@ -155,8 +159,11 @@ FOR EACH _U WHERE _U._WINDOW-HANDLE = _h_win AND
                            _F._FORMAT-SOURCE = "E" OR x_U._LABEL-SOURCE = "E")) OR
           (CAN-DO("FILL-IN,COMBO-BOX":U,x_U._TYPE) AND NOT x_L._NO-LABELS AND
                                                                  _L._NO-LABELS) OR
-          (x_U._DBNAME NE ? AND x_U._DROP-TARGET)
-       THEN DO:
+          (x_U._DBNAME NE ? AND x_U._DROP-TARGET)                               
+          /* AJC start */
+          OR (_F._DELIMITER <> "":U and CAN-DO("SELECTION-LIST,RADIO-SET,COMBO-BOX":U,x_U._TYPE))
+          /* AJC END */
+       THEN DO:                         
           widget_sect = TRUE.
           LEAVE WIDGET-SEARCH.
         END.
@@ -426,6 +433,8 @@ IF window_sect OR frame_sect OR widget_sect OR multi-layout OR frame_parent THEN
                      ELSE IF x_U._TABLE = "RowObject":U THEN x_U._TABLE + "." + x_U._NAME
                      ELSE IF x_U._DBNAME = "Temp-Tables":U THEN x_U._TABLE + "." + x_U._NAME
                      ELSE (db-tbl-name(LDBNAME(x_U._DBNAME) + "." + x_U._TABLE) + "." + x_U._NAME).
+          IF tmp_name = ? AND LDBNAME(X_U._DBNAME) = ? THEN  /* IZ 3528 */
+            tmp_name = X_U._TABLE + ".":U + X_U._NAME.
 
           /* Is this widget special or unusual */
           IF (not x_U._DISPLAY)                                               OR
@@ -493,15 +502,27 @@ IF window_sect OR frame_sect OR widget_sect OR multi-layout OR frame_parent THEN
                "/* SETTINGS FOR " x_U._TYPE " " tmp_name in_frame_clause 
                SKIP tmp_string "*/" SKIP.
           END.
-
+          
           IF _F._AUTO-INDENT     OR   _F._AUTO-RESIZE  OR
              x_U._HIDDEN         OR   x_U._MANUAL-HIGHLIGHT                         OR
              x_U._SELECTABLE     OR   x_U._SELECTED    OR   x_U._MOVABLE            OR
              x_U._POPUP-RECID NE ?                     OR   _F._READ-ONLY           OR
              _F._RETURN-INSERTED OR   x_U._RESIZABLE   OR   x_L._REMOVE-FROM-LAYOUT OR
-             x_U._PRIVATE-DATA NE "" OR (x_U._DBNAME NE ? AND x_U._DROP-TARGET)
+             x_U._PRIVATE-DATA NE "" OR (x_U._DBNAME NE ? AND x_U._DROP-TARGET)     
+             /* AJC start */
+             OR (_F._DELIMITER <> ",":U and CAN-DO("SELECTION-LIST,RADIO-SET,COMBO-BOX":U,x_U._TYPE))
+             /* AJC END */
           THEN DO:
             PUT STREAM P_4GL UNFORMATTED "ASSIGN ".
+            /* AJC start */
+            IF _F._DELIMITER <> ",":U and CAN-DO("SELECTION-LIST,RADIO-SET,COMBO-BOX":U,x_U._TYPE) 
+                THEN PUT STREAM P_4GL UNFORMATTED SKIP
+                "       " tmp_name ":DELIMITER" in_frame_clause
+                "      = "  + (IF _F._delimiter = ? THEN ","
+                                      ELSE IF (ASC( _F._delimiter) LE 126 AND ASC( _F._delimiter) GE 32) THEN 
+                                          chr(34) + _F._Delimiter + chr(34)
+                                      ELSE "CHR(":U + STRING(ASC(_F._delimiter)) + ") ":U). /* AJC END */                                      
+            
             IF _F._AUTO-INDENT THEN PUT STREAM P_4GL UNFORMATTED SKIP
                 "       " tmp_name ":AUTO-INDENT" in_frame_clause
                                                           "      = TRUE".

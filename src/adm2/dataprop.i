@@ -46,7 +46,7 @@
   &GLOB xcInstanceProperties {&xcInstanceProperties}~
 AppService,ASUsePrompt,ASInfo,ForeignFields,RowsToBatch,CheckCurrentChanged,~
 RebuildOnRepos,ServerOperatingMode,DestroyStateless,DisconnectAppServer,~
-ObjectName,UpdateFromSource,ToggleDataTargets,OpenOnInit
+ObjectName,UpdateFromSource,ToggleDataTargets,OpenOnInit,PromptOnDelete,PromptColumns
 
 /* This is the procedure to execute to set InstanceProperties at design time. */
 &IF DEFINED (ADM-PROPERTY-DLG) = 0 &THEN
@@ -85,7 +85,7 @@ ObjectName,UpdateFromSource,ToggleDataTargets,OpenOnInit
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Include ASSIGN
-         HEIGHT             = 8
+         HEIGHT             = 4.29
          WIDTH              = 60.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -112,6 +112,8 @@ ObjectName,UpdateFromSource,ToggleDataTargets,OpenOnInit
     properties can be retrieved directly from the property temp-table. */
  &GLOB xpRowObject
  &GLOB xpRowObjUpd
+ &GLOB xpModRowIdent 
+ &GLOB xpModRowIdentTable
  &GLOB xpFirstRowNum            
  &GLOB xpLastRowNum                    
  &GLOB xpDataHandle
@@ -138,18 +140,34 @@ ObjectName,UpdateFromSource,ToggleDataTargets,OpenOnInit
  &GLOB xpUpdateFromSource
  &GLOB xpAsynchronousSDO
  &GLOB xpToggleDataTargets
-                                
+ &GLOB xpDataLogicObject
+ &GLOB xpDataDelimiter                    
+ &GLOB xpDataReadHandler 
+ &GLOB xpDataReadBuffer 
+ &GLOB xpDataReadColumns                    
+ &GLOB xpDataReadFormat                    
  &GLOB xpManualAddQueryWhere        
  &GLOB xpManualAssignQuerySelection 
  &GLOB xpManualSetQuerySort         
+ &GLOB xpPromptOnDelete
+ &GLOB xpIsRowObjectExternal
+ &GLOB xpIsRowObjUpdExternal
+ &GLOB xpDynamicData
+ &GLOB xpLastCommitErrorType  
+ &GLOB xpLastCommitErrorKeys  
 
 {src/adm2/qryprop.i}
 
+
+IF NOT {&ADM-PROPS-DEFINED} THEN
+DO:
 &IF "{&ADMSuper}":U = "":U &THEN
   ghADMProps:ADD-NEW-FIELD('RowObject':U, 'HANDLE':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('RowObjUpd':U, 'HANDLE':U, 0, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('ModRowIdent':U, 'HANDLE':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('RowObjectTable':U, 'HANDLE':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('RowObjUpdTable':U, 'HANDLE':U, 0, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('ModRowIdentTable':U, 'HANDLE':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('FirstRowNum':U, 'INT':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('LastRowNum':U, 'INT':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('AutoCommit':U, 'LOGICAL':U, 0, ?, yes).
@@ -184,8 +202,19 @@ ObjectName,UpdateFromSource,ToggleDataTargets,OpenOnInit
   ghADMProps:ADD-NEW-FIELD('QueryContext':U, 'CHARACTER':U, 0, ?,?). 
   ghADMProps:ADD-NEW-FIELD('FillBatchOnRepos':U, 'LOGICAL':U, 0, ?, YES).
   ghADMProps:ADD-NEW-FIELD('UpdateFromSource':U, 'LOGICAL':U, 0, ?, NO).
-  ghADMProps:ADD-NEW-FIELD('AsynchronousSDO', 'LOGICAL':U, ?, ?, TRUE).   
-  ghADMProps:ADD-NEW-FIELD('ToggleDataTargets', 'LOGICAL':U, ?, ?, TRUE).
+  ghADMProps:ADD-NEW-FIELD('AsynchronousSDO':U, 'LOGICAL':U, ?, ?, TRUE).   
+  ghADMProps:ADD-NEW-FIELD('ToggleDataTargets':U, 'LOGICAL':U, ?, ?, TRUE).
+  ghADMProps:ADD-NEW-FIELD('DataLogicProcedure':U, 'CHARACTER':U, ?, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('DataLogicObject':U, 'HANDLE':U, ?, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('DataReadHandler':U, 'HANDLE':U, ?, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('DataReadColumns':U, 'CHARACTER':U, ?, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('DataReadBuffer':U, 'HANDLE':U, ?, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('DataDelimiter':U, 'CHARACTER':U, ?, ?, '|':U).
+  ghADMProps:ADD-NEW-FIELD('DataReadFormat':U, 'CHARACTER':U, ?, ?, 'TrimNumeric':U).
+  ghADMProps:ADD-NEW-FIELD('IsRowObjectExternal':U, 'LOGICAL':U, 0, ?, NO).
+  ghADMProps:ADD-NEW-FIELD('IsRowObjUpdExternal':U, 'LOGICAL':U, 0, ?, NO).
+
+
 /* The following properties are used to store query manipluation strings made
    manually. If you change the query manually in code, you should set these
    properties. The filter window will retrieve these settings again when reapplying
@@ -200,14 +229,20 @@ ObjectName,UpdateFromSource,ToggleDataTargets,OpenOnInit
    a chr(4) before adding in your value and setting the new value.*/
 
   /* pcwhere + chr(3) + pcbuffer or empty or "?" + chr(3) + pcandor */
-  ghADMProps:ADD-NEW-FIELD('ManualAddQueryWhere', 'CHARACTER').   
+  ghADMProps:ADD-NEW-FIELD('ManualAddQueryWhere':U, 'CHARACTER':U).   
   /* pccolumns + chr(3) + pcvalues + chr(3) + pcoperators */
-  ghADMProps:ADD-NEW-FIELD('ManualAssignQuerySelection', 'CHARACTER').
-  ghADMProps:ADD-NEW-FIELD('ManualSetQuerySort', 'CHARACTER').
+  ghADMProps:ADD-NEW-FIELD('ManualAssignQuerySelection':U, 'CHARACTER':U).
+  ghADMProps:ADD-NEW-FIELD('ManualSetQuerySort':U, 'CHARACTER':U).
+  ghADMProps:ADD-NEW-FIELD('PromptOnDelete':U, 'LOGICAL':U, 0, ?, YES).
+  ghADMProps:ADD-NEW-FIELD('PromptColumns':U, 'CHAR':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('DynamicData':U, 'LOGICAL':U, 0, ?, no).
+  ghADMProps:ADD-NEW-FIELD('LastCommitErrorType':U, 'CHAR':U, 0, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('LastCommitErrorKeys':U, 'CHAR':U, 0, ?, ?).
 
 &ENDIF
 
   {src/adm2/custom/datapropcustom.i}
+END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

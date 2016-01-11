@@ -156,8 +156,13 @@ ELSE
 /* Now get the _L for the current layout instead of the master layout */
 FIND _L WHERE RECID(_L) = _U._lo-recid.
 
+
+/* Explicitly set NO-LABELS for static Radio sets */
+_L._NO-LABELS = YES.
+         
+         
 IF _L._WIN-TYPE OR SESSION:WINDOW-SYSTEM BEGINS "MS-WIN" THEN DO:
-  RUN adeuib/_rbtns.p( scrn-value, "INTEGER", OUTPUT radio-btns).
+  RUN adeuib/_rbtns.p( scrn-value, "INTEGER", ",":U, OUTPUT radio-btns).
   ASSIGN _U._HANDLE:HORIZONTAL    = _F._HORIZONTAL
          _U._HANDLE:EXPAND        = _F._EXPAND
          _U._HANDLE:RADIO-BUTTONS = radio-btns.

@@ -1,8 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          afdb             PROGRESS
-          asdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
@@ -93,7 +92,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gscprfullo.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010001
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -125,6 +124,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -146,9 +146,12 @@ supplier_organisation_obj
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gscprfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsc_product NO-LOCK, ~
+      EACH gsm_login_company WHERE AFDB.gsm_login_company.login_company_obj = asdb.gsc_product.supplier_organisation_obj OUTER-JOIN NO-LOCK ~
+    BY gsc_product.product_code INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsc_product NO-LOCK, ~
-      EACH gsm_login_company WHERE gsm_login_company.login_company_obj = gsc_product.supplier_organisation_obj OUTER-JOIN NO-LOCK ~
+      EACH gsm_login_company WHERE AFDB.gsm_login_company.login_company_obj = asdb.gsc_product.supplier_organisation_obj OUTER-JOIN NO-LOCK ~
     BY gsc_product.product_code INDEXED-REPOSITION.
 {&DB-REQUIRED-END}
 &Scoped-define TABLES-IN-QUERY-Query-Main gsc_product gsm_login_company
@@ -236,30 +239,30 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "asdb.gsc_product,AFDB.gsm_login_company WHERE asdb.gsc_product ..."
+     _TblList          = "ICFDB.gsc_product,ICFDB.gsm_login_company WHERE ICFDB.gsc_product ..."
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _TblOptList       = ", OUTER"
      _OrdList          = "asdb.gsc_product.product_code|yes"
      _JoinCode[2]      = "AFDB.gsm_login_company.login_company_obj = asdb.gsc_product.supplier_organisation_obj"
-     _FldNameList[1]   > ASDB.gsc_product.product_obj
+     _FldNameList[1]   > ICFDB.gsc_product.product_obj
 "product_obj" "product_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
-     _FldNameList[2]   > ASDB.gsc_product.product_code
+     _FldNameList[2]   > ICFDB.gsc_product.product_code
 "product_code" "product_code" ? ? "character" ? ? ? ? ? ? yes ? no 20 yes
-     _FldNameList[3]   > ASDB.gsc_product.product_description
+     _FldNameList[3]   > ICFDB.gsc_product.product_description
 "product_description" "product_description" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[4]   > ASDB.gsc_product.product_installed
+     _FldNameList[4]   > ICFDB.gsc_product.product_installed
 "product_installed" "product_installed" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[5]   > ASDB.gsc_product.number_of_users
+     _FldNameList[5]   > ICFDB.gsc_product.number_of_users
 "number_of_users" "number_of_users" ? ? "integer" ? ? ? ? ? ? yes ? no 4 yes
-     _FldNameList[6]   > ASDB.gsc_product.supplier_organisation_obj
+     _FldNameList[6]   > ICFDB.gsc_product.supplier_organisation_obj
 "supplier_organisation_obj" "supplier_organisation_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
-     _FldNameList[7]   > AFDB.gsm_login_company.login_company_code
+     _FldNameList[7]   > ICFDB.gsm_login_company.login_company_code
 "login_company_code" "login_company_code" ? ? "character" ? ? ? ? ? ? no ? no 35 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK dTables 
@@ -353,6 +356,16 @@ DEFINE VARIABLE cValueList      AS CHARACTER    NO-UNDO.
     ASSIGN
       cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
                     {af/sup2/aferrortxt.i 'AF' '1' 'gsc_product' 'product_description' "'Product Description'"}.
+
+  IF INDEX(RowObject.product_code,",":U) >= 1 THEN
+    ASSIGN
+      cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
+                    {af/sup2/aferrortxt.i 'AF' '5' 'gsc_product' 'product_code' "'Product Code'" "'A comma is not permitted in the Product Code'"}.
+  
+  IF INDEX(RowObject.product_description,",":U) >= 1 THEN
+    ASSIGN
+      cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
+                    {af/sup2/aferrortxt.i 'AF' '5' 'gsc_product' 'product_description' "'Product Description'" "'A comma is not permitted in the Product Description'"}.
 
   ERROR-STATUS:ERROR = NO.
   RETURN cMessageList.

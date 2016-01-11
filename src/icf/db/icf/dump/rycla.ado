@@ -1,6 +1,5 @@
-<?xml version="1.0" encoding="ISO8859-1" ?>
-<dataset Transactions="7" version_date="02/23/2002" version_time="43179" version_user="admin" entity_mnemonic="GSTDF" key_field_value="3000000457.09" record_version_obj="3000000458.09" version_number_seq="2.09" import_version_number_seq="1.09"><dataset_header DisableRI="yes" DatasetObj="1007600081.08" DateFormat="mdy" FullHeader="yes" SCMManaged="no" YearOffset="1950" DatasetCode="RYCLA" DateCreated="02/23/2002" TimeCreated="11:59:39" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="93" NumericSeparator=","><deploy_dataset_obj>1007600081.08</deploy_dataset_obj>
-<owner_site_code></owner_site_code>
+<?xml version="1.0" encoding="utf-8" ?>
+<dataset Transactions="7"><dataset_header DisableRI="yes" DatasetObj="1007600081.08" DateFormat="mdy" FullHeader="yes" SCMManaged="no" YearOffset="1950" DatasetCode="RYCLA" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="90" NumericSeparator=","><deploy_dataset_obj>1007600081.08</deploy_dataset_obj>
 <dataset_code>RYCLA</dataset_code>
 <dataset_description>ryc_layout - Layouts</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -8,6 +7,9 @@
 <deploy_full_data>yes</deploy_full_data>
 <xml_generation_procedure></xml_generation_procedure>
 <default_ado_filename></default_ado_filename>
+<deploy_additions_only>no</deploy_additions_only>
+<enable_data_versioning>yes</enable_data_versioning>
+<deletion_dataset>yes</deletion_dataset>
 <dataset_entity><dataset_entity_obj>1007600082.08</dataset_entity_obj>
 <deploy_dataset_obj>1007600081.08</deploy_dataset_obj>
 <entity_sequence>1</entity_sequence>
@@ -19,19 +21,22 @@
 <delete_related_records>yes</delete_related_records>
 <overwrite_records>yes</overwrite_records>
 <keep_own_site_data>no</keep_own_site_data>
+<use_relationship>no</use_relationship>
+<relationship_obj>0</relationship_obj>
+<deletion_action></deletion_action>
 <entity_mnemonic_description>ryc_layout</entity_mnemonic_description>
-<entity_dbname>icfdb</entity_dbname>
+<entity_dbname>ICFDB</entity_dbname>
 </dataset_entity>
 <table_definition><name>ryc_layout</name>
-<dbname>ICFDB</dbname>
+<dbname>icfdb</dbname>
 <index-1>XAK1ryc_layout,1,0,0,layout_name,0</index-1>
 <index-2>XAK2ryc_layout,1,0,0,layout_type,0,layout_name,0</index-2>
 <index-3>XPKryc_layout,1,1,0,layout_obj,0</index-3>
 <field><name>layout_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Layout Obj</label>
 <column-label>Layout Obj</column-label>
 </field>
@@ -93,7 +98,7 @@
 </field>
 </table_definition>
 </dataset_header>
-<dataset_records><dataset_transaction TransactionNo="1"><contained_record DB="ICFDB" Table="ryc_layout"><layout_obj>1003201406</layout_obj>
+<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_layout"><layout_obj>1003201406</layout_obj>
 <layout_name>Everything Centered</layout_name>
 <layout_type>WIN</layout_type>
 <layout_narrative>Everything Centered</layout_narrative>
@@ -103,7 +108,7 @@
 <layout_code>01</layout_code>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="2"><contained_record DB="ICFDB" Table="ryc_layout"><layout_obj>1003501078</layout_obj>
+<dataset_transaction TransactionNo="2" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_layout"><layout_obj>1003501078</layout_obj>
 <layout_name>Top/Center/Bottom</layout_name>
 <layout_type>WIN</layout_type>
 <layout_narrative></layout_narrative>
@@ -113,7 +118,7 @@
 <layout_code>02</layout_code>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="3"><contained_record DB="ICFDB" Table="ryc_layout"><layout_obj>1003516362</layout_obj>
+<dataset_transaction TransactionNo="3" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_layout"><layout_obj>1003516362</layout_obj>
 <layout_name>None</layout_name>
 <layout_type>WIN</layout_type>
 <layout_narrative></layout_narrative>
@@ -123,7 +128,7 @@
 <layout_code>00</layout_code>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="4"><contained_record DB="ICFDB" Table="ryc_layout"><layout_obj>1003704644</layout_obj>
+<dataset_transaction TransactionNo="4" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_layout"><layout_obj>1003704644</layout_obj>
 <layout_name>Left/Center/Right</layout_name>
 <layout_type>WIN</layout_type>
 <layout_narrative>Left/Center/Right</layout_narrative>
@@ -133,7 +138,7 @@
 <layout_code>04</layout_code>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="5"><contained_record DB="ICFDB" Table="ryc_layout"><layout_obj>1004899067</layout_obj>
+<dataset_transaction TransactionNo="5" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_layout"><layout_obj>1004899067</layout_obj>
 <layout_name>Top/Multi/Bottom</layout_name>
 <layout_type>WIN</layout_type>
 <layout_narrative>This layout assumes a maximum of 1 top and 1 bottom object, and any number of objects in the centre.
@@ -146,7 +151,7 @@ All objects must be full width and toolbars must be horizontal.</layout_narrativ
 <layout_code>03</layout_code>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="6"><contained_record DB="ICFDB" Table="ryc_layout"><layout_obj>1005097657.101</layout_obj>
+<dataset_transaction TransactionNo="6" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_layout"><layout_obj>1005097657.101</layout_obj>
 <layout_name>TreeView</layout_name>
 <layout_type>WIN</layout_type>
 <layout_narrative>This is the layout procedure for the Dynamic TreeView object.</layout_narrative>
@@ -156,7 +161,7 @@ All objects must be full width and toolbars must be horizontal.</layout_narrativ
 <layout_code>05</layout_code>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="7"><contained_record DB="ICFDB" Table="ryc_layout"><layout_obj>1007500101.09</layout_obj>
+<dataset_transaction TransactionNo="7" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_layout"><layout_obj>1007500101.09</layout_obj>
 <layout_name>Relative</layout_name>
 <layout_type>WIN</layout_type>
 <layout_narrative>This is a flexible layout that replaces all other layouts and should be used in future in place of all the other layouts. It supports a grid of 9x9 objects with flexible object positioning.

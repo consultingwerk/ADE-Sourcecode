@@ -23,11 +23,6 @@
 *********************************************************************/
 TRIGGER PROCEDURE FOR REPLICATION-DELETE OF gsm_startup_flow.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "gsm_startup_flow"
-                      &TRIGGER-TYPE = "REPLICATION-DELETE"}
-
 {af/sup/afreplicat.i  &TABLE-NAME   = "gsm_startup_flow"
                       &TABLE-FLA    = "gsmsf"
                       &TABLE-PK     = "startup_flow_obj"

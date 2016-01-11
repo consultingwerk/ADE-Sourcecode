@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          asdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" vTableWin _INLINE
@@ -87,7 +87,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gscmtviewv.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -125,11 +125,12 @@ RowObject.manager_type_name RowObject.static_handle RowObject.system_owned ~
 RowObject.write_to_config RowObject.manager_narration 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define DISPLAYED-FIELDS RowObject.manager_type_code ~
 RowObject.manager_type_name RowObject.static_handle RowObject.system_owned ~
 RowObject.write_to_config RowObject.manager_narration 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
+&Scoped-Define DISPLAYED-OBJECTS fiManagerNarrationLabel 
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -143,21 +144,26 @@ RowObject.write_to_config RowObject.manager_narration
 
 
 /* Definitions of the field level widgets                               */
+DEFINE VARIABLE fiManagerNarrationLabel AS CHARACTER FORMAT "X(35)":U INITIAL "Manager Narration:" 
+      VIEW-AS TEXT 
+     SIZE 18.8 BY .62 NO-UNDO.
+
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
      RowObject.manager_type_code AT ROW 1 COL 26.2 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 30 BY 1
-     RowObject.manager_type_name AT ROW 2 COL 26.2 COLON-ALIGNED
+          SIZE 63.2 BY 1
+     RowObject.manager_type_name AT ROW 2.05 COL 26.2 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 37 BY 1
-     RowObject.static_handle AT ROW 3 COL 26.2 COLON-ALIGNED
+          SIZE 78.4 BY 1
+     RowObject.static_handle AT ROW 3.1 COL 26.2 COLON-ALIGNED
           VIEW-AS COMBO-BOX INNER-LINES 5
-          LIST-ITEM-PAIRS "No Static Handle Available","NON",
+          LIST-ITEM-PAIRS "No static handle","NON",
                      "gshAstraAppServer","AS",
                      "gshSessionManager","SM",
+                     "gshRIManager","RI",
                      "gshSecurityManager","SEM",
                      "gshProfileManager","PM",
                      "gshRepositoryManager","RM",
@@ -168,18 +174,17 @@ DEFINE FRAME frMain
                      "gshAgnManager","AM",
                      "appSrvUtils","AU"
           DROP-DOWN-LIST
-          SIZE 37.2 BY 1
-     RowObject.system_owned AT ROW 4.05 COL 28.2
+          SIZE 64 BY 1
+     RowObject.system_owned AT ROW 4.15 COL 28.2
           VIEW-AS TOGGLE-BOX
-          SIZE 19.2 BY .81
-     RowObject.write_to_config AT ROW 4.86 COL 28.2
+          SIZE 19.2 BY 1
+     RowObject.write_to_config AT ROW 5.2 COL 28.2
           VIEW-AS TOGGLE-BOX
-          SIZE 19 BY .81
-     RowObject.manager_narration AT ROW 5.71 COL 28.2 NO-LABEL
+          SIZE 19 BY 1
+     RowObject.manager_narration AT ROW 6.25 COL 28.2 NO-LABEL
           VIEW-AS EDITOR MAX-CHARS 500 SCROLLBAR-VERTICAL
-          SIZE 70 BY 8
-     "Manager Narration:" VIEW-AS TEXT
-          SIZE 18.8 BY .62 AT ROW 5.76 COL 9.2
+          SIZE 78.4 BY 8
+     fiManagerNarrationLabel AT ROW 6.24 COL 7.4 COLON-ALIGNED NO-LABEL
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -219,8 +224,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 13.29
-         WIDTH              = 101.
+         HEIGHT             = 13.24
+         WIDTH              = 105.6.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -247,6 +252,12 @@ ASSIGN
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
 
+/* SETTINGS FOR FILL-IN fiManagerNarrationLabel IN FRAME frMain
+   NO-ENABLE                                                            */
+ASSIGN 
+       fiManagerNarrationLabel:PRIVATE-DATA IN FRAME frMain     = 
+                "Manager Narration:".
+
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
@@ -260,7 +271,7 @@ ASSIGN
 */  /* FRAME frMain */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK vTableWin 

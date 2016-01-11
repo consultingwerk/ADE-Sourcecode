@@ -74,7 +74,12 @@ DEFINE TEMP-TABLE RowObject
                 Removed static combo SDF and replaced with dynamic combo and removed <None> option for combo list.
                 When adding a gsc_error record you MUST specify a language_obj
 
---------------------------------------------------------------------------------*/
+  (v:010002)    Task:           0   UserRef:    
+                Date:   05/06/2002  Author:     Mark Davies (MIP)
+
+  Update Notes: Added field source_language
+
+-------------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
 
@@ -106,6 +111,8 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 {af/sup2/afglobals.i}
 
+DEFINE VARIABLE glRefresh AS LOGICAL    NO-UNDO.
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -129,16 +136,18 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-FIELDS RowObject.error_group RowObject.error_number ~
-RowObject.error_summary_description RowObject.error_type ~
-RowObject.update_error_log RowObject.error_full_description 
-&Scoped-define ENABLED-TABLES RowObject
-&Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
-&Scoped-Define DISPLAYED-FIELDS RowObject.error_group ~
-RowObject.error_number RowObject.error_summary_description ~
+RowObject.source_language RowObject.error_summary_description ~
 RowObject.error_type RowObject.update_error_log ~
 RowObject.error_full_description 
+&Scoped-define ENABLED-TABLES RowObject
+&Scoped-define FIRST-ENABLED-TABLE RowObject
+&Scoped-Define DISPLAYED-FIELDS RowObject.error_group ~
+RowObject.error_number RowObject.source_language ~
+RowObject.error_summary_description RowObject.error_type ~
+RowObject.update_error_log RowObject.error_full_description 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
+&Scoped-Define DISPLAYED-OBJECTS fiErrorFullDescriptionLabel 
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -155,20 +164,32 @@ RowObject.error_full_description
 DEFINE VARIABLE hLanguageObj AS HANDLE NO-UNDO.
 
 /* Definitions of the field level widgets                               */
+DEFINE VARIABLE fiErrorFullDescriptionLabel AS CHARACTER FORMAT "X(35)":U INITIAL "Error Full Description:" 
+      VIEW-AS TEXT 
+     SIZE 20.4 BY 1 NO-UNDO.
+
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     RowObject.error_group AT ROW 1.1 COL 28.6 COLON-ALIGNED
+     RowObject.error_group AT ROW 1 COL 28.6 COLON-ALIGNED
+          LABEL "Error Group"
           VIEW-AS FILL-IN 
           SIZE 8.6 BY 1
-     RowObject.error_number AT ROW 2.1 COL 28.6 COLON-ALIGNED
+     RowObject.error_number AT ROW 2.05 COL 28.6 COLON-ALIGNED
+          LABEL "Error Number"
           VIEW-AS FILL-IN 
           SIZE 18.4 BY 1
-     RowObject.error_summary_description AT ROW 4.1 COL 4.6
+     RowObject.source_language AT ROW 4.14 COL 30.6
+          LABEL "Source Language"
+          VIEW-AS TOGGLE-BOX
+          SIZE 22 BY 1
+     RowObject.error_summary_description AT ROW 5.19 COL 4.6
+          LABEL "Error Summary Description"
           VIEW-AS FILL-IN 
-          SIZE 47.6 BY 1
-     RowObject.error_type AT ROW 5.1 COL 28.6 COLON-ALIGNED
+          SIZE 78.4 BY 1
+     RowObject.error_type AT ROW 6.24 COL 28.6 COLON-ALIGNED
+          LABEL "Error Type"
           VIEW-AS COMBO-BOX INNER-LINES 5
           LIST-ITEM-PAIRS "Message","MES",
                      "Information","INF",
@@ -177,12 +198,15 @@ DEFINE FRAME frMain
                      "Question","QUE"
           DROP-DOWN-LIST
           SIZE 16 BY 1
-     RowObject.update_error_log AT ROW 5.29 COL 56.6
+     RowObject.update_error_log AT ROW 6.24 COL 56.6
+          LABEL "Update Error Log"
           VIEW-AS TOGGLE-BOX
-          SIZE 21.2 BY .81
-     RowObject.error_full_description AT ROW 6.24 COL 10.8 NO-LABEL
-          VIEW-AS EDITOR MAX-CHARS 500 SCROLLBAR-VERTICAL LARGE
-          SIZE 70 BY 8
+          SIZE 21.2 BY 1
+     RowObject.error_full_description AT ROW 7.29 COL 30.6 NO-LABEL
+          VIEW-AS EDITOR MAX-CHARS 3000 SCROLLBAR-VERTICAL LARGE
+          SIZE 78.4 BY 7
+     fiErrorFullDescriptionLabel AT ROW 7.29 COL 8.2 COLON-ALIGNED NO-LABEL
+     SPACE(48.00) SKIP(0.00)
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -223,7 +247,7 @@ END.
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
          HEIGHT             = 13.76
-         WIDTH              = 86.6.
+         WIDTH              = 108.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -250,8 +274,26 @@ ASSIGN
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
 
+/* SETTINGS FOR EDITOR RowObject.error_full_description IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR FILL-IN RowObject.error_group IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR FILL-IN RowObject.error_number IN FRAME frMain
+   EXP-LABEL                                                            */
 /* SETTINGS FOR FILL-IN RowObject.error_summary_description IN FRAME frMain
-   ALIGN-L                                                              */
+   ALIGN-L EXP-LABEL                                                    */
+/* SETTINGS FOR COMBO-BOX RowObject.error_type IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR FILL-IN fiErrorFullDescriptionLabel IN FRAME frMain
+   NO-ENABLE                                                            */
+ASSIGN 
+       fiErrorFullDescriptionLabel:PRIVATE-DATA IN FRAME frMain     = 
+                "Error Full Description:".
+
+/* SETTINGS FOR TOGGLE-BOX RowObject.source_language IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR TOGGLE-BOX RowObject.update_error_log IN FRAME frMain
+   EXP-LABEL                                                            */
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
@@ -267,6 +309,64 @@ ASSIGN
 
  
 
+
+
+/* ************************  Control Triggers  ************************ */
+
+&Scoped-define SELF-NAME RowObject.source_language
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL RowObject.source_language vTableWin
+ON VALUE-CHANGED OF RowObject.source_language IN FRAME frMain /* Source Language */
+DO:
+  DEFINE VARIABLE cDataset      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cErrorObj     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hDataSource   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE dLanguageObj  AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE cLanguageCode AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cButton       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAnswer       AS CHARACTER  NO-UNDO.
+  
+  {set dataModified TRUE}.
+
+  IF RowObject.source_language:CHECKED THEN DO:
+    {get DataSource hDataSource}.
+  
+    IF VALID-HANDLE(hDataSource) THEN
+      cErrorObj = DYNAMIC-FUNCTION("columnStringValue":U IN hDataSource, "gsc_error.error_obj":U).
+    
+    RUN getRecordDetail IN gshGenManager ( INPUT "FOR EACH gsc_error WHERE gsc_error.error_group = '" + RowObject.error_group:SCREEN-VALUE + "'" + 
+                                                 " AND gsc_error.error_number = " + RowObject.error_number:SCREEN-VALUE + 
+                                                 " AND gsc_error.error_obj <> " + QUOTER(cErrorObj) + 
+                                                 " AND gsc_error.source_language = TRUE NO-LOCK ":U,
+                                           OUTPUT cDataset ).
+    
+    IF cDataset <> "":U AND cDataset <> ? THEN DO:
+      dLanguageObj = DECIMAL(ENTRY(LOOKUP("gsc_error.language_obj":U, cDataSet, CHR(3)) + 1 , cDataSet, CHR(3))).
+      RUN getRecordDetail IN gshGenManager ( INPUT "FOR EACH gsc_language WHERE gsc_language.language_obj = " + QUOTER(dLanguageObj) + " NO-LOCK ":U,
+                                             OUTPUT cDataset ).
+      cLanguageCode = ENTRY(LOOKUP("gsc_language.language_code":U, cDataSet, CHR(3)) + 1 , cDataSet, CHR(3)).
+      RUN askQuestion IN gshSessionManager (INPUT "Another message for this group and number has already been marked as the source language (" + cLanguageCode + "). Do you wish to make this error the source language?",      /* messages */
+                                            INPUT "&Yes,&No":U,     /* button list */
+                                            INPUT "&No":U,          /* default */
+                                            INPUT "&No":U,          /* cancel */
+                                            INPUT "Question":U,     /* title */
+                                            INPUT "":U,             /* datatype */
+                                            INPUT "":U,             /* format */
+                                            INPUT-OUTPUT cAnswer,   /* answer */
+                                            OUTPUT cButton          /* button pressed */
+                                            ).
+      IF cButton = "&No":U THEN
+        RowObject.source_language:CHECKED = FALSE.
+      ELSE
+        glRefresh = TRUE.
+    END.
+  END.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&UNDEFINE SELF-NAME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK vTableWin 
 
@@ -307,7 +407,7 @@ PROCEDURE addRecord :
   /* If the conversion worked, set the combo's data value */
   IF NOT ERROR-STATUS:ERROR AND
      dLanguageObj <> 0 THEN
-    DYNAMIC-FUNCTION('setDataValue':U IN hLanguageObj,INPUT STRING(dLanguageObj,">>>>>>>>>>>>>9.999999999":U)).
+    DYNAMIC-FUNCTION('setDataValue':U IN hLanguageObj,INPUT STRING(dLanguageObj,"->>>>>>>>>>>>>>>>>9.999999999":U)).
   /* otherwise set the error-status handle to NO. */
   ELSE 
     ERROR-STATUS:ERROR = NO.
@@ -334,10 +434,10 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_language.language_code,gsc_language.language_nameKeyFieldgsc_language.language_objFieldLabelLanguageFieldTooltipSelect a Language from the listKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&2 (&1)CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines5ComboFlagFlagValueBuildSequence1SecurednoFieldNamelanguage_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_language.language_name,gsc_language.language_codeKeyFieldgsc_language.language_objFieldLabelLanguageFieldTooltipSelect a Language from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 (&2)ComboDelimiterListItemPairsInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNamelanguage_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hLanguageObj ).
        RUN repositionObject IN hLanguageObj ( 3.10 , 30.60 ) NO-ERROR.
-       RUN resizeObject IN hLanguageObj ( 1.00 , 48.00 ) NO-ERROR.
+       RUN resizeObject IN hLanguageObj ( 1.05 , 48.00 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */
        RUN adjustTabOrder ( hLanguageObj ,
@@ -382,6 +482,45 @@ Notes:      This code is generated by the UIB.  DO NOT modify it.
 -------------------------------------------------------------*/
   RUN "af\obj2\gsclgdcs2v.w *RTB-SmObj* ".
 
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE updateRecord vTableWin 
+PROCEDURE updateRecord :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hDataSource AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cRowident   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cErrorType  AS CHARACTER  NO-UNDO.
+  
+  /* Code placed here will execute PRIOR to standard behavior. */
+
+  {get DataSource hDataSource}.  
+  
+  /*if the Error_type changes then the SDO will change all the related records, and here,
+    we just refresh the browse so the related records will be refreshed in the browse. */
+  ASSIGN cErrorType = DYNAMIC-FUNCTION("columnStringValue" IN hDataSource, INPUT "error_type").
+  IF cErrorType <>  rowObject.error_type:SCREEN-VALUE IN FRAME {&FRAME-NAME} THEN
+    ASSIGN glRefresh = TRUE.
+  
+  RUN SUPER.
+  
+  /* Code placed here will execute AFTER standard behavior.    */
+  IF glRefresh THEN DO:
+    cRowident = DYNAMIC-FUNCTION('getRowIdent':U IN hDataSource) NO-ERROR.
+    IF VALID-HANDLE(hDataSource) THEN DO:
+      DYNAMIC-FUNCTION('openQuery' IN hDataSource).
+      IF cRowIdent <> ? AND cRowIdent <> "":U THEN
+        DYNAMIC-FUNCTION('fetchRowIdent' IN hDataSource, cRowIdent, '':U) NO-ERROR.
+    END.
+  END.
+  glRefresh = FALSE.
+  
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

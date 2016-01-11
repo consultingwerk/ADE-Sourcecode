@@ -83,7 +83,7 @@ DEFINE VARIABLE hVentilator AS HANDLE NO-UNDO.
 &ANALYZE-RESUME
 
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Method-Library 
@@ -106,36 +106,40 @@ PROCEDURE _addVentilatorPopup PRIVATE :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-DEFINE INPUT PARAMETER hMenu AS HANDLE NO-UNDO.
+  DEFINE INPUT PARAMETER hMenu AS HANDLE NO-UNDO.
 
-DEFINE VARIABLE hItem AS HANDLE NO-UNDO.
+  DEFINE VARIABLE hItem AS HANDLE NO-UNDO.
 
-IF VALID-HANDLE(hMenu)
-THEN DO:
+  IF VALID-HANDLE(hMenu) THEN
+  DO:
     CREATE MENU-ITEM hItem
-        ASSIGN SUBTYPE = "RULE"
-               PARENT = hMenu.
+    ASSIGN
+        SUBTYPE = "RULE"
+        PARENT  = hMenu.
 
     CREATE MENU-ITEM hItem
-        ASSIGN LABEL  = "&Repaint"
-               PARENT = hMenu
+    ASSIGN
+        LABEL  = "&Repaint"
+        PARENT = hMenu
     TRIGGERS:
-        ON "CHOOSE" PERSISTENT RUN _repaintObject IN THIS-PROCEDURE.
+      ON "CHOOSE" PERSISTENT RUN _repaintObject IN THIS-PROCEDURE.
     END TRIGGERS.
 
     CREATE MENU-ITEM hItem
-        ASSIGN SUBTYPE = "RULE"
-               PARENT = hMenu.
+    ASSIGN
+        SUBTYPE = "RULE"
+        PARENT  = hMenu.
 
     CREATE MENU-ITEM hItem
-        ASSIGN LABEL  = "&Hide Ventilator"
-               TOGGLE-BOX = TRUE
-               CHECKED = TRUE
-               PARENT = hMenu
+    ASSIGN
+        LABEL      = "&Hide Ventilator"
+        TOGGLE-BOX = TRUE
+        CHECKED    = FALSE
+        PARENT     = hMenu
     TRIGGERS:
-        ON "VALUE-CHANGED" PERSISTENT RUN _hideVentilator IN THIS-PROCEDURE.
+      ON "VALUE-CHANGED" PERSISTENT RUN _hideVentilator IN THIS-PROCEDURE.
     END TRIGGERS.
-END.
+  END.
 
 END PROCEDURE.
 
@@ -153,30 +157,30 @@ PROCEDURE _getVentilator PRIVATE :
   Parameters:  Object Instance Frame handle
   Notes:       
 ------------------------------------------------------------------------------*/
-DEFINE INPUT PARAMETER pHandle AS HANDLE NO-UNDO.
+  DEFINE INPUT PARAMETER pHandle AS HANDLE NO-UNDO.
 
-ASSIGN pHandle = pHandle:LAST-CHILD.
+  pHandle = pHandle:LAST-CHILD.
 
-DO WHILE VALID-HANDLE(pHandle) ON ERROR UNDO, RETURN ERROR:
+  DO WHILE VALID-HANDLE(pHandle) ON ERROR UNDO, RETURN ERROR:
 
-    IF CAN-DO("WINDOW,FIELD-GROUP,FRAME",pHandle:TYPE)
-    THEN 
-        RUN _getVentilator(pHandle).
+    IF CAN-DO("WINDOW,FIELD-GROUP,FRAME",pHandle:TYPE) THEN 
+      RUN _getVentilator(pHandle).
     ELSE 
-        IF pHandle:DYNAMIC 
-        AND pHandle:WIDTH-PIXELS = 17
-        AND pHandle:HEIGHT-PIXELS = 16
-        AND pHandle:X < 5
-        AND pHandle:Y < 5
-        AND CAN-QUERY(pHandle,"POPUP-MENU")
-        AND VALID-HANDLE(pHandle:POPUP-MENU)
-        THEN DO:
-            ASSIGN hVentilator = pHandle hVentilator:HIDDEN = TRUE.
-            RETURN ERROR.
-        END.
+      IF pHandle:DYNAMIC       = TRUE     AND
+         pHandle:WIDTH-PIXELS  = 17       AND
+         pHandle:HEIGHT-PIXELS = 16       AND
+         pHandle:X             < 5        AND
+         pHandle:Y             < 5        AND
+         CAN-QUERY(pHandle,"POPUP-MENU")  AND
+         VALID-HANDLE(pHandle:POPUP-MENU) THEN
+      DO:
+        hVentilator = pHandle.
 
-    ASSIGN pHandle = pHandle:PREV-SIBLING.
-END.
+        RETURN ERROR.
+      END.
+
+    pHandle = pHandle:PREV-SIBLING.
+  END.
 
 END PROCEDURE.
 
@@ -195,12 +199,12 @@ PROCEDURE _hideVentilator PRIVATE :
   Notes:       
 ------------------------------------------------------------------------------*/
 
-IF VALID-HANDLE(hVentilator)
-THEN DO:
-    ASSIGN hVentilator:VISIBLE = NOT SELF:CHECKED.
+  IF VALID-HANDLE(hVentilator) THEN
+  DO:
+    hVentilator:VISIBLE = NOT SELF:CHECKED.
 
     hVentilator:MOVE-TO-TOP().
-END.
+  END.
 
 END PROCEDURE.
 
@@ -219,7 +223,8 @@ PROCEDURE _repaintObject PRIVATE :
   Notes:       
 ------------------------------------------------------------------------------*/
 
-RUN resizeObject IN THIS-PROCEDURE(FRAME {&FRAME-NAME}:HEIGHT,FRAME {&FRAME-NAME}:WIDTH).
+  RUN resizeObject IN THIS-PROCEDURE (INPUT FRAME {&FRAME-NAME}:HEIGHT,
+                                      INPUT FRAME {&FRAME-NAME}:WIDTH).
 
 END PROCEDURE.
 

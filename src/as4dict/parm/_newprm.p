@@ -33,6 +33,8 @@ Author: Donna McMann
 Date Created: 05/04/99 
      History: 09/09/99 D. McMann Added logic to check field name, assign
                        parameter as4-name to be PARM_#.
+              09/06/02 D. McMann how the foreign name was being calculated has the
+                       potential of having duplicate names changed to use p__file.num-flds.
                       
 ----------------------------------------------------------------------------*/
 
@@ -53,7 +55,7 @@ Define var IsPro      as logical            NO-UNDO.  /* true if db is Prog. */
 Define var copied     as logical            NO-UNDO.  
 Define var added      as logical init no    NO-UNDO.
 DEFINE VAR last-parm  AS LOGICAL INIT NO    NO-UNDO.
-DEFINE VAR last-num   AS INTEGER            NO-UNDO.
+
 
 /* Reminder: Here's what's in user_env:
 
@@ -225,17 +227,9 @@ do:
             b_Parm._AS4-File = as4dict.p__File._AS4-File
             b_Parm._AS4-Library = as4dict.p__File._AS4-Library   
             as4dict.p__File._Fil-Res1[8] = 1
-            as4dict.p__file._numfld = as4dict.p__File._numfld + 1.   
-        
-        FIND LAST as4dict.p__Field WHERE as4dict.p__Field._AS4-File = b_Parm._AS4-File
-                                     AND as4dict.p__Field._AS4-Library = b_Parm._AS4-Library
-                                     NO-LOCK NO-ERROR.
-        IF AVAILABLE as4dict.p__Field THEN 
-          ASSIGN last-num = INTEGER(SUBSTRING(as4dict.p__Field._For-name,6)) + 1
-                 b_parm._for-name = "PARM_" + STRING(last-num).
-        ELSE
-          ASSIGN b_parm._For-name = "PARM_1".
-
+            as4dict.p__file._numfld = as4dict.p__File._numfld + 1   
+            b_parm._for-name = "PARM_" + STRING(as4dict.p__File._numfld).
+    
         IF as4dict.p__File._numfld = 32 THEN DO:
           MESSAGE "Stored procedures can only have 32 parameters." SKIP
                   "Therefore, this will be last parameter to be created." SKIP
@@ -416,6 +410,7 @@ IF as4dict.p__File._numfld = 32 THEN DO:
         VIEW-AS ALERT-BOX INFORMATION.
     RETURN.
 END.
+
 
 dba_cmd = "RESERVE".
 RUN as4dict/_dbaocmd.p 

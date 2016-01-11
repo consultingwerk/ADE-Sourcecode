@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000-2002 by Progress Software Corporation ("PSC"),  *
+* Copyright (C) 2000-2003 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -47,11 +47,11 @@ DEFINE NEW GLOBAL SHARED VARIABLE AppProgram        AS CHARACTER NO-UNDO FORMAT 
 DEFINE NEW GLOBAL SHARED VARIABLE REQUEST_METHOD    AS CHARACTER NO-UNDO.
 DEFINE NEW GLOBAL SHARED VARIABLE gscSessionId      AS CHARACTER NO-UNDO.
 
-DEFINE VARIABLE cRunLog                AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cLogTypes              AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cLogPath               AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE lNoCache               AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE iEtime                 AS INTEGER    NO-UNDO.
+DEFINE VARIABLE cRunLog   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cLogTypes AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cLogPath  AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE lNoCache  AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE iEtime    AS INTEGER    NO-UNDO.
 
 DEFINE STREAM logger.
 
@@ -206,8 +206,7 @@ PROCEDURE init-batch :
     iEtime = 0.
 
   IF CAN-DO(cLogTypes,"BATCH") AND cLogPath NE "" THEN  
-    cRunLog 
-           = " ~n":U + 
+    cRunLog = " ~n":U + 
              STRING(YEAR(TODAY),"9999":U) + "/" +
              STRING(MONTH(TODAY),"99":U) + "/" +
              STRING(DAY(TODAY),"99":U) + " " +
@@ -237,17 +236,20 @@ PROCEDURE init-config :
   
   /* Logging.  Not just a canadian thing anymore
   */ 
-  ASSIGN c1 = REPLACE(OS-GETENV("LOG_TYPES":U),";",",").
-  IF c1 EQ "" OR c1 = ? THEN c1 = "*".
-  lRetVal   = DYNAMIC-FUNCTION("setAgentSetting" IN web-utilities-hdl,"Logging":U,"","LogTypes":U,c1).
+  ASSIGN 
+    c1      = REPLACE(OS-GETENV("LOG_TYPES":U),";",",")
+    c1      = (IF c1 EQ "" OR c1 = ? THEN "*" ELSE c1)
+    lRetVal = DYNAMIC-FUNCTION("setAgentSetting" IN web-utilities-hdl,
+                "Logging":U,"","LogTypes":U,c1).
 
   ASSIGN 
-    c1   = OS-GETENV("LOG_PATH":U)
+    c1                  = OS-GETENV("LOG_PATH":U)
     FILE-INFO:FILE-NAME = c1 NO-ERROR.
-  IF FILE-INFO:FULL-PATHNAME        EQ ? OR 
+  IF FILE-INFO:FULL-PATHNAME         EQ ? OR 
     INDEX(FILE-INFO:FILE-TYPE,"D":U) LT 1 THEN
     ASSIGN c1 = SESSION:TEMP-DIR.
-  lRetVal = DYNAMIC-FUNCTION("setAgentSetting" IN web-utilities-hdl,"Logging":U,"","LogDir":U, REPLACE (c1,"~\","~/")).
+  lRetVal = DYNAMIC-FUNCTION("setAgentSetting" IN web-utilities-hdl,
+              "Logging":U,"","LogDir":U, REPLACE (c1,"~\","~/")).
 
   RUN SUPER.
 
@@ -276,8 +278,7 @@ PROCEDURE init-request :
   RUN SUPER.
 
   IF CAN-DO(cLogTypes,"RUN") AND cLogPath NE "" THEN  
-    cRunLog 
-           = " ~n":U + 
+    cRunLog = " ~n":U + 
              STRING(YEAR(TODAY),"9999":U) + "/" +
              STRING(MONTH(TODAY),"99":U) + "/" +
              STRING(DAY(TODAY),"99":U) + " " +
@@ -374,7 +375,7 @@ FUNCTION logNote RETURNS LOGICAL
                   + " ":U + pcLogText + "~n":U
       iETIME = ETIME.
      
-   IF LENGTH(cRunLog) > 8000 OR lNoCache THEN logWrite().
+    IF LENGTH(cRunLog) > 8000 OR lNoCache THEN logWrite().
   END.
 END FUNCTION.
 
@@ -392,15 +393,19 @@ FUNCTION logWrite RETURNS LOGICAL
   Purpose:  writes log information out to disk
     Notes:  
 ------------------------------------------------------------------------------*/
-  DEF VAR cFile AS CHAR NO-UNDO.
-  cFile = getLogFile().
-  IF cRunLog GE "" AND cFile > "" THEN DO:
-    OUTPUT STREAM logger TO VALUE(cFile) APPEND KEEP-MESSAGES.
-    PUT STREAM logger UNFORMATTED cRunLog.
-    OUTPUT STREAM logger CLOSE.
+  DEFINE VARIABLE cFile AS CHARACTER NO-UNDO.
+
+  IF cRunLog GE "" THEN DO:
+    cFile = getLogFile().    
+    IF cFile > "" THEN DO:
+      OUTPUT STREAM logger TO VALUE(cFile) APPEND KEEP-MESSAGES.
+      PUT STREAM logger UNFORMATTED cRunLog.
+      OUTPUT STREAM logger CLOSE.
+    END.
   END.
   ASSIGN cRunLog = "".
   RETURN TRUE.
+  
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

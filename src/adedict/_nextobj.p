@@ -38,6 +38,7 @@ Author: Laura Stern
 Date Created: 05/03/92 
     Modified: 06/29/98 D. McMann Added _Owner to _File find
               05/19/99 Mario B.  Adjust Width Field browser integration.
+              08/08/02 D. McMann Eliminated any sequences whose name begins "$" - Peer Direct
 
 ----------------------------------------------------------------------------*/
 &GLOBAL-DEFINE WIN95-BTN YES
@@ -117,8 +118,9 @@ case p_Obj:
    do:	 
       if p_Next then
       do:
-	 find FIRST _Sequence where _Sequence._Db-recid = s_DbRecId AND
-				    _Sequence._Seq-Name > s_CurrSeq NO-ERROR.
+	 find FIRST _Sequence where _Sequence._Db-recid = s_DbRecId 
+                            AND NOT _Sequence._Seq-Name BEGINS "$"
+                            AND _Sequence._Seq-Name > s_CurrSeq NO-ERROR.
       
 	 if AVAILABLE _Sequence then
 	 do:
@@ -135,9 +137,12 @@ case p_Obj:
       	 end.
       end.
       else do:
-	 find _Sequence where _Sequence._Db-recid = s_DbRecId AND
-			      _Sequence._Seq-Name = s_CurrSeq.
-	 find PREV _Sequence use-index _Seq-name NO-ERROR.
+	 find _Sequence where _Sequence._Db-recid = s_DbRecId 
+                      AND NOT _Sequence._Seq-Name BEGINS "$"
+                      AND _Sequence._Seq-Name = s_CurrSeq.
+	 find PREV _Sequence where _Sequence._Db-recid = s_DbRecId 
+                      AND NOT _Sequence._Seq-Name BEGINS "$"
+                      use-index _Seq-name NO-ERROR.
       
 	 if AVAILABLE _Sequence then
 	 do:

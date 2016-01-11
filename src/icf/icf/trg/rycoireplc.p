@@ -23,15 +23,9 @@
 *********************************************************************/
 TRIGGER PROCEDURE FOR REPLICATION-CREATE OF ryc_object_instance.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "ryc_object_instance"
-                      &TRIGGER-TYPE = "REPLICATION-CREATE"}
-
 {af/sup/afreplicat.i  &TABLE-NAME   = "ryc_object_instance"
                       &TABLE-FLA    = "rycoi"
-                      &TABLE-PK     = "container_smartobject_obj,
-                                       object_instance_obj"
+                      &TABLE-PK     = "object_instance_obj"
                       &ACTION       = "CREATE"
                       &PRIMARY-FLA  = "rycso"
                       &PRIMARY-KEY  = "container_smartobject_obj"

@@ -4,6 +4,9 @@
 */
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME wWin
+{adecomm/appserv.i}
+DEFINE VARIABLE h_Astra                    AS HANDLE          NO-UNDO.
+DEFINE VARIABLE h_Astra2                   AS HANDLE          NO-UNDO.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Check Version Notes Wizard" wWin _INLINE
 /* Actions: af/cod/aftemwizcw.w ? ? ? ? */
 /* MIP Update Version Notes Wizard
@@ -138,7 +141,28 @@ af/cod/aftemwizpw.w
 
   Update Notes: Fixed issue #3955 - Data Source (Parent SDO) is lost in Dynamic TreeView
 
------------------------------------------------------------------*/
+  (v:010018)    Task:           0   UserRef:    
+                Date:   03/13/2002  Author:     Mark Davies (MIP)
+
+  Update Notes: Fixed issue #4146 - Smallest size error with tree view
+
+  (v:010019)    Task:           0   UserRef:    
+                Date:   03/28/2002  Author:     Mark Davies (MIP)
+
+  Update Notes: Fixed issue #3183 - Custom Super Procedure support not implemented for Dynamic TreeView
+                Also fixed various other issues with regards to the Structured TreeView implementation
+
+  (v:010020)    Task:           0   UserRef:    
+                Date:   05/31/2002  Author:     Mark Davies (MIP)
+
+  Update Notes: Replaced all '\' with '~\'
+
+  (v:010021)    Task:           0   UserRef:    
+                Date:   06/27/2002  Author:     Mark Davies (MIP)
+
+  Update Notes: Added fix submitted by KSM to fix iz#4527
+
+--------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
 
@@ -164,71 +188,23 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /* Astra 2 object identifying preprocessor */
 &glob   astra2-dynamiccontainer yes
 
+&GLOBAL-DEFINE ICF-DYNAMIC-CONTAINER YES
+
 /* Parameters Definitions ---                                           */
 
 /* Local Variable Definitions ---                                       */
-
-/* include temp-table definitions */
-
-{af/sup2/afrun2.i &DEFINE-ONLY=YES}
-{af/sup2/afcheckerr.i &DEFINE-ONLY=YES}
-{af/sup2/afglobals.i}
-{ry/app/rycsofetch.i}
-
-/* Define temp-tables required */
-{ry/inc/rytrettdef.i}
-
-DEFINE TEMP-TABLE tt_tree_object_instance LIKE tt_object_instance.
-
-DEFINE TEMP-TABLE tt_exclude_page_instance LIKE tt_page_instance
-  FIELDS iOldPageNo AS INTEGER.
-
-DEFINE TEMP-TABLE tt_view_page_instance LIKE tt_page_instance.
-
-DEFINE TEMP-TABLE tt_view_page LIKE tt_page.
-
-DEFINE TEMP-TABLE ttNonTreeObjects NO-UNDO
-  FIELDS hObjectHandle AS HANDLE.
-
-DEFINE TEMP-TABLE ttDataLinks NO-UNDO
-  FIELDS hSourceHandle  AS HANDLE
-  FIELDS hTargetHandle  AS HANDLE
-  FIELDS lUpdateLink    AS LOGICAL.
-  
-&SCOPED-DEFINE SDO-TYPE-CODE SmartDataObject
-&GLOBAL-DEFINE xpLogicalObjectName
-
-DEFINE VARIABLE glOnceOnlyDone AS LOGICAL INITIAL FALSE.
-DEFINE VARIABLE glInitialised AS LOGICAL INITIAL FALSE.
-
-DEFINE NEW GLOBAL SHARED VARIABLE gsh_LayoutManager AS HANDLE.
-DEFINE NEW GLOBAL SHARED VARIABLE gsh_LayoutManagerID AS INTEGER.
-
-IF NOT VALID-HANDLE(gsh_LayoutManager) 
-OR gsh_LayoutManager:UNIQUE-ID <> gsh_LayoutManagerID THEN 
-DO: 
-    RUN ry/prc/rylayoutsp.p PERSISTENT SET gsh_LayoutManager.
-    IF VALID-HANDLE(gsh_LayoutManager) THEN ASSIGN gsh_LayoutManagerID = gsh_LayoutManager:UNIQUE-ID.
-END.
-
-DEFINE VARIABLE ghTableioSource       AS HANDLE  NO-UNDO.
-DEFINE VARIABLE gdMinimumWindowWidth  AS DECIMAL INITIAL ?.
-DEFINE VARIABLE gdMinimumWindowHeight AS DECIMAL INITIAL ?.
-DEFINE VARIABLE gdMaximumWindowWidth  AS DECIMAL INITIAL ?.
-DEFINE VARIABLE gdMaximumWindowHeight AS DECIMAL INITIAL ?.
-
-DEFINE VARIABLE gdMinimumFolderWidth AS DECIMAL INITIAL ?.
-DEFINE VARIABLE gdMinimumFolderHeight AS DECIMAL INITIAL ?.
-
-DEFINE VARIABLE gcLaunchLogicalObject AS CHARACTER NO-UNDO.
-DEFINE VARIABLE gcLaunchRunAttribute  AS CHARACTER NO-UNDO.
-DEFINE VARIABLE gcValueList           AS CHARACTER NO-UNDO.
+DEFINE VARIABLE gdResizeCol           AS DECIMAL    NO-UNDO.
+DEFINE VARIABLE gcLaunchLogicalObject AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLaunchRunAttribute  AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcValueList           AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE glObjectInitialized   AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE glOnceOnly            AS LOGICAL    NO-UNDO.
 
 DEFINE VARIABLE gcContainerMode       AS CHARACTER NO-UNDO.
 
-DEFINE VARIABLE gcObjectHandles       AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE gcToolbarHandles      AS CHARACTER    NO-UNDO.
 
+
+DEFINE VARIABLE ghTableioSource       AS HANDLE  NO-UNDO.
 DEFINE VARIABLE ghContainerToolbar    AS HANDLE     NO-UNDO.
 DEFINE VARIABLE ghTreeViewOCX         AS HANDLE     NO-UNDO.
 DEFINE VARIABLE ghFolderToolbar       AS HANDLE     NO-UNDO.
@@ -237,8 +213,23 @@ DEFINE VARIABLE ghFolder              AS HANDLE     NO-UNDO.
 DEFINE VARIABLE gcTreeLayoutCode      AS CHARACTER  NO-UNDO.
 
 DEFINE VARIABLE gcLogicalObjectName   AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcInstanceAttributes   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLaunchedFolderName  AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLaunchedSDOName     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLaunchedRunInstance AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcInstanceAttributes  AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcOldSDOName          AS CHARACTER  NO-UNDO.
+
+DEFINE VARIABLE gdMinimumWindowWidth  AS DECIMAL    NO-UNDO INITIAL ?.
+DEFINE VARIABLE gdMinimumWindowHeight AS DECIMAL    NO-UNDO INITIAL ?.
+DEFINE VARIABLE gdMaximumWindowWidth  AS DECIMAL    NO-UNDO INITIAL ?.
+DEFINE VARIABLE gdMaximumWindowHeight AS DECIMAL    NO-UNDO INITIAL ?.
+
+DEFINE VARIABLE gdMinimumFolderWidth  AS DECIMAL    NO-UNDO INITIAL ?.
+DEFINE VARIABLE gdMinimumFolderHeight AS DECIMAL    NO-UNDO INITIAL ?.
+
+DEFINE VARIABLE gcObjectHandles       AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcToolbarHandles      AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE giLockWindow          AS INTEGER    NO-UNDO.
 
 DEFINE VARIABLE glMenuMaintenance     AS LOGICAL    NO-UNDO INIT FALSE.
 DEFINE VARIABLE glTreeViewDefaults    AS LOGICAL    NO-UNDO.
@@ -252,17 +243,12 @@ DEFINE VARIABLE gcCurrentNodeKey      AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcCurrExpandNodeKey   AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcLastLaunchedNode    AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcParentNode          AS CHARACTER  NO-UNDO.
-
+DEFINE VARIABLE giLastLaunchedPage    AS INTEGER    NO-UNDO.
 
 DEFINE VARIABLE gcWindowName          AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcFolderTitle         AS CHARACTER  NO-UNDO.
 
-
 DEFINE VARIABLE gcFilterValue AS CHARACTER  NO-UNDO.
-
-{af/app/afttsecurityctrl.i}
-{af/app/aftttranslate.i}
-
 DEFINE VARIABLE glAutoSort          AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE glHideSelection     AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE glShowRootLines     AS LOGICAL    NO-UNDO.
@@ -281,11 +267,9 @@ DEFINE VARIABLE gcPrimarySDOName    AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE glDelete            AS LOGICAL    NO-UNDO.
 
 DEFINE VARIABLE ghOverridenSubMenu  AS HANDLE     NO-UNDO.
-DEFINE VARIABLE ghCurrentLabel      AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE glExpand            AS LOGICAL    NO-UNDO INITIAL TRUE.
 
 DEFINE VARIABLE glFilterApplied     AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE gdResizeCol         AS DECIMAL    NO-UNDO.
 DEFINE VARIABLE glNewChildNode      AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE glReposSDO          AS LOGICAL    NO-UNDO.
 
@@ -294,10 +278,62 @@ DEFINE VARIABLE gdNodeObj           AS DECIMAL    NO-UNDO.
 DEFINE VARIABLE gdMinInstanceWidth  AS DECIMAL    NO-UNDO.
 DEFINE VARIABLE gdMinInstanceHeight AS DECIMAL    NO-UNDO.
 
-PROCEDURE GetSysColor EXTERNAL "user32":
-  define input parameter nIn as LONG.
-  define return parameter nCol as LONG.
+DEFINE VARIABLE gdTopCoordinate     AS DECIMAL    NO-UNDO.
+DEFINE VARIABLE gdLeftCoordinate    AS DECIMAL    NO-UNDO.
+DEFINE VARIABLE ghDynTreeContainer  AS HANDLE     NO-UNDO.
+DEFINE VARIABLE ghDynTreeSuperProc  AS HANDLE     NO-UNDO.
+
+DEFINE VARIABLE gcCurrentLogicalName        AS CHARACTER        NO-UNDO.
+DEFINE VARIABLE gdTreeviewInstanceId        AS DECIMAL          NO-UNDO.
+
+DEFINE VARIABLE glReposParentNode           AS LOGICAL          NO-UNDO.
+
+{launch.i &DEFINE-ONLY=YES}
+{dynlaunch.i &DEFINE-ONLY=YES}
+{checkerr.i &DEFINE-ONLY=YES}
+{src/adm2/globals.i}
+
+/* Define temp-tables required */
+{src/adm2/treettdef.i}
+
+DEFINE TEMP-TABLE ttNonTreeObjects NO-UNDO
+    FIELD hObjectHandle AS HANDLE.
+
+DEFINE TEMP-TABLE ttDataLinks NO-UNDO
+    FIELD hSourceHandle  AS HANDLE
+    FIELD hTargetHandle  AS HANDLE
+    FIELD lUpdateLink    AS LOGICAL
+    .
+
+&SCOPED-DEFINE SDO-TYPE-CODE SmartDataObject
+&GLOBAL-DEFINE xpLogicalObjectName
+
+DEFINE NEW GLOBAL SHARED VARIABLE gshLayoutManager AS HANDLE.
+DEFINE NEW GLOBAL SHARED VARIABLE gshLayoutManagerID AS INTEGER.
+
+IF NOT VALID-HANDLE(gshLayoutManager) 
+OR gshLayoutManager:UNIQUE-ID <> gshLayoutManagerID THEN 
+DO: 
+  RUN ry/prc/rylayoutsp.p PERSISTENT SET gshLayoutManager.
+  IF VALID-HANDLE(gshLayoutManager) THEN ASSIGN gshLayoutManagerID = gshLayoutManager:UNIQUE-ID.
 END.
+
+{af/app/afttsecurityctrl.i}
+{af/app/aftttranslate.i}
+
+/* Defines the NO-RESULT-CODE and DEFAULT-RESULT-CODE result codes. */
+{ ry/app/rydefrescd.i }
+
+/** Define some global queries here so that we can reduce the number of 
+ *  CREATE QUERY ... statements.
+ *  ----------------------------------------------------------------------- **/
+DEFINE VARIABLE ghQuery1                AS HANDLE                   NO-UNDO.
+DEFINE VARIABLE ghQuery2                AS HANDLE                   NO-UNDO.
+
+/* Define the container_* tables that local control the object. */
+{ ry/app/ryobjretri.i &CONTAINER-TABLES=YES }
+
+DEFINE TEMP-TABLE tTreeObjects LIKE container_Object.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -330,9 +366,9 @@ END.
 
 /* ************************  Function Prototypes ********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD childWindowsOpen wWin 
-FUNCTION childWindowsOpen RETURNS LOGICAL
-  ( )  FORWARD.
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD buildContainerTables wWin 
+FUNCTION buildContainerTables RETURNS LOGICAL
+    ( INPUT pdInstanceId        AS DECIMAL )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -365,16 +401,72 @@ FUNCTION getContainerObjectHandles RETURNS CHARACTER
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFieldList wWin 
-FUNCTION getFieldList RETURNS CHARACTER
-  (pcForeignFields AS CHARACTER)  FORWARD.
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCurrentLogicalname wWin 
+FUNCTION getCurrentLogicalname RETURNS CHARACTER
+    ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCurrentMode wWin 
+FUNCTION getCurrentMode RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCurrentNodeKey wWin 
+FUNCTION getCurrentNodeKey RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCurrExpandNodeKey wWin 
+FUNCTION getCurrExpandNodeKey RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDelete wWin 
+FUNCTION getDelete RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getExpand wWin 
+FUNCTION getExpand RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFilterApplied wWin 
+FUNCTION getFilterApplied RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFilterValue wWin 
+FUNCTION getFilterValue RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFilterViewerHandle wWin 
+FUNCTION getFilterViewerHandle RETURNS HANDLE
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFrameHandle wWin 
 FUNCTION getFrameHandle RETURNS HANDLE
-  ( ip_procedure_handle AS HANDLE )  FORWARD.
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -400,9 +492,23 @@ FUNCTION getImageWidth RETURNS INTEGER
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getInstanceAttributes wWin 
+FUNCTION getInstanceAttributes RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getInstanceObjectId wWin 
 FUNCTION getInstanceObjectId RETURNS DECIMAL
     ( phProcedureHandle     AS HANDLE    )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getLastLaunchedNode wWin 
+FUNCTION getLastLaunchedNode RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -414,23 +520,113 @@ FUNCTION getLogicalObjectName RETURNS CHARACTER
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getMainTableObj wWin 
-FUNCTION getMainTableObj RETURNS DECIMAL
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getMenuMaintenance wWin 
+FUNCTION getMenuMaintenance RETURNS LOGICAL
   ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getNodeDetails wWin 
-FUNCTION getNodeDetails RETURNS CHARACTER
-  ( INPUT phTable   AS HANDLE,
-    INPUT pcNodeKey AS CHARACTER )  FORWARD.
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getNewChildNode wWin 
+FUNCTION getNewChildNode RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getObjectVersionNumber wWin 
-FUNCTION getObjectVersionNumber RETURNS CHARACTER
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getNewContainerMode wWin 
+FUNCTION getNewContainerMode RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getNodeObj wWin 
+FUNCTION getNodeObj RETURNS DECIMAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getNoMessage wWin 
+FUNCTION getNoMessage RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getObjectHandles wWin 
+FUNCTION getObjectHandles RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getObjectInitialized wWin 
+FUNCTION getObjectInitialized RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getObjectPage wWin 
+FUNCTION getObjectPage RETURNS INTEGER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getOnceOnly wWin 
+FUNCTION getOnceOnly RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getParentNode wWin 
+FUNCTION getParentNode RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getPrimarySDOName wWin 
+FUNCTION getPrimarySDOName RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getRawAttributeValues wWin 
+FUNCTION getRawAttributeValues RETURNS HANDLE
+    ( INPUT pdInstanceId        AS DECIMAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getRctBorderHandle wWin 
+FUNCTION getRctBorderHandle RETURNS HANDLE
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getReposParentNode wWin 
+FUNCTION getReposParentNode RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getReposSDO wWin 
+FUNCTION getReposSDO RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getResizeFillInHandle wWin 
+FUNCTION getResizeFillInHandle RETURNS HANDLE
   ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -450,6 +646,13 @@ FUNCTION getRunTimeAttribute RETURNS CHARACTER
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getSDOHandle wWin 
+FUNCTION getSDOHandle RETURNS HANDLE
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getShowCheckBoxes wWin 
 FUNCTION getShowCheckBoxes RETURNS LOGICAL
   ( /* parameter-definitions */ )  FORWARD.
@@ -464,6 +667,13 @@ FUNCTION getShowRootLines RETURNS LOGICAL
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getState wWin 
+FUNCTION getState RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getTableioSource wWin 
 FUNCTION getTableioSource RETURNS HANDLE
   ( /* parameter-definitions */ )  FORWARD.
@@ -473,13 +683,20 @@ FUNCTION getTableioSource RETURNS HANDLE
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getToolbarHandles wWin 
 FUNCTION getToolbarHandles RETURNS CHARACTER
-  (  )  FORWARD.
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getTranslatableNodes wWin 
 FUNCTION getTranslatableNodes RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getTreeContainerMode wWin 
+FUNCTION getTreeContainerMode RETURNS CHARACTER
   ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -499,6 +716,20 @@ FUNCTION getTreeStyle RETURNS INTEGER
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getTreeViewOCX wWin 
+FUNCTION getTreeViewOCX RETURNS HANDLE
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getWindowHandle wWin 
+FUNCTION getWindowHandle RETURNS HANDLE
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getWindowName wWin 
 FUNCTION getWindowName RETURNS CHARACTER
   (  )  FORWARD.
@@ -506,9 +737,9 @@ FUNCTION getWindowName RETURNS CHARACTER
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD returnSDOName wWin 
-FUNCTION returnSDOName RETURNS CHARACTER
-  ( INPUT pcSDOSBOName AS CHARACTER  )  FORWARD.
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD lockWindow wWin 
+FUNCTION lockWindow RETURNS LOGICAL
+  (plLockWindow AS LOGICAL)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -520,9 +751,51 @@ FUNCTION setAutoSort RETURNS LOGICAL
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setContainerMode wWin 
-FUNCTION setContainerMode RETURNS LOGICAL
-  ( INPUT cContainerMode AS CHARACTER)  FORWARD.
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setCurrentMode wWin 
+FUNCTION setCurrentMode RETURNS LOGICAL
+  ( pcCurrentMode AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setCurrentNodeKey wWin 
+FUNCTION setCurrentNodeKey RETURNS LOGICAL
+  ( pcCurrentNodeKey AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setCurrExpandNodeKey wWin 
+FUNCTION setCurrExpandNodeKey RETURNS LOGICAL
+  ( pcCurrExpandNodeKey AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDefaultMenuBar wWin 
+FUNCTION setDefaultMenuBar RETURNS LOGICAL
+  ( phDefaultMenuBar AS HANDLE )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDelete wWin 
+FUNCTION setDelete RETURNS LOGICAL
+  ( plDelete AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setExpand wWin 
+FUNCTION setExpand RETURNS LOGICAL
+  ( plExpand AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFilterApplied wWin 
+FUNCTION setFilterApplied RETURNS LOGICAL
+  ( plFilterApplied AS LOGICAL )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -548,6 +821,20 @@ FUNCTION setImageWidth RETURNS LOGICAL
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setInstanceAttributes wWin 
+FUNCTION setInstanceAttributes RETURNS LOGICAL
+  ( pcInstanceAttributes AS CHARACTER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setLastLaunchedNode wWin 
+FUNCTION setLastLaunchedNode RETURNS LOGICAL
+  ( pcLastLaunchedNode AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setLogicalObjectName wWin 
 FUNCTION setLogicalObjectName RETURNS LOGICAL
   ( INPUT cObjectName AS CHARACTER)  FORWARD.
@@ -555,10 +842,72 @@ FUNCTION setLogicalObjectName RETURNS LOGICAL
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setNodeExpanded wWin 
-FUNCTION setNodeExpanded RETURNS LOGICAL
-  ( INPUT pcNode         AS CHARACTER,
-    INPUT plNodeExpanded AS LOGICAL)  FORWARD.
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setMenuMaintenance wWin 
+FUNCTION setMenuMaintenance RETURNS LOGICAL
+  ( plMenuMaintenance AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setNewChildNode wWin 
+FUNCTION setNewChildNode RETURNS LOGICAL
+  ( plNewChildNode AS LOGICAL)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setNewContainerMode wWin 
+FUNCTION setNewContainerMode RETURNS LOGICAL
+  ( pcNewContainerMode AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setNodeObj wWin 
+FUNCTION setNodeObj RETURNS LOGICAL
+  ( pdNodeObj AS DECIMAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setObjectInitialized wWin 
+FUNCTION setObjectInitialized RETURNS LOGICAL
+  ( pcObjectInitialized AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setOnceOnly wWin 
+FUNCTION setOnceOnly RETURNS LOGICAL
+  ( pcOnceOnly AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setParentNode wWin 
+FUNCTION setParentNode RETURNS LOGICAL
+  ( pcParentNode AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setPrimarySDOName wWin 
+FUNCTION setPrimarySDOName RETURNS LOGICAL
+  ( pcPrimarySDOName AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setReposParentNode wWin 
+FUNCTION setReposParentNode RETURNS LOGICAL
+  ( plReposParentNode AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setReposSDO wWin 
+FUNCTION setReposSDO RETURNS LOGICAL
+  ( plReposSDO AS LOGICAL )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -577,6 +926,20 @@ FUNCTION setRunAttribute RETURNS LOGICAL
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setSDOHandle wWin 
+FUNCTION setSDOHandle RETURNS LOGICAL
+  ( phSDOHandle AS HANDLE )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setServerOperatingMode wWin 
+FUNCTION setServerOperatingMode RETURNS LOGICAL
+  ( pcServerOperatingMode AS CHARACTER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setShowCheckBoxes wWin 
 FUNCTION setShowCheckBoxes RETURNS LOGICAL
   ( INPUT plShowCheckBoxes AS LOGICAL )  FORWARD.
@@ -587,6 +950,13 @@ FUNCTION setShowCheckBoxes RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setShowRootLines wWin 
 FUNCTION setShowRootLines RETURNS LOGICAL
   ( INPUT plShowRootLines AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setState wWin 
+FUNCTION setState RETURNS LOGICAL
+  ( pcState AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -606,9 +976,9 @@ FUNCTION setTableioSource RETURNS LOGICAL
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setTemplateObjectName wWin 
-FUNCTION setTemplateObjectName RETURNS LOGICAL
-  ( INPUT pcTemplateObjectName AS CHARACTER )  FORWARD.
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setTreeContainerMode wWin 
+FUNCTION setTreeContainerMode RETURNS LOGICAL
+  ( pcTreeContainerMode AS CHARACTER)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -622,7 +992,7 @@ FUNCTION setTreeStyle RETURNS LOGICAL
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setupFolderPages wWin 
 FUNCTION setupFolderPages RETURNS LOGICAL
-  (pcLogicalObjectName  AS CHARACTER) FORWARD.
+    (pcLogicalObjectName  AS CHARACTER) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -630,20 +1000,6 @@ FUNCTION setupFolderPages RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setWindowName wWin 
 FUNCTION setWindowName RETURNS LOGICAL
   ( pcWindowName AS CHARACTER )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD showMessages wWin 
-FUNCTION showMessages RETURNS LOGICAL
-  ( INPUT pcMessage AS CHARACTER )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD toLogical wWin 
-FUNCTION toLogical RETURNS LOGICAL
-  ( INPUT pcText AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -682,7 +1038,7 @@ DEFINE FRAME fMain
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1
-         SIZE 99 BY 10.95.
+         SIZE 99 BY 10.91.
 
 
 /* *********************** Procedure Settings ************************ */
@@ -692,7 +1048,7 @@ DEFINE FRAME fMain
    Type: SmartWindow
    Allow: Basic,Browse,DB-Fields,Query,Smart,Window
    Container Links: Data-Target,Data-Source,Page-Target,Update-Source,Update-Target,Filter-target,Filter-Source
-   Other Settings: COMPILE
+   Other Settings: COMPILE APPSERVER
  */
 &ANALYZE-RESUME _END-PROCEDURE-SETTINGS
 
@@ -703,7 +1059,7 @@ IF SESSION:DISPLAY-TYPE = "GUI":U THEN
   CREATE WINDOW wWin ASSIGN
          HIDDEN             = YES
          TITLE              = ""
-         HEIGHT             = 10.95
+         HEIGHT             = 10.91
          WIDTH              = 99
          MAX-HEIGHT         = 39.19
          MAX-WIDTH          = 230.4
@@ -724,7 +1080,7 @@ ELSE {&WINDOW-NAME} = CURRENT-WINDOW.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB wWin 
 /* ************************* Included-Libraries *********************** */
 
-{adm2/containr.i}
+{adm2/tvcontnr.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -759,50 +1115,30 @@ THEN wWin:HIDDEN = yes.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL wWin wWin
 ON END-ERROR OF wWin
 OR ENDKEY OF {&WINDOW-NAME} ANYWHERE DO:
-  
-  /* If ESC pressed on 1st window, application will exit - give chance to 
-     abort this if windows open
-  */
-  IF NOT THIS-PROCEDURE:PERSISTENT AND childWindowsOpen() THEN
-  DO:
-    DEFINE VARIABLE cButton AS CHARACTER NO-UNDO.
-    DEFINE VARIABLE cAnswer AS CHARACTER NO-UNDO.
-    RUN askQuestion IN gshSessionManager (INPUT "There are child windows open - continue with exit of application?",    /* messages */
-                                          INPUT "&Yes,&No":U,     /* button list */
-                                          INPUT "&Yes":U,         /* default */
-                                          INPUT "&No":U,          /* cancel */
-                                          INPUT "Exit Application":U, /* title */
-                                          INPUT "":U,             /* datatype */
-                                          INPUT "":U,             /* format */
-                                          INPUT-OUTPUT cAnswer,   /* answer */
-                                          OUTPUT cButton          /* button pressed */
-                                          ).
-    IF cButton = "&No":U OR cButton = "No":U THEN RETURN NO-APPLY.
-  END.
-  
-  /* This case occurs when the user presses the "Esc" key.
-     In a persistently run window, just ignore this.  If we did not, the
-     application would exit. */
-  IF THIS-PROCEDURE:PERSISTENT THEN RETURN NO-APPLY.
-  ELSE APPLY "CLOSE":U TO THIS-PROCEDURE. /* ensure close down nicely */
+    /* If ESC pressed on 1st window, application will exit - give chance to 
+     * abort this if windows open                                           */
+    IF NOT THIS-PROCEDURE:PERSISTENT THEN
+    DO:
+        DEFINE VARIABLE cButton AS CHARACTER NO-UNDO.
+        DEFINE VARIABLE cAnswer AS CHARACTER NO-UNDO.
 
-END.
+        RUN askQuestion IN gshSessionManager ( INPUT "There are child windows open - continue with exit of application?",    /* messages */
+                                               INPUT "&Yes,&No":U,     /* button list */
+                                               INPUT "&Yes":U,         /* default */
+                                               INPUT "&No":U,          /* cancel */
+                                               INPUT "Exit Application":U, /* title */
+                                               INPUT "":U,             /* datatype */
+                                               INPUT "":U,             /* format */
+                                               INPUT-OUTPUT cAnswer,   /* answer */
+                                               OUTPUT cButton          /* button pressed */ ).
+        IF cButton = "&No":U OR cButton = "No":U THEN RETURN NO-APPLY.
+    END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
+    APPLY "CLOSE":U TO THIS-PROCEDURE. /* ensure close down nicely */
 
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL wWin wWin
-ON RIGHT-MOUSE-CLICK OF wWin
-DO:
-  /* We do not want the TreeView popup to appear on the window */
-  DEFINE VARIABLE hPopupMenu AS HANDLE     NO-UNDO.
-
-  ASSIGN hPopupMenu = {&WINDOW-NAME}:POPUP-MENU.
-         {&WINDOW-NAME}:POPUP-MENU = ?.
-  
-  IF VALID-HANDLE( hPopupMenu ) THEN
-    DELETE WIDGET hPopupMenu.
+    /* Add the return no-appply so that the entire application doesn't shut down. */
+    IF TARGET-PROCEDURE:PERSISTENT THEN
+        RETURN NO-APPLY.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -816,7 +1152,7 @@ DO:
      and its descendents to terminate properly on exit. */
   
   /* If close window - give chance to abort this if windows open */
-  IF childWindowsOpen() THEN
+  IF DYNAMIC-FUNCTION("childWindowsOpen":U) THEN
   DO:
     DEFINE VARIABLE cButton AS CHARACTER NO-UNDO.
     DEFINE VARIABLE cAnswer AS CHARACTER NO-UNDO.
@@ -843,10 +1179,9 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL wWin wWin
 ON WINDOW-RESIZED OF wWin
 DO:
-    
     IF {&WINDOW-NAME}:WIDTH-CHARS < gdMinimumWindowWidth THEN
-      {&WINDOW-NAME}:WIDTH-CHARS = gdMinimumWindowWidth.
-      
+        {&WINDOW-NAME}:WIDTH-CHARS = gdMinimumWindowWidth.
+
     RUN resizeWindow.
 END.
 
@@ -859,9 +1194,7 @@ END.
 ON END-MOVE OF fiResizeFillIn IN FRAME fMain
 DO:
   DEFINE VARIABLE hTreeViewFrame  AS HANDLE   NO-UNDO.
-  /*
-  ASSIGN {&WINDOW-NAME}:MIN-WIDTH-CHARS = {&WINDOW-NAME}:MIN-WIDTH-CHARS + (fiResizeFillIn:COL - gdResizeCol).
-  */         
+  
   RUN resizeWindow.
   
   /* Make sure the User does not resize the OCX smaller than the allowed size */
@@ -910,7 +1243,7 @@ IF VALID-HANDLE({&WINDOW-NAME}) THEN DO:
        {&WINDOW-NAME}:KEEP-FRAME-Z-ORDER = YES
        THIS-PROCEDURE:CURRENT-WINDOW = {&WINDOW-NAME}.
 
-{af/sup2/aficonload.i}
+    {af/sup2/aficonload.i}
 
     /* The CLOSE event can be used from inside or outside the procedure to  */
     /* terminate it.                                                        */
@@ -998,48 +1331,6 @@ END.
 
 /* **********************  Internal Procedures  *********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE addRecord wWin 
-PROCEDURE addRecord :
-/*------------------------------------------------------------------------------
-  Purpose:     We need to override this procedure to reposition the parent SDO
-               to the correct record before we add. This needs to be done due
-               to foreign fields.
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hTable          AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cNodeDetail     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE dNodeObj        AS DECIMAL    NO-UNDO.
-  DEFINE VARIABLE cParentNodeSDO  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cParentNodeRef  AS CHARACTER  NO-UNDO.
-
-  {get TreeDataTable hTable ghTreeViewOCX}.  
-            
-  ASSIGN cNodeDetail = getNodeDetails(hTable, gcParentNode).
-
-  ASSIGN dNodeObj = DECIMAL(ENTRY(1,cNodeDetail,CHR(2))).
-  
-  gcNewContainerMode = "Add".
-  /* Get Parent Node Info */
-  FIND FIRST ttNode
-       WHERE ttNode.node_obj = dNodeObj
-       NO-LOCK NO-ERROR.
-  cParentNodeSDO = "":U.
-  IF AVAILABLE ttNode THEN DO:
-    IF ttNode.run_attribute = "STRUCTURED":U THEN DO:
-      cParentNodeRef = DYNAMIC-FUNCTION("getProperty":U IN ghTreeViewOCX, "TAG":U,gcParentNode).
-      DYNAMIC-FUNCTION("setUserProperty":U IN THIS-PROCEDURE, "ParentKeyValue":U, cParentNodeRef).
-    END.
-    ASSIGN cParentNodeSDO = IF ttNode.data_source_type <> "TXT":U THEN ttNode.data_source ELSE ttNode.primary_sdo.
-  END.
-  /* We need to reposition the Parent SDO for the foreign Fields */
-  RUN repositionParentSDO (INPUT cParentNodeSDO,
-                           INPUT gcParentNode).
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE addTTLinks wWin 
 PROCEDURE addTTLinks :
 /*------------------------------------------------------------------------------
@@ -1047,131 +1338,246 @@ PROCEDURE addTTLinks :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE INPUT  PARAMETER pcSDOName       AS CHARACTER  NO-UNDO.
-  
-  DEFINE BUFFER tt_source_object_instance FOR tt_object_instance.
-  DEFINE BUFFER tt_target_object_instance FOR tt_object_instance.
-  DEFINE BUFFER btt_link                  FOR tt_link.
-  
-  DEFINE VARIABLE hSourceObject AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE hTargetObject AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE hObject       AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE cLinks        AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE iLoop         AS INTEGER      NO-UNDO.
-  DEFINE VARIABLE lLinkExists   AS LOGICAL      NO-UNDO.
-  
-  DEFINE VARIABLE cSourceType   AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE hToolbarTrg   AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE hSDOHandle    AS HANDLE       NO-UNDO.
-  
-  DEFINE VARIABLE hViewer AS HANDLE   NO-UNDO.
-  
-  EMPTY TEMP-TABLE ttLinksAdded.
-  FOR EACH  tt_link
-      WHERE tt_link.link_created = NO:
+    DEFINE INPUT PARAMETER pcSDOName                AS CHARACTER        NO-UNDO.
+    DEFINE INPUT PARAMETER pdContainerInstanceId    AS DECIMAL          NO-UNDO.
+
+    DEFINE VARIABLE hSourceObject               AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE hTargetObject               AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE hSourceInstanceBuffer       AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE hTargetInstanceBuffer       AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE hToolbarTrg                 AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE cLinks                      AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE cSourceType                 AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE cSupported                  AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE lLinkExists                 AS LOGICAL              NO-UNDO.
+    DEFINE VARIABLE iLoop                       AS INTEGER              NO-UNDO.
+
+    DEFINE BUFFER source_Object         FOR container_Object.
+    DEFINE BUFFER target_Object         FOR container_Object.
+    DEFINE BUFFER container_Link        FOR container_Link.
+    DEFINE BUFFER update_Link           FOR container_Link.
     
-    FIND FIRST tt_source_object_instance
-        WHERE tt_source_object_instance.object_instance_obj = tt_link.source_object_instance_obj NO-ERROR.
+    FOR EACH container_Link WHERE
+             container_Link.tTargetProcedure = TARGET-PROCEDURE AND
+             container_Link.tLinkCreated     = NO                 :
 
-    FIND FIRST tt_target_object_instance
-        WHERE tt_target_object_instance.object_instance_obj = tt_link.target_object_instance_obj NO-ERROR.
+        FIND FIRST source_Object WHERE
+                   source_Object.tTargetProcedure   = TARGET-PROCEDURE AND
+                   source_Object.tObjectInstanceObj = container_Link.tSourceObjectInstanceObj
+                   NO-ERROR.
 
-    hSourceObject = (IF AVAILABLE tt_source_object_instance THEN tt_source_object_instance.object_instance_handle ELSE THIS-PROCEDURE).
-    hTargetObject = (IF AVAILABLE tt_target_object_instance THEN tt_target_object_instance.object_instance_handle ELSE THIS-PROCEDURE).
+        FIND FIRST target_Object WHERE
+                   target_Object.tTargetProcedure   = TARGET-PROCEDURE AND
+                   target_Object.tObjectInstanceObj = container_Link.tTargetObjectInstanceObj
+                   NO-ERROR.
 
-    IF tt_link.link_name = "Update" AND
-       hTargetObject = THIS-PROCEDURE THEN
-      NEXT.
-    IF tt_link.link_name = "TableIO":U AND hSourceObject = ghFolderToolbar THEN
-      SUBSCRIBE PROCEDURE THIS-PROCEDURE TO "updateState"  IN hTargetObject.
-    /* Link the primary viewer to the SDO */
-    IF tt_link.link_name = "Data":U AND hSourceObject = THIS-PROCEDURE THEN
-    DO:
-      FIND FIRST ttRunningSDOs NO-LOCK
-           WHERE ttRunningSDOs.cSDOName = pcSDOName 
-           NO-ERROR.
-      IF AVAILABLE ttRunningSDOs THEN DO:
-        RUN addLink(ttRunningSDOs.hSDOHandle, "Data":U, hTargetObject).
-        IF CAN-FIND(FIRST btt_link
-                    WHERE btt_link.link_name = "Update":U
-                    AND btt_link.source_object_instance_obj = tt_target_object_instance.object_instance_obj) THEN
-          RUN addLink(hTargetObject, "Update":U, ttRunningSDOs.hSDOHandle).
-      END.
-    END.
-    ELSE DO:
-      lLinkExists = FALSE.
-      
-      /* The page link already exists, so do not add it again */
-      IF tt_link.link_name BEGINS "Page":U THEN DO:
-        IF DYNAMIC-FUNCTION("linkHandles":U, tt_link.link_name + "-Source":U) <> "":U THEN
+        ASSIGN hSourceObject = ( IF AVAILABLE source_Object AND container_Link.tSourceObjectInstanceObj GT 0 THEN 
+                                    source_Object.tObjectInstanceHandle
+                                 ELSE
+                                    TARGET-PROCEDURE
+                               ).
+        ASSIGN hTargetObject = ( IF AVAILABLE target_Object  AND container_Link.tTargetObjectInstanceObj GT 0 THEN 
+                                    target_Object.tObjectInstanceHandle
+                                 ELSE
+                                    TARGET-PROCEDURE
+                               ).
+
+        IF NOT VALID-HANDLE(hSourceObject) OR
+           NOT VALID-HANDLE(hTargetObject) THEN
           NEXT.
-        ELSE 
-          IF NOT VALID-HANDLE(hTargetObject) THEN hTargetObject = THIS-PROCEDURE.
-      END.
-      
-      /* The toolbar target is currently a single object link 
-         This need to be revisited.. */
-      {get ObjectType cSourceType hSourceObject}.
-      IF cSourceType MATCHES '*toolbar*':U THEN 
-      DO:
-        {get ToolbarTarget hToolbarTrg hSourceObject}.      
-        IF VALID-HANDLE(hToolbarTrg) THEN
-          {set ToolbarTarget ? hSourceObject}.
-      END.
-      
-      /*IF tt_link.link_name = 'toolbar':U  */
-      RUN addLink(hSourceObject, tt_link.link_name, hTargetObject).
-      
-      IF glMenuMaintenance AND 
-         hTargetObject = THIS-PROCEDURE THEN
-         NEXT.
-      IF tt_link.link_name = "Navigation":U THEN DO: 
-      
-        FIND FIRST ttRunningSDOs NO-LOCK
-             WHERE ttRunningSDOs.cSDOName = pcSDOName 
-             NO-ERROR.
-        
-        IF AVAILABLE ttRunningSDOs THEN
-          ASSIGN hSourceObject = THIS-PROCEDURE
-                 hTargetObject = ttRunningSDOs.hSDOHandle.
-      
-        FIND FIRST ttLinksAdded
-             WHERE ttLinksAdded.hSourceHandle = hSourceHandle 
-             AND   ttLinksAdded.cLinkName     = tt_link.link_name
-             AND   ttLinksAdded.hTargetHandle = hTargetHandle 
-             NO-LOCK NO-ERROR.
-        IF NOT AVAILABLE ttLinksAdded THEN DO:
-          CREATE ttLinksAdded.
-          ASSIGN ttLinksAdded.hSourceHandle = hSourceObject
-                 ttLinksAdded.cLinkName     = tt_link.link_name
-                 ttLinksAdded.hTargetHandle = hTargetObject.
-          RUN addLink(hSourceObject, tt_link.link_name, hTargetObject).
-        END.
-      END. /* Navigation Links */
-    END.
-  END. /* FOR EACH tt_link */
+        IF container_Link.tLinkName EQ "Update" AND hTargetObject EQ TARGET-PROCEDURE THEN
+            NEXT.
+        IF container_Link.tLinkName EQ "TableIO":U AND hSourceObject = ghFolderToolbar THEN
+            SUBSCRIBE PROCEDURE TARGET-PROCEDURE TO "updateState":U IN hTargetObject.
 
-  /* Ensure that this object does not send messages to the toolbar and that 
-     the toolbar does not consider it to be an active TableioTarget */
-  RUN LinkStateHandler('inactive':U,getTableioSource(),'TableioSource':U). 
-  
-  /** Add a Navigation link from the Folder Toolbar 
-      to the Dynamic TreeView to trap ToolBar Navigation */
-  lLinkExists = FALSE.
-  ASSIGN cLinks = DYNAMIC-FUNCTION("linkHandles":U, "Navigation-Target":U).
-  IF cLinks = "":U THEN
-    lLinkExists = FALSE.
-  DO iLoop = 1 TO NUM-ENTRIES(cLinks):
-    ASSIGN hTargetObject = WIDGET-HANDLE(ENTRY(iLoop,cLinks)).
-    IF VALID-HANDLE(hTargetObject) AND
-       hTargetObject = THIS-PROCEDURE THEN
-      lLinkExists = TRUE.
-  END.
-  IF lLinkExists = FALSE AND 
-     VALID-HANDLE(ghFolderToolBar) THEN
-    RUN addLink(ghFolderToolBar, "NAVIGATION":U, THIS-PROCEDURE).
- 
-END PROCEDURE.
+        /* Link the primary viewer to the SDO */
+        IF container_Link.tLinkName EQ "Data":U AND hSourceObject = TARGET-PROCEDURE THEN
+        DO:
+            FIND FIRST ttRunningSDOs WHERE ttRunningSDOs.cSDOName = pcSDOName NO-LOCK NO-ERROR.
+            IF AVAILABLE ttRunningSDOs THEN
+            DO:
+                RUN addLink (ttRunningSDOs.hSDOHandle, "Data":U, hTargetObject).
+                CREATE ttLinksAdded.
+                ASSIGN ttLinksAdded.hSourceHandle = ttRunningSDOs.hSDOHandle
+                       ttLinksAdded.cLinkName     = "Data":U
+                       ttLinksAdded.hTargetHandle = hTargetObject
+                       .
+                FIND FIRST update_Link WHERE
+                           update_Link.tTargetProcedure         = TARGET-PROCEDURE  AND
+                           update_Link.tLinkName                = "Update":U        AND
+                           update_Link.tSourceObjectInstanceObj = container_Link.tTargetObjectInstanceObj
+                           NO-ERROR.
+                IF AVAILABLE update_Link THEN
+                DO:
+                    RUN addLink (hTargetObject, "Update":U, ttRunningSDOs.hSDOHandle).
+                    CREATE ttLinksAdded.
+                    ASSIGN ttLinksAdded.hSourceHandle = hTargetObject
+                           ttLinksAdded.cLinkName     = "Update":U
+                           ttLinksAdded.hTargetHandle = ttRunningSDOs.hSDOHandle
+                           .
+                END.    /* available update link */
+            END.    /* available runnig SDO */
+        END.
+        ELSE
+        DO:
+            ASSIGN lLinkExists = FALSE.
+
+            /* The page link already exists, so do not add it again */
+            IF container_Link.tLinkName BEGINS "Page":U THEN
+            DO:
+                IF DYNAMIC-FUNCTION("linkHandles":U, container_Link.tLinkName + "-Source":U) <> "":U THEN DO:
+                  ASSIGN container_Link.tLinkCreated = YES.
+                  NEXT.
+                END.
+                ELSE 
+                    IF NOT VALID-HANDLE(hTargetObject) THEN
+                        ASSIGN hTargetObject = TARGET-PROCEDURE.
+            END.    /* page link */
+            ELSE
+            IF container_Link.tLinkName EQ "Navigation":U THEN
+            DO: 
+              /* We should not be adding the Navigation link from
+                 the Object Top Toolbar to THIS-PROCEDURE, no support
+                 for this has been implemented yet - leave it out for now 
+                 Mark Davies (MIP) 28/08/2002 */
+              IF hSourceObject = ghFolderToolbar AND hTargetObject = TARGET-PROCEDURE THEN DO:
+                ASSIGN container_Link.tLinkCreated = YES.
+                NEXT.
+              END.
+              
+              /* If we have a navigation link from the TreeView SDO - find it in the running sdo table */
+              IF INDEX(pcSDOName,DYNAMIC-FUNCTION("getLogicalObjectName" IN hTargetObject)) <> 0 THEN DO:
+                FIND FIRST ttRunningSDOs WHERE ttRunningSDOs.cSDOName = pcSDOName NO-LOCK NO-ERROR.
+                IF AVAILABLE ttRunningSDOs THEN
+                DO:                
+                  ASSIGN hSourceObject = TARGET-PROCEDURE
+                         hTargetObject = ttRunningSDOs.hSDOHandle
+                         .
+                  /* We should not add a navigation link from the top toolbar
+                     to the SDO when running the Tree as a menu */
+                  IF hSourceObject = TARGET-PROCEDURE AND
+                     glMenuMaintenance THEN DO:
+                    ASSIGN container_Link.tLinkCreated = YES.
+                    NEXT.
+                  END.
+                END.    /* available running SDO */
+              END.
+
+              IF VALID-HANDLE(hSourceObject) AND
+                 VALID-HANDLE(hTargetObject) THEN DO:
+                FIND FIRST ttLinksAdded WHERE
+                           ttLinksAdded.hSourceHandle = hSourceObject AND
+                           ttLinksAdded.cLinkName     = container_Link.tLinkName     AND
+                           ttLinksAdded.hTargetHandle = hTargetObject
+                           NO-LOCK NO-ERROR.
+                IF NOT AVAILABLE ttLinksAdded THEN
+                DO:
+                  RUN addLink (hSourceObject, container_Link.tLinkName, hTargetObject).
+                  CREATE ttLinksAdded.
+                  ASSIGN ttLinksAdded.hSourceHandle = hSourceObject
+                         ttLinksAdded.cLinkName     = container_Link.tLinkName
+                         ttLinksAdded.hTargetHandle = hTargetObject
+                         .                       
+                  ASSIGN container_Link.tLinkCreated = YES.
+                  NEXT.
+                END.
+              END.
+            END. /* Navigation Links */
+            
+            /* The toolbar target is currently a single object link 
+             * This need to be revisited.. */            
+            {get ObjectType cSourceType hSourceObject}.
+
+            IF cSourceType MATCHES '*toolbar*':U THEN 
+            DO:
+                {get ToolbarTarget hToolbarTrg hSourceObject}.      
+                IF VALID-HANDLE(hToolbarTrg) THEN
+                    {set ToolbarTarget ? hSourceObject}.
+            END.
+
+            IF container_Link.tLinkName EQ "GroupAssign":U THEN
+            DO:
+                /* Source */
+                ASSIGN cSupported = DYNAMIC-FUNCTION("getSupportedLinks":U IN hSourceObject).
+                IF LOOKUP("GroupAssign-Source",cSupported) = 0 THEN
+                    ASSIGN cSupported = cSupported + ",GroupAssign-Source".
+                IF LOOKUP("GroupAssign-Target",cSupported) = 0 THEN
+                    ASSIGN cSupported = cSupported + ",GroupAssign-Target".
+                DYNAMIC-FUNCTION("setSupportedLinks":U IN hSourceObject,cSupported).
+
+                /* Target */
+                ASSIGN cSupported = DYNAMIC-FUNCTION("getSupportedLinks":U IN hTargetObject).
+                IF LOOKUP("GroupAssign-Source",cSupported) = 0 THEN
+                    ASSIGN cSupported = cSupported + ",GroupAssign-Source".
+                IF LOOKUP("GroupAssign-Target",cSupported) = 0 THEN
+                    ASSIGN cSupported = cSupported + ",GroupAssign-Target".
+                DYNAMIC-FUNCTION("setSupportedLinks":U IN hTargetObject,cSupported).
+            END.    /* Group Assign links */
+            ELSE
+            IF container_Link.tLinkName EQ "TableIO":U THEN
+            DO:
+                /* Source */
+                ASSIGN cSupported = DYNAMIC-FUNCTION("getSupportedLinks":U IN hSourceObject).
+                IF LOOKUP("TableIO-Source",cSupported) = 0 THEN
+                    ASSIGN cSupported = cSupported + ",TableIO-Source".
+                IF LOOKUP("TableIO-Target",cSupported) = 0 THEN
+                    ASSIGN cSupported = cSupported + ",TableIO-Target".
+                DYNAMIC-FUNCTION("setSupportedLinks":U IN hSourceObject,cSupported).
+                
+                /* Target */
+                ASSIGN cSupported = DYNAMIC-FUNCTION("getSupportedLinks":U IN hTargetObject).
+                IF LOOKUP("TableIO-Source",cSupported) = 0 THEN
+                    ASSIGN cSupported = cSupported + ",TableIO-Source".
+                IF LOOKUP("TableIO-Target",cSupported) = 0 THEN
+                    ASSIGN cSupported = cSupported + ",TableIO-Target".
+                DYNAMIC-FUNCTION("setSupportedLinks":U IN hTargetObject,cSupported).
+            END.    /* TableIO */
+
+            RUN addLink (hSourceObject, container_Link.tLinkName, hTargetObject).
+            CREATE ttLinksAdded.
+            ASSIGN ttLinksAdded.hSourceHandle = hSourceObject
+                   ttLinksAdded.cLinkName     = container_Link.tLinkName
+                   ttLinksAdded.hTargetHandle = hTargetObject
+                   .
+            
+            IF glMenuMaintenance AND hTargetObject = TARGET-PROCEDURE THEN DO:
+              ASSIGN container_Link.tLinkCreated = YES.
+              NEXT.
+            END.
+                
+        END.    /* not the primary, data link */
+
+        ASSIGN container_Link.tLinkCreated = YES.
+    END. /* available link buffer  */
+
+    /* Ensure that this object does not send messages to the toolbar and that 
+     * the toolbar does not consider it to be an active TableioTarget */
+    RUN LinkStateHandler IN TARGET-PROCEDURE ('inactive':U,DYNAMIC-FUNCTION("getTableioSource":U IN TARGET-PROCEDURE), 'TableioSource':U). 
+
+    /* Add a Navigation link from the Folder Toolbar 
+     * to the Dynamic TreeView to trap ToolBar Navigation */
+    ASSIGN lLinkExists = FALSE.
+    ASSIGN cLinks = DYNAMIC-FUNCTION("linkHandles":U IN TARGET-PROCEDURE, "Navigation-Target":U).
+    IF cLinks = "":U THEN
+        ASSIGN lLinkExists = FALSE.
+    DO iLoop = 1 TO NUM-ENTRIES(cLinks):
+        ASSIGN hTargetObject = WIDGET-HANDLE(ENTRY(iLoop,cLinks)).
+        IF VALID-HANDLE(hTargetObject) AND hTargetObject = TARGET-PROCEDURE THEN
+            ASSIGN lLinkExists = TRUE.
+    END.
+
+    IF lLinkExists = FALSE AND VALID-HANDLE(ghFolderToolBar) THEN
+    DO:
+        CREATE ttLinksAdded.
+        ASSIGN ttLinksAdded.hSourceHandle = ghFolderToolBar
+               ttLinksAdded.cLinkName     = "Navigation":U
+               ttLinksAdded.hTargetHandle = TARGET-PROCEDURE
+               .                        
+        RUN addLink (ghFolderToolBar, "NAVIGATION":U, TARGET-PROCEDURE).
+    END.
+
+    RETURN.
+END PROCEDURE.  /* addTTLinks */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1196,7 +1602,7 @@ PROCEDURE adm-create-objects :
              INPUT  'AutoSortyesHideSelectionnoImageHeight16ImageWidth16ShowCheckBoxesnoShowRootLinesyesTreeStyle7ExpandOnAddnoFullRowSelectnoOLEDragnoOLEDropnoScrollyesSingleSelnoIndentation5LabelEdit1LineStyle1HideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_smarttreeview ).
        RUN repositionObject IN h_smarttreeview ( 1.48 , 2.20 ) NO-ERROR.
-       RUN resizeObject IN h_smarttreeview ( 10.10 , 40.80 ) NO-ERROR.
+       RUN resizeObject IN h_smarttreeview ( 10.19 , 40.80 ) NO-ERROR.
 
        /* Links to SmartTreeView h_smarttreeview. */
        RUN addLink ( h_smarttreeview , 'TVController':U , THIS-PROCEDURE ).
@@ -1224,6 +1630,7 @@ PROCEDURE buildPopupMenu :
   DEFINE VARIABLE hPopupMenu    AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hPopupItem    AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cRootNodeCode AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hTreeFrame    AS HANDLE     NO-UNDO.
 
   ASSIGN hPopupMenu = {&WINDOW-NAME}:POPUP-MENU.
          {&WINDOW-NAME}:POPUP-MENU = ?.
@@ -1277,57 +1684,13 @@ PROCEDURE buildPopupMenu :
     END. /* Prompt For Adding */
   END.
   
-
-
   /* Assign the new popup menu to the window */
-  ASSIGN
-      {&WINDOW-NAME}:POPUP-MENU = hPopupMenu.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE cancelRecord wWin 
-PROCEDURE cancelRecord :
-/*------------------------------------------------------------------------------
-  Purpose:     Captures the event when an Add/Copy/Modify was cancelled.
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hTable  AS HANDLE   NO-UNDO.
-  DEFINE VARIABLE hBuf    AS HANDLE   NO-UNDO.
-  DEFINE VARIABLE hQry    AS HANDLE   NO-UNDO.
-
-  IF glNewChildNode THEN DO:
-    {get TreeDataTable hTable ghTreeViewOCX}.
-    ASSIGN hBuf = hTable:DEFAULT-BUFFER-HANDLE.
-    IF gcCurrentNodeKey <> ? THEN DO:
-      CREATE QUERY hQry.  
-      hQry:ADD-BUFFER(hBuf).
-      hQry:QUERY-PREPARE(SUBSTITUTE('FOR EACH &1 WHERE &1.node_key = "&2"':U, hTable:NAME,gcCurrentNodeKey)).
-      hQry:QUERY-OPEN().
-      hQry:GET-FIRST().
-      
-      IF hBuf:AVAILABLE THEN
-        hBuf:BUFFER-DELETE().
-      IF VALID-HANDLE(hQry) THEN
-        DELETE OBJECT hQry.
-    END.
-    
-    RUN deleteNode IN ghTreeViewOCX (gcCurrentNodeKey).
-    DYNAMIC-FUNCTION("selectNode" IN ghTreeViewOCX, gcParentNode).
-    RUN tvNodeSelected (gcParentNode).
-  END.
-    
-  ASSIGN gcCurrentMode  = "Cancel"
-         glNewChildNode = FALSE.
-  
-  gcNewContainerMode = "View".
-
-  RUN setContainerViewMode.
-  IF VALID-HANDLE(ghTreeViewOCX) THEN
-    RUN enableObject IN ghTreeViewOCX.
+  hTreeFrame = DYNAMIC-FUNCTION("getContainerHandle":U IN ghTreeViewOCX).
+  IF VALID-HANDLE(hTreeFrame) THEN
+    ASSIGN hTreeFrame:POPUP-MENU = hPopupMenu.
+  ELSE
+    ASSIGN
+        {&WINDOW-NAME}:POPUP-MENU = hPopupMenu.
 
 END PROCEDURE.
 
@@ -1344,21 +1707,28 @@ PROCEDURE checkToolbarState :
   DEFINE VARIABLE hContainerToolbar     AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hFolderToolbar        AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cSavedContainerMode   AS CHARACTER  NO-UNDO.
-  
-  hContainerToolbar = WIDGET-HANDLE(ENTRY(1,linkHandles("Navigation-Source"))).
-  ghContainerToolbar = hContainerToolbar.
+  DEFINE VARIABLE cContainerMode        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hNavigateSdo          AS HANDLE     NO-UNDO.
 
-  ASSIGN hFolderToolbar = WIDGET-HANDLE(ENTRY(1,linkHandles("TableIO-Source")))
+  IF NOT VALID-HANDLE(ghContainerToolbar) THEN
+    ASSIGN hContainerToolbar = WIDGET-HANDLE(ENTRY(1,DYNAMIC-FUNCTION("linkHandles":U, "Navigation-Source")))
+           ghContainerToolbar = hContainerToolbar.
+
+  ASSIGN hFolderToolbar = WIDGET-HANDLE(ENTRY(1,DYNAMIC-FUNCTION("linkHandles":U, "TableIO-Source")))
          ghFolderToolbar = hFolderToolbar.
-  
-  SUBSCRIBE PROCEDURE THIS-PROCEDURE TO "cancelRecord":U IN ghFolderToolbar.
-  SUBSCRIBE PROCEDURE THIS-PROCEDURE TO "addRecord":U    IN ghFolderToolbar.
-  SUBSCRIBE PROCEDURE THIS-PROCEDURE TO "copyRecord":U   IN ghFolderToolbar.
-  SUBSCRIBE PROCEDURE THIS-PROCEDURE TO "resetRecord":U  IN ghFolderToolbar.
-  SUBSCRIBE PROCEDURE THIS-PROCEDURE TO "updateRecord":U IN ghFolderToolbar.
-  
-  SUBSCRIBE PROCEDURE THIS-PROCEDURE TO "toolbar":U   IN ghContainerToolbar.
-  SUBSCRIBE PROCEDURE THIS-PROCEDURE TO "toolbar":U   IN ghFolderToolbar.
+
+  IF VALID-HANDLE(ghFolderToolbar) THEN
+  DO:
+      SUBSCRIBE TO "cancelRecord":U IN ghFolderToolbar.
+      SUBSCRIBE TO "addRecord":U    IN ghFolderToolbar.
+      SUBSCRIBE TO "copyRecord":U   IN ghFolderToolbar.
+      SUBSCRIBE TO "resetRecord":U  IN ghFolderToolbar.
+      SUBSCRIBE TO "updateRecord":U IN ghFolderToolbar.
+      SUBSCRIBE TO "toolbar":U   IN ghFolderToolbar.
+  END.  /* valid folder toolbar */
+
+  IF VALID-HANDLE(ghContainerToolbar) THEN
+      SUBSCRIBE TO "toolbar":U   IN ghContainerToolbar. 
 
   /* Make sure the FolderToolbar does not Auto Size */
   IF VALID-HANDLE(ghFolderToolbar) THEN DO:
@@ -1367,16 +1737,17 @@ PROCEDURE checkToolbarState :
 
     IF VALID-HANDLE (hContainerToolbar) AND hContainerToolbar <> THIS-PROCEDURE THEN
     DO:
+        cContainerMode = DYNAMIC-FUNCTION("getTreeContainerMode":U).
         /* go back into modify mode after an add is saved */
-        IF gcContainerMode = "add":U OR
-           gcContainerMode = "Copy":U THEN
+        IF cContainerMode = "add":U OR
+           cContainerMode = "Copy":U THEN
         DO:
           ASSIGN cSavedContainerMode = "modify":U.
           {set savedContainerMode cSavedContainerMode}.
         END.
     
-        CASE gcContainerMode:
-            WHEN "view" THEN RUN setContainerViewMode.
+        CASE cContainerMode:
+            WHEN "view"   THEN RUN setContainerViewMode.
             WHEN "modify" THEN RUN setContainerModifyMode.
             WHEN "Copy"   THEN PUBLISH 'copyRecord'   FROM hContainerToolbar.
             WHEN "Add"    THEN PUBLISH 'addRecord'    FROM hContainerToolbar.
@@ -1391,7 +1762,6 @@ PROCEDURE checkToolbarState :
     /* see if navigation target of container toolbar is a valid SDO. If this is the case, then
        enable the navigation buttons on the container toolbar.
     */
-    DEFINE VARIABLE hNavigateSdo AS HANDLE NO-UNDO.
     IF VALID-HANDLE(hContainerToolbar) THEN
       hNavigateSdo = DYNAMIC-FUNCTION("linkHandles" IN hContainerToolbar, 'Navigation-Target') NO-ERROR.
     
@@ -1401,8 +1771,9 @@ PROCEDURE checkToolbarState :
 
     /* end of initialization - now turn off data links */
 
-    PUBLISH 'ToggleData' (INPUT FALSE).
+    PUBLISH 'ToggleData' FROM TARGET-PROCEDURE (INPUT FALSE).
 
+    RETURN.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1415,282 +1786,156 @@ PROCEDURE constructTTInstances :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE INPUT  PARAMETER pcInsanceAttributes AS CHARACTER  NO-UNDO.
-  DEFINE INPUT  PARAMETER piCurrentPage       AS INTEGER    NO-UNDO.
+    DEFINE INPUT PARAMETER pcInstanceAttributes     AS CHARACTER        NO-UNDO.
+    DEFINE INPUT PARAMETER piCurrentPage            AS INTEGER          NO-UNDO.
+    DEFINE INPUT PARAMETER pdContainerInstanceId    AS DECIMAL          NO-UNDO.
 
-  DEFINE VARIABLE hObjectHandle     AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE cToolbarBands     AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE iFrom             AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE iTo               AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE iLength           AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE lObjectIsAToolbar AS LOGICAL    NO-UNDO.
-  
-  /* Clear list of constructed objects on container */
-  ASSIGN
-    gcObjectHandles  = "":U
-    gcToolbarHandles = "":U.                
-
-IF glMenuMaintenance THEN
-  gcLaunchRunAttribute = pcInsanceAttributes.
-
-FOR EACH tt_object_instance EXCLUSIVE-LOCK
-   WHERE tt_object_instance.PAGE_number          = piCurrentPage
-     AND tt_object_instance.object_instance_obj <> 0
-      BY tt_object_instance.PAGE_number 
-      BY tt_object_instance.instance_order 
-      BY tt_object_instance.layout_position :
-
-  IF tt_object_instance.page_number <> ? THEN
-      DYNAMIC-FUNCTION("setCurrentPage":U, INPUT tt_object_instance.page_number).
-    ELSE
-      DYNAMIC-FUNCTION("setCurrentPage":U, INPUT 0).
+    DEFINE VARIABLE hObjectHandle               AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE cCustomSuperProc            AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE lObjectIsAToolbar           AS LOGICAL              NO-UNDO.
+    DEFINE VARIABLE hObjectBuffer               AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE hPageBuffer                 AS HANDLE               NO-UNDO.
     
-  hObjectHandle = ?.
-            
-  lObjectIsAToolbar = FALSE.
-  IF glMenuMaintenance THEN
-  IF INDEX(tt_object_instance.object_pathed_filename, "dyntool":U) <> 0 THEN
-    lObjectIsAToolbar = TRUE.
-
-  
-  IF INDEX(tt_object_instance.object_pathed_filename, "dyntool":U) <> 0 THEN DO:
-    IF tt_object_instance.layout_position = "TOP" THEN DO: 
-      /** ORIGINAL 
-      IF glMenuMaintenance AND 
-         VALID-HANDLE(ghContainerToolbar) THEN DO:
-        hObjectHandle = ghContainerToolbar.
-      END.
-      IF VALID-HANDLE(ghFolderToolbar) THEN 
-        hObjectHandle = ghFolderToolbar.
-      ****/      
-      /*
-      IF glMenuMaintenance AND 
-         VALID-HANDLE(ghContainerToolbar) THEN DO:
-        hObjectHandle = ghContainerToolbar.
-      END.
-      */
-      
-      /*    
-      IF VALID-HANDLE(ghContainerToolbar) AND
-         glMenuMaintenance THEN DO:
-        ASSIGN iFrom         = INDEX(tt_object_instance.instance_attribute_list,"ToolbarBands")
-               iTo           = INDEX(tt_object_instance.instance_attribute_list,CHR(3),iFrom)
-               iLength       = iTo - iFrom
-               cToolbarBands = SUBSTRING(tt_object_instance.instance_attribute_list,iFrom,iLength)
-               NO-ERROR.
-        /* Need to get new procedure name to do this 
-        RUN deleteMenu2 IN ghContainerToolbar.
-        */
-        DYNAMIC-FUNCTION("setToolbarBands" IN ghContainerToolbar, ENTRY(2,cToolbarBands,CHR(4))) NO-ERROR.
-        RUN initializeObject IN ghContainerToolbar.
-      END.
-      */
-      
-      
-      IF VALID-HANDLE(ghFolderToolbar) AND 
-         NOT glMenuMaintenance THEN 
-        hObjectHandle = ghFolderToolbar.
+    /* Clear list of constructed objects on container */
+    ASSIGN gcObjectHandles  = "":U
+           gcToolbarHandles = "":U
+           .
+    IF glMenuMaintenance THEN
+        ASSIGN gcLaunchRunAttribute = pcInstanceAttributes.
     
-    
-      /* This piece of code ensures that any top toolbar will not
-         be created - but redirected to use the current top
-         toolbar instead */
-      IF VALID-HANDLE(ghContainerToolbar) AND
-         glMenuMaintenance THEN
-        hObjectHandle = ghContainerToolbar.
-    END.
-    ELSE DO:
-      IF NOT glMenuMaintenance THEN DO:
-        IF tt_object_instance.page_number = 0 AND 
-           VALID-HANDLE(ghFolderToolbar) THEN
-          hObjectHandle = ghFolderToolbar.
-      END.
-    END.
-  END.
-  
-  
-  
-  /** this needs to come back if I figure out what has changed **
-  /* Also destory any menu-objects created for the previous launched object */
-  IF VALID-HANDLE(ghFolderToolBar) AND
-     LOOKUP("deleteMenu2":U,ghFolderToolBar:INTERNAL-ENTRIES) > 0 THEN
-    RUN deleteMenu2 IN ghFolderToolBar.
-  **/
-  IF INDEX(tt_object_instance.object_pathed_filename, "afspfoldr":U) <> 0 AND 
-     VALID-HANDLE(ghFolder) 
-    AND NOT glMenuMaintenance THEN
-    hObjectHandle = ghFolder.
-  
-  IF glMenuMaintenance AND 
-    (tt_object_instance.db_aware OR  
-     tt_object_instance.object_pathed_filename MATCHES "*o.w") THEN 
-    gcPrimarySDOName = tt_object_instance.object_pathed_filename.
-  IF hObjectHandle = ? THEN
-    RUN constructObject (INPUT  tt_object_instance.object_pathed_filename + (IF tt_object_instance.db_aware OR  tt_object_instance.object_pathed_filename MATCHES "*o.w" THEN CHR(3) + "DBAWARE" ELSE ""),
-                         INPUT  FRAME {&FRAME-NAME}:HANDLE,
-                         INPUT  tt_object_instance.instance_attribute_list,
-                         OUTPUT hObjectHandle).
-  /** ALWAYS MAKE SURE ANY TOOLBAR STARTED IS NOT AUTO RESIZE **/
-  IF lObjectIsAToolbar THEN 
-    {set ToolbarAutoSize NO hObjectHandle}.
-  
-  IF tt_object_instance.page_number = 0 THEN DO:
-    IF INDEX(tt_object_instance.object_pathed_filename, "afspfoldr":U) <> 0 AND 
-       NOT VALID-HANDLE(ghFolder) 
-      AND NOT glMenuMaintenance THEN
-      ghFolder = hObjectHandle.
-    IF INDEX(tt_object_instance.object_pathed_filename, "dyntool":U) <> 0 THEN DO:
-      IF tt_object_instance.layout_position = "TOP" AND 
-         NOT VALID-HANDLE(ghContainerToolbar) THEN DO:
-        ghContainerToolbar = hObjectHandle.
-      END.
-      IF tt_object_instance.layout_position = "CENTRE" AND 
-         NOT VALID-HANDLE(ghFolderToolbar) THEN DO:
-        ghFolderToolbar = hObjectHandle.
-      END.
-    END.
-  END.
-  
-  /** MAKE SURE THAT THE TREEVIEW OCX VIEWER KNOWS ABOUT THE SDO'S CREATED HERE **/
-  IF INDEX(tt_object_instance.object_type_code,"sdo":U) <> 0 THEN DO:
-    FIND FIRST ttRunningSDOs
-         WHERE ttRunningSDOs.cSDOName = tt_object_instance.object_pathed_filename
-         NO-LOCK NO-ERROR.
-    IF NOT AVAILABLE ttRunningSDOs THEN DO:
-      CREATE ttRunningSDOs.
-      ASSIGN ttRunningSDOs.cSDOName   = tt_object_instance.object_pathed_filename
-             ttRunningSDOs.hSDOHandle = hObjectHandle.
-    END.
-  END.
-  /* keep ordered list of objects constructed on container */
-  IF VALID-HANDLE(hObjectHandle) THEN
-    ASSIGN 
-        gcObjectHandles = gcObjectHandles + (IF gcObjectHandles <> "":U THEN ",":U ELSE "":U) + STRING(hObjectHandle).
-  
-  IF VALID-HANDLE(hObjectHandle) AND INDEX(hObjectHandle:FILE-NAME, "dyntool":U) <> 0 THEN
-    ASSIGN 
-        gcToolbarHandles = gcToolbarHandles + (IF gcToolbarHandles <> "":U THEN ",":U ELSE "":U) + STRING(hObjectHandle).
-  
-  /* Start any custom super procedure if any */
-  IF VALID-HANDLE(hObjectHandle) AND tt_object_instance.custom_super_procedure <> "":U THEN DO:
-    {launch.i &PLIP = tt_object_instance.custom_super_procedure &OnApp = 'NO' &Iproc = '' &NewInstance = YES}
-    IF VALID-HANDLE(hPlip) THEN
-    DO:
-       hObjectHandle:ADD-SUPER-PROCEDURE(hPlip, SEARCH-TARGET).       
-       ASSIGN tt_object_instance.custom_super_handle = hPlip
-              tt_object_instance.destroy_custom_super = TRUE.
+    FOR EACH container_Object WHERE
+             container_Object.tTargetProcedure           = TARGET-PROCEDURE      AND
+             container_Object.tContainerRecordIdentifier = pdContainerInstanceId AND
+             container_Object.tPageNumber                = piCurrentPage
+             BY container_Object.tPageNumber
+             BY container_Object.tInstanceOrder
+             BY container_Object.tLayoutPosition:
 
-    END.
-  END.
+        IF container_Object.tPageNumber EQ ? THEN
+            DYNAMIC-FUNCTION("setCurrentPage":U IN THIS-PROCEDURE, INPUT 0).
+        ELSE
+            DYNAMIC-FUNCTION("setCurrentPage":U IN THIS-PROCEDURE, INPUT container_Object.tPageNumber).
 
-  IF VALID-HANDLE(hObjectHandle) THEN
-    tt_object_instance.object_instance_handle = hObjectHandle.
-  ELSE
-    ASSIGN
-        tt_object_instance.object_instance_handle = ?
-        tt_object_instance.object_frame_handle    = ?.
+        ASSIGN hObjectHandle     = ?
+               lObjectIsAToolbar = FALSE
+               .
+        IF glMenuMaintenance THEN
+            IF INDEX(container_Object.tObjectPathedFilename, "dyntool":U) <> 0 THEN
+                ASSIGN lObjectIsAToolbar = TRUE.
 
-  /* update page instance temp-table with correct handle */
-  FOR EACH  tt_page_instance
-      WHERE tt_page_instance.object_instance_obj = tt_object_instance.object_instance_obj:
-    ASSIGN      
-        tt_page_instance.object_instance_handle = tt_object_instance.object_instance_handle
-        tt_page_instance.object_type_code       = tt_object_instance.object_type_code.
-  END. /* FOR EACH tt_page_instance */
-END. /* FOR EACH tt_object_instance */
+        /* Toolbar Object */
+        IF INDEX(container_Object.tObjectPathedFilename, "dyntool":U) <> 0 THEN
+        DO:
+            IF container_Object.tLayoutPosition EQ "TOP":U THEN
+            DO: 
+                IF VALID-HANDLE(ghFolderToolbar) AND NOT glMenuMaintenance THEN 
+                    ASSIGN hObjectHandle = ghFolderToolbar.
 
-/* Set THIS-PROCEDURE */
-FOR EACH tt_object_instance EXCLUSIVE-LOCK
-   WHERE tt_object_instance.PAGE_number         = piCurrentPage
-     AND tt_object_instance.object_instance_obj = 0:
-  ASSIGN tt_object_instance.object_instance_handle = THIS-PROCEDURE.
-  FOR EACH  tt_page_instance
-      WHERE tt_page_instance.object_instance_obj = tt_object_instance.object_instance_obj:
-    ASSIGN      
-        tt_page_instance.object_instance_handle = tt_object_instance.object_instance_handle
-        tt_page_instance.object_type_code       = tt_object_instance.object_type_code.
-  END. /* FOR EACH tt_page_instance */
-END.
-END PROCEDURE.
+                /* This piece of code ensures that any top toolbar will not
+                 * be created - but redirected to use the current top
+                 * toolbar instead */
+                IF VALID-HANDLE(ghContainerToolbar) AND glMenuMaintenance THEN
+                    ASSIGN hObjectHandle = ghContainerToolbar.
+            END.    /* TOP */
+            ELSE
+            DO:
+                IF NOT glMenuMaintenance THEN
+                DO:
+                    IF container_Object.tPageNumber EQ 0 AND VALID-HANDLE(ghFolderToolbar) THEN
+                        ASSIGN hObjectHandle = ghFolderToolbar.
+                END.
+            END.
+        END.    /* instance is a toolbar */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
+        /* Folder Object */
+        IF INDEX(container_Object.tObjectPathedFilename , "afspfoldr":U) <> 0 AND VALID-HANDLE(ghFolder) AND NOT glMenuMaintenance THEN
+            ASSIGN hObjectHandle = ghFolder.
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE copyRecord wWin 
-PROCEDURE copyRecord :
-/*------------------------------------------------------------------------------
-  Purpose:     We need to override this procedure to reposition the parent SDO
-               to the correct record before we add. This needs to be done due
-               to foreign fields.
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hTable          AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cNodeDetail     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE dNodeObj        AS DECIMAL    NO-UNDO.
-  DEFINE VARIABLE cParentNodeSDO  AS CHARACTER  NO-UNDO.
-  
-  {get TreeDataTable hTable ghTreeViewOCX}.  
-            
-  ASSIGN cNodeDetail = getNodeDetails(hTable, gcParentNode).
+        IF glMenuMaintenance AND
+            (container_Object.tDbAware                              OR
+             container_Object.tObjectPathedFilename MATCHES "*o":U  OR
+             container_Object.tObjectPathedFilename MATCHES "*o.w":U   ) THEN
+            ASSIGN gcPrimarySDOName = container_Object.tObjectPathedFilename.
 
-  ASSIGN dNodeObj = DECIMAL(ENTRY(1,cNodeDetail,CHR(2))).
-  
-  gcNewContainerMode = "Copy".
-  
-  /* Get Parent Node Info */
-  FIND FIRST ttNode
-       WHERE ttNode.node_obj = dNodeObj
-       NO-LOCK NO-ERROR.
-  
-  cParentNodeSDO = "":U.
-  IF AVAILABLE ttNode THEN
-    ASSIGN cParentNodeSDO = IF ttNode.data_source_type <> "TXT":U THEN ttNode.data_source ELSE ttNode.primary_sdo.
-  /* We need to reposition the Parent SDO for the foreign Fields */
-  RUN repositionParentSDO (INPUT cParentNodeSDO,
-                           INPUT gcParentNode).
+        IF hObjectHandle EQ ? THEN
+        DO:
+            ASSIGN gcCurrentLogicalName = "InstanceID=":U + STRING(container_Object.tRecordIdentifier)
+                                        + CHR(1) + container_Object.tLogicalObjectName.
+            /* Even though the ADMProps TT is populated with the values from the Repository, there 
+             * may be attributes which need to be explicitly set. The list of attributes returned
+             * buildAttributeList contains those attributes whicha re to be set.                  */
+            RUN constructObject ( INPUT  container_Object.tObjectPathedFilename + (IF container_Object.tDbAware THEN CHR(3) + "DBAWARE" ELSE "":U),
+                                  INPUT  FRAME {&FRAME-NAME}:HANDLE,
+                                  INPUT  container_Object.tAttributeList,
+                                  OUTPUT hObjectHandle).
+        END.    /* object handle = ? */
 
-END PROCEDURE.
+        /** Always make sure that the handle is stored in the cache_Object buffer, even
+         *  though this handle is set when the object is contrcuted. We need to do this
+         *  since we may not always run constructObejct, and we need to be sure that we
+         *  set this handle here.
+         *  ----------------------------------------------------------------------- **/
+        ASSIGN container_Object.tObjectInstanceHandle = hObjectHandle.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
+        /** ALWAYS MAKE SURE ANY TOOLBAR STARTED IS NOT AUTO RESIZE **/
+        IF lObjectIsAToolbar THEN 
+            {set ToolbarAutoSize NO hObjectHandle}.
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createDummyChild wWin 
-PROCEDURE createDummyChild :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE INPUT  PARAMETER phBuf           AS HANDLE     NO-UNDO.
-  DEFINE INPUT  PARAMETER pcParentNodeKey AS CHARACTER  NO-UNDO.
-  DEFINE INPUT  PARAMETER pcType          AS CHARACTER  NO-UNDO.
-  
-  
-  DEFINE VARIABLE hParentNodeKey          AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hNodeKey                AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hNodeLabel              AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hRecordRef              AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hNodeInsert             AS HANDLE     NO-UNDO.
-  
+        IF container_Object.tPageNumber EQ 0 THEN
+        DO:
+            IF INDEX(container_Object.tObjectPathedFilename, "afspfoldr":U) <> 0 AND NOT VALID-HANDLE(ghFolder) AND NOT glMenuMaintenance THEN
+                ASSIGN ghFolder = hObjectHandle.
 
-  ASSIGN hParentNodeKey = phBuf:BUFFER-FIELD('parent_node_key':U)
-         hNodeKey       = phBuf:BUFFER-FIELD('node_key':U)
-         hNodeLabel     = phBuf:BUFFER-FIELD('node_label':U)
-         hRecordRef     = phBuf:BUFFER-FIELD('record_ref':U)
-         hNodeInsert    = phBuf:BUFFER-FIELD('node_insert':U).
-         
-  phBuf:BUFFER-CREATE().
-  ASSIGN hParentNodeKey:BUFFER-VALUE = pcParentNodeKey
-         hNodeKey:BUFFER-VALUE       = DYNAMIC-FUNCTION('getNextNodeKey':U IN ghTreeViewOCX)
-         hNodeLabel:BUFFER-VALUE     = IF pcType = "New":U THEN "<New>":U ELSE "+":U
-         hRecordRef:BUFFER-VALUE     = IF pcType = "New":U THEN 0 ELSE 99
-         hNodeInsert:BUFFER-VALUE    = 4.
+            IF INDEX(container_Object.tObjectPathedFilename, "dyntool":U) <> 0 THEN
+            DO:
+                IF container_Object.tLayoutPosition EQ "TOP" AND NOT VALID-HANDLE(ghContainerToolbar) THEN
+                    ASSIGN ghContainerToolbar = hObjectHandle.
 
-  IF pcType = "NEW":U THEN
-    ASSIGN gcParentNode     = pcParentNodeKey
-           gcCurrentNodeKey = hNodeKey:BUFFER-VALUE.
-END PROCEDURE.
+                IF container_Object.tLayoutPosition EQ "CENTRE" AND NOT VALID-HANDLE(ghFolderToolbar) THEN
+                    ASSIGN ghFolderToolbar = hObjectHandle.
+            END.    /* toolbar */
+        END.    /* page = 0 */
+
+        /** MAKE SURE THAT THE TREEVIEW OCX VIEWER KNOWS ABOUT THE SDO'S CREATED HERE **/
+        IF DYNAMIC-FUNCTION('instanceOf':U IN hObjectHandle,"sdo":U) THEN
+        DO:
+            FIND FIRST ttRunningSDOs WHERE
+                       ttRunningSDOs.cSDOName = container_Object.tObjectPathedFilename
+                       NO-LOCK NO-ERROR.
+            IF NOT AVAILABLE ttRunningSDOs THEN
+            DO:
+                CREATE ttRunningSDOs.
+                ASSIGN ttRunningSDOs.cSDOName   = container_Object.tObjectPathedFilename
+                       ttRunningSDOs.hSDOHandle = hObjectHandle
+                       .
+            END.
+        END.
+
+        /* keep ordered list of objects constructed on container */
+        IF VALID-HANDLE(hObjectHandle) THEN
+            ASSIGN gcObjectHandles = gcObjectHandles + (IF gcObjectHandles <> "":U THEN ",":U ELSE "":U) + STRING(hObjectHandle).
+
+        IF VALID-HANDLE(hObjectHandle) AND INDEX(hObjectHandle:FILE-NAME, "dyntool":U) <> 0 THEN
+            ASSIGN gcToolbarHandles = gcToolbarHandles + (IF gcToolbarHandles <> "":U THEN ",":U ELSE "":U) + STRING(hObjectHandle).
+
+        /* Start any custom super procedure if any */
+        IF VALID-HANDLE(hObjectHandle) AND container_Object.tCustomSuperProcedure NE "":U THEN
+        DO:
+            ASSIGN cCustomSuperProc = container_Object.tCustomSuperProcedure.
+            {launch.i &PLIP = cCustomSuperProc &OnApp = 'NO' &Iproc = '' &NewInstance = YES}
+            IF VALID-HANDLE(hPlip) THEN
+            DO:                
+                DYNAMIC-FUNCTION("addAsSuperProcedure":U IN gshSessionManager,
+                                 INPUT hPLip, INPUT hObjectHandle).
+                ASSIGN container_Object.tCustomSuperHandle  = hPlip
+                       container_Object.tDestroyCustomSuper = TRUE
+                       .
+            END.    /* valid handle hPlip*/
+        END.    /* has super procedure */
+    END. /* FOR EACH tt_object_instance */
+
+    RETURN.
+END PROCEDURE.  /* constructTTInstances */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1702,239 +1947,143 @@ PROCEDURE createObjects :
   Parameters:  
   Notes:       
 ------------------------------------------------------------------------------*/
-ASSIGN glOnceOnlyDone = TRUE. /* used when initializing page 0 */
-
-DEFINE BUFFER tt_source_object_instance FOR tt_object_instance.
-DEFINE BUFFER tt_target_object_instance FOR tt_object_instance.
-
-DEFINE VARIABLE cLocalAttributes    AS CHARACTER    NO-UNDO.                                                      
-DEFINE VARIABLE cLogicalObjectName  AS CHARACTER    NO-UNDO.                                                      
-DEFINE VARIABLE lv_object_handle    AS HANDLE       NO-UNDO.
-DEFINE VARIABLE hSourceObject       AS HANDLE       NO-UNDO.
-DEFINE VARIABLE hTargetObject       AS HANDLE       NO-UNDO.
-
-DEFINE VARIABLE cProfileData        AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE rProfileRid         AS ROWID        NO-UNDO.
-
-DEFINE VARIABLE cObjectName         AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE cPhysicalObject     AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE iCurrentPage        AS INTEGER      NO-UNDO.
-DEFINE VARIABLE iStartPage          AS INTEGER      NO-UNDO.
-DEFINE VARIABLE lResized            AS LOGICAL      NO-UNDO.
-
-DEFINE VARIABLE lMenuController     AS LOGICAL    NO-UNDO.
-
-/* For the TreeView - we will only come in here once during initialization */
-/* For any page changes we will need to run createRepositoryObjects */
-IF getCurrentPage() <> 0 THEN
-  RETURN.
-
-/* Code placed here will execute PRIOR to standard behavior. */
-
-RUN SUPER.
-
-
-/* get logical object name once only and store in a variable */
-ASSIGN 
-  cLogicalObjectName = getLogicalObjectName().
-
-ASSIGN
-  iCurrentPage = getCurrentPage()
-  iStartPage = iCurrentPage
-  lResized = NO.
-
-IF iCurrentPage = 0 THEN DO:    
-  /* get attributes for all objects on all pages. This is so that we only have a single
-     appserver hit for the entire container for retrieving its dynamic properties from 
-     the repository - instead of getting a hit per page */
-  RUN getObjectAttributes IN gshRepositoryManager (INPUT  cLogicalObjectName,
-                                                   OUTPUT TABLE tt_object_instance,
-                                                   OUTPUT TABLE tt_page,
-                                                   OUTPUT TABLE tt_page_instance,
-                                                   OUTPUT TABLE tt_link,
-                                                   OUTPUT TABLE ttAttributeValue,
-                                                   OUTPUT TABLE ttUiEvent         ) NO-ERROR.
-  IF ERROR-STATUS:ERROR THEN
-  DO:
-      {af/sup2/afcheckerr.i &NO-RETURN=YES}
-      RUN destroyObject.
-      RETURN.
-  END.
-  
-  ASSIGN cLocalAttributes = "":U.
-  
-  /* get attributes that are for the container itself - special instance record with 0 object number */
-  FIND FIRST tt_object_instance 
-       WHERE tt_object_instance.object_instance_obj = 0
-       NO-ERROR.
-  IF AVAILABLE tt_object_instance THEN
-    ASSIGN cLocalAttributes = tt_object_instance.instance_attribute_list. 
-  
-  ASSIGN
-      lMenuController = NO.
-  
-  RUN setLocalAttributes(cLocalAttributes).
-  
-  /* clear list of constructed objects on container */
-  ASSIGN gcObjectHandles  = "":U
-         gcToolbarHandles = "":U.
-  
-  FIND FIRST tt_page WHERE tt_page.page_number = 0 NO-ERROR.
-  IF AVAILABLE tt_page THEN
-  DO:
-    {set Page0LayoutManager tt_page.layout_code}.
-  END.
-
-END. /* page = 0 */
-
-/* start off by making the frame's virtual dimensions very big */
-
-ASSIGN
-    FRAME {&FRAME-NAME}:SCROLLABLE     = TRUE
-    FRAME {&FRAME-NAME}:VIRTUAL-WIDTH  = SESSION:WIDTH + 1
-    FRAME {&FRAME-NAME}:VIRTUAL-HEIGHT = SESSION:HEIGHT + 1
-    FRAME {&FRAME-NAME}:SCROLLABLE     = FALSE.
+    DEFINE VARIABLE cLocalAttributes    AS CHARACTER    NO-UNDO.                                                      
+    DEFINE VARIABLE cLogicalObjectName  AS CHARACTER    NO-UNDO.                                                      
+    DEFINE VARIABLE lv_object_handle    AS HANDLE       NO-UNDO.
+    DEFINE VARIABLE hSourceObject       AS HANDLE       NO-UNDO.
+    DEFINE VARIABLE hTargetObject       AS HANDLE       NO-UNDO.
     
-/* work out the start page and if pages exists */
-FIND FIRST tt_page WHERE tt_page.page_number > 0 NO-ERROR.
-IF AVAILABLE tt_page THEN
-  ASSIGN iStartPage = tt_page.page_number.
+    DEFINE VARIABLE cProfileData        AS CHARACTER    NO-UNDO.
+    DEFINE VARIABLE rProfileRid         AS ROWID        NO-UNDO.
+    
+    DEFINE VARIABLE cObjectName         AS CHARACTER    NO-UNDO.
+    DEFINE VARIABLE cPhysicalObject     AS CHARACTER    NO-UNDO.
+    DEFINE VARIABLE iCurrentPage        AS INTEGER      NO-UNDO.
+    DEFINE VARIABLE iStartPage          AS INTEGER      NO-UNDO.
+    DEFINE VARIABLE lResized            AS LOGICAL      NO-UNDO.   
+    DEFINE VARIABLE lMenuController     AS LOGICAL      NO-UNDO.
+    DEFINE VARIABLE dInstanceId         AS DECIMAL      NO-UNDO.
+    DEFINE VARIABLE iPage               AS INTEGER      NO-UNDO.
+    
+    /* used when initializing page 0 */
+    ASSIGN glOnceOnly = TRUE.
 
-/* set page initialized flag */
-FIND FIRST tt_page 
-     WHERE tt_page.page_number = iCurrentPage 
-     NO-ERROR.
-IF AVAILABLE tt_page THEN
-  tt_page.page_initialized = YES.
+    {get CurrentPage iPage}.
 
-/* Construct the objects based on the tt_object_instance temp-table*/
-RUN constructTTInstances (INPUT "?":U, 0) NO-ERROR.
+    /* Get the instanceID of the treeview. */   
+    {get InstanceId dInstanceId}.
+    ASSIGN gdTreeviewInstanceId = dInstanceId.
 
-/*****
-/* loop through instances on page and create objects on them */
-FOR EACH  tt_object_instance
-    WHERE tt_object_instance.page_number          = iCurrentPage
-    AND   tt_object_instance.object_instance_obj <> 0
-    BY    tt_object_instance.page_number
-    BY    tt_object_instance.instance_order
-    BY    tt_object_instance.page_number.layout_position:
+    /* For the TreeView - we will only come in here once during initialization */
+    /* For any page changes we will need to run createRepositoryObjects */
+    IF DYNAMIC-FUNCTION("getCurrentPage":U) NE 0 THEN
+        RETURN.
 
-  IF tt_object_instance.object_pathed_filename = "ry/obj/rystatusbv.w" THEN
-    ASSIGN
-        lMenuController = YES.
+    RUN SUPER.
 
-  IF tt_object_instance.page_number <> ? THEN
-    DYNAMIC-FUNCTION("setCurrentPage":U, INPUT tt_object_instance.page_number).
-  ELSE
-    DYNAMIC-FUNCTION("setCurrentPage":U, INPUT 0).
-  
-  
-  /* Deal with defaults */
-  IF tt_object_instance.layout_position = "":U           AND 
-     INDEX(instance_attribute_list,"ADM2Navigation") > 0 THEN
-    ASSIGN tt_object_instance.layout_position = "TOP".
-  ELSE
-    IF tt_object_instance.layout_position = "":U         AND 
-       INDEX(instance_attribute_list,"BROWSESEARCH") > 0 THEN
-      ASSIGN tt_object_instance.layout_position = "BOTTOM".
-    ELSE
-      IF tt_object_instance.layout_position = "" THEN
-        tt_object_instance.layout_position = "CENTRE".
+    /* get logical object name once only and store in a variable */
+    ASSIGN cLogicalObjectName = DYNAMIC-FUNCTION("getLogicalObjectName":U IN TARGET-PROCEDURE).
 
-  /* set instantiation order */
-  IF INDEX(tt_object_instance.object_type_code,"sdo":U) <> 0 THEN
-    ASSIGN tt_object_instance.instance_order = 1.
-  ELSE
-    IF INDEX(tt_object_instance.object_type_code,"toolbar":U) <> 0 THEN
+    ASSIGN iCurrentPage = DYNAMIC-FUNCTION("getCurrentPage":U)
+           iStartPage   = iCurrentPage
+           lResized     = NO
+           .
+    IF iCurrentPage = 0 THEN
     DO:
-      IF tt_object_instance.layout_position BEGINS "top":U THEN
-        ASSIGN tt_object_instance.instance_order = 2.
-      ELSE
-        ASSIGN tt_object_instance.instance_order = 3.
-    END.
-    ELSE
-      IF INDEX(tt_object_instance.object_type_code,"smartfolder":U) <> 0 THEN
-        ASSIGN tt_object_instance.instance_order = 4.
-      ELSE
-        ASSIGN tt_object_instance.instance_order = 99.
+        /* get attributes for all objects on all pages. This is so that we only have a single
+         * appserver hit for the entire container for retrieving its dynamic properties from 
+         * the repository - instead of getting a hit per page */
+        RUN launchObject (INPUT cLogicalObjectName) NO-ERROR.
+        IF ERROR-STATUS:ERROR THEN
+        DO:
+            {af/sup2/afcheckerr.i &NO-RETURN=YES}
+            RUN destroyObject.
+            RETURN.
+        END.    /* error */
 
-  /* set page */
-  FIND FIRST tt_page_instance
-       WHERE tt_page_instance.object_instance_obj = tt_object_instance.object_instance_obj
-       NO-ERROR.
-  IF AVAILABLE tt_page_instance THEN
-    ASSIGN tt_object_instance.page_number = tt_page_instance.page_number.
-  ELSE
-    ASSIGN tt_object_instance.page_number = 0.
+        FIND FIRST container_Object WHERE
+                   container_Object.tTargetProcedure  = TARGET-PROCEDURE AND
+                   container_Object.tRecordIdentifier = dInstanceId.
+
+        RUN setAttributesInObject IN gshSessionManager (INPUT TARGET-PROCEDURE, INPUT container_Object.tAttributeList).
+
+        /* clear list of constructed objects on container */
+        ASSIGN gcObjectHandles  = "":U
+               gcToolbarHandles = "":U
+               
+               container_Object.tObjectInstanceHandle = TARGET-PROCEDURE
+               .
+
+        FIND FIRST container_Page WHERE
+                   container_Page.tTargetProcedure = TARGET-PROCEDURE AND
+                   container_Page.tPageNumber     = 0
+                   NO-ERROR.
+        IF AVAILABLE container_Page THEN
+            {set Page0LayoutManager container_Page.tLayoutCode }.
+    END. /* page = 0 */
+
+    /* start off by making the frame's virtual dimensions very big */
+    ASSIGN FRAME {&FRAME-NAME}:SCROLLABLE     = TRUE
+           FRAME {&FRAME-NAME}:VIRTUAL-WIDTH  = SESSION:WIDTH + 1
+           FRAME {&FRAME-NAME}:VIRTUAL-HEIGHT = SESSION:HEIGHT + 1
+           FRAME {&FRAME-NAME}:SCROLLABLE     = FALSE
+           .
+
+    /* work out the start page and if pages exists */
+    FIND FIRST container_Page WHERE
+               container_Page.tTargetProcedure = TARGET-PROCEDURE AND
+               container_Page.tPageNumber      > 0
+               NO-ERROR.
+    IF AVAILABLE container_Page THEN
+        ASSIGN iStartPage = container_Page.tPageNumber.
+
+    /* set page initialized flag */
+    FIND FIRST container_Page WHERE
+               container_Page.tTargetProcedure = TARGET-PROCEDURE AND
+               container_Page.tPageNumber      = iCurrentPage
+               NO-ERROR.
+    IF AVAILABLE container_Page THEN
+        ASSIGN container_Page.tPageInitialized = YES.
+
+    /* Construct the objects based on the tt_object_instance temp-table*/
+    RUN constructTTInstances (INPUT "?":U,
+                              INPUT 0,
+                              INPUT dInstanceId ) NO-ERROR.
     
-  /* add page to layout if not there already */
-  IF tt_object_instance.page_number > 0 AND NUM-ENTRIES(tt_object_instance.layout_position) = 1 THEN
-    ASSIGN tt_object_instance.layout_position = tt_object_instance.layout_position + ",":U + TRIM(STRING(tt_object_instance.page_number)).
-      
-END.
-  
-  FOR EACH tt_page_instance,
-     FIRST tt_object_instance
-     WHERE tt_object_instance.object_instance_obj = tt_page_instance.object_instance_obj:
+    /* Add the required links */
+    RUN addTTLinks (INPUT "":U,  INPUT dInstanceID) NO-ERROR.
     
-    ASSIGN tt_page_instance.layout_position = tt_object_instance.layout_position.
-  END.
+    /* the last thing we do is pack the frame to the size of its contents.  The actual work performed here will
+    be subject to the chosen layout managers */
+    FIND FIRST container_Page WHERE
+               container_Page.tTargetProcedure = TARGET-PROCEDURE AND
+               container_Page.tPageNumber      = 0
+               NO-ERROR.
+    IF AVAILABLE container_Page THEN
+    DO:
+        ASSIGN gcTreeLayoutCode = container_Page.tLayoutCode.
+        {set Page0LayoutManager gcTreeLayoutCode}.
+    END.    /* available page 0 */
 
-  FOR EACH tt_page_instance,
-     FIRST tt_object_instance 
-     WHERE tt_object_instance.object_instance_obj = tt_page_instance.object_instance_obj:
-      
-    ASSIGN      
-        tt_page_instance.object_instance_handle = tt_object_instance.object_instance_handle
-        tt_page_instance.object_type_code       = tt_object_instance.object_type_code.
-  END. /* FOR EACH tt_page_instance */
-*********/
+    RUN checkToolbarState.
 
-  /* Add the required links */
-  RUN addTTLinks (INPUT "":U) NO-ERROR.
-  
-  /*********
-  /* force child object initialization to take place now */
-  FOR EACH tt_page WHERE tt_page.page_number <> 0:
-    RUN hidePage(tt_page.page_number).
-  END.
+    /* Set the container and frame's minimum and maximum width and height */
+    IF NOT glMenuMaintenance THEN
+        RUN setMinMaxDefaults ( INPUT  lMenuController, OUTPUT cProfileData).
 
-  /* pass SdoForeignFields to any SDO's with a data link from THIS-PROCEDURE */
-  RUN passSDOForeignFields (INPUT "":U).
-                                 
-  RUN selectPage(1).
-            ***********/
-  /* the last thing we do is pack the frame to the size of its contents.  The actual work performed here will
-  be subject to the chosen layout managers */
-  
-  FIND FIRST tt_page WHERE tt_page.page_number = 0 NO-ERROR.
-  IF AVAILABLE tt_page THEN
-  DO:
-    gcTreeLayoutCode = tt_page.layout_code.
-    {set Page0LayoutManager tt_page.layout_code}.
-  END.
-  
-  RUN checkToolbarState.
-  /* Set the container and frame's minimum and maximum width and height */
-  IF NOT glMenuMaintenance THEN
-    RUN setMinMaxDefaults (INPUT  lMenuController,
-                           OUTPUT cProfileData).
+    RUN packWindow (INPUT 0, NOT(NUM-ENTRIES(cProfileData, CHR(3)) = 4)).
 
-  RUN packWindow IN THIS-PROCEDURE (INPUT 0, NOT(NUM-ENTRIES(cProfileData, CHR(3)) = 4)).
+    IF VALID-HANDLE(ghFolderToolBar) THEN
+        RUN viewObject IN ghFolderToolBar.
 
-  IF VALID-HANDLE(ghFolderToolBar) THEN
-    RUN viewObject IN ghFolderToolBar.
-  /* Resize and place window on previous saved settings */
-  RUN resizeAndPositionWindow (INPUT lMenuController,
-                               INPUT cProfileData).
-  RUN setTreeViewWidth.
-FOR EACH tt_object_instance
-    NO-LOCK:
-  CREATE tt_tree_object_instance.
-  BUFFER-COPY tt_object_instance TO 
-              tt_tree_object_instance.
-END.
+    /* Resize and place window on previous saved settings */
+    RUN resizeAndPositionWindow ( INPUT lMenuController, INPUT cProfileData).
 
+    RUN setTreeViewWidth.
+
+    DYNAMIC-FUNCTION("setupFolderPages":U, "":U).
+
+    RETURN.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1947,257 +2096,230 @@ PROCEDURE createRepositoryObjects :
   Parameters:  
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE INPUT PARAMETER pcLogicalObjectName     AS CHARACTER  NO-UNDO.
-  DEFINE INPUT PARAMETER pcSDOName               AS CHARACTER  NO-UNDO.
-  DEFINE INPUT PARAMETER phCallingProcedure      AS HANDLE     NO-UNDO.
-  DEFINE INPUT PARAMETER pcInsanceAttributes     AS CHARACTER  NO-UNDO.
-  
-  DEFINE BUFFER tt_source_object_instance FOR tt_object_instance.
-  DEFINE BUFFER tt_target_object_instance FOR tt_object_instance.
-  
-  DEFINE VARIABLE cLocalAttributes    AS CHARACTER    NO-UNDO.                                                      
-  DEFINE VARIABLE lv_object_handle    AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE hSourceObject       AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE hTargetObject       AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE lMenuController     AS LOGICAL      NO-UNDO.
-  DEFINE VARIABLE cProfileData        AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE cPhysicalObject     AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE cObjectHandles      AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE cToolbarHandles     AS CHARACTER    NO-UNDO.
+    DEFINE INPUT PARAMETER pcLogicalObjectName    AS CHARACTER            NO-UNDO.
+    DEFINE INPUT PARAMETER pcSDOName              AS CHARACTER            NO-UNDO.
+    DEFINE INPUT PARAMETER phCallingProcedure     AS HANDLE               NO-UNDO.
+    DEFINE INPUT PARAMETER pcInstanceAttributes   AS CHARACTER            NO-UNDO.
 
-  /* Code placed here will execute PRIOR to standard behavior. */
-  
-  glTreeViewDefaults = FALSE.
-  
-  DYNAMIC-FUNCTION("setContainerMode":U, "View":U).
-  RUN setContainerViewMode.
-  /* The Objects are already running, do not instantiate them again */
-  IF gcLogicalObjectName = pcLogicalObjectName AND 
-     gcInstanceAttributes = pcInsanceAttributes AND
-     gcPrimarySDOName    = pcSDOName THEN RETURN.
+    DEFINE VARIABLE dInstanceId             AS DECIMAL                  NO-UNDO.
+    DEFINE VARIABLE hObjectBuffer           AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE lMenuController         AS LOGICAL                  NO-UNDO.
+    DEFINE VARIABLE cObjectHandles          AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE cToolbarHandles         AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE hObjectHandle           AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE iObjectLoop             AS INTEGER                  NO-UNDO.
+    DEFINE VARIABLE iPage                   AS INTEGER                  NO-UNDO.
+    DEFINE VARIABLE cInitialPageList        AS CHARACTER                NO-UNDO.
 
-  FIND FIRST ttRunningSDOs 
-       WHERE ttRunningSDOs.cSDOName = pcSDOName
-       NO-LOCK NO-ERROR.
-  IF AVAILABLE ttRunningSDOs AND
-     VALID-HANDLE(ttRunningSDOs.hSDOHandle) THEN
-    ghSDOHandle = ttRunningSDOs.hSDOHandle.
+    ASSIGN glTreeViewDefaults = FALSE.
 
-  /* A new logical Object was chosen. Close down the currently running Objects and start the new ones */
-  
-  RUN destroyNonTreeObjects.
-  
-  ASSIGN gcLogicalObjectName = pcLogicalObjectName
-         gcInstanceAttributes = pcInsanceAttributes
-         gcPrimarySDOName    = pcSDOName
-         gcOldSDOName        = pcSDOName.
-  
-  RUN getObjectAttributes IN gshRepositoryManager (INPUT pcLogicalObjectName,
-                                                   OUTPUT TABLE tt_object_instance,
-                                                   OUTPUT TABLE tt_page,
-                                                   OUTPUT TABLE tt_page_instance,
-                                                   OUTPUT TABLE tt_link,
-                                                   OUTPUT TABLE ttAttributeValue,
-                                                   OUTPUT TABLE ttUiEvent) NO-ERROR.
-  
-  IF ERROR-STATUS:ERROR THEN
-  DO:
-    {af/sup2/afcheckerr.i &NO-RETURN=YES}
-    RUN destroyObject.
-    RETURN.
-  END.
+    DYNAMIC-FUNCTION("setContainerMode":U, "View":U).
 
-  ASSIGN cLocalAttributes = "":U.
-  
-  /* get attributes that are for the container itself - special instance record with 0 object number */
-  FIND FIRST tt_object_instance 
-       WHERE tt_object_instance.object_instance_obj = 0
-       EXCLUSIVE-LOCK NO-ERROR.
-  IF AVAILABLE tt_object_instance THEN
-    ASSIGN cLocalAttributes = tt_object_instance.instance_attribute_list
-           tt_object_instance.object_instance_handle = THIS-PROCEDURE. 
-  
-  ASSIGN
-      lMenuController = NO.
-
-  RUN setLocalAttributes(cLocalAttributes).
-
-  /***
-  FOR EACH tt_object_instance:
-
-    IF tt_object_instance.object_pathed_filename = "ry/obj/rystatusbv.w" THEN
-      ASSIGN
-          lMenuController = YES.
-
+    RUN setContainerViewMode.
     
-    /* Deal with defaults */
-    IF tt_object_instance.layout_position = "":U           AND 
-       INDEX(instance_attribute_list,"ADM2Navigation") > 0 THEN
-      ASSIGN tt_object_instance.layout_position = "TOP".
-    ELSE
-      IF tt_object_instance.layout_position = "":U         AND 
-         INDEX(instance_attribute_list,"BROWSESEARCH") > 0 THEN
-        ASSIGN tt_object_instance.layout_position = "BOTTOM".
-      ELSE
-        IF tt_object_instance.layout_position = "" THEN
-          tt_object_instance.layout_position = "CENTRE".
+    {get CurrentPage iPage}.
+    {get InitialPageList cInitialPageList}.
+    
+    /* The Objects are already running, do not instantiate them again */
+    IF gcLaunchedFolderName  EQ pcLogicalObjectName  AND 
+       gcLaunchedRunInstance EQ pcInstanceAttributes AND
+       gcLaunchedSDOName     EQ pcSDOName            AND 
+       giLastLaunchedPage    EQ iPage                THEN
+        RETURN.
+    
+    {set ReposSDO TRUE}.
 
-    /* set instantiation order */
-    IF INDEX(tt_object_instance.object_type_code,"sdo":U) <> 0 THEN
-      ASSIGN tt_object_instance.instance_order = 1.
-    ELSE
-      IF INDEX(tt_object_instance.object_type_code,"toolbar":U) <> 0 THEN
+    FIND FIRST ttRunningSDOs WHERE
+               ttRunningSDOs.cSDOName = pcSDOName
+               NO-LOCK NO-ERROR.
+    IF AVAILABLE ttRunningSDOs AND VALID-HANDLE(ttRunningSDOs.hSDOHandle) THEN
+        ASSIGN ghSDOHandle = ttRunningSDOs.hSDOHandle.
+
+    /* A new logical Object was chosen. Close down the currently running Objects and start the new ones */
+    IF gcLaunchedFolderName <> pcLogicalObjectName THEN DO:
+      RUN destroyNonTreeObjects.
+      EMPTY TEMP-TABLE ttLinksAdded.
+      
+      /* The InstanceId is set to the current 'container' object. This will not
+       * be the instanceId of the treeview, but rather of the currently running
+       * container. The treeview's InstanceId is stored in the gcTreeviewInstanceId
+       * variable, and this is set in createObjects.                                 */
+      RUN launchObject (INPUT pcLogicalObjectName) NO-ERROR.
+      IF ERROR-STATUS:ERROR THEN
       DO:
-        IF tt_object_instance.layout_position BEGINS "top":U THEN 
-          ASSIGN tt_object_instance.instance_order = 2.
-        ELSE
-          ASSIGN tt_object_instance.instance_order = 3.
+          {af/sup2/afcheckerr.i &NO-RETURN=YES}
+          RUN destroyObject.
+          RETURN.
+      END.    /* error */
+
+      giLastLaunchedPage = ?.
+      /* Need to initiate page 0 first for links */
+      IF iPage <> 0 THEN DO:
+        {set CurrentPage 0}.
+        RUN createRepositoryObjects IN TARGET-PROCEDURE (INPUT pcLogicalObjectName,
+                                                         INPUT pcSDOName,
+                                                         INPUT TARGET-PROCEDURE,
+                                                         INPUT pcInstanceAttributes).
+        {set CurrentPage 1}.
+        iPage = 1.
       END.
-      ELSE
-        IF INDEX(tt_object_instance.object_type_code,"smartfolder":U) <> 0 THEN
-          ASSIGN tt_object_instance.instance_order = 4.
-        ELSE
-          ASSIGN tt_object_instance.instance_order = 99.
+    END.
 
-    /* set page */
-    FIND FIRST tt_page_instance
-         WHERE tt_page_instance.object_instance_obj = tt_object_instance.object_instance_obj
-         NO-ERROR.
-    IF AVAILABLE tt_page_instance THEN
-      ASSIGN tt_object_instance.page_number = tt_page_instance.page_number.
-    ELSE
-      ASSIGN tt_object_instance.page_number = 0.
-      
-    /* add page to layout if not there already */
-    IF tt_object_instance.page_number > 0 AND NUM-ENTRIES(tt_object_instance.layout_position) = 1 THEN
-      ASSIGN tt_object_instance.layout_position = tt_object_instance.layout_position + ",":U + TRIM(STRING(tt_object_instance.page_number)).
-      
-  END.
-  
-  FOR EACH tt_page_instance,
-     FIRST tt_object_instance
-     WHERE tt_object_instance.object_instance_obj = tt_page_instance.object_instance_obj:
-    ASSIGN tt_page_instance.layout_position = tt_object_instance.layout_position.
-  END.
-  **/
-  /* start off by making the frame's virtual dimensions very big */
-
-  ASSIGN
-      FRAME {&FRAME-NAME}:SCROLLABLE     = TRUE
-      FRAME {&FRAME-NAME}:VIRTUAL-WIDTH = SESSION:WIDTH + 1
-      FRAME {&FRAME-NAME}:VIRTUAL-HEIGHT = SESSION:HEIGHT + 1
-      FRAME {&FRAME-NAME}:SCROLLABLE     = FALSE
-      .
-  ASSIGN
-    cObjectHandles  = "":U
-    cToolbarHandles = "":U.                
-
-  FOR EACH tt_page NO-LOCK:
-    /* Construct the objects based on the tt_object_instance temp-table for each page */
-    RUN constructTTInstances (INPUT pcInsanceAttributes, INPUT tt_page.page_number) NO-ERROR.
-    ASSIGN
-      cObjectHandles  = cObjectHandles + (IF cObjectHandles <> "":U THEN ",":U ELSE "":U) + gcObjectHandles
-      cToolbarHandles = cToolbarHandles + (IF cToolbarHandles <> "":U THEN ",":U ELSE "":U) + gcToolbarHandles.
-  END.
-    /*
-  /* Construct the objects based on the tt_object_instance temp-table for page 1*/
-  RUN constructTTInstances (INPUT pcInsanceAttributes, INPUT 1) NO-ERROR.
-      */    
-  IF glMenuMaintenance AND pcSDOName = "":U THEN
-    pcSDOName = gcPrimarySDOName.
-  /* Add the required links */
-  RUN addTTLinks (INPUT pcSDOName) NO-ERROR.
-  
-  FOR EACH tt_page_instance,
-     FIRST tt_object_instance 
-     WHERE tt_object_instance.object_instance_obj = tt_page_instance.object_instance_obj:
-    ASSIGN      
-        tt_page_instance.object_instance_handle = tt_object_instance.object_instance_handle
-        tt_page_instance.object_type_code       = tt_object_instance.object_type_code.
+    ASSIGN gcLogicalObjectName   = pcLogicalObjectName
+           gcLaunchedFolderName  = pcLogicalObjectName
+           gcLaunchedRunInstance = pcInstanceAttributes
+           gcInstanceAttributes  = pcInstanceAttributes
+           gcPrimarySDOName      = pcSDOName
+           gcLaunchedSDOName     = pcSDOName
+           gcOldSDOName          = pcSDOName
+           giLastLaunchedPage    = iPage
+           .
     
-    IF tt_page_instance.object_instance_handle = ghContainerToolbar OR
-       tt_page_instance.object_instance_handle = ghTreeViewOCX      OR 
-       tt_page_instance.object_instance_handle = ghFolderToolbar    OR 
-       tt_page_instance.object_instance_handle = ghFilterViewer     THEN
-      NEXT.
-    IF tt_page_instance.object_instance_handle = ghFolder AND
-       glMenuMaintenance = FALSE THEN
-      NEXT.
-      
-    CREATE tt_view_page_instance.
-    BUFFER-COPY tt_page_instance TO tt_view_page_instance.
-  END. /* FOR EACH tt_page_instance */
+    IF CAN-FIND(FIRST container_Page 
+                WHERE container_Page.tTargetProcedure = TARGET-PROCEDURE
+                AND   container_page.tPageNumber      = iPage
+                AND   container_Page.tPageInitialized = TRUE) THEN
+      RETURN.
 
-  FOR EACH tt_page NO-LOCK:
-    CREATE tt_view_page.
-    BUFFER-COPY tt_page TO tt_view_page.
-  END.
-  
-  /* pass SdoForeignFields to any SDO's with a data link from THIS-PROCEDURE */
-  RUN passSDOForeignFields (INPUT pcSDOName).
-  
-  /* the last thing we do is pack the frame to the size of its contents.  The actual work performed here will
-  be subject to the chosen layout managers */
-  FIND FIRST tt_page WHERE tt_page.page_number = 0 NO-ERROR.
-  IF AVAILABLE tt_page THEN DO:
-    {set Page0LayoutManager tt_page.layout_code}.
-  END.
-  
-  RUN packWindow IN THIS-PROCEDURE (INPUT 0, NO).
-          
-  {set Page0LayoutManager gcTreeLayoutCode}.
+    
+    {fnarg lockWindow TRUE}.
 
-  IF glMenuMaintenance THEN DO:
+    ASSIGN lMenuController = NO.
+    /* start off by making the frame's virtual dimensions very big */
+    ASSIGN FRAME {&FRAME-NAME}:SCROLLABLE     = TRUE
+           FRAME {&FRAME-NAME}:VIRTUAL-WIDTH  = SESSION:WIDTH + 1
+           FRAME {&FRAME-NAME}:VIRTUAL-HEIGHT = SESSION:HEIGHT + 1
+           FRAME {&FRAME-NAME}:SCROLLABLE     = FALSE
+           .
+    ASSIGN cObjectHandles  = "":U
+           cToolbarHandles = "":U
+           .
+    /* This will be the instanceID of the current 'container' object */
+    {get InstanceId dInstanceId}.
+    FOR EACH  container_Page 
+        WHERE container_Page.tTargetProcedure = TARGET-PROCEDURE
+        AND   container_page.tPageNumber      = iPage 
+        BY container_page.tPageNumber:
+        IF cInitialPageList <> "":U THEN DO:
+          IF NOT CAN-DO(cInitialPageList, STRING(iPage)) THEN
+            NEXT.
+        END.
+        /* Construct the objects based on the tt_object_instance temp-table for each page */
+        RUN constructTTInstances ( INPUT pcInstanceAttributes,
+                                   INPUT container_Page.tPageNumber,
+                                   INPUT dInstanceId                    ) NO-ERROR.
+        ASSIGN cObjectHandles  = cObjectHandles + (IF cObjectHandles <> "":U THEN ",":U ELSE "":U) + gcObjectHandles
+               cToolbarHandles = cToolbarHandles + (IF cToolbarHandles <> "":U THEN ",":U ELSE "":U) + gcToolbarHandles
+               .
+        ASSIGN container_Page.tPageInitialized = TRUE.
+    END.    /* each page buffer */
+
+    IF glMenuMaintenance AND pcSDOName = "":U THEN
+        ASSIGN pcSDOName = gcPrimarySDOName.
+    
+    /* Add the required links */
+    IF iPage <> 0 THEN
+      RUN addTTLinks (INPUT pcSDOName, INPUT dInstanceId) NO-ERROR.
+    IF glMenuMaintenance AND iPage = 0 THEN
+      RUN addTTLinks (INPUT pcSDOName, INPUT dInstanceId) NO-ERROR.
+
+  
+    /* pass SdoForeignFields to any SDO's with a data link from THIS-PROCEDURE */
+    RUN passSDOForeignFields (INPUT pcSDOName).
+
+    /* The last thing we do is pack the frame to the size of its contents.  The actual work performed here will
+     * be subject to the chosen layout managers */
+    FIND FIRST container_Page WHERE
+               container_Page.tTargetProcedure = TARGET-PROCEDURE AND
+               container_Page.tPageNumber      = 0
+               NO-ERROR.
+    IF AVAILABLE container_Page THEN
+        {set Page0LayoutManager container_Page.tLayoutCode}.
+
+    DYNAMIC-FUNCTION("setupFolderPages":U, INPUT pcLogicalObjectName).
+/*
+    RUN selectPage (0).
+  */
+    ASSIGN gcObjectHandles  = cObjectHandles
+           gcToolbarHandles = cToolbarHandles
+           .
+    
+    DO iObjectLoop = 1 TO NUM-ENTRIES(cObjectHandles):
+      hObjectHandle = WIDGET-HANDLE(ENTRY(iObjectLoop,cObjectHandles)).
+      IF VALID-HANDLE(hObjectHandle) AND
+         LOOKUP("adm-create-objects":U,hObjectHandle:INTERNAL-ENTRIES) > 0 AND 
+         INDEX(hObjectHandle:FILE-NAME,"rydynview":U) = 0 THEN DO:
+        RUN initializeDataObjects IN hObjectHandle (INPUT TRUE).
+        /*
+        RUN adm-create-objects IN hObjectHandle.
+        */
+        RUN postCreateObjects IN hObjectHandle NO-ERROR.
+        DYNAMIC-FUNCTION("setObjectsCreated":U IN hObjectHandle, INPUT TRUE) NO-ERROR.
+        ASSIGN NO-ERROR. /* get rid of any errors */
+      END.
+    END.
+    
+    RUN manualInitializeObjects.
+
+    RUN packWindow (INPUT iPage, INPUT NO).
+
+    {set Page0LayoutManager gcTreeLayoutCode}.
+
+    
+    IF glMenuMaintenance THEN
+    DO:
+        IF VALID-HANDLE(ghFolderToolbar) THEN
+            RUN hideObject IN ghFolderToolbar.
+    END.
+    ELSE
     IF VALID-HANDLE(ghFolderToolbar) THEN
-      RUN hideObject IN ghFolderToolbar.
-  END.
-  ELSE DO:
-    IF VALID-HANDLE(ghFolderToolbar) THEN
-      RUN viewObject IN ghFolderToolbar.
-  END.
-  
-  RUN resizeWindow.
-  
-  DYNAMIC-FUNCTION("setupFolderPages":U, pcLogicalObjectName).
-  RUN selectPage(0).
-  
-  ASSIGN
-    gcObjectHandles  = cObjectHandles
-    gcToolbarHandles = cToolbarHandles.
-  RUN manualInitializeObjects.
-  
-  FOR EACH tt_page WHERE tt_page.page_number <> 1:
-      RUN hidePage(tt_page.page_number).
-  END.
-  
-  DYNAMIC-FUNCTION("setContainerMode":U, "View":U).
-  
-  RUN setContainerViewMode.
-  RUN selectPage(1).
-  RUN toolbar ("EnableData").
-  
-END PROCEDURE.
+        RUN viewObject IN ghFolderToolbar.
+    
+    RUN resizeWindow.
+    
+    IF glMenuMaintenance THEN DO:
+      FOR EACH ttNonTreeObjects:
+        RUN viewObject IN ttNonTreeObjects.hObjectHandle.
+      END.
+    END.
+    
+    FOR EACH container_Page WHERE
+             container_Page.tTargetProcedure = TARGET-PROCEDURE AND
+             container_Page.tPageNumber     NE iPage:
+        RUN hidePage ( INPUT container_Page.tPageNumber).
+    END.
+    
+    DYNAMIC-FUNCTION("setContainerMode":U, "View":U).
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
+    RUN setContainerViewMode.
+    
+    /* Ensure all objects on selected Page is visible */
+    FOR EACH container_Object WHERE
+             container_Object.tTargetProcedure           = TARGET-PROCEDURE AND
+             container_Object.tContainerRecordIdentifier = dInstanceId      AND
+             container_Object.tPageNumber                = iPage
+             NO-LOCK:
+      IF container_Object.tObjectInstanceHandle = ghFolder OR
+         container_Object.tObjectInstanceHandle = ghFolderToolbar OR
+         container_Object.tObjectInstanceHandle = ghContainerToolbar 
+         THEN
+        NEXT.
+      RUN viewObject IN container_Object.tObjectInstanceHandle NO-ERROR.
+    END.
+                    
+    IF iPage = 0 THEN
+      RUN selectPage (1).
+                      
+    RUN toolbar ("EnableData").
+    
+    /* Set the UI Events for this object */
+    {fn createUiEvents}.
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE deleteComplete wWin 
-PROCEDURE deleteComplete :
-/*------------------------------------------------------------------------------
-  Purpose:    When the SDO has successfully deleted a record is publishes a 
-              'deleteComplete'. We catch this and route it to updateState to  
-              synchronise the TreeView.
-  Parameters: <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  
-  RUN updateState ("deleteComplete":U).
-  /***DIAG***/
-  glDelete = TRUE.
-  gcCurrentMode = "delete":U.
-  gcNewContainerMode = "View".
+    {fnarg lockWindow FALSE}.
 
-END PROCEDURE.
+    ASSIGN ERROR-STATUS:ERROR = NO.
+    RETURN.
+END PROCEDURE.  /* createRepositoryObjects */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -2209,81 +2331,136 @@ PROCEDURE destroyNonTreeObjects :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  
-  /* Delete Previously Added Navigation Links */
-  FOR EACH  ttLinksAdded
-      WHERE ttLinksAdded.cLinkName = "Navigation":U
-      NO-LOCK:
-      IF VALID-HANDLE(ttLinksAdded.hSourceHandle) AND 
-         VALID-HANDLE(ttLinksAdded.hTargetHandle) THEN
-        RUN removeLink(ttLinksAdded.hSourceHandle, ttLinksAdded.cLinkName, ttLinksAdded.hTargetHandle).
-  END.
-  
-  /* It might look like I'm duplicating code, but it only works this way - do not change */
-  IF NOT glMenuMaintenance THEN DO:
-    FIND FIRST ttRunningSDOs NO-LOCK
-         WHERE ttRunningSDOs.cSDOName = gcOldSDOName NO-ERROR.
-    IF AVAILABLE ttRunningSDOs AND 
-       VALID-HANDLE(ttRunningSDOs.hSDOHandle) THEN DO:
-      IF DYNAMIC-FUNCTION("linkHandles" IN ttRunningSDOs.hSDOHandle, "Navigation-Source":U) <> "":U THEN
-        RUN removeLink(ghFolderToolbar, "Navigation":U, ttRunningSDOs.hSDOHandle).
-    END.
-    RUN removeTTLinks (gcOldSDOName).
-  END.
-  ELSE DO:
-    /* When the Dyn TreeView is used as a Menu, we need to kill all running SDOs */
-    FOR EACH ttRunningSDOs 
-        EXCLUSIVE-LOCK:
-      IF VALID-HANDLE(ttRunningSDOs.hSDOHandle) THEN DO:
-        IF DYNAMIC-FUNCTION("linkHandles" IN ttRunningSDOs.hSDOHandle, "Navigation-Source":U) <> "":U THEN
-          RUN removeLink(ghFolderToolbar, "Navigation":U, ttRunningSDOs.hSDOHandle).
-      END.
-      RUN removeTTLinks (ttRunningSDOs.cSDOName).
-      DELETE ttRunningSDOs.
-    END.
-    IF VALID-HANDLE(ghFolder) THEN DO:
-      RUN destroyObject IN ghFolder.
-      ghFolder = ?.
-    END.
-  END.
+    DEFINE VARIABLE hDataSource         AS HANDLE                       NO-UNDO.
+    DEFINE VARIABLE cDataSource         AS CHARACTER                    NO-UNDO.
+    DEFINE VARIABLE iLoop               AS INTEGER                      NO-UNDO.
+    DEFINE VARIABLE cData               AS CHARACTER                    NO-UNDO.
 
-  FOR EACH ttNonTreeObjects 
-      EXCLUSIVE-LOCK:
-    IF VALID-HANDLE(ttNonTreeObjects.hObjectHandle) THEN DO:
-      FIND FIRST tt_page_instance
-           WHERE tt_page_instance.object_instance_handle = ttNonTreeObjects.hObjectHandle
-           EXCLUSIVE-LOCK NO-ERROR.
-      IF AVAILABLE tt_page_instance THEN
-        DELETE tt_page_instance.
-      
-      RUN destroyObject IN ttNonTreeObjects.hObjectHandle.
-      DELETE ttNonTreeObjects.
+    /* Delete Previously Added Navigation Links */
+    FOR EACH ttLinksAdded WHERE ttLinksAdded.cLinkName = "Navigation":U NO-LOCK:
+        IF VALID-HANDLE(ttLinksAdded.hSourceHandle) AND VALID-HANDLE(ttLinksAdded.hTargetHandle) THEN
+        DO:
+            RUN removeLink (ttLinksAdded.hSourceHandle, ttLinksAdded.cLinkName, ttLinksAdded.hTargetHandle).
+            DELETE ttLinksAdded.
+        END.    /* valid source and target */
+    END.    /* links added */
+
+    /* It might look like I'm duplicating code, but it only works this way - do not change */
+    IF NOT glMenuMaintenance THEN
+    DO:
+        FIND FIRST ttRunningSDOs WHERE ttRunningSDOs.cSDOName = gcOldSDOName NO-LOCK NO-ERROR.
+        IF AVAILABLE ttRunningSDOs AND VALID-HANDLE(ttRunningSDOs.hSDOHandle) THEN
+        DO:
+            IF DYNAMIC-FUNCTION("linkHandles" IN ttRunningSDOs.hSDOHandle, "Navigation-Source":U) <> "":U THEN
+                RUN removeLink (ghFolderToolbar, "Navigation":U, ttRunningSDOs.hSDOHandle).
+        END.
+        RUN removeTTLinks (gcOldSDOName).
     END.
-  END.
-  
-  EMPTY TEMP-TABLE tt_view_page_instance.
-  EMPTY TEMP-TABLE tt_view_page.
-  EMPTY TEMP-TABLE ttDataLinks.
+    ELSE
+    DO:
+        /* When the Dyn TreeView is used as a Menu, we need to kill all running SDOs */
+        FOR EACH ttRunningSDOs EXCLUSIVE-LOCK:
+            IF VALID-HANDLE(ttRunningSDOs.hSDOHandle) THEN
+            DO:
+                IF DYNAMIC-FUNCTION("linkHandles" IN ttRunningSDOs.hSDOHandle, "Navigation-Source":U) <> "":U THEN
+                    RUN removeLink (ghFolderToolbar, "Navigation":U, ttRunningSDOs.hSDOHandle).
+            END.
+
+            RUN removeTTLinks (ttRunningSDOs.cSDOName).
+            DELETE ttRunningSDOs.
+        END.
+
+        IF VALID-HANDLE(ghFolder) THEN
+        DO:
+            RUN destroyObject IN ghFolder.
+            ASSIGN ghFolder = ?.
+        END.
+    END.
+
+    FOR EACH ttNonTreeObjects EXCLUSIVE-LOCK:
+        IF VALID-HANDLE(ttNonTreeObjects.hObjectHandle) THEN
+        DO:
+            /* KSM Fix for iz#4527 -- destroy all custom super procedures instantiated 
+             * by the current SMO */
+            FIND FIRST container_Object WHERE
+                       container_Object.tTargetProcedure      = TARGET-PROCEDURE AND
+                       container_Object.tObjectInstanceHandle = ttNonTreeObjects.hObjectHandle
+                       NO-ERROR.
+            IF AVAILABLE container_Object THEN
+            DO:
+                IF container_Object.tDestroyCustomSuper THEN
+                DO:
+                    DELETE OBJECT container_Object.tCustomSuperHandle NO-ERROR.
+                    ASSIGN container_Object.tCustomSuperHandle = ?.
+                END.
+
+                ASSIGN container_Object.tObjectInstanceHandle = ?.
+            END.    /* running super */      
+
+            ASSIGN cDataSource = DYNAMIC-FUNCTION("linkHandles" IN ttNonTreeObjects.hObjectHandle, "Data-Source":U).
+            
+            IF cDataSource <> "":U THEN
+            DO:
+                DO iLoop = 1 TO NUM-ENTRIES(cDataSource):
+                    ASSIGN hDataSource = WIDGET-HANDLE(ENTRY(iLoop,cDataSource)).
+                    IF VALID-HANDLE(hDataSource) THEN
+                        RUN removeLink (hDataSource, "Data":U, ttNonTreeObjects.hObjectHandle).
+                END.
+            END.    /* data source */
+            
+            DYNAMIC-FUNCTION("setpageNTarget" IN TARGET-PROCEDURE, INPUT "":U).
+            DYNAMIC-FUNCTION("setObjectsCreated":U IN hObjectHandle, INPUT FALSE) NO-ERROR.
+
+            RUN destroyObject IN ttNonTreeObjects.hObjectHandle.
+        END.    /* valid non-tree object */
+
+        DELETE ttNonTreeObjects.
+    END.    /* each non-tree object */
+
+    EMPTY TEMP-TABLE ttDataLinks.
+
+    IF VALID-HANDLE(ghOverridenSubMenu) THEN
+    DO:
+        DELETE WIDGET ghOverridenSubMenu.
+        ASSIGN ghOverridenSubMenu = ?.
+    END.    /* valid overridden submenu */
+
+    /* Disable Tablieo  */
+    IF VALID-HANDLE(ghFolderToolbar) THEN
+      RUN resetTableio IN ghFolderToolbar.
     
-  IF VALID-HANDLE(ghOverridenSubMenu) THEN DO:
-    DELETE WIDGET ghOverridenSubMenu.
-    ghOverridenSubMenu = ?.
-  END.
+      /* Clear folder pages */
+    DYNAMIC-FUNCTION("setupFolderPages":U, INPUT "":U).
 
-  /* Disable Toolbar */
-  IF VALID-HANDLE(ghFolderToolbar) THEN
-    DYNAMIC-FUNCTION("sensitizeActions":U IN ghFolderToolbar ,"Update,Add,Delete,Copy,Save,Cancel,Reset", FALSE).
-  
-  /* Clear folder pages */
-  DYNAMIC-FUNCTION("setupFolderPages":U, INPUT "":U).
-  
-  RUN updateTitleOverride (INPUT "":U).
-  
-  ASSIGN gcLogicalObjectName = "":U
-         gcInstanceAttributes = "":U
-         gcPrimarySDOName    = "":U.
-  
-END PROCEDURE.
+    RUN updateTitleOverride (INPUT "":U).
+
+    ASSIGN gcLogicalObjectName   = "":U
+           gcInstanceAttributes  = "":U
+           gcPrimarySDOName      = "":U
+           gcLaunchedFolderName  = "":U
+           gcLaunchedRunInstance = "":U
+           gcLaunchedSDOName     = "":U
+           .
+    RUN setMinMaxDefaults (INPUT glMenuMaintenance, OUTPUT cData).
+
+    ASSIGN {&WINDOW-NAME}:MIN-WIDTH-CHARS  = gdMinimumWindowWidth 
+           {&WINDOW-NAME}:MIN-HEIGHT-CHARS = gdMinimumWindowHeight
+           .
+
+    FOR EACH container_Object WHERE container_Object.tTargetProcedure = TARGET-PROCEDURE:
+        DELETE container_Object.
+    END.
+
+    FOR EACH container_Page WHERE container_Page.tTargetProcedure = TARGET-PROCEDURE:
+        DELETE container_Page.
+    END.
+
+    FOR EACH container_Link WHERE container_Link.tTargetProcedure = TARGET-PROCEDURE:
+        DELETE container_Link.
+    END.
+
+    RETURN.
+END PROCEDURE.  /* destroyNonTreeObjects */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -2298,14 +2475,30 @@ PROCEDURE destroyObject :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+    DEFINE VARIABLE hDestroyObject          AS HANDLE                   NO-UNDO.
+    
+    RUN saveTreeViewWidth.
 
-  {set LogicalObjectName gcObjectName}.
+    RUN SUPER.
 
-  RUN saveTreeViewWidth.
-  RUN SUPER.
-  FOR EACH tt_object_instance WHERE tt_object_instance.destroy_custom_super = TRUE:
-    DELETE OBJECT tt_object_instance.custom_super_handle NO-ERROR. 
-  END.
+    /** Only destroy the objects after the RUN SUPER has comleted, so that any
+     *  code in the super can execute first.
+     *  ----------------------------------------------------------------------- **/
+    FOR EACH ttRunningSDOs EXCLUSIVE-LOCK:
+        IF VALID-HANDLE(ttRunningSDOs.hSDOHandle) THEN 
+            RUN destroyObject IN ttRunningSDOs.hSDOHandle.
+        DELETE ttRunningSDOs.
+    END.
+
+    /* Destroy all custom super procedures. */
+    FOR EACH container_Object WHERE
+             container_Object.tTargetProcedure    = TARGET-PROCEDURE AND
+             container_Object.tDestroyCustomSuper = YES                :
+        IF VALID-HANDLE(container_Object.tCustomSuperHandle) THEN 
+            DELETE OBJECT container_Object.tCustomSuperHandle NO-ERROR.
+    END.    /* each container object. */
+
+    RETURN.
 END PROCEDURE .
 
 /* _UIB-CODE-BLOCK-END */
@@ -2337,12 +2530,14 @@ PROCEDURE doThisOnceOnly :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  IF glOnceOnlyDone THEN RETURN.
+  DEFINE VARIABLE iStartPage AS INTEGER    NO-UNDO.
+
+  IF glOnceOnly THEN RETURN.
   
   RUN createObjects. 
 
   IF NOT VALID-HANDLE(ghTreeViewOCX) THEN 
-    ghTreeViewOCX = WIDGET-HANDLE(ENTRY(1, DYNAMIC-FUNCTION("linkHandles":U, INPUT "TVController-Source":U))).
+    ghTreeViewOCX = WIDGET-HANDLE(ENTRY(1, DYNAMIC-FUNCTION("linkHandles":U IN TARGET-PROCEDURE, INPUT "TVController-Source":U))).
   
   IF  VALID-HANDLE(ghTreeViewOCX) THEN DO:
     {set ShowCheckBoxes glShowCheckBoxes ghTreeViewOCX}.
@@ -2351,15 +2546,15 @@ PROCEDURE doThisOnceOnly :
     {set ImageHeight giImageHeight ghTreeViewOCX}.
     {set ImageWidth giImageWidth ghTreeViewOCX}.
     {set TreeStyle giTreeStyle ghTreeViewOCX}.
-    {set AutoSort FALSE ghTreeViewOCX}.
+    {set AutoSort glAutoSort ghTreeViewOCX}.
   END.
   
   /* Initialize the SmartTreeView Manually */
-  RUN initializeObject IN h_smarttreeview.
+  RUN initializeObject IN ghTreeViewOCX.
   
   {get StartPage iStartPage}.
   IF iStartPage NE ? AND iStartPage NE 0 THEN
-    RUN selectPage(iStartPage).
+    RUN selectPage (iStartPage).
 
 END PROCEDURE.
 
@@ -2398,166 +2593,6 @@ PROCEDURE exitObject :
           
     APPLY "CLOSE":U TO THIS-PROCEDURE.
 
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE fetchFirst wWin 
-PROCEDURE fetchFirst :
-/*------------------------------------------------------------------------------
-  Purpose:     Move to first node in heirarachy
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  
-  RUN fetchRequest.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE fetchLast wWin 
-PROCEDURE fetchLast :
-/*------------------------------------------------------------------------------
-  Purpose:     Move to last node in heirarachy
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  
-  RUN fetchRequest.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE fetchNext wWin 
-PROCEDURE fetchNext :
-/*------------------------------------------------------------------------------
-  Purpose:     Move to next node in heirarachy
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  
-  RUN fetchRequest.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE fetchPrev wWin 
-PROCEDURE fetchPrev :
-/*------------------------------------------------------------------------------
-  Purpose:     Move to previous node in heirarachy
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  
-  RUN fetchRequest.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE fetchRequest wWin 
-PROCEDURE fetchRequest :
-/*------------------------------------------------------------------------------
-  Purpose:     This procedure will fire after a fetch.... request from the SDO.
-               It is usually run from fetchNext/Prev/Firs/Last in this procedure.
-               This procedure will read the RowId from the Node Temp Table and
-               reposition to that record on the SDO.
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  
-  DEFINE VARIABLE cCurrentNode            AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cParentNode             AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hTable                  AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hBuf                    AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hQry                    AS HANDLE     NO-UNDO.
-  
-  DEFINE VARIABLE hNode                   AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cNodeKey                AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hNodeObj                AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE dNodeObj                AS DECIMAL    NO-UNDO.
-  DEFINE VARIABLE hPrivateData            AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cPrivateData            AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDataset                AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDataSourceType         AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDataSource             AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hSDOHandle              AS HANDLE     NO-UNDO.
-  
-  DEFINE VARIABLE cValueList              AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cObjField               AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cRecordRef              AS CHARACTER  NO-UNDO.
-  
-  IF VALID-HANDLE(ghTreeViewOCX) THEN
-    cCurrentNode = DYNAMIC-FUNCTION("getSelectedNode" IN ghTreeViewOCX).
-  
-  IF cCurrentNode = ? THEN
-    RETURN.
-  
-  ASSIGN cParentNode = DYNAMIC-FUNCTION("getProperty" IN ghTreeViewOCX ,INPUT "PARENT":U, INPUT cCurrentNode) NO-ERROR.
-  IF ERROR-STATUS:ERROR OR 
-     cParentNode = ? OR
-     cParentNode = "":U THEN
-    cParentNode = ?.
-    
-  {get TreeDataTable hTable ghTreeViewOCX}.
-  
-  FIND FIRST ttRunningSDOs
-       WHERE ttRunningSDOs.cSDOName = gcPrimarySDOName
-       NO-LOCK NO-ERROR.
-  IF NOT AVAILABLE ttRunningSDOs THEN
-    RETURN.
-  ELSE
-    hSDOHandle = ttRunningSDOs.hSDOHandle.
-  
-  IF NOT VALID-HANDLE(hSDOHandle) THEN
-    RETURN.
-  
-  ASSIGN cValueList = DYNAMIC-FUNCTION("getUpdatableTableInfo":U IN gshGenManager, INPUT hSDOHandle).
-
-  IF LENGTH(TRIM(cValueList)) > 0 THEN 
-    ASSIGN cObjField = ENTRY(3, cValueList, CHR(4)).
-  
-  ASSIGN cRecordRef = TRIM(DYNAMIC-FUNCTION("columnStringValue":U IN hSDOHandle, cObjField)).
-  
-  /* Grab the handles to the individual fields in the tree data table. */
-  ASSIGN hBuf  = hTable:DEFAULT-BUFFER-HANDLE
-         hNode = hBuf:BUFFER-FIELD('node_key':U).
-  
-  CREATE QUERY hQry.  
-  hQry:ADD-BUFFER(hBuf).
-  IF cParentNode = ? THEN
-    hQry:QUERY-PREPARE(SUBSTITUTE('FOR EACH &1 WHERE &1.record_ref = "&2" AND &1.parent_node_key = ?':U, hTable:NAME,cRecordRef)).
-  ELSE
-    hQry:QUERY-PREPARE(SUBSTITUTE('FOR EACH &1 WHERE &1.record_ref = "&2" AND &1.parent_node_key = "&3"':U, hTable:NAME,cRecordRef,cParentNode)).
-  
-  hQry:QUERY-OPEN().
-  hQry:GET-FIRST().
-  
-  DO WHILE hBuf:AVAILABLE:
-    ASSIGN cNodeKey = hNode:BUFFER-VALUE
-           NO-ERROR.
-    hQry:GET-NEXT().
-  END.
-
-  IF VALID-HANDLE(hQry) THEN
-    DELETE OBJECT hQry.
-
-  ASSIGN gcCurrentNodeKey = cNodeKey.
-    
-  IF gcCurrentNodeKey <> ? AND 
-     VALID-HANDLE(ghTreeViewOCX) THEN
-    DYNAMIC-FUNCTION("selectNode":U IN ghTreeViewOCX, gcCurrentNodeKey).  
- 
-  RUN setDataLinkActive.
-  RUN nodeSelected (INPUT cNodeKey).
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2635,13 +2670,17 @@ PROCEDURE filterDataAvailable :
     DELETE ttRunningSDOs.
   END.
 
-  RUN loadTreeData.
+  {fnarg lockWindow TRUE}.
+
+  RUN loadTreeData IN TARGET-PROCEDURE.
   glExpand = FALSE.
   RUN populateTree IN ghTreeViewOCX (hDataTable, "":U).
   glExpand = TRUE.
   RUN selectFirstNode IN ghTreeViewOCX.
   cNodeKey = DYNAMIC-FUNCTION("getSelectedNode":U IN ghTreeViewOCX).
   RUN tvNodeSelected (cNodeKey).
+
+  {fnarg lockWindow FALSE}.
 
 END PROCEDURE.
 
@@ -2667,6 +2706,48 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getNodeTable wWin 
+PROCEDURE getNodeTable :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE OUTPUT PARAMETER TABLE FOR ttNode.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getNonTreeObjects wWin 
+PROCEDURE getNonTreeObjects :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE OUTPUT PARAMETER TABLE FOR ttNonTreeObjects.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getRunningSDOs wWin 
+PROCEDURE getRunningSDOs :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE OUTPUT PARAMETER TABLE FOR ttRunningSDOs.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getTopLeft wWin 
 PROCEDURE getTopLeft :
 /*------------------------------------------------------------------------------
@@ -2674,18 +2755,11 @@ PROCEDURE getTopLeft :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE OUTPUT PARAMETER pdRow     AS DECIMAL    NO-UNDO.
-  DEFINE OUTPUT PARAMETER pdColumn  AS DECIMAL    NO-UNDO.
+  DEFINE OUTPUT PARAMETER pdTopCoordinate  AS DECIMAL    NO-UNDO.
+  DEFINE OUTPUT PARAMETER pdLeftCoordinate AS DECIMAL    NO-UNDO.
 
-  ASSIGN
-      pdColumn = 0
-      pdRow    = 0.
-        
-  ASSIGN
-      pdColumn = DECIMAL(DYNAMIC-FUNCTION("getUserProperty":U IN THIS-PROCEDURE, "LeftCoordinate":U))
-      pdRow    = DECIMAL(DYNAMIC-FUNCTION("getUserProperty":U IN THIS-PROCEDURE, "TopCoordinate":U)) NO-ERROR.
-
-  RETURN.
+  ASSIGN pdTopCoordinate  = gdTopCoordinate 
+         pdLeftCoordinate = gdLeftCoordinate.
 
 END PROCEDURE.
 
@@ -2709,42 +2783,18 @@ PROCEDURE getTreeObjects :
   DEFINE OUTPUT PARAMETER plStatusBarVisible  AS LOGICAL    NO-UNDO.
   DEFINE OUTPUT PARAMETER phFilterViewer      AS HANDLE     NO-UNDO.
   
-  DO WITH FRAME {&FRAME-NAME}:
-    ASSIGN
-        phFolder            = IF glMenuMaintenance = FALSE THEN ghFolder ELSE ?
-        phFolderToolbar     = ghFolderToolbar
-        phContainerToolbar  = ghContainerToolbar
-        phTitleFillIn       = IF VALID-HANDLE(fiTitle:HANDLE) THEN fiTitle:HANDLE ELSE ?
-        pghTreeViewOCX      = IF VALID-HANDLE(ghTreeViewOCX) THEN ghTreeViewOCX ELSE ?
-        phResizeFillIn      = IF VALID-HANDLE(fiResizeFillIn:HANDLE) THEN fiResizeFillIn:HANDLE ELSE ?
-        phRectangle         = IF VALID-HANDLE(rctBorder:HANDLE) THEN rctBorder:HANDLE ELSE ?
-        plStatusBarVisible  = TRUE  /* Assum yes until property has been implemented */
-        phFilterViewer      = ghFilterViewer
-        NO-ERROR.
-  END.
-
+  ASSIGN
+      phFolder            = IF glMenuMaintenance = FALSE THEN ghFolder ELSE ?
+      phFolderToolbar     = ghFolderToolbar
+      phContainerToolbar  = ghContainerToolbar
+      phTitleFillIn       = fiTitle:HANDLE IN FRAME {&FRAME-NAME}
+      phResizeFillIn      = fiResizeFillIn:HANDLE IN FRAME {&FRAME-NAME}
+      pghTreeViewOCX      = IF VALID-HANDLE(ghTreeViewOCX) THEN ghTreeViewOCX ELSE ?
+      phRectangle         = rctBorder:HANDLE IN FRAME {&FRAME-NAME}
+      plStatusBarVisible  = TRUE  /* Assum yes until property has been implemented */
+      phFilterViewer      = ghFilterViewer
+      NO-ERROR.
   RETURN.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE hideObject wWin 
-PROCEDURE hideObject :
-/*------------------------------------------------------------------------------
-  Purpose:     Super Override
-  Parameters:  
-  Notes:       
-------------------------------------------------------------------------------*/
-
-  /* Code placed here will execute PRIOR to standard behavior. */
-
-  /** THIS WAS TO MAKE SURE THE CONTAINER WINDOW IS NOT HIDDEN WHEN CHANGING FOLDER PAGES **/
-  /*
-  RUN SUPER.
-  */
-  /* Code placed here will execute AFTER standard behavior.    */
 
 END PROCEDURE.
 
@@ -2758,764 +2808,298 @@ PROCEDURE initializeObject :
   Parameters:  
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE iCurrentPageNumber   AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE cSavedContainerMode  AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cErrorMessage        AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cButton              AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cInstanceAttribute   AS CHARACTER NO-UNDO.
-  
-  DEFINE VARIABLE hMenuBar             AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE hSubMenu             AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE dTextWidth           AS DECIMAL   NO-UNDO.
-  DEFINE VARIABLE dTotalTextWidth      AS DECIMAL   NO-UNDO.
-  DEFINE VARIABLE iMenus               AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE dMenuControllerWidth AS DECIMAL   NO-UNDO.
-  DEFINE VARIABLE cNodeKey             AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE dFilterHeight        AS DECIMAL   NO-UNDO.
-  DEFINE VARIABLE dFilterWidth         AS DECIMAL   NO-UNDO.
-  DEFINE VARIABLE hDataTable           AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE cRootNodeCode        AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE iCurrentPageNumber      AS INTEGER                  NO-UNDO.
+    DEFINE VARIABLE cSavedContainerMode     AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE cErrorMessage           AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE cButton                 AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE cInstanceAttribute      AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE hQuery                  AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE hFolder                 AS HANDLE                   NO-UNDO. 
+    DEFINE VARIABLE hMenuBar                AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE hSubMenu                AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE dTextWidth              AS DECIMAL                  NO-UNDO.
+    DEFINE VARIABLE dTotalTextWidth         AS DECIMAL                  NO-UNDO.
+    DEFINE VARIABLE iMenus                  AS INTEGER                  NO-UNDO.
+    DEFINE VARIABLE dMenuControllerWidth    AS DECIMAL                  NO-UNDO.
+    DEFINE VARIABLE cNodeKey                AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE dFilterHeight           AS DECIMAL                  NO-UNDO.
+    DEFINE VARIABLE dInstanceId             AS DECIMAL                  NO-UNDO.
+    DEFINE VARIABLE dFilterWidth            AS DECIMAL                  NO-UNDO.
+    DEFINE VARIABLE hDataTable              AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE cRootNodeCode           AS CHARACTER                NO-UNDO.
 
-  /* Code placed here will execute PRIOR to standard behavior. */
-  
-  IF glInitialised THEN RETURN.
-  glInitialised = TRUE.
-  
-  cInstanceAttribute = DYNAMIC-FUNCTION("getRunAttribute").
-  
-  /* retrieve container mode set already, i.e. from where window was launched from
-     and before initializeobject was run. If a mode is retrieved here, we will not
-     overwrite it with the default mode from the object properties.
-  */
-  gcContainerMode = getContainerMode().
-  
-  fiResizeFillIn:LOAD-MOUSE-POINTER("size-e":U) IN FRAME {&FRAME-NAME}.
-  
-  /* {get ContainerMode gcContainerMode}. */
-
-  IF NOT glOnceOnlyDone THEN RUN doThisOnceOnly.
-  /* Check forced exit of the dynamic container.
-   * We may get window packing errors here.      */
-  IF LENGTH({&WINDOW-NAME}:PRIVATE-DATA)           GT 0              AND
-     ENTRY(1, {&WINDOW-NAME}:PRIVATE-DATA, CHR(3)) EQ "ForcedExit":U THEN
-  DO:
-      IF NUM-ENTRIES({&WINDOW-NAME}:PRIVATE-DATA, CHR(3)) GE 2 THEN
-          ASSIGN cErrorMessage = ENTRY(2, {&WINDOW-NAME}:PRIVATE-DATA, CHR(3)).
-      ELSE
-          ASSIGN cErrorMessage = "Program aborted due to unknown reason":U.
-
-      RUN showMessages IN gshSessionManager ( INPUT  cErrorMessage,            /* message to display */
-                                              INPUT  "ERR":U,                  /* error type */
-                                              INPUT  "&OK":U,                  /* button list */
-                                              INPUT  "&OK":U,                  /* default button */ 
-                                              INPUT  "&OK":U,                  /* cancel button */
-                                              INPUT  "Folder window error":U,  /* error window title */
-                                              INPUT  YES,                      /* display if empty */ 
-                                              INPUT  THIS-PROCEDURE,           /* container handle */ 
-                                              OUTPUT cButton               ).  /* button pressed */
-      RUN exitObject.
-      RETURN.
-  END.    /* forced exit */
-  
-  /* hide window until all the window sizes have been calculated */
-  {&WINDOW-NAME}:VISIBLE = FALSE.
-
-  IF NOT VALID-HANDLE(ghFilterViewer) THEN 
-    ghFilterViewer = WIDGET-HANDLE(ENTRY(1, DYNAMIC-FUNCTION("LinkHandles":U, INPUT "TreeFilter-Source"))).
-  IF VALID-HANDLE(ghFilterViewer) THEN
-    SUBSCRIBE TO "filterDataAvailable":U IN ghFilterViewer.
-
-  IF VALID-HANDLE(ghFilterViewer) THEN DO:
-    ASSIGN dFilterHeight = DYNAMIC-FUNCTION("getHeight" IN ghFilterViewer)
-           dFilterWidth  = DYNAMIC-FUNCTION("getWidth" IN ghFilterViewer).
-    IF {&WINDOW-NAME}:WIDTH-CHARS < dFilterWidth THEN
-      ASSIGN {&WINDOW-NAME}:WIDTH-CHARS      = dFilterWidth + .5
-             FRAME {&FRAME-NAME}:WIDTH-CHARS = {&WINDOW-NAME}:WIDTH-CHARS.
-             
-    ASSIGN gdMinimumWindowWidth = {&WINDOW-NAME}:WIDTH-CHARS.
-    RUN resizeWindow.
-  END.
-  
-  RUN SUPER.
-
-  /* This is to see whether the folder window changed the mode because there is
-     possibly no enabled tab */
-  
-  ASSIGN gcContainerMode    = getContainerMode()
-         iCurrentPageNumber = getCurrentPage().
+    IF glObjectInitialized THEN
+        RETURN.
     
-  FOR EACH tt_page WHERE tt_page.PAGE_number <> iCurrentPageNumber:
-      RUN hidePage(tt_page.PAGE_number).
-  END.
+    ASSIGN glObjectInitialized = TRUE.
 
-  /* Check if any enabled tabs and if not - exit the program */
-  DEFINE VARIABLE hFolder AS HANDLE NO-UNDO.
-  ASSIGN hFolder = WIDGET-HANDLE(DYNAMIC-FUNCTION('linkHandles':U, 'Page-Source':U)).
-  IF VALID-HANDLE(hFolder) AND DYNAMIC-FUNCTION("getTabsEnabled" IN hFolder) = NO THEN
-  DO:
+    ASSIGN cInstanceAttribute = DYNAMIC-FUNCTION("getRunAttribute").
+
+    /* retrieve container mode set already, i.e. from where window was launched from
+     * and before initializeobject was run. If a mode is retrieved here, we will not
+     * overwrite it with the default mode from the object properties.               */
+    ASSIGN gcContainerMode = DYNAMIC-FUNCTION("getContainerMode":U).
     
-    ASSIGN cErrorMessage = {af/sup2/aferrortxt.i 'RY' '11'}.
+    fiResizeFillIn:LOAD-MOUSE-POINTER("size-e":U) IN FRAME {&FRAME-NAME}.
 
-    RUN showMessages IN gshSessionManager (INPUT  cErrorMessage,            /* message to display */
-                                           INPUT  "ERR":U,                  /* error type */
-                                           INPUT  "&OK":U,                  /* button list */
-                                           INPUT  "&OK":U,                  /* default button */ 
-                                           INPUT  "&OK":U,                  /* cancel button */
-                                           INPUT  "Folder window error":U,  /* error window title */
-                                           INPUT  YES,                      /* display if empty */ 
-                                           INPUT  THIS-PROCEDURE,           /* container handle */ 
-                                           OUTPUT cButton                   /* button pressed */
-                                          ).
-    
-    /* Shut down the folder window */
-    RUN exitObject. 
-    RETURN.             
-  END.
-  
-  IF LENGTH({&WINDOW-NAME}:PRIVATE-DATA) > 0 AND
-     ENTRY(1,{&WINDOW-NAME}:PRIVATE-DATA,CHR(3)) = "forcedexit":U THEN
-  DO:
-    IF NUM-ENTRIES({&WINDOW-NAME}:PRIVATE-DATA,CHR(3)) = 2 THEN
-      ASSIGN cErrorMessage = ENTRY(2,{&WINDOW-NAME}:PRIVATE-DATA,CHR(3)).
-    ELSE 
-      ASSIGN cErrorMessage = "Program aborted due to unknown reason":U.
-    RUN showMessages IN gshSessionManager (INPUT  cErrorMessage,            /* message to display */
-                                           INPUT  "ERR":U,                  /* error type */
-                                           INPUT  "&OK":U,                  /* button list */
-                                           INPUT  "&OK":U,                  /* default button */ 
-                                           INPUT  "&OK":U,                  /* cancel button */
-                                           INPUT  "Folder window error":U,  /* error window title */
-                                           INPUT  YES,                      /* display if empty */ 
-                                           INPUT  THIS-PROCEDURE,           /* container handle */ 
-                                           OUTPUT cButton                   /* button pressed */
-                                          ).
-    RUN exitObject.
-    RETURN.
-  END.
-      
+    /* {get ContainerMode gcContainerMode}. */
+    IF NOT glOnceOnly THEN
+        RUN doThisOnceOnly.
 
-  /* Code placed here will execute AFTER standard behavior.    */
-
-  PROCESS EVENTS.
-  
-  /* calculate the menu width */
-  hMenuBar = {&WINDOW-NAME}:MENU-BAR.
-  ghDefaultMenuBar = hMenuBar.
-  IF VALID-HANDLE(hMenuBar) THEN
-  DO:
-    hSubMenu = hMenuBar:FIRST-CHILD.
-    REPEAT WHILE VALID-HANDLE(hSubMenu):
-        dTextWidth = FONT-TABLE:GET-TEXT-WIDTH(REPLACE(hSubMenu:LABEL,"&",""), hSubMenu:FONT).
-        dTotalTextWidth = dTotalTextWidth + dTextWidth.
-        iMenus = iMenus + 1.
-        hSubMenu = hSubMenu:NEXT-SIBLING.
-    END.
-
-    dMenuControllerWidth = MAX(dTotalTextWidth + (iMenus * 2.6) + 1, 1).
-    dMenuControllerWidth = MAX({&WINDOW-NAME}:MIN-WIDTH,MIN(dMenuControllerWidth, SESSION:WIDTH - 1)).
-
-    IF {&WINDOW-NAME}:WIDTH < dMenuControllerWidth THEN
+    /* Check forced exit of the dynamic container.
+     * We may get window packing errors here.      */
+    IF LENGTH({&WINDOW-NAME}:PRIVATE-DATA)           GT 0              AND
+       ENTRY(1, {&WINDOW-NAME}:PRIVATE-DATA, CHR(3)) EQ "ForcedExit":U THEN
     DO:
-      ASSIGN
-        FRAME {&FRAME-NAME}:SCROLLABLE     = TRUE
-        {&WINDOW-NAME}:MIN-WIDTH = dMenuControllerWidth
-        {&WINDOW-NAME}:WIDTH = dMenuControllerWidth
-        FRAME {&FRAME-NAME}:VIRTUAL-WIDTH = dMenuControllerWidth
-        FRAME {&FRAME-NAME}:WIDTH = dMenuControllerWidth
-        FRAME {&FRAME-NAME}:SCROLLABLE     = FALSE
-        .
-      APPLY "window-resized":u TO {&WINDOW-NAME}.
-    END.
+        IF NUM-ENTRIES({&WINDOW-NAME}:PRIVATE-DATA, CHR(3)) GE 2 THEN
+            ASSIGN cErrorMessage = ENTRY(2, {&WINDOW-NAME}:PRIVATE-DATA, CHR(3)).
+        ELSE
+            ASSIGN cErrorMessage = "Program aborted due to unknown reason":U.
 
-    IF {&WINDOW-NAME}:MIN-WIDTH < dMenuControllerWidth THEN
+        
+        RUN showMessages IN gshSessionManager ( INPUT  cErrorMessage,            /* message to display */
+                                                INPUT  "ERR":U,                  /* error type */
+                                                INPUT  "&OK":U,                  /* button list */
+                                                INPUT  "&OK":U,                  /* default button */ 
+                                                INPUT  "&OK":U,                  /* cancel button */
+                                                INPUT  "Folder window error":U,  /* error window title */
+                                                INPUT  YES,                      /* display if empty */ 
+                                                INPUT  THIS-PROCEDURE,           /* container handle */ 
+                                                OUTPUT cButton               ).  /* button pressed */
+        RUN exitObject.
+        RETURN.
+    END.    /* forced exit */
+
+    /* hide window until all the window sizes have been calculated */
+    {&WINDOW-NAME}:VISIBLE = FALSE.
+
+    IF NOT VALID-HANDLE(ghFilterViewer) THEN 
+        ghFilterViewer = WIDGET-HANDLE(ENTRY(1, DYNAMIC-FUNCTION("LinkHandles":U, INPUT "TreeFilter-Source"))).
+
+    IF VALID-HANDLE(ghFilterViewer) THEN
+        SUBSCRIBE PROCEDURE THIS-PROCEDURE TO "filterDataAvailable":U IN ghFilterViewer.
+
+    IF VALID-HANDLE(ghFilterViewer) THEN
     DO:
-      ASSIGN
-        {&WINDOW-NAME}:MIN-WIDTH = dMenuControllerWidth.
+        ASSIGN dFilterHeight = DYNAMIC-FUNCTION("getHeight" IN ghFilterViewer)
+               dFilterWidth  = DYNAMIC-FUNCTION("getWidth" IN ghFilterViewer).
+        IF {&WINDOW-NAME}:WIDTH-CHARS < dFilterWidth THEN
+            ASSIGN {&WINDOW-NAME}:WIDTH-CHARS      = dFilterWidth + 0.5
+                   FRAME {&FRAME-NAME}:WIDTH-CHARS = {&WINDOW-NAME}:WIDTH-CHARS - 1
+                   .
+        ASSIGN gdMinimumWindowWidth = {&WINDOW-NAME}:WIDTH-CHARS.
+        RUN resizeWindow.
+    END.    /* valid filter viewer */
+
+    RUN SUPER.
+
+    /* This is to see whether the folder window changed the mode because there is
+     * possibly no enabled tab */
+    ASSIGN gcContainerMode    = DYNAMIC-FUNCTION("getContainerMode":U)
+           iCurrentPageNumber = DYNAMIC-FUNCTION("getCurrentPage":U)    
+           .
+    {get InstanceId dInstanceId}.
+
+    FOR EACH container_Page WHERE
+             container_Page.tRecordIdentifier = dInstanceId        AND
+             container_Page.tPageNumber      <> iCurrentPageNumber AND
+             container_Page.tTargetProcedure  = TARGET-PROCEDURE      :
+        RUN hidePage (INPUT container_Page.tPageNumber).
     END.
-  END.
 
-  /* calculate window width */
-  {&WINDOW-NAME}:VISIBLE = TRUE.
-  
-  RUN applyEntry(?).
+    /* Check if any enabled tabs and if not - exit the program */
+    ASSIGN hFolder = WIDGET-HANDLE(DYNAMIC-FUNCTION('linkHandles':U, 'Page-Source':U)) NO-ERROR.
+    IF VALID-HANDLE(hFolder) AND DYNAMIC-FUNCTION("getTabsEnabled" IN hFolder) = NO THEN
+    DO:
+        RUN showMessages IN gshSessionManager (INPUT  {aferrortxt.i 'RY' '11'}, /* message to display */
+                                               INPUT  "ERR":U,                  /* error type */
+                                               INPUT  "&OK":U,                  /* button list */
+                                               INPUT  "&OK":U,                  /* default button */ 
+                                               INPUT  "&OK":U,                  /* cancel button */
+                                               INPUT  "Folder window error":U,  /* error window title */
+                                               INPUT  YES,                      /* display if empty */ 
+                                               INPUT  THIS-PROCEDURE,           /* container handle */ 
+                                               OUTPUT cButton     ).            /* button pressed */
+        /* Shut down the folder window */
+        RUN exitObject. 
+        RETURN.
+    END.
 
-  SUBSCRIBE TO "tvNodeSelected" IN ghTreeViewOCX.
-  SUBSCRIBE TO "tvNodeEvent"    IN ghTreeViewOCX.
-  
-  {get TreeDataTable hDataTable ghTreeViewOCX}.
-  
-  RUN loadTreeData.
-  glExpand = FALSE.
-  RUN populateTree IN ghTreeViewOCX (hDataTable, "":U).
-  glExpand = TRUE.
-  RUN selectFirstNode IN ghTreeViewOCX.
-  cNodeKey = DYNAMIC-FUNCTION("getSelectedNode":U IN ghTreeViewOCX).
-  RUN tvNodeSelected (cNodeKey).
-  /**
-  /* Not to sure why I did this, but to fix issue #3786 I had to comment this out
-  I did have a look at another issue where I think I might have added this piece
-  of code and this still works fine - leaving this uncommented for a while to 
-  make sure that an issue does not REOPEN after a while */
-  IF VALID-HANDLE(ghFolder) AND
-   glMenuMaintenance THEN DO:
+    IF LENGTH({&WINDOW-NAME}:PRIVATE-DATA) > 0 AND ENTRY(1,{&WINDOW-NAME}:PRIVATE-DATA,CHR(3)) = "forcedExit":U THEN
+    DO:
+        IF NUM-ENTRIES({&WINDOW-NAME}:PRIVATE-DATA,CHR(3)) = 2 THEN
+            ASSIGN cErrorMessage = ENTRY(2,{&WINDOW-NAME}:PRIVATE-DATA,CHR(3)).
+        ELSE
+            ASSIGN cErrorMessage = "Program aborted due to unknown reason":U.
+
+        RUN showMessages IN gshSessionManager ( INPUT  cErrorMessage,            /* message to display */
+                                                INPUT  "ERR":U,                  /* error type */
+                                                INPUT  "&OK":U,                  /* button list */
+                                                INPUT  "&OK":U,                  /* default button */ 
+                                                INPUT  "&OK":U,                  /* cancel button */
+                                                INPUT  "Folder window error":U,  /* error window title */
+                                                INPUT  YES,                      /* display if empty */ 
+                                                INPUT  THIS-PROCEDURE,           /* container handle */ 
+                                                OUTPUT cButton              ).   /* button pressed */
+        RUN exitObject.
+        RETURN.
+    END.
+    
+    PROCESS EVENTS.
+
+    /* calculate the menu width */
+    ASSIGN hMenuBar         = {&WINDOW-NAME}:MENU-BAR
+           ghDefaultMenuBar = hMenuBar
+           .
+    IF VALID-HANDLE(hMenuBar) THEN
+    DO:
+        ASSIGN hSubMenu = hMenuBar:FIRST-CHILD.
+        REPEAT WHILE VALID-HANDLE(hSubMenu):
+            ASSIGN dTextWidth      = FONT-TABLE:GET-TEXT-WIDTH(REPLACE(hSubMenu:LABEL,"&",""), hSubMenu:FONT)
+                   dTotalTextWidth = dTotalTextWidth + dTextWidth
+                   iMenus          = iMenus + 1
+                   .
+            hSubMenu = hSubMenu:NEXT-SIBLING.
+        END.
+
+        ASSIGN dMenuControllerWidth = MAX(dTotalTextWidth + (iMenus * 2.6) + 1, 1)
+               dMenuControllerWidth = MAX({&WINDOW-NAME}:MIN-WIDTH,MIN(dMenuControllerWidth, SESSION:WIDTH - 1))
+               .
+        IF {&WINDOW-NAME}:WIDTH < dMenuControllerWidth THEN
+        DO:
+            ASSIGN FRAME {&FRAME-NAME}:SCROLLABLE    = TRUE
+                   {&WINDOW-NAME}:MIN-WIDTH          = dMenuControllerWidth
+                   {&WINDOW-NAME}:WIDTH              = dMenuControllerWidth
+                   FRAME {&FRAME-NAME}:VIRTUAL-WIDTH = dMenuControllerWidth
+                   FRAME {&FRAME-NAME}:WIDTH         = dMenuControllerWidth
+                   FRAME {&FRAME-NAME}:SCROLLABLE    = FALSE
+                   .
+            APPLY "window-resized":u TO {&WINDOW-NAME}.
+        END.
+
+        IF {&WINDOW-NAME}:MIN-WIDTH < dMenuControllerWidth THEN        
+            ASSIGN {&WINDOW-NAME}:MIN-WIDTH = dMenuControllerWidth.
+    END.    /* valid menu bar */
+
+    /* calculate window width */
+    ASSIGN {&WINDOW-NAME}:VISIBLE = TRUE.
+
+    RUN applyEntry (?).
+
+    SUBSCRIBE PROCEDURE THIS-PROCEDURE TO "tvNodeSelected" IN ghTreeViewOCX.
+    SUBSCRIBE PROCEDURE THIS-PROCEDURE TO "tvNodeEvent"    IN ghTreeViewOCX.
+
+    {get TreeDataTable hDataTable ghTreeViewOCX}.
+    
+    RUN loadTreeData.
+    ASSIGN glExpand = FALSE.
+
+    RUN populateTree IN ghTreeViewOCX (hDataTable, "":U).
+    ASSIGN glExpand = TRUE.
+
+    RUN selectFirstNode IN ghTreeViewOCX.
+    ASSIGN cNodeKey = DYNAMIC-FUNCTION("getSelectedNode":U IN ghTreeViewOCX).
+
+    RUN tvNodeSelected (cNodeKey).
+     
+    /**
+    /* Not to sure why I did this, but to fix issue #3786 I had to comment this out
+    I did have a look at another issue where I think I might have added this piece
+    of code and this still works fine - leaving this uncommented for a while to 
+    make sure that an issue does not REOPEN after a while */
+    IF VALID-HANDLE(ghFolder) AND
+    glMenuMaintenance THEN DO:
     RUN destroyObject IN ghFolder.
     ASSIGN ghFolder = ?.
-  END.
-  **/
-END PROCEDURE.
+    END.
+    **/
+
+    ASSIGN ERROR-STATUS:ERROR = NO.
+    RETURN.
+END PROCEDURE.  /* initializeObject */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE loadMNUData wWin 
-PROCEDURE loadMNUData :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE launchObject wWin 
+PROCEDURE launchObject :
 /*------------------------------------------------------------------------------
-  Purpose:     This procedure will step through menu items in the gsm_menu_item
-               table for the structure code specified. This is only done once, since
-               you can't add new menu items from withing the treeview
-  Parameters:  pcParentNodeKey   - The parent node key - "" for Root
-               pdChildNodeObj - The Obj number of the child node found on gsm_node
+  Purpose:     
+  Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-
-  DEFINE INPUT  PARAMETER pcParentNodeKey AS CHARACTER  NO-UNDO.
-  DEFINE INPUT  PARAMETER pdChildNodeObj  AS DECIMAL    NO-UNDO.
-  
-  DEFINE VARIABLE cDataset                AS CHARACTER  NO-UNDO.
-  
-  DEFINE VARIABLE cNodeLabel              AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lNodeChecked            AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cDataSource             AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cFieldToStore           AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cNodeLabelExpression    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cLabelSubsFields        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cForeignFields          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cImageFileName          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cSelectedImageFileName  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE dParentNodeObj          AS DECIMAL    NO-UNDO.
-  DEFINE VARIABLE cParentNodeSDO          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hTable                  AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cDetailList             AS CHARACTER  NO-UNDO.
-
-  IF pdChildNodeObj = 0 THEN
-    RETURN.
-  
-  FIND FIRST ttNode
-       WHERE ttNode.node_obj = pdChildNodeObj
-       NO-LOCK NO-ERROR.
-  IF NOT AVAILABLE ttNode THEN
-    RETURN.
-  
-  ASSIGN cDataSource            = ttNode.data_source
-         cImageFileName         = ttNode.image_file_name
-         cSelectedImageFileName = ttNode.selected_image_file_name
-         NO-ERROR.
-  
-  {get TreeDataTable hTable ghTreeViewOCX}.  
-  
-  {aflaunch.i &PLIP  = 'ry/app/rytrenodep.p' 
-              &IPROC = 'readMenuStructure' 
-              &ONAPP = 'YES'
-              &PLIST = "(INPUT cDataSource, INPUT 0, OUTPUT cDetailList)"
-              &AUTOKILL = YES}
-
-   RUN stripMNUDetails (INPUT pcParentNodeKey,
-                        INPUT cDetailList,
-                        INPUT pdChildNodeObj,
-                        INPUT cImageFileName,
-                        INPUT cSelectedImageFileName).
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE loadNodeData wWin 
-PROCEDURE loadNodeData :
-/*------------------------------------------------------------------------------
-  Purpose:     This procedure will deternine what type of Node data would be loaded
-               and run the appropriate procedure
-  Parameters:  pcParentNodeKey   - The parent node key - "" for Root
-               pdChildNodeObj - The Obj number of the child node found on gsm_node
-  Notes:       The following procedures are used to load Node Data
-               SDO/SBO (SDO)        - loadSDOSBOData
-               Program (PRG)        - loadPRGData
-               Text (TXT)           - loadTXTData
-               Menu Structure (MNU) - loadMNUData
-------------------------------------------------------------------------------*/
-
-  DEFINE INPUT  PARAMETER pcParentNodeKey AS CHARACTER  NO-UNDO.
-  DEFINE INPUT  PARAMETER pdChildNodeObj  AS DECIMAL    NO-UNDO.
-  
-  DEFINE VARIABLE cDataSourceType         AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDataset                AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cButton                 AS CHARACTER  NO-UNDO.
-  
-  IF pdChildNodeObj = 0 THEN
-    RETURN.
+    DEFINE INPUT  PARAMETER pcLogicalObjectName AS CHARACTER            NO-UNDO.
     
-  cDataSourceType = "":U.
-  FIND FIRST ttNode
-       WHERE ttNode.node_obj = pdChildNodeObj
-       NO-LOCK NO-ERROR.
-  IF NOT AVAILABLE ttNode THEN
-    RETURN.
-  ELSE
-    ASSIGN cDataSourceType = ttNode.data_source_type NO-ERROR.
+    DEFINE VARIABLE iEntry                      AS INTEGER              NO-UNDO.
+    DEFINE VARIABLE cDataTargets                AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE cSdoForeignFields           AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE cInitialPageList            AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE hDataTarget                 AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE hClassAttributeBuffer       AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE hObjectBuffer               AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE dContainerRecordIdentifier  AS DECIMAL              NO-UNDO.
+        
+    DEFINE VARIABLE cLayoutCode                 AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE iCurrentPage                AS INTEGER              NO-UNDO.
+    DEFINE VARIABLE cAttributeList              AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE iFieldLoop                  AS INTEGER              NO-UNDO.
+    DEFINE VARIABLE cMainObjAttrList            AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE cMessageList                AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE cMessage                    AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE cButton                     AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE cFolderLabels               AS CHARACTER            NO-UNDO.
 
-  CASE cDataSourceType:
-    WHEN "SDO":U THEN DO:
-      RUN loadSDOSBOData (INPUT pcParentNodeKey, INPUT pdChildNodeObj).
-    END.
-    WHEN "PRG":U THEN DO:
-      RUN loadPRGData (INPUT pcParentNodeKey, INPUT pdChildNodeObj).
-    END.
-    WHEN "TXT":U THEN DO:
-      RUN loadTXTData (INPUT pcParentNodeKey, INPUT pdChildNodeObj).
-    END.
-    WHEN "MNU":U THEN DO:
-      RUN loadMNUData (INPUT pcParentNodeKey, INPUT pdChildNodeObj).
-    END.
-    OTHERWISE DO:
-      RUN showMessages IN gshSessionManager (INPUT  "Unknown Data Source Specified (" + cDataSourceType + ")",    /* message to display */
-                                             INPUT  "ERR":U,          /* error type */
-                                             INPUT  "&OK,&Cancel":U,    /* button list */
-                                             INPUT  "&OK":U,           /* default button */ 
-                                             INPUT  "&Cancel":U,       /* cancel button */
-                                             INPUT  "Populate Tree Data":U,             /* error window title */
-                                             INPUT  NO,              /* display if empty */ 
-                                             INPUT  ?,                /* container handle */ 
-                                             OUTPUT cButton           /* button pressed */
-                                            ).
-    END.
-  END CASE.
+    ASSIGN gcLogicalObjectName =  pcLogicalObjectName.
 
-END PROCEDURE.
+    IF pcLogicalObjectName = {fn getLogicalObjectName} THEN    
+        {get InstanceId dContainerRecordIdentifier}.
+    ELSE
+    DO:
+        ASSIGN dContainerRecordIdentifier = ?.
+        DYNAMIC-FUNCTION("cacheObjectOnClient":U IN gshRepositoryManager,
+                         INPUT pcLogicalObjectName,
+                         INPUT ?,
+                         INPUT ?,
+                         INPUT NO       ).
+        ASSIGN hObjectBuffer = DYNAMIC-FUNCTION("getCacheObjectBuffer":U IN gshRepositoryManager, INPUT ?).
+        ASSIGN dContainerRecordIdentifier = hObjectBuffer:BUFFER-FIELD("tRecordIdentifier":U):BUFFER-VALUE.
+    END.    /* not the treeview object itself */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
+    /* If we have an InstanceID, then the cache_Object record will be repositioned to that record. 
+     * If there is no instanceID, we have just retrieved the object from the cache, and the cacheObjectOnClient
+     * call will have repositioned the cache_Object buffer to the correct record.                              */
+    DYNAMIC-FUNCTION("buildContainerTables":U, INPUT dContainerRecordIdentifier).
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE loadPRGData wWin 
-PROCEDURE loadPRGData :
-/*------------------------------------------------------------------------------
-  Purpose:     This procedure will step through a SDO/SBO and populate the temp-table
-               with the data
-  Parameters:  pcParentNodeKey - The parent node key - "" for Root
-               pdChildNodeObj  - The Obj number of the child node found on gsm_node
-  Notes:       
-------------------------------------------------------------------------------*/
+    /* Set the InstanceId? */
+    {set InstanceId dContainerRecordIdentifier}.
 
-  DEFINE INPUT  PARAMETER pcParentNodeKey AS CHARACTER  NO-UNDO.
-  DEFINE INPUT  PARAMETER pdChildNodeObj  AS DECIMAL    NO-UNDO.
-  
-  DEFINE VARIABLE cDataset                AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cButton                 AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cErrorMessage           AS CHARACTER  NO-UNDO.
-  /* Define Temp-Table Variables */
-  DEFINE VARIABLE hBuf                    AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hTable                  AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hQry                    AS HANDLE     NO-UNDO.
-                                         
-  DEFINE VARIABLE hParentNodeKey          AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hNodeKey                AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hNodeObj                AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hNodeLabel              AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hRecordRef              AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hRecordRowId            AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hNodeChecked            AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hImage                  AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hSelectedImage          AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hNodeInsert             AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hSort                   AS HANDLE     NO-UNDO.
-
-  DEFINE VARIABLE cNodeLabel              AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lNodeChecked            AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cDataSource             AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cFieldToStore           AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cNodeLabelExpression    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cLabelSubsFields        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cForeignFields          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cImageFileName          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cSelectedImageFileName  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE dParentNodeObj          AS DECIMAL    NO-UNDO.
-  DEFINE VARIABLE cParentNodeSDO          AS CHARACTER  NO-UNDO.
-  
-  DEFINE VARIABLE hSDOHandle              AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cValueList              AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cTable                  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cObjField               AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cFilterFieldName        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cFilterFieldValue       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iLoop                   AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cWhere                  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lRowAvailable           AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cSubstitute             AS CHARACTER  NO-UNDO EXTENT 9.
-  DEFINE VARIABLE lHasChildren            AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cSDOSBOName             AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cPrimarySDO             AS CHARACTER  NO-UNDO.
-
-  DEFINE BUFFER bttNode FOR ttNode.
-  
-  IF pdChildNodeObj = 0 THEN
-    RETURN.
-  
-  FIND FIRST ttNode
-       WHERE ttNode.node_obj = pdChildNodeObj
-       NO-LOCK NO-ERROR.
-  IF NOT AVAILABLE ttNode THEN
-    RETURN.
-  
-  FIND FIRST bttNode
-       WHERE bttNode.parent_node_obj = pdChildNodeObj
-       NO-LOCK NO-ERROR.
-  IF AVAILABLE bttNode THEN
-    lHasChildren = TRUE.
-  
-  ASSIGN lNodeChecked           = ttNode.node_checked
-         cDataSource            = ttNode.data_source
-         cFieldToStore          = ttNode.fields_to_store
-         cForeignFields         = ttNode.foreign_fields
-         cImageFileName         = ttNode.image_file_name
-         cSelectedImageFileName = ttNode.selected_image_file_name
-         dParentNodeObj         = ttNode.parent_node_obj
-         cParentNodeSDO         = ttNode.primary_sdo
-         cLabelSubsFields       = ttNode.label_text_substitution_fields
-         cPrimarySDO            = ttNode.primary_sdo
-         NO-ERROR.
-  
-  DO TRANSACTION:
-    FIND CURRENT ttNode EXCLUSIVE-LOCK.
-    ASSIGN ttNode.data_source = ttNode.primary_sdo
-           ttNode.data_source_type = "SDO":U.
-    FIND CURRENT ttNode NO-LOCK.
-    SESSION:SET-WAIT-STATE("GENERAL":U).
-    /* Now we need to start the SDO for this NODE */
-    /** First check that the SDO/SBO is relatively pathed **/
-    IF INDEX(cPrimarySDO,"/":U) = 0 AND
-       INDEX(cPrimarySDO,"\":U) = 0 THEN DO:
-       cSDOSBOName = returnSDOName(cPrimarySDO).
-    END.
-    RUN manageSDOs (INPUT  cSDOSBOName,
-                    INPUT  cForeignFields,
-                    INPUT  "":U,
-                    INPUT cLabelSubsFields,
-                    INPUT FALSE,
-                    INPUT "":U,
-                    OUTPUT hSDOHandle).
-     IF NOT VALID-HANDLE(hSDOHandle) THEN DO:
-       SESSION:SET-WAIT-STATE("":U).
-       RETURN.
-     END.
-  END.
-  
-  {get TreeDataTable hTable ghTreeViewOCX}.  
-  /* Grab the handles to the individual fields in the tree data table. */
-  ASSIGN hBuf           = hTable:DEFAULT-BUFFER-HANDLE
-         hParentNodeKey = hBuf:BUFFER-FIELD('parent_node_key':U)
-         hNodeKey       = hBuf:BUFFER-FIELD('node_key':U)
-         hNodeObj       = hBuf:BUFFER-FIELD('node_obj':U)
-         hNodeChecked   = hBuf:BUFFER-FIELD('node_checked':U)
-         hImage         = hBuf:BUFFER-FIELD('image':U)
-         hSelectedImage = hBuf:BUFFER-FIELD('selected_image':U)
-         hSort          = hBuf:BUFFER-FIELD('node_sort':U)
-         hNodeInsert    = hBuf:BUFFER-FIELD('node_insert':U).
-         
-  
-  /* See if the SDO is already running */
-  
-  ASSIGN cValueList = DYNAMIC-FUNCTION("getUpdatableTableInfo":U IN gshGenManager, INPUT hSDOHandle).
-  SESSION:SET-WAIT-STATE("GENERAL":U).
-  /* Run the program to populate the data */
-  {aflaunch.i &PLIP  = cDataSource 
-              &IPROC = 'loadData' 
-              &ONAPP = 'YES'
-              &PLIST = "(INPUT pcParentNodeKey, INPUT cParentNodeSDO, INPUT gcFilterValue, INPUT-OUTPUT TABLE-HANDLE hTable)"
-              &AUTOKILL = YES}
-  IF ERROR-STATUS:ERROR THEN DO:
-    SESSION:SET-WAIT-STATE("":U).
-    cErrorMessage = "Could not launch extract program '" + cDataSource + "' on AppServer.~nError returned from launch program: " + ERROR-STATUS:GET-MESSAGE(1).
-    RUN showMessages IN gshSessionManager (INPUT  cErrorMessage,            /* message to display */
-                                           INPUT  "ERR":U,                  /* error type */
-                                           INPUT  "&OK":U,                  /* button list */
-                                           INPUT  "&OK":U,                  /* default button */ 
-                                           INPUT  "&OK":U,                  /* cancel button */
-                                           INPUT  "Error":U,                /* error window title */
-                                           INPUT  YES,                      /* display if empty */ 
-                                           INPUT  THIS-PROCEDURE,           /* container handle */ 
-                                           OUTPUT cButton                   /* button pressed */
-                                          ).
+    FIND FIRST container_Object WHERE
+               container_Object.tTargetProcedure  = TARGET-PROCEDURE AND
+               container_Object.tRecordIdentifier = dContainerRecordIdentifier.
     
+    RUN setAttributesInObject IN gshSessionManager (INPUT TARGET-PROCEDURE, INPUT container_Object.tAttributeList).
+    
+    FIND FIRST container_Page WHERE
+               container_Page.tTargetProcedure = TARGET-PROCEDURE AND
+               container_Page.tPageNumber       = 0
+               NO-ERROR.
+    IF AVAILABLE container_Page THEN
+        {set Page0LayoutManager container_Page.tLayoutCode}.
+
+    ASSIGN cFolderLabels = "":U.
+
+    FOR EACH container_Page WHERE
+             container_Page.tTargetProcedure  = TARGET-PROCEDURE AND
+             container_Page.tPageNumber       > 0 :
+        ASSIGN cFolderLabels = cFolderLabels + container_Page.tPageLabel + ",":U.
+    END.    /* page available */
+
+    ASSIGN cFolderLabels = RIGHT-TRIM(cFolderLabels, ",":U).
+    IF VALID-HANDLE(ghFolder) THEN
+        DYNAMIC-FUNCTION("setFolderLabels":U IN ghFolder, cFolderLabels).
     
     RETURN.
-  END.
-
-  CREATE QUERY hQry.
-  hQry:ADD-BUFFER(hBuf).
-  hQry:QUERY-PREPARE(SUBSTITUTE('FOR EACH &1 WHERE &1.parent_node_key = "&2":U AND &1.node_obj = 0 BY &1.node_key':U, hTable:NAME,pcParentNodeKey)).
-  hQry:QUERY-OPEN().
-  hQry:GET-FIRST().
-
-  /* Now we'll just add the other data from the gsm_node record */
-  DO WHILE hBuf:AVAILABLE:
-    ASSIGN hNodeKey:BUFFER-VALUE       = DYNAMIC-FUNCTION('getNextNodeKey':U IN ghTreeViewOCX)
-           hNodeObj:BUFFER-VALUE       = pdChildNodeObj
-           hNodeChecked:BUFFER-VALUE   = lNodeChecked
-           hImage:BUFFER-VALUE         = IF hImage:BUFFER-VALUE = "":U OR hImage:BUFFER-VALUE = ? THEN cImageFileName ELSE hImage:BUFFER-VALUE
-           hSelectedImage:BUFFER-VALUE = IF hSelectedImage:BUFFER-VALUE = "":U OR hSelectedImage:BUFFER-VALUE = ? THEN cSelectedImageFileName ELSE hSelectedImage:BUFFER-VALUE
-           hSort:BUFFER-VALUE          = TRUE
-           hNodeInsert:BUFFER-VALUE    = IF pcParentNodeKey = "":U THEN 1 ELSE 4.
-    
-    /* Create a Dummy Child node record */
-    IF lHasChildren THEN
-      RUN createDummyChild (INPUT hBuf,
-                           INPUT hNodeKey:BUFFER-VALUE,
-                           INPUT "DUMMY":U).
-    hQry:GET-NEXT().
-  END.
-  SESSION:SET-WAIT-STATE("":U).
-
-  IF VALID-HANDLE(hQry) THEN
-    DELETE OBJECT hQry.
-  
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE loadSDOSBOData wWin 
-PROCEDURE loadSDOSBOData :
-/*------------------------------------------------------------------------------
-  Purpose:     This procedure will step through a SDO/SBO and populate the temp-table
-               with the data
-  Parameters:  pcParentNodeKey - The parent node key - "" for Root
-               pdChildNodeObj  - The Obj number of the child node found on gsm_node
-  Notes:       
-------------------------------------------------------------------------------*/
-
-  DEFINE INPUT  PARAMETER pcParentNodeKey AS CHARACTER  NO-UNDO.
-  DEFINE INPUT  PARAMETER pdChildNodeObj  AS DECIMAL    NO-UNDO.
-  
-  DEFINE VARIABLE cDataset                AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cButton                 AS CHARACTER  NO-UNDO.
-  
-  /* Define Temp-Table Variables */
-  DEFINE VARIABLE hBuf                    AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hQry                    AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hTable                  AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hParentNodeKey          AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hNodeKey                AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hNodeObj                AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hNodeLabel              AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hRecordRef              AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hRecordRowId            AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hNodeChecked            AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hImage                  AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hSelectedImage          AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hNodeInsert             AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hSort                   AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hPrivateData            AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cRootParentNodeKey      AS CHARACTER  NO-UNDO.
-  
-  DEFINE VARIABLE cNodeLabel              AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lNodeChecked            AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cDataSource             AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cFieldToStore           AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cNodeLabelExpression    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cLabelSubsFields        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cForeignFields          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cImageFileName          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cSelectedImageFileName  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE dParentNodeObj          AS DECIMAL    NO-UNDO.
-  DEFINE VARIABLE cParentNodeSDO          AS CHARACTER  NO-UNDO.
-  
-  DEFINE VARIABLE cErrorMessage           AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hSDOHandle              AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cValueList              AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cTable                  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cObjField               AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iLoop                   AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cWhere                  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lRowAvailable           AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cSubstitute             AS CHARACTER  NO-UNDO EXTENT 9.
-  DEFINE VARIABLE lHasChildren            AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cParentNodeKey          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cNodeDetail             AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE dNodeObj                AS DECIMAL    NO-UNDO.
-  DEFINE VARIABLE rRecordRowid            AS ROWID      NO-UNDO.
-  DEFINE VARIABLE cRecordRef              AS CHARACTER  NO-UNDO.
-
-  DEFINE BUFFER bttNode FOR ttNode.
-
-  IF pdChildNodeObj = 0 THEN
-    RETURN.
-    
-  FIND FIRST ttNode
-       WHERE ttNode.node_obj = pdChildNodeObj
-       NO-LOCK NO-ERROR.
-  IF NOT AVAILABLE ttNode THEN
-    RETURN.
-  
-  FIND FIRST bttNode
-       WHERE bttNode.parent_node_obj = pdChildNodeObj
-       NO-LOCK NO-ERROR.
-  IF AVAILABLE bttNode THEN
-    lHasChildren = TRUE.
-
-  ASSIGN cNodeLabel             = ttNode.node_label
-         lNodeChecked           = ttNode.node_checked
-         cDataSource            = ttNode.data_source
-         cFieldToStore          = ttNode.fields_to_store
-         cNodeLabelExpression   = ttNode.node_text_label_expression
-         cLabelSubsFields       = ttNode.label_text_substitution_fields
-         cForeignFields         = ttNode.foreign_fields
-         cImageFileName         = ttNode.image_file_name
-         cSelectedImageFileName = ttNode.selected_image_file_name
-         dParentNodeObj         = ttNode.parent_node_obj
-         gcInstanceAttributes   = ttNode.run_attribute
-         NO-ERROR.
-  
-  /* Always assume children for structured Tree Nodes */
-  IF (gcInstanceAttributes = "STRUCTURED":U) THEN
-    lHasChildren = TRUE.
-
-  /* Get Parent Node Info */
-  cDataset = "":U.
-  FIND FIRST ttNode
-       WHERE ttNode.node_obj = dParentNodeObj
-       NO-LOCK NO-ERROR.
-  cParentNodeSDO = "":U.
-  IF AVAILABLE ttNode THEN
-    ASSIGN cParentNodeSDO = IF ttNode.data_source_type <> "TXT":U /*AND ttNode.data_source_type <> "PRG":U*/ THEN ttNode.data_source ELSE ttNode.primary_sdo.
-  /* We need to reposition the Parent SDO for the foreign Fields */
-  IF cParentNodeSDO <> "":U THEN DO:
-    RUN repositionParentSDO (INPUT cParentNodeSDO,
-                             INPUT pcParentNodeKey).
-  END.
-  
-  /** First check that the SDO/SBO is relatively pathed **/
-  IF INDEX(cDataSource,"/":U) = 0 AND
-     INDEX(cDataSource,"\":U) = 0 THEN DO:
-     cDataSource = returnSDOName(cDataSource).
-     IF cDataSource = "":U OR 
-        cDataSource = ? THEN
-      RETURN.
-  END.
-  
-  RUN manageSDOs (INPUT  cDataSource,
-                  INPUT  cForeignFields,
-                  INPUT  cParentNodeSDO,
-                  INPUT  cLabelSubsFields,
-                  INPUT  (gcInstanceAttributes = "STRUCTURED":U),
-                  INPUT  cFieldToStore,
-                  OUTPUT hSDOHandle).
-  IF NOT VALID-HANDLE(hSDOHandle) THEN
-    RETURN.
-
-  {get TreeDataTable hTable ghTreeViewOCX}.  
-  /* Grab the handles to the individual fields in the tree data table. */
-  ASSIGN hBuf           = hTable:DEFAULT-BUFFER-HANDLE
-         hParentNodeKey = hBuf:BUFFER-FIELD('parent_node_key':U)
-         hNodeKey       = hBuf:BUFFER-FIELD('node_key':U)
-         hNodeObj       = hBuf:BUFFER-FIELD('node_obj':U)
-         hNodeLabel     = hBuf:BUFFER-FIELD('node_label':U)
-         hRecordRef     = hBuf:BUFFER-FIELD('record_ref':U)
-         hRecordRowId   = hBuf:BUFFER-FIELD('record_rowid':U)
-         hNodeChecked   = hBuf:BUFFER-FIELD('node_checked':U)
-         hImage         = hBuf:BUFFER-FIELD('image':U)
-         hSelectedImage = hBuf:BUFFER-FIELD('selected_image':U)
-         hSort          = hBuf:BUFFER-FIELD('node_sort':U)
-         hNodeInsert    = hBuf:BUFFER-FIELD('node_insert':U)
-         hPrivateData   = hBuf:BUFFER-FIELD('private_data':U).
-         
-         cRootParentNodeKey = DYNAMIC-FUNCTION('getRootNodeParentKey':u IN ghTreeViewOCX).
-  
-  /* See if the SDO is already running */
-  
-  ASSIGN cValueList = DYNAMIC-FUNCTION("getUpdatableTableInfo":U IN gshGenManager, INPUT hSDOHandle).
-  
-  IF cValueList = ? THEN DO:
-    cErrorMessage = "No Entity Mnemonic detail for the table(s) in " + 
-                    hSDOHandle:FILE-NAME + " could be found.~n" +
-                    "Do an Entity Mnemonic Import of the appropriate table(s).~n~n" +
-                    "NOTE:~n" +
-                    "After doing an import you MUST trim the servers on your AppServer in order for the details to be cached.".
-                    
-    RUN showMessages IN gshSessionManager (INPUT  cErrorMessage ,    /* message to display */
-                                           INPUT  "ERR":U,          /* error type */
-                                           INPUT  "&OK,&Cancel":U,    /* button list */
-                                           INPUT  "&OK":U,           /* default button */ 
-                                           INPUT  "&Cancel":U,       /* cancel button */
-                                           INPUT  "Entity Mnemonic Detail Not Found":U,             /* error window title */
-                                           INPUT  YES,              /* display if empty */ 
-                                           INPUT  ?,                /* container handle */ 
-                                           OUTPUT cButton           /* button pressed */
-                                          ).
-    RETURN.
-  END.
-  IF LENGTH(TRIM(cValueList)) > 0 THEN 
-    ASSIGN cTable    = ENTRY(2, cValueList, CHR(4))
-           cObjField = ENTRY(3, cValueList, CHR(4)).
-  
-  RUN setDataLinkInActive.
-  
-  RUN fetchFirst IN hSDOHandle.
-  lRowAvailable = DYNAMIC-FUNCTION("rowAvailable":U IN hSDOHandle, "CURRENT":U).
-  IF NOT lRowAvailable THEN DO:
-    glExpand = FALSE.
-    RETURN.
-  END.
-           
-  RECORD_AVAILABLE:
-  DO WHILE lRowAvailable = TRUE:
-    DO iLoop = 1 TO NUM-ENTRIES(cLabelSubsFields):
-      cSubstitute[iLoop] = TRIM(DYNAMIC-FUNCTION("columnStringValue":U IN hSDOHandle, ENTRY(iLoop,cLabelSubsFields))).
-      IF cSubstitute[iLoop] = ? THEN
-        cSubstitute[iLoop] = "":U.
-    END.
-    IF NUM-ENTRIES(cObjField) > 1 THEN DO:
-      ASSIGN cRecordRef = "":U
-             cRecordRef = FILL(CHR(1),NUM-ENTRIES(cObjField) - 1).
-      DO iLoop = 1 TO NUM-ENTRIES(cObjField):
-        ENTRY(iLoop,cRecordRef,CHR(1)) = TRIM(DYNAMIC-FUNCTION("columnStringValue":U IN hSDOHandle, ENTRY(iLoop,cObjField))).
-      END.
-    END.
-    ELSE 
-      cRecordRef = TRIM(DYNAMIC-FUNCTION("columnStringValue":U IN hSDOHandle, cObjField)).
-    
-    hBuf:BUFFER-CREATE().
-    ASSIGN hParentNodeKey:BUFFER-VALUE = pcParentNodeKey
-           hNodeKey:BUFFER-VALUE       = DYNAMIC-FUNCTION('getNextNodeKey':U IN ghTreeViewOCX)
-           hNodeObj:BUFFER-VALUE       = pdChildNodeObj
-           hNodeLabel:BUFFER-VALUE     = TRIM(SUBSTITUTE(cNodeLabelExpression,cSubstitute[1],cSubstitute[2],cSubstitute[3],cSubstitute[4],cSubstitute[5],cSubstitute[6],cSubstitute[7],cSubstitute[8],cSubstitute[9]))
-           hRecordRef:BUFFER-VALUE     = cRecordRef
-           hRecordRowId:BUFFER-VALUE   = TO-ROWID(ENTRY(1,DYNAMIC-FUNCTION("getRowIdent":U IN hSDOHandle)))
-           hNodeChecked:BUFFER-VALUE   = lNodeChecked
-           hImage:BUFFER-VALUE         = TRIM(cImageFileName)
-           hSelectedImage:BUFFER-VALUE = TRIM(cSelectedImageFileName)
-           hSort:BUFFER-VALUE          = TRUE
-           hNodeInsert:BUFFER-VALUE    = IF pcParentNodeKey = "":U THEN 1 ELSE 4.
-    IF (gcInstanceAttributes = "STRUCTURED":U) THEN DO:
-      DEFINE VARIABLE cChildKey AS CHARACTER  NO-UNDO.
-      IF NUM-ENTRIES(cFieldToStore,"^":U) >= 3 THEN DO:
-        cChildKey = ENTRY(3,cFieldToStore,"^":U).
-        hPrivateData:BUFFER-VALUE = TRIM(DYNAMIC-FUNCTION("columnStringValue":U IN hSDOHandle, cChildKey)).
-      END.
-    END.
-    /* Create a Dummy Child node record */
-    IF lHasChildren THEN
-      RUN createDummyChild (INPUT hBuf,
-                            INPUT hNodeKey:BUFFER-VALUE,
-                            INPUT "DUMMY":U).
-
-    lRowAvailable = DYNAMIC-FUNCTION("rowAvailable":U IN hSDOHandle, "NEXT":U). 
-    IF lRowAvailable THEN 
-      RUN fetchNext IN hSDOHandle.
-    ELSE 
-      LEAVE RECORD_AVAILABLE.
-  END. /* WHILE */
-  
-  RUN setDataLinkActive.
-  glExpand = FALSE.
-END PROCEDURE.
+END PROCEDURE.  /* launchObject */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -3538,12 +3122,15 @@ PROCEDURE loadTreeData :
   DEFINE VARIABLE cMode                 AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cButton               AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cNodeKey              AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hNodeTable            AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE dParentObj            AS DECIMAL    NO-UNDO.
 
   IF glFilterApplied = FALSE AND
      VALID-HANDLE(ghFilterViewer) THEN
     RETURN.
   
-  {get UIBMode cMode}.
+  cMode = DYNAMIC-FUNCTION("getUIBMode":U).
+  
   IF cMode BEGINS 'design':u THEN
     RETURN.
   
@@ -3572,12 +3159,16 @@ PROCEDURE loadTreeData :
   hBuf:EMPTY-TEMP-TABLE().
   RUN emptyTree IN ghTreeViewOCX.
   EMPTY TEMP-TABLE ttNode.
-  cRootNodeCode = getRootNodeCode().
-  {aflaunch.i &PLIP  = 'ry/app/rytrenodep.p' 
-              &IPROC = 'cacheNodeTable' 
-              &ONAPP = 'YES'
-              &PLIST = "(INPUT cRootNodeCode, INPUT 0, OUTPUT TABLE ttNode)"
-              &AUTOKILL = YES}
+  cRootNodeCode = DYNAMIC-FUNCTION("getRootNodeCode":U).
+  
+  hNodeTable = TEMP-TABLE ttNode:HANDLE.
+
+  {dynlaunch.i &PLIP  = "'ry/app/rytrenodep.p'"
+               &IPROC = "'cacheNodeTable'"
+               &mode1  = INPUT  &parm1  = cRootNodeCode  &dataType1  = CHARACTER
+               &mode2  = INPUT  &parm2  = dParentObj     &dataType2  = DECIMAL
+               &mode3  = OUTPUT  &parm3  = hNodeTable     &dataType3  = TABLE-HANDLE}
+              
   
   FIND FIRST ttNode
        WHERE ttNode.node_code = cRootNodeCode 
@@ -3598,156 +3189,13 @@ PROCEDURE loadTreeData :
   END.
   
   ASSIGN dRootNodeObj = ttNode.node_obj.
-  
   RUN prepareNodeTranslation.
   
   RUN loadNodeData (INPUT "":U,
                     INPUT dRootNodeObj).
-
   RUN selectFirstNode IN ghTreeViewOCX.
   cNodeKey = DYNAMIC-FUNCTION("getSelectedNode":U IN ghTreeViewOCX).
   RUN tvNodeSelected (cNodeKey).
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE loadTXTData wWin 
-PROCEDURE loadTXTData :
-/*------------------------------------------------------------------------------
-  Purpose:     This procedure will create a node with the specified text for that node
-  Parameters:  pcParentNodeKey - The parent node key - "" for Root
-               pdChildNodeObj  - The Obj number of the child node found on gsm_node
-  Notes:       
-------------------------------------------------------------------------------*/
-
-  DEFINE INPUT  PARAMETER pcParentNodeKey AS CHARACTER  NO-UNDO.
-  DEFINE INPUT  PARAMETER pdChildNodeObj  AS DECIMAL    NO-UNDO.
-  
-  DEFINE VARIABLE cDataset                AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cButton                 AS CHARACTER  NO-UNDO.
-  
-  /* Define Temp-Table Variables */
-  DEFINE VARIABLE hBuf                    AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hQry                    AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hTable                  AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hParentNodeKey          AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hNodeKey                AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hNodeObj                AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hNodeLabel              AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hRecordRef              AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hRecordRowId            AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hNodeChecked            AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hImage                  AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hSelectedImage          AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hNodeInsert             AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hSort                   AS HANDLE     NO-UNDO.
-  
-  DEFINE VARIABLE cNodeLabel              AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lNodeChecked            AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cDataSource             AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cFieldToStore           AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cNodeLabelExpression    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cLabelSubsFields        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cForeignFields          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cImageFileName          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cSelectedImageFileName  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE dParentNodeObj          AS DECIMAL    NO-UNDO.
-  DEFINE VARIABLE cParentNodeSDO          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lHasChildren            AS LOGICAL    NO-UNDO.
-
-  DEFINE BUFFER bttNode FOR ttNode.
-
-  IF pdChildNodeObj = 0 THEN
-    RETURN.
-  
-  FIND FIRST ttNode
-       WHERE ttNode.node_obj = pdChildNodeObj
-       NO-LOCK NO-ERROR.
-
-  FIND FIRST bttNode
-       WHERE bttNode.parent_node_obj = pdChildNodeObj
-       NO-LOCK NO-ERROR.
-  IF AVAILABLE bttNode THEN
-    lHasChildren = TRUE.
-  
-  IF NOT AVAILABLE ttNode THEN
-    RETURN.
-  
-  ASSIGN cNodeLabel             = ttNode.node_label
-         lNodeChecked           = ttNode.node_checked
-         cDataSource            = ttNode.data_source
-         cFieldToStore          = ttNode.fields_to_store
-         cNodeLabelExpression   = ttNode.node_text_label_expression
-         cLabelSubsFields       = ttNode.label_text_substitution_fields
-         cForeignFields         = ttNode.foreign_fields
-         cImageFileName         = ttNode.image_file_name
-         cSelectedImageFileName = ttNode.selected_image_file_name
-         dParentNodeObj         = ttNode.parent_node_obj
-         NO-ERROR.
-  
-  /* Get Parent Node Info */
-  cDataset = "":U.
-  FIND FIRST ttNode
-       WHERE ttNode.node_obj = dParentNodeObj
-       NO-LOCK NO-ERROR.
-  cParentNodeSDO = "":U.
-  IF AVAILABLE ttNode THEN /* Check for Parent Node */
-    ASSIGN cParentNodeSDO = ttNode.data_source.
-  
-  
-  {get TreeDataTable hTable ghTreeViewOCX}.  
-  /* Grab the handles to the individual fields in the tree data table. */
-  ASSIGN hBuf           = hTable:DEFAULT-BUFFER-HANDLE
-         hParentNodeKey = hBuf:BUFFER-FIELD('parent_node_key':U)
-         hNodeKey       = hBuf:BUFFER-FIELD('node_key':U)
-         hNodeObj       = hBuf:BUFFER-FIELD('node_obj':U)
-         hNodeLabel     = hBuf:BUFFER-FIELD('node_label':U)
-         hRecordRef     = hBuf:BUFFER-FIELD('record_ref':U)
-         hRecordRowId   = hBuf:BUFFER-FIELD('record_rowid':U)
-         hNodeChecked   = hBuf:BUFFER-FIELD('node_checked':U)
-         hImage         = hBuf:BUFFER-FIELD('image':U)
-         hSelectedImage = hBuf:BUFFER-FIELD('selected_image':U)
-         hSort          = hBuf:BUFFER-FIELD('node_sort':U)
-         hNodeInsert    = hBuf:BUFFER-FIELD('node_insert':U).
-         
-  CREATE QUERY hQry.  
-  hQry:ADD-BUFFER(hBuf).
-  hQry:QUERY-PREPARE(SUBSTITUTE('FOR EACH &1 WHERE &1.node_label = "&2" AND &1.parent_node_key = "&3":U':U, hTable:NAME,cDataSource,pcParentNodeKey)).
-  hQry:QUERY-OPEN().
-  hQry:GET-FIRST().
-
-  IF NOT hBuf:AVAILABLE THEN DO:
-      IF CAN-FIND(FIRST ttTranslate) THEN DO:
-        FIND FIRST ttTranslate 
-             WHERE ttTranslate.cOriginalLabel    = cDataSource
-             AND   ttTranslate.cTranslatedLabel <> "":U
-             NO-LOCK NO-ERROR.
-        IF AVAILABLE ttTranslate THEN
-          cDataSource = ttTranslate.cTranslatedLabel.
-      END.
-    hBuf:BUFFER-CREATE().
-    ASSIGN hParentNodeKey:BUFFER-VALUE = pcParentNodeKey
-           hNodeKey:BUFFER-VALUE       = DYNAMIC-FUNCTION('getNextNodeKey':U IN ghTreeViewOCX)
-           hNodeObj:BUFFER-VALUE       = pdChildNodeObj
-           hNodeLabel:BUFFER-VALUE     = cDataSource
-           hRecordRef:BUFFER-VALUE     = "":U
-           hRecordRowId:BUFFER-VALUE   = ?
-           hNodeChecked:BUFFER-VALUE   = lNodeChecked
-           hImage:BUFFER-VALUE         = cImageFileName
-           hSelectedImage:BUFFER-VALUE = cSelectedImageFileName
-           hSort:BUFFER-VALUE          = TRUE
-           hNodeInsert:BUFFER-VALUE    = IF pcParentNodeKey = "":U THEN 1 ELSE 4.
-   /* Create a Dummy Child node record */
-   IF lHasChildren THEN
-     RUN createDummyChild (INPUT hBuf,
-                           INPUT hNodeKey:BUFFER-VALUE,
-                           INPUT "DUMMY":U).
-  END.
-  IF VALID-HANDLE(hQry) THEN
-    DELETE OBJECT hQry.
-
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -3772,58 +3220,80 @@ PROCEDURE manageSDOs :
   DEFINE INPUT  PARAMETER pcParentChildFld  AS CHARACTER  NO-UNDO.
   DEFINE OUTPUT PARAMETER phSDOHandle       AS HANDLE     NO-UNDO.
   
-  DEFINE VARIABLE hParentSDO                AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cObjectName               AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hWindow                   AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cObjectPath               AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cButton                   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDataset                  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cSDOAttributes            AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cForeignFieldAttr         AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iIndex                    AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cForeignFields            AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cForeignFieldValues       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iLoop                     AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hParentSDO           AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cObjectName          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cObjectPath          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cButton              AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataset             AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSDOAttributes       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cForeignFieldAttr    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iIndex               AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cForeignFields       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cForeignFieldValues  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iLoop                AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iIndex1              AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iIndex2              AS INTEGER    NO-UNDO.
 
-  DEFINE VARIABLE cFilterString             AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cFilterFieldName          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cFilterFieldNameOnly      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cFilterFieldValue         AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cFilterOperator           AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cWhere                    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cQueryString              AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lAlreadyInQuery           AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lDoNotSetFilter           AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cFilterString        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFilterFieldName     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFilterFieldNameOnly AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFilterTableNameOnly AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFilterFieldValue    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFilterOperator      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cWhere               AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cQueryString         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lAlreadyInQuery      AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lDoNotSetFilter      AS LOGICAL    NO-UNDO.
   
-  DEFINE VARIABLE cDataTargetLinks          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hDataTarget               AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cDataTargetLinks     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hDataTarget          AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cPrimarySDOName      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFilterValue         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cCurrExpandNodeKey   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lExpand              AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hSDOHandle           AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lNoMessage           AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hTreeViewOCX         AS HANDLE     NO-UNDO.
+  
+  DEFINE VARIABLE cFirstFilter         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cParentField         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataType            AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cMatchValue          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cParentRef           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cNodeDetail          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hTable               AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE dNodeObj             AS DECIMAL    NO-UNDO.
+  
+  DEFINE VARIABLE hAttributeBuffer   AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE hObjectBuffer      AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE dObjectBufferId    AS DECIMAL      NO-UNDO.
+  DEFINE VARIABLE hBufferCacheBuffer AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE cSessionServerMode AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cGetSMode          AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cServerMode        AS CHARACTER    NO-UNDO.
 
-  DEFINE BUFFER bu_object_instance FOR tt_object_instance.
-  DEFINE BUFFER bu_page            FOR tt_page.
-  DEFINE BUFFER bu_page_instance   FOR tt_page_instance.
-  DEFINE BUFFER bu_link            FOR tt_link.
   DEFINE BUFFER buRunningSDOs      FOR ttRunningSDOs.
-  DEFINE BUFFER buAttributeValue   FOR ttAttributeValue.
-  DEFINE BUFFER buUiEvent          FOR ttUiEvent.
-
+  
   IF pcSDOSBOName = "":U THEN
     RETURN.
   
+  hTreeViewOCX = DYNAMIC-FUNCTION("getTreeViewOCX":U).
+  cPrimarySDOName = DYNAMIC-FUNCTION("getPrimarySDOName":U).
+  cFilterValue = DYNAMIC-FUNCTION("getFilterValue":U).
+  hSDOHandle = DYNAMIC-FUNCTION("getSDOHandle":U).
+  lNoMessage = DYNAMIC-FUNCTION("getNoMessage":U).
+  
   /** First check that the SDO/SBO is relatively pathed **/
   IF INDEX(pcSDOSBOName,"/":U) = 0 AND
-     INDEX(pcSDOSBOName,"\":U) = 0 THEN DO:
-     pcSDOSBOName = returnSDOName(pcSDOSBOName).
-     IF pcSDOSBOName = "":U OR 
-        pcSDOSBOName = ? THEN
-      ASSIGN pcSDOSBOName = gcPrimarySDOName.
+     INDEX(pcSDOSBOName,"~\":U) = 0 THEN DO:
+      ASSIGN pcSDOSBOName = cPrimarySDOName.
   END.
-
+  
   /** Secondly check that the Parent SDO/SBO is relatively pathed **/
   IF INDEX(pcParentSDOSBO,"/":U) = 0 AND
-     INDEX(pcParentSDOSBO,"\":U) = 0 AND 
+     INDEX(pcParentSDOSBO,"~\":U) = 0 AND 
      pcParentSDOSBO <> "":U THEN DO:
-     pcParentSDOSBO = returnSDOName(pcParentSDOSBO).
-     
+     pcParentSDOSBO = pcParentSDOSBO.     
   END.
   
   RUN setDataLinkInActive.
@@ -3832,7 +3302,6 @@ PROCEDURE manageSDOs :
   FIND FIRST buRunningSDOs
        WHERE buRunningSDOs.cSDOName = pcParentSDOSBO
        NO-LOCK NO-ERROR.
-  
   IF AVAILABLE buRunningSDOs AND 
      VALID-HANDLE(buRunningSDOs.hSDOHandle) THEN
     ASSIGN hParentSDO = buRunningSDOs.hSDOHandle.
@@ -3840,67 +3309,41 @@ PROCEDURE manageSDOs :
   FIND FIRST buRunningSDOs
        WHERE buRunningSDOs.cSDOName = pcSDOSBOName 
        EXCLUSIVE-LOCK NO-ERROR.
-
-  IF NOT AVAILABLE(buRunningSDOs) THEN DO:
+  
+  IF NOT AVAILABLE(buRunningSDOs) THEN 
+  DO:
     ASSIGN
         cObjectName = pcSDOSBOName
-        cObjectName = IF INDEX(cObjectName, "\":U) <> 0 THEN REPLACE(cObjectName, "\":U, "/":U) ELSE cObjectName
-        cObjectName = SUBSTRING(cObjectName, R-INDEX(cObjectName, "/":U) + 1).
+        cObjectName = IF INDEX(cObjectName, "~\":U) <> 0 THEN REPLACE(cObjectName, "~\":U, "/":U) ELSE cObjectName
+        cObjectName = SUBSTRING(cObjectName, R-INDEX(cObjectName, "/":U) + 1) NO-ERROR.
         /*cObjectName = SUBSTRING(cObjectName, 1, R-INDEX(cObjectName, ".":U) - 1).*/
+  
+    DYNAMIC-FUNCTION("cacheObjectOnClient":U IN gshRepositoryManager,
+                     INPUT cObjectName,
+                     INPUT ?,
+                     INPUT ?,
+                     INPUT NO).
+                     
+    /* The record should be available after the cacheObjectOnClient call. */
+    ASSIGN hObjectBuffer    = DYNAMIC-FUNCTION("getCacheObjectBuffer":U IN gshRepositoryManager, INPUT ?)
+           hAttributeBuffer = hObjectBuffer:BUFFER-FIELD("tClassBufferHandle":U):BUFFER-VALUE
+           dObjectBufferId  = hObjectBuffer:BUFFER-FIELD("tRecordIdentifier":U):BUFFER-VALUE
+           .
+
+    ASSIGN cSDOAttributes = DYNAMIC-FUNCTION("buildAttributeList":U IN gshRepositoryManager,
+                                             hAttributeBuffer,
+                                             dObjectBufferId).
     
-    RUN getObjectAttributes IN gshRepositoryManager (INPUT cObjectName,
-                                                     OUTPUT TABLE bu_object_instance,
-                                                     OUTPUT TABLE bu_page,
-                                                     OUTPUT TABLE bu_page_instance,
-                                                     OUTPUT TABLE bu_link,
-                                                     OUTPUT TABLE buAttributeValue,
-                                                     OUTPUT TABLE buUiEvent) NO-ERROR.
-    
-    IF ERROR-STATUS:ERROR OR
-       NOT CAN-FIND(FIRST buAttributeValue) THEN DO:
-      /* Now try finding the object without an extension */
-      cObjectName = ENTRY(1,cObjectName,".":U).
-      RUN getObjectAttributes IN gshRepositoryManager (INPUT cObjectName,
-                                                       OUTPUT TABLE bu_object_instance,
-                                                       OUTPUT TABLE bu_page,
-                                                       OUTPUT TABLE bu_page_instance,
-                                                       OUTPUT TABLE bu_link,
-                                                       OUTPUT TABLE buAttributeValue,
-                                                       OUTPUT TABLE buUiEvent) NO-ERROR.
-       
-      IF ERROR-STATUS:ERROR OR
-         NOT CAN-FIND(FIRST buAttributeValue) THEN DO:
-        IF NOT glNoMessage THEN
-          RUN showMessages IN gshSessionManager (INPUT  "The SDO/SBO " + cObjectName + " could not be found, or there are no attributes available for this object. The object could not be launched. Action aborted.",    /* message to display */
-                                                 INPUT  "ERR":U,          /* error type */
-                                                 INPUT  "&OK,&Cancel":U,    /* button list */
-                                                 INPUT  "&OK":U,           /* default button */ 
-                                                 INPUT  "&Cancel":U,       /* cancel button */
-                                                 INPUT  "SDO/SBO Invalid attributes":U,             /* error window title */
-                                                 INPUT  YES,              /* display if empty */ 
-                                                 INPUT  ?,                /* container handle */ 
-                                                 OUTPUT cButton           /* button pressed */
-                                                ).
-        RUN setDataLinkActive.
-        RETURN.
-      END.
-    END.
-    
-    cSDOAttributes = "":U.
-    FOR EACH buAttributeValue
-        EXCLUSIVE-LOCK:
-      IF buAttributeValue.AttributeLabel = "ForeignFields":U THEN
-         buAttributeValue.AttributeValue = pcForeignFields.
-      
-      IF buAttributeValue.AttributeLabel = "RowsToBatch":U AND 
-        ((gcFilterValue <> "":U AND gcFilterValue <> ?) /*OR  
-         glExpand = FALSE*/) THEN
-         buAttributeValue.AttributeValue = "1".
-      IF buAttributeValue.AttributeValue = ? THEN
-        buAttributeValue.AttributeValue = "?":U.
-      ASSIGN cSDOAttributes = IF cSDOAttributes = "":U 
-                              THEN buAttributeValue.AttributeLabel + CHR(4) + buAttributeValue.AttributeValue
-                              ELSE cSDOAttributes + CHR(3) + buAttributeValue.AttributeLabel + CHR(4) + buAttributeValue.AttributeValue.
+
+   /* Add ForeignField Information */
+    IF INDEX(cSDOAttributes,"ForeignFields") <> 0 AND 
+       pcForeignFields <> "":U THEN DO:
+      ASSIGN iIndex1 = INDEX(cSDOAttributes,"ForeignFields" + CHR(4))
+             iIndex2 = INDEX(cSDOAttributes,CHR(3),iIndex1).
+      /* If Attribute is last in the list */
+      IF iIndex2 = 0 THEN
+        iIndex2 = LENGTH(cSDOAttributes).
+      SUBSTRING(cSDOAttributes,iIndex1,(iIndex2 - iIndex1) + 1) = "ForeignFields" + CHR(4) + pcForeignFields + (IF iIndex2 <> LENGTH(cSDOAttributes) THEN CHR(3) ELSE "":U).
     END.
     
     IF INDEX(cSDOAttributes,"ForeignFields") = 0 AND 
@@ -3908,31 +3351,40 @@ PROCEDURE manageSDOs :
       ASSIGN cSDOAttributes = IF cSDOAttributes = "":U 
                               THEN "ForeignFields":U + CHR(4) + pcForeignFields
                               ELSE cSDOAttributes + CHR(3) + "ForeignFields":U + CHR(4) + pcForeignFields.
-    
-    {get ContainerHandle hWindow}.
-    RUN constructObject (INPUT  pcSDOSBOName + CHR(3) + "DBAWARE",
-                         INPUT  hWindow:HANDLE,
+    /* Change RowsToBatch to a Default value of 1 */
+    IF INDEX(cSDOAttributes,"RowsToBatch") <> 0 AND 
+       pcForeignFields <> "":U THEN DO:
+     ASSIGN iIndex1 = INDEX(cSDOAttributes,"RowsToBatch" + CHR(4))
+            iIndex2 = INDEX(cSDOAttributes,CHR(3),iIndex1).
+     /* If Attribute is last in the list */
+     IF iIndex2 = 0 THEN
+       iIndex2 = LENGTH(cSDOAttributes).
+     SUBSTRING(cSDOAttributes,iIndex1,(iIndex2 - iIndex1) + 1) = "RowsToBatch" + CHR(4) + "1":U + (IF iIndex2 <> LENGTH(cSDOAttributes) THEN CHR(3) ELSE "":U).
+    END.
+
+    IF INDEX(cSDOAttributes,"RowsToBatch") = 0 
+    AND pcForeignFields <> "":U THEN
+      ASSIGN cSDOAttributes = IF cSDOAttributes = "":U 
+                              THEN "RowsToBatch":U + CHR(4) + "1":U
+                              ELSE cSDOAttributes + CHR(3) + "RowsToBatch":U + CHR(4) + "1":U.
+   
+   /* Create SDO */
+    ASSIGN gcCurrentLogicalName = cObjectName.
+    RUN constructObject (INPUT  hObjectBuffer:BUFFER-FIELD("tObjectPathedFilename":U):BUFFER-VALUE + CHR(3) + "DBAWARE",
+                         INPUT  FRAME {&FRAME-NAME}:HANDLE,
                          INPUT  cSDOAttributes,
                          OUTPUT phSDOHandle).
+
     DYNAMIC-FUNCTION("setOpenOnInit":U IN phSDOHandle, FALSE).
     
-    RUN initializeObject IN phSDOHandle.
+   RUN initializeObject IN phSDOHandle.
     
-    /* We don't need these tables */
-    EMPTY TEMP-TABLE bu_object_instance.
-    EMPTY TEMP-TABLE bu_page.
-    EMPTY TEMP-TABLE bu_page_instance.
-    EMPTY TEMP-TABLE bu_link.
-    EMPTY TEMP-TABLE buAttributeValue.
-    EMPTY TEMP-TABLE buUiEvent.
-    
-    IF VALID-HANDLE(hParentSDO) AND 
-       VALID-HANDLE(phSDOHandle) THEN DO:
-       RUN addLink (hParentSDO, "DATA":U, phSDOHandle).
-       {set DataSource hParentSDO phSDOHandle}.
-    END.
-    
-    IF pcForeignFields <> "":U THEN
+   IF VALID-HANDLE(hParentSDO) AND 
+      VALID-HANDLE(phSDOHandle) THEN DO:
+      RUN addLink (hParentSDO, "DATA":U, phSDOHandle).
+      {set DataSource hParentSDO phSDOHandle}.
+   END.
+   IF pcForeignFields <> "":U THEN
       RUN dataAvailable IN phSDOHandle (?).
 
     CREATE buRunningSDOs.
@@ -3946,6 +3398,9 @@ PROCEDURE manageSDOs :
     phSDOHandle = buRunningSDOs.hSDOHandle.
     /* This will reset the query to it's initial state */
     DYNAMIC-FUNCTION("setQueryWhere":U IN phSDOHandle, "":U).
+    IF pcForeignFields <> "":U AND DYNAMIC-FUNCTION("getForeignFields":U IN phSDOHandle) = "":U THEN DO:
+      {set ForeignFields pcForeignFields phSDOHandle}.
+    END.
     
     IF pcForeignFields <> "":U THEN DO:
       cForeignFields = "":U.
@@ -3953,19 +3408,20 @@ PROCEDURE manageSDOs :
         cForeignFields = IF cForeignFields = "":U THEN ENTRY(iLoop + 1,pcForeignFields) ELSE cForeignFields + ",":U + ENTRY(iLoop + 1,pcForeignFields).
         iLoop = iLoop + 1.
       END.
-      cForeignFieldValues = DYNAMIC-FUNCTION("columnStringValue":U IN hParentSDO, cForeignFields).
+      IF VALID-HANDLE(hParentSDO) THEN
+        cForeignFieldValues = DYNAMIC-FUNCTION("columnStringValue":U IN hParentSDO, cForeignFields).
       DYNAMIC-FUNCTION("setForeignValues":U IN phSDOHandle, cForeignFieldValues).
       RUN dataAvailable IN phSDOHandle (?).
     END.
   END.
   
-  IF gcFilterValue <> "":U AND
-     gcFilterValue <> ?    AND
+  IF cFilterValue <> "":U AND
+     cFilterValue <> ?    AND
      VALID-HANDLE(phSDOHandle) THEN DO:
     ASSIGN cQueryString    = "":U.
            cQueryString    = DYNAMIC-FUNCTION("getQueryString":U IN phSDOHandle).
-    DO iLoop = 1 TO NUM-ENTRIES(gcFilterValue,CHR(1)):
-      cFilterString = ENTRY(iLoop,gcFilterValue,CHR(1)).
+    DO iLoop = 1 TO NUM-ENTRIES(cFilterValue,CHR(1)):
+      cFilterString = ENTRY(iLoop,cFilterValue,CHR(1)).
       /* This might look like a complicated way to retrieve the values specified     
         for the filter, but when this was initially designed I didn't take the      
         European numeric format into account and I used a ',' comma as the separator
@@ -4004,9 +3460,11 @@ PROCEDURE manageSDOs :
       /* Strip field name ONLY from filter field name - tables or db names should
          not be included when checking if the field is available in the query */
       IF NUM-ENTRIES(cFilterFieldName,".":U) >= 2 THEN
-        cFilterFieldNameOnly = ENTRY(NUM-ENTRIES(cFilterFieldName,".":U),cFilterFieldName,".":U).
+        ASSIGN cFilterTableNameOnly = ENTRY(NUM-ENTRIES(cFilterFieldName,".":U) - 1,cFilterFieldName,".":U)
+               cFilterFieldNameOnly = ENTRY(NUM-ENTRIES(cFilterFieldName,".":U),cFilterFieldName,".":U).
       ELSE
-        cFilterFieldNameOnly = cFilterFieldName.
+        ASSIGN cFilterTableNameOnly = "":U
+               cFilterFieldNameOnly = cFilterFieldName.
       
       IF cFilterFieldNameOnly = "":U THEN
         cFilterFieldNameOnly = cFilterFieldName.
@@ -4017,27 +3475,36 @@ PROCEDURE manageSDOs :
            NOT lAlreadyInQuery AND
            NOT lDoNotSetFilter THEN DO:
           DYNAMIC-FUNCTION("addQueryWhere":U IN phSDOHandle,INPUT cFilterFieldName + " ":U + TRIM(cFilterOperator) + " '" + cFilterFieldValue + "'", "":U, "AND":U).
-          ASSIGN cWhere = cFilterFieldName + " ":U + TRIM(cFilterOperator) + " '" + cFilterFieldValue + "'" + CHR(3) + CHR(3) + "AND":U.
+          ASSIGN cWhere = cFilterFieldName + " ":U + cFilterTableNameOnly + TRIM(cFilterOperator) + " '" + cFilterFieldValue + "'" + CHR(3) + CHR(3) + "AND":U.
           cWhere = DYNAMIC-FUNCTION("fixQueryString":U IN gshSessionManager, cWhere).
           {set manualAddQueryWhere cWhere phSDOHandle}.
         END.
       END.
     END.
   END.
+  cCurrExpandNodeKey = DYNAMIC-FUNCTION("getCurrExpandNodeKey":U).
+  
   
   IF plStructuredSDO AND 
      NUM-ENTRIES(pcParentChildFld,"^":U) >= 3 THEN DO:
-    DEFINE VARIABLE cFirstFilter AS CHARACTER  NO-UNDO.
-    DEFINE VARIABLE cParentField AS CHARACTER  NO-UNDO.
-    DEFINE VARIABLE cDataType    AS CHARACTER  NO-UNDO.
-    DEFINE VARIABLE cMatchValue  AS CHARACTER  NO-UNDO.
-    DEFINE VARIABLE cParentRef   AS CHARACTER  NO-UNDO.
-
-    ASSIGN cFirstFilter = ENTRY(1,pcParentChildFld,"^":U).
-           cParentField = ENTRY(2,pcParentChildFld,"^":U).
-           cDataType    = ENTRY(4,pcParentChildFld,"^":U).
-           cParentRef   = DYNAMIC-FUNCTION("getProperty":U IN ghTreeViewOCX,"TAG",gcCurrExpandNodeKey).
-
+    {get TreeDataTable hTable hTreeViewOCX}.  
+    ASSIGN cFirstFilter = ENTRY(1,pcParentChildFld,"^":U)
+           cParentField = ENTRY(2,pcParentChildFld,"^":U)
+           cDataType    = ENTRY(4,pcParentChildFld,"^":U)
+           cNodeDetail  = DYNAMIC-FUNCTION("getNodeDetails":U,hTable, cCurrExpandNodeKey)
+           dNodeObj     = DECIMAL(ENTRY(1,cNodeDetail,CHR(2)))
+           cParentRef   = ENTRY(3,cNodeDetail,CHR(2)).
+    FIND FIRST ttNode
+         WHERE ttNode.node_obj = dNodeObj 
+         NO-LOCK NO-ERROR.
+    IF AVAILABLE ttNode THEN DO:
+      IF ttNode.run_attribute <> "STRUCTURED":U THEN DO:
+        cParentRef = "":U.
+      END.
+      IF ttNode.run_attribute = "STRUCTURED":U THEN DO:
+        {set ForeignFields '':U phSDOHandle}.
+      END.
+    END.
     cMatchValue = "":U.
     IF cParentRef = "":U THEN DO:
       CASE cDataType:
@@ -4054,14 +3521,13 @@ PROCEDURE manageSDOs :
         WHEN "CHARACTER":U THEN
           cMatchValue = "'" + cParentRef + "'":U.
         WHEN "DECIMAL":U THEN
-            cMatchValue = "DECIMAL(":U + cParentRef + ")":U.
+            cMatchValue = QUOTER(cParentRef).
         WHEN "INTEGER":U THEN
           cMatchValue = "INTEGER(":U + cParentRef + ")":U.
         WHEN "DATE":U THEN
           cMatchValue = "DATE(":U + cParentRef + ")":U.
       END CASE.
     END.
-    
     IF DYNAMIC-FUNCTION("ColumnTable":U IN phSDOHandle, cParentField) <> ? AND 
        DYNAMIC-FUNCTION("ColumnTable":U IN phSDOHandle, cParentField) <> "":U THEN DO:
       /* For first round only list parent objects */
@@ -4076,6 +3542,8 @@ PROCEDURE manageSDOs :
       ELSE DO:
         /* Clear any previous queries */
         {set QueryWhere "":U phSDOHandle}.
+        {set QueryString ? phSDOHandle}.
+
         DYNAMIC-FUNCTION("addQueryWhere":U IN phSDOHandle,INPUT cParentField + " = ":U + cMatchValue, "":U, "AND":U).
         ASSIGN cWhere = cParentField + " = ":U + cMatchValue + CHR(3) + CHR(3) + "AND":U.
         cWhere = DYNAMIC-FUNCTION("fixQueryString":U IN gshSessionManager, cWhere).
@@ -4085,9 +3553,49 @@ PROCEDURE manageSDOs :
   END.
   /* Since we set the SDO not to open the query on initialization - we should now 
      open the query manually */
-  IF glExpand = TRUE THEN
+  lExpand = DYNAMIC-FUNCTION("getExpand":U).
+
+  /* This is a work-around for issue #5814 when running
+     on AppServer */
+  FIND FIRST buRunningSDOs
+       WHERE buRunningSDOs.cSDOName = pcSDOSBOName
+       EXCLUSIVE-LOCK.
+  IF AVAILABLE buRunningSDOs
+     AND buRunningSDOs.cServerMode = "":U THEN DO:
+    cSessionServerMode = DYNAMIC-FUNCTION('getServerOperatingMode':U IN phSDOHandle).
+    IF cSessionServerMode = ? OR
+       cSessionServerMode = "":U THEN
+      cSessionServerMode = "NONE".
+    ASSIGN buRunningSDOs.cServerMode = cSessionServerMode
+           cServerMode               = cSessionServerMode.
+  END.
+
+  IF AVAILABLE buRunningSDOs
+     AND buRunningSDOs.cServerMode <> "":U THEN
+    cServerMode = buRunningSDOs.cServerMode.
+
+  /********************************************************/
+  /* This fixes issue #5814 - MAD - 10/04/2002 */
+  cGetSMode = DYNAMIC-FUNCTION('getServerOperatingMode':U IN phSDOHandle).
+  IF (cGetSMode = ? OR cGetSMode = "?":U) AND
+     cServerMode <> "":U THEN
+    DYNAMIC-FUNCTION('setServerOperatingMode':U IN phSDOHandle,cServerMode).
+  
+  IF lExpand = TRUE THEN
     DYNAMIC-FUNCTION("setRowsToBatch":U IN phSDOHandle, 200).
+
+  /** PJudge 09.Jan.2003
+   *  Removed this OpenQuery call because it causes the problems described in
+   *  issue 8063: the details of the first expanded node (regardless of whether it
+   *  was the first ordinal node or not) were not seen, and was found when running
+   *  dynamic SDOs running across an AppServer connection.
+   *  
+   *  In theory, the SDO's query should not be opened here, because the OpenOnInit
+   *  property is being set earlier, but this appears not to work too well.
+   *  ----------------------------------------------------------------------- **/
+  /***** 
   DYNAMIC-FUNCTION("openQuery":U IN phSDOHandle).
+  *****/
   
   IF VALID-HANDLE(hParentSDO) THEN
     ASSIGN buRunningSDOs.hParentSDO = hParentSDO.
@@ -4096,362 +3604,41 @@ PROCEDURE manageSDOs :
      we want to reposition the SDO to that last displayed record
      in that viewer. This will ensure that it is repositioned 
      after the node has been expanded. */
-  IF ghSDOHandle = phSDOHandle THEN
-    glReposSDO = TRUE.
+  IF hSDOHandle = phSDOHandle THEN
+    DYNAMIC-FUNCTION("setReposSDO":U, TRUE).
   
   RUN setDataLinkActive.
-
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE manualInitializeObjects wWin 
-PROCEDURE manualInitializeObjects :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE notifyPage wWin 
+PROCEDURE notifyPage :
 /*------------------------------------------------------------------------------
-  Purpose:     To instantiate objects on container in controlled order.
-  Parameters:  <none>
-  Notes:       Called from initializeObject of containr.p via Astra2
-               customisation.
-------------------------------------------------------------------------------*/
-
-  DEFINE VARIABLE iLoop                     AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE hHandle                   AS HANDLE     NO-UNDO.
-            
-  IF NUM-ENTRIES(gcObjectHandles) > 0 THEN
-  DO iLoop = 1 TO NUM-ENTRIES(gcObjectHandles):
-    ASSIGN hHandle = WIDGET-HANDLE(ENTRY(iLoop, gcObjectHandles)).
-    /* We do not want the folder toolbar visualized when the node selected 
-       is a menu object */
-    IF glMenuMaintenance AND 
-       hHandle = ghFolderToolbar THEN
-      NEXT.
-    
-    /* Do not re-initialize Folder Window */
-    IF VALID-HANDLE(ghFolder) AND
-       ghFolder = hHandle AND 
-       INDEX(hHandle:FILE-NAME,"afspfoldr":U) <> 0 THEN
-      NEXT.
-    RUN initializeObject IN hHandle.
-    
-    IF hHandle = ghContainerToolbar OR
-       hHandle = ghTreeViewOCX      OR 
-       hHandle = ghFolderToolbar    OR 
-       hHandle = ghFilterViewer     OR
-       hHandle = ghFolder           THEN
-      NEXT.
-    ELSE DO:
-      CREATE ttNonTreeObjects.
-      ASSIGN ttNonTreeObjects.hObjectHandle = hHandle.
-    END.
-  END.
-  
-  ghDefaultMenuBar = {&WINDOW-NAME}:MENU-BAR.
-  
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE menuOverride wWin 
-PROCEDURE menuOverride :
-/*------------------------------------------------------------------------------
-  Purpose:     This procedure creates a new sub-menu to create menu-items usually
-               found under the File menu option, but due to the Folder ToolBar
-               added onto this container, the File menu item was duplicated 
-               each time a new object was instansiated.
-  Parameters:  IO Handle - The handle of the parent menu for menu items being
-                           created for the Folder ToolBar.
-  Notes:       This sub-menu is destroyed whenever a new logical object is 
-               launched.
-------------------------------------------------------------------------------*/
-
-  DEFINE INPUT-OUTPUT PARAMETER phParentMenu  AS HANDLE   NO-UNDO.
-
-  DEFINE VARIABLE hNewSubMenu AS HANDLE   NO-UNDO.
-  
-  IF VALID-HANDLE(ghOverridenSubMenu) THEN DO:
-    phParentMenu = ghOverridenSubMenu.
-    RETURN.
-  END.
-    
-  /* Supply a default menu-item */
-  IF ghCurrentLabel = "":U THEN
-    ghCurrentLabel = "Folder".
-    
-  CREATE SUB-MENU hNewSubMenu
-  ASSIGN
-      NAME = STRING(RANDOM(0,TIME))
-      SENSITIVE = TRUE
-      LABEL = ghCurrentLabel
-      PARENT = phParentMenu 
-      PRIVATE-DATA = "dynamictoolbar":U
-      .
-  ASSIGN phParentMenu       = hNewSubMenu
-         ghOverridenSubMenu = phParentMenu.
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE nodeAddRecord wWin 
-PROCEDURE nodeAddRecord :
-/*------------------------------------------------------------------------------
-  Purpose:     When no child nodes are available, we want to launch the appropriate
-               logical object in 'ADD' mode to allow the user to add the first 
-               child node.
-  Parameters:  <none>
+  Purpose:     Super Override
+  Parameters:  
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE INPUT  PARAMETER pdNodeObj     AS DECIMAL    NO-UNDO.
-  DEFINE INPUT  PARAMETER piChildren    AS INTEGER    NO-UNDO.
-  DEFINE INPUT  PARAMETER pcParentNode  AS CHARACTER  NO-UNDO.
 
-  DEFINE VARIABLE cButton                 AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDataset                AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cLogicalObject          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cRunAttribute           AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cNodeLabel              AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cPrimarySDO             AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cSDOSBOName             AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hBuf                    AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hQry                    AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hTable                  AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cCurrentNode            AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lNodeChecked            AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cNodeLabelExpression    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cLabelSubsFields        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cImageFileName          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cSelectedImageFileName  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hNodeObj                AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hImage                  AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hSelectedImage          AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hNodeChecked            AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hSort                   AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cFirstChildNodeKey      AS CHARACTER  NO-UNDO.
+  DEFINE INPUT PARAMETER pcProc AS CHARACTER NO-UNDO.
+  
+  DEFINE VARIABLE iPage AS INTEGER    NO-UNDO.
+  /* Code placed here will execute PRIOR to standard behavior. */
 
-  /* If the node has children other than the first dummy record, first expand
-     the node, select the first object so that the objects is instansiated and
-     then publish the ADD event - this is a shortcut for expanding the node, 
-     selecting the first one and then pressing the ADD icon from a users point of view */
-  cFirstChildNodeKey = DYNAMIC-FUNCTION("getProperty" IN ghTreeViewOCX, "CHILD":U,pcParentNode).
-  
-  IF DYNAMIC-FUNCTION("getProperty" IN ghTreeViewOCX, "TEXT":U,cFirstChildNodeKey) = "+":U THEN
-    RUN tvNodeEvent ("EXPAND", pcParentNode).
-  IF INTEGER(DYNAMIC-FUNCTION("getProperty" IN ghTreeViewOCX, "CHILDREN":U,pcParentNode)) > 0  THEN DO:
-    DYNAMIC-FUNCTION("setProperty" IN ghTreeViewOCX, "EXPANDED":U,pcParentNode, "YES").
-    ASSIGN cFirstChildNodeKey = DYNAMIC-FUNCTION("getProperty" IN ghTreeViewOCX, "CHILD", pcParentNode).
-    DYNAMIC-FUNCTION("selectNode" IN ghTreeViewOCX, cFirstChildNodeKey).
-    RUN tvNodeSelected (cFirstChildNodeKey).
-    PUBLISH 'addRecord' FROM ghFolderToolbar.
-    RETURN.
-  END.
-  
-  /* Only if there are no child nodes (except the dummy) we will continue with 
-    this process */
-  FIND FIRST ttNode
-       WHERE ttNode.node_obj = pdNodeObj
-       NO-LOCK NO-ERROR.
+  RUN SUPER( INPUT pcProc).
 
-  IF NOT AVAILABLE ttNode THEN 
-    RETURN.
-  ASSIGN cLogicalObject         = ttNode.logical_object
-         cRunAttribute          = ttNode.run_attribute
-         cNodeLabel             = ttNode.node_label
-         cPrimarySDO            = ttNode.data_source
-         gdNodeObj              = pdNodeObj
-         lNodeChecked           = ttNode.node_checked
-         cImageFileName         = ttNode.image_file_name
-         cSelectedImageFileName = ttNode.selected_image_file_name
-         NO-ERROR.
-  
-  
-  IF INDEX(cPrimarySDO,"/":U) = 0 AND
-     INDEX(cPrimarySDO,"\":U) = 0 THEN DO:
-     cSDOSBOName = returnSDOName(cPrimarySDO).
-  END.
-  
-  /* Create A dummy Node that will become the new child node */
-  {get TreeDataTable hTable ghTreeViewOCX}.  
-  /* Grab the handles to the individual fields in the tree data table. */
-  ASSIGN hBuf = hTable:DEFAULT-BUFFER-HANDLE.
-  
-  
-  RUN createDummyChild (INPUT hBuf,
-                        INPUT gcCurrentNodeKey,
-                        INPUT "NEW":U).
-  
-  ASSIGN hNodeObj       = hBuf:BUFFER-FIELD('node_obj':U)
-         hImage         = hBuf:BUFFER-FIELD('image':U)
-         hSelectedImage = hBuf:BUFFER-FIELD('selected_image':U)
-         hNodeChecked   = hBuf:BUFFER-FIELD('node_checked':U)
-         hSort          = hBuf:BUFFER-FIELD('node_sort':U).
-  
-  CREATE QUERY hQry.  
-  hQry:ADD-BUFFER(hBuf).
-  hQry:QUERY-PREPARE(SUBSTITUTE('FOR EACH &1 WHERE &1.node_key = "&2"':U, hTable:NAME,gcCurrentNodeKey)).
-  hQry:QUERY-OPEN().
-  hQry:GET-FIRST().
-  IF hBuf:AVAILABLE THEN
-    ASSIGN hNodeObj:BUFFER-VALUE       = pdNodeObj
-           hNodeChecked:BUFFER-VALUE   = lNodeChecked
-           hImage:BUFFER-VALUE         = cImageFileName
-           hSelectedImage:BUFFER-VALUE = cSelectedImageFileName
-           hSort:BUFFER-VALUE          = TRUE.
-  
-  IF VALID-HANDLE(hQry) THEN
-    DELETE OBJECT hQry.
-  
-  
-  cCurrentNode = DYNAMIC-FUNCTION("getSelectedNode" IN ghTreeViewOCX).
-  IF cCurrentNode <> ? THEN DO:
-    DYNAMIC-FUNCTION("selectNode" IN ghTreeViewOCX, cCurrentNode).
-    setNodeExpanded(cCurrentNode,FALSE).
-    glExpand = TRUE.
-    RUN tvNodeSelected (cCurrentNode).
-    RUN tvNodeEvent    ("EXPANDNOW", cCurrentNode).
-    ASSIGN cCurrentNode = DYNAMIC-FUNCTION("getProperty" IN ghTreeViewOCX, "CHILD", cCurrentNode).
-           cCurrentNode = DYNAMIC-FUNCTION("getProperty" IN ghTreeViewOCX, "FIRSTSIBLING", cCurrentNode).
-    IF cCurrentNode <> ? THEN DO:
-      DYNAMIC-FUNCTION("selectNode" IN ghTreeViewOCX, cCurrentNode).
-      RUN tvNodeSelected (cCurrentNode).
+  /* Code placed here will execute AFTER standard behavior.    */
+  IF pcProc = "InitializeObject" THEN DO:
+    {get CurrentPage iPage}.
+
+    IF iPage > 0 THEN DO:
+      RUN createRepositoryObjects IN TARGET-PROCEDURE (INPUT gcLaunchedFolderName,
+                                                       INPUT gcLaunchedSDOName,
+                                                       INPUT TARGET-PROCEDURE,
+                                                       INPUT gcLaunchedRunInstance).
     END.
   END.
-  
-  /* Launch the appropriate object in 'Add' mode */
-  RUN createRepositoryObjects 
-            (INPUT cLogicalObject, 
-             INPUT cSDOSBOName,
-             INPUT THIS-PROCEDURE,
-             INPUT cRunAttribute).
-  
-  ASSIGN gcNewContainerMode = "Add":U.
-
-  PUBLISH 'addRecord' FROM ghFolderToolbar.
-  
-  glNewChildNode = TRUE.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE nodeSelected wWin 
-PROCEDURE nodeSelected :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE INPUT  PARAMETER pcNodeKey               AS CHARACTER  NO-UNDO.
-  
-  
-  DEFINE VARIABLE dNodeObj                AS DECIMAL    NO-UNDO.
-  DEFINE VARIABLE cLogicalObject          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lMenuObject             AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cSDOSBOName             AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cPrimarySDO             AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDataSource             AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cRunAttribute           AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lNodeExpanded           AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE hTable                  AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cDetailList             AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cImageFileName          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cSelectedImageFileName  AS CHARACTER  NO-UNDO.
-
-  DEFINE VARIABLE cPrivateData            AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cNodeDetail             AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cNodeLabel              AS CHARACTER  NO-UNDO.
-
-  glDelete = FALSE.
-
-  {get TreeDataTable hTable ghTreeViewOCX}.  
-  
-  IF NOT VALID-HANDLE(hTable) THEN
-    RETURN.
-  
-  RUN setDataLinkActive.
-  /* Force container to VIEW mode when a new node is selected */
-  gcNewContainerMode = "View".
-  
-  ASSIGN cNodeDetail = getNodeDetails(hTable, pcNodeKey).
-  
-  ASSIGN dNodeObj      = DECIMAL(ENTRY(1,cNodeDetail,CHR(2)))
-         cPrivateData  = ENTRY(3,cNodeDetail,CHR(2)) 
-         lNodeExpanded = ENTRY(4,cNodeDetail,CHR(2)) = "TRUE":U.
-  
-  /* Check if the node is a MENU structure - we need to read the submenus */
-  IF INDEX(cPrivateData,"LogicalObject":U) > 0  THEN DO:
-    lMenuObject = TRUE.
-            
-    ASSIGN cLogicalObject  = IF NUM-ENTRIES(cPrivateData,CHR(6)) >= 1 THEN ENTRY(2,ENTRY(1,cPrivateData,CHR(7)),CHR(6)) ELSE "":U
-           cRunAttribute   = IF NUM-ENTRIES(cPrivateData,CHR(6)) >= 2 THEN ENTRY(2,ENTRY(2,cPrivateData,CHR(7)),CHR(6)) ELSE "":U
-           cDataSource     = IF NUM-ENTRIES(cPrivateData,CHR(6)) >= 3 THEN ENTRY(2,ENTRY(3,cPrivateData,CHR(7)),CHR(6)) ELSE "":U
-           NO-ERROR.
-  END.
-  ELSE
-    lMenuObject = FALSE.
-
-  FIND FIRST ttNode
-       WHERE ttNode.node_obj = dNodeObj
-       NO-LOCK NO-ERROR.
-
-  IF NOT AVAILABLE ttNode THEN 
-    RETURN.
-  ELSE IF lMenuObject = FALSE THEN
-    ASSIGN cLogicalObject   = ttNode.logical_object
-           cRunAttribute    = ttNode.run_attribute
-           cDataSource      = ttNode.data_source
-           cNodeLabel       = ttNode.node_label
-           cPrimarySDO      = ttNode.primary_sdo
-           NO-ERROR.
-  
-  ASSIGN cImageFileName         = ttNode.image_file_name
-         cSelectedImageFileName = ttNode.selected_image_file_name
-         ghCurrentLabel         = ttNode.node_label
-         NO-ERROR.
-
-  setStatusBarText(pcNodeKey, cNodeLabel).
-
-  cSDOSBOName = returnSDOName(cPrimarySDO).
-  ASSIGN gcCurrentNodeKey = pcNodeKey
-         gcParentNode     = DYNAMIC-FUNCTION("getProperty":U IN ghTreeViewOCX, INPUT "PARENT":U, INPUT gcCurrentNodeKey) 
-         NO-ERROR.
-
-  glMenuMaintenance = FALSE.
-  IF cLogicalObject <> "":U AND 
-     glNewChildNode = FALSE THEN DO:
-    ASSIGN glMenuMaintenance  = lMenuObject
-           gcLastLaunchedNode = gcCurrentNodeKey.
-    RUN createRepositoryObjects 
-              (INPUT cLogicalObject, 
-               INPUT cSDOSBOName,
-               INPUT THIS-PROCEDURE,
-               INPUT cRunAttribute).
-  END.
-  ELSE IF cLogicalObject = "":U THEN DO:
-    RUN destroyNonTreeObjects. /* Clear the application side */
-  END.
-  
-  IF lMenuObject = TRUE AND 
-     INTEGER(DYNAMIC-FUNCTION("getProperty" IN ghTreeViewOCX, "CHILDREN":U,pcNodeKey)) = 0 THEN DO:
-    {aflaunch.i &PLIP  = 'ry/app/rytrenodep.p' 
-                &IPROC = 'readMenuStructure' 
-                &ONAPP = 'YES'
-                &PLIST = "(INPUT '':U, INPUT DECIMAL(cDataSource), OUTPUT cDetailList)"
-                &AUTOKILL = YES}
-
-    RUN stripMNUDetails (INPUT pcNodeKey,
-                         INPUT cDetailList,
-                         INPUT dNodeObj,
-                         INPUT cImageFileName,
-                         INPUT cSelectedImageFileName).
-    RUN populateTree IN ghTreeViewOCX (hTable, pcNodeKey).
-    IF VALID-HANDLE(ghFolderToolbar) THEN
-      RUN hideObject IN ghFolderToolbar.
-  END.
-  
-  glExpand = FALSE.
 
 END PROCEDURE.
 
@@ -4465,211 +3652,122 @@ PROCEDURE packWindow :
   Parameters:  input resize flag
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE INPUT  PARAMETER piPage   AS INTEGER    NO-UNDO.
-  DEFINE INPUT  PARAMETER plResize AS LOGICAL NO-UNDO.
-  
-  DEFINE VARIABLE lv_layout_code  AS CHARACTER.
-  DEFINE VARIABLE hPageInstanceTT AS HANDLE NO-UNDO.
-  DEFINE VARIABLE hPageTT         AS HANDLE NO-UNDO.
+  DEFINE INPUT PARAMETER piPage       AS INTEGER   NO-UNDO.
+  DEFINE INPUT PARAMETER plResize     AS LOGICAL   NO-UNDO.
 
-  DEFINE VARIABLE dContainerToolbarHeight   AS DECIMAL    NO-UNDO.
-  DEFINE VARIABLE dFolderToolbarHeight      AS DECIMAL    NO-UNDO.
-  DEFINE VARIABLE dFilterViewerHeight       AS DECIMAL    NO-UNDO.
-  DEFINE VARIABLE dFilterViewerWidth        AS DECIMAL    NO-UNDO.
-  DEFINE VARIABLE dTitleHeight              AS DECIMAL    NO-UNDO.
-  DEFINE VARIABLE dRectangleHeight          AS DECIMAL    NO-UNDO.
-  DEFINE VARIABLE cButton                   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cButton             AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE dFilterViewerHeight AS DECIMAL   NO-UNDO.
+  DEFINE VARIABLE dFilterViewerWidth  AS DECIMAL   NO-UNDO.
+  DEFINE VARIABLE dInstanceId         AS DECIMAL   NO-UNDO.
+  DEFINE VARIABLE cLayoutCode         AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE hObjectBuffer       AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE cPagesDone          AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE iPage               AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE dMinHeight          AS DECIMAL   NO-UNDO.
+  DEFINE VARIABLE dMinWidth           AS DECIMAL   NO-UNDO.
+  DEFINE VARIABLE iPageCnt            AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE hPageBuffer         AS HANDLE    NO-UNDO.
   
-  hPageInstanceTT = TEMP-TABLE tt_page_instance:HANDLE.
-  hPageTT         = TEMP-TABLE tt_page:HANDLE.
-  
-  {get Page0LayoutManager lv_layout_code}.
-  
-  IF gcTreeLayoutCode <> lv_layout_code THEN DO:
-    /* Store TreeView's ContainerToolbar and Folder Info elsewhere for the momemnt */
-    /* If whe don't do this, the resize procedure will try to reposition them */
-    EMPTY TEMP-TABLE tt_exclude_page_instance.
-    FOR EACH  tt_page_instance
-        WHERE tt_page_instance.object_instance_handle = ghContainerToolbar
-        OR    tt_page_instance.object_instance_handle = ghFolderToolbar
-        OR    tt_page_instance.object_instance_handle = ghFolder
-        EXCLUSIVE-LOCK:
-        CREATE tt_exclude_page_instance.
-        BUFFER-COPY tt_page_instance TO
-                    tt_exclude_page_instance.
-      DELETE tt_page_instance.
-    END.
-    FOR EACH  tt_page_instance
-        WHERE tt_page_instance.page_number <> 0
-        EXCLUSIVE-LOCK:
-      CREATE tt_exclude_page_instance.
-      BUFFER-COPY tt_page_instance TO
-                  tt_exclude_page_instance.
-      ASSIGN tt_exclude_page_instance.iOldPageNo = tt_page_instance.page_number
-             tt_page_instance.page_number        = 0.
-    END.
+  {get Page0LayoutManager cLayoutCode}.
+
+  /* This will be the InstanceId of the current 'container'. This is not necessarily the treeview. */
+  {get InstanceId dInstanceId}.
+  ASSIGN hObjectBuffer = BUFFER container_Object:HANDLE
+         hPageBuffer   = BUFFER container_Page:HANDLE
+         .
+  IF dInstanceId EQ gdTreeviewInstanceId THEN DO:
+    RUN packWindow IN gshLayoutManager ( INPUT piPage,
+                                         INPUT cLayoutCode,
+                                         INPUT dInstanceId,
+                                         INPUT hObjectBuffer,
+                                         INPUT hPageBuffer,
+                                         INPUT {&WINDOW-NAME}, 
+                                         INPUT FRAME {&FRAME-NAME}:HANDLE,
+                                         INPUT 0, 
+                                         INPUT 0, 
+                                         INPUT gdMaximumWindowWidth,
+                                         INPUT gdMaximumWindowHeight,
+                                         INPUT plResize                     ) NO-ERROR.
+    
+    ASSIGN dMinWidth  = MAX(dMinWidth,{&WINDOW-NAME}:MIN-WIDTH-CHARS)
+           dMinHeight = MAX(dMinHeight,{&WINDOW-NAME}:MIN-HEIGHT-CHARS).
+           
   END.
-  
-  RUN packWindow IN gsh_LayoutManager (
-      INPUT piPage,
-      INPUT lv_layout_code,
-      INPUT hPageInstanceTT:DEFAULT-BUFFER-HANDLE,
-      INPUT hPageTT:DEFAULT-BUFFER-HANDLE,
-      INPUT {&WINDOW-NAME}, 
-      INPUT FRAME {&FRAME-NAME}:HANDLE,
-      INPUT 0, /*gdMinimumWindowWidth,*/
-      INPUT 0, /*gdMinimumWindowHeight,*/
-      INPUT gdMaximumWindowWidth,
-      INPUT gdMaximumWindowHeight,
-      INPUT plResize
-      ).  
+  ELSE DO:
+      ASSIGN iPageCnt = 0.
+      FOR EACH container_Page WHERE
+               container_Page.tTargetProcedure  = TARGET-PROCEDURE AND
+               container_Page.tRecordIdentifier = dInstanceId         :
+          ASSIGN iPageCnt = iPageCnt + 1.
+      END.
+      ASSIGN iPageCnt = iPageCnt - 1. /* For Page 0 */
+
+      DO iPage = 0 TO iPageCnt:
+      RUN packWindow IN gshLayoutManager ( INPUT iPage,
+                                           INPUT cLayoutCode,
+                                           INPUT dInstanceId,
+                                           INPUT hObjectBuffer,
+                                           INPUT hPageBuffer,
+                                           INPUT {&WINDOW-NAME}, 
+                                           INPUT FRAME {&FRAME-NAME}:HANDLE,
+                                           INPUT 0,
+                                           INPUT 0,
+                                           INPUT gdMaximumWindowWidth,
+                                           INPUT gdMaximumWindowHeight,
+                                           INPUT plResize                         ).
+
+      ASSIGN dMinWidth  = MAX(dMinWidth,{&WINDOW-NAME}:MIN-WIDTH-CHARS)
+             dMinHeight = MAX(dMinHeight,{&WINDOW-NAME}:MIN-HEIGHT-CHARS)
+             cPagesDone = cPagesDone + (IF NUM-ENTRIES(cPagesDone) EQ 0 THEN "":U ELSE ",":U) + STRING(iPage)
+             .
+    END.    /* page not yet done. */
+    /*
+    ASSIGN {&WINDOW-NAME}:MIN-WIDTH-CHARS  = gdMinInstanceWidth
+           {&WINDOW-NAME}:MIN-HEIGHT-CHARS = gdMinInstanceHeight
+           .*/
+  END.    /* Not packing the treeview */
 
   /* Check forced exit of the dynamic container.
    * We may get window packing errors here.      */
   IF RETURN-VALUE NE "":U THEN
   DO:
-      RUN showMessages IN gshSessionManager ( INPUT  RETURN-VALUE,
-                                              INPUT  "ERR":U,                  /* error type */
-                                              INPUT  "&OK":U,                  /* button list */
-                                              INPUT  "&OK":U,                  /* default button */ 
-                                              INPUT  "&OK":U,                  /* cancel button */
-                                              INPUT  "Folder window error":U,  /* error window title */
-                                              INPUT  YES,                      /* display if empty */ 
-                                              INPUT  THIS-PROCEDURE,           /* container handle */ 
-                                              OUTPUT cButton               ).  /* button pressed */
-      RUN exitObject.
-      RETURN.
+    RUN showMessages IN gshSessionManager ( INPUT  RETURN-VALUE,
+                                            INPUT  "ERR":U,                  /* error type */
+                                            INPUT  "&OK":U,                  /* button list */
+                                            INPUT  "&OK":U,                  /* default button */ 
+                                            INPUT  "&OK":U,                  /* cancel button */
+                                            INPUT  "Folder window error":U,  /* error window title */
+                                            INPUT  YES,                      /* display if empty */ 
+                                            INPUT  TARGET-PROCEDURE,         /* container handle */ 
+                                            OUTPUT cButton               ).  /* button pressed */
+    RUN exitObject.
+    RETURN.
   END.    /* forced exit */
-  
-  IF gcTreeLayoutCode <> lv_layout_code THEN DO:
-    ASSIGN gdMinInstanceWidth  = {&WINDOW-NAME}:MIN-WIDTH-CHARS
-           gdMinInstanceHeight = {&WINDOW-NAME}:MIN-HEIGHT-CHARS.
-           
-    /* Now copy these Saved Instances back */
-    FOR EACH  tt_exclude_page_instance
-        WHERE tt_exclude_page_instance.iOldPageNo <> 0
-        EXCLUSIVE-LOCK:
-        FIND FIRST tt_page_instance
-             WHERE tt_page_instance.object_instance_handle = tt_exclude_page_instance.object_instance_handle
-             EXCLUSIVE-LOCK NO-ERROR.
-        IF AVAILABLE tt_page_instance THEN
-          ASSIGN tt_page_instance.page_number = tt_exclude_page_instance.iOldPageNo.
-      DELETE tt_exclude_page_instance.
-    END.
-    
-    FOR EACH  tt_exclude_page_instance
-        EXCLUSIVE-LOCK:
-      CREATE tt_page_instance.
-      BUFFER-COPY tt_exclude_page_instance TO
-                  tt_page_instance.
-      DELETE tt_exclude_page_instance.
-    END.
-  END.
-  
+
+  /* Make sure we copied back all the page instances */
   IF VALID-HANDLE(ghFilterViewer) THEN 
-    ASSIGN dFilterViewerHeight = DYNAMIC-FUNCTION("getHeight" IN ghFilterViewer)
-           dFilterViewerWidth  = DYNAMIC-FUNCTION("getWidth" IN ghFilterViewer).
+      ASSIGN dFilterViewerHeight = DYNAMIC-FUNCTION("getHeight" IN ghFilterViewer)
+             dFilterViewerWidth  = DYNAMIC-FUNCTION("getWidth" IN ghFilterViewer)
+             .
+  /*IF gcTreeLayoutCode EQ cLayoutCode THEN
+      
+      ASSIGN gdMinimumWindowWidth  = IF dFilterViewerWidth > {&WINDOW-NAME}:MIN-WIDTH-CHARS THEN dFilterViewerWidth ELSE {&WINDOW-NAME}:MIN-WIDTH-CHARS
+             {&WINDOW-NAME}:MIN-WIDTH-CHARS  = IF dFilterViewerWidth <> 0 AND {&WINDOW-NAME}:MIN-WIDTH-CHARS < dFilterViewerWidth THEN dFilterViewerWidth ELSE {&WINDOW-NAME}:MIN-WIDTH-CHARS + .5
+             gdMinimumWindowHeight = {&WINDOW-NAME}:MIN-HEIGHT-CHARS + dFilterViewerHeight
+             .
   
-  IF gcTreeLayoutCode = lv_layout_code THEN
-    ASSIGN gdMinimumWindowWidth  = IF dFilterViewerWidth > {&WINDOW-NAME}:MIN-WIDTH-CHARS THEN dFilterViewerWidth ELSE {&WINDOW-NAME}:MIN-WIDTH-CHARS
-           {&WINDOW-NAME}:MIN-WIDTH-CHARS  = IF dFilterViewerWidth <> 0 AND {&WINDOW-NAME}:MIN-WIDTH-CHARS < dFilterViewerWidth THEN dFilterViewerWidth ELSE {&WINDOW-NAME}:MIN-WIDTH-CHARS + 2
-           gdMinimumWindowHeight = {&WINDOW-NAME}:MIN-HEIGHT-CHARS + dFilterViewerHeight.
   ELSE
-    ASSIGN gdMinimumFolderWidth            = {&WINDOW-NAME}:MIN-WIDTH-CHARS
-           gdMinimumFolderHeight           = {&WINDOW-NAME}:MIN-HEIGHT-CHARS
-           {&WINDOW-NAME}:MIN-HEIGHT-CHARS = {&WINDOW-NAME}:MIN-HEIGHT-CHARS + rctBorder:COL + fiTitle:HEIGHT + DYNAMIC-FUNCTION("getHeight":U IN ghFolderToolbar) + 2 + dFilterViewerHeight
-           {&WINDOW-NAME}:MIN-WIDTH-CHARS  = {&WINDOW-NAME}:MIN-WIDTH-CHARS + 2 /*fiResizeFillIn:COL + 7 /*+ dFilterViewerWidth*/*/ .
-             
+  */
+      ASSIGN gdMinimumFolderWidth            = dMinWidth
+             gdMinimumFolderHeight           = dMinHeight
+             {&WINDOW-NAME}:MIN-HEIGHT-CHARS = dMinHeight + RctBorder:COL + fiTitle:HEIGHT + DYNAMIC-FUNCTION("getHeight":U IN ghFolderToolbar) /*+ 2.8*/ + dFilterViewerHeight
+             {&WINDOW-NAME}:MIN-WIDTH-CHARS  = dMinWidth + 2 /*fiResizeFillIn:COL + 7 /*+ dFilterViewerWidth*/*/ 
+             .
   IF {&WINDOW-NAME}:MIN-WIDTH-CHARS < dFilterViewerWidth THEN
-    {&WINDOW-NAME}:MIN-WIDTH-CHARS = dFilterViewerWidth + 2.
-END PROCEDURE.
+      ASSIGN {&WINDOW-NAME}:MIN-WIDTH-CHARS = dFilterViewerWidth + 0.5.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE passSDOForeignFields wWin 
-PROCEDURE passSDOForeignFields :
-/*------------------------------------------------------------------------------
-  Purpose:  pass SdoForeignFields to any SDO's with a data link from THIS-PROCEDURE
-
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE INPUT  PARAMETER pcSDOName AS CHARACTER  NO-UNDO.
-  
-  DEFINE VARIABLE cDataTargets      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cSdoForeignFields AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hDataTarget       AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE iEntry            AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE hSDOHandle        AS HANDLE   NO-UNDO.
-  
-  FIND FIRST ttRunningSDOs NO-LOCK
-       WHERE ttRunningSDOs.cSDOName = pcSDOName NO-ERROR.
-  IF AVAILABLE ttRunningSDOs THEN DO:
-    {get ForeignFields cSdoForeignFields ttRunningSDOs.hSDOHandle}.
-  END.
-  ELSE DO:
-    {get SdoForeignFields cSdoForeignFields}.
-  END.
-    
-  {get DataTarget cDataTargets}.
-  
-  IF cSdoForeignFields <> "" THEN DO:   
-    DO iEntry = 1 TO NUM-ENTRIES(cDataTargets):
-      hDataTarget = WIDGET-HANDLE(ENTRY(iEntry,cDataTargets)).
-          
-      IF LOOKUP("setForeignFields", hDataTarget:INTERNAL-ENTRIES) <> 0 THEN DO: 
-        DYNAMIC-FUNCTION('setForeignFields' IN hDataTarget, cSdoForeignFields).                                             
-      END.
-    END.
-  END.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE prepareNodeTranslation wWin 
-PROCEDURE prepareNodeTranslation :
-/*------------------------------------------------------------------------------
-  Purpose:     This procedure will step through all the Plain Text nodes and
-               create a record in the translate temp-table to get the translated
-               values back to be translated when creating these text nodes.
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE dCurrentLanguageObj AS DECIMAL    NO-UNDO.
-
-  EMPTY TEMP-TABLE ttTranslate.
-
-  dCurrentLanguageObj = DECIMAL(DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
-                                INPUT "currentLanguageObj":U,
-                                INPUT NO)).
-     
-  FOR EACH  ttNode
-      WHERE ttNode.data_source_type = "TXT":U
-      NO-LOCK:
-    CREATE ttTranslate.
-    ASSIGN
-      ttTranslate.dLanguageObj = dCurrentLanguageObj
-      ttTranslate.cObjectName = gcObjectName
-      ttTranslate.lGlobal = NO
-      ttTranslate.lDelete = NO
-      ttTranslate.cWidgetType = "Node":U
-      ttTranslate.cWidgetName = "Node_":U + ttNode.data_source
-      ttTranslate.hWidgetHandle = ?
-      ttTranslate.iWidgetEntry = 0
-      ttTranslate.cOriginalLabel = ttNode.data_source
-      ttTranslate.cTranslatedLabel = "":U
-      ttTranslate.cOriginalTooltip = "":U
-      ttTranslate.cTranslatedTooltip = "":U
-      .
-  END.
-  
-  RUN multiTranslation IN gshTranslationManager (INPUT NO,
-                                                 INPUT-OUTPUT TABLE ttTranslate).
-
-END PROCEDURE.
+  RETURN.
+END PROCEDURE.  /* packWindow */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -4681,205 +3779,22 @@ PROCEDURE removeTTLinks :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE INPUT  PARAMETER pcSDOName       AS CHARACTER  NO-UNDO.
-  
-  DEFINE BUFFER tt_source_object_instance FOR tt_object_instance.
-  DEFINE BUFFER tt_target_object_instance FOR tt_object_instance.
-  
-  DEFINE VARIABLE hSourceObject AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE hTargetObject AS HANDLE       NO-UNDO.
-  
-  DEFINE VARIABLE hObject       AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE cLinks        AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE iLoop         AS INTEGER      NO-UNDO.
-  DEFINE VARIABLE lLinkExists   AS LOGICAL      NO-UNDO.
-  
-  /* Just delete the navigation link to the Folder Toolbar - This link will be
-     ra-added for the new object bieng started */
-  FOR EACH  tt_link
-      WHERE tt_link.link_name = "Navigation":
-      FIND FIRST tt_source_object_instance
-          WHERE tt_source_object_instance.object_instance_obj = tt_link.source_object_instance_obj NO-ERROR.
+    DEFINE INPUT PARAMETER pcSDOName        AS CHARACTER                NO-UNDO.
 
-      FIND FIRST tt_target_object_instance
-          WHERE tt_target_object_instance.object_instance_obj = tt_link.target_object_instance_obj NO-ERROR.
+    DEFINE VARIABLE lLinkExists         AS LOGICAL                      NO-UNDO.
 
-      hSourceObject = (IF AVAILABLE tt_source_object_instance THEN tt_source_object_instance.object_instance_handle ELSE THIS-PROCEDURE).
-      hTargetObject = (IF AVAILABLE tt_target_object_instance THEN tt_target_object_instance.object_instance_handle ELSE THIS-PROCEDURE).
-      
-      FIND FIRST ttRunningSDOs NO-LOCK
-           WHERE ttRunningSDOs.cSDOName = pcSDOName NO-ERROR.
-      IF AVAILABLE ttRunningSDOs THEN
-        ASSIGN hSourceObject = THIS-PROCEDURE
-               hTargetObject = ttRunningSDOs.hSDOHandle.
-      
-      /* For a TreeView with a FolderToolbar the Link is changed from the Container To the FolderToolbar handle */
-      IF VALID-HANDLE(ghFolderToolbar) THEN
-        cLinks = DYNAMIC-FUNCTION("linkHandles":U IN ghFolderToolbar, tt_link.link_name + "-Target":U).
-      ELSE
-        cLinks = DYNAMIC-FUNCTION("linkHandles":U, tt_link.link_name + "-Source":U).
-      
-      lLinkExists = FALSE.
-      CHECK_EXISTS:
-      DO iLoop = 1 TO NUM-ENTRIES(cLinks):
-        hObject = WIDGET-HANDLE(ENTRY(iLoop,cLinks)).
-        IF (VALID-HANDLE(ghFolderToolbar)     AND 
-            hObject = hTargetObject)          OR 
-           (NOT VALID-HANDLE(ghFolderToolbar) AND 
-            hObject = hSourceObject)          THEN DO:
-          lLinkExists = TRUE.
-          LEAVE CHECK_EXISTS.
-        END.
-      END.
-      IF lLinkExists = TRUE THEN DO:
+    FOR EACH ttLinksAdded WHERE
+             ttLinksAdded.cLinkName = "Navigation":U 
+             NO-LOCK:
         IF VALID-HANDLE(ghFolderToolbar) THEN
-          RUN removeLink(ghFolderToolbar, tt_link.link_name, hTargetObject).
+            RUN removeLink IN TARGET-PROCEDURE (ghFolderToolbar, ttLinksAdded.cLinkName, ttLinksAdded.hTargetHandle).
         ELSE
-          RUN removeLink(hSourceObject, tt_link.link_name, hTargetObject).
-      END.
-  END.
+            RUN removeLink IN TARGET-PROCEDURE (ttLinksAdded.hSourceHandle, ttLinksAdded.cLinkName, ttLinksAdded.hTargetHandle).        
 
-END PROCEDURE.
+        DELETE ttLinksAdded.
+    END.    /* each link added */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE repositionParentSDO wWin 
-PROCEDURE repositionParentSDO :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE INPUT  PARAMETER pcParentNodeSDO AS CHARACTER  NO-UNDO.
-  DEFINE INPUT  PARAMETER pcParentNodeKey AS CHARACTER  NO-UNDO.
-
-  DEFINE VARIABLE cParentNodeKey AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cNodeDetail    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE rRecordRowid   AS ROWID      NO-UNDO.
-  DEFINE VARIABLE dNodeObj       AS DECIMAL    NO-UNDO.
-  DEFINE VARIABLE hTable         AS HANDLE     NO-UNDO.
-
-  DEFINE BUFFER bttNode FOR ttNode.
-
-  /** Check that the Parent SDO/SBO is relatively pathed **/
-  IF INDEX(pcParentNodeSDO,"/":U) = 0 AND
-     INDEX(pcParentNodeSDO,"\":U) = 0 AND 
-     pcParentNodeSDO <> "":U THEN DO:
-     pcParentNodeSDO = returnSDOName(pcParentNodeSDO).
-  END.
-  /* Now we need to loop through the parent nodes to find the 
-     parent node that is an SDO - then we need to reposition that
-     SDO to the current selected record to get the correct foreign
-     fields */
-  FIND FIRST ttRunningSDOs
-       WHERE ttRunningSDOs.cSDOName = pcParentNodeSDO
-       NO-LOCK NO-ERROR.
-  IF AVAILABLE ttRunningSDOs THEN DO:
-    cParentNodeKey = "":U.
-    {get TreeDataTable hTable ghTreeViewOCX}.
-    cParentNodeKey = pcParentNodeKey.
-    SEARCH_FOR_PARENT:
-    DO WHILE TRUE:
-      IF cParentNodeKey = ? OR
-         cParentNodeKey = "":U THEN
-        LEAVE SEARCH_FOR_PARENT.
-      ELSE DO:
-        IF VALID-HANDLE(hTable) THEN DO:
-          ASSIGN cNodeDetail = getNodeDetails(hTable, cParentNodeKey).
-
-          ASSIGN dNodeObj     = DECIMAL(ENTRY(1,cNodeDetail,CHR(2)))
-                 rRecordRowid = TO-ROWID(ENTRY(2,cNodeDetail,CHR(2))).
-          FIND FIRST bttNode
-               WHERE bttNode.node_obj = dNodeObj
-               NO-LOCK NO-ERROR.
-          IF bttNode.data_source_type = "SDO":U THEN
-            LEAVE SEARCH_FOR_PARENT.
-        END.
-      END.
-      cParentNodeKey = DYNAMIC-FUNCTION("getProperty":U IN ghTreeViewOCX, "PARENT":U, cParentNodeKey).
-    END. /* WHILE TRUE */
-    IF cParentNodeKey <> ? AND
-       cParentNodeKey <> "":U THEN DO:
-      RUN setDataLinkInActive.
-      RUN repositionSDO (INPUT "":U,
-                         INPUT ttRunningSDOs.hSDOHandle,
-                         INPUT ?,
-                         INPUT rRecordRowid,
-                         INPUT cParentNodeKey).
-      RUN setDataLinkActive.
-    END.
-  END.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE repositionSDO wWin 
-PROCEDURE repositionSDO :
-/*------------------------------------------------------------------------------
-  Purpose:     Repositions an SDO to a selected Record Rowid
-  Parameters:  I - pcForeignFields - Foreign Field pairs
-               I - phSDOHandle     - The handle to the SDO to be repositioned
-               I - prRecordRowid   - The RowID of the record to reposition to
-               I - phParentSDO     - The handle to the parent node's SDO
-               I - pcNodeKey       - The key to the selected node
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE INPUT  PARAMETER pcForeignFields AS CHARACTER  NO-UNDO.
-  DEFINE INPUT  PARAMETER phSDOHandle     AS HANDLE     NO-UNDO.
-  DEFINE INPUT  PARAMETER phParentSDO     AS HANDLE     NO-UNDO.
-  DEFINE INPUT  PARAMETER prRecordRowid   AS ROWID      NO-UNDO.
-  DEFINE INPUT  PARAMETER pcNodeKey       AS CHARACTER  NO-UNDO.
-  
-  DEFINE VARIABLE cNodeDetail AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cRecordRef  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cValueList  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cObjField   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hTable      AS HANDLE     NO-UNDO.
-
-  {get TreeDataTable hTable ghTreeViewOCX}.  
-  
-  IF NOT VALID-HANDLE(hTable) THEN
     RETURN.
-  
-  ASSIGN cValueList = DYNAMIC-FUNCTION("getUpdatableTableInfo":U IN gshGenManager, INPUT phSDOHandle).
-
-  IF LENGTH(TRIM(cValueList)) > 0 THEN 
-    ASSIGN cObjField = ENTRY(3, cValueList, CHR(4)).
-
-
-  ASSIGN cNodeDetail = getNodeDetails(hTable, pcNodeKey).
-  ASSIGN cRecordRef  = IF NUM-ENTRIES(cNodeDetail,CHR(2)) >= 5 THEN ENTRY(5,cNodeDetail,CHR(2)) ELSE "":U.
-
-  IF prRecordRowid <> ? THEN DO:
-    DYNAMIC-FUNCTION("setQueryWhere":U IN phSDOHandle, "":U).
-    /* Re-initialze the SDO to get the query back to a normal state */
-    DYNAMIC-FUNCTION('assignQuerySelection':U IN phSDOHandle, cObjField , cRecordRef, '':U).
-    DYNAMIC-FUNCTION('openQuery':U IN phSDOHandle). 
-  END.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE resetRecord wWin 
-PROCEDURE resetRecord :
-/*------------------------------------------------------------------------------
-  Purpose:     Captures the event when a record being Modify was reset.
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  
-  ASSIGN gcCurrentMode = "Cancel".
-  
-  gcNewContainerMode = "View".
-  
-  RUN setContainerViewMode.
-  IF VALID-HANDLE(ghTreeViewOCX) THEN
-    RUN enableObject IN ghTreeViewOCX.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -4924,16 +3839,16 @@ PROCEDURE resizeAndPositionWindow :
       IF DECIMAL(cHeight) < 1 THEN
         cHeight = "1":U.
       ASSIGN
-          FRAME {&FRAME-NAME}:SCROLLABLE     = TRUE
+          FRAME {&FRAME-NAME}:SCROLLABLE    = TRUE
           {&WINDOW-NAME}:WIDTH-CHARS  = MIN(MAX(DECIMAL(cWidth), {&WINDOW-NAME}:MIN-WIDTH-CHARS), 
                                              (SESSION:WIDTH-CHARS - 2.5))
           {&WINDOW-NAME}:HEIGHT-CHARS = MIN(MAX(DECIMAL(cHeight), ({&WINDOW-NAME}:MIN-HEIGHT-CHARS)),({&WINDOW-NAME}:MAX-HEIGHT-CHARS),
                                              (SESSION:HEIGHT-CHARS - 2))
-          {&WINDOW-NAME}:COLUMN        = IF (DECIMAL(cColumn) + {&WINDOW-NAME}:WIDTH-CHARS) >= SESSION:WIDTH-CHARS THEN
+          {&WINDOW-NAME}:COLUMN       = IF (DECIMAL(cColumn) + {&WINDOW-NAME}:WIDTH-CHARS) >= SESSION:WIDTH-CHARS THEN
                                               MAX(SESSION:WIDTH-CHARS - {&WINDOW-NAME}:WIDTH-CHARS, 1)
                                          ELSE IF DECIMAL(cColumn) < 0 THEN 1
                                          ELSE DECIMAL(cColumn)
-          {&WINDOW-NAME}:ROW           = IF (DECIMAL(cRow) + {&WINDOW-NAME}:HEIGHT-CHARS) >= SESSION:HEIGHT-CHARS THEN
+          {&WINDOW-NAME}:ROW          = IF (DECIMAL(cRow) + {&WINDOW-NAME}:HEIGHT-CHARS) >= SESSION:HEIGHT-CHARS THEN
                                               MAX(SESSION:HEIGHT-CHARS - {&WINDOW-NAME}:HEIGHT-CHARS - 1.5, 1)
                                          ELSE IF DECIMAL(cRow) < 0 THEN 1
                                          ELSE DECIMAL(cRow)
@@ -5008,100 +3923,118 @@ PROCEDURE resizeWindow :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-
   DEFINE VARIABLE cLayoutCode         AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hPageInstanceTT     AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hPageTT             AS HANDLE     NO-UNDO.  
-                                                 
   DEFINE VARIABLE dAllowedMinWidth    AS DECIMAL    NO-UNDO.
   DEFINE VARIABLE dAllowedMinHeight   AS DECIMAL    NO-UNDO.
   DEFINE VARIABLE dRow                AS DECIMAL    NO-UNDO.
   DEFINE VARIABLE dColumn             AS DECIMAL    NO-UNDO.
-  
+  DEFINE VARIABLE dInstanceId         AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE hObjectBuffer       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hPageBuffer         AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE dFolderWidth        AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE dFolderHeight       AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE dFolderCol          AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE dFolderRow          AS DECIMAL    NO-UNDO.
+
   RUN getTopLeft (OUTPUT dRow, OUTPUT dColumn) NO-ERROR.
-      
+
   {get Page0LayoutManager cLayoutCode}.
+  {get InstanceId dInstanceId}.
+
+  ASSIGN dAllowedMinWidth  = gdMinimumFolderWidth  + fiResizeFillIn:COL IN FRAME {&FRAME-NAME} + 3.5
+         dAllowedMinHeight = gdMinimumFolderHeight
+         .
+
+  IF {&WINDOW-NAME}:WIDTH-CHARS LT dAllowedMinWidth THEN
+      ASSIGN {&WINDOW-NAME}:WIDTH-CHARS  = dAllowedMinWidth.
+
+  IF {&WINDOW-NAME}:HEIGHT-CHARS LT dAllowedMinHeight THEN
+      ASSIGN {&WINDOW-NAME}:HEIGHT-CHARS = dAllowedMinHeight
+             {&WINDOW-NAME}:MIN-HEIGHT-CHARS = dAllowedMinHeight
+             .
+
+  IF {&WINDOW-NAME}:WIDTH-CHARS GT SESSION:WIDTH-CHARS THEN
   DO WITH FRAME {&FRAME-NAME}:
-    ASSIGN dAllowedMinWidth  = gdMinimumFolderWidth  + fiResizeFillIn:COL + 3.5 
-           dAllowedMinHeight = gdMinimumFolderHeight.
+      ASSIGN {&WINDOW-NAME}:WIDTH-CHARS = SESSION:WIDTH-CHARS.
+
+      IF fiResizeFillIn:COL GT ({&WINDOW-NAME}:WIDTH-CHARS - gdMinimumFolderWidth - 5) THEN
+          ASSIGN fiResizeFillIn:COL = ({&WINDOW-NAME}:WIDTH-CHARS - gdMinimumFolderWidth - 5).
+
+      APPLY "WINDOW-RESIZED":U TO {&WINDOW-NAME}.
   END.
-  IF {&WINDOW-NAME}:WIDTH-CHARS < dAllowedMinWidth THEN
-    ASSIGN {&WINDOW-NAME}:WIDTH-CHARS  = dAllowedMinWidth.
-  IF {&WINDOW-NAME}:HEIGHT-CHARS < dAllowedMinHeight THEN
-    ASSIGN {&WINDOW-NAME}:HEIGHT-CHARS = dAllowedMinHeight.
-                                    
-  IF {&WINDOW-NAME}:WIDTH-CHARS > SESSION:WIDTH-CHARS THEN DO:
-    ASSIGN {&WINDOW-NAME}:WIDTH-CHARS = SESSION:WIDTH-CHARS.
-    IF fiResizeFillIn:COL > ({&WINDOW-NAME}:WIDTH-CHARS - gdMinInstanceWidth - 5) THEN
-      fiResizeFillIn:COL = ({&WINDOW-NAME}:WIDTH-CHARS - gdMinInstanceWidth - 5).
-           
-    APPLY "WINDOW-RESIZED":U TO {&WINDOW-NAME}.
-  END.
-  
-  IF glMenuMaintenance AND 
-     NOT glTreeViewDefaults THEN DO:
-    /* Store TreeView's ContainerToolbar and Folder Info elsewhere for the momemnt */
-    /* If whe don't do this, the resize procedure will try to reposition them */
-    EMPTY TEMP-TABLE tt_exclude_page_instance.
-    FOR EACH  tt_page_instance
-        WHERE tt_page_instance.object_instance_handle = ghContainerToolbar
-        OR (   tt_page_instance.object_instance_handle = ghFolder
-               AND NOT glMenuMaintenance)
-        OR    tt_page_instance.object_instance_handle = ghFolderToolBar
-        EXCLUSIVE-LOCK:
-        CREATE tt_exclude_page_instance.
-        BUFFER-COPY tt_page_instance TO
-                    tt_exclude_page_instance.
-      DELETE tt_page_instance.
-    END.
-  END.
-  
-  IF CAN-FIND(FIRST tt_view_page_instance) THEN DO:
-    EMPTY TEMP-TABLE tt_page_instance.
-    FOR EACH tt_view_page_instance:
-      CREATE tt_page_instance.
-      BUFFER-COPY tt_view_page_instance TO tt_page_instance.
-    END.
-    EMPTY TEMP-TABLE tt_page.
-    FOR EACH tt_view_page:
-      CREATE tt_page.
-      BUFFER-COPY tt_view_page TO tt_page.
-    END.
-  END.
-  hPageInstanceTT = TEMP-TABLE tt_page_instance:HANDLE.
-  hPageTT         = TEMP-TABLE tt_page:HANDLE.
-  
-  PUBLISH "windowToBeSized":U FROM THIS-PROCEDURE.
-    
+
+  PUBLISH "windowToBeSized":U FROM TARGET-PROCEDURE.
+
   /* The code to find the following handles were placed here because of some timing issues that were encountered with resizing */
-  IF NOT VALID-HANDLE(ghContainerToolbar) THEN ghContainerToolbar = WIDGET-HANDLE(ENTRY(1, DYNAMIC-FUNCTION("LinkHandles":U, INPUT "Toolbar-Source"))).
-  IF NOT VALID-HANDLE(ghTreeViewOCX)      THEN ghTreeViewOCX      = WIDGET-HANDLE(entry(1, DYNAMIC-FUNCTION("linkHandles":U, INPUT "TVController-Source":U))). 
-  IF NOT VALID-HANDLE(ghFilterViewer)     THEN ghFilterViewer     = WIDGET-HANDLE(ENTRY(1, DYNAMIC-FUNCTION("LinkHandles":U, INPUT "TreeFilter-Source"))).
-  IF NOT VALID-HANDLE(ghFolder)           THEN ghFolder           = WIDGET-HANDLE(ENTRY(1, DYNAMIC-FUNCTION("LinkHandles":U, INPUT "Page-Source"))).
+  IF NOT VALID-HANDLE(ghContainerToolbar) THEN ghContainerToolbar = WIDGET-HANDLE(ENTRY(1, DYNAMIC-FUNCTION("LinkHandles":U IN THIS-PROCEDURE, INPUT "Toolbar-Source"))).
+  IF NOT VALID-HANDLE(ghTreeViewOCX)      THEN ghTreeViewOCX      = WIDGET-HANDLE(ENTRY(1, DYNAMIC-FUNCTION("linkHandles":U IN THIS-PROCEDURE, INPUT "TVController-Source":U))). 
+  IF NOT VALID-HANDLE(ghFilterViewer)     THEN ghFilterViewer     = WIDGET-HANDLE(ENTRY(1, DYNAMIC-FUNCTION("LinkHandles":U IN THIS-PROCEDURE, INPUT "TreeFilter-Source"))).
+  IF NOT VALID-HANDLE(ghFolder)           THEN ghFolder           = WIDGET-HANDLE(ENTRY(1, DYNAMIC-FUNCTION("LinkHandles":U IN THIS-PROCEDURE, INPUT "Page-Source"))).
 
   IF VALID-HANDLE(ghFilterViewer) THEN
-    SUBSCRIBE PROCEDURE ghTreeViewOCX TO "filterDataAvailable":U IN ghFilterViewer.
+      SUBSCRIBE PROCEDURE ghTreeViewOCX TO "filterDataAvailable":U IN ghFilterViewer.
 
-  RUN resizeWindow IN gsh_LayoutManager (
-      INPUT cLayoutCode,
-      INPUT hPageInstanceTT:DEFAULT-BUFFER-HANDLE,
-      INPUT hPageTT:DEFAULT-BUFFER-HANDLE,
-      INPUT {&WINDOW-NAME}, 
-      INPUT FRAME {&FRAME-NAME}:HANDLE
-      ).  
-    
-  IF glMenuMaintenance AND 
-     NOT glTreeViewDefaults THEN DO:
-    /* Now copy these Saved Instances back */
-    FOR EACH  tt_exclude_page_instance
+  ASSIGN hObjectBuffer = BUFFER container_Object:HANDLE
+         hPageBuffer   = BUFFER container_Page:HANDLE
+         .
+
+  /* Store TreeView's ContainerToolbar and Folder Info elsewhere for the momemnt */
+  /* If whe don't do this, the resize procedure will try to reposition them */
+  IF glMenuMaintenance AND NOT glTreeViewDefaults THEN
+  DO:
+    IF VALID-HANDLE(ghFolder) THEN
+      RUN hideObject IN ghFolder.
+    EMPTY TEMP-TABLE tTreeObjects.
+    FOR EACH container_object 
         EXCLUSIVE-LOCK:
-      CREATE tt_page_instance.
-      BUFFER-COPY tt_exclude_page_instance TO
-                  tt_page_instance.
-      DELETE tt_exclude_page_instance.
+      IF container_object.tObjectInstanceHandle = ghFolderToolbar OR
+         /*container_object.tObjectInstanceHandle = ghFolder        OR*/
+         container_object.tObjectInstanceHandle = ghContainerToolbar THEN DO:
+        CREATE tTreeObjects.
+        BUFFER-COPY container_object TO tTreeObjects.
+        DELETE container_object.
+      END.
+    END.
+  END.
+  
+  IF NOT glMenuMaintenance AND NOT glTreeViewDefaults THEN DO:
+    FOR EACH container_object 
+        EXCLUSIVE-LOCK:
+      IF container_object.tObjectInstanceHandle = ghFolderToolbar OR
+         container_object.tObjectInstanceHandle = ghFolder        THEN DO:
+        CREATE tTreeObjects.
+        BUFFER-COPY container_object TO tTreeObjects.
+        DELETE container_object.
+      END.
     END.
   END.
 
+  RUN resizeWindow IN gshLayoutManager ( INPUT cLayoutCode,
+                                         INPUT {&WINDOW-NAME}, 
+                                         INPUT FRAME {&FRAME-NAME}:HANDLE,
+                                         INPUT dInstanceId,
+                                         INPUT hObjectBuffer,
+                                         INPUT hPageBuffer                ).
+
+  /* Put back the TreeView's ContainerToolbar and Folder */
+  FOR EACH tTreeObjects 
+      EXCLUSIVE-LOCK:
+    CREATE container_object.
+    BUFFER-COPY tTreeObjects TO container_object.
+    DELETE tTreeObjects.
+  END.
+
+  IF glMenuMaintenance AND NOT glTreeViewDefaults AND VALID-HANDLE(ghFolder) THEN
+  DO:
+    dFolderWidth = DYNAMIC-FUNCTION("getWidth":U IN ghFolder).
+    dFolderHeight = DYNAMIC-FUNCTION("getHeight":U IN ghFolder).
+    dFolderCol   = DYNAMIC-FUNCTION("getCol":U IN ghFolder).
+    dFolderRow   = DYNAMIC-FUNCTION("getRow":U IN ghFolder).
+    RUN repositionObject IN ghFolder (INPUT dFolderRow, INPUT dFolderCol - 1.6).
+    RUN resizeObject IN ghFolder (INPUT dFolderHeight + 1, INPUT dFolderWidth + 3.5).
+  END.
+
+  RETURN.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -5118,7 +4051,7 @@ Notes:      This code is generated by the UIB.  DO NOT modify it.
             RTB.  It will in no way affect the operation of this
             program as it never gets executed.
 -------------------------------------------------------------*/
-  RUN "adm2\dyntreeview.w *RTB-SmObj* ".
+  RUN "adm2/dyntreeview.w *RTB-SmObj* ".
 
 END PROCEDURE.
 
@@ -5153,8 +4086,7 @@ PROCEDURE saveTreeViewWidth :
     lSaveWindowPos = cProfileData <> "NO":U.
 
   /* Only position and size if asked to */
-  IF lSaveWindowPos THEN
-  DO WITH FRAME {&FRAME-NAME}:
+  IF lSaveWindowPos THEN DO WITH FRAME {&FRAME-NAME}:
     ASSIGN
       cProfileData = REPLACE(STRING(fiResizeFillIn:COL), SESSION:NUMERIC-DECIMAL-POINT, ".":U).
   
@@ -5172,52 +4104,6 @@ PROCEDURE saveTreeViewWidth :
                                                 INPUT NO,                  /* Delete flag */
                                                 INPUT "PER":u).            /* Save flag (permanent) */
     END.
-  END.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setContainerModifyMode wWin 
-PROCEDURE setContainerModifyMode :
-/*------------------------------------------------------------------------------
-  Purpose:     Force whole container intio modify mode - including header/detail
-               windows where they have many toolbars.
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-
-  DEFINE VARIABLE iLoop                     AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE hHandle                   AS HANDLE     NO-UNDO.
-  
-  IF NUM-ENTRIES(gcToolbarHandles) > 0 THEN
-  DO iLoop = 1 TO NUM-ENTRIES(gcToolbarHandles):
-    ASSIGN hHandle = WIDGET-HANDLE(ENTRY(iLoop, gcToolbarHandles)).
-    PUBLISH "updateMode" FROM hHandle ("enable").
-  END.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setContainerViewMode wWin 
-PROCEDURE setContainerViewMode :
-/*------------------------------------------------------------------------------
-  Purpose:     Force whole container intio view mode - including header/detail
-               windows where they have many toolbars.
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-
-  DEFINE VARIABLE iLoop                     AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE hHandle                   AS HANDLE     NO-UNDO.
-  
-  IF NUM-ENTRIES(gcToolbarHandles) > 0 THEN
-  DO iLoop = 1 TO NUM-ENTRIES(gcToolbarHandles):
-    ASSIGN hHandle = WIDGET-HANDLE(ENTRY(iLoop, gcToolbarHandles)).
-    PUBLISH "updateMode" FROM hHandle ("view").
   END.
 
 END PROCEDURE.
@@ -5321,70 +4207,6 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setLocalAttributes wWin 
-PROCEDURE setLocalAttributes :
-/*------------------------------------------------------------------------------
-  Purpose:     Setup properties of dynamic container as read from object
-               repository
-  Parameters:  Input list of properties.
-  Notes:       The list is in the same format as returned to the function
-               instancePropertyList, with CHR(3) between entries and CHR(4)
-               between the property name and its value in each entry. 
-               NOTE: we must get the datatype for each property in order to set
-               it.
-------------------------------------------------------------------------------*/
-DEFINE INPUT PARAMETER pcPropList AS CHARACTER NO-UNDO.
-
-DEFINE VARIABLE iEntry            AS INTEGER    NO-UNDO.
-DEFINE VARIABLE cProperty         AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cEntry            AS CHARACTER  NO-UNDO.    
-DEFINE VARIABLE cValue            AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cSignature        AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE phObject          AS HANDLE     NO-UNDO.
-DEFINE VARIABLE lAnswer           AS LOGICAL    NO-UNDO.
-
-phObject = THIS-PROCEDURE.
-     
-attribute-loop:
-DO iEntry = 1 TO NUM-ENTRIES(pcPropList, CHR(3)):
-  ASSIGN
-    cEntry = ENTRY(iEntry, pcPropList, CHR(3))
-    cProperty = ENTRY(1, cEntry, CHR(4))
-    cValue = ENTRY(2, cEntry, CHR(4))
-    .
-  /* Do not overwrite container mode if set */
-  IF cProperty = "ContainerMode":U AND gcContainerMode <> "":U THEN
-    NEXT attribute-loop.
-  
-  /* Get the datatype from the return type of the get function. */
-  cSignature = dynamic-function
-    ("Signature":U IN phObject, "get":U + cProperty).
-  
-  /** The message code removed to avoid issues with attributes being set in an
-   *  object which are not available as properties in the object. This becomes
-   *  as issue as more objects become dynamic (eg viewers, lookups, etc); attributes
-   *  such as HEIGHT-CHARS are necessary for the instantiation of the object, but 
-   *  are not strictly properties of the object.                                  */
-  IF cSignature NE "":U THEN  
-  CASE ENTRY(2,cSignature):
-    WHEN "INTEGER":U THEN
-      dynamic-function("set":U + cProperty IN phObject, INT(cValue)).
-    WHEN "DECIMAL":U THEN
-      dynamic-function("set":U + cProperty IN phObject, DEC(cValue)).
-    WHEN "CHARACTER":U THEN
-      dynamic-function("set":U + cProperty IN phObject, cValue).
-    WHEN "LOGICAL":U THEN
-      dynamic-function("set":U + cProperty IN phObject,
-        IF cValue = "yes":U THEN yes ELSE no).
-  END CASE.
-END.
-
-RETURN.
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setMinMaxDefaults wWin 
 PROCEDURE setMinMaxDefaults :
 /*------------------------------------------------------------------------------
@@ -5398,6 +4220,7 @@ PROCEDURE setMinMaxDefaults :
     DEFINE VARIABLE cObjectName         AS CHARACTER    NO-UNDO.
     DEFINE VARIABLE rProfileRid         AS ROWID        NO-UNDO.
     DEFINE VARIABLE lSaveWindowPos      AS LOGICAL      NO-UNDO.
+    DEFINE VARIABLE dFilterViewerWidth  AS DECIMAL    NO-UNDO.
 
     IF plMenuController THEN
     DO:
@@ -5408,10 +4231,12 @@ PROCEDURE setMinMaxDefaults :
           gdMaximumWindowHeight = SESSION:HEIGHT - 1.
     END.
     ELSE DO:
+      IF VALID-HANDLE(ghFilterViewer) THEN
+        dFilterViewerWidth = DYNAMIC-FUNCTION("getWidth":u IN ghFilterViewer).
       ASSIGN 
-          gdMinimumWindowWidth = 100
+          gdMinimumWindowWidth  = MAX(dFilterViewerWidth,100)
           gdMinimumWindowHeight = 11
-          gdMaximumWindowWidth = SESSION:WIDTH - 1
+          gdMaximumWindowWidth  = SESSION:WIDTH - 1
           gdMaximumWindowHeight = SESSION:HEIGHT - 1.                  
     END.
 
@@ -5429,7 +4254,7 @@ PROCEDURE setMinMaxDefaults :
     IF  lSaveWindowPos THEN
     DO:
       ASSIGN
-        cObjectName  = getLogicalObjectName()
+        cObjectName  = DYNAMIC-FUNCTION("getLogicalObjectName":U)
         pcProfileData = "":U
         rProfileRid  = ?.
       RUN getProfileData IN gshProfileManager (INPUT "Window":U,          /* Profile type code                            */
@@ -5448,6 +4273,51 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setNonTreeObjects wWin 
+PROCEDURE setNonTreeObjects :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    DEFINE INPUT PARAMETER TABLE FOR ttNonTreeObjects.
+
+    RETURN.
+END PROCEDURE.  /* setNonTreeObjects */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setRunningSDOs wWin 
+PROCEDURE setRunningSDOs :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT PARAMETER TABLE FOR ttRunningSDOs.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setTopLeft wWin 
+PROCEDURE setTopLeft :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER pdTopCoordinate  AS DECIMAL    NO-UNDO.
+  DEFINE INPUT  PARAMETER pdLeftCoordinate AS DECIMAL    NO-UNDO.
+
+  ASSIGN gdTopCoordinate  = pdTopCoordinate 
+         gdLeftCoordinate = pdLeftCoordinate.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setTreeViewWidth wWin 
 PROCEDURE setTreeViewWidth :
 /*------------------------------------------------------------------------------
@@ -5459,6 +4329,7 @@ PROCEDURE setTreeViewWidth :
   DEFINE VARIABLE rProfileRid     AS ROWID      NO-UNDO.
   DEFINE VARIABLE lSaveWindowPos  AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE dTVCol          AS DECIMAL    NO-UNDO.
+  
   /* determine if window positions and sizes are saved */
   IF VALID-HANDLE(gshProfileManager) THEN
     RUN getProfileData IN gshProfileManager (INPUT "Window":U,
@@ -5505,863 +4376,7 @@ PROCEDURE setTreeViewWidth :
      dTVCol > 0 THEN
     fiResizeFillIn:COL IN FRAME {&FRAME-NAME} = dTVCol.
   
-  APPLY "END-MOVE":U TO fiResizeFillIn IN FRAME {&FRAME-NAME}.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE stripMNUDetails wWin 
-PROCEDURE stripMNUDetails :
-/*------------------------------------------------------------------------------
-  Purpose:     This procedure will strip the details passed to it to create
-               nodes for a menu structure
-  Parameters:  I pcParentNodeKey - The Node Key of the parent node
-               I pcDetailList    - The list of menu details to be created
-               I pdNodeObj       - The node_obj of the gsm_node record that
-                                   created this list
-               I pcImage         - The File name of the image to be displayed
-               I pcSelectedImage - The File name of the image to be displayed 
-                                   when selected
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE INPUT  PARAMETER pcParentNodeKey AS CHARACTER  NO-UNDO.
-  DEFINE INPUT  PARAMETER pcDetailList    AS CHARACTER  NO-UNDO.
-  DEFINE INPUT  PARAMETER pdNodeObj       AS DECIMAL    NO-UNDO.
-  DEFINE INPUT  PARAMETER pcImage         AS CHARACTER  NO-UNDO.
-  DEFINE INPUT  PARAMETER pcSelectedImage AS CHARACTER  NO-UNDO.
-  
-  DEFINE VARIABLE hTable                AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE hBuf                  AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE hParentNodeKey        AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE hNodeKey              AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE hNodeObj              AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE hNodeLabel            AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE hPrivateData          AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE hImage                AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE hSelectedImage        AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE hNodeInsert           AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE hSort                 AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE iLoop                 AS INTEGER      NO-UNDO.
-  DEFINE VARIABLE cNodeLabel            AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE cPrivateData          AS CHARACTER    NO-UNDO.
-  
-  {get TreeDataTable hTable ghTreeViewOCX}.  
-
-  /* Grab the handles to the individual fields in the tree data table. */
-  ASSIGN hBuf           = hTable:DEFAULT-BUFFER-HANDLE
-         hParentNodeKey = hBuf:BUFFER-FIELD('parent_node_key':U)
-         hNodeObj       = hBuf:BUFFER-FIELD('node_obj':U)
-         hNodeKey       = hBuf:BUFFER-FIELD('node_key':U)
-         hNodeLabel     = hBuf:BUFFER-FIELD('node_label':U)
-         hPrivateData   = hBuf:BUFFER-FIELD('private_data':U)
-         hImage         = hBuf:BUFFER-FIELD('image':U)
-         hSelectedImage = hBuf:BUFFER-FIELD('selected_image':U)
-         hSort          = hBuf:BUFFER-FIELD('node_sort':U)
-         hNodeInsert    = hBuf:BUFFER-FIELD('node_insert':U).
-      
-  DO iLoop = 1 TO NUM-ENTRIES(pcDetailList,CHR(3)):
-    ASSIGN cNodeLabel   = ENTRY(1,ENTRY(iLoop,pcDetailList,CHR(3)),CHR(4))
-           cPrivateData = ENTRY(2,ENTRY(iLoop,pcDetailList,CHR(3)),CHR(4))
-           NO-ERROR.
-    IF cNodeLabel = "":U THEN
-      NEXT.
-    hBuf:BUFFER-CREATE().
-    ASSIGN hParentNodeKey:BUFFER-VALUE = pcParentNodeKey
-           hNodeObj:BUFFER-VALUE       = pdNodeObj
-           hNodeKey:BUFFER-VALUE       = DYNAMIC-FUNCTION('getNextNodeKey':U IN ghTreeViewOCX)
-           hNodeLabel:BUFFER-VALUE     = cNodeLabel
-           hPrivateData:BUFFER-VALUE   = cPrivateData
-           hImage:BUFFER-VALUE         = pcImage
-           hSelectedImage:BUFFER-VALUE = pcSelectedImage
-           hSort:BUFFER-VALUE          = TRUE
-           hNodeInsert:BUFFER-VALUE    = IF pcParentNodeKey = "":U THEN 1 ELSE 4.
-  END.
-  
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE toolbar wWin 
-PROCEDURE toolbar :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE INPUT  PARAMETER pcAction  AS CHARACTER  NO-UNDO.
-  
-  DEFINE VARIABLE cCurrentNode  AS CHARACTER   NO-UNDO.
-  
-  CASE pcAction:
-    WHEN "disableData":U THEN DO: 
-      /* If an error occurred of validation vailed - don't continue */
-      IF RETURN-VALUE = "ADM-ERROR":U THEN
-        RETURN.
-      
-      IF gcState = "updateComplete":U AND 
-         (gcCurrentMode = 'add':U   OR 
-          gcCurrentMode = 'copy':U) THEN DO:
-        ASSIGN cCurrentNode     = gcCurrentNodeKey
-               gcCurrentNodeKey = ?.
-        DYNAMIC-FUNCTION("selectNode" IN ghTreeViewOCX, cCurrentNode).
-        RUN tvNodeSelected (cCurrentNode).
-        gcState = "":U.
-      END.
-      IF gcCurrentMode = "delete":U  AND 
-         VALID-HANDLE(ghTreeViewOCX) THEN DO:
-        /* This solves the problem when deleting a child node that is
-           the last node of a parent. It used to jump to the parent node */
-        gcCurrentNodeKey = ?.
-        cCurrentNode = DYNAMIC-FUNCTION("getSelectedNode" IN ghTreeViewOCX).
-        IF cCurrentNode = gcParentNode THEN DO:
-          ASSIGN cCurrentNode = DYNAMIC-FUNCTION("getProperty" IN ghTreeViewOCX, "CHILD":U, gcParentNode).
-                 cCurrentNode = DYNAMIC-FUNCTION("getProperty" IN ghTreeViewOCX, "LASTSIBLING", cCurrentNode).
-          IF cCurrentNode <> ? THEN DO:
-            DYNAMIC-FUNCTION("selectNode" IN ghTreeViewOCX, cCurrentNode).
-            RUN tvNodeSelected (cCurrentNode).
-          END.
-          ELSE DO: /* The last child node was deleted - select parent and apply selection to refresh screen */
-            IF gcParentNode <> ? THEN DO:
-              DYNAMIC-FUNCTION("selectNode" IN ghTreeViewOCX, gcParentNode).
-              RUN tvNodeSelected (gcParentNode).
-            END. /* VALID-HANDLE(gcParentNode) */
-          END. /* ELSE */
-        END. /* cCurrentNode = gcParentNode */
-        ELSE DO:
-          DYNAMIC-FUNCTION("selectNode" IN ghTreeViewOCX, cCurrentNode).
-          RUN tvNodeSelected (cCurrentNode).
-        END.
-        ASSIGN gcState        = "":U
-               gcCurrentMode  = "":U.
-      END. /* gcCurrentMode = "delete":U */
-      
-      IF gcCurrentMode = "Cancel":U THEN
-        ASSIGN gcState        = "":U
-               gcCurrentMode  = "":U
-               glNewChildNode = FALSE.
-    END. /* "disableData":U */
-    OTHERWISE
-      RUN SUPER (pcAction).
-  END CASE.
-  
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE tvNodeEvent wWin 
-PROCEDURE tvNodeEvent :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE INPUT  PARAMETER pcEvent     AS CHARACTER  NO-UNDO.
-  DEFINE INPUT  PARAMETER pcNodeKey   AS CHARACTER  NO-UNDO.
-
-  DEFINE VARIABLE hTable              AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cNodeDetail         AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hNodeExpanded       AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hBuf                AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hQry                AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE dNodeObj            AS DECIMAL    NO-UNDO.
-  DEFINE VARIABLE rRecordRowid        AS ROWID      NO-UNDO.
-  DEFINE VARIABLE cCurrentNodeKey     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cFirstChild         AS CHARACTER  NO-UNDO.
-
-  IF pcNodeKey = ? AND pcEvent <> "RIGHTCLICK" THEN
-    RETURN.
-  
-  IF pcNodeKey <> ? THEN 
-    {get TreeDataTable hTable ghTreeViewOCX}.  
-  
-  IF VALID-HANDLE(hTable) THEN DO:
-    cNodeDetail = getNodeDetails(hTable, pcNodeKey).
-    ASSIGN dNodeObj     = DECIMAL(ENTRY(1,cNodeDetail,CHR(2)))
-           rRecordRowid = TO-ROWID(ENTRY(2,cNodeDetail,CHR(2))).
-  END.
-  
-  glReposSDO = FALSE.
-  CASE pcEvent:
-    WHEN "EXPAND":U OR WHEN "EXPANDNOW":U THEN DO:
-      gcCurrExpandNodeKey = pcNodeKey.
-      IF NOT VALID-HANDLE(hTable) OR
-         pcNodeKey = ? THEN
-        RETURN.
-      IF pcEvent = "EXPAND":U THEN DO:
-        cFirstChild = DYNAMIC-FUNCTION("getProperty":U IN ghTreeViewOCX, "CHILD":U, pcNodeKey).
-        IF cFirstChild <> ? THEN DO:
-          IF DYNAMIC-FUNCTION("getProperty":U IN ghTreeViewOCX, "TEXT":U, cFirstChild) <> "+":U THEN
-            LEAVE.
-          SESSION:SET-WAIT-STATE("GENERAL":U).
-          /* First delete the dummy node */
-          ASSIGN hBuf = hTable:DEFAULT-BUFFER-HANDLE.
-          CREATE QUERY hQry.  
-          hQry:ADD-BUFFER(hBuf).
-          hQry:QUERY-PREPARE(SUBSTITUTE('FOR EACH &1 WHERE &1.node_key = "&2"':U, hTable:NAME,cFirstChild)).
-          hQry:QUERY-OPEN().
-          hQry:GET-FIRST().
-          
-          IF hBuf:AVAILABLE THEN
-            hBuf:BUFFER-DELETE().
-          IF VALID-HANDLE(hQry) THEN
-            DELETE OBJECT hQry.
-          
-          RUN deleteNode IN ghTreeViewOCX (cFirstChild).
-        END.
-      END.
-      SESSION:SET-WAIT-STATE("GENERAL":U).
-      /* Now scan for new nodes */
-
-      /* First check if the current node is a structured node */
-      FIND FIRST ttNode
-           WHERE ttNode.node_obj = dNodeObj
-           NO-LOCK NO-ERROR.
-      IF AVAILABLE ttNode AND 
-         ttNode.run_attribute = "STRUCTURED":U THEN
-        RUN loadNodeData (pcNodeKey, ttNode.node_obj).
-      ELSE DO:
-        FOR EACH ttNode 
-            WHERE ttNode.parent_node_obj = dNodeObj
-            NO-LOCK
-            BREAK BY ttNode.node_label:
-          RUN loadNodeData (pcNodeKey, ttNode.node_obj).
-        END.
-      END.
-      RUN populateTree IN ghTreeViewOCX (hTable, pcNodeKey).
-      /* In some instances we might be viewing data on a SDV on a level, and
-         decide to expand nodes on the same level, but for another parent. 
-         In such a case the SDO will be refreshed thus losing our data in the
-         SDV and we have to refresh the SDO again after the new nodes have
-         been build to have the corresponding data on the SDV be the same as
-         the current record in the SDO */
-      IF glReposSDO THEN DO:
-        ASSIGN cCurrentNodeKey  = gcCurrentNodeKey
-               gcCurrentNodeKey = ?.
-        RUN tvNodeSelected (INPUT cCurrentNodeKey).
-      END.
-      SESSION:SET-WAIT-STATE("":U).
-    END. /* EXPAND */
-    WHEN "RIGHTCLICK":U THEN DO:
-      IF dNodeObj <> 0 THEN
-        RUN buildPopupMenu (INPUT dNodeObj,
-                            INPUT pcNodeKey).
-      ELSE
-        RUN buildPopupMenu (INPUT 0,
-                            INPUT "":U).
-    END.
-  END. /* CASE */
-  
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE tvNodeSelected wWin 
-PROCEDURE tvNodeSelected :
-/*------------------------------------------------------------------------------
-  Purpose:     Occurs when a user selected a node
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE INPUT  PARAMETER pcNodeKey AS CHARACTER  NO-UNDO.
-  
-  DEFINE VARIABLE hNodeKey          AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cNodeKey          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE dNodeObj          AS DECIMAL    NO-UNDO.
-  DEFINE VARIABLE cDataset          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cLogicalObject    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDataSourceType   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDataSource       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cPrimarySDO       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cSDOSBOName       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cForeignFields    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cLabelSubsFields  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE rRecordRowid      AS ROWID      NO-UNDO.
-  DEFINE VARIABLE cPrivateData      AS CHARACTER  NO-UNDO.
-  
-  DEFINE VARIABLE lMenuObject       AS LOGICAL    NO-UNDO.
-  
-  DEFINE VARIABLE hTable            AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hSDOHandle        AS HANDLE     NO-UNDO.
-  
-  DEFINE VARIABLE cNodeDetail       AS CHARACTER  NO-UNDO.
-
-  IF pcNodeKey = ? THEN
-    RETURN.
-  
-  glDelete = FALSE.
-
-  {get TreeDataTable hTable ghTreeViewOCX}.  
-  
-  IF NOT VALID-HANDLE(hTable) THEN
-    RETURN.
-  
-  RUN setDataLinkActive.
-  
-  ASSIGN cNodeKey = pcNodeKey.
-
-  /* If the user re-selected the same node - we don't want to do anything again */
-  IF cNodeKey = gcCurrentNodeKey THEN
-    RETURN.
-  
-  SESSION:SET-WAIT-STATE("GENERAL":U).
-  ASSIGN cNodeDetail        = getNodeDetails(hTable, cNodeKey)
-         gcCurrentNodeKey   = cNodeKey
-         gcLastLaunchedNode = IF gcLastLaunchedNode = "":U OR gcLastLaunchedNode = ? THEN cNodeKey ELSE gcLastLaunchedNode.
-  
-  ASSIGN dNodeObj      = DECIMAL(ENTRY(1,cNodeDetail,CHR(2)))
-         rRecordRowid  = TO-ROWID(ENTRY(2,cNodeDetail,CHR(2))).
-         cPrivateData  = ENTRY(3,cNodeDetail,CHR(2)).
-  
-  ASSIGN gcParentNode = DYNAMIC-FUNCTION("getProperty":U IN ghTreeViewOCX, INPUT "PARENT":U, INPUT gcCurrentNodeKey) 
-         NO-ERROR.
-  
-  /* Check if the node is a MENU structure - we need to read the submenus */
-  IF INDEX(cPrivateData,"LogicalObject":U) > 0  THEN DO:
-    lMenuObject = TRUE.
-            
-    ASSIGN cLogicalObject  = IF NUM-ENTRIES(cPrivateData,CHR(6)) >= 1 THEN ENTRY(2,ENTRY(1,cPrivateData,CHR(7)),CHR(6)) ELSE "":U
-           cForeignFields  = "":U
-           cDataSourceType = "MNU":U
-           cDataSource     = IF NUM-ENTRIES(cPrivateData,CHR(6)) >= 3 THEN ENTRY(2,ENTRY(3,cPrivateData,CHR(7)),CHR(6)) ELSE "":U
-           NO-ERROR.
-  END.
-  ELSE
-    lMenuObject = FALSE.
-
-  FIND FIRST ttNode
-       WHERE ttNode.node_obj = dNodeObj
-       NO-LOCK NO-ERROR.
-
-  IF NOT AVAILABLE ttNode THEN DO:
-    SESSION:SET-WAIT-STATE("":U).
-    RETURN.
-  END.
-  
-  IF lMenuObject = FALSE THEN
-    ASSIGN cLogicalObject   = ttNode.logical_object
-           cForeignFields   = ttNode.foreign_fields
-           cLabelSubsFields = ttNode.label_text_substitution_fields
-           cDataSourceType  = ttNode.data_source_type
-           cDataSource      = ttNode.data_source
-           cPrimarySDO      = ttNode.primary_sdo
-           NO-ERROR.
-  
-  IF cDataSourceType = "SDO":U OR
-    (cDataSourceType = "TXT":U AND
-     cPrimarySDO <> "":U) THEN DO:
-    /** First check that the SDO/SBO is relatively pathed **/
-    IF INDEX(cPrimarySDO,"/":U) = 0 AND
-       INDEX(cPrimarySDO,"\":U) = 0 THEN DO:
-       cSDOSBOName = returnSDOName(cPrimarySDO).
-    END.
-    FIND FIRST ttRunningSDOs
-         WHERE ttRunningSDOs.cSDOName = cSDOSBOName
-         NO-LOCK NO-ERROR.
-    IF AVAILABLE ttRunningSDOs AND
-       VALID-HANDLE(ttRunningSDOs.hSDOHandle) THEN DO:
-      RUN repositionSDO (INPUT cForeignFields,
-                         INPUT ttRunningSDOs.hSDOHandle,
-                         INPUT ttRunningSDOs.hParentSDO,
-                         INPUT rRecordRowid,
-                         INPUT cNodeKey).
-    END.
-  END.
-
-  /* When an extract program was used to create a node we 
-     need to launch the SDO/SBO that is required by the 
-     logical object being launched. */
-  IF cDataSourceType = "PRG":U AND 
-     cLogicalObject <> "":U THEN DO:
-    /** First check that the SDO/SBO is relatively pathed **/
-    IF INDEX(cPrimarySDO,"/":U) = 0 AND
-       INDEX(cPrimarySDO,"\":U) = 0 THEN DO:
-       cSDOSBOName = returnSDOName(cPrimarySDO).
-    END.
-    RUN manageSDOs (INPUT  cSDOSBOName,
-                    INPUT  cForeignFields,
-                    INPUT  "":U,
-                    INPUT cLabelSubsFields,
-                    INPUT (ttNode.run_attribute = "STRUCTURED":U),
-                    INPUT ttNode.fields_to_store,
-                    OUTPUT hSDOHandle).
-    IF NOT VALID-HANDLE(hSDOHandle) THEN DO:
-      SESSION:SET-WAIT-STATE("":U).
-      RETURN.
-    END.
-    FIND FIRST ttRunningSDOs
-         WHERE ttRunningSDOs.cSDOName = cSDOSBOName
-         NO-LOCK NO-ERROR.
-    IF AVAILABLE ttRunningSDOs AND
-       VALID-HANDLE(ttRunningSDOs.hSDOHandle) THEN DO:
-      RUN repositionSDO (INPUT cForeignFields,
-                         INPUT ttRunningSDOs.hSDOHandle,
-                         INPUT ttRunningSDOs.hParentSDO,
-                         INPUT rRecordRowid,
-                         INPUT cNodeKey).
-    END.
-  END.
-  
-  RUN nodeSelected (INPUT cNodeKey).
-  SESSION:SET-WAIT-STATE("":U).
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE updateRecord wWin 
-PROCEDURE updateRecord :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE updateState wWin 
-PROCEDURE updateState :
-/*------------------------------------------------------------------------------
-  Purpose:     This procedure will capture any events like Add, Modify or Copy
-  Parameters:  <none>
-  Notes:       I pcState - Indicates the new state of the Container
-------------------------------------------------------------------------------*/
-DEFINE INPUT  PARAMETER pcState AS CHARACTER  NO-UNDO.
-
-DEFINE VARIABLE cParentNode       AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cCurrentNode      AS CHARACTER  NO-UNDO.
-
-DEFINE VARIABLE hCurrentNodeKey   AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hTable            AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hNewTable         AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hBuf              AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hQry              AS HANDLE     NO-UNDO.
-
-DEFINE VARIABLE hNodeBuf          AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hNodeKey          AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hParentKey        AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hPrivateData      AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hLabel            AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hImage            AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hSelectedImage    AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hNodeInsert       AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hSort             AS HANDLE     NO-UNDO.
-
-DEFINE VARIABLE dNodeObj          AS DECIMAL    NO-UNDO.
-DEFINE VARIABLE cDataset          AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cDataSourceType   AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cDataSource       AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cNodeLabel        AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cLabelSubsFields  AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE iLoop             AS INTEGER    NO-UNDO.
-DEFINE VARIABLE cNodeLabelExpr    AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cImageFileName    AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cSelImgFileName   AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cRunAttribute     AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cFieldsToStore    AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cSubstitute       AS CHARACTER  NO-UNDO EXTENT 10.
-DEFINE VARIABLE lNodeChecked      AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE hNodeObj          AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hSDOHandle        AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hParentSDO        AS HANDLE     NO-UNDO.
-DEFINE VARIABLE cValueList        AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cObjField         AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE hRecordRef        AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRecordRowId      AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hNodeChecked      AS HANDLE     NO-UNDO.
-DEFINE VARIABLE lLabelBlank       AS LOGICAL    NO-UNDO.
-
-RUN setDataLinkActive.
-
-IF pcState = "VIEW":U THEN
-  NEXT.
-IF gcLastLaunchedNode = ? OR 
-   gcLastLaunchedNode = "":U THEN DO:
-  IF VALID-HANDLE(ghTreeViewOCX) THEN
-    cCurrentNode = DYNAMIC-FUNCTION("getSelectedNode" IN ghTreeViewOCX).
-END.
-ELSE
-  cCurrentNode = gcLastLaunchedNode.
-IF pcState = "Update" THEN DO:
-  IF VALID-HANDLE(ghTreeViewOCX) THEN
-    RUN disableObject IN ghTreeViewOCX.
-  gcCurrentMode = gcNewContainerMode.
-END.
-
-{get TreeDataTable hTable ghTreeViewOCX}.
-
-IF cCurrentNode = ? THEN DO:
-  IF pcState = 'updateComplete':U AND
-    (gcCurrentMode = "Add":U OR 
-     gcCurrentMode = "Copy":U) THEN DO:
-    RUN loadTreeData.
-    RUN populateTree IN ghTreeViewOCX (hTable, "":U).
-    IF VALID-HANDLE(ghTreeViewOCX) THEN
-      RUN enableObject IN ghTreeViewOCX.
-    RUN selectFirstNode IN ghTreeViewOCX.    
-  END.
-  RETURN.
-END.
-
-cParentNode = DYNAMIC-FUNCTION("getProperty" IN ghTreeViewOCX, INPUT "PARENT":U, INPUT cCurrentNode) NO-ERROR.
-
-IF cParentNode = ? OR
-   ERROR-STATUS:ERROR THEN
-  ASSIGN cParentNode = DYNAMIC-FUNCTION("getRootNodeParentKey" IN ghTreeViewOCX) NO-ERROR.
-
-/* Grab the handles to the individual fields in the tree data table. */
-ASSIGN hBuf            = hTable:DEFAULT-BUFFER-HANDLE
-       hNodeObj        = hBuf:BUFFER-FIELD('node_obj':U)
-       hCurrentNodeKey = hBuf:BUFFER-FIELD('node_key':U).
-
-CREATE QUERY hQry.  
-hQry:ADD-BUFFER(hBuf).
-hQry:QUERY-PREPARE(SUBSTITUTE('FOR EACH &1 WHERE &1.node_key = "&2"':U, hTable:NAME,cCurrentNode)).
-hQry:QUERY-OPEN().
-hQry:GET-FIRST().
-
-DO WHILE hBuf:AVAILABLE:
-  ASSIGN dNodeObj     = hNodeObj:BUFFER-VALUE
-         cCurrentNode = hCurrentNodeKey:BUFFER-VALUE
-         NO-ERROR.
-  LEAVE.
-END.
-
-IF glNewChildNode THEN
-  dNodeObj = gdNodeObj  .
-
-IF VALID-HANDLE(hQry) THEN
-  DELETE OBJECT hQry.
-
-FIND FIRST ttNode
-     WHERE ttNode.node_obj = dNodeObj
-     NO-LOCK NO-ERROR.
-IF NOT AVAILABLE ttNode THEN
-  RETURN.
-
-ASSIGN cNodeLabel       = ttNode.node_label
-       lNodeChecked     = ttNode.node_checked
-       cDataSourceType  = ttNode.data_source_type
-       cDataSource      = ttNode.data_source
-       cNodeLabelExpr   = ttNode.node_text_label_expression
-       cLabelSubsFields = ttNode.label_text_substitution_fields
-       cImageFileName   = ttNode.image_file_name
-       cSelImgFileName  = ttNode.selected_image_file_name
-       cRunAttribute    = ttNode.run_attribute
-       cFieldsToStore   = ttNode.fields_to_store
-       NO-ERROR.
-
-/* Since we can only add nodes from a DataSource of SDO's in this procedure, */
-/* we will not execute this code for any other Data Sources                  */
-IF cDataSourceType = "PRG":U THEN DO:
-  /* If nodes were created from an extraction program, we will delete all child nodes for that node tree */
-  /* and rebuild from scratch */
-  
-  IF pcState <> "updateComplete":U AND
-     pcState <> "deleteComplete":U OR 
-     gcCurrentMode = "Cancel" THEN
-    RETURN.
-  
-  /** First we will delete the current structure **/
-  DEFINE VARIABLE hDelTree    AS HANDLE   NO-UNDO.
-  DEFINE VARIABLE hDelNodeKey AS HANDLE   NO-UNDO.
-  DEFINE VARIABLE hTBuf       AS HANDLE   NO-UNDO.
-  
-  
-  CREATE TEMP-TABLE hDelTree.
-  hDelTree:ADD-NEW-FIELD("NodeKey","Character").
-  hDelTree:TEMP-TABLE-PREPARE("ttDelTree").
-  
-  ASSIGN hTBuf = hDelTree:DEFAULT-BUFFER-HANDLE.
-  
-  CREATE QUERY hQry.  
-  hQry:ADD-BUFFER(hBuf).
-  hQry:QUERY-PREPARE(SUBSTITUTE('FOR EACH &1 WHERE &1.node_obj = &2':U, hTable:NAME,dNodeObj)).
-  hQry:QUERY-OPEN().
-  hQry:GET-FIRST().
-  
-  ASSIGN hDelNodeKey = hTBuf:BUFFER-FIELD("NodeKey")
-         hNodeKey    = hBuf:BUFFER-FIELD("node_key")
-         hParentKey  = hBuf:BUFFER-FIELD("parent_node_key").
-  DO WHILE hBuf:AVAILABLE:
-    hTBuf:BUFFER-CREATE().
-    ASSIGN hDelNodeKey:BUFFER-VALUE = hNodeKey:BUFFER-VALUE.
-    RUN deleteNode IN ghTreeViewOCX (INPUT hNodeKey:BUFFER-VALUE).
-    hQry:GET-NEXT().
-  END.
-
-  IF VALID-HANDLE(hQry) THEN
-    DELETE OBJECT hQry.
-  RUN loadPRGData (INPUT cParentNode, dNodeObj).
-  RUN populateTree IN ghTreeViewOCX (hTable, cParentNode).
-  
-  /* Select the first child of the rebuild node structure */
-  cCurrentNode = DYNAMIC-FUNCTION("getProperty" IN ghTreeViewOCX, "CHILD":U, cParentNode).
-  DYNAMIC-FUNCTION("selectNode" IN ghTreeViewOCX, cCurrentNode).
-  RUN tvNodeSelected (cCurrentNode).
-  
-  IF VALID-HANDLE(ghTreeViewOCX) THEN
-    RUN enableObject IN ghTreeViewOCX.
-  IF VALID-HANDLE(hDelTree) THEN
-    DELETE OBJECT hDelTree.
-END.
-ELSE
-IF cDataSourceType <> "SDO":U THEN
-  RETURN.
-
-/** First check that the SDO/SBO is relatively pathed **/
-IF INDEX(cDataSource,"/":U) = 0 AND
-   INDEX(cDataSource,"\":U) = 0 THEN DO:
-   cDataSource = returnSDOName(cDataSource).
-   IF cDataSource = "":U THEN
-    RETURN.
-END.
-
-FIND FIRST ttRunningSDOs
-     WHERE ttRunningSDOs.cSDOName = cDataSource
-     NO-LOCK NO-ERROR.
-IF NOT AVAILABLE ttRunningSDOs THEN
-  RETURN.
-ELSE
-  ASSIGN hSDOHandle = ttRunningSDOs.hSDOHandle
-         hParentSDO = ttRunningSDOs.hParentSDO.
-
-IF NOT VALID-HANDLE(hSDOHandle) THEN
-  RETURN.
-
-ASSIGN cValueList = DYNAMIC-FUNCTION("getUpdatableTableInfo":U IN gshGenManager, INPUT hSDOHandle).
-IF LENGTH(TRIM(cValueList)) > 0 THEN 
-  ASSIGN cObjField = ENTRY(3, cValueList, CHR(4)).
-
-gcState = pcState.
-IF pcState = 'updateComplete':U AND 
-   gcCurrentMode <> "Cancel" THEN DO:
-  IF VALID-HANDLE(ghTreeViewOCX) AND 
-     VALID-HANDLE(hTable) THEN DO:
-    IF gcCurrentMode = 'add':U OR 
-        gcCurrentMode = 'copy':U THEN DO:
-      IF NOT glNewChildNode THEN DO:
-        gcCurrentNodeKey = ?.
-        ASSIGN hNodeBuf = hTable:DEFAULT-BUFFER-HANDLE.
-        CREATE TEMP-TABLE hNewTable.
-        hNewTable:CREATE-LIKE(hNodeBuf).
-        hNewTable:TEMP-TABLE-PREPARE('tTreeData').
-        hBuf = hNewTable:DEFAULT-BUFFER-HANDLE.
-        
-        hBuf:BUFFER-CREATE().
-        lLabelBlank = FALSE.
-        
-        LABEL_LOOP:
-        DO iLoop = 1 TO NUM-ENTRIES(cLabelSubsFields):
-          IF ENTRY(iLoop,cLabelSubsFields) = "":U THEN
-            LEAVE LABEL_LOOP.
-          cSubstitute[iLoop] = TRIM(DYNAMIC-FUNCTION("columnStringValue":U IN hSDOHandle, ENTRY(iLoop,cLabelSubsFields))).
-          IF cSubstitute[iLoop] = ? OR 
-             cSubstitute[iLoop] = "":U THEN
-            ASSIGN cSubstitute[iLoop] = "":U
-                   lLabelBlank        = TRUE.
-        END.
-        
-        ASSIGN hNodeKey       = hBuf:BUFFER-FIELD('node_key':U)
-               hParentKey     = hBuf:BUFFER-FIELD('parent_node_key':U)
-               hNodeObj       = hBuf:BUFFER-FIELD('node_obj':U)
-               hPrivateData   = hBuf:BUFFER-FIELD('private_data':U)
-               hLabel         = hBuf:BUFFER-FIELD('node_label':U)
-               hImage         = hBuf:BUFFER-FIELD('image':U)
-               hSelectedImage = hBuf:BUFFER-FIELD('selected_image':U)
-               hRecordRef     = hBuf:BUFFER-FIELD('record_ref':U)
-               hRecordRowId   = hBuf:BUFFER-FIELD('record_rowid':U)
-               hNodeChecked   = hBuf:BUFFER-FIELD('node_checked':U)
-               hSort          = hBuf:BUFFER-FIELD('node_sort':U)
-               hNodeInsert    = hBuf:BUFFER-FIELD('node_insert':U).
-        
-        ASSIGN hParentKey:BUFFER-VALUE     = cParentNode
-               hNodeKey:BUFFER-VALUE       = DYNAMIC-FUNCTION('getNextNodeKey':U IN ghTreeViewOCX)
-               hNodeObj:BUFFER-VALUE       = dNodeObj
-               hLabel:BUFFER-VALUE         = TRIM(SUBSTITUTE(cNodeLabelExpr,cSubstitute[1],cSubstitute[2],cSubstitute[3],cSubstitute[4],cSubstitute[5],cSubstitute[6],cSubstitute[7],cSubstitute[8],cSubstitute[9]))
-               hRecordRef:BUFFER-VALUE     = TRIM(DYNAMIC-FUNCTION("columnStringValue":U IN hSDOHandle, cObjField))
-               hRecordRowId:BUFFER-VALUE   = TO-ROWID(ENTRY(1,DYNAMIC-FUNCTION("getRowIdent":U IN hSDOHandle)))
-               hNodeChecked:BUFFER-VALUE   = lNodeChecked
-               hImage:BUFFER-VALUE         = cImageFileName
-               hSelectedImage:BUFFER-VALUE = cSelImgFileName
-               hSort:BUFFER-VALUE          = TRUE
-               hNodeInsert:BUFFER-VALUE    = IF cParentNode = "":U THEN 1 ELSE 4.
-        
-        hNodeBuf:BUFFER-CREATE().
-        hNodeBuf:BUFFER-COPY(hBuf).
-        
-        gcCurrentNodeKey = hNodeKey:BUFFER-VALUE.
-        
-        /* For some SDO's we might reference to a field in a table other
-           than the primary table, and for these instances the label
-           will mostly be blank since the query needs to be refreshed 
-           before the secondary tables are fetched. For this reason we
-           check the new label created and if it is BLANK we will 
-           reposition the SDO to the new record and then get the labels
-           and then update the label on the TreeView */
-        IF lLabelBlank THEN DO:
-          RUN repositionSDO (INPUT "":U,
-                             INPUT hSDOHandle,
-                             INPUT ?,
-                             INPUT hRecordRowId:BUFFER-VALUE,
-                             INPUT gcCurrentNodeKey).
-          lLabelBlank = FALSE.
-          LABEL_LOOP:
-          DO iLoop = 1 TO NUM-ENTRIES(cLabelSubsFields):
-            IF ENTRY(iLoop,cLabelSubsFields) = "":U THEN
-              LEAVE LABEL_LOOP.
-            cSubstitute[iLoop] = TRIM(DYNAMIC-FUNCTION("columnStringValue":U IN hSDOHandle, ENTRY(iLoop,cLabelSubsFields))).
-            IF cSubstitute[iLoop] = ? THEN
-              ASSIGN cSubstitute[iLoop] = "":U
-                     lLabelBlank        = TRUE.
-          END.
-          DYNAMIC-FUNCTION("setProperty":U IN ghTreeViewOCX, "TEXT":U, gcCurrentNodeKey, TRIM(SUBSTITUTE(cNodeLabelExpr,cSubstitute[1],cSubstitute[2],cSubstitute[3],cSubstitute[4],cSubstitute[5],cSubstitute[6],cSubstitute[7],cSubstitute[8],cSubstitute[9]))).
-        END.
-        /* Now we need to check if the new node might have child nodes */
-        IF CAN-FIND(FIRST ttNode
-                    WHERE ttNode.parent_node_obj = dNodeObj
-                    NO-LOCK) THEN DO:
-          RUN createDummyChild (INPUT hBuf,
-                                INPUT hNodeKey:BUFFER-VALUE,
-                                INPUT "DUMMY":U).
-        END.
-        RUN populateTree IN ghTreeViewOCX (hBuf, gcParentNode).
-      END.
-      ELSE DO: /* New Child Node */
-        ASSIGN hBuf = hTable:DEFAULT-BUFFER-HANDLE.
-        hSDOHandle = ghSDOHandle.
-        
-        ASSIGN cCurrentNode = gcCurrentNodeKey
-               cParentNode  = gcParentNode.
-        CREATE QUERY hQry.  
-        hQry:ADD-BUFFER(hBuf).
-        hQry:QUERY-PREPARE(SUBSTITUTE('FOR EACH &1 WHERE &1.node_key = "&2"':U, hTable:NAME,gcCurrentNodeKey)).
-        hQry:QUERY-OPEN().
-        hQry:GET-FIRST().
-        
-        ASSIGN hNodeKey       = hBuf:BUFFER-FIELD('node_key':U)
-               hParentKey     = hBuf:BUFFER-FIELD('parent_node_key':U)
-               hNodeObj       = hBuf:BUFFER-FIELD('node_obj':U)
-               hPrivateData   = hBuf:BUFFER-FIELD('private_data':U)
-               hLabel         = hBuf:BUFFER-FIELD('node_label':U)
-               hImage         = hBuf:BUFFER-FIELD('image':U)
-               hSelectedImage = hBuf:BUFFER-FIELD('selected_image':U)
-               hRecordRef     = hBuf:BUFFER-FIELD('record_ref':U)
-               hRecordRowId   = hBuf:BUFFER-FIELD('record_rowid':U)
-               hNodeChecked   = hBuf:BUFFER-FIELD('node_checked':U)
-               hSort          = hBuf:BUFFER-FIELD('node_sort':U)
-               hNodeInsert    = hBuf:BUFFER-FIELD('node_insert':U).
-        
-        gcCurrentNodeKey = hNodeKey:BUFFER-VALUE.
-        
-        IF INDEX(DYNAMIC-FUNCTION("getQueryString":U IN hSDOHandle),cObjField) > 0 THEN
-          RUN manageSDOs (INPUT  IF VALID-HANDLE(hSDOHandle) THEN hSDOHandle:FILE-NAME ELSE "":U,
-                          INPUT  DYNAMIC-FUNCTION("getForeignFields":U IN hSDOHandle),
-                          INPUT  IF VALID-HANDLE(hParentSDO) THEN hParentSDO:FILE-NAME ELSE "":U,
-                          INPUT  cLabelSubsFields,
-                          INPUT  (cRunAttribute = "STRUCTURED":U),
-                          INPUT  cFieldsToStore,
-                          OUTPUT  hSDOHandle).
-        
-        ASSIGN cValueList = DYNAMIC-FUNCTION("getUpdatableTableInfo":U IN gshGenManager, INPUT hSDOHandle).
-        IF LENGTH(TRIM(cValueList)) > 0 THEN 
-          ASSIGN cObjField = ENTRY(3, cValueList, CHR(4)).
-        
-        DO iLoop = 1 TO NUM-ENTRIES(cLabelSubsFields):
-          cSubstitute[iLoop] = TRIM(DYNAMIC-FUNCTION("columnStringValue":U IN hSDOHandle, ENTRY(iLoop,cLabelSubsFields))).
-          IF cSubstitute[iLoop] = ? THEN
-            cSubstitute[iLoop] = "":U.
-        END.
-        
-        DYNAMIC-FUNCTION("openQuery":U IN hSDOHandle).
-        RUN refreshRow IN hSDOHandle.
-        
-        ASSIGN hNodeObj:BUFFER-VALUE       = gdNodeObj
-               hLabel:BUFFER-VALUE         = TRIM(SUBSTITUTE(cNodeLabelExpr,cSubstitute[1],cSubstitute[2],cSubstitute[3],cSubstitute[4],cSubstitute[5],cSubstitute[6],cSubstitute[7],cSubstitute[8],cSubstitute[9]))
-               hRecordRef:BUFFER-VALUE     = TRIM(DYNAMIC-FUNCTION("columnStringValue":U IN hSDOHandle, cObjField))
-               hRecordRowId:BUFFER-VALUE   = TO-ROWID(ENTRY(1,DYNAMIC-FUNCTION("getRowIdent":U IN hSDOHandle)))
-               hNodeChecked:BUFFER-VALUE   = lNodeChecked
-               hImage:BUFFER-VALUE         = cImageFileName
-               hSelectedImage:BUFFER-VALUE = cSelImgFileName
-               hSort:BUFFER-VALUE          = TRUE
-               hNodeInsert:BUFFER-VALUE    = 4.
-        
-        /* Now we need to check if the new node might have child nodes */
-        IF CAN-FIND(FIRST ttNode
-                    WHERE ttNode.parent_node_obj = gdNodeObj
-                    NO-LOCK) THEN DO:
-          RUN createDummyChild (INPUT hBuf,
-                                INPUT cCurrentNode,
-                                INPUT "DUMMY":U).
-        END.
-        
-        RUN deleteNode IN ghTreeViewOCX (cCurrentNode).
-        RUN populateTree IN ghTreeViewOCX (hBuf, gcParentNode).
-        glNewChildNode = FALSE.
-        IF VALID-HANDLE(hQry) THEN
-          DELETE OBJECT hQry.
-      END. /* New Child Node */
-    END.
-    ELSE DO:
-      DYNAMIC-FUNCTION("openQuery":U IN hSDOHandle).
-
-      DO iLoop = 1 TO NUM-ENTRIES(cLabelSubsFields):
-        cSubstitute[iLoop] = TRIM(DYNAMIC-FUNCTION("columnStringValue":U IN hSDOHandle, ENTRY(iLoop,cLabelSubsFields))).
-        IF cSubstitute[iLoop] = ? THEN
-          cSubstitute[iLoop] = "":U.
-      END.
-      DYNAMIC-FUNCTION("setProperty":U IN ghTreeViewOCX, "TEXT":U, cCurrentNode, TRIM(SUBSTITUTE(cNodeLabelExpr,cSubstitute[1],cSubstitute[2],cSubstitute[3],cSubstitute[4],cSubstitute[5],cSubstitute[6],cSubstitute[7],cSubstitute[8],cSubstitute[9]))).
-    END.
-  END.
-  IF VALID-HANDLE(ghTreeViewOCX) THEN
-    RUN enableObject IN ghTreeViewOCX.
-END.
-
-IF pcState = 'deleteComplete':u THEN DO:
-  {get TreeDataTable hTable ghTreeViewOCX}.
-  IF VALID-HANDLE(ghTreeViewOCX) AND 
-     VALID-HANDLE(hTable) THEN DO:
-    RUN deleteNode IN ghTreeViewOCX (gcCurrentNodeKey).
-    IF gcCurrentNodeKey <> ? THEN DO:
-      CREATE QUERY hQry.  
-      hQry:ADD-BUFFER(hBuf).
-      hQry:QUERY-PREPARE(SUBSTITUTE('FOR EACH &1 WHERE &1.node_key = "&2"':U, hTable:NAME,gcCurrentNodeKey)).
-      hQry:QUERY-OPEN().
-      hQry:GET-FIRST().
-      
-      IF hBuf:AVAILABLE THEN
-        hBuf:BUFFER-DELETE().
-      IF VALID-HANDLE(hQry) THEN
-        DELETE OBJECT hQry.
-    END.
-    gcLastLaunchedNode = "":U.
-  END.
-END.
-
-RUN setDataLinkActive.
-
-IF pcState = "updateComplete" OR
-   pcState = "deleteComplete" THEN DO:
-  gcCurrentMode = IF pcState = "deleteComplete" THEN "delete" ELSE gcCurrentMode.
-  RUN toolbar (INPUT "disableData").
-END.
-
-{set ContainerMode 'VIEW':U}.
-
-IF pcState = 'updateComplete':U AND 
-   (gcCurrentMode = 'add':U OR 
-    gcCurrentMode = 'copy':U) THEN DO:
-  ghSDOHandle = hSDOHandle.
-END.
+  APPLY "END-MOVE":U TO fiResizeFillIn.
 
 END PROCEDURE.
 
@@ -6387,38 +4402,107 @@ END PROCEDURE.
 
 /* ************************  Function Implementations ***************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION childWindowsOpen wWin 
-FUNCTION childWindowsOpen RETURNS LOGICAL
-  ( ) :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION buildContainerTables wWin 
+FUNCTION buildContainerTables RETURNS LOGICAL
+    ( INPUT pdInstanceId        AS DECIMAL ) :
 /*------------------------------------------------------------------------------
-  Purpose: to check if child windows open from this window - use to give warning
-           when closing window with X or ESC 
+  Purpose:  Creates information which will be used by this container to construct
+            objects on the container.
     Notes:  
 ------------------------------------------------------------------------------*/
+    DEFINE VARIABLE hObjectBuffer           AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE hPageBuffer             AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE hLinkBuffer             AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE hContainerObject        AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE hContainerPage          AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE hContainerLink          AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE hAttributeBuffer        AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE dInstanceInstanceId     AS DECIMAL                  NO-UNDO.
+    
+    EMPTY TEMP-TABLE container_Object.
+    EMPTY TEMP-TABLE container_Page.
+    EMPTY TEMP-TABLE container_Link.
 
-  DEFINE VARIABLE iLoop             AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cTargets          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hHandle           AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE lChildren         AS LOGICAL    NO-UNDO.
+    ASSIGN hContainerObject = BUFFER container_Object:HANDLE
+           hContainerPage   = BUFFER container_Page:HANDLE
+           hContainerLink   = BUFFER container_Link:HANDLE
+           .
+    ASSIGN hObjectBuffer = DYNAMIC-FUNCTION("getCacheObjectBuffer":U IN gshRepositoryManager, INPUT pdInstanceId)
+           hPageBuffer   = DYNAMIC-FUNCTION("getCachePageBuffer":U IN gshRepositoryManager)
+           hLinkBuffer   = DYNAMIC-FUNCTION("getCacheLinkBuffer":U IN gshRepositoryManager)
+           .
+    /* We create a local buffer here because we don't want it to go out of scope. 
+     * constructObject results i the hObjectBuffer going out of scope, since there are FINDs
+     * performed on that buffer.                                                            */
+    IF NOT VALID-HANDLE(ghQuery1) THEN
+        CREATE QUERY ghQuery1.
 
-  {get containertarget cTargets}.
+    IF NOT VALID-HANDLE(ghQuery2) THEN
+        CREATE QUERY ghQuery2.
 
-  ASSIGN lChildren  = NO.
-  
-  target-loop:
-  DO iLoop = 1 TO NUM-ENTRIES(cTargets):
-    ASSIGN hHandle = WIDGET-HANDLE(ENTRY(iLoop, cTargets)) NO-ERROR.
-    IF VALID-HANDLE(hHandle) AND
-       INDEX(hHandle:FILE-NAME, "rydyncontw":U) <> 0 THEN
-    DO:
-      ASSIGN lChildren  = YES.
-      LEAVE target-loop.    
-    END.
-  END.
-  
-  RETURN lChildren.
+    ghQuery1:SET-BUFFERS(hObjectBuffer).
+    ghQuery1:QUERY-PREPARE(" FOR EACH ":U + hObjectBuffer:NAME + " WHERE ":U
+                           + hObjectBuffer:NAME + ".tContainerRecordIdentifier = " + QUOTER(pdInstanceId) + " OR ":U 
+                           + hObjectBuffer:NAME + ".tRecordIdentifier = "          + QUOTER(pdInstanceId) ).
+    ghQuery1:QUERY-OPEN().
 
-END FUNCTION.
+    ghQuery1:GET-FIRST().
+    DO WHILE hObjectBuffer:AVAILABLE:
+
+        hContainerObject:BUFFER-CREATE().
+        hContainerObject:BUFFER-COPY(hObjectBuffer).
+
+        ASSIGN dInstanceInstanceId = hObjectBuffer:BUFFER-FIELD("tRecordIdentifier":U):BUFFER-VALUE
+               hAttributeBuffer    = hObjectBuffer:BUFFER-FIELD("tClassBufferHandle":U):BUFFER-VALUE
+               .
+        hAttributeBuffer:FIND-FIRST(" WHERE ":U + hAttributeBuffer:NAME + ".tRecordIdentifier = ":U + QUOTER(dInstanceInstanceId) ).
+
+        /* Store the list of settable attributes. */
+        ASSIGN hContainerObject:BUFFER-FIELD("tAttributeList":U):BUFFER-VALUE = DYNAMIC-FUNCTION("buildAttributeList":U IN gshRepositoryManager,
+                                                                                                 INPUT hAttributeBuffer,
+                                                                                                 INPUT dInstanceInstanceId).
+        /* Store all of the attributes in RAW format */
+        hAttributeBuffer:RAW-TRANSFER(TRUE, hContainerObject:BUFFER-FIELD("tRawAttributes":U)).
+
+        ASSIGN hContainerObject:BUFFER-FIELD("tTargetProcedure":U):BUFFER-VALUE = TARGET-PROCEDURE.
+
+        hContainerObject:BUFFER-RELEASE().
+        ghQuery1:GET-NEXT().
+    END.    /* available buffer */
+    ghQuery1:QUERY-CLOSE().
+
+    ghQuery2:SET-BUFFERS(hPageBuffer).
+    ghQuery2:QUERY-PREPARE(" FOR EACH ":U + hPageBuffer:NAME + " WHERE ":U + hPageBuffer:NAME + ".tRecordIdentifier = ":U + QUOTER(pdInstanceId) ).
+    ghQuery2:QUERY-OPEN().
+
+    ghQuery2:GET-FIRST().
+    DO WHILE hPageBuffer:AVAILABLE:
+        hContainerPage:BUFFER-CREATE().
+        hContainerPage:BUFFER-COPY(hPageBuffer).
+        ASSIGN hContainerPage:BUFFER-FIELD("tTargetProcedure":U):BUFFER-VALUE = TARGET-PROCEDURE.
+        hContainerPage:BUFFER-RELEASE().
+
+        ghQuery2:GET-NEXT().
+    END.    /* available page */
+    ghQuery2:QUERY-CLOSE().
+
+    ghQuery2:SET-BUFFERS(hLinkBuffer).
+    ghQuery2:QUERY-PREPARE(" FOR EACH ":U + hLinkBuffer:NAME + " WHERE ":U + hLinkBuffer:NAME + ".tRecordIdentifier = ":U + QUOTER(pdInstanceId) ).
+    ghQuery2:QUERY-OPEN().
+
+    ghQuery2:GET-FIRST().
+    DO WHILE hLinkBuffer:AVAILABLE:
+        hContainerLink:BUFFER-CREATE().
+        hContainerLink:BUFFER-COPY(hLinkBuffer).
+        ASSIGN hContainerLink:BUFFER-FIELD("tTargetProcedure":U):BUFFER-VALUE = TARGET-PROCEDURE.
+        hContainerLink:BUFFER-RELEASE().
+
+        ghQuery2:GET-NEXT().
+    END.    /* available link */
+    ghQuery2:QUERY-CLOSE().
+
+    RETURN TRUE.
+END FUNCTION.   /* buildContainerTables */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -6447,16 +4531,10 @@ FUNCTION getContainerHandle RETURNS HANDLE
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hHandle AS HANDLE   NO-UNDO.
   
-  /* Code placed here will execute PRIOR to standard behavior. */
-  DEFINE VARIABLE hFrameHandle  AS HANDLE   NO-UNDO.
-  
-  hFrameHandle = DYNAMIC-FUNCTION("getFrameHandle", {&WINDOW-NAME}:HANDLE).
-  hFrameHandle:TITLE = "":U.
+  {&WINDOW-NAME}:TITLE = "":U.
 
-  RETURN hFrameHandle.
-/*  
-  RETURN SUPER( ).
-  */
+  RETURN {&WINDOW-NAME}.
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -6496,32 +4574,136 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFieldList wWin 
-FUNCTION getFieldList RETURNS CHARACTER
-  (pcForeignFields AS CHARACTER) :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getCurrentLogicalname wWin 
+FUNCTION getCurrentLogicalname RETURNS CHARACTER
+    ( /* parameter-definitions */ ) :
 /*------------------------------------------------------------------------------
-  Purpose:  Return a comma delimited list of just the field names in the foreign
-            fields list. (Removes table prefixes, and list the fields just once)
+  Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cFieldList  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iEntry      AS INTEGER    NO-UNDO.
-  
-  /* Initialize the output value */
-  cFieldList = "":U.
-  
-  /* Check if valid Foreign Fields were specified */
-  IF pcForeignFields <> "":U                AND
-     pcForeignFields <> ?                   AND
-     NUM-ENTRIES(pcForeignFields) MOD 2 = 0 THEN
-  
-  DO iEntry = 2 TO NUM-ENTRIES(pcForeignFields) BY 2:
-    cFieldList = cFieldList + (IF TRIM(cFieldList) = "":U THEN "":U ELSE ",":U)
-               + ENTRY(iEntry, pcForeignFields).
-  END.
-  
-  RETURN cFieldList.   /* Function return value. */
+    RETURN gcCurrentLogicalName.
+END FUNCTION.   /* getCurrentLogicalname */
 
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getCurrentMode wWin 
+FUNCTION getCurrentMode RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN gcCurrentMode.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getCurrentNodeKey wWin 
+FUNCTION getCurrentNodeKey RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN gcCurrentNodeKey.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getCurrExpandNodeKey wWin 
+FUNCTION getCurrExpandNodeKey RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN gcCurrExpandNodeKey.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDelete wWin 
+FUNCTION getDelete RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN glDelete.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getExpand wWin 
+FUNCTION getExpand RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN glExpand.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFilterApplied wWin 
+FUNCTION getFilterApplied RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN glFilterApplied.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFilterValue wWin 
+FUNCTION getFilterValue RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN gcFilterValue.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFilterViewerHandle wWin 
+FUNCTION getFilterViewerHandle RETURNS HANDLE
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  
+  IF VALID-HANDLE(ghFilterViewer) THEN 
+    RETURN ghFilterViewer.
+  ELSE 
+    RETURN ?.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -6529,26 +4711,13 @@ END FUNCTION.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFrameHandle wWin 
 FUNCTION getFrameHandle RETURNS HANDLE
-  ( ip_procedure_handle AS HANDLE ) :
+  ( /* parameter-definitions */ ) :
 /*------------------------------------------------------------------------------
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-DEF VAR idx AS INT NO-UNDO.
-DEF VAR hdl AS HANDLE NO-UNDO.
-DEF VAR FRAME_handle AS HANDLE NO-UNDO.
 
-                              
-    hdl = ip_procedure_handle:FIRST-CHILD.
-    FRAME_handle = ?.
-    
-    DO WHILE VALID-HANDLE(hdl):
-        IF hdl:TYPE = "FRAME" THEN
-          RETURN hdl.
-        hdl = hdl:FIRST-CHILD NO-ERROR.       
-    END.
-                                 
-  RETURN FRAME_handle.   /* Function return value. */
+  RETURN FRAME {&FRAME-NAME}:HANDLE.   /* Function return value. */
 
 END FUNCTION.
 
@@ -6598,6 +4767,21 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getInstanceAttributes wWin 
+FUNCTION getInstanceAttributes RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN gcInstanceAttributes.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getInstanceObjectId wWin 
 FUNCTION getInstanceObjectId RETURNS DECIMAL
     ( phProcedureHandle     AS HANDLE    ) :
@@ -6607,18 +4791,33 @@ FUNCTION getInstanceObjectId RETURNS DECIMAL
     Notes:  
 ------------------------------------------------------------------------------*/
     DEFINE VARIABLE dObjectInstanceObj      AS DECIMAL                  NO-UNDO.
-
-    DEFINE BUFFER tt_object_instance            FOR tt_object_instance.
+    DEFINE VARIABLE hObjectBuffer           AS HANDLE                   NO-UNDO.
     
-    FIND FIRST tt_object_instance WHERE
-               tt_object_instance.object_instance_handle = phProcedureHandle
+    FIND FIRST container_Object WHERE
+               container_Object.tTargetProcedure     = TARGET-PROCEDURE   AND
+               container_Object.tObjectInstanceHandle = phProcedureHandle
                NO-ERROR.
-    IF AVAILABLE tt_object_instance THEN
-        ASSIGN dObjectInstanceObj = tt_object_instance.object_instance_obj.
+    IF AVAILABLE container_Object THEN
+        ASSIGN dObjectInstanceObj = container_Object.tObjectInstanceObj.
     ELSE
         ASSIGN dObjectInstanceObj = 0.
 
     RETURN dObjectInstanceObj.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getLastLaunchedNode wWin 
+FUNCTION getLastLaunchedNode RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN gcLastLaunchedNode.   /* Function return value. */
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -6644,103 +4843,260 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getMainTableObj wWin 
-FUNCTION getMainTableObj RETURNS DECIMAL
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getMenuMaintenance wWin 
+FUNCTION getMenuMaintenance RETURNS LOGICAL
   ( /* parameter-definitions */ ) :
 /*------------------------------------------------------------------------------
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE dMainTableObj AS DECIMAL    NO-UNDO.
-  
-  IF VALID-HANDLE(ghTreeViewOCX) THEN
-    dMainTableObj = DYNAMIC-FUNCTION("getMainTableObj" IN ghTreeViewOCX).
-  RETURN dMainTableObj.   /* Function return value. */
+
+  RETURN glMenuMaintenance.   /* Function return value. */
 
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getNodeDetails wWin 
-FUNCTION getNodeDetails RETURNS CHARACTER
-  ( INPUT phTable   AS HANDLE,
-    INPUT pcNodeKey AS CHARACTER ) :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getNewChildNode wWin 
+FUNCTION getNewChildNode RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
 /*------------------------------------------------------------------------------
-  Purpose:  This function will return most common requred information for a 
-            selected node.
-    Notes:  The string returned is CHR(2) delimited and contains the following
-            information:
-            nodeObj       - The object number of the gsm_node record
-            rRecordRowid  - The rowid of the selected node record
-            cPrivateData  - The privateData of the selected node.
-            lNodExpanded  - Was the node expanded TRUE/FALSE
-            cRecordRef    - The unique record reference 
+  Purpose:  
+    Notes:  
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hBuf            AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hQry            AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hNodeObj        AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hRecordRowId    AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hPrivateData    AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hNodeExpanded   AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hRecordRef      AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE dNodeObj        AS DECIMAL    NO-UNDO.
-  DEFINE VARIABLE rRecordRowid    AS ROWID      NO-UNDO.
-  DEFINE VARIABLE cPrivateData    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cNodeDetails    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lNodeExpanded   AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cRecordRef      AS CHARACTER  NO-UNDO.
+
+  RETURN glNewChildNode.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getNewContainerMode wWin 
+FUNCTION getNewContainerMode RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN gcNewContainerMode.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getNodeObj wWin 
+FUNCTION getNodeObj RETURNS DECIMAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN gdNodeObj.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getNoMessage wWin 
+FUNCTION getNoMessage RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN glNoMessage.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getObjectHandles wWin 
+FUNCTION getObjectHandles RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
   
-  /* Grab the handles to the individual fields in the tree data table. */
-  ASSIGN hBuf           = phTable:DEFAULT-BUFFER-HANDLE
-         hNodeObj       = hBuf:BUFFER-FIELD('node_obj':U)
-         hRecordRowId   = hBuf:BUFFER-FIELD('record_rowid':U)
-         hPrivateData   = hBuf:BUFFER-FIELD('private_data':U)
-         hNodeExpanded  = hBuf:BUFFER-FIELD('node_expanded':U)
-         hRecordRef     = hBuf:BUFFER-FIELD('record_ref':U).
-  
-  CREATE QUERY hQry.  
-  hQry:ADD-BUFFER(hBuf).
-  hQry:QUERY-PREPARE(SUBSTITUTE('FOR EACH &1 WHERE &1.node_key = "&2":U':U, phTable:NAME,pcNodeKey)).
-  hQry:QUERY-OPEN().
-  hQry:GET-FIRST().
-  
-  DO WHILE hBuf:AVAILABLE:
-    ASSIGN dNodeObj        = hNodeObj:BUFFER-VALUE 
-           rRecordRowid    = hRecordRowId:BUFFER-VALUE 
-           cPrivateData    = hPrivateData:BUFFER-VALUE
-           lNodeExpanded   = hNodeExpanded:BUFFER-VALUE
-           cRecordRef      = hRecordRef:BUFFER-VALUE
-           NO-ERROR.
-    LEAVE.
+  RETURN gcObjectHandles.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getObjectInitialized wWin 
+FUNCTION getObjectInitialized RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN glObjectInitialized.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getObjectPage wWin 
+FUNCTION getObjectPage RETURNS INTEGER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE iPageNum AS INTEGER    NO-UNDO.
+
+  {get CurrentPage iPageNum}.
+
+  IF iPageNum < 0 THEN
+    iPageNum = 0.
+  IF iPageNum = ? THEN
+    iPageNum = 0.
+  RETURN iPageNum.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getOnceOnly wWin 
+FUNCTION getOnceOnly RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN glOnceOnly.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getParentNode wWin 
+FUNCTION getParentNode RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN gcParentNode.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getPrimarySDOName wWin 
+FUNCTION getPrimarySDOName RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN gcPrimarySDOName.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getRawAttributeValues wWin 
+FUNCTION getRawAttributeValues RETURNS HANDLE
+    ( INPUT pdInstanceId        AS DECIMAL ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    FIND FIRST container_Object WHERE
+               container_Object.tTargetProcedure  = TARGET-PROCEDURE AND
+               container_Object.tRecordIdentifier = pdInstanceId
+               NO-ERROR.
+    IF AVAILABLE container_Object THEN
+        RETURN BUFFER container_Object:HANDLE.
+
+    RETURN ?.
+END FUNCTION.   /* getRawAttributeValues */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getRctBorderHandle wWin 
+FUNCTION getRctBorderHandle RETURNS HANDLE
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DO WITH FRAME {&FRAME-NAME}:
+    IF VALID-HANDLE(rctBorder:HANDLE) THEN 
+      RETURN rctBorder:HANDLE .
+    ELSE 
+      RETURN ?. 
   END.
 
-  IF VALID-HANDLE(hQry) THEN
-    DELETE OBJECT hQry.
-  
-  cNodeDetails = IF dNodeObj <> ? THEN STRING(dNodeObj,">>>>>>>>>>>>>9.999999999":U) ELSE "0.0":U.
-  cNodeDetails = cNodeDetails + CHR(2) + IF rRecordRowid <> ? THEN STRING(rRecordRowid) ELSE "?":U.
-  cNodeDetails = cNodeDetails + CHR(2) + IF cPrivateData <> ? THEN cPrivateData ELSE "":U.
-  cNodeDetails = cNodeDetails + CHR(2) + IF lNodeExpanded <> ? THEN STRING(lNodeExpanded) ELSE "":U.
-  cNodeDetails = cNodeDetails + CHR(2) + IF cRecordRef <> ? THEN STRING(cRecordRef) ELSE "":U.
-
-  
-  RETURN cNodeDetails.
-  
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getObjectVersionNumber wWin 
-FUNCTION getObjectVersionNumber RETURNS CHARACTER
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getReposParentNode wWin 
+FUNCTION getReposParentNode RETURNS LOGICAL
   ( /* parameter-definitions */ ) :
 /*------------------------------------------------------------------------------
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
 
-  RETURN "".   /* Function return value. */
+  RETURN glReposParentNode.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getReposSDO wWin 
+FUNCTION getReposSDO RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN glReposSDO.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getResizeFillInHandle wWin 
+FUNCTION getResizeFillInHandle RETURNS HANDLE
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DO WITH FRAME {&FRAME-NAME}:
+    IF VALID-HANDLE(fiResizeFillIn:HANDLE) THEN 
+      RETURN fiResizeFillIn:HANDLE .
+    ELSE 
+      RETURN ?. 
+  END.
 
 END FUNCTION.
 
@@ -6770,6 +5126,21 @@ FUNCTION getRunTimeAttribute RETURNS CHARACTER
 ------------------------------------------------------------------------------*/
 
   RETURN gcInstanceAttributes.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getSDOHandle wWin 
+FUNCTION getSDOHandle RETURNS HANDLE
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN ghSDOHandle.   /* Function return value. */
 
 END FUNCTION.
 
@@ -6806,6 +5177,21 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getState wWin 
+FUNCTION getState RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN gcState.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getTableioSource wWin 
 FUNCTION getTableioSource RETURNS HANDLE
   ( /* parameter-definitions */ ) :
@@ -6822,9 +5208,9 @@ END FUNCTION.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getToolbarHandles wWin 
 FUNCTION getToolbarHandles RETURNS CHARACTER
-  (  ) :
+  ( /* parameter-definitions */ ) :
 /*------------------------------------------------------------------------------
-  Purpose: Return handles of all toolbars on the container 
+  Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
 
@@ -6862,6 +5248,21 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getTreeContainerMode wWin 
+FUNCTION getTreeContainerMode RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN gcContainerMode.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getTreeRunAttribute wWin 
 FUNCTION getTreeRunAttribute RETURNS CHARACTER
   ( /* parameter-definitions */ ) :
@@ -6891,6 +5292,36 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getTreeViewOCX wWin 
+FUNCTION getTreeViewOCX RETURNS HANDLE
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN ghTreeViewOCX.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getWindowHandle wWin 
+FUNCTION getWindowHandle RETURNS HANDLE
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN {&WINDOW-NAME}:HANDLE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getWindowName wWin 
 FUNCTION getWindowName RETURNS CHARACTER
   (  ) :
@@ -6909,54 +5340,30 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION returnSDOName wWin 
-FUNCTION returnSDOName RETURNS CHARACTER
-  ( INPUT pcSDOSBOName AS CHARACTER  ) :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION lockWindow wWin 
+FUNCTION lockWindow RETURNS LOGICAL
+  (plLockWindow AS LOGICAL) :
 /*------------------------------------------------------------------------------
-  Purpose:  This function will add a relative path to the SDO/SBO name passed to it
+  Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-    DEFINE VARIABLE cDataSet    AS CHARACTER  NO-UNDO.
-    DEFINE VARIABLE cObjectPath AS CHARACTER  NO-UNDO.
-    DEFINE VARIABLE cObjectExt  AS CHARACTER  NO-UNDO.
-    DEFINE VARIABLE cButton     AS CHARACTER  NO-UNDO.
-    
-    
-    RUN getRecordDetail IN gshGenManager ( INPUT "FOR EACH ryc_smartobject 
-                                                  WHERE ryc_smartobject.object_filename = '" + pcSDOSBOName + "', 
-                                                  FIRST gsc_object 
-                                                  WHERE gsc_object.object_obj = ryc_smartobject.object_obj NO-LOCK ":U,
-                                           OUTPUT cDataset ).
-    
-    cObjectPath = "":U.
-    IF cDataset = "":U OR cDataset = ? THEN 
-      RETURN "".
-    ELSE
-      ASSIGN cObjectPath = ENTRY(LOOKUP("gsc_object.object_path":U, cDataSet, CHR(3)) + 1 , cDataSet, CHR(3)) 
-             cObjectExt  = ENTRY(LOOKUP("gsc_object.object_extension":U, cDataSet, CHR(3)) + 1 , cDataSet, CHR(3)) NO-ERROR.
-    IF cObjectPath = "":U OR cObjectPath = ? THEN DO:
-      RUN showMessages IN gshSessionManager (INPUT  "The SDO/SBO specified is invalid, remove any path information and check for any typing errors.",    /* message to display */
-                                             INPUT  "ERR":U,          /* error type */
-                                             INPUT  "&OK,&Cancel":U,    /* button list */
-                                             INPUT  "&OK":U,           /* default button */ 
-                                             INPUT  "&Cancel":U,       /* cancel button */
-                                             INPUT  "Initializing SDO/SBO":U,             /* error window title */
-                                             INPUT  YES,              /* display if empty */ 
-                                             INPUT  ?,                /* container handle */ 
-                                             OUTPUT cButton           /* button pressed */
-                                            ).
-      
-      RETURN "":U.
-    END.
-    ELSE
-      ASSIGN pcSDOSBOName = cObjectPath + "/":U + pcSDOSBOName
-             pcSDOSBOName = REPLACE(pcSDOSBOName,"\":U,"/":U).
+  DEFINE VARIABLE iReturnCode       AS INTEGER    NO-UNDO.
   
-  IF cObjectExt <> "":U AND
-     NUM-ENTRIES(pcSDOSBOName,".":U) < 2 THEN
-    pcSDOSBOName = pcSDOSBOName + ".":U + cObjectExt.
-  
-  RETURN pcSDOSBOName.
+  giLockWindow = giLockWindow + (IF plLockWindow THEN 1 ELSE -1).
+
+  IF plLockWindow AND giLockWindow > 1 THEN
+    RETURN FALSE.
+
+  IF NOT plLockWindow AND giLockWindow > 0 THEN
+    RETURN FALSE.
+
+  IF plLockWindow THEN
+    RUN lockWindowUpdate IN gshSessionManager (INPUT {&WINDOW-NAME}:HWND, OUTPUT iReturnCode).
+  ELSE
+    RUN lockWindowUpdate IN gshSessionManager (INPUT 0, OUTPUT iReturnCode).
+
+  RETURN TRUE.   /* Function return value. */
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -6978,19 +5385,108 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setContainerMode wWin 
-FUNCTION setContainerMode RETURNS LOGICAL
-  ( INPUT cContainerMode AS CHARACTER) :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setCurrentMode wWin 
+FUNCTION setCurrentMode RETURNS LOGICAL
+  ( pcCurrentMode AS CHARACTER ) :
 /*------------------------------------------------------------------------------
-  Purpose:     Super Override
-  Notes:       
+  Purpose:  
+    Notes:  
 ------------------------------------------------------------------------------*/
+  gcCurrentMode = pcCurrentMode.
 
-  /* Code placed here will execute PRIOR to standard behavior. */
-  /*
-  gcNewContainerMode = cContainerMode.
-  */
-  RETURN SUPER( INPUT cContainerMode ).
+  RETURN FALSE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setCurrentNodeKey wWin 
+FUNCTION setCurrentNodeKey RETURNS LOGICAL
+  ( pcCurrentNodeKey AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  gcCurrentNodeKey = pcCurrentNodeKey.
+  RETURN FALSE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setCurrExpandNodeKey wWin 
+FUNCTION setCurrExpandNodeKey RETURNS LOGICAL
+  ( pcCurrExpandNodeKey AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  gcCurrExpandNodeKey = pcCurrExpandNodeKey.
+  RETURN FALSE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDefaultMenuBar wWin 
+FUNCTION setDefaultMenuBar RETURNS LOGICAL
+  ( phDefaultMenuBar AS HANDLE ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  ghDefaultMenuBar = phDefaultMenuBar.
+
+  RETURN FALSE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDelete wWin 
+FUNCTION setDelete RETURNS LOGICAL
+  ( plDelete AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  glDelete = plDelete.
+  RETURN FALSE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setExpand wWin 
+FUNCTION setExpand RETURNS LOGICAL
+  ( plExpand AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  glExpand = plExpand.
+
+  RETURN FALSE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setFilterApplied wWin 
+FUNCTION setFilterApplied RETURNS LOGICAL
+  ( plFilterApplied AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  glFilterApplied = plFilterApplied.
+  RETURN FALSE.   /* Function return value. */
 
 END FUNCTION.
 
@@ -7044,6 +5540,36 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setInstanceAttributes wWin 
+FUNCTION setInstanceAttributes RETURNS LOGICAL
+  ( pcInstanceAttributes AS CHARACTER) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  gcInstanceAttributes = pcInstanceAttributes.
+  RETURN FALSE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setLastLaunchedNode wWin 
+FUNCTION setLastLaunchedNode RETURNS LOGICAL
+  ( pcLastLaunchedNode AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  gcLastLaunchedNode = pcLastLaunchedNode.
+  RETURN FALSE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setLogicalObjectName wWin 
 FUNCTION setLogicalObjectName RETURNS LOGICAL
   ( INPUT cObjectName AS CHARACTER) :
@@ -7061,46 +5587,154 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setNodeExpanded wWin 
-FUNCTION setNodeExpanded RETURNS LOGICAL
-  ( INPUT pcNode         AS CHARACTER,
-    INPUT plNodeExpanded AS LOGICAL) :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setMenuMaintenance wWin 
+FUNCTION setMenuMaintenance RETURNS LOGICAL
+  ( plMenuMaintenance AS LOGICAL ) :
 /*------------------------------------------------------------------------------
-  Purpose:  This function will set the value of the node expanded flag.
-    Notes:  lNodeExpanded will contain a value of TRUE or FALSE.
+  Purpose:  
+    Notes:  
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hTable        AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hBuf          AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hQry          AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hNodeExpanded AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE lNodeExpanded AS LOGICAL    NO-UNDO.
-  
-  {get TreeDataTable hTable ghTreeViewOCX}.  
-  
-  IF NOT VALID-HANDLE(hTable) THEN
-    RETURN FALSE.
-  
-  /* Grab the handles to the individual fields in the tree data table. */
-  ASSIGN hBuf          = hTable:DEFAULT-BUFFER-HANDLE
-         hNodeExpanded = hBuf:BUFFER-FIELD('node_expanded':U).
-  
-  CREATE QUERY hQry.  
-  hQry:ADD-BUFFER(hBuf).
-  hQry:QUERY-PREPARE(SUBSTITUTE('FOR EACH &1 WHERE &1.node_key = "&2"':U, hTable:NAME,pcNode)).
-  hQry:QUERY-OPEN().
-  hQry:GET-FIRST().
-  
-  DO WHILE hBuf:AVAILABLE:
-    ASSIGN hNodeExpanded:BUFFER-VALUE = plNodeExpanded
-           NO-ERROR.
-    LEAVE.
-  END.
+  glMenuMaintenance = plMenuMaintenance.
+  RETURN FALSE.   /* Function return value. */
 
-  IF VALID-HANDLE(hQry) THEN
-    DELETE OBJECT hQry.
-  
-  RETURN TRUE.
-  
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setNewChildNode wWin 
+FUNCTION setNewChildNode RETURNS LOGICAL
+  ( plNewChildNode AS LOGICAL) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  glNewChildNode = plNewChildNode.
+  RETURN FALSE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setNewContainerMode wWin 
+FUNCTION setNewContainerMode RETURNS LOGICAL
+  ( pcNewContainerMode AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  gcNewContainerMode = pcNewContainerMode.
+  RETURN FALSE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setNodeObj wWin 
+FUNCTION setNodeObj RETURNS LOGICAL
+  ( pdNodeObj AS DECIMAL ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  gdNodeObj = pdNodeObj.
+  RETURN FALSE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setObjectInitialized wWin 
+FUNCTION setObjectInitialized RETURNS LOGICAL
+  ( pcObjectInitialized AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  glObjectInitialized = pcObjectInitialized.
+  RETURN TRUE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setOnceOnly wWin 
+FUNCTION setOnceOnly RETURNS LOGICAL
+  ( pcOnceOnly AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  glOnceOnly = pcOnceOnly.
+
+  RETURN TRUE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setParentNode wWin 
+FUNCTION setParentNode RETURNS LOGICAL
+  ( pcParentNode AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  gcParentNode = pcParentNode.
+
+  RETURN FALSE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setPrimarySDOName wWin 
+FUNCTION setPrimarySDOName RETURNS LOGICAL
+  ( pcPrimarySDOName AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  gcPrimarySDOName = pcPrimarySDOName.
+  RETURN FALSE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setReposParentNode wWin 
+FUNCTION setReposParentNode RETURNS LOGICAL
+  ( plReposParentNode AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  glReposParentNode = plReposParentNode.
+
+  RETURN FALSE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setReposSDO wWin 
+FUNCTION setReposSDO RETURNS LOGICAL
+  ( plReposSDO AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  glReposSDO = plReposSDO.
+  RETURN FALSE.   /* Function return value. */
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -7141,6 +5775,40 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setSDOHandle wWin 
+FUNCTION setSDOHandle RETURNS LOGICAL
+  ( phSDOHandle AS HANDLE ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  ghSDOHandle = phSDOHandle.
+  RETURN FALSE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setServerOperatingMode wWin 
+FUNCTION setServerOperatingMode RETURNS LOGICAL
+  ( pcServerOperatingMode AS CHARACTER) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  
+  IF pcServerOperatingMode = ? OR
+     pcServerOperatingMode = "?":U THEN
+    RETURN FALSE.
+  
+  RETURN SUPER(pcServerOperatingMode).
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setShowCheckBoxes wWin 
 FUNCTION setShowCheckBoxes RETURNS LOGICAL
   ( INPUT plShowCheckBoxes AS LOGICAL ) :
@@ -7167,6 +5835,21 @@ FUNCTION setShowRootLines RETURNS LOGICAL
   
   ASSIGN glShowRootLines = plShowRootLines.
   RETURN TRUE.  
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setState wWin 
+FUNCTION setState RETURNS LOGICAL
+  ( pcState AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  gcState = pcState.
+  RETURN FALSE.   /* Function return value. */
 
 END FUNCTION.
 
@@ -7227,14 +5910,15 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setTemplateObjectName wWin 
-FUNCTION setTemplateObjectName RETURNS LOGICAL
-  ( INPUT pcTemplateObjectName AS CHARACTER ) :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setTreeContainerMode wWin 
+FUNCTION setTreeContainerMode RETURNS LOGICAL
+  ( pcTreeContainerMode AS CHARACTER) :
 /*------------------------------------------------------------------------------
-  Purpose:  Added as placeholder - this was a new property added and am not to 
-            sure what the purpose of the attribute is.
+  Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
+  
+  gcContainerMode = pcTreeContainerMode.
 
   RETURN TRUE.   /* Function return value. */
 
@@ -7260,7 +5944,7 @@ END FUNCTION.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setupFolderPages wWin 
 FUNCTION setupFolderPages RETURNS LOGICAL
-  (pcLogicalObjectName  AS CHARACTER):
+    (pcLogicalObjectName  AS CHARACTER):
 /*------------------------------------------------------------------------------
   Purpose:  Setup the labels of the folder
     Notes:  
@@ -7272,20 +5956,31 @@ FUNCTION setupFolderPages RETURNS LOGICAL
     RETURN FALSE.
   /* If the maintenance programs where shut down, then put the folder window back
      to its original state */
+
+  {fnarg lockWindow TRUE}.
+
   IF TRIM(pcLogicalObjectName) = "":U THEN
   DO:
     DYNAMIC-FUNCTION("setFolderLabels":U IN ghFolder, INPUT "&Details":U).
     RUN initializeObject IN ghFolder.
+
+    {fnarg lockWindow FALSE}.
+
     RETURN TRUE.
   END.
   
-  cFolderLabels = "&Details".
-  FOR FIRST tt_object_instance NO-LOCK
-      WHERE tt_object_instance.object_type_code = "smartfolder":U:
-    
-    cFolderLabels = DYNAMIC-FUNCTION("getPropertyFromList":U IN gshGenManager, tt_object_instance.instance_attribute_list, "FolderLabels":U).
-  END.
+  EMPTY TEMP-TABLE ttTranslate.
   
+  cFolderLabels = DYNAMIC-FUNCTION("getFolderLabels":U IN ghFolder).
+
+  /* For some reason these are comma-delimited here, rather than pipe delimited.
+   * Make sure that the delimiter is a pipe.                                    */
+  ASSIGN cFolderLabels = REPLACE(cFolderLabels, ",":U, "|":U).
+
+  cFolderLabels = REPLACE(cFolderLabels,"Page Zero|":U,"":U).
+  IF cFolderLabels = "":U OR cFolderLabels = ? OR cFolderLabels = "|":U THEN
+    cFolderLabels = "&Details".
+
   /* Translate window title and tab folder page labels plus check security for page labels */
   DO:
     DEFINE VARIABLE cContainerName            AS CHARACTER  NO-UNDO.
@@ -7301,32 +5996,12 @@ FUNCTION setupFolderPages RETURNS LOGICAL
     {get ContainerHandle hWindow}.
     cContainerName = DYNAMIC-FUNCTION('getLogicalObjectName').
     cRunAttribute  = DYNAMIC-FUNCTION('getRunAttribute').  
-    /*
-    /* 1st empty current temp-table contents */
-    EMPTY TEMP-TABLE ttTranslate.
-
-    /* Add entry for window title */
-    CREATE ttTranslate.
-    ASSIGN
-      ttTranslate.dLanguageObj = 0
-      ttTranslate.cObjectName = cContainerName
-      ttTranslate.lGlobal = NO
-      ttTranslate.lDelete = NO
-      ttTranslate.cWidgetType = "TITLE":U
-      ttTranslate.cWidgetName = "TITLE":U
-      ttTranslate.hWidgetHandle = hWindow
-      ttTranslate.iWidgetEntry = 0
-      ttTranslate.cOriginalLabel = hWindow:TITLE    
-      ttTranslate.cTranslatedLabel = "":U  
-      ttTranslate.cOriginalTooltip = "":U  
-      ttTranslate.cTranslatedTooltip = "":U
-      .  
-    RELEASE ttTranslate.
-*/
+    
     /* check security for folder labels */
-    RUN tokenSecurityCheck IN gshSecurityManager (INPUT pcLogicalObjectName,
-                                                  INPUT cRunAttribute,
-                                                  OUTPUT cSecuredTokens).
+    RUN tokenSecurityGet IN gshSecurityManager (INPUT THIS-PROCEDURE,
+                                                INPUT pcLogicalObjectName,
+                                                INPUT cRunAttribute,
+                                                OUTPUT cSecuredTokens).
     
     label-loop:
     DO iLoop = 1 TO NUM-ENTRIES(cFolderLabels, "|":U):
@@ -7337,7 +6012,6 @@ FUNCTION setupFolderPages RETURNS LOGICAL
           AND LOOKUP(cLabel,cSecuredTokens) <> 0 THEN
         ASSIGN cDisabledPages = cDisabledPages + (IF cDisabledPages <> "":U THEN ",":U ELSE "":U) +
                                 STRING(iLoop).
-/*
       CREATE ttTranslate.
       ASSIGN
         ttTranslate.dLanguageObj = 0
@@ -7354,9 +6028,7 @@ FUNCTION setupFolderPages RETURNS LOGICAL
         ttTranslate.cTranslatedTooltip = "":U
         .
       RELEASE ttTranslate.
-    */
     END.  /* label-loop */
-/*
     /* Now got all translation widgets - get translations */
     RUN multiTranslation IN gshTranslationManager (INPUT NO,
                                                    INPUT-OUTPUT TABLE ttTranslate).
@@ -7380,16 +6052,19 @@ FUNCTION setupFolderPages RETURNS LOGICAL
           ASSIGN ENTRY(iLoop, cFolderLabels, "|":U) = ttTranslate.cTranslatedLabel. 
       END.
     END.
-    */
+    
     /* translate pages */
     IF cFolderLabels <> "":U THEN
       DYNAMIC-FUNCTION("setFolderLabels":U IN ghFolder, INPUT cFolderLabels).
 
     /* secure pages */
     IF cDisabledPages <> "":U THEN
-      DYNAMIC-FUNCTION("disablePagesInFolder":U IN TARGET-PROCEDURE, INPUT "security," + cDisabledPages).
+      DYNAMIC-FUNCTION("disablePagesInFolder":U, INPUT "security," + cDisabledPages).
 
     RUN initializeObject IN ghFolder.
+
+    {fnarg lockWindow FALSE}.
+
   END.
 
   RETURN TRUE.   /* Function return value. */
@@ -7409,69 +6084,13 @@ FUNCTION setWindowName RETURNS LOGICAL
 
   IF {&WINDOW-NAME}:TITLE = "":U AND pcWindowName <> "":U THEN
     ASSIGN {&WINDOW-NAME}:TITLE = pcWindowName
-           gcWindowName         = pcWindowName.
+           gcWindowName   = pcWindowName.
   ELSE DO:
     ASSIGN gcFolderTitle = pcWindowName.
     RUN updateTitleOverride (gcFolderTitle).
   END.
     
   RETURN TRUE.   /* Function return value. */
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION showMessages wWin 
-FUNCTION showMessages RETURNS LOGICAL
-  ( INPUT pcMessage AS CHARACTER ) :
-/*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cButton    AS CHARACTER  NO-UNDO.
-
-  RUN showMessages IN gshSessionManager (INPUT  pcMessage,                      /* message to display */
-                                         INPUT  "ERR":U,                        /* error type         */
-                                         INPUT  "&OK":U,                        /* button list        */
-                                         INPUT  "&OK":U,                        /* default button     */ 
-                                         INPUT  "&OK":U,                        /* cancel button      */
-                                         INPUT  "'TreeViewController Error'":U, /* error window title */
-                                         INPUT  YES,                            /* display if empty   */ 
-                                         INPUT  THIS-PROCEDURE,                 /* container handle   */ 
-                                         OUTPUT cButton).                       /* button pressed     */
-
-  RETURN TRUE.
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION toLogical wWin 
-FUNCTION toLogical RETURNS LOGICAL
-  ( INPUT pcText AS CHARACTER ) :
-/*------------------------------------------------------------------------------
-  Purpose:  This function will return TRUE/FALSE for any logical text 
-            YES/NO 1/0 TRUE/FALSE
-    Notes:  
-------------------------------------------------------------------------------*/
-
-  CASE pcText:
-    WHEN "YES" THEN
-      RETURN TRUE.
-    WHEN "TRUE" THEN
-      RETURN TRUE.
-    WHEN "1" THEN
-      RETURN TRUE.
-    WHEN "NO" THEN
-      RETURN FALSE.
-    WHEN "FALSE" THEN
-      RETURN FALSE.
-    WHEN "0" THEN
-      RETURN FALSE.
-    OTHERWISE 
-      RETURN FALSE.
-  END CASE.
 
 END FUNCTION.
 

@@ -108,6 +108,11 @@ ELSE
 {adeuib/crt_mult.i}
 /* Now get the _L for the current layout instead of the master layout */
 FIND _L WHERE RECID(_L) = _U._lo-recid.
+
+
+/* Explicitly set NO-LABELS for static Editors */
+_L._NO-LABELS = YES.
+         
          
 /* Place object within frame boundary. */
 {adeuib/onframe.i

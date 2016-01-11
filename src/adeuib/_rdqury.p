@@ -66,6 +66,7 @@ Date Modified:
 {adeuib/name-rec.i}            /* Name indirection table                     */
 {adeuib/brwscols.i}            /* Browse Column Temptable definitions        */
 {adeuib/sharvars.i}            /* Shared variables                           */
+{src/adm2/globals.i}
 
 /* Standard End-of-line character */
 &Scoped-define EOL &IF "{&WINDOW-SYSTEM}" <> "OSF/Motif" &THEN "~r" + &ENDIF CHR(10)
@@ -106,6 +107,12 @@ DEFINE         VARIABLE  tmp-formatAttr       AS  CHARACTER               NO-UND
 DEFINE         VARIABLE  tmp-helpAttr         AS  CHARACTER               NO-UNDO.
 DEFINE         VARIABLE  tmp-labelAttr        AS  CHARACTER               NO-UNDO.
 
+DEFINE         VARIABLE  cDataFieldName       AS  CHARACTER               NO-UNDO.
+DEFINE         VARIABLE  hAttributeBuffer     AS  HANDLE                  NO-UNDO.
+DEFINE         VARIABLE  hObjectBuffer        AS  HANDLE                  NO-UNDO.
+DEFINE         VARIABLE  lICFIsRunning        AS  LOGICAL                 NO-UNDO.
+DEFINE         VARIABLE  lFoundIt             AS  LOGICAL                 NO-UNDO.
+
 DEFINE BUFFER  p_U      FOR _U.
 DEFINE BUFFER  parent_U FOR _U.
 DEFINE BUFFER  parent_L FOR _L.
@@ -115,6 +122,8 @@ DEFINE BUFFER  parent_L FOR _L.
   MESSAGE "Enter _rdqury.p".
   {&debug}
 &ENDIF       
+
+lICFIsRunning = DYNAMIC-FUNCTION("IsICFRunning":U) NO-ERROR.
 
 /* Build a list of db's to be used to determine if the a db is valid.  This
    will help customers that build a .w with 1 database but load it into the
@@ -474,7 +483,7 @@ REPEAT:
                                         THEN "_<CALC>":U
                                         ELSE ENTRY(1, _inp_line[3], ".":U)
                      cur_bc-rec     = RECID(_BC).
-              
+
                /* When we read a Field Name, reset the label & format.
                  SDOs don't use this and are likely to have more fields than 
                  extents in this array, so just skip it. */
@@ -587,6 +596,47 @@ REPEAT:
                /* The next 2 lines are a kluge to allow a logical format of "*" for true */
                IF _BC._FORMAT BEGINS "*~~~~/":U THEN
                  _BC._FORMAT = "*/":U + SUBSTRING(_BC._FORMAT,5,-1,"CHARACTER":U).
+
+               IF isSmartData AND lICFIsRunning THEN
+               DO:
+                 IF _BC._DBNAME = "Temp-Tables":U THEN
+                 DO:
+                   FIND FIRST _TT WHERE _TT._p-recid = RECID(_P) AND
+                                        _TT._NAME = _BC._TABLE NO-ERROR.
+                   IF AVAILABLE _TT THEN
+                     IF _TT._TABLE-TYPE = "B":U THEN
+                       cDataFieldName = _TT._LIKE-TABLE + ".":U + _BC._NAME.
+                 END.
+                 ELSE IF _BC._DBNAME = "_<CALC>":U THEN cDataFieldName = _BC._NAME.
+                 ELSE cDataFieldName = _BC._TABLE + ".":U + _BC._NAME.
+
+                 lFoundIt = DYNAMIC-FUNCTION("cacheObjectOnClient":U IN gshRepositoryManager, 
+                                             INPUT cDataFieldName,  
+                                             INPUT ?,                 
+                                             INPUT ?,                     
+                                             INPUT NO).    
+                 IF lFoundIt THEN
+                 DO:
+                   hObjectBuffer = DYNAMIC-FUNCTION("getCacheObjectBuffer":U IN gshRepositoryManager, INPUT ?).
+                   hObjectBuffer:FIND-FIRST("WHERE ":U + hObjectBuffer:NAME + ".tLogicalObjectName = '":U +
+                                             cDataFieldName + "'":U) NO-ERROR.
+                   IF hObjectBuffer:AVAILABLE THEN
+                   DO:
+                     hAttributeBuffer  = hObjectBuffer:BUFFER-FIELD("tClassBufferHandle":U):BUFFER-VALUE NO-ERROR.
+                     hAttributeBuffer:FIND-FIRST(" WHERE ":U + hAttributeBuffer:NAME + ".tRecordIdentifier = ":U + 
+                                                 QUOTER(hObjectBuffer:BUFFER-FIELD("tRecordIdentifier":U):BUFFER-VALUE)) NO-ERROR.
+                     IF VALID-HANDLE(hAttributeBuffer) AND hAttributeBuffer:AVAILABLE THEN
+                     DO:
+                       ASSIGN 
+                         _BC._FORMAT        = hAttributeBuffer:BUFFER-FIELD("Format":U):BUFFER-VALUE
+                         _BC._HELP          = hAttributeBuffer:BUFFER-FIELD("Help":U):BUFFER-VALUE 
+                         _BC._LABEL         = hAttributeBuffer:BUFFER-FIELD("Label":U):BUFFER-VALUE
+                         _BC._HAS-DATAFIELD-MASTER = TRUE NO-ERROR.
+                     END.  /* if available hAttributeBuffer */
+                   END.  /* if valid hObjectBuffer */
+                 END.  /* if found it */
+               END.  /* if isSmartData and ICF Running */
+               
             END.
             ELSE IF _inp_line[1] BEGINS "_FldLabelList" THEN DO:
               FIND _BC WHERE RECID(_BC) = cur_bc-rec.

@@ -66,7 +66,9 @@ To get the MSS-to-PROGRESS tables copied to the environment:
    * a specific format                                             OR 
    * {c,d,i,l,#} for (character, date, integer, logical, decimal} to use 
      the format created by the hardcoded algorithm in _xxx_mak.i   OR
-   * ? to use the PROGRESS default format  
+ 
+ History:  D. McMann replaced "?" with "l" for logical data types 04/17/02
+           D. McMann added format x(26) for timestamp 06/09/02
 */ 
 
 DEFINE VARIABLE gate-config AS CHARACTER EXTENT 37 NO-UNDO INITIAL [
@@ -81,7 +83,7 @@ DEFINE VARIABLE gate-config AS CHARACTER EXTENT 37 NO-UNDO INITIAL [
   "Ntext,            Ntext,        0, 40, character,0, |c",
   "Time,	         Time,	       0, 143,character,0, |c",  
   "Timestamp,	     Timestamp,	   0, 44, date,     a, |d",
-  "Timestamp,	     Timestamp,	   0, 44, character,a, |c",
+  "Timestamp,	     Timestamp,	   0, 44, character,a, |x(26)",
   "Longvarchar,	     Longvarchar,  0, 37, character,0, |c",
   "Binary,	         Binary,       0, 38, character,0, |c",
   "Varbinary,	     Varbinary,    0, 39, character,0, |c",
@@ -95,7 +97,7 @@ DEFINE VARIABLE gate-config AS CHARACTER EXTENT 37 NO-UNDO INITIAL [
   "Integer,	         Integer,      0, 33, logical,  3, |?",
   "Smallint,	     Smallint,     0, 32, integer,  4, |i",
   "Smallint,         Smallint,     0, 32, decimal,  4, |#",
-  "Smallint,	     Smallint,     0, 32, logical,  4, |?",
+  "Smallint,	     Smallint,     0, 32, logical,  4, |l",
   "Float,	         Float,        0, 34, decimal,  5, |#",
   "Float,	         Float,        0, 34, integer,  5, |i",
   "Real,	         Real,         0, 48, decimal,  6, |#",
@@ -106,8 +108,8 @@ DEFINE VARIABLE gate-config AS CHARACTER EXTENT 37 NO-UNDO INITIAL [
   "Bigint,	         Bigint,       0, 234,integer,  8, |i",
   "Tinyint,	         Tinyint,      0, 31, integer,  9, |->>9",
   "Tinyint,	         Tinyint,      0, 31, decimal,  9, |->>>>9",
-  "Tinyint,	         Tinyint,      0, 31, logical,  9, |?",
-  "Bit,	     	     Bit,          0, 41, logical,  0, |?",
+  "Tinyint,	         Tinyint,      0, 31, logical,  9, |l",
+  "Bit,	     	     Bit,          0, 41, logical,  0, |l",
   ?
 ].
 

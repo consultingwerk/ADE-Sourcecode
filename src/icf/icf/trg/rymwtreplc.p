@@ -23,11 +23,6 @@
 *********************************************************************/
 TRIGGER PROCEDURE FOR REPLICATION-CREATE OF rym_wizard_tree.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "rym_wizard_tree"
-                      &TRIGGER-TYPE = "REPLICATION-CREATE"}
-
 {af/sup/afreplicat.i  &TABLE-NAME   = "rym_wizard_tree"
                       &TABLE-FLA    = "rymwt"
                       &TABLE-PK     = "wizard_tree_obj"

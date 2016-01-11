@@ -97,30 +97,67 @@
 /* ***************************  Main Block  *************************** */
 
 &IF DEFINED(tttoolbar) = 0 &THEN
-  DEFINE TEMP-TABLE ttBand
-   FIELD Band                     AS CHARACTER FORMAT "x(28)":U
-   FIELD BandType                 AS CHAR FORMAT "x(12)":U
-   FIELD BandLabelAction          AS CHARACTER FORMAT "x(12)":U
-   FIELD SystemOwned              AS LOG
-   FIELD Hidden                   AS LOG
-   FIELD Module                   AS CHARACTER FORMAT "x(12)"
-   FIELD ButtonSpacing            AS INT
-   FIELD ButtonPadding            AS INT        
-   FIELD ProcedureHandle          AS HANDLE
-  INDEX Band AS UNIQUE  Band ProcedureHandle 
-  INDEX ProcedureHandle ProcedureHandle.  
+  /* This include could be included twice, once for the standard tables, 2nd time for the equivalent cache tables. *
+   * The defineCache preprocessor needs to be defined to define cache tables.                                      */
+  &IF DEFINED(defineCacheTables) = 0
+  &THEN 
+       &GLOBAL-DEFINE ttPrefixName 
+       &GLOBAL-DEFINE ttCacheFields
+       &GLOBAL-DEFINE ttCacheIndex
+  &ELSE 
+       &GLOBAL-DEFINE ttPrefixName  CACHE
+       &GLOBAL-DEFINE ttCacheFields FIELD cToolbarName       AS CHARACTER ~
+                                    FIELD cLogicalObjectName AS CHARACTER ~
+                                    FIELD cBand              AS CHARACTER
+       &GLOBAL-DEFINE ttCacheIndex  INDEX cache_fields cToolbarName cLogicalObjectName cBand
+       
+       &IF DEFINED(ttStoreToolbar) = 0 &THEN
+           DEFINE TEMP-TABLE ttStoreToolbarsCached NO-UNDO
+               FIELD cToolbarName       AS CHARACTER
+               FIELD cLogicalObjectName AS CHARACTER
+               FIELD cBand              AS CHARACTER
+            
+               INDEX cache_fields AS PRIMARY cToolbarName cLogicalObjectName cBand
+               INDEX obj_name                cLogicalObjectName.
+           &GLOBAL-DEFINE ttStoreToolbar
+       &ENDIF
+  &ENDIF
+  DEFINE TEMP-TABLE tt{&ttPrefixName}Band NO-UNDO
+      {&ttCacheFields}
+      FIELD Band                     AS CHARACTER FORMAT "x(28)":U
+      FIELD BandType                 AS CHAR FORMAT "x(12)":U
+      FIELD BandLabelAction          AS CHARACTER FORMAT "x(12)":U
+      FIELD SystemOwned              AS LOG
+      FIELD Hidden                   AS LOG
+      FIELD Module                   AS CHARACTER FORMAT "x(12)"
+      FIELD ButtonSpacing            AS INT
+      FIELD ButtonPadding            AS INT        
+      FIELD ProcedureHandle          AS HANDLE      
+      &IF DEFINED(defineCacheTables) = 0 &THEN      
+      INDEX Band AS UNIQUE  Band ProcedureHandle 
+      INDEX ProcedureHandle ProcedureHandle
+      &ELSE
+      {&ttCacheIndex}
+      &ENDIF
+      .
 
-  DEFINE TEMP-TABLE ttBandAction 
-   FIELD Band                     AS CHARACTER FORMAT "x(28)":U
-   FIELD Action                   AS CHARACTER FORMAT "x(12)":U
-   FIELD ChildBand                AS CHARACTER FORMAT "x(28)":U
-   FIELD Sequence                 AS INTEGER
-   FIELD Cached                   AS LOGICAL
-   FIELD ProcedureHandle          AS HANDLE
-  INDEX Band AS UNIQUE  Band Sequence ProcedureHandle
-  INDEX Childband       Childband
-  INDEX Action          Action Band
-  INDEX ProcedureHandle ProcedureHandle.  
+  DEFINE TEMP-TABLE tt{&ttPrefixName}BandAction NO-UNDO
+      {&ttCacheFields}
+      FIELD Band                     AS CHARACTER FORMAT "x(28)":U
+      FIELD Action                   AS CHARACTER FORMAT "x(12)":U
+      FIELD ChildBand                AS CHARACTER FORMAT "x(28)":U
+      FIELD Sequence                 AS INTEGER
+      FIELD Cached                   AS LOGICAL
+      FIELD ProcedureHandle          AS HANDLE     
+      &IF DEFINED(defineCacheTables) = 0 &THEN
+      INDEX Band AS UNIQUE  Band Sequence ProcedureHandle            
+      INDEX Childband       Childband
+      INDEX Action          Action Band
+      INDEX ProcedureHandle ProcedureHandle
+      &ELSE
+      {&ttCacheIndex} Band Sequence ProcedureHandle
+      &ENDIF
+      .
 
   /* temp table of which menu structures used by object
      NB: if object does not use any menu strutures, a record with no band 
@@ -128,30 +165,50 @@
      checking in the database again to see if it needs any menu structures.
   */
   
-  DEFINE TEMP-TABLE ttObjectBand NO-UNDO
-   FIELD ObjectName    AS CHARACTER FORMAT "x(15)"
-   FIELD RunAttribute  AS CHARACTER FORMAT "x(15)"
-   FIELD Sequence      AS INTEGER  
-   FIELD Action        AS CHAR 
-   FIELD Band          AS CHARACTER FORMAT "x(28)"
-   FIELD InsertSubmenu AS LOGICAL 
-  INDEX key1 AS PRIMARY UNIQUE ObjectName RunAttribute Sequence
-  INDEX key2 Band ObjectName RunAttribute
-  INDEX key3 Action ObjectName RunAttribute Sequence
-  .
+  DEFINE TEMP-TABLE tt{&ttPrefixName}ObjectBand NO-UNDO
+      {&ttCacheFields}
+      FIELD ObjectName    AS CHARACTER FORMAT "x(15)"
+      FIELD RunAttribute  AS CHARACTER FORMAT "x(15)"
+      FIELD ResultCode    AS CHARACTER                /* This field is required for customization of menus on a container - part of the unique primary index */
+      FIELD Sequence      AS INTEGER  
+      FIELD Action        AS CHAR 
+      FIELD Band          AS CHARACTER FORMAT "x(28)"
+      FIELD InsertSubmenu AS LOGICAL       
+      &IF DEFINED(defineCacheTables) = 0 &THEN
+      INDEX key1 AS PRIMARY UNIQUE ObjectName RunAttribute ResultCode Sequence      
+      INDEX key2 Band ObjectName RunAttribute
+      INDEX key3 Action ObjectName RunAttribute Sequence
+      &ELSE
+      {&ttCacheIndex} RunAttribute ResultCode Sequence
+      &ENDIF
+      .
 
   /* temp-table of menu structures - for client caching in toolbars */
-  DEFINE TEMP-TABLE ttToolbarBand NO-UNDO
-   FIELD ToolbarName AS CHARACTER FORMAT "x(15)"
-   FIELD Band        AS CHARACTER FORMAT "x(28)" 
-   FIELD Alignment   AS CHARACTER
-   FIELD RowPosition AS CHARACTER
-   FIELD Sequence    AS INTEGER  
-   FIELD Spacing     AS INTEGER
-   FIELD InsertRule  AS LOGICAL
-  INDEX key1 AS UNIQUE PRIMARY ToolbarName Sequence 
-  INDEX key2 AS UNIQUE Band toolbarName
-  .
+  DEFINE TEMP-TABLE tt{&ttPrefixName}ToolbarBand NO-UNDO
+      {&ttCacheFields}
+      FIELD ToolbarName AS CHARACTER FORMAT "x(15)"
+      FIELD Band        AS CHARACTER FORMAT "x(28)" 
+      FIELD Alignment   AS CHARACTER
+      FIELD RowPosition AS CHARACTER
+      FIELD Sequence    AS INTEGER  
+      FIELD Spacing     AS INTEGER
+      FIELD InsertRule  AS LOGICAL      
+      FIELD ResultCode  AS CHARACTER
+      &IF DEFINED(defineCacheTables) = 0 &THEN
+      INDEX key1 AS UNIQUE PRIMARY ToolbarName Sequence ResultCode
+      INDEX key2 AS UNIQUE Band toolbarName
+      &ELSE
+      {&ttCacheIndex}
+      &ENDIF
+      .
+
+  /* If we've been asked to define cache temp-tables, include this include again, this time for cache tables */
+  &IF DEFINED(defineCache) <> 0 &THEN
+       &UNDEFINE defineCache /* we don't want to go into an infinite include, do we? */
+       &GLOBAL-DEFINE defineCacheTables
+       {src/adm2/tttoolbar.i}
+       &UNDEFINE defineCacheTables
+  &ENDIF
 
   &GLOBAL-DEFINE tttoolbar
 &ENDIF

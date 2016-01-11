@@ -41,6 +41,9 @@
 ---------------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
+
+{af/app/afdatatypi.i}
+    
 DEFINE INPUT PARAMETER pcSdoName            AS CHARACTER                NO-UNDO.
 
 DEFINE VARIABLE lCanSearch          AS LOGICAL                          NO-UNDO.
@@ -259,50 +262,42 @@ DO:
         END.    /* we need to go to the metaschema */
 
         /* Create SmartObject record for the SDF */
+
         FIND FIRST ryc_smartObject WHERE
                    ryc_smartObject.object_filename = ttField.tTableName + ".":U + ttField.tFieldName
                    NO-LOCK NO-ERROR.
+
         IF NOT AVAILABLE ryc_smartObject THEN
         DO:
-            CREATE gsc_object NO-ERROR.
-            IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
-
-            ASSIGN gsc_object.object_type_obj         = gsc_object_type.object_type_obj
-                   gsc_object.product_module_obj      = rycso.product_module_obj
-                   gsc_object.object_description      = "SDO - " + cDataSourceName + " Field - " + ttField.tTableName + ".":U + ttField.tFieldName
-                   gsc_object.object_filename         = ttField.tTableName + ".":U + ttField.tFieldName
-                   gsc_object.object_path             = "":U
-                   gsc_object.runnable_from_menu      = NO
-                   gsc_object.disabled                = NO
-                   gsc_object.run_persistent          = NO
-                   gsc_object.run_when                = "ANY":U
-                   gsc_object.security_object_obj     = gsc_object.object_obj
-                   gsc_object.container_object        = NO
-                   gsc_object.physical_object_obj     = 0
-                   gsc_object.logical_object          = NO
-                   gsc_object.generic_object          = NO
-                   gsc_object.required_db_list        = "":U
-                   NO-ERROR.
-            IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR ERROR-STATUS:GET-MESSAGE(1).
-
-            VALIDATE gsc_object NO-ERROR.
-            IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
-
             CREATE ryc_smartObject NO-ERROR.
             IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
 
-            ASSIGN ryc_smartObject.layout_obj             = 0
+            ASSIGN ryc_smartObject.object_type_obj         = gsc_object_type.object_type_obj
+                   ryc_smartObject.product_module_obj      = rycso.product_module_obj
+                   ryc_smartObject.object_description      = "SDO - " + cDataSourceName + " Field - " + ttField.tTableName + ".":U + ttField.tFieldName
+                   ryc_smartObject.object_filename         = ttField.tTableName + ".":U + ttField.tFieldName
+                   ryc_smartObject.object_path             = "":U
+                   ryc_smartObject.runnable_from_menu      = NO
+                   ryc_smartObject.disabled                = NO
+                   ryc_smartObject.run_persistent          = NO
+                   ryc_smartObject.run_when                = "ANY":U
+                   ryc_smartObject.security_smartobject_obj     = ryc_smartobject.smartobject_obj
+                   ryc_smartObject.container_object        = NO
+                   ryc_smartObject.physical_smartobject_obj     = 0
+                   ryc_smartObject.generic_object          = NO
+                   ryc_smartObject.required_db_list        = "":U
+                   ryc_smartObject.layout_obj             = 0
                    ryc_smartObject.object_type_obj        = gsc_object_type.object_type_obj
-                   ryc_smartObject.object_obj             = gsc_object.object_obj
                    ryc_smartObject.object_filename        = ttField.tTableName + ".":U + ttField.tFieldName
                    ryc_smartObject.product_module_obj     = rycso.product_module_obj
                    ryc_smartObject.static_object          = NO
-                   ryc_smartObject.custom_super_procedure = "":U
+                   ryc_smartObject.custom_smartobject_obj = 0
                    ryc_smartObject.system_owned           = NO
                    ryc_smartObject.shutdown_message_text  = ""
                    ryc_smartObject.sdo_smartobject_obj    = rycso.smartobject_obj
                    ryc_smartObject.template_smartobject   = NO
                    NO-ERROR.
+
             IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR ERROR-STATUS:GET-MESSAGE(1).
 
             VALIDATE ryc_smartObject NO-ERROR.
@@ -586,7 +581,6 @@ PROCEDURE CreateAttributeValues:
         IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
 
         ASSIGN ryc_attribute.attribute_group_obj = ryc_attribute_group.attribute_group_obj
-               ryc_attribute.attribute_type_TLA  = "CHR":U
                ryc_attribute.attribute_label     = pcAttributeLabel
                ryc_attribute.attribute_narrative = pcAttributeLabel
                ryc_attribute.system_owned        = NO
@@ -604,12 +598,14 @@ PROCEDURE CreateAttributeValues:
                ryc_attribute_value.container_smartobject_obj   = 0
                ryc_attribute_value.smartobject_obj             = 0
                ryc_attribute_value.object_instance_obj         = 0
-               ryc_attribute_value.inheritted_value            = NO
                ryc_attribute_value.constant_value              = NO
-               ryc_attribute_value.attribute_group_obj         = ryc_attribute.attribute_group_obj
-               ryc_attribute_value.attribute_type_tla          = ryc_attribute.attribute_type_tla
                ryc_attribute_value.attribute_label             = ryc_attribute.attribute_label
-               ryc_attribute_value.attribute_value             = ?      /* default Null value */
+               ryc_attribute_value.character_value             = "":U 
+               ryc_attribute_value.decimal_value               = 0
+               ryc_attribute_value.integer_value               = 0
+               ryc_attribute_value.date_value                  = ?
+               ryc_attribute_value.logical_value               = FALSE
+               ryc_attribute_value.raw_value                   = ?
                NO-ERROR.
         IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR ERROR-STATUS:GET-MESSAGE(1).
 
@@ -619,8 +615,6 @@ PROCEDURE CreateAttributeValues:
 
     FIND FIRST ryc_attribute_value WHERE
                ryc_attribute_value.primary_smartObject_obj = pdSmartObjectObj                  AND
-               ryc_attribute_value.attribute_group_obj     = ryc_attribute.attribute_group_obj AND
-               ryc_attribute_value.attribute_type_TLA      = ryc_attribute.attribute_type_TLA  AND
                ryc_attribute_value.attribute_label         = ryc_attribute.attribute_label
                EXCLUSIVE-LOCK NO-WAIT NO-ERROR.
     IF NOT AVAILABLE ryc_attribute_value THEN
@@ -632,10 +626,7 @@ PROCEDURE CreateAttributeValues:
                ryc_attribute_value.container_smartobject_obj   = 0
                ryc_attribute_value.smartobject_obj             = pdSmartObjectObj
                ryc_attribute_value.object_instance_obj         = 0
-               ryc_attribute_value.inheritted_value            = NO
                ryc_attribute_value.constant_value              = NO
-               ryc_attribute_value.attribute_group_obj         = ryc_attribute.attribute_group_obj
-               ryc_attribute_value.attribute_type_tla          = ryc_attribute.attribute_type_tla
                ryc_attribute_value.attribute_label             = ryc_attribute.attribute_label
                NO-ERROR.
         IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR ERROR-STATUS:GET-MESSAGE(1).
@@ -644,7 +635,16 @@ PROCEDURE CreateAttributeValues:
         IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
     END.
 
-    ASSIGN ryc_attribute_value.attribute_value = pcAttributeValue NO-ERROR.
+    CASE ryc_attribute.data_type:
+      WHEN {&DECIMAL-DATA-TYPE}   THEN ryc_attribute_value.decimal_value   = DECIMAL(pcAttributeValue) NO-ERROR.
+      WHEN {&INTEGER-DATA-TYPE}   THEN ryc_attribute_value.integer_value   = INTEGER(pcAttributeValue) NO-ERROR.
+      WHEN {&DATE-DATA-TYPE}      THEN ryc_attribute_value.date_value      =    DATE(pcAttributeValue) NO-ERROR.
+      WHEN {&RAW-DATA-TYPE}       THEN.
+      WHEN {&LOGICAL-DATA-TYPE}   THEN ryc_attribute_value.logical_value   = (IF pcAttributeValue = "TRUE":U OR
+                                                                                 pcAttributeValue = "YES":U  THEN TRUE ELSE FALSE) NO-ERROR.
+      WHEN {&CHARACTER-DATA-TYPE} THEN ryc_attribute_value.character_value = pcAttributeValue NO-ERROR.
+    END CASE.
+
     IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR ERROR-STATUS:GET-MESSAGE(1).
 
     VALIDATE ryc_attribute_value NO-ERROR.

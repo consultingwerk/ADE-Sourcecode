@@ -122,9 +122,13 @@ ASSIGN
    _U._DROP-TARGET              = {&ABW_drop-target} = "y"
    _C._VALIDATE                 = {&ABW_validate} = "y"
    _U._SCROLLBAR-V              = {&ABW_scrollbar-v} = "y"
-   _C._EXPANDABLE               = {&ABW_expandable} = "y"
+   _C._FIT-LAST-COLUMN          = {&ABW_expandable} = "y"
+   _C._NO-EMPTY-SPACE           = {&ABW_no-empty_space} = "y"
    _C._ROW-HEIGHT               = DECIMAL({&ABW_RowHeight-val})
    _U._CONTEXT-HELP-ID          = INTEGER({&ABW_context-help-id}).
+
+/* Fit last column and no-empty-space are mutually exclusive */
+IF _C._FIT-LAST-COLUMN THEN _C._NO-EMPTY-SPACE = NO.
 
 CREATE EDITOR _U._HANDLE
   ASSIGN SCROLLBAR-HORIZONTAL = FALSE

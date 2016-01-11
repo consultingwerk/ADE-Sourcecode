@@ -1,0 +1,8 @@
+"A000" "HED" "<before-df>" "Before Definition Load"
+"B000" "HED" "<df-load>" "Definition Load"
+"B001" "DFD" "icf/db/icf/dfd/icfdb020009delta.df" "020009 Delta Load"
+"C000" "HED" "<after-df>" "After Definition Load"
+"C001" "CLI" "icf/db/icf/dfd/icfdb020009Migrate.p" "Migrating data"
+"D000" "HED" "<data-load>" "Data Load"
+"E000" "HED" "<new-data-load>" "New Data Load"
+"E010" "NEW" "icf/db/icf/dump" "New Data Load"

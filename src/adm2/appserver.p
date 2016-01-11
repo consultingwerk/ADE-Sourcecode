@@ -257,6 +257,17 @@ FUNCTION getServerOperatingMode RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-hasNoServerBinding) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD hasNoServerBinding Procedure 
+FUNCTION hasNoServerBinding RETURNS LOGICAL
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-runServerProcedure) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD runServerProcedure Procedure 
@@ -419,8 +430,8 @@ FUNCTION setServerOperatingMode RETURNS LOGICAL
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 14.57
-         WIDTH              = 44.6.
+         HEIGHT             = 18.71
+         WIDTH              = 58.4.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -1280,7 +1291,7 @@ FUNCTION getAsDivision RETURNS CHARACTER
     IF cAppService <> '':U THEN
     DO:
       {get AsHasStarted lAsHasStarted}.
-      IF NOT lAsHasStarted THEN
+      IF NOT lAsHasStarted AND ({fn getUIBMode} = '':U) THEN
         cDivision = 'Client':U.
       ELSE /* Something has gone astray if we get here, but whatever reason
               we certainly do not have a 'client', so return blank, but keep
@@ -1638,6 +1649,41 @@ FUNCTION getServerOperatingMode RETURNS CHARACTER
   DEFINE VARIABLE cServerOperatingMode AS CHARACTER  NO-UNDO.    
   {get ServerOperatingMode cServerOperatingMode}.
   RETURN cServerOperatingMode.  
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-hasNoServerBinding) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION hasNoServerBinding Procedure 
+FUNCTION hasNoServerBinding RETURNS LOGICAL
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose: Encapsulates logic to check AppServer properties to see if the 
+           object has no current or future server bindings and is using a 
+           stateless operating mode.    
+    Notes: Used by data objects to check if data can be retrieved with one 
+           appserver hit together with other data objects and by another 
+           object (DataContainer).   
+------------------------------------------------------------------------------*/
+ DEFINE VARIABLE cASDivision      AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE lASBound         AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE cOperatingMode   AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cBindScope       AS CHARACTER  NO-UNDO.
+  
+ {get ASDivision cASDivision}.
+ {get AsBound lASBound}.
+ {get ServerOperatingMode cOperatingMode}.
+ {get BindScope cBindScope}.
+     
+ RETURN cAsDivision = 'Client':U
+        AND NOT lAsBound 
+        AND NOT CAN-DO('state-aware,state-reset':U,cOperatingMode)
+        AND NOT CAN-DO('Strong,this':U,cBindScope).
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

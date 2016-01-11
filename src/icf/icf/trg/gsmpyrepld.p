@@ -23,11 +23,6 @@
 *********************************************************************/
 TRIGGER PROCEDURE FOR REPLICATION-DELETE OF gsm_physical_service.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "gsm_physical_service"
-                      &TRIGGER-TYPE = "REPLICATION-DELETE"}
-
 {af/sup/afreplicat.i  &TABLE-NAME   = "gsm_physical_service"
                       &TABLE-FLA    = "gsmpy"
                       &TABLE-PK     = "physical_service_obj"

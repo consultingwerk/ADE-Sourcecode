@@ -1,0 +1,195 @@
+UPDATE FIELD "delete_related_records" OF "gsc_dataset_entity"
+  DESCRIPTION "If set to YES, any records for this dataset entity related to the parent entity will be deleted. If set to NO, records in this entity will not be deleted before applying the new dataset records.
+
+For example, a dataset linking objects and menu items would typically not want to first delete the menu item records so that user defined menu items are preserved, whereas a dataset relating entity mnemonics to entity display fields would require the deletion of existing data first before applying the new set.
+
+If delete_related_records is YES then overwrite_records must also be YES.
+
+This flag is specifically related to data updates, when new information is coming in from an ADO.
+
+When deploying out a deletion, the deletion_action field is used to determine what and how to delete the related data. What to delete could be different between deployments of updates and deployments of deletions.
+
+
+"
+
+ADD FIELD "deletion_action" OF "gsc_dataset_entity" AS character
+  DESCRIPTION "The deletion action decides the action to be taken when a record is deleted as a result of a deployed deletion. Valid values are:
+
+C - CASCADE 
+When a record in the parent entity is deleted, each related record in the child entity is also deleted.
+
+S - SET NULL
+When a record in the parent entity is deleted, the foreign key attributes or columns in each related record of the child entity are set to Null.
+
+N = NONE
+No deletion action is required.
+
+This flag is specifically related to deployment of data deletion - and is different in meaning to the delete_related_records flag which is used when doing updates of new information coming in from an ADO.
+
+When deploying out an update the delete_related_records flag is used to determine what to delete before bringing in the new data. What to delete could be different between deployments of updates and deployments of deletions.
+
+
+"
+  FORMAT "X(1)"
+  FORMAT-SA ?
+  POSITION 15
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Deletion action"
+  HELP-SA ""
+  LABEL "Deletion Action"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_string_1"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 140
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 2
+
+ADD FIELD "enable_data_versioning" OF "gsc_deploy_dataset" AS logical
+  DESCRIPTION "This flag indicates whether to enable data versioning for this dataset. If this flag is set to YES, then data versioning is enabled. In addition to setting this flag to YES, the version_data flag on all the entities this dataset includes must also be set to YES in order to ensure replication schema triggers exist for the tables, which is where the functioinality is controlled.
+
+When this flag is set to YES, any updates to any of the dataset entities will result in an update of the version_number_sequence field in gst_record_version record, for the primary entity in the dataset.
+
+By default this is set to NO and must be manually enabled. This is done to avoid the overhead assiciated with inadvertantly setting this functionality on when it is not required.
+
+It is only necessary to enable data versioning where we need to track what data has changed in tables to know what to deploy. If we set the flag to NO, then all the data in the table or a manual selection of data would be deployed with no knowledge of what HAS to be deployed because it has changed.
+
+
+"
+  FORMAT "YES/NO"
+  FORMAT-SA ?
+  POSITION 11
+  INITIAL "NO"
+  INITIAL-SA ?
+  HELP "Enable data versioning"
+  HELP-SA ""
+  LABEL "Enable Data Versioning"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "l_noyes"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 100
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1
+
+ADD FIELD "deletion_dataset" OF "gsc_deploy_dataset" AS logical
+  DESCRIPTION "This is a flag, YES or NO, that determines whether this dataset can be used to determine relationships when deploying a deletion.
+
+If this flag is set to YES, then the entities defined in this dataset, and their relationship information, will be used to determine exactly what related data to delete when deleting a primary entity as part of a deployment.
+
+For a single primary entity, multiple datasets may be used to actually delete all of the primary entity related data.
+
+The default is NO so that it is a manual and deliberate action to enable this functionality for a dataset, as settinmg this flag incorrectly could have drastic impact on the database referential integrity.
+"
+  FORMAT "YES/NO"
+  FORMAT-SA ?
+  POSITION 12
+  INITIAL "NO"
+  INITIAL-SA ?
+  HELP "Deletion dataset"
+  HELP-SA ""
+  LABEL "Deletion Dataset"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "l_noyes"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 110
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1
+
+UPDATE FIELD "entity_key_field" OF "gsc_entity_mnemonic"
+  DESCRIPTION "The name of the unique key field or fields for this entity. This should be a field or fields other than the object field that could be used to uniquely find information in this entity. This would often be used in lookups, etc. so the code and description can be displayed to the user.
+If more than one field is necesarry to uniquely identify a record, the field names will be stored in a comma seperated list
+"
+  FORMAT "X(500)"
+  VALMSG "s_small_text_block"
+  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL MAX-CHARS 500"
+  SQL-WIDTH 1000
+
+UPDATE FIELD "version_data" OF "gsc_entity_mnemonic"
+  DESCRIPTION "If set to YES, this field indicates that the data in the table should be version-stamped.
+
+This will result in replication triggers on the table writing data to the gst_record_version table.
+
+This field corresponds to the entity level UDP setup in ERwin as VersionData.
+
+The version information is used to identify which records have changed for deployment purposes.
+
+This flag is used in conjunction with the enable_data_versioning on the dataset entity to determine exactly how the entity is versioned.
+"
+
+ADD FIELD "reuse_deleted_keys" OF "gsc_entity_mnemonic" AS logical
+  DESCRIPTION "This flag is only relevant for entities that have record versioning enabled and the table has obj field is true - i.e. this is a table that has an object id field and some other unique key field(s).
+
+If this flag is set to YES, then if a record is created with a key value that has been previously deleted, then the new record will be created with the deleted records object id and key value, ensuring the link between a key value and an object id are never broken.
+
+This is designed to reolve issues of deploying data that is deleted and then reinstated with the same key information.
+
+The default is YES as setting this to NO when it is required will result in conflicts when attempting to deploy record deletions.
+
+If this flag is set to YES and this data is record versioned and the table has obj field is enabled, then modifications to the key field values will be disabled.
+
+"
+  FORMAT "YES/NO"
+  FORMAT-SA ?
+  POSITION 23
+  INITIAL "YES"
+  INITIAL-SA ?
+  HELP "Reuse deleted keys"
+  HELP-SA ""
+  LABEL "Reuse Deleted Keys"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "l_yesno"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 220
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1
+
+DROP INDEX "XIE6gsc_entity_mnemonic" ON "gsc_entity_mnemonic"
+
+DROP FIELD "version_master_join" OF "gsc_entity_mnemonic"
+DROP FIELD "version_master_entity" OF "gsc_entity_mnemonic"
+
+UPDATE SEQUENCE "seq_ICFDB_DBVersion"
+  INITIAL 20013
+  MAX-VAL 20013
+
+.
+PSC
+cpstream=UTF-8
+.
+0000008010

@@ -67,7 +67,7 @@ History:
     mcmann      06/18/99    Added third parameter to call of _dmpdefs.p
     Mario B     10/19/99    Several Bug Fixes and support for AREAS.  Added
                             warnings mechanisim.  BUG#'s  19981112-011,
-			                19990915-022, 19970814-029 (re-opened & re-fixed).
+                                        19990915-022, 19970814-029 (re-opened & re-fixed).
     McMann      12/15/99    Supporting hidden user files. 19991029-048
     McMann      01/11/00    Dump index desc 19991029042
     McMann      01/18/00    Added check for sql-default 19991102027
@@ -79,6 +79,10 @@ History:
                             has specified to.
     McMann      06/28/00    Added code for renaming indexes 20000621001
     McMann      08/17/00    Added _db-recid to _StorageObject find 20000815029
+    vap         01/29/02    Added batch-mode support
+    McMann      08/08/02    Eliminated any sequences whose name begins "$" - Peer Direct
+    McMann      09/13/02    Added logic to put inactive on non-unique indices if the record
+                            is inactive 20020913-002
     
 */
 /*h-*/
@@ -105,6 +109,16 @@ DEFINE            VARIABLE j              AS INTEGER                 NO-UNDO.
 DEFINE            VARIABLE l              AS LOGICAL                 NO-UNDO.
 DEFINE            VARIABLE stopped        AS LOGICAL   INITIAL TRUE  NO-UNDO.
 DEFINE            VARIABLE tmp_Field-name AS CHARACTER               NO-UNDO.
+/* 02/01/29 vap (IZ# 1525) */
+DEFINE            VARIABLE p-batchmode    AS LOGICAL                 NO-UNDO.
+DEFINE            VARIABLE p-index-mode   AS CHARACTER               NO-UNDO.
+DEFINE            VARIABLE p-rename-file  AS CHARACTER               NO-UNDO.
+DEFINE            VARIABLE p-debug-mode   AS INTEGER                 NO-UNDO.
+DEFINE            VARIABLE p-log-line     AS CHARACTER               NO-UNDO.
+DEFINE            VARIABLE p-list         AS CHARACTER               NO-UNDO.
+DEFINE            VARIABLE p-comma        AS CHARACTER               NO-UNDO.
+DEFINE            VARIABLE p-foo          AS CHARACTER               NO-UNDO.
+DEFINE            VARIABLE p-foo2         AS CHARACTER               NO-UNDO.
 
 /* LANGUAGE DEPENDENCIES START */ /*----------------------------------------*/
 DEFINE VARIABLE new_lang AS CHARACTER EXTENT 31 NO-UNDO INITIAL [
@@ -205,12 +219,35 @@ FUNCTION fileAreaMatch RETURNS LOGICAL (INPUT db1FileNo AS INT,
 FUNCTION indexAreaMatch RETURNS LOGICAL(INPUT db1IndexNo AS INT,
                                         INPUT db2IndexNo AS INT,
                                         INPUT db1recid   AS RECID,
-                                        INPUT db2recid   AS RECID) IN h_dmputil.					
+                                        INPUT db2recid   AS RECID) IN h_dmputil.                                        
 FUNCTION inprimary RETURNS LOGICAL (INPUT p_db1PrimeIndex AS RECID,
                                     INPUT p_db1RecId      AS RECID)
                                     IN h_dmputil.
 
+FUNCTION checkRenameTable RETURNS CHARACTER (  /* 02/01/29 vap (IZ# 1525) */
+                          INPUT pcRenameFrom   AS CHARACTER ,
+                          INPUT pcRenameToList AS CHARACTER ) IN h_dmputil.
+
+FUNCTION checkRenameField RETURNS CHARACTER (  /* 02/01/29 vap (IZ# 1525) */
+                          INPUT pcTableName    AS CHARACTER ,
+                          INPUT pcRenameFrom   AS CHARACTER ,
+                          INPUT pcRenameToList AS CHARACTER ) IN h_dmputil.
+
+FUNCTION checkRenameSequence RETURNS CHARACTER (  /* 02/01/29 vap (IZ# 1525) */
+                             INPUT pcRenameFrom   AS CHARACTER ,
+                             INPUT pcRenameToList AS CHARACTER ) IN h_dmputil.
+
 /* mainline code **********************************************************/
+
+/* 02/01/29 vap (IZ# 1525) */
+ASSIGN p-batchmode = SESSION:BATCH-MODE.
+IF p-batchmode THEN DO:
+  ASSIGN p-rename-file = ENTRY(1,user_env[19])
+         p-index-mode  = ENTRY(2,user_env[19])
+         p-debug-mode  = INTEGER(ENTRY(3,user_env[19])) NO-ERROR.
+  RUN set_Variables           IN h_dmputil(p-rename-file, p-debug-mode).
+  RUN load_Rename_Definitions IN h_dmputil.
+END.  /* batchmode */
 
 IF  user_env[5] = "" 
  OR user_env[5] = ?  THEN assign user_env[5] = "<internal defaults apply>". 
@@ -224,13 +261,17 @@ IF  user_env[5] = "<internal defaults apply>"
 SESSION:IMMEDIATE-DISPLAY = yes.
 /* Display database name at the top of the respective column. */
 FIND FIRST DICTDB._Db WHERE RECID(DICTDB._Db) = drec_db.
-DISPLAY LDBNAME("DICTDB") @ db WITH FRAME seeking.
+IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+  DISPLAY LDBNAME("DICTDB") @ db WITH FRAME seeking.
 FIND FIRST DICTDB2._Db WHERE RECID(DICTDB2._Db) = RECID(database2).
-DISPLAY LDBNAME("DICTDB2") @ db2 WITH FRAME seeking.
+IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+  DISPLAY LDBNAME("DICTDB2") @ db2 WITH FRAME seeking.
 
-DISPLAY new_lang[1] @ fil  WITH FRAME seeking. /* initializing */
-DISPLAY new_lang[1] @ fil2 WITH FRAME seeking. /* initializing */
-run adecomm/_setcurs.p ("WAIT").
+IF NOT p-batchmode THEN DO:  /* 02/01/29 vap (IZ# 1525) */
+  DISPLAY new_lang[1] @ fil  WITH FRAME seeking. /* initializing */
+  DISPLAY new_lang[1] @ fil2 WITH FRAME seeking. /* initializing */
+  run adecomm/_setcurs.p ("WAIT").
+END.  /* batchmode */
 
 DO ON STOP UNDO, LEAVE:
   /* build missing file list for rename/delete determination */
@@ -243,7 +284,8 @@ DO ON STOP UNDO, LEAVE:
         AND DICTDB._File._File-name = DICTDB2._File._File-name
       AND (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN")
       AND DICTDB._File._Tbl-type = "T" NO-ERROR.
-    DISPLAY DICTDB2._File._File-name @ fil WITH FRAME seeking.
+    IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+      DISPLAY DICTDB2._File._File-name @ fil WITH FRAME seeking.
     IF AVAILABLE DICTDB._File THEN DO:
       IF NOT fileAreaMatch(INPUT DICTDB._File._File-number,
                            INPUT DICTDB2._File._File-Number,
@@ -251,13 +293,14 @@ DO ON STOP UNDO, LEAVE:
                            INPUT DICTDB2._File._Db-recid) THEN DO:
         s_errorsLogged = TRUE.
         OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
-	    PUT STREAM err-log UNFORMATTED new_lang[3] +
-	    '"' + DICTDB2._File._File-Name + '"' + new_lang[4]         SKIP.
-	    DO i = 5 TO 8:
-	      PUT STREAM err-log UNFORMATTED new_lang[i]              SKIP.
-	    END.
-	    PUT STREAM err-log UNFORMATTED new_lang[9]     	     SKIP(1).
-	    OUTPUT STREAM err-log CLOSE.
+        p-log-line = new_lang[3] + '"' + DICTDB2._File._File-Name + '"' + 
+                     new_lang[4].  /* 02/01/29 vap (IZ# 1525) */
+        PUT STREAM err-log UNFORMATTED p-log-line SKIP.
+        DO i = 5 TO 8:          
+            PUT STREAM err-log UNFORMATTED new_lang[i] SKIP.
+        END.
+        PUT STREAM err-log UNFORMATTED new_lang[9] SKIP(1).
+        OUTPUT STREAM err-log CLOSE.
       END.
       NEXT.
     END.
@@ -267,13 +310,18 @@ DO ON STOP UNDO, LEAVE:
 
   /* build list of new or renamed files */
   FOR EACH DICTDB._File WHERE DICTDB._File._Db-recid = drec_db
-                          AND (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN")      
+                          AND (DICTDB._File._Owner = "PUB" OR 
+                               DICTDB._File._Owner = "_FOREIGN")      
                           AND DICTDB._File._Tbl-type = "T":
      
     FIND FIRST DICTDB2._File WHERE DICTDB2._File._Db-recid = RECID(database2)
-                               AND DICTDB2._File._File-name = DICTDB._File._File-name
-                               AND (DICTDB2._File._Owner = "PUB" OR DICTDB2._File._Owner = "_FOREIGN") NO-ERROR.
-    DISPLAY DICTDB._File._File-name @ fil WITH FRAME seeking.
+                               AND DICTDB2._File._File-name = 
+                                   DICTDB._File._File-name
+                               AND (DICTDB2._File._Owner = "PUB" OR 
+                                    DICTDB2._File._Owner = "_FOREIGN")
+                                    NO-ERROR.
+    IF NOT p-batchmode THEN /* 02/01/29 vap (IZ# 1525) */
+      DISPLAY DICTDB._File._File-name @ fil WITH FRAME seeking.
     CREATE table-list.
     ASSIGN table-list.t1-name = DICTDB._File._File-name.
     IF AVAILABLE DICTDB2._File THEN
@@ -285,20 +333,51 @@ DO ON STOP UNDO, LEAVE:
      there is also a file in DICTDB that's not in DICTDB2.  The 2nd list
      is the potential values to rename to.
   */
-  run adecomm/_setcurs.p ("").  /* while dmpisub is running */
-  FOR EACH missing:
-    DISPLAY missing.name @ fil WITH FRAME seeking.
-    RUN "prodict/dump/_dmpisub.p"
-      (INPUT "t",INPUT-OUTPUT missing.name,OUTPUT ans).
-    IF missing.name = ? THEN
-       DELETE missing.
-    IF ans = ? THEN DO:
-      HIDE FRAME seeking NO-PAUSE.
-      user_path = "".
-      RETURN.
+  IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+    run adecomm/_setcurs.p ("").  /* while dmpisub is running */
+  ELSE DO:  /* 02/01/29 vap (IZ# 1525) */
+    ASSIGN p-comma = "":U
+           p-list  = "":U.
+    FOR EACH table-list WHERE
+             table-list.t2-name = ?:
+      ASSIGN p-list  = p-list + p-comma + table-list.t1-name
+             p-comma = ",":U.
     END.
   END.
-  run adecomm/_setcurs.p ("WAIT").
+  FOR EACH missing:
+    /* 02/01/29 vap (IZ# 1525) */
+    IF NOT p-batchmode THEN DO:
+      DISPLAY missing.name @ fil WITH FRAME seeking.
+      RUN "prodict/dump/_dmpisub.p"
+        (INPUT "t",INPUT-OUTPUT missing.name,OUTPUT ans).
+      IF missing.name = ? THEN
+         DELETE missing.
+      IF ans = ? THEN DO:
+        HIDE FRAME seeking NO-PAUSE.
+        user_path = "".
+        RETURN.
+      END.
+    END.  /* NOT p-batchmode */
+    ELSE DO:  /* 02/01/29 vap (IZ# 1525) */
+      ASSIGN p-foo = checkRenameTable(missing.name, p-list).
+      IF p-foo NE ? THEN DO:
+         FIND FIRST table-list WHERE
+                    table-list.t1-name = p-foo AND
+                    table-list.t2-name = ?
+                    NO-ERROR.
+         IF AVAILABLE(table-list) THEN          
+           ASSIGN table-list.t2-name = missing.name.
+         /* tablemove check */
+         RUN prodict/dump/_dmpincr.p(INPUT "table_check,":U + p-foo + 
+                                                  ",":U + missing.name,
+                                     INPUT-OUTPUT p-foo2,
+                                     OUTPUT       ans).   /* dummy var */
+         DELETE missing.
+      END.  /* p-foo NE ? */
+    END.  /* p-batchmode */
+  END.
+  IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+    run adecomm/_setcurs.p ("WAIT").
   
   /* handle deleted files */
   ans = FALSE.
@@ -306,8 +385,10 @@ DO ON STOP UNDO, LEAVE:
     ans = TRUE.
     PUT STREAM ddl UNFORMATTED
       'DROP TABLE "' missing.name '"' SKIP.
-    DISPLAY missing.name @ fil WITH FRAME seeking.
-    DISPLAY missing.name @ fil2 WITH FRAME seeking.
+    IF NOT p-batchmode THEN DO: /* 02/01/29 vap (IZ# 1525) */
+      DISPLAY missing.name @ fil WITH FRAME seeking.
+      DISPLAY missing.name @ fil2 WITH FRAME seeking.
+    END.
     DELETE missing.
   END.
   IF ans THEN PUT STREAM ddl UNFORMATTED SKIP(1).
@@ -320,17 +401,20 @@ DO ON STOP UNDO, LEAVE:
     PUT STREAM ddl UNFORMATTED
       'RENAME TABLE "' table-list.t2-name
       '" TO "' table-list.t1-name '"' SKIP.
-    DISPLAY table-list.t1-name @ fil WITH FRAME seeking.
-    DISPLAY table-list.t1-name @ fil2 WITH FRAME seeking.
+    IF NOT p-batchmode THEN DO: /* 02/01/29 vap (IZ# 1525) */
+      DISPLAY table-list.t1-name @ fil WITH FRAME seeking.
+      DISPLAY table-list.t1-name @ fil2 WITH FRAME seeking.
+    END.
   END.
   IF ans THEN PUT STREAM ddl UNFORMATTED SKIP(1).
-  
+
   /* dump newly created files */
   FOR EACH table-list WHERE table-list.t2-name = ?:
     FIND DICTDB._File WHERE DICTDB._File._Db-recid = drec_db AND
          DICTDB._File._File-name = table-list.t1-name AND
-       (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN").   
-    DISPLAY DICTDB._File._File-name @ fil WITH FRAME seeking.
+       (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN").
+    IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+      DISPLAY DICTDB._File._File-name @ fil WITH FRAME seeking.
     FIND DICTDB._StorageObject WHERE
          DICTDB._StorageObject._Object-type = 1 AND
          DICTDB._StorageObject._Object-number = DICTDB._File._File-number
@@ -343,26 +427,29 @@ DO ON STOP UNDO, LEAVE:
             DICTDB2._Area._Area-name = DICTDB._Area._Area-name NO-ERROR.
        IF NOT AVAILABLE DICTDB2._Area THEN
        DO:
-          s_errorsLogged = TRUE.
-          OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
-          PUT STREAM err-log UNFORMATTED new_lang[3] +
-	  '"' + DICTDB._Area._Area-name + '"' + new_lang[21]     SKIP
-          new_lang[22]                                           SKIP
-          new_lang[31]                                           SKIP
-          '"' + DICTDB._File._File-name + '"' + new_lang[24]     SKIP
-          new_lang[25]                                           SKIP
-          new_lang[26]                                           SKIP(1).
-          OUTPUT STREAM err-log CLOSE.
-       END.	 
+         ASSIGN s_errorsLogged = TRUE.
+         OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+         PUT STREAM err-log UNFORMATTED new_lang[3] +
+            '"' + DICTDB._Area._Area-name + '"' + new_lang[21]     SKIP
+            new_lang[22]                                           SKIP
+            new_lang[31]                                           SKIP
+            '"' + DICTDB._File._File-name + '"' + new_lang[24]     SKIP
+            new_lang[25]                                           SKIP
+            new_lang[26]                                           SKIP(1).      
+         OUTPUT STREAM err-log CLOSE.
+       END.         
     RUN "prodict/dump/_dmpdefs.p" ("t",RECID(DICTDB._File),"Y").
-    DISPLAY DICTDB._File._File-name @ fil2 WITH FRAME seeking.
+    IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+      DISPLAY DICTDB._File._File-name @ fil2 WITH FRAME seeking.
     DELETE table-list.
   END.
   
   /* handle potentially altered files */
   FOR EACH table-list:
-    DISPLAY table-list.t1-name @ fil "" @ fld "" @ idx WITH FRAME seeking.
-    DISPLAY table-list.t1-name @ fil2 "" @ fld2 "" @ idx2 WITH FRAME seeking.
+    IF NOT p-batchmode THEN DO: /* 02/01/29 vap (IZ# 1525) */
+      DISPLAY table-list.t1-name @ fil "" @ fld "" @ idx WITH FRAME seeking.
+      DISPLAY table-list.t1-name @ fil2 "" @ fld2 "" @ idx2 WITH FRAME seeking.
+    END.
     FIND DICTDB._File WHERE DICTDB._File._Db-recid = drec_db
       AND DICTDB._File._File-name = table-list.t1-name
       AND (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN").
@@ -497,7 +584,8 @@ DO ON STOP UNDO, LEAVE:
     FOR EACH DICTDB2._Field OF DICTDB2._File BY DICTDB2._Field._field-rpos:
       FIND FIRST DICTDB._Field OF DICTDB._File 
         WHERE DICTDB._Field._Field-name = DICTDB2._Field._Field-name NO-ERROR.
-      DISPLAY DICTDB2._Field._Field-name @ fld WITH FRAME seeking.
+      IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+        DISPLAY DICTDB2._Field._Field-name @ fld WITH FRAME seeking.
       IF AVAILABLE DICTDB._Field THEN NEXT.
       CREATE missing.
       missing.name = DICTDB2._Field._Field-name.
@@ -507,7 +595,8 @@ DO ON STOP UNDO, LEAVE:
     FOR EACH DICTDB._Field OF DICTDB._File BY DICTDB._Field._field-rpos:
       FIND FIRST DICTDB2._Field OF DICTDB2._File
         WHERE DICTDB2._Field._Field-name = DICTDB._Field._Field-name NO-ERROR.
-      DISPLAY DICTDB._Field._Field-name @ fld WITH FRAME seeking.
+      IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+        DISPLAY DICTDB._Field._Field-name @ fld WITH FRAME seeking.
       CREATE field-list.
       field-list.f1-name = DICTDB._Field._Field-name.
       IF AVAILABLE DICTDB2._Field THEN
@@ -520,20 +609,47 @@ DO ON STOP UNDO, LEAVE:
        is the potential values to rename to.
     */
 
-    run adecomm/_setcurs.p ("").
-    user_env[19] = DICTDB._File._File-name. /* this is a hack */
-    FOR EACH missing:
-      DISPLAY missing.name @ fld WITH FRAME seeking.
-      RUN "prodict/dump/_dmpisub.p"
-        (INPUT "f",INPUT-OUTPUT missing.name,OUTPUT ans).
-      IF missing.name = ? THEN DELETE missing.
-      IF ans = ? THEN DO:    
-        HIDE FRAME seeking NO-PAUSE.
-        user_path = "".
-        RETURN.
+    IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+      run adecomm/_setcurs.p ("").
+    ELSE DO:  /* 02/01/29 vap (IZ# 1525) */
+      ASSIGN p-comma = "":U
+             p-list  = "":U.
+      FOR EACH field-list WHERE
+               field-list.f2-name = ?:
+        ASSIGN p-list  = p-list + p-comma + field-list.f1-name
+               p-comma = ",":U.
       END.
     END.
-    run adecomm/_setcurs.p ("WAIT").
+    user_env[19] = DICTDB._File._File-name. /* this is a hack */
+    FOR EACH missing:
+      /* 02/01/29 vap (IZ# 1525) */
+      IF NOT p-batchmode THEN DO:
+        DISPLAY missing.name @ fld WITH FRAME seeking.
+        RUN "prodict/dump/_dmpisub.p"
+          (INPUT "f",INPUT-OUTPUT missing.name,OUTPUT ans).
+        IF missing.name = ? THEN DELETE missing.
+        IF ans = ? THEN DO:    
+          HIDE FRAME seeking NO-PAUSE.
+          user_path = "".
+          RETURN.
+        END.
+      END.  /* NOT p-batchmode */
+      ELSE DO:  /* 02/01/29 vap (IZ# 1525) */
+        ASSIGN p-foo = checkRenameField(DICTDB._File._File-name,
+                                        missing.name, p-list).
+        IF p-foo NE ? THEN DO:
+           FIND FIRST field-list WHERE
+                      field-list.f1-name = p-foo AND
+                      field-list.f2-name = ?
+                      NO-ERROR.
+           IF AVAILABLE(field-list) THEN          
+             ASSIGN field-list.f2-name = missing.name.
+           DELETE missing.
+        END.  /* p-foo NE ? */
+      END.  /* p-batchmode */
+    END.
+    IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+      run adecomm/_setcurs.p ("WAIT").
   
     /* We use to handle deleted fields here but now it's done after
        index stuff.  See below.
@@ -545,7 +661,8 @@ DO ON STOP UNDO, LEAVE:
       WHERE field-list.f1-name <> field-list.f2-name
         AND field-list.f2-name <> ?:
       ans = TRUE.
-      DISPLAY field-list.f1-name @ fld2 WITH FRAME seeking.
+      IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+        DISPLAY field-list.f1-name @ fld2 WITH FRAME seeking.
       PUT STREAM ddl UNFORMATTED
         'RENAME FIELD "' field-list.f2-name
         '" OF "' DICTDB._File._File-name
@@ -559,46 +676,47 @@ DO ON STOP UNDO, LEAVE:
         WHERE DICTDB._Field._Field-name = field-list.f1-name.
       FIND FIRST DICTDB2._Field OF DICTDB2._File
         WHERE DICTDB2._Field._Field-name = field-list.f2-name NO-ERROR.
-      DISPLAY field-list.f1-name @ fld2 WITH FRAME seeking.
+      IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+        DISPLAY field-list.f1-name @ fld2 WITH FRAME seeking.
       l = AVAILABLE DICTDB2._Field.
       IF l AND (DICTDB._Field._Data-type <> DICTDB2._Field._Data-type
            OR   DICTDB._Field._Extent    <> DICTDB2._Field._Extent) THEN DO:
- 	
+         
         /* If DICTDB2 field is part of a primary index, we cannot simply drop it.
          * instead, we will rename it to something else, and delete it
          * later, after the indexes are processed.
          */
 
         IF inprimary(INPUT DICTDB2._File._Prime-Index,
-	                 INPUT RECID(DICTDB2._Field)) THEN DO:
+                         INPUT RECID(DICTDB2._Field)) THEN DO:
           /* field is part of primary index, don't DROP*/
           RUN tmp-name IN h_dmputil (INPUT DICTDB2._Field._Field-name,
-	                                 OUTPUT tmp_Field-name).
+                                         OUTPUT tmp_Field-name).
           PUT STREAM ddl UNFORMATTED
             'RENAME FIELD "' DICTDB2._Field._Field-name
             '" OF "' DICTDB2._File._File-name
             '" TO "' tmp_Field-name '"' SKIP.
           CREATE missing. 
           ASSIGN missing.name = tmp_Field-name. /*record name to 'DROP' later*/
-                            l = false.	  
+                            l = false.          
         END.
         ELSE DO: /* is not in a primary index, we can DROP it now */
-	
-	   /* We need to know it has been dropped in case it is a component *
-	    * of an index.  In that case, we don't want to drop the index   *
-	    * because dropping the field accomplished that.                 *
-	    * 19981112-011                                             */
+        
+           /* We need to know it has been dropped in case it is a component *
+            * of an index.  In that case, we don't want to drop the index   *
+            * because dropping the field accomplished that.                 *
+            * 19981112-011                                             */
 
-	      CREATE drop-list.
-	      ASSIGN drop-list.file-name  = DICTDB._File._File-Name
+              CREATE drop-list.
+              ASSIGN drop-list.file-name  = DICTDB._File._File-Name
                  drop-list.f1-name    = field-list.f1-name
-		         drop-list.f2-name    = field-list.f2-name.
+                         drop-list.f2-name    = field-list.f2-name.
           PUT STREAM ddl UNFORMATTED
             'DROP FIELD "' DICTDB._Field._Field-name
             '" OF "' DICTDB._File._File-name '"' SKIP.
           RELEASE DICTDB2._Field.
           l = FALSE.
-	    END.
+            END.
       END.
 
       /* If l is true we're updateing otherwise we're adding */
@@ -675,7 +793,7 @@ DO ON STOP UNDO, LEAVE:
         ddl[24] = (IF DICTDB._Field._Fld-case
                     THEN "  CASE-SENSITIVE" ELSE "  NOT-CASE-SENSITIVE").
       IF NOT l OR DICTDB._Field._Width <> DICTDB2._Field._Width THEN
-        ddl[25] = "  SQL-WIDTH " + STRING(DICTDB._Field._Width).
+        ddl[25] = "  MAX-WIDTH " + STRING(DICTDB._Field._Width).
   
       /* deal with field triggers */
       /* 1st, find ones to be deleted if field is being updated */
@@ -736,7 +854,8 @@ DO ON STOP UNDO, LEAVE:
     FOR EACH DICTDB2._Index OF DICTDB2._File:
       IF DICTDB2._Index._Index-name = "default" OR
           DICTDB2._Index._Index-name = "sql-default"  THEN NEXT.
-      DISPLAY DICTDB2._Index._Index-name @ idx WITH FRAME seeking.
+      IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+        DISPLAY DICTDB2._Index._Index-name @ idx WITH FRAME seeking.
       c = STRING(DICTDB2._Index._Unique,"u/a")
         + (IF DICTDB2._Index._Wordidx = 1 THEN "w" ELSE "f").
       FOR EACH DICTDB2._Index-field OF DICTDB2._Index,
@@ -759,7 +878,8 @@ DO ON STOP UNDO, LEAVE:
     FOR EACH DICTDB._Index OF DICTDB._File:
       IF DICTDB._Index._Index-name = "default" OR 
          DICTDB._Index._Index-name = "sql-default" THEN NEXT.
-      DISPLAY DICTDB._Index._Index-name @ idx WITH FRAME seeking.
+      IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+        DISPLAY DICTDB._Index._Index-name @ idx WITH FRAME seeking.
       c = STRING(DICTDB._Index._Unique,"u/a")
         + (IF DICTDB._Index._Wordidx = 1 THEN "w" ELSE "f").
       FOR EACH DICTDB._Index-field OF DICTDB._Index,
@@ -794,35 +914,39 @@ DO ON STOP UNDO, LEAVE:
 
     /* find all unchanged or renamed indexes by comparing idx comp lists */
     FOR EACH index-list WHERE index-list.i1-i2:    
-      DISPLAY index-list.i2-name @ idx WITH FRAME seeking.
+      IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+        DISPLAY index-list.i2-name @ idx WITH FRAME seeking.
       FIND FIRST index-alt WHERE NOT index-alt.i1-i2
         AND index-list.i1-comp = index-alt.i1-comp NO-ERROR.
       IF NOT AVAILABLE index-alt THEN NEXT.
-     /* Determine if area has changed and issue warning if so */	
+     /* Determine if area has changed and issue warning if so */        
       FIND DICTDB._Index WHERE
            DICTDB._Index._Index-name = index-list.i1-name AND
-	   DICTDB._Index._File-recid = RECID(DICTDB._File) NO-ERROR.
+           DICTDB._Index._File-recid = RECID(DICTDB._File) NO-ERROR.
       FIND DICTDB2._Index WHERE
            DICTDB2._Index._Index-name = index-alt.i1-name AND
-	   DICTDB2._Index._File-recid = RECID(DICTDB2._File) NO-ERROR.
+           DICTDB2._Index._File-recid = RECID(DICTDB2._File) NO-ERROR.
       IF AVAIL DICTDB._Index AND AVAIL DICTDB2._Index THEN
       IF NOT indexAreaMatch(INPUT DICTDB._Index._idx-num,
                             INPUT DICTDB2._Index._idx-num,
                             INPUT RECID(DICTDB._Db),
                             INPUT RECID(DICTDB2._DB)) THEN DO:
-	    ASSIGN s_errorsLogged = TRUE.
+        ASSIGN s_errorsLogged = TRUE.
+            
         OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
-	    PUT STREAM err-log UNFORMATTED new_lang[10] +
-	         '"' + DICTDB._Index._Index-name + '"' + new_lang[11] + 
-	         '"' + LDBNAME("DICTDB") + '"'     SKIP
-	         new_lang[12] + DICTDB2._Index._Index-name + '"' +
-	         new_lang[11] + '"' + LDBNAME("DICTDB2") + '"'   SKIP.
-	    DO i = 13 TO 16:
-	      PUT STREAM err-log UNFORMATTED new_lang[i]              SKIP.
-	    END.
-	    PUT STREAM err-log UNFORMATTED new_lang[17]                SKIP(1).
-	    OUTPUT STREAM err-log CLOSE.
-      END.	    
+            
+        PUT STREAM err-log UNFORMATTED new_lang[10] +
+                 '"' + DICTDB._Index._Index-name + '"' + new_lang[11] + 
+                 '"' + LDBNAME("DICTDB") + '"'     SKIP
+                 new_lang[12] + DICTDB2._Index._Index-name + '"' +
+                 new_lang[11] + '"' + LDBNAME("DICTDB2") + '"'   SKIP.
+        DO i = 13 TO 16:          
+          PUT STREAM err-log UNFORMATTED new_lang[i] SKIP.
+        END.
+            
+        PUT STREAM err-log UNFORMATTED new_lang[17] SKIP(1).            
+        OUTPUT STREAM err-log CLOSE.
+      END.            
       ASSIGN index-list.i2-name = index-alt.i1-name.
       DELETE index-alt. 
     END.
@@ -840,7 +964,8 @@ DO ON STOP UNDO, LEAVE:
       FIND DICTDB2._Index OF DICTDB2._File
         WHERE DICTDB2._Index._Index-name = index-list.i2-name NO-ERROR.
       IF NOT AVAILABLE DICTDB2._Index THEN NEXT.
-      DISPLAY DICTDB._Index._Index-name @ idx2 WITH FRAME seeking.
+      IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+        DISPLAY DICTDB._Index._Index-name @ idx2 WITH FRAME seeking.
       IF NOT DICTDB._Index._Active AND DICTDB2._Index._Active THEN DO:
         PUT STREAM ddl UNFORMATTED
           'UPDATE INACTIVE INDEX "' DICTDB._Index._Index-name
@@ -869,7 +994,8 @@ DO ON STOP UNDO, LEAVE:
         WHERE DICTDB2._Index._Index-name = index-list.i2-name NO-ERROR.
       IF NOT AVAILABLE DICTDB._Index OR NOT AVAILABLE DICTDB2._Index THEN NEXT.
       ans = TRUE.
-      DISPLAY index-list.i1-name @ idx2 WITH FRAME seeking.
+      IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+        DISPLAY index-list.i1-name @ idx2 WITH FRAME seeking.
       RUN Check_Index_Conflict IN h_dmputil (INPUT index-list.i1-name,
           INPUT DICTDB._File._File-name).      
       PUT STREAM ddl UNFORMATTED
@@ -901,17 +1027,24 @@ DO ON STOP UNDO, LEAVE:
       EACH DICTDB._Index OF DICTDB._File
       WHERE DICTDB._Index._Index-name = index-list.i1-name
         AND DICTDB._Index._Unique AND DICTDB._Index._Active:
-      iact = TRUE.
-      RUN "prodict/user/_usrdbox.p" (INPUT-OUTPUT iact,?,?,new_lang[2]).
-      IF iact THEN 
-      DO:
-         s_errorsLogged = TRUE.
-         OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
-         PUT STREAM err-log UNFORMATTED
-	 new_lang[18]                                  SKIP
-	 new_lang[19]                                  SKIP
-         new_lang[20]                                  SKIP(1).
-	 OUTPUT STREAM err-log CLOSE.
+      /* 02/01/29 vap (IZ# 1525) */
+      IF NOT p-batchmode THEN DO:
+        iact = TRUE.
+        RUN "prodict/user/_usrdbox.p" (INPUT-OUTPUT iact,?,?,new_lang[2]).
+      END.
+      ELSE
+        iact = p-index-mode NE "active":U.
+
+      IF iact THEN DO:
+        ASSIGN s_errorsLogged = TRUE.         
+        OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+         
+        PUT STREAM err-log UNFORMATTED
+             new_lang[18]                                  SKIP
+             new_lang[19]                                  SKIP
+             new_lang[20]                                  SKIP(1).
+         
+        OUTPUT STREAM err-log CLOSE.
       END. 
       iact = NOT iact.
       LEAVE. /* we only need to ask once */
@@ -921,7 +1054,8 @@ DO ON STOP UNDO, LEAVE:
     FOR EACH index-list WHERE index-list.i1-i2,
         DICTDB._Index OF DICTDB._File
         WHERE DICTDB._Index._Index-name = index-list.i1-name.
-      DISPLAY DICTDB._Index._Index-name @ idx2 WITH FRAME seeking.
+      IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+        DISPLAY DICTDB._Index._Index-name @ idx2 WITH FRAME seeking.
       /* Determine if a component of this index has been dropped.  If so,    *
        * no need to rename the index first.  Since the field is dropped,     *
        * the index no longer exists. Trying to rename it will cause a load   *
@@ -929,47 +1063,52 @@ DO ON STOP UNDO, LEAVE:
        * better way.                                                         */
       FIND FIRST drop-list WHERE
          (INDEX(index-list.i1-comp,drop-list.f1-name) > 0  OR
-	  INDEX(index-list.i1-comp,drop-list.f2-name) > 0) AND
-	 DICTDB._File._File-Name = drop-list.file-name NO-ERROR.
+          INDEX(index-list.i1-comp,drop-list.f2-name) > 0) AND
+         DICTDB._File._File-Name = drop-list.file-name NO-ERROR.
       IF NOT AVAIL drop-list THEN      
-      RUN Check_Index_Conflict IN h_dmputil (INPUT index-list.i1-name,
+        RUN Check_Index_Conflict IN h_dmputil (INPUT index-list.i1-name,
           INPUT DICTDB._File._File-name).      
       PUT STREAM ddl UNFORMATTED "ADD "
         'INDEX "' DICTDB._Index._Index-Name
         '" ON "' DICTDB._File._File-name '"' SKIP.
       FIND DICTDB._StorageObject WHERE
            DICTDB._StorageObject._Object-type = 2 AND
-	   DICTDB._Storageobject._Object-number = DICTDB._Index._idx-num
+           DICTDB._Storageobject._Object-number = DICTDB._Index._idx-num
       NO-LOCK NO-ERROR.
       IF AVAILABLE DICTDB._StorageObject THEN
          FIND DICTDB._Area WHERE
-	      DICTDB._Area._Area-number = DICTDB._StorageObject._Area-number
+              DICTDB._Area._Area-number = DICTDB._StorageObject._Area-number
          NO-ERROR.
       ELSE
       FIND DICTDB._Area WHERE
            DICTDB._Area._Area-number = DICTDB._Index._idx-num NO-LOCK NO-ERROR.
       FIND DICTDB2._Area WHERE
            DICTDB2._Area._Area-name = DICTDB._Area._Area-name NO-ERROR.
-      IF NOT AVAIL DICTDB2._Area THEN
-      DO:
-         s_errorsLogged = TRUE.
-         OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
-         PUT STREAM err-log UNFORMATTED new_lang[3] +
-	 '"' + DICTDB._Area._Area-name + '"' + new_lang[21]     SKIP
-	 new_lang[22]                                           SKIP
-	 new_lang[23]                                           SKIP
-	 '"' + DICTDB._Index._Index-name + '"' + new_lang[24]   SKIP
-	 new_lang[25]                                           SKIP
-         new_lang[26]                                           SKIP(1).
-         OUTPUT STREAM err-log CLOSE.
-      END.	 
+      IF NOT AVAIL DICTDB2._Area THEN DO:
+        ASSIGN s_errorsLogged = TRUE.        
+        OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+         
+        PUT STREAM err-log UNFORMATTED new_lang[3] +
+             '"' + DICTDB._Area._Area-name + '"' + new_lang[21]     SKIP
+             new_lang[22]                                           SKIP
+             new_lang[23]                                           SKIP
+             '"' + DICTDB._Index._Index-name + '"' + new_lang[24]   SKIP
+             new_lang[25]                                           SKIP
+             new_lang[26]                                           SKIP(1).
+      
+        OUTPUT STREAM err-log CLOSE.
+      END.         
       PUT STREAM ddl UNFORMATTED
          "  AREA " '"' DICTDB._Area._Area-name '"' SKIP.
+
       IF DICTDB._Index._Unique THEN DO:     
         PUT STREAM ddl UNFORMATTED "  UNIQUE" SKIP.
         IF NOT (DICTDB._Index._Active AND (IF iact = ? THEN TRUE ELSE iact)) THEN
         PUT STREAM ddl UNFORMATTED "  INACTIVE" SKIP.
       END.
+      ELSE IF NOT DICTDB._Index._Active AND NOT DICTDB._Index._Unique THEN
+          PUT STREAM ddl UNFORMATTED "  INACTIVE" SKIP.
+      
       IF DICTDB._Index._Wordidx = 1 THEN 
         PUT STREAM ddl UNFORMATTED "  WORD" SKIP.
       IF DICTDB._Index._Desc <> ? AND DICTDB._Index._Desc <> '' THEN DO:
@@ -1008,14 +1147,15 @@ DO ON STOP UNDO, LEAVE:
            DELETE drop-temp-idx.
       FIND FIRST drop-list WHERE
          (INDEX(index-list.i1-comp,drop-list.f1-name) > 0  OR
-	  INDEX(index-list.i1-comp,drop-list.f2-name) > 0) AND
+          INDEX(index-list.i1-comp,drop-list.f2-name) > 0) AND
          DICTDB._File._File-Name = drop-list.file-name NO-ERROR.
       IF AVAIL drop-list THEN DO:        
          DELETE index-list.
-	     NEXT.
+             NEXT.
       END.
       ans = TRUE.
-      DISPLAY index-list.i1-name @ idx2 WITH FRAME seeking.
+      IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+        DISPLAY index-list.i1-name @ idx2 WITH FRAME seeking.
       IF index-list.i1-name <> "default" AND
           index-list.i1-name <> "sql-default" THEN
         PUT STREAM ddl UNFORMATTED
@@ -1047,7 +1187,8 @@ DO ON STOP UNDO, LEAVE:
     ans = FALSE.
     FOR EACH missing:
       ans = TRUE.
-      DISPLAY missing.name @ fld2 WITH FRAME seeking.
+      IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+        DISPLAY missing.name @ fld2 WITH FRAME seeking.
       PUT STREAM ddl UNFORMATTED
         'DROP FIELD "' missing.name
         '" OF "' DICTDB._File._File-name '"' SKIP.
@@ -1061,16 +1202,20 @@ DO ON STOP UNDO, LEAVE:
     END.
   END.  /* end FOR EACH potentially altered file */
   
-  DISPLAY "" @ fil "" @ fld "" @ idx WITH FRAME seeking.
-  DISPLAY "" @ fil2 "" @ fld2 "" @ idx2 WITH FRAME seeking.
+  IF NOT p-batchmode THEN DO: /* 02/01/29 vap (IZ# 1525) */
+    DISPLAY "" @ fil "" @ fld "" @ idx WITH FRAME seeking.
+    DISPLAY "" @ fil2 "" @ fld2 "" @ idx2 WITH FRAME seeking.
+  END.
   
   /* build missing sequence list for rename/delete determination */
   FOR EACH DICTDB2._Sequence
-    WHERE DICTDB2._Sequence._Db-recid = RECID(database2):
+    WHERE DICTDB2._Sequence._Db-recid = RECID(database2)
+      AND NOT DICTDB2._Sequence._Seq-name BEGINS "$":
     FIND FIRST DICTDB._Sequence
       WHERE DICTDB._Sequence._Db-recid = drec_db
         AND DICTDB._Sequence._Seq-name = DICTDB2._Sequence._Seq-name NO-ERROR.
-    DISPLAY DICTDB2._Sequence._Seq-name @ seq WITH FRAME seeking.
+    IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+      DISPLAY DICTDB2._Sequence._Seq-name @ seq WITH FRAME seeking.
     IF AVAILABLE DICTDB._Sequence THEN NEXT.
     CREATE missing.
     missing.name = DICTDB2._Sequence._Seq-name.
@@ -1078,11 +1223,13 @@ DO ON STOP UNDO, LEAVE:
   
   /* build list of new or renamed sequences */
   FOR EACH DICTDB._Sequence
-    WHERE DICTDB._Sequence._Db-recid = drec_db:
+    WHERE DICTDB._Sequence._Db-recid = drec_db
+      AND NOT DICTDB._Sequence._Seq-name BEGINS "$":
     FIND FIRST DICTDB2._Sequence
       WHERE DICTDB2._Sequence._Db-recid = RECID(database2)
         AND DICTDB2._Sequence._Seq-name = DICTDB._Sequence._Seq-name NO-ERROR.
-    DISPLAY DICTDB._Sequence._Seq-name @ seq WITH FRAME seeking.
+    IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+      DISPLAY DICTDB._Sequence._Seq-name @ seq WITH FRAME seeking.
     CREATE seq-list.
     seq-list.s1-name = DICTDB._Sequence._Seq-name.
     IF AVAILABLE DICTDB2._Sequence THEN
@@ -1094,19 +1241,45 @@ DO ON STOP UNDO, LEAVE:
      there is also a seq in DICTDB that's not in DICTDB2.  The 2nd list
      is the potential values to rename to.
   */
-  run adecomm/_setcurs.p ("").
-  FOR EACH missing:
-    DISPLAY missing.name @ seq WITH FRAME seeking.
-    RUN "prodict/dump/_dmpisub.p"
-      (INPUT "s",INPUT-OUTPUT missing.name,OUTPUT ans).
-    IF missing.name = ? THEN DELETE missing.
-    IF ans = ? THEN DO:
-      HIDE FRAME seeking NO-PAUSE.
-      user_path = "".
-      RETURN.
+  IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+    run adecomm/_setcurs.p ("").
+  ELSE DO:  /* 02/01/29 vap (IZ# 1525) */
+    ASSIGN p-comma = "":U
+           p-list  = "":U.
+    FOR EACH seq-list WHERE
+             seq-list.s2-name = ?:
+      ASSIGN p-list  = p-list + p-comma + seq-list.s1-name
+             p-comma = ",":U.
     END.
   END.
-  run adecomm/_setcurs.p ("WAIT").
+  FOR EACH missing:
+    IF NOT p-batchmode THEN DO:  /* 02/01/29 vap (IZ# 1525) */
+      DISPLAY missing.name @ seq WITH FRAME seeking.
+      RUN "prodict/dump/_dmpisub.p"
+        (INPUT "s",INPUT-OUTPUT missing.name,OUTPUT ans).
+      IF missing.name = ? THEN DELETE missing.
+      IF ans = ? THEN DO:
+        IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+          HIDE FRAME seeking NO-PAUSE.
+        user_path = "".
+        RETURN.
+      END.
+    END.  /* NOT p-batchmode */
+    ELSE DO:  /* 02/01/29 vap (IZ# 1525) */
+      ASSIGN p-foo = checkRenameSequence(missing.name, p-list).
+      IF p-foo NE ? THEN DO:
+         FIND FIRST seq-list WHERE
+                    seq-list.s1-name = p-foo AND
+                    seq-list.s2-name = ?
+                    NO-ERROR.
+         IF AVAILABLE(seq-list) THEN          
+           ASSIGN seq-list.s2-name = missing.name.
+         DELETE missing.
+      END.  /* p-foo NE ? */
+    END.  /* p-batchmode */
+  END.  /* FOR EACH missing */
+  IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+    run adecomm/_setcurs.p ("WAIT").
   
   /* handle deleted sequences */
   ans = FALSE.
@@ -1114,8 +1287,10 @@ DO ON STOP UNDO, LEAVE:
     ans = TRUE.
     PUT STREAM ddl UNFORMATTED
       'DROP SEQUENCE "' missing.name '"' SKIP.
-    DISPLAY missing.name @ seq WITH FRAME seeking.
-    DISPLAY missing.name @ seq2 WITH FRAME seeking.
+    IF NOT p-batchmode THEN DO: /* 02/01/29 vap (IZ# 1525) */
+      DISPLAY missing.name @ seq WITH FRAME seeking.
+      DISPLAY missing.name @ seq2 WITH FRAME seeking.
+    END.
     DELETE missing.
   END.
   IF ans THEN PUT STREAM ddl UNFORMATTED SKIP(1).
@@ -1129,8 +1304,10 @@ DO ON STOP UNDO, LEAVE:
     PUT STREAM ddl UNFORMATTED
       'RENAME SEQUENCE "' seq-list.s2-name
       '" TO "' seq-list.s1-name '"' SKIP.
-    DISPLAY seq-list.s1-name @ seq WITH FRAME seeking.
-    DISPLAY seq-list.s1-name @ seq2 WITH FRAME seeking.
+    IF NOT p-batchmode THEN DO: /* 02/01/29 vap (IZ# 1525) */
+      DISPLAY seq-list.s1-name @ seq WITH FRAME seeking.
+      DISPLAY seq-list.s1-name @ seq2 WITH FRAME seeking.
+    END.
   END.
   IF ans THEN PUT STREAM ddl UNFORMATTED SKIP(1).
   
@@ -1140,14 +1317,16 @@ DO ON STOP UNDO, LEAVE:
      Some day!
   */
   FOR EACH seq-list:
-    DISPLAY seq-list.s1-name @ seq WITH FRAME seeking.
+    IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+      DISPLAY seq-list.s1-name @ seq WITH FRAME seeking.
   
     FIND DICTDB._Sequence WHERE DICTDB._Sequence._Db-recid = drec_db
       AND DICTDB._Sequence._Seq-name = seq-list.s1-name.
     FIND DICTDB2._Sequence WHERE DICTDB2._Sequence._Db-recid = RECID(database2)
       AND DICTDB2._Sequence._Seq-name = seq-list.s2-name NO-ERROR.
   
-    DISPLAY seq-list.s1-name @ seq2 WITH FRAME seeking.
+    IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+      DISPLAY seq-list.s1-name @ seq2 WITH FRAME seeking.
   
     /* If l is true we're updateing otherwise we're adding */
     l = AVAILABLE DICTDB2._Sequence.
@@ -1231,22 +1410,26 @@ DO ON STOP UNDO, LEAVE:
   stopped = false.
 END. /* on stop */
 
-IF NOT stopped AND s_errorsLogged THEN
+/* 02/01/29 vap (IZ# 1525) */
+IF NOT p-batchmode AND NOT stopped AND s_errorsLogged THEN
    MESSAGE new_lang[27] SKIP
            new_lang[28] SKIP
-	   new_lang[29] SKIP
-	   new_lang[30]
+           new_lang[29] SKIP
+           new_lang[30]
    VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
    
-IF stopped THEN
-   MESSAGE "Dump terminated."
-                 VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
-ELSE
-   MESSAGE "Dump completed."
-                 VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+  IF stopped THEN
+     MESSAGE "Dump terminated."
+                   VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+  ELSE
+     MESSAGE "Dump completed."
+                   VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
 
 DELETE PROCEDURE h_dmputil NO-ERROR.
-HIDE FRAME seeking NO-PAUSE.
+IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+  HIDE FRAME seeking NO-PAUSE.
 SESSION:IMMEDIATE-DISPLAY = no.
-run adecomm/_setcurs.p ("").
+IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
+  run adecomm/_setcurs.p ("").
 RETURN.

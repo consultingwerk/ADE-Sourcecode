@@ -71,6 +71,12 @@ adm2/support/_wizqry.w,adm2/support/_wizfld.w
 
   Update Notes: Change use the information in entity_key_field for tables that do not have object numbers.
 
+  (v:010001)    Task:                UserRef:    
+                Date:   APR/11/2002  Author:     Mauricio J. dos Santos (MJS) 
+                                                 mdsantos@progress.com
+  Update Notes: Adapted for WebSpeed by changing SESSION:PARAM = "REMOTE" 
+                to SESSION:CLIENT-TYPE = "WEBSPEED" in initializeObject.
+
 --------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.      */
 /*----------------------------------------------------------------------*/
@@ -105,6 +111,10 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 &glob DATA-LOGIC-PROCEDURE       af/obj2/gstadlogcp.p
 
+DEFINE VARIABLE ghDataSource     AS HANDLE      NO-UNDO.
+DEFINE VARIABLE glHasObjectField AS LOGICAL     NO-UNDO.
+DEFINE VARIABLE gcStoreWhereClause AS CHARACTER NO-UNDO.
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -126,13 +136,23 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
 &Scoped-define INTERNAL-TABLES gst_audit gsc_entity_mnemonic gsm_user
 
 /* Definitions for QUERY Query-Main                                     */
-&Scoped-Define ENABLED-FIELDS 
+&Scoped-Define ENABLED-FIELDS  owning_entity_mnemonic owning_obj audit_date audit_time audit_user_obj~
+ program_name program_procedure audit_action old_detail~
+ entity_mnemonic_description user_login_name audit_time_str~
+ entity_object_field entity_key_field owning_reference
+&Scoped-define ENABLED-FIELDS-IN-gst_audit owning_entity_mnemonic ~
+owning_obj audit_date audit_time audit_user_obj program_name ~
+program_procedure audit_action old_detail owning_reference 
+&Scoped-define ENABLED-FIELDS-IN-gsc_entity_mnemonic ~
+entity_mnemonic_description entity_object_field entity_key_field 
+&Scoped-define ENABLED-FIELDS-IN-gsm_user user_login_name 
 &Scoped-Define DATA-FIELDS  audit_obj owning_entity_mnemonic owning_obj audit_date audit_time~
  audit_user_obj program_name program_procedure audit_action old_detail~
  entity_mnemonic_description user_login_name audit_time_str~
@@ -147,6 +167,10 @@ entity_mnemonic_description entity_object_field entity_key_field
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gstadfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gst_audit NO-LOCK, ~
+      FIRST gsc_entity_mnemonic WHERE gsc_entity_mnemonic.entity_mnemonic = gst_audit.owning_entity_mnemonic NO-LOCK, ~
+      FIRST gsm_user WHERE gsm_user.user_obj = gst_audit.audit_user_obj NO-LOCK ~
+    BY gst_audit.audit_obj INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gst_audit NO-LOCK, ~
       FIRST gsc_entity_mnemonic WHERE gsc_entity_mnemonic.entity_mnemonic = gst_audit.owning_entity_mnemonic NO-LOCK, ~
@@ -166,6 +190,24 @@ gsm_user
 /* _UIB-PREPROCESSOR-BLOCK-END */
 &ANALYZE-RESUME
 
+
+/* ************************  Function Prototypes ********************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD isQueryGoingToWork dTables 
+FUNCTION isQueryGoingToWork RETURNS LOGICAL
+  (pcWhere  AS CHARACTER,
+   pcBuffer AS cHARACTER,
+   pcAndOr  AS CHARACTER) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD joinEntity dTables 
+FUNCTION joinEntity RETURNS LOGICAL
+  (   )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
 
 /* ***********************  Control Definitions  ********************** */
@@ -254,35 +296,35 @@ END.
      _FldNameList[1]   > icfdb.gst_audit.audit_obj
 "audit_obj" "audit_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
      _FldNameList[2]   > icfdb.gst_audit.owning_entity_mnemonic
-"owning_entity_mnemonic" "owning_entity_mnemonic" ? ? "character" ? ? ? ? ? ? no ? no 16 yes
+"owning_entity_mnemonic" "owning_entity_mnemonic" ? ? "character" ? ? ? ? ? ? yes ? no 16 yes
      _FldNameList[3]   > icfdb.gst_audit.owning_obj
-"owning_obj" "owning_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
+"owning_obj" "owning_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
      _FldNameList[4]   > icfdb.gst_audit.audit_date
-"audit_date" "audit_date" ? ? "date" ? ? ? ? ? ? no ? no 4 yes
+"audit_date" "audit_date" ? ? "date" ? ? ? ? ? ? yes ? no 4 yes
      _FldNameList[5]   > icfdb.gst_audit.audit_time
-"audit_time" "audit_time" ? ? "integer" ? ? ? ? ? ? no ? no 4 yes
+"audit_time" "audit_time" ? ? "integer" ? ? ? ? ? ? yes ? no 4 yes
      _FldNameList[6]   > icfdb.gst_audit.audit_user_obj
-"audit_user_obj" "audit_user_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
+"audit_user_obj" "audit_user_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
      _FldNameList[7]   > icfdb.gst_audit.program_name
-"program_name" "program_name" ? ? "character" ? ? ? ? ? ? no ? no 70 yes
+"program_name" "program_name" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
      _FldNameList[8]   > icfdb.gst_audit.program_procedure
-"program_procedure" "program_procedure" ? ? "character" ? ? ? ? ? ? no ? no 70 yes
+"program_procedure" "program_procedure" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
      _FldNameList[9]   > icfdb.gst_audit.audit_action
-"audit_action" "audit_action" ? ? "character" ? ? ? ? ? ? no ? no 6 yes
+"audit_action" "audit_action" ? ? "character" ? ? ? ? ? ? yes ? no 6 yes
      _FldNameList[10]   > icfdb.gst_audit.old_detail
-"old_detail" "old_detail" ? ? "character" ? ? ? ? ? ? no ? no 20000 yes
+"old_detail" "old_detail" ? ? "character" ? ? ? ? ? ? yes ? no 20000 yes
      _FldNameList[11]   > icfdb.gsc_entity_mnemonic.entity_mnemonic_description
-"entity_mnemonic_description" "entity_mnemonic_description" ? ? "character" ? ? ? ? ? ? no ? no 35 yes
+"entity_mnemonic_description" "entity_mnemonic_description" ? ? "character" ? ? ? ? ? ? yes ? no 35 yes
      _FldNameList[12]   > icfdb.gsm_user.user_login_name
-"user_login_name" "user_login_name" ? ? "character" ? ? ? ? ? ? no ? no 16.4 yes
+"user_login_name" "user_login_name" ? ? "character" ? ? ? ? ? ? yes ? no 16.4 yes
      _FldNameList[13]   > "_<CALC>"
-"STRING(RowObject.audit_time,'HH:MM:SS')" "audit_time_str" "Audit Time" "x(8)" "character" ? ? ? ? ? ? no ? no 8 no
+"STRING(RowObject.audit_time,'HH:MM:SS')" "audit_time_str" "Audit Time" "x(8)" "character" ? ? ? ? ? ? yes ? no 8 no
      _FldNameList[14]   > icfdb.gsc_entity_mnemonic.entity_object_field
-"entity_object_field" "entity_object_field" ? ? "character" ? ? ? ? ? ? no ? no 35 yes
+"entity_object_field" "entity_object_field" ? ? "character" ? ? ? ? ? ? yes ? no 35 yes
      _FldNameList[15]   > icfdb.gsc_entity_mnemonic.entity_key_field
-"entity_key_field" "entity_key_field" ? ? "character" ? ? ? ? ? ? no ? no 35 yes
+"entity_key_field" "entity_key_field" ? ? "character" ? ? ? ? ? ? yes ? no 35 yes
      _FldNameList[16]   > icfdb.gst_audit.owning_reference
-"owning_reference" "owning_reference" ? ? "character" ? ? ? ? ? ? no ? no 3000 yes
+"owning_reference" "owning_reference" ? ? "character" ? ? ? ? ? ? yes ? no 3000 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
@@ -325,6 +367,33 @@ END PROCEDURE.
 
 {&DB-REQUIRED-END}
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE dataAvailable dTables 
+PROCEDURE dataAvailable :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  DEFINE INPUT PARAMETER pcRelative AS CHARACTER NO-UNDO.
+
+
+  {get AsDivision cAsDivision}.
+
+  IF ((pcRelative <> 'SAME':U) AND (pcRelative <> 'DIFFERENT':U)) AND cAsDivision <> 'SERVER':U  AND VALID-HANDLE(ghDataSource)
+     OR ((pcRelative = 'DIFFERENT':U) AND (SOURCE-PROCEDURE = ghDataSource)) THEN
+  DO:
+    joinEntity().
+    {fn openQuery}.
+  END.
+  ELSE 
+    RUN SUPER(pcRelative).
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI dTables  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
@@ -349,92 +418,157 @@ PROCEDURE initializeObject :
   Parameters:  
   Notes:       
 ------------------------------------------------------------------------------*/
-
-  DEFINE VARIABLE hDataSource           AS WIDGET-HANDLE NO-UNDO.
+  
   DEFINE VARIABLE cValueList            AS CHARACTER     NO-UNDO.
-  DEFINE VARIABLE cOwningEntityMnemonic AS CHARACTER     NO-UNDO.
   DEFINE VARIABLE cUpdatableTable       AS CHARACTER     NO-UNDO.
-  DEFINE VARIABLE cObjField             AS CHARACTER     NO-UNDO.
-  DEFINE VARIABLE cForeignFields        AS CHARACTER     NO-UNDO.
-  DEFINE VARIABLE cWhere                AS CHARACTER     NO-UNDO.
   DEFINE VARIABLE cEntityFields         AS CHARACTER     NO-UNDO.
   DEFINE VARIABLE cEntityValues         AS CHARACTER     NO-UNDO.
-  DEFINE VARIABLE cKeyValue             AS CHARACTER     NO-UNDO.
-  DEFINE VARIABLE iLoop                 AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE lHasObjFld            AS LOGICAL    NO-UNDO.
-  /* Code placed here will execute PRIOR to standard behavior. */
-  /* Ensure that rowObjectValidate is always run. */
-  DYNAMIC-FUNCTION("setPropertyList":U IN gshSessionManager
-                                      ,INPUT "ServerSubmitValidation":U
-                                      ,INPUT YES
-                                      ,INPUT NO
-                                      ).
-  {set ServerSubmitValidation YES}.
-  {get DataSource hDataSource}.
+  DEFINE VARIABLE lInitialized          AS LOGICAL       NO-UNDO.
+  DEFINE VARIABLE cAsDivision           AS CHARACTER     NO-UNDO.
+  DEFINE VARIABLE hContainerSource      AS HANDLE        NO-UNDO.
+  
+  {get DataSource ghDatasource}.
 
-  /* Check to see that we are running client side and only then set the Owning Entity Mnemonic user property, etc. */
-
-  IF NOT (SESSION:REMOTE = TRUE OR SESSION:PARAM  = "REMOTE":U)
-  THEN DO:
-
-    IF VALID-HANDLE(hDataSource)
-    THEN
-      ASSIGN
-        cValueList = DYNAMIC-FUNCTION("getUpdatableTableInfo":U IN gshGenManager, INPUT hDataSource).
-
-    IF LENGTH(TRIM(cValueList)) > 0
-    THEN DO:
-      ASSIGN
-        cOwningEntityMnemonic = ENTRY(1, cValueList, CHR(4))
-        cUpdatableTable       = ENTRY(2, cValueList, CHR(4)).
+  IF VALID-HANDLE(ghDatasource) THEN
+  DO:
+      JoinEntity().
       
-      RUN getEntityDetail IN gshGenMAnager (INPUT cOwningEntityMnemonic, OUTPUT cEntityFields, OUTPUT cEntityValues).
-
-      IF ENTRY(LOOKUP("table_has_object_field",cEntityFields,CHR(1)),cEntityValues,CHR(1)) = "YES":U THEN
-        ASSIGN
-          cObjField = ENTRY(LOOKUP("entity_object_field",cEntityFields,CHR(1)),cEntityValues,CHR(1))
-          lHasObjFld = TRUE.
-      ELSE
-        ASSIGN
-          cObjField = ENTRY(LOOKUP("entity_key_field",cEntityFields,CHR(1)),cEntityValues,CHR(1)).
-
-      DO iLoop = 1 TO NUM-ENTRIES(cObjField):
-        IF lHasObjFld THEN
-          ASSIGN
-            cKeyValue = cKeyValue + CHR(1) WHEN cKeyValue <> "":U
-            cKeyValue = cKeyValue + STRING(DECIMAL((DYNAMIC-FUNCTION("columnStringValue":u IN hDataSource, ENTRY(iLoop,cObjField))))).
-        ELSE
-        ASSIGN
-          cKeyValue = cKeyValue + CHR(1) WHEN cKeyValue <> "":U
-          cKeyValue = cKeyValue + (DYNAMIC-FUNCTION("columnStringValue":u IN hDataSource, ENTRY(iLoop,cObjField))).
-      END.
-
-      ASSIGN
-        cWhere                = "gst_audit.owning_entity_mnemonic = '":U + cOwningEntityMnemonic + "' AND ":U + 
-                                "gst_audit.owning_reference = '":U + TRIM(cKeyValue) + "'  ".
-      DYNAMIC-FUNCTION("setUserProperty":U, "OwningEntityMnemonic":U, cOwningEntityMnemonic).
-      DYNAMIC-FUNCTION("setUserProperty":U, "OwningReference":U, cKeyValue).
-
-    END.
-
-    /* Applying the filter for Owning Entity Mnemonics */
-    IF LENGTH(TRIM(cWhere)) <> 0
-    THEN DO:
-      DYNAMIC-FUNCTION("addQueryWhere":U, INPUT cWhere, "":U, "AND":U).
-      ASSIGN
-        cWhere = cWhere +  CHR(3) + CHR(3) + "AND":U.
-      {set manualAddQueryWhere cWhere}.
-    END.
-
-  END.  /* client side */
+      SUBSCRIBE TO "DataAvailable":U IN ghDatasource.
+      {get ObjectInitialized lInitialized}.
+      IF lInitialized THEN
+        RETURN.
+      
+      {set ServerSubmitValidation YES}.
+      
+      cUpdatableTable = ENTRY(1,{fn getEnabledTables ghDataSource}) NO-ERROR.
+      RUN getEntityDetail IN gshGenMAnager (INPUT cUpdatableTable, OUTPUT cEntityFields, OUTPUT cEntityValues).
+    
+      ASSIGN glHasObjectField = (ENTRY(LOOKUP("table_has_object_field",cEntityFields,CHR(1)),cEntityValues,CHR(1)) = "YES":U) NO-ERROR.
+      
+      {get AsDivision cAsDivision}.
+      
+      IF cAsDivision <> 'SERVER':U THEN
+        joinEntity().
+  END.
 
   RUN SUPER.
 
-  /* Code placed here will execute AFTER standard behavior.    */
+  /* Runing a manual openQuery as there is no foreignFields to be set as their is no one-to-one match */
 
-  /* Running a manual openQuery as there is no foreignFields to be set as their is no one-to-one match */
-  {fn openQuery}.
+  IF cAsDivision <> 'SERVER':U AND VALID-HANDLE(ghDataSource) THEN
+    {fn openQuery}.
+
 END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+/* ************************  Function Implementations ***************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION isQueryGoingToWork dTables 
+FUNCTION isQueryGoingToWork RETURNS LOGICAL
+  (pcWhere  AS CHARACTER,
+   pcBuffer AS cHARACTER,
+   pcAndOr  AS CHARACTER):
+/*------------------------------------------------------------------------------
+   Purpose:    Due to the order in which things are instantiated, updating the 
+               SDO query is only going to work later.  This function will let us
+               know if our new WHERE clause is going to validate or not.
+ 
+   Parameters: 
+     pcWhere     - Expression to add (may also be an "OF" phrase)  
+     pcBuffer    - optional buffer specification
+     pcAndOr     - Specifies the operator that is used to add the new
+                   expression to existing expression(s)
+                   - AND (default) 
+                   - OR         
+   Notes:      
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cQueryString AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cBuffer      AS CHARACTER  NO-UNDO.
+
+  {get QueryString cQueryString}.      
+
+  IF cQueryString = "":U 
+  OR cQueryString = ? 
+  THEN DO:
+      {get QueryWhere cQueryString}.    
+      IF cQueryString = "":U 
+      OR cQueryString = ? THEN
+          {get OpenQuery cQueryString}.
+  END.
+
+  /* Unless buffer is defined, use the first buffer reference in the expression*/
+
+  IF pcBuffer <> ?
+  THEN DO:
+      cBuffer = {fnarg resolveBuffer pcBuffer}.
+
+      IF cBuffer = "":U 
+      OR cBuffer = ? THEN
+          RETURN FALSE.
+  END.
+
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION joinEntity dTables 
+FUNCTION joinEntity RETURNS LOGICAL
+  (   ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cOwningEntityMnemonic AS CHARACTER     NO-UNDO.
+  DEFINE VARIABLE cKeyFields            AS CHARACTER     NO-UNDO.
+  DEFINE VARIABLE cTable                AS CHARACTER     NO-UNDO.
+  DEFINE VARIABLE cWhere                AS CHARACTER     NO-UNDO.
+  DEFINE VARIABLE cKeyValue             AS CHARACTER     NO-UNDO.
+  DEFINE VARIABLE iLoop                 AS INTEGER       NO-UNDO.
+  
+  {get KeyFields cKeyFields ghDataSource}.
+  {get KeyTableId cOwningEntityMnemonic ghDataSource}.
+  
+  IF cOwningEntityMnemonic = ? THEN
+    cOwningEntityMnemonic = "":U.
+
+  DO iLoop = 1 TO NUM-ENTRIES(cKeyFields):
+    IF glHasObjectField THEN
+        ASSIGN
+          cKeyValue = cKeyValue + CHR(1) WHEN cKeyValue <> "":U
+          cKeyValue = cKeyValue + TRIM(STRING(DECIMAL((DYNAMIC-FUNCTION("columnStringValue":u IN ghDataSource, ENTRY(iLoop,cKeyfields)))))).
+    ELSE
+        ASSIGN
+          cKeyValue = cKeyValue + CHR(2) WHEN cKeyValue <> "":U
+          cKeyValue = cKeyValue + TRIM(DYNAMIC-FUNCTION("columnStringValue":u IN ghDataSource, ENTRY(iLoop,cKeyFields))).
+  END.
+  ASSIGN
+     cWhere = "gst_audit.owning_entity_mnemonic = '":U + cOwningEntityMnemonic + "' AND ":U + 
+              "gst_audit.owning_reference = '":U + TRIM(cKeyValue) + "'  ".
+
+  DYNAMIC-FUNCTION("setUserProperty":U, "OwningEntityMnemonic":U, cOwningEntityMnemonic).
+  DYNAMIC-FUNCTION("setUserProperty":U, "OwningReference":U, cKeyValue).
+  
+  /* Applying the filter for Owning Entity Mnemonics */
+  IF cWhere > '':U
+  AND gcStoreWhereClause <> cWhere
+  AND DYNAMIC-FUNCTION("isQueryGoingToWork":U, cWhere, "gst_audit":U, "AND":U) = YES THEN
+  DO:
+    ASSIGN gcStoreWhereClause = cWhere.
+    DYNAMIC-FUNCTION("setQueryWhere":U,"":U).
+    DYNAMIC-FUNCTION("addQueryWhere":U, INPUT cWhere, "":U, "AND":U).
+    ASSIGN
+      cWhere = cWhere +  CHR(3) + CHR(3) + "AND":U.
+    {set manualAddQueryWhere cWhere}.
+  END.
+
+  RETURN TRUE.   /* Function return value. */
+
+END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

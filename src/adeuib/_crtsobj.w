@@ -65,6 +65,7 @@ DEFINE INPUT PARAMETER pcFields  AS CHARACTER                         NO-UNDO.
 
 {adeuib/sharvars.i}  /* Shared variables needed by the AB                  */
 {adeuib/uniwidg.i}
+{adeuib/layout.i}
 {adeuib/brwscols.i}  /* Temp-Table definition for the columns of a browser */
 
 
@@ -102,6 +103,7 @@ FUNCTION shutdown-proc RETURNS CHARACTER
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
 /* Settings for THIS-PROCEDURE
    Type: Procedure
+   Compile into: 
    Allow: 
    Frames: 0
    Add Fields to: Neither
@@ -144,6 +146,80 @@ END CASE.  /* Case on pType */
 
 
 /* **********************  Internal Procedures  *********************** */
+
+&IF DEFINED(EXCLUDE-adjustWindowSize) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE adjustWindowSize Procedure 
+PROCEDURE adjustWindowSize :
+/*------------------------------------------------------------------------------
+  Purpose:     To enlarge the standard template window of SmartViewers if
+               necessary.
+  Parameters:  
+        INPUT cScratch - Name of the file with field layout
+              hFrame   - Handle of the frame to adjust (along with _h_win)
+  Notes:       
+------------------------------------------------------------------------------*/
+    DEFINE INPUT  PARAMETER cScratch AS CHARACTER                       NO-UNDO.
+    DEFINE INPUT  PARAMETER hFrame   AS HANDLE                          NO-UNDO.
+
+    DEFINE VARIABLE cLine            AS CHARACTER EXTENT 100            NO-UNDO.
+    DEFINE VARIABLE dHeight          AS DECIMAL                         NO-UNDO.
+    DEFINE VARIABLE dWidth           AS DECIMAL                         NO-UNDO.
+
+    DEFINE BUFFER w_U FOR _U.
+    DEFINE BUFFER f_U FOR _U.
+    DEFINE BUFFER w_L FOR _L.
+    DEFINE BUFFER f_L FOR _L.
+
+    ANALYZE VALUE(cScratch) VALUE(SESSION:TEMP-DIR + "scratch.qs":U).
+
+    INPUT FROM VALUE(SESSION:TEMP-DIR + "scratch.qs":U).
+
+    IMPORT cLine.
+    DO WHILE cLine[1] NE "FR":U:
+      IMPORT cLine.
+    END.
+
+    /* Have found the frame record, get its dimensions */
+    IMPORT cLine.
+    ASSIGN dWidth  = DECIMAL(cLine[6]) / 100
+           dHeight = DECIMAL(cLine[7]) / 100.
+    IF dWidth > hFrame:WIDTH OR dHeight > hFrame:HEIGHT THEN DO:
+      /* Window needs to be enlarged */
+
+      FIND w_U WHERE w_U._handle = _h_win.       /* Get the window _U */
+      FIND w_L WHERE w_L._u-recid = RECID(w_U).  /* Get window _L     */
+      FIND f_U WHERE f_U._handle = _h_win.       /* Get the frame _U  */
+      FIND f_L WHERE f_L._u-recid = RECID(w_U).  /* Get frame _L      */
+
+      IF dWidth > hFrame:WIDTH THEN
+        ASSIGN _h_win:WIDTH        = dWidth
+               hFrame:WIDTH        = dWidth
+               w_L._WIDTH          = dWidth
+               w_L._VIRTUAL-WIDTH  = MAX(w_L._VIRTUAL-WIDTH, dWidth)
+               f_L._WIDTH          = dWidth
+               f_L._VIRTUAL-WIDTH  = MAX(f_L._VIRTUAL-WIDTH, dWidth).
+
+
+      IF dHeight > hFrame:HEIGHT THEN
+        ASSIGN _h_win:HEIGHT       = dHeight
+               hFrame:HEIGHT       = dHeight
+               w_L._HEIGHT         = dHeight
+               w_L._VIRTUAL-HEIGHT = MAX(w_L._VIRTUAL-HEIGHT, dHeight)
+               f_L._HEIGHT         = dWidth
+               f_L._VIRTUAL-HEIGHT = MAX(f_L._VIRTUAL-HEIGHT, dHeight).
+
+    END.  /* IF the window needs to get bigger */
+
+    INPUT CLOSE.
+    OS-DELETE VALUE(SESSION:TEMP-DIR + "scratch.qs":U).
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-create_a_SmartBrowser) = 0 &THEN
 
@@ -270,6 +346,8 @@ PROCEDURE create_a_SmartViewer :
     IF drawn THEN
     DO:
       SESSION:NUMERIC-FORMAT = "AMERICAN":U.
+      RUN adjustWindowSize(INPUT ctmp,    /* Name of scratch file created by _drwflds.p */
+                           INPUT hframe). /* Handle of new frame to be adjusted         */
       RUN adeuib/_qssuckr.p (ctmp, "", "IMPORT":U, TRUE).
       SESSION:SET-NUMERIC-FORMAT(_numeric_separator,_numeric_decimal).
 

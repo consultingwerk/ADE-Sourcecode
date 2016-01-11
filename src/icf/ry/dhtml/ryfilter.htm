@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html 
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style>
+BUTTON  {width:60}
+TABLE   {border-color:black;border:1px;margin:0;padding:0;}
+TD      {text-align:center;font:10px MS Sans Serif;color:black;background:white;}
+TH      {text-align:center;font:bold 14px MS Sans Serif;color:black;background:white;}
+</style>
+<title>&#160;</title>
+</head>
+<body>
+<form name="form" onsubmit="return fSubmit()">
+<br>
+<center>
+<table border="2" cellspacing="0" cellpadding="0" id="filter">
+  <tr>
+    <th width="132"></th>
+    <th id="from"></th>
+    <th id="to"></th>
+  </tr>
+  <tr valign="middle">
+    <td colspan="3" valign="middle"><br>
+      <input type="checkbox" name="savefilter" id="savefilter" />
+      <label name="lblsavefilter" id="lblsavefilter" for="savefilter"></label>
+      <input type="button" id="btnok" onClick="fOK()">&#160;
+      <input type="button" id="btncancel" onClick="fCancel()">&#160;
+      <input type="button" id="btnclear" onClick="fClear()">
+      <br><br>
+    </td>
+  </tr>
+</table>
+</center>
+</form>
+<br>
+<script language="javascript"><!--
+var win,w=300,h=140;
+win=(document.all?window.dialogArguments:window.opener);
+var TABLE=document.getElementById('filter');
+var hdata=win.returnfield;
+
+/* HTM9|Filter;Save settings:;From:;To:;OK;Cancel;Clear */
+var ftext=(win.action('info.get|HTM9')).split(';');
+window.document.title=ftext[0]+window.document.title;
+document.getElementById('lblsavefilter').innerHTML=ftext[1]+'&#160;&#160;&#160';
+document.getElementById('from').innerHTML=ftext[2];
+document.getElementById('to').innerHTML=ftext[3];
+document.getElementById('btnok').value=ftext[4];
+document.getElementById('btncancel').value=ftext[5];
+document.getElementById('btnclear').value=ftext[6];
+
+win.returnValue=false;
+
+var n=hdata.fieldn;
+for(var i=n-1;i>0;i--){
+  if(hdata.fieldfilter[i]!='y'||hdata.childfield==i) continue;
+  TR=TABLE.insertRow(1);    
+  TR.setAttribute('i',i);   
+  TR.insertCell(0).innerHTML='<nobr>'+hdata.fieldname[i]+'</nobr>';  
+  TR.insertCell(1).innerHTML='<input type="text" size="16" value="'+hdata.filtfrom[i]+'" />'; 
+  TR.insertCell(2).innerHTML='<input type="text" size="16" value="'+hdata.filtto[i]+'" />'; 
+}
+
+w=415;
+h=n*26+110;
+if(document.all){
+  window.dialogWidth=w+'px';
+  window.dialogHeight=h+'px';
+} else {
+  window.resizeTo(w+4,h+4);
+}
+
+function fCancel(){
+  window.close();
+}
+function fClear(){
+  var a=TABLE.rows;
+  for(i=1;i<a.length;i++){  
+    if(a[i].cells[1]){
+      hdata.filtfrom[a[i].getAttribute('i')]=""; 
+      hdata.filtto[a[i].getAttribute('i')]=""; 
+      a[i].cells[1].getElementsByTagName('INPUT')[0].value=""; 
+      a[i].cells[2].getElementsByTagName('INPUT')[0].value=""; 
+    }
+  }
+}
+function fOK(){
+  if(document.form.savefilter.checked) win.action('server.'+hdata.wdo+'.savefilter'); 
+  var a=TABLE.rows;
+  for(var i=1;i<a.length;i++){  
+    if(a[i].cells[1]){
+      hdata.filtfrom[a[i].getAttribute('i')]=a[i].cells[1].getElementsByTagName('INPUT')[0].value; 
+      hdata.filtto[a[i].getAttribute('i')]=a[i].cells[2].getElementsByTagName('INPUT')[0].value; 
+    }
+  }
+  win.returnValue=true;
+  window.close();
+}
+--></script>
+</body>
+</html>

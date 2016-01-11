@@ -58,7 +58,7 @@ END PROCEDURE.
   DEF VAR list-mem    AS MEMPTR.
   DEF VAR list-char   AS CHARACTER.
   DEF VAR list-size   AS INT       INIT 400.  /* 400 chars or about 40 files */
-  DEF VAR srch-dir    AS CHARACTER INIT "\tmp".
+  DEF VAR srch-dir    AS CHARACTER INIT "~\tmp".
   DEF VAR missed-file AS INT.
   DEF VAR error       AS INT.
   DEF VAR sl          AS CHAR VIEW-AS SELECTION-LIST SIZE 30 BY 10.

@@ -23,11 +23,6 @@
 *********************************************************************/
 TRIGGER PROCEDURE FOR REPLICATION-DELETE OF ryc_smartlink.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "ryc_smartlink"
-                      &TRIGGER-TYPE = "REPLICATION-DELETE"}
-
 {af/sup/afreplicat.i  &TABLE-NAME   = "ryc_smartlink"
                       &TABLE-FLA    = "rycsm"
                       &TABLE-PK     = "smartlink_obj"

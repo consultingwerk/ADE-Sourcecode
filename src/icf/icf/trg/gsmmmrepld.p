@@ -23,11 +23,6 @@
 *********************************************************************/
 TRIGGER PROCEDURE FOR REPLICATION-DELETE OF gsm_multi_media.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "gsm_multi_media"
-                      &TRIGGER-TYPE = "REPLICATION-DELETE"}
-
 {af/sup/afreplicat.i  &TABLE-NAME   = "gsm_multi_media"
                       &TABLE-FLA    = "gsmmm"
                       &TABLE-PK     = "multi_media_obj"

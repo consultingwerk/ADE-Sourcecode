@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          afdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
@@ -92,7 +92,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gscsqfullo.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010001
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -124,6 +124,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -152,6 +153,11 @@ number_of_sequences sequence_active
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gscsqfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsc_sequence NO-LOCK, ~
+      EACH gsm_login_company WHERE gsm_login_company.login_company_obj = gsc_sequence.company_organisation_obj OUTER-JOIN NO-LOCK ~
+    BY gsc_sequence.company_organisation_obj ~
+       BY gsc_sequence.owning_entity_mnemonic ~
+        BY gsc_sequence.sequence_tla INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsc_sequence NO-LOCK, ~
       EACH gsm_login_company WHERE gsm_login_company.login_company_obj = gsc_sequence.company_organisation_obj OUTER-JOIN NO-LOCK ~
@@ -215,7 +221,7 @@ END.
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW dTables ASSIGN
          HEIGHT             = 1.62
-         WIDTH              = 46.6.
+         WIDTH              = 53.2.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -244,46 +250,46 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "afdb.gsc_sequence,afdb.gsm_login_company WHERE afdb.gsc_sequence ..."
+     _TblList          = "icfdb.gsc_sequence,icfdb.gsm_login_company WHERE icfdb.gsc_sequence ..."
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _TblOptList       = ", OUTER"
-     _OrdList          = "afdb.gsc_sequence.company_organisation_obj|yes,afdb.gsc_sequence.owning_entity_mnemonic|yes,afdb.gsc_sequence.sequence_tla|yes"
-     _JoinCode[2]      = "afdb.gsm_login_company.login_company_obj = afdb.gsc_sequence.company_organisation_obj"
-     _FldNameList[1]   > afdb.gsc_sequence.sequence_obj
+     _OrdList          = "icfdb.gsc_sequence.company_organisation_obj|yes,icfdb.gsc_sequence.owning_entity_mnemonic|yes,icfdb.gsc_sequence.sequence_tla|yes"
+     _JoinCode[2]      = "icfdb.gsm_login_company.login_company_obj = icfdb.gsc_sequence.company_organisation_obj"
+     _FldNameList[1]   > icfdb.gsc_sequence.sequence_obj
 "sequence_obj" "sequence_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
-     _FldNameList[2]   > afdb.gsc_sequence.company_organisation_obj
+     _FldNameList[2]   > icfdb.gsc_sequence.company_organisation_obj
 "company_organisation_obj" "company_organisation_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
-     _FldNameList[3]   > afdb.gsm_login_company.login_company_name
+     _FldNameList[3]   > icfdb.gsm_login_company.login_company_name
 "login_company_name" "login_company_name" ? ? "character" ? ? ? ? ? ? no ? no 70 yes
-     _FldNameList[4]   > afdb.gsc_sequence.owning_entity_mnemonic
-"owning_entity_mnemonic" "owning_entity_mnemonic" ? ? "character" ? ? ? ? ? ? yes ? no 16 yes
-     _FldNameList[5]   > afdb.gsc_sequence.sequence_tla
+     _FldNameList[4]   > icfdb.gsc_sequence.owning_entity_mnemonic
+"owning_entity_mnemonic" "owning_entity_mnemonic" "Owning Entity" ? "character" ? ? ? ? ? ? yes ? no 16 yes
+     _FldNameList[5]   > icfdb.gsc_sequence.sequence_tla
 "sequence_tla" "sequence_tla" ? ? "character" ? ? ? ? ? ? yes ? no 6 yes
-     _FldNameList[6]   > afdb.gsc_sequence.sequence_short_desc
+     _FldNameList[6]   > icfdb.gsc_sequence.sequence_short_desc
 "sequence_short_desc" "sequence_short_desc" ? ? "character" ? ? ? ? ? ? yes ? no 30 yes
-     _FldNameList[7]   > afdb.gsc_sequence.sequence_description
+     _FldNameList[7]   > icfdb.gsc_sequence.sequence_description
 "sequence_description" "sequence_description" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[8]   > afdb.gsc_sequence.min_value
+     _FldNameList[8]   > icfdb.gsc_sequence.min_value
 "min_value" "min_value" ? ? "integer" ? ? ? ? ? ? yes ? no 4 yes
-     _FldNameList[9]   > afdb.gsc_sequence.max_value
+     _FldNameList[9]   > icfdb.gsc_sequence.max_value
 "max_value" "max_value" ? ? "integer" ? ? ? ? ? ? yes ? no 4 yes
-     _FldNameList[10]   > afdb.gsc_sequence.sequence_format
+     _FldNameList[10]   > icfdb.gsc_sequence.sequence_format
 "sequence_format" "sequence_format" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[11]   > afdb.gsc_sequence.auto_generate
+     _FldNameList[11]   > icfdb.gsc_sequence.auto_generate
 "auto_generate" "auto_generate" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[12]   > afdb.gsc_sequence.multi_transaction
+     _FldNameList[12]   > icfdb.gsc_sequence.multi_transaction
 "multi_transaction" "multi_transaction" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[13]   > afdb.gsc_sequence.next_value
+     _FldNameList[13]   > icfdb.gsc_sequence.next_value
 "next_value" "next_value" ? ? "integer" ? ? ? ? ? ? yes ? no 4 yes
-     _FldNameList[14]   > afdb.gsc_sequence.number_of_sequences
+     _FldNameList[14]   > icfdb.gsc_sequence.number_of_sequences
 "number_of_sequences" "number_of_sequences" ? ? "integer" ? ? ? ? ? ? yes ? no 4 yes
-     _FldNameList[15]   > afdb.gsc_sequence.sequence_active
+     _FldNameList[15]   > icfdb.gsc_sequence.sequence_active
 "sequence_active" "sequence_active" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK dTables 

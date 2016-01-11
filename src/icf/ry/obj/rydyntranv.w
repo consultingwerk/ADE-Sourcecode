@@ -1,7 +1,10 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
+/* Connected Databases 
+          icfdb            PROGRESS
+*/
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" sObject _INLINE
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" vTableWin _INLINE
 /* Actions: ? ? ? ? af/sup/afverxftrp.p */
 /* This has to go above the definitions sections, as that is what it modifies.
    If its not, then the definitions section will have been saved before the
@@ -9,7 +12,7 @@
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Definition Comments Wizard" sObject _INLINE
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Definition Comments Wizard" vTableWin _INLINE
 /* Actions: ? af/cod/aftemwizcw.w ? ? ? */
 /* Program Definition Comment Block Wizard
 Welcome to the Program Definition Comment Block Wizard. Press Next to proceed.
@@ -18,7 +21,13 @@ af/cod/aftemwizpw.w
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS sObject 
+
+/* Temp-Table and Buffer definitions                                    */
+DEFINE TEMP-TABLE RowObject
+       {"af/obj2/gsmtlfullo.i"}.
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
 /*********************************************************************
 * Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
@@ -68,7 +77,17 @@ af/cod/aftemwizpw.w
   Update Notes: Fixed issue #3704 - Can't translate text treeview items.
                 Allow translation of plain text nodes.
 
--------------------------------------------------------------------------------*/
+  (v:010003)    Task:           0   UserRef:    
+                Date:   05/07/2002  Author:     Mark Davies (MIP)
+
+  Update Notes: Added source_language_obj field to store the source language of a translation.
+
+  (v:010004)    Task:           0   UserRef:    
+                Date:   08/12/2002  Author:     Mark Davies (MIP)
+
+  Update Notes: Fix for issue #5348 - Toolbar Button Translations
+
+---------------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
 
@@ -95,9 +114,8 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 /* Local Variable Definitions ---                                       */
 
-/* Astra 2 object identifying preprocessor */
-&glob   astra2-staticSmartObject yes
-
+/*  object identifying preprocessor */
+&glob   astra2-staticSmartDataViewer yes
 {af/sup2/afglobals.i}
 
 DEFINE VARIABLE glModified                  AS LOGICAL INITIAL NO.
@@ -116,8 +134,7 @@ DEFINE VARIABLE ghQuery                     AS HANDLE     NO-UNDO.
 DEFINE VARIABLE ghTable                     AS HANDLE     NO-UNDO.
 DEFINE VARIABLE ghBuffer                    AS HANDLE     NO-UNDO.
 
-{af/sup2/afttcombo.i}
-{af/app/aftttranslate.i}
+{src/adm2/tttranslate.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -127,18 +144,25 @@ DEFINE VARIABLE ghBuffer                    AS HANDLE     NO-UNDO.
 
 /* ********************  Preprocessor Definitions  ******************** */
 
-&Scoped-define PROCEDURE-TYPE SmartObject
+&Scoped-define PROCEDURE-TYPE SmartDataViewer
 &Scoped-define DB-AWARE no
+
+&Scoped-define ADM-CONTAINER FRAME
+
+&Scoped-define ADM-SUPPORTED-LINKS Data-Target,Update-Source,TableIO-Target,GroupAssign-Source,GroupAssign-Target
+
+/* Include file with RowObject temp-table definition */
+&Scoped-define DATA-FIELD-DEFS "af/obj2/gsmtlfullo.i"
 
 /* Name of first Frame and/or Browse and/or first Query                 */
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS coLanguage 
-&Scoped-Define DISPLAYED-OBJECTS coLanguage fiContainer 
+&Scoped-Define ENABLED-OBJECTS buDoNotRemove 
+&Scoped-Define DISPLAYED-OBJECTS fiContainer 
 
 /* Custom List Definitions                                              */
-/* List-1,List-2,List-3,List-4,List-5,List-6                            */
+/* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
 
 /* _UIB-PREPROCESSOR-BLOCK-END */
 &ANALYZE-RESUME
@@ -148,40 +172,50 @@ DEFINE VARIABLE ghBuffer                    AS HANDLE     NO-UNDO.
 /* ***********************  Control Definitions  ********************** */
 
 
+/* Definitions of handles for SmartObjects                              */
+DEFINE VARIABLE hLanguage AS HANDLE NO-UNDO.
+DEFINE VARIABLE hSourceLanguage AS HANDLE NO-UNDO.
+
 /* Definitions of the field level widgets                               */
-DEFINE VARIABLE coLanguage AS DECIMAL FORMAT ">>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
-     LABEL "Language" 
-     VIEW-AS COMBO-BOX INNER-LINES 5
-     LIST-ITEM-PAIRS "",0
-     DROP-DOWN-LIST
-     SIZE 47.6 BY 1 NO-UNDO.
+DEFINE BUTTON buDoNotRemove 
+     LABEL "" 
+     SIZE .8 BY .14
+     BGCOLOR 8 .
 
 DEFINE VARIABLE fiContainer AS CHARACTER FORMAT "X(256)":U 
      LABEL "Container" 
      VIEW-AS FILL-IN 
-     SIZE 47.2 BY 1 NO-UNDO.
+     SIZE 50 BY 1 NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     coLanguage AT ROW 1.19 COL 13 COLON-ALIGNED
-     fiContainer AT ROW 1.19 COL 74.6 COLON-ALIGNED
-    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
-         SIDE-LABELS NO-UNDERLINE THREE-D 
+     fiContainer AT ROW 1 COL 10.6 COLON-ALIGNED
+     buDoNotRemove AT ROW 9.62 COL 132.8
+    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
+         SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1
-         SIZE 124.2 BY 11.33.
+         SIZE 133.8 BY 8.76.
 
 
 /* *********************** Procedure Settings ************************ */
 
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
 /* Settings for THIS-PROCEDURE
-   Type: SmartObject
-   Allow: Basic
+   Type: SmartDataViewer
+   Data Source: "af/obj2/gsmtlfullo.w"
+   Allow: Basic,DB-Fields,Smart
+   Container Links: Data-Target,Update-Source,TableIO-Target,GroupAssign-Source,GroupAssign-Target
    Frames: 1
    Add Fields to: Neither
    Other Settings: PERSISTENT-ONLY COMPILE
+   Temp-Tables and Buffers:
+      TABLE: RowObject D "?" ?  
+      ADDITIONAL-FIELDS:
+          {af/obj2/gsmtlfullo.i}
+      END-FIELDS.
+   END-TABLES.
  */
 
 /* This procedure should always be RUN PERSISTENT.  Report the error,  */
@@ -198,17 +232,17 @@ END.
 
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
-  CREATE WINDOW sObject ASSIGN
-         HEIGHT             = 11.33
-         WIDTH              = 124.2.
+  CREATE WINDOW vTableWin ASSIGN
+         HEIGHT             = 8.76
+         WIDTH              = 133.8.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB sObject 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB vTableWin 
 /* ************************* Included-Libraries *********************** */
 
-{src/adm2/datavis.i}
+{src/adm2/viewer.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -219,12 +253,15 @@ END.
 /* ***********  Runtime Attributes and AppBuilder Settings  *********** */
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
-/* SETTINGS FOR WINDOW sObject
+/* SETTINGS FOR WINDOW vTableWin
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frMain
    NOT-VISIBLE                                                          */
 ASSIGN 
        FRAME frMain:HIDDEN           = TRUE.
+
+ASSIGN 
+       buDoNotRemove:HIDDEN IN FRAME frMain           = TRUE.
 
 /* SETTINGS FOR FILL-IN fiContainer IN FRAME frMain
    NO-ENABLE                                                            */
@@ -244,70 +281,16 @@ ASSIGN
  
 
 
-
-/* ************************  Control Triggers  ************************ */
-
-&Scoped-define SELF-NAME coLanguage
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL coLanguage sObject
-ON ENTRY OF coLanguage IN FRAME frMain /* Language */
-DO:
-  ASSIGN gcSavedLanguage = SELF:SCREEN-VALUE.
-END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL coLanguage sObject
-ON VALUE-CHANGED OF coLanguage IN FRAME frMain /* Language */
-DO:
-  IF gcSavedLanguage <> SELF:SCREEN-VALUE AND glModified THEN
-  DO:
-    DEFINE VARIABLE cButton AS CHARACTER NO-UNDO.
-    DEFINE VARIABLE cAnswer AS CHARACTER NO-UNDO.
-    RUN askQuestion IN gshSessionManager (INPUT "You have unsaved translations that will be lost if you change the language, continue?",    /* messages */
-                                          INPUT "&Yes,&No":U,     /* button list */
-                                          INPUT "&No":U,         /* default */
-                                          INPUT "&No":U,          /* cancel */
-                                          INPUT "Unsaved Translations Exist":U, /* title */
-                                          INPUT "":U,             /* datatype */
-                                          INPUT "":U,             /* format */
-                                          INPUT-OUTPUT cAnswer,   /* answer */
-                                          OUTPUT cButton          /* button pressed */
-                                          ).
-    IF cButton = "&No":U OR cButton = "No":U THEN
-    DO:
-      SELF:SCREEN-VALUE = gcSavedLanguage.
-      RETURN NO-APPLY.
-    END.
-    ELSE
-    DO:
-      ASSIGN gcSavedLanguage = SELF:SCREEN-VALUE.
-      RUN buildTempTable (INPUT YES).
-    END.
-  END.
-  ELSE IF gcSavedLanguage <> SELF:SCREEN-VALUE THEN
-  DO:
-    ASSIGN gcSavedLanguage = SELF:SCREEN-VALUE.
-    RUN buildTempTable (INPUT YES).
-  END.
-END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
-&UNDEFINE SELF-NAME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK sObject 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK vTableWin 
 
 
 /* ***************************  Main Block  *************************** */
 
-/* If testing in the UIB, initialize the SmartObject. */  
-&IF DEFINED(UIB_IS_RUNNING) <> 0 &THEN          
-  RUN initializeObject.
-&ENDIF
+  &IF DEFINED(UIB_IS_RUNNING) <> 0 &THEN          
+    RUN initializeObject.
+  &ENDIF         
+
+  /************************ INTERNAL PROCEDURES ********************/
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -315,7 +298,7 @@ END.
 
 /* **********************  Internal Procedures  *********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE addFolderTabs sObject 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE addFolderTabs vTableWin 
 PROCEDURE addFolderTabs :
 /*------------------------------------------------------------------------------
   Purpose:     Add folder tabs to translation temp-table
@@ -329,11 +312,13 @@ DEFINE INPUT PARAMETER phObject                 AS HANDLE     NO-UNDO.
 DEFINE INPUT PARAMETER pcObjectName             AS CHARACTER  NO-UNDO.
 DEFINE INPUT PARAMETER phFrame                  AS HANDLE     NO-UNDO.
 
+DEFINE VARIABLE cTabVisualization               AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cFolderLabels                   AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE iLoop                           AS INTEGER    NO-UNDO.
 DEFINE VARIABLE cLabel                          AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE iLoop                           AS INTEGER    NO-UNDO.
+DEFINE VARIABLE hDisplayWidget                  AS HANDLE     NO-UNDO.
 
-cFolderLabels = DYNAMIC-FUNCTION("getFolderLabels":U IN phObject).
+ASSIGN cFolderLabels = DYNAMIC-FUNCTION("getFolderLabels":U IN phObject).
 
 label-loop:
 DO iLoop = 1 TO NUM-ENTRIES(cFolderLabels, "|":U):
@@ -342,28 +327,52 @@ DO iLoop = 1 TO NUM-ENTRIES(cFolderLabels, "|":U):
 
   CREATE ttTranslate.
   ASSIGN
-    ttTranslate.dLanguageObj = coLanguage
-    ttTranslate.cObjectName = pcObjectName
-    ttTranslate.lGlobal = NO
-    ttTranslate.lDelete = NO
-    ttTranslate.cWidgetType = "TAB":U
-    ttTranslate.cWidgetName = "TAB":U
-    ttTranslate.hWidgetHandle = phObject
-    ttTranslate.iWidgetEntry = iLoop
-    ttTranslate.cOriginalLabel = cLabel
-    ttTranslate.cTranslatedLabel = "":U
-    ttTranslate.cOriginalTooltip = "":U
-    ttTranslate.cTranslatedTooltip = "":U
-    .
+    ttTranslate.dLanguageObj       = DECIMAL(DYNAMIC-FUNCTION("getDataValue":U IN hLanguage))
+    ttTranslate.cObjectName        = pcObjectName
+    ttTranslate.lGlobal            = NO
+    ttTranslate.lDelete            = NO
+    ttTranslate.cWidgetType        = "TAB":U
+    ttTranslate.cWidgetName        = "TAB":U
+    ttTranslate.hWidgetHandle      = phObject
+    ttTranslate.iWidgetEntry       = iLoop
+    ttTranslate.cOriginalLabel     = cLabel
+    ttTranslate.cTranslatedLabel   = "":U
+    ttTranslate.cOriginalTooltip   = "":U
+    ttTranslate.cTranslatedTooltip = "":U.
+
+  ttTranslate.dSourceLanguageObj = DECIMAL(DYNAMIC-FUNCTION("getDataValue":U IN hSourceLanguage)).
 
 END.  /* label-loop */
+
+{get TabVisualization cTabVisualization phObject} NO-ERROR.
+
+IF cTabVisualization = "COMBO-BOX":U THEN
+DO:
+  CREATE ttTranslate.
+  ASSIGN
+    hDisplayWidget                 = {fn getDisplayWidget phObject}
+    ttTranslate.dLanguageObj       = DECIMAL(DYNAMIC-FUNCTION("getDataValue":U IN hLanguage))
+    ttTranslate.cObjectName        = pcObjectName
+    ttTranslate.lGlobal            = NO
+    ttTranslate.lDelete            = NO
+    ttTranslate.cWidgetType        = "COMBO-BOX":U
+    ttTranslate.cWidgetName        = hDisplayWidget:NAME
+    ttTranslate.hWidgetHandle      = hDisplayWidget
+    ttTranslate.iWidgetEntry       = 0
+    ttTranslate.cOriginalLabel     = hDisplayWidget:SIDE-LABEL-HANDLE:SCREEN-VALUE
+    ttTranslate.cTranslatedLabel   = "":U
+    ttTranslate.cOriginalTooltip   = "":U
+    ttTranslate.cTranslatedTooltip = "":U.
+
+  ttTranslate.dSourceLanguageObj = DECIMAL(DYNAMIC-FUNCTION("getDataValue":U IN hSourceLanguage)).
+END.
 
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE addNodes sObject 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE addNodes vTableWin 
 PROCEDURE addNodes :
 /*------------------------------------------------------------------------------
   Purpose:     Add folder tabs to translation temp-table
@@ -379,7 +388,7 @@ DEFINE VARIABLE cNodes                          AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cNodeText                       AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE iLoop                           AS INTEGER    NO-UNDO.
 
-cNodes = DYNAMIC-FUNCTION("getTranslatableNodes":U IN ghCallerHandle).
+ASSIGN cNodes = DYNAMIC-FUNCTION("getTranslatableNodes":U IN ghCallerHandle).
 
 IF cNodes = "":U THEN
   RETURN.
@@ -387,7 +396,7 @@ IF cNodes = "":U THEN
 label-loop:
 DO iLoop = 1 TO NUM-ENTRIES(cNodes, CHR(1)):
   
-  cNodeText = "":U.
+  ASSIGN cNodeText = "":U.
   ASSIGN cNodeText = TRIM(ENTRY(iLoop, cNodes, CHR(1))) NO-ERROR.
   IF cNodeText = "":U OR
      cNodeText = ? THEN
@@ -395,7 +404,7 @@ DO iLoop = 1 TO NUM-ENTRIES(cNodes, CHR(1)):
 
   CREATE ttTranslate.
   ASSIGN
-    ttTranslate.dLanguageObj = coLanguage
+    ttTranslate.dLanguageObj = DECIMAL(DYNAMIC-FUNCTION("getDataValue":U IN hLanguage))
     ttTranslate.cObjectName = pcObjectName
     ttTranslate.lGlobal = NO
     ttTranslate.lDelete = NO
@@ -406,9 +415,9 @@ DO iLoop = 1 TO NUM-ENTRIES(cNodes, CHR(1)):
     ttTranslate.cOriginalLabel = cNodeText
     ttTranslate.cTranslatedLabel = "":U
     ttTranslate.cOriginalTooltip = "":U
-    ttTranslate.cTranslatedTooltip = "":U
-    .
-
+    ttTranslate.cTranslatedTooltip = "":U.
+    
+    ASSIGN ttTranslate.dSourceLanguageObj = DECIMAL(DYNAMIC-FUNCTION("getDataValue":U IN hSourceLanguage)).
 END.  /* label-loop */
 
 END PROCEDURE.
@@ -416,7 +425,7 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE addWidgets sObject 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE addWidgets vTableWin 
 PROCEDURE addWidgets :
 /*------------------------------------------------------------------------------
   Purpose:     Add widgets to translation temp-table
@@ -442,22 +451,35 @@ DEFINE VARIABLE iRadioLoop                      AS INTEGER    NO-UNDO.
 DEFINE VARIABLE iBrowseLoop                     AS INTEGER    NO-UNDO.
 DEFINE VARIABLE hLiteralHandle                  AS HANDLE     NO-UNDO.
 DEFINE VARIABLE cLiteralHandles                 AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cBufferTableName                AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cColumnTableName                AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cDelimiter                      AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cListItems                      AS CHARACTER  NO-UNDO.
+
+DEFINE BUFFER bttTranslate FOR ttTranslate.
 
 /* for dynamic toolbars - use container object name  (NO - force gloabl rather) */
 /* IF phFrame:NAME = "Panel-Frame":U THEN */
 /*   ASSIGN pcObjectName = gcCallerName.  */
 
+/* Do not allow the toolbar buttons to be translated - this is done 
+   with the new Menu Item Translation tool */
+IF CAN-QUERY(phObject,"FILE-NAME":U) AND 
+   INDEX(phObject:FILE-NAME,"dyntool":U) > 0 THEN
+  RETURN.
+
 ASSIGN
-  hwidgetGroup = phFrame:HANDLE
-  hwidgetGroup = hwidgetGroup:FIRST-CHILD
-  hWidget = hwidgetGroup:FIRST-CHILD
-  hLiteralHandle = hWidget.
+  hwidgetGroup    = phFrame:HANDLE
+  hwidgetGroup    = hwidgetGroup:FIRST-CHILD
+  hWidget         = hwidgetGroup:FIRST-CHILD
+  hLiteralHandle  = hWidget.
 
 /* First build list of LITERAL handles that are labels to other widgets */
-cLiteralHandles = "":U.
+ASSIGN cLiteralHandles = "":U.
 literal-widget-walk:
 REPEAT WHILE VALID-HANDLE (hLiteralHandle):
-  IF LOOKUP(hLiteralHandle:TYPE, "text,button,fill-in,selection-list,editor,combo-box,radio-set,slider,toggle-box":U) = 0 THEN DO:
+  IF LOOKUP(hLiteralHandle:TYPE, "button,fill-in,selection-list,editor,combo-box,radio-set,slider,toggle-box":U) = 0 THEN 
+  DO:
     ASSIGN hLiteralHandle = hLiteralHandle:NEXT-SIBLING.
     NEXT literal-widget-walk.
   END.
@@ -470,22 +492,52 @@ END.
 
 widget-walk:
 REPEAT WHILE VALID-HANDLE (hWidget):
-  IF LOOKUP(hWidget:TYPE, "literal,text,button,fill-in,selection-list,editor,combo-box,radio-set,slider,toggle-box":U) > 0 THEN
+  
+  IF LOOKUP(hWidget:TYPE, "literal,button,fill-in,selection-list,editor,combo-box,radio-set,slider,toggle-box,text":U) > 0 THEN
   DO:
     /* Check that the literal widget is not a label for another widget */
     IF hWidget:TYPE = "LITERAL" AND
-       LOOKUP(STRING(hWidget),cLiteralHandles) > 0 THEN DO:
+       LOOKUP(STRING(hWidget),cLiteralHandles) > 0 THEN 
+    DO:
       ASSIGN hWidget = hWidget:NEXT-SIBLING.
       NEXT widget-walk.
     END.
-    
+
+    /* Check for VIEW-AS-TEXT fill-ins
+       Also make sure we exclude plain TEXT widgets */
+    IF hWidget:TYPE = "TEXT" THEN DO:
+      /* Plain TEXT widgets do not have a NAME set for Static Viewers */
+      IF CAN-QUERY(hWidget, "NAME":U) AND 
+         hWidget:NAME = ? THEN DO:
+        ASSIGN hWidget = hWidget:NEXT-SIBLING.
+        NEXT widget-walk.
+      END.
+      
+      /* For DynViewers the TEXT widgets have a name assigned to them */
+      IF CAN-QUERY(phObject,"FILE-NAME":U) AND INDEX(phObject:FILE-NAME,"rydynview":U) > 0 THEN DO:
+        IF CAN-QUERY(hWidget, "NAME":U) AND 
+           hWidget:NAME BEGINS "TEXT":U THEN DO:
+          ASSIGN hWidget = hWidget:NEXT-SIBLING.
+          NEXT widget-walk.
+        END.
+      END.
+      
+    END.
+
     ASSIGN
       cFieldName = (IF CAN-QUERY(hWidget, "TABLE":U) AND LENGTH(hWidget:TABLE) > 0 AND hWidget:TABLE <> "RowObject":U THEN (hWidget:TABLE + ".":U) ELSE "":U) + hWidget:NAME.
     
+    /* Do not include any TEXT widgets */
     IF hWidget:TYPE = "LITERAL" AND
        (cFieldName = ? OR
-        cFieldName = "":U) THEN
-      ASSIGN cFieldname = IF CAN-QUERY(hWidget,"SCREEN-VALUE":U) AND hWidget:SCREEN-VALUE <> ? THEN hWidget:SCREEN-VALUE ELSE "TEXT":U.
+        cFieldName = "":U) THEN 
+    DO:
+      IF CAN-QUERY(hWidget,"SCREEN-VALUE":U) AND hWidget:SCREEN-VALUE <> ? THEN 
+      DO:
+        ASSIGN hWidget = hWidget:NEXT-SIBLING.
+        NEXT widget-walk.
+      END.
+    END.
 
     IF (cFieldName = ? OR cFieldName = "":U) AND hWidget:TYPE <> "LITERAL" THEN
     DO:
@@ -495,7 +547,8 @@ REPEAT WHILE VALID-HANDLE (hWidget):
 
     /* Avoid duplicates */
     IF CAN-FIND(FIRST ttTranslate
-                WHERE ttTranslate.dLanguageObj = coLanguage
+                WHERE ttTranslate.dSourceLanguageObj = DECIMAL(DYNAMIC-FUNCTION("getDataValue":U IN hSourceLanguage))
+                  AND ttTranslate.dLanguageObj = DECIMAL(DYNAMIC-FUNCTION("getDataValue":U IN hLanguage))
                   AND ttTranslate.cObjectName = pcObjectName
                   AND ttTranslate.cWidgetType = hWidget:TYPE
                   AND ttTranslate.cWidgetName = cFieldName) THEN
@@ -504,11 +557,39 @@ REPEAT WHILE VALID-HANDLE (hWidget):
       NEXT widget-walk.
     END.
 
+    /* Only allow translations of list-item-pair data for widgets
+     * on dynamic viewers.                                        */
+    IF CAN-DO("COMBO-BOX,SELECTION-LIST":U, hWidget:TYPE) AND
+       CAN-QUERY(hWidget, "LIST-ITEM-PAIRS":U)            THEN
+    DO:
+        ASSIGN cListItems = hWidget:LIST-ITEM-PAIRS
+               cDelimiter = hWidget:DELIMITER.
+
+        IF cListItems NE ? AND NUM-ENTRIES(cListItems, cDelimiter) GE 2 THEN
+        DO iRadioLoop = 1 TO NUM-ENTRIES(cListItems, cDelimiter) BY 2:
+          CREATE ttTranslate.
+          ASSIGN
+            ttTranslate.dLanguageObj        = DECIMAL(DYNAMIC-FUNCTION("getDataValue":U IN hLanguage))
+            ttTranslate.cObjectName         = pcObjectName
+            ttTranslate.lGlobal             = NO
+            ttTranslate.lDelete             = NO
+            ttTranslate.cWidgetType         = hWidget:TYPE
+            ttTranslate.cWidgetName         = cFieldName
+            ttTranslate.hWidgetHandle       = hWidget
+            ttTranslate.iWidgetEntry        = (iRadioLoop + 1) / 2
+            ttTranslate.cOriginalLabel      = ENTRY(iRadioLoop, cListItems, cDelimiter)
+            ttTranslate.cTranslatedLabel    = "":U
+            ttTranslate.cOriginalTooltip    = (IF CAN-QUERY(hWidget,"TOOLTIP":U) AND hWidget:TOOLTIP <> ? THEN hWidget:TOOLTIP ELSE "":U)
+            ttTranslate.cTranslatedTooltip  = "":U.
+          ASSIGN ttTranslate.dSourceLanguageObj = DECIMAL(DYNAMIC-FUNCTION("getDataValue":U IN hSourceLanguage)).
+        END.    /* loop through list items  */
+    END.    /* combos and selection list AND updatable list item pairs. */
+    
     IF hWidget:TYPE <> "RADIO-SET":U THEN
     DO:
       CREATE ttTranslate.
       ASSIGN
-        ttTranslate.dLanguageObj = coLanguage
+        ttTranslate.dLanguageObj = DECIMAL(DYNAMIC-FUNCTION("getDataValue":U IN hLanguage))
         ttTranslate.cObjectName = pcObjectName
         ttTranslate.lGlobal = (phFrame:NAME = "Panel-Frame":U)
         ttTranslate.lDelete = NO
@@ -519,11 +600,12 @@ REPEAT WHILE VALID-HANDLE (hWidget):
         ttTranslate.cOriginalLabel = (IF CAN-QUERY(hWidget,"LABEL":U) AND hWidget:LABEL <> ? THEN hWidget:LABEL ELSE IF CAN-QUERY(hWidget,"SCREEN-VALUE":U) AND hWidget:SCREEN-VALUE <> ? THEN hWidget:SCREEN-VALUE ELSE "":U)
         ttTranslate.cTranslatedLabel = "":U
         ttTranslate.cOriginalTooltip = (IF CAN-QUERY(hWidget,"TOOLTIP":U) AND hWidget:TOOLTIP <> ? THEN hWidget:TOOLTIP ELSE "":U)
-        ttTranslate.cTranslatedTooltip = "":U
-        .
-
+        ttTranslate.cTranslatedTooltip = "":U.
+        
+        ASSIGN ttTranslate.dSourceLanguageObj = DECIMAL(DYNAMIC-FUNCTION("getDataValue":U IN hSourceLanguage)).
       /* deal with SDF's where label is separate */
-      IF INDEX(pcObjectName, ":":U) <> 0 AND ttTranslate.cOriginalLabel = "":U THEN
+      IF INDEX(pcObjectName, ":":U) <> 0 AND (ttTranslate.cOriginalLabel = "":U OR
+         cFieldName = "fiCombo":U)THEN
       DO:
         ASSIGN hLabel = ?.
         ASSIGN hLabel = DYNAMIC-FUNCTION("getLabelHandle":U IN phObject) NO-ERROR.
@@ -540,20 +622,20 @@ REPEAT WHILE VALID-HANDLE (hWidget):
 
         CREATE ttTranslate.
         ASSIGN
-          ttTranslate.dLanguageObj = coLanguage
-          ttTranslate.cObjectName = pcObjectName
-          ttTranslate.lGlobal = NO
-          ttTranslate.lDelete = NO
-          ttTranslate.cWidgetType = hWidget:TYPE
-          ttTranslate.cWidgetName = cFieldName
-          ttTranslate.hWidgetHandle = hWidget
-          ttTranslate.iWidgetEntry = (iRadioLoop + 1) / 2
-          ttTranslate.cOriginalLabel = ENTRY(iRadioLoop, cRadioButtons)
-          ttTranslate.cTranslatedLabel = "":U
-          ttTranslate.cOriginalTooltip = (IF CAN-QUERY(hWidget,"TOOLTIP":U) AND hWidget:TOOLTIP <> ? THEN hWidget:TOOLTIP ELSE "":U)
-          ttTranslate.cTranslatedTooltip = "":U
-          .
-
+          ttTranslate.dLanguageObj        = DECIMAL(DYNAMIC-FUNCTION("getDataValue":U IN hLanguage))
+          ttTranslate.cObjectName         = pcObjectName
+          ttTranslate.lGlobal             = NO
+          ttTranslate.lDelete             = NO
+          ttTranslate.cWidgetType         = hWidget:TYPE
+          ttTranslate.cWidgetName         = cFieldName
+          ttTranslate.hWidgetHandle       = hWidget
+          ttTranslate.iWidgetEntry        = (iRadioLoop + 1) / 2
+          ttTranslate.cOriginalLabel      = ENTRY(iRadioLoop, cRadioButtons)
+          ttTranslate.cTranslatedLabel    = "":U
+          ttTranslate.cOriginalTooltip    = (IF CAN-QUERY(hWidget,"TOOLTIP":U) AND hWidget:TOOLTIP <> ? THEN hWidget:TOOLTIP ELSE "":U)
+          ttTranslate.cTranslatedTooltip  = "":U.
+          
+          ASSIGN ttTranslate.dSourceLanguageObj = DECIMAL(DYNAMIC-FUNCTION("getDataValue":U IN hSourceLanguage)).
       END. /* radio-loop */
     END. /* radio-set */
   END.  /* valid widget type */
@@ -563,9 +645,35 @@ REPEAT WHILE VALID-HANDLE (hWidget):
       hColumn = hWidget:FIRST-COLUMN.
     col-loop:
     DO iBrowseLoop = 1 TO hWidget:NUM-COLUMNS:
-      ASSIGN
-        cFieldName = (IF CAN-QUERY(hColumn, "TABLE":U) AND LENGTH(hColumn:TABLE) > 0 AND hColumn:TABLE <> "RowObject":U THEN (hColumn:TABLE + ".":U) ELSE "":U) + hColumn:NAME.
-
+        /*
+        Determine the buffer table name and the table name 
+        If two buffers for the same table is used, the table prefix will be the same 
+        This cause errors when creating the translation fields as a record will the same name already exist
+        */
+        ASSIGN
+          cBufferTableName = hColumn:BUFFER-FIELD:BUFFER-HANDLE:NAME
+          cColumnTableName = hColumn:TABLE
+          NO-ERROR.
+        ASSIGN
+          cFieldName = (IF cBufferTableName <> ?
+                        AND cBufferTableName <> "RowObject":U
+                        AND LENGTH(cBufferTableName) > 0
+                        THEN (cBufferTableName + ".":U)
+                        ELSE
+                        (IF cColumnTableName <> ?
+                         AND cColumnTableName <> "RowObject":U
+                         AND LENGTH(cColumnTableName) > 0
+                         THEN (cColumnTableName + ".":U)
+                         ELSE
+                           "":U
+                        )
+                       )
+                     + (IF (hColumn:NAME = ? OR hColumn:NAME = "":U)
+                        AND hColumn:LABEL <> ?
+                        THEN hColumn:LABEL
+                        ELSE hColumn:NAME
+                       ).
+                       
       IF NOT VALID-HANDLE(hColumn) THEN LEAVE col-loop.
 
       IF cFieldName = ? OR cFieldName = "":U THEN
@@ -577,9 +685,9 @@ REPEAT WHILE VALID-HANDLE (hWidget):
       /* Avoid duplicates */
       IF CAN-FIND(FIRST ttTranslate
                   WHERE ttTranslate.dLanguageObj = 0
-                    AND ttTranslate.cObjectName = cObjectName
-                    AND ttTranslate.cWidgetType = hWidget:TYPE
-                    AND ttTranslate.cWidgetName = cFieldName) THEN
+                    AND ttTranslate.cObjectName  = cObjectName
+                    AND ttTranslate.cWidgetType  = hWidget:TYPE
+                    AND ttTranslate.cWidgetName  = cFieldName) THEN
       DO:
         ASSIGN hColumn = hcolumn:NEXT-COLUMN NO-ERROR.
         NEXT col-loop.
@@ -587,21 +695,21 @@ REPEAT WHILE VALID-HANDLE (hWidget):
 
       CREATE ttTranslate.
       ASSIGN
-        ttTranslate.dLanguageObj = coLanguage
-        ttTranslate.cObjectName = pcObjectName
-        ttTranslate.lGlobal = NO
-        ttTranslate.lDelete = NO
-        ttTranslate.cWidgetType = hWidget:TYPE
-        ttTranslate.cWidgetName = cFieldName
-        ttTranslate.hWidgetHandle = hWidget
-        ttTranslate.iWidgetEntry = 0
-        ttTranslate.cOriginalLabel = (IF CAN-QUERY(hColumn,"LABEL":U) AND hColumn:LABEL <> ? THEN hColumn:LABEL ELSE "":U)
-        ttTranslate.cTranslatedLabel = "":U
-        ttTranslate.cOriginalTooltip = (IF CAN-QUERY(hColumn,"TOOLTIP":U) AND hColumn:TOOLTIP <> ? THEN hColumn:TOOLTIP ELSE "":U)
-        ttTranslate.cTranslatedTooltip = "":U
-        .
-
-      ASSIGN hColumn = hcolumn:NEXT-COLUMN NO-ERROR.
+        ttTranslate.dLanguageObj        = DECIMAL(DYNAMIC-FUNCTION("getDataValue":U IN hLanguage))
+        ttTranslate.cObjectName         = pcObjectName
+        ttTranslate.lGlobal             = NO
+        ttTranslate.lDelete             = NO
+        ttTranslate.cWidgetType         = hWidget:TYPE
+        ttTranslate.cWidgetName         = cFieldName
+        ttTranslate.hWidgetHandle       = hWidget
+        ttTranslate.iWidgetEntry        = 0
+        ttTranslate.cOriginalLabel      = (IF CAN-QUERY(hColumn,"LABEL":U) AND hColumn:LABEL <> ? THEN hColumn:LABEL ELSE "":U)
+        ttTranslate.cTranslatedLabel    = "":U
+        ttTranslate.cOriginalTooltip    = (IF CAN-QUERY(hColumn,"TOOLTIP":U) AND hColumn:TOOLTIP <> ? THEN hColumn:TOOLTIP ELSE "":U)
+        ttTranslate.cTranslatedTooltip  = "":U.
+        
+        ASSIGN ttTranslate.dSourceLanguageObj = DECIMAL(DYNAMIC-FUNCTION("getDataValue":U IN hSourceLanguage)).
+        ASSIGN hColumn                        = hcolumn:NEXT-COLUMN NO-ERROR.
     END.
   END.
   ELSE IF hWidget:TYPE = "frame":U THEN
@@ -626,28 +734,84 @@ REPEAT WHILE VALID-HANDLE (hWidget):
           ASSIGN cNewObjectName = hNewObject:FILE-NAME.
         /* strip off path if any */
         ASSIGN
-          cNewObjectName = LC(TRIM(REPLACE(cNewObjectName,"\":U,"/":U)))
-          cNewObjectName = SUBSTRING(cNewObjectName,R-INDEX(cNewObjectName,"/":U) + 1)
-          .
+          cNewObjectName = LC(TRIM(REPLACE(cNewObjectName,"~\":U,"/":U)))
+          cNewObjectName = SUBSTRING(cNewObjectName,R-INDEX(cNewObjectName,"/":U) + 1).
       END.
     END.
     ELSE
       ASSIGN
-        hNewObject = phObject
-        cNewObjectName = pcObjectName
-        .
+        hNewObject      = phObject
+        cNewObjectName  = pcObjectName.
     RUN addWidgets (INPUT hNewObject, INPUT cNewObjectName, INPUT hWidget). /* SDF */
   END.
 
   ASSIGN hWidget = hWidget:NEXT-SIBLING.
 END.  /* widget-walk */
 
+  /* Make sure that we do not include TEXT widgets representing labels for a
+     Dynamic Viewer's widgets - These labels are created as TEXT widgets with
+     the following naming convention - LABEL_<field_name> */
+  FOR EACH  ttTranslate
+      WHERE ttTranslate.cWidgetType = "TEXT":U
+      AND   ttTranslate.cWidgetName BEGINS "LABEL_":U
+      EXCLUSIVE-LOCK:
+    IF CAN-FIND(FIRST bttTranslate
+                WHERE bttTranslate.dLanguageObj       = ttTranslate.dLanguageObj
+                AND   bttTranslate.cObjectName        = ttTranslate.cObjectName
+                AND   bttTranslate.dSourceLanguageObj = ttTranslate.dSourceLanguageObj
+                AND   bttTranslate.cWidgetName        = REPLACE(ttTranslate.cWidgetName,"LABEL_":U,"":U)) THEN
+      DELETE ttTranslate.
+  END.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE browseValueChanged sObject 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE adm-create-objects vTableWin  _ADM-CREATE-OBJECTS
+PROCEDURE adm-create-objects :
+/*------------------------------------------------------------------------------
+  Purpose:     Create handles for all SmartObjects used in this procedure.
+               After SmartObjects are initialized, then SmartLinks are added.
+  Parameters:  <none>
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE currentPage  AS INTEGER NO-UNDO.
+
+  ASSIGN currentPage = getCurrentPage().
+
+  CASE currentPage: 
+
+    WHEN 0 THEN DO:
+       RUN constructObject (
+             INPUT  'adm2/dyncombo.w':U ,
+             INPUT  FRAME frMain:HANDLE ,
+             INPUT  'DisplayedFieldgsc_language.language_nameKeyFieldgsc_language.language_objFieldLabelLanguageFieldTooltipSelect the language to translate to, from the list.KeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1ComboDelimiterListItemPairsInnerLines5ComboFlagAFlagValue0BuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNamelanguage_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT hLanguage ).
+       RUN repositionObject IN hLanguage ( 2.14 , 12.60 ) NO-ERROR.
+       RUN resizeObject IN hLanguage ( 1.05 , 50.00 ) NO-ERROR.
+
+       RUN constructObject (
+             INPUT  'adm2/dyncombo.w':U ,
+             INPUT  FRAME frMain:HANDLE ,
+             INPUT  'DisplayedFieldgsc_language.language_nameKeyFieldgsc_language.language_objFieldLabelSource LanguageFieldTooltipSelect the source language from the list.KeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1ComboDelimiterListItemPairsInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNamesource_language_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT hSourceLanguage ).
+       RUN repositionObject IN hSourceLanguage ( 2.14 , 84.40 ) NO-ERROR.
+       RUN resizeObject IN hSourceLanguage ( 1.05 , 50.00 ) NO-ERROR.
+
+       /* Adjust the tab order of the smart objects. */
+       RUN adjustTabOrder ( hLanguage ,
+             fiContainer:HANDLE IN FRAME frMain , 'AFTER':U ).
+       RUN adjustTabOrder ( hSourceLanguage ,
+             hLanguage , 'AFTER':U ).
+    END. /* Page 0 */
+
+  END CASE.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE browseValueChanged vTableWin 
 PROCEDURE browseValueChanged :
 /*------------------------------------------------------------------------------
   Purpose:     Disable global setting for window titles as these cannot be global
@@ -660,19 +824,17 @@ DEFINE VARIABLE iLoop                     AS INTEGER  NO-UNDO.
 
 IF NOT ghBuffer:AVAILABLE THEN RETURN.
 
-ASSIGN
-  hColumn = ghBrowse:FIRST-COLUMN
-  NO-ERROR.
+ASSIGN hColumn = ghBrowse:FIRST-COLUMN NO-ERROR.
 
 column-loop:
 DO iLoop = 1 TO ghBrowse:NUM-COLUMNS:
 
   IF hColumn:LABEL = "Global":U THEN
   DO:
-    IF ghObjectField:BUFFER-VALUE = "":U OR 
-       ghObjectField:BUFFER-VALUE = "rydyntoolt.w":U OR 
-       ghTypeField:BUFFER-VALUE = "title":U OR
-       ghTypeField:BUFFER-VALUE = "tab":U OR
+    IF ghObjectField:BUFFER-VALUE = "":U              OR 
+       ghObjectField:BUFFER-VALUE = "rydyntoolt.w":U  OR 
+       ghTypeField:BUFFER-VALUE   = "title":U         OR
+       ghTypeField:BUFFER-VALUE   = "tab":U           OR
        NUM-ENTRIES(ghObjectField:BUFFER-VALUE,":":U) = 2 /* SDF */ THEN
     DO:
       hColumn:READ-ONLY = TRUE.
@@ -704,7 +866,7 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE buildBrowser sObject 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE buildBrowser vTableWin 
 PROCEDURE buildBrowser :
 /*------------------------------------------------------------------------------
   Purpose:     Construct dynamic browser onto viewer for translations
@@ -726,9 +888,8 @@ DEFINE VARIABLE hContainerSource          AS HANDLE     NO-UNDO.
 
 /* populate temp-table */
 ASSIGN
-  ghTable = TEMP-TABLE ttTranslate:HANDLE
-  ghBuffer = ghTable:DEFAULT-BUFFER-HANDLE
-  . 
+  ghTable   = TEMP-TABLE ttTranslate:HANDLE
+  ghBuffer  = ghTable:DEFAULT-BUFFER-HANDLE. 
 
 RUN buildTempTable (INPUT NO).
 
@@ -745,15 +906,10 @@ DEFINE VARIABLE lPreviouslyHidden     AS LOGICAL NO-UNDO.
 DEFINE VARIABLE dHeight               AS DECIMAL NO-UNDO.
 DEFINE VARIABLE dWidth                AS DECIMAL NO-UNDO.
 
-FRAME {&FRAME-NAME}:HEIGHT-PIXELS = ghWindow:HEIGHT-PIXELS - 70.
-FRAME {&FRAME-NAME}:WIDTH-PIXELS = ghWindow:WIDTH-PIXELS - 28.
-
 CREATE BROWSE ghBrowse
        ASSIGN FRAME            = FRAME {&FRAME-NAME}:handle
-              ROW              = 2.5
+              ROW              = 3.5
               COL              = 1.5
-              WIDTH-CHARS      = FRAME {&FRAME-NAME}:WIDTH-CHARS - 2
-              HEIGHT-PIXELS    = FRAME {&FRAME-NAME}:HEIGHT-PIXELS - 40
               SEPARATORS       = TRUE
               ROW-MARKERS      = FALSE
               EXPANDABLE       = TRUE
@@ -803,8 +959,7 @@ END.
 ASSIGN
   ghObjectField = ghBuffer:BUFFER-FIELD("cObjectName":U)
   ghGlobalField = ghBuffer:BUFFER-FIELD("lGlobal":U)
-  ghTypeField = ghBuffer:BUFFER-FIELD("cWidgetType":U)
-  .
+  ghTypeField   = ghBuffer:BUFFER-FIELD("cWidgetType":U).
 
 ghBrowse:NUM-LOCKED-COLUMNS = 0.
 
@@ -825,7 +980,7 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE buildTempTable sObject 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE buildTempTable vTableWin 
 PROCEDURE buildTempTable :
 /*------------------------------------------------------------------------------
   Purpose:     To build temp-table of widgets to translate for language
@@ -847,33 +1002,31 @@ DEFINE VARIABLE hFrame                          AS HANDLE     NO-UNDO.
 EMPTY TEMP-TABLE ttTranslate.
 
 DO WITH FRAME {&FRAME-NAME}:
-  ASSIGN coLanguage.
 
   /* Add entry for window title */
   CREATE ttTranslate.
   ASSIGN
-    ttTranslate.dLanguageObj = coLanguage
-    ttTranslate.cObjectName = gcCallerName
-    ttTranslate.lGlobal = NO
-    ttTranslate.lDelete = NO
-    ttTranslate.cWidgetType = "TITLE":U
-    ttTranslate.cWidgetName = "TITLE":U
-    ttTranslate.hWidgetHandle = ghCallerWindow
-    ttTranslate.iWidgetEntry = 0
-    ttTranslate.cOriginalLabel = ghCallerWindow:TITLE    
-    ttTranslate.cTranslatedLabel = "":U  
-    ttTranslate.cOriginalTooltip = "":U  
-    ttTranslate.cTranslatedTooltip = "":U
+    ttTranslate.dLanguageObj        = DECIMAL(DYNAMIC-FUNCTION("getDataValue":U IN hLanguage))
+    ttTranslate.cObjectName         = gcCallerName
+    ttTranslate.lGlobal             = NO
+    ttTranslate.lDelete             = NO
+    ttTranslate.cWidgetType         = "TITLE":U
+    ttTranslate.cWidgetName         = "TITLE":U
+    ttTranslate.hWidgetHandle       = ghCallerWindow
+    ttTranslate.iWidgetEntry        = 0
+    ttTranslate.cOriginalLabel      = ghCallerWindow:TITLE    
+    ttTranslate.cTranslatedLabel    = "":U  
+    ttTranslate.cOriginalTooltip    = "":U  
+    ttTranslate.cTranslatedTooltip  = "":U
     .  
-
+    ttTranslate.dSourceLanguageObj = DECIMAL(DYNAMIC-FUNCTION("getDataValue":U IN hSourceLanguage)).
   /* Now go through all calling container, container targets and get all
      widgets in these for translation - watch out for browsers and SDF's.
      Always use container object name for translations.
   */
   ASSIGN
-    cObjectList = /* STRING(ghCallerHandle) + ",":U + */
-                  DYNAMIC-FUNCTION('linkHandles' IN ghCallerHandle, 'Container-Target':U)
-    .
+    cObjectList = DYNAMIC-FUNCTION('linkHandles' IN ghCallerHandle, 'Container-Target':U).
+    
   object-loop:
   DO iLoop = 1 TO NUM-ENTRIES(cObjectList):
     ASSIGN hObject = ?.
@@ -889,17 +1042,16 @@ DO WITH FRAME {&FRAME-NAME}:
 
     /* strip off path if any */
     ASSIGN
-      cObjectName = LC(TRIM(REPLACE(cObjectName,"\":U,"/":U)))
-      cObjectName = SUBSTRING(cObjectName,R-INDEX(cObjectName,"/":U) + 1)
-      .
+      cObjectName = LC(TRIM(REPLACE(cObjectName,"~\":U,"/":U)))
+      cObjectName = SUBSTRING(cObjectName,R-INDEX(cObjectName,"/":U) + 1).
 
-    /* ignore SDO's and windows launcched from container window */
+    /* Ignore SDO's, SBOs and windows launched from container window */
     ASSIGN cObjectType = "":U.
-    ASSIGN
-      cObjectType = DYNAMIC-FUNCTION("getObjectType":U IN hObject) NO-ERROR.
+    ASSIGN cObjectType = DYNAMIC-FUNCTION("getObjectType":U IN hObject) NO-ERROR.
     IF cObjectType = "":U THEN NEXT object-loop.
     IF INDEX(cObjectType,"window":U) <> 0 AND hObject <> ghCallerHandle THEN NEXT object-loop.
     IF INDEX(cObjectType,"smartdataobject":U) <> 0 AND hObject <> ghCallerHandle THEN NEXT object-loop.
+    IF INDEX(cObjectType,"smartBusinessObject":U) <> 0 AND hObject <> ghCallerHandle THEN NEXT object-loop.
 
     /* have a valid object - walk widget tree for object to get objects widgets
        for translation
@@ -918,7 +1070,7 @@ DO WITH FRAME {&FRAME-NAME}:
     RUN addNodes (INPUT gcCallerName).
 
   /* Now got all translation widgets - get any existing translations */
-  RUN af/app/afgetmtrnp.p ON gshAstraAppserver (INPUT coLanguage = 0,
+  RUN af/app/afgetmtrnp.p ON gshAstraAppserver (INPUT DECIMAL(DYNAMIC-FUNCTION("getDataValue":U IN hLanguage)) = 0,
                                                 INPUT-OUTPUT TABLE ttTranslate).
 
 END.
@@ -942,7 +1094,87 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE destroyObject sObject 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE comboEntry vTableWin 
+PROCEDURE comboEntry :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER pcScreenValue AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER phCombo       AS HANDLE     NO-UNDO.
+
+  IF phCombo = hLanguage THEN
+    ASSIGN gcSavedLanguage = pcScreenValue.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE comboValueChanged vTableWin 
+PROCEDURE comboValueChanged :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER pcKeyFieldValue AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER pcScreenValue   AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER phCombo         AS HANDLE     NO-UNDO.
+
+  IF phCombo = hLanguage THEN 
+  DO:
+    IF gcSavedLanguage <> pcKeyFieldValue AND glModified THEN
+    DO:
+      DEFINE VARIABLE cButton AS CHARACTER NO-UNDO.
+      DEFINE VARIABLE cAnswer AS CHARACTER NO-UNDO.
+      RUN askQuestion IN gshSessionManager (INPUT "You have unsaved translations that will be lost if you change the language, continue?",    /* messages */
+                                            INPUT "&Yes,&No":U,     /* button list */
+                                            INPUT "&No":U,         /* default */
+                                            INPUT "&No":U,          /* cancel */
+                                            INPUT "Unsaved Translations Exist":U, /* title */
+                                            INPUT "":U,             /* datatype */
+                                            INPUT "":U,             /* format */
+                                            INPUT-OUTPUT cAnswer,   /* answer */
+                                            OUTPUT cButton          /* button pressed */
+                                            ).
+                                            
+      IF cButton = "&No":U OR cButton = "No":U THEN
+      DO:
+        DYNAMIC-FUNCTION("setDataValue":U IN hLanguage,gcSavedLanguage).
+        RETURN NO-APPLY.
+      END.
+      ELSE
+      DO:
+        ASSIGN gcSavedLanguage = pcKeyFieldValue.
+        RUN buildTempTable (INPUT YES).
+      END.
+    END.
+    ELSE IF gcSavedLanguage <> pcKeyFieldValue THEN
+    DO:
+      ASSIGN gcSavedLanguage = pcKeyFieldValue.
+      RUN buildTempTable (INPUT YES).
+    END.
+
+    FIND FIRST ttTranslate 
+         WHERE ttTranslate.dLanguageObj = DECIMAL(DYNAMIC-FUNCTION("getDataValue":U IN hLanguage))
+         AND  (ttTranslate.cTranslatedLabel <> "":U
+         OR    ttTranslate.cTranslatedTooltip <> "":U)
+         NO-LOCK NO-ERROR.
+    IF AVAILABLE ttTranslate THEN DO:
+      DYNAMIC-FUNCTION("setDataValue":U IN hSourceLanguage,ttTranslate.dSourceLanguageObj).
+      RUN disableField IN hSourceLanguage.
+    END.
+    ELSE
+      RUN enableField IN hSourceLanguage.
+  END.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE destroyObject vTableWin 
 PROCEDURE destroyObject :
 /*------------------------------------------------------------------------------
   Purpose:     
@@ -965,7 +1197,7 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI sObject  _DEFAULT-DISABLE
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI vTableWin  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     DISABLE the User Interface
@@ -983,13 +1215,14 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initializeObject sObject 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initializeObject vTableWin 
 PROCEDURE initializeObject :
 /*------------------------------------------------------------------------------
   Purpose:     Super Override
   Parameters:  
   Notes:       
 ------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hDataSource AS HANDLE     NO-UNDO.
 
   /* save handle of calling container */
   ghContainerHandle = DYNAMIC-FUNCTION('getContainerSource' IN THIS-PROCEDURE).
@@ -998,85 +1231,45 @@ PROCEDURE initializeObject :
   IF VALID-HANDLE(ghCallerHandle) AND
      LOOKUP("getLogicalObjectName":U, ghCallerHandle:INTERNAL-ENTRIES) > 0 THEN
     gcCallerName = DYNAMIC-FUNCTION('getLogicalObjectName' IN ghCallerHandle).  
-  
+
   {get ContainerHandle ghWindow ghContainerHandle}.
   {get ContainerHandle ghCallerWindow ghCallerHandle}.
   
+  SUBSCRIBE TO "comboEntry":U IN THIS-PROCEDURE.
+  SUBSCRIBE TO "comboValueChanged":U IN THIS-PROCEDURE.
+
   ghWindow:TITLE = "Translate Window: " + ghCallerWindow:TITLE.
 
-  RUN populateCombos.
-  RUN buildBrowser.
-
   RUN SUPER.
+  
+  {get DataSource hDataSource}.
+  IF VALID-HANDLE(hDataSource) THEN
+    {set OpenOnInit FALSE hDataSource}.
+
+  RUN displayFields (?).
+  RUN enableField IN hLanguage.
+  
+  RUN setDefaults.
+  
+  RUN buildBrowser.
+  
+  RUN valueChanged IN hLanguage.
+  APPLY "ROW-LEAVE":U TO ghBrowse.
   
   /* Display current data values */
   DO WITH FRAME {&FRAME-NAME}:
     fiContainer:SCREEN-VALUE = gcCallerName.
   END.
-
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE populateCombos sObject 
-PROCEDURE populateCombos :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-
-DO WITH FRAME {&FRAME-NAME}:
-
-  EMPTY TEMP-TABLE ttComboData.
-  CREATE ttComboData.
-  ASSIGN
-    ttComboData.cWidgetName = "coLanguage":U
-    ttComboData.hWidget = coLanguage:HANDLE
-    ttComboData.cForEach = "FOR EACH gsc_language NO-LOCK BY gsc_language.language_name":U
-    ttComboData.cBufferList = "gsc_language":U
-    ttComboData.cKeyFieldName = "gsc_language.language_obj":U
-    ttComboData.cDescFieldNames = "gsc_language.language_name":U
-    ttComboData.cDescSubstitute = "&1":U
-    ttComboData.cFlag = "A":U
-    ttComboData.cCurrentKeyValue = "":U
-    ttComboData.cListItemDelimiter = CHR(3)
-    ttComboData.cListItemPairs = "":U
-    ttComboData.cCurrentDescValue = "":U
-    .
-  coLanguage:DELIMITER = CHR(3).
-
-  /* build combo list-item pairs */
-  RUN af/app/afcobuildp.p ON gshAstraAppserver (INPUT-OUTPUT TABLE ttComboData).
-  FIND FIRST ttComboData WHERE ttComboData.cWidgetName = "coLanguage":U.
-
-  /* and set-up combos */
-  coLanguage:LIST-ITEM-PAIRS IN FRAME {&FRAME-NAME} = ttComboData.cListItemPairs.
-  /* get logged in language and default to this */
-  DEFINE VARIABLE cPropertyList                 AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE dCurrentLanguageObj           AS DECIMAL    INITIAL 0 NO-UNDO.
-
-  cPropertyList = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
-                                   INPUT "currentLanguageObj":U,
-                                   INPUT NO).
-  dCurrentLanguageObj = DECIMAL(cPropertyList) NO-ERROR.
-
-  coLanguage:SCREEN-VALUE = STRING(dCurrentLanguageObj) NO-ERROR.
-  IF coLanguage:SCREEN-VALUE = "0":U OR coLanguage:SCREEN-VALUE = ? THEN
-    ASSIGN coLanguage:SCREEN-VALUE = "0":U NO-ERROR.
-  ASSIGN gcSavedLanguage = coLanguage:SCREEN-VALUE
-         coLanguage.
-         coLanguage:SENSITIVE =TRUE.
-END. /* {&FRAME-NAME} */
+  
+  RUN resizeObject (INPUT FRAME {&FRAME-NAME}:HEIGHT-CHARS,
+                    INPUT FRAME {&FRAME-NAME}:WIDTH-CHARS).
 
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE resizeObject sObject 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE resizeObject vTableWin 
 PROCEDURE resizeObject :
 /*------------------------------------------------------------------------------
   Purpose: 
@@ -1099,19 +1292,29 @@ PROCEDURE resizeObject :
   {get ContainerSource hContainerSource}.
   {get ContainerHandle hWindow hContainerSource}.
 
-  FRAME {&FRAME-NAME}:SCROLLABLE = FALSE.                                               
-  lPreviouslyHidden = FRAME {&FRAME-NAME}:HIDDEN.                                                           
-  FRAME {&FRAME-NAME}:HIDDEN = TRUE.
+  ASSIGN
+      lPreviouslyHidden              = FRAME {&FRAME-NAME}:HIDDEN
+      FRAME {&FRAME-NAME}:HIDDEN     = TRUE
+      FRAME {&FRAME-NAME}:SCROLLABLE = FALSE.
 
-
-  FRAME {&FRAME-NAME}:HEIGHT-PIXELS = hWindow:HEIGHT-PIXELS - 70.
-  FRAME {&FRAME-NAME}:WIDTH-PIXELS = hWindow:WIDTH-PIXELS - 28.
-
-  IF VALID-HANDLE(ghBrowse) THEN
+  IF FRAME {&FRAME-NAME}:HEIGHT-CHARS < pdHeight OR
+     FRAME {&FRAME-NAME}:WIDTH-CHARS  < pdWidth  THEN
   DO:
-    ghBrowse:WIDTH-CHARS = FRAME {&FRAME-NAME}:WIDTH-CHARS - 2.
-    ghBrowse:HEIGHT-PIXELS = FRAME {&FRAME-NAME}:HEIGHT-PIXELS - 40.
+    IF pdHeight > FRAME {&FRAME-NAME}:HEIGHT-CHARS THEN
+      FRAME {&FRAME-NAME}:HEIGHT-CHARS = pdHeight.
+
+    IF pdWidth > FRAME {&FRAME-NAME}:WIDTH-CHARS THEN
+      FRAME {&FRAME-NAME}:WIDTH-CHARS = pdWidth.
   END.
+  
+  IF VALID-HANDLE(ghBrowse) THEN
+    ASSIGN
+        ghBrowse:HEIGHT-CHARS = pdHeight - ghBrowse:ROW + 1.00
+        ghBrowse:WIDTH-CHARS  = pdWidth  - 1.12.
+
+  ASSIGN    
+      FRAME {&FRAME-NAME}:HEIGHT-CHARS = pdHeight
+      FRAME {&FRAME-NAME}:WIDTH-CHARS  = pdWidth.
 
   APPLY "end-resize":U TO FRAME {&FRAME-NAME}.
   FRAME {&FRAME-NAME}:HIDDEN = lPreviouslyHidden NO-ERROR.
@@ -1121,7 +1324,7 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE rowleave sObject 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE rowleave vTableWin 
 PROCEDURE rowleave :
 /*------------------------------------------------------------------------------
   Purpose:     
@@ -1153,7 +1356,40 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE startsearch sObject 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setDefaults vTableWin 
+PROCEDURE setDefaults :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE dUserObj            AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE dSrcLang            AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE hContainer          AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE dCurrentLanguageObj AS DECIMAL    NO-UNDO.
+
+  dUserObj = DECIMAL(DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
+                                       INPUT "CurrentUserObj":U,
+                                       INPUT NO)) NO-ERROR.
+                                       
+  RUN getUserSourceLanguage IN gshGenManager (INPUT dUserObj, OUTPUT dSrcLang).
+  IF dSrcLang <> 0 AND dSrcLang <> ? THEN DO:
+    DYNAMIC-FUNCTION("setDataValue":U IN hSourceLanguage, STRING(dSrcLang)).
+  END.
+  
+  dCurrentLanguageObj = DECIMAL(DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
+                                                 INPUT "currentLanguageObj":U,
+                                                 INPUT NO)) NO-ERROR.
+  
+  IF dCurrentLanguageObj <> 0 AND dCurrentLanguageObj <> ? THEN
+    DYNAMIC-FUNCTION("setDataValue":U IN hLanguage, STRING(dCurrentLanguageObj)).
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE startsearch vTableWin 
 PROCEDURE startsearch :
 /*------------------------------------------------------------------------------
   Purpose:     Implement column sorting
@@ -1175,8 +1411,8 @@ PROCEDURE startsearch :
       ASSIGN
           cSortBy = (IF hColumn:TABLE <> ? THEN
                         hColumn:TABLE + '.':U + hColumn:NAME
-                        ELSE hColumn:NAME)
-          .
+                        ELSE hColumn:NAME).
+                        
       ASSIGN cQuery = "FOR EACH ":U + ghBuffer:NAME + " NO-LOCK BY ":U + cSortBy.
       ghQuery:QUERY-PREPARE(cQuery).
       ghQuery:QUERY-OPEN().
@@ -1194,15 +1430,21 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE updateRecord sObject 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE updateRecord vTableWin 
 PROCEDURE updateRecord :
 /*------------------------------------------------------------------------------
   Purpose:     
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-     /* save our data */
+  /* save our data */
   APPLY "row-leave":U TO ghBrowse.
+
+  /* Ensure that we set the correct Source Language */
+  FOR EACH ttTranslate:
+    ttTranslate.dSourceLanguageObj = DECIMAL(DYNAMIC-FUNCTION("getDataValue":U IN hSourceLanguage)).
+  END.
+  
   RUN updateTranslations IN gshTranslationManager (INPUT TABLE ttTranslate).
   {set DataModified FALSE}.
 END PROCEDURE.
@@ -1210,7 +1452,7 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE valueChanged sObject 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE valueChanged vTableWin 
 PROCEDURE valueChanged :
 /*------------------------------------------------------------------------------
   Purpose:     Procedure fired on value changed of any of the widgets on the viewer

@@ -88,7 +88,7 @@ DEFINE INPUT PARAMETER ip_action AS CHARACTER NO-UNDO.
 
 &scop object-name       afobjsecop.p
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 
 /* MIP object identifying preprocessor */
@@ -135,7 +135,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
                                                                         */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
@@ -151,6 +151,8 @@ RUN change-object-security.
 
 /* **********************  Internal Procedures  *********************** */
 
+&IF DEFINED(EXCLUDE-change-object-security) = 0 &THEN
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE change-object-security Procedure 
 PROCEDURE change-object-security :
 /*------------------------------------------------------------------------------
@@ -160,21 +162,25 @@ PROCEDURE change-object-security :
 ------------------------------------------------------------------------------*/
 
 IF ip_action = "OFF":U THEN
-  FOR EACH gsc_object NO-LOCK
-     WHERE gsc_object.security_object_obj > 0:
-    RUN disable-security (INPUT ROWID(gsc_object)).
+  FOR EACH ryc_smartobject NO-LOCK
+     WHERE ryc_smartobject.security_smartobject_obj > 0:
+    RUN disable-security (INPUT ROWID(ryc_smartobject)).
   END.
 
 IF ip_action = "ON":U THEN
-  FOR EACH gsc_object NO-LOCK
-     WHERE gsc_object.security_object_obj = 0:
-    RUN enable-security (INPUT ROWID(gsc_object)).
+  FOR EACH ryc_smartobject NO-LOCK
+     WHERE ryc_smartobject.security_smartobject_obj = 0:
+    RUN enable-security (INPUT ROWID(ryc_smartobject)).
   END.
 
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-disable-security) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable-security Procedure 
 PROCEDURE disable-security :
@@ -186,14 +192,14 @@ PROCEDURE disable-security :
 
 DEFINE INPUT PARAMETER ip_rowid AS ROWID NO-UNDO.
 
-DEFINE BUFFER lb_gsc_object FOR gsc_object.
+DEFINE BUFFER lb_ryc_smartobject FOR ryc_smartobject.
 
-DO FOR lb_gsc_object TRANSACTION ON ERROR UNDO, RETURN:
-    FIND lb_gsc_object EXCLUSIVE-LOCK
-         WHERE ROWID(lb_gsc_object) = ip_rowid
+DO FOR lb_ryc_smartobject TRANSACTION ON ERROR UNDO, RETURN:
+    FIND lb_ryc_smartobject EXCLUSIVE-LOCK
+         WHERE ROWID(lb_ryc_smartobject) = ip_rowid
          NO-ERROR.
-    IF AVAILABLE lb_gsc_object THEN
-        ASSIGN lb_gsc_object.security_object_obj = 0.
+    IF AVAILABLE lb_ryc_smartobject THEN
+        ASSIGN lb_ryc_smartobject.security_smartobject_obj = 0.
 END.
 
 RETURN.
@@ -201,6 +207,10 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-enable-security) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable-security Procedure 
 PROCEDURE enable-security :
@@ -212,14 +222,14 @@ PROCEDURE enable-security :
 
 DEFINE INPUT PARAMETER ip_rowid AS ROWID NO-UNDO.
 
-DEFINE BUFFER lb_gsc_object FOR gsc_object.
+DEFINE BUFFER lb_ryc_smartobject FOR ryc_smartobject.
 
-DO FOR lb_gsc_object TRANSACTION ON ERROR UNDO, RETURN:
-    FIND lb_gsc_object EXCLUSIVE-LOCK
-         WHERE ROWID(lb_gsc_object) = ip_rowid
+DO FOR lb_ryc_smartobject TRANSACTION ON ERROR UNDO, RETURN:
+    FIND lb_ryc_smartobject EXCLUSIVE-LOCK
+         WHERE ROWID(lb_ryc_smartobject) = ip_rowid
          NO-ERROR.
-    IF AVAILABLE lb_gsc_object THEN
-        ASSIGN lb_gsc_object.security_object_obj = lb_gsc_object.object_obj.
+    IF AVAILABLE lb_ryc_smartobject THEN
+        ASSIGN lb_ryc_smartobject.security_smartobject_obj = lb_ryc_smartobject.smartobject_obj.
 END.
 
 RETURN.
@@ -227,4 +237,6 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
+
+&ENDIF
 

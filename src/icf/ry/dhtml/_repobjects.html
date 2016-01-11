@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html 
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style>
+body  {font-family: arial;}
+table {background-color: #ECFFED;
+       border-left-style: solid;
+       border-bottom-style: solid;
+       border-width: 1;}
+th    {background-color: #ABFEAF;
+       text-align: left;
+       border-right-style: solid;
+       border-top-style: solid;
+       border-width: 1;}
+td    {border-right-style: solid;
+       border-top-style: solid;
+       border-width: 1;}
+</style>
+<script language="javascript"><!--
+function getObject(obj){
+  document.form1.object1.value=obj;
+  document.form1.submit();
+}
+--></script>
+</head>
+<body background="../img/wsbgr.gif">
+<img src="../img/icflogo.gif" />&#160;&#160;<font size="+3">Progress Dynamics Web</font>
+<hr />
+<form name="form" method="post" action="_repobjects.icf">
+<h2>Repository Objects By Type</h2>
+Object Type: 
+<select name="object" onChange="((this[selectedIndex].value)) ? window.document.form.submit() : null">
+  <option value="">--Select--</option>
+<!--wss
+DEFINE VARIABLE cDesc    AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cObjType AS CHARACTER  NO-UNDO INITIAL "DynView".
+DEFINE VARIABLE iCount   AS INTEGER    NO-UNDO.
+IF get-value('object') > '' THEN 
+  cObjType = get-value('object').
+  
+/* Inner join only.  We want object type records with at least one smartobject record */
+FOR EACH gsc_object_type NO-LOCK,
+  FIRST ryc_smartobject OF gsc_object_type NO-LOCK
+  BY gsc_object_type.object_type_code:
+  {&OUT} '  <option value="' gsc_object_type.object_type_code '"'
+  (IF gsc_object_type.object_type_code = cObjType THEN ' selected' else '')
+  '>' gsc_object_type.object_type_code '~n'.
+END.
+-->
+</select>
+</form>
+<form name="form1" method="post" action="_repository.icf">
+<input type="hidden" id="object1" name="object1" />
+</form>
+<!--wss
+FIND FIRST gsc_object_type WHERE 
+  gsc_object_type.object_type_code BEGINS cObjType NO-LOCK.
+FIND FIRST ryc_smartobject 
+  WHERE ryc_smartobject.object_type_obj = gsc_object_type.object_type_obj NO-ERROR.
+IF NOT AVAILABLE ryc_smartobject THEN
+  {&OUT} 
+    '~n<table border="0"><tr valign="center">'
+    '<td width="1"><img src="../img/afwarning.gif" /></td><td><b>Warning:<br />' 
+    'No objects found of type ' cObjType
+    ' </b></td></tr></table>'.
+
+ELSE DO:
+  {&OUT} 
+    '<table>~n' 
+    '  <tr bgcolor="#ABFEAF">~n'
+    '    <th>' STRING(gsc_object_type.object_type_code) '</th>~n'
+    '    <th>' gsc_object_type.object_type_description '</th>~n'
+    '  </tr>'.
+
+  FOR EACH ryc_smartobject 
+    WHERE ryc_smartobject.object_type_obj = gsc_object_type.object_type_obj
+    BY ryc_smartobject.object_filename:
+  
+    ASSIGN
+      cDesc  = ryc_smartobject.object_description
+      cDesc  = (IF cDesc = "" THEN "&#160;" ELSE cDesc)
+      iCount = iCount + 1.
+    
+    {&OUT}
+      '  <tr>~n'
+      '    <td><a href="javascript: void getObject(~'' ryc_smartobject.object_filename '~');">'
+        ryc_smartobject.object_filename '</a></td>~n'
+      '    <td>' cDesc '</td>~n'
+      '  </tr>~n'.
+  END.
+  {&OUT} '</table>~n<br />' STRING(iCount,'>>>,>>9') ' object' STRING(iCount > 1,'s/') ' found~n'.
+END.
+-->
+</body>
+</html>

@@ -56,9 +56,21 @@
     Modified    : 16/11/2001         Mark Davies (MIP)
                   Changed AllFieldHandles to reference the PROCEDURE handle
                   of SDF's and not the FRAME handle.
-    Modified    : 05/02/2002         Mark Davies (MIP)
+    Modified    : 02/05/2002         Mark Davies (MIP)
                   Fix for issue #3627 - Toolbar with tableiotype ‘UPDATE’ does not sentisize correctly
                   Always ensure that the combo box is disabled on initialization.
+    Modified    : 03/06/2002         Mark Davies (MIP)
+                  Fix for issue #3781 - Flashing fix prevents dyn combo from 
+                  repositioning to initial value
+    Modified    : 04/11/2002         Chris Koster (MIP)
+                  Added repositionObject to ensure resizing and repositioning
+                  a lookup repositions the fill-in and the label correctly.
+    Modified    : 04/11/2002         Mark Davies (MIP)
+                  Fix for issue #2937 - Dyn combobox value doesn't change on 
+                  selection of a new value
+    Modified    : 05/09/2002        Mark Davies (MIP)
+                  Added new field to ttDCombo called hViewer to contain the
+                  handle a combo is on. Issue #4525
   ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
 /*----------------------------------------------------------------------*/
@@ -76,8 +88,8 @@
 
   {adm2/custom/comboexclcustom.i}
 
-DEFINE TEMP-TABLE bDCombo LIKE ttDCombo.
-DEFINE TEMP-TABLE bLookup LIKE ttLookup.
+DEFINE TEMP-TABLE bDCombo NO-UNDO LIKE ttDCombo.
+DEFINE TEMP-TABLE bLookup NO-UNDO LIKE ttLookup.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -114,6 +126,18 @@ FUNCTION createLabel RETURNS HANDLE
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD destroyCombo Procedure 
 FUNCTION destroyCombo RETURNS LOGICAL
   ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-fixKeyDataType) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD fixKeyDataType Procedure 
+FUNCTION fixKeyDataType RETURNS CHARACTER
+  ( pcKeyFormat AS CHARACTER,
+    pcKeyDataType AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -373,6 +397,83 @@ FUNCTION getParentFilterQuery RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getPhysicalTableNames) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getPhysicalTableNames Procedure 
+FUNCTION getPhysicalTableNames RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getQueryBuilderJoinCode) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getQueryBuilderJoinCode Procedure 
+FUNCTION getQueryBuilderJoinCode RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getQueryBuilderOptionList) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getQueryBuilderOptionList Procedure 
+FUNCTION getQueryBuilderOptionList RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getQueryBuilderOrderList) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getQueryBuilderOrderList Procedure 
+FUNCTION getQueryBuilderOrderList RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getQueryBuilderTableOptionList) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getQueryBuilderTableOptionList Procedure 
+FUNCTION getQueryBuilderTableOptionList RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getQueryBuilderTuneOptions) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getQueryBuilderTuneOptions Procedure 
+FUNCTION getQueryBuilderTuneOptions RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getQueryBuilderWhereClauses) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getQueryBuilderWhereClauses Procedure 
+FUNCTION getQueryBuilderWhereClauses RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getQueryTables) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getQueryTables Procedure 
@@ -428,6 +529,17 @@ FUNCTION getSecured RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getTempTables) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getTempTables Procedure 
+FUNCTION getTempTables RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-insertExpression) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD insertExpression Procedure 
@@ -465,6 +577,17 @@ FUNCTION newWhereClause RETURNS CHARACTER
    pcExpression AS char,  
    pcWhere      AS CHAR,
    pcAndOr      AS CHAR) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-returnTableIOType) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD returnTableIOType Procedure 
+FUNCTION returnTableIOType RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -724,6 +847,83 @@ FUNCTION setParentFilterQuery RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setPhysicalTableNames) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setPhysicalTableNames Procedure 
+FUNCTION setPhysicalTableNames RETURNS LOGICAL
+  ( pcValue AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setQueryBuilderJoinCode) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setQueryBuilderJoinCode Procedure 
+FUNCTION setQueryBuilderJoinCode RETURNS LOGICAL
+  ( pcValue AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setQueryBuilderOptionList) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setQueryBuilderOptionList Procedure 
+FUNCTION setQueryBuilderOptionList RETURNS LOGICAL
+  ( pcValue AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setQueryBuilderOrderList) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setQueryBuilderOrderList Procedure 
+FUNCTION setQueryBuilderOrderList RETURNS LOGICAL
+  ( pcValue AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setQueryBuilderTableOptionList) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setQueryBuilderTableOptionList Procedure 
+FUNCTION setQueryBuilderTableOptionList RETURNS LOGICAL
+  ( pcValue AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setQueryBuilderTuneOptions) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setQueryBuilderTuneOptions Procedure 
+FUNCTION setQueryBuilderTuneOptions RETURNS LOGICAL
+  ( pcValue AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setQueryBuilderWhereClauses) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setQueryBuilderWhereClauses Procedure 
+FUNCTION setQueryBuilderWhereClauses RETURNS LOGICAL
+  ( pcValue AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setQueryTables) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setQueryTables Procedure 
@@ -762,6 +962,17 @@ FUNCTION setSDFTemplate RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setSecured Procedure 
 FUNCTION setSecured RETURNS LOGICAL
   ( INPUT plFieldIsSecured AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setTempTables) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setTempTables Procedure 
+FUNCTION setTempTables RETURNS LOGICAL
+  ( pcValue AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -877,11 +1088,21 @@ PROCEDURE destroyObject :
   Parameters: <NONE>
   Notes:     
 ------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cFieldName              AS CHARACTER  NO-UNDO.
 
+  {get FieldName cFieldName}.
+  
+  FIND FIRST ttDCombo
+       WHERE ttDCombo.hWidget = TARGET-PROCEDURE
+         AND ttDCombo.cWidgetName = cFieldName
+       NO-ERROR.
+  IF AVAILABLE ttDCombo THEN 
+    DELETE ttDCombo.
+  
   {fn destroyCombo}.
-
+  
   RUN SUPER.
-
+  
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -965,6 +1186,8 @@ DEFINE VARIABLE iEntry                  AS INTEGER    NO-UNDO.
 DEFINE VARIABLE hContainer              AS HANDLE     NO-UNDO.
 DEFINE VARIABLE cCurrentListItemPairs   AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE lFieldIsSecured         AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE cNewRecord              AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE lDisplayField           AS LOGICAL    NO-UNDO.
 
 {get FieldName cFieldName}.
 
@@ -976,10 +1199,13 @@ IF NOT AVAILABLE ttDCombo THEN RETURN.
 
 {get ComboHandle hCombo}.
 {get containerSource hContainer}.   /* viewer */
+{get DisplayField lDisplayField}.
 
-{get DataValue cKeyFieldValue}.
-/* Checing if the list items has data, only if
-   they differ then we should re-assign the values */
+cNewRecord = "":U.
+IF VALID-HANDLE(hContainer) THEN
+  {get NewRecord cNewRecord hContainer}. 
+
+cKeyFieldValue = DYNAMIC-FUNCTION("formattedValue":U IN TARGET-PROCEDURE, ttDCombo.cCurrentKeyValue).
 
 {get Secured lFieldIsSecured}.
 
@@ -988,36 +1214,40 @@ IF CAN-QUERY(hCombo,"LIST-ITEM-PAIRS":U) THEN
   cCurrentListItemPairs = hCombo:LIST-ITEM-PAIRS.
 
 ASSIGN hCombo:DELIMITER = ttDCombo.cListItemDelimiter.
+
 IF cCurrentListItemPairs <> ttDCombo.cListItemPairs THEN
   hCombo:LIST-ITEM-PAIRS = ttDCombo.cListItemPairs
                            NO-ERROR.
+{set ListItemPairs ttDCombo.cListItemPairs}.
 
-cKeyFieldValue = TRIM(cKeyFieldValue).
+/*cKeyFieldValue = TRIM(cKeyFieldValue).*/
 iEntry = LOOKUP(cKeyFieldValue,ttDCombo.cKeyValues,ttDCombo.cListItemDelimiter)
          NO-ERROR.
+
 /* Only set the SCREEN-VALUE if the field is not secured */
-IF NOT lFieldIsSecured THEN DO:
+IF NOT lFieldIsSecured AND lDisplayField THEN DO:
   IF iEntry > 0 THEN
     hCombo:SCREEN-VALUE = hCombo:ENTRY(iEntry) NO-ERROR.
   
-  /* If all else fails - reposition to first entry */
+  /* If all else fails - make sure the combo doesn't assume the first available entry */
   IF (iEntry <= 0 OR
       ERROR-STATUS:ERROR OR 
       hCombo:SCREEN-VALUE = ?) AND 
      hCombo:LIST-ITEM-PAIRS <> ? THEN
-    hCombo:SCREEN-VALUE = hCombo:ENTRY(1).
+    hCombo:LIST-ITEM-PAIRS = hCombo:LIST-ITEM-PAIRS.
   
-  cKeyFieldValue = hCombo:SCREEN-VALUE.
+  IF cNewRecord <> "Add":U THEN
+    cKeyFieldValue = hCombo:SCREEN-VALUE.
+  
 END.
 ELSE DO:
   ASSIGN hCombo:LIST-ITEM-PAIRS = hCombo:LIST-ITEM-PAIRS NO-ERROR.
   ERROR-STATUS:ERROR = FALSE.
 END.
-  
-  
+
 IF cKeyFieldValue <> ? THEN
   {set DataValue cKeyFieldValue}.
-  
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1093,12 +1323,15 @@ PROCEDURE enterCombo :
                record, and if so, avoid having to use the combo.
 ------------------------------------------------------------------------------*/
 
-  DEFINE VARIABLE hCombo               AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE hContainer            AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE hCombo              AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE hContainer          AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE cScreenValue        AS CHARACTER    NO-UNDO.
 
   {get ComboHandle hCombo}.
   {get containerSource hContainer}.
-  {set DisplayValue hCombo:SCREEN-VALUE}.
+  
+  cScreenValue = ENTRY((hCombo:LOOKUP(hCombo:SCREEN-VALUE) * 2) - 1,hCombo:LIST-ITEM-PAIRS,hCombo:DELIMITER).
+  {set DisplayValue cScreenValue}.
 
   PUBLISH "comboEntry":U FROM hContainer (INPUT hCombo:SCREEN-VALUE,   /* current combo key field value */
                                            INPUT TARGET-PROCEDURE      /* handle of combo */
@@ -1147,7 +1380,9 @@ PROCEDURE getComboQuery :
 
   DEFINE VARIABLE hContainer              AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hDataSource             AS HANDLE     NO-UNDO.
-
+  DEFINE VARIABLE cPhysicalTableNames     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTempTableNames         AS CHARACTER  NO-UNDO.
+  
   {get FieldName cFieldName}.
   {get KeyField cKeyField}.
   {get KeyFormat cKeyFormat}.
@@ -1164,52 +1399,62 @@ PROCEDURE getComboQuery :
   {get ComboDelimiter cComboDelimiter}.
   {get FlagValue cFlagValue}.
   {get BuildSequence iBuildSequence}.
+  {get PhysicalTableNames cPhysicalTableNames}.
+  {get TempTables cTempTableNames}.
 
   {get containerSource hContainer}.   /* viewer */
   IF VALID-HANDLE(hContainer) THEN
     hDataSource = DYNAMIC-FUNCTION('getDataSource':U IN hContainer) NO-ERROR.
+
+  cKeyDataType = fixKeyDataType(cKeyFormat,cKeyDataType).
+  {set KeyDataType cKeyDataType}.
 
   /* we must get the value of the external field from the SDO that is the 
      data source of the viewer - and then change the query for the combo
      to find the record where the keyfield is equal to this external field
      value
   */
+
   IF VALID-HANDLE(hDataSource) THEN
     cKeyFieldValue = IF NUM-ENTRIES(cFieldName,".":U) > 1 THEN
                         DYNAMIC-FUNCTION("ColumnStringValue":U IN hDataSource,ENTRY(2, cFieldName, ".":U))
                      ELSE
                         DYNAMIC-FUNCTION("ColumnStringValue":U IN hDataSource,cFieldName).
-
-    IF  cKeyFieldValue = "":u OR cKeyFieldValue = ? OR cKeyFieldValue = "0":u THEN
-        {get DataValue cKeyFieldValue}.
-    ELSE
-        /* reset saved keyfieldvalue */
-        {set DataValue cKeyFieldValue}.
-
+  IF cKeyFieldValue = "":u OR cKeyFieldValue = ? OR cKeyFieldValue = "0":u THEN DO:
+    IF DYNAMIC-FUNCTION("getNewRecord":U IN hContainer) = "Add":U THEN
+      {set DataValue "":U}.
+  END.
+  ELSE
+      /* reset saved keyfieldvalue */
+      {set DataValue cKeyFieldValue}.
   
-  /* Update query into temp-table */
+      /* Update query into temp-table */
   FIND FIRST ttDCombo
        WHERE ttDCombo.hWidget = TARGET-PROCEDURE
+         AND ttDCombo.hViewer = hContainer
          AND ttDCombo.cWidgetName = cFieldName
        NO-ERROR.
   IF NOT AVAILABLE ttDCombo THEN CREATE ttDCombo.
   ASSIGN
-    ttDCombo.hWidget            = TARGET-PROCEDURE
-    ttDCombo.cWidgetName        = cFieldName
-    ttDCombo.cWidgetType        = cKeyDataType
-    ttDCombo.cForEach           = cQueryString
-    ttDCombo.cBufferList        = cQueryTables
-    ttDCombo.cKeyFieldName      = cKeyField
-    ttDCombo.cKeyFormat         = cKeyFormat
-    ttDCombo.cDescFieldNames    = cDisplayedField
-    ttDCombo.cDescSubstitute    = cDescSubstitute
-    ttDCombo.cFlag              = cComboFlag
-    ttDCombo.cListItemDelimiter = cComboDelimiter
-    ttDCombo.cCurrentKeyValue   = cKeyFieldValue
-    ttDCombo.cFlagValue         = cFlagValue
-    ttDCombo.cParentField       = cParentField
-    ttDCombo.cParentFilterQuery = cParentFilterQuery
-    ttDCombo.iBuildSequence     = iBuildSequence.
+    ttDCombo.hWidget             = TARGET-PROCEDURE
+    ttDCombo.hViewer             = hContainer
+    ttDCombo.cWidgetName         = cFieldName
+    ttDCombo.cWidgetType         = cKeyDataType
+    ttDCombo.cForEach            = cQueryString
+    ttDCombo.cBufferList         = cQueryTables
+    ttDCombo.cKeyFieldName       = cKeyField
+    ttDCombo.cKeyFormat          = cKeyFormat
+    ttDCombo.cDescFieldNames     = cDisplayedField
+    ttDCombo.cDescSubstitute     = cDescSubstitute
+    ttDCombo.cFlag               = cComboFlag
+    ttDCombo.cListItemDelimiter  = cComboDelimiter
+    ttDCombo.cCurrentKeyValue    = cKeyFieldValue
+    ttDCombo.cFlagValue          = cFlagValue
+    ttDCombo.cParentField        = cParentField
+    ttDCombo.cParentFilterQuery  = cParentFilterQuery
+    ttDCombo.iBuildSequence      = iBuildSequence
+    ttDCombo.cPhysicalTableNames = cPhysicalTableNames
+    ttDCombo.cTempTableNames     = cTempTableNames.
   RETURN.
 END PROCEDURE.
 
@@ -1275,7 +1520,10 @@ PROCEDURE initializeCombo :
   DEFINE VARIABLE cUIBMode              AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cComboDelimiter       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iInnerLines           AS INTEGER    NO-UNDO.
-  
+  DEFINE VARIABLE dComboWidth           AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE lLocalField           AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cTableIOType          AS CHARACTER  NO-UNDO.
+
   {get ContainerHandle hFrame}.
 
   hParentFrame = hFrame:FRAME.
@@ -1284,7 +1532,7 @@ PROCEDURE initializeCombo :
     RETURN.
 
   {fn destroyCombo}. /* Get rid of existing widgets so we can recreate them */
-
+  
   {get DisplayedField cDisplayedField}.
   {get KeyField cKeyField}.
   {get FieldLabel cLabel}.
@@ -1296,11 +1544,24 @@ PROCEDURE initializeCombo :
   {get UIBMode cUIBmode}. 
   {get ComboDelimiter cComboDelimiter}.
   {get InnerLines iInnerLines}.
+  {get ContainerSource hContainer}.
+  {get Width dComboWidth}.
+
+  IF cComboDelimiter = '':U THEN
+  DO:
+    cComboDelimiter = CHR(1).
+    {set ComboDelimiter cComboDelimiter}.
+  END.
+
+  cKeyDataType = fixKeyDataType(cKeyFormat,cKeyDataType).
+  {set KeyDataType cKeyDataType}.
+
+  IF VALID-HANDLE(hContainer) AND (cUIBMode BEGINS "DESIGN":U) = FALSE THEN
+    DYNAMIC-FUNCTION("setEditable":U IN hContainer,TRUE) NO-ERROR.
   
   IF iInnerLines = ? OR
      iInnerLines = 0 THEN
     iInnerLines = 5.
-  
   /* default to the fieldname if no keyfield 
      (This will give errors further down if the field does not exist) */
   IF cKeyField = "":U THEN
@@ -1317,14 +1578,24 @@ PROCEDURE initializeCombo :
   END.
 
   /* Assume a decimal data type if not defined for key field */
-  IF cKeyDataType = "":U THEN
+  IF cKeyDataType = "":U AND
+     INDEX(cKeyFormat,".":U) > 0 THEN
     ASSIGN cKeyDataType = "decimal":U.
+
+  IF cKeyDataType = "":U AND
+     INDEX(cKeyFormat,"X(":U) > 0 THEN
+    ASSIGN cKeyDataType = "CHARACTER":U.
+
+  IF cKeyDataType = "":U AND
+     cKeyFormat = "":U THEN
+    ASSIGN cKeyDataType = "decimal":U.
+  
   {set KeyDataType  cKeyDataType}.
 
   /* Default the format of the key field if not defined */
   IF cKeyFormat = "":U THEN
   CASE cKeyDataType:
-    WHEN "decimal":U THEN ASSIGN cKeyFormat = ">>>>>>>>>>>>>>>>>9.999999999":U.
+    WHEN "decimal":U THEN ASSIGN cKeyFormat = "->>>>>>>>>>>>>>>>>9.999999999":U.
     WHEN "date":U THEN ASSIGN cKeyFormat = "99/99/9999":U.
     WHEN "integer":U THEN ASSIGN cKeyFormat = ">>>>>>>9":U.
     OTHERWISE ASSIGN cKeyFormat = "x(256)":U.
@@ -1341,7 +1612,7 @@ PROCEDURE initializeCombo :
   /* Default the format of the display field if not defined */
   IF cDisplayFormat = "":U THEN
   CASE cDisplayDataType:
-    WHEN "decimal":U THEN ASSIGN cDisplayFormat = ">>>>>>>>>>>>>>>>>9.999999999":U.
+    WHEN "decimal":U THEN ASSIGN cDisplayFormat = "->>>>>>>>>>>>>>>>>9.999999999":U.
     WHEN "date":U THEN ASSIGN cDisplayFormat = "99/99/9999":U.
     WHEN "integer":U THEN ASSIGN cDisplayFormat = ">>>>>>>9":U.
     OTHERWISE ASSIGN cDisplayFormat = "x(256)":U.
@@ -1363,15 +1634,20 @@ PROCEDURE initializeCombo :
            INNER-LINES      = iInnerLines
            AUTO-COMPLETION  = TRUE       
            DELIMITER        = cComboDelimiter
-           DATA-TYPE        = cDisplayDataType 
-           FORMAT           = cDisplayFormat                 
            WIDTH-PIXELS     = hFrame:WIDTH-PIXELS
            SORT             = FALSE
-           HIDDEN           = FALSE
            SENSITIVE        = (cUIBMode BEGINS "DESIGN":U) = FALSE
            TAB-STOP         = TRUE.
 
-  hFrame:HEIGHT = hCombo:HEIGHT.
+  ASSIGN 
+    hCombo:DATA-TYPE = cKeyDataType 
+    hCombo:FORMAT    = cKeyFormat
+    hCombo:HIDDEN    = FALSE NO-ERROR.
+
+
+
+  
+  ASSIGN hFrame:HEIGHT = hCombo:HEIGHT NO-ERROR.
 
   /* create an entry/leave trigger always, code is defined */
   ON ENTRY OF hCombo 
@@ -1394,7 +1670,14 @@ PROCEDURE initializeCombo :
   END.
 
   {set ComboHandle hCombo}.
-  RUN disableField IN TARGET-PROCEDURE. /* Always disable field on initialization - fix for issue #3627*/  
+ 
+  /* Check if SDF was dropped onto a Local Field #9417*/
+  {get LocalField lLocalField}.
+  
+  cTableIOType = DYNAMIC-FUNCTION("returnTableIOType":U IN TARGET-PROCEDURE).
+
+  IF NOT lLocalField OR cTableIOType = "Update":U THEN
+    RUN disableField IN TARGET-PROCEDURE. /* Always disable field on initialization - fix for issue #3627*/  
   
 END PROCEDURE.
 
@@ -1472,8 +1755,10 @@ PROCEDURE refreshChildDependancies :
   DEFINE VARIABLE cLoopList           AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cRefreshList        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iLoop               AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iLoop2              AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cCombo              AS CHARACTER  NO-UNDO.
   
+  {get containerSource hContainer}.   /* viewer */
   /* Create a list of Dynamic Combos to be refreshed
      due to the parent chaning */
   cLoopList = pcFieldName.
@@ -1490,7 +1775,7 @@ PROCEDURE refreshChildDependancies :
     cLoopList = cList.
     cRefreshList = IF cRefreshList = "":U THEN cList ELSE cRefreshList + ",":U + cList.
   END.
-
+  
   ASSIGN cLoopList    = cRefreshList
          cRefreshList = "":U.
 
@@ -1520,7 +1805,8 @@ PROCEDURE refreshChildDependancies :
   DO iLoop = 1 TO NUM-ENTRIES(cRefreshList):
     cCombo = ENTRY(iLoop,cRefreshList).
     FIND FIRST ttDCombo
-         WHERE ttDCombo.cWidgetName = cCombo
+         WHERE ttDCombo.hViewer     = hContainer
+         AND   ttDCombo.cWidgetName = cCombo
          EXCLUSIVE-LOCK NO-ERROR.
     IF NOT AVAILABLE ttDCombo THEN
       NEXT.
@@ -1549,12 +1835,25 @@ PROCEDURE refreshChildDependancies :
     {set DataValue '' ttDCombo.hWidget}.
     /* Get Parent-Child filter Query */
     RUN returnParentFieldValues IN ttDCombo.hWidget (OUTPUT cParentFilterQuery).
-    IF cParentFilterQuery <> "":U THEN
-      cNewQuery = DYNAMIC-FUNCTION("newWhereClause" IN ttDCombo.hWidget,
-                                   ENTRY(NUM-ENTRIES(cQueryTables),cQueryTables),
-                                   cParentFilterQuery,
-                                   cNewQuery,
-                                   "AND":U).
+    IF cParentFilterQuery <> "":U THEN DO:
+      IF NUM-ENTRIES(cParentFilterQuery,"|":U) > 1 AND 
+         NUM-ENTRIES(cQueryTables) > 1 THEN DO:
+        DO iLoop2 = 1 TO NUM-ENTRIES(cParentFilterQuery,"|":U):
+          IF TRIM(ENTRY(iLoop2,cParentFilterQuery,"|":U)) <> "":U THEN
+            cNewQuery = DYNAMIC-FUNCTION("newWhereClause" IN ttDCombo.hWidget,
+                                         ENTRY(iLoop2,cQueryTables),
+                                         ENTRY(iLoop2,cParentFilterQuery,"|":U),
+                                         cNewQuery,
+                                         "AND":U).
+        END.
+      END.
+      ELSE 
+        cNewQuery = DYNAMIC-FUNCTION("newWhereClause" IN ttDCombo.hWidget,
+                                     ENTRY(1,cQueryTables),
+                                     cParentFilterQuery,
+                                     cNewQuery,
+                                     "AND":U).
+    END.
     /* Just making double sure that we do not refresh the combo
        if no parent filter query was specified */
     ELSE
@@ -1589,9 +1888,10 @@ PROCEDURE refreshChildDependancies :
   /* Resolve query */
   IF VALID-HANDLE(gshAstraAppserver) THEN
     RUN adm2/lookupqp.p ON gshAstraAppserver (INPUT-OUTPUT TABLE bLookup,
-                                                  INPUT-OUTPUT TABLE bDCombo,
-                                                  INPUT "ComboAutoRefresh":U,
-                                                  INPUT "":U).
+                                              INPUT-OUTPUT TABLE bDCombo,
+                                              INPUT "ComboAutoRefresh":U,
+                                              INPUT "":U,
+                                              INPUT hContainer).
   
   /* After the quiery has been repopulated - assign all the values back
      to the original temp-table - since all the other procedures
@@ -1599,7 +1899,8 @@ PROCEDURE refreshChildDependancies :
   FOR EACH  bDCombo
       WHERE bDCombo.iBuildSequence < 99999:
     FIND FIRST ttDCombo
-         WHERE ttDCombo.cWidgetName = bDCombo.cWidgetName
+         WHERE ttDCombo.hWidget = bDCombo.hWidget
+         AND   ttDCombo.cWidgetName = bDCombo.cWidgetName
          EXCLUSIVE-LOCK NO-ERROR.
     IF AVAILABLE ttDCombo THEN DO:
       BUFFER-COPY bDCombo TO ttDCombo.
@@ -1636,6 +1937,51 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-repositionObject) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE repositionObject Procedure 
+PROCEDURE repositionObject :
+/*------------------------------------------------------------------------------
+  Purpose:     This procedure will reposition the combo and it's label
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT PARAMETER pdRow    AS DECIMAL    NO-UNDO.
+  DEFINE INPUT PARAMETER pdColumn AS DECIMAL    NO-UNDO.
+
+  DEFINE VARIABLE hLabelHandle    AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iLabelLength    AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hFrame          AS HANDLE     NO-UNDO.
+
+  RUN SUPER (INPUT pdRow, INPUT pdColumn).
+
+  {get LabelHandle hLabelHandle}.
+
+  IF NOT VALID-HANDLE(hLabelHandle) THEN
+    RETURN.
+
+  IF TRIM(hLabelHandle:SCREEN-VALUE) = "":U THEN
+    RETURN.
+
+  {get ContainerHandle hFrame}.
+
+  iLabelLength = FONT-TABLE:GET-TEXT-WIDTH-PIXELS(hLabelHandle:SCREEN-VALUE + " ":U, hFrame:FONT).
+
+  ASSIGN
+      hLabelHandle:X            = hFrame:X - iLabelLength
+      hLabelHandle:Y            = hFrame:Y
+      hLabelHandle:WIDTH-PIXELS = iLabelLength
+      .
+
+  RETURN. 
+  
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-resizeObject) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE resizeObject Procedure 
@@ -1650,12 +1996,14 @@ PROCEDURE resizeObject :
   DEFINE INPUT PARAMETER pidHeight AS DECIMAL NO-UNDO.
   DEFINE INPUT PARAMETER pidWidth  AS DECIMAL NO-UNDO.
 
-  DEFINE VARIABLE hFrame   AS HANDLE NO-UNDO.
-  DEFINE VARIABLE cUIBMode AS CHAR   NO-UNDO.
+  DEFINE VARIABLE hCombo    AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hFrame    AS HANDLE     NO-UNDO.
 
+  
   {get ContainerHandle hFrame}.
+  {get ComboHandle     hCombo}.
+  
 
-  {fn destroyCombo}.
 
   ASSIGN hFrame:SCROLLABLE            = TRUE
          hFrame:WIDTH-CHARS           = pidWidth
@@ -1663,11 +2011,11 @@ PROCEDURE resizeObject :
          hFrame:VIRTUAL-WIDTH-CHARS   = hFrame:WIDTH-CHARS
          hFrame:VIRTUAL-HEIGHT-CHARS  = hFrame:HEIGHT-CHARS
          hFrame:SCROLLABLE            = FALSE.
+  
+  IF VALID-HANDLE(hCombo) THEN
+    hCombo:WIDTH-CHARS = pidWidth.
 
-  {get UIBMode cUIBMode}.
 
-  IF cUIBMode = "design":U  THEN
-    RUN initializeCombo IN TARGET-PROCEDURE.
 
   RETURN.
 
@@ -1706,56 +2054,58 @@ PROCEDURE returnParentFieldValues :
   {get ParentFilterQuery cFilterQuery}.
   {get containerSource hContainer}.   /* viewer */
 
-IF cParentField <> "":U AND VALID-HANDLE(hContainer) THEN
-  cAllFieldHandles = DYNAMIC-FUNCTION("getAllFieldHandles":U IN hContainer).
-
-IF cAllFieldHandles <> "":U AND cParentField <> "":U THEN
-field-loop:
-DO iLoop = 1 TO NUM-ENTRIES(cAllFieldHandles):
-  hWidget = WIDGET-HANDLE(ENTRY(iLoop,cAllFieldHandles)).
-  /* Normal Widgets - Non SmartDataFields */
-  IF VALID-HANDLE(hWidget) AND
-     hWidget:TYPE <> "PROCEDURE":U AND
-     CAN-QUERY(hWidget, "NAME":U) AND 
-     LOOKUP(hWidget:NAME, cParentField) <> 0 THEN
-  DO:
-    ASSIGN
-      iField = LOOKUP(hWidget:NAME, cParentField)
-      cField = ENTRY(iField,cParentField)
-      NO-ERROR.
-    IF iField > 0 AND iField <= 9 THEN
-      ASSIGN cValue        = IF CAN-QUERY(hWidget,"INPUT-VALUE":U) THEN hWidget:INPUT-VALUE ELSE hWidget:SCREEN-VALUE
-             cSubs[iField] = TRIM(cValue).
-  END.
+  IF cParentField <> "":U AND VALID-HANDLE(hContainer) THEN
+    cAllFieldHandles = DYNAMIC-FUNCTION("getAllFieldHandles":U IN hContainer).
   
-  /* SmartDataFields Static Combo, Dynamic Combos and Lookups */
-  IF VALID-HANDLE(hWidget) AND
-     hWidget:TYPE = "PROCEDURE":U THEN DO:
-    hSDFHandle = hWidget.
-    IF CAN-QUERY(hSDFHandle, "INTERNAL-ENTRIES":U) THEN DO:
-      IF LOOKUP("getFieldName":U,hSDFHandle:INTERNAL-ENTRIES) > 0 THEN DO:
-        ASSIGN
-          cSDFFieldName = DYNAMIC-FUNCTION("getFieldName" IN hSDFHandle)
-          iField = LOOKUP(cSDFFieldName, cParentField)
-          cField = ENTRY(iField,cParentField)
-          NO-ERROR.
-        
-        /* Dynamic Lookups and Dynamic Combos */
-        IF LOOKUP("getDataValue":U,hSDFHandle:INTERNAL-ENTRIES) > 0 THEN
-          cValue = DYNAMIC-FUNCTION("getDataValue":U IN hSDFHandle).
-        ELSE /* Static Combos */
+  IF cAllFieldHandles <> "":U AND cParentField <> "":U THEN
+  field-loop:
+  DO iLoop = 1 TO NUM-ENTRIES(cAllFieldHandles):
+    hWidget = WIDGET-HANDLE(ENTRY(iLoop,cAllFieldHandles)).
+    /* Normal Widgets - Non SmartDataFields */
+    IF VALID-HANDLE(hWidget) AND
+       hWidget:TYPE <> "PROCEDURE":U AND
+       CAN-QUERY(hWidget, "NAME":U) AND 
+       LOOKUP(hWidget:NAME, cParentField) <> 0 AND 
+       hWidget:NAME <> ? THEN
+    DO:
+      ASSIGN
+        iField = LOOKUP(hWidget:NAME, cParentField)
+        cField = ENTRY(iField,cParentField)
+        NO-ERROR.
+      IF iField > 0 AND iField <= 9 AND iField <> ? THEN
+        ASSIGN cValue        = IF CAN-QUERY(hWidget,"INPUT-VALUE":U) THEN hWidget:INPUT-VALUE ELSE hWidget:SCREEN-VALUE
+               cValue        = IF cValue = ? OR cValue = "?":U THEN "":U ELSE cValue
+               cSubs[iField] = TRIM(cValue).
+    END.
+    
+    /* SmartDataFields Static Combo, Dynamic Combos and Lookups */
+    IF VALID-HANDLE(hWidget) AND
+       hWidget:TYPE = "PROCEDURE":U THEN DO:
+      hSDFHandle = hWidget.
+      IF CAN-QUERY(hSDFHandle, "INTERNAL-ENTRIES":U) THEN DO:
+        IF LOOKUP("getFieldName":U,hSDFHandle:INTERNAL-ENTRIES) > 0 THEN DO:
+          ASSIGN
+            cSDFFieldName = DYNAMIC-FUNCTION("getFieldName" IN hSDFHandle)
+            iField = LOOKUP(cSDFFieldName, cParentField)
+            cField = ENTRY(iField,cParentField)
+            NO-ERROR.
+          
+          /* Dynamic Lookups and Dynamic Combos */
           IF LOOKUP("getDataValue":U,hSDFHandle:INTERNAL-ENTRIES) > 0 THEN
             cValue = DYNAMIC-FUNCTION("getDataValue":U IN hSDFHandle).
-
-        IF iField > 0 AND iField <= 9 THEN
-          ASSIGN cSubs[iField] = TRIM(cValue).
+          ELSE /* Static Combos */
+            IF LOOKUP("getDataValue":U,hSDFHandle:INTERNAL-ENTRIES) > 0 THEN
+              cValue = DYNAMIC-FUNCTION("getDataValue":U IN hSDFHandle).
+  
+          IF iField > 0 AND iField <= 9 THEN
+            ASSIGN cSubs[iField] = TRIM(cValue).
+        END.
       END.
     END.
+    
   END.
   
-END.
-
-pcNewQuery = SUBSTITUTE(cFilterQuery,cSubs[1],cSubs[2],cSubs[3],cSubs[4],cSubs[5],cSubs[6],cSubs[7],cSubs[8],cSubs[9]).
+  pcNewQuery = SUBSTITUTE(cFilterQuery,cSubs[1],cSubs[2],cSubs[3],cSubs[4],cSubs[5],cSubs[6],cSubs[7],cSubs[8],cSubs[9]).
 
 END PROCEDURE.
 
@@ -1828,6 +2178,9 @@ PROCEDURE valueChanged :
   IF NOT ERROR-STATUS:ERROR THEN
     {set DataValue cKeyFieldValue}.
   
+  /* Get the value formatted correctly */
+  {get DataValue cKeyFieldValue}.
+
   {set DataModified YES}.
   
   FIND FIRST ttDCombo
@@ -1836,8 +2189,7 @@ PROCEDURE valueChanged :
        EXCLUSIVE-LOCK NO-ERROR.
   IF AVAILABLE ttDCombo THEN DO:
     ASSIGN ttDCombo.cCurrentKeyValue = cKeyFieldValue.
-    ASSIGN cScreenValue = ENTRY(LOOKUP(cKeyFieldValue,ttDCombo.cKeyValues,ttDCombo.cListItemDelimiter),ttDCombo.cDescriptionValues,ttDCombo.cListItemDelimiter)
-                          NO-ERROR.
+    cScreenValue = ENTRY((hCombo:LOOKUP(hCombo:SCREEN-VALUE) * 2) - 1,hCombo:LIST-ITEM-PAIRS,hCombo:DELIMITER).
     {set CurrentDescValue cScreenValue}.
   END.
   
@@ -1973,6 +2325,47 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-fixKeyDataType) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION fixKeyDataType Procedure 
+FUNCTION fixKeyDataType RETURNS CHARACTER
+  ( pcKeyFormat AS CHARACTER,
+    pcKeyDataType AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  In an earlier version of Dynamics we saved the DisplayDataType
+            in the KeyDataType attribute and visa-versa...
+            We need to cater for this situation since older version's data
+            will still be incorrect and it is not possible to fix the data
+            in the repository due to the complexity.
+    Notes:  
+------------------------------------------------------------------------------*/
+  
+  IF pcKeyDataType = "CHARACTER":U THEN DO:
+    IF INDEX(pcKeyFormat,">":U) > 0 AND
+       INDEX(pcKeyFormat,"9":U) > 0 AND
+       INDEX(pcKeyFormat,".":U) > 0 THEN /* We have a decimal */
+      pcKeyDataType = "DECIMAL":U.
+    IF INDEX(pcKeyFormat,">":U) > 0 AND
+       INDEX(pcKeyFormat,"9":U) > 0 AND
+       INDEX(pcKeyFormat,".":U) = 0 THEN /* We have an Integer */
+      pcKeyDataType = "INTEGER":U.
+    IF INDEX(pcKeyFormat,"/":U) > 0 AND
+       INDEX(pcKeyFormat,"99":U) > 0 THEN /* We have a Date */
+      pcKeyDataType = "DATE":U.
+    IF INDEX(pcKeyFormat,"TRUE":U) > 0 OR
+       INDEX(pcKeyFormat,"YES":U) > 0 THEN /* We have a Logical */
+      pcKeyDataType = "LOGICAL":U.
+  END.
+
+  RETURN pcKeyDataType.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getBaseQueryString) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getBaseQueryString Procedure 
@@ -2088,7 +2481,7 @@ FUNCTION getCurrentDescValue RETURNS CHARACTER
     Notes:   
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cValue AS CHARACTER NO-UNDO.
-  {get CurrentDescValue cValue}.
+  {get DisplayValue cValue}.
   RETURN cValue.
 
 END FUNCTION.
@@ -2108,7 +2501,7 @@ FUNCTION getCurrentKeyValue RETURNS CHARACTER
     Notes:   
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cValue AS CHARACTER NO-UNDO.
-  {get CurrentKeyValue cValue}.
+  {get DataValue cValue}.
   RETURN cValue.
 
 END FUNCTION.
@@ -2134,8 +2527,10 @@ FUNCTION getDataValue RETURNS CHARACTER
   DEFINE VARIABLE cKeyField       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cDataValue      AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cDefaultValue   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cKeyDataType    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cKeyFormat      AS CHARACTER  NO-UNDO.
   
-/*
+  /*
   /* ensure manual field changes are saved correctly */
   RUN leaveCombo IN TARGET-PROCEDURE.
   */
@@ -2155,38 +2550,18 @@ FUNCTION getDataValue RETURNS CHARACTER
   IF cDataValue = "":U AND 
      cDataValue <> cDefaultValue THEN
     cDataValue = cDefaultValue.
-  RETURN cDataValue.
   
-  /**
-  IF cKeyField <> cDisplayedField THEN DO:
-      &SCOPED-DEFINE xpDataValue
-      {get DataValue cDataValue}.
-      &UNDEFINE xpDataValue
-    RETURN cDataValue.
-  END.
-  ELSE
-  DO:
-    DEFINE VARIABLE cChar               AS CHARACTER  NO-UNDO.
-    DEFINE VARIABLE cDisplayDataType    AS CHARACTER  NO-UNDO.
-    ASSIGN
-      cChar = hCombo:SCREEN-VALUE.
-    IF NOT LENGTH(hCombo:SCREEN-VALUE) > 0 THEN
-    DO:
-      {get DisplayDataType cDisplayDataType}.
-      CASE cDisplayDataType:
-        WHEN "integer" THEN
-          ASSIGN cChar = "0":U.
-        WHEN "decimal" THEN
-          ASSIGN cChar = "0":U.
-        WHEN "date" THEN
-          ASSIGN cChar = "?":U.
-        OTHERWISE          
-          ASSIGN cChar = "":U.
-      END CASE.
-    END.
-    RETURN cChar.
-  END.
-     **/
+  {get KeyDataType cKeyDataType}.
+  {get keyFormat cKeyFormat}.
+
+  CASE cKeyDataType:
+    WHEN "DECIMAL":U THEN
+      cDataValue = TRIM(STRING(DECIMAL(cDataValue),cKeyFormat)).
+    WHEN "INTEGER":U THEN
+      cDataValue = TRIM(STRING(INTEGER(cDataValue),cKeyFormat)).
+  END CASE.
+
+  RETURN cDataValue.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2494,6 +2869,152 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getPhysicalTableNames) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getPhysicalTableNames Procedure 
+FUNCTION getPhysicalTableNames RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: 
+    Notes:   
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cValue AS CHARACTER NO-UNDO.
+  {get PhysicalTableNames cValue}.
+  RETURN cValue.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getQueryBuilderJoinCode) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getQueryBuilderJoinCode Procedure 
+FUNCTION getQueryBuilderJoinCode RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  
+  DEFINE VARIABLE cValue AS CHARACTER NO-UNDO.
+  {get QueryBuilderJoinCode cValue}.
+  RETURN cValue.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getQueryBuilderOptionList) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getQueryBuilderOptionList Procedure 
+FUNCTION getQueryBuilderOptionList RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  
+  DEFINE VARIABLE cValue AS CHARACTER NO-UNDO.
+  {get QueryBuilderOptionList cValue}.
+  RETURN cValue.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getQueryBuilderOrderList) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getQueryBuilderOrderList Procedure 
+FUNCTION getQueryBuilderOrderList RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  
+  DEFINE VARIABLE cValue AS CHARACTER NO-UNDO.
+  {get QueryBuilderOrderList cValue}.
+  RETURN cValue.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getQueryBuilderTableOptionList) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getQueryBuilderTableOptionList Procedure 
+FUNCTION getQueryBuilderTableOptionList RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  
+  DEFINE VARIABLE cValue AS CHARACTER NO-UNDO.
+  {get QueryBuilderTableOptionList cValue}.
+  RETURN cValue.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getQueryBuilderTuneOptions) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getQueryBuilderTuneOptions Procedure 
+FUNCTION getQueryBuilderTuneOptions RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  
+  DEFINE VARIABLE cValue AS CHARACTER NO-UNDO.
+  {get QueryBuilderTuneOptions cValue}.
+  RETURN cValue.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getQueryBuilderWhereClauses) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getQueryBuilderWhereClauses Procedure 
+FUNCTION getQueryBuilderWhereClauses RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  
+  DEFINE VARIABLE cValue AS CHARACTER NO-UNDO.
+  {get QueryBuilderWhereClauses cValue}.
+  RETURN cValue.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getQueryTables) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getQueryTables Procedure 
@@ -2599,6 +3120,26 @@ FUNCTION getSecured RETURNS LOGICAL
   {get Secured plFieldIsSecured}.
   
   RETURN plFieldIsSecured.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getTempTables) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getTempTables Procedure 
+FUNCTION getTempTables RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: 
+    Notes:   
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cValue AS CHARACTER NO-UNDO.
+  {get TempTables cValue}.
+  RETURN cValue.
 
 END FUNCTION.
 
@@ -2969,6 +3510,45 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-returnTableIOType) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION returnTableIOType Procedure 
+FUNCTION returnTableIOType RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hViewerHandle   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hTableIOSource  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cTableIOSource  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTableIOType    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cuibMode        AS CHARACTER  NO-UNDO.
+
+  {get uibMODE cUIBmode}.
+
+  IF cuibMode BEGINS "DESIGN":U THEN 
+    RETURN "":U. 
+
+  {get ContainerSource hViewerHandle}.
+  
+  IF VALID-HANDLE(hViewerHandle) THEN
+    {get TableIOSource cTableIOSource hViewerHandle}.
+  
+  hTableIOSource = WIDGET-HANDLE(ENTRY(1,cTableIOSource)).
+
+  IF VALID-HANDLE(hTableIOSource) THEN
+    cTableIOType = DYNAMIC-FUNCTION("getTableIOType":U IN hTableIOSource).
+
+  RETURN cTableIOType.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setBaseQueryString) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setBaseQueryString Procedure 
@@ -3083,7 +3663,7 @@ FUNCTION setCurrentDescValue RETURNS LOGICAL
 Parameters:     
     Notes:   
 ------------------------------------------------------------------------------*/
-  {set CurrentDescValue pcValue}.
+  {set DisplayValue pcValue}.
   RETURN TRUE.
 
 END FUNCTION.
@@ -3103,7 +3683,7 @@ FUNCTION setCurrentKeyValue RETURNS LOGICAL
 Parameters:     
     Notes:   
 ------------------------------------------------------------------------------*/
-  {set CurrentKeyValue pcValue}.
+  {set DataValue pcValue}.
   RETURN TRUE.
 
 END FUNCTION.
@@ -3131,11 +3711,17 @@ Parameters: INPUT pcValue - Value that corresponds to the KeyField property
   DEFINE VARIABLE cDisplayedField   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hContainer        AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hRealContainer    AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cContainerMode    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iEntry            AS INTEGER    NO-UNDO.
   DEFINE VARIABLE lFieldIsSecured   AS LOGICAL    NO-UNDO.
   
-  pcValue = TRIM(pcValue).
+  DEFINE VARIABLE lDisplayField     AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cNewRecord        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cScreenValue      AS CHARACTER  NO-UNDO.
+
+  {get DisplayField lDisplayField}.
+
+  pcValue = DYNAMIC-FUNCTION("formattedValue":U IN TARGET-PROCEDURE,pcValue) NO-ERROR.
+/*  pcValue = TRIM(pcValue).*/
   /* Check if the Combo has been populated */
   IF NOT CAN-FIND(FIRST ttDCombo
                   WHERE ttDCombo.hWidget = TARGET-PROCEDURE) THEN DO:
@@ -3148,25 +3734,24 @@ Parameters: INPUT pcValue - Value that corresponds to the KeyField property
   END.
     
   {get containerSource hContainer}.
-  {get containerSource hRealContainer hContainer}.
   {get Secured lFieldIsSecured}.
-
-  IF VALID-HANDLE(hRealContainer) THEN
-    {get ContainerMode cContainerMode hRealContainer}.
   
-  IF cContainerMode <> "add":U THEN
+  cNewRecord = "":U.
+  IF VALID-HANDLE(hContainer) THEN
+    {get NewRecord cNewRecord hContainer}. 
+  IF cNewRecord = "no":U THEN
   DO:
     &SCOPED-DEFINE xpDataValue
     {set DataValue pcValue}.
     &UNDEFINE xpDataValue
     {get ComboHandle hCombo}.
-    IF VALID-HANDLE(hCombo) THEN
+    IF VALID-HANDLE(hCombo) AND 
+       CAN-QUERY(hCombo,"LIST-ITEM-PAIRS":U) THEN
     DO:
       {get KeyField cKeyField}.
       {get DisplayedField cDisplayedField}.
-      
       IF cKeyField = cDisplayedField THEN DO:
-        ASSIGN hCombo:SCREEN-VALUE = IF NOT lFieldIsSecured THEN pcValue ELSE hCombo:LIST-ITEM-PAIRS NO-ERROR.
+        ASSIGN hCombo:SCREEN-VALUE = IF NOT lFieldIsSecured AND lDisplayField THEN pcValue ELSE hCombo:LIST-ITEM-PAIRS NO-ERROR.
         ERROR-STATUS:ERROR = FALSE.
       END.
       ELSE DO:
@@ -3174,10 +3759,10 @@ Parameters: INPUT pcValue - Value that corresponds to the KeyField property
              WHERE ttDCombo.hWidget = TARGET-PROCEDURE
              NO-ERROR.
         IF AVAILABLE ttDCombo THEN DO:
-          pcValue = TRIM(pcValue).
+          /*pcValue = TRIM(pcValue).*/
           iEntry = LOOKUP(pcValue,ttDCombo.cKeyValues,ttDCombo.cListItemDelimiter)
                    NO-ERROR.
-          IF iEntry > 0 AND NOT lFieldIsSecured THEN
+          IF iEntry > 0 AND NOT lFieldIsSecured AND lDisplayField THEN
             hCombo:SCREEN-VALUE = hCombo:ENTRY(iEntry) NO-ERROR.
 
           /* If all else fails - reposition to first entry */
@@ -3185,39 +3770,41 @@ Parameters: INPUT pcValue - Value that corresponds to the KeyField property
               ERROR-STATUS:ERROR OR 
               hCombo:SCREEN-VALUE = ?) AND 
              hCombo:LIST-ITEM-PAIRS <> ? AND 
-             lFieldIsSecured = FALSE THEN
+             lFieldIsSecured = FALSE AND 
+             lDisplayField = TRUE THEN
             hCombo:SCREEN-VALUE = hCombo:ENTRY(1).
         END.
       END.
+      
       &SCOPED-DEFINE xpDataValue
       {set DataValue pcValue}.
       &UNDEFINE xpDataValue
-
-      {set DisplayValue hCombo:SCREEN-VALUE}. /* avoid leave trigger code */
+      cScreenValue = ENTRY((hCombo:LOOKUP(hCombo:SCREEN-VALUE) * 2) - 1,hCombo:LIST-ITEM-PAIRS,hCombo:DELIMITER).
+      {set DisplayValue cScreenValue}. /* avoid leave trigger code */
     END.
   END.
   ELSE
   DO: /* in an add - ensure combo screen value is cleared */
       DEFINE VARIABLE pcKeyValue         AS CHARACTER  NO-UNDO.
-      DEFINE VARIABLE cNewRecord         AS CHARACTER  NO-UNDO.
+      DEFINE VARIABLE cListItems         AS CHARACTER  NO-UNDO.
       &SCOPED-DEFINE xpDataValue
       {get DataValue pcKeyValue}.
       &UNDEFINE xpDataValue
       {get ComboHandle hCombo}.
-      {get newRecord cNewRecord hContainer}.
-
+      
       IF cNewRecord <> "no":U AND
          pcValue <> "":U AND pcValue <> "0":U THEN
       DO: /* must be a reset operation or after a succesful save - reset value */
         &SCOPED-DEFINE xpDataValue
         {set DataValue pcValue}.
         &UNDEFINE xpDataValue
-        IF VALID-HANDLE(hCombo) THEN
+        IF VALID-HANDLE(hCombo) AND 
+           CAN-QUERY(hCombo,"LIST-ITEM-PAIRS":U) THEN
         DO:
           {get KeyField cKeyField}.
           {get DisplayedField cDisplayedField}.
           IF cKeyField = cDisplayedField THEN  DO:
-            hCombo:SCREEN-VALUE = IF NOT lFieldIsSecured THEN pcValue ELSE hCombo:LIST-ITEM-PAIRS NO-ERROR.
+            hCombo:SCREEN-VALUE = IF NOT lFieldIsSecured AND lDisplayField THEN pcValue ELSE hCombo:LIST-ITEM-PAIRS NO-ERROR.
             ERROR-STATUS:ERROR = FALSE.
           END.
           ELSE DO:
@@ -3225,13 +3812,13 @@ Parameters: INPUT pcValue - Value that corresponds to the KeyField property
                  WHERE ttDCombo.hWidget = TARGET-PROCEDURE
                  NO-ERROR.
             IF AVAILABLE ttDCombo THEN DO:
-              pcValue = TRIM(pcValue).
+              /*pcValue = TRIM(pcValue).*/
               iEntry = LOOKUP(pcValue,ttDCombo.cKeyValues,ttDCombo.cListItemDelimiter)
                        NO-ERROR.
 
-              IF iEntry > 0 AND NOT lFieldIsSecured THEN
+              IF iEntry > 0 AND NOT lFieldIsSecured AND lDisplayField THEN
               hCombo:SCREEN-VALUE = hCombo:ENTRY(iEntry) NO-ERROR.
-
+              /**
               /* If all else fails - reposition to first entry */
               IF (iEntry <= 0 OR
                   ERROR-STATUS:ERROR OR 
@@ -3239,12 +3826,14 @@ Parameters: INPUT pcValue - Value that corresponds to the KeyField property
                  hCombo:LIST-ITEM-PAIRS <> ? AND 
                  lFieldIsSecured = FALSE THEN
                 hCombo:SCREEN-VALUE = hCombo:ENTRY(1).
+              **/
             END.
           END.
           &SCOPED-DEFINE xpDataValue
           {set DataValue pcValue}.
           &UNDEFINE xpDataValue
-          {set DisplayValue hCombo:SCREEN-VALUE}. /* avoid leave trigger code */
+          cScreenValue = ENTRY((hCombo:LOOKUP(hCombo:SCREEN-VALUE) * 2) - 1,hCombo:LIST-ITEM-PAIRS,hCombo:DELIMITER).
+          {set DisplayValue cScreenValue}. /* avoid leave trigger code */
         END.
       END.
 
@@ -3255,11 +3844,17 @@ Parameters: INPUT pcValue - Value that corresponds to the KeyField property
         &SCOPED-DEFINE xpDataValue
         {set DataValue pcValue}.
         &UNDEFINE xpDataValue
-        IF VALID-HANDLE(hCombo) THEN
+        IF VALID-HANDLE(hCombo) AND 
+           CAN-QUERY(hCombo,"LIST-ITEM-PAIRS":U) THEN
         DO:
-          hCombo:SCREEN-VALUE = IF NOT lFieldIsSecured THEN pcValue ELSE hCombo:LIST-ITEM-PAIRS NO-ERROR.
+          ASSIGN cListItems             = hCombo:LIST-ITEM-PAIRS
+                 hCombo:LIST-ITEM-PAIRS = ",":U
+                 hCombo:SCREEN-VALUE    = IF NOT lFieldIsSecured AND lDisplayField THEN pcValue ELSE hCombo:LIST-ITEM-PAIRS
+                 hCombo:LIST-ITEM-PAIRS = cListItems
+                 NO-ERROR.
           ERROR-STATUS:ERROR = FALSE.
-          {set DisplayValue hCombo:SCREEN-VALUE}. /* avoid leave trigger code */
+          cScreenValue = ENTRY((hCombo:LOOKUP(hCombo:SCREEN-VALUE) * 2) - 1,hCombo:LIST-ITEM-PAIRS,hCombo:DELIMITER).
+          {set DisplayValue cScreenValue}. /* avoid leave trigger code */
         END.
       END.
   END.
@@ -3577,6 +4172,141 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setPhysicalTableNames) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setPhysicalTableNames Procedure 
+FUNCTION setPhysicalTableNames RETURNS LOGICAL
+  ( pcValue AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose: Sets the actual DB Tables names of buffers defined for the query
+Parameters:     
+    Notes:   
+------------------------------------------------------------------------------*/
+  {set PhysicalTableNames pcValue}.
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setQueryBuilderJoinCode) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setQueryBuilderJoinCode Procedure 
+FUNCTION setQueryBuilderJoinCode RETURNS LOGICAL
+  ( pcValue AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  
+  {set QueryBuilderJoinCode pcValue}.
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setQueryBuilderOptionList) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setQueryBuilderOptionList Procedure 
+FUNCTION setQueryBuilderOptionList RETURNS LOGICAL
+  ( pcValue AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  {set QueryBuilderOptionList pcValue}.
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setQueryBuilderOrderList) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setQueryBuilderOrderList Procedure 
+FUNCTION setQueryBuilderOrderList RETURNS LOGICAL
+  ( pcValue AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  {set QueryBuilderOrderList pcValue}.
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setQueryBuilderTableOptionList) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setQueryBuilderTableOptionList Procedure 
+FUNCTION setQueryBuilderTableOptionList RETURNS LOGICAL
+  ( pcValue AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  {set QueryBuilderTableOptionList pcValue}.
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setQueryBuilderTuneOptions) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setQueryBuilderTuneOptions Procedure 
+FUNCTION setQueryBuilderTuneOptions RETURNS LOGICAL
+  ( pcValue AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  {set QueryBuilderTuneOptions pcValue}.
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setQueryBuilderWhereClauses) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setQueryBuilderWhereClauses Procedure 
+FUNCTION setQueryBuilderWhereClauses RETURNS LOGICAL
+  ( pcValue AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  {set QueryBuilderWhereClauses pcValue}.
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setQueryTables) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setQueryTables Procedure 
@@ -3648,6 +4378,26 @@ FUNCTION setSecured RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
   {set Secured plFieldIsSecured}.
   
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setTempTables) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setTempTables Procedure 
+FUNCTION setTempTables RETURNS LOGICAL
+  ( pcValue AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose: Sets the PLIP names of Temp Tables defined for the query
+Parameters:     
+    Notes:   
+------------------------------------------------------------------------------*/
+  {set TempTables pcValue}.
   RETURN TRUE.
 
 END FUNCTION.

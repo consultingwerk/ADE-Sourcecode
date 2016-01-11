@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html 
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<!--  debug.html: Please see notes.txt for copyrights and comments -->
+<title>Debug</title>
+<style>
+#dom TR  {cursor:pointer;font-weight:bold;font-size:8pt;height:15px;}
+#dom TD  {padding:0;}
+#dom IMG {position:relative;height:15px; }
+#atr TR  {cursor:pointer;font-weight:bold;font-size:8pt;height:15px;}
+#atr TD  {padding:0;}
+#atr IMG {position:relative;height:15px; }
+</style>
+</head>
+<body>
+<center>DOM Viewer</center>
+<form name="form">
+<p>
+<button tabindex="-1" name="brun" value="run" id="brun" onClick="debugAtr('all')">All Attributes</button>
+<button tabindex="-1" name="brun" value="run" id="brun" onClick="debugAlert()">Alert!</button>
+<input name="prop" id="prop" type="text" style="width:35em;" value='innerHTML' />
+</p>
+<p><button tabindex="-1" name="brun" value="run" id="brun" onClick="debugRun()">JS!</button>
+<input name="irun" id="irun" type="text" style="width:35em;" value="alert(window.opener.location)" /></p>
+</form>
+<table>
+  <tr valign="top">
+    <td>
+      <table id="dom" onClick="expand();" valign="top"></table>
+    </td>
+    <td>
+      <table id="atr" valign="top">
+        <tr>
+          <th>Attribute</th>
+          <th>Type</th>
+          <th>Value</th>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<script language="jscript"><!--
+main = window.opener.main
+tree = window.dom.firstChild;
+attr = window.atr.firstChild;
+newrow = tree.insertRow(0);
+newrow.title = window.opener.location;
+newrow.frame = true;
+newrow.tree  = false;
+newrow.insertCell().innerHTML = window.opener.document.title;
+expandList(main.frames,1,1);    
+var pickelem=null;
+
+function expandList(elem,pos,lev){
+  if(elem == null) return;
+  n = elem.length;     
+  if(n == null) return;
+
+    a = tree.children[pos - 1].firstChild;
+    if (a.nodeName == 'TR') a = a.firstChild;
+    tr='';
+    for(j=1;j<lev;j++){
+      sr = a.children[j - 1].src;
+      if (sr.indexOf('4.gif') > 0 || sr.indexOf('7.gif') > 0 ){
+        tr+='<img src="tree7.gif" />';  //blank
+      } else {
+        tr+='<img src="tree3.gif" />';  //line
+      }
+    }
+
+  for (i=0; i < n; i++){                 // Fill rows
+    newrow = tree.insertRow(pos++);
+    c = '';
+    d = '';
+    t='';
+    if (elem[i].location ==null){
+      c = elem[i].nodeName
+    } else {
+      c += '@' + elem[i].name
+      d = elem[i].location;
+    }
+    newrow.tree = false;
+    if (elem[i].children != null) newrow.tree = (elem[i].children.length > 0);
+    
+    if (elem[i].location != null){
+      newrow.frame = true;
+      newrow.tree  = true;
+    }
+
+      if (i == n - 1){
+        t='<img src="tree4.gif" />';  //last
+      } else {
+        t='<img src="tree2.gif" />';  //branch
+      }
+
+    t+=(newrow.tree) ? '<img src="treeplus5.gif" />' : '<img src="treeplus6.gif" />';
+
+    newrow.insertCell().innerHTML=tr + t + c;
+    // newrow.insertCell().innerHTML=d;
+    if (elem[i].location ==null){
+      newrow.elem = elem[i];
+    } else {
+      newrow.elem = elem[i].document;
+    }
+    newrow.lev = lev;
+    newrow.title = d;
+    newrow.status = false;
+  }
+}
+function expand(){
+  var e = event.srcElement.parentNode;
+  if (e.nodeName!='TR') e = e.parentNode;
+  if (e.nodeName!='TR') e = e.parentNode;
+  if(pickelem!=null) pickelem.style.background='';  
+  window.pickelem=e;  //rowIndex;
+  pickelem.style.background='lightblue';
+  if(!e.frame) debugAtr('spec')
+  if (!e.tree) return;
+
+  e.status = !e.status;
+  e.firstChild.childNodes[e.lev].src = (e.status) ? 'treeplus8.gif':'treeplus5.gif';
+
+  // expand
+  pos  = e.rowIndex + 1;
+  lev  = e.lev*1;
+  if (e.status){
+    expandList(e.elem.childNodes,pos,lev + 1); 
+  } else {
+    e=e.nextSibling;
+    while(e!=null && e.lev > lev){
+      // alert(e.innerHTML)
+      e=e.nextSibling;
+      tree.deleteRow(e.rowIndex - 1);
+    }
+  }
+}
+function debugRun(){
+  c = 'pickelem.elem.' + document.form.irun.value;
+  eval(c);
+}
+function debugAlert(){
+  c = 'alert(pickelem.elem.' + document.form.prop.value + ')';
+  eval(c);
+}
+function debugAtr(c){
+  e=attr.children;
+  n=e.length;
+  for(i=1;i<n;i++){
+    attr.deleteRow(1);
+  }
+  e=pickelem.elem.attributes;
+  n=e.length;
+  for(i=0;i<n;i++){
+    if (c=='all' || e[i].specified){
+      newrow=attr.insertRow();
+      newrow.insertCell().innerHTML=e[i].nodeName;
+      newrow.insertCell().innerHTML=e[i].specified;
+      newrow.insertCell().innerHTML=e[i].nodeValue;
+    }
+  }
+}
+--></script>
+</body>
+</html>

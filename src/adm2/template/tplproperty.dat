@@ -37,6 +37,13 @@
 
 /* ***************************  Definitions  ************************** */
 
+/* ADM-PROPS-DEFINED is defined in smrtprop.i to return false if adm-data
+   already has a valid-handle. The static props definition in the main block
+   is skipped if it is true */
+&IF DEFINED(ADM-PROPS-DEFINED) = 0 &THEN
+   &SCOP ADM-PROPS-DEFINED FALSE
+&ENDIF
+
   /* Custom instance definition file */
 
   {<class-src-custom><custom-defs>}
@@ -102,7 +109,8 @@
 
 
   <subclass-prop>
-
+IF NOT {&ADM-PROPS-DEFINED} THEN
+DO:
 &IF "{&ADMSuper}":U = "":U &THEN
   /* Put your property field definitions here.
      Use the following syntax, e.g.,
@@ -111,6 +119,8 @@
 &ENDIF
 
   {<class-src-custom><custom-prop>}
+
+END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

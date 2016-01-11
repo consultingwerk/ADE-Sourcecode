@@ -23,11 +23,6 @@
 *********************************************************************/
 TRIGGER PROCEDURE FOR REPLICATION-WRITE OF gsc_nationality OLD BUFFER lb_old.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "gsc_nationality"
-                      &TRIGGER-TYPE = "REPLICATION-WRITE"}
-
 {af/sup/afreplicat.i  &TABLE-NAME   = "gsc_nationality"
                       &TABLE-FLA    = "gscna"
                       &TABLE-PK     = "nationality_obj"

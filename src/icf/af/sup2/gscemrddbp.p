@@ -95,7 +95,6 @@ DEFINE TEMP-TABLE ttTable           NO-UNDO
     .
 DEFINE INPUT  PARAMETER plDisplayRepository         AS LOGICAL          NO-UNDO.
 DEFINE OUTPUT PARAMETER pcDBList                    AS CHARACTER        NO-UNDO.
-DEFINE OUTPUT PARAMETER pcProductModules            AS CHARACTER        NO-UNDO.
 DEFINE OUTPUT PARAMETER TABLE FOR ttTable.
 
 /* _UIB-CODE-BLOCK-END */
@@ -166,10 +165,10 @@ EMPTY TEMP-TABLE ttTable.
 DO iDb = 1 TO NUM-DBS:
     ASSIGN cLogicalName = LDBNAME(iDb).
 
-    /* Ignore DataServer DB's for the time being.
-     * The code caters for DataServers, though.   */
-    IF DBTYPE(cLogicalName) <> "PROGRESS":U THEN
-        NEXT.
+/*     /* Ignore DataServer DB's for the time being.     */
+/*      * The code caters for DataServers, though.   */  */
+/*     IF DBTYPE(cLogicalName) <> "PROGRESS":U THEN      */
+/*         NEXT.                                         */
     
     /* Skip Repository DBs unless explicitly specified. */
     IF NOT plDisplayRepository AND
@@ -189,7 +188,9 @@ DO iDb = 1 TO NUM-DBS:
                cWhere     = "FOR EACH ":U + cTableName + " NO-LOCK, ":U
                           + " EACH " + cFileName + " WHERE ":U
                           +  cFileName + "._Db-recid = RECID(_Db) AND ":U
-                          +  cFileName + "._Owner    = 'Pub'      AND ":U
+                          +  (IF DBVERSION(cLogicalName) <> '8'
+                              THEN cFileName + "._Owner    = 'Pub'      AND ":U
+                              ELSE '')
                           +  cFileName + "._Hidden   = FALSE ":U
                           + " NO-LOCK ":U.
     ELSE
@@ -238,25 +239,7 @@ DO iDb = 1 TO NUM-DBS:
 
     DELETE OBJECT hFileBuffer NO-ERROR.
     ASSIGN hFileBuffer = ?.
-
-    DELETE OBJECT hFieldDesc NO-ERROR.
-    ASSIGN hFieldDesc = ?.
-
-    DELETE OBJECT hFieldFileName NO-ERROR.
-    ASSIGN hFieldFileName = ?.
-
-    DELETE OBJECT hFieldDumpName NO-ERROR.
-    ASSIGN hFieldDumpName = ?.
-
 END.  /* do iDb */
-
-/* Product Modules */
-RUN ry/app/ryreposobp.p PERSISTENT SET hObjApi.
-
-ASSIGN pcProductModules = DYNAMIC-FUNCTION("ProductModuleNames":U IN hObjApi, INPUT plDisplayRepository).
-ASSIGN pcProductModules = "<None>" + ( IF pcProductModules EQ "":U THEN "":U ELSE ",":U + pcProductModules).
-
-DELETE PROCEDURE hObjApi.
 
 RETURN.
 /** -- EOF -- **/

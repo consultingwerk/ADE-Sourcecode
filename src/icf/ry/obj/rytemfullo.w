@@ -90,7 +90,7 @@ CREATE WIDGET-POOL.
    saved. They pull the object and version from Roundtable if possible so that it
    can be displayed in the about window of the container */
 
-&scop object-name       templfullo.w
+&scop object-name       rytemfullo.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
 &scop object-version    000000
 
@@ -124,6 +124,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -140,6 +141,7 @@ language_name
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "ry/obj/rytemfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsc_language NO-LOCK INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsc_language NO-LOCK INDEXED-REPOSITION.
 {&DB-REQUIRED-END}

@@ -163,6 +163,17 @@ FUNCTION getCurrentUpdateSource RETURNS HANDLE
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getDataDelimiter) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataDelimiter Procedure 
+FUNCTION getDataDelimiter RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getDataFieldDefs) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataFieldDefs Procedure 
@@ -179,6 +190,28 @@ FUNCTION getDataFieldDefs RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataHandle Procedure 
 FUNCTION getDataHandle RETURNS HANDLE
   (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDataLogicObject) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataLogicObject Procedure 
+FUNCTION getDataLogicObject RETURNS HANDLE
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDataLogicProcedure) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataLogicProcedure Procedure 
+FUNCTION getDataLogicProcedure RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -212,6 +245,50 @@ FUNCTION getDataQueryBrowsed RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataQueryString Procedure 
 FUNCTION getDataQueryString RETURNS CHARACTER
   (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDataReadBuffer) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataReadBuffer Procedure 
+FUNCTION getDataReadBuffer RETURNS HANDLE
+  ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDataReadColumns) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataReadColumns Procedure 
+FUNCTION getDataReadColumns RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDataReadFormat) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataReadFormat Procedure 
+FUNCTION getDataReadFormat RETURNS CHARACTER
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDataReadHandler) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataReadHandler Procedure 
+FUNCTION getDataReadHandler RETURNS HANDLE
+  ( )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -256,6 +333,17 @@ FUNCTION getDestroyStateless RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDisconnectAppServer Procedure 
 FUNCTION getDisconnectAppServer RETURNS LOGICAL
   ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDynamicData) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDynamicData Procedure 
+FUNCTION getDynamicData RETURNS LOGICAL
+  (  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -317,6 +405,17 @@ FUNCTION getFirstRowNum RETURNS INTEGER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getForeignFieldsContainer) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getForeignFieldsContainer Procedure 
+FUNCTION getForeignFieldsContainer RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getForeignValues) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getForeignValues Procedure 
@@ -361,11 +460,55 @@ FUNCTION getInternalEntries RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getIsRowObjectExternal) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getIsRowObjectExternal Procedure 
+FUNCTION getIsRowObjectExternal RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getIsRowObjUpdExternal) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getIsRowObjUpdExternal Procedure 
+FUNCTION getIsRowObjUpdExternal RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getKeyTableId) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getKeyTableId Procedure 
 FUNCTION getKeyTableId RETURNS CHARACTER
   (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getLastCommitErrorKeys) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getLastCommitErrorKeys Procedure 
+FUNCTION getLastCommitErrorKeys RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getLastCommitErrorType) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getLastCommitErrorType Procedure 
+FUNCTION getLastCommitErrorType RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -427,6 +570,28 @@ FUNCTION getManualSetQuerySort RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getModRowIdent) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getModRowIdent Procedure 
+FUNCTION getModRowIdent RETURNS HANDLE
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getModRowIdentTable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getModRowIdentTable Procedure 
+FUNCTION getModRowIdentTable RETURNS HANDLE
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getNewMode) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getNewMode Procedure 
@@ -460,6 +625,28 @@ FUNCTION getOpenQuery RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getPromptColumns) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getPromptColumns Procedure 
+FUNCTION getPromptColumns RETURNS CHARACTER
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getPromptOnDelete) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getPromptOnDelete Procedure 
+FUNCTION getPromptOnDelete RETURNS LOGICAL
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getQueryContainer) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getQueryContainer Procedure 
@@ -476,6 +663,17 @@ FUNCTION getQueryContainer RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getQueryContext Procedure 
 FUNCTION getQueryContext RETURNS CHARACTER
   ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getQueryOpen) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getQueryOpen Procedure 
+FUNCTION getQueryOpen RETURNS LOGICAL
+  (  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -636,6 +834,17 @@ FUNCTION getUpdateSource RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getUseStaticOnFetch) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getUseStaticOnFetch Procedure 
+FUNCTION getUseStaticOnFetch RETURNS LOGICAL
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getWordIndexedFields) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getWordIndexedFields Procedure 
@@ -746,6 +955,39 @@ FUNCTION setCurrentUpdateSource RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setDataDelimiter) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDataDelimiter Procedure 
+FUNCTION setDataDelimiter RETURNS LOGICAL
+  ( pcDelimiter AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDataLogicObject) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDataLogicObject Procedure 
+FUNCTION setDataLogicObject RETURNS LOGICAL
+  ( phDataLogicObject AS HANDLE )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDataLogicProcedure) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDataLogicProcedure Procedure 
+FUNCTION setDataLogicProcedure RETURNS LOGICAL
+  ( pcDataLogicProcedure AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setDataModified) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDataModified Procedure 
@@ -779,6 +1021,50 @@ FUNCTION setDataQueryString RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setDataReadBuffer) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDataReadBuffer Procedure 
+FUNCTION setDataReadBuffer RETURNS LOGICAL
+  ( phBuffer AS HANDLE )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDataReadColumns) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDataReadColumns Procedure 
+FUNCTION setDataReadColumns RETURNS LOGICAL
+  ( pcColumns AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDataReadFormat) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDataReadFormat Procedure 
+FUNCTION setDataReadFormat RETURNS LOGICAL
+  ( pcFormat AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDataReadHandler) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDataReadHandler Procedure 
+FUNCTION setDataReadHandler RETURNS LOGICAL
+  ( phHandle AS HANDLE )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setDestroyStateless) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDestroyStateless Procedure 
@@ -795,6 +1081,17 @@ FUNCTION setDestroyStateless RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDisconnectAppserver Procedure 
 FUNCTION setDisconnectAppserver RETURNS LOGICAL
   (plDisconnect AS LOGICAL)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDynamicData) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDynamicData Procedure 
+FUNCTION setDynamicData RETURNS LOGICAL
+  ( plDynamic AS LOGICAL  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -878,6 +1175,50 @@ FUNCTION setIndexInformation RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setIsRowObjectExternal) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setIsRowObjectExternal Procedure 
+FUNCTION setIsRowObjectExternal RETURNS LOGICAL
+  ( plExternal AS LOGICAL)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setIsRowObjUpdExternal) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setIsRowObjUpdExternal Procedure 
+FUNCTION setIsRowObjUpdExternal RETURNS LOGICAL
+  ( plExternal AS LOGICAL)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setLastCommitErrorKeys) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setLastCommitErrorKeys Procedure 
+FUNCTION setLastCommitErrorKeys RETURNS LOGICAL
+  ( pcLastKeys AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setLastCommitErrorType) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setLastCommitErrorType Procedure 
+FUNCTION setLastCommitErrorType RETURNS LOGICAL
+  ( pcLastCommitErrorType AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setLastDbRowIdent) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setLastDbRowIdent Procedure 
@@ -938,6 +1279,50 @@ FUNCTION setManualAssignQuerySelection RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setManualSetQuerySort Procedure 
 FUNCTION setManualSetQuerySort RETURNS LOGICAL
   ( cString AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setModRowIdent) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setModRowIdent Procedure 
+FUNCTION setModRowIdent RETURNS LOGICAL
+  ( phBuffer AS HANDLE )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setModRowIdentTable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setModRowIdentTable Procedure 
+FUNCTION setModRowIdentTable RETURNS LOGICAL
+  ( phTable AS HANDLE )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setPromptColumns) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setPromptColumns Procedure 
+FUNCTION setPromptColumns RETURNS LOGICAL
+  (INPUT pcPromptColumns AS CHARACTER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setPromptOnDelete) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setPromptOnDelete Procedure 
+FUNCTION setPromptOnDelete RETURNS LOGICAL
+  (INPUT plPrompt AS LOGICAL)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1021,6 +1406,17 @@ FUNCTION setRowObjectTable RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setRowObjUpd) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setRowObjUpd Procedure 
+FUNCTION setRowObjUpd RETURNS LOGICAL
+  ( phRowObjUpd AS HANDLE )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setRowObjUpdTable) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setRowObjUpdTable Procedure 
@@ -1047,7 +1443,18 @@ FUNCTION setRowsToBatch RETURNS LOGICAL
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setServerSubmitValidation Procedure 
 FUNCTION setServerSubmitValidation RETURNS LOGICAL
-  ( plVal AS LOGICAL )  FORWARD.
+  ( plSubmit AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setTables) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setTables Procedure 
+FUNCTION setTables RETURNS LOGICAL
+  ( pcTables AS CHAR )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1105,8 +1512,8 @@ FUNCTION setUpdateSource RETURNS LOGICAL
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 14.29
-         WIDTH              = 55.2.
+         HEIGHT             = 17.71
+         WIDTH              = 53.8.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -1339,6 +1746,27 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getDataDelimiter) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataDelimiter Procedure 
+FUNCTION getDataDelimiter RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Delimiter for 'open' APIs receiveData and input-output in 
+           updateData and createData  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cDelimiter AS CHARACTER  NO-UNDO.
+  {get DataDelimiter cDelimiter}.
+  RETURN cDelimiter.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getDataFieldDefs) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataFieldDefs Procedure 
@@ -1374,6 +1802,52 @@ FUNCTION getDataHandle RETURNS HANDLE
   DEFINE VARIABLE hData AS HANDLE NO-UNDO.
   {get DataHandle hData}.
   RETURN hData.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDataLogicObject) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataLogicObject Procedure 
+FUNCTION getDataLogicObject RETURNS HANDLE
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns the handle of the logic procedure that contains business
+           logic for the data object. 
+    Notes: initializeLogicObject starts the logical object using the 
+           DataLogicProcedure property and stores its handle in this property.
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hDataLogicObject AS HANDLE     NO-UNDO.
+  {get DataLogicObject hDataLogicObject}.
+  RETURN hDataLogicObject.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDataLogicProcedure) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataLogicProcedure Procedure 
+FUNCTION getDataLogicProcedure RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns the name of the logic procedure that contains  business
+           logic for the data object 
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cDataLogicProcedure AS CHARACTER  NO-UNDO.
+  &SCOPED-DEFINE xpDataLogicProcedure
+  {get DataLogicProcedure cDataLogicProcedure}.
+  &UNDEFINE xpDataLogicProcedure    
+
+  RETURN cDataLogicProcedure.
 
 END FUNCTION.
 
@@ -1480,6 +1954,90 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getDataReadBuffer) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataReadBuffer Procedure 
+FUNCTION getDataReadBuffer RETURNS HANDLE
+  ( ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+ DEFINE VARIABLE hBuffer AS HANDLE     NO-UNDO.
+ {get DataReadBuffer hBuffer}.
+
+ RETURN hBuffer.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDataReadColumns) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataReadColumns Procedure 
+FUNCTION getDataReadColumns RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cColumns AS CHARACTER  NO-UNDO.
+  {get DataReadColumns cColumns}.
+
+  RETURN cColumns.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDataReadFormat) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataReadFormat Procedure 
+FUNCTION getDataReadFormat RETURNS CHARACTER
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Format for columns passed to receiveData and for output in 
+            updateData and createData 
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cFormat AS CHARACTER  NO-UNDO.
+  {get DataReadFormat cFormat}.
+  RETURN cFormat.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDataReadHandler) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataReadHandler Procedure 
+FUNCTION getDataReadHandler RETURNS HANDLE
+  ( ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+ DEFINE VARIABLE hHandle AS HANDLE     NO-UNDO.
+ {get DataReadHandler hHandle}.
+
+ RETURN hHandle.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getDataSignature) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataSignature Procedure 
@@ -1517,6 +2075,7 @@ FUNCTION getDataSignature RETURNS CHARACTER
   DEFINE VARIABLE hColumn    AS HANDLE    NO-UNDO.
   
   {get RowObject hRowObject}.
+  IF VALID-HANDLE(hRowObject) THEN
   DO iCol = 1 TO hRowObject:NUM-FIELDS:
     hColumn = hRowObject:BUFFER-FIELD(iCol).
     cDataType = hColumn:DATA-TYPE.
@@ -1561,12 +2120,17 @@ Parameters:  <none>
   DEFINE VARIABLE cAsDivision AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cContAsdiv  AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hContainer  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lQueryObject AS LOGICAL   NO-UNDO.
 
   cDBNames = SUPER().  
   IF cDBNames = ? THEN
   DO: 
     {get ContainerSource hContainer}.
-    {get ASDivision cContASDiv hContainer} NO-ERROR.
+    /* Only use ASDivision from query containers, where its value is consistent. IZ 4319 */
+    {get queryObject lQueryObject hContainer} NO-ERROR.
+    IF lQueryObject THEN
+      {get ASDivision cContASDiv hContainer} NO-ERROR.
+
     IF cContASDiv = 'Client':U THEN
        RUN startServerObject IN hContainer.
     ELSE DO:
@@ -1636,6 +2200,27 @@ FUNCTION getDisconnectAppServer RETURNS LOGICAL
   DEFINE VARIABLE lDisconnect AS LOGICAL NO-UNDO.
   {get DisconnectAppServer lDisconnect}.
   RETURN lDisconnect.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDynamicData) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDynamicData Procedure 
+FUNCTION getDynamicData RETURNS LOGICAL
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns true if this dataobject is using dynamic defined temp-tables  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lDynamic AS LOGICAL    NO-UNDO.
+  {get DynamicData lDynamic}.
+
+  RETURN lDynamic.
 
 END FUNCTION.
 
@@ -1754,6 +2339,46 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getForeignFieldsContainer) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getForeignFieldsContainer Procedure 
+FUNCTION getForeignFieldsContainer RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE cObjectName     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cCurrField      AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cForFields      AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE hSource         AS HANDLE     NO-UNDO.
+DEFINE VARIABLE iCol            AS INTEGER    NO-UNDO.
+DEFINE VARIABLE cObjectFF       AS CHARACTER  NO-UNDO.
+
+  {get ContainerSource hSource}.
+  {get ForeignFields cForFields hSource}.
+
+  /* Check that the foreign field referenced is contained within this SDO */
+  {get ObjectName cObjectName}.
+
+  DO iCol = 1 TO NUM-ENTRIES(cForFields) BY 2:
+    cCurrField = ENTRY(iCol, cForFields).
+    IF NUM-ENTRIES(cCurrField,".") > 1 
+        AND ENTRY(1,cCurrField, ".":U) = cObjectName THEN
+      cObjectFF = cObjectFF + (IF cObjectFF = "" THEN "" ELSE ",") + 
+                  cCurrField + "," + ENTRY(iCol + 1, cForFields).
+  END.
+
+  /* no FF match our Object Name */
+  RETURN cObjectFF. 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getForeignValues) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getForeignValues Procedure 
@@ -1785,7 +2410,6 @@ FUNCTION getHasNewRow RETURNS LOGICAL
     Notes:  
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hTable      AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE hQuery      AS HANDLE    NO-UNDO.
   DEFINE VARIABLE hBuffer     AS HANDLE    NO-UNDO.
   DEFINE VARIABLE lHasNewRow  AS LOGICAL    NO-UNDO.
 
@@ -1794,15 +2418,9 @@ FUNCTION getHasNewRow RETURNS LOGICAL
   IF NOT VALID-HANDLE(hTable) THEN
     RETURN FALSE.
 
-  CREATE BUFFER hBuffer FOR TABLE hTable BUFFER-NAME "bufRowObjUpd".
-  CREATE QUERY hQuery. 
-  hQuery:SET-BUFFERS(hBuffer).
-  hQuery:QUERY-PREPARE("for each bufRowObjUpd where RowMod = 'A' or RowMod = 'C'").
-  hQuery:QUERY-OPEN().
-  hQuery:GET-FIRST().
-  
+  CREATE BUFFER hBuffer FOR TABLE hTable.
+  hBuffer:FIND-FIRST("WHERE RowMod = 'A' or RowMod = 'C'":U) NO-ERROR.
   lHasNewRow = hBuffer:AVAILABLE.
-  DELETE OBJECT hQuery.
   DELETE OBJECT hBuffer.
 
   RETURN lHasNewRow.
@@ -1848,15 +2466,20 @@ FUNCTION getIndexInformation RETURNS CHARACTER
   DEFINE VARIABLE cContAsDiv    AS CHAR   NO-UNDO.
   DEFINE VARIABLE hAppServer    AS HANDLE NO-UNDO.
   DEFINE VARIABLE hContainer    AS HANDLE NO-UNDO.
+  DEFINE VARIABLE lQueryObject  AS LOGICAL NO-UNDO.
 
   &SCOPED-DEFINE xpIndexInformation
   {get IndexInformation cInfo}.
   &UNDEFINE xpIndexInformation
   
-  IF cInfo = ? THEN
+  IF cInfo = ? OR cInfo = '':U THEN
   DO:
     {get ContainerSource hContainer}.
-    {get ASDivision cContASDiv hContainer} NO-ERROR.
+    /* Only use ASDivision from query containers, where its value is consistent. IZ 4319 */
+    {get queryObject lQueryObject hContainer} NO-ERROR.
+    IF lQueryObject THEN
+      {get ASDivision cContASDiv hContainer} NO-ERROR.
+   
     IF cContASDiv = 'Client':U THEN
        RUN startServerObject IN hContainer.
     
@@ -1890,7 +2513,6 @@ FUNCTION getIndexInformation RETURNS CHARACTER
                                'Info':U, /* all info */
                                'yes',    /* table separator */
                                ?).       /* Use query data */
-      
       {get Tables cTableList}.
 
       /* Replace database fieldname with DataColumName */ 
@@ -1918,7 +2540,7 @@ FUNCTION getIndexInformation RETURNS CHARACTER
     /* Store it for next time */
     {set IndexInformation cInfo}.
 
-  END. /* if cInfo = ? */
+  END. /* if cInfo = ? or cInfo = '' */
   
   RETURN cInfo.
 
@@ -1949,6 +2571,47 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getIsRowObjectExternal) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getIsRowObjectExternal Procedure 
+FUNCTION getIsRowObjectExternal RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lVar AS LOGICAL NO-UNDO.
+  {get IsRowObjectExternal lVar}.
+  RETURN lVar.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getIsRowObjUpdExternal) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getIsRowObjUpdExternal Procedure 
+FUNCTION getIsRowObjUpdExternal RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Indicates that the rowObjUpd table has been passed from 
+           somewhere else (usually the client)   
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lExternal AS LOGICAL NO-UNDO.
+  {get IsRowObjUpdExternal lExternal}.
+  RETURN lExternal.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getKeyTableId) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getKeyTableId Procedure 
@@ -1966,13 +2629,18 @@ FUNCTION getKeyTableId RETURNS CHARACTER
   DEFINE VARIABLE cASDivision   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cCOntAsDiv    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hContainer    AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lQueryObject  AS LOGICAL    NO-UNDO.
   
   cKeyTableId = SUPER().
   
   IF cKeyTableId = "":U THEN
   DO:
     {get ContainerSource hContainer}.
-    {get ASDivision cContASDiv hContainer} NO-ERROR.
+    /* Only use ASDivision from query containers, where its value is consistent. IZ 4319 */
+    {get queryObject lQueryObject hContainer} NO-ERROR.
+    IF lQueryObject THEN
+      {get ASDivision cContASDiv hContainer} NO-ERROR.
+
     IF cContASDiv = 'Client':U THEN
       RUN startServerObject IN hContainer.
     ELSE DO:
@@ -2005,6 +2673,56 @@ FUNCTION getKeyTableId RETURNS CHARACTER
   
   RETURN cKeyTableId.
       
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getLastCommitErrorKeys) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getLastCommitErrorKeys Procedure 
+FUNCTION getLastCommitErrorKeys RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns a list of key values separated by 'DataDelimiter' identifying
+           the records that fail to be committed on the last time data was committed.
+           Blank  - indicates that the last commit was successful, 
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cLastCommitErrorKeys AS CHARACTER  NO-UNDO.
+  
+  {get LastCommitErrorKeys cLastCommitErrorKeys}.
+
+  RETURN cLastCommitErrorKeys. 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getLastCommitErrorType) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getLastCommitErrorType Procedure 
+FUNCTION getLastCommitErrorType RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns the type of error encountered the last time data was committed.
+           Blank  - indicates that the last commit was successful, 
+           unknown - indicates that a commit never has been attempted after run
+           Conflict - Locking conflict
+           Error    - Unspecified 
+    Notes: Currently used to identify a Conflict error after having used the 
+           UpdateData API. More types may be added later.   
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cLastCommitErrorType AS CHARACTER  NO-UNDO.
+  
+  {get LastCommitErrorType cLastCommitErrorType}.
+
+  RETURN cLastCommitErrorType. 
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2113,6 +2831,46 @@ FUNCTION getManualSetQuerySort RETURNS CHARACTER
     DEFINE VARIABLE cString AS CHARACTER NO-UNDO.
     {get ManualSetQuerySort cString}.
     RETURN cString.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getModRowIdent) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getModRowIdent Procedure 
+FUNCTION getModRowIdent RETURNS HANDLE
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hBuffer AS HANDLE     NO-UNDO.
+  {get ModRowIdent hBuffer}.
+  RETURN hBuffer.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getModRowIdentTable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getModRowIdentTable Procedure 
+FUNCTION getModRowIdentTable RETURNS HANDLE
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hTable AS HANDLE     NO-UNDO.
+  {get ModRowIdent hTable}.
+  RETURN hTable.
 
 END FUNCTION.
 
@@ -2231,16 +2989,21 @@ FUNCTION getOpenQuery RETURNS CHARACTER
                a client-side SDO proxy or dynamic SDO, so if it's defined,
                just use the local value; otherwise ask the server-side SDO.
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cQuery      AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE hAppServer  AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE cASDivision AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE hContainer  AS HANDLE     NO-UNDO.
- 
+  DEFINE VARIABLE cQuery        AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE hAppServer    AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE cASDivision   AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE hContainer    AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE lQueryObject  AS LOGICAL   NO-UNDO.
+  
   cQuery = SUPER().
   IF cQuery = "":U THEN
   DO:
      {get ContainerSource hContainer}.
-     {get ASDivision cASDivision hContainer} NO-ERROR.
+     /* Only use ASDivision from query containers, where its value is consistent. IZ 4319 */
+     {get queryObject lQueryObject hContainer} NO-ERROR.
+     IF lQueryObject THEN
+       {get ASDivision cASDivision hContainer} NO-ERROR.
+       
      /* If we're on the client inside of a container then the container 
         haven't return this property from the appserver yet. */
      IF cASDivision = 'Client':U THEN
@@ -2275,6 +3038,54 @@ FUNCTION getOpenQuery RETURNS CHARACTER
   
   RETURN cQuery.
       
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getPromptColumns) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getPromptColumns Procedure 
+FUNCTION getPromptColumns RETURNS CHARACTER
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Return a list of field values when prompting for a delete action
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cPromptColumns AS CHARACTER  NO-UNDO.
+
+  &SCOPED-DEFINE xpPromptColumns
+  {get PromptColumns cPromptColumns}.
+  &UNDEFINE xpPromptColumns
+  IF cPromptColumns = '':U THEN
+    cPromptColumns = (IF VALID-HANDLE(gshSessionManager) THEN
+                       '(ALL)':U
+                     ELSE
+                       '(NONE)').
+  RETURN cPromptColumns.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getPromptOnDelete) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getPromptOnDelete Procedure 
+FUNCTION getPromptOnDelete RETURNS LOGICAL
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Is the user to be prompted before a delete action executes?
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lPrompt AS LOGICAL    NO-UNDO.
+  {get PromptOnDelete lPrompt}.
+  RETURN lPrompt.   /* Function return value. */
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2319,6 +3130,45 @@ Parameter:
   DEFINE VARIABLE cQueryContext AS CHARACTER  NO-UNDO.
   {get QueryContext cQueryContext}.
   RETURN cQueryContext.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getQueryOpen) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getQueryOpen Procedure 
+FUNCTION getQueryOpen RETURNS LOGICAL
+  (  ) :
+/*------------------------------------------------------------------------------
+    Purpose:  Returns TRUE if the Query is currently open.
+ Parameters:  <none>
+      Notes:  Overrides query to resolve this on the client when this is 
+              not the server side object.
+           -  The need to check the rowobject query is important for the case 
+              when it is 'client'. 
+           -  From the dataobject's perspective the server side query is less 
+              important as an object state, but the Database query is open a 
+              (little) while before the rowObject query, so it is still checked 
+              in that case. 
+ ----------------------------------------------------------------------------*/    
+  DEFINE VARIABLE hDataQuery  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cAsDivision AS CHARACTER  NO-UNDO.
+
+  {get AsDivision cAsDivision}.
+
+  IF cAsDivision = 'Client':U THEN
+  DO:
+    {get DataHandle hDataQuery}.
+    RETURN IF NOT VALID-HANDLE(hDataQuery) 
+           THEN NO 
+           ELSE hDataQuery:IS-OPEN.   
+  END.
+  ELSE 
+    RETURN SUPER(). 
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2407,10 +3257,10 @@ FUNCTION getQueryWhere RETURNS CHARACTER
           /* We store the query locally for next time for stateless SDOs */
           IF cOperatingMode = 'STATELESS':U THEN
           DO:
-            {set QueryContext cQuery}.
             /* unbind if this call did the bind (getASHandle) */
             RUN unbindServer IN TARGET-PROCEDURE (?). 
           END.
+          {set QueryContext cQuery}.
         END. /* valid appServer */
       END.
     END.  /* IF QueryWhere not yet defined locally. */
@@ -2722,6 +3572,28 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getUseStaticOnFetch) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getUseStaticOnFetch Procedure 
+FUNCTION getUseStaticOnFetch RETURNS LOGICAL
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose: Indicates that server fetch must use the static TT. 
+    Notes: This is required when there are code that sets data in the static 
+           RowObject table during the fetch operation. This is true if the 
+           SDO has a default calculated field.
+           It could also need to be set to true if there are overrides in any of
+           the fetch event procedures, like sendRows and transferDbRow.        
+------------------------------------------------------------------------------*/
+  RETURN CAN-DO(TARGET-PROCEDURE:INTERNAL-ENTRIES,'Data.Calculate':U). 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getWordIndexedFields) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getWordIndexedFields Procedure 
@@ -2965,6 +3837,75 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setDataDelimiter) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDataDelimiter Procedure 
+FUNCTION setDataDelimiter RETURNS LOGICAL
+  ( pcDelimiter AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose: Delimiter for values passed to receiveData and output for the 
+           input-output in updateData and createData  
+    Notes:  
+------------------------------------------------------------------------------*/
+  {set DataDelimiter pcDelimiter}.
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDataLogicObject) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDataLogicObject Procedure 
+FUNCTION setDataLogicObject RETURNS LOGICAL
+  ( phDataLogicObject AS HANDLE ) :
+/*------------------------------------------------------------------------------
+  Purpose: Set the handle of the logic procedure that contains business
+           logic for the data object. 
+    Notes: initializeLogicObject starts the logical object using the 
+           DataLogicProcedure properrty and stores its handle in this property.
+------------------------------------------------------------------------------*/
+  {set DataLogicObject phDataLogicObject}.
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDataLogicProcedure) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDataLogicProcedure Procedure 
+FUNCTION setDataLogicProcedure RETURNS LOGICAL
+  ( pcDataLogicProcedure AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose: Set the name of the logic procedure that contains business logic for 
+           the data object. 
+    Notes:  
+------------------------------------------------------------------------------*/  
+  
+  IF pcDataLogicProcedure > '':U THEN     
+  DO:
+    &SCOPED-DEFINE xpDataLogicProcedure
+    {set DataLogicProcedure pcDataLogicProcedure}.
+    &UNDEFINE xpDataLogicProcedure    
+    /* Add the datalogic procedure as a super  */
+    RUN initializeLogicObject IN TARGET-PROCEDURE.
+  END.
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setDataModified) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDataModified Procedure 
@@ -3010,7 +3951,7 @@ FUNCTION setDataQueryBrowsed RETURNS LOGICAL
   
   /* If the flag is already set, return false. */
   ASSIGN ghProp = WIDGET-HANDLE(ENTRY(1, TARGET-PROCEDURE:ADM-DATA, CHR(1)))
-         ghProp = ghProp:BUFFER-FIELD('DataQueryBrowsed':U).
+         ghProp = ghProp:BUFFER-FIELD('DataQueryBrowsed':U) NO-ERROR.
          
   IF plBrowsed THEN
   DO:
@@ -3019,7 +3960,7 @@ FUNCTION setDataQueryBrowsed RETURNS LOGICAL
       RETURN FALSE.
   END.   /* END DO IF plBrowsed */
  
-  ASSIGN ghProp:BUFFER-VALUE = plBrowsed.
+  ASSIGN ghProp:BUFFER-VALUE = plBrowsed NO-ERROR.
  
   RETURN TRUE.
 
@@ -3046,6 +3987,83 @@ FUNCTION setDataQueryString RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
   {set DataQueryString pcQueryString}.
   RETURN TRUE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDataReadBuffer) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDataReadBuffer Procedure 
+FUNCTION setDataReadBuffer RETURNS LOGICAL
+  ( phBuffer AS HANDLE ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  {set DataReadBuffer phBuffer}.
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDataReadColumns) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDataReadColumns Procedure 
+FUNCTION setDataReadColumns RETURNS LOGICAL
+  ( pcColumns AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  {set DataReadColumns pcColumns}.
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDataReadFormat) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDataReadFormat Procedure 
+FUNCTION setDataReadFormat RETURNS LOGICAL
+  ( pcFormat AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Format for columns passed to receiveData and for output in 
+            updateData and createData 
+    Notes:  
+------------------------------------------------------------------------------*/
+  {set DataReadFormat pcFormat}.
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDataReadHandler) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDataReadHandler Procedure 
+FUNCTION setDataReadHandler RETURNS LOGICAL
+  ( phHandle AS HANDLE ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  {set DataReadHandler phHandle}.
+  RETURN TRUE.
 
 END FUNCTION.
 
@@ -3085,6 +4103,26 @@ FUNCTION setDisconnectAppserver RETURNS LOGICAL
   {set DisconnectAppServer plDisconnect}.
   RETURN TRUE.
   
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDynamicData) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDynamicData Procedure 
+FUNCTION setDynamicData RETURNS LOGICAL
+  ( plDynamic AS LOGICAL  ) :
+/*------------------------------------------------------------------------------
+  Purpose: Set to true if this dataobject is using dynamic defined temp-tables  
+    Notes: This should only be set by the data object itself  
+------------------------------------------------------------------------------*/
+  {set DynamicData plDynamic}.
+  
+  RETURN TRUE.   
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -3229,6 +4267,93 @@ FUNCTION setIndexInformation RETURNS LOGICAL
   &UNDEFINE xpIndexInformation
  
   RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setIsRowObjectExternal) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setIsRowObjectExternal Procedure 
+FUNCTION setIsRowObjectExternal RETURNS LOGICAL
+  ( plExternal AS LOGICAL) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  {set IsRowObjectExternal plExternal}.
+  
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setIsRowObjUpdExternal) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setIsRowObjUpdExternal Procedure 
+FUNCTION setIsRowObjUpdExternal RETURNS LOGICAL
+  ( plExternal AS LOGICAL) :
+/*------------------------------------------------------------------------------
+  Purpose: Indicates that the rowObjUpd table has been passed from 
+           somewhere else (usually the client)   
+    Notes:  
+------------------------------------------------------------------------------*/
+  {set IsRowObjUpdExternal plExternal}.
+  
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setLastCommitErrorKeys) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setLastCommitErrorKeys Procedure 
+FUNCTION setLastCommitErrorKeys RETURNS LOGICAL
+  ( pcLastKeys AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose: Sets a list of key values separated by 'DataDelimiter' identifying
+           the records that fail to be committed on the last time data was committed.
+           Blank  - indicates that the last commit was successful, 
+------------------------------------------------------------------------------*/
+
+  {set LastCommitErrorKeys pcLastKeys}.
+
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setLastCommitErrorType) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setLastCommitErrorType Procedure 
+FUNCTION setLastCommitErrorType RETURNS LOGICAL
+  ( pcLastCommitErrorType AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose: Set the type of error encountered the last time data was committed.
+           Conflict - Locking conflict
+           Error    - Unspecified 
+    Notes: Currently used to identify a Conflict error after having used the 
+           UpdateData API. More types may be added later.   
+        -  This should only be set by data.p commit() 
+------------------------------------------------------------------------------*/
+
+  {set LastCommitErrorType pcLastCommitErrorType}.
+  RETURN TRUE. 
 
 END FUNCTION.
 
@@ -3420,6 +4545,96 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setModRowIdent) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setModRowIdent Procedure 
+FUNCTION setModRowIdent RETURNS LOGICAL
+  ( phBuffer AS HANDLE ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  {set ModRowIdent phBuffer}.
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setModRowIdentTable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setModRowIdentTable Procedure 
+FUNCTION setModRowIdentTable RETURNS LOGICAL
+  ( phTable AS HANDLE ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  {set ModRowidentTable phTable}.
+
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setPromptColumns) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setPromptColumns Procedure 
+FUNCTION setPromptColumns RETURNS LOGICAL
+  (INPUT pcPromptColumns AS CHARACTER) :
+/*------------------------------------------------------------------------------
+  Purpose:  To set the a list of field values to display when prompted by
+            a dialog box.  This is initially being used by confirmDelete
+            in datavis.p
+    Notes:  
+    
+          Values:
+          '(NONE)'    - This is the default for security reasons.
+          '(ALL)'     - All columns in the SDO.
+          'fieldlist' - A comma delimited list of field names
+          
+    
+------------------------------------------------------------------------------*/
+  &SCOPED-DEFINE xpPromptColumns
+  {set PromptColumns pcPromptColumns}.
+  &UNDEFINE xpPromptColumns
+  
+  RETURN YES.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setPromptOnDelete) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setPromptOnDelete Procedure 
+FUNCTION setPromptOnDelete RETURNS LOGICAL
+  (INPUT plPrompt AS LOGICAL) :
+/*------------------------------------------------------------------------------
+  Purpose: Used to set whether or not the user is to be prompted 
+           for a delete action to execute
+    Notes:     
+------------------------------------------------------------------------------*/
+  {set PromptOnDelete plPrompt}.
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setQueryContext) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setQueryContext Procedure 
@@ -3471,59 +4686,64 @@ END FUNCTION.
 FUNCTION setQueryWhere RETURNS LOGICAL
   (pcWhere AS CHAR) :
 /*------------------------------------------------------------------------------
-  Purpose:     
+     Purpose:     
   Parameters:  <none>
-  Notes:       (See getOpenQuery for the original where clause.)
-               The Where clause is stored locally on the client for stateless 
-               SDOs and SDOs within SBOs. 
-               In stateless mode restartServerObject will pass it as part 
-               of the context.  
-------------------------------------------------------------------------------*/
+       Notes:  (See getOpenQuery for the original where clause.)
+               The Where clause is stored locally on the client
+           -   From 9.1D02 this is done also for state-aware objects since 
+               the context always is passed to the server in all data requests.               
+ ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cQueryWhere     AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cOperatingMode  AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cAsDivision     AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE hContainer      AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE lOk             AS LOGICAL   NO-UNDO. 
-  DEFINE VARIABLE lQueryContainer AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE lAsBound        AS LOGICAL   NO-UNDO.
-
-  {get AsDivision cAsDivision}.
-
-  IF cAsDivision = 'CLIENT':U THEN 
-  DO:
-    {get ContainerSource hContainer}.      
-    {get serverOperatingMode cOperatingMode}.
-    IF VALID-HANDLE(hContainer) THEN
-    DO:
-      {get QueryObject lQueryContainer hContainer}.
-      /* If SBO container and not stateless, check if container is stateless*/
-      IF lQueryContainer THEN
-         {get serverOperatingMode cOperatingMode hContainer}.
-    END. /* valid container */
-    
-    /* 
-    If 'client' and operatingmode is 'none' then we are most likely not 
-    bound yet and can use queryContext even for stateaware connections 
-    as the first connection have not yet happened and will be similar to 
-    a stateless one and pass queryContext as   */ 
-    lAsBound = ?. 
-    IF cOperatingMode = 'NONE':U OR cOperatingMode = '':U THEN
-      {get AsBound lAsBound}.
-
-    /* We store the query locally for stateless as restartServerObject will 
-       pass it, and we always store it locally for SBOs */
-    IF lAsBound = FALSE OR cOperatingMode = 'STATELESS':U OR lQueryContainer THEN
-    DO:
-      cQueryWhere = {fnarg newQueryWhere pcWhere}.
-      
-      IF cQueryWhere <> ? THEN
-        {set QueryContext cQueryWhere}.
-      
-      RETURN cQueryWhere <> ?.
-    END. /* If Stateless */
-  END. /* client */
+  DEFINE VARIABLE iField          AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cLocalFields    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cForeignFields  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSourceFields   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cValues         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lOK             AS LOGICAL  NO-UNDO.
   
-  RETURN SUPER(pcWhere).
+  {get AsDivision cAsDivision}.
+  IF cAsDivision = 'CLIENT':U THEN DO:
+    cQueryWhere = {fnarg newQueryWhere pcWhere}.
+    /* Store the query locally */     
+    IF cQueryWhere <> ? THEN
+      {set QueryContext cQueryWhere}.
+
+    lOK = cQueryWhere <> ?.
+  END. /* client */
+  ELSE
+    lOK = SUPER(pcWhere).
+
+  /* apply foreign field values if they exist (issue 8056) */
+  IF cAsDivision <> 'SERVER' THEN DO:
+    {get ForeignFields cForeignFields}.
+    IF cForeignFields > "" AND cForeignFields <> ? THEN DO:
+      {get ForeignValues cValues}.
+      IF cValues <> ? THEN
+      DO:
+        DO iField = 1 TO NUM-ENTRIES(cForeignFields) BY 2:
+          cLocalFields = cLocalFields +  /* 1st of each pair is local db query fld  */
+          (IF cLocalFields NE "":U THEN ",":U ELSE "":U) +
+            ENTRY(iField, cForeignFields).
+          cSourceFields = cSourceFields +   /* 2nd of pair is source RowObject fld */
+          (IF cSourceFields NE "":U THEN ",":U ELSE "":U) +
+            ENTRY(iField + 1, cForeignFields).
+        END.
+        lOK = DYNAMIC-FUNCTION("assignQuerySelection":U IN TARGET-PROCEDURE,
+                          cLocalFields,
+                          cValues,
+                          '':U).
+        IF cAsDivision = 'CLIENT' THEN
+        DO:
+          cQueryWhere = {fn getQueryString}.  /* this version now includes FF */
+          IF cQueryWhere <> ? THEN
+            {set QueryContext cQueryWhere}.
+        END.
+      END.
+    END.
+  END.
+
+  RETURN lOK.
 
 END FUNCTION.
 
@@ -3628,30 +4848,45 @@ FUNCTION setRowObjectTable RETURNS LOGICAL
            RowObject and DataHandle if it is unknown or different.
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cQueryString AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE hRowobject   AS HANDLE NO-UNDO.
-  DEFINE VARIABLE hDataHandle  AS HANDLE NO-UNDO.
-  
-  {get RowObject hRowObject}.    /* Existing temp-table buffer. */
-  
-  /* We ensure that query and buffer handle properties is correct also */
-  IF NOT VALID-HANDLE(hRowObject) 
-  OR hRowObject <> phTable:DEFAULT-BUFFER-HANDLE THEN
-  DO:
-    {set RowObject phTable:DEFAULT-BUFFER-HANDLE}. /* Point to new buffer. */    
-    {get DataHandle hDataHandle}.  /* Query handle */
-    
-    DELETE OBJECT hDataHandle NO-ERROR.  
-    DELETE OBJECT hRowObject  NO-ERROR. 
+  DEFINE VARIABLE hRowobject   AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE hDataHandle  AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE cDefs        AS CHAR      NO-UNDO.
 
-    CREATE QUERY hDataHandle.
-    {set DataHandle hDataHandle}.
+  /* Support non-persistent callers that want to return the TT directly
+     The TT will be prepared in 
+      initializeObject -> createObjects -> (defineTempTables) or (prepareRowObject). */ 
+  IF phTable:PREPARED = FALSE THEN
+  DO:
+    {set IsRowObjectExternal TRUE}.
+    {get DataFieldDefs cDefs}.
+    /* if a static TT recieves an unprepared we prepare the new TT from
+       the old one immediately */
+    IF cDefs > '':U THEN
+      {fnarg prepareRowObject phTable}.
+  END.
+  ELSE DO:
+    {get RowObject hRowObject}.    /* Existing temp-table buffer. */
     
-    /* Something should be done with the ghDataQuery variable in data.i  */ 
-    hDataHandle:SET-BUFFERS(phTable:DEFAULT-BUFFER-HANDLE).
-    {get DataQueryString cQueryString}.
-                              /* Fix european format issues */
-    hDataHandle:QUERY-PREPARE({fnarg fixQueryString cQueryString}).
-  END. /* not valid hRowObject */
+    /* We ensure that query and buffer handle properties is correct also */
+    IF NOT VALID-HANDLE(hRowObject) 
+    OR hRowObject <> phTable:DEFAULT-BUFFER-HANDLE THEN
+    DO:
+      {set RowObject phTable:DEFAULT-BUFFER-HANDLE}. /* Point to new buffer. */    
+      {get DataHandle hDataHandle}.  /* Query handle */
+      
+      DELETE OBJECT hDataHandle NO-ERROR.  
+      DELETE OBJECT hRowObject  NO-ERROR. 
+  
+      CREATE QUERY hDataHandle.
+      {set DataHandle hDataHandle}.
+      
+      /* Something should be done with the ghDataQuery variable in data.i  */ 
+      hDataHandle:SET-BUFFERS(phTable:DEFAULT-BUFFER-HANDLE).
+      {get DataQueryString cQueryString}.
+                                /* Fix european format issues */
+      hDataHandle:QUERY-PREPARE({fnarg fixQueryString cQueryString}).
+    END. /* not valid hRowObject */
+  END.
 
   &SCOPED-DEFINE xpRowObjectTable
   {set RowObjectTable phTable}.
@@ -3659,6 +4894,24 @@ FUNCTION setRowObjectTable RETURNS LOGICAL
   
   RETURN TRUE.
 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setRowObjUpd) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setRowObjUpd Procedure 
+FUNCTION setRowObjUpd RETURNS LOGICAL
+  ( phRowObjUpd AS HANDLE ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  {set RowObjUpd phRowObjUpd}.
+  RETURN TRUE.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -3677,22 +4930,36 @@ FUNCTION setRowObjUpdTable RETURNS LOGICAL
       Notes: This is the handle to the temp-table itself, not its buffer.
              Supports dynamic SDO (not valid RowObject) by also setting 
              RowObject and DataHandle if it is unknown or different.
+          -  setting the TT before initialization marks it as external, 
+             IsRowObjUpdExternal, which ensures that it wont be created during 
+             initialization 
 ------------------------------------------------------------------------------*/
-  
- DEFINE VARIABLE hRowobjUpd   AS HANDLE NO-UNDO.
+ DEFINE VARIABLE hRowobjUpd   AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE hBuffer      AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE lInitialized AS LOGICAL    NO-UNDO.
+
  {get RowObjUpd hRowObjUpd}.    /* Existing temp-table buffer. */
   
- /* We ensure that query and buffer handle properties is correct also */
+ /* We ensure that buffer property is correct also.     
+    Note: we used to also delete the old RowObjUpd, but that caused
+    problems running locally with an SBO as it corrupted the  
+    default-buffer-handle of the caller. 
+    The RowObjUpd TT should/is deleted when required so the buffer delete
+    is not needed here */
  IF NOT VALID-HANDLE(hRowObjUpd) 
  OR hRowObjUpd <> phTable:DEFAULT-BUFFER-HANDLE THEN
- DO:
    {set RowObjUpd phTable:DEFAULT-BUFFER-HANDLE}. /* Point to new buffer. */    
-   DELETE OBJECT hRowObjUpd  NO-ERROR. 
- END.
+ 
  &SCOPED-DEFINE xpRowObjUpdTable
  {set RowObjUpdTable phTable}.
  &UNDEFINE xpRowObjUpdTable  
  
+ /* If the TT is set before initialization mark it as external, so 
+    it wont be created during initialization */
+ {get ObjectInitialized lInitialized}.
+ IF NOT lInitialized THEN
+   {set IsRowObjUpdExternal TRUE}.
+
  RETURN TRUE.
 
 END FUNCTION.
@@ -3732,7 +4999,7 @@ END FUNCTION.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setServerSubmitValidation Procedure 
 FUNCTION setServerSubmitValidation RETURNS LOGICAL
-  ( plVal AS LOGICAL ) :
+  ( plSubmit AS LOGICAL ) :
 /*------------------------------------------------------------------------------
   Purpose:  Sets the value of the property which signals whether the
             column and RowObject Validation procedures done as part of
@@ -3742,22 +5009,60 @@ FUNCTION setServerSubmitValidation RETURNS LOGICAL
             should set it to *yes*, either in the SDO itself or at runtime.
             If it is *no* when serverCommit executes, then serverCommit 
             will execute SubmitValidation itself.
-   Params:  plVal AS LOGICAL  -- yes if client validation should be executed
+   Params:  plSubmit AS LOGICAL  -- yes if client validation should be executed
               in the server SDO.
    Notes:   As a security measure, if the property has been set to *yes*,
             it cannot be reset to *no*.
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE lVal AS LOGICAL NO-UNDO.
+  DEFINE VARIABLE lCurrentValue AS LOGICAL NO-UNDO.
   
-  {get ServerSubmitValidation lVal}.
-  IF lVal = YES THEN
-    RETURN plVal.   /* Cannot be reset from yes value to no. */
-  ELSE DO:
-    &SCOPED-DEFINE xpServerSubmitValidation
-    {set ServerSubmitValidation lVal}.
-    &UNDEFINE xpServerSubmitValidation
-    RETURN TRUE.      /* signal that the property was reset successfully. */
+  /* Cannot be set to NO */
+  IF plSubmit = NO THEN
+  DO:
+    {get ServerSubmitValidation lCurrentValue}.
+    IF lCurrentValue = YES THEN
+      RETURN FALSE. 
   END.
+  
+  &SCOPED-DEFINE xpServerSubmitValidation
+  {set ServerSubmitValidation plSubmit}.
+  &UNDEFINE xpServerSubmitValidation
+  
+  RETURN TRUE.  /* signal that the property was reset successfully. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setTables) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setTables Procedure 
+FUNCTION setTables RETURNS LOGICAL
+  ( pcTables AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cAsDivision AS CHARACTER  NO-UNDO.
+
+  IF pcTables = '':U THEN
+    RETURN FALSE.
+
+  {get AsDivision cAsDivision}.
+
+  IF cAsDivision = 'CLIENT':U THEN     
+    &SCOPED-DEFINE xpTables
+    {set Tables pcTables}.
+    &UNDEFINE xpTables    
+  
+  ELSE 
+     RETURN SUPER(pcTables).
+        
+    
+  RETURN FALSE.   /* Function return value. */
 
 END FUNCTION.
 

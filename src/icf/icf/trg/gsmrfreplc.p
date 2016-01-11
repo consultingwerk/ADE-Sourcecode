@@ -23,11 +23,6 @@
 *********************************************************************/
 TRIGGER PROCEDURE FOR REPLICATION-CREATE OF gsm_report_format.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "gsm_report_format"
-                      &TRIGGER-TYPE = "REPLICATION-CREATE"}
-
 {af/sup/afreplicat.i  &TABLE-NAME   = "gsm_report_format"
                       &TABLE-FLA    = "gsmrf"
                       &TABLE-PK     = "report_definition_obj,

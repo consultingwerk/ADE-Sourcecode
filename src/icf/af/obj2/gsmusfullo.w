@@ -126,6 +126,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -163,7 +164,7 @@ development_user
  update_password_history check_password_history last_login_date~
  last_login_time language_obj language_code disabled password_expiry_days~
  maintain_system_data default_login_company_obj user_email_address~
- development_user
+ development_user oldPasswordExpiryDate
 &Scoped-define DATA-FIELDS-IN-gsm_user user_obj user_category_obj ~
 user_full_name user_login_name user_creation_date user_creation_time ~
 profile_user created_from_profile_user_obj external_userid user_password ~
@@ -304,7 +305,7 @@ END.
      _FldNameList[2]   > "_<CALC>"
 "STRING(RowObject.user_password)" "confirm_password" "Confirm Password" "x(35)" "character" ? ? ? ? ? ? yes ? no 35 no
      _FldNameList[3]   > "_<CALC>"
-"getProfileUser()" "c_profile_user" "Profile User" "x(15)" "character" ? ? ? ? ? ? no ? no 15 no
+"getProfileUser()" "c_profile_user" "Based on Profile" "x(15)" "character" ? ? ? ? ? ? no ? no 15 no
      _FldNameList[4]   > "_<CALC>"
 "STRING(RowObject.user_creation_time,""HH:MM:SS"":U)" "fmt_user_create_time" "User Creation Time" "x(8)" "character" ? ? ? ? ? ? no ? no 8 no
      _FldNameList[5]   > "_<CALC>"
@@ -377,6 +378,8 @@ END.
 "user_email_address" "user_email_address" ? ? "character" ? ? ? ? ? ? yes ? no 70 no
      _FldNameList[39]   > ICFDB.gsm_user.development_user
 "development_user" "development_user" ? ? "logical" ? ? ? ? ? ? yes ? no 1 no
+     _FldNameList[40]   > "_<CALC>"
+"RowObject.password_expiry_date" "oldPasswordExpiryDate" ? "99/99/9999" "Date" ? ? ? ? ? ? no ? no 3.4 no
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
@@ -416,6 +419,7 @@ PROCEDURE DATA.CALCULATE :
          rowObject.fmt_password_fail_time = (STRING(RowObject.password_fail_time,"HH:MM:SS":U))
          rowObject.fmt_user_create_time = (STRING(RowObject.user_creation_time,"HH:MM:SS":U))
          rowObject.fmt_user_login_time = (STRING(RowObject.last_login_time,"HH:MM:SS":U))
+         rowObject.oldPasswordExpiryDate = (RowObject.password_expiry_date)
       .
 
 END PROCEDURE.

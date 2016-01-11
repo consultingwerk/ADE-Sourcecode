@@ -9,13 +9,6 @@
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Astra 2 Static SmartDataField Wizard" sObject _INLINE
-/* Actions: af/cod/aftemwizcw.w ? ? ? af/sup/afwizdeltp.p */
-/* Astra 2 Static SmartDataField Wizard
-Destroy on next read */
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Definition Comments Wizard" sObject _INLINE
 /* Actions: ? af/cod/aftemwizcw.w ? ? ? */
 /* Program Definition Comment Block Wizard
@@ -157,12 +150,12 @@ FUNCTION setDataValue RETURNS LOGICAL
 
 
 /* Definitions of the field level widgets                               */
-DEFINE VARIABLE coCombo AS DECIMAL FORMAT ">>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
+DEFINE VARIABLE coCombo AS DECIMAL FORMAT "->>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
      LABEL "User ID" 
      VIEW-AS COMBO-BOX INNER-LINES 10
      LIST-ITEM-PAIRS "",0
      DROP-DOWN-LIST
-     SIZE 46 BY 1 NO-UNDO.
+     SIZE 46 BY 1.05 NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */

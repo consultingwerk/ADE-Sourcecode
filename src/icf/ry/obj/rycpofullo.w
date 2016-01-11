@@ -92,7 +92,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       rycpofullo.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -126,6 +126,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -133,27 +134,28 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 ryc_smartobject
 
 /* Definitions for QUERY Query-Main                                     */
-&Scoped-Define ENABLED-FIELDS  container_smartobject_obj smartobject_obj instance_x instance_y~
- instance_width instance_height attribute_list system_owned layout_position~
+&Scoped-Define ENABLED-FIELDS  container_smartobject_obj smartobject_obj system_owned layout_position~
  dInstancePageObj dObjectTypeObj iCreateSequence
 &Scoped-define ENABLED-FIELDS-IN-ryc_object_instance ~
-container_smartobject_obj smartobject_obj instance_x instance_y ~
-instance_width instance_height attribute_list system_owned layout_position 
+container_smartobject_obj smartobject_obj system_owned layout_position 
 &Scoped-Define DATA-FIELDS  container_smartobject_obj object_instance_obj smartobject_obj~
- object_filename instance_x instance_y instance_width instance_height~
- attribute_list system_owned layout_position object_type_obj page_obj~
+ object_filename system_owned layout_position object_type_obj page_obj~
  page_object_sequence dInstancePageObj dObjectTypeObj iCreateSequence~
  dObjectInstanceObj
 &Scoped-define DATA-FIELDS-IN-ryc_page_object page_obj page_object_sequence 
 &Scoped-define DATA-FIELDS-IN-ryc_object_instance container_smartobject_obj ~
-object_instance_obj smartobject_obj instance_x instance_y instance_width ~
-instance_height attribute_list system_owned layout_position 
+object_instance_obj smartobject_obj system_owned layout_position 
 &Scoped-define DATA-FIELDS-IN-ryc_smartobject object_filename ~
 object_type_obj 
 &Scoped-Define MANDATORY-FIELDS 
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "ry/obj/rycpofullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH ryc_page_object NO-LOCK, ~
+      EACH ryc_object_instance WHERE ryc_object_instance.container_smartobject_obj = ryc_page_object.container_smartobject_obj ~
+  AND ryc_object_instance.object_instance_obj = ryc_page_object.object_instance_obj NO-LOCK, ~
+      FIRST ryc_smartobject WHERE ryc_smartobject.smartobject_obj = ryc_object_instance.smartobject_obj NO-LOCK ~
+    BY ryc_page_object.page_object_sequence INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH ryc_page_object NO-LOCK, ~
       EACH ryc_object_instance WHERE ryc_object_instance.container_smartobject_obj = ryc_page_object.container_smartobject_obj ~
@@ -264,34 +266,24 @@ END.
 "smartobject_obj" "smartobject_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 29.4 yes
      _FldNameList[4]   > icfdb.ryc_smartobject.object_filename
 "object_filename" "object_filename" ? ? "character" ? ? ? ? ? ? no ? no 70 yes
-     _FldNameList[5]   > icfdb.ryc_object_instance.instance_x
-"instance_x" "instance_x" ? ? "integer" ? ? ? ? ? ? yes ? no 10.2 yes
-     _FldNameList[6]   > icfdb.ryc_object_instance.instance_y
-"instance_y" "instance_y" ? ? "integer" ? ? ? ? ? ? yes ? no 10.2 yes
-     _FldNameList[7]   > icfdb.ryc_object_instance.instance_width
-"instance_width" "instance_width" ? ? "integer" ? ? ? ? ? ? yes ? no 14.4 yes
-     _FldNameList[8]   > icfdb.ryc_object_instance.instance_height
-"instance_height" "instance_height" ? ? "integer" ? ? ? ? ? ? yes ? no 15 yes
-     _FldNameList[9]   > icfdb.ryc_object_instance.attribute_list
-"attribute_list" "attribute_list" ? ? "character" ? ? ? ? ? ? yes ? no 500 yes
-     _FldNameList[10]   > icfdb.ryc_object_instance.system_owned
+     _FldNameList[5]   > icfdb.ryc_object_instance.system_owned
 "system_owned" "system_owned" ? ? "logical" ? ? ? ? ? ? yes ? no 14.2 yes
-     _FldNameList[11]   > icfdb.ryc_object_instance.layout_position
+     _FldNameList[6]   > icfdb.ryc_object_instance.layout_position
 "layout_position" "layout_position" ? ? "character" ? ? ? ? ? ? yes ? no 15 yes
-     _FldNameList[12]   > icfdb.ryc_smartobject.object_type_obj
+     _FldNameList[7]   > icfdb.ryc_smartobject.object_type_obj
 "object_type_obj" "object_type_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 29.4 yes
-     _FldNameList[13]   > icfdb.ryc_page_object.page_obj
+     _FldNameList[8]   > icfdb.ryc_page_object.page_obj
 "page_obj" "page_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 29.4 yes
-     _FldNameList[14]   > icfdb.ryc_page_object.page_object_sequence
+     _FldNameList[9]   > icfdb.ryc_page_object.page_object_sequence
 "page_object_sequence" "page_object_sequence" ? ? "integer" ? ? ? ? ? ? no ? no 16.8 yes
-     _FldNameList[15]   > "_<CALC>"
-"RowObject.page_obj" "dInstancePageObj" "Page" ">>>>>>>>>>>>>9.999999999" "Decimal" ? ? ? ? ? ? yes ? no 24.6 no
-     _FldNameList[16]   > "_<CALC>"
-"RowObject.object_type_obj" "dObjectTypeObj" "Object Type" ">>>>>>>>>>>>>>9.999999999" "Decimal" ? ? ? ? ? ? yes ? no 25.8 no
-     _FldNameList[17]   > "_<CALC>"
+     _FldNameList[10]   > "_<CALC>"
+"RowObject.page_obj" "dInstancePageObj" "Page" "->>>>>>>>>>>>>>>>>9.999999999" "Decimal" ? ? ? ? ? ? yes ? no 33.6 no
+     _FldNameList[11]   > "_<CALC>"
+"RowObject.object_type_obj" "dObjectTypeObj" "Object Type" "->>>>>>>>>>>>>>>>>9.999999999" "Decimal" ? ? ? ? ? ? yes ? no 33.6 no
+     _FldNameList[12]   > "_<CALC>"
 "RowObject.page_object_sequence" "iCreateSequence" "Create Sequence" "->>9" "Integer" ? ? ? ? ? ? yes ? no 16.6 no
-     _FldNameList[18]   > "_<CALC>"
-"RowObject.object_instance_obj" "dObjectInstanceObj" "Object Instance Obj" ">>>>>>>>>>>>>9.999999999" "Decimal" ? ? ? ? ? ? no ? no 24.6 no
+     _FldNameList[13]   > "_<CALC>"
+"RowObject.object_instance_obj" "dObjectInstanceObj" "Object Instance Obj" "->>>>>>>>>>>>>>>>>9.999999999" "Decimal" ? ? ? ? ? ? no ? no 33.6 no
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME

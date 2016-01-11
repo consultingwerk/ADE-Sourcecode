@@ -37,13 +37,18 @@
   Output Parameters:
       <none>
 
+  (v:010002)    Task:           0   UserRef:
+                Date:   04/23/2002  Author:     Sunil Belgaonkar
+
+  Update Notes: Changed the image from .bmp to .gif format.
+
 ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.      */
 /*----------------------------------------------------------------------*/
 
-/* Create an unnamed pool to store all the widgets created 
+/* Create an unnamed pool to store all the widgets created
      by this procedure. This is a good default which assures
-     that this procedure's triggers and internal procedures 
+     that this procedure's triggers and internal procedures
      will execute in this procedure's storage, and that proper
      cleanup will occur on deletion of the procedure. */
 
@@ -105,7 +110,7 @@ DEFINE VARIABLE hSelect AS HANDLE NO-UNDO.
 &Scoped-define Initial fiTabFGColor fiTabBGColor fiTabINColor 
 &Scoped-define Index fiTabLabel 
 &Scoped-define List-Items fiEnableStates fiDisableStates 
-&Scoped-define Color-List fiSelectorFGColor fiSelectorBGColor fiTabFGColor ~
+&Scoped-define Color-List fiSelectorFGColor fiTabFGColor fiSelectorBGColor ~
 fiTabBGColor fiTabINColor 
 &Scoped-define Font-List fiTabFont fiSelectorFont 
 &Scoped-define Icon-List fiImageDisabled fiImageEnabled 
@@ -146,9 +151,9 @@ DEFINE BUTTON btn-lookup  NO-FOCUS
      SIZE 2.8 BY .81.
 
 DEFINE BUTTON btn_About 
-     IMAGE-UP FILE "ry/img/smartpak":U
-     IMAGE-DOWN FILE "ry/img/smartpak":U
-     IMAGE-INSENSITIVE FILE "ry/img/smartpak":U NO-FOCUS FLAT-BUTTON
+     IMAGE-UP FILE "ry/img/smartpak.gif":U
+     IMAGE-DOWN FILE "ry/img/smartpak.gif":U
+     IMAGE-INSENSITIVE FILE "ry/img/smartpak.gif":U NO-FOCUS FLAT-BUTTON
      LABEL "A&bout..." 
      SIZE 6.4 BY 1.52 TOOLTIP "About...".
 
@@ -157,14 +162,21 @@ DEFINE VARIABLE cbposition AS CHARACTER FORMAT "X(256)":U INITIAL "Upper"
      VIEW-AS COMBO-BOX INNER-LINES 3
      LIST-ITEMS "Upper","Lower" 
      DROP-DOWN-LIST
-     SIZE 15 BY 1 NO-UNDO.
+     SIZE 16 BY 1 NO-UNDO.
 
 DEFINE VARIABLE cbSizing AS CHARACTER FORMAT "X(256)":U INITIAL "AutoSized" 
      LABEL "&Sizing Method" 
      VIEW-AS COMBO-BOX INNER-LINES 3
      LIST-ITEMS "Autosized","Proportional","Justified" 
      DROP-DOWN-LIST
-     SIZE 25.2 BY 1 NO-UNDO.
+     SIZE 21.4 BY 1 NO-UNDO.
+
+DEFINE VARIABLE cbVisualization AS CHARACTER FORMAT "X(256)":U INITIAL "Tabs" 
+     LABEL "&Visualization" 
+     VIEW-AS COMBO-BOX INNER-LINES 3
+     LIST-ITEMS "Combo-Box","Radio-Set","Tabs" 
+     DROP-DOWN-LIST
+     SIZE 16 BY 1 NO-UNDO.
 
 DEFINE VARIABLE fiFolderMenu AS CHARACTER FORMAT "X(256)":U 
      LABEL "Folder Menu" 
@@ -204,12 +216,12 @@ DEFINE VARIABLE fiPanelOffset AS INTEGER FORMAT ">>>9":U INITIAL 0
 DEFINE VARIABLE fiSelectorBGColor AS CHARACTER FORMAT "X(256)":U INITIAL "Default" 
      LABEL "Sel. &Background" 
      VIEW-AS FILL-IN NATIVE 
-     SIZE 53.2 BY 1 NO-UNDO.
+     SIZE 21.4 BY 1 NO-UNDO.
 
 DEFINE VARIABLE fiSelectorFGColor AS CHARACTER FORMAT "X(256)":U INITIAL "Default" 
      LABEL "Sel. &Foreground" 
      VIEW-AS FILL-IN NATIVE 
-     SIZE 53.2 BY 1 NO-UNDO.
+     SIZE 21.4 BY 1 NO-UNDO.
 
 DEFINE VARIABLE fiSelectorFont AS INTEGER FORMAT ">>>9":U INITIAL 4 
      LABEL "Selecto&r Font" 
@@ -236,7 +248,7 @@ DEFINE VARIABLE fiTabsPerRow AS INTEGER FORMAT ">>>9":U INITIAL 0
      VIEW-AS FILL-IN NATIVE 
      SIZE 10 BY 1 NO-UNDO.
 
-DEFINE VARIABLE fiTitle AS CHARACTER FORMAT "X(256)":U INITIAL "Dynamics" 
+DEFINE VARIABLE fiTitle AS CHARACTER FORMAT "X(256)":U 
       VIEW-AS TEXT 
      SIZE 61.8 BY .86
      FGCOLOR 1 FONT 6 NO-UNDO.
@@ -258,6 +270,11 @@ DEFINE VARIABLE tbInherit AS LOGICAL INITIAL no
      LABEL "Inherit &Parent Color" 
      VIEW-AS TOGGLE-BOX
      SIZE 22 BY .81 NO-UNDO.
+
+DEFINE VARIABLE tbPopupSelection AS LOGICAL INITIAL yes 
+     LABEL "Popup Selection Enabled" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 28.4 BY .81 NO-UNDO.
 
 DEFINE VARIABLE tbResize AS LOGICAL INITIAL no 
      LABEL "&Disable Resize Warnings" 
@@ -401,66 +418,58 @@ DEFINE FRAME gDialog
          DEFAULT-BUTTON Btn_OK.
 
 DEFINE FRAME FRAME-A
-     btn_About AT ROW 1.57 COL 4.4
-     cbSizing AT ROW 4 COL 17.6 COLON-ALIGNED HELP
+     btn_About AT ROW 1.33 COL 4.4
+     cbSizing AT ROW 3.76 COL 17.6 COLON-ALIGNED HELP
           "TabSize"
-     cbposition AT ROW 4.05 COL 55.8 COLON-ALIGNED HELP
+     cbposition AT ROW 3.81 COL 54.8 COLON-ALIGNED HELP
           "TabPosition"
-     fiSelectorFGColor AT ROW 5.14 COL 17.6 COLON-ALIGNED HELP
+     fiSelectorFGColor AT ROW 4.91 COL 17.6 COLON-ALIGNED HELP
           "SelectorFGColor"
-     fiSelectorBGColor AT ROW 6.29 COL 17.6 COLON-ALIGNED HELP
+     cbvisualization AT ROW 4.91 COL 54.8 COLON-ALIGNED HELP
+          "TabVisualization"
+     fiSelectorBGColor AT ROW 6.05 COL 17.6 COLON-ALIGNED HELP
           "SelectorBGColor"
-     fiFolderMenu AT ROW 7.48 COL 17.6 COLON-ALIGNED HELP
+     fiFolderMenu AT ROW 7.24 COL 17.6 COLON-ALIGNED HELP
           "FolderMenu"
-     fiTabFont AT ROW 8.62 COL 17.6 COLON-ALIGNED HELP
+     fiTabFont AT ROW 8.38 COL 17.6 COLON-ALIGNED HELP
           "TabFont"
-     fiSelectorFont AT ROW 8.67 COL 60.8 COLON-ALIGNED HELP
+     fiSelectorFont AT ROW 8.43 COL 60.8 COLON-ALIGNED HELP
           "SelectorFont"
-     fiTabHeight AT ROW 9.76 COL 17.6 COLON-ALIGNED HELP
+     fiTabHeight AT ROW 9.52 COL 17.6 COLON-ALIGNED HELP
           "TabHeight"
-     fiPanelOffset AT ROW 9.81 COL 60.8 COLON-ALIGNED HELP
+     fiPanelOffset AT ROW 9.57 COL 60.8 COLON-ALIGNED HELP
           "PanelOffset"
-     fiSelectorWidth AT ROW 10.95 COL 17.6 COLON-ALIGNED HELP
+     fiSelectorWidth AT ROW 10.71 COL 17.6 COLON-ALIGNED HELP
           "SelectorWidth"
-     fiLabelOffset AT ROW 10.95 COL 60.8 COLON-ALIGNED HELP
+     fiLabelOffset AT ROW 10.71 COL 60.8 COLON-ALIGNED HELP
           "LabelOffset"
-     fiVisibleRows AT ROW 12.1 COL 17.6 COLON-ALIGNED HELP
+     fiVisibleRows AT ROW 11.86 COL 17.6 COLON-ALIGNED HELP
           "VisibleRows"
-     fiTabsPerRow AT ROW 12.14 COL 60.8 COLON-ALIGNED HELP
+     fiTabsPerRow AT ROW 11.91 COL 60.8 COLON-ALIGNED HELP
           "TabsPerRow"
-     fiImageWidth AT ROW 13.24 COL 17.6 COLON-ALIGNED HELP
+     fiImageWidth AT ROW 13 COL 17.6 COLON-ALIGNED HELP
           "ImageWidth"
-     fiImageHeight AT ROW 13.29 COL 60.8 COLON-ALIGNED HELP
+     fiImageHeight AT ROW 13.05 COL 60.8 COLON-ALIGNED HELP
           "ImageHeight"
-     btn-lookup AT ROW 5.24 COL 69.6
-     fiImageXOffset AT ROW 14.38 COL 17.6 COLON-ALIGNED HELP
+     fiImageXOffset AT ROW 14.14 COL 17.6 COLON-ALIGNED HELP
           "ImageXOffset"
-     fiImageYOffset AT ROW 14.43 COL 60.8 COLON-ALIGNED HELP
+     fiImageYOffset AT ROW 14.19 COL 60.8 COLON-ALIGNED HELP
           "ImageYOffset"
-     tbInherit AT ROW 16.57 COL 19.8 HELP
+     tbResize AT ROW 15.91 COL 19.8
+     tbInherit AT ROW 15.91 COL 50.8 HELP
           "InheritColor"
-     tbResize AT ROW 16.57 COL 45.6
-     fiTitle AT ROW 2.19 COL 11 COLON-ALIGNED NO-LABEL
-     RECT-10 AT ROW 3.48 COL 1.8
-     RECT-11 AT ROW 15.91 COL 1.8
+     btn-lookup AT ROW 5 COL 37.8
+     tbPopupSelection AT ROW 16.76 COL 19.8 HELP
+          "PopupSelectionEnabled"
+     fiTitle AT ROW 1.95 COL 11 COLON-ALIGNED NO-LABEL
+     RECT-10 AT ROW 3.24 COL 1.8
+     RECT-11 AT ROW 15.67 COL 1.8
      "Options:" VIEW-AS TEXT
-          SIZE 8.2 BY .81 AT ROW 16.57 COL 8.2
+          SIZE 8.2 BY .81 AT ROW 15.91 COL 8.2
     WITH 1 DOWN NO-BOX NO-HIDE KEEP-TAB-ORDER OVERLAY NO-HELP 
          SIDE-LABELS NO-UNDERLINE NO-VALIDATE THREE-D 
-         AT COL 3.4 ROW 2.24
-         SIZE 74.8 BY 16.91.
-
-DEFINE FRAME FRAME-C
-     mouse-test AT ROW 3.48 COL 55.4
-     slMousePointer AT ROW 3.29 COL 4.6 NO-LABEL
-     btn-browse AT ROW 15.81 COL 55.4
-     RECT-2 AT ROW 3.33 COL 55
-     "Mouse Cursor:" VIEW-AS TEXT
-          SIZE 14 BY .57 AT ROW 2.38 COL 4.8
-    WITH 1 DOWN NO-BOX NO-HIDE KEEP-TAB-ORDER OVERLAY NO-HELP 
-         SIDE-LABELS NO-UNDERLINE NO-VALIDATE THREE-D 
-         AT COL 3.4 ROW 2.24
-         SIZE 75.2 BY 16.67.
+         AT COL 3.4 ROW 2.48
+         SIZE 74.8 BY 16.67.
 
 DEFINE FRAME FRAME-B
      btn-lookup-2 AT ROW 1.91 COL 24
@@ -501,7 +510,19 @@ DEFINE FRAME FRAME-B
     WITH 1 DOWN NO-BOX NO-HIDE KEEP-TAB-ORDER OVERLAY NO-HELP 
          SIDE-LABELS NO-UNDERLINE NO-VALIDATE THREE-D 
          AT COL 2.8 ROW 2.19
-         SIZE 76.4 BY 17.
+         SIZE 76.4 BY 16.33.
+
+DEFINE FRAME FRAME-C
+     mouse-test AT ROW 3.05 COL 55.4
+     slMousePointer AT ROW 2.91 COL 4.6 NO-LABEL
+     btn-browse AT ROW 15.43 COL 55.4
+     RECT-2 AT ROW 2.95 COL 54.8
+     "Mouse Cursor:" VIEW-AS TEXT
+          SIZE 14 BY .57 AT ROW 2 COL 4.8
+    WITH 1 DOWN NO-BOX NO-HIDE KEEP-TAB-ORDER OVERLAY NO-HELP 
+         SIDE-LABELS NO-UNDERLINE NO-VALIDATE THREE-D 
+         AT COL 3.4 ROW 2.48
+         SIZE 75.2 BY 16.29.
 
 
 /* *********************** Procedure Settings ************************ */
@@ -735,7 +756,7 @@ END.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL gDialog gDialog
 ON WINDOW-CLOSE OF FRAME gDialog /* Edit Properties */
-DO:  
+DO:
   /* Add Trigger to equate WINDOW-CLOSE to END-ERROR. */
   APPLY "END-ERROR":U TO SELF.
 END.
@@ -749,9 +770,9 @@ END.
 ON ENTRY OF FRAME FRAME-A
 ANYWHERE
 DO:
-    IF SELF:TYPE = "FILL-IN" 
+    IF SELF:TYPE = "FILL-IN"
     AND LOOKUP(SELF:NAME,"{&COLOR-LIST} {&FONT-LIST} {&ICON-LIST}"," ") > 0
-    THEN 
+    THEN
         ASSIGN Btn-Lookup:X = SELF:X + SELF:WIDTH-PIXELS - Btn-Lookup:WIDTH-PIXELS - 2
                Btn-Lookup:Y = SELF:Y + 2
                Btn-Lookup:HIDDEN = FALSE
@@ -768,7 +789,7 @@ END.
 ON LEAVE OF FRAME FRAME-A
 ANYWHERE
 DO:
-    ASSIGN Btn-Lookup:HIDDEN = TRUE.  
+    ASSIGN Btn-Lookup:HIDDEN = TRUE.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -857,7 +878,7 @@ END.
 ON ALT-HOME OF FRAME FRAME-B
 ANYWHERE
 DO:
-    RUN formFirst.  
+    RUN formFirst.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -894,9 +915,9 @@ END.
 ON ENTRY OF FRAME FRAME-B
 ANYWHERE
 DO:
-    IF SELF:TYPE = "FILL-IN":U 
+    IF SELF:TYPE = "FILL-IN":U
     AND LOOKUP(SELF:NAME,"{&COLOR-LIST} {&FONT-LIST} {&ICON-LIST}"," ") > 0
-    THEN 
+    THEN
         ASSIGN Btn-Lookup-2:X = SELF:X + SELF:WIDTH-PIXELS - Btn-Lookup-2:WIDTH-PIXELS - 2
                Btn-Lookup-2:Y = SELF:Y + 2
                Btn-lookup-2:HIDDEN = FALSE
@@ -965,8 +986,8 @@ ON CHOOSE OF btn-browse IN FRAME FRAME-C /* Browse... */
 DO:
     DEFINE VARIABLE iFilter AS INTEGER NO-UNDO INITIAL 1.
 
-    IF slMousePointer:SCREEN-VALUE MATCHES "*.ani" 
-    THEN 
+    IF slMousePointer:SCREEN-VALUE MATCHES "*.ani"
+    THEN
         ASSIGN iFilter = 2.
 
     SYSTEM-DIALOG GET-FILE vText
@@ -984,7 +1005,7 @@ DO:
 
     IF slMousePointer:LOOKUP(vText) = 0
     THEN
-        ASSIGN vResult = IF slMousePointer:ENTRY(1) <> "AppStarting" 
+        ASSIGN vResult = IF slMousePointer:ENTRY(1) <> "AppStarting"
                          THEN slMousePointer:REPLACE(vText,1)
                          ELSE slMousePointer:ADD-FIRST(vText)
                slMousePointer:SCREEN-VALUE = vText.
@@ -1081,7 +1102,7 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Btn-Next gDialog
 ON CHOOSE OF Btn-Next IN FRAME FRAME-B
 DO:
-    RUN FormNext.  
+    RUN FormNext.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1114,7 +1135,7 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Btn-Right gDialog
 ON CHOOSE OF Btn-Right IN FRAME FRAME-B
 DO:
-    RUN FormRight.  
+    RUN FormRight.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1189,7 +1210,7 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL m_Verify_Mode gDialog
 ON VALUE-CHANGED OF MENU-ITEM m_Verify_Mode /* Verify Mode */
 DO:
-    ASSIGN vVerify = SELF:CHECKED.  
+    ASSIGN vVerify = SELF:CHECKED.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1201,7 +1222,7 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL slMousePointer gDialog
 ON VALUE-CHANGED OF slMousePointer IN FRAME FRAME-C
 DO:
-    ASSIGN vResult = mouse-test:LOAD-MOUSE-POINTER(SELF:SCREEN-VALUE) 
+    ASSIGN vResult = mouse-test:LOAD-MOUSE-POINTER(SELF:SCREEN-VALUE)
            Btn_Apply:SENSITIVE IN FRAME gDialog = TRUE.
 END.
 
@@ -1241,8 +1262,8 @@ END.
 PROCEDURE adjustTabOrder :
 /*------------------------------------------------------------------------------
   Purpose:     Super Override
-  Parameters:  
-  Notes:       
+  Parameters:
+  Notes:
 ------------------------------------------------------------------------------*/
 
   DEFINE INPUT PARAMETER phObject   AS HANDLE NO-UNDO.
@@ -1341,12 +1362,14 @@ PROCEDURE enable_UI :
          Btn-Previous Btn-Remove Btn-Right RECT-12 
       WITH FRAME FRAME-B.
   {&OPEN-BROWSERS-IN-QUERY-FRAME-B}
-  DISPLAY cbSizing cbposition fiSelectorFGColor fiSelectorBGColor fiFolderMenu 
-          fiTabFont fiSelectorFont fiTabHeight fiPanelOffset fiSelectorWidth 
-          fiLabelOffset fiVisibleRows fiTabsPerRow fiImageWidth fiImageHeight 
-          fiImageXOffset fiImageYOffset tbInherit tbResize fiTitle 
+  DISPLAY cbSizing cbposition fiSelectorFGColor cbvisualization 
+          fiSelectorBGColor fiFolderMenu fiTabFont fiSelectorFont fiTabHeight 
+          fiPanelOffset fiSelectorWidth fiLabelOffset fiVisibleRows fiTabsPerRow 
+          fiImageWidth fiImageHeight fiImageXOffset fiImageYOffset tbResize 
+          tbInherit tbPopupSelection fiTitle 
       WITH FRAME FRAME-A.
-  ENABLE btn_About btn-lookup tbResize fiTitle RECT-10 RECT-11 
+  ENABLE btn_About cbvisualization tbResize btn-lookup tbPopupSelection fiTitle 
+         RECT-10 RECT-11 
       WITH FRAME FRAME-A.
   {&OPEN-BROWSERS-IN-QUERY-FRAME-A}
   DISPLAY slMousePointer 
@@ -1364,7 +1387,7 @@ PROCEDURE getProperties :
 /*------------------------------------------------------------------------------
   Purpose:     Extract the Property values from the calling program
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 
 {get NoWarnings tbResize ip-caller}.
@@ -1377,11 +1400,11 @@ RUN getArrayProperties.
 
 {get MouseCursor slMousePointer ip-caller}.
 
-ASSIGN fiIndex = 1 
+ASSIGN fiIndex = 1
        fiTitle:SCREEN-VALUE IN FRAME FRAME-A = fiTitle + " " + ip-caller:FILE-NAME
        tbResize:CHECKED = tbResize
-       slMousePointer = IF slMousePointer = "" 
-                        THEN "Arrow" 
+       slMousePointer = IF slMousePointer = ""
+                        THEN "Arrow"
                         ELSE slMousePointer.
 
 IF slMousePointer:LOOKUP(slMousePointer) IN FRAME FRAME-C = 0
@@ -1397,12 +1420,49 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE postCreateObjects gDialog 
+PROCEDURE postCreateObjects :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hAttributeBuffer  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hClassBuffer      AS HANDLE     NO-UNDO.
+
+  /* Fetch the repository class*/
+  hClassBuffer = DYNAMIC-FUNCTION("getCacheClassBuffer":U IN gshRepositoryManager, "SmartFolder":U).
+
+  IF VALID-HANDLE(hClassBuffer) THEN
+    hAttributeBuffer = hClassBuffer:BUFFER-FIELD("classBufferHandle":U):BUFFER-VALUE.   
+
+  IF VALID-HANDLE(hAttributeBuffer) THEN
+  DO:
+    hAttributeBuffer:BUFFER-CREATE().
+
+    {fnarg setPopupSelectionEnabled "hAttributeBuffer:BUFFER-FIELD('PopupSelectionEnabled'):BUFFER-VALUE" h_folder}.
+    {fnarg setTabVisualization      "hAttributeBuffer:BUFFER-FIELD('TabVisualization'):BUFFER-VALUE"      h_folder}.
+    {fnarg setTabPosition           "hAttributeBuffer:BUFFER-FIELD('TabPosition'):BUFFER-VALUE"           h_folder}.
+
+    hAttributeBuffer:BUFFER-DELETE().
+  END.
+  
+  ASSIGN
+      FRAME FRAME-A:ROW = {fn getInnerRow h_folder}
+      FRAME FRAME-B:ROW = FRAME FRAME-A:ROW
+      FRAME FRAME-C:ROW = FRAME FRAME-A:ROW NO-ERROR.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE selectPage gDialog 
 PROCEDURE selectPage :
 /*------------------------------------------------------------------------------
   Purpose:     Super Override
-  Parameters:  
-  Notes:       
+  Parameters:
+  Notes:
 ------------------------------------------------------------------------------*/
 
   DEFINE INPUT PARAMETER piPageNum AS INTEGER NO-UNDO.
@@ -1419,7 +1479,7 @@ PROCEDURE selectPage :
 
   CASE piPageNum:
 
-      WHEN 1 
+      WHEN 1
       THEN DO WITH FRAME FRAME-A:
 
           VIEW FRAME FRAME-A.
@@ -1429,7 +1489,7 @@ PROCEDURE selectPage :
           IF VALID-HANDLE(wh) THEN APPLY "ENTRY":U TO wh.
       END.
 
-      WHEN 2 
+      WHEN 2
       THEN DO WITH FRAME FRAME-B:
 
            IF NOT IconsLoaded
@@ -1488,7 +1548,7 @@ PROCEDURE setProperties :
 /*------------------------------------------------------------------------------
   Purpose:     Save Properties back into SmartObject
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 
 RUN FormAssign.
@@ -1498,11 +1558,11 @@ RUN setBasicProperties.
 RUN setArrayProperties.
 
 IF ImageLoaded
-THEN 
+THEN
     ASSIGN FRAME FRAME-C slMousePointer.
 
-ASSIGN slMousePointer = IF slMousePointer = "Arrow" 
-                        THEN "" 
+ASSIGN slMousePointer = IF slMousePointer = "Arrow"
+                        THEN ""
                         ELSE slMousePointer.
 
 {set MouseCursor slMousePointer ip-caller}.
@@ -1524,8 +1584,8 @@ END PROCEDURE.
 PROCEDURE viewObject :
 /*------------------------------------------------------------------------------
   Purpose:     Super Override
-  Parameters:  
-  Notes:       
+  Parameters:
+  Notes:
 ------------------------------------------------------------------------------*/
 
   /* Code placed here will execute PRIOR to standard behavior. */

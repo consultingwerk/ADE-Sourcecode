@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          icfdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
@@ -92,7 +92,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gscpmfullo.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010001
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -124,6 +124,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -146,10 +147,13 @@ product_module_installed number_of_users relative_path
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gscpmfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsc_product_module NO-LOCK, ~
+      FIRST gsc_product WHERE gsc_product.product_obj = gsc_product_module.product_obj NO-LOCK ~
+    BY icfdb.gsc_product_module.product_module_code INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsc_product_module NO-LOCK, ~
       FIRST gsc_product WHERE gsc_product.product_obj = gsc_product_module.product_obj NO-LOCK ~
-    BY gsc_product_module.product_module_code INDEXED-REPOSITION.
+    BY icfdb.gsc_product_module.product_module_code INDEXED-REPOSITION.
 {&DB-REQUIRED-END}
 &Scoped-define TABLES-IN-QUERY-Query-Main gsc_product_module gsc_product
 &Scoped-define FIRST-TABLE-IN-QUERY-Query-Main gsc_product_module
@@ -262,7 +266,7 @@ END.
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK dTables 
@@ -366,6 +370,15 @@ DEFINE VARIABLE cValueList      AS CHARACTER    NO-UNDO.
       cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
                     {af/sup2/aferrortxt.i 'AF' '1' 'gsc_product_module' 'product_obj' "'Product Obj'"}.
 
+  IF INDEX(RowObject.product_module_code,",":U) >= 1 THEN
+    ASSIGN
+      cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
+                    {af/sup2/aferrortxt.i 'AF' '5' 'gsc_product_module' 'product_module_code' "'Product Module Code'" "'A comma is not permitted in the Product Module Code'" }.
+  
+  IF INDEX(RowObject.product_module_description,",":U) >= 1 THEN
+    ASSIGN
+      cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
+                    {af/sup2/aferrortxt.i 'AF' '5' 'gsc_product_module' 'product_module_description' "'Product Module Description'" "'A comma is not permitted in the Product Module Description'" }.
   ERROR-STATUS:ERROR = NO.
   RETURN cMessageList.
 END PROCEDURE.

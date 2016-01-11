@@ -79,7 +79,7 @@ DEF VAR xiRocketIndexLimit AS INTEGER INIT 188 NO-UNDO.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Include ASSIGN
-         HEIGHT             = 7.48
+         HEIGHT             = 4.38
          WIDTH              = 42.8.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -106,7 +106,7 @@ DEF VAR xiRocketIndexLimit AS INTEGER INIT 188 NO-UNDO.
     directly from the property temp-table. */
 
  &GLOB xpBaseQuery                               
- &GLOB xpDataColumnsByTable                               
+ &GLOB xpDataColumns                               
  &GLOB xpNavigationSource       
  &GLOB xpNavigationSourceEvents          
  &GLOB xpBufferHandles          
@@ -120,10 +120,16 @@ DEF VAR xiRocketIndexLimit AS INTEGER INIT 188 NO-UNDO.
  &GLOB xpQueryString
  &GLOB xpQueryColumns
  &GLOB xpLastDBRowIdent
- &GLOB xpAssignList
- &GLOB xpUpdatableColumnsByTable                
  &GLOB xpDataIsFetched
-
+ &GLOB xpSkipTransferDbRow
+ &GLOB xpFetchHasAudit
+ &GLOB xpFetchHasComment
+ &GLOB xpFetchAutoComment
+ &GLOB xpEntityFields
+ &GLOB xpRequiredProperties
+ &GLOB xpTransferChildrenForAll 
+ &GLOB xpPositionForClient 
+ 
   /* Include the property temp-table definition and then add query's
      properties to its fields. */
  &IF DEFINED(BrowserQueryObject) NE 0 &THEN
@@ -137,8 +143,11 @@ DEF VAR xiRocketIndexLimit AS INTEGER INIT 188 NO-UNDO.
   {src/adm2/smrtprop.i}
  &ENDIF   
  
+IF NOT {&ADM-PROPS-DEFINED} THEN
+DO:
 &IF "{&ADMSuper}":U = "":U &THEN
   ghADMProps:ADD-NEW-FIELD('BaseQuery':U, 'CHAR':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('DataColumns':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('DataColumnsByTable':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('NavigationSource':U, 'CHAR':U).
   ghADMProps:ADD-NEW-FIELD('NavigationSourceEvents':U, 'CHAR':U, 0, ?, 
@@ -157,19 +166,28 @@ DEF VAR xiRocketIndexLimit AS INTEGER INIT 188 NO-UNDO.
   ghADMProps:ADD-NEW-FIELD('QueryColumns':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('LastDBRowIdent':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('AssignList':U, 'CHAR':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('UpdatableColumns':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('UpdatableColumnsByTable':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('Tables':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('DBNames':U, 'CHAR':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('KeyFields':U, 'CHARACTER':U, 0, ?, '{&KEY-FIELDS}':U). 
-  ghADMProps:ADD-NEW-FIELD('KeyTableId', 'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('KeyTableId':U, 'CHARACTER':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('FetchOnOpen':U, 'CHAR':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('DataIsFetched':U, 'LOGICAL':U, 0, ?, no).
   ghADMProps:ADD-NEW-FIELD('FilterActive':U, 'LOGICAL':U, 0, ?, no).
   ghADMProps:ADD-NEW-FIELD('FilterAvailable':U, 'LOGICAL':U, 0, ?, no).
-
+  ghADMProps:ADD-NEW-FIELD('SkipTransferDBRow':U, 'LOGICAL':U, 0, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('FetchHasAudit':U, 'LOGICAL':U, 0, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('FetchHasComment':U, 'LOGICAL':U, 0, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('FetchAutoComment':U, 'LOGICAL':U, 0, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('EntityFields':U, 'CHAR':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('RequiredProperties':U, 'CHAR':U, 0, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('TransferChildrenForAll':U, 'LOGICAL':U, 0, ?, NO).
+  ghADMProps:ADD-NEW-FIELD('PositionForClient':U, 'CHARACTER':U, 0, ?, ?).
 &ENDIF
 
   {src/adm2/custom/qrypropcustom.i}
+END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

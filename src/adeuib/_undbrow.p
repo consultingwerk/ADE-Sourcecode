@@ -131,7 +131,8 @@ IF _L._WIN-TYPE THEN DO:  /* GUI case --- create and run a persistent proc  */
              BROWSE-COLUMN-DATA-TYPES = TRIM(DT-list,CHR(3))
              ROW-MARKERS              = explicit-nrm AND NOT _C._NO-ROW-MARKERS
              ROW-RESIZABLE            = TRUE
-             EXPANDABLE               = _C._EXPANDABLE
+             FIT-LAST-COLUMN          = _C._FIT-LAST-COLUMN
+             NO-EMPTY-SPACE           = _C._NO-EMPTY-SPACE
              SEPARATORS               = _L._SEPARATORS
              TITLE                    = IF _C._TITLE THEN _U._LABEL ELSE ?
              VISIBLE                  = TRUE
@@ -183,7 +184,8 @@ IF _L._WIN-TYPE THEN DO:  /* GUI case --- create and run a persistent proc  */
            BROWSE-COLUMN-DATA-TYPES = TRIM(DT-list,CHR(3))
            ROW-MARKERS              = explicit-nrm AND NOT _C._NO-ROW-MARKERS
            ROW-RESIZABLE            = TRUE
-           EXPANDABLE               = _C._EXPANDABLE
+           FIT-LAST-COLUMN          = _C._FIT-LAST-COLUMN
+           NO-EMPTY-SPACE           = _C._NO-EMPTY-SPACE
            SEPARATORS               = _L._SEPARATORS
            TITLE                    = IF _C._TITLE THEN _U._LABEL ELSE ?
            VISIBLE                  = TRUE

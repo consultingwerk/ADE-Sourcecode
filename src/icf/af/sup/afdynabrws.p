@@ -105,12 +105,12 @@ ASSIGN
 DEFINE VARIABLE lh_query_proc AS HANDLE NO-UNDO.
 DEFINE VARIABLE lh_query      AS HANDLE NO-UNDO.
 
-DEFINE TEMP-TABLE tt_datatable 
+DEFINE TEMP-TABLE tt_datatable NO-UNDO
     FIELD tt_tag AS CHARACTER 
     FIELD tt_data AS CHARACTER EXTENT {&MAX-BRW-FIELD} FORMAT "X(100)" 
     INDEX tt_main tt_tag.
 
-DEFINE TEMP-TABLE tt_browsetable LIKE tt_datatable.
+DEFINE TEMP-TABLE tt_browsetable NO-UNDO LIKE tt_datatable.
 
 DEFINE QUERY {&BROWSE-NAME} FOR tt_browsetable SCROLLING.
 

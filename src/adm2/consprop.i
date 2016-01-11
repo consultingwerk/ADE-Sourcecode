@@ -125,6 +125,8 @@ Domain,JMSpartition,LogFile,PromptLogin,PingInterval,JMSuser,JMSpassword,ClientI
   &GLOBAL-DEFINE xpWaiting
   {src/adm2/messprop.i}
 
+IF NOT {&ADM-PROPS-DEFINED} THEN
+DO:
 &IF "{&ADMSuper}":U = "":U &THEN
   /* Put your property field definitions here.
      Use the following syntax, e.g.,
@@ -146,6 +148,7 @@ Domain,JMSpartition,LogFile,PromptLogin,PingInterval,JMSuser,JMSpassword,ClientI
 &ENDIF
 
   {src/adm2/custom/conspropcustom.i}
+END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

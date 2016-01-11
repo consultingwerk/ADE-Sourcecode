@@ -23,11 +23,6 @@
 *********************************************************************/
 TRIGGER PROCEDURE FOR REPLICATION-WRITE OF gsc_entity_mnemonic_procedure OLD BUFFER lb_old.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "gsc_entity_mnemonic_procedure"
-                      &TRIGGER-TYPE = "REPLICATION-WRITE"}
-
 {af/sup/afreplicat.i  &TABLE-NAME   = "gsc_entity_mnemonic_procedure"
                       &TABLE-FLA    = "gscep"
                       &TABLE-PK     = "custom_procedure_obj,

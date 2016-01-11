@@ -34,16 +34,16 @@
   Run Syntax:
         RUN ry/obj/layoutdialog.w
             (INPUT  pobject_type_code,
-             OUTPUT pgsc_object_obj, OUTPUT pgsc_object_filename, OUTPUT pOKPressed).
+             OUTPUT pryc_smartobject_obj, OUTPUT pryc_smartobject_filename, OUTPUT pOKPressed).
     
   Input Parameters:
         pobject_type_code : Object Type object code indicating the type of
                             layout templates to list.
   Output Parameters:
-        pgsc_object_obj       : Object Obj indicates the id of the selected template layout.
-        pgsc_object_filename  : Object filename corresponding to the layout selected.
-        pOKPressed            : This logical parameter indicates whether a template was 
-                                selected or not.
+        pryc_smartobject_obj       : Object Obj indicates the id of the selected template layout.
+        pryc_smartobject_filename  : Object filename corresponding to the layout selected.
+        pOKPressed                 : This logical parameter indicates whether a template was 
+                                     selected or not.
 
   Author: Manoj Khani
 
@@ -69,15 +69,15 @@ CREATE WIDGET-POOL.
 
 /* Local Variable Definitions ---                                       */
 
-DEFINE INPUT  PARAMETER pobject_type_code     AS CHARACTER NO-UNDO.
-DEFINE OUTPUT PARAMETER pgsc_object_obj       AS DECIMAL   NO-UNDO.
-DEFINE OUTPUT PARAMETER pgsc_object_filename  AS CHARACTER NO-UNDO.
-DEFINE OUTPUT PARAMETER pOKPressed            AS LOGICAL   NO-UNDO INITIAL NO.
+DEFINE INPUT  PARAMETER pobject_type_code         AS CHARACTER NO-UNDO.
+DEFINE OUTPUT PARAMETER pryc_smartobject_obj      AS DECIMAL   NO-UNDO.
+DEFINE OUTPUT PARAMETER pryc_smartobject_filename AS CHARACTER NO-UNDO.
+DEFINE OUTPUT PARAMETER pOKPressed                AS LOGICAL   NO-UNDO INITIAL NO.
 
 DEFINE TEMP-TABLE ttLayoutTemplate NO-UNDO
-    FIELD LayoutName        LIKE gsc_object.object_filename
-    FIELD LayoutDesc        LIKE gsc_object.object_description   
-    FIELD LayoutObject_Obj  LIKE gsc_object.object_obj
+    FIELD LayoutName        LIKE ryc_smartobject.object_filename
+    FIELD LayoutDesc        LIKE ryc_smartobject.object_description   
+    FIELD LayoutObject_Obj  LIKE ryc_smartobject.smartobject_obj
     FIELD LayoutImageHandle AS HANDLE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -184,8 +184,8 @@ DO:
     ASSIGN pOKPressed = YES.
     
     /* Set the parameter return values. */
-    ASSIGN pgsc_object_obj      = ttLayoutTemplate.LayoutObject_obj
-           pgsc_object_filename = ttLayoutTemplate.LayoutName.
+    ASSIGN pryc_smartobject_obj      = ttLayoutTemplate.LayoutObject_obj
+           pryc_smartobject_filename = ttLayoutTemplate.LayoutName.
 
 /*
     MESSAGE "You have choosen the template:":U   SKIP
@@ -398,30 +398,27 @@ PROCEDURE createLayoutRecords :
   Notes:       
 ------------------------------------------------------------------------------*/
 
-    DEFINE BUFFER lb_gsc_object      FOR gsc_object.
-    DEFINE BUFFER lb_gsc_object_type FOR gsc_object_type.
     DEFINE BUFFER lb_ryc_smartobject FOR ryc_smartobject.
     
-
     /* Find object ID of the type code that was passed in. */
-    FIND lb_gsc_object_type WHERE 
-         lb_gsc_object_type.object_type_code = pobject_type_code NO-LOCK NO-ERROR.
+    FIND gsc_object_type NO-LOCK
+         WHERE gsc_object_type.object_type_code = pobject_type_code
+         NO-ERROR.
     
-    IF NOT AVAILABLE lb_gsc_object_type THEN RETURN.
+    IF NOT AVAILABLE gsc_object_type THEN RETURN.
 
     /* Find all layouts which are available for this type of object. */
-    FOR EACH lb_ryc_smartobject WHERE 
-             lb_ryc_smartobject.object_type_obj       = lb_gsc_object_type.object_type_obj AND 
-             lb_ryc_smartobject.template_smartobject  = YES NO-LOCK :
-      FIND FIRST lb_gsc_object WHERE lb_gsc_object.object_obj = lb_ryc_smartobject.object_obj NO-LOCK NO-ERROR.
-      /* Store valid layout in our temp-table */
-      IF AVAILABLE lb_gsc_object THEN 
-      DO:
+
+    FOR EACH lb_ryc_smartobject NO-LOCK
+       WHERE lb_ryc_smartobject.object_type_obj       = gsc_object_type.object_type_obj 
+         AND lb_ryc_smartobject.template_smartobject  = YES:
+
+        /* Store valid layout in our temp-table */
+
         CREATE ttLayoutTemplate.
-        ASSIGN ttLayoutTemplate.LayoutDesc       = lb_gsc_object.object_description
-               ttLayoutTemplate.LayoutName       = lb_gsc_object.object_filename
-               ttLayoutTemplate.LayoutObject_Obj = lb_gsc_object.object_obj.
-      END.
+        ASSIGN ttLayoutTemplate.LayoutDesc       = lb_ryc_smartobject.object_description
+               ttLayoutTemplate.LayoutName       = lb_ryc_smartobject.object_filename
+               ttLayoutTemplate.LayoutObject_Obj = lb_ryc_smartobject.smartobject_obj.
     END.
 
     RETURN.

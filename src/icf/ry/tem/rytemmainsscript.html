@@ -1,0 +1,67 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<!--------------------------------------------------------------------
+* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
+* below.  All Rights Reserved.                                       *
+*                                                                    *
+* The Initial Developer of the Original Code is PSC.  The Original   *
+* Code is Progress IDE code released to open source December 1, 2000.*
+*                                                                    *
+* The contents of this file are subject to the Possenet Public       *
+* License Version 1.0 (the "License"); you may not use this file     *
+* except in compliance with the License.  A copy of the License is   *
+* available as of the date of this notice at                         *
+* http://www.possenet.org/license.html                               *
+*                                                                    *
+* Software distributed under the License is distributed on an "AS IS"*
+* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
+* should refer to the License for the specific language governing    *
+* rights and limitations under the License.                          *
+*                                                                    *
+* Contributors:                                                      *
+*                                                                    *
+--------------------------------------------------------------------->
+<!-- Procedure Description
+"WebSpeed Main Template
+
+Creates a Welcome page for a WebSpeed application. It provides links with which users can download a Netscape or Microsoft browser.  It also provides server and date information."
+//-->
+<HTML>
+<HEAD>
+<META NAME="AUTHOR" CONTENT="Your Name">
+<TITLE>Welcome to Your Application</TITLE>
+</HEAD>
+
+<BODY>
+<H1 ALIGN="center">
+  <BR>Welcome to <FONT COLOR="#FF0000">Your Application</FONT><BR>
+</H1>
+<HR WIDTH="70%">
+
+<P ALIGN="center">
+Host:<STRONG> `SERVER_NAME`</STRONG><BR>
+Browser:<STRONG> `REMOTE_HOST`</STRONG><BR>
+Date:<STRONG> `STRING(TODAY,&quot;99-99-9999&quot;)`</STRONG>
+</P>
+<HR WIDTH="70%">
+
+<P ALIGN="center">&nbsp;</P>
+
+<P ALIGN="center">
+<FONT SIZE="2">For best results why don't you try using<BR></FONT>
+<A HREF="http://www.netscape.com/comprod/mirror/index.html">
+  <FONT SIZE="2">
+    <IMG SRC="`RootURL`/images/netnow3.gif" ALT="Netscape Navigator" 
+      ALIGN="texttop" BORDER="0" HSPACE="5" VSPACE="5" WIDTH="88" HEIGHT="31">
+  </FONT>
+</A>
+<A HREF="http://www.microsoft.com/ie">
+  <FONT SIZE="2">
+    <IMG SRC="`RootURL`/images/ie3_anim.gif" ALT="Microsoft Internet Explorer" 
+      ALIGN="texttop" BORDER="0" HSPACE="5" VSPACE="5" WIDTH="88" HEIGHT="31">
+  </FONT>
+</A>
+</P>
+
+</BODY>
+</HTML>

@@ -23,11 +23,6 @@
 *********************************************************************/
 TRIGGER PROCEDURE FOR REPLICATION-DELETE OF gsc_profile_type.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "gsc_profile_type"
-                      &TRIGGER-TYPE = "REPLICATION-DELETE"}
-
 {af/sup/afreplicat.i  &TABLE-NAME   = "gsc_profile_type"
                       &TABLE-FLA    = "gscpf"
                       &TABLE-PK     = "profile_type_obj"

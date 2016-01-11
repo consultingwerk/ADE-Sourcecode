@@ -62,6 +62,7 @@ ASSIGN _F._DATA-TYPE           = "Character":U
        _U._LABEL               = "~"" + _F._INITIAL-DATA + "~"" 
        _U._TOOLTIP             = {&ALI_TOOLTIP}
        _U._TOOLTIP-ATTR        = {&ALI_TOOLTIP-ATTR}
+       _U._SENSITIVE           = NO
        .
 IF from_schema THEN _F._DICT-VIEW-AS = _suppress_dict_view-as.
 

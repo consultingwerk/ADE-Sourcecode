@@ -1,185 +1,253 @@
-DEFINE INPUT  PARAMETER pcObject                AS CHARACTER                NO-UNDO.
-DEFINE INPUT  PARAMETER pdObjectInstance        AS DECIMAL                  NO-UNDO.
-DEFINE INPUT  PARAMETER pcSdoname               AS CHARACTER                NO-UNDO.
-DEFINE INPUT  PARAMETER plReturnedChangesOnly   AS LOGICAL                  NO-UNDO.
-DEFINE OUTPUT PARAMETER pcAttributeLabels       AS CHARACTER                NO-UNDO.
-DEFINE OUTPUT PARAMETER pcAttributeValues       AS CHARACTER                NO-UNDO.
+FUNCTION getRequiredPropertyValues RETURNS CHARACTER (pcProperties AS CHARACTER, pcPropsWithValues AS CHARACTER, pcObjectType AS CHARACTER) FORWARD.
 
-DEFINE VARIABLE cWindow          AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cProc            AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE hObj             AS HANDLE     NO-UNDO.
-DEFINE VARIABLE cWin             AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE iProc            AS CHAR       NO-UNDO.
-DEFINE VARIABLE cFile            AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cWinContext      AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cSmoContext      AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cSdoContext      AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE hSmart           AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hSdo             AS HANDLE     NO-UNDO.
-DEFINE VARIABLE iLoop            AS INTEGER    NO-UNDO.
-DEFINE VARIABLE dSmartObject     AS DECIMAL    INITIAL ? NO-UNDO.
-
-DEFINE VARIABLE cOldPropertyList AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cNewPropertyList AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cOldProperty     AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cOldValue        AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cNewProperty     AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cNewValue        AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cNewAttribList   AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cNewValueList    AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cPhysicalName    AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cLogicalName     AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cSdoPhysicalName AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cSdoLogicalName  AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cCustomProc      AS CHARACTER  NO-UNDO.
-
-{src/adm2/globals.i}
-
-ASSIGN
-  cWindow = SEARCH("af/cod2/afprpwind.w").
-
-IF cWindow = ? THEN
-  ASSIGN
-    cWindow = SEARCH("af/cod2/afprpwind.r").
+  DEFINE INPUT  PARAMETER phContainerBuilder    AS HANDLE     NO-UNDO.
+  DEFINE INPUT  PARAMETER pcObject              AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER pcInstanceName        AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER pcSdoname             AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER plReturnedChangesOnly AS LOGICAL    NO-UNDO.
+  DEFINE OUTPUT PARAMETER pcAttributeLabels     AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER pcAttributeValues     AS CHARACTER  NO-UNDO.
   
-  IF pcObject <> "":U THEN
-  DO: 
-    RUN getObjectNames IN gshRepositoryManager
-      (INPUT  pcObject, 
-       OUTPUT cPhysicalName, 
-       OUTPUT cLogicalName).
-    FIND FIRST gsc_object NO-LOCK
-      WHERE gsc_object.object_filename = pcObject
-      NO-ERROR.
-    
-    IF AVAILABLE gsc_object THEN
-    FIND FIRST ryc_smartObject 
-      WHERE ryc_smartObject.object_obj = gsc_object.object_obj
-      NO-LOCK NO-ERROR.
+  DEFINE VARIABLE cOldPropertyList AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cNewPropertyList AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cNewAttribList   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cNewValueList    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cPhysicalName    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cNewProperty     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cOldProperty     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cLogicalName     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cCustomProc      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cWinContext      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSmoContext      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cNewValue        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cOldValue        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cWindow          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cProc            AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFile            AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cWin             AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iLoop            AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hSmart           AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hObj             AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hSdo             AS HANDLE     NO-UNDO.
 
-    FIND FIRST ryc_object_instance WHERE
-               ryc_object_instance.object_instance_obj = pdObjectInstance
-               NO-LOCK NO-ERROR.
-    IF AVAILABLE ryc_object_instance THEN
-        ASSIGN dSmartObject = ryc_object_instance.object_instance_obj.
-    ELSE
-    IF AVAILABLE ryc_smartobject THEN
-        ASSIGN dSmartObject = ryc_smartobject.smartobject_obj.
-  END.
+  {src/adm2/globals.i}
+
+  cWindow = SEARCH("af/cod2/afprpwind.w":U).
+
+  IF cWindow = ? THEN
+    cWindow = SEARCH("af/cod2/afprpwind.r":U).
+
+  IF pcObject <> "":U THEN
+    RUN getObjectNames (INPUT  pcObject, 
+                        OUTPUT cPhysicalName, 
+                        OUTPUT cLogicalName).
 
   IF pcSdoName <> "":U THEN
   DO:
-      RUN getObjectNames IN gshRepositoryManager ( INPUT  pcSdoName,
-                                                   OUTPUT cSdoPhysicalName,
-                                                   OUTPUT cSdoLogicalName).
+    RUN startDataObject IN gshRepositoryManager (INPUT pcSDOName, OUTPUT hSDO).
+
+    IF NOT VALID-HANDLE(hSDO) THEN 
+      RETURN ERROR "No SDO/SBO object exists for ":U + pcSdoName.
+
+    DYNAMIC-FUNCTION("setObjectName":U IN hSDO, DYNAMIC-FUNCTION("getLogicalObjectName":U IN hSDO)).
   END.
 
-  IF SEARCH(cPhysicalName) = ? AND SEARCH(REPLACE(cPhysicalName,".w":U,".r":U)) = ? THEN 
+  IF SEARCH(cPhysicalName) = ? AND SEARCH(REPLACE(cPhysicalName, ".w":U, ".r":U)) = ? THEN 
     RETURN ERROR "No object exists for ":U + pcObject.
-  IF dSmartObject = ? THEN RETURN ERROR "No repository records exist for ":U + pcObject.
-  
-  IF pcSdoName <> "":U AND 
-     SEARCH(cSdoPhysicalName) = ? AND 
-     SEARCH(REPLACE(cSdoPhysicalName,".w":U,".r":U)) = ? THEN 
-    RETURN ERROR "No SDO object exists for ":U + pcSdoName.
-   
-  { launch.i 
-      &PLIP  = 'ry/app/ryreposobp.p'
-      &IProc = 'fetchAttributeValues'
-      &PList = "( INPUT dSmartObject, OUTPUT cOldPropertyList)"
-  } 
-  {afcheckerr.i}            
-  
-  RUN adeuib/_open-w.p (cWindow,'','open').
-  RUN adeuib/_uibinfo.p(?,'WINDOW ?','HANDLE', OUTPUT cWin).
-  hObj = WIDGET-HANDLE(cWin) NO-ERROR.
-  hObj:HIDDEN = TRUE.
-  RUN adeuib/_uibinfo.p(?,?,'file-name', OUTPUT cFile).
-  RUN adeuib/_uibinfo.p(?,?,'CONTEXT', OUTPUT cWinContext).
 
-  hObj = WIDGET-HANDLE(cWin) NO-ERROR.
-  hObj:HIDDEN = TRUE.
+  IF cPhysicalName = ? THEN
+    RETURN ERROR "No repository records exist for ":U + pcObject.
 
-  IF cSdoPhysicalName <> "":U THEN
-  RUN adeuib/_uib_crt.p
-    (INTEGER(cWinContext),
-    'SmartObject',
-    'SmartObject: ' + cSdoPhysicalName,
-    0,0,0,0,
-    OUTPUT cSdoContext).
-  
-  RUN adeuib/_uib_crt.p
-    (INTEGER(cWinContext),
-    'SmartObject',
-    'SmartObject: ' + cPhysicalName,
-    0,0,0,0,
-    OUTPUT cSmoContext).
-  
+  RUN getAttributeList IN phContainerBuilder (INPUT pcInstanceName, OUTPUT cOldPropertyList).
 
-  RUN adeuib/_uibinfo.p(INT(cSmoContext),?,'procedure-handle', OUTPUT cProc).
+  RUN adeuib/_open-w.p (INPUT cWindow,
+                        INPUT "":U,
+                        INPUT "OPEN":U).
+  RUN adeuib/_uibinfo.p (INPUT  ?,
+                         INPUT  "WINDOW ?":U,
+                         INPUT  "HANDLE":U,
+                         OUTPUT cWin).
   ASSIGN
-    hSmart = WIDGET-HANDLE(cProc).
+      hObj        = WIDGET-HANDLE(cWin)
+      hObj:HIDDEN = TRUE.
+      
+  /* Set this Property so that we can use this from the AppBuilder to disregard any prompting for links etc. */
+  hObj:PRIVATE-DATA = "DynamicsGenericPropSheet":U.
   
-  IF cSdoContext <> "":U THEN DO:
-    RUN adeuib/_uibinfo.p(INT(cSdoContext),?,'procedure-handle', OUTPUT cProc).
-    ASSIGN
-      hSdo = WIDGET-HANDLE(cProc).
-  END.
+  RUN adeuib/_uibinfo.p (INPUT  ?,
+                         INPUT  ?,
+                         INPUT  "FILE-NAME":U,
+                         OUTPUT cFile).
+  RUN adeuib/_uibinfo.p (INPUT  ?,
+                         INPUT  ?,
+                         INPUT  "CONTEXT":U,
+                         OUTPUT cWinContext).
 
-  IF VALID-HANDLE(hSmart) THEN DO:
-  
+  ASSIGN
+      hObj        = WIDGET-HANDLE(cWin)
+      hObj:HIDDEN = TRUE.
+
+  RUN adeuib/_uib_crt.p (INPUT  INTEGER(cWinContext),
+                         INPUT  "SmartObject":U,
+                         INPUT  "SmartObject: ":U + cPhysicalName,
+                         INPUT  0,
+                         INPUT  0,
+                         INPUT  0,
+                         INPUT  0,
+                         OUTPUT cSmoContext).
+
+  RUN adeuib/_uibinfo.p (INPUT  INTEGER(cSmoContext),
+                         INPUT  ?,
+                         INPUT  "PROCEDURE-HANDLE":U,
+                         OUTPUT cProc).
+
+  hSmart = WIDGET-HANDLE(cProc).
+
+  IF VALID-HANDLE(hSmart) THEN
+  DO:
+    IF VALID-HANDLE(hSDO) THEN
+      {fnarg setUserProperty "'DataSource', STRING(hSDO)" hSmart}.
+
     DYNAMIC-FUNCTION("setUserProperty":U IN hSmart, "EditSingleInstance":U, "YES":U).
 
-    IF cOldPropertyList <> "" THEN
-        RUN setAttributesInObject IN gshSessionManager( INPUT hSmart, INPUT cOldPropertyList) NO-ERROR.
+    cOldPropertyList = getRequiredPropertyValues(DYNAMIC-FUNCTION("instancePropertyList":U IN hSmart, "":U), cOldPropertyList, DYNAMIC-FUNCTION("getObjectType":U IN hSmart)).
+
+    IF cOldPropertyList <> "":U THEN
+      RUN setAttributesInObject IN gshSessionManager( INPUT hSmart,
+                                                      INPUT cOldPropertyList) NO-ERROR.
     ELSE 
-      ASSIGN 
-        cOldPropertyList = DYNAMIC-FUNCTION("instancePropertyList":U IN hSmart, "":U) NO-ERROR.
+      cOldPropertyList = DYNAMIC-FUNCTION("instancePropertyList":U IN hSmart, "":U) NO-ERROR.
 
     DYNAMIC-FUNCTION ("setLogicalObjectName":U IN hSmart , cLogicalName).
 
     RUN editInstanceProperties IN hSmart.
 
     ASSIGN
-      cNewPropertyList = DYNAMIC-FUNCTION("instancePropertyList":U IN hSmart, "":U) 
-      cNewPropertyList = REPLACE(cNewPropertyList,CHR(4),CHR(3)) NO-ERROR.
+        cNewPropertyList = DYNAMIC-FUNCTION("instancePropertyList":U IN hSmart, "":U)
+        cNewPropertyList = REPLACE(cNewPropertyList, CHR(4), CHR(3)) NO-ERROR.
   END.
 
-  DO iLoop = 1 TO NUM-ENTRIES(cOldPropertyList,CHR(3)):
-
+  DO iLoop = 1 TO NUM-ENTRIES(cOldPropertyList, CHR(3)):
     ASSIGN
-      cOldProperty = ENTRY(iLoop,cOldPropertyList,CHR(3))
-      cOldValue    = ENTRY(2,cOldProperty,CHR(4))
-      cOldProperty = ENTRY(1,cOldProperty,CHR(4))
-      .
+        cOldProperty = ENTRY(iLoop, cOldPropertyList, CHR(3))
+        cOldValue    = ENTRY(2, cOldProperty, CHR(4))
+        cOldProperty = ENTRY(1, cOldProperty, CHR(4)).
+
     /* Ignore LogicalObjectName */
-    IF cOldProperty EQ "LogicalObjectName":U THEN NEXT.
+    IF cOldProperty = "LogicalObjectName":U THEN NEXT.
 
-    IF LOOKUP(cOldProperty,cNewPropertyList,CHR(3)) > 0 THEN
-      ASSIGN
-        cNewValue    = ENTRY(1 + LOOKUP(cOldProperty,cNewPropertyList,CHR(3)),cNewPropertyList,CHR(3)).
+    IF LOOKUP(cOldProperty, cNewPropertyList, CHR(3)) > 0 THEN
+      cNewValue = ENTRY(1 + LOOKUP(cOldProperty, cNewPropertyList, CHR(3)), cNewPropertyList, CHR(3)).
     ELSE
-      ASSIGN
-        cNewValue = cOldValue.
+      cNewValue = cOldValue.
 
-     IF (plReturnedChangesOnly AND cOldValue <> cNewValue) OR
-        NOT plReturnedChangesOnly THEN
-        ASSIGN
+    IF (plReturnedChangesOnly = TRUE       AND
+        cOldValue            <> cNewValue) OR
+        plReturnedChangesOnly = FALSE      THEN
+      ASSIGN
           cNewAttribList = cNewAttribList + ",":U WHEN cNewAttribList <> ""
           cNewValueList  = cNewValueList  + CHR(3) WHEN cNewAttribList <> ""
           cNewAttribList = cNewAttribList + cOldProperty
           cNewValueList  = cNewValueList  + cNewValue.
   END.
-     
+
   IF VALID-HANDLE(hObj) THEN 
   DO:
-    /* tell the AppBuilder that it is saved so we avoid the save yes-no-cancel*/
-    RUN adeuib/_winsave.p(hObj,YES).
-    APPLY 'window-close' TO hObj.
+    /* Tell the AppBuilder that it is saved so we avoid the save yes-no-cancel */
+    RUN adeuib/_winsave.p(INPUT hObj,
+                          INPUT YES).
+
+    APPLY "WINDOW-CLOSE":U TO hObj.
   END.
 
-  ASSIGN pcAttributeLabels = cNewAttribList
-         pcAttributeValues = cNewValueList
-         .
+  ASSIGN
+      pcAttributeLabels = cNewAttribList
+      pcAttributeValues = cNewValueList.
+
   RETURN.
-  /* EOF */
+
+PROCEDURE getObjectNames:
+  DEFINE INPUT  PARAMETER pcFilename      AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER pcPhysicalName  AS CHARACTER  NO-UNDO INITIAL ?.
+  DEFINE OUTPUT PARAMETER pcLogicalName   AS CHARACTER  NO-UNDO.
+
+  DEFINE VARIABLE cExtension  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSODetails  AS CHARACTER  NO-UNDO. /* Original SmartObject details */
+  DEFINE VARIABLE cPDetails   AS CHARACTER  NO-UNDO. /* Physical SmartObject details */
+  DEFINE VARIABLE cQuery      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lPhysical   AS LOGICAL    NO-UNDO.
+
+  cQuery = "FOR EACH ryc_smartobject NO-LOCK":U
+         + "   WHERE ryc_smartobject.object_filename = ":U + QUOTER(pcFilename).
+
+  RUN getRecordDetail IN gshGenManager (INPUT  cQuery,
+                                        OUTPUT cSODetails).
+  
+  IF cSODetails <> "":U AND
+     cSODetails <> ?    THEN
+  DO:
+    cQuery = "FOR EACH ryc_smartobject NO-LOCK":U
+           + "   WHERE ryc_smartobject.smartobject_obj = ":U + QUOTER(DECIMAL(ENTRY(LOOKUP("ryc_smartobject.physical_smartobject_obj":U, cSODetails, CHR(3)) + 1, cSODetails, CHR(3)))).
+
+    RUN getRecordDetail IN gshGenManager (INPUT  cQuery,
+                                          OUTPUT cPDetails).
+    
+    IF cPDetails <> "":U AND
+       cPDetails <> ?    THEN
+      lPhysical = TRUE.
+
+    ASSIGN
+        pcPhysicalName = (IF lPhysical THEN ENTRY(LOOKUP("ryc_smartobject.object_path":U, cPDetails,  CHR(3)) + 1, cPDetails,  CHR(3))
+                                       ELSE ENTRY(LOOKUP("ryc_smartobject.object_path":U, cSODetails, CHR(3)) + 1, cSODetails, CHR(3))).
+        pcLogicalName  = pcFilename.
+
+    pcPhysicalName = pcPhysicalName
+                   + (IF pcPhysicalName <> "":U THEN "/":U ELSE "":U)
+                   + (IF lPhysical THEN ENTRY(LOOKUP("ryc_smartobject.object_filename":U, cPDetails,  CHR(3)) + 1, cPDetails,  CHR(3))
+                                   ELSE ENTRY(LOOKUP("ryc_smartobject.object_filename":U, cSODetails, CHR(3)) + 1, cSODetails, CHR(3))).
+
+    IF lPhysical THEN
+      ASSIGN
+          cExtension     = ENTRY(LOOKUP("ryc_smartobject.object_extension":U, cPDetails, CHR(3)) + 1, cPDetails, CHR(3))
+          pcPhysicalName = pcPhysicalName + (IF cExtension <> "":U THEN ".":U + cExtension ELSE "":U).
+    ELSE
+      ASSIGN
+          cExtension     = ENTRY(LOOKUP("ryc_smartobject.object_extension":U, cSODetails, CHR(3)) + 1, cSODetails, CHR(3))
+          pcPhysicalName = pcPhysicalName + (IF cExtension <> "":U THEN ".":U + cExtension ELSE "":U).
+  END.
+
+  RETURN.
+
+END PROCEDURE.
+
+FUNCTION getRequiredPropertyValues RETURNS CHARACTER (pcProperties AS CHARACTER, pcPropsWithValues AS CHARACTER, pcObjectType AS CHARACTER):
+  DEFINE VARIABLE cRequiredValues AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cProperty       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iCounter        AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iLookup         AS INTEGER    NO-UNDO.
+
+  IF pcObjectType = "SmartDataObject":U OR LOOKUP(pcObjectType, {fnarg getClassChildrenFromDB 'SDO':U gshRepositoryManager}) <> 0 THEN
+    IF LOOKUP("DataColumns":U, pcProperties) = 0 THEN
+      pcProperties = pcProperties + (IF pcProperties = "":U THEN "":U ELSE CHR(3)) + "DataColumns":U + CHR(4).
+
+  ASSIGN
+      pcPropsWithValues = REPLACE(pcPropsWithValues, CHR(4), CHR(3))
+      pcProperties      = REPLACE(pcProperties,      CHR(4), CHR(3)) NO-ERROR.
+
+  DO iCounter = 1 TO NUM-ENTRIES(pcProperties, CHR(3)) BY 2:
+    ASSIGN
+        cProperty       = ENTRY(iCounter, pcProperties, CHR(3))
+        iLookup         = LOOKUP(cProperty, pcPropsWithValues, CHR(3)).
+
+    /* Check if the property is already listed - if so, then do not create an entry for it again */
+    IF INDEX(cRequiredValues, CHR(4)) <> 0 THEN
+      IF LOOKUP(cProperty, REPLACE(cRequiredValues, CHR(4), CHR(3)), CHR(3)) <> 0 THEN NEXT.
+
+    cRequiredValues = cRequiredValues + (IF cRequiredValues = "" THEN "" ELSE CHR(3))
+                    + cProperty + CHR(4)
+                    + (IF iLookup <> 0 THEN ENTRY(iLookup + 1, pcPropsWithValues, CHR(3)) ELSE ENTRY(iCounter + 1, pcProperties, CHR(3))).
+  END.
+
+  RETURN cRequiredValues.
+  
+END FUNCTION.

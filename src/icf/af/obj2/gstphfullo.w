@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          afdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
@@ -92,7 +92,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gstphfullo.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -124,6 +124,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -142,6 +143,10 @@ changed_by_user_obj
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gstphfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gst_password_history NO-LOCK, ~
+      FIRST gsm_user OF gst_password_history  OUTER-JOIN NO-LOCK ~
+    BY gst_password_history.password_change_date DESCENDING ~
+       BY gst_password_history.password_change_time DESCENDING INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gst_password_history NO-LOCK, ~
       FIRST gsm_user OF gst_password_history  OUTER-JOIN NO-LOCK ~
@@ -246,26 +251,26 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "AFDB.gst_password_history,AFDB.gsm_user OF AFDB.gst_password_history "
+     _TblList          = "ICFDB.gst_password_history,ICFDB.gsm_user OF ICFDB.gst_password_history "
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _TblOptList       = ", FIRST OUTER"
      _OrdList          = "AFDB.gst_password_history.password_change_date|no,AFDB.gst_password_history.password_change_time|no"
      _JoinCode[2]      = "AFDB.gsm_user.user_obj = AFDB.gst_password_history.user_obj"
-     _FldNameList[1]   > AFDB.gst_password_history.password_history_obj
+     _FldNameList[1]   > ICFDB.gst_password_history.password_history_obj
 "password_history_obj" "password_history_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 29.4 yes
-     _FldNameList[2]   > AFDB.gst_password_history.user_obj
+     _FldNameList[2]   > ICFDB.gst_password_history.user_obj
 "user_obj" "user_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 29.4 yes
-     _FldNameList[3]   > AFDB.gsm_user.user_login_name
+     _FldNameList[3]   > ICFDB.gsm_user.user_login_name
 "user_login_name" "user_login_name" ? ? "character" ? ? ? ? ? ? no ? no 16.4 yes
-     _FldNameList[4]   > AFDB.gst_password_history.old_password
+     _FldNameList[4]   > ICFDB.gst_password_history.old_password
 "old_password" "old_password" ? ? "character" ? ? ? ? ? ? no ? no 35 yes
-     _FldNameList[5]   > AFDB.gst_password_history.password_change_date
+     _FldNameList[5]   > ICFDB.gst_password_history.password_change_date
 "password_change_date" "password_change_date" ? ? "date" ? ? ? ? ? ? no ? no 22.4 yes
-     _FldNameList[6]   > AFDB.gst_password_history.password_change_time
+     _FldNameList[6]   > ICFDB.gst_password_history.password_change_time
 "password_change_time" "password_change_time" ? ? "integer" ? ? ? ? ? ? no ? no 22.4 yes
      _FldNameList[7]   > "_<CALC>"
 "STRING(RowObject.password_change_time,""HH:MM:SS"")" "fmt_password_change_time" "Changed Time" "x(8)" "character" ? ? ? ? ? ? no ? no 8 no
-     _FldNameList[8]   > AFDB.gst_password_history.changed_by_user_obj
+     _FldNameList[8]   > ICFDB.gst_password_history.changed_by_user_obj
 "changed_by_user_obj" "changed_by_user_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 29.4 yes
      _FldNameList[9]   > "_<CALC>"
 "getChangedByUser()" "c_changed_by_user" "Changed By" "x(15)" "character" ? ? ? ? ? ? no ? no 15 no
@@ -273,7 +278,7 @@ END.
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK dTables 

@@ -119,7 +119,12 @@ af/cod/aftemwizpw.w
 
   Update Notes: removal of Astra 1
 
--------------------------------------------------------------------------*/
+  (v:010009)    Task:           0   UserRef:    
+                Date:   05/06/2002  Author:     Mark Davies (MIP)
+
+  Update Notes: If an error message could not be found in any of the languages for a user then retreive the message in the selected source language before retreiving any languag.
+
+------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
 
@@ -130,7 +135,7 @@ af/cod/aftemwizpw.w
    can be displayed in the about window of the container */
 
 &scop object-name       afmessagep.p
-&scop object-version    010002
+&scop object-version    000000
 
 
 /* MIP object identifying preprocessor */
@@ -386,12 +391,22 @@ CASE NUM-ENTRIES(cFullMessage, CHR(4)):
            NO-ERROR.
     END.
     
+    /* If unsuccessful, get message in source language */
+    IF NOT AVAILABLE gsc_error THEN
+    DO:
+      FIND FIRST gsc_error NO-LOCK
+           WHERE gsc_error.error_group     = cErrorGroup
+             AND gsc_error.error_number    = iErrorCode
+             AND gsc_error.source_language = TRUE
+           NO-ERROR.
+    END.
+    
     /* If unsuccessful, get message in any language */
     IF NOT AVAILABLE gsc_error THEN
     DO:
       FIND FIRST gsc_error NO-LOCK
-           WHERE gsc_error.error_group  = cErrorGroup
-             AND gsc_error.error_number = iErrorCode
+           WHERE gsc_error.error_group     = cErrorGroup
+             AND gsc_error.error_number    = iErrorCode
            NO-ERROR.
     END.
   END.  /* if error group and error code specified */

@@ -109,7 +109,17 @@ af/cod/aftemwizpw.w
 
   Update Notes: Clear ttAttributeValue table before creating new records. Causes duplicate values to be created.
 
--------------------------------------------------------------------------------*/
+  (v:010004)    Task:           0   UserRef:    
+                Date:   11/06/2001  Author:     Mark Davies (MIP)
+
+  Update Notes: Fixed issue #4108 - Triple attributes adding field in Rep Obj Maintenance
+
+  (v:010005)    Task:           0   UserRef:    
+                Date:   05/14/2002  Author:     Mark Davies (MIP)
+
+  Update Notes: Remove reference to removed field collect_attribute_value_obj (Delta9)
+
+-----------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
 
@@ -135,7 +145,7 @@ ASSIGN cObjectName = "{&object-name}":U.
 
 /* Data Preprocessor Definitions */
 &GLOB DATA-LOGIC-TABLE ryc_object_instance
-&GLOB DATA-FIELD-DEFS  "ry\obj\rycoiful3o.i"
+&GLOB DATA-FIELD-DEFS  "ry/obj/rycoiful3o.i"
 
 /* Error handling definitions */
 {af/sup2/afcheckerr.i &define-only = YES}
@@ -167,6 +177,8 @@ DEFINE TEMP-TABLE ttRycAttributeValue RCODE-INFORMATION /* Defined same as Rowob
 &ENDIF
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
+
+
 
 
 
@@ -238,84 +250,6 @@ FUNCTION getSDOLevel RETURNS CHARACTER
 
 {&DB-REQUIRED-START}
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createEndTransValidate DataLogicProcedure  _DB-REQUIRED
-PROCEDURE createEndTransValidate :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE iRowNumber AS INTEGER    NO-UNDO.
-
-  DEFINE BUFFER bryc_attribute_value FOR ryc_attribute_value.
-  
-  FIND FIRST ryc_smartobject
-       WHERE ryc_smartobject.smartobject_obj = b_ryc_object_instance.smartobject_obj
-       NO-LOCK NO-ERROR.
-  IF NOT AVAILABLE ryc_smartobject THEN
-    RETURN.
-  
-  FOR EACH ttRycAttributeValue 
-      EXCLUSIVE-LOCK:
-    DELETE ttRycAttributeValue.
-  END.
-  
-  iRowNumber = 1.
-  FOR EACH  ryc_attribute_value
-      WHERE ryc_attribute_value.smartobject_obj           = b_ryc_object_instance.smartobject_obj
-      AND   ryc_attribute_value.object_type               = ryc_smartobject.object_type_obj
-      AND   ryc_attribute_value.container_smartobject_obj = 0
-      NO-LOCK:
-    IF NOT CAN-FIND(FIRST bryc_attribute_value
-                    WHERE bryc_attribute_value.object_type_obj           = ryc_attribute_value.object_type
-                    AND   bryc_attribute_value.smartobject_obj           = ryc_attribute_value.smartobject_obj
-                    AND   bryc_attribute_value.container_smartobject_obj = b_ryc_object_instance.container_smartobject_obj
-                    AND   bryc_attribute_value.object_instance_obj       = b_ryc_object_instance.object_instance_obj
-                    AND   bryc_attribute_value.attribute_label           = ryc_attribute_value.attribute_label)
-                    THEN DO:
-      CREATE ttRycAttributeValue.
-      ASSIGN ttRycAttributeValue.rowMod                      = "A":U
-             ttRycAttributeValue.rowIdent                    = STRING(ROWID(ryc_attribute_value))
-             ttRycAttributeValue.rowNum                      = iRowNumber
-             iRowNumber                                      = iRowNumber + 1
-             ttRycAttributeValue.object_type_obj             = ryc_attribute_value.object_type
-             ttRycAttributeValue.smartobject_obj             = ryc_attribute_value.smartobject_obj
-             ttRycAttributeValue.container_smartobject_obj   = b_ryc_object_instance.container_smartobject_obj
-             ttRycAttributeValue.object_instance_obj         = b_ryc_object_instance.object_instance_obj
-             ttRycAttributeValue.attribute_label             = ryc_attribute_value.attribute_label
-             ttRycAttributeValue.attribute_group_obj         = ryc_attribute_value.attribute_group_obj
-             ttRycAttributeValue.attribute_type_tla          = ryc_attribute_value.attribute_type_tla
-             ttRycAttributeValue.constant_value              = NO
-             ttRycAttributeValue.primary_smartobject_obj     = ttRycAttributeValue.container_smartobject_obj
-             ttRycAttributeValue.collect_attribute_value_obj = 0
-             ttRycAttributeValue.collection_sequence         = 0
-             ttRycAttributeValue.attribute_value             = ryc_attribute_value.attribute_value
-             ttRycAttributeValue.inheritted_value            = NO.
-    END.
-  END.
-  
-  FIND FIRST ttRycAttributeValue
-       NO-LOCK NO-ERROR.
-  IF AVAILABLE ttRycAttributeValue THEN DO:
-      RUN updateTableViaSDO IN gshGenManager ( INPUT 'ry/obj/rycavful4o.w',        
-                                               INPUT 'Object Instance Attribute Value SDO',            
-                                               INPUT '',                           
-                                               INPUT '',                           
-                                               INPUT-OUTPUT TABLE ttRycAttributeValue) NO-ERROR.
-    IF RETURN-VALUE <> "":U THEN DO:
-      RETURN ERROR RETURN-VALUE.
-    END.
-  END.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-{&DB-REQUIRED-END}
-
-{&DB-REQUIRED-START}
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE deletePreTransValidate DataLogicProcedure  _DB-REQUIRED
 PROCEDURE deletePreTransValidate :
 /*------------------------------------------------------------------------------
@@ -325,7 +259,7 @@ PROCEDURE deletePreTransValidate :
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE iRowNumber AS INTEGER    NO-UNDO.
 
-  EMPTY TEMP-TABLE ttRycPageObject.
+  IF NOT TRANSACTION THEN EMPTY TEMP-TABLE ttRycPageObject. ELSE FOR EACH ttRycPageObject: DELETE ttRycPageObject. END.
   
   iRowNumber = 1.
   FIND FIRST ryc_page_object 
@@ -345,11 +279,13 @@ PROCEDURE deletePreTransValidate :
   FIND FIRST ttRycPageObject
        NO-LOCK NO-ERROR.
   IF AVAILABLE ttRycPageObject THEN DO:
-      RUN updateTableViaSDO IN gshGenManager ( INPUT 'ry/obj/rycpoful2o.w',        
-                                               INPUT 'Page Object SDO',            
-                                               INPUT '',                           
-                                               INPUT '',                           
-                                               INPUT-OUTPUT TABLE ttRycPageObject) NO-ERROR.
+    SESSION:SET-WAIT-STATE("GENERAL":U).
+    RUN updateTableViaSDO IN gshGenManager ( INPUT 'ry/obj/rycpoful2o.w',        
+                                             INPUT 'Page Object SDO',            
+                                             INPUT '',                           
+                                             INPUT '',                           
+                                             INPUT-OUTPUT TABLE ttRycPageObject) NO-ERROR.
+    SESSION:SET-WAIT-STATE("":U).
     IF RETURN-VALUE <> "":U THEN DO:      
       RETURN ERROR RETURN-VALUE.
     END.
@@ -474,11 +410,13 @@ PROCEDURE writeEndTransValidate :
     IF ttRycPageObject.object_instance_obj = 0 OR 
        ttRycPageObject.object_instance_obj = ? THEN
       ttRycPageObject.object_instance_obj = b_ryc_object_instance.object_instance_obj.
+    SESSION:SET-WAIT-STATE("GENERAL":U).
     RUN updateTableViaSDO IN gshGenManager ( INPUT 'ry/obj/rycpoful2o.w',
                                              INPUT 'Page Object SDO',
                                              INPUT '',
                                              INPUT '',
                                              INPUT-OUTPUT TABLE ttRycPageObject) NO-ERROR.                      
+    SESSION:SET-WAIT-STATE("":U).
     IF RETURN-VALUE <> "":U THEN DO:
       RETURN ERROR RETURN-VALUE.
     END.
@@ -515,7 +453,7 @@ PROCEDURE writePreTransValidate :
   DEFINE BUFFER b2ryc_object_instance FOR ryc_object_instance.
   DEFINE BUFFER bryc_smartobject      FOR ryc_smartobject.
 
-  EMPTY TEMP-TABLE ttRycPageObject.
+  IF NOT TRANSACTION THEN EMPTY TEMP-TABLE ttRycPageObject. ELSE FOR EACH ttRycPageObject: DELETE ttRycPageObject. END.
   /* It is really only required to update/create a page record if the user
      selected a different page or a new page was selected */
   /* First find the before image record */

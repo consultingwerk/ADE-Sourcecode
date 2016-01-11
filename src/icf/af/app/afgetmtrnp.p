@@ -84,7 +84,7 @@ af/cod/aftemwizpw.w
 
 &scop object-name       afgetmtrnp.p
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010001
+&scop object-version    000000
 
 
 /* MIP object identifying preprocessor */
@@ -135,7 +135,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
                                                                         */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
@@ -228,6 +228,7 @@ FOR EACH ttTranslate:
   IF AVAILABLE gsm_translation THEN
   DO:
     ASSIGN
+      ttTranslate.dSourceLanguage = gsm_translation.source_language_obj
       ttTranslate.cOriginalLabel = gsm_translation.original_label
       ttTranslate.cOriginalTooltip = gsm_translation.original_tooltip
       ttTranslate.cTranslatedLabel = gsm_translation.translation_label
@@ -241,3 +242,5 @@ END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
+
+

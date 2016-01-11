@@ -145,7 +145,6 @@ PROCEDURE process-web-request :
   /* Output the MIME header. */
   output-content-type ("text/html":U).
 
-
   IF NOT debugging-enabled THEN DO:
     DYNAMIC-FUNCTION ("logNote":U IN web-utilities-hdl, "WARNING":U,
                               SUBSTITUTE ("Reset.p was requested by &1 and debugging mode not set. (Ref: &2)",

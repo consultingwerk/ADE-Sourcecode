@@ -272,9 +272,9 @@ THEN DO:
                       + (IF iLoopNum > 1 AND cBufferValues <> "":U THEN CHR(5) ELSE "":U)
                       + cBufferFieldName
                       + CHR(6)
-                      + cBufferFieldValueNew
+                      + (IF cBufferFieldValueNew = ? THEN "?":U ELSE cBufferFieldValueNew)
                       + CHR(6)
-                      + cBufferFieldValueOld
+                      + (IF cBufferFieldValueOld  = ? THEN "?":U ELSE cBufferFieldValueOld)
                       .
     END.
 

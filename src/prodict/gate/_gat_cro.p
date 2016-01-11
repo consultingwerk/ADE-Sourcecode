@@ -73,6 +73,9 @@ History:
     mcmann      07/13/00 Added check for gate-work.gate-edit being empty
     mcmann      06/12/01 Added assignment of Format and Initial values from w_field if available.
     mcmann      06/18/01 Added check of _db-misc1[1] for case
+    mcmann      07/08/02 DESC index fixes 20020702013,20020703006, 20020622001
+    mcmann      07/10/02 Added check for _index record with no _index-fields - function indexes
+    mcmann      10/10/02 Added logic to see data type change.
 
 --------------------------------------------------------------------*/
 
@@ -110,6 +113,7 @@ define variable odbtyp           as character no-undo. /* ODBC db-types */
 define variable oldf  	         as logical   no-undo. /* old file definition */
 define variable scrap            as logical   no-undo.
 define variable def-ianum        as integer initial 6 no-undo.
+DEFINE VARIABLE fld-dif          AS LOGICAL   NO-UNDO.
 
 
 /*------------------------------------------------------------------*/
@@ -732,6 +736,7 @@ for each gate-work
         end.  /* for each DICTDB._Index */
    
       for each DICTDB._Field OF DICTDB._File:     /*----- fields -----*/
+          ASSIGN fld-dif = FALSE.
 
           CREATE w_field.
           assign
@@ -867,6 +872,13 @@ for each gate-work
                            and s_ttb_fld.pro_type = "integer"
         then release w_field.
 
+      IF AVAILABLE w_field  THEN do:
+          IF w_field.pro_type = "character" AND w_Field.pro_type <> s_ttb_fld.pro_type THEN
+              ASSIGN fld-dif = TRUE.
+          ELSE IF s_ttb_fld.pro_type = "character" AND w_Field.pro_type <> s_ttb_fld.pro_type THEN
+              ASSIGN fld-dif = TRUE.
+      END.
+          
       IF NOT AVAILABLE w_field AND s_ttb_fld.pro_type = "date" then
           ASSIGN s_ttb_fld.pro_frmt = "99/99/99".
 
@@ -877,7 +889,7 @@ for each gate-work
                                           then w_field.pro_desc
                                           else s_ttb_fld.pro_desc
                                       )
-        DICTDB._Field._Data-type   = ( IF AVAILABLE w_field THEN w_field.pro_type
+        DICTDB._Field._Data-type   = ( IF AVAILABLE w_field AND NOT fld-dif THEN w_field.pro_type
                                         ELSE s_ttb_fld.pro_type
                                       )
         DICTDB._Field._Extent       = s_ttb_fld.pro_extnt
@@ -914,10 +926,10 @@ for each gate-work
                                          else l_order-max 
                                             + s_ttb_fld.pro_order
                                       )       
-        DICTDB._Field._Format       = ( IF AVAILABLE w_field THEN w_field.pro_format 
+        DICTDB._Field._Format       = ( IF AVAILABLE w_field AND NOT fld-dif THEN w_field.pro_format 
                                         ELSE s_ttb_fld.pro_frmt
                                       )
-        DICTDB._Field._Initial      = ( IF AVAILABLE w_field THEN w_field.pro_init
+        DICTDB._Field._Initial      = ( IF AVAILABLE w_field AND NOT fld-dif THEN w_field.pro_init
                                         ELSE s_ttb_fld.pro_init
                                       )
         s_ttb_fld.fld_recid         = RECID(DICTDB._Field).
@@ -1273,19 +1285,25 @@ for each gate-work
         where s_ttb_idf.ttb_idx = RECID(s_ttb_idx):
       
         find first s_ttb_fld
-          where RECID(s_ttb_fld) = s_ttb_idf.ttb_fld.
+          where RECID(s_ttb_fld) = s_ttb_idf.ttb_fld NO-ERROR.
         find first DICTDB._Field
-          where RECID(DICTDB._Field) = s_ttb_fld.fld_recid.
+          where RECID(DICTDB._Field) = s_ttb_fld.fld_recid NO-ERROR.
+        IF NOT AVAILABLE DICTDB._Field AND s_ttb_fld.ds_name BEGINS "SYS_NC" THEN DO:
 
-        CREATE DICTDB._Index-field.
-        assign
-          DICTDB._Index-Field._Ascending   = s_ttb_idf.pro_asc
-          DICTDB._Index-Field._Abbreviate  = s_ttb_idf.pro_abbr
-          DICTDB._Index-Field._Field-recid = RECID(DICTDB._Field)
-          DICTDB._Index-Field._Index-recid = RECID(DICTDB._Index)
-          DICTDB._Index-Field._Index-Seq   = s_ttb_idf.pro_order.
-
-        end.   /* for each s_ttb_idf */
+          FIND FIRST DICTDB._Field WHERE DICTDB._Field._File-recid = DICTDB._Index._File-recid
+                                     AND DICTDB._Field._Field-name = s_ttb_fld.defaultname NO-ERROR.
+        END.
+        
+        IF AVAILABLE DICTDB._Field THEN DO:
+          CREATE DICTDB._Index-field.
+          assign
+            DICTDB._Index-Field._Ascending   = s_ttb_idf.pro_asc
+            DICTDB._Index-Field._Abbreviate  = s_ttb_idf.pro_abbr
+            DICTDB._Index-Field._Field-recid = RECID(DICTDB._Field)
+            DICTDB._Index-Field._Index-recid = RECID(DICTDB._Index)
+            DICTDB._Index-Field._Index-Seq   = s_ttb_idf.pro_order.
+        END.
+       end.   /* for each s_ttb_idf */
 
       end.   /* for each s_ttb_idx */
   
@@ -1499,10 +1517,18 @@ for each gate-work
         IF AVAILABLE DICTDB._Index THEN
           ASSIGN DICTDB._File._Prime-Index = RECID(DICTDB._Index).
       END.
-    END.  
-    end.  /* for each s_ttb_tbl of gate-work */
+    END.
+    if user_dbtype = "ORACLE" THEN DO:
+      /* if we get any errors on function index and no fields are created delete index */
+      FOR EACH DICTDB._Index WHERE DICTDB._Index._File-recid = RECID(DICTDB._File):
+        IF CAN-FIND(FIRST DICTDB._Index-field OF DICTDB._Index) THEN NEXT.
+        ELSE
+           DELETE DICTDB._Index.
+      END.
+    END.
+  end.  /* for each s_ttb_tbl of gate-work */
     
-  end. /* for each gate-work */
+end. /* for each gate-work */
 
 if NOT batch_mode
  then SESSION:IMMEDIATE-DISPLAY = no.

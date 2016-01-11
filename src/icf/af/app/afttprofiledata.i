@@ -81,7 +81,7 @@ af/cod/aftemwizpw.w
    can be displayed in the about window of the container */
 
 &scop object-name       afttprofiledata.i
-&scop object-version    010001
+&scop object-version    000000
 
 
 /* MIP object identifying preprocessor */
@@ -125,7 +125,7 @@ af/cod/aftemwizpw.w
                                                                         */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Include 
@@ -134,7 +134,7 @@ af/cod/aftemwizpw.w
 /* ***************************  Main Block  *************************** */
 
 &IF DEFINED(ttProfileData) = 0 &THEN
-  DEFINE TEMP-TABLE ttProfileData LIKE gsm_profile_data
+  DEFINE TEMP-TABLE ttProfileData NO-UNDO LIKE gsm_profile_data
   FIELD cProfileTypeCode          AS CHARACTER
   FIELD cProfileCode              AS CHARACTER
   FIELD cAction                   AS CHARACTER /* ADD,DEL,MOD or NON */

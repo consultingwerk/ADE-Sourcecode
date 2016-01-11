@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html 
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xml:lang="en" lang="en"
+  xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Progress Dynamics</title>
+<link rel="stylesheet" type="text/css" href="../dhtml/rymain.css" />
+</head>
+<body id="body" tabindex="-1"> 
+<div name="menu" id="menu" target="toolbar" 
+  level="|2|2|2|2"
+  actions="|app.exit|main.treeview.toggle|main.info.toggle|app.debug2"
+  labels="|<img & src='../img/exit.gif' title='Exit (ALT-X)' />|&lt;img &amp; src='../img/treeviewu.gif' title='Toggle Treeview Menu' />|&lt;img &amp; src='../img/statusu.gif' title='Toggle Status Window' />|&lt;img &amp; src='../img/debugu.gif' title='Toggle Debug Help' />">
+</div>
+<div name="menu" id="menu" target="popup" 
+  level="|2|2|2|2"
+  actions="|main.treeview.toggle|main.info.toggle|app.debug2|app.exit"
+  labels="|&lt;img &amp; src='../img/treeviewu.gif' title='Toggle Treeview Menu' />Treeview toggle|&lt;img &amp; src='../img/statusu.gif' title='Toggle Status Window' />Status toggle|&lt;img &amp; src='../img/debugu.gif' title='Toggle Debug Help' />Debug|<img & src='../img/exit.gif' title='Exit (ALT-X)' />Exit">
+</div>
+<div id="popup"></div> 
+
+<div id="menubar"></div>
+<div id="toolbar"></div>
+
+
+<table border="0" margin="0" cellspacing="0" cellpadding="0" style="clear:left;"><tr><td>
+<span id="treeview" class="hide"
+  static="Administration|Development|Sports2002" 
+  style="width:150px;position:relative;float:left;">
+<img class="resizex" id="resizex" src="../img/ws_resizex.gif" 
+  style="position:absolute;left:143px;top:50px;width:5px;height:140px;z-index:5;cursor:move;" />
+  <table border=0 cellpadding=0 cellspacing=0></table>
+</span>
+</td><td id="app">
+
+<iframe name="win0" frameborder="no" class="hide" application="yes" onload="if(window.fLoad) fLoad()"></iframe>
+<iframe name="win1" frameborder="no" class="hide" application="yes" onload="if(window.fLoad) fLoad()"></iframe>
+<iframe name="win2" frameborder="no" class="hide" application="yes" onload="if(window.fLoad) fLoad()"></iframe>
+<iframe name="win3" frameborder="no" class="hide" application="yes" onload="if(window.fLoad) fLoad()"></iframe>
+<iframe name="win4" frameborder="no" class="hide" application="yes" onload="if(window.fLoad) fLoad()"></iframe>
+<iframe name="win5" frameborder="no" class="hide" application="yes" onload="if(window.fLoad) fLoad()"></iframe>
+<iframe name="win6" frameborder="no" class="hide" application="yes" onload="if(window.fLoad) fLoad()"></iframe>
+<iframe name="win7" frameborder="no" class="hide" application="yes" onload="if(window.fLoad) fLoad()"></iframe>
+<iframe name="win8" frameborder="no" class="hide" application="yes" onload="if(window.fLoad) fLoad()"></iframe>
+<iframe name="win9" frameborder="no" class="hide" application="yes" onload="if(window.fLoad) fLoad()"></iframe>
+</td></tr></table>
+
+
+<div id="info" class="hide" style="height:100px;width:99%;"></div>
+
+
+<form name="form" method="post" target="run" action="" class="hide">
+  <input type="hidden" name="lookup" value="">
+  <input type="hidden" name="wscharset" value="UTF-8">
+  <input type="hidden" name="sessionid" value="">
+</form>
+
+<script language="Javascript" src="../dhtml/ryinithtml.js"></script>
+<script language="Javascript">
+// Layout specific code
+
+//<table border="0" margin="0" cellspacing="0" cellpadding="0"><tr><td>
+//</td><td>
+//</td></tr></table>
+
+
+
+function run(){
+//  window.mainmenu=window.treeview; // Menu tools from MenuController     (ie, treeview)
+//  window.mainband=window.treeview; // Menu entries from MenuController     (ie, treeview)
+  window.mainmenu=window.menubar; // Menu tools from MenuController     (ie, treeview)
+  window.mainband=window.menubar; // Menu entries from MenuController     (ie, treeview)
+  window.progmenu=window.menubar;  // Local menubar entries from programs 
+  window.progband=window.menubar;  // Local program entries to menubar
+}
+</script>
+<script language="Javascript" src="../dhtml/ryapph.js"    ></script>
+<script language="Javascript" src="../dhtml/ryhotkey.js"  ></script>
+<script language="Javascript" src="../dhtml/rymenubar.js" ></script>
+<script language="Javascript" src="../dhtml/rytoolbar.js" ></script>
+<script language="Javascript" src="../dhtml/rytreeview.js" ></script>
+<script language="Javascript" src="../dhtml/rypopup.js" ></script>
+<script language="Javascript" src="../dhtml/ryinfo.js"    ></script>
+<script language="Javascript" src="../dhtml/ryrender.js"  ></script>
+<script language="Javascript" src="../dhtml/rylookup.js"  ></script>
+<script language="Javascript" src="../dhtml/rylogic.js"   ></script>
+
+<script language="Javascript" src="../dhtml/rywbo.js"     ></script>
+<script language="Javascript" src="../dhtml/rydata.js"    ></script>
+<script language="Javascript" src="../dhtml/rywdo.js"     ></script>
+<script language="Javascript" src="../dhtml/rybrowse.js"  ></script>
+<script language="Javascript" src="../dhtml/ryfolder.js"  ></script>
+<script language="Javascript" src="../dhtml/rywizard.js"  ></script>
+
+<script language="Javascript" src="../dhtml/ryutil.js"    ></script>
+</body>
+</html>

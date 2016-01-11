@@ -25,3 +25,6 @@ NEW-TEMPLATE    ry/app/rytemprocp.p
 
 *NEW-PROCEDURE  Structured &Include 
 NEW-TEMPLATE    ry/inc/ryteminclu.i
+
+*NEW-PROCEDURE  Structured &Manager
+NEW-TEMPLATE    ry/app/rytemsrvrp.p

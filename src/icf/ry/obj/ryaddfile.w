@@ -79,7 +79,7 @@ CREATE WIDGET-POOL.
 /* Parameters Definitions ---                                           */
 DEFINE INPUT  PARAMETER phWindow        AS HANDLE       NO-UNDO.
 DEFINE INPUT  PARAMETER gcProductModule LIKE icfdb.gsc_product_module.product_module_code. 
-DEFINE INPUT  PARAMETER gcFileName      LIKE icfdb.gsc_object.object_filename. 
+DEFINE INPUT  PARAMETER gcFileName      LIKE icfdb.ryc_smartobject.object_filename. 
 DEFINE INPUT  PARAMETER gcType          AS CHARACTER    NO-UNDO.
 DEFINE OUTPUT PARAMETER pressedOK       AS LOGICAL      NO-UNDO.
 
@@ -95,9 +95,14 @@ DEFINE VARIABLE currentObjectType           AS CHARACTER  NO-UNDO.
 /*DEFINE VARIABLE fiFileName                 AS CHARACTER INITIAL "". */
 
 /* IZ 2009: jep-icf: Valid object_type_code the AppBuilder can open. */
-&GLOBAL-DEFINE gcOpenObjectTypes DynObjc,DynMenc,DynFold,DynBrow,Shell,hhpFile,hhcFile,DatFile,CGIProcedure,SBO,StaticSO,StaticFrame,StaticSDF,StaticDiag,StaticCont,StaticMenc,StaticObjc,StaticFold,StaticSDV,StaticSDB,SDO,JavaScript,CGIWrapper,SmartViewer,SmartQuery,SmartPanel,SmartFrame,SmartBrowser,Container,Procedure,Window,SmartWindow,SmartFolder,SmartDialog
+&GLOBAL-DEFINE gcOpenObjectTypes DynObjc,DynMenc,DynFold,DynBrow,Shell,hhpFile,hhcFile,DatFile,CGIProcedure,SBO,StaticSO,StaticFrame,StaticSDF,StaticDiag,StaticCont,StaticMenc,StaticObjc,StaticFold,StaticSDV,StaticSDB,SDO,JavaScript,CGIWrapper,SmartViewer,SmartQuery,SmartPanel,SmartFrame,SmartBrowser,Procedure,Window,SmartWindow,SmartFolder,SmartDialog
+
+DEFINE VARIABLE gcOpenObjectTypes AS CHARACTER  NO-UNDO.
+ASSIGN gcOpenObjectTypes = "{&gcOpenObjectTypes}":U.
 
 {af/sup2/afttcombo.i}
+
+DEFINE VARIABLE ghRepositoryDesignManager AS HANDLE     NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -118,10 +123,10 @@ DEFINE VARIABLE currentObjectType           AS CHARACTER  NO-UNDO.
 &Scoped-define FRAME-NAME gDialog
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS coProductModule coObjectType Btn_OK ~
-Btn_Cancel 
+&Scoped-Define ENABLED-OBJECTS coProductModule coObjectType toWeb toClient ~
+toServer toDesign Btn_OK Btn_Cancel 
 &Scoped-Define DISPLAYED-OBJECTS fiFileName coProductModule coObjectType ~
-fcObjectPath 
+fcObjectPath toWeb toClient toServer toDesign 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -129,6 +134,15 @@ fcObjectPath
 /* _UIB-PREPROCESSOR-BLOCK-END */
 &ANALYZE-RESUME
 
+
+/* ************************  Function Prototypes ********************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getRDMHandle gDialog 
+FUNCTION getRDMHandle RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
 
 /* ***********************  Control Definitions  ********************** */
@@ -145,47 +159,67 @@ DEFINE BUTTON Btn_OK
      SIZE 15 BY 1.14.
 
 DEFINE VARIABLE coObjectType AS DECIMAL FORMAT "-999999999999999999999.999999999":U INITIAL 0 
+     LABEL "Object Type:" 
      VIEW-AS COMBO-BOX INNER-LINES 10
-     LIST-ITEM-PAIRS "x",0.00
+     LIST-ITEM-PAIRS "x",0
      DROP-DOWN-LIST
      SIZE 56 BY 1 NO-UNDO.
 
 DEFINE VARIABLE coProductModule AS DECIMAL FORMAT "-999999999999999999999.999999999":U INITIAL 0 
+     LABEL "Product Module" 
      VIEW-AS COMBO-BOX INNER-LINES 10
-     LIST-ITEM-PAIRS "x",0.00
+     LIST-ITEM-PAIRS "x",0
      DROP-DOWN-LIST
      SIZE 56 BY 1 NO-UNDO.
 
 DEFINE VARIABLE fcObjectPath AS CHARACTER FORMAT "X(256)":U 
+     LABEL "Relative Path" 
      VIEW-AS FILL-IN 
      SIZE 56 BY 1 NO-UNDO.
 
 DEFINE VARIABLE fiFileName AS CHARACTER FORMAT "X(256)":U 
+     LABEL "File" 
      VIEW-AS FILL-IN 
      SIZE 56 BY 1 NO-UNDO.
+
+DEFINE VARIABLE toClient AS LOGICAL INITIAL no 
+     LABEL "Deploy to Client" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 21.6 BY .81 TOOLTIP "This object will be included in WebClient deployments" NO-UNDO.
+
+DEFINE VARIABLE toDesign AS LOGICAL INITIAL no 
+     LABEL "Design Object" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 19.6 BY .81 TOOLTIP "Indicates this object is only used to design systems, and not required runtime." NO-UNDO.
+
+DEFINE VARIABLE toServer AS LOGICAL INITIAL no 
+     LABEL "Deploy to Server" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 21.2 BY .81 TOOLTIP "This object will be included in Appserver deployments" NO-UNDO.
+
+DEFINE VARIABLE toWeb AS LOGICAL INITIAL no 
+     LABEL "Deploy to Web" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 19.6 BY .81 TOOLTIP "This object will be include in Web deployments" NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME gDialog
-     fiFileName AT ROW 1.48 COL 27 COLON-ALIGNED NO-LABEL
-     coProductModule AT ROW 2.81 COL 27 COLON-ALIGNED NO-LABEL
-     coObjectType AT ROW 4.19 COL 27 COLON-ALIGNED NO-LABEL
-     fcObjectPath AT ROW 5.62 COL 27 COLON-ALIGNED NO-LABEL
-     Btn_OK AT ROW 4.14 COL 96.6
-     Btn_Cancel AT ROW 5.48 COL 96.6
-     "Product Module:" VIEW-AS TEXT
-          SIZE 25 BY 1.14 AT ROW 2.71 COL 3
-     "File:" VIEW-AS TEXT
-          SIZE 23 BY 1.14 AT ROW 1.38 COL 3
-     "Object Type:" VIEW-AS TEXT
-          SIZE 21 BY 1.14 AT ROW 4.1 COL 3
-     "Relative Path:" VIEW-AS TEXT
-          SIZE 23 BY 1.14 AT ROW 5.52 COL 3
-     SPACE(87.39) SKIP(0.57)
+     fiFileName AT ROW 1 COL 19.8 COLON-ALIGNED
+     coProductModule AT ROW 2.1 COL 19.8 COLON-ALIGNED
+     coObjectType AT ROW 3.19 COL 19.8 COLON-ALIGNED
+     fcObjectPath AT ROW 4.29 COL 19.8 COLON-ALIGNED
+     toWeb AT ROW 5.43 COL 21.8
+     toClient AT ROW 6.33 COL 21.8
+     toServer AT ROW 7.24 COL 21.8
+     toDesign AT ROW 5.38 COL 58.2
+     Btn_OK AT ROW 1 COL 81
+     Btn_Cancel AT ROW 2.19 COL 81
+     SPACE(0.00) SKIP(4.72)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
-         TITLE "Add to Repository"
+         TITLE "Register in Repository"
          DEFAULT-BUTTON Btn_OK CANCEL-BUTTON Btn_Cancel.
 
 
@@ -194,6 +228,7 @@ DEFINE FRAME gDialog
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
 /* Settings for THIS-PROCEDURE
    Type: SmartDialog
+   Compile into: 
    Allow: Basic,Browse,DB-Fields,Query,Smart
    Container Links: Data-Target,Data-Source,Page-Target,Update-Source,Update-Target
    Other Settings: COMPILE
@@ -245,7 +280,7 @@ ASSIGN
 
 &Scoped-define SELF-NAME gDialog
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL gDialog gDialog
-ON GO OF FRAME gDialog /* Add to Repository */
+ON GO OF FRAME gDialog /* Register in Repository */
 DO:
     APPLY 'CHOOSE' TO Btn_OK.   /* go to search the object file */
    
@@ -258,7 +293,7 @@ END.
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL gDialog gDialog
-ON WINDOW-CLOSE OF FRAME gDialog /* Add to Repository */
+ON WINDOW-CLOSE OF FRAME gDialog /* Register in Repository */
 DO:  
   /* Add Trigger to equate WINDOW-CLOSE to END-ERROR. */
   APPLY "END-ERROR":U TO SELF.
@@ -296,9 +331,10 @@ DO:
     DEFINE VARIABLE openObjectName              AS CHARACTER  NO-UNDO.
     
     DO WITH FRAME {&FRAME-NAME}:
+        
         /* Get the frame values. */
         ASSIGN coObjectType coProductModule fiFileName fcObjectPath.
-        
+
         /* assign valid outputs, GO to close the dialog */
         ASSIGN gcFileName = STRING(fiFileName)
                pressedOK = YES.
@@ -310,12 +346,15 @@ DO:
         /* Update the current product module for the user, unless it's "<All>".
            Repository API session super procedure handles this call. */
         ASSIGN currentProductModule =
-            ENTRY(LOOKUP(" " + coProductModule:SCREEN-VALUE, coProductModule:LIST-ITEM-PAIRS) - 1, coProductModule:LIST-ITEM-PAIRS) NO-ERROR.
-        IF (currentProductModule <> "<All>":u) AND (currentProductModule <> "") THEN
-             DYNAMIC-FUNCTION("setCurrentProductModule":u, currentProductModule) NO-ERROR.
+            ENTRY(LOOKUP(" " + coProductModule:SCREEN-VALUE, coProductModule:LIST-ITEM-PAIRS, 
+                         coProductModule:DELIMITER) - 1, 
+                         coProductModule:LIST-ITEM-PAIRS, coProductModule:DELIMITER) NO-ERROR.
+        getRDMHandle().
+        IF (currentProductModule <> "<All>":u) AND (currentProductModule <> "") AND VALID-HANDLE(ghRepositoryDesignManager) THEN
+             DYNAMIC-FUNCTION("setCurrentProductModule":u IN ghRepositoryDesignManager, currentProductModule) NO-ERROR.
 
-        /* ryreposobp.p Repository API session super procedure handles this call. */
-        ASSIGN currentObjectType = DYNAMIC-FUNCTION("ObjectTypeCode":u, DECIMAL(coObjectType:SCREEN-VALUE)) NO-ERROR.
+        IF VALID-HANDLE(ghRepositoryDesignManager) THEN
+          ASSIGN currentObjectType = DYNAMIC-FUNCTION("getObjectTypeCodeFromDB":u IN ghRepositoryDesignManager, DECIMAL(coObjectType:SCREEN-VALUE)) NO-ERROR.
 
         /* Pass back the object info via an _RyObject record. */
         RUN createRyObject IN THIS-PROCEDURE.
@@ -373,24 +412,32 @@ PROCEDURE createRyObject :
 ------------------------------------------------------------------------------*/
 
   DEFINE VARIABLE cProductModuleCode AS CHARACTER NO-UNDO.
-  
-  DO ON ERROR UNDO, LEAVE:
+  DEFINE VARIABLE cDeploymentType    AS CHARACTER NO-UNDO.
+
+  DO ON ERROR UNDO, LEAVE WITH FRAME {&FRAME-NAME}:
   
     /*  IZ 3195 Storing only Product Module Code. It's in currentProductModule as 
         follows: "pm_Code // pm_Description". So it must get the code only. */
     ASSIGN cProductModuleCode = TRIM(ENTRY(1, currentProductModule, '/':u)) NO-ERROR.
+    ASSIGN cDeploymentType = (IF toWeb:CHECKED    = YES THEN "WEB,":U ELSE "":U)
+                           + (IF toClient:CHECKED = YES THEN "CLN,":U ELSE "":U)
+                           + (IF toServer:CHECKED = YES THEN "SRV":U ELSE "":U)
+           cDeploymentType = RIGHT-TRIM(cDeploymentType, ",":U).
 
     /*  jep-icf: Copy the repository related field values to _RyObject. The 
         AppBuilder will use _RyObject in processing the add file request. */
     FIND _RyObject WHERE _RyObject.object_filename = gcFileName NO-ERROR.
     IF NOT AVAILABLE _RyObject THEN
-      CREATE _RyObject.
-    ASSIGN  _RyObject.object_filename       = gcFileName
-            _RyObject.product_module_code   = cProductModuleCode
-            _RyObject.object_type_code      = currentObjectType
+    CREATE _RyObject.
+    ASSIGN  _RyObject.object_type_code      = currentObjectType
+            _RyObject.parent_classes        = DYNAMIC-FUNCTION("getClassParentsFromDB":U IN gshRepositoryManager, INPUT _RyObject.object_type_code)
+            _RyObject.object_filename       = gcFileName
+            _RyObject.product_module_code   = cProductModuleCode            
             _RyObject.object_path           = fcObjectPath
             _RyObject.design_action         = "OPEN":u
-            _RyObject.design_ryobject       = YES.
+            _RyObject.design_ryobject       = YES
+            _RyObject.deployment_type       = cDeploymentType
+            _RyObject.design_only           = toDesign:CHECKED.
 
   END.  /* DO ON ERROR */
 
@@ -427,9 +474,11 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  DISPLAY fiFileName coProductModule coObjectType fcObjectPath 
+  DISPLAY fiFileName coProductModule coObjectType fcObjectPath toWeb toClient 
+          toServer toDesign 
       WITH FRAME gDialog.
-  ENABLE coProductModule coObjectType Btn_OK Btn_Cancel 
+  ENABLE coProductModule coObjectType toWeb toClient toServer toDesign Btn_OK 
+         Btn_Cancel 
       WITH FRAME gDialog.
   VIEW FRAME gDialog.
   {&OPEN-BROWSERS-IN-QUERY-gDialog}
@@ -491,6 +540,10 @@ PROCEDURE initializeObject :
 
     DEFINE VARIABLE cSavedPath       AS CHARACTER  NO-UNDO.
 
+    IF VALID-HANDLE(gshRepositoryManager) THEN
+        ASSIGN gcOpenObjectTypes = DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, INPUT gcOpenObjectTypes)
+               gcOpenObjectTypes = REPLACE(gcOpenObjectTypes, CHR(3), ",":U).
+
     /* Parent the dialog-box to the specified window. */
     IF VALID-HANDLE(phWindow) THEN
         ASSIGN FRAME {&FRAME-NAME}:PARENT = phWindow.
@@ -525,28 +578,33 @@ PROCEDURE populateCombos :
 ------------------------------------------------------------------------------*/
 DEFINE VARIABLE cWhere                      AS CHARACTER  NO-UNDO.        
 DEFINE VARIABLE cField                      AS CHARACTER  NO-UNDO.  
-DEFINE VARIABLE moduleEntry                 AS INTEGER.
-DEFINE VARIABLE typeName                    AS INTEGER.
+DEFINE VARIABLE moduleEntry                 AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iEnt                        AS INTEGER    NO-UNDO.
+DEFINE VARIABLE lRemove                     AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE cChildClasses               AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cEntry                      AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE i                           AS INTEGER    NO-UNDO.
+DEFINE VARIABLE cMappedObjectType           AS CHARACTER  NO-UNDO.
+
+DEFINE BUFFER ext_object                    FOR gsc_object_type.
 
 DO WITH FRAME {&FRAME-NAME}:
 
-  DEFINE VARIABLE cEntry                          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE i                               AS INTEGER.
-
+  
   EMPTY TEMP-TABLE ttComboData.
   CREATE ttComboData.
   ASSIGN
     ttComboData.cWidgetName = "coObjectType":U
     ttComboData.cWidgetType = "decimal":U
     ttComboData.hWidget = coObjectType:HANDLE
-    ttComboData.cForEach = "FOR EACH gsc_object_type WHERE CAN-DO('{&gcOpenObjectTypes}', gsc_object_type.object_type_code) NO-LOCK BY gsc_object_type.object_type_code":U
+    ttComboData.cForEach = "FOR EACH gsc_object_type NO-LOCK BY gsc_object_type.object_type_description":U
     ttComboData.cBufferList = "gsc_object_type":U
     ttComboData.cKeyFieldName = "gsc_object_type.object_type_obj":U
     ttComboData.cDescFieldNames = "gsc_object_type.object_type_description, gsc_object_type.object_type_code":U
     ttComboData.cDescSubstitute = "&1 (&2)":U
     ttComboData.cFlag = "A":U
     ttComboData.cCurrentKeyValue = "":U
-    ttComboData.cListItemDelimiter = ",":U
+    ttComboData.cListItemDelimiter = CHR(2)
     ttComboData.cListItemPairs = "":U
     ttComboData.cCurrentDescValue = "":U
     .
@@ -564,10 +622,11 @@ DO WITH FRAME {&FRAME-NAME}:
     ttComboData.cDescSubstitute = "&1 // &2":U
     ttComboData.cFlag = "A":U
     ttComboData.cCurrentKeyValue = "":U
-    ttComboData.cListItemDelimiter = ",":U
-    ttComboData.cListItemPairs = "":U
+    ttComboData.cListItemDelimiter = CHR(2)
+    ttComboData.cWidgetName = "":U
     ttComboData.cCurrentDescValue = "":U
     .
+  
   
    /* build combo list-item pairs */
   RUN af/app/afcobuildp.p (INPUT-OUTPUT TABLE ttComboData).
@@ -579,50 +638,108 @@ DO WITH FRAME {&FRAME-NAME}:
                                               "0" + ttComboData.cListItemDelimiter), "").
   END.
 
-  /* and set-up object type combo */
-  FIND FIRST ttComboData WHERE ttComboData.cWidgetName = "coObjectType":U.
-  coObjectType:LIST-ITEM-PAIRS IN FRAME {&FRAME-NAME} = ttComboData.cListItemPairs.
+        
+  /* Filter out object types that extend no object type, or any of Visual, Field, Action,
+     Base, or ProgressWidget */
+  FIND ttComboData WHERE ttComboData.hWidget = coObjectType:HANDLE.
+  /* This loop must be managed carefully because thelist keeps shrinking */
+  iEnt = 2.
+  Filter-Loop:
+  REPEAT:
+    IF iEnt GT NUM-ENTRIES(ttComboData.cListItemPairs, ttComboData.cListItemDelimiter) 
+        THEN LEAVE Filter-Loop.
+    lRemove = FALSE.
 
-  /* display the object type passed in */
+    FIND gsc_object_type NO-LOCK 
+        WHERE gsc_object_type.object_type_obj = DECIMAL(ENTRY(iEnt, ttComboData.cListItemPairs,
+                                                      ttComboData.cListItemDelimiter)).
+    IF gsc_object_type.extends_object_type_obj = 0 THEN lRemove = TRUE.
+    ELSE DO:
+      /* We're not going to check for user defined classes here, as we'd get all classes.  We'll assume these are high level base classes */
+      IF LOOKUP(gsc_object_type.object_type_code, "Visual,Field,Action,Base,ProgressWidget":U) > 0
+        THEN lRemove = TRUE.
+
+      FIND ext_object NO-LOCK 
+          WHERE Ext_object.OBJECT_type_obj = gsc_object_type.extends_object_type_obj.
+      IF LOOKUP(ext_object.OBJECT_type_code, "Visual,Field,Action,Base,ProgressWidget":U) > 0
+        THEN lRemove = TRUE.
+    END.  /* Else extends is not 0 */
+    /* Exceptions */
+
+    ASSIGN cChildClasses = DYNAMIC-FUNCTION("getClassChildrenFromDb" IN gshRepositoryManager, INPUT "StaticSO,StaticSDF":U)
+           cChildClasses = REPLACE(cChildClasses, CHR(3), ",":U).
+
+    IF LOOKUP(gsc_object_type.object_type_code, cChildClasses) > 0 THEN lRemove = FALSE.
+
+    IF lRemove THEN /* Keep iEnt the same when removing a list-item pair */
+      ASSIGN ttComboData.cListItemPairs =
+             REPLACE(ttcomboData.cListItemPairs,
+                     (ENTRY(iEnt - 1, ttcomboData.cListItemPairs, ttComboData.cListItemDelimiter) +
+                      ttComboData.cListItemDelimiter +
+                      ENTRY(iEnt, ttcomboData.cListItemPairs, ttComboData.cListItemDelimiter) +
+                      ttComboData.cListItemDelimiter), "").
+    ELSE iEnt = iEnt + 2.
+  END.  /* Do iEnt = 2 to num-entries */
+  
+
+  /* and set-up object type combo */
+  ASSIGN
+    coObjectType:DELIMITER                               = ttComboData.cListItemDelimiter
+    coObjectType:LIST-ITEM-PAIRS IN FRAME {&FRAME-NAME} = ttComboData.cListItemPairs.
+  
   IF (gcType <> ? AND gcType <> "") THEN
   DO:
-      gcType = gcType + " (" + gcType + ")".
-      ASSIGN typeName  = LOOKUP(gcType, coObjectType:LIST-ITEM-PAIRS).
-      ASSIGN typeName = INTEGER((typeName + 1) / 2).
-      cEntry = coObjectType:ENTRY(typeName) NO-ERROR.
-      IF cEntry <> ? AND NOT ERROR-STATUS:ERROR THEN
-      DO:
-          coObjectType:SCREEN-VALUE = cEntry NO-ERROR.
-          ASSIGN coObjectType.
-      END.
-  END.
-  /* else select 1st entry */
-  ELSE DO:
-      IF coObjectType:NUM-ITEMS > 0 THEN
-      DO:
-        cEntry = coObjectType:ENTRY(1) NO-ERROR.
-        IF cEntry <> ? AND NOT ERROR-STATUS:ERROR THEN
-        DO:
-          coObjectType:SCREEN-VALUE = cEntry NO-ERROR.
+     /* Map the _TYPE field with the appropriate repository class */
+     CASE gcType:
+        WHEN "SmartDataViewer":U     THEN cMappedObjectType = "StaticSDV":U.
+        WHEN "SmartViewer":U         THEN cMappedObjectType = "StaticSDV":U.  /* V8 */
+        WHEN "SmartDataBrowser":U    THEN cMappedObjectType = "StaticSDB":U.
+        WHEN "SmartBrowser":U        THEN cMappedObjectType = "StaticSDB":U.  /* V8 */
+        WHEN "SmartDataObject":U     THEN cMappedObjectType = "SDO":U.
+        WHEN "SmartBusinessObject":U THEN cMappedObjectType = "SBO":U.
+        OTHERWISE
+           cMappedObjectType = gcType.
+     END CASE.
+     /* Check the labels in the list-item-pairs.  The object code is in brackets */
+     LIST-ITEM-LOOP:
+     DO i = 1 TO NUM-ENTRIES(coObjectType:LIST-ITEM-PAIRS,coObjectType:DELIMITER) BY 2:
+        ASSIGN cEntry = ENTRY(i,coObjectType:LIST-ITEM-PAIRS,coObjectType:DELIMITER)
+               cEntry = TRIM(SUBSTRING(cEntry,R-INDEX(cEntry,"(":U),-1)) NO-ERROR.
+        IF cEntry = "(" + cMappedObjectType + ")" THEN DO:
+           coObjectType:SCREEN-VALUE = coObjectType:ENTRY( INT((i + 1) / 2)).
+           LEAVE LIST-ITEM-LOOP.
         END.
-        ELSE
-        DO:
-          /* blank the combo */
-          coObjectType:LIST-ITEM-PAIRS = coObjectType:LIST-ITEM-PAIRS.
-        END.
-      END.
+     END.
+
   END.
 
+  /* else select 1st entry */
+   IF coObjectType:SCREEN-VALUE =  ? AND coObjectType:NUM-ITEMS > 0 THEN
+   DO:
+     cEntry = coObjectType:ENTRY(1) NO-ERROR.
+     IF cEntry <> ? AND NOT ERROR-STATUS:ERROR THEN
+     DO:
+       coObjectType:SCREEN-VALUE = cEntry NO-ERROR.
+     END.
+     ELSE
+     DO:
+       /* blank the combo */
+       coObjectType:LIST-ITEM-PAIRS = coObjectType:LIST-ITEM-PAIRS.
+     END.
+   END.
+
   /* and set-up product module combo */
-  FIND FIRST ttComboData WHERE ttComboData.cWidgetName = "coProductModule":U.
-  coProductModule:LIST-ITEM-PAIRS IN FRAME {&FRAME-NAME} = ttComboData.cListItemPairs.
+  FIND FIRST ttComboData WHERE ttComboData.hWidget = coProductModule:HANDLE.
+  ASSIGN coProductModule:DELIMITER        = ttComboData.cListItemDelimiter.
+         coProductModule:LIST-ITEM-PAIRS  = ttComboData.cListItemPairs.
   
   /* If no product module passed in, try using the user's current product module.
      This value comes from the Repository API session super-procedure. */
-  IF (gcProductModule = ? OR gcProductModule = "") THEN
-      ASSIGN gcProductModule = DYNAMIC-FUNCTION("getCurrentProductModule":u) NO-ERROR.
+  getRDMHandle().
+  IF (gcProductModule = ? OR gcProductModule = "") AND VALID-HANDLE(ghRepositoryDesignManager) THEN
+      ASSIGN gcProductModule = DYNAMIC-FUNCTION("getCurrentProductModule":u IN ghRepositoryDesignManager) NO-ERROR.
 
-  /* display the product module passed in */
+    /* display the product module passed in */
   IF (gcProductModule <> ? AND gcProductModule <> "") THEN
   DO:
       /* Because we take list-item-pairs, for each combo drop-down list pair, the first is the description,
@@ -630,9 +747,10 @@ DO WITH FRAME {&FRAME-NAME}:
          is the description. Look it up in the temple table string list first, then halve the size,
          which should be its pair location in the drop-down list. Then we retrieve the value, which
          should be gsc_product_module.product_module_obj, assign the value to the combo. */
-      ASSIGN moduleEntry = LOOKUP(gcProductModule, coProductModule:LIST-ITEM-PAIRS).
-      ASSIGN moduleEntry = INTEGER((moduleEntry + 1) / 2).
-      cEntry = coProductModule:ENTRY(moduleEntry) NO-ERROR.
+      ASSIGN moduleEntry = LOOKUP(gcProductModule, coProductModule:LIST-ITEM-PAIRS,coProductModule:DELIMITER)
+             moduleEntry = INTEGER((moduleEntry + 1) / 2)
+             cEntry      = coProductModule:ENTRY(moduleEntry) 
+             NO-ERROR.
       IF cEntry <> ? AND NOT ERROR-STATUS:ERROR THEN
       DO:
         coProductModule:SCREEN-VALUE = cEntry NO-ERROR.
@@ -678,6 +796,25 @@ PROCEDURE updateFileName :
     DISPLAY fiFileName WITH FRAME {&FRAME-NAME}.
 
 END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+/* ************************  Function Implementations ***************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getRDMHandle gDialog 
+FUNCTION getRDMHandle RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  
+  ASSIGN ghRepositoryDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U, INPUT "RepositoryDesignManager":U).
+
+  RETURN TRUE.   /* Function return value. */
+
+END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

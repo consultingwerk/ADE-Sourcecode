@@ -192,7 +192,7 @@ DEFINE VARIABLE seAvailable AS CHARACTER
 DEFINE VARIABLE seSelected AS CHARACTER 
      VIEW-AS SELECTION-LIST MULTIPLE 
      SCROLLBAR-HORIZONTAL SCROLLBAR-VERTICAL 
-     SIZE 40 BY 7.24
+     SIZE 40 BY 7.24 TOOLTIP "Double-click an item to toggle between Enabled and Disabled."
      FONT 3 NO-UNDO.
 
 
@@ -711,10 +711,10 @@ FUNCTION setDataValue RETURNS LOGICAL
 
   RUN getSdoName IN ghContainerSource (OUTPUT cSdoName).  
 
-  FIND FIRST gsc_object WHERE gsc_object.object_filename = csdoname NO-LOCK NO-ERROR.
-  IF AVAIL gsc_object THEN 
+  FIND FIRST ryc_smartobject WHERE ryc_smartobject.object_filename = csdoname NO-LOCK NO-ERROR.
+  IF AVAIL ryc_smartobject THEN 
   DO:
-    csdoname = gsc_object.object_path + csdoname.
+    csdoname = ryc_smartobject.object_path + csdoname.
     /* add extension if required */
     IF INDEX(csdoname,".":U) = 0 THEN
       ASSIGN csdoname = csdoname + ".w":U.

@@ -160,16 +160,17 @@ DO:
       MUST-EXIST
       USE-FILENAME
       UPDATE             PickedOne.  
-    
+
   IF PickedOne then
      /* See if it can be located in the PROPATH */
   DO i = 1 to NUM-ENTRIES(PROPATH):
     FILE-INFO:FILE-NAME = TRIM(ENTRY(i,PROPATH)).
+
     IF pFile BEGINS FILE-INFO:FULL-PATHNAME 
     AND FILE-INFO:FULL-PATHNAME NE ? THEN 
     DO:       
       /* If it's there, chop off the leading part */
-      pFile = SUBSTRING(pFile, LENGTH(FILE-INFO:FULL-PATHNAME) + 2, -1,"CHARACTER":U).
+      pFile = SUBSTRING(pFile, LENGTH(RIGHT-TRIM(FILE-INFO:FULL-PATHNAME,"~\":U)) + 2, -1,"CHARACTER":U).
       LEAVE.
     END.
   END.

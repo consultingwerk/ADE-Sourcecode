@@ -99,17 +99,6 @@ FUNCTION destroySelection RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-formattedValue) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD formattedValue Procedure 
-FUNCTION formattedValue RETURNS CHARACTER
-  (pcValue AS CHAR)  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-getAutoRefresh) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getAutoRefresh Procedure 
@@ -357,6 +346,17 @@ FUNCTION getOptionalString RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getRepositionDataSource Procedure 
 FUNCTION getRepositionDataSource RETURNS LOGICAL
   ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getSelectionHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getSelectionHandle Procedure 
+FUNCTION getSelectionHandle RETURNS HANDLE
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -654,6 +654,17 @@ FUNCTION setOptionalString RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setRepositionDataSource Procedure 
 FUNCTION setRepositionDataSource RETURNS LOGICAL
   ( plReposSource AS LOG )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setSelectionHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setSelectionHandle Procedure 
+FUNCTION setSelectionHandle RETURNS LOGICAL
+  ( phValue AS HANDLE )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1465,6 +1476,7 @@ Parameters:  <none>
   DEFINE VARIABLE lAnyKey       AS LOG       NO-UNDO.
   DEFINE VARIABLE cFieldName    AS CHARACTER NO-UNDO.
   DEFINE VARIABLE lSDOInit      AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE lLocal        AS LOGICAL    NO-UNDO.
 
   {get ContainerHandle hFrame}.
     
@@ -1740,8 +1752,8 @@ Parameters:  <none>
     IF iHelpId <> ? THEN 
      hSelection:CONTEXT-HELP-ID = iHelpId.
     
-    {get FieldName cFieldName}.
-    IF cFieldName NE "<Local>":U THEN
+    {get LocalField lLocal}.
+    IF NOT lLocal THEN
       ON VALUE-CHANGED OF hSelection PERSISTENT RUN valueChanged  IN TARGET-PROCEDURE.
     ON {&refreshKey} OF hSelection PERSISTENT RUN refreshObject IN TARGET-PROCEDURE.
     ON END-MOVE      OF hFrame     PERSISTENT RUN endMove       IN TARGET-PROCEDURE. 
@@ -2454,49 +2466,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-formattedValue) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION formattedValue Procedure 
-FUNCTION formattedValue RETURNS CHARACTER
-  (pcValue AS CHAR) :
-/*------------------------------------------------------------------------------
-  Purpose: Return the formatted value of a passed value according to the 
-           SmartSelects format. 
-Parameter: pcValue - The value that need to be formatted.      
-    Notes: Used internally in order to ensure that unformatted data can be 
-           applied to screen-value (setDataValue) or used as lookup in
-           list-item-pairs in (getDisplayValue)  
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hSelection AS HANDLE     NO-UNDO.
-  
-  {get SelectionHandle hSelection}.
-  
-  IF VALID-HANDLE(hSelection) AND CAN-QUERY(hSelection,'format':U) THEN
-  DO:
-    CASE hSelection:DATA-TYPE:
-      WHEN 'character':U THEN
-        pcValue = RIGHT-TRIM(STRING(pcValue,hSelection:FORMAT)).
-      WHEN 'date':U THEN
-        pcValue = STRING(DATE(pcValue),hSelection:FORMAT).
-      WHEN 'decimal':U THEN
-        pcValue = STRING(DECIMAL(pcValue),hSelection:FORMAT).
-      WHEN 'integer':U THEN
-        pcValue = STRING(INT(pcValue),hSelection:FORMAT).
-      WHEN 'logical':U THEN
-        pcValue = ENTRY(IF CAN-DO('yes,true':U,pcValue) THEN 1 ELSE 2,
-                         hSelection:FORMAT,'/':U).
-    END CASE. /* hSelection:data-type */
-  END.
-  
-  RETURN pcValue.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-getAutoRefresh) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getAutoRefresh Procedure 
@@ -2816,7 +2785,7 @@ FUNCTION getDisplayValue RETURNS CHARACTER
   /* get display value from list-item-pairs given the data value */
   IF CAN-QUERY(hSelection,'LIST-ITEM-PAIRS':U) THEN 
      cDataValue = DYNAMIC-FUNCTION('mappedEntry':U IN TARGET-PROCEDURE,
-                                    {fnarg formattedValue cDataValue}, 
+                                    {fnarg formattedValue cDataValue TARGET-PROCEDURE}, 
                                      hSelection:LIST-ITEM-PAIRS,
                                      FALSE, /* lookup 2nd return 1st */
                                      {&selectionSeparator}) /* Delimiter */ .
@@ -3092,6 +3061,26 @@ Parameters: .
   DEFINE VARIABLE lRepositionDataSource AS LOG    NO-UNDO.
   {get RepositionDataSource lRepositionDataSource}.
   RETURN lRepositionDataSource.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getSelectionHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getSelectionHandle Procedure 
+FUNCTION getSelectionHandle RETURNS HANDLE
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: 
+    Notes:   
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hValue AS HANDLE NO-UNDO.
+  {get SelectionHandle hValue}.
+  RETURN hValue.
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -3496,7 +3485,7 @@ Parameters: INPUT pcValue - Value that corresponds to the KeyField property
       /* A COMBO-BOX of subtype drop-down-list is formatted, so we must apply 
          the format to be able to assign the screen-value.*/
       IF hSelection:SUBTYPE = "drop-down-list":U THEN
-        pcValue = {fnarg formattedValue pcValue}.
+        pcValue = {fnarg formattedValue pcValue TARGET-PROCEDURE}.
 
     END. /* if combo-box */
     
@@ -3829,6 +3818,26 @@ Parameters: plReposSource as logical.
 ------------------------------------------------------------------------------*/
   {set RepositionDataSource plReposSource}.
   RETURN TRUE.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setSelectionHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setSelectionHandle Procedure 
+FUNCTION setSelectionHandle RETURNS LOGICAL
+  ( phValue AS HANDLE ) :
+/*------------------------------------------------------------------------------
+  Purpose: 
+Parameters:     
+    Notes:   
+------------------------------------------------------------------------------*/
+  {set SelectionHandle phValue}.
+  RETURN TRUE.
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

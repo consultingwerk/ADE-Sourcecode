@@ -24,11 +24,6 @@
 
 TRIGGER PROCEDURE FOR WRITE OF rym_data_version OLD BUFFER o_rym_data_version.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "rym_data_version"
-                      &TRIGGER-TYPE = "WRITE"}
-
 /* Created automatically using ERwin ICF Trigger template db/af/erw/afercustrg.i
    Do not change manually. Customisations to triggers should be placed in separate
    include files pulled into the trigger. ICF auto generates write trigger custom
@@ -83,6 +78,8 @@ IF NOT NEW rym_data_version AND rym_data_version.{&TRIGGER_OBJ} <> o_rym_data_ve
 
 /* Customisations to WRITE trigger */
 {icf/trg/rymdvtrigw.i}
+
+
 
 /* Update Audit Log */
 IF CAN-FIND(FIRST gsc_entity_mnemonic

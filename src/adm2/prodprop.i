@@ -120,7 +120,8 @@ Domain,JMSpartition,PromptLogin,JMSuser,JMSpassword,ClientID,MessageType,Priorit
   &GLOBAL-DEFINE xpReplyConsumer
   &GLOBAL-DEFINE xpTimeToLive
   {src/adm2/messprop.i}
-
+IF NOT {&ADM-PROPS-DEFINED} THEN
+DO:
 &IF "{&ADMSuper}":U = "":U &THEN
   /* Put your property field definitions here.
      Use the following syntax, e.g.,
@@ -137,6 +138,8 @@ Domain,JMSpartition,PromptLogin,JMSuser,JMSpassword,ClientID,MessageType,Priorit
 &ENDIF
 
   {src/adm2/custom/prodpropcustom.i}
+
+END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

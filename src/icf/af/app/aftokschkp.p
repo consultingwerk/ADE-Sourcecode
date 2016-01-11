@@ -106,7 +106,7 @@ af/cod/aftemwizpw.w
    can be displayed in the about window of the container */
 
 &scop object-name       aftokschkp.p
-&scop object-version    010200
+&scop object-version    000000
 
 
 /* MIP object identifying preprocessor */
@@ -118,14 +118,6 @@ af/cod/aftemwizpw.w
 DEFINE INPUT PARAMETER  pcObjectName                      AS CHARACTER    NO-UNDO.
 DEFINE INPUT PARAMETER  pcAttributeCode                   AS CHARACTER    NO-UNDO.
 DEFINE OUTPUT PARAMETER pcSecurityOptions                 AS CHARACTER    NO-UNDO.
-
-DEFINE VARIABLE         dAttributeObj                     AS DECIMAL      NO-UNDO.
-DEFINE VARIABLE         lSecurityRestricted               AS LOGICAL      NO-UNDO.
-DEFINE VARIABLE         cSecurityValue1                   AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE         cSecurityValue2                   AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE         lFullAccessByDefault              AS LOGICAL      NO-UNDO.
-DEFINE VARIABLE         dProductModuleObj                 AS DECIMAL      NO-UNDO.
-DEFINE VARIABLE         dSecurityObjectObj                AS DECIMAL      NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -175,205 +167,214 @@ DEFINE VARIABLE         dSecurityObjectObj                AS DECIMAL      NO-UND
 
 
 /* ***************************  Main Block  *************************** */
+DEFINE VARIABLE dProductModuleObj           AS DECIMAL                  NO-UNDO.
+DEFINE VARIABLE dSecurityObjectObj          AS DECIMAL                  NO-UNDO.
+DEFINE VARIABLE lSecurityRestricted         AS LOGICAL                  NO-UNDO.
+DEFINE VARIABLE dAttributeObj               AS DECIMAL                  NO-UNDO.
+DEFINE VARIABLE cObjectFileName             AS CHARACTER                NO-UNDO.
+DEFINE VARIABLE cObjectExt                  AS CHARACTER                NO-UNDO.
+DEFINE VARIABLE cUserValues                 AS CHARACTER                NO-UNDO.
+DEFINE VARIABLE cSecurityValue1             AS CHARACTER                NO-UNDO.
+DEFINE VARIABLE cSecurityValue2             AS CHARACTER                NO-UNDO.
+DEFINE VARIABLE dUserObj                    AS DECIMAL                  NO-UNDO.
+DEFINE VARIABLE dOrganisationObj            AS DECIMAL                  NO-UNDO.
+
+DEFINE BUFFER gsc_security_control      FOR gsc_security_control.
+DEFINE BUFFER b2ryc_smartobject         FOR ryc_smartobject.
+DEFINE BUFFER b1ryc_smartobject         FOR ryc_smartobject.
+DEFINE BUFFER gsm_security_structure    FOR gsm_security_structure.
+DEFINE BUFFER gsm_token                 FOR gsm_token.
 
 /* If security is disabled or the security object is not passed in then "" is
-   returned indicating full access is permitted.
-   The routine loops around the available tokens. If a token is disabled or no
-   security structure exists for it, i.e. it is not used, then it is assumed
-   that the user is simply ignored - indicating full access to the token.
-   For each token that is enabled and used, checks are made to see whether the
-   user has restricted access to the token, and if so, whether the token is
-   disabled for the user.
-   Only restricted (user disabled) tokens are returned in the list.
-*/
+ * returned indicating full access is permitted.
+ * The routine loops around the available tokens. If a token is disabled or no
+ * security structure exists for it, i.e. it is not used, then it is assumed
+ * that the user is simply ignored - indicating full access to the token.
+ * For each token that is enabled and used, checks are made to see whether the
+ * user has restricted access to the token, and if so, whether the token is
+ * disabled for the user.
+ * Only restricted (user disabled) tokens are returned in the list. */
+FIND FIRST gsc_security_control NO-LOCK NO-ERROR.
+IF NOT AVAILABLE gsc_security_control 
+OR gsc_security_control.security_enabled = NO THEN
+    RETURN. /* Security off */
 
-  ASSIGN pcSecurityOptions = "":U.
+/* Check if security is turned on for the object (the object will have a security object   *
+ * specified), and if it is, work out what the security object is (probably itself but can *
+ * be set-up as something else).                                                           */
+FIND FIRST b1ryc_smartobject NO-LOCK
+     WHERE b1ryc_smartobject.object_filename = pcObjectName
+     NO-ERROR.
 
-  FIND FIRST gsc_security_control NO-LOCK NO-ERROR.
-  IF AVAILABLE gsc_security_control
-      AND gsc_security_control.security_enabled = NO THEN RETURN. /* Security off */
+/* If not found then check with separated extension */
+IF  NOT AVAILABLE b1ryc_smartobject
+AND R-INDEX(pcObjectName,".") > 0 
+THEN DO:
+    ASSIGN cObjectExt      = ENTRY(NUM-ENTRIES(pcObjectName,"."),pcObjectName,".")
+           cObjectFileName = REPLACE(pcObjectName,("." + pcObjectName),"").
 
-  /* Check if security is turned on for the object (the object will have a security object
-     specified), and if it is, work out what the security object is (probably itself but can
-     be set-up as something else).
-  */
-  ASSIGN dSecurityObjectObj = 0
-         dProductModuleObj = 0.
-  DEFINE BUFFER b1gsc_object FOR gsc_object.
-  IF CAN-FIND(FIRST b1gsc_object
-              WHERE b1gsc_object.object_filename = pcObjectName
-                AND b1gsc_object.security_object_obj <> 0) THEN
+    FIND FIRST b1ryc_smartobject NO-LOCK
+         WHERE b1ryc_smartobject.object_filename  = cObjectFileName 
+           AND b1ryc_smartobject.object_Extension = cObjectExt
+         NO-ERROR.
+END.
 
-  DO: /* security is turned on for this object */
-    FIND FIRST b1gsc_object NO-LOCK
-         WHERE b1gsc_object.object_filename = pcObjectName NO-ERROR.
-    IF AVAILABLE b1gsc_object THEN
-    DO:
-      IF b1gsc_object.object_obj <> b1gsc_object.security_object_obj THEN
-        DO:
-          DEFINE BUFFER b2gsc_object FOR gsc_object.
-          FIND FIRST b2gsc_object NO-LOCK
-               WHERE b2gsc_object.object_obj = b1gsc_object.security_object_obj NO-ERROR.
-          IF AVAILABLE b2gsc_object THEN
-              ASSIGN dSecurityObjectObj = b2gsc_object.object_obj
-                     dProductModuleObj = b2gsc_object.product_module_obj.
-          ELSE
-              ASSIGN dSecurityObjectObj = 0
-                     dProductModuleObj = 0.
-        END.
-      ELSE
-        ASSIGN dSecurityObjectObj = b1gsc_object.object_obj
-               dProductModuleObj = b1gsc_object.product_module_obj.
-    END.
+IF NOT AVAILABLE b1ryc_smartobject THEN
+    RETURN.
+
+/* Is the object secured by another object? */
+IF b1ryc_smartobject.smartobject_obj <> b1ryc_smartobject.security_smartobject_obj 
+THEN DO:
+    FIND FIRST b2ryc_smartobject NO-LOCK
+         WHERE b2ryc_smartobject.smartobject_obj = b1ryc_smartobject.security_smartobject_obj
+         NO-ERROR.
+
+    IF AVAILABLE b2ryc_smartobject THEN
+        ASSIGN dSecurityObjectObj = b2ryc_smartobject.smartobject_obj
+               dProductModuleObj  = b2ryc_smartobject.product_module_obj.
     ELSE
-      ASSIGN dSecurityObjectObj = 0
-             dProductModuleObj = 0.
-  END.
+        RETURN.
+END.
+ELSE
+    ASSIGN dSecurityObjectObj = b1ryc_smartobject.smartobject_obj
+           dProductModuleObj  = b1ryc_smartobject.product_module_obj.
 
-  IF dSecurityObjectObj = 0 THEN RETURN.       /* Security off for the object */
+IF pcAttributeCode <> "":U 
+THEN DO:
+    FIND FIRST gsc_instance_attribute NO-LOCK
+         WHERE gsc_instance_attribute.attribute_code = pcAttributeCode
+         NO-ERROR.
 
-  FIND FIRST gsc_instance_attribute NO-LOCK
-       WHERE gsc_instance_attribute.attribute_code = pcAttributeCode
+    IF AVAILABLE gsc_instance_attribute THEN
+        ASSIGN dAttributeObj = gsc_instance_attribute.instance_attribute_obj.
+END.
+
+/* Get current up-to-date user information to be sure */
+ASSIGN cUserValues      = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
+                                           INPUT "currentUserObj,currentOrganisationObj":U,
+                                           INPUT NO)
+       dUserObj         = DECIMAL(ENTRY(1,cUserValues,CHR(3)))
+       dOrganisationObj = DECIMAL(ENTRY(2,cUserValues,CHR(3))) 
        NO-ERROR.
-  IF AVAILABLE gsc_instance_attribute THEN
-      ASSIGN dAttributeObj = gsc_instance_attribute.instance_attribute_obj.
-  ELSE
-      ASSIGN dAttributeObj = 0.
 
-  /* Get current up-to-date user information to be sure */
-  DEFINE VARIABLE cUserProperties AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cUserValues     AS CHARACTER NO-UNDO.
-  ASSIGN cUserProperties = "currentUserObj,currentOrganisationObj".
-  cUserValues = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
-                                                     INPUT cUserProperties,
-                                                     INPUT NO).
+/* Check which tokens user does not have security clearance for. In the case of token security, no
+ * attributes are passed back, but we must still check for specific object instance details first
+ * as this will override generic settings. */
 
-  /* Check which tokens user does not have security clearance for. In the case of token security, no
-     attributes are passed back, but we must still check for specific object instance details first
-     as this will override generic settings.
-  */
-  ASSIGN pcSecurityOptions = "":U.
+/* Check for specific object instance */
+fe-blk:
+FOR EACH gsm_security_structure NO-LOCK
+   WHERE gsm_security_structure.owning_entity_mnemonic = "GSMTO":U            
+     AND gsm_security_structure.product_module_obj      = dProductModuleObj   
+     AND gsm_security_structure.object_obj              = dSecurityObjectObj  
+     AND gsm_security_structure.instance_attribute_obj  = dAttributeObj       
+     AND gsm_security_structure.DISABLED                = NO,
+   FIRST gsm_token NO-LOCK
+   WHERE gsm_token.token_obj = gsm_security_structure.owning_obj:
 
-  TOKEN-LOOP:
-  FOR EACH gsm_token NO-LOCK:
-    IF gsm_token.disabled = YES OR
-       NOT CAN-FIND(FIRST gsm_security_structure
-                    WHERE gsm_security_structure.owning_entity_mnemonic = "GSMTO":U
-                      AND gsm_security_structure.owning_obj = gsm_token.token_obj
-                      AND gsm_security_structure.disabled = NO) THEN
-      DO: /* Token is disabled for security checking or not used at all in a structure
-             so by default simply ignore it */
-          NEXT TOKEN-LOOP.
-      END.
+    /* If the field is secured already, then do nothing. */
+    IF CAN-DO(pcSecurityOptions, gsm_token.token_code) THEN
+        NEXT fe-blk.
 
-    ASSIGN
-      lSecurityRestricted = NO
-      cSecurityValue1 = "":U
-      cSecurityValue2 = "":U
-      .
-
-    IF NOT lSecurityRestricted THEN    /* Check for specific object instance */
-      DO:
-          FIND FIRST gsm_security_structure NO-LOCK
-               WHERE gsm_security_structure.owning_entity_mnemonic = "GSMTO":U
-                 AND gsm_security_structure.owning_obj = gsm_token.token_obj
-                 AND gsm_security_structure.product_module_obj = dProductModuleObj
-                 AND gsm_security_structure.object_obj = dSecurityObjectObj
-                 AND gsm_security_structure.instance_attribute_obj = dAttributeObj
-                 AND gsm_security_structure.disabled = NO
-               NO-ERROR.  
-          IF AVAILABLE gsm_security_structure THEN
-            DO:
-              RUN userSecurityCheck IN gshSecurityManager (INPUT  DECIMAL(ENTRY(1,cUserValues,CHR(3))),  /* logged in as user */
-                                                           INPUT  DECIMAL(ENTRY(2,cUserValues,CHR(3))),  /* logged into organisation */
-                                                           INPUT  "gsmss":U,                      /* Security Structure FLA */
-                                                           INPUT  gsm_security_structure.security_structure_obj,
-                                                           INPUT  NO,                             /* Return values - NO */
-                                                           OUTPUT lSecurityRestricted,            /* Restricted yes/no ? */
-                                                           OUTPUT cSecurityValue1,                /* clearance value 1 */
-                                                           OUTPUT cSecurityValue2).               /* clearance value 2 */
-            END.
-      END.
-
-    IF NOT lSecurityRestricted THEN    /* Check for specific object */
-      DO:
-          FIND FIRST gsm_security_structure NO-LOCK
-               WHERE gsm_security_structure.owning_entity_mnemonic = "GSMTO":U
-                 AND gsm_security_structure.owning_obj = gsm_token.token_obj
-                 AND gsm_security_structure.product_module_obj = dProductModuleObj
-                 AND gsm_security_structure.object_obj = dSecurityObjectObj
-                 AND gsm_security_structure.instance_attribute_obj = 0
-                 AND gsm_security_structure.disabled = NO
-               NO-ERROR.  
-          IF AVAILABLE gsm_security_structure THEN
-            DO:
-              RUN userSecurityCheck IN gshSecurityManager (INPUT  DECIMAL(ENTRY(1,cUserValues,CHR(3))),  /* logged in as user */
-                                                           INPUT  DECIMAL(ENTRY(2,cUserValues,CHR(3))),  /* logged into organisation */
-                                                           INPUT  "gsmss":U,                      /* Security Structure FLA */
-                                                           INPUT  gsm_security_structure.security_structure_obj,
-                                                           INPUT  NO,                             /* Return values - NO */
-                                                           OUTPUT lSecurityRestricted,            /* Restricted yes/no ? */
-                                                           OUTPUT cSecurityValue1,                /* clearance value 1 */
-                                                           OUTPUT cSecurityValue2).               /* clearance value 2 */
-            END.
-      END.
-
-    IF NOT lSecurityRestricted THEN    /* Check for specific product module */
-      DO:
-          FIND FIRST gsm_security_structure NO-LOCK
-               WHERE gsm_security_structure.owning_entity_mnemonic = "GSMTO":U
-                 AND gsm_security_structure.owning_obj = gsm_token.token_obj
-                 AND gsm_security_structure.product_module_obj = dProductModuleObj
-                 AND gsm_security_structure.object_obj = 0
-                 AND gsm_security_structure.instance_attribute_obj = 0
-                 AND gsm_security_structure.disabled = NO
-               NO-ERROR.  
-          IF AVAILABLE gsm_security_structure THEN
-            DO:
-              RUN userSecurityCheck IN gshSecurityManager (INPUT  DECIMAL(ENTRY(1,cUserValues,CHR(3))),  /* logged in as user */
-                                                           INPUT  DECIMAL(ENTRY(2,cUserValues,CHR(3))),  /* logged into organisation */
-                                                           INPUT  "gsmss":U,                      /* Security Structure FLA */
-                                                           INPUT  gsm_security_structure.security_structure_obj,
-                                                           INPUT  NO,                             /* Return values - NO */
-                                                           OUTPUT lSecurityRestricted,               /* Restricted yes/no ? */
-                                                           OUTPUT cSecurityValue1,                /* clearance value 1 */
-                                                           OUTPUT cSecurityValue2).               /* clearance value 2 */
-            END.
-      END.
-
-    IF NOT lSecurityRestricted THEN    /* Check for ALL */
-      DO:
-          FIND FIRST gsm_security_structure NO-LOCK
-               WHERE gsm_security_structure.owning_entity_mnemonic = "GSMTO":U
-                 AND gsm_security_structure.owning_obj = gsm_token.token_obj
-                 AND gsm_security_structure.product_module_obj = 0
-                 AND gsm_security_structure.object_obj = 0
-                 AND gsm_security_structure.instance_attribute_obj = 0
-                 AND gsm_security_structure.disabled = NO
-               NO-ERROR.  
-          IF AVAILABLE gsm_security_structure THEN
-            DO:
-              RUN userSecurityCheck IN gshSecurityManager (INPUT  DECIMAL(ENTRY(1,cUserValues,CHR(3))),  /* logged in as user */
-                                                           INPUT  DECIMAL(ENTRY(2,cUserValues,CHR(3))),  /* logged into organisation */
-                                                           INPUT  "gsmss":U,                      /* Security Structure FLA */
-                                                           INPUT  gsm_security_structure.security_structure_obj,
-                                                           INPUT  NO,                             /* Return values - NO */
-                                                           OUTPUT lSecurityRestricted,            /* Restricted yes/no ? */
-                                                           OUTPUT cSecurityValue1,                /* clearance value 1 */
-                                                           OUTPUT cSecurityValue2).               /* clearance value 2 */
-            END.
-      END.
-
-    /* Only add token to list of disabled tokens if it is specifically secured and set to
-       NO for disabled */
+    RUN userSecurityCheck IN gshSecurityManager ( INPUT  dUserObj,                      /* logged in as user */
+                                                  INPUT  dOrganisationObj,              /* logged into organisation */
+                                                  INPUT  "GSMSS":U,                     /* Security Structure FLA */
+                                                  INPUT  gsm_security_structure.security_structure_obj,
+                                                  INPUT  NO,                            /* Return security values - NO */
+                                                  OUTPUT lSecurityRestricted,           /* Restricted yes/no ? */
+                                                  OUTPUT cSecurityValue1,               /* clearance value 1 */
+                                                  OUTPUT cSecurityValue2).              /* clearance value 2 */
     IF lSecurityRestricted THEN
-      ASSIGN
-          pcSecurityOptions = pcSecurityOptions +
-                                (IF pcSecurityOptions <> "":U THEN ",":U ELSE "":U) +
-                                gsm_token.token_code.
+        ASSIGN pcSecurityOptions = pcSecurityOptions + gsm_token.token_code + ",":U.
+END.
 
+/* Check for object with no run attribute */
+IF dAttributeObj <> 0 THEN /* We don't want to duplicate the check above */
+    fe-blk:
+    FOR EACH gsm_security_structure NO-LOCK
+       WHERE gsm_security_structure.owning_entity_mnemonic = "GSMTO":U            
+         AND gsm_security_structure.product_module_obj      = dProductModuleObj   
+         AND gsm_security_structure.object_obj              = dSecurityObjectObj  
+         AND gsm_security_structure.instance_attribute_obj  = 0                   
+         AND gsm_security_structure.disabled                = NO,
+       FIRST gsm_token NO-LOCK
+       WHERE gsm_token.token_obj = gsm_security_structure.owning_obj:
 
-  END.    /* token-loop */
+        /* If the field is secured already, then do nothing. */
+        IF CAN-DO(pcSecurityOptions, gsm_token.token_code) THEN
+            NEXT fe-blk.
+     
+        RUN userSecurityCheck IN gshSecurityManager ( INPUT  dUserObj,                      /* logged in as user */
+                                                      INPUT  dOrganisationObj,              /* logged into organisation */
+                                                      INPUT  "GSMSS":U,                     /* Security Structure FLA */
+                                                      INPUT  gsm_security_structure.security_structure_obj,
+                                                      INPUT  NO,                            /* Return security values - NO */
+                                                      OUTPUT lSecurityRestricted,           /* Restricted yes/no ? */
+                                                      OUTPUT cSecurityValue1,               /* clearance value 1 */
+                                                      OUTPUT cSecurityValue2).              /* clearance value 2 */
+        IF lSecurityRestricted THEN
+            ASSIGN pcSecurityOptions = pcSecurityOptions + gsm_token.token_code + ",":U.
+    END.    /* object instance */
+
+/* Check for all objects in specific product module */
+fe-blk:
+FOR EACH gsm_security_structure NO-LOCK
+   WHERE gsm_security_structure.owning_entity_mnemonic = "GSMTO":U            
+     AND gsm_security_structure.product_module_obj      = dProductModuleObj   
+     AND gsm_security_structure.object_obj              = 0                   
+     AND gsm_security_structure.instance_attribute_obj  = 0                   
+     AND gsm_security_structure.disabled                = NO,
+   FIRST gsm_token NO-LOCK
+   WHERE gsm_token.token_obj = gsm_security_structure.owning_obj:
+
+    /* If the field is secured already, then do nothing. */
+    IF CAN-DO(pcSecurityOptions, gsm_token.token_code) THEN
+        NEXT fe-blk.
+
+    RUN userSecurityCheck IN gshSecurityManager ( INPUT  dUserObj,                      /* logged in as user */
+                                                  INPUT  dOrganisationObj,              /* logged into organisation */
+                                                  INPUT  "GSMSS":U,                     /* Security Structure FLA */
+                                                  INPUT  gsm_security_structure.security_structure_obj,
+                                                  INPUT  NO,                            /* Return security values - NO */
+                                                  OUTPUT lSecurityRestricted,           /* Restricted yes/no ? */
+                                                  OUTPUT cSecurityValue1,               /* clearance value 1 */
+                                                  OUTPUT cSecurityValue2).              /* clearance value 2 */
+    IF lSecurityRestricted THEN
+        ASSIGN pcSecurityOptions = pcSecurityOptions + gsm_token.token_code + ",":U.
+END.
+
+/* All objects */
+fe-blk:
+FOR EACH gsm_security_structure NO-LOCK
+   WHERE gsm_security_structure.owning_entity_mnemonic = "GSMTO":U  
+     AND gsm_security_structure.product_module_obj      = 0         
+     AND gsm_security_structure.object_obj              = 0         
+     AND gsm_security_structure.instance_attribute_obj  = 0         
+     AND gsm_security_structure.disabled                = NO,
+   FIRST gsm_token NO-LOCK
+   WHERE gsm_token.token_obj = gsm_security_structure.owning_obj:
+
+    /* If the field is secured already, then do nothing. */
+    IF CAN-DO(pcSecurityOptions, gsm_token.token_code) THEN
+        NEXT fe-blk.
+
+    RUN userSecurityCheck IN gshSecurityManager ( INPUT  dUserObj,                      /* logged in as user */
+                                                  INPUT  dOrganisationObj,              /* logged into organisation */
+                                                  INPUT  "GSMSS":U,                     /* Security Structure FLA */
+                                                  INPUT  gsm_security_structure.security_structure_obj,
+                                                  INPUT  NO,                            /* Return security values - NO */
+                                                  OUTPUT lSecurityRestricted,           /* Restricted yes/no ? */
+                                                  OUTPUT cSecurityValue1,               /* clearance value 1 */
+                                                  OUTPUT cSecurityValue2).              /* clearance value 2 */
+
+    IF lSecurityRestricted THEN
+        ASSIGN pcSecurityOptions = pcSecurityOptions + gsm_token.token_code + ",":U.
+END.    /* all tokens */
+
+ASSIGN pcSecurityOptions  = RIGHT-TRIM(pcSecurityOptions, ",":U)
+       ERROR-STATUS:ERROR = NO.
+
+RETURN "":U.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

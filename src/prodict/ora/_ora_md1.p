@@ -50,7 +50,8 @@ History:
     05/01/98 mcmann     Removed message about no gate-work since user has
                         already been given this message 98-04-29-066  
     05/07/99 mcmann     Added space between user name and connection parms
-                        when @ is used.                    
+                        when @ is used.   
+    06/04/02 mcmann     Added check for error creating hidden files.                 
 
 --------------------------------------------------------------------*/
 /*h-*/
@@ -86,6 +87,8 @@ assign user_env[1] = ora_username.
 create alias DICTDB for database value(osh_dbname).
 
 RUN prodict/ora/_ora_md2.p.
+IF RETURN-VALUE = "2" THEN
+    RETURN "2".
 
 /* connect to oracle database ----------------------------------------------*/
 /* disconnect-connect is to reload schema cache -- workaround */

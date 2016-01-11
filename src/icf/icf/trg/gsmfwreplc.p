@@ -23,11 +23,6 @@
 *********************************************************************/
 TRIGGER PROCEDURE FOR REPLICATION-CREATE OF gsm_flow.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "gsm_flow"
-                      &TRIGGER-TYPE = "REPLICATION-CREATE"}
-
 {af/sup/afreplicat.i  &TABLE-NAME   = "gsm_flow"
                       &TABLE-FLA    = "gsmfw"
                       &TABLE-PK     = "flow_obj"

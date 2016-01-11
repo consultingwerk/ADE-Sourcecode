@@ -133,12 +133,13 @@ RowObject.comment_text RowObject.expiry_date RowObject.auto_display ~
 RowObject.print_option_tlas 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
+&Scoped-Define DISPLAYED-FIELDS RowObject.comment_description ~
+RowObject.comment_text RowObject.expiry_date ~
+RowObject.owning_entity_mnemonic RowObject.owning_reference ~
+RowObject.auto_display RowObject.print_option_tlas ~
+RowObject.last_updated_by_user RowObject.last_updated_date 
 &Scoped-define DISPLAYED-TABLES RowObject
 &Scoped-define FIRST-DISPLAYED-TABLE RowObject
-&Scoped-Define DISPLAYED-FIELDS RowObject.comment_description ~
-RowObject.comment_text RowObject.expiry_date RowObject.auto_display ~
-RowObject.print_option_tlas RowObject.owning_reference ~
-RowObject.owning_entity_mnemonic 
 &Scoped-Define DISPLAYED-OBJECTS cOwningEntityKeyField 
 
 /* Custom List Definitions                                              */
@@ -153,7 +154,7 @@ RowObject.owning_entity_mnemonic
 
 
 /* Definitions of handles for SmartObjects                              */
-DEFINE VARIABLE h_gsmcad2sfv AS HANDLE NO-UNDO.
+DEFINE VARIABLE h_dyncombo AS HANDLE NO-UNDO.
 
 /* Definitions of the field level widgets                               */
 DEFINE VARIABLE cOwningEntityKeyField AS CHARACTER FORMAT "X(256)":U 
@@ -165,31 +166,45 @@ DEFINE VARIABLE cOwningEntityKeyField AS CHARACTER FORMAT "X(256)":U
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     RowObject.comment_description AT ROW 2.24 COL 29 COLON-ALIGNED
+     RowObject.comment_description AT ROW 2.1 COL 29 COLON-ALIGNED
+          LABEL "Comment Description"
           VIEW-AS FILL-IN 
-          SIZE 72 BY 1
-     RowObject.comment_text AT ROW 3.33 COL 31 NO-LABEL
+          SIZE 76.8 BY 1
+     RowObject.comment_text AT ROW 3.14 COL 31 NO-LABEL
           VIEW-AS EDITOR MAX-CHARS 3000 SCROLLBAR-VERTICAL LARGE
-          SIZE 70 BY 8
-     RowObject.expiry_date AT ROW 11.43 COL 29.2 COLON-ALIGNED
+          SIZE 76.8 BY 4.14
+     RowObject.expiry_date AT ROW 7.38 COL 29 COLON-ALIGNED
+          LABEL "Expiry Date"
           VIEW-AS FILL-IN 
           SIZE 20 BY 1
-     RowObject.auto_display AT ROW 12.43 COL 31.2
+     RowObject.owning_entity_mnemonic AT ROW 7.38 COL 89.6 COLON-ALIGNED
+          LABEL "Entity Mnemonic"
+          VIEW-AS FILL-IN 
+          SIZE 16.2 BY 1
+     RowObject.owning_reference AT ROW 8.48 COL 66.2 COLON-ALIGNED
+          LABEL "Owning Reference"
+          VIEW-AS FILL-IN 
+          SIZE 39.6 BY 1
+     RowObject.auto_display AT ROW 8.52 COL 31
+          LABEL "Auto Display"
           VIEW-AS TOGGLE-BOX
           SIZE 16.8 BY .81
-     RowObject.print_option_tlas AT ROW 13.24 COL 13.4
+     RowObject.print_option_tlas AT ROW 9.52 COL 13.2
+          LABEL "Print Option TLAs"
           VIEW-AS FILL-IN 
-          SIZE 72 BY 1
-     cOwningEntityKeyField AT ROW 14.33 COL 29.4 COLON-ALIGNED
-     RowObject.owning_reference AT ROW 15.43 COL 29.4 COLON-ALIGNED
+          SIZE 76.6 BY 1
+     cOwningEntityKeyField AT ROW 10.57 COL 29 COLON-ALIGNED
+     RowObject.last_updated_by_user AT ROW 11.62 COL 29 COLON-ALIGNED
+          LABEL "Last Updated by User"
           VIEW-AS FILL-IN 
-          SIZE 40 BY 1
-     RowObject.owning_entity_mnemonic AT ROW 15.43 COL 87.2 COLON-ALIGNED
+          SIZE 39.6 BY 1
+     RowObject.last_updated_date AT ROW 11.62 COL 89.8 COLON-ALIGNED
+          LABEL "Last Updated Date"
           VIEW-AS FILL-IN 
-          SIZE 13.6 BY 1
+          SIZE 16 BY 1
      "Comment Text:" VIEW-AS TEXT
-          SIZE 14.4 BY .62 AT ROW 3.48 COL 15.4
-     SPACE(73.80) SKIP(0.00)
+          SIZE 14.4 BY .62 AT ROW 3.24 COL 16
+     SPACE(77.40) SKIP(0.00)
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -229,8 +244,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 15.43
-         WIDTH              = 102.6.
+         HEIGHT             = 11.67
+         WIDTH              = 106.8.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -257,20 +272,36 @@ ASSIGN
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
 
+/* SETTINGS FOR TOGGLE-BOX RowObject.auto_display IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR FILL-IN RowObject.comment_description IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR EDITOR RowObject.comment_text IN FRAME frMain
+   EXP-LABEL                                                            */
 /* SETTINGS FOR FILL-IN cOwningEntityKeyField IN FRAME frMain
    NO-ENABLE                                                            */
+/* SETTINGS FOR FILL-IN RowObject.expiry_date IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR FILL-IN RowObject.last_updated_by_user IN FRAME frMain
+   NO-ENABLE EXP-LABEL                                                  */
+/* SETTINGS FOR FILL-IN RowObject.last_updated_date IN FRAME frMain
+   NO-ENABLE EXP-LABEL                                                  */
+ASSIGN 
+       RowObject.last_updated_date:PRIVATE-DATA IN FRAME frMain     = 
+                "NOLOOKUPS".
+
 /* SETTINGS FOR FILL-IN RowObject.owning_entity_mnemonic IN FRAME frMain
-   NO-ENABLE                                                            */
+   NO-ENABLE EXP-LABEL                                                  */
 ASSIGN 
        RowObject.owning_entity_mnemonic:HIDDEN IN FRAME frMain           = TRUE.
 
 /* SETTINGS FOR FILL-IN RowObject.owning_reference IN FRAME frMain
-   NO-ENABLE                                                            */
+   NO-ENABLE EXP-LABEL                                                  */
 ASSIGN 
        RowObject.owning_reference:HIDDEN IN FRAME frMain           = TRUE.
 
 /* SETTINGS FOR FILL-IN RowObject.print_option_tlas IN FRAME frMain
-   ALIGN-L                                                              */
+   ALIGN-L EXP-LABEL                                                    */
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
@@ -319,19 +350,46 @@ PROCEDURE adm-create-objects :
 
     WHEN 0 THEN DO:
        RUN constructObject (
-             INPUT  'af/obj2/gsmcad2sfv.w':U ,
+             INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'FieldNamecategory_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
-             OUTPUT h_gsmcad2sfv ).
-       RUN repositionObject IN h_gsmcad2sfv ( 1.00 , 18.40 ) NO-ERROR.
-       RUN resizeObject IN h_gsmcad2sfv ( 1.05 , 85.20 ) NO-ERROR.
+             INPUT  'DisplayedFieldgsm_category.category_type,gsm_category.category_group,gsm_category.category_subgroup,gsm_category.category_descriptionKeyFieldgsm_category.category_objFieldLabelCategoryFieldTooltipSelect a category from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsm_category NO-LOCK WHERE related_entity_mnemonic = ~'GSMCM~' BY gsm_category.category_typeQueryTablesgsm_categorySDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&4 (&1 &2 &3)ComboDelimiterListItemPairsInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNamecategory_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT h_dyncombo ).
+       RUN repositionObject IN h_dyncombo ( 1.00 , 31.00 ) NO-ERROR.
+       RUN resizeObject IN h_dyncombo ( 1.05 , 76.80 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */
-       RUN adjustTabOrder ( h_gsmcad2sfv ,
+       RUN adjustTabOrder ( h_dyncombo ,
              RowObject.comment_description:HANDLE IN FRAME frMain , 'BEFORE':U ).
     END. /* Page 0 */
 
   END CASE.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE collectChanges vTableWin 
+PROCEDURE collectChanges :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  DEFINE INPUT-OUTPUT PARAMETER pcChanges AS CHARACTER NO-UNDO.
+  DEFINE INPUT-OUTPUT PARAMETER pcInfo    AS CHARACTER NO-UNDO.
+
+  /* If this procedure is run we know that a change was made to the
+     comments and we then need to ensure that we save the name of 
+     the user that changed this record and the data it was changed */
+
+  RUN setChangedState.
+  /* Code placed here will execute PRIOR to standard behavior. */
+
+  RUN SUPER( INPUT-OUTPUT pcChanges, INPUT-OUTPUT pcInfo).
+
+  /* Code placed here will execute AFTER standard behavior.    */
 
 END PROCEDURE.
 
@@ -494,9 +552,6 @@ PROCEDURE entitySetDetail :
     ASSIGN cOwningEntityMnemonicObjField = REPLACE(cOwningEntityMnemonicKeyField,",":U,CHR(2))
            cOwningEntityMnemonicKeyField = REPLACE(cOwningEntityMnemonicKeyField,",":U,CHR(2)).
 
-    IF cOwningEntityMnemonicObjField <> "":U
-    THEN ASSIGN RowObject.owning_reference:LABEL  = REPLACE(TRIM(cOwningEntityMnemonicObjField),CHR(2),"/":U).
-    
     IF cOwningEntityMnemonicKeyField <> "":U AND
        (cOwningEntityKeyField:LABEL = "Owning Entity Key Field":U OR
         cOwningEntityKeyField:LABEL = "":U)
@@ -587,6 +642,41 @@ Notes:      This code is generated by the UIB.  DO NOT modify it.
 -------------------------------------------------------------*/
   RUN "af\obj2\gsmcad2sfv.w *RTB-SmObj* ".
 
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setChangedState vTableWin 
+PROCEDURE setChangedState :
+/*------------------------------------------------------------------------------
+  Purpose:     This procedure will find the current user who is changing this
+               record and save the name into the last_updated_by_user field as 
+               well as assign a new date in the last_updated_date field
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE dCurrentUserObj AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE cUserLoginName  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataset        AS CHARACTER  NO-UNDO.
+
+  dCurrentUserObj = DECIMAL(DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
+                                             INPUT "CurrentUserObj":U,
+                                             INPUT NO)) NO-ERROR.
+  RUN getRecordDetail IN gshGenManager ( INPUT "FOR EACH gsm_user 
+                                                WHERE gsm_user.user_obj = " + TRIM(QUOTER(dCurrentUserObj)) + " NO-LOCK ":U,
+                                         OUTPUT cDataset ).
+  
+  ASSIGN cUserLoginName  = "":U.
+  IF cDataset <> "":U AND cDataset <> ? THEN 
+    ASSIGN cUserLoginName = ENTRY(LOOKUP("gsm_user.user_login_name":U, cDataSet, CHR(3)) + 1 , cDataSet, CHR(3)) NO-ERROR.
+
+  DO WITH FRAME {&FRAME-NAME}:
+    ASSIGN rowObject.last_updated_by_user:SCREEN-VALUE = cUserLoginName
+           rowObject.last_updated_by_user:MODIFIED     = TRUE
+           rowObject.last_updated_date:SCREEN-VALUE    = STRING(TODAY)
+           rowObject.last_updated_date:MODIFIED        = TRUE.
+  END.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

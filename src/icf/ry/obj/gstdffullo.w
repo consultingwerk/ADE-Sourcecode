@@ -103,8 +103,6 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 {af/sup2/afglobals.i}
 
-&glob DATA-LOGIC-PROCEDURE       ry/obj/gstdflogcp.p
-
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -112,6 +110,8 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
 
 /* ********************  Preprocessor Definitions  ******************** */
+
+&Global-define DATA-LOGIC-PROCEDURE ry/obj/gstdflogcp.p
 
 &Scoped-define PROCEDURE-TYPE SmartDataObject
 &Scoped-define DB-AWARE yes
@@ -126,6 +126,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -137,15 +138,20 @@ gsc_deploy_dataset
 &Scoped-define ENABLED-FIELDS-IN-gst_dataset_file deployment_obj ~
 deploy_dataset_obj ado_filename loaded_date loaded_time 
 &Scoped-Define DATA-FIELDS  dataset_file_obj deployment_obj deployment_description deploy_dataset_obj~
- owner_site_code ado_filename loaded_date loaded_time
+ ado_filename loaded_date loaded_time cLoadedTime
 &Scoped-define DATA-FIELDS-IN-gst_dataset_file dataset_file_obj ~
 deployment_obj deploy_dataset_obj ado_filename loaded_date loaded_time 
 &Scoped-define DATA-FIELDS-IN-gst_deployment deployment_description 
-&Scoped-define DATA-FIELDS-IN-gsc_deploy_dataset owner_site_code 
 &Scoped-Define MANDATORY-FIELDS 
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "ry/obj/gstdffullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gst_dataset_file NO-LOCK, ~
+      FIRST gst_deployment WHERE gst_deployment.deployment_obj = gst_dataset_file.deployment_obj OUTER-JOIN NO-LOCK, ~
+      FIRST gsc_deploy_dataset WHERE gsc_deploy_dataset.deploy_dataset_obj = gst_dataset_file.deploy_dataset_obj NO-LOCK ~
+    BY gst_dataset_file.deployment_obj ~
+       BY gst_dataset_file.deploy_dataset_obj ~
+        BY gst_dataset_file.ado_filename INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gst_dataset_file NO-LOCK, ~
       FIRST gst_deployment WHERE gst_deployment.deployment_obj = gst_dataset_file.deployment_obj OUTER-JOIN NO-LOCK, ~
@@ -180,7 +186,7 @@ DEFINE QUERY Query-Main FOR
       gst_deployment
     FIELDS(gst_deployment.deployment_description), 
       gsc_deploy_dataset
-    FIELDS(gsc_deploy_dataset.owner_site_code) SCROLLING.
+    FIELDS() SCROLLING.
 &ANALYZE-RESUME
 {&DB-REQUIRED-END}
 
@@ -258,14 +264,14 @@ END.
 "deployment_description" "deployment_description" ? ? "character" ? ? ? ? ? ? no ? no 1000 yes
      _FldNameList[4]   > ICFDB.gst_dataset_file.deploy_dataset_obj
 "deploy_dataset_obj" "deploy_dataset_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 24 yes
-     _FldNameList[5]   > ICFDB.gsc_deploy_dataset.owner_site_code
-"owner_site_code" "owner_site_code" ? ? "character" ? ? ? ? ? ? no ? no 20 yes
-     _FldNameList[6]   > ICFDB.gst_dataset_file.ado_filename
+     _FldNameList[5]   > ICFDB.gst_dataset_file.ado_filename
 "ado_filename" "ado_filename" ? ? "character" ? ? ? ? ? ? yes ? no 140 no
-     _FldNameList[7]   > ICFDB.gst_dataset_file.loaded_date
+     _FldNameList[6]   > ICFDB.gst_dataset_file.loaded_date
 "loaded_date" "loaded_date" ? ? "date" ? ? ? ? ? ? yes ? no 4 no
-     _FldNameList[8]   > ICFDB.gst_dataset_file.loaded_time
+     _FldNameList[7]   > ICFDB.gst_dataset_file.loaded_time
 "loaded_time" "loaded_time" ? ? "integer" ? ? ? ? ? ? yes ? no 4 no
+     _FldNameList[8]   > "_<CALC>"
+"{fnarg getLoadedTime rowObject.loaded_time}" "cLoadedTime" "Loaded Time" "x(8)" "character" ? ? ? ? ? ? no ? no 8 no
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
@@ -287,6 +293,26 @@ END.
 
 
 /* **********************  Internal Procedures  *********************** */
+
+{&DB-REQUIRED-START}
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE DATA.CALCULATE dTables  DATA.CALCULATE _DB-REQUIRED
+PROCEDURE DATA.CALCULATE :
+/*------------------------------------------------------------------------------
+  Purpose:     Calculate all the Calculated Expressions found in the
+               SmartDataObject.
+  Parameters:  <none>
+------------------------------------------------------------------------------*/
+      ASSIGN 
+         rowObject.cLoadedTime = ({fnarg getLoadedTime rowObject.loaded_time})
+      .
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI dTables  _DEFAULT-DISABLE
 PROCEDURE disable_UI :

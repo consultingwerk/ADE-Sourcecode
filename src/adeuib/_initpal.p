@@ -123,7 +123,7 @@ DO i = 1 to _palette_count:
             ASSIGN _palette_item._TYPE = {&P-XCONTROL}
             	   _palette_item._attr = "DIRECTORY-LIST "
             	                       + wDir
-                                       + "\system32"
+                                       + "~\system32"
             	                       + ","
                                        + wDir
                                        + ",.,"

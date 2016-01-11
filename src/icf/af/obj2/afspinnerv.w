@@ -52,10 +52,14 @@ ButtonMinimum,ButtonMaximum,SpinSpeed,SpinAccel,SpinKeys,AutoPosition,MouseCurso
 &GLOBAL-DEFINE xcInstanceProperties {&ADM-PROPERTY-LIST}
 
 &GLOBAL-DEFINE xcTranslatableProperties {&ADM-PROPERTY-LIST}
-
+/*
 &SCOPED-DEFINE ADM-PROPERTY-DLG gui\adm2\support\Spind.w
-
-&SCOPED-DEFINE SPIN-BITMAP adeicon\spin.bmp
+Removed this property as the property dialog specified does
+not exist, Checked previous versions, amd it seems, spind.w 
+never existed. Also there does not seem to be a Spin property
+dialog box currently..
+*/
+&SCOPED-DEFINE SPIN-BITMAP ry\img\spin.bmp
 
 &SCOPED-DEFINE INTEGER-LOW -2147483648
 &SCOPED-DEFINE INTEGER-HIGH 2147483647
@@ -311,7 +315,6 @@ PROCEDURE disableAll :
 ASSIGN hBtn-Inc:SENSITIVE = FALSE
        hBtn-Dec:SENSITIVE = FALSE
        FRAME {&FRAME-NAME}:SENSITIVE = FALSE
-       FRAME {&FRAME-NAME}:BGCOLOR = COLOR-OF("ButtonShadow":U)
        lKeepState = TRUE.
 
 END PROCEDURE.
@@ -337,8 +340,7 @@ THEN
     ASSIGN hBtn-Dec:SENSITIVE = FALSE.
 
 ASSIGN lKeepState = TRUE
-       FRAME {&FRAME-NAME}:SENSITIVE = hBtn-Dec:SENSITIVE OR hBtn-Inc:SENSITIVE
-       FRAME {&FRAME-NAME}:BGCOLOR   = IF FRAME {&FRAME-NAME}:SENSITIVE THEN 0 ELSE COLOR-OF("ButtonShadow":U).
+       FRAME {&FRAME-NAME}:SENSITIVE = hBtn-Dec:SENSITIVE OR hBtn-Inc:SENSITIVE.
 
 END PROCEDURE.
 
@@ -376,7 +378,6 @@ THEN
      ASSIGN hBtn-Inc:SENSITIVE = hField:SENSITIVE
             hBtn-Dec:SENSITIVE = hField:SENSITIVE
             FRAME {&FRAME-NAME}:SENSITIVE = TRUE
-            FRAME {&FRAME-NAME}:BGCOLOR   = 0
             lKeepState = TRUE.
 
 END PROCEDURE.
@@ -400,8 +401,7 @@ IF ip-id BEGINS "Dec" THEN
     ASSIGN hBtn-Dec:SENSITIVE = TRUE.
 
 ASSIGN lKeepState = TRUE
-       FRAME {&FRAME-NAME}:SENSITIVE = TRUE
-       FRAME {&FRAME-NAME}:BGCOLOR   = 0.
+       FRAME {&FRAME-NAME}:SENSITIVE = TRUE.
 
 END PROCEDURE.
 
@@ -737,7 +737,6 @@ ASSIGN FRAME {&FRAME-NAME}:HIDDEN = TRUE
        FRAME {&FRAME-NAME}:SCROLLABLE = TRUE
        FRAME {&FRAME-NAME}:WIDTH-PIXELS = 1
        FRAME {&FRAME-NAME}:HEIGHT-PIXELS = 1
-       FRAME {&FRAME-NAME}:BGCOLOR = COLOR-OF("ButtonShadow":U)
 
        iButtonMinimum = IF iButtonMinimum = ? THEN {&INTEGER-LOW} 
                         ELSE iButtonMinimum 
@@ -781,8 +780,7 @@ IF VALID-HANDLE(hBtn-Inc) THEN
     DELETE WIDGET hBtn-Inc.
 
 ASSIGN FRAME {&FRAME-NAME}:WIDTH-PIXELS = 100 /* make some space for the larger buttons */
-       FRAME {&FRAME-NAME}:HEIGHT-PIXELS = 100
-       FRAME {&FRAME-NAME}:BGCOLOR = IF iImgOffset = 1 THEN 0 ELSE ?.
+       FRAME {&FRAME-NAME}:HEIGHT-PIXELS = 100.
 
 CREATE BUTTON hBtn-Dec
     ASSIGN HEIGHT-PIXELS = iImgHeight 
@@ -881,7 +879,6 @@ THEN
     ASSIGN hBtn-Inc:SENSITIVE = hField:SENSITIVE
            hBtn-Dec:SENSITIVE = hField:SENSITIVE
            FRAME {&FRAME-NAME}:SENSITIVE = hField:SENSITIVE
-           FRAME {&FRAME-NAME}:BGCOLOR   = IF hField:SENSITIVE THEN 0 ELSE COLOR-OF("ButtonShadow":U)
            lKeepState = TRUE.
 
 END PROCEDURE.

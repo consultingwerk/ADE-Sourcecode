@@ -24,11 +24,6 @@
 
 TRIGGER PROCEDURE FOR CREATE OF gsc_default_set .
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "gsc_default_set"
-                      &TRIGGER-TYPE = "CREATE"}
-
 /* Created automatically using ERwin ICF Trigger template db/af/erw/afercustrg.i
    Do not change manually. Customisations to triggers should be placed in separate
    include files pulled into the trigger. ICF auto generates write trigger custom
@@ -69,6 +64,8 @@ DEFINE BUFFER o_gsc_default_set FOR gsc_default_set.
 
 
 ASSIGN gsc_default_set.{&TRIGGER_OBJ} = getNextObj().
+
+
 
 
 

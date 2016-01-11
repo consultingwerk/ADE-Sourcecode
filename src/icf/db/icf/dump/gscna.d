@@ -1,14 +1,15 @@
 487 "ZA" "South African"
-488 "English" "English"
+488 "GB" "British"
+3000033273.09 "US" "American"
 .
 PSC
 filename=gsc_nationality
-records=0000000000002
+records=0000000000003
 ldbname=ICFDB
-timestamp=2002/02/23-13:24:33
+timestamp=2003/04/02-13:47:44
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
-cpstream=ISO8859-1
+cpstream=utf-8
 .
-0000000054
+0000000080

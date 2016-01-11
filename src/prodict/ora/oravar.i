@@ -29,7 +29,8 @@
                          use the _Width size instead of the code calculating. 
             05/31/00 DLM Added ora_pdbname for _gat_md9.i to compile.   
             05/30/01 DLM Added ora_owner and ora-collname. 
-            10/12/01 DLM Added crtdefault for user to select to dump default values     
+            10/12/01 DLM Added crtdefault for user to select to dump default values 
+            06/25/02 DLM Added shadowcol to know if UPPER function should be used.    
 */                         
 
 DEFINE {1} SHARED VARIABLE pro_dbname   AS CHARACTER.
@@ -53,5 +54,6 @@ DEFINE {1} SHARED VARIABLE rmvobj       AS LOGICAL NO-UNDO.
 DEFINE {1} SHARED VARIABLE sqlwidth     AS LOGICAL.
 DEFINE {1} SHARED VARIABLE ora_owner    AS CHARACTER.
 DEFINE {1} SHARED VARIABLE crtdefault   AS LOGICAL.
+DEFINE {1} SHARED VARIABLE shadowcol    AS LOGICAL   NO-UNDO.
 
 DEFINE {1} SHARED STREAM dbg_stream.

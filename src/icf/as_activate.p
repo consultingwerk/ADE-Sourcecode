@@ -23,8 +23,22 @@
 /* as_activate.p */
 
 /* pull in Astra global variables as new global */
-{af/sup2/afglobals.i NEW GLOBAL}
+{adm2/globals.i}
 
-ASSIGN gscSessionId = SESSION:SERVER-CONNECTION-ID.
-
+RUN activateSession IN gshSessionManager 
+  (INPUT ?,    /* Old session ID */
+   INPUT ?,    /* New session ID - default uses SESSION:SERVER-CONNECTION-ID */
+   INPUT ?,    /* Client Session Type */
+   INPUT ?,    /* Client Numeric Format */
+   INPUT ?,    /* Client Date Format */
+   INPUT YES,  /* Are we activating an already existing session */
+   INPUT NO)   /* Should we check inactivity timeouts */
+  NO-ERROR.
+IF ERROR-STATUS:ERROR OR
+   (RETURN-VALUE <> "":U AND
+    RETURN-VALUE <> ?) THEN
+DO:
+  MESSAGE "UNABLE TO ACTIVATE SESSION. ":U + RETURN-VALUE.
+  RETURN ERROR RETURN-VALUE.
+END.
 

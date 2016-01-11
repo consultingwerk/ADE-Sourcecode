@@ -267,7 +267,7 @@ END.
 CREATE _NAME-REC.
 ASSIGN _NAME-REC._wNAME   = v_name
        _NAME-REC._wDBNAME = {&AC_ldbname}
-       _NAME-REC._wTABLE  = {&AC_table}
+       _NAME-REC._wTABLE  = IF {&AC_buffer} NE ? THEN {&AC_buffer} ELSE {&AC_table}
        _NAME-REC._wTYPE   = "{&p_type}"
        _NAME-REC._wFRAME  = frm-name.
 /* Adjust for temp-tables */
@@ -506,8 +506,13 @@ IF NOT CAN-DO("BROWSE,BUTTON,RECTANGLE,IMAGE",_U._TYPE) THEN DO:
                                      INPUT _P._DATA-OBJECT,
                                      INPUT SOURCE-PROCEDURE).
       END.
-      IF VALID-HANDLE(tmp_handle) THEN
-      DO:
+      IF VALID-HANDLE(tmp_handle) THEN DO:
+        /* tmp_handle is either an SDO or and SBO.  If it is an SBO, then _U._TABLE is the
+           SDO name */
+        IF DYNAMIC-FUNCTION("getObjectType":U IN tmp_handle) = "SmartBusinessObject":U THEN
+          tmp_handle = DYNAMIC-FUNCTION("DataObjectHandle" IN tmp_handle, INPUT _U._TABLE).
+
+        IF VALID-HANDLE(tmp_handle) THEN DO:
           /* In case the initial value is a DATE, we must ensure the string comes back as
              a "mdy" date string for internal use by the AppBuilder. Then we must set the
              session date format back to original -d value. Fixes 98-08-14-002 (jep). */
@@ -515,9 +520,11 @@ IF NOT CAN-DO("BROWSE,BUTTON,RECTANGLE,IMAGE",_U._TYPE) THEN DO:
           _F._INITIAL-DATA = DYNAMIC-FUNC("columnInitial" IN tmp_handle, INPUT _U._NAME) NO-ERROR.
           SESSION:DATE-FORMAT = _orig_dte_fmt.
           _U._SENSITIVE    = NOT DYNAMIC-FUNC("columnReadOnly" IN tmp_handle, INPUT _U._NAME) NO-ERROR.
-          _F._READ-ONLY    = NOT _U._SENSITIVE.
+          ASSIGN _U._LABEL-SOURCE = "E"
+                 _F._READ-ONLY    = NOT _U._SENSITIVE.
           ASSIGN NO-ERROR. /* Clear the ERROR-STATUS handle just in case. */
-      END.
+        END.  /* If valid handle */
+      END.  /* If valid handle */
       /* Don't do this for Webspeed unmapped fields, because we may not be connected*/      
       ELSE IF _TT._TABLE-TYPE <> "W":U THEN 
         RUN adecomm/_s-schem.p (_TT._LIKE-DB,
@@ -529,8 +536,5 @@ IF NOT CAN-DO("BROWSE,BUTTON,RECTANGLE,IMAGE",_U._TYPE) THEN DO:
   END. /* A database field */
 END.  /* A widget that can contain a db field */
 
-
-
-
-
-
+/* Make sure all started sdo's are shut down */
+DYNAMIC-FUNCTION("shutdown-sdo":U  IN _h_func_lib, SOURCE-PROCEDURE).

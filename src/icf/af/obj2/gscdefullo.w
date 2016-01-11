@@ -124,6 +124,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -132,25 +133,31 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /* Definitions for QUERY Query-Main                                     */
 &Scoped-Define ENABLED-FIELDS  deploy_dataset_obj entity_sequence entity_mnemonic primary_entity~
  join_entity_mnemonic join_field_list filter_where_clause~
- delete_related_records keep_own_site_data overwrite_records
+ delete_related_records keep_own_site_data overwrite_records deletion_action~
+ relationship_obj use_relationship
 &Scoped-define ENABLED-FIELDS-IN-gsc_dataset_entity deploy_dataset_obj ~
 entity_sequence entity_mnemonic primary_entity join_entity_mnemonic ~
 join_field_list filter_where_clause delete_related_records ~
-keep_own_site_data overwrite_records 
-&Scoped-Define DATA-FIELDS  dataset_entity_obj deploy_dataset_obj dataset_code owner_site_code~
- entity_sequence entity_mnemonic primary_entity join_entity_mnemonic~
- join_field_list filter_where_clause delete_related_records~
- keep_own_site_data overwrite_records
+keep_own_site_data overwrite_records deletion_action relationship_obj ~
+use_relationship 
+&Scoped-Define DATA-FIELDS  dataset_entity_obj deploy_dataset_obj dataset_code entity_sequence~
+ entity_mnemonic primary_entity join_entity_mnemonic join_field_list~
+ filter_where_clause delete_related_records keep_own_site_data~
+ overwrite_records deletion_action relationship_obj use_relationship
 &Scoped-define DATA-FIELDS-IN-gsc_dataset_entity dataset_entity_obj ~
 deploy_dataset_obj entity_sequence entity_mnemonic primary_entity ~
 join_entity_mnemonic join_field_list filter_where_clause ~
-delete_related_records keep_own_site_data overwrite_records 
-&Scoped-define DATA-FIELDS-IN-gsc_deploy_dataset dataset_code ~
-owner_site_code 
+delete_related_records keep_own_site_data overwrite_records deletion_action ~
+relationship_obj use_relationship 
+&Scoped-define DATA-FIELDS-IN-gsc_deploy_dataset dataset_code 
 &Scoped-Define MANDATORY-FIELDS 
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gscdefullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsc_dataset_entity NO-LOCK, ~
+      FIRST gsc_deploy_dataset WHERE gsc_deploy_dataset.deploy_dataset_obj = gsc_dataset_entity.deploy_dataset_obj NO-LOCK ~
+    BY gsc_dataset_entity.deploy_dataset_obj ~
+       BY gsc_dataset_entity.entity_sequence INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsc_dataset_entity NO-LOCK, ~
       FIRST gsc_deploy_dataset WHERE gsc_deploy_dataset.deploy_dataset_obj = gsc_dataset_entity.deploy_dataset_obj NO-LOCK ~
@@ -180,8 +187,7 @@ gsc_deploy_dataset
 DEFINE QUERY Query-Main FOR 
       gsc_dataset_entity, 
       gsc_deploy_dataset
-    FIELDS(gsc_deploy_dataset.dataset_code
-      gsc_deploy_dataset.owner_site_code) SCROLLING.
+    FIELDS(gsc_deploy_dataset.dataset_code) SCROLLING.
 &ANALYZE-RESUME
 {&DB-REQUIRED-END}
 
@@ -256,26 +262,30 @@ END.
 "deploy_dataset_obj" "deploy_dataset_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
      _FldNameList[3]   > icfdb.gsc_deploy_dataset.dataset_code
 "dataset_code" "dataset_code" ? ? "character" ? ? ? ? ? ? no ? no 13 yes
-     _FldNameList[4]   > icfdb.gsc_deploy_dataset.owner_site_code
-"owner_site_code" "owner_site_code" ? ? "character" ? ? ? ? ? ? no ? no 20 yes
-     _FldNameList[5]   > icfdb.gsc_dataset_entity.entity_sequence
+     _FldNameList[4]   > icfdb.gsc_dataset_entity.entity_sequence
 "entity_sequence" "entity_sequence" ? ? "integer" ? ? ? ? ? ? yes ? no 4 yes
-     _FldNameList[6]   > icfdb.gsc_dataset_entity.entity_mnemonic
-"entity_mnemonic" "entity_mnemonic" ? ? "character" ? ? ? ? ? ? yes ? no 16 yes
-     _FldNameList[7]   > icfdb.gsc_dataset_entity.primary_entity
+     _FldNameList[5]   > icfdb.gsc_dataset_entity.entity_mnemonic
+"entity_mnemonic" "entity_mnemonic" "Entity" ? "character" ? ? ? ? ? ? yes ? no 16 yes
+     _FldNameList[6]   > icfdb.gsc_dataset_entity.primary_entity
 "primary_entity" "primary_entity" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[8]   > icfdb.gsc_dataset_entity.join_entity_mnemonic
-"join_entity_mnemonic" "join_entity_mnemonic" ? ? "character" ? ? ? ? ? ? yes ? no 16 yes
-     _FldNameList[9]   > icfdb.gsc_dataset_entity.join_field_list
+     _FldNameList[7]   > icfdb.gsc_dataset_entity.join_entity_mnemonic
+"join_entity_mnemonic" "join_entity_mnemonic" "Join Entity" ? "character" ? ? ? ? ? ? yes ? no 16 yes
+     _FldNameList[8]   > icfdb.gsc_dataset_entity.join_field_list
 "join_field_list" "join_field_list" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
-     _FldNameList[10]   > icfdb.gsc_dataset_entity.filter_where_clause
+     _FldNameList[9]   > icfdb.gsc_dataset_entity.filter_where_clause
 "filter_where_clause" "filter_where_clause" ? ? "character" ? ? ? ? ? ? yes ? no 1000 yes
-     _FldNameList[11]   > icfdb.gsc_dataset_entity.delete_related_records
+     _FldNameList[10]   > icfdb.gsc_dataset_entity.delete_related_records
 "delete_related_records" "delete_related_records" ? ? "logical" ? ? ? ? ? ? yes ? no 22.8 yes
-     _FldNameList[12]   > icfdb.gsc_dataset_entity.keep_own_site_data
+     _FldNameList[11]   > icfdb.gsc_dataset_entity.keep_own_site_data
 "keep_own_site_data" "keep_own_site_data" ? ? "logical" ? ? ? ? ? ? yes ? no 19.4 yes
-     _FldNameList[13]   > icfdb.gsc_dataset_entity.overwrite_records
+     _FldNameList[12]   > icfdb.gsc_dataset_entity.overwrite_records
 "overwrite_records" "overwrite_records" ? ? "logical" ? ? ? ? ? ? yes ? no 17.6 yes
+     _FldNameList[13]   > icfdb.gsc_dataset_entity.deletion_action
+"deletion_action" "deletion_action" ? ? "character" ? ? ? ? ? ? yes ? no 14.4 yes
+     _FldNameList[14]   > icfdb.gsc_dataset_entity.relationship_obj
+"relationship_obj" "relationship_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 33.6 yes
+     _FldNameList[15]   > icfdb.gsc_dataset_entity.use_relationship
+"use_relationship" "use_relationship" ? ? "logical" ? ? ? ? ? ? yes ? no 16 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME

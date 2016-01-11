@@ -42,9 +42,6 @@
    &GLOB ADMClass data
 &ENDIF
 
-DEFINE VARIABLE giRowNum     AS INTEGER NO-UNDO INIT 0.
-DEFINE VARIABLE ghDataQuery  AS HANDLE  NO-UNDO.
-
 /* Added or Changed RowIdent temp-table */
 DEFINE TEMP-TABLE ModRowIdent NO-UNDO
    FIELD RowIdent AS CHARACTER
@@ -56,8 +53,16 @@ DEFINE TEMP-TABLE ModRowIdent NO-UNDO
    INDEX RowIdentIdx RowIdentIdx
    .
 
+
 &IF "{&ADMClass}":U = "data":U &THEN
   {src/adm2/dataprop.i}
+&ELSE  
+  /* if this is included in an extended class ensure that start-super-proc
+     keeps the DataLogicObject started in this main block at the bottom of 
+     the super-procedure stack */  
+    &IF DEFINED(LAST-SUPER-PROCEDURE-PROP) = 0 &THEN
+  &SCOPED-DEFINE LAST-SUPER-PROCEDURE-PROP DataLogicObject 
+    &ENDIF
 &ENDIF
 
 /* _UIB-CODE-BLOCK-END */
@@ -76,22 +81,11 @@ DEFINE TEMP-TABLE ModRowIdent NO-UNDO
 
 /* ************************  Function Prototypes ********************** */
 
-&IF DEFINED(EXCLUDE-canFindModRow) = 0 &THEN
+&IF DEFINED(EXCLUDE-getRowObjUpdStatic) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD canFindModRow Method-Library 
-FUNCTION canFindModRow RETURNS LOGICAL
-  ( pcRowIdent AS CHARACTER )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-commit) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD commit Method-Library 
-FUNCTION commit RETURNS LOGICAL
-  ( )  FORWARD.
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getRowObjUpdStatic Method-Library 
+FUNCTION getRowObjUpdStatic RETURNS HANDLE
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -116,7 +110,7 @@ FUNCTION commit RETURNS LOGICAL
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Method-Library ASSIGN
-         HEIGHT             = 15.33
+         HEIGHT             = 13
          WIDTH              = 52.6.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -138,7 +132,6 @@ FUNCTION commit RETURNS LOGICAL
 
 
 /* ***************************  Main Block  *************************** */
-
   RUN start-super-proc("adm2/data.p":U).
   RUN start-super-proc("adm2/dataext.p":U).
   /* dataext.p is merely a simple "extension" of data.p.  This was necessary
@@ -147,15 +140,12 @@ FUNCTION commit RETURNS LOGICAL
      are get and set property functions.  */
   RUN start-super-proc("adm2/dataextcols.p":U).
   /* dataextcols.p is also a simple "extension" of data.p.  This was necessary
-    because the action segment became to big on A400 also after the split in 
-    data and dataext. We cannot just move randomly selected functions to 
-    dataext.p, and all column properties did not fit. All of the functions in 
-    dataextcols.p are column properties (column and assignColumn functions)  */
-
-/* The prepreprocessor check involving DATA-FIELD-DEFS is used to provide
-   backward compatibility with how Beta 2 code defined the preprocessor.
-   It got changed for final release to support spaces in the include file's
-   path or name. For final release, the preprocessor is a quoted file name. */
+     because the action segment became to big on A400 also after the split in 
+     data and dataext. The functions in  dataextcols.p are column properties 
+    (column and assignColumn functions)  */
+ 
+&IF DEFINED(DATA-FIELD-DEFS) <> 0 &THEN
+ 
  DEFINE TEMP-TABLE RowObject
   /* Allow users to ommit the hardcoded RCODE-INFORMATION and put it in the 
      include instead. 
@@ -168,6 +158,11 @@ FUNCTION commit RETURNS LOGICAL
      RCODE-INFORMATION
  &ENDIF
   
+ /* The prepreprocessor check involving DATA-FIELD-DEFS is used to provide
+    backward compatibility with how Beta 2 code defined the preprocessor.
+   It got changed for final release to support spaces in the include file's
+   path or name. The preprocessor is now a quoted file name. */
+
  &IF '{&DATA-FIELD-DEFS}' BEGINS '"' &THEN
    {{&DATA-FIELD-DEFS}}
  &ELSE
@@ -177,40 +172,33 @@ FUNCTION commit RETURNS LOGICAL
  
  DEFINE TEMP-TABLE RowObjUpd    NO-UNDO LIKE RowObject
    FIELD ChangedFields AS CHARACTER.
+
  DEFINE QUERY    qDataQuery           FOR RowObject SCROLLING.
- DEFINE VARIABLE cColumns             AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cContainerType       AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cQueryString         AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE hRowObject           AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE hDataQuery           AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE cColumns             AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cDataFieldDefs       AS CHARACTER  NO-UNDO.
 
-/* Add the datalogic procedure as the last super-procedure.
-   This uses rowObject and RowObjUpd so we must do this after the temp-tables 
-   has been defined */
-&IF '{&DATA-LOGIC-PROCEDURE}':U <> '':U AND '{&DATA-LOGIC-PROCEDURE}':U <> '.p':U &THEN
-  {src/adm2/datalogic.i}
-&ENDIF
-
-
-
-  {set QueryObject yes}.             /* All DataObjects are query objects.*/
-  ghDataQuery = QUERY qDataQuery:HANDLE.  /* Temp-Table query */
-  {set DataHandle ghDataQuery}.
+ {set DynamicData NO}.
+  cDataFieldDefs  = '{&DATA-FIELD-DEFS}':U.
+  {set DataFieldDefs cDataFieldDefs}.
+  hDataQuery = QUERY qDataQuery:HANDLE.  /* Temp-Table query */
+  {set DataHandle hDataQuery}.
   /* Set up the RowObject query to be opened dynamically. */
   {get DataQueryString cQueryString}.
   cQueryString = {fnarg fixQueryString cQueryString}.
-  ghDataQuery:QUERY-PREPARE(cQueryString).  
+  hDataQuery:QUERY-PREPARE(cQueryString).  
 
   hRowObject = BUFFER RowObject:HANDLE.
   {set RowObject hRowObject}.  /* Handle of RowObject buffer.*/
   hRowObject = BUFFER RowObjUpd:HANDLE.
   {set RowObjUpd hRowObject}. /* Row Update buffer handle. */
   hRowObject = TEMP-TABLE RowObject:HANDLE.
-  {set RowObjectTable hRowObject}.  /* 9.1B RowObject temp-table handle. */
+  {set RowObjectTable hRowObject}.  /*  RowObject temp-table handle. */
   hRowObject = TEMP-TABLE RowObjUpd:HANDLE.
-  {set RowObjUpdTable hRowObject}.  /* 9.1B RowObject temp-table handle. */
-  
-   /* Overrides query object setting */
-  {set DataSourceEvents 'dataAvailable,confirmContinue,isUpdatePending':U}.
+  {set RowObjUpdTable hRowObject}.  /*  RowObjUpd temp-table handle. */
 
   /* Don't let this object be an Update-Target if its fields are not updatable*/
   {get UpdatableColumns cColumns}.   /* Fetch this prop, set in query.i */
@@ -219,9 +207,34 @@ FUNCTION commit RETURNS LOGICAL
     RUN modifyListProperty(THIS-PROCEDURE, 'REMOVE':U, 'SupportedLinks':U,
         'Update-Target':U).
 
+&ENDIF /* Static TT - defined(Data-field-defs) <> 0  */
+
+  {set ModRowIdent "BUFFER ModRowIdent:HANDLE"}. /* ModRowIdent buffer handle. */
+  {set ModRowIdentTable "TEMP-TABLE ModRowIdent:HANDLE"}. 
+
+  {set QueryObject yes}.             /* All DataObjects are query objects.*/
+  
+  /* Overrides query object setting */
+  {set DataSourceEvents 'dataAvailable,confirmContinue,isUpdatePending':U}.
+  
   /* _ADM-CODE-BLOCK-START _CUSTOM _INCLUDED-LIB-CUSTOM CUSTOM */
   {src/adm2/custom/datacustom.i}
   /* _ADM-CODE-BLOCK-END */
+
+&IF '{&DATA-LOGIC-PROCEDURE}':U <> '':U AND '{&DATA-LOGIC-PROCEDURE}':U <> '.p':U &THEN
+  {set DataLogicProcedure '{&DATA-LOGIC-PROCEDURE}':U}.
+&ENDIF
+
+/* Exclude the static function and procedures for a dynamic data object */ 
+&IF DEFINED(DATA-FIELD-DEFS) = 0 &THEN
+   &SCOPED-DEFINE EXCLUDE-getRowObjUpdStatic
+   &SCOPED-DEFINE EXCLUDE-serverCommit
+   &SCOPED-DEFINE EXCLUDE-remoteCommit
+   &SCOPED-DEFINE EXCLUDE-pushRowObjUpdTable
+   &SCOPED-DEFINE EXCLUDE-pushTableAndValidate
+   {set DynamicData YES}.
+   {set DynamicObject YES}.
+&ENDIF
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -229,1015 +242,20 @@ FUNCTION commit RETURNS LOGICAL
 
 /* **********************  Internal Procedures  *********************** */
 
-&IF DEFINED(EXCLUDE-bufferCommit) = 0 &THEN
+&IF DEFINED(EXCLUDE-pushRowObjUpdTable) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE bufferCommit Method-Library 
-PROCEDURE bufferCommit :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pushRowObjUpdTable Method-Library 
+PROCEDURE pushRowObjUpdTable :
 /*------------------------------------------------------------------------------
-  Purpose:     Update procedure executed on the server side of a split 
-               SmartDataObject, called from the client Commit function.
-               Commit passes a set up RowObjUpdate records both have changes to
-               be committed and their pre-change copies (before-images).  
-               commitRows verifies that the records have not been changed 
-               since they were read, and then commits the changes to the 
-               database.
-  Parameters:
-    OUTPUT cMessages - a CHR(3) delimited string of accumulated messages from
-                       server.
-    OUTPUT cUndoIds  - list of any RowObject ROWIDs whose changes need to be 
-                       undone as the result of errors in the form of:
-               "RowNumCHR(3)ADM-ERROR-STRING,RowNumCHR(3)ADM-ERROR-STRING,..."
-
- Notes:        If another user has modified the database records since the 
-               original was read, the new database values are copied into the 
-               RowObjUpd record and returned to Commit so the UI object can 
-               diaply them.
+  Purpose:     wrapper for pre and postTransactionValidate procedures when
+               run from SBO.
+  Parameters:  INPUT pcValType AS CHARACTER -- "Pre" or "Post",
+               INPUT-OUTPUT TABLE FOR RowObjUpd.
+  Notes:     - This is an override of the dynamic version in data.p and is 
+               conditionally excluded if there is no RowObject TT include.     
 ------------------------------------------------------------------------------*/
-  DEFINE OUTPUT PARAMETER pocMessages AS CHARACTER NO-UNDO.
-  DEFINE OUTPUT PARAMETER pocUndoIds  AS CHARACTER NO-UNDO INIT "":U.
-  
-  DEFINE VARIABLE lCheck        AS LOGICAL   NO-UNDO.
-  DEFINE BUFFER   bRowObjUpd    FOR RowObjUpd.
-  DEFINE VARIABLE hRowObjUpd    AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE hRowObjFld    AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE cASDivision   AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE lKillTrans    AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE lSubmitVal    AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE iChange       AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE cChanged      AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cChangedFlds  AS CHARACTER NO-UNDO INIT "":U.
-  DEFINE VARIABLE cChangedVals  AS CHARACTER NO-UNDO INIT "":U.
-  DEFINE VARIABLE cUpdatable    AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE lQueryContainer AS LOGICAL NO-UNDO INIT NO.
-  DEFINE VARIABLE hContainerSource AS HANDLE NO-UNDO.
-  DEFINE VARIABLE cDeleteMsg    AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE iEntry        AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE htt AS HANDLE     NO-UNDO.
-  
- &IF DEFINED(OPEN-QUERY-{&QUERY-NAME}) NE 0 &THEN  /* Skip when compiling templ*/
-  {get ASDivision cASDivision}.
-  /* 9.1B: Find out if our Container is itself a Query Object.
-     If it is, it's an SBO or other object that handles the transaction
-     for us, in which case we will not run pre/post transaction ourselves. */
-  {get QueryContainer lQueryContainer}.
- /* TransactionValidate is maintained for backward (pre 9.1A) compatibility; 
-     the new procedure for this slot before the transaction is 
-     preTransactionValidate. ChangedFields is calculated further down and will 
-     picked up fields changed in these hooks.  
-     NOTE: The principle is (as with fieldValidate and rowobjectValidate) that 
-     this application object returns an error message if there is one;
-     trigger errors get captured below. */
-  IF NOT lQueryContainer THEN
-  DO:
-      RUN TransactionValidate IN THIS-PROCEDURE NO-ERROR. 
-      IF NOT ERROR-STATUS:ERROR AND RETURN-VALUE NE "":U THEN
-      DO:
-        RUN prepareErrorsForReturn(INPUT RETURN-VALUE, INPUT cASDivision, 
-                                   INPUT-OUTPUT pocMessages).
-        RETURN.      /* Bail out if application code rejected the txn. */
-      END.   /* END DO IF RETURN-VALUE NE "" */
-      RUN preTransactionValidate IN THIS-PROCEDURE NO-ERROR. 
-      IF NOT ERROR-STATUS:ERROR AND RETURN-VALUE NE "":U THEN
-      DO:
-        RUN prepareErrorsForReturn(INPUT RETURN-VALUE, INPUT cASDivision, 
-                                   INPUT-OUTPUT pocMessages).
-        RETURN.      /* Bail out if application code rejected the txn. */
-      END.   /* END DO IF RETURN-VALUE NE "" */
-  END.       /* END DO IF Container (SBO) is not doing the Commit. */
-
-  /* Construct the changed value list. This list is actually stored in the 
-     before version of the record for an update. */
-  {get UpdatableColumns cUpdatable}.
-  hRowObjUpd = BUFFER RowObjUpd:HANDLE.
-  FOR EACH RowObjUpd WHERE LOOKUP(RowObjUpd.RowMod,"A,C,U":U) NE 0:
-     IF RowObjUpd.RowMod = "U":U THEN
-     DO:
-       FIND bRowObjUpd WHERE bRowObjUpd.RowNum = RowObjUpd.RowNum 
-                       AND   bRowObjUpd.RowMod = "":U.
-         /* As of 9.1A, we no longer rely on ChangedFields being set
-            before this point. Calculate it here so it includes any
-            application-generated values. */
-       BUFFER-COMPARE RowObjUpd EXCEPT ChangedFields RowMod RowIdent RowNum
-                   TO bRowObjUpd CASE-SENSITIVE SAVE cChangedFlds.
-     END.    /* END DO IF RowMod = U */
-     ELSE IF RowObjUpd.RowMod = "A":U THEN
-     DO:
-        /* For an Add, set ChangedFields to all fields no longer
-           equal to their defined INITIAL value. Determine this by
-           creating a RowObject record to compare against. */
-       CREATE RowObject.
-       BUFFER-COMPARE RowObjUpd EXCEPT ChangedFields RowMod RowIdent RowNum
-                   TO RowObject CASE-SENSITIVE SAVE cChangedFlds. 
-     END.      /* END DO If "A" for Add */
-     ELSE                 /* use all enabled fields for a Copy. */
-       cChangedFlds = cUpdatable.
-        /* Now assign the list of fields into the ROU record. 
-           (Put it in the before record as well for an Update.) 
-           This list will be used by query.p code to ASSIGN changes
-           back to the database. */
-     IF RowObjUpd.RowMod = "U":U THEN
-       bRowObjUpd.ChangedFields = cChangedFlds.
-     RowObjUpd.ChangedFields = cChangedFlds.
-     /* if a row was temporarily created to supply initial values for the
-        Add operation BUFFER-COMPARE, delete it now. */
-     IF RowObjUpd.RowMod = "A":U AND AVAILABLE(RowObject) THEN
-       DELETE RowObject. 
-  END.     /* END FOR EACH */
-  /* If this is the server side and the ServerSubmitValidation property
-     has been set to *yes*, then we execute that normally client side 
-     validation here to make sure that it has been done. */
-  IF cASDivision = "Server":U THEN 
-  DO:
-    {get ServerSubmitValidation lSubmitVal}.
-    IF lSubmitVal THEN
-    DO:
-      
-      FOR EACH RowObjUpd WHERE LOOKUP(RowObjUpd.RowMod, "A,C,U":U) NE 0:
-        /* Validation procs look at RowObject, so we have to create a row
-           temporarily for it to use. This will be deleted below. */
-        DO TRANSACTION:
-          CREATE RowObject.     
-        END.
-        BUFFER-COPY RowObjUpd TO RowObject.
-        
-        cChangedFlds = RowObjUpd.ChangedFields.
-        DO iChange = 1 TO NUM-ENTRIES(cChangedFlds):
-          ASSIGN cChanged = ENTRY(iChange, cChangedFlds)
-                 hRowObjFld = hRowObjUpd:BUFFER-FIELD(cChanged)
-                 cChangedVals = cChangedVals +
-                   (IF cChangedVals NE "":U THEN CHR(1) ELSE "":U) +
-                   cChanged + CHR(1) + STRING(hRowObjFld:BUFFER-VALUE).
-        END.    /* END DO iChange */
-
-        /* Now pass the values and column list to the client validation. */
-        RUN submitValidation (INPUT cChangedVals, cUpdatable).
-        DO TRANSACTION:
-          DELETE RowObject. 
-        END.
-      END.      /* END FOR EACH RowObjUpd */  
-      /* Exit if any error messages were generated. This means that
-         all messages associated with the "client" SubmitValidation will
-         be accumulated, but the update transaction will not be attempted
-         if there are any prior errors. */
-      IF anyMessage() THEN
-      DO:
-        RUN prepareErrorsForReturn(INPUT "":U, INPUT cASDivision, 
-                                   INPUT-OUTPUT pocMessages).
-        RETURN.
-      END.  /* END IF anyMessage */
-    END.   /* END DO IF SUbMitVal */
-  END.   /* END DO IF Server */
-  TRANS-BLK:
-  DO TRANSACTION ON ERROR UNDO, LEAVE:
-    /* This user-defined validation hook is for code to be executed
-       inside the transaction, but before any updates occur. */
-    RUN beginTransactionValidate IN THIS-PROCEDURE NO-ERROR. 
-    IF NOT ERROR-STATUS:ERROR AND RETURN-VALUE NE "":U THEN
-    DO:
-      RUN prepareErrorsForReturn(INPUT RETURN-VALUE, INPUT cASDivision, 
-                                 INPUT-OUTPUT pocMessages).
-      UNDO, RETURN.      /* Bail out if application code rejected the txn. */
-    END.   /* END DO IF RETURN-VALUE NE "" */
-    
-    /* First locate each pre-change record. Find corresponding database record
-       and do a buffer-compare to make sure it hasn't been changed. */
-    Process-Update-Records-Blk:
-    FOR EACH RowObjUpd WHERE RowObjUpd.RowMod = "":U:
-        /* For each table in the join, update its fields if on the enabled list.
-         NOTE: at present at least we don't check whether fields in this table
-         have actually been modified in this record. */
-      RUN fetchDBRowForUpdate IN TARGET-PROCEDURE.
-      IF RETURN-VALUE NE "":U THEN
-      DO:
-        RUN addMessage In TARGET-PROCEDURE
-          (messageNumber(18), ?, RETURN-VALUE).
-        ASSIGN lKillTrans = yes
-               pocUndoIds = pocUndoIds + STRING(RowObjUpd.RowNum) + CHR(3) + ",":U.
-        UNDO Process-Update-Records-Blk, NEXT Process-Update-Records-Blk.
-      END.
-        /* Check first whether we care if the database record has been
-           changed by another user. This is a settable instance property. */
-      {get CheckCurrentChanged lCheck}.
-      IF lCheck THEN
-      DO:
-          RUN compareDBRow In TARGET-PROCEDURE.
-          IF RETURN-VALUE NE "":U THEN /* Table name that didn't compare is returned. */
-          DO:
-            RUN addMessage IN TARGET-PROCEDURE
-             (SUBSTITUTE(messageNumber(8), '':U /* No field names available. */) , ?, 
-              RETURN-VALUE  /* Table name that didn't compare */).
-            pocUndoIds = pocUndoIds + STRING(RowObjUpd.RowNum) + CHR(3) + "ADM-FIELDS-CHANGED":U + ",":U.
-            /* Get the changed version of the record in order to copy
-               the new database values into it to pass back to the client.*/
-            FIND bRowObjUpd WHERE bRowObjUpd.RowNum = RowObjUpd.RowNum
-                              AND bRowObjUpd.RowMod = "U":U.
-            RUN refetchDBRow IN TARGET-PROCEDURE
-                  (INPUT BUFFER bRowObjUpd:HANDLE) NO-ERROR.
-            IF ERROR-STATUS:ERROR THEN
-            DO:
-              RUN addMessage IN TARGET-PROCEDURE
-                   /* Support return-value from triggers (from RefetchDbRow)*/ 
-                   (IF RETURN-VALUE <> '':U THEN RETURN-VALUE ELSE ?, ?, ?).
-              lKillTrans = yes.
-              pocUndoIds = pocUndoIds + STRING(bRowObjUpd.RowNum) + CHR(3) + ",":U.
-            END.  /* If ERROR */
-            IF cASDivision = 'Server':U THEN
-              pocMessages = LEFT-TRIM(pocMessages + CHR(3) + DYNAMIC-FUNCTION('fetchMessages':U),CHR(3)).
-              
-            /* Don't try to write values to db. Just process next update record. */
-            NEXT Process-Update-Records-Blk.
-          END.  /* END DO IF compareDBRow returned a table value */
-        END.    /* END DO IF CheckCurrentChanged */
-        DO:   /* If we haven't 'next'ed because of an error, do the update. */
-          /* Now find the changed version of the record, move its fields to the
-             database record(s) which were found above, and report any errors
-             (which would be database triggers at this point). */
-          FIND bRowObjUpd WHERE bRowObjUpd.RowNum = RowObjUpd.RowNum
-                          AND   bRowObjUpd.RowMod = "U":U.
-          /* Copy the ChangedFields to this buffer too */
-          ASSIGN bRowObjUpd.ChangedFields = RowObjUpd.ChangedFields
-                 hRowObjUpd               = BUFFER bRowObjUpd:HANDLE.
-          RUN assignDBRow IN TARGET-PROCEDURE (INPUT hRowObjUpd).
-          IF RETURN-VALUE NE "":U THEN  /* returns table name in error. */
-          DO:
-            RUN addMessage IN TARGET-PROCEDURE (?, ?, RETURN-VALUE).
-            lKillTrans = yes.
-            pocUndoIds = pocUndoIds + STRING(RowObjUpd.RowNum) + CHR(3) + ",":U.
-            UNDO, NEXT. /* The FOR EACH block is undone and nexted. */
-          END.   /* END DO IF RETURN-VALUE NE "" */
-          
-          /* Pass back the final values to the client. Note - because we
-             want to get values changed by the db trigger, we copy *all*
-             fields, not just the ones that are enabled in the Data Object. */
-          RUN refetchDBRow IN TARGET-PROCEDURE
-                (INPUT BUFFER bRowObjUpd:HANDLE) NO-ERROR.
-          IF ERROR-STATUS:ERROR THEN
-          DO:
-            RUN addMessage IN TARGET-PROCEDURE 
-                   /* Support return-value from triggers (from RefetchDbRow)*/ 
-                  (IF RETURN-VALUE <> '':U THEN RETURN-VALUE ELSE ?, ?, ?).
-            lKillTrans = yes.
-            pocUndoIds = pocUndoIds + STRING(bRowObjUpd.RowNum) + CHR(3) + ",":U.
-          END.  /* if ERROR */
-          
-          /* Add a record to the ModRowIdent table */
-          IF NOT CAN-FIND(FIRST ModRowIdent WHERE
-                                ModRowIdent.RowIdentIdx = bRowObjUpd.RowIdentIdx
-                                AND
-                                ModRowIdent.RowIdent = bRowObjUpd.RowIdent) THEN
-          DO:
-            CREATE ModRowIdent.
-            ASSIGN ModRowIdent.RowIdent = bRowObjUpd.RowIdent
-                   ModRowIdent.RowIdentIdx = SUBSTR(bRowObjUpd.RowIdent, 1, xiRocketIndexLimit)
-                   .
-          END.  /* DO if ModRowIdent is already there */
-      END.  /* END DO the update for this row if no error */
-    END.  /* END FOR EACH RowObjUpd */
-    /* This code to handle DELETE operations: */    
-    FOR EACH RowObjUpd WHERE RowObjUpd.RowMod = "D":U:
-      /* This will procedure will do the Delete (looking at RowMod) */
-      RUN fetchDBRowForUpdate IN TARGET-PROCEDURE.
-      IF RETURN-VALUE NE "":U THEN
-      DO:
-        /* fetchDbRowForUpdate will return "Delete" as LAST element of the 
-           return-value if the Delete and not the FIND EXCLUSIVE-LOCK failed. */
-        IF ENTRY(NUM-ENTRIES(RETURN-VALUE),RETURN-VALUE) = "Delete":U THEN
-        DO:
-          IF NUM-ENTRIES(RETURN-VALUE) = 2 THEN
-            cDeleteMsg = messageNumber(23).
-          ELSE /* support return-value from triggers */
-            ASSIGN 
-              cDeleteMsg = RETURN-VALUE 
-              ENTRY(NUM-ENTRIES(cDeleteMsg),cDeleteMsg) = "":U
-              ENTRY(1,cDeleteMsg) = "":U
-              cDeleteMsg = TRIM(cDeleteMsg,",":U).
-        END. /* if entry(num-entries(return-value) = 'delete' */ 
-        ELSE /* locked record */
-          cDeleteMsg = messageNumber(18).
-        RUN addMessage IN TARGET-PROCEDURE
-              (cDeleteMsg, ?, ENTRY(1,RETURN-VALUE)).
-        ASSIGN lKillTrans = yes
-               pocUndoIds = pocUndoIds + STRING(RowObjUpd.RowNum) + CHR(3) + ",":U.
-      END.      /* END DO IF RETURN-VALUE NE "" */
-    END.        /* END FOR EACH block */
-    /* This code to handle ADD/COPY operations: */
-    FOR EACH RowObjUpd WHERE RowObjUpd.RowMod = "A":U OR
-                             RowObjUpd.RowMod = "C":U:  
-      /* This procedure will do the record Create (looking at RowMod) */
-      RUN assignDBRow IN TARGET-PROCEDURE (INPUT BUFFER RowObjUpd:HANDLE).
-      IF RETURN-VALUE NE "":U THEN  /* returns table name in error. */
-      DO:
-        /* If the add failed, clear the rowident field because the rowid 
-           assigned to it after the BUFFER-CREATE in assignDBRow is now invalid 
-           due to the failure. */
-        ASSIGN RowObjUpd.RowIdent = "" RowObjUpd.RowIdentIdx = "".
-        /* If BUFFER-CREATE faile because of a CREATE trigger we add return-value
-           before the table name, otherwise set the first parameter of addMessage
-           to ? to retireve errors from error-status */
-        RUN addMessage IN TARGET-PROCEDURE                                  
-                          (IF NUM-ENTRIES(RETURN-VALUE,CHR(3)) > 1                 
-                           THEN ENTRY(1,RETURN-VALUE,CHR(3))                           
-                           ELSE ?,                                                   
-                           ?,                                                        
-                           ENTRY(NUM-ENTRIES(RETURN-VALUE, CHR(3)),RETURN-VALUE,CHR(3))       
-                           ).                                                        
-         lKillTrans = yes.
-         pocUndoIds = pocUndoIds + STRING(RowObjUpd.RowNum) + CHR(3) + ",":U.
-         UNDO, NEXT. /* The FOR EACH block is undone and nexted. */
-      END.    /* END DO IF ERROR-STATUS:ERROR OR cErrorMsgs NE "":U */
-      /* Pass back the final values to the client. Note - because we
-         want to get values changed by the db trigger, we copy *all*
-         fields, not just the ones that are enabled in the Data Object. */
-      RUN refetchDBRow In TARGET-PROCEDURE
-        (INPUT BUFFER RowObjUpd:HANDLE) NO-ERROR.      
-      /* if a database trigger returns error it will be catched here */
-      IF ERROR-STATUS:ERROR THEN
-      DO:
-        lKillTrans = yes.
-        pocUndoIds = pocUndoIds + STRING(RowObjUpd.RowNum) + CHR(3) + ",":U.
-        RUN addMessage IN TARGET-PROCEDURE 
-            /* Support return-value from triggers (from RefetchDbRow)*/ 
-            (IF RETURN-VALUE <> '':U THEN RETURN-VALUE ELSE ?, ?, ?).
-        UNDO, NEXT. /* The FOR EACH block is undone and nexted. */
-      END.
-
-      /* Add a record to the ModRowIdent table */
-      IF NOT CAN-FIND(FIRST ModRowIdent WHERE
-                            ModRowIdent.RowIdentIdx = RowObjUpd.RowIdentIdx
-                            AND
-                            ModRowIdent.RowIdent = RowObjUpd.RowIdent) THEN
-      DO:
-        CREATE ModRowIdent.
-        ASSIGN ModRowIdent.RowIdent = RowObjUpd.RowIdent
-               ModRowIdent.RowIdentIdx = SUBSTR(RowObjUpd.RowIdent, 1, xiRocketIndexLimit)
-               .
-      END.  /* DO if ModRowIdent is already there */        
-    END.  /* END FOR EACH block for Adds. */
-    /* If errors of any kind, undo the transaction and leave. */
-    IF pocUndoIds NE "":U OR lKillTrans THEN
-      UNDO Trans-Blk, LEAVE Trans-Blk.
-    /* This user-defined validation hook is for code to be executed
-       inside the transaction, but after all updates occur. */
-    RUN endTransactionValidate IN THIS-PROCEDURE NO-ERROR. 
-    IF NOT ERROR-STATUS:ERROR AND RETURN-VALUE NE "":U THEN
-    DO:
-      RUN prepareErrorsForReturn(INPUT RETURN-VALUE, INPUT cASDivision, 
-                                 INPUT-OUTPUT pocMessages).
-      UNDO, RETURN.     /* Bail out if application code rejected the txn. */
-    END.   /* END DO IF RETURN-VALUE NE "" */
-  END.          /* END transaction block. */ 
-  /* RELEASE the database record(s). */
-  RUN releaseDBRow IN TARGET-PROCEDURE.
-  /* Add a message to indicate the update has been cancelled. */
-  IF pocUndoIds NE "":U OR lKillTrans THEN
-    RUN addMessage IN TARGET-PROCEDURE (messageNumber(15),?,?).
-&ENDIF          /* ENDIF QUERY defined */  
-  /* This user-defined validation hook is for code to be executed
-     outside the transaction, after all updates occur. */
-  IF NOT lQueryContainer THEN
-  DO:
-    RUN postTransactionValidate IN THIS-PROCEDURE NO-ERROR. 
-    IF NOT ERROR-STATUS:ERROR AND RETURN-VALUE NE "":U THEN
-    DO:
-      RUN prepareErrorsForReturn(INPUT RETURN-VALUE, INPUT cASDivision, 
-                                 INPUT-OUTPUT pocMessages).
-      RETURN.      /* Bail out. */
-    END.   /* END DO IF RETURN-VALUE NE "" */
-  END.       /* END DO IF Container (SBO) is not doing the commit for us. */        
-    /* If we're not on an AppServer, the messages will be available to the
-     caller, so don't "fetch" them (which would also delete them). */
-  RUN prepareErrorsForReturn(INPUT RETURN-VALUE, INPUT cASDivision, 
-                             INPUT-OUTPUT pocMessages).
-  RETURN.
-  
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-doBuildUpd) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE doBuildUpd Method-Library 
-PROCEDURE doBuildUpd :
-/*------------------------------------------------------------------------------
-  Purpose:     Transfers changed rows into the Update Temp-Table and returns
-               it to the caller (the Commit function).
-
-  Parameters:
-    OUTPUT RowObjUpd - table containing updated records
-
-  Notes:       This code, and other "do" procedures, need to be in the 
-               SmartDataObject itself to allow the BUFFER-COPY operations. 
-               They can be specialized by defining like-named procedures 
-               in another support procedure. 
-               For each existing row to be updated, there is already a "before"
-               copy in the RowObjUpd table, so we create an "after" row.
-               There is already a row in RowObjUpd for each Added/Copied row, 
-               so we just update it with the latest values.
-               There is already a row in RowObjUpd for each Deleted row, so
-               we don't need to do anything for these rows.
-------------------------------------------------------------------------------*/
-  DEFINE BUFFER bRowObject FOR  RowObject. 
-  DEFINE BUFFER bRowObjUpd FOR  RowObjUpd. 
-
-  /*   DEFINE OUTPUT PARAMETER TABLE FOR RowObjUpd. NOTE: Removed in 9.1B */
+   DEFINE INPUT PARAMETER TABLE FOR RowObjUpd.
  
-  FOR EACH bRowObject WHERE bRowObject.RowMod = "U":U:   
-    CREATE bRowObjUpd.
-    BUFFER-COPY bRowObject TO bRowObjUpd.
-  END. 
-
-  FOR EACH bRowObject WHERE bRowObject.RowMod = "A":U 
-                      OR    bRowObject.RowMod = "C":U:   
-    FIND bRowObjUpd WHERE bRowObjUpd.RowNum = bRowObject.RowNum.
-    BUFFER-COPY bRowObject TO bRowObjUpd.
-  END.
-
-  RETURN.
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-doCreateUpdate) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE doCreateUpdate Method-Library 
-PROCEDURE doCreateUpdate :
-/*------------------------------------------------------------------------------
-  Purpose:     FINDs the specified row to be updated and creates a "backup" 
-               (a before-image) copy of it in the RowObjUpd table, to support
-               Undo.  Run from submitRow when it receives a set of value 
-               changes from a UI object.
-
-  Parameters:
-    INPUT  pcRowIdent  - encoded "key" of the row to be updated.
-    INPUT  pcValueList - the list of changes made.  A CHR(1) delimited list
-                         of FieldName/NewValue pairs.
-    OUTPUT plReopen    - true if the row was new (either a copy or an add),
-                         so reopen RowObject query.
-    OUTPUT pcMessage   - error messages.
- 
-  Notes:       Run from submitRow.  Returns error message or "". 
-               If the row is not available in the RowObject temp-table
-               (this would be because the SmartDataObject was not the 
-               DataSource) this routine FINDs the database record(s) using 
-               the RowIdent key before applying the changes, unless it's a 
-               new row.
-------------------------------------------------------------------------------*/
-
-  DEFINE INPUT  PARAMETER pcRowIdent  AS CHARACTER NO-UNDO.
-  DEFINE INPUT  PARAMETER pcValueList AS CHARACTER NO-UNDO.
-  DEFINE OUTPUT PARAMETER plReopen    AS LOGICAL   NO-UNDO INIT no.
-  DEFINE OUTPUT PARAMETER pcMessage   AS CHARACTER NO-UNDO.
- 
-  DEFINE VARIABLE iField        AS INTEGER   NO-UNDO.
-  
-  /* If the "Data" (Temp-Table) query is empty, re-FIND the db rec(s),
-      unless it's a newly added row (no db rowids in RowIdent). */
-  IF (NOT ghDataQuery:IS-OPEN OR ghDataQuery:NUM-RESULTS = 0) AND
-      NUM-ENTRIES(pcRowIdent) > 1 AND ENTRY(2, pcRowIdent) NE "":U THEN
-  DO:
-    /* Now create a RowObject record and assign a RowNum to it. */
-    CREATE RowObject.
-    ASSIGN giRowNum = giRowNum + 1
-           RowObject.RowNum = giRowNum.
-    /* This creates a temp-table row from the db recs. */
-    RUN transferDBRow In TARGET-PROCEDURE(pcRowIdent, giRowNum). 
-  END.       /* END DO if no query */
-  
-  /* First check to see if there's already a saved pre-change version 
-     of the record; this would be so if the same row is changed 
-     multiple times before commit. */
-  DO TRANSACTION:
-    FIND RowObjUpd WHERE RowObjUpd.RowNum = RowObject.RowNum NO-ERROR.
-    
-    IF NOT AVAILABLE RowObjUpd THEN
-    DO:
-      CREATE RowObjUpd.
-      BUFFER-COPY RowObject TO RowObjUpd.
-    END.
-
-    /* If this isn't an add/copy then */
-    IF RowObject.RowMod NE "A":U AND RowObject.RowMod NE "C":U THEN 
-      RowObject.RowMod = "U":U. /*  flag it as update. NOTE: double-chk*/
-    ELSE 
-      plReopen = true.            /* Tell caller to reopen query. */
-  END.
-  
-  pcMessage = "".   /* "Success" output value. */
-
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-doEmptyModTable) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE doEmptyModTable Method-Library 
-PROCEDURE doEmptyModTable :
-/*------------------------------------------------------------------------------
-  Purpose:     Empties the temp-table (ModRowIdent) that keeps track of added
-               and modified records since the last openQuery().
- 
-  Parameters:  <none>
-  
-  Notes:       The ModRowIdent temp-table contains the rowIdents of records 
-               already on the client process and its purpose is to prevent 
-               sending duplicate records in upcoming batches.
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hModRowIdent AS HANDLE NO-UNDO.
-  hModRowIdent = BUFFER ModRowIdent:HANDLE.
-  hModRowIdent:EMPTY-TEMP-TABLE().
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-doEmptyTempTable) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE doEmptyTempTable Method-Library 
-PROCEDURE doEmptyTempTable :
-/*------------------------------------------------------------------------------
-  Purpose:     Empties the RowObject temp-table when the database query is 
-               being re-opened.
- 
-  Parameters:  <none>
-  
-  Notes:       Normally this is not necessary -- the EMPTY-TEMP-TABLE
-               method can be used, which is faster. However, this must
-               be used when a transaction is active, because EMPTY-TEMP-TABLE
-               will not work in that case.
-------------------------------------------------------------------------------*/
-
-  DO TRANSACTION:
-    FOR EACH RowObject:
-      DELETE RowObject.
-    END.
-  END.
-  RETURN.
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-doReturnUpd) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE doReturnUpd Method-Library 
-PROCEDURE doReturnUpd :
-/*------------------------------------------------------------------------------
-  Purpose:     RUN from Commit on the client side to get back the Update 
-               (RowObjUpd) table (from the server side) and undo any failed 
-               changes or return final versions of record values to the client.
- 
-  Parameters:  
-    INPUT cUndoIds - list of any RowObject Rownum whose changes were 
-                     rejected by a commit. Delimited list of the form:
-               "RowNumCHR(3)ADM-ERROR-STRING,RowNumCHR(3)ADM-ERROR-STRING,..."
-           - A '?' as RowNum means do NOT reposition, but stay on current record. 
-            
-  Notes:   - If the error string in cUndoIds is "ADM-FIELDS-CHANGED", then
-             another user has changed at least one field value.  In this 
-             case, RowObjUpd fields will contain the refreshed db values 
-             and we pass those values back to the client.
-           - If not autocommit we may also reposition here, but otherwise the caller 
-             both has the rowident and has more info. (submitCommit knows whether 
-             a reopen is required, deleteRow just uses fetchNext if required)       
-------------------------------------------------------------------------------*/
-  DEFINE INPUT PARAMETER pcUndoIds AS CHARACTER NO-UNDO.
-
-  DEFINE BUFFER bRowObjUpd FOR RowObjUpd.
- 
-  DEFINE VARIABLE lAutoCommit     AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE hDataQuery      AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE lQueryContainer AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE lBrowsed        AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE hMsgSource      AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE iCurrentRowNum  AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE iRowNum         AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE lCommitOk       AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE lQueryOpened    AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE rRowid          AS ROWID     NO-UNDO.
-
-  {get AutoCommit lAutoCommit}.
-  /* Find out whether this SDO is inside an SBO or other Query Object. 
-     If so, we will refer to that object to check for error messages. */
-  {get QueryContainer lQueryContainer}.  
-  
-  IF lQueryContainer THEN
-    {get ContainerSource hMsgSource}.
-  ELSE 
-    hMsgSource = THIS-PROCEDURE.
-
-  lCommitOk = NOT DYNAMIC-FUNCTION('anyMessage':U IN hMsgSource) AND (pcUndoIds = "":U).
-
-  /* Commit successful. */
-  IF lCommitOk THEN
-  DO:
-    /* Delete ALL RowObjUpd records, but before the delete, move updated versions of records
-       back into the RowObject table for the client to see (they may have new values from CREATE 
-       or WRITE triggers or other server side logic) "A" = Add, "C" = Copy, "U" = update. */
-    FOR EACH RowObjUpd: 
-      IF CAN-DO ("A,C,U":U,RowObjUpd.RowMod) THEN
-      DO:    
-        FIND RowObject WHERE RowObject.RowNum = RowObjUpd.RowNum.
-        BUFFER-COPY RowObjUpd TO RowObject 
-          ASSIGN RowObject.RowMod = "":U.
-      END. /* can-do('A,C,U',RowObjUpd.Rowmod)  */
-      /* Empty the update table. */
-      DELETE RowObjUpd.
-    END. /* for each RowObjUpd */
-  END.  /* Commit successful. */
-  ELSE DO:  /* Commit not successful. */
-    
-    /* If not autocommit we want to know where we shall position to after */    
-    IF NOT lAutoCommit THEN 
-    DO:
-      /* Keep track of where we are for no AutoCommit repositioning logic below */
-      iCurrentRowNum = IF AVAIL RowObject THEN RowObject.RowNum ELSE ?.  /* ? if not avail */ 
-      
-      /* We noramlly reposition to the firstr entry passed in, note that a 
-         value of '?' in the first RowNum entry  means that we must stay where 
-         we are */  
-      IF pcUndoIds <> '':U THEN
-        iRowNum = INTEGER(ENTRY(1, ENTRY(1, pcUndoIds, ",":U), CHR(3))).
-      
-      /* Do we need to restore deleted records? */
-      FIND FIRST RowObjUpd WHERE RowObjUpd.RowMod = "D":U NO-ERROR.
-      IF AVAIL RowObjUpd THEN 
-      DO:
-        /* If nowhere to reposition to yet, then position to the first undeleted row */ 
-        IF iRowNum = 0 THEN iRowNum = RowObjUpd.RowNum.
-        /* Restore deleted records */
-        RUN doUndoDelete IN TARGET-PROCEDURE. 
-        {fnarg openDataQuery '':U}.
-        lQueryOpened = TRUE.  /* Must reposition below  */ 
-      END.          
-    END. /* not autocommit  */
-
-    /* Go through each 'U' copy and use it to find the 'before-image' for delete
-       or refresh also copy the contents to rowObject if adm-fields-changed */
-    FOR EACH RowObjUpd WHERE RowObjUpd.RowMod = "U":U:      
-              
-      /* Refreshing the update record if required (changed data was reset on server).*/
-      IF INDEX(pcUndoIds,STRING(RowObjUpd.RowNum) + CHR(3) + "ADM-FIELDS-CHANGED":U) <> 0 THEN
-      DO:
-        FIND RowObject WHERE RowObject.RowNum = RowObjUpd.RowNum.
-        /* Copy the refreshed db field values to row object. */
-        BUFFER-COPY RowObjUpd EXCEPT RowMod TO RowObject.
-        
-        FIND bRowObjUpd WHERE bRowObjUpd.RowNum = RowObjUpd.RowNum
-                        AND   bRowObjUpd.RowMod = "":U. 
-          /* Copy the refreshed db field values to the pre-commit row.
-             Don't copy over the RowMod (that could change what the
-             record is used for). And don't copy over ChangedFields. Leave
-             that as the client set it. */
-        BUFFER-COPY RowObjUpd EXCEPT RowMod ChangedFields TO bRowObjUpd.
-      END. /* UndoIds matches RowNum and ADM-FIELDS-CHANGED */
-
-      /* The pre-commit update record (RowMod = "") contains the right values for
-         an undo, so we no longer need the commit copy (RowMod = "U") of
-         the update record. */
-      DELETE RowObjUpd.
-    END. /* for each RowObjUpd .. RowMod = "U" */            
-    
-    /* Failed AutoCommit Add, copy and Delete should also be removed.
-       (non autocommit need to be kept to be able to Undo.) */
-    IF lAutoCommit THEN
-    FOR EACH RowObjUpd WHERE CAN-DO('A,C,D':U,RowObjUpd.RowMod):
-      DELETE RowObjUpd.
-    END. /* FOR EACH */
-  END. /* Commit not successful */
-  
-  /* Deal with reopen, reposition and publish dataavailable for non auto commit */
-  IF NOT lAutoCommit THEN
-  DO:
-    {get QueryContainer lQueryContainer}.
-    {get DataQueryBrowsed lBrowsed}.
-
-    IF lCommitOk THEN
-    DO:
-      {set RowObjectState 'NoUpdates':U}.
-      /* If not Autocommit changes can be to more than one record, so if object
-         is being browsed then ensure all records in the browser are refreshed 
-         correctly.*/
-      IF lBrowsed THEN
-        PUBLISH 'refreshBrowse':U FROM TARGET-PROCEDURE.
-      /* The SBO does publish dataavailable, when all objects have been returned,
-         so don't do it here. */
-      IF NOT lQueryContainer THEN
-        PUBLISH "dataAvailable":U FROM TARGET-PROCEDURE ('SAME':U). 
-    END. /* CommitOk */
-    ELSE DO:
-      FIND RowObject WHERE RowObject.RowNum = IF iRowNum = ? OR iRowNum = 0 
-                                              THEN iCurrentRowNum 
-                                              ELSE iRowNum NO-ERROR.
-      /* just in case the above failed (RowNum 0 and no current rec maybe.. ) */
-      IF NOT AVAIL RowObject THEN
-        FIND FIRST RowObject NO-ERROR.
-      
-      /* If we have changed position we need to reposition the query also if
-         we are not browsed (fetchNext etc. assumes that the query is synched) */
-      IF lQueryOpened
-      OR AVAIL RowObject AND RowObject.RowNum <> iCurrentRowNum  THEN 
-      DO:
-        {get DataHandle hDataQuery}.
-        rRowId = ROWID(RowObject).
-        hDataQuery:REPOSITION-TO-ROWID(rRowid) NO-ERROR.
-        /* if not browsed, get-next to get the buffer */
-        IF (ERROR-STATUS:GET-MESSAGE(1) = '':U) AND NOT lBrowsed THEN 
-          hDataQuery:GET-NEXT.
-      END. 
-      
-      IF NOT CAN-FIND (FIRST RowObject WHERE RowObject.RowMod <> '':U) THEN
-        {set RowObjectState 'NoUpdates':U}.
-
-      RUN updateQueryPosition IN TARGET-PROCEDURE.         
-      
-      IF NOT lQueryContainer THEN
-        PUBLISH "dataAvailable":U FROM TARGET-PROCEDURE
-           /* not avail is overkill as there always is a rowObject in 
-              an undo, but.. */
-           (IF NOT AVAIL RowObject OR RowObject.RowNum <> iCurrentRowNum   
-            THEN 'DIFFERENT':U                  
-            ELSE 'SAME':U).
-    END.  /* not ok  */
-  END. /* not autocommit */
-  RETURN.
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-doUndoDelete) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE doUndoDelete Method-Library 
-PROCEDURE doUndoDelete :
-/*------------------------------------------------------------------------------
-  Purpose:     Restore deleted rows. 
-  Parameters:  <none>
- 
-  Notes:       This is separated because: 
-               - a failed commit should restore this, otherwise the user has to 
-                 undo to correct mistakes. 
-               - The regualar undo need to restore these.
-------------------------------------------------------------------------------*/  
-  DEFINE VARIABLE iFirstRowNum    AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE iLastRowNum     AS INTEGER   NO-UNDO.
-  
-  /* Start from last so the first delete is avail when we are finished */ 
-  FOR EACH RowObjUpd WHERE RowObjUpd.RowMod = "D":U BY RowNum DESCENDING:
-    /* Make sure this is in the database */
-    IF RowObjUpd.RowIdent <> '':U THEN
-    DO:
-      CREATE RowObject.
-      BUFFER-COPY RowObjUpd TO RowObject.
-    
-      RowObject.RowMod = "":U.
-    
-      /* Reset the first or last num values if the undeleted record falls outside
-         the current batch range. */
-      {get FirstRowNum iFirstRowNum}.
-      IF RowObjUpd.RowNum < iFirstRowNum THEN
-        {set FirstRowNum RowObjUpd.RowNum}.
-      {get LastRowNum iLastRowNum}.
-      IF RowObjUpd.RowNum >= iLastRowNum THEN 
-      DO:
-        {set LastRowNum RowObjUpd.RowNum}.
-        {set LastDbRowIdent RowObjUpd.RowIdent}.
-      END.  /* If RowNum >= LastRowNum */
-      DELETE RowObjUpd.
-    END. /* RowIdent <> '' */
-    ELSE /* This is a deleted new uncommitted record so just 
-            set the RowMod and deal with it below */ 
-      RowObjUpd.RowMod = "A":U.
-  END.
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-doUndoRow) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE doUndoRow Method-Library 
-PROCEDURE doUndoRow :
-/*------------------------------------------------------------------------------
-  Purpose:  Rollback using the before image RowObjUpd record    
-  Parameters:  
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE lBrowsed      AS LOGICAL   NO-UNDO.
-  
-  IF AVAIL RowObject THEN
-  DO:
-    FIND RowObjUpd WHERE RowObjUpd.RowNum = RowObject.RowNum
-                   AND   RowObjUpd.RowMod = "":U NO-ERROR.
-    
-    IF AVAILABLE (RowObjUpd) THEN /* may not be there if never saved */
-    DO:                               
-      BUFFER-COPY RowObjUpd TO RowObject.
-      DELETE RowObjUpd. 
-      RETURN.
-    END.   /* END DO IF AVAILABLE */
-
-  END. 
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-doUndoTrans) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE doUndoTrans Method-Library 
-PROCEDURE doUndoTrans :
-/*------------------------------------------------------------------------------
-  Purpose:     Does the buffer delete and copy operations to restore the
-               RowObject temp-table when an Undo occurs.  New RowObject records
-               (added or copied) are deleted, modified records are restored to 
-               their original states and deleted records are recreated.  The
-               RowObjUpd table is emptied.
-
-  Parameters:  <none>
- 
-  Notes:       Invoked from the event procedure undoTransaction.
-               doUndoTrans is run on the client side.
-------------------------------------------------------------------------------*/
-   DEFINE VARIABLE iLastRowNum     AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE lLastRowInBatch AS LOGICAL   NO-UNDO.
-  /* Restore RowObject to its original state. To do this:
-    delete any added/copied rows (RowObject.RowMod = "A"/"C"); 
-     copy any updated rows (RowObject.RowMod = "U") back from RowObjUpd;
-     and restore any deleted rows (RowObjUpd.RowMod = "D"). */
-  
-  RUN doUndoDelete IN TARGET-PROCEDURE. 
-
-  /* Restore RowObject to its original state. To do this:
-     delete any added/copied rows (RowObject.RowMod = "A"/"C"); 
-     copy any updated rows (RowObject.RowMod = "U") back from RowObjUpd;
-     and restore any deleted rows (RowObjUpd.RowMod = "D"). */
-  {get LastRowNum iLastRowNum}.
-  FOR EACH RowObject WHERE RowObject.RowMod = "A":U OR
-                           RowObject.RowMod = "C":U:         
-    /* If a new record is last, we know that we have the original new 
-       record in the batch, because that's the requirement for a new record 
-       to be marked as last. */
-    IF RowObject.RowNum = iLastRowNum THEN
-      lLastRowInBatch = TRUE.
-    DELETE RowObject.
-  END.
-  
-  FOR EACH RowObject WHERE RowObject.RowMod = "U":U:
-    FIND RowObjUpd WHERE RowObjUpd.RowNum = RowObject.RowNum AND
-                         RowObjUpd.RowMod = "":U.  /* before copy */
-    BUFFER-COPY RowObjUpd TO RowObject.
-  END.
-  
-  /* We have undone an Added record that was last and know that the real last
-     is in the batch */  
-  IF lLastRowInBatch THEN
-  DO:
-    FIND LAST RowObject NO-ERROR.
-    IF AVAIL RowObject THEN
-    DO:
-      {set LastRowNum RowObject.RowNum}.
-      {set LastDbRowIdent '':U}. /* We don't need this if we have lastRownum*/
-    END.
-  END. /* lLastrowInbatch */
-
-  /* For repositioning, locate the first Update or Delete record thats being
-     undone and position there. If there aren't any, then we are undoing an Add.
-     In that case, position to the first record in the batch. */
-  FIND FIRST RowObjUpd WHERE RowObjUpd.RowMod = "":U OR
-                             RowObjUpd.RowMod = "D":U
-                       USE-INDEX RowNum NO-ERROR.
-  
-  IF AVAILABLE RowObjUpd THEN
-    FIND RowObject WHERE RowObject.RowNum = RowObjUpd.RowNum NO-ERROR.
-  ELSE
-    FIND FIRST RowObject NO-ERROR.
-
-  IF NOT AVAILABLE RowObject THEN
-  DO:
-    {set FirstRowNum ?}.
-    {set LastRowNum ?}.
-  END.
-
-  RUN updateQueryPosition IN TARGET-PROCEDURE.
-    
-  EMPTY TEMP-TABLE RowObjUpd.
-  
-  RETURN.
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-doUndoUpdate) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE doUndoUpdate Method-Library 
-PROCEDURE doUndoUpdate :
-/*------------------------------------------------------------------------------
-  Purpose:     Supports a cancelRow by copying the current RowObjUpd record back 
-               to the current RowObject record. 
-  Parameters:  
-  Notes:       From 9.1C the rollback of updates is really no longer needed by 
-               the visual objects, the only case where it would happen was 
-               with AutoCommit off, but it would roll back ALL changes, which
-               was quite confusing if changes had been done in several steps. 
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hDataQuery    AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE rRowObject    AS ROWID     NO-UNDO.
-  DEFINE VARIABLE lBrowsed      AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE lNewMode      AS LOGICAL   NO-UNDO.
-
-  IF AVAIL RowObject THEN
-  DO:
-    FIND RowObjUpd WHERE RowObjUpd.RowNum = RowObject.RowNum
-                   AND   RowObjUpd.RowMod = "":U NO-ERROR.
-    
-    IF AVAILABLE (RowObjUpd) THEN /* may not be there if never saved */
-    DO:                               
-      BUFFER-COPY RowObjUpd TO RowObject.
-      DELETE RowObjUpd. 
-      PUBLISH 'dataAvailable':U FROM TARGET-PROCEDURE ("SAME":U). 
-      RETURN.
-    END.   /* END DO IF AVAILABLE */
-    
-    /* Check new mode to avoid deleting new uncommitted records in updatemode*/
-    {get NewMode lNewMode}.
-    IF lNewMode AND RowObject.RowMod = "A":U OR RowObject.RowMod = "C":U THEN
-    DO:
-      /* If a save was attempted, clean out the Update table. */
-      FIND RowObjUpd WHERE RowObjUpd.RowNum = RowObject.RowNum NO-ERROR.
-      IF AVAILABLE (RowObjUpd) THEN
-        DELETE RowObjUpd.
-      
-      DELETE RowObject.  
-      /* Tell a browse updateSource to get rid of the insert-row */
-      PUBLISH 'cancelNew':U FROM TARGET-PROCEDURE.
-      /* Re-establish the current row */
-      {get DataHandle hDataQuery}.
-      {get CurrentRowid rRowObject}.
-
-      IF hDataQuery:IS-OPEN AND rRowObject <> ? THEN 
-      DO:
-        hDataQuery:REPOSITION-TO-ROWID(rRowObject) NO-ERROR.
-        /* Next needed if not browser (Data-Target) */
-        IF NOT AVAIL RowObject AND ERROR-STATUS:GET-MESSAGE(1) = '':U THEN  
-          hDataQuery:GET-NEXT() NO-ERROR.
-      END.  /* IF the query is open */
-    END. /* DO IF "A"/"C" */
-  END. /* if avail rowobject */
-
-  RETURN.
-  
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-prepareErrorsForReturn) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE prepareErrorsForReturn Method-Library 
-PROCEDURE prepareErrorsForReturn PRIVATE :
-/*------------------------------------------------------------------------------
-  Purpose:  This appends the RETURN-VALUE from the user-defined transaction
-            validation procedure or other update-related error to the list
-            of any errors already in the log, and formats this string to
-            prepare for returning it to the client.
-    Notes:  invoked internally from serverCommit.
-------------------------------------------------------------------------------*/
- DEFINE INPUT        PARAMETER pcReturnValue AS CHARACTER NO-UNDO.
- DEFINE INPUT        PARAMETER pcASDivision  AS CHARACTER NO-UNDO.
- DEFINE INPUT-OUTPUT PARAMETER pcMessages    AS CHARACTER NO-UNDO.  
- 
-  IF pcReturnValue NE "":U THEN
-    RUN addMessage IN TARGET-PROCEDURE (pcReturnValue, ?, ?).
-  IF pcASDivision = 'Server':U THEN
-     pcMessages = LEFT-TRIM(pcMessages + CHR(3) + fetchMessages(),CHR(3)).
-  
-  RETURN.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1254,14 +272,15 @@ PROCEDURE pushTableAndValidate :
                run from SBO.
   Parameters:  INPUT pcValType AS CHARACTER -- "Pre" or "Post",
                INPUT-OUTPUT TABLE FOR RowObjUpd.
-  Notes:       
+  Notes:     - This is an override of the dynamic version in data.p and is 
+               conditionally excluded if there is no RowObject TT include.     
 ------------------------------------------------------------------------------*/
-   DEFINE INPUT PARAMETER pcValType AS CHAR   NO-UNDO.
+   DEFINE INPUT        PARAMETER pcValType AS CHAR   NO-UNDO.
    DEFINE INPUT-OUTPUT PARAMETER TABLE FOR RowObjUpd.
-
-   RUN VALUE(pcValType + "TransactionValidate":U) IN THIS-PROCEDURE NO-ERROR.
-
+   
+   RUN bufferValidate IN TARGET-PROCEDURE (INPUT pcValType).
    RETURN RETURN-VALUE.   /* Return whatever we got from the val. proc. */
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1276,7 +295,8 @@ PROCEDURE remoteCommit :
 /*------------------------------------------------------------------------------
   Purpose:     Procedure executed on a server side SmartDataObject.   
                This is the equivalent of serverCommit, but can be run in 
-               and not intialized object as context is passed in 
+               a not intialized object as it has input-ouput parameters for \
+               context.  
   Parameters: 
    INPUT-OUTPUT  pcContext  - in Contextfrom client 
                               out new context
@@ -1289,29 +309,29 @@ PROCEDURE remoteCommit :
                        undone as the result of errors in the form of:
                "RowNumCHR(3)ADM-ERROR-STRING,RowNumCHR(3)ADM-ERROR-STRING,..."
 
- Notes:        Returns false if any update errors are detected.
-               If another user has modified the database records since the 
+  Notes:       If another user has modified the database records since the 
                original was read, the new database values are copied into the 
                RowObjUpd record and returned to Commit so the UI object can 
                display them.
-             - This is currently in data.i because commitRow has static code              
-------------------------------------------------------------------------------*/
+             - This is an override of the dynamic version in data.p and is 
+               conditionally excluded if there is no RowObject TT include.     
+-----------------------------------------------------------------------------*/
   DEFINE INPUT-OUTPUT  PARAMETER pcContext AS CHARACTER  NO-UNDO.
-
   DEFINE INPUT-OUTPUT  PARAMETER TABLE FOR RowObjUpd.
 
   DEFINE OUTPUT PARAMETER pcMessages AS CHARACTER  NO-UNDO.
   DEFINE OUTPUT PARAMETER pcUndoIds  AS CHARACTER  NO-UNDO.
                           
-  RUN setContextAndInitialize IN TARGET-PROCEDURE(pcContext).
+  RUN setContextAndInitialize IN TARGET-PROCEDURE (pcContext).
 
   RUN bufferCommit IN TARGET-PROCEDURE
                  (OUTPUT pcMessages,
                   OUTPUT pcUndoIds).
                   
   pcContext = {fn obtainContextForClient}.
-
+  
   RETURN.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1345,16 +365,16 @@ PROCEDURE serverCommit :
                original was read, the new database values are copied into the 
                RowObjUpd record and returned to Commit so the UI object can 
                display them.
-             - This is currently in data.i because commitRow has static code   
+             - This is an override of the dynamic version in data.p and is 
+               conditionally excluded if there is no RowObject TT include.     
 ------------------------------------------------------------------------------*/
   DEFINE INPUT-OUTPUT  PARAMETER TABLE FOR RowObjUpd.
-
   DEFINE OUTPUT PARAMETER pcMessages AS CHARACTER  NO-UNDO.
   DEFINE OUTPUT PARAMETER pcUndoIds  AS CHARACTER  NO-UNDO.
-                          
+  
   RUN bufferCommit IN TARGET-PROCEDURE (OUTPUT pcMessages,
                                         OUTPUT pcUndoIds).
-
+  
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1364,121 +384,22 @@ END PROCEDURE.
 
 /* ************************  Function Implementations ***************** */
 
-&IF DEFINED(EXCLUDE-canFindModRow) = 0 &THEN
+&IF DEFINED(EXCLUDE-getRowObjUpdStatic) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION canFindModRow Method-Library 
-FUNCTION canFindModRow RETURNS LOGICAL
-  ( pcRowIdent AS CHARACTER ) :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getRowObjUpdStatic Method-Library 
+FUNCTION getRowObjUpdStatic RETURNS HANDLE
+  ( /* parameter-definitions */ ) :
 /*------------------------------------------------------------------------------
-  Purpose:     Looks up a rowIdent value in the ModRowIdent temp-table and 
-               returns TRUE if it is found or false if is isn't.
-  
-  Parameters:  pcRowIdent - The RowIdent value to look up.
+  Purpose: returns the static update buffer handle   
+    Notes: Defined as private since it currently is used (in desperation) when 
+           default-buffer-handle is unknown in setRowObjUpdTable.
+           This problem occurs when an SBO runs locally; as 
+           serverCommitTransaction( input-output table-handle) makes the 
+           default-buffer-handle unknown. Maybe a side-effect of the fact that
+           the buffer is static on the server? 
 ------------------------------------------------------------------------------*/
-RETURN CAN-FIND(FIRST ModRowIdent WHERE 
-                                  ModRowIdent.RowIdentIdx = SUBSTRING(pcRowIdent, 1, xiRocketIndexLimit)
-                                  AND
-                                  ModRowIdent.RowIdent = pcRowIdent).
 
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-commit) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION commit Method-Library 
-FUNCTION commit RETURNS LOGICAL
-  ( ) :
-/*------------------------------------------------------------------------------
-  Purpose:  Client-side part of the Commit function. Copies changed records
-            into an update temp-table and sends it to the serverCommit (the
-            server-side commit procedure.)
-    
-  Notes:    The code in submitRow (which calls commitTransaction, which calls
-            Commit) has already created a pre-change copy of each changed 
-            record in the update temp-table.
-            This function invokes procedures in the SmartDataObject itself to 
-            manipulate the RowObject Temp-Tables.
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE iRowNum         AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE iCnt            AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE cUndoIds        AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE hAppServer      AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE cMessages       AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cASDivision     AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE lBrowsed        AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE iFirstUndoId    AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE iUndoId         AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE lAsBound        AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE hAppservice     AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cServerFileName AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cOperatingMode  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cContext        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cBindScope      AS CHARACTER  NO-UNDO.
-  /* Transfer modified and added rows to the update table. */
-  RUN doBuildUpd. 
-  
-  /* If we're running across an AppServer connection, run serverCommit
-     in that other object. Otherwise just run it in ourself. */
-  {get ServerOperatingMode cOperatingMode}.
-  {get ASDivision cASDivision}.
-  IF cASDivision = 'Client':U THEN
-  DO:
-    {get AsBound lAsbound}.  
-    {get BindScope cBindScope}.
-    
-    IF lAsBound 
-    OR CAN-DO('state-reset,state-aware':U,cOperatingMode) 
-    OR CAN-DO('Strong,this':U,cBindScope) THEN
-      {get ASHandle hAppServer}.
-    ELSE DO:
-      RUN connectServer IN TARGET-PROCEDURE (OUTPUT hAppService). 
-      IF hAppService  = ? THEN
-         RETURN FALSE.
-    END.
-    cContext = {fn obtainContextForServer}.
-  END. /* client */
-  
-  IF VALID-HANDLE(hAppserver) THEN
-  DO:
-    RUN remoteCommit IN hAppServer
-      (INPUT-OUTPUT cContext,
-       INPUT-OUTPUT TABLE RowObjUpd, 
-       OUTPUT cMessages, 
-       OUTPUT cUndoIds).  
-    {fnarg applyContextFromServer cContext}.
-    /* unbind if stateless */ 
-    RUN endClientDataRequest IN TARGET-PROCEDURE.
-  END.
-  ELSE IF VALID-HANDLE(hAppService) THEN
-  DO:
-    {get ServerFileName cServerFileName}.
-    RUN adm2/commit.p ON hAppService
-        (cServerFileName,
-         INPUT-OUTPUT cContext,
-         INPUT-OUTPUT TABLE RowObjUpd, 
-         OUTPUT cMessages, 
-         OUTPUT cUndoIds).
-    {fnarg applyContextFromServer cContext}.
-  END.
-  ELSE DO:
-    RUN bufferCommit IN TARGET-PROCEDURE
-        (OUTPUT cMessages, 
-         OUTPUT cUndoIds).
-  END.
-    /* If we're running with a separate AppServer DataObject, then we must
-     append any error messages returned to the message log. Otherwise they
-     are already there. */
-  IF cASDivision = 'Client':U AND cMessages NE "" THEN
-    RUN addMessage IN TARGET-PROCEDURE (cMessages, ?, ?).
-  
-  /* Return any rows to the client that have been changed by the server. */
-  RUN doReturnUpd (INPUT cUndoIds).
-  
-  RETURN NOT anyMessage().  /* return success if no error msgs. */
+  RETURN BUFFER RowObjUpd:HANDLE.
 
 END FUNCTION.
 

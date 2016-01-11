@@ -47,6 +47,7 @@ called from:
     
 History:
     hutegger    94/07/29    creation
+    mcmann      05/21/02    Added logic for user to select outputting to file instead of screen
     
 --------------------------------------------------------------------*/        
 /*h-*/
@@ -76,11 +77,12 @@ form
   p_name    label "Object &Name"                 colon 14  skip({&VM_WIDG})
   p_type    label "Object &Type"                 colon 14  skip({&VM_WIDG})
   p_owner   label "Object &Owner"                colon 14  skip({&VM_WIDG})
-  p_vrfy    label "&Verify only objects that currently exist in the schema holder"
-            view-as toggle-box
+  SPACE (1) p_vrfy    label "&Verify only objects that currently exist in the schema holder"
+            view-as TOGGLE-BOX skip({&VM_WIDG})
+  SPACE (1) p_outf    LABEL "Output differences to file" VIEW-AS TOGGLE-BOX 
   {prodict/user/userbtns.i}
  with frame frm_link
-  centered row 5 attr-space
+  centered row 3 attr-space
   overlay side-labels
   view-as dialog-box default-button btn_ok cancel-button btn_cancel
   TITLE " Pre-Selection Criteria For Schema Pull ".
@@ -91,11 +93,12 @@ form
 /*  p_type    label "Object &Type"  colon 14   skip({&VM_WIDG})*/
   p_owner   label "Object &Owner"  colon 14   skip({&VM_WIDG})
   p_qual    label "&Qualifier  "   colon 14   skip({&VM_WIDG})
-  p_vrfy    label "&Verify only objects that currently exist in the schema holder"
-            view-as toggle-box
+  SPACE (1) p_vrfy    label "&Verify only objects that currently exist in the schema holder"
+            view-as TOGGLE-BOX skip({&VM_WIDG})
+  SPACE (1) p_outf    LABEL "Output differences to file" VIEW-AS TOGGLE-BOX 
   {prodict/user/userbtns.i}
  with frame frm_ntoq
-  centered row 5 attr-space
+  centered row 3 attr-space
   overlay side-labels
   view-as dialog-box default-button btn_ok cancel-button btn_cancel
   TITLE " Pre-Selection Criteria For Schema Pull ".
@@ -105,11 +108,12 @@ form
   p_name    label "Object &Name"   colon 14   skip({&VM_WIDG})
   p_type    label "Object &Type"   colon 14   skip({&VM_WIDG})
   p_owner   label "Object &Owner"  colon 14   skip({&VM_WIDG})
-  p_vrfy    label "&Verify only objects that currently exist in the schema holder"
-            view-as toggle-box
+  SPACE (1) p_vrfy    label "&Verify only objects that currently exist in the schema holder"
+            view-as TOGGLE-BOX skip({&VM_WIDG})
+  SPACE (1) p_outf    LABEL "Output differences to file" VIEW-AS TOGGLE-BOX 
   {prodict/user/userbtns.i}
  with frame frm_nto
-  centered row 5 attr-space
+  centered row 3 attr-space
   overlay side-labels
   view-as dialog-box default-button btn_ok cancel-button btn_cancel
   TITLE " Pre-Selection Criteria For Schema Pull ".
@@ -150,8 +154,7 @@ on GO of frame frm_ntoq do:
     p_name  = p_name:screen-value  in frame frm_ntoq
     p_owner = p_owner:screen-value in frame frm_ntoq
     p_qual  = p_qual:screen-value  in frame frm_ntoq
-/*    p_type  = p_type:screen-value  in frame frm_ntoq*/
-    .
+   .
   end.
   
 on GO of frame frm_nto do:
@@ -185,9 +188,9 @@ do on ENDKEY undo,leave:
   if p_frame = "frm_link":U
    then do:  /* frame frm_link */
     
-    if not l_verify
-     then assign
-      p_vrfy:hidden in frame frm_link = TRUE.
+    if not l_verify then 
+      ASSIGN p_outf:hidden in frame frm_link = TRUE
+             p_vrfy:hidden in frame frm_link = TRUE.
 
     {adecomm/okrun.i  
       &FRAME  = "FRAME frm_link" 
@@ -213,6 +216,7 @@ do on ENDKEY undo,leave:
       p_type 
       p_owner 
       p_vrfy when l_verify
+      p_outf WHEN l_verify
       btn_OK 
       btn_Cancel
       {&HLP_BTN_NAME}
@@ -226,9 +230,9 @@ do on ENDKEY undo,leave:
   else if p_frame = "frm_ntoq":U
    then do:  /* frame frm_ntoq */
  
-    if not l_verify
-     then assign
-      p_vrfy:hidden in frame frm_ntoq = TRUE.
+    if not l_verify then 
+      ASSIGN p_outf:HIDDEN IN FRAME frm_ntoq = TRUE
+             p_vrfy:hidden in frame frm_ntoq = TRUE.
 
     {adecomm/okrun.i  
       &FRAME  = "FRAME frm_ntoq" 
@@ -240,10 +244,10 @@ do on ENDKEY undo,leave:
 
     update
       p_name
-/*      p_type */
       p_owner
       p_qual
       p_vrfy when l_verify
+      p_outf WHEN l_verify
       btn_OK 
       btn_Cancel
       {&HLP_BTN_NAME}
@@ -257,9 +261,9 @@ do on ENDKEY undo,leave:
   else if p_frame = "frm_nto":U
    then do:  /* frame frm_nto */
  
-    if not l_verify
-     then assign
-      p_vrfy:hidden in frame frm_nto = TRUE.
+    if not l_verify then 
+      ASSIGN p_outf:HIDDEN IN FRAME frm_nto = TRUE
+             p_vrfy:hidden in frame frm_nto = TRUE.
 
     {adecomm/okrun.i  
       &FRAME  = "FRAME frm_nto" 
@@ -274,6 +278,7 @@ do on ENDKEY undo,leave:
       p_type
       p_owner
       p_vrfy when l_verify
+      p_outf WHEN l_verify
       btn_OK 
       btn_Cancel
       {&HLP_BTN_NAME}
@@ -285,7 +290,7 @@ do on ENDKEY undo,leave:
     end.     /* frame frm_nto */
     
   end.  /* do on endkey undo, leave */
-  
+ 
 RETURN if canned then "cancel":U else "ok":U.
   
 /*------------------------------------------------------------------*/        

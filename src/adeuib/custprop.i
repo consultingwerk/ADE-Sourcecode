@@ -47,7 +47,7 @@
 
    Author: Bill Wodd 
 
-   Date Generated: 10/05/00
+   Date Generated: 07/03/02
 
    Note: This procedure is generated via the Property Sheet Generator and 
          the abAttribute table of the ab database. 
@@ -75,6 +75,7 @@
   WHEN "CONTEXT-HELP-ID":U THEN     _U._CONTEXT-HELP-ID = iValue.
   WHEN "Control-Box":U THEN         _C._CONTROL-BOX = lValue.
   WHEN "CONVERT-3D-COLORS":U THEN   _L._CONVERT-3D-COLORS = lValue.
+  WHEN "CUSTOM-SUPER-PROC":U THEN   _C._CUSTOM-SUPER-PROC = cValue.
   WHEN "DATA-TYPE":U THEN           
   DO: 
     IF CAN-DO("Character,Date,Decimal,Logical,Integer":U, cValue) 
@@ -87,6 +88,7 @@
      IF lValue THEN parent_C._default-btn-recid = RECID(_U).
   END.
   WHEN "DEFAULT-STYLE":U THEN       _F._DEFAULT = lValue.
+  WHEN "DELIMITER":U THEN           _F._DELIMITER = cValue.
   WHEN "DISABLE-AUTO-ZAP":U THEN    _F._DISABLE-AUTO-ZAP = lValue.
   WHEN "DISPLAY":U THEN             _U._DISPLAY = lValue.
   WHEN "DOWN":U THEN                _C._DOWN = lValue.
@@ -95,10 +97,15 @@
   WHEN "EDGE-PIXELS":U THEN         _L._EDGE-PIXELS = iValue.
   WHEN "ENABLE":U THEN              _U._ENABLE = lValue.
   WHEN "EXPAND":U THEN              _F._EXPAND = lValue.
-  WHEN "EXPANDABLE":U THEN          _C._EXPANDABLE = lValue.
   WHEN "FGCOLOR":U THEN             _L._FGCOLOR = iValue.
   WHEN "FILLED":U THEN              _L._FILLED = lValue.
+  WHEN "FIT-LAST-COLUMN":U THEN     
+  DO:
+   _C._FIT-LAST-COLUMN = lvalue.      
+   IF _C._FIT-LAST-COLUMN  THEN _C._NO-EMPTY-SPACE= FALSE.
+  END.
   WHEN "FLAT":U THEN                _F._FLAT = lValue.
+  WHEN "FOLDER-WIN-TO-LAUNCH":U THEN _C._FOLDER-WINDOW-TO-LAUNCH = cValue.
   WHEN "FONT":U THEN                _L._FONT = iValue.
   WHEN "FORMAT":U THEN              _F._FORMAT = cValue.
   WHEN "FREQUENCY":U THEN           _F._FREQUENCY = iValue.
@@ -162,6 +169,11 @@
     IF _L._NO-BOX THEN IF AVAILABLE (_C) THEN _C._TITLE = NO.
   END.
   WHEN "NO-CURRENT-VALUE":U THEN    _F._NO-CURRENT-VALUE = lValue.
+  WHEN "NO-EMPTY-SPACE":U THEN      
+  DO:
+   _C._NO-EMPTY-SPACE = lvalue.      
+   IF _C._NO-EMPTY-SPACE  THEN _C._FIT-LAST-COLUMN= FALSE.
+  END.
   WHEN "NO-FOCUS":U THEN            _L._NO-FOCUS = lValue.
   WHEN "NO-HELP":U THEN             _C._NO-HELP = lValue.
   WHEN "NO-HIDE":U THEN             _C._HIDE = NOT lValue.
@@ -194,6 +206,11 @@
   WHEN "SEPARATOR-FGCOLOR":U THEN   _L._SEPARATOR-FGCOLOR = iValue.
   WHEN "SEPARATORS":U THEN          _L._SEPARATORS = lValue.
   WHEN "SHOW-IN-TASKBAR":U THEN     _C._SHOW-IN-TASKBAR = lValue.
+  WHEN "SHOW-POPUP":U THEN
+       _U._SHOW-POPUP =  IF ( AVAILABLE _F and  can-do("DATE,DECIMAL,INTEGER":u, _F._DATA-TYPE) and lparentIsDynview )
+                              OR isDynview
+                         THEN lvalue
+                         ELSE false.
   WHEN "SIDE-LABELS":U THEN         _C._SIDE-LABELS = lValue.
   WHEN "SIZE-TO-FIT":U THEN         _C._size-to-fit = lValue.
   WHEN "SMALL-TITLE":U THEN         _C._SMALL-TITLE = lValue.
@@ -229,4 +246,5 @@
   WHEN "WIDTH":U THEN               _L._WIDTH = dValue.
   WHEN "WIDTH-P":U THEN             _L._WIDTH = DECIMAL(iValue / SESSION:PIXELS-PER-COLUMN /
                     _L._COL-MULT).
+  WHEN "WINDOW-TITLE-FIELD":U THEN  _C._WINDOW-TITLE-FIELD = cValue.
   WHEN "WORD-WRAP":U THEN           _F._WORD-WRAP = lValue.

@@ -23,11 +23,6 @@
 *********************************************************************/
 TRIGGER PROCEDURE FOR REPLICATION-CREATE OF %TableName.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "%subjectareaprop("DBlogical")"
-                      &TABLE-NAME   = "%TableName"
-                      &TRIGGER-TYPE = "REPLICATION-CREATE"}
-
 {af/sup/afreplicat.i  &TABLE-NAME   = "%TableName"
                       &TABLE-FLA    = "%EntityProp(TableFLA)"
                       &TABLE-PK     = "%PK(",")"

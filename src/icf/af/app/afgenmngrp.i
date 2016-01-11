@@ -123,7 +123,12 @@ af/cod/aftemwizpw.w
 
   Update Notes: Fix for issue #2626 - Max Value ignored for multi-transaction sequences
 
----------------------------------------------------------------------------*/
+  (v:010013)    Task:           0   UserRef:    
+                Date:   05/03/2002  Author:     Mark Davies (MIP)
+
+  Update Notes: Added function called getUserSourceLanguage to use with menu translations
+
+--------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
 
@@ -141,6 +146,9 @@ af/cod/aftemwizpw.w
 DEFINE STREAM sInput.
 
 DEFINE TEMP-TABLE ttUser                NO-UNDO LIKE gsm_user.
+
+{ry/app/ryobjretri.i}
+{dynlaunch.i &Define-Only = YES}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -165,11 +173,41 @@ FUNCTION convertTimeToInteger RETURNS INTEGER
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD createFolder Include 
+FUNCTION createFolder RETURNS LOGICAL
+    ( INPUT pcFolderName       AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD detectFileType Include 
+FUNCTION detectFileType RETURNS CHARACTER
+    ( INPUT pcFileName AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD formatPersonDetails Include 
 FUNCTION formatPersonDetails RETURNS CHARACTER
   (pcLastName  AS CHARACTER,
    pcFirstName AS CHARACTER,
    pcInitials  AS CHARACTER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getEntityCacheBuffer Include 
+FUNCTION getEntityCacheBuffer RETURNS HANDLE
+  ( pcEntity    AS CHARACTER,
+    pcTableName AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getEntityFieldCacheBuffer Include 
+FUNCTION getEntityFieldCacheBuffer RETURNS HANDLE
+  ( pcEntity    AS CHARACTER,
+    pcTableName AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -279,6 +317,20 @@ FUNCTION getUpdatableTableInfo RETURNS CHARACTER
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getUpdatableTableInfoObj Include 
+FUNCTION getUpdatableTableInfoObj RETURNS CHARACTER
+  (INPUT phDataSource AS WIDGET-HANDLE) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD haveOutstandingUpdates Include 
+FUNCTION haveOutstandingUpdates RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD listLookup Include 
 FUNCTION listLookup RETURNS CHARACTER
   ( INPUT pcElement   AS CHARACTER,
@@ -295,6 +347,17 @@ FUNCTION setPropertyValueInList RETURNS CHARACTER
    pcPropertyName   AS CHARACTER,
    pcPropertyValue  AS CHARACTER,
    pcAction         AS CHARACTER) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setWidgetAttribute Include 
+FUNCTION setWidgetAttribute RETURNS LOGICAL
+    ( INPUT phWidget            AS HANDLE,
+      INPUT pcAttributeName     AS CHARACTER,
+      INPUT pcAttributeValue    AS CHARACTER,
+      INPUT pcAttributeDataType AS CHARACTER,
+      INPUT phExternalCall      AS HANDLE)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -353,16 +416,232 @@ PROCEDURE gsgetenmnp:
     /* Get the cache of mnemonic table records from the server */
     {af/app/gsgetenmnp.p}
 END PROCEDURE.
+PROCEDURE gsgetgsced:
+    /* Get the cache of entity display field table records from the server */
+    {af/app/gsgetgsced.p}
+END PROCEDURE.
 &ENDIF
-
-/* Populate the Entity Mnemonic cache on the server and client side */
-RUN refreshMnemonicsCache.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
 
 /* **********************  Internal Procedures  *********************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE cacheEntity Include 
+PROCEDURE cacheEntity :
+/*------------------------------------------------------------------------------
+  Purpose:     Caches the entity passed in.  The procedure will:
+               1) Retrieve the entity object and instances from the rep manager
+               2) Populate the ttEntityMnemonic table from the rep man cache.
+               3) Populate the ttDataField table from the rep man cache.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT  PARAMETER pcEntityToCache AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER pcTableToCache  AS CHARACTER  NO-UNDO.
+
+/* Store how the fields on ttEntityDisplayField map to the attributes against the datafield in the repository */
+DEFINE VARIABLE cRepDataFieldAttr  AS CHARACTER  NO-UNDO
+    INITIAL "name,,label,ColumnLabel,format,tableName":U.
+DEFINE VARIABLE cTTDispFieldFields AS CHARACTER  NO-UNDO
+    INITIAL "display_field_name,display_field_order,display_field_label,display_field_column_label,display_field_format,entity_mnemonic":U.
+
+DEFINE VARIABLE dRecordIdentifier   AS DECIMAL   NO-UNDO.
+DEFINE VARIABLE hObjectBuffer       AS HANDLE    NO-UNDO.
+DEFINE VARIABLE ghAttrBuffer        AS HANDLE    NO-UNDO.
+DEFINE VARIABLE hField              AS HANDLE    NO-UNDO.
+DEFINE VARIABLE iFieldCnt           AS INTEGER   NO-UNDO.
+DEFINE VARIABLE hObjectTable        AS HANDLE    NO-UNDO.
+DEFINE VARIABLE cSessionResultCodes AS CHARACTER NO-UNDO.
+DEFINE VARIABLE hDisplayFieldBuffer AS HANDLE    NO-UNDO.
+DEFINE VARIABLE hAttrBuffer         AS HANDLE    NO-UNDO.
+DEFINE VARIABLE iCnt                AS INTEGER   NO-UNDO.
+DEFINE VARIABLE cFieldName          AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cFieldValue         AS CHARACTER NO-UNDO.
+
+DEFINE BUFFER dataField_object FOR cache_object.
+DEFINE BUFFER container_object FOR cache_object.
+
+/* Already cached? */
+IF CAN-FIND(FIRST ttEntityMnemonic
+            WHERE ttEntityMnemonic.entity_mnemonic = pcEntityToCache) 
+OR CAN-FIND(FIRST ttEntityMnemonic
+            WHERE ttEntityMnemonic.entity_mnemonic_description = pcTableToCache) THEN
+    RETURN.
+
+/* First, we always want to work with the tablename.  If the user has only passed in an entity FLA, map it to a tablename */
+IF pcTableToCache = "":U OR pcTableToCache = ? THEN
+    FIND ttEntityMnemonic WHERE ttEntityMnemonic.entity_mnemonic = pcEntityToCache NO-ERROR.
+ELSE
+    FIND ttEntityMnemonic WHERE ttEntityMnemonic.entity_mnemonic_description = pcTableToCache NO-ERROR.
+
+IF NOT AVAILABLE ttEntityMnemonic
+THEN DO:
+    RUN cacheEntityMapping IN TARGET-PROCEDURE (INPUT  pcEntityToCache,
+                                                INPUT  pcTableToCache, /* Table to cache */
+                                                OUTPUT TABLE ttEntityMnemonic APPEND )  NO-ERROR.
+    IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR RETURN-VALUE.
+
+    IF pcTableToCache = "":U OR pcTableToCache = ? THEN
+        FIND ttEntityMnemonic 
+             WHERE ttEntityMnemonic.entity_mnemonic = pcEntityToCache
+             NO-ERROR.
+    ELSE
+        FIND ttEntityMnemonic
+             WHERE ttEntityMnemonic.entity_mnemonic_description = pcTableToCache
+             NO-ERROR.
+END.    /* n/a entity */
+
+IF AVAILABLE ttEntityMnemonic THEN
+    ASSIGN pcEntityToCache = ttEntityMnemonic.entity_mnemonic
+           pcTableToCache  = ttEntityMnemonic.entity_mnemonic_description.
+ELSE
+    RETURN "ADM-ERROR":U.
+
+EMPTY TEMP-TABLE cache_object. /* The local one, not the rep manager one */
+
+IF VALID-HANDLE(gshRepositoryManager)
+AND DYNAMIC-FUNCTION("cacheObjectOnClient":U IN gshRepositoryManager,
+                     INPUT pcTableToCache,
+                     INPUT "":U,        /* Result codes are irrelevant for Entity objects */
+                     INPUT "":U,        /* Run attribute */
+                     INPUT NO       )   /*  Design mode  */
+THEN DO:
+    /* The dataFields have been retrieved and cached.  Move them into local buffers now */
+    ASSIGN hObjectBuffer     = DYNAMIC-FUNCTION("getCacheObjectBuffer":U IN gshRepositoryManager, INPUT ?)
+           dRecordIdentifier = hObjectBuffer:BUFFER-FIELD("tRecordIdentifier":U):BUFFER-VALUE
+           NO-ERROR.
+
+    IF ERROR-STATUS:ERROR OR dRecordIdentifier = ? THEN
+        RETURN "ADM-ERROR":U.
+
+    /* Make the cache_object table-handle a static TT. It makes our code faster and easier to read. */
+    ASSIGN hObjectTable        = IF hObjectBuffer:TYPE EQ "BUFFER":U THEN hObjectBuffer:TABLE-HANDLE ELSE hObjectBuffer
+           hDisplayFieldBuffer = BUFFER ttEntityDisplayField:HANDLE /* For later use */.
+
+    RUN makeObjectTTHandleStatic IN TARGET-PROCEDURE (INPUT TABLE-HANDLE hObjectTable).
+
+    /* Move the entity attribute information into the ttEntityMnemonic table */
+    FIND container_object WHERE container_object.tRecordIdentifier = dRecordIdentifier NO-ERROR.
+
+    ASSIGN hAttrBuffer = container_object.tClassBufferHandle NO-ERROR.
+    hAttrBuffer:FIND-FIRST("WHERE tRecordIdentifier = ":U + QUOTER(container_object.tRecordIdentifier)) NO-ERROR.
+    IF NOT hAttrBuffer:AVAILABLE THEN
+        RETURN "ADM-ERROR":U.
+
+    /* At this stage of proceedings we should have the entity cached,
+     * so we donøt check for availability. */
+    FIND FIRST ttEntityMnemonic WHERE
+               ttEntityMnemonic.entity_mnemonic_description = pcTableToCache
+               NO-ERROR.   
+    ASSIGN ttEntityMnemonic.entity_mnemonic_obj = container_object.tSmartObjectObj.
+
+    /* Now populate the datafield cache */
+    fe-blk:
+    FOR EACH dataField_object 
+       WHERE dataField_object.tContainerRecordIdentifier = container_object.tRecordIdentifier:
+
+        IF LOOKUP("dataField":U, dataField_object.tInheritsFromClasses) > 0
+        THEN DO:
+            ASSIGN ghAttrBuffer = dataField_object.tClassBufferHandle.
+            ghAttrBuffer:FIND-FIRST("WHERE tRecordIdentifier = " + QUOTER(dataField_object.tRecordIdentifier)) NO-ERROR.
+
+            hDisplayFieldBuffer:BUFFER-CREATE.
+            hDisplayFieldBuffer:BUFFER-FIELD("entity_display_field_obj"):BUFFER-VALUE = dataField_object.tSmartObjectObj. /* Don't violate the unique index */
+
+            DO iFieldCnt = 1 TO NUM-ENTRIES(cTTDispFieldFields):
+                CASE iFieldCnt:
+                    WHEN 1 /* Name */
+                    THEN DO:
+                        ASSIGN cFieldValue = ghAttrBuffer:BUFFER-FIELD("NAME":U):BUFFER-VALUE NO-ERROR.
+                        /* If we can't get the field name from the class attributes, use the field's logical object name */
+                        IF cFieldValue = "":U OR cFieldValue = ? THEN
+                            ASSIGN cFieldValue = datafield_object.tObjectInstanceName.
+                        ASSIGN hDisplayFieldBuffer:BUFFER-FIELD(ENTRY(iFieldCnt, cTTDispFieldFields)):BUFFER-VALUE = cFieldValue.
+                    END.
+
+                    WHEN 2 THEN
+                        ASSIGN hDisplayFieldBuffer:BUFFER-FIELD(ENTRY(iFieldCnt, cTTDispFieldFields)):BUFFER-VALUE =
+                               dataField_object.tInstanceOrder.
+
+                    OTHERWISE
+                        ASSIGN hDisplayFieldBuffer:BUFFER-FIELD(ENTRY(iFieldCnt, cTTDispFieldFields)):BUFFER-VALUE = 
+                               ghAttrBuffer:BUFFER-FIELD(ENTRY(iFieldCnt, cRepDataFieldAttr)):BUFFER-VALUE
+                               NO-ERROR.
+                END CASE.
+            END.
+        END.
+    END.
+END.
+ELSE
+    RETURN "ADM-ERROR":U.
+
+EMPTY TEMP-TABLE cache_object. /* The local one, not the rep manager one */
+
+ASSIGN ERROR-STATUS:ERROR = NO.
+RETURN "":U.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE cacheEntityMapping Include 
+PROCEDURE cacheEntityMapping :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER pcEntity AS CHARACTER  NO-UNDO.
+DEFINE INPUT PARAMETER pcTable  AS CHARACTER  NO-UNDO.
+DEFINE OUTPUT PARAMETER TABLE FOR ttEntityMap.
+
+DEFINE VARIABLE httEntityMap    AS HANDLE     NO-UNDO.
+
+&IF DEFINED(server-side) = 0 &THEN    
+    /* Even though this is an output table, setting the handle will ensure that
+     * the returned records will be put into the correct table automatically.   */
+    ASSIGN httEntityMap = TEMP-TABLE ttEntityMap:HANDLE.
+
+    {dynlaunch.i &PLIP              = "'GeneralManager'"
+                 &iProc             = "'cacheEntityMapping'"
+                 &compileStaticCall = NO
+                 &mode1  = INPUT   &parm1  = pcEntity     &dataType1  = CHARACTER
+                 &mode2  = INPUT   &parm2  = pcTable      &dataType2  = CHARACTER
+                 &mode3  = OUTPUT  &parm3  = httEntityMap &dataType3  = TABLE-HANDLE
+    }
+    IF RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
+&ELSE
+    /* This table is just used for passing stuff back. */
+    EMPTY TEMP-TABLE ttEntityMap.
+
+    IF pcEntity <> "":U THEN
+        FIND FIRST gsc_entity_mnemonic NO-LOCK                
+           WHERE gsc_entity_mnemonic.entity_mnemonic = (IF pcEntity <> "":U THEN pcEntity ELSE gsc_entity_mnemonic.entity_mnemonic) NO-ERROR.
+    ELSE
+        FIND FIRST gsc_entity_mnemonic NO-LOCK
+           WHERE gsc_entity_mnemonic.entity_mnemonic_description = (IF pcTable <> "":U THEN pcTable ELSE gsc_entity_mnemonic.entity_mnemonic) NO-ERROR.
+    IF AVAILABLE gsc_entity_mnemonic THEN
+    DO:
+         CREATE ttEntityMap.
+         BUFFER-COPY gsc_entity_mnemonic
+                  TO ttEntityMap
+              ASSIGN ttEntityMap.HasAudit   = CAN-FIND(FIRST gst_audit WHERE gst_audit.owning_entity_mnemonic = gsc_entity_mnemonic.entity_mnemonic)
+                                           OR CAN-FIND(FIRST gst_audit WHERE gst_audit.owning_entity_mnemonic = gsc_entity_mnemonic.entity_mnemonic_description)
+                     ttEntityMap.HasComment = CAN-FIND(FIRST gsm_comment WHERE gsm_comment.owning_entity_mnemonic = gsc_entity_mnemonic.entity_mnemonic)
+                                           OR CAN-FIND(FIRST gsm_comment WHERE gsm_comment.owning_entity_mnemonic = gsc_entity_mnemonic.entity_mnemonic_description)
+                     ttEntityMap.HasAutoComment = ttEntityMap.HasComment.
+    END.    /* available entity mnemonic */
+    ASSIGN httEntityMap = TEMP-TABLE ttEntityMap:HANDLE.
+&ENDIF
+
+ASSIGN ERROR-STATUS:ERROR = NO.
+RETURN "":U.
+END PROCEDURE.  /* cacheEntityMapping */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE checkIfOverlaps Include 
 PROCEDURE checkIfOverlaps :
@@ -401,33 +680,24 @@ PROCEDURE checkIfOverlaps :
     DEFINE OUTPUT PARAMETER ptOverlapTo         AS DATE       NO-UNDO.
 
     &IF DEFINED(server-side) = 0 &THEN
-    { afrun2.i
-        &PLIP            = 'af/app/afsuprmanp.p'
-        &IProc           = 'setAsSuperProcedure'
-        &PList           = "(INPUT 'GEN':U, INPUT 'ADD':U)"
-        &AutoKillOnError = YES
+    {
+     dynlaunch.i &PLIP              = "'GeneralManager'"
+                 &iProc             = "'CheckIfOverlaps'"
+                 &compileStaticCall = NO                 
+                 &mode1  = INPUT  &parm1  = pcTable            &dataType1  = CHARACTER
+                 &mode2  = INPUT  &parm2  = pcKeyField         &dataType2  = CHARACTER
+                 &mode3  = INPUT  &parm3  = pcFromField        &dataType3  = CHARACTER
+                 &mode4  = INPUT  &parm4  = pcToField          &dataType4  = CHARACTER
+                 &mode5  = INPUT  &parm5  = pdCurrentRecordObj &dataType5  = DECIMAL
+                 &mode6  = INPUT  &parm6  = pdKeyValue         &dataType6  = DECIMAL                 
+                 &mode7  = INPUT  &parm7  = ptFromValue        &dataType7  = DATE
+                 &mode8  = INPUT  &parm8  = ptToValue          &dataType8  = DATE
+                 &mode9  = INPUT  &parm9  = pcAdditionalWhere  &dataType9  = CHARACTER
+                 &mode10 = OUTPUT &parm10 = plOverlap          &dataType10 = LOGICAL
+                 &mode11 = OUTPUT &parm11 = ptOverlapFrom      &dataType11 = DATE
+                 &mode12 = OUTPUT &parm12 = ptOverlapTo        &dataType12 = DATE
     }
-    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
-
-    { afrun2.i
-        &PLIP     = 'af/app/afsuprmanp.p'
-        &IProc    = 'checkIfOverlaps'
-        &PList    = "( INPUT  pcTable,~
-                       INPUT  pcKeyField,~
-                       INPUT  pcFromField,~
-                       INPUT  pcToField,~
-                       INPUT  pdCurrentRecordObj,~
-                       INPUT  pdKeyValue,~
-                       INPUT  ptFromValue,~
-                       INPUT  ptToValue,~
-                       INPUT  pcAdditionalWhere,~
-                       OUTPUT plOverlap,~
-                       OUTPUT ptOverlapFrom,~
-                       OUTPUT ptOverlapTo)"
-        &autoKill = YES
-        &PlipRunError = "RETURN ERROR cErrorMessage."
-    }    
-    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
+    IF RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
     &ELSE
     DEFINE VARIABLE cWidgetPool           AS CHARACTER  NO-UNDO.
     DEFINE VARIABLE cValueBuffer          AS CHARACTER  NO-UNDO.
@@ -555,11 +825,54 @@ PROCEDURE checkIfOverlaps :
              ptOverlapTo   = ?.
   
     /* Clean up all Widgets used in this Procedure. */
-    DELETE OBJECT hQuery.
     DELETE WIDGET-POOL cWidgetPool.
   &ENDIF
 
   RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getDBsForImportedEntities Include 
+PROCEDURE getDBsForImportedEntities :
+/*------------------------------------------------------------------------------
+  Purpose:     Scans through the entity mnemonic table and returns a comma delimited
+               list of all databases for which entities have been imported.
+  Parameters:  plOnlyUseCache - If set to YES, only the current session entity cache will
+                                be used to build the database list.  If set to NO, the list
+                                will be built from the database gsc_entity_mnemonic records.
+               pcDBList       - The list of databases for which entities have been imported.
+  Notes:       In certain circumstances, we don't need the names of the connected
+               databases, but rather the names of all databases that entities have
+               been imported for.  This is what this API is for.
+------------------------------------------------------------------------------*/
+DEFINE INPUT        PARAMETER plOnlyUseCache   AS LOGICAL    NO-UNDO. /* Redundant */
+DEFINE OUTPUT       PARAMETER pcDBList         AS CHARACTER  NO-UNDO.
+DEFINE INPUT-OUTPUT PARAMETER pcAdditionalInfo AS CHARACTER  NO-UNDO. /* Not used yet, but we may need it later */
+
+&IF DEFINED(server-side) = 0 &THEN /* we're client side, pass the request to the Appserver */
+    {
+     dynlaunch.i &PLIP              = "'GeneralManager'"
+                 &iProc             = "'getDBsForImportedEntities'"
+                 &compileStaticCall = NO
+                 &mode1  = INPUT        &parm1  = plOnlyUseCache   &dataType1 = LOGICAL
+                 &mode2  = OUTPUT       &parm2  = pcDBList         &dataType2 = CHARACTER
+                 &mode3  = INPUT-OUTPUT &parm3  = pcAdditionalInfo &dataType3 = CHARACTER
+    }
+    IF RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.        
+&ELSE
+    FOR EACH gsc_entity_mnemonic NO-LOCK
+       BREAK BY gsc_entity_mnemonic.entity_dbname:
+        IF FIRST-OF(gsc_entity_mnemonic.entity_dbname) THEN
+            ASSIGN pcDBList = pcDBList + ",":U + gsc_entity_mnemonic.entity_dbname.
+    END.
+    ASSIGN pcDBList = SUBSTRING(pcDBList, 2) NO-ERROR.
+&ENDIF
+
+ASSIGN ERROR-STATUS:ERROR = NO.
+RETURN "":U.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -586,24 +899,15 @@ DEFINE INPUT PARAMETER pcLogicalNames         AS CHARACTER NO-UNDO.
 DEFINE OUTPUT PARAMETER pcVersions            AS CHARACTER NO-UNDO.
 
 &IF DEFINED(server-side) = 0 &THEN
-{ afrun2.i
-    &PLIP            = 'af/app/afsuprmanp.p'
-    &IProc           = 'setAsSuperProcedure'
-    &PList           = "(INPUT 'GEN':U, INPUT 'ADD':U)"
-    &AutoKillOnError = YES
-}
-IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
-
-{ afrun2.i
-    &PLIP        = 'af/app/afsuprmanp.p'
-    &IProc       = 'getDBVersion'
-    &PList       = "( INPUT pcLogicalNames, OUTPUT pcVersions )"
-    &AutoKill    = YES
-    &PlipRunError = "RETURN ERROR cErrorMessage."
-}
-IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
-&ELSE
-    
+    {
+     dynlaunch.i &PLIP              = "'GeneralManager'"
+                 &iProc             = "'getDBVersion'"
+                 &compileStaticCall = NO                 
+                 &mode1  = INPUT  &parm1  = pcLogicalNames &dataType1 = CHARACTER
+                 &mode2  = OUTPUT &parm2  = pcVersions     &dataType2 = CHARACTER
+    }
+    IF RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
+&ELSE    
   DEFINE VARIABLE hQuery              AS HANDLE                   NO-UNDO.
   DEFINE VARIABLE hField              AS HANDLE                   NO-UNDO.
   DEFINE VARIABLE hDbBuffer           AS HANDLE                   NO-UNDO.
@@ -623,6 +927,7 @@ IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
 
   db-loop:
   DO iLoop = 1 TO NUM-ENTRIES(pcLogicalNames):
+
     ASSIGN
       cLogicalName = ENTRY(iLoop, pcLogicalNames)
       cVersion     = "000000":U
@@ -648,7 +953,7 @@ IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
       hQuery:QUERY-OPEN().
       hQuery:GET-FIRST(NO-LOCK).
       IF hFileBuffer:AVAILABLE THEN
-          ASSIGN hField          = hFileBuffer:BUFFER-FIELD("_seq-init":U)
+          ASSIGN hField          = hFileBuffer:BUFFER-FIELD("_seq-max":U)
                  cVersion       = TRIM(hField:STRING-VALUE)
                  .
       IF cVersion = "":U OR cVersion = ? THEN
@@ -656,10 +961,6 @@ IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
 
       /* tidy up for next time */
       hQuery:QUERY-CLOSE.
-      DELETE OBJECT hQuery NO-ERROR.
-      ASSIGN hQuery = ?.
-      DELETE OBJECT hField NO-ERROR.
-      ASSIGN hField = ?.
       DELETE OBJECT hDbBuffer NO-ERROR.
       ASSIGN hDbBuffer = ?.
       DELETE OBJECT hFileBuffer NO-ERROR.
@@ -693,103 +994,21 @@ PROCEDURE getDumpName :
                Entry 1 - Database name
                Entry 2 - Table name
 ------------------------------------------------------------------------------*/
-    DEFINE INPUT  PARAMETER pcQuery          AS CHARACTER               NO-UNDO.
-    DEFINE OUTPUT PARAMETER pcTableDumpName  AS CHARACTER               NO-UNDO.
+  DEFINE INPUT  PARAMETER pcQuery          AS CHARACTER               NO-UNDO.
+  DEFINE OUTPUT PARAMETER pcTableDumpName  AS CHARACTER               NO-UNDO.
 
-    &IF DEFINED(server-side) = 0 &THEN
-    { afrun2.i
-        &PLIP            = 'af/app/afsuprmanp.p'
-        &IProc           = 'setAsSuperProcedure'
-        &PList           = "(INPUT 'GEN':U, INPUT 'ADD':U)"
-        &AutoKillOnError = YES
-    }
-    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
+  /* Make sure the entity is cached */
+  RUN cacheEntity IN THIS-PROCEDURE ("":U,                    /* We don't know what the entity FLA is */
+                                     ENTRY(2,pcQuery,"|":U)). /* Tablename */
 
-    { afrun2.i
-        &PLIP        = 'af/app/afsuprmanp.p'
-        &IProc       = 'getDumpName'
-        &PList       = "( INPUT pcQuery, OUTPUT pcTableDumpName )"
-        &AutoKill    = YES
-        &PlipRunError = "RETURN ERROR cErrorMessage."
-    }
-    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
-    &ELSE
-        DEFINE VARIABLE hQuery              AS HANDLE                   NO-UNDO.
-        DEFINE VARIABLE hField              AS HANDLE                   NO-UNDO.
-        DEFINE VARIABLE hDbBuffer           AS HANDLE                   NO-UNDO.
-        DEFINE VARIABLE hFileBuffer         AS HANDLE                   NO-UNDO.
-        DEFINE VARIABLE cWidgetPool         AS CHARACTER                NO-UNDO.
-        DEFINE VARIABLE cQuerystring        AS CHARACTER                NO-UNDO.
-        DEFINE VARIABLE cDbBufferName       AS CHARACTER                NO-UNDO.
-        DEFINE VARIABLE cFileBufferName     AS CHARACTER                NO-UNDO.
-        DEFINE VARIABLE cLogicalName        AS CHARACTER                NO-UNDO.
-        DEFINE VARIABLE cSchemaName         AS CHARACTER                NO-UNDO.
-
-        ASSIGN cWidgetPool  = "_file":U
-               cLogicalName = ENTRY(1, pcQuery, "|":U)
-               cSchemaName  = SDBNAME(cLogicalName)
-               .
-        /* If the logical object name and the schema name differ, then we assume that we are working with 
-         * a DataServer. If the schema and logical names are the same, we are dealing with a native 
-         * Progress DB.                                                                                   */
-        IF cSchemaName EQ cLogicalName THEN
-            ASSIGN cDbBufferName   = cLogicalName + "._Db":U
-                   cFileBufferName = cLogicalName + "._File":U
-                   cQuerystring    = "FOR EACH ":U + cDbBufferName + " NO-LOCK, ":U
-                                   + " EACH " + cFileBufferName + " WHERE ":U
-                                   +   cFileBufferName + "._Db-recid  = RECID(_Db) AND ":U
-                                   +   cFileBufferName + "._File-name = '":U + ENTRY(2, pcQuery, "|":U) + "' AND ":U
-                                   +   cFileBufferName + "._Owner     = 'PUB':U ":U
-                                   + " NO-LOCK ":U.
-        ELSE
-            ASSIGN cDbBufferName   = cSchemaName + "._Db":U
-                   cFileBufferName = cSchemaName + "._File":U
-                   cQuerystring    = " FOR EACH ":U + cDbBufferName + " WHERE ":U
-                                   +   cDbBufferName + "._Db-Name = '" + cLogicalName + "' ":U
-                                   + " NO-LOCK, ":U
-                                   + " EACH " + cFileBufferName + " WHERE ":U
-                                   +   cFileBufferName + "._Db-recid  = RECID(_Db) AND ":U
-                                   +   cFileBufferName + "._File-name = '":U + ENTRY(2, pcQuery, "|":U) + "' AND ":U
-                                   +   cFileBufferName + "._Owner     = '_Foreign':U ":U
-                                   + " NO-LOCK ":U.
-
-        CREATE BUFFER hDbBuffer    FOR TABLE cDbBufferName.
-        CREATE BUFFER hFileBuffer  FOR TABLE cFileBufferName.
-
-        CREATE WIDGET-POOL cWidgetPool.
-
-        CREATE QUERY hQuery IN WIDGET-POOL cWidgetPool.
-        
-        hQuery:SET-BUFFERS(hDbBuffer,hFileBuffer).
-        
-        /* remove decimals with commas for Europe */
-        ASSIGN cQueryString = DYNAMIC-FUNCTION("fixQueryString":U IN gshSessionManager, INPUT cQueryString).
-        hQuery:QUERY-PREPARE(cQueryString).
-        hQuery:QUERY-OPEN().
-
-        hQuery:GET-FIRST(NO-LOCK).
-        IF hFileBuffer:AVAILABLE THEN
-            ASSIGN hField          = hFileBuffer:BUFFER-FIELD("_dump-name":U)
-                   pcTableDumpName = TRIM(hField:STRING-VALUE)
-                   .
-        hQuery:QUERY-CLOSE.
-
-        DELETE OBJECT hQuery NO-ERROR.
-        ASSIGN hQuery = ?.
-
-        DELETE OBJECT hField NO-ERROR.
-        ASSIGN hField = ?.
-
-        DELETE OBJECT hDbBuffer NO-ERROR.
-        ASSIGN hDbBuffer = ?.
-
-        DELETE OBJECT hFileBuffer NO-ERROR.
-        ASSIGN hFileBuffer = ?.
-        
-        DELETE WIDGET-POOL cWidgetPool.
-    &ENDIF
-    
-    RETURN.
+  FIND FIRST ttEntityMnemonic
+       WHERE ttEntityMnemonic.entity_mnemonic_description = ENTRY(2,pcQuery,"|":U)
+       AND   ttEntityMnemonic.entity_dbname               = IF TRIM(ENTRY(1,pcQuery,"|":U)) <> "":U THEN TRIM(ENTRY(1,pcQuery,"|":U)) ELSE ttEntityMnemonic.entity_dbname
+       NO-ERROR.
+  IF AVAILABLE ttEntityMnemonic THEN
+    pcTableDumpName = ttEntityMnemonic.entity_mnemonic.
+  
+  RETURN.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -803,7 +1022,7 @@ PROCEDURE getEntityDescription :
                pdEntityObj
                pcFieldName
                pcEntityDescriptor
-  Notes:
+  Notes:       
 ------------------------------------------------------------------------------*/
     DEFINE INPUT  PARAMETER pcEntityMnemonic        AS CHARACTER  NO-UNDO.
     DEFINE INPUT  PARAMETER pdEntityObj             AS DECIMAL    NO-UNDO.
@@ -811,45 +1030,36 @@ PROCEDURE getEntityDescription :
     DEFINE OUTPUT PARAMETER pcEntityDescriptor      AS CHARACTER  NO-UNDO.
 
     &IF DEFINED(server-side) = 0 &THEN
-    { afrun2.i
-        &PLIP            = 'af/app/afsuprmanp.p'
-        &IProc           = 'setAsSuperProcedure'
-        &PList           = "(INPUT 'GEN':U, INPUT 'ADD':U)"
-        &AutoKillOnError = YES
+    {
+     dynlaunch.i &PLIP              = "'GeneralManager'"
+                 &iProc             = "'getEntityDescription'"
+                 &compileStaticCall = NO                 
+                 &mode1 = INPUT  &parm1 = pcEntityMnemonic   &dataType1 = CHARACTER
+                 &mode2 = INPUT  &parm2 = pdEntityObj        &dataType2 = DECIMAL
+                 &mode3 = INPUT  &parm3 = pcFieldName        &dataType3 = CHARACTER
+                 &mode4 = OUTPUT &parm4 = pcEntityDescriptor &dataType4 = CHARACTER
     }
-    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
-
-    { afrun2.i
-        &PLIP        = 'af/app/afsuprmanp.p'
-        &IProc       = 'getEntityDescription'
-        &PList       = "( INPUT  pcEntityMnemonic,~
-                          INPUT  pdEntityObj,~
-                          INPUT  pcFieldName,~
-                          OUTPUT pcEntityDescriptor)"
-        &AutoKill    = YES
-        &PlipRunError = "RETURN ERROR cErrorMessage."
-    }
-    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
+    IF RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
     &ELSE
     DEFINE VARIABLE cQueryPrepareString             AS CHARACTER    NO-UNDO.
     DEFINE VARIABLE cTableObjectFieldName           AS CHARACTER    NO-UNDO.
-    DEFINE VARIABLE cTableBase                      AS CHARACTER    NO-UNDO.
     DEFINE VARIABLE hQuery                          AS HANDLE       NO-UNDO.
     DEFINE VARIABLE hBuffer                         AS HANDLE       NO-UNDO.
     DEFINE VARIABLE hDescriptionField               AS HANDLE       NO-UNDO.
-    DEFINE VARIABLE hCurrentField                   AS HANDLE       NO-UNDO.
-    DEFINE VARIABLE iFieldLoop                      AS INTEGER      NO-UNDO.
+
+    /* Make sure the entity is cached */
+    RUN cacheEntity IN THIS-PROCEDURE (pcEntityMnemonic, /* Table FLA */
+                                       "":U).            /* Tablename */
 
     FIND ttEntityMnemonic WHERE
          ttEntityMnemonic.entity_mnemonic = pcEntityMnemonic
          NO-ERROR.
+
     IF NOT AVAILABLE ttEntityMnemonic THEN
         RETURN ERROR "ADM-ERROR":U.
 
-    ASSIGN cTableBase = IF LENGTH(ttEntityMnemonic.entity_mnemonic_description) > 5 THEN 
-                           SUBSTRING(ttEntityMnemonic.entity_mnemonic_description,5)
-                        ELSE      ttEntityMnemonic.entity_mnemonic_description
-           cTableObjectFieldName = getObjField(pcEntityMnemonic)
+    /* Find the description field */
+    ASSIGN cTableObjectFieldName = getObjField(pcEntityMnemonic)
            cQueryPrepareString   = "FOR EACH " + ttEntityMnemonic.entity_mnemonic_description + " WHERE "
                                  +  TRIM(ttEntityMnemonic.entity_mnemonic_description) + ".":U  + cTableObjectFieldName
                                  + " = ":U
@@ -866,10 +1076,8 @@ PROCEDURE getEntityDescription :
     CREATE QUERY  hQuery IN WIDGET-POOL "queryWidgets":U.
 
     CREATE BUFFER hBuffer FOR TABLE ttEntityMnemonic.entity_mnemonic_description IN WIDGET-POOL "queryWidgets":U.
-    /* CREATE BUFFER hBuffer FOR TABLE ttEntityMnemonic.entity_mnemonic_description IN WIDGET-POOL "queryWidgets":U. */
     IF NOT hQuery:ADD-BUFFER(hBuffer) THEN
     DO:
-        DELETE OBJECT hQuery.
         DELETE WIDGET-POOL "queryWidgets":U.
         RETURN ERROR "ADM-ERROR":U.
     END.    /* can't add buffer */
@@ -877,78 +1085,23 @@ PROCEDURE getEntityDescription :
     cQueryPrepareString = DYNAMIC-FUNCTION("fixQueryString":U IN gshSessionManager, INPUT cQueryPrepareString).
     IF NOT hQuery:QUERY-PREPARE(cQueryPrepareString) THEN
     DO:
-        DELETE OBJECT hQuery.
         DELETE WIDGET-POOL "queryWidgets":U.
         RETURN ERROR "ADM-ERROR":U.
     END.    /* can't prepare query */
 
     /* Determine what the description field is - may be a specific field name. */
     ASSIGN hDescriptionField = hBuffer:BUFFER-FIELD(pcFieldName) NO-ERROR.
-
     IF NOT VALID-HANDLE(hDescriptionField) THEN
-    DO iFieldLoop = 1 TO hBuffer:NUM-FIELDS:
-        ASSIGN hCurrentField = hBuffer:BUFFER-FIELD(iFieldLoop).
-        /* Look for key items because they will tend to be more uniquely
-         * descriptive. The character test helps with readability - object
-         * numbers are meaningless for this.
-         */
-        IF hCurrentField:DATA-TYPE = "character":U AND
-           hCurrentField:KEY       = YES           AND
-          (pcFieldName             = "Code":U      OR
-           pcFieldName             = "":U)         THEN
-        DO:
-            /* First get exact field names that imply a code */
-            CASE hCurrentField:NAME:
-                WHEN cTableBase + "_code":U        OR
-                WHEN cTableBase + "_reference":U   OR
-                WHEN cTableBase + "_type":U        OR
-                WHEN cTableBase + "_tla":U         OR
-                WHEN cTableBase + "_number":U      OR
-                WHEN cTableBase + "_short_desc":U  THEN ASSIGN hDescriptionField = hCurrentField.
-                /* Fuzzy Match */
-                OTHERWISE
-                    IF hCurrentField:NAME MATCHES "*_code":U        OR
-                       hCurrentField:NAME MATCHES "*_reference":U   OR
-                       hCurrentField:NAME MATCHES "*_type":U        OR
-                       hCurrentField:NAME MATCHES "*_tla":U         OR
-                       hCurrentField:NAME MATCHES "*_number":U      OR
-                       hCurrentField:NAME MATCHES "*_short_desc":U  THEN
-                        ASSIGN hDescriptionField = hCurrentField.
-            END CASE.   /* hCurrentField:NAME */
-        END.    /* character field in a key */
-        IF VALID-HANDLE(hDescriptionField) THEN
-            LEAVE.
-
-        IF hCurrentField:DATA-TYPE = "character":U   AND
-           pcFieldName             = "Description":U THEN
-        DO:
-            /* Get exact field names that imply a description */
-            CASE hCurrentField:NAME:
-                WHEN cTableBase + "_name":U        OR
-                WHEN cTableBase + "_description":U OR
-                WHEN cTableBase + "_short_name":U  OR
-                WHEN cTableBase + "_desc":U        THEN ASSIGN hDescriptionField = hCurrentField.
-                OTHERWISE
-                    IF hCurrentField:NAME MATCHES "*_name":U       OR
-                       hCurrentField:NAME MATCHES "*_desc*":U      OR
-                       hCurrentField:NAME MATCHES "*_short_name":U THEN
-                        ASSIGN hDescriptionField = hCurrentField.
-            END CASE.   /* hCurrentField:NAME */
-        END.    /* character field in a key */
-        IF VALID-HANDLE(hDescriptionField) THEN
-            LEAVE.
-    END.    /* field loop */
+        ASSIGN hDescriptionField = hBuffer:BUFFER-FIELD(ttEntityMnemonic.entity_description_field) NO-ERROR.
 
     IF NOT VALID-HANDLE(hDescriptionField) THEN
     DO:
-        DELETE OBJECT hQuery.
         DELETE WIDGET-POOL "queryWidgets":U.
         RETURN.
     END. /* no descriptor */
 
     IF NOT hQuery:QUERY-OPEN THEN
     DO:
-        DELETE OBJECT hQuery.
         DELETE WIDGET-POOL "queryWidgets":U.
         RETURN.
     END.    /* query can't open */
@@ -958,7 +1111,6 @@ PROCEDURE getEntityDescription :
         ASSIGN pcEntityDescriptor = hDescriptionField:BUFFER-VALUE() NO-ERROR.
 
     /* Clean up all widgets used in this procedure. */
-    DELETE OBJECT hQuery.
     DELETE WIDGET-POOL "queryWidgets":U.
 
     &ENDIF
@@ -991,6 +1143,15 @@ PROCEDURE getEntityDetail :
     DEFINE VARIABLE iFieldLoop                      AS INTEGER          NO-UNDO.
     DEFINE VARIABLE hCurrentField                   AS HANDLE           NO-UNDO.
 
+    /* Make sure the entity is cached */
+    RUN cacheEntity IN THIS-PROCEDURE ("":U, /* Table FLA */
+                                       pcEntity).    /* Tablename */
+
+    IF NOT CAN-FIND(FIRST ttEntityMnemonic
+                    WHERE ttEntityMnemonic.entity_mnemonic = pcEntity) THEN
+        RUN cacheEntity IN THIS-PROCEDURE (pcEntity, /* Table FLA */
+                                           "":U).    /* Tablename */
+
     ASSIGN cWidgetPool= "queryWidgets":U.
 
     IF CAN-FIND(ttEntityMnemonic WHERE ttEntityMnemonic.entity_mnemonic = pcEntity) THEN
@@ -1019,22 +1180,14 @@ PROCEDURE getEntityDetail :
     DO iFieldLoop = 1 TO hBuffer:NUM-FIELDS:
         ASSIGN hCurrentField = hBuffer:BUFFER-FIELD(iFieldLoop).
         ASSIGN pcEntityFields = pcEntityFields + (IF NUM-ENTRIES(pcEntityFields, CHR(1)) EQ 0 THEN "":U ELSE CHR(1)) + hCurrentField:NAME
-               pcEntityValues = pcEntityValues + (IF NUM-ENTRIES(pcEntityValues, CHR(1)) EQ 0 THEN "":U ELSE CHR(1)) + hCurrentField:STRING-VALUE
+               pcEntityValues = pcEntityValues + (IF NUM-ENTRIES(pcEntityValues, CHR(1)) EQ 0 THEN "":U ELSE CHR(1)) 
+                              + (IF hCurrentField:BUFFER-VALUE <> ? THEN hCurrentField:BUFFER-VALUE ELSE "":U)
                .
     END. /* field loop */
 
     hQuery:QUERY-CLOSE().
 
     /* Clean up all widgets used in this procedure. */
-    DELETE OBJECT hQuery NO-ERROR.
-    ASSIGN hQuery = ?.
-
-    DELETE OBJECT hCurrentField NO-ERROR.
-    ASSIGN hCurrentField = ?.
-
-    DELETE OBJECT hBuffer NO-ERROR.
-    ASSIGN hBuffer = ?.
-
     DELETE WIDGET-POOL cWidgetPool.
 
     RETURN.
@@ -1061,25 +1214,16 @@ PROCEDURE getEntityDisplayField :
     DEFINE OUTPUT PARAMETER pcEntityDescriptor      AS CHARACTER  NO-UNDO.
 
     &IF DEFINED(server-side) = 0 &THEN
-    { afrun2.i
-        &PLIP            = 'af/app/afsuprmanp.p'
-        &IProc           = 'setAsSuperProcedure'
-        &PList           = "(INPUT 'GEN':U, INPUT 'ADD':U)"
-        &AutoKillOnError = YES
+    {
+     dynlaunch.i &PLIP              = "'GeneralManager'"
+                 &iProc             = "'getEntityDisplayField'"
+                 &compileStaticCall = NO                 
+                 &mode1 = INPUT  &parm1 = pcEntityMnemonic   &dataType1 = CHARACTER
+                 &mode2 = INPUT  &parm2 = pcOwningValue      &dataType2 = CHARACTER
+                 &mode3 = OUTPUT &parm3 = pcEntityLabel      &dataType3 = CHARACTER
+                 &mode4 = OUTPUT &parm4 = pcEntityDescriptor &dataType4 = CHARACTER
     }
-    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
-
-    { afrun2.i
-        &PLIP        = 'af/app/afsuprmanp.p'
-        &IProc       = 'getEntityDisplayField'
-        &PList       = "( INPUT  pcEntityMnemonic,~
-                          INPUT  pcOwningValue,~
-                          OUTPUT pcEntityLabel,~
-                          OUTPUT pcEntityDescriptor)"
-        &AutoKill    = YES
-        &PlipRunError = "RETURN ERROR cErrorMessage."
-    }
-    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
+    IF RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
     &ELSE
     DEFINE VARIABLE cQueryPrepareString             AS CHARACTER    NO-UNDO.
     DEFINE VARIABLE cTableObjectFieldName           AS CHARACTER    NO-UNDO.
@@ -1092,6 +1236,11 @@ PROCEDURE getEntityDisplayField :
     DEFINE VARIABLE cFieldname                      AS CHARACTER    NO-UNDO.
     DEFINE VARIABLE hField                          AS HANDLE       NO-UNDO.
     DEFINE VARIABLE cQuote                          AS CHARACTER    NO-UNDO.
+    DEFINE VARIABLE lOk                             AS LOGICAL      NO-UNDO.
+
+    /* Make sure the entity is cached */
+    RUN cacheEntity IN THIS-PROCEDURE (pcEntityMnemonic, /* Table FLA */
+                                       "":U).            /* Tablename */
 
     FIND ttEntityMnemonic WHERE
          ttEntityMnemonic.entity_mnemonic = pcEntityMnemonic
@@ -1111,7 +1260,6 @@ PROCEDURE getEntityDisplayField :
     CREATE BUFFER hBuffer FOR TABLE ttEntityMnemonic.entity_mnemonic_description IN WIDGET-POOL "queryWidgets":U.
     IF NOT hQuery:ADD-BUFFER(hBuffer) THEN
     DO:
-        DELETE OBJECT hQuery.
         DELETE WIDGET-POOL "queryWidgets":U.
         RETURN ERROR "ADM-ERROR":U.
     END.    /* can't add buffer */
@@ -1153,9 +1301,9 @@ PROCEDURE getEntityDisplayField :
                              + " NO-LOCK "
       cQueryPrepareString = DYNAMIC-FUNCTION("fixQueryString":U IN gshSessionManager, INPUT cQueryPrepareString).
 
-    IF NOT hQuery:QUERY-PREPARE(cQueryPrepareString) THEN
+    ASSIGN lOk = hQuery:QUERY-PREPARE(cQueryPrepareString) NO-ERROR.
+    IF NOT lOk THEN
     DO:
-        DELETE OBJECT hQuery.
         DELETE WIDGET-POOL "queryWidgets":U.
         RETURN ERROR "ADM-ERROR":U.
     END.    /* can't prepare query */
@@ -1165,14 +1313,12 @@ PROCEDURE getEntityDisplayField :
 
     IF NOT VALID-HANDLE(hDescriptionField) THEN
     DO:
-        DELETE OBJECT hQuery.
         DELETE WIDGET-POOL "queryWidgets":U.
         RETURN.
     END. /* no descriptor */
 
     IF NOT hQuery:QUERY-OPEN THEN
     DO:
-        DELETE OBJECT hQuery.
         DELETE WIDGET-POOL "queryWidgets":U.
         RETURN.
     END.    /* query can't open */
@@ -1185,7 +1331,6 @@ PROCEDURE getEntityDisplayField :
           NO-ERROR.
 
     /* Clean up all widgets used in this procedure. */
-    DELETE OBJECT hQuery.
     DELETE WIDGET-POOL "queryWidgets":U.
 
     &ENDIF
@@ -1217,31 +1362,26 @@ PROCEDURE getEntityExists :
     DEFINE VARIABLE hBuffer                         AS HANDLE               NO-UNDO.
 
     &IF DEFINED(server-side) = 0 &THEN
-    { afrun2.i
-        &PLIP            = 'af/app/afsuprmanp.p'
-        &IProc           = 'setAsSuperProcedure'
-        &PList           = "(INPUT 'GEN':U, INPUT 'ADD':U)"
-        &AutoKillOnError = YES
+    {
+     dynlaunch.i &PLIP              = "'GeneralManager'"
+                 &iProc             = "'getEntityExists'"
+                 &compileStaticCall = NO                 
+                 &mode1 = INPUT  &parm1 = pcTableName  &dataType1 = CHARACTER
+                 &mode2 = INPUT  &parm2 = pdTableObj   &dataType2 = DECIMAL
+                 &mode3 = OUTPUT &parm3 = plExists     &dataType3 = LOGICAL
+                 &mode4 = OUTPUT &parm4 = pcRejection  &dataType4 = CHARACTER
     }
-    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
-    
-    { afrun2.i
-        &PLIP        = 'af/app/afsuprmanp.p'
-        &IProc       = 'getEntityExists'
-        &PList       = "( INPUT  pcTableName,~
-                          INPUT  pdTableObj,~
-                          OUTPUT plExists,~
-                          OUTPUT pcRejection)"
-        &AutoKill    = YES
-        &PlipRunError = "RETURN ERROR cErrorMessage."
-    }
-    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
+    IF RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
     &ELSE
-
+    /* Make sure the entity is cached */
+    RUN cacheEntity IN THIS-PROCEDURE (pcTableName, /* Table FLA, the parameter has been named incorrectly */
+                                       "":U).       /* Tablename */
+    
     /* Check whether a OEM has been passed in. */
     FIND ttEntityMnemonic WHERE
          ttEntityMnemonic.entity_mnemonic = pcTableName
          NO-ERROR.
+
     IF AVAILABLE ttEntityMnemonic THEN
         ASSIGN pcTableName = ttEntityMnemonic.entity_mnemonic_description.
     
@@ -1271,7 +1411,6 @@ PROCEDURE getEntityExists :
     IF NOT hQuery:ADD-BUFFER(hBuffer) THEN
     DO:
         ASSIGN pcRejection = "Error setting buffers for dynamic query".
-        DELETE OBJECT hQuery.
         DELETE WIDGET-POOL "query_widgets":U.
         RETURN.
     END.    /* can't add buffer */
@@ -1280,7 +1419,6 @@ PROCEDURE getEntityExists :
     IF NOT hQuery:QUERY-PREPARE(cQueryPrepareString) THEN
     DO:
         ASSIGN pcRejection = "Error preparing dynamic query".
-        DELETE OBJECT hQuery.
         DELETE WIDGET-POOL "query_widgets":U.
         RETURN.
     END.    /* can't prepare query */
@@ -1288,7 +1426,6 @@ PROCEDURE getEntityExists :
     IF NOT hQuery:QUERY-OPEN THEN
     DO:
         ASSIGN pcRejection = "Error opening dynamic query".
-        DELETE OBJECT hQuery.
         DELETE WIDGET-POOL "query_widgets":U.
         RETURN.
     END.    /* query can't open */
@@ -1297,7 +1434,6 @@ PROCEDURE getEntityExists :
     ASSIGN plExists = hBuffer:AVAILABLE.
     
     /* Clean up all widgets used in this procedure. */
-    DELETE OBJECT hQuery.
     DELETE WIDGET-POOL "query_widgets":U.
 &ENDIF
 RETURN.
@@ -1310,107 +1446,23 @@ END PROCEDURE.
 PROCEDURE getEntityTableName :
 /*------------------------------------------------------------------------------
   Purpose:  Returns the table name based on an entity
-    Notes:  This function will only be run on the AppServer, or a DB-aware client
+    Notes:  
 ------------------------------------------------------------------------------*/
-    DEFINE INPUT PARAMETER pcEntityMnemonic     AS CHARACTER                NO-UNDO.    
-    DEFINE INPUT PARAMETER pcLogicalDBName      AS CHARACTER                NO-UNDO.
-    DEFINE OUTPUT PARAMETER pcEntityTablename   AS CHARACTER                NO-UNDO.
+    DEFINE INPUT  PARAMETER pcEntityMnemonic  AS CHARACTER                NO-UNDO.    
+    DEFINE INPUT  PARAMETER pcLogicalDBName   AS CHARACTER                NO-UNDO.
+    DEFINE OUTPUT PARAMETER pcEntityTablename AS CHARACTER                NO-UNDO.
 
-    &IF DEFINED(server-side) = 0 &THEN
-        { afrun2.i
-            &PLIP            = 'af/app/afsuprmanp.p'
-            &IProc           = 'setAsSuperProcedure'
-            &PList           = "(INPUT 'GEN':U, INPUT 'ADD':U)"
-            &AutoKillOnError = YES
-        }
-        IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
+    /* Make sure the entity is cached */
+    RUN cacheEntity IN THIS-PROCEDURE (pcEntityMnemonic, /* Table FLA */
+                                       "":U).            /* Tablename */
+
+    FIND FIRST ttEntityMnemonic
+         WHERE ttEntityMnemonic.entity_mnemonic = pcEntityMnemonic
+         AND   ttEntityMnemonic.entity_dbname   = IF TRIM(pcLogicalDBName) <> "":U THEN pcLogicalDBName ELSE ttEntityMnemonic.entity_dbname
+         NO-ERROR.
+    IF AVAILABLE ttEntityMnemonic THEN
+      pcEntityTablename = ttEntityMnemonic.entity_mnemonic_description.
     
-        { afrun2.i
-            &PLIP        = 'af/app/afsuprmanp.p'
-            &IProc       = 'getEntityTableName'
-            &PList       = "( INPUT  pcEntityMnemonic,~
-                              INPUT  pcLogicalDBName,~
-                              OUTPUT pcEntityTablename)"
-            &AutoKill    = YES
-            &PlipRunError = "RETURN ERROR cErrorMessage."
-        }
-        IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
-    &ELSE
-        DEFINE VARIABLE cQuery                      AS CHARACTER                NO-UNDO.
-        DEFINE VARIABLE cWidgetPool                 AS CHARACTER                NO-UNDO.
-        DEFINE VARIABLE cSchemaName                 AS CHARACTER                NO-UNDO.
-        DEFINE VARIABLE hDbBuffer                   AS HANDLE                   NO-UNDO.
-        DEFINE VARIABLE hFileBuffer                 AS HANDLE                   NO-UNDO.
-        DEFINE VARIABLE cQuerystring                AS CHARACTER                NO-UNDO.
-        DEFINE VARIABLE cDbBufferName               AS CHARACTER                NO-UNDO.
-        DEFINE VARIABLE cFileBufferName             AS CHARACTER                NO-UNDO.
-        DEFINE VARIABLE hQuery                      AS HANDLE                   NO-UNDO.
-        DEFINE VARIABLE hFieldTableName             AS HANDLE                   NO-UNDO.
-        DEFINE VARIABLE hFieldDumpName              AS HANDLE                   NO-UNDO.
-    
-        ASSIGN cWidgetPool = "DumpName":U
-               cSchemaName = SDBNAME(pcLogicalDBName)
-               .
-        /* If the logical object name and the schema name differ, then we assume that we are working with 
-         * a DataServer. If the schema and logical names are the same, we are dealing with a native 
-         * Progress DB.                                                                                   */
-        IF cSchemaName EQ pcLogicalDBName THEN
-            ASSIGN cDbBufferName   = pcLogicalDBName + "._Db":U
-                   cFileBufferName = pcLogicalDBName + "._File":U
-                   cQuery          = "FOR EACH ":U + cDbBufferName + " NO-LOCK, ":U
-                                   + " EACH " + cFileBufferName + " WHERE ":U
-                                   +   cFileBufferName + "._Db-recid  = RECID(_Db) AND ":U
-                                   +   cFileBufferName + "._Dump-name = '":U + pcEntityMnemonic + "' AND ":U
-                                   +   cFileBufferName + "._Owner     = 'PUB':U ":U
-                                   + " NO-LOCK ":U.
-        ELSE
-            ASSIGN cDbBufferName   = cSchemaName + "._Db":U
-                   cFileBufferName = cSchemaName + "._File":U
-                   cQuery          = " FOR EACH ":U + cDbBufferName + " WHERE ":U
-                                   +   cDbBufferName + "._Db-Name = '" + pcLogicalDBName + "' ":U
-                                   + " NO-LOCK, ":U
-                                   + " EACH " + cFileBufferName + " WHERE ":U
-                                   +   cFileBufferName + "._Db-recid  = RECID(_Db) AND ":U
-                                   +   cFileBufferName + "._Dump-name = '":U + pcEntityMnemonic + "' AND ":U
-                                   +   cFileBufferName + "._Owner     = '_Foreign':U ":U
-                                   + " NO-LOCK ":U.
-
-        CREATE WIDGET-POOL cWidgetPool.
-        CREATE BUFFER hDbBuffer    FOR TABLE cDbBufferName      IN WIDGET-POOL cWidgetPool.
-        CREATE BUFFER hFileBuffer  FOR TABLE cFileBufferName    IN WIDGET-POOL cWidgetPool.
-        
-        CREATE QUERY hQuery IN WIDGET-POOL cWidgetPool.
-    
-        hQuery:SET-BUFFERS(hDbBuffer,hFileBuffer).
-        
-        cQuery = DYNAMIC-FUNCTION("fixQueryString":U IN gshSessionManager, INPUT cQuery).
-        hQuery:QUERY-PREPARE(cQuery).
-        
-        ASSIGN hFieldTableName = hFileBuffer:BUFFER-FIELD("_File-name":U).
-
-        hQuery:QUERY-OPEN.
-        hQuery:GET-FIRST(NO-LOCK).
-        DO WHILE hFileBuffer:AVAILABLE:
-            ASSIGN pcEntityTableName = hFieldTableName:BUFFER-VALUE.
-            hQuery:GET-NEXT(NO-LOCK).
-        END.    /* loop through the query. */
-    
-        hQuery:QUERY-CLOSE.
-
-        DELETE OBJECT hQuery NO-ERROR.
-        ASSIGN hQuery = ?.
-
-        DELETE OBJECT hDbBuffer NO-ERROR.
-        ASSIGN hDbBuffer = ?.
-
-        DELETE OBJECT hFileBuffer NO-ERROR.
-        ASSIGN hFileBuffer = ?.
-
-        DELETE OBJECT hFieldTableName NO-ERROR.
-        ASSIGN hFieldTableName = ?.
-
-        DELETE WIDGET-POOL cWidgetPool.
-    &ENDIF
     RETURN.
 END PROCEDURE.
 
@@ -1449,30 +1501,21 @@ PROCEDURE getLanguageText :
     DEFINE OUTPUT PARAMETER pcFileName          AS CHARACTER                   NO-UNDO.
 
     &IF DEFINED(server-side) = 0 &THEN
-    { afrun2.i
-        &PLIP            = 'af/app/afsuprmanp.p'
-        &IProc           = 'setAsSuperProcedure'
-        &PList           = "(INPUT 'GEN':U, INPUT 'ADD':U)"
-        &AutoKillOnError = YES
+    {
+     dynlaunch.i &PLIP              = "'GeneralManager'"
+                 &iProc             = "'getLanguageText'"
+                 &compileStaticCall = NO
+                 &mode1 = INPUT  &parm1 = pcCategoryType  &dataType1 = CHARACTER
+                 &mode2 = INPUT  &parm2 = pcCategoryGroup &dataType2 = CHARACTER
+                 &mode3 = INPUT  &parm3 = pcSubGroup      &dataType3 = CHARACTER
+                 &mode4 = INPUT  &parm4 = pcTextTla       &dataType4 = CHARACTER
+                 &mode5 = INPUT  &parm5 = pdLanguageObj   &dataType5 = DECIMAL
+                 &mode6 = INPUT  &parm6 = pdOwningObj     &dataType6 = DECIMAL                 
+                 &mode7 = INPUT  &parm7 = pcSubstitute    &dataType7 = CHARACTER
+                 &mode8 = OUTPUT &parm8 = pcLanguageText  &dataType8 = CHARACTER
+                 &mode9 = OUTPUT &parm9 = pcFileName      &dataType9 = CHARACTER
     }
-    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
-
-    { afrun2.i
-        &PLIP        = 'af/app/afsuprmanp.p'
-        &IProc       = 'getLanguageText'
-        &PList       = "( INPUT  pcCategoryType,~
-                          INPUT  pcCategoryGroup,~
-                          INPUT  pcSubGroup,~
-                          INPUT  pcTextTla,~
-                          INPUT  pdLanguageObj,~
-                          INPUT  pdOwningObj,~
-                          INPUT  pcSubstitute,~
-                          OUTPUT pcLanguageText,~
-                          OUTPUT pcFileName)"
-        &AutoKill    = YES
-        &PlipRunError = "RETURN ERROR cErrorMessage."
-    }
-    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
+    IF RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
     &ELSE
     DEFINE VARIABLE iLoop                 AS INTEGER    NO-UNDO.
     DEFINE VARIABLE iPosition             AS INTEGER    NO-UNDO.
@@ -1588,38 +1631,23 @@ PROCEDURE getRecordCheckAudit :
   DEFINE INPUT  PARAMETER pcEntityObjValue  AS CHARACTER NO-UNDO.
   DEFINE OUTPUT PARAMETER plRowAuditExist   AS LOGICAL   NO-UNDO.
 
-  &IF DEFINED(server-side) = 0
-  &THEN
-
-    { afrun2.i
-        &PLIP            = 'af/app/afsuprmanp.p'
-        &IProc           = 'setAsSuperProcedure'
-        &PList           = "(INPUT 'GEN':U, INPUT 'ADD':U)"
-        &AutoKillOnError = YES
-    }
-    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
-
-    { afrun2.i
-        &PLIP        = 'af/app/afsuprmanp.p'
-        &IProc       = 'getRecordCheckAudit'
-        &PList       = "(INPUT  pcEntityMnemonic,~
-                         INPUT  pcEntityObjField,~
-                         INPUT  pcEntityObjValue,~
-                         OUTPUT plRowAuditExist)"
-        &AutoKill    = YES
-        &PlipRunError = "RETURN ERROR cErrorMessage."
-    }
-    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
-
+  &IF DEFINED(server-side) = 0 &THEN
+  {
+   dynlaunch.i &PLIP              = "'GeneralManager'"
+               &iProc             = "'getRecordCheckAudit'"
+               &compileStaticCall = NO
+               &mode1 = INPUT  &parm1 = pcEntityMnemonic &dataType1 = CHARACTER
+               &mode2 = INPUT  &parm2 = pcEntityObjField &dataType2 = CHARACTER
+               &mode3 = INPUT  &parm3 = pcEntityObjValue &dataType3 = CHARACTER
+               &mode4 = OUTPUT &parm4 = plRowAuditExist  &dataType4 = LOGICAL
+  }
+  IF RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
   &ELSE
-
     IF CAN-FIND(FIRST gst_audit
                 WHERE gst_audit.owning_entity_mnemonic  = pcEntityMnemonic
-                AND   gst_audit.owning_reference        = pcEntityObjValue
-               )
+                AND   gst_audit.owning_reference        = pcEntityObjValue)
     THEN ASSIGN plRowAuditExist = YES.
     ELSE ASSIGN plRowAuditExist = NO.
-
   &ENDIF
 
   RETURN.
@@ -1645,30 +1673,18 @@ PROCEDURE getRecordCheckComment :
   DEFINE OUTPUT PARAMETER plRowCommentExist AS LOGICAL   NO-UNDO.
   DEFINE OUTPUT PARAMETER pcRowCommentAuto  AS CHARACTER NO-UNDO.
 
-  &IF DEFINED(server-side) = 0
-  &THEN
-
-    { afrun2.i
-        &PLIP            = 'af/app/afsuprmanp.p'
-        &IProc           = 'setAsSuperProcedure'
-        &PList           = "(INPUT 'GEN':U, INPUT 'ADD':U)"
-        &AutoKillOnError = YES
-    }
-    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
-
-    { afrun2.i
-        &PLIP         = 'af/app/afsuprmanp.p'
-        &IProc        = 'getRecordCheckComment'
-        &PList        = "(INPUT  pcEntityMnemonic,~
-                          INPUT  pcEntityObjField,~
-                          INPUT  pcEntityObjValue,~
-                          OUTPUT plRowCommentExist,~
-                          OUTPUT pcRowCommentAuto)"
-        &AutoKill     = YES
-        &PlipRunError = "RETURN ERROR cErrorMessage."
-    }
-    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
-
+  &IF DEFINED(server-side) = 0 &THEN
+  {
+   dynlaunch.i &PLIP              = "'GeneralManager'"
+               &iProc             = "'getRecordCheckComment'"
+               &compileStaticCall = NO                 
+               &mode1 = INPUT  &parm1 = pcEntityMnemonic  &dataType1 = CHARACTER
+               &mode2 = INPUT  &parm2 = pcEntityObjField  &dataType2 = CHARACTER
+               &mode3 = INPUT  &parm3 = pcEntityObjValue  &dataType3 = CHARACTER
+               &mode4 = OUTPUT &parm4 = plRowCommentExist &dataType4 = LOGICAL
+               &mode5 = OUTPUT &parm5 = pcRowCommentAuto  &dataType5 = CHARACTER
+  }
+  IF RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
   &ELSE
 
     IF CAN-FIND(FIRST gsm_comment
@@ -1713,23 +1729,14 @@ PROCEDURE getRecordDetail :
     DEFINE OUTPUT PARAMETER pcFieldList         AS CHARACTER            NO-UNDO.
 
     &IF DEFINED(server-side) = 0 &THEN
-    { afrun2.i
-        &PLIP            = 'af/app/afsuprmanp.p'
-        &IProc           = 'setAsSuperProcedure'
-        &PList           = "(INPUT 'GEN':U, INPUT 'ADD':U)"
-        &AutoKillOnError = YES
+    {
+     dynlaunch.i &PLIP              = "'GeneralManager'"
+                 &iProc             = "'getRecordDetail'"
+                 &compileStaticCall = NO                 
+                 &mode1 = INPUT  &parm1 = pcQuery     &dataType1 = CHARACTER
+                 &mode2 = OUTPUT &parm2 = pcFieldList &dataType2 = CHARACTER
     }
-    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
-    
-    { afrun2.i
-        &PLIP        = 'af/app/afsuprmanp.p'
-        &IProc       = 'getRecordDetail'
-        &PList       = "(INPUT pcQuery,~
-                         OUTPUT pcFieldList)"
-        &AutoKill    = YES
-        &PlipRunError = "RETURN ERROR cErrorMessage."
-    }
-    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
+    IF RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
     &ELSE   
 
     DEFINE VARIABLE hQuery                      AS HANDLE               NO-UNDO.
@@ -1814,35 +1821,123 @@ PROCEDURE getRecordUserProp :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER pcEntityMnemonic  AS CHARACTER NO-UNDO.
+  DEFINE INPUT  PARAMETER pcEntityFields    AS CHARACTER NO-UNDO.
+  DEFINE INPUT  PARAMETER pcEntityObjValue  AS CHARACTER NO-UNDO.
+  DEFINE OUTPUT PARAMETER pcRowUserProp     AS CHARACTER NO-UNDO.
+  
+  IF pcEntityFields = '':u THEN
+     pcEntityFields = 'HasAudit,HasComment,AutoComment':U.
+
+  &IF DEFINED(server-side) = 0 &THEN
+  {
+   dynlaunch.i &PLIP              = "'GeneralManager'"
+               &iProc             = "'getRecordUserProp'"
+               &compileStaticCall = NO
+               &mode1 = INPUT  &parm1 = pcEntityMnemonic &dataType1 = CHARACTER
+               &mode2 = INPUT  &parm2 = pcEntityFields   &dataType2 = CHARACTER
+               &mode3 = INPUT  &parm3 = pcEntityObjValue &dataType3 = CHARACTER
+               &mode4 = OUTPUT &parm4 = pcRowUserProp    &dataType4 = CHARACTER
+  }
+  IF RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
+  &ELSE
+
+    DEFINE VARIABLE lRowAuditExist            AS LOGICAL   NO-UNDO.
+    DEFINE VARIABLE lRowCommentExist          AS LOGICAL   NO-UNDO.
+    DEFINE VARIABLE cRowCommentAuto           AS CHARACTER NO-UNDO.
+
+    ASSIGN 
+      lRowAuditExist   = NO
+      lRowCommentExist = NO
+      cRowCommentAuto  = "":U.
+    
+    /**
+    Too expensive...  This is called for each record  
+    RUN getRecordCheckAudit   (INPUT  pcEntityMnemonic
+                              ,INPUT  pcEntityObjField
+                              ,INPUT  pcEntityObjValue
+                              ,OUTPUT lRowAuditExist
+                              ).
+    **/
+
+    IF LOOKUP('HasAudit':U,pcEntityFields) > 0 THEN
+      FIND FIRST gst_audit WHERE gst_audit.owning_entity_mnemonic = pcEntityMnemonic
+                           AND   gst_audit.owning_reference = pcEntityObjValue
+                           NO-LOCK NO-ERROR. 
+    ELSE RELEASE gst_audit.
+    
+    /**
+    RUN getRecordCheckComment (INPUT  pcEntityMnemonic
+                              ,INPUT  pcEntityObjField
+                              ,INPUT  pcEntityObjValue
+                              ,OUTPUT lRowCommentExist
+                              ,OUTPUT cRowCommentAuto
+                              ).
+    **/
+
+    IF LOOKUP('HasComment':U,pcEntityFields) > 0 
+    OR LOOKUP('AutoComment':U,pcEntityFields) > 0  THEN
+      FIND FIRST gsm_comment WHERE gsm_comment.owning_entity_mnemonic = pcEntityMnemonic
+                             AND gsm_comment.owning_reference = pcEntityObjValue
+                             NO-LOCK NO-ERROR. 
+    ELSE RELEASE gsm_comment.
+
+    ASSIGN       
+      lRowCommentExist = AVAIL gsm_comment
+      lRowAuditExist   = AVAIL gst_audit.
+
+    IF lRowCommentExist AND LOOKUP('AutoComment':U,pcEntityFields) > 0 THEN
+    FOR EACH gsm_comment NO-LOCK
+          WHERE gsm_comment.owning_entity_mnemonic  = pcEntityMnemonic
+          AND   gsm_comment.owning_reference        = pcEntityObjValue
+          AND   gsm_comment.auto_display            = YES
+          AND   (gsm_comment.expiry_date             >= TODAY
+                 OR gsm_comment.expiry_date = ?):
+
+      cRowCommentAuto = cRowCommentAuto 
+                      + (IF cRowCommentAuto = '':U THEN '':U ELSE CHR(10))  
+                      + gsm_comment.comment_description.
+    END.
+    ASSIGN pcRowUserProp 
+            = "gstad":U + CHR(3) + (IF lRowAuditExist THEN "YES":U ELSE "NO":U)
+            + CHR(4)
+            + "gsmcm":U + CHR(3) + (IF lRowCommentExist THEN "YES":U ELSE "NO":U)
+            + (IF cRowCommentAuto = "":U 
+               THEN "":U
+               ELSE CHR(4) + "gsmcmauto":U + CHR(3) + cRowCommentAuto).
+   &ENDIF
+
+  RETURN.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getRecordUserPropx Include 
+PROCEDURE getRecordUserPropx :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
 
   DEFINE INPUT  PARAMETER pcEntityMnemonic  AS CHARACTER NO-UNDO.
   DEFINE INPUT  PARAMETER pcEntityObjField  AS CHARACTER NO-UNDO.
   DEFINE INPUT  PARAMETER pcEntityObjValue  AS CHARACTER NO-UNDO.
   DEFINE OUTPUT PARAMETER pcRowUserProp     AS CHARACTER NO-UNDO.
 
-  &IF DEFINED(server-side) = 0
-  &THEN
-
-    { afrun2.i
-        &PLIP            = 'af/app/afsuprmanp.p'
-        &IProc           = 'setAsSuperProcedure'
-        &PList           = "(INPUT 'GEN':U, INPUT 'ADD':U)"
-        &AutoKillOnError = YES
-    }
-    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
-
-    { afrun2.i
-        &PLIP        = 'af/app/afsuprmanp.p'
-        &IProc       = 'getRecordUserProp'
-        &PList       = "(INPUT  pcEntityMnemonic,~
-                         INPUT  pcEntityObjField,~
-                         INPUT  pcEntityObjValue,~
-                         OUTPUT pcRowUserProp)"
-        &AutoKill    = YES
-        &PlipRunError = "RETURN ERROR cErrorMessage."
-    }
-    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
-
+  &IF DEFINED(server-side) = 0 &THEN
+  {
+   dynlaunch.i &PLIP              = "'GeneralManager'"
+               &iProc             = "'getRecordUserPropx'"
+               &compileStaticCall = NO
+               &mode1 = INPUT  &parm1 = pcEntityMnemonic &dataType1 = CHARACTER
+               &mode2 = INPUT  &parm2 = pcEntityObjField &dataType2 = CHARACTER
+               &mode3 = INPUT  &parm3 = pcEntityObjValue &dataType3 = CHARACTER
+               &mode4 = OUTPUT &parm4 = pcRowUserProp    &dataType4 = CHARACTER
+  }
+  IF RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
   &ELSE
 
     DEFINE VARIABLE lRowAuditExist            AS LOGICAL   NO-UNDO.
@@ -1901,25 +1996,16 @@ PROCEDURE getSequenceExist :
     DEFINE OUTPUT PARAMETER plSuccess               AS LOGICAL              NO-UNDO.
 
     &IF DEFINED(server-side) = 0 &THEN
-    { afrun2.i
-        &PLIP            = 'af/app/afsuprmanp.p'
-        &IProc           = 'setAsSuperProcedure'
-        &PList           = "(INPUT 'GEN':U, INPUT 'ADD':U)"
-        &AutoKillOnError = YES
+    {
+     dynlaunch.i &PLIP              = "'GeneralManager'"
+                 &iProc             = "'getSequenceExist'"
+                 &compileStaticCall = NO                 
+                 &mode1 = INPUT  &parm1 = pdCompanyObj     &dataType1 = DECIMAL
+                 &mode2 = INPUT  &parm2 = pcEntityMnemonic &dataType2 = CHARACTER
+                 &mode3 = INPUT  &parm3 = pcSequenceTLA    &dataType3 = CHARACTER
+                 &mode4 = OUTPUT &parm4 = plSuccess        &dataType4 = LOGICAL
     }
-    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
-
-    { afrun2.i
-        &PLIP        = 'af/app/afsuprmanp.p'
-        &IProc       = 'getSequenceExist'
-        &PList       = "( INPUT  pdCompanyObj,~
-                          INPUT  pcEntityMnemonic,~
-                          INPUT  pcSequenceTLA,~
-                          OUTPUT plSuccess)"
-        &AutoKill    = YES
-        &PlipRunError = "RETURN ERROR cErrorMessage."
-    }
-    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
+    IF RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
     &ELSE
     DEFINE VARIABLE hSequenceBuffer             AS HANDLE               NO-UNDO.
     DEFINE VARIABLE hSequenceQuery              AS HANDLE               NO-UNDO.
@@ -1933,9 +2019,9 @@ PROCEDURE getSequenceExist :
 
     hSequenceQuery:ADD-BUFFER(hSequenceBuffer).
     hSequenceQuery:QUERY-PREPARE("FOR EACH ":U + hSequenceBuffer:NAME + " WHERE ":U
-                               + hSequenceBuffer:NAME + ".company_organisation_obj        = ":U + STRING(pdCompanyObj) + "  AND ":U
-                               + hSequenceBuffer:NAME + ".owning_entity_mnemonic          = '":U + pcEntityMnemonic    + "' AND ":U
-                               + hSequenceBuffer:NAME + ".sequence_tla    = '":U + pcSequenceTLA       + "' AND ":U
+                               + hSequenceBuffer:NAME + ".company_organisation_obj        = ":U + QUOTER(pdCompanyObj) + "  AND ":U
+                               + hSequenceBuffer:NAME + ".owning_entity_mnemonic          = ":U + QUOTER(pcEntityMnemonic)    + " AND ":U
+                               + hSequenceBuffer:NAME + ".sequence_tla    = ":U + QUOTER(pcSequenceTLA)       + " AND ":U
                                + hSequenceBuffer:NAME + ".sequence_active = YES ":U
                                + " NO-LOCK ":U).
     hSequenceQuery:QUERY-OPEN().
@@ -1947,8 +2033,8 @@ PROCEDURE getSequenceExist :
         hSequenceQuery:QUERY-CLOSE().
         hSequenceQuery:QUERY-PREPARE("FOR EACH ":U + hSequenceBuffer:NAME + " WHERE ":U
                                      + hSequenceBuffer:NAME + ".company_organisation_obj        = 0                               AND ":U
-                                     + hSequenceBuffer:NAME + ".owning_entity_mnemonic          = '":U + pcEntityMnemonic    + "' AND ":U
-                                     + hSequenceBuffer:NAME + ".sequence_tla    = '":U + pcSequenceTLA       + "' AND ":U
+                                     + hSequenceBuffer:NAME + ".owning_entity_mnemonic          = ":U + QUOTER(pcEntityMnemonic)    + " AND ":U
+                                     + hSequenceBuffer:NAME + ".sequence_tla    = ":U + QUOTER(pcSequenceTLA)       + " AND ":U
                                      + hSequenceBuffer:NAME + ".sequence_active = YES ":U
                                      + " NO-LOCK ":U).
         hSequenceQuery:QUERY-OPEN().
@@ -1958,14 +2044,6 @@ PROCEDURE getSequenceExist :
     ASSIGN plSuccess = hSequenceBuffer:AVAILABLE.
 
     /* Clean up. */
-    /* queries */
-    DELETE OBJECT hSequenceQuery NO-ERROR.
-    ASSIGN hSequenceQuery = ?.
-
-    /* buffers  */
-    DELETE OBJECT hSequenceBuffer NO-ERROR.
-    ASSIGN hSequenceBuffer = ?.
-
     DELETE WIDGET-POOL "getSequenceExists":U.
     
     &ENDIF
@@ -2028,261 +2106,177 @@ PROCEDURE getSequenceValue :
                pcSequenceTLA
                pcNextSequenceValue
   Notes:    * The ICF Database uses the GSC_SEQUENCE and GSC_NEXT_SEQUENCE table set.
-            * The gsc_sequence table is for use on tables in the ICFDB database.
+            * Depending on whether multi_transaction has been set:
+              - multi_transaction = NO, simply get the sequence value on gsc_sequence
+                and increment.
+              - multi_transaction = YES, grab the first available sequence in the
+                gsc_next_sequence list, assign it, delete it and add the next sequence
+                at the end of the list.
+                BEFORE gsc_next_sequence will look like this:
+                1 2 3 4 5
+                AFTER the sequence has been assigned gsc_next_sequence will look like this:
+                2 3 4 5 6
 ------------------------------------------------------------------------------*/
-    DEFINE INPUT  PARAMETER pdCompanyObj            AS DECIMAL              NO-UNDO.
-    DEFINE INPUT  PARAMETER pcEntityMnemonic        AS CHARACTER            NO-UNDO.
-    DEFINE INPUT  PARAMETER pcSequenceTLA           AS CHARACTER            NO-UNDO.
-    DEFINE OUTPUT PARAMETER pcNextSequenceValue     AS CHARACTER            NO-UNDO.
+DEFINE INPUT  PARAMETER pdCompanyObj            AS DECIMAL              NO-UNDO.
+DEFINE INPUT  PARAMETER pcEntityMnemonic        AS CHARACTER            NO-UNDO.
+DEFINE INPUT  PARAMETER pcSequenceTLA           AS CHARACTER            NO-UNDO.
+DEFINE OUTPUT PARAMETER pcNextSequenceValue     AS CHARACTER            NO-UNDO.
     
-    &IF DEFINED(server-side) = 0  &THEN
-    { afrun2.i
-        &PLIP            = 'af/app/afsuprmanp.p'
-        &IProc           = 'setAsSuperProcedure'
-        &PList           = "(INPUT 'GEN':U, INPUT 'ADD':U)"
-        &AutoKillOnError = YES
-    }
-    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
+&IF DEFINED(server-side) = 0  &THEN
+{
+ dynlaunch.i &PLIP              = "'GeneralManager'"
+             &iProc             = "'getSequenceValue'"
+             &compileStaticCall = NO             
+             &mode1 = INPUT  &parm1 = pdCompanyObj        &dataType1 = DECIMAL
+             &mode2 = INPUT  &parm2 = pcEntityMnemonic    &dataType2 = CHARACTER
+             &mode3 = INPUT  &parm3 = pcSequenceTLA       &dataType3 = CHARACTER
+             &mode4 = OUTPUT &parm4 = pcNextSequenceValue &dataType4 = CHARACTER
+}
+IF RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
+&ELSE    
+    DEFINE BUFFER gsc_sequence        FOR gsc_sequence.
+    DEFINE BUFFER gsc_next_sequence   FOR gsc_next_Sequence.
+    DEFINE BUFFER bgsc_next_sequence  FOR gsc_next_Sequence.
+    DEFINE BUFFER b2gsc_next_sequence FOR gsc_next_Sequence.
+    
+    DEFINE VARIABLE cSequenceMask      AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE cQuantityIndicator AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE iSite              AS INTEGER    NO-UNDO.
 
-    { afrun2.i
-        &PLIP        = 'af/app/afsuprmanp.p'
-        &IProc       = 'getSequenceValue'
-        &PList       = "( INPUT  pdCompanyObj,~
-                          INPUT  pcEntityMnemonic,~
-                          INPUT  pcSequenceTLA,~
-                          OUTPUT pcNextSequenceValue)"
-        &AutoKill    = YES
-        &PlipRunError = "RETURN ERROR cErrorMessage."
-    }
-    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
-    &ELSE
-    DEFINE VARIABLE cSequenceMask                   AS CHARACTER            NO-UNDO.
-    DEFINE VARIABLE cQuantityIndicator              AS CHARACTER            NO-UNDO.
-    DEFINE VARIABLE hSequenceBuffer                 AS HANDLE               NO-UNDO.
-    DEFINE VARIABLE hNextSequenceBuffer             AS HANDLE               NO-UNDO.
-    DEFINE VARIABLE hNewNextSequenceBuffer          AS HANDLE               NO-UNDO.
-    DEFINE VARIABLE hSequenceQuery                  AS HANDLE               NO-UNDO.
-    DEFINE VARIABLE hNextSequenceQuery              AS HANDLE               NO-UNDO.
-    DEFINE VARIABLE hMultiTransaction               AS HANDLE               NO-UNDO.
-    DEFINE VARIABLE hSequenceObj                    AS HANDLE               NO-UNDO.
-    DEFINE VARIABLE hSequenceFormat                 AS HANDLE               NO-UNDO.
-    DEFINE VARIABLE hNumberOfSequences              AS HANDLE               NO-UNDO.
-    DEFINE VARIABLE hSequenceNextValue              AS HANDLE               NO-UNDO.
-    DEFINE VARIABLE hSequenceAutoGenerate           AS HANDLE               NO-UNDO.
-    DEFINE VARIABLE hSequenceMaxValue               AS HANDLE               NO-UNDO.
-    DEFINE VARIABLE hSequenceMinValue               AS HANDLE               NO-UNDO.
-    DEFINE VARIABLE hNextSequenceNextValue          AS HANDLE               NO-UNDO.
-    DEFINE VARIABLE hNewSequenceNextValue           AS HANDLE               NO-UNDO.                    
-    DEFINE VARIABLE hNextSequenceSequenceObj        AS HANDLE               NO-UNDO.
-    DEFINE VARIABLE hNewSequenceSequenceObj         AS HANDLE               NO-UNDO.
+    /* See if a sequence has been set up for the company requested specifically */
 
-    CREATE WIDGET-POOL "getSequenceValue":U.
-    CREATE BUFFER hSequenceBuffer   FOR TABLE "gsc_sequence":U     IN WIDGET-POOL "getSequenceValue":U.    
-    CREATE QUERY hSequenceQuery                                    IN WIDGET-POOL "getSequenceValue":U.
+    FIND FIRST gsc_sequence NO-LOCK
+         WHERE gsc_sequence.company_organisation_obj = pdCompanyObj
+           AND gsc_sequence.owning_entity_mnemonic   = pcEntityMnemonic
+           AND gsc_sequence.sequence_tla             = pcSequenceTla
+           AND gsc_sequence.sequence_active          = YES
+         NO-ERROR.
 
-    ASSIGN hMultiTransaction     = hSequenceBuffer:BUFFER-FIELD("multi_transaction":U)
-           hSequenceObj          = hSequenceBuffer:BUFFER-FIELD("sequence_obj":U)
-           hSequenceFormat       = hSequenceBuffer:BUFFER-FIELD("sequence_format":U)
-           hNumberOfSequences    = hSequenceBuffer:BUFFER-FIELD("number_of_sequences":U)
-           hSequenceNextValue    = hSequenceBuffer:BUFFER-FIELD("next_value":U)
-           hSequenceAutoGenerate = hSequenceBuffer:BUFFER-FIELD("auto_generate":U)
-           hSequenceMaxValue     = hSequenceBuffer:BUFFER-FIELD("max_value":U)
-           hSequenceMinValue     = hSequenceBuffer:BUFFER-FIELD("min_value":U)
-           .
-    hSequenceQuery:ADD-BUFFER(hSequenceBuffer).
-    hSequenceQuery:QUERY-PREPARE("FOR EACH ":U + hSequenceBuffer:NAME + " WHERE ":U
-                               + hSequenceBuffer:NAME + ".company_organisation_obj        = ":U + STRING(pdCompanyObj) + "  AND ":U
-                               + hSequenceBuffer:NAME + ".owning_entity_mnemonic          = '":U + pcEntityMnemonic    + "' AND ":U
-                               + hSequenceBuffer:NAME + ".sequence_tla    = '":U + pcSequenceTLA       + "' AND ":U
-                               + hSequenceBuffer:NAME + ".sequence_active = YES ":U
-                               + " NO-LOCK ":U).
-    hSequenceQuery:QUERY-OPEN().
-    hSequenceQuery:GET-FIRST(NO-LOCK).
+    /* If not available for the specific company, look for a system wide sequence */
 
-    IF NOT hSequenceBuffer:AVAILABLE AND
-       pdCompanyObj          <> 0 THEN
-    DO:
-        hSequenceQuery:QUERY-CLOSE().
-        hSequenceQuery:QUERY-PREPARE("FOR EACH ":U + hSequenceBuffer:NAME + " WHERE ":U
-                                     + hSequenceBuffer:NAME + ".company_organisation_obj        = 0                               AND ":U
-                                     + hSequenceBuffer:NAME + ".owning_entity_mnemonic          = '":U + pcEntityMnemonic    + "' AND ":U
-                                     + hSequenceBuffer:NAME + ".sequence_tla    = '":U + pcSequenceTLA       + "' AND ":U
-                                     + hSequenceBuffer:NAME + ".sequence_active = YES ":U
-                                     + " NO-LOCK ":U).
-        hSequenceQuery:QUERY-OPEN().
-        hSequenceQuery:GET-FIRST(NO-LOCK).
-    END.    /* no header for this company. */
+    IF NOT AVAILABLE gsc_sequence 
+    AND pdCompanyObj <> 0 THEN
+        FIND FIRST gsc_sequence NO-LOCK
+             WHERE gsc_sequence.company_organisation_obj = 0
+               AND gsc_sequence.owning_entity_mnemonic   = pcEntityMnemonic
+               AND gsc_sequence.sequence_tla             = pcSequenceTla
+               AND gsc_sequence.sequence_active          = YES
+             NO-ERROR.
 
-    IF hSequenceBuffer:AVAILABLE THEN
-    /* We need an explicit transaction here because we are working with dynamic buffers
-     * and buffer scoping. */
-    DO TRANSACTION:
-        /** There are multiple sequences set up (done to avoid locking issues). **/
-        IF hMultiTransaction:BUFFER-VALUE = YES THEN
-        DO:
-            /* Create the buffers. The first buffer "hNextSequenceBuffer"
-             * if used to find the first available next sequence record.
-             * This record is deleted after use. This is so that we can be assured
-             * that a locked record _is_ currently in use.
-             * 
-             * The "hNewNextSequenceBuffer" buffer is used to create the next iteration
-             * of the next sequence, and has an offset value (offset by the value specified on the 
-             * sequence master record). This ensures that if someone else is looking for a
-             * sequence value, we are not attempting to create a record which is 
-             * immediately requested.
-             *
-             * This implies that the higher the activity levels on the sequence's owning
-             * table, the higher the number of sequences should be stored.             
-             */
-            CREATE BUFFER hNextSequenceBuffer   FOR TABLE "gsc_next_sequence":U IN WIDGET-POOL "getSequenceValue":U.
+    IF AVAILABLE gsc_sequence THEN
+        IF gsc_sequence.multi_transaction = YES 
+        THEN DO:
+            fe-blk:
+            FOR EACH bgsc_next_sequence NO-LOCK
+               WHERE bgsc_next_sequence.sequence_obj = gsc_sequence.sequence_obj
+                  BY bgsc_next_sequence.next_sequence_value:
 
-            CREATE BUFFER hNewNextSequenceBuffer
-                FOR TABLE "gsc_next_sequence":U
-                BUFFER-NAME "lb_next_sequence":U
-                IN WIDGET-POOL "getSequenceValue":U.
+                /* We're going to grab the first sequence not locked */
 
-            CREATE QUERY hNextSequenceQuery IN WIDGET-POOL "getSequenceValue":U.
+                trn-blk:
+                DO TRANSACTION ON ERROR UNDO fe-blk, LEAVE fe-blk:
 
-            ASSIGN hNextSequenceNextValue   = hNextSequenceBuffer:BUFFER-FIELD("next_sequence_value":U)
-                   hNewSequenceNextValue    = hNewNextSequenceBuffer:BUFFER-FIELD("next_sequence_value":U)
-                   hNextSequenceSequenceObj = hNextSequenceBuffer:BUFFER-FIELD("sequence_obj":U)
-                   hNewSequenceSequenceObj  = hNewNextSequenceBuffer:BUFFER-FIELD("sequence_obj":U)
-                   .
-            hNextSequenceQuery:ADD-BUFFER(hNextSequenceBuffer).
-            hNextSequenceQuery:QUERY-PREPARE("FOR EACH ":U + hNextSequenceBuffer:NAME + " WHERE ":U
-                                             + hNextSequenceBuffer:NAME + ".sequence_obj = " + hSequenceObj:STRING-VALUE
-                                             + " AND " + hNextSequenceBuffer:NAME + ".next_sequence_value >= " + hSequenceNextValue:STRING-VALUE + " NO-LOCK ":U).
-            hNextSequenceQuery:QUERY-OPEN().
-            hNextSequenceQuery:GET-FIRST(EXCLUSIVE-LOCK, NO-WAIT).
-            IF NOT hNextSequenceBuffer:AVAILABLE THEN DO:
-              hNextSequenceQuery:QUERY-PREPARE("FOR EACH ":U + hNextSequenceBuffer:NAME + " WHERE ":U
-                                               + hNextSequenceBuffer:NAME + ".sequence_obj = " + hSequenceObj:STRING-VALUE
-                                               + " NO-LOCK ":U).
-              hNextSequenceQuery:QUERY-OPEN().
-              hNextSequenceQuery:GET-FIRST(EXCLUSIVE-LOCK, NO-WAIT).
+                    FIND gsc_next_sequence EXCLUSIVE-LOCK
+                         WHERE ROWID(gsc_next_sequence) = ROWID(bgsc_next_sequence)
+                         NO-WAIT NO-ERROR.
+
+                    IF NOT AVAILABLE gsc_next_sequence
+                    OR LOCKED gsc_next_sequence THEN
+                        UNDO trn-blk, LEAVE trn-blk.
+
+                    RUN getSequenceMask (INPUT gsc_sequence.sequence_format,
+                                         OUTPUT cQuantityIndicator,
+                                         OUTPUT cSequenceMask) NO-ERROR.
+
+                    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
+
+                    iSite = INDEX(gsc_sequence.sequence_format, "&S":U).
+                    IF iSite > 0 THEN
+                    DO:
+                      RUN getSiteNumber(OUTPUT iSite).
+                      pcNextSequenceValue = REPLACE(gsc_sequence.sequence_format, "&S":U, STRING(iSite)).
+                    END.
+                    ELSE
+                      pcNextSequenceValue = gsc_sequence.sequence_format.
+
+                    /* Assign the sequence */
+                    ASSIGN pcNextSequenceValue = SUBSTITUTE(pcNextSequenceValue,
+                                                            SUBSTRING(STRING(YEAR(TODAY)), 4, 1),
+                                                            SUBSTRING(STRING(YEAR(TODAY)), 3, 2),
+                                                            ENTRY(MONTH(TODAY), "JAN,FEB,MAR,APR,MAY,JUN,JUL,AUG,SEP,OCT,NOV,DEC"),
+                                                            STRING(YEAR(TODAY),"9999":U),
+                                                            STRING(MONTH(TODAY),"99":U),
+                                                            STRING(DAY(TODAY),"99":U),
+                                                            STRING(WEEKDAY(TODAY)),
+                                                            TRIM(STRING(gsc_next_sequence.next_sequence_value, ">>>>>>>9":U)),
+                                                            STRING(gsc_next_sequence.next_sequence_value, cSequenceMask)).
+
+                    IF cQuantityIndicator <> "":U THEN
+                        ASSIGN pcNextSequenceValue = REPLACE(pcNextSequenceValue, cQuantityIndicator, "":U).
+
+                    /* Create a new sequence at the end of the list */
+
+                    CREATE b2gsc_next_sequence.
+                    ASSIGN b2gsc_next_sequence.sequence_obj        = gsc_sequence.sequence_obj
+                           b2gsc_next_sequence.next_sequence_value = gsc_next_sequence.next_sequence_value + gsc_sequence.number_of_sequences.
+
+                    /* Delete the sequence we assigned, it was first in the list */
+
+                    DELETE gsc_next_sequence.
+                    
+                    /* We needed the first, not locked sequence in the next_Sequence list.  We found it, used it, we're finished, leave. */
+
+                    LEAVE fe-blk.
+                END.
             END.
+        END.
+        ELSE else-blk: DO TRANSACTION ON ERROR UNDO else-blk, LEAVE else-blk:
 
-            /* There should always be the next sequence values set up.
-             * The sequence master maintenance suite should take 
-             * care of the initial creation of next-sequence values. */
-            IF NOT hNextSequenceBuffer:AVAILABLE THEN
-                RETURN ERROR {aferrortxt.i 'AF' '11' hNextSequenceBuffer:NAME '?' '"first sequence record"' '"the current sequence"' }.
+            FIND CURRENT gsc_sequence EXCLUSIVE-LOCK NO-WAIT NO-ERROR.
 
-            IF hNextSequenceBuffer:LOCKED THEN
-            LOCK-LOOP:
-            REPEAT WHILE NOT hNextSequenceQuery:QUERY-OFF-END:
-                hNextSequenceQuery:GET-NEXT(EXCLUSIVE-LOCK, NO-WAIT).
-                IF hNextSequenceBuffer:AVAILABLE THEN
-                    LEAVE LOCK-LOOP.
-            END.    /* next record locked. */
+            IF LOCKED gsc_sequence THEN
+                RETURN ERROR {aferrortxt.i 'AF' '104' "'gsc_sequence'" '?' "'modify the gsc_sequence'" }.
 
-            RUN getSequenceMask ( INPUT  hSequenceFormat:BUFFER-VALUE,
-                                  OUTPUT cQuantityIndicator,
-                                  OUTPUT cSequenceMask ) NO-ERROR.
+            RUN getSequenceMask (INPUT  gsc_sequence.sequence_format,
+                                 OUTPUT cQuantityIndicator,
+                                 OUTPUT cSequenceMask) NO-ERROR.
+
             IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
             
-            /* Assign the sequence and delete it, so the next sequence is available as soon as possible */
-            ASSIGN pcNextSequenceValue = SUBSTITUTE( hSequenceFormat:BUFFER-VALUE,
-                                                     SUBSTRING(STRING(YEAR(TODAY)), 4, 1),
-                                                     SUBSTRING(STRING(YEAR(TODAY)), 3, 2),
-                                                     ENTRY(MONTH(TODAY), "JAN,FEB,MAR,APR,MAY,JUN,JUL,AUG,SEP,OCT,NOV,DEC"),
-                                                     STRING(YEAR(TODAY)),
-                                                     STRING(MONTH(TODAY)),
-                                                     STRING(DAY(TODAY)),
-                                                     STRING(WEEKDAY(TODAY)),
-                                                     STRING(hNextSequenceNextValue:BUFFER-VALUE, ">>>>>>>9":U),
-                                                     STRING(hNextSequenceNextValue:BUFFER-VALUE, cSequenceMask)    )
-                   NO-ERROR.
-            hSequenceQuery:GET-CURRENT(EXCLUSIVE-LOCK, NO-WAIT).
-            IF hSequenceBuffer:LOCKED THEN
-                RETURN ERROR {aferrortxt.i 'AF' '104' "hSequenceBuffer:NAME" '?' "'modify the ' + hSequenceBuffer:NAME" }.
-            ELSE 
-              ASSIGN hSequenceNextValue:BUFFER-VALUE = hNextSequenceNextValue:BUFFER-VALUE NO-ERROR.
-
-            IF cQuantityIndicator <> "":U THEN
-                ASSIGN pcNextSequenceValue = REPLACE(pcNextSequenceValue, cQuantityIndicator, "":U).
-
-            /* Create the new sequence, the db trigger will check for exceeding of min and max values. *
-             * We can't start numbering from min when max is reached, as for the gsc_sequence, as this *
-             * will cause min value to be created every time this code is run                          */
-            hNewNextSequenceBuffer:BUFFER-CREATE() NO-ERROR.
-            IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
-
-            ASSIGN hNewSequenceSequenceObj:BUFFER-VALUE = hSequenceObj:BUFFER-VALUE.
-            /* Check that the next sequence value is not more than the Maximum number allowed
-               If this is the case set it back to the minimum value */
-            IF (hNextSequenceNextValue:BUFFER-VALUE + hNumberOfSequences:BUFFER-VALUE) > hSequenceMaxValue:BUFFER-VALUE THEN
-              ASSIGN hNewSequenceNextValue:BUFFER-VALUE = hSequenceNextValue:BUFFER-VALUE + hSequenceMinValue:BUFFER-VALUE + hNumberOfSequences:BUFFER-VALUE - hSequenceMaxValue:BUFFER-VALUE - 1.
+            iSite = INDEX(gsc_sequence.sequence_format, "&S":U).
+            IF iSite > 0 THEN
+            DO:
+              RUN getSiteNumber(OUTPUT iSite).
+              pcNextSequenceValue = REPLACE(gsc_sequence.sequence_format, "&S":U, STRING(iSite)).
+            END.
             ELSE
-              ASSIGN hNewSequenceNextValue:BUFFER-VALUE = hNextSequenceNextValue:BUFFER-VALUE + hNumberOfSequences:BUFFER-VALUE
-                     NO-ERROR.
-            hNewNextSequenceBuffer:BUFFER-RELEASE() NO-ERROR.
-            IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
+              pcNextSequenceValue = gsc_sequence.sequence_format.
 
-            hNextSequenceBuffer:BUFFER-DELETE() NO-ERROR.
-            IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.            
-        END. /* If hMultiTransaction:BUFFER-VALUE = YES */
-        ELSE
-        DO:
-            hSequenceQuery:GET-CURRENT(EXCLUSIVE-LOCK, NO-WAIT).
-            IF hSequenceBuffer:LOCKED THEN
-                RETURN ERROR {aferrortxt.i 'AF' '104' "hSequenceBuffer:NAME" '?' "'modify the ' + hSequenceBuffer:NAME" }.
-
-            RUN getSequenceMask ( INPUT  hSequenceFormat:BUFFER-VALUE,
-                                  OUTPUT cQuantityIndicator,
-                                  OUTPUT cSequenceMask ) NO-ERROR.
-            IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.            
-
-            ASSIGN pcNextSequenceValue = SUBSTITUTE(hSequenceFormat:BUFFER-VALUE,
+            /* Assign the sequence */
+            ASSIGN pcNextSequenceValue = SUBSTITUTE(pcNextSequenceValue,
                                                     SUBSTRING(STRING(YEAR(TODAY)),4,1),
                                                     SUBSTRING(STRING(YEAR(TODAY)),3,2),
                                                     ENTRY(MONTH(TODAY),"JAN,FEB,MAR,APR,MAY,JUN,JUL,AUG,SEP,OCT,NOV,DEC":U),
-                                                    STRING(YEAR(TODAY)),
-                                                    STRING(MONTH(TODAY)),
-                                                    STRING(DAY(TODAY)),
+                                                    STRING(YEAR(TODAY),"9999":U),
+                                                    STRING(MONTH(TODAY),"99":U),
+                                                    STRING(DAY(TODAY),"99":U),
                                                     STRING(WEEKDAY(TODAY)),
-                                                    STRING(hSequenceNextValue:BUFFER-VALUE, ">>>>>>>9":U),
-                                                    STRING(hSequenceNextValue:BUFFER-VALUE, cSequenceMask)  )                
-                NO-ERROR.
-
+                                                    TRIM(STRING(gsc_sequence.next_value, ">>>>>>>9":U)),
+                                                    STRING(gsc_sequence.next_value, cSequenceMask)) NO-ERROR.
             IF cQuantityIndicator <> "":U THEN
                 ASSIGN pcNextSequenceValue = REPLACE(pcNextSequenceValue, cQuantityIndicator, "":U).
 
-            IF hSequenceAutoGenerate:BUFFER-VALUE = YES THEN
-            DO:
-                /* Start at the beginning again. */
-                IF hSequenceNextValue:BUFFER-VALUE >= hSequenceMaxValue:BUFFER-VALUE THEN
-                    ASSIGN hSequenceNextValue:BUFFER-VALUE = hSequenceMinValue:BUFFER-VALUE NO-ERROR.
+            IF gsc_sequence.auto_generate = YES THEN
+                IF gsc_sequence.next_value = gsc_sequence.max_value THEN
+                    ASSIGN gsc_sequence.next_value = gsc_sequence.min_value.
                 ELSE
-                    ASSIGN hSequenceNextValue:BUFFER-VALUE = hSequenceNextValue:BUFFER-VALUE + 1 NO-ERROR.
-
-                IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
-            END.    /* auto generate */
-        END.    /* no multi-sequence */
-    END.    /* available sequence */
-
-    /* Clean up. */
-    /* queries */
-    DELETE OBJECT hSequenceQuery NO-ERROR.
-    ASSIGN hSequenceQuery = ?.
-
-    DELETE OBJECT hNextSequenceQuery NO-ERROR.
-    ASSIGN hNextSequenceQuery = ?.
-
-    /* buffers  */
-    DELETE OBJECT hSequenceBuffer NO-ERROR.
-    ASSIGN hSequenceBuffer = ?.
-
-    DELETE OBJECT hNextSequenceBuffer NO-ERROR.
-    ASSIGN hNextSequenceBuffer = ?.
-
-    DELETE OBJECT hNewNextSequenceBuffer NO-ERROR.
-    ASSIGN hNewNextSequenceBuffer = ?.
-
-    DELETE WIDGET-POOL "getSequenceValue":U.    
-    &ENDIF
+                    ASSIGN gsc_sequence.next_value = gsc_sequence.next_value + 1.
+        END.
+&ENDIF
        
-    RETURN.
+ASSIGN ERROR-STATUS:ERROR = NO.
+RETURN "":U.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2300,24 +2294,14 @@ PROCEDURE getSiteNumber :
 DEFINE OUTPUT PARAMETER piSite              AS INTEGER  NO-UNDO.
 
 &IF DEFINED(server-side) = 0 &THEN
-{ afrun2.i
-    &PLIP            = 'af/app/afsuprmanp.p'
-    &IProc           = 'setAsSuperProcedure'
-    &PList           = "(INPUT 'GEN':U, INPUT 'ADD':U)"
-    &AutoKillOnError = YES
-}
-IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
-
-{ afrun2.i
-    &PLIP        = 'af/app/afsuprmanp.p'
-    &IProc       = 'getSiteNumber'
-    &PList       = "( OUTPUT piSite )"
-    &AutoKill    = YES
-    &PlipRunError = "RETURN ERROR cErrorMessage."
-}
-IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
+    {
+     dynlaunch.i &PLIP              = "'GeneralManager'"
+                 &iProc             = "'getSiteNumber'"
+                 &compileStaticCall = NO                 
+                 &mode1  = OUTPUT &parm1 = piSite &dataType1 = INTEGER
+    }
+    IF RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
 &ELSE
-
   DEFINE VARIABLE iSeqObj1          AS INTEGER    NO-UNDO.
   DEFINE VARIABLE iSeqObj2          AS INTEGER    NO-UNDO.
   DEFINE VARIABLE iSeqSiteDiv       AS INTEGER    NO-UNDO.
@@ -2477,7 +2461,6 @@ PROCEDURE getStatusRecord :
     END.    /* available */
 
     hQuery:QUERY-CLOSE().
-    DELETE OBJECT hquery.
     DELETE WIDGET-POOL cWidgetPool.
 
     RETURN.
@@ -2493,32 +2476,25 @@ PROCEDURE getTableInfo :
                the updatable table in the supplied data source
                Entry 1 - Owning Entity Mnemonic
                Entry 2 - Table Name
-               Entry 3 - Obj Field of Table
-                              
+               Entry 3 - Key Field of Table
+
   Parameters:  phDataSource
                pcReturnValue
-  Notes:       
+  Notes:       This procedure differs from getTableInfoObj only in that it returns
+               a key field for entry 3 in the return value.
 ------------------------------------------------------------------------------*/
     DEFINE INPUT  PARAMETER pcUpdatableTable    AS CHARACTER        NO-UNDO.
     DEFINE OUTPUT PARAMETER pcReturnValue       AS CHARACTER        NO-UNDO. 
 
     &IF DEFINED(server-side) = 0 &THEN
-    { afrun2.i
-        &PLIP            = 'af/app/afsuprmanp.p'
-        &IProc           = 'setAsSuperProcedure'
-        &PList           = "(INPUT 'GEN':U, INPUT 'ADD':U)"
-        &AutoKillOnError = YES
+    {
+     dynlaunch.i &PLIP              = "'GeneralManager'"
+                 &iProc             = "'getTableInfo'"
+                 &compileStaticCall = NO
+                 &mode1 = INPUT  &parm1 = pcUpdatableTable &dataType1 = CHARACTER
+                 &mode2 = OUTPUT &parm2 = pcReturnValue    &dataType2 = CHARACTER
     }
-    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
-
-    { afrun2.i
-        &PLIP     = 'af/app/afsuprmanp.p'
-        &IProc    = 'getTableInfo'
-        &PList    = "(INPUT pcUpdatableTable, OUTPUT pcReturnValue )"
-        &AutoKill = YES
-        &PlipRunError = "RETURN ERROR cErrorMessage."
-    }
-    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
+    IF RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
     &ELSE
     DEFINE VARIABLE cOwningEntityMnemonic   AS CHARACTER     NO-UNDO.
     DEFINE VARIABLE cTableDumpName          AS CHARACTER     NO-UNDO.
@@ -2557,98 +2533,124 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE OverrideTriggers Include 
-PROCEDURE OverrideTriggers :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getTableInfoObj Include 
+PROCEDURE getTableInfoObj :
 /*------------------------------------------------------------------------------
-  Purpose:     Server side only API to override triggers for the specified table
-  Parameters:  input database name (if known)
-               input table name to override triggers in
-               input comma delimited list of triggers to override or * for all
-               input override flag yes/no, yes = set override, no = delete it
-  Notes:       The supported triggers for override are:
-               create,delete,write,find,replication-create,replication-delete,replication-write
-               This api assumes the trigger will contain code at the top using the
-               standard include file aftrigover.i, e.g.
-               
-               {aftrigover.i &DB-NAME      = "ICFDB"
-                                     &TABLE-NAME   = "gst_trigger_override"
-                                     &TRIGGER-TYPE = "CREATE"}
+  Purpose:     Returns a CHR(4) delimited list of the following information about
+               the updatable table in the supplied data source
+               Entry 1 - Owning Entity Mnemonic
+               Entry 2 - Table Name
+               Entry 3 - Obj Field of Table
 
-               If the triggers were generated by ERwin, then this code is inserted
-               automatically as it has been placed in the trigger macro templates
-               afercustrg.i, aftemreplc.i, aftemreplw.i, and aftemrepld.i
-               
-               This API creates or deletes the gst_trigger_override records being
-               checked by the include file.
-
-               This API must be called from within the database transaction for
-               both the create and delete
+  Parameters:  phDataSource
+               pcReturnValue
+  Notes:       This procedure differs from getTableInfo only in that it returns
+               an obj field for entry 3 in the return value.
 ------------------------------------------------------------------------------*/
+    DEFINE INPUT  PARAMETER pcUpdatableTable    AS CHARACTER        NO-UNDO.
+    DEFINE OUTPUT PARAMETER pcReturnValue       AS CHARACTER        NO-UNDO. 
 
-DEFINE INPUT PARAMETER  pcDbName                  AS CHARACTER  NO-UNDO.
-DEFINE INPUT PARAMETER  pcTableName               AS CHARACTER  NO-UNDO.
-DEFINE INPUT PARAMETER  pcTriggerList             AS CHARACTER  NO-UNDO.
-DEFINE INPUT PARAMETER  plOverride                AS LOGICAL    NO-UNDO.
-
-DEFINE VARIABLE hBuffer                           AS HANDLE     NO-UNDO.
-DEFINE VARIABLE cUserLogin                        AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE iLoop                             AS INTEGER    NO-UNDO.
-DEFINE VARIABLE iTransaction                      AS INTEGER    NO-UNDO.
-
-&IF DEFINED(server-side) <> 0 &THEN
-
-  IF pcDbName = "":U THEN
-  DO:
-    CREATE BUFFER hBuffer FOR TABLE pcTableName.
-    ASSIGN pcDbName = hBuffer:DBNAME.
-    DELETE OBJECT hBuffer.
-    ASSIGN hBuffer = ?.
-  END.
-  
-  ASSIGN iTransaction = DBTASKID(pcDbName).
-  IF NOT iTransaction > 0 THEN RETURN.
-  
-  IF plOverride THEN
-  DO: /* override triggers */
-    cUserLogin = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
-                                  INPUT "currentUserLogin":U,
-                                  INPUT NO).
-    CREATE gst_trigger_override.
-    ASSIGN
-      gst_trigger_override.TABLE_name = pcTableName
-      gst_trigger_override.TRANSACTION_id = iTransaction
-      gst_trigger_override.OVERRIDE_date = TODAY
-      gst_trigger_override.OVERRIDE_time = TIME
-      gst_trigger_override.OVERRIDE_trigger_list = pcTriggerList
-      gst_trigger_override.OVERRIDE_user = cUserLogin
-      gst_trigger_override.calling_stack = "":U
-      iLoop = 1
-      .
-    DO WHILE PROGRAM-NAME(iLoop) <> ?:
-      ASSIGN
-       gst_trigger_override.calling_stack = gst_trigger_override.calling_stack + PROGRAM-NAME(iLoop) + CHR(10)
-       iLoop = iLoop + 1
-       .
-    END.
+    &IF DEFINED(server-side) = 0 &THEN
+    {
+     dynlaunch.i &PLIP              = "'GeneralManager'"
+                 &iProc             = "'getTableInfoObj'"
+                 &compileStaticCall = NO
+                 &mode1 = INPUT  &parm1 = pcUpdatableTable &dataType1 = CHARACTER
+                 &mode2 = OUTPUT &parm2 = pcReturnValue    &dataType2 = CHARACTER
+    }
+    IF RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
+    &ELSE
+    DEFINE VARIABLE cOwningEntityMnemonic   AS CHARACTER     NO-UNDO.
+    DEFINE VARIABLE cTableDumpName          AS CHARACTER     NO-UNDO.
+    DEFINE VARIABLE cObjField               AS CHARACTER     NO-UNDO.
+    DEFINE VARIABLE iCounter                AS INTEGER       NO-UNDO.
     
-    RELEASE gst_trigger_override.
-  END.
-  ELSE
-  DO: /* delete override */
-    FIND FIRST gst_trigger_override EXCLUSIVE-LOCK
-         WHERE gst_trigger_override.TABLE_name = pcTableName
-           AND gst_trigger_override.TRANSACTION_id = iTransaction
-           AND gst_trigger_override.OVERRIDE_date >= TODAY - 1
-           AND gst_trigger_override.OVERRIDE_date <= TODAY + 1
-         NO-ERROR.
-    IF AVAILABLE gst_trigger_override THEN
-      DELETE gst_trigger_override.
-  END.
+    IF TRIM(pcUpdatableTable) <> "":U  THEN
+    DO:
+        ASSIGN cTableDumpName = "":U.
+        
+        DO iCounter = 1 TO NUM-DBS:
+            IF cTableDumpName = "":U THEN
+                ASSIGN cTableDumpName = DYNAMIC-FUNCTION("getTableDumpName":U, INPUT LDBNAME(iCounter) + "|":U + pcUpdatableTable).
+        END.    /* count DBS */
 
-&ENDIF
+        IF cTableDumpName <> "":U 
+        THEN DO:
+            ASSIGN cOwningEntityMnemonic = CAPS(cTableDumpName).
 
-ERROR-STATUS:ERROR = NO.
-RETURN.
+            IF INDEX(cOwningEntityMnemonic, ".D":U) <> 0 THEN
+                ASSIGN cOwningEntityMnemonic = REPLACE(cOwningEntityMnemonic, ".D":U, "":U).
+
+            ASSIGN cObjField     = getObjField(cTableDumpName)
+                   pcReturnValue = cOwningEntityMnemonic + CHR(4)
+                                 + pcUpdatableTable      + CHR(4)
+                                 + cObjField.
+        END.
+    END.
+    &ENDIF
+    
+    ASSIGN ERROR-STATUS:ERROR = NO.
+    RETURN "":U.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getUserSourceLanguage Include 
+PROCEDURE getUserSourceLanguage :
+/*------------------------------------------------------------------------------
+  Purpose:  Returns the Source Language of a user
+    Notes:  This function will only be run on the AppServer, or a DB-aware client
+------------------------------------------------------------------------------*/
+    DEFINE INPUT  PARAMETER pdUserObj           AS DECIMAL NO-UNDO.    
+    DEFINE OUTPUT PARAMETER pdSourceLanguageObj AS DECIMAL NO-UNDO.
+
+    &IF DEFINED(server-side) = 0 &THEN
+    {
+     dynlaunch.i &PLIP              = "'GeneralManager'"
+                 &iProc             = "'getUserSourceLanguage'"
+                 &compileStaticCall = NO
+                 &mode1 = INPUT  &parm1 = pdUserObj           &dataType1 = DECIMAL
+                 &mode2 = OUTPUT &parm2 = pdSourceLanguageObj &dataType2 = DECIMAL
+    }
+    IF RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
+    &ELSE
+      DEFINE VARIABLE rRowid        AS ROWID      NO-UNDO.
+      DEFINE VARIABLE cProfileData  AS CHARACTER  NO-UNDO.
+      
+      pdSourceLanguageObj = 0.
+      ASSIGN rRowid = ?.
+      RUN getProfileData IN gshProfileManager (INPUT "General":U,
+                                               INPUT "SLanguage":U,
+                                               INPUT "SLanguage":U,
+                                               INPUT NO,
+                                               INPUT-OUTPUT rRowid,
+                                               OUTPUT cProfileData).
+      IF cProfileData = "":U OR
+        cProfileData = ? OR
+        NOT CAN-FIND(gsc_language WHERE gsc_language.language_obj = DECIMAL(cProfileData)) THEN DO:
+        FIND FIRST gsc_global_control NO-LOCK NO-ERROR.
+        IF AVAILABLE gsc_global_control THEN
+          pdSourceLanguageObj = gsc_global_control.default_language_obj.
+     END.
+     ELSE
+       pdSourceLanguageObj = DECIMAL(cProfileData).
+    &ENDIF
+    RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE makeObjectTTHandleStatic Include 
+PROCEDURE makeObjectTTHandleStatic :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER TABLE FOR cache_object.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2670,23 +2672,38 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE refreshMnemonicsCache Include 
 PROCEDURE refreshMnemonicsCache :
 /*------------------------------------------------------------------------------
-  Purpose:     To get the latest set of Entity Mnemonic Records into the cache
+  Purpose:     To get the latest set of Entity Mnemonic and Entity Display Field
+               Records into the cache
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
     EMPTY TEMP-TABLE ttEntityMnemonic.
+    EMPTY TEMP-TABLE ttEntityDisplayField.
     
-    &IF DEFINED(server-side) <> 0 &THEN
-    /* On the server side run the internal procedure to populate the cache
-       in this general manager */
-    RUN gsgetenmnp (OUTPUT TABLE ttEntityMnemonic).
-    &ELSE
-    /* This is on the client-side so run gsgetenmp.p directly to populate
-       the Entity Mnemonic cache */
-    RUN af/app/gsgetenmnp.p ON gshAstraAppserver (OUTPUT TABLE ttEntityMnemonic).
-    &ENDIF
-          
+    /* The cache will be repopulated as entities are requested */      
+
     RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE sendLoginCache Include 
+PROCEDURE sendLoginCache :
+/*------------------------------------------------------------------------------
+  Purpose:     When running Appserver, all cache needed for startup is cached in
+               one Appserver hit.  As the managers need it, they request it from
+               the cache PLIPP.  In this case, the entity_mnemonic cache has been
+               requested.
+  Parameters:  <none>
+  Notes:       This procedure is redundant.
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER TABLE FOR ttEntityMnemonic.
+
+/* We're not supposed to run this procedure any more.  If we do for some reason, clear the temp-tables to ensure *
+ * we get our entity info from the rep manager as it's requested */
+EMPTY TEMP-TABLE ttEntityMnemonic.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2788,11 +2805,14 @@ PROCEDURE updateTableViaSDO :
         RUN initializeObject IN hSDO NO-ERROR.
         IF ERROR-STATUS:ERROR THEN
             RETURN ERROR {aferrortxt.i 'AF' '40' '?' '?' "'error initialising ' + pcSdoDescription + ' SDO'" }.
-        ELSE
-            RUN serverCommit IN hSDO ( INPUT-OUTPUT TABLE-HANDLE phRowObjUpd,
-                                             OUTPUT cErrorList,
-                                             OUTPUT cUndoRowids          ) NO-ERROR.
-        ASSIGN lErrorStatus = ERROR-STATUS:ERROR.
+        ELSE DO:
+          DYNAMIC-FUNCTION("setRowObjUpdTable":U IN hSDO,phRowObjUpd) NO-ERROR.
+          RUN bufferCommit IN hSDO (OUTPUT cErrorList,
+                                    OUTPUT cUndoRowids) NO-ERROR.
+        END.
+        
+        ASSIGN lErrorStatus = ERROR-STATUS:ERROR
+               cErrorList   = ERROR-STATUS:GET-MESSAGE(1).
 
         IF DYNAMIC-FUNCTION("getInternalEntryExists":U IN gshSessionManager, INPUT hSDO, INPUT "destroyObject":U) THEN
             RUN destroyObject IN hSDO.
@@ -2830,43 +2850,13 @@ PROCEDURE validateEntityMnemonic :
     DEFINE INPUT  PARAMETER pcEntityMnemonic        AS CHARACTER NO-UNDO.
     DEFINE OUTPUT PARAMETER pcResult                AS CHARACTER NO-UNDO.
 
+    /* Make sure the entity is cached */
+    RUN cacheEntity IN THIS-PROCEDURE (pcEntityMnemonic, /* Table FLA */
+                                       "":U).            /* Tablename */
+    
     /* Has an Entity Mnemonic record been created yet? */
     IF CAN-FIND(ttEntityMnemonic WHERE ttEntityMnemonic.entity_mnemonic = pcEntityMnemonic) THEN
         ASSIGN pcResult = "OK":U.
-    ELSE
-    DO:
-    &IF DEFINED(server-side) = 0 &THEN
-        { afrun2.i
-            &PLIP            = 'af/app/afsuprmanp.p'
-            &IProc           = 'setAsSuperProcedure'
-            &PList           = "(INPUT 'GEN':U, INPUT 'ADD':U)"
-            &AutoKillOnError = YES
-        }
-        IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
-
-        { afrun2.i
-            &PLIP         = 'af/app/afsuprmanp.p'
-            &IProc        = 'validateEntityMnemonic'
-            &PList        = "(INPUT pcEntityMnemonic, OUTPUT pcResult)"
-            &AutoKill     = YES
-            &PlipRunError = "RETURN ERROR cErrorMessage."
-        }
-        IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
-    &ELSE
-    /* Has an Entity Mnemonic record been created yet?  */
-    IF CAN-FIND(gsc_entity_mnemonic WHERE gsc_entity_mnemonic.entity_mnemonic = pcEntityMnemonic) THEN
-        ASSIGN pcResult = "REFRESH":U.
-    &ENDIF
-    END.    /* not locally cached. */
-
-    /* If the result is refresh, then the entity mnemonic has been found in the
-     * database, but not in the cache. We refresh the cache, so that it can
-     * be found there next time.                                               */
-    IF pcResult = "REFRESH":U THEN
-    DO:
-        RUN refreshMnemonicsCache.
-        ASSIGN pcResult = "OK":U.
-    END.    /* result is refresh */
 
     RETURN.
 END PROCEDURE.
@@ -2924,6 +2914,94 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION createFolder Include 
+FUNCTION createFolder RETURNS LOGICAL
+    ( INPUT pcFolderName       AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Creates a folder, if it doesn't exist.
+    Notes:  
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE iErrorCode              AS INTEGER                  NO-UNDO.
+    DEFINE VARIABLE cCompositePath          AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE cFolder                 AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE iFolderCOunt            AS INTEGER                  NO-UNDO.
+
+    ASSIGN pcFolderName        = REPLACE(pcFolderName, "~\":U, "/":U)
+           FILE-INFO:FILE-NAME = pcFolderName
+           .
+    IF FILE-INFO:FULL-PATHNAME EQ ? THEN
+    DO:
+        ASSIGN cCompositePath = "":U.
+
+        DO iFolderCount = 1 TO NUM-ENTRIES(pcFolderName, "/":U).
+            ASSIGN cFolder = ENTRY(iFolderCount, pcFolderName, "/":U).
+
+            ASSIGN cCompositePath = cCompositePath + (IF NUM-ENTRIES(cCompositePath, "/":U) EQ 0 THEN "":U ELSE "/":U)
+                                  + cFolder.
+
+            ASSIGN FILE-INFO:FILE-NAME = cCompositePath.
+            IF FILE-INFO:FULL-PATHNAME EQ ? THEN
+            DO:
+                OS-CREATE-DIR VALUE(cCompositePath).
+                ASSIGN iErrorCode = OS-ERROR.
+                IF iErrorCode NE 0 THEN
+                    LEAVE.
+            END.    /* need to create the folder */
+        END.    /* folder count. */
+    END.    /* folder doesn't exist */
+
+    RETURN (iErrorCode EQ 0).
+END FUNCTION.   /* createFolder */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION detectFileType Include 
+FUNCTION detectFileType RETURNS CHARACTER
+    ( INPUT pcFileName AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:   Determines from the filename the type of file.
+    Notes:   Valid file types are:
+             U = URL
+             N = UNC File Name (\\Machine\share\directory\file)
+             D = DOS/Windows   (D:\directory\file)
+             X = Unix Filename
+------------------------------------------------------------------------------*/
+  /* If the first 7 characters are http:// or the
+     first 8 are https:// (secure http) or the
+     first 6 are ftp:// this is a URL */
+  IF (SUBSTRING(pcFileName,1,7) = "http://":U OR
+      SUBSTRING(pcFileName,1,8) = "https://":U OR
+      SUBSTRING(pcFileName,1,6) = "ftp://":U) THEN
+    RETURN "U":U.
+
+  /* If the first two characters are // and we are on a WIN32 machine,
+     it's a UNC file name */
+  IF (SUBSTRING(pcFileName,1,2) = "//":U OR
+      SUBSTRING(pcFileName,1,2) = "~\~\":U) THEN
+    RETURN "N":U.
+
+  /* If the second character is a colon, or there is a backslash
+     anywhere in this filename, it is DOS filename */
+  IF SUBSTRING(pcFileName,2,1) = ":":U OR
+     INDEX(pcFileName,"~\":U) <> 0 THEN
+    RETURN "D":U.
+
+  /* If the first character is a / we've got a Unix file. */
+  IF SUBSTRING(pcFileName,1,1) = "/":U THEN
+   RETURN "X":U.
+
+  /* Now we're down to figuring out from the operating system that we're on
+     the type of file. */
+  IF OPSYS = "UNIX":U THEN
+    RETURN "X":U.
+
+  RETURN "D":U.   /* If all else fails it must be DOS */
+END FUNCTION.   /* detectFileType */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION formatPersonDetails Include 
 FUNCTION formatPersonDetails RETURNS CHARACTER
   (pcLastName  AS CHARACTER,
@@ -2955,6 +3033,88 @@ FUNCTION formatPersonDetails RETURNS CHARACTER
   END.
   
   RETURN cPersonDetails.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getEntityCacheBuffer Include 
+FUNCTION getEntityCacheBuffer RETURNS HANDLE
+  ( pcEntity    AS CHARACTER,
+    pcTableName AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Returns the buffer handle of the temp-table used to store the cached 
+            entity mnemonic buffer.
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hBuffer                 AS HANDLE                   NO-UNDO.
+  
+  /* Make sure the entity is cached */
+  RUN cacheEntity IN THIS-PROCEDURE (pcEntity, 
+                                     pcTableName).
+  
+  /* If for some weird reason we still don't have any
+     cached entities - return unknown */
+  IF NOT CAN-FIND(FIRST ttEntityMnemonic) THEN
+    ASSIGN hBuffer = ?.
+  ELSE
+    ASSIGN hBuffer = BUFFER ttEntityMnemonic:HANDLE.
+
+  RETURN hBuffer.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getEntityFieldCacheBuffer Include 
+FUNCTION getEntityFieldCacheBuffer RETURNS HANDLE
+  ( pcEntity    AS CHARACTER,
+    pcTableName AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Returns the buffer handle of the temp-table used to store the cached 
+            entity display field buffer.
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hBuffer                 AS HANDLE                   NO-UNDO.
+  
+  /* Make sure the entity is cached */
+  RUN cacheEntity IN THIS-PROCEDURE (pcEntity,
+                                     pcTableName).
+
+  /* If we are passed an entity or table name we 
+     want to check if they exist in the cache and if
+     not we want to refresh the cache */
+  IF pcEntity <> "":U THEN DO:
+    IF NOT CAN-FIND(FIRST ttEntityMnemonic) OR
+      (pcEntity <> "*":U AND 
+       NOT CAN-FIND(FIRST ttEntityMnemonic
+                    WHERE ttEntityMnemonic.entity_mnemonic = pcEntity)) THEN
+      RUN refreshMnemonicsCache.
+    ELSE
+  END.
+  IF pcTableName <> "":U THEN DO:
+    IF NOT CAN-FIND(FIRST ttEntityMnemonic) OR
+      (pcTableName <> "*":U AND 
+       NOT CAN-FIND(FIRST ttEntityMnemonic
+                    WHERE ttEntityMnemonic.entity_mnemonic_description = pcTableName)) THEN
+      RUN refreshMnemonicsCache.
+  END.
+  
+  IF pcEntity = "":U AND
+     pcTableName = "":U AND
+     NOT CAN-FIND(FIRST ttEntityMnemonic) THEN
+    RUN refreshMnemonicsCache.
+  
+  /* If for some weird reason we still don't have any
+     cached entities - return unknown */
+  IF NOT CAN-FIND(FIRST ttEntityDisplayField) THEN
+    hBuffer = ?.
+  ELSE
+    ASSIGN hBuffer = BUFFER ttEntityDisplayField:HANDLE.
+
+  RETURN hBuffer.
 
 END FUNCTION.
 
@@ -3072,8 +3232,12 @@ FUNCTION getKeyField RETURNS CHARACTER
     Notes:  
             
 ------------------------------------------------------------------------------*/
+  /* Make sure the entity is cached */
+  RUN cacheEntity IN THIS-PROCEDURE (pcEntityMnemonic, /* Entity Mnemonic */
+                                     "":U).            /* Table */
+
   FIND ttEntityMnemonic 
-      WHERE ttEntityMnemonic.entity_mnemonic = pcEntityMnemonic NO-ERROR.
+       WHERE ttEntityMnemonic.entity_mnemonic = pcEntityMnemonic NO-ERROR.
 
   IF NOT AVAILABLE ttEntityMnemonic THEN
     RETURN "":U.
@@ -3130,8 +3294,13 @@ FUNCTION getObjField RETURNS CHARACTER
             Else return the traditional "_obj" field name.
             
 ------------------------------------------------------------------------------*/
+  /* Make sure the entity is cached */
+  RUN cacheEntity IN THIS-PROCEDURE (pcEntityMnemonic, /* Entity Mnemonic */
+                                     "":U).            /* Table */
+
   FIND ttEntityMnemonic 
-      WHERE ttEntityMnemonic.entity_mnemonic = pcEntityMnemonic NO-ERROR.
+       WHERE ttEntityMnemonic.entity_mnemonic = pcEntityMnemonic 
+       NO-ERROR.
 
   IF NOT AVAILABLE ttEntityMnemonic OR NOT ttEntityMnemonic.table_has_object_field THEN
      RETURN "":U.   /* There is no _obj field */
@@ -3351,11 +3520,12 @@ FUNCTION getUpdatableTableInfo RETURNS CHARACTER
             the updatable table in the supplied data source
             Entry 1 - Owning Entity Mnemonic
             Entry 2 - Table Name
-            Entry 3 - Obj Field of Table
+            Entry 3 - Key Field of Table
             
     Notes:  The data source handle should be the handle of an SDO that you want
-            to retrieve data for
-            
+            to retrieve data for.
+            This function only differs from getUpdatableTableInfoObj in that it returns
+            a key field for entry 3 in the list.
 ------------------------------------------------------------------------------*/
     DEFINE VARIABLE cUpdatableColumns       AS CHARACTER     NO-UNDO.
     DEFINE VARIABLE cUpdatableTable         AS CHARACTER     NO-UNDO.
@@ -3371,6 +3541,71 @@ FUNCTION getUpdatableTableInfo RETURNS CHARACTER
       RUN getTableInfo(INPUT cUpdatableTable, OUTPUT cReturnValue) NO-ERROR.
 
     RETURN cReturnValue.   /* Function return value. */
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getUpdatableTableInfoObj Include 
+FUNCTION getUpdatableTableInfoObj RETURNS CHARACTER
+  (INPUT phDataSource AS WIDGET-HANDLE):
+/*------------------------------------------------------------------------------
+  Purpose:  Returns a CHR(4) delimited list of the following information about
+            the updatable table in the supplied data source
+            Entry 1 - Owning Entity Mnemonic
+            Entry 2 - Table Name
+            Entry 3 - Obj Field of Table
+            
+    Notes:  The data source handle should be the handle of an SDO that you want
+            to retrieve data for.
+            This function only differs from getUpdatableTableInfo in that it returns
+            an obj field for entry 3 in the list.
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE cUpdatableColumns       AS CHARACTER     NO-UNDO.
+    DEFINE VARIABLE cUpdatableTable         AS CHARACTER     NO-UNDO.
+    DEFINE VARIABLE cReturnValue            AS CHARACTER     NO-UNDO.  
+
+    ASSIGN cUpdatableTable = "":U.
+
+    IF VALID-HANDLE(phDataSource) THEN
+        ASSIGN cUpdatableColumns = DYNAMIC-FUNCTION("getUpdatableColumns":U IN phDataSource)
+               cUpdatableTable   = DYNAMIC-FUNCTION("columnTable":U IN phDataSource, INPUT ENTRY(1, cUpdatableColumns)).
+
+    IF cUpdatableTable <> "":U THEN
+        RUN getTableInfoObj(INPUT cUpdatableTable, OUTPUT cReturnValue) NO-ERROR.
+
+    ASSIGN ERROR-STATUS:ERROR = NO.
+    RETURN cReturnValue.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION haveOutstandingUpdates Include 
+FUNCTION haveOutstandingUpdates RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  This table checks the ryt_dbupdate_status record for any outstanding
+            updates and returns a value indicating whether there are any.
+    Notes:  
+------------------------------------------------------------------------------*/
+  &IF DEFINED(server-side) <> 0 &THEN
+    DEFINE BUFFER bryt_dbupdate_status FOR ryt_dbupdate_status.
+    /* If we're on the server side, we have a connection to the database. 
+       See if we can find an ryt_dbupdate_status record that has not been
+       applied */
+
+    RETURN CAN-FIND(FIRST bryt_dbupdate_status 
+                      WHERE bryt_dbupdate_status.update_completed = NO).
+  
+  &ELSE
+    /* If we're on the client side, we don't have a connection to the database.
+       The connection to the AppServer will fail so we can just return NO
+       here. */
+    RETURN NO.
+  &ENDIF
+
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -3411,11 +3646,11 @@ FUNCTION setPropertyValueInList RETURNS CHARACTER
    pcPropertyValue  AS CHARACTER,
    pcAction         AS CHARACTER):
 /*------------------------------------------------------------------------------
-  Purpose:  Find the property in the property list and add / replace it with the
-            specified property value depending on the action specified
-    Notes:  pcAction should have a value of "ADD":U or "REPLACE":U
-            NB: If "":U or ? is specified as the action, a replacement of the
-                property value will be done by default
+  Purpose:  Find the property in the property list and add / replace /remove it 
+            with the specified property value depending on the action specified
+    Notes:  pcAction should have a value of "REMOVE" if a property is to be 
+            deleted. If pcAction is anything else, the function will add the 
+            property if it is not in the list, else if it is, it will replace it.
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cNewPropertyList      AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cPropertyValue        AS CHARACTER  NO-UNDO.
@@ -3423,32 +3658,90 @@ FUNCTION setPropertyValueInList RETURNS CHARACTER
   DEFINE VARIABLE cEntry                AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iNumEntries           AS INTEGER    NO-UNDO.
   DEFINE VARIABLE iEntry                AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE lFound                AS LOGICAL    NO-UNDO.
       
-  ASSIGN iNumEntries = NUM-ENTRIES(pcPropertyList, CHR(3)).
+  ASSIGN iNumEntries = NUM-ENTRIES(pcPropertyList, CHR(3))
+         lFound      = FALSE.
   
   DO iEntry = 1 TO iNumEntries:
     ASSIGN cEntry         = ENTRY(iEntry, pcPropertyList, CHR(3))
            cPropertyName  = ENTRY(1, cEntry, CHR(4))
-           cPropertyValue = ENTRY(2, cEntry, CHR(4)).
+           cPropertyValue = ENTRY(2, cEntry, CHR(4)) NO-ERROR.
     
-    IF cPropertyName = pcPropertyName THEN DO:
-      IF pcAction = "REPLACE":U OR
-         pcAction = ?           OR
-         TRIM(pcAction) = "":U  THEN cPropertyValue = "":U.
-      ELSE
-        IF TRIM(cPropertyValue) <> "":U THEN cPropertyValue = cPropertyValue + " AND ":U.
+    IF cPropertyName = pcPropertyName THEN 
+      ASSIGN cEntry = pcPropertyName + CHR(4) + pcPropertyValue
+             lFound = TRUE.
+             
+    IF lFound AND pcAction = "REMOVE" THEN
+      NEXT.
       
-      ASSIGN cEntry = pcPropertyName + CHR(4) + cPropertyValue + pcPropertyValue.
-    END.
+    IF cNewPropertyList = "" THEN
+      ASSIGN cNewPropertyList = cEntry.
+    ELSE
+      ASSIGN cNewPropertyList = cNewPropertyList + CHR(3) + cEntry.
       
-    ASSIGN cNewPropertyList = cNewPropertyList + cEntry.
-  
-    IF iEntry <> iNumEntries THEN
-      ASSIGN cNewPropertyList = cNewPropertyList + CHR(3).
   END.
+  
+  IF NOT lFound AND pcAction <> "REMOVE" THEN
+  DO:
+    IF cNewPropertyList <> "" THEN
+       ASSIGN cNewPropertyList = cNewPropertyList + CHR(3).
+    ASSIGN cNewPropertyList = cNewPropertyList  + pcPropertyName + CHR(4) + pcPropertyValue.
+  END.
+    
+  IF cNewPropertyList = ? THEN
+    RETURN "".
+  ELSE
+    RETURN cNewPropertyList.   /* Function return value. */
 
-  RETURN cNewPropertyList.   /* Function return value. */
+END FUNCTION.
 
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setWidgetAttribute Include 
+FUNCTION setWidgetAttribute RETURNS LOGICAL
+    ( INPUT phWidget            AS HANDLE,
+      INPUT pcAttributeName     AS CHARACTER,
+      INPUT pcAttributeValue    AS CHARACTER,
+      INPUT pcAttributeDataType AS CHARACTER,
+      INPUT phExternalCall      AS HANDLE) :
+/*------------------------------------------------------------------------------
+  Purpose:  Sets an attribute value for a widget handle.
+    Notes:  If desired, the CREATE CALL... statement can be made externally, this
+            will improve performance.
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE lDeleteCall AS LOGICAL    NO-UNDO.
+
+    /* Only set this value if we are allowed to. */
+    IF CAN-SET(phWidget, pcAttributeName) 
+    THEN DO:
+        IF NOT VALID-HANDLE(phExternalCall) 
+        THEN DO:
+            CREATE CALL phExternalCall.
+            ASSIGN phExternalCall:CALL-TYPE = SET-ATTR-CALL-TYPE
+                   lDeleteCall              = YES.
+        END.
+
+        phExternalCall:IN-HANDLE = phWidget.                 /* Widget handle to apply to */
+        phExternalCall:CALL-NAME = pcAttributeName.          /* Attribute name to set */
+        
+        /* With a SET-ATTR call type we need to pass the value that we are setting as *
+         * the only input parameter                                                   */
+
+        phExternalCall:NUM-PARAMETERS = 1.                   /* 1 parameter for the value to set */
+        phExternalCall:SET-PARAMETER(1, 
+                            pcAttributeDataType,    /* The attribute's data type */
+                            "INPUT",                /* Always INPUT for a SET-ATTR call */
+                            pcAttributeValue        /* The value to set */
+                            ) NO-ERROR.
+        phExternalCall:INVOKE.                               /* Invoke the call */
+
+        IF lDeleteCall = YES THEN
+            DELETE OBJECT phExternalCall.                    /* Delete the call object */
+    END.    /* can set attribute */
+
+    RETURN TRUE.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

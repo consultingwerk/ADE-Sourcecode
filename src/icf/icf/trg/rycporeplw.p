@@ -23,11 +23,6 @@
 *********************************************************************/
 TRIGGER PROCEDURE FOR REPLICATION-WRITE OF ryc_page_object OLD BUFFER lb_old.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "ryc_page_object"
-                      &TRIGGER-TYPE = "REPLICATION-WRITE"}
-
 {af/sup/afreplicat.i  &TABLE-NAME   = "ryc_page_object"
                       &TABLE-FLA    = "rycpo"
                       &TABLE-PK     = "page_object_obj"

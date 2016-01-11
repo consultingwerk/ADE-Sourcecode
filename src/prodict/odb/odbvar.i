@@ -21,8 +21,9 @@
 *                                                                    *
 *********************************************************************/
 /*
-    History:  D. McMann 03/03/99 Removed On-line fromn Informix
+    History:  D. McMann 03/03/99 Removed On-line from Informix
               D. McMann 02/01/00 Added sqlwidth variable
+              D. McMann 10/08/02 Added shadowcol variable
     
 */    
 
@@ -44,6 +45,7 @@ DEFINE {1} SHARED VARIABLE odb_type     AS CHARACTER FORMAT "x(16)"
 
 DEFINE {1} SHARED VARIABLE movedata     AS LOGICAL NO-UNDO.
 DEFINE {1} SHARED VARIABLE pcompatible  AS LOGICAL NO-UNDO.
+DEFINE {1} SHARED VARIABLE shadowcol    AS LOGICAL   NO-UNDO.
 DEFINE {1} SHARED VARIABLE sqlwidth     AS LOGICAL NO-UNDO.
 DEFINE {1} SHARED VARIABLE loadsql      AS LOGICAL NO-UNDO.
 DEFINE {1} SHARED VARIABLE rmvobj       AS LOGICAL NO-UNDO.

@@ -124,19 +124,19 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
-&Scoped-define INTERNAL-TABLES gsm_object_menu_structure gsc_object ~
+&Scoped-define INTERNAL-TABLES gsm_object_menu_structure ryc_smartobject ~
 gsm_menu_structure
 
 /* Definitions for QUERY Query-Main                                     */
-&Scoped-Define ENABLED-FIELDS  object_obj menu_structure_obj instance_attribute_obj~
- object_menu_structure_obj menu_item_obj insert_submenu~
- menu_structure_sequence dummy_field
+&Scoped-Define ENABLED-FIELDS  object_obj menu_structure_obj instance_attribute_obj menu_item_obj~
+ insert_submenu menu_structure_sequence dummy_field
 &Scoped-define ENABLED-FIELDS-IN-gsm_object_menu_structure object_obj ~
-menu_structure_obj instance_attribute_obj object_menu_structure_obj ~
-menu_item_obj insert_submenu menu_structure_sequence 
+menu_structure_obj instance_attribute_obj menu_item_obj insert_submenu ~
+menu_structure_sequence 
 &Scoped-Define DATA-FIELDS  object_filename object_description container_object menu_structure_code~
  menu_structure_type object_obj menu_structure_obj instance_attribute_obj~
  object_menu_structure_obj menu_item_obj insert_submenu~
@@ -144,26 +144,32 @@ menu_item_obj insert_submenu menu_structure_sequence
 &Scoped-define DATA-FIELDS-IN-gsm_object_menu_structure object_obj ~
 menu_structure_obj instance_attribute_obj object_menu_structure_obj ~
 menu_item_obj insert_submenu menu_structure_sequence 
-&Scoped-define DATA-FIELDS-IN-gsc_object object_filename object_description ~
-container_object 
+&Scoped-define DATA-FIELDS-IN-ryc_smartobject object_filename ~
+object_description container_object 
 &Scoped-define DATA-FIELDS-IN-gsm_menu_structure menu_structure_code ~
 menu_structure_type 
 &Scoped-Define MANDATORY-FIELDS 
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gsmomfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsm_object_menu_structure NO-LOCK, ~
+      FIRST ryc_smartobject WHERE ASDB.ryc_smartobject.smartobject_obj = ASDB.gsm_object_menu_structure.object_obj NO-LOCK, ~
+      FIRST gsm_menu_structure WHERE ASDB.gsm_menu_structure.menu_structure_obj = ASDB.gsm_object_menu_structure.menu_structure_obj NO-LOCK ~
+    BY gsm_object_menu_structure.menu_structure_obj ~
+       BY gsm_object_menu_structure.object_obj ~
+        BY gsm_object_menu_structure.instance_attribute_obj INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsm_object_menu_structure NO-LOCK, ~
-      FIRST gsc_object WHERE ASDB.gsc_object.object_obj = ASDB.gsm_object_menu_structure.object_obj NO-LOCK, ~
+      FIRST ryc_smartobject WHERE ASDB.ryc_smartobject.smartobject_obj = ASDB.gsm_object_menu_structure.object_obj NO-LOCK, ~
       FIRST gsm_menu_structure WHERE ASDB.gsm_menu_structure.menu_structure_obj = ASDB.gsm_object_menu_structure.menu_structure_obj NO-LOCK ~
     BY gsm_object_menu_structure.menu_structure_obj ~
        BY gsm_object_menu_structure.object_obj ~
         BY gsm_object_menu_structure.instance_attribute_obj INDEXED-REPOSITION.
 {&DB-REQUIRED-END}
 &Scoped-define TABLES-IN-QUERY-Query-Main gsm_object_menu_structure ~
-gsc_object gsm_menu_structure
+ryc_smartobject gsm_menu_structure
 &Scoped-define FIRST-TABLE-IN-QUERY-Query-Main gsm_object_menu_structure
-&Scoped-define SECOND-TABLE-IN-QUERY-Query-Main gsc_object
+&Scoped-define SECOND-TABLE-IN-QUERY-Query-Main ryc_smartobject
 &Scoped-define THIRD-TABLE-IN-QUERY-Query-Main gsm_menu_structure
 
 
@@ -183,10 +189,10 @@ gsc_object gsm_menu_structure
 &ANALYZE-SUSPEND
 DEFINE QUERY Query-Main FOR 
       gsm_object_menu_structure, 
-      gsc_object
-    FIELDS(gsc_object.object_filename
-      gsc_object.object_description
-      gsc_object.container_object), 
+      ryc_smartobject
+    FIELDS(ryc_smartobject.object_filename
+      ryc_smartobject.object_description
+      ryc_smartobject.container_object), 
       gsm_menu_structure
     FIELDS(gsm_menu_structure.menu_structure_code
       gsm_menu_structure.menu_structure_type) SCROLLING.
@@ -253,36 +259,36 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "icfdb.gsm_object_menu_structure,icfdb.gsc_object WHERE icfdb.gsm_object_menu_structure ...,icfdb.gsm_menu_structure WHERE icfdb.gsm_object_menu_structure ..."
+     _TblList          = "icfdb.gsm_object_menu_structure,icfdb.ryc_smartobject WHERE icfdb.gsm_object_menu_structure ...,icfdb.gsm_menu_structure WHERE icfdb.gsm_object_menu_structure ..."
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _TblOptList       = ", FIRST USED, FIRST USED, FIRST USED"
      _OrdList          = "asdb.gsm_object_menu_structure.menu_structure_obj|yes,asdb.gsm_object_menu_structure.object_obj|yes,asdb.gsm_object_menu_structure.instance_attribute_obj|yes"
-     _JoinCode[2]      = "ASDB.gsc_object.object_obj = ASDB.gsm_object_menu_structure.object_obj"
+     _JoinCode[2]      = "ASDB.ryc_smartobject.smartobject_obj = ASDB.gsm_object_menu_structure.object_obj"
      _JoinCode[3]      = "ASDB.gsm_menu_structure.menu_structure_obj = ASDB.gsm_object_menu_structure.menu_structure_obj"
-     _FldNameList[1]   > icfdb.gsc_object.object_filename
+     _FldNameList[1]   > icfdb.ryc_smartobject.object_filename
 "object_filename" "object_filename" ? ? "character" ? ? ? ? ? ? no ? no 35 yes
-     _FldNameList[2]   > icfdb.gsc_object.object_description
+     _FldNameList[2]   > icfdb.ryc_smartobject.object_description
 "object_description" "object_description" ? ? "character" ? ? ? ? ? ? no ? no 70 yes
-     _FldNameList[3]   > icfdb.gsc_object.container_object
+     _FldNameList[3]   > icfdb.ryc_smartobject.container_object
 "container_object" "container_object" ? ? "logical" ? ? ? ? ? ? no ? no 15.8 yes
      _FldNameList[4]   > icfdb.gsm_menu_structure.menu_structure_code
-"menu_structure_code" "menu_structure_code" "Band Code" ? "character" ? ? ? ? ? ? no ? no 20 yes
+"menu_structure_code" "menu_structure_code" ? ? "character" ? ? ? ? ? ? no ? no 20 yes
      _FldNameList[5]   > icfdb.gsm_menu_structure.menu_structure_type
 "menu_structure_type" "menu_structure_type" ? ? "character" ? ? ? ? ? ? no ? no 18.2 yes
      _FldNameList[6]   > icfdb.gsm_object_menu_structure.object_obj
-"object_obj" "object_obj" ? "->>>>>>>>>>>>>>>>>9.999999999" "decimal" ? ? ? ? ? ? yes ? no 33.6 yes
+"object_obj" "object_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 33.6 yes
      _FldNameList[7]   > icfdb.gsm_object_menu_structure.menu_structure_obj
-"menu_structure_obj" "menu_structure_obj" ? "->>>>>>>>>>>>>>>>>9.999999999" "decimal" ? ? ? ? ? ? yes ? no 33.6 yes
+"menu_structure_obj" "menu_structure_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 33.6 yes
      _FldNameList[8]   > icfdb.gsm_object_menu_structure.instance_attribute_obj
-"instance_attribute_obj" "instance_attribute_obj" ? "->>>>>>>>>>>>>>>>>9.999999999" "decimal" ? ? ? ? ? ? yes ? no 33.6 yes
+"instance_attribute_obj" "instance_attribute_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 33.6 yes
      _FldNameList[9]   > icfdb.gsm_object_menu_structure.object_menu_structure_obj
-"object_menu_structure_obj" "object_menu_structure_obj" ? "->>>>>>>>>>>>>>>>>9.999999999" "decimal" ? ? ? ? ? ? yes ? no 33.6 yes
+"object_menu_structure_obj" "object_menu_structure_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 33.6 yes
      _FldNameList[10]   > icfdb.gsm_object_menu_structure.menu_item_obj
-"menu_item_obj" "menu_item_obj" ? "->>>>>>>>>>>>>>>>>9.999999999" "decimal" ? ? ? ? ? ? yes ? no 33.6 yes
+"menu_item_obj" "menu_item_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 33.6 yes
      _FldNameList[11]   > icfdb.gsm_object_menu_structure.insert_submenu
 "insert_submenu" "insert_submenu" ? ? "logical" ? ? ? ? ? ? yes ? no 19 yes
      _FldNameList[12]   > icfdb.gsm_object_menu_structure.menu_structure_sequence
-"menu_structure_sequence" "menu_structure_sequence" "Band Sequence" ? "integer" ? ? ? ? ? ? yes ? no 21.4 yes
+"menu_structure_sequence" "menu_structure_sequence" ? ? "integer" ? ? ? ? ? ? yes ? no 21.4 yes
      _FldNameList[13]   > "_<CALC>"
 "RowObject.object_description" "dummy_field" ? "x(8)" "character" ? ? ? ? ? ? yes ? no 8 no
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
@@ -351,6 +357,64 @@ END PROCEDURE.
 
 {&DB-REQUIRED-START}
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE checkSequence dTables  _DB-REQUIRED
+PROCEDURE checkSequence :
+/*------------------------------------------------------------------------------
+  Purpose:    Check that the specified sequence number does not already exist.
+              If it does, resequence all existing sequences so there is no
+              duplicate
+  Parameters:  phBuffer    Buffer of RowObjUpd
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER phBuffer   AS HANDLE  NO-UNDO .
+DEFINE OUTPUT PARAMETER pcmessage AS CHARACTER  NO-UNDO.
+
+DEFINE VARIABLE dObjectObj        AS DECIMAL    NO-UNDO.
+DEFINE VARIABLE dMenuStructureObj AS DECIMAL    NO-UNDO.
+DEFINE VARIABLE iSequence         AS INTEGER    NO-UNDO.
+DEFINE VARIABLE cMessage          AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE iPrevSeq          AS INTEGER    NO-UNDO.
+
+ASSIGN 
+   dObjectObj        = phBuffer:BUFFER-FIELD("object_obj":U):BUFFER-VALUE
+   iSequence         = phBuffer:BUFFER-FIELD("menu_structure_sequence":U):BUFFER-VALUE 
+   iPrevSeq          = iSequence
+   dMenuStructureObj = phBuffer:BUFFER-FIELD("menu_structure_obj":U):BUFFER-VALUE 
+   NO-ERROR.
+
+IF CAN-FIND (FIRST gsm_object_menu_structure NO-LOCK 
+             WHERE Object_obj = dObjectObj  
+               AND Object_menu_structure_obj <>  dMenuStructureObj
+               AND menu_structure_sequence   = iSequence ) THEN 
+DO:
+   FOR EACH gsm_object_menu_structure
+      WHERE Object_obj = dObjectObj  
+        AND Object_menu_structure_obj <>  dMenuStructureObj
+        AND menu_structure_sequence >= iSequence
+         BY menu_structure_sequence:
+  
+      IF menu_structure_sequence = iPrevSeq THEN
+         ASSIGN menu_structure_sequence = menu_structure_sequence + 1
+                iPrevSeq                = menu_structure_sequence.
+      ELSE
+         RETURN.
+
+   END.
+END.
+   
+   
+
+
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
+
+{&DB-REQUIRED-START}
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE DATA.CALCULATE dTables  DATA.CALCULATE _DB-REQUIRED
 PROCEDURE DATA.CALCULATE :
 /*------------------------------------------------------------------------------
@@ -384,12 +448,11 @@ PROCEDURE dataAvailable :
   DEFINE VARIABLE cForeignFields AS CHARACTER  NO-UNDO.
 
   cForeignFields = DYNAMIC-FUNCTION('getForeignFields' IN THIS-PROCEDURE).
-  IF num-entries(cForeignFields) = 2 AND entry(2,cForeignFields) = 'object_obj':U  THEN
-    DYNAMIC-FUNCTION('setQuerySort' IN THIS-PROCEDURE,
-                    'BY gsm_object_menu_structure.object_obj' 
-                    +
-                   ' BY gsm_object_menu_structure.menu_structure_sequence'). 
 
+  IF NUM-ENTRIES(cForeignFields) = 2 AND entry(2,cForeignFields) = 'smartobject_obj':U  THEN
+    DYNAMIC-FUNCTION('setQuerySort' IN THIS-PROCEDURE,
+                    'BY gsm_object_menu_structure.object_obj' +
+                   ' BY gsm_object_menu_structure.menu_structure_sequence'). 
 
   RUN SUPER( INPUT pcRelative).
 
@@ -428,49 +491,58 @@ PROCEDURE preTransactionValidate :
 ------------------------------------------------------------------------------*/
 
 DEFINE VARIABLE cMessageList    AS CHARACTER    NO-UNDO.
-
 DEFINE VARIABLE cValueList      AS CHARACTER    NO-UNDO.
 
 FOR EACH RowObjUpd WHERE CAN-DO('A,C,U':U,RowObjUpd.RowMod): 
-  IF (RowObjUpd.RowMod = 'U':U AND
-    CAN-FIND(FIRST gsm_object_menu_structure
-      WHERE gsm_object_menu_structure.menu_structure_obj = rowObjUpd.menu_structure_obj
-        AND gsm_object_menu_structure.object_obj = rowObjUpd.object_obj
-        AND gsm_object_menu_structure.instance_attribute_obj = rowObjUpd.instance_attribute_obj
-      AND ROWID(gsm_object_menu_structure) <> TO-ROWID(ENTRY(1,RowObjUpd.RowIDent))))
-  OR (RowObjUpd.RowMod <> 'U':U AND
-    CAN-FIND(FIRST gsm_object_menu_structure
-      WHERE gsm_object_menu_structure.menu_structure_obj = rowObjUpd.menu_structure_obj
-        AND gsm_object_menu_structure.object_obj = rowObjUpd.object_obj
-        AND gsm_object_menu_structure.instance_attribute_obj = rowObjUpd.instance_attribute_obj))
+
+  IF (RowObjUpd.RowMod = 'U':U 
+  AND CAN-FIND(FIRST gsm_object_menu_structure
+               WHERE gsm_object_menu_structure.menu_structure_obj     = rowObjUpd.menu_structure_obj
+                 AND gsm_object_menu_structure.object_obj             = rowObjUpd.object_obj
+                 AND gsm_object_menu_structure.instance_attribute_obj = rowObjUpd.instance_attribute_obj
+                 AND ROWID(gsm_object_menu_structure)                <> TO-ROWID(ENTRY(1,RowObjUpd.RowIDent))))
+  OR (RowObjUpd.RowMod <> 'U':U 
+  AND CAN-FIND(FIRST gsm_object_menu_structure
+               WHERE gsm_object_menu_structure.menu_structure_obj = rowObjUpd.menu_structure_obj
+                 AND gsm_object_menu_structure.object_obj = rowObjUpd.object_obj
+                 AND gsm_object_menu_structure.instance_attribute_obj = rowObjUpd.instance_attribute_obj))
   THEN
-    ASSIGN
-      cValueList   = STRING(RowObjUpd.menu_structure_obj) + ', ' + STRING(RowObjUpd.object_obj) + ', ' + STRING(RowObjUpd.instance_attribute_obj)
-      cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                    {af/sup2/aferrortxt.i 'AF' '8' 'gsm_object_menu_structure' '' "'menu_structure_obj, object_obj, instance_attribute_obj, '" cValueList }.
+      ASSIGN cValueList   = STRING(RowObjUpd.menu_structure_obj) + ', ' + STRING(RowObjUpd.object_obj) + ', ' + STRING(RowObjUpd.instance_attribute_obj)
+             cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) 
+                          + {af/sup2/aferrortxt.i 'AF' '8' 'gsm_object_menu_structure' '' "'menu_structure_obj, object_obj, instance_attribute_obj, '" cValueList }.
 
 END.
 
-
 FOR EACH RowObjUpd WHERE CAN-DO('A,C,U':U,RowObjUpd.RowMod): 
+
   /* Check that the placeholder exists within an existing band */
-  IF RowObjUpd.MENU_item_obj > 0 
-     AND NOT CAN-FIND(FIRST gsm_menu_structure_item 
-                       WHERE gsm_menu_structure_item.MENU_item_obj = RowObjUpd.MENU_item_obj) THEN
-  DO:
-    cMessageList = "The specified placeholder item cannot be found within any band".
-    ERROR-STATUS:ERROR = NO.
-    RETURN cMessageList.
+
+  IF  RowObjUpd.MENU_item_obj > 0 
+  AND NOT CAN-FIND(FIRST gsm_menu_structure_item 
+                   WHERE gsm_menu_structure_item.MENU_item_obj = RowObjUpd.MENU_item_obj) 
+  THEN DO:
+      ASSIGN cMessageList = "The specified placeholder item cannot be found within any band".
+      ERROR-STATUS:ERROR = NO.
+      RETURN cMessageList.
   END.
   
- /* Chek that the merged band, or children bands do not contain any placeholders*/
-   RUN checkPlaceholder (RowObjUpd.MENU_structure_obj).
-   IF RETURN-VALUE = "ADM-ERROR":U THEN
-   DO:
+  /* Check that the merged band, or children bands do not contain any placeholders*/
+
+  RUN checkPlaceholder (RowObjUpd.MENU_structure_obj).
+
+  IF RETURN-VALUE = "ADM-ERROR":U 
+  THEN DO:
      cMessageList = "You cannot merge this band because this band or it's child bands contain a placeholder".
      ERROR-STATUS:ERROR = NO.
      RETURN cMessageList.
-   END.
+  END.
+
+  RUN checkSequence IN THIS-PROCEDURE (INPUT TEMP-TABLE RowObjUpd:DEFAULT-BUFFER-HANDLE,OUTPUT cMessageList).
+  IF cMessageList > ""  
+  THEN DO:
+     ERROR-STATUS:ERROR = NO.
+     RETURN cMessageList.
+  END.
 
 END.
 
@@ -493,7 +565,6 @@ PROCEDURE rowObjectValidate :
 ------------------------------------------------------------------------------*/
 
 DEFINE VARIABLE cMessageList    AS CHARACTER    NO-UNDO.
-
 DEFINE VARIABLE cValueList      AS CHARACTER    NO-UNDO.
 
   IF RowObject.menu_structure_type = "MenuBar":U THEN 
@@ -502,7 +573,6 @@ DEFINE VARIABLE cValueList      AS CHARACTER    NO-UNDO.
      ERROR-STATUS:ERROR = NO.
      RETURN cMessageList.
   END.
-
 
   IF RowObject.menu_structure_obj = 0 OR RowObject.menu_structure_obj = ? THEN
     ASSIGN
@@ -513,7 +583,6 @@ DEFINE VARIABLE cValueList      AS CHARACTER    NO-UNDO.
     ASSIGN
       cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
                     {af/sup2/aferrortxt.i 'AF' '1' 'gsm_object_menu_structure' 'object_obj' "'Object Obj'"}.
-
 
   ERROR-STATUS:ERROR = NO.
   RETURN cMessageList.

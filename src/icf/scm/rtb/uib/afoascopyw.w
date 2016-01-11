@@ -744,7 +744,7 @@ PROCEDURE buildCoOSDrive :
             coOSDrive:PRIVATE-DATA = cOSDriveData
             .
         ASSIGN
-            iLoop =  LOOKUP("\\Mojo\appserver":U,coOSDrive:PRIVATE-DATA)
+            iLoop =  LOOKUP("~\~\Mojo~\appserver":U,coOSDrive:PRIVATE-DATA)
             .
         IF iLoop > 0
         THEN
@@ -835,7 +835,7 @@ PROCEDURE buildOasObjects :
     PUT STREAM sMain UNFORMATTED
         "dir /b/l/on/s ":U
         TRIM( REPLACE(cCopyTo,"~/":U,"~\":U) ,"~\":U )
-        "\*.r > ":U
+        "~\*.r > ":U
         cOutputFile
         SKIP.
 
@@ -1475,7 +1475,7 @@ PROCEDURE updateScreen :
             WHEN "OAS":U
                 THEN DO:
                     ASSIGN
-                        cCopyTo = "\\Mojo\appserver":U.
+                        cCopyTo = "~\~\Mojo~\appserver":U.
                 END.
             WHEN "MAP":U
                 THEN DO:

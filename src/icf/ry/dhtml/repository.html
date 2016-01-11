@@ -1,0 +1,222 @@
+<html>
+<head>
+<style>
+body  {font-family: arial;}
+table {background-color: #ECFFED;
+       border-left-style: solid;
+       border-bottom-style: solid;
+       border-width: 1;}
+th    {background-color: #ABFEAF;
+       text-align: left;
+       border-right-style: solid;
+       border-top-style: solid;
+       border-width: 1;}
+td    {border-right-style: solid;
+       border-top-style: solid;
+       border-width: 1;}
+</style>
+</head>
+
+<body background="`RootURL`/images/bgr/wsbgr.gif">
+<img src="../img/icflogo.gif">&nbsp;&nbsp;<font size=+3>Progress Dynamics 2.0 Web</font>
+<hr>
+<h2>Repository Objects and Attributes</h2>
+<form name="form" method="post" action="repository.icf">
+Object: 
+<input type="text" name="object" size="40" 
+  value="`if get-value('object') > '' then get-value('object') else 'afallmencw' `">
+<input type="submit" name="submit" value="Submit">
+</form>
+<br>
+<%
+{ry/app/ryobjretri.i} 
+{src/adm2/globals.i}
+
+DEFINE VARIABLE cAttrHdls             AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cAttributeList        AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cName                 AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cProperties           AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cRunAttribute         AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cSessionResultCodes   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cValue                AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cWhere                AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE dCurrentLanguageObj   AS DECIMAL    NO-UNDO.
+DEFINE VARIABLE dCurrentUserObj       AS DECIMAL    NO-UNDO.
+DEFINE VARIABLE e                     AS INTEGER    NO-UNDO.
+DEFINE VARIABLE ghObjectBuffer        AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hAttributeBuffer      AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hBufferCacheBuffer    AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hColumn               AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hCustomManager        AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hCustomizationManager AS HANDLE     NO-UNDO.
+DEFINE VARIABLE iAttributeExtent      AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iColumn               AS INTEGER    NO-UNDO. 
+DEFINE VARIABLE lGotIt                AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE pcLogObjName          AS CHARACTER  NO-UNDO INITIAL "afallmencw". 
+DEFINE VARIABLE plShowAttrs           AS LOGICAL    NO-UNDO INITIAL TRUE.
+
+/*******************************************************************************************/
+FUNCTION listRecs RETURNS LOGICAL
+  (INPUT phBuf AS HANDLE):
+
+  DEFINE VARIABLE i  AS INTEGER   NO-UNDO. 
+  DEFINE VARIABLE hQ AS HANDLE    NO-UNDO.
+
+  CREATE QUERY hQ .
+  hQ:ADD-BUFFER(phBuf).
+  hQ:QUERY-PREPARE("FOR EACH "  + phBuf:NAME ).
+  hQ:QUERY-OPEN().
+  hQ:GET-FIRST().
+  {&OUT}
+    '<br><b>Buffer: <font color=blue>' phBuf:NAME ' (' phBuf:TABLE ')</font></b> Handle:<font color=blue> ' string(phBuf) '</font><br>' SKIP
+    '<table cellspacing=0 cellpadding=0>' SKIP
+    '<tr>'.
+    
+  /* Column headings */  
+  DO i = 1 TO phBuf:NUM-FIELDS:
+    {&OUT} '<th>' phBuf:BUFFER-FIELD(i):NAME '</th>'.
+  END.
+  {&OUT} '</tr>' SKIP.
+
+  /* Data rows */
+  DO WHILE phBuf:AVAILABLE AND hQ:IS-OPEN:
+    {&OUT} '<tr>'.
+    DO i = 1 TO phBuf:NUM-FIELDS:
+      {&OUT} '<td nowrap>' 
+        (IF phBuf:BUFFER-FIELD(i):BUFFER-VALUE = '' OR phBuf:BUFFER-FIELD(i):BUFFER-VALUE = ? 
+         THEN '&nbsp;' ELSE phBuf:BUFFER-FIELD(i):BUFFER-VALUE) '</td>'.
+    END.
+    {&OUT} '</tr>' SKIP.
+    hQ:GET-NEXT().
+  END.
+  {&OUT} '</table><br>' SKIP.
+
+  RETURN TRUE.
+
+END FUNCTION. /* listRecs */
+
+FUNCTION forEach RETURNS LOGICAL
+  (phBuf AS HANDLE,
+   pcWhere  AS CHARACTER,
+   pcProcessFunc AS CHARACTER):
+
+  DEFINE VARIABLE cQuery AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cName  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cValue AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hCol   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hQ     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE i      AS INTEGER    NO-UNDO. 
+
+
+  CREATE QUERY hQ .
+  hQ:ADD-BUFFER(phBuf).
+  cQuery = "FOR EACH "  + phBuf:NAME + ' ' + pcWhere.
+  {&OUT} '<br>Query:' cQuery + '<br>'.
+  hQ:QUERY-PREPARE(cQuery).
+  hQ:QUERY-OPEN().
+  hQ:GET-FIRST().
+    
+  /* Loop through records and process. */
+  DO WHILE phBuf:AVAILABLE AND hQ:IS-OPEN:
+    DYNAMIC-FUNCTION(pcProcessFunc, phBuf) NO-ERROR. 
+    hQ:GET-NEXT().
+  END.
+  
+  RETURN TRUE.
+  
+END FUNCTION.
+
+FUNCTION listObjAttrs RETURNS LOGICAL
+  (INPUT phBuf AS HANDLE):
+
+  DEFINE VARIABLE hAttributeBuffer  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE dRecordIdentifier AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE i                 AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cObjAttrId        AS CHARACTER  NO-UNDO.
+  
+  ASSIGN
+    hAttributeBuffer  = phBuf:BUFFER-FIELD("tClassBufferHandle":U):BUFFER-VALUE.
+    dRecordIdentifier = phBuf:BUFFER-FIELD("tRecordIdentifier":U):BUFFER-VALUE.
+
+  /* Show ones already done. */
+  cObjAttrId = STRING(hAttributeBuffer) + ':' + STRING(dRecordIdentifier).
+  IF LOOKUP(cObjAttrId, cAttrHdls) > 0 THEN
+  DO:
+    {&OUT} '<br>Skipping attributes for object: ' 
+      phBuf:BUFFER-FIELD("tLogicalObjectName":U):BUFFER-VALUE 
+      ' as attribute table (HANDLE:recidentifier= ' 
+      cObjAttrId ') has already been listed.<br>' SKIP.
+    RETURN FALSE.
+  END.
+  cAttrHdls = cAttrHdls + ',':U + cObjAttrId.
+
+  hAttributeBuffer:FIND-FIRST(" WHERE ":U + hAttributeBuffer:NAME + 
+                              ".tRecordIdentifier = ":U + 
+                              STRING(dRecordIdentifier)) NO-ERROR.
+
+  {&OUT}
+    '<b><font size="+1">Object:<font color="blue">' phBuf:BUFFER-FIELD("tLogicalObjectName":U):BUFFER-VALUE '</font></font></b><br>' skip
+    '(Attribute Buffer: <font color="blue">' hAttributeBuffer:NAME ' (' hAttributeBuffer:TABLE ')</font> Handle:<font color="blue"> ' string(hAttributeBuffer) '</font><br>' SKIP
+    '<table cellspacing="0" cellpadding="0">' SKIP
+    '<tr bgcolor="#ABFEAF">'.
+    
+  /* Data rows */
+  DO i = 1 TO hAttributeBuffer:NUM-FIELDS:
+    {&OUT}
+      '<tr><th> ' hAttributeBuffer:BUFFER-FIELD(i):NAME ' </th>'
+      '<td>' (IF hAttributeBuffer:BUFFER-FIELD(i):BUFFER-VALUE = '' OR 
+                 hAttributeBuffer:BUFFER-FIELD(i):BUFFER-VALUE = ? 
+              THEN '&nbsp;' ELSE hAttributeBuffer:BUFFER-FIELD(i):BUFFER-VALUE) 
+      '</td></tr>'.
+  END.
+  {&OUT} '</table><br>' SKIP.
+  
+  RETURN TRUE.
+  
+END FUNCTION.
+
+/*******************************************************************************************/
+IF get-value('object') > '' THEN
+  pcLogObjName = get-value('object').
+
+ASSIGN 
+  e                   = ETIME
+  cProperties         = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager, "currentUserObj,currentLanguageObj":U, YES)
+  dCurrentUserObj     = DECIMAL(ENTRY(1, cProperties, CHR(3)))
+  dCurrentLanguageObj = DECIMAL(ENTRY(2, cProperties, CHR(3)))
+  hCustomManager      = DYNAMIC-FUNCTION("getManagerHandle":U, "CustomizationManager":U)
+  cSessionResultCodes = DYNAMIC-FUNCTION("getSessionResultCodes":U IN hCustomManager) 
+  cRunAttribute       = ''.
+  
+RUN clearClientCache IN gshRepositoryManager.
+
+/* Retrieve outermost container object and it's children */
+ASSIGN lGotIt = DYNAMIC-FUNCTION("cacheObjectOnClient":U IN gshRepositoryManager,
+                                 INPUT pcLogObjName,
+                                 INPUT cSessionResultCodes,
+                                 INPUT cRunAttribute,
+                                 INPUT NO).
+IF ERROR-STATUS:ERROR OR NOT lGotIt THEN DO:
+  {&out} "~n<h3>Error:" ERROR-STATUS:GET-MESSAGE(1) "</h3>".
+  RETURN.
+END.
+
+ghObjectBuffer = DYNAMIC-FUNCTION("getCacheObjectBuffer":U IN gshRepositoryManager, INPUT ?).
+{&OUT} 'Time to run fetchObject: ' ETIME - e '<br>' SKIP.
+
+listRecs(DYNAMIC-FUNCTION("getCachePageBuffer":U IN gshRepositoryManager)).
+listRecs(DYNAMIC-FUNCTION("getCachePageInstanceBuffer":U IN gshRepositoryManager)).
+listRecs(DYNAMIC-FUNCTION("getCacheLinkBuffer":U IN gshRepositoryManager)).
+listRecs(DYNAMIC-FUNCTION("getCacheUIEventBuffer":U IN gshRepositoryManager)).
+listRecs(ghObjectBuffer).
+
+{&OUT} 
+  '<hr color="red">' skip
+  '<h1>Attribute Listings</h1>' skip.
+ASSIGN 
+  cWhere = " WHERE ":U
+          + "cache_Object.tContainerObjectName = '" + pcLogObjName + "'":U.
+forEach(ghObjectBuffer,cWhere,'listObjAttrs').
+%>
+</body>
+</html>

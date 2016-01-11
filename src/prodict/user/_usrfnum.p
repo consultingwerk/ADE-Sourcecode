@@ -22,6 +22,9 @@
 *********************************************************************/
 /* userfnum - resequences all _Order fields in a file to multiples of
               <x>, starting with <y>.
+              
+   History:  D. McMann 06/10/02 Added check for new SESSION attribute
+                                schema change.           
 */
 
 { prodict/dictvar.i }
@@ -38,7 +41,7 @@ DEFINE VARIABLE canned  AS LOGICAL INITIAL TRUE  NO-UNDO.
 DEFINE BUFFER xfile FOR _File.
 
 /* LANGUAGE DEPENDENCIES START */ /*----------------------------------------*/
-DEFINE VARIABLE new_lang AS CHARACTER EXTENT 10 NO-UNDO INITIAL [
+DEFINE VARIABLE new_lang AS CHARACTER EXTENT 11 NO-UNDO INITIAL [
   /*  1*/ "The dictionary is in read-only mode - alterations not allowed.",
   /*  2*/ "You do not have permission to use this option.",
   /*  3*/ "You cannot change the order of PROGRESS/SQL columns.",
@@ -46,7 +49,8 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 10 NO-UNDO INITIAL [
   /*  5*/ "Starting number and/or increment will cause Order to",
   /*  6*/ "overflow when renumbering.  Please try smaller values.",
   /*7-9*/ "Table ", "contains", "fields.",
-  /* 10*/ "There are no fields in this table to be renumbered."
+  /* 10*/ "There are no fields in this table to be renumbered.",
+  /* 11*/ "SESSION:SCHEMA-CHANGE set to New Objects, changes not allowed."
 ].
 
 FORM SKIP(1)
@@ -77,6 +81,11 @@ ELSE IF _File._Db-lang > 0                       THEN msg-num = 3.
 ELSE IF _File._Frozen                            THEN msg-num = 4.
 ELSE IF dict_rog                                 THEN msg-num = 1.
 ELSE IF numfld = 0                               THEN msg-num = 10.
+ELSE
+  &IF PROVERSION >= "9.1E" &THEN
+    IF SESSION:SCHEMA-CHANGE = "New Objects"   THEN msg-num = 11.
+  &ENDIF
+.
 
 IF msg-num > 0 THEN DO:
   MESSAGE new_lang[msg-num] VIEW-AS ALERT-BOX ERROR BUTTONS OK.

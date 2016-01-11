@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          rydb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
@@ -81,22 +81,25 @@ CREATE WIDGET-POOL.
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
 &Scoped-define INTERNAL-TABLES ryc_smartlink_type
 
 /* Definitions for QUERY Query-Main                                     */
-&Scoped-Define ENABLED-FIELDS  link_name used_defined_link system_owned
+&Scoped-Define ENABLED-FIELDS  link_name user_defined_link system_owned
 &Scoped-define ENABLED-FIELDS-IN-ryc_smartlink_type link_name ~
-used_defined_link system_owned 
-&Scoped-Define DATA-FIELDS  link_name used_defined_link system_owned smartlink_type_obj
+user_defined_link system_owned 
+&Scoped-Define DATA-FIELDS  link_name user_defined_link system_owned smartlink_type_obj
 &Scoped-define DATA-FIELDS-IN-ryc_smartlink_type link_name ~
-used_defined_link system_owned smartlink_type_obj 
+user_defined_link system_owned smartlink_type_obj 
 &Scoped-Define MANDATORY-FIELDS 
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "ry/obj/rycstfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH ryc_smartlink_type NO-LOCK ~
+    BY ryc_smartlink_type.link_name INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH ryc_smartlink_type NO-LOCK ~
     BY ryc_smartlink_type.link_name INDEXED-REPOSITION.
@@ -184,22 +187,22 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "RYDB.ryc_smartlink_type"
+     _TblList          = "icfdb.ryc_smartlink_type"
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _OrdList          = "RYDB.ryc_smartlink_type.link_name|yes"
-     _FldNameList[1]   > RYDB.ryc_smartlink_type.link_name
+     _FldNameList[1]   > icfdb.ryc_smartlink_type.link_name
 "link_name" "link_name" ? ? "character" ? ? ? ? ? ? yes ? no 28 yes
-     _FldNameList[2]   > RYDB.ryc_smartlink_type.used_defined_link
-"used_defined_link" "used_defined_link" ? ? "logical" ? ? ? ? ? ? yes ? no 17.6 yes
-     _FldNameList[3]   > RYDB.ryc_smartlink_type.system_owned
+     _FldNameList[2]   > icfdb.ryc_smartlink_type.user_defined_link
+"user_defined_link" "user_defined_link" ? ? "logical" ? ? ? ? ? ? yes ? no 17 yes
+     _FldNameList[3]   > icfdb.ryc_smartlink_type.system_owned
 "system_owned" "system_owned" ? ? "logical" ? ? ? ? ? ? yes ? no 14.2 yes
-     _FldNameList[4]   > RYDB.ryc_smartlink_type.smartlink_type_obj
+     _FldNameList[4]   > icfdb.ryc_smartlink_type.smartlink_type_obj
 "smartlink_type_obj" "smartlink_type_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21.6 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK dTables 

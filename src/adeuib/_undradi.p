@@ -37,6 +37,9 @@ Date Created: 26 February 1993
 ----------------------------------------------------------------------------*/
 DEFINE INPUT PARAMETER uRecId AS RECID NO-UNDO.
 
+DEFINE VARIABLE lIsICFRunning AS LOGICAL    NO-UNDO.
+   
+{src/adm2/globals.i}
 {adeuib/uniwidg.i}
 {adeuib/layout.i}
 {adeuib/sharvars.i}
@@ -62,6 +65,8 @@ FIND parent_C WHERE RECID(parent_C) eq parent_U._x-recid.
 ASSIGN _F._FRAME    = parent_U._HANDLE
        _L._WIN-TYPE = parent_L._WIN-TYPE.
 
+ASSIGN lisICFRunning = DYNAMIC-FUNCTION("IsICFRunning":U) NO-ERROR.
+
 /* NOTE: we simulate a Radio-set with an editor in TTY mode EXCEPT under
    MS-Windows, where we use the GUI representation. */
 CREATE VALUE(IF _L._WIN-TYPE OR SESSION:WINDOW-SYSTEM BEGINS "MS-WIN"
@@ -71,13 +76,22 @@ CREATE VALUE(IF _L._WIN-TYPE OR SESSION:WINDOW-SYSTEM BEGINS "MS-WIN"
            { adeuib/std_trig.i }
       END TRIGGERS.
 
+IF lIsICFRunning THEN DO:
+  IF LOOKUP(_U._CLASS-NAME,  
+            DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager,
+                             INPUT "DataField":U)) <> 0 THEN
+    /* Attach the edit master popup */
+    RUN createDataFieldPopup IN _h_uib (_U._HANDLE).
+END.  /* If ICF is running */
+
 /* Assign Handles that we now know */
 ASSIGN  {adeuib/std_uf.i &section = "HANDLES"} .
- 
+
 IF _L._WIN-TYPE OR SESSION:WINDOW-SYSTEM BEGINS "MS-WIN" THEN DO:
-  RUN adeuib/_rbtns.p( _F._LIST-ITEMS, _F._DATA-TYPE, OUTPUT radio-btns).
+  RUN adeuib/_rbtns.p( _F._LIST-ITEMS, _F._DATA-TYPE, _F._DELIMITER, OUTPUT radio-btns).
   ASSIGN _U._HANDLE:HORIZONTAL    = _F._HORIZONTAL
          _U._HANDLE:EXPAND        = _F._EXPAND
+         _U._HANDLE:DELIMITER     = _F._DELIMITER
          _U._HANDLE:RADIO-BUTTONS = radio-btns
          tmp-value                = IF _F._DATA-TYPE = "CHARACTER"
                                     THEN "~"" + _F._INITIAL-DATA + "~""
@@ -85,10 +99,12 @@ IF _L._WIN-TYPE OR SESSION:WINDOW-SYSTEM BEGINS "MS-WIN" THEN DO:
          val-pos                  = LOOKUP(tmp-value,radio-btns).
          
   /* Restore commas in labels before realization */
-  DO i = 1 TO NUM-ENTRIES(radio-btns) BY 2:
-    tmp-label = ENTRY(i,radio-btns).
-    IF INDEX(tmp-label,CHR(3)) > 0 THEN
-      ldummy = _U._HANDLE:REPLACE(REPLACE(tmp-label,CHR(3),",":U),"":U,
+  DO i = 1 TO NUM-ENTRIES(radio-btns, _F._DELIMITER) BY 2:
+    tmp-label = ENTRY(i,radio-btns, _F._DELIMITER).
+    IF INDEX(tmp-label,
+             IF _F._DELIMITER = CHR(3) THEN CHR(5) ELSE CHR(3)) > 0 THEN
+      ldummy = _U._HANDLE:REPLACE(REPLACE(tmp-label,
+             IF _F._DELIMITER = CHR(3) THEN CHR(5) ELSE CHR(3),_F._DELIMITER),"":U,
                           tmp-label).                    
   END.
 
@@ -123,6 +139,15 @@ END.
    &_whObjHandle   = "_U._HANDLE"
    &_lvHidden      = _L._REMOVE-FROM-LAYOUT}
      
+IF NOT _L._NO-LABELS THEN DO:  /* Note: we allow labels for dynamic radio-sets */
+  /* Add a label to the current widget */
+  { adeuib/addlabel.i }
+
+  /* NOTE: _showlbl.p runs onframe to guarantee that the object is within
+     frame boundary. */
+  RUN adeuib/_showlbl.p (INPUT _U._HANDLE).
+END.  /* If NOT no-label */
+
 /* Make sure the Universal Widget Record is "correct" by reading the actually
    instantiated values. */
 ASSIGN  {adeuib/std_uf.i &section = "GEOMETRY"} .

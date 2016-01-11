@@ -111,7 +111,7 @@ af/cod/aftemwizpw.w
 
 &scop object-name       rycuelogcp.p
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Astra object identifying preprocessor */
 &glob   AstraPlip    yes
@@ -125,7 +125,7 @@ ASSIGN cObjectName = "{&object-name}":U.
 
 /* Data Preprocessor Definitions */
 &GLOB DATA-LOGIC-TABLE ryc_ui_event
-&GLOB DATA-FIELD-DEFS  "ry\obj\rycuefullo.i"
+&GLOB DATA-FIELD-DEFS  "ry/obj/rycuefullo.i"
 
 /* Error handling definitions */
 {af/sup2/afcheckerr.i &define-only = YES}
@@ -148,6 +148,8 @@ ASSIGN cObjectName = "{&object-name}":U.
 &ENDIF
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
+
+
 
 
 
@@ -182,8 +184,8 @@ FUNCTION getSDOLevel RETURNS CHARACTER
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW DataLogicProcedure ASSIGN
-         HEIGHT             = 8.43
-         WIDTH              = 55.6.
+         HEIGHT             = 18.1
+         WIDTH              = 59.4.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -312,39 +314,53 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-{&DB-REQUIRED-START}
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE rowObjectValidate DataLogicProcedure  _DB-REQUIRED
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE rowObjectValidate DataLogicProcedure 
 PROCEDURE rowObjectValidate :
 /*------------------------------------------------------------------------------
   Purpose:     Procedure used to validate RowObject record client-side
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-    DEFINE VARIABLE cMessageList        AS CHARACTER                    NO-UNDO.
-    DEFINE VARIABLE cValueList          AS CHARACTER                    NO-UNDO.
+  DEFINE VARIABLE cMessageList        AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cValueList          AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE hDesignManager      AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE cObjectTypeCode     AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE lFoundUIEvent       AS LOGICAL      NO-UNDO.
+  
+  IF b_ryc_ui_event.object_type_obj = 0 OR b_ryc_ui_event.object_type_obj = ? THEN
+      ASSIGN cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) 
+                          + {af/sup2/aferrortxt.i 'AF' '1' 'ryc_ui_event' 'object_type_obj' "'Object Type Obj'"}.
+  
+  IF b_ryc_ui_event.smartobject_obj = 0 OR b_ryc_ui_event.smartobject_obj = ? THEN
+      ASSIGN cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U)
+                          + {af/sup2/aferrortxt.i 'AF' '1' 'ryc_ui_event' 'smartobject_obj' "'SmartObject Obj'"}.
+  
+  IF LENGTH(b_ryc_ui_event.event_name) = 0 OR LENGTH(b_ryc_ui_event.event_name) = ? THEN
+      ASSIGN cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U)
+                          + {af/sup2/aferrortxt.i 'AF' '1' 'ryc_ui_event' 'event_name' "'Event Name'"}.
 
+  /* Check if UI Event is valid for this object type */
+  IF b_ryc_ui_event.smartobject_obj <> 0 THEN DO:
+   hDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U, INPUT "RepositoryDesignManager":U).
+   cObjectTypeCode = DYNAMIC-FUNCTION("getObjectTypeCodeFromDB":U IN hDesignManager, b_ryc_ui_event.object_type_obj).
+   lFoundUIEvent = DYNAMIC-FUNCTION("classHasAttribute" IN gshRepositoryManager, cObjectTypeCode,b_ryc_ui_event.event_name,TRUE).
+   IF NOT lFoundUIEvent THEN DO:
+     RUN clearClientCache IN gshRepositoryManager.
+     lFoundUIEvent = DYNAMIC-FUNCTION("classHasAttribute" IN gshRepositoryManager, cObjectTypeCode,b_ryc_ui_event.event_name,TRUE).
+   END.
+   IF NOT lFoundUIEvent THEN DO:
+     cObjectTypeCode = "The UI Event specified is not valid for the object's class. (" + cObjectTypeCode + ")":U.
+     cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
+                   {af/sup2/aferrortxt.i 'AF' '5' 'ryc_ui_event' 'event_name' "'Event Name'" cObjectTypeCode}.
+    END.
+  END.
 
-    IF b_ryc_ui_event.object_type_obj = 0 OR b_ryc_ui_event.object_type_obj = ? THEN
-        ASSIGN cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) 
-                            + {af/sup2/aferrortxt.i 'AF' '1' 'ryc_ui_event' 'object_type_obj' "'Object Type Obj'"}.
-
-    IF b_ryc_ui_event.smartobject_obj = 0 OR b_ryc_ui_event.smartobject_obj = ? THEN
-        ASSIGN cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U)
-                            + {af/sup2/aferrortxt.i 'AF' '1' 'ryc_ui_event' 'smartobject_obj' "'SmartObject Obj'"}.
-
-    IF LENGTH(b_ryc_ui_event.event_name) = 0 OR LENGTH(b_ryc_ui_event.event_name) = ? THEN
-        ASSIGN cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U)
-                            + {af/sup2/aferrortxt.i 'AF' '1' 'ryc_ui_event' 'event_name' "'Event Name'"}.
-    
-    ERROR-STATUS:ERROR = NO.
-    RETURN cMessageList.
+  ERROR-STATUS:ERROR = NO.
+  RETURN cMessageList.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-
-{&DB-REQUIRED-END}
 
 {&DB-REQUIRED-START}
 

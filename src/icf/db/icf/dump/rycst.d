@@ -6,8 +6,8 @@
 1003518046 "TableIO" no no
 1003543798 "Toolbar" no no
 1003578295 "PrimarySdo" no no
-1003585634 "User1" no no
-1003585635 "User2" no no
+1003585634 "User1" yes no
+1003585635 "User2" yes no
 1003598458 "GroupAssign" no no
 1004947046.09 "Commit" no no
 1005118281.101 "TreeFilter" no no
@@ -17,10 +17,10 @@ PSC
 filename=ryc_smartlink_type
 records=0000000000014
 ldbname=ICFDB
-timestamp=2002/02/23-13:25:08
+timestamp=2003/04/02-13:47:58
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
-cpstream=ISO8859-1
+cpstream=utf-8
 .
-0000000410
+0000000412

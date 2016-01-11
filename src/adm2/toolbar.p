@@ -49,10 +49,12 @@
 DEFINE VARIABLE ghTargetProcedure AS HANDLE     NO-UNDO.
 DEFINE VARIABLE xcNoCategory      AS CHARACTER  NO-UNDO  INIT '<none>':U.
 DEFINE VARIABLE xcWindowBand      AS CHARACTER  NO-UNDO  INIT 'Window':U.
+/* Used in resizeObject to determine when initialization is complete */
+DEFINE VARIABLE glInitComplete    AS LOGICAL    NO-UNDO  INIT NO.
 
 {src/adm2/tttoolbar.i}
 
-DEFINE TEMP-TABLE tBandInstance 
+DEFINE TEMP-TABLE tBandInstance NO-UNDO
  FIELD hTarget     AS HANDLE
  FIELD Band        AS CHAR
  FIELD Hdl         AS HANDLE
@@ -60,7 +62,7 @@ DEFINE TEMP-TABLE tBandInstance
 INDEX Hdl hdl hTarget
 INDEX hTarget hTarget Band.
 
-DEFINE TEMP-TABLE tMenu 
+DEFINE TEMP-TABLE tMenu NO-UNDO
  FIELD hTarget      AS HANDLE
  FIELD Name         AS CHAR
  FIELD ParentHdl    AS HANDLE
@@ -73,14 +75,15 @@ DEFINE TEMP-TABLE tMenu
  FIELD Refresh      AS LOG 
  FIELD Sensitive    AS LOG 
  FIELD Disabled     AS LOG 
+ FIELD CaptionSubst AS LOG   
 INDEX MenuId  ParentHdl Caption Link 
-INDEX Name    Name Parent hTarget Seq
-INDEX Refresh Refresh hTarget Parent 
+INDEX Name    Name hTarget Parent Seq
 INDEX Link    hTarget Link Seq
+INDEX Disabled hTarget Disabled
 INDEX Hdl     Hdl hTarget
 INDEX Parent  AS PRIMARY hTarget Parent Seq.
 
-DEFINE TEMP-TABLE tButton 
+DEFINE TEMP-TABLE tButton NO-UNDO
  FIELD hTarget      AS HANDLE
  FIELD Name         AS CHAR
  FIELD Band         AS CHAR
@@ -90,6 +93,8 @@ DEFINE TEMP-TABLE tButton
  FIELD Hdl          AS HANDLE
  FIELD Disabled     AS LOG
  FIELD Sensitive    AS LOG 
+ FIELD LabelSubst   AS LOG
+ FIELD TooltipSubst AS LOG
 INDEX Target AS PRIMARY hTarget Position
 INDEX Band   Band hTarget Position
 INDEX Link   hTarget Link Position
@@ -757,17 +762,6 @@ FUNCTION getNavigationTargetEvents RETURNS CHARACTER
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getSecuredTokens) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getSecuredTokens Procedure 
-FUNCTION getSecuredTokens RETURNS CHARACTER
-  (  )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-getShowBorder) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getShowBorder Procedure 
@@ -1259,7 +1253,7 @@ FUNCTION setHiddenToolbarBands RETURNS LOGICAL
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setImagePath Procedure 
 FUNCTION setImagePath RETURNS LOGICAL
-  ( /* parameter-definitions */ )  FORWARD.
+  ( pcImagePath AS CHAR )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1315,17 +1309,6 @@ FUNCTION setNavigationTarget RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setNavigationTargetEvents Procedure 
 FUNCTION setNavigationTargetEvents RETURNS LOGICAL
   ( pcEvents AS CHARACTER )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setSecuredTokens) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setSecuredTokens Procedure 
-FUNCTION setSecuredTokens RETURNS LOGICAL
-  ( pcSecuredTokens AS CHAR )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1615,7 +1598,7 @@ FUNCTION windowDropDownList RETURNS LOGICAL
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 20.71
+         HEIGHT             = 8.1
          WIDTH              = 52.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -1659,7 +1642,8 @@ DEFINE VARIABLE lOK      AS LOGICAL    NO-UNDO.
 
 DEFINE BUFFER btMenu FOR tMenu.
 
-FOR EACH btMenu WHERE btMenu.PARENT = '':
+FOR EACH btMenu WHERE btMenu.htarget = TARGET-PROCEDURE 
+                AND   btMenu.PARENT = '':
   lOK = DYNAMIC-FUNCTION('BuildMenu' IN TARGET-PROCEDURE, btMenu.NAME).
 END.
 
@@ -1807,20 +1791,23 @@ PROCEDURE initializeObject :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE lToolBar       AS LOG        NO-UNDO.
-  DEFINE VARIABLE lMenu          AS LOG        NO-UNDO.
-  DEFINE VARIABLE cBlank         AS CHAR       NO-UNDO.
-  DEFINE VARIABLE hFrame         AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hWindow        AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hPopupFrame    AS HANDLE NO-UNDO.
-  DEFINE VARIABLE cUIBMode       AS CHAR       NO-UNDO.
-  DEFINE VARIABLE lInit          AS LOG        NO-UNDO.
-  DEFINE VARIABLE cInfo          AS CHAR       NO-UNDO.
-  DEFINE VARIABLE lHideOnInit    AS LOGICAL NO-UNDO.
-  DEFINE VARIABLE lUseRepository AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cTableioType AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cHidden      AS CHARACTER  NO-UNDO.
-  
+  DEFINE VARIABLE lToolBar         AS LOG        NO-UNDO.
+  DEFINE VARIABLE lMenu            AS LOG        NO-UNDO.
+  DEFINE VARIABLE cBlank           AS CHAR       NO-UNDO.
+  DEFINE VARIABLE hFrame           AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hWindow          AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hPopupFrame      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cUIBMode         AS CHAR       NO-UNDO.
+  DEFINE VARIABLE lInit            AS LOG        NO-UNDO.
+  DEFINE VARIABLE cInfo            AS CHAR       NO-UNDO.
+  DEFINE VARIABLE lHideOnInit      AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lUseRepository   AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cTableioType     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cHidden          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iLink            AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cLink            AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cLinkTargetNames AS CHARACTER  NO-UNDO.
+ 
   /* Tableiotype 'save' is managed by HiddenActions from 9.1D */ 
   {get TableioType cTableioType}.
   {get HiddenActions cHidden}.
@@ -1835,7 +1822,8 @@ PROCEDURE initializeObject :
   {get UIBMode cUIBmode}.
   {get Menu lMenu}.
   {get UseRepository lUseRepository}.
-
+  /* Assign var to determine in resizeObject when initialization is complete */
+  ASSIGN glInitComplete = NO.
   IF NOT cUIBMode BEGINS "DESIGN":U THEN 
   DO:
     /* The sbo subscribes to this event in order to update ObjectMapping */
@@ -1846,7 +1834,6 @@ PROCEDURE initializeObject :
   END.
  
   RUN SUPER.
-  
   {get ContainerHandle hFrame}.
   
   ASSIGN
@@ -1893,7 +1880,6 @@ PROCEDURE initializeObject :
   ELSE DO:
     {fn initializeMenu}.
     {fn initializeToolBar}.
-    {fnarg enableActions 'Exit':U}.
   END.
 
   {get HideOnInit lHideOnInit}.
@@ -1901,11 +1887,12 @@ PROCEDURE initializeObject :
   IF NOT lHideOnInit THEN 
   DO:
     RUN viewObject IN TARGET-PROCEDURE.
+
     IF cUIBmode = "DESIGN":U AND ERROR-STATUS:GET-NUMBER(1) = 6491 THEN
     DO:      
       MESSAGE 
-     "The toolbar is to small to show all buttons. " 
-     "This will typically occur when the container is to small. "  SKIP
+     "The toolbar is too small to show all buttons. " 
+     "This will typically occur when the container is too small. "  SKIP
      "The container must be resized manually before the toolbar can be resized." SKIP
      "The toolbar may be resized manually or by applying the Instance Properties."  SKIP
      VIEW-AS ALERT-BOX INFORMATION.
@@ -1916,11 +1903,17 @@ PROCEDURE initializeObject :
       hPopupframe:MOVE-TO-TOP().
   END.
     
-  RUN resetTableio    IN TARGET-PROCEDURE.
-  RUN resetNavigation IN TARGET-PROCEDURE.
-  RUN resetCommit     IN TARGET-PROCEDURE.
-  RUN resetToolbar    IN TARGET-PROCEDURE.
-
+  {get LinkTargetNames cLinkTargetNames}. 
+  DO iLink = 1 TO NUM-ENTRIES(cLinkTargetNames):
+    ASSIGN 
+      cLink = ENTRY(iLink,cLinkTargetNames)
+      cLink = ENTRY(1,cLink,'-':U).
+    RUN VALUE('reset':U + cLink) IN TARGET-PROCEDURE NO-ERROR.
+    /* if reset<LinkType> doesn't exist run the generic reset */
+    IF ERROR-STATUS:ERROR THEN
+      RUN resetTargetActions IN TARGET-PROCEDURE (cLink).  
+  END.
+  ASSIGN glInitComplete = YES.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1947,12 +1940,12 @@ PROCEDURE linkState :
   DEFINE VARIABLE cLink                   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cLinkType               AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cTargets                AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hActiveTarget           AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hContainerSource        AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lDeactivateTargetOnHide AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE iTarget                 AS INTEGER    NO-UNDO.
   DEFINE VARIABLE hTarget                 AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cLinkTargetNames        AS CHARACTER  NO-UNDO.
-  
+
   {get LinkTargetNames cLinkTargetNames}. 
   {get DeactivateTargetOnHide lDeactivateTargetOnHide}.
   
@@ -1971,13 +1964,29 @@ PROCEDURE linkState :
       AND NOT lDeactivateTargetOnHide
       AND NUM-ENTRIES(cTargets) > 1  THEN
       DO:
+        TargetLoop:
         DO iTarget = 1 TO NUM-ENTRIES(cTargets):
           hTarget = WIDGET-HANDLE(ENTRY(iTarget,cTargets)). 
           IF hTarget <> SOURCE-PROCEDURE THEN
           DO:
+            /* Toolbar link is currently used for several things, 
+               so we must ensure that we don't disable the wrong toolbar link, 
+               so we just ignore this for the toolbar link to the container */
+            IF cLinkType = 'Toolbar':U THEN
+            DO:
+              /* Don't disable the container  */
+              {get ContainerSource hContainerSource}.
+              IF hContainerSource = hTarget THEN
+                NEXT TargetLoop.
+              /* Don't disable other targets if the publisher is the container
+                 LEAVE the loop */ 
+              IF SOURCE-PROCEDURE = hContainerSource THEN
+                LEAVE TargetLoop. 
+            END.
+            
             RUN linkStateHandler IN hTarget ('inactive':U,
-                                              TARGET-PROCEDURE,
-                                              cLink) NO-ERROR. 
+                                             TARGET-PROCEDURE,
+                                             cLink) NO-ERROR. 
           END.
         END.
       END.
@@ -2008,19 +2017,25 @@ PROCEDURE loadToolbar :
 /*------------------------------------------------------------------------------
   Purpose:     Load toolbar, bands and actions for the toolbar object
   Parameters:  <none>
-  Notes:       
+  Notes:  When design tools require a fresh version of a toolbar and menu
+          structures, the cacheToolbar property in the SessionManager will
+          be set to 'no'. This indicates that a fresh version of a toolbar
+          and menu structure should be retrieved. If the attribute is not
+          set or set to yes, the program will behave as normal (the default
+          at runtime).
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cLogicalObject AS CHARACTER  NO-UNDO.
 
   DEFINE BUFFER bttBand       FOR ttBand.
   DEFINE BUFFER bttBandAction FOR ttBandAction.
   
-  DEFINE VARIABLE cAvailableMenuActions    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cAvailableToolbarActions AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cObjectList              AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAvailableMenuActions     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAvailableToolbarActions  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cObjectList               AS CHARACTER  NO-UNDO.
 
-  DEFINE VARIABLE cUIBmode                 AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lDelete                  AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cUIBmode                  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lCacheToolbar             AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lDelete                   AS LOGICAL    NO-UNDO.
 
   {get LogicalObjectName cLogicalObject}.
   
@@ -2030,10 +2045,38 @@ PROCEDURE loadToolbar :
     {set LogicalObjectName cLogicalObject}.
   END.
   
+   /* See if a fresh copy of the toolbar should be retrieved */
+  IF VALID-HANDLE(gshSessionManager) THEN
+    lCacheToolbar = NOT (DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager, INPUT "cacheToolbar":U,INPUT YES) = "no":U).
+  ELSE
+    lCacheToolbar = TRUE.
+
   cObjectList = {fnarg supportedObjects NO}. /* no=Only return unloaded bands */
-  
+
+  /* If a fresh version of the toolbar and the menu should be retrieved, remove all the bands for the specified toolbar.
+     Also remove the object bands (menu structures) of the associated object. This will force the standard code to refetch
+     a fresh version of the toolbar and object bands. At the bottom of the standard code, duplicates of the Band and BandAction
+     tables will be done as normal */
+  IF NOT lCacheToolbar AND CAN-FIND(FIRST ttToolbarBand 
+                                    WHERE ttToolbarBand.Toolbar = cLogicalObject) THEN
+  DO:
+    cObjectList = {fnarg supportedObjects YES}.
+
+    FOR EACH ttToolbarBand
+       WHERE ttToolbarBand.Toolbar = cLogicalObject:
+
+      DELETE ttToolbarBand.
+    END.
+
+    FOR EACH ttObjectBand
+       WHERE ttObjectBand.ObjectName = cObjectList:
+
+      DELETE ttObjectBand.
+    END.
+  END.
+
   IF NOT CAN-FIND(FIRST ttToolbarBand 
-                        WHERE ttToolbarBand.Toolbar = cLogicalObject) THEN
+                  WHERE ttToolbarBand.Toolbar = cLogicalObject) THEN
   DO:   
     RUN loadToolbarBands IN TARGET-PROCEDURE (cLogicalObject,
                                               cObjectList,
@@ -2041,7 +2084,6 @@ PROCEDURE loadToolbar :
                                               OUTPUT TABLE ttObjectBand APPEND, 
                                               OUTPUT TABLE ttBand APPEND,
                                               OUTPUT TABLE ttBandAction APPEND).
-
   END.
   ELSE IF cObjectList <> '':U THEN
   DO:
@@ -2056,12 +2098,21 @@ PROCEDURE loadToolbar :
     lDelete =  CAN-FIND(FIRST bttBand 
                         WHERE bttBand.Band            = ttBand.Band
                         AND   bttBand.ProcedureHandle <> ?).
+
     FOR EACH ttBandAction WHERE ttBandAction.ProcedureHandle = ? 
                           AND  ttBandAction.Band            = ttBand.Band:
       IF lDelete THEN
         DELETE ttBandAction.
-      ELSE
-        ASSIGN ttBandAction.ProcedureHandle = THIS-PROCEDURE.
+      ELSE DO:
+        /* Check whether there exists an action containing the same band name, sequence and procedureHandle */
+        /* This could occur if the same band is used twice in the same position (sequence) */
+        IF CAN-FIND (FIRST bttBandAction
+                     WHERE bttBandAction.Band     = ttBandAction.Band
+                       AND bttbandAction.Sequence = ttBandAction.Sequence
+                       AND bttBandAction.ProcedureHandle = THIS-PROCEDURE)
+        THEN DELETE ttBandAction.
+        ELSE ASSIGN ttBandAction.ProcedureHandle = THIS-PROCEDURE.
+      END.
     END.
     IF lDelete THEN 
       DELETE ttBand.
@@ -2395,9 +2446,9 @@ PROCEDURE onChoose :
           key and text in the menu. The key is : separated and stores
           the parent <action id>:<parameter> */  
     ASSIGN
-      cParent   = ENTRY(1,pcAction,":")
+      cParent   = ENTRY(1,pcAction,":":U)
       cParam    = (IF NUM-ENTRIES(pcAction,":":U) > 1 
-                   THEN ENTRY(2,pcAction,":")
+                   THEN ENTRY(2,pcAction,":":U)
                    ELSE "":U)
       cOnChoose = {fnarg actionOnChoose cParent}  
       hObject   = {fnarg actionTarget cParent}
@@ -2410,16 +2461,16 @@ PROCEDURE onChoose :
       DO:
         {get ContainerSource hContainerSource}.
         IF VALID-HANDLE(hContainerSource) 
-        AND LOOKUP ("getMultiInstanceActivated", hContainerSource:INTERNAL-ENTRIES) <> 0 THEN
-          lMultiInstanceActivated = DYNAMIC-FUNCTION("getMultiInstanceActivated" IN hContainerSource).
+        AND LOOKUP ("getMultiInstanceActivated":U, hContainerSource:INTERNAL-ENTRIES) <> 0 THEN
+          lMultiInstanceActivated = DYNAMIC-FUNCTION("getMultiInstanceActivated":U IN hContainerSource).
         ELSE
           lMultiInstanceActivated = NO.
       
         {get Window hContainerWindow}.
       
         IF VALID-HANDLE(hObject) 
-        AND LOOKUP ("getChildDataKey", hObject:INTERNAL-ENTRIES) <> 0 THEN
-          cChildDataKey = DYNAMIC-FUNCTION('getChildDataKey' IN hObject).
+        AND LOOKUP ("getChildDataKey":U, hObject:INTERNAL-ENTRIES) <> 0 THEN
+          cChildDataKey = DYNAMIC-FUNCTION('getChildDataKey':U IN hObject).
         ELSE
           cChildDataKey = "":U.
 
@@ -2675,13 +2726,15 @@ PROCEDURE resetTargetActions :
  DEFINE VARIABLE cImage2Actions    AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cCheckedActions   AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cUncheckedActions AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cLabelActions     AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cCaptionActions   AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cTooltipActions   AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE lInitialized      AS LOGICAL    NO-UNDO.
  DEFINE VARIABLE cLinkActions      AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE hTarget           AS HANDLE     NO-UNDO.
  DEFINE VARIABLE cLinkName         AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cAction           AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE iAction           AS INTEGER    NO-UNDO.
-
  DEFINE BUFFER btButton FOR tButton.
  DEFINE BUFFER btMenu FOR tMenu.
      
@@ -2731,8 +2784,18 @@ PROCEDURE resetTargetActions :
        cImage2Actions = cImage2Actions 
                            + (IF btButton.imageAlt = TRUE
                               THEN ',':U + btButton.Name
-                              ELSE '':U).
+                              ELSE '':U)
+       cLabelActions  = cLabelActions 
+                          + (IF btButton.LabelSubst   
+                             THEN ',':U + btButton.Name
+                             ELSE '':U)
+       cTooltipActions = cTooltipActions 
+                          + (IF btButton.TooltipSubst  
+                             THEN ',':U + btButton.Name
+                             ELSE '':U)
+       .
    END.
+  
  END.
  FOR EACH btMenu WHERE btMenu.hTarget = TARGET-PROCEDURE
                  AND   btMenu.Link     = cLinkName:
@@ -2747,7 +2810,8 @@ PROCEDURE resetTargetActions :
          cDisableActions = cDisableActions 
                          + (IF NOT btMenu.hdl:SENSITIVE 
                             THEN ',':U + btMenu.Name
-                            ELSE '':U).
+                            ELSE '':U)      
+         .
      IF CAN-QUERY(btMenu.Hdl,'TOGGLE-BOX':U) AND btMenu.hdl:TOGGLE-BOX THEN
        ASSIGN
          cCheckedActions = cCheckedActions 
@@ -2758,6 +2822,10 @@ PROCEDURE resetTargetActions :
                            + (IF NOT btMenu.hdl:CHECKED 
                               THEN ',':U + btMenu.Name
                               ELSE '':U).
+     cCaptionActions = cCaptionActions 
+                     + (IF btMenu.CaptionSubst  
+                        THEN ',':U + btMenu.Name
+                        ELSE '':U).
    END.
    IF NOT CAN-DO(cViewActions + cHideActions,btMenu.Name) THEN
      ASSIGN
@@ -2780,7 +2848,11 @@ PROCEDURE resetTargetActions :
    cImage1Actions    = TRIM(cImage1Actions,',':U)
    cImage2Actions    = TRIM(cImage2Actions,',':U)
    cUncheckedActions = TRIM(cUncheckedActions,',':U)
-   cCheckedActions   = TRIM(cCheckedActions,',':U).
+   cCheckedActions   = TRIM(cCheckedActions,',':U)
+   cLabelActions     = TRIM(cLabelActions)
+   cCaptionActions    = TRIM(cCaptionActions)
+   cTooltipActions   = TRIM(cTooltipActions)
+   .
  
  RUN ruleStatechanges IN TARGET-PROCEDURE
        (cLinkName,
@@ -2839,8 +2911,35 @@ PROCEDURE resetTargetActions :
                              ).
      btButton.imageALt = TRUE.
    END.
- END.
+ END.                                
  
+ DO iAction = 1 TO NUM-ENTRIES(cLabelActions):
+   cAction = ENTRY(iAction,cLabelActions).
+   FIND btButton WHERE btButton.Name    = cAction
+                 AND   btButton.hTarget = TARGET-PROCEDURE NO-ERROR.
+
+   IF AVAIL btButton THEN
+     btButton.hdl:LABEL = {fnarg actionLabel btButton.Name}.
+ END.                                  
+   
+ DO iAction = 1 TO NUM-ENTRIES(cTooltipActions):
+   cAction = ENTRY(iAction,cTooltipActions).
+   FIND btButton WHERE btButton.Name    = cAction
+                 AND   btButton.hTarget = TARGET-PROCEDURE NO-ERROR.
+
+   IF AVAIL btButton THEN
+     btButton.hdl:TOOLTIP = {fnarg actionTooltip btButton.Name}.
+ END.
+   
+ DO iAction = 1 TO NUM-ENTRIES(cCaptionActions):
+   cAction = ENTRY(iAction,cCaptionActions).
+   FIND btMenu   WHERE btMenu.Name    = cAction
+                 AND   btMenu.hTarget = TARGET-PROCEDURE NO-ERROR.
+
+   IF AVAIL btMenu THEN
+     btMenu.hdl:LABEL = {fnarg actionCaption btMenu.Name}.
+ END.
+
  IF cEnableActions <> '':U THEN
    {fnarg EnableActions cEnableActions}.
  
@@ -2920,7 +3019,7 @@ PROCEDURE resizeObject :
   DEFINE VARIABLE iPage                 AS INTEGER    NO-UNDO.
   DEFINE VARIABLE dRow                  AS DECIMAL    NO-UNDO.
   DEFINE VARIABLE dCol                  AS DECIMAL    NO-UNDO.
-
+  
   {get UIBMode              cUIBmode}.
   {get Window               hWindow}.
   {get ContainerHandle      hFrame}.
@@ -3070,7 +3169,7 @@ PROCEDURE resizeObject :
     IF VALID-HANDLE(hPopupFrame) THEN 
       hPopupframe:MOVE-TO-TOP().
     
-    IF program-name(2) <> 'adeuib/_setsize.p':u THEN
+   IF program-name(2) <> 'adeuib/_setsize.p':u AND glInitComplete THEN
     DO:
       APPLY "end-resize":U TO hFrame.
       APPLY "end-resize":U TO hWindow. 
@@ -3433,19 +3532,10 @@ PROCEDURE updateState :
   /* Is this from the tableio-target? */
   hIoTarget  = {fnarg activeTarget 'Tableio':U}. 
   IF hSource = hIOTarget THEN
-  DO:
-    /* If 'updateComplete' and update 'mode' ensure that fields are disabled */
-    IF pcState = 'updateComplete':U THEN
-    DO:
-      {get TableIOType cTableIOType}.
-      /* disable */ 
-      IF cTableIOType BEGINS 'Update':U THEN
-         PUBLISH 'updateMode':U FROM TARGET-PROCEDURE ('updateEnd':U).
-    END.
     /* From 9.1C we don't care what state, but check the linked object's state 
        instead */ 
     RUN resetTableio IN TARGET-PROCEDURE.     
-  END.
+ 
   ELSE DO: 
     /* is this from a navtarget ?*/
     hNavTarget = {fnarg activeTarget 'Navigation':U}. 
@@ -3509,7 +3599,7 @@ Parameter: input comma seperated list of actions to view
     IF AVAILABLE btButton AND btButton.hdl:HIDDEN = TRUE THEN 
     DO:
       IF VALID-HANDLE(btButton.Hdl) THEN
-         btButton.Hdl:HIDDEN = FALSE.          
+         btButton.Hdl:HIDDEN = FALSE NO-ERROR.          
       IF NOT lButtonsChanged THEN ASSIGN lButtonsChanged = TRUE.
     END.
   END. /* do iLoop = 1 to num-entries(pcViewActions) */
@@ -3627,6 +3717,7 @@ Parameters: <none>
     /* This is only done to enable accellerators, before the menus are dropped */
     IF cUIBMode = '':U THEN 
       RUN buildAllMenus IN TARGET-PROCEDURE.
+    {fnarg enableActions 'Exit':U}.
   END.
        
   {set ObjectHidden NO}.
@@ -3847,17 +3938,28 @@ END FUNCTION.
 FUNCTION actionCaption RETURNS CHARACTER
   ( pcAction AS CHAR ) :
 /*------------------------------------------------------------------------------
-  Purpose: Override action class and caption  
+  Purpose: Override action class for substitution 
     Notes:  
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cCaption AS CHARACTER  NO-UNDO.
+------------------------------------------------------------------------------*/ 
+  DEFINE BUFFER btMenu FOR tMenu.
+
+  DEFINE VARIABLE cCaption    AS CHARACTER  NO-UNDO.
   cCaption = SUPER(pcAction).
   
-  IF cCaption <> '':U THEN
-     cCaption = DYNAMIC-FUNCTION('substituteActionText':U IN TARGET-PROCEDURE,
-                       pcAction,
-                       cCaption).
-  RETURN cCaption.
+  /* If the Caption is substitutable we log it here before it is 
+     substituted. This allows us to only call this for required cases in 
+     resetTargetAction */ 
+  IF INDEX(cCaption,'&1':U) > 0 THEN
+  DO:
+    FIND btMenu WHERE btMenu.NAME    = pcAction
+                  AND btMenu.hTARGET = TARGET-PROCEDURE NO-ERROR. 
+    IF AVAIL btMenu THEN
+      ASSIGN btMenu.CaptionSubst = TRUE.
+    cCaption = DYNAMIC-FUNCTION('substituteActionText':U IN TARGET-PROCEDURE,
+                                 pcAction,
+                                 cCaption).
+  END.
+   RETURN cCaption.
 
 END FUNCTION.
 
@@ -3935,16 +4037,28 @@ END FUNCTION.
 FUNCTION actionLabel RETURNS CHARACTER
   ( pcAction AS CHAR ) :
 /*------------------------------------------------------------------------------
-  Purpose:  
+  Purpose:  Override action class and caption  
     Notes:  
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cLabel AS CHARACTER  NO-UNDO.
+  DEFINE BUFFER btButton  FOR tButton.
+
+  DEFINE VARIABLE cLabel    AS CHARACTER  NO-UNDO.
+  
   cLabel = SUPER(pcAction).
   
-  IF cLabel <> '':U THEN
-     cLabel = DYNAMIC-FUNCTION('substituteActionText':U IN TARGET-PROCEDURE,
+  /* If the label is substitutable we log it here before it is 
+     substituted. This allows us to only call this for required cases in 
+     resetTargetAction */ 
+  IF INDEX(cLabel,'&1':U) > 0 THEN
+  DO:
+    FIND btButton WHERE btButton.NAME     = pcAction
+                   AND   btButton.hTARGET = TARGET-PROCEDURE NO-ERROR. 
+    IF AVAIL btButton THEN
+      ASSIGN btButton.LabelSubst = TRUE.
+    cLabel = DYNAMIC-FUNCTION('substituteActionText':U IN TARGET-PROCEDURE,
                        pcAction,
                        cLabel).
+  END.
   RETURN cLabel.
 
 END FUNCTION.
@@ -4028,7 +4142,7 @@ Parameter: pcAction - Action id
   DEFINE VARIABLE cLink          AS CHARACTER  NO-UNDO.
   
   cLink = {fnarg actionLink pcAction}.   
-  
+ 
   IF cLink <> "":U THEN
   DO:
     IF ENTRY(2,cLink,"-":U) = "target":U THEN
@@ -4056,16 +4170,29 @@ END FUNCTION.
 FUNCTION actionTooltip RETURNS CHARACTER
   ( pcAction AS CHAR ) :
 /*------------------------------------------------------------------------------
-  Purpose:  
+  Purpose:  Override action class and caption  
     Notes:  
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cTooltip AS CHARACTER  NO-UNDO.
-  cTooltip = SUPER(pcAction).
+  DEFINE BUFFER btButton FOR tButton.
+
+  DEFINE VARIABLE cTooltip     AS CHARACTER  NO-UNDO.
   
-  IF cTooltip <> '':U THEN
-     cTooltip = DYNAMIC-FUNCTION('substituteActionText':U IN TARGET-PROCEDURE,
-                       pcAction,
-                       cTooltip).
+  cTooltip = SUPER(pcAction).
+  /* If the tooltip is substitutable we log it here before it is 
+     substituted. This allows us to only call this for required cases in 
+     resetTargetAction */ 
+  IF INDEX(cTooltip,'&1':U) > 0 THEN
+  DO:
+    FIND btButton WHERE btButton.NAME     = pcAction
+                   AND  btButton.hTARGET = TARGET-PROCEDURE NO-ERROR. 
+    IF AVAIL btButton THEN 
+      ASSIGN btButton.TooltipSubst = TRUE.
+    
+    cTooltip = DYNAMIC-FUNCTION('substituteActionText':U IN TARGET-PROCEDURE,
+                                pcAction,
+                                cTooltip).
+  END.
+     
   RETURN cTooltip.
 
 END FUNCTION.
@@ -4336,7 +4463,7 @@ Parameters: INPUT pcParent - The  name of the sub-menu that this menu will use
     DELETE tMenu.   
   END.
   
-  IF NOT VALID-HANDLE(hMenu:FIRST-CHILD) THEN 
+  IF VALID-HANDLE(hMenu) AND NOT VALID-HANDLE(hMenu:FIRST-CHILD) THEN 
   DO:
     FOR EACH tMenu WHERE tMenu.Parent  = pcParent 
                    AND   tMenu.hTarget = TARGET-PROCEDURE:
@@ -4399,7 +4526,7 @@ Parameters: INPUT pcParent - The  name of the sub-menu that this menu will use
         cMenuItems = DYNAMIC-FUNCTION(cBuildInitCode IN hActionTarget).
       
     DO i = 1 TO NUM-ENTRIES(cMenuItems,CHR(1)) BY 2:  
-        DYNAMIC-FUNCTION('createMenuTempTable':U IN TARGET-PROCEDURE,
+        DYNAMIC-FUNCTION('insertMenuTempTable':U IN TARGET-PROCEDURE,
                          pcParent,
                          /* add parent in order to make it identifiable */ 
                          pcParent + ":" + ENTRY(i,cMenuItems,CHR(1)),
@@ -4629,12 +4756,21 @@ FUNCTION constructMenuBand RETURNS LOGICAL
           /* add a rule if other children was added */
           IF VALID-HANDLE(hMenu:FIRST-CHILD) THEN
           DO:
+            /* This dynamic addition of TT and rule widget is not very elegant.  
+               It is also duplicated elsewhere */ 
             DYNAMIC-FUNCTION ('createMenuTempTable':U IN TARGET-PROCEDURE,
                                bttBandAction.ChildBand,
                               'RULE':U).
-            hWindowRule  = DYNAMIC-FUNCTION("createRule":U IN TARGET-PROCEDURE,
-                                             hMenu). 
-          END.
+            /* no-error is INTENTIONALLY avoided. If the record is not there 
+               someone has screwed up badly and need to know */ 
+            FIND LAST btMenu WHERE btMenu.Parent = bttBandAction.ChildBand 
+                             AND   btMenu.Name   = 'RULE':U 
+                             AND   btMenu.hTarget = TARGET-PROCEDURE.
+            ASSIGN
+              hWindowRule  = DYNAMIC-FUNCTION("createRule":U IN TARGET-PROCEDURE,
+                                               hMenu) 
+              btMenu.hdl   = hWindowRule.             
+          END. /* valid first-child */
 
           IF NOT {fnarg windowDropDownList bttBandAction.Childband} THEN
           DO:
@@ -5189,33 +5325,33 @@ Parameters: pcParent
    
   ELSE
   DO:
-    cType            = {fnarg actionType btMenu.Name}.
-    btMenu.Refresh   = CAN-DO("run,property":U,cType).
-    btMenu.Disabled  = {fnarg actionDisabled btMenu.Name}.
+    ASSIGN
+      cType            = {fnarg actionType btMenu.Name}
+      btMenu.Disabled  = {fnarg actionDisabled btMenu.Name}
+      btMenu.Refresh   = CAN-DO("run,property":U,cType).
     IF CAN-DO("RUN,PUBLISH,LAUNCH":U, cType) 
         /* if it don't exist it has just been added wih insertMenu,
            in that case we make it a menu-item if it has a parent.
            (the user must override onChoose to react on it) */
     OR (pcParent <> "":U AND NOT {fnarg canFindAction btMenu.name} ) THEN
-    DO:
-        /* We don't set enabled for PUBLISH actions, as they default to false
-           but are enabled by other adm2 state changes and may already be 
-           enabled at this point. */
-        IF NOT btMenu.Disabled AND NOT CAN-DO(cDisabledActions,btMenu.Name) THEN
-        DO:
-          IF cType = "RUN":U THEN  /* CanRun checks disabled actions */
-            btMenu.Sensitive = {fnarg actionCanRun btMenu.Name}.
-          ELSE IF cType = "LAUNCH":U THEN
-            btMenu.Sensitive = {fnarg actionCanLaunch btMenu.Name}.
-          ELSE 
-           /* This has really nothing to do with repository, it's just that we use a
+      ASSIGN 
+        btMenu.Sensitive = IF btMenu.Disabled OR CAN-DO(cDisabledActions,btMenu.Name)
+                           THEN FALSE 
+                           /* keep value if already sensitized  */
+                           ELSE IF btMenu.Sensitive THEN TRUE
+                           ELSE IF cType = "RUN":U 
+                              /* CanRun checks disabled actions */
+                           THEN {fnarg actionCanRun btMenu.Name}
+                           ELSE IF cType = "LAUNCH":U 
+                           THEN TRUE
+          /* This has really nothing to do with repository, it's just that we use a
              different default since non-repository need strict backwards compatibility
              while the use of repository makes it so easy to override this with no code
              that it makes sense to have a more sensible default. 
              NOTE: the default must match the craatetoolbarAction setting of tbutton as 
                    resetTargetActions just checks tButton to see if this is a change */
-            btMenu.Sensitive = lUseRepository. 
-        END.
+                           ELSE lUseRepository
+                                   
         btMenu.Hdl = DYNAMIC-FUNCTION
                   ("createMenuItem":U IN TARGET-PROCEDURE,
                    hParent,
@@ -5226,32 +5362,30 @@ Parameters: pcParent
                                       btMenu.Name),
                    btMenu.Sensitive
                   ). 
-    END. /* run publish or just inserted with insertMenu() */
     ELSE IF cType = "PROPERTY":U THEN
-        ASSIGN
-          lChecked = {fnarg actionChecked btMenu.Name}  
-          btMenu.Sensitive = (lChecked <> ?) AND NOT btMenu.Disabled                             
-          btMenu.Hdl = DYNAMIC-FUNCTION
-                  ("createMenuToggle":U IN TARGET-PROCEDURE,
-                   hParent,
-                   btMenu.Name,
-                   DYNAMIC-FUNCTION ("actionCaption":U IN TARGET-PROCEDURE,
-                                      btMenu.Name),
-                   DYNAMIC-FUNCTION ("actionAccelerator":U IN TARGET-PROCEDURE,
-                                      btMenu.Name),
-                   btMenu.Sensitive)
-         btMenu.Hdl:CHECKED = lChecked  = TRUE.
+      ASSIGN
+        lChecked = {fnarg actionChecked btMenu.Name}  
+        btMenu.Sensitive = (lChecked <> ?) AND NOT btMenu.Disabled                             
+        btMenu.Hdl = DYNAMIC-FUNCTION
+                          ("createMenuToggle":U IN TARGET-PROCEDURE,
+                            hParent,
+                            btMenu.Name,
+                            DYNAMIC-FUNCTION ("actionCaption":U IN TARGET-PROCEDURE,
+                                               btMenu.Name),
+                            DYNAMIC-FUNCTION ("actionAccelerator":U IN TARGET-PROCEDURE,
+                                              btMenu.Name),
+                            btMenu.Sensitive)
+        btMenu.Hdl:CHECKED = lChecked  = TRUE.
     ELSE IF {fnarg actionControlType pcAction} = 'Label':U THEN
-    DO:
-       ASSIGN
-         btMenu.Sensitive = IF lUseRepository THEN TRUE
+      ASSIGN
+        btMenu.Sensitive = IF lUseRepository THEN TRUE
                             ELSE 
                               (CAN-FIND 
                                (FIRST btChild WHERE btChild.PARENT = btMenu.NAME
                                              AND   btChild.hTarget = TARGET-PROCEDURE)
                                 OR {fnarg actionInitCode btMenu.Name} <> "":U
                                )
-         btMenu.Hdl = DYNAMIC-FUNCTION
+        btMenu.Hdl = DYNAMIC-FUNCTION
                     ("createSubMenu":U IN TARGET-PROCEDURE,
                       hParent,
                       btMenu.Name,
@@ -5259,7 +5393,6 @@ Parameters: pcParent
                                         btMenu.Name),
                       btMenu.Sensitive). 
 
-    END.
   END. /* else (ie: tMeny <> rule) */
  
   RETURN IF AVAIL btMenu THEN btMenu.Hdl ELSE ?.
@@ -5386,19 +5519,17 @@ Parameters:
   DEFINE BUFFER btBandInstance FOR tBandInstance.
 
   DEFINE VARIABLE iSeq             AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE hActionTarget    AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cCaption         AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE clink            AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hMenu            AS HANDLE     NO-UNDO.
   DEFINE VARIABLE iMergeOrder      AS INTEGER    NO-UNDO.
-  
+  DEFINE VARIABLE lSubstitute      AS LOGICAL    NO-UNDO.
   {get menuMergeOrder iMergeOrder}.
 
   FIND btBandInstance WHERE btBandInstance.Band    = pcParent 
-                      AND   btBandInstance.hTarget = TARGET-PROCEDURE NO-ERROR.
-  
+                      AND   btBandInstance.hTarget = TARGET-PROCEDURE NO-ERROR. 
+
   cCaption      = {fnarg actionCaption pcName}.
- /* hActionTarget = {fnarg actionTarget pcName}.  */
   cLink         = {fnarg actionLink pcName}.
   
   IF AVAIL btBandInstance AND cLink = '':U 
@@ -5856,38 +5987,34 @@ Parameters: pcName  - Action name
                                       hFrame,
                                       INPUT-OUTPUT piXY).
                                       
-  ELSE DO:
-    tButton.Disabled = {fnarg actionDisabled tButton.Name}.
-                        
-    IF NOT tButton.Disabled AND NOT CAN-DO(cDisabledActions,pcName) THEN
-    DO:
-      IF cType = "RUN":U THEN
-      DO:
-        tButton.Sensitive = {fnarg actionCanRun tButton.Name}.
-      END.
-      ELSE
-      IF cType = "LAUNCH":U THEN
-        tButton.Sensitive = {fnarg actionCanLaunch tButton.Name}.
-      ELSE 
-          /* This has really nothing to do with repository, it's just that we use a
+  ELSE 
+    ASSIGN
+      tButton.Disabled = {fnarg actionDisabled tButton.Name}
+      tButton.Sensitive = IF tButton.Disabled OR CAN-DO(cDisabledActions,pcName)
+                          THEN FALSE
+                            /* keep value if already sensitized  */
+                          ELSE IF tButton.Sensitive THEN TRUE
+                          ELSE IF cType = "RUN":U 
+                                /* CanRun checks disabled actions */
+                          THEN {fnarg actionCanRun tButton.Name}
+                          ELSE IF cType = "LAUNCH":U 
+                          THEN TRUE                       
+           /* This has really nothing to do with repository, it's just that we use a
              different default since non-repository need strict backwards compatibility
              while the use of repository makes it so easy to override this with no code
-             that it makes sense to have a more sensible default. */
-        tButton.Sensitive = lUseRepository.
-    END.
-    
-    tButton.Hdl = DYNAMIC-FUNCTION ("createButton":U IN TARGET-PROCEDURE,
+             that it makes sense to have a more sensible default. 
+             NOTE: the default must match the craatetoolbarAction setting of tbutton as 
+                   resetTargetActions just checks tButton to see if this is a change */
+                          ELSE lUseRepository
+     tButton.Hdl = DYNAMIC-FUNCTION ("createButton":U IN TARGET-PROCEDURE,
                         hFrame,
                         INPUT-OUTPUT piXY,
                         tButton.Name,
-                        {fnarg actionName tButton.Name},
+                        {fnarg actionLabel tButton.Name},
                         {fnarg actionTooltip tButton.Name},
                         DYNAMIC-FUNCTION('imageName':U IN TARGET-PROCEDURE,
                                           tButton.Name,1),
-                       tButton.Sensitive).
-       
-  END. /* else do (ie: pcNname <> "RULE")*/ 
-  
+                        tButton.Sensitive).
   IF VALID-HANDLE(tButton.Hdl) THEN 
   DO:
     {get MinWidth  dMinWidth}. 
@@ -5913,7 +6040,6 @@ Parameters: pcName  - Action name
       {set LinkTargetNames cLinkTargetNames}.
      END.
   END.
-
 
   RETURN tButton.Hdl. 
 
@@ -6154,7 +6280,6 @@ FUNCTION deleteMenu RETURNS LOGICAL
   FOR EACH tBandInstance WHERE tBandInstance.hTarget = TARGET-PROCEDURE:     
     IF VALID-HANDLE(tBandInstance.hdl) THEN
     DO:
-
       IF NOT CAN-FIND(FIRST btBandInstance
                             WHERE btBandInstance.hdl = tBandInstance.hdl
                             AND   btBandInstance.hTarget <> tBandInstance.hTarget) THEN
@@ -6163,7 +6288,6 @@ FUNCTION deleteMenu RETURNS LOGICAL
         IF tBandInstance.Hdl = hMenubar THEN {set MenuBarHandle ?}. 
       END.
     END.
-
     DELETE tBandInstance.
   END. 
  
@@ -6171,7 +6295,7 @@ FUNCTION deleteMenu RETURNS LOGICAL
      IF VALID-HANDLE(tMenu.hdl) THEN
      DO:
        IF NOT CAN-FIND(FIRST btMenu WHERE btMenu.Hdl     = tMenu.hdl
-                                     AND   btMenu.hTarget <> tMenu.hTarget) THEN
+                                     AND   btMenu.hTarget <> tMenu.hTarget) THEN      
          DELETE WIDGET tmenu.hdl.
      END.
      DELETE tMenu.
@@ -6703,56 +6827,6 @@ FUNCTION getNavigationTargetEvents RETURNS CHARACTER
   DEFINE VARIABLE cEvents AS CHARACTER NO-UNDO.
   {get NavigationTargetEvents cEvents}.
   RETURN cEvents.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getSecuredTokens) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getSecuredTokens Procedure 
-FUNCTION getSecuredTokens RETURNS CHARACTER
-  (  ) :
-/*------------------------------------------------------------------------------
-  Purpose:  Return the list of securedtokens for the container 
-    Notes:  
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hContainerSource AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cObjectName      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cRunAttribute    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cSecuredTokens   AS CHARACTER  NO-UNDO.
-
-  &SCOPED-DEFINE xpSecuredTokens
-  {get SecuredTokens cSecuredTokens}.
-  &UNDEFINE xpSecuredTokens
-  
-  IF cSecuredtokens = ? THEN
-  DO:
-    {get ContainerSource hContainerSource}.
-
-    IF VALID-HANDLE(hContainerSource) THEN
-    DO:
-      {get LogicalObjectName cObjectName hContainerSource}.
-      {get RunAttribute cRunAttribute hContainerSource}.
-    END.
-    ELSE
-      ASSIGN
-        cObjectName = "":U
-        cRunAttribute = "":U.
-
-    IF VALID-HANDLE(gshSecurityManager) THEN
-      /* get list of secured tokens for the container instance */
-      RUN tokenSecurityCheck IN gshSecurityManager (INPUT  cObjectName,
-                                                    INPUT  cRunAttribute,
-                                                    OUTPUT cSecuredTokens).
-    
-    {set SecuredTokens cSecuredTokens}.
-  END.
-
-  RETURN cSecuredTokens.
 
 END FUNCTION.
 
@@ -8169,13 +8243,13 @@ END FUNCTION.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setImagePath Procedure 
 FUNCTION setImagePath RETURNS LOGICAL
-  ( /* parameter-definitions */ ) :
+  ( pcImagePath AS CHAR ) :
 /*------------------------------------------------------------------------------
-  Purpose: Sets the logical value  
+  Purpose: Set the opsys path of the images   
     Notes:  
 ------------------------------------------------------------------------------*/
-
-  RETURN FALSE.   /* Function return value. */
+  {set ImagePath pcImagePath}.
+  RETURN TRUE.
 
 END FUNCTION.
 
@@ -8284,27 +8358,6 @@ FUNCTION setNavigationTargetEvents RETURNS LOGICAL
 
   {set NavigationTargetEvents pcEvents}.
   RETURN TRUE.
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setSecuredTokens) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setSecuredTokens Procedure 
-FUNCTION setSecuredTokens RETURNS LOGICAL
-  ( pcSecuredTokens AS CHAR ) :
-/*------------------------------------------------------------------------------
-  Purpose:  Set the list of securedtokens (from the container really) 
-    Notes:  SET from getSecuredTokens the first time (when the value is ?)
-------------------------------------------------------------------------------*/   
-  &SCOPED-DEFINE xpSecuredTokens
-  {set SecuredTokens pcSecuredTokens}.
-  &UNDEFINE xpSecuredTokens
-  
-  RETURN TRUE. 
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -8750,16 +8803,19 @@ FUNCTION substituteActionText RETURNS CHARACTER
   DEFINE VARIABLE hObject     AS HANDLE     NO-UNDO.
   
   IF INDEX(pcText,'&1':U) > 0 THEN
-  DO:
+  DO:    
     ASSIGN
-      cProperty = "get":U + {fnarg actionSubstituteProperty pcAction}.
-      hObject = {fnarg actionTarget pcAction}. 
-
-    IF VALID-HANDLE(hObject) THEN
-      cSubstitute = DYNAMIC-FUNCTION(cProperty IN hObject) NO-ERROR.         
-
-    /* Cannot use the substitute statement because label text typically has & */
+      hObject   = {fnarg actionTarget pcAction} 
+      cProperty = {fnarg actionSubstituteProperty pcAction}. 
+            
+    IF VALID-HANDLE(hObject) AND cProperty > '':U THEN
+      cSubstitute = DYNAMIC-FUNCTION('get':U + cProperty IN hObject) NO-ERROR.         
+    
+    IF cSubstitute = ? THEN
+      cSubstitute = '':U.
+    
     pcText = REPLACE(pcText,'&1':U,cSubstitute).
+   
   END.
   RETURN pctext. 
 

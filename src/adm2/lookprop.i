@@ -44,11 +44,16 @@
 &ENDIF
 &GLOB xcInstanceProperties {&xcInstanceProperties}~
 DisplayedField,KeyField,FieldLabel,FieldTooltip,KeyFormat,KeyDatatype,DisplayFormat,DisplayDatatype,~
-BaseQueryString,QueryTables,BrowseFields,BrowseFieldDataTypes,BrowseFieldFormats,RowsToBatch,BrowseTitle,ViewerLinkedFields,LinkedFieldDataTypes,LinkedFieldFormats,ViewerLinkedWidgets,ColumnLabels,ColumnFormat,SDFFileName,SDFTemplate,LookupImage,ParentField,ParentFilterQuery,MaintenanceObject,MaintenanceSDO
+BaseQueryString,QueryTables,BrowseFields,BrowseFieldDataTypes,BrowseFieldFormats,RowsToBatch,BrowseTitle,~
+ViewerLinkedFields,LinkedFieldDataTypes,LinkedFieldFormats,ViewerLinkedWidgets,ColumnLabels,ColumnFormat,~
+SDFFileName,SDFTemplate,LookupImage,ParentField,ParentFilterQuery,MaintenanceObject,MaintenanceSDO,CustomSuperProc,~
+PhysicalTableNames,TempTables,QueryBuilderJoinCode,QueryBuilderOptionList,QueryBuilderOrderList,QueryBuilderTableOptionList,~
+QueryBuilderTuneOptions,QueryBuilderWhereClauses,PopupOnAmbiguous,PopupOnUniqueAmbiguous,PopupOnNotAvail,BlankOnNotAvail
 
-  /* Custom instance definition file */
 
-  {src/adm2/custom/lookupdefscustom.i}
+
+/* Custom instance definition file */
+{src/adm2/custom/lookupdefscustom.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -143,18 +148,35 @@ BaseQueryString,QueryTables,BrowseFields,BrowseFieldDataTypes,BrowseFieldFormats
   &GLOBAL-DEFINE xpRowIdent           /* comma list of rowids for current record */
   
   /* Lookup Enhancements - MAD (MIP) */
-  &GLOBAL-DEFINE xpColumnLabels        /* Browser Column Override Labels */
-  &GLOBAL-DEFINE xpColumnFormat        /* Browser Column Override Froamt */
-  &GLOBAL-DEFINE xpSDFFileName         /* SmartDataField File Name */
-  &GLOBAL-DEFINE xpSDFTemplate         /* SmartDataField Template File Name */
-  &GLOBAL-DEFINE xpLookupImage         /* The image file name to be used for the lookup button (binoculars) */
-  &GLOBAL-DEFINE xpParentField         /* The field/widget name of the parent object that this lookup is dependant on */
-  &GLOBAL-DEFINE xpParentFilterQuery   /* The filter query to be used to filter on parent information */
-  &GLOBAL-DEFINE xpMaintenanceObject   /* The logical object name of the object to launch for lookup data maintenance */
-  &GLOBAL-DEFINE xpMaintenanceSDO      /* The SDO name to be launched prior to launching the maintenance object */
+  &GLOBAL-DEFINE xpColumnLabels                /* Browser Column Override Labels */
+  &GLOBAL-DEFINE xpColumnFormat                /* Browser Column Override Froamt */
+  &GLOBAL-DEFINE xpSDFFileName                 /* SmartDataField File Name */
+  &GLOBAL-DEFINE xpSDFTemplate                 /* SmartDataField Template File Name */
+  &GLOBAL-DEFINE xpLookupImage                 /* The image file name to be used for the lookup button (binoculars) */
+  &GLOBAL-DEFINE xpParentField                 /* The field/widget name of the parent object that this lookup is dependant on */
+  &GLOBAL-DEFINE xpParentFilterQuery           /* The filter query to be used to filter on parent information */
+  &GLOBAL-DEFINE xpMaintenanceObject           /* The logical object name of the object to launch for lookup data maintenance */
+  &GLOBAL-DEFINE xpMaintenanceSDO              /* The SDO name to be launched prior to launching the maintenance object */
+  &GLOBAL-DEFINE xpPhysicalTableNames          /* comma delimited list of actual DB Tables names of buffers defined that corresponds with cBufferList */                   
+  &GLOBAL-DEFINE xpTempTables                  /* comma delimited list of PLIP names where data for define temp-tables could be retrieved, corresponds with cBufferList */ 
+  &GLOBAL-DEFINE xpQueryBuilderJoinCode        /* Used at design time for Query Builder */
+  &GLOBAL-DEFINE xpQueryBuilderOptionList      /* Used at design time for Query Builder */
+  &GLOBAL-DEFINE xpQueryBuilderOrderList       /* Used at design time for Query Builder */
+  &GLOBAL-DEFINE xpQueryBuilderTableOptionList /* Used at design time for Query Builder */
+  &GLOBAL-DEFINE xpQueryBuilderTuneOptions     /* Used at design time for Query Builder */
+  &GLOBAL-DEFINE xpQueryBuilderWhereClauses    /* Used at design time for Query Builder */
   
+  /* Auto Browse Popup Properties */
+  &GLOBAL-DEFINE xpPopupOnAmbiguous            /* Popup Lookup Browse on leave of modified field when ambiguous - providing field value was modified., i.e. partially entered some data and no record could be uniquely identified. */
+  &GLOBAL-DEFINE xpPopupOnUniqueAmbiguous      /* Popup Lookup Browse on leave of modified field when unique find is ambiguous - providing field value was modified. i.e. entered John and John exists but other entries beginning with John, e.g. Johnson also exist. */
+  &GLOBAL-DEFINE xpPopupOnNotAvail             /* Popup Lookup Browse on leave of modified field when value does not uniquely identify a record - providing field value was modified. */
+  &GLOBAL-DEFINE xpBlankOnNotAvail             /* Blank invalid values for lookups rather than leaving the invalid value in the field - providing field value was modified. */
+
+
   {src/adm2/fieldprop.i}
 
+IF NOT {&ADM-PROPS-DEFINED} THEN
+DO:
 &IF "{&ADMSuper}":U = "":U &THEN
   /* Lookup property field definitions */
   ghADMProps:ADD-NEW-FIELD('DisplayedField':U, 'CHARACTER':U, 0, ?, '':U).
@@ -188,22 +210,35 @@ BaseQueryString,QueryTables,BrowseFields,BrowseFieldDataTypes,BrowseFieldFormats
   ghADMProps:ADD-NEW-FIELD('Starting':U, 'LOG':U, 0, ?, no).
   ghADMProps:ADD-NEW-FIELD('Modify':U, 'LOG':U, 0, ?, no).
 
-  ghADMProps:ADD-NEW-FIELD('CurrentQueryString':U, 'CHARACTER':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('RowIdent', 'CHARACTER', 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('CurrentQueryString':U,          'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('RowIdent':U,                    'CHARACTER':U, 0, ?, '':U).
 
-  ghADMProps:ADD-NEW-FIELD('ColumnLabels':U,  'CHARACTER':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('ColumnFormat':U,  'CHARACTER':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('SDFFileName', 'CHARACTER', 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('SDFTemplate', 'CHARACTER', 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('LookupImage', 'CHARACTER', 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('ParentField', 'CHARACTER', 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('ParentFilterQuery', 'CHARACTER', 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('MaintenanceObject', 'CHARACTER', 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('MaintenanceSDO', 'CHARACTER', 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('ColumnLabels':U,                'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('ColumnFormat':U,                'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('SDFFileName':U,                 'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('SDFTemplate':U,                 'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('LookupImage':U,                 'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('ParentField':U,                 'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('ParentFilterQuery':U,           'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('MaintenanceObject':U,           'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('MaintenanceSDO':U,              'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('PhysicalTableNames':U,          'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('TempTables':U,                  'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('QueryBuilderJoinCode':U,        'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('QueryBuilderOptionList':U,      'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('QueryBuilderOrderList':U,       'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('QueryBuilderTableOptionList':U, 'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('QueryBuilderTuneOptions':U,     'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('QueryBuilderWhereClauses':U,    'CHARACTER':U, 0, ?, '':U).
 
+  ghADMProps:ADD-NEW-FIELD('PopupOnAmbiguous':U,           'LOGICAL':U, 0, ?, YES).
+  ghADMProps:ADD-NEW-FIELD('PopupOnUniqueAmbiguous':U,     'LOGICAL':U, 0, ?, NO).
+  ghADMProps:ADD-NEW-FIELD('PopupOnNotAvail':U,            'LOGICAL':U, 0, ?, NO).
+  ghADMProps:ADD-NEW-FIELD('BlankOnNotAvail':U,            'LOGICAL':U, 0, ?, NO).
 &ENDIF
 
   {src/adm2/custom/lookpropcustom.i}
+END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

@@ -337,8 +337,7 @@ DO:
       IF c_SVisualColumns <> "":U THEN
       DO cnt = 1 TO NUM-ENTRIES(c_SVisualColumns):
          cTemp = ENTRY(cnt,c_SVisualColumns).
-         IF NOT CAN-DO(c_SQueryColumns,cTemp) AND 
-            NOT cTemp = "<Local>":U THEN    /* IZ 1611 Local field support */
+         IF NOT CAN-DO(c_SQueryColumns,cTemp) THEN    
          DO:
             ASSIGN pl_objectsMatch = NO.
             IF NOT pl_details THEN LEAVE.
@@ -415,8 +414,7 @@ DO:
          IF c_EnabledFlds <> "":U THEN
          DO cnt = 1 TO NUM-ENTRIES(c_EnabledFlds):
             cTemp = ENTRY(cnt,c_EnabledFlds).
-            IF NOT CAN-DO(c_updatableFlds,cTemp) AND 
-               NOT cTemp = "<Local>":U THEN    /* IZ 1611 Local field support */
+            IF NOT CAN-DO(c_updatableFlds,cTemp) THEN    
             DO:
                 ASSIGN pl_objectsMatch = NO.
                 IF NOT pl_details THEN LEAVE.

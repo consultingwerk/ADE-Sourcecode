@@ -52,9 +52,9 @@ CREATE WIDGET-POOL.
 &Scoped-define FRAME-NAME fMain
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS edComment lCreate buPath1 fiPath1 edConnect ~
-fiConnect RECT-1 
-&Scoped-Define DISPLAYED-OBJECTS edComment lCreate fiPath1 edConnect ~
+&Scoped-Define ENABLED-OBJECTS edComment lCreate lBuild buPath1 fiPath1 ~
+edConnect fiConnect RECT-1 
+&Scoped-Define DISPLAYED-OBJECTS edComment lCreate lBuild fiPath1 edConnect ~
 fiConnect 
 
 /* Custom List Definitions                                              */
@@ -70,13 +70,13 @@ fiConnect
 
 /* Definitions of the field level widgets                               */
 DEFINE BUTTON buPath1 
-     LABEL "Select..." 
+     LABEL "Browse..." 
      SIZE 15 BY 1.14
      BGCOLOR 8 .
 
 DEFINE VARIABLE edComment AS CHARACTER 
      VIEW-AS EDITOR SCROLLBAR-VERTICAL LARGE
-     SIZE 77.2 BY 5.81 NO-UNDO.
+     SIZE 77.2 BY 6.38 NO-UNDO.
 
 DEFINE VARIABLE edConnect AS CHARACTER 
      VIEW-AS EDITOR SCROLLBAR-VERTICAL LARGE
@@ -93,24 +93,30 @@ DEFINE VARIABLE fiPath1 AS CHARACTER FORMAT "X(256)":U
 
 DEFINE RECTANGLE RECT-1
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 76.4 BY 5.19.
+     SIZE 76.4 BY 5.05.
+
+DEFINE VARIABLE lBuild AS LOGICAL INITIAL no 
+     LABEL "Build" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 35.4 BY .81 NO-UNDO.
 
 DEFINE VARIABLE lCreate AS LOGICAL INITIAL no 
      LABEL "Create" 
      VIEW-AS TOGGLE-BOX
-     SIZE 35.2 BY .81 NO-UNDO.
+     SIZE 32.4 BY .81 NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME fMain
      edComment AT ROW 1.19 COL 1.4 NO-LABEL
-     lCreate AT ROW 7.57 COL 13
-     buPath1 AT ROW 8.57 COL 63.4
-     fiPath1 AT ROW 8.62 COL 17.8 COLON-ALIGNED
-     edConnect AT ROW 10.71 COL 3 NO-LABEL
-     fiConnect AT ROW 9.95 COL 1.8 COLON-ALIGNED NO-LABEL
-     RECT-1 AT ROW 10.24 COL 1.8
+     lCreate AT ROW 7.91 COL 4.6
+     lBuild AT ROW 7.91 COL 42.6
+     buPath1 AT ROW 8.95 COL 62.8
+     fiPath1 AT ROW 9 COL 17.2 COLON-ALIGNED
+     edConnect AT ROW 11 COL 3 NO-LABEL
+     fiConnect AT ROW 10.24 COL 1.8 COLON-ALIGNED NO-LABEL
+     RECT-1 AT ROW 10.52 COL 1.8
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1
@@ -124,7 +130,7 @@ DEFINE FRAME fMain
    Type: SmartFrame
    Allow: Basic,Browse,DB-Fields,Query,Smart
    Container Links: Data-Target,Data-Source,Page-Target,Update-Source,Update-Target
-   Other Settings: PERSISTENT-ONLY
+   Other Settings: PERSISTENT-ONLY COMPILE
  */
 
 /* This procedure should always be RUN PERSISTENT.  Report the error,  */
@@ -142,8 +148,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW fFrameWin ASSIGN
-         HEIGHT             = 14.71
-         WIDTH              = 77.8.
+         HEIGHT             = 14.62
+         WIDTH              = 78.2.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -194,7 +200,7 @@ ASSIGN
 
 &Scoped-define SELF-NAME buPath1
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buPath1 fFrameWin
-ON CHOOSE OF buPath1 IN FRAME fMain /* Select... */
+ON CHOOSE OF buPath1 IN FRAME fMain /* Browse... */
 DO:
   RUN btnChoose IN THIS-PROCEDURE.
 END.
@@ -210,6 +216,21 @@ DO:
   RUN eventProc IN THIS-PROCEDURE ("LEAVE":U,"{&SELF-NAME}":U) NO-ERROR.
   IF ERROR-STATUS:ERROR THEN
     RETURN NO-APPLY.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME lBuild
+&Scoped-define SELF-NAME lCreate
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL lCreate fFrameWin
+ON VALUE-CHANGED OF lCreate IN FRAME fMain /* Create */
+DO:
+  ASSIGN
+    lCreate
+  .
+  RUN setSensitive.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -271,11 +292,34 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  DISPLAY edComment lCreate fiPath1 edConnect fiConnect 
+  DISPLAY edComment lCreate lBuild fiPath1 edConnect fiConnect 
       WITH FRAME fMain.
-  ENABLE edComment lCreate buPath1 fiPath1 edConnect fiConnect RECT-1 
+  ENABLE edComment lCreate lBuild buPath1 fiPath1 edConnect fiConnect RECT-1 
       WITH FRAME fMain.
   {&OPEN-BROWSERS-IN-QUERY-fMain}
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setSensitive fFrameWin 
+PROCEDURE setSensitive :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DO WITH FRAME {&FRAME-NAME}:
+    IF lCreate THEN
+      ASSIGN
+        lBuild:CHECKED = YES
+        lBuild:SENSITIVE = NO
+      .
+    ELSE
+      ASSIGN
+        lBuild:SENSITIVE = YES
+      .
+  END.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

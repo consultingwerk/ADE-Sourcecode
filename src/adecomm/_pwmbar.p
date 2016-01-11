@@ -28,6 +28,7 @@ Procedure: _pwmbar.p
 Syntax   :
     RUN adecomm/_pwmbar.p
         ( INPUT  p_Popup    /* Create Popup Menu */,
+          INPUT  p_Restrictions /* Char string reflecting restrictions to be made */,
           OUTPUT p_HMenubar /* Menubar Handle */ ).
 
 Purpose  :          
@@ -40,6 +41,7 @@ Description:
        
 Parameters:
     INPUT  p_Popup          - Logical - Create as popup = TRUE.
+    input  p_Restrictions   - Character - String to reflect restrictions
     OUTPUT p_hMenubar       - Handle of created PW Menubar.
 
 Notes :
@@ -51,8 +53,9 @@ Date  : January, 1994
 *****************************************************************************/
 
 
-DEFINE INPUT  PARAMETER p_Popup    AS LOGICAL NO-UNDO.
-DEFINE OUTPUT PARAMETER p_hMenubar AS HANDLE  NO-UNDO.
+DEFINE INPUT  PARAMETER p_Popup        AS LOGICAL   NO-UNDO.
+DEFINE INPUT  PARAMETER p_Restrictions AS CHARACTER NO-UNDO.
+DEFINE OUTPUT PARAMETER p_hMenubar     AS HANDLE    NO-UNDO.
 
 /* Procedure Window application-global contstants. */
 { adecomm/_pwglob.i }
@@ -63,6 +66,7 @@ DEFINE VARIABLE h_submenu AS WIDGET NO-UNDO.  /*... Sub-Menu             */
 DEFINE VARIABLE h_subm    AS WIDGET NO-UNDO.  /*... Sub-Menu             */
 DEFINE VARIABLE h         AS WIDGET NO-UNDO.  /*... generic handle       */
 DEFINE VARIABLE lIsICFRunning AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE lReadOnly AS LOGICAL       NO-UNDO.
 
 /* MAIN */
 DO ON STOP UNDO, LEAVE:
@@ -70,6 +74,7 @@ DO ON STOP UNDO, LEAVE:
 /* Establish if Dynamics is running. */
 ASSIGN lIsICFRunning = DYNAMIC-FUNCTION("IsICFRunning":U) NO-ERROR.
 ASSIGN lIsICFRunning = (lIsICFRunning = YES) NO-ERROR.
+IF p_Restrictions MATCHES "*READ-ONLY*":U THEN lReadOnly = TRUE.
 
 /* Create a MENU-BAR */
 CREATE MENU h_menu IN WIDGET-POOL {&PW_Pool}
@@ -89,9 +94,9 @@ ASSIGN p_hMenubar = h_menu
 IF NOT p_Popup THEN
 DO:
     RUN FileMenu.
-    RUN EditMenu.
+    IF NOT lReadOnly THEN RUN EditMenu.
     RUN SearchMenu.    
-    RUN CompileMenu.
+    IF NOT lReadOnly THEN RUN CompileMenu.
     RUN HelpMenu.
 END.
 ELSE
@@ -113,57 +118,71 @@ ASSIGN
   PARENT = h_menu.
 /*... add menu-items.  ..*/
 
-CREATE MENU-ITEM h IN WIDGET-POOL {&PW_Pool}
-ASSIGN
-  LABEL  = "&New"
-  ACCELERATOR = "Shift-F3"
-  PARENT = h_submenu
-  TRIGGERS:
-    ON CHOOSE PERSISTENT RUN adecomm/_pwfile.p ("NEW").
-  END TRIGGERS.
+IF NOT lReadOnly THEN DO:
+  CREATE MENU-ITEM h IN WIDGET-POOL {&PW_Pool}
+  ASSIGN
+    LABEL  = "&New"
+    ACCELERATOR = "Shift-F3"
+    PARENT = h_submenu
+    TRIGGERS:
+      ON CHOOSE PERSISTENT RUN adecomm/_pwfile.p ("NEW").
+    END TRIGGERS.
+END. /* If not read only */
 
-CREATE MENU-ITEM h IN WIDGET-POOL {&PW_Pool}
-ASSIGN
-  LABEL  = "&Open..."
-  ACCELERATOR = "F3"
-  PARENT = h_submenu
-  TRIGGERS:
-    ON CHOOSE PERSISTENT RUN adecomm/_pwfile.p ("OPEN").
-  END TRIGGERS.
+IF NOT lReadOnly THEN DO:
+  CREATE MENU-ITEM h IN WIDGET-POOL {&PW_Pool}
+  ASSIGN
+    LABEL  = "&Open..."
+    ACCELERATOR = "F3"
+    PARENT = h_submenu
+    TRIGGERS:
+      ON CHOOSE PERSISTENT RUN adecomm/_pwfile.p ("OPEN").
+    END TRIGGERS.
+  
+  RUN CreateRule.
 
-RUN CreateRule.
+END. /* If not read only */
 
-CREATE MENU-ITEM h IN WIDGET-POOL {&PW_Pool}
-ASSIGN
-  LABEL  = "New Procedure &Window"
-  ACCELERATOR = "Ctrl-F3"
-  PARENT = h_submenu
-  TRIGGERS:
-    ON CHOOSE PERSISTENT RUN adecomm/_pwfile.p ("NEW-PWIN").
-  END TRIGGERS.
+IF NOT lReadOnly THEN DO:
+  CREATE MENU-ITEM h IN WIDGET-POOL {&PW_Pool}
+  ASSIGN
+    LABEL  = "New Procedure &Window"
+    ACCELERATOR = "Ctrl-F3"
+    PARENT = h_submenu
+    TRIGGERS:
+      ON CHOOSE PERSISTENT RUN adecomm/_pwfile.p ("NEW-PWIN").
+    END TRIGGERS.
+  
+  RUN CreateRule.
 
-RUN CreateRule.
+END. /* If not read only */
 
-CREATE MENU-ITEM h IN WIDGET-POOL {&PW_Pool}
-ASSIGN
-  LABEL  = "&Save"
-  ACCELERATOR = "F6"
-  PARENT = h_submenu
-  TRIGGERS:
-    ON CHOOSE PERSISTENT RUN adecomm/_pwfile.p ("SAVE").
-  END TRIGGERS.
+IF NOT lReadOnly THEN DO:
+  CREATE MENU-ITEM h IN WIDGET-POOL {&PW_Pool}
+  ASSIGN
+    LABEL  = "&Save"
+    ACCELERATOR = "F6"
+    PARENT = h_submenu
+    TRIGGERS:
+      ON CHOOSE PERSISTENT RUN adecomm/_pwfile.p ("SAVE").
+    END TRIGGERS.
 
-CREATE MENU-ITEM h IN WIDGET-POOL {&PW_Pool}
-ASSIGN
-  LABEL  = "Save &As..."
-  ACCELERATOR = "Shift-F6"
-  PARENT = h_submenu
-  TRIGGERS:
-    ON CHOOSE PERSISTENT RUN adecomm/_pwfile.p ("SAVE-AS").
-  END TRIGGERS.
+END. /* If not read only */
+
+IF NOT lReadOnly THEN DO:
+  CREATE MENU-ITEM h IN WIDGET-POOL {&PW_Pool}
+  ASSIGN
+    LABEL  = "Save &As..."
+    ACCELERATOR = "Shift-F6"
+    PARENT = h_submenu
+    TRIGGERS:
+      ON CHOOSE PERSISTENT RUN adecomm/_pwfile.p ("SAVE-AS").
+    END TRIGGERS.
+
+END. /* If not read only */
 
 /* IZ 2513. Add the 'Add to Repository' option when Dynamics ICF is running. */
-IF lIsICFRunning THEN
+IF lIsICFRunning AND NOT lReadOnly THEN
 DO:
   CREATE MENU-ITEM h IN WIDGET-POOL {&PW_Pool}
   ASSIGN
@@ -174,7 +193,8 @@ DO:
     END TRIGGERS.
 END.
 
-RUN CreateRule.
+IF NOT lReadOnly THEN
+  RUN CreateRule.
 
 CREATE MENU-ITEM h IN WIDGET-POOL {&PW_Pool}
 ASSIGN
@@ -373,13 +393,14 @@ PROCEDURE SearchMenu.
     TRIGGERS:
       ON CHOOSE PERSISTENT RUN adecomm/_pwsrch.p ("FIND-PREV").
     END TRIGGERS.
-  CREATE MENU-ITEM h IN WIDGET-POOL {&PW_Pool} ASSIGN
-    LABEL       = "&Replace..."
-    ACCELERATOR = "Ctrl-R"
-    PARENT      = h_submenu
-    TRIGGERS:
-      ON CHOOSE PERSISTENT RUN adecomm/_pwsrch.p ("REPLACE").
-    END TRIGGERS.
+  IF NOT lReadOnly THEN
+    CREATE MENU-ITEM h IN WIDGET-POOL {&PW_Pool} ASSIGN
+      LABEL       = "&Replace..."
+      ACCELERATOR = "Ctrl-R"
+      PARENT      = h_submenu
+      TRIGGERS:
+        ON CHOOSE PERSISTENT RUN adecomm/_pwsrch.p ("REPLACE").
+      END TRIGGERS.
   CREATE MENU-ITEM h IN WIDGET-POOL {&PW_Pool} ASSIGN
     SUBTYPE  = "RULE"
     PARENT   = h_submenu.

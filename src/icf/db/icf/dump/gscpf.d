@@ -1,3 +1,4 @@
+665.009 "Browser" "Browser Settings" yes no yes
 1003546818 "BrwFilters" "Browse Filter" yes no yes
 1003588530 "General" "General User Settings" yes no yes
 1003588552 "RepFilters" "Report Filter Settings" yes yes yes
@@ -6,12 +7,12 @@
 .
 PSC
 filename=gsc_profile_type
-records=0000000000005
+records=0000000000006
 ldbname=ICFDB
-timestamp=2002/02/23-13:24:34
+timestamp=2003/04/02-13:47:44
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
-cpstream=ISO8859-1
+cpstream=utf-8
 .
-0000000268
+0000000317

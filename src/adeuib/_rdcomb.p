@@ -110,7 +110,8 @@ ASSIGN _U._SUBTYPE             = IF {&ACB_sub-type} = "SI" THEN "SIMPLE" ELSE
        _U._LABEL               = IF NOT _L._NO-LABELS 
                                  THEN (IF v_label = ? THEN _U._NAME ELSE v_label)                                 
                                  ELSE ""
-       _U._LABEL-SOURCE        = IF from_schema OR _U._DBNAME NE ? THEN "D" ELSE "E"
+       _U._LABEL-SOURCE        = IF (from_schema OR _U._DBNAME NE ?) AND _U._LABEL-SOURCE NE "E":U
+                                    THEN "D" ELSE "E"
        _F._INNER-CHARS         = INTEGER({&ACB_inner-chars})
        _F._INNER-LINES         = INTEGER({&ACB_inner-lines})
        _F._SORT                = ({&ACB_sort} eq "y")
@@ -129,9 +130,14 @@ ASSIGN _U._SUBTYPE             = IF {&ACB_sub-type} = "SI" THEN "SIMPLE" ELSE
   (LABEL-SOURCE = "D"), the UIB stores the label locally in _U._LABEL.  This
   will not have been set if the there is no label in the frame. (Note: we
   are assuming here that the frame has column-labels. */
-IF (_U._DBNAME NE ?) AND _L._NO-LABELS AND (_U._LABEL eq "")  
-THEN RUN adeuib/_fldlbl.p (_U._DBNAME, _U._TABLE, _U._NAME, NO,
+IF (_U._DBNAME NE ?) AND _L._NO-LABELS AND (_U._LABEL eq "") THEN DO:
+  /* It is not clear why this code was put in here (despite the comment above,
+     but it causes and error when data source is an SDO.  I am fixing the bug 
+     by setting the label to v_label in that case.  DRH 8/22/02 */
+  IF _U._DBNAME = "Temp-tables":U THEN _U._LABEL = v_label.
+  ELSE RUN adeuib/_fldlbl.p (_U._DBNAME, _U._TABLE, _U._NAME, NO,
                        OUTPUT _U._LABEL, OUTPUT _U._LABEL-ATTR).
+END. /* IF DB name ne ? , No Labels and Label is blank */
 
 IF parent_U._WIN-TYPE THEN DO:
   CREATE COMBO-BOX _U._HANDLE

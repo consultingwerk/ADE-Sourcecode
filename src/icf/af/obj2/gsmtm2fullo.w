@@ -138,6 +138,7 @@ DEFINE VARIABLE gdObjectID      AS DECIMAL    NO-UNDO INIT 1.
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -151,6 +152,7 @@ DEFINE VARIABLE gdObjectID      AS DECIMAL    NO-UNDO INIT 1.
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gsmtm2fullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH Toolbar_band NO-LOCK INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH Toolbar_band NO-LOCK INDEXED-REPOSITION.
 {&DB-REQUIRED-END}
@@ -345,8 +347,8 @@ FOR EACH gsm_menu_structure NO-LOCK,
   DO:
     FOR EACH gsm_toolbar_menu_structure NO-LOCK
           WHERE gsm_toolbar_menu_structure.MENU_structure_obj = gsm_menu_structure_item.MENU_structure_obj,
-        FIRST gsc_object NO-LOCK
-         WHERE gsc_object.OBJECT_obj = gsm_toolbar_menu_structure.OBJECT_obj :
+        FIRST ryc_smartobject NO-LOCK
+         WHERE ryc_smartobject.smartobject_obj = gsm_toolbar_menu_structure.OBJECT_obj :
          
       IF NOT CAN-FIND(FIRST Toolbar_band 
                       WHERE Toolbar_band.object_obj  = gsm_toolbar_menu_structure.object_obj) THEN
@@ -355,7 +357,7 @@ FOR EACH gsm_menu_structure NO-LOCK,
         ASSIGN Toolbar_band.toolbar_menu_structure_obj = gdObjectID
                gdObjectID               = gdObjectID + 1
                Toolbar_band.OBJECT_obj  = gsm_toolbar_menu_structure.object_obj
-               Toolbar_band.ToolbarName = gsc_object.Object_filename
+               Toolbar_band.ToolbarName = ryc_smartobject.Object_filename
                Toolbar_band.BandName    = gcbandCode.
       END.
     END.
@@ -387,8 +389,8 @@ PROCEDURE buildToolbarBands :
 IF gdProductModule = 0 THEN
   FOR EACH gsm_toolbar_menu_structure NO-LOCK
         WHERE gsm_toolbar_menu_structure.menu_structure_obj = gdBandObject,
-      FIRST gsc_object NO-LOCK
-        WHERE gsc_object.OBJECT_obj =  gsm_toolbar_menu_structure.OBJECT_obj,
+      FIRST ryc_smartobject NO-LOCK
+        WHERE ryc_smartobject.smartobject_obj =  gsm_toolbar_menu_structure.OBJECT_obj,
       FIRST gsm_menu_structure NO-LOCK
         WHERE gsm_menu_structure.MENU_structure_obj = gsm_toolbar_menu_structure.menu_structure_obj:
 
@@ -396,15 +398,15 @@ IF gdProductModule = 0 THEN
        ASSIGN Toolbar_band.toolbar_menu_structure_obj = gdObjectID
               gdObjectID               = gdObjectID + 1
               Toolbar_band.OBJECT_obj  = gsm_toolbar_menu_structure.OBJECT_obj
-              Toolbar_band.ToolbarName = gsc_object.Object_FILENAME
+              Toolbar_band.ToolbarName = ryc_smartobject.Object_FILENAME
               Toolbar_band.BandName    = gsm_menu_structure.MENU_structure_code.
   END.
 ELSE
   FOR EACH gsm_toolbar_menu_structure  NO-LOCK
         WHERE gsm_toolbar_menu_structure.menu_structure_obj = gdBandObject,
-      FIRST gsc_object  NO-LOCK
-        WHERE gsc_object.OBJECT_obj     =  gsm_toolbar_menu_structure.OBJECT_obj
-          AND gsc_object.product_module = gdProductModule,
+      FIRST ryc_smartobject  NO-LOCK
+        WHERE ryc_smartobject.smartOBJECT_obj     =  gsm_toolbar_menu_structure.OBJECT_obj
+          AND ryc_smartobject.product_module = gdProductModule,
       FIRST gsm_menu_structure NO-LOCK
         WHERE gsm_menu_structure.MENU_structure_obj = gsm_toolbar_menu_structure.menu_structure_obj:
 
@@ -412,7 +414,7 @@ ELSE
        ASSIGN Toolbar_band.toolbar_menu_structure_obj = gdObjectID
               gdObjectID               = gdObjectID + 1
               Toolbar_band.OBJECT_obj  = gsm_toolbar_menu_structure.OBJECT_obj
-              Toolbar_band.ToolbarName = gsc_object.Object_FILENAME
+              Toolbar_band.ToolbarName = ryc_smartobject.Object_FILENAME
               Toolbar_band.BandName    = gsm_menu_structure.MENU_structure_code.
        
   END.
@@ -529,12 +531,6 @@ FUNCTION getToolbarName RETURNS CHARACTER
 ------------------------------------------------------------------------------*/
  RETURN Toolbar_band.ToolbarName.
 
-/* FIND gsc_object WHERE gsc_object.OBJECT_obj = Toolbar_band.OBJECT_obj NO-LOCK NO-ERROR.
-  IF AVAILABLE gsc_object THEN
-    RETURN gsc_object.OBJECT_filename.
-  ELSE
-    RETURN "".   /* Function return value. */
-*/
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

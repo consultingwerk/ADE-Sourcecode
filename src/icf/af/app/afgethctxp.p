@@ -82,7 +82,7 @@ af/cod/aftemwizpw.w
 
 &scop object-name       afgethctxp.p
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 
 /* MIP object identifying preprocessor */
@@ -132,13 +132,13 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 2
+         HEIGHT             = 13.81
          WIDTH              = 40.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
@@ -148,68 +148,104 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
   DEFINE VARIABLE dCurrentLanguageObj AS DECIMAL INITIAL 0 NO-UNDO.
 
-  dCurrentLanguageObj = DECIMAL(DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
-                                   INPUT "currentLanguageObj":U,
-                                   INPUT NO)) NO-ERROR.
-
-  IF dCurrentLanguageObj > 0 THEN
+  ASSIGN dCurrentLanguageObj = DECIMAL(DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
+                                       INPUT "currentLanguageObj":U,
+                                       INPUT NO)) NO-ERROR.
+ 
+  IF dCurrentLanguageObj <> 0 THEN
   DO:
+    /* Specific language, container, object and widget */
     FIND FIRST gsm_help NO-LOCK
          WHERE gsm_help.LANGUAGE_obj = dCurrentLanguageObj
            AND gsm_help.help_container_filename = pcContainerFilename
            AND gsm_help.help_object_filename = pcObjectFilename
            AND gsm_help.help_fieldname = pcItemName
          NO-ERROR.
+   
+    /* Specific language, container and object */
     IF NOT AVAILABLE gsm_help THEN
         FIND FIRST gsm_help NO-LOCK
              WHERE gsm_help.LANGUAGE_obj = dCurrentLanguageObj
                AND gsm_help.help_container_filename = pcContainerFilename
                AND gsm_help.help_object_filename = pcObjectFilename
+               AND gsm_help.help_fieldname = "":U
              NO-ERROR.
+   
+    /* Specific language and container */
     IF NOT AVAILABLE gsm_help THEN
         FIND FIRST gsm_help NO-LOCK
              WHERE gsm_help.LANGUAGE_obj = dCurrentLanguageObj
                AND gsm_help.help_container_filename = pcContainerFilename
+               AND gsm_help.help_object_filename = "":U
+               AND gsm_help.help_fieldname = "":U
+             NO-ERROR.
+
+    /* Specific language, system wide help */
+    IF NOT AVAILABLE gsm_help THEN
+        FIND FIRST gsm_help NO-LOCK
+             WHERE gsm_help.LANGUAGE_obj = dCurrentLanguageObj
+               AND gsm_help.help_container_filename = "":U
+               AND gsm_help.help_object_filename = "":U
+               AND gsm_help.help_fieldname = "":U
              NO-ERROR.
   END.
 
-  IF dCurrentLanguageObj = 0 OR NOT AVAILABLE gsm_help THEN
-  DO:
+  IF dCurrentLanguageObj = 0 OR NOT AVAILABLE gsm_help 
+  THEN DO:
+    /* Any language, specific container, object and widget */
     FIND FIRST gsm_help NO-LOCK
          WHERE gsm_help.help_container_filename = pcContainerFilename
            AND gsm_help.help_object_filename = pcObjectFilename
            AND gsm_help.help_fieldname = pcItemName
          NO-ERROR.
+
+    /* Any language, specific container and object */
     IF NOT AVAILABLE gsm_help THEN
         FIND FIRST gsm_help NO-LOCK
              WHERE gsm_help.help_container_filename = pcContainerFilename
                AND gsm_help.help_object_filename = pcObjectFilename
+               AND gsm_help.help_fieldname = "":U
              NO-ERROR.
+
+    /* Any language, specific container */
     IF NOT AVAILABLE gsm_help THEN
         FIND FIRST gsm_help NO-LOCK
              WHERE gsm_help.help_container_filename = pcContainerFilename
+               AND gsm_help.help_object_filename = "":U
+               AND gsm_help.help_fieldname = "":U
+             NO-ERROR.
+
+    /* Any language, system wide help */
+    IF NOT AVAILABLE gsm_help THEN
+        FIND FIRST gsm_help NO-LOCK
+             WHERE gsm_help.help_container_filename = "":U
+               AND gsm_help.help_object_filename = "":U
+               AND gsm_help.help_fieldname = "":U
              NO-ERROR.
   END.
 
-  ASSIGN
-      pcHelpFile = "gs\hlp\astramodule.chm":U
-      piHelpContext = 10        /* Contents */
-      pcHelpText = "":U.         
-
+  /* Initialize help file to default help filename */
   FIND FIRST gsc_security_control NO-LOCK NO-ERROR.
   IF AVAILABLE gsc_security_control THEN
-      ASSIGN pcHelpFile = gsc_security_control.default_help_filename.
+      IF gsc_security_control.default_help_filename = "":U
+      OR gsc_security_control.default_help_filename = ? THEN
+          ASSIGN pcHelpFile = "prohelp/icabeng.hlp":U.
+      ELSE
+          ASSIGN pcHelpFile = gsc_security_control.default_help_filename.
 
-  IF AVAILABLE gsm_help THEN
-  DO:
-    IF gsm_help.help_context <> "":U THEN
-    DO:
-      ASSIGN piHelpContext = INTEGER(gsm_help.help_context) NO-ERROR.
-      IF ERROR-STATUS:ERROR OR piHelpContext = ? THEN ASSIGN pcHelpText = gsm_help.help_context.
-    END.
-    IF gsm_help.help_filename <> "":U THEN
-        ASSIGN pcHelpFile = gsm_help.help_filename.
+  /* Now check if we actually found specific help, and use that if applicable */
+  IF AVAILABLE gsm_help 
+  THEN DO:
+      IF gsm_help.help_context <> "":U 
+      THEN DO:
+          ASSIGN piHelpContext = INTEGER(gsm_help.help_context) NO-ERROR.
+          IF ERROR-STATUS:ERROR OR piHelpContext = ? THEN ASSIGN pcHelpText = gsm_help.help_context.
+      END.
+      IF gsm_help.help_filename <> "":U THEN
+           ASSIGN pcHelpFile = gsm_help.help_filename.
   END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
+
+

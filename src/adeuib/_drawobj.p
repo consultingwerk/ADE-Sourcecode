@@ -34,7 +34,7 @@ Description:
           ?            Normal box-picking  
           BROWSE       Draw a browse          
           BUTTON       Draw a button   
-          etc		 Draw an etc.   
+          etc   Draw an etc.   
  
 Input Parameters:
    goback2pntr: If FALSE, then we are not going back to pointer mode after
@@ -114,7 +114,7 @@ DEFINE INPUT  PARAMETER goback2pntr      AS LOGICAL NO-UNDO.
   IF (NOT _cur_win_type) AND CAN-DO("IMAGE,{&WT-CONTROL}":U, _next_draw) THEN DO:
 
     MESSAGE "Character mode windows cannot contain" _next_draw "objects."
-    	VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+     VIEW-AS ALERT-BOX WARNING BUTTONS OK.
     RUN choose-pointer.
   END.
   ELSE DO:
@@ -128,9 +128,9 @@ DEFINE INPUT  PARAMETER goback2pntr      AS LOGICAL NO-UNDO.
     /* Truncate the coordinates to lower grid value. */
     IF (_h_frame <> ?) AND (_h_frame:GRID-SNAP) THEN
       ASSIGN h-unit = _h_frame:GRID-UNIT-WIDTH-PIXELS 
-      	     _frmx  = h-unit * TRUNCATE (_frmx / h-unit,0)
-      	     v-unit = _h_frame:GRID-UNIT-HEIGHT-PIXELS 
-      	     _frmy  = v-unit * TRUNCATE (_frmy / v-unit,0).
+            _frmx  = h-unit * TRUNCATE (_frmx / h-unit,0)
+            v-unit = _h_frame:GRID-UNIT-HEIGHT-PIXELS 
+            _frmy  = v-unit * TRUNCATE (_frmy / v-unit,0).
 
     /* Fix unknown _second_corners */
     IF _second_corner_x = ? THEN
@@ -144,16 +144,16 @@ DEFINE INPUT  PARAMETER goback2pntr      AS LOGICAL NO-UNDO.
       /* Snap positions to grid */
       IF (_h_frame <> ?) THEN DO:
         IF _h_frame:GRID-SNAP THEN ASSIGN
-     	  _second_corner_x = 
-     	     MAX (_frmx,
-     	          (h-unit * 
-     	           TRUNCATE ((_second_corner_x + h-unit - 1) / h-unit, 0)) 
-     	          - 1)
-      	  _second_corner_y =
-      	     MAX (_frmy ,
-      	          (v-unit * 
-      	           TRUNCATE ((_second_corner_y + v-unit - 1) / v-unit, 0))
-      	          - 1).
+        _second_corner_x = 
+           MAX (_frmx,
+                (h-unit * 
+                 TRUNCATE ((_second_corner_x + h-unit - 1) / h-unit, 0)) 
+                - 1)
+         _second_corner_y =
+            MAX (_frmy ,
+                 (v-unit * 
+                  TRUNCATE ((_second_corner_y + v-unit - 1) / v-unit, 0))
+                 - 1).
         /* Check for the second corner occuring outside the normal frame */
         /* borders. Trucate the coordinates to lower grid value. */
         itemp = _h_frame:WIDTH-PIXELS - _h_frame:BORDER-LEFT-PIXELS -
@@ -248,20 +248,39 @@ DEFINE INPUT  PARAMETER goback2pntr      AS LOGICAL NO-UNDO.
       /* Make the last item drawn (which will be _h_cur_widg)
         deselected (and not selectabe) and unmovable. Also, because we are
         in draw mode. Get the correct cursor - and set _h_cur_widg to "?" */
-      FIND _U WHERE _U._HANDLE = _h_cur_widg.
-      ASSIGN _U._HANDLE:MOVABLE    = FALSE
-             _U._HANDLE:SELECTABLE = FALSE
-             _U._HANDLE:SELECTED   = FALSE
-             _U._SELECTEDib        = FALSE          
-             ldummy      = _h_win:LOAD-MOUSE-POINTER({&start_draw_cursor})
+      FIND _U WHERE _U._HANDLE = _h_cur_widg NO-ERROR.
+      IF AVAIL _u THEN
+        ASSIGN _U._HANDLE:MOVABLE    = FALSE 
+               _U._HANDLE:SELECTABLE = FALSE
+               _U._HANDLE:SELECTED   = FALSE
+               _U._SELECTEDib        = FALSE  .        
+      ASSIGN ldummy      = _h_win:LOAD-MOUSE-POINTER({&start_draw_cursor})
              _h_cur_widg = ?.    
+
       /* Reset the pointers correctly. */
       RUN adeuib/_setpntr.p (_next_draw, INPUT-OUTPUT _object_draw).
     END.    
   END. 
   
+  /* Dynamics - Find the current object-name and assign to _U.Object-name */
+  FIND _U WHERE _U._HANDLE = _h_cur_widg no-error.
+  IF AVAIL _U AND _palette_custom_choice <> ? THEN
+  DO:
+    FIND _custom WHERE RECID(_custom) = _palette_custom_choice.
+    ASSIGN _U._OBJECT-NAME = _custom._object_name
+           _U._CLASS-NAME  = _custom._object_type_code.  
+  END.
+  ELSE IF AVAIL _U AND _palette_choice <> ? THEN
+  DO:
+    FIND _palette_item WHERE RECID(_palette_item) = _palette_choice.
+    ASSIGN _U._OBJECT-NAME = _palette_item._object_name
+           _u._CLASS-NAME  = _palette_item._object_class.  
+  END.
+ 
+  
   /* Return and reset return-value */
   RETURN "":U. 
+  
 
 /***************************** Internal Procedures ***************************/  
 

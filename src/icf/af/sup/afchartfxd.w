@@ -88,11 +88,13 @@ DEFINE VARIABLE co_charttype AS CHARACTER FORMAT "X(20)":U
      LABEL "Chart Type" 
      VIEW-AS COMBO-BOX INNER-LINES 8
      LIST-ITEMS "3DBar","2DBar","3DLine","2DLine","3DArea","2DArea","3DStep","2DStep","3DCombination","2DCombination","2DPie","2DXY" 
+     DROP-DOWN-LIST
      SIZE 25 BY 1 TOOLTIP "Change chart type" NO-UNDO.
 
 DEFINE VARIABLE co_column AS CHARACTER FORMAT "X(20)":U 
      LABEL "Column" 
      VIEW-AS COMBO-BOX INNER-LINES 8
+     DROP-DOWN-LIST
      SIZE 38.2 BY 1 TOOLTIP "Change chart type" NO-UNDO.
 
 
@@ -158,7 +160,7 @@ THEN C-Win:HIDDEN = no.
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
-
+ 
 
 
 /* **********************  Create OCX Containers  ********************** */
@@ -168,13 +170,13 @@ THEN C-Win:HIDDEN = no.
 &IF "{&OPSYS}" = "WIN32":U AND "{&WINDOW-SYSTEM}" NE "TTY":U &THEN
 
 CREATE CONTROL-FRAME MSChart ASSIGN
-       FRAME        = FRAME DEFAULT-FRAME:HANDLE
-       ROW          = 2.14
-       COLUMN       = 1
-       HEIGHT       = 26.95
-       WIDTH        = 158
-       HIDDEN       = no
-       SENSITIVE    = yes.
+       FRAME           = FRAME DEFAULT-FRAME:HANDLE
+       ROW             = 2.14
+       COLUMN          = 1
+       HEIGHT          = 26.95
+       WIDTH           = 158
+       HIDDEN          = no
+       SENSITIVE       = yes.
       MSChart:NAME = "MSChart":U .
 /* MSChart OCXINFO:CREATE-CONTROL from: {31291E80-728C-11CF-93D5-0020AF99504A} type: MSChart */
       MSChart:MOVE-AFTER(co_charttype:HANDLE IN FRAME DEFAULT-FRAME).

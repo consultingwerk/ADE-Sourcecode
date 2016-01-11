@@ -54,6 +54,8 @@ History:
                         the _File already exists, and if so, use its
                         file-name instead of generating a new one
     hutegger    95/03   created out of _ora_fun.p
+    mcmann    09/30/02  Added THREE-D to frame to match the rest of the
+                        utility.
 
 --------------------------------------------------------------------*/
 
@@ -141,7 +143,7 @@ FORM
   msg[6] FORMAT "x(25)" LABEL " Argument"           SKIP(1)
  with frame ds_make 
   ATTR-SPACE OVERLAY SIDE-LABELS ROW 4 CENTERED
-  TITLE " Loading ORACLE Definitions " + p_spclvar USE-TEXT.
+  TITLE " Loading ORACLE Definitions " + p_spclvar THREE-D USE-TEXT.
   
 /* LANGUAGE DEPENDENCIES END */ /*----------------------------------*/
 

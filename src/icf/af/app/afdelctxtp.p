@@ -77,6 +77,12 @@ af/cod/aftemwizpw.w
 
   Update Notes: Add Web check in Managers
 
+  (v:010003)    Task:                UserRef:    
+                Date:   APR/11/2002  Author:     Mauricio J. dos Santos (MJS) 
+                                                 mdsantos@progress.com
+  Update Notes: Adapted for WebSpeed by changing SESSION:PARAM = "REMOTE" 
+                to SESSION:CLIENT-TYPE = "WEBSPEED" in main block.
+
 -------------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
@@ -89,7 +95,7 @@ af/cod/aftemwizpw.w
 
 &scop object-name       afdelctxtp.p
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010002
+&scop object-version    000000
 
 
 /* MIP object identifying preprocessor */
@@ -132,13 +138,13 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 6.38
-         WIDTH              = 44.2.
+         HEIGHT             = 5.38
+         WIDTH              = 52.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
@@ -148,21 +154,10 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
   DEFINE BUFFER bgsm_server_context FOR gsm_server_context.
 
-  IF SESSION:REMOTE THEN
   trn-block:
   DO FOR bgsm_server_context TRANSACTION ON ERROR UNDO trn-block, LEAVE trn-block:
     FOR EACH bgsm_server_context EXCLUSIVE-LOCK
-       WHERE bgsm_server_context.CONTEXT_id = SESSION:SERVER-CONNECTION-ID:
-      DELETE bgsm_server_context NO-ERROR.
-      IF ERROR-STATUS:ERROR THEN UNDO trn-block, LEAVE trn-block.
-    END.
-  END.
-  ELSE
-  IF SESSION:PARAM = "REMOTE":U THEN
-  trn-block:
-  DO FOR bgsm_server_context TRANSACTION ON ERROR UNDO trn-block, LEAVE trn-block:
-    FOR EACH bgsm_server_context EXCLUSIVE-LOCK
-       WHERE bgsm_server_context.CONTEXT_id = gscSessionId:
+       WHERE bgsm_server_context.session_obj = gsdSessionObj:
       DELETE bgsm_server_context NO-ERROR.
       IF ERROR-STATUS:ERROR THEN UNDO trn-block, LEAVE trn-block.
     END.

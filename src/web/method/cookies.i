@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _CODE-BLOCK _CUSTOM Definitions 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2003 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -25,16 +25,17 @@
 *********************************************************************/
 /***************************************************************************
 Include File: cookies.i
-Author: Bill Burton
-Date: 20-Apr-96
-Description: Functions for handling Netscape Persistent Cookies
-References:
-  Netscape Cookie Spec: http://home.netscape.com/newsref/std/cookie_spec.html
-Usage: Include after src/web/method/cgidefs.i
-Notes:
-  This file is for internal use by WebSpeed runtime procedures
-  ONLY. Applications should not include this file.
 
+Description:  Functions for handling Netscape Persistent Cookies
+References:   Netscape Cookie Spec: 
+                http://home.netscape.com/newsref/std/cookie_spec.html
+Usage:        Include after src/web/method/cgidefs.i
+Notes:        This file is for internal use by WebSpeed runtime procedures
+              ONLY. Applications should not include this file.
+Updates:      04/20/96 bburton
+                Initial version
+              01/17/03 adams
+                Support for '=' in cookie data
 
 ***************************************************************************/
 /*           This .i file was created with WebSpeed WorkShop.             */
@@ -88,53 +89,49 @@ END FUNCTION.  /* delete-cookie */
 
 &ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION get-cookie 
 /****************************************************************************
-Function: get-cookie
-Description: Given a cookie name, returns one or more matching values.
-If more than one value matches, all are returned delimited
-by the value of SelDelim, normally a comma.  If ? is specified
-for the name, the output will be a list of all the cookie names.
-Input: Name or ?
-Output: Cookie value(s) or list of cookie names
+Function:    get-cookie
+Description: Given a cookie name, returns one or more matching values.  If 
+             more than one value matches, all are returned delimited by the 
+             value of SelDelim, normally a comma.  If ? is specified for the 
+             name, the output will be a list of all the cookie names.
+Input:       Name or ?
+Output:      Cookie value(s) or list of cookie names
 ****************************************************************************/
 FUNCTION get-cookie RETURNS CHARACTER
   (INPUT p_name AS CHARACTER) :
 
-  DEFINE VARIABLE v-values AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cookies  AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE i-pair   AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE i-name   AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE i-value  AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE i        AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE v-values AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cookies  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE i-pair   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE i-name   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE i-value  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE ix       AS INTEGER    NO-UNDO.
 
-  ASSIGN v-values = "".
   /* Return if no HTTP Cookie: header */
-  IF HTTP_COOKIE = "" THEN
-    RETURN v-values.
+  IF HTTP_COOKIE = "" THEN 
+  	RETURN v-values.
 
   /* Loop through all the name=value pairs ... */
-  DO i = 1 TO NUM-ENTRIES(HTTP_COOKIE, "~;":U):
+  DO ix = 1 TO NUM-ENTRIES(HTTP_COOKIE, "~;":U):
     ASSIGN
-      i-pair = TRIM(ENTRY(i, HTTP_COOKIE, "~;":U))
-      i-name = url-decode(ENTRY(1, i-pair, "=":U))
-      /* Replace as below per bug 98-03-06-022 (adams)
-      i-value = url-decode(ENTRY(2, i-pair, "=":U))
-      */
-      i-value = (if num-entries(i-pair, "=":U) > 1 then                           
-                  url-decode(ENTRY(2, i-pair, "=":U)) else "?":U).
-
-    /* If name = ?, just add name to list of names.  If a name is
-       already on the list, don't add again. */
+      i-pair  = TRIM(ENTRY(ix, HTTP_COOKIE, "~;":U))
+      i-name  = url-decode(ENTRY(1, i-pair, "=":U))
+      i-value = (IF NUM-ENTRIES(i-pair, "=":U) > 1 THEN
+                   url-decode(SUBSTRING(i-pair,LENGTH(i-name, "character":U) + 2, -1, "character":U)) 
+                 ELSE "?":U).
+    /* If name = ?, just add name to list of names.  If a name is already on 
+       the list, don't add again. */
     IF p_name = ? THEN DO:
       IF LOOKUP(i-name, v-values) = 0 THEN
         ASSIGN v-values = v-values +
           (IF v-values = "" THEN "" ELSE ",":U) + i-name.
     END.
 
-    /* If a match, then add current value to list of values using
-       configured delimiter. */
+    /* If a match, then add current value to list of values using configured 
+       delimiter. */
     ELSE
       IF i-name = p_name THEN
-        ASSIGN v-values = v-values +
+        ASSIGN v-values = v-values + 
           (IF v-values = "" THEN "" ELSE SelDelim) + i-value.
   END.
 

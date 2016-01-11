@@ -93,12 +93,13 @@ RowObject.Service RowObject.App-Service RowObject.ServerURL ~
 RowObject.Configuration RowObject.Security RowObject.Info 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define ENABLED-OBJECTS RECT-2 
 &Scoped-Define DISPLAYED-FIELDS RowObject.Partition RowObject.Host ~
 RowObject.Service RowObject.App-Service RowObject.ServerURL ~
 RowObject.Configuration RowObject.Security RowObject.Info 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
+
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -204,6 +205,7 @@ END.
 /* ************************* Included-Libraries *********************** */
 
 {src/adm2/viewer.i}
+{adecomm/_adetool.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

@@ -44,7 +44,7 @@ Included in:
 
 History:
     hutegger    95/03   creation
-    
+    mcmann   06/04/02   Added output to file logic
 --------------------------------------------------------------------*/        
 /*h-*/
 
@@ -77,7 +77,7 @@ History:
       { prodict/gate/cmp_msg.i
               &attrbt = "Name in PROGRESS:"
               &msgidx = "l_idx-msg[4]"
-              &msgvar = "ret"
+              &msgvar = "reti"
               &ns     = "s_ttb_idx.pro_name"
               &object = "INDEX"
               &o-name = "s_ttb_idx.ds_name"
@@ -86,7 +86,7 @@ History:
       { prodict/gate/cmp_msg.i
               &attrbt = "Unique:"
               &msgidx = "l_idx-msg[5]"
-              &msgvar = "ret"
+              &msgvar = "reti"
               &ns     = "s_ttb_idx.pro_uniq"
               &object = "INDEX"
               &o-name = "s_ttb_idx.ds_name"
@@ -95,7 +95,7 @@ History:
       { prodict/gate/cmp_msg.i
               &attrbt = "Description:"
               &msgidx = "l_idx-msg[6]"
-              &msgvar = "ret"
+              &msgvar = "reti"
               &ns     = "s_ttb_idx.pro_desc"
               &object = "INDEX"
               &o-name = "s_ttb_idx.ds_name"

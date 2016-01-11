@@ -131,6 +131,8 @@ DataSourceNames,UpdateTargetNames,LogicalObjectName
   {src/adm2/visprop.i}
 &ENDIF
 
+IF NOT {&ADM-PROPS-DEFINED} THEN
+DO:
 &IF "{&ADMSuper}":U = "":U &THEN
   ghADMProps:ADD-NEW-FIELD('FieldsEnabled':U, 'LOGICAL':U, 0, ?, no). 
   ghADMProps:ADD-NEW-FIELD('Editable':U, 'LOGICAL':U, 0, ?, ?). 
@@ -160,11 +162,13 @@ DataSourceNames,UpdateTargetNames,LogicalObjectName
     REPLACE("{&INTERNAL-TABLES}":U, " ":U, ",":U)).
   &ENDIF
   ghADMProps:ADD-NEW-FIELD('UpdateTargetNames':U, 'CHAR':U, 0, ?, ?).
-  ghADMProps:ADD-NEW-FIELD('WindowTitleField', 'CHARACTER').  
-  ghADMProps:ADD-NEW-FIELD('ObjectMode','CHARACTER', 0, ?, 'View':U).  
+  ghADMProps:ADD-NEW-FIELD('WindowTitleField':U, 'CHARACTER':U).  
+  ghADMProps:ADD-NEW-FIELD('ObjectMode':U,'CHARACTER':U, 0, ?, 'View':U).  
+  ghADMProps:ADD-NEW-FIELD('EnabledObjFldsToDisable':U,'CHARACTER':U, 0, ?, ?).  
 &ENDIF
 
   {src/adm2/custom/dvispropcustom.i}
+END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

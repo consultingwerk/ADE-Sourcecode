@@ -78,7 +78,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gscerfiltv.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010001
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -128,10 +128,10 @@ DEFINE BUTTON buRefresh
      SIZE 15 BY 1.14 TOOLTIP "Refresh browser to only show data for selected Language (plus existing filters)"
      BGCOLOR 8 .
 
-DEFINE VARIABLE coLanguage AS DECIMAL FORMAT "->>>>>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
+DEFINE VARIABLE coLanguage AS DECIMAL FORMAT "->>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
      LABEL "Language" 
      VIEW-AS COMBO-BOX INNER-LINES 10
-     LIST-ITEM-PAIRS "x",0.00
+     LIST-ITEM-PAIRS "x",0
      DROP-DOWN-LIST
      SIZE 47.6 BY 1 NO-UNDO.
 
@@ -219,7 +219,7 @@ ASSIGN
 */  /* FRAME frMain */
 &ANALYZE-RESUME
 
-
+ 
 
 
 
@@ -254,7 +254,7 @@ DO WITH FRAME {&FRAME-NAME}:
     IF coLanguage <> 0 THEN
       ASSIGN
         cField = "language_obj":U /* can also add table name if required here */
-        cWhere = cField + " = ":U + STRING(coLanguage). 
+        cWhere = cField + " = '":U + STRING(coLanguage) + "'":U. 
     IF fiErrorGroup <> "":U THEN
       ASSIGN
         cField = "error_group":U /* can also add table name if required here */

@@ -159,6 +159,12 @@ prevent future-bugs resulting out of default behaviour <hutegger>
     mcmann  04/09.01   Removed the "use dbname" from script for Sybase and SQL Server 6.5
     mcmann  11/13/01   Added DEFAULT values for all data types except RECID and RAW. 20011127-002
                        20011026-013, 20011108-022
+    mcmann  05/28/02   Logic error on date defaults if not equal to today it will be blanked out.
+    mcmann  06/11/02   Added comment_chars to Tablespace logic 20020611-021
+    mcmann  06/25/02   Support for UPPER function indexes
+    mcmann  08/08/02   Changed max number of possible sequences to 2000 20020731-003
+    mcmann  08/08/02   Eliminated any sequences whose name begins "$" - Peer Direct
+    mcmann  10/01/02   Eliminated SQL tables from being processed.
     
 */
 
@@ -206,7 +212,7 @@ DEFINE VARIABLE comment_all_objects AS LOGICAL NO-UNDO.
 DEFINE VARIABLE sqlwidth        AS LOGICAL NO-UNDO.
 DEFINE VARIABLE maxidxcollen    AS INTEGER NO-UNDO.
 
-DEFINE NEW SHARED VARIABLE crnt-vals AS INTEGER EXTENT 100 init 0 NO-UNDO.
+DEFINE NEW SHARED VARIABLE crnt-vals AS INTEGER EXTENT 2000 init 0 NO-UNDO.
 DEFINE VARIABLE tmpfile AS CHARACTER NO-UNDO.
 
 DEFINE VARIABLE l_seq-num        AS INTEGER   NO-UNDO.
@@ -294,7 +300,6 @@ else if num-entries(user_env[27]) > 1
                ).
  else assign
   compatible = (user_env[27] BEGINS "y") /* create recid fields/indexes */
-  shadow     = shadow and compatible
   dbe-factor = 1.
 
 batch_mode = SESSION:BATCH-MODE.
@@ -402,6 +407,8 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
                                   DICTDB._File._File-name = user_filename
                               ):
   
+  IF DICTDB._File._Db-lang > 0 THEN NEXT _fileloop.
+
   /* Clear temp table for new file */                            
   FOR EACH verify-name:
      DELETE verify-name.
@@ -882,8 +889,8 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
           PUT STREAM code UNFORMATTED
              comment_chars "  _S#_" n2 
              (if e = 0 then "" else unik + string(e))
-             " " user_env[i + 10] c "," SKIP. 
-        ELSE 
+             " " user_env[i + 10] c "," SKIP.         
+        ELSE
           PUT STREAM code UNFORMATTED comment_chars " "
              comment_chars " U" unik n2  
              (IF e = 0 THEN "" ELSE unik + STRING(e)) 
@@ -928,12 +935,19 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
 
       /* Put default values */
       IF sdef AND (DICTDB._Field._Initial <> ? AND Dictdb._field._Initial <> " " AND DICTDB._Field._Initial <> "?" )THEN DO:      
-          c = DICTDB._Field._Initial.  
-         IF UPPER(c) = "TODAY" THEN DO:        
-            IF dbtyp = "ORACLE" THEN
-              ASSIGN c = "SYSDATE".      
-            ELSE IF dbtyp = "MSSQLSRV7" THEN
-              ASSIGN c = "GETDATE()".
+          c = DICTDB._Field._Initial. 
+         IF DICTDB._Field._Data-type = "DATE" THEN DO:
+           IF UPPER(c) = "TODAY" THEN DO:        
+             IF dbtyp = "ORACLE" THEN
+               ASSIGN c = "SYSDATE".      
+             ELSE IF dbtyp = "MSSQLSRV7" THEN
+               ASSIGN c = "GETDATE()".
+             ELSE IF dbtyp = "PROGRESS" THEN.  /* OK to leave TODAY for Progress */
+             ELSE
+               ASSIGN c = "".
+           END.
+           ELSE
+             ASSIGN c = "".
          END.
          IF DICTDB._Field._dtype = 3 THEN DO:
             ASSIGN slash = INDEX("/", Dictdb._Field._Format).
@@ -1055,7 +1069,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
   IF skptrm THEN 
      PUT STREAM code UNFORMATTED SKIP comment_chars.
   IF dbtyp = "ORACLE" AND user_env[34] <> ? AND user_env[34] <> "" THEN 
-     PUT STREAM code UNFORMATTED SKIP "TABLESPACE " user_env[34].
+     PUT STREAM code UNFORMATTED SKIP comment_chars "TABLESPACE " user_env[34].
      
   PUT STREAM code UNFORMATTED user_env[5] SKIP.
 
@@ -1418,6 +1432,13 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
         ELSE     
           IF LOOKUP(n2, uc_col) > 0 THEN 
              ASSIGN n2 = "U" + unik + n2.
+        
+        IF dbtyp = "ORACLE" THEN DO:
+            IF NOT shadow AND DICTDB._Field._Dtype = 1 AND longwid = 4000 AND NOT DICTDB._Field._fld-case THEN
+                ASSIGN n2 = "upper(" + n2 + ") ".
+            IF NOT DICTDB._Index-field._Ascending THEN
+                ASSIGN n2 = n2 + " DESC".
+        END.
 
         IF DICTDB._Field._For-type = "TIME" THEN 
            assign n2 = "".
@@ -1425,10 +1446,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
         else IF DICTDB._File._Prime-index = RECID (DICTDB._Index)
           THEN pindex = pindex + ", " + n2.
 
-        IF dbtyp = "ORACLE" THEN DO:
-            IF NOT DICTDB._Index-field._Ascending THEN
-                ASSIGN n2 = n2 + " DESC".
-        END.
+        
            
 
         PUT STREAM code UNFORMATTED n2.
@@ -1450,7 +1468,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
       IF skptrm THEN
          PUT STREAM code UNFORMATTED SKIP comment_chars.
       IF user_env[35] <> ? AND user_env[35] <> "" THEN
-         PUT STREAM code UNFORMATTED SKIP "TABLESPACE " user_env[35].         
+         PUT STREAM code UNFORMATTED SKIP comment_chars "TABLESPACE " user_env[35].         
       PUT STREAM code UNFORMATTED user_env[5] SKIP.
     END.  /* Index Block */ 
 
@@ -1469,11 +1487,12 @@ IF doseq THEN DO:
     RUN "adecomm/_tmpfile.p" (INPUT "", INPUT ".adm", OUTPUT tmpfile).
     OUTPUT STREAM tmpstream TO VALUE(tmpfile) NO-MAP NO-ECHO.
     PUT STREAM tmpstream UNFORMATTED
-      'DEFINE  SHARED VARIABLE crnt-vals AS INTEGER EXTENT 100 NO-UNDO.' SKIP.
+      'DEFINE  SHARED VARIABLE crnt-vals AS INTEGER EXTENT 2000 NO-UNDO.' SKIP.
 
     assign l_seq-num = 0.
 
-    FOR EACH DICTDB._Sequence  WHERE DICTDB._Sequence._Db-recid = drec_db:
+    FOR EACH DICTDB._Sequence  WHERE DICTDB._Sequence._Db-recid = drec_db
+                                 AND NOT DICTDB._Sequence._Seq-name BEGINS "$":
       assign l_seq-num = l_seq-num + 1.
       IF DICTDB._Sequence._Seq-Num >= 0
         THEN PUT STREAM tmpstream UNFORMATTED
@@ -1500,7 +1519,8 @@ IF doseq THEN DO:
        /*  else use 0's as current values */
 
   assign l_seq-num = 0.
-  FOR EACH DICTDB._Sequence  WHERE DICTDB._Sequence._Db-recid = drec_db:
+  FOR EACH DICTDB._Sequence  WHERE DICTDB._Sequence._Db-recid = drec_db
+                               AND NOT DICTDB._Sequence._Seq-name BEGINS "$" :
 
     assign l_seq-num = l_seq-num + 1.
 

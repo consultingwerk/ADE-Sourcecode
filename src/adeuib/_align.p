@@ -246,7 +246,7 @@ FOR EACH _U WHERE (_U._SELECTEDib AND RECID(_U) <> p_recid) BY
     ASSIGN  _L._ROW = ((h:ROW - 1.0) * row_mult) + 1.0.
   END.
   /* Move any labels on fill-ins. */
-  IF CAN-DO("FILL-IN,COMBO-BOX",_U._TYPE) THEN RUN adeuib/_showlbl.p (h).
+  IF CAN-DO("FILL-IN,COMBO-BOX,EDITOR,SELECTION-LIST,RADIO-SET,SLIDER",_U._TYPE) THEN RUN adeuib/_showlbl.p (h).
   IF recid-string ne "" THEN DO i = 1 TO NUM-ENTRIES(recid-string) - 1:
     FIND sync_L WHERE RECID(sync_L) = INTEGER(ENTRY(i,recid-string)).
     ASSIGN sync_L._ROW = _L._ROW

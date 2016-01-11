@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          asdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" vTableWin _INLINE
@@ -87,7 +87,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gscspviewv.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010002
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -125,11 +125,12 @@ RowObject.session_property_description RowObject.default_property_value ~
 RowObject.system_owned RowObject.always_used 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define DISPLAYED-FIELDS RowObject.session_property_name ~
 RowObject.session_property_description RowObject.default_property_value ~
 RowObject.system_owned RowObject.always_used 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
+&Scoped-Define DISPLAYED-OBJECTS fiDefaultPropertyValueLabel 
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -143,27 +144,30 @@ RowObject.system_owned RowObject.always_used
 
 
 /* Definitions of the field level widgets                               */
+DEFINE VARIABLE fiDefaultPropertyValueLabel AS CHARACTER FORMAT "X(35)":U INITIAL "Default Property Value:" 
+      VIEW-AS TEXT 
+     SIZE 22 BY .62 NO-UNDO.
+
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
      RowObject.session_property_name AT ROW 1 COL 32 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 30 BY 1
-     RowObject.session_property_description AT ROW 2 COL 32 COLON-ALIGNED
+          SIZE 63.2 BY 1
+     RowObject.session_property_description AT ROW 2.05 COL 32 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 72 BY 1
-     RowObject.default_property_value AT ROW 3 COL 34 NO-LABEL
+     RowObject.default_property_value AT ROW 3.1 COL 34 NO-LABEL
           VIEW-AS EDITOR SCROLLBAR-VERTICAL
           SIZE 72 BY 4
-     RowObject.system_owned AT ROW 7.33 COL 34
+     RowObject.system_owned AT ROW 7.15 COL 34
           VIEW-AS TOGGLE-BOX
-          SIZE 19.2 BY .81
-     RowObject.always_used AT ROW 8.14 COL 34
+          SIZE 19.2 BY 1
+     RowObject.always_used AT ROW 8.2 COL 34
           VIEW-AS TOGGLE-BOX
-          SIZE 17.2 BY .81
-     "Default Property Value:" VIEW-AS TEXT
-          SIZE 21.6 BY .62 AT ROW 3.05 COL 11.6
+          SIZE 17.2 BY 1
+     fiDefaultPropertyValueLabel AT ROW 3.19 COL 10 COLON-ALIGNED NO-LABEL
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -204,7 +208,7 @@ END.
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
          HEIGHT             = 8.24
-         WIDTH              = 112.6.
+         WIDTH              = 105.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -234,6 +238,12 @@ ASSIGN
 ASSIGN 
        RowObject.default_property_value:RETURN-INSERTED IN FRAME frMain  = TRUE.
 
+/* SETTINGS FOR FILL-IN fiDefaultPropertyValueLabel IN FRAME frMain
+   NO-ENABLE                                                            */
+ASSIGN 
+       fiDefaultPropertyValueLabel:PRIVATE-DATA IN FRAME frMain     = 
+                "Default Property Value:".
+
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
@@ -247,7 +257,7 @@ ASSIGN
 */  /* FRAME frMain */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK vTableWin 

@@ -143,7 +143,7 @@ IF y-move ne 0 THEN DO:
           ASSIGN tmp_hdl:Y  = MAX(tmp_hdl:Y + y-move + 3, 0)
                  x_L._ROW   = ((tmp_hdl:ROW - 1) / row_mult) + 1.
         END.
-        IF CAN-DO("FILL-IN,COMBO-BOX",tmp_hdl:TYPE) THEN
+        IF CAN-DO("FILL-IN,COMBO-BOX,EDITOR,SELECTION-LIST,RADIO-SET,SLIDER",tmp_hdl:TYPE) THEN
           RUN adeuib/_showlbl.p (tmp_hdl).
       END. /* IF AVAILABLE x_U */
     END.  /* Not the bar */

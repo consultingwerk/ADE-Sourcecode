@@ -336,6 +336,7 @@ END.  /* procedure PrintCookies */
  Global Variables: many
 ****************************************************************************/
 PROCEDURE PrintVars:
+  DEFINE VARIABLE asc-del AS CHARACTER  NO-UNDO INITIAL "~377":U. 
   DEFINE VARIABLE i-tmp   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE i-name  AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE i-value AS CHARACTER  NO-UNDO.
@@ -372,8 +373,8 @@ PROCEDURE PrintVars:
     {&END}
 
   RUN print-delimited-list ("<DD>":U, "", {&WEB-CURRENT-ENVIRONMENT},
-                            "~377":U,   /* input delimiter */
-                            "<BR>~n":U, /*  output delimiter */
+                            asc-del,    /* input delimiter  */
+                            "<BR>~n":U, /* output delimiter */
                             "</DD>~n":U).
 
   {&OUT} "</DL>~n~n":U {&END}

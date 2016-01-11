@@ -256,6 +256,6 @@ DROP INDEX "temp-16033" ON "gst_audit"
 
 .
 PSC
-cpstream=ISO8859-1
+cpstream=UTF-8
 .
 0000007135

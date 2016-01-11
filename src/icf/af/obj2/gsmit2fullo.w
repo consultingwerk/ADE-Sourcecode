@@ -124,6 +124,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -140,6 +141,8 @@ menu_structure_description product_module_obj menu_structure_type
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gsmit2fullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsm_menu_structure NO-LOCK, ~
+      EACH gsm_menu_structure_item WHERE gsm_menu_structure_item.menu_structure_obj = gsm_menu_structure.menu_structure_obj NO-LOCK INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsm_menu_structure NO-LOCK, ~
       EACH gsm_menu_structure_item WHERE gsm_menu_structure_item.menu_structure_obj = gsm_menu_structure.menu_structure_obj NO-LOCK INDEXED-REPOSITION.

@@ -1434,7 +1434,7 @@ PROCEDURE genRcodeSuper :
   ASSIGN
     cFile   = gcStdFiles[4]
     iPos    = R-INDEX(cFile, "/":U)
-    iPos    = IF iPos EQ 0 THEN R-INDEX(cFile, "\":U) ELSE iPos
+    iPos    = IF iPos EQ 0 THEN R-INDEX(cFile, "~\":U) ELSE iPos
     cFile   = gcDosRun + SUBSTR(cFile, iPos + 1, -1)
     cFile   = SUBSTR(cFile, 1, R-INDEX(cFile, ".":U)) + "r":U
     lExists = DYNAMIC-FUNCTION('fileExist':U, INPUT cFile).

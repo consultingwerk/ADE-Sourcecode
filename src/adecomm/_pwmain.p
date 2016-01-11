@@ -169,8 +169,11 @@ DO ON STOP UNDO, LEAVE:
      ** ******
      **/
     RUN adecomm/_pwmbar.p ( INPUT NO /* p_Popup */,
+                            INPUT IF p_Edit_Command MATCHES "*READ-ONLY*":U THEN "READ-ONLY":U
+                                  ELSE "":U,
                             OUTPUT h_menu /* PW Menubar Handle */ ).
 
+ 
     /** ******
      ** Step 2: Create the Procedure Window (including frame and editor widget)
      ** ******  as well as the additional PW Attributes for persistent data. 
@@ -195,6 +198,7 @@ DO ON STOP UNDO, LEAVE:
     
     /* Attach popup menu. */
     RUN adecomm/_pwmbar.p ( INPUT  YES    /* p_Popup */,
+                            INPUT  "":U,
                             OUTPUT h_menu /* PW Menubar Handle */ ).
     ASSIGN h_ed:POPUP-MENU = h_menu.
      
@@ -253,6 +257,8 @@ DO ON STOP UNDO, LEAVE:
       ELSE
         ASSIGN scm_event = "OPEN"
                scm_file  = h_ed:NAME .
+
+      IF p_Edit_Command MATCHES "*READ-ONLY*":U THEN h_ed:READ-ONLY = TRUE.
                  
       RUN adecomm/_adeevnt.p (INPUT  {&PW_NAME},
                               INPUT  scm_event, 

@@ -6,7 +6,7 @@ Use this template to create a new Astra 2 SmartDataObject with the assistance of
 */
 &ANALYZE-RESUME
 /* Connected Databases 
-          rydb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
@@ -106,7 +106,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       rycsmfullo.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010100
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -138,6 +138,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -153,23 +154,26 @@ link_name source_object_instance_obj target_object_instance_obj
 &Scoped-define ENABLED-FIELDS-IN-ryc_smartobject object_filename 
 &Scoped-Define DATA-FIELDS  smartlink_obj container_smartobject_obj smartlink_type_obj link_name~
  source_object_instance_obj source_object_name target_object_instance_obj~
- link_name-2 target_object_name smartlink_type_obj-2 system_owned~
- used_defined_link object_filename
+ link_name-2 smartlink_type_obj-2 target_object_name system_owned~
+ user_defined_link object_filename
 &Scoped-define DATA-FIELDS-IN-ryc_smartlink smartlink_obj ~
 container_smartobject_obj smartlink_type_obj link_name ~
 source_object_instance_obj target_object_instance_obj 
 &Scoped-define DATA-FIELDS-IN-ryc_smartlink_type link_name-2 ~
-smartlink_type_obj-2 system_owned used_defined_link 
+smartlink_type_obj-2 system_owned user_defined_link 
 &Scoped-define DATA-FIELDS-IN-ryc_smartobject object_filename 
 &Scoped-Define MANDATORY-FIELDS 
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST   rowObject.link_name-2 = ryc_smartlink_type.link_name~
   rowObject.smartlink_type_obj-2 = ryc_smartlink_type.smartlink_type_obj
 &Scoped-Define DATA-FIELD-DEFS "ry/obj/rycsmfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH ryc_smartlink NO-LOCK, ~
+      FIRST ryc_smartlink_type WHERE rydb.ryc_smartlink_type.smartlink_type_obj = rydb.ryc_smartlink.smartlink_type_obj NO-LOCK, ~
+      FIRST ryc_smartobject WHERE rydb.ryc_smartobject.smartobject_obj = rydb.ryc_smartlink.container_smartobject_obj NO-LOCK INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH ryc_smartlink NO-LOCK, ~
-      FIRST ryc_smartlink_type WHERE ryc_smartlink_type.smartlink_type_obj = ryc_smartlink.smartlink_type_obj NO-LOCK, ~
-      FIRST ryc_smartobject WHERE ryc_smartobject.smartobject_obj = ryc_smartlink.container_smartobject_obj NO-LOCK INDEXED-REPOSITION.
+      FIRST ryc_smartlink_type WHERE rydb.ryc_smartlink_type.smartlink_type_obj = rydb.ryc_smartlink.smartlink_type_obj NO-LOCK, ~
+      FIRST ryc_smartobject WHERE rydb.ryc_smartobject.smartobject_obj = rydb.ryc_smartlink.container_smartobject_obj NO-LOCK INDEXED-REPOSITION.
 {&DB-REQUIRED-END}
 &Scoped-define TABLES-IN-QUERY-Query-Main ryc_smartlink ryc_smartlink_type ~
 ryc_smartobject
@@ -211,7 +215,7 @@ DEFINE QUERY Query-Main FOR
     FIELDS(ryc_smartlink_type.link_name
       ryc_smartlink_type.smartlink_type_obj
       ryc_smartlink_type.system_owned
-      ryc_smartlink_type.used_defined_link), 
+      ryc_smartlink_type.user_defined_link), 
       ryc_smartobject SCROLLING.
 &ANALYZE-RESUME
 {&DB-REQUIRED-END}
@@ -276,42 +280,42 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "rydb.ryc_smartlink,rydb.ryc_smartlink_type WHERE rydb.ryc_smartlink ...,rydb.ryc_smartobject WHERE rydb.ryc_smartlink ..."
+     _TblList          = "icfdb.ryc_smartlink,icfdb.ryc_smartlink_type WHERE icfdb.ryc_smartlink ...,icfdb.ryc_smartobject WHERE icfdb.ryc_smartlink ..."
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _TblOptList       = ", FIRST USED, FIRST"
      _JoinCode[2]      = "rydb.ryc_smartlink_type.smartlink_type_obj = rydb.ryc_smartlink.smartlink_type_obj"
      _JoinCode[3]      = "rydb.ryc_smartobject.smartobject_obj = rydb.ryc_smartlink.container_smartobject_obj"
-     _FldNameList[1]   > rydb.ryc_smartlink.smartlink_obj
+     _FldNameList[1]   > icfdb.ryc_smartlink.smartlink_obj
 "smartlink_obj" "smartlink_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
-     _FldNameList[2]   > rydb.ryc_smartlink.container_smartobject_obj
+     _FldNameList[2]   > icfdb.ryc_smartlink.container_smartobject_obj
 "container_smartobject_obj" "container_smartobject_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
-     _FldNameList[3]   > rydb.ryc_smartlink.smartlink_type_obj
+     _FldNameList[3]   > icfdb.ryc_smartlink.smartlink_type_obj
 "smartlink_type_obj" "smartlink_type_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
-     _FldNameList[4]   > rydb.ryc_smartlink.link_name
+     _FldNameList[4]   > icfdb.ryc_smartlink.link_name
 "link_name" "link_name" ? ? "character" ? ? ? ? ? ? yes ? no 56 yes
-     _FldNameList[5]   > rydb.ryc_smartlink.source_object_instance_obj
+     _FldNameList[5]   > icfdb.ryc_smartlink.source_object_instance_obj
 "source_object_instance_obj" "source_object_instance_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
      _FldNameList[6]   > "_<CALC>"
 "getLinkObjectName(RowObject.source_object_instance_obj)" "source_object_name" "Source" "x(25)" "character" ? ? ? ? ? ? no ? no 25 no
-     _FldNameList[7]   > rydb.ryc_smartlink.target_object_instance_obj
+     _FldNameList[7]   > icfdb.ryc_smartlink.target_object_instance_obj
 "target_object_instance_obj" "target_object_instance_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
-     _FldNameList[8]   > rydb.ryc_smartlink_type.link_name
+     _FldNameList[8]   > icfdb.ryc_smartlink_type.link_name
 "link_name" "link_name-2" ? ? "character" ? ? ? ? ? ? no ? no 28 yes
-     _FldNameList[9]   > "_<CALC>"
-"getLinkObjectName(RowObject.target_object_instance_obj)" "target_object_name" "Target" "x(25)" "character" ? ? ? ? ? ? no ? no 25 no
-     _FldNameList[10]   > rydb.ryc_smartlink_type.smartlink_type_obj
+     _FldNameList[9]   > icfdb.ryc_smartlink_type.smartlink_type_obj
 "smartlink_type_obj" "smartlink_type_obj-2" ? ? "decimal" ? ? ? ? ? ? yes ? no 29.4 yes
-     _FldNameList[11]   > rydb.ryc_smartlink_type.system_owned
+     _FldNameList[10]   > "_<CALC>"
+"getLinkObjectName(RowObject.target_object_instance_obj)" "target_object_name" "Target" "x(25)" "character" ? ? ? ? ? ? no ? no 25 no
+     _FldNameList[11]   > icfdb.ryc_smartlink_type.system_owned
 "system_owned" "system_owned" ? ? "logical" ? ? ? ? ? ? no ? no 14.2 yes
-     _FldNameList[12]   > rydb.ryc_smartlink_type.used_defined_link
-"used_defined_link" "used_defined_link" ? ? "logical" ? ? ? ? ? ? no ? no 17.6 yes
-     _FldNameList[13]   > rydb.ryc_smartobject.object_filename
+     _FldNameList[12]   > icfdb.ryc_smartlink_type.user_defined_link
+"user_defined_link" "user_defined_link" ? ? "logical" ? ? ? ? ? ? no ? no 17 yes
+     _FldNameList[13]   > icfdb.ryc_smartobject.object_filename
 "object_filename" "object_filename" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK dTables 

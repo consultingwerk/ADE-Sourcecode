@@ -66,7 +66,12 @@ DEFINE TEMP-TABLE RowObject
 
   Update Notes: Added extra option in combo-box for Tab Folder Page.
 
----------------------------------------------------------------------------------*/
+  (v:010001)    Task:           0   UserRef:    
+                Date:   05/07/2002  Author:     Mark Davies (MIP)
+
+  Update Notes: Added field source_language_obj to store the source language for a translation record.
+
+--------------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
 
@@ -125,11 +130,13 @@ RowObject.widget_entry RowObject.original_label RowObject.translation_label ~
 RowObject.original_tooltip RowObject.translation_tooltip 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
+&Scoped-Define ENABLED-OBJECTS fiShowRepositoryObjects 
 &Scoped-Define DISPLAYED-FIELDS RowObject.widget_type RowObject.widget_name ~
 RowObject.widget_entry RowObject.original_label RowObject.translation_label ~
 RowObject.original_tooltip RowObject.translation_tooltip 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
+
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -143,21 +150,28 @@ RowObject.original_tooltip RowObject.translation_tooltip
 
 
 /* Definitions of handles for SmartObjects                              */
+DEFINE VARIABLE hLanguage AS HANDLE NO-UNDO.
+DEFINE VARIABLE hSourceLanguage AS HANDLE NO-UNDO.
 DEFINE VARIABLE h_dynlookup AS HANDLE NO-UNDO.
-DEFINE VARIABLE h_gsclgdcs2v AS HANDLE NO-UNDO.
 
 /* Definitions of the field level widgets                               */
+DEFINE VARIABLE fiShowRepositoryObjects AS LOGICAL FORMAT "TRUE/FALSE":U INITIAL NO 
+     LABEL "" 
+     VIEW-AS FILL-IN 
+     SIZE .8 BY .19 NO-UNDO.
+
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     RowObject.widget_type AT ROW 3.1 COL 23.4 COLON-ALIGNED
+     fiShowRepositoryObjects AT ROW 1 COL 1
+     RowObject.widget_type AT ROW 4.14 COL 23.4 COLON-ALIGNED
+          LABEL "Widget Type"
           VIEW-AS COMBO-BOX SORT INNER-LINES 5
           LIST-ITEM-PAIRS "Window Title","TITLE",
                      "Browse Column","BROWSE",
                      "Fill In","FILL-IN",
                      "Radio Set","RADIO-SET",
-                     "Text Field","TEXT",
                      "Button","BUTTON",
                      "Toggle Box","TOGGLE-BOX",
                      "Combo Box","COMBO-BOX",
@@ -166,22 +180,28 @@ DEFINE FRAME frMain
                      "Tab Folder Page","TAB"
           DROP-DOWN-LIST
           SIZE 51.2 BY 1
-     RowObject.widget_name AT ROW 4.1 COL 23.4 COLON-ALIGNED
+     RowObject.widget_name AT ROW 5.14 COL 23.4 COLON-ALIGNED
+          LABEL "Widget Name"
           VIEW-AS FILL-IN 
           SIZE 51.2 BY 1
-     RowObject.widget_entry AT ROW 4.1 COL 95 COLON-ALIGNED
+     RowObject.widget_entry AT ROW 5.14 COL 95 COLON-ALIGNED
+          LABEL "Widget Entry"
           VIEW-AS FILL-IN 
           SIZE 6.2 BY 1
-     RowObject.original_label AT ROW 5.1 COL 23.4 COLON-ALIGNED
+     RowObject.original_label AT ROW 6.14 COL 23.4 COLON-ALIGNED
+          LABEL "Original Label" FORMAT "X(60)"
           VIEW-AS FILL-IN 
           SIZE 78 BY 1
-     RowObject.translation_label AT ROW 6.1 COL 23.4 COLON-ALIGNED
+     RowObject.translation_label AT ROW 7.14 COL 23.4 COLON-ALIGNED
+          LABEL "Translation Label" FORMAT "X(60)"
           VIEW-AS FILL-IN 
           SIZE 78 BY 1
-     RowObject.original_tooltip AT ROW 7.1 COL 23.4 COLON-ALIGNED
+     RowObject.original_tooltip AT ROW 8.14 COL 23.4 COLON-ALIGNED
+          LABEL "Original Tooltip"
           VIEW-AS FILL-IN 
           SIZE 78 BY 1
-     RowObject.translation_tooltip AT ROW 8.1 COL 23.4 COLON-ALIGNED
+     RowObject.translation_tooltip AT ROW 9.14 COL 23.4 COLON-ALIGNED
+          LABEL "Translation Tooltip"
           VIEW-AS FILL-IN 
           SIZE 78 BY 1
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
@@ -223,8 +243,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 8.71
-         WIDTH              = 109.
+         HEIGHT             = 9.14
+         WIDTH              = 102.4.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -251,6 +271,27 @@ ASSIGN
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
 
+/* SETTINGS FOR FILL-IN fiShowRepositoryObjects IN FRAME frMain
+   NO-DISPLAY ALIGN-L                                                   */
+ASSIGN 
+       fiShowRepositoryObjects:HIDDEN IN FRAME frMain           = TRUE
+       fiShowRepositoryObjects:PRIVATE-DATA IN FRAME frMain     = 
+                "TRUE".
+
+/* SETTINGS FOR FILL-IN RowObject.original_label IN FRAME frMain
+   EXP-LABEL EXP-FORMAT                                                 */
+/* SETTINGS FOR FILL-IN RowObject.original_tooltip IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR FILL-IN RowObject.translation_label IN FRAME frMain
+   EXP-LABEL EXP-FORMAT                                                 */
+/* SETTINGS FOR FILL-IN RowObject.translation_tooltip IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR FILL-IN RowObject.widget_entry IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR FILL-IN RowObject.widget_name IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR COMBO-BOX RowObject.widget_type IN FRAME frMain
+   EXP-LABEL                                                            */
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
@@ -284,6 +325,35 @@ ASSIGN
 
 /* **********************  Internal Procedures  *********************** */
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE addRecord vTableWin 
+PROCEDURE addRecord :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE dUserObj       AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE dSrcLang       AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE hContainer     AS HANDLE     NO-UNDO.
+
+  /* Code placed here will execute PRIOR to standard behavior. */
+
+  RUN SUPER.
+
+  /* Code placed here will execute AFTER standard behavior.    */
+  dUserObj = DECIMAL(DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
+                                       INPUT "CurrentUserObj":U,
+                                       INPUT NO)) NO-ERROR.
+  RUN getUserSourceLanguage IN gshGenManager (INPUT dUserObj, OUTPUT dSrcLang).
+  IF dSrcLang <> 0 AND dSrcLang <> ? THEN DO:
+    DYNAMIC-FUNCTION("setDataValue":U IN hSourceLanguage, STRING(dSrcLang)).
+  END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE adm-create-objects vTableWin  _ADM-CREATE-OBJECTS
 PROCEDURE adm-create-objects :
 /*------------------------------------------------------------------------------
@@ -299,27 +369,37 @@ PROCEDURE adm-create-objects :
 
     WHEN 0 THEN DO:
        RUN constructObject (
-             INPUT  'af/obj2/gsclgdcs2v.w':U ,
+             INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'FieldNamelanguage_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
-             OUTPUT h_gsclgdcs2v ).
-       RUN repositionObject IN h_gsclgdcs2v ( 1.00 , 12.60 ) NO-ERROR.
-       RUN resizeObject IN h_gsclgdcs2v ( 1.05 , 65.20 ) NO-ERROR.
+             INPUT  'DisplayedFieldgsc_language.language_code,gsc_language.language_nameKeyFieldgsc_language.language_objFieldLabelLanguageFieldTooltipSelect the language to translate to from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 (&2)ComboDelimiterListItemPairsInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNamelanguage_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT hLanguage ).
+       RUN repositionObject IN hLanguage ( 1.00 , 25.40 ) NO-ERROR.
+       RUN resizeObject IN hLanguage ( 1.05 , 51.20 ) NO-ERROR.
+
+       RUN constructObject (
+             INPUT  'adm2/dyncombo.w':U ,
+             INPUT  FRAME frMain:HANDLE ,
+             INPUT  'DisplayedFieldgsc_language.language_code,gsc_language.language_nameKeyFieldgsc_language.language_objFieldLabelSource LanguageFieldTooltipSelect a source language from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 (&2)ComboDelimiterListItemPairsInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNamesource_language_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT hSourceLanguage ).
+       RUN repositionObject IN hSourceLanguage ( 2.05 , 25.40 ) NO-ERROR.
+       RUN resizeObject IN hSourceLanguage ( 1.05 , 51.20 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_object.object_filenameKeyFieldgsc_object.object_filenameFieldLabelObject FilenameFieldTooltipEnter Object Filename or Press F4 for Object LookupKeyFormatX(35)KeyDatatypecharacterDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object NO-LOCK
-                     BY gsc_object.object_filenameQueryTablesgsc_objectBrowseFieldsgsc_object.object_filename,gsc_object.object_descriptionBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(35),X(35)RowsToBatch200BrowseTitleLookup ObjectsViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOFieldNameobject_filenameDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.object_filenameFieldLabelObject NameFieldTooltipEnter Object Name or Press F4 for Object LookupKeyFormatX(70)KeyDatatypecharacterDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_smartobject WHERE ryc_smartobject.customization_result_obj = 0 NO-LOCK, FIRST gsc_object_type WHERE gsc_object_type.object_type_obj = ryc_smartobject.object_type_obj NO-LOCK, FIRST gsc_product_module WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj NO-LOCK, FIRST gsc_product WHERE gsc_product.product_obj = gsc_product_module.product_obj NO-LOCK
+                     BY gsc_product_module.product_module_code By gsc_object_type.object_type_code BY ryc_smartobject.object_filenameQueryTablesryc_smartobject,gsc_object_type,gsc_product_module,gsc_productBrowseFieldsgsc_product_module.product_module_code,gsc_object_type.object_type_code,ryc_smartobject.object_filename,ryc_smartobject.object_descriptionBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(10),X(15),X(70),X(35)RowsToBatch200BrowseTitleLookup Smart ObjectsViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldfiShowRepositoryObjectsParentFilterQuery(IF ~'&1~' = ~'no~' THEN NOT gsc_product.product_code BEGINS ~'090~' ELSE TRUE)MaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNameobject_filenameDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dynlookup ).
-       RUN repositionObject IN h_dynlookup ( 2.05 , 25.40 ) NO-ERROR.
+       RUN repositionObject IN h_dynlookup ( 3.10 , 25.40 ) NO-ERROR.
        RUN resizeObject IN h_dynlookup ( 1.00 , 51.20 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */
-       RUN adjustTabOrder ( h_gsclgdcs2v ,
-             RowObject.widget_type:HANDLE IN FRAME frMain , 'BEFORE':U ).
+       RUN adjustTabOrder ( hLanguage ,
+             fiShowRepositoryObjects:HANDLE IN FRAME frMain , 'AFTER':U ).
+       RUN adjustTabOrder ( hSourceLanguage ,
+             hLanguage , 'AFTER':U ).
        RUN adjustTabOrder ( h_dynlookup ,
-             h_gsclgdcs2v , 'AFTER':U ).
+             hSourceLanguage , 'AFTER':U ).
     END. /* Page 0 */
 
   END CASE.
@@ -342,6 +422,39 @@ PROCEDURE disable_UI :
   /* Hide all frames. */
   HIDE FRAME frMain.
   IF THIS-PROCEDURE:PERSISTENT THEN DELETE PROCEDURE THIS-PROCEDURE.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initializeObject vTableWin 
+PROCEDURE initializeObject :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cShowRepositoryData          AS CHARACTER            NO-UNDO.
+  DEFINE VARIABLE rRowid                      AS ROWID                NO-UNDO.
+
+  /* Determine whether the user wants to display repository data. */
+  ASSIGN rRowid = ?.
+  RUN getProfileData IN gshProfileManager ( INPUT        "General":U,
+                                            INPUT        "DispRepos":U,
+                                            INPUT        "DispRepos":U,
+                                            INPUT        NO,
+                                            INPUT-OUTPUT rRowid,
+                                                  OUTPUT cShowRepositoryData).
+                                                  
+  IF rRowId <> ? THEN
+     ASSIGN fiShowRepositoryObjects:SCREEN-VALUE IN FRAME {&FRAME-NAME} = cShowRepositoryData.
+  
+  /* Code placed here will execute PRIOR to standard behavior. */
+
+  RUN SUPER.
+
+  /* Code placed here will execute AFTER standard behavior.    */
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

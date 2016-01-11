@@ -260,6 +260,7 @@ DEFINE FRAME DEFAULT-FRAME
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
 /* Settings for THIS-PROCEDURE
    Type: Window
+   Compile into: scm/rtb/uib
    Allow: Basic,Browse,DB-Fields,Window,Query
    Other Settings: COMPILE
  */
@@ -715,12 +716,23 @@ PROCEDURE buildCoProductModule :
     ASSIGN 
       coProductModule:LIST-ITEMS = "":U.
 
-    FOR EACH gsc_product_module NO-LOCK,
-      FIRST rtb_pmod NO-LOCK
-        WHERE SUBSTRING(rtb_pmod.pmod,4,LENGTH(rtb_pmod.pmod)) = gsc_product_module.product_module_code
-        BY gsc_product_module.product_module_code
+    FOR EACH gsc_product_module NO-LOCK
+      BY gsc_product_module.product_module_code
       :
-      coProductModule:ADD-LAST(LC(rtb_pmod.pmod)).
+
+      FIND FIRST rtb_pmod NO-LOCK
+        WHERE SUBSTRING(rtb_pmod.pmod,4,LENGTH(rtb_pmod.pmod)) = gsc_product_module.product_module_code
+        NO-ERROR.
+      IF NOT AVAILABLE rtb_pmod
+      THEN
+        FIND FIRST rtb_pmod NO-LOCK
+          WHERE rtb_pmod.pmod = gsc_product_module.product_module_code
+          NO-ERROR.
+
+      IF AVAILABLE rtb_pmod
+      THEN
+        coProductModule:ADD-LAST(LC(rtb_pmod.pmod)).
+
     END.
 
     coProductModule:ADD-FIRST(LC("<ALL>":U)).
@@ -938,11 +950,24 @@ PROCEDURE processOptions :
   DEFINE VARIABLE cError                        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cButton                       AS CHARACTER  NO-UNDO.
 
+  DEFINE VARIABLE ghRyXmlPlip                   AS HANDLE     NO-UNDO.
+
   SESSION:SET-WAIT-STATE("general":U).
 
   EMPTY TEMP-TABLE ttError.
   EMPTY TEMP-TABLE ttObject.
   RUN buildObjectTT (INPUT-OUTPUT TABLE ttObject).
+
+  IF toLoadXml
+  OR toCheckOut
+  THEN DO:
+    {af/sup2/afrun2.i &PLIP = 'rtb/prc/ryxmlplipp.p'
+                      &IProc = ''
+                      &OnApp = 'no'
+                      &Autokill = NO}
+    ASSIGN
+      ghRyXmlPlip = hPlip.
+  END.
 
   /* create/checkout SCM objects if selected */
   IF toCheckOut
@@ -950,9 +975,9 @@ PROCEDURE processOptions :
   THEN DO:
     {launch.i &PLIP = 'rtb/prc/ryxmlplipp.p'
               &IProc = 'checkOutObjects'
-              &PList = "( INPUT TABLE ttObject, INPUT grtb-task-num, INPUT-OUTPUT TABLE ttError, OUTPUT cError )"
+              &PList = "( INPUT TABLE ttObject, INPUT grtb-task-num, INPUT YES, INPUT-OUTPUT TABLE ttError, OUTPUT cError )"
               &OnApp = 'no'
-              &Autokill = YES}
+              &Autokill = NO}
   END.
 
   /* Load XML .ado files if selected */
@@ -963,8 +988,12 @@ PROCEDURE processOptions :
               &IProc = 'loadXMLForObjects'
               &PList = "( INPUT TABLE ttObject, INPUT-OUTPUT TABLE ttError, OUTPUT cError )"
               &OnApp = 'no'
-              &Autokill = YES}
+              &Autokill = NO}
   END.
+
+  IF VALID-HANDLE(ghRyXmlPlip)
+  THEN
+    RUN killPlip IN ghRyXmlPlip.
 
   SESSION:SET-WAIT-STATE("":U).
 

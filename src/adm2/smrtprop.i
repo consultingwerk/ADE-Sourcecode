@@ -45,12 +45,21 @@
 
  /* define the ADM Version and broker handle for all SmartObjects */
  &GLOB ADM-VERSION ADM2.2
+ 
+  /* Note that adm-props-from-repository is documented as possible to define
+     as a variable for flexible override, so it cannot be used for conditional 
+     compile.  */      
+   &IF DEFINED(ADM-PROPS-FROM-REPOSITORY) = 0 &THEN
+ &GLOBAL-DEFINE ADM-PROPS-FROM-REPOSITORY TRUE
+   &ENDIF
+   
+ &GLOBAL-DEFINE ADM-PROPS-DEFINED VALID-HANDLE(WIDGET-HANDLE(ENTRY(1,THIS-PROCEDURE:ADM-DATA,CHR(1))))
 
  DEFINE VARIABLE ghProp         AS HANDLE NO-UNDO.  /* For {get/set} */
  DEFINE VARIABLE ghADMProps     AS HANDLE NO-UNDO.  /* Handle of prop t-t */
  DEFINE VARIABLE ghADMPropsBuf  AS HANDLE NO-UNDO.  /*  and its buffer    */
-
-/* MinVersion is definded temporarily in order to global-def CompileOn91C */
+ 
+ /* MinVersion is definded temporarily in order to global-def CompileOn91C */
 &SCOPED-DEFINE MinVersion "9.1C"
 /* Used for conditional compile on 9.1C in order to compile on POSSSE 9.1B */  
 &GLOBAL-DEFINE CompileOn91C~
@@ -105,8 +114,8 @@ FUNCTION getObjectType RETURNS CHARACTER
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Include ASSIGN
-         HEIGHT             = 8
-         WIDTH              = 60.
+         HEIGHT             = 5.38
+         WIDTH              = 57.2.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -125,6 +134,8 @@ FUNCTION getObjectType RETURNS CHARACTER
      And skip including the prototypes if we are *any* super procedure. */
 &IF "{&ADMSuper}":U EQ "":U &THEN
   {src/adm2/smrtprto.i}
+
+
 &ENDIF
 
  /* These preprocessors let the get and set methods know at compile time
@@ -158,15 +169,17 @@ FUNCTION getObjectType RETURNS CHARACTER
  /* for support of dynamic objects */
  &GLOBAL-DEFINE xpPhysicalObjectName    /* physical name - no path */
  &GLOBAL-DEFINE xpDynamicObject
- &GLOBAL-DEFINE xpPhysicalVersion
- 
- 
+ &GLOBAL-DEFINE xpPhysicalVersion 
  &GLOBAL-DEFINE xpChildDataKey
  &GLOBAL-DEFINE xpParentDataKey
  &GLOBAL-DEFINE xpDataLinksEnabled
   /* for support of runtime parameters passed from the menus */
  &GLOBAL-DEFINE xpRunAttribute
+ &GLOBAL-DEFINE xpInstanceId 
  
+ /* determine if we need to create the prop fields here or from the */
+ /* repository (if ICF is running ) */
+ /* COMMENT THE FOLLOWING LINE TO USE THE "<class>prop.i" DEFINITIONS */
  /* This temp-table defines all the propertt fields for an object.
     This include file contributes the DEFINE statement header and
     all basic smart object properties. Each other property class include file
@@ -174,10 +187,27 @@ FUNCTION getObjectType RETURNS CHARACTER
     Define the fields for smart objects only, not for their super procedures.
  */
    
- /* Note that ObjectHidden is here because "hidden" is a logical concept. */
 
 &IF "{&ADMSuper}":U = "":U &THEN
   CREATE TEMP-TABLE ghADMProps.
+  
+  /* Note that adm-props-from-repository is intended to be replaced with
+     a variable for flexible override, so it cannot be used for conditional 
+     compile.  */      
+  IF VALID-HANDLE(gshRepositoryManager) AND {&ADM-PROPS-FROM-REPOSITORY} THEN
+  DO:
+    IF NOT DYNAMIC-FUNC('prepareInstance':U IN gshRepositoryManager,
+                        ghADMProps,
+                        THIS-PROCEDURE,
+                        SOURCE-PROCEDURE) THEN
+      STOP.  
+  END.
+&ENDIF
+
+ IF NOT {&ADM-PROPS-DEFINED} THEN
+ DO:
+
+&IF "{&ADMSuper}":U = "":U &THEN  
   ghADMProps:UNDO = FALSE.
   ghADMProps:ADD-NEW-FIELD('ObjectName':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('ObjectVersion':U, 'CHAR':U, 0, ?,
@@ -197,6 +227,7 @@ FUNCTION getObjectType RETURNS CHARACTER
     '{&ADM-SUPPORTED-LINKS}':U).
   ghADMProps:ADD-NEW-FIELD('ContainerHidden':U, 'LOGICAL':U, 0, ?, NO).
   ghADMProps:ADD-NEW-FIELD('ObjectInitialized':U, 'LOGICAL':U, 0, ?, no).
+ /*  "hidden" is a logical concept. */
   ghADMProps:ADD-NEW-FIELD('ObjectHidden':U, 'LOGICAL':U, 0, ?, yes).
   ghADMProps:ADD-NEW-FIELD('HideOnInit':U, 'LOGICAL':U, 0, ?, no).
   ghADMProps:ADD-NEW-FIELD('UIBMode':U, 'CHAR':U, 0, ?, '':U).
@@ -215,7 +246,7 @@ FUNCTION getObjectType RETURNS CHARACTER
      confirmCommit. These two are NOT dataSourceEvents for SDOs as the message 
      should not to be published to objects not affected by the commit/undo. */
   ghADMProps:ADD-NEW-FIELD('DataSourceEvents':U, 'CHAR':U, 0, ?,
-    'dataAvailable,queryPosition,updateState,deleteComplete,fetchDataSet,confirmContinue,confirmCommit,confirmUndo,assignMaxGuess':U).
+    'dataAvailable,queryPosition,updateState,deleteComplete,fetchDataSet,confirmContinue,confirmCommit,confirmUndo,assignMaxGuess,isUpdatePending':U).
   ghADMProps:ADD-NEW-FIELD('TranslatableProperties':U, 'CHAR':U, 0, ?,
     '{&xcTranslatableProperties}':U).
   ghADMProps:ADD-NEW-FIELD('ObjectPage':U, 'INT':U, 0, ?, 0).
@@ -231,21 +262,23 @@ FUNCTION getObjectType RETURNS CHARACTER
   ghADMProps:ADD-NEW-FIELD('DataTargetEvents':U, 'CHARACTER':U, 0, ?,
      'updateState,rowObjectState,fetchBatch,LinkState':U).
 
-  ghADMProps:ADD-NEW-FIELD('LogicalObjectName', 'CHARACTER').  
-  ghADMProps:ADD-NEW-FIELD('PhysicalObjectName', 'CHARACTER', ?, ?, "{&OBJECT-NAME}").  
+  ghADMProps:ADD-NEW-FIELD('LogicalObjectName':U, 'CHARACTER':U).  
+  ghADMProps:ADD-NEW-FIELD('PhysicalObjectName':U, 'CHARACTER':U, ?, ?, "{&OBJECT-NAME}":U).  
 
-  ghADMProps:ADD-NEW-FIELD('LogicalVersion', 'CHARACTER').  
-  ghADMProps:ADD-NEW-FIELD('PhysicalVersion', 'CHARACTER', ?, ?, "{&OBJECT-VERSION}").  
+  ghADMProps:ADD-NEW-FIELD('LogicalVersion':U, 'CHARACTER':U).  
+  ghADMProps:ADD-NEW-FIELD('PhysicalVersion':U, 'CHARACTER':U, ?, ?, "{&OBJECT-VERSION}":U).  
 
-  ghADMProps:ADD-NEW-FIELD('DynamicObject', 'LOGICAL').  
-  ghADMProps:ADD-NEW-FIELD('RunAttribute', 'CHARACTER').    
-  ghADMProps:ADD-NEW-FIELD('ChildDataKey', 'CHARACTER').  
-  ghADMProps:ADD-NEW-FIELD('ParentDataKey', 'CHARACTER').  
-  ghADMProps:ADD-NEW-FIELD('DataLinksEnabled', 'LOGICAL', ?, ?, YES).
-  ghADMProps:ADD-NEW-FIELD('InactiveLinks', 'CHARACTER').  
-&ENDIF
+  ghADMProps:ADD-NEW-FIELD('DynamicObject':U, 'LOGICAL':U).  
+  ghADMProps:ADD-NEW-FIELD('RunAttribute':U, 'CHARACTER':U).    
+  ghADMProps:ADD-NEW-FIELD('ChildDataKey':U, 'CHARACTER':U).  
+  ghADMProps:ADD-NEW-FIELD('ParentDataKey':U, 'CHARACTER':U).  
+  ghADMProps:ADD-NEW-FIELD('DataLinksEnabled':U, 'LOGICAL':U, ?, ?, YES).
+  ghADMProps:ADD-NEW-FIELD('InactiveLinks':U, 'CHARACTER':U).    
+  ghADMProps:ADD-NEW-FIELD('InstanceId':U, 'DECIMAL':U).    
+ &ENDIF
 
   {src/adm2/custom/smrtpropcustom.i}
+END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

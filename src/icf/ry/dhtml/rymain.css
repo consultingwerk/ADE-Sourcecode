@@ -1,0 +1,72 @@
+/*********************************************************************
+  rymain.css
+  Stylesheet for the Dynamics main/menu screen 
+  Per Digre / PSC
+*********************************************************************/
+
+BODY                   {background-color:#D6D3CE;font-color:#000000;font-family:MS Sans Serif;font-size:8pt;margin:0;}
+
+/**** Various Object Positioning ****/
+IFRAME                 {z-index:1;width:100%;height:100px;border:0;frame-border:no;visibility:visible;}
+.resizex               {position:absolute;z-index:5;cursor:move;}
+.hide                  {display:none;}
+.show                  {display:block;}
+
+/*** Generic for all menu items ***/
+.disable               {filter:gray(enabled=1) alpha(opacity=40,enabled=1);-moz-opacity:20%;}
+.nolink                {filter:gray(enabled=1) alpha(opacity=20, enabled=1);-moz-opacity:10%;}
+
+/*** Toolbar ***/
+#toolbar               {margin:0px;border-bottom:thin groove;border-top:thin groove;width:99%;height:28px;}
+#toolbar BUTTON        {vertical-align:top;height:21px;width:60px;font-family:MS Sans Serif;font-size:8;}
+#toolbar IMG           {margin:3px;padding:0;border:1px #D6D3CE solid}
+#toolbar IMG.over      {border-color:#EEEEEE gray gray #EEEEEE;}
+
+
+
+/*** Treeview ***/
+#treeview              {overflow:auto;position:relative;width:100%;height:100%;}
+#treeview TABLE        {margin:0;spacing:0;border:1;}
+#treeview TR           {font-weight:bold;font-size:8pt;height:14px;}
+#treeview TD           {white-space:nowrap;}
+#treeview IMG          {height:16px;}
+#treeview .enable      {cursor:pointer;}
+
+/*** Menubar ******/
+#menubar               {cursor:default;border:0;z-index:9;width:99%;height:22px;}
+#menubar > TABLE       {margin:0pt;padding:0pt;background:#D6D3CE;}
+#menubar TH            {margin:0;padding:0;height:18px;border:1px lightgrey solid;padding-left:3pt;padding-right:3pt;
+                        font-family:MS Sans Serif;font-size:8pt;font-weight:normal;position:relative;}
+#menubar TH.raise      {border-color:gray;border-left-color:#EEEEEE;border-top-color:#EEEEEE;}
+#menubar TH.sink       {border-color:gray;border-right-color:#EEEEEE;border-bottom-color:#EEEEEE;}
+#menubar .menu         {z-index:9;margin:2pt;padding:0pt;background:#D6D3CE;position:absolute;display:none;
+                        border:2px #EEEEEE solid;border-right-color:gray;border-bottom-color:gray;}
+#menubar TD            {font-family:MS Sans Serif;font-size:8pt;padding-top:2pt;padding-bottom:1pt;padding-right:14pt;padding-left:14pt;margin:0pt;text-align:left;}
+#menubar TD.over       {color:white;background:#0A246A;}
+#menubar TD.break      {height:5px;padding:0pt;}
+#menubar TD.break HR   {position:absolute;}
+#menubar IMG           {position:absolute;left:3px;height:14px;}
+#menubar IMG.arrow     {position:absolute;left:auto;right:4px;}
+
+/**** Popup menu ****/
+#popup TABLE           {position:absolute;top:150px;left:150px;z-index:9;font:menu;
+                        margin:0pt;padding:0pt;background:#D6D3CE;border-left:2px #EEEEEE solid;
+                        border-right:2px gray solid;border-bottom:2px gray solid;border-top: 2px #EEEEEE solid;}
+#popup TD              {cursor:default;padding-top:2pt;padding-bottom:2pt;padding-right:15pt;padding-left:12pt;margin:0pt;}
+#popup TD.over         {color:white;background:blue;}
+
+/*** Tab Menu *****/
+#tabmenu               {behavior:url(../dhtml/rytabmenu.htc);visibility:hidden;}
+#tabmenu TABLE.root    {z-index:1;font-family:Arial;font-size:10pt;font-weight:bold;}
+#tabmenu IMG.root      {height:25px;}
+#tabmenu IMG           {height:14px;}
+#tabmenu TABLE.menu    {width:100%;z-index:-1;text-decoration:none;font-size:medium;color:white;text-align:left;}
+#tabmenu SPAN          {cursor:pointer;font-family:Arial;font-size:10pt;font-weight:bold;}
+#tabmenu SPAN.selected {text-decoration:underline;font-style:italic;font-size:12pt;}    
+
+/*** Message window ***/
+#info                  {z-index:10;overflow:auto;background:lightblue;}
+#info NOBR             {color:black;}
+#info NOBR.alert       {color:red;}
+#info NOBR.field       {color:green;}
+

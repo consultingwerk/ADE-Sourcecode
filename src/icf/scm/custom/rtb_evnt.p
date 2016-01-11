@@ -114,7 +114,7 @@ Check out object:
     p_product : "Roundtable"
     p_event   : "OBJECT-CHECK-OUT-BEFORE"
     p_context : STRING value of RECID of the rtb_object table
-    p_other   : Object name
+    p_other   : object name, check-out level ("version", "revision", or "patch")
     p_ok      : logical - false will cancel check out
     
     p_product : "Roundtable"
@@ -288,11 +288,6 @@ Partner Site Load
     p_other     :   Workspace Path, /* entry 1 is the root path */
     p_ok        :   Cancel load if FALSE,
     
-  RTB variables is not available in this program
-  grtb-userid
-  grtb-wspace-id
-  grtb-task-num
-  grtb-proc-handle
 
 ProPath Change
 
@@ -325,80 +320,175 @@ ProPath Change
         p_context   - RECID is rtb_object that was compiled   
         p_other     - AFTER (both hooks)    
         p_context   - RECID is rtb_object that was compiled           
+
+Change Share Status
+
+    p_product   :   "Roundtable",
+    p_event     :   "OBJECT-CHANGE-SHARE-STATUS-BEFORE",
+    p_context   :   String value of RECID for rtb.rtb_object
+    p_other     :   Object, Old status, New Status, Workspace Path, Task Path
+    p_ok        :   Cancel if false
+        
+    p_product   :   "Roundtable",
+    p_event     :   "OBJECT-CHANGE-SHARE-STATUS",
+    p_context   :   String value of RECID for rtb.rtb_object
+    p_other     :   Object, Old status, New Status, Workspace Path, Task Path
+    p_ok        :   Ignored
+
+Roundtable Startup/Shutdown
+
+    p_product   :   "Roundtable",
+    p_event     :   "ROUNDTABLE-STARTUP",
+    p_context   :   
+    p_other     :   
+    p_ok        :   Cancel if false
+        
+    p_product   :   "Roundtable",
+    p_event     :   "ROUNDTABLE-SHUTDOWN",
+    p_context   :   
+    p_other     :   
+    p_ok        :   Ignored
+
+    p_product   :   "Roundtable",
+    p_event     :   "SESSION-SHUTDOWN",
+    p_context   :   
+    p_other     :   
+    p_ok        :   Ignored
 */
 
-DEFINE INPUT  PARAMETER p_product   AS CHAR       NO-UNDO.
-DEFINE INPUT  PARAMETER p_event     AS CHAR       NO-UNDO.
-DEFINE INPUT  PARAMETER p_context   AS CHAR       NO-UNDO.
-DEFINE INPUT  PARAMETER p_other     AS CHAR       NO-UNDO.
+DEFINE INPUT  PARAMETER p_product   AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER p_event     AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER p_context   AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER p_other     AS CHARACTER  NO-UNDO.
 DEFINE OUTPUT PARAMETER p_ok        AS LOGICAL    NO-UNDO INITIAL TRUE.
 
-DEFINE VARIABLE lh_handle           AS HANDLE     NO-UNDO.
-DEFINE VARIABLE lh_rtbevntp         AS HANDLE     NO-UNDO.
-
 DEFINE VARIABLE lv_error_message    AS CHARACTER  NO-UNDO.
+
+DEFINE VARIABLE cReturnMessage      AS CHARACTER  NO-UNDO.
+
+DEFINE VARIABLE hLoopHandle         AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hRtbEvent           AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hPreRtbEvent        AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hXMLConfMan         AS HANDLE     NO-UNDO.
+
+DEFINE NEW GLOBAL SHARED VARIABLE Grtb-desk-handle AS WIDGET-HANDLE NO-UNDO.
+
+{rtb/g/rtbglobl.i}
 
 ASSIGN
   lv_error_message = "":U.
 
-/* The following debugging code can be uncommented... */
 /*
-MESSAGE "Product:" p_product SKIP
-        "Event:" p_event SKIP
-        "Context:" p_context SKIP
-        "Other Data:" p_other
-        VIEW-AS ALERT-BOX QUESTION 
-                BUTTONS OK-CANCEL
-                TITLE "rtb_evnt.p"
-                UPDATE p_ok.
+  /* The following debugging code can be uncommented... */
+  MESSAGE
+    "Product:" p_product SKIP
+    "Event:" p_event SKIP
+    "Context:" p_context SKIP
+    "Other Data:" p_other
+    VIEW-AS ALERT-BOX QUESTION BUTTONS OK-CANCEL TITLE "rtb_evnt.p" UPDATE p_ok.
 */
 
 IF NOT CONNECTED("ICFDB":U)
 THEN RETURN.
 
+/* First walk the widget tree and get the handles */
 IF  p_product = "Roundtable"
 THEN DO:
 
   /* See if already running first */
   ASSIGN
-    lh_handle = SESSION:FIRST-PROCEDURE.
+    hLoopHandle = SESSION:FIRST-PROCEDURE.
 
-  DO WHILE VALID-HANDLE(lh_handle)
-  AND NOT (VALID-HANDLE(lh_rtbevntp))
+  DO WHILE VALID-HANDLE(hLoopHandle)
   :
 
-    /* handle:FILE-NAME    = "rtb/prc/ryrtbevntp.p":U */
-    /* handle:PRIVATE-DATA = "ryrtbevntp.p":U         */
-    IF lh_handle:PRIVATE-DATA = "ryrtbevntp.p":U
+    IF NOT VALID-HANDLE(hRtbEvent)
+    AND ( hLoopHandle:FILE-NAME    = "rtb/prc/ryrtbevntp.p":U
+    OR    hLoopHandle:PRIVATE-DATA = "ryrtbevntp.p":U)
     THEN
       ASSIGN
-        lh_rtbevntp = lh_handle.
+        hRtbEvent = hLoopHandle.
 
-    ASSIGN
-      lh_handle = lh_handle:NEXT-SIBLING.
+    IF NOT VALID-HANDLE(hPreRtbEvent)
+    AND ( hLoopHandle:FILE-NAME    = "rtb/prc/rtbpreevent.p":U
+    OR    hLoopHandle:PRIVATE-DATA = "rtbpreevent.p":U)
+    THEN
+      ASSIGN
+        hPreRtbEvent = hLoopHandle.
+
+    IF NOT VALID-HANDLE(hXMLConfMan)
+    AND(R-INDEX(hLoopHandle:FILE-NAME,"afxmlcfgp.p":U) > 0
+     OR R-INDEX(hLoopHandle:FILE-NAME,"afxmlcfgp.r":U) > 0)
+    THEN
+      ASSIGN
+        hXMLConfMan = hLoopHandle.
+
+    IF  VALID-HANDLE(hRtbEvent)
+    AND VALID-HANDLE(hPreRtbEvent)
+    AND VALID-HANDLE(hXMLConfMan)
+    THEN 
+      ASSIGN
+        hLoopHandle = ?.
+    ELSE
+      ASSIGN
+        hLoopHandle = hLoopHandle:NEXT-SIBLING.
 
   END.
 
 END.
 
+/***********************************************************************************/
+/* Pre-validation : Any code in this section is not bound to the Repository at all */
+/***********************************************************************************/
+IF  p_product = "Roundtable"
+THEN DO:
+
+  IF NOT VALID-HANDLE(hPreRtbEvent)
+  THEN DO:
+    IF SEARCH("rtb/prc/rtbpreevent.p":U) <> ?
+    OR SEARCH("rtb/prc/rtbpreevent.r":U) <> ?
+    THEN
+      RUN rtb/prc/rtbpreevent.p PERSISTENT SET hPreRtbEvent.
+  END.
+
+  IF VALID-HANDLE(hPreRtbEvent)
+  THEN
+    RUN processPreEvent IN hPreRtbEvent (INPUT p_event,
+                                         INPUT p_context, 
+                                         INPUT p_other,
+                                         OUTPUT cReturnMessage).
+  IF cReturnMessage <> "":U
+  THEN DO:
+    IF cReturnMessage = "Cancelled":U
+    THEN ASSIGN p_ok = FALSE.
+    ELSE ASSIGN p_ok = TRUE.
+    RETURN.
+  END.
+
+END.
+
+/*****************/
+/* Standard Code */
+/*****************/
+
 IF  p_product = "Roundtable"
 AND p_event  <> "BEFORE-CHANGE-WORKSPACE"
 THEN DO:
 
-  IF NOT VALID-HANDLE(lh_rtbevntp)
+  IF NOT VALID-HANDLE(hRtbEvent)
   THEN DO:
     IF SEARCH("rtb/prc/ryrtbevntp.p":U) <> ?
     OR SEARCH("rtb/prc/ryrtbevntp.r":U) <> ?
     THEN
-      RUN rtb/prc/ryrtbevntp.p PERSISTENT SET lh_rtbevntp.
+      RUN rtb/prc/ryrtbevntp.p PERSISTENT SET hRtbEvent.
   END.
 
 END.
 
 IF  p_product = "Roundtable"
 AND p_event   = "BEFORE-CHANGE-WORKSPACE"
-AND ENTRY(1,p_other) <> ""
-THEN DO:              /* previous workspace - kill running plips */
+AND ENTRY(1,p_other) <> "" /* only if previous workspace valid - kill running plips */
+THEN DO:
 
   /* kill new ICF environment plips if installed  */
   IF SEARCH("af/sup2/afshutdwnp.p":U) <> ?
@@ -407,40 +497,83 @@ THEN DO:              /* previous workspace - kill running plips */
     RUN af/sup2/afshutdwnp.p.
   END.
 
-  IF VALID-HANDLE(lh_rtbevntp)
-  THEN
-    RUN killPlip IN lh_rtbevntp.
+  IF SEARCH("rtb/prc/afrtbmenup.p") <> ?
+  OR SEARCH("rtb/prc/afrtbmenup.r") <> ?
+  THEN DO:
+    RUN rtb/prc/afrtbmenup.p (INPUT Grtb-proc-handle).
+  END.
 
+  IF VALID-HANDLE(hPreRtbEvent)
+  THEN
+    RUN killPlip IN hPreRtbEvent.
+
+  IF VALID-HANDLE(hRtbEvent)
+  THEN
+    RUN killPlip IN hRtbEvent.
+
+  IF VALID-HANDLE(hXMLConfMan)
+  THEN
+    APPLY "CLOSE":U TO hXMLConfMan.    
 END.
 
 IF  p_product = "Roundtable"
 AND p_event = "CHANGE-WORKSPACE"
 THEN DO:
 
-  IF SEARCH("icfstart.p":U) <> ? 
-  OR SEARCH("icfstart.r":U) <> ?
-  THEN
-    RUN icfstart.p.
+  IF VALID-HANDLE(hRtbEvent)
+  THEN DO:
 
+    IF SEARCH("icfstart.p":U) <> ? 
+    OR SEARCH("icfstart.r":U) <> ?
+    THEN
+      RUN icfstart.p.
+  END.
+
+  IF SEARCH("rtb/prc/afrtbmenup.p") <> ?
+  OR SEARCH("rtb/prc/afrtbmenup.r") <> ?
+  THEN DO:
+    RUN rtb/prc/afrtbmenup.p (INPUT Grtb-proc-handle).
+  END.
+  
+  /* Kill the RTB status handler Grtb-p-stat.
+     This will be re-started when a workspace has been selected. 
+     
+     This cannot be done as part of the BEFORE-WORKSPACE-CHANGE event, as 
+     the RTB desktop window makes use of the handle to the status window 
+     during workspace selection.
+     */
+  IF VALID-HANDLE(Grtb-p-stat) THEN DO:
+    DELETE PROCEDURE Grtb-p-stat.   
+    ASSIGN 
+      Grtb-p-stat = ?
+      .     
+  END.  
+  
+  IF NOT VALID-HANDLE(Grtb-p-stat) THEN
+  IF SEARCH("rtb/p/rtb_stat.p") <> ?
+  OR SEARCH("rtb/p/rtb_stat.r") <> ?
+  THEN DO:
+    /* Re-start the status handler for RTB. It is important that this is called 
+       with a handle to a WINDOW widget. This must be the RTB desktop rtb_dek.w. 
+       The code below is assuming that this is the current window. 
+    */
+    IF NOT VALID-HANDLE(Grtb-desk-handle) THEN
+    ASSIGN 
+      Grtb-desk-handle = CURRENT-WINDOW:HANDLE
+      .    
+    RUN rtb/p/rtb_stat.p PERSISTENT SET Grtb-p-stat (INPUT Grtb-desk-handle).     
+  END.
 END.
 
 IF  p_product = "Roundtable"
 THEN DO:
-
-  IF VALID-HANDLE(lh_rtbevntp)
+  IF VALID-HANDLE(hRtbEvent)
   THEN
-    RUN process-event IN lh_rtbevntp
-                     (INPUT p_event
-                     ,INPUT p_context
-                     ,INPUT p_other
-                     ,OUTPUT lv_error_message).
-
-  IF lv_error_message <> "":U
-  THEN
-    MESSAGE
-      "RTB Error: " + lv_error_message
-      VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
-
+    RUN process-event IN hRtbEvent
+                     (INPUT p_event,
+                      INPUT p_context,
+                      INPUT p_other,
+                      OUTPUT lv_error_message).
 END.
 
 IF lv_error_message <> "":U
@@ -448,3 +581,4 @@ THEN ASSIGN p_ok = FALSE.
 ELSE ASSIGN p_ok = TRUE.
 
 RETURN.
+

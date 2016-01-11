@@ -1,8 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          afdb             PROGRESS
-          asdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
@@ -57,9 +56,9 @@ adm2/support/_wizqry.w,adm2/support/_wizfld.w
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
-  File: rysttasdoo.w
+  File: gscerfullo.w
 
-  Description:  Template Astra 2 SmartDataObject Template
+  Description:  Template Astra 2 SmartDataObject Templat
 
   Purpose:      Template Astra 2 SmartDataObject Template
 
@@ -72,7 +71,12 @@ adm2/support/_wizqry.w,adm2/support/_wizfld.w
 
   Update Notes: V9 Templates
 
---------------------------------------------------------------------*/
+  (v:010001)    Task:           0   UserRef:    
+                Date:   05/06/2002  Author:     Mark Davies (MIP)
+
+  Update Notes: Added validation for source_language field.
+
+-------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.      */
 /*----------------------------------------------------------------------*/
 
@@ -93,7 +97,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gscerfullo.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010001
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -125,6 +129,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -132,24 +137,29 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 /* Definitions for QUERY Query-Main                                     */
 &Scoped-Define ENABLED-FIELDS  error_group error_number language_obj error_summary_description~
- error_full_description update_error_log error_type
+ error_full_description update_error_log error_type source_language
 &Scoped-define ENABLED-FIELDS-IN-gsc_error error_group error_number ~
 language_obj error_summary_description error_full_description ~
-update_error_log error_type 
+update_error_log error_type source_language 
 &Scoped-Define DATA-FIELDS  error_group error_number language_obj language_code~
  error_summary_description error_full_description error_obj update_error_log~
- error_type
+ error_type source_language
 &Scoped-define DATA-FIELDS-IN-gsc_error error_group error_number ~
 language_obj error_summary_description error_full_description error_obj ~
-update_error_log error_type 
+update_error_log error_type source_language 
 &Scoped-define DATA-FIELDS-IN-gsc_language language_code 
 &Scoped-Define MANDATORY-FIELDS 
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gscerfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsc_error NO-LOCK, ~
+      FIRST gsc_language WHERE afdb.gsc_language.language_obj = asdb.gsc_error.language_obj NO-LOCK ~
+    BY gsc_error.error_group ~
+       BY gsc_error.error_number ~
+        BY gsc_error.language_obj INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsc_error NO-LOCK, ~
-      FIRST gsc_language WHERE gsc_language.language_obj = gsc_error.language_obj NO-LOCK ~
+      FIRST gsc_language WHERE afdb.gsc_language.language_obj = asdb.gsc_error.language_obj NO-LOCK ~
     BY gsc_error.error_group ~
        BY gsc_error.error_number ~
         BY gsc_error.language_obj INDEXED-REPOSITION.
@@ -250,34 +260,36 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "asdb.gsc_error,afdb.gsc_language WHERE asdb.gsc_error ..."
+     _TblList          = "ICFDB.gsc_error,ICFDB.gsc_language WHERE ICFDB.gsc_error ..."
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _TblOptList       = ", FIRST USED"
      _OrdList          = "asdb.gsc_error.error_group|yes,asdb.gsc_error.error_number|yes,asdb.gsc_error.language_obj|yes"
      _JoinCode[2]      = "afdb.gsc_language.language_obj = asdb.gsc_error.language_obj"
-     _FldNameList[1]   > asdb.gsc_error.error_group
+     _FldNameList[1]   > ICFDB.gsc_error.error_group
 "error_group" "error_group" ? ? "character" ? ? ? ? ? ? yes ? no 6 yes
-     _FldNameList[2]   > asdb.gsc_error.error_number
+     _FldNameList[2]   > ICFDB.gsc_error.error_number
 "error_number" "error_number" ? ? "integer" ? ? ? ? ? ? yes ? no 4 yes
-     _FldNameList[3]   > asdb.gsc_error.language_obj
+     _FldNameList[3]   > ICFDB.gsc_error.language_obj
 "language_obj" "language_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
-     _FldNameList[4]   > afdb.gsc_language.language_code
+     _FldNameList[4]   > ICFDB.gsc_language.language_code
 "language_code" "language_code" ? ? "character" ? ? ? ? ? ? no ? no 20 yes
-     _FldNameList[5]   > asdb.gsc_error.error_summary_description
+     _FldNameList[5]   > ICFDB.gsc_error.error_summary_description
 "error_summary_description" "error_summary_description" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
-     _FldNameList[6]   > asdb.gsc_error.error_full_description
+     _FldNameList[6]   > ICFDB.gsc_error.error_full_description
 "error_full_description" "error_full_description" ? ? "character" ? ? ? ? ? ? yes ? no 6000 yes
-     _FldNameList[7]   > asdb.gsc_error.error_obj
+     _FldNameList[7]   > ICFDB.gsc_error.error_obj
 "error_obj" "error_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
-     _FldNameList[8]   > asdb.gsc_error.update_error_log
+     _FldNameList[8]   > ICFDB.gsc_error.update_error_log
 "update_error_log" "update_error_log" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[9]   > asdb.gsc_error.error_type
+     _FldNameList[9]   > ICFDB.gsc_error.error_type
 "error_type" "error_type" ? ? "character" ? ? ? ? ? ? yes ? no 6 yes
+     _FldNameList[10]   > ICFDB.gsc_error.source_language
+"source_language" "source_language" ? ? "logical" ? ? ? ? ? ? yes ? no 17 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK dTables 
@@ -314,6 +326,47 @@ END PROCEDURE.
 
 {&DB-REQUIRED-START}
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE postTransactionValidate dTables  _DB-REQUIRED
+PROCEDURE postTransactionValidate :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  DEFINE BUFFER gsc_error        FOR gsc_error.
+  
+  /* Code placed here will execute PRIOR to standard behavior. */
+  
+  RUN SUPER.
+  
+  /* Code placed here will execute AFTER standard behavior.    */
+  
+  /*Update all messages that have the same group, and number with the
+    error-type, to keep the error-type cosistent across languages.
+    Even on Add, Coz they might add a message for a new Language that
+    already exists in another lang.*/
+  FOR EACH RowObjUpd WHERE CAN-DO('A,C,U':U,RowObjUpd.RowMod):
+    FOR EACH gsc_error EXCLUSIVE-LOCK
+      WHERE gsc_error.error_group  = RowObjUpd.error_group 
+        AND gsc_error.error_number = RowObjUpd.error_number
+        AND gsc_error.error_obj   <> RowObjUpd.error_obj: 
+        
+        ASSIGN gsc_error.error_type  = RowObjUpd.error_type NO-ERROR.
+        IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "" THEN RETURN RETURN-VALUE.
+        
+    END.
+  END.
+  
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
+
+{&DB-REQUIRED-START}
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE preTransactionValidate dTables  _DB-REQUIRED
 PROCEDURE preTransactionValidate :
 /*------------------------------------------------------------------------------
@@ -331,11 +384,19 @@ DEFINE VARIABLE cMandatoryFieldList      AS CHARACTER
     NO-UNDO.
 DEFINE VARIABLE cErrorString    AS CHARACTER    NO-UNDO.
 
-
 FOR EACH RowObjUpd WHERE CAN-DO('A,C,U':U,RowObjUpd.RowMod): 
+  /* Forece at least one message record to be the source language */
+  IF RowObjUpd.source_language = FALSE AND 
+     NOT CAN-FIND(FIRST gsc_error
+                  WHERE gsc_error.error_group     = rowObjUpd.error_group
+                  AND   gsc_error.error_number    = rowObjUpd.error_number 
+                  AND   gsc_error.error_obj      <> rowObjUpd.error_obj
+                  AND   gsc_error.source_language = TRUE) THEN
+    cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
+                  {af/sup2/aferrortxt.i 'AF' '36' 'gsc_error' 'source_language' "'this record|at least one record of for this error group and error number must be flagged as the source language'" }.
   IF (RowObjUpd.RowMod = 'U':U AND
     CAN-FIND(FIRST gsc_error
-      WHERE gsc_error.error_group = rowObjUpd.error_group
+      WHERE gsc_error.error_group  = rowObjUpd.error_group
         AND gsc_error.error_number = rowObjUpd.error_number
         AND gsc_error.language_obj = rowObjUpd.language_obj
       AND ROWID(gsc_error) <> TO-ROWID(ENTRY(1,RowObjUpd.RowIDent))))
@@ -360,23 +421,7 @@ FOR EACH RowObjUpd WHERE CAN-DO('A,C,U':U,RowObjUpd.RowMod):
   IF NOT CAN-DO("INF,MES,ERR,WAR,QUE":U,rowObjUpd.error_type) THEN
     cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
                    {af/sup2/aferrortxt.i 'AF' '5' 'gsc_error' 'error_type' "'Error Type'"}.
-
-  FIND FIRST gsc_error WHERE gsc_error.error_group = RowObjUpd.error_group AND
-    gsc_error.error_number = RowObjUpd.error_number NO-LOCK NO-ERROR.
-  IF AVAILABLE gsc_error THEN 
-  DO:
-    IF gsc_error.error_type NE RowObjUpd.error_type THEN 
-    DO:
-      cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                     {af/sup2/aferrortxt.i 'AF' '111' 'gsc_error' 'error_type' "'Error Type'" "'errors'" "'error group'" "'error number'"}.
-    END.
-
-    IF gsc_error.update_error_log NE RowObjUpd.update_error_log THEN
-    DO:
-      cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                     {af/sup2/aferrortxt.i 'AF' '111' 'gsc_error' 'error_type' "'Update Error Log setting'" "'errors'" "'error group'" "'error number'"}.
-    END.
-  END.  /* avail gsc_error */
+  
 END.
 
   ERROR-STATUS:ERROR = NO.
@@ -424,7 +469,7 @@ DEFINE VARIABLE cValueList      AS CHARACTER    NO-UNDO.
     ASSIGN
       cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
                     {af/sup2/aferrortxt.i 'AF' '1' 'gsc_error' 'error_type' "'Error Type'"}.
-
+  
   ERROR-STATUS:ERROR = NO.
   RETURN cMessageList.
 END PROCEDURE.

@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          asdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" vTableWin _INLINE
@@ -87,7 +87,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gsmrmviewv.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010001
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -124,10 +124,11 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 RowObject.system_owned 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define DISPLAYED-FIELDS RowObject.startup_order ~
 RowObject.system_owned 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
+&Scoped-Define DISPLAYED-OBJECTS fiProcedureClasses 
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -141,21 +142,25 @@ RowObject.system_owned
 
 
 /* Definitions of handles for SmartObjects                              */
+DEFINE VARIABLE h_dyncombo AS HANDLE NO-UNDO.
 DEFINE VARIABLE h_dynlookup AS HANDLE NO-UNDO.
-DEFINE VARIABLE h_gscmtdcsfv AS HANDLE NO-UNDO.
 
 /* Definitions of the field level widgets                               */
+DEFINE VARIABLE fiProcedureClasses AS CHARACTER FORMAT "X(256)":U 
+     VIEW-AS FILL-IN 
+     SIZE 7.6 BY 1 TOOLTIP "Procedure classes for object lookup, this field is hidden" NO-UNDO.
+
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     RowObject.startup_order AT ROW 3 COL 23.8 COLON-ALIGNED
+     RowObject.startup_order AT ROW 3.1 COL 23.8 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 7.6 BY 1
-     RowObject.system_owned AT ROW 4 COL 25.8
+     RowObject.system_owned AT ROW 4.14 COL 25.8
           VIEW-AS TOGGLE-BOX
-          SIZE 19.2 BY .81
-     SPACE(31.60) SKIP(0.00)
+          SIZE 19.2 BY 1
+     fiProcedureClasses AT ROW 4.14 COL 86.2 COLON-ALIGNED NO-LABEL
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -195,8 +200,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 4.33
-         WIDTH              = 87.6.
+         HEIGHT             = 4.14
+         WIDTH              = 94.8.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -223,6 +228,11 @@ ASSIGN
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
 
+/* SETTINGS FOR FILL-IN fiProcedureClasses IN FRAME frMain
+   NO-ENABLE                                                            */
+ASSIGN 
+       fiProcedureClasses:HIDDEN IN FRAME frMain           = TRUE.
+
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
@@ -236,7 +246,7 @@ ASSIGN
 */  /* FRAME frMain */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK vTableWin 
@@ -271,27 +281,26 @@ PROCEDURE adm-create-objects :
 
     WHEN 0 THEN DO:
        RUN constructObject (
-             INPUT  'af/obj2/gscmtdcsfv.w':U ,
+             INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'FieldNamemanager_type_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
-             OUTPUT h_gscmtdcsfv ).
-       RUN repositionObject IN h_gscmtdcsfv ( 1.00 , 9.00 ) NO-ERROR.
-       RUN resizeObject IN h_gscmtdcsfv ( 1.05 , 67.60 ) NO-ERROR.
+             INPUT  'DisplayedFieldgsc_manager_type.manager_type_code,gsc_manager_type.manager_type_nameKeyFieldgsc_manager_type.manager_type_objFieldLabelManager TypeFieldTooltipSelect a manager type from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_manager_type NO-LOCK BY gsc_manager_type.manager_type_codeQueryTablesgsc_manager_typeSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&2 (&1)CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNamemanager_type_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT h_dyncombo ).
+       RUN repositionObject IN h_dyncombo ( 1.00 , 25.80 ) NO-ERROR.
+       RUN resizeObject IN h_dyncombo ( 1.05 , 70.00 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_object.object_filenameKeyFieldgsc_object.object_objFieldLabelObject FilenameFieldTooltipEnter Object Filename or Press F4 for Object LookupKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object NO-LOCK
-                     BY gsc_object.object_filenameQueryTablesgsc_objectBrowseFieldsgsc_object.object_filename,gsc_object.object_descriptionBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(35),X(35)RowsToBatch200BrowseTitleLookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsFieldNameobject_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.smartobject_objFieldLabelObject FilenameFieldTooltipPress F4 for LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type NO-LOCK, EACH ryc_smartobject WHERE ryc_smartobject.object_type_obj = gsc_object_type.object_type_obj NO-LOCK, FIRST gsc_product_module WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj NO-LOCK, FIRST gsc_product WHERE gsc_product.product_obj = gsc_product_module.product_obj BY gsc_product_module.product_module_code By gsc_object_type.object_type_code BY ryc_smartobject.object_filenameQueryTablesgsc_object_type,ryc_smartobject,gsc_product_module,gsc_productBrowseFieldsgsc_product_module.product_module_code,gsc_object_type.object_type_code,ryc_smartobject.object_filename,ryc_smartobject.object_descriptionBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(10)|X(15)|X(70)|X(35)RowsToBatch200BrowseTitleLookup ProceduresViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldfiProcedureClassesParentFilterQueryLOOKUP(gsc_object_type.object_type_code, "&1") > 0MaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNameobject_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dynlookup ).
-       RUN repositionObject IN h_dynlookup ( 2.00 , 25.80 ) NO-ERROR.
+       RUN repositionObject IN h_dynlookup ( 2.05 , 25.80 ) NO-ERROR.
        RUN resizeObject IN h_dynlookup ( 1.00 , 50.00 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */
-       RUN adjustTabOrder ( h_gscmtdcsfv ,
+       RUN adjustTabOrder ( h_dyncombo ,
              RowObject.startup_order:HANDLE IN FRAME frMain , 'BEFORE':U ).
        RUN adjustTabOrder ( h_dynlookup ,
-             h_gscmtdcsfv , 'AFTER':U ).
+             h_dyncombo , 'AFTER':U ).
     END. /* Page 0 */
 
   END CASE.
@@ -314,6 +323,30 @@ PROCEDURE disable_UI :
   /* Hide all frames. */
   HIDE FRAME frMain.
   IF THIS-PROCEDURE:PERSISTENT THEN DELETE PROCEDURE THIS-PROCEDURE.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initializeObject vTableWin 
+PROCEDURE initializeObject :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  /* Leave this in here.  If in future we decide we don't want to see repository *
+   * data, just set this flag as appropriate.                                    */
+  ASSIGN fiProcedureClasses:SCREEN-VALUE IN FRAME {&FRAME-NAME} = DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, INPUT "Procedure":U)
+         fiProcedureClasses.
+
+  /* Code placed here will execute PRIOR to standard behavior. */
+
+  RUN SUPER.
+
+  /* Code placed here will execute AFTER standard behavior.    */
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

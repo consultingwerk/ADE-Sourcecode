@@ -126,6 +126,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -136,19 +137,23 @@ gsc_deploy_package
 &Scoped-Define ENABLED-FIELDS  deploy_dataset_obj deploy_package_obj deploy_full_data
 &Scoped-define ENABLED-FIELDS-IN-gsc_package_dataset deploy_dataset_obj ~
 deploy_package_obj deploy_full_data 
-&Scoped-Define DATA-FIELDS  package_dataset_obj deploy_dataset_obj owner_site_code deploy_package_obj~
- package_code package_description deploy_full_data dataset_code~
- dataset_description default_ado_filename
+&Scoped-Define DATA-FIELDS  package_dataset_obj deploy_dataset_obj deploy_package_obj package_code~
+ package_description deploy_full_data dataset_code dataset_description~
+ default_ado_filename
 &Scoped-define DATA-FIELDS-IN-gsc_package_dataset package_dataset_obj ~
 deploy_dataset_obj deploy_package_obj deploy_full_data 
-&Scoped-define DATA-FIELDS-IN-gsc_deploy_dataset owner_site_code ~
-dataset_code dataset_description default_ado_filename 
+&Scoped-define DATA-FIELDS-IN-gsc_deploy_dataset dataset_code ~
+dataset_description default_ado_filename 
 &Scoped-define DATA-FIELDS-IN-gsc_deploy_package package_code ~
 package_description 
 &Scoped-Define MANDATORY-FIELDS 
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "ry/obj/gscpdfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsc_package_dataset NO-LOCK, ~
+      FIRST gsc_deploy_dataset WHERE gsc_deploy_dataset.deploy_dataset_obj = gsc_package_dataset.deploy_dataset_obj NO-LOCK, ~
+      FIRST gsc_deploy_package WHERE gsc_deploy_package.deploy_package_obj = gsc_package_dataset.deploy_package_obj NO-LOCK ~
+    BY gsc_package_dataset.package_dataset_obj INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsc_package_dataset NO-LOCK, ~
       FIRST gsc_deploy_dataset WHERE gsc_deploy_dataset.deploy_dataset_obj = gsc_package_dataset.deploy_dataset_obj NO-LOCK, ~
@@ -179,8 +184,7 @@ gsc_deploy_dataset gsc_deploy_package
 DEFINE QUERY Query-Main FOR 
       gsc_package_dataset, 
       gsc_deploy_dataset
-    FIELDS(gsc_deploy_dataset.owner_site_code
-      gsc_deploy_dataset.dataset_code
+    FIELDS(gsc_deploy_dataset.dataset_code
       gsc_deploy_dataset.dataset_description
       gsc_deploy_dataset.default_ado_filename), 
       gsc_deploy_package
@@ -259,21 +263,19 @@ END.
 "package_dataset_obj" "package_dataset_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 24 yes
      _FldNameList[2]   > ICFDB.gsc_package_dataset.deploy_dataset_obj
 "deploy_dataset_obj" "deploy_dataset_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 24 yes
-     _FldNameList[3]   > ICFDB.gsc_deploy_dataset.owner_site_code
-"owner_site_code" "owner_site_code" ? ? "character" ? ? ? ? ? ? no ? no 20 yes
-     _FldNameList[4]   > ICFDB.gsc_package_dataset.deploy_package_obj
+     _FldNameList[3]   > ICFDB.gsc_package_dataset.deploy_package_obj
 "deploy_package_obj" "deploy_package_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 24 yes
-     _FldNameList[5]   > ICFDB.gsc_deploy_package.package_code
+     _FldNameList[4]   > ICFDB.gsc_deploy_package.package_code
 "package_code" "package_code" ? ? "character" ? ? ? ? ? ? no ? no 20 yes
-     _FldNameList[6]   > ICFDB.gsc_deploy_package.package_description
+     _FldNameList[5]   > ICFDB.gsc_deploy_package.package_description
 "package_description" "package_description" ? ? "character" ? ? ? ? ? ? no ? no 70 yes
-     _FldNameList[7]   > ICFDB.gsc_package_dataset.deploy_full_data
+     _FldNameList[6]   > ICFDB.gsc_package_dataset.deploy_full_data
 "deploy_full_data" "deploy_full_data" ? ? "logical" ? ? ? ? ? ? yes ? no 1 no
-     _FldNameList[8]   > ICFDB.gsc_deploy_dataset.dataset_code
+     _FldNameList[7]   > ICFDB.gsc_deploy_dataset.dataset_code
 "dataset_code" "dataset_code" ? ? "character" ? ? ? ? ? ? no ? no 13 yes
-     _FldNameList[9]   > ICFDB.gsc_deploy_dataset.dataset_description
+     _FldNameList[8]   > ICFDB.gsc_deploy_dataset.dataset_description
 "dataset_description" "dataset_description" ? ? "character" ? ? ? ? ? ? no ? no 500 yes
-     _FldNameList[10]   > ICFDB.gsc_deploy_dataset.default_ado_filename
+     _FldNameList[9]   > ICFDB.gsc_deploy_dataset.default_ado_filename
 "default_ado_filename" "default_ado_filename" ? ? "character" ? ? ? ? ? ? no ? no 70 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */

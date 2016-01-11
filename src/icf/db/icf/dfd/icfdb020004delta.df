@@ -2109,6 +2109,6 @@ UPDATE FIELD "wizard_view_obj" OF "rym_wizard_view"
 
 .
 PSC
-cpstream=ISO8859-1
+cpstream=UTF-8
 .
 0000062393

@@ -78,6 +78,8 @@ palette item to use when browsing for SmartDataObject.
 Current .cst implementation makes this hardcoding necessary 
 */ 
 DEFINE VARIABLE xSmartDataObject AS CHAR NO-UNDO INIT "SmartDataObject":U.
+DEFINE VARIABLE h_dynLookup      AS HANDLE  NO-UNDO.
+DEFINE VARIABLE gcDataObject     AS CHARACTER  NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -87,15 +89,19 @@ DEFINE VARIABLE xSmartDataObject AS CHAR NO-UNDO INIT "SmartDataObject":U.
 
 /* ********************  Preprocessor Definitions  ******************** */
 
-&Scoped-define PROCEDURE-TYPE WINDOW
+&Scoped-define PROCEDURE-TYPE SimpleObject
 &Scoped-define DB-AWARE no
+
+&Scoped-define ADM-CONTAINER WINDOW
 
 /* Name of first Frame and/or Browse and/or first Query                 */
 &Scoped-define FRAME-NAME DEFAULT-FRAME
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS e_msg Data_Object b_brws b_Helpq RECT-3 
-&Scoped-Define DISPLAYED-OBJECTS e_msg Data_Object 
+&Scoped-Define ENABLED-OBJECTS buSDO e_msg ToBoxRep fiDynSDO ToBoxStatic ~
+b_brws fiStaticSDO b_Helpq RECT-3 
+&Scoped-Define DISPLAYED-OBJECTS e_msg ToBoxRep fiDynSDO ToBoxStatic ~
+fiStaticSDO 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -104,6 +110,15 @@ DEFINE VARIABLE xSmartDataObject AS CHAR NO-UNDO INIT "SmartDataObject":U.
 &ANALYZE-RESUME
 
 
+/* ************************  Function Prototypes ********************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getOpenObjectFilter C-Win 
+FUNCTION getOpenObjectFilter RETURNS CHARACTER
+  (   )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 
 /* ***********************  Control Definitions  ********************** */
 
@@ -111,6 +126,12 @@ DEFINE VARIABLE xSmartDataObject AS CHAR NO-UNDO INIT "SmartDataObject":U.
 DEFINE VAR C-Win AS WIDGET-HANDLE NO-UNDO.
 
 /* Definitions of the field level widgets                               */
+DEFINE BUTTON buSDO 
+     IMAGE-UP FILE "ry/img/afbinos.gif":U NO-FOCUS
+     LABEL "" 
+     SIZE 5 BY 1.14
+     BGCOLOR 8 .
+
 DEFINE BUTTON b_brws 
      LABEL "B&rowse..." 
      SIZE 15 BY 1.14.
@@ -121,32 +142,50 @@ DEFINE BUTTON b_Helpq
 
 DEFINE VARIABLE e_msg AS CHARACTER 
      VIEW-AS EDITOR
-     SIZE 26 BY 5
+     SIZE 34 BY 5.95
      BGCOLOR 8  NO-UNDO.
 
-DEFINE VARIABLE Data_Object AS CHARACTER FORMAT "X(256)":U 
+DEFINE VARIABLE fiDynSDO AS CHARACTER FORMAT "X(256)":U 
      VIEW-AS FILL-IN 
-     SIZE 36 BY 1 NO-UNDO.
+     SIZE 71.2 BY 1 NO-UNDO.
+
+DEFINE VARIABLE fiStaticSDO AS CHARACTER FORMAT "X(256)":U 
+     VIEW-AS FILL-IN 
+     SIZE 61.2 BY 1 NO-UNDO.
 
 DEFINE RECTANGLE RECT-3
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 54 BY 2.14.
+     SIZE 79 BY 5.91.
+
+DEFINE VARIABLE ToBoxRep AS LOGICAL INITIAL yes 
+     LABEL "Repository Data Source" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 29 BY .81 NO-UNDO.
+
+DEFINE VARIABLE ToBoxStatic AS LOGICAL INITIAL no 
+     LABEL "Static Data Source" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 24 BY .81 NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME DEFAULT-FRAME
-     e_msg AT ROW 1.52 COL 57 NO-LABEL
-     Data_Object AT ROW 2.1 COL 3 NO-LABEL
-     b_brws AT ROW 2.1 COL 40
-     b_Helpq AT ROW 9.81 COL 57
+     buSDO AT ROW 3.14 COL 75 NO-TAB-STOP 
+     e_msg AT ROW 1.48 COL 82 NO-LABEL
+     ToBoxRep AT ROW 2.19 COL 4
+     fiDynSDO AT ROW 3.14 COL 1.8 COLON-ALIGNED NO-LABEL
+     ToBoxStatic AT ROW 4.86 COL 4
+     b_brws AT ROW 5.76 COL 65
+     fiStaticSDO AT ROW 5.81 COL 3.8 NO-LABEL
+     b_Helpq AT ROW 9.33 COL 87
      RECT-3 AT ROW 1.52 COL 2
-     "SmartDataObject filename" VIEW-AS TEXT
-          SIZE 25 BY .62 AT ROW 1.24 COL 3
+     "Data Source filename" VIEW-AS TEXT
+          SIZE 25 BY .62 AT ROW 1.24 COL 3.8
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS THREE-D 
          AT COL 1 ROW 1
-         SIZE 83.6 BY 10.42
+         SIZE 125.6 BY 11.81
          FONT 4.
 
 
@@ -154,7 +193,10 @@ DEFINE FRAME DEFAULT-FRAME
 
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
 /* Settings for THIS-PROCEDURE
-   Type: WINDOW
+   Type: SimpleObject
+   Compile into: 
+   Allow: Basic,Browse,DB-Fields,Smart,Window
+   Container Links: 
    Other Settings: COMPILE
  */
 &ANALYZE-RESUME _END-PROCEDURE-SETTINGS
@@ -167,12 +209,12 @@ IF SESSION:DISPLAY-TYPE = "GUI":U THEN
   CREATE WINDOW C-Win ASSIGN
          HIDDEN             = YES
          TITLE              = "<insert title>"
-         HEIGHT             = 10.62
-         WIDTH              = 83.8
+         HEIGHT             = 11.76
+         WIDTH              = 116.2
          MAX-HEIGHT         = 16.48
-         MAX-WIDTH          = 107.2
+         MAX-WIDTH          = 133.8
          VIRTUAL-HEIGHT     = 16.48
-         VIRTUAL-WIDTH      = 107.2
+         VIRTUAL-WIDTH      = 133.8
          RESIZE             = no
          SCROLL-BARS        = no
          STATUS-AREA        = no
@@ -188,6 +230,15 @@ ELSE {&WINDOW-NAME} = CURRENT-WINDOW.
 ASSIGN C-Win = CURRENT-WINDOW.
 
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB C-Win 
+/* ************************* Included-Libraries *********************** */
+
+{src/adm2/viewer.i}
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
 
 
 /* ***********  Runtime Attributes and AppBuilder Settings  *********** */
@@ -197,11 +248,11 @@ ASSIGN C-Win = CURRENT-WINDOW.
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME DEFAULT-FRAME
    UNDERLINE                                                            */
-/* SETTINGS FOR FILL-IN Data_Object IN FRAME DEFAULT-FRAME
-   ALIGN-L                                                              */
 ASSIGN 
        e_msg:READ-ONLY IN FRAME DEFAULT-FRAME        = TRUE.
 
+/* SETTINGS FOR FILL-IN fiStaticSDO IN FRAME DEFAULT-FRAME
+   ALIGN-L                                                              */
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
@@ -215,7 +266,7 @@ ASSIGN
 */  /* FRAME DEFAULT-FRAME */
 &ANALYZE-RESUME
 
-
+ 
 
 
 
@@ -247,6 +298,31 @@ END.
 &ANALYZE-RESUME
 
 
+&Scoped-define SELF-NAME buSDO
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buSDO C-Win
+ON CHOOSE OF buSDO IN FRAME DEFAULT-FRAME
+DO:
+ DEFINE VARIABLE cFilename AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE lOK AS LOGICAL    NO-UNDO.
+
+ ASSIGN {&WINDOW-NAME}:PRIVATE-DATA = STRING(THIS-PROCEDURE).
+ 
+ RUN ry/obj/gopendialog.w (INPUT {&WINDOW-NAME},
+                           INPUT "",
+                           INPUT No,
+                           INPUT "Get Object",
+                           OUTPUT cFilename,
+                           OUTPUT lok).
+ IF lOK THEN
+    ASSIGN fiDynSDO:SCREEN-VALUE = cFilename.
+
+
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
 &Scoped-define SELF-NAME b_brws
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_brws C-Win
 ON CHOOSE OF b_brws IN FRAME DEFAULT-FRAME /* Browse... */
@@ -257,12 +333,11 @@ DO:
   DEFINE VARIABLE cFilterNameString       AS   CHARACTER EXTENT 5     NO-UNDO.
   DEFINE VARIABLE cFilterFileSpec         LIKE cFilterNameString      NO-UNDO.
   DEFINE VARIABLE cFile                   AS   CHARACTER              NO-UNDO.
-  DEFINE VARIABLE cPath                   AS   CHARACTER              NO-UNDO.
   DEFINE VARIABLE cString                 AS   CHARACTER              NO-UNDO.
   DEFINE VARIABLE iLoop                   AS   INTEGER                NO-UNDO.
   DEFINE VARIABLE hHandle                 AS   HANDLE                 NO-UNDO.
-  DEFINE VARIABLE oldData_Object          AS CHARACTER                NO-UNDO.  
-
+  DEFINE VARIABLE oldfiStaticSDO          AS CHARACTER                NO-UNDO.  
+  
   /* Initialize the file filters, for special cases. */
   ASSIGN  cFilterNameString[1] = "SDO Files(*o.w)"
           cFilterFileSpec[1] = "*o.w"
@@ -273,8 +348,8 @@ DO:
 
   /*  Ask for a file name */ 
   ASSIGN
-    cFileName = Data_Object:SCREEN-VALUE
-    oldData_Object = Data_Object:SCREEN-VALUE.
+    cFileName = fiStaticSDO:SCREEN-VALUE
+    oldfiStaticSDO = fiStaticSDO:SCREEN-VALUE.
 
   SYSTEM-DIALOG GET-FILE cFileName
       TITLE    "Lookup SDO File"
@@ -284,19 +359,19 @@ DO:
       MUST-EXIST
       UPDATE   lOk IN WINDOW {&WINDOW-NAME}.  
 
-  cRoot = IF  REPLACE(cFileName,"\":U,"/":U) BEGINS REPLACE(ENTRY(2,PROPATH),"\":U,"/":U) THEN
-            REPLACE(ENTRY(2,PROPATH),"\":U,"/":U)
-            ELSE REPLACE(ENTRY(1,PROPATH),"\":U,"/":U).
+  cRoot = IF  REPLACE(cFileName,"~\":U,"/":U) BEGINS REPLACE(ENTRY(2,PROPATH),"~\":U,"/":U) THEN
+            REPLACE(ENTRY(2,PROPATH),"~\":U,"/":U)
+            ELSE REPLACE(ENTRY(1,PROPATH),"~\":U,"/":U).
 
-  IF  lOk THEN DO:
-      ASSIGN
-          cFile                                 = REPLACE(REPLACE(TRIM(LC(cFileName)),"\":U,"/":U),cRoot + "/":U,"":U)
-          Data_Object:SCREEN-VALUE = cFile
-          cPath                                 = SUBSTRING(cFile,1,R-INDEX(cFile,"/":U))
-          Data_Object:MODIFIED     = TRUE.
+  IF lOk THEN 
+  DO:
+     ASSIGN
+          cFile                      = REPLACE(REPLACE(TRIM(LC(cFileName)),"~\":U,"/":U),cRoot + "/":U,"":U)
+          fiStaticSDO:SCREEN-VALUE   = cFile
+          fiStaticSDO:MODIFIED        = TRUE.
 
-      IF oldData_Object <> Data_Object:SCREEN-VALUE THEN
-      APPLY "VALUE-CHANGED" TO Data_Object.
+     IF oldfiStaticSDO <> fiStaticSDO:SCREEN-VALUE THEN
+       APPLY "VALUE-CHANGED" TO fiStaticSDO.
   END.
 END.
 
@@ -315,14 +390,59 @@ END.
 &ANALYZE-RESUME
 
 
-&Scoped-define SELF-NAME Data_Object
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Data_Object C-Win
-ON VALUE-CHANGED OF Data_Object IN FRAME DEFAULT-FRAME
+&Scoped-define SELF-NAME fiStaticSDO
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL fiStaticSDO C-Win
+ON VALUE-CHANGED OF fiStaticSDO IN FRAME DEFAULT-FRAME
 DO: 
   DO WITH FRAME {&FRAME-NAME}:
     ASSIGN fld-list = "":U.
     APPLY "U2":U TO hWizard. /* not ok to finish */
   END.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME ToBoxRep
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL ToBoxRep C-Win
+ON VALUE-CHANGED OF ToBoxRep IN FRAME DEFAULT-FRAME /* Repository Data Source */
+DO:
+   IF NOT SELF:CHECKED THEN DO:
+      ASSIGN SELF:CHECKED = TRUE.
+      RETURN NO-APPLY.
+   END.
+   ELSE DO:
+      ASSIGN ToBoxStatic:CHECKED       = NOT SELF:CHECKED
+             fiStaticSDO:SCREEN-VALUE  = ""
+             fiStaticSDO:SENSITIVE     = FALSE
+             fiDynSDO:SENSITIVE        = TRUE
+             b_brws:SENSITIVE          = FALSE.
+   END.
+   
+
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME ToBoxStatic
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL ToBoxStatic C-Win
+ON VALUE-CHANGED OF ToBoxStatic IN FRAME DEFAULT-FRAME /* Static Data Source */
+DO:
+ IF NOT SELF:CHECKED THEN DO:
+    ASSIGN SELF:CHECKED = TRUE.
+    RETURN NO-APPLY.
+ END.
+ ELSE DO:
+    ASSIGN ToBoxRep:CHECKED       = NOT SELF:CHECKED
+            fiDynSDO:SCREEN-VALUE = ""
+            fiDynSDO:SENSITIVE    = FALSE
+            fiStaticSDO:SENSITIVE = TRUE
+            b_brws:SENSITIVE      = TRUE.
+ END.
+
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -348,13 +468,18 @@ RUN adeuib/_uibinfo.p (?, "PROCEDURE ?":U, "PROCEDURE":U, OUTPUT proc-recid).
 RUN adeuib/_uibinfo.p (?, "PROCEDURE ?":U, "TYPE":U, OUTPUT objtype).
 
 /* If this SmartViewer or SmartBrowser already has a DataObject defined  */
-/* then preset Data_Object.                                              */
-RUN adeuib/_uibinfo.p (INTEGER(proc-recid)," ","DataObject", OUTPUT Data_Object).
+/* then preset fiStaticSDO.                                              */
+RUN adeuib/_uibinfo.p (INTEGER(proc-recid)," ","DataObject", OUTPUT gcDataObject).
+
+/* Determine whether a Repository object has already been defined */
+fiDynSDO = DYNAMIC-FUNCTION("getRepositorySDO" IN gWizardHdl, 
+                             OUTPUT ToBoxRep).
 
 ASSIGN e_msg = 
       "You need to specify the DataObject that will be the data source for this " +
       objtype + ".".
-
+IF gcDataObject > "" THEN
+  ASSIGN fiStaticSDO:TOOLTIP = SEARCH(fiStaticSDO) NO-ERROR.
 /* Set CURRENT-WINDOW: this will parent dialog-boxes and frames.        */
 ASSIGN CURRENT-WINDOW                = {&WINDOW-NAME} 
        THIS-PROCEDURE:CURRENT-WINDOW = {&WINDOW-NAME}.
@@ -379,7 +504,19 @@ MAIN-BLOCK:
 DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
    ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
   RUN enable_UI.
-  RUN Display-Query.
+  
+  IF ToBoxRep THEN 
+    ASSIGN  ToBoxRep:CHECKED      = TRUE
+            ToBoxStatic:CHECKED   = FALSE
+            fiStaticSDO:SENSITIVE = FALSE 
+            b_brws:SENSITIVE      = FALSE.
+  ELSE
+    ASSIGN ToBoxRep:CHECKED         = FALSE
+           ToBoxStatic:CHECKED      = TRUE
+           fiStaticSDO:SCREEN-VALUE = gcDataObject
+           fiDynSDO:SENSITIVE       = FALSE
+           b_brws:SENSITIVE         = TRUE.
+  
   IF NOT THIS-PROCEDURE:PERSISTENT THEN
     WAIT-FOR CLOSE OF THIS-PROCEDURE.
 END.
@@ -416,7 +553,7 @@ PROCEDURE Display-Query :
   Notes:       
 ------------------------------------------------------------------------------*/
   DO WITH FRAME {&FRAME-NAME}:
-    DISPLAY Data_Object WITH FRAME {&FRAME-NAME}.
+    DISPLAY fiStaticSDO WITH FRAME {&FRAME-NAME}.
   END.    
 END PROCEDURE.
 
@@ -434,9 +571,10 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  DISPLAY e_msg Data_Object 
+  DISPLAY e_msg ToBoxRep fiDynSDO ToBoxStatic fiStaticSDO 
       WITH FRAME DEFAULT-FRAME.
-  ENABLE e_msg Data_Object b_brws b_Helpq RECT-3 
+  ENABLE buSDO e_msg ToBoxRep fiDynSDO ToBoxStatic b_brws fiStaticSDO b_Helpq 
+         RECT-3 
       WITH FRAME DEFAULT-FRAME.
   {&OPEN-BROWSERS-IN-QUERY-DEFAULT-FRAME}
   VIEW C-Win.
@@ -455,47 +593,147 @@ PROCEDURE ProcessPage :
    DEFINE VARIABLE ok          AS LOG    NO-UNDO.
    DEFINE VARIABLE cRelName    AS CHAR   NO-UNDO.  
 
-   DEFINE VARIABLE LastButton AS CHARACTER NO-UNDO.
-
+   DEFINE VARIABLE LastButton      AS CHARACTER NO-UNDO.
+   
    LastButton = DYNAMIC-FUNCTION ("GetLastButton" IN gWizardHdl).
 
    IF LastButton = "CANCEL" THEN RETURN.
 
    RUN adecomm/_setcurs.p("WAIT":U).
 
-   ASSIGN FRAME {&FRAME-NAME} Data_Object.   
-
+   ASSIGN FRAME {&FRAME-NAME} fiStaticSDO.   
+   
+   /* Store the specified SDO and toggle/check-box settings so
+      it returns those settings when paging back and forth */
+   DYNAMIC-FUNCTION("setRepositorySDO" IN gWizardHdl, 
+                    INPUT fiDynSDO:SCREEN-VALUE IN FRAME {&FRAME-NAME},
+                    INPUT ToBoxRep:CHECKED).
    IF LastButton = "NEXT":U THEN 
    DO: 
-     IF Data_Object = "":U THEN
-     DO:  
-       MESSAGE 'You need to supply the name of a SmartDataObject.':U 
-          VIEW-AS ALERT-BOX.
+     IF ToBoxRep:CHECKED THEN DO:
+        IF fiDynSDO:SCREEN-VALUE = "":U THEN
+        DO:  
+         MESSAGE 'You need to supply the name of an SDO in the repository.':U 
+            VIEW-AS ALERT-BOX.
 
-       RETURN ERROR.    
+         RETURN ERROR.    
+        END.
+        RUN validateRepositorySDO IN THIS-PROCEDURE (OUTPUT cRelName).
+        IF RETURN-VALUE = "ERROR":U THEN
+           RETURN ERROR.
      END.
+        
+     ELSE DO:
+       IF fiStaticSDO = "":U THEN
+       DO:  
+         MESSAGE 'You need to supply the name of a SmartDataObject.':U 
+            VIEW-AS ALERT-BOX.
 
-     RUN adecomm/_relfile.p (Data_Object,
-                             NO, /* Never check remote */
-                            "Verbose":U, 
-                             OUTPUT cRelName).
+         RETURN ERROR.    
+       END.
 
-     IF cRelname = ? THEN RETURN ERROR.
-
-     ASSIGN 
-        Data_Object = cRelname.                       
-     DISPLAY Data_Object WITH FRAME {&FRAME-NAME}.   
-
+       RUN adecomm/_relfile.p (fiStaticSDO,
+                               NO, /* Never check remote */
+                              "Verbose":U, 
+                               OUTPUT cRelName).
+       
+       IF cRelname = ? THEN RETURN ERROR.
+       
+     END.
   END. /* if lastbutton = next */
 
   /* 
   Store even if we are going back in order to have what we entered
   if we come back to this page
   */    
-  RUN adeuib/_setwatr.w(INTEGER(proc-recid), "DataObject", Data_Object, OUTPUT ok).
+  
+  IF cRelName > ""  THEN
+     RUN adeuib/_setwatr.w(INTEGER(proc-recid), "DataObject", cRelName, OUTPUT ok).
 
   RUN adecomm/_setcurs.p("":U). 
 END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE validateRepositorySDO C-Win 
+PROCEDURE validateRepositorySDO :
+/*------------------------------------------------------------------------------
+  Purpose:     Validates whether the specified SDO is in-fact a valid 
+               SDO in the repository
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE OUTPUT PARAMETER pcPathedFilename AS CHARACTER  NO-UNDO.
+
+DEFINE VARIABLE hObjectBuffer         AS HANDLE     NO-UNDO.
+
+RUN clearClientCache IN gshRepositoryManager.
+IF DYNAMIC-FUNCTION("cacheObjectOnClient":U IN gshRepositoryManager,
+                        INPUT fiDynSDO:SCREEN-VALUE IN FRAME {&FRAME-NAME},
+                        INPUT "",  /* Get all Result Codes */
+                        INPUT "",  /* RunTime Attributes not applicable in design mode */
+                        INPUT YES  /* Design Mode is yes */
+                   )  THEN
+DO:
+   hObjectBuffer = DYNAMIC-FUNC("getCacheObjectBuffer":U IN gshRepositoryManager, INPUT ?).
+
+    /* Test for Dynamic SDO */
+   IF CAN-DO(hObjectBuffer:BUFFER-FIELD("tInheritsFromClasses":U):BUFFER-VALUE, "DynSDO":U) THEN
+       pcPathedFileName = fiDynSDO:SCREEN-VALUE.
+        /* Test For Static SDO */
+   ELSE IF CAN-DO(hObjectBuffer:BUFFER-FIELD("tInheritsFromClasses":U):BUFFER-VALUE, "SDO":U) THEN
+      pcPathedFilename = hObjectBuffer:BUFFER-FIELD("tObjectPathedFilename":U):BUFFER-VALUE .
+        /* Test dynSBO  */
+   ELSE IF CAN-DO(hObjectBuffer:BUFFER-FIELD("tInheritsFromClasses":U):BUFFER-VALUE, "SBO":U) THEN
+      pcPathedFilename = fiDynSDO:SCREEN-VALUE.
+        /* Test SBO ... Static */
+   ELSE IF CAN-DO(hObjectBuffer:BUFFER-FIELD("tInheritsFromClasses":U):BUFFER-VALUE, "SBO":U) THEN
+      pcPathedFilename = hObjectBuffer:BUFFER-FIELD("tObjectPathedFilename":U):BUFFER-VALUE .
+
+   DYNAMIC-FUNCTION("setRepositorySDO" IN gWizardHdl, 
+                     INPUT fiDynSDO:SCREEN-VALUE,
+                     INPUT ToBoxRep:CHECKED).
+   
+END.
+ELSE DO:
+   MESSAGE "The object " + fiDynSDO:SCREEN-VALUE + " does not exist in the repository."
+       VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+   RETURN "ERROR".
+END.
+
+   
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+/* ************************  Function Implementations ***************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getOpenObjectFilter C-Win 
+FUNCTION getOpenObjectFilter RETURNS CHARACTER
+  (   ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Filters out specified object types in the Opne Object Dialog
+    Notes:  
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE cSDO    AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cDynSDO AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cSBO    AS CHARACTER  NO-UNDO.
+
+ASSIGN
+  cSDO    = DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, "SDO":U)
+  cSDO    = IF cSDO = "" OR cSDO = "DynSDO":U THEN "SDO":U ELSE cSDO
+  cDynSDO = DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, "DynSDO":U)
+  cDynSDO = IF cDynSDO = "" OR cDynSDO = "SDO":U THEN "DynSDO":U ELSE cDynSDO
+  cSBO    = DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, "SBO":U).
+
+
+RETURN cSDO + (IF cSDO = "" THEN "" ELSE ",") + cDynSDO
+            + (IF cSBO = "" THEN "" ELSE ",") + cSBO.
+
+END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

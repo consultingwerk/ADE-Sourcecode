@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          afdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
@@ -92,7 +92,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gsmrafullo.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010100
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -124,6 +124,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -140,6 +141,8 @@ range_description disabled system_owned
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gsmrafullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsm_range NO-LOCK ~
+    BY gsm_range.range_code INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsm_range NO-LOCK ~
     BY gsm_range.range_code INDEXED-REPOSITION.
@@ -240,24 +243,24 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "afdb.gsm_range"
+     _TblList          = "ICFDB.gsm_range"
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _OrdList          = "afdb.gsm_range.range_code|yes"
-     _FldNameList[1]   > afdb.gsm_range.range_obj
+     _FldNameList[1]   > ICFDB.gsm_range.range_obj
 "range_obj" "range_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
-     _FldNameList[2]   > afdb.gsm_range.range_code
+     _FldNameList[2]   > ICFDB.gsm_range.range_code
 "range_code" "range_code" ? ? "character" ? ? ? ? ? ? yes ? no 20 yes
-     _FldNameList[3]   > afdb.gsm_range.range_description
+     _FldNameList[3]   > ICFDB.gsm_range.range_description
 "range_description" "range_description" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[4]   > afdb.gsm_range.disabled
+     _FldNameList[4]   > ICFDB.gsm_range.disabled
 "disabled" "disabled" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[5]   > afdb.gsm_range.system_owned
+     _FldNameList[5]   > ICFDB.gsm_range.system_owned
 "system_owned" "system_owned" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK dTables 

@@ -132,10 +132,11 @@
   RUN start-super-proc("adm2/containr.p":U).
 
 &IF "{&WINDOW-NAME}":U <> "":U AND "{&ADM-CONTAINER}":U = "WINDOW":U &THEN
- ON HELP OF {&WINDOW-NAME} ANYWHERE DO:
-    IF VALID-HANDLE(gshSessionManager) THEN
+  IF VALID-HANDLE(gshSessionManager) THEN
+  DO:
+    ON HELP OF {&WINDOW-NAME} ANYWHERE    
       RUN contextHelp IN gshSessionManager (INPUT THIS-PROCEDURE, INPUT FOCUS). 
- END.      
+  END.       
 &ENDIF
 
 /* Best default for GUI applications - this will apply to the whole session: */

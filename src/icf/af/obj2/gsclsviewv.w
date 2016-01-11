@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          asdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" vTableWin _INLINE
@@ -9,13 +9,6 @@
 /* This has to go above the definitions sections, as that is what it modifies.
    If its not, then the definitions section will have been saved before the
    XFTR code kicks in and changes it */
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Astra 2 Static SmartDataViewer Wizard" vTableWin _INLINE
-/* Actions: af/cod/aftemwizcw.w ? ? ? af/sup/afwizdeltp.p */
-/* Astra 2 Static SmartDataViewer Wizard
-Destroy on next read */
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -94,7 +87,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gsclsviewv.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -132,11 +125,12 @@ RowObject.logical_service_description RowObject.can_run_locally ~
 RowObject.system_owned RowObject.write_to_config 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define DISPLAYED-FIELDS RowObject.logical_service_code ~
 RowObject.logical_service_description RowObject.can_run_locally ~
 RowObject.system_owned RowObject.write_to_config 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
+
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -150,7 +144,7 @@ RowObject.system_owned RowObject.write_to_config
 
 
 /* Definitions of handles for SmartObjects                              */
-DEFINE VARIABLE h_gscstdcsfv AS HANDLE NO-UNDO.
+DEFINE VARIABLE h_dyncombo AS HANDLE NO-UNDO.
 
 /* Definitions of the field level widgets                               */
 
@@ -159,20 +153,20 @@ DEFINE VARIABLE h_gscstdcsfv AS HANDLE NO-UNDO.
 DEFINE FRAME frMain
      RowObject.logical_service_code AT ROW 1 COL 32.2 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 15.6 BY 1
-     RowObject.logical_service_description AT ROW 2 COL 32.2 COLON-ALIGNED
+          SIZE 45.4 BY 1
+     RowObject.logical_service_description AT ROW 2.05 COL 32.2 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 62.8 BY 1
-     RowObject.can_run_locally AT ROW 4.05 COL 34.2
+          SIZE 78.4 BY 1
+     RowObject.can_run_locally AT ROW 4.15 COL 34.2
           VIEW-AS TOGGLE-BOX
-          SIZE 20.6 BY .81
-     RowObject.system_owned AT ROW 4.86 COL 34.2
+          SIZE 20.6 BY 1
+     RowObject.system_owned AT ROW 5.2 COL 34.2
           VIEW-AS TOGGLE-BOX
-          SIZE 19.2 BY .81
-     RowObject.write_to_config AT ROW 5.67 COL 34.2
+          SIZE 19.2 BY 1
+     RowObject.write_to_config AT ROW 6.25 COL 34.2
           VIEW-AS TOGGLE-BOX
-          SIZE 19 BY .81
-     SPACE(45.00) SKIP(0.00)
+          SIZE 19 BY 1
+     SPACE(31.00) SKIP(0.00)
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -212,8 +206,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 5.71
-         WIDTH              = 100.6.
+         HEIGHT             = 6.24
+         WIDTH              = 111.6.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -253,7 +247,7 @@ ASSIGN
 */  /* FRAME frMain */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK vTableWin 
@@ -288,15 +282,15 @@ PROCEDURE adm-create-objects :
 
     WHEN 0 THEN DO:
        RUN constructObject (
-             INPUT  'af/obj2/gscstdcsfv.w':U ,
+             INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'FieldNameservice_type_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
-             OUTPUT h_gscstdcsfv ).
-       RUN repositionObject IN h_gscstdcsfv ( 3.00 , 17.40 ) NO-ERROR.
-       RUN resizeObject IN h_gscstdcsfv ( 1.05 , 80.80 ) NO-ERROR.
+             INPUT  'DisplayedFieldgsc_service_type.service_type_description,gsc_service_type.service_type_codeKeyFieldgsc_service_type.service_type_objFieldLabelService TypeFieldTooltipSelect a service typefrom the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_service_type NO-LOCK BY gsc_service_type.service_type_codeQueryTablesgsc_service_typeSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 (&2)CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcFieldNameservice_type_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT h_dyncombo ).
+       RUN repositionObject IN h_dyncombo ( 3.10 , 34.20 ) NO-ERROR.
+       RUN resizeObject IN h_dyncombo ( 1.05 , 50.00 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */
-       RUN adjustTabOrder ( h_gscstdcsfv ,
+       RUN adjustTabOrder ( h_dyncombo ,
              RowObject.logical_service_description:HANDLE IN FRAME frMain , 'AFTER':U ).
     END. /* Page 0 */
 
@@ -325,7 +319,7 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE RTB_xref_generator vTableWin  
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE RTB_xref_generator vTableWin 
 PROCEDURE RTB_xref_generator :
 /* -----------------------------------------------------------
 Purpose:    Generate RTB xrefs for SMARTOBJECTS.

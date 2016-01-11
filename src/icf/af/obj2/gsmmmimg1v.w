@@ -125,11 +125,12 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 RowObject.physical_file_name 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define ENABLED-OBJECTS buImage iImage 
 &Scoped-Define DISPLAYED-FIELDS RowObject.multi_media_description ~
 RowObject.physical_file_name 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
+
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -143,32 +144,31 @@ RowObject.physical_file_name
 
 
 /* Definitions of handles for SmartObjects                              */
-DEFINE VARIABLE h_dyncombo AS HANDLE NO-UNDO.
-DEFINE VARIABLE h_dyncombo-2 AS HANDLE NO-UNDO.
+DEFINE VARIABLE hCategory AS HANDLE NO-UNDO.
+DEFINE VARIABLE hMultiMediaType AS HANDLE NO-UNDO.
 
 /* Definitions of the field level widgets                               */
 DEFINE BUTTON buImage 
      LABEL "&Image" 
-     SIZE 15 BY 1.14
+     SIZE 15 BY 1.15
      BGCOLOR 8 .
 
 DEFINE IMAGE iImage
      FILENAME "adeicon/blank":U
-     SIZE 87 BY 3.14.
+     SIZE 93.43 BY 3.15.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     RowObject.multi_media_description AT ROW 3 COL 23 COLON-ALIGNED
-          LABEL "Multi Media Descr"
+     RowObject.multi_media_description AT ROW 3.12 COL 23 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 71 BY 1
-     buImage AT ROW 3.86 COL 97.4
-     RowObject.physical_file_name AT ROW 4 COL 23 COLON-ALIGNED
+          SIZE 78.43 BY 1
+     RowObject.physical_file_name AT ROW 4.15 COL 23 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 71 BY 1
-     iImage AT ROW 5.05 COL 25.2
+          SIZE 78.43 BY 1
+     buImage AT ROW 4 COL 103.86
+     iImage AT ROW 5.27 COL 25.14
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -208,8 +208,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 7.19
-         WIDTH              = 112.4.
+         HEIGHT             = 7.69
+         WIDTH              = 117.86.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -231,7 +231,7 @@ END.
 /* SETTINGS FOR WINDOW vTableWin
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frMain
-   NOT-VISIBLE Size-to-Fit                                              */
+   NOT-VISIBLE Size-to-Fit L-To-R,COLUMNS                               */
 ASSIGN 
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
@@ -239,8 +239,6 @@ ASSIGN
 ASSIGN 
        iImage:HIDDEN IN FRAME frMain           = TRUE.
 
-/* SETTINGS FOR FILL-IN RowObject.multi_media_description IN FRAME frMain
-   EXP-LABEL                                                            */
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
@@ -265,38 +263,48 @@ ASSIGN
 ON CHOOSE OF buImage IN FRAME frMain /* Image */
 DO:
   DEFINE VARIABLE lOk                 AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cRoot               AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cFilename           AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cFile               AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDirectory          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAbsFileName        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cErrorMessage       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cButton             AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cImageFormats       AS CHARACTER  NO-UNDO.
   
   DO WITH FRAME {&FRAME-NAME}:
 
-    /*  Ask for a file name. NOTE: File-names to run must exist.
-        --------------------------------------------------------
-    */
-
     cFilename = RowObject.physical_file_name:SCREEN-VALUE.
 
-    SYSTEM-DIALOG GET-FILE cFilename
-        TITLE    "Choose Image File"
-        FILTERS  "All Picture Files" "*.bmp,*.dib,*.ico,*.gif,*.jpg,*.jpeg",
-                 "Bitmaps (*.bmp,*.dib)" "*.bmp,*.dib",
-                 "Icons (*.ico)" "*.ico",
-                 "GIF (*.gif)" "*.gif",
-                 "JPEG (*.jpg,*.jpeg)" "*.jpg,*.jpeg",
-                 "All Files(*.*)"   "*.*"
-        MUST-EXIST
-        UPDATE   lOk IN WINDOW {&WINDOW-NAME}.  
+    ASSIGN cFileName     = SUBSTRING(cFileName, 1, R-INDEX(cFileName , ".":U)- 1)
+           cDirectory    = "adeicon,ry/img":U
+           cImageFormats = "All Picture Files|*.bmp,*.dib,*.ico,*.gif,*.jpg,*.cal,*.cut,*.dcx,*.eps,*.ica,*.iff,*.img," +
+                         "*.lv,*.mac,*.msp,*.pcd,*.pct,*.pcx,*.psd,*.ras,*.im,*.im1,*.im8,*.tga,*.tif,*.xbm,*.bm,*.xpm,*.wmf,*.wpg" +
+                        "|Bitmaps (*.bmp,*.dib)|*.bmp,*.dib|Icons (*.ico)|*.ico|GIF (*.gif)|*.gif|JPEG (*.jpg)|*.jpg" +
+                        "|CALS (*.cal)|*.cal|Halo CUT (*.cut)|*.cut|Intel FAX (*.dcx)|*.dcx|EPS (*.eps)|*.eps|IOCA (*.ica)|*.ica" +
+                        "|Amiga IFF (*.iff)|*.iff|GEM IMG (*.img)|*.img|LaserView (*.lv)|*.lv|MacPaint (*.mac)|*.mac" +
+                        "|Microsoft Paint (*.msp)|*.msp|Photo CD (*.pcd)|*.pcd|PICT (*.pct)|*.pct|PC Paintbrush (*.pcx)|*.pcx" +
+                        "|Adobe Photoshop (*.psd)|*.psd|Sun Raster (*.ras,*.im,*.im1,*.im8)|*.ras,*.im,*.im1,*.im8|TARGA (*.tga)|*.tga" +
+                        "|TIFF (*.tif)|*.tif|Pixmap (*.xpm)|*.xpm|Metafiles (*.wmf)|*.wmf|WordPerfect graphics (*.wpg)|*.wpg|" +
+                        "Xbitmap (*.xbm,*.bm)|*.xbm,*.bm|All Files|*.*":U
+                        NO-ERROR.
+
+    RUN adecomm/_fndfile.p (INPUT "Find Image",
+                            INPUT "IMAGE":U,
+                            &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
+                            INPUT cImageFormats,
+                            &ELSE
+                            INPUT "*.xpm,*.xbm|*.*",
+                            &ENDIF
+                            INPUT-OUTPUT cDirectory,
+                            INPUT-OUTPUT cFileName,
+                            OUTPUT cAbsFileName,
+                            OUTPUT lOk).
+
     
-    cFileName = REPLACE(cFileName,"\":U,"/":U).
-    cRoot = SUBSTRING(cFileName,1,R-INDEX(cFileName,"/":U,R-INDEX(cFileName,"/":U,R-INDEX(cFileName,"/":U) - 1) - 1)).
+    cFileName = REPLACE(cFileName,"~\":U,"/":U).
     
     IF lOk THEN DO:
-      ASSIGN cFile = IF cRoot <> "":U THEN REPLACE(cFilename,cRoot,"":U) ELSE cFileName.
-      IF SEARCH(cFile) = ? OR 
-         REPLACE(SEARCH(cFile),"\":U,"/":U) = cFile THEN DO:
+      IF SEARCH(cFileName) = ? OR 
+         REPLACE(SEARCH(cFileName),"~\":U,"/":U) = cFileName THEN DO:
         ASSIGN cErrorMessage = {af/sup2/aferrortxt.i 'AF' '21' '' '' '"be relatively pathed"'}.
         RUN showMessages IN gshSessionManager (INPUT  cErrorMessage,            /* message to display */
                                                INPUT  "ERR":U,                  /* error type */
@@ -311,8 +319,8 @@ DO:
         RETURN NO-APPLY.
       END.
       ELSE DO:
-        ASSIGN RowObject.physical_file_name:SCREEN-VALUE = cFile.
-               iImage:LOAD-IMAGE(cFile).
+        ASSIGN RowObject.physical_file_name:SCREEN-VALUE = cFileName.
+               iImage:LOAD-IMAGE(cFileName).
         {set DataModified TRUE}.
       END.
     END.
@@ -383,25 +391,25 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_multi_media_type.multi_media_type_code,gsc_multi_media_type.multi_media_type_descriptionKeyFieldgsc_multi_media_type.multi_media_type_objFieldLabelMulti Media TypeFieldTooltipSelect a multi media typeKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_multi_media_typeQueryTablesgsc_multi_media_typeSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 / &2CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueINNER-LINES5ComboFlagFlagValueBuildSequence1SecurednoFieldNamemulti_media_type_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
-             OUTPUT h_dyncombo ).
-       RUN repositionObject IN h_dyncombo ( 1.00 , 25.00 ) NO-ERROR.
-       RUN resizeObject IN h_dyncombo ( 1.00 , 55.20 ) NO-ERROR.
+             INPUT  'DisplayedFieldgsc_multi_media_type.multi_media_type_code,gsc_multi_media_type.multi_media_type_descriptionKeyFieldgsc_multi_media_type.multi_media_type_objFieldLabelMulti Media TypeFieldTooltipSelect a multi media typeKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_multi_media_typeQueryTablesgsc_multi_media_typeSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 / &2CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcFieldNamemulti_media_type_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT hMultiMediaType ).
+       RUN repositionObject IN hMultiMediaType ( 1.00 , 25.00 ) NO-ERROR.
+       RUN resizeObject IN hMultiMediaType ( 1.04 , 78.43 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsm_category.category_description,gsm_category.category_type,gsm_category.category_group,gsm_category.category_subgroupKeyFieldgsm_category.category_objFieldLabelCategoryFieldTooltipSelect a categoryKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsm_category
-                     WHERE gsm_category.related_entity_mnemonic = "GSMMM":UQueryTablesgsm_categorySDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 (&2,&3,&4)CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueINNER-LINES5ComboFlagFlagValueBuildSequence1SecurednoFieldNamecategory_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
-             OUTPUT h_dyncombo-2 ).
-       RUN repositionObject IN h_dyncombo-2 ( 2.00 , 25.00 ) NO-ERROR.
-       RUN resizeObject IN h_dyncombo-2 ( 1.00 , 55.20 ) NO-ERROR.
+             INPUT  'DisplayedFieldgsm_category.category_description,gsm_category.category_type,gsm_category.category_group,gsm_category.category_subgroupKeyFieldgsm_category.category_objFieldLabelCategoryFieldTooltipSelect a categoryKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsm_category
+                     WHERE gsm_category.related_entity_mnemonic = "GSMMM":UQueryTablesgsm_categorySDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 (&2,&3,&4)CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcFieldNamecategory_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT hCategory ).
+       RUN repositionObject IN hCategory ( 2.04 , 25.00 ) NO-ERROR.
+       RUN resizeObject IN hCategory ( 0.92 , 78.43 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */
-       RUN adjustTabOrder ( h_dyncombo ,
+       RUN adjustTabOrder ( hMultiMediaType ,
              RowObject.multi_media_description:HANDLE IN FRAME frMain , 'BEFORE':U ).
-       RUN adjustTabOrder ( h_dyncombo-2 ,
-             h_dyncombo , 'AFTER':U ).
+       RUN adjustTabOrder ( hCategory ,
+             hMultiMediaType , 'AFTER':U ).
     END. /* Page 0 */
 
   END CASE.
@@ -459,6 +467,61 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getImmage vTableWin 
+PROCEDURE getImmage :
+/*------------------------------------------------------------------------------
+  Purpose:
+  Parameters:  <none>
+  Notes:
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER phImageUp  AS HANDLE    NO-UNDO.
+
+  DEFINE INPUT  PARAMETER phButton   AS HANDLE    NO-UNDO.
+
+
+  define variable cFileName     as character format "x(60)":U no-undo.
+  define variable cDirectory    as character format "x(60)":U no-undo.
+  define variable cAbsFilename  as character format "x(60)":U no-undo.
+  define variable cExtension    as character no-undo.
+  DEFINE VARIABLE lOK           AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE image-formats AS CHARACTER  NO-UNDO.
+  assign cFileName  = phImageUp:SCREEN-VALUE
+         cFileName  = substring(cFileName, 1, r-index(cFileName , ".":u)- 1)
+         cDirectory = "adeicon,ry/img":U
+         image-formats = "All Picture Files|*.bmp,*.dib,*.ico,*.gif,*.jpg,*.cal,*.cut,*.dcx,*.eps,*.ica,*.iff,*.img," +
+                         "*.lv,*.mac,*.msp,*.pcd,*.pct,*.pcx,*.psd,*.ras,*.im,*.im1,*.im8,*.tga,*.tif,*.xbm,*.bm,*.xpm,*.wmf,*.wpg" +
+                        "|Bitmaps (*.bmp,*.dib)|*.bmp,*.dib|Icons (*.ico)|*.ico|GIF (*.gif)|*.gif|JPEG (*.jpg)|*.jpg" +
+                        "|CALS (*.cal)|*.cal|Halo CUT (*.cut)|*.cut|Intel FAX (*.dcx)|*.dcx|EPS (*.eps)|*.eps|IOCA (*.ica)|*.ica" +
+                        "|Amiga IFF (*.iff)|*.iff|GEM IMG (*.img)|*.img|LaserView (*.lv)|*.lv|MacPaint (*.mac)|*.mac" +
+                        "|Microsoft Paint (*.msp)|*.msp|Photo CD (*.pcd)|*.pcd|PICT (*.pct)|*.pct|PC Paintbrush (*.pcx)|*.pcx" +
+                        "|Adobe Photoshop (*.psd)|*.psd|Sun Raster (*.ras,*.im,*.im1,*.im8)|*.ras,*.im,*.im1,*.im8|TARGA (*.tga)|*.tga" +
+                        "|TIFF (*.tif)|*.tif|Pixmap (*.xpm)|*.xpm|Metafiles (*.wmf)|*.wmf|WordPerfect graphics (*.wpg)|*.wpg|" +
+                        "Xbitmap (*.xbm,*.bm)|*.xbm,*.bm|All Files|*.*":U
+                        NO-ERROR.
+
+  run adecomm/_fndfile.p   (input "Find Image",
+                            input "IMAGE":u,
+                            &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
+                              INPUT image-formats,
+                            &ELSE
+                              INPUT "*.xpm,*.xbm|*.*",
+                            &ENDIF
+                            input-output cDirectory,
+                            input-output cFileName,
+                            output cAbsFileName,
+                            output lOk).
+
+  IF lOK THEN DO:
+     phButton:load-image(cFileName) NO-ERROR.
+     phImageUp:SCREEN-VALUE = cFileName.
+    {set DataModified YES}.
+  END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE resizeObject vTableWin 
 PROCEDURE resizeObject :
 /*------------------------------------------------------------------------------
@@ -505,8 +568,8 @@ PROCEDURE resizeObject :
 
   /* Resize image - relative to current frame */
   ASSIGN   
-    iImage:WIDTH-CHARS  = iImage:WIDTH-CHARS  - dWidthDiff  
-    iImage:HEIGHT-CHARS = iImage:HEIGHT-CHARS - dHeightDiff.
+    iImage:WIDTH-CHARS  = iImage:WIDTH-CHARS  - dWidthDiff - 1
+    iImage:HEIGHT-CHARS = iImage:HEIGHT-CHARS - dHeightDiff - .5.
 
   /* Restore original hidden state of current frame */
   APPLY "end-resize":U TO FRAME {&FRAME-NAME}.

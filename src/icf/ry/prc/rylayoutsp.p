@@ -71,16 +71,13 @@
 /*----------------------------------------------------------------------*/
 
 /* ***************************  Definitions  ************************** */
-
-
 DEFINE VARIABLE dCharsPerRowPixel       AS DECIMAL                  NO-UNDO.
 DEFINE VARIABLE dCharsPerColumnPixel    AS DECIMAL                  NO-UNDO.
-DEFINE VARIABLE gdTwentyFourHundredths  AS DECIMAL                  NO-UNDO.
 DEFINE VARIABLE ghSourceProcedure       AS HANDLE                   NO-UNDO.
+DEFINE VARIABLE giUniqenessGuarantor    AS INTEGER                  NO-UNDO.
 
 ASSIGN dCharsPerRowPixel      = SESSION:HEIGHT-CHARS / SESSION:HEIGHT-PIXELS
        dCharsPerColumnPixel   = SESSION:WIDTH-CHARS  / SESSION:WIDTH-PIXELS
-       gdTwentyFourHundredths = ( 24 / 100 )
        .
 {afglobals.i}
 
@@ -94,6 +91,7 @@ DEFINE TEMP-TABLE ttCentre              NO-UNDO
     .
 
 DEFINE TEMP-TABLE ttRow                 NO-UNDO
+    FIELD SourceProcedure     AS HANDLE        
     FIELD PageNum             AS INTEGER
     FIELD RowNum              AS INTEGER
     FIELD MinWidth            AS DECIMAL
@@ -106,10 +104,15 @@ DEFINE TEMP-TABLE ttRow                 NO-UNDO
     FIELD FixedHorizontalSize AS DECIMAL
     FIELD BottomSection       AS LOGICAL
     FIELD NumObjects          AS INTEGER
+    INDEX idxMain
+        SourceProcedure
     .
 DEFINE TEMP-TABLE ttInstance NO-UNDO
+    FIELD SourceProcedure       AS HANDLE
     FIELD PageNum               AS INTEGER
     FIELD RowNum                AS INTEGER
+    FIELD ColumnNum             AS INTEGER
+    FIELD RowCol                AS CHARACTER        /* For a layout position of "M32" this will be "32" */    
     FIELD ObjectHeight          AS DECIMAL
     FIELD ObjectWidth           AS DECIMAL
     FIELD MinHeight             AS DECIMAL
@@ -121,8 +124,15 @@ DEFINE TEMP-TABLE ttInstance NO-UNDO
     FIELD ObjectTypeCode        AS CHARACTER
     FIELD JustifyPosition       AS CHARACTER
     INDEX idxPerPage
+        SourceProcedure
         PageNum
         RowNum        
+    INDEX idxLayout
+        SourceProcedure
+        RowCol
+    INDEX idxRowCol
+        RowNum
+        ColumnNum
     .
 
 /* _UIB-CODE-BLOCK-END */
@@ -141,6 +151,23 @@ DEFINE TEMP-TABLE ttInstance NO-UNDO
 /* _UIB-PREPROCESSOR-BLOCK-END */
 &ANALYZE-RESUME
 
+
+/* ************************  Function Prototypes ********************** */
+
+&IF DEFINED(EXCLUDE-buildRowsAndInstances) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD buildRowsAndInstances Procedure 
+FUNCTION buildRowsAndInstances RETURNS LOGICAL
+    ( INPUT phTargetProcedure       AS HANDLE,
+      INPUT pdInstanceId            AS DECIMAL,
+      INPUT piPageNumber            AS INTEGER,
+      INPUT phObjectBuffer          AS HANDLE,
+      INPUT phPageBuffer            AS HANDLE  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 
 /* *********************** Procedure Settings ************************ */
@@ -189,106 +216,174 @@ PROCEDURE dimensionSomething :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-DEFINE INPUT  PARAMETER piLayoutForPage   AS INTEGER   NO-UNDO.
-DEFINE INPUT  PARAMETER piPageNumber      AS INTEGER   NO-UNDO.
-DEFINE INPUT  PARAMETER phPageInstanceTT  AS HANDLE    NO-UNDO.
-DEFINE INPUT  PARAMETER phPageTT          AS HANDLE    NO-UNDO.
-DEFINE INPUT  PARAMETER pcObjectType      AS CHARACTER NO-UNDO.
-DEFINE INPUT  PARAMETER phObjectInstance  AS HANDLE    NO-UNDO.
-DEFINE OUTPUT PARAMETER pdPackedWidth     AS DECIMAL   NO-UNDO.
-DEFINE OUTPUT PARAMETER pdPackedHeight    AS DECIMAL   NO-UNDO.
+    DEFINE INPUT  PARAMETER piLayoutForPage         AS INTEGER          NO-UNDO.
+    DEFINE INPUT  PARAMETER piPageNumber            AS INTEGER          NO-UNDO.
+    DEFINE INPUT  PARAMETER phObjectBuffer          AS HANDLE           NO-UNDO.
+    DEFINE INPUT  PARAMETER phPageBuffer            AS HANDLE           NO-UNDO.
+    DEFINE INPUT  PARAMETER pcObjectType            AS CHARACTER        NO-UNDO.
+    DEFINE INPUT  PARAMETER phObjectInstance        AS HANDLE           NO-UNDO.
+    DEFINE INPUT  PARAMETER pdInstanceId            AS DECIMAL          NO-UNDO.
+    DEFINE OUTPUT PARAMETER pdPackedWidth           AS DECIMAL          NO-UNDO.
+    DEFINE OUTPUT PARAMETER pdPackedHeight          AS DECIMAL          NO-UNDO.
 
-DEFINE VARIABLE hPageQuery          AS HANDLE NO-UNDO.
-DEFINE VARIABLE hPageBuffer         AS HANDLE NO-UNDO.
-DEFINE VARIABLE hPageNumberField    AS HANDLE NO-UNDO.
-DEFINE VARIABLE iPageNumber         AS HANDLE NO-UNDO.
-DEFINE VARIABLE hLayoutCodeField    AS HANDLE NO-UNDO.
-DEFINE VARIABLE cLayoutCode         AS CHARACTER NO-UNDO.     
-DEFINE VARIABLE dMinWidth           AS DECIMAL NO-UNDO.
-DEFINE VARIABLE dMinHeight          AS DECIMAL NO-UNDO.   
-DEFINE VARIABLE hPageInitField      AS HANDLE NO-UNDO.
-DEFINE VARIABLE lPageInit           AS LOGICAL NO-UNDO.   
+    DEFINE VARIABLE hOldSourceProcedure         AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE cLayoutCode                 AS CHARACTER            NO-UNDO.     
+    DEFINE VARIABLE dMinWidth                   AS DECIMAL              NO-UNDO.
+    DEFINE VARIABLE dMinHeight                  AS DECIMAL              NO-UNDO.   
+    DEFINE VARIABLE dInstanceId                 AS DECIMAL              NO-UNDO.
+    DEFINE VARIABLE hPageInitField              AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE lPageInit                   AS LOGICAL              NO-UNDO.
+    DEFINE VARIABLE lResizeHorizontal           AS LOGICAL              NO-UNDO.
+    DEFINE VARIABLE lResizeVertical             AS LOGICAL              NO-UNDO.
+    DEFINE VARIABLE iFrameCurrentPage           AS INTEGER              NO-UNDO.
 
-IF pcObjectType = "SmartFolder" AND piLayoutForPage = 0 AND piPageNumber <> 0 THEN
-DO:
-  ASSIGN
-    pdPackedWidth = 0
-    pdPackedHeight = 0.
+    IF NOT VALID-HANDLE(phObjectInstance) THEN
+        RETURN.
 
-  /* now loop through all pages, packing the layout for each one */
-  CREATE BUFFER hPageBuffer FOR TABLE phPageTT.
-  CREATE QUERY hPageQuery.
-  hPageQuery:SET-BUFFERS(hPageBuffer).
-  hPageQuery:QUERY-PREPARE("FOR EACH tt_page WHERE tt_page.page_number = " + STRING(piPageNumber)).
-  hPageQuery:QUERY-OPEN().
-  hPageNumberField = hPageBuffer:BUFFER-FIELD("page_number").
-  hLayoutCodeField = hPageBuffer:BUFFER-FIELD("layout_code").
+    /* No need to try and reposition or size non-visible objects */
+    IF {fnarg signature 'getHeight':U phObjectInstance} = '':U THEN
+      RETURN.
 
-  REPEAT:
-      hPageQuery:GET-NEXT().
-      IF NOT hPageBuffer:AVAILABLE THEN LEAVE.
+    IF DYNAMIC-FUNCTION("classIsA":U IN gshRepositoryManager, INPUT pcObjectType, INPUT "SmartFolder":U) AND
+       piLayoutForPage EQ 0 AND piPageNumber NE 0 THEN
+    DO:
+        ASSIGN pdPackedWidth  = 0
+               pdPackedHeight = 0
+               .
+        /* There will only ever be one container_Page record per page per object. */
+        phPageBuffer:FIND-FIRST(" WHERE ":U
+                                + phPageBuffer:NAME + ".tTargetProcedure = WIDGET-HANDLE(":U + QUOTER(ghSourceProcedure) + ") AND ":U
+                                + phPageBuffer:NAME + ".tRecordIdentifier = ":U + QUOTER(pdInstanceId) + " AND ":U
+                                + phPageBuffer:NAME + ".tPageNumber = ":U + QUOTER(piPageNumber)  ) NO-ERROR.
 
-      iPageNumber = hPageNumberField:BUFFER-VALUE.
-      cLayoutCode = hLayoutCodeField:BUFFER-VALUE.
+        IF phPageBuffer:AVAILABLE THEN
+        DO:
+            ASSIGN cLayoutCode = phPageBuffer:BUFFER-FIELD("tLayoutCode"):BUFFER-VALUE.
 
-      RUN packLayout(
-          INPUT  cLayoutCode,
-          INPUT  iPageNumber,
-          INPUT  iPageNumber,
-          INPUT  phPageInstanceTT,
-          INPUT  phPageTT,
-          OUTPUT dMinWidth,
-          OUTPUT dMinHeight).     
+            RUN packLayout ( INPUT  cLayoutCode,
+                             INPUT  piPageNumber,
+                             INPUT  piPageNumber,
+                             INPUT  phObjectBuffer,
+                             INPUT  phPageBuffer,
+                             INPUT  pdInstanceId,
+                             OUTPUT dMinWidth,
+                             OUTPUT dMinHeight           ).
+            ASSIGN pdPackedHeight = MAX(pdPackedHeight,dMinHeight)
+                   pdPackedWidth  = MAX(pdPackedWidth,dMinWidth)
+                   .
+        END.    /* page buffer available */
 
-      pdPackedHeight = MAX(pdPackedHeight,dMinHeight).
-      pdPackedWidth = MAX(pdPackedWidth,dMinWidth).
-  END.
+        /* Make sure there's enough space for all the tabs on the window. */
+        ASSIGN dMinWidth = DYNAMIC-FUNCTION("getPanelsMinWidth":U IN phObjectInstance) NO-ERROR.
 
-  hPageQuery:QUERY-CLOSE().
-  DELETE OBJECT hPageQuery.
-  DELETE OBJECT hPageBuffer.
-  ASSIGN
-    hPageQuery = ?
-    hPageBuffer = ?.
+        ASSIGN pdPackedWidth = MAX(dMinWidth, pdPackedWidth).
 
-  /* Make sure there's enough space for all the tabs on the window. */
-  ASSIGN dMinWidth = DYNAMIC-FUNCTION("getPanelsMinWidth":U IN phObjectInstance) NO-ERROR.
+        /* Add the space a folder needs for its labels and margins.  We calculate the number of tab rows * 1.14 (hardcoded tab height). *
+         * The tab folder currently only supports 1 row, when it's changed to support more than 1, uncomment the part after the assign. */
 
-  ASSIGN pdPackedWidth = MAX(dMinWidth, pdPackedWidth).
+        ASSIGN pdPackedHeight = pdPackedHeight + {fn getTabRowHeight phObjectInstance} + 0.48
+               pdPackedWidth  = pdPackedWidth + 1.8.
 
-  /* add the space a folder needs for its labels and margins */
-  pdPackedHeight = pdPackedHeight + /* 1.14 */ ( 1 + 14 / 100 ) + /* 0.36 */ ( 36 / 100 ) /* + (2 * 0.24)*/.
-  pdPackedWidth = pdPackedWidth + /* 1.8 */ ( 1 + 8 / 10 ) /* + (2 * 1)*/.
-END.
-ELSE IF pcObjectType <> "SmartFolder" THEN
-DO:
-  IF INDEX(pcObjectType,"toolbar":U) <> 0 THEN
-  DO:
-    {get MinHeight pdPackedHeight phObjectInstance}.
-    IF pdPackedHeight = 0 OR pdPackedHeight = ? THEN
-        ASSIGN pdPackedHeight  = DYNAMIC-FUNCTION("getHeight"  IN phObjectInstance).
+        /* We may already have dimensioned another page on this folder object. 
+         * We get the previous min size and save the larger. Both of these will have the
+         * manual adjustments above done to them, so there is no need to do thema gain. */
+        {get MinHeight dMinHeight phObjectInstance}.
+        {get MinWidth  dMinWidth  phObjectInstance}.
 
-    /* The Toolbar must be at least 1.24 characters high, if no other size is set. */
-    IF pdPackedHeight = 0 OR pdPackedHeight = ? THEN
-        ASSIGN pdPackedHeight  = 1 + gdTwentyFourHundredths.
+        ASSIGN pdPackedHeight = MAX(pdPackedHeight,dMinHeight)
+               pdPackedWidth  = MAX(pdPackedWidth,dMinWidth)
+               .       
+        /* Set these minimum (packed) heights/widths */
+        {set MinHeight pdPackedHeight phObjectInstance}.
+        {set MinWidth  pdPackedWidth  phObjectInstance}.
+    END.    /* SmartFolder */
+    ELSE
+    IF DYNAMIC-FUNCTION("classIsA":U IN gshRepositoryManager, INPUT pcObjectType, INPUT "DynFrame":U) OR
+       /* This is to cater for instances where a container is forcibly run using the dynamic frame */
+       phObjectInstance:FILENAME MATCHES "*rydynframw*":U                                             THEN
+    DO:
+        ASSIGN pdPackedWidth  = 0
+               pdPackedHeight = 0.
 
-    {get MinWidth  pdPackedWidth phObjectInstance}.
-    IF pdPackedWidth = 0 OR pdPackedWidth = ? THEN
-      pdPackedWidth  = DYNAMIC-FUNCTION("getWidth"  IN phObjectInstance).
-  END.
-  ELSE
-    ASSIGN
-      pdPackedWidth  = DYNAMIC-FUNCTION("getWidth"  IN phObjectInstance)
-      pdPackedHeight = DYNAMIC-FUNCTION("getHeight" IN phObjectInstance)
-      NO-ERROR.
-END.
-ELSE
-  ASSIGN
-    pdPackedWidth = ?
-    pdPackedHeight = ?
-    .
+        /* Get the instanceID of the DynFrame instance. */
+        {get InstanceId dInstanceId phObjectInstance}.
+        {get CurrentPage iFrameCurrentPage phObjectInstance}.
 
-END PROCEDURE.
+        /* Get the layout code */
+        phPageBuffer:FIND-FIRST(" WHERE ":U
+                                + phPageBuffer:NAME + ".tTargetProcedure = WIDGET-HANDLE(":U + QUOTER(phObjectInstance) + ") AND ":U
+                                + phPageBuffer:NAME + ".tPageNumber = 0 ":U ).
+        ASSIGN cLayoutCode = phPageBuffer:BUFFER-FIELD("tLayoutCode"):BUFFER-VALUE.
+
+        /* The ghSourceProcedure is used to find the relevant objects. Since a global variable
+         * is used we need to fool this resize procedure.                                     */
+        ASSIGN hOldSourceProcedure = ghSourceProcedure
+               ghSourceProcedure   = phObjectInstance.
+
+        /* The valud of the LayoutForPage variable is zero because
+         * we need it to force the packing in the event of there being 
+         * a SmartFolder object on the frame.
+         * 
+         * We also pack for the currently selected page on the DynFrame,
+         * which may not be the same that is passed in.                  */
+        RUN packLayout IN TARGET-PROCEDURE( INPUT  cLayoutCode,
+                                            INPUT  0,                   /* piLayoutForPage */
+                                            INPUT  iFrameCurrentPage,   /* piPageNumber */
+                                            INPUT  phObjectBuffer,
+                                            INPUT  phPageBuffer,
+                                            INPUT  dInstanceId,
+                                            OUTPUT pdPackedWidth,
+                                            OUTPUT pdPackedHeight   ).
+
+        /* Set these minimum (packed) heights/widths */
+        {set MinHeight pdPackedHeight phObjectInstance}.
+        {set MinWidth  pdPackedWidth  phObjectInstance}.
+
+        /* Reset back to the DynFrame's containing source procedure. */
+        ASSIGN ghSourceProcedure = hOldSourceProcedure.
+    END.    /* DynFrame */
+    ELSE
+    DO:
+        ASSIGN pdPackedHeight = 0
+               pdPackedWidth  = 0.
+
+        IF DYNAMIC-FUNCTION("classIsA":U IN gshRepositoryManager, INPUT pcObjectType, INPUT "SmartToolbar":U)  THEN            
+        DO:
+            {get MinHeight pdPackedHeight phObjectInstance}.
+            IF pdPackedHeight = 0 OR pdPackedHeight = ? THEN
+                ASSIGN pdPackedHeight  = DYNAMIC-FUNCTION("getHeight"  IN phObjectInstance).
+
+            /* The Toolbar must be at least 1.24 characters high, if no other size is set. */
+            IF pdPackedHeight = 0 OR pdPackedHeight = ? THEN
+            DO:
+                ASSIGN pdPackedHeight  = 1.24.
+                {set MinHeight pdPackedHeight phObjectInstance}.
+            END.
+
+            {get MinWidth  pdPackedWidth phObjectInstance}.
+            IF pdPackedWidth = 0 OR pdPackedWidth = ? THEN
+            DO:
+                ASSIGN pdPackedWidth  = DYNAMIC-FUNCTION("getWidth"  IN phObjectInstance).
+                {set MinWidth pdPackedWidth phObjectInstance}.
+            END.    /* no min width set */
+        END.    /* toolbar */
+        ELSE
+        DO:
+            ASSIGN
+                lResizeHorizontal = DYNAMIC-FUNCTION("getResizeHorizontal":U IN phObjectInstance)
+                lResizeVertical   = DYNAMIC-FUNCTION("getResizeVertical":U   IN phObjectInstance)
+                pdPackedHeight    = (IF lResizeVertical    THEN DYNAMIC-FUNCTION("getMinHeight" IN phObjectInstance)
+                                                           ELSE DYNAMIC-FUNCTION("getHeight"    IN phObjectInstance))
+                pdPackedWidth     = (IF lResizeHorizontal  THEN DYNAMIC-FUNCTION("getMinWidth"  IN phObjectInstance)
+                                                           ELSE DYNAMIC-FUNCTION("getWidth"     IN phObjectInstance))
+                pdPackedHeight    = (IF pdPackedHeight = 0 THEN DYNAMIC-FUNCTION("getHeight"    IN phObjectInstance) ELSE pdPackedHeight)
+                pdPackedWidth     = (IF pdPackedWidth  = 0 THEN DYNAMIC-FUNCTION("getWidth"     IN phObjectInstance) ELSE pdPackedWidth).
+        END.    /* not a toolbar */
+    END.    /* not a smartfolder */
+
+    ASSIGN ERROR-STATUS:ERROR = NO.
+    RETURN.
+END PROCEDURE.  /* dimensionSomething */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -304,15 +399,15 @@ PROCEDURE pack00 :
   Parameters:  <none>
   Notes:       No layout specified
 ------------------------------------------------------------------------------*/
-DEFINE INPUT  PARAMETER piLayoutForPage  AS INTEGER   NO-UNDO.
-DEFINE INPUT  PARAMETER piPageNumber     AS INTEGER   NO-UNDO.
-DEFINE INPUT  PARAMETER phPageInstanceTT AS HANDLE    NO-UNDO.
-DEFINE INPUT  PARAMETER phPageTT         AS HANDLE    NO-UNDO.
-DEFINE OUTPUT PARAMETER pdPackedWidth    AS DECIMAL   NO-UNDO.
-DEFINE OUTPUT PARAMETER pdPackedHeight   AS DECIMAL   NO-UNDO.
+    DEFINE INPUT  PARAMETER piLayoutForPage         AS INTEGER   NO-UNDO.
+    DEFINE INPUT  PARAMETER piPageNumber            AS INTEGER   NO-UNDO.
+    DEFINE INPUT  PARAMETER phObjectBuffer          AS HANDLE    NO-UNDO.
+    DEFINE INPUT  PARAMETER phPageBuffer            AS HANDLE    NO-UNDO.
+    DEFINE INPUT  PARAMETER pdInstanceId            AS DECIMAL   NO-UNDO.
+    DEFINE OUTPUT PARAMETER pdPackedWidth           AS DECIMAL   NO-UNDO.
+    DEFINE OUTPUT PARAMETER pdPackedHeight          AS DECIMAL   NO-UNDO.
 
-  RETURN.
-
+    RETURN.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -336,73 +431,73 @@ PROCEDURE pack01 :
                Only useful if a single viewer on a tab page and nothing else, 
                not even a toolbar.
 ------------------------------------------------------------------------------*/
-DEFINE INPUT  PARAMETER piLayoutForPage  AS INTEGER   NO-UNDO.
-DEFINE INPUT  PARAMETER piPageNumber     AS INTEGER   NO-UNDO.
-DEFINE INPUT  PARAMETER phPageInstanceTT AS HANDLE    NO-UNDO.
-DEFINE INPUT  PARAMETER phPageTT         AS HANDLE    NO-UNDO.
-DEFINE OUTPUT PARAMETER pdPackedWidth    AS DECIMAL   NO-UNDO.
-DEFINE OUTPUT PARAMETER pdPackedHeight   AS DECIMAL   NO-UNDO.
+    DEFINE INPUT  PARAMETER piLayoutForPage         AS INTEGER         NO-UNDO.
+    DEFINE INPUT  PARAMETER piPageNumber            AS INTEGER         NO-UNDO.
+    DEFINE INPUT  PARAMETER phObjectBuffer          AS HANDLE          NO-UNDO.
+    DEFINE INPUT  PARAMETER phPageBuffer            AS HANDLE          NO-UNDO.
+    DEFINE INPUT  PARAMETER pdInstanceId            AS DECIMAL         NO-UNDO.
+    DEFINE OUTPUT PARAMETER pdPackedWidth           AS DECIMAL         NO-UNDO.
+    DEFINE OUTPUT PARAMETER pdPackedHeight          AS DECIMAL         NO-UNDO.
 
-DEFINE VARIABLE dObjectHeight               AS DECIMAL NO-UNDO.
-DEFINE VARIABLE dObjectWidth                AS DECIMAL NO-UNDO.            
-DEFINE VARIABLE dMaxHeight                  AS DECIMAL NO-UNDO.
-DEFINE VARIABLE dMaxWidth                   AS DECIMAL NO-UNDO.            
-DEFINE VARIABLE hPageInstanceQuery          AS HANDLE NO-UNDO.
-DEFINE VARIABLE hPageInstanceBuffer         AS HANDLE NO-UNDO.
-DEFINE VARIABLE hObjectInstanceHandleField  AS HANDLE NO-UNDO.
-DEFINE VARIABLE hObjectInstanceHandle       AS HANDLE NO-UNDO.     
-DEFINE VARIABLE cObjectTypeCode             AS CHARACTER NO-UNDO.
-DEFINE VARIABLE hObjectTypeCodeField        AS HANDLE NO-UNDO.        
-DEFINE VARIABLE hLayoutPositionField        AS HANDLE NO-UNDO.
-DEFINE VARIABLE cLayoutPosition             AS CHARACTER NO-UNDO.    
+    DEFINE VARIABLE dObjectHeight                   AS DECIMAL          NO-UNDO.
+    DEFINE VARIABLE dObjectWidth                    AS DECIMAL          NO-UNDO.            
+    DEFINE VARIABLE dMaxHeight                      AS DECIMAL          NO-UNDO.
+    DEFINE VARIABLE dMaxWidth                       AS DECIMAL          NO-UNDO.            
+    DEFINE VARIABLE hPageInstanceQuery              AS HANDLE           NO-UNDO.
+    DEFINE VARIABLE hLocalObjectBuffer              AS HANDLE           NO-UNDO.
+    DEFINE VARIABLE hObjectInstanceHandle           AS HANDLE           NO-UNDO.     
+    DEFINE VARIABLE cObjectTypeCode                 AS CHARACTER        NO-UNDO.
+    DEFINE VARIABLE cLayoutPosition                 AS CHARACTER        NO-UNDO.
+    DEFINE VARIABLE cWidgetPool                     AS CHARACTER        NO-UNDO.
 
-CREATE BUFFER hPageInstanceBuffer FOR TABLE phPageInstanceTT.
-CREATE QUERY hPageInstanceQuery.
-hPageInstanceQuery:SET-BUFFERS(hPageInstanceBuffer).
-hPageInstanceQuery:QUERY-PREPARE("FOR EACH tt_page_instance WHERE page_number = " + STRING(piLayoutForPage)).
-hPageInstanceQuery:QUERY-OPEN().
+    ASSIGN cWidgetPool          = "pack01":U + STRING(giUniqenessGuarantor)
+           giUniqenessGuarantor = giUniqenessGuarantor + 1
+           .
+    CREATE WIDGET-POOL cWidgetPool.
+    CREATE QUERY hPageInstanceQuery IN WIDGET-POOL cWidgetPool.
+    CREATE BUFFER hLocalObjectBuffer FOR TABLE phObjectBuffer IN WIDGET-POOL cWidgetPool.
 
-hObjectInstanceHandleField = hPageInstanceBuffer:BUFFER-FIELD("object_instance_handle").
-hObjectTypeCodeField = hPageInstanceBuffer:BUFFER-FIELD("object_type_code").
-hLayoutPositionField = hPageInstanceBuffer:BUFFER-FIELD("layout_position").
+    hPageInstanceQuery:SET-BUFFERS(hLocalObjectBuffer).
+    hPageInstanceQuery:QUERY-PREPARE("FOR EACH ":U + hLocalObjectBuffer:NAME + " WHERE ":U
+                                     + hLocalObjectBuffer:NAME + ".tTargetProcedure = WIDGET-HANDLE(":U + QUOTER(ghSourceProcedure) + ") AND ":U
+                                     + hLocalObjectBuffer:NAME + ".tContainerRecordIdentifier = " + QUOTER(pdInstanceId) + " AND ":U
+                                     + hLocalObjectBuffer:NAME + ".tPageNumber = " + QUOTER(piLayoutForPage)).
 
-REPEAT:
-    hPageInstanceQuery:GET-NEXT().
-    IF NOT hPageInstanceBuffer:AVAILABLE THEN LEAVE.
+    hPageInstanceQuery:QUERY-OPEN().
+    hPageInstanceQuery:GET-FIRST().
 
-    hObjectInstanceHandle = hObjectInstanceHandleField:BUFFER-VALUE.
-    cObjectTypeCode = hObjectTypeCodeField:BUFFER-VALUE.
-    cLayoutPosition = hLayoutPositionField:BUFFER-VALUE.
+    DO WHILE hLocalObjectBuffer:AVAILABLE:
+        ASSIGN hObjectInstanceHandle = hLocalObjectBuffer:BUFFER-FIELD("tObjectInstanceHandle":U):BUFFER-VALUE
+               cObjectTypeCode       = hLocalObjectBuffer:BUFFER-FIELD("tClassName"):BUFFER-VALUE
+               cLayoutPosition       = hLocalObjectBuffer:BUFFER-FIELD("tLayoutPosition"):BUFFER-VALUE
+               .
+        RUN dimensionSomething( INPUT  piLayoutForPage,
+                                INPUT  piPageNumber,
+                                INPUT  phObjectBuffer,
+                                INPUT  phPageBuffer,
+                                INPUT  cObjectTypeCode,
+                                INPUT  hObjectInstanceHandle,
+                                INPUT  pdInstanceId,
+                                OUTPUT dObjectWidth,
+                                OUTPUT dObjectHeight               ).
 
-    RUN dimensionSomething(
-        INPUT  piLayoutForPage,    
-        INPUT  piPageNumber,  
-        INPUT  phPageInstanceTT,
-        INPUT  phPageTT,
-        INPUT  cObjectTypeCode,
-        INPUT  hObjectInstanceHandle,        
-        OUTPUT dObjectWidth,
-        OUTPUT dObjectHeight
-        ).
+        IF dObjectHeight NE ? THEN ASSIGN dMaxHeight = MAX(dMaxHeight, dObjectHeight).
+        IF dObjectWidth <> ?  THEN ASSIGN dMaxWidth  = MAX(dMaxWidth, dObjectWidth).
 
-    IF dObjectHeight <> ? THEN dMaxHeight = MAX(dMaxHeight, dObjectHeight).
-    IF dObjectWidth <> ?  THEN dMaxWidth  = MAX(dMaxWidth, dObjectWidth).
-END.
+        hPageInstanceQuery:GET-NEXT().
+    END.    /* avail page instance buffer */
 
-ASSIGN
-  pdPackedWidth  = dMaxWidth + 2
-  pdPackedHeight = dMaxHeight + /* 0.24 */ gdTwentyFourHundredths  + /* 0.24 */ gdTwentyFourHundredths
-  .
+    hPageInstanceQuery:QUERY-CLOSE().
 
-hPageInstanceQuery:QUERY-CLOSE().
-DELETE OBJECT hPageInstanceQuery.
-DELETE OBJECT hPageInstanceBuffer.
-ASSIGN
-  hPageInstanceQuery = ?
-  hPageInstanceBuffer = ?
-  . 
+    DELETE OBJECT hPageInstanceQuery NO-ERROR.
+    ASSIGN hPageInstanceQuery = ?.
 
-RETURN.
+    DELETE WIDGET-POOL cWidgetPool.
+
+    ASSIGN pdPackedWidth  = dMaxWidth + 2
+           pdPackedHeight = dMaxHeight + 0.48
+           .
+    RETURN.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -425,90 +520,91 @@ PROCEDURE pack02 :
                just a viewer and a toolbar. Only the centre object will ever be
                made bigger vertically.
 ------------------------------------------------------------------------------*/
-DEFINE INPUT  PARAMETER piLayoutForPage  AS INTEGER   NO-UNDO.
-DEFINE INPUT  PARAMETER piPageNumber     AS INTEGER   NO-UNDO.
-DEFINE INPUT  PARAMETER phPageInstanceTT AS HANDLE    NO-UNDO.
-DEFINE INPUT  PARAMETER phPageTT         AS HANDLE    NO-UNDO.
-DEFINE OUTPUT PARAMETER pdPackedWidth    AS DECIMAL   NO-UNDO.
-DEFINE OUTPUT PARAMETER pdPackedHeight   AS DECIMAL   NO-UNDO.
+    DEFINE INPUT  PARAMETER piLayoutForPage         AS INTEGER          NO-UNDO.
+    DEFINE INPUT  PARAMETER piPageNumber            AS INTEGER          NO-UNDO.
+    DEFINE INPUT  PARAMETER phObjectBuffer    AS HANDLE           NO-UNDO.
+    DEFINE INPUT  PARAMETER phPageBuffer            AS HANDLE           NO-UNDO.
+    DEFINE INPUT  PARAMETER pdInstanceId            AS DECIMAL         NO-UNDO.
+    DEFINE OUTPUT PARAMETER pdPackedWidth           AS DECIMAL          NO-UNDO.
+    DEFINE OUTPUT PARAMETER pdPackedHeight          AS DECIMAL          NO-UNDO.
+    
+    DEFINE VARIABLE dObjectHeight               AS DECIMAL              NO-UNDO.
+    DEFINE VARIABLE dObjectWidth                AS DECIMAL              NO-UNDO.            
+    DEFINE VARIABLE dMaxHeight                  AS DECIMAL              NO-UNDO.
+    DEFINE VARIABLE dMaxWidth                   AS DECIMAL              NO-UNDO.            
+    DEFINE VARIABLE hPageInstanceQuery          AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE hLocalObjectBuffer          AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE hObjectInstanceHandle       AS HANDLE               NO-UNDO.     
+    DEFINE VARIABLE cObjectTypeCode             AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE cLayoutPosition             AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE dCenterMaxHeight            AS DECIMAL              NO-UNDO.
+    DEFINE VARIABLE dTopMaxHeight               AS DECIMAL              NO-UNDO.
+    DEFINE VARIABLE dBottomMaxHeight            AS DECIMAL              NO-UNDO.
+    DEFINE VARIABLE cWidgetPool                     AS CHARACTER        NO-UNDO.
 
-DEFINE VARIABLE dObjectHeight               AS DECIMAL NO-UNDO.
-DEFINE VARIABLE dObjectWidth                AS DECIMAL NO-UNDO.            
-DEFINE VARIABLE dMaxHeight                  AS DECIMAL NO-UNDO.
-DEFINE VARIABLE dMaxWidth                   AS DECIMAL NO-UNDO.            
-DEFINE VARIABLE hPageInstanceQuery          AS HANDLE NO-UNDO.
-DEFINE VARIABLE hPageInstanceBuffer         AS HANDLE NO-UNDO.
-DEFINE VARIABLE hObjectInstanceHandleField  AS HANDLE NO-UNDO.
-DEFINE VARIABLE hObjectInstanceHandle       AS HANDLE NO-UNDO.     
-DEFINE VARIABLE cObjectTypeCode             AS CHARACTER NO-UNDO.
-DEFINE VARIABLE hObjectTypeCodeField        AS HANDLE NO-UNDO.         
-DEFINE VARIABLE hLayoutPositionField        AS HANDLE NO-UNDO.
-DEFINE VARIABLE cLayoutPosition             AS CHARACTER NO-UNDO.
+    ASSIGN cWidgetPool          = "pack02":U + STRING(giUniqenessGuarantor)
+           giUniqenessGuarantor = giUniqenessGuarantor + 1
+           .
 
-DEFINE VARIABLE dCenterMaxHeight    AS DECIMAL NO-UNDO.
-DEFINE VARIABLE dTopMaxHeight       AS DECIMAL NO-UNDO.
-DEFINE VARIABLE dBottomMaxHeight    AS DECIMAL NO-UNDO.
+    CREATE WIDGET-POOL cWidgetPool.
+    CREATE QUERY hPageInstanceQuery IN WIDGET-POOL cWidgetPool.
+    CREATE BUFFER hLocalObjectBuffer FOR TABLE phObjectBuffer IN WIDGET-POOL cWidgetPool.
+    
+    hPageInstanceQuery:SET-BUFFERS(hLocalObjectBuffer).
+    hPageInstanceQuery:QUERY-PREPARE("FOR EACH ":U + hLocalObjectBuffer:NAME + " WHERE ":U 
+                                     + hLocalObjectBuffer:NAME + ".tTargetProcedure = WIDGET-HANDLE(":U + QUOTER(ghSourceProcedure) + ") AND ":U
+                                     + hLocalObjectBuffer:NAME + ".tContainerRecordIdentifier = " + QUOTER(pdInstanceId) + " AND ":U
+                                     + hLocalObjectBuffer:NAME + ".tPageNumber = " + QUOTER(piLayoutForPage)).
 
-CREATE BUFFER hPageInstanceBuffer FOR TABLE phPageInstanceTT.
-CREATE QUERY hPageInstanceQuery.
-hPageInstanceQuery:SET-BUFFERS(hPageInstanceBuffer).
-hPageInstanceQuery:QUERY-PREPARE("FOR EACH tt_page_instance WHERE page_number = " + STRING(piLayoutForPage)).
-hPageInstanceQuery:QUERY-OPEN().
+    hPageInstanceQuery:QUERY-OPEN().
+    hPageInstanceQuery:GET-FIRST().
 
-hObjectInstanceHandleField = hPageInstanceBuffer:BUFFER-FIELD("object_instance_handle").
-hObjectTypeCodeField = hPageInstanceBuffer:BUFFER-FIELD("object_type_code").
-hLayoutPositionField = hPageInstanceBuffer:BUFFER-FIELD("layout_position").
+    DO WHILE hLocalObjectBuffer:AVAILABLE:
+        ASSIGN hObjectInstanceHandle = hLocalObjectBuffer:BUFFER-FIELD("tObjectInstanceHandle"):BUFFER-VALUE
+               cObjectTypeCode       = hLocalObjectBuffer:BUFFER-FIELD("tClassName"):BUFFER-VALUE
+               cLayoutPosition       = hLocalObjectBuffer:BUFFER-FIELD("tLayoutPosition"):BUFFER-VALUE
+               .
+        RUN dimensionSomething ( INPUT  piLayoutForPage,
+                                 INPUT  piPageNumber,
+                                 INPUT  phObjectBuffer,
+                                 INPUT  phPageBuffer,
+                                 INPUT  cObjectTypeCode,
+                                 INPUT  hObjectInstanceHandle,
+                                 INPUT  pdInstanceId,
+                                 OUTPUT dObjectWidth,
+                                 OUTPUT dObjectHeight             ).
 
-REPEAT:
-    hPageInstanceQuery:GET-NEXT().
-    IF NOT hPageInstanceBuffer:AVAILABLE THEN LEAVE.
+        IF dObjectHeight NE ? AND cLayoutPosition NE "":U THEN
+        DO:
+            ASSIGN cLayoutPosition = ENTRY(1, cLayoutPosition)
+                   cLayoutPosition = SUBSTRING(cLayoutPosition,1,1)
+                   .
+            CASE cLayoutPosition:
+                WHEN "T" THEN ASSIGN dTopMaxHeight    = MAX(dTopMaxHeight,dObjectHeight).
+                WHEN "C" THEN ASSIGN dCenterMaxHeight = MAX(dCenterMaxHeight,dObjectHeight) + 0.24.
+                WHEN "B" THEN ASSIGN dBottomMaxHeight = MAX(dBottomMaxHeight,dObjectHeight).
+            END CASE.   /* layout position */
+        END.    /* height a valid value */
 
-    hObjectInstanceHandle = hObjectInstanceHandleField:BUFFER-VALUE.
-    cObjectTypeCode = hObjectTypeCodeField:BUFFER-VALUE.
-    cLayoutPosition = hLayoutPositionField:BUFFER-VALUE.
+        IF dObjectWidth <> ?  THEN
+            ASSIGN dMaxWidth  = MAX(dMaxWidth, dObjectWidth).
 
-    RUN dimensionSomething(    
-        INPUT  piLayoutForPage,    
-        INPUT  piPageNumber,  
-        INPUT  phPageInstanceTT,
-        INPUT  phPageTT,
-        INPUT  cObjectTypeCode,
-        INPUT  hObjectInstanceHandle,        
-        OUTPUT dObjectWidth,
-        OUTPUT dObjectHeight
-        ).            
+        hPageInstanceQuery:GET-NEXT().
+    END.    /* available page instance */
 
-    IF dObjectHeight <> ? AND cLayoutPosition <> "":U THEN
-    DO:
-        ASSIGN
-          cLayoutPosition = ENTRY(1, cLayoutPosition)
-          cLayoutPosition = SUBSTRING(cLayoutPosition,1,1)
-          .
-        CASE cLayoutPosition:
-            WHEN "T" THEN dTopMaxHeight    = MAX(dTopMaxHeight,dObjectHeight).
-            WHEN "C" THEN dCenterMaxHeight = MAX(dCenterMaxHeight,dObjectHeight) + /* 0.24 */ gdTwentyFourHundredths.
-            WHEN "B" THEN dBottomMaxHeight = MAX(dBottomMaxHeight,dObjectHeight).
-        END CASE.
-    END.
-    IF dObjectWidth <> ?  THEN dMaxWidth  = MAX(dMaxWidth, dObjectWidth).
-END.
+    ASSIGN dMaxHeight     = dTopMaxHeight + dCenterMaxHeight + dBottomMaxHeight
+           pdPackedWidth  = dMaxWidth + 2
+           pdPackedHeight = dMaxHeight + 0.24
+           .
 
-dMaxHeight = dTopMaxHeight + dCenterMaxHeight + dBottomMaxHeight.
+    hPageInstanceQuery:QUERY-CLOSE().
 
-ASSIGN
-  pdPackedWidth  = dMaxWidth + 2
-  pdPackedHeight = dMaxHeight + /* 0.24 */ gdTwentyFourHundredths
-  .
+    DELETE OBJECT hPageInstanceQuery.
+    ASSIGN hPageInstanceQuery = ?.
 
-hPageInstanceQuery:QUERY-CLOSE().
-DELETE OBJECT hPageInstanceQuery.
-DELETE OBJECT hPageInstanceBuffer.
-ASSIGN
-  hPageInstanceQuery = ?
-  hPageInstanceBuffer = ?
-  . 
+    DELETE WIDGET-POOL cWidgetPool.
 
-RETURN.
+    RETURN.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -536,91 +632,91 @@ PROCEDURE pack03 :
                real limitation is that it makes all objects full width.
                This layout assumes all toolbars are horizontally aligned.
 ------------------------------------------------------------------------------*/
-DEFINE INPUT  PARAMETER piLayoutForPage  AS INTEGER   NO-UNDO.
-DEFINE INPUT  PARAMETER piPageNumber     AS INTEGER   NO-UNDO.
-DEFINE INPUT  PARAMETER phPageInstanceTT AS HANDLE    NO-UNDO.
-DEFINE INPUT  PARAMETER phPageTT         AS HANDLE    NO-UNDO.
-DEFINE OUTPUT PARAMETER pdPackedWidth    AS DECIMAL   NO-UNDO.
-DEFINE OUTPUT PARAMETER pdPackedHeight   AS DECIMAL   NO-UNDO.
+    DEFINE INPUT  PARAMETER piLayoutForPage         AS INTEGER          NO-UNDO.
+    DEFINE INPUT  PARAMETER piPageNumber            AS INTEGER          NO-UNDO.
+    DEFINE INPUT  PARAMETER phObjectBuffer          AS HANDLE           NO-UNDO.
+    DEFINE INPUT  PARAMETER phPageBuffer            AS HANDLE           NO-UNDO.
+    DEFINE INPUT  PARAMETER pdInstanceId            AS DECIMAL         NO-UNDO.
+    DEFINE OUTPUT PARAMETER pdPackedWidth           AS DECIMAL          NO-UNDO.
+    DEFINE OUTPUT PARAMETER pdPackedHeight          AS DECIMAL          NO-UNDO.
+    
+    DEFINE VARIABLE dObjectHeight               AS DECIMAL              NO-UNDO.
+    DEFINE VARIABLE dObjectWidth                AS DECIMAL              NO-UNDO.            
+    DEFINE VARIABLE dMaxHeight                  AS DECIMAL              NO-UNDO.
+    DEFINE VARIABLE dMaxWidth                   AS DECIMAL              NO-UNDO.            
+    DEFINE VARIABLE hPageInstanceQuery          AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE hLocalObjectBuffer          AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE hObjectInstanceHandle       AS HANDLE               NO-UNDO.     
+    DEFINE VARIABLE cObjectTypeCode             AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE cLayoutPosition             AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE dCenterMaxHeight            AS DECIMAL              NO-UNDO.
+    DEFINE VARIABLE dTopMaxHeight               AS DECIMAL              NO-UNDO.
+    DEFINE VARIABLE dBottomMaxHeight            AS DECIMAL              NO-UNDO.
+    DEFINE VARIABLE cWidgetPool                     AS CHARACTER        NO-UNDO.
 
-DEFINE VARIABLE dObjectHeight               AS DECIMAL NO-UNDO.
-DEFINE VARIABLE dObjectWidth                AS DECIMAL NO-UNDO.            
-DEFINE VARIABLE dMaxHeight                  AS DECIMAL NO-UNDO.
-DEFINE VARIABLE dMaxWidth                   AS DECIMAL NO-UNDO.            
-DEFINE VARIABLE hPageInstanceQuery          AS HANDLE NO-UNDO.
-DEFINE VARIABLE hPageInstanceBuffer         AS HANDLE NO-UNDO.
-DEFINE VARIABLE hObjectInstanceHandleField  AS HANDLE NO-UNDO.
-DEFINE VARIABLE hObjectInstanceHandle       AS HANDLE NO-UNDO.     
-DEFINE VARIABLE cObjectTypeCode             AS CHARACTER NO-UNDO.
-DEFINE VARIABLE hObjectTypeCodeField        AS HANDLE NO-UNDO.         
-DEFINE VARIABLE hLayoutPositionField        AS HANDLE NO-UNDO.
-DEFINE VARIABLE cLayoutPosition             AS CHARACTER NO-UNDO.
+    ASSIGN cWidgetPool          = "pack03":U + STRING(giUniqenessGuarantor)
+           giUniqenessGuarantor = giUniqenessGuarantor + 1
+           .
 
-DEFINE VARIABLE dCenterMaxHeight    AS DECIMAL NO-UNDO.
-DEFINE VARIABLE dTopMaxHeight       AS DECIMAL NO-UNDO.
-DEFINE VARIABLE dBottomMaxHeight    AS DECIMAL NO-UNDO.
+    CREATE WIDGET-POOL cWidgetPool.
+    CREATE QUERY hPageInstanceQuery IN WIDGET-POOL cWidgetPool.
+    CREATE BUFFER hLocalObjectBuffer FOR TABLE phObjectBuffer IN WIDGET-POOL cWidgetPool.
 
-CREATE BUFFER hPageInstanceBuffer FOR TABLE phPageInstanceTT.
-CREATE QUERY hPageInstanceQuery.
-hPageInstanceQuery:SET-BUFFERS(hPageInstanceBuffer).
-hPageInstanceQuery:QUERY-PREPARE("FOR EACH tt_page_instance WHERE page_number = " + STRING(piLayoutForPage)).
-hPageInstanceQuery:QUERY-OPEN().
+    hPageInstanceQuery:SET-BUFFERS(hLocalObjectBuffer).
+    hPageInstanceQuery:QUERY-PREPARE("FOR EACH ":U + hLocalObjectBuffer:NAME + " WHERE ":U
+                                     + hLocalObjectBuffer:NAME + ".tTargetProcedure = WIDGET-HANDLE(":U + QUOTER(ghSourceProcedure) + ") AND ":U
+                                     + hLocalObjectBuffer:NAME + ".tContainerRecordIdentifier = ":U + QUOTER(pdInstanceId) + " AND ":U
+                                     + hLocalObjectBuffer:NAME + ".tPageNumber = " + QUOTER(piLayoutForPage)).
 
-hObjectInstanceHandleField = hPageInstanceBuffer:BUFFER-FIELD("object_instance_handle").
-hObjectTypeCodeField = hPageInstanceBuffer:BUFFER-FIELD("object_type_code").
-hLayoutPositionField = hPageInstanceBuffer:BUFFER-FIELD("layout_position").
+    hPageInstanceQuery:QUERY-OPEN().
+    hPageInstanceQuery:GET-FIRST().
 
-REPEAT:
-    hPageInstanceQuery:GET-NEXT().
-    IF NOT hPageInstanceBuffer:AVAILABLE THEN LEAVE.
+    DO WHILE hLocalObjectBuffer:AVAILABLE:
+        ASSIGN hObjectInstanceHandle = hLocalObjectBuffer:BUFFER-FIELD("tObjectInstanceHandle":U):BUFFER-VALUE
+               cObjectTypeCode       = hLocalObjectBuffer:BUFFER-FIELD("tClassName":U):BUFFER-VALUE
+               cLayoutPosition       = hLocalObjectBuffer:BUFFER-FIELD("tLayoutPosition":U):BUFFER-VALUE
+               .
+        RUN dimensionSomething ( INPUT  piLayoutForPage,
+                                 INPUT  piPageNumber,
+                                 INPUT  phObjectBuffer,
+                                 INPUT  phPageBuffer,
+                                 INPUT  cObjectTypeCode,
+                                 INPUT  hObjectInstanceHandle,
+                                 INPUT  pdInstanceId,
+                                 OUTPUT dObjectWidth,
+                                 OUTPUT dObjectHeight          ).            
 
-    hObjectInstanceHandle = hObjectInstanceHandleField:BUFFER-VALUE.
-    cObjectTypeCode = hObjectTypeCodeField:BUFFER-VALUE.
-    cLayoutPosition = hLayoutPositionField:BUFFER-VALUE.
+        IF dObjectHeight NE ? AND cLayoutPosition NE "":U THEN
+        DO:
+            ASSIGN cLayoutPosition = ENTRY(1, cLayoutPosition)
+                   cLayoutPosition = SUBSTRING(cLayoutPosition,1,1)
+                   .
+            CASE cLayoutPosition:
+                WHEN "T" THEN ASSIGN dTopMaxHeight    = MAX(dTopMaxHeight,dObjectHeight).
+                WHEN "C" THEN ASSIGN dCenterMaxHeight = MAX(dCenterMaxHeight,(dCenterMaxHeight + dObjectHeight + 0.24 )). /* many centre objects */
+                WHEN "B" THEN ASSIGN dBottomMaxHeight = MAX(dBottomMaxHeight,dObjectHeight).
+            END CASE.   /* layout position */
+        END.
 
-    RUN dimensionSomething(    
-        INPUT  piLayoutForPage,    
-        INPUT  piPageNumber,  
-        INPUT  phPageInstanceTT,
-        INPUT  phPageTT,
-        INPUT  cObjectTypeCode,
-        INPUT  hObjectInstanceHandle,        
-        OUTPUT dObjectWidth,
-        OUTPUT dObjectHeight
-        ).            
+        IF dObjectWidth <> ?  THEN ASSIGN dMaxWidth  = MAX(dMaxWidth, dObjectWidth).
 
-    IF dObjectHeight <> ? AND cLayoutPosition <> "":U THEN
-    DO:
-        ASSIGN
-          cLayoutPosition = ENTRY(1, cLayoutPosition)
-          cLayoutPosition = SUBSTRING(cLayoutPosition,1,1)
-          .
-        CASE cLayoutPosition:
-            WHEN "T" THEN dTopMaxHeight    = MAX(dTopMaxHeight,dObjectHeight).
-            WHEN "C" THEN dCenterMaxHeight = MAX(dCenterMaxHeight,(dCenterMaxHeight + dObjectHeight + /*0.24*/ gdTwentyFourHundredths )). /* many centre objects */
-            WHEN "B" THEN dBottomMaxHeight = MAX(dBottomMaxHeight,dObjectHeight).
-        END CASE.
-    END.
-    IF dObjectWidth <> ?  THEN dMaxWidth  = MAX(dMaxWidth, dObjectWidth).
-END.
+        hPageInstanceQuery:GET-NEXT().
+    END.    /* available local page instance */
 
-dMaxHeight = dTopMaxHeight + dCenterMaxHeight + dBottomMaxHeight.
+    ASSIGN dMaxHeight     = dTopMaxHeight + dCenterMaxHeight + dBottomMaxHeight
+           pdPackedWidth  = dMaxWidth + 2
+           pdPackedHeight = dMaxHeight + 0.24
+           .
 
-ASSIGN
-  pdPackedWidth  = dMaxWidth + 2
-  pdPackedHeight = dMaxHeight + /* 0.24 */ gdTwentyFourHundredths
-  .
-  
-hPageInstanceQuery:QUERY-CLOSE().
-DELETE OBJECT hPageInstanceQuery.
-DELETE OBJECT hPageInstanceBuffer.
-ASSIGN
-  hPageInstanceQuery = ?
-  hPageInstanceBuffer = ?
-  . 
+    hPageInstanceQuery:QUERY-CLOSE().
 
-RETURN.
-END PROCEDURE.
+    DELETE OBJECT hPageInstanceQuery.
+    ASSIGN hPageInstanceQuery = ?.
+
+    DELETE WIDGET-POOL cWidgetPool.
+
+    RETURN.
+END PROCEDURE.  /* pack03 */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -636,90 +732,92 @@ PROCEDURE pack04 :
   Parameters:  <none>
   Notes:       Work out minimum size of a window based on its contents
 ------------------------------------------------------------------------------*/
-DEFINE INPUT  PARAMETER piLayoutForPage  AS INTEGER   NO-UNDO.
-DEFINE INPUT  PARAMETER piPageNumber     AS INTEGER   NO-UNDO.
-DEFINE INPUT  PARAMETER phPageInstanceTT AS HANDLE    NO-UNDO.
-DEFINE INPUT  PARAMETER phPageTT         AS HANDLE    NO-UNDO.
-DEFINE OUTPUT PARAMETER pdPackedWidth    AS DECIMAL   NO-UNDO.
-DEFINE OUTPUT PARAMETER pdPackedHeight   AS DECIMAL   NO-UNDO.
+    DEFINE INPUT  PARAMETER piLayoutForPage         AS INTEGER   NO-UNDO.
+    DEFINE INPUT  PARAMETER piPageNumber            AS INTEGER   NO-UNDO.
+    DEFINE INPUT  PARAMETER phObjectBuffer    AS HANDLE    NO-UNDO.
+    DEFINE INPUT  PARAMETER phPageBuffer            AS HANDLE    NO-UNDO.
+    DEFINE INPUT  PARAMETER pdInstanceId            AS DECIMAL   NO-UNDO.
+    DEFINE OUTPUT PARAMETER pdPackedWidth           AS DECIMAL   NO-UNDO.
+    DEFINE OUTPUT PARAMETER pdPackedHeight          AS DECIMAL   NO-UNDO.
+    
+    DEFINE VARIABLE dObjectHeight               AS DECIMAL NO-UNDO INITIAL 50.
+    DEFINE VARIABLE dObjectWidth                AS DECIMAL NO-UNDO.            
+    DEFINE VARIABLE dMaxHeight                  AS DECIMAL NO-UNDO.
+    DEFINE VARIABLE dMaxWidth                   AS DECIMAL NO-UNDO.            
+    DEFINE VARIABLE hPageInstanceQuery          AS HANDLE NO-UNDO.
+    DEFINE VARIABLE hLocalObjectBuffer          AS HANDLE NO-UNDO.
+    DEFINE VARIABLE hObjectInstanceHandle       AS HANDLE NO-UNDO.     
+    DEFINE VARIABLE cObjectTypeCode             AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE cLayoutPosition             AS CHARACTER NO-UNDO.
+    
+    DEFINE VARIABLE dCenterMaxWidth     AS DECIMAL NO-UNDO.
+    DEFINE VARIABLE dRightMaxWidth      AS DECIMAL NO-UNDO.
+    DEFINE VARIABLE dLeftMaxWidth       AS DECIMAL NO-UNDO.
+    DEFINE VARIABLE cWidgetPool                     AS CHARACTER        NO-UNDO.
 
-DEFINE VARIABLE dObjectHeight               AS DECIMAL NO-UNDO INITIAL 50.
-DEFINE VARIABLE dObjectWidth                AS DECIMAL NO-UNDO.            
-DEFINE VARIABLE dMaxHeight                  AS DECIMAL NO-UNDO.
-DEFINE VARIABLE dMaxWidth                   AS DECIMAL NO-UNDO.            
-DEFINE VARIABLE hPageInstanceQuery          AS HANDLE NO-UNDO.
-DEFINE VARIABLE hPageInstanceBuffer         AS HANDLE NO-UNDO.
-DEFINE VARIABLE hObjectInstanceHandleField  AS HANDLE NO-UNDO.
-DEFINE VARIABLE hObjectInstanceHandle       AS HANDLE NO-UNDO.     
-DEFINE VARIABLE cObjectTypeCode             AS CHARACTER NO-UNDO.
-DEFINE VARIABLE hObjectTypeCodeField        AS HANDLE NO-UNDO.         
-DEFINE VARIABLE hLayoutPositionField        AS HANDLE NO-UNDO.
-DEFINE VARIABLE cLayoutPosition             AS CHARACTER NO-UNDO.
+    ASSIGN cWidgetPool          = "pack04":U + STRING(giUniqenessGuarantor)
+           giUniqenessGuarantor = giUniqenessGuarantor + 1
+           .
+    CREATE WIDGET-POOL cWidgetPool.
+    
+    CREATE BUFFER hLocalObjectBuffer FOR TABLE phObjectBuffer IN WIDGET-POOL cWidgetPool.
+    CREATE QUERY hPageInstanceQuery IN WIDGET-POOL cWidgetPool.
 
-DEFINE VARIABLE dCenterMaxWidth    AS DECIMAL NO-UNDO.
-DEFINE VARIABLE dRightMaxWidth       AS DECIMAL NO-UNDO.
-DEFINE VARIABLE dLeftMaxWidth    AS DECIMAL NO-UNDO.
-
-CREATE BUFFER hPageInstanceBuffer FOR TABLE phPageInstanceTT.
-CREATE QUERY hPageInstanceQuery.
-hPageInstanceQuery:SET-BUFFERS(hPageInstanceBuffer).
-hPageInstanceQuery:QUERY-PREPARE("FOR EACH tt_page_instance WHERE page_number = " + STRING(piLayoutForPage)).
-hPageInstanceQuery:QUERY-OPEN().
-
-hObjectInstanceHandleField = hPageInstanceBuffer:BUFFER-FIELD("object_instance_handle").
-hObjectTypeCodeField = hPageInstanceBuffer:BUFFER-FIELD("object_type_code").
-hLayoutPositionField = hPageInstanceBuffer:BUFFER-FIELD("layout_position").
-
-REPEAT:
-    hPageInstanceQuery:GET-NEXT().
-    IF NOT hPageInstanceBuffer:AVAILABLE THEN LEAVE.
-
-    hObjectInstanceHandle = hObjectInstanceHandleField:BUFFER-VALUE.
-    cObjectTypeCode = hObjectTypeCodeField:BUFFER-VALUE.
-    cLayoutPosition = hLayoutPositionField:BUFFER-VALUE.
-
-    RUN dimensionSomething(    
-        INPUT  piLayoutForPage,    
-        INPUT  piPageNumber,  
-        INPUT  phPageInstanceTT,
-        INPUT  phPageTT,
-        INPUT  cObjectTypeCode,
-        INPUT  hObjectInstanceHandle,        
-        OUTPUT dObjectWidth,
-        OUTPUT dObjectHeight
-        ).            
-
-    IF dObjectWidth <> ? AND cLayoutPosition <> "":U THEN
-    DO:
-        ASSIGN
-          cLayoutPosition = ENTRY(1, cLayoutPosition)
-          cLayoutPosition = SUBSTRING(cLayoutPosition,1,1)
-          .
-        CASE cLayoutPosition:
-            WHEN "R" THEN dRightMaxWidth  = MAX(dRightMaxWidth,dObjectWidth).
-            WHEN "C" THEN dCenterMaxWidth = MAX(dCenterMaxWidth,(dObjectWidth / 2)).
-            WHEN "L" THEN dLeftMaxWidth   = MAX(dLeftMaxWidth,dObjectWidth).
-        END CASE.
+    hPageInstanceQuery:SET-BUFFERS(hLocalObjectBuffer).
+    hPageInstanceQuery:QUERY-PREPARE("FOR EACH ":U + hLocalObjectBuffer:NAME + " WHERE ":U
+                                     + hLocalObjectBuffer:NAME + ".tTargetProcedure = WIDGET-HANDLE(":U + QUOTER(ghSourceProcedure) + ") AND ":U
+                                     + hLocalObjectBuffer:NAME + ".tContainerRecordIdentifier = " + QUOTER(pdInstanceId) + " AND ":U
+                                     + hLocalObjectBuffer:NAME + ".tPageNumber = " + QUOTER(piLayoutForPage)).
+    hPageInstanceQuery:QUERY-OPEN().
+    
+    REPEAT:
+        hPageInstanceQuery:GET-NEXT().
+        IF NOT hLocalObjectBuffer:AVAILABLE THEN LEAVE.
+    
+        hObjectInstanceHandle = hLocalObjectBuffer:BUFFER-FIELD("tObjectInstanceHandle":U):BUFFER-VALUE.
+        cObjectTypeCode = hLocalObjectBuffer:BUFFER-FIELD("tClassName":U):BUFFER-VALUE.
+        cLayoutPosition = hLocalObjectBuffer:BUFFER-FIELD("tLayoutPosition":U):BUFFER-VALUE.
+    
+        RUN dimensionSomething(    
+            INPUT  piLayoutForPage,    
+            INPUT  piPageNumber,  
+            INPUT  phObjectBuffer,
+            INPUT  phPageBuffer,
+            INPUT  cObjectTypeCode,
+            INPUT  hObjectInstanceHandle,        
+            INPUT  pdInstanceId,
+            OUTPUT dObjectWidth,
+            OUTPUT dObjectHeight
+            ).            
+    
+        IF dObjectWidth <> ? AND cLayoutPosition <> "":U THEN
+        DO:
+            ASSIGN
+              cLayoutPosition = ENTRY(1, cLayoutPosition)
+              cLayoutPosition = SUBSTRING(cLayoutPosition,1,1)
+              .
+            CASE cLayoutPosition:
+                WHEN "R" THEN dRightMaxWidth  = MAX(dRightMaxWidth,dObjectWidth).
+                WHEN "C" THEN dCenterMaxWidth = MAX(dCenterMaxWidth,(dObjectWidth / 2)).
+                WHEN "L" THEN dLeftMaxWidth   = MAX(dLeftMaxWidth,dObjectWidth).
+            END CASE.
+        END.
+        IF dObjectWidth <> ?  THEN dMaxHeight = MAX(dMaxHeight, dObjectHeight).
     END.
-    IF dObjectWidth <> ?  THEN dMaxHeight = MAX(dMaxHeight, dObjectHeight).
-END.
+    
+    dMaxWidth = dRightMaxWidth + dCenterMaxWidth + dLeftMaxWidth.
+    
+    ASSIGN 
+      pdPackedWidth  = dMaxWidth + 2
+      pdPackedHeight = dMaxHeight + 0.24
+      .
+    
+    hPageInstanceQuery:QUERY-CLOSE().
+    DELETE OBJECT hPageInstanceQuery.
+    ASSIGN hPageInstanceQuery = ?.
 
-dMaxWidth = dRightMaxWidth + dCenterMaxWidth + dLeftMaxWidth.
-
-ASSIGN 
-  pdPackedWidth  = dMaxWidth + 2
-  pdPackedHeight = dMaxHeight + /* 0.24 */ gdTwentyFourHundredths
-  .
-
-hPageInstanceQuery:QUERY-CLOSE().
-DELETE OBJECT hPageInstanceQuery.
-DELETE OBJECT hPageInstanceBuffer.
-ASSIGN
-  hPageInstanceQuery = ?
-  hPageInstanceBuffer = ?
-  . 
-
-RETURN.
+    DELETE WIDGET-POOL cWidgetPool.
+    RETURN.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -747,24 +845,23 @@ PROCEDURE pack05 :
                real limitation is that it makes all objects full width.
                This layout assumes all toolbars are horizontally aligned.
 ------------------------------------------------------------------------------*/
-DEFINE INPUT  PARAMETER piLayoutForPage  AS INTEGER   NO-UNDO.
-DEFINE INPUT  PARAMETER piPageNumber     AS INTEGER   NO-UNDO.
-DEFINE INPUT  PARAMETER phPageInstanceTT AS HANDLE    NO-UNDO.
-DEFINE INPUT  PARAMETER phPageTT         AS HANDLE    NO-UNDO.
-DEFINE OUTPUT PARAMETER pdPackedWidth    AS DECIMAL   NO-UNDO.
-DEFINE OUTPUT PARAMETER pdPackedHeight   AS DECIMAL   NO-UNDO.
+DEFINE INPUT  PARAMETER piLayoutForPage         AS INTEGER   NO-UNDO.
+DEFINE INPUT  PARAMETER piPageNumber            AS INTEGER   NO-UNDO.
+DEFINE INPUT  PARAMETER phObjectBuffer    AS HANDLE    NO-UNDO.
+DEFINE INPUT  PARAMETER phPageBuffer            AS HANDLE    NO-UNDO.
+DEFINE INPUT  PARAMETER pdInstanceId            AS DECIMAL   NO-UNDO.
+DEFINE OUTPUT PARAMETER pdPackedWidth           AS DECIMAL   NO-UNDO.
+DEFINE OUTPUT PARAMETER pdPackedHeight          AS DECIMAL   NO-UNDO.
 
 DEFINE VARIABLE dObjectHeight               AS DECIMAL    NO-UNDO.
 DEFINE VARIABLE dObjectWidth                AS DECIMAL    NO-UNDO.            
 DEFINE VARIABLE dMaxHeight                  AS DECIMAL    NO-UNDO.
 DEFINE VARIABLE dMaxWidth                   AS DECIMAL    NO-UNDO.            
 DEFINE VARIABLE hPageInstanceQuery          AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hPageInstanceBuffer         AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hLocalObjectBuffer    AS HANDLE     NO-UNDO.
 DEFINE VARIABLE hObjectInstanceHandleField  AS HANDLE     NO-UNDO.
 DEFINE VARIABLE hObjectInstanceHandle       AS HANDLE     NO-UNDO.     
 DEFINE VARIABLE cObjectTypeCode             AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE hObjectTypeCodeField        AS HANDLE     NO-UNDO.         
-DEFINE VARIABLE hLayoutPositionField        AS HANDLE     NO-UNDO.
 DEFINE VARIABLE cLayoutPosition             AS CHARACTER  NO-UNDO.
 
 DEFINE VARIABLE dCenterMaxHeight            AS DECIMAL    NO-UNDO.
@@ -794,6 +891,11 @@ DEFINE VARIABLE dFilterViewerWidth        AS DECIMAL    NO-UNDO.
 DEFINE VARIABLE dFilterViewerHeight       AS DECIMAL    NO-UNDO.
 DEFINE VARIABLE dTitleHeight              AS DECIMAL    NO-UNDO.
 DEFINE VARIABLE dRectangleHeight          AS DECIMAL    NO-UNDO.
+DEFINE VARIABLE cWidgetPool                     AS CHARACTER        NO-UNDO.
+
+ASSIGN cWidgetPool          = "pack05":U + STRING(giUniqenessGuarantor)
+       giUniqenessGuarantor = giUniqenessGuarantor + 1
+       .
 
 IF VALID-HANDLE(ghSourceProcedure) AND 
    LOOKUP("getTreeObjects":U, ghSourceProcedure:INTERNAL-ENTRIES) <> 0 THEN
@@ -807,23 +909,24 @@ IF VALID-HANDLE(ghSourceProcedure) AND
                                            OUTPUT lStatusBarVisible,
                                            OUTPUT hFilterViewer) NO-ERROR.
                                 
-CREATE BUFFER hPageInstanceBuffer FOR TABLE phPageInstanceTT.
-CREATE QUERY hPageInstanceQuery.
-hPageInstanceQuery:SET-BUFFERS(hPageInstanceBuffer).
-hPageInstanceQuery:QUERY-PREPARE("FOR EACH tt_page_instance WHERE page_number = " + STRING(piLayoutForPage)).
-hPageInstanceQuery:QUERY-OPEN().
+CREATE WIDGET-POOL cWidgetPool.
+CREATE BUFFER hLocalObjectBuffer FOR TABLE phObjectBuffer IN WIDGET-POOL cWidgetPool.
+CREATE QUERY hPageInstanceQuery IN WIDGET-POOL cWidgetPool.
 
-hObjectInstanceHandleField = hPageInstanceBuffer:BUFFER-FIELD("object_instance_handle").
-hObjectTypeCodeField = hPageInstanceBuffer:BUFFER-FIELD("object_type_code").
-hLayoutPositionField = hPageInstanceBuffer:BUFFER-FIELD("layout_position").
+hPageInstanceQuery:SET-BUFFERS(hLocalObjectBuffer).
+hPageInstanceQuery:QUERY-PREPARE("FOR EACH ":U + hLocalObjectBuffer:NAME + " WHERE ":U
+                                 + hLocalObjectBuffer:NAME + ".tTargetProcedure = WIDGET-HANDLE(":U + QUOTER(ghSourceProcedure) + ") AND ":U
+                                 + hLocalObjectBuffer:NAME + ".tContainerRecordIdentifier = " + QUOTER(pdInstanceId) + " AND ":U
+                                 + hLocalObjectBuffer:NAME + ".tPageNumber = " + QUOTER(piLayoutForPage)).
+hPageInstanceQuery:QUERY-OPEN().
 
 REPEAT:
     hPageInstanceQuery:GET-NEXT().
-    IF NOT hPageInstanceBuffer:AVAILABLE THEN LEAVE.
+    IF NOT hLocalObjectBuffer:AVAILABLE THEN LEAVE.
 
-    hObjectInstanceHandle = hObjectInstanceHandleField:BUFFER-VALUE.
-    cObjectTypeCode = hObjectTypeCodeField:BUFFER-VALUE.
-    cLayoutPosition = hLayoutPositionField:BUFFER-VALUE.
+    hObjectInstanceHandle = hLocalObjectBuffer:BUFFER-FIELD("tObjectInstanceHandle":U):BUFFER-VALUE.
+    cObjectTypeCode = hLocalObjectBuffer:BUFFER-FIELD("tClassName":U):BUFFER-VALUE.
+    cLayoutPosition = hLocalObjectBuffer:BUFFER-FIELD("tLayoutPosition":U):BUFFER-VALUE.
 
     IF NOT VALID-HANDLE(hObjectInstanceHandle) THEN
       NEXT.
@@ -831,10 +934,11 @@ REPEAT:
     RUN dimensionSomething(    
         INPUT  piLayoutForPage,    
         INPUT  piPageNumber,  
-        INPUT  phPageInstanceTT,
-        INPUT  phPageTT,
+        INPUT  phObjectBuffer,
+        INPUT  phPageBuffer,
         INPUT  cObjectTypeCode,
         INPUT  hObjectInstanceHandle,        
+        INPUT  pdInstanceId,
         OUTPUT dObjectWidth,
         OUTPUT dObjectHeight
         ).            
@@ -866,11 +970,9 @@ END.
 
 hPageInstanceQuery:QUERY-CLOSE().
 DELETE OBJECT hPageInstanceQuery.
-DELETE OBJECT hPageInstanceBuffer.
-ASSIGN
-  hPageInstanceQuery = ?
-  hPageInstanceBuffer = ?
-  . 
+ASSIGN hPageInstanceQuery = ?.
+
+DELETE WIDGET-POOL cWidgetPool.
 
 IF dOCXWidth = ? OR
    dOCXWidth = 0 AND
@@ -913,8 +1015,8 @@ ELSE
   dRectangleHeight = 5.
   
 
-pdPackedHeight = dContainerToolbarHeight + /* 0.24*/ gdTwentyFourHundredths + 
-                 dFilterViewerHeight     + /* 0.24 */ gdTwentyFourHundredths + 
+pdPackedHeight = dContainerToolbarHeight + 0.24 + 
+                 dFilterViewerHeight     + 0.24 + 
                  dRectangleHeight        + 1.
 
 
@@ -946,8 +1048,8 @@ PROCEDURE pack06 :
   Purpose:     Pack Routine for Relative layout
   Parameters:  piLayoutForPage
                piPageNumber
-               phPageInstanceTT
-               phPageTT
+               phObjectBuffer
+               phPageBuffer
                OUTPUT pdPackedWidth
                OUTPUT pdPackedHeight
   Notes:       Work out minimum size of a window based on its contents
@@ -973,8 +1075,9 @@ PROCEDURE pack06 :
 ------------------------------------------------------------------------------*/
     DEFINE INPUT  PARAMETER piLayoutForPage        AS INTEGER           NO-UNDO.
     DEFINE INPUT  PARAMETER piPageNumber           AS INTEGER           NO-UNDO.
-    DEFINE INPUT  PARAMETER phPageInstanceTT       AS HANDLE            NO-UNDO.
-    DEFINE INPUT  PARAMETER phPageTT               AS HANDLE            NO-UNDO.
+    DEFINE INPUT  PARAMETER phObjectBuffer         AS HANDLE            NO-UNDO.
+    DEFINE INPUT  PARAMETER phPageBuffer           AS HANDLE            NO-UNDO.
+    DEFINE INPUT  PARAMETER pdInstanceId           AS DECIMAL           NO-UNDO.
     DEFINE OUTPUT PARAMETER pdPackedWidth          AS DECIMAL           NO-UNDO.
     DEFINE OUTPUT PARAMETER pdPackedHeight         AS DECIMAL           NO-UNDO.
 
@@ -983,12 +1086,9 @@ PROCEDURE pack06 :
     DEFINE VARIABLE dMaxHeight                      AS DECIMAL          NO-UNDO.
     DEFINE VARIABLE dMaxWidth                       AS DECIMAL          NO-UNDO.            
     DEFINE VARIABLE hPageInstanceQuery              AS HANDLE           NO-UNDO.
-    DEFINE VARIABLE hPageInstanceBuffer             AS HANDLE           NO-UNDO.
-    DEFINE VARIABLE hObjectInstanceHandleField      AS HANDLE           NO-UNDO.
-    DEFINE VARIABLE hObjectInstanceHandle           AS HANDLE           NO-UNDO.     
+    DEFINE VARIABLE hLocalObjectBuffer              AS HANDLE           NO-UNDO.
+    DEFINE VARIABLE hObjectInstanceHandle           AS HANDLE           NO-UNDO.
     DEFINE VARIABLE cObjectTypeCode                 AS CHARACTER        NO-UNDO.
-    DEFINE VARIABLE hObjectTypeCodeField            AS HANDLE           NO-UNDO.         
-    DEFINE VARIABLE hLayoutPositionField            AS HANDLE           NO-UNDO.
     DEFINE VARIABLE cLayoutPosition                 AS CHARACTER        NO-UNDO.
     DEFINE VARIABLE cLayoutCode                     AS CHARACTER        NO-UNDO.
     DEFINE VARIABLE iLayoutRow                      AS INTEGER          NO-UNDO.
@@ -998,79 +1098,87 @@ PROCEDURE pack06 :
     DEFINE VARIABLE dRowWidth                       AS DECIMAL          NO-UNDO EXTENT 9.
     DEFINE VARIABLE iExtentLoop                     AS INTEGER          NO-UNDO.
     DEFINE VARIABLE iMaxRow                         AS INTEGER          NO-UNDO.
+    DEFINE VARIABLE cWidgetPool                     AS CHARACTER        NO-UNDO.
+    DEFINE VARIABLE lQueryObject                    AS LOGICAL          NO-UNDO.
 
-    CREATE BUFFER hPageInstanceBuffer FOR TABLE phPageInstanceTT.
-    CREATE QUERY hPageInstanceQuery.
-    hPageInstanceQuery:SET-BUFFERS(hPageInstanceBuffer).
+    ASSIGN cWidgetPool          = "pack06":U + STRING(giUniqenessGuarantor)
+           giUniqenessGuarantor = giUniqenessGuarantor + 1
+           .
 
-    /* Read through instances for the page by row number, regardless of layout code*/
-    hPageInstanceQuery:QUERY-PREPARE("FOR EACH tt_page_instance WHERE page_number = " 
-                                     + STRING(piLayoutForPage) +
-                                     " BY SUBSTR(layout_position, 2)":U).
+    CREATE WIDGET-POOL cWidgetPool.
+    CREATE BUFFER hLocalObjectBuffer FOR TABLE phObjectBuffer IN WIDGET-POOL cWidgetPool.
+    CREATE QUERY hPageInstanceQuery IN WIDGET-POOL cWidgetPool.
+    hPageInstanceQuery:SET-BUFFERS(hLocalObjectBuffer).
+
+    /* Read through instances for the page by row number, regardless of layout code */
+    hPageInstanceQuery:QUERY-PREPARE(" FOR EACH ":U + hLocalObjectBuffer:NAME + " WHERE ":U
+                                     + hLocalObjectBuffer:NAME + ".tTargetProcedure = WIDGET-HANDLE(":U + QUOTER(ghSourceProcedure) + ") AND ":U
+                                     + hLocalObjectBuffer:NAME + ".tContainerRecordIdentifier = " + QUOTER(pdInstanceId) + " AND ":U
+
+                                     /* Skip the container itself. */
+                                     + hLocalObjectBuffer:NAME + ".tTargetProcedure <> ":U + hLocalObjectBuffer:NAME + ".tObjectInstanceHandle AND ":U
+
+                                     + hLocalObjectBuffer:NAME + ".tPageNumber = ":U + QUOTER(piLayoutForPage) ).
     hPageInstanceQuery:QUERY-OPEN().
 
-    ASSIGN hObjectInstanceHandleField = hPageInstanceBuffer:BUFFER-FIELD("object_instance_handle":U)
-           hObjectTypeCodeField       = hPageInstanceBuffer:BUFFER-FIELD("object_type_code":U)
-           hLayoutPositionField       = hPageInstanceBuffer:BUFFER-FIELD("layout_position":U)
-           .
     REPEAT:
         hPageInstanceQuery:GET-NEXT().
-        IF NOT hPageInstanceBuffer:AVAILABLE THEN LEAVE.
+        IF NOT hLocalObjectBuffer:AVAILABLE THEN LEAVE.
 
-        ASSIGN hObjectInstanceHandle = hObjectInstanceHandleField:BUFFER-VALUE
-               cObjectTypeCode       = hObjectTypeCodeField:BUFFER-VALUE
-               cLayoutPosition       = hLayoutPositionField:BUFFER-VALUE
+        ASSIGN hObjectInstanceHandle = hLocalObjectBuffer:BUFFER-FIELD("tObjectInstanceHandle":U):BUFFER-VALUE
+               cObjectTypeCode       = hLocalObjectBuffer:BUFFER-FIELD("tClassName":U):BUFFER-VALUE
+               cLayoutPosition       = hLocalObjectBuffer:BUFFER-FIELD("tLayoutPosition":U):BUFFER-VALUE
                .
         /* Skip blank layouts for non-visual objects. Note that these are assigned a
          * position of CENTRE by other code so we must skip that also. */
-        IF cLayoutPosition = "":U OR LENGTH(cLayoutPosition) < 3 THEN
+        {get QueryObject lQueryObject hObjectInstanceHandle} NO-ERROR.
+
+        IF cLayoutPosition =  "":U OR LENGTH(cLayoutPosition) < 3 OR lQueryObject OR NOT VALID-HANDLE(hObjectInstanceHandle) THEN
             NEXT.
 
-        ASSIGN cLayoutCode = SUBSTR(cLayoutPosition, 1, 1)
-               iLayoutRow  = INTEGER(SUBSTR(cLayoutPosition, 2, 1))
+        ASSIGN cLayoutCode = SUBSTRING(cLayoutPosition, 1, 1)
+               iLayoutRow  = INTEGER(SUBSTRING(cLayoutPosition, 2, 1))
                NO-ERROR.
+
         /* Skip objects on row "0" which is the code for non-visual objects,
          * or an object which has been assigned "CENTRE" as a default. */
-        IF (cLayoutCode NE "M":U AND cLayoutCode NE "B":U) OR
-           iLayoutRow                                 EQ 0 THEN
+        IF (cLayoutCode NE "M":U AND cLayoutCode NE "B":U) OR iLayoutRow EQ 0 THEN
             NEXT.
-
         RUN dimensionSomething ( INPUT  piLayoutForPage,
                                  INPUT  piPageNumber,
-                                 INPUT  phPageInstanceTT,
-                                 INPUT  phPageTT,
+                                 INPUT  phObjectBuffer,
+                                 INPUT  phPageBuffer,
                                  INPUT  cObjectTypeCode,
                                  INPUT  hObjectInstanceHandle,
+                                 INPUT  pdInstanceId,
                                  OUTPUT dObjectWidth,
                                  OUTPUT dObjectHeight         ).
-
-        IF dObjectHeight <> ? AND cLayoutPosition <> "":U THEN
+        IF dObjectHeight + dObjectWidth <> ? THEN
             ASSIGN dRowWidth[iLayoutRow]  = dRowWidth[iLayoutRow] + dObjectWidth + (IF dRowWidth[iLayoutRow] NE 0 THEN 1 ELSE 0)
                    dRowHeight[iLayoutRow] = MAX(dRowHeight[iLayoutRow], dObjectHeight)
                    iMaxRow                = MAX(iMaxRow, iLayoutRow)
                    .
     END.           /* END REPEAT loop for all objects on the page */
+    hPageInstanceQuery:QUERY-CLOSE().
 
     DO iExtentLoop = 1 TO iMaxRow:
         ASSIGN dMainHeight = dMainHeight + dRowHeight[iExtentLoop] + 
-                           (IF iExtentLoop NE 1 AND dRowHeight[iExtentLoop] NE 0 THEN gdTwentyFourHundredths ELSE 0)
+                           (IF iExtentLoop NE 1 AND dRowHeight[iExtentLoop] NE 0 THEN 0.24 ELSE 0)
                dMainWidth  = MAX(dMainWidth, dRowWidth[iExtentLoop])
                .
     END.    /* extent loop */
 
     ASSIGN pdPackedWidth  = dMainWidth  + 2
-           pdPackedHeight = dMainHeight + /* .24 */ gdTwentyFourHundredths
+           pdPackedHeight = dMainHeight + 0.24
            .
-    hPageInstanceQuery:QUERY-CLOSE().
-
     DELETE OBJECT hPageInstanceQuery.
-    DELETE OBJECT hPageInstanceBuffer.
+    ASSIGN hPageInstanceQuery  = ?.
 
-    ASSIGN hPageInstanceQuery  = ?
-           hPageInstanceBuffer = ?
-           .
+    DELETE WIDGET-POOL cWidgetPool.
+
+    ASSIGN ERROR-STATUS:ERROR = NO.
     RETURN.
-END PROCEDURE.
+END PROCEDURE.  /* pack06 */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1087,26 +1195,29 @@ PROCEDURE packLayout :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-DEFINE INPUT  PARAMETER pcLayoutCode     AS CHARACTER NO-UNDO.
-DEFINE INPUT  PARAMETER piLayoutForPage  AS INTEGER   NO-UNDO.
-DEFINE INPUT  PARAMETER piPageNumber     AS INTEGER   NO-UNDO.
-DEFINE INPUT  PARAMETER phPageInstanceTT AS HANDLE    NO-UNDO.
-DEFINE INPUT  PARAMETER phPageTT         AS HANDLE    NO-UNDO.
-DEFINE OUTPUT PARAMETER pdMinWidth       AS DECIMAL   NO-UNDO.
-DEFINE OUTPUT PARAMETER pdMinHeight      AS DECIMAL   NO-UNDO.
+    DEFINE INPUT  PARAMETER pcLayoutCode            AS CHARACTER NO-UNDO.
+    DEFINE INPUT  PARAMETER piLayoutForPage         AS INTEGER   NO-UNDO.
+    DEFINE INPUT  PARAMETER piPageNumber            AS INTEGER   NO-UNDO.
+    DEFINE INPUT  PARAMETER phObjectBuffer          AS HANDLE    NO-UNDO.
+    DEFINE INPUT  PARAMETER phPageBuffer            AS HANDLE    NO-UNDO.
+    DEFINE INPUT  PARAMETER pdInstanceId            AS DECIMAL   NO-UNDO.
+    DEFINE OUTPUT PARAMETER pdMinWidth              AS DECIMAL   NO-UNDO.
+    DEFINE OUTPUT PARAMETER pdMinHeight             AS DECIMAL   NO-UNDO.
 
-IF pcLayoutCode = "":U THEN
-  RETURN.
+    IF NOT CAN-DO(TARGET-PROCEDURE:INTERNAL-ENTRIES, ("pack":U + pcLayoutCode) ) THEN
+        RETURN.
 
-RUN VALUE("pack" + pcLayoutCode) IN THIS-PROCEDURE (
-    INPUT piLayoutForPage,
-    INPUT piPageNumber,
-    INPUT phPageInstanceTT,
-    INPUT phPageTT,
-    OUTPUT pdMinWidth,
-    OUTPUT pdMinHeight).
+    RUN VALUE("pack" + pcLayoutCode) ( INPUT  piLayoutForPage,
+                                       INPUT  piPageNumber,
+                                       INPUT  phObjectBuffer,
+                                       INPUT  phPageBuffer,
+                                       INPUT  pdInstanceId,
+                                       OUTPUT pdMinWidth,
+                                       OUTPUT pdMinHeight           ).
 
-END PROCEDURE.
+    ASSIGN ERROR-STATUS:ERROR = NO.
+    RETURN.
+END PROCEDURE.  /* packLayout */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1147,8 +1258,9 @@ PROCEDURE packWindow :
 ------------------------------------------------------------------------------*/
     DEFINE INPUT PARAMETER piPageNumber         AS INTEGER              NO-UNDO.
     DEFINE INPUT PARAMETER pcLayoutCode         AS CHARACTER            NO-UNDO.
-    DEFINE INPUT PARAMETER phPageInstanceTT     AS HANDLE               NO-UNDO.
-    DEFINE INPUT PARAMETER phPageTT             AS HANDLE               NO-UNDO.
+    DEFINE INPUT PARAMETER pdInstanceId         AS DECIMAL              NO-UNDO.
+    DEFINE INPUT PARAMETER phObjectBuffer       AS HANDLE               NO-UNDO.
+    DEFINE INPUT PARAMETER phPageBuffer         AS HANDLE               NO-UNDO.
     DEFINE INPUT PARAMETER phWindow             AS HANDLE               NO-UNDO.
     DEFINE INPUT PARAMETER phFrame              AS HANDLE               NO-UNDO. 
     DEFINE INPUT PARAMETER pdMinPackedWidth     AS DECIMAL              NO-UNDO.
@@ -1161,27 +1273,34 @@ PROCEDURE packWindow :
     DEFINE VARIABLE dPackedWidth        AS DECIMAL                      NO-UNDO.
     DEFINE VARIABLE dPackedHeight       AS DECIMAL                      NO-UNDO.
 
+    /* These used later, by resize 06 for example. */
     EMPTY TEMP-TABLE ttRow.
-    EMPTY TEMP-TABLE ttInstance. /* These used later, by resize 06 for example. */
+    EMPTY TEMP-TABLE ttInstance.
 
     /* Some hard coded defaults */
     IF pdMinPackedWidth  EQ ? THEN ASSIGN pdMinPackedWidth = 81.
-    IF pdMinPackedHeight EQ ? THEN ASSIGN pdMinPackedHeight = /*10.14*/ 10 + ( 14 / 100 ).
+    IF pdMinPackedHeight EQ ? THEN ASSIGN pdMinPackedHeight = 10.14 .
 
     /* Avoid resizing beyond session width and height */
     IF pdMaxWidth EQ ?  OR pdMaxWidth  GT SESSION:WIDTH - 1  THEN ASSIGN pdMaxWidth  = SESSION:WIDTH  - 1.
     IF pdMaxHeight EQ ? OR pdMaxHeight GT SESSION:HEIGHT - 1 THEN ASSIGN pdMaxHeight = SESSION:HEIGHT - 1.
 
-    ASSIGN ghSourceProcedure = SOURCE-PROCEDURE.
+    /* Set the source procedure variable. For details of why then
+     * 'packWindowFromSuper' is checked, see that API for details why. */
+    IF NOT PROGRAM-NAME(2) BEGINS "packWindowFromSuper":U THEN
+        ASSIGN ghSourceProcedure = SOURCE-PROCEDURE.
 
     /* Work out packed width and height for page */
     RUN packLayout( INPUT  pcLayoutCode,
                     INPUT  0,               /* layout for page */
                     INPUT  piPageNumber,
-                    INPUT  phPageInstanceTT,
-                    INPUT  phPageTT,
+                    INPUT  phObjectBuffer,
+                    INPUT  phPageBuffer,
+                    INPUT  pdInstanceId,
                     OUTPUT dPackedWidth,
-                    OUTPUT dPackedHeight).
+                    OUTPUT dPackedHeight        ) NO-ERROR.
+    IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN RETURN-VALUE.
+
     /* Ensure does not got smaller then previous minimum */
     ASSIGN dPackedWidth  = MAX(dPackedWidth, pdMinPackedWidth)
            dPackedHeight = MAX(dPackedHeight, pdMinPackedHeight)
@@ -1211,12 +1330,13 @@ PROCEDURE packWindow :
 
         RUN resizeLayout( INPUT  pcLayoutCode,
                           INPUT  0,
-                          INPUT  phPageInstanceTT,
-                          INPUT  phPageTT,
+                          INPUT  phObjectBuffer,
+                          INPUT  phPageBuffer,
                           INPUT  dPackedWidth,
                           INPUT  dPackedHeight,
                           INPUT  0,
-                          INPUT  0).
+                          INPUT  0,
+                          INPUT  pdInstanceId        ).
 
         ASSIGN phFrame:VIRTUAL-WIDTH  = dPackedWidth      phFrame:VIRTUAL-HEIGHT = dPackedHeight       
                phFrame:WIDTH          = dPackedWidth      phFrame:HEIGHT         = dPackedHeight
@@ -1233,6 +1353,68 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-packWindowFromSuper) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE packWindowFromSuper Procedure 
+PROCEDURE packWindowFromSuper :
+/*------------------------------------------------------------------------------
+  Purpose:     Wrapper for packWindow.
+  Parameters:  As per packWindow
+               phSourceProcedure - the TARGET-PROCEDURE of the caller.
+  Notes:       * This procedure acts as a wrapper for packWindow() since the API
+                 signature cannot be changed. There should be no other code in this,
+                 than the setting of the ghSourceProcedure handle and the calling of
+                 the packWindow() API.
+               * The only thing that this API does is
+                 to set the value of the ghSourceProcedure variable to the passed
+                 in value. This is needed because the SOURCE-PROCEDURE handle returns
+                 the name of the calling procedure itself (and not the TARGET-PROCEDURE
+                 of that caller). The Window and Frame code relies on the TARGET-PROCEDURE
+                 to distinguish running instances and so this value needs to be 
+                 correct otherwise the resizing fails.
+------------------------------------------------------------------------------*/
+    DEFINE INPUT PARAMETER piPageNumber         AS INTEGER              NO-UNDO.
+    DEFINE INPUT PARAMETER pcLayoutCode         AS CHARACTER            NO-UNDO.
+    DEFINE INPUT PARAMETER pdInstanceId         AS DECIMAL              NO-UNDO.
+    DEFINE INPUT PARAMETER phObjectBuffer       AS HANDLE               NO-UNDO.
+    DEFINE INPUT PARAMETER phPageBuffer         AS HANDLE               NO-UNDO.
+    DEFINE INPUT PARAMETER phWindow             AS HANDLE               NO-UNDO.
+    DEFINE INPUT PARAMETER phFrame              AS HANDLE               NO-UNDO. 
+    DEFINE INPUT PARAMETER pdMinPackedWidth     AS DECIMAL              NO-UNDO.
+    DEFINE INPUT PARAMETER pdMinPackedHeight    AS DECIMAL              NO-UNDO.
+    DEFINE INPUT PARAMETER pdMaxWidth           AS DECIMAL              NO-UNDO.
+    DEFINE INPUT PARAMETER pdMaxHeight          AS DECIMAL              NO-UNDO.
+    DEFINE INPUT PARAMETER plResize             AS LOGICAL              NO-UNDO.
+    DEFINE INPUT PARAMETER phSourceProcedure    AS HANDLE               NO-UNDO.
+
+    /* Set the value of the source procedure handle */
+    ASSIGN ghSourceProcedure = phSourceProcedure.
+
+    IF NOT VALID-HANDLE(ghSourceProcedure) THEN
+        ASSIGN ghSourceProcedure = SOURCE-PROCEDURE.
+
+    RUN packWindow ( INPUT piPageNumber,
+                     INPUT pcLayoutCode,
+                     INPUT pdInstanceId,
+                     INPUT phObjectBuffer,
+                     INPUT phPageBuffer,
+                     INPUT phWindow,
+                     INPUT phFrame,
+                     INPUT pdMinPackedWidth,
+                     INPUT pdMinPackedHeight,
+                     INPUT pdMaxWidth,
+                     INPUT pdMaxHeight,
+                     INPUT plResize         ) .
+
+    ASSIGN ERROR-STATUS:ERROR = NO.
+    RETURN.
+END PROCEDURE.  /* packWindowFromSuper */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-resize00) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE resize00 Procedure 
@@ -1242,17 +1424,16 @@ PROCEDURE resize00 :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-DEFINE INPUT PARAMETER piPageNumber      AS INTEGER   NO-UNDO.
-DEFINE INPUT PARAMETER phPageInstanceTT  AS HANDLE    NO-UNDO.
-DEFINE INPUT PARAMETER phPageTT          AS HANDLE    NO-UNDO.
-DEFINE INPUT PARAMETER pdContainerWidth  AS DECIMAL   NO-UNDO.
-DEFINE INPUT PARAMETER pdContainerHeight AS DECIMAL   NO-UNDO.
-DEFINE INPUT PARAMETER pdTopLeftColumn   AS DECIMAL   NO-UNDO.
-DEFINE INPUT PARAMETER pdTopLeftRow      AS DECIMAL   NO-UNDO.
-
+    DEFINE INPUT PARAMETER piPageNumber         AS INTEGER   NO-UNDO.
+    DEFINE INPUT PARAMETER phObjectBuffer AS HANDLE    NO-UNDO.
+    DEFINE INPUT PARAMETER phPageBuffer         AS HANDLE    NO-UNDO.
+    DEFINE INPUT PARAMETER pdContainerWidth     AS DECIMAL   NO-UNDO.
+    DEFINE INPUT PARAMETER pdContainerHeight    AS DECIMAL   NO-UNDO.
+    DEFINE INPUT PARAMETER pdTopLeftColumn      AS DECIMAL   NO-UNDO.
+    DEFINE INPUT PARAMETER pdTopLeftRow         AS DECIMAL   NO-UNDO.
+    DEFINE INPUT PARAMETER pdInstanceId         AS DECIMAL   NO-UNDO.
 
     RETURN.
-
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1274,13 +1455,14 @@ PROCEDURE resize01 :
                Only useful if a single viewer on a tab page and nothing else, 
                not even a toolbar.
 ------------------------------------------------------------------------------*/
-DEFINE INPUT PARAMETER piPageNumber      AS INTEGER   NO-UNDO.
-DEFINE INPUT PARAMETER phPageInstanceTT  AS HANDLE    NO-UNDO.
-DEFINE INPUT PARAMETER phPageTT          AS HANDLE    NO-UNDO.
-DEFINE INPUT PARAMETER pdContainerWidth  AS DECIMAL   NO-UNDO.
+DEFINE INPUT PARAMETER piPageNumber         AS INTEGER   NO-UNDO.
+DEFINE INPUT PARAMETER phObjectBuffer AS HANDLE    NO-UNDO.
+DEFINE INPUT PARAMETER phPageBuffer         AS HANDLE    NO-UNDO.
+DEFINE INPUT PARAMETER pdContainerWidth     AS DECIMAL   NO-UNDO.
 DEFINE INPUT PARAMETER pdContainerHeight AS DECIMAL   NO-UNDO.
 DEFINE INPUT PARAMETER pdTopLeftColumn   AS DECIMAL   NO-UNDO.
 DEFINE INPUT PARAMETER pdTopLeftRow      AS DECIMAL   NO-UNDO.
+DEFINE INPUT PARAMETER pdInstanceId         AS DECIMAL                  NO-UNDO.
 
 
 DEFINE VARIABLE dObjectHeight               AS DECIMAL      NO-UNDO.
@@ -1288,47 +1470,51 @@ DEFINE VARIABLE dObjectWidth                AS DECIMAL      NO-UNDO.
 DEFINE VARIABLE dMaxHeight                  AS DECIMAL      NO-UNDO.
 DEFINE VARIABLE dMaxWidth                   AS DECIMAL      NO-UNDO.            
 DEFINE VARIABLE hPageInstanceQuery          AS HANDLE       NO-UNDO.
-DEFINE VARIABLE hPageInstanceBuffer         AS HANDLE       NO-UNDO.
-DEFINE VARIABLE hObjectInstanceHandleField  AS HANDLE       NO-UNDO.
+DEFINE VARIABLE hLocalObjectBuffer          AS HANDLE       NO-UNDO.
 DEFINE VARIABLE hObjectInstanceHandle       AS HANDLE       NO-UNDO.        
 DEFINE VARIABLE cObjectTypeCode             AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE hObjectTypeCodeField        AS HANDLE       NO-UNDO.                            
 
 DEFINE VARIABLE dNewObjectWidth             AS DECIMAL      NO-UNDO.
 DEFINE VARIABLE dNewObjectHeight            AS DECIMAL      NO-UNDO.
 DEFINE VARIABLE dNewObjectColumn            AS DECIMAL      NO-UNDO.
 DEFINE VARIABLE dNewObjectRow               AS DECIMAL      NO-UNDO.
+DEFINE VARIABLE cWidgetPool                 AS CHARACTER    NO-UNDO.
+
+    ASSIGN cWidgetPool          = "resize01":U + STRING(giUniqenessGuarantor)
+           giUniqenessGuarantor = giUniqenessGuarantor + 1
+           .
 
     dObjectWidth  = pdContainerWidth  - (1 + 1).                                 
-    dObjectHeight = pdContainerHeight - (/* 0.24 */ gdTwentyFourHundredths + /* 0.24 */ gdTwentyFourHundredths ).
+    dObjectHeight = pdContainerHeight - 0.48.
 
-    CREATE BUFFER hPageInstanceBuffer FOR TABLE phPageInstanceTT.
-/*     hPageInstanceBuffer = phPageInstanceTT:DEFAULT-BUFFER-HANDLE. */
-    CREATE QUERY hPageInstanceQuery.
-    hPageInstanceQuery:SET-BUFFERS(hPageInstanceBuffer).
-    hPageInstanceQuery:QUERY-PREPARE("FOR EACH tt_page_instance WHERE page_number = " + STRING(piPageNumber)).
+    CREATE WIDGET-POOL cWidgetPool.
+    CREATE BUFFER hLocalObjectBuffer FOR TABLE phObjectBuffer IN WIDGET-POOL cWidgetPool.
+/*     hLocalObjectBuffer = phObjectBuffer:DEFAULT-BUFFER-HANDLE. */
+    CREATE QUERY hPageInstanceQuery IN WIDGET-POOL cWidgetPool.
+    hPageInstanceQuery:SET-BUFFERS(hLocalObjectBuffer).
+    hPageInstanceQuery:QUERY-PREPARE("FOR EACH ":U + hLocalObjectBuffer:NAME + " WHERE ":U 
+                                     + hLocalObjectBuffer:NAME + ".tTargetProcedure = WIDGET-HANDLE(":U + QUOTER(ghSourceProcedure) + ") AND ":U
+                                     + hLocalObjectBuffer:NAME + ".tContainerRecordIdentifier = " + QUOTER(pdInstanceId) + " AND ":U
+                                     + hLocalObjectBuffer:NAME + ".tPageNumber = ":U + QUOTER(piPageNumber)).
+
     hPageInstanceQuery:QUERY-OPEN().
-
-    hObjectInstanceHandleField = hPageInstanceBuffer:BUFFER-FIELD("object_instance_handle").
-    hObjectTypeCodeField = hPageInstanceBuffer:BUFFER-FIELD("object_type_code").
-
 
     REPEAT:
         hPageInstanceQuery:GET-NEXT().
-        IF NOT hPageInstanceBuffer:AVAILABLE THEN LEAVE.   
+        IF NOT hLocalObjectBuffer:AVAILABLE THEN LEAVE.   
 
-        hObjectInstanceHandle = hObjectInstanceHandleField:BUFFER-VALUE.                             
-        cObjectTypeCode = hObjectTypeCodeField:BUFFER-VALUE.
+        ASSIGN hObjectInstanceHandle = hLocalObjectBuffer:BUFFER-FIELD("tObjectInstanceHandle":U):BUFFER-VALUE                             
+               cObjectTypeCode       = hLocalObjectBuffer:BUFFER-FIELD("tClassName":U):BUFFER-VALUE.
 
         dNewObjectWidth = dObjectWidth.
         dNewObjectHeight = dObjectHeight.
         dNewObjectColumn = 1.
-        dNewObjectRow = /* 0.24 */ gdTwentyFourHundredths.
+        dNewObjectRow = 0.24.
 
         RUN resizeAndMoveSomething IN THIS-PROCEDURE (                       
             INPUT  piPageNumber,  
-            INPUT  phPageInstanceTT,
-            INPUT  phPageTT,
+            INPUT  phObjectBuffer,
+            INPUT  phPageBuffer,
             INPUT  cObjectTypeCode,
             INPUT  hObjectInstanceHandle,        
             INPUT  pdTopLeftColumn,
@@ -1336,17 +1522,15 @@ DEFINE VARIABLE dNewObjectRow               AS DECIMAL      NO-UNDO.
             INPUT  dNewObjectColumn, 
             INPUT  dNewObjectRow,
             INPUT  dNewObjectWidth,
-            INPUT  dNewObjectHeight
-            ).            
+            INPUT  dNewObjectHeight,
+            INPUT  pdInstanceId         ).            
     END.
 
     hPageInstanceQuery:QUERY-CLOSE().
     DELETE OBJECT hPageInstanceQuery.
-    DELETE OBJECT hPageInstanceBuffer.
-    ASSIGN
-      hPageInstanceQuery = ?
-      hPageInstanceBuffer = ?
-      . 
+    ASSIGN hPageInstanceQuery = ?.
+
+    DELETE WIDGET-POOL cWidgetPool.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1400,177 +1584,219 @@ PROCEDURE resize02 :
                made bigger vertically.
 
 ------------------------------------------------------------------------------*/
+  DEFINE INPUT PARAMETER piPageNumber       AS INTEGER    NO-UNDO.
+  DEFINE INPUT PARAMETER phObjectBuffer     AS HANDLE     NO-UNDO.
+  DEFINE INPUT PARAMETER phPageBuffer       AS HANDLE     NO-UNDO.
+  DEFINE INPUT PARAMETER pdContainerWidth   AS DECIMAL    NO-UNDO.
+  DEFINE INPUT PARAMETER pdContainerHeight  AS DECIMAL    NO-UNDO.
+  DEFINE INPUT PARAMETER pdTopLeftColumn    AS DECIMAL    NO-UNDO.
+  DEFINE INPUT PARAMETER pdTopLeftRow       AS DECIMAL    NO-UNDO.
+  DEFINE INPUT PARAMETER pdInstanceId       AS DECIMAL    NO-UNDO.
 
-DEFINE INPUT PARAMETER piPageNumber      AS INTEGER   NO-UNDO.
-DEFINE INPUT PARAMETER phPageInstanceTT  AS HANDLE    NO-UNDO.
-DEFINE INPUT PARAMETER phPageTT          AS HANDLE    NO-UNDO.
-DEFINE INPUT PARAMETER pdContainerWidth  AS DECIMAL   NO-UNDO.
-DEFINE INPUT PARAMETER pdContainerHeight AS DECIMAL   NO-UNDO.
-DEFINE INPUT PARAMETER pdTopLeftColumn   AS DECIMAL   NO-UNDO.
-DEFINE INPUT PARAMETER pdTopLeftRow      AS DECIMAL   NO-UNDO.
+  DEFINE VARIABLE dDesiredHeight            AS DECIMAL      NO-UNDO.
+  DEFINE VARIABLE dDesiredWidth             AS DECIMAL      NO-UNDO.  
+  DEFINE VARIABLE dObjectHeight             AS DECIMAL      NO-UNDO.
+  DEFINE VARIABLE dObjectWidth              AS DECIMAL      NO-UNDO.            
+  DEFINE VARIABLE dMaxHeight                AS DECIMAL      NO-UNDO.
+  DEFINE VARIABLE dMaxWidth                 AS DECIMAL      NO-UNDO.            
+  DEFINE VARIABLE hPageInstanceQuery        AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE hLocalObjectBuffer        AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE hObjectInstanceHandle     AS HANDLE       NO-UNDO.        
+  DEFINE VARIABLE cObjectTypeCode           AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE iCenterTopRow             AS DECIMAL      NO-UNDO.
+  DEFINE VARIABLE iCenterBottomRow          AS DECIMAL      NO-UNDO. 
+  DEFINE VARIABLE dNewObjectWidth           AS DECIMAL      NO-UNDO.
+  DEFINE VARIABLE dNewObjectHeight          AS DECIMAL      NO-UNDO.
+  DEFINE VARIABLE dNewObjectColumn          AS DECIMAL      NO-UNDO.
+  DEFINE VARIABLE dNewObjectRow             AS DECIMAL      NO-UNDO.
+  DEFINE VARIABLE cWidgetPool               AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE lTopObjects               AS LOGICAL      NO-UNDO.
+  DEFINE VARIABLE lBottomObjects            AS LOGICAL      NO-UNDO.
 
-DEFINE VARIABLE dDesiredHeight              AS DECIMAL      NO-UNDO.
-DEFINE VARIABLE dDesiredWidth               AS DECIMAL      NO-UNDO.  
-DEFINE VARIABLE dObjectHeight               AS DECIMAL      NO-UNDO.
-DEFINE VARIABLE dObjectWidth                AS DECIMAL      NO-UNDO.            
-DEFINE VARIABLE dMaxHeight                  AS DECIMAL      NO-UNDO.
-DEFINE VARIABLE dMaxWidth                   AS DECIMAL      NO-UNDO.            
-DEFINE VARIABLE hPageInstanceQuery          AS HANDLE       NO-UNDO.
-DEFINE VARIABLE hPageInstanceBuffer         AS HANDLE       NO-UNDO.
-DEFINE VARIABLE hObjectInstanceHandleField  AS HANDLE       NO-UNDO.
-DEFINE VARIABLE hObjectInstanceHandle       AS HANDLE       NO-UNDO.        
-DEFINE VARIABLE cObjectTypeCode             AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE hObjectTypeCodeField        AS HANDLE       NO-UNDO.       
-DEFINE VARIABLE iCenterTopRow               AS DECIMAL      NO-UNDO.
-DEFINE VARIABLE iCenterBottomRow            AS DECIMAL      NO-UNDO. 
+  ASSIGN
+      cWidgetPool          = "resize02":U + STRING(giUniqenessGuarantor)
+      giUniqenessGuarantor = giUniqenessGuarantor + 1
+      dDesiredWidth        = pdContainerWidth  - 2
+      dDesiredHeight       = pdContainerHeight - 0.24 - (IF piPageNumber = 0 THEN 0 ELSE 0.24)
+      iCenterTopRow        =  0
+      iCenterBottomRow     = iCenterTopRow + dDesiredHeight.      
 
-DEFINE VARIABLE dNewObjectWidth             AS DECIMAL      NO-UNDO.
-DEFINE VARIABLE dNewObjectHeight            AS DECIMAL      NO-UNDO.
-DEFINE VARIABLE dNewObjectColumn            AS DECIMAL      NO-UNDO.
-DEFINE VARIABLE dNewObjectRow               AS DECIMAL      NO-UNDO.
+  CREATE WIDGET-POOL cWidgetPool.
+  CREATE BUFFER hLocalObjectBuffer FOR TABLE phObjectBuffer IN WIDGET-POOL cWidgetPool.
+  CREATE QUERY hPageInstanceQuery IN WIDGET-POOL cWidgetPool.
 
+  /* Check for the availablity of objects on TOP, CENTER, BOTTOM as this affects spacing */
+  hLocalObjectBuffer:FIND-FIRST("WHERE tTargetProcedure           = WIDGET-HANDLE(":U + QUOTER(ghSourceProcedure) + ") ":U
+                                + "AND tContainerRecordIdentifier = ":U + QUOTER(pdInstanceId) + " ":U
+                                + "AND tPageNumber                = ":U + QUOTER(piPageNumber) + " ":U
+                                + "AND tLayoutPosition       BEGINS 'TOP'":U) NO-ERROR.
 
-    dDesiredWidth  = pdContainerWidth  - (1 + 1).                                 
-    dDesiredHeight = pdContainerHeight - (/* 0.24*/ gdTwentyFourHundredths /*+ 0.24*/ ).    
-    iCenterTopRow =  0 /*0.24*/ .
-    iCenterBottomRow = iCenterTopRow + dDesiredHeight.      
+  lTopObjects = hLocalObjectBuffer:AVAILABLE.
 
-    CREATE BUFFER hPageInstanceBuffer FOR TABLE phPageInstanceTT.
-    CREATE QUERY hPageInstanceQuery.
-    hPageInstanceQuery:SET-BUFFERS(hPageInstanceBuffer).
-    hObjectInstanceHandleField = hPageInstanceBuffer:BUFFER-FIELD("object_instance_handle").
-    hObjectTypeCodeField = hPageInstanceBuffer:BUFFER-FIELD("object_type_code").        
+  /* Check for the availablity of objects on TOP, CENTER, BOTTOM as this affects spacing */
+  hLocalObjectBuffer:FIND-FIRST("WHERE tTargetProcedure           = WIDGET-HANDLE(":U + QUOTER(ghSourceProcedure) + ") ":U
+                                + "AND tContainerRecordIdentifier = ":U + QUOTER(pdInstanceId) + " ":U
+                                + "AND tPageNumber                = ":U + QUOTER(piPageNumber) + " ":U
+                                + "AND tLayoutPosition       BEGINS 'BOT'":U) NO-ERROR.
 
-    /* manage TOP components */
+  lBottomObjects = hLocalObjectBuffer:AVAILABLE.
 
-    hPageInstanceQuery:QUERY-PREPARE("FOR EACH tt_page_instance WHERE page_number = " + STRING(piPageNumber) + " AND layout_position BEGINS 'TOP'").
-    hPageInstanceQuery:QUERY-OPEN().
+  hPageInstanceQuery:SET-BUFFERS(hLocalObjectBuffer).
 
-    REPEAT:
-        hPageInstanceQuery:GET-NEXT().
-        IF NOT hPageInstanceBuffer:AVAILABLE THEN LEAVE.    
+  /* manage TOP components */
 
-        hObjectInstanceHandle = hObjectInstanceHandleField:BUFFER-VALUE.           
-        IF NOT VALID-HANDLE(hObjectInstanceHandle) THEN
-          NEXT.
-        
-        cObjectTypeCode = hObjectTypeCodeField:BUFFER-VALUE.           
-        dObjectHeight = DYNAMIC-FUNCTION("getHeight" IN hObjectInstanceHandle) NO-ERROR.                                
-        dObjectWidth  = DYNAMIC-FUNCTION("getWidth"  IN hObjectInstanceHandle) NO-ERROR.                             
+  hPageInstanceQuery:QUERY-PREPARE("FOR EACH ":U + hLocalObjectBuffer:NAME + " WHERE ":U
+                                   + hLocalObjectBuffer:NAME + ".tTargetProcedure = WIDGET-HANDLE(":U + QUOTER(ghSourceProcedure) + ") AND ":U
+                                   + hLocalObjectBuffer:NAME + ".tContainerRecordIdentifier = " + QUOTER(pdInstanceId) + " AND ":U
+                                   + hLocalObjectBuffer:NAME + ".tPageNumber = ":U + QUOTER(piPageNumber) + " AND ":U
+                                   + hLocalObjectBuffer:NAME + ".tLayoutPosition BEGINS 'TOP' ":U).
+  hPageInstanceQuery:QUERY-OPEN().
 
-        IF hObjectInstanceHandle:FILE-NAME = "ry/obj/rydyntoolt.w" THEN 
-        DO: 
-            dNewObjectRow   = 0.       
-            dNewObjectColumn = 0.       
-            dNewObjectWidth = dDesiredWidth + 2.
-        END.
-        ELSE DO: 
-            dNewObjectColumn = 1.       
-            dNewObjectWidth = dDesiredWidth.
-            dNewObjectRow   = 1.       
-        END.
+  top-blk:
+  REPEAT:
+    hPageInstanceQuery:GET-NEXT().
 
-        dNewObjectHeight = dObjectHeight.
+    IF NOT hLocalObjectBuffer:AVAILABLE THEN LEAVE.    
 
-        iCenterTopRow = MAX(iCenterTopRow, dNewObjectRow + dObjectHeight).        
+    hObjectInstanceHandle = hLocalObjectBuffer:BUFFER-FIELD("tObjectInstanceHandle":U):BUFFER-VALUE.
 
-        RUN resizeAndMoveSomething IN THIS-PROCEDURE (                       
-            INPUT  piPageNumber,  
-            INPUT  phPageInstanceTT,
-            INPUT  phPageTT,
-            INPUT  cObjectTypeCode,
-            INPUT  hObjectInstanceHandle,        
-            INPUT  pdTopLeftColumn,
-            INPUT  pdTopLeftRow,
-            INPUT  dNewObjectColumn, 
-            INPUT  dNewObjectRow,
-            INPUT  dNewObjectWidth,
-            INPUT  dNewObjectHeight
-            ).
-    END.
+    IF NOT VALID-HANDLE(hObjectInstanceHandle) THEN
+      NEXT top-blk.
+    
+    cObjectTypeCode = hLocalObjectBuffer:BUFFER-FIELD("tClassName":U):BUFFER-VALUE.
 
-    /* manage BOTTOM components */
+    dObjectHeight = DYNAMIC-FUNCTION("getHeight" IN hObjectInstanceHandle) NO-ERROR.                                
+    dObjectWidth  = DYNAMIC-FUNCTION("getWidth"  IN hObjectInstanceHandle) NO-ERROR.                             
 
-    hPageInstanceQuery:QUERY-PREPARE("FOR EACH tt_page_instance WHERE page_number = " + STRING(piPageNumber) + " AND layout_position BEGINS 'BOTTOM'").
-    hPageInstanceQuery:QUERY-OPEN().
+    IF hObjectInstanceHandle:FILE-NAME = "ry/obj/rydyntoolt.w" THEN 
+      ASSIGN
+          dNewObjectRow    = 0
+          dNewObjectColumn = 0
+          dNewObjectWidth  = dDesiredWidth + 2.
+    ELSE
+      ASSIGN 
+          dNewObjectColumn = 1
+          dNewObjectWidth  = dDesiredWidth
+          dNewObjectRow    = 0.48.
 
-    REPEAT:
-        hPageInstanceQuery:GET-NEXT().
-        IF NOT hPageInstanceBuffer:AVAILABLE THEN LEAVE.
-
-        hObjectInstanceHandle = hObjectInstanceHandleField:BUFFER-VALUE.                                                      
-        cObjectTypeCode = hObjectTypeCodeField:BUFFER-VALUE.    
-
-        dObjectHeight = DYNAMIC-FUNCTION("getHeight" IN hObjectInstanceHandle) NO-ERROR.                                
-        dObjectWidth  = DYNAMIC-FUNCTION("getWidth"  IN hObjectInstanceHandle) NO-ERROR.              
-        dNewObjectColumn = 1.
-        dNewObjectRow = /* 0.24 */ gdTwentyFourHundredths + dDesiredHeight - dObjectHeight.
-        dNewObjectHeight = dObjectHeight.
-        dNewObjectWidth = dDesiredWidth.
-        iCenterBottomRow = MIN(iCenterBottomRow, dNewObjectRow). 
-
-        IF hObjectInstanceHandle:FILE-NAME = "ry/obj/rydyntoolt.w" THEN
-        DO:
-            /* all toolbars positioned in bottom are drawn one pixel higher up the screen, and one pixel deeper */            
-            dNewObjectRow = dNewObjectRow - (1 * dCharsPerRowPixel).
-        END.
-
-        RUN resizeAndMoveSomething IN THIS-PROCEDURE (                       
-            INPUT  piPageNumber,  
-            INPUT  phPageInstanceTT,
-            INPUT  phPageTT,
-            INPUT  cObjectTypeCode,
-            INPUT  hObjectInstanceHandle,        
-            INPUT  pdTopLeftColumn,
-            INPUT  pdTopLeftRow,
-            INPUT  dNewObjectColumn, 
-            INPUT  dNewObjectRow,
-            INPUT  dNewObjectWidth,
-            INPUT  dNewObjectHeight
-            ).  
-    END.
-
-    /* Manage CENTER components */
-
-    hPageInstanceQuery:QUERY-PREPARE("FOR EACH tt_page_instance WHERE page_number = " + STRING(piPageNumber) + " AND layout_position BEGINS 'CENT'").
-    hPageInstanceQuery:QUERY-OPEN().
-
-    REPEAT:
-        hPageInstanceQuery:GET-NEXT().
-        IF NOT hPageInstanceBuffer:AVAILABLE THEN LEAVE.
-
-        hObjectInstanceHandle = hObjectInstanceHandleField:BUFFER-VALUE.                                                            
-        cObjectTypeCode = hObjectTypeCodeField:BUFFER-VALUE.    
-
-        dNewObjectColumn = 1.
-        dNewObjectRow = /* 0.24 */ gdTwentyFourHundredths + iCenterTopRow.
-        dNewObjectHeight = iCenterBottomRow - iCenterTopRow - /* 0.24 */ gdTwentyFourHundredths.
-        dNewObjectWidth = dDesiredWidth.
-
-        RUN resizeAndMoveSomething IN THIS-PROCEDURE (                       
-            INPUT  piPageNumber,  
-            INPUT  phPageInstanceTT,
-            INPUT  phPageTT,
-            INPUT  cObjectTypeCode,
-            INPUT  hObjectInstanceHandle,        
-            INPUT  pdTopLeftColumn,
-            INPUT  pdTopLeftRow,
-            INPUT  dNewObjectColumn, 
-            INPUT  dNewObjectRow,
-            INPUT  dNewObjectWidth,
-            INPUT  dNewObjectHeight
-            ).
-
-
-    END.
-
-    hPageInstanceQuery:QUERY-CLOSE().
-    DELETE OBJECT hPageInstanceQuery.
-    DELETE OBJECT hPageInstanceBuffer.
     ASSIGN
-      hPageInstanceQuery = ?
-      hPageInstanceBuffer = ?
-      . 
+        dNewObjectHeight = dObjectHeight
+        iCenterTopRow    = MAX(iCenterTopRow, dNewObjectRow + dObjectHeight).        
+
+    RUN resizeAndMoveSomething IN THIS-PROCEDURE (                       
+        INPUT  piPageNumber,
+        INPUT  phObjectBuffer,
+        INPUT  phPageBuffer,
+        INPUT  cObjectTypeCode,
+        INPUT  hObjectInstanceHandle,
+        INPUT  pdTopLeftColumn,
+        INPUT  pdTopLeftRow,
+        INPUT  dNewObjectColumn,
+        INPUT  dNewObjectRow,
+        INPUT  dNewObjectWidth,
+        INPUT  dNewObjectHeight,
+        INPUT  pdInstanceId).
+  END.
+
+  hPageInstanceQuery:QUERY-CLOSE().
+
+  /* manage BOTTOM components */    
+  hPageInstanceQuery:QUERY-PREPARE("FOR EACH ":U + hLocalObjectBuffer:NAME + " WHERE ":U
+                                   + hLocalObjectBuffer:NAME + ".tTargetProcedure = WIDGET-HANDLE(":U + QUOTER(ghSourceProcedure) + ") AND ":U
+                                   + hLocalObjectBuffer:NAME + ".tContainerRecordIdentifier = " + QUOTER(pdInstanceId) + " AND ":U
+                                   + hLocalObjectBuffer:NAME + ".tPageNumber = ":U + QUOTER(piPageNumber) + " AND ":U
+                                   + hLocalObjectBuffer:NAME + ".tLayoutPosition BEGINS 'BOTTOM' ":U).
+  hPageInstanceQuery:QUERY-OPEN().
+
+  bottom-blk:
+  REPEAT:
+    hPageInstanceQuery:GET-NEXT().
+
+    IF NOT hLocalObjectBuffer:AVAILABLE THEN LEAVE.
+
+    ASSIGN
+        hObjectInstanceHandle = hLocalObjectBuffer:BUFFER-FIELD("tObjectInstanceHandle":U):BUFFER-VALUE                                                      
+        cObjectTypeCode       = hLocalObjectBuffer:BUFFER-FIELD("tClassName":U):BUFFER-VALUE.
+
+    IF NOT VALID-HANDLE(hObjectInstanceHandle) THEN
+      NEXT bottom-blk.
+
+    dObjectHeight = DYNAMIC-FUNCTION("getHeight" IN hObjectInstanceHandle) NO-ERROR.                                
+    dObjectWidth  = DYNAMIC-FUNCTION("getWidth"  IN hObjectInstanceHandle) NO-ERROR.              
+    
+    ASSIGN
+        dNewObjectColumn = 1
+        dNewObjectRow    = 0.24 + dDesiredHeight - dObjectHeight
+        dNewObjectHeight = dObjectHeight
+        dNewObjectWidth  = dDesiredWidth
+        iCenterBottomRow = MIN(iCenterBottomRow, dNewObjectRow).
+
+    IF hObjectInstanceHandle:FILE-NAME = "ry/obj/rydyntoolt.w" THEN
+      /* all toolbars positioned in bottom are drawn one pixel higher up the screen, and one pixel deeper */            
+      dNewObjectRow = dNewObjectRow - (1 * dCharsPerRowPixel).
+
+    RUN resizeAndMoveSomething IN THIS-PROCEDURE (                       
+        INPUT  piPageNumber,  
+        INPUT  phObjectBuffer,
+        INPUT  phPageBuffer,
+        INPUT  cObjectTypeCode,
+        INPUT  hObjectInstanceHandle,        
+        INPUT  pdTopLeftColumn,
+        INPUT  pdTopLeftRow,
+        INPUT  dNewObjectColumn, 
+        INPUT  dNewObjectRow,
+        INPUT  dNewObjectWidth,
+        INPUT  dNewObjectHeight,
+        INPUT  pdInstanceId             ).  
+  END.
+
+  hPageInstanceQuery:QUERY-CLOSE().
+
+  /* Manage CENTER components */
+  hPageInstanceQuery:QUERY-PREPARE("FOR EACH ":U + hLocalObjectBuffer:NAME + " WHERE ":U
+                                   + hLocalObjectBuffer:NAME + ".tTargetProcedure = WIDGET-HANDLE(":U + QUOTER(ghSourceProcedure) + ") AND ":U
+                                   + hLocalObjectBuffer:NAME + ".tContainerRecordIdentifier = " + QUOTER(pdInstanceId) + " AND ":U
+                                   + hLocalObjectBuffer:NAME + ".tPageNumber = ":U + QUOTER(piPageNumber) + " AND ":U
+                                   + hLocalObjectBuffer:NAME + ".tLayoutPosition BEGINS 'CENT' ":U).
+
+  hPageInstanceQuery:QUERY-OPEN().
+
+  cent-blk:
+  REPEAT:
+    hPageInstanceQuery:GET-NEXT().
+
+    IF NOT hLocalObjectBuffer:AVAILABLE THEN LEAVE.
+
+    ASSIGN
+        hObjectInstanceHandle = hLocalObjectBuffer:BUFFER-FIELD("tObjectInstanceHandle":U):BUFFER-VALUE                                                            
+        cObjectTypeCode       = hLocalObjectBuffer:BUFFER-FIELD("tClassName":U):BUFFER-VALUE.    
+
+    IF NOT VALID-HANDLE(hObjectInstanceHandle) THEN
+        NEXT cent-blk.
+
+    ASSIGN
+        dNewObjectColumn = 1
+        dNewObjectRow    = (IF lTopObjects THEN 0.24 ELSE 0) + iCenterTopRow
+        dNewObjectHeight = iCenterBottomRow - iCenterTopRow - 0.24 - (IF lBottomObjects AND piPageNumber = 0 THEN 0.24 ELSE 0)
+        dNewObjectWidth  = dDesiredWidth.
+
+    RUN resizeAndMoveSomething IN THIS-PROCEDURE (                       
+        INPUT  piPageNumber,  
+        INPUT  phObjectBuffer,
+        INPUT  phPageBuffer,
+        INPUT  cObjectTypeCode,
+        INPUT  hObjectInstanceHandle,        
+        INPUT  pdTopLeftColumn,
+        INPUT  pdTopLeftRow,
+        INPUT  dNewObjectColumn, 
+        INPUT  dNewObjectRow,
+        INPUT  dNewObjectWidth,
+        INPUT  dNewObjectHeight,
+        INPUT  pdInstanceId).
+  END.
+
+  hPageInstanceQuery:QUERY-CLOSE().
+  DELETE WIDGET-POOL cWidgetPool.
 
 END PROCEDURE.
 
@@ -1634,12 +1860,13 @@ PROCEDURE resize03 :
 ------------------------------------------------------------------------------*/
 
 DEFINE INPUT PARAMETER piPageNumber      AS INTEGER   NO-UNDO.
-DEFINE INPUT PARAMETER phPageInstanceTT  AS HANDLE    NO-UNDO.
-DEFINE INPUT PARAMETER phPageTT          AS HANDLE    NO-UNDO.
+DEFINE INPUT PARAMETER phObjectBuffer  AS HANDLE    NO-UNDO.
+DEFINE INPUT PARAMETER phPageBuffer          AS HANDLE    NO-UNDO.
 DEFINE INPUT PARAMETER pdContainerWidth  AS DECIMAL   NO-UNDO.
 DEFINE INPUT PARAMETER pdContainerHeight AS DECIMAL   NO-UNDO.
 DEFINE INPUT PARAMETER pdTopLeftColumn   AS DECIMAL   NO-UNDO.
 DEFINE INPUT PARAMETER pdTopLeftRow      AS DECIMAL   NO-UNDO.
+DEFINE INPUT PARAMETER pdInstanceId         AS DECIMAL                  NO-UNDO.
 
 DEFINE VARIABLE dDesiredHeight              AS DECIMAL      NO-UNDO.
 DEFINE VARIABLE dDesiredWidth               AS DECIMAL      NO-UNDO.  
@@ -1648,11 +1875,9 @@ DEFINE VARIABLE dObjectWidth                AS DECIMAL      NO-UNDO.
 DEFINE VARIABLE dMaxHeight                  AS DECIMAL      NO-UNDO.
 DEFINE VARIABLE dMaxWidth                   AS DECIMAL      NO-UNDO.            
 DEFINE VARIABLE hPageInstanceQuery          AS HANDLE       NO-UNDO.
-DEFINE VARIABLE hPageInstanceBuffer         AS HANDLE       NO-UNDO.
-DEFINE VARIABLE hObjectInstanceHandleField  AS HANDLE       NO-UNDO.
+DEFINE VARIABLE hLocalObjectBuffer         AS HANDLE       NO-UNDO.
 DEFINE VARIABLE hObjectInstanceHandle       AS HANDLE       NO-UNDO.        
 DEFINE VARIABLE cObjectTypeCode             AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE hObjectTypeCodeField        AS HANDLE       NO-UNDO.       
 DEFINE VARIABLE hHandle                     AS HANDLE       NO-UNDO.       
 DEFINE VARIABLE iCenterTopRow               AS DECIMAL      NO-UNDO.
 DEFINE VARIABLE iCenterBottomRow            AS DECIMAL      NO-UNDO. 
@@ -1671,29 +1896,39 @@ DEFINE VARIABLE dHeight                     AS DECIMAL      NO-UNDO.
 DEFINE VARIABLE dCentreResizeHeight         AS DECIMAL      NO-UNDO.
 DEFINE VARIABLE dGaps                       AS DECIMAL      NO-UNDO.
 DEFINE VARIABLE dHeightLeft                 AS DECIMAL      NO-UNDO.
+DEFINE VARIABLE cWidgetPool                 AS CHARACTER        NO-UNDO.
+
+    ASSIGN cWidgetPool          = "resize03":U + STRING(giUniqenessGuarantor)
+           giUniqenessGuarantor = giUniqenessGuarantor + 1
+      .
 
 dDesiredWidth  = pdContainerWidth  - (1 + 1).                                 
-dDesiredHeight = pdContainerHeight - (/* 0.24 */ gdTwentyFourHundredths /*+ 0.24*/ ).    
-iCenterTopRow =  0 /*0.24*/ .
+dDesiredHeight = pdContainerHeight - 0.24.
+iCenterTopRow =  0.
 iCenterBottomRow = iCenterTopRow + dDesiredHeight.      
 
-CREATE BUFFER hPageInstanceBuffer FOR TABLE phPageInstanceTT.
-CREATE QUERY hPageInstanceQuery.
-hPageInstanceQuery:SET-BUFFERS(hPageInstanceBuffer).
-hObjectInstanceHandleField = hPageInstanceBuffer:BUFFER-FIELD("object_instance_handle").
-hObjectTypeCodeField = hPageInstanceBuffer:BUFFER-FIELD("object_type_code").        
+CREATE WIDGET-POOL cWidgetPool.
+CREATE BUFFER hLocalObjectBuffer FOR TABLE phObjectBuffer IN WIDGET-POOL cWidgetPool.
+CREATE QUERY hPageInstanceQuery IN WIDGET-POOL cWidgetPool.
+
+hPageInstanceQuery:SET-BUFFERS(hLocalObjectBuffer).
 
 /* manage TOP components */
+hPageInstanceQuery:QUERY-PREPARE("FOR EACH ":U + hLocalObjectBuffer:NAME + " WHERE ":U
+                                 + hLocalObjectBuffer:NAME + ".tTargetProcedure = WIDGET-HANDLE(":U + QUOTER(ghSourceProcedure) + ") AND ":U
+                                 + hLocalObjectBuffer:NAME + ".tContainerRecordIdentifier = " + QUOTER(pdInstanceId) + " AND ":U
+                                 + hLocalObjectBuffer:NAME + ".tPageNumber = ":U + QUOTER(piPageNumber) + " AND ":U
+                                 + hLocalObjectBuffer:NAME + ".tLayoutPosition BEGINS 'TOP' ":U).
 
-hPageInstanceQuery:QUERY-PREPARE("FOR EACH tt_page_instance WHERE page_number = " + STRING(piPageNumber) + " AND layout_position BEGINS 'TOP'").
 hPageInstanceQuery:QUERY-OPEN().
 
 REPEAT:
   hPageInstanceQuery:GET-NEXT().
-  IF NOT hPageInstanceBuffer:AVAILABLE THEN LEAVE.    
+  IF NOT hLocalObjectBuffer:AVAILABLE THEN LEAVE.    
 
-  hObjectInstanceHandle = hObjectInstanceHandleField:BUFFER-VALUE.           
-  cObjectTypeCode = hObjectTypeCodeField:BUFFER-VALUE.           
+  ASSIGN hObjectInstanceHandle = hLocalObjectBuffer:BUFFER-FIELD("tObjectInstanceHandle":U):BUFFER-VALUE           
+         cObjectTypeCode = hLocalObjectBuffer:BUFFER-FIELD("tClassName":U):BUFFER-VALUE.           
+
   dObjectHeight = DYNAMIC-FUNCTION("getHeight" IN hObjectInstanceHandle) NO-ERROR.                                
   dObjectWidth  = DYNAMIC-FUNCTION("getWidth"  IN hObjectInstanceHandle) NO-ERROR.                             
 
@@ -1715,35 +1950,39 @@ REPEAT:
 
   RUN resizeAndMoveSomething IN THIS-PROCEDURE (                       
       INPUT  piPageNumber,  
-      INPUT  phPageInstanceTT,
-      INPUT  phPageTT,
+      INPUT  phObjectBuffer,
+      INPUT  phPageBuffer,
       INPUT  cObjectTypeCode,
       INPUT  hObjectInstanceHandle,        
-      INPUT  pdTopLeftColumn,
+      INPUT  pdTopLeftColumn - 0.12,
       INPUT  pdTopLeftRow,
       INPUT  dNewObjectColumn, 
       INPUT  dNewObjectRow,
       INPUT  dNewObjectWidth,
-      INPUT  dNewObjectHeight
-      ).
+      INPUT  dNewObjectHeight,
+      INPUT  pdInstanceId           ).
 END.
+hPageInstanceQuery:QUERY-CLOSE().
 
 /* manage BOTTOM components */
-
-hPageInstanceQuery:QUERY-PREPARE("FOR EACH tt_page_instance WHERE page_number = " + STRING(piPageNumber) + " AND layout_position BEGINS 'BOTTOM'").
+hPageInstanceQuery:QUERY-PREPARE("FOR EACH ":U + hLocalObjectBuffer:NAME + " WHERE ":U
+                                 + hLocalObjectBuffer:NAME + ".tTargetProcedure = WIDGET-HANDLE(":U + QUOTER(ghSourceProcedure) + ") AND ":U
+                                 + hLocalObjectBuffer:NAME + ".tContainerRecordIdentifier = " + QUOTER(pdInstanceId) + " AND ":U
+                                 + hLocalObjectBuffer:NAME + ".tPageNumber = ":U + QUOTER(piPageNumber) + " AND ":U
+                                 + hLocalObjectBuffer:NAME + ".tLayoutPosition BEGINS 'BOTTOM' ":U).
 hPageInstanceQuery:QUERY-OPEN().
 
 REPEAT:
   hPageInstanceQuery:GET-NEXT().
-  IF NOT hPageInstanceBuffer:AVAILABLE THEN LEAVE.
+  IF NOT hLocalObjectBuffer:AVAILABLE THEN LEAVE.
 
-  hObjectInstanceHandle = hObjectInstanceHandleField:BUFFER-VALUE.                                                      
-  cObjectTypeCode = hObjectTypeCodeField:BUFFER-VALUE.    
+  ASSIGN hObjectInstanceHandle = hLocalObjectBuffer:BUFFER-FIELD("tObjectInstanceHandle":U):BUFFER-VALUE                                                      
+         cObjectTypeCode       = hLocalObjectBuffer:BUFFER-FIELD("tClassName":U):BUFFER-VALUE.    
 
   dObjectHeight = DYNAMIC-FUNCTION("getHeight" IN hObjectInstanceHandle) NO-ERROR.                                
   dObjectWidth  = DYNAMIC-FUNCTION("getWidth"  IN hObjectInstanceHandle) NO-ERROR.              
   dNewObjectColumn = 1.
-  dNewObjectRow = /* 0.24 */ gdTwentyFourHundredths + dDesiredHeight - dObjectHeight.
+  dNewObjectRow = 0.24 + dDesiredHeight - dObjectHeight.
   dNewObjectHeight = dObjectHeight.
   dNewObjectWidth = dDesiredWidth.
   iCenterBottomRow = MIN(iCenterBottomRow, dNewObjectRow). 
@@ -1756,18 +1995,19 @@ REPEAT:
 
   RUN resizeAndMoveSomething IN THIS-PROCEDURE (                       
       INPUT  piPageNumber,  
-      INPUT  phPageInstanceTT,
-      INPUT  phPageTT,
+      INPUT  phObjectBuffer,
+      INPUT  phPageBuffer,
       INPUT  cObjectTypeCode,
       INPUT  hObjectInstanceHandle,        
-      INPUT  pdTopLeftColumn,
+      INPUT  pdTopLeftColumn - 0.12,
       INPUT  pdTopLeftRow,
       INPUT  dNewObjectColumn, 
       INPUT  dNewObjectRow,
       INPUT  dNewObjectWidth,
-      INPUT  dNewObjectHeight
-      ).  
+      INPUT  dNewObjectHeight,
+      INPUT  pdInstanceId           ).  
 END.
+hPageInstanceQuery:QUERY-CLOSE().
 
 /* Manage CENTRE components, In order, e.g. centre1, centre2, etc. */
 EMPTY TEMP-TABLE ttCentre.
@@ -1777,15 +2017,22 @@ ASSIGN
   iNumResize = 0
   dStaticHeight = 0.
 
-hPageInstanceQuery:QUERY-PREPARE("FOR EACH tt_page_instance WHERE page_number = " + STRING(piPageNumber) + " AND layout_position BEGINS 'CENT' BY layout_position").
+
+hPageInstanceQuery:QUERY-PREPARE("FOR EACH ":U + hLocalObjectBuffer:NAME + " WHERE ":U
+                                 + hLocalObjectBuffer:NAME + ".tTargetProcedure = WIDGET-HANDLE(":U + QUOTER(ghSourceProcedure) + ") AND ":U
+                                 + hLocalObjectBuffer:NAME + ".tContainerRecordIdentifier = " + QUOTER(pdInstanceId) + " AND ":U
+                                 + hLocalObjectBuffer:NAME + ".tPageNumber = ":U + QUOTER(piPageNumber) + " AND ":U
+                                 + hLocalObjectBuffer:NAME + ".tLayoutPosition BEGINS 'CENT' ":U
+                                 + " BY ":U + hLocalObjectBuffer:NAME + ".tLayoutPosition ":U ).
+
 hPageInstanceQuery:QUERY-OPEN().
 centre-loop:
 REPEAT:
   hPageInstanceQuery:GET-NEXT().
-  IF NOT hPageInstanceBuffer:AVAILABLE THEN LEAVE centre-loop.
+  IF NOT hLocalObjectBuffer:AVAILABLE THEN LEAVE centre-loop.
 
   ASSIGN
-    hHandle = hObjectInstanceHandleField:BUFFER-VALUE.
+    hHandle = hLocalObjectBuffer:BUFFER-FIELD("tObjectInstanceHandle":U):BUFFER-VALUE.
 
   IF NOT VALID-HANDLE(hHandle) THEN NEXT centre-loop.
 
@@ -1824,24 +2071,24 @@ IF iNumResize = 0 THEN
     dCentreResizeHeight = 0.
 ELSE
   ASSIGN
-    dGaps = (iNumStatic + iNumResize) * /* 0.24 */ gdTwentyFourHundredths
-    dHeightLeft = iCenterBottomRow - iCenterTopRow - /* 0.24 */ gdTwentyFourHundredths - dGaps - dStaticHeight
+    dGaps = (iNumStatic + iNumResize) * 0.24
+    dHeightLeft = iCenterBottomRow - iCenterTopRow - 0.24 - dGaps - dStaticHeight
     dCentreResizeHeight = IF dHeightLeft > 0 THEN (dHeightLeft / iNumResize) ELSE 0
     .
 
 /* now process centre objects in order */
 ASSIGN
-  dCentreRow = /* 0.24 */ gdTwentyFourHundredths + iCenterTopRow.
+  dCentreRow = 0.24 + iCenterTopRow.
 
 hPageInstanceQuery:QUERY-CLOSE().
 hPageInstanceQuery:QUERY-OPEN().
 centre-loop2:
 REPEAT:
   hPageInstanceQuery:GET-NEXT().
-  IF NOT hPageInstanceBuffer:AVAILABLE THEN LEAVE.
+  IF NOT hLocalObjectBuffer:AVAILABLE THEN LEAVE.
 
-  hObjectInstanceHandle = hObjectInstanceHandleField:BUFFER-VALUE.                                                            
-  cObjectTypeCode = hObjectTypeCodeField:BUFFER-VALUE.    
+  ASSIGN hObjectInstanceHandle = hLocalObjectBuffer:BUFFER-FIELD("tObjectInstanceHandle":U):BUFFER-VALUE                                                            
+          cObjectTypeCode      = hLocalObjectBuffer:BUFFER-FIELD("tClassName":U):BUFFER-VALUE.    
 
   FIND FIRST ttCentre
        WHERE ttCentre.hInstanceHandle = hObjectInstanceHandle
@@ -1849,7 +2096,7 @@ REPEAT:
   IF NOT AVAILABLE ttCentre THEN NEXT centre-loop2.
 
   IF ttCentre.lToolbar THEN
-    ASSIGN dCentreRow = dCentreRow - /* 0.24 */ gdTwentyFourHundredths.  /* no gap for toolbars */
+    ASSIGN dCentreRow = dCentreRow - 0.24.  /* no gap for toolbars */
 
   ASSIGN
     dNewObjectColumn = 1
@@ -1864,32 +2111,28 @@ REPEAT:
 
   RUN resizeAndMoveSomething IN THIS-PROCEDURE (                       
       INPUT  piPageNumber,  
-      INPUT  phPageInstanceTT,
-      INPUT  phPageTT,
+      INPUT  phObjectBuffer,
+      INPUT  phPageBuffer,
       INPUT  cObjectTypeCode,
       INPUT  hObjectInstanceHandle,        
-      INPUT  pdTopLeftColumn,
+      INPUT  pdTopLeftColumn - 0.12,
       INPUT  pdTopLeftRow,
       INPUT  dNewObjectColumn, 
       INPUT  dNewObjectRow,
       INPUT  dNewObjectWidth,
-      INPUT  dNewObjectHeight
-      ).
+      INPUT  dNewObjectHeight,
+      INPUT  pdInstanceId       ).
 
   /* get next row position */
   ASSIGN
-    dCentreRow = dCentreRow + dNewObjectHeight + /* 0.24 */ gdTwentyFourHundredths.
+    dCentreRow = dCentreRow + dNewObjectHeight + 0.24.
 
 END.
 
 hPageInstanceQuery:QUERY-CLOSE().
-DELETE OBJECT hPageInstanceQuery.
-DELETE OBJECT hPageInstanceBuffer.
-ASSIGN
-  hPageInstanceQuery = ?
-  hPageInstanceBuffer = ?
-  . 
 
+DELETE WIDGET-POOL cWidgetPool.
+RETURN.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1909,12 +2152,13 @@ PROCEDURE resize04 :
                side and a vertical toolbar between them.
 ------------------------------------------------------------------------------*/
 DEFINE INPUT PARAMETER piPageNumber      AS INTEGER   NO-UNDO.
-DEFINE INPUT PARAMETER phPageInstanceTT  AS HANDLE    NO-UNDO.
-DEFINE INPUT PARAMETER phPageTT          AS HANDLE    NO-UNDO.
+DEFINE INPUT PARAMETER phObjectBuffer  AS HANDLE    NO-UNDO.
+DEFINE INPUT PARAMETER phPageBuffer          AS HANDLE    NO-UNDO.
 DEFINE INPUT PARAMETER pdContainerWidth  AS DECIMAL   NO-UNDO.
 DEFINE INPUT PARAMETER pdContainerHeight AS DECIMAL   NO-UNDO.
 DEFINE INPUT PARAMETER pdTopLeftColumn   AS DECIMAL   NO-UNDO.
 DEFINE INPUT PARAMETER pdTopLeftRow      AS DECIMAL   NO-UNDO.
+DEFINE INPUT PARAMETER pdInstanceId         AS DECIMAL                  NO-UNDO.
 
 DEFINE VARIABLE dDesiredHeight              AS DECIMAL      NO-UNDO.
 DEFINE VARIABLE dDesiredWidth               AS DECIMAL      NO-UNDO.  
@@ -1923,11 +2167,9 @@ DEFINE VARIABLE dObjectWidth                AS DECIMAL      NO-UNDO.
 DEFINE VARIABLE dMaxHeight                  AS DECIMAL      NO-UNDO.
 DEFINE VARIABLE dMaxWidth                   AS DECIMAL      NO-UNDO.            
 DEFINE VARIABLE hPageInstanceQuery          AS HANDLE       NO-UNDO.
-DEFINE VARIABLE hPageInstanceBuffer         AS HANDLE       NO-UNDO.
-DEFINE VARIABLE hObjectInstanceHandleField  AS HANDLE       NO-UNDO.
+DEFINE VARIABLE hLocalObjectBuffer         AS HANDLE       NO-UNDO.
 DEFINE VARIABLE hObjectInstanceHandle       AS HANDLE       NO-UNDO.        
 DEFINE VARIABLE cObjectTypeCode             AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE hObjectTypeCodeField        AS HANDLE       NO-UNDO.       
 DEFINE VARIABLE iCenterLeftCol               AS DECIMAL      NO-UNDO.
 DEFINE VARIABLE iCenterBottomRow            AS DECIMAL      NO-UNDO. 
 
@@ -1935,27 +2177,35 @@ DEFINE VARIABLE dNewObjectWidth             AS DECIMAL      NO-UNDO.
 DEFINE VARIABLE dNewObjectHeight            AS DECIMAL      NO-UNDO.
 DEFINE VARIABLE dNewObjectColumn            AS DECIMAL      NO-UNDO.
 DEFINE VARIABLE dNewObjectRow               AS DECIMAL      NO-UNDO.
+    DEFINE VARIABLE cWidgetPool                     AS CHARACTER        NO-UNDO.
+
+    ASSIGN cWidgetPool          = "resize04":U + STRING(giUniqenessGuarantor)
+           giUniqenessGuarantor = giUniqenessGuarantor + 1
+           .
 
     dDesiredWidth  = (pdContainerWidth / 2) - 8.
     dDesiredHeight = pdContainerHeight - 3.    
     iCenterLeftCol =  1.
 
-    CREATE BUFFER hPageInstanceBuffer FOR TABLE phPageInstanceTT.
-/*     hPageInstanceBuffer = phPageInstanceTT:DEFAULT-BUFFER-HANDLE. */
-    CREATE QUERY hPageInstanceQuery.
-    hPageInstanceQuery:SET-BUFFERS(hPageInstanceBuffer).
-    hObjectInstanceHandleField = hPageInstanceBuffer:BUFFER-FIELD("object_instance_handle").
-    hObjectTypeCodeField = hPageInstanceBuffer:BUFFER-FIELD("object_type_code").        
+    CREATE WIDGET-POOL cWidgetPool.
+    CREATE BUFFER hLocalObjectBuffer FOR TABLE phObjectBuffer IN WIDGET-POOL cWidgetPool.
+    CREATE QUERY hPageInstanceQuery IN WIDGET-POOL cWidgetPool.
 
-    hPageInstanceQuery:QUERY-PREPARE("FOR EACH tt_page_instance WHERE page_number = " + STRING(piPageNumber) + " AND layout_position BEGINS 'LEFT'").
+    hPageInstanceQuery:SET-BUFFERS(hLocalObjectBuffer).
+    hPageInstanceQuery:QUERY-PREPARE("FOR EACH ":U + hLocalObjectBuffer:NAME + " WHERE ":U
+                                     + hLocalObjectBuffer:NAME + ".tTargetProcedure = WIDGET-HANDLE(":U + QUOTER(ghSourceProcedure) + ") AND ":U
+                                     + hLocalObjectBuffer:NAME + ".tContainerRecordIdentifier = " + QUOTER(pdInstanceId) + " AND ":U
+                                     + hLocalObjectBuffer:NAME + ".tPageNumber = ":U + QUOTER(piPageNumber) + " AND ":U
+                                     + hLocalObjectBuffer:NAME + ".tLayoutPosition BEGINS 'LEFT' ":U).
+
     hPageInstanceQuery:QUERY-OPEN().
 
     REPEAT:
         hPageInstanceQuery:GET-NEXT().
-        IF NOT hPageInstanceBuffer:AVAILABLE THEN LEAVE.    
+        IF NOT hLocalObjectBuffer:AVAILABLE THEN LEAVE.    
 
-        hObjectInstanceHandle = hObjectInstanceHandleField:BUFFER-VALUE.           
-        cObjectTypeCode = hObjectTypeCodeField:BUFFER-VALUE.           
+        ASSIGN hObjectInstanceHandle = hLocalObjectBuffer:BUFFER-FIELD("tObjectInstanceHandle":U):BUFFER-VALUE           
+               cObjectTypeCode = hLocalObjectBuffer:BUFFER-FIELD("tClassName":U):BUFFER-VALUE.           
 
         dObjectHeight = DYNAMIC-FUNCTION("getHeight" IN hObjectInstanceHandle) NO-ERROR.                                
         dObjectWidth  = DYNAMIC-FUNCTION("getWidth"  IN hObjectInstanceHandle) NO-ERROR.                             
@@ -1975,8 +2225,8 @@ DEFINE VARIABLE dNewObjectRow               AS DECIMAL      NO-UNDO.
 
         RUN resizeAndMoveSomething IN THIS-PROCEDURE (                       
             INPUT  piPageNumber,  
-            INPUT  phPageInstanceTT,
-            INPUT  phPageTT,
+            INPUT  phObjectBuffer,
+            INPUT  phPageBuffer,
             INPUT  cObjectTypeCode,
             INPUT  hObjectInstanceHandle,        
             INPUT  pdTopLeftColumn,
@@ -1984,21 +2234,26 @@ DEFINE VARIABLE dNewObjectRow               AS DECIMAL      NO-UNDO.
             INPUT  dNewObjectColumn, 
             INPUT  dNewObjectRow,
             INPUT  dNewObjectWidth,
-            INPUT  dNewObjectHeight
-            ).
+            INPUT  dNewObjectHeight,
+            INPUT  pdInstanceId             ).
     END.
+    hPageInstanceQuery:QUERY-CLOSE().
 
     /* manage RIGHT components */
+    hPageInstanceQuery:QUERY-PREPARE("FOR EACH ":U + hLocalObjectBuffer:NAME + " WHERE ":U
+                                     + hLocalObjectBuffer:NAME + ".tTargetProcedure = WIDGET-HANDLE(":U + QUOTER(ghSourceProcedure) + ") AND ":U
+                                     + hLocalObjectBuffer:NAME + ".tContainerRecordIdentifier = " + QUOTER(pdInstanceId) + " AND ":U
+                                     + hLocalObjectBuffer:NAME + ".tPageNumber = ":U + QUOTER(piPageNumber) + " AND ":U
+                                     + hLocalObjectBuffer:NAME + ".tLayoutPosition BEGINS 'RIGHT' ":U).
 
-    hPageInstanceQuery:QUERY-PREPARE("FOR EACH tt_page_instance WHERE page_number = " + STRING(piPageNumber) + " AND layout_position BEGINS 'RIGHT'").
     hPageInstanceQuery:QUERY-OPEN().
 
     REPEAT:
         hPageInstanceQuery:GET-NEXT().
-        IF NOT hPageInstanceBuffer:AVAILABLE THEN LEAVE.
+        IF NOT hLocalObjectBuffer:AVAILABLE THEN LEAVE.
 
-        hObjectInstanceHandle = hObjectInstanceHandleField:BUFFER-VALUE.                                                      
-        cObjectTypeCode = hObjectTypeCodeField:BUFFER-VALUE.    
+        ASSIGN hObjectInstanceHandle = hLocalObjectBuffer:BUFFER-FIELD("tObjectInstanceHandle":U):BUFFER-VALUE                                                      
+               cObjectTypeCode       = hLocalObjectBuffer:BUFFER-FIELD("tClassName":U):BUFFER-VALUE.    
 
         dObjectHeight = DYNAMIC-FUNCTION("getHeight" IN hObjectInstanceHandle) NO-ERROR.                                
         dObjectWidth  = DYNAMIC-FUNCTION("getWidth"  IN hObjectInstanceHandle) NO-ERROR.
@@ -2018,8 +2273,8 @@ DEFINE VARIABLE dNewObjectRow               AS DECIMAL      NO-UNDO.
 
         RUN resizeAndMoveSomething IN THIS-PROCEDURE (                       
             INPUT  piPageNumber,  
-            INPUT  phPageInstanceTT,
-            INPUT  phPageTT,
+            INPUT  phObjectBuffer,
+            INPUT  phPageBuffer,
             INPUT  cObjectTypeCode,
             INPUT  hObjectInstanceHandle,        
             INPUT  pdTopLeftColumn,
@@ -2027,21 +2282,26 @@ DEFINE VARIABLE dNewObjectRow               AS DECIMAL      NO-UNDO.
             INPUT  dNewObjectColumn, 
             INPUT  dNewObjectRow,
             INPUT  dNewObjectWidth,
-            INPUT  dNewObjectHeight
-            ).  
+            INPUT  dNewObjectHeight,
+            INPUT  pdInstanceId             ).  
     END.
+    hPageInstanceQuery:QUERY-CLOSE().
 
     /* Manage CENTER components */
+    hPageInstanceQuery:QUERY-PREPARE("FOR EACH ":U + hLocalObjectBuffer:NAME + " WHERE ":U
+                                     + hLocalObjectBuffer:NAME + ".tTargetProcedure = WIDGET-HANDLE(":U + QUOTER(ghSourceProcedure) + ") AND ":U
+                                     + hLocalObjectBuffer:NAME + ".tContainerRecordIdentifier = " + QUOTER(pdInstanceId) + " AND ":U
+                                     + hLocalObjectBuffer:NAME + ".tPageNumber = ":U + QUOTER(piPageNumber) + " AND ":U
+                                     + hLocalObjectBuffer:NAME + ".tLayoutPosition BEGINS 'CENT' ":U).
 
-    hPageInstanceQuery:QUERY-PREPARE("FOR EACH tt_page_instance WHERE page_number = " + STRING(piPageNumber) + " AND layout_position BEGINS 'CENT'").
     hPageInstanceQuery:QUERY-OPEN().
 
     REPEAT:
         hPageInstanceQuery:GET-NEXT().
-        IF NOT hPageInstanceBuffer:AVAILABLE THEN LEAVE.
+        IF NOT hLocalObjectBuffer:AVAILABLE THEN LEAVE.
 
-        hObjectInstanceHandle = hObjectInstanceHandleField:BUFFER-VALUE.                                                            
-        cObjectTypeCode = hObjectTypeCodeField:BUFFER-VALUE.    
+        ASSIGN hObjectInstanceHandle = hLocalObjectBuffer:BUFFER-FIELD("tObjectInstanceHandle":U):BUFFER-VALUE                                                            
+               cObjectTypeCode       = hLocalObjectBuffer:BUFFER-FIELD("tClassName":U):BUFFER-VALUE.    
 
         IF hObjectInstanceHandle:FILE-NAME = "ry/obj/rydyntoolt.w" THEN DO: 
             dNewObjectColumn = pdContainerWidth / 2.
@@ -2056,8 +2316,8 @@ DEFINE VARIABLE dNewObjectRow               AS DECIMAL      NO-UNDO.
 
         RUN resizeAndMoveSomething IN THIS-PROCEDURE (                       
             INPUT  piPageNumber,  
-            INPUT  phPageInstanceTT,
-            INPUT  phPageTT,
+            INPUT  phObjectBuffer,
+            INPUT  phPageBuffer,
             INPUT  cObjectTypeCode,
             INPUT  hObjectInstanceHandle,        
             INPUT  pdTopLeftColumn,
@@ -2065,20 +2325,17 @@ DEFINE VARIABLE dNewObjectRow               AS DECIMAL      NO-UNDO.
             INPUT  dNewObjectColumn, 
             INPUT  dNewObjectRow,
             INPUT  dNewObjectWidth,
-            INPUT  dNewObjectHeight
-            ).
+            INPUT  dNewObjectHeight,
+            INPUT  pdInstanceId             ).
 
 
     END.
 
     hPageInstanceQuery:QUERY-CLOSE().
-    DELETE OBJECT hPageInstanceQuery.
-    DELETE OBJECT hPageInstanceBuffer.
-    ASSIGN
-      hPageInstanceQuery = ?
-      hPageInstanceBuffer = ?
-      . 
 
+    DELETE WIDGET-POOL cWidgetPool.
+
+    RETURN.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2105,12 +2362,13 @@ PROCEDURE resize05 :
                This layout assumes all toolbars are horizontally aligned.
 ------------------------------------------------------------------------------*/
   DEFINE INPUT PARAMETER piPageNumber       AS INTEGER    NO-UNDO.
-  DEFINE INPUT PARAMETER phPageInstanceTT   AS HANDLE     NO-UNDO.
-  DEFINE INPUT PARAMETER phPageTT           AS HANDLE     NO-UNDO.
+  DEFINE INPUT PARAMETER phObjectBuffer     AS HANDLE     NO-UNDO.
+  DEFINE INPUT PARAMETER phPageBuffer       AS HANDLE     NO-UNDO.
   DEFINE INPUT PARAMETER pdContainerWidth   AS DECIMAL    NO-UNDO.
   DEFINE INPUT PARAMETER pdContainerHeight  AS DECIMAL    NO-UNDO.
   DEFINE INPUT PARAMETER pdTopLeftColumn    AS DECIMAL    NO-UNDO.
   DEFINE INPUT PARAMETER pdTopLeftRow       AS DECIMAL    NO-UNDO.
+  DEFINE INPUT PARAMETER pdInstanceId       AS DECIMAL    NO-UNDO.
 
   DEFINE VARIABLE hFolder                   AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hFolderToolbar            AS HANDLE     NO-UNDO.
@@ -2121,6 +2379,7 @@ PROCEDURE resize05 :
   DEFINE VARIABLE hRectangle                AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lStatusBarVisible         AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE hFilterViewer             AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE dPage0ObjectsHeight       AS DECIMAL    NO-UNDO.
 
   DEFINE VARIABLE dObjectHeight AS DECIMAL    NO-UNDO.
   DEFINE VARIABLE dBottom       AS DECIMAL    NO-UNDO.
@@ -2136,17 +2395,14 @@ PROCEDURE resize05 :
   DEFINE VARIABLE dMaxHeight                  AS DECIMAL      NO-UNDO.
   DEFINE VARIABLE dMaxWidth                   AS DECIMAL      NO-UNDO.            
   DEFINE VARIABLE hPageInstanceQuery          AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE hPageInstanceBuffer         AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE hPageBuffer                 AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE hObjectInstanceHandleField  AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE hLocalObjectBuffer          AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE hLocalPageBuffer            AS HANDLE       NO-UNDO.
   DEFINE VARIABLE hObjectInstanceHandle       AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE hObjectTypeCodeField        AS HANDLE       NO-UNDO.
   DEFINE VARIABLE hPageLayoutCode             AS HANDLE       NO-UNDO.
   
   DEFINE VARIABLE cObjectTypeCode             AS CHARACTER    NO-UNDO.
   DEFINE VARIABLE iPageNumber                 AS INTEGER      NO-UNDO.
   DEFINE VARIABLE cLayoutCode                 AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE hPageNumberField            AS HANDLE       NO-UNDO.       
   DEFINE VARIABLE iCenterLeftCol              AS DECIMAL      NO-UNDO.
   DEFINE VARIABLE iCenterBottomRow            AS DECIMAL      NO-UNDO. 
 
@@ -2157,6 +2413,11 @@ PROCEDURE resize05 :
   
   DEFINE VARIABLE hMenuFolder                 AS HANDLE       NO-UNDO.
   DEFINE VARIABLE dFolderToolbarHeight        AS DECIMAL      NO-UNDO.
+  DEFINE VARIABLE cWidgetPool                 AS CHARACTER    NO-UNDO.
+
+  ASSIGN cWidgetPool          = "resize05":U + STRING(giUniqenessGuarantor)
+         giUniqenessGuarantor = giUniqenessGuarantor + 1
+         .
 
   IF NOT VALID-HANDLE(ghSourceProcedure) OR
          LOOKUP("getTreeObjects":U, ghSourceProcedure:INTERNAL-ENTRIES) = 0 THEN RETURN.
@@ -2189,9 +2450,9 @@ PROCEDURE resize05 :
   END.
 
   ASSIGN
-      dTop              = dTop + /* 0.24 */ gdTwentyFourHundredths
-      dBottom           = pdContainerHeight - /* 0.24 */ gdTwentyFourHundredths
-      dLeft             = hResizeFillIn:COLUMN + hResizeFillIn:WIDTH + /* 0.12 */ ( 12 / 100 )
+      dTop    = dTop + 0.24
+      dBottom = pdContainerHeight - 0.24
+      dLeft   = hResizeFillIn:COLUMN + hResizeFillIn:WIDTH + 0.12
 
       /* Rectangle */
       hRectangle:COLUMN = 2
@@ -2203,21 +2464,21 @@ PROCEDURE resize05 :
       hTitleFillIn:WIDTH  = 1 /*hRectangle:WIDTH - (hResizeFillIn:COLUMN + hResizeFillIn:WIDTH + 0.24) + 1*/
       hTitleFillIn:COLUMN = dLeft
       hTitleFillIn:WIDTH  = hRectangle:WIDTH - hTitleFillIn:COLUMN + 1
-      hTitleFillIn:ROW    = hRectangle:ROW + /* 0.12 */ ( 12 / 100 )
+      hTitleFillIn:ROW    = hRectangle:ROW + 0.12
 
       /* OCX Size indicator */
       hResizeFillIn:ROW    = hTitleFillIn:ROW
-      hResizeFillIn:HEIGHT = hRectangle:HEIGHT - /* 0.36 */ ( 36 / 100 )
+      hResizeFillIn:HEIGHT = hRectangle:HEIGHT - 0.36
       NO-ERROR.
 
   /* TreeViewViewer */
-  RUN repositionObject IN hTreeViewOCX (hTitleFillIn:ROW, hRectangle:COLUMN + /* 0.75*/ ( 75 / 100 )) NO-ERROR.
+  RUN repositionObject IN hTreeViewOCX (hTitleFillIn:ROW, hRectangle:COLUMN + 0.75) NO-ERROR.
   RUN resizeObject     IN hTreeViewOCX (hResizeFillIn:HEIGHT, hResizeFillIn:COLUMN - hRectangle:COLUMN) NO-ERROR.
 
   /* Make sure that minimum and maximum sizes have been checked at this point...! */
 
   /* Folder toolbar */
-  dTop = hTitleFillIn:ROW + hTitleFillIn:HEIGHT + /* 0.12 */ ( 12 / 100 ).
+  dTop = hTitleFillIn:ROW + hTitleFillIn:HEIGHT + 0.12.
 
   IF VALID-HANDLE(hFolderToolbar) AND 
      DYNAMIC-FUNCTION("getObjectHidden" IN hFolderToolbar) = FALSE THEN
@@ -2244,12 +2505,59 @@ PROCEDURE resize05 :
   IF VALID-HANDLE(hFolder) THEN
   DO:
     ASSIGN
-        dObjectHeight = hRectangle:HEIGHT + hRectangle:ROW - dTop - /* 0.48 */ ( 48 / 100 )
-        dTop          = dTop + /* 0.24 */ gdTwentyFourHundredths.
+        dObjectHeight = hRectangle:HEIGHT + hRectangle:ROW - dTop - 0.48
+        dTop          = dTop + 0.24.
+    
+    /* > CHECK OF ANY OTHER OBJECTS SHOULD BE ON PAGE 0 - ONLY WHEN TREE IS NOT USED AS A MENU < */
+    CREATE WIDGET-POOL cWidgetPool.
+    CREATE BUFFER hLocalObjectBuffer FOR TABLE phObjectBuffer IN WIDGET-POOL cWidgetPool.
+    CREATE BUFFER hLocalPageBuffer   FOR TABLE phPageBuffer IN WIDGET-POOL cWidgetPool.
+    CREATE QUERY hPageInstanceQuery IN WIDGET-POOL cWidgetPool.
 
+    hPageInstanceQuery:SET-BUFFERS(hLocalObjectBuffer, hLocalPageBuffer).
+
+    hPageInstanceQuery:QUERY-PREPARE("FOR EACH ":U + hLocalObjectBuffer:NAME + " WHERE ":U
+                                     + hLocalObjectBuffer:NAME + ".tTargetProcedure = WIDGET-HANDLE(":U + QUOTER(ghSourceProcedure) + ") AND ":U
+                                     + hLocalObjectBuffer:NAME + ".tContainerRecordIdentifier = " + QUOTER(pdInstanceId) + " AND " 
+                                     + hLocalObjectBuffer:NAME + ".tPageNumber = 0":U + ", ":U
+                                     + " FIRST ":U + hLocalPageBuffer:NAME + " WHERE ":U
+                                     + hLocalPageBuffer:NAME + ".tTargetProcedure = WIDGET-HANDLE(":U + QUOTER(ghSourceProcedure) + ") AND ":U
+                                     + hLocalPageBuffer:NAME + ".tRecordIdentifier = " + QUOTER(pdInstanceId) + " AND ":U
+                                     + hLocalPageBuffer:NAME + ".tPageNumber = ":U + hLocalObjectBuffer:NAME + ".tPageNumber ":U
+                                     + " BY ":U + hLocalObjectBuffer:NAME + ".tPageNumber ":U ).
+    dPage0ObjectsHeight = 0.
+    hPageInstanceQuery:QUERY-OPEN().
+    REPEAT:
+        hPageInstanceQuery:GET-NEXT().
+        IF NOT hLocalObjectBuffer:AVAILABLE THEN LEAVE.    
+        ASSIGN hObjectInstanceHandle = hLocalObjectBuffer:BUFFER-FIELD("tObjectInstanceHandle":U):BUFFER-VALUE
+               cObjectTypeCode       = hLocalObjectBuffer:BUFFER-FIELD("tClassName":U):BUFFER-VALUE
+               cLayoutCode           = hLocalPageBuffer:buffer-field("tLayoutCode":U):BUFFER-VALUE
+               .
+        IF VALID-HANDLE(hObjectInstanceHandle) THEN
+        DO:
+          IF hObjectInstanceHandle = hContainerToolbar OR
+             hObjectInstanceHandle = hFolder OR
+             hObjectInstanceHandle = hFolderToolbar OR
+             hObjectInstanceHandle = hFilterViewer THEN
+             NEXT.
+          dPage0ObjectsHeight = dPage0ObjectsHeight + DYNAMIC-FUNCTION("getHeight" IN hObjectInstanceHandle) NO-ERROR.
+          /* We also need to move this object in the correct position */
+          RUN repositionObject IN hObjectInstanceHandle (dTop, dLeft) NO-ERROR.
+          dTop = dTop + DYNAMIC-FUNCTION("getHeight" IN hObjectInstanceHandle).
+
+        END.  /* valid instance. */
+    END.
+
+    hPageInstanceQuery:QUERY-CLOSE().
+
+    DELETE WIDGET-POOL cWidgetPool.
+    
+    IF dPage0ObjectsHeight <> 0 THEN 
+      ASSIGN dObjectHeight = dObjectHeight - dPage0ObjectsHeight.
+  
     IF DYNAMIC-FUNCTION("getHeight":U IN hFolder) > dObjectHeight THEN
       RUN resizeObject     IN hFolder (dObjectHeight, hTitleFillIn:WIDTH) NO-ERROR.
-
     IF DYNAMIC-FUNCTION("getWidth":U IN hFolder) > hTitleFillIn:WIDTH THEN DO:
       RUN resizeObject     IN hFolder (dObjectHeight, hTitleFillIn:WIDTH) NO-ERROR.
       RUN repositionObject IN hFolder (dTop, dLeft) NO-ERROR.
@@ -2270,65 +2578,90 @@ PROCEDURE resize05 :
   END.
 
   /* Set the top left coordinates in the source procedure */
-  DYNAMIC-FUNCTION("setUserProperty":U IN ghSourceProcedure, "LeftCoordinate":U, STRING(dLeft + 1)).
-  DYNAMIC-FUNCTION("setUserProperty":U IN ghSourceProcedure, "TopCoordinate":U,  STRING(dTop  + 2)).
+  IF VALID-HANDLE(ghSourceProcedure) AND 
+     LOOKUP("setTopLeft":U,ghSourceProcedure:INTERNAL-ENTRIES) > 0 THEN
+    IF VALID-HANDLE(hFolder) THEN
+      RUN setTopLeft IN ghSourceProcedure (/*(dTop  + 2)*/ {fn getInnerRow hFolder} - 0.75, (dLeft + 1)).
+    ELSE
+      RUN setTopLeft IN ghSourceProcedure ((dTop + 2), (dLeft + 1)).
 
   IF VALID-HANDLE(ghSourceProcedure) AND 
      LOOKUP("getTopLeft":U, ghSourceProcedure:INTERNAL-ENTRIES) > 0 THEN
     RUN getTopLeft IN ghSourceProcedure (OUTPUT dRow, OUTPUT dColumn) NO-ERROR.
 
   /* > NOW RESIZE AND MOVE OTHER OBJECTS < */
+  CREATE WIDGET-POOL cWidgetPool.
+  CREATE BUFFER hLocalObjectBuffer FOR TABLE phObjectBuffer IN WIDGET-POOL cWidgetPool.
+  CREATE BUFFER hLocalPageBuffer         FOR TABLE phPageBuffer IN WIDGET-POOL cWidgetPool.
+/*     hLocalObjectBuffer = phObjectBuffer:DEFAULT-BUFFER-HANDLE. */
 
-  CREATE BUFFER hPageInstanceBuffer FOR TABLE phPageInstanceTT.
-  CREATE BUFFER hPageBuffer         FOR TABLE phPageTT.
-/*     hPageInstanceBuffer = phPageInstanceTT:DEFAULT-BUFFER-HANDLE. */
-  CREATE QUERY hPageInstanceQuery.
-  hPageInstanceQuery:SET-BUFFERS(hPageInstanceBuffer, hPageBuffer).
-  hObjectInstanceHandleField = hPageInstanceBuffer:BUFFER-FIELD("object_instance_handle").
-  hObjectTypeCodeField       = hPageInstanceBuffer:BUFFER-FIELD("object_type_code").
+  CREATE QUERY hPageInstanceQuery IN WIDGET-POOL cWidgetPool.
 
-  hPageNumberField = hPageBuffer:BUFFER-FIELD("page_number").
-  hPageLayoutCode  = hPageBuffer:BUFFER-FIELD("layout_code").
+  hPageInstanceQuery:SET-BUFFERS(hLocalObjectBuffer, hLocalPageBuffer).
 
-  hPageInstanceQuery:QUERY-PREPARE("FOR EACH tt_page_instance,
-                                       FIRST tt_page NO-LOCK
-                                       WHERE tt_page.page_number = tt_page_instance.page_number
-                                       BY tt_page_instance.page_number":U).
+  IF DYNAMIC-FUNCTION("getMenuMaintenance":U IN ghSourceProcedure) THEN
+    hPageInstanceQuery:QUERY-PREPARE("FOR EACH ":U + hLocalObjectBuffer:NAME + " WHERE ":U
+                                     + hLocalObjectBuffer:NAME + ".tTargetProcedure = WIDGET-HANDLE(":U + QUOTER(ghSourceProcedure) + ") AND ":U
+                                     + hLocalObjectBuffer:NAME + ".tContainerRecordIdentifier = " + QUOTER(pdInstanceId) + ","                                     + " FIRST ":U + hLocalPageBuffer:NAME + " WHERE ":U
+                                     + hLocalPageBuffer:NAME + ".tTargetProcedure = WIDGET-HANDLE(":U + QUOTER(ghSourceProcedure) + ") AND ":U
+                                     + hLocalPageBuffer:NAME + ".tRecordIdentifier = " + QUOTER(pdInstanceId) + " AND ":U
+                                     + hLocalPageBuffer:NAME + ".tPageNumber = ":U + hLocalObjectBuffer:NAME + ".tPageNumber ":U
+                                     + " BY ":U + hLocalObjectBuffer:NAME + ".tPageNumber ":U ).
+  ELSE
+    hPageInstanceQuery:QUERY-PREPARE("FOR EACH ":U + hLocalObjectBuffer:NAME + " WHERE ":U
+                                     + hLocalObjectBuffer:NAME + ".tTargetProcedure = WIDGET-HANDLE(":U + QUOTER(ghSourceProcedure) + ") AND ":U
+                                     + hLocalObjectBuffer:NAME + ".tContainerRecordIdentifier = " + QUOTER(pdInstanceId) + " AND " 
+                                     + hLocalObjectBuffer:NAME + ".tPageNumber <> 0, ":U
+                                     + " FIRST ":U + hLocalPageBuffer:NAME + " WHERE ":U
+                                     + hLocalPageBuffer:NAME + ".tTargetProcedure = WIDGET-HANDLE(":U + QUOTER(ghSourceProcedure) + ") AND ":U
+                                     + hLocalPageBuffer:NAME + ".tRecordIdentifier = " + QUOTER(pdInstanceId) + " AND ":U
+                                     + hLocalPageBuffer:NAME + ".tPageNumber = ":U + hLocalObjectBuffer:NAME + ".tPageNumber ":U
+                                     + " BY ":U + hLocalObjectBuffer:NAME + ".tPageNumber ":U ).
+
   hPageInstanceQuery:QUERY-OPEN().
   iPageNumber = ?.
 
   REPEAT:
       hPageInstanceQuery:GET-NEXT().
-      IF NOT hPageInstanceBuffer:AVAILABLE THEN LEAVE.    
+      IF NOT hLocalObjectBuffer:AVAILABLE THEN LEAVE.    
 
-      hObjectInstanceHandle = hObjectInstanceHandleField:BUFFER-VALUE.           
-      cObjectTypeCode       = hObjectTypeCodeField:BUFFER-VALUE.
-      cLayoutCode           = hPageLayoutCode:BUFFER-VALUE.
-      
-      IF NOT VALID-HANDLE(hFolder) AND
-        cObjectTypeCode = "SmartFolder":U THEN
-        hMenuFolder = hObjectInstanceHandle.
-      IF iPageNumber = hPageNumberField:BUFFER-VALUE THEN NEXT.
+      ASSIGN hObjectInstanceHandle = hLocalObjectBuffer:BUFFER-FIELD("tObjectInstanceHandle":U):BUFFER-VALUE
+             cObjectTypeCode       = hLocalObjectBuffer:BUFFER-FIELD("tClassName":U):BUFFER-VALUE
+             cLayoutCode           = hLocalPageBuffer:buffer-field("tLayoutCode":U):BUFFER-VALUE
+             .
+      IF VALID-HANDLE(hObjectInstanceHandle) AND NOT VALID-HANDLE(hFolder) AND 
+          /*LOOKUP(cObjectTypeCode, gcSmartFolderClasses) > 0 */
+          DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, INPUT cObjectTypeCode, INPUT "SmartFolder":U) THEN
+          ASSIGN hMenuFolder = hObjectInstanceHandle.
 
-      iPageNumber = hPageNumberField:BUFFER-VALUE.
+      IF iPageNumber = hLocalPageBuffer:BUFFER-FIELD("tPageNumber":U):BUFFER-VALUE THEN
+          NEXT.
 
-      dObjectHeight = DYNAMIC-FUNCTION("getHeight" IN hObjectInstanceHandle) NO-ERROR.                                
-      dObjectWidth  = DYNAMIC-FUNCTION("getWidth"  IN hObjectInstanceHandle) NO-ERROR.                             
+      ASSIGN iPageNumber = hLocalPageBuffer:BUFFER-FIELD("tPageNumber":U):BUFFER-VALUE.
 
-      IF hObjectInstanceHandle = hContainerToolbar OR
-         hObjectInstanceHandle = hFolder OR
-         hObjectInstanceHandle = hFolderToolbar THEN
-         NEXT.
-      
-      IF hObjectInstanceHandle:FILE-NAME = "ry/obj/rydyntoolt.w" THEN DO: 
-          dNewObjectColumn = 1.
-          dNewObjectWidth  = 0.
-      END.
-      ELSE DO:
-          dNewObjectRow    = 0.
-          dNewObjectHeight = dDesiredHeight.
-      END.
-
+      IF VALID-HANDLE(hObjectInstanceHandle) THEN
+      DO:
+          dObjectHeight = DYNAMIC-FUNCTION("getHeight" IN hObjectInstanceHandle) NO-ERROR.                                
+          dObjectWidth  = DYNAMIC-FUNCTION("getWidth"  IN hObjectInstanceHandle) NO-ERROR.                             
+    
+          IF hObjectInstanceHandle = hContainerToolbar OR
+             hObjectInstanceHandle = hFolder OR
+             hObjectInstanceHandle = hFolderToolbar THEN
+             NEXT.
+          
+          IF hObjectInstanceHandle:FILE-NAME = "ry/obj/rydyntoolt.w" THEN
+              ASSIGN dNewObjectColumn = 1
+                     dNewObjectWidth  = 0
+                     .         
+          ELSE
+              ASSIGN dNewObjectRow    = 0
+                     dNewObjectHeight = dDesiredHeight
+                     .
+      END.  /* valid instance. */
+      ELSE
+          ASSIGN dNewObjectRow    = 0
+                 dNewObjectHeight = dDesiredHeight
+                 .
       dNewObjectWidth = dDesiredWidth.
 
       iCenterLeftCol = MAX(iCenterLeftCol, dNewObjectColumn + dObjectWidth).        
@@ -2357,22 +2690,19 @@ PROCEDURE resize05 :
 
       RUN VALUE("resize" + cLayoutCode) IN THIS-PROCEDURE
                (INPUT iPageNumber,
-                INPUT phPageInstanceTT,
-                INPUT phPageTT,
-                INPUT pdContainerWidth - dColumn - 4,
-                INPUT pdContainerHeight - dRow + /* 0.5 */ ( 5 / 10 ),
-                INPUT dColumn,
-                INPUT dRow - /* 1.5 */ ( 1 + 5 / 10 )).
+                INPUT phObjectBuffer,
+                INPUT phPageBuffer,
+                INPUT pdContainerWidth - dColumn - 2,
+                INPUT pdContainerHeight - dRow - (IF VALID-HANDLE(hFolder) THEN (IF {fn getTabPosition hFolder} = "Upper":U THEN 0 ELSE {fn getTabRowHeight hFolder} - 0.60) ELSE 0),
+                INPUT dColumn - 1.00,
+                INPUT (IF NOT VALID-HANDLE(hFolder) THEN dRow - /* 1.5 */ ( 1 + 5 / 10 ) ELSE {fn getInnerRow hFolder} - 0.75),
+                INPUT pdInstanceId          ).
 
   END.
 
   hPageInstanceQuery:QUERY-CLOSE().
-  DELETE OBJECT hPageInstanceQuery.
-  DELETE OBJECT hPageInstanceBuffer.
-  ASSIGN
-    hPageInstanceQuery = ?
-    hPageInstanceBuffer = ?
-    . 
+
+  DELETE WIDGET-POOL cWidgetPool.
 
 END PROCEDURE.
 
@@ -2389,515 +2719,239 @@ PROCEDURE resize06 :
   Purpose:     Resize program for Relative layout.
   Parameters:  
             INPUT piPageNumber      AS INTEGER
-            INPUT phPageInstanceTT  AS HANDLE
-            INPUT phPageTT          AS HANDLE
+            INPUT phObjectBuffer  AS HANDLE
+            INPUT phPageBuffer          AS HANDLE
             INPUT pdContainerHeight AS DECIMAL
             INPUT pdTopLeftColumn   AS DECIMAL
             INPUT pdTopLeftRow      AS DECIMAL
   Notes:    
 ------------------------------------------------------------------------------*/
-DEFINE INPUT PARAMETER piPageNumber        AS INTEGER   NO-UNDO.
-DEFINE INPUT PARAMETER phPageInstanceTT    AS HANDLE    NO-UNDO.
-DEFINE INPUT PARAMETER phPageTT            AS HANDLE    NO-UNDO.
-DEFINE INPUT PARAMETER pdContainerWidth    AS DECIMAL   NO-UNDO.
-DEFINE INPUT PARAMETER pdContainerHeight   AS DECIMAL   NO-UNDO.
-DEFINE INPUT PARAMETER pdTopLeftColumn     AS DECIMAL   NO-UNDO.
-DEFINE INPUT PARAMETER pdTopLeftRow        AS DECIMAL   NO-UNDO.
-
-DEFINE VARIABLE dDesiredHeight             AS DECIMAL   NO-UNDO.
-DEFINE VARIABLE dDesiredWidth              AS DECIMAL   NO-UNDO.  
-DEFINE VARIABLE dObjectHeight              AS DECIMAL   NO-UNDO.
-DEFINE VARIABLE dObjectWidth               AS DECIMAL   NO-UNDO.            
-DEFINE VARIABLE dMinHeight                 AS DECIMAL   NO-UNDO.
-DEFINE VARIABLE dMinWidth                  AS DECIMAL   NO-UNDO.  
-DEFINE VARIABLE dAverageRowHeight          AS DECIMAL   NO-UNDO.
-DEFINE VARIABLE dAverageWidth              AS DECIMAL   NO-UNDO.
-DEFINE VARIABLE iVarWidthInstances         AS INTEGER   NO-UNDO.
-DEFINE VARIABLE dAvailableHeight           AS DECIMAL   NO-UNDO.
-DEFINE VARIABLE dAvailableWidth            AS DECIMAL   NO-UNDO.
-DEFINE VARIABLE iPageNumber                AS INTEGER   NO-UNDO.
-DEFINE VARIABLE iOldPageNumber             AS INTEGER   NO-UNDO.
-DEFINE VARIABLE hPageQuery                 AS HANDLE    NO-UNDO.
-DEFINE VARIABLE hPageBuffer                AS HANDLE    NO-UNDO.
-DEFINE VARIABLE hPageNumberField           AS HANDLE    NO-UNDO.
-DEFINE VARIABLE hPageInstanceQuery         AS HANDLE    NO-UNDO.
-DEFINE VARIABLE hPageInstanceBuffer        AS HANDLE    NO-UNDO.
-DEFINE VARIABLE hFolderPageInstanceBuffer  AS HANDLE    NO-UNDO.
-DEFINE VARIABLE hObjectInstanceHandleField AS HANDLE    NO-UNDO.
-DEFINE VARIABLE hObjectInstanceHandle      AS HANDLE    NO-UNDO.        
-DEFINE VARIABLE cObjectTypeCode            AS CHARACTER NO-UNDO.
-DEFINE VARIABLE hObjectTypeCodeField       AS HANDLE    NO-UNDO. 
-DEFINE VARIABLE dNewObjectWidth            AS DECIMAL   NO-UNDO.
-DEFINE VARIABLE dNewObjectHeight           AS DECIMAL   NO-UNDO.
-DEFINE VARIABLE dNewObjectColumn           AS DECIMAL   NO-UNDO.
-DEFINE VARIABLE dNewObjectRow              AS DECIMAL   NO-UNDO.
-DEFINE VARIABLE cLayoutPosition            AS CHARACTER NO-UNDO.
-DEFINE VARIABLE hLayoutPositionField       AS HANDLE    NO-UNDO.
-DEFINE VARIABLE cLayoutCode                AS CHARACTER NO-UNDO.
-DEFINE VARIABLE iLayoutRow                 AS INTEGER   NO-UNDO.
-DEFINE VARIABLE iOldLayoutRow              AS INTEGER   NO-UNDO.
-DEFINE VARIABLE cJustifyCode               AS CHARACTER NO-UNDO.
-DEFINE VARIABLE iRowNum                    AS INTEGER   NO-UNDO.
-DEFINE VARIABLE lResizeVertical            AS LOGICAL   NO-UNDO.
-DEFINE VARIABLE lResizeHorizontal          AS LOGICAL   NO-UNDO.
-DEFINE VARIABLE dTotalFixedHeight          AS DECIMAL   NO-UNDO.
-DEFINE VARIABLE iNumVarHeightRows          AS INTEGER   NO-UNDO.
-DEFINE VARIABLE dBottomRow                 AS DECIMAL   NO-UNDO.
-DEFINE VARIABLE dPrevRowHeight             AS DECIMAL   NO-UNDO.
-DEFINE VARIABLE hPageInstanceHandleField   AS HANDLE    NO-UNDO.
-DEFINE VARIABLE hPageObjectTypeCodeField   AS HANDLE    NO-UNDO.
-DEFINE VARIABLE hPageObjectLayoutCode      AS HANDLE    NO-UNDO.
-DEFINE VARIABLE hPageInstanceHandle        AS HANDLE    NO-UNDO.
-DEFINE VARIABLE hPageObjectPageNumber      AS HANDLE    NO-UNDO.
-DEFINE VARIABLE cPageObjectTypeCode        AS CHARACTER NO-UNDO.
-DEFINE VARIABLE dFolderMinHeight           AS DECIMAL   NO-UNDO.
-
-DEFINE BUFFER bttInstance  FOR ttInstance.
-DEFINE BUFFER bttRow       FOR ttRow.
-
-/* Determine the maximum area we can work in. */
-ASSIGN dDesiredWidth  = pdContainerWidth  - (1 + 1)
-       dDesiredHeight = pdContainerHeight - ( gdTwentyFourHundredths /*+ 0.24*/ )
-       .
-CREATE BUFFER hPageInstanceBuffer FOR TABLE phPageInstanceTT.
-CREATE QUERY hPageInstanceQuery.
-
-hPageInstanceQuery:SET-BUFFERS(hPageInstanceBuffer).
-
-ASSIGN hObjectInstanceHandleField = hPageInstanceBuffer:BUFFER-FIELD("object_instance_handle":U)
-       hObjectTypeCodeField       = hPageInstanceBuffer:BUFFER-FIELD("object_type_code":U)
-       hLayoutPositionField       = hPageInstanceBuffer:BUFFER-FIELD("layout_position":U)
-       .
-hPageInstanceQuery:QUERY-PREPARE("FOR EACH tt_page_instance WHERE tt_page_instance.page_number = ":U + 
-                                 STRING(piPageNumber) + 
-                                 " BY SUBSTR(tt_page_instance.layout_position, 2)":U).
-
-hPageInstanceQuery:QUERY-OPEN().
-
-REPEAT:
-  hPageInstanceQuery:GET-NEXT().
-  IF NOT hPageInstanceBuffer:AVAILABLE THEN LEAVE.
-  ASSIGN hObjectInstanceHandle = hObjectInstanceHandleField:BUFFER-VALUE
-         cObjectTypeCode       = hObjectTypeCodeField:BUFFER-VALUE
-         cLayoutPosition       = hLayoutPositionField:BUFFER-VALUE
-         .
-  ASSIGN cLayoutCode  = SUBSTR(cLayoutPosition, 1, 1)
-         iLayoutRow   = INTEGER(SUBSTR(cLayoutPosition, 2, 1))
-         cJustifyCode = SUBSTR(ENTRY(1,cLayoutPosition), LENGTH(ENTRY(1,cLayoutPosition)), 1)
-         NO-ERROR.
-  
-  /* Make sure that there is a justification code specified */
-  IF cJustifyCode <> "C":U AND cJustifyCode <> "R":U THEN
-      ASSIGN cJustifyCode = "":U. /* Default - Left */
+    DEFINE INPUT PARAMETER piPageNumber             AS INTEGER          NO-UNDO.
+    DEFINE INPUT PARAMETER phObjectBuffer           AS HANDLE           NO-UNDO.
+    DEFINE INPUT PARAMETER phPageBuffer             AS HANDLE           NO-UNDO.
+    DEFINE INPUT PARAMETER pdContainerWidth         AS DECIMAL          NO-UNDO.
+    DEFINE INPUT PARAMETER pdContainerHeight        AS DECIMAL          NO-UNDO.
+    DEFINE INPUT PARAMETER pdTopLeftColumn          AS DECIMAL          NO-UNDO.
+    DEFINE INPUT PARAMETER pdTopLeftRow             AS DECIMAL          NO-UNDO.
+    DEFINE INPUT PARAMETER pdInstanceId             AS DECIMAL          NO-UNDO.
     
-  IF cLayoutPosition = "":U OR iLayoutRow = 0 THEN
-    NEXT.
+    DEFINE VARIABLE cLayoutPosition         AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE cLayoutCode             AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE iVarWidthInstances      AS INTEGER                  NO-UNDO.
+    DEFINE VARIABLE iNumVarHeightRows       AS INTEGER                  NO-UNDO.
+    DEFINE VARIABLE iLayoutRow              AS INTEGER                  NO-UNDO.
+    DEFINE VARIABLE iRowNum                 AS INTEGER                  NO-UNDO.
+    DEFINE VARIABLE dTotalFixedHeight       AS DECIMAL                  NO-UNDO.
+    DEFINE VARIABLE dAverageRowHeight       AS DECIMAL                  NO-UNDO.
+    DEFINE VARIABLE dAvailableHeight        AS DECIMAL                  NO-UNDO.
+    DEFINE VARIABLE dAvailableWidth         AS DECIMAL                  NO-UNDO.
+    DEFINE VARIABLE dDesiredHeight          AS DECIMAL                  NO-UNDO.
+    DEFINE VARIABLE dDesiredWidth           AS DECIMAL                  NO-UNDO.
+    DEFINE VARIABLE dAverageWidth           AS DECIMAL                  NO-UNDO.
+    DEFINE VARIABLE dNewObjectColumn        AS DECIMAL                  NO-UNDO.
+    DEFINE VARIABLE dNewObjectHeight        AS DECIMAL                  NO-UNDO.   
+    DEFINE VARIABLE dNewObjectWidth         AS DECIMAL                  NO-UNDO.
+    DEFINE VARIABLE dNewObjectRow           AS DECIMAL                  NO-UNDO.
+    DEFINE VARIABLE dPrevRowHeight          AS DECIMAL                  NO-UNDO.
+    DEFINE VARIABLE dBottomRow              AS DECIMAL                  NO-UNDO.
 
-  ASSIGN dObjectWidth  = DYNAMIC-FUNCTION("getWidth":U  IN hObjectInstanceHandle)
-         dObjectHeight = DYNAMIC-FUNCTION("getHeight":U IN hObjectInstanceHandle)
-         .
+    DEFINE BUFFER bttInstance  FOR ttInstance.
+    DEFINE BUFFER bttRow       FOR ttRow.
 
-  IF dObjectHeight <> ? AND cLayoutPosition <> "":U THEN
-  DO:
-    /* Hang onto needed info for each visual object to be used later. */
-    CREATE bttInstance.  
-    ASSIGN bttInstance.PageNum              = piPageNumber
-           bttInstance.RowNum               = iLayoutRow
-           bttInstance.LayoutPosition       = cLayoutPosition
-           bttInstance.ObjectWidth          = dObjectWidth
-           bttInstance.ObjectHeight         = dObjectHeight
-           bttInstance.ObjectTypeCode       = cObjectTypeCode
-           bttInstance.ObjectInstanceHandle = hObjectInstanceHandle
-           bttInstance.JustifyPosition      = cJustifyCode
+    /* Determine the maximum area we can work in. */
+    ASSIGN dDesiredWidth  = pdContainerWidth  - 1
+           dDesiredHeight = pdContainerHeight - 0.24
            .
-    IF iLayoutRow > iRowNum THEN
+    /* Populate the ttRow and ttInstance temp-tables. */
+    DYNAMIC-FUNCTION("buildRowsAndInstances":U IN TARGET-PROCEDURE,
+                     INPUT ghSourceProcedure,
+                     INPUT pdInstanceId,
+                     INPUT piPageNumber,
+                     INPUT phObjectBuffer,
+                     INPUT phPageBuffer         ).
+    
+    /* Now that we've populated the Row table, we need to go back through it    
+     * to reapportion any remaining available height among the variable height rows.
+     * This takes two passes, one to calculate the number of variable height rows and
+     * the total fixed height to allocate before resizing those variable height rows,
+     * and then a second pass to actually adjust the height of the variable rows.     */
+    FOR EACH bttRow WHERE
+             bttRow.SourceProcedure = ghSourceProcedure AND
+             bttRow.PageNum         = piPageNumber
+             BY bttRow.RowNum:
+        IF bttRow.FixedHeight THEN
+            ASSIGN dTotalFixedHeight = dTotalFixedHeight + bttRow.RowHeight + 0.24.
+        ELSE
+            ASSIGN iNumVarHeightRows = iNumVarHeightRows + 1.
+    END.   /* END first FOR EACH bttRow */
+    
+    /* If the row height, calculated by dividing the non-fixed height by the number of variable
+     * rows, is less than the minimum height of any of the rows, the row heights of these rows
+     * must be set to the row's minimum height. The remainder of the available height will be
+     * shared out between the rows which do not have minumum heights.                        */
+    IF iNumVarHeightRows GT 0 THEN
     DO:
-      /* Create a record to describe this new row 
-       * if it's not already there. */
-      CREATE bttRow.
-      ASSIGN bttRow.PageNum         = piPageNumber
-             bttRow.RowNum          = iLayoutRow
-             bttRow.FixedHeight     = NO    /* defaults if not reset */
-             bttRow.FixedWidth      = YES
-             bttRow.BottomSection   = (IF cLayoutCode EQ "B":U THEN YES ELSE NO)
-             iRowNum                = iLayoutRow
-             .
-    END.    /* END DO IF new row -- iLayoutRow > iRowNum */
+        ASSIGN dAvailableHeight  = dDesiredHeight - dTotalFixedHeight
+               dAverageRowHeight = dAvailableHeight / iNumVarHeightRows
+               .
+        /* First reserve space for those rows with minimum heights that
+         * are greater than the height they would be alocated by default. */
+        FOR EACH bttRow WHERE
+                 bttRow.SourceProcedure = ghSourceProcedure AND
+                 bttRow.PageNum         = piPageNumber      AND
+                 bttRow.Fixedheight     = NO:
+            IF bttRow.MinHeight GT dAverageRowHeight THEN
+                ASSIGN bttRow.RowHeight  = bttRow.MinHeight
+                       dAvailableHeight  = dAvailableHeight - bttRow.RowHeight
+                       iNumVarHeightRows = iNumVarHeightRows - 1.
+            ELSE
+                ASSIGN bttRow.MinHeight = 0.
+        END.    /* rows with min heights min heights.*/
+
+        /* If there are any rows left, ensure that they are at least their minimum heights.
+         * Exclude any rows catered for above.                                              */  
+        IF iNumVarHeightRows GT 0 THEN
+        DO:
+            ASSIGN dAverageRowHeight = dAvailableHeight / iNumVarHeightRows.
+            /* Allocate the remaining height available between all remaining rows */
+            FOR EACH bttRow WHERE
+                     bttRow.SourceProcedure = ghSourceProcedure AND
+                     bttRow.PageNum         = piPageNumber      AND
+                     bttRow.Fixedheight     = NO                AND
+                     bttRow.MinHeight       = 0 :
+                ASSIGN bttRow.RowHeight = dAverageRowHeight.
+            END.    /* rows without a minimum height. */
+        END.    /* ther are min var height rows available. */
+    END.    /* variable height rows exist. */
+
+    /* Calculate the widths of the objects in each row, ensuring that an object cannot be sized 
+     * smaller that its individual MinWidth. */
+    FOR EACH bttRow WHERE             
+             bttRow.SourceProcedure = ghSourceProcedure AND
+             bttRow.PageNum         = piPageNumber
+             BY bttRow.RowNum:
+        ASSIGN dAvailableWidth    = dDesiredWidth - bttRow.FixedHorizontalSize
+               iVarWidthInstances = bttRow.NumResizeHorizontal
+               dAverageWidth      = (dAvailableWidth) / iVarWidthInstances - 1
+               .
+        FOR EACH bttInstance WHERE
+                 bttInstance.SourceProcedure = ghSourceProcedure AND
+                 bttInstance.PageNum         = bttRow.PageNum    AND
+                 bttInstance.RowNum          = bttRow.RowNum     AND
+                 bttInstance.FixedWidth      = NO                :
+            IF bttInstance.MinWidth GT dAverageWidth THEN
+                ASSIGN bttInstance.ObjectWidth = bttInstance.MinWidth
+                       dAvailableWidth         = dAvailableWidth    - bttInstance.ObjectWidth
+                       iVarWidthInstances      = iVarWidthInstances - 1
+                       .
+            ELSE
+                ASSIGN bttInstance.MinWidth = 0.
+        END.    /* each instance on a row */
     
-    ASSIGN bttRow.NumObjects = bttRow.NumObjects + 1
-           lResizeVertical   = DYNAMIC-FUNCTION('getResizeVertical':U IN hObjectInstanceHandle)
-           lResizeHorizontal = DYNAMIC-FUNCTION('getResizeHorizontal':U IN hObjectInstanceHandle)
-           .    
-    /* In some cases the Attribute might not be set - then use object type
-       to determine what sizing is allowd */
-    IF lResizeVertical = ? OR lResizeHorizontal = ? THEN DO:
-      CASE cObjectTypeCode:   
-        WHEN 'DynBrow':U OR WHEN 'SmartBrowser':U OR WHEN 'StaticSDB':U OR WHEN 'SmartFolder':U OR WHEN 'DynFold':U THEN
-          ASSIGN lResizeVertical   = IF lResizeVertical = ? THEN YES ELSE lResizeVertical
-                 lResizeHorizontal = IF lResizeHorizontal = ? THEN YES ELSE lResizeHorizontal
-                 .
-        WHEN 'StaticSDV':U OR WHEN 'SmartViewer':U OR WHEN 'DynView':U THEN
-          ASSIGN lResizeVertical   = IF lResizeVertical = ? THEN NO ELSE lResizeVertical
-                 lResizeHorizontal = IF lResizeHorizontal = ? THEN NO ELSE lResizeHorizontal
-                 .
-        WHEN 'SmartToolbar':U THEN
-          ASSIGN lResizeVertical   = IF lResizeVertical = ? THEN NO ELSE lResizeVertical
-                 lResizeHorizontal = IF lResizeHorizontal = ? THEN YES ELSE lResizeHorizontal
-                 .
-        OTHERWISE 
-          ASSIGN lResizeVertical   = IF lResizeVertical = ? THEN NO ELSE lResizeVertical
-                 lResizeHorizontal = IF lResizeHorizontal = ? THEN NO ELSE lResizeHorizontal
-                 .
-      END CASE.   /* object type */
-    END.
+        IF iVarWidthInstances GT 0 THEN
+        DO:
+            ASSIGN dAverageWidth = (dAvailableWidth) / iVarWidthInstances - 1.
     
-    /* Determine the smallest size the folder can be,
-     * by reading through the pages and determining the dimensions
-     * of the pages.                                               */    
-    IF cObjectTypeCode = "SmartFolder":U THEN
-    DO:
-        /* We re-set the object height and width to zero because we re-calculate
-         * both of these values based on the contents of the folder.             */
-      ASSIGN dMinHeight    = 0
-             dMinWidth     = 0
-             dObjectHeight = 0
-             dObjectWidth  = 0
-             dFolderMinHeight = 0
-             .
-      CREATE WIDGET-POOL "DimensionFolder":U.
-      CREATE BUFFER hPageBuffer
-          FOR TABLE phPageTT
-          IN WIDGET-POOL "DimensionFolder":U.
-
-      CREATE BUFFER hFolderPageInstanceBuffer
-          FOR TABLE phPageInstanceTT
-          BUFFER-NAME "lbFolderPageInstance"
-          IN WIDGET-POOL "DimensionFolder":U.
-
-      CREATE QUERY hPageQuery IN WIDGET-POOL "DimensionFolder":U.
-
-      hPageQuery:SET-BUFFERS(hPageBuffer, hFolderPageInstanceBuffer).
-      ASSIGN hPageInstanceHandleField = hFolderPageInstanceBuffer:BUFFER-FIELD("object_instance_handle":U)
-             hPageObjectTypeCodeField = hFolderPageInstanceBuffer:BUFFER-FIELD("object_type_code":U)
-             hPageObjectLayoutCode    = hFolderPageInstanceBuffer:BUFFER-FIELD("layout_position":U)
-             hPageObjectPageNumber    = hFolderPageInstanceBuffer:BUFFER-FIELD("page_number":U)
-             .
-      
-      hPageQuery:QUERY-PREPARE("FOR EACH tt_page WHERE tt_page.page_number GT 0 NO-LOCK,
-                                    EACH lbFolderPageInstance WHERE lbFolderPageInstance.page_number = tt_page.page_number NO-LOCK ":U ).
-      hPageQuery:QUERY-OPEN().
-
-      hPageQuery:GET-FIRST(NO-LOCK).
-      ASSIGN iLayoutRow     = 0
-             iOldLayoutRow  = 0
-             iPageNumber    = 0
-             iOldPageNumber = 0.
-      DO WHILE hFolderPageInstanceBuffer:AVAILABLE:
-          ASSIGN hPageInstanceHandle = hPageInstanceHandleField:BUFFER-VALUE
-                 cPageObjectTypeCode = hPageObjectTypeCodeField:BUFFER-VALUE
-                 .
-          ASSIGN cLayoutCode  = SUBSTR(hPageObjectLayoutCode:BUFFER-VALUE, 1, 1)
-                 iLayoutRow   = INTEGER(SUBSTR(hPageObjectLayoutCode:BUFFER-VALUE, 2, 1))
-                 iPageNumber  = INTEGER(hPageObjectPageNumber:BUFFER-VALUE).
-
-          /* Check that the object has been initialized */
-          IF NOT VALID-HANDLE(hPageInstanceHandle) THEN DO:
-            hPageQuery:GET-NEXT(NO-LOCK).
-            NEXT.
-          END.
-
-          IF INDEX(cPageObjectTypeCode, "Toolbar":U) <> 0 THEN
-          DO:
-              {get MinHeight dMinHeight hPageInstanceHandle}.
-              IF dMinHeight = 0 OR dMinHeight = ? THEN
-                  ASSIGN dMinHeight  = DYNAMIC-FUNCTION("getHeight" IN hPageInstanceHandle).
-
-              /* The Toolbar must be at least 1.24 characters high, if no other size is set. */
-              IF dMinHeight = 0 OR dMinHeight = ? THEN
-                  ASSIGN dMinHeight  = 1 + gdTwentyFourHundredths.
-
-              {get MinWidth 0 hPageInstanceHandle}.
-              {get MinWidth dMinWidth hPageInstanceHandle}.
-              IF dMinWidth = 0 OR dMinWidth = ? THEN
-                  ASSIGN dMinWidth  = DYNAMIC-FUNCTION("getWidth"  IN hPageInstanceHandle).
-
-          END.  /* toolbar */
-          ELSE
-              ASSIGN dMinWidth  = DYNAMIC-FUNCTION("getWidth"  IN hPageInstanceHandle)
-                     dMinHeight = DYNAMIC-FUNCTION("getMinHeight" IN hPageInstanceHandle)
-                     NO-ERROR.
-              
-          /* Ensure that there are no null value in the min* fields. */
-          IF dMinHeight EQ ? THEN ASSIGN dMinHeight = 0.
-          IF dMinWidth EQ ?  THEN ASSIGN dMinWidth  = 0.
-          
-          IF iPageNumber <> iOldPageNumber THEN
-            ASSIGN iOldPageNumber = iPageNumber
-                   iLayoutRow     = 0
-                   iOldLayoutRow  = 0
-                   dObjectHeight  = 0.
-          
-          /* Make sure that we cater for more than one object on a folder window Issue 4012 */
-          IF iLayoutRow <> iOldLayoutRow THEN DO:
-            ASSIGN dObjectHeight = dObjectHeight + dMinHeight + gdTwentyFourHundredths
-                   iOldLayoutRow    = iLayoutRow.
-          END.
-          
-          ASSIGN dObjectHeight = MAX(dObjectHeight, dMinHeight)
-                 dObjectWidth  = MAX(dObjectWidth, dMinWidth).
-
-          ASSIGN dFolderMinHeight = MAX(dFolderMinHeight,dObjectHeight).
-          hPageQuery:GET-NEXT(NO-LOCK).
-      END.    /* available page */
-      /* Determine the minimum height and width for this row.
-       * Add the space a folder needs for its labels and margins. */
-      
-      dObjectHeight = MAX(dFolderMinHeight,dObjectHeight).
-      ASSIGN dObjectHeight            = dObjectHeight + (1 + 14 / 100 ) + ( 36 / 100 )
-             dObjectWidth             = dObjectWidth + ( 1 + 8 / 10 )
-             bttInstance.MinHeight    = dObjectHeight
-             bttInstance.MinWidth     = dObjectWidth
-             .
-      hPageQuery:QUERY-CLOSE().
-
-      DELETE OBJECT hPageQuery NO-ERROR.
-      ASSIGN hPageQuery = ?.
-
-      DELETE OBJECT hPageInstanceHandleField NO-ERROR.
-      ASSIGN hPageInstanceHandleField = ?.
-
-      DELETE OBJECT hPageObjectTypeCodeField NO-ERROR.
-      ASSIGN hPageObjectTypeCodeField = ?.
-
-      DELETE OBJECT hPageBuffer NO-ERROR.
-      ASSIGN hPageBuffer = ?.
-
-      DELETE OBJECT hFolderPageInstanceBuffer NO-ERROR.
-      ASSIGN hFolderPageInstanceBuffer = ?.
-      
-      DELETE WIDGET-POOL "DimensionFolder":U.
-    END.    /* SmartFolder */
-    ELSE
-        ASSIGN bttInstance.MinHeight = DYNAMIC-FUNCTION("getMinHeight":U IN hObjectInstanceHandle)
-               bttInstance.MinWidth  = DYNAMIC-FUNCTION("getMinWidth":U  IN hObjectInstanceHandle)
-               NO-ERROR.
-
-    /* Ensure that there are no null value in the min* fields. */
-    IF bttInstance.MinHeight EQ ? THEN ASSIGN bttInstance.MinHeight = 0.
-    IF bttInstance.MinWidth EQ ?  THEN ASSIGN bttInstance.MinWidth  = 0.
+            FOR EACH bttInstance WHERE
+                     bttInstance.SourceProcedure = ghSourceProcedure AND
+                     bttInstance.PageNum         = piPageNumber      AND
+                     bttInstance.RowNum          = bttRow.RowNum     AND
+                     bttInstance.MinWidth        = 0                 AND
+                     bttInstance.FixedWidth      = NO                :
+                ASSIGN bttInstance.ObjectWidth = dAverageWidth.
+            END.    /* each instance on a row where the min height is 0 */
+        END.    /* there are still some variable width instances. */
+    END.    /* each page, per row. */
     
-    /* The Row's Minimum Height and Width depend on the instance's Minimum Height and Width. */
-    ASSIGN bttRow.MinHeight = MAX(bttRow.MinHeight, bttInstance.MinHeight)
-           bttRow.MinWidth  = bttRow.MinWidth + bttInstance.MinWidth + (IF bttRow.MinWidth NE 0 THEN 1 ELSE 0)
-           .
-    ASSIGN bttInstance.FixedHeight = NOT lResizeVertical
-           bttInstance.FixedWidth  = NOT lResizeHorizontal
-           .
-    /* The height of the tallest object in the row (in terms of initial
-     * size) determines the initial height of the row and whether the row
-     * as a whole is considered to be fixed height or not. Also ensure 
-     * that if there are more than one object in a row and one of these
-     * objects is resizable that we do not make the whole row fixed if 
-     * another object in the same row is fixed */
-    IF bttRow.NumObjects > 1 THEN DO:
-      IF dObjectHeight > bttRow.RowHeight AND 
-        bttRow.FixedHeight = YES THEN
-        ASSIGN bttRow.RowHeight   = dObjectHeight
-               bttRow.FixedHeight = NOT lResizeVertical
-               .
-      ELSE
-        ASSIGN bttRow.FixedHeight = NO
-               .
-    END.
-    ELSE DO:
-      IF dObjectHeight > bttRow.RowHeight THEN
-        ASSIGN bttRow.RowHeight   = dObjectHeight
-               bttRow.FixedHeight = NOT lResizeVertical
-               .
-    END.
-             
-    /* If there's any variable width object in the row, then the row
-     * as a whole is variable width. */
-    IF lResizeHorizontal THEN
-        ASSIGN bttRow.NumResizeHorizontal = bttRow.NumResizeHorizontal + 1
-               bttRow.FixedWidth          = NO
-               .
-    ELSE
-        ASSIGN bttRow.FixedHorizontalSize = bttRow.FixedHorizontalSize + dObjectWidth + 1. /* NB: right gap? */
-    ASSIGN bttRow.RowWidth = bttRow.RowWidth + dObjectWidth + (IF bttRow.RowWidth NE 0 THEN 1 ELSE 0).
-  END.       /* END DO if there's a layout position and a size */
-END.           /* END REPEAT loop for all objects on the page */
-
-/* Now that we've populated the Row table, we need to go back through it
- * to reapportion any remaining available height among the variable height rows.
- * This takes two passes, one to calculate the number of variable height rows and
- * the total fixed height to allocate before resizing those variable height rows,
- * and then a second pass to actually adjust the height of the variable rows.     */
-FOR EACH bttRow WHERE
-         bttRow.PageNum = piPageNumber
-         BY bttRow.RowNum:
-    IF bttRow.FixedHeight THEN
-        ASSIGN dTotalFixedHeight = dTotalFixedHeight + bttRow.RowHeight + gdTwentyFourHundredths.
-    ELSE
-        ASSIGN iNumVarHeightRows = iNumVarHeightRows + 1.
-END.   /* END first FOR EACH bttRow */
-
-/* If the row height, calculated by dividing the non-fixed height by the number of variable
- * rows, is less than the minimum height of any of the rows, the row heights of these rows
- * must be set to the row's minimum height. The remainder of the available height will be
- * shared out between the rows which do not have minumum heights.                        */
-IF iNumVarHeightRows GT 0 THEN
-DO:
-  ASSIGN dAvailableHeight  = dDesiredHeight - dTotalFixedHeight
-         dAverageRowHeight = dAvailableHeight / iNumVarHeightRows
-         .
-  /* First reserve space for those rows with minimum heights that
-   * are greater than the height they would be alocated by default. */
-  FOR EACH bttRow WHERE
-           bttRow.PageNum     = piPageNumber AND
-           bttRow.Fixedheight = NO:
-      IF bttRow.MinHeight GT dAverageRowHeight THEN
-          ASSIGN bttRow.RowHeight  = bttRow.MinHeight
-                 dAvailableHeight  = dAvailableHeight - bttRow.RowHeight
-                 iNumVarHeightRows = iNumVarHeightRows - 1
-                 .
-      ELSE
-          ASSIGN bttRow.MinHeight = 0.
-  END.    /* rows with min heights min heights.*/
-
-  /* If there are any rows left, ensure that they are at least their minimum heights.
-  * Exclude any rows catered for above.                                              */  
-  IF iNumVarHeightRows GT 0 THEN
-  DO:
-      ASSIGN dAverageRowHeight = dAvailableHeight / iNumVarHeightRows.
-      /* Allocate the remaining height available between all remaining rows */
-      FOR EACH bttRow WHERE
-               bttRow.PageNum     = piPageNumber AND
-               bttRow.Fixedheight = NO           AND
-               bttRow.MinHeight   = 0 :
-          ASSIGN bttRow.RowHeight = dAverageRowHeight.
-    END.    /* rows without a minimum height. */
-  END.    /* ther are min var height rows available. */
-END.    /* variable height rows exist. */
-
-/* Calculate the widths of the objects in each row, ensuring that an object cannot be sized 
- * smaller that its individual MinWidth. */
-FOR EACH bttRow WHERE
-         bttRow.PageNum = piPageNumber
-         BY bttRow.RowNum:
-    ASSIGN dAvailableWidth    = dDesiredWidth - bttRow.FixedHorizontalSize
-           iVarWidthInstances = bttRow.NumResizeHorizontal
-           dAverageWidth      = (dAvailableWidth) / iVarWidthInstances - 1
+    /* Now make a second pass through the objects by reading the Instance temp-table.
+     * Adjust the size of each based on the characteristics of the row and the available size. */
+    ASSIGN iRowNum       = 0
+           dNewObjectRow = 0
            .
     FOR EACH bttInstance WHERE
-             bttInstance.PageNum    = bttRow.PageNum AND
-             bttInstance.RowNum     = bttRow.RowNum  AND
-             bttInstance.FixedWidth = NO                :
-        IF bttInstance.MinWidth GT dAverageWidth THEN
-            ASSIGN bttInstance.ObjectWidth = bttInstance.MinWidth
-                   dAvailableWidth         = dAvailableWidth    - bttInstance.ObjectWidth
-                   iVarWidthInstances      = iVarWidthInstances - 1
-                   .
+             bttInstance.SourceProcedure = ghSourceProcedure AND
+             bttInstance.PageNum         = piPageNumber             
+             BY bttInstance.RowCol:
+        ASSIGN cLayoutCode  = IF bttInstance.JustifyPosition EQ "":U THEN "M":U ELSE bttInstance.JustifyPosition
+               iLayoutRow   = bttInstance.RowNum.
+        IF iLayoutRow > iRowNum THEN
+        DO:
+            /* Start on the objects in a new row. */
+            ASSIGN iRowNum = iLayoutRow
+                   /* A top toolbar is positioned at column 0;
+                    * other objects at column 1. */
+                   dNewObjectColumn = (IF DYNAMIC-FUNCTION("classIsA":U IN gshRepositoryManager, INPUT bttInstance.ObjectTypeCode, INPUT "SmartToolbar":U) AND 
+                                       iLayoutRow EQ 1 THEN 0 ELSE 1).
+            ASSIGN dPrevRowHeight = (IF AVAILABLE bttRow THEN bttRow.RowHeight ELSE 0).
+            FIND bttRow WHERE
+                 bttRow.SourceProcedure = ghSourceProcedure AND
+                 bttRow.PageNum         = piPageNumber      AND
+                 bttRow.RowNum          = iLayoutRow
+                 NO-ERROR.
+            /* If this is the bottom row, then position it at the bottom and leave it out
+             * of the rolling calculation of newObjectRow. */
+            IF AVAILABLE bttRow AND bttRow.BottomSection THEN
+                ASSIGN dBottomRow = dDesiredHeight - bttRow.RowHeight. /* + .24 ?? */
+            ELSE
+            IF iLayoutRow NE 1 THEN
+                /* Always shift the object down slightly, even if this is a toolbar we are dealing with.
+                 * This is because the this is not the top row.                                         */
+                ASSIGN dNewObjectRow = dNewObjectRow + dPrevRowHeight + 0.24.
+        END.     /* END DO IF new iLayoutRow */
+        /* If this isn't the first object in the row, then increment the column position
+         * by the width of the previous object (dNewObjectWidth still has this value). */
         ELSE
-            ASSIGN bttInstance.MinWidth = 0.
-    END.    /* each instance on a row */
+            ASSIGN dNewObjectColumn = dNewObjectColumn + dNewObjectWidth + 1.
 
-    IF iVarWidthInstances GT 0 THEN
-    DO:
-        ASSIGN dAverageWidth = (dAvailableWidth) / iVarWidthInstances - 1.
+        ASSIGN dNewObjectHeight = (IF NOT bttInstance.FixedHeight THEN bttRow.RowHeight - 0.13 ELSE bttInstance.ObjectHeight).
 
-        FOR EACH bttInstance WHERE
-                 bttInstance.PageNum    = piPageNumber  AND
-                 bttInstance.RowNum     = bttRow.RowNum AND
-                 bttInstance.MinWidth   = 0             AND
-                 bttInstance.FixedWidth = NO               :
-            ASSIGN bttInstance.ObjectWidth = dAverageWidth.
-        END.    /* each instance on a row where the min height is 0 */
-    END.    /* there are still some variable width instances. */
-END.    /* each page, per row. */
+        /* We have already calculated the individual object widths. */
+        ASSIGN dNewObjectWidth = bttInstance.ObjectWidth.
 
-/* Now make a second pass through the objects by reading the Instance temp-table.
- * Adjust the size of each based on the characteristics of the row and the available size. */
-ASSIGN iRowNum       = 0
-       dNewObjectRow = 0
-       .
-FOR EACH bttInstance WHERE
-         bttInstance.PageNum = piPageNumber
-         BY SUBSTR(bttInstance.LayoutPosition, 2):   /* Skip the LayoutCode for sort */
-  ASSIGN cLayoutCode  = SUBSTR(bttInstance.LayoutPosition, 1, 1)
-         iLayoutRow   = INTEGER(SUBSTR(bttInstance.LayoutPosition, 2, 1))
-         cJustifyCode = bttInstance.JustifyPosition.
-  IF iLayoutRow > iRowNum THEN
-  DO:
-    /* Start on the objects in a new row. */
-    ASSIGN iRowNum = iLayoutRow
-           /* A top toolbar is positioned at column 0;
-            * other objects at column 1. */
-           dNewObjectColumn = (IF bttInstance.ObjectTypeCode EQ "SmartToolbar":U AND iLayoutRow EQ 1 THEN 0 ELSE 1)
-           .
-    ASSIGN dPrevRowHeight = (IF AVAILABLE bttRow THEN bttRow.RowHeight ELSE 0).
-    FIND bttRow WHERE
-         bttRow.PageNum = piPageNumber AND
-         bttRow.RowNum  = iLayoutRow
-         NO-ERROR.
-    /* If this is the bottom row, then position it at the bottom and leave it out
-     * of the rolling calculation of newObjectRow. */
-    IF AVAILABLE bttRow AND bttRow.BottomSection THEN
-      ASSIGN dBottomRow = dDesiredHeight - bttRow.RowHeight. /* + .24 ?? */
-    ELSE
-    IF iLayoutRow NE 1 THEN
-      /* Always shift the object down slightly, even if this is a toolbar we are dealing with.
-       * This is because the this is not the top row.                                         */
-      ASSIGN dNewObjectRow = dNewObjectRow + dPrevRowHeight + gdTwentyFourHundredths.
-  END.     /* END DO IF new iLayoutRow */
-  /* If this isn't the first object in the row, then increment the column position
-   * by the width of the previous object (dNewObjectWidth still has this value). */
-  ELSE
-    ASSIGN dNewObjectColumn = dNewObjectColumn + dNewObjectWidth + 1.
-  
-    ASSIGN dNewObjectHeight = (IF NOT bttInstance.FixedHeight THEN bttRow.RowHeight ELSE bttInstance.ObjectHeight).
+        CASE bttInstance.JustifyPosition:
+            WHEN "R":U THEN
+                ASSIGN dNewObjectColumn = pdContainerWidth - dNewObjectWidth
+                       dNewObjectColumn = IF dNewObjectColumn <= 0 THEN 1 ELSE dNewObjectColumn.
+            WHEN "C":U THEN
+            DO:
+                /* Can only be centered if the only object on this row */
+                IF bttRow.NumObjects <= 1 THEN
+                    ASSIGN dNewObjectColumn = (pdContainerWidth / 2) - (dNewObjectWidth / 2)
+                           dNewObjectColumn = IF dNewObjectColumn <= 0 THEN 1 ELSE dNewObjectColumn.
+            END.    /* C */
+        END CASE.   /* Justify Code */
 
-    /* We have already calculated the individual object widths. */
-    ASSIGN dNewObjectWidth = bttInstance.ObjectWidth.
+        RUN resizeAndMoveSomething IN TARGET-PROCEDURE ( INPUT  piPageNumber,
+                                                         INPUT  phObjectBuffer,
+                                                         INPUT  phPageBuffer,
+                                                         INPUT  bttInstance.ObjectTypeCode,
+                                                         INPUT  bttInstance.ObjectInstanceHandle,
+                                                         INPUT  pdTopLeftColumn,
+                                                         INPUT  pdTopLeftRow,
+                                                         INPUT  dNewObjectColumn,
+                                                         INPUT  (IF dBottomRow > 0 THEN dBottomRow ELSE dNewObjectRow),
+                                                         INPUT  dNewObjectWidth,
+                                                         INPUT  dNewObjectHeight,
+                                                         INPUT  pdInstanceId          ).    
+        ASSIGN dBottomRow = 0.       /* Don't use this special row more than once. */
+    END.        /* END FOR EACH bttInstance */
 
-  IF cJustifyCode = "R":U THEN
-    ASSIGN dNewObjectColumn = pdContainerWidth - dNewObjectWidth
-           dNewObjectColumn = IF dNewObjectColumn <= 0 THEN 1 ELSE dNewObjectColumn.
-  
-  IF cJustifyCode = "C":U AND 
-     bttRow.NumObjects <= 1 THEN /* Can only be centered if the only object on this row */
-    ASSIGN dNewObjectColumn = (pdContainerWidth / 2) - (dNewObjectWidth / 2)
-           dNewObjectColumn = IF dNewObjectColumn <= 0 THEN 1 ELSE dNewObjectColumn.
-  
-  RUN resizeAndMoveSomething ( INPUT  piPageNumber,
-                               INPUT  phPageInstanceTT,
-                               INPUT  phPageTT,
-                               INPUT  bttInstance.ObjectTypeCode,
-                               INPUT  bttInstance.ObjectInstanceHandle,
-                               INPUT  pdTopLeftColumn,
-                               INPUT  pdTopLeftRow,
-                               INPUT  dNewObjectColumn, 
-                               INPUT  (IF dBottomRow > 0 THEN dBottomRow ELSE dNewObjectRow),
-                               INPUT  dNewObjectWidth,
-                               INPUT  dNewObjectHeight).
-
-  ASSIGN dBottomRow = 0.       /* Don't use this special row more than once. */
-END.        /* END FOR EACH bttInstance */
-
-hPageInstanceQuery:QUERY-CLOSE().
-
-DELETE OBJECT hPageInstanceQuery.
-DELETE OBJECT hPageInstanceBuffer.
-
-ASSIGN hPageInstanceQuery  = ?
-       hPageInstanceBuffer = ?
-       .
-/* Clean out the rows used by this instance of the procedure. */
-FOR EACH bttRow WHERE bttRow.PageNum = piPageNumber:                DELETE bttRow.          END.
-FOR EACH bttInstance WHERE bttInstance.PageNum = piPageNumber:      DELETE bttInstance.     END.
-
-RETURN.
-END PROCEDURE.
+    /* Clean out the rows used by this instance of the procedure. */
+    FOR EACH bttRow WHERE 
+             bttRow.SourceProcedure = ghSourceProcedure AND
+             bttRow.PageNum         = piPageNumber:
+        DELETE bttRow.
+    END.    /* each row */
+    
+    FOR EACH bttInstance WHERE 
+             bttInstance.SourceProcedure = ghSourceProcedure AND
+             bttInstance.PageNum         = piPageNumber:
+        DELETE bttInstance.     
+    END.    /* each instance */
+    
+    ASSIGN ERROR-STATUS:ERROR = NO.
+    RETURN.
+END PROCEDURE.  /* resize06 */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -2913,148 +2967,197 @@ PROCEDURE resizeAndMoveSomething :
   Parameters:  <none>
   Notes:       Uses repositionObject and resizeObject in objects themselves
 ------------------------------------------------------------------------------*/
-DEFINE INPUT PARAMETER piPageNumber      AS INTEGER   NO-UNDO.
-DEFINE INPUT PARAMETER phPageInstanceTT  AS HANDLE    NO-UNDO.
-DEFINE INPUT PARAMETER phPageTT          AS HANDLE    NO-UNDO.
-DEFINE INPUT PARAMETER pcObjectType      AS CHARACTER NO-UNDO.
-DEFINE INPUT PARAMETER phObjectInstance  AS HANDLE    NO-UNDO.
-DEFINE INPUT PARAMETER pdTopLeftColumn   AS DECIMAL   NO-UNDO.
-DEFINE INPUT PARAMETER pdTopLeftRow      AS DECIMAL   NO-UNDO.
-DEFINE INPUT PARAMETER pdNewColumn       AS DECIMAL   NO-UNDO.
-DEFINE INPUT PARAMETER pdNewRow          AS DECIMAL   NO-UNDO.
-DEFINE INPUT PARAMETER pdNewWidth        AS DECIMAL   NO-UNDO.
-DEFINE INPUT PARAMETER pdNewHeight       AS DECIMAL   NO-UNDO.
-
-DEFINE VARIABLE hPageQuery          AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hPageBuffer         AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hPageNumberField    AS HANDLE     NO-UNDO.
-DEFINE VARIABLE iPageNumber         AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hLayoutCodeField    AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hFrame              AS HANDLE     NO-UNDO.
-DEFINE VARIABLE cLayoutCode         AS CHARACTER  NO-UNDO.  
-DEFINE VARIABLE dColumn             AS DECIMAL    NO-UNDO.
-DEFINE VARIABLE hPageInitField      AS HANDLE     NO-UNDO.
-DEFINE VARIABLE lPageInit           AS LOGICAL    NO-UNDO.   
-
-/* WARNING:  LayoutManagers operate on Cartezian Co-ordinates, where top left is 0,0.  Progess (in
-   character units) uses 1,1.  For this reason, 1 is added to each of the ROW and COLUMN positions in the
-   repositionObject call */                                                       
-
-IF VALID-HANDLE(phObjectInstance) THEN
-DO:                                                   
-  IF LOOKUP("resizeAndMoveObject",phObjectInstance:INTERNAL-ENTRIES) > 0 THEN 
-  DO:
-      RUN resizeAndMoveObject IN phObjectInstance (
-          INPUT pdNewHeight,
-          INPUT pdNewWidth,
-          INPUT pdNewRow + pdTopLeftRow + 1,
-          INPUT pdNewColumn + pdTopLeftColumn + 1).
-  END.
-  ELSE
-  DO:
-    IF CAN-QUERY(phObjectInstance, "COLUMN":U) THEN
-      dColumn = phObjectInstance:COLUMN.
-    ELSE
-    DO:
-      {get ContainerHandle hFrame phObjectInstance}.
-  
-      IF VALID-HANDLE(hFrame) AND CAN-QUERY(hFrame, "COLUMN":U) THEN
-        dColumn = hFrame:COLUMN.
+    DEFINE INPUT PARAMETER piPageNumber         AS INTEGER              NO-UNDO.
+    DEFINE INPUT PARAMETER phObjectBuffer       AS HANDLE               NO-UNDO.
+    DEFINE INPUT PARAMETER phPageBuffer         AS HANDLE               NO-UNDO.
+    DEFINE INPUT PARAMETER pcObjectType         AS CHARACTER            NO-UNDO.
+    DEFINE INPUT PARAMETER phObjectInstance     AS HANDLE               NO-UNDO.
+    DEFINE INPUT PARAMETER pdTopLeftColumn      AS DECIMAL              NO-UNDO.
+    DEFINE INPUT PARAMETER pdTopLeftRow         AS DECIMAL              NO-UNDO.
+    DEFINE INPUT PARAMETER pdNewColumn          AS DECIMAL              NO-UNDO.
+    DEFINE INPUT PARAMETER pdNewRow             AS DECIMAL              NO-UNDO.
+    DEFINE INPUT PARAMETER pdNewWidth           AS DECIMAL              NO-UNDO.
+    DEFINE INPUT PARAMETER pdNewHeight          AS DECIMAL              NO-UNDO.
+    DEFINE INPUT PARAMETER pdInstanceId         AS DECIMAL              NO-UNDO.
+    
+    DEFINE VARIABLE hPageQuery          AS HANDLE                       NO-UNDO.
+    DEFINE VARIABLE hLocalPageBuffer    AS HANDLE                       NO-UNDO.
+    DEFINE VARIABLE iPageNumber         AS HANDLE                       NO-UNDO.
+    DEFINE VARIABLE hFrame              AS HANDLE                       NO-UNDO.
+    DEFINE VARIABLE hOldSourceProcedure AS HANDLE                       NO-UNDO.
+    DEFINE VARIABLE cLayoutCode         AS CHARACTER                    NO-UNDO.
+    DEFINE VARIABLE dColumn             AS DECIMAL                      NO-UNDO.
+    DEFINE VARIABLE dInstanceId         AS DECIMAL                      NO-UNDO.
+    DEFINE VARIABLE lPageInit           AS LOGICAL                      NO-UNDO.   
+    DEFINE VARIABLE cWidgetPool         AS CHARACTER                    NO-UNDO.
+    
+    ASSIGN cWidgetPool          = "resizeAndMoveSomething":U + STRING(giUniqenessGuarantor)
+           giUniqenessGuarantor = giUniqenessGuarantor + 1.
+    
+    /* WARNING:  LayoutManagers operate on Cartezian Co-ordinates, where top left is 0,0.  Progess (in
+       character units) uses 1,1.  For this reason, 1 is added to each of the ROW and COLUMN positions in the
+       repositionObject call */                                                       
+    
+    IF VALID-HANDLE(phObjectInstance) THEN
+    DO:                                                   
+      IF LOOKUP("resizeAndMoveObject",phObjectInstance:INTERNAL-ENTRIES) > 0 THEN 
+      DO:
+          RUN resizeAndMoveObject IN phObjectInstance (
+              INPUT pdNewHeight,
+              INPUT pdNewWidth,
+              INPUT pdNewRow + pdTopLeftRow + 1,
+              INPUT pdNewColumn + pdTopLeftColumn + 1).
+      END.
       ELSE
-        dColumn = pdNewColumn + pdTopLeftColumn + 1.
-    END.
-  
-    IF pdNewColumn + pdTopLeftColumn + 1 < dColumn THEN
-    DO:
-      IF LOOKUP("repositionObject",phObjectInstance:INTERNAL-ENTRIES) > 0 THEN 
-        RUN repositionObject IN phObjectInstance
-                            (INPUT pdNewRow + pdTopLeftRow + 1,
-                             INPUT pdNewColumn + pdTopLeftColumn + 1).            
-  
-      IF LOOKUP("resizeObject",phObjectInstance:INTERNAL-ENTRIES) > 0 THEN 
-        RUN resizeObject IN phObjectInstance
-                        (INPUT pdNewHeight,
-                         INPUT pdNewWidth).
-    END.
-    ELSE
-    DO:
-      IF LOOKUP("resizeObject",phObjectInstance:INTERNAL-ENTRIES) > 0 THEN 
-        RUN resizeObject IN phObjectInstance
-                        (INPUT pdNewHeight,
-                         INPUT pdNewWidth).
-  
-      IF LOOKUP("repositionObject",phObjectInstance:INTERNAL-ENTRIES) > 0 THEN 
-        RUN repositionObject IN phObjectInstance
-                            (INPUT pdNewRow + pdTopLeftRow + 1,
-                             INPUT pdNewColumn + pdTopLeftColumn + 1).            
-    END.
-  END.
-END.
-
-IF pcObjectType = "SmartFolder" THEN
-DO:
-    DEFINE VARIABLE dTabColumn AS DECIMAL.
-    DEFINE VARIABLE dTabRow    AS DECIMAL.
-    DEFINE VARIABLE dTabWidth  AS DECIMAL.
-    DEFINE VARIABLE dTabHeight AS DECIMAL.
-
-    RUN getClientRectangle IN phObjectInstance (
-        OUTPUT dTabColumn,
-        OUTPUT dTabRow,
-        OUTPUT dTabWidth,
-        OUTPUT dTabHeight
-        ).
-
-    IF piPageNumber <> 0 THEN
-    DO:
-        /* error - folder on page other than 0 */
-    END.
-    ELSE DO:
-        /* now loop through all pages, resizing the layout for each one */
-        CREATE BUFFER hPageBuffer FOR TABLE phPageTT.
-/*             hPageBuffer = phPageTT:DEFAULT-BUFFER-HANDLE. */
-
-        CREATE QUERY hPageQuery.
-        hPageQuery:SET-BUFFERS(hPageBuffer).
-        hPageQuery:QUERY-PREPARE("FOR EACH tt_page WHERE tt_page.page_number <> 0").
-        hPageQuery:QUERY-OPEN().
-        hPageNumberField = hPageBuffer:BUFFER-FIELD("page_number").
-        hLayoutCodeField = hPageBuffer:BUFFER-FIELD("layout_code").
-        hPageInitField   = hPageBuffer:BUFFER-FIELD("page_initialized").
-
-        REPEAT:
-            hPageQuery:GET-NEXT().
-            IF NOT hPageBuffer:AVAILABLE THEN LEAVE.
-
-            iPageNumber = hPageNumberField:BUFFER-VALUE.
-            cLayoutCode = hLayoutCodeField:BUFFER-VALUE.
-            lPageInit   = hPageInitField:BUFFER-VALUE.
-            IF lPageInit THEN
-            DO:
-              RUN resizeLayout(
-                  INPUT  cLayoutCode,
-                  INPUT  iPageNumber,
-                  INPUT  phPageInstanceTT,
-                  INPUT  phPageTT,
-                  INPUT  dTabWidth,
-                  INPUT  dTabHeight,
-                  INPUT  dTabColumn - 1,
-                  INPUT  dTabRow - 1).
-            END.
+      DO:
+        IF CAN-QUERY(phObjectInstance, "COLUMN":U) THEN
+          dColumn = phObjectInstance:COLUMN.
+        ELSE
+        DO:
+          {get ContainerHandle hFrame phObjectInstance}.
+      
+          IF VALID-HANDLE(hFrame) AND CAN-QUERY(hFrame, "COLUMN":U) THEN
+            dColumn = hFrame:COLUMN.
+          ELSE
+            dColumn = pdNewColumn + pdTopLeftColumn + 1.
         END.
+      
+        IF pdNewColumn + pdTopLeftColumn + 1 < dColumn THEN
+        DO:
+          IF LOOKUP("repositionObject",phObjectInstance:INTERNAL-ENTRIES) > 0 THEN 
+            RUN repositionObject IN phObjectInstance
+                                (INPUT pdNewRow + pdTopLeftRow + 1,
+                                 INPUT pdNewColumn + pdTopLeftColumn + 1).            
+      
+          IF LOOKUP("resizeObject",phObjectInstance:INTERNAL-ENTRIES) > 0 THEN 
+            RUN resizeObject IN phObjectInstance
+                            (INPUT pdNewHeight,
+                             INPUT pdNewWidth).
+        END.
+        ELSE
+        DO:
+          IF LOOKUP("resizeObject",phObjectInstance:INTERNAL-ENTRIES) > 0 THEN 
+            RUN resizeObject IN phObjectInstance
+                            (INPUT pdNewHeight,
+                             INPUT pdNewWidth).
+      
+          IF LOOKUP("repositionObject",phObjectInstance:INTERNAL-ENTRIES) > 0 THEN 
+            RUN repositionObject IN phObjectInstance
+                                (INPUT pdNewRow + pdTopLeftRow + 1,
+                                 INPUT pdNewColumn + pdTopLeftColumn + 1).            
+        END.
+      END.
+    END.
+    
+    IF DYNAMIC-FUNCTION("classIsA":U IN gshRepositoryManager, INPUT pcObjectType, INPUT "SmartFolder":U) THEN
+    DO:
+        DEFINE VARIABLE dTabColumn AS DECIMAL.
+        DEFINE VARIABLE dTabRow    AS DECIMAL.
+        DEFINE VARIABLE dTabWidth  AS DECIMAL.
+        DEFINE VARIABLE dTabHeight AS DECIMAL.
+    
+        RUN getClientRectangle IN phObjectInstance (
+            OUTPUT dTabColumn,
+            OUTPUT dTabRow,
+            OUTPUT dTabWidth,
+            OUTPUT dTabHeight
+            ).
+    
+        IF piPageNumber <> 0 THEN
+        DO:
+            /* error - folder on page other than 0 */
+        END.
+        ELSE DO:
+            CREATE WIDGET-POOL cWidgetPool.
+    
+            /* now loop through all pages, resizing the layout for each one */
+            CREATE BUFFER hLocalPageBuffer FOR TABLE phPageBuffer IN WIDGET-POOL cWidgetPool.
 
-        hPageQuery:QUERY-CLOSE().
-        DELETE OBJECT hPageQuery.
-        DELETE OBJECT hPageBuffer.
-        ASSIGN
-          hPageQuery = ?
-          hPageBuffer = ?
-          . 
-    END.            
+            CREATE QUERY hPageQuery IN WIDGET-POOL cWidgetPool.
+    
+            hPageQuery:SET-BUFFERS(hLocalPageBuffer).
+            hPageQuery:QUERY-PREPARE("FOR EACH ":U + hLocalPageBuffer:NAME + " WHERE ":U 
+                                     + hLocalPageBuffer:NAME + ".tTargetProcedure = WIDGET-HANDLE(":U + QUOTER(ghSourceProcedure) + ") AND ":U
+                                     + hLocalPageBuffer:NAME + ".tRecordIdentifier = " + QUOTER(pdInstanceId) + " AND ":U
+                                     + hLocalPageBuffer:NAME + ".tPageNumber <> 0 ":U).
+            hPageQuery:QUERY-OPEN().
+    
+            REPEAT:
+                hPageQuery:GET-NEXT().
+                IF NOT hLocalPageBuffer:AVAILABLE THEN LEAVE.
+    
+                iPageNumber = hLocalPageBuffer:BUFFER-FIELD("tPageNumber":U):BUFFER-VALUE.
+                cLayoutCode = hLocalPageBuffer:BUFFER-FIELD("tLayoutCode":U):BUFFER-VALUE.
+                lPageInit   = hLocalPageBuffer:BUFFER-FIELD("tPageInitialized":U):BUFFER-VALUE.
 
-END.    
+                IF lPageInit THEN
+                    RUN resizeLayout IN TARGET-PROCEDURE ( INPUT  cLayoutCode,
+                                                           INPUT  iPageNumber,
+                                                           INPUT  phObjectBuffer,
+                                                           INPUT  phPageBuffer,
+                                                           INPUT  dTabWidth,
+                                                           INPUT  dTabHeight,
+                                                           INPUT  dTabColumn - 1,
+                                                           INPUT  dTabRow - 1,
+                                                           INPUT  pdInstanceId       ).
+            END.
+    
+            hPageQuery:QUERY-CLOSE().
+            DELETE OBJECT hPageQuery.
+            ASSIGN hPageQuery = ?.
+    
+            DELETE WIDGET-POOL cWidgetPool.
+        END.
+    END.    /* SmartFolder */    
+    ELSE
+    IF DYNAMIC-FUNCTION("classIsA":U IN gshRepositoryManager, INPUT pcObjectType, INPUT "DynFrame":U) OR
+       /* This is to cater for instances where a container is forcibly run using the dynamic frame */
+       phObjectInstance:FILENAME MATCHES "*rydynframw*":U                                             THEN
+    DO:
+        /* Get the instanceID of the DynFrame instance. */
+        {get InstanceId dInstanceId phObjectInstance}.
 
-END PROCEDURE.
+        /* Get the layout code */
+        phPageBuffer:FIND-FIRST(" WHERE ":U
+                                + phPageBuffer:NAME + ".tTargetProcedure = WIDGET-HANDLE(":U + QUOTER(phObjectInstance) + ") AND ":U
+                                + phPageBuffer:NAME + ".tPageNumber = 0 ":U ).
+
+        ASSIGN cLayoutCode = phPageBuffer:BUFFER-FIELD("tLayoutCode"):BUFFER-VALUE.
+
+        /* The ghSourceProcedure is used to find the relevant objects. Since a global variable
+         * is used we need to fool this resize procedure.                                     */
+        ASSIGN hOldSourceProcedure = ghSourceProcedure
+               ghSourceProcedure   = phObjectInstance
+               .
+        /* Always resize the frame on page zero. If there is a folder page on the frame,
+         * it will resize correctly s a result of the folder resizing code.             
+         *
+         * The top left row and column are always passed in as zero ebcasue we are positioning on
+         * a new frame completely, and always want to start in the top left corner. The frame itself
+         * has been repositioned (and resized) by a call a little earlier in this procedure.        */        
+        RUN resizeLayout IN TARGET-PROCEDURE ( INPUT  cLayoutCode,           /* pcLayoutCode    */
+                                               INPUT  0,                     /* piPageNumber    */
+                                               INPUT  phObjectBuffer,        /* phObjectBuffer  */
+                                               INPUT  phPageBuffer,          /* phPageBuffer    */
+                                               INPUT  pdNewWidth,            /* pdMinWidth      */
+                                               INPUT  pdNewHeight,           /* pdMinHeight     */
+                                               INPUT  0,                     /* pdTopLeftColumn */
+                                               INPUT  0,                     /* pdTopLeftRow    */
+                                               INPUT  dInstanceId       ).   /* pdInstanceId    */
+
+        /* Resize frame if necessary. The DynFrame will set the ResizeMe value to Pending
+         * if the frame is being resized smaller. If this is the case, then the resize is not
+         * performed until all of the objects on the DynFrame have been made smaller. If we don't
+         * do this there is a good chance of errors.                                             */
+        IF DYNAMIC-FUNCTION("getUserProperty":U IN phObjectInstance, INPUT "ResizeMe":U) EQ "Pending":U THEN
+            RUN resizeObject IN phObjectInstance ( INPUT pdNewHeight, INPUT pdNewWidth).
+
+        ASSIGN ghSourceProcedure = hOldSourceProcedure.        
+    END.    /* DynFrame */
+
+    ASSIGN ERROR-STATUS:ERROR = NO.
+    RETURN.
+END PROCEDURE.  /* resizeAndMoveSomething */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -3070,28 +3173,31 @@ PROCEDURE resizeLayout :
   Parameters:  <none>
   Notes:       called internally from packwindow or resizewindow
 ------------------------------------------------------------------------------*/
-DEFINE INPUT PARAMETER pcLayoutCode     AS CHARACTER NO-UNDO.
-DEFINE INPUT PARAMETER piPageNumber     AS INTEGER   NO-UNDO.
-DEFINE INPUT PARAMETER phPageInstanceTT AS HANDLE    NO-UNDO.
-DEFINE INPUT PARAMETER phPageTT         AS HANDLE    NO-UNDO.
-DEFINE INPUT PARAMETER pdMinWidth       AS DECIMAL   NO-UNDO.
-DEFINE INPUT PARAMETER pdMinHeight      AS DECIMAL   NO-UNDO.
-DEFINE INPUT PARAMETER pdTopLeftColumn  AS DECIMAL   NO-UNDO.
-DEFINE INPUT PARAMETER pdTopLeftRow     AS DECIMAL   NO-UNDO.
+    DEFINE INPUT PARAMETER pcLayoutCode         AS CHARACTER            NO-UNDO.
+    DEFINE INPUT PARAMETER piPageNumber         AS INTEGER              NO-UNDO.
+    DEFINE INPUT PARAMETER phObjectBuffer       AS HANDLE               NO-UNDO.
+    DEFINE INPUT PARAMETER phPageBuffer         AS HANDLE               NO-UNDO.
+    DEFINE INPUT PARAMETER pdMinWidth           AS DECIMAL              NO-UNDO.
+    DEFINE INPUT PARAMETER pdMinHeight          AS DECIMAL              NO-UNDO.
+    DEFINE INPUT PARAMETER pdTopLeftColumn      AS DECIMAL              NO-UNDO.
+    DEFINE INPUT PARAMETER pdTopLeftRow         AS DECIMAL              NO-UNDO.
+    DEFINE INPUT PARAMETER pdInstanceId         AS DECIMAL              NO-UNDO.
 
-IF pcLayoutCode = "":U THEN
-  RETURN.
+    IF NOT CAN-DO(TARGET-PROCEDURE:INTERNAL-ENTRIES, "resize":U + pcLayoutCode) THEN
+        RETURN.
 
-RUN VALUE("resize" + pcLayoutCode) IN THIS-PROCEDURE (
-    INPUT piPageNumber,
-    INPUT phPageInstanceTT,
-    INPUT phPageTT,
-    INPUT pdMinWidth,
-    INPUT pdMinHeight,
-    INPUT pdTopLeftColumn,
-    INPUT pdTopLeftRow).
+    RUN VALUE("resize" + pcLayoutCode) ( INPUT piPageNumber,
+                                         INPUT phObjectBuffer,
+                                         INPUT phPageBuffer,
+                                         INPUT pdMinWidth,
+                                         INPUT pdMinHeight,
+                                         INPUT pdTopLeftColumn,
+                                         INPUT pdTopLeftRow,
+                                         INPUT pdInstanceId         ).
 
-END PROCEDURE.
+    ASSIGN ERROR-STATUS:ERROR = NO.
+    RETURN.
+END PROCEDURE.  /* resizeLayout */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -3112,25 +3218,38 @@ PROCEDURE resizeWindow :
   Notes:       Called from resizeWindow procedure in dynamic container
                rydyncontw.w
 ------------------------------------------------------------------------------*/
-    DEFINE INPUT PARAMETER pcLayoutCode     AS CHARACTER                NO-UNDO.
-    DEFINE INPUT PARAMETER phPageInstanceTT AS HANDLE                   NO-UNDO.
-    DEFINE INPUT PARAMETER phPageTT         AS HANDLE                   NO-UNDO.
-    DEFINE INPUT PARAMETER phWindow         AS HANDLE                   NO-UNDO.
-    DEFINE INPUT PARAMETER phFrame          AS HANDLE                   NO-UNDO. 
+    DEFINE INPUT PARAMETER pcLayoutCode         AS CHARACTER                NO-UNDO.
+    DEFINE INPUT PARAMETER phWindow             AS HANDLE                   NO-UNDO.
+    DEFINE INPUT PARAMETER phFrame              AS HANDLE                   NO-UNDO.
+    DEFINE INPUT PARAMETER pdInstanceId         AS DECIMAL                  NO-UNDO.
+    DEFINE INPUT PARAMETER phObjectBuffer       AS HANDLE                   NO-UNDO.
+    DEFINE INPUT PARAMETER phPageBuffer         AS HANDLE                   NO-UNDO.
 
     DEFINE VARIABLE dColumn             AS DECIMAL                      NO-UNDO.
     DEFINE VARIABLE dRow                AS DECIMAL                      NO-UNDO.
 
-    EMPTY TEMP-TABLE ttRow.
-    EMPTY TEMP-TABLE ttInstance. /* These used later, by resize 06 for example. */
-    
+    DEFINE BUFFER ttRow         FOR ttRow.
+    DEFINE BUFFER ttInstance    FOR ttInstance.
+
     ASSIGN phFrame:SCROLLABLE     = FALSE
            phFrame:WIDTH          = MAX(phFrame:WIDTH,  phWindow:WIDTH)
            phFrame:HEIGHT         = MAX(phFrame:HEIGHT, phWindow:HEIGHT)
-           ghSourceProcedure      = SOURCE-PROCEDURE
            dRow                   = 0
            dColumn                = 0
            NO-ERROR.
+
+    /* Set the source procedure variable. For details of why then
+     * 'resizeWindowFromSuper' is checked, see that API for details why. */
+    IF NOT PROGRAM-NAME(2) BEGINS "resizeWindowFromSuper":U THEN
+        ASSIGN ghSourceProcedure = SOURCE-PROCEDURE.
+
+    FOR EACH ttRow WHERE ttRow.SourceProcedure = ghSourceProcedure:
+        DELETE ttRow.
+    END.    /* each row */
+
+    FOR EACH ttInstance WHERE ttInstance.SourceProcedure = ghSourceProcedure:
+        DELETE ttInstance.     
+    END.    /* each instance */
 
     IF VALID-HANDLE(ghSourceProcedure)                                AND 
        LOOKUP("getTopLeft":U, ghSourceProcedure:INTERNAL-ENTRIES) > 0 THEN
@@ -3138,18 +3257,354 @@ PROCEDURE resizeWindow :
     
     RUN resizeLayout( INPUT  pcLayoutCode,
                       INPUT  0,
-                      INPUT  phPageInstanceTT,
-                      INPUT  phPageTT,
+                      INPUT  phObjectBuffer,
+                      INPUT  phPageBuffer,
                       INPUT  phWindow:WIDTH,
                       INPUT  phWindow:HEIGHT,
                       INPUT  dColumn,
-                      INPUT  dRow).
+                      INPUT  dRow,
+                      INPUT  pdInstanceId           ).
+
     ASSIGN phFrame:WIDTH  = phWindow:WIDTH
            phFrame:HEIGHT = phWindow:HEIGHT
            NO-ERROR.
 
+    ASSIGN ERROR-STATUS:ERROR = NO.
     RETURN.
-END PROCEDURE.
+END PROCEDURE.  /* resizeWindow */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-resizeWindowFromSuper) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE resizeWindowFromSuper Procedure 
+PROCEDURE resizeWindowFromSuper :
+/*------------------------------------------------------------------------------
+  Purpose:     Wrapper for resizeWindow.
+  Parameters:  As per resizeWindow
+               phSourceProcedure - the TARGET-PROCEDURE of the caller.
+  Notes:       * This procedure acts as a wrapper for resizeWindow() since the API
+                 signature cannot be changed. There should be no other code in this,
+                 than the setting of the ghSourceProcedure handle and the calling of
+                 the resizeWindow() API.
+               * The only thing that this API does is
+                 to set the value of the ghSourceProcedure variable to the passed
+                 in value. This is needed because the SOURCE-PROCEDURE handle returns
+                 the name of the calling procedure itself (and not the TARGET-PROCEDURE
+                 of that caller). The Window and Frame code relies on the TARGET-PROCEDURE
+                 to distinguish running instances and so this value needs to be 
+                 correct otherwise the resizing fails.
+------------------------------------------------------------------------------*/
+    DEFINE INPUT PARAMETER pcLayoutCode         AS CHARACTER                NO-UNDO.
+    DEFINE INPUT PARAMETER phWindow             AS HANDLE                   NO-UNDO.
+    DEFINE INPUT PARAMETER phFrame              AS HANDLE                   NO-UNDO.
+    DEFINE INPUT PARAMETER pdInstanceId         AS DECIMAL                  NO-UNDO.
+    DEFINE INPUT PARAMETER phObjectBuffer       AS HANDLE                   NO-UNDO.
+    DEFINE INPUT PARAMETER phPageBuffer         AS HANDLE                   NO-UNDO.
+    DEFINE INPUT PARAMETER phSourceProcedure    AS HANDLE                   NO-UNDO.
+
+    /* Set the value of the source procedure handle */
+    ASSIGN ghSourceProcedure = phSourceProcedure.
+
+    IF NOT VALID-HANDLE(ghSourceProcedure) THEN
+        ASSIGN ghSourceProcedure = SOURCE-PROCEDURE.
+
+    RUN resizeWindow ( INPUT pcLayoutCode,
+                       INPUT phWindow, 
+                       INPUT phFrame,
+                       INPUT pdInstanceId,
+                       INPUT phObjectBuffer,
+                       INPUT phPageBuffer    ).
+
+    ASSIGN ERROR-STATUS:ERROR = NO.
+    RETURN.
+END PROCEDURE.  /* resizeWindowFromSuper */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+/* ************************  Function Implementations ***************** */
+
+&IF DEFINED(EXCLUDE-buildRowsAndInstances) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION buildRowsAndInstances Procedure 
+FUNCTION buildRowsAndInstances RETURNS LOGICAL
+    ( INPUT phTargetProcedure       AS HANDLE,
+      INPUT pdInstanceId            AS DECIMAL,
+      INPUT piPageNumber            AS INTEGER,
+      INPUT phObjectBuffer          AS HANDLE,
+      INPUT phPageBuffer            AS HANDLE  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Builds the ttRow and ttInstance Temp-tables for a given object.
+    Notes:  * This function is PRIVATE to the Layout Manager.
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE dObjectHeight               AS DECIMAL              NO-UNDO.   
+    DEFINE VARIABLE dObjectWidth                AS DECIMAL              NO-UNDO.            
+    DEFINE VARIABLE dMinHeight                  AS DECIMAL              NO-UNDO.
+    DEFINE VARIABLE dMinWidth                   AS DECIMAL              NO-UNDO.  
+    DEFINE VARIABLE iPageNumber                 AS INTEGER              NO-UNDO.
+    DEFINE VARIABLE iOldPageNumber              AS INTEGER              NO-UNDO.    
+    DEFINE VARIABLE hPageQuery                  AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE hLocalPageBuffer            AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE hPageInstanceQuery          AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE hLocalObjectBuffer          AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE hFolderPageInstanceBuffer   AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE hObjectInstanceHandle       AS HANDLE               NO-UNDO.        
+    DEFINE VARIABLE cObjectTypeCode             AS CHARACTER            NO-UNDO. 
+    DEFINE VARIABLE iOldLayoutRow               AS INTEGER              NO-UNDO.
+    DEFINE VARIABLE lResizeVertical             AS LOGICAL              NO-UNDO.
+    DEFINE VARIABLE lResizeHorizontal           AS LOGICAL              NO-UNDO.
+    DEFINE VARIABLE hPageObjectLayoutCode       AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE hPageInstanceHandle         AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE hPageObjectPageNumber       AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE cPageObjectTypeCode         AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE dFolderMinHeight            AS DECIMAL              NO-UNDO.
+    DEFINE VARIABLE cWidgetPool                 AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE lQueryObject                AS LOGICAL              NO-UNDO.
+    DEFINE VARIABLE dRowMinHeight               AS DECIMAL    EXTENT 9  NO-UNDO.
+    DEFINE VARIABLE iRowLoop                    AS INTEGER              NO-UNDO.
+    DEFINE VARIABLE cLayoutCode                 AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE cLayoutPosition             AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE cJustifyCode                AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE iLayoutRow                  AS INTEGER              NO-UNDO.
+    DEFINE VARIABLE iRowNum                     AS INTEGER              NO-UNDO.
+
+    DEFINE BUFFER bttInstance  FOR ttInstance.
+    DEFINE BUFFER bttRow       FOR ttRow.
+
+    CREATE BUFFER hLocalObjectBuffer FOR TABLE phObjectBuffer BUFFER-NAME "LocalObjectBuffer":U.
+    CREATE QUERY hPageInstanceQuery.
+
+    hPageInstanceQuery:SET-BUFFERS(hLocalObjectBuffer).
+    hPageInstanceQuery:QUERY-PREPARE(" FOR EACH ":U + hLocalObjectBuffer:NAME + " WHERE ":U
+                                     + hLocalObjectBuffer:NAME + ".tTargetProcedure = WIDGET-HANDLE(":U + QUOTER(phTargetProcedure) + ") AND ":U
+                                     + hLocalObjectBuffer:NAME + ".tContainerRecordIdentifier = " + QUOTER(pdInstanceId) + " AND ":U
+                                     /* Skip the container itself. */
+                                     + hLocalObjectBuffer:NAME + ".tTargetProcedure <> ":U + hLocalObjectBuffer:NAME + ".tObjectInstanceHandle AND ":U
+                                     + hLocalObjectBuffer:NAME + ".tPageNumber = ":U + QUOTER(piPageNumber)
+                                     + " BY SUBSTR(":U + hLocalObjectBuffer:NAME + ".tLayoutPosition, 2) ":U).
+
+    hPageInstanceQuery:QUERY-OPEN().
+    hPageInstanceQuery:GET-FIRST().
+    DO WHILE hLocalObjectBuffer:AVAILABLE:
+        ASSIGN hObjectInstanceHandle = hLocalObjectBuffer:BUFFER-FIELD("tObjectInstanceHandle":U):BUFFER-VALUE.
+        IF NOT VALID-HANDLE(hObjectInstanceHandle) THEN
+        DO:
+            hPageInstanceQuery:GET-NEXT().
+            NEXT.
+        END.
+
+        ASSIGN cObjectTypeCode = hLocalObjectBuffer:BUFFER-FIELD("tClassName":U):BUFFER-VALUE
+               cLayoutPosition = hLocalObjectBuffer:BUFFER-FIELD("tLayoutPosition":U):BUFFER-VALUE
+               .
+        /* No need to try and reposition or size non-visible objects */
+        {get QueryObject lQueryObject hObjectInstanceHandle} NO-ERROR.
+        IF lQueryObject THEN
+        DO:
+            hPageInstanceQuery:GET-NEXT().
+            NEXT.
+        END.
+
+        ASSIGN cLayoutCode  = SUBSTR(cLayoutPosition, 1, 1)
+               iLayoutRow   = INTEGER(SUBSTR(cLayoutPosition, 2, 1))
+               cJustifyCode = SUBSTR(ENTRY(1,cLayoutPosition), LENGTH(ENTRY(1,cLayoutPosition)), 1)
+               NO-ERROR.
+        /* Make sure that there is a justification code specified */
+        IF cJustifyCode <> "C":U AND cJustifyCode <> "R":U THEN
+            ASSIGN cJustifyCode = "":U. /* Default - Left */
+
+        IF cLayoutPosition = "":U OR iLayoutRow = 0 THEN
+        DO:
+            hPageInstanceQuery:GET-NEXT().
+            NEXT.
+        END.
+
+        {get WIDTH dObjectWidth hObjectInstanceHandle}.
+        {get HEIGHT dObjectHeight hObjectInstanceHandle}.
+
+        IF dObjectHeight <> ? AND cLayoutPosition <> "":U THEN
+        DO:
+            /* Hang onto needed info for each visual object to be used later. */
+            CREATE bttInstance.  
+            ASSIGN bttInstance.SourceProcedure      = phTargetProcedure
+                   bttInstance.PageNum              = piPageNumber
+                   bttInstance.RowNum               = iLayoutRow
+                   bttInstance.LayoutPosition       = cLayoutPosition
+                   bttInstance.ObjectWidth          = dObjectWidth
+                   bttInstance.ObjectHeight         = dObjectHeight
+                   bttInstance.ObjectTypeCode       = cObjectTypeCode
+                   bttInstance.ObjectInstanceHandle = hObjectInstanceHandle
+                   bttInstance.JustifyPosition      = cJustifyCode
+                   bttInstance.RowCol               = SUBSTRING(cLayoutPosition, 2, 2)
+                   /* The setting of the ColumnNum needs to be the last thing
+                    * that this ASSIGN statement does, because for Centred objects
+                    * the last char is a 'C' (eg layout position M2C). This will 
+                    * raise the error-status flag and cause any subsequent 
+                    * lines in this assign statement not to execute.                */
+                   bttInstance.ColumnNum            = INTEGER(SUBSTRING(cLayoutPosition, 3, 1))
+                   NO-ERROR.
+
+            FIND FIRST bttRow WHERE
+                       bttRow.SourceProcedure = phTargetProcedure AND
+                       bttRow.PageNum         = piPageNumber      AND
+                       bttRow.RowNum          = iLayoutRow
+                       NO-ERROR.
+            IF NOT AVAILABLE bttRow THEN
+            DO:
+                /* Create a record to describe this new row if it's not already there. */
+                CREATE bttRow.
+                ASSIGN bttRow.SourceProcedure = phTargetProcedure
+                       bttRow.PageNum         = piPageNumber
+                       bttRow.RowNum          = iLayoutRow
+                       bttRow.FixedHeight     = YES          /* defaults if not reset */
+                       bttRow.FixedWidth      = YES
+                       bttRow.BottomSection   = (IF cLayoutCode EQ "B":U THEN YES ELSE NO)
+                       iRowNum                = iLayoutRow.
+            END.    /* END DO IF new row -- iLayoutRow > iRowNum */
+    
+            ASSIGN bttRow.NumObjects = bttRow.NumObjects + 1.
+
+            {get ResizeVertical lResizeVertical hObjectInstanceHandle}.
+            {get ResizeHorizontal lResizeHorizontal hObjectInstanceHandle}.
+
+            /* In some cases the Attribute might not be set - then use object type
+             * to determine what sizing is allowd */
+            IF lResizeVertical = ? OR lResizeHorizontal = ? THEN
+            DO:
+              IF DYNAMIC-FUNCTION("classIsA":U IN gshRepositoryManager, INPUT cObjectTypeCode, INPUT "Browser":U) OR 
+                 DYNAMIC-FUNCTION("classIsA":U IN gshRepositoryManager, INPUT cObjectTypeCode, INPUT "SmartFolder":U) THEN      
+                  ASSIGN lResizeVertical   = IF lResizeVertical = ? THEN YES ELSE lResizeVertical
+                         lResizeHorizontal = IF lResizeHorizontal = ? THEN YES ELSE lResizeHorizontal.
+              ELSE
+                  IF DYNAMIC-FUNCTION("classIsA":U IN gshRepositoryManager, INPUT cObjectTypeCode, INPUT "Viewer":U) THEN
+                      ASSIGN lResizeVertical   = IF lResizeVertical = ? THEN NO ELSE lResizeVertical
+                             lResizeHorizontal = IF lResizeHorizontal = ? THEN NO ELSE lResizeHorizontal.
+                  ELSE
+                      IF DYNAMIC-FUNCTION("classIsA":U IN gshRepositoryManager, INPUT cObjectTypeCode, INPUT "SmartToolbar":U) THEN
+                          ASSIGN lResizeVertical   = IF lResizeVertical = ? THEN NO ELSE lResizeVertical
+                                 lResizeHorizontal = IF lResizeHorizontal = ? THEN YES ELSE lResizeHorizontal.
+                      ELSE
+                          ASSIGN lResizeVertical   = IF lResizeVertical = ? THEN NO ELSE lResizeVertical
+                                 lResizeHorizontal = IF lResizeHorizontal = ? THEN NO ELSE lResizeHorizontal.
+            END.    /* resize* flags not set. */
+
+            /* Determine the smallest size the folder can be,
+             * by reading through the pages and determining the dimensions
+             * of the pages.                                               */                
+            IF DYNAMIC-FUNCTION("classIsA":U IN gshRepositoryManager, INPUT cObjectTypeCode, INPUT "SmartFolder":U) THEN
+            DO:
+                CREATE BUFFER hLocalPageBuffer FOR TABLE phPageBuffer BUFFER-NAME "LocalPageBuffer":U.
+                CREATE QUERY hPageQuery.
+                hPageQuery:SET-BUFFERS(hLocalPageBuffer).
+                hPageQuery:QUERY-PREPARE("FOR EACH ":U + hLocalPageBuffer:NAME + "  WHERE ":U
+                                         + hLocalPageBuffer:NAME + ".tTargetProcedure = WIDGET-HANDLE(":U + QUOTER(phTargetProcedure) + ") AND ":U
+                                         + hLocalPageBuffer:NAME + ".tPageNumber  GT 0 NO-LOCK ":U).
+                hPageQuery:QUERY-OPEN().
+                hPageQuery:GET-FIRST().
+
+                ASSIGN dMinHeight    = 0
+                       dMinWidth     = 0
+                       dObjectHeight = 0
+                       dObjectWidth  = 0
+                       .
+                DO WHILE hLocalPageBuffer:AVAILABLE:
+                    ASSIGN iPageNumber = hLocalPageBuffer:BUFFER-FIELD("tPageNumber":U):BUFFER-VALUE
+                           cLayoutCode = hLocalPageBuffer:BUFFER-FIELD("tLayoutCode"):BUFFER-VALUE
+                           .
+                    RUN packLayout IN TARGET-PROCEDURE ( INPUT  cLayoutCode,
+                                                         INPUT  iPageNumber,
+                                                         INPUT  iPageNumber,
+                                                         INPUT  phObjectBuffer,
+                                                         INPUT  phPageBuffer,
+                                                         INPUT  pdInstanceId,
+                                                         OUTPUT dObjectWidth,
+                                                         OUTPUT dObjectHeight   ).
+                    ASSIGN dMinHeight = MAX(dMinHeight, dObjectHeight)
+                           dMinWidth  = MAX(dMinWidth, dObjectWidth).
+
+                    hPageQuery:GET-NEXT().
+                END.    /* page buffer available */
+                hPageQuery:QUERY-CLOSE().
+
+                ASSIGN dMinHeight            = dMinHeight + {fn getTabRowHeight hObjectInstanceHandle} + 0.48
+                       bttInstance.MinWidth  = dMinWidth
+                       bttInstance.MinHeight = dMinHeight
+                       .
+                DELETE OBJECT hPageQuery NO-ERROR.
+                DELETE OBJECT hLocalPageBuffer NO-ERROR.
+                ASSIGN hLocalPageBuffer = ?
+                       hPageQuery       = ?.
+            END.    /* F-O-L: SmartFolder */
+            ELSE
+            DO:                
+                {get minWidth  bttInstance.MinWidth  hObjectInstanceHandle}.
+                {get minHeight bttInstance.MinHeight hObjectInstanceHandle}.
+            END.    /* non-folder objects */
+
+            /* Ensure that there are no null value in the min* fields. */
+            IF bttInstance.MinHeight EQ ? THEN ASSIGN bttInstance.MinHeight = 0.
+            IF bttInstance.MinWidth EQ ?  THEN ASSIGN bttInstance.MinWidth  = 0.
+
+            ASSIGN bttInstance.FixedHeight = NOT lResizeVertical
+                   bttInstance.FixedWidth  = NOT lResizeHorizontal.
+
+            /* The Row's Minimum Height and Width depend on the instance's Minimum Height and Width. */
+            ASSIGN bttRow.MinHeight = MAX(bttRow.MinHeight, bttInstance.MinHeight)
+                   bttRow.MinWidth  = bttRow.MinWidth + bttInstance.MinWidth + (IF bttRow.MinWidth NE 0 THEN 1 ELSE 0).
+                        
+            /* We don't want to go from a variable height row to a fixed height row.             
+             * We do want to allow going from a Fixed to a Variable height row.
+             *
+             * The FixedHeight value should alwasy be set for the first object 
+             * in the row, and thereafter only if the row is already a FixedHeight
+             * row.                                                                 */           
+            IF bttRow.NumObjects EQ 1 OR bttRow.FixedHeight THEN
+                ASSIGN bttRow.FixedHeight = NOT lResizeVertical.
+
+            /* The height of the tallest object in the row (in terms of initial
+             * size) determines the initial height of the row.                  */
+            IF bttRow.FixedHeight EQ YES AND dObjectHeight > bttRow.RowHeight THEN
+                ASSIGN bttRow.RowHeight = dObjectHeight.
+ 
+            /* If there's any variable width object in the row, then the row
+             * as a whole is variable width. */            
+            IF bttRow.NumObjects EQ 1 OR bttRow.FixedWidth THEN
+                ASSIGN bttRow.FixedWidth = NOT lResizeHorizontal.
+
+            IF lResizeHorizontal THEN
+                ASSIGN bttRow.NumResizeHorizontal = bttRow.NumResizeHorizontal + 1.
+            ELSE
+                ASSIGN bttRow.FixedHorizontalSize = bttRow.FixedHorizontalSize 
+                                                  /* Use the MinWidth (rather than ObjectWidth ) because the first time the
+                                                   * resizing is done, because the ObjectWidth is only set correctly after
+                                                   * this calculation is done. For subsequent runs, then ObjectWidth and MinWidth
+                                                   * have the same value (well, they would, wouldn't they seeing as how the object
+                                                   * cannot be resized.) and so the resizing works correctly. */
+                                                  + bttInstance.MinWidth
+                                                  + 1 /* NB: right gap? */
+                    bttInstance.ObjectWidth = bttInstance.MinWidth.
+
+            ASSIGN bttRow.RowWidth = bttRow.RowWidth 
+                                   + (IF bttInstance.FixedWidth THEN bttInstance.MinWidth ELSE bttInstance.ObjectWidth)
+                                   + (IF bttRow.RowWidth NE 0 THEN 1 ELSE 0).
+        END.       /* END DO if there's a layout position and a size */
+
+        hPageInstanceQuery:GET-NEXT().
+    END.           /* END REPEAT loop for all objects on the page */
+    hPageInstanceQuery:QUERY-CLOSE().
+
+    DELETE OBJECT hPageInstanceQuery NO-ERROR.    
+    DELETE OBJECT hLocalObjectBuffer NO-ERROR.
+
+    ASSIGN hLocalObjectBuffer = ?
+           hPageInstanceQuery = ?.
+    RETURN TRUE.
+END FUNCTION.   /* buildRowsAndInstances */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

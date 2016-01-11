@@ -87,8 +87,8 @@
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Method-Library ASSIGN
-         HEIGHT             = 8
-         WIDTH              = 60.
+         HEIGHT             = 5.24
+         WIDTH              = 52.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -107,19 +107,72 @@
 
 
 /* ***************************  Main Block  *************************** */
+  DEFINE VARIABLE cObjectName AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iStart      AS INTEGER    NO-UNDO.
 
-  DEFINE VARIABLE cObjectName AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE iStart      AS INTEGER   NO-UNDO.
-
-  /* Now create the one record in this property temp-table, and store its
-     handle in ADM-DATA. The CHR(1) delimiters are to set aside spots
-     for UserProperties and UserLinks. */
-  ghADMProps:TEMP-TABLE-PREPARE('ADMProps':U).
-  ghADMPropsBuf = ghADMProps:DEFAULT-BUFFER-HANDLE.
-  ghADMPropsBuf:BUFFER-CREATE().
-  THIS-PROCEDURE:ADM-DATA = STRING(ghADMPropsBuf) + CHR(1) + CHR(1).
-  
   RUN start-super-proc ("adm2/smart.p":U).
+  
+  /* Use the old adm definition */
+  IF NOT {&ADM-PROPS-DEFINED} THEN
+  DO:
+    /* Now create the one record in this property temp-table, and store its
+       handle in ADM-DATA. The CHR(1) delimiters are to set aside spots
+       for UserProperties and UserLinks. */
+    ghADMProps:TEMP-TABLE-PREPARE('ADMProps':U).
+    ghADMPropsBuf = ghADMProps:DEFAULT-BUFFER-HANDLE.
+    ghADMPropsBuf:BUFFER-CREATE().
+    /* ... and save it. This ADM object is now open for business! */   
+    THIS-PROCEDURE:ADM-DATA = STRING(ghADMPropsBuf) + CHR(1) + CHR(1).
+    /* from this point  {&ADM-PROPS-DEFINED} is true for all cases */
+
+    cObjectName =  '{&xcInstanceProperties}':U.
+    {set InstanceProperties cObjectName}.
+
+    /* Set the default object name to the simple procedure file name. */
+    ASSIGN cObjectName = REPLACE(THIS-PROCEDURE:FILE-NAME, "~\":U, "~/":U)
+           iStart = R-INDEX(cObjectName, "~/":U) + 1
+           cObjectName = SUBSTR(cObjectName, iStart, 
+                   R-INDEX(THIS-PROCEDURE:FILE-NAME, ".":U) - iStart).
+    {set ObjectName cObjectName}.    
+  END.
+  
+  ELSE DO:
+    /* Set the properties that get their value from preprocessor initial values
+       in smrtprop.i (This is temporary until all of this is moved to the 
+       repository/ or handled by the repository manager)*/
+        
+    /* (we steal the objectname to avoid adding variables to instances) */    
+    cObjectname = '{&ADM-SUPPORTED-LINKS}':U.
+    {set SupportedLinks cObjectName}.
+    cObjectName = '{&ADM-VERSION}':U.
+    {set ObjectVersion cObjectName}.
+    cObjectName =  '{&PROCEDURE-TYPE}':U.
+    {set ObjectType cObjectName}.
+    cObjectName = '{&ADM-CONTAINER}':U.
+    {set ContainerType cObjectName}.
+    cObjectName = '{&ADM-PROPERTY-DLG}':U.
+    {set PropertyDialog cObjectName}.
+    cObjectName =  '{&xcInstanceProperties}':U.
+    {set InstanceProperties cObjectName}.
+
+    /* probably not of any value? as this is for appbuilder adm-create */ 
+    cObjectName =  '{&xcTranslatableProperties}':U.
+    {set TranslatableProperties cObjectName}.
+
+    &IF DEFINED (DB-AWARE) NE 0 &THEN
+       {set DBAware {&DB-AWARE}}.
+    &ELSE
+       {set DBAware NO}. /* probably not necessary? as this is default */
+    &ENDIF
+    cObjectName =  '{&OBJECT-VERSION}':U.
+    {set PhysicalVersion cObjectName}.
+    cObjectName =  '{&OBJECT-NAME}':U.
+    
+    IF cObjectName > '':U  THEN
+      {set PhysicalObjectName cObjectName}.
+    ELSE 
+      {set PhysicalObjectName THIS-PROCEDURE:FILE-NAME}.
+  END. /* properties defined by repository manager */
 
 &IF "{&ADM-CONTAINER}":U NE "":U &THEN
   &IF "{&ADM-CONTAINER}":U = "WINDOW":U &THEN
@@ -136,16 +189,10 @@
       ghContainer = FRAME {&FRAME-NAME}:HANDLE.
   &ENDIF
 &ENDIF
-
-  /* Set the default object name to the simple procedure file name. */
-  ASSIGN cObjectName = REPLACE(THIS-PROCEDURE:FILE-NAME, "~\":U, "~/":U)
-         iStart = R-INDEX(cObjectName, "~/":U) + 1
-         cObjectName = SUBSTR(cObjectName, iStart, 
-           R-INDEX(THIS-PROCEDURE:FILE-NAME, ".":U) - iStart).
-  {set ObjectName cObjectName}.
-
+  
   {set ContainerHandle ghContainer}.
-
+ 
+ 
   /* _ADM-CODE-BLOCK-START _CUSTOM _INCLUDED-LIB-CUSTOM CUSTOM */
   {src/adm2/custom/smartcustom.i}
   /* _ADM-CODE-BLOCK-END */
@@ -168,18 +215,59 @@ PROCEDURE start-super-proc :
                super procedure running per session, meaning that they are 
                stateless and "multi-threaded". This is intended to be the case
                for ours, but may not be true for all super procs.
+            -  The LAST-SUPER-PROCEDURE-PROP preprocessor allows classes
+               to specify a property of char or handle that stores
+               super-procedures that need to be kept at the bottom of the list 
+               (defined by data.i and sbo.i if they are extended by other classes)        
 ------------------------------------------------------------------------------*/
 
-  DEFINE INPUT PARAMETER pcProcName AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE        hProc      AS HANDLE    NO-UNDO.
-
+  DEFINE INPUT PARAMETER pcProcName AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE        hProc      AS HANDLE     NO-UNDO.
+  
   hProc = SESSION:FIRST-PROCEDURE.
   DO WHILE VALID-HANDLE(hProc) AND hProc:FILE-NAME NE pcProcName:
     hProc = hProc:NEXT-SIBLING.
   END.
   IF NOT VALID-HANDLE(hProc) THEN
     RUN VALUE(pcProcName) PERSISTENT SET hProc.
+  
+
+     &IF '{&LAST-SUPER-PROCEDURE-PROP}':U <> '':U &THEN
+  DEFINE VARIABLE cLast    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hLast    AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iLast    AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cSupers  AS CHARACTE   NO-UNDO.
+  DEFINE VARIABLE cRemoved AS CHARACTER  NO-UNDO.
+  
+  cLast = DYNAMIC-FUNCTION('get' + '{&LAST-SUPER-PROCEDURE-PROP}':U) NO-ERROR.
+  IF cLast > '':U THEN
+  DO:
+    cSupers = THIS-PROCEDURE:SUPER-PROCEDURES. 
+    DO iLast = 1 TO NUM-ENTRIES(cLast):
+      hLast = WIDGET-HANDLE(ENTRY(iLast,cLast)). 
+      IF VALID-HANDLE(hLast) AND LOOKUP(STRING(hLast),cSupers) > 0 THEN
+      DO:
+        THIS-PROCEDURE:REMOVE-SUPER-PROCEDURE(hLast).
+        cRemoved = cRemoved 
+                   + (IF cRemoved = '':u THEN '':U ELSE ',':U)
+                   +  STRING(hLast). 
+      END.
+    END.
+  END.
+     &ENDIF
+
   THIS-PROCEDURE:ADD-SUPER-PROCEDURE(hProc, SEARCH-TARGET).
+     
+     &IF '{&LAST-SUPER-PROCEDURE-PROP}':U <> '':U &THEN
+  IF cRemoved > '':U THEN
+  DO:
+    DO iLast = NUM-ENTRIES(cRemoved) TO 1:
+      hLast = WIDGET-HANDLE(ENTRY(iLast,cRemoved)). 
+      IF VALID-HANDLE(hLast) THEN
+        THIS-PROCEDURE:ADD-SUPER-PROCEDURE(hLast, SEARCH-TARGET).
+    END.
+  END.
+     &ENDIF
   
   RETURN.
   

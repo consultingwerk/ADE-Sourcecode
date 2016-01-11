@@ -46,14 +46,16 @@ History:
     mcmann      98/06/15    Added check for num-entries in oobjects
                             98-04-17-046    
     mcmann      01/01/23    Split for each so Oracle 8 can get the
-                            proper records 20010108-001                    
+                            proper records 20010108-001     
+    mcmann      02/09/10    Added check for num-entries for Synonyms
+                            20020820-004               
     
 --------------------------------------------------------------------*/
 /*h-*/
 
 /*----------------------------  DEFINES  ---------------------------*/
 
-&GLOBAL-DEFINE xxDS_DEBUG DEBUG
+&GLOBAL-DEFINE DS_DEBUG XXDEBUG
 &SCOPED-DEFINE DATASERVER YES
 { prodict/dictvar.i }
 &UNDEFINE DATASERVER
@@ -235,8 +237,9 @@ for each DICTDBG.oracle_users
       an error message.  If it is a type that we will be supporting then
       ora_ctl.i needs to be changed so that this statement will eliminate it.
    */
+
       IF (DICTDBG.oracle_objects.type + 1) > NUM-ENTRIES(oobjects) THEN NEXT.
-    
+   
     /* since there are no esc-characters possible in Oracle V6, we
      * can't use the wildcards. As soon as we drop V6-support, we
      * can move this lines up into the where-clause              
@@ -409,14 +412,17 @@ for each gate-work
        else release DICTDBG.oracle_objects.
       end.     /* pointing local -> resolve */
      else release DICTDBG.oracle_objects.
-
-    assign
-      l_type = ( if available DICTDBG.oracle_objects
-                  then ENTRY(DICTDBG.oracle_objects.type + 1,oobjects)
-                  else ""
-               ).
     
-    if ( s_qual <> ? or DICTDBG.oracle_synonyms.node <> ? )
+    IF AVAILABLE DICTDBG.oracle_objects THEN DO:
+      IF (DICTDBG.oracle_objects.type + 1) <= NUM-ENTRIES(oobjects) THEN
+        ASSIGN l_type = ENTRY(DICTDBG.oracle_objects.type + 1,oobjects).
+      ELSE
+        ASSIGN l_type = "".
+    END. 
+    ELSE
+     ASSIGN l_type =  "".
+         
+     IF ( s_qual <> ? or DICTDBG.oracle_synonyms.node <> ? )
      and  LOOKUP(l_type,"PACKAGE,PROCEDURE,FUNCTION") <> 0
      then next. /* disallow remote procedures, functions and packages */
 

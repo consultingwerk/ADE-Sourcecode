@@ -23,16 +23,9 @@
 *********************************************************************/
 TRIGGER PROCEDURE FOR REPLICATION-DELETE OF ryc_attribute.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "ryc_attribute"
-                      &TRIGGER-TYPE = "REPLICATION-DELETE"}
-
 {af/sup/afreplicat.i  &TABLE-NAME   = "ryc_attribute"
                       &TABLE-FLA    = "rycat"
-                      &TABLE-PK     = "attribute_group_obj,
-                                       attribute_label,
-                                       attribute_type_tla"
+                      &TABLE-PK     = "attribute_label"
                       &ACTION       = "DELETE"
                       
                       

@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          asdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
@@ -92,7 +92,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gsclsfullo.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -124,6 +124,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -146,9 +147,12 @@ can_run_locally system_owned write_to_config
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gsclsfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsc_logical_service NO-LOCK, ~
+      FIRST gsc_service_type WHERE ASDB.gsc_service_type.service_type_obj = ASDB.gsc_logical_service.service_type_obj NO-LOCK ~
+    BY gsc_logical_service.logical_service_code INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsc_logical_service NO-LOCK, ~
-      FIRST gsc_service_type WHERE gsc_service_type.service_type_obj = gsc_logical_service.service_type_obj NO-LOCK ~
+      FIRST gsc_service_type WHERE ASDB.gsc_service_type.service_type_obj = ASDB.gsc_logical_service.service_type_obj NO-LOCK ~
     BY gsc_logical_service.logical_service_code INDEXED-REPOSITION.
 {&DB-REQUIRED-END}
 &Scoped-define TABLES-IN-QUERY-Query-Main gsc_logical_service ~
@@ -238,32 +242,32 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "asdb.gsc_logical_service,ASDB.gsc_service_type WHERE asdb.gsc_logical_service ..."
+     _TblList          = "ICFDB.gsc_logical_service,ICFDB.gsc_service_type WHERE ICFDB.gsc_logical_service ..."
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _TblOptList       = ", FIRST USED"
      _OrdList          = "asdb.gsc_logical_service.logical_service_code|yes"
      _JoinCode[2]      = "ASDB.gsc_service_type.service_type_obj = ASDB.gsc_logical_service.service_type_obj"
-     _FldNameList[1]   > ASDB.gsc_logical_service.logical_service_obj
+     _FldNameList[1]   > ICFDB.gsc_logical_service.logical_service_obj
 "logical_service_obj" "logical_service_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
-     _FldNameList[2]   > ASDB.gsc_logical_service.logical_service_code
+     _FldNameList[2]   > ICFDB.gsc_logical_service.logical_service_code
 "logical_service_code" "logical_service_code" ? ? "character" ? ? ? ? ? ? yes ? no 20 yes
-     _FldNameList[3]   > ASDB.gsc_logical_service.logical_service_description
+     _FldNameList[3]   > ICFDB.gsc_logical_service.logical_service_description
 "logical_service_description" "logical_service_description" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[4]   > ASDB.gsc_logical_service.service_type_obj
+     _FldNameList[4]   > ICFDB.gsc_logical_service.service_type_obj
 "service_type_obj" "service_type_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
-     _FldNameList[5]   > ASDB.gsc_service_type.service_type_code
+     _FldNameList[5]   > ICFDB.gsc_service_type.service_type_code
 "service_type_code" "service_type_code" ? ? "character" ? ? ? ? ? ? no ? no 20 yes
-     _FldNameList[6]   > ASDB.gsc_logical_service.can_run_locally
+     _FldNameList[6]   > ICFDB.gsc_logical_service.can_run_locally
 "can_run_locally" "can_run_locally" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[7]   > ASDB.gsc_logical_service.system_owned
+     _FldNameList[7]   > ICFDB.gsc_logical_service.system_owned
 "system_owned" "system_owned" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[8]   > ASDB.gsc_logical_service.write_to_config
+     _FldNameList[8]   > ICFDB.gsc_logical_service.write_to_config
 "write_to_config" "write_to_config" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK dTables 

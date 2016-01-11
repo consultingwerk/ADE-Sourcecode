@@ -102,6 +102,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &glob   astra2-staticSmartWindow yes
 
 {src/adm2/globals.i}
+{src/adm2/widgetprto.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

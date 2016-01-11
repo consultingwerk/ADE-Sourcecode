@@ -74,10 +74,14 @@ af/cod/aftemwizpw.w
 
   Update Notes: extra procedures to fully encapsulate scm integration
 
-  (v:010002)    Task:         101   UserRef:    
-                Date:   20/03/1998  Author:     Anthony Swindells
+  (v:010002)    Task:          18   UserRef:    
+                Date:   02/15/2003  Author:     Thomas Hansen
 
-  Update Notes: recomp
+  Update Notes: Issue xxx:
+                - Changed the scmGetWorkspaceRoot procedure to not return the workspace root in lower case.
+                - Added new function scmGetCurrentWorkspace
+                - Added new function scmGetCurrentWorkspaceRoot
+                - Added new function scmGetCurrentTask
 
   (v:010003)    Task:         142   UserRef:    
                 Date:   06/04/1998  Author:     Anthony Swindells
@@ -155,20 +159,22 @@ af/cod/aftemwizpw.w
 
 &scop object-name       afrtbprocp.p
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    010002
 
-{af/sup2/afglobals.i}
+{src/adm2/globals.i}
 
 {rtb/inc/afrtbglobs.i} /* pull in Roundtable global variables */
 
 /* Astra object identifying preprocessor */
 &glob   AstraPlip    yes
 
-DEFINE VARIABLE cObjectName         AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cObjectName         AS CHARACTER  NO-UNDO.
 
 ASSIGN cObjectName = "{&object-name}":U.
 
 &scop   mip-notify-user-on-plip-close   NO
+
+DEFINE VARIABLE hRtbApi             AS HANDLE     NO-UNDO.
 
 /* --- Temp-table needed by internal procedure create_xrefs --- */
 DEFINE TEMP-TABLE TTxref
@@ -195,6 +201,41 @@ DEFINE TEMP-TABLE TTxref
 &ANALYZE-RESUME
 
 
+/* ************************  Function Prototypes ********************** */
+
+&IF DEFINED(EXCLUDE-scmGetCurrentTask) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD scmGetCurrentTask Procedure 
+FUNCTION scmGetCurrentTask RETURNS INTEGER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-scmGetCurrentWorkspace) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD scmGetCurrentWorkspace Procedure 
+FUNCTION scmGetCurrentWorkspace RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-scmGetCurrentWorkspaceRoot) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD scmGetCurrentWorkspaceRoot Procedure 
+FUNCTION scmGetCurrentWorkspaceRoot RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 
 /* *********************** Procedure Settings ************************ */
 
@@ -213,7 +254,7 @@ DEFINE TEMP-TABLE TTxref
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 28.76
+         HEIGHT             = 28.33
          WIDTH              = 57.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -358,7 +399,43 @@ PROCEDURE plipSetup :
   Notes:       
 ------------------------------------------------------------------------------*/
 
-{ry/app/ryplipsetu.i}
+  {ry/app/ryplipsetu.i}
+
+  /* If RTB database is connected, start RTB API PLIP */
+  IF CONNECTED("RTB":U)
+  THEN DO:
+
+    DEFINE VARIABLE cProcName                   AS CHARACTER    NO-UNDO.
+    DEFINE VARIABLE hProcHandle                 AS HANDLE       NO-UNDO.
+
+    ASSIGN
+      cProcName   = "rtb/p/rtb_api.p":U
+      hProcHandle = SESSION:FIRST-PROCEDURE.
+
+  /* handle:FILE-NAME    = "rtb/p/rtb_api.p":U */
+  /* handle:PRIVATE-DATA = "rtb_api.p":U       */
+    DO WHILE VALID-HANDLE(hProcHandle)
+    AND hProcHandle:FILE-NAME <> cProcName
+    :
+      hProcHandle = hProcHandle:NEXT-SIBLING.
+    END.
+
+    IF NOT VALID-HANDLE(hProcHandle)
+    THEN
+      RUN VALUE(cProcName) PERSISTENT SET hProcHandle.
+
+    IF VALID-HANDLE(hProcHandle)
+    THEN
+      ASSIGN
+        hRtbApi = hProcHandle.
+    ELSE
+      ASSIGN
+        hRtbApi = ?.
+
+    ASSIGN
+      hProcHandle = ?.
+
+  END.
 
 END PROCEDURE.
 
@@ -378,7 +455,41 @@ PROCEDURE plipShutdown :
   Notes:       
 ------------------------------------------------------------------------------*/
 
-{ry/app/ryplipshut.i}
+  DEFINE VARIABLE cProcName                   AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE hValidHanldles              AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE hProcHandle                 AS HANDLE       NO-UNDO.
+
+  ASSIGN
+    cProcName      = "rtb_api.p":U
+    hValidHanldles = SESSION:FIRST-PROCEDURE.
+
+  /* handle:FILE-NAME    = "rtb/p/rtb_api.p":U */
+  /* handle:PRIVATE-DATA = "rtb_api.p":U         */
+  DO WHILE VALID-HANDLE(hValidHanldles)
+  AND NOT (VALID-HANDLE(hProcHandle))
+  :
+
+    IF hValidHanldles:PRIVATE-DATA = cProcName
+    THEN
+      ASSIGN
+        hProcHandle = hValidHanldles.
+
+    ASSIGN
+      hValidHanldles = hValidHanldles:NEXT-SIBLING.
+
+  END.
+
+  /* Clean up RTB API handle */
+  IF VALID-HANDLE(hRtbApi)
+  OR VALID-HANDLE(hProcHandle)
+  THEN DO: 
+      DELETE PROCEDURE hRtbApi.
+      ASSIGN 
+          hRtbApi = ?
+          .
+  END.
+
+  {ry/app/ryplipshut.i}
 
 END PROCEDURE.
 
@@ -1719,35 +1830,30 @@ PROCEDURE scmAssignObject :
 ------------------------------------------------------------------------------*/
 
   DEFINE INPUT PARAMETER  ip_product_module               AS CHARACTER    NO-UNDO.
-  DEFINE INPUT PARAMETER  ip_object_type                  AS CHARACTER    NO-UNDO.
+  DEFINE INPUT PARAMETER  ip_object_type    /* PCODE */   AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_object_name                  AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_version                      AS INTEGER      NO-UNDO.
   DEFINE OUTPUT PARAMETER op_recid                        AS RECID        NO-UNDO.
   DEFINE OUTPUT PARAMETER op_rejection                    AS CHARACTER    NO-UNDO.
 
-  DEFINE VARIABLE lh_rtbplip                              AS HANDLE       NO-UNDO.
-
-  /*- Run PP of API calls -*/
-  IF NOT VALID-HANDLE(lh_rtbplip)
-  THEN
-    RUN rtb/p/rtb_api.p PERSISTENT SET lh_rtbplip.
-
   IF ip_product_module <> "":U
   THEN
     RUN scmSitePrefixAdd (INPUT-OUTPUT ip_product_module).
 
-  RUN assign_object IN lh_rtbplip
-                   (INPUT ip_product_module
-                   ,INPUT ip_object_type
-                   ,INPUT ip_object_name
-                   ,INPUT ip_version
-                   ,OUTPUT op_recid
-                   ,OUTPUT op_rejection
-                   ).
-
-  IF VALID-HANDLE(lh_rtbplip)
-  THEN
-    DELETE PROCEDURE lh_rtbplip.
+  IF NOT VALID-HANDLE(hRtbApi)
+  THEN DO:
+    op_rejection = "Rountable API not available".
+    RETURN.
+  END.
+  ELSE
+    RUN assign_object IN hRtbApi
+                     (INPUT  ip_product_module
+                     ,INPUT  ip_object_type
+                     ,INPUT  ip_object_name
+                     ,INPUT  ip_version
+                     ,OUTPUT op_recid
+                     ,OUTPUT op_rejection
+                     ).
 
   ERROR-STATUS:ERROR = NO.
   RETURN.
@@ -1772,7 +1878,7 @@ PROCEDURE scmAssignObjectControl :
 ------------------------------------------------------------------------------*/
 
   DEFINE INPUT PARAMETER  ip_product_module               AS CHARACTER    NO-UNDO.
-  DEFINE INPUT PARAMETER  ip_object_type                  AS CHARACTER    NO-UNDO.
+  DEFINE INPUT PARAMETER  ip_object_type    /* PCODE */   AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_object_name                  AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_version                      AS INTEGER      NO-UNDO.
   DEFINE OUTPUT PARAMETER op_recid                        AS RECID        NO-UNDO.
@@ -1826,19 +1932,17 @@ PROCEDURE scmCheckInObject :
 
   DEFINE INPUT PARAMETER  ip_baseline                     AS LOGICAL      NO-UNDO.
   DEFINE INPUT PARAMETER  ip_product_module               AS CHARACTER    NO-UNDO.
-  DEFINE INPUT PARAMETER  ip_object_type                  AS CHARACTER    NO-UNDO.
+  DEFINE INPUT PARAMETER  ip_object_type   /* PCODE */    AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_object_name                  AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_task_number                  AS INTEGER      NO-UNDO.
   DEFINE INPUT PARAMETER  ip_ui_on                        AS LOGICAL      NO-UNDO.
   DEFINE OUTPUT PARAMETER op_rejection                    AS CHARACTER    NO-UNDO.
 
-  DEFINE VARIABLE lh_rtbplip                              AS HANDLE       NO-UNDO.
-
   IF ip_product_module <> "":U
-  THEN RUN scmSitePrefixAdd (INPUT-OUTPUT ip_product_module).
+  THEN
+    RUN scmSitePrefixAdd (INPUT-OUTPUT ip_product_module).
 
   /* ICF-SCM-XML */
-
   FIND FIRST rtb_task NO-LOCK
     WHERE rtb_task.task-num = ip_task_number
     NO-ERROR.
@@ -1985,7 +2089,7 @@ PROCEDURE scmCheckInObject :
     END.
     ELSE DO:
       OUTPUT TO VALUE(cWorkspacePath + "/":U + cAdoFileName).
-      DISPLAY "/* ICF-SCM-XML */ Dynamics Dynamic Object":U.
+      DISPLAY "/* ICF-SCM-XML */ Dynamic Object":U.
       OUTPUT CLOSE.  
     END.
     IF SEARCH(cWorkspacePath + "/":U + cAdoFileName) = ?
@@ -1997,23 +2101,20 @@ PROCEDURE scmCheckInObject :
 
   END.
 
-  /*- Run PP of API calls -*/
-  IF NOT VALID-HANDLE(lh_rtbplip)
-  THEN
-    RUN rtb/p/rtb_api.p PERSISTENT SET lh_rtbplip.
-
-  RUN check_in_object IN lh_rtbplip
-                     (INPUT ip_baseline
-                     ,INPUT ip_product_module
-                     ,INPUT ip_object_type
-                     ,INPUT ip_object_name
-                     ,INPUT ip_task_number
-                     ,OUTPUT op_rejection
-                     ).
-
-  IF VALID-HANDLE(lh_rtbplip)
-  THEN
-    DELETE PROCEDURE lh_rtbplip.
+  IF NOT VALID-HANDLE(hRtbApi)
+  THEN DO:
+    op_rejection = "Rountable API not available".
+    RETURN.
+  END.
+  ELSE
+    RUN check_in_object IN hRtbApi
+                       (INPUT  ip_baseline
+                       ,INPUT  ip_product_module
+                       ,INPUT  ip_object_type
+                       ,INPUT  ip_object_name
+                       ,INPUT  ip_task_number
+                       ,OUTPUT op_rejection
+                       ).
 
   ERROR-STATUS:ERROR = NO.
   RETURN.
@@ -2040,7 +2141,7 @@ PROCEDURE scmCheckInObjectControl :
 
   DEFINE INPUT PARAMETER  ip_baseline                     AS LOGICAL      NO-UNDO.
   DEFINE INPUT PARAMETER  ip_product_module               AS CHARACTER    NO-UNDO.
-  DEFINE INPUT PARAMETER  ip_object_type                  AS CHARACTER    NO-UNDO.
+  DEFINE INPUT PARAMETER  ip_object_type   /* PCODE */    AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_object_name                  AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_task_number                  AS INTEGER      NO-UNDO.
   DEFINE INPUT PARAMETER  ip_ui_on                        AS LOGICAL      NO-UNDO.
@@ -2092,7 +2193,7 @@ PROCEDURE scmCheckOutObject :
 
   DEFINE INPUT PARAMETER  ip_change_type                  AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_product_module               AS CHARACTER    NO-UNDO.
-  DEFINE INPUT PARAMETER  ip_object_type                  AS CHARACTER    NO-UNDO.
+  DEFINE INPUT PARAMETER  ip_object_type    /* PCODE */   AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_object_name                  AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_task_number                  AS INTEGER      NO-UNDO.
   DEFINE INPUT PARAMETER  ip_ui_on                        AS LOGICAL      NO-UNDO.
@@ -2100,8 +2201,6 @@ PROCEDURE scmCheckOutObject :
   DEFINE INPUT PARAMETER  ip_allow_orphans                AS LOGICAL      NO-UNDO.
   DEFINE OUTPUT PARAMETER op_recid                        AS RECID        NO-UNDO.
   DEFINE OUTPUT PARAMETER op_rejection                    AS CHARACTER    NO-UNDO.
-
-  DEFINE VARIABLE lh_rtbplip                              AS HANDLE       NO-UNDO.
 
   DEFINE VARIABLE lv_nonprimary                           AS LOGICAL      NO-UNDO.
   DEFINE VARIABLE lv_orphans                              AS LOGICAL      NO-UNDO.
@@ -2208,24 +2307,21 @@ PROCEDURE scmCheckOutObject :
     END.
   END.
 
-  /*- Run PP of API calls -*/
-  IF NOT VALID-HANDLE(lh_rtbplip)
-  THEN
-    RUN rtb/p/rtb_api.p PERSISTENT SET lh_rtbplip.
-
-  RUN check_out_object IN lh_rtbplip
-                      (INPUT ip_change_type
-                      ,INPUT ip_product_module
-                      ,INPUT ip_object_type
-                      ,INPUT ip_object_name
-                      ,INPUT ip_task_number
-                      ,OUTPUT op_recid
-                      ,OUTPUT op_rejection
-                      ).
-
-  IF VALID-HANDLE(lh_rtbplip)
-  THEN
-    DELETE PROCEDURE lh_rtbplip.
+  IF NOT VALID-HANDLE(hRtbApi)
+  THEN DO:
+    op_rejection = "Rountable API not available".
+    RETURN.
+  END.
+  ELSE
+    RUN check_out_object IN hRtbApi
+                        (INPUT  ip_change_type
+                        ,INPUT  ip_product_module
+                        ,INPUT  ip_object_type
+                        ,INPUT  ip_object_name
+                        ,INPUT  ip_task_number
+                        ,OUTPUT op_recid
+                        ,OUTPUT op_rejection
+                        ).
 
   ERROR-STATUS:ERROR = NO.
   RETURN.
@@ -2256,7 +2352,7 @@ PROCEDURE scmCheckOutObjectControl :
 
   DEFINE INPUT PARAMETER  ip_change_type                  AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_product_module               AS CHARACTER    NO-UNDO.
-  DEFINE INPUT PARAMETER  ip_object_type                  AS CHARACTER    NO-UNDO.
+  DEFINE INPUT PARAMETER  ip_object_type    /* PCODE */   AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_object_name                  AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_task_number                  AS INTEGER      NO-UNDO.
   DEFINE INPUT PARAMETER  ip_ui_on                        AS LOGICAL      NO-UNDO.
@@ -2306,7 +2402,7 @@ PROCEDURE scmCompileObject :
                Show errors should be set to NO
 ------------------------------------------------------------------------------*/
 
-  DEFINE INPUT PARAMETER  ip_object_type                  AS CHARACTER    NO-UNDO.
+  DEFINE INPUT PARAMETER  ip_object_type    /* PCODE */   AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_object_name                  AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_save_rcode                   AS LOGICAL      NO-UNDO.
   DEFINE INPUT PARAMETER  ip_with_xref                    AS LOGICAL      NO-UNDO.
@@ -2314,26 +2410,21 @@ PROCEDURE scmCompileObject :
   DEFINE INPUT PARAMETER  ip_show_errors                  AS LOGICAL      NO-UNDO.
   DEFINE OUTPUT PARAMETER op_rejection                    AS CHARACTER    NO-UNDO.
 
-  DEFINE VARIABLE lh_rtbplip                              AS HANDLE       NO-UNDO.
-
-  /*- Run PP of API calls -*/
-  IF NOT VALID-HANDLE(lh_rtbplip)
-  THEN
-    RUN rtb/p/rtb_api.p PERSISTENT SET lh_rtbplip.
-
-  RUN compile_object IN lh_rtbplip
-                    (INPUT ip_object_type
-                    ,INPUT ip_object_name
-                    ,INPUT ip_save_rcode
-                    ,INPUT ip_with_xref
-                    ,INPUT ip_with_listings
-                    ,INPUT ip_show_errors
-                    ,OUTPUT op_rejection
-                    ).
-
-  IF VALID-HANDLE(lh_rtbplip)
-  THEN
-    DELETE PROCEDURE lh_rtbplip.
+  IF NOT VALID-HANDLE(hRtbApi)
+  THEN DO:
+    op_rejection = "Roundtable API not available".
+    RETURN.
+  END.
+  ELSE
+    RUN compile_object IN hRtbApi
+                      (INPUT  ip_object_type
+                      ,INPUT  ip_object_name
+                      ,INPUT  ip_save_rcode
+                      ,INPUT  ip_with_xref
+                      ,INPUT  ip_with_listings
+                      ,INPUT  ip_show_errors
+                      ,OUTPUT op_rejection
+                      ).
 
   ERROR-STATUS:ERROR = NO.
   RETURN.
@@ -2356,7 +2447,7 @@ PROCEDURE scmCompileObjectControl :
                Show errors should be set to NO
 ------------------------------------------------------------------------------*/
 
-  DEFINE INPUT PARAMETER  ip_object_type                  AS CHARACTER    NO-UNDO.
+  DEFINE INPUT PARAMETER  ip_object_type    /* PCODE */   AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_object_name                  AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_save_rcode                   AS LOGICAL      NO-UNDO.
   DEFINE INPUT PARAMETER  ip_with_xref                    AS LOGICAL      NO-UNDO.
@@ -2404,21 +2495,16 @@ PROCEDURE scmCompleteTask :
   DEFINE INPUT PARAMETER  ip_task_number                  AS INTEGER      NO-UNDO.
   DEFINE OUTPUT PARAMETER op_rejection                    AS CHARACTER    NO-UNDO.
 
-  DEFINE VARIABLE lh_rtbplip                              AS HANDLE       NO-UNDO.
-
-  /*- Run PP of API calls -*/
-  IF NOT VALID-HANDLE(lh_rtbplip)
-  THEN
-    RUN rtb/p/rtb_api.p PERSISTENT SET lh_rtbplip.
-
-  RUN complete_task IN lh_rtbplip
-                   (INPUT ip_task_number
-                   ,OUTPUT op_rejection
-                   ).
-
-  IF VALID-HANDLE(lh_rtbplip)
-  THEN
-    DELETE PROCEDURE lh_rtbplip.
+  IF NOT VALID-HANDLE(hRtbApi)
+  THEN DO:
+    op_rejection = "Rountable API not available".
+    RETURN.
+  END.
+  ELSE
+    RUN complete_task IN hRtbApi
+                     (INPUT  ip_task_number
+                     ,OUTPUT op_rejection
+                     ).
 
   ERROR-STATUS:ERROR = NO.
   RETURN.
@@ -2488,7 +2574,7 @@ PROCEDURE scmCreateObject :
 ------------------------------------------------------------------------------*/
 
   DEFINE INPUT PARAMETER  ip_object_name                  AS CHARACTER    NO-UNDO.
-  DEFINE INPUT PARAMETER  ip_object_type                  AS CHARACTER    NO-UNDO.
+  DEFINE INPUT PARAMETER  ip_object_type    /* PCODE */   AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_sub_type                     AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_product_module               AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_group                        AS CHARACTER    NO-UNDO.
@@ -2503,7 +2589,6 @@ PROCEDURE scmCreateObject :
   DEFINE OUTPUT PARAMETER op_recid                        AS RECID        NO-UNDO.
   DEFINE OUTPUT PARAMETER op_rejection                    AS CHARACTER    NO-UNDO.
 
-  DEFINE VARIABLE lh_rtbplip                              AS HANDLE       NO-UNDO.
   DEFINE VARIABLE lv_full_object_name                     AS CHARACTER    NO-UNDO.
   DEFINE VARIABLE lv_relative_path                        AS CHARACTER    NO-UNDO.
   DEFINE VARIABLE lv_task_root                            AS CHARACTER    NO-UNDO.
@@ -2520,6 +2605,13 @@ PROCEDURE scmCreateObject :
   DEFINE VARIABLE hTable02                                AS HANDLE     NO-UNDO.
 
   DEFINE BUFFER lb_rtb_object FOR rtb_object.
+
+  /* ISSUE 6802 */
+  IF NUM-ENTRIES(ip_sub_type,"_":U) > 2
+  AND ENTRY(2,ip_sub_type,"_":U) = "SITE":U
+  THEN
+    ASSIGN
+      ip_sub_type = ENTRY(1,ip_sub_type,"_":U).
 
   ASSIGN
     lv_full_object_name = ip_object_name.
@@ -2700,7 +2792,7 @@ PROCEDURE scmCreateObject :
         IF FILE-INFO:FILE-SIZE = 0
         THEN DO:
           OUTPUT TO VALUE(SEARCH(cXMLRelativeName)).
-          DISPLAY "/* ICF-SCM-XML : Dynamics Dynamic Object */ ":U.
+          DISPLAY "/* ICF-SCM-XML : Dynamic Object */ ":U.
           OUTPUT CLOSE.  
         END.
 
@@ -2708,7 +2800,7 @@ PROCEDURE scmCreateObject :
       ELSE DO:
 
         OUTPUT TO VALUE(cObjectRoot + "~/":U + cXMLRelativeName).
-        DISPLAY "/* ICF-SCM-XML : Dynamics Dynamic Object */ ":U.
+        DISPLAY "/* ICF-SCM-XML : Dynamic Object */ ":U.
         OUTPUT CLOSE.  
 
         IF SEARCH(cXMLRelativeName) = ?
@@ -2724,29 +2816,26 @@ PROCEDURE scmCreateObject :
 
   END.  /* If create physical file = yes */
 
-  /*- Run PP of API calls -*/
-  IF NOT VALID-HANDLE(lh_rtbplip)
-  THEN
-    RUN rtb/p/rtb_api.p PERSISTENT SET lh_rtbplip.
-
-  RUN create_object IN lh_rtbplip
-                   (INPUT  lv_full_object_name
-                   ,INPUT  ip_object_type
-                   ,INPUT  ip_sub_type
-                   ,INPUT  ip_product_module
-                   ,INPUT  ip_group
-                   ,INPUT  ip_level
-                   ,INPUT  ip_object_description
-                   ,INPUT  ip_options
-                   ,INPUT  ip_task_number
-                   ,INPUT  ip_ui_on
-                   ,OUTPUT op_recid
-                   ,OUTPUT op_rejection
-                   ).
-
-  IF VALID-HANDLE(lh_rtbplip)
-  THEN
-    DELETE PROCEDURE lh_rtbplip.
+  IF NOT VALID-HANDLE(hRtbApi)
+  THEN DO:
+    op_rejection = "Rountable API not available".
+    RETURN.
+  END.
+  ELSE
+    RUN create_object IN hRtbApi
+                     (INPUT  lv_full_object_name
+                     ,INPUT  ip_object_type
+                     ,INPUT  ip_sub_type
+                     ,INPUT  ip_product_module
+                     ,INPUT  ip_group
+                     ,INPUT  ip_level
+                     ,INPUT  ip_object_description
+                     ,INPUT  ip_options
+                     ,INPUT  ip_task_number
+                     ,INPUT  ip_ui_on
+                     ,OUTPUT op_recid
+                     ,OUTPUT op_rejection
+                     ).
 
   /* Re-find object and update share-status of object */
   IF ip_share_status <> "":U
@@ -2795,7 +2884,7 @@ PROCEDURE scmCreateObjectControl :
 ------------------------------------------------------------------------------*/
 
   DEFINE INPUT PARAMETER  ip_object_name                  AS CHARACTER    NO-UNDO.
-  DEFINE INPUT PARAMETER  ip_object_type                  AS CHARACTER    NO-UNDO.
+  DEFINE INPUT PARAMETER  ip_object_type    /* PCODE */   AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_sub_type                     AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_product_module               AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_group                        AS CHARACTER    NO-UNDO.
@@ -2875,7 +2964,6 @@ PROCEDURE scmCreateTask :
   DEFINE VARIABLE lv_loop                                 AS INTEGER      NO-UNDO.
   DEFINE VARIABLE lv_character                            AS CHARACTER    NO-UNDO.
 
-  DEFINE VARIABLE lh_rtbplip                              AS HANDLE       NO-UNDO.
   DEFINE VARIABLE lv_recid                                AS RECID        NO-UNDO.
 
   DO FOR lb_rtb_task:
@@ -2895,22 +2983,19 @@ PROCEDURE scmCreateTask :
 
     /* create the task */    
 
-    /*- Run PP of API calls -*/
-    IF NOT VALID-HANDLE(lh_rtbplip)
-    THEN
-      RUN rtb/p/rtb_api.p PERSISTENT SET lh_rtbplip.
-
-    RUN create_task IN lh_rtbplip
-                   (INPUT ip_workspace
-                   ,INPUT ip_programmer
-                   ,INPUT ip_manager
-                   ,OUTPUT lv_recid
-                   ,OUTPUT op_rejection
-                   ).
-
-    IF VALID-HANDLE(lh_rtbplip)
-    THEN
-      DELETE PROCEDURE lh_rtbplip.
+    IF NOT VALID-HANDLE(hRtbApi)
+    THEN DO:
+      op_rejection = "Rountable API not available".
+      RETURN.
+    END.
+    ELSE
+      RUN create_task IN hRtbApi
+                     (INPUT  ip_workspace
+                     ,INPUT  ip_programmer
+                     ,INPUT  ip_manager
+                     ,OUTPUT lv_recid
+                     ,OUTPUT op_rejection
+                     ).
 
     IF op_rejection <> "":U
     THEN RETURN.
@@ -3094,22 +3179,17 @@ PROCEDURE scmCreateXref :
   DEFINE INPUT PARAMETER  ip_log_file                     AS CHARACTER    NO-UNDO.
   DEFINE OUTPUT PARAMETER op_rejection                    AS CHARACTER    NO-UNDO.
 
-  DEFINE VARIABLE lh_rtbplip                              AS HANDLE       NO-UNDO.
-
-  /*- Run PP of API calls -*/
-  IF NOT VALID-HANDLE(lh_rtbplip)
-  THEN
-    RUN rtb/p/rtb_api.p PERSISTENT SET lh_rtbplip.
-
-  RUN create_xrefs IN lh_rtbplip
-                  (INPUT TABLE TTxref
-                  ,INPUT ip_log_file
-                  ,OUTPUT op_rejection
-                  ).
-
-  IF VALID-HANDLE(lh_rtbplip)
-  THEN
-    DELETE PROCEDURE lh_rtbplip.
+  IF NOT VALID-HANDLE(hRtbApi)
+  THEN DO:
+    op_rejection = "Rountable API not available".
+    RETURN.
+  END.
+  ELSE
+    RUN create_xrefs IN hRtbApi
+                    (INPUT  TABLE TTxref
+                    ,INPUT  ip_log_file
+                    ,OUTPUT op_rejection
+                    ).
 
   ERROR-STATUS:ERROR = NO.
   RETURN.
@@ -3207,35 +3287,30 @@ PROCEDURE scmDeleteObject :
 ------------------------------------------------------------------------------*/
 
   DEFINE INPUT PARAMETER  ip_product_module               AS CHARACTER    NO-UNDO.
-  DEFINE INPUT PARAMETER  ip_object_type                  AS CHARACTER    NO-UNDO.
+  DEFINE INPUT PARAMETER  ip_object_type    /* PCODE */   AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_object_name                  AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_task_number                  AS INTEGER      NO-UNDO.
   DEFINE INPUT PARAMETER  ip_params                       AS CHARACTER    NO-UNDO.
   DEFINE OUTPUT PARAMETER op_rejection                    AS CHARACTER    NO-UNDO.
 
-  DEFINE VARIABLE lh_rtbplip                              AS HANDLE       NO-UNDO.
-
-  /*- Run PP of API calls -*/
-  IF NOT VALID-HANDLE(lh_rtbplip)
-  THEN
-    RUN rtb/p/rtb_api.p PERSISTENT SET lh_rtbplip.
-
   IF ip_product_module <> "":U
   THEN
     RUN scmSitePrefixAdd (INPUT-OUTPUT ip_product_module).
 
-  RUN delete_object IN lh_rtbplip
-                   (INPUT ip_product_module
-                   ,INPUT ip_object_type
-                   ,INPUT ip_object_name
-                   ,INPUT ip_task_number
-                   ,INPUT ip_params
-                   ,OUTPUT op_rejection
-                   ).
-
-  IF VALID-HANDLE(lh_rtbplip)
-  THEN
-    DELETE PROCEDURE lh_rtbplip.
+  IF NOT VALID-HANDLE(hRtbApi)
+  THEN DO:
+    op_rejection = "Rountable API not available".
+    RETURN.
+  END.
+  ELSE
+    RUN delete_object IN hRtbApi
+                     (INPUT  ip_product_module
+                     ,INPUT  ip_object_type
+                     ,INPUT  ip_object_name
+                     ,INPUT  ip_task_number
+                     ,INPUT  ip_params
+                     ,OUTPUT op_rejection
+                     ).
 
   ERROR-STATUS:ERROR = NO.
   RETURN.
@@ -3261,7 +3336,7 @@ PROCEDURE scmDeleteObjectControl :
 ------------------------------------------------------------------------------*/
 
   DEFINE INPUT PARAMETER  ip_product_module               AS CHARACTER    NO-UNDO.
-  DEFINE INPUT PARAMETER  ip_object_type                  AS CHARACTER    NO-UNDO.
+  DEFINE INPUT PARAMETER  ip_object_type    /* PCODE */   AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_object_name                  AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_task_number                  AS INTEGER      NO-UNDO.
   DEFINE INPUT PARAMETER  ip_params                       AS CHARACTER    NO-UNDO.
@@ -3306,35 +3381,30 @@ PROCEDURE scmExtractObject :
 ------------------------------------------------------------------------------*/
 
   DEFINE INPUT PARAMETER  ip_product_module               AS CHARACTER    NO-UNDO.
-  DEFINE INPUT PARAMETER  ip_object_type                  AS CHARACTER    NO-UNDO.
+  DEFINE INPUT PARAMETER  ip_object_type    /* PCODE */   AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_object_name                  AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_version                      AS INTEGER      NO-UNDO.
   DEFINE INPUT PARAMETER  ip_root_dir                     AS CHARACTER    NO-UNDO.
   DEFINE OUTPUT PARAMETER op_rejection                    AS CHARACTER    NO-UNDO.
 
-  DEFINE VARIABLE lh_rtbplip                              AS HANDLE       NO-UNDO.
-
-  /*- Run PP of API calls -*/
-  IF NOT VALID-HANDLE(lh_rtbplip)
-  THEN
-    RUN rtb/p/rtb_api.p PERSISTENT SET lh_rtbplip.
-
   IF ip_product_module <> "":U
   THEN
     RUN scmSitePrefixAdd (INPUT-OUTPUT ip_product_module).
 
-  RUN extract_object IN lh_rtbplip
-                    (INPUT ip_product_module
-                    ,INPUT ip_object_type
-                    ,INPUT ip_object_name
-                    ,INPUT ip_version
-                    ,INPUT ip_root_dir
-                    ,OUTPUT op_rejection
-                    ).
-
-  IF VALID-HANDLE(lh_rtbplip)
-  THEN
-    DELETE PROCEDURE lh_rtbplip.
+  IF NOT VALID-HANDLE(hRtbApi)
+  THEN DO:
+    op_rejection = "Rountable API not available".
+    RETURN.
+  END.
+  ELSE
+    RUN extract_object IN hRtbApi
+                      (INPUT  ip_product_module
+                      ,INPUT  ip_object_type
+                      ,INPUT  ip_object_name
+                      ,INPUT  ip_version
+                      ,INPUT  ip_root_dir
+                      ,OUTPUT op_rejection
+                      ).
 
   ERROR-STATUS:ERROR = NO.
   RETURN.
@@ -3359,7 +3429,7 @@ PROCEDURE scmExtractObjectControl :
 ------------------------------------------------------------------------------*/
 
   DEFINE INPUT PARAMETER  ip_product_module               AS CHARACTER    NO-UNDO.
-  DEFINE INPUT PARAMETER  ip_object_type                  AS CHARACTER    NO-UNDO.
+  DEFINE INPUT PARAMETER  ip_object_type    /* PCODE */   AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_object_name                  AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_version                      AS INTEGER      NO-UNDO.
   DEFINE INPUT PARAMETER  ip_root_dir                     AS CHARACTER    NO-UNDO.
@@ -3466,7 +3536,7 @@ PROCEDURE scmFullObjectInfo :
     NO-ERROR.
 
   IF CAN-FIND(FIRST rtb_ver
-              WHERE rtb_ver.obj-type = "pcode":U
+              WHERE rtb_ver.obj-type = "PCODE":U
               AND   rtb_ver.object   = pcObject)
   THEN
     plExistsInSCM = YES.
@@ -3684,7 +3754,7 @@ PROCEDURE scmGetModuleDir :
   IF AVAILABLE rtb_moddef
   THEN
     ASSIGN  
-      pcDir = TRIM(REPLACE(LC(rtb_moddef.directory),"\":U,"/":U),"/":U).
+      pcDir = TRIM(REPLACE(LC(rtb_moddef.directory),"~\":U,"/":U),"/":U).
 
   ERROR-STATUS:ERROR = NO.
   RETURN.
@@ -3712,21 +3782,28 @@ PROCEDURE scmGetObjectModule :
 
   DEFINE INPUT PARAMETER  pcWorkspace                 AS CHARACTER  NO-UNDO.
   DEFINE INPUT PARAMETER  pcObject                    AS CHARACTER  NO-UNDO.
-  DEFINE INPUT PARAMETER  pcType                      AS CHARACTER  NO-UNDO.
+  DEFINE INPUT PARAMETER  pcObjectSubType             AS CHARACTER  NO-UNDO.
   DEFINE OUTPUT PARAMETER pcModule                    AS CHARACTER  NO-UNDO.
   DEFINE OUTPUT PARAMETER pcPath                      AS CHARACTER  NO-UNDO.
 
+  /* ISSUE 6802 */
+  IF NUM-ENTRIES(pcObjectSubType,"_":U) > 2
+  AND ENTRY(2,pcObjectSubType,"_":U) = "SITE":U
+  THEN
+    ASSIGN
+      pcObjectSubType = ENTRY(1,pcObjectSubType,"_":U).
+
   FIND FIRST rtb_ver
     WHERE rtb_ver.object   = pcObject
-    AND   rtb_ver.sub-type = pcType
+    AND   rtb_ver.sub-type = pcObjectSubType
     AND   rtb_ver.obj-type = "PCODE":U 
       NO-LOCK NO-ERROR. 
   IF AVAILABLE rtb_ver
   THEN
   FIND FIRST rtb_object NO-LOCK
     WHERE rtb_object.wspace-id  = pcWorkspace
-    AND   rtb_object.obj-type   = "PCODE":U /* pcType */
-    AND   rtb_object.object     = pcObject
+    AND   rtb_object.obj-type   = rtb_ver.obj-type /* "PCODE":U */
+    AND   rtb_object.object     = rtb_ver.OBJECT   /* pcObject  */
     NO-ERROR.
 
   IF AVAILABLE rtb_object
@@ -3756,6 +3833,44 @@ PROCEDURE scmGetObjectModule :
 
   ERROR-STATUS:ERROR = NO.
   RETURN.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-scmGetObjectParts) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE scmGetObjectParts Procedure 
+PROCEDURE scmGetObjectParts :
+/*------------------------------------------------------------------------------
+  Purpose:     Return the physical parts for the object in RTB
+  Parameters:  pcObjectname - the SCM name of the object
+               pcRootPath   - the root workspace path. Leave this blank if 
+                              only the relative part names are wanted
+               pcObjectParts - The output of physical parts of the object               
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT  PARAMETER pcObjectName  AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER pcRootPath  AS CHARACTER  NO-UNDO.
+DEFINE OUTPUT PARAMETER pcObjectParts AS CHARACTER  NO-UNDO.
+
+DEFINE BUFFER Brtb_object FOR rtb_object.
+
+DEFINE VARIABLE cError  AS CHARACTER  NO-UNDO.
+
+
+FIND FIRST Brtb_object WHERE Brtb_object.obj-type = "PCODE" AND 
+                             Brtb_object.OBJECT = pcObjectName NO-LOCK NO-ERROR. 
+IF AVAILABLE Brtb_object THEN DO:
+  /* Get the physical part names of the object using the internal RTB call below */
+  RUN rtb/p/rtb_nams.p (INPUT  RECID(Brtb_object),
+                        INPUT  pcRootPath, /* If this is blank, the relative path is returned */
+                        OUTPUT pcObjectParts,
+                        OUTPUT cError). /* ignored */                        
+END.  
 
 END PROCEDURE.
 
@@ -3920,7 +4035,7 @@ PROCEDURE scmGetWorkspaceRoot :
   DEFINE OUTPUT PARAMETER pcRoot                AS CHARACTER  NO-UNDO.
 
   ASSIGN
-    pcRoot = TRIM(REPLACE(LC(grtb-wsroot),"~\":U,"/":U),"/":U).
+    pcRoot = TRIM(REPLACE(grtb-wsroot,"~\":U,"/":U),"/":U).
 
   ERROR-STATUS:ERROR = NO.
   RETURN.
@@ -4210,27 +4325,22 @@ PROCEDURE scmObjectIntegrity :
   DEFINE INPUT PARAMETER  ip_workspace                    AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_product_module               AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_object_name                  AS CHARACTER    NO-UNDO.
-  DEFINE INPUT PARAMETER  ip_object_type                  AS CHARACTER    NO-UNDO.
+  DEFINE INPUT PARAMETER  ip_object_type  /* PCODE */     AS CHARACTER    NO-UNDO.
   DEFINE OUTPUT PARAMETER op_rejection                    AS CHARACTER    NO-UNDO.
 
-  DEFINE VARIABLE lh_rtbplip                              AS HANDLE       NO-UNDO.
-
-  /*- Run PP of API calls -*/
-  IF NOT VALID-HANDLE(lh_rtbplip)
-  THEN
-    RUN rtb/p/rtb_api.p PERSISTENT SET lh_rtbplip.
-
-  RUN check_object_integrity IN lh_rtbplip
-                             (INPUT ip_workspace
-                             ,INPUT ip_product_module
-                             ,INPUT ip_object_name
-                             ,INPUT ip_object_type
-                             ,OUTPUT op_rejection
-                             ).
-
-  IF VALID-HANDLE(lh_rtbplip)
-  THEN
-    DELETE PROCEDURE lh_rtbplip.
+  IF NOT VALID-HANDLE(hRtbApi)
+  THEN DO:
+    op_rejection = "Rountable API not available".
+    RETURN.
+  END.
+  ELSE
+    RUN check_object_integrity IN hRtbApi
+                               (INPUT  ip_workspace
+                               ,INPUT  ip_product_module
+                               ,INPUT  ip_object_name
+                               ,INPUT  ip_object_type
+                               ,OUTPUT op_rejection
+                               ).
 
   ERROR-STATUS:ERROR = NO.
   RETURN.
@@ -4255,7 +4365,7 @@ PROCEDURE scmObjectIntegrityControl :
   DEFINE INPUT PARAMETER  ip_workspace                    AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_product_module               AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_object_name                  AS CHARACTER    NO-UNDO.
-  DEFINE INPUT PARAMETER  ip_object_type                  AS CHARACTER    NO-UNDO.
+  DEFINE INPUT PARAMETER  ip_object_type   /* PCODE */    AS CHARACTER    NO-UNDO.
   DEFINE OUTPUT PARAMETER op_rejection                    AS CHARACTER    NO-UNDO.
 
   TRANSACTION-BLOCK:
@@ -4319,13 +4429,13 @@ PROCEDURE scmObjectSubType :
     FIND FIRST rtb_subtype NO-LOCK
       WHERE rtb_subtype.sub-type = rtb_ver.sub-type
       NO-ERROR.
-  IF  AVAILABLE rtb_subtype
+  IF AVAILABLE rtb_subtype
   THEN
     ASSIGN
       pcObjectSubType = rtb_subtype.sub-type.
   ELSE
     ASSIGN
-      rtb_subtype.sub-type = "":U.
+      pcObjectSubType = "":U.
 
   ERROR-STATUS:ERROR = NO.
   RETURN.
@@ -4364,35 +4474,30 @@ PROCEDURE scmSelectiveCompile :
   DEFINE INPUT PARAMETER  ip_task_number                  AS INTEGER      NO-UNDO.
   DEFINE INPUT PARAMETER  ip_module                       AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_object_group                 AS CHARACTER    NO-UNDO.
-  DEFINE INPUT PARAMETER  ip_object_type                  AS CHARACTER    NO-UNDO.
+  DEFINE INPUT PARAMETER  ip_object_type  /* PCODE */     AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_object_name                  AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_force                        AS LOGICAL      NO-UNDO.
   DEFINE INPUT PARAMETER  ip_with_listings                AS LOGICAL      NO-UNDO.
   DEFINE INPUT PARAMETER  ip_with_xref                    AS LOGICAL      NO-UNDO.
   DEFINE OUTPUT PARAMETER op_rejection                    AS CHARACTER    NO-UNDO.
 
-  DEFINE VARIABLE lh_rtbplip                              AS HANDLE       NO-UNDO.
-
-  /*- Run PP of API calls -*/
-  IF NOT VALID-HANDLE(lh_rtbplip)
-  THEN
-    RUN rtb/p/rtb_api.p PERSISTENT SET lh_rtbplip.
-
-  RUN selective_compile IN lh_rtbplip
-                       (INPUT ip_task_number
-                       ,INPUT ip_module
-                       ,INPUT ip_object_group
-                       ,INPUT ip_object_type
-                       ,INPUT ip_object_name
-                       ,INPUT ip_force
-                       ,INPUT ip_with_listings
-                       ,INPUT ip_with_xref
-                       ,OUTPUT op_rejection
-                       ).
-
-  IF VALID-HANDLE(lh_rtbplip)
-  THEN
-    DELETE PROCEDURE lh_rtbplip.
+  IF NOT VALID-HANDLE(hRtbApi)
+  THEN DO:
+    op_rejection = "Rountable API not available".
+    RETURN.
+  END.
+  ELSE
+    RUN selective_compile IN hRtbApi
+                         (INPUT  ip_task_number
+                         ,INPUT  ip_module
+                         ,INPUT  ip_object_group
+                         ,INPUT  ip_object_type
+                         ,INPUT  ip_object_name
+                         ,INPUT  ip_force
+                         ,INPUT  ip_with_listings
+                         ,INPUT  ip_with_xref
+                         ,OUTPUT op_rejection
+                         ).
 
   ERROR-STATUS:ERROR = NO.
   RETURN.
@@ -4431,7 +4536,7 @@ PROCEDURE scmSelectiveCompileControl :
   DEFINE INPUT PARAMETER  ip_task_number                  AS INTEGER      NO-UNDO.
   DEFINE INPUT PARAMETER  ip_module                       AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_object_group                 AS CHARACTER    NO-UNDO.
-  DEFINE INPUT PARAMETER  ip_object_type                  AS CHARACTER    NO-UNDO.
+  DEFINE INPUT PARAMETER  ip_object_type    /* PCODE */   AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_object_name                  AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_force                        AS LOGICAL      NO-UNDO.
   DEFINE INPUT PARAMETER  ip_with_listings                AS LOGICAL      NO-UNDO.
@@ -4479,16 +4584,31 @@ PROCEDURE scmSitePrefixAdd :
 
   DEFINE INPUT-OUTPUT PARAMETER pcAddSitePrefix AS CHARACTER  NO-UNDO.
 
-  DEFINE VARIABLE iSiteNumber  AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cSiteNumber  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iSiteNumber                   AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cSiteNumber                   AS CHARACTER  NO-UNDO.
+
+  DEFINE VARIABLE iExistingPrefix               AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cExistingPrefix               AS CHARACTER  NO-UNDO.
 
   RUN scmGetSiteNumber (OUTPUT iSiteNumber).
 
   ASSIGN
     cSiteNumber = STRING(iSiteNumber,"999":U).
 
+  ASSIGN
+    iExistingPrefix = INTEGER(SUBSTRING(pcAddSitePrefix,1,3))
+    NO-ERROR.
+  IF ERROR-STATUS:ERROR
+  THEN
+    ASSIGN
+      cExistingPrefix = "":U.
+  ELSE
+    ASSIGN
+      cExistingPrefix = STRING(iExistingPrefix,"999":U).
+
   IF iSiteNumber > 0
-  AND SUBSTRING(pcAddSitePrefix,1,3) <> cSiteNumber
+  AND cExistingPrefix = "":U 
+  /* OR cExistingPrefix <> cSiteNumber */
   THEN
     pcAddSitePrefix = cSiteNumber + pcAddSitePrefix.
 
@@ -4547,27 +4667,22 @@ PROCEDURE scmUnlockObject :
   DEFINE INPUT PARAMETER  ip_workspace                    AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_product_module               AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_object_name                  AS CHARACTER    NO-UNDO.
-  DEFINE INPUT PARAMETER  ip_object_type                  AS CHARACTER    NO-UNDO.
+  DEFINE INPUT PARAMETER  ip_object_type    /* PCODE */   AS CHARACTER    NO-UNDO.
   DEFINE OUTPUT PARAMETER op_rejection                    AS CHARACTER    NO-UNDO.
 
-  DEFINE VARIABLE lh_rtbplip                              AS HANDLE       NO-UNDO.
-
-  /*- Run PP of API calls -*/
-  IF NOT VALID-HANDLE(lh_rtbplip)
-  THEN
-    RUN rtb/p/rtb_api.p PERSISTENT SET lh_rtbplip.
-
-  RUN unlock_object IN lh_rtbplip
-                   (INPUT ip_workspace
-                   ,INPUT ip_product_module
-                   ,INPUT ip_object_name
-                   ,INPUT ip_object_type
-                   ,OUTPUT op_rejection
-                   ).
-
-  IF VALID-HANDLE(lh_rtbplip)
-  THEN
-    DELETE PROCEDURE lh_rtbplip.
+  IF NOT VALID-HANDLE(hRtbApi)
+  THEN DO:
+    op_rejection = "Rountable API not available".
+    RETURN.
+  END.
+  ELSE
+    RUN unlock_object IN hRtbApi
+                     (INPUT  ip_workspace
+                     ,INPUT  ip_product_module
+                     ,INPUT  ip_object_name
+                     ,INPUT  ip_object_type
+                     ,OUTPUT op_rejection
+                     ).
 
   ERROR-STATUS:ERROR = NO.
   RETURN.
@@ -4592,7 +4707,7 @@ PROCEDURE scmUnlockObjectControl :
   DEFINE INPUT PARAMETER  ip_workspace                    AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_product_module               AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  ip_object_name                  AS CHARACTER    NO-UNDO.
-  DEFINE INPUT PARAMETER  ip_object_type                  AS CHARACTER    NO-UNDO.
+  DEFINE INPUT PARAMETER  ip_object_type    /* PCODE */   AS CHARACTER    NO-UNDO.
   DEFINE OUTPUT PARAMETER op_rejection                    AS CHARACTER    NO-UNDO.
 
   TRANSACTION-BLOCK:
@@ -4636,7 +4751,7 @@ PROCEDURE scmUpdateObjectDescription :
 
   DEFINE INPUT PARAMETER  pcWorkspace                   AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  pcObject                      AS CHARACTER    NO-UNDO.
-  DEFINE INPUT PARAMETER  pcType                        AS CHARACTER    NO-UNDO.
+  DEFINE INPUT PARAMETER  pcType       /* PCODE */      AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  plOverwrite                   AS LOGICAL      NO-UNDO.
   DEFINE INPUT PARAMETER  pcDescription                 AS CHARACTER    NO-UNDO.
 
@@ -4679,6 +4794,64 @@ PROCEDURE scmUpdateObjectDescription :
   RETURN.
 
 END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+/* ************************  Function Implementations ***************** */
+
+&IF DEFINED(EXCLUDE-scmGetCurrentTask) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION scmGetCurrentTask Procedure 
+FUNCTION scmGetCurrentTask RETURNS INTEGER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: return the currently selected task number 
+    Notes:  
+------------------------------------------------------------------------------*/
+  RETURN Grtb-task-num.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-scmGetCurrentWorkspace) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION scmGetCurrentWorkspace Procedure 
+FUNCTION scmGetCurrentWorkspace RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Return the ID of the currently selected workspace
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN Grtb-wspace-id.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-scmGetCurrentWorkspaceRoot) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION scmGetCurrentWorkspaceRoot Procedure 
+FUNCTION scmGetCurrentWorkspaceRoot RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Return the root workspace dir for the currently selected workspace
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN Grtb-wsroot.   /* Function return value. */
+
+END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

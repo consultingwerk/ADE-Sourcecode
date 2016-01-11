@@ -106,7 +106,7 @@ af/cod/aftemwizpw.w
 
 &scop object-name       gsmullogcp.p
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Astra object identifying preprocessor */
 &glob   AstraPlip    yes
@@ -121,7 +121,7 @@ ASSIGN cObjectName = "{&object-name}":U.
 
 /* Data Preprocessor Definitions */
 &GLOB DATA-LOGIC-TABLE gsm_user_allocation
-&GLOB DATA-FIELD-DEFS  "af\obj2\gsmulfullo.i"
+&GLOB DATA-FIELD-DEFS  "af/obj2/gsmulfullo.i"
 
 /* Error handling definitions */
 {af/sup2/afcheckerr.i &define-only = YES}
@@ -144,6 +144,8 @@ ASSIGN cObjectName = "{&object-name}":U.
 &ENDIF
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
+
+
 
 
 
@@ -185,7 +187,7 @@ ASSIGN cObjectName = "{&object-name}":U.
 &ANALYZE-RESUME
 
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK DataLogicProcedure 
@@ -200,6 +202,41 @@ ASSIGN cObjectName = "{&object-name}":U.
 
 
 /* **********************  Internal Procedures  *********************** */
+
+{&DB-REQUIRED-START}
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createPreTransValidate DataLogicProcedure  _DB-REQUIRED
+PROCEDURE createPreTransValidate :
+/*------------------------------------------------------------------------------
+  Purpose:     Procedure used to validate records server-side before the transaction scope upon create
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  DEFINE VARIABLE cMessageList    AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cValueList      AS CHARACTER    NO-UNDO.
+
+  IF CAN-FIND(FIRST gsm_user_allocation 
+              WHERE gsm_user_allocation.user_obj = b_gsm_user_allocation.user_obj
+                AND gsm_user_allocation.login_organisation_obj = b_gsm_user_allocation.login_organisation_obj
+                AND gsm_user_allocation.owning_entity_mnemonic = b_gsm_user_allocation.owning_entity_mnemonic
+                AND gsm_user_allocation.owning_obj = b_gsm_user_allocation.owning_obj) THEN
+  DO:
+     ASSIGN
+        cValueList   = STRING(b_gsm_user_allocation.user_obj) + ', ' + STRING(b_gsm_user_allocation.login_organisation_obj) + ', ' + STRING(b_gsm_user_allocation.owning_entity_mnemonic) + ', ' + STRING(b_gsm_user_allocation.owning_obj)
+        cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
+                      {af/sup2/aferrortxt.i 'AF' '8' 'gsm_user_allocation' '' "'user_obj, login_organisation_obj, owning_entity_mnemonic, owning_obj, '" cValueList }.
+  END.
+
+  ERROR-STATUS:ERROR = NO.
+  RETURN cMessageList.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE killPlip DataLogicProcedure 
 PROCEDURE killPlip :
@@ -264,76 +301,8 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-
-{&DB-REQUIRED-START}
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createPreTransValidate dTables _DB-REQUIRED
-PROCEDURE createPreTransValidate : 
-/*------------------------------------------------------------------------------
-  Purpose:     Procedure used to validate records server-side before the transaction scope upon create
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-
-  DEFINE VARIABLE cMessageList    AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE cValueList      AS CHARACTER    NO-UNDO.
-
-  IF CAN-FIND(FIRST gsm_user_allocation 
-              WHERE gsm_user_allocation.user_obj = b_gsm_user_allocation.user_obj
-                AND gsm_user_allocation.login_organisation_obj = b_gsm_user_allocation.login_organisation_obj
-                AND gsm_user_allocation.owning_entity_mnemonic = b_gsm_user_allocation.owning_entity_mnemonic
-                AND gsm_user_allocation.owning_obj = b_gsm_user_allocation.owning_obj) THEN
-  DO:
-     ASSIGN
-        cValueList   = STRING(b_gsm_user_allocation.user_obj) + ', ' + STRING(b_gsm_user_allocation.login_organisation_obj) + ', ' + STRING(b_gsm_user_allocation.owning_entity_mnemonic) + ', ' + STRING(b_gsm_user_allocation.owning_obj)
-        cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                      {af/sup2/aferrortxt.i 'AF' '8' 'gsm_user_allocation' '' "'user_obj, login_organisation_obj, owning_entity_mnemonic, owning_obj, '" cValueList }.
-  END.
-
-  ERROR-STATUS:ERROR = NO.
-  RETURN cMessageList.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-{&DB-REQUIRED-END}
-
-{&DB-REQUIRED-START}
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE writePreTransValidate dTables _DB-REQUIRED
-PROCEDURE writePreTransValidate : 
-/*------------------------------------------------------------------------------
-  Purpose:     Procedure used to validate records server-side before the transaction scope upon write
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-
-  DEFINE VARIABLE cMessageList    AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE cValueList      AS CHARACTER    NO-UNDO.
-
-  IF NOT isCreate() AND CAN-FIND(FIRST gsm_user_allocation 
-              WHERE gsm_user_allocation.user_obj = b_gsm_user_allocation.user_obj
-                AND gsm_user_allocation.login_organisation_obj = b_gsm_user_allocation.login_organisation_obj
-                AND gsm_user_allocation.owning_entity_mnemonic = b_gsm_user_allocation.owning_entity_mnemonic
-                AND gsm_user_allocation.owning_obj = b_gsm_user_allocation.owning_obj
-                AND ROWID(gsm_user_allocation) <> TO-ROWID(ENTRY(1,b_gsm_user_allocation.RowIDent))) THEN
-  DO:
-     ASSIGN
-        cValueList   = STRING(b_gsm_user_allocation.user_obj) + ', ' + STRING(b_gsm_user_allocation.login_organisation_obj) + ', ' + STRING(b_gsm_user_allocation.owning_entity_mnemonic) + ', ' + STRING(b_gsm_user_allocation.owning_obj)
-        cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                      {af/sup2/aferrortxt.i 'AF' '8' 'gsm_user_allocation' '' "'user_obj, login_organisation_obj, owning_entity_mnemonic, owning_obj, '" cValueList }.
-  END.
-
-  ERROR-STATUS:ERROR = NO.
-  RETURN cMessageList.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-{&DB-REQUIRED-END}
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE rowObjectValidate dTables 
-PROCEDURE rowObjectValidate : 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE rowObjectValidate DataLogicProcedure 
+PROCEDURE rowObjectValidate :
 /*------------------------------------------------------------------------------
   Purpose:     Procedure used to validate RowObject record client-side
   Parameters:  <none>
@@ -370,3 +339,40 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
+
+{&DB-REQUIRED-START}
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE writePreTransValidate DataLogicProcedure  _DB-REQUIRED
+PROCEDURE writePreTransValidate :
+/*------------------------------------------------------------------------------
+  Purpose:     Procedure used to validate records server-side before the transaction scope upon write
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  DEFINE VARIABLE cMessageList    AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cValueList      AS CHARACTER    NO-UNDO.
+
+  IF NOT isCreate() AND CAN-FIND(FIRST gsm_user_allocation 
+              WHERE gsm_user_allocation.user_obj = b_gsm_user_allocation.user_obj
+                AND gsm_user_allocation.login_organisation_obj = b_gsm_user_allocation.login_organisation_obj
+                AND gsm_user_allocation.owning_entity_mnemonic = b_gsm_user_allocation.owning_entity_mnemonic
+                AND gsm_user_allocation.owning_obj = b_gsm_user_allocation.owning_obj
+                AND ROWID(gsm_user_allocation) <> TO-ROWID(ENTRY(1,b_gsm_user_allocation.RowIDent))) THEN
+  DO:
+     ASSIGN
+        cValueList   = STRING(b_gsm_user_allocation.user_obj) + ', ' + STRING(b_gsm_user_allocation.login_organisation_obj) + ', ' + STRING(b_gsm_user_allocation.owning_entity_mnemonic) + ', ' + STRING(b_gsm_user_allocation.owning_obj)
+        cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
+                      {af/sup2/aferrortxt.i 'AF' '8' 'gsm_user_allocation' '' "'user_obj, login_organisation_obj, owning_entity_mnemonic, owning_obj, '" cValueList }.
+  END.
+
+  ERROR-STATUS:ERROR = NO.
+  RETURN cMessageList.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
+

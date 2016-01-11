@@ -128,7 +128,7 @@ DEFINE INPUT        PARAMETER p_hSmartData AS WIDGET-HANDLE       NO-UNDO.
 {adeuib/layout.i}
 {adeuib/uibhlp.i}
 {adecomm/getdbs.i &NEW="NEW"}
-
+{src/adm2/globals.i}
 
 /* Local Variable Definitions ---                                       */
 
@@ -137,6 +137,7 @@ DEFINE VARIABLE isSmartData   AS LOGICAL                          NO-UNDO.
 DEFINE VARIABLE srcSmartData  AS LOGICAL                          NO-UNDO.
 DEFINE VARIABLE isQuery       AS LOGICAL                          NO-UNDO.
 DEFINE VARIABLE isReport      AS LOGICAL                          NO-UNDO.
+DEFINE VARIABLE isDynSDO      AS LOGICAL                          NO-UNDO.
 
 DEFINE VARIABLE ch            AS CHARACTER                        NO-UNDO.
 DEFINE VARIABLE choice        AS LOGICAL                          NO-UNDO.
@@ -152,6 +153,7 @@ DEFINE VARIABLE empty-flg     AS LOGICAL                          NO-UNDO.
 DEFINE VARIABLE empty-msg     AS CHARACTER VIEW-AS EDITOR
                               SIZE 25 BY 7                        NO-UNDO.
 DEFINE VARIABLE enableValue   AS CHARACTER FORMAT "x(1)"          NO-UNDO.
+DEFINE VARIABLE hasDataField  AS CHARACTER FORMAT "x(1)"          NO-UNDO.
 DEFINE VARIABLE first-rec     AS RECID     INITIAL ?              NO-UNDO.
 DEFINE VARIABLE Fld-List      AS CHARACTER                        NO-UNDO.
 DEFINE VARIABLE i             AS INTEGER                          NO-UNDO.
@@ -168,6 +170,17 @@ DEFINE VARIABLE this-is-a-SB  AS LOGICAL                          NO-UNDO.
 DEFINE VARIABLE tt-info       AS CHARACTER                        NO-UNDO.
 DEFINE VARIABLE UniqueName    AS CHARACTER                        NO-UNDO.
 DEFINE VARIABLE userNames     AS CHARACTER                        NO-UNDO.
+DEFINE VARIABLE lICFIsRunning AS LOGICAL                          NO-UNDO.
+
+DEFINE VARIABLE cDataFieldName     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cDataFieldFormat   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cDataFieldHelp     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cDataFieldLabel    AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE hAttributeBuffer   AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hObjectBuffer      AS HANDLE     NO-UNDO.
+DEFINE VARIABLE lBufferType        AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE lEnableDFInfo      AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE lFoundIt           AS LOGICAL    NO-UNDO.
 
 /* Variable used to determine if the objName has "Object" in its name 
  * so that we do not have the phrase
@@ -195,7 +208,7 @@ A regular browse or SmartBrowse with query ---------------------------|
 A SmartBrowse (SmartData is Source)--------------------------------|  |
 An SDO ---------------------------------------------------------|  |  |
 A WebReport -------------------------------------------------|  |  |  |
-                     
+                   
 The behavior variables are:                      
 isQuery      - Not a browse,(different layout and widgets)   Y  Y  N  N      
 isReport     - No update widgets visible                     Y  N  N  N 
@@ -212,7 +225,14 @@ ASSIGN srcSmartData = AVAILABLE(_Q) AND _Q._TblList = "rowObject":U
                       (NOT CAN-FIND(FIRST x_U WHERE
                           x_U._WINDOW-HANDLE = _U._WINDOW-HANDLE AND
                           x_U._TYPE          = "FRAME":U)).
-                      */    
+                      */
+
+/* Set isDynSDO if ICF is running and we are working on a Dynamic SDO */
+lICFIsRunning = DYNAMIC-FUNCTION("IsICFRunning":U) NO-ERROR.
+IF lICFIsRunning = ? THEN lICFIsRunning = FALSE.
+IF isSmartData AND lICFIsRunning THEN DO:
+  isDynSDO = (_P.object_Type_Code = "DynSDO":U).
+END.
 
 /* If srcSmartData make sure we have am valid procedure handle */
 IF srcSmartData THEN p_hSmartData = get-proc-hdl(_P._data-object).
@@ -222,6 +242,9 @@ IF srcSmartData THEN p_hSmartData = get-proc-hdl(_P._data-object).
 &Scoped-define EnableValue IF NOT _BC._ENABLED THEN "":U~
                            ELSE IF isSmartData THEN "u":U~
                            ELSE                     "e" @ enableValue 
+&Scoped-define HasDataField IF lICFIsRunning AND isSmartData AND~
+                               NOT _BC._HAS-DATAFIELD-MASTER AND _BC._DBNAME <> "_<CALC>":U THEN "*":U~
+                           ELSE "":U @ hasDataField
 &Scoped-define Mandatory   IF isReport THEN FALSE~
                            ELSE _BC._Mandatory          @ _BC._Mandatory 
 
@@ -317,6 +340,8 @@ DEFINE VAR fldBCWidthLbl AS CHARACTER INITIAL "Width:"
                       VIEW-AS TEXT SIZE 11 BY 1 FORMAT "X(11)"         NO-UNDO.
 DEFINE VAR fldBCDescriptionLbl AS CHARACTER INITIAL "Description:"
                       VIEW-AS TEXT SIZE 16.9 BY .76 FORMAT "X(20)"     NO-UNDO.
+DEFINE VAR dfMasterLbl   AS CHARACTER INITIAL "* Datafield Master not defined":U 
+                      VIEW-AS TEXT SIZE 35 BY .76                      NO-UNDO.
 
 DEFINE VAR bcformat    AS CHARACTER VIEW-AS FILL-IN NATIVE 
                        SIZE 29 BY 1 FORMAT "X(256)":U                  NO-UNDO.
@@ -333,6 +358,7 @@ DEFINE QUERY qDb      FOR DICTDB._db FIELDS(DICTDB._db._db-name).
 DEFINE BROWSE brw-flds 
     QUERY brw-flds NO-LOCK DISPLAY 
       {&Mandatory}    FORMAT "m/"  
+      {&HasDataField}
       {&EnableValue}
       _BC._DISP-NAME  FORMAT "X(256)"
     WITH NO-LABELS SINGLE NO-COLUMN-SCROLLING SIZE 38 BY 14.455.
@@ -383,6 +409,7 @@ DEFINE FRAME bc-editor
                  FORMAT "X(256)":U AT ROW 15.7 COL 70 NO-LABEL
      b_calc-fld AT ROW 16.575 COL 2.5
      b_edit     AT ROW 16.575 COL 25.5
+     dfMasterLbl AT ROW 16.575 COL 68 NO-LABEL FORMAT "X(30)"
      fldBCDBNameLbl AT ROW 2.15 COLUMN 66 NO-LABEL
      _BC._DBNAME VIEW-AS TEXT SIZE 20 BY .7
                  FORMAT "X(256)":U NO-LABEL
@@ -409,7 +436,7 @@ DEFINE FRAME bc-editor
      fldBCLABELLbl AT ROW 11 COLUMN 66 NO-LABEL
      fldBCFormatLbl AT ROW 12.13 COLUMN 66 NO-LABEL
      fldBCWidthLbl AT ROW 13.26 COLUMN 66 NO-LABEL
-     b_advanced AT ROW 14.5 COLUMN  73.5
+     b_advanced AT ROW 14.5 COLUMN 73.5
      rdonly-rect AT ROW 2.0 COLUMN 65
      advanced-rect AT ROW 9.5 COLUMN 65 
      col-attrs-rect AT ROW 1.6 COL 68
@@ -539,6 +566,9 @@ IF isReport THEN
 ELSE      
  ASSIGN 
    _BC._Mandatory:WIDTH IN BROWSE brw-flds = FONT-TABLE:GET-TEXT-WIDTH-CHARS("m").
+
+IF NOT isSmartData OR NOT lICFIsRunning THEN 
+  hasDataField:WIDTH-P IN BROWSE brw-flds = 1.
    
 ASSIGN 
        FRAME bc-editor:SCROLLABLE                     = FALSE
@@ -865,23 +895,26 @@ ON CHOOSE OF b_calc-fld DO:
            pInputExpression = ""
            EditFlag         = FALSE.
        
-  RUN adeshar/_calcfld.p (pCurrentDB,
-                          pTbl,
-                          p_hSmartData,
-                          pSelectedTables, 
-                          pInputExpression,
-                          "{&UIB_SHORT_NAME}":U,
-                          this-is-a-SB,
-                          isSmartData,
-                          tt-info,
-                          OUTPUT pOutputExpression,
-                          OUTPUT pErrorStatus, 
-                          OUTPUT pOk).
+  IF NOT isDynSDO THEN
+  DO:
+    RUN adeshar/_calcfld.p (pCurrentDB,
+                            pTbl,
+                            p_hSmartData,
+                            pSelectedTables, 
+                            pInputExpression,
+                            "{&UIB_SHORT_NAME}":U,
+                            this-is-a-SB,
+                            isSmartData,
+                            tt-info,
+                            OUTPUT pOutputExpression,
+                            OUTPUT pErrorStatus, 
+                            OUTPUT pOk).
   
-  /* After Ok or Cancel button have been pressed do the following */      
-  IF NOT pOk THEN RETURN.   /* if NOT pErrorStatus then return. */
+    /* After Ok or Cancel button have been pressed do the following */      
+    IF NOT pOk THEN RETURN.   /* if NOT pErrorStatus then return. */
   
-  IF pOutputExpression = "()":U OR pOutputExpression = "" THEN RETURN.
+    IF pOutputExpression = "()":U OR pOutputExpression = "" THEN RETURN.
+  END.
 
   IF empty-flg THEN
     ASSIGN empty-flg                              = FALSE
@@ -916,6 +949,9 @@ ON CHOOSE OF b_calc-fld DO:
                                          ELSE _BC._DATA-TYPE
          _BC._FORMAT    = IF isSmartData THEN "x(8)":U
                                          ELSE _BC._FORMAT
+         _BC._STATUS    = IF isSmartData AND isDynSDO THEN "NEW":U 
+                                                      ELSE "":U
+         _BC._HAS-DATAFIELD-MASTER = IF isSmartData THEN TRUE ELSE FALSE
          cur-record     = RECID(_BC).
 
   IF isSmartData THEN DO:
@@ -1409,6 +1445,11 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
                         = "Object":U 
                      THEN YES
                      ELSE NO.
+
+  /* Move toggle down to accommodate Instance radio-set */
+  IF isQuery AND isDynSDO THEN
+    tog_enabled:ROW = tog_enabled:ROW + 1.
+
   RUN enable_UI.
 
   IF empty-flg THEN DO:
@@ -1553,13 +1594,14 @@ PROCEDURE enable_UI :
           /* Don't show enable widgets for reports */
            b_enable:HIDDEN             IN FRAME bc-editor = IsReport 
            b_disable:HIDDEN            IN FRAME bc-editor = IsReport 
-           tog_enabled:HIDDEN          IN FRAME bc-editor = IsReport 
+           tog_enabled:HIDDEN          IN FRAME bc-editor = IsReport
            tog_visible:HIDDEN          IN FRAME bc-editor = TRUE
            tog_auto_resize:HIDDEN      IN FRAME bc-editor = TRUE
            enable-rect:HIDDEN          IN FRAME bc-editor = IsReport            
            tog_disable_auto_zap:HIDDEN IN FRAME bc-editor = TRUE  
            tog_column_read_only:HIDDEN IN FRAME bc-editor = TRUE           
            tog_auto_return:HIDDEN      IN FRAME bc-editor = TRUE
+           dfMasterLbl:HIDDEN          IN FRAME bc-editor = IsReport OR NOT lICFIsRunning
             
            b_clr:HIDDEN       IN FRAME bc-editor = TRUE
            b_fnt:HIDDEN       IN FRAME bc-editor = TRUE
@@ -1576,6 +1618,7 @@ PROCEDURE enable_UI :
            help-rect:HIDDEN   IN FRAME bc-editor = TRUE
            _BC._HELP:HIDDEN   IN FRAME bc-editor = TRUE.
            
+           
       ASSIGN
            fldBCDBNameLbl:HIDDEN       IN FRAME bc-editor = FALSE
            _BC._DBNAME:HIDDEN          IN FRAME bc-editor = FALSE
@@ -1591,7 +1634,6 @@ PROCEDURE enable_UI :
            isCalcFld = (_BC._DBNAME:SCREEN-VALUE IN FRAME bc-editor = "_<CALC>") 
            _BC._DATA-TYPE:HIDDEN       IN FRAME bc-editor = isCalcFld
            data_type:HIDDEN            IN FRAME bc-editor = NOT isCalcFld
-           
            fldBCFormatLbl:WIDTH        IN FRAME bc-editor = 
                           FONT-TABLE:GET-TEXT-WIDTH-CHARS(fldBCFormatLbl)
            fldBCFormatLbl:HIDDEN       IN FRAME bc-editor = FALSE
@@ -1600,8 +1642,8 @@ PROCEDURE enable_UI :
                           FONT-TABLE:GET-TEXT-WIDTH-CHARS(fldBCWidthLbl)
            fldBCWidthLbl:HIDDEN        IN FRAME bc-editor = FALSE
            _BC._WIDTH:HIDDEN           IN FRAME bc-editor = FALSE
-           fldBCDescriptionLbl:HIDDEN  IN FRAME bc-editor = FALSE
-           _BC._DEF-DESC:HIDDEN        IN FRAME bc-editor = FALSE
+           fldBCDescriptionLbl:HIDDEN  IN FRAME bc-editor = FALSE 
+           _BC._DEF-DESC:HIDDEN        IN FRAME bc-editor = FALSE 
            _BC._DISP-NAME:HIDDEN       IN FRAME bc-editor = FALSE
            _BC._DISP-NAME:SENSITIVE    IN FRAME bc-editor = TRUE
            fldBCFieldNameLbl:WIDTH         IN FRAME bc-editor =
@@ -1621,8 +1663,8 @@ PROCEDURE enable_UI :
     
     DISPLAY Flds-in-brws-lbl fldBCDescriptionLbl fldBCDBNameLbl fldBCTableLbl 
             fldBCNameLbl fldBCDataTypeLbl fldBCFormatLbl fldBCWidthLbl fldBCLABELLbl 
-            fldBCFieldNameLbl
-         WITH FRAME bc-editor.
+            fldBCFieldNameLbl 
+        WITH FRAME bc-editor.
   END.  /* If isQuery */
   ELSE DO: /* A browse of some kind - either regular or SmartBrowse */
     ASSIGN col-attrs-lbl = " Column Attributes "
@@ -1665,7 +1707,8 @@ PROCEDURE enable_UI :
            help-rect:HIDDEN           IN FRAME bc-editor = FALSE
            _BC._HELP:HIDDEN           IN FRAME bc-editor = FALSE
            fldBCFieldNameLbl:HIDDEN   IN FRAME bc-editor = TRUE
-           _BC._DISP-NAME:HIDDEN      IN FRAME bc-editor = TRUE.
+           _BC._DISP-NAME:HIDDEN      IN FRAME bc-editor = TRUE
+           dfMasterLbl:HIDDEN         IN FRAME bc-editor = TRUE.
   END.  /* Laying out for a browse */
 
   IF AVAILABLE _BC THEN DO:  /* We have a _BC record */
@@ -1680,7 +1723,7 @@ PROCEDURE enable_UI :
     IF isQuery THEN DO:
       DISPLAY UNLESS-HIDDEN 
                Flds-in-brws-lbl 
-               col-attrs-lbl 
+               col-attrs-lbl
                tog_enabled
               _BC._DBNAME 
               _BC._TABLE 
@@ -1690,19 +1733,33 @@ PROCEDURE enable_UI :
               bcformat 
               _BC._DISP-NAME 
               _BC._LABEL 
+              dfMasterLbl WHEN isSmartData AND lICFIsRunning
             WITH FRAME bc-editor.
       ASSIGN 
-          b_edit:SENSITIVE      = (_BC._DBNAME eq "_<CALC>")
+          b_edit:SENSITIVE      = (_BC._DBNAME eq "_<CALC>" AND NOT isDynSDO)
           _BC._DEF-DESC:READ-ONLY = TRUE.
           
+      FIND FIRST _TT WHERE _TT._p-recid = RECID(_P) AND
+                           _TT._NAME = _BC._TABLE NO-ERROR.
+      IF AVAIL _TT AND _TT._TABLE-TYPE = "B":U THEN lBufferType = TRUE.
+      ELSE lBufferType = FALSE.
+
+      /* If this is a SmartDataObject and Dynamics is running, label and format should 
+         be enabled for calculated fields and temp-table fields, they should be disabled
+         for datafields and buffer fields.  */
+      lEnableDFInfo = NOT (isSmartData AND
+                           lICFIsRunning AND
+                           _BC._DBNAME <> "_<CALC>":U AND
+                           (_BC._DBNAME <> "Temp-Tables":U OR 
+                             (_BC._DBNAME = "Temp-Tables":U AND lBufferType))).
       ENABLE Flds-in-brws-lbl 
              brw-flds 
              b_mv-up 
-             _BC._LABEL 
-             bcformat 
+             _BC._LABEL WHEN NOT lEnableDFInfo
+             bcformat WHEN NOT lEnableDFINfo
              _BC._DEF-DESC 
              b_mv-dn 
-             tog_enabled WHEN NOT isReport 
+             tog_enabled WHEN NOT isReport
              b_remove
              b_add       
              b_enable   WHEN NOT isReport 
@@ -1717,7 +1774,7 @@ PROCEDURE enable_UI :
     ELSE DO: /* Working on a browse column */
       DISPLAY Flds-in-brws-lbl col-attrs-lbl label-lbl help-lbl 
               tog_disable_auto_zap tog_column_read_only tog_auto_return 
-              tog_enabled tog_visible tog_auto_resize
+              tog_enabled tog_visible WHEN _P.static_object tog_auto_resize
               _BC._HELP _BC._LABEL format-lbl bcformat width-lbl _BC._WIDTH
             WITH FRAME bc-editor.
       ENABLE Flds-in-brws-lbl brw-flds b_mv-up _BC._LABEL b_mv-dn tog_enabled 
@@ -1727,10 +1784,15 @@ PROCEDURE enable_UI :
            WITH FRAME bc-editor.
       IF NOT srcSmartData THEN
         ENABLE b_frm-hlp bcformat WITH FRAME bc-editor.
+      IF srcSmartData AND _P.static_object = NO THEN
+        ASSIGN b_calc-fld:HIDDEN = YES
+               b_edit:HIDDEN     = YES
+               tog_visible:HIDDEN = YES.
 
-      ASSIGN b_edit:SENSITIVE               = _BC._DBNAME = "_<CALC>":U
+      ASSIGN b_edit:SENSITIVE               = _BC._DBNAME = "_<CALC>":U AND NOT isDynSDO AND b_edit:HIDDEN = NO
              tog_enabled:SENSITIVE          = _BC._DBNAME <> "_<CALC>":U OR isSmartData
-             tog_visible:SENSITIVE          = _BC._DBNAME <> "_<CALC>":U OR (LOOKUP("@":U, _BC._DISP-NAME," ":U) > 0)
+             tog_visible:SENSITIVE          = (_BC._DBNAME <> "_<CALC>":U OR (LOOKUP("@":U, _BC._DISP-NAME," ":U) > 0))
+                                              AND _P.static_object
              tog_auto_resize:SENSITIVE      = _BC._DBNAME <> "_<CALC>":U
              tog_disable_auto_zap:SENSITIVE = tog_enabled:CHECKED
              tog_column_read_only:SENSITIVE = _BC._DBNAME <> "_<CALC>":U
@@ -1776,8 +1838,8 @@ PROCEDURE enable_UI :
               tog_disable_auto_zap
               tog_column_read_only
               tog_auto_return 
-              tog_enabled
-              tog_visible
+              tog_enabled 
+              tog_visible WHEN _P.static_object
               tog_auto_resize 
               format-lbl 
               " " @ bcformat 
@@ -1807,6 +1869,7 @@ PROCEDURE add-fields.ip:
   DEFINE VARIABLE hlp-sa     AS CHAR                                  NO-UNDO.
   DEFINE VARIABLE ii         AS INTEGER                               NO-UNDO.
   DEFINE VARIABLE intl       AS CHAR                                  NO-UNDO.
+  DEFINE VARIABLE iTerms     AS INTEGER                               NO-UNDO.
   DEFINE VARIABLE last-seq   AS INTEGER                               NO-UNDO.
   DEFINE VARIABLE lbl-sa     AS CHAR                                  NO-UNDO.
   DEFINE VARIABLE tmp-db     AS CHARACTER                             NO-UNDO.
@@ -1823,15 +1886,33 @@ PROCEDURE add-fields.ip:
           empty-msg:SENSITIVE IN FRAME bc-editor = FALSE.  
 
   /* Make Fld-List to pass to field selector */
-  Fld-List = "".                
-  FOR EACH _BC WHERE _BC._x-recid = _query-u-rec AND _BC._DBNAME NE "_<CALC>":U:
-    
-    Fld-List = Fld-List + (IF Fld-List NE "" THEN CHR(10) ELSE "") +
-                   IF isSmartData THEN ( 
-                          (IF imode = "3"  THEN _BC._DBNAME + "." ELSE "") +
-                          (IF imode <> "1" THEN _BC._TABLE + "." ELSE "") +
-                          _BC._NAME )
-                   ELSE _BC._DISP-NAME.
+  Fld-List = "".
+
+  BuildFieldList:
+  FOR EACH _BC WHERE _BC._x-recid = _query-u-rec:
+    /* If this is a calculated field for a browser */
+    IF _BC._DBNAME = "_<CALC>":U THEN DO:
+      /* Only handle the case of a calculated field in a browser.  Before this block
+         was entered for IZ 7385, the for each ommitted ALL calculated fields
+         If this is a browser calculated field, don't let them chhose the place holder 
+         field again. */
+      IF NUM-ENTRIES(_BC._DISP-NAME,"@":U) = 2 AND _BC._NAME = "":U AND 
+        NOT isQuery AND NOT isReport AND NOT isSmartData THEN DO:
+        tmp-name = TRIM(ENTRY(2, _BC._DISP-NAME, "@":U)).
+        Fld-List = Fld-List + (IF Fld-List NE "" THEN CHR(10) ELSE "") +
+                    IF imode = "1" AND NUM-ENTRIES(tmp-name, ".":U) > 1 THEN 
+                               ENTRY(2, tmp-name, ".":U) ELSE tmp-name. 
+      END.
+      ELSE NEXT BuildFieldList.
+    END. /* If it is a calculated field */
+    ELSE DO:
+      Fld-List = Fld-List + (IF Fld-List NE "" THEN CHR(10) ELSE "") +
+                     IF isSmartData THEN ( 
+                            (IF imode = "3"  THEN _BC._DBNAME + "." ELSE "") +
+                            (IF imode <> "1" THEN _BC._TABLE + "." ELSE "") +
+                            _BC._NAME )
+                     ELSE _BC._DISP-NAME.
+    END.
   END.  /* for eac _BC */
   
   IF srcSmartData THEN 
@@ -1848,15 +1929,20 @@ PROCEDURE add-fields.ip:
      updated Fld-List.  Delete the ones that have been deleted         */
   FOR EACH _BC WHERE _BC._x-recid = _query-u-rec AND _BC._DBNAME NE "_<CALC>":U:
     IF isSmartData THEN DO:
+      iTerms = INTEGER(imode).
+      IF Fld-List NE "" THEN
+        iTerms = NUM-ENTRIES(ENTRY(1,Fld-List,CHR(10)),".":U).
       concatName = (IF imode = "3"  THEN _BC._DBNAME + "." ELSE "") +
                    (IF imode <> "1" THEN _BC._TABLE + "." ELSE "") +
                    _BC._NAME.
+      IF imode = "2" AND iTerms = 3 THEN 
+        concatName = _BC._DBNAME + ".":U + concatName. 
       IF LOOKUP(concatName,Fld-List,CHR(10)) = 0 THEN DELETE _BC.
     END.
     ELSE
       IF LOOKUP(_BC._DISP-NAME,Fld-List,CHR(10)) = 0 THEN DELETE _BC.
   END.
-   
+     
   /* Resequence _BC Records adding new ones as necessary               */
   cur-seq = 0.
   DO i = 1 TO NUM-ENTRIES(Fld-List,CHR(10)):
@@ -1890,6 +1976,16 @@ PROCEDURE add-fields.ip:
                    _BC._DBNAME  = tmp-db AND
                    _BC._TABLE   = tmp-tbl AND
                    _BC._NAME    = tmp-name NO-ERROR.
+
+    IF NOT AVAILABLE _BC AND NOT isQuery AND NOT isReport AND NOT isSmartData THEN
+      /* May be a place holder field for a Calculated field */
+      FIND _BC WHERE _BC._x-recid = _query-u-rec AND
+                     _BC._DBNAME  = "_<CALC>" AND
+                     _BC._TABLE   = ? AND
+                     _BC._DISP-NAME MATCHES "*@*":U + tmp-name + "*":U NO-ERROR.
+
+
+
     IF NOT AVAILABLE _BC THEN DO:
       IF isSmartData THEN 
       DO:
@@ -1914,6 +2010,47 @@ PROCEDURE add-fields.ip:
       END.  /* IF tmp-db = "", may be buffer */
 
       /* No record available - create a database one */
+      IF isSmartData AND lICFIsRunning THEN
+      DO:
+        IF tmp-db = "Temp-Tables":U THEN
+        DO:
+          FIND FIRST _TT WHERE _TT._p-recid = RECID(_P) AND
+                               _TT._NAME = tmp-tbl NO-ERROR.
+          IF AVAIL _TT THEN
+            IF _TT._TABLE-TYPE = "B":U THEN
+              cDataFieldName = _TT._LIKE-TABLE + ".":U + tmp-name.
+        END.
+        ELSE IF tmp-db = "_<CALC>":U THEN cDataFieldName = tmp-name.
+        ELSE cDataFieldName = tmp-tbl + ".":U + tmp-name.
+
+        lFoundIt = DYNAMIC-FUNCTION("cacheObjectOnClient":U IN gshRepositoryManager, 
+                                    INPUT cDataFieldName,  
+                                    INPUT ?,                 
+                                    INPUT ?,                     
+                                    INPUT NO).    
+        IF lFoundIt THEN
+        DO:
+          hObjectBuffer = DYNAMIC-FUNCTION("getCacheObjectBuffer":U IN gshRepositoryManager, INPUT ?).
+          hObjectBuffer:FIND-FIRST("WHERE ":U + hObjectBuffer:NAME + ".tLogicalObjectName = '":U +
+                                    cDataFieldName + "'":U) NO-ERROR.
+          IF hObjectBuffer:AVAILABLE THEN
+          DO:
+            hAttributeBuffer  = hObjectBuffer:BUFFER-FIELD("tClassBufferHandle":U):BUFFER-VALUE NO-ERROR.
+            hAttributeBuffer:FIND-FIRST(" WHERE ":U + hAttributeBuffer:NAME + ".tRecordIdentifier = ":U + 
+                                        QUOTER(hObjectBuffer:BUFFER-FIELD("tRecordIdentifier":U):BUFFER-VALUE)) NO-ERROR.
+            IF VALID-HANDLE(hAttributeBuffer) AND hAttributeBuffer:AVAILABLE THEN
+            DO:
+              ASSIGN 
+                cDataFieldLabel    = hAttributeBuffer:BUFFER-FIELD("Label":U):BUFFER-VALUE
+                cDataFieldFormat   = hAttributeBuffer:BUFFER-FIELD("Format":U):BUFFER-VALUE
+                cDataFieldHelp     = hAttributeBuffer:BUFFER-FIELD("Help":U):BUFFER-VALUE NO-ERROR.
+            END.  /* if available hAttributeBuffer */
+            ELSE lFoundIt = NO.
+          END.  /* if valid hObjectBuffer */
+          ELSE lFoundIt = NO.
+        END.  /* if found it */
+      END.  /* if SmartData */
+
       CREATE _BC.
       ASSIGN _BC._x-recid   = _query-u-rec
              _BC._DBNAME    = tmp-db
@@ -1931,6 +2068,7 @@ PROCEDURE add-fields.ip:
                                                    ELSE ENTRY(i,Fld-List,CHR(10)))
              _BC._ENABLED   = IF isSmartData THEN TRUE ELSE FALSE
              _BC._INHERIT-VALIDATION = IF (isSmartData AND
+                                           NOT CAN-DO(_AB_Tools,"Enable-ICF") AND
                                            tmp-db NE "Temp-Tables":U)
                                              THEN TRUE
                                              ELSE FALSE
@@ -1961,12 +2099,14 @@ PROCEDURE add-fields.ip:
                                OUTPUT _BC._MANDATORY).
         
         /* _s-schem.p returns the column-label if it exists */
-        RUN adecomm/_s-schem.p (tmp-db, tmp-tbl, _BC._NAME,
-                                "FIELD:LABEL":U, OUTPUT _BC._DEF-LABEL).
+        IF NOT isSmartData THEN 
+          RUN adecomm/_s-schem.p (tmp-db, tmp-tbl, _BC._NAME,
+                                  "FIELD:LABEL":U, OUTPUT _BC._DEF-LABEL).
 
-        ASSIGN _BC._LABEL  = _BC._DEF-LABEL
-               _BC._FORMAT = _BC._DEF-FORMAT
-               _BC._HELP   = _BC._DEF-HELP
+        ASSIGN _BC._LABEL  = IF isSmartData AND lFoundIt THEN cDataFieldLabel ELSE _BC._DEF-LABEL
+               _BC._FORMAT = IF isSmartData AND lFoundIt THEN cDataFieldFormat ELSE _BC._DEF-FORMAT
+               _BC._HELP   = IF isSmartData AND lFoundIt THEN cDataFieldHelp ELSE _BC._DEF-HELP
+               _BC._HAS-DATAFIELD-MASTER = IF isSmartData AND lFoundIt THEN TRUE ELSE FALSE.
                data_type   = _BC._DATA-TYPE.
 
         IF nonAmerican THEN 
@@ -2020,6 +2160,7 @@ PROCEDURE add-fields.ip:
       END.  /* Using Smart Data to populate a browser */
     END.  /* If we don't have the _BC record already */
     ELSE _BC._SEQUENCE = -1.
+
     /* Before setting the sequence number,  see if the cur-seq # is available */
     IF NOT CAN-FIND(x_BC WHERE x_BC._x-recid = _query-u-rec AND x_BC._SEQUENCE = cur-seq)
       THEN _BC._SEQUENCE = cur-seq.
@@ -2106,7 +2247,21 @@ tmp-name = IF INDEX(tmp-name, '[') > 0
                                OUTPUT cTemp).               /* _BC._MANDATORY  */
     END.  /* If not working with a calculated field */
     
+
+    FIND FIRST _TT WHERE _TT._p-recid = RECID(_P) AND
+                         _TT._NAME = _BC._TABLE NO-ERROR.
+    IF AVAIL _TT AND _TT._TABLE-TYPE = "B":U THEN lBufferType = TRUE.
+    ELSE lBufferType = FALSE.
+    /* If this is a SmartDataObject and Dynamics is running, label and format should 
+       be enabled for calculated fields and temp-table fields, they should be disabled
+       for datafields and buffer fields.  */
+    lEnableDFInfo = NOT (isSmartData AND
+                         lICFIsRunning AND
+                         _BC._DBNAME <> "_<CALC>":U AND
+                         (_BC._DBNAME <> "Temp-Tables":U OR 
+                           (_BC._DBNAME = "Temp-Tables":U AND lBufferType))).
     ASSIGN _BC._DEF-VALEXP:READ-ONLY               = TRUE
+           _BC._HELP:SENSITIVE = lEnableDFInfo
            tog_inherit_validation = IF LOOKUP(_BC._DBNAME,"_<CALC>,Temp-Tables":U)
                                            > 0 THEN FALSE
                                     ELSE _BC._INHERIT-VALIDATION
@@ -2117,7 +2272,7 @@ tmp-name = IF INDEX(tmp-name, '[') > 0
          WITH FRAME sdoadv-dlg.
     IF LOOKUP(_BC._DBNAME,"_<CALC>,Temp-Tables":U) = 0 THEN
        ENABLE tog_inherit_validation WITH FRAME sdoadv-dlg.
-    ENABLE _BC._HELP btn_OK btn_CANCEL btn_HELP WITH FRAME sdoadv-dlg.
+    ENABLE btn_OK btn_CANCEL btn_HELP WITH FRAME sdoadv-dlg.
     WAIT-FOR GO OF FRAME sdoadv-dlg.
   END. /* DO WITH FRAME sdoadv-dlg */
 END. /* Procedure advanced.ip. */
@@ -2168,15 +2323,30 @@ PROCEDURE display_bc.ip.
                               OUTPUT bcformat).
     ELSE bcformat = _BC._FORMAT.
     
+    FIND FIRST _TT WHERE _TT._p-recid = RECID(_P) AND
+                         _TT._NAME = _BC._TABLE NO-ERROR.
+    IF AVAIL _TT AND _TT._TABLE-TYPE = "B":U THEN lBufferType = TRUE.
+    ELSE lBufferType = FALSE.
+
+    /* If this is a SmartDataObject and Dynamics is running, label and format should 
+       be enabled for calculated fields and temp-table fields, they should be disabled
+       for datafields and buffer fields.  */
+    lEnableDFInfo = NOT (isSmartData AND
+                         lICFIsRunning AND
+                         _BC._DBNAME <> "_<CALC>":U AND
+                         (_BC._DBNAME <> "Temp-Tables":U OR 
+                           (_BC._DBNAME = "Temp-Tables":U AND lBufferType))).
     ASSIGN tog_enabled:CHECKED   = _BC._ENABLED
            tog_enabled:SENSITIVE = (_BC._DBNAME <> "_<CALC>":U OR isSmartData)
            tog_auto_resize:CHECKED   = _BC._AUTO-RESIZE
            tog_auto_resize:SENSITIVE = (_BC._DBNAME <> "_<CALC>":U)
-           tog_visible:CHECKED   = _BC._VISIBLE
-           tog_visible:SENSITIVE = (_BC._DBNAME <> "_<CALC>":U) OR 
-                                   (LOOKUP("@":U, _BC._DISP-NAME," ":U) > 0)
-           bcformat:SENSITIVE    = NOT srcSmartdata
-           b_edit:SENSITIVE      = (_BC._DBNAME = "_<CALC>":U)
+           tog_visible:CHECKED   = _BC._VISIBLE AND _P.static_object
+           tog_visible:SENSITIVE = ((_BC._DBNAME <> "_<CALC>":U) OR 
+                                   (LOOKUP("@":U, _BC._DISP-NAME," ":U) > 0)) AND
+                                   _P.static_object
+           _BC._LABEL:SENSITIVE  = lEnableDFInfo
+           bcformat:SENSITIVE    = NOT srcSmartdata AND lEnableDFInfo
+           b_edit:SENSITIVE      = (_BC._DBNAME = "_<CALC>":U AND NOT isDynSDO)
            b_mv-dn:SENSITIVE     = (cur-record NE last-rec)
            b_mv-up:SENSITIVE     = (cur-record NE first-rec)
            data_type:SENSITIVE   = (_BC._DBNAME = "_<CALC>":U).
@@ -2196,6 +2366,7 @@ PROCEDURE display_bc.ip.
           iw = data_type:LOOKUP(_BC._DATA-TYPE)
           data_type:SCREEN-VALUE IN FRAME bc-editor = data_type:ENTRY(iw)
           data_type:HIDDEN      IN FRAME bc-editor  = FALSE.
+
       END.
       ELSE DO:
         ASSIGN

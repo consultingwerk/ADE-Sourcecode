@@ -24,11 +24,6 @@
 
 TRIGGER PROCEDURE FOR WRITE OF ryc_page OLD BUFFER o_ryc_page.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "ryc_page"
-                      &TRIGGER-TYPE = "WRITE"}
-
 /* Created automatically using ERwin ICF Trigger template db/af/erw/afercustrg.i
    Do not change manually. Customisations to triggers should be placed in separate
    include files pulled into the trigger. ICF auto generates write trigger custom
@@ -113,6 +108,8 @@ IF NOT NEW ryc_page AND ryc_page.{&TRIGGER_OBJ} <> o_ryc_page.{&TRIGGER_OBJ} THE
 
 /* Customisations to WRITE trigger */
 {icf/trg/rycpatrigw.i}
+
+
 
 /* Update Audit Log */
 IF CAN-FIND(FIRST gsc_entity_mnemonic

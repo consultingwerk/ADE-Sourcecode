@@ -103,6 +103,8 @@ Modified:
 ----------------------------------------------------------------------------*/
 DEFINE INPUT PARAMETER h_self   AS WIDGET                            NO-UNDO.
 
+
+
 &GLOBAL-DEFINE WIN95-BTN  TRUE
 &SCOPED-DEFINE USE-3D     YES
 
@@ -113,6 +115,7 @@ DEFINE INPUT PARAMETER h_self   AS WIDGET                            NO-UNDO.
 {adeuib/triggers.i}             /* Trigger Temp-table definition            */
 {adeuib/uibhlp.i}               /* Help pre-processor directives            */
 {adeuib/sharvars.i}             /* The shared variables                     */
+{adm2/globals.i}
 
 /* FUNCTION PROTOTYPES */
 FUNCTION db-tbl-name RETURNS CHARACTER
@@ -149,11 +152,16 @@ DEFINE BUFFER      x_P FOR _P.
 DEFINE BUFFER parent_U FOR _U.
 DEFINE BUFFER parent_L FOR _L.
 DEFINE BUFFER parent_C FOR _C.
+DEFINE BUFFER PARENT_P FOR _P.
 DEFINE BUFFER  label_U FOR _U.     
 
 DEFINE NEW SHARED VARIABLE v-hgt  AS DECIMAL                 NO-UNDO.
 DEFINE NEW SHARED VARIABLE v-wdth AS DECIMAL                 NO-UNDO.
 
+DEFINE VARIABLE  lParentisDynView  AS LOGICAL NO-UNDO.
+DEFINE VARIABLE  isDynbrow         AS LOGICAL NO-UNDO.
+DEFINE VARIABLE  isDynview         AS LOGICAL NO-UNDO.
+DEFINE VARIABLE  lisICFRunning     AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE  adjust AS        DECIMAL           DECIMALS 2 NO-UNDO.
 DEFINE VARIABLE  col-lbl-adj AS   DECIMAL INITIAL 0 DECIMALS 2 NO-UNDO.
 DEFINE VARIABLE  name AS          CHAR LABEL "Object":U FORMAT "X(80)" VIEW-AS FILL-IN
@@ -224,7 +232,8 @@ DEFINE VARIABLE h_context-help-id     AS WIDGET-HANDLE           NO-UNDO.
 DEFINE VARIABLE h_context-hlp-fil_lbl AS WIDGET-HANDLE           NO-UNDO.
 DEFINE VARIABLE h_context-hlp-id_lbl  AS WIDGET-HANDLE           NO-UNDO.
 DEFINE VARIABLE h_context-txt         AS WIDGET-HANDLE           NO-UNDO.
-DEFINE VARIABLE h_data-type           AS WIDGET-HANDLE           NO-UNDO.   
+DEFINE VARIABLE h_data-type           AS WIDGET-HANDLE           NO-UNDO.
+DEFINE VARIABLE hDevManager           AS HANDLE                  NO-UNDO.
 DEFINE VARIABLE h_dt_lbl              AS WIDGET-HANDLE           NO-UNDO.   
 DEFINE VARIABLE h_ep_lbl              AS WIDGET-HANDLE           NO-UNDO.   
 DEFINE VARIABLE h_edge-pixels         AS WIDGET-HANDLE           NO-UNDO.   
@@ -263,7 +272,8 @@ DEFINE VARIABLE h_sicon               AS WIDGET-HANDLE           NO-UNDO.
 DEFINE VARIABLE h_sicon_txt           AS WIDGET-HANDLE           NO-UNDO.
 DEFINE VARIABLE h_subtype             AS WIDGET-HANDLE           NO-UNDO.
 DEFINE VARIABLE h_tic-marks           AS WIDGET-HANDLE           NO-UNDO.   
-DEFINE VARIABLE h_tic_lbl             AS WIDGET-HANDLE           NO-UNDO.   
+DEFINE VARIABLE h_tic_lbl             AS WIDGET-HANDLE           NO-UNDO.
+DEFINE VARIABLE h_tog                 AS WIDGET-HANDLE           NO-UNDO.
 DEFINE VARIABLE h_v-hgt               AS WIDGET-HANDLE           NO-UNDO.   
 DEFINE VARIABLE h_v-hgt_lbl           AS WIDGET-HANDLE           NO-UNDO.   
 DEFINE VARIABLE h_v-wdth              AS WIDGET-HANDLE           NO-UNDO.   
@@ -277,6 +287,18 @@ DEFINE VARIABLE txt_sicon             AS WIDGET-HANDLE           NO-UNDO.
 DEFINE VARIABLE txt_up                AS WIDGET-HANDLE           NO-UNDO.
 DEFINE VARIABLE h_tooltip             AS WIDGET-HANDLE           NO-UNDO.
 DEFINE VARIABLE h_tooltip_lbl         AS WIDGET-HANDLE           NO-UNDO.
+DEFINE VARIABLE h_delimiter           AS WIDGET-HANDLE           NO-UNDO.
+DEFINE VARIABLE h_delimiter_lbl       AS WIDGET-HANDLE           NO-UNDO.
+DEFINE VARIABLE h_folder-win-to-launch           AS WIDGET-HANDLE           NO-UNDO.
+DEFINE VARIABLE h_folder-win-to-launch_lbl       AS WIDGET-HANDLE           NO-UNDO.
+DEFINE VARIABLE h_window-title-field             AS WIDGET-HANDLE           NO-UNDO.
+DEFINE VARIABLE h_window-title-field_lbl         AS WIDGET-HANDLE           NO-UNDO.
+DEFINE VARIABLE h_custom-super-proc              AS WIDGET-HANDLE           NO-UNDO.
+DEFINE VARIABLE h_custom-super-proc_lbl          AS WIDGET-HANDLE           NO-UNDO.
+DEFINE VARIABLE h_custom-super-proc_btn          AS WIDGET-HANDLE           NO-UNDO.
+DEFINE VARIABLE h_custom-super-proc_btnd         AS WIDGET-HANDLE           NO-UNDO.
+DEFINE VARIABLE cCustom_super_proc               AS CHARACTER               NO-UNDO.
+DEFINE VARIABLE cCustom_Super_path               AS CHARACTER               NO-UNDO.
 
 DEFINE VARIABLE y-move            AS INTEGER                 NO-UNDO.
 /* y-move       is the number of pixels a field must move in converting from     */
@@ -342,6 +364,9 @@ DEFINE VARIABLE notAmerican  AS LOGICAL  NO-UNDO.
 &Global-define SKP &IF "{&WINDOW-SYSTEM}" = "OSF/Motif" &THEN SKIP &ELSE &ENDIF
 
 DEFINE STREAM  temp_stream.
+DEFINE BUFFER B_U FOR _U.
+DEFINE BUFFER B_C FOR _C.
+
 
 CREATE WIDGET-POOL.
 
@@ -378,6 +403,8 @@ IF NOT AVAILABLE _F THEN DO:
   IF _C._q-recid NE ? THEN FIND _Q WHERE RECID(_Q) = _C._q-recid NO-ERROR.
 END.
 
+
+
 /* Text widgets are not changeable in an alternative layout */
 IF _U._TYPE = "TEXT" AND _U._LAYOUT-NAME NE "Master Layout" THEN DO:
   /* Text widgets are not changeable in an alternative layout */
@@ -391,8 +418,23 @@ FIND parent_U WHERE RECID(parent_U) = _U._parent-recid NO-ERROR.
 IF AVAILABLE parent_U THEN DO:
   FIND parent_C WHERE RECID(parent_C) = parent_U._x-recid.
   FIND parent_L WHERE RECID(parent_L) = parent_U._lo-recid.
+  FIND PARENT_P WHERE parent_P._WINDOW-HANDLE eq parent_U._WINDOW-HANDLE.
   RUN save_parent_info.
 END.
+
+/*Note that certain fields are not sensitized if not dynamic object*/
+ASSIGN lisICFRunning =  DYNAMIC-FUNCTION("IsICFRunning":U) NO-ERROR.
+IF lisICFRunning AND AVAILABLE _P THEN DO:
+    ASSIGN isDynbrow =  LOOKUP(_P.OBJECT_type_code, 
+                               DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager,
+                                                 INPUT "DynBrow":U)) <> 0.
+           isDynView =  LOOKUP(_P.OBJECT_type_code, 
+                               DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager,
+                                                 INPUT "DynView":U)) <> 0.
+END.
+ELSE ASSIGN isDynBrow = FALSE
+            isDynView = FALSE.
+
 
 /* If object is connected to a data object, be sure its running. jep-code */
 ASSIGN UsesDataObject = (_P._DATA-OBJECT <> "").
@@ -405,9 +447,9 @@ IF NOT RETRY THEN DO:
          rect-pal     AT ROW 1.13  COL 76.5
          btn_color    AT ROW 1.13  COL 78.75 NO-LABEL
          txt_geom     AT ROW 10    COL 2   BGC 1 FGC 15 NO-LABEL
-         txt_attrs    AT ROW 22    COL 2   BGC 1 FGC 15 NO-LABEL
-         btn_adv      AT ROW 22    COL 50         
-       WITH VIEW-AS DIALOG-BOX SIDE-LABELS SIZE 88 BY 25 THREE-D.
+         txt_attrs    AT ROW 25    COL 2   BGC 1 FGC 15 NO-LABEL
+         btn_adv      AT ROW 25    COL 50         
+       WITH VIEW-AS DIALOG-BOX SIDE-LABELS SIZE 88 BY 28 THREE-D.
 
   IF CAN-DO("WINDOW",_U._TYPE) THEN RUN setup_for_window.
 
@@ -451,6 +493,11 @@ END.
 
 ON WINDOW-CLOSE OF FRAME prop_sht APPLY "END-ERROR":U TO SELF.
 
+ON ENDKEY,END-ERROR OF FRAME prop_sht 
+DO:
+   IF VALID-HANDLE(hDataObject) THEN
+      DYNAMIC-FUNCTION("shutdown-proc":U IN _h_func_lib, _P._Data-Object).        
+END.
 
 ON CHOOSE OF btn_help IN FRAME prop_sht OR HELP OF FRAME prop_sht DO:
   DEFINE VARIABLE help-context AS INTEGER NO-UNDO.
@@ -635,7 +682,10 @@ ON GO OF FRAME prop_sht DO:
   
   ELSE IF _U._TYPE = "RADIO-SET" THEN DO:
     DEF VARIABLE rval AS CHAR NO-UNDO.
-    l_error_on_go = NOT (validate-radio-buttons(_U._HANDLE)).
+
+    /* Compiler rules of validation don't apply to dynamic objects */
+    IF _U._CLASS-NAME NE "":U THEN l_error_on_go = FALSE.
+    ELSE l_error_on_go = NOT (validate-radio-buttons(_U._HANDLE)).
     
     IF l_Error_on_go THEN 
        new_btns = FALSE. 
@@ -650,7 +700,7 @@ ON GO OF FRAME prop_sht DO:
         IF _L._WIN-TYPE OR SESSION:WINDOW-SYSTEM BEGINS "MS-WIN"
         THEN DO: /* GUI , but MSW only. */
           /* Just redo the radio-buttons */
-          RUN adeuib/_rbtns.p (_F._LIST-ITEMS, _F._DATA-TYPE, OUTPUT rval).
+          RUN adeuib/_rbtns.p (_F._LIST-ITEMS, _F._DATA-TYPE, _F._DELIMITER, OUTPUT rval).
           ASSIGN h_self:AUTO-RESIZE   = no
                  h_self:RADIO-BUTTONS = rval.
         END.  /* If GUI */
@@ -687,7 +737,7 @@ ON GO OF FRAME prop_sht DO:
   END.
   
   ELSE IF _U._TYPE = "BUTTON":U AND _L._NO-FOCUS THEN _U._TAB-ORDER = 0.
-
+  
   IF l_error_on_go THEN RETURN NO-APPLY.
 END.  /* ON GO of the FRAME */
 
@@ -699,12 +749,26 @@ RUN sensitize.
  
 RUN adecomm/_setcurs.p ("").
 
-WAIT-FOR "GO" OF FRAME prop_sht.
 
+WAIT-FOR "GO" OF FRAME prop_sht.
 /* Turn status messages back on. (They were turned off at the top of the block */
 STATUS INPUT.
 
 RUN complete_the_transaction.
+
+/* Update the custom Super procedure for Dynamics */
+IF VALID-HANDLE(h_custom-super-proc) AND h_custom-super-proc:MODIFIED THEN
+DO:
+   FIND B_U WHERE RECID(B_U) = _P._u-recid.
+   FIND B_C WHERE RECID(B_C) = B_U._x-recid.
+   cCustom_super_proc = SEARCH(h_custom-super-proc:SCREEN-VALUE) NO-ERROR.
+   IF cCustom_super_proc > "" THEN
+      ASSIGN B_C._CUSTOM-SUPER-PROC = cCustom_super_proc
+              _C._CUSTOM-SUPER-PROC = cCustom_super_proc.
+   ELSE
+      ASSIGN B_C._CUSTOM-SUPER-PROC = ?
+             _C._CUSTOM-SUPER-PROC = ?.
+END.
 
 IF h_format NE ? THEN DO: /* Redisplay incase format, initial-data or data-type chg */
   IF _F._DATA-TYPE = "DATE":U AND
@@ -742,9 +806,9 @@ IF h_format NE ? THEN DO: /* Redisplay incase format, initial-data or data-type 
                                    LENGTH(TRIM(h_self:SCREEN-VALUE),"CHARACTER":U)). 
 END.
 IF AVAILABLE _P THEN
-  ret-msg = DYNAMIC-FUNCTION("shutdown-proc" IN _h_func_lib, _P._data-object).
-          
+  ret-msg = DYNAMIC-FUNCTION("shutdown-proc" IN _h_func_lib, _P._data-object).        
 END.  /* BIG-TRANS-BLK */
+
 HIDE FRAME prop_sht.
 DELETE WIDGET-POOL.
 
@@ -898,7 +962,7 @@ IF CAN-DO("FRAME,DIALOG-BOX",_U._TYPE) THEN DO:
                    /* Set alignment to "L"eft */
                    x_U._ALIGN = "L".
           END.  /* FOR EACH LAYOUT */
-          IF CAN-DO("FILL-IN,COMBO-BOX",tmp_hdl:TYPE) THEN
+          IF CAN-DO("FILL-IN,COMBO-BOX,EDITOR,SELECTION-LIST,RADIO-SET,SLIDER",tmp_hdl:TYPE) THEN
             RUN adeuib/_showlbl.p (tmp_hdl).
         END. /* If not a label or the frame bar */
         tmp_hdl = tmp_hdl:NEXT-SIBLING.
@@ -1080,7 +1144,7 @@ PROCEDURE combo_subtype_change:
              h_data-type:SCREEN-VALUE    = "CHARACTER".
       APPLY "VALUE-CHANGED":U TO h_data-type.
       ASSIGN h_format:SENSITIVE          = FALSE
-             h_format:SCREEN-VALUE       = ""
+             h_format:SCREEN-VALUE       = _F._FORMAT
              h_btn_fmt:SENSITIVE         = FALSE.
       APPLY "LEAVE":U TO h_format.
     END.  /* when simple */
@@ -1094,7 +1158,7 @@ PROCEDURE combo_subtype_change:
              h_data-type:SCREEN-VALUE    = "CHARACTER".
       APPLY "VALUE-CHANGED":U TO h_data-type.
       ASSIGN h_format:SENSITIVE          = FALSE
-             h_format:SCREEN-VALUE       = ""
+             h_format:SCREEN-VALUE       = _F._FORMAT
              h_btn_fmt:SENSITIVE         = FALSE.
       APPLY "LEAVE":U TO h_format.
     END.  /* when drop-down */
@@ -1164,10 +1228,10 @@ PROCEDURE complete_the_transaction:
     ELSE IF _U._TYPE eq "FRAME":U AND _U._size-to-parent THEN DO:
       IF _L._WIDTH ne parent_L._WIDTH THEN ASSIGN
         parent_U._HANDLE:WIDTH  = _L._WIDTH * parent_L._COL-MULT
-        parent_L._WIDTH         = parent_U._HANDLE:WIDTH / parent_L._COL-MULT.
+        parent_L._WIDTH         = parent_U._HANDLE:WIDTH / parent_L._COL-MULT NO-ERROR.
       IF _L._HEIGHT ne parent_L._HEIGHT THEN ASSIGN
         parent_U._HANDLE:HEIGHT  = _L._HEIGHT * parent_L._ROW-MULT
-        parent_L._HEIGHT         = parent_U._HANDLE:HEIGHT / parent_L._ROW-MULT.
+        parent_L._HEIGHT         = parent_U._HANDLE:HEIGHT / parent_L._ROW-MULT NO-ERROR.
     END.
     
     ASSIGN h_self:FGCOLOR = IF _L._WIN-TYPE THEN _L._FGCOLOR ELSE _tty_fgcolor
@@ -1186,10 +1250,10 @@ PROCEDURE complete_the_transaction:
     IF h_self:COLUMN  > new-rc-value THEN DO:
       IF _L._COL NE ? AND _U._TYPE NE "DIALOG-BOX" THEN 
         h_self:COLUMN = new-rc-value.
-      h_self:WIDTH = _L._WIDTH * _L._COL-MULT.
+      h_self:WIDTH = _L._WIDTH * _L._COL-MULT NO-ERROR.
     END.
     ELSE DO: /* Width then column */
-      h_self:WIDTH = _L._WIDTH * _L._COL-MULT.
+      h_self:WIDTH = _L._WIDTH * _L._COL-MULT NO-ERROR.
       IF _L._COL NE ? AND _U._TYPE NE "DIALOG-BOX" THEN 
         h_self:COLUMN = new-rc-value.
     END.
@@ -1243,6 +1307,13 @@ PROCEDURE complete_the_transaction:
     
     IF _U._TYPE = "WINDOW" AND sav-iu2 NE _C._SMALL-ICON THEN
       stupid = h_self:LOAD-SMALL-ICON(_C._SMALL-ICON).
+    
+    IF _U._TYPE = "IMAGE":U THEN DO:
+      h_self:STRETCH-TO-FIT = _F._STRETCH-TO-FIT.
+      IF _F._STRETCH-TO-FIT THEN
+        h_self:RETAIN-SHAPE = _F._RETAIN-SHAPE.
+    END.
+
       
     IF h_label NE ? THEN DO:
       IF CAN-DO("WINDOW,DIALOG-BOX",_U._TYPE) THEN DO:
@@ -1274,7 +1345,7 @@ PROCEDURE complete_the_transaction:
       ELSE IF NOT _L._WIN-TYPE AND CAN-DO("BUTTON,TOGGLE-BOX",_U._TYPE) THEN
         RUN adeuib/_sim_lbl.p (h_self).
     
-      ELSE IF CAN-DO("FILL-IN,COMBO-BOX",_U._TYPE) THEN DO:
+      ELSE IF CAN-DO("FILL-IN,COMBO-BOX,EDITOR,SELECTION-LIST,RADIO-SET,SLIDER",_U._TYPE) THEN DO:
         IF _L._REMOVE-FROM-LAYOUT = NO THEN RUN adeuib/_showlbl.p (h_self).
         ELSE DO:
           FIND label_U WHERE RECID(label_U) = _U._l-recid.
@@ -1343,8 +1414,23 @@ PROCEDURE data-type_change.
       sav-ldef = LOOKUP (_F._INITIAL-DATA,_F._FORMAT,"/":U).
       IF sav-ldef = 0 THEN sav-ldef = 2. /* Just to be safe. */
     END.
-  END.
-END.
+
+    /* data-type affects the show-popup attribute because it is only for numeric and date fields*/
+    IF CAN-DO("DATE,DECIMAL,INTEGER":u, _F._DATA-TYPE) AND lParentIsDynview THEN DO:
+      IF VALID-HANDLE(h_show-popup) THEN
+        ASSIGN h_show-popup:SENSITIVE = TRUE.
+    END.
+    ELSE DO:
+      IF VALID-HANDLE(h_show-popup) THEN DO:
+        ASSIGN h_show-popup:SENSITIVE = FALSE
+               h_show-popup:CHECKED   = FALSE.
+        APPLY "VALUE-CHANGED":U TO h_show-popup.
+      END.  /* If h_show-popup is valid */
+    END. /* Else do */
+
+  END.  /* If the data type was successfully changed in the underlying
+           _U and _F records */
+END. /* Procedure data-type_change */
 
 PROCEDURE context_help_change.
   _C._CONTEXT-HELP = SELF:CHECKED.
@@ -1445,6 +1531,7 @@ PROCEDURE db_field_selection.
   DEFINE VAR include-name  AS CHARACTER            NO-UNDO.
   
   DEFINE BUFFER ip_U FOR _U.
+  DEFINE BUFFER f_U  FOR _U.
 
   ASSIGN def_var = IF _U._TYPE = "EDITOR" THEN "CHARACTER"
                    ELSE IF _U._TYPE = "SELECTION-LIST" THEN "CHARACTER"
@@ -1521,8 +1608,20 @@ PROCEDURE db_field_selection.
            display only the field name. Otherwise, display table.field.  jep-code */
         ASSIGN show_items = (IF NUM-ENTRIES(tbl_list) <= 1 THEN "1":U
                                                            ELSE "2":U).
+        /* Remove fields that are already taken */
+        FOR EACH f_U WHERE f_U._PARENT-RECID = RECID(PARENT_U) AND
+                           f_U._STATUS = "NORMAL":U:
+          /* Add field name to fld_name */
+          fld_name = fld_name + ",":U + f_U._NAME.
+        END.
+        fld_name = LEFT-TRIM(fld_name,",":U).
+
         RUN adecomm/_fldseld.p
-            (INPUT tbl_list, INPUT hDataObject , INPUT tt-info, show_items, ",",
+            (INPUT tbl_list, 
+             INPUT hDataObject , 
+             INPUT tt-info, 
+             INPUT show_items, 
+             INPUT ",",
              INPUT IF NUM-ENTRIES(def_var) > 1 THEN ? ELSE def_var /* data-type */,
              INPUT-OUTPUT fld_name).
         num_ent = NUM-ENTRIES(fld_name).
@@ -1589,11 +1688,14 @@ PROCEDURE db_field_selection.
                    VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
             RETURN.
           END.
+          RUN CreateObjects IN hDataObject NO-ERROR.
           fld_label   = DYNAMIC-FUNC("columnLabel" IN hDataObject, fld_save ) NO-ERROR.
           fld_format  = DYNAMIC-FUNC("columnFormat" IN hDataObject, fld_save ) NO-ERROR.
           fld_help    = DYNAMIC-FUNC("columnHelp" IN hDataObject, fld_save ) NO-ERROR.
           fld_type    = DYNAMIC-FUNC("columnDataType" IN hDataObject, fld_save ) NO-ERROR.
-          fld_initial = DYNAMIC-FUNC("columnIntial" IN hDataObject, fld_save ) NO-ERROR.
+          fld_initial = DYNAMIC-FUNC("columnInitial" IN hDataObject, fld_save ) NO-ERROR.
+          IF isDynview THEN
+            ASSIGN _U._TABLE    = DYNAMIC-FUNC("columnTable":U IN hDataObject, fld_save) NO-ERROR.
         END.  /* Working with a SmartDataObject */
         ELSE RUN adeuib/_fldinfo.p (db_name, tbl_name, fld_save,
                                  OUTPUT fld_label,  OUTPUT fld_label_sa,
@@ -1614,12 +1716,13 @@ PROCEDURE db_field_selection.
                _F._DATA-TYPE     = CAPS(fld_type)
                _F._FORMAT        = fld_format
                _F._FORMAT-ATTR   = fld_format_sa
-               _U._LABEL-SOURCE  = "D"
+               _U._LABEL-SOURCE  = IF isDynView THEN "E":U ELSE "D"
                _F._FORMAT-SOURCE = "D"
                _U._HELP-SOURCE   = "D"
                _F._INITIAL-DATA  = fld_initial.
 
-        IF _F._DATA-TYPE NE old-dt THEN DO:
+        IF _F._DATA-TYPE NE old-dt AND VALID-HANDLE(h_data-type) THEN DO:
+          /* Some widget types don't have a data-type field (i.e. Editors) */
           h_data-type:SCREEN-VALUE = _F._DATA-TYPE.
           APPLY "VALUE-CHANGED" TO h_data-type.
         END.
@@ -1730,7 +1833,6 @@ PROCEDURE db_field_selection.
       IF VALID-HANDLE(h_data-type) THEN
             h_data-type:SENSITIVE = IF _U._TABLE NE ? OR (_U._TYPE = "COMBO-BOX" AND
                                        _U._SUBTYPE NE "DROP-DOWN-LIST") THEN FALSE ELSE TRUE.
-
       IF db-var EQ "Local" THEN DO:
         ASSIGN  _U._DBNAME                       = ?
                 _U._TABLE                        = ?
@@ -1817,6 +1919,10 @@ PROCEDURE db_field_selection.
                  include-name = IF i > 0 THEN SUBSTRING(_P._data-object, 1, i) + "i" 
                                          ELSE _P._data-object + ".i"
                  include-name = '"' + REPLACE(include-name, "~\", "~/") + '"'.
+          IF SEARCH(include-name) = ? AND 
+             _P.OBJECT_path NE "":U AND 
+             NOT include-name BEGINS _P.OBJECT_path THEN
+              include-name = _P.OBJECT_path + "~/":U + include-name.
 
           PUT STREAM temp_stream UNFORMATTED
             "DEFINE TEMP-TABLE RowObject ~{":U + include-name + "~}.":U SKIP(1).
@@ -1830,37 +1936,39 @@ PROCEDURE db_field_selection.
                              SKIP
                              "  WITH SIDE-LABELS." SKIP .
         OUTPUT STREAM temp_stream CLOSE.
-        ANALYZE VALUE(dbf_temp_file) VALUE(a-out).
-        INPUT STREAM temp_stream FROM VALUE(a-out).
-        REPEAT WHILE NOT done:
-          IMPORT STREAM temp_stream a-line.
-          IF a-line[1] = "FR" AND a-line[2] = "xx" THEN DO:
-            IMPORT STREAM temp_stream a-line.  /* Read over the frame */
-            IMPORT STREAM temp_stream a-line.  /* Get the TYPE */
-            _U._TYPE = IF a-line[1] = "FF" THEN "FILL-IN" ELSE
-                       IF a-line[1] = "TB" THEN "TOGGLE-BOX" ELSE
-                       IF a-line[1] = "SE" THEN "SELECTION-LIST" ELSE
-                       IF a-line[1] = "CB" THEN "COMBO-BOX" ELSE
-                       IF a-line[1] = "RS" THEN "RADIO-SET" ELSE
-                       IF a-line[1] = "ED" THEN "EDITOR" ELSE
-                       IF a-line[1] = "SL" THEN "SLIDER" ELSE
-                       "FILL-IN".
-            IF _U._ALIGN = "C":U AND CAN-DO("SELECTION-LIST,RADIO-SET,EDITOR,SLIDER":U,_U._TYPE)
-              THEN _U._ALIGN = "L":U.           
-            IMPORT STREAM temp_stream a-line.  /* Get the size */
-            ASSIGN _L._WIDTH           = DECIMAL(a-line[5])
-                   h_wdth:SCREEN-VALUE = STRING (_L._WIDTH)
-                   _L._HEIGHT          = DECIMAL(a-line[6])
-                   h_hgt:SCREEN-VALUE  = STRING (_L._HEIGHT)
-                   done = TRUE.
-            IF _U._TYPE = "EDITOR" THEN
-              ASSIGN _F._WORD-WRAP   = a-line[30] NE "y"
-                     _F._SCROLLBAR-H = a-line[23] EQ "y"
-                     _U._SCROLLBAR-V = a-line[24] EQ "y"
-                     _L._NO-BOX      = a-line[32] EQ "y".
-            INPUT STREAM temp_stream CLOSE.
-          END.  /* Found the frame */
-        END. /* REPEAT UNTIL done */
+        IF SEARCH(include-name) NE ? THEN DO:
+          ANALYZE VALUE(dbf_temp_file) VALUE(a-out).
+          INPUT STREAM temp_stream FROM VALUE(a-out).
+          REPEAT WHILE NOT done:
+            IMPORT STREAM temp_stream a-line.
+            IF a-line[1] = "FR" AND a-line[2] = "xx" THEN DO:
+              IMPORT STREAM temp_stream a-line.  /* Read over the frame */
+              IMPORT STREAM temp_stream a-line.  /* Get the TYPE */
+              _U._TYPE = IF a-line[1] = "FF" THEN "FILL-IN" ELSE
+                         IF a-line[1] = "TB" THEN "TOGGLE-BOX" ELSE
+                         IF a-line[1] = "SE" THEN "SELECTION-LIST" ELSE
+                         IF a-line[1] = "CB" THEN "COMBO-BOX" ELSE
+                         IF a-line[1] = "RS" THEN "RADIO-SET" ELSE
+                         IF a-line[1] = "ED" THEN "EDITOR" ELSE
+                         IF a-line[1] = "SL" THEN "SLIDER" ELSE
+                         "FILL-IN".
+              IF _U._ALIGN = "C":U AND CAN-DO("SELECTION-LIST,RADIO-SET,EDITOR,SLIDER":U,_U._TYPE)
+                THEN _U._ALIGN = "L":U.           
+              IMPORT STREAM temp_stream a-line.  /* Get the size */
+              ASSIGN _L._WIDTH           = DECIMAL(a-line[5])
+                     h_wdth:SCREEN-VALUE = STRING (_L._WIDTH)
+                     _L._HEIGHT          = DECIMAL(a-line[6])
+                     h_hgt:SCREEN-VALUE  = STRING (_L._HEIGHT)
+                     done = TRUE.
+              IF _U._TYPE = "EDITOR" THEN
+                ASSIGN _F._WORD-WRAP   = a-line[30] NE "y"
+                       _F._SCROLLBAR-H = a-line[23] EQ "y"
+                       _U._SCROLLBAR-V = a-line[24] EQ "y"
+                       _L._NO-BOX      = a-line[32] EQ "y".
+              INPUT STREAM temp_stream CLOSE.
+            END.  /* Found the frame */
+          END. /* REPEAT UNTIL done */
+        END.  /* Can find the include file */
         OS-DELETE VALUE (a-out).
         OS-DELETE VALUE (dbf_temp_file).
         SESSION:SET-NUMERIC-FORMAT(_numeric_separator,_numeric_decimal).      
@@ -1959,6 +2067,17 @@ PROCEDURE db_field_selection.
         fld_help    = DYNAMIC-FUNC("columnHelp" IN hDataObject, tmp-name ) NO-ERROR.
         fld_type    = DYNAMIC-FUNC("columnDataType" IN hDataObject, tmp-name ) NO-ERROR.
         fld_initial = DYNAMIC-FUNC("columnIntial" IN hDataObject, tmp-name ) NO-ERROR.
+        /* If this object is already in the repository we have to delete it and recreate it
+           because the object type is being changed.  Here we delete it, we will recreate it
+           in rygendynp.p  from the _U.  */
+        IF _U._object-obj NE 0 THEN DO:
+          /* Note the fact that _U._object-obj is non zero means the Dynamics is running */
+          IF NOT VALID-HANDLE(hDevManager) THEN
+            ASSIGN hDevManager = DYNAMIC-FUNCTION("getManagerHandle":U, 
+                                        INPUT "RepositoryDesignManager":U).
+          RUN removeInstances IN hDevManager ( INPUT _U._object-obj) .
+          _U._object-obj = 0.0.
+        END.  /* If this is already in the repository */
       END. /* If db_name = Temp-tables and type is "D" (a SDO) */
       ELSE IF tmp-name NE "" THEN DO:
         RUN adeuib/_fldinfo.p (db_name, tbl_name, tmp-name,
@@ -2084,7 +2203,24 @@ PROCEDURE font_edit.
 END. /* font_edit */
 
 PROCEDURE format_change.
+  DEFINE VARIABLE cTestFile  AS CHARACTER  NO-UNDO.
+
+  /* Validate format string */
+  run adecomm/_tmpfile.p (INPUT "", INPUT ".AB", OUTPUT cTestFile).
+  OUTPUT TO VALUE(cTestFile).
+  PUT UNFORMATTED "DEF VAR X AS " + _F._DATA-TYPE + " FORMAT '":U + SELF:SCREEN-VALUE + "'.":U SKIP.
+  OUTPUT CLOSE.
+  COMPILE VALUE(cTestFile) NO-ERROR.
+  OS-DELETE VALUE(cTestFile).
+  IF COMPILER:ERROR THEN DO:
+    MESSAGE "Illegal format mask specification."
+      VIEW-AS ALERT-BOX INFO BUTTONS OK.
+    RETURN NO-APPLY.
+  END.
+
+  IF _F._FORMAT NE SELF:SCREEN-VALUE THEN _F._FORMAT-SOURCE = "E":U.
   ASSIGN _F._FORMAT          = SELF:SCREEN-VALUE.
+
 END.
 
 PROCEDURE format_professor.
@@ -2531,7 +2667,7 @@ PROCEDURE switchList:
     IF SELF:SCREEN-VALUE = "I" /* LIST-ITEMS */ THEN DO:
       DO i = 1 TO NUM-ENTRIES(h_query:SCREEN-VALUE,CHR(10)):
         tmpString = (IF tmpString NE "" THEN tmpString + CHR(10) ELSE tmpString) + 
-                     ENTRY(1,ENTRY(i,h_query:SCREEN-VALUE,CHR(10)),",").
+                     ENTRY(1,ENTRY(i,h_query:SCREEN-VALUE,CHR(10)),_F._DELIMITER).
       END.
       ASSIGN h_query:SCREEN-VALUE = RIGHT-TRIM(tmpString)
             _F._LIST-ITEMS        = h_query:SCREEN-VALUE.
@@ -2541,7 +2677,7 @@ PROCEDURE switchList:
     ELSE DO: /* LIST-ITEM-PAIRS */
       DO i = 1 TO NUM-ENTRIES(h_query:SCREEN-VALUE,CHR(10)):
         ASSIGN tmpString = (IF tmpString NE "" THEN tmpString + CHR(10) ELSE tmpString) + 
-                           ENTRY(i,h_query:SCREEN-VALUE,CHR(10)) + ",":U.
+                           ENTRY(i,h_query:SCREEN-VALUE,CHR(10)) + _F._DELIMITER.
         CASE _F._DATA-TYPE: /* Figure out which value to display based on data type */
           WHEN "CHARACTER":U THEN tmpString = tmpString + ENTRY(i,h_query:SCREEN-VALUE,CHR(10)).
           WHEN "INTEGER":U   THEN tmpString = tmpString + STRING(i,_F._FORMAT).
@@ -2549,7 +2685,7 @@ PROCEDURE switchList:
           WHEN "DECIMAL":U   THEN tmpString = tmpString + STRING(i,_F._FORMAT).
           WHEN "DATE":U      THEN tmpString = tmpString + STRING(TODAY,_F._FORMAT).
         END.
-        ASSIGN tmpString = tmpString + (IF i <> NUM-ENTRIES(h_query:SCREEN-VALUE,CHR(10)) THEN ",":U ELSE "").
+        ASSIGN tmpString = tmpString + (IF i <> NUM-ENTRIES(h_query:SCREEN-VALUE,CHR(10)) THEN _F._DELIMITER ELSE "").
       END.
       ASSIGN h_query:SCREEN-VALUE = RIGHT-TRIM(tmpString)
              _F._LIST-ITEM-PAIRS  = h_query:SCREEN-VALUE
@@ -3020,6 +3156,8 @@ END PROCEDURE.  /* adjust_frame */
 
 /* Generate the non-toggle attribute widgets           */
 PROCEDURE create_top_stuff.
+DEFINE VARIABLE hObjectBuffer AS HANDLE     NO-UNDO.
+
 TOP-STUFF:
 FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                      CAN-DO(_PROP._WIDGETS,_U._TYPE) BY _PROP._DISP-SEQ:                
@@ -3873,7 +4011,198 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
       cur-row = cur-row + 1.1.   
     
     END. /* TOOLTIP */
+
+    WHEN "DELIMITER" THEN DO:
+      CREATE TEXT h_delimiter_lbl
+         ASSIGN FRAME = FRAME prop_sht:HANDLE FORMAT = "X(15)". 
     
+      CREATE FILL-IN h_delimiter
+           ASSIGN FRAME             = FRAME prop_sht:HANDLE
+                  ROW               = cur-row 
+                  COLUMN            = 45
+                  HEIGHT            = 1
+                  WIDTH             = 9
+                  DATA-TYPE         = "CHARACTER"
+                  FORMAT            = "X(8)"
+                  SIDE-LABEL-HANDLE = h_delimiter_lbl
+                  BGCOLOR           = std_fillin_bgcolor
+                  FGCOLOR           = std_fillin_fgcolor
+                  SCREEN-VALUE      = (IF _F._delimiter = ? THEN ""
+                                      ELSE IF (ASC( _F._delimiter) LE 126 AND ASC( _F._delimiter) GE 32) THEN _F._Delimiter
+                                      ELSE "CHR(":U + STRING(ASC(_F._delimiter)) + ")":U)
+                  LABEL             = "Delimiter:"
+             TRIGGERS:
+               ON LEAVE PERSISTENT RUN Delimiter_change.
+             END TRIGGERS.
+
+      ASSIGN stupid                = h_delimiter:MOVE-AFTER(last-tab)
+             last-tab              = h_delimiter
+             h_delimiter_lbl:HEIGHT = 1
+             h_delimiter_lbl:WIDTH  = FONT-TABLE:GET-TEXT-WIDTH-CHARS(
+                                           h_delimiter:LABEL + " ")
+             h_delimiter_lbl:ROW    = h_delimiter:ROW
+             h_delimiter_lbl:COLUMN = h_delimiter:COLUMN - h_delimiter_lbl:WIDTH
+             h_delimiter:SENSITIVE  = TRUE.
+            
+      cur-row = cur-row + 1.1.   
+    
+    END. /* Delimiter */
+    
+    WHEN "FOLDER-WIN-TO-LAUNCH" THEN DO:
+      IF isDynBrow THEN DO:
+        CREATE TEXT h_folder-win-to-launch_lbl
+           ASSIGN FRAME = FRAME prop_sht:HANDLE FORMAT = "X(24)". 
+                
+        CREATE FILL-IN h_folder-win-to-launch
+             ASSIGN FRAME             = FRAME prop_sht:HANDLE
+                    SIDE-LABEL-HANDLE = h_folder-win-to-launch_lbl
+                    LABEL             = "Folder Window To Launch:"
+                    ROW               = cur-row
+                    COLUMN            =  h_locked-cols:COLUMN + 2
+                    HEIGHT            = 1
+                    WIDTH             = 42
+                    DATA-TYPE         = "CHARACTER"
+                    FORMAT            = "X(100)"
+                  
+                    BGCOLOR           = std_fillin_bgcolor
+                    FGCOLOR           = std_fillin_fgcolor
+                    SCREEN-VALUE      = (IF _C._folder-window-to-launch = ? THEN ""
+                                        ELSE  _C._folder-window-to-launch) 
+               TRIGGERS:
+                 ON LEAVE PERSISTENT RUN Folder-win-to-launch_change.
+               END TRIGGERS.
+
+        ASSIGN stupid                               = h_folder-win-to-launch:MOVE-AFTER(last-tab)
+               last-tab                             = h_folder-win-to-launch
+               h_folder-win-to-launch_lbl:HEIGHT = 1
+               h_folder-win-to-launch_lbl:WIDTH  = FONT-TABLE:GET-TEXT-WIDTH-CHARS(h_folder-win-to-launch:LABEL + " ")
+               h_folder-win-to-launch_lbl:ROW    = h_folder-win-to-launch:ROW
+               h_folder-win-to-launch_lbl:COLUMN = h_folder-win-to-launch:COLUMN - h_folder-win-to-launch_lbl:WIDTH
+               h_folder-win-to-launch:SENSITIVE  = TRUE.
+            
+        cur-row = cur-row + 1.1. 
+      END.
+    
+    END. /* FOLDER WINDOW TO LAUNCH */
+
+    WHEN "window-title-field" THEN DO:
+      IF isDynBrow OR isDynView THEN DO:
+        CREATE TEXT h_window-title-field_lbl
+           ASSIGN FRAME = FRAME prop_sht:HANDLE FORMAT = "X(19)". 
+                
+        CREATE FILL-IN h_window-title-field
+             ASSIGN FRAME             = FRAME prop_sht:HANDLE
+                    SIDE-LABEL-HANDLE = h_window-title-field_lbl
+                    LABEL             = "Window Title Field:"
+                    ROW               = cur-row
+                    COLUMN            =  FONT-TABLE:GET-TEXT-WIDTH-CHARS(
+                                            "Custom Super Proc:" + " ") + 3.4
+                    HEIGHT            = 1
+                    WIDTH             = 51
+                    DATA-TYPE         = "CHARACTER"
+                    FORMAT            = "X(100)"
+                  
+                    BGCOLOR           = std_fillin_bgcolor
+                    FGCOLOR           = std_fillin_fgcolor
+                    SCREEN-VALUE      = (IF _C._window-title-field = ? THEN ""
+                                        ELSE  _C._window-title-field)
+               TRIGGERS:
+                 ON LEAVE PERSISTENT RUN Window-title-field_change.
+               END TRIGGERS.
+
+        ASSIGN stupid                               = h_window-title-field:MOVE-AFTER(last-tab)
+               last-tab                             = h_window-title-field
+               h_window-title-field_lbl:HEIGHT = 1
+               h_window-title-field_lbl:WIDTH  = FONT-TABLE:GET-TEXT-WIDTH-CHARS(h_window-title-field:LABEL + " ")
+               h_window-title-field_lbl:ROW    = h_window-title-field:ROW
+               h_window-title-field_lbl:COLUMN = h_window-title-field:COLUMN - h_window-title-field_lbl:WIDTH
+               h_window-title-field:SENSITIVE  = TRUE.
+            
+        cur-row = cur-row + 1.1.   
+      END. /* If it is a Dynamics Browse or Viewer */
+    END. /* window title field */
+
+    WHEN "CUSTOM-SUPER-PROC" THEN DO:
+      IF (isDynBrow OR isDynView) AND lisICFRunning THEN 
+      DO:
+        CREATE TEXT h_CUSTOM-SUPER-PROC_lbl
+           ASSIGN FRAME = FRAME prop_sht:HANDLE FORMAT = "X(25)". 
+                
+        CREATE FILL-IN h_CUSTOM-SUPER-PROC
+             ASSIGN FRAME             = FRAME prop_sht:HANDLE
+                    SIDE-LABEL-HANDLE = h_CUSTOM-SUPER-PROC_lbl
+                    LABEL             = "Custom Super Proc:"
+                    ROW               = cur-row
+                    COLUMN            =  h_window-title-field:COLUMN 
+                    HEIGHT            = 1
+                    WIDTH             = 41
+                    DATA-TYPE         = "CHARACTER"
+                    FORMAT            = "X(100)"
+                    BGCOLOR           = std_fillin_bgcolor
+                    FGCOLOR           = std_fillin_fgcolor
+                    .
+        
+       CREATE BUTTON h_CUSTOM-SUPER-PROC_btn
+             ASSIGN FRAME             = FRAME prop_sht:HANDLE
+                    LABEL             = "Lookup"
+                    ROW               = cur-row
+                    COLUMN            =  h_CUSTOM-SUPER-PROC:COLUMN + h_CUSTOM-SUPER-PROC:WIDTH
+                    HEIGHT            = 1.14
+                    WIDTH             = 5
+                    SENSITIVE         = TRUE
+                    TOOLTIP           = "Lookup custom super procedure"
+               TRIGGERS:
+                 ON CHOOSE PERSISTENT RUN CUSTOM-SUPER-PROC_change.
+               END TRIGGERS.
+       h_CUSTOM-SUPER-PROC_btn:LOAD-IMAGE("ry/img/afbinos.gif":U).
+
+       ASSIGN stupid                               = h_CUSTOM-SUPER-PROC_btn:MOVE-AFTER(last-tab)
+              last-tab                             = h_CUSTOM-SUPER-PROC_btn.
+
+       CREATE BUTTON h_CUSTOM-SUPER-PROC_btnd
+              ASSIGN FRAME             = FRAME prop_sht:HANDLE
+                     LABEL             = "Clear"
+                     ROW               = cur-row
+                     COLUMN            =  h_CUSTOM-SUPER-PROC:COLUMN + h_CUSTOM-SUPER-PROC:WIDTH + h_CUSTOM-SUPER-PROC_btn:WIDTH + .4
+                     HEIGHT            = 1.14
+                     WIDTH             = 5
+                     SENSITIVE         = TRUE
+                     TOOLTIP           = "Clear custom super procedure"
+               TRIGGERS:
+                 ON CHOOSE PERSISTENT RUN CUSTOM-SUPER-PROC_clear.
+               END TRIGGERS.
+        h_CUSTOM-SUPER-PROC_btnd:LOAD-IMAGE("ry/img/objectcancel.bmp":U).
+
+        ASSIGN stupid                               = h_CUSTOM-SUPER-PROC_btnd:MOVE-AFTER(last-tab)
+               last-tab                             = h_CUSTOM-SUPER-PROC_btnd
+               h_CUSTOM-SUPER-PROC_lbl:HEIGHT = 1
+               h_CUSTOM-SUPER-PROC_lbl:WIDTH  = FONT-TABLE:GET-TEXT-WIDTH-CHARS(h_CUSTOM-SUPER-PROC:LABEL + " ")
+               h_CUSTOM-SUPER-PROC_lbl:ROW    = h_CUSTOM-SUPER-PROC:ROW
+               h_CUSTOM-SUPER-PROC_lbl:COLUMN = h_CUSTOM-SUPER-PROC:COLUMN - h_CUSTOM-SUPER-PROC_lbl:WIDTH
+               h_CUSTOM-SUPER-PROC:SENSITIVE  = FALSE.
+            
+        cur-row = cur-row + 1.1.   
+        IF _C._CUSTOM-SUPER-PROC = ""  THEN
+        DO:
+           IF DYNAMIC-FUNCTION("cacheObjectOnClient":U IN gshRepositoryManager,
+                           INPUT _P.object_filename,
+                           INPUT "", /* Get all Result Codes */
+                           INPUT "",  /* RunTime Attributes not applicable in design mode */
+                           INPUT YES  /* Design Mode is yes */
+                      )  THEN
+           ASSIGN 
+             hObjectBuffer = DYNAMIC-FUNC("getCacheObjectBuffer":U IN gshRepositoryManager, INPUT ?)
+             h_CUSTOM-SUPER-PROC:SCREEN-VALUE =  hObjectBuffer:BUFFER-FIELD("tCustomSuperProcedure":U):BUFFER-VALUE.
+        END.
+        ELSE IF _C._CUSTOM-SUPER-PROC <> ? THEN
+        DO:
+           RUN adecomm/_relname.p (_C._CUSTOM-SUPER-PROC, "",OUTPUT cCustom_Super_proc).
+           h_CUSTOM-SUPER-PROC:SCREEN-VALUE = cCustom_Super_proc.
+        END.
+            
+      END. /* IF DynBrow or DynView */
+    END. /* CUSTOM SUPER PROCEDURE */
+
     WHEN "CONTEXT-HELP-ID" THEN DO:
       IF _L._WIN-TYPE THEN DO:
         CREATE TEXT h_context-hlp-id_lbl ASSIGN FRAME = FRAME prop_sht:HANDLE FORMAT = "X(15)".
@@ -3902,7 +4231,9 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                h_context-hlp-id_lbl:ROW    = h_context-help-id:ROW
                h_context-hlp-id_lbl:COLUMN = h_context-help-id:COLUMN - h_context-hlp-id_lbl:WIDTH.
 
-        cur-row = cur-row + 1.1.
+        IF NOT CAN-DO("COMBO-BOX,SELECTION-LIST,RADIO-SET":U,_U._TYPE)
+            THEN cur-row = cur-row + 1.1.
+
       END.  /* if _L._WIN-TYPE - GUI */
     END.  /* CONTEXT-HELP-ID */
     
@@ -4211,7 +4542,9 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
        DEFINE VAR radio-btns AS CHAR INITIAL "Left-Align,L,Right-Align,R".
        IF CAN-DO("FILL-IN,COMBO-BOX",_U._TYPE) THEN
          radio-btns = "Left-Align,L,Colon-Align,C,Right-Align,R".
-       
+       ELSE IF _U._ALIGN = "C":U THEN 
+         _U._ALIGN = "L":U.
+
        CREATE RADIO-SET h_align
          ASSIGN FRAME         = FRAME prop_sht:HANDLE
                 ROW           = cur-row - (IF _U._TYPE = "BROWSE" THEN 1.1 ELSE 0)
@@ -4448,10 +4781,11 @@ PROCEDURE sensitize.
   IF _U._LAYOUT-NAME = "Master Layout" THEN DO:
     /* Note that certain fields are NOT sensitized if this is database field */
     local_var = (_U._TABLE eq ?) OR CAN-DO("LOCAL,LIKE",_F._DISPOSITION).
-           
+
     ASSIGN name:SENSITIVE IN FRAME prop_sht = local_var.
     IF h_label              NE ? THEN ASSIGN h_label:SENSITIVE =
-                                    IF _U._LABEL-SOURCE = "D" THEN FALSE ELSE TRUE.
+                                    IF (_U._LABEL-SOURCE = "D" AND 
+                                        _U._BUFFER NE "RowObject":U) THEN FALSE ELSE TRUE.
     IF h_nolbl              NE ? THEN h_nolbl:SENSITIVE                     = TRUE.
     IF h_query              NE ? THEN ASSIGN h_query:SENSITIVE              = TRUE.
     IF h_btn_mdfy           NE ? THEN ASSIGN h_btn_mdfy:SENSITIVE = 
@@ -4469,10 +4803,12 @@ PROCEDURE sensitize.
                                               _U._SUBTYPE NE "DROP-DOWN-LIST") THEN FALSE
                                                 ELSE TRUE.
     IF h_format             NE ? THEN ASSIGN h_format:SENSITIVE =
-                                   IF _F._FORMAT-SOURCE = "D" OR (_U._TYPE = "COMBO-BOX" AND
+                                   IF (_F._FORMAT-SOURCE = "D" AND _U._BUFFER NE "RowObject":U) OR
+                                      (_U._TYPE = "COMBO-BOX" AND
                                      _U._SUBTYPE NE "DROP-DOWN-LIST") THEN FALSE ELSE TRUE.
     IF h_btn_fmt            NE ? THEN ASSIGN h_btn_fmt:SENSITIVE =
-                                   IF _F._FORMAT-SOURCE = "D" OR (_U._TYPE = "COMBO-BOX" AND
+                                   IF (_F._FORMAT-SOURCE = "D" AND _U._BUFFER NE "RowObject":U) OR
+                                      (_U._TYPE = "COMBO-BOX" AND
                                      _U._SUBTYPE NE "DROP-DOWN-LIST") THEN FALSE ELSE TRUE.
     IF h_min-value          NE ? THEN ASSIGN h_min-value:SENSITIVE          = TRUE.
     IF h_max-value          NE ? THEN ASSIGN h_max-value:SENSITIVE          = TRUE.
@@ -4530,6 +4866,11 @@ PROCEDURE sensitize.
                                         h_row:SENSITIVE = _U._size-to-parent eq no
                                                           AND _C._EXPLICIT_POSITION
                                         h_col:SENSITIVE = h_row:SENSITIVE.  
+    IF h_folder-win-to-launch NE ? THEN ASSIGN h_folder-win-to-launch:SENSITIVE = isDynBrow.
+    IF h_window-title-field   NE ? THEN ASSIGN h_window-title-field:SENSITIVE   = isDynView OR isDynBrow.
+    IF h_custom-super-proc    NE ? THEN ASSIGN h_custom-super-proc:SENSITIVE    = FALSE.
+    IF h_custom-super-proc_btn NE ? THEN ASSIGN h_custom-super-proc_btn:SENSITIVE = isDynView OR isDynBrow.
+    IF h_custom-super-proc_btnd NE ? THEN ASSIGN h_custom-super-proc_btnd:SENSITIVE = isDynView OR isDynBrow.
     IF h_HIDDEN             NE ? THEN ASSIGN h_HIDDEN:SENSITIVE             = TRUE.
     IF h_HORIZONTAL         NE ? THEN ASSIGN h_HORIZONTAL:SENSITIVE         = TRUE.
     IF h_LARGE              NE ? THEN ASSIGN h_LARGE:SENSITIVE              = TRUE.
@@ -4557,6 +4898,9 @@ PROCEDURE sensitize.
     IF h_SCROLLBAR-V        NE ? THEN ASSIGN h_SCROLLBAR-V:SENSITIVE        = TRUE.
     IF h_SENSITIVE          NE ? THEN ASSIGN h_SENSITIVE:SENSITIVE          = TRUE.
     IF h_SHARED             NE ? THEN ASSIGN h_SHARED:SENSITIVE             = local_var.
+    IF h_show-popup         NE ? THEN ASSIGN h_show-popup:SENSITIVE         = IF (AVAILABLE _F AND CAN-DO("DATE,DECIMAL,INTEGER":u, _F._DATA-TYPE) AND lParentIsDynView)
+                                                                                 OR  isDynView THEN TRUE
+                                                                                     ELSE FALSE.
     IF h_SIDE-LABELS        NE ? THEN ASSIGN h_SIDE-LABELS:SENSITIVE        = TRUE.
     IF h_SORT               NE ? THEN ASSIGN h_SORT:SENSITIVE               = TRUE.
     IF h_STATUS-AREA        NE ? THEN ASSIGN h_STATUS-AREA:SENSITIVE        = TRUE.
@@ -4588,10 +4932,12 @@ PROCEDURE sensitize.
       END.
       h_REMOVE-FROM-LAYOUT:SENSITIVE = i > 1.
     END.
+
   END.  /* If the master layout */
   ELSE DO:  /* A custom layout */
     ASSIGN name:SENSITIVE IN FRAME prop_sht = FALSE.
-    IF h_label              NE ? THEN ASSIGN h_label:SENSITIVE              = FALSE.
+    IF h_label              NE ? AND _P.object_type_code NE "DynView":U
+                                 THEN ASSIGN h_label:SENSITIVE              = FALSE.
     IF h_nolbl              NE ? THEN ASSIGN h_nolbl:SENSITIVE              = FALSE.
     IF h_query              NE ? THEN ASSIGN h_query:READ-ONLY              = TRUE.
     IF h_btn_mdfy           NE ? THEN ASSIGN h_btn_mdfy:SENSITIVE           = FALSE.
@@ -4646,6 +4992,20 @@ PROCEDURE sensitize.
       h = h:NEXT-SIBLING.
     END.  /* DO WHILE... */      
   END.  /* If a custom layout */
+
+  /* Desensitize all toggles for DynViewers and Dynbrowsers except Show-Popup and
+     Size-To-Fit                                                               */
+  IF isDynview OR isDynbrow THEN DO:
+    ASSIGN h_tog = IF isDynview THEN h_3-D ELSE h_Column-Scrolling.
+    DO WHILE VALID-HANDLE(h_tog):
+      IF h_Tog:TYPE = "TOGGLE-BOX":U THEN DO:
+         IF h_tog NE h_Show-popup AND h_tog NE h_Size-to-fit AND h_tog NE h_SEPARATORS THEN
+             h_Tog:SENSITIVE = FALSE.
+      END.  /* if a toggle-box */
+      h_tog = h_tog:NEXT-SIBLING.
+    END. /* Do while valid-handle */
+  END. /* If a dynamic viewer or browser */
+
 END.  /* Procedure sensitize */
 
 PROCEDURE frequency_change:
@@ -4692,6 +5052,64 @@ PROCEDURE tooltip_change:
     ASSIGN _U._TOOLTIP = h_tooltip:SCREEN-VALUE.
   ELSE
     ASSIGN _U._TOOLTIP = ?.  
+end.
+
+PROCEDURE Folder-win-to-launch_change:
+IF h_folder-win-to-launch:SCREEN-VALUE NE ? AND h_folder-win-to-launch:SCREEN-VALUE NE "" THEN
+    ASSIGN _C._folder-window-to-launch = h_folder-win-to-launch:SCREEN-VALUE.
+  ELSE
+    ASSIGN _C._folder-window-to-launch = ?.
+END.
+
+PROCEDURE Window-title-field_change:
+IF h_window-title-field:SCREEN-VALUE NE ? AND h_window-title-field:SCREEN-VALUE NE "" THEN
+    ASSIGN _C._window-title-field = h_window-title-field:SCREEN-VALUE.
+  ELSE
+    ASSIGN _C._window-title-field = ?.
+END.
+
+
+PROCEDURE delimiter_change:
+    DEF VAR i AS INT NO-UNDO.
+    DEF VAR cDelim AS CHAR NO-UNDO.
+
+     if h_delimiter:SCREEN-VALUE = ? 
+         or length(h_delimiter:SCREEN-VALUE) = 0 
+           or h_delimiter:SCREEN-VALUE = " ":U
+       then DO:
+          MESSAGE "Delimiter must be specified. Reverting to default delimiter."
+            VIEW-AS ALERT-BOX INFO BUTTONS OK.
+          ASSIGN _F._delimiter = ",":U
+                 h_delimiter:SCREEN-VALUE  = ",":U.
+          RETURN NO-APPLY.
+       END.
+
+    /* if invalid format*/
+       IF LENGTH(h_delimiter:SCREEN-VALUE) > 1 THEN DO:
+          IF SUBSTR(h_delimiter:SCREEN-VALUE,1,4) NE "Chr(":U 
+              OR SUBSTR(h_delimiter:SCREEN-VALUE,LENGTH(h_delimiter:SCREEN-VALUE),1) NE ")":U 
+              THEN DO:
+          
+                MESSAGE "Delimiter must be a single character or"
+                   SKIP "a valid string like CHR(4)."
+                    VIEW-AS ALERT-BOX INFO BUTTONS OK.
+                RETURN NO-APPLY.
+              END.
+              
+              
+              ASSIGN cDelim = ENTRY(2,RIGHT-TRIM(h_delimiter:SCREEN-VALUE,")"),"(").
+                  i = INT(cDelim) NO-ERROR.
+              IF ERROR-STATUS:ERROR THEN DO:
+                MESSAGE "Delimiter must be a single character or"
+                   SKIP "a valid string like CHR(4)."
+                    VIEW-AS ALERT-BOX INFO BUTTONS OK.
+                RETURN NO-APPLY.
+              END.
+          ASSIGN _F._delimiter = CHR(i).
+          
+       END. /*if length */
+       ELSE 
+         ASSIGN _F._delimiter = h_delimiter:SCREEN-VALUE.
 end.
 
 PROCEDURE remember_layout.  
@@ -4808,6 +5226,10 @@ PROCEDURE save_parent_info:
   IF parent_U._TYPE = "FRAME" AND NOT parent_C._SIDE-LABELS AND
      NOT parent_L._NO-LABELS THEN
     col-lbl-adj = (parent_C._FRAME-BAR:Y + 2) / SESSION:PIXELS-PER-ROW.
+
+  /* save parent's object type */
+  ASSIGN lParentIsDynview = ( PARENT_P.OBJECT_type_code = "dynview":U).
+
 END.
 
 PROCEDURE set_tab_order.
@@ -4903,7 +5325,7 @@ PROCEDURE process-sellist-and-combo:
     IF _U._TYPE = "COMBO-BOX":U THEN DO:
       IF h_listType:SCREEN-VALUE = "I":U THEN DO:
         ASSIGN _F._LIST-ITEM-PAIRS = ?
-               _F._LIST-ITEMS = RIGHT-TRIM(h_query:SCREEN-VALUE).
+               _F._LIST-ITEMS = REPLACE(RIGHT-TRIM(h_query:SCREEN-VALUE),CHR(13),"").
         ASSIGN l_error_on_go = NOT validate-list-items(_U._HANDLE).
         IF l_error_on_go THEN new_btns  = FALSE.
       END.      
@@ -5040,3 +5462,52 @@ END.  /* procedure toggle_placement */
 
 
 
+PROCEDURE CUSTOM-SUPER-PROC_change:
+/* ***********************************************************
+   Purpose: Lookup dialog call for Dynamics custom super 
+            procedure when the lookup button is choosen
+*************************************************************/
+ DEFINE VARIABLE cFilename     AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE lOK           AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE hObjectBuffer AS HANDLE     NO-UNDO.
+
+ ASSIGN CURRENT-WINDOW:PRIVATE-DATA = STRING(THIS-PROCEDURE).
+ 
+ RUN ry/obj/gopendialog.w (INPUT CURRENT-WINDOW,
+                           INPUT "",
+                           INPUT No,
+                           INPUT "Get Object",
+                           OUTPUT cFilename,
+                           OUTPUT lok).
+ IF lOK THEN
+    IF DYNAMIC-FUNCTION("cacheObjectOnClient":U IN gshRepositoryManager,
+                           INPUT cFilename,
+                           INPUT "", /* Get all Result Codes */
+                           INPUT "",  /* RunTime Attributes not applicable  */
+                           INPUT YES  /* Design Mode is yes */
+                      )  THEN
+    DO:
+       ASSIGN hObjectBuffer = DYNAMIC-FUNC("getCacheObjectBuffer":U IN gshRepositoryManager, INPUT ?).
+       IF DYNAMIC-FUNCTION("classisA":U IN gshRepositoryManager, hObjectBuffer:BUFFER-FIELD("tClassName":U):BUFFER-VALUE, "Procedure":U) THEN
+          ASSIGN    h_CUSTOM-SUPER-PROC:SCREEN-VALUE = hObjectBuffer:BUFFER-FIELD("tObjectPathedFileName":U):BUFFER-VALUE
+                    h_CUSTOM-SUPER-PROC:MODIFIED     = YES.
+    END.
+ 
+
+END PROCEDURE.
+
+PROCEDURE CUSTOM-SUPER-PROC_clear:
+/* ***********************************************************
+   Purpose: Clear Progress Dynamics custom super procedure 
+*************************************************************/
+   ASSIGN
+     h_CUSTOM-SUPER-PROC:SCREEN-VALUE = ""
+     h_CUSTOM-SUPER-PROC:MODIFIED     = YES.
+
+END PROCEDURE.
+
+FUNCTION getOpenObjectFilter RETURNS CHARACTER
+  ( ) :
+
+  RETURN "Procedure":U.
+END FUNCTION.

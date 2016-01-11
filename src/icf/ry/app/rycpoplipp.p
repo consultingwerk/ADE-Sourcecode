@@ -91,7 +91,7 @@ ASSIGN cObjectName = "{&object-name}":U.
 
 {af/sup2/afglobals.i}
 
-DEFINE TEMP-TABLE ttRycPageObject RCODE-INFORMATION /* Defined same as RowobjUpd temp table */
+DEFINE TEMP-TABLE ttRycPageObject NO-UNDO RCODE-INFORMATION /* Defined same as RowobjUpd temp table */
     {ry/obj/rycpofullo.i}
     {src/adm2/rupdflds.i}.
 

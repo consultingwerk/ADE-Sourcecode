@@ -1,6 +1,5 @@
-<?xml version="1.0" encoding="ISO8859-1" ?>
-<dataset Transactions="5" version_date="02/23/2002" version_time="43013" version_user="admin" entity_mnemonic="GSTDF" key_field_value="3000000419.09" record_version_obj="3000000420.09" version_number_seq="2.09" import_version_number_seq="1.09"><dataset_header DisableRI="yes" DatasetObj="1007600115.08" DateFormat="mdy" FullHeader="yes" SCMManaged="no" YearOffset="1950" DatasetCode="GSMCY" DateCreated="02/23/2002" TimeCreated="11:56:53" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="93" NumericSeparator=","><deploy_dataset_obj>1007600115.08</deploy_dataset_obj>
-<owner_site_code></owner_site_code>
+<?xml version="1.0" encoding="utf-8" ?>
+<dataset Transactions="5"><dataset_header DisableRI="yes" DatasetObj="1007600115.08" DateFormat="mdy" FullHeader="yes" SCMManaged="no" YearOffset="1950" DatasetCode="GSMCY" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="90" NumericSeparator=","><deploy_dataset_obj>1007600115.08</deploy_dataset_obj>
 <dataset_code>GSMCY</dataset_code>
 <dataset_description>gsm_country - Countries</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -8,6 +7,9 @@
 <deploy_full_data>yes</deploy_full_data>
 <xml_generation_procedure></xml_generation_procedure>
 <default_ado_filename></default_ado_filename>
+<deploy_additions_only>no</deploy_additions_only>
+<enable_data_versioning>yes</enable_data_versioning>
+<deletion_dataset>yes</deletion_dataset>
 <dataset_entity><dataset_entity_obj>1007600116.08</dataset_entity_obj>
 <deploy_dataset_obj>1007600115.08</deploy_dataset_obj>
 <entity_sequence>1</entity_sequence>
@@ -19,19 +21,22 @@
 <delete_related_records>yes</delete_related_records>
 <overwrite_records>yes</overwrite_records>
 <keep_own_site_data>no</keep_own_site_data>
+<use_relationship>no</use_relationship>
+<relationship_obj>0</relationship_obj>
+<deletion_action></deletion_action>
 <entity_mnemonic_description>gsm_country</entity_mnemonic_description>
-<entity_dbname>icfdb</entity_dbname>
+<entity_dbname>ICFDB</entity_dbname>
 </dataset_entity>
 <table_definition><name>gsm_country</name>
-<dbname>ICFDB</dbname>
+<dbname>icfdb</dbname>
 <index-1>XAK1gsm_country,1,0,0,country_code,0</index-1>
 <index-2>XIE1gsm_country,0,0,0,country_name,0</index-2>
 <index-3>XPKgsm_country,1,1,0,country_obj,0</index-3>
 <field><name>country_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Country Obj</label>
 <column-label>Country Obj</column-label>
 </field>
@@ -54,7 +59,7 @@
 <field><name>min_postcode_lookup_chars</name>
 <data-type>integer</data-type>
 <extent>0</extent>
-<format>->9</format>
+<format>-&gt;9</format>
 <initial>  0</initial>
 <label>Min. Postcode Lookup Chars</label>
 <column-label>Min. Postcode Lookup Chars</column-label>
@@ -62,8 +67,8 @@
 <field><name>address_format_procedure_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Address Format Procedure Obj</label>
 <column-label>Address Format Procedure Obj</column-label>
 </field>
@@ -141,7 +146,7 @@
 </field>
 </table_definition>
 </dataset_header>
-<dataset_records><dataset_transaction TransactionNo="1"><contained_record DB="ICFDB" Table="gsm_country"><country_obj>867</country_obj>
+<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_country"><country_obj>867</country_obj>
 <country_code>SA</country_code>
 <country_name>South Africa</country_name>
 <min_postcode_lookup_chars>4</min_postcode_lookup_chars>
@@ -157,7 +162,7 @@
 <postcode_label>SA Postcode</postcode_label>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="2"><contained_record DB="ICFDB" Table="gsm_country"><country_obj>868</country_obj>
+<dataset_transaction TransactionNo="2" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_country"><country_obj>868</country_obj>
 <country_code>UK</country_code>
 <country_name>United Kingdom</country_name>
 <min_postcode_lookup_chars>3</min_postcode_lookup_chars>
@@ -173,7 +178,7 @@
 <postcode_label>Postcode</postcode_label>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="3"><contained_record DB="ICFDB" Table="gsm_country"><country_obj>869</country_obj>
+<dataset_transaction TransactionNo="3" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_country"><country_obj>869</country_obj>
 <country_code>USA</country_code>
 <country_name>United States of America</country_name>
 <min_postcode_lookup_chars>0</min_postcode_lookup_chars>
@@ -189,7 +194,7 @@
 <postcode_label>ZIP</postcode_label>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="4"><contained_record DB="ICFDB" Table="gsm_country"><country_obj>256617</country_obj>
+<dataset_transaction TransactionNo="4" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_country"><country_obj>256617</country_obj>
 <country_code>FR</country_code>
 <country_name>France</country_name>
 <min_postcode_lookup_chars>5</min_postcode_lookup_chars>
@@ -205,7 +210,7 @@
 <postcode_label>Code Postal</postcode_label>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="5"><contained_record DB="ICFDB" Table="gsm_country"><country_obj>1004662966</country_obj>
+<dataset_transaction TransactionNo="5" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_country"><country_obj>1004662966</country_obj>
 <country_code>DE</country_code>
 <country_name>Germany</country_name>
 <min_postcode_lookup_chars>0</min_postcode_lookup_chars>

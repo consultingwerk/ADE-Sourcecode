@@ -23,11 +23,6 @@
 *********************************************************************/
 TRIGGER PROCEDURE FOR REPLICATION-WRITE OF %TableName OLD BUFFER lb_old.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "%subjectareaprop("DBlogical")"
-                      &TABLE-NAME   = "%TableName"
-                      &TRIGGER-TYPE = "REPLICATION-WRITE"}
-
 {af/sup/afreplicat.i  &TABLE-NAME   = "%TableName"
                       &TABLE-FLA    = "%EntityProp(TableFLA)"
                       &TABLE-PK     = "%PK(",")"
@@ -38,4 +33,4 @@ TRIGGER PROCEDURE FOR REPLICATION-WRITE OF %TableName OLD BUFFER lb_old.
                       &VERSION-DATA = "%EntityProp(VersionData)"
 }
 
-%IF(%==(%EntityProp(TableFLA),%EntityProp(ReplicateFLA))){{%SubjectAreaProp(TriggerRel)%EntityProp(TableFLA)replw.i}}
+%IF(%==(%EntityProp(TableFLA),%EntityProp(ReplicateFLA))){{%DiagramProp(TriggerRel)%EntityProp(TableFLA)replw.i}}

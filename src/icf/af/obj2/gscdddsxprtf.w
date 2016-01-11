@@ -57,7 +57,14 @@ af/cod/aftemwizpw.w
 
   Update Notes: Created from Template rysttbfrmw.w
 
----------------------------------------------------------------------------------*/
+  (v:010001)    Task:           9   UserRef:    
+                Date:   02/14/2003  Author:     Thomas Hansen
+
+  Update Notes: Issue 3533:
+                Changed the default output directory at startup to be the root workspace
+                directory + "src/icf" when RTB is connected.
+
+--------------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
 
@@ -78,7 +85,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gscdddsxprtf.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    000000
+&scop object-version    010002
 
 /* Parameters Definitions ---                                           */
 
@@ -89,11 +96,9 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 {af/sup2/afglobals.i}
 
-
 DEFINE TEMP-TABLE ttDSAvailable NO-UNDO RCODE-INFORMATION
   FIELD dataset_code LIKE gsc_deploy_dataset.dataset_code
   FIELD dataset_description LIKE gsc_deploy_dataset.dataset_description
-  FIELD owner_site_code LIKE gsc_deploy_dataset.owner_site_code
   FIELD disable_ri LIKE gsc_deploy_dataset.disable_ri 
   FIELD source_code_data LIKE gsc_deploy_dataset.source_code_data
   FIELD deploy_full_data LIKE gsc_deploy_dataset.deploy_full_data
@@ -106,7 +111,6 @@ DEFINE TEMP-TABLE ttDSSelected NO-UNDO RCODE-INFORMATION
   FIELD dataset_description LIKE gsc_deploy_dataset.dataset_description
   FIELD lFilePerRecord AS LOGICAL FORMAT "YES/NO" COLUMN-LABEL "File Per!Record"
   FIELD cFileName      AS CHARACTER FORMAT "X(30)":U COLUMN-LABEL "File name/!Field name"
-  FIELD owner_site_code LIKE gsc_deploy_dataset.owner_site_code
   FIELD disable_ri LIKE gsc_deploy_dataset.disable_ri 
   FIELD source_code_data LIKE gsc_deploy_dataset.source_code_data
   FIELD deploy_full_data LIKE gsc_deploy_dataset.deploy_full_data
@@ -140,11 +144,12 @@ DEFINE VARIABLE hQrySelected  AS HANDLE     NO-UNDO.
 
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-OBJECTS fiRootDirectory buRootDirectory ~
-fiBlankDirectory buBlankDir lResetModified brAvailable brSelected buAddAll ~
-buAdd buRemove buRemoveAll buSelAllAvail buDeselAllAvail buSelAllSelect ~
-buDeselAllSelect buProperties RECT-2 RECT-3 
+fiBlankDirectory buBlankDir lResetModified lAllModified lIncludeDeletions ~
+lRemoveDeletion brAvailable brSelected buAddAll buAdd buRemove buRemoveAll ~
+buSelAllAvail buDeselAllAvail buSelAllSelect buDeselAllSelect buProperties ~
+RECT-2 RECT-3 RECT-4 
 &Scoped-Define DISPLAYED-OBJECTS fiRootDirectory fiBlankDirectory ~
-lResetModified 
+lResetModified lAllModified lFullDS lIncludeDeletions lRemoveDeletion 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -235,11 +240,35 @@ DEFINE VARIABLE fiRootDirectory AS CHARACTER FORMAT "X(256)":U
 
 DEFINE RECTANGLE RECT-2
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 57.2 BY 18.86.
+     SIZE 57.2 BY 16.81.
 
 DEFINE RECTANGLE RECT-3
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 66.8 BY 18.86.
+     SIZE 66.8 BY 16.81.
+
+DEFINE RECTANGLE RECT-4
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     SIZE 66.8 BY 1.62.
+
+DEFINE VARIABLE lAllModified AS LOGICAL INITIAL no 
+     LABEL "Deploy All Modified Data" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 42.6 BY .81 NO-UNDO.
+
+DEFINE VARIABLE lFullDS AS LOGICAL INITIAL yes 
+     LABEL "Full Datasets For Non-SCM Data" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 36.8 BY .81 NO-UNDO.
+
+DEFINE VARIABLE lIncludeDeletions AS LOGICAL INITIAL no 
+     LABEL "Include Deletions" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 31.6 BY .81 NO-UNDO.
+
+DEFINE VARIABLE lRemoveDeletion AS LOGICAL INITIAL no 
+     LABEL "Remove Deletions" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 32 BY .81 NO-UNDO.
 
 DEFINE VARIABLE lResetModified AS LOGICAL INITIAL no 
      LABEL "Reset Data Modified Status" 
@@ -253,14 +282,14 @@ DEFINE BROWSE brAvailable
   
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-    WITH NO-ROW-MARKERS SEPARATORS MULTIPLE SIZE 55.2 BY 16.76.
+    WITH NO-ROW-MARKERS SEPARATORS MULTIPLE SIZE 55.2 BY 14.71.
 
 DEFINE BROWSE brSelected
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _DISPLAY-FIELDS brSelected fFrameWin _STRUCTURED
   
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-    WITH NO-ROW-MARKERS SEPARATORS MULTIPLE SIZE 64.4 BY 16.86 ROW-HEIGHT-CHARS .62.
+    WITH NO-ROW-MARKERS SEPARATORS MULTIPLE SIZE 64.4 BY 14.81 ROW-HEIGHT-CHARS .62.
 
 
 /* ************************  Frame Definitions  *********************** */
@@ -271,23 +300,28 @@ DEFINE FRAME fMain
      fiBlankDirectory AT ROW 2.19 COL 23 COLON-ALIGNED
      buBlankDir AT ROW 2.19 COL 119
      lResetModified AT ROW 3.29 COL 25
-     brAvailable AT ROW 4.67 COL 2.6
-     brSelected AT ROW 4.67 COL 79.4
-     buAddAll AT ROW 8.29 COL 59.4
-     buAdd AT ROW 9.91 COL 59.4
-     buRemove AT ROW 11.43 COL 59.4
-     buRemoveAll AT ROW 12.95 COL 59.4
+     lAllModified AT ROW 3.29 COL 79.2
+     lFullDS AT ROW 4.14 COL 83.4
+     lIncludeDeletions AT ROW 4.19 COL 25
+     lRemoveDeletion AT ROW 5.1 COL 25
+     brAvailable AT ROW 6.71 COL 2.6
+     brSelected AT ROW 6.71 COL 79.4
+     buAddAll AT ROW 10.38 COL 59.4
+     buAdd AT ROW 12 COL 59.4
+     buRemove AT ROW 13.52 COL 59.4
+     buRemoveAll AT ROW 15.05 COL 59.4
      buSelAllAvail AT ROW 21.62 COL 6.2
      buDeselAllAvail AT ROW 21.62 COL 33.4
      buSelAllSelect AT ROW 21.71 COL 79.8
      buDeselAllSelect AT ROW 21.71 COL 101.4
      buProperties AT ROW 21.71 COL 123.2
-     RECT-2 AT ROW 4.29 COL 1.8
-     RECT-3 AT ROW 4.29 COL 78.2
+     RECT-2 AT ROW 6.33 COL 1.8
+     RECT-3 AT ROW 6.33 COL 78.2
+     RECT-4 AT ROW 3.57 COL 78.2
      "Available Datasets:" VIEW-AS TEXT
-          SIZE 19.6 BY .62 AT ROW 3.91 COL 3.4
+          SIZE 19.6 BY .62 AT ROW 5.95 COL 3.8
      "Selected Datasets:" VIEW-AS TEXT
-          SIZE 18.8 BY .62 AT ROW 3.91 COL 80.2
+          SIZE 18.8 BY .62 AT ROW 5.95 COL 80.6
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1
@@ -343,11 +377,13 @@ END.
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME fMain
    NOT-VISIBLE                                                          */
-/* BROWSE-TAB brAvailable lResetModified fMain */
+/* BROWSE-TAB brAvailable lRemoveDeletion fMain */
 /* BROWSE-TAB brSelected brAvailable fMain */
 ASSIGN 
        FRAME fMain:HIDDEN           = TRUE.
 
+/* SETTINGS FOR TOGGLE-BOX lFullDS IN FRAME fMain
+   NO-ENABLE                                                            */
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
@@ -563,6 +599,17 @@ END.
 &ANALYZE-RESUME
 
 
+&Scoped-define SELF-NAME lAllModified
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL lAllModified fFrameWin
+ON VALUE-CHANGED OF lAllModified IN FRAME fMain /* Deploy All Modified Data */
+DO:
+  RUN enableControls.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
 &Scoped-define BROWSE-NAME brAvailable
 &UNDEFINE SELF-NAME
 
@@ -659,6 +706,39 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enableControls fFrameWin 
+PROCEDURE enableControls :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DO WITH FRAME {&FRAME-NAME}:
+    ASSIGN
+      lAllModified
+      brAvailable:SENSITIVE = NOT lAllModified 
+      brSelected:SENSITIVE = NOT lAllModified 
+      buAdd:SENSITIVE = NOT lAllModified 
+      buAddAll:SENSITIVE = NOT lAllModified 
+      buDeselAllAvail:SENSITIVE = NOT lAllModified 
+      buDeselAllSelect:SENSITIVE = NOT lAllModified 
+      buProperties:SENSITIVE = NOT lAllModified 
+      buRemove:SENSITIVE = NOT lAllModified 
+      buRemoveAll:SENSITIVE = NOT lAllModified 
+      buSelAllAvail:SENSITIVE = NOT lAllModified 
+      buSelAllSelect:SENSITIVE = NOT lAllModified 
+      lFullDS:SENSITIVE = lAllModified 
+      lIncludeDeletions:SENSITIVE = NOT lAllModified 
+      lRemoveDeletion:SENSITIVE = NOT lAllModified 
+      lResetModified:SENSITIVE = NOT lAllModified
+    .
+  END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI fFrameWin  _DEFAULT-ENABLE
 PROCEDURE enable_UI :
 /*------------------------------------------------------------------------------
@@ -670,12 +750,13 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  DISPLAY fiRootDirectory fiBlankDirectory lResetModified 
+  DISPLAY fiRootDirectory fiBlankDirectory lResetModified lAllModified lFullDS 
+          lIncludeDeletions lRemoveDeletion 
       WITH FRAME fMain.
   ENABLE fiRootDirectory buRootDirectory fiBlankDirectory buBlankDir 
-         lResetModified buAddAll buAdd buRemove buRemoveAll buSelAllAvail 
-         buDeselAllAvail buSelAllSelect buDeselAllSelect buProperties RECT-2 
-         RECT-3 
+         lResetModified lAllModified lIncludeDeletions lRemoveDeletion buAddAll 
+         buAdd buRemove buRemoveAll buSelAllAvail buDeselAllAvail 
+         buSelAllSelect buDeselAllSelect buProperties RECT-2 RECT-3 RECT-4 
       WITH FRAME fMain.
   {&OPEN-BROWSERS-IN-QUERY-fMain}
 END PROCEDURE.
@@ -709,11 +790,20 @@ PROCEDURE getDirectory :
   DEFINE OUTPUT PARAMETER pcOutDir   AS CHARACTER  NO-UNDO.
   DEFINE OUTPUT PARAMETER pcBlankDir AS CHARACTER  NO-UNDO.
   DEFINE OUTPUT PARAMETER plDataMod  AS LOGICAL    NO-UNDO.
+  DEFINE OUTPUT PARAMETER plInclDel  AS LOGICAL    NO-UNDO.
+  DEFINE OUTPUT PARAMETER plRemDel   AS LOGICAL    NO-UNDO.
+  DEFINE OUTPUT PARAMETER plDumpMod  AS LOGICAL    NO-UNDO.
+  DEFINE OUTPUT PARAMETER plFullDS   AS LOGICAL    NO-UNDO.
 
   DO WITH FRAME {&FRAME-NAME}:
     pcOutDir   = fiRootDirectory:SCREEN-VALUE.
     pcBlankDir = fiBlankDirectory:SCREEN-VALUE.
     plDataMod  = lResetModified:INPUT-VALUE.
+    plInclDel  = lIncludeDeletions:INPUT-VALUE.
+    plRemDel   = lRemoveDeletion:INPUT-VALUE.
+    plDumpMod  = lAllModified:INPUT-VALUE.
+    plFullDS   = lFullDS:INPUT-VALUE.
+
   END.
 
 END PROCEDURE.
@@ -785,7 +875,7 @@ PROCEDURE getFolder :
     lhServer = ?
     .
   
-  ASSIGN opPath = TRIM(REPLACE(LC(opPath),"\":U,"/":U),"/":U).
+  ASSIGN opPath = TRIM(REPLACE(LC(opPath),"~\":U,"/":U),"/":U).
 
 END PROCEDURE.
 
@@ -800,22 +890,36 @@ PROCEDURE initializeObject :
   Notes:       
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cRootDir AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cRelativeSourceDir  AS CHARACTER  NO-UNDO.
   
   RUN SUPER.
   
-  cRootDir = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
-                              "root_dir":U) NO-ERROR.
-  ERROR-STATUS:ERROR = NO.
+  cRootDir = DYNAMIC-FUNCTION("getSessionRootDirectory":U IN THIS-PROCEDURE) NO-ERROR.
+    
+  /* Get the relative source directory if one is set */
+  cRelativeSourceDir = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
+                              "_scm_relative_source_directory":U) NO-ERROR.                            
 
+  ERROR-STATUS:ERROR = NO.
+                              
+  /* If we managed to get a root path from the scm session parameter */
+  IF cRootDir <> ? AND 
+     cRelativeSourceDir <> ? THEN
+  ASSIGN 
+    cRootDir = TRIM(cRootDir + "/":U + TRIM(cRelativeSourceDir, "/":U), "/":U)
+    . 
+  ELSE 
   IF cRootDir <> ? THEN
-    cRootDir = SEARCH(cRootDir).
+    ASSIGN 
+      FILE-INFO:FILE-NAME = cRootdir
+      cRootDir = FILE-INFO:FULL-PATHNAME. 
 
   IF cRootDir = ? THEN
   DO:
     FILE-INFO:FILE-NAME = ".":U.
     cRootDir = FILE-INFO:FULL-PATHNAME.
   END.
-
+  
   cRootDir = REPLACE(cRootDir,"~\":U,"/":U).
 
   IF cRootDir <> ? THEN

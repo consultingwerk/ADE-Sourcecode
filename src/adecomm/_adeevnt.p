@@ -201,7 +201,7 @@ Details on Specific Events:
      The comments related to UIB usage of _adeevnt.p also apply to the 
      Procedure Editor.
 
-     The following additional comments apply to Procedure Window’s usage:
+     The following additional comments apply to Procedure Window's usage:
          1. For file operations, p_context does not change for a Procedure
             Window. It is not sufficient to track whether this number has 
             changed to determine Open or Close status of a file in a 
@@ -216,7 +216,7 @@ Details on Specific Events:
          4. NEW is called after the window is created.  You will see the
             window before the NEW event is called.
 
-Author: John Palazzo, Wm.T.Wood
+Author: D. Ross Hunter,  John Palazzo,  Wm.T.Wood
 
 Date Created: December, 1994
 
@@ -241,16 +241,19 @@ DEFINE OUTPUT PARAMETER p_ok       AS LOGICAL NO-UNDO INITIAL TRUE.
 DEFINE VARIABLE Mwindow-handle AS HANDLE NO-UNDO.
 DEFINE VARIABLE lICFIsRunning AS LOGICAL NO-UNDO.
 
+/* By default, we always return after doing nothing */
+
 /* The following debugging code can be uncommented... */
 /*
-MESSAGE "Product:" p_product SKIP
-        "Event:" p_event SKIP
-        "Context:" p_context SKIP
-        "Other Data:" p_other
-           VIEW-AS ALERT-BOX QUESTION 
-                   BUTTONS OK-CANCEL
-                   TITLE "adecomm/_adeevnt.p"
-                   UPDATE p_ok.
+MESSAGE
+  "Product:"    p_product SKIP
+  "Event:"      p_event   SKIP
+  "Context:"    p_context SKIP
+  "Other Data:" p_other
+  VIEW-AS ALERT-BOX QUESTION 
+  BUTTONS OK-CANCEL
+  TITLE "adecomm/_adeevnt.p"
+  UPDATE p_ok.
 */
 
 /* --- Start Roundtable section ---
@@ -270,34 +273,19 @@ THEN RUN ade_event IN Grtb-proc-handle
 IF p_event = "compile":U
 THEN DO:
 
-  &IF "{&scmTool}" = "RTB":U
-  &THEN
-
-    IF CONNECTED("RTB":U)
-    THEN DO:
-      DEFINE VARIABLE cErrorMessage AS CHARACTER NO-UNDO.
-      IF SEARCH("rtb/prc/afrtbappsp.p":U) <> ?
-      OR SEARCH("rtb/prc/afrtbappsp.r":U) <> ?
-      THEN
-        RUN rtb/prc/afrtbappsp.p (INPUT 0,                  /* RECID of rtb_object */
-                                  INPUT p_other,            /* object name */
-                                  OUTPUT cErrorMessage).
-    END.
-
-  &ENDIF
+  IF CONNECTED("RTB":U)
+  THEN DO:
+    DEFINE VARIABLE cErrorMessage AS CHARACTER NO-UNDO.
+    IF SEARCH("rtb/prc/afrtbappsp.p":U) <> ?
+    OR SEARCH("rtb/prc/afrtbappsp.r":U) <> ?
+    THEN
+      RUN rtb/prc/afrtbappsp.p (INPUT 0,                  /* RECID of rtb_object */
+                                INPUT p_other,            /* object name */
+                                OUTPUT cErrorMessage).
+  END.
 
 END.
 
-/* Runs the automated backup feature. Will save up to n backups of the procedure
-   being saved. The second parameter controls the number of backups */
-IF  p_event = "Before-save"
-THEN DO:
-  IF SEARCH("v91tools.pl":U) <> ?
-  THEN
-    RUN se-tools/backup-uib.p (p_other,3).							  
-END.
-
-/* ICF hook to add ICF options to Roundtable or Appbuilder menu */
 IF p_event = "Startup"
 AND p_product = "UIB":U
 THEN DO:
@@ -314,8 +302,9 @@ THEN DO:
 END.  /* If connected */
 
 IF p_event = "Shutdown"
-  AND( p_product = "UIB":U
-   OR p_product = "Desktop":U)
+AND (p_product = "Desktop":U
+ OR  p_product = "UIB":U
+     )
 THEN DO:
 
   /* Check if ICF is running. */

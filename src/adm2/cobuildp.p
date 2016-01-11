@@ -143,6 +143,7 @@ DEFINE VARIABLE hBufferList                 AS HANDLE EXTENT 20 NO-UNDO.
 DEFINE VARIABLE hBuffer                     AS HANDLE     NO-UNDO.
 DEFINE VARIABLE hKeyField                   AS HANDLE     NO-UNDO.
 DEFINE VARIABLE hDescFields                 AS HANDLE EXTENT 9 NO-UNDO.
+DEFINE VARIABLE iDescExtent                 AS INT    EXTENT 9 NO-UNDO.         /* -- added by SiL to handle extents */
 DEFINE VARIABLE iLoop                       AS INTEGER    NO-UNDO.
 DEFINE VARIABLE iBuffer                     AS INTEGER    NO-UNDO.
 DEFINE VARIABLE cField                      AS CHARACTER  NO-UNDO.
@@ -234,7 +235,13 @@ FOR EACH ttComboData:
       hBuffer = hBufferList[iBuffer].
     ELSE
       hBuffer = hBufferList[1].
-    hDescFields[iLoop] = hBuffer:BUFFER-FIELD(ENTRY(2,cField,".":U)) NO-ERROR.
+    /* -- added by SiL to handle extents */
+    cField = ENTRY (2, cField, '.':U).
+    IF INDEX (cField, '[':U) > 0 THEN
+      ASSIGN
+          iDescExtent[iLoop] = INT(ENTRY (1, ENTRY (2, cField, '[':U), ']':U))
+          cField  = ENTRY (1, cField, '[':U).
+    hDescFields[iLoop] = hBuffer:BUFFER-FIELD(cField) NO-ERROR.
   END.
 
   /* do a quick check to see if query ok */
@@ -267,12 +274,20 @@ FOR EACH ttComboData:
     IF cKeyValue = "":U OR cKeyValue = ? THEN
       ASSIGN cKeyValue = "?":U.
     cKeyValue = REPLACE(cKeyValue, ttComboData.cListItemDelimiter, "":U).
-
     DO iLoop = 1 TO NUM-ENTRIES(ttComboData.cDescFieldNames):
-      cDescValues[iLoop] = STRING(hDescFields[iLoop]:BUFFER-VALUE) NO-ERROR.
-      IF cDescValues[iLoop] = "":U OR cDescValues[iLoop] = ? THEN
-        ASSIGN cDescValues[iLoop] = "?":U.
-      cDescValues[iLoop] = REPLACE(cDescValues[iLoop], ttComboData.cListItemDelimiter, " ":U).
+      IF INDEX(ENTRY(iLoop,ttComboData.cDescFieldNames),"[":U) = 0 THEN DO:
+        cDescValues[iLoop] = STRING(hDescFields[iLoop]:BUFFER-VALUE) NO-ERROR.
+        IF cDescValues[iLoop] = "":U OR cDescValues[iLoop] = ? THEN
+          ASSIGN cDescValues[iLoop] = "?":U.
+        cDescValues[iLoop] = REPLACE(cDescValues[iLoop], ttComboData.cListItemDelimiter, " ":U).
+      END.
+      ELSE DO:
+        cDescValues[iLoop] = STRING(hDescFields[iLoop]:BUFFER-VALUE[INTEGER(RIGHT-TRIM(ENTRY(2,ENTRY(iLoop,ttComboData.cDescFieldNames),"[":U),"]":U))]) NO-ERROR.
+        IF cDescValues[iLoop] = "":U OR cDescValues[iLoop] = ? THEN
+          ASSIGN cDescValues[iLoop] = "?":U.
+        cDescValues[iLoop] = REPLACE(cDescValues[iLoop], ttComboData.cListItemDelimiter, " ":U).
+
+      END.
     END.
 
     ASSIGN

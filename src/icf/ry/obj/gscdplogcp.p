@@ -130,7 +130,7 @@ ASSIGN cObjectName = "{&object-name}":U.
 
 /* Data Preprocessor Definitions */
 &GLOB DATA-LOGIC-TABLE gsc_deploy_package
-&GLOB DATA-FIELD-DEFS  "ry\obj\gscdpfullo.i"
+&GLOB DATA-FIELD-DEFS  "ry/obj/gscdpfullo.i"
 
 /* Error handling definitions */
 {af/sup2/afcheckerr.i &define-only = YES}

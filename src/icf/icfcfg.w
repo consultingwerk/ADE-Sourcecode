@@ -36,8 +36,11 @@ CREATE WIDGET-POOL.
 
 /* Local Variable Definitions ---                                       */
 
+{adm2/globals.i}
 
-{afglobals.i}
+/* Install Windows API constants */
+{install/inc/inwinapiconst.i}
+
 
 DEFINE VARIABLE hConfMan     AS HANDLE     NO-UNDO.
 DEFINE VARIABLE hUIUtil      AS HANDLE     NO-UNDO.
@@ -46,8 +49,11 @@ DEFINE VARIABLE cCFMProc     AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cSessType    AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE hStatusWin   AS HANDLE     NO-UNDO.
 
+DEFINE VARIABLE lStartConfMan AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE cICFParam    AS CHARACTER  NO-UNDO INITIAL "":U.
-DEFINE VARIABLE lQuitOnEnd   AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE lQuitOnEnd   AS LOGICAL    INITIAL YES NO-UNDO.
+DEFINE VARIABLE cQuitOnEndB4 AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cQuitOnEnd   AS CHARACTER  NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -123,6 +129,7 @@ DEFINE FRAME DEFAULT-FRAME
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
 /* Settings for THIS-PROCEDURE
    Type: Window
+   Compile into: 
    Allow: Basic,Browse,DB-Fields,Window,Query
    Other Settings: COMPILE
  */
@@ -134,7 +141,7 @@ DEFINE FRAME DEFAULT-FRAME
 IF SESSION:DISPLAY-TYPE = "GUI":U THEN
   CREATE WINDOW C-Win ASSIGN
          HIDDEN             = YES
-         TITLE              = "Dynamics Configuration Utility"
+         TITLE              = "Progress Dynamics Configuration Utility"
          HEIGHT             = 17.38
          WIDTH              = 108.8
          MAX-HEIGHT         = 17.38
@@ -184,7 +191,7 @@ THEN C-Win:HIDDEN = no.
 
 &Scoped-define SELF-NAME C-Win
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL C-Win C-Win
-ON END-ERROR OF C-Win /* Dynamics Configuration Utility */
+ON END-ERROR OF C-Win /* Progress Dynamics Configuration Utility */
 OR ENDKEY OF {&WINDOW-NAME} ANYWHERE DO:
   /* This case occurs when the user presses the "Esc" key.
      In a persistently run window, just ignore this.  If we did not, the
@@ -197,10 +204,22 @@ END.
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL C-Win C-Win
-ON WINDOW-CLOSE OF C-Win /* Dynamics Configuration Utility */
+ON WINDOW-CLOSE OF C-Win /* Progress Dynamics Configuration Utility */
 DO:
+  DEFINE VARIABLE iRetVal AS INTEGER    NO-UNDO.
+  iRetVal = DYNAMIC-FUNCTION("messageBox":U IN THIS-PROCEDURE,
+                             "MSG_confirm_quit":U, 
+                             "":U,
+                             "MB_YESNO,MB_ICONQUESTION,MB_TASKMODAL":U) NO-ERROR.
+
+  IF ERROR-STATUS:ERROR OR
+     iRetVal = {&IDYES} THEN
+  DO:
+    ERROR-STATUS:ERROR = NO.
+    APPLY "CLOSE":U TO THIS-PROCEDURE.
+  END.
+
   /* This event will close the window and terminate the procedure.  */
-  APPLY "CLOSE":U TO THIS-PROCEDURE.
   RETURN NO-APPLY.
 END.
 
@@ -224,37 +243,49 @@ ASSIGN
   {&WINDOW-NAME}:Y              = MAX((SESSION:WORK-AREA-HEIGHT-PIXELS - {&WINDOW-NAME}:HEIGHT-PIXELS) / 2,1)
   .
 
-RUN install/obj/instatuswin.w PERSISTENT SET hStatusWin.
-RUN initializeObject IN hStatusWin.
-SUBSCRIBE PROCEDURE hStatusWin TO "setStatus":U IN THIS-PROCEDURE.
+SUBSCRIBE PROCEDURE THIS-PROCEDURE TO "DCU_StartStatus":U ANYWHERE.
+SUBSCRIBE PROCEDURE THIS-PROCEDURE TO "DCU_SetStatus":U ANYWHERE.
+SUBSCRIBE PROCEDURE THIS-PROCEDURE TO "DCU_EndStatus":U ANYWHERE.
+SUBSCRIBE PROCEDURE THIS-PROCEDURE TO "DCU_Quit":U ANYWHERE.
 
-PUBLISH "setStatus":U ("Initializing Environment...").
+PUBLISH "DCU_StartStatus":U.
 
-/* Initialize the environment from the XML file */
-RUN initializeEnvironment.
-IF RETURN-VALUE <> "":U THEN
-  QUIT.
+PUBLISH "DCU_SetStatus":U ("Initializing Environment...").
 
-/* The CLOSE event can be used from inside or outside the procedure to  */
-/* terminate it.                                                        */
+/* We don't need to do anything as it all happens automatically after the 
+   close. */
 ON CLOSE OF THIS-PROCEDURE 
-   RUN disable_UI.
+DO:
+END.
 
 /* Best default for GUI applications is...                              */
 PAUSE 0 BEFORE-HIDE.
 
-/* Now enable the interface and wait for the exit condition.            */
-/* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */
-MAIN-BLOCK:
-DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
-   ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
-  RUN enable_UI.
-  PUBLISH "setStatus":U ("Initializing User Interface...").
-  RUN initializeObject.
-  WAIT-FOR CLOSE OF THIS-PROCEDURE.
+/* Initialize the environment from the XML file */
+RUN initializeEnvironment.
+IF RETURN-VALUE = "":U THEN
+DO:
+  /* Now enable the interface and wait for the exit condition.            */
+  /* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */
+  MAIN-BLOCK:
+  DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
+     ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
+    RUN enable_UI.
+    PUBLISH "DCU_SetStatus":U ("Initializing User Interface...").
+    RUN initializeObject.
+    WAIT-FOR CLOSE OF THIS-PROCEDURE.
+    RUN shutdownEnvironment.
+  END.
 END.
 
-QUIT.
+
+/* More support for RoundTable */
+RUN disableUI.
+
+IF lQuitOnEnd = NO THEN
+  RETURN.
+ELSE
+  QUIT.
 
 PROCEDURE GetDC EXTERNAL "user32":
   DEFINE RETURN PARAMETER hDC AS LONG.
@@ -272,6 +303,82 @@ END.
 
 
 /* **********************  Internal Procedures  *********************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE DCU_EndStatus C-Win 
+PROCEDURE DCU_EndStatus :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  IF VALID-HANDLE(hStatusWin) THEN
+    APPLY "CLOSE":U TO hStatusWin.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE DCU_Quit C-Win 
+PROCEDURE DCU_Quit :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  APPLY "CLOSE":U TO THIS-PROCEDURE.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE DCU_SetStatus C-Win 
+PROCEDURE DCU_SetStatus :
+/*------------------------------------------------------------------------------
+  Purpose:     Sets the status in the status window.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER pcStatus AS CHARACTER  NO-UNDO.
+
+  PUBLISH "setStatus":U (pcStatus).
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE DCU_StartStatus C-Win 
+PROCEDURE DCU_StartStatus :
+/*------------------------------------------------------------------------------
+  Purpose:     Starts the status window and displays it.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  RUN install/obj/instatuswin.w PERSISTENT SET hStatusWin.
+  RUN initializeObject IN hStatusWin.
+  SUBSCRIBE PROCEDURE hStatusWin TO "setStatus":U IN THIS-PROCEDURE.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disableUI C-Win 
+PROCEDURE disableUI :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  /* Delete the WINDOW we created */
+  IF SESSION:DISPLAY-TYPE = "GUI":U AND VALID-HANDLE(C-Win) THEN 
+    DELETE WIDGET C-Win.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI C-Win  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
@@ -312,8 +419,8 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE ICFCFM_ParametersSet C-Win 
-PROCEDURE ICFCFM_ParametersSet :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE ICFCFM_ConfigParsed C-Win 
+PROCEDURE ICFCFM_ConfigParsed :
 /*------------------------------------------------------------------------------
   Purpose:     Event handler to trap the parsing of the XML file so that we can
                derive the script stuff for it.
@@ -323,38 +430,9 @@ PROCEDURE ICFCFM_ParametersSet :
   DEFINE INPUT  PARAMETER phConfig    AS HANDLE     NO-UNDO.
   DEFINE INPUT  PARAMETER pcSessType  AS CHARACTER  NO-UNDO.
 
-  DEFINE VARIABLE iCount              AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cRetVal             AS CHARACTER  NO-UNDO.
-
-
-  PUBLISH "setStatus":U ("Parsing Setup XML File...").
-  /* We need to start and initialize the utility procedure */
-  RUN startProcedure("ONCE|install/prc/inuiutilp.p":U , OUTPUT hUIUtil) NO-ERROR.
-  IF RETURN-VALUE <> "":U AND
-     RETURN-VALUE <> ? THEN
-  DO:
-    /* Build up a string that contains the error information */
-    cRetVal = "PROCEDURE install/prc/inuiutilp.p FAILED TO LOAD.":U
-            + CHR(10) + RETURN-VALUE.
-    ERROR-STATUS:ERROR = NO.
-  
-    RETURN cRetVal.
-  END. /* IF RETURN-VALUE <> "":U */
-  THIS-PROCEDURE:ADD-SUPER-PROCEDURE(hUIUtil).
-
-  RUN loadSetupXML
-    (INPUT phConfig, INPUT pcSessType) NO-ERROR.
-  IF RETURN-VALUE <> "":U AND
-     RETURN-VALUE <> ? THEN
-  DO:
-    /* Build up a string that contains the error information */
-    cRetVal = "PROCEDURE install/prc/inuiutilp.p FAILED TO LOAD.":U
-            + CHR(10) + RETURN-VALUE.
-    ERROR-STATUS:ERROR = NO.
-  
-    RETURN cRetVal.
-  END. /* IF RETURN-VALUE <> "":U */
-
+  PUBLISH "DCU_SetStatus":U ("Parsing XML File...").
+  RUN loadSetupXML IN THIS-PROCEDURE
+    (INPUT phConfig, INPUT pcSessType).
 
 END PROCEDURE.
 
@@ -369,71 +447,123 @@ PROCEDURE initializeEnvironment :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-DEFINE VARIABLE iCount      AS INTEGER    NO-UNDO.
 
-SESSION:APPL-ALERT-BOXES = TRUE.
+  DEFINE VARIABLE hLoopHandle AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iCount      AS INTEGER    NO-UNDO.
 
-SESSION:DEBUG-ALERT = YES.
+  SESSION:APPL-ALERT-BOXES = TRUE.
 
-cCFMProc = SEARCH("af/app/afxmlcfgp.r":U).
-
-IF cCFMProc = ? THEN
-  cCFMProc = SEARCH("af/app/afxmlcfgp.p":U).
-
-IF cCFMProc <> ? THEN
-  RUN VALUE(cCFMProc) PERSISTENT SET hConfMan.
-
-IF VALID-HANDLE(hConfMan) THEN
-DO:
-  RETURN-VALUE = "":U.
-
-  /* Subscribe to all the relevant events in the configuration file manager */
-  RUN subscribeAll IN THIS-PROCEDURE (hConfMan, THIS-PROCEDURE).
-
-  cICFParam = "ICFCONFIG=icfsetup.xml":U.
-  
-  REPEAT iCount = 1 TO NUM-ENTRIES(SESSION:ICFPARAM):
-    cSessType = ENTRY(iCount, SESSION:ICFPARAM).
-    IF NUM-ENTRIES(cSessType,"=":U) > 1 AND
-      ENTRY(1,cSessType,"=":U) = "DCUSETUPTYPE":U THEN
+  hLoopHandle = SESSION:FIRST-PROCEDURE.
+  DO WHILE VALID-HANDLE(hLoopHandle):
+    IF R-INDEX(hLoopHandle:FILE-NAME,"afxmlcfgp.p":U) > 0
+    OR R-INDEX(hLoopHandle:FILE-NAME,"afxmlcfgp.r":U) > 0 THEN 
     DO:
-      cSessType = ENTRY(2,cSessType,"=":U).
-      cICFParam = cICFParam + ",ICFSESSTYPE=":U + cSessType .
-      LEAVE.
+      hConfMan = hLoopHandle.
+      hLoopHandle = ?.
+    END.
+    ELSE
+      hLoopHandle = hLoopHandle:NEXT-SIBLING.
+  END. /* VALID-HANDLE(hLoopHandle) */
+
+  cCFMProc = SEARCH("af/app/afxmlcfgp.r":U).
+  IF cCFMProc = ? THEN
+    cCFMProc = SEARCH("af/app/afxmlcfgp.p":U).
+
+  IF NOT VALID-HANDLE(hConfMan) 
+  AND cCFMProc <> ? THEN
+  DO:
+    RUN VALUE(cCFMProc) PERSISTENT SET hConfMan.
+    ASSIGN
+      lStartConfMan = YES.
+  END.
+  ELSE
+    ASSIGN
+      lStartConfMan = NO.
+
+  IF VALID-HANDLE(hConfMan) THEN
+  DO:
+    RETURN-VALUE = "":U.
+
+    /* Subscribe to all the relevant events in the configuration file manager */
+    RUN subscribeAll IN THIS-PROCEDURE (hConfMan, THIS-PROCEDURE).
+
+    cICFParam = "ICFCONFIG=icfsetup.xml":U.
+
+    REPEAT iCount = 1 TO NUM-ENTRIES(SESSION:ICFPARAM):
+      cSessType = ENTRY(iCount, SESSION:ICFPARAM).
+      IF NUM-ENTRIES(cSessType,"=":U) > 1 AND
+        ENTRY(1,cSessType,"=":U) = "DCUSETUPTYPE":U THEN
+      DO:
+        cSessType = ENTRY(2,cSessType,"=":U).
+        cICFParam = cICFParam + ",ICFSESSTYPE=":U + cSessType .
+        LEAVE.
+      END.
+
     END.
 
+    PUBLISH "DCU_SetStatus":U ("Initializing Configuration File Manager...").
+
+    DYNAMIC-FUNCTION ("setSessionParam":U IN THIS-PROCEDURE, "ICFPARAM":U, cICFParam ).
+
+    /* Publish the startup event. This allows other code, such as RoundTable
+       to trap this event and set a special -icfparam parameter if they want to. */
+    PUBLISH "DCU_BeforeInitialize".
+
+    /* Now we need to see if anyone has set anything in the properties */
+    cICFParam = DYNAMIC-FUNCTION("getSessionParam" IN THIS-PROCEDURE, "ICFPARAM":U) NO-ERROR.
+    ERROR-STATUS:ERROR = NO.
+
+    /* Users that set this at this point may want control to return to 
+       another procedure. */
+    cQuitOnEndB4 = DYNAMIC-FUNCTION("getSessionParam" IN THIS-PROCEDURE,
+                                    "quit_on_end":U) NO-ERROR.
+
+    ERROR-STATUS:ERROR = NO.
+
+    IF cICFParam = ? THEN 
+      cICFParam = "":U.
+
+    /* Initialize the ICF session */
+    RUN initializeSession IN THIS-PROCEDURE (cICFParam).
+    IF RETURN-VALUE <> "" THEN
+    DO:
+      MESSAGE 
+        "Unable to start the Progress Dynamics environment. The Configuration File Manager returned the following errors:":U
+        SKIP
+        RETURN-VALUE
+        VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    END.
+
+    cQuitOnEnd  = DYNAMIC-FUNCTION("getSessionParam" IN THIS-PROCEDURE,
+                               "quit_on_end":U) NO-ERROR.
+    ERROR-STATUS:ERROR = NO.
+    
+    IF cQuitOnEnd <> ? THEN
+      lQuitOnEnd = (IF cQuitOnEnd   = "NO":U THEN NO ELSE YES).
+    ELSE IF cQuitOnEndB4 <> ? THEN
+      lQuitOnEnd = (IF cQuitOnEndB4 = "NO":U THEN NO ELSE YES).
+    ELSE
+      lQuitOnEnd = YES.
+    
+    RUN loadUIImages.
+
+    DYNAMIC-FUNCTION("setSessionParam":U IN THIS-PROCEDURE, "DCUSETUPTYPE":U, cSessType). 
+
+    PUBLISH "DCU_SetStatus":U ("Initializing Installation Library...").
+    RUN initializeInstall IN THIS-PROCEDURE
+      (THIS-PROCEDURE, FRAME {&FRAME-NAME}:HANDLE) .
+
   END.
-  PUBLISH "setStatus":U ("Initializing Configuration File Manager...").
-  /* Initialize the ICF session */
-  RUN initializeSession IN THIS-PROCEDURE (cICFParam).
-  IF RETURN-VALUE <> "" THEN
+  ELSE
   DO:
     MESSAGE 
-      "Unable to start ICF environment. The Configuration File Manager returned the following errors:":U
-      SKIP
-      RETURN-VALUE
-      VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    "Unable to start Configuration File Manager.":U
+    SKIP
+    RETURN-VALUE
+    VIEW-AS ALERT-BOX ERROR BUTTONS OK.
   END.
 
-  RUN loadUIImages.
-
-  DYNAMIC-FUNCTION("setSessionParam":U IN THIS-PROCEDURE, "DCUSETUPTYPE":U, cSessType). 
-
-  PUBLISH "setStatus":U ("Initializing Installation Library...").
-  RUN initializeInstall(THIS-PROCEDURE, FRAME {&FRAME-NAME}:HANDLE).
-
-END.
-ELSE
-DO:
-  MESSAGE 
-  "Unable to start Configuration File Manager.":U
-  SKIP
-  RETURN-VALUE
-  VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-END.
-
-RETURN RETURN-VALUE.
-
+  RETURN RETURN-VALUE.
 
 END PROCEDURE.
 
@@ -454,7 +584,7 @@ PROCEDURE initializeObject :
 
   RUN initializePage(cStartPage).
 
-  APPLY "CLOSE":U TO hStatusWin.
+  PUBLISH "DCU_EndStatus":U.
 
 END PROCEDURE.
 
@@ -495,8 +625,14 @@ PROCEDURE loadUIImages :
 
   IF cImageFile <> "":U AND SEARCH(cImageFile) <> ? THEN
   DO WITH FRAME {&FRAME-NAME}:
-    IF IMAGE-1:LOAD-IMAGE(cImageFile,1,1,IMAGE-1:WIDTH-PIXELS,IMAGE-1:HEIGHT-PIXELS) THEN
+    IF IMAGE-1:LOAD-IMAGE(cImageFile,1,1,IMAGE-1:WIDTH-PIXELS,IMAGE-1:HEIGHT-PIXELS) THEN 
+    DO:
       IMAGE-1:HIDDEN = FALSE.
+      ASSIGN
+        image-1:Y = (rect-2:HEIGHT-PIXELS + rect-2:Y - image-1:HEIGHT-PIXELS) / 2 + 2
+        image-1:X = (rect-2:WIDTH-PIXELS + rect-2:X - image-1:WIDTH-PIXELS) / 2 + 2
+      .
+    END.
   END.
 
   /* Now we load the icon. */
@@ -504,6 +640,23 @@ PROCEDURE loadUIImages :
                                 "icon_file":U).
   IF cImageFile <> "":U AND SEARCH(cImageFile) <> ? THEN
     {&WINDOW-NAME}:LOAD-ICON(cImageFile).
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE shutdownEnvironment C-Win 
+PROCEDURE shutdownEnvironment :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  IF VALID-HANDLE(hConfMan)
+  AND lStartConfMan = YES THEN
+    RUN killPlip IN hConfMan.
 
 END PROCEDURE.
 

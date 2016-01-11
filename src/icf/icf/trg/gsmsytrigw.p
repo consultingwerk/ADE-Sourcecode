@@ -24,11 +24,6 @@
 
 TRIGGER PROCEDURE FOR WRITE OF gsm_session_type_property OLD BUFFER o_gsm_session_type_property.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "gsm_session_type_property"
-                      &TRIGGER-TYPE = "WRITE"}
-
 /* Created automatically using ERwin ICF Trigger template db/af/erw/afercustrg.i
    Do not change manually. Customisations to triggers should be placed in separate
    include files pulled into the trigger. ICF auto generates write trigger custom
@@ -113,6 +108,8 @@ IF NOT NEW gsm_session_type_property AND gsm_session_type_property.{&TRIGGER_OBJ
 
 /* Customisations to WRITE trigger */
 {icf/trg/gsmsytrigw.i}
+
+
 
 /* Update Audit Log */
 IF CAN-FIND(FIRST gsc_entity_mnemonic

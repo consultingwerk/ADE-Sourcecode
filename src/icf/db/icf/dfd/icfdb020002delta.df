@@ -1411,6 +1411,6 @@ ADD INDEX "XIE2gsm_object_menu_structure" ON "gsm_object_menu_structure"
 
 .
 PSC
-cpstream=ISO8859-1
+cpstream=UTF-8
 .
 0000040132

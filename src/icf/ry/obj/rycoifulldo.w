@@ -1,11 +1,11 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          asdb             PROGRESS
-          rydb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
+DEFINE VARIABLE h_Astra                    AS HANDLE          NO-UNDO.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS dTables 
 /*********************************************************************
 * Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
@@ -81,6 +81,7 @@ CREATE WIDGET-POOL.
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -88,18 +89,14 @@ CREATE WIDGET-POOL.
 gsc_object_type gsc_product_module
 
 /* Definitions for QUERY Query-Main                                     */
-&Scoped-Define ENABLED-FIELDS  attribute_list container_smartobject_obj instance_height instance_width~
- instance_x instance_y smartobject_obj system_owned object_filename
-&Scoped-define ENABLED-FIELDS-IN-ryc_object_instance attribute_list ~
-container_smartobject_obj instance_height instance_width instance_x ~
-instance_y smartobject_obj system_owned 
+&Scoped-Define ENABLED-FIELDS  container_smartobject_obj smartobject_obj system_owned object_filename
+&Scoped-define ENABLED-FIELDS-IN-ryc_object_instance ~
+container_smartobject_obj smartobject_obj system_owned 
 &Scoped-define ENABLED-FIELDS-IN-ryc_smartobject object_filename 
-&Scoped-Define DATA-FIELDS  attribute_list container_smartobject_obj instance_height instance_width~
- instance_x instance_y object_instance_obj smartobject_obj system_owned~
+&Scoped-Define DATA-FIELDS  container_smartobject_obj object_instance_obj smartobject_obj system_owned~
  object_filename object_type_code product_module_code
-&Scoped-define DATA-FIELDS-IN-ryc_object_instance attribute_list ~
-container_smartobject_obj instance_height instance_width instance_x ~
-instance_y object_instance_obj smartobject_obj system_owned 
+&Scoped-define DATA-FIELDS-IN-ryc_object_instance container_smartobject_obj ~
+object_instance_obj smartobject_obj system_owned 
 &Scoped-define DATA-FIELDS-IN-ryc_smartobject object_filename 
 &Scoped-define DATA-FIELDS-IN-gsc_object_type object_type_code 
 &Scoped-define DATA-FIELDS-IN-gsc_product_module product_module_code 
@@ -107,9 +104,13 @@ instance_y object_instance_obj smartobject_obj system_owned
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "ry/obj/rycoifulldo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH ryc_object_instance NO-LOCK, ~
+      FIRST ryc_smartobject WHERE RYDB.ryc_smartobject.smartobject_obj = RYDB.ryc_object_instance.container_smartobject_obj NO-LOCK, ~
+      FIRST gsc_object_type OF ryc_smartobject NO-LOCK, ~
+      FIRST gsc_product_module OF ryc_smartobject NO-LOCK INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH ryc_object_instance NO-LOCK, ~
-      FIRST ryc_smartobject WHERE ryc_smartobject.smartobject_obj = ryc_object_instance.container_smartobject_obj NO-LOCK, ~
+      FIRST ryc_smartobject WHERE RYDB.ryc_smartobject.smartobject_obj = RYDB.ryc_object_instance.container_smartobject_obj NO-LOCK, ~
       FIRST gsc_object_type OF ryc_smartobject NO-LOCK, ~
       FIRST gsc_product_module OF ryc_smartobject NO-LOCK INDEXED-REPOSITION.
 {&DB-REQUIRED-END}
@@ -203,39 +204,29 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "RYDB.ryc_object_instance,RYDB.ryc_smartobject WHERE RYDB.ryc_object_instance ...,asdb.gsc_object_type OF RYDB.ryc_smartobject,asdb.gsc_product_module OF RYDB.ryc_smartobject"
+     _TblList          = "ICFDB.ryc_object_instance,ICFDB.ryc_smartobject WHERE ICFDB.ryc_object_instance ...,ICFDB.gsc_object_type OF ICFDB.ryc_smartobject,ICFDB.gsc_product_module OF ICFDB.ryc_smartobject"
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _TblOptList       = ", FIRST, FIRST, FIRST"
      _JoinCode[2]      = "RYDB.ryc_smartobject.smartobject_obj = RYDB.ryc_object_instance.container_smartobject_obj"
-     _FldNameList[1]   > RYDB.ryc_object_instance.attribute_list
-"attribute_list" "attribute_list" ? ? "character" ? ? ? ? ? ? yes ? no 500 yes
-     _FldNameList[2]   > RYDB.ryc_object_instance.container_smartobject_obj
+     _FldNameList[1]   > ICFDB.ryc_object_instance.container_smartobject_obj
 "container_smartobject_obj" "container_smartobject_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 25 yes
-     _FldNameList[3]   > RYDB.ryc_object_instance.instance_height
-"instance_height" "instance_height" ? ? "integer" ? ? ? ? ? ? yes ? no 15 yes
-     _FldNameList[4]   > RYDB.ryc_object_instance.instance_width
-"instance_width" "instance_width" ? ? "integer" ? ? ? ? ? ? yes ? no 14.4 yes
-     _FldNameList[5]   > RYDB.ryc_object_instance.instance_x
-"instance_x" "instance_x" ? ? "integer" ? ? ? ? ? ? yes ? no 10.2 yes
-     _FldNameList[6]   > RYDB.ryc_object_instance.instance_y
-"instance_y" "instance_y" ? ? "integer" ? ? ? ? ? ? yes ? no 10.2 yes
-     _FldNameList[7]   > RYDB.ryc_object_instance.object_instance_obj
+     _FldNameList[2]   > ICFDB.ryc_object_instance.object_instance_obj
 "object_instance_obj" "object_instance_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21.6 yes
-     _FldNameList[8]   > RYDB.ryc_object_instance.smartobject_obj
+     _FldNameList[3]   > ICFDB.ryc_object_instance.smartobject_obj
 "smartobject_obj" "smartobject_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21.6 yes
-     _FldNameList[9]   > RYDB.ryc_object_instance.system_owned
+     _FldNameList[4]   > ICFDB.ryc_object_instance.system_owned
 "system_owned" "system_owned" ? ? "logical" ? ? ? ? ? ? yes ? no 14.2 yes
-     _FldNameList[10]   > RYDB.ryc_smartobject.object_filename
+     _FldNameList[5]   > ICFDB.ryc_smartobject.object_filename
 "object_filename" "object_filename" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[11]   > asdb.gsc_object_type.object_type_code
+     _FldNameList[6]   > ICFDB.gsc_object_type.object_type_code
 "object_type_code" "object_type_code" ? ? "character" ? ? ? ? ? ? no ? no 17.2 yes
-     _FldNameList[12]   > asdb.gsc_product_module.product_module_code
+     _FldNameList[7]   > ICFDB.gsc_product_module.product_module_code
 "product_module_code" "product_module_code" ? ? "character" ? ? ? ? ? ? no ? no 20.6 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK dTables 

@@ -197,6 +197,8 @@ DEFINE VARIABLE OCXName       AS CHARACTER                             NO-UNDO.
 DEFINE VARIABLE SpecialEvent  AS CHARACTER                             NO-UNDO.
 DEFINE VARIABLE web_file      AS LOGICAL                               NO-UNDO.
 DEFINE VARIABLE TagLine       AS CHARACTER                             NO-UNDO.
+DEFINE VARIABLE cSuperEvent   AS CHARACTER                             NO-UNDO.
+DEFINE VARIABLE lEmpty        AS LOGICAL                               NO-UNDO.
 
 DEFINE BUFFER x_U  FOR _U.
 DEFINE BUFFER xx_U FOR _U.
@@ -209,11 +211,22 @@ DEFINE NEW SHARED STREAM P_4GL.
 
 /* ************************************************************************* */
 
+_p_status = p_status. /* sets shared var */
+
 /* Initialize u_status - used to check status of an _U record                */
 ASSIGN 
   u_status = IF p_status EQ "EXPORT" THEN "EXPORT" ELSE "NORMAL"
   l_saveas = (p_status EQ "SAVEAS":U).
 
+/* If creating a new Super Procedure for a dynamic object, set the flag and
+   change input parameter to "SAVE"                                          */
+IF p_status BEGINS "SAVESuperProc":U THEN DO:
+  ASSIGN CreatingSuper = YES
+         lEmpty        = p_status MATCHES "*Empty*":U
+         p_status      = "SAVE":U.
+END.
+ELSE 
+  ASSIGN CreatingSuper = NO.
 
 /* Get the procedure we are saving.                                          */
 FIND _P WHERE _P._WINDOW-HANDLE = _h_win.
@@ -223,6 +236,11 @@ ASSIGN
   run_flags              = (IF run_persistent THEN "_PERSISTENT":U ELSE "")
   web_file               = (web-tmp-file <> "" AND web-tmp-file <> ?)
   .
+
+/* Clean out _TRG._toffsets */
+FOR EACH _TRG WHERE _TRG._pRECID = RECID(_P):
+  _TRG._tOFFSET = ?.
+END.
 
 /* Notify others of BEFORE and AFTER events (except for preview and print).  Provide
    opportunity for developer to cancel. */
@@ -346,7 +364,7 @@ IF CAN-DO ("RUN,DEBUG",p_status) THEN
 
 IF _P._TYPE BEGINS "WEB":U THEN
   RUN adeweb/_gentt.p (RECID(_P)).
-  
+
 RUN adeshar/_gendefs.p (INPUT p_status, INPUT no).
 
 /* ************************************************************************* */
@@ -371,14 +389,14 @@ IF p_status NE "EXPORT" THEN DO:
      "/* Settings for THIS-PROCEDURE" SKIP
      "   Type: " _P._TYPE (IF _P._template THEN " Template" ELSE "")
      SKIP.
-    
+
     IF _P._file-type EQ "i" 
     THEN ASSIGN _P._compile = no
                 _P._compile-into = ?.
     IF _P._compile-into NE ?
     THEN PUT STREAM P_4GL UNFORMATTED
-     "   Compile into: " _P._compile-into SKIP.   
-     
+     "   Compile into: " _P._compile-into SKIP.
+
     IF _P._xTblList NE "":U 
     THEN PUT STREAM P_4GL UNFORMATTED
      "   External Tables: " _P._xTblList SKIP.
@@ -390,7 +408,8 @@ IF p_status NE "EXPORT" THEN DO:
     /* Don't bother putting out the default "Allow" values.  Note that Windows
        have "Window" in the default. */
     IF _P._allow NE "Basic,Browse,DB-Fields":U +
-                    (IF _U._TYPE EQ "WINDOW" THEN ",Window" ELSE "")
+                    (IF _U._TYPE EQ "WINDOW" THEN ",Window" ELSE "") AND 
+      NOT CreatingSuper
     THEN PUT STREAM P_4GL UNFORMATTED
      "   Allow: " _P._allow SKIP.
   
@@ -398,11 +417,12 @@ IF p_status NE "EXPORT" THEN DO:
        not equal to the default value). */
     IF CAN-DO (_P._allow, "Smart") AND _P._links ne
        "Record-Source,Record-Target,Navigation-Source,Navigation-Target," + 
-       "TableIO-Source,TableIO-Target,Page-Target"
+       "TableIO-Source,TableIO-Target,Page-Target" AND
+      NOT CreatingSuper
     THEN PUT STREAM P_4GL UNFORMATTED
      "   Container Links: " _P._links SKIP.
     
-    IF _P._max-frame-count NE ?  
+    IF _P._max-frame-count NE ? 
     THEN PUT STREAM P_4GL UNFORMATTED
      "   Frames: " _P._max-frame-count SKIP.
   
@@ -439,9 +459,11 @@ IF p_status NE "EXPORT" THEN DO:
          (IF _P._compile         THEN " COMPILE" ELSE "")
          (IF _P._app-srv-aware   THEN " APPSERVER" ELSE "")
          (IF _P._db-aware        THEN " DB-AWARE" ELSE "")
+         (IF _P._no-proxy        THEN " NO-PROXY" ELSE "")
          SKIP.
     
-    IF CAN-FIND(FIRST _TT WHERE _TT._p-recid = RECID(_P)) THEN DO:
+    IF CAN-FIND(FIRST _TT WHERE _TT._p-recid = RECID(_P)) AND 
+       (NOT CreatingSuper OR _P._TYPE = "SmartDataObject":U) THEN DO:
       PUT STREAM P_4GL UNFORMATTED
                "   Temp-Tables and Buffers:":U SKIP.
       FOR EACH _TT WHERE _TT._p-recid = RECID(_P):
@@ -744,9 +766,21 @@ FIND _TRG  WHERE _TRG._wRECID   EQ RECID(_U) AND
                  _TRG._tSECTION EQ "_CUSTOM" AND
                  _TRG._tEVENT   EQ "_INCLUDED-LIB" AND
                  _TRG._STATUS   EQ u_status NO-ERROR.
-IF AVAILABLE _TRG THEN RUN put_code_block.
+IF AVAILABLE _TRG AND (NOT CreatingSuper OR _P._TYPE = "SmartDataObject":U) 
+  THEN RUN put_code_block.
 /* Write out any XFTRs that follow this Block in .W */
-IF p_status NE "EXPORT" THEN RUN put_next_xftrs (INPUT {&INCLUDED-LIB}, INPUT no).
+IF p_status NE "EXPORT" THEN 
+    RUN put_next_xftrs (INPUT {&INCLUDED-LIB}, INPUT no).
+
+IF CreatingSuper THEN 
+DO:
+  PUT STREAM P_4GL UNFORMATTED SKIP(1)
+    "&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB Procedure" SKIP
+    "/* ************************* Included-Libraries *********************** */" SKIP(1)
+    "~{src/adm2/customsuper.i}" SKIP(1)
+    "/* _UIB-CODE-BLOCK-END */" SKIP
+    "&ANALYZE-RESUME" SKIP.
+END.
 
 /* ************************************************************************* */
 /*                                                                           */
@@ -770,218 +804,219 @@ END.
 
 /* Define the Queries and Browse Widgets for this window                     */
 /* Put out the header for the section only for the first non-blank query.    */
-i_count = 0.
-FOR EACH _U WHERE _U._WINDOW-HANDLE = _h_win 
-                AND CAN-DO("BROWSE,DIALOG-BOX,FRAME,QUERY":U,_U._TYPE) 
-                AND _U._STATUS = u_status,
-    EACH _C WHERE RECID(_C)    = _U._x-recid,
-    EACH _Q WHERE RECID(_Q)    = _C._q-recid BY _U._NAME BY _U._TYPE:
+IF NOT CreatingSuper OR _P._TYPE = "SmartDataObject":U THEN DO:
+  i_count = 0.
+  FOR EACH _U WHERE _U._WINDOW-HANDLE = _h_win 
+                  AND CAN-DO("BROWSE,DIALOG-BOX,FRAME,QUERY":U,_U._TYPE) 
+                  AND _U._STATUS = u_status,
+      EACH _C WHERE RECID(_C)    = _U._x-recid,
+      EACH _Q WHERE RECID(_Q)    = _C._q-recid BY _U._NAME BY _U._TYPE:
   
-  /* We always put out QUERY objects (because they are defined here and only
-     here.  We only put out FRAME and BROWSE queries if necessary. */
-  IF (_U._TYPE EQ "QUERY")  
-    OR
-     ( (_U._TYPE EQ "BROWSE")  AND
-       CAN-FIND(FIRST _BC WHERE _BC._x-recid EQ RECID(_U)) )
-    OR
-     ( CAN-FIND(_TRG WHERE _TRG._wRECID EQ RECID(_U) AND 
-                           _TRG._tEVENT EQ "OPEN_QUERY":U) )
-    OR
-     (_Q._4GLQury NE ? AND _Q._4GLQury NE "") 
-    OR 
-     (_Q._OpenQury EQ NO)
-  THEN DO:
-    /* The NOT OpenQury is to preserve that status even if not tables in the */
-    /* the query.                                                            */
-    i_count = i_count + 1.
-    IF i_count EQ 1 THEN 
-      PUT STREAM P_4GL UNFORMATTED SKIP (1)
-      "/* Setting information for Queries and Browse Widgets fields            */"
-      SKIP (1).
-      IF p_status NE "PREVIEW":U THEN PUT STREAM P_4GL UNFORMATTED
-          "&ANALYZE-SUSPEND _QUERY-BLOCK " _U._TYPE " " _U._NAME SKIP .
-
-      PUT STREAM P_4GL UNFORMATTED          
-          "/* Query rebuild information for ".
-      IF _U._TYPE = "QUERY":U AND _U._SUBTYPE = "SmartDataObject":U THEN
-           PUT STREAM P_4GL UNFORMATTED _U._SUBTYPE " " _U._NAME SKIP.
-      ELSE PUT STREAM P_4GL UNFORMATTED _U._TYPE " " _U._NAME SKIP.
-
-      /* Handle freeform query situation */
-      FIND _TRG WHERE _TRG._wRECID EQ RECID(_U) AND
-                      _TRG._tEVENT EQ "OPEN_QUERY":U NO-ERROR.
-      IF AVAILABLE _TRG THEN DO:  /* A Freeform query */
-        PUT STREAM P_4GL UNFORMATTED          
-          "     _START_FREEFORM" SKIP _TRG._tCODE SKIP
-          "     _END_FREEFORM" SKIP.
-        FIND _TRG WHERE _TRG._wRECID EQ RECID(_U) AND
-                        _TRG._tEVENT EQ "DEFINE_QUERY":U NO-ERROR.
-        IF AVAILABLE _TRG THEN DO:  /* A Freeform DEFINE QUERY */
-          PUT STREAM P_4GL UNFORMATTED     
-          "     _START_FREEFORM_DEFINE" SKIP TRIM(_TRG._tCODE) SKIP
-          "     _END_FREEFORM_DEFINE" SKIP.
-        END.  /* If a free form define query */
-      END.  /* Freeform query */
-      ELSE DO:  /* Not a freeform query */
-        ASSIGN TuneOpts = REPLACE(REPLACE(TRIM(_Q._TuneOptions),CHR(13),""),
-                                  CHR(10),CHR(10) + FILL(" ",26)) .
-               
-        IF _Q._TblList NE "" THEN PUT STREAM P_4GL UNFORMATTED 
-               "     _TblList          = """ _Q._TblList """" SKIP .
-      END.  /* Not a freeform query */
-      
-      /* Frame Queries default to SHARE-LOCK */
-      IF (_U._TYPE EQ "FRAME" AND _Q._OptionList NE "SHARE-LOCK") OR
-         (_U._TYPE NE "FRAME" AND _Q._OptionList NE "") 
-      THEN PUT STREAM P_4GL UNFORMATTED 
-             "     _Options          = """ _Q._OptionList """" SKIP.
-             
-      IF NOT AVAILABLE _TRG THEN DO:  /* If not a freeform query */
-        IF TuneOpts NE "" THEN PUT STREAM P_4GL UNFORMATTED 
-               "     _TuneOptions      = """ TuneOpts """" SKIP.
-        IF _Q._TblOptList NE "" THEN PUT STREAM P_4GL UNFORMATTED 
-               "     _TblOptList       = """ TRIM(_Q._TblOptList) """" SKIP.   
-        IF _Q._OrdList NE "" THEN PUT STREAM P_4GL UNFORMATTED 
-            "     _OrdList          = """ _Q._OrdList """" SKIP.
-  
-        EXTENT-STUFF:
-        REPEAT i = 1 TO NUM-ENTRIES(_Q._TblList):
-          IF _Q._JoinCode[i] = ? AND
-             _Q._Where[i] = ? THEN NEXT EXTENT-STUFF.
-          ASSIGN tmp_string = REPLACE(_Q._Where[i],CHR(34),CHR(34) + CHR(34))
-                 tmp_string2 = REPLACE(_Q._JoinCode[i],CHR(34),CHR(34) + CHR(34)).
-          IF _Q._JoinCode[i] NE ? AND _Q._JoinCode[i] NE ""
-          THEN PUT STREAM P_4GL UNFORMATTED
-               "     _JoinCode[" i "]      = "
-                        IF tmp_string2 = ? THEN tmp_string2
-                               ELSE ("~"" + tmp_string2 + "~"") SKIP.
-          IF _Q._Where[i] NE ? and _Q._Where[i] NE ""
-          THEN PUT STREAM P_4GL UNFORMATTED 
-               "     _Where[" i "]         = "
-                        IF tmp_string = ?  THEN tmp_string
-                               ELSE ("~"" + tmp_string + "~"") SKIP.
-        END.
-  
-        i = 1.
-        FOR EACH _BC WHERE _BC._x-recid = RECID(_U):
-          /* this is the fix for bug number: 20000607-037. 07.25.00. Alex  */
-          IF VALID-HANDLE(_BC._COL-HANDLE) THEN                                                   
-            ASSIGN _BC._WIDTH = _BC._COL-HANDLE:WIDTH WHEN _BC._COL-HANDLE:WIDTH > 0.1.           
-
-          /* Determine the label, format and help string to output */    
-          ASSIGN output-label  = IF _BC._LABEL NE _BC._DEF-LABEL
-                                 THEN _BC._LABEL ELSE ?
-                 output-format = IF _BC._FORMAT NE _BC._DEF-FORMAT
-                                 THEN _BC._FORMAT ELSE ?
-                 output-help   = IF _BC._HELP NE _BC._DEF-HELP
-                                 THEN _BC._HELP ELSE ?
-                 output-width  = IF _BC._WIDTH NE _BC._DEF-WIDTH
-                                 THEN STRING(_BC._WIDTH) ELSE ?.
-
-          /* Determine if all defaults */
-          ASSIGN def-values = IF _U._TYPE = "QUERY":U AND
-                                 _U._SUBTYPE = "SmartDataObject":U THEN
-                                (output-label            = ? AND
-                                 output-format           = ? AND
-                                 output-help             = ? AND
-                                 output-valexp           = ? AND
-                                 NOT _BC._ENABLED            AND
-                                 _BC._DBNAME NE "_<CALC>":U) 
-                              ELSE
-                                (output-label            = ? AND
-                                 output-format           = ? AND
-                                 output-help             = ? AND
-                                 output-width            = ? AND
-                                 _BC._BGCOLOR            = ? AND 
-                                 _BC._FGCOLOR            = ? AND 
-                                 _BC._FONT               = ? AND 
-                                 _BC._LABEL-BGCOLOR      = ? AND 
-                                 _BC._LABEL-FGCOLOR      = ? AND 
-                                 _BC._LABEL-FONT         = ? AND
-                                 NOT _BC._ENABLED            AND
-                                 NOT _BC._DISABLE-AUTO-ZAP   AND
-                                 NOT _BC._AUTO-RETURN        AND
-                                 _BC._DBNAME NE "_<CALC>":U) AND
-                                 _BC._VISIBLE                AND
-                                 NOT _BC._AUTO-RESIZE        AND
-                                 NOT _BC._COLUMN-READ-ONLY.
-.
-                                                                       
-          /* Always put out the field name.  Only put out the Label and Format
-             if they exist */
-          PUT STREAM P_4GL UNFORMATTED 
-            "     _FldNameList[" i (IF def-values THEN "]   = " ELSE "]   > ")
-            IF _BC._DBNAME NE "_<CALC>" THEN 
-              _BC._DBNAME + ".":U + _BC._TABLE + ".":U + _BC._NAME
-            ELSE '"_<CALC>"':U SKIP.
-          /* The next 2 lines is a kluge to allow a logical format of "*" for true. */
-          IF output-format BEGINS "*/":U THEN
-            output-format = "*~~~~/":U + SUBSTRING(output-format,3,-1,"CHARACTER":U).
-
-          IF NOT def-values THEN DO:
-            IF _U._TYPE = "QUERY":U AND _U._SUBTYPE = "SmartDataObject":U THEN
-              EXPORT STREAM P_4GL
-                _BC._NAME _BC._DISP-NAME output-label output-format _BC._DATA-TYPE _BC._BGCOLOR
-                _BC._FGCOLOR _BC._FONT _BC._LABEL-BGCOLOR _BC._LABEL-FGCOLOR 
-                _BC._LABEL-FONT _BC._ENABLED output-help
-                _BC._MANDATORY _BC._WIDTH _BC._INHERIT-VALIDATION
-                .
-            ELSE
-              EXPORT STREAM P_4GL
-                _BC._DISP-NAME output-label output-format _BC._DATA-TYPE _BC._BGCOLOR
-                _BC._FGCOLOR _BC._FONT _BC._LABEL-BGCOLOR _BC._LABEL-FGCOLOR _BC._LABEL-FONT
-                _BC._ENABLED output-help _BC._DISABLE-AUTO-ZAP _BC._AUTO-RETURN output-width _BC._VISIBLE
-                _BC._AUTO-RESIZE _BC._COLUMN-READ-ONLY
-                _BC._FORMAT-ATTR
-                _BC._HELP-ATTR
-                _BC._LABEL-ATTR.
-          END.
-          i = i + 1.
-        END. /* _BC */
-      END.  /* Not a freeform query */
-
-      /* Additionally writeout parent & position info if a basic Query object.
-         NOTE: on export, if we aren't cutting the parent, note the parent as
-         "FRAME ?".  This will indicate to _rdqury to parent the Query to the
-         current container. */
-      IF _U._TYPE = "QUERY" THEN DO:
-        FIND x_U WHERE RECID(x_U) = _U._parent-recid.
-        FIND x_L WHERE RECID(x_L) = _U._lo-recid.
-        PUT STREAM P_4GL UNFORMATTED 
-          "     _Design-Parent    is " 
-          (IF p_status EQ "EXPORT" and x_U._STATUS NE p_status
-           THEN "FRAME ?"
-           ELSE x_U._TYPE + " " + x_U._NAME)
-          " @ ( "  STRING(x_L._ROW) " , " STRING(x_L._COL)  " )" SKIP.
-      END.
-      ELSE DO:
-        /* Frames and Browses support an option to OPEN the query automatically. */
-        PUT STREAM P_4GL UNFORMATTED
-         "     _Query            is " 
-         (IF NOT _Q._OpenQury THEN "NOT ":U ELSE "":U)  "OPENED":U
-         SKIP.
-      END.
-        
-      /* Additionally writeout PRIVATE-DATA information if SDO */.
-      IF     _U._TYPE = "QUERY" 
-         AND _U._SUBTYPE = "SmartDataObject":U 
-         AND _U._PRIVATE-DATA NE "":U THEN DO:
-         tmp_string = "~"" + _U._PRIVATE-DATA + "~"".
-         IF _U._PRIVATE-DATA-ATTR NE "":U AND _U._PRIVATE-DATA-ATTR NE ? THEN
-         tmp_string = tmp_string + ":":U + _U._PRIVATE-DATA-ATTR.
-         PUT STREAM P_4GL UNFORMATTED SKIP
-         "    _Private-Data       = " tmp_string SKIP.
-      END.
-     
-      /* This line signals the end of the Query rebuild information. */
-      PUT STREAM P_4GL UNFORMATTED 
-        "*/  /* " _U._TYPE " " _U._NAME " */" SKIP 
-        IF p_status NE "PREVIEW" THEN "&ANALYZE-RESUME":U ELSE "":U
+    /* We always put out QUERY objects (because they are defined here and only
+       here.  We only put out FRAME and BROWSE queries if necessary. */
+    IF (_U._TYPE EQ "QUERY")  
+      OR
+       ( (_U._TYPE EQ "BROWSE")  AND
+         CAN-FIND(FIRST _BC WHERE _BC._x-recid EQ RECID(_U)) )
+      OR
+       ( CAN-FIND(_TRG WHERE _TRG._wRECID EQ RECID(_U) AND 
+                             _TRG._tEVENT EQ "OPEN_QUERY":U) )
+      OR
+       (_Q._4GLQury NE ? AND _Q._4GLQury NE "") 
+      OR 
+       (_Q._OpenQury EQ NO)
+    THEN DO:
+      /* The NOT OpenQury is to preserve that status even if not tables in the */
+      /* the query.                                                            */
+      i_count = i_count + 1.
+      IF i_count EQ 1 THEN 
+        PUT STREAM P_4GL UNFORMATTED SKIP (1)
+        "/* Setting information for Queries and Browse Widgets fields            */"
         SKIP (1).
-  END. /* If..4GLQury..is not empty */
-END.  /* FOR EACH BROWSE */
+        IF p_status NE "PREVIEW":U THEN PUT STREAM P_4GL UNFORMATTED
+            "&ANALYZE-SUSPEND _QUERY-BLOCK " _U._TYPE " " _U._NAME SKIP .
 
-PUT STREAM P_4GL UNFORMATTED " " SKIP (1).
+        PUT STREAM P_4GL UNFORMATTED          
+            "/* Query rebuild information for ".
+        IF _U._TYPE = "QUERY":U AND _U._SUBTYPE = "SmartDataObject":U THEN
+             PUT STREAM P_4GL UNFORMATTED _U._SUBTYPE " " _U._NAME SKIP.
+        ELSE PUT STREAM P_4GL UNFORMATTED _U._TYPE " " _U._NAME SKIP.
+
+        /* Handle freeform query situation */
+        FIND _TRG WHERE _TRG._wRECID EQ RECID(_U) AND
+                        _TRG._tEVENT EQ "OPEN_QUERY":U NO-ERROR.
+        IF AVAILABLE _TRG THEN DO:  /* A Freeform query */
+          PUT STREAM P_4GL UNFORMATTED          
+            "     _START_FREEFORM" SKIP _TRG._tCODE SKIP
+            "     _END_FREEFORM" SKIP.
+          FIND _TRG WHERE _TRG._wRECID EQ RECID(_U) AND
+                          _TRG._tEVENT EQ "DEFINE_QUERY":U NO-ERROR.
+          IF AVAILABLE _TRG THEN DO:  /* A Freeform DEFINE QUERY */
+            PUT STREAM P_4GL UNFORMATTED     
+            "     _START_FREEFORM_DEFINE" SKIP TRIM(_TRG._tCODE) SKIP
+            "     _END_FREEFORM_DEFINE" SKIP.
+          END.  /* If a free form define query */
+        END.  /* Freeform query */
+        ELSE DO:  /* Not a freeform query */
+          ASSIGN TuneOpts = REPLACE(REPLACE(TRIM(_Q._TuneOptions),CHR(13),""),
+                                    CHR(10),CHR(10) + FILL(" ",26)) .
+               
+          IF _Q._TblList NE "" THEN PUT STREAM P_4GL UNFORMATTED 
+                 "     _TblList          = """ _Q._TblList """" SKIP .
+        END.  /* Not a freeform query */
+      
+        /* Frame Queries default to SHARE-LOCK */
+        IF (_U._TYPE EQ "FRAME" AND _Q._OptionList NE "SHARE-LOCK") OR
+           (_U._TYPE NE "FRAME" AND _Q._OptionList NE "") 
+        THEN PUT STREAM P_4GL UNFORMATTED 
+               "     _Options          = """ _Q._OptionList """" SKIP.
+             
+        IF NOT AVAILABLE _TRG THEN DO:  /* If not a freeform query */
+          IF TuneOpts NE "" THEN PUT STREAM P_4GL UNFORMATTED 
+                 "     _TuneOptions      = """ TuneOpts """" SKIP.
+          IF _Q._TblOptList NE "" THEN PUT STREAM P_4GL UNFORMATTED 
+                 "     _TblOptList       = """ TRIM(_Q._TblOptList) """" SKIP.   
+          IF _Q._OrdList NE "" THEN PUT STREAM P_4GL UNFORMATTED 
+              "     _OrdList          = """ _Q._OrdList """" SKIP.
+  
+          EXTENT-STUFF:
+          REPEAT i = 1 TO NUM-ENTRIES(_Q._TblList):
+            IF _Q._JoinCode[i] = ? AND
+               _Q._Where[i] = ? THEN NEXT EXTENT-STUFF.
+            ASSIGN tmp_string = REPLACE(_Q._Where[i],CHR(34),CHR(34) + CHR(34))
+                   tmp_string2 = REPLACE(_Q._JoinCode[i],CHR(34),CHR(34) + CHR(34)).
+            IF _Q._JoinCode[i] NE ? AND _Q._JoinCode[i] NE ""
+            THEN PUT STREAM P_4GL UNFORMATTED
+                 "     _JoinCode[" i "]      = "
+                          IF tmp_string2 = ? THEN tmp_string2
+                                 ELSE ("~"" + tmp_string2 + "~"") SKIP.
+            IF _Q._Where[i] NE ? and _Q._Where[i] NE ""
+            THEN PUT STREAM P_4GL UNFORMATTED 
+                 "     _Where[" i "]         = "
+                          IF tmp_string = ?  THEN tmp_string
+                                 ELSE ("~"" + tmp_string + "~"") SKIP.
+          END.  /* Extent-Stuff: Repeat: */
+  
+          i = 1.
+          FOR EACH _BC WHERE _BC._x-recid = RECID(_U):
+            /* this is the fix for bug number: 20000607-037. 07.25.00. Alex  */
+            IF VALID-HANDLE(_BC._COL-HANDLE) THEN                                                   
+              ASSIGN _BC._WIDTH = _BC._COL-HANDLE:WIDTH WHEN _BC._COL-HANDLE:WIDTH > 0.1.           
+
+            /* Determine the label, format and help string to output */    
+            ASSIGN output-label  = IF _BC._LABEL NE _BC._DEF-LABEL
+                                   THEN _BC._LABEL ELSE ?
+                   output-format = IF _BC._FORMAT NE _BC._DEF-FORMAT
+                                   THEN _BC._FORMAT ELSE ?
+                   output-help   = IF _BC._HELP NE _BC._DEF-HELP
+                                   THEN _BC._HELP ELSE ?
+                   output-width  = IF _BC._WIDTH NE _BC._DEF-WIDTH
+                                   THEN STRING(_BC._WIDTH) ELSE ?.
+
+            /* Determine if all defaults */
+            ASSIGN def-values = IF _U._TYPE = "QUERY":U AND
+                                   _U._SUBTYPE = "SmartDataObject":U THEN
+                                  (output-label            = ? AND
+                                   output-format           = ? AND
+                                   output-help             = ? AND
+                                   output-valexp           = ? AND
+                                   NOT _BC._ENABLED            AND
+                                   _BC._DBNAME NE "_<CALC>":U) 
+                                ELSE
+                                  (output-label            = ? AND
+                                   output-format           = ? AND
+                                   output-help             = ? AND
+                                   output-width            = ? AND
+                                   _BC._BGCOLOR            = ? AND 
+                                   _BC._FGCOLOR            = ? AND 
+                                   _BC._FONT               = ? AND 
+                                   _BC._LABEL-BGCOLOR      = ? AND 
+                                   _BC._LABEL-FGCOLOR      = ? AND 
+                                   _BC._LABEL-FONT         = ? AND
+                                   NOT _BC._ENABLED            AND
+                                   NOT _BC._DISABLE-AUTO-ZAP   AND
+                                   NOT _BC._AUTO-RETURN        AND
+                                   _BC._DBNAME NE "_<CALC>":U) AND
+                                   _BC._VISIBLE                AND
+                                   NOT _BC._AUTO-RESIZE        AND
+                                   NOT _BC._COLUMN-READ-ONLY.
+                                                                       
+            /* Always put out the field name.  Only put out the Label and Format
+               if they exist */
+            PUT STREAM P_4GL UNFORMATTED 
+              "     _FldNameList[" i (IF def-values THEN "]   = " ELSE "]   > ")
+              IF _BC._DBNAME NE "_<CALC>" THEN 
+                _BC._DBNAME + ".":U + _BC._TABLE + ".":U + _BC._NAME
+              ELSE '"_<CALC>"':U SKIP.
+            /* The next 2 lines is a kluge to allow a logical format of "*" for true. */
+            IF output-format BEGINS "*/":U THEN
+              output-format = "*~~~~/":U + SUBSTRING(output-format,3,-1,"CHARACTER":U).
+
+            IF NOT def-values THEN DO:
+              IF _U._TYPE = "QUERY":U AND _U._SUBTYPE = "SmartDataObject":U THEN
+                EXPORT STREAM P_4GL
+                  _BC._NAME _BC._DISP-NAME output-label output-format _BC._DATA-TYPE _BC._BGCOLOR
+                  _BC._FGCOLOR _BC._FONT _BC._LABEL-BGCOLOR _BC._LABEL-FGCOLOR 
+                  _BC._LABEL-FONT _BC._ENABLED output-help
+                  _BC._MANDATORY _BC._WIDTH _BC._INHERIT-VALIDATION
+                  .
+              ELSE
+                EXPORT STREAM P_4GL
+                  _BC._DISP-NAME output-label output-format _BC._DATA-TYPE _BC._BGCOLOR
+                  _BC._FGCOLOR _BC._FONT _BC._LABEL-BGCOLOR _BC._LABEL-FGCOLOR _BC._LABEL-FONT
+                  _BC._ENABLED output-help _BC._DISABLE-AUTO-ZAP _BC._AUTO-RETURN output-width _BC._VISIBLE
+                  _BC._AUTO-RESIZE _BC._COLUMN-READ-ONLY
+                  _BC._FORMAT-ATTR
+                  _BC._HELP-ATTR
+                  _BC._LABEL-ATTR.
+            END. /* If NOT def-values */
+            i = i + 1.
+          END. /* _BC */
+        END.  /* Not a freeform query */
+
+        /* Additionally writeout parent & position info if a basic Query object.
+           NOTE: on export, if we aren't cutting the parent, note the parent as
+           "FRAME ?".  This will indicate to _rdqury to parent the Query to the
+           current container. */
+        IF _U._TYPE = "QUERY" THEN DO:
+          FIND x_U WHERE RECID(x_U) = _U._parent-recid.
+          FIND x_L WHERE RECID(x_L) = _U._lo-recid.
+          PUT STREAM P_4GL UNFORMATTED 
+             "     _Design-Parent    is " 
+             (IF p_status EQ "EXPORT" and x_U._STATUS NE p_status
+                THEN "FRAME ?"
+                ELSE x_U._TYPE + " " + x_U._NAME)
+             " @ ( "  STRING(x_L._ROW) " , " STRING(x_L._COL)  " )" SKIP.
+        END.  /* If _U._TYPE = Query */
+        ELSE DO:
+          /* Frames and Browses support an option to OPEN the query automatically. */
+          PUT STREAM P_4GL UNFORMATTED
+            "     _Query            is " 
+            (IF NOT _Q._OpenQury THEN "NOT ":U ELSE "":U)  "OPENED":U
+            SKIP.
+        END. /* Else DO */
+        
+        /* Additionally writeout PRIVATE-DATA information if SDO */.
+        IF     _U._TYPE = "QUERY" 
+           AND _U._SUBTYPE = "SmartDataObject":U 
+           AND _U._PRIVATE-DATA NE "":U THEN DO:
+             tmp_string = "~"" + _U._PRIVATE-DATA + "~"".
+             IF _U._PRIVATE-DATA-ATTR NE "":U AND _U._PRIVATE-DATA-ATTR NE ? THEN
+               tmp_string = tmp_string + ":":U + _U._PRIVATE-DATA-ATTR.
+             PUT STREAM P_4GL UNFORMATTED SKIP
+               "    _Private-Data       = " tmp_string SKIP.
+        END. /* If _U._TYPE = Query for an SDO */
+     
+        /* This line signals the end of the Query rebuild information. */
+        PUT STREAM P_4GL UNFORMATTED 
+          "*/  /* " _U._TYPE " " _U._NAME " */" SKIP 
+          IF p_status NE "PREVIEW" THEN "&ANALYZE-RESUME":U ELSE "":U
+          SKIP (1).
+    END. /* If..4GLQury..is not empty */
+  END.  /* FOR EACH BROWSE */
+
+  PUT STREAM P_4GL UNFORMATTED " " SKIP (1).
+END. /* IF NOT CreatingSuper */
 
 /* Write out any XFTRs that follow the RunTime Settings in .W */
 IF p_status NE "EXPORT" THEN RUN put_next_xftrs (INPUT {&RUNTIMESET}, INPUT no).
@@ -1112,13 +1147,19 @@ FOR EACH _U WHERE _U._WINDOW-HANDLE = _h_win AND _U._STATUS <> "DELETED"
      windows etc) */
   FIND _F WHERE RECID (_F) = _U._x-recid NO-ERROR.
 
-
   IF NOT trig_sect THEN DO:
     PUT STREAM P_4GL UNFORMATTED SKIP (2)
       "/* ************************  Control Triggers  ************************ */"
       SKIP (1).
-    trig_sect = true.
-  END.
+  trig_sect = true.
+  IF CreatingSuper AND NOT lEmpty AND _P._TYPE NE "SmartDataObject":U THEN
+    PUT STREAM P_4GL UNFORMATTED
+      "/* Trigger code is converted to internal procedures when creating a Custom Super":U
+      SKIP
+      "   Procedure for a Dynamic Object.  Manual modifications will almost certainly":U
+      SKIP
+      "   be necessary. */":U SKIP (1).
+  END.  /* If creating a super procedure */
  
   /* Setup the local preprocessor values for this widget.  Set BROWSE-NAME
      if this is a browse, set FRAME-NAME if it has changed.  Always set 
@@ -1127,7 +1168,7 @@ FOR EACH _U WHERE _U._WINDOW-HANDLE = _h_win AND _U._STATUS <> "DELETED"
     PUT STREAM P_4GL UNFORMATTED
           "&Scoped-define BROWSE-NAME " _U._NAME SKIP.
     curr_browse = _U._NAME.
-  END.
+  END.  /* If _U._TYPE is a browse */
   IF AVAILABLE _F OR _U._TYPE EQ "BROWSE":U THEN DO:
     FIND x_U WHERE RECID(x_U) = _U._parent-recid.
     IF curr_frame <> x_U._NAME THEN DO:
@@ -1135,22 +1176,34 @@ FOR EACH _U WHERE _U._WINDOW-HANDLE = _h_win AND _U._STATUS <> "DELETED"
           "&Scoped-define FRAME-NAME " x_U._NAME SKIP.
       curr_frame = x_U._NAME.
     END. 
-  END.
+  END. /* If a field level widget or a browse */
+
   /* Always put out SELF-NAME (which equals NAME [or tbl.name or db.tbl.name]) */
   self_name = IF (_U._DBNAME EQ ? OR (AVAILABLE _F AND _F._DISPOSITION EQ "LIKE":U))
                 THEN _U._NAME
                 ELSE db-tbl-name(_U._DBNAME + "." + _U._TABLE) + "." + _U._NAME.
+  IF CreatingSuper AND NUM-ENTRIES(self_name,".") > 1 THEN
+     self_name = ENTRY(NUM-ENTRIES(self_name,"."),self_name,".").
 
   PUT STREAM P_4GL UNFORMATTED
           "&Scoped-define SELF-NAME " self_name SKIP. 
-           
+
   TRIGGER-BLOCK:
   FOR EACH _TRG WHERE _TRG._wRECID   EQ RECID(_U)
                 AND   _TRG._tSECTION EQ "_CONTROL":U
                 AND   _TRG._STATUS   EQ u_status
                 USE-INDEX _RECID-EVENT:
 
+    IF lEmpty AND NOT CAN-DO("_DEFINITIONS,_INCLUDE-LIB,_MAIN-BLOCK":U, _TRG._tEVENT) THEN
+      NEXT TRIGGER-BLOCK.
+
     IF CAN-DO("DISPLAY,OPEN_QUERY,DEFINE_QUERY",_TRG._tEVENT) THEN  NEXT TRIGGER-BLOCK.
+
+    /* These events are handled by the dynamic browser code and not needed unless an override is
+       needed */
+    IF CreatingSuper AND _U._TYPE = "BROWSE":U AND
+      CAN-DO("CTRL-END,CTRL-HOME,END,HOME,OFF-END,OFF-HOME,ROW-ENTRY,ROW-LEAVE,SCROLL-NOTIFY,VALUE-CHANGED":U,
+             _TRG._tEVENT) THEN NEXT TRIGGER-BLOCK.
     
     ASSIGN null_section = no. /* Initialize to not null section. */
   
@@ -1159,20 +1212,19 @@ FOR EACH _U WHERE _U._WINDOW-HANDLE = _h_win AND _U._STATUS <> "DELETED"
     ASSIGN strt = INDEX(_TRG._tCODE,":") + 1       /* Colon after DO */
            stp  = R-INDEX(_TRG._tCODE,"END.") - 1. /* END. */
     /* If strt is 1 then we are missing the colon; if stp is -1 then
-       there is no "END.". In these cases, we cannot check for a null block.
-    */
-    IF (strt > 1 AND stp > -1) THEN
-    DO:
+       there is no "END.". In these cases, we cannot check for a null block. */
+    IF (strt > 1 AND stp > -1) THEN DO:
       IF TRIM(SUBSTRING(_TRG._tCODE, strt , stp - strt , "CHARACTER":U)) = ""
-      THEN DO:
-        ASSIGN stp = stp + 4. /* Move to the period in "END." */
-        ASSIGN null_section = (LENGTH(RIGHT-TRIM(_TRG._tCODE), "CHARACTER":U)
+      THEN
+        ASSIGN stp = stp + 4 /* Move to the period in "END." */
+               null_section = (LENGTH(RIGHT-TRIM(_TRG._tCODE), "CHARACTER":U)
                                = stp) NO-ERROR.
-      END.
-    END.
+    END. /* If we have both the colon and the "END." */
     
-    IF (null_section = FALSE) THEN
-    DO:
+    IF (null_section = FALSE) THEN DO:
+      IF CreatingSuper AND _P._TYPE NE "SmartDataObject":U THEN /* Temporarily change _tEvent */
+        ASSIGN cSuperEvent  = _TRG._tEvent
+               _TRG._tEvent = self_name + _TRG._tEvent.
 
       RUN Put_Special_Preprocessor_Start.
 
@@ -1188,11 +1240,17 @@ FOR EACH _U WHERE _U._WINDOW-HANDLE = _h_win AND _U._STATUS <> "DELETED"
       IF _P._DB-AWARE AND _TRG._DB-REQUIRED THEN
         ASSIGN SpecialEvent = SpecialEvent + " " + "_DB-REQUIRED":u.
         
-      /* If a non-blank trigger  */
-      IF p_status NE "PREVIEW" THEN
-        PUT STREAM P_4GL UNFORMATTED
-         "&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL " self_name " " win_name SpecialEvent
-         SKIP.
+      /* If not a preview  */
+      IF p_status NE "PREVIEW" THEN DO:
+        IF NOT CreatingSuper THEN
+          PUT STREAM P_4GL UNFORMATTED
+             "&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL " self_name " " win_name SpecialEvent
+             SKIP.
+        ELSE /* Creating a Super Procedure */
+            PUT STREAM P_4GL UNFORMATTED
+               "&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE " _TRG._tEvent " Procedure"
+               SKIP.
+      END. /* If not a preview */
 
       /*
        * Control Triggers that are special events are actually internal procedures
@@ -1221,25 +1279,39 @@ FOR EACH _U WHERE _U._WINDOW-HANDLE = _h_win AND _U._STATUS <> "DELETED"
       END.
       ELSE DO:
         /* ON event OF [TYPE] widget */
-        PUT STREAM P_4GL UNFORMATTED
-          "ON " (IF _TRG._tEVENT = "." THEN "'.'" ELSE _TRG._tEVENT) " OF "
-          (IF CAN-DO("FRAME,MENU,MENU-ITEM", _U._TYPE)  THEN  (_U._TYPE + " ")
-           ELSE IF _U._TYPE = "SUB-MENU"                THEN "MENU "
-           ELSE IF _U._TYPE = "DIALOG-BOX"              THEN "FRAME "
-           ELSE "")
-           self_name
-           .
+        IF NOT CreatingSuper THEN
+          PUT STREAM P_4GL UNFORMATTED
+            "ON " (IF _TRG._tEVENT = "." THEN "'.'" ELSE _TRG._tEVENT) " OF "
+            (IF CAN-DO("FRAME,MENU,MENU-ITEM", _U._TYPE)  THEN  (_U._TYPE + " ")
+             ELSE IF _U._TYPE = "SUB-MENU"                THEN "MENU "
+             ELSE IF _U._TYPE = "DIALOG-BOX"              THEN "FRAME "
+             ELSE "")
+             self_name.
+        ELSE DO:
+          /* When creatng a super procedure change the "ON EVENT' to a procedure */
+          PUT STREAM P_4GL UNFORMATTED
+              "PROCEDURE " _TRG._tEVENT  " :".
+          /* Turn the event back to what it was */
+          _TRG._tEvent = cSuperEvent.
+        END.  /* When creating a Super Proc */
 
-        IF     (AVAILABLE _F OR _U._TYPE = "BROWSE":U)
-           AND (_U._TYPE <> "{&WT-CONTROL}") THEN 
+        IF (AVAILABLE _F OR _U._TYPE = "BROWSE":U)
+            AND (_U._TYPE <> "{&WT-CONTROL}") AND NOT CreatingSuper THEN 
           PUT STREAM P_4GL UNFORMATTED " IN FRAME " x_U._NAME.
-        PUT STREAM P_4GL UNFORMATTED 
+          PUT STREAM P_4GL UNFORMATTED 
            (IF LENGTH(_U._LABEL,"RAW":U) > 0
             THEN (" /* " + REPLACE(_U._LABEL,"&","") +  " */")
             ELSE "")
            SKIP.
       END.
      _TRG._tOFFSET = SEEK(P_4GL).
+     IF CreatingSuper AND _TRG._tCode BEGINS "DO:" THEN
+     DO:
+       _TRG._tCode = SUBSTRING(_TRG._tCODE, 4).
+       /* Now replace the last end with a end procedure */
+       IF R-INDEX(_Trg._tcode,"end":U) > 0 THEN
+          _TRG._tcode = SUBSTRING(_TRG._tcode,1,R-INDEX(_Trg._tcode,"end":U) - 1 )  + "END PROCEDURE.":U.
+     END.
      PUT STREAM P_4GL UNFORMATTED TRIM(_TRG._tCODE).
      
       IF p_status NE "PREVIEW" THEN
@@ -1340,7 +1412,20 @@ FIND _TRG  WHERE _TRG._wRECID   EQ RECID(_U) AND
                  _TRG._tSECTION EQ "_CUSTOM" AND
                  _TRG._tEVENT   EQ "_MAIN-BLOCK" AND
                  _TRG._STATUS   EQ u_status NO-ERROR.                
-IF AVAILABLE _TRG THEN RUN put_code_block.
+IF AVAILABLE _TRG THEN DO:
+   /*  Remark out the initializeObject in the main block when creating superprocedures*/
+  IF CreatingSuper AND _P._TYPE NE "SmartDataObject":U THEN 
+  DO:
+     IF _TRG._tCode MATCHES "*RUN initializeObject*":U AND
+        NOT _TRG._tCode MATCHES "*Commented out*":U THEN /* Don't do it twice */
+      _TRG._tCode = REPLACE(_TRG._tCode,"RUN initializeObject.":U,
+                        "/* RUN initializeObject. */  /* Commented out by migration progress */":U  ).
+     IF _TRG._tCode MATCHES "*RUN dispatch IN THIS-PROCEDURE ('initialize':U).*":U THEN
+      _TRG._tCode = REPLACE(_TRG._tCode,"RUN dispatch IN THIS-PROCEDURE ('initialize':U).":U,
+                                        "/* RUN dispatch IN THIS-PROCEDURE ('initialize':U). */":U  ).
+  END.
+  RUN put_code_block.
+END.
 
 /* For basic SmartObjects (not SmartContainers) being tested in TTY mode,
    put in a pause and a quit.                                             */
@@ -1364,7 +1449,7 @@ ASSIGN null_section = yes.
 
 /* Add in ADM generated section for adm-create-objects if there are any
    contained smartobjects. */
-IF u_status NE "EXPORT" AND
+IF u_status NE "EXPORT" AND 
    CAN-FIND(FIRST x_U WHERE x_U._WINDOW-HANDLE EQ _P._WINDOW-HANDLE
                         AND x_U._status EQ u_status
                         AND x_U._TYPE EQ "SmartObject":U)
@@ -1382,7 +1467,7 @@ THEN DO:
            _TRG._DB-REQUIRED = NO     /* jep: IZ 1429 */
            _TRG._STATUS   = u_status
            .
-  END.
+  END. /* If available _TRG */
   /* Make this a special section. */
   ASSIGN _TRG._tSPECIAL = "_ADM-CREATE-OBJECTS"
          _TRG._tCODE    = ?
@@ -1396,8 +1481,8 @@ THEN DO:
                   AND _TRG._tSPECIAL EQ "_ADM-CREATE-OBJECTS"
                   AND RECID(_TRG)    NE i:
     DELETE _TRG.
-  END.
-END. 
+  END.  /* For each _TRG with _ADM-CRETE-OBJECTS */
+END.  /* If we're not exporting and we're dealing with a SmartObject */
 
 /*
  * Add in OCX control internal procedure. This procedure is needed
@@ -1424,7 +1509,7 @@ THEN DO:
            _TRG._tEVENT   = "control_load"
            _TRG._STATUS   = u_status
            .
-  END.
+  END.  /* If available _TRG */
   
   /* Make this a special section. */
   ASSIGN _TRG._tSPECIAL = "_CONTROL-LOAD"
@@ -1439,9 +1524,9 @@ THEN DO:
                   AND _TRG._tSPECIAL EQ "_CONTROL-LOAD"
                   AND RECID(_TRG)    NE i:
     DELETE _TRG.
-  END.
+  END.  /* For each _TRG */
 
-END.
+END.  /* If we are loading a control */
 ELSE DO:
   /*
    * No controls. IF there is control_load ip then remove it
@@ -1451,21 +1536,32 @@ ELSE DO:
               AND _TRG._tSECTION EQ "_PROCEDURE" 
               AND _TRG._tEVENT   EQ  "control_load" NO-ERROR.
   IF AVAILABLE _TRG THEN DELETE _TRG.
-END.
+END.  /* Else do */
 
 /* Are there any procedures to output? */
 FIND FIRST _TRG WHERE _TRG._wrecid   EQ RECID(_U) AND
                       _TRG._tSECTION EQ "_PROCEDURE" AND
-                      _TRG._STATUS   EQ u_status NO-ERROR.
-IF (AVAILABLE _TRG) /*AND (p_status <> "EXPORT")*/ THEN DO:
+                      _TRG._STATUS   EQ u_status AND
+                      (_TRG._tEVENT NE "disable_UI":U OR NOT CreatingSuper)
+                     NO-ERROR.
+
+IF (AVAILABLE _TRG) AND NOT lEmpty  /*AND (p_status <> "EXPORT")*/ THEN DO:
   PUT STREAM P_4GL UNFORMATTED
  "/* **********************  Internal Procedures  *********************** */" 
     SKIP (1).
 
   /*  Output all procedures. */
+  PROCEDURE-LOOP:
   FOR EACH _TRG WHERE _TRG._wrecid   EQ RECID(_U) AND
                       _TRG._tSECTION EQ "_PROCEDURE" AND
                       _TRG._STATUS   EQ u_status BY _TRG._tEVENT:
+    /* Omit the creation of various adm specific procedures that are not applicable
+       for insertion in super procedures */
+    IF CreatingSuper AND LOOKUP(_TRG._tEvent,"Disable_ui,control_load,adm-create-objects,send-records,adm-row-available":U) > 0 THEN 
+       NEXT PROCEDURE-LOOP.
+    IF CreatingSuper AND _TRG._tEvent = "state-changed":U THEN 
+       ASSIGN _TRG._tCode = REPLACE(_TRG._tCode,"~{src/adm/template/vstates.i}", " /*~{src/adm/template/vstates.i} */ ")
+              _TRG._tCode = REPLACE(_TRG._tCode,"~{src/adm/template/bstates.i}", " /*~{src/adm/template/bstates.i} */ ").
 
     ASSIGN null_section = no. /* indicate section is not blank */
 
@@ -1553,7 +1649,8 @@ THEN DO:
 /*                           OUTPUT FUNCTIONS                                */
 /*                                                                           */
 /* ************************************************************************* */
-RUN put-func-definitions-in.
+IF NOT lEmpty THEN
+  RUN put-func-definitions-in.
 
 PROCEDURE put-func-definitions-in.
 
@@ -1645,7 +1742,7 @@ END PROCEDURE.
 OUTPUT STREAM P_4GL CLOSE.
 
 /* If saving a DB-Aware object, write out the proxy file */
-IF p_status BEGINS "SAVE":U AND _P._DB-AWARE AND NOT _P._TEMPLATE THEN DO:
+IF p_status BEGINS "SAVE":U AND _P._DB-AWARE AND NOT _P._NO-PROXY AND NOT _P._TEMPLATE THEN DO:
   IF web_file THEN
     RUN adecomm/_tmpfile.p ("ws":U, ".tmp":U, OUTPUT tmp_file).
 
@@ -1737,6 +1834,7 @@ DO ON STOP UNDO RUN-BLK, LEAVE RUN-BLK
   
   IF COMPILER:ERROR THEN DO:
     RUN report-compile-errors (INPUT _comp_temp_file).
+
     IF _err_recid NE ? THEN DO:
       OS-DELETE VALUE(_comp_temp_file).
       OS-DELETE VALUE(_comp_temp_file + ".i").
@@ -1897,24 +1995,26 @@ IF p_status NE "PREVIEW":U AND p_status NE "PRINT":U THEN
    NOTE: that we never compile TEMPLATES themselves.  The "compile" flag really
    means "Compile Derived Master on Save". */
 
-IF p_status BEGINS "SAVE":U AND NOT web_file THEN 
+IF p_status BEGINS "SAVE":U AND NOT web_file AND
+  (NOT CreatingSuper OR _P._TYPE = "SmartDataObject":U) THEN 
   RUN compile-and-load.    
 
-/* Now that syntax has been checked discard all trigger offsets so that they
-   won't get confused with offsets from other windows being generated.
-
-   Clearing the offset data is a bad idea from a remote WebSpeed perspective.
-   First, we need to write out the file to a local temp file, at which point 
-   the _tOFFSET is determined for each section.  Second, the temp file is 
-   copied to a remote WebSpeed Agent.  Third, if an error is found during the 
-   compile, the COMPILER:FILE-OFFSET is returned and needs to be checked 
-   against each section's _tOFFSET.  So in the case of checking a file on a 
-   remote WebSpeed agent, we need to keep the _tOFFSET data around a little 
-   bit longer. (dma) */
-IF NOT web_file THEN
-FOR EACH _TRG WHERE _TRG._tOFFSET NE ?:
-  _TRG._tOFFSET = ?.
-END.
+/* The code below (commented out) was placed here by someone who thought that
+   the _tOFFSET values had been used and needed to be cleaned out.  However,
+   this was too early and broke the cursor setting capability when an error
+   occurred.  The reason why the offset might need to be cleaned out is that
+   depending upon weather a file is completely written out (_gen4gl.p) or 
+   only parts are written out (_qikcomp.p or _writedf.p) the offset can change
+   creately and cause errors when attempting to position the cursor.  Therefore,
+   a new strategy of cleaning out the offsets just before writing a file has
+   been put in place.  This is done near the top of _gen4gl.p, _qikcomp.p and
+   _writeddf.p.   DRH 03/12/03 
+    
+   IF NOT web_file THEN
+   FOR EACH _TRG WHERE _TRG._tOFFSET NE ?:
+     _TRG._tOFFSET = ?.
+   END.
+*/
 
 /* Set all OCX control dirty settings to clean. */
 IF p_status BEGINS "SAVE":U THEN
@@ -1932,141 +2032,296 @@ RETURN "".
            
 /* compile-and-load: compile the file (if desired) and then, if it is a
  * SmartObject that is currently in use, re-instantiate those uses. */
-PROCEDURE compile-and-load: 
-  DEF VAR cant_compile AS LOGICAL NO-UNDO.
-  DEF VAR can_run AS LOGICAL NO-UNDO.
-  DEF VAR cnt AS INTEGER NO-UNDO.   
-  DEF VAR compile-into AS CHAR NO-UNDO.
-  DEF VAR err_msg AS CHAR NO-UNDO.  
-  DEF VAR i AS INTEGER NO-UNDO.
-  DEF VAR hProc AS WIDGET-HANDLE NO-UNDO.
-                              
-  /* If the SmartObject Upgrade Utility is in the middle of an
-   * upgrade, do not compile the objects 
-   */
+PROCEDURE compile-and-load:
+
+  DEFINE VARIABLE cant_compile      AS LOGICAL        NO-UNDO.
+  DEFINE VARIABLE can_run           AS LOGICAL        NO-UNDO.
+  DEFINE VARIABLE cnt               AS INTEGER        NO-UNDO.   
+  DEFINE VARIABLE compile-into      AS CHARACTER      NO-UNDO.
+  DEFINE VARIABLE err_msg           AS CHARACTER      NO-UNDO.  
+  DEFINE VARIABLE i                 AS INTEGER        NO-UNDO.
+  DEFINE VARIABLE hProc             AS WIDGET-HANDLE  NO-UNDO.
+
+  /* Dynamics Enhancements */
+  DEFINE VARIABLE cSaveIntoString   AS CHARACTER      NO-UNDO.
+  DEFINE VARIABLE iSaveIntoLoop     AS INTEGER        NO-UNDO.
+  DEFINE VARIABLE cSaveIntoValue    AS CHARACTER      NO-UNDO.
+  DEFINE VARIABLE cSaveIntoSource   AS CHARACTER      NO-UNDO.
+  DEFINE VARIABLE cSaveIntoTarget   AS CHARACTER      NO-UNDO.
+
+  DEFINE VARIABLE cToSaveSourceName AS CHARACTER      NO-UNDO.
+  DEFINE VARIABLE cToSaveTargetName AS CHARACTER      NO-UNDO.
+
+  DEFINE VARIABLE cSaveFilename     AS CHARACTER      NO-UNDO.
+  DEFINE VARIABLE cSaveDirectory    AS CHARACTER      NO-UNDO.
+  DEFINE VARIABLE cSaveDirRoot      AS CHARACTER      NO-UNDO.
+  DEFINE VARIABLE cSaveDirRelative  AS CHARACTER      NO-UNDO.
+
+  DEFINE VARIABLE iCompileLoop      AS INTEGER        NO-UNDO.
+  DEFINE VARIABLE cCompileIntoDir   AS CHARACTER      NO-UNDO.
+  DEFINE VARIABLE cCompileSaveInto  AS CHARACTER      NO-UNDO.
+
+  /* If the SmartObject Upgrade Utility is in the middle of an upgrade,
+     do not compile the objects */
   hProc = SESSION:FIRST-PROCEDURE.
   DO WHILE VALID-HANDLE(hproc):
-    IF hProc:PRIVATE-DATA = "SmartObject Upgrade Utility,YES" THEN RETURN.
+    IF hProc:PRIVATE-DATA = "SmartObject Upgrade Utility,YES"
+    THEN RETURN.
     hProc = hProc:NEXT-SIBLING.
   END.
 
   /* Assume that the file will run successfully. */
   ASSIGN can_run   = yes
          comp_file = ?.
-  IF _P._compile AND NOT _P._template THEN DO:     
+  IF _P._compile AND NOT _P._template
+  THEN DO:     
     RUN setstatus IN _h_UIB ("WAIT":U, "Compiling file...":U).
-    RUN adecomm/_adeevnt.p ("UIB":U, "BEFORE-COMPILE", context, _save_file,
-                            OUTPUT ok2continue).      
-                            
-    IF ok2continue THEN DO:  
+    RUN adecomm/_adeevnt.p ("UIB":U
+                           ,"BEFORE-COMPILE"
+                           ,context
+                           ,_save_file
+                           ,OUTPUT ok2continue).
+
+    IF ok2continue
+    THEN DO:
       /* For _P._db-aware objects. Won't bother checking for _db-aware. -jep */
-      proxy-file = SUBSTRING(_save_file,1,R-INDEX(_save_file,".":U) - 1,
-                         "CHARACTER":U) + "_cl.":U + 
-                       ENTRY(NUM-ENTRIES(_save_file,".":U), _save_file, ".":U).
+      proxy-file = SUBSTRING(_save_file,1,R-INDEX(_save_file,".":U) - 1, "CHARACTER":U)
+                 + "_cl.":U
+                 + ENTRY(NUM-ENTRIES(_save_file,".":U), _save_file, ".":U).
 
       /* Can we compile into the Save into directory? */    
       COMPILE-BLK:
-      DO ON STOP UNDO COMPILE-BLK, LEAVE COMPILE-BLK
-         ON ERROR UNDO COMPILE-BLK, LEAVE COMPILE-BLK: 
-        compile-into = _P._compile-into.
-        IF _P._compile-into EQ ? THEN DO:
-          COMPILE VALUE(_save_file) SAVE NO-ERROR.
-          IF NOT COMPILER:ERROR AND _P._db-aware THEN
-            COMPILE VALUE(proxy-file) SAVE NO-ERROR.
-          RUN add-cmp-msgs.
-        END.  /* IF _compile-into EQ ? */
-        ELSE DO: 
-          /* Make sure the compile-into directory is a valid (writable)
-             directory. */    
-          ASSIGN FILE-INFO:FILE-NAME = _P._compile-into. 
-                 err_msg = IF FILE-INFO:FULL-PATHNAME EQ ?
-                           THEN "does not exist." 
-                           ELSE IF INDEX(FILE-INFO:FILE-TYPE,"D") EQ 0
-                           THEN "is not a directory." 
-                           ELSE IF INDEX(FILE-INFO:FILE-TYPE,"W") EQ 0
-                           THEN "is not a directory that can be written to."
-                           ELSE "".
-          IF err_msg EQ "" THEN DO: 
-            /* Compile the file into the desired directory. */
-            COMPILE VALUE(_save_file) SAVE INTO VALUE(FILE-INFO:FULL-PATHNAME) NO-ERROR.
-            IF NOT COMPILER:ERROR AND _P._db-aware THEN
-              COMPILE VALUE(proxy-file) SAVE INTO
-                              VALUE(FILE-INFO:FULL-PATHNAME) NO-ERROR.
-            RUN add-cmp-msgs.
+      DO ON STOP  UNDO COMPILE-BLK, LEAVE COMPILE-BLK
+         ON ERROR UNDO COMPILE-BLK, LEAVE COMPILE-BLK:
+
+        ASSIGN
+          cSaveIntoString   = "":U
+          cCompileIntoDir  = "":U
+          .
+
+        /* Dynamics Enhancement Checks */
+        IF CAN-DO(_AB_Tools,"Enable-ICF")
+        THEN DO:
+          cSaveIntoString  = DYNAMIC-FUNCTION("getSessionParam" IN THIS-PROCEDURE , "enable_save_into":U) NO-ERROR.
+          ERROR-STATUS:ERROR = NO.
+        END. /* CAN-DO(_AB_Tools,"Enable-ICF") */
+        ELSE 
+          cSaveIntoString = ?.
+
+        IF  cSaveIntoString <> "":U
+        AND cSaveIntoString <> ?
+        THEN
+        DO iSaveIntoLoop = 1 TO NUM-ENTRIES(cSaveIntoString,",":U):
+
+          cSaveIntoValue     = ENTRY(iSaveIntoLoop,cSaveIntoString,",":U).
+
+          cSaveIntoSource    = DYNAMIC-FUNCTION("getSessionParam" IN THIS-PROCEDURE , ENTRY(1,cSaveIntoValue,"|":U)) NO-ERROR.
+          ERROR-STATUS:ERROR = NO.
+
+          cSaveIntoTarget    = DYNAMIC-FUNCTION("getSessionParam" IN THIS-PROCEDURE , ENTRY(2,cSaveIntoValue,"|":U)) NO-ERROR.
+          ERROR-STATUS:ERROR = NO.
+
+          ASSIGN
+            cSaveIntoSource   = TRIM( REPLACE(cSaveIntoSource,"~\":U,"~/":U) ,"~/":U)
+            cSaveIntoTarget   = TRIM( REPLACE(cSaveIntoTarget,"~\":U,"~/":U) ,"~/":U)
+            cToSaveSourceName = TRIM( REPLACE(_save_file     ,"~\":U,"~/":U) ,"~/":U)
+            .
+
+          /* Only compile into if the file reside in the root directory */
+          /* This statement might not be true for all cases, but will be changed if it occurs */
+          IF cToSaveSourceName BEGINS cSaveIntoSource
+          THEN DO:
+
+            ASSIGN
+              cToSaveTargetName = REPLACE( cToSaveSourceName ,cSaveIntoSource , cSaveIntoTarget).
+            /* Break the file name into its component parts. */
+            RUN adecomm/_osprefx.p (cToSaveTargetName, OUTPUT cSaveDirectory, OUTPUT cSaveFilename).
+            ASSIGN
+              cSaveFilename     = TRIM( REPLACE(cSaveFilename ,"~\":U          ,"~/":U) ,"~/":U)
+              cSaveDirectory    = TRIM( REPLACE(cSaveDirectory,"~\":U          ,"~/":U) ,"~/":U)
+              cSaveDirRelative  = TRIM( REPLACE(cSaveDirectory,cSaveIntoTarget ,"":U)   ,"~/":U)
+              cSaveDirRoot      = TRIM( REPLACE(cSaveDirectory,cSaveDirRelative,"":U)   ,"~/":U)
+              .
+            ASSIGN
+              cCompileIntoDir = cCompileIntoDir
+                               + (IF cCompileIntoDir <> "":U THEN ",":U ELSE "":U)
+                               + cSaveDirectory
+              compile-into     = cSaveDirRelative
+              .
+
           END.
-          ELSE DO:
-            MESSAGE "The compile directory specified in the" {&SKP}
-                    "Procedure Settings (" + _P._Compile-into + ")" {&SKP}
-                    err_msg SKIP(1)
-                    "'" + _save_file + "' will be compiled locally."
-                    VIEW-AS ALERT-BOX WARNING.  
-            compile-into = ?.
+
+        END. /* cSaveInto = "YES":U */
+        ELSE
+          ASSIGN
+            compile-into     = _P._compile-into
+            cCompileIntoDir  = _P._compile-into.
+
+        IF cCompileIntoDir   = "":U
+        THEN
+          ASSIGN
+            cCompileIntoDir  = _P._compile-into.
+        IF cCompileIntoDir   = "":U
+        OR cCompileIntoDir   = ?
+        THEN
+          ASSIGN
+            cCompileIntoDir  = "?":U.
+
+        IF _P._compile-into  = ?
+        THEN
+          ASSIGN
+            _P._compile-into = compile-into.
+        IF compile-into      = ?
+        THEN
+          ASSIGN
+            compile-into     = _P._compile-into.
+
+        IF  _P._compile-into <> "":U
+        AND SUBSTRING(_P._compile-into,1,4) =  "icf/":U
+        AND SUBSTRING(_P._compile-into,1,7) <> "icf/trg":U
+        THEN
+          ASSIGN
+            _P._compile-into = SUBSTRING(_P._compile-into,5,LENGTH(_P._compile-into)).
+
+        DO iCompileLoop = 1 TO NUM-ENTRIES(cCompileIntoDir,",":U):
+
+          ASSIGN
+            cCompileSaveInto = ENTRY(iCompileLoop,cCompileIntoDir,",":U).
+
+          IF cCompileSaveInto = ? /* (was) _P._compile-into = ? */
+          OR cCompileSaveInto = "?":U
+          THEN DO:
+
             COMPILE VALUE(_save_file) SAVE NO-ERROR.
-            IF NOT COMPILER:ERROR AND _P._db-aware THEN
+            IF NOT COMPILER:ERROR AND _P._db-aware AND NOT _P._no-proxy
+            THEN
               COMPILE VALUE(proxy-file) SAVE NO-ERROR.
             RUN add-cmp-msgs.
-          END.                                  
-        END.
-                     
-        /* Save the file we compiled into. */
-        RUN get-comp-file (_save_file, compile-into, OUTPUT comp_file).
-                       
-        /* Note any errors. */            
-        IF COMPILER:ERROR THEN DO:   
-          /* There is one error that we want to trap for explicitly.  That
-             is the error where the compile file could not be created. */
-          ASSIGN cant_compile = no
-                 cnt = ERROR-STATUS:NUM-MESSAGES.
-          DO i = 1 TO cnt: 
-            IF ERROR-STATUS:GET-NUMBER(i) EQ {&ERR-cant-compile}
-            THEN ASSIGN cant_compile = yes
-                        err_msg = ERROR-STATUS:GET-MESSAGE (i).
-          END.    
-          /* If we couldn't compile because the file could not be created,
-             then report that error just as PROGRESS would.  Otherwise note 
-             that the file was saved, but it won't run. */
-          IF cant_compile
-          THEN MESSAGE err_msg SKIP(1)
-                       "Check that the directory exists, and that you" {&SKP}
-                       "have privileges to write there." {&SKP} 
-                       "However, the source file was saved successfully." 
-                       VIEW-AS ALERT-BOX ERROR.
+  
+          END.  /* IF _compile-into = ? */
           ELSE DO:
-            can_run = no.
-            MESSAGE _save_file SKIP
-                    "The file was saved. However, it did not compile successfully."   SKIP (1)
-                    "Would you like to view the compilation errors?"
-               VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO 
-                       UPDATE ok2continue.  
-            IF ok2continue THEN RUN report-compile-errors (_save_file). 
-          END. /* saved, but did not compile. */
-        END. /* IF compiler:error ... */
+
+            /* Make sure the compile-into directory is a valid (writable) directory. */
+            ASSIGN
+              FILE-INFO:FILE-NAME = cCompileSaveInto. /* compile-into */
+
+            err_msg = IF FILE-INFO:FULL-PATHNAME = ?
+                      THEN "does not exist." 
+                      ELSE IF INDEX(FILE-INFO:FILE-TYPE,"D") = 0
+                      THEN "is not a directory."
+                      ELSE IF INDEX(FILE-INFO:FILE-TYPE,"W") = 0
+                      THEN "is not a directory that can be written to."
+                      ELSE "".
+
+            IF err_msg = ""
+            THEN DO:
+
+              /* Compile the file into the desired directory. */
+              COMPILE VALUE(_save_file) SAVE INTO VALUE(FILE-INFO:FULL-PATHNAME) NO-ERROR.
+              IF NOT COMPILER:ERROR AND _P._db-aware AND NOT _P._no-proxy
+              THEN
+                COMPILE VALUE(proxy-file) SAVE INTO VALUE(FILE-INFO:FULL-PATHNAME) NO-ERROR.
+              RUN add-cmp-msgs.
+
+            END.
+            ELSE DO:
+
+              MESSAGE "The compile directory specified in the" {&SKP}
+                      "Procedure Settings (" + _P._Compile-into + ")" {&SKP}
+                      err_msg SKIP(1)
+                      "'" + _save_file + "' will be compiled locally."
+                      VIEW-AS ALERT-BOX WARNING.
+              compile-into = ?.
+              COMPILE VALUE(_save_file) SAVE NO-ERROR.
+              IF NOT COMPILER:ERROR AND _P._db-aware AND NOT _P._no-proxy
+              THEN
+                COMPILE VALUE(proxy-file) SAVE NO-ERROR.
+              RUN add-cmp-msgs.
+
+            END.                                  
+
+          END. /* _P._compile-into <> ? */
+
+          /* Save the file we compiled into. */
+          RUN get-comp-file (_save_file, compile-into, OUTPUT comp_file).
+
+          /* Note any errors. */            
+          IF COMPILER:ERROR
+          THEN DO:   
+            /* There is one error that we want to trap for explicitly.
+               That is the error where the compile file could not be created. */
+            ASSIGN
+              cant_compile  = NO
+              cnt           = ERROR-STATUS:NUM-MESSAGES.
+            DO i = 1 TO cnt:
+              IF ERROR-STATUS:GET-NUMBER(i) = {&ERR-cant-compile}
+              THEN
+                ASSIGN
+                  cant_compile  = YES
+                  err_msg       = ERROR-STATUS:GET-MESSAGE (i).
+            END.    
+            /* If we couldn't compile because the file could not be created,
+               then report that error just as PROGRESS would.  Otherwise note 
+               that the file was saved, but it won't run. */
+            IF cant_compile
+            THEN
+              MESSAGE
+                err_msg SKIP(1)
+                "Check that the directory exists, and that you" {&SKP}
+                "have privileges to write there." {&SKP} 
+                "However, the source file was saved successfully." 
+                VIEW-AS ALERT-BOX ERROR.
+            ELSE DO:
+              ASSIGN
+                can_run = NO.
+              MESSAGE
+                _save_file SKIP
+                "The file was saved. However, it did not compile successfully." SKIP (1)
+                "Would you like to view the compilation errors?"
+                VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO 
+                UPDATE ok2continue.  
+              IF ok2continue
+              THEN
+                RUN report-compile-errors (_save_file).
+
+            END. /* saved, but did not compile. */
+
+          END. /* IF compiler:error ... */
+
+        END. /* DO iCompileLoop = 1 TO NUM-ENTRIES(cCompileIntoDir,",":U) */
+
       END. /* COMPILE-BLK: DO... */
+
     END. /* IF (before-compile)...OK2Continue... */
-    
+
     /* Note that the compile is over. */
-    RUN adecomm/_adeevnt.p ("UIB":U, "COMPILE", context, _save_file,
-                            OUTPUT ok2continue).  
+    RUN adecomm/_adeevnt.p ("UIB":U
+                           ,"COMPILE"
+                           ,context
+                           ,_save_file
+                           ,OUTPUT ok2continue).
+
   END. /* IF _P._COMPILE... */
-    
+
   /* If we saved a SmartObject, then recreate all the objects that this file
      points to. [Note: we need to test with FILE-INFO because the pathnames may
-     be stored differently. */  
-  IF can_run THEN DO:     
+     be stored differently. */
+  IF can_run
+  THEN DO:     
     /* Get the complete file name for the saved file. */
-    ASSIGN FILE-INFO:FILE-NAME = _save_file
-           file_name = FILE-INFO:FULL-PATHNAME
-           .
+    ASSIGN
+      FILE-INFO:FILE-NAME = _save_file
+      file_name           = FILE-INFO:FULL-PATHNAME
+      .
     /* Preselect here because "_recreat.p" is going to create a new _U._HANDLE
        which would change the default ordering in a FOR EACH _U... */
     RECREATE-BLOCK:
-    REPEAT PRESELECT EACH _U WHERE _U._TYPE EQ "SmartObject" 
-                               AND _U._STATUS NE "DELETED":U:
+    REPEAT PRESELECT EACH _U WHERE _U._TYPE   EQ "SmartObject"
+                             AND   _U._STATUS NE "DELETED":U:
       FIND NEXT _U.
       FIND _S WHERE RECID(_S) EQ _U._x-recid.
       FILE-INFO:FILE-NAME = _S._FILE-NAME.
-      /* Is the smartObject an instance of either the source file or the compiled
-         file? */
+      /* Is the smartObject an instance of either the source file or the compiled file? */
       IF FILE-INFO:FULL-PATHNAME EQ file_name OR 
          (comp_file NE ? AND FILE-INFO:FULL-PATHNAME EQ comp_file) THEN DO:
         /* Before we recreate the object, check the flag.  Note that this code
@@ -2242,7 +2497,7 @@ PROCEDURE db-conn.
      Generally this will mean we'll want to check its db connections
      and write them out if none of the above conditions have been met.
      jep-code 4/22/98 */
-  IF NOT db-used THEN
+  IF NOT db-used AND NOT CreatingSuper THEN
     db-used = (_P._data-object <> "":U).
    
   /* Some databases are used, somewhere.  Write them out. */
@@ -2476,13 +2731,14 @@ END PROCEDURE.
  * Try to get the full pathname of the file that they were compiled into.
  * If the r-code does not exist, return ?. */
 PROCEDURE get-comp-file :
-  DEFINE INPUT  PARAMETER p_source AS CHAR NO-UNDO.
-  DEFINE INPUT  PARAMETER p_dir    AS CHAR NO-UNDO.
-  DEFINE OUTPUT PARAMETER p_rcode  AS CHAR NO-UNDO.
-  
-  DEFINE VAR cnt       AS INTEGER NO-UNDO.
-  DEFINE VAR file-base AS CHAR NO-UNDO.
-  DEFINE VAR file-prfx AS CHAR NO-UNDO.
+
+  DEFINE INPUT  PARAMETER p_source  AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER p_dir     AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER p_rcode   AS CHARACTER  NO-UNDO.
+
+  DEFINE VARIABLE cnt               AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE file-base         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE file-prfx         AS CHARACTER  NO-UNDO.
 
   /* Break the file name into its component parts. For example:
      c:\bin.win\gui\test.w => file-prfx "c:\bin.win\gui\", file-base "test.r" */
@@ -2495,24 +2751,28 @@ PROCEDURE get-comp-file :
     WHEN 1 THEN file-base = file-base + ".r".
     OTHERWISE   ENTRY(cnt, file-base, ".") = "r".
   END CASE.
-  
+
   /* Is the p_dir (compile) directory a real directory?  If so, parse it,
      Otherwise, use the current directory. */
-  IF p_dir NE ? AND  p_dir NE "." THEN DO:
+  IF  p_dir NE ?
+  AND p_dir NE "."
+  THEN DO:
     /* Is the compile directory a full path, or is it relative to the file 
        prefix?  Check for names that have ":", indicating a DRIVE or names
        that start with / or \.  */
-    IF (CAN-DO("OS2,MSDOS,WIN32,UNIX,VMS":u,OPSYS) AND INDEX(p_dir,":":u) > 0) 
-       OR
-       CAN-DO("~\/", SUBSTRING(p_dir, 1, 1, "CHARACTER"))
+    IF (CAN-DO("OS2,MSDOS,WIN32,UNIX,VMS":u,OPSYS)
+    AND INDEX(p_dir,":":u) > 0) 
+    OR  CAN-DO("~\/", SUBSTRING(p_dir, 1, 1, "CHARACTER"))
     THEN file-prfx = p_dir + "/".
     ELSE file-prfx = file-prfx + p_dir + "/".
   END.
-  
+
   /* Return the full pathname of the compiled file, if it exists. */
-  ASSIGN FILE-INFO:FILE-NAME = file-prfx + file-base
-         p_rcode = FILE-INFO:FULL-PATHNAME
-         .
+  ASSIGN
+    FILE-INFO:FILE-NAME = file-prfx + file-base
+    p_rcode = FILE-INFO:FULL-PATHNAME
+    .
+
 END PROCEDURE.
 
 PROCEDURE Put_Proc_Desc:

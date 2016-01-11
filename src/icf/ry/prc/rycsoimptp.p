@@ -66,8 +66,6 @@ PROCEDURE doTheImport:
                     WHEN "ryc_attribute_value"   THEN DO: CREATE ryc_attribute_value.   IMPORT STREAM str-import ryc_attribute_value.   END.
                     WHEN "ryc_page"              THEN DO: CREATE ryc_page.              IMPORT STREAM str-import ryc_page.              END.
                     WHEN "ryc_page_object"       THEN DO: CREATE ryc_page_object.       IMPORT STREAM str-import ryc_page_object.       END.
-                    WHEN "ryc_smartobject_field" THEN DO: CREATE ryc_smartobject_field. IMPORT STREAM str-import ryc_smartobject_field. END.
-                    WHEN "ryc_custom_ui_trigger" THEN DO: CREATE ryc_custom_ui_trigger. IMPORT STREAM str-import ryc_custom_ui_trigger. END.
                     WHEN "ryc_smartlink"         THEN DO: CREATE ryc_smartlink.         IMPORT STREAM str-import ryc_smartlink.         END.
                 END CASE.
 

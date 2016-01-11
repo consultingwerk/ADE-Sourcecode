@@ -116,7 +116,7 @@ af/cod/aftemwizpw.w
 
 &scop object-name       gstdflogcp.p
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* object identifying preprocessor */
 &glob   AstraPlip    yes
@@ -130,7 +130,7 @@ ASSIGN cObjectName = "{&object-name}":U.
 
 /* Data Preprocessor Definitions */
 &GLOB DATA-LOGIC-TABLE gst_dataset_file
-&GLOB DATA-FIELD-DEFS  "ry\obj\gstdffullo.i"
+&GLOB DATA-FIELD-DEFS  "ry/obj/gstdffullo.i"
 
 /* Error handling definitions */
 {af/sup2/afcheckerr.i &define-only = YES}
@@ -156,11 +156,24 @@ ASSIGN cObjectName = "{&object-name}":U.
 
 
 
+
+
 /* _UIB-PREPROCESSOR-BLOCK-END */
 &ANALYZE-RESUME
 
 
 /* ************************  Function Prototypes ********************** */
+
+{&DB-REQUIRED-START}
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getLoadedTime DataLogicProcedure  _DB-REQUIRED
+FUNCTION getLoadedTime RETURNS CHARACTER
+  ( INPUT pcLoadedTime AS INTEGER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD isFieldBlank DataLogicProcedure 
 FUNCTION isFieldBlank RETURNS LOGICAL
@@ -187,7 +200,7 @@ FUNCTION isFieldBlank RETURNS LOGICAL
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW DataLogicProcedure ASSIGN
-         HEIGHT             = 8.43
+         HEIGHT             = 8.52
          WIDTH              = 55.6.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -217,6 +230,40 @@ FUNCTION isFieldBlank RETURNS LOGICAL
 
 
 /* **********************  Internal Procedures  *********************** */
+
+{&DB-REQUIRED-START}
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createPreTransValidate DataLogicProcedure  _DB-REQUIRED
+PROCEDURE createPreTransValidate :
+/*------------------------------------------------------------------------------
+  Purpose:     Procedure used to validate records server-side before the transaction scope upon create
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  DEFINE VARIABLE cMessageList    AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cValueList      AS CHARACTER    NO-UNDO.
+
+  IF CAN-FIND(FIRST gst_dataset_file 
+              WHERE gst_dataset_file.deployment_obj = b_gst_dataset_file.deployment_obj
+                AND gst_dataset_file.deploy_dataset_obj = b_gst_dataset_file.deploy_dataset_obj
+                AND gst_dataset_file.ado_filename = b_gst_dataset_file.ado_filename) THEN
+  DO:
+     ASSIGN
+        cValueList   = STRING(b_gst_dataset_file.deployment_obj) + ', ' + STRING(b_gst_dataset_file.deploy_dataset_obj) + ', ' + STRING(b_gst_dataset_file.ado_filename)
+        cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
+                      {aferrortxt.i 'AF' '8' 'gst_dataset_file' '' "'deployment_obj, deploy_dataset_obj, ado_filename, '" cValueList }.
+  END.
+
+  ERROR-STATUS:ERROR = NO.
+  RETURN cMessageList.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE killPlip DataLogicProcedure 
 PROCEDURE killPlip :
@@ -281,73 +328,8 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-{&DB-REQUIRED-START}
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createPreTransValidate dTables _DB-REQUIRED
-PROCEDURE createPreTransValidate : 
-/*------------------------------------------------------------------------------
-  Purpose:     Procedure used to validate records server-side before the transaction scope upon create
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-
-  DEFINE VARIABLE cMessageList    AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE cValueList      AS CHARACTER    NO-UNDO.
-
-  IF CAN-FIND(FIRST gst_dataset_file 
-              WHERE gst_dataset_file.deployment_obj = b_gst_dataset_file.deployment_obj
-                AND gst_dataset_file.deploy_dataset_obj = b_gst_dataset_file.deploy_dataset_obj
-                AND gst_dataset_file.ado_filename = b_gst_dataset_file.ado_filename) THEN
-  DO:
-     ASSIGN
-        cValueList   = STRING(b_gst_dataset_file.deployment_obj) + ', ' + STRING(b_gst_dataset_file.deploy_dataset_obj) + ', ' + STRING(b_gst_dataset_file.ado_filename)
-        cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                      {aferrortxt.i 'AF' '8' 'gst_dataset_file' '' "'deployment_obj, deploy_dataset_obj, ado_filename, '" cValueList }.
-  END.
-
-  ERROR-STATUS:ERROR = NO.
-  RETURN cMessageList.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-{&DB-REQUIRED-END}
-
-{&DB-REQUIRED-START}
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE writePreTransValidate dTables _DB-REQUIRED
-PROCEDURE writePreTransValidate : 
-/*------------------------------------------------------------------------------
-  Purpose:     Procedure used to validate records server-side before the transaction scope upon write
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-
-  DEFINE VARIABLE cMessageList    AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE cValueList      AS CHARACTER    NO-UNDO.
-
-  IF NOT isCreate() AND CAN-FIND(FIRST gst_dataset_file 
-              WHERE gst_dataset_file.deployment_obj = b_gst_dataset_file.deployment_obj
-                AND gst_dataset_file.deploy_dataset_obj = b_gst_dataset_file.deploy_dataset_obj
-                AND gst_dataset_file.ado_filename = b_gst_dataset_file.ado_filename
-                AND ROWID(gst_dataset_file) <> TO-ROWID(ENTRY(1,b_gst_dataset_file.RowIDent))) THEN
-  DO:
-     ASSIGN
-        cValueList   = STRING(b_gst_dataset_file.deployment_obj) + ', ' + STRING(b_gst_dataset_file.deploy_dataset_obj) + ', ' + STRING(b_gst_dataset_file.ado_filename)
-        cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                      {aferrortxt.i 'AF' '8' 'gst_dataset_file' '' "'deployment_obj, deploy_dataset_obj, ado_filename, '" cValueList }.
-  END.
-
-  ERROR-STATUS:ERROR = NO.
-  RETURN cMessageList.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-{&DB-REQUIRED-END}
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE rowObjectValidate dTables 
-PROCEDURE rowObjectValidate : 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE rowObjectValidate DataLogicProcedure 
+PROCEDURE rowObjectValidate :
 /*------------------------------------------------------------------------------
   Purpose:     Procedure used to validate RowObject record client-side
   Parameters:  <none>
@@ -390,7 +372,64 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+{&DB-REQUIRED-START}
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE writePreTransValidate DataLogicProcedure  _DB-REQUIRED
+PROCEDURE writePreTransValidate :
+/*------------------------------------------------------------------------------
+  Purpose:     Procedure used to validate records server-side before the transaction scope upon write
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  DEFINE VARIABLE cMessageList    AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cValueList      AS CHARACTER    NO-UNDO.
+
+  IF NOT isCreate() AND CAN-FIND(FIRST gst_dataset_file 
+              WHERE gst_dataset_file.deployment_obj = b_gst_dataset_file.deployment_obj
+                AND gst_dataset_file.deploy_dataset_obj = b_gst_dataset_file.deploy_dataset_obj
+                AND gst_dataset_file.ado_filename = b_gst_dataset_file.ado_filename
+                AND ROWID(gst_dataset_file) <> TO-ROWID(ENTRY(1,b_gst_dataset_file.RowIDent))) THEN
+  DO:
+     ASSIGN
+        cValueList   = STRING(b_gst_dataset_file.deployment_obj) + ', ' + STRING(b_gst_dataset_file.deploy_dataset_obj) + ', ' + STRING(b_gst_dataset_file.ado_filename)
+        cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
+                      {aferrortxt.i 'AF' '8' 'gst_dataset_file' '' "'deployment_obj, deploy_dataset_obj, ado_filename, '" cValueList }.
+  END.
+
+  ERROR-STATUS:ERROR = NO.
+  RETURN cMessageList.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
+
 /* ************************  Function Implementations ***************** */
+
+{&DB-REQUIRED-START}
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getLoadedTime DataLogicProcedure  _DB-REQUIRED
+FUNCTION getLoadedTime RETURNS CHARACTER
+  ( INPUT pcLoadedTime AS INTEGER ) :
+/*------------------------------------------------------------------------------
+  Purpose: To Convert the Loaded_time in integer format (Seconds from midnight), to 
+           a Format HH:MM:SS to be used in the Browser. 
+    Notes:  
+------------------------------------------------------------------------------*/
+  
+  DEFINE VARIABLE cTime AS CHARACTER     NO-UNDO.
+  ASSIGN cTime = STRING(pcLoadedTime,"HH:MM:SS").
+  RETURN cTime.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION isFieldBlank DataLogicProcedure 
 FUNCTION isFieldBlank RETURNS LOGICAL

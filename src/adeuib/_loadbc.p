@@ -48,24 +48,38 @@ Updated:	1/98 SLK Added new param to _fldinfo.p
 
 DEFINE INPUT PARAMETER _BC-rec AS RECID NO-UNDO.
 
-DEF VAR descrip   AS CHAR                NO-UNDO.
-DEF VAR fmt-sa    AS CHAR                NO-UNDO.
-DEF VAR hlp-sa    AS CHAR                NO-UNDO.
-DEF VAR extnt     AS INTEGER             NO-UNDO.
-DEF VAR intl      AS CHAR                NO-UNDO.
-DEF VAR lbl-sa    AS CHAR                NO-UNDO.
-DEF VAR tmp-db    AS CHAR                NO-UNDO.
-DEF VAR tmp-name  AS CHAR                NO-UNDO.
-DEF VAR tmp-tb    AS CHAR                NO-UNDO.
-DEF VAR valexp    AS CHAR                NO-UNDO.
-DEF VAR valmsg    AS CHAR                NO-UNDO.
-DEF VAR valmsg-sa AS CHAR                NO-UNDO.
-
+DEF VAR descrip     AS CHAR                NO-UNDO.
+DEF VAR fmt-sa      AS CHAR                NO-UNDO.
+DEF VAR hlp-sa      AS CHAR                NO-UNDO.
+DEF VAR extnt       AS INTEGER             NO-UNDO.
+DEF VAR intl        AS CHAR                NO-UNDO.
+DEF VAR isaSMO      AS LOG                 NO-UNDO.
+DEF VAR isSmartData AS LOG                 NO-UNDO.
+DEF VAR lbl-sa      AS CHAR                NO-UNDO.
+DEF VAR tmp-db      AS CHAR                NO-UNDO.
+DEF VAR tmp-name    AS CHAR                NO-UNDO.
+DEF VAR tmp-tb      AS CHAR                NO-UNDO.
+DEF VAR valexp      AS CHAR                NO-UNDO.
+DEF VAR valmsg      AS CHAR                NO-UNDO.
+DEF VAR valmsg-sa   AS CHAR                NO-UNDO.
 
 FIND _BC WHERE RECID(_BC) = _BC-rec.
+FIND _P WHERE _P._WINDOW-HANDLE = _h_win.
+
+/* Note isa.p doesn't work for SmartDataObject here because this is query that
+   it is looking for.  */
+RUN adeuib/_isa.p (INPUT INTEGER(RECID(_P)),
+                   INPUT "SmartObject":U,
+                   OUTPUT isaSMO).
+
+isSmartData = isaSMO AND
+              NOT CAN-FIND(FIRST _U WHERE _U._WINDOW-HANDLE = _h_win AND
+                                 _U._TYPE = "FRAME":U) AND
+              NOT CAN-FIND(FIRST _U WHERE _U._WINDOW-HANDLE = _h_win AND
+                                 _U._TYPE = "DIALOG-BOX":U) AND
+              _P._DB-AWARE.
 
 IF _BC._DBNAME = "Temp-Tables" THEN DO:
-  FIND _P WHERE _P._WINDOW-HANDLE = _h_win.
   FIND FIRST _TT WHERE _TT._p-recid = RECID(_P) AND _TT._NAME = _BC._TABLE NO-ERROR.
   IF NOT AVAILABLE _TT THEN
     FIND FIRST _TT WHERE _TT._p-recid = RECID(_P) AND _TT._LIKE-TABLE = _BC._TABLE.
@@ -114,6 +128,7 @@ RUN adeuib/_fldinfo.p (INPUT tmp-db,
 		).
 
 /* _s-schem.p returns the column-label if it exists */
-RUN adecomm/_s-schem.p (tmp-db, tmp-tb, _BC._NAME,
-                        "FIELD:LABEL":U, OUTPUT _BC._DEF-LABEL).
+IF NOT isSmartData THEN 
+  RUN adecomm/_s-schem.p (tmp-db, tmp-tb, _BC._NAME,
+                          "FIELD:LABEL":U, OUTPUT _BC._DEF-LABEL).
                               

@@ -82,8 +82,12 @@ IF p_type eq ? THEN p_type = "OBJECT".
 /* If there isn't then we have a winner.  Just return it.                 */
 FIND FIRST _U WHERE _U._NAME eq p_test
                 AND _U._WINDOW-HANDLE eq p_h_win
-                AND _U._STATUS ne "DELETED"
      USE-INDEX _NAME NO-ERROR.
+IF NOT AVAILABLE _U THEN
+  FIND FIRST _U WHERE _U._NAME EQ p_test
+                  AND _U._PARENT EQ _h_frame:FIRST-CHILD
+     USE-INDEX _NAME NO-ERROR.
+
 IF NOT AVAILABLE _U THEN p_best = p_test.
 ELSE DO:
   /* Now we have a problem.  Find a new good variable name. We do this
@@ -133,8 +137,12 @@ ELSE DO:
     THEN p_base = SUBSTRING(p_base,1,31 - LENGTH(ch,"RAW":u),"FIXED":u).
     p_best = p_base + cBar + ch.
     FIND FIRST _U WHERE _U._NAME eq p_best
-      AND _U._WINDOW-HANDLE eq p_h_win AND _U._STATUS ne "DELETED" 
+      AND _U._WINDOW-HANDLE eq p_h_win
       USE-INDEX _NAME NO-ERROR.
+    IF NOT AVAILABLE _U THEN
+      FIND FIRST _U WHERE _U._NAME eq p_best
+        AND _U._PARENT eq _h_frame:FIRST-CHILD
+        USE-INDEX _NAME NO-ERROR.
   END.
   
   /* reassign _count if necessary */

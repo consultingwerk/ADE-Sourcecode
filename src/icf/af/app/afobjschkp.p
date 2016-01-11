@@ -76,6 +76,11 @@ af/cod/aftemwizpw.w
 
   Update Notes: New Object Security check function
 
+  (v:010001)    Task:    90000045   UserRef:    POSSE
+                Date:   05/30/2002  Author:     Sunil Belgaonkar
+
+  Update Notes: Fixed the Bug - When the security_smartobject_obj = 0 then the security is disabled.
+
 -----------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
@@ -87,7 +92,7 @@ af/cod/aftemwizpw.w
    can be displayed in the about window of the container */
 
 &scop object-name       afobjschkp.p
-&scop object-version    010000
+&scop object-version    000000
 
 
 /* MIP object identifying preprocessor */
@@ -98,7 +103,7 @@ af/cod/aftemwizpw.w
 
 DEFINE INPUT-OUTPUT PARAMETER pcObjectName                      AS CHARACTER    NO-UNDO.
 DEFINE INPUT-OUTPUT PARAMETER pdObjectObj                       AS DECIMAL      NO-UNDO.
-DEFINE OUTPUT       PARAMETER plSecurityRestricted               AS LOGICAL      NO-UNDO.
+DEFINE OUTPUT       PARAMETER plSecurityRestricted              AS LOGICAL      NO-UNDO.
 
 DEFINE VARIABLE         cSecurityValue1                   AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE         cSecurityValue2                   AS CHARACTER    NO-UNDO.
@@ -146,7 +151,7 @@ DEFINE VARIABLE         cUserValues                       AS CHARACTER    NO-UND
                                                                         */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
@@ -154,55 +159,72 @@ DEFINE VARIABLE         cUserValues                       AS CHARACTER    NO-UND
 
 /* ***************************  Main Block  *************************** */
 
+DEFINE BUFFER gsc_security_control FOR gsc_security_control.
+DEFINE BUFFER ryc_smartobject      FOR ryc_smartobject.
+
 ASSIGN plSecurityRestricted = YES.
 
 FIND FIRST gsc_security_control NO-LOCK NO-ERROR.
-IF AVAILABLE gsc_security_control AND gsc_security_control.security_enabled = NO THEN 
-DO:
-  plSecurityRestricted = NO.
-  RETURN. /* Security off */
+
+IF AVAILABLE gsc_security_control AND gsc_security_control.security_enabled = NO 
+THEN DO:
+    ASSIGN plSecurityRestricted = NO.
+    RETURN. /* Security off */
 END.
 
 /* Get current up-to-date user information to be sure */
-ASSIGN cUserProperties = "currentUserObj,currentOrganisationObj".
-cUserValues = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
-                              INPUT cUserProperties,
-                              INPUT NO).
 
-IF (pdObjectObj NE 0.0 AND CAN-FIND(FIRST gsc_object
-                                    WHERE gsc_object.object_obj          EQ pdObjectObj
-                                      AND gsc_object.security_object_obj NE 0))
-OR
-   (pcObjectName NE "":U AND CAN-FIND(FIRST gsc_object
-                                      WHERE gsc_object.OBJECT_filename     EQ pcObjectName
-                                        AND gsc_object.security_object_obj NE 0)) 
-THEN
-DO: /* security is turned on for this object */
-    IF pdObjectObj NE 0.0 THEN
-       FIND FIRST gsc_object NO-LOCK
-            WHERE gsc_object.OBJECT_obj      = pdObjectObj
-            NO-ERROR.
+ASSIGN cUserProperties = "currentUserObj,currentOrganisationObj"
+       cUserValues     = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
+                                          INPUT cUserProperties,
+                                          INPUT NO).
+
+/* Find the object, it should be available. */
+
+IF pdObjectObj NE 0.0 THEN
+    FIND ryc_smartobject NO-LOCK
+         WHERE ryc_smartobject.smartobject_obj = pdObjectObj
+         NO-ERROR.
+ELSE
+    IF pcObjectName NE "":U 
+    THEN DO:
+        FIND ryc_smartobject NO-LOCK
+             WHERE ryc_smartobject.object_filename          = pcObjectName
+               AND ryc_smartobject.customization_result_obj = 0
+             NO-ERROR.
+
+        IF NOT AVAILABLE ryc_smartobject /* Remove the file extension and try again */
+        AND NUM-ENTRIES(pcObjectName, ".":U) > 1 
+        THEN DO:
+            ASSIGN pcObjectName = SUBSTRING(pcObjectName, 1, R-INDEX(pcObjectName, ".":U) - 1).
+            FIND ryc_smartobject NO-LOCK
+                 WHERE ryc_smartobject.object_filename          = pcObjectName
+                   AND ryc_smartobject.customization_result_obj = 0
+                 NO-ERROR.
+        END.
+    END.
+
+IF AVAILABLE ryc_smartobject 
+THEN DO:
+    /* We want to return the filename and obj, always. Important to cache correctly.*/
+
+    ASSIGN pcObjectName = ryc_smartobject.object_filename
+           pdObjectObj  = ryc_smartobject.smartobject_obj.
+
+    IF ryc_smartobject.security_smartobject_obj = 0 THEN. /* ASSIGN plSecurityRestricted = YES. It already is YES, isn't it? */        
     ELSE
-    IF pcObjectName NE "":U THEN
-       FIND FIRST gsc_object NO-LOCK
-            WHERE gsc_object.object_filename = pcObjectName 
-            NO-ERROR.    
-    IF AVAILABLE gsc_object THEN
-    DO:
         RUN userSecurityCheck IN gshSecurityManager (INPUT  DECIMAL(ENTRY(1,cUserValues,CHR(3))),  /* logged in as user */
                                                      INPUT  DECIMAL(ENTRY(2,cUserValues,CHR(3))),  /* logged into organisation */
-                                                     INPUT  "gscob":U,                      /* Security Structure FLA */
-                                                     INPUT  gsc_object.OBJECT_obj,
+                                                     INPUT  "RYCSO":U,                      /* Security Structure FLA */
+                                                     INPUT  ryc_smartobject.smartOBJECT_obj,
                                                      INPUT  NO,                             /* Return security values - NO */
                                                      OUTPUT plSecurityRestricted,           /* Restricted yes/no ? */
                                                      OUTPUT cSecurityValue1,                /* clearance value 1 */
                                                      OUTPUT cSecurityValue2).               /* clearance value 2 */
-        ASSIGN
-            pcObjectName = gsc_object.OBJECT_filename
-            pdObjectObj  = gsc_object.OBJECT_obj
-            .
-    END.
 END.
+ELSE
+    ASSIGN pdObjectObj          = 0
+           plSecurityRestricted = NO. /* Issue 7466 - If we can't find it, we couldn't have secured it */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

@@ -45,7 +45,7 @@
 
 /* Temp table used to keep track of destinations (queues/topics) that need
    message consumers */
-DEFINE TEMP-TABLE tDestination
+DEFINE TEMP-TABLE tDestination NO-UNDO
   FIELD destination      AS CHARACTER
   FIELD selector         AS CHARACTER INIT ?
   FIELD subscription     AS CHARACTER INIT ?

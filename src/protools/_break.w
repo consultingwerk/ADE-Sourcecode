@@ -63,7 +63,7 @@ CREATE WIDGET-POOL.
 DEFINE INPUT PARAMETER pType AS CHAR NO-UNDO.
 
 
-/* Local Variable Definitions ---                                       */
+/* Local Variable Definitions -----------                     */
 
 {protools/psvar.i} 
 {protools/ptlshlp.i}
@@ -84,6 +84,7 @@ DEFINE VAR cnt             AS INT    NO-UNDO.
 /* ********************  Preprocessor Definitions  ******************** */
 
 &Scoped-define PROCEDURE-TYPE WINDOW
+&Scoped-define DB-AWARE no
 
 /* Name of first Frame and/or Browse and/or first Query                 */
 &Scoped-define FRAME-NAME frm-break
@@ -91,8 +92,8 @@ DEFINE VAR cnt             AS INT    NO-UNDO.
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-OBJECTS btn-close slct-objects slct-methods btn-help ~
 bf-defined 
-&Scoped-Define DISPLAYED-OBJECTS slct-objects slct-methods def-label ~
-bf-defined 
+&Scoped-Define DISPLAYED-OBJECTS slct-objects slct-methods bf-defined ~
+def-label 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -132,41 +133,40 @@ DEFINE VARIABLE def-label AS CHARACTER FORMAT "x(15)":U
 DEFINE VARIABLE bf-defined AS CHARACTER 
      VIEW-AS SELECTION-LIST MULTIPLE 
      SCROLLBAR-HORIZONTAL SCROLLBAR-VERTICAL 
-     SIZE 51 BY 5.23 NO-UNDO.
+     SIZE 51 BY 5.24 NO-UNDO.
 
 DEFINE VARIABLE slct-methods AS CHARACTER 
      VIEW-AS SELECTION-LIST MULTIPLE 
      SCROLLBAR-HORIZONTAL SCROLLBAR-VERTICAL 
-     SIZE 24.72 BY 6.69 NO-UNDO.
+     SIZE 24.8 BY 6.67 NO-UNDO.
 
 DEFINE VARIABLE slct-objects AS CHARACTER 
      VIEW-AS SELECTION-LIST MULTIPLE 
      SCROLLBAR-HORIZONTAL SCROLLBAR-VERTICAL 
-     SIZE 24.72 BY 6.69 NO-UNDO.
+     SIZE 24.8 BY 6.67 NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frm-break
-     btn-close AT ROW 1.46 COL 54
-     slct-objects AT ROW 2.35 COL 2 NO-LABEL
-     slct-methods AT ROW 2.35 COL 28 NO-LABEL
-     btn-Add AT ROW 2.69 COL 54
-     btn-help AT ROW 3.96 COL 54
-     def-label AT ROW 9.31 COL 2 NO-LABEL
-     bf-defined AT ROW 10.08 COL 2 NO-LABEL
-     btn-rmv AT ROW 10.08 COL 54
+     btn-close AT ROW 1.48 COL 54
+     slct-objects AT ROW 2.33 COL 2 NO-LABEL
+     slct-methods AT ROW 2.33 COL 28 NO-LABEL
+     btn-Add AT ROW 2.67 COL 54
+     btn-help AT ROW 3.95 COL 54
+     bf-defined AT ROW 10.1 COL 2 NO-LABEL
+     btn-rmv AT ROW 10.1 COL 54
+     def-label AT ROW 9.33 COL 2 NO-LABEL
      "SmartObjects" VIEW-AS TEXT
-          SIZE 25 BY .77 AT ROW 1.46 COL 2
+          SIZE 25 BY .76 AT ROW 1.48 COL 2
      "Methods/States" VIEW-AS TEXT
-          SIZE 25 BY .77 AT ROW 1.46 COL 28
+          SIZE 25 BY .76 AT ROW 1.48 COL 28
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1
          SIZE 66.57 BY 14.81
          FONT 4.
 
- 
 
 /* *********************** Procedure Settings ************************ */
 
@@ -184,11 +184,11 @@ IF SESSION:DISPLAY-TYPE = "GUI":U THEN
          HIDDEN             = YES
          TITLE              = "Breakpoints"
          HEIGHT             = 14.81
-         WIDTH              = 66.57
-         MAX-HEIGHT         = 17.46
-         MAX-WIDTH          = 91.14
-         VIRTUAL-HEIGHT     = 17.46
-         VIRTUAL-WIDTH      = 91.14
+         WIDTH              = 66.6
+         MAX-HEIGHT         = 17.48
+         MAX-WIDTH          = 91.2
+         VIRTUAL-HEIGHT     = 17.48
+         VIRTUAL-WIDTH      = 91.2
          RESIZE             = no
          SCROLL-BARS        = no
          STATUS-AREA        = no
@@ -199,14 +199,18 @@ IF SESSION:DISPLAY-TYPE = "GUI":U THEN
          MESSAGE-AREA       = no
          SENSITIVE          = yes.
 ELSE {&WINDOW-NAME} = CURRENT-WINDOW.
+/* END WINDOW DEFINITION                                                */
 &ANALYZE-RESUME
 
 
-/* ***************  Runtime Attributes and UIB Settings  ************** */
+
+/* ***********  Runtime Attributes and AppBuilder Settings  *********** */
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR WINDOW Window-1
   VISIBLE,,RUN-PERSISTENT                                               */
+/* SETTINGS FOR FRAME frm-break
+                                                                        */
 /* SETTINGS FOR BUTTON btn-Add IN FRAME frm-break
    NO-ENABLE                                                            */
 /* SETTINGS FOR BUTTON btn-rmv IN FRAME frm-break
@@ -220,7 +224,6 @@ THEN Window-1:HIDDEN = no.
 &ANALYZE-RESUME
 
  
-
 
 
 
@@ -766,7 +769,6 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Chk-for-bf Window-1 
 PROCEDURE Chk-for-bf :
 /*------------------------------------------------------------------------------
@@ -1043,7 +1045,6 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Chk_Run_Win Window-1 
 PROCEDURE Chk_Run_Win :
 /*------------------------------------------------------------------------------
@@ -1072,8 +1073,7 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI Window-1 _DEFAULT-DISABLE
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI Window-1  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     DISABLE the User Interface
@@ -1092,8 +1092,7 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI Window-1 _DEFAULT-ENABLE
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI Window-1  _DEFAULT-ENABLE
 PROCEDURE enable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     ENABLE the User Interface
@@ -1104,7 +1103,7 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  DISPLAY slct-objects slct-methods def-label bf-defined 
+  DISPLAY slct-objects slct-methods bf-defined def-label 
       WITH FRAME frm-break IN WINDOW Window-1.
   ENABLE btn-close slct-objects slct-methods btn-help bf-defined 
       WITH FRAME frm-break IN WINDOW Window-1.
@@ -1114,7 +1113,6 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Init_Window Window-1 
 PROCEDURE Init_Window :
@@ -1182,7 +1180,6 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE LoadLists Window-1 
 PROCEDURE LoadLists :
 /*------------------------------------------------------------------------------
@@ -1214,7 +1211,6 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE LoadMethods Window-1 
 PROCEDURE LoadMethods :
@@ -1255,7 +1251,6 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Move_To_Top Window-1 
 PROCEDURE Move_To_Top :
 /*------------------------------------------------------------------------------
@@ -1275,7 +1270,6 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Reset_Lists Window-1 
 PROCEDURE Reset_Lists :
@@ -1318,5 +1312,4 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-
 

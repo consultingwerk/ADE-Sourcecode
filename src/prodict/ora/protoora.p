@@ -33,6 +33,7 @@
                                occurred 20000121012
             D. McMann 04/12/00 Added long Progress Database path name.
             D. McMann 10/12/01 Added logic to dump defaults if user wants
+            D. McMann 06/25/02 Added logic for function based indexes
 */            
 
 
@@ -53,6 +54,7 @@ DEFINE VARIABLE i             AS INTEGER NO-UNDO.
 DEFINE VARIABLE redo          AS LOGICAL NO-UNDO.
 DEFINE VARIABLE mvdta         AS LOGICAL NO-UNDO.
 
+
 DEFINE STREAM   strm.
 
 ASSIGN redo = FALSE
@@ -68,8 +70,8 @@ FORM
     LABEL "Name of Schema holder Database" colon 38 SKIP({&VM_WID})
   ora_dbname   FORMAT "x(32)"  view-as fill-in size 32 by 1 
     LABEL "Logical name for ORACLE Database" colon 38 SKIP({&VM_WID})
-  ora_version  FORMAT ">9" validate(input ora_version = 7 or ora_version = 8,
-    "Oracle Version must be either 7 or 8") view-as fill-in size 23 by 1
+  ora_version  FORMAT ">9" validate(input ora_version = 7 or ora_version = 8 OR ora_version = 9,
+    "Oracle Version must be 7, 8 or 9") view-as fill-in size 23 by 1
     LABEL "What version of ORACLE" colon 38 SKIP ({&VM_WID})  
   ora_username FORMAT "x(32)"  view-as fill-in size 32 by 1 
     LABEL "ORACLE Owner's Username" colon 38 SKIP({&VM_WID})
@@ -87,12 +89,15 @@ FORM
      LABEL "Tables" colon 8
   ora_ispace FORMAT "x(30)" view-as fill-in size 30 by 1
      LABEL "Indexes" colon 47 SKIP({&VM_WIDG})      
-  SPACE(9) pcompatible view-as toggle-box LABEL "Progress 4GL Compatible Objects  "  
-  sqlwidth VIEW-AS TOGGLE-BOX LABEL "Use Sql Width" SKIP({&VM_WID})
+  SPACE(9) pcompatible view-as toggle-box LABEL "Create Progress Recid Field "  SPACE(7)
+    crtdefault VIEW-AS TOGGLE-BOX LABEL "Include Default" SKIP({&VM_WID})  
   SPACE(9) loadsql view-as toggle-box     label "Load SQL  "  &IF "{&WINDOW-SYSTEM}" = "TTY"
-  &THEN SPACE(24) &ELSE SPACE(23) &ENDIF
-  movedata view-as toggle-box label "Move Data" SKIP({&VM_WID})
-   SPACE(9) crtdefault VIEW-AS TOGGLE-BOX LABEL "Include Default" SKIP({&VM_WID})
+  &THEN SPACE(25) &ELSE SPACE(23) &ENDIF
+   shadowcol VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns"  SKIP({&VM_WID}) 
+  SPACE(9) movedata view-as toggle-box label "Move Data" &IF "{&WINDOW-SYSTEM}" = "TTY"
+  &THEN SPACE(26) &ELSE SPACE(23) &ENDIF 
+  sqlwidth VIEW-AS TOGGLE-BOX LABEL "Use Width Field" SKIP({&VM_WID})
+ 
              {prodict/user/userbtns.i}
   WITH FRAME x ROW &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 1 &ELSE 2 &ENDIF CENTERED SIDE-labels 
     DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel
@@ -126,7 +131,8 @@ END PROCEDURE.
 /*   TRIGGERS   */
 ON WINDOW-CLOSE of FRAME x
    APPLY "END-ERROR" to FRAME x.
-   
+
+
 /*----- HELP in Progress DB to Oracle Database -----*/
 &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
 on HELP of frame x or CHOOSE of btn_Help in frame x
@@ -135,6 +141,13 @@ on HELP of frame x or CHOOSE of btn_Help in frame x
                              INPUT ?).
 &ENDIF  
    
+ON VALUE-CHANGED of ora_version IN FRAME x DO:
+  IF SELF:SCREEN-VALUE = "7" THEN 
+     shadowcol:SCREEN-VALUE in frame x = "YES".
+  ELSE 
+     shadowcol:SCREEN-VALUE in frame x = "NO".    
+END.
+
 ON VALUE-CHANGED of loadsql IN FRAME x DO:
   IF SELF:screen-value = "yes" THEN 
      movedata:sensitive in frame x = YES.
@@ -171,7 +184,7 @@ IF OS-GETENV("ORADBNAME")   <> ? THEN
 IF OS-GETENV("ORAVERSION")   <> ? THEN
   ora_version   = INTEGER(OS-GETENV("ORAVERSION")). 
 ELSE
-  ora_version = 7.       
+  ora_version = 8.       
 IF OS-GETENV("ORAUSERNAME") <> ? THEN
   ora_username = OS-GETENV("ORAUSERNAME").
 IF OS-GETENV("ORAPASSWORD") <> ? THEN
@@ -235,6 +248,16 @@ END.
 ELSE 
   ASSIGN crtdefault = FALSE.
 
+IF OS-GETENV("SHADOWCOL") <> ? THEN DO:
+  ASSIGN tmp_str  = OS-GETENV("SHADOWCOL").
+  IF tmp_str BEGINS "Y" then shadowcol = TRUE.
+  ELSE shadowcol = FALSE.
+END. 
+ELSE IF ora_version = 7 THEN
+    ASSIGN shadowcol = TRUE.
+ELSE
+  ASSIGN shadowcol = FALSE.
+
 IF PROGRESS EQ "COMPILE-ENCRYPT" THEN
   ASSIGN mvdta = FALSE.
 ELSE
@@ -271,10 +294,11 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
       ora_tspace
       ora_ispace
       pcompatible
-      sqlwidth
       loadsql
-      movedata WHEN mvdta
+      movedata WHEN mvdta 
       crtdefault
+      shadowcol
+      sqlwidth
       btn_OK btn_Cancel 
       &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
             btn_Help

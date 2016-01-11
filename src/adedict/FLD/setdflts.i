@@ -53,6 +53,7 @@ IMPORTANT: Do not change the b_Field buffer.  All changes must be made to
 Author: Laura Stern
 
 Date Created: 09/24/92 
+     History: 06/06/02 D. McMann Added check for timestamp's initial value.
 
 ----------------------------------------------------------------------------*/
 
@@ -140,10 +141,12 @@ run adedict/FLD/_dtcust.p (INPUT b_Field._Fld-case:HANDLE in {&Frame},
 
 /* Set other defaults. */
 case s_Fld_Typecode:
-   when {&DTYPE_CHARACTER} then
+   when {&DTYPE_CHARACTER} THEN DO: 
+     IF s_Fld_Gatetype = "Timestamp" THEN. /* Timestamp needs ? as initial value */
+     ELSE
       assign
          b_Field._Initial:screen-value in {&Frame} = "".
-
+   END.
    /* DTYPE_LOGICAL - Initial value is the only thing to set and it 
       has been done in _dfltfmt.p */
    when {&DTYPE_LOGICAL} then .

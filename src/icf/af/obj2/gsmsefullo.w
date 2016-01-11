@@ -1,11 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          asdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
 DEFINE VARIABLE h_Astra                    AS HANDLE          NO-UNDO.
+DEFINE VARIABLE h_Astra2                   AS HANDLE          NO-UNDO.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" dTables _INLINE
 /* Actions: ? ? ? ? af/sup/afverxftrp.p */
 /* This has to go above the definitions sections, as that is what it modifies.
@@ -92,7 +93,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gsmsefullo.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -124,6 +125,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -131,18 +133,24 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 /* Definitions for QUERY Query-Main                                     */
 &Scoped-Define ENABLED-FIELDS  session_type_code session_type_description physical_session_list~
- valid_os_list
+ valid_os_list automatic_reconnect extends_session_type_obj~
+ inactivity_timeout_period
 &Scoped-define ENABLED-FIELDS-IN-gsm_session_type session_type_code ~
-session_type_description physical_session_list valid_os_list 
+session_type_description physical_session_list valid_os_list ~
+automatic_reconnect extends_session_type_obj inactivity_timeout_period 
 &Scoped-Define DATA-FIELDS  session_type_obj session_type_code session_type_description~
- physical_session_list valid_os_list
+ physical_session_list valid_os_list automatic_reconnect~
+ extends_session_type_obj inactivity_timeout_period
 &Scoped-define DATA-FIELDS-IN-gsm_session_type session_type_obj ~
 session_type_code session_type_description physical_session_list ~
-valid_os_list 
+valid_os_list automatic_reconnect extends_session_type_obj ~
+inactivity_timeout_period 
 &Scoped-Define MANDATORY-FIELDS 
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gsmsefullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsm_session_type NO-LOCK ~
+    BY gsm_session_type.session_type_code INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsm_session_type NO-LOCK ~
     BY gsm_session_type.session_type_code INDEXED-REPOSITION.
@@ -230,24 +238,30 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "asdb.gsm_session_type"
+     _TblList          = "ICFDB.gsm_session_type"
      _Options          = "NO-LOCK INDEXED-REPOSITION"
-     _OrdList          = "asdb.gsm_session_type.session_type_code|yes"
-     _FldNameList[1]   > ASDB.gsm_session_type.session_type_obj
-"session_type_obj" "session_type_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
-     _FldNameList[2]   > ASDB.gsm_session_type.session_type_code
-"session_type_code" "session_type_code" ? ? "character" ? ? ? ? ? ? yes ? no 20 yes
-     _FldNameList[3]   > ASDB.gsm_session_type.session_type_description
-"session_type_description" "session_type_description" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[4]   > ASDB.gsm_session_type.physical_session_list
-"physical_session_list" "physical_session_list" ? "X(35)" "character" ? ? ? ? ? ? yes ? no 35 yes
-     _FldNameList[5]   > asdb.gsm_session_type.valid_os_list
-"valid_os_list" "valid_os_list" ? ? "character" ? ? ? ? ? ? yes ? no 28 yes
+     _OrdList          = "ICFDB.gsm_session_type.session_type_code|yes"
+     _FldNameList[1]   > ICFDB.gsm_session_type.session_type_obj
+"session_type_obj" "session_type_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 33.6 no
+     _FldNameList[2]   > ICFDB.gsm_session_type.session_type_code
+"session_type_code" "session_type_code" ? ? "character" ? ? ? ? ? ? yes ? no 20 no
+     _FldNameList[3]   > ICFDB.gsm_session_type.session_type_description
+"session_type_description" "session_type_description" ? ? "character" ? ? ? ? ? ? yes ? no 35 no
+     _FldNameList[4]   > ICFDB.gsm_session_type.physical_session_list
+"physical_session_list" "physical_session_list" ? ? "character" ? ? ? ? ? ? yes ? no 70 no
+     _FldNameList[5]   > ICFDB.gsm_session_type.valid_os_list
+"valid_os_list" "valid_os_list" ? ? "character" ? ? ? ? ? ? yes ? no 70 no
+     _FldNameList[6]   > ICFDB.gsm_session_type.automatic_reconnect
+"automatic_reconnect" "automatic_reconnect" ? ? "logical" ? ? ? ? ? ? yes ? no 20.6 no
+     _FldNameList[7]   > ICFDB.gsm_session_type.extends_session_type_obj
+"extends_session_type_obj" "extends_session_type_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 33.6 no
+     _FldNameList[8]   > ICFDB.gsm_session_type.inactivity_timeout_period
+"inactivity_timeout_period" "inactivity_timeout_period" ? ? "decimal" ? ? ? ? ? ? yes ? no 33.6 no
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK dTables 

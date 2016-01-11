@@ -61,6 +61,7 @@ DEFINE VARIABLE saveAppPartition    AS CHARACTER                 NO-UNDO.
 DEFINE VARIABLE appPartition        AS CHARACTER                 NO-UNDO.
 DEFINE VARIABLE noPartition         AS CHARACTER INIT "(None)":U NO-UNDO.
 DEFINE VARIABLE Web                 AS LOGICAL                   NO-UNDO.
+DEFINE VARIABLE gcPromptColumns     AS CHARACTER                 NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -77,9 +78,10 @@ DEFINE VARIABLE Web                 AS LOGICAL                   NO-UNDO.
 &Scoped-define FRAME-NAME Attribute-Dlg
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS fObjectname fRowsToBatch RebuildOnRepos ~
-lToggleDataTargets 
-&Scoped-Define DISPLAYED-OBJECTS fObjectname c_AppPartition fRowsToBatch 
+&Scoped-Define ENABLED-OBJECTS radFieldList fObjectname fRowsToBatch ~
+RebuildOnRepos lToggleDataTargets togPromptOnDelete RECT-1 
+&Scoped-Define DISPLAYED-OBJECTS radFieldList fObjectname c_AppPartition ~
+fRowsToBatch 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -117,6 +119,10 @@ FUNCTION webStateCheck RETURNS LOGICAL
 /* Define a dialog box                                                  */
 
 /* Definitions of the field level widgets                               */
+DEFINE BUTTON btnDisplayed 
+     LABEL "&Edit Display Field List" 
+     SIZE 25 BY 1.14.
+
 DEFINE VARIABLE c_AppPartition AS CHARACTER FORMAT "x(23)" 
      LABEL "&Partition" 
      VIEW-AS COMBO-BOX 
@@ -132,6 +138,18 @@ DEFINE VARIABLE fRowsToBatch AS INTEGER FORMAT ">,>>>,>>9":U INITIAL 0
      LABEL "&Rows" 
      VIEW-AS FILL-IN 
      SIZE 11 BY .95 NO-UNDO.
+
+DEFINE VARIABLE radFieldList AS INTEGER 
+     VIEW-AS RADIO-SET VERTICAL
+     RADIO-BUTTONS 
+          "&None", 1,
+"A&ll", 2,
+"&Select Fields", 3
+     SIZE 18 BY 3.1 NO-UNDO.
+
+DEFINE RECTANGLE RECT-1
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     SIZE 51 BY 4.29.
 
 DEFINE VARIABLE ckCurChanged AS LOGICAL INITIAL no 
      LABEL "&Check current changed" 
@@ -178,10 +196,16 @@ DEFINE VARIABLE ServerOperatingMode AS LOGICAL INITIAL no
      VIEW-AS TOGGLE-BOX
      SIZE 36 BY .81 NO-UNDO.
 
+DEFINE VARIABLE togPromptOnDelete AS LOGICAL INITIAL no 
+     LABEL "&Prompt On Delete" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 23.6 BY .81 NO-UNDO.
+
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME Attribute-Dlg
+     radFieldList AT ROW 16.29 COL 20 NO-LABEL
      fObjectname AT ROW 1.38 COL 17.4 COLON-ALIGNED
      c_AppPartition AT ROW 2.67 COL 17.4 COLON-ALIGNED
      lBatch AT ROW 4.1 COL 19.4
@@ -194,7 +218,12 @@ DEFINE FRAME Attribute-Dlg
      DestroyStateless AT ROW 10.62 COL 19.4
      DisconnectAppServer AT ROW 11.76 COL 19.4
      lToggleDataTargets AT ROW 12.81 COL 19.4
-     SPACE(0.19) SKIP(0.00)
+     btnDisplayed AT ROW 18.29 COL 39.4
+     togPromptOnDelete AT ROW 14 COL 19.4
+     RECT-1 AT ROW 15.52 COL 17
+     "Display Fields for Prompt" VIEW-AS TEXT
+          SIZE 25 BY .62 AT ROW 15.29 COL 20
+     SPACE(32.79) SKIP(3.89)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "SmartDataObject Properties":L.
@@ -220,6 +249,8 @@ ASSIGN
        FRAME Attribute-Dlg:SCROLLABLE       = FALSE
        FRAME Attribute-Dlg:HIDDEN           = TRUE.
 
+/* SETTINGS FOR BUTTON btnDisplayed IN FRAME Attribute-Dlg
+   NO-ENABLE                                                            */
 /* SETTINGS FOR TOGGLE-BOX ckCurChanged IN FRAME Attribute-Dlg
    NO-DISPLAY NO-ENABLE                                                 */
 /* SETTINGS FOR COMBO-BOX c_AppPartition IN FRAME Attribute-Dlg
@@ -240,6 +271,8 @@ ASSIGN
    NO-DISPLAY                                                           */
 /* SETTINGS FOR TOGGLE-BOX ServerOperatingMode IN FRAME Attribute-Dlg
    NO-DISPLAY NO-ENABLE                                                 */
+/* SETTINGS FOR TOGGLE-BOX togPromptOnDelete IN FRAME Attribute-Dlg
+   NO-DISPLAY                                                           */
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
@@ -294,6 +327,19 @@ DO:
   DYNAMIC-FUNCTION("setToggleDataTargets":U IN p_hSMO,
                     lToggleDataTargets:CHECKED).
 
+  DYNAMIC-FUNCTION("setPromptOnDelete":U IN p_hSMO,
+                    togPromptOnDelete:CHECKED).
+  gcPromptColumns = (IF radFieldList = 1 THEN
+                       '(NONE)':U
+                     ELSE IF radFieldList = 2 THEN
+                       '(ALL)':U 
+                     ELSE
+                       gcPromptColumns
+                    ).
+  DYNAMIC-FUNCTION("setPromptColumns":U IN p_hSMO,
+                   gcPromptColumns).
+
+
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -305,6 +351,30 @@ ON WINDOW-CLOSE OF FRAME Attribute-Dlg /* SmartDataObject Properties */
 DO:
   /* Add Trigger to equate WINDOW-CLOSE to END-ERROR */
   APPLY "END-ERROR":U TO SELF.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME btnDisplayed
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL btnDisplayed Attribute-Dlg
+ON CHOOSE OF btnDisplayed IN FRAME Attribute-Dlg /* Edit Display Field List */
+DO:
+  IF NOT VALID-HANDLE(p_hSMO) THEN RETURN.
+
+  IF CAN-DO('(NONE),(ALL)':U, gcPromptColumns) THEN
+    gcPromptColumns = '':U.
+
+  RUN adecomm/_mfldsel.p
+   (INPUT "":U,     /* Use an SDO, not db tables */
+    INPUT p_hSMO,     /* handle of the SDO */
+    INPUT ?,        /* No additional temp-tables */
+    INPUT "1":U,    /* No db or table name qualification of fields */
+    INPUT ",":U,    /* list delimiter */
+    INPUT "":U,     /* exclude field list */
+    INPUT-OUTPUT gcPromptColumns).
+     
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -373,6 +443,29 @@ DO:
 
   initRowsToBatch().
    
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME radFieldList
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL radFieldList Attribute-Dlg
+ON VALUE-CHANGED OF radFieldList IN FRAME Attribute-Dlg
+DO:
+  DO WITH FRAME {&FRAME-NAME}:
+    ASSIGN
+      radFieldList
+      btnDisplayed:SENSITIVE = (IF radFieldList = 3 THEN
+                                  YES
+                                ELSE
+                                  NO
+                                ). 
+
+
+
+    
+  END.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -457,9 +550,10 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  DISPLAY fObjectname c_AppPartition fRowsToBatch 
+  DISPLAY radFieldList fObjectname c_AppPartition fRowsToBatch 
       WITH FRAME Attribute-Dlg.
-  ENABLE fObjectname fRowsToBatch RebuildOnRepos lToggleDataTargets 
+  ENABLE radFieldList fObjectname fRowsToBatch RebuildOnRepos 
+         lToggleDataTargets togPromptOnDelete RECT-1 
       WITH FRAME Attribute-Dlg.
   VIEW FRAME Attribute-Dlg.
   {&OPEN-BROWSERS-IN-QUERY-Attribute-Dlg}
@@ -568,6 +662,24 @@ PROCEDURE get-SmO-attributes :
     initRowsToBatch().
     initObjects().    
     ASSIGN lBatch = lBatch:CHECKED.
+
+    /* prompt */
+    ASSIGN
+      togPromptOnDelete:CHECKED   = DYNAMIC-FUNCTION("getPromptOnDelete":U IN p_hSMO)
+      gcPromptColumns             = DYNAMIC-FUNCTION("getPromptColumns":U IN p_hSMO)
+      radFieldList                = (IF gcPromptColumns = '(NONE)':U THEN
+                                       1
+                                     ELSE IF gcPromptColumns = '(ALL)':U THEN
+                                       2
+                                     ELSE
+                                       3
+                                     )
+      btnDisplayed:SENSITIVE      = (IF radFieldList = 3 THEN
+                                       YES
+                                     ELSE
+                                       NO
+                                     )
+      .
   END. /* DO WITH FRAME */
 END PROCEDURE. /* get-SmO-attributes */
 

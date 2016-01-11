@@ -43,6 +43,7 @@ Used/Modified Shared Objects:
          no other environment variables changed
 
 History:
+    D. McMann 06/25/02  Added support for V9 of Oracle
     D. McMann 06/16/01  Added collation name for all DataServers and case sensitive for MSS
     D. McMann 06/07/00  Changed tty frame layout
     D. McMann 04/01/99  Added check for Oracle to assign _DB-misc1[3].
@@ -114,7 +115,7 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 14 NO-UNDO INITIAL [
   /*11*/ "Logical Database Name may not be left blank or unknown.",
   /*12*/ "Connect parameters are required.",
   /*13*/ "ODBC Data Source Name is required.",
-  /*14*/ "Oracle version must be either 7 or 8."
+  /*14*/ "Oracle version must be either 7, 8, or 9."
 ].
 
 FORM
@@ -200,7 +201,7 @@ ON LEAVE OF DICTDB._Db._Db-name IN FRAME userschg DO:
 
 /* -----LEAVE of Oracle Version on add oraver ------------- */
 ON LEAVE OF oraver IN FRAME userschg DO:
-  IF INPUT oraver <> 7 AND INPUT oraver <> 8 THEN DO:
+  IF INPUT oraver <> 7 AND INPUT oraver <> 8 AND INPUT oraver <> 9 THEN DO:
     MESSAGE new_lang[14] 
        VIEW-AS ALERT-BOX ERROR BUTTONS OK.
     APPLY "ENTRY" TO oraver IN FRAME userschg.
@@ -294,7 +295,7 @@ ASSIGN
   f_addr = (IF AVAILABLE DICTDB._Db THEN DICTDB._Db._Db-addr ELSE "")
   f_comm = (IF AVAILABLE DICTDB._Db THEN DICTDB._Db._Db-comm ELSE "")
   oraver = (IF AVAILABLE DICTDB._Db AND DICTDB._Db._Db-Type = "ORACLE"
-                THEN DICTDB._Db._Db-misc1[3] ELSE 7).
+                THEN DICTDB._Db._Db-misc1[3] ELSE 8).
 
 DO FOR DICTDB._File:
   FIND DICTDB._File "_Db" WHERE _File._Owner = "PUB" NO-LOCK.

@@ -86,6 +86,11 @@ RUN adecomm/_adeevnt.p (INPUT  "UIB":U,
                         OUTPUT ok2continue).
 IF NOT ok2continue THEN RETURN.
 
+/* Clean out _TRG._toffsets */
+FOR EACH _TRG WHERE _TRG._pRECID = RECID(_P):
+  _TRG._tOFFSET = ?.
+END.
+
 RUN adeshar/_gendefs.p (INPUT p_status, INPUT YES).
 
 /* Notify others that the partial check syntax has ended. */

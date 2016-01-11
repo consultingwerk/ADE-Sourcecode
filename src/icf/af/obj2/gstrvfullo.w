@@ -126,6 +126,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -150,6 +151,9 @@ version_user deletion_flag
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gstrvfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gst_record_version NO-LOCK ~
+    BY gst_record_version.entity_mnemonic ~
+       BY gst_record_version.key_field_value INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gst_record_version NO-LOCK ~
     BY gst_record_version.entity_mnemonic ~
@@ -245,7 +249,7 @@ END.
      _FldNameList[1]   > ICFDB.gst_record_version.record_version_obj
 "record_version_obj" "record_version_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
      _FldNameList[2]   > ICFDB.gst_record_version.entity_mnemonic
-"entity_mnemonic" "entity_mnemonic" ? ? "character" ? ? ? ? ? ? yes ? no 16 yes
+"entity_mnemonic" "entity_mnemonic" "Entity" ? "character" ? ? ? ? ? ? yes ? no 16 yes
      _FldNameList[3]   > ICFDB.gst_record_version.key_field_value
 "key_field_value" "key_field_value" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
      _FldNameList[4]   > ICFDB.gst_record_version.import_version_number_seq

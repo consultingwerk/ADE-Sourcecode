@@ -33,11 +33,11 @@ af/cod/aftemwizpw.w
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
-  File: gscobttdef.i
+  File: rycavttdef.i
 
-  Description:  TT defs for gsc_object
+  Description:  TT defs for ryc_attribute_value
 
-  Purpose:      TT defs for gsc_object read and update
+  Purpose:      TT defs for ryc_attribute_value read and update
 
   Parameters:   <none>
 
@@ -56,7 +56,7 @@ af/cod/aftemwizpw.w
 &glob   AstraInclude    yes
 
 DEFINE TEMP-TABLE {&TTName} RCODE-INFORMATION /* Defined same as RowobjUpd temp table */
-    {ry/obj/rycavfullo.i}
+    {ry/obj/rycavful2o.i}
     {src/adm2/rupdflds.i}.
 
 /* _UIB-CODE-BLOCK-END */

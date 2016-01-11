@@ -123,13 +123,13 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &Scoped-Define ENABLED-FIELDS RowObject.menu_item_sequence 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define ENABLED-OBJECTS RECT-1 
 &Scoped-Define DISPLAYED-FIELDS RowObject.menu_item_sequence ~
 RowObject.menu_structure_item_obj RowObject.item_control_type 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define DISPLAYED-OBJECTS fiBand fibanddesc fiItemLabel fiItemDesc ~
-fitype fisubBand fiModule 
+fitype fisubBand fiBandItemsLabel fiModule 
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -154,7 +154,11 @@ DEFINE VARIABLE fiBand AS CHARACTER FORMAT "X(256)":U
 
 DEFINE VARIABLE fibanddesc AS CHARACTER FORMAT "X(256)":U 
      VIEW-AS FILL-IN 
-     SIZE 55 BY 1 NO-UNDO.
+     SIZE 55.6 BY 1 NO-UNDO.
+
+DEFINE VARIABLE fiBandItemsLabel AS CHARACTER FORMAT "X(20)":U INITIAL "Band Items" 
+      VIEW-AS TEXT 
+     SIZE 10.6 BY .62 NO-UNDO.
 
 DEFINE VARIABLE fiItemDesc AS CHARACTER FORMAT "X(256)":U 
      LABEL "Item Descriptiion" 
@@ -181,33 +185,31 @@ DEFINE VARIABLE fitype AS CHARACTER FORMAT "X(256)":U
 
 DEFINE RECTANGLE RECT-1
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 104 BY 11.19.
+     SIZE 104 BY 7.62.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     fiBand AT ROW 2.19 COL 24 COLON-ALIGNED
-     fibanddesc AT ROW 2.19 COL 47 COLON-ALIGNED NO-LABEL
-     fiItemLabel AT ROW 4.1 COL 72 COLON-ALIGNED
-     fiItemDesc AT ROW 5.05 COL 24 COLON-ALIGNED
-     fitype AT ROW 5.05 COL 72 COLON-ALIGNED
-     RowObject.menu_item_sequence AT ROW 6.71 COL 24 COLON-ALIGNED
-          LABEL "Item sequence*"
+     fiBand AT ROW 1.71 COL 20.4 COLON-ALIGNED
+     fibanddesc AT ROW 1.71 COL 43.4 COLON-ALIGNED NO-LABEL
+     fiItemLabel AT ROW 2.76 COL 68.8 COLON-ALIGNED
+     fiItemDesc AT ROW 3.81 COL 20.4 COLON-ALIGNED
+     fitype AT ROW 3.81 COL 68.8 COLON-ALIGNED
+     RowObject.menu_item_sequence AT ROW 4.91 COL 20.4 COLON-ALIGNED
+          LABEL "Item sequence"
           VIEW-AS FILL-IN 
           SIZE 8 BY 1
-     fisubBand AT ROW 9.33 COL 24 COLON-ALIGNED NO-LABEL
-     RowObject.menu_structure_item_obj AT ROW 6.48 COL 86 COLON-ALIGNED NO-LABEL
+     fisubBand AT ROW 6.95 COL 20.4 COLON-ALIGNED NO-LABEL
+     fiBandItemsLabel AT ROW 1.1 COL 3.6 NO-LABEL
+     RowObject.menu_structure_item_obj AT ROW 4.57 COL 89 COLON-ALIGNED NO-LABEL
            VIEW-AS TEXT 
           SIZE 10 BY .62
-     RowObject.item_control_type AT ROW 7.91 COL 82 COLON-ALIGNED NO-LABEL
+     fiModule AT ROW 5.29 COL 87.8 COLON-ALIGNED NO-LABEL BLANK 
+     RowObject.item_control_type AT ROW 5.95 COL 87.8 COLON-ALIGNED NO-LABEL
            VIEW-AS TEXT 
           SIZE 14 BY .62
-     fiModule AT ROW 7.91 COL 84 COLON-ALIGNED NO-LABEL BLANK 
-     RECT-1 AT ROW 1.48 COL 1
-     "Band Items" VIEW-AS TEXT
-          SIZE 11 BY .62 AT ROW 1.24 COL 4
-     SPACE(50.00) SKIP(7.52)
+     RECT-1 AT ROW 1.38 COL 1.6
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -247,8 +249,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 12.05
-         WIDTH              = 104.8.
+         HEIGHT             = 8.48
+         WIDTH              = 105.2.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -279,6 +281,12 @@ ASSIGN
    NO-ENABLE                                                            */
 /* SETTINGS FOR FILL-IN fibanddesc IN FRAME frMain
    NO-ENABLE                                                            */
+/* SETTINGS FOR FILL-IN fiBandItemsLabel IN FRAME frMain
+   NO-ENABLE ALIGN-L                                                    */
+ASSIGN 
+       fiBandItemsLabel:PRIVATE-DATA IN FRAME frMain     = 
+                "Band Items".
+
 /* SETTINGS FOR FILL-IN fiItemDesc IN FRAME frMain
    NO-ENABLE                                                            */
 /* SETTINGS FOR FILL-IN fiItemLabel IN FRAME frMain
@@ -293,7 +301,7 @@ ASSIGN
 /* SETTINGS FOR FILL-IN fitype IN FRAME frMain
    NO-ENABLE                                                            */
 /* SETTINGS FOR FILL-IN RowObject.item_control_type IN FRAME frMain
-   NO-ENABLE                                                            */
+   NO-ENABLE EXP-LABEL                                                  */
 ASSIGN 
        RowObject.item_control_type:HIDDEN IN FRAME frMain           = TRUE
        RowObject.item_control_type:READ-ONLY IN FRAME frMain        = TRUE.
@@ -301,7 +309,7 @@ ASSIGN
 /* SETTINGS FOR FILL-IN RowObject.menu_item_sequence IN FRAME frMain
    EXP-LABEL                                                            */
 /* SETTINGS FOR FILL-IN RowObject.menu_structure_item_obj IN FRAME frMain
-   NO-ENABLE                                                            */
+   NO-ENABLE EXP-LABEL                                                  */
 ASSIGN 
        RowObject.menu_structure_item_obj:HIDDEN IN FRAME frMain           = TRUE
        RowObject.menu_structure_item_obj:READ-ONLY IN FRAME frMain        = TRUE.
@@ -392,21 +400,21 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsm_menu_item.menu_item_referenceKeyFieldgsm_menu_item.menu_item_objFieldLabelItem reference*FieldTooltipPress F4 for LookupKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(15)DisplayDatatypecharacterBaseQueryStringfor each gsm_menu_item no-lock
-                     by menu_item_referenceQueryTablesgsm_menu_itemBrowseFieldsgsm_menu_item.menu_item_reference,gsm_menu_item.menu_item_label,gsm_menu_item.menu_item_description,gsm_menu_item.item_control_typeBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(15),X(28),X(35),X(10)RowsToBatch200BrowseTitleItem LookupViewerLinkedFieldsgsm_menu_item.menu_item_label,gsm_menu_item.menu_item_description,gsm_menu_item.item_control_typeLinkedFieldDataTypescharacter,character,characterLinkedFieldFormatsX(28),X(35),X(10)ViewerLinkedWidgetsfiItemLabel,fiitemDesc,fitypeColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldfiModule,fiModule,fiModuleParentFilterQuerygsm_menu_item.product_module_obj =  (IF  ~'&1~' <> ~'~' THEN decimal(~'&1~') ELSE gsm_menu_item.product_module_obj )  OR   gsm_menu_item.product_module_obj  =   (IF  ~'&1~' <> ~'~' THEN 0 ELSE gsm_menu_item.product_module_obj )MaintenanceObjectMaintenanceSDOFieldNamemenu_item_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsm_menu_item.menu_item_referenceKeyFieldgsm_menu_item.menu_item_objFieldLabelItem referenceFieldTooltipPress F4 for LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(15)DisplayDatatypecharacterBaseQueryStringfor each gsm_menu_item no-lock
+                     by menu_item_referenceQueryTablesgsm_menu_itemBrowseFieldsgsm_menu_item.menu_item_reference,gsm_menu_item.menu_item_label,gsm_menu_item.menu_item_description,gsm_menu_item.item_control_typeBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(15)|X(28)|X(35)|X(15)RowsToBatch200BrowseTitleItem LookupViewerLinkedFieldsgsm_menu_item.menu_item_label,gsm_menu_item.menu_item_description,gsm_menu_item.item_control_typeLinkedFieldDataTypescharacter,character,characterLinkedFieldFormatsX(28),X(35),X(15)ViewerLinkedWidgetsfiItemLabel,fiitemDesc,fitypeColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldfiModule,fiModule,fiModuleParentFilterQuerygsm_menu_item.product_module_obj =  (IF  ~'&1~' <> ~'~' THEN decimal(~'&1~') ELSE gsm_menu_item.product_module_obj )  OR   gsm_menu_item.product_module_obj  =   (IF  ~'&1~' <> ~'~' THEN 0 ELSE gsm_menu_item.product_module_obj )MaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListNO-LOCKQueryBuilderOrderListmenu_item_reference^yesQueryBuilderTableOptionListNO-LOCKQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNamemenu_item_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dynlookup-2 ).
-       RUN repositionObject IN h_dynlookup-2 ( 4.10 , 26.00 ) NO-ERROR.
+       RUN repositionObject IN h_dynlookup-2 ( 2.76 , 22.40 ) NO-ERROR.
        RUN resizeObject IN h_dynlookup-2 ( 1.00 , 39.00 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsm_menu_structure.menu_structure_codeKeyFieldgsm_menu_structure.menu_structure_objFieldLabelSubmenu/SubBandFieldTooltipPress F4 for LookupKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(28)DisplayDatatypecharacterBaseQueryStringFOR each gsm_menu_structure ,
+             INPUT  'DisplayedFieldgsm_menu_structure.menu_structure_codeKeyFieldgsm_menu_structure.menu_structure_objFieldLabelSubmenu/SubBandFieldTooltipPress F4 for LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(28)DisplayDatatypecharacterBaseQueryStringFOR each gsm_menu_structure ,
                      FIRST gsc_product_module OUTER-JOIN
                      where gsm_menu_structure.product_module_obj = gsc_product_module .product_module_obj
-                     by menu_structure_codeQueryTablesgsm_menu_structure,gsc_product_moduleBrowseFieldsgsm_menu_structure.menu_structure_code,gsm_menu_structure.menu_structure_description,gsc_product_module.product_module_codeBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(28),X(35),X(10)RowsToBatch200BrowseTitleSubmenu LookupViewerLinkedFieldsgsm_menu_structure.menu_structure_descriptionLinkedFieldDataTypescharacterLinkedFieldFormatsX(35)ViewerLinkedWidgetsfiSubBandColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldfiModule,fiModule,fiModuleParentFilterQuerygsm_menu_structure.product_module_obj =  (IF  ~'&1~' <> ~'~' THEN decimal(~'&1~') ELSE gsm_menu_structure.product_module_obj )  OR   gsm_menu_structure.product_module_obj  =   (IF  ~'&1~' <> ~'~' THEN 0 ELSE gsm_menu_structure.product_module_obj )MaintenanceObjectMaintenanceSDOFieldNamechild_menu_structure_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     by menu_structure_codeQueryTablesgsm_menu_structure,gsc_product_moduleBrowseFieldsgsm_menu_structure.menu_structure_code,gsm_menu_structure.menu_structure_description,gsc_product_module.product_module_codeBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(28),X(35),X(10)RowsToBatch200BrowseTitleSubmenu LookupViewerLinkedFieldsgsm_menu_structure.menu_structure_descriptionLinkedFieldDataTypescharacterLinkedFieldFormatsX(35)ViewerLinkedWidgetsfiSubBandColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldfiModule,fiModule,fiModuleParentFilterQuerygsm_menu_structure.product_module_obj =  (IF  ~'&1~' <> ~'~' THEN decimal(~'&1~') ELSE gsm_menu_structure.product_module_obj )  OR   gsm_menu_structure.product_module_obj  =   (IF  ~'&1~' <> ~'~' THEN 0 ELSE gsm_menu_structure.product_module_obj )MaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNamechild_menu_structure_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dynlookup-3 ).
-       RUN repositionObject IN h_dynlookup-3 ( 8.38 , 26.00 ) NO-ERROR.
+       RUN repositionObject IN h_dynlookup-3 ( 6.00 , 22.40 ) NO-ERROR.
        RUN resizeObject IN h_dynlookup-3 ( 1.00 , 39.00 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */

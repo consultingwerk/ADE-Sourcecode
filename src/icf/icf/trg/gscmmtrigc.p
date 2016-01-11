@@ -24,11 +24,6 @@
 
 TRIGGER PROCEDURE FOR CREATE OF gsc_multi_media_type .
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "gsc_multi_media_type"
-                      &TRIGGER-TYPE = "CREATE"}
-
 /* Created automatically using ERwin ICF Trigger template db/af/erw/afercustrg.i
    Do not change manually. Customisations to triggers should be placed in separate
    include files pulled into the trigger. ICF auto generates write trigger custom
@@ -69,6 +64,8 @@ DEFINE BUFFER o_gsc_multi_media_type FOR gsc_multi_media_type.
 
 
 ASSIGN gsc_multi_media_type.{&TRIGGER_OBJ} = getNextObj().
+
+
 
 
 

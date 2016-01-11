@@ -30,6 +30,7 @@ History - 07/09/98 D. McMann Added AND (_File._Owner = "PUB" OR _File._Owner = "
                              data in new-name was not valid.  Bug 98-06-29-011.
           03/28/02 D. McMann Changed size of name fields to 32 SCC 20020218-023
                              Issue 3977 
+          06/10/02 D. McMann Added check for new SESSION attribute schema change.
 */
 
 { prodict/dictvar.i }
@@ -65,7 +66,8 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 20 NO-UNDO INITIAL [
   /*13,14*/ "Changing", "to",
   /*15,16*/ "This field name occurs in", "tables",
   /*17,18*/ "Searching fields to be renamed...", "done.",
-  /*   19*/ "There are no user-defined fields in this database."
+  /*   19*/ "There are no user-defined fields in this database.",
+  /*   20*/ "SESSION:SCHEMA-CHANGE set to New Objects, changes not allowed."
 ].
 
 FORM
@@ -140,9 +142,14 @@ DO FOR _File:
                AND _File._Owner = "PUB".
   FIND FIRST _Field WHERE _Field._Field-name < "_" 
                       AND (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN") NO-ERROR.
-  IF NOT CAN-DO(_Can-write,USERID("DICTDB")) THEN num = 6.
-  IF dict_rog                                THEN num = 5.
-  IF NOT AVAILABLE _Field                    THEN num = 19.
+  IF NOT CAN-DO(_Can-write,USERID("DICTDB"))      THEN num = 6.
+  ELSE IF dict_rog                                THEN num = 5.
+  ELSE IF NOT AVAILABLE _Field                    THEN num = 19.
+  ELSE
+    &IF PROVERSION >= "9.1E" &THEN
+      IF SESSION:SCHEMA-CHANGE = "New Objects"   THEN num = 20.
+    &ENDIF
+    .
 END.
 IF num > 0 THEN DO:
   MESSAGE new_lang[num] VIEW-AS ALERT-BOX ERROR BUTTONS OK.

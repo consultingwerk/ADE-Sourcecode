@@ -158,6 +158,8 @@ ASSIGN cObjectName = "{&object-name}":U.
 
 
 
+
+
 /* _UIB-PREPROCESSOR-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -223,8 +225,8 @@ FUNCTION isFieldBlank RETURNS LOGICAL
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW DataLogicProcedure ASSIGN
-         HEIGHT             = 21.19
-         WIDTH              = 55.6.
+         HEIGHT             = 24.57
+         WIDTH              = 48.2.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -285,7 +287,7 @@ PROCEDURE cascadeTypesData :
    CREATE QUERY hQuery.
    hQuery:SET-BUFFERS(BUFFER b_gsm_user:HANDLE).
    ASSIGN cQuery = "FOR EACH b_gsm_user NO-LOCK
-                       WHERE b_gsm_user.created_from_profile_user_obj EQ " + STRING(pdUserObj).
+                       WHERE b_gsm_user.created_from_profile_user_obj EQ DECIMAL('" + STRING(pdUserObj) + "')":U.
    hQuery:QUERY-PREPARE(cQuery).
 
    hTTBuffer = phTT:DEFAULT-BUFFER-HANDLE.
@@ -429,8 +431,10 @@ PROCEDURE cascadeUser :
                   IF NOT AVAILABLE b_gsm_user_allocation THEN
                      CREATE b_gsm_user_allocation     NO-ERROR.
 
-                  BUFFER-COPY gsm_user_allocation TO b_gsm_user_allocation
-                      ASSIGN b_gsm_user_allocation.USER_obj = pdUserObj.
+                  BUFFER-COPY gsm_user_allocation 
+                       EXCEPT gsm_user_allocation.user_allocation_obj
+                           TO b_gsm_user_allocation
+                       ASSIGN b_gsm_user_allocation.USER_obj = pdUserObj.
                   VALIDATE b_gsm_user_allocation NO-ERROR.
                   {af/sup2/afcheckerr.i &no-return = YES}    
                   ocErrorText = cMessageList.
@@ -458,8 +462,10 @@ PROCEDURE cascadeUser :
                   IF NOT AVAILABLE b_gsm_user_allocation THEN
                      CREATE b_gsm_user_allocation     NO-ERROR.
 
-                  BUFFER-COPY gsm_user_allocation  TO b_gsm_user_allocation
-                      ASSIGN b_gsm_user_allocation.USER_obj = pdUserObj.
+                  BUFFER-COPY gsm_user_allocation  
+                       EXCEPT gsm_user_allocation.user_allocation_obj
+                           TO b_gsm_user_allocation
+                       ASSIGN b_gsm_user_allocation.USER_obj = pdUserObj.
                   VALIDATE b_gsm_user_allocation NO-ERROR.
                   {af/sup2/afcheckerr.i &no-return = YES}    
                   ocErrorText = cMessageList.
@@ -490,8 +496,10 @@ PROCEDURE cascadeUser :
                   IF NOT AVAILABLE b_gsm_user_allocation THEN
                      CREATE b_gsm_user_allocation     NO-ERROR.
 
-                  BUFFER-COPY gsm_user_allocation  TO b_gsm_user_allocation
-                      ASSIGN b_gsm_user_allocation.USER_obj = pdUserObj.
+                  BUFFER-COPY gsm_user_allocation  
+                       EXCEPT gsm_user_allocation.user_allocation_obj
+                           TO b_gsm_user_allocation
+                       ASSIGN b_gsm_user_allocation.USER_obj = pdUserObj.
                   VALIDATE b_gsm_user_allocation NO-ERROR.
                   {af/sup2/afcheckerr.i &no-return = YES}    
                   ocErrorText = cMessageList.
@@ -522,8 +530,10 @@ PROCEDURE cascadeUser :
                   IF NOT AVAILABLE b_gsm_user_allocation THEN
                      CREATE b_gsm_user_allocation     NO-ERROR.
 
-                  BUFFER-COPY gsm_user_allocation  TO b_gsm_user_allocation
-                      ASSIGN b_gsm_user_allocation.USER_obj = pdUserObj.
+                  BUFFER-COPY gsm_user_allocation  
+                       EXCEPT gsm_user_allocation.user_allocation_obj
+                           TO b_gsm_user_allocation
+                       ASSIGN b_gsm_user_allocation.USER_obj = pdUserObj.
                   VALIDATE b_gsm_user_allocation NO-ERROR.
                   {af/sup2/afcheckerr.i &no-return = YES}    
                   ocErrorText = cMessageList.
@@ -554,8 +564,10 @@ PROCEDURE cascadeUser :
                   IF NOT AVAILABLE b_gsm_user_allocation THEN
                      CREATE b_gsm_user_allocation     NO-ERROR.
 
-                  BUFFER-COPY gsm_user_allocation  TO b_gsm_user_allocation
-                      ASSIGN b_gsm_user_allocation.USER_obj = pdUserObj.
+                  BUFFER-COPY gsm_user_allocation  
+                       EXCEPT gsm_user_allocation.user_allocation_obj
+                           TO b_gsm_user_allocation
+                       ASSIGN b_gsm_user_allocation.USER_obj = pdUserObj.
                   VALIDATE b_gsm_user_allocation NO-ERROR.
                   {af/sup2/afcheckerr.i &no-return = YES}    
                   ocErrorText = cMessageList.
@@ -584,8 +596,10 @@ PROCEDURE cascadeUser :
                   IF NOT AVAILABLE b_gsm_user_allocation THEN
                      CREATE b_gsm_user_allocation     NO-ERROR.
 
-                  BUFFER-COPY gsm_user_allocation  TO b_gsm_user_allocation
-                      ASSIGN b_gsm_user_allocation.USER_obj = pdUserObj.
+                  BUFFER-COPY gsm_user_allocation  
+                       EXCEPT gsm_user_allocation.user_allocation_obj
+                           TO b_gsm_user_allocation
+                       ASSIGN b_gsm_user_allocation.USER_obj = pdUserObj.
                   VALIDATE b_gsm_user_allocation NO-ERROR.
                   {af/sup2/afcheckerr.i &no-return = YES}    
                   ocErrorText = cMessageList.
@@ -613,8 +627,10 @@ PROCEDURE cascadeUser :
                   IF NOT AVAILABLE b_gsm_user_allocation THEN
                      CREATE b_gsm_user_allocation     NO-ERROR.
 
-                  BUFFER-COPY gsm_user_allocation  TO b_gsm_user_allocation
-                      ASSIGN b_gsm_user_allocation.USER_obj = pdUserObj.
+                  BUFFER-COPY gsm_user_allocation  
+                       EXCEPT gsm_user_allocation.user_allocation_obj
+                           TO b_gsm_user_allocation
+                       ASSIGN b_gsm_user_allocation.USER_obj = pdUserObj.
                   VALIDATE b_gsm_user_allocation NO-ERROR.
                   {af/sup2/afcheckerr.i &no-return = YES}    
                   ocErrorText = cMessageList.
@@ -923,9 +939,7 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-{&DB-REQUIRED-START}
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE rowObjectValidate DataLogicProcedure  _DB-REQUIRED
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE rowObjectValidate DataLogicProcedure 
 PROCEDURE rowObjectValidate :
 /*------------------------------------------------------------------------------
   Purpose:     
@@ -956,46 +970,15 @@ PROCEDURE rowObjectValidate :
         cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
                       {af/sup2/aferrortxt.i '?' "'User password must match confirm password.'"}.
 
-  IF b_gsm_user.password_expiry_date LT TODAY THEN
+  /* To check if the password expiry date has changed, we need the "before image" */
+
+  IF  b_gsm_user.password_expiry_date <> ?
+  AND ((b_gsm_user.rowMod = "A":U OR b_gsm_user.rowMod = "C":U)
+    OR (b_gsm_user.rowMod = "U":U AND b_gsm_user.password_expiry_date <> b_gsm_user.oldPasswordExpiryDate))
+  AND b_gsm_user.password_expiry_date LT TODAY THEN
       ASSIGN
         cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
                       {af/sup2/aferrortxt.i 'AF' '9' 'b_gsm_user' 'password_expiry_date' "'password expiry'" "'greater than or equal to today'"}.
-
-/*
-  IF b_gsm_user.language_obj = 0 OR b_gsm_user.language_obj = ? THEN
-      ASSIGN
-        cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                      {af/sup2/aferrortxt.i 'AF' '1' 'b_gsm_user' 'language_obj' "'User Language'"}.
-*/
-
-/*
-  IF b_gsm_user.profile_user = 0 OR b_gsm_user.profile_user = ? THEN
-    ASSIGN
-      cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                    {af/sup2/aferrortxt.i 'AF' '1' 'b_gsm_user' 'profile_user' "'Profile User'"}.
-*/
-/*
-  IF b_gsm_user.external_userid = 0 OR b_gsm_user.external_userid = ? THEN
-    ASSIGN
-      cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                    {af/sup2/aferrortxt.i 'AF' '1' 'b_gsm_user' 'external_userid' "'External Userid'"}.
-*/
-
-/*   IF LENGTH(b_gsm_user.user_password) = 0 OR LENGTH(b_gsm_user.user_password) = ? THEN                  */
-/*     ASSIGN                                                                                            */
-/*       cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + */
-/*                     {af/sup2/aferrortxt.i 'AF' '1' 'b_gsm_user' 'user_password' "'User Password'"}.     */
-
-/*   IF b_gsm_user.person_obj = 0 OR b_gsm_user.person_obj = ? THEN                                        */
-/*     ASSIGN                                                                                            */
-/*       cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + */
-/*                     {af/sup2/aferrortxt.i 'AF' '1' 'b_gsm_user' 'person_obj' "'Person Obj'"}.           */
-
-/*   IF b_gsm_user.default_login_company_obj = 0 OR b_gsm_user.default_login_company_obj = ? THEN                              */
-/*     ASSIGN                                                                                                                */
-/*       cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) +                     */
-/*                     {af/sup2/aferrortxt.i 'AF' '1' 'b_gsm_user' 'default_login_company_obj' "'Default Login Company Obj'"}. */
-
 
   ERROR-STATUS:ERROR = NO.
   RETURN cMessageList.
@@ -1004,8 +987,6 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-
-{&DB-REQUIRED-END}
 
 {&DB-REQUIRED-START}
 
@@ -1155,7 +1136,7 @@ PROCEDURE writePreTransValidate :
    /* Referential integrity check for Based on Profile user foreign key value */
    IF NOT isCreate() AND NOT b_gsm_user.profile_user AND old_gsm_user.profile_user
        AND CAN-FIND(FIRST gsm_user 
-                WHERE gsm_user.created_from_profile_user_obj EQ b_gsm_user.user_obj) THEN
+                    WHERE gsm_user.created_from_profile_user_obj EQ b_gsm_user.user_obj) THEN
    DO:
        ASSIGN
          cMessageList  = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
@@ -1163,7 +1144,10 @@ PROCEDURE writePreTransValidate :
    END.
 
    /* Disallow the Based on Profile user foreign key value to be equal to the current user record */
-   IF b_gsm_user.created_from_profile_user EQ b_gsm_user.USER_obj THEN
+
+   IF NOT isCreate()
+   AND b_gsm_user.created_from_profile_user EQ b_gsm_user.user_obj AND 
+       b_gsm_user.created_from_profile_user <> 0 THEN
    DO:
        ASSIGN
          cMessageList  = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
@@ -1260,8 +1244,8 @@ FUNCTION addProfileTypes RETURNS HANDLE
   ASSIGN 
       cQuery = "FOR EACH gsc_profile_type NO-LOCK,":U
              + "   FIRST gsm_profile_data NO-LOCK":U
-             + "   WHERE gsm_profile_data.profile_type_obj EQ gsc_profile_type.profile_type_obj"
-             + "     AND gsm_profile_data.user_obj EQ ":U + STRING(pdUserObj)
+             + "   WHERE gsm_profile_data.profile_type_obj EQ gsc_profile_type.profile_type_obj":U
+             + "     AND gsm_profile_data.user_obj EQ DECIMAL('" + STRING(pdUserObj) + "')":U
              + "     AND gsm_profile_data.context_id EQ ''"
       .
 

@@ -78,7 +78,7 @@ af/cod/aftemwizpw.w
 
 &scop object-name       rycsoplipp.p
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Astra object identifying preprocessor */
 &glob   AstraPlip    yes
@@ -91,7 +91,7 @@ ASSIGN cObjectName = "{&object-name}":U.
 
 {af/sup2/afglobals.i}
 
-DEFINE TEMP-TABLE ttRycSmartObject RCODE-INFORMATION /* Defined same as RowobjUpd temp table */
+DEFINE TEMP-TABLE ttRycSmartObject NO-UNDO RCODE-INFORMATION /* Defined same as RowobjUpd temp table */
     {ry/obj/rycsoful2o.i}
     {src/adm2/rupdflds.i}.
 
@@ -184,9 +184,6 @@ DEFINE VARIABLE iLoop         AS INTEGER      NO-UNDO.
 
 IF pcAction NE "A":U  THEN
 DO: 
-  /*
-    RUN ry/obj/rycsoful2o.w PERSISTENT SET hSDO ON gshAstraAppserver NO-ERROR.
-    */
     IF  ERROR-STATUS:ERROR OR RETURN-VALUE <> "":u  THEN DO:
         cErrorMessage = IF cErrorMessage = "":u THEN RETURN-VALUE ELSE cErrorMessage + CHR(3) + RETURN-VALUE.
 
@@ -326,7 +323,6 @@ DEFINE VARIABLE iLoop           AS INTEGER      NO-UNDO.
 DEFINE VARIABLE cUndoRowIds     AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE hSDO            AS HANDLE       NO-UNDO.
 
-
 RUN ry/obj/rycsoful2o.w PERSISTENT SET hSDO ON gshAstraAppserver NO-ERROR.
 IF  ERROR-STATUS:ERROR OR RETURN-VALUE <> "":u  THEN DO:
     cErrorMessage = IF cErrorMessage = "":u THEN RETURN-VALUE ELSE cErrorMessage + CHR(3) + RETURN-VALUE.
@@ -338,10 +334,12 @@ IF  ERROR-STATUS:ERROR OR RETURN-VALUE <> "":u  THEN DO:
     RETURN ERROR cErrorMessage.
 END.
 
-/* limit number of rows retrieved for efficiency */
+/* Limit number of rows retrieved for efficiency */
+
 DYNAMIC-FUNCTION("setRowsToBatch" IN hSDO, 1).
 
 RUN initializeObject IN hSDO NO-ERROR.
+
 IF  ERROR-STATUS:ERROR OR RETURN-VALUE <> "":u  THEN DO:
     cErrorMessage = IF cErrorMessage = "":u THEN RETURN-VALUE ELSE cErrorMessage + CHR(3) + RETURN-VALUE.
 
@@ -356,7 +354,9 @@ END.
 DYNAMIC-FUNCTION("setCheckCurrentChanged":U IN hSDO, INPUT FALSE).
 
 FIND FIRST ttRycSmartObject NO-ERROR.
+
 RUN serverCommit IN hSDO (INPUT-OUTPUT TABLE ttRycSmartObject, OUTPUT cErrorMessage, OUTPUT cUndoRowIds) NO-ERROR.
+
 IF  ERROR-STATUS:ERROR OR RETURN-VALUE <> "":u  THEN DO:
     cErrorMessage = IF cErrorMessage = "":u THEN RETURN-VALUE ELSE cErrorMessage + CHR(3) + RETURN-VALUE.
 
@@ -374,15 +374,14 @@ FIND ttRycSmartObject WHERE ttRycSmartObject.rowMod = "U" NO-ERROR.
 FIND FIRST ryc_smartobject NO-LOCK
      WHERE ryc_smartobject.object_filename = ttRycSmartObject.object_filename NO-ERROR.
 
-/* Assign object obj to temp-table, to be passed back to calling procedure */
-/* Only necessary if adding (smartobject_obj = 0) */
+/* Assign object obj to temp-table, to be passed back to calling procedure *
+ * Only necessary if adding (smartobject_obj = 0)                          */
+
 FOR EACH ttRycSmartObject 
-    WHERE ttRycSmartObject.smartobject_obj = 0:
+   WHERE ttRycSmartObject.smartobject_obj = 0:
 
-    ASSIGN
-        ttRycSmartObject.smartobject_obj = IF AVAILABLE ryc_smartobject THEN ryc_smartobject.smartobject_obj ELSE 0.
+    ASSIGN ttRycSmartObject.smartobject_obj = IF AVAILABLE ryc_smartobject THEN ryc_smartobject.smartobject_obj ELSE 0.
 END.
-
 
 RETURN cErrorMessage.
 

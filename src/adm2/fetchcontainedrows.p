@@ -1,31 +1,5 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12
 &ANALYZE-RESUME
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Check Version Notes Wizard" Procedure _INLINE
-/* Actions: af/cod/aftemwizcw.w ? ? ? ? */
-/* MIP Update Version Notes Wizard
-Check object version notes.
-af/cod/aftemwizpw.w
-*/
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" Procedure _INLINE
-/* Actions: ? ? ? ? af/sup/afverxftrp.p */
-/* This has to go above the definitions sections, as that is what it modifies.
-   If its not, then the definitions section will have been saved before the
-   XFTR code kicks in and changes it */
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Definition Comments Wizard" Procedure _INLINE
-/* Actions: ? af/cod/aftemwizcw.w ? ? ? */
-/* Program Definition Comment Block Wizard
-Welcome to the Program Definition Comment Block Wizard. Press Next to proceed.
-af/cod/aftemwizpw.w
-*/
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
 * Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
@@ -83,9 +57,6 @@ af/cod/aftemwizpw.w
 ------------------------------------------------------------------------------*/
  
 /* ***************************  Definitions  ************************** */
-&scop object-name       fetchcontainedrows.p
-&scop object-version    000000
- 
  DEFINE INPUT PARAMETER pcObject AS CHARACTER  NO-UNDO.
 
  DEFINE INPUT-OUTPUT PARAMETER piocContext  AS CHARACTER  NO-UNDO.
@@ -118,16 +89,7 @@ af/cod/aftemwizpw.w
  DEFINE OUTPUT PARAMETER TABLE-HANDLE phRowObject19.
  DEFINE OUTPUT PARAMETER TABLE-HANDLE phRowObject20.
 
- DEFINE OUTPUT PARAMETER pocMessages AS CHARACTER  NO-UNDO.                                                                       
-                                                                           
-
-/* MIP-GET-OBJECT-VERSION pre-processors
-   The following pre-processors are maintained automatically when the object is
-   saved. They pull the object and version from Roundtable if possible so that it
-   can be displayed in the about window of the container */
-
-&scop object-name       
-&scop object-version
+ DEFINE OUTPUT PARAMETER pocMessages AS CHARACTER  NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -177,226 +139,32 @@ af/cod/aftemwizpw.w
 
 
 /* ***************************  Main Block  *************************** */
-DEFINE VARIABLE hObject        AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject     AS HANDLE     NO-UNDO.
-DEFINE VARIABLE cSDOs          AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE iSDO           AS INTEGER    NO-UNDO.
-DEFINE VARIABLE hSDO           AS HANDLE     NO-UNDO.
-DEFINE VARIABLE lStatic        AS LOGICAL    NO-UNDO.
+&SCOPED-DEFINE  TTHandle         phRowObject
+&SCOPED-DEFINE  NumTTs           20
+&SCOPED-DEFINE  ContextString    piocContext
+&SCOPED-DEFINE  Container        pcObject
+&SCOPED-DEFINE  Messages         pocMessages
+&SCOPED-DEFINE  createObjects    createObjects
+&SCOPED-DEFINE  initializeObject setContextAndInitialize
+&SCOPED-DEFINE  initializeParams piocContext
+&SCOPED-DEFINE  fetchData        bufferFetchContainedRows
+&SCOPED-DEFINE  fetchParams      pcQueries,piStartRow,pcRowIdent,plNext,piRowsToReturn,OUTPUT piRowsReturned
+&SCOPED-DEFINE  objectName       cLogicalObjectName
 
-DO ON STOP UNDO, LEAVE:   
-  RUN VALUE(pcObject) PERSISTENT SET hObject NO-ERROR.   
-END.
-IF NOT VALID-HANDLE(hObject) THEN
-DO:
-  pocMessages = ERROR-STATUS:GET-MESSAGE(1).
-  RETURN.
-END.
 
-RUN setContextAndInitialize IN hObject (piocContext). 
-{get ContainedDataObjects cSDOs hObject}.
-DO iSDO = 1 TO NUM-ENTRIES(cSDOs):
-  hSDO = WIDGET-HANDLE(ENTRY(iSDO,cSDOs)).
-  lStatic = CAN-DO(hSDO:INTERNAL-ENTRIES,'Data.Calculate':U).
-  IF lStatic THEN LEAVE.
-END.
+DEFINE VARIABLE iTHIS      AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iPos       AS INTEGER    NO-UNDO.
+DEFINE VARIABLE cPropList              AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cLogicalObjectName     AS CHARACTER  NO-UNDO.
 
-IF lStatic THEN
-DO:
-   RUN serverFetchContainedRows IN hObject
-            (pcQueries,
-             piStartRow, 
-             pcRowIdent, 
-             plNext,
-             piRowsToReturn, 
-             OUTPUT piRowsReturned,
-             OUTPUT TABLE-HANDLE phRowObject1,
-             OUTPUT TABLE-HANDLE phRowObject2,
-             OUTPUT TABLE-HANDLE phRowObject3,
-             OUTPUT TABLE-HANDLE phRowObject4,
-             OUTPUT TABLE-HANDLE phRowObject5,
-             OUTPUT TABLE-HANDLE phRowObject6,
-             OUTPUT TABLE-HANDLE phRowObject7,
-             OUTPUT TABLE-HANDLE phRowObject8,
-             OUTPUT TABLE-HANDLE phRowObject9,
-             OUTPUT TABLE-HANDLE phRowObject10,
-             OUTPUT TABLE-HANDLE phRowObject11,
-             OUTPUT TABLE-HANDLE phRowObject12,
-             OUTPUT TABLE-HANDLE phRowObject13,
-             OUTPUT TABLE-HANDLE phRowObject14,
-             OUTPUT TABLE-HANDLE phRowObject15,
-             OUTPUT TABLE-HANDLE phRowObject16,
-             OUTPUT TABLE-HANDLE phRowObject17,
-             OUTPUT TABLE-HANDLE phRowObject18,
-             OUTPUT TABLE-HANDLE phRowObject19,
-             OUTPUT TABLE-HANDLE phRowObject20).
-END.
-ELSE 
-DO:
-  DO iSDO = 1 TO NUM-ENTRIES(cSDOs):
-    hSDO = WIDGET-HANDLE(ENTRY(iSDO,cSDOs)).
-    CASE iSDO:
-      WHEN 1 THEN
-      DO:
-        CREATE TEMP-TABLE phRowObject1.
-        {fnarg prepareRowObject phRowObject1 hSDO}.
-      END.
-      WHEN 2 THEN
-      DO:
-        CREATE TEMP-TABLE phRowObject2.
-        {fnarg prepareRowObject phRowObject2 hSDO}.
-      END.
-      WHEN 3 THEN
-      DO:
-        CREATE TEMP-TABLE phRowObject3.
-        {fnarg prepareRowObject phRowObject3 hSDO}.
-      END.
-      WHEN 4 THEN
-      DO:
-        CREATE TEMP-TABLE phRowObject4.
-        {fnarg prepareRowObject phRowObject4 hSDO}.
-      END.
-      WHEN 5 THEN
-      DO:
-        CREATE TEMP-TABLE phRowObject5.
-        {fnarg prepareRowObject phRowObject5 hSDO}.
-      END.
-      WHEN 6 THEN
-      DO:
-        CREATE TEMP-TABLE phRowObject6.
-        {fnarg prepareRowObject phRowObject6 hSDO}.
-      END.
-      WHEN 7 THEN
-      DO:
-        CREATE TEMP-TABLE phRowObject7.
-        {fnarg prepareRowObject phRowObject7 hSDO}.
-      END.
-      WHEN 8 THEN
-      DO:
-        CREATE TEMP-TABLE phRowObject8.
-        {fnarg prepareRowObject phRowObject8 hSDO}.
-      END.
-      WHEN 9 THEN
-      DO:
-        CREATE TEMP-TABLE phRowObject9.
-        {fnarg prepareRowObject phRowObject9 hSDO}.
-      END.
-      WHEN 10 THEN
-      DO:
-        CREATE TEMP-TABLE phRowObject10.
-        {fnarg prepareRowObject phRowObject10 hSDO}.
-      END.
-      WHEN 11 THEN
-      DO:
-        CREATE TEMP-TABLE phRowObject11.
-        {fnarg prepareRowObject phRowObject11 hSDO}.
-      END.
-      WHEN 12 THEN
-      DO:
-        CREATE TEMP-TABLE phRowObject12.
-        {fnarg prepareRowObject phRowObject12 hSDO}.
-      END.
-      WHEN 13 THEN
-      DO:
-        CREATE TEMP-TABLE phRowObject13.
-        {fnarg prepareRowObject phRowObject13 hSDO}.
-      END.
-      WHEN 14 THEN
-      DO:
-        CREATE TEMP-TABLE phRowObject14.
-        {fnarg prepareRowObject phRowObject14 hSDO}.
-      END.
-      WHEN 15 THEN
-      DO:
-        CREATE TEMP-TABLE phRowObject15.
-        {fnarg prepareRowObject phRowObject15 hSDO}.
-      END.
-      WHEN 16 THEN
-      DO:
-        CREATE TEMP-TABLE phRowObject16.
-        {fnarg prepareRowObject phRowObject16 hSDO}.
-      END.
-      WHEN 17 THEN
-      DO:
-        CREATE TEMP-TABLE phRowObject17.
-        {fnarg prepareRowObject phRowObject17 hSDO}.
-      END.
-      WHEN 18 THEN
-      DO:
-        CREATE TEMP-TABLE phRowObject18.
-        {fnarg prepareRowObject phRowObject18 hSDO}.
-      END.
-      WHEN 19 THEN
-      DO:
-        CREATE TEMP-TABLE phRowObject19.
-        {fnarg prepareRowObject phRowObject19 hSDO}.
-      END.
-      WHEN 20 THEN
-      DO:
-        CREATE TEMP-TABLE phRowObject20.
-        {fnarg prepareRowObject phRowObject20 hSDO}.
-      END.
-    END CASE.    
-  END.
+cPropList = ENTRY(1, piocContext, CHR(3)).
+iTHIS = LOOKUP('THIS':U, cPropList, ';').
+IF iTHIS > 0 THEN
+  iPos = LOOKUP('LogicalObjectName':U, ENTRY(iTHIS + 1, cPropList, ';':U)).
+IF iPos > 0 THEN
+  cLogicalObjectName = ENTRY(iPos, ENTRY(iTHIS + 2, piocContext, CHR(3)), CHR(4)).
 
-  RUN bufferFetchContainedRows IN hObject
-           (pcQueries,
-            piStartRow, 
-            pcRowIdent, 
-            plNext,
-            piRowsToReturn, 
-            OUTPUT piRowsReturned).
- 
-END.
-
-IF {fn anyMessage hObject} THEN
-   pocMessages = {fn fetchMessages hObject}.
-
-RUN getContextAndDestroy IN hObject (OUTPUT piocContext).
-
-IF NOT lStatic THEN
-DO:
-  IF VALID-HANDLE(phRowObject1) THEN
-      DELETE OBJECT phRowObject1.
-  IF VALID-HANDLE(phRowObject2) THEN
-      DELETE OBJECT phRowObject2.
-  IF VALID-HANDLE(phRowObject3) THEN
-      DELETE OBJECT phRowObject3.
-  IF VALID-HANDLE(phRowObject4) THEN
-      DELETE OBJECT phRowObject4.
-  IF VALID-HANDLE(phRowObject5) THEN
-      DELETE OBJECT phRowObject5.
-  IF VALID-HANDLE(phRowObject6) THEN
-      DELETE OBJECT phRowObject6.
-  IF VALID-HANDLE(phRowObject7) THEN
-      DELETE OBJECT phRowObject7.
-  IF VALID-HANDLE(phRowObject8) THEN
-      DELETE OBJECT phRowObject8.
-  IF VALID-HANDLE(phRowObject9) THEN
-      DELETE OBJECT phRowObject9.
-  IF VALID-HANDLE(phRowObject10) THEN
-      DELETE OBJECT phRowObject10.
-  IF VALID-HANDLE(phRowObject11) THEN
-      DELETE OBJECT phRowObject11.
-  IF VALID-HANDLE(phRowObject12) THEN
-      DELETE OBJECT phRowObject12.
-  IF VALID-HANDLE(phRowObject13) THEN
-      DELETE OBJECT phRowObject13.
-  IF VALID-HANDLE(phRowObject14) THEN
-      DELETE OBJECT phRowObject14.
-  IF VALID-HANDLE(phRowObject15) THEN
-      DELETE OBJECT phRowObject15.
-  IF VALID-HANDLE(phRowObject16) THEN
-      DELETE OBJECT phRowObject16.
-  IF VALID-HANDLE(phRowObject17) THEN
-      DELETE OBJECT phRowObject17.
-  IF VALID-HANDLE(phRowObject18) THEN
-      DELETE OBJECT phRowObject18.
-  IF VALID-HANDLE(phRowObject19) THEN
-      DELETE OBJECT phRowObject19.
-  IF VALID-HANDLE(phRowObject20) THEN
-      DELETE OBJECT phRowObject20.
-END.
+{src/adm2/fetchrowobject.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

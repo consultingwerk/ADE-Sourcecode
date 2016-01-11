@@ -423,13 +423,15 @@ END.
  *     fields
  */
 PROCEDURE remove_selected_from_query:
-  DEF VAR tbl_count AS INTEGER NO-UNDO.
+  DEF VAR tbl_count AS INTEGER   NO-UNDO.
+  DEF VAR cDefDB    AS CHARACTER NO-UNDO.
   
   /* Create a list of db.tables that are in selected field */
   FOR EACH x_U WHERE x_U._SELECTEDib
                  AND x_U._parent-recid eq RECID(_U)
                  AND x_U._STATUS eq "NORMAL":U
                  AND x_U._TABLE ne ?:
+    IF cDefDB = "":U THEN cDefDB = X_U._DBNAME.
     FIND tt WHERE tt._DBNAME eq x_U._DBNAME AND tt._TABLE eq x_U._TABLE NO-ERROR.
     IF NOT AVAILABLE tt THEN DO:
       CREATE tt.
@@ -484,10 +486,14 @@ PROCEDURE remove_selected_from_query:
          table_list  = "":U
          order_list  = "":U.
   DO i = 1 TO NUM-ENTRIES (tables_in_query):
-    ASSIGN db_table = ENTRY(i, tables_in_query)
-           db_name  = ENTRY(1,db_table,".":U)
-           tbl_name = ENTRY(2,db_table,".":U)
-           .
+    ASSIGN db_table = ENTRY(i, tables_in_query).
+    IF NUM-ENTRIES(db_table,".":U) > 1 THEN
+      ASSIGN db_name  = ENTRY(1,db_table,".":U)
+             tbl_name = ENTRY(2,db_table,".":U)
+             .
+    ELSE ASSIGN db_name = cDefDB
+                tbl_name = ENTRY(1,db_table,".":U).
+
     /* Is db_table in the query?  If so, skip over it.  If not, copy the
        current entry in the _Q record into the next position */
     IF CAN-FIND(tt WHERE tt._DBNAME eq db_name AND tt._TABLE eq tbl_name)

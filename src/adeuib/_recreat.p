@@ -73,6 +73,9 @@ DEFINE VARIABLE startSequenceNumber AS INTEGER       NO-UNDO.
 DEFINE VARIABLE endSequenceNumber   AS INTEGER       NO-UNDO.
 DEFINE VARIABLE tcode               AS CHARACTER     NO-UNDO.
 DEFINE VARIABLE tempBinaryFile      AS CHARACTER     NO-UNDO INITIAL ?.
+DEFINE VARIABLE lICFisRunning       AS LOGICAL       NO-UNDO.
+DEFINE VARIABLE h_tmpwin            AS WIDGET-HANDLE NO-UNDO.
+
 DEFINE BUFFER f_U FOR _U.
 
 /* First unselect ALL BUT the object of interest. */
@@ -84,6 +87,8 @@ END.
 /* Verify that _U is selected. */
 FIND _U WHERE RECID(_U) EQ p_recid.
 _U._SELECTEDib = true.
+
+ASSIGN h_tmpWin  = _h_win.
 
 /* If the object is a WINDOW, select its frames before calling              */
 /* DeleteSelectedComposite - It will wipe out all frames and field-level    */
@@ -391,29 +396,31 @@ DO i = endSequenceNumber TO startSequenceNumber BY -1:
     IF VALID-HANDLE(_action._window-handle) AND new_win = ? THEN
       _h_win = _action._window-handle.
     _U._WINDOW-HANDLE = _h_win.
-    
+
+    /* Add check for Dynamics */
+    lICFIsRunning = DYNAMIC-FUNCTION("IsICFRunning":U) NO-ERROR.
+
     CASE _action._operation:
       WHEN "DELETE" THEN DO:
         IF _U._TYPE NE "DIALOG-BOX" THEN DO:
           CASE _U._TYPE:
             WHEN "BUTTON" THEN RUN adeuib/_undbutt.p(_action._u-recid).
             WHEN "COMBO-BOX" THEN RUN adeuib/_undcomb.p(_action._u-recid).
-	    WHEN "EDITOR" THEN RUN adeuib/_undedit.p(_action._u-recid).
-	    WHEN "RECTANGLE" THEN RUN adeuib/_undrect.p(_action._u-recid).
+            WHEN "EDITOR" THEN RUN adeuib/_undedit.p(_action._u-recid).
+            WHEN "RECTANGLE" THEN RUN adeuib/_undrect.p(_action._u-recid).
             WHEN "IMAGE" THEN RUN adeuib/_undimag.p(_action._u-recid).
-	    WHEN "QUERY" THEN RUN adeuib/_undqry.p(_action._u-recid).
+            WHEN "QUERY" THEN RUN adeuib/_undqry.p(_action._u-recid).
             WHEN "SLIDER" THEN RUN adeuib/_undslid.p(_action._u-recid).
-	    WHEN "TEXT" THEN /* Don't Undo (redraw) Labels */
-	      IF _U._SUBTYPE NE "LABEL" THEN
-	        RUN adeuib/_undtext.p(_action._u-recid).
-	    WHEN "SELECTION-LIST" THEN RUN adeuib/_undsele.p(_action._u-recid).
-	    WHEN "FILL-IN" THEN RUN adeuib/_undfill.p(_action._u-recid).
-	    WHEN "TOGGLE-BOX" THEN RUN adeuib/_undtogg.p(_action._u-recid).
-	    WHEN "RADIO-SET" THEN RUN adeuib/_undradi.p(_action._u-recid).
-	    WHEN "FRAME" THEN RUN adeuib/_undfram.p(_action._u-recid).
-	    WHEN "BROWSE" THEN RUN adeuib/_undbrow.p(_action._u-recid).
-	    WHEN "BROWSE" THEN RUN adeuib/_undbrow.p(_action._u-recid).
-	    WHEN "SmartObject" THEN RUN adeuib/_undsmar.p(_action._u-recid).
+            WHEN "TEXT" THEN /* Don't Undo (redraw) Labels */
+               IF _U._SUBTYPE NE "LABEL" THEN
+                  RUN adeuib/_undtext.p(_action._u-recid).
+            WHEN "SELECTION-LIST" THEN RUN adeuib/_undsele.p(_action._u-recid).
+            WHEN "FILL-IN" THEN RUN adeuib/_undfill.p(_action._u-recid).
+            WHEN "TOGGLE-BOX" THEN RUN adeuib/_undtogg.p(_action._u-recid).
+            WHEN "RADIO-SET" THEN RUN adeuib/_undradi.p(_action._u-recid).
+            WHEN "FRAME" THEN RUN adeuib/_undfram.p(_action._u-recid).
+            WHEN "BROWSE" THEN RUN adeuib/_undbrow.p(_action._u-recid).
+            WHEN "SmartObject" THEN RUN adeuib/_undsmar.p(_action._u-recid).
             WHEN "{&WT-CONTROL}" THEN DO:
               IF tempBinaryFile <> ? THEN DO:
                 FIND f_U WHERE RECID(f_U) = _action._u-recid.
@@ -422,24 +429,27 @@ DO i = endSequenceNumber TO startSequenceNumber BY -1:
               END.
               RUN adeuib/_undcont.p(_action._u-recid).
             END.
-	    OTHERWISE 
-	      MESSAGE _U._TYPE + " currently not supported. ({&FILE-NAME})"
-	      VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-	  END CASE.
-	END.  /* Not Dialog-box */
+            OTHERWISE 
+               MESSAGE _U._TYPE + " currently not supported. ({&FILE-NAME})"
+               VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+          END CASE.
+        END.  /* Not Dialog-box */
         /* Note that undsmar.p might have failed (for example,
            if the SmartObject file was not found). */
         IF AVAILABLE (_U) THEN DO:
           ASSIGN _U._STATUS        = "NORMAL"
                  _U._WINDOW-HANDLE = _h_win.
           /* If there is a POP-UP create the popups */
-	  IF _U._POPUP-RECID NE ? THEN
-	    RUN adeuib/_undmenu.p( _U._POPUP-RECID, _U._HANDLE ).
-	END.
+          IF _U._POPUP-RECID NE ? THEN
+            RUN adeuib/_undmenu.p( _U._POPUP-RECID, _U._HANDLE ).
+        END.
       END. /* DELETE */
       OTHERWISE MESSAGE _action._operation + " not processed."
 	      VIEW-AS ALERT-BOX ERROR BUTTONS OK.
     END CASE.
+    IF lICFIsRunning AND VALID-HANDLE(_h_menubar_proc) AND _action._widget-handle <> ? and _U._HANDLE <> ? THEN
+       RUN prop_changeObjectName IN _h_menubar_proc 
+          (STRING(h_tmpwin),STRING(_action._widget-handle), STRING(_U._HANDLE)).
     DELETE _action.
   END.  /* ELSE DO */
 END. /* DO loop */
@@ -460,9 +470,11 @@ END.
 /* The WINDOW_SAVED is set elsewhere */
 
 /* If _U that was recreated was a window or a dialog then
- * Run REALIZE XFTRs for this Window or Dialog */
+ * Run REALIZE XFTRs for this Window or Dialog - unless we are morphing
+ * a layout */
 FIND _U WHERE RECID(_U) = p_recid.
-IF _U._TYPE = "WINDOW" OR _U._TYPE = "DIALOG-BOX" THEN DO:
+IF (_U._TYPE = "WINDOW" OR _U._TYPE = "DIALOG-BOX") AND 
+   NOT PROGRAM-NAME(2) BEGINS "morph_layout":U THEN DO:
   FOR EACH _XFTR WHERE _XFTR._wRECID = p_recid:
     FIND _TRG WHERE _TRG._xRecid = RECID(_XFTR) NO-ERROR.
     IF AVAILABLE _TRG AND _XFTR._realize NE ? THEN 

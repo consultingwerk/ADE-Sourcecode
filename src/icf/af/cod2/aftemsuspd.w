@@ -91,6 +91,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /* Local Variable Definitions ---                                       */
 
 {af/sup2/afglobals.i}
+{adeuib/uibhlp.i}          /* Help File Preprocessor Directives         */
 
 DEFINE VARIABLE cUserProperties           AS CHARACTER NO-UNDO.
 DEFINE VARIABLE cUserValues               AS CHARACTER NO-UNDO.
@@ -195,6 +196,19 @@ ASSIGN
 /* ************************  Control Triggers  ************************ */
 
 &Scoped-define SELF-NAME Dialog-Frame
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Dialog-Frame Dialog-Frame
+ON HELP OF FRAME Dialog-Frame /* User - */
+DO:
+    /* Help for this Frame */
+   RUN adecomm/_adehelp.p
+                ("ICAB", "CONTEXT", {&Suspend_User_Dialog_Box}  , "").
+
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Dialog-Frame Dialog-Frame
 ON WINDOW-CLOSE OF FRAME Dialog-Frame /* User - */
 DO:
@@ -392,3 +406,4 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+ 

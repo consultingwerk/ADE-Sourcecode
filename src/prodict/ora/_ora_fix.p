@@ -58,6 +58,8 @@ History:
    DLM         06/01/00 Fixed seq name translation so _seq becomes _se
    DLM         05/10/01 Added check for _Unique now that DESC Index can not
                         be determined if unique so make sure it matches Original
+   DLM         05/09/02 Change length from 30 to 26 to match protoora.
+   DLM         07/23/02 Added _OWNER = "Pub" on the delete for each _file section. 20020723-004
                                 
 --------------------------------------------------------------------*/
 /*h-*/
@@ -122,7 +124,7 @@ FORM
 
 ASSIGN 
   batch_mode = SESSION:BATCH-MODE
-  dbtype-l = ",ORACLE,30"
+  dbtype-l = ",ORACLE,26"
   l_sys-obj   = {prodict/ora/ora_sys.i} /* non-queryable objects */
               + ","
               + "oracle_arguments,oracle_columns,oracle_comment,"
@@ -273,6 +275,8 @@ FOR EACH DICTDB2._File WHERE ( l_files = "**all**" or
 
   IF _File-name BEGINS "_" OR
      _File-name BEGINS "oracle_" THEN NEXT.
+  
+  ASSIGN dbtype-l = ",ORACLE,26".
 
   IF _for-name <> ? AND _for-name <> "" THEN
     ASSIGN ofiln = _For-name.
@@ -539,6 +543,8 @@ end.
      then assign l_idx-num = DICTDB._Index._idx-num.
   END.
 
+  ASSIGN dbtype-l = ",ORACLE,30".
+
   _idxloop:
   FOR EACH DICTDB2._Index OF DICTDB2._File:
     IF DICTDB2._Index._Wordidx = 1  OR DICTDB2._Index._Index-name = "default"
@@ -737,10 +743,11 @@ end.
 /* Now check DICTDB._File to make sure we get only those we pushed 
    if running from protoora or all objects being compared */
 IF del-cycle THEN DO:
-  FOR EACH DICTDB._File:
+  FOR EACH DICTDB._File WHERE DICTDB._File._Owner = "_FOREIGN":
     IF DICTDB._File._For-type <> "TABLE" THEN NEXT.
     IF LOOKUP(DICTDB._FILE._File-name,l_sys-obj) = 0 THEN DO:
-      FIND DICTDB2._File WHERE DICTDB2._File._File-name = DICTDB._File._File-name NO-ERROR.
+      FIND DICTDB2._File WHERE DICTDB2._File._File-name = DICTDB._File._File-name 
+                           AND DICTDB2._File._Owner = "PUB" NO-ERROR.
       IF NOT AVAILABLE DICTDB2._File THEN DO:
         FOR EACH DICTDB._INDEX OF DICTDB._File:
           FOR EACH DICTDB._Index-field of DICTDB._Index:

@@ -83,7 +83,7 @@ DEFINE VARIABLE xiMaxLinkChecks AS INTEGER INIT 3  NO-UNDO.
 
 /* This manages the various dynamic temptables created to store func names and
    values for a linked target */
-DEFINE TEMP-TABLE ttLinkRuleTable
+DEFINE TEMP-TABLE ttLinkRuleTable NO-UNDO
   FIELD ProcedureHandle AS HANDLE 
   FIELD LinkName        AS CHAR
   FIELD TableHandle     AS HANDLE
@@ -91,6 +91,24 @@ DEFINE TEMP-TABLE ttLinkRuleTable
   FIELD LinkHandles     AS CHAR 
   FIELD NumErrors       AS INTEGER 
   INDEX Link LinkName ProcedureHandle.
+
+/* for performance we do the find directly in action.
+   pcAction is mandatory variable name for the action
+   &scop-define targetproc must define a handle if used where target-procedure 
+   cannot be used. Note that this is undefined as soon as it is used */  
+&SCOPED-DEFINE findAction ~
+FIND FIRST ttAction WHERE ttAction.Action = pcAction ~
+AND ttAction.ProcedureHandle  = THIS-PROCEDURE NO-ERROR. ~
+IF NOT AVAILABLE ttAction THEN ~
+ FIND ttAction WHERE ttAction.Action = pcAction~
+               AND   ttAction.ProcedureHandle =~
+ &IF DEFINED(targetproc) <> 0 &THEN~
+    ~{&targetproc~}~
+    &UNDEFINE targetproc~
+ &ELSE~
+    TARGET-PROCEDURE~
+  &ENDIF~
+ NO-ERROR.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -170,7 +188,7 @@ FUNCTION actionCategory RETURNS CHARACTER
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD actionChildren Procedure 
 FUNCTION actionChildren RETURNS CHARACTER
-  (pcId AS CHAR)  FORWARD.
+  (pcAction AS CHAR)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -509,18 +527,6 @@ FUNCTION assignActionAccessType RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-assignActionAlternateImageRule) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD assignActionAlternateImageRule Procedure 
-FUNCTION assignActionAlternateImageRule RETURNS LOGICAL
-  (pcId AS CHAR,
-   pcValue AS CHAR)  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-assignActionCaption) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD assignActionCaption Procedure 
@@ -539,18 +545,6 @@ FUNCTION assignActionCaption RETURNS LOGICAL
 FUNCTION assignActionDescription RETURNS LOGICAL
   (pcId     AS CHAR,
    pcValue  AS CHAR)  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-assignActionDisableRule) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD assignActionDisableRule Procedure 
-FUNCTION assignActionDisableRule RETURNS LOGICAL
-  (pcId AS CHAR,
-   pcValue AS CHAR)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -587,6 +581,18 @@ FUNCTION assignActionHideRule RETURNS LOGICAL
 FUNCTION assignActionImage RETURNS LOGICAL
   (pcId     AS CHAR,
    pcValue  AS CHAR)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-assignActionImageAlternateRule) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD assignActionImageAlternateRule Procedure 
+FUNCTION assignActionImageAlternateRule RETURNS LOGICAL
+  (pcId AS CHAR,
+   pcValue AS CHAR)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -736,20 +742,6 @@ FUNCTION checkRule RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-columnStringValue) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD columnStringValue Procedure 
-FUNCTION columnStringValue RETURNS CHAR PRIVATE
-  (pcObject AS CHAR,
-   pcId     AS CHAR,
-   pcColumn AS CHAR,
-   phTarget AS HANDLE)  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-defineAction) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD defineAction Procedure 
@@ -777,7 +769,7 @@ FUNCTION errorMessage RETURNS LOGICAL
 &IF DEFINED(EXCLUDE-findAction) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD findAction Procedure 
-FUNCTION findAction RETURNS LOGICAL PRIVATE
+FUNCTION findAction RETURNS LOGICAL
   (pcAction AS CHAR,
    phTarget AS HANDLE)  FORWARD.
 
@@ -792,6 +784,17 @@ FUNCTION findAction RETURNS LOGICAL PRIVATE
 FUNCTION findCategory RETURNS LOGICAL
   (pcCategory AS CHAR,
    phTarget   AS HANDLE)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getActionBuffer) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getActionBuffer Procedure 
+FUNCTION getActionBuffer RETURNS HANDLE
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -849,7 +852,7 @@ FUNCTION prepareRuleTable RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setBuffer Procedure 
 FUNCTION setBuffer RETURNS LOGICAL PRIVATE
   (pcObject  AS CHAR,
-   pcId      AS CHAR,
+   pcAction      AS CHAR,
    pcColumns AS CHAR,
    pcValues  AS CHAR,
    phTarget  AS HANDLE)  FORWARD.
@@ -889,7 +892,7 @@ FUNCTION validateBuffer RETURNS LOGICAL PRIVATE
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 12.81
+         HEIGHT             = 14
          WIDTH              = 60.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -1178,7 +1181,7 @@ PROCEDURE initAction :
                 "cancelRecord":U {&dlmt}
                 "":U {&dlmt}
                 "TABLEIO":U {&dlmt}
-                "NewRecord=add,copy or ObjectMode=Update":U
+                "ObjectMode=Modify and SaveSource=no and DataModified or ObjectMode=Update or NewRecord=add,copy":U
                 ).
    
    defineAction("UNDO":U,xcColumns,
@@ -1364,6 +1367,11 @@ PROCEDURE loadBands :
                         
  {fn normalizeActionData}.
 
+ DELETE OBJECT hToolbarBand NO-ERROR.
+ DELETE OBJECT hObjectBand  NO-ERROR.
+ DELETE OBJECT hBand        NO-ERROR.
+ DELETE OBJECT hBandAction  NO-ERROR.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1424,9 +1432,13 @@ PROCEDURE loadObjectBands :
                            OUTPUT TABLE-HANDLE hBand,
                            OUTPUT TABLE-HANDLE hBandAction,
                            OUTPUT TABLE ttAction APPEND,
-                           OUTPUT TABLE ttCategory APPEND).
-                        
+                           OUTPUT TABLE ttCategory APPEND).                        
  {fn normalizeActionData}.
+
+  DELETE OBJECT hToolbarBand NO-ERROR.
+  DELETE OBJECT hObjectBand  NO-ERROR.
+  DELETE OBJECT hBand        NO-ERROR.
+  DELETE OBJECT hBandAction  NO-ERROR.
 
 END PROCEDURE.
 
@@ -1465,6 +1477,11 @@ PROCEDURE loadToolbarBands :
                            OUTPUT TABLE ttCategory APPEND).
                         
  {fn normalizeActionData}.
+
+ DELETE OBJECT hToolbarBand NO-ERROR.
+ DELETE OBJECT hObjectBand  NO-ERROR.
+ DELETE OBJECT hBand        NO-ERROR.
+ DELETE OBJECT hBandAction  NO-ERROR.
 
 END PROCEDURE.
 
@@ -1679,7 +1696,8 @@ FUNCTION actionAccelerator RETURNS CHARACTER
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
- RETURN columnStringValue("Action":U,pcAction,"Accelerator":U,TARGET-PROCEDURE).  
+ {&findaction}
+ RETURN IF AVAIL ttAction THEN ttAction.ACCELERATOR ELSE ?.  
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1696,7 +1714,8 @@ FUNCTION actionAccessType RETURNS CHARACTER
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
- RETURN columnStringValue("Action":U,pcAction,"AccessType":U,TARGET-PROCEDURE).  
+ {&findaction}
+ RETURN IF AVAIL ttAction THEN ttAction.AccessType ELSE ?.  
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1753,14 +1772,11 @@ FUNCTION actionCaption RETURNS CHARACTER
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-   DEFINE VARIABLE cCaption AS CHAR   NO-UNDO.
-   cCaption = columnStringValue("Action":U,pcAction,"TranslatedActionMLabel":U,TARGET-PROCEDURE).
-   IF cCaption = '':U THEN
-     cCaption = columnStringValue("Action":U,pcAction,"TranslatedActionLabel":U,TARGET-PROCEDURE).
-   IF cCaption = '':U THEN
-     cCaption = columnStringValue("Action":U,pcAction,"Caption":U,TARGET-PROCEDURE).
-   RETURN IF cCaption <> "":U THEN cCaption
-          ELSE {fnarg actionName pcAction}. 
+ {&findaction}
+ RETURN IF AVAIL ttAction AND ttAction.Caption <> "":U   THEN ttAction.Caption
+        ELSE IF AVAIL ttAction AND ttAction.Name <> "":U THEN ttAction.Name
+        ELSE IF AVAIL ttAction                           THEN ttAction.Action
+        ELSE ?. 
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1777,7 +1793,8 @@ FUNCTION actionCategory RETURNS CHARACTER
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
- RETURN columnStringValue("Action":U,pcAction,"Category":U,TARGET-PROCEDURE).  
+  {&findaction}
+  RETURN IF AVAIL ttAction THEN ttAction.Category ELSE ?. 
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1789,7 +1806,7 @@ END FUNCTION.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION actionChildren Procedure 
 FUNCTION actionChildren RETURNS CHARACTER
-  (pcId AS CHAR) :
+  (pcAction AS CHAR) :
 /*------------------------------------------------------------------------------
   Purpose: Return a comma separated list of all child actions of an action. 
 Parameter: Parent action id.     
@@ -1806,14 +1823,15 @@ Parameter: Parent action id.
   DEFINE BUFFER bttChild FOR ttAction.
   DEFINE VARIABLE cActions AS CHAR NO-UNDO. 
   
-  IF findAction(pcId,TARGET-PROCEDURE) THEN   
+  {&findAction}
+  IF AVAIL ttAction THEN   
   DO:
-    FOR EACH bttChild WHERE bttChild.Parent = pcId
+    FOR EACH bttChild WHERE bttChild.Parent = pcAction
                       AND   bttChild.ProcedureHandle = THIS-PROCEDURE
     BY bttChild.order:  
       cActions = cActions + ",":U + bttChild.Action.
     END.
-    FOR EACH bttChild WHERE bttChild.Parent = pcId
+    FOR EACH bttChild WHERE bttChild.Parent = pcAction
                       AND   bttChild.ProcedureHandle = TARGET-PROCEDURE
     BY bttChild.order:  
       cActions = cActions + ",":U + bttChild.Action.
@@ -1837,24 +1855,15 @@ FUNCTION actionControlType RETURNS CHARACTER
 /*------------------------------------------------------------------------------
   Purpose: Return the action's control type 
            - The repository supports 'Action','Label','placeholder' or 'separator'  
-           - For non repository actions 
-              we return 'Action' if onchoose <> '' and not a parent action 
-              otherwise it is a 'label' (RULE is not defined in action) 
+           - For non repository actions we return 'Action' if onchoose <> '' 
+             otherwise it is a 'label' (this is set in defineAction)
+              (RULE is not defined in action for non-repository toolbars) 
    Notes:  Used in targetActions to retrieve actions for a link 
            and in createMenuAction to ensure that a submenu NOT is created 
            for a placeholder. 
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE lUseRepository  AS LOGICAL  NO-UNDO.
-  
-  {get UseRepository lUseRepository}.
-  IF lUseRepository THEN
-    RETURN columnStringValue("Action":U,pcAction,"ControlType":U,TARGET-PROCEDURE).  
-  ELSE DO:
-    RETURN IF  {fnarg actionOnChoose pcAction} <> '':u 
-           AND {fnarg actionIsParent pcAction} = FALSE 
-           THEN 'Action':U
-           ELSE 'Label':U.
-  END.
+  {&findaction}
+  RETURN IF AVAIL ttAction THEN ttAction.ControlType ELSE ?.
 
 END FUNCTION.
 
@@ -1873,7 +1882,8 @@ FUNCTION actionCreateEvent RETURNS CHARACTER
            (published when the action is created/realized in the interface)
     Notes: Cannot be changed.   
 ------------------------------------------------------------------------------*/
- RETURN columnStringValue("Action":U,pcAction,"CreateEvent":U,TARGET-PROCEDURE).  
+  {&findaction}
+  RETURN IF AVAIL ttAction THEN ttAction.CreateEvent ELSE ?.  
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1890,7 +1900,8 @@ FUNCTION actionDescription RETURNS CHARACTER
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
- RETURN columnStringValue("Action":U,pcAction,"Description":U,TARGET-PROCEDURE).  
+  {&findaction}
+  RETURN IF AVAIL ttAction THEN ttAction.Description ELSE ?.   
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1907,9 +1918,8 @@ FUNCTION actionDisabled RETURNS LOGICAL
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-RETURN CAN-DO("YES,TRUE":U,
-            columnStringValue("Action":U,pcAction,"Disabled":U,TARGET-PROCEDURE)).
-
+  {&findaction}
+  RETURN IF AVAIL ttAction THEN ttAction.Disabled ELSE ?. 
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1935,7 +1945,8 @@ Parameters: pcAction - Action name
             does a specific check of internal-entries and uses the function in
             that case.
 ------------------------------------------------------------------------------*/
- RETURN columnStringValue("Action":U,pcAction,"EnableRule":U,TARGET-PROCEDURE).  
+  {&findaction}
+  RETURN IF AVAIL ttAction THEN ttAction.EnableRule ELSE ?. 
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1990,7 +2001,8 @@ Parameters: pcAction - Action name
             This means that overriding this in a custom super procedure will
             have no effect. 
 ------------------------------------------------------------------------------*/
- RETURN columnStringValue("Action":U,pcAction,"HideRule":U,TARGET-PROCEDURE).  
+  {&findaction}
+  RETURN IF AVAIL ttAction THEN ttAction.HideRule ELSE ?. 
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2007,7 +2019,8 @@ FUNCTION actionImage RETURNS CHARACTER
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN columnStringValue("Action":U,pcAction,"Image":U,TARGET-PROCEDURE). 
+  {&findaction}
+  RETURN IF AVAIL ttAction THEN ttAction.Image ELSE ?.  
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2024,7 +2037,8 @@ FUNCTION actionImageAlternate RETURNS CHARACTER
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN columnStringValue("Action":U,pcAction,"Image2":U,TARGET-PROCEDURE). 
+  {&findaction}
+  RETURN IF AVAIL ttAction THEN ttAction.Image2 ELSE ?. 
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2050,7 +2064,8 @@ Parameters: pcAction - Action name
             does a specific check of internal-entries and uses the function in
             that case.
 ------------------------------------------------------------------------------*/
- RETURN columnStringValue("Action":U,pcAction,"ImageAlternateRule":U,TARGET-PROCEDURE).  
+  {&findaction}
+  RETURN IF AVAIL ttAction THEN ttAction.ImageAlternateRule ELSE ?.  
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2067,7 +2082,8 @@ FUNCTION actionInitCode RETURNS CHARACTER
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
- RETURN columnStringValue("Action":U,pcAction,"InitCode":U,TARGET-PROCEDURE).  
+ {&findaction}
+  RETURN IF AVAIL ttAction THEN ttAction.InitCode ELSE ?.  
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2090,7 +2106,8 @@ FUNCTION actionIsMenu RETURNS LOGICAL
            dialog even if it isParent  
     Notes:   
 ------------------------------------------------------------------------------*/
-  RETURN  {fnarg actionType pcAction} = "MENU":U .
+  {&findaction}
+  RETURN AVAIL ttAction AND ttAction.Type = "MENU":U .
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2107,11 +2124,15 @@ FUNCTION actionIsParent RETURNS LOGICAL
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN ({fnarg actionInitCode pcAction} <> "":U) 
-         OR 
-         ({fnarg actionCreateEvent pcAction} <> "":U)
-         OR 
-         (CAN-FIND(FIRST ttAction WHERE ttAction.parent = pcAction)).
+  {&findaction}
+
+  RETURN AVAIL ttAction  
+         AND (ttAction.InitCode <> "":U
+              OR
+              ttAction.CreateEvent <> "":U
+              OR
+              CAN-FIND(FIRST ttAction WHERE ttAction.parent = pcAction)
+             ).
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2128,7 +2149,10 @@ FUNCTION actionLabel RETURNS CHARACTER
   Purpose: Return the button label of the action 
     Notes: actionLabel is an alias for actionName 
 ------------------------------------------------------------------------------*/
-  RETURN {fnarg ActionName pcAction}.
+ {&findaction}
+ RETURN IF AVAIL ttAction AND ttAction.Name <> '':U THEN ttAction.Name
+        ELSE IF AVAIL ttAction                      THEN ttAction.Action
+        ELSE ?. 
 
 END FUNCTION.
 
@@ -2150,13 +2174,16 @@ FUNCTION actionLink RETURNS CHARACTER
   DEFINE VARIABLE cCategory      AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cParent        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lUseRepository AS LOGICAL    NO-UNDO.
-  cLink = columnStringValue("Action":U,pcAction,"Link":U,TARGET-PROCEDURE). 
+  
+  {&findaction}
+  cLink = IF AVAIL ttAction THEN ttAction.Link ELSE ?. 
+  
   IF cLink = '':U THEN
   DO:
     {get UseRepository lUseRepository}.
     IF lUseRepository THEN
     DO:
-      cCategory = {fnarg actionCategory pcAction}.
+      cCategory = ttAction.Category.
       IF cCategory <> '':U THEN
         cLink = {fnarg categoryLink cCategory}. 
     END.
@@ -2184,7 +2211,8 @@ FUNCTION actionLogicalObjectName RETURNS CHARACTER
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN columnStringValue("Action":U,pcAction,"LogicalObjectName":U,TARGET-PROCEDURE). 
+  {&findaction}
+  RETURN IF AVAIL ttAction THEN ttAction.LogicalObjectName ELSE ?. 
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2201,14 +2229,10 @@ FUNCTION actionName RETURNS CHARACTER
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cName AS CHAR   NO-UNDO.
-  cName = columnStringValue("Action":U,pcAction,"TranslatedActionLabel":U,TARGET-PROCEDURE).
-  IF cName = '':U THEN
-     cName = columnStringValue("Action":U,pcAction,"Name":U,TARGET-PROCEDURE).  
-  IF cName = "":U THEN
-     cName = columnStringValue("Action":U,pcAction,"Action":U,TARGET-PROCEDURE).
-  RETURN cName.
-
+ {&findaction}
+ RETURN IF AVAIL ttAction AND ttAction.Name <> '':U THEN ttAction.Name
+        ELSE IF AVAIL ttAction                      THEN ttAction.Action
+        ELSE ?. 
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2225,7 +2249,9 @@ FUNCTION actionOnChoose RETURNS CHARACTER
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
- RETURN columnStringValue("Action":U,pcAction,"OnChoose":U,TARGET-PROCEDURE).  
+  {&findaction}
+  RETURN IF AVAIL ttAction THEN ttAction.OnChoose ELSE ?.
+         
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2242,7 +2268,8 @@ FUNCTION actionParameter RETURNS CHARACTER
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
- RETURN columnStringValue("Action":U,pcAction,"RunParameter":U,TARGET-PROCEDURE).  
+  {&findaction}
+  RETURN IF AVAIL ttAction THEN ttAction.RunParameter ELSE ?.  
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2259,7 +2286,8 @@ FUNCTION actionParent RETURNS CHARACTER
   Purpose: Parent can be another action or an actionCategory 
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN columnStringValue("Action":U,pcAction,"Parent":U,TARGET-PROCEDURE).  
+    {&findaction}
+  RETURN IF AVAIL ttAction THEN ttAction.Parent ELSE ?.  
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2276,7 +2304,8 @@ FUNCTION actionPhysicalObjectName RETURNS CHARACTER
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN columnStringValue("Action":U,pcAction,"PhysicalObjectName":U,TARGET-PROCEDURE). 
+  {&findaction}
+  RETURN IF AVAIL ttAction THEN ttAction.PhysicalObjectName ELSE ?. 
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2293,8 +2322,8 @@ FUNCTION actionRefresh RETURNS LOGICAL
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN CAN-DO("YES,TRUE":U,
-            columnStringValue("Action":U,pcAction,"Refresh":U,TARGET-PROCEDURE)). 
+  {&findaction}
+  RETURN IF AVAIL ttAction THEN ttAction.Refresh ELSE ?.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2311,7 +2340,8 @@ FUNCTION actionRunAttribute RETURNS CHARACTER
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN columnStringValue("Action":U,pcAction,"RunAttribute":U,TARGET-PROCEDURE). 
+  {&findaction}
+  RETURN IF AVAIL ttAction THEN ttAction.RunAttribute ELSE ?.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2328,7 +2358,8 @@ FUNCTION actionSecondImage RETURNS CHARACTER
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN columnStringValue("Action":U,pcAction,"Image2":U,TARGET-PROCEDURE). 
+  {&findaction}
+  RETURN IF AVAIL ttAction THEN ttAction.Image2 ELSE ?.  
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2345,7 +2376,8 @@ FUNCTION actionSecuredToken RETURNS CHARACTER
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN columnStringValue("Action":U,pcAction,"SecurityToken":U,TARGET-PROCEDURE). 
+  {&findaction}
+  RETURN IF AVAIL ttAction THEN ttAction.SecurityToken ELSE ?.  
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2362,7 +2394,8 @@ FUNCTION actionSubstituteProperty RETURNS CHARACTER
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
- RETURN columnStringValue("Action":U,pcAction,"SubstituteProperty":U,TARGET-PROCEDURE).  
+  {&findaction}
+  RETURN IF AVAIL ttAction THEN ttAction.SubstituteProperty ELSE ?.    
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2379,19 +2412,12 @@ FUNCTION actionTooltip RETURNS CHARACTER
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-   DEFINE VARIABLE cTooltip AS CHAR   NO-UNDO.
-   cTooltip = columnStringValue("Action":U,pcAction,"TranslatedActionTooltip":U,TARGET-PROCEDURE).
-   IF cTooltip = '':U THEN
-     cTooltip = columnStringValue("Action":U,pcAction,"TranslatedActionMLabel":U,TARGET-PROCEDURE).
-   IF cTooltip = '':U THEN
-     cTooltip = columnStringValue("Action":U,pcAction,"TranslatedActionLabel":U,TARGET-PROCEDURE).
-   IF cTooltip = '':U THEN
-      cTooltip = columnStringValue("Action":U,pcAction,"Tooltip":U,TARGET-PROCEDURE).
-   IF cTooltip = '':U THEN
-     cTooltip = {fnarg ActionCaption pcAction}.
-   
-   RETURN cTooltip. 
-
+ {&findaction}
+ RETURN IF AVAIL ttAction AND ttAction.Tooltip      <> "":U THEN ttAction.Tooltip
+        ELSE IF AVAIL ttAction AND ttAction.Caption <> "":U THEN ttAction.Caption
+        ELSE IF AVAIL ttAction AND ttAction.NAME <> "":U    THEN ttAction.Name
+        ELSE IF AVAIL ttAction                              THEN ttAction.Action
+        ELSE ?. 
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2408,7 +2434,8 @@ FUNCTION actionType RETURNS CHARACTER
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
- RETURN columnStringValue("Action":U,pcAction,"Type":U,TARGET-PROCEDURE).  
+  {&findaction}
+  RETURN IF AVAIL ttAction THEN ttAction.Type ELSE ?.   
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2453,25 +2480,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-assignActionAlternateImageRule) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION assignActionAlternateImageRule Procedure 
-FUNCTION assignActionAlternateImageRule RETURNS LOGICAL
-  (pcId AS CHAR,
-   pcValue AS CHAR) :
-/*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
-------------------------------------------------------------------------------*/
-  RETURN assignColumn("Action":U,pcId,"AlternateImageRule":U,pcValue).
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-assignActionCaption) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION assignActionCaption Procedure 
@@ -2501,25 +2509,6 @@ FUNCTION assignActionDescription RETURNS LOGICAL
     Notes:  
 ------------------------------------------------------------------------------*/
   RETURN assignColumn("Action":U,pcId,"Description":U,pcValue).
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-assignActionDisableRule) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION assignActionDisableRule Procedure 
-FUNCTION assignActionDisableRule RETURNS LOGICAL
-  (pcId AS CHAR,
-   pcValue AS CHAR) :
-/*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
-------------------------------------------------------------------------------*/
-  RETURN assignColumn("Action":U,pcId,"DisableRule":U,pcValue).
-
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2576,6 +2565,25 @@ FUNCTION assignActionImage RETURNS LOGICAL
     Notes:  
 ------------------------------------------------------------------------------*/
   RETURN assignColumn("Action":U,pcId,"Image":U,pcValue).
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-assignActionImageAlternateRule) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION assignActionImageAlternateRule Procedure 
+FUNCTION assignActionImageAlternateRule RETURNS LOGICAL
+  (pcId AS CHAR,
+   pcValue AS CHAR) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  RETURN assignColumn("Action":U,pcId,"ImageAlternateRule":U,pcValue).
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2764,7 +2772,8 @@ FUNCTION canFindAction RETURNS LOGICAL
   Purpose: Check if an action exist. 
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN findAction(pcAction,TARGET-PROCEDURE).
+  {&findaction}
+  RETURN AVAIL ttAction.
 
 END FUNCTION.
 
@@ -2800,7 +2809,9 @@ FUNCTION categoryLink RETURNS CHARACTER
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
- RETURN columnStringValue("Category":U,pcCategory,"Link":U,TARGET-PROCEDURE).  
+  FIND FIRST ttCategory WHERE ttCategory.Category = pcCategory NO-ERROR.
+  RETURN IF AVAIL ttCategory THEN ttCategory.Link ELSE ?.
+ 
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2900,37 +2911,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-columnStringValue) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION columnStringValue Procedure 
-FUNCTION columnStringValue RETURNS CHAR PRIVATE
-  (pcObject AS CHAR,
-   pcId     AS CHAR,
-   pcColumn AS CHAR,
-   phTarget AS HANDLE) :
-/*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hBuffer AS HANDLE NO-UNDO.
-  DEFINE VARIABLE hColumn AS HANDLE NO-UNDO.
-  
-  IF DYNAMIC-FUNCTION("find":U + pcObject, pcId, phTarget) THEN     
-  DO:
-    ASSIGN
-      hBuffer = bufferHandle(pcObject)
-      hColumn = hBuffer:BUFFER-FIELD(pcColumn).  
-    RETURN TRIM(hColumn:BUFFER-VALUE).   
-  END.
-  ELSE RETURN "":U.
-  
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-defineAction) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION defineAction Procedure 
@@ -2975,19 +2955,15 @@ END FUNCTION.
 &IF DEFINED(EXCLUDE-findAction) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION findAction Procedure 
-FUNCTION findAction RETURNS LOGICAL PRIVATE
+FUNCTION findAction RETURNS LOGICAL
   (pcAction AS CHAR,
    phTarget AS HANDLE) :
 /*------------------------------------------------------------------------------
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  FIND FIRST ttAction WHERE ttAction.Action = pcAction 
-                      AND   ttAction.ProcedureHandle  = THIS-PROCEDURE NO-ERROR.
-  IF NOT AVAILABLE ttAction AND phTarget <> ? THEN
-     FIND ttAction WHERE ttAction.Action = pcAction 
-                   AND   ttAction.ProcedureHandle = phTarget NO-ERROR.
-
+  &SCOPED-DEFINE targetproc phTarget
+  {&findaction}
   RETURN AVAILABLE ttAction.
 END FUNCTION.
 
@@ -3009,6 +2985,23 @@ FUNCTION findCategory RETURNS LOGICAL
   FIND FIRST ttCategory WHERE ttCategory.Category = pcCategory NO-ERROR.
   RETURN AVAILABLE ttCategory.
 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getActionBuffer) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getActionBuffer Procedure 
+FUNCTION getActionBuffer RETURNS HANDLE
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  RETURN ghAction.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -3275,7 +3268,7 @@ END FUNCTION.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setBuffer Procedure 
 FUNCTION setBuffer RETURNS LOGICAL PRIVATE
   (pcObject  AS CHAR,
-   pcId      AS CHAR,
+   pcAction      AS CHAR,
    pcColumns AS CHAR,
    pcValues  AS CHAR,
    phTarget  AS HANDLE) :
@@ -3285,54 +3278,53 @@ FUNCTION setBuffer RETURNS LOGICAL PRIVATE
 ------------------------------------------------------------------------------*/
   DEFINE BUFFER bttAction FOR ttACTION.
 
-  DEFINE VARIABLE hBuffer      AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE cColumn      AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE hColumn      AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE iOrder       AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE i            AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE cLink        AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE hBuffer        AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE cColumn        AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE hColumn        AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE iOrder         AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE i              AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE cLink          AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cControlType   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lUseRepository AS LOGICAL    NO-UNDO.
 
-  hBuffer = bufferHandle(pcObject).  
-  
-  IF NOT findAction(pcId,phTarget) THEN
+  {&findaction}
+  IF NOT AVAIL ttAction THEN
   DO:
     /* If we are creating a class make sure there's no instance defined */
     IF  NOT CAN-DO(pcColumns,"Instance":U)
-    AND CAN-FIND(FIRST bttAction WHERE bttAction.Action = pcId) THEN 
+    AND CAN-FIND(FIRST bttAction WHERE bttAction.Action = pcAction) THEN 
     DO:
-      errorMessage ('Cannot create class action ~'' +  pcId + '~'.'
+      errorMessage ('Cannot create class action ~'' +  pcAction + '~'.'
                     + CHR(10) +
                     'It already exists as an instance action.').
       RETURN FALSE.
     END.
     
-    hBuffer:BUFFER-CREATE().
+    CREATE ttAction.
     
     ASSIGN
-      hColumn = hBuffer:BUFFER-FIELD('Action':U)
-      hColumn:BUFFER-VALUE = pcId.  
+      ttAction.Action = pcAction.  
     /* Set target to class in order to check for duplicates when reading
        data from repository */
     IF NOT CAN-DO(pcColumns,"Instance":U) THEN
       ASSIGN
-        hColumn = hBuffer:BUFFER-FIELD('ProcedureHandle':U)
-        hColumn:BUFFER-VALUE = THIS-PROCEDURE.
+        ttAction.ProcedureHandle = THIS-PROCEDURE.
   END. /* not findAction */
 
   /* If the action exists and this is the definition of an instance 
      action, check that the one we have found is not a class action.  */ 
   ELSE IF CAN-DO(pcColumns,"Instance":U) THEN 
   DO:
-    hColumn = hBuffer:BUFFER-FIELD('ProcedureHandle').
-    IF hColumn:BUFFER-VALUE <> phTarget THEN 
+    IF ttAction.ProcedureHandle <> phTarget THEN 
     DO:
-      errorMessage ('Cannot create instance action ~'' +  pcId + '~'.'
+      errorMessage ('Cannot create instance action ~'' +  pcAction + '~'.'
                     + CHR(10) +
                     'It already exists as a class action.').
       RETURN FALSE.
     END.
   END. /* else (avail action) can-do(pccolumns,'instance') */ 
   
+  hBuffer = BUFFER ttAction:HANDLE.
   DO i = 1 TO NUM-ENTRIES(pcColumns):        
     cColumn = ENTRY(i,pcColumns).
     /* If instance assign toolbarhandle = target, we don't care about the 
@@ -3377,6 +3369,27 @@ FUNCTION setBuffer RETURNS LOGICAL PRIVATE
         hColumn = hBuffer:BUFFER-FIELD("Link":U)
         hColumn:BUFFER-VALUE = bttAction.Link.           
   END. 
+
+
+  /* Set ControlType for non-repository objects, this used to be resolved 
+     in the retrieval, but was moved at creation for performance reasons     
+   Non repository calls defineAction without target from initAction,
+   so we use the direct check if super is target as getUseRepository will
+   not be found */
+  IF phTarget = THIS-PROCEDURE THEN 
+  DO:
+    lUseRepository = DYNAMIC-FUNCTION('isICFRunning':U IN THIS-PROCEDURE) NO-ERROR.
+  END.
+  ELSE /* minimize risk of the above and use the normal call in other cases */ 
+    lUseRepository = DYNAMIC-FUNCTION("getUseRepository":U IN phTarget).
+
+  IF NOT lUseRepository THEN
+  DO:
+    hColumn = hBuffer:BUFFER-FIELD("OnChoose":U).
+    cControlType = IF hColumn:BUFFER-VALUE <> '':U THEN 'Action':U ELSE 'Label':U.
+    hColumn = hBuffer:BUFFER-FIELD("ControlType":U).
+    hColumn:BUFFER-VALUE = cControlType.
+  END.  
 
   RETURN hBuffer:AVAILABLE. 
  

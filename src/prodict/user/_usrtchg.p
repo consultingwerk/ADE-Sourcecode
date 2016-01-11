@@ -256,7 +256,7 @@ romode =  0 - can read/write
 */
 
 FIND DICTDB._File "_File".
-romode = (IF wfil._Frozen THEN 1 ELSE IF dict_rog THEN 2 ELSE 0).
+romode = (IF wfil._Frozen THEN 1 ELSE IF dict_rog THEN 2 ELSE IF wfil._Db-lang > 1 THEN 4 ELSE 0).
 IF adding AND NOT CAN-DO(DICTDB._File._Can-write,USERID("DICTDB"))
   THEN romode = 3.
 IF adding AND NOT CAN-DO(DICTDB._File._Can-create,USERID("DICTDB"))
@@ -269,6 +269,7 @@ IF adding AND NOT capabs[1] THEN romode = -3.
 /*+1: This file definition has been FROZEN and cannot be altered here.    */
 /*+2: The dictionary is in read-only mode, so alterations are not allowed.*/
 /*+3: You do not have permission to modify files.                         */
+/*+4: SQL92 Table can not modify                                          */
 /*-1: You do not have permission to create files.                         */
 /*-2: You do not have permission to see file definitions.                 */
 /*-3: You may not add a file definition here for this database type.      */
@@ -292,6 +293,8 @@ stdmsg =
   THEN "This table definition has been FROZEN and cannot be altered here."
   ELSE IF romode = 2
   THEN "The dictionary is in read-only mode, so alterations are not allowed."
+  ELSE IF romode = 4 THEN
+    "PROGRESS/SQL92 table cannot be modify."
   ELSE "You do not have permission to modify tables.").
 
 
@@ -356,7 +359,7 @@ DISPLAY
   wfil._Frozen
   wfil._File-label
   wfil._Dump-name
-  (IF wfil._Db-lang > 0 THEN ENTRY(1,wfil._Can-Create) ELSE wfil._For-Owner)
+  (IF wfil._Db-lang > 0 THEN ENTRY(1,wfil._Owner) ELSE wfil._For-Owner)
     @ wfil._For-Owner
   (IF wfil._For-Size = ? THEN "n/a" ELSE STRING(wfil._For-Size))
     @ wfil._For-Size
@@ -388,7 +391,7 @@ DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
     wfil._For-Type   WHEN romode = 0 AND capabs[5]
     wfil._File-label WHEN romode = 0
     wfil._Dump-name  WHEN romode = 0
-    wfil._Fil-misc2[6]    /* replication procedure name */
+    wfil._Fil-misc2[6] WHEN romode < 4   /* replication procedure name */
     wfil._For-Size   WHEN romode = 0 AND capabs[4]
     wfil._For-name   WHEN romode = 0 AND capabs[2]
     wfil._Desc       WHEN romode = 0

@@ -70,6 +70,7 @@ DEFINE VARIABLE p_OK            AS LOGICAL   NO-UNDO .
 
 
 /* ***************************  Definitions  ************************** */
+DEFINE VARIABLE glDYnamicsCST AS LOGICAL    NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -80,6 +81,7 @@ DEFINE VARIABLE p_OK            AS LOGICAL   NO-UNDO .
 /* ********************  Preprocessor Definitions  ******************** */
 
 &Scoped-define PROCEDURE-TYPE DIALOG-BOX
+&Scoped-define DB-AWARE no
 
 /* Name of first Frame and/or Browse and/or first Query                 */
 &Scoped-define FRAME-NAME f_dlg
@@ -87,6 +89,7 @@ DEFINE VARIABLE p_OK            AS LOGICAL   NO-UNDO .
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-OBJECTS file-list b_add b_Modify b_delete b_move_up ~
 b_move_down 
+&Scoped-Define DISPLAYED-OBJECTS fiLabel 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -121,6 +124,11 @@ DEFINE BUTTON b_move_up
      LABEL "Move &Up":L 
      SIZE 15 BY 1.14.
 
+DEFINE VARIABLE fiLabel AS CHARACTER FORMAT "X(50)":U INITIAL "Custom Object Files:" 
+     CONTEXT-HELP-ID 0
+      VIEW-AS TEXT 
+     SIZE 47 BY .86 NO-UNDO.
+
 DEFINE VARIABLE file-list AS CHARACTER 
      VIEW-AS SELECTION-LIST SINGLE 
      SCROLLBAR-HORIZONTAL SCROLLBAR-VERTICAL 
@@ -136,14 +144,12 @@ DEFINE FRAME f_dlg
      b_delete AT ROW 4.76 COL 52
      b_move_up AT ROW 6.14 COL 52
      b_move_down AT ROW 7.48 COL 52
-     "Custom Object Files:" VIEW-AS TEXT
-          SIZE 36 BY .67 AT ROW 1.29 COL 3
-     SPACE(28.56) SKIP(6.76)
+     fiLabel AT ROW 1.19 COL 1 COLON-ALIGNED NO-LABEL
+     SPACE(17.56) SKIP(6.67)
     WITH VIEW-AS DIALOG-BOX NO-HELP 
          SIDE-LABELS THREE-D  SCROLLABLE 
          TITLE "Use Custom":L.
 
- 
 
 /* *********************** Procedure Settings ************************ */
 
@@ -155,11 +161,12 @@ DEFINE FRAME f_dlg
 &ANALYZE-RESUME _END-PROCEDURE-SETTINGS
 
 
-/* ***************  Runtime Attributes and UIB Settings  ************** */
+
+/* ***********  Runtime Attributes and AppBuilder Settings  *********** */
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX f_dlg
-   UNDERLINE Default                                                    */
+   UNDERLINE                                                            */
 ASSIGN 
        FRAME f_dlg:SCROLLABLE       = FALSE
        FRAME f_dlg:HIDDEN           = TRUE.
@@ -174,13 +181,14 @@ ASSIGN
    NO-DISPLAY                                                           */
 /* SETTINGS FOR BUTTON b_move_up IN FRAME f_dlg
    NO-DISPLAY                                                           */
+/* SETTINGS FOR FILL-IN fiLabel IN FRAME f_dlg
+   NO-ENABLE                                                            */
 /* SETTINGS FOR SELECTION-LIST file-list IN FRAME f_dlg
    NO-DISPLAY                                                           */
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
  
-
 
 
 
@@ -364,8 +372,7 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI f_dlg _DEFAULT-DISABLE
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI f_dlg  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     DISABLE the User Interface
@@ -382,8 +389,7 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI f_dlg _DEFAULT-ENABLE
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI f_dlg  _DEFAULT-ENABLE
 PROCEDURE enable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     ENABLE the User Interface
@@ -394,6 +400,8 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
+  DISPLAY fiLabel 
+      WITH FRAME f_dlg.
   ENABLE file-list b_add b_Modify b_delete b_move_up b_move_down 
       WITH FRAME f_dlg.
   VIEW FRAME f_dlg.
@@ -402,7 +410,6 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Get-Filename f_dlg 
 PROCEDURE Get-Filename :
@@ -432,7 +439,6 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Modify-Selection f_dlg 
 PROCEDURE Modify-Selection :
 /*------------------------------------------------------------------------------
@@ -446,6 +452,8 @@ PROCEDURE Modify-Selection :
   DEFINE VAR item     AS CHARACTER NO-UNDO.
   DEFINE VAR l_Dupe   AS LOGICAL   NO-UNDO.
   
+  IF glDynamicsCST THEN
+     RETURN.
   DO WITH FRAME {&FRAME-NAME}:
     ASSIGN new_file = TRIM( file-list:SCREEN-VALUE )
            old_file = new_file.
@@ -469,7 +477,6 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE move_item f_dlg 
 PROCEDURE move_item :
@@ -519,7 +526,6 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE set-init-values f_dlg 
 PROCEDURE set-init-values :
 /* -----------------------------------------------------------
@@ -527,7 +533,14 @@ PROCEDURE set-init-values :
   Parameters:  <none>
 -------------------------------------------------------------*/
   DO WITH FRAME {&FRAME-NAME} :
-  
+     /* This occurs when running dynamics and the palette and template
+        information comes from the repository */
+     IF p_FileList BEGINS "~~@Dummy":U THEN 
+     DO:
+         ASSIGN p_FileList    = SUBSTRING(p_FileList,8,-1,"CHARACTER":U)
+                glDynamicsCST = TRUE
+                fiLabel       = "Dynamic Templates and Palette Objects:" .
+     END.
       ASSIGN file-list:LIST-ITEMS  = p_FileList
              file-list = file-list:ENTRY( 1 ) NO-ERROR.
       DISPLAY file-list WITH FRAME {&FRAME-NAME}.
@@ -537,7 +550,6 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE set-state f_dlg 
 PROCEDURE set-state :
@@ -549,6 +561,15 @@ PROCEDURE set-state :
   DEF VAR cnt       AS INTEGER NO-UNDO.
   DEF VAR iSelected AS INTEGER NO-UNDO.
   
+  IF glDYnamicsCST THEN
+  DO WITH FRAME {&FRAME-NAME} :  
+     ASSIGN b_Add:SENSITIVE       = FALSE
+            b_Modify:SENSITIVE    = FALSE
+            b_delete:SENSITIVE    = FALSE
+            b_Move_up:SENSITIVE   = FALSE
+            b_Move_down:SENSITIVE = FALSE.
+     RETURN.       
+  END.
   DO WITH FRAME {&FRAME-NAME} :
     
     ASSIGN cnt = file-list:NUM-ITEMS.
@@ -568,5 +589,4 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-
 

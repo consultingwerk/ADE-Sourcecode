@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2001 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2002 by Progress Software Corporation ("PSC"),       *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -34,6 +34,8 @@
                     Initial version
                   04/24/01 adams@progress.com
                     WebSpeed integration
+                  08/13/02 adams@progress.com
+                    Support for filtering out PeerDirect sequences
   ----------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.      */
 /*----------------------------------------------------------------------*/
@@ -228,7 +230,7 @@ PROCEDURE dbBrowse :
   DEFINE VARIABLE c1       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cQuery   AS CHARACTER  NO-UNDO.
   
-  CREATE BUFFER hb FOR TABLE string(cDBid + ".":U + cTable).
+  CREATE BUFFER hb FOR TABLE STRING(cDBid + ".":U + cTable).
 
   /* Use dynamic query to find record for buffer */
   IF cAction <> 'browse' THEN 
@@ -324,7 +326,7 @@ PROCEDURE dbBrowse :
         c1 = "<A HREF=~"javascript:fEdit('":U + STRING(hb:ROWID) + "')~"> &nbsp; ":U + 
           hf:STRING-VALUE + " &nbsp; </A>":U.
       ELSE 
-        c1 = c1 + '|':U + html-encode(hf:STRING-VALUE).
+        c1 = c1 + '|':U + html-encode(hf:BUFFER-VALUE).
       i2 = i2 + 1.
     END.
     {&OUT} fRow(c1) SKIP.
@@ -417,12 +419,13 @@ PROCEDURE dbReport :
   END.
   CLOSE QUERY qList.
 
-  IF cAction = "repall" OR GET-VALUE("seq") > '' THEN DO:
+  IF cAction = "repall":U OR GET-VALUE("seq":U) > '' THEN DO:
     {&OUT} 
       '<H2>' cDBid '.SEQUENCES:</h2>' SKIP
       fBeginTable('Sequence Name|Number|Min|Max').
 
-    FOR EACH DICTDB._Sequence NO-LOCK BY _Seq-Name:
+    FOR EACH DICTDB._Sequence NO-LOCK 
+      WHERE NOT _Seq-Name BEGINS "$" BY _Seq-Name :
       {&OUT} 
         fRow(_Seq-Name + '|' + STRING(_Seq-Num) + '|' + STRING(_Seq-Min) + '|' + 
              (IF _Seq-Max <> ? THEN STRING(_Seq-Max) ELSE "?")).
@@ -822,21 +825,27 @@ FUNCTION fFieldHtml RETURNS CHARACTER
       {&OUT}   ">?".
     END.
     ELSE
-    IF CAN-DO("character,decimal,integer,date":U,hField:DATA-TYPE) THEN DO:
+    IF hField:DATA-TYPE = "character":U THEN DO:
       IF hField:WIDTH-CHARS < 40 THEN
         {&OUT} 
           '<INPUT NAME="' + cField + '" TYPE="text" SIZE="' + 
           STRING(hField:WIDTH-CHARS) + '" VALUE="' + 
-          html-encode(RIGHT-TRIM(hField:STRING-VALUE(i1))) + '">':U.
+          html-encode(RIGHT-TRIM(hField:BUFFER-VALUE(i1))) + '">':U.
       ELSE 
         {&OUT} 
           '<TEXTAREA ROWS="3" COLS="40" NAME="' + cField + '">' + 
-          html-encode(RIGHT-TRIM(hField:STRING-VALUE(i1))) + 
+          html-encode(RIGHT-TRIM(hField:BUFFER-VALUE(i1))) + 
           '</TEXTAREA>'.
     END.
     ELSE
+    IF CAN-DO("decimal,integer,date":U,hField:DATA-TYPE) THEN
       {&OUT} 
-        '<INPUT NAME="' + cField + '" TYPE="TEXT" SIZE="20" VALUE="' + 
+        '<INPUT NAME="' + cField + '" TYPE="text" SIZE="' + 
+        STRING(hField:WIDTH-CHARS) + '" VALUE="' + 
+        html-encode(RIGHT-TRIM(hField:STRING-VALUE(i1))) + '">':U.
+    ELSE
+      {&OUT} 
+        '<INPUT NAME="' + cField + '" TYPE="text" SIZE="20" VALUE="' + 
         html-encode(RIGHT-TRIM(hField:STRING-VALUE(i1))) + '">'.
            
     {&OUT} 
@@ -860,21 +869,21 @@ FUNCTION fFieldSave RETURNS CHARACTER
     Notes:  
 ------------------------------------------------------------------------------*/
 
-  DEFINE VARIABLE cValue AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE i1     AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iNum   AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cExt   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cField AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cValue  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE i1      AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iNum    AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cExt    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cField  AS CHARACTER  NO-UNDO.
   
   ASSIGN iNum = hField:EXTENT.
   IF iNum = ? or iNum = 0 then iNum = 0.
   DO i1 = 0 TO iNum:
     IF iNum > 0 and i1 = 0 THEN NEXT.
     ASSIGN
-      cExt = "/" + STRING(i1)
-      cField = hField:NAME + cExt
-      cValue = get-value(cField)
-       .
+      cExt    = "/" + STRING(i1)
+      cField  = hField:NAME + cExt
+      cValue  = get-value(cField)
+      .
     CASE hField:DATA-TYPE:
       WHEN "character" THEN hField:BUFFER-VALUE(i1) = cValue NO-ERROR.
       WHEN "date"      THEN hField:BUFFER-VALUE(i1) = DATE(cValue) NO-ERROR.

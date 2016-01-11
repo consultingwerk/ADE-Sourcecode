@@ -36,7 +36,8 @@ Date Created: 02/16/99
 		       Made the query dynamic to facilitate different sorts.
               07/01/99 Mario B. Fine tuning + add SwitchTable button
 	      07/28/99 Mario B. Support for array data types. BUG 19990716-033.
-	      10/14/99 Mario B. 2k width limit now 31995. BUG 19990825-005.    
+	      10/14/99 Mario B. 2k width limit now 31995. BUG 19990825-005.  
+          06/10/02 D. McMann Added check for new SESSION attribute schema change.  
 -----------------------------------------------------------------------------*/
 
 /*----------------------------- Declarations --------------------------------*/
@@ -133,16 +134,25 @@ DO ON ERROR UNDO, LEAVE
 
    find _File where _File._File-name = "_Field"
                 and _File._Owner = "PUB" NO-LOCK.
-   if NOT can-do(_File._Can-read, USERID("DICTDB")) then
-   do:
+   if NOT can-do(_File._Can-read, USERID("DICTDB")) THEN do:
       message s_NoPrivMsg "see field definitions."
          view-as ALERT-BOX ERROR buttons Ok
-	 &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
+	   &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
             in window s_win_Browse
-         &ENDIF
+       &ENDIF
 	 .
-      return.
+     return.
    end.
+   &IF PROVERSION >= "9.1E" &THEN
+     IF SESSION:SCHEMA-CHANGE = "New Objects" THEN DO:
+       MESSAGE 'You can not change field width when SESSION:SCHEMA-CHANGE = "New Objects".'
+         VIEW-AS ALERT-BOX ERROR.
+       &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
+         ASSIGN user_path = "".
+       &ENDIF
+       RETURN.
+     END.
+   &ENDIF
 
 &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
    s_btn_Close:LABEL IN FRAME frm-width = "Cancel".

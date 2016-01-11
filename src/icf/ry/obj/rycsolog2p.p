@@ -111,7 +111,7 @@ af/cod/aftemwizpw.w
 
 &scop object-name       rycsolog2p.p
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Astra object identifying preprocessor */
 &glob   AstraPlip    yes
@@ -125,14 +125,10 @@ ASSIGN cObjectName = "{&object-name}":U.
 
 /* Data Preprocessor Definitions */
 &GLOB DATA-LOGIC-TABLE ryc_smartobject
-&GLOB DATA-FIELD-DEFS  "ry\obj\rycsoful2o.i"
+&GLOB DATA-FIELD-DEFS  "ry/obj/rycsoful2o.i"
 
 /* Error handling definitions */
 {af/sup2/afcheckerr.i &define-only = YES}
-
-&SCOPED-DEFINE ttName ttGscObject
-{ry/inc/gscobttdef.i}
-&UNDEFINE ttName
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -155,9 +151,20 @@ ASSIGN cObjectName = "{&object-name}":U.
 
 
 
+
+
 /* _UIB-PREPROCESSOR-BLOCK-END */
 &ANALYZE-RESUME
 
+
+/* ************************  Function Prototypes ********************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD isFieldBlank DataLogicProcedure 
+FUNCTION isFieldBlank RETURNS LOGICAL
+  ( INPUT pcFieldValue AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
 
 /* *********************** Procedure Settings ************************ */
@@ -210,6 +217,47 @@ ASSIGN cObjectName = "{&object-name}":U.
 
 {&DB-REQUIRED-START}
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createEndTransValidate DataLogicProcedure  _DB-REQUIRED
+PROCEDURE createEndTransValidate :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE cMessageList                AS CHARACTER                NO-UNDO.
+
+/* If no security object exists, make this object secure itself. */
+IF b_ryc_smartobject.security_smartobject_obj EQ 0 OR b_ryc_smartobject.security_smartobject_obj EQ ? 
+THEN DO:
+    FIND ryc_smartobject WHERE
+         ryc_smartobject.smartobject_obj = b_ryc_smartobject.smartobject_obj
+         EXCLUSIVE-LOCK NO-WAIT NO-ERROR.
+
+    IF LOCKED ryc_smartobject THEN
+        ASSIGN cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList, CHR(3)) EQ 0 THEN "":U ELSE CHR(3))
+                            + {af/sup2/aferrortxt.i 'AF' '104' 'ryc_smartobject' '?' '"update the object record"'}.        
+    ELSE
+        IF AVAILABLE ryc_smartobject THEN
+        DO:
+            ASSIGN ryc_smartobject.security_smartobject_obj = ryc_smartobject.smartobject_obj.
+            VALIDATE ryc_smartobject NO-ERROR.
+            ASSIGN cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList, CHR(3)) EQ 0 THEN "":U ELSE CHR(3))
+                                + RETURN-VALUE.
+        END.
+END.
+
+ASSIGN ERROR-STATUS:ERROR = NO.
+RETURN cMessageList.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
+
+{&DB-REQUIRED-START}
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createPreTransValidate DataLogicProcedure  _DB-REQUIRED
 PROCEDURE createPreTransValidate :
 /*------------------------------------------------------------------------------
@@ -222,38 +270,168 @@ PROCEDURE createPreTransValidate :
   DEFINE VARIABLE cValueList      AS CHARACTER    NO-UNDO.
 
   IF CAN-FIND(FIRST ryc_smartobject 
-              WHERE ryc_smartobject.object_filename = b_ryc_smartobject.object_filename) THEN
+              WHERE ryc_smartobject.object_filename = b_ryc_smartobject.object_filename
+                AND ryc_smartobject.customization_result_obj = b_ryc_smartobject.customization_result_obj) THEN
   DO:
      ASSIGN
-        cValueList   = STRING(b_ryc_smartobject.object_filename)
+        cValueList   = STRING(b_ryc_smartobject.object_filename) + ', ' + STRING(b_ryc_smartobject.customization_result_obj)
         cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                      {af/sup2/aferrortxt.i 'AF' '8' 'ryc_smartobject' '' "'object_filename, '" cValueList }.
-  END.
-
-
-  IF CAN-FIND(FIRST ryc_smartobject 
-              WHERE ryc_smartobject.object_type_obj = b_ryc_smartobject.object_type_obj
-                AND ryc_smartobject.object_obj = b_ryc_smartobject.object_obj) THEN
-  DO:
-     ASSIGN
-        cValueList   = STRING(b_ryc_smartobject.object_type_obj) + ', ' + STRING(b_ryc_smartobject.object_obj)
-        cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                      {af/sup2/aferrortxt.i 'AF' '8' 'ryc_smartobject' '' "'object_type_obj, object_obj, '" cValueList }.
+                      {aferrortxt.i 'AF' '8' 'ryc_smartobject' '' "'object_filename, customization_result_obj, '" cValueList }.
   END.
 
 
   IF CAN-FIND(FIRST ryc_smartobject 
               WHERE ryc_smartobject.product_module_obj = b_ryc_smartobject.product_module_obj
-                AND ryc_smartobject.object_filename = b_ryc_smartobject.object_filename) THEN
+                AND ryc_smartobject.object_filename = b_ryc_smartobject.object_filename
+                AND ryc_smartobject.customization_result_obj = b_ryc_smartobject.customization_result_obj) THEN
   DO:
      ASSIGN
-        cValueList   = STRING(b_ryc_smartobject.product_module_obj) + ', ' + STRING(b_ryc_smartobject.object_filename)
+        cValueList   = STRING(b_ryc_smartobject.product_module_obj) + ', ' + STRING(b_ryc_smartobject.object_filename) + ', ' + STRING(b_ryc_smartobject.customization_result_obj)
         cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                      {af/sup2/aferrortxt.i 'AF' '8' 'ryc_smartobject' '' "'product_module_obj, object_filename, '" cValueList }.
+                      {aferrortxt.i 'AF' '8' 'ryc_smartobject' '' "'product_module_obj, object_filename, customization_result_obj, '" cValueList }.
   END.
 
   ERROR-STATUS:ERROR = NO.
   RETURN cMessageList.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
+
+{&DB-REQUIRED-START}
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE deletePreTransValidate DataLogicProcedure  _DB-REQUIRED
+PROCEDURE deletePreTransValidate :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE cMessageList AS CHARACTER NO-UNDO.
+
+/* Check that we do not delete an object where the object is used as an *
+ * instance on another object                                           */
+
+IF CAN-FIND(FIRST ryc_object_instance
+            WHERE ryc_object_instance.smartobject_obj = b_ryc_smartobject.smartobject_obj) THEN
+    ASSIGN 
+           cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
+                          {af/sup2/aferrortxt.i 'AF' '101' 'ryc_smartobject' '' "'object'" "'object instance'" "'This object is used as an instance on another object and may not be deleted.'"}.
+
+
+/* Cascade delete all Instances on object, all Links, all attributes,
+   all pages and all UI Events. */
+/* DELETE OBJECT INSTANCES */
+FOR EACH  ryc_object_instance
+    WHERE ryc_object_instance.container_smartobject_obj = b_ryc_smartobject.smartobject_obj
+    EXCLUSIVE-LOCK:
+  /* DELETE OBJECT INSTANCE ATTRIBUTE VALUES */
+  FOR EACH  ryc_attribute_value
+      WHERE ryc_attribute_value.object_type_obj          <> 0
+      AND   ryc_attribute_value.container_smartobject_obj = b_ryc_smartobject.smartobject_obj
+      AND   ryc_attribute_value.smartobject_obj           = ryc_object_instance.smartobject_obj
+      AND   ryc_attribute_value.object_instance_obj       = ryc_object_instance.object_instance_obj
+      EXCLUSIVE-LOCK:
+    DELETE ryc_attribute_value.
+    IF RETURN-VALUE <> "":U THEN DO:
+      cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + RETURN-VALUE.
+      ERROR-STATUS:ERROR = NO.
+      RETURN cMessageList.
+    END.
+  END.
+  /* DELETE OBJECT INSTANCE UI EVENTS */
+  FOR EACH  ryc_ui_event
+      WHERE ryc_ui_event.object_type_obj          <> 0
+      AND   ryc_ui_event.container_smartobject_obj = b_ryc_smartobject.smartobject_obj
+      AND   ryc_ui_event.smartobject_obj           = ryc_object_instance.smartobject_obj
+      AND   ryc_ui_event.object_instance_obj       = ryc_object_instance.object_instance_obj
+      EXCLUSIVE-LOCK:
+    DELETE ryc_ui_event.
+    IF RETURN-VALUE <> "":U THEN DO:
+      cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + RETURN-VALUE.
+      ERROR-STATUS:ERROR = NO.
+      RETURN cMessageList.
+    END.
+  END.
+
+  DELETE ryc_object_instance.
+  IF RETURN-VALUE <> "":U THEN DO:
+    cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + RETURN-VALUE.
+    ERROR-STATUS:ERROR = NO.
+    RETURN cMessageList.
+  END.
+END.
+
+/* DELETE ATTRIBUTE VALUES */
+FOR EACH  ryc_attribute_value
+    WHERE ryc_attribute_value.object_type_obj           = b_ryc_smartobject.object_type_obj
+    AND   ryc_attribute_value.container_smartobject_obj = 0
+    AND   ryc_attribute_value.smartobject_obj           = b_ryc_smartobject.smartobject_obj
+    AND   ryc_attribute_value.object_instance_obj       = 0
+    EXCLUSIVE-LOCK:
+  DELETE ryc_attribute_value.
+  IF RETURN-VALUE <> "":U THEN DO:
+    cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + RETURN-VALUE.
+    ERROR-STATUS:ERROR = NO.
+    RETURN cMessageList.
+  END.
+END.
+/* DELETE UI EVENTS */
+FOR EACH  ryc_ui_event
+    WHERE ryc_ui_event.object_type_obj           = b_ryc_smartobject.object_type_obj
+    AND   ryc_ui_event.container_smartobject_obj = 0
+    AND   ryc_ui_event.smartobject_obj           = b_ryc_smartobject.smartobject_obj
+    AND   ryc_ui_event.object_instance_obj       = 0
+    EXCLUSIVE-LOCK:
+  DELETE ryc_ui_event.
+  IF RETURN-VALUE <> "":U THEN DO:
+    cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + RETURN-VALUE.
+    ERROR-STATUS:ERROR = NO.
+    RETURN cMessageList.
+  END.
+END.
+
+/* DELETE LINKS */
+FOR EACH  ryc_smartlink
+    WHERE ryc_smartlink.container_smartobject_obj = b_ryc_smartobject.smartobject_obj
+    EXCLUSIVE-LOCK:
+  DELETE ryc_smartlink.
+  IF RETURN-VALUE <> "":U THEN DO:
+    cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + RETURN-VALUE.
+    ERROR-STATUS:ERROR = NO.
+    RETURN cMessageList.
+  END.
+END.
+
+/* DELETE PAGES */
+FOR EACH  ryc_page
+    WHERE ryc_page.container_smartobject_obj = b_ryc_smartobject.smartobject_obj
+    EXCLUSIVE-LOCK:
+  /* DELETE PAGE OBJECTS */
+  FOR EACH  ryc_page_object
+      WHERE ryc_page_object.page_obj                  = ryc_page.page_obj
+      AND   ryc_page_object.container_smartobject_obj = b_ryc_smartobject.smartobject_obj
+      EXCLUSIVE-LOCK:
+    DELETE ryc_page_object.
+    IF RETURN-VALUE <> "":U THEN DO:
+      cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + RETURN-VALUE.
+      ERROR-STATUS:ERROR = NO.
+      RETURN cMessageList.
+    END.
+  END.
+  DELETE ryc_page.
+  IF RETURN-VALUE <> "":U THEN DO:
+    cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + RETURN-VALUE.
+    ERROR-STATUS:ERROR = NO.
+    RETURN cMessageList.
+  END.
+END.
+
+ERROR-STATUS:ERROR = NO.
+RETURN cMessageList.
 
 END PROCEDURE.
 
@@ -287,7 +465,7 @@ PROCEDURE objectDescription :
 
   DEFINE OUTPUT PARAMETER cDescription AS CHARACTER NO-UNDO.
 
-  ASSIGN cDescription = "Astra 2 ryc_smartobject Data Logic Procedure".
+  ASSIGN cDescription = "Dynamics ryc_smartobject Data Logic Procedure #2".
 
 END PROCEDURE.
 
@@ -335,41 +513,51 @@ PROCEDURE rowObjectValidate :
 
   DEFINE VARIABLE cMessageList    AS CHARACTER    NO-UNDO.
   DEFINE VARIABLE cValueList      AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE cDataTarget     AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE hDataTarget     AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE iLoop           AS INTEGER      NO-UNDO.
-  DEFINE VARIABLE hAsHandle       AS HANDLE       NO-UNDO.
 
-  IF LENGTH(b_ryc_smartobject.object_filename) = 0 OR LENGTH(b_ryc_smartobject.object_filename) = ? THEN
+  IF isFieldBlank(b_ryc_smartobject.object_filename) THEN
     ASSIGN
       cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                    {af/sup2/aferrortxt.i 'AF' '1' 'ryc_smartobject' 'object_filename' "'Object Filename'"}.
-
-  IF b_ryc_smartobject.object_type_obj = 0 OR b_ryc_smartobject.object_type_obj = ? THEN
-    ASSIGN
-      cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                    {af/sup2/aferrortxt.i 'AF' '1' 'ryc_smartobject' 'object_type_obj' "'Object Type Obj'"}.
-
-  IF b_ryc_smartobject.object_obj = 0 OR b_ryc_smartobject.object_obj = ? THEN
-    ASSIGN
-      cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                    {af/sup2/aferrortxt.i 'AF' '1' 'ryc_smartobject' 'object_obj' "'Object Obj'"}.
+                    {aferrortxt.i 'AF' '1' 'ryc_smartobject' 'object_filename' "'Object Filename'"}.
 
   IF b_ryc_smartobject.product_module_obj = 0 OR b_ryc_smartobject.product_module_obj = ? THEN
     ASSIGN
       cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                    {af/sup2/aferrortxt.i 'AF' '1' 'ryc_smartobject' 'product_module_obj' "'Product Module Obj'"}.
+                    {aferrortxt.i 'AF' '1' 'ryc_smartobject' 'product_module_obj' "'Product Module Obj'"}.
 
-  IF b_ryc_smartobject.sdo_smartobject_obj = 0 OR b_ryc_smartobject.sdo_smartobject_obj = ? THEN
+  IF b_ryc_smartObject.container_object AND b_ryc_smartobject.runnable_from_menu = ? THEN
     ASSIGN
       cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                    {af/sup2/aferrortxt.i 'AF' '1' 'ryc_smartobject' 'sdo_smartobject_obj' "'Sdo SmartObject Obj'"}.
+                    {aferrortxt.i 'AF' '1' 'ryc_smartobject' 'runnable_from_menu' "'Runnable From Menu'"}.
 
-  IF b_ryc_smartobject.layout_obj = 0 OR b_ryc_smartobject.layout_obj = ? THEN
+  IF b_ryc_smartObject.container_object 
+     AND (b_ryc_smartobject.layout_obj = 0 OR b_ryc_smartobject.layout_obj = ?) THEN
     ASSIGN
       cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                    {af/sup2/aferrortxt.i 'AF' '1' 'ryc_smartobject' 'layout_obj' "'Layout Obj'"}.
-  
+                    {aferrortxt.i 'AF' '1' 'ryc_smartobject' 'layout_obj' "'Layout Obj'"}.
+
+  IF b_ryc_smartobject.object_type_obj = 0 OR b_ryc_smartobject.object_type_obj = ? THEN
+    ASSIGN
+      cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
+                    {aferrortxt.i 'AF' '1' 'ryc_smartobject' 'object_type_obj' "'Object Type Obj'"}.
+
+  /** Issue #6736 requests that we allow the changing of the object types
+  /* ObjType - The object exists already, if the object type is being changed, raise an error */
+
+  IF NOT isCreate() THEN
+      IF  AVAILABLE old_ryc_smartobject
+      AND AVAILABLE b_ryc_smartobject
+      AND old_ryc_smartobject.object_type_obj <> b_ryc_smartobject.object_type_obj THEN
+          ASSIGN
+            cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
+                          {aferrortxt.i 'AF' '36' 'ryc_smartobject' 'object_type_obj' "'the repository object'" "'object types can not be updated once assigned'"}.
+
+  ***************************/
+
+  IF isFieldBlank(b_ryc_smartobject.object_description) THEN
+    ASSIGN
+      cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
+                    {aferrortxt.i 'AF' '1' 'ryc_smartobject' 'object_description' "'Object Description'"}.
+
   ERROR-STATUS:ERROR = NO.
   RETURN cMessageList.
 
@@ -387,51 +575,100 @@ PROCEDURE writePreTransValidate :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-
-  DEFINE VARIABLE cMessageList    AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE cValueList      AS CHARACTER    NO-UNDO.
-
+  DEFINE VARIABLE cMessageList     AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cValueList       AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE iCnt             AS INTEGER      NO-UNDO.
+  DEFINE VARIABLE cToolbarChildren AS CHARACTER    NO-UNDO.
+    DEFINE VARIABLE lCheckChanged           AS LOGICAL                  NO-UNDO.
+  DEFINE BUFFER gsc_object_type FOR gsc_object_type.
+  
   IF NOT isCreate() AND CAN-FIND(FIRST ryc_smartobject 
               WHERE ryc_smartobject.object_filename = b_ryc_smartobject.object_filename
+                AND ryc_smartobject.customization_result_obj = b_ryc_smartobject.customization_result_obj
                 AND ROWID(ryc_smartobject) <> TO-ROWID(ENTRY(1,b_ryc_smartobject.RowIDent))) THEN
   DO:
      ASSIGN
-        cValueList   = STRING(b_ryc_smartobject.object_filename)
+        cValueList   = STRING(b_ryc_smartobject.object_filename) + ', ' + STRING(b_ryc_smartobject.customization_result_obj)
         cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                      {af/sup2/aferrortxt.i 'AF' '8' 'ryc_smartobject' '' "'object_filename, '" cValueList }.
-  END.
-
-
-  IF NOT isCreate() AND CAN-FIND(FIRST ryc_smartobject 
-              WHERE ryc_smartobject.object_type_obj = b_ryc_smartobject.object_type_obj
-                AND ryc_smartobject.object_obj = b_ryc_smartobject.object_obj
-                AND ROWID(ryc_smartobject) <> TO-ROWID(ENTRY(1,b_ryc_smartobject.RowIDent))) THEN
-  DO:
-     ASSIGN
-        cValueList   = STRING(b_ryc_smartobject.object_type_obj) + ', ' + STRING(b_ryc_smartobject.object_obj)
-        cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                      {af/sup2/aferrortxt.i 'AF' '8' 'ryc_smartobject' '' "'object_type_obj, object_obj, '" cValueList }.
+                      {aferrortxt.i 'AF' '8' 'ryc_smartobject' '' "'object_filename, customization_result_obj, '" cValueList }.
   END.
 
 
   IF NOT isCreate() AND CAN-FIND(FIRST ryc_smartobject 
               WHERE ryc_smartobject.product_module_obj = b_ryc_smartobject.product_module_obj
                 AND ryc_smartobject.object_filename = b_ryc_smartobject.object_filename
+                AND ryc_smartobject.customization_result_obj = b_ryc_smartobject.customization_result_obj
                 AND ROWID(ryc_smartobject) <> TO-ROWID(ENTRY(1,b_ryc_smartobject.RowIDent))) THEN
   DO:
      ASSIGN
-        cValueList   = STRING(b_ryc_smartobject.product_module_obj) + ', ' + STRING(b_ryc_smartobject.object_filename)
+        cValueList   = STRING(b_ryc_smartobject.product_module_obj) + ', ' + STRING(b_ryc_smartobject.object_filename) + ', ' + STRING(b_ryc_smartobject.customization_result_obj)
         cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                      {af/sup2/aferrortxt.i 'AF' '8' 'ryc_smartobject' '' "'product_module_obj, object_filename, '" cValueList }.
+                      {aferrortxt.i 'AF' '8' 'ryc_smartobject' '' "'product_module_obj, object_filename, customization_result_obj, '" cValueList }.
   END.
 
-  ERROR-STATUS:ERROR = NO.
-  RETURN cMessageList.
+  /* Ensure that toolbar security objects are not zero. Issue 2393 (Don B)*/
 
+  IF  b_ryc_smartobject.security_smartobject_obj = 0
+  THEN DO:
+      ASSIGN cToolbarChildren = DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, INPUT "SmartToolbar").
+
+      DO iCnt = 1 TO NUM-ENTRIES(cToolbarChildren):
+          FIND gsc_object_type NO-LOCK
+               WHERE gsc_object_type.object_type_code  = ENTRY(iCnt, cToolbarChildren)
+               NO-ERROR.
+
+          IF AVAILABLE gsc_object_type THEN
+              IF b_ryc_smartobject.object_type_obj = gsc_object_type.object_type_obj THEN
+                  ASSIGN b_ryc_smartobject.security_smartobject_obj = b_ryc_smartobject.smartobject_obj.
+      END.
+  END.
+  IF b_ryc_smartobject.deployment_type = ? THEN
+     b_ryc_smartobject.deployment_type = "":U.
+    
+    /* Change the Obejct Type before any other updates */
+    IF NOT isCreate() AND b_ryc_smartobject.object_type_obj NE old_ryc_smartobject.object_type_obj THEN
+    DO:
+        /* Changing the object type will cause errors when we try to commit any further changes
+         * to this record. Make sure that we turn the checking off.                             */
+        {get CheckCurrentChanged lCheckChanged}.
+        {set CheckCurrentChanged NO}.
+
+        RUN changeObjectType IN gshRepositoryManager ( INPUT b_ryc_smartobject.smartobject_obj,
+                                                       INPUT b_ryc_smartobject.object_type_obj,
+                                                       INPUT old_ryc_smartobject.object_type_obj ) NO-ERROR.
+
+        /* Reset to previous value. */
+        {set CheckCurrentChanged lCheckChanged}.
+        IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN
+            ASSIGN cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + RETURN-VALUE.
+    END.  /* object type has changed. */
+
+    ASSIGN ERROR-STATUS:ERROR = NO.
+    RETURN cMessageList.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
 {&DB-REQUIRED-END}
+
+/* ************************  Function Implementations ***************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION isFieldBlank DataLogicProcedure 
+FUNCTION isFieldBlank RETURNS LOGICAL
+  ( INPUT pcFieldValue AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Checks whether a character field is blank
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  IF LENGTH(TRIM(pcFieldValue)) = 0 OR LENGTH(TRIM(pcFieldValue)) = ? THEN
+    RETURN TRUE.
+  ELSE
+    RETURN FALSE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 

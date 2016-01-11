@@ -1,7 +1,6 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v9r12 GUI
 &ANALYZE-RESUME
 /* Connected Databases 
-          sports2000       PROGRESS
 */
 &Scoped-define WINDOW-NAME C-Win
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS C-Win 
@@ -63,6 +62,30 @@
                 Date:   02/28/2002  Author:     Mark Davies (MIP)
 
   Update Notes: Fixed issue #4055 - Does not generate Dyn Browsers or Viewers 
+
+  (v:010005)    Task:               UserRef:    
+                Date:   03/11/2002  Author:     Mark Davies (MIP)
+
+  Update Notes: Fixed issue #4163 - Object generation stops if focus is removed
+                Commented out all the PROCESS EVENTS statements. This did not
+                stop the screen from refreshing the percentage or message. 
+                Also ensure that while it is running that the SESSION's
+                wait-state is set to GENERAL. 
+                Fixed issue #3837 - Generate Objects cannot accept UNC names
+
+  (v:010006)    Task:               UserRef:    
+                Date:   03/12/2002  Author:     Mark Davies (MIP)
+
+  Update Notes: Add include file to load correct icon and make window not 
+                resizable
+  (v:010007)    Task:               UserRef:    
+                Date:   04/11/2002  Author:     Mark Davies (MIP)
+
+  Update Notes: Fix for issue #4192 - Warning interrupts create of SDO in 
+                Object Generator - The Object Type specified is invalid. 
+                (AF:5) - SCC_BUG 20020319-017
+                Removed warning message from displaying on screen. The error
+                will now only be written to the log file.
 ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.      */
 /*----------------------------------------------------------------------*/
@@ -93,7 +116,6 @@ DEFINE NEW GLOBAL SHARED VARIABLE grtb-wspace-id    AS CHARACTER    NO-UNDO.
 DEFINE STREAM sDir.
 DEFINE STREAM LogFile.
 
-DEFINE VARIABLE hHandle  AS HANDLE     NO-UNDO.
 DEFINE VARIABLE hScmTool AS HANDLE     NO-UNDO.
 
 DEFINE VARIABLE fiLogicGroup    AS CHARACTER NO-UNDO.
@@ -121,15 +143,20 @@ DEFINE VARIABLE cvnamesuffix                AS CHARACTER    INITIAL "viewv"     
 DEFINE VARIABLE cvmaxfldspercolumn          AS INTEGER      INITIAL 24              NO-UNDO.
 DEFINE VARIABLE cSDOViewerFields            AS LOGICAL                              NO-UNDO.
 DEFINE VARIABLE cSDOBrowseFields            AS LOGICAL                              NO-UNDO.
-DEFINE VARIABLE hObjApi                     AS HANDLE                               NO-UNDO.
+DEFINE VARIABLE ghRepositoryDesignManager   AS HANDLE                               NO-UNDO.
 DEFINE VARIABLE dSmobj                      AS DECIMAL                              NO-UNDO.
+DEFINE VARIABLE dDLobj                      AS DECIMAL                              NO-UNDO.
 DEFINE VARIABLE shdl                        AS HANDLE                               NO-UNDO.
 DEFINE VARIABLE gcOldPropath                AS CHAR                                 NO-UNDO.
 DEFINE VARIABLE glAppendToLogFile           AS LOGICAL      INITIAL NO              NO-UNDO.
 DEFINE VARIABLE glDisplayRepository         AS LOGICAL                              NO-UNDO.
 DEFINE VARIABLE glDeleteBrowseOnGeneration  AS LOGICAL                              NO-UNDO.  
 DEFINE VARIABLE glDeleteViewerOnGeneration  AS LOGICAL                              NO-UNDO.  
+DEFINE VARIABLE glDeleteSdoOnGeneration     AS LOGICAL                              NO-UNDO.  
 DEFINE VARIABLE cLinks                      AS CHARACTER                            NO-UNDO.
+DEFINE VARIABLE gcBrowseModule              AS CHARACTER    INITIAL "<None>"        NO-UNDO.
+DEFINE VARIABLE gcViewerModule              AS CHARACTER    INITIAL "<None>"        NO-UNDO.
+DEFINE VARIABLE gcDataFieldModule           AS CHARACTER    INITIAL "<None>"        NO-UNDO.
 
 DEFINE VARIABLE giCount AS INTEGER    NO-UNDO.
 DEFINE VARIABLE giTotal AS INTEGER    NO-UNDO.
@@ -147,6 +174,8 @@ DEFINE TEMP-TABLE ttsdotable                    NO-UNDO
     FIELD tt_object_description     AS CHARACTER format "X(20)"
     FIELD tt_object_path            AS CHARACTER FORMAT "X(20)"
     INDEX tt_key  tt_object_filename.
+
+{af/app/afttsecurityctrl.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -192,15 +221,15 @@ DEFINE TEMP-TABLE ttsdotable                    NO-UNDO
     ~{&OPEN-QUERY-Brbrowse2}
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS coDatabase coModule buAdvanced ~
-fiRootDirectory buRootDirectory fiSDODirectory gendataflds rsdo ~
-RAFieldSequence toGenBrowser toGenViewer buBrowserSettings geninstance ~
-buViewerSettings toSuppressAll tofollow BrBrowse buSelectAll buDeSelect ~
-Brbrowse2 buGenerate buStop buExit buHelp prcnt RECT-1 RECT-2 RECT-3 RECT-4 ~
-RECT-6 RECT-7 RECT-8 RECT-9 
+&Scoped-Define ENABLED-OBJECTS coDatabase coModule fiRootDirectory ~
+buRootDirectory fiSDODirectory buAdvanced rsdo toSuppressAll ~
+RAFieldSequence tofollow toGenBrowser buBrowserSettings toGenViewer ~
+buViewerSettings gendataflds geninstance buDataFieldSettings BrBrowse ~
+Brbrowse2 buSelectAll buDeSelect buGenerate buStop buExit buHelp prcnt ~
+RECT-1 RECT-2 RECT-3 RECT-4 RECT-6 RECT-7 RECT-8 RECT-9 
 &Scoped-Define DISPLAYED-OBJECTS coDatabase coModule fiRootDirectory ~
-fiSDODirectory gendataflds rsdo RAFieldSequence toGenBrowser toGenViewer ~
-geninstance toSuppressAll tofollow fiProcessingTable fprocessing 
+fiSDODirectory rsdo toSuppressAll RAFieldSequence tofollow toGenBrowser ~
+toGenViewer gendataflds geninstance fiProcessingTable fprocessing 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -210,6 +239,13 @@ geninstance toSuppressAll tofollow fiProcessingTable fprocessing
 
 
 /* ************************  Function Prototypes ********************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD detectFileType C-Win 
+FUNCTION detectFileType RETURNS CHARACTER
+  ( INPUT pcFileName AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD timeCheck C-Win 
 FUNCTION timeCheck RETURNS CHARACTER
@@ -227,33 +263,37 @@ DEFINE VAR C-Win AS WIDGET-HANDLE NO-UNDO.
 /* Definitions of the field level widgets                               */
 DEFINE BUTTON buAdvanced 
      LABEL "&Advanced..." 
-     SIZE 19 BY 1.14 TOOLTIP "Advanced  Settings for  SDO Generation".
+     SIZE 21.6 BY 1.14 TOOLTIP "Advanced Settings for SDO Generation".
 
 DEFINE BUTTON buBrowserSettings 
-     LABEL " &Browser Settings..." 
+     LABEL "&Browser Settings..." 
      SIZE 19 BY 1.14 TOOLTIP "Change browser generation default settings".
 
+DEFINE BUTTON buDataFieldSettings 
+     LABEL "DataField Setti&ngs..." 
+     SIZE 21.6 BY 1.14 TOOLTIP "Change DataField generation default settings".
+
 DEFINE BUTTON buDeSelect 
-     LABEL "D&eselect All" 
-     SIZE 19 BY 1.14 TOOLTIP "Select All Tables".
+     LABEL "Deselect All" 
+     SIZE 19 BY 1.14 TOOLTIP "Deselect All Tables".
 
 DEFINE BUTTON buExit AUTO-END-KEY 
      LABEL "E&xit" 
-     SIZE 19 BY 1.14
+     SIZE 19 BY 1.14 TOOLTIP "Exit this object"
      BGCOLOR 8 .
 
 DEFINE BUTTON buGenerate 
-     LABEL "&Start" 
+     LABEL "Start" 
      SIZE 19 BY 1.14 TOOLTIP "Generate sdo's for selected tables"
      BGCOLOR 8 .
 
 DEFINE BUTTON buHelp 
      LABEL "&Help" 
-     SIZE 19 BY 1.14 TOOLTIP "Advanced  Settings for  SDO Generation".
+     SIZE 19 BY 1.14 TOOLTIP "Get online help".
 
 DEFINE BUTTON buRootDirectory 
      LABEL "..." 
-     SIZE 3.4 BY 1 TOOLTIP "Directory lookup"
+     SIZE 3.4 BY .81 TOOLTIP "Directory lookup"
      BGCOLOR 8 .
 
 DEFINE BUTTON buSDODirectory-2 
@@ -262,12 +302,12 @@ DEFINE BUTTON buSDODirectory-2
      BGCOLOR 8 .
 
 DEFINE BUTTON buSelectAll 
-     LABEL "&Select All" 
+     LABEL "Select All" 
      SIZE 19 BY 1.14 TOOLTIP "Select All Tables".
 
 DEFINE BUTTON buStop 
-     LABEL "&Cancel" 
-     SIZE 19 BY 1.14.
+     LABEL "Cancel" 
+     SIZE 19 BY 1.14 TOOLTIP "Stop processing".
 
 DEFINE BUTTON buViewerSettings 
      LABEL "V&iewer Settings..." 
@@ -297,7 +337,7 @@ DEFINE VARIABLE fiRootDirectory AS CHARACTER FORMAT "X(256)":U
      SIZE 74.6 BY 1 TOOLTIP "Specify the Root Directory for generating SDOs" NO-UNDO.
 
 DEFINE VARIABLE fiSDODirectory AS CHARACTER FORMAT "X(256)":U 
-     LABEL "S&DO Directory" 
+     LABEL "&SDO Directory" 
      VIEW-AS FILL-IN 
      SIZE 74.6 BY 1 TOOLTIP "The relative path into which SDO and Logic will be created" NO-UNDO.
 
@@ -313,20 +353,20 @@ DEFINE VARIABLE prcnt AS INTEGER FORMAT "ZZ9 %":U INITIAL 0
 DEFINE VARIABLE RAFieldSequence AS INTEGER INITIAL 1 
      VIEW-AS RADIO-SET VERTICAL
      RADIO-BUTTONS 
-          "By &Order", 1,
+          "B&y Order", 1,
 "By &Field Name", 2
      SIZE 18 BY 1.57 TOOLTIP "Specifies the field order in the SDO" NO-UNDO.
 
 DEFINE VARIABLE rsdo AS INTEGER 
      VIEW-AS RADIO-SET VERTICAL
      RADIO-BUTTONS 
-          "Create New SDOs", 1,
-"Use Existing SDOs to Generate Browsers/Viewers", 2
+          "&Create New SDOs", 1,
+"&Use Existing SDOs to Generate Browsers/Viewers", 2
      SIZE 50.8 BY 1.57 NO-UNDO.
 
 DEFINE RECTANGLE RECT-1
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 143 BY 2.38.
+     SIZE 143 BY 1.52.
 
 DEFINE RECTANGLE RECT-2
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
@@ -357,27 +397,27 @@ DEFINE RECTANGLE RECT-9
      SIZE 25 BY 3.57.
 
 DEFINE VARIABLE gendataflds AS LOGICAL INITIAL yes 
-     LABEL "Generate DataFields" 
+     LABEL "Generate &DataFields" 
      VIEW-AS TOGGLE-BOX
      SIZE 23 BY .81 TOOLTIP "Generate Datafields for Table or SDO" NO-UNDO.
 
 DEFINE VARIABLE geninstance AS LOGICAL INITIAL yes 
-     LABEL "Generate Instances" 
+     LABEL "G&enerate Instances" 
      VIEW-AS TOGGLE-BOX
      SIZE 23 BY .81 TOOLTIP "Generate DataField Instances for SDO" NO-UNDO.
 
 DEFINE VARIABLE tofollow AS LOGICAL INITIAL yes 
-     LABEL "&Follow Joins" 
+     LABEL "Follow &Joins" 
      VIEW-AS TOGGLE-BOX
-     SIZE 16.4 BY .81 NO-UNDO.
+     SIZE 16.4 BY .81 TOOLTIP "Check to automatically follow joins to related tables" NO-UNDO.
 
 DEFINE VARIABLE toGenBrowser AS LOGICAL INITIAL no 
-     LABEL "Generate Browsers" 
+     LABEL "&Generate Browsers" 
      VIEW-AS TOGGLE-BOX
      SIZE 22 BY .81 TOOLTIP "Check to Generate Browsers for Selected Tables" NO-UNDO.
 
 DEFINE VARIABLE toGenViewer AS LOGICAL INITIAL no 
-     LABEL "Generate Viewers" 
+     LABEL "Generate Vie&wers" 
      VIEW-AS TOGGLE-BOX
      SIZE 21 BY .81 TOOLTIP "Check to generate Viewers for select tables" NO-UNDO.
 
@@ -403,53 +443,54 @@ DEFINE BROWSE BrBrowse
       tt_data[3] LABEL "Dump Name" FORMAT "X(10)":U
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-    WITH NO-ROW-MARKERS SEPARATORS MULTIPLE SIZE 115 BY 5.52 ROW-HEIGHT-CHARS .62 EXPANDABLE TOOLTIP "Select the tables to create SDOs".
+    WITH NO-ROW-MARKERS SEPARATORS MULTIPLE SIZE 117 BY 5.52 ROW-HEIGHT-CHARS .62 FIT-LAST-COLUMN TOOLTIP "Select the tables to create SDOs".
 
 DEFINE BROWSE Brbrowse2
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _DISPLAY-FIELDS Brbrowse2 C-Win _FREEFORM
   QUERY Brbrowse2 DISPLAY
-      tt_product_module_code LABEL "Product Module" FORMAT "X(10)"
+      tt_product_module_code LABEL "Product Module" FORMAT "X(35)"
       tt_OBJECT_filename LABEL "SDO Name" FORMAT "X(20)"
       tt_OBJECT_description LABEL "Description"  FORMAT "X(50)"
       tt_object_path LABEL "Sub Directory" FORMAT "X(20)"
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-    WITH NO-ROW-MARKERS SEPARATORS MULTIPLE SIZE 115 BY 5.52 ROW-HEIGHT-CHARS .62 EXPANDABLE.
+    WITH NO-ROW-MARKERS SEPARATORS MULTIPLE SIZE 117 BY 5.52 ROW-HEIGHT-CHARS .62 FIT-LAST-COLUMN.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME DEFAULT-FRAME
-     coDatabase AT ROW 1.48 COL 19 COLON-ALIGNED
-     coModule AT ROW 2.43 COL 19 COLON-ALIGNED
-     buAdvanced AT ROW 2.43 COL 120.6
-     fiRootDirectory AT ROW 3.38 COL 19 COLON-ALIGNED
-     buRootDirectory AT ROW 3.38 COL 92
-     fiSDODirectory AT ROW 4.33 COL 19 COLON-ALIGNED
-     buSDODirectory-2 AT ROW 4.43 COL 92
-     gendataflds AT ROW 6.48 COL 121
+     coDatabase AT ROW 1.43 COL 19 COLON-ALIGNED
+     coModule AT ROW 2.48 COL 19 COLON-ALIGNED
+     fiRootDirectory AT ROW 3.52 COL 19 COLON-ALIGNED
+     buRootDirectory AT ROW 3.62 COL 92
+     fiSDODirectory AT ROW 4.57 COL 19 COLON-ALIGNED
+     buSDODirectory-2 AT ROW 4.71 COL 92
+     buAdvanced AT ROW 4.43 COL 122.6
      rsdo AT ROW 6.91 COL 2.6 NO-LABEL
-     RAFieldSequence AT ROW 6.91 COL 54.2 NO-LABEL
-     toGenBrowser AT ROW 6.91 COL 74
-     toGenViewer AT ROW 6.91 COL 98.4
-     buBrowserSettings AT ROW 8.05 COL 75.8
-     geninstance AT ROW 8.05 COL 121.2
-     buViewerSettings AT ROW 8.14 COL 99.4
      toSuppressAll AT ROW 8.62 COL 2.8
+     RAFieldSequence AT ROW 6.91 COL 54.2 NO-LABEL
      tofollow AT ROW 8.62 COL 54.6
-     BrBrowse AT ROW 10.52 COL 4
+     toGenBrowser AT ROW 6.48 COL 74
+     buBrowserSettings AT ROW 8.24 COL 75.8
+     toGenViewer AT ROW 6.48 COL 98.4
+     buViewerSettings AT ROW 8.24 COL 99.4
+     gendataflds AT ROW 6.48 COL 121
+     geninstance AT ROW 7.33 COL 121.2
+     buDataFieldSettings AT ROW 8.24 COL 122.6
+     BrBrowse AT ROW 10.52 COL 2.8
+     Brbrowse2 AT ROW 16.24 COL 2.8
      buSelectAll AT ROW 10.76 COL 120.6
      buDeSelect AT ROW 12.43 COL 120.6
-     Brbrowse2 AT ROW 16.24 COL 4
      fiProcessingTable AT ROW 22.57 COL 29.2 COLON-ALIGNED
      fprocessing AT ROW 22.67 COL 96 COLON-ALIGNED NO-LABEL
-     buGenerate AT ROW 25.52 COL 5
-     buStop AT ROW 25.52 COL 26
-     buExit AT ROW 25.52 COL 100
-     buHelp AT ROW 25.52 COL 120.6
+     buGenerate AT ROW 24.52 COL 2.8
+     buStop AT ROW 24.52 COL 22.6
+     buExit AT ROW 24.52 COL 101
+     buHelp AT ROW 24.52 COL 120.8
      prcnt AT ROW 22.57 COL 78.2 COLON-ALIGNED NO-LABEL
      RECT-1 AT ROW 22.43 COL 2
-     RECT-2 AT ROW 25.05 COL 2
+     RECT-2 AT ROW 24.05 COL 2.2
      RECT-3 AT ROW 1.24 COL 2.2
      RECT-4 AT ROW 9.81 COL 2
      RECT-6 AT ROW 6 COL 2
@@ -469,7 +510,7 @@ DEFINE FRAME DEFAULT-FRAME
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1
-         SIZE 151.4 BY 26.19
+         SIZE 151.4 BY 25.24
          DEFAULT-BUTTON buGenerate CANCEL-BUTTON buExit.
 
 
@@ -490,13 +531,15 @@ IF SESSION:DISPLAY-TYPE = "GUI":U THEN
   CREATE WINDOW C-Win ASSIGN
          HIDDEN             = YES
          TITLE              = "Generate Objects"
-         HEIGHT             = 26.05
+         HEIGHT             = 25.24
          WIDTH              = 144.8
          MAX-HEIGHT         = 45.38
          MAX-WIDTH          = 256
          VIRTUAL-HEIGHT     = 45.38
          VIRTUAL-WIDTH      = 256
-         RESIZE             = yes
+         MIN-BUTTON         = no
+         MAX-BUTTON         = no
+         RESIZE             = no
          SCROLL-BARS        = no
          STATUS-AREA        = no
          BGCOLOR            = ?
@@ -517,9 +560,9 @@ ELSE {&WINDOW-NAME} = CURRENT-WINDOW.
 /* SETTINGS FOR WINDOW C-Win
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME DEFAULT-FRAME
-                                                                        */
-/* BROWSE-TAB BrBrowse tofollow DEFAULT-FRAME */
-/* BROWSE-TAB Brbrowse2 buDeSelect DEFAULT-FRAME */
+   Custom                                                               */
+/* BROWSE-TAB BrBrowse buDataFieldSettings DEFAULT-FRAME */
+/* BROWSE-TAB Brbrowse2 BrBrowse DEFAULT-FRAME */
 /* SETTINGS FOR BUTTON buSDODirectory-2 IN FRAME DEFAULT-FRAME
    NO-ENABLE                                                            */
 ASSIGN 
@@ -585,7 +628,6 @@ END.
 ON WINDOW-CLOSE OF C-Win /* Generate Objects */
 DO:
     /* This event will close the window and terminate the procedure.  */
-    IF VALID-HANDLE(hHandle) THEN RUN killPlip IN hHandle.
     IF VALID-HANDLE(hScmTool) THEN RUN killPlip IN hScmTool.
     APPLY "CLOSE":U TO THIS-PROCEDURE.
     RETURN NO-APPLY.
@@ -624,12 +666,33 @@ END.
 
 &Scoped-define SELF-NAME buBrowserSettings
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buBrowserSettings C-Win
-ON CHOOSE OF buBrowserSettings IN FRAME DEFAULT-FRAME /*  Browser Settings... */
+ON CHOOSE OF buBrowserSettings IN FRAME DEFAULT-FRAME /* Browser Settings... */
 DO:
+    IF gcBrowseModule EQ "<None>":U THEN
+        ASSIGN gcBrowseModule = coMOdule:SCREEN-VALUE.
+
     RUN af/cod2/gbrowsettings.w ( INPUT-OUTPUT cmaxnumflds,
                                   INPUT-OUTPUT cnamesuffix,
                                   INPUT-OUTPUT cSDOBrowseFields,
-                                  INPUT-OUTPUT glDeleteBrowseOnGeneration   ).
+                                  INPUT-OUTPUT glDeleteBrowseOnGeneration,
+                                  INPUT        coModule:LIST-ITEMS,
+                                  INPUT-OUTPUT gcBrowseModule             ).
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME buDataFieldSettings
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buDataFieldSettings C-Win
+ON CHOOSE OF buDataFieldSettings IN FRAME DEFAULT-FRAME /* DataField Settings... */
+DO:
+    IF gcDataFieldModule EQ "<None>":U THEN
+        ASSIGN gcDataFieldModule = coModule:SCREEN-VALUE.
+
+    RUN af/cod2/rygenodfad.w ( INPUT        coModule:LIST-ITEMS,
+                               INPUT-OUTPUT gcDataFieldModule,
+                               INPUT-OUTPUT glDeleteSdoOnGeneration    ).
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -734,9 +797,13 @@ DO:
         LEAVE.
     END.
     
+    IF detectFileType(fiRootDirectory:SCREEN-VALUE) <> "N":U THEN
+      fiRootDirectory:SCREEN-VALUE = LC(TRIM(REPLACE(fiRootDirectory:SCREEN-VALUE,"~\":U,"/":U),"/":U)).
+    ELSE
+      fiRootDirectory:SCREEN-VALUE = LC(REPLACE(fiRootDirectory:SCREEN-VALUE,"~\":U,"/":U)).
+    
     ASSIGN
-      fiRootDirectory:SCREEN-VALUE = LC(TRIM(REPLACE(fiRootDirectory:SCREEN-VALUE,"\":U,"/":U),"/":U))
-      fiSDODirectory:SCREEN-VALUE = LC(TRIM(REPLACE(fiSDODirectory:SCREEN-VALUE,"\":U,"/":U),"/":U))
+      fiSDODirectory:SCREEN-VALUE = LC(TRIM(REPLACE(fiSDODirectory:SCREEN-VALUE,"~\":U,"/":U),"/":U))
       cDirectory = fiRootDirectory:SCREEN-VALUE + "/":U + fiSDODirectory:SCREEN-VALUE + "/":U
       .    
     IF clogfile = ? THEN
@@ -748,7 +815,7 @@ DO:
     FILE-INFO:FILE-NAME = cDirectory.
     IF FILE-INFO:FILE-TYPE <> "DRW"   /* if not a directory or not found */
     THEN DO:                          /* show error message and prompt to create it */
-        MESSAGE "File" RIGHT-TRIM(cDirectory,"/":U) "does not exist." SKIP
+        MESSAGE "Directory" RIGHT-TRIM(cDirectory,"/":U) "does not exist." SKIP
                  "Do you want to create it?" 
                  VIEW-AS ALERT-BOX QUESTION
                  BUTTONS YES-NO
@@ -777,11 +844,14 @@ DO:
       DISPLAY prcnt WITH FRAME {&FRAME-NAME}.
       RUN setButtons.
       fprocessing:SCREEN-VALUE = "Processing please wait....".
-
-      IF rSdo:INPUT-VALUE EQ 1 THEN
+      
+      SESSION:SET-WAIT-STATE("GENERAL":U).
+      giTotal = 0.
+      IF rSdo:INPUT-VALUE EQ 1 THEN 
           RUN CreateNewSdo.
       ELSE
           RUN UseExistingSdo.
+      SESSION:SET-WAIT-STATE("":U).
 
     /* Write the log footer and close the stream. */
     RUN LogFooter NO-ERROR.
@@ -872,11 +942,16 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buViewerSettings C-Win
 ON CHOOSE OF buViewerSettings IN FRAME DEFAULT-FRAME /* Viewer Settings... */
 DO:
+    IF gcViewerModule EQ "<None>":U THEN
+        ASSIGN gcViewerModule = coModule:SCREEN-VALUE.
+
     RUN af/cod2/gviewsettings.w ( INPUT-OUTPUT cvmaxnumflds,
                                   INPUT-OUTPUT cvnamesuffix,
                                   INPUT-OUTPUT cvmaxfldspercolumn,
                                   INPUT-OUTPUT cSDOViewerFields,
-                                  INPUT-OUTPUT glDeleteViewerOnGeneration ).
+                                  INPUT-OUTPUT glDeleteViewerOnGeneration,
+                                  INPUT        coModule:LIST-ITEMS,
+                                  INPUT-OUTPUT gcViewerModule              ).
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -919,7 +994,7 @@ DO:
              WHERE gsc_product_module.product_module_code = coModule:SCREEN-VALUE
              NO-ERROR.      
         IF AVAILABLE gsc_product_module THEN
-          ASSIGN cDirectory = TRIM(LC(REPLACE(gsc_product_module.relative_path,"\":U,"/":U)),"/":U)     
+          ASSIGN cDirectory = TRIM(LC(REPLACE(gsc_product_module.relative_path,"~\":U,"/":U)),"/":U)     
             .
       END.
       fiSDODirectory:SCREEN-VALUE = cDirectory.
@@ -938,9 +1013,15 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL fiRootDirectory C-Win
 ON LEAVE OF fiRootDirectory IN FRAME DEFAULT-FRAME /* Root Directory */
 DO:
-  ASSIGN
-    SELF:SCREEN-VALUE = LC(TRIM(REPLACE(SELF:SCREEN-VALUE,"\":U,"/":U),"/":U))
-    .
+  IF detectFileType(SELF:SCREEN-VALUE) <> "N":U THEN
+    ASSIGN
+      SELF:SCREEN-VALUE = LC(TRIM(REPLACE(SELF:SCREEN-VALUE,"~\":U,"/":U),"/":U))
+      .
+  ELSE
+    ASSIGN
+      SELF:SCREEN-VALUE = LC(REPLACE(SELF:SCREEN-VALUE,"~\":U,"/":U))
+      .
+
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -952,7 +1033,7 @@ END.
 ON LEAVE OF fiSDODirectory IN FRAME DEFAULT-FRAME /* SDO Directory */
 DO:
   ASSIGN
-    SELF:SCREEN-VALUE = LC(TRIM(REPLACE(SELF:SCREEN-VALUE,"\":U,"/":U),"/":U))
+    SELF:SCREEN-VALUE = LC(TRIM(REPLACE(SELF:SCREEN-VALUE,"~\":U,"/":U),"/":U))
     .
 END.
 
@@ -1059,7 +1140,6 @@ END.
 
 
 /* ***************************  Main Block  *************************** */
-
 /* Set CURRENT-WINDOW: this will parent dialog-boxes and frames.        */
 ASSIGN CURRENT-WINDOW                = {&WINDOW-NAME} 
        THIS-PROCEDURE:CURRENT-WINDOW = {&WINDOW-NAME}.
@@ -1071,28 +1151,31 @@ ON CLOSE OF THIS-PROCEDURE DO:
     IF gcOldPropath <> "" AND gcOldPropath <> PROPATH THEN
     ASSIGN
       PROPATH = gcOldPropath.
-   IF VALID-HANDLE(hObjApi) THEN RUN killplip IN hObjApi.
    RUN disable_UI.
 
    OUTPUT STREAM logfile CLOSE. 
 END.
 /* Best default for GUI applications is...                              */
 PAUSE 0 BEFORE-HIDE.
+{aficonload.i}
 
 
 /* Now enable the interface and wait for the exit condition.            */
 /* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */
-
-RUN ry/app/ryreposobp.p PERSISTENT SET hObjApi.
-
 MAIN-BLOCK:
 DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
    ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
   RUN enable_UI.
   
   RUN initValues IN THIS-PROCEDURE.       /*set some initial values */
-  RUN populateScreen IN THIS-PROCEDURE.     /*put up the screen */
-  
+  IF RETURN-VALUE NE "":U THEN
+  DO:
+      MESSAGE RETURN-VALUE VIEW-AS ALERT-BOX.
+      APPLY "CLOSE":U TO THIS-PROCEDURE.
+      RETURN.
+  END.
+
+  RUN populateScreen IN THIS-PROCEDURE.     /*put up the screen */  
   IF RETURN-VALUE NE "":U THEN
   DO:
       MESSAGE RETURN-VALUE VIEW-AS ALERT-BOX.
@@ -1161,12 +1244,29 @@ DEFINE VARIABLE tmplogname            AS CHAR  NO-UNDO.
 DEFINE VARIABLE tmplogclname          AS CHAR  NO-UNDO.
 DEFINE VARIABLE tmpdumpname           AS CHAR  NO-UNDO.
 DEFINE VARIABLE sdodir                AS CHAR  NO-UNDO.
+DEFINE VARIABLE lActionUnderway       AS LOG   NO-UNDO.
+DEFINE VARIABLE hAttributeTable             AS HANDLE               NO-UNDO.
+DEFINE VARIABLE hAttributeBuffer            AS HANDLE               NO-UNDO.
+DEFINE VARIABLE dBrowseSmartObjectObj       AS DECIMAL              NO-UNDO.
+DEFINE VARIABLE dViewerSmartObjectObj       AS DECIMAL              NO-UNDO.
 
 DO WITH FRAME {&FRAME-NAME}:       
   ASSIGN coDatabase
          coModule
          fiRootDirectory
          fiSDODirectory.        
+
+    /* If no specific module has been selected for one of the
+     * objects, assign it to the SDO's product module.        */
+    IF gcViewerModule EQ "<None>":U THEN
+        ASSIGN gcViewerModule = coModule.
+
+    IF gcBrowseModule EQ "<None>":U THEN
+        ASSIGN gcBrowseModule = coModule.
+
+    IF gcDataFieldModule EQ "<None>":U THEN
+        ASSIGN gcDataFieldModule = coModule.
+
   IF LOOKUP(fiRootDirectory:SCREEN-VALUE,PROPATH) = 0 THEN
     ASSIGN gcOldPropath = PROPATH
            PROPATH      = PROPATH + "," + fiRootDirectory:SCREEN-VALUE.
@@ -1337,20 +1437,19 @@ DO iLoop = 1 TO brBrowse:NUM-SELECTED-ROWS:
 
   IF lscmok = YES AND (GenDataFlds:CHECKED OR toGenviewer:CHECKED) THEN
   DO:
-    IF VALID-HANDLE(hObjApi)
-    THEN DO:
-      RUN storeTableFields IN hObjApi ( INPUT coDatabase:SCREEN-VALUE,
-                                      INPUT ttFileTable.tt_data[2],
-                                      INPUT coModule:SCREEN-VALUE   ).
-      IF RETURN-VALUE NE "":U THEN
+      RUN generateDataFields IN ghRepositoryDesignManager ( INPUT coDatabase:SCREEN-VALUE,
+                                                            INPUT ttFileTable.tt_data[2],
+                                                            INPUT gcDataFieldModule,
+                                                            INPUT "{&DEFAULT-RESULT-CODE}":U,
+                                                            INPUT NO,           /* plGenerateFromSDO */
+                                                            INPUT "":U,         /* List of SDO fields */
+                                                            INPUT cFilename     /* pcSdoObjectName   */  ) NO-ERROR.
+      IF RETURN-VALUE NE "":U OR ERROR-STATUS:ERROR THEN
         ASSIGN lSCMOk = NO
-               cError = "Error from StoreTableFields ":U + RETURN-VALUE
-                 .
+               cError = "Error from generateDataFields ":U + RETURN-VALUE
+               .
       ELSE
-        ASSIGN cError = "Datafield Generation Successful".
-    END.
-    ELSE
-      ASSIGN cError = "Error with Datafield Generation".
+          ASSIGN cError = "Datafield Generation Successful".
 
     RUN LogMessage(ttFileTable.tt_data[2],cError,NO).
   END.
@@ -1360,7 +1459,7 @@ DO iLoop = 1 TO brBrowse:NUM-SELECTED-ROWS:
   RUN ShowMessage("Generating SDO ....").
 
   IF lSCMOk = YES
-  THEN
+  THEN DO:
     RUN af/app/fullocreat.p 
       ( INPUT "FOR EACH " + coDatabase:SCREEN-VALUE + "." + ttFileTable.tt_data[2] + " NO-LOCK",
         INPUT cTemplate,
@@ -1373,6 +1472,7 @@ DO iLoop = 1 TO brBrowse:NUM-SELECTED-ROWS:
         INPUT toSuppressAll:CHECKED,
         OUTPUT cError,
         OUTPUT cLinks).
+  END.
 
   IF toFollow:CHECKED THEN DO:
     ASSIGN cLinks = REPLACE(cLinks,"|",",").
@@ -1386,25 +1486,32 @@ DO iLoop = 1 TO brBrowse:NUM-SELECTED-ROWS:
 
   RUN LogMessage(ttFileTable.tt_data[2],cError,NO).
 
-  ASSIGN
-    cError      = "":U
-    cAttrNames  = "ObjectPath,StaticObject":U
-    cAttrValues = fiSDODirectory:SCREEN-VALUE + CHR(3) + "yes":U + CHR(3)
-    .
-
+  ASSIGN cError           = "":U
+         hAttributeBuffer = ?
+         hAttributeTable  = ?
+         .
   RUN ShowMessage("Generating SDO in Repository ....").
 
-  IF toCreate AND lSCMOk = YES THEN        
-    RUN storeObject IN hObjApi 
-      (  INPUT  "SDO":U,
-         INPUT  coModule:SCREEN-VALUE,
-         INPUT  cFileName,
-         INPUT  "SDO for " + ttFileTable.tt_data[2], /* desc*/
-         INPUT  cAttrNames,
-         INPUT  cAttrValues,
-         OUTPUT dSmobj).        
-  
-  IF RETURN-VALUE <> "":U THEN DO:
+  IF toCreate AND lSCMOk = YES THEN
+      RUN insertObjectMaster IN ghRepositoryDesignManager ( INPUT  cFileName,                                /* pcObjectName         */
+                                                            INPUT  "{&DEFAULT-RESULT-CODE}":U,               /* pcResultCode         */
+                                                            INPUT  coModule:SCREEN-VALUE,                    /* pcProductModuleCode  */
+                                                            INPUT  "SDO":U,                                  /* pcObjectTypeCode     */
+                                                            INPUT  "SDO for ":U + ttFileTable.tt_data[2],    /* pcObjectDescription  */
+                                                            INPUT  fiSDODirectory:SCREEN-VALUE,              /* pcObjectPath         */
+                                                            INPUT  "":U,                                     /* pcSdoObjectName      */
+                                                            INPUT  "":U,                                     /* pcSuperProcedureName */
+                                                            INPUT  NO,                                       /* plIsTemplate         */
+                                                            INPUT  YES,                                      /* plIsStatic           */
+                                                            INPUT  "":U,                                     /* pcPhysicalObjectName */
+                                                            INPUT  NO,                                       /* plRunPersistent      */
+                                                            INPUT  "":U,                                     /* pcTooltipText        */
+                                                            INPUT  "":U,                                     /* pcRequiredDBList     */
+                                                            INPUT  "":U,                                     /* pcLayoutCode         */
+                                                            INPUT  hAttributeBuffer,
+                                                            INPUT  TABLE-HANDLE hAttributeTable,
+                                                            OUTPUT dSmobj                           ) NO-ERROR.
+  IF RETURN-VALUE <> "":U OR ERROR-STATUS:ERROR THEN DO:
     RUN LogMessage(ttFileTable.tt_data[2],RETURN-VALUE,YES).
     ASSIGN lSCMOk = NO.
     IF RETURN-VALUE = "ABORT":U THEN
@@ -1414,89 +1521,141 @@ DO iLoop = 1 TO brBrowse:NUM-SELECTED-ROWS:
   RUN ShowMessage("Compiling Static SDO ....").
   RUN adecomm/_osfmush.p (INPUT fiSDODirectory:SCREEN-VALUE, INPUT cFileName, OUTPUT tmpsdoName).
   IF SEARCH(tmpsdoname) <> ?
-  THEN
+  THEN DO:
+    IF VALID-HANDLE(gshSessionManager)
+    THEN
+      RUN setActionUnderway IN gshSessionManager
+                           (INPUT "DYN":U
+                           ,INPUT "GENOBJ":U
+                           ,INPUT tmpsdoname
+                           ,INPUT "":U
+                           ,INPUT "":U
+                           ).
     RUN af/cod2/fullocompile.p (tmpsdoname).
+    IF VALID-HANDLE(gshSessionManager)
+    THEN
+      RUN getActionUnderway IN gshSessionManager
+                           (INPUT  "DYN":U
+                           ,INPUT  "GENOBJ":U
+                           ,INPUT  tmpsdoname
+                           ,INPUT  "":U
+                           ,INPUT  "":U
+                           ,INPUT  YES
+                           ,OUTPUT lActionUnderway).
+  END.
 
   RUN ShowMessage("Generating Logic Procedure in Repository ....").
 
   IF toCreate AND lSCMOk = YES THEN
   DO:
-      ASSIGN cAttrNames  = "StaticObject":U
-             cAttrValues = "YES":U
+      ASSIGN hAttributeBuffer = ?
+             hAttributeTable  = ?
              .
-      RUN storeObject IN hObjApi (  INPUT  "DLProc":U,
-                                    INPUT  coModule:SCREEN-VALUE,
-                                    INPUT  cLogicFileName,
-                                    INPUT  "Logic Procedure for " + ttFileTable.tt_data[2], /* desc*/
-                                    INPUT  cAttrNames,
-                                    INPUT  cAttrValues,
-                                    OUTPUT dSmobj).
-      IF RETURN-VALUE <> "":U THEN 
+      RUN insertObjectMaster IN ghRepositoryDesignManager ( INPUT  cLogicFileName,                           /* pcObjectName         */
+                                                            INPUT  "{&DEFAULT-RESULT-CODE}":U,               /* pcResultCode         */
+                                                            INPUT  coModule:SCREEN-VALUE,                    /* pcProductModuleCode  */
+                                                            INPUT  "DLProc":U,                               /* pcObjectTypeCode     */
+                                                            INPUT  "Logic Procedure for ":U + ttFileTable.tt_data[2],    /* pcObjectDescription  */
+                                                            INPUT  "":U,                                     /* pcObjectPath         */
+                                                            INPUT  fiSDODirectory:SCREEN-VALUE,              /* pcSdoObjectName      */
+                                                            INPUT  "":U,                                     /* pcSuperProcedureName */
+                                                            INPUT  NO,                                       /* plIsTemplate         */
+                                                            INPUT  YES,                                      /* plIsStatic           */
+                                                            INPUT  "":U,                                     /* pcPhysicalObjectName */
+                                                            INPUT  NO,                                       /* plRunPersistent      */
+                                                            INPUT  "":U,                                     /* pcTooltipText        */
+                                                            INPUT  "":U,                                     /* pcRequiredDBList     */
+                                                            INPUT  "":U,                                     /* pcLayoutCode         */
+                                                            INPUT  hAttributeBuffer,
+                                                            INPUT  TABLE-HANDLE hAttributeTable,
+                                                            OUTPUT dDlObj                                   ) NO-ERROR.
+      IF RETURN-VALUE <> "":U OR ERROR-STATUS:ERROR THEN 
       DO:
-          RUN LogMessage(ttFileTable.tt_data[2],RETURN-VALUE,YES).
+          RUN LogMessage(ttFileTable.tt_data[2],RETURN-VALUE,NO).
           ASSIGN lSCMOk = NO.
           IF RETURN-VALUE = "ABORT":U THEN
               LEAVE ROW-BLOCK.
+          /* This will ensure that the Percentage does not go out of synch */
+          RUN ShowMessage("Processing....").
+          RUN ShowMessage("Processing....").
       END.
+      ELSE DO:
+        RUN ShowMessage("Compiling Static SDO Logic....").
+        RUN adecomm/_osfmush.p (INPUT fiSDODirectory:SCREEN-VALUE, INPUT cLogicFileName, OUTPUT tmplogName).
+        IF SEARCH(tmplogname) <> ? THEN
+            COMPILE VALUE(tmplogname) SAVE.
 
-      RUN ShowMessage("Compiling Static SDO Logic....").
-      RUN adecomm/_osfmush.p (INPUT fiSDODirectory:SCREEN-VALUE, INPUT cLogicFileName, OUTPUT tmplogName).
-      IF SEARCH(tmplogname) <> ? THEN
-          COMPILE VALUE(tmplogname) SAVE.
+        RUN ShowMessage("Compiling Static SDO Logic _cl....").
+        ASSIGN tmplogclname = SUBSTRING(tmplogname,1,LENGTH(tmplogname) - 2) + "_cl.p":U.
 
-      RUN ShowMessage("Compiling Static SDO Logic _cl....").
-      ASSIGN tmplogclname = SUBSTRING(tmplogname,1,LENGTH(tmplogname) - 2) + "_cl.p":U.
-
-      IF SEARCH(tmplogclname) <> ? THEN
-          COMPILE VALUE(tmplogclname) SAVE. 
+        IF SEARCH(tmplogclname) <> ? THEN
+            COMPILE VALUE(tmplogclname) SAVE. 
+      END.
   END.  /* Create SDO Logic procedure. */
 
-  PROCESS EVENTS. 
-  
+    RUN ShowMessage("Generating Instances ....").
+    ASSIGN cError = "":U
+           lSCMOk = YES.
+
+    RUN generateSDOInstances IN ghRepositoryDesignManager ( INPUT  cFileName,
+                                                            INPUT  "{&DEFAULT-RESULT-CODE}":U,
+                                                            INPUT  glDeleteSdoOnGeneration     ) NO-ERROR.
+    IF RETURN-VALUE <> "":U OR ERROR-STATUS:ERROR THEN
+        ASSIGN lSCMOk = NO
+               cError = "Error from generateSDOInstances: " + RETURN-VALUE.
+    ELSE
+        ASSIGN cError = "SDO DataField Instance Generation Successful ":U.
+
+    RUN LogMessage(INPUT "":U, INPUT cError, INPUT NO).
+
   ASSIGN cError = "":U.
   IF toGenBrowser:CHECKED THEN
   DO:
     RUN ShowMessage("Generating Dynamic Browser ....").
-    RUN adecomm/_osfmush.p (INPUT fiRootDirectory:SCREEN-VALUE, fiSDODirectory:SCREEN-VALUE, OUTPUT sdodir).
-    ASSIGN
-      sdodir = REPLACE(sdodir,"\":U,"/":U).
-    RUN rygenbrowse IN THIS-PROCEDURE ( INPUT cFileName,
-                                        INPUT ttFileTable.tt_data[2], 
-                                        INPUT coModule:SCREEN-VALUE,
-                                        INPUT sdodir,
-                                        INPUT cmaxnumflds,
-                                        INPUT cnamesuffix,
-                                        INPUT ttFileTable.tt_data[3],
-                                        INPUT cSDOBrowseFields).
-    IF RETURN-VALUE <> "":U THEN
+    RUN generateVisualObject IN ghRepositoryDesignManager ( INPUT  "DynBrow":U,                               /*pcObjectType              */
+                                                            INPUT  (ttFileTable.tt_data[3] + cNameSuffix),    /*pcObjectName              */
+                                                            INPUT  gcBrowseModule,                            /*pcProductModuleCode       */
+                                                            INPUT  "{&DEFAULT-RESULT-CODE}":U,                /*pcResultCode              */
+                                                            INPUT  cFileName,                                 /*pcSdoObjectName           */
+                                                            INPUT  ttFileTable.tt_data[2],                    /*pcTableName               */
+                                                            INPUT  coDatabase:SCREEN-VALUE,                   /*pcDataBaseName            */
+                                                            INPUT  cMaxNumFlds,                               /*piMaxObjectFields         */
+                                                            INPUT  cMaxNumFlds,                               /*piMaxFieldsPerColumn      */
+                                                            INPUT  cSDOBrowseFields,                          /*plUseSDOFields            */
+                                                            INPUT  "":U,                                      /*List of SDO fields */
+                                                            INPUT  glDeleteBrowseOnGeneration,                /*plDeleteExistingInstances */
+                                                            OUTPUT dBrowseSmartObjectObj          ) NO-ERROR. /*pdVisualObjectObj       */
+    IF RETURN-VALUE <> "":U OR ERROR-STATUS:ERROR THEN
       ASSIGN lSCMOk = NO
-             cError = "Error from ryGenBrowse: " + RETURN-VALUE.
+             cError = "Error from generateVisualObject: " + RETURN-VALUE.
     ELSE
       ASSIGN cError = "Dynamic Browse Generation Successful. ":U.
 
     RUN LogMessage(ttFileTable.tt_data[2],cError,NO).
   END. /*if togenbrowser*/
   
-  PROCESS EVENTS. 
+  /*PROCESS EVENTS. */
 
   ASSIGN cError = "":U.
   IF toGenviewer:CHECKED THEN
   DO:
     RUN ShowMessage("Generating Dynamic Viewer ....").
-    RUN af/cod2/afgenview.p ( INPUT codatabase:SCREEN-VALUE,
-                              INPUT cfilename, 
-                              INPUT ttFileTable.tt_data[2], 
-                              INPUT comodule:SCREEN-VALUE,
-                              INPUT firootdirectory:SCREEN-VALUE + "/":U + fiSDODirectory:SCREEN-VALUE ,
-                              INPUT cvmaxnumflds, 
-                              INPUT ttfiletable.tt_data[3],
-                              INPUT cvnamesuffix,
-                              INPUT cvmaxfldspercolumn,
-                              INPUT cSDOViewerFields,
-                              INPUT glDeleteViewerOnGeneration ).
-    IF RETURN-VALUE <> "":U THEN
+    RUN generateVisualObject IN ghRepositoryDesignManager ( INPUT  "DynView":U,                               /*pcObjectType              */
+                                                            INPUT  (ttFileTable.tt_data[3] + cvNameSuffix),    /*pcObjectName              */
+                                                            INPUT  gcViewerModule,                            /*pcProductModuleCode       */
+                                                            INPUT  "{&DEFAULT-RESULT-CODE}":U,                /*pcResultCode              */
+                                                            INPUT  cFileName,                                 /*pcSdoObjectName           */
+                                                            INPUT  ttFileTable.tt_data[2],                    /*pcTableName               */
+                                                            INPUT  coDatabase:SCREEN-VALUE,                   /*pcDataBaseName            */
+                                                            INPUT  cvMaxNumFlds,                              /*piMaxObjectFields         */
+                                                            INPUT  cvMaxFldsPerColumn,                        /*piMaxFieldsPerColumn      */
+                                                            INPUT  cSDOViewerFields,                          /*plUseSDOFields            */
+                                                            INPUT  "":U,                                      /*List of SDO fields */
+                                                            INPUT  glDeleteViewerOnGeneration,                /*plDeleteExistingInstances */
+                                                            OUTPUT dViewerSmartObjectObj          ) NO-ERROR. /*pdVisualObjectObj       */
+    IF RETURN-VALUE <> "":U OR ERROR-STATUS:ERROR THEN
       ASSIGN lSCMOk = NO
-             cError = "Error from afGenView: " + RETURN-VALUE.
+             cError = "Error from generateVisualObject: " + RETURN-VALUE.
     ELSE
       ASSIGN cError = "Dynamic Viewer Generation Successful. ":U.
 
@@ -1511,52 +1670,17 @@ DO iLoop = 1 TO brBrowse:NUM-SELECTED-ROWS:
   RUN LogMessage("", cError,NO).
   ASSIGN cError = "":U.
 
-  PROCESS EVENTS. 
-
-  IF SEARCH(tmpsdoname) <> ?
-  THEN
-    RUN VALUE(tmpsdoname) PERSISTENT SET sHdl.
-
-  IF VALID-HANDLE(sHdl)
-  THEN DO:
-
-    RUN "initializeobject" IN sHdl NO-ERROR.
-
-    IF geninstance:CHECKED AND lscmok THEN
-    DO:
-      RUN ShowMessage("Generating Instances ....").
-
-      RUN storeinstance IN THIS-PROCEDURE(INPUT  fiSDODirectory:SCREEN-VALUE + "/":U + cfilename).
-
-      IF RETURN-VALUE <> "":U THEN
-        ASSIGN lSCMOk = NO
-               cError = "Error from storeInstance: " + RETURN-VALUE.
-      ELSE
-        ASSIGN cError = "DataField Instance Generation Successful ":U.
-
-      RUN LogMessage(ttFileTable.tt_data[2],cError,NO).
-    END.    /* geninstance */
-
-    RUN "destroyobject" IN sHdl.
-    ASSIGN
-      sHdl = ?.
-
-  END.
-  ELSE DO:
-    ASSIGN
-      lSCMOk = NO
-      cError = "Error Generating Instances. SDO (" + tmpsdoname + ") not available ".
-    RUN LogMessage("", cError,NO).
-  END.
-
   RUN ShowMessage("Done ....").
 
-  PROCESS EVENTS.  /* Check to see if user is trying to bailout  */
+  /*PROCESS EVENTS.*/  /* Check to see if user is trying to bailout  */
 
   IF done
   THEN LEAVE ROW-BLOCK.
 
 END. /* ROW-BLOCK */
+  
+  ASSIGN
+    giCount = giTotal - 1. /* Ensure we always end at 100% */
   
   RUN ShowMessage("Complete ....").
   
@@ -1620,19 +1744,75 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  DISPLAY coDatabase coModule fiRootDirectory fiSDODirectory gendataflds rsdo 
-          RAFieldSequence toGenBrowser toGenViewer geninstance toSuppressAll 
-          tofollow fiProcessingTable fprocessing 
+  DISPLAY coDatabase coModule fiRootDirectory fiSDODirectory rsdo toSuppressAll 
+          RAFieldSequence tofollow toGenBrowser toGenViewer gendataflds 
+          geninstance fiProcessingTable fprocessing 
       WITH FRAME DEFAULT-FRAME IN WINDOW C-Win.
-  ENABLE coDatabase coModule buAdvanced fiRootDirectory buRootDirectory 
-         fiSDODirectory gendataflds rsdo RAFieldSequence toGenBrowser 
-         toGenViewer buBrowserSettings geninstance buViewerSettings 
-         toSuppressAll tofollow BrBrowse buSelectAll buDeSelect Brbrowse2 
+  ENABLE coDatabase coModule fiRootDirectory buRootDirectory fiSDODirectory 
+         buAdvanced rsdo toSuppressAll RAFieldSequence tofollow toGenBrowser 
+         buBrowserSettings toGenViewer buViewerSettings gendataflds geninstance 
+         buDataFieldSettings BrBrowse Brbrowse2 buSelectAll buDeSelect 
          buGenerate buStop buExit buHelp prcnt RECT-1 RECT-2 RECT-3 RECT-4 
          RECT-6 RECT-7 RECT-8 RECT-9 
       WITH FRAME DEFAULT-FRAME IN WINDOW C-Win.
   {&OPEN-BROWSERS-IN-QUERY-DEFAULT-FRAME}
   VIEW C-Win.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getSdoInfo C-Win 
+PROCEDURE getSdoInfo :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    DEFINE INPUT  PARAMETER pcSdoObjectName     AS CHARACTER            NO-UNDO.
+    DEFINE INPUT  PARAMETER pcDatabasename      AS CHARACTER            NO-UNDO.
+    DEFINE OUTPUT PARAMETER pcTableName         AS CHARACTER            NO-UNDO.  
+    DEFINE OUTPUT PARAMETER pcDumpName          AS CHARACTER            NO-UNDO.
+
+    DEFINE VARIABLE dSdoObjectObj           AS DECIMAL                  NO-UNDO.
+    DEFINE VARIABLE hSDO                    AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE cPhysicalSdoName        AS CHARACTER                NO-UNDO.
+
+    ASSIGN dSdoObjectObj = DYNAMIC-FUNCTION("getSmartObjectObj":U IN ghRepositoryDesignManager,
+                                            INPUT pcSdoObjectName,
+                                            INPUT 0).
+    IF dSdoObjectObj EQ 0 THEN
+        RETURN ERROR {aferrortxt.i 'AF' '5' '?' '?' "'SDO Object'" pcSdoObjectName}.
+
+    FIND FIRST ryc_smartObject WHERE
+               ryc_smartObject.smartObject_obj = dSdoObjectObj
+               NO-LOCK NO-ERROR.
+
+    ASSIGN cPhysicalSdoName = DYNAMIC-FUNCTION("getObjectPathedName":U IN gshRepositoryManager,
+                                               INPUT ryc_smartObject.object_filename,
+                                               INPUT ryc_smartObject.object_path,
+                                               INPUT ryc_smartObject.object_extension,
+                                               INPUT ryc_smartObject.static_object,
+                                               INPUT (IF NOT ryc_smartObject.static_object THEN ryc_smartObject.physical_smartObject_obj ELSE 0)).
+
+    DO ON STOP UNDO, LEAVE ON ERROR UNDO, LEAVE:
+        RUN VALUE(cPhysicalSdoName) PERSISTENT SET hSdo.
+    END.    /* RUN BLOCK */
+
+    IF VALID-HANDLE(hSDO) THEN
+    DO:
+        ASSIGN pcTableName = ENTRY(1, DYNAMIC-FUNCTION("getEnabledTables":U IN hSDO)).
+        RUN destroyObject IN hSDO.
+    END.    /* valid SDO */
+
+    /* Determine the dump name of the table.
+     * getDumpName will use the correct DB name, even if using a DataServer */
+    RUN getDumpName IN gshGenManager ( INPUT  pcDatabaseName + "|":U + pcTableName,
+                                       OUTPUT pcDumpName ) NO-ERROR.
+    IF pcDumpName EQ "":U OR pcDumpName EQ ? THEN
+        ASSIGN pcDumpName = SUBSTRING(pcTableName, 1, 8).
+
+    RETURN.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1648,6 +1828,12 @@ PROCEDURE initValues :
     DEFINE VARIABLE rRowid              AS ROWID                        NO-UNDO.
     DEFINE VARIABLE cProfileData        AS CHARACTER                    NO-UNDO.
 
+    ASSIGN ghRepositoryDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U IN THIS-PROCEDURE,
+                                                        INPUT "RepositoryDesignManager":U).
+
+    IF NOT VALID-HANDLE(ghRepositoryDesignManager) THEN
+        RETURN "The Repository Design Manager could not be found.":U.
+
     /* set Root Directory to the current working directory */
     /* A future algorithm may be to try to get root dir in the following order
      * 1) get root dir from RTB
@@ -1662,7 +1848,7 @@ PROCEDURE initValues :
     ELSE
         ASSIGN FILE-INFO:FILE-NAME = ".":U.
 
-    ASSIGN fiRootDirectory          = REPLACE(FILE-INFO:FULL-PATHNAME,"\":U,"/":U)
+    ASSIGN fiRootDirectory          = REPLACE(FILE-INFO:FULL-PATHNAME,"~\":U,"/":U)
            BROWSE brbrowse2:ROW     = 10.52
            BROWSE brbrowse2:HEIGHT  = 11
            BROWSE brbrowse2:VISIBLE = FALSE
@@ -1817,6 +2003,8 @@ PROCEDURE logMessage :
                                             ).
       IF cButton <> "&Yes":U THEN
         RETURN "ABORT":U.
+      ELSE
+        SESSION:SET-WAIT-STATE("GENERAL":U).
     END.
     RETURN.
 END PROCEDURE.
@@ -1909,8 +2097,11 @@ ASSIGN
   lhServer = ?
   .
 
-ASSIGN opPath = TRIM(REPLACE(LC(opPath),"\":U,"/":U),"/":U).
-
+IF detectFileType(opPath) <> "N":U THEN
+  ASSIGN opPath = TRIM(REPLACE(LC(opPath),"~\":U,"/":U),"/":U).
+ELSE
+  ASSIGN opPath = REPLACE(LC(opPath),"~\":U,"/":U).
+  
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1960,6 +2151,7 @@ PROCEDURE populateDatabase :
                  gsc_product_module.product_module_code BEGINS "AF":U  OR
                  gsc_product_module.product_module_code BEGINS "GS":U  OR
                  gsc_product_module.product_module_code BEGINS "AS":U  OR
+                 gsc_product_module.product_module_code BEGINS "DCU":U OR
                  gsc_product_module.product_module_code BEGINS "RTB":U   ) THEN
                 NEXT.
 
@@ -2036,8 +2228,8 @@ PROCEDURE populateScreen :
         toSuppressAll = YES 
         toGenBrowser = FALSE
         toGenViewer = FALSE
-        /*fiRootDirectory =  (IF grtb-wsroot <> "":U THEN TRIM(REPLACE(LC(grtb-wsroot),"\":U,"/":U),"/":U) ELSE 
-                           TRIM(REPLACE(LC(SESSION:TEMP-DIR),"\":U,"/":U),"/":U))
+        /*fiRootDirectory =  (IF grtb-wsroot <> "":U THEN TRIM(REPLACE(LC(grtb-wsroot),"~\":U,"/":U),"/":U) ELSE 
+                           TRIM(REPLACE(LC(SESSION:TEMP-DIR),"~\":U,"/":U),"/":U))
         */
         fiSDODirectory = "":U
         buStop:SENSITIVE = NO
@@ -2070,38 +2262,37 @@ PROCEDURE populateSDOtable :
   Notes:       
 ------------------------------------------------------------------------------*/
 DEFINE INPUT PARAM pproduct_module_code LIKE gsc_product_module.product_module_code NO-UNDO.
+
 DEFINE BUFFER bgsc_object_type FOR gsc_object_type.
 DEFINE BUFFER bryc_smartobject FOR ryc_smartobject.
-DEFINE BUFFER bgsc_object FOR gsc_object.
 DEFINE BUFFER bgsc_product_module FOR gsc_product_module.
 
-    CLOSE QUERY BrBrowse2.
-    EMPTY TEMP-TABLE ttsdoTable.
-    
-    FOR EACH bgsc_object_type NO-LOCK
-    WHERE bgsc_object_type.object_type_code = "SDO",
+DEFINE VARIABLE cSDOClasses AS CHARACTER  NO-UNDO.
+
+ASSIGN cSDOClasses = DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, INPUT "SDO").
+
+CLOSE QUERY BrBrowse2.
+EMPTY TEMP-TABLE ttsdoTable.
+
+FOR EACH bgsc_object_type NO-LOCK
+   WHERE LOOKUP(bgsc_object_type.object_type_code, cSDOClasses) > 0,
     EACH bryc_smartobject NO-LOCK
-    WHERE bryc_smartobject.OBJECT_type_obj = bgsc_object_type.OBJECT_type_obj,
-    FIRST bgsc_object NO-LOCK
-    WHERE bgsc_object.OBJECT_obj = bryc_smartobject.OBJECT_obj,
-    FIRST bgsc_product_module  NO-LOCK
-    WHERE bgsc_product_module.product_module_obj = bryc_smartobject.product_module_obj AND
-         bgsc_product_module.product_module_code = pproduct_module_code
-    BY bryc_smartobject.object_filename:
-         
-         CREATE ttsdotable.
+   WHERE bryc_smartobject.OBJECT_type_obj = bgsc_object_type.OBJECT_type_obj,
+   FIRST bgsc_product_module  NO-LOCK
+   WHERE bgsc_product_module.product_module_obj = bryc_smartobject.product_module_obj 
+     AND bgsc_product_module.product_module_code = pproduct_module_code
+      BY bryc_smartobject.object_filename:
+     
+     CREATE ttsdotable.
+     ASSIGN ttsdotable.tt_product_module_code = bgsc_product_module.product_module_code     
+            ttsdotable.tt_object_filename = bryc_smartobject.object_filename         
+            ttsdotable.tt_object_description = bryc_smartobject.object_description      
+            ttsdotable.tt_object_path = bryc_smartobject.object_path
+            .
+END. /*for each bryc_smartobject*/
 
-         ASSIGN
-           tt_product_module_code = bgsc_product_module.product_module_code     
-           tt_object_filename = bryc_smartobject.object_filename         
-           tt_object_description = bgsc_object.object_description      
-           tt_object_path = bgsc_object.object_path.
-           
-    END. /*for each bgsc_object*/
-
-    OPEN QUERY BrBrowse2 FOR EACH ttsdoTable NO-LOCK.
+OPEN QUERY BrBrowse2 FOR EACH ttsdoTable NO-LOCK.
     
-
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2200,280 +2391,10 @@ PROCEDURE populateTable :
         DELETE OBJECT hFileBuffer NO-ERROR.
         ASSIGN hFileBuffer = ?.
 
-        DELETE OBJECT hFieldTableType NO-ERROR.
-        ASSIGN hFieldTableType = ?.
-
-        DELETE OBJECT hFieldFileName NO-ERROR.
-        ASSIGN hFieldFileName = ?.
-
-        DELETE OBJECT hFieldDumpName NO-ERROR.
-        ASSIGN hFieldDumpName = ?.
-        
         OPEN QUERY BrBrowse FOR EACH ttFileTable WHERE ttFileTable.tt_tag = "T" BY tt_data[2].
     END.    /* with frame ... */
 
     RETURN.
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE rygenbrowse C-Win 
-PROCEDURE rygenbrowse :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-/*Input parameters*/
-DEFINE INPUT PARAMETER csdoname                      AS CHAR       NO-UNDO.
-DEFINE INPUT PARAMETER tablename                     AS CHAR       NO-UNDO.
-DEFINE INPUT PARAMETER productmodule                 AS CHAR       NO-UNDO.
-DEFINE INPUT PARAMETER relativepath                  AS CHAR       NO-UNDO.
-DEFINE INPUT PARAMETER maxflds                       AS INT        NO-UNDO.
-DEFINE INPUT PARAMETER objectnamesuffix              AS CHAR       NO-UNDO.
-DEFINE INPUT PARAMETER dumpname                      AS CHAR       NO-UNDO.
-DEFINE INPUT PARAMETER lSDOBrowseFields              AS LOGICAL    NO-UNDO.
-
-/*local variables*/
-DEFINE VARIABLE maxfields                     AS CHAR       NO-UNDO.
-DEFINE VARIABLE fieldnames                    AS CHAR       NO-UNDO.
-DEFINE VARIABLE fieldvalues                   AS CHAR       NO-UNDO.
-DEFINE VARIABLE cprocname                     AS CHAR       NO-UNDO.
-DEFINE VARIABLE etest                         AS CHAR       NO-UNDO.
-DEFINE VARIABLE selectedfields                AS CHAR       NO-UNDO.
-DEFINE VARIABLE iLoop                         AS INTEGER    NO-UNDO.
-DEFINE VARIABLE cEntry                        AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cField                        AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE lEnabled                      AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE cSdoInclude                   AS CHAR       NO-UNDO.
-DEFINE VARIABLE iPosn1                        AS INTEGER    NO-UNDO.
-DEFINE VARIABLE iPosn2                        AS INTEGER    NO-UNDO.
-DEFINE VARIABLE cLine                         AS CHAR       NO-UNDO.
-DEFINE VARIABLE objectname                    AS CHAR       NO-UNDO.
-DEFINE VARIABLE cmes                          AS CHAR       NO-UNDO.
-DEFINE VARIABLE psdo                          AS CHAR       NO-UNDO.
-DEFINE VARIABLE cSchemaName                     AS CHARACTER                    NO-UNDO.
-DEFINE VARIABLE hDbBuffer                       AS HANDLE                       NO-UNDO.
-DEFINE VARIABLE hFileBuffer                     AS HANDLE                       NO-UNDO.
-DEFINE VARIABLE hFieldBuffer                    AS HANDLE                       NO-UNDO.
-DEFINE VARIABLE hQuery                          AS HANDLE                       NO-UNDO. 
-DEFINE VARIABLE hFieldNameField                 AS HANDLE                       NO-UNDO.
-DEFINE VARIABLE cWhere                          AS CHARACTER                    NO-UNDO.
-DEFINE VARIABLE cDbBufferName                   AS CHARACTER                    NO-UNDO.
-DEFINE VARIABLE cFileBufferName                 AS CHARACTER                    NO-UNDO.
-DEFINE VARIABLE cFieldBufferName                AS CHARACTER                    NO-UNDO.
-DEFINE VARIABLE cLogicalDbName                  AS CHARACTER                    NO-UNDO.
-
-/*sample input*/
-/* ASSIGN                       */
-/* csdoname = "customerfullo.w" */
-/* tablename = "customer"       */
-/* productmodule = "module"   */
-/* maxflds = 2                  */
-/* relativepath = "sdo"         */
-/* objectnamesuffix = "test5".  */
-
-IF objectnamesuffix = "" THEN objectnamesuffix = "fullb" .
-REPLACE(relativepath,"\","/").
-IF SUBSTRING(relativepath,LENGTH(relativepath),1) <> "/"
-    THEN relativepath = relativepath + "/".
-psdo = csdoname.
-csdoname = relativepath  + csdoname.
-
-/* use fields in SDO*/
-IF lSDOBrowseFields 
-THEN DO:
-    IF NUM-ENTRIES(cSdoName,".":U) < 2 THEN
-      cSdoInclude = SEARCH(cSdoName + ".i").
-    ELSE
-      cSdoInclude = SEARCH(REPLACE(cSdoName, ".w":U,".i":U)).
-
-    IF cSdoInclude <> ? THEN DO:
-      ASSIGN iLoop = 0.
-      INPUT FROM VALUE(cSdoInclude) NO-ECHO.
-      import-loop:
-      REPEAT:
-          IMPORT UNFORMATTED cLine.
-          ASSIGN
-              iPosn1 = INDEX(cLine, 'FIELD ')
-              iPosn2 = INDEX(cLine,' ', iPosn1 + 6)
-            .
-          IF iPosn1 > 1 AND iPosn2 > iPosn1 THEN
-              ASSIGN cField = TRIM(SUBSTRING(cLine, (iPosn1 + 6), iPosn2 - (iPosn1 + 6))).      
-          ELSE
-              ASSIGN cField = "":U.
-
-          IF cField <> "":U THEN DO:
-
-              ASSIGN iLoop = iLoop + 1.
-
-              ASSIGN  selectedfields =  selectedfields +  CHR(3) +
-                    STRING(iLoop) + CHR(4) +
-                    STRING(cField) + CHR(4) +
-                    STRING(NO).
-                   IF iloop = maxflds THEN LEAVE import-loop.
-          END.
-      END. /*repeat import-loop*/
-      INPUT CLOSE.
-    END.
-END.
-
-ELSE DO:
-  /*use entiity mnemonic to get fieldnames if avail*/
-  FIND FIRST gsc_entity_mnemonic WHERE  gsc_entity_mnemonic.entity_mnemonic_description =
-      tablename NO-LOCK NO-ERROR.
-  
-  IF AVAIL gsc_entity_mnemonic THEN DO:
-      iLoop = 0.
-       FOR EACH gsc_entity_display_field WHERE gsc_entity_display_field.entity_mnemonic =
-           gsc_entity_mnemonic.entity_mnemonic NO-LOCK BY gsc_entity_display_field.display_field_order:
-  
-           /* Don't add any ObjectId field (*_OBJ) to a browse. */
-           IF NOT gsc_entity_display_field.display_field_name MATCHES "*_obj":U THEN
-               ASSIGN iLoop = iLoop + 1
-                      selectedfields = selectedfields + CHR(3)
-                                     + STRING(iLoop) + CHR(4)
-                                     + STRING(gsc_entity_display_field.display_field_name) + CHR(4)
-                                     + STRING(NO).
-       END.
-  END.
-END.  
-
-/* If there are no selected fields here, get the fields off the metaschema. */
-IF SelectedFields EQ "":U THEN
-DO:
-    /* If the logical object name and the schema name differ, then we assume that we are working with 
-     * a DataServer. If the schema and logical names are the same, we are dealing with a native 
-     * Progress DB.                                                                                   */
-    ASSIGN cLogicalDbName = coDatabase:INPUT-VALUE IN FRAME {&FRAME-NAME}
-           cSchemaName    = SDBNAME(cLogicalDbName)
-           .
-    IF cSchemaName EQ cLogicalDbName THEN
-        ASSIGN cDbBufferName    = cLogicalDbName + "._Db":U
-               cFileBufferName  = cLogicalDbName + "._File":U
-               cFieldBufferName = cLogicalDbName + "._Field":U
-               cWhere           = "FOR EACH ":U + cDbBufferName + " NO-LOCK, ":U
-                                + " EACH " + cFileBufferName + " WHERE ":U
-                                +   cFileBufferName + "._Db-recid  = RECID(":U + cDbBufferName + ") AND ":U
-                                +   cFileBufferName + "._File-name = '":U + TableName + "' AND ":U
-                                +   cFileBufferName + "._Owner     = 'PUB':U ":U
-                                + " NO-LOCK, ":U
-                                + " EACH ":U + cFieldBufferName + " WHERE ":U
-                                +   cFieldBufferName + "._File-recid = RECID(":U + cFileBufferName + ") ":U
-                                + " NO-LOCK ":U
-                                + " BY ":U + cFieldBufferName + "._Order":U.
-    ELSE
-        ASSIGN cDbBufferName    = cSchemaName + "._Db":U
-               cFileBufferName  = cSchemaName + "._File":U
-               cFieldBufferName = cSchemaName + "._Field":U
-               cWhere           = " FOR EACH ":U + cDbBufferName + " WHERE ":U
-                                +   cDbBufferName + "._Db-Name = '" + cLogicalDbName + "' ":U
-                                + " NO-LOCK, ":U
-                                + " EACH " + cFileBufferName + " WHERE ":U
-                                +   cFileBufferName + "._Db-recid  = RECID(":U + cDbBufferName + ") AND ":U
-                                +   cFileBufferName + "._File-name = '":U + TableName + "' AND ":U
-                                +   cFileBufferName + "._Owner     = '_Foreign':U ":U
-                                + " NO-LOCK, ":U
-                                + " EACH ":U + cFieldBufferName + " WHERE ":U
-                                +   cFieldBufferName + "._File-recid = RECID(":U + cFileBufferName + ") ":U
-                                + " NO-LOCK ":U
-                                + " BY ":U + cFieldBufferName + "._Order":U.
-
-    CREATE BUFFER hDbBuffer     FOR TABLE cDbBufferName     NO-ERROR.   {afcheckerr.i}
-    CREATE BUFFER hFileBuffer   FOR TABLE cFileBufferName   NO-ERROR.   {afcheckerr.i}
-    CREATE BUFFER hFieldBuffer  FOR TABLE cFieldBufferName  NO-ERROR.   {afcheckerr.i}
-
-    CREATE QUERY hQuery NO-ERROR.
-        {afcheckerr.i}
-
-    hQuery:SET-BUFFERS(hDbBuffer, hFileBuffer, hFieldBuffer) NO-ERROR.
-        {afcheckerr.i}
-
-    hQuery:QUERY-PREPARE(cWhere) NO-ERROR.
-        {afcheckerr.i}
-
-    hQuery:QUERY-OPEN() NO-ERROR.
-        {afcheckerr.i}
-
-    hQuery:GET-FIRST(NO-LOCK) NO-ERROR.
-        {afcheckerr.i}
-
-    ASSIGN iLoop = 0.
-    
-    DO WHILE hFieldBuffer:AVAILABLE AND iLoop <= maxflds:
-        ASSIGN hFieldNameField = hFieldBuffer:BUFFER-FIELD("_Field-Name":U).
-
-        /* Don't add any ObjectId field (*_OBJ) to a browse. */
-        IF NOT hFieldNameField:BUFFER-VALUE MATCHES "*_obj":U THEN
-            ASSIGN iLoop          = iLoop + 1
-                   selectedfields = selectedfields + CHR(3)
-                                  + STRING(iLoop) + CHR(4)
-                                  + STRING(hFieldNameField:BUFFER-VALUE) + CHR(4)
-                                  + STRING(NO)
-                   .
-        hQuery:GET-NEXT(NO-LOCK).
-    END.    /* lop through fields. */
-
-    hQuery:QUERY-CLOSE().
-
-    DELETE OBJECT hQuery.
-    ASSIGN hQuery = ?.
-
-    DELETE OBJECT hFieldNameField NO-ERROR.
-    ASSIGN hFieldNameField = ?.
-
-    DELETE OBJECT hFieldBuffer NO-ERROR.
-    ASSIGN hFieldBuffer = ?.
-
-    DELETE OBJECT hFileBuffer NO-ERROR.
-    ASSIGN hFileBuffer = ?.
-
-    DELETE OBJECT hDbBuffer NO-ERROR.
-    ASSIGN hDbBuffer = ?.
-
-END.    /* no selected fields */
-  
-  ASSIGN objectname =  dumpname + objectnamesuffix
-         fieldnames =  "customsuperprocedure" + CHR(2) +
-                       "launchcontainer" + CHR(2) +
-                       "objectdescription" + CHR(2 )+
-                       "objectname" + CHR(2) +
-                       "productmodulecode" + CHR(2) +
-                       "sdoname" + CHR(2) +
-                       "selectedfields" 
-         fieldvalues = "" + CHR(2) +
-                       "" + CHR(2) +
-                       tablename + "Dynamic Browser"  + CHR(2) +
-                       objectname + CHR(2) +
-                       productmodule + CHR(2) +
-                       psdo  + CHR(2) +
-                       selectedfields
-         cProcName   = "storebrowser".
-
-/* Delete the browse */
-IF glDeleteBrowseOnGeneration THEN
-DO:
-    { launch.i
-        &PLIP     = 'ry/app/ryreposobp.p'
-        &IProc    = 'DeleteObject'
-        &PList    = "(INPUT ObjectName, OUTPUT eTest)"
-        &AutoKill = NO
-    }
-    IF eTest EQ "" THEN
-        ASSIGN cMes = " Browser Deletion Successful.":U.
-    ELSE
-        ASSIGN cMes = " Browser Deletion NOT Successful." + "chr(10)" + eTest.
-END.    /* delete browse */
-
-{afrun2.i &PLIP = 'ry/app/ryreposobp.p'
-                  &IProc = cProcName
-                  &PList = "(INPUT objectname , INPUT fieldnames, INPUT fieldvalues, OUTPUT etest)"
-                  &OnApp = 'no'}
-
-              IF etest = "" THEN
-              ASSIGN cmes = " Browser Generation Successful. ":U.
-              ELSE cmes = " Browser Generation NOT Successful." + "chr(10)" + etest.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2545,114 +2466,10 @@ DO WITH FRAME {&FRAME-NAME}:
     prcnt 
     WITH FRAME {&FRAME-NAME}.
 
-  PROCESS EVENTS.
-
+  /*PROCESS EVENTS.*/
+  SESSION:SET-WAIT-STATE("GENERAL":U).
 END.
 
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE storeinstance C-Win 
-PROCEDURE storeinstance :
-/*------------------------------------------------------------------------------
-  Purpose:     Store data field info in repos
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-    DEFINE INPUT PARAM cfilename        AS CHARACTER                    NO-UNDO.
-
-    DEFINE VARIABLE tmpenabled              AS CHAR             NO-UNDO.
-    DEFINE VARIABLE tdatacolumns            AS CHAR             NO-UNDO.
-    DEFINE VARIABLE fieldcnt                AS INTEGER          NO-UNDO.
-    DEFINE VARIABLE pcfieldsmartObject      AS DECIMAL          NO-UNDO.
-    DEFINE VARIABLE ttablename              AS CHAR             NO-UNDO.
-    DEFINE VARIABLE dfldname                AS CHAR             NO-UNDO.
-    DEFINE VARIABLE dfinstance              AS DECIMAL          NO-UNDO.
-    DEFINE VARIABLE cattrnames              AS CHAR             NO-UNDO.
-    DEFINE VARIABLE cattrvalues             AS CHAR             NO-UNDO.
-    DEFINE VARIABLE tmplabel                AS CHAR             NO-UNDO.
-    DEFINE VARIABLE tmpextent               AS CHAR             NO-UNDO.
-    DEFINE VARIABLE tmphelp                 AS CHAR             NO-UNDO.
-    DEFINE VARIABLE tmpformat               AS CHAR             NO-UNDO.
-    DEFINE VARIABLE iExtent                 AS INTEGER    NO-UNDO.
-
-    DO WITH FRAME {&FRAME-NAME}:
-        /*get all fields from SDO*/
-        ASSIGN tdatacolumns = DYNAMIC-FUNCTION("getdatacolumns" IN shdl)
-               ttablename   = DYNAMIC-FUNCTION("columntable" IN shdl, ENTRY(1, tdatacolumns))
-               dfldname     = ttablename + "." + ENTRY(1, tdatacolumns)
-               .
-
-        IF DYNAMIC-FUNCTION("smartobjectobj" IN hobjapi, dFldName) = ? THEN
-            RETURN "DataFields must be generated before DataField instances can be created.".
-        ELSE
-        DO fieldcnt = 1 TO NUM-ENTRIES(tdatacolumns):
-            ASSIGN tmpenabled = DYNAMIC-FUNCTION("columnreadonly" IN shdl, ENTRY(fieldcnt, tdatacolumns))
-                   tmplabel   = DYNAMIC-FUNCTION("columnlabel" IN shdl, ENTRY(fieldcnt, tdatacolumns))
-                   tmphelp    = DYNAMIC-FUNCTION("columnhelp" IN shdl, ENTRY(fieldcnt, tdatacolumns))
-                   tmpformat  = DYNAMIC-FUNCTION("columnformat" IN shdl, ENTRY(fieldcnt, tdatacolumns))
-                   tmpextent  = DYNAMIC-FUNCTION("columnextent" IN shdl, ENTRY(fieldcnt, tdatacolumns))
-                   ttablename = DYNAMIC-FUNCTION("columntable" IN shdl,ENTRY(fieldcnt, tdatacolumns)).
-
-            IF tmpextent = "0" THEN DO:
-              ASSIGN
-                dfldname   = ttablename + "." + ENTRY(fieldcnt, tdatacolumns).
-
-              RUN storeObjectInstance IN hobjapi ( INPUT  dSmobj,
-                                                   INPUT  dFldName,
-                                                   INPUT  "":U, 
-                                                   OUTPUT pcfieldsmartObject,
-                                                   OUTPUT dfinstance ).
-  
-              ASSIGN cattrnames  = "FieldName,TableName,DatabaseName,Label,Format,Help,Enabled":U
-                     cattrvalues = dfldname                   + CHR(3)
-                                 + ttablename                 + CHR(3)
-                                 + codatabase:SCREEN-VALUE    + CHR(3)
-                                 + tmplabel                   + CHR(3)
-                                 + tmpformat                  + CHR(3)
-                                 + tmphelp                    + CHR(3) 
-                                 + tmpenabled
-                     .
-              RUN storeAttributeValues IN hobjapi ( INPUT 0, 
-                                                    INPUT pcfieldsmartObject,
-                                                    INPUT dSmobj,
-                                                    INPUT dfinstance,
-                                                    INPUT cattrnames,
-                                                    INPUT cattrvalues).
-            END.
-            ELSE DO iExtent = 1 TO INTEGER(tmpExtent):
-              ASSIGN
-                dfldname   = ttablename + "." + ENTRY(fieldcnt, tdatacolumns) + "[" + STRING(iExtent) + "]".
-
-              RUN storeObjectInstance IN hobjapi ( INPUT  dSmobj,
-                                                   INPUT  dFldName,
-                                                   INPUT  "":U, 
-                                                   OUTPUT pcfieldsmartObject,
-                                                   OUTPUT dfinstance ).
-  
-              ASSIGN cattrnames  = "FieldName,TableName,DatabaseName,Label,Format,Help,Enabled":U
-                     cattrvalues = dfldname                   + CHR(3)
-                                 + ttablename                 + CHR(3)
-                                 + codatabase:SCREEN-VALUE    + CHR(3)
-                                 + tmplabel                   + CHR(3)
-                                 + tmpformat                  + CHR(3)
-                                 + tmphelp                    + CHR(3) 
-                                 + tmpenabled
-                     .
-              RUN storeAttributeValues IN hobjapi ( INPUT 0, 
-                                                    INPUT pcfieldsmartObject,
-                                                    INPUT dSmobj,
-                                                    INPUT dfinstance,
-                                                    INPUT cattrnames,
-                                                    INPUT cattrvalues).
-            END.
-
-       END. /* fieldcnt = 1 TO NUM-ENTRIEs...*/
-    END.    /* with frame */
-
-    RETURN.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2665,28 +2482,49 @@ PROCEDURE useExistingSDO :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-    DEFINE VARIABLE iLoop                   AS INTEGER                      NO-UNDO.
-    DEFINE VARIABLE cFilename               AS CHARACTER                    NO-UNDO.
-    DEFINE VARIABLE cLogicFileName          AS CHARACTER                    NO-UNDO.
-    DEFINE VARIABLE cError                  AS CHARACTER                    NO-UNDO.    
-    DEFINE VARIABLE lSCMOk                  AS LOGICAL                      NO-UNDO.
-    DEFINE VARIABLE prnt                    AS LOGICAL                      NO-UNDO.
-    DEFINE VARIABLE newobjectpath           AS CHAR                         NO-UNDO.
-    DEFINE VARIABLE cattrnames              AS CHAR                         NO-UNDO.
-    DEFINE VARIABLE cattrvalues             AS CHAR                         NO-UNDO.
-    DEFINE VARIABLE tdatacolumns            AS CHAR                         NO-UNDO.
-    DEFINE VARIABLE dfldname                AS CHAR                         NO-UNDO.
-    DEFINE VARIABLE ttablename              AS CHAR                         NO-UNDO. 
-    DEFINE VARIABLE tmpsdoname              AS CHAR                         NO-UNDO.
-    DEFINE VARIABLE tmplogname              AS CHAR                         NO-UNDO.
-    DEFINE VARIABLE tmplogclname            AS CHAR                         NO-UNDO.
-    DEFINE VARIABLE tmpdumpname             AS CHAR                         NO-UNDO.
-    DEFINE VARIABLE sdodir                  AS CHAR                         NO-UNDO.
-
+    DEFINE VARIABLE iLoop                   AS INTEGER                  NO-UNDO.
+    DEFINE VARIABLE cFilename               AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE cLogicFileName          AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE cError                  AS CHARACTER                NO-UNDO.    
+    DEFINE VARIABLE lSCMOk                  AS LOGICAL                  NO-UNDO.
+    DEFINE VARIABLE prnt                    AS LOGICAL                  NO-UNDO.
+    DEFINE VARIABLE newobjectpath           AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE cattrnames              AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE cattrvalues             AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE tdatacolumns            AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE dfldname                AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE ttablename              AS CHARACTER                NO-UNDO. 
+    DEFINE VARIABLE tmpsdoname              AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE tmplogname              AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE tmplogclname            AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE tmpdumpname             AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE sdodir                  AS CHARACTER                NO-UNDO.
+                                                                        
+    DEFINE VARIABLE cObjectType             AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE lIsTemplate             AS LOGICAL                  NO-UNDO.
+    DEFINE VARIABLE cDescription            AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE cModCode                AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE cRelative               AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE dBrowseSmartObjectObj   AS DECIMAL                  NO-UNDO.
+    DEFINE VARIABLE dViewerSmartObjectObj   AS DECIMAL                  NO-UNDO.
+    
     DO WITH FRAME {&FRAME-NAME}:       
         ASSIGN Done       = FALSE /* re-set this in case user wants to try generating again */
                fiRootDirectory
+               coModule
                .
+        /* If no specific module has been selected for one of the
+         * objects, assign it to the SDO's product module.        */
+
+        IF gcViewerModule EQ "<None>":U OR gcViewerModule EQ "":U THEN
+            ASSIGN gcViewerModule = coModule.
+
+        IF gcBrowseModule EQ "<None>":U OR gcBrowseModule EQ "":U THEN
+            ASSIGN gcBrowseModule = coModule.
+
+        IF gcDataFieldModule EQ "<None>":U OR gcDataFieldModule EQ "":U THEN
+            ASSIGN gcDataFieldModule = coModule.
+        
         ETIME(YES).
 
         IF LOOKUP(fiRootDirectory:SCREEN-VALUE,PROPATH) = 0 THEN
@@ -2707,65 +2545,72 @@ PROCEDURE useExistingSDO :
     DO iLoop = 1 TO brbrowse2:NUM-SELECTED-ROWS:
         brbrowse2:FETCH-SELECTED-ROW(iLoop).
 
-        ASSIGN lSCMOk               = YES
-               .
-        RUN adecomm/_osfmush.p ( INPUT ttsdotable.tt_object_path,
-                                 INPUT tt_object_filename, 
-                                 OUTPUT newobjectpath)              newobjectpath = FILE-INFO:FILE-NAME = newobjectpath.
-        ASSIGN newobjectpath = REPLACE(newobjectpath,"\":U,"/":U).
-
-        IF SEARCH(newobjectpath) = ? AND
-           NUM-ENTRIES(newobjectpath,".":U) < 2 THEN
-          newobjectpath = newobjectpath + ".w":U.
+        ASSIGN lSCMOk = YES.
         
-        RUN VALUE(newobjectpath) PERSISTENT SET shdl.
-        RUN "initializeobject" IN shdl NO-ERROR.
+        RUN getSdoInfo ( INPUT  ttSdoTable.tt_object_filename,
+                         INPUT  coDatabase:INPUT-VALUE,
+                         OUTPUT tTableName,
+                         OUTPUT tmpDumpName                   ).
 
-        ASSIGN tdatacolumns = DYNAMIC-FUNCTION("getdatacolumns" IN shdl)
-               ttablename   = DYNAMIC-FUNCTION("columntable" IN shdl, ENTRY(1,tdatacolumns))
-               dfldname     = ttablename + "." + ENTRY(1,tdatacolumns)
-               .
         DISPLAY ttablename @ fiProcessingTable WITH FRAME {&FRAME-NAME}.
 
-        RUN ShowMessage("Generating Instances....").
-
-        IF (GenDataFlds:CHECKED OR toGenviewer:CHECKED) THEN
+        IF GenDataFlds:CHECKED OR toGenviewer:CHECKED THEN
         DO:
-            RUN storeTableFields IN hObjApi ( INPUT coDatabase:SCREEN-VALUE,
-                                              INPUT ttablename,
-                                              INPUT coModule:SCREEN-VALUE).
+            RUN ShowMessage("Generating Datafields ....").
+            RUN generateDataFields IN ghRepositoryDesignManager ( INPUT "":U,
+                                                                  INPUT "":U,
+                                                                  INPUT gcDataFieldModule,
+                                                                  INPUT "{&DEFAULT-RESULT-CODE}":U,
+                                                                  INPUT YES,                            /* plGenerateFromSDO */
+                                                                  INPUT tTableName,                     /* SDO table list */
+                                                                  INPUT ttSdoTable.tt_object_filename   /* pcSdoObjectName   */  ) NO-ERROR.
             IF RETURN-VALUE NE "":U THEN
-                ASSIGN lSCMOk = NO
-                       cError = "Error from storeTableFields ":U + RETURN-VALUE
-                       .
+              ASSIGN lSCMOk = NO
+                     cError = "Error from generateDataFields ":U + RETURN-VALUE
+                     .
             ELSE
                 ASSIGN cError = "Datafield Generation Successful".
 
-            RUN LogMessage(tTableName,cError,NO).
-        END. /* gendataflds */
+            RUN LogMessage(ttSdoTable.tt_object_filename,cError,NO).
+        END.    /* generate data fields */
 
-        /* Determine the dump name of the table.
-         * getDumpName will use the correct DB name, even if using a DataServer */
-        RUN getDumpName IN gshGenManager ( INPUT  coDatabase:INPUT-VALUE + "|":U + tTableName,
-                                           OUTPUT tmpDumpName ) NO-ERROR.
-        IF tmpDumpName EQ "":U OR tmpDumpName EQ ? THEN
-            ASSIGN tmpDumpName = SUBSTRING(ttablename, 1, 8).
+        IF geninstance:CHECKED AND lSCMok THEN
+        DO:
+            RUN ShowMessage("Generating Instances ....").
+            ASSIGN cError = "":U
+                   lSCMOk = YES.
+            
+            RUN generateSDOInstances IN ghRepositoryDesignManager ( INPUT  ttSdoTable.tt_object_filename,
+                                                                    INPUT  "{&DEFAULT-RESULT-CODE}":U,
+                                                                    INPUT  glDeleteSdoOnGeneration     ) NO-ERROR.
+            IF RETURN-VALUE <> "":U OR ERROR-STATUS:ERROR THEN
+                ASSIGN lSCMOk = NO
+                       cError = "Error from generateSDOInstances: " + RETURN-VALUE.
+            ELSE
+                ASSIGN cError = "SDO DataField Instance Generation Successful ":U.
+            
+            RUN LogMessage(INPUT "":U, INPUT cError, INPUT NO).
+        END.
 
-        IF toGenBrowser:CHECKED THEN
+        IF toGenBrowser:CHECKED AND lSCMOk THEN
         DO:
             RUN ShowMessage("Generating Dynamic Browser ....").
-
-            RUN rygenbrowse IN THIS-PROCEDURE ( INPUT tt_object_filename, 
-                                                INPUT ttablename, 
-                                                INPUT tt_product_module_code,
-                                                INPUT FILE-INFO:FULL-PATHNAME,
-                                                INPUT cmaxnumflds,  
-                                                INPUT cnamesuffix,
-                                                INPUT tmpdumpname,
-                                                INPUT cSDOBrowseFields).
+            RUN generateVisualObject IN ghRepositoryDesignManager ( INPUT  "DynBrow":U,                               /*pcObjectType              */
+                                                                    INPUT  (tmpDumpName + cNameSuffix),               /*pcObjectName              */
+                                                                    INPUT  gcBrowseModule,                            /*pcProductModuleCode       */
+                                                                    INPUT  "{&DEFAULT-RESULT-CODE}":U,                /*pcResultCode              */
+                                                                    INPUT  ttSdoTable.tt_object_filename,             /*pcSdoObjectName           */
+                                                                    INPUT  tTableName,                                /*pcTableName               */
+                                                                    INPUT  coDatabase:SCREEN-VALUE,                   /*pcDataBaseName            */
+                                                                    INPUT  cMaxNumFlds,                               /*piMaxObjectFields         */
+                                                                    INPUT  cMaxNumFlds,                               /*piMaxFieldsPerColumn      */
+                                                                    INPUT  cSDOBrowseFields,                          /*plUseSDOFields            */
+                                                                    INPUT  "":U,                                      /*List of SDO fields */
+                                                                    INPUT  glDeleteBrowseOnGeneration,                /*plDeleteExistingInstances */
+                                                                    OUTPUT dBrowseSmartObjectObj          ) NO-ERROR. /*pdVisualObjectObj         */
             IF RETURN-VALUE NE "":U THEN
                 ASSIGN lSCMOk = NO
-                       cError = "Error from rygenbrowse ":U + RETURN-VALUE
+                       cError = "Error from generateVisualObject ":U + RETURN-VALUE
                        .
             ELSE
                 ASSIGN cError = "Dynamic Browse Generation Successful".
@@ -2773,53 +2618,35 @@ PROCEDURE useExistingSDO :
             RUN LogMessage(tTableName,cError,NO).
         END.    /* toGenBrowser */
 
-        IF toGenviewer:CHECKED THEN
+        IF toGenviewer:CHECKED AND lSCMOk THEN
         DO:
             RUN ShowMessage("Generating Dynamic Viewer ....").
+            RUN generateVisualObject IN ghRepositoryDesignManager ( INPUT  "DynView":U,                               /*pcObjectType              */
+                                                                    INPUT  (tmpDumpName + cvNameSuffix),              /*pcObjectName              */
+                                                                    INPUT  gcViewerModule,                            /*pcProductModuleCode       */
+                                                                    INPUT  "{&DEFAULT-RESULT-CODE}":U,                /*pcResultCode              */
+                                                                    INPUT  ttSdoTable.tt_object_filename,             /*pcSdoObjectName           */
+                                                                    INPUT  tTableName,                                /*pcTableName               */
+                                                                    INPUT  coDatabase:SCREEN-VALUE,                   /*pcDataBaseName            */
+                                                                    INPUT  cvMaxNumFlds,                              /*piMaxObjectFields         */
+                                                                    INPUT  cvmaxfldspercolumn,                        /*piMaxFieldsPerColumn      */
+                                                                    INPUT  cSDOViewerFields,                          /*plUseSDOFields            */
+                                                                    INPUT  "":U,                                      /*List of SDO fields */
+                                                                    INPUT  glDeleteViewerOnGeneration,                /*plDeleteExistingInstances */
+                                                                    OUTPUT dViewerSmartObjectObj          ) NO-ERROR. /*pdVisualObjectObj         */
 
-            RUN af/cod2/afgenview.p ( INPUT codatabase:SCREEN-VALUE,
-                                      INPUT tt_object_filename,
-                                      INPUT ttablename,
-                                      INPUT tt_product_module_code,
-                                      INPUT FILE-INFO:FULL-PATHNAME,
-                                      INPUT cvmaxnumflds,
-                                      INPUT tmpdumpname,
-                                      INPUT cvnamesuffix,
-                                      INPUT cvmaxfldspercolumn,
-                                      INPUT cSDOViewerFields,
-                                      INPUT glDeleteViewerOnGeneration ).
             IF RETURN-VALUE NE "":U THEN
                 ASSIGN lSCMOk = NO
-                       cError = "Error from afGenView.p: " + RETURN-VALUE.
+                       cError = "Error from generateVisualObject: " + RETURN-VALUE.
             ELSE
                 ASSIGN cError = "Dynamic Viewer Generation Successful. ":U.
 
             RUN LogMessage(tTableName,cError,NO).
         END.    /* toGenViewer */
-
-        IF geninstance:CHECKED AND lSCMok THEN
-        DO:            
-          RUN ShowMessage("Generating DataFields ....").
-
-            RUN storeinstance IN THIS-PROCEDURE(INPUT newobjectpath + tt_object_filename).
-
-            IF RETURN-VALUE <> "":U THEN
-                ASSIGN lSCMOk = NO
-                       cError = "Error from StoreInstance: " + RETURN-VALUE.
-            ELSE
-                ASSIGN cError = "DataField Instance Generation Successful. ":U.
-
-            RUN LogMessage(tTableName, cError,NO).
-        END.    /* GenInstance:checked */
-
-        IF VALID-HANDLE(shdl) THEN
-        DO:
-            RUN "destroyobject" IN shdl.
-            ASSIGN sHdl = ?.
-        END.
-
-        RUN ShowMessage("Done ....").
     END.    /* SDO-LOOP: */
+    
+    ASSIGN
+      giCount = giTotal - 1. /* Ensure we always end at 100% */
     
     RUN ShowMessage("Complete ....").
     ASSIGN
@@ -2833,6 +2660,54 @@ END PROCEDURE.
 &ANALYZE-RESUME
 
 /* ************************  Function Implementations ***************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION detectFileType C-Win 
+FUNCTION detectFileType RETURNS CHARACTER
+  ( INPUT pcFileName AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:   Determines from the filename the type of file.
+    Notes:   Valid file types are:
+             U = URL
+             N = UNC File Name (\\Machine\share\directory\file)
+             D = DOS/Windows   (D:\directory\file)
+             X = Unix Filename
+------------------------------------------------------------------------------*/
+
+  /* If the first 7 characters are http:// or the
+     first 8 are https:// (secure http) or the
+     first 6 are ftp:// this is a URL */
+  IF (SUBSTRING(pcFileName,1,7) = "http://":U OR
+      SUBSTRING(pcFileName,1,8) = "https://":U OR
+      SUBSTRING(pcFileName,1,6) = "ftp://":U) THEN
+    RETURN "U":U.
+
+  /* If the first two characters are // and we are on a WIN32 machine,
+     it's a UNC file name */
+  IF (SUBSTRING(pcFileName,1,2) = "//":U OR
+      SUBSTRING(pcFileName,1,2) = "~\~\":U) THEN
+    RETURN "N":U.
+
+  /* If the second character is a colon, or there is a backslash
+     anywhere in this filename, it is DOS filename */
+  IF SUBSTRING(pcFileName,2,1) = ":":U OR
+     INDEX(pcFileName,"~\":U) <> 0 THEN
+    RETURN "D":U.
+
+  /* If the first character is a / we've got a Unix file. */
+  IF SUBSTRING(pcFileName,1,1) = "/":U THEN
+   RETURN "X":U.
+
+  /* Now we're down to figuring out from the operating system that we're on
+     the type of file. */
+  IF OPSYS = "UNIX":U THEN
+    RETURN "X":U.
+
+  RETURN "D":U.   /* If all else fails it must be DOS */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION timeCheck C-Win 
 FUNCTION timeCheck RETURNS CHARACTER

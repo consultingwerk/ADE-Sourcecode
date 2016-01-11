@@ -1,0 +1,332 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<!--------------------------------------------------------------------
+* Copyright (C) 2001 by Progress Software Corporation ("PSC"),       *
+* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
+* below.  All Rights Reserved.                                       *
+*                                                                    *
+* The Initial Developer of the Original Code is PSC.  The Original   *
+* Code is Progress IDE code released to open source December 1, 2000.*
+*                                                                    *
+* The contents of this file are subject to the Possenet Public       *
+* License Version 1.0 (the "License"); you may not use this file     *
+* except in compliance with the License.  A copy of the License is   *
+* available as of the date of this notice at                         *
+* http://www.possenet.org/license.html                               *
+*                                                                    *
+* Software distributed under the License is distributed on an "AS IS"*
+* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
+* should refer to the License for the specific language governing    *
+* rights and limitations under the License.                          *
+*                                                                    *
+* Contributors:                                                      *
+*                                                                    *
+--------------------------------------------------------------------->
+<!-- Procedure Description
+"WebSpeed Report Template
+
+Generates a formatted report on database or SmartData tables. The user can customize the reporting options in this template by changing Preprocessor definitions to match the data to include in the report."
+//-->
+<HTML>
+<HEAD>
+<TITLE>Browse</TITLE>
+<SCRIPT LANGUAGE="SpeedScript">
+/* Create an unnamed pool to store all the widgets created by this procedure.
+   This is a good default which assures that this procedure's triggers and 
+   internal procedures will execute in this procedure's storage, and that 
+   proper cleanup will occur on deletion of the procedure. */
+CREATE WIDGET-POOL.
+</SCRIPT>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF">
+<SCRIPT LANGUAGE="SpeedScript">
+  /*--------------------------------------------------------------------
+    Template: browse.html
+
+    Description: Browse a Database Table.
+
+      Modify the "&SCOPE-DEFINE..." lines to customize this browse.
+      The "Main Fields" section describes the "&SCOPE-DEFINE..."
+      Preprocessor reference fields.
+
+      This template will list Customers associated with the Sports 
+      database, listing them in Name order.  
+
+      A "Jump To" can be entered to start the search listing at the 
+      first customer name which is equal to or greater than the 
+      "Jump To" value entered.
+
+      A Sales Rep. filter can be used to list only those Customers 
+      associated with the Sales Rep. filter field.  To implement 
+      the filter the browse can be called via:
+
+         http://.../browse.html?salesRep=sls
+
+      In this example, the "Result List" will display only those 
+      Customers that contain Sales Rep. "sls".
+
+      The "Jump To" user input field can be bypassed via:
+
+         http://.../browse.html?NoJumpForm=yes
+
+      This will start the "Result List" display output at the first
+      Customer record.  
+
+      The Query can also begin the "Result List" display at the first 
+      Customer record if the "Jump To" value is left blank.
+
+      The Sales Rep. filter and the NoJumpForm can be combined:
+
+         http://.../browse.html?salesRep=sls&NoJumpForm=yes
+
+      This will begin the "Result List" display with the first Customer
+      that contains Sales Rep. "sls".
+
+    Main Fields: Preprocessor references have been used to define the
+                 main fields associated with this browse.
+ 
+      Query-Table    - The name of the table to browse.
+      Query-Field    - The field to be used to define the Query output
+                       Sort order.  This field is also used by the 
+                       "Jump To" functionality.  This field must be 
+                       the main component of an Index associated with 
+                       the Table.
+      Query-Index    - The name of the Index where Query-Field is the 
+                       main component.
+      Filter-Field   - The field to be used as a filter.  For large 
+                       database tables this field should be the main 
+                       component of an index.
+      Display-Fields - The fields to be displayed in "Result List".
+      Result-Rows    - The number of Rows to display in "Result List".
+
+
+    Performance Considerations:
+
+      For large database Tables where the Filter Field will be used 
+      consideration should be given to the creation of an index and
+      program modifications to improve the performance of the browse.
+
+      The index should contain the Filter Field as the main component
+      and the Query Field as the secondary field within the index.
+
+      The following programming modifications should then be made:
+  
+        1. A Preprocessor reference should be added:
+
+           &SCOPE-DEFINE Filter-Index   'xxxxxx'
+
+           where 'xxxxxx' is the name of the index consisting of the
+           Filter Field and the Query Field.
+
+        2. The OPEN QUERY statement associated with the Filter Field
+           should be modified as follows:
+
+           OPEN QUERY Browse-Qry FOR EACH {&Query-Table}
+             WHERE {&Query-Table}.{&Filter-Field} = {&Filter-Field}-key
+             USE-INDEX {&Filter-Index} NO-LOCK.
+
+        3. The FIND LAST associated with the Filter Field should be
+           modified as follows:
+
+           FIND LAST {&Query-Table}
+             WHERE {&Query-Table}.{&Filter-Field} = {&Filter-Field}-key
+               USE-INDEX {&Filter-Index} NO-LOCK NO-ERROR.
+
+        4. The FIND FIRST can also be modified in a similar fashion
+           to the FIND LAST depending on how the Browse will be 
+           utilized.  The FIND FIRST as presently written will perform
+           adequately.
+
+    The browse has been defined to support character data types for
+    the Query-Field and the Filter-Field.  The programming logic may
+    need to be modified to support other data types.
+
+  --------------------------------------------------------------------*/
+
+  /* Modify the "&SCOPE-DEFINE..." lines to customize this browse. */
+
+  &SCOPED-DEFINE Query-Table    Customer  
+  &SCOPED-DEFINE Query-Field    Name    
+  &SCOPED-DEFINE Query-Index    Name
+  &SCOPED-DEFINE Filter-Field   Salesrep
+  &SCOPED-DEFINE Display-Fields "  <TR><TD>" Name "</TD><TD>" Custnum "</TD></TR>"
+  &SCOPED-DEFINE Result-Rows    10
+
+  DEFINE VARIABLE jumpto-value        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE {&Filter-Field}-key AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE repo-to             AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE i-count             AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE JumpForm            AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE TmpUrl              AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE DelimiterField      AS CHARACTER  NO-UNDO.
+
+  /* Get all the fields from the input */
+  ASSIGN
+    JumpForm            = get-field("NoJumpForm":U)
+    jumpto-value        = get-field("jumpto-name":U)
+    repo-to             = INTEGER(get-field("repo-to":U)) NO-ERROR.
+  {&Filter-Field}-key = get-field("{&Filter-Field}":U).
+
+  /* Display "Jump To" Form.  This form will not be displayed if
+     "NoJumpForm=yes" requested */
+  IF JumpForm eq "":U THEN DO:
+</SCRIPT>
+
+<FORM ACTION="`SelfURL`" METHOD="POST" NAME="JumpForm">
+  <INPUT TYPE="hidden" NAME="repo-to" VALUE="-1000">
+  <INPUT TYPE="hidden" NAME="`'{&amp;Filter-Field}'`" VALUE="`{&amp;Filter-Field}-key`">
+  <P><CENTER><STRONG>Jump to: 
+    <INPUT TYPE="text" SIZE="20" NAME="jumpto-name" VALUE="`jumpto-value`">
+    <INPUT TYPE="submit" NAME="submit-jumpto" VALUE="Submit"> 
+    </CENTER></STRONG></P>
+  <HR>
+</FORM>
+<SCRIPT LANGUAGE="SpeedScript">
+  END. /* Close of "IF JumpForm eq "":U THEN DO:" */
+</SCRIPT>
+
+<P ALIGN="center"><STRONG>Results List:</STRONG></P>
+
+<DIV ALIGN="center"><CENTER>
+<TABLE BORDER="2">
+  <SCRIPT LANGUAGE="SpeedScript">
+
+    /* Define the Query */
+    DEFINE QUERY Browse-Qry FOR {&Query-Table} SCROLLING.
+
+    IF {&Filter-Field}-key eq "":U THEN
+      /* Open the Query for all the records associated with the Table.
+         No Filter Field specified */
+      OPEN QUERY Browse-Qry FOR EACH {&Query-Table}
+        USE-INDEX {&Query-Index} NO-LOCK.
+    ELSE
+      /* Open the Query for only those records meeting the Filter Field
+         selection criteria */
+      OPEN QUERY Browse-Qry FOR EACH {&Query-Table}
+        WHERE {&Query-Table}.{&Filter-Field} = {&Filter-Field}-key NO-LOCK
+        BY {&Query-Field}.
+
+    /* "Jump To" form posted.  Find the first record that meets the
+       "Jump To" criteria.  This works correctly if "Jump To" blank */
+    IF repo-to eq -1000 THEN DO:
+      IF {&Filter-Field}-key eq "":U THEN
+        /* Find the first record meeting "Jump To" criteria.
+           No Filter Field specified */
+        FIND FIRST {&Query-Table} 
+          WHERE {&Query-Table}.{&Query-Field} >= jumpto-value
+          USE-INDEX {&Query-Index} NO-LOCK NO-ERROR.
+      ELSE
+        /* Find the first record meeting "Jump To" criteria AND
+           Filter Field criteria */
+        FIND FIRST {&Query-Table} 
+          WHERE {&Query-Table}.{&Query-Field} >= jumpto-value 
+            AND {&Query-Table}.{&Filter-Field} = {&Filter-Field}-key
+          USE-INDEX {&Query-Index} NO-LOCK NO-ERROR.
+      IF AVAILABLE {&Query-Table} THEN
+        /* Reposition the Query to the record meeting the selection 
+           criteria */
+        REPOSITION Browse-Qry TO ROWID ROWID({&Query-Table}).
+      ELSE
+        /* No record found meeting selection criteria.  Reposition to
+           the first record */
+        REPOSITION Browse-Qry TO ROW 1.
+    END. /* Close of "IF repo-to eq -1000 THEN DO:" */
+    /* First, Prev, Next, Last navigation selected or "NoJumpForm=yes"
+       requested */
+    ELSE DO:
+      IF repo-to > 0 THEN DO:
+        /* Reposition the Query to the Row requested to by
+           the Navigation selection */
+        REPOSITION Browse-Qry TO ROW repo-to.
+        GET NEXT Browse-Qry NO-LOCK.
+        /* If attempted to reposition past the last record, then set
+           repo-to to execute Last navigation functionaltiy */
+        IF NOT AVAILABLE {&Query-Table} THEN repo-to = -999.
+      END.
+      /* Last navigation */
+      IF repo-to eq -999 THEN DO:
+        IF {&Filter-Field}-key eq "":U THEN
+          /* Find last record in Table using Query-Index to maintain
+             appropriate Sort order.  No Filter Field criteria */
+          FIND LAST {&Query-Table} 
+            USE-INDEX {&Query-Index} NO-LOCK NO-ERROR.
+        ELSE
+          /* Find last record in Table meeting Filter Field criteria.
+             Use Query-Index to maintain Sort order */
+          FIND LAST {&Query-Table}
+            WHERE {&Query-Table}.{&Filter-Field} = {&Filter-Field}-key
+              USE-INDEX {&Query-Index} NO-LOCK NO-ERROR.
+        /* Reposition the Query to the record found */
+        REPOSITION Browse-Qry TO ROWID ROWID({&Query-Table}).
+        /* Calculate back to display the correct "Result List" 
+           output Rows */
+        repo-to = CURRENT-RESULT-ROW("Browse-Qry":U) - {&Result-Rows} + 1.
+      END.
+      /* Reposition to the requested Row.  If repo-to < 1 then Query 
+         will be repositioned to the first record */
+      REPOSITION Browse-Qry TO ROW repo-to.
+    END. /* Close of "If repo-to eq -1000 THEN DO:...ELSE DO:" */
+
+    /* Output the number of requested Rows to "Result List" */
+    DO i-count = 1 to {&Result-Rows}:
+      GET NEXT Browse-Qry NO-LOCK.
+      IF AVAILABLE {&Query-Table} THEN 
+        /* Output the requested Display Fields */
+        {&OUT} {&Display-Fields} SKIP.
+      ELSE 
+        /* Reached End of Query */
+        LEAVE.
+    END. /* Close of "DO i-count = 1 to {&Result-Rows}:" */
+  </SCRIPT>
+</TABLE>
+</CENTER></DIV>
+
+<SCRIPT LANGUAGE="SpeedScript">
+  /* If Not the End of the Query, Increment Reposition pointer
+     for Navigation.  If End of Query, force Query to start from
+     beginning */
+  repo-to = (IF NOT AVAILABLE {&Query-Table} THEN -1
+             ELSE CURRENT-RESULT-ROW("Browse-Qry":U) + 1).
+
+  /* Display Navigation Links unless we are waiting for the very 
+     first "Jump To" to be submitted */
+  IF repo-to ne 0 THEN DO:
+    ASSIGN
+      TmpUrl         = url-format(?,'jumpto-name,{&Filter-field},NoJumpForm',?)
+      DelimiterField = (IF INDEX(TmpUrl,"?") > 0 THEN ? ELSE "?").
+</SCRIPT>
+<DIV ALIGN="center"><CENTER>
+<TABLE BORDER="2">
+  <TR>
+    <TD>
+      <A HREF="`TmpUrl%20+%20url-field('repo-to','1',DelimiterField)`"
+        onMouseOver="window.status='First `{&amp;Result-Rows}`'; return true"
+        onMouseOut="window.status=''; return true">
+      <IMG SRC="`RootURL`/images/first-au.gif" BORDER="0" WIDTH="16" HEIGHT="16"></A>
+    </TD>
+    <TD>
+      <A HREF="`TmpUrl%20+%20url-field('repo-to',string(repo-to%20-%20({&amp;result-rows}%20*%202)),DelimiterField)`"
+        onMouseOver="window.status='Prev `{&amp;Result-Rows}`'; return true"
+        onMouseOut="window.status=''; return true">
+      <IMG SRC="`RootURL`/images/prev-au.gif" BORDER="0" WIDTH="16" HEIGHT="16"></A>
+    </TD>
+    <TD>
+      <A HREF="`TmpUrl%20+%20url-field('repo-to',string(repo-to),DelimiterField)`"
+        onMouseOver="window.status='Next `{&amp;Result-Rows}`'; return true"
+        onMouseOut="window.status=''; return true">
+      <IMG SRC="`RootURL`/images/next-au.gif" BORDER="0" WIDTH="16" HEIGHT="16"></A>
+    </TD>
+    <TD>
+      <A HREF="`TmpUrl%20+%20url-field('repo-to','-999',DelimiterField)`"
+        onMouseOver="window.status='Last `{&amp;Result-Rows}`'; return true"
+        onMouseOut="window.status=''; return true">
+      <IMG SRC="`RootURL`/images/last-au.gif" BORDER="0" WIDTH="16" HEIGHT="16"></A>
+    </TD>
+  </TR>
+</TABLE>
+</CENTER></DIV>
+<SCRIPT LANGUAGE="SpeedScript">
+  END. /* Close of "IF repo-to ne 0 THEN DO:" */
+</SCRIPT>
+</BODY>
+</HTML>
+

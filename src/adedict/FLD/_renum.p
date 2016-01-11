@@ -36,6 +36,7 @@ Date Created: 03/23/92
       	      Mario B. 11/17/98 Changed renumbering from using a fixed offset
 	                        of - 10000 for pre-conversion to using * -1 to
 				prevent conflicts when a 10000+ Order# exists.
+              D. McMann 06/10/02 Added check for session schema change attribute
 
 ----------------------------------------------------------------------------*/
 
@@ -225,7 +226,7 @@ else
       NumFlds = NumFlds + 1.
    end.
 
-if x_File._Db-lang = {&TBLTYP_SQL} then
+if x_File._Db-lang >= {&TBLTYP_SQL} then
    msg_text = "You cannot change the order of PROGRESS/SQL fields.".
 
 if msg_text = "" then
@@ -235,6 +236,11 @@ if msg_text = "" then
 if msg_text = "" then
    if NumFlds = 0 then
       msg_text = "There are no fields in this table to be renumbered.".
+
+&IF PROVERSION >= "9.1E" &THEN
+    IF SESSION:SCHEMA-CHANGE = "New Objects" THEN
+      ASSIGN msg_text = 'You can not renumber fields when SESSION:SCHEMA-CHANGE = "New Objects".'.
+&ENDIF
 
 if msg_text <> "" then
 do:

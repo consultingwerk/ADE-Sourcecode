@@ -23,11 +23,6 @@
 *********************************************************************/
 TRIGGER PROCEDURE FOR REPLICATION-WRITE OF gsc_session_property OLD BUFFER lb_old.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "gsc_session_property"
-                      &TRIGGER-TYPE = "REPLICATION-WRITE"}
-
 {af/sup/afreplicat.i  &TABLE-NAME   = "gsc_session_property"
                       &TABLE-FLA    = "gscsp"
                       &TABLE-PK     = "session_property_obj"

@@ -32,16 +32,52 @@ Description:
 Author: Mario Brunetti
 
 Date Created: 10/04/99
-     History: 03/28/00 D. McMann Checking inprimary was looking at the
+     History: 09/06/02 D. McMann inprimary should have been checking for
+                                 field being in any index. 20020828-012
+              03/28/00 D. McMann Checking inprimary was looking at the
                                  wrong database to determine if field was there
                                  20000327012.
-              08/16/00 D. McMann Added _Db-recid to _storageObject find 20000815029
+              08/16/00 D. McMann Added _Db-recid to _storageObject find 
+                                 20000815029
+              01/29/02 vap       Added batch-mode support (IZ# 1525)
 
 -----------------------------------------------------------------------------*/
 
 /*------------------------ D E C L A R A T I O N S --------------------------*/
 
 { prodict/dump/dumpvars.i SHARED }
+
+DEFINE TEMP-TABLE ttRenameTable                   /* 02/01/29 vap (IZ# 1525) */
+  FIELD RenameFrom LIKE DICTDB._Field._Field-Name COLUMN-LABEL "From":U
+  FIELD RenameTo   LIKE DICTDB._Field._Field-Name COLUMN-LABEL "To":U
+  INDEX ttRenameTable IS PRIMARY UNIQUE
+  RenameFrom.
+
+DEFINE TEMP-TABLE ttRenameField                   /* 02/01/29 vap (IZ# 1525) */
+  FIELD TableName  LIKE DICTDB._File._File-Name   COLUMN-LABEL "Table":U
+  FIELD RenameFrom LIKE DICTDB._Field._Field-Name COLUMN-LABEL "From":U
+  FIELD RenameTo   LIKE DICTDB._Field._Field-Name COLUMN-LABEL "To":U
+  INDEX ttRenameField IS PRIMARY UNIQUE
+  TableName RenameFrom.
+
+DEFINE TEMP-TABLE ttRenameSequence                /* 02/01/29 vap (IZ# 1525) */
+  FIELD RenameFrom LIKE DICTDB._Field._Field-Name COLUMN-LABEL "From":U
+  FIELD RenameTo   LIKE DICTDB._Field._Field-Name COLUMN-LABEL "To":U
+  INDEX ttRenameSequence IS PRIMARY UNIQUE
+  RenameFrom.
+
+DEFINE VARIABLE debug-mode  AS INTEGER   NO-UNDO. /* 02/01/29 vap (IZ# 1525) */
+DEFINE VARIABLE rename-file AS CHARACTER NO-UNDO  /* 02/01/29 vap (IZ# 1525) */
+                            INITIAL ?.
+
+/* 02/01/29 vap (IZ# 1525) */
+/* LANGUAGE DEPENDENCIES START */ /*----------------------------------------*/
+DEFINE VARIABLE new_lang AS CHARACTER EXTENT 03 NO-UNDO INITIAL [
+  /*01*/ "WARNING: Ambiguous &1-rename definition (~"&2-&3~").",
+  /*02*/ "WARNING: Unrecognized rename-file line: ~"&1~".",
+  /*03*/ "WARNING: Wrong &1-rename definition: (~"&2-&3~"), ignored."
+]. 
+/* LANGUAGE DEPENDENCIES END */ /*-------------------------------------------*/
 
 /*--------------- F U N C T I O N S   &  P R O C E D U R E S ----------------*/
 FUNCTION fileAreaMatch RETURNS LOGICAL (INPUT db1FileNo AS INT,
@@ -58,7 +94,7 @@ FUNCTION fileAreaMatch RETURNS LOGICAL (INPUT db1FileNo AS INT,
       FIND DICTDB._Area WHERE
          DICTDB._Area._Area-number = DICTDB._StorageObject._Area-number
       NO-ERROR.
-				      
+                                      
    FIND DICTDB2._StorageObject WHERE
         DICTDB2._StorageObject._Db-recid = db2recid AND
         DICTDB2._StorageObject._Object-type = 1 AND
@@ -84,10 +120,10 @@ FUNCTION indexAreaMatch RETURNS LOGICAL(INPUT db1IndexNo AS INT,
    FIND DICTDB._StorageObject WHERE
         DICTDB._StorageObject._Db-recid = db1recid AND
         DICTDB._StorageObject._Object-type = 2 AND
-	    DICTDB._Storageobject._Object-number = db1IndexNo NO-ERROR.
+            DICTDB._Storageobject._Object-number = db1IndexNo NO-ERROR.
    IF AVAILABLE DICTDB._StorageObject THEN
       FIND DICTDB._Area WHERE
-	   DICTDB._Area._Area-number = DICTDB._StorageObject._Area-number
+           DICTDB._Area._Area-number = DICTDB._StorageObject._Area-number
       NO-ERROR.
    ELSE
    FIND DICTDB._Area WHERE
@@ -96,10 +132,10 @@ FUNCTION indexAreaMatch RETURNS LOGICAL(INPUT db1IndexNo AS INT,
    FIND DICTDB2._StorageObject WHERE
         DICTDB2._StorageObject._db-recid = db2recid AND
         DICTDB2._StorageObject._Object-type = 2 AND
-	DICTDB2._Storageobject._Object-number = db2IndexNo NO-ERROR.
+        DICTDB2._Storageobject._Object-number = db2IndexNo NO-ERROR.
    IF AVAILABLE DICTDB2._StorageObject THEN
       FIND DICTDB2._Area WHERE
-	   DICTDB2._Area._Area-number = DICTDB2._StorageObject._Area-number
+           DICTDB2._Area._Area-number = DICTDB2._StorageObject._Area-number
       NO-ERROR.
    ELSE
    FIND DICTDB2._Area WHERE
@@ -116,6 +152,8 @@ FUNCTION inprimary RETURNS LOGICAL (INPUT p_db1PrimeIndex AS RECID,
                                     INPUT p_db1RecId      AS RECID).
    
     /* Determines whether a field is part of an primary index */
+    /* Function changed to verify if in any index so drop and add
+       are done in the proper order 20020828-012 */
 
  DEFINE BUFFER _Field-Pri FOR DICTDB2._Field.   
   
@@ -127,14 +165,101 @@ FUNCTION inprimary RETURNS LOGICAL (INPUT p_db1PrimeIndex AS RECID,
       FIND DICTDB2._Field-Pri WHERE
       RECID(DICTDB2._Field-Pri) = DICTDB2._Index-Field._Field-Recid NO-ERROR.
 
-     IF AVAIL DICTDB2._Field-Pri AND
-      RECID(DICTDB2._Field-Pri) = p_db1Recid THEN
+     IF AVAIL DICTDB2._Field-Pri /*AND
+      RECID(DICTDB2._Field-Pri) = p_db1Recid*/ THEN
          RETURN TRUE.
    END.
 
    RETURN FALSE.
    
 END FUNCTION.
+
+/* 02/01/29 vap (IZ# 1525) */
+FUNCTION checkRenameTable RETURNS CHARACTER (
+  INPUT pcRenameFrom   AS CHARACTER ,
+  INPUT pcRenameToList AS CHARACTER ).
+  /* It is allways a good practice to strong-scope all buffers in persistent
+   * libraries, even although here it's not necessary. ADE code just should
+   * serve as a code reference, too...
+   */
+  DEFINE BUFFER B_RenameTable FOR ttRenameTable.
+  DEFINE VARIABLE cReturnValue AS CHARACTER NO-UNDO.
+  FIND B_RenameTable WHERE
+       B_RenameTable.RenameFrom EQ pcRenameFrom
+       NO-ERROR.
+  IF NOT AVAILABLE(B_RenameTable) THEN
+    ASSIGN cReturnValue = ?.
+  ELSE DO:
+    IF CAN-DO(pcRenameToList, B_RenameTable.RenameTo) THEN
+      ASSIGN cReturnValue = B_RenameTable.RenameTo.
+    ELSE DO:
+      ASSIGN cReturnValue = ?.
+      IF debug-mode GT 0 THEN
+        MESSAGE SUBSTITUTE(new_lang[03], "Table":U, B_RenameTable.RenameFrom,
+                           B_RenameTable.RenameTo).
+    END.
+  END.  /* AVAILABLE(B_RenameTable) */
+  RETURN cReturnValue.
+END FUNCTION.  /* checkRenameTable() */
+
+/* 02/01/29 vap (IZ# 1525) */
+FUNCTION checkRenameField RETURNS CHARACTER (
+  INPUT pcTableName    AS CHARACTER ,
+  INPUT pcRenameFrom   AS CHARACTER ,
+  INPUT pcRenameToList AS CHARACTER ).
+  /* It is allways a good practice to strong-scope all buffers in persistent
+   * libraries, even although here it's not necessary. ADE code just should
+   * serve as a code reference, too...
+   */
+  DEFINE BUFFER B_RenameField FOR ttRenameField.
+  DEFINE VARIABLE cReturnValue AS CHARACTER NO-UNDO.
+  FIND B_RenameField WHERE
+       B_RenameField.TableName  EQ pcTableName AND
+       B_RenameField.RenameFrom EQ pcRenameFrom
+       NO-ERROR.
+  IF NOT AVAILABLE(B_RenameField) THEN
+    ASSIGN cReturnValue = ?.
+  ELSE DO:
+    IF CAN-DO(pcRenameToList, B_RenameField.RenameTo) THEN
+      ASSIGN cReturnValue = B_RenameField.RenameTo.
+    ELSE DO:
+      ASSIGN cReturnValue = ?.
+      IF debug-mode GT 0 THEN
+        MESSAGE SUBSTITUTE(new_lang[03], "Field":U, B_RenameField.RenameFrom,
+                           B_RenameField.RenameTo).
+    END.
+  END.  /* AVAILABLE(B_RenameField) */
+  RETURN cReturnValue.
+END FUNCTION.  /* checkRenameField() */
+
+/* 02/01/29 vap (IZ# 1525) */
+FUNCTION checkRenameSequence RETURNS CHARACTER (
+  INPUT pcRenameFrom   AS CHARACTER ,
+  INPUT pcRenameToList AS CHARACTER ).
+  /* It is allways a good practice to strong-scope all buffers in persistent
+   * libraries, even although here it's not necessary. ADE code just should
+   * serve as a code reference, too...
+   */
+  DEFINE BUFFER B_RenameSequence FOR ttRenameSequence.
+  DEFINE VARIABLE cReturnValue AS CHARACTER NO-UNDO.
+  FIND B_RenameSequence WHERE
+       B_RenameSequence.RenameFrom EQ pcRenameFrom
+       NO-ERROR.
+  IF NOT AVAILABLE(B_RenameSequence) THEN
+    ASSIGN cReturnValue = ?.
+  ELSE DO:
+    IF CAN-DO(pcRenameToList, B_RenameSequence.RenameTo) THEN
+      ASSIGN cReturnValue = B_RenameSequence.RenameTo.
+    ELSE DO:
+      ASSIGN cReturnValue = ?.
+      IF debug-mode GT 0 THEN
+        MESSAGE SUBSTITUTE(new_lang[03], "Sequence":U, 
+                           B_RenameSequence.RenameFrom,
+                           B_RenameSequence.RenameTo).
+    END.
+  END.  /* AVAILABLE(B_RenameSequence) */
+  RETURN cReturnValue.
+END FUNCTION.  /* checkRenameSequence() */
 
 /* We don't delete indexes first because Progress doesn't let you delete
    the last index.  So if we are about to rename an index or add a new
@@ -216,3 +341,137 @@ PROCEDURE dctquot:
 
 END PROCEDURE.
 
+/* 02/01/29 vap (IZ# 1525) */
+PROCEDURE set_Variables:
+  DEFINE INPUT PARAMETER pcRenameFile AS CHARACTER NO-UNDO.
+  DEFINE INPUT PARAMETER piDebugMode  AS INTEGER   NO-UNDO.
+  ASSIGN rename-file = pcRenameFile
+         debug-mode = piDebugMode.
+  RETURN "":U.
+END PROCEDURE.  /* set_Variables */
+
+/* Loading the `rename definitions' for batch-mode from the
+ * rename-file into respective temp-tables.
+ * 02/01/29 vap (IZ# 1525)
+ */
+PROCEDURE load_Rename_Definitions:
+  /* It is allways a good practice to strong-scope all buffers in persistent
+   * libraries, even although here it's not necessary. ADE code just should
+   * serve as a code reference, too...
+   */
+  DEFINE BUFFER B_RenameTable    FOR ttRenameTable.
+  DEFINE BUFFER B_RenameField    FOR ttRenameField.
+  DEFINE BUFFER B_RenameSequence FOR ttRenameSequence.
+
+  DEFINE VARIABLE cInputLine AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cTable     AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cFrom      AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cTo        AS CHARACTER NO-UNDO.
+
+  EMPTY TEMP-TABLE B_RenameTable.
+  EMPTY TEMP-TABLE B_RenameField.
+  EMPTY TEMP-TABLE B_RenameSequence.
+
+  IF rename-file NE "":U THEN DO:
+    INPUT FROM VALUE(rename-file) NO-ECHO.
+    REPEAT:
+      ASSIGN cInputLine = "":U.
+      IMPORT cInputLine.
+      ASSIGN cInputLine = TRIM(cInputLine).
+      IF cInputLine EQ "":U OR cInputLine BEGINS "#":U THEN
+        NEXT.
+      CASE TRIM(ENTRY(1, cInputLine)):
+        WHEN "T":U THEN DO:
+          IF NUM-ENTRIES(cInputLine) EQ 3 THEN DO:
+            ASSIGN cFrom = TRIM(ENTRY(2, cInputLine))
+                   cTo   = TRIM(ENTRY(3, cInputLine)).
+            FIND B_RenameTable WHERE
+                 B_RenameTable.RenameFrom EQ cFrom
+                 NO-ERROR.
+            IF AVAILABLE(B_RenameTable) THEN DO:
+              IF debug-mode GT 0 THEN
+                MESSAGE SUBSTITUTE(new_lang[01], "Table":U, cFrom, cTo).
+            END.
+            ELSE DO:
+              CREATE B_RenameTable.
+              ASSIGN B_RenameTable.RenameFrom = cFrom.
+            END.
+            ASSIGN B_RenameTable.RenameTo = cTo.
+          END.
+          ELSE IF debug-mode GT 0 THEN
+            MESSAGE SUBSTITUTE(new_lang[02], cInputLine).
+        END.  /* Table */
+        WHEN "F":U THEN DO:
+          IF NUM-ENTRIES(cInputLine) EQ 4 THEN DO:
+            ASSIGN cTable = TRIM(ENTRY(2, cInputLine))
+                   cFrom  = TRIM(ENTRY(3, cInputLine))
+                   cTo    = TRIM(ENTRY(4, cInputLine)).
+            FIND B_RenameField WHERE
+                 B_RenameField.TableName  EQ cTable AND
+                 B_RenameField.RenameFrom EQ cFrom
+                 NO-ERROR.
+            IF AVAILABLE(B_RenameField) THEN DO:
+              IF debug-mode GT 0 THEN
+                MESSAGE SUBSTITUTE(new_lang[01], "Field":U, cFrom, cTo).
+            END.
+            ELSE DO:
+              CREATE B_RenameField.
+              ASSIGN B_RenameField.TableName  = cTable
+                     B_RenameField.RenameFrom = cFrom.
+            END.         
+            ASSIGN B_RenameField.RenameTo = cTo.
+          END.
+          ELSE IF debug-mode GT 0 THEN
+            MESSAGE SUBSTITUTE(new_lang[02], cInputLine).
+        END.  /* Field */
+        WHEN "S":U THEN DO:
+          IF NUM-ENTRIES(cInputLine) EQ 3 THEN DO:
+            ASSIGN cFrom = TRIM(ENTRY(2, cInputLine))
+                   cTo   = TRIM(ENTRY(3, cInputLine)).
+            FIND B_RenameSequence WHERE
+                 B_RenameSequence.RenameFrom EQ cFrom
+                 NO-ERROR.
+            IF AVAILABLE(B_RenameSequence) THEN DO:
+              IF debug-mode GT 0 THEN
+                MESSAGE SUBSTITUTE(new_lang[01], "Sequence":U, cFrom, cTo).
+            END.
+            ELSE DO:
+              CREATE B_RenameSequence.
+              ASSIGN B_RenameSequence.RenameFrom = cFrom.
+            END.  
+            ASSIGN B_RenameSequence.RenameTo = cTo.
+          END.
+          ELSE IF debug-mode GT 0 THEN
+            MESSAGE SUBSTITUTE(new_lang[02], cInputLine).
+        END.  /* Sequence */
+        OTHERWISE DO:
+          IF debug-mode GT 0 THEN
+            MESSAGE SUBSTITUTE(new_lang[02], cInputLine).
+        END.  /* Unrecognized input */
+      END CASE.  /* TRIM(ENTRY(1, cInputLine)) */
+    END.  /* REPEAT: */
+    INPUT CLOSE.
+
+    IF debug-mode GT 1 THEN DO:
+      OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+      FOR EACH B_RenameTable:
+        DISPLAY STREAM err-log B_RenameTable WITH TITLE "Rename Table":U .
+        DOWN.
+      END.
+      FOR EACH B_RenameField:
+        DISPLAY STREAM err-log B_RenameField WITH TITLE "Rename Field":U WIDTH 120.
+        DOWN.
+      END.
+      FOR EACH B_RenameSequence:
+        DISPLAY STREAM err-log B_RenameSequence WITH TITLE "Rename Sequence":U.
+        DOWN.
+      END.
+      PUT STREAM err-log UNFORMATTED " " SKIP(1).
+      OUTPUT STREAM err-log CLOSE.
+    END.  /* config-info */
+  END.  /* rename-file NE ? */
+
+  RETURN "":U.
+END PROCEDURE.  /* load_Rename_Definitions */
+
+/* prodict/dump/_dmputil.p */

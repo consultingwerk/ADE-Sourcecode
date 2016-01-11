@@ -125,7 +125,7 @@ ASSIGN cObjectName = "{&object-name}":U.
 
 /* Data Preprocessor Definitions */
 &GLOB DATA-LOGIC-TABLE gst_audit
-&GLOB DATA-FIELD-DEFS  "af\obj2\gstadfullo.i"
+&GLOB DATA-FIELD-DEFS  "af/obj2/gstadfullo.i"
 
 /* Error handling definitions */
 {af/sup2/afcheckerr.i &define-only = YES}

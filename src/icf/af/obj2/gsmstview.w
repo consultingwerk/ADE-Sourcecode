@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          afdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" vTableWin _INLINE
@@ -87,7 +87,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gsmstview.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -126,12 +126,13 @@ RowObject.retain_status_history RowObject.system_owned ~
 RowObject.auto_display 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define DISPLAYED-FIELDS RowObject.status_seq RowObject.status_tla ~
 RowObject.status_short_desc RowObject.status_description ~
 RowObject.retain_status_history RowObject.system_owned ~
 RowObject.auto_display 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
+
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -145,35 +146,35 @@ RowObject.auto_display
 
 
 /* Definitions of handles for SmartObjects                              */
-DEFINE VARIABLE h_gsmcadcsfv AS HANDLE NO-UNDO.
+DEFINE VARIABLE h_dyncombo AS HANDLE NO-UNDO.
 
 /* Definitions of the field level widgets                               */
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     RowObject.status_seq AT ROW 2 COL 26 COLON-ALIGNED
-          VIEW-AS FILL-IN 
-          SIZE 7.6 BY 1
-     RowObject.status_tla AT ROW 3 COL 26 COLON-ALIGNED
+     RowObject.status_seq AT ROW 2.05 COL 26 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 8.6 BY 1
-     RowObject.status_short_desc AT ROW 4 COL 26 COLON-ALIGNED
+     RowObject.status_tla AT ROW 3.1 COL 26 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 17 BY 1
-     RowObject.status_description AT ROW 5 COL 26 COLON-ALIGNED
+          SIZE 8.6 BY 1
+     RowObject.status_short_desc AT ROW 4.14 COL 26 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 37 BY 1
-     RowObject.retain_status_history AT ROW 6 COL 28
+          SIZE 34.6 BY 1
+     RowObject.status_description AT ROW 5.19 COL 26 COLON-ALIGNED
+          VIEW-AS FILL-IN 
+          SIZE 78.4 BY 1
+     RowObject.retain_status_history AT ROW 6.3 COL 28
           VIEW-AS TOGGLE-BOX
-          SIZE 24.8 BY .81
-     RowObject.system_owned AT ROW 6.81 COL 28
+          SIZE 24.8 BY 1
+     RowObject.system_owned AT ROW 7.29 COL 28
           VIEW-AS TOGGLE-BOX
-          SIZE 19.2 BY .81
-     RowObject.auto_display AT ROW 7.62 COL 28
+          SIZE 19.2 BY 1
+     RowObject.auto_display AT ROW 8.33 COL 28
           VIEW-AS TOGGLE-BOX
-          SIZE 16.8 BY .81
-     SPACE(53.40) SKIP(0.00)
+          SIZE 16.8 BY 1
+     SPACE(61.60) SKIP(0.00)
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -213,8 +214,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 9.76
-         WIDTH              = 99.6.
+         HEIGHT             = 8.33
+         WIDTH              = 105.4.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -254,7 +255,7 @@ ASSIGN
 */  /* FRAME frMain */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK vTableWin 
@@ -289,15 +290,15 @@ PROCEDURE adm-create-objects :
 
     WHEN 0 THEN DO:
        RUN constructObject (
-             INPUT  'af/obj2/gsmcadcsfv.w':U ,
+             INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'FieldNamecategory_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
-             OUTPUT h_gsmcadcsfv ).
-       RUN repositionObject IN h_gsmcadcsfv ( 1.00 , 15.40 ) NO-ERROR.
-       RUN resizeObject IN h_gsmcadcsfv ( 1.05 , 82.80 ) NO-ERROR.
+             INPUT  'DisplayedFieldgsm_category.category_type,gsm_category.category_subgroup,gsm_category.category_group,gsm_category.category_descriptionKeyFieldgsm_category.category_objFieldLabelCategoryFieldTooltipSelect a category from listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsm_category NO-LOCK WHERE related_entity_mnemonic = ~'GSMST~' BY gsm_category.category_typeQueryTablesgsm_categorySDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&4 (&1 &2 &3)CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcFieldNamecategory_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT h_dyncombo ).
+       RUN repositionObject IN h_dyncombo ( 1.00 , 28.00 ) NO-ERROR.
+       RUN resizeObject IN h_dyncombo ( 1.05 , 78.40 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */
-       RUN adjustTabOrder ( h_gsmcadcsfv ,
+       RUN adjustTabOrder ( h_dyncombo ,
              RowObject.status_seq:HANDLE IN FRAME frMain , 'BEFORE':U ).
     END. /* Page 0 */
 

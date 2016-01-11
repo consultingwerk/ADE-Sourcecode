@@ -111,6 +111,7 @@ DEFINE VAR isSmartObject AS LOGICAL NO-UNDO.
 &Scoped-define FIELDS-IN-QUERY-browser_pp pp.cFileName WITH NO-LABELS   
 &Scoped-define ENABLED-FIELDS-IN-QUERY-browser_pp   
 &Scoped-define SELF-NAME browser_pp
+&Scoped-define QUERY-STRING-browser_pp FOR EACH pp
 &Scoped-define OPEN-QUERY-browser_pp OPEN QUERY browser_pp FOR EACH pp.
 &Scoped-define TABLES-IN-QUERY-browser_pp pp
 &Scoped-define FIRST-TABLE-IN-QUERY-browser_pp pp
@@ -281,7 +282,9 @@ DEFINE FRAME DEFAULT-FRAME
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
 /* Settings for THIS-PROCEDURE
    Type: Window
+   Compile into: 
    Allow: Basic,Browse,DB-Fields,Window,Query
+   Other Settings: COMPILE
  */
 &ANALYZE-RESUME _END-PROCEDURE-SETTINGS
 
@@ -399,8 +402,10 @@ ON ITERATION-CHANGED OF browser_pp IN FRAME DEFAULT-FRAME
 DO:  
    IF AVAILABLE(pp) THEN DO:
      RUN Set_Internal_Entries.
+     IF VALID-HANDLE(pp.pHandle) THEN
      ASSIGN dbrefs:LIST-ITEMS    = pp.pHandle:DB-REFERENCES
             uid:SCREEN-VALUE     = STRING(pp.pHandle:UNIQUE-ID).
+     ELSE RETURN NO-APPLY.
                               
      RUN List-Params.
      /* Is this a SmartObject? */
@@ -760,27 +765,49 @@ PROCEDURE check_procedures :
   Parameters:  <none>
   Notes:       
 -------------------------------------------------------------*/
-  def var lReOpen  as logical.
-  def var oldrecid as recid.
+  DEFINE VARIABLE lReOpen            AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE NextRowId          AS ROWID      NO-UNDO.
+  DEFINE VARIABLE iReposTo           AS INTEGER    NO-UNDO.
   
-  IF AVAILABLE(pp) THEN oldrecid = RECID(pp).
+  IF AVAILABLE(pp) THEN NextRowId = ROWID(pp).
+
   /* Have any procedures been deleted? */
   lReOpen = NO.
-  FOR EACH pp:
+  FOR EACH pp WHERE
+    (IF MENU-ITEM m_Hide_ADE:CHECKED IN MENU MENU-BAR-C-Win THEN 
+       pp.ptype NE 1 
+     ELSE TRUE) AND
+     (IF MENU-ITEM m_Hide_UIB:CHECKED IN MENU MENU-BAR-C-Win THEN
+       pp.ptype NE 2
+       ELSE TRUE):
+    IF NextRowId = ? THEN NextRowId = ROWID(pp).
     IF NOT VALID-HANDLE(pp.pHandle) THEN DO:
-      lReOpen = YES.
+      ASSIGN lReOpen = YES
+             NextRowId = ?
+             iReposTo   = browser_pp:FOCUSED-ROW IN FRAME {&FRAME-NAME}.
       DELETE pp.
     END.
+  END.
+
+  IF NextRowId = ? THEN DO:
+    FIND LAST pp WHERE
+    (IF MENU-ITEM m_Hide_ADE:CHECKED IN MENU MENU-BAR-C-Win THEN 
+       pp.ptype NE 1 
+     ELSE TRUE) AND
+     (IF MENU-ITEM m_Hide_UIB:CHECKED IN MENU MENU-BAR-C-Win THEN
+       pp.ptype NE 2
+       ELSE TRUE) NO-ERROR.
+    IF AVAILABLE pp THEN nextRowId = ROWID(pp).
   END.
   
   /* Reset the query & and empty the selection list, if necessary. */
   IF lReOpen THEN DO:
     RUN Open_Query.
-    RUN Set_Selections.
+    RUN Set_Selections(NextRowId, iReposTo).
   END.
   ELSE DO:
-    FIND pp WHERE RECID(pp) = oldrecid NO-ERROR.
-    IF AVAILABLE (pp) THEN RUN Repos(oldrecid).
+    FIND pp WHERE ROWID(pp) = NextRowId NO-ERROR.
+    IF AVAILABLE (pp) THEN RUN Repos(NextRowId, browser_pp:FOCUSED-ROW).
   END.
 END PROCEDURE.
 
@@ -898,7 +925,7 @@ DO WITH FRAME {&FRAME-NAME}:
          pp.ptype NE 2
          ELSE TRUE).
   ASSIGN browser_pp:SENSITIVE = YES.
-  RUN Set_Selections.
+  RUN Set_Selections(?,1).
   APPLY "ITERATION-CHANGED":U TO browser_pp.
 END.
 
@@ -914,16 +941,17 @@ PROCEDURE Repos :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE INPUT PARAMETER oldrecid AS RECID.
+  DEFINE INPUT PARAMETER oldrowid  AS ROWID      NO-UNDO.
+  DEFINE INPUT PARAMETER iFocusRow AS INTEGER    NO-UNDO.
   
   DEFINE VARIABLE h AS HANDLE  NO-UNDO.
   DEFINE VARIABLE l AS LOGICAL NO-UNDO.
-  
+
   DO WITH FRAME {&FRAME-NAME}: 
     ASSIGN h = browser_pp:HANDLE
-           l = h:SET-REPOSITIONED-ROW (MAX(1,h:FOCUSED-ROW), "CONDITIONAL").
+           l = h:SET-REPOSITIONED-ROW (MAX(1,iFocusRow), "CONDITIONAL").
   
-    REPOSITION browser_pp TO RECID(oldrecid).
+    REPOSITION browser_pp TO ROWID(oldrowid).
   END.
 END PROCEDURE.
 
@@ -937,14 +965,17 @@ PROCEDURE Set_Internal_Entries :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lRefresh AS LOGICAL    NO-UNDO.
+
   DO WITH FRAME {&FRAME-NAME}:
      ASSIGN int-entries:HIDDEN = yes.
      &IF "{&WINDOW-SYSTEM}" EQ "OSF/Motif" &THEN
        /* This code is here to sort the internal-entries in alphabetical order
         * since the 'SORT' option on a selection-list in Motif does not work
         */
-       DEFINE VARIABLE i      AS INTEGER   NO-UNDO.
-       DEFINE VARIABLE sorted AS CHARACTER NO-UNDO INITIAL "".
+       DEFINE VARIABLE i        AS INTEGER    NO-UNDO.
+       DEFINE VARIABLE sorted   AS CHARACTER  NO-UNDO INITIAL "".
+     
        
        FOR EACH sort-ie: DELETE sort-ie. END.
        IF NUM-ENTRIES(pp.pHandle:INTERNAL-ENTRIES) > 0 THEN DO:
@@ -957,7 +988,15 @@ PROCEDURE Set_Internal_Entries :
          END.
        END.
        ASSIGN int-entries:LIST-ITEMS = sorted.
-     &ELSE  
+     &ELSE
+       IF NOT VALID-HANDLE(pp.pHandle) THEN DO:
+         lRefresh = YES.
+         MESSAGE pp.cFileName "is no longer active." SKIP
+                 "Do you want to refresh the list?"
+           VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO UPDATE lRefresh.
+         IF lRefresh THEN RUN Build_PP_List.
+         RETURN NO-APPLY.
+       END.
        int-entries:LIST-ITEMS = pp.pHandle:INTERNAL-ENTRIES.
      &ENDIF
      ASSIGN int-entries:HIDDEN = no.
@@ -971,18 +1010,32 @@ END PROCEDURE.
 PROCEDURE Set_Selections :
 /* -----------------------------------------------------------
   Purpose:     Position selections on the browser and sel-list.
-  Parameters:  <none>
+  Parameters:  NewRowid  - Rowid ro reposition to.  If ? then first row
+               iFocusRow - Row to take focus
   Notes:       
 -------------------------------------------------------------*/
-    FIND FIRST pp WHERE
+
+DEFINE INPUT  PARAMETER NewRowid  AS ROWID      NO-UNDO.
+DEFINE INPUT  PARAMETER iFocusRow AS INTEGER    NO-UNDO.
+
+    FIND pp WHERE ROWID(pp) = NewRowid AND
       (IF MENU-ITEM m_Hide_ADE:CHECKED IN MENU MENU-BAR-C-Win THEN 
          pp.ptype NE 1 
        ELSE TRUE) AND
        (IF MENU-ITEM m_Hide_UIB:CHECKED IN MENU MENU-BAR-C-Win THEN
          pp.ptype NE 2
          ELSE TRUE) NO-ERROR.
+    IF NOT AVAILABLE pp THEN
+      FIND FIRST pp WHERE
+        (IF MENU-ITEM m_Hide_ADE:CHECKED IN MENU MENU-BAR-C-Win THEN 
+           pp.ptype NE 1 
+         ELSE TRUE) AND
+         (IF MENU-ITEM m_Hide_UIB:CHECKED IN MENU MENU-BAR-C-Win THEN
+           pp.ptype NE 2
+           ELSE TRUE) NO-ERROR.
     IF AVAILABLE pp THEN DO:
         IF browser_pp:SELECT-ROW(1) IN FRAME {&FRAME-NAME} THEN.
+        IF ROWID(pp) = NewRowid THEN RUN repos(NewRowid, iFocusRow).
     END.
     ELSE
         ASSIGN Btn_Delete:SENSITIVE = no

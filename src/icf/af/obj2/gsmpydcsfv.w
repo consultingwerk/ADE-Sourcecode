@@ -150,12 +150,12 @@ FUNCTION setDataValue RETURNS LOGICAL
 
 
 /* Definitions of the field level widgets                               */
-DEFINE VARIABLE coCombo AS DECIMAL FORMAT ">>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
+DEFINE VARIABLE coCombo AS DECIMAL FORMAT "->>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
      LABEL "Physical Service" 
      VIEW-AS COMBO-BOX INNER-LINES 10
      LIST-ITEM-PAIRS "",0
      DROP-DOWN-LIST
-     SIZE 72.4 BY 1 NO-UNDO.
+     SIZE 72.4 BY 1.05 NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */

@@ -47,6 +47,7 @@ DEFINE INPUT PARAMETER pRecId AS RECID NO-UNDO.
 DEFINE VARIABLE ldummy        AS LOGICAL NO-UNDO.
 DEFINE VARIABLE h             as widget  no-undo.
 DEFINE VARIABLE h_frame       as widget  no-undo.
+DEFINE VARIABLE cWinTitle     AS CHARACTER  NO-UNDO.
 
 DEFINE BUFFER local_P FOR _P.
 DEFINE BUFFER local_U FOR _U.
@@ -118,6 +119,14 @@ DO ON ERROR UNDO, LEAVE:
     
     /* Make the visualization visible. */
     h_frame:VISIBLE = YES NO-ERROR.
+
+    /* Reformat the window title  IZ 6665 */
+    IF local_P.static_object = NO AND local_P.container_object = YES THEN DO:
+      IF local_P._desc NE "":U THEN DO:
+        cWinTitle = ENTRY(1, local_P._desc, "(":U) + "(":U + local_P.object_type_code + ")":U.
+        RUN adeuib/_wintitl.p (local_P._WINDOW-HANDLE, cWinTitle, ? , local_P._SAVE-AS-FILE).
+      END.         
+    END.  /* If a dynamic container */
 
 END. /* DO ON ERROR */
   

@@ -90,6 +90,10 @@ DEFINE BUFFER x_P    FOR _P.
 DEFINE VARIABLE admVersion      AS CHARACTER     NO-UNDO.
 DEFINE VARIABLE h_temp_parent   AS WIDGET-HANDLE NO-UNDO.
 DEFINE VARIABLE hSO_popup_menu  AS WIDGET-HANDLE NO-UNDO.
+DEFINE VARIABLE lIsICFRunning   AS LOGICAL     NO-UNDO.
+
+
+ASSIGN lIsICFRunning = DYNAMIC-FUNCTION("IsICFRunning":U) NO-ERROR.
 
 FIND x_P WHERE x_P._WINDOW-HANDLE = _U._WINDOW-HANDLE NO-ERROR.
 
@@ -256,6 +260,10 @@ END.
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
  Get the extension (_S, _C or _F) record for the object and delete it. */
+
+/* Update the Dynamic Property Sheet */
+IF lIsICFRunning AND VALID-HANDLE(_h_menubar_proc) THEN
+   RUN PropDeleteWidget IN _h_menubar_proc (_U._HANDLE) NO-ERROR.
 
 IF _U._TYPE ne "SmartObject":U THEN DO:
   FIND _C WHERE RECID(_C) = _U._x-recid NO-ERROR.

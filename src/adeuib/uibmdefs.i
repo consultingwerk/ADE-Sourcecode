@@ -110,6 +110,7 @@ DEFINE VARIABLE m_align           AS HANDLE                          NO-UNDO.
 DEFINE VARIABLE m_layout          AS HANDLE                          NO-UNDO.
 DEFINE VARIABLE mi_about          AS HANDLE                          NO-UNDO.
 DEFINE VARIABLE mi_attributes     AS HANDLE                          NO-UNDO.
+DEFINE VARIABLE mi_chCustLayout   AS HANDLE                          NO-UNDO.
 DEFINE VARIABLE mi_bottommost     AS HANDLE                          NO-UNDO.
 DEFINE VARIABLE mi_chlayout       AS HANDLE                          NO-UNDO.
 DEFINE VARIABLE mi_code_edit      AS HANDLE                          NO-UNDO.
@@ -282,6 +283,7 @@ DEFINE VAR    hDrawTool      AS WIDGET                             NO-UNDO.
 DEFINE VAR    h_lock         AS WIDGET                             NO-UNDO.
 DEFINE VAR    idummy         AS INTEGER                            NO-UNDO.
 DEFINE VAR    ldummy         AS LOGICAL                            NO-UNDO.
+DEFINE VAR    lICFIsRunning  AS LOGICAL                            NO-UNDO.
 DEFINE VAR    h_wp_Pointer   AS WIDGET                             NO-UNDO.
 DEFINE VAR    hAttrEd        AS HANDLE                             NO-UNDO.
 DEFINE VAR    hSecEd         AS HANDLE                             NO-UNDO.
@@ -470,8 +472,8 @@ END.  /* DO i = 1 to btn_count: */
 ASSIGN i = LOOKUP( "Run" , bar_labels).
 CREATE BUTTON Stop_Button
   ASSIGN FRAME        = _h_button_bar[i]:FRAME
-         X            = _h_button_bar[i]:X
-         Y            = _h_button_bar[i]:Y
+         X            = IF CAN-DO(_AB_Tools, "Enable-ICF":u) THEN _h_button_bar[i + 1]:X ELSE _h_button_bar[i]:X
+         Y            = IF CAN-DO(_AB_Tools, "Enable-ICF":u) THEN _h_button_bar[i + 1]:Y ELSE _h_button_bar[i]:Y
          WIDTH-P      = _h_button_bar[i]:WIDTH-P
          HEIGHT-P     = _h_button_bar[i]:HEIGHT-P
          PRIVATE-DATA = "stop":U

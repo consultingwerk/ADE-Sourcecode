@@ -71,6 +71,10 @@ af/cod/aftemwizpw.w
                 Date:   26/06/2000  Author:     Pieter Meyer
 
   Update Notes: Add Web check in Managers
+                  
+    Modified    : 04/11/2002        mdsantos@progress.com (MJS)
+                  Adapted for WebSpeed by changing SESSION:PARAM = "REMOTE" 
+                  to SESSION:CLIENT-TYPE = "WEBSPEED" in Main Block
 
 --------------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
@@ -84,7 +88,7 @@ af/cod/aftemwizpw.w
 
 &scop object-name       afdelsprop.p
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010001
+&scop object-version    000000
 
 
 /* MIP object identifying preprocessor */
@@ -133,7 +137,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
                                                                         */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
@@ -153,7 +157,8 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
     END.
   END.
   ELSE
-  IF SESSION:PARAM = "REMOTE":U THEN
+/* MJS 4/11/2002  IF SESSION:PARAM = "REMOTE":U THEN */
+  IF SESSION:CLIENT-TYPE = "WEBSPEED":U THEN
   trn-block:
   DO FOR bgsm_profile_data TRANSACTION ON ERROR UNDO trn-block, LEAVE trn-block:
     FOR EACH bgsm_profile_data EXCLUSIVE-LOCK

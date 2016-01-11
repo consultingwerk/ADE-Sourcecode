@@ -384,7 +384,7 @@ PROCEDURE GetDataObjectFields.
     _fl_name = TRIM(_fl_name, ",":U).
   END.
   ELSE tt-info = ?.
-
+  
   IF _fl_name = "" OR _fl_name = ? THEN
   DO:
     MESSAGE "Unable to determine data souce table information."
@@ -415,8 +415,16 @@ PROCEDURE GetDataObjectFields.
     DO:
         FOR EACH fld_U WHERE fld_U._PARENT-Recid = RECID(_U)
                             AND fld_U._STATUS <> "DELETED":U NO-LOCK:
-            IF  fld_U._TABLE = "RowObject":U 
-                THEN ASSIGN exclude-fields = exclude-fields + fld_U._NAME + ",".
+            IF fld_U._TABLE = "RowObject":U OR fld_U._BUFFER = "RowObject":U OR 
+               fld_U._CLASS-NAME = "DataField":U THEN DO:
+              IF VALID-HANDLE(p_hDataObject) AND 
+                 DYNAMIC-FUNCTION("getObjectType":U IN p_hDataObject) = "SmartBusinessObject":U
+              THEN
+                ASSIGN exclude-fields = exclude-fields + fld_U._TABLE + ".":U +
+                                                         fld_U._NAME + ",":U.
+              ELSE
+                ASSIGN exclude-fields = exclude-fields + fld_U._NAME + ",":U.
+            END.
             /* special case is when the table is ? but the subtype is a smart
              * data field. We need to go and get the actual field name so we exclude
              * it from the list too.
@@ -431,7 +439,7 @@ PROCEDURE GetDataObjectFields.
         END. /* end for each */
      ASSIGN exclude-fields = TRIM(exclude-fields, ',') NO-ERROR.   
     END. /* end if avail */
-    
+   
     RUN adecomm/_mfldsel.p
         (INPUT tbl_list, INPUT p_hDataObject , INPUT tt-info, show_items, ",", 
          INPUT exclude-fields, INPUT-OUTPUT _fld_names).

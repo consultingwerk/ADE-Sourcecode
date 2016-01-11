@@ -1,8 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v9r12 GUI
 &ANALYZE-RESUME
 /* Connected Databases 
-          asdb             PROGRESS
-          rydb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME Dialog-Frame
@@ -81,6 +80,8 @@ DEFINE OUTPUT       PARAMETER plProceed         AS LOGICAL INITIAL FALSE.
 &Scoped-define FIELDS-IN-QUERY-brObjectType ~
 gsc_object_type.object_type_description 
 &Scoped-define ENABLED-FIELDS-IN-QUERY-brObjectType 
+&Scoped-define QUERY-STRING-brObjectType FOR EACH gsc_object_type NO-LOCK ~
+    BY gsc_object_type.object_type_description INDEXED-REPOSITION
 &Scoped-define OPEN-QUERY-brObjectType OPEN QUERY brObjectType FOR EACH gsc_object_type NO-LOCK ~
     BY gsc_object_type.object_type_description INDEXED-REPOSITION.
 &Scoped-define TABLES-IN-QUERY-brObjectType gsc_object_type
@@ -91,6 +92,9 @@ gsc_object_type.object_type_description
 &Scoped-define FIELDS-IN-QUERY-brSmartObject ~
 ryc_smartobject.object_filename 
 &Scoped-define ENABLED-FIELDS-IN-QUERY-brSmartObject 
+&Scoped-define QUERY-STRING-brSmartObject FOR EACH ryc_smartobject ~
+      WHERE ryc_smartobject.object_type_obj = gsc_object_type.Object_Type_Obj NO-LOCK ~
+    BY ryc_smartobject.object_filename INDEXED-REPOSITION
 &Scoped-define OPEN-QUERY-brSmartObject OPEN QUERY brSmartObject FOR EACH ryc_smartobject ~
       WHERE ryc_smartobject.object_type_obj = gsc_object_type.Object_Type_Obj NO-LOCK ~
     BY ryc_smartobject.object_filename INDEXED-REPOSITION.
@@ -200,27 +204,27 @@ ASSIGN
 
 &ANALYZE-SUSPEND _QUERY-BLOCK BROWSE brObjectType
 /* Query rebuild information for BROWSE brObjectType
-     _TblList          = "asdb.gsc_object_type"
+     _TblList          = "icfdb.gsc_object_type"
      _Options          = "NO-LOCK INDEXED-REPOSITION"
-     _OrdList          = "asdb.gsc_object_type.object_type_description|yes"
-     _FldNameList[1]   = asdb.gsc_object_type.object_type_description
+     _OrdList          = "icfdb.gsc_object_type.object_type_description|yes"
+     _FldNameList[1]   = icfdb.gsc_object_type.object_type_description
      _Query            is OPENED
 */  /* BROWSE brObjectType */
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _QUERY-BLOCK BROWSE brSmartObject
 /* Query rebuild information for BROWSE brSmartObject
-     _TblList          = "RYDB.ryc_smartobject"
+     _TblList          = "icfdb.ryc_smartobject"
      _Options          = "NO-LOCK INDEXED-REPOSITION"
-     _OrdList          = "RYDB.ryc_smartobject.object_filename|yes"
-     _Where[1]         = "RYDB.ryc_smartobject.object_type_obj = gsc_object_type.Object_Type_Obj"
-     _FldNameList[1]   > RYDB.ryc_smartobject.object_filename
-"object_filename" ? ? "character" ? ? ? ? ? ? no ? no no "30" yes no no "U" "" ""
+     _OrdList          = "icfdb.ryc_smartobject.object_filename|yes"
+     _Where[1]         = "icfdb.ryc_smartobject.object_type_obj = gsc_object_type.Object_Type_Obj"
+     _FldNameList[1]   > icfdb.ryc_smartobject.object_filename
+"ryc_smartobject.object_filename" ? ? "character" ? ? ? ? ? ? no ? no no "30" yes no no "U" "" ""
      _Query            is NOT OPENED
 */  /* BROWSE brSmartObject */
 &ANALYZE-RESUME
 
-
+ 
 
 
 
@@ -260,29 +264,42 @@ DO:
     DEFINE VARIABLE cObjectDescription AS CHARACTER NO-UNDO.
     DEFINE VARIABLE lProceed AS LOGICAL.
 
-    DEFINE BUFFER lb_gsc_object FOR gsc_object.
+    DEFINE BUFFER lb_ryc_smartobject FOR ryc_smartobject.
 
-    FIND FIRST gsc_object NO-LOCK 
-        WHERE gsc_object.OBJECT_filename = ryc_smartobject.OBJECT_filename.
-    IF gsc_object.LOGICAL_object THEN
+    IF (NOT ryc_smartobject.static_object) THEN
     DO:
         lLogicalObject = TRUE.
-        FIND FIRST lb_gsc_object NO-LOCK
-            WHERE lb_gsc_object.OBJECT_obj = gsc_object.physical_object_obj.
-        cPhysicalObjectName = lb_gsc_object.OBJECT_filename.
+        FIND FIRST lb_ryc_smartobject NO-LOCK
+             WHERE lb_ryc_smartobject.smartobject_obj = ryc_smartobject.physical_smartobject_obj.
+
+        cPhysicalObjectName = lb_ryc_smartobject.OBJECT_filename.
     END.
-    ELSE cObjectPath = gsc_object.OBJECT_path.
+    ELSE cObjectPath = ryc_smartobject.OBJECT_path.
 
-    cObjectDescription = gsc_object.OBJECT_description.                                             
+    cObjectDescription = ryc_smartobject.OBJECT_description.                                             
 
+    trn-blk:
     DO TRANSACTION ON ERROR UNDO, LEAVE:
+
+        /* Find the custom super procedure filename */
+            
+        DEFINE VARIABLE cCustomProcedure AS CHARACTER  NO-UNDO.
+        
+        ASSIGN cCustomProcedure = "":U.
+        
+        IF  ryc_smartobject.custom_smartobject_obj <> 0
+        AND ryc_smartobject.custom_smartobject_obj <> ? THEN
+            IF VALID-HANDLE(gshRepositoryManager) THEN
+                RUN getObjectSuperProcedure IN gshRepositoryManager (INPUT ryc_smartobject.object_filename,
+                                                                     OUTPUT cCustomProcedure).
+
         FIND CURRENT ryc_smartobject EXCLUSIVE-LOCK.
         RUN ry/uib/rycsoeditd.w (
             INPUT-OUTPUT ryc_smartobject.Layout_Obj,
             INPUT-OUTPUT ryc_smartobject.Object_Type_Obj,
             INPUT-OUTPUT ryc_smartobject.Product_Module_Obj,
             INPUT-OUTPUT ryc_smartobject.Object_Filename,
-            INPUT-OUTPUT ryc_smartobject.Custom_Super_Procedure,
+            INPUT-OUTPUT cCustomProcedure,
             INPUT-OUTPUT ryc_smartobject.Static_Object,
             INPUT-OUTPUT ryc_smartobject.System_Owned,
             INPUT-OUTPUT ryc_smartobject.Template_smartobject,
@@ -292,8 +309,45 @@ DO:
             INPUT-OUTPUT cObjectDescription,
             OUTPUT lProceed).
         IF NOT lProceed THEN UNDO, LEAVE.
-        FIND CURRENT ryc_smartobject NO-LOCK.
+
+        IF  cCustomProcedure <> "":U
+        AND cCustomProcedure <> ?
+        THEN DO:
+            DEFINE BUFFER brycso_object FOR ryc_smartobject.
+            
+            DEFINE VARIABLE cProcName AS CHARACTER  NO-UNDO.
+            DEFINE VARIABLE cProcExt  AS CHARACTER  NO-UNDO.
+            
+            ASSIGN cProcName = REPLACE(cCustomProcedure, "~\":U, "/":U)
+                   cProcName = ENTRY(NUM-ENTRIES(cProcName, "/":U), cProcName, "/":U)
+                   cProcExt  = ENTRY(NUM-ENTRIES(cProcName, ".":U), cProcName, ".":U)
+                   cProcName = REPLACE(cProcName, ".":U + cProcExt, "":U).
+            
+            FIND brycso_object NO-LOCK
+                 WHERE brycso_object.object_filename          = cProcName
+                   AND brycso_object.object_extension         = cProcExt
+                   AND brycso_object.customization_Result_obj = 0
+                 NO-ERROR.
+            
+            IF NOT AVAILABLE brycso_object 
+            THEN DO:
+                FIND brycso_object NO-LOCK
+                     WHERE brycso_object.object_filename          = cProcName + ".":U + cProcExt
+                       AND brycso_object.customization_Result_obj = 0
+                     NO-ERROR.
+            
+                IF NOT AVAILABLE brycso_object 
+                THEN DO:
+                    MESSAGE "The custom super procedure specified does not exist in the repository."
+                        VIEW-AS ALERT-BOX ERROR.
+                    UNDO trn-blk, LEAVE trn-blk.
+                END.
+            END.
+
+            ASSIGN ryc_smartobject.custom_smartobject_obj = brycso_object.smartobject_obj.
+        END.
     END.
+    FIND CURRENT ryc_smartobject NO-LOCK.
 
     {af/sup2/afcheckerr.i &NO-RETURN=YES}
 
@@ -311,9 +365,8 @@ ON CHOOSE OF Btn_OK IN FRAME Dialog-Frame /* OK */
 DO:
     IF AVAILABLE ryc_smartobject THEN 
     DO:
-        ASSIGN 
-            pdSmartObjectObj = ryc_smartobject.smartobject_obj
-            plProceed = TRUE.
+        ASSIGN pdSmartObjectObj = ryc_smartobject.smartobject_obj
+               plProceed        = TRUE.
     END.
 END.
 

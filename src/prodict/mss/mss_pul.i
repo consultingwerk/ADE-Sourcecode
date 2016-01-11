@@ -41,6 +41,8 @@ History:
    D. McMann  03/31/00 Created from odb/odb_pul.i
    D. McMann  05/15/01 Added check for differences between precision and
                          length
+   D. McMann  10/24/02 Added check for Identity field to remove mandatory flag
+                       and mark _Field._Fld-Misc2[4] as "identity"
 
 --------------------------------------------------------------------*/
 
@@ -102,10 +104,17 @@ assign
   s_ttb_fld.ds_type     = {&data-type}
   s_ttb_fld.pro_order   = field-position * 10 + 1000 
                               + {&order-offset}
-  s_ttb_fld.pro_mand    = ( if CAN-DO(fld-properties, "N")
+ s_ttb_fld.pro_mand    = ( if CAN-DO(fld-properties, "N")
                                 then false
-                                else (DICTDBG.SQLColumns_buffer.Nullable = 0)
+                           ELSE IF INDEX(DICTDBG.SQLColumns_buffer.Type-name,"identity") > 0 THEN
+                                FALSE
+                           else (DICTDBG.SQLColumns_buffer.Nullable = 0)
                           ).
+/* Check field to see if identity field and mark _field-Misc2[4] as "identity" */
+ IF INDEX(DICTDBG.SQLColumns_buffer.Type-name,"identity") > 0 THEN
+   ASSIGN s_ttb_fld.ds_msc24 = "identity"
+          s_ttb_fld.ds_itype = 1.
+
  IF s_ttb_Fld.ds_scale = ? THEN 
    ASSIGN s_ttb_Fld.ds_scale = 0.
    

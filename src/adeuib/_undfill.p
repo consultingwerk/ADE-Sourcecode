@@ -36,7 +36,10 @@ Date Created: 26 February 1993
 
 ----------------------------------------------------------------------------*/
 DEFINE INPUT PARAMETER uRecId AS RECID NO-UNDO.
+
+DEFINE VARIABLE lIsICFRunning AS LOGICAL    NO-UNDO.
    
+{src/adm2/globals.i}
 {adeuib/uniwidg.i}
 {adeuib/layout.i}
 {adeuib/sharvars.i}
@@ -56,6 +59,8 @@ ASSIGN _F._FRAME    = parent_U._HANDLE
        _L._WIN-TYPE = parent_L._WIN-TYPE.
 IF NOT _L._WIN-TYPE THEN _L._HEIGHT = 1.
 
+ASSIGN lisICFRunning = DYNAMIC-FUNCTION("IsICFRunning":U) NO-ERROR.
+
 /* Instantiate Fill-In  */
 CREATE VALUE(IF _L._WIN-TYPE AND _U._SUBTYPE NE "TEXT" THEN "FILL-IN" ELSE "TEXT")
        _U._HANDLE
@@ -64,6 +69,17 @@ CREATE VALUE(IF _L._WIN-TYPE AND _U._SUBTYPE NE "TEXT" THEN "FILL-IN" ELSE "TEXT
         TRIGGERS:
               {adeuib/std_trig.i}
          END TRIGGERS.
+
+IF lIsICFRunning THEN DO:
+  IF LOOKUP(_U._CLASS-NAME,  
+            DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager,
+                             INPUT "DataField":U)) <> 0 AND
+    _U._SUBTYPE NE "TEXT":U THEN
+     /* Attach the edit master popup */
+    RUN createDataFieldPopup IN _h_uib (_U._HANDLE).
+  ELSE /* Remove this ELSE when IZ 9978 is fixed */
+    IF _U._SUBTYPE EQ "TEXT":U THEN _U._SHOW-POPUP = FALSE.
+END.  /* If ICF is running */
 
 IF _L._WIN-TYPE THEN _U._HANDLE:DATA-TYPE = _F._DATA-TYPE.
 
@@ -79,7 +95,9 @@ IF _F._FORMAT ne ? THEN ASSIGN _U._HANDLE:FORMAT = _F._FORMAT NO-ERROR.
 _F._FORMAT = _U._HANDLE:FORMAT.
 
 IF _L._WIN-TYPE THEN 
-  ASSIGN _U._HANDLE:SCREEN-VALUE = _F._INITIAL-DATA
+  ASSIGN _U._HANDLE:SCREEN-VALUE = IF _F._DATA-TYPE = "LOGICAL":U AND
+                                      _F._INITIAL-DATA = "":U THEN ?
+                                   ELSE _F._INITIAL-DATA
          _U._HANDLE:BLANK        = (_U._HANDLE:SCREEN-VALUE = "":U).
 IF NOT _L._WIN-TYPE OR _U._SUBTYPE = "TEXT" THEN
   RUN adeuib/_sim_lbl.p (_U._HANDLE).
@@ -97,4 +115,7 @@ ASSIGN  {adeuib/std_uf.i &section = "GEOMETRY"} .
 
 { adeuib/rstrtrg.i } /* Restore triggers */
   
-IF _L._WIN-TYPE THEN _U._HANDLE:SCREEN-VALUE = STRING(_F._INITIAL-DATA).
+IF _L._WIN-TYPE THEN 
+  _U._HANDLE:SCREEN-VALUE = STRING(IF _F._DATA-TYPE = "LOGICAL":U AND
+                                      _F._INITIAL-DATA = "":U THEN ?
+                                   ELSE _F._INITIAL-DATA).

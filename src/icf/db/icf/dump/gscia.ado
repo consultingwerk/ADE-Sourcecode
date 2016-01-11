@@ -1,6 +1,5 @@
-<?xml version="1.0" encoding="ISO8859-1" ?>
-<dataset Transactions="1" version_date="02/23/2002" version_time="42934" version_user="admin" entity_mnemonic="GSTDF" key_field_value="3000000383.09" record_version_obj="3000000384.09" version_number_seq="2.09" import_version_number_seq="1.09"><dataset_header DisableRI="yes" DatasetObj="1007600162.08" DateFormat="mdy" FullHeader="yes" SCMManaged="no" YearOffset="1950" DatasetCode="GSCIA" DateCreated="02/23/2002" TimeCreated="11:55:33" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="93" NumericSeparator=","><deploy_dataset_obj>1007600162.08</deploy_dataset_obj>
-<owner_site_code></owner_site_code>
+<?xml version="1.0" encoding="utf-8" ?>
+<dataset Transactions="1"><dataset_header DisableRI="yes" DatasetObj="1007600162.08" DateFormat="mdy" FullHeader="yes" SCMManaged="no" YearOffset="1950" DatasetCode="GSCIA" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="90" NumericSeparator=","><deploy_dataset_obj>1007600162.08</deploy_dataset_obj>
 <dataset_code>GSCIA</dataset_code>
 <dataset_description>gsc_instance_attribute - Inst Attr</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -8,6 +7,9 @@
 <deploy_full_data>yes</deploy_full_data>
 <xml_generation_procedure></xml_generation_procedure>
 <default_ado_filename></default_ado_filename>
+<deploy_additions_only>no</deploy_additions_only>
+<enable_data_versioning>yes</enable_data_versioning>
+<deletion_dataset>yes</deletion_dataset>
 <dataset_entity><dataset_entity_obj>1007600163.08</dataset_entity_obj>
 <deploy_dataset_obj>1007600162.08</deploy_dataset_obj>
 <entity_sequence>1</entity_sequence>
@@ -19,11 +21,14 @@
 <delete_related_records>yes</delete_related_records>
 <overwrite_records>yes</overwrite_records>
 <keep_own_site_data>no</keep_own_site_data>
+<use_relationship>no</use_relationship>
+<relationship_obj>0</relationship_obj>
+<deletion_action></deletion_action>
 <entity_mnemonic_description>gsc_instance_attribute</entity_mnemonic_description>
-<entity_dbname>icfdb</entity_dbname>
+<entity_dbname>ICFDB</entity_dbname>
 </dataset_entity>
 <table_definition><name>gsc_instance_attribute</name>
-<dbname>ICFDB</dbname>
+<dbname>icfdb</dbname>
 <index-1>XAK1gsc_instance_attribute,1,0,0,attribute_code,0</index-1>
 <index-2>XAK2gsc_instance_attribute,1,0,0,attribute_type,0,attribute_code,0</index-2>
 <index-3>XIE1gsc_instance_attribute,0,0,0,attribute_description,0</index-3>
@@ -31,8 +36,8 @@
 <field><name>instance_attribute_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Instance Attribute Obj</label>
 <column-label>Instance Attribute Obj</column-label>
 </field>
@@ -78,7 +83,7 @@
 </field>
 </table_definition>
 </dataset_header>
-<dataset_records><dataset_transaction TransactionNo="1"><contained_record DB="ICFDB" Table="gsc_instance_attribute"><instance_attribute_obj>1003576832</instance_attribute_obj>
+<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_instance_attribute"><instance_attribute_obj>1003576832</instance_attribute_obj>
 <attribute_code>Join rycag-rycat</attribute_code>
 <attribute_description>^attribute_group_obj,attribute_group_obj</attribute_description>
 <disabled>no</disabled>

@@ -24,11 +24,6 @@
 
 TRIGGER PROCEDURE FOR CREATE OF gst_audit .
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "gst_audit"
-                      &TRIGGER-TYPE = "CREATE"}
-
 /* Created automatically using ERwin ICF Trigger template db/af/erw/afercustrg.i
    Do not change manually. Customisations to triggers should be placed in separate
    include files pulled into the trigger. ICF auto generates write trigger custom
@@ -101,6 +96,8 @@ IF
 
 
 ASSIGN gst_audit.{&TRIGGER_OBJ} = getNextObj().
+
+
 
 
 

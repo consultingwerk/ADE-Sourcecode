@@ -86,7 +86,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 {af/sup2/afglobals.i}
 
-DEFINE TEMP-TABLE ttTable
+DEFINE TEMP-TABLE ttTable NO-UNDO
   FIELD cDatabase      AS CHARACTER
   FIELD cTable         AS CHARACTER
   FIELD cDumpName      AS CHARACTER

@@ -24,7 +24,7 @@ af/cod/aftemwizpw.w
 
 /* Temp-Table and Buffer definitions                                    */
 DEFINE TEMP-TABLE RowObject
-       {"af/obj2/gscobful2o.i"}.
+       {"ry/obj/rycsoful2o.i"}.
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
@@ -118,7 +118,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &Scoped-define ADM-SUPPORTED-LINKS Data-Target,Update-Source,TableIO-Target,GroupAssign-Source,GroupAssign-Target
 
 /* Include file with RowObject temp-table definition */
-&Scoped-define DATA-FIELD-DEFS "af/obj2/gscobful2o.i"
+&Scoped-define DATA-FIELD-DEFS "ry/obj/rycsoful2o.i"
 
 /* Name of first Frame and/or Browse and/or first Query                 */
 &Scoped-define FRAME-NAME frMain
@@ -128,7 +128,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 RowObject.object_path RowObject.object_description ~
 RowObject.runnable_from_menu RowObject.disabled RowObject.run_persistent ~
 RowObject.container_object RowObject.generic_object RowObject.run_when ~
-RowObject.logical_object RowObject.required_db_list 
+RowObject.static_object RowObject.required_db_list 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
 &Scoped-define DISPLAYED-TABLES RowObject
@@ -138,7 +138,7 @@ RowObject.logical_object RowObject.required_db_list
 RowObject.object_path RowObject.object_description ~
 RowObject.runnable_from_menu RowObject.disabled RowObject.run_persistent ~
 RowObject.container_object RowObject.generic_object RowObject.run_when ~
-RowObject.logical_object RowObject.required_db_list 
+RowObject.static_object RowObject.required_db_list 
 &Scoped-Define DISPLAYED-OBJECTS fiSecDesc fiPhysDesc 
 
 /* Custom List Definitions                                              */
@@ -209,7 +209,7 @@ DEFINE FRAME frMain
           DROP-DOWN-LIST
           SIZE 56.4 BY 1
      fiSecDesc AT ROW 12.43 COL 48.2 COLON-ALIGNED NO-LABEL
-     RowObject.logical_object AT ROW 13.48 COL 25.8
+     RowObject.static_object AT ROW 13.48 COL 25.8
           VIEW-AS TOGGLE-BOX
           SIZE 18.6 BY .81
      fiPhysDesc AT ROW 14.24 COL 47.8 COLON-ALIGNED NO-LABEL
@@ -228,7 +228,7 @@ DEFINE FRAME frMain
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
 /* Settings for THIS-PROCEDURE
    Type: SmartDataViewer
-   Data Source: "af/obj2/gscobful2o.w"
+   Data Source: "ry/obj/rycsoful2o.w"
    Allow: Basic,DB-Fields,Smart
    Container Links: Data-Target,Update-Source,TableIO-Target,GroupAssign-Source,GroupAssign-Target
    Frames: 1
@@ -237,7 +237,7 @@ DEFINE FRAME frMain
    Temp-Tables and Buffers:
       TABLE: RowObject D "?" ?  
       ADDITIONAL-FIELDS:
-          {af/obj2/gscobful2o.i}
+          {ry/obj/rycsoful2o.i}
       END-FIELDS.
    END-TABLES.
  */
@@ -321,13 +321,13 @@ END.
 &ANALYZE-RESUME
 
 
-&Scoped-define SELF-NAME RowObject.logical_object
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL RowObject.logical_object vTableWin
-ON VALUE-CHANGED OF RowObject.logical_object IN FRAME frMain /* Logical Object */
+&Scoped-define SELF-NAME RowObject.static_object
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL RowObject.static_object vTableWin
+ON VALUE-CHANGED OF RowObject.static_object IN FRAME frMain /* Logical Object */
 DO:
   DEFINE VARIABLE dProdModuleObj    AS DECIMAL      NO-UNDO.
 
-  IF NOT RowObject.logical_object:CHECKED THEN
+  IF RowObject.static_object:CHECKED THEN
   DO:
     {set DataValue "'0':U" h_dynlookup-2}.
     {set DataModified YES h_dynlookup-2}.
@@ -410,10 +410,10 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_object.object_filenameKeyFieldgsc_object.object_filenameFieldLabelSecurity ObjectFieldTooltipKeyFormatX(35)KeyDatatypecharacterDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object NO-LOCK,
-                     FIRST gsc_object_type NO-LOCK WHERE gsc_object_type.object_type_obj = gsc_object.object_type_obj,
-                     FIRST gsc_product_module NO-LOCK WHERE gsc_product_module.product_module_obj = gsc_object.product_module_obj
-                     BY gsc_object.object_filenameQueryTablesgsc_object,gsc_object_type,gsc_product_moduleBrowseFieldsgsc_product_module.product_module_code,gsc_object_type.object_type_code,gsc_object.object_filename,gsc_object.object_description,gsc_object.object_path,gsc_object.container_object,gsc_object.disabled,gsc_object.generic_object,gsc_object.logical_object,gsc_object.runnable_from_menu,gsc_object.run_persistent,gsc_object.run_whenBrowseFieldDataTypescharacter,character,character,character,character,logical,logical,logical,logical,logical,logical,characterBrowseFieldFormatsX(10),X(15),X(35),X(35),X(70),YES/NO,YES/NO,YES/NO,YES/NO,YES/NO,YES/NO,X(3)RowsToBatch200BrowseTitleLookup Security ObjectViewerLinkedFieldsgsc_object.object_descriptionLinkedFieldDataTypescharacterLinkedFieldFormatsX(35)ViewerLinkedWidgetsfiSecDescFieldNamesecurity_object_filenameDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.object_filenameFieldLabelSecurity ObjectFieldTooltipKeyFormatX(35)KeyDatatypecharacterDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_smartobject NO-LOCK,
+                     FIRST gsc_object_type NO-LOCK WHERE gsc_object_type.object_type_obj = ryc_smartobject.object_type_obj,
+                     FIRST gsc_product_module NO-LOCK WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj
+                     BY ryc_smartobject.object_filenameQueryTablesryc_smartobject,gsc_object_type,gsc_product_moduleBrowseFieldsgsc_product_module.product_module_code,gsc_object_type.object_type_code,ryc_smartobject.object_filename,ryc_smartobject.object_description,ryc_smartobject.object_path,ryc_smartobject.container_object,ryc_smartobject.disabled,ryc_smartobject.generic_object,ryc_smartobject.static_object,ryc_smartobject.runnable_from_menu,ryc_smartobject.run_persistent,ryc_smartobject.run_whenBrowseFieldDataTypescharacter,character,character,character,character,logical,logical,logical,logical,logical,logical,characterBrowseFieldFormatsX(10),X(15),X(35),X(35),X(70),YES/NO,YES/NO,YES/NO,YES/NO,YES/NO,YES/NO,X(3)RowsToBatch200BrowseTitleLookup Security ObjectViewerLinkedFieldsryc_smartobject.object_descriptionLinkedFieldDataTypescharacterLinkedFieldFormatsX(35)ViewerLinkedWidgetsfiSecDescFieldNamesecurity_object_filenameDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dynlookup-3 ).
        RUN repositionObject IN h_dynlookup-3 ( 12.43 , 25.80 ) NO-ERROR.
        RUN resizeObject IN h_dynlookup-3 ( 1.00 , 24.00 ) NO-ERROR.
@@ -421,10 +421,10 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_object.object_filenameKeyFieldgsc_object.object_objFieldLabelPhysical ObjectFieldTooltipKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object NO-LOCK WHERE gsc_object.generic_object = YES,
-                     FIRST gsc_object_type NO-LOCK WHERE gsc_object_type.object_type_obj = gsc_object.object_type_obj,
-                     FIRST gsc_product_module NO-LOCK WHERE gsc_product_module.product_module_obj = gsc_object.product_module_obj
-                     BY gsc_object.object_filenameQueryTablesgsc_object,gsc_object_type,gsc_product_moduleBrowseFieldsgsc_product_module.product_module_code,gsc_object_type.object_type_code,gsc_object.object_filename,gsc_object.object_description,gsc_object.object_path,gsc_object.container_object,gsc_object.disabled,gsc_object.generic_object,gsc_object.logical_object,gsc_object.runnable_from_menu,gsc_object.run_persistent,gsc_object.run_whenBrowseFieldDataTypescharacter,character,character,character,character,logical,logical,logical,logical,logical,logical,characterBrowseFieldFormatsX(10),X(15),X(35),X(35),X(70),YES/NO,YES/NO,YES/NO,YES/NO,YES/NO,YES/NO,X(3)RowsToBatch200BrowseTitleLookup Physical ObjectViewerLinkedFieldsgsc_object.object_descriptionLinkedFieldDataTypescharacterLinkedFieldFormatsX(35)ViewerLinkedWidgetsfiPhysDescFieldNamephysical_object_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.smartobject_objFieldLabelPhysical ObjectFieldTooltipKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_smartobject NO-LOCK WHERE ryc_smartobject.generic_object = YES,
+                     FIRST gsc_object_type NO-LOCK WHERE gsc_object_type.object_type_obj = ryc_smartobject.object_type_obj,
+                     FIRST gsc_product_module NO-LOCK WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj
+                     BY ryc_smartobject.object_filenameQueryTablesryc_smartobject,gsc_object_type,gsc_product_moduleBrowseFieldsgsc_product_module.product_module_code,gsc_object_type.object_type_code,ryc_smartobject.object_filename,ryc_smartobject.object_description,ryc_smartobject.object_path,ryc_smartobject.container_object,ryc_smartobject.disabled,ryc_smartobject.generic_object,ryc_smartobject.static_object,ryc_smartobject.runnable_from_menu,ryc_smartobject.run_persistent,ryc_smartobject.run_whenBrowseFieldDataTypescharacter,character,character,character,character,logical,logical,logical,logical,logical,logical,characterBrowseFieldFormatsX(10),X(15),X(35),X(35),X(70),YES/NO,YES/NO,YES/NO,YES/NO,YES/NO,YES/NO,X(3)RowsToBatch200BrowseTitleLookup Physical ObjectViewerLinkedFieldsryc_smartobject.object_descriptionLinkedFieldDataTypescharacterLinkedFieldFormatsX(35)ViewerLinkedWidgetsfiPhysDescFieldNamephysical_smartobject_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dynlookup-2 ).
        RUN repositionObject IN h_dynlookup-2 ( 14.24 , 25.80 ) NO-ERROR.
        RUN resizeObject IN h_dynlookup-2 ( 1.00 , 24.00 ) NO-ERROR.
@@ -437,7 +437,7 @@ PROCEDURE adm-create-objects :
        RUN adjustTabOrder ( h_dynlookup-3 ,
              RowObject.run_when:HANDLE IN FRAME frMain , 'AFTER':U ).
        RUN adjustTabOrder ( h_dynlookup-2 ,
-             RowObject.logical_object:HANDLE IN FRAME frMain , 'AFTER':U ).
+             RowObject.static_object:HANDLE IN FRAME frMain , 'AFTER':U ).
     END. /* Page 0 */
 
   END CASE.
@@ -468,7 +468,7 @@ DEFINE VARIABLE cRelativePath   AS CHARACTER    NO-UNDO.
 
    /* If this is not a logical object then update the object path for the 
       changed product module */
-   IF NOT RowObject.logical_object:CHECKED IN FRAME {&FRAME-NAME} THEN
+   IF RowObject.static_object:CHECKED IN FRAME {&FRAME-NAME} THEN
      ASSIGN 
        RowObject.object_path:SCREEN-VALUE IN FRAME {&FRAME-NAME} = 
          TRIM(REPLACE(cRelativePath, '~\':U, '/':U), '/':U).
@@ -482,32 +482,32 @@ END PROCEDURE.
 PROCEDURE changeSecurityObject :
 /*------------------------------------------------------------------------------
   Purpose:     If we're adding a record, we need to default the value of the 
-               security_object_obj to the value of the object_obj for the current
+               security_smartobject_obj to the value of the object_obj for the current
                record. This procedure is called from the leave trigger on the 
                object_filename control.
 
   Notes:       This procedure combines with some others in the SDO to workaround
                a complicated chicken-and-egg situation.
 
-               The security_object_obj field on the gsc_object table needs to be
-               defaulted to the value of the object_obj field when a record
+               The security_smartobject_obj field on the ryc_smartobject table needs to be
+               defaulted to the value of the smartobject_obj field when a record
                is added. IOW, an object is the security object for itself.
 
-               The problem is that we have no idea what the object_obj field 
-               value is until the gsc_object record gets created on the database,
+               The problem is that we have no idea what the smartobject_obj field 
+               value is until the ryc_smartobject record gets created on the database,
                and that only happens when the transaction is committed.
 
-               We could assume that a zero security_object_obj means that the
-               value of the security_object_obj should be defaulted. The 
-               problem is that a zero security_object_obj means that there
+               We could assume that a zero security_smartobject_obj means that the
+               value of the security_smartobject_obj should be defaulted. The 
+               problem is that a zero security_smartobject_obj means that there
                is no security on this object. There is thus no way of 
-               distinguishing between a zero security_object_obj that means
-               no security and a zero security_object_obj that means 
+               distinguishing between a zero security_smartobject_obj that means
+               no security and a zero security_smartobject_obj that means 
                "default security to this object number".
 
                To work around this, we base the Security Object prompt on a 
                calculated field in the SDO called "security_object_filename". 
-               The SDO takes care of determining the security_object_obj
+               The SDO takes care of determining the security_smartobject_obj
                based on matching the filename.
 
                In this procedure we need to determine if the user is in Add 
@@ -515,9 +515,9 @@ PROCEDURE changeSecurityObject :
                security_object_filename to the same as the object_filename.
                That way, if the user edits the security_object_filename and
                clears the contents, we know that they want a zero 
-               security_object_obj, otherwise we figure out in the SDO if 
+               security_smartobject_obj, otherwise we figure out in the SDO if 
                the filename matches the new object_filename, and apply the
-               new object_obj to the security_object_obj field.
+               new object_obj to the security_smartobject_obj field.
 
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hContainer  AS HANDLE   NO-UNDO.
@@ -585,14 +585,14 @@ PROCEDURE enableFields :
 /*------------------------------------------------------------------------------
   Purpose:     Super Override of enableFields. We use this procedure to make 
                sure that the Physical Object lookup is only enabled when the
-               logical_object field is set to yes.
+               static_object field is set to no.
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE lEnable   AS LOGICAL      NO-UNDO.
 
   RUN SUPER.
 
   DO WITH FRAME {&FRAME-NAME}:
-    lEnable = RowObject.logical_object:CHECKED.
+    lEnable = NOT RowObject.static_object:CHECKED.
     IF lEnable THEN
       RUN enableField IN h_dynlookup-2.
     ELSE
@@ -660,14 +660,14 @@ DEFINE VARIABLE cReturn         AS CHARACTER    NO-UNDO.
   IF cSearchFile = ? OR
      cSearchFile = "" THEN
   DO:
-    cMessageText = {af/sup2/aferrortxt.i "'AF'" "'19'" "'gsc_object'" "'required_db_list'" "'R-CODE'" "cFileName + '. Required Database List not read. Note that if this is a logical object, this is expected behavior.'"}.
+    cMessageText = {af/sup2/aferrortxt.i "'AF'" "'19'" "'ryc_smartobject'" "'required_db_list'" "'R-CODE'" "cFileName + '. Required Database List not read. Note that if this is a logical object, this is expected behavior.'"}.
     RUN showMessages IN gshSessionManager (cMessageText,"INF":U,"OK":U,"OK":U,"OK":U,"R-Code file not found",NO,THIS-PROCEDURE,OUTPUT cReturn).
   END.
   /* If the DBList is unknown and we *did* find the file, then the R-Code file
      must be invalid */
   ELSE IF cDBList = ? THEN
   DO:
-    cMessageText = {af/sup2/aferrortxt.i "'AF'" "'39'" "'gsc_object'" "'required_db_list'" "'Database List'" "' File ' + cFileName + ' is not a valid R-Code file. The Required Database List could not be read.'"}.
+    cMessageText = {af/sup2/aferrortxt.i "'AF'" "'39'" "'ryc_smartobject'" "'required_db_list'" "'Database List'" "' File ' + cFileName + ' is not a valid R-Code file. The Required Database List could not be read.'"}.
     RUN showMessages IN gshSessionManager (cMessageText,"INF":U,"OK":U,"OK":U,"OK":U,"Invalid R-Code file",NO,THIS-PROCEDURE,OUTPUT cReturn).
   END.
   /* If we get this far down, we succeeded and read the r-code file for the DB list
@@ -676,7 +676,7 @@ DEFINE VARIABLE cReturn         AS CHARACTER    NO-UNDO.
      the R-Code file. */
   ELSE
   DO:
-    cMessageText = {af/sup2/aferrortxt.i "'AF'" "'108'" "'gsc_object'" "'required_db_list'" "'read of the required DB list'" "'File: ' + cFileName "}.
+    cMessageText = {af/sup2/aferrortxt.i "'AF'" "'108'" "'ryc_smartobject'" "'required_db_list'" "'read of the required DB list'" "'File: ' + cFileName "}.
     RUN showMessages IN gshSessionManager (cMessageText,"INF":U,"OK":U,"OK":U,"OK":U,"",NO,THIS-PROCEDURE,OUTPUT cReturn).
   END.
 END PROCEDURE.

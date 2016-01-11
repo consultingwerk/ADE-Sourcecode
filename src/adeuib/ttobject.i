@@ -27,10 +27,10 @@
 /* same field defs for these fields. See adeuib/uniwidg.i for details.    */
 /* You can also just include this file to get _RyObject shared temp-table. */
 
-&IF DEFINED(RYOBJECT-FEILDS-ONLY) = 0 &THEN
+&IF DEFINED(RYOBJECT-FIELDS-ONLY) = 0 &THEN
 DEFINE {1} SHARED TEMP-TABLE _RyObject NO-UNDO
 &ENDIF
-  FIELD object_obj              AS   DECIMAL    LABEL "Object Obj":u
+  FIELD smartobject_obj         AS   DECIMAL    LABEL "Object Obj":u
   FIELD object_type_obj         AS   DECIMAL    LABEL "Object Type Obj":u
   FIELD object_type_code        AS   CHARACTER  LABEL "Object Type Code":u
   FIELD product_module_obj      AS   DECIMAL    LABEL "Product Module Obj":u
@@ -44,10 +44,12 @@ DEFINE {1} SHARED TEMP-TABLE _RyObject NO-UNDO
   FIELD disabled                AS   LOGICAL    LABEL "Disbled":u
   FIELD run_persistent          AS   LOGICAL    LABEL "Run Persistent":u
   FIELD run_when                AS   CHARACTER  LABEL "Run When":u
-  FIELD security_object_obj     AS   DECIMAL    LABEL "Security Object Obj":u
+  FIELD security_smartobject_obj 
+                                AS   DECIMAL    LABEL "Security Object Obj":u
   FIELD container_object        AS   LOGICAL    LABEL "Container Object":u
-  FIELD physical_object_obj     AS   DECIMAL    LABEL "Physical Object Obj":u
-  FIELD logical_object          AS   LOGICAL    LABEL "Logical Object":u
+  FIELD physical_smartobject_obj 
+                                AS   DECIMAL    LABEL "Physical Object Obj":u
+  FIELD static_object           AS   LOGICAL    LABEL "Static Object":u INITIAL YES
   FIELD generic_object          AS   LOGICAL    LABEL "Generic Object":u
   FIELD required_db_list        AS   CHARACTER  LABEL "Required DB List":u
   FIELD layout_name             AS   CHARACTER  LABEL "Layout Name":u
@@ -60,9 +62,12 @@ DEFINE {1} SHARED TEMP-TABLE _RyObject NO-UNDO
   FIELD design_ryobject         AS   LOGICAL    LABEL "Is Repository Object":u
   FIELD design_attr_names       AS   CHARACTER  LABEL "Attribute Names (Comma-list)":u
   FIELD design_attr_values      AS   CHARACTER  LABEL "Attribute Values (Chr(2)-list)":u
-  FIELD design_precid           AS   RECID      LABEL "_P recid - not currently used":u
-&IF DEFINED(RYOBJECT-FEILDS-ONLY) = 0 &THEN
+  FIELD design_precid           AS   RECID      LABEL "_P recid":u
+  FIELD deployment_type         AS   CHARACTER  LABEL "Static Object Deployment Type"
+  FIELD design_only             AS   LOGICAL    LABEL "Design Object Only"
+  FIELD parent_classes          AS   CHARACTER
+&IF DEFINED(RYOBJECT-FIELDS-ONLY) = 0 &THEN
  INDEX object_filename IS PRIMARY object_filename
- INDEX object_obj                 object_obj
+ INDEX smartobject_obj            smartobject_obj
  INDEX design_precid              design_precid.
 &ENDIF

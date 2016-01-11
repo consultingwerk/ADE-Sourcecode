@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          afdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" vTableWin _INLINE
@@ -87,7 +87,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gsmffviewv.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -124,10 +124,11 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 RowObject.field_description RowObject.disabled RowObject.system_owned 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define DISPLAYED-FIELDS RowObject.field_name ~
 RowObject.field_description RowObject.disabled RowObject.system_owned 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
+
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -147,16 +148,16 @@ RowObject.field_description RowObject.disabled RowObject.system_owned
 DEFINE FRAME frMain
      RowObject.field_name AT ROW 1 COL 18 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 36 BY 1
-     RowObject.field_description AT ROW 2 COL 18 COLON-ALIGNED
+          SIZE 78.4 BY 1
+     RowObject.field_description AT ROW 2.05 COL 18 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 37 BY 1
-     RowObject.disabled AT ROW 3 COL 20
+          SIZE 78.4 BY 1
+     RowObject.disabled AT ROW 3.1 COL 20
           VIEW-AS TOGGLE-BOX
-          SIZE 13.2 BY .81
-     RowObject.system_owned AT ROW 3.86 COL 20
+          SIZE 13.2 BY 1
+     RowObject.system_owned AT ROW 4.14 COL 20
           VIEW-AS TOGGLE-BOX
-          SIZE 19.2 BY .81
+          SIZE 19.2 BY 1
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -196,8 +197,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 17
-         WIDTH              = 80.
+         HEIGHT             = 4.14
+         WIDTH              = 97.4.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -237,7 +238,7 @@ ASSIGN
 */  /* FRAME frMain */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK vTableWin 
@@ -270,6 +271,64 @@ PROCEDURE disable_UI :
   /* Hide all frames. */
   HIDE FRAME frMain.
   IF THIS-PROCEDURE:PERSISTENT THEN DELETE PROCEDURE THIS-PROCEDURE.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE updateRecord vTableWin 
+PROCEDURE updateRecord :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cTablesWhereFieldMandatory AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cButtonPressed             AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cMessage                   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDummy                     AS CHARACTER  NO-UNDO.
+
+  /* First, check if this field is a mandatory field somewhere on the database.  If it is, we could be causing problems. *
+   * Because we don't have a table and fieldname, we're going to display all tables where the field is mandatory.        *
+   * The user can then choose if he wishes to continue with the update.                                                  */
+
+  IF rowObject.field_name:MODIFIED IN FRAME {&FRAME-NAME}
+  AND VALID-HANDLE(gshSecurityManager) 
+  THEN DO WITH FRAME {&FRAME-NAME}:
+
+      ASSIGN cTablesWhereFieldMandatory = "":U.
+
+      RUN getMandatoryTables IN gshSecurityManager (INPUT rowObject.field_name:SCREEN-VALUE,
+                                                    INPUT-OUTPUT cTablesWhereFieldMandatory).
+      IF cTablesWhereFieldMandatory <> "":U 
+      THEN DO:
+          ASSIGN cTablesWhereFieldMandatory = REPLACE(cTablesWhereFieldMandatory, ",":U, CHR(10))
+                 cMessage                   = cTablesWhereFieldMandatory + CHR(10) + CHR(10)
+                                            + "The field you have specified is mandatory on the database tables shown above." + CHR(10)
+                                            + "If you add this field security, you may prevent users from entering mandatory field values." + CHR(10)
+                                            + "Are you sure you wish to continue?".
+
+          RUN askQuestion IN gshSessionManager (INPUT cMessage,
+                                                INPUT "Yes,No":U,
+                                                INPUT "No":U,
+                                                INPUT "No":U,
+                                                INPUT "Field Security on Mandatory Fields",
+                                                INPUT "":U,
+                                                INPUT "":U,
+                                                INPUT-OUTPUT cDummy,
+                                                OUTPUT cButtonPressed
+                                                ).
+          IF cButtonPressed = "NO":U THEN
+              RETURN ERROR.
+      END.
+  END.
+
+  /* Code placed here will execute PRIOR to standard behavior. */
+
+  RUN SUPER.
+
+  /* Code placed here will execute AFTER standard behavior.    */
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

@@ -99,6 +99,11 @@ af/cod/aftemwizpw.w
 
   Update Notes: Point to src/adm2/logic.i
 
+  (v:010002)    Task:           0   UserRef:    
+                Date:   05/14/2002  Author:     Mark Davies (MIP)
+
+  Update Notes: Remove reference to removed field collect_attribute_value_obj (Delta9)
+
 ---------------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
@@ -125,7 +130,7 @@ ASSIGN cObjectName = "{&object-name}":U.
 
 /* Data Preprocessor Definitions */
 &GLOB DATA-LOGIC-TABLE ryc_object_instance
-&GLOB DATA-FIELD-DEFS  "ry\obj\rycoiful4o.i"
+&GLOB DATA-FIELD-DEFS  "ry/obj/rycoiful4o.i"
 
 /* Error handling definitions */
 {af/sup2/afcheckerr.i &define-only = YES}
@@ -228,74 +233,6 @@ FUNCTION getSDOLevel RETURNS CHARACTER
 
 {&DB-REQUIRED-START}
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createEndTransValidate DataLogicProcedure  _DB-REQUIRED
-PROCEDURE createEndTransValidate :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE iRowNumber AS INTEGER    NO-UNDO.
-
-  /*EMPTY TEMP-TABLE ttRycAttributeValue.*/
-  FIND FIRST ryc_smartobject
-       WHERE ryc_smartobject.smartobject_obj = b_ryc_object_instance.smartobject_obj
-       NO-LOCK NO-ERROR.
-  IF NOT AVAILABLE ryc_smartobject THEN
-    RETURN.
-  
-  iRowNumber = 1.
-  FOR EACH  ryc_attribute_value
-      WHERE ryc_attribute_value.smartobject_obj           = b_ryc_object_instance.smartobject_obj
-      AND   ryc_attribute_value.object_type               = ryc_smartobject.object_type_obj
-      AND   ryc_attribute_value.container_smartobject_obj = 0
-      NO-LOCK:
-    CREATE ttRycAttributeValue.
-    ASSIGN ttRycAttributeValue.rowMod                      = "A":U
-           ttRycAttributeValue.rowIdent                    = STRING(ROWID(ryc_attribute_value))
-           ttRycAttributeValue.rowNum                      = iRowNumber
-           iRowNumber                                      = iRowNumber + 1
-           ttRycAttributeValue.object_type_obj             = ryc_attribute_value.object_type
-           ttRycAttributeValue.smartobject_obj             = ryc_attribute_value.smartobject_obj
-           ttRycAttributeValue.container_smartobject_obj   = b_ryc_object_instance.container_smartobject_obj
-           ttRycAttributeValue.object_instance_obj         = b_ryc_object_instance.object_instance_obj
-           ttRycAttributeValue.attribute_label             = ryc_attribute_value.attribute_label
-           ttRycAttributeValue.attribute_group_obj         = ryc_attribute_value.attribute_group_obj
-           ttRycAttributeValue.attribute_type_tla          = ryc_attribute_value.attribute_type_tla
-           ttRycAttributeValue.constant_value              = NO
-           ttRycAttributeValue.primary_smartobject_obj     = ttRycAttributeValue.container_smartobject_obj
-           ttRycAttributeValue.collect_attribute_value_obj = 0
-           ttRycAttributeValue.collection_sequence         = 0
-           ttRycAttributeValue.attribute_value             = ryc_attribute_value.attribute_value
-           ttRycAttributeValue.inheritted_value            = NO.
-  END.
-  
-  FIND FIRST ttRycAttributeValue
-       NO-LOCK NO-ERROR.
-  IF AVAILABLE ttRycAttributeValue THEN DO:
-    {af/sup2/afrun2.i &PLIP  = 'af/app/afgensrvrp.p'
-                      &IProc = 'updateTableViaSDO'
-                      &OnApp = 'YES'
-                      &PList = "(INPUT 'ry/obj/rycavful4o.w',~
-                                 INPUT 'Object Instance Attribute Value SDO',~
-                                 INPUT '',~
-                                 INPUT '',~
-                                 INPUT-OUTPUT TABLE ttRycAttributeValue)"
-                      &AutoKill=YES}
-    IF RETURN-VALUE <> "":U THEN DO:
-      RETURN ERROR RETURN-VALUE.
-    END.
-  END.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-{&DB-REQUIRED-END}
-
-{&DB-REQUIRED-START}
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createPreTransValidate DataLogicProcedure  _DB-REQUIRED
 PROCEDURE createPreTransValidate :
 /*------------------------------------------------------------------------------
@@ -328,38 +265,11 @@ PROCEDURE deletePreTransValidate :
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE iRowNumber AS INTEGER    NO-UNDO.
 
-  EMPTY TEMP-TABLE ttRycPageObject.
-  
-  iRowNumber = 1.
   FIND FIRST ryc_page_object 
        WHERE ryc_page_object.object_instance_obj = b_ryc_object_instance.object_instance_obj
-       NO-LOCK NO-ERROR.
+       EXCLUSIVE-LOCK NO-ERROR.
   IF AVAILABLE ryc_page_object THEN DO:
-    CREATE ttRycPageObject.
-    BUFFER-COPY ryc_page_object
-        TO ttRycPageObject
-            ASSIGN ttRycPageObject.rowMod   = "D":U
-                   ttRycPageObject.rowIdent = STRING(ROWID(ryc_page_object))
-                   ttRycPageObject.rowNum   = iRowNumber
-                   iRowNumber                = iRowNumber + 1
-                   .
-  END.
-
-  FIND FIRST ttRycPageObject
-       NO-LOCK NO-ERROR.
-  IF AVAILABLE ttRycPageObject THEN DO:
-    {af/sup2/afrun2.i &PLIP  = 'af/app/afgensrvrp.p'
-                      &IProc = 'updateTableViaSDO'
-                      &OnApp = 'YES'
-                      &PList = "(INPUT 'ry/obj/rycpoful2o.w',~
-                                 INPUT 'Page Object SDO',~
-                                 INPUT '',~
-                                 INPUT '',~
-                                 INPUT-OUTPUT TABLE ttRycPageObject)"
-                      &AutoKill=YES}
-    IF RETURN-VALUE <> "":U THEN DO:
-      RETURN ERROR RETURN-VALUE.
-    END.
+    DELETE ryc_page_object.
   END.
 
 END PROCEDURE.
@@ -394,7 +304,7 @@ PROCEDURE objectDescription :
 
   DEFINE OUTPUT PARAMETER cDescription AS CHARACTER NO-UNDO.
 
-  ASSIGN cDescription = "Astra 2 ryc_object_instance Data Logic Procedure".
+  ASSIGN cDescription = "ryc_object_instance Data Logic Procedure".
 
 END PROCEDURE.
 
@@ -486,6 +396,8 @@ PROCEDURE writeEndTransValidate :
     IF ttRycPageObject.object_instance_obj = 0 OR 
        ttRycPageObject.object_instance_obj = ? THEN
       ttRycPageObject.object_instance_obj = b_ryc_object_instance.object_instance_obj.
+
+    SESSION:SET-WAIT-STATE("GENERAL":U).
     {af/sup2/afrun2.i &PLIP  = 'af/app/afgensrvrp.p'
                       &IProc = 'updateTableViaSDO'
                       &OnApp = 'YES'
@@ -495,6 +407,7 @@ PROCEDURE writeEndTransValidate :
                                  INPUT '',~
                                  INPUT-OUTPUT TABLE ttRycPageObject)"
                       &AutoKill=YES}
+      SESSION:SET-WAIT-STATE("":U).
     IF RETURN-VALUE <> "":U THEN DO:
       RETURN ERROR RETURN-VALUE.
     END.
@@ -527,7 +440,7 @@ PROCEDURE writePreTransValidate :
   DEFINE BUFFER biryc_object_instance FOR b_ryc_object_instance.
   DEFINE BUFFER bryc_object_instance  FOR b_ryc_object_instance.
   
-  EMPTY TEMP-TABLE ttRycPageObject.
+  IF NOT TRANSACTION THEN EMPTY TEMP-TABLE ttRycPageObject. ELSE FOR EACH ttRycPageObject: DELETE ttRycPageObject. END.
   /* It is really only required to update/create a page record if the user
      selected a different page or a new page was selected */
   /* First find the before image record */

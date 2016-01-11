@@ -206,16 +206,16 @@ DEFINE BUTTON EditPathButton
 
 DEFINE VARIABLE DirList AS CHARACTER FORMAT "x(80)":U 
      VIEW-AS COMBO-BOX INNER-LINES 5
-     LIST-ITEMS "","" 
+     DROP-DOWN-LIST
      SIZE 35 BY 1.
 
 DEFINE VARIABLE FileType AS CHARACTER FORMAT "x(80)":U 
      VIEW-AS COMBO-BOX INNER-LINES 5
-     LIST-ITEMS "","" 
+     DROP-DOWN-LIST
      SIZE 35 BY 1.
 
 DEFINE VARIABLE TextDisplay AS CHARACTER 
-     VIEW-AS EDITOR SCROLLBAR-HORIZONTAL SCROLLBAR-VERTICAL
+     VIEW-AS EDITOR NO-WORD-WRAP SCROLLBAR-HORIZONTAL SCROLLBAR-VERTICAL
      SIZE 47.8 BY 9.86
      FONT 2 NO-UNDO.
 
@@ -1162,10 +1162,12 @@ END PROCEDURE.
 PROCEDURE LoadImageError :
 DO WITH FRAME {&FRAME-NAME}:
     RUN ClearContents.
-    BELL.
-    MESSAGE TRIM(FullFileName) "could not be loaded successfully as an image." 
-      VIEW-AS ALERT-BOX ERROR.
-  END.
+    ASSIGN 
+       TextDisplay:SCREEN-VALUE = TRIM(FullFileName)  + " could not be" + CHR(10) 
+                                                      + "loaded successfully as an image." 
+       TextDisplay:HIDDEN       = FALSE.
+       
+END.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

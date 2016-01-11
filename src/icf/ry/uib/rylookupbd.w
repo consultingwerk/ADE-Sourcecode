@@ -28,6 +28,10 @@
     Modified    : 10/25/2001         Mark Davies (MIP)
                   Sort objects by file name.
                   Added 'WAIT' cursor on query refresh
+    Modified    : 03/15/2002        Mark Davies (MIP)
+                  Added new input parameter to indicate if the relative 
+                  path should be attached to the file name of the object 
+                  being returned
 ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.       */
 /*----------------------------------------------------------------------*/
@@ -40,6 +44,7 @@ DEFINE INPUT  PARAMETER pcProduct     AS CHARACTER  NO-UNDO.
 DEFINE INPUT  PARAMETER pcModule      AS CHARACTER  NO-UNDO.
 DEFINE INPUT  PARAMETER pcObjectType  AS CHARACTER  NO-UNDO.
 DEFINE INPUT  PARAMETER plOtherTypes  AS LOGICAL    NO-UNDO.
+DEFINE INPUT  PARAMETER plIncludePath AS LOGICAL    NO-UNDO.
 DEFINE OUTPUT PARAMETER pcLookupName  AS CHARACTER  NO-UNDO.
 
 /* Local Variable Definitions ---                                       */
@@ -62,30 +67,36 @@ DEFINE VARIABLE gcObjectType  AS CHARACTER  NO-UNDO.
 &Scoped-define BROWSE-NAME BrBrowse
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
-&Scoped-define INTERNAL-TABLES ryc_smartobject gsc_object ~
-gsc_product_module gsc_product gsc_object_type
+&Scoped-define INTERNAL-TABLES ryc_smartobject gsc_product_module ~
+gsc_product gsc_object_type
 
 /* Definitions for BROWSE BrBrowse                                      */
 &Scoped-define FIELDS-IN-QUERY-BrBrowse gsc_product.product_code ~
 gsc_product_module.product_module_code ryc_smartobject.object_filename ~
-gsc_object.object_description 
+ryc_smartobject.object_description ryc_smartobject.object_path 
 &Scoped-define ENABLED-FIELDS-IN-QUERY-BrBrowse 
+&Scoped-define QUERY-STRING-BrBrowse FOR EACH ryc_smartobject NO-LOCK, ~
+      EACH gsc_product_module WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj AND ~
+gsc_product_module.product_module_code = pcModule  NO-LOCK, ~
+      EACH gsc_product WHERE gsc_product.product_obj = gsc_product_module.product_obj AND  ~
+gsc_product.product_code = pcProduct  NO-LOCK, ~
+      EACH gsc_object_type WHERE gsc_object_type.object_type_obj = ryc_smartobject.object_type_obj AND ~
+LOOKUP(gsc_object_type.object_type_code,pcObjectType) > 0   NO-LOCK ~
+    BY ryc_smartobject.object_filename INDEXED-REPOSITION
 &Scoped-define OPEN-QUERY-BrBrowse OPEN QUERY BrBrowse FOR EACH ryc_smartobject NO-LOCK, ~
-      EACH gsc_object WHERE gsc_object.object_obj = ryc_smartobject.object_obj NO-LOCK, ~
-      EACH gsc_product_module WHERE gsc_product_module.product_module_obj = gsc_object.product_module_obj ~
-      AND gsc_product_module.product_module_code = pcModule NO-LOCK, ~
-      EACH gsc_product WHERE gsc_product.product_obj = gsc_product_module.product_obj ~
-      AND gsc_product.product_code = pcProduct NO-LOCK, ~
-      FIRST gsc_object_type WHERE gsc_object_type.object_type_obj = ryc_smartobject.object_type_obj ~
-      AND gsc_object_type.object_type_code BEGINS pcObjectType NO-LOCK ~
+      EACH gsc_product_module WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj AND ~
+gsc_product_module.product_module_code = pcModule  NO-LOCK, ~
+      EACH gsc_product WHERE gsc_product.product_obj = gsc_product_module.product_obj AND  ~
+gsc_product.product_code = pcProduct  NO-LOCK, ~
+      EACH gsc_object_type WHERE gsc_object_type.object_type_obj = ryc_smartobject.object_type_obj AND ~
+LOOKUP(gsc_object_type.object_type_code,pcObjectType) > 0   NO-LOCK ~
     BY ryc_smartobject.object_filename INDEXED-REPOSITION.
-&Scoped-define TABLES-IN-QUERY-BrBrowse ryc_smartobject gsc_object ~
-gsc_product_module gsc_product gsc_object_type
+&Scoped-define TABLES-IN-QUERY-BrBrowse ryc_smartobject gsc_product_module ~
+gsc_product gsc_object_type
 &Scoped-define FIRST-TABLE-IN-QUERY-BrBrowse ryc_smartobject
-&Scoped-define SECOND-TABLE-IN-QUERY-BrBrowse gsc_object
-&Scoped-define THIRD-TABLE-IN-QUERY-BrBrowse gsc_product_module
-&Scoped-define FOURTH-TABLE-IN-QUERY-BrBrowse gsc_product
-&Scoped-define FIFTH-TABLE-IN-QUERY-BrBrowse gsc_object_type
+&Scoped-define SECOND-TABLE-IN-QUERY-BrBrowse gsc_product_module
+&Scoped-define THIRD-TABLE-IN-QUERY-BrBrowse gsc_product
+&Scoped-define FOURTH-TABLE-IN-QUERY-BrBrowse gsc_object_type
 
 
 /* Definitions for DIALOG-BOX Dialog-Frame                              */
@@ -143,9 +154,9 @@ DEFINE VARIABLE ToShowAll AS LOGICAL INITIAL no
 &ANALYZE-SUSPEND
 DEFINE QUERY BrBrowse FOR 
       ryc_smartobject
-    FIELDS(ryc_smartobject.object_filename), 
-      gsc_object
-    FIELDS(gsc_object.object_description), 
+    FIELDS(ryc_smartobject.object_filename
+      ryc_smartobject.object_description
+      ryc_smartobject.object_path), 
       gsc_product_module
     FIELDS(gsc_product_module.product_module_code), 
       gsc_product
@@ -159,12 +170,13 @@ DEFINE BROWSE BrBrowse
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _DISPLAY-FIELDS BrBrowse Dialog-Frame _STRUCTURED
   QUERY BrBrowse NO-LOCK DISPLAY
       gsc_product.product_code FORMAT "X(10)":U
-      gsc_product_module.product_module_code FORMAT "X(10)":U
-      ryc_smartobject.object_filename FORMAT "X(70)":U
-      gsc_object.object_description FORMAT "X(35)":U
+      gsc_product_module.product_module_code FORMAT "X(35)":U
+      ryc_smartobject.object_filename FORMAT "X(70)":U WIDTH 35
+      ryc_smartobject.object_description FORMAT "X(35)":U WIDTH 50
+      ryc_smartobject.object_path FORMAT "X(70)":U
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-    WITH NO-ROW-MARKERS SEPARATORS SIZE 120.4 BY 8.29 ROW-HEIGHT-CHARS .62 EXPANDABLE.
+    WITH NO-ROW-MARKERS SEPARATORS SIZE 120.4 BY 8.29 ROW-HEIGHT-CHARS .62 FIT-LAST-COLUMN.
 
 
 /* ************************  Frame Definitions  *********************** */
@@ -218,21 +230,23 @@ ASSIGN
 
 &ANALYZE-SUSPEND _QUERY-BLOCK BROWSE BrBrowse
 /* Query rebuild information for BROWSE BrBrowse
-     _TblList          = "icfdb.ryc_smartobject,icfdb.gsc_object WHERE icfdb.ryc_smartobject ...,icfdb.gsc_product_module WHERE icfdb.gsc_object ...,icfdb.gsc_product WHERE icfdb.gsc_product_module ...,icfdb.gsc_object_type WHERE icfdb.ryc_smartobject ..."
+     _TblList          = "ICFDB.ryc_smartobject,ICFDB.gsc_product_module WHERE ICFDB.ryc_smartobject ...,ICFDB.gsc_product WHERE ICFDB.gsc_product_module  ...,ICFDB.gsc_object_type WHERE ICFDB.ryc_smartobject  ..."
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _TblOptList       = "USED, USED, USED, USED, FIRST USED"
-     _OrdList          = "icfdb.ryc_smartobject.object_filename|yes"
-     _JoinCode[2]      = "gsc_object.object_obj = ryc_smartobject.object_obj"
-     _JoinCode[3]      = "gsc_product_module.product_module_obj = gsc_object.product_module_obj"
-     _Where[3]         = "gsc_product_module.product_module_code = pcModule"
-     _JoinCode[4]      = "gsc_product.product_obj = gsc_product_module.product_obj"
-     _Where[4]         = "gsc_product.product_code = pcProduct"
-     _JoinCode[5]      = "gsc_object_type.object_type_obj = ryc_smartobject.object_type_obj"
-     _Where[5]         = "gsc_object_type.object_type_code BEGINS pcObjectType"
+     _OrdList          = "ICFDB.ryc_smartobject.object_filename|yes"
+     _JoinCode[2]      = "gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj AND
+gsc_product_module.product_module_code = pcModule "
+     _JoinCode[3]      = "gsc_product.product_obj = gsc_product_module.product_obj AND 
+gsc_product.product_code = pcProduct "
+     _JoinCode[4]      = "gsc_object_type.object_type_obj = ryc_smartobject.object_type_obj AND
+LOOKUP(gsc_object_type.object_type_code,pcObjectType) > 0  "
      _FldNameList[1]   = icfdb.gsc_product.product_code
      _FldNameList[2]   = icfdb.gsc_product_module.product_module_code
-     _FldNameList[3]   = icfdb.ryc_smartobject.object_filename
-     _FldNameList[4]   = icfdb.gsc_object.object_description
+     _FldNameList[3]   > icfdb.ryc_smartobject.object_filename
+"ryc_smartobject.object_filename" ? ? "character" ? ? ? ? ? ? no ? no no "35" yes no no "U" "" ""
+     _FldNameList[4]   > icfdb.ryc_smartobject.object_description
+"ryc_smartobject.object_description" ? ? "character" ? ? ? ? ? ? no ? no no "50" yes no no "U" "" ""
+     _FldNameList[5]   = icfdb.ryc_smartobject.object_path
      _Query            is OPENED
 */  /* BROWSE BrBrowse */
 &ANALYZE-RESUME
@@ -271,7 +285,9 @@ END.
 ON CHOOSE OF BtnSelect IN FRAME Dialog-Frame /* Select */
 DO:
   IF AVAILABLE ryc_smartobject THEN
-    ASSIGN pcLookupName = ryc_smartobject.object_filename.
+    ASSIGN pcLookupName = ryc_smartobject.object_filename
+           pcLookupName = IF plIncludePath THEN ryc_smartobject.object_path + "/":U + pcLookupName ELSE pcLookupName
+           pcLookupName = REPLACE(pcLookupName,"~\":U,"/":U).
   ELSE
     ASSIGN pcLookupName = "":U.
     

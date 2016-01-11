@@ -33,7 +33,8 @@ Shared Output:
    DICTDB       pointing at valid db
 
 History:
-    95/08   hutegger    creation
+    95/08     hutegger    creation
+    09/16/02  D. McMann  Added check for DBVERSION of DICTDB 20020916-024
 
 -----------------------------------------------------------------------*/
 
@@ -47,19 +48,24 @@ define variable l_dbnr          as integer.
 
 /*-----------------------------  MAIN-CODE  ---------------------------*/
 
-if NUM-DBS > 0
- AND LDBNAME("DICTDB") = ?
- OR  DBTYPE("DICTDB") <> "PROGRESS"
- then do:  /* change/set DICTDB alias */
-
-  repeat while l_dbnr < NUM-DBS
-   and DBTYPE(l_dbnr) <> "PROGRESS":
+if NUM-DBS > 0 AND LDBNAME("DICTDB") = ?
+ OR  DBTYPE("DICTDB") <> "PROGRESS" then do:  /* change/set DICTDB alias */
+  repeat while l_dbnr < NUM-DBS and DBTYPE(l_dbnr) <> "PROGRESS":
     assign l_dbnr = l_dbnr + 1.
-    end.
-
+  end.
+  
   if l_dbnr <= NUM-DBS
    then create alias DICTDB for database value(LDBNAME(l_dbnr)).
    
-  end.     /* change/set DICTDB alias */
-
+end.     /* change/set DICTDB alias */
+ELSE IF INTEGER(DBVERSION("DICTDB")) < 9 THEN DO:
+  DO l_dbnr = 1 TO NUM-DBS:
+    IF DBTYPE(l_dbnr) <> "PROGRESS" THEN NEXT.
+    IF INTEGER(DBVERSION(l_dbnr)) < 9 THEN NEXT.
+    ELSE LEAVE.
+  END.
+ 
+  IF l_dbnr <= NUM-DBS THEN
+    CREATE ALIAS DICTDB FOR DATABASE VALUE(LDBNAME(l_dbnr)).
+END.
 /*---------------------------------------------------------------------*/

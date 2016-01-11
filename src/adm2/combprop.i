@@ -48,7 +48,7 @@
 &ENDIF
 &GLOB xcInstanceProperties {&xcInstanceProperties}~
 DisplayedField,KeyField,FieldLabel,FieldTooltip,KeyFormat,KeyDatatype,DisplayFormat,DisplayDatatype,~
-BaseQueryString,QueryTables,SDFFileName,SDFTemplate,ParentField,ParentFilterQuery,DescSubstitute,CurrentKeyValue,ComboDelimiter,ListItemPairs,CurrentDescValue,InnerLines,ComboFlag,FlagValue,BuildSequence,Secured
+BaseQueryString,QueryTables,SDFFileName,SDFTemplate,ParentField,ParentFilterQuery,DescSubstitute,ComboDelimiter,ListItemPairs,InnerLines,ComboFlag,FlagValue,BuildSequence,Secured,CustomSuperProc,PhysicalTableNames,TempTables,QueryBuilderJoinCode,QueryBuilderOptionList,QueryBuilderOrderList,QueryBuilderTableOptionList,QueryBuilderTuneOptions,QueryBuilderWhereClauses
   
   /* Custom instance definition file */
 
@@ -86,8 +86,8 @@ BaseQueryString,QueryTables,SDFFileName,SDFTemplate,ParentField,ParentFilterQuer
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Include ASSIGN
-         HEIGHT             = 8
-         WIDTH              = 60.
+         HEIGHT             = 5.19
+         WIDTH              = 41.6.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -124,10 +124,8 @@ BaseQueryString,QueryTables,SDFFileName,SDFTemplate,ParentField,ParentFilterQuer
   &GLOBAL-DEFINE xpComboFlag          /* A = <All>, N = <None> */
   &GLOBAL-DEFINE xpFlagValue          /* This will contain the default value for the optional <All> and <None> flags */
   &GLOBAL-DEFINE xpInnerLines         /* Sets the Number of inner lines for the Combo */
-  &GLOBAL-DEFINE xpCurrentKeyValue    /* Contains the current value of the key field */
   &GLOBAL-DEFINE xpComboDelimiter     /* This is to allow a programmer to retreive the list-item-pair delimiter of the combo */
   &GLOBAL-DEFINE xpListItemPairs      /* The actual value of the list items in the combo */
-  &GLOBAL-DEFINE xpCurrentDescValue   /* Contains the current description value of the combo */
   
   &GLOBAL-DEFINE xpModify
   
@@ -140,9 +138,19 @@ BaseQueryString,QueryTables,SDFFileName,SDFTemplate,ParentField,ParentFilterQuer
   &GLOBAL-DEFINE xpParentField         /* The field/widget name of the parent object that this combo is dependant on */
   &GLOBAL-DEFINE xpParentFilterQuery   /* The filter query to be used to filter on parent information */
   &GLOBAL-DEFINE xpSecured             /* When TRUE indicates that the field's security is set to HIDDEn */
+  &GLOBAL-DEFINE xpPhysicalTableNames  /* comma delimited list of actual DB Tables names of buffers defined that corresponds with cBufferList */                   
+  &GLOBAL-DEFINE xpTempTables          /* comma delimited list of PLIP names where data for define temp-tables could be retrieved, corresponds with cBufferList */ 
+  &GLOBAL-DEFINE xpQueryBuilderJoinCode        /* Used at design time for Query Builder */
+  &GLOBAL-DEFINE xpQueryBuilderOptionList      /* Used at design time for Query Builder */
+  &GLOBAL-DEFINE xpQueryBuilderOrderList       /* Used at design time for Query Builder */
+  &GLOBAL-DEFINE xpQueryBuilderTableOptionList /* Used at design time for Query Builder */
+  &GLOBAL-DEFINE xpQueryBuilderTuneOptions     /* Used at design time for Query Builder */
+  &GLOBAL-DEFINE xpQueryBuilderWhereClauses    /* Used at design time for Query Builder */
   
   {src/adm2/fieldprop.i}
 
+IF NOT {&ADM-PROPS-DEFINED} THEN
+DO:
 &IF "{&ADMSuper}":U = "":U &THEN
   /* Combo property field definitions */
   ghADMProps:ADD-NEW-FIELD('Modify':U,             'LOGICAL':U,   0, ?, NO).
@@ -165,16 +173,22 @@ BaseQueryString,QueryTables,SDFFileName,SDFTemplate,ParentField,ParentFilterQuer
   ghADMProps:ADD-NEW-FIELD('ComboFlag':U,          'CHARACTER':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('FlagValue':U,          'CHARACTER':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('InnerLines':U,         'INTEGER':U,   0, ?, 0).
-  ghADMProps:ADD-NEW-FIELD('CurrentKeyValue':U,    'CHARACTER':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('ComboDelimiter':U,     'CHARACTER':U, 0, ?, CHR(1)).
   ghADMProps:ADD-NEW-FIELD('ListItemPairs':U,      'CHARACTER':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('CurrentDescValue':U,   'CHARACTER':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('BuildSequence':U,      'INTEGER':U,   0, ?, '':U).
 
   ghADMProps:ADD-NEW-FIELD('LabelHandle':U,        'HANDLE':U,    0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('ComboHandle':U,        'HANDLE':U,    0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('CurrentQueryString':U, 'CHARACTER':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('Secured':U,            'LOGICAL':U,   0, ?, NO).
+  ghADMProps:ADD-NEW-FIELD('PhysicalTableNames',   'CHARACTER', 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('TempTables',           'CHARACTER', 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('QueryBuilderJoinCode',        'CHARACTER', 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('QueryBuilderOptionList',      'CHARACTER', 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('QueryBuilderOrderList',       'CHARACTER', 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('QueryBuilderTableOptionList', 'CHARACTER', 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('QueryBuilderTuneOptions',     'CHARACTER', 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('QueryBuilderWhereClauses',    'CHARACTER', 0, ?, '':U).
 
 &ENDIF
 
@@ -187,6 +201,7 @@ BaseQueryString,QueryTables,SDFFileName,SDFTemplate,ParentField,ParentFilterQuer
 &ENDIF
 
   {src/adm2/custom/combpropcustom.i}
+END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

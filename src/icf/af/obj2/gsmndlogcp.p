@@ -125,7 +125,7 @@ ASSIGN cObjectName = "{&object-name}":U.
 
 /* Data Preprocessor Definitions */
 &GLOB DATA-LOGIC-TABLE gsm_node
-&GLOB DATA-FIELD-DEFS  "af\obj2\gsmndfullo.i"
+&GLOB DATA-FIELD-DEFS  "af/obj2/gsmndfullo.i"
 
 /* Error handling definitions */
 {af/sup2/afcheckerr.i &define-only = YES}

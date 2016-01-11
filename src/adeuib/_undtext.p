@@ -37,6 +37,9 @@ Date Created: 26 February 1993
 ----------------------------------------------------------------------------*/
 DEFINE INPUT PARAMETER uRecId AS RECID NO-UNDO.
 
+DEFINE VARIABLE lIsICFRunning AS LOGICAL    NO-UNDO.
+   
+{src/adm2/globals.i}
 {adeuib/uniwidg.i}
 {adeuib/layout.i}
 {adeuib/sharvars.i}
@@ -51,6 +54,8 @@ FIND _F       WHERE RECID(_F)       eq _U._x-recid.
 FIND parent_U WHERE RECID(parent_U) eq _U._parent-recid.
 FIND parent_L WHERE RECID(parent_L) eq parent_U._lo-recid.
 FIND parent_C WHERE RECID(parent_C) eq parent_U._x-recid.
+
+ASSIGN lisICFRunning = DYNAMIC-FUNCTION("IsICFRunning":U) NO-ERROR.
 
 ASSIGN _F._FRAME    = parent_U._HANDLE
        _L._WIN-TYPE = parent_L._WIN-TYPE
@@ -82,6 +87,14 @@ ELSE /* TEXT widget are inert in alternative layouts */
       TRIGGERS:
          ON MOUSE-SELECT-DOWN PERSISTENT RUN text_message IN _h_uib.     
       END TRIGGERS.
+
+IF lIsICFRunning THEN DO:
+  IF LOOKUP(_U._CLASS-NAME,  
+            DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager,
+                             INPUT "DataField":U)) <> 0 THEN
+     /* Attach the edit master popup */
+     RUN createDataFieldPopup IN _h_uib (_U._HANDLE).
+END.  /* If ICF is running */
 
 /* Assign Handles that we now know */
 ASSIGN  {adeuib/std_uf.i &section = "HANDLES"} .

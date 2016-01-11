@@ -100,7 +100,7 @@ af/cod/aftemwizpw.w
    can be displayed in the about window of the container */
 
 &scop object-name       afranschkp.p
-&scop object-version    010100
+&scop object-version    000000
 
 
 /* MIP object identifying preprocessor */
@@ -165,7 +165,7 @@ DEFINE VARIABLE         dSecurityObjectObj           AS DECIMAL      NO-UNDO.
                                                                         */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
@@ -194,31 +194,31 @@ DEFINE VARIABLE         dSecurityObjectObj           AS DECIMAL      NO-UNDO.
   */
   ASSIGN dSecurityObjectObj = 0
          dProductModuleObj = 0.
-  DEFINE BUFFER b1gsc_object FOR gsc_object.
-  IF CAN-FIND(FIRST b1gsc_object
-              WHERE b1gsc_object.object_filename = pcObjectName
-                AND b1gsc_object.security_object_obj <> 0) THEN
+  DEFINE BUFFER b1ryc_smartobject FOR ryc_smartobject.
+  IF CAN-FIND(FIRST b1ryc_smartobject
+              WHERE b1ryc_smartobject.object_filename = pcObjectName
+                AND b1ryc_smartobject.security_smartobject_obj <> 0) THEN
 
   DO: /* security is turned on for this object */
-    FIND FIRST b1gsc_object NO-LOCK
-         WHERE b1gsc_object.object_filename = pcObjectName NO-ERROR.
-    IF AVAILABLE b1gsc_object THEN
+    FIND FIRST b1ryc_smartobject NO-LOCK
+         WHERE b1ryc_smartobject.object_filename = pcObjectName NO-ERROR.
+    IF AVAILABLE b1ryc_smartobject THEN
     DO:
-      IF b1gsc_object.object_obj <> b1gsc_object.security_object_obj THEN
+      IF b1ryc_smartobject.smartobject_obj <> b1ryc_smartobject.security_smartobject_obj THEN
         DO:
-          DEFINE BUFFER b2gsc_object FOR gsc_object.
-          FIND FIRST b2gsc_object NO-LOCK
-               WHERE b2gsc_object.object_obj = b1gsc_object.security_object_obj NO-ERROR.
-          IF AVAILABLE b2gsc_object THEN
-              ASSIGN dSecurityObjectObj = b2gsc_object.object_obj
-                     dProductModuleObj = b2gsc_object.product_module_obj.
+          DEFINE BUFFER b2ryc_smartobject FOR ryc_smartobject.
+          FIND FIRST b2ryc_smartobject NO-LOCK
+               WHERE b2ryc_smartobject.smartobject_obj = b1ryc_smartobject.security_smartobject_obj NO-ERROR.
+          IF AVAILABLE b2ryc_smartobject THEN
+              ASSIGN dSecurityObjectObj = b2ryc_smartobject.smartobject_obj
+                     dProductModuleObj = b2ryc_smartobject.product_module_obj.
           ELSE
               ASSIGN dSecurityObjectObj = 0
                      dProductModuleObj = 0.
         END.
       ELSE
-        ASSIGN dSecurityObjectObj = b1gsc_object.object_obj
-               dProductModuleObj = b1gsc_object.product_module_obj.
+        ASSIGN dSecurityObjectObj = b1ryc_smartobject.smartobject_obj
+               dProductModuleObj = b1ryc_smartobject.product_module_obj.
     END.
     ELSE
       ASSIGN dSecurityObjectObj = 0

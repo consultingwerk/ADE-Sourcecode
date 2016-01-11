@@ -52,9 +52,7 @@ DEFINE TEMP-TABLE RowObject
 *********************************************************************/
 /*---------------------------------------------------------------------------------
   File: rydynsdfmv.w
-
   Description:  Dynamic Lookup & Combo Repository Maint.
-
   Purpose:      Dynamic Lookup & Combo Repository Maintenance SmartDataViewer
 
   Parameters:   <none>
@@ -63,61 +61,62 @@ DEFINE TEMP-TABLE RowObject
   --------
   (v:010000)    Task:           0   UserRef:    
                 Date:   11/18/2001  Author:     Mark Davies (MIP)
-
   Update Notes: Created from Template rysttviewv.w
-
   (v:010001)    Task:           0   UserRef:    
                 Date:   12/06/2001  Author:     Mark Davies (MIP)
-
   Update Notes: Fixed issue #3392 - SmartDataField Maintenance does not include width field
                 Fixed issue #3436 - SmartDataField Maintenance tool not working.
-
   (v:010002)    Task:           0   UserRef:    
                 Date:   12/14/2001  Author:     Mark Davies (MIP)
-
   Update Notes: Fixed issue #3430 - "Save question.." not asked on close of SmartDataFieldMaintenane
-
   (v:010003)    Task:           0   UserRef:    
                 Date:   02/05/2002  Author:     Mark Davies (MIP)
-
   Update Notes: Enable dynamic combo and lookup fields on initialization.
   
   (v:010004)    Task:           0   UserRef:    
                 Date:   03/06/2002  Author:     Mark Davies (MIP)
-
   Update Notes: Fix for issue #3676 - Clicking Yes on "save" question does not 
                 work for SDF Maintenance
-------------------------------------------------------------------------------*/
+  (v:010005)    Task:           0   UserRef:    
+                Date:   03/15/2002  Author:     Mark Davies (MIP)
+  Update Notes: Fix for issue #3420 - Dynamic Lookups (and Combos) should have "CustomSuperProc" properties, and should launch this procedure.
+
+  (v:010006)    Task:           0   UserRef:    
+                Date:   06/18/2002  Author:     Mark Davies (MIP)
+
+  Update Notes: Use new Repository Design Manager tools to create SDF and to read object details
+
+  (v:010007)    Task:           0   UserRef:    
+                Date:   06/21/2002  Author:     Mark Davies (MIP)
+
+  Update Notes: Made changes to comply with V2 Repository changes.
+
+  (v:010008)    Task:           0   UserRef:    
+                Date:   08/13/2002  Author:     Mark Davies (MIP)
+
+  Update Notes: Fix for issue #4942 - Error-Character number 3 of format x(4) is invalid
+
+------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
-
 /* Create an unnamed pool to store all the widgets created 
      by this procedure. This is a good default which assures
      that this procedure's triggers and internal procedures 
      will execute in this procedure's storage, and that proper
      cleanup will occur on deletion of the procedure. */
-
 CREATE WIDGET-POOL.
-
 /* ***************************  Definitions  ************************** */
-
 /* MIP-GET-OBJECT-VERSION pre-processors
    The following pre-processors are maintained automatically when the object is
    saved. They pull the object and version from Roundtable if possible so that it
    can be displayed in the about window of the container */
-
 &scop object-name       rydynsdfmv.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
 &scop object-version    000000
-
 /* Parameters Definitions ---                                           */
-
 /* Local Variable Definitions ---                                       */
-
 /*  object identifying preprocessor */
 &glob   astra2-staticSmartDataViewer yes
-
-{af/sup2/afglobals.i}
 
 DEFINE VARIABLE ghFuncLib                       AS HANDLE     NO-UNDO. 
 DEFINE VARIABLE gcBrowseFields                  AS CHARACTER  NO-UNDO.
@@ -138,53 +137,51 @@ DEFINE VARIABLE gcColumnLabels                  AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcColumnFormat                  AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcSDFFileName                   AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcSDFTemplate                   AS CHARACTER  NO-UNDO.
-
 DEFINE VARIABLE gcLookupImg                     AS CHARACTER  NO-UNDO.
-
 /* Template Storage Variables */
-DEFINE VARIABLE gcLSDFFileName          AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcLSDFTemplate          AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gclObjectDescription    AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcLDisplayedField       AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcLKeyField             AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcLFieldLabel           AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcLFieldTooltip         AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcLKeyFormat            AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcLKeyDataType          AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcLDisplayFormat        AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcLDisplayDataType      AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcLBaseQueryString      AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcLQueryTables          AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcLBrowseFields         AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcLColumnLabels         AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcLCoulmnFormat         AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcLBrowseFieldDataTypes AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcLBrowseFieldFormats   AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE giLRowsToBatch          AS INTEGER    NO-UNDO.
-DEFINE VARIABLE gcLBrowseTitle          AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcLViewerLinkedFields   AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcLLinkedFieldDataTypes AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcLLinkedFieldFormats   AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcLViewerLinkedWidgets  AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcLLookupImage          AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcLParentField          AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcLParentFilterQuery    AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcLMaintenanceObject    AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcLMaintenanceSDO       AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gdLFieldWidth           AS DECIMAL    NO-UNDO.
-DEFINE VARIABLE gcLDescSubstitute       AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcLComboFlag            AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcLFlagValue            AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE giLInnerLines           AS INTEGER    NO-UNDO.
-DEFINE VARIABLE giLBuildSeq             AS INTEGER    NO-UNDO.
-
-DEFINE VARIABLE gcDisplayedFields       AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcDisplayFormat         AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcDisplayDataType       AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE glChangesMade           AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE gcOldObjectName         AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE glInitialize            AS LOGICAL    NO-UNDO.
-
+DEFINE VARIABLE gcLSDFFileName            AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLSDFTemplate            AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gclObjectDescription      AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLDisplayedField         AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLKeyField               AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLFieldLabel             AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLFieldTooltip           AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLKeyFormat              AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLKeyDataType            AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLDisplayFormat          AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLDisplayDataType        AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLBaseQueryString        AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLQueryTables            AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLBrowseFields           AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLColumnLabels           AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLCoulmnFormat           AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLBrowseFieldDataTypes   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLBrowseFieldFormats     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE giLRowsToBatch            AS INTEGER    NO-UNDO.
+DEFINE VARIABLE gcLBrowseTitle            AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLViewerLinkedFields     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLLinkedFieldDataTypes   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLLinkedFieldFormats     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLViewerLinkedWidgets    AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLLookupImage            AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLParentField            AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLParentFilterQuery      AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLMaintenanceObject      AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLMaintenanceSDO         AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gdLFieldWidth             AS DECIMAL    NO-UNDO.
+DEFINE VARIABLE gcLDescSubstitute         AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLComboFlag              AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLFlagValue              AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE giLInnerLines             AS INTEGER    NO-UNDO.
+DEFINE VARIABLE giLBuildSeq               AS INTEGER    NO-UNDO.
+DEFINE VARIABLE gcLCustomSuperProc        AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcDisplayedFields         AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcDisplayFormat           AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcDisplayDataType         AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE glChangesMade             AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE gcOldObjectName           AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE glInitialize              AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE ghRepositoryDesignManager AS HANDLE     NO-UNDO.
 /* temp-table for query field information */
 DEFINE TEMP-TABLE ttFields NO-UNDO
 FIELD cFieldName              AS CHARACTER    /* name of query field */
@@ -198,13 +195,28 @@ FIELD lLinkedField            AS LOGICAL      /* yes to indicate a linked field 
 FIELD cLinkedWidget           AS CHARACTER    /* widget name above linked field is associated with or ? for none */
 INDEX idxFieldName cFieldName
 .
-
 DEFINE VARIABLE cOnlyCombo AS CHARACTER  NO-UNDO INIT
   "cFieldName,iBrowseFieldSeq,cOrigLabel,cFieldDataType,cFieldFormat":U.
-
 {src/adm2/ttcombo.i}
 {src/adm2/globals.i}
 {checkerr.i &define-only = YES}
+
+{af/app/afdatatypi.i}
+
+/* Temp-table definitions for object tables, which take into account customisation */
+{ ry/app/ryobjretri.i }
+
+/* Defines the NO-RESULT-CODE and DEFAULT-RESULT-CODE result codes. */
+{ ry/app/rydefrescd.i }
+
+DEFINE VARIABLE gcSessionResultCodes  AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gdCurrentUserObj      AS DECIMAL    NO-UNDO.
+DEFINE VARIABLE gdCurrentLanguageObj  AS DECIMAL    NO-UNDO.
+DEFINE VARIABLE ghBufferCacheBuffer   AS HANDLE     NO-UNDO.
+DEFINE VARIABLE gcLogicalObjectName   AS CHARACTER  NO-UNDO.
+
+DEFINE VARIABLE cComboChildClasses  AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cLookupChildClasses AS CHARACTER  NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -252,11 +264,11 @@ ttFields.cColumnFormat
     ~{&OPEN-QUERY-BrBrowse}
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS raSDFType buClear fiDisplayRepository ~
+&Scoped-Define ENABLED-OBJECTS coObjType buClear fiDisplayRepository ~
 fiObjectName fiObjectDescription EdQuery fiRowsToBatch buRefresh BrBrowse ~
 coKeyField coDisplayedField fiFieldLabel fiFieldWidth fiFieldToolTip edHelp ~
 fiBrowseTitle fiParentField EdParentFilterQuery buSave buClose 
-&Scoped-Define DISPLAYED-OBJECTS raSDFType fiObjectName fiObjectDescription ~
+&Scoped-Define DISPLAYED-OBJECTS coObjType fiObjectName fiObjectDescription ~
 EdQuery fiRowsToBatch fiQueryTables coKeyField fiFieldDatatype ~
 coDisplayedField fiFieldLabel fiFieldWidth fiFieldToolTip edHelp ~
 fiBrowseTitle fiParentField EdParentFilterQuery fiTextLabel 
@@ -270,10 +282,32 @@ fiBrowseTitle fiParentField EdParentFilterQuery fiTextLabel
 
 /* ************************  Function Prototypes ********************** */
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD fetchObjectDetail vTableWin 
+FUNCTION fetchObjectDetail RETURNS LOGICAL
+    ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getBufferHandle vTableWin 
+FUNCTION getBufferHandle RETURNS HANDLE
+    ( INPUT pcBufferName                AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD numOccurance vTableWin 
 FUNCTION numOccurance RETURNS INTEGER
   ( INPUT pcString    AS CHARACTER,
     INPUT pcCharacter AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setAttrValues vTableWin 
+FUNCTION setAttrValues RETURNS LOGICAL
+  ( pcAttrLabel AS CHARACTER,
+    pcAttrValue AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -294,6 +328,7 @@ DEFINE VARIABLE hMaintenanceObject AS HANDLE NO-UNDO.
 DEFINE VARIABLE hMaintenanceSDO AS HANDLE NO-UNDO.
 DEFINE VARIABLE hObjectName AS HANDLE NO-UNDO.
 DEFINE VARIABLE hProductModule AS HANDLE NO-UNDO.
+DEFINE VARIABLE hSuperProc AS HANDLE NO-UNDO.
 DEFINE VARIABLE hTemplateObject AS HANDLE NO-UNDO.
 
 /* Definitions of the field level widgets                               */
@@ -330,6 +365,12 @@ DEFINE VARIABLE coKeyField AS CHARACTER FORMAT "X(256)":U
      LIST-ITEM-PAIRS "x","x"
      DROP-DOWN-LIST
      SIZE 46 BY 1 TOOLTIP "Field to assign to external field" NO-UNDO.
+
+DEFINE VARIABLE coObjType AS CHARACTER FORMAT "X(256)":U 
+     LABEL "Object Type" 
+     VIEW-AS COMBO-BOX INNER-LINES 5
+     DROP-DOWN-LIST
+     SIZE 50 BY 1 NO-UNDO.
 
 DEFINE VARIABLE edHelp AS CHARACTER 
      VIEW-AS EDITOR SCROLLBAR-VERTICAL
@@ -433,13 +474,6 @@ DEFINE VARIABLE raFlag AS CHARACTER
 "<None> and Data", "N"
      SIZE 69 BY .95 TOOLTIP "Add extra option on combo." NO-UNDO.
 
-DEFINE VARIABLE raSDFType AS CHARACTER 
-     VIEW-AS RADIO-SET HORIZONTAL
-     RADIO-BUTTONS 
-          "Dynamic Lookup", "DynLookup",
-"Dynamic Combo", "DynCombo"
-     SIZE 50 BY .86 TOOLTIP "Select the SDF type you wish to add." NO-UNDO.
-
 /* Query definitions                                                    */
 &ANALYZE-SUSPEND
 DEFINE QUERY BrBrowse FOR 
@@ -467,51 +501,49 @@ DEFINE BROWSE BrBrowse
       ttFields.cColumnFormat
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-    WITH NO-ROW-MARKERS SEPARATORS SIZE 130.4 BY 5.91 ROW-HEIGHT-CHARS .62.
+    WITH NO-ROW-MARKERS SEPARATORS SIZE 130.4 BY 5.14 ROW-HEIGHT-CHARS .62.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     raSDFType AT ROW 1 COL 23 NO-LABEL
+     coObjType AT ROW 1 COL 21.8 COLON-ALIGNED
      buClear AT ROW 1.1 COL 117.4
      fiDisplayRepository AT ROW 1.1 COL 128.2 COLON-ALIGNED NO-LABEL
      RowObject.product_module_obj AT ROW 1.1 COL 129.4 COLON-ALIGNED NO-LABEL
           VIEW-AS FILL-IN 
           SIZE 1 BY 1
      fiObjectName AT ROW 3.95 COL 21.8 COLON-ALIGNED
-     fiObjectDescription AT ROW 5 COL 21.8 COLON-ALIGNED
+     fiObjectDescription AT ROW 5.19 COL 21.8 COLON-ALIGNED
      EdQuery AT ROW 6.91 COL 2.2 NO-LABEL
      fiRowsToBatch AT ROW 7.86 COL 115.4 COLON-ALIGNED NO-LABEL
      buRefresh AT ROW 8.91 COL 117.4
      fiQueryTables AT ROW 10.14 COL 14 COLON-ALIGNED
      BrBrowse AT ROW 11.19 COL 1.8
-     coKeyField AT ROW 17.29 COL 21.4 COLON-ALIGNED
-     fiFieldDatatype AT ROW 17.29 COL 99.8 COLON-ALIGNED NO-TAB-STOP 
-     coDisplayedField AT ROW 18.33 COL 21.4 COLON-ALIGNED
-     fiDescSubstitute AT ROW 18.33 COL 21.4 COLON-ALIGNED
-     fiFieldFormat AT ROW 18.33 COL 99.8 COLON-ALIGNED
-     fiFieldLabel AT ROW 19.38 COL 21.4 COLON-ALIGNED
-     fiFieldWidth AT ROW 19.38 COL 99.8 COLON-ALIGNED
-     fiFieldToolTip AT ROW 20.43 COL 21.4 COLON-ALIGNED
-     edHelp AT ROW 20.71 COL 95 NO-LABEL NO-TAB-STOP 
-     raFlag AT ROW 21.48 COL 23.4 NO-LABEL
-     fiBrowseTitle AT ROW 21.48 COL 21.4 COLON-ALIGNED
-     fiDefaultValue AT ROW 22.43 COL 21.4 COLON-ALIGNED
-     fiInnerLines AT ROW 23.57 COL 21.4 COLON-ALIGNED
-     fiBuildSeq AT ROW 23.57 COL 61 COLON-ALIGNED
-     fiParentField AT ROW 24.57 COL 21.4 COLON-ALIGNED
-     EdParentFilterQuery AT ROW 25.62 COL 23.4 NO-LABEL
-     buSave AT ROW 26.14 COL 101.4
+     coKeyField AT ROW 16.33 COL 21 COLON-ALIGNED
+     fiFieldDatatype AT ROW 16.33 COL 99.4 COLON-ALIGNED NO-TAB-STOP 
+     fiDescSubstitute AT ROW 17.38 COL 21 COLON-ALIGNED
+     coDisplayedField AT ROW 17.38 COL 21 COLON-ALIGNED
+     fiFieldFormat AT ROW 17.38 COL 99.4 COLON-ALIGNED
+     fiFieldLabel AT ROW 18.43 COL 21 COLON-ALIGNED
+     fiFieldWidth AT ROW 18.43 COL 99.4 COLON-ALIGNED
+     fiFieldToolTip AT ROW 19.48 COL 21 COLON-ALIGNED
+     edHelp AT ROW 19.76 COL 94.6 NO-LABEL NO-TAB-STOP 
+     fiBrowseTitle AT ROW 20.52 COL 21 COLON-ALIGNED
+     raFlag AT ROW 20.52 COL 23 NO-LABEL
+     fiDefaultValue AT ROW 21.48 COL 21 COLON-ALIGNED
+     fiInnerLines AT ROW 22.62 COL 21 COLON-ALIGNED
+     fiBuildSeq AT ROW 22.62 COL 60.6 COLON-ALIGNED
+     fiParentField AT ROW 23.62 COL 21 COLON-ALIGNED
+     EdParentFilterQuery AT ROW 24.62 COL 23 NO-LABEL
+     buSave AT ROW 26.14 COL 101.8
      buClose AT ROW 26.14 COL 117.2
      fiTextLabel AT ROW 7.1 COL 115 COLON-ALIGNED NO-LABEL
-     "Object Type:" VIEW-AS TEXT
-          SIZE 13.2 BY .62 AT ROW 1.1 COL 9.8
      "Specify Base Query String (FOR EACH)" VIEW-AS TEXT
           SIZE 38.4 BY .62 AT ROW 6.24 COL 2.2
      "Parent Filter Query:" VIEW-AS TEXT
-          SIZE 18.4 BY .62 AT ROW 25.62 COL 4.6
-     SPACE(50.80) SKIP(0.00)
+          SIZE 18.4 BY .62 AT ROW 24.62 COL 4.2
+     SPACE(51.20) SKIP(2.09)
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -559,7 +591,6 @@ END.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB vTableWin 
 /* ************************* Included-Libraries *********************** */
-
 {src/adm2/viewer.i}
 
 /* _UIB-CODE-BLOCK-END */
@@ -682,10 +713,9 @@ DO:
   DEFINE VARIABLE cDisplayedFields  AS CHARACTER  NO-UNDO.
   
   DEFINE BUFFER bttFields FOR ttFields.
-
-  ASSIGN raSDFType.
+  ASSIGN coObjType.
   
-  IF raSDFType = "DynCombo" THEN DO:
+  IF LOOKUP(coObjType:SCREEN-VALUE, cComboChildClasses) <> 0 THEN DO:
     ASSIGN fiDescSubstitute = "":U.
     FOR EACH bttFields BY bttFields.iBrowseFieldSeq:
       IF bttFields.iBrowseFieldSeq > 0 THEN
@@ -746,11 +776,9 @@ DO:
   DEFINE VARIABLE rRow    AS ROWID      NO-UNDO.
   DEFINE VARIABLE cSortBy AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hQuery  AS HANDLE     NO-UNDO.
-
   ASSIGN
       hColumn = {&BROWSE-NAME}:CURRENT-COLUMN
       rRow    = ROWID({&FIRST-TABLE-IN-QUERY-{&BROWSE-NAME}}).
-
   IF VALID-HANDLE( hColumn ) THEN
   DO:
       ASSIGN
@@ -759,10 +787,8 @@ DO:
                         ELSE hColumn:NAME)
           hQuery = {&browse-name}:QUERY              
           .
-
       hQuery:QUERY-PREPARE("FOR EACH ttFields BY ":U + cSortBy). 
       hQuery:QUERY-OPEN().
-
       IF NUM-RESULTS( '{&BROWSE-NAME}':U ) > 0 THEN
         DO:
           REPOSITION {&BROWSE-NAME} TO ROWID rRow NO-ERROR.
@@ -782,7 +808,6 @@ ON CHOOSE OF buClear IN FRAME frMain /* Clear Settings */
 DO:
   DEFINE VARIABLE cAnswer    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cButton    AS CHARACTER  NO-UNDO.
-
   IF glChangesMade THEN DO:
     RUN askQuestion IN gshSessionManager (INPUT "Your changes have not been saved yet. Would you like to save it now?",      /* messages */
                                           INPUT "&Yes,&No":U,     /* button list */
@@ -811,10 +836,12 @@ DO:
          fiInnerLines          = 5
          fiBuildSeq            = 1
          gcOldObjectName       = "":U.
+
   DYNAMIC-FUNCTION("setDataValue" IN hTemplateObject, "":U). 
   DYNAMIC-FUNCTION("setDataValue" IN hObjectName, "":U). 
   DYNAMIC-FUNCTION("setDataValue" IN hMaintenanceSDO, "":U). 
   DYNAMIC-FUNCTION("setDataValue" IN hMaintenanceObject, "":U). 
+  DYNAMIC-FUNCTION("setDataValue" IN hSuperProc, "":U). 
   DISPLAY fiObjectName
           fiObjectDescription
           edQuery
@@ -832,11 +859,10 @@ DO:
   APPLY "CHOOSE":U TO buRefresh IN FRAME {&FRAME-NAME}.
   APPLY "VALUE-CHANGED":U TO raFlag IN FRAME {&FRAME-NAME}.
   glChangesMade = FALSE.
-  APPLY "VALUE-CHANGED":U TO raSDFType IN FRAME {&FRAME-NAME}.
+  APPLY "VALUE-CHANGED":U TO coObjType IN FRAME {&FRAME-NAME}.
   APPLY "VALUE-CHANGED":U TO fiObjectName IN FRAME {&FRAME-NAME}.
   DISABLE fiDescSubstitute WITH FRAME {&FRAME-NAME}.
   glChangesMade = FALSE.
-
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -847,10 +873,10 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buClose vTableWin
 ON CHOOSE OF buClose IN FRAME frMain /* Close */
 DO:
+  DEFINE VARIABLE hContainer AS HANDLE     NO-UNDO.
+  
   DEFINE VARIABLE cAnswer    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cButton    AS CHARACTER  NO-UNDO.
-
-  DEFINE VARIABLE hContainer AS HANDLE     NO-UNDO.
   
   IF glChangesMade THEN DO:
     RUN askQuestion IN gshSessionManager (INPUT "Your changes have not been saved yet. Would you like to save it now?",      /* messages */
@@ -863,13 +889,18 @@ DO:
                                           INPUT-OUTPUT cAnswer,   /* answer */
                                           OUTPUT cButton          /* button pressed */
                                           ).
-    IF cButton = "&YES":U THEN
+    IF cButton = "&YES":U THEN DO:
       APPLY "CHOOSE":U TO buSave IN FRAME {&FRAME-NAME}.
+      RETURN NO-APPLY.
+    END.
+    ELSE
+      glChangesMade = FALSE.
   END.
-  
+  RUN freeTableHandles. 
   {get ContainerSource hContainer}.
   IF VALID-HANDLE(hContainer) THEN
     RUN ExitObject IN hContainer.
+    
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -880,16 +911,12 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buRefresh vTableWin
 ON CHOOSE OF buRefresh IN FRAME frMain /* Refresh */
 DO:
-  ASSIGN raSDFType.
-
-  CASE raSDFType:
-    WHEN "DynLookup":U THEN
+  IF LOOKUP(coObjType:SCREEN-VALUE, cLookupChildClasses) > 0 THEN
       RUN populateLookup.
-    WHEN "DynCombo":U THEN
+  ELSE
       RUN populateCombo.
-  END CASE.
-  glChangesMade = TRUE.
 
+  glChangesMade = TRUE.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -901,6 +928,8 @@ END.
 ON CHOOSE OF buSave IN FRAME frMain /* Save */
 DO:
   RUN setSmartObjectDetails.
+  IF RETURN-VALUE <> "":U THEN
+    RETURN NO-APPLY.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -921,7 +950,6 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL coDisplayedField vTableWin
 ON VALUE-CHANGED OF coDisplayedField IN FRAME frMain /* Displayed Field */
 DO:
-
   DEFINE VARIABLE iEntry      AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cLabel      AS CHARACTER  NO-UNDO.
   
@@ -955,15 +983,11 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL coKeyField vTableWin
 ON VALUE-CHANGED OF coKeyField IN FRAME frMain /* Key Field */
 DO:
-
 DEFINE VARIABLE iEntry AS INTEGER NO-UNDO.
-
 DO WITH FRAME {&FRAME-NAME}:
-
   ASSIGN
     coKeyField
     iEntry = LOOKUP(coKeyField, gcNameList).
-
   IF iEntry > 0 THEN
     ASSIGN
       fiFieldDataType:SCREEN-VALUE = ENTRY(iEntry,gcTypeList)
@@ -974,9 +998,94 @@ DO WITH FRAME {&FRAME-NAME}:
       fiFieldDataType:SCREEN-VALUE = "":U
       fiFieldFormat:SCREEN-VALUE = "":U
       .
-
+END.
 END.
 
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME coObjType
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL coObjType vTableWin
+ON VALUE-CHANGED OF coObjType IN FRAME frMain /* Object Type */
+DO:
+  DEFINE VARIABLE hBrowse AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hColumn AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cAnswer AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cButton AS CHARACTER  NO-UNDO.
+  IF glChangesMade AND NOT glInitialize THEN DO:
+    RUN askQuestion IN gshSessionManager (INPUT "Your changes have not been saved yet. Would you like to save it now?",      /* messages */
+                                          INPUT "&Yes,&No":U,     /* button list */
+                                          INPUT "&No":U,          /* default */
+                                          INPUT "&No":U,          /* cancel */
+                                          INPUT "Question":U,     /* title */
+                                          INPUT "":U,             /* datatype */
+                                          INPUT "":U,             /* format */
+                                          INPUT-OUTPUT cAnswer,   /* answer */
+                                          OUTPUT cButton          /* button pressed */
+                                          ).
+    IF cButton = "&YES":U THEN
+      APPLY "CHOOSE":U TO buSave IN FRAME {&FRAME-NAME}.
+  END.
+  
+  APPLY "CHOOSE":U TO buClear IN FRAME {&FRAME-NAME}.
+
+  hBrowse = BrBrowse:HANDLE.
+
+  IF LOOKUP(coObjType:SCREEN-VALUE, cLookupChildClasses) > 0
+  THEN DO:
+      ASSIGN fiObjectName:LABEL = "Lookup Name".
+      ASSIGN fiRowsToBatch:HIDDEN       = FALSE
+             fiTextLabel:HIDDEN         = FALSE
+             fiRowsToBatch:SCREEN-VALUE = "200":U
+             coDisplayedField:HIDDEN    = FALSE
+             fiBrowseTitle:HIDDEN       = FALSE
+             fiDescSubstitute:HIDDEN    = TRUE
+             raFlag:HIDDEN              = TRUE
+             fiDefaultValue:HIDDEN      = TRUE
+             fiBuildSeq:HIDDEN          = TRUE
+             fiInnerLines:HIDDEN        = TRUE
+             fiDescSubstitute:SCREEN-VALUE = "":U.
+        RUN viewObject IN hMaintenanceSDO.
+        RUN viewObject IN hMaintenanceObject.
+        ASSIGN hColumn= hBrowse:FIRST-COLUMN.
+        DO WHILE VALID-HANDLE(hColumn):
+          IF LOOKUP(hColumn:NAME,cOnlyCombo) = 0 THEN
+            ASSIGN hColumn:VISIBLE = TRUE.
+          IF hColumn:NAME = "iBrowseFieldSeq" THEN
+            hColumn:LABEL = "Browse Seq.".
+          hColumn = hColumn:NEXT-COLUMN.
+        END.
+    END.
+    ELSE DO:
+      ASSIGN fiObjectName:LABEL = "Combo Name".
+      ASSIGN fiRowsToBatch:HIDDEN       = TRUE
+             fiTextLabel:HIDDEN        = TRUE
+             fiDescSubstitute:HIDDEN   = FALSE
+             raFlag:HIDDEN             = FALSE
+             fiDefaultValue:HIDDEN     = FALSE
+             fiBuildSeq:HIDDEN         = FALSE
+             fiInnerLines:HIDDEN       = FALSE
+             fiInnerLines:SCREEN-VALUE = "5":U
+             fiInnerLines:SENSITIVE    = TRUE
+             fiBuildSeq:SENSITIVE      = TRUE
+             raFlag:SENSITIVE          = TRUE
+             coDisplayedField:HIDDEN   = TRUE
+             fiBrowseTitle:HIDDEN      = TRUE.
+      RUN hideObject IN hMaintenanceSDO.
+      RUN hideObject IN hMaintenanceObject.
+      ASSIGN hColumn= hBrowse:FIRST-COLUMN.
+      DO WHILE VALID-HANDLE(hColumn):
+        IF LOOKUP(hColumn:NAME,cOnlyCombo) = 0 THEN
+          ASSIGN hColumn:VISIBLE = FALSE.
+        IF hColumn:NAME = "iBrowseFieldSeq" THEN
+          hColumn:LABEL = "Display Seq.".
+        hColumn = hColumn:NEXT-COLUMN.
+      END.
+    END.
+
+  APPLY "CHOOSE":U TO buRefresh.
+  glChangesMade = FALSE.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1128,7 +1237,7 @@ DO:
   ASSIGN fiObjectName.
   IF fiObjectName <> "":U AND
      fiObjectName <> gcOldObjectName THEN DO:
-    RUN getObjectDetails (INPUT fiObjectName).
+    RUN getObjectDetail (INPUT fiObjectName).
     gcOldObjectName = fiObjectName.
     glChangesMade = FALSE.
   END.
@@ -1144,9 +1253,9 @@ DO:
   ASSIGN fiObjectName.
   IF fiObjectName <> "":U OR
      DYNAMIC-FUNCTION("getDataValue":U IN hTemplateObject) <> "":U THEN
-    DISABLE raSDFType WITH FRAME {&FRAME-NAME}.
+    DISABLE coObjType WITH FRAME {&FRAME-NAME}.
   ELSE
-    ENABLE raSDFType WITH FRAME {&FRAME-NAME}.
+    ENABLE coObjType WITH FRAME {&FRAME-NAME}.
   DYNAMIC-FUNCTION("setDataValue":U IN hObjectName, fiObjectName).
 END.
 
@@ -1181,7 +1290,6 @@ END.
 ON VALUE-CHANGED OF raFlag IN FRAME frMain
 DO:
   ASSIGN raFlag.
-
   IF raFlag = "":U THEN
     ASSIGN fiDefaultValue:SCREEN-VALUE = "":U
            fiDefaultValue:SENSITIVE    = FALSE.
@@ -1194,107 +1302,15 @@ END.
 &ANALYZE-RESUME
 
 
-&Scoped-define SELF-NAME raSDFType
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL raSDFType vTableWin
-ON VALUE-CHANGED OF raSDFType IN FRAME frMain
-DO:
-  DEFINE VARIABLE hBrowse AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hColumn AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cAnswer AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cButton AS CHARACTER  NO-UNDO.
-
-  IF glChangesMade AND NOT glInitialize THEN DO:
-    RUN askQuestion IN gshSessionManager (INPUT "Your changes have not been saved yet. Would you like to save it now?",      /* messages */
-                                          INPUT "&Yes,&No":U,     /* button list */
-                                          INPUT "&No":U,          /* default */
-                                          INPUT "&No":U,          /* cancel */
-                                          INPUT "Question":U,     /* title */
-                                          INPUT "":U,             /* datatype */
-                                          INPUT "":U,             /* format */
-                                          INPUT-OUTPUT cAnswer,   /* answer */
-                                          OUTPUT cButton          /* button pressed */
-                                          ).
-    IF cButton = "&YES":U THEN
-      APPLY "CHOOSE":U TO buSave IN FRAME {&FRAME-NAME}.
-  END.
-  
-  APPLY "CHOOSE":U TO buClear IN FRAME {&FRAME-NAME}.
-  ASSIGN raSDFType.
-
-  hBrowse = BrBrowse:HANDLE.
-
-  CASE raSDFType:
-    WHEN "DynLookup":U THEN DO:
-      ASSIGN fiObjectName:LABEL = "Lookup Name".
-      ASSIGN fiRowsToBatch:HIDDEN       = FALSE
-             fiTextLabel:HIDDEN         = FALSE
-             fiRowsToBatch:SCREEN-VALUE = "200":U
-             coDisplayedField:HIDDEN    = FALSE
-             fiBrowseTitle:HIDDEN       = FALSE
-             fiDescSubstitute:HIDDEN    = TRUE
-             raFlag:HIDDEN              = TRUE
-             fiDefaultValue:HIDDEN      = TRUE
-             fiBuildSeq:HIDDEN          = TRUE
-             fiInnerLines:HIDDEN        = TRUE
-             fiDescSubstitute:SCREEN-VALUE = "":U.
-        RUN viewObject IN hMaintenanceSDO.
-        RUN viewObject IN hMaintenanceObject.
-        ASSIGN hColumn= hBrowse:FIRST-COLUMN.
-        DO WHILE VALID-HANDLE(hColumn):
-          IF LOOKUP(hColumn:NAME,cOnlyCombo) = 0 THEN
-            ASSIGN hColumn:VISIBLE = TRUE.
-          IF hColumn:NAME = "iBrowseFieldSeq" THEN
-            hColumn:LABEL = "Browse Seq.".
-          hColumn = hColumn:NEXT-COLUMN.
-        END.
-    END.
-    WHEN "DynCombo":U THEN DO:
-      ASSIGN fiObjectName:LABEL = "Combo Name".
-      ASSIGN fiRowsToBatch:HIDDEN       = TRUE
-             fiTextLabel:HIDDEN        = TRUE
-             fiDescSubstitute:HIDDEN   = FALSE
-             raFlag:HIDDEN             = FALSE
-             fiDefaultValue:HIDDEN     = FALSE
-             fiBuildSeq:HIDDEN         = FALSE
-             fiInnerLines:HIDDEN       = FALSE
-             fiInnerLines:SCREEN-VALUE = "5":U
-             fiInnerLines:SENSITIVE    = TRUE
-             fiBuildSeq:SENSITIVE      = TRUE
-             raFlag:SENSITIVE          = TRUE
-             coDisplayedField:HIDDEN   = TRUE
-             fiBrowseTitle:HIDDEN      = TRUE.
-      RUN hideObject IN hMaintenanceSDO.
-      RUN hideObject IN hMaintenanceObject.
-      ASSIGN hColumn= hBrowse:FIRST-COLUMN.
-      DO WHILE VALID-HANDLE(hColumn):
-        IF LOOKUP(hColumn:NAME,cOnlyCombo) = 0 THEN
-          ASSIGN hColumn:VISIBLE = FALSE.
-        IF hColumn:NAME = "iBrowseFieldSeq" THEN
-          hColumn:LABEL = "Display Seq.".
-        hColumn = hColumn:NEXT-COLUMN.
-      END.
-    END.
-  END CASE.
-  APPLY "CHOOSE":U TO buRefresh.
-  glChangesMade = FALSE.
-
-END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
 &UNDEFINE SELF-NAME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK vTableWin 
 
 
 /* ***************************  Main Block  *************************** */
-
-  &IF DEFINED(UIB_IS_RUNNING) <> 0 &THEN          
+  &IF DEFINED(UIB_IS_RUNNING) <> 0 &THEN     
     RUN initializeObject.
   &ENDIF         
-
   /************************ INTERNAL PROCEDURES ********************/
 
 /* _UIB-CODE-BLOCK-END */
@@ -1328,9 +1344,9 @@ PROCEDURE adm-create-objects :
                      gsc_product_module.product_module_code BEGINS "GS":U  OR
                      gsc_product_module.product_module_code BEGINS "AS":U  OR
                      gsc_product_module.product_module_code BEGINS "RTB":U   )
-                     ELSE TRUEDescSubstitute&1 / &2CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines5ComboFlagFlagValueBuildSequence1SecurednoFieldName<Local>DisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     ELSE TRUEDescSubstitute&1 / &2CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldName<Local>DisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hProductModule ).
-       RUN repositionObject IN hProductModule ( 1.86 , 23.80 ) NO-ERROR.
+       RUN repositionObject IN hProductModule ( 2.05 , 23.80 ) NO-ERROR.
        RUN resizeObject IN hProductModule ( 1.00 , 50.00 ) NO-ERROR.
 
        RUN constructObject (
@@ -1339,15 +1355,13 @@ PROCEDURE adm-create-objects :
              INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.object_filenameFieldLabelUse TemplateFieldTooltipPress F4 For LookupKeyFormatX(70)KeyDatatypecharacterDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_smartobject NO-LOCK,
                      FIRST gsc_object_type NO-LOCK
                      WHERE gsc_object_type.object_type_obj = ryc_smartobject.object_type_obj,
-                     FIRST gsc_object NO-LOCK
-                     WHERE gsc_object.object_obj = ryc_smartobject.object_obj,
                      FIRST gsc_product_module NO-LOCK
-                     WHERE gsc_product_module.product_module_obj = gsc_object.product_module_obj,
+                     WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj,
                      FIRST gsc_product NO-LOCK
                      WHERE gsc_product.product_obj = gsc_product_module.product_obj
-                     BY gsc_product.product_code BY gsc_product_module.product_module_code BY ryc_smartobject.object_filenameQueryTablesryc_smartobject,gsc_object_type,gsc_object,gsc_product_module,gsc_productBrowseFieldsgsc_product.product_code,gsc_product_module.product_module_code,ryc_smartobject.object_filename,gsc_object.object_description,gsc_object_type.object_type_descriptionBrowseFieldDataTypescharacter,character,character,character,characterBrowseFieldFormatsX(10),X(10),X(70),X(35),X(35)RowsToBatch200BrowseTitleLookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNamett2SDFTemplateLookupImageadeicon/select.bmpParentFieldraSDFTypeParentFilterQuerygsc_object_type.object_type_code = ~'&1~'MaintenanceObjectMaintenanceSDOFieldName<Local>DisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY gsc_product.product_code BY gsc_product_module.product_module_code BY ryc_smartobject.object_filenameQueryTablesryc_smartobject,gsc_object_type,gsc_product_module,gsc_productBrowseFieldsgsc_product.product_code,gsc_product_module.product_module_code,ryc_smartobject.object_filename,ryc_smartobject.object_description,gsc_object_type.object_type_descriptionBrowseFieldDataTypescharacter,character,character,character,characterBrowseFieldFormatsX(10),X(10),X(70),X(35),X(35)RowsToBatch200BrowseTitleLookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldraSDFTypeParentFilterQuerygsc_object_type.object_type_code = ~'&1~'MaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldName<Local>DisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hTemplateObject ).
-       RUN repositionObject IN hTemplateObject ( 2.91 , 23.80 ) NO-ERROR.
+       RUN repositionObject IN hTemplateObject ( 3.10 , 23.80 ) NO-ERROR.
        RUN resizeObject IN hTemplateObject ( 1.00 , 50.00 ) NO-ERROR.
 
        RUN constructObject (
@@ -1356,49 +1370,64 @@ PROCEDURE adm-create-objects :
              INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.object_filenameFieldLabelFieldTooltipPress F4 For SDF LookupKeyFormatX(70)KeyDatatypecharacterDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_smartobject NO-LOCK,
                      FIRST gsc_object_type NO-LOCK
                      WHERE gsc_object_type.object_type_obj = ryc_smartobject.object_type_obj,
-                     FIRST gsc_object NO-LOCK
-                     WHERE gsc_object.object_obj = ryc_smartobject.object_obj,
                      FIRST gsc_product_module NO-LOCK
-                     WHERE gsc_product_module.product_module_obj = gsc_object.product_module_obj,
+                     WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj,
                      FIRST gsc_product NO-LOCK
                      WHERE gsc_product.product_obj = gsc_product_module.product_obj
-                     BY gsc_product.product_code BY gsc_product_module.product_module_code BY ryc_smartobject.object_filenameQueryTablesryc_smartobject,gsc_object_type,gsc_object,gsc_product_module,gsc_productBrowseFieldsgsc_product.product_code,gsc_product_module.product_module_code,ryc_smartobject.object_filename,gsc_object.object_description,gsc_object_type.object_type_descriptionBrowseFieldDataTypescharacter,character,character,character,characterBrowseFieldFormatsX(10),X(10),X(70),X(35),X(35)RowsToBatch200BrowseTitleLookup Dynamic SDFViewerLinkedFieldsryc_smartobject.object_filenameLinkedFieldDataTypescharacterLinkedFieldFormatsX(70)ViewerLinkedWidgetsfiObjectNameColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldraSDFTypeParentFilterQuerygsc_object_type.object_type_code = ~'&1~'MaintenanceObjectMaintenanceSDOFieldName<Local>DisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY gsc_product.product_code BY gsc_product_module.product_module_code BY ryc_smartobject.object_filenameQueryTablesryc_smartobject,gsc_object_type,gsc_product_module,gsc_productBrowseFieldsgsc_product.product_code,gsc_product_module.product_module_code,ryc_smartobject.object_filename,ryc_smartobject.object_description,gsc_object_type.object_type_descriptionBrowseFieldDataTypescharacter,character,character,character,characterBrowseFieldFormatsX(10),X(10),X(70),X(35),X(35)RowsToBatch200BrowseTitleLookup Dynamic SDFViewerLinkedFieldsryc_smartobject.object_filenameLinkedFieldDataTypescharacterLinkedFieldFormatsX(70)ViewerLinkedWidgetsfiObjectNameColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldraSDFTypeParentFilterQuerygsc_object_type.object_type_code = ~'&1~'MaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldName<Local>DisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hObjectName ).
-       RUN repositionObject IN hObjectName ( 3.95 , 23.80 ) NO-ERROR.
+       RUN repositionObject IN hObjectName ( 4.14 , 23.80 ) NO-ERROR.
        RUN resizeObject IN hObjectName ( 1.00 , 50.00 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_object.object_filenameKeyFieldgsc_object.object_filenameFieldLabelMaintenance SDOFieldTooltipPress F4 For Maintenance SDO LookupKeyFormatX(35)KeyDatatypecharacterDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type NO-LOCK
+             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.object_filenameFieldLabelMaintenance SDOFieldTooltipPress F4 For Maintenance SDO LookupKeyFormatX(70)KeyDatatypecharacterDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type NO-LOCK
                      WHERE gsc_object_type.object_type_code = "SDO":U
+                     OR gsc_object_type.object_type_code = "dynSDO":U
                      OR gsc_object_type.object_type_code = "SBO":U,
-                     EACH gsc_object NO-LOCK
-                     WHERE gsc_object.object_type_obj = gsc_object_type.object_type_obj,
+                     EACH ryc_smartobject NO-LOCK
+                     WHERE ryc_smartobject.object_type_obj = gsc_object_type.object_type_obj,
                      FIRST gsc_product_module NO-LOCK
-                     WHERE gsc_product_module.product_module_obj = gsc_object.product_module_obj,
+                     WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj,
                      FIRST gsc_product NO-LOCK
                      WHERE gsc_product.product_obj = gsc_product_module.product_obj
-                     BY gsc_product.product_code BY gsc_product_module.product_module_code BY gsc_object.object_filenameQueryTablesgsc_object_type,gsc_object,gsc_product_module,gsc_productBrowseFieldsgsc_product.product_code,gsc_product_module.product_module_code,gsc_object.object_filename,gsc_object.object_description,gsc_object_type.object_type_descriptionBrowseFieldDataTypescharacter,character,character,character,characterBrowseFieldFormatsX(10),X(10),X(35),X(35),X(35)RowsToBatch200BrowseTitleLookup Maintenance SDOViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOFieldName<Local>DisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY gsc_product.product_code BY gsc_product_module.product_module_code BY ryc_smartobject.object_filenameQueryTablesgsc_object_type,ryc_smartobject,gsc_product_module,gsc_productBrowseFieldsgsc_product.product_code,gsc_product_module.product_module_code,ryc_smartobject.object_filename,ryc_smartobject.object_description,gsc_object_type.object_type_descriptionBrowseFieldDataTypescharacter,character,character,character,characterBrowseFieldFormatsX(10),X(10),X(70),X(35),X(35)RowsToBatch200BrowseTitleLookup Maintenance SDOViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldName<Local>DisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hMaintenanceSDO ).
-       RUN repositionObject IN hMaintenanceSDO ( 22.52 , 23.40 ) NO-ERROR.
+       RUN repositionObject IN hMaintenanceSDO ( 21.57 , 23.00 ) NO-ERROR.
        RUN resizeObject IN hMaintenanceSDO ( 1.00 , 50.00 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_object.object_filenameKeyFieldgsc_object.object_filenameFieldLabelMaintenenace ObjectFieldTooltipPress F4 For Maintenance Object LookupKeyFormatX(35)KeyDatatypecharacterDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object NO-LOCK
-                     WHERE gsc_object.container_object = TRUE,
+             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.object_filenameFieldLabelMaintenenace ObjectFieldTooltipPress F4 For Maintenance Object LookupKeyFormatX(35)KeyDatatypecharacterDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_smartobject NO-LOCK
+                     WHERE ryc_smartobject.container_object = TRUE,
                      FIRST gsc_object_type NO-LOCK
-                     WHERE gsc_object_type.object_type_obj = gsc_object.object_type_obj,
+                     WHERE gsc_object_type.object_type_obj = ryc_smartobject.object_type_obj,
                      FIRST gsc_product_module NO-LOCK
-                     WHERE gsc_product_module.product_module_obj = gsc_object.product_module_obj,
+                     WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj,
                      FIRST gsc_product NO-LOCK
                      WHERE gsc_product.product_obj = gsc_product_module.product_obj
-                     BY gsc_product.product_code BY gsc_product_module.product_module_code BY gsc_object.object_filenameQueryTablesgsc_object,gsc_object_type,gsc_product_module,gsc_productBrowseFieldsgsc_product.product_code,gsc_product_module.product_module_code,gsc_object.object_filename,gsc_object.object_description,gsc_object_type.object_type_descriptionBrowseFieldDataTypescharacter,character,character,character,characterBrowseFieldFormatsX(10),X(10),X(35),X(35),X(35)RowsToBatch200BrowseTitleLookup Maintenance ObjectViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOFieldName<Local>DisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY gsc_product.product_code BY gsc_product_module.product_module_code BY ryc_smartobject.object_filenameQueryTablesryc_smartobject,gsc_object_type,gsc_product_module,gsc_productBrowseFieldsgsc_product.product_code,gsc_product_module.product_module_code,ryc_smartobject.object_filename,ryc_smartobject.object_description,gsc_object_type.object_type_descriptionBrowseFieldDataTypescharacter,character,character,character,characterBrowseFieldFormatsX(10),X(10),X(35),X(35),X(35)RowsToBatch200BrowseTitleLookup Maintenance ObjectViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldName<Local>DisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hMaintenanceObject ).
-       RUN repositionObject IN hMaintenanceObject ( 23.57 , 23.40 ) NO-ERROR.
+       RUN repositionObject IN hMaintenanceObject ( 22.62 , 23.00 ) NO-ERROR.
        RUN resizeObject IN hMaintenanceObject ( 1.00 , 50.00 ) NO-ERROR.
+
+       RUN constructObject (
+             INPUT  'adm2/dynlookup.w':U ,
+             INPUT  FRAME frMain:HANDLE ,
+             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.smartobject_objFieldLabelCustom Super ProcFieldTooltipPress F4 For Custom Super Procedure LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type NO-LOCK
+                     WHERE gsc_object_type.object_type_code = ~'Procedure~',
+                     EACH ryc_smartobject NO-LOCK
+                     WHERE ryc_smartobject.object_type_obj = gsc_object_type.object_type_obj,
+                     FIRST gsc_product_module NO-LOCK
+                     WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj,
+                     FIRST gsc_product NO-LOCK
+                     WHERE gsc_product.product_obj = gsc_product_module.product_obj
+                     BY gsc_product.product_code BY gsc_product_module.product_module_code BY ryc_smartobject.object_filenameQueryTablesgsc_object_type,ryc_smartobject,gsc_product_module,gsc_productBrowseFieldsgsc_product.product_code,gsc_product_module.product_module_code,ryc_smartobject.object_filename,ryc_smartobject.object_description,gsc_object_type.object_type_description,ryc_smartobject.object_pathBrowseFieldDataTypescharacter,character,character,character,character,characterBrowseFieldFormatsX(10),X(10),X(70),X(35),X(35),X(70)RowsToBatch200BrowseTitleLookup Custom Super ProcedureViewerLinkedFieldsryc_smartobject.object_pathLinkedFieldDataTypescharacterLinkedFieldFormatsX(70)ViewerLinkedWidgetsfiRelativePathColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldName<Local>DisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT hSuperProc ).
+       RUN repositionObject IN hSuperProc ( 26.33 , 23.00 ) NO-ERROR.
+       RUN resizeObject IN hSuperProc ( 1.00 , 50.00 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */
        RUN adjustTabOrder ( hProductModule ,
@@ -1411,6 +1440,8 @@ PROCEDURE adm-create-objects :
              fiDefaultValue:HANDLE IN FRAME frMain , 'AFTER':U ).
        RUN adjustTabOrder ( hMaintenanceObject ,
              fiInnerLines:HANDLE IN FRAME frMain , 'AFTER':U ).
+       RUN adjustTabOrder ( hSuperProc ,
+             buClose:HANDLE IN FRAME frMain , 'AFTER':U ).
     END. /* Page 0 */
 
   END CASE.
@@ -1427,12 +1458,9 @@ PROCEDURE assignComboValues :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-
   DEFINE VARIABLE lOk                                 AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE iEntry                              AS INTEGER    NO-UNDO.
-
   DEFINE BUFFER bttFields FOR ttFields.
-
   DO WITH FRAME {&FRAME-NAME}:
     /* Remove trailing colons and full stops */
     ASSIGN
@@ -1457,7 +1485,6 @@ PROCEDURE assignComboValues :
       fiDefaultValue
       fiBuildSeq.
     ASSIGN raFlag.
-
     IF fiFieldToolTip = "":U THEN
       ASSIGN fiFieldToolTip = "Select option from list"
              fiFieldToolTip:SCREEN-VALUE = fiFieldToolTip.
@@ -1466,7 +1493,7 @@ PROCEDURE assignComboValues :
       gcDisplayFormat = "":U
       gcDisplayDataType = "":U
       .
-  
+
     ASSIGN
       gcBaseQuery = edQuery
       .
@@ -1479,21 +1506,23 @@ PROCEDURE assignComboValues :
                               bttFields.cFieldName
           gcDisplayDataType = bttFields.cFieldDataType
           gcDisplayFormat   = bttFields.cFieldFormat.
-
     END.
     
+    ASSIGN 
+      gcLDisplayFormat   = IF NUM-ENTRIES(gcDisplayedFields) > 1 THEN "X(256)":U ELSE gcDisplayFormat
+      gcLKeyDataType     = fiFieldDatatype
+      gcLDisplayDatatype = gcDisplayDataType.
+
     /* If more than one field is displayed in the combo, 
        it should be made CHARACTER since all the values
        will be concatenated */
     IF NUM-ENTRIES(gcDisplayedFields) > 1 THEN
       ASSIGN gcDisplayDataType = "CHARACTER":U
              gcDisplayFormat   = "X(256)":U.
-
     ASSIGN lOk = TRUE.
     RUN validateData (OUTPUT lOk).
     IF NOT lOk THEN RETURN "ERROR":U.
   END.
-
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1506,12 +1535,9 @@ PROCEDURE assignLookupValues :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-
   DEFINE VARIABLE lOk                                 AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE iEntry                              AS INTEGER    NO-UNDO.
-
   DEFINE BUFFER bttFields FOR ttFields.
-
   DO WITH FRAME {&FRAME-NAME}:
     /* Remove trailing colons and full stops */
     ASSIGN
@@ -1574,14 +1600,11 @@ PROCEDURE assignLookupValues :
                            (IF gcBrowseFieldDataTypes = "":U THEN "":U ELSE ",":U) +
                            bttFields.cFieldDataType
           gcBrowseFieldFormats = gcBrowseFieldFormats +
-                           (IF gcBrowseFieldFormats = "":U THEN "":U ELSE ",":U) +
+                           (IF gcBrowseFieldFormats = "":U THEN "":U ELSE "|":U) +
                            bttFields.cFieldFormat
-          gcColumnLabels   = gcColumnLabels + 
-                           (IF gcColumnLabels = "":U THEN "":U ELSE ",":U) +
-                           bttFields.cColumnLabels
-          gcColumnFormat   = gcColumnFormat + 
-                           (IF gcColumnFormat = "":U THEN "":U ELSE ",":U) +
-                           bttFields.cColumnFormat
+        gcColumnLabels   = gcColumnLabels + bttFields.cColumnLabels + ",":U
+        gcColumnFormat   = gcColumnFormat + bttFields.cColumnFormat + "|":U
+
           .                         
       IF bttFields.lLinkedField THEN
         ASSIGN
@@ -1602,11 +1625,20 @@ PROCEDURE assignLookupValues :
   
     END.
   
+    /* Trim the extra ',' and '|' from the lists */
+    ASSIGN gcColumnLabels = RIGHT-TRIM(gcColumnLabels,",":U)
+           gcColumnFormat = RIGHT-TRIM(gcColumnFormat,"|":U).
+
+    /* Clear these fields if nothing has been assigned to them */
+    IF gcColumnLabels = FILL(",":U,NUM-ENTRIES(gcBrowseFields) - 1) THEN
+      gcColumnLabels = "":U.
+    IF gcColumnFormat = FILL("|":U,NUM-ENTRIES(gcBrowseFields) - 1) THEN
+      gcColumnFormat = "":U.
+    
     ASSIGN lOk = TRUE.
     RUN validateData (OUTPUT lOk).
     IF NOT lOk THEN RETURN "ERROR":U.
   END.
-
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1619,12 +1651,9 @@ PROCEDURE confirmExit :
   Parameters:  
   Notes:       
 ------------------------------------------------------------------------------*/
-
   DEFINE INPUT-OUTPUT PARAMETER plCancel AS LOGICAL NO-UNDO.
-
   DEFINE VARIABLE cButton AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cAnswer AS CHARACTER  NO-UNDO.
-
   /* Code placed here will execute PRIOR to standard behavior. */
   IF glChangesMade THEN DO:
     RUN askQuestion IN gshSessionManager (INPUT "Your changes have not been saved yet. Would you like to save it now?",      /* messages */
@@ -1637,14 +1666,14 @@ PROCEDURE confirmExit :
                                           INPUT-OUTPUT cAnswer,   /* answer */
                                           OUTPUT cButton          /* button pressed */
                                           ).
-    IF cButton = "&YES":U THEN 
+    IF cButton = "&YES":U THEN DO:
+      plCancel = FALSE.
       APPLY "CHOOSE":U TO buSave IN FRAME {&FRAME-NAME}.
+    END.
   END.
-
+  RUN freeTableHandles.
   RUN SUPER( INPUT-OUTPUT plCancel).
-
   /* Code placed here will execute AFTER standard behavior.    */
-
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1668,162 +1697,232 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getObjectDetails vTableWin 
-PROCEDURE getObjectDetails :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE freeTableHandles vTableWin 
+PROCEDURE freeTableHandles :
 /*------------------------------------------------------------------------------
   Purpose:     
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE INPUT  PARAMETER pcObjectName AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hObjectQuery            AS HANDLE                   NO-UNDO.
+  DEFINE VARIABLE hDestroyObject          AS HANDLE                   NO-UNDO.
+  DEFINE VARIABLE cObjectHandles          AS CHARACTER                NO-UNDO.
+  DEFINE VARIABLE iHandleLoop             AS INTEGER                  NO-UNDO.
 
-  DEFINE VARIABLE cButton       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cProdCode     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cProdModCode  AS CHARACTER  NO-UNDO.
   
-  FIND FIRST ryc_smartobject
-       WHERE ryc_smartobject.object_filename = pcObjectName
-       NO-LOCK NO-ERROR.
-  IF NOT AVAILABLE ryc_smartobject THEN DO:
-    ASSIGN NO-ERROR. /* To clear the error-status */
+  /** Destroy all dynamic temp-tables used by this procedure.
+   *  ----------------------------------------------------------------------- **/
+  CREATE WIDGET-POOL "destroyObject":U.
+  CREATE QUERY hObjectQuery IN WIDGET-POOL "destroyObject":U.
+  IF VALID-HANDLE(ghBufferCacheBuffer) THEN DO:
+    hObjectQuery:ADD-BUFFER(ghBufferCacheBuffer).
+    hObjectQuery:QUERY-PREPARE(" FOR EACH ":U + ghBufferCacheBuffer:NAME).
+  
+    hObjectQuery:QUERY-OPEN().
+    hObjectQuery:GET-FIRST().
+  
+    DO WHILE ghBufferCacheBuffer:AVAILABLE:
+        ASSIGN cObjectHandles = cObjectHandles + (IF NUM-ENTRIES(cObjectHandles) EQ 0 THEN "":U ELSE ",":U)
+                              + STRING(ghBufferCacheBuffer:BUFFER-FIELD("tBufferHandle":U):BUFFER-VALUE).
+        hObjectQuery:GET-NEXT().
+    END.    /* available objects */
+    hObjectQuery:QUERY-CLOSE().  
+  END.
+
+  DELETE WIDGET-POOL "destroyObject":U.
+  
+  /** Close all super procedures and Temp-tables marked for destruction. 
+   *  ----------------------------------------------------------------------- **/
+  DO iHandleLoop = 1 TO NUM-ENTRIES(cObjectHandles):
+      ASSIGN hDestroyObject = WIDGET-HANDLE(ENTRY(iHandleLoop, cObjectHandles)).
+
+      IF VALID-HANDLE(hDestroyObject) THEN
+      DO:
+          DELETE OBJECT hDestroyObject NO-ERROR.
+          ASSIGN hDestroyObject = ?.
+      END.    /* valid handle  */
+  END.    /* handle loop */
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getObjectDetail vTableWin 
+PROCEDURE getObjectDetail :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER pcLogicalObjectName AS CHARACTER  NO-UNDO.
+
+  DEFINE VARIABLE iEntry                      AS INTEGER     NO-UNDO.
+  DEFINE VARIABLE cDataTargets                AS CHARACTER   NO-UNDO.
+  DEFINE VARIABLE cSdoForeignFields           AS CHARACTER   NO-UNDO.
+  DEFINE VARIABLE cInitialPageList            AS CHARACTER   NO-UNDO.
+  DEFINE VARIABLE hDataTarget                 AS HANDLE      NO-UNDO.
+  DEFINE VARIABLE hObjectBuffer               AS HANDLE      NO-UNDO.
+  DEFINE VARIABLE hPageBuffer                 AS HANDLE      NO-UNDO.
+  DEFINE VARIABLE hPageInstanceBuffer         AS HANDLE      NO-UNDO.
+  DEFINE VARIABLE hLinkBuffer                 AS HANDLE      NO-UNDO.  
+  DEFINE VARIABLE hClassAttributeBuffer       AS HANDLE      NO-UNDO.
+  DEFINE VARIABLE dContainerRecordIdentifier  AS DECIMAL     NO-UNDO.
+  
+  DEFINE VARIABLE iFieldLoop                  AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hObjectQuery                AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hTableQuery                 AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cAttrList                   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cMessageList                AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cMessage                    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cButton                     AS CHARACTER  NO-UNDO.
+
+  DEFINE VARIABLE cDataset                    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE dSmartObjectObj             AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE dProductModuleObj           AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE cProductModuleCode          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cCustomSuperProcedure       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE dCustomSuperProcedureObj    AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE cObjectDescription          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE dObjectTypeObj              AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE cObjectType                 AS CHARACTER  NO-UNDO.
+
+  /* Code placed here will execute PRIOR to standard behavior. */
+  
+  ASSIGN gcLogicalObjectName =  pcLogicalObjectName.
+
+  /* Since we are developing it might be usefull to clear the cache everytime before
+     getting new information */
+  
+  RUN clearClientCache IN gshRepositoryManager.
+  
+  IF NOT DYNAMIC-FUNCTION("fetchObjectDetail":U) THEN
+  DO:
+    /* We might be adding a new object */
+    /*
+    cMessage = "Could find details for this Smart Data Field " + pcLogicalObjectName.
+    cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
+                  {af/sup2/aferrortxt.i 'AF' '11' '' '' '"SmartObject Record"' '"the name you specified"'}.
+     
+    RUN showMessages IN gshSessionManager (INPUT cMessageList,
+                                           INPUT "ERR":U,
+                                           INPUT "OK":U,
+                                           INPUT "OK":U,
+                                           INPUT "OK":U,
+                                           INPUT "Error - Object not found",
+                                           INPUT YES,
+                                           INPUT ?,
+                                           OUTPUT cButton).
+    */
+    RETURN.
+    
+  END.    /* errors fdetching object detail. */
+
+  ASSIGN hObjectBuffer       = DYNAMIC-FUNCTION("getBufferHandle", INPUT "return_Object":U)
+         hPageBuffer         = DYNAMIC-FUNCTION("getBufferHandle", INPUT "return_ObjectPage":U)
+         hPageInstanceBuffer = DYNAMIC-FUNCTION("getBufferHandle", INPUT "return_ObjectPageInstance":U)
+         hLinkBuffer         = DYNAMIC-FUNCTION("getBufferHandle", INPUT "return_ObjectLink":U)
+         .
+  /* Container Attribute Values */
+  hObjectBuffer:FIND-FIRST(" WHERE ":U
+                           + hObjectBuffer:NAME + ".tContainerObjectName = '":U + gcLogicalObjectName                + "' AND ":U
+                           + hObjectBuffer:NAME + ".tLogicalObjectName   = '":U + gcLogicalObjectName                + "' AND ":U
+                           + hObjectBuffer:NAME + ".tResultCode          = '":U + gcSessionResultCodes               + "' AND ":U
+                           + hObjectBuffer:NAME + ".tUserObj             = ":U  + TRIM(QUOTER(gdCurrentUserObj))     + " AND ":U
+                           + hObjectBuffer:NAME + ".tRunAttribute        = '' AND ":U
+                           + hObjectBuffer:NAME + ".tLanguageObj         = ":U  + TRIM(QUOTER(gdCurrentLanguageObj)) + " ":U
+                            ) NO-ERROR.
+  IF NOT hObjectBuffer:AVAILABLE  THEN RETURN.
+
+  ASSIGN hClassAttributeBuffer      = hObjectBuffer:BUFFER-FIELD("tClassBufferHandle":U):BUFFER-VALUE
+         dContainerRecordIdentifier = hObjectBuffer:BUFFER-FIELD("tRecordIdentifier":U):BUFFER-VALUE
+         .
+  ASSIGN cCustomSuperProcedure = hObjectBuffer:BUFFER-FIELD("tCustomSuperProcedure":U):BUFFER-VALUE
+         dSmartObjectObj       = DYNAMIC-FUNCTION("getSmartObjectObj":U IN ghRepositoryDesignManager, pcLogicalObjectName, 0).
+  
+  hClassAttributeBuffer:FIND-FIRST(" WHERE ":U + hClassAttributeBuffer:NAME + ".tRecordIdentifier = " + TRIM(QUOTER(dContainerRecordIdentifier))) NO-ERROR.
+  
+  cAttrList = "":U.
+  /* Create Attributes for main Object */
+  IF hClassAttributeBuffer:AVAILABLE THEN
+  DO iFieldLoop = 1 TO hClassAttributeBuffer:NUM-FIELDS:
+    /* Setting the container mode for a viewer is giving me hassels in datavis.p */
+    IF hClassAttributeBuffer:BUFFER-FIELD(ifieldLoop):NAME = "ContainerMode" THEN
+      NEXT.
+    setAttrValues(hClassAttributeBuffer:BUFFER-FIELD(ifieldLoop):NAME,STRING(hClassAttributeBuffer:BUFFER-FIELD(iFieldLoop):BUFFER-VALUE)).
+  END.    /* loop through fields */
+  
+  /* Get Object's Product Module */
+  RUN getRecordDetail IN gshGenManager ( INPUT "FOR EACH ryc_smartobject 
+                                                WHERE ryc_smartobject.smartobject_obj = " + TRIM(QUOTER(dSmartObjectObj)) + " NO-LOCK ":U,
+                                         OUTPUT cDataset ).
+  ASSIGN dProductModuleObj        = 0
+         cObjectDescription       = "":U
+         dObjectTypeObj           = 0
+         dCustomSuperProcedureObj = 0.
+  IF cDataset <> "":U AND cDataset <> ? THEN 
+    ASSIGN dProductModuleObj        = DECIMAL(ENTRY(LOOKUP("ryc_smartobject.product_module_obj":U, cDataSet, CHR(3)) + 1 , cDataSet, CHR(3)))  
+           cObjectDescription       = ENTRY(LOOKUP("ryc_smartobject.object_description":U, cDataSet, CHR(3)) + 1 , cDataSet, CHR(3)) 
+           dObjectTypeObj           = DECIMAL(ENTRY(LOOKUP("ryc_smartobject.object_type_obj":U, cDataSet, CHR(3)) + 1 , cDataSet, CHR(3)))
+           dCustomSuperProcedureObj = DECIMAL(ENTRY(LOOKUP("ryc_smartobject.custom_smartobject_obj":U, cDataSet, CHR(3)) + 1 , cDataSet, CHR(3)))
+           NO-ERROR.
+
+  /* Get Object Type */
+  RUN getRecordDetail IN gshGenManager ( INPUT "FOR EACH gsc_object_type 
+                                                WHERE gsc_object_type.object_type_obj = " + TRIM(QUOTER(dObjectTypeObj)) + " NO-LOCK ":U,
+                                         OUTPUT cDataset ).
+
+  ASSIGN cObjectType = "":U.
+  IF cDataset <> "":U AND cDataset <> ? THEN 
+    ASSIGN cObjectType = ENTRY(LOOKUP("gsc_object_type.object_type_code":U, cDataSet, CHR(3)) + 1 , cDataSet, CHR(3)) NO-ERROR.
+  
+  /* Get Product Module Code */
+  RUN getRecordDetail IN gshGenManager ( INPUT "FOR EACH gsc_product_module 
+                                                WHERE gsc_product_module.product_module_obj = " + TRIM(QUOTER(dProductModuleObj)) + " NO-LOCK ":U,
+                                         OUTPUT cDataset ).
+
+  ASSIGN cProductModuleCode = "":U.
+  IF cDataset <> "":U AND cDataset <> ? THEN 
+    ASSIGN cProductModuleCode = ENTRY(LOOKUP("gsc_product_module.product_module_code":U, cDataSet, CHR(3)) + 1 , cDataSet, CHR(3)) NO-ERROR.
+  
+  IF  LOOKUP(cObjectType, cLookupChildClasses) = 0 
+  AND LOOKUP(cObjectType, cComboChildClasses)  = 0 
+  THEN DO:     
+    RUN showMessages IN gshSessionManager (INPUT  "The SmartObject specified " + pcLogicalObjectName + " is not a valid SDF object - valid types are Dynamic Combo and Dynamic Lookup. " + cObjectType,    /* message to display */
+                                           INPUT  "ERR":U,          /* error type */
+                                           INPUT  "&OK,&Cancel":U,    /* button list */
+                                           INPUT  "&OK":U,           /* default button */ 
+                                           INPUT  "&Cancel":U,       /* cancel button */
+                                           INPUT  "Not a Valid SDF Object":U,             /* error window title */
+                                           INPUT  NO,              /* display if empty */ 
+                                           INPUT  ?,                /* container handle */ 
+                                           OUTPUT cButton           /* button pressed */
+                                          ).
     RETURN.
   END.
-  ELSE DO:
-    FIND FIRST gsc_object
-         WHERE gsc_object.object_obj = ryc_smartobject.object_obj
-         NO-LOCK NO-ERROR.
-    FIND FIRST gsc_object_type
-         WHERE gsc_object_type.object_type_obj = gsc_object.object_type_obj
-         NO-LOCK NO-ERROR.
-    IF AVAILABLE gsc_object_type AND 
-       (gsc_object_type.object_type_code <> "DynCombo" AND
-        gsc_object_type.object_type_code <> "DynLookup") THEN DO:
-      RUN showMessages IN gshSessionManager (INPUT  "The SmartObject specified " + pcObjectName + " is not a valid SDF object - valid types are Dynamic Combo and Dynamic Lookup.",    /* message to display */
-                                             INPUT  "ERR":U,          /* error type */
-                                             INPUT  "&OK,&Cancel":U,    /* button list */
-                                             INPUT  "&OK":U,           /* default button */ 
-                                             INPUT  "&Cancel":U,       /* cancel button */
-                                             INPUT  "Not a Valid SDF Object":U,             /* error window title */
-                                             INPUT  NO,              /* display if empty */ 
-                                             INPUT  ?,                /* container handle */ 
-                                             OUTPUT cButton           /* button pressed */
-                                            ).
 
-      RETURN.
-    END.
-    ELSE IF NOT AVAILABLE gsc_object_type THEN DO:
-      RUN showMessages IN gshSessionManager (INPUT  "The SmartObject specified " + pcObjectName + " does not have a valid object type.",    /* message to display */
-                                             INPUT  "ERR":U,          /* error type */
-                                             INPUT  "&OK,&Cancel":U,    /* button list */
-                                             INPUT  "&OK":U,           /* default button */ 
-                                             INPUT  "&Cancel":U,       /* cancel button */
-                                             INPUT  "Not a Valid Object Type":U,             /* error window title */
-                                             INPUT  NO,              /* display if empty */ 
-                                             INPUT  ?,                /* container handle */ 
-                                             OUTPUT cButton           /* button pressed */
-                                            ).
+  DELETE OBJECT hObjectQuery NO-ERROR.
+  ASSIGN hObjectQuery = ?.
 
-      RETURN.
-    END.
+  ASSIGN coObjType = cObjectType.
+  DISPLAY coObjType WITH FRAME {&FRAME-NAME}.
+  APPLY "VALUE-CHANGED":U TO coObjType IN FRAME {&FRAME-NAME}.
+  ASSIGN fiObjectName = pcLogicalObjectName.
+  DISPLAY fiObjectName WITH FRAME {&FRAME-NAME}.
+  APPLY "VALUE-CHANGED":U TO fiObjectName IN FRAME {&FRAME-NAME}.
 
-    ASSIGN raSDFType = gsc_object_type.object_type_code.
-    DISPLAY raSDFType WITH FRAME {&FRAME-NAME}.
-    APPLY "VALUE-CHANGED":U TO raSDFType IN FRAME {&FRAME-NAME}.
-    ASSIGN fiObjectName = pcObjectName.
-    DISPLAY fiObjectName WITH FRAME {&FRAME-NAME}.
-    APPLY "VALUE-CHANGED":U TO fiObjectName IN FRAME {&FRAME-NAME}.
-    FIND FIRST gsc_product_module
-         WHERE gsc_product_module.product_module_obj = gsc_object.product_module_obj
-         NO-LOCK NO-ERROR.
-    FOR EACH  ryc_attribute_value
-        WHERE ryc_attribute_value.smartobject_obj = ryc_smartobject.smartobject_obj
-        NO-LOCK:
-      CASE ryc_attribute_value.attribute_label:
-        WHEN "DisplayedField" THEN
-          gcLDisplayedField = DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value).
-        WHEN "KeyField" THEN
-          gcLKeyField = DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value).
-        WHEN "FieldLabel" THEN
-          gcLFieldLabel = DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value).
-        WHEN "FieldTooltip" THEN
-          gcLFieldTooltip = DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value).
-        WHEN "KeyFormat" THEN
-          gcLKeyFormat = DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value).
-        WHEN "KeyDataType" THEN
-          gcLKeyDataType = DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value).
-        WHEN "DisplayFormat" THEN
-          gcLDisplayFormat = DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value).
-        WHEN "DisplayDataType" THEN
-          gcLDisplayDataType = DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value).
-        WHEN "BaseQueryString" THEN
-          gcLBaseQueryString = DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value).
-        WHEN "QueryTables" THEN
-          gcLQueryTables = DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value).
-        WHEN "ParentField" THEN
-          gcLParentField = DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value).
-        WHEN "ParentFilterQuery" THEN
-          gcLParentFilterQuery = DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value).
-        /** Combo Specific Fields **/
-        WHEN "DescSubstitute" THEN
-          gcLDescSubstitute = DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value).
-        WHEN "ComboFlag" THEN
-          gcLComboFlag = DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value).
-        WHEN "FlagValue" THEN
-          gcLFlagValue = DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value).
-        WHEN "InnerLines" THEN
-          giLInnerLines = INTEGER(DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value)).
-        WHEN "BuildSequence" THEN
-          giLBuildSeq = INTEGER(DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value)).
-        /** Lookup Specific Fields **/
-        WHEN "BrowseFields" THEN
-          gcLBrowseFields = DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value).
-        WHEN "ColumnLabels" THEN
-          gcLColumnLabels = DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value).
-        WHEN "ColumnFormat" THEN
-          gcLCoulmnFormat = DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value).
-        WHEN "BrowseFieldDataTypes" THEN
-          gcLBrowseFieldDataTypes = DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value).
-        WHEN "BrowseFieldFormats" THEN
-          gcLBrowseFieldFormats = DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value).
-        WHEN "RowsToBatch" THEN
-          giLRowsToBatch = INTEGER(DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value)).
-        WHEN "BrowseTitle" THEN
-          gcLBrowseTitle = DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value).
-        WHEN "ViewerLinkedFields" THEN
-          gcLViewerLinkedFields = DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value).
-        WHEN "LinkedFieldDataTypes" THEN
-          gcLLinkedFieldDataTypes = DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value).
-        WHEN "LinkedFieldFormats" THEN
-          gcLLinkedFieldFormats = DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value).
-        WHEN "ViewerLinkedWidgets" THEN
-          gcLViewerLinkedWidgets = DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value).
-        WHEN "LookupImage" THEN
-          gcLLookupImage = DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value).
-        WHEN "ParentField" THEN
-          gcLParentField = DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value).
-        WHEN "ParentFilterQuery" THEN
-          gcLParentFilterQuery = DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value).
-        WHEN "MaintenanceObject" THEN
-          gcLMaintenanceObject = DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value).
-        WHEN "MaintenanceSDO" THEN
-          gcLMaintenanceSDO = DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value).
-        WHEN "WIDTH-CHARS" THEN
-          gdLFieldWidth = DECIMAL(DYNAMIC-FUNCTION("FormatAttributeValue":U IN gshRepositoryManager, INPUT ryc_attribute_value.attribute_type_TLA, INPUT ryc_attribute_value.attribute_value)).
-       END CASE.
-    END.
-  END.
-  
   DO WITH FRAME {&FRAME-NAME}:
     
     ASSIGN
       gcBaseQuery    = gcLBaseQueryString
       fiFieldWidth   = gdLFieldWidth
       edQuery        = gcBaseQuery
-      gcBrowseFields = IF raSDFType = "DynLookup":U THEN gcLBrowseFields ELSE gcLDisplayedField.
+      gcBrowseFields = IF LOOKUP(coObjType:SCREEN-VALUE, cLookupChildClasses) <> 0 THEN gcLBrowseFields ELSE gcLDisplayedField.
     
-    DYNAMIC-FUNCTION("setDataValue":U IN hProductModule,gsc_product_module.product_module_code).
+    DYNAMIC-FUNCTION("setDataValue":U IN hProductModule,cProductModuleCode).
+    RUN assignNewValue IN hSuperProc (dCustomSuperProcedureObj,"":U,FALSE).
 
-    IF raSDFType = "DynLookup":U THEN DO:
+    IF LOOKUP(coObjType:SCREEN-VALUE, cLookupChildClasses) <> 0 THEN DO:
       ASSIGN 
         gcViewerLinkedFields  = gcLViewerLinkedFields 
         gcViewerLinkedWidgets = gcLViewerLinkedWidgets
@@ -1831,8 +1930,10 @@ PROCEDURE getObjectDetails :
         gcColumnFormat        = gcLCoulmnFormat
         fiRowsToBatch         = giLRowsToBatch
         fiBrowseTitle         = gcLBrowseTitle.
-      DYNAMIC-FUNCTION("setDataValue":U IN hMaintenanceObject, gcLMaintenanceObject).
-      DYNAMIC-FUNCTION("setDataValue":U IN hMaintenanceSDO, gcLMaintenanceSDO).
+      
+      RUN assignNewValue IN hMaintenanceObject (gcLMaintenanceObject,"":U,FALSE).
+      RUN assignNewValue IN hMaintenanceSDO (gcLMaintenanceSDO,"":U,FALSE).
+
     END.
     ELSE DO:
       raFlag = gcLComboFlag.
@@ -1846,37 +1947,33 @@ PROCEDURE getObjectDetails :
     END.
     
     DISPLAY edQuery.
-
     APPLY "CHOOSE":U TO buRefresh.
-
     ASSIGN
       fiFieldLabel        = gcLFieldLabel  
       fiFieldToolTip      = gcLFieldTooltip
       fiParentField       = gcLParentField
-      edParentFilterQuery = gcLParentFilterQuery.
-    
-    IF AVAILABLE gsc_object THEN
-      fiObjectDescription = gsc_object.object_description.
+      edParentFilterQuery = gcLParentFilterQuery
+      fiObjectDescription = cObjectDescription.
     
     DISPLAY
       fiObjectDescription
       fiFieldLabel
       fiFieldWidth
-      fiBrowseTitle WHEN raSDFType = "DynLookup":U
+      fiBrowseTitle WHEN LOOKUP(coObjType:SCREEN-VALUE, cLookupChildClasses) <> 0
       fiFieldToolTip 
-      fiRowsToBatch WHEN raSDFType = "DynLookup":U
+      fiRowsToBatch WHEN LOOKUP(coObjType:SCREEN-VALUE, cLookupChildClasses) <> 0
       fiParentField 
       edParentFilterQuery
-      fiDescSubstitute WHEN raSDFType = "DynCombo":U
-      fiDefaultValue WHEN raSDFType = "DynCombo":U 
-      fiInnerLines WHEN raSDFType = "DynCombo":U   
-      fiBuildSeq WHEN raSDFType = "DynCombo":U.
+      fiDescSubstitute WHEN LOOKUP(coObjType:SCREEN-VALUE, cComboChildClasses) <> 0
+      fiDefaultValue WHEN LOOKUP(coObjType:SCREEN-VALUE, cComboChildClasses) <> 0 
+      fiInnerLines WHEN LOOKUP(coObjType:SCREEN-VALUE, cComboChildClasses) <> 0 
+      fiBuildSeq WHEN LOOKUP(coObjType:SCREEN-VALUE, cComboChildClasses) <> 0.
       
-      ASSIGN coDisplayedField:SCREEN-VALUE = IF raSDFType = "DynLookup":U THEN gcLDisplayedField ELSE coDisplayedField:ENTRY(1)
+      ASSIGN coDisplayedField:SCREEN-VALUE = IF LOOKUP(coObjType:SCREEN-VALUE, cLookupChildClasses) <> 0 THEN gcLDisplayedField ELSE coDisplayedField:ENTRY(1)
              coKeyField:SCREEN-VALUE       = gcLKeyField.
+    APPLY "VALUE-CHANGED":U TO coKeyField.
   END.
 
-  
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1891,11 +1988,21 @@ PROCEDURE initializeObject :
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cDisplayRepository          AS CHARACTER            NO-UNDO.
   DEFINE VARIABLE rRowid                      AS ROWID                NO-UNDO.
-
   SUBSCRIBE TO "LookupDisplayComplete":U IN THIS-PROCEDURE.
   
-  RUN SUPER.
+  IF 1 = 2 THEN VIEW FRAME {&FRAME-NAME}. /* Lazy frame scoping */
 
+  ASSIGN cComboChildClasses   = DYNAMIC-FUNCTION("getClassChildrenFromDb":U IN gshRepositoryManager, INPUT "dynCombo,dynLookup")
+         coObjType:LIST-ITEMS = REPLACE(cComboChildClasses, CHR(3), ",":U)
+         cLookupChildClasses  = ENTRY(2, cComboChildClasses, CHR(3))
+         cComboChildClasses   = ENTRY(1, cComboChildClasses, CHR(3)).
+
+  IF coObjType:SCREEN-VALUE = ?
+  OR coObjType:SCREEN-VALUE = "":U THEN
+      ASSIGN coObjType:SCREEN-VALUE = coObjType:ENTRY(1) NO-ERROR.
+  APPLY "VALUE-CHANGED":U TO coObjType.
+
+  RUN SUPER.
   glInitialize = TRUE.
   RUN displayFields IN TARGET-PROCEDURE (?).
   RUN enableField IN hProductModule.
@@ -1903,7 +2010,7 @@ PROCEDURE initializeObject :
   RUN enableField IN hObjectName.
   RUN enableField IN hMaintenanceSDO.
   RUN enableField IN hMaintenanceObject.
-
+  RUN enableField IN hSuperProc.
   /* Determine whether the user wants to display repository data. */
   ASSIGN rRowid = ?.
   RUN getProfileData IN gshProfileManager ( INPUT        "General":U,
@@ -1912,6 +2019,12 @@ PROCEDURE initializeObject :
                                             INPUT        NO,
                                             INPUT-OUTPUT rRowid,
                                                   OUTPUT cDisplayRepository).
+  ASSIGN ghRepositoryDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U IN THIS-PROCEDURE,
+                                                      INPUT "RepositoryDesignManager":U).
+
+  IF NOT VALID-HANDLE(ghRepositoryDesignManager) THEN
+      RETURN "The Repository Design Manager could not be found.":U.
+  
   ASSIGN fiDisplayRepository:SCREEN-VALUE IN FRAME {&FRAME-NAME} = cDisplayRepository.
   RUN RefreshChildDependancies IN hProductModule (INPUT "fiDisplayRepository":U).
   
@@ -1935,10 +2048,10 @@ PROCEDURE LookupDisplayComplete :
   DEFINE INPUT PARAMETER pcKeyFieldValue        AS CHARACTER  NO-UNDO.
   DEFINE INPUT PARAMETER phLookup               AS HANDLE     NO-UNDO. 
   
+  DEFINE VARIABLE iEntry AS INTEGER    NO-UNDO.
   DO WITH FRAME {&FRAME-NAME}:
-    ASSIGN raSDFType. 
+    ASSIGN coObjType. 
   END.
-
   IF phLookup = hObjectName THEN DO:
     APPLY "VALUE-CHANGED":U TO fiObjectName IN FRAME {&FRAME-NAME}.
     APPLY "LEAVE":U TO fiObjectName IN FRAME {&FRAME-NAME}.
@@ -1949,18 +2062,19 @@ PROCEDURE LookupDisplayComplete :
   IF phLookup = hTemplateObject THEN DO:
     APPLY "CHOOSE":U TO buClear IN FRAME {&FRAME-NAME}.
     IF pcKeyFieldValue <> "":U THEN
-      RUN getObjectDetails (INPUT pcKeyFieldValue).
+      RUN getObjectDetail (INPUT pcKeyFieldValue).
     DYNAMIC-FUNCTION("setDataValue":U IN hTemplateObject,pcKeyFieldValue).
     IF pcKeyFieldValue <> "":U THEN DO:
-      DISABLE raSDFType WITH FRAME {&FRAME-NAME}.
+      DISABLE coObjType WITH FRAME {&FRAME-NAME}.
       APPLY "LEAVE":U TO BrBrowse IN FRAME {&FRAME-NAME}.
       glChangesMade = FALSE.
     END.
   END.
+  
   IF phLookup = hMaintenanceSDO OR
-     phLookup = hMaintenanceObject THEN
+     phLookup = hMaintenanceObject OR
+     phLookup = hSuperProc THEN
     glChangesMade = TRUE.
-
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1982,7 +2096,6 @@ PROCEDURE populateCombo :
   DEFINE VARIABLE iLoop                       AS INTEGER    NO-UNDO.
   DEFINE VARIABLE iBrowseEntry                AS INTEGER    NO-UNDO.
   DEFINE VARIABLE iLinkedEntry                AS INTEGER    NO-UNDO.
-
   DO WITH FRAME {&FRAME-NAME}:
     ASSIGN
       cQuery = TRIM(edQuery:SCREEN-VALUE)
@@ -2079,7 +2192,6 @@ PROCEDURE populateCombo :
       APPLY "value-changed" TO coKeyField.  
     END.
   END.
-
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2101,7 +2213,6 @@ PROCEDURE populateLookup :
   DEFINE VARIABLE iLoop                       AS INTEGER    NO-UNDO.
   DEFINE VARIABLE iBrowseEntry                AS INTEGER    NO-UNDO.
   DEFINE VARIABLE iLinkedEntry                AS INTEGER    NO-UNDO.
-
   DO WITH FRAME {&FRAME-NAME}:
     ASSIGN
       cQuery = TRIM(edQuery:SCREEN-VALUE)
@@ -2170,6 +2281,10 @@ PROCEDURE populateLookup :
         BrBrowse coDisplayedField coKeyField.
       fiQueryTables:SCREEN-VALUE = cBufferList.
   
+      IF NUM-ENTRIES(gcColumnFormat,"|":U) = 1 AND 
+         gcColumnFormat <> "":U THEN
+        gcColumnFormat = REPLACE(gcColumnFormat,",":U,"|":U).
+      
       DO iLoop = 1 TO NUM-ENTRIES(gcNameList):
         CREATE ttFields.
         ASSIGN
@@ -2183,7 +2298,7 @@ PROCEDURE populateLookup :
           ttFields.lLinkedField = iLinkedEntry > 0
           ttFields.cLinkedWidget = (IF iLinkedEntry > 0 AND iLinkedEntry <= NUM-ENTRIES(gcViewerLinkedWidgets) THEN ENTRY(iLinkedEntry,gcViewerLinkedWidgets) ELSE "":U)
           ttFields.cColumnLabels = IF gcColumnLabels <> "":U AND gcColumnLabels <> ? THEN IF NUM-ENTRIES(gcColumnLabels) >= iBrowseEntry AND iBrowseEntry <> 0 THEN ENTRY(iBrowseEntry,gcColumnLabels) ELSE "":U ELSE "":U
-          ttFields.cColumnFormat = IF gcColumnFormat <> "":U AND gcColumnFormat <> ? THEN IF NUM-ENTRIES(gcColumnFormat) >= iBrowseEntry AND iBrowseEntry <> 0 THEN ENTRY(iBrowseEntry,gcColumnFormat) ELSE "":U ELSE "":U
+          ttFields.cColumnFormat = IF gcColumnFormat <> "":U AND gcColumnFormat <> ? THEN IF NUM-ENTRIES(gcColumnFormat) >= iBrowseEntry AND iBrowseEntry <> 0 THEN ENTRY(iBrowseEntry,gcColumnFormat,"|":U) ELSE "":U ELSE "":U
           .
         RELEASE ttFields.
         ASSIGN
@@ -2211,7 +2326,6 @@ PROCEDURE populateLookup :
       APPLY "value-changed" TO coDisplayedField.  
     END.
   END.
-
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2235,6 +2349,15 @@ PROCEDURE saveComboDetails :
   DEFINE VARIABLE cObjectTemplate    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cMaintenanceObject AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cMaintenanceSDO    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE dSuperProc         AS DECIMAL    NO-UNDO.
+
+  DEFINE VARIABLE cSuperProcedure    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataSet           AS CHARACTER  NO-UNDO.
+
+  DEFINE VARIABLE cAttributeLabels   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAttributeValues   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAttributeDataType AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE dSDFObjectObj      AS DECIMAL    NO-UNDO.
 
   DO WITH FRAME {&FRAME-NAME}:
     ASSIGN fiFieldDataType
@@ -2244,32 +2367,113 @@ PROCEDURE saveComboDetails :
   END.
   ASSIGN cProductModule  = DYNAMIC-FUNCTION("getDataValue":U IN hProductModule)
          cObjectTemplate = DYNAMIC-FUNCTION("getDataValue":U IN hTemplateObject).
-
-  /* create / update gsc_object and ryc_smartobject records */
-  RUN updateDynamicObject (INPUT "combo":U,
-                           INPUT cProductModule,
-                           INPUT pcFileName,
-                           INPUT fiObjectDescription,
-                           INPUT "":U,
-                           INPUT "":U,
-                           INPUT "":U,
-                           OUTPUT dContainer,
-                           OUTPUT dContainerType).
-  IF RETURN-VALUE <> "":U THEN
-    ASSIGN cErrorText = RETURN-VALUE. 
-
-  IF cErrorText = "":U THEN DO:
-    /* Update attribute values */
-    RUN updateAttributeValues (INPUT dContainerType,
-                               INPUT dContainer,
-                               INPUT 0,
-                               INPUT 0,
-                               INPUT 'SDFFileName,SDFTemplate,DisplayedField,KeyField,FieldLabel,FieldTooltip,DisplayFormat,DisplayDataType,KeyFormat,KeyDataType,BaseQueryString,QueryTables,ParentField,ParentFilterQuery,MasterFile,VisualizationType,Width-Chars,Height-Chars,Column,Row,ComboFlag,DescSubstitute,InnerLines,FlagValue,BuildSequence,EnableField,HideOnInit,DisableOnInit,ObjectLayout,FieldName',
-                               INPUT pcFileName + CHR(3) + cObjectTemplate + CHR(3) + gcDisplayedFields + CHR(3) + coKeyField + CHR(3) + fiFieldLabel + CHR(3) + fiFieldToolTip + CHR(3) + gcLDisplayFormat + CHR(3) + gcLKeyDataType + CHR(3) + fiFieldFormat + CHR(3) + gcLDisplayDatatype + CHR(3) + EdQuery + CHR(3) + fiQueryTables + CHR(3) + fiParentField + CHR(3) + edParentFilterQuery + CHR(3) + "adm2/dyncombo.w" + CHR(3) + "SmartDataField":U + CHR(3) + STRING(fiFieldWidth) + CHR(3) + "1":U + CHR(3) + "1":U + CHR(3) + "1":U + CHR(3) + raFlag + CHR(3) + fiDescSubstitute + CHR(3) + STRING(fiInnerLines) + CHR(3) + fiDefaultValue + CHR(3) + STRING(fiBuildSeq) + CHR(3) + STRING(YES) + CHR(3) + STRING(NO) + CHR(3) + STRING(NO) + CHR(3) + cObjectLayout + CHR(3) + "":U).
-    IF RETURN-VALUE <> "":U THEN 
-      ASSIGN cErrorText = RETURN-VALUE.
-  END.
-  
+         dSuperProc      = DECIMAL(DYNAMIC-FUNCTION("getDataValue":U IN hSuperProc)).
+  /* Get Object's Product Module */
+  RUN getRecordDetail IN gshGenManager ( INPUT "FOR EACH ryc_smartobject 
+                                               WHERE ryc_smartobject.smartobject_obj = " + TRIM(QUOTER(dSuperProc)) + " NO-LOCK ":U,
+                                        OUTPUT cDataset ).
+  ASSIGN cSuperProcedure = "":U.
+  IF cDataset <> "":U AND cDataset <> ? THEN 
+   ASSIGN cSuperProcedure  = ENTRY(LOOKUP("ryc_smartobject.object_filename":U, cDataSet, CHR(3)) + 1 , cDataSet, CHR(3))
+          NO-ERROR.
+  ASSIGN cAttributeLabels   = 'SDFFileName' + CHR(1) + 
+                              'SDFTemplate' + CHR(1) + 
+                              'DisplayedField' + CHR(1) + 
+                              'KeyField' + CHR(1) +
+                              'FieldLabel' + CHR(1) +
+                              'FieldTooltip' + CHR(1) +
+                              'DisplayFormat' + CHR(1) +
+                              'DisplayDataType' + CHR(1) +
+                              'KeyFormat' + CHR(1) +
+                              'KeyDataType' + CHR(1) +
+                              'BaseQueryString' + CHR(1) +
+                              'QueryTables' + CHR(1) +
+                              'ParentField' + CHR(1) +
+                              'ParentFilterQuery' + CHR(1) +
+                              'Width-Chars' + CHR(1) +
+                              'Height-Chars' + CHR(1) +
+                              'Column' + CHR(1) +
+                              'Row' + CHR(1) +
+                              'ComboFlag' + CHR(1) +
+                              'DescSubstitute' + CHR(1) +
+                              'InnerLines' + CHR(1) +
+                              'FlagValue' + CHR(1) +
+                              'BuildSequence' + CHR(1) +
+                              'EnableField' + CHR(1) +
+                              'HideOnInit' + CHR(1) +
+                              'DisableOnInit' + CHR(1) +
+                              'ObjectLayout' + CHR(1) +
+                              'FieldName'
+         cAttributeValues   = pcFileName + CHR(1) + 
+                              cObjectTemplate + CHR(1) + 
+                              gcDisplayedFields + CHR(1) + 
+                              coKeyField + CHR(1) + 
+                              fiFieldLabel + CHR(1) + 
+                              fiFieldToolTip + CHR(1) + 
+                              gcLDisplayFormat + CHR(1) + 
+                              gcLDisplayDatatype + CHR(1) + 
+                              fiFieldFormat + CHR(1) + 
+                              gcLKeyDataType + CHR(1) + 
+                              EdQuery + CHR(1) + 
+                              fiQueryTables + CHR(1) + 
+                              fiParentField + CHR(1) + 
+                              edParentFilterQuery + CHR(1) + 
+                              STRING(fiFieldWidth) + CHR(1) + 
+                              "1":U + CHR(1) + 
+                              "1":U + CHR(1) + 
+                              "1":U + CHR(1) + 
+                              raFlag + CHR(1) + 
+                              fiDescSubstitute + CHR(1) + 
+                              STRING(fiInnerLines) + CHR(1) + 
+                              fiDefaultValue + CHR(1) + 
+                              STRING(fiBuildSeq) + CHR(1) + 
+                              "TRUE":U + CHR(1) + 
+                              "FALSE":U + CHR(1) + 
+                              "FALSE":U + CHR(1) + 
+                              cObjectLayout + CHR(1) + 
+                              "":U
+         cAttributeDataType = '{&CHARACTER-DATA-TYPE}' + CHR(1) +      
+                              '{&CHARACTER-DATA-TYPE}' + CHR(1) +      
+                              '{&CHARACTER-DATA-TYPE}' + CHR(1) +   
+                              '{&CHARACTER-DATA-TYPE}' + CHR(1) +         
+                              '{&CHARACTER-DATA-TYPE}' + CHR(1) +       
+                              '{&CHARACTER-DATA-TYPE}' + CHR(1) +     
+                              '{&CHARACTER-DATA-TYPE}' + CHR(1) +    
+                              '{&CHARACTER-DATA-TYPE}' + CHR(1) +  
+                              '{&CHARACTER-DATA-TYPE}' + CHR(1) +        
+                              '{&CHARACTER-DATA-TYPE}' + CHR(1) +      
+                              '{&CHARACTER-DATA-TYPE}' + CHR(1) +  
+                              '{&CHARACTER-DATA-TYPE}' + CHR(1) +      
+                              '{&CHARACTER-DATA-TYPE}' + CHR(1) +      
+                              '{&CHARACTER-DATA-TYPE}' + CHR(1) +       
+                              '{&DECIMAL-DATA-TYPE}'   + CHR(1) +      
+                              '{&DECIMAL-DATA-TYPE}'   + CHR(1) +     
+                              '{&DECIMAL-DATA-TYPE}'   + CHR(1) +           
+                              '{&DECIMAL-DATA-TYPE}'   + CHR(1) +              
+                              '{&CHARACTER-DATA-TYPE}' + CHR(1) +        
+                              '{&CHARACTER-DATA-TYPE}' + CHR(1) +   
+                              '{&INTEGER-DATA-TYPE}'   + CHR(1) +       
+                              '{&CHARACTER-DATA-TYPE}' + CHR(1) +        
+                              '{&INTEGER-DATA-TYPE}'   + CHR(1) +    
+                              '{&LOGICAL-DATA-TYPE}'   + CHR(1) +      
+                              '{&LOGICAL-DATA-TYPE}'   + CHR(1) +       
+                              '{&LOGICAL-DATA-TYPE}'   + CHR(1) +    
+                              '{&CHARACTER-DATA-TYPE}' + CHR(1) +     
+                              '{&CHARACTER-DATA-TYPE}'.
+      
+   RUN generateDynamicSDF IN ghRepositoryDesignManager ( INPUT  pcFileName,               /*pcObjectName              */
+                                                         INPUT  fiObjectDescription,      /*pcObjectDescription       */
+                                                         INPUT  cProductModule,           /*pcProductModuleCode       */
+                                                         INPUT  "":U,                     /*pcResultCode              */
+                                                         INPUT  TRUE,                     /*plDeleteExistingInstances */
+                                                         INPUT  coObjType:SCREEN-VALUE,   /*pcSDFType                 */
+                                                         INPUT  cSuperProcedure,          /*pcSuperProcedure          */
+                                                         INPUT  cAttributeLabels,         /*pcAttributeLabels         */
+                                                         INPUT  cAttributeValues,         /*pcAttributeValues         */
+                                                         INPUT  cAttributeDataType,       /*pcAttributeDateType       */
+                                                         OUTPUT dSDFObjectObj ) NO-ERROR. /*pdSDFObjectObj            */
+   IF RETURN-VALUE <> "":U THEN
+     ASSIGN cErrorText = RETURN-VALUE. 
   IF cErrorText <> "":U THEN DO WITH FRAME {&FRAME-NAME}:
     RUN showMessages IN gshSessionManager (INPUT  cErrorText,    /* message to display */
                                            INPUT  "ERR":U,          /* error type */
@@ -2286,7 +2490,6 @@ PROCEDURE saveComboDetails :
     APPLY "VALUE-CHANGED":U TO fiObjectName.
     RETURN cErrorText.
   END.
-
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2312,6 +2515,14 @@ PROCEDURE saveLookupDetails :
   DEFINE VARIABLE cObjectTemplate    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cMaintenanceObject AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cMaintenanceSDO    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE dSuperProc         AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE cSuperProcedure    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataSet           AS CHARACTER  NO-UNDO.
+
+  DEFINE VARIABLE cAttributeLabels   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAttributeValues   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAttributeDataType AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE dSDFObjectObj      AS DECIMAL    NO-UNDO.
 
   DO WITH FRAME {&FRAME-NAME}:
     ASSIGN fiFieldDataType
@@ -2322,49 +2533,153 @@ PROCEDURE saveLookupDetails :
   ASSIGN cProductModule     = DYNAMIC-FUNCTION("getDataValue":U IN hProductModule)
          cObjectTemplate    = DYNAMIC-FUNCTION("getDataValue":U IN hTemplateObject)
          cMaintenanceObject = DYNAMIC-FUNCTION("getDataValue":U IN hMaintenanceObject)
-         cMaintenanceSDO    = DYNAMIC-FUNCTION("getDataValue":U IN hMaintenanceSDO).
+         cMaintenanceSDO    = DYNAMIC-FUNCTION("getDataValue":U IN hMaintenanceSDO)
+         dSuperProc         = DECIMAL(DYNAMIC-FUNCTION("getDataValue":U IN hSuperProc)).
+ 
+  /* Get Object's Product Module */
+  RUN getRecordDetail IN gshGenManager ( INPUT "FOR EACH ryc_smartobject 
+                                                WHERE ryc_smartobject.smartobject_obj = " + TRIM(QUOTER(dSuperProc)) + " NO-LOCK ":U,
+                                         OUTPUT cDataset ).
+  ASSIGN cSuperProcedure = "":U.
+  IF cDataset <> "":U AND cDataset <> ? THEN 
+    ASSIGN cSuperProcedure  = ENTRY(LOOKUP("ryc_smartobject.object_filename":U, cDataSet, CHR(3)) + 1 , cDataSet, CHR(3))
+           NO-ERROR.
 
-  /* create / update gsc_object and ryc_smartobject records */
-  RUN updateDynamicObject (INPUT "lookup":U,
-                           INPUT cProductModule,
-                           INPUT pcFileName,
-                           INPUT fiObjectDescription,
-                           INPUT "":U,
-                           INPUT "":U,
-                           INPUT "":U,
-                           OUTPUT dContainer,
-                           OUTPUT dContainerType).
+  ASSIGN cAttributeLabels = 'SDFFileName'+ CHR(1) + 
+                            'SDFTemplate'+ CHR(1) + 
+                            'DisplayedField'+ CHR(1) + 
+                            'KeyField'+ CHR(1) + 
+                            'FieldLabel'+ CHR(1) + 
+                            'FieldTooltip'+ CHR(1) + 
+                            'KeyFormat'+ CHR(1) + 
+                            'KeyDataType'+ CHR(1) + 
+                            'DisplayFormat'+ CHR(1) + 
+                            'DisplayDataType'+ CHR(1) + 
+                            'BaseQueryString'+ CHR(1) + 
+                            'QueryTables'+ CHR(1) + 
+                            'BrowseFields'+ CHR(1) + 
+                            'ColumnLabels'+ CHR(1) + 
+                            'ColumnFormat'+ CHR(1) + 
+                            'BrowseFieldDataTypes'+ CHR(1) + 
+                            'BrowseFieldFormats'+ CHR(1) + 
+                            'RowsToBatch'+ CHR(1) + 
+                            'BrowseTitle'+ CHR(1) + 
+                            'ViewerLinkedFields'+ CHR(1) + 
+                            'LinkedFieldDataTypes'+ CHR(1) + 
+                            'LinkedFieldFormats'+ CHR(1) + 
+                            'ViewerLinkedWidgets'+ CHR(1) + 
+                            'LookupImage'+ CHR(1) + 
+                            'ParentField'+ CHR(1) + 
+                            'ParentFilterQuery'+ CHR(1) + 
+                            'MaintenanceObject'+ CHR(1) + 
+                            'MaintenanceSDO'+ CHR(1) + 
+                            'VisualizationType'+ CHR(1) + 
+                            'LookupImage'+ CHR(1) + 
+                            'Height-Chars'+ CHR(1) + 
+                            'Width-Chars'+ CHR(1) + 
+                            'Column'+ CHR(1) + 
+                            'Row'+ CHR(1) + 
+                            'DisplayField'+ CHR(1) + 
+                            'EnableField'+ CHR(1) + 
+                            'HideOnInit'+ CHR(1) + 
+                            'DisableOnInit'+ CHR(1) + 
+                            'ObjectLayout'+ CHR(1) + 
+                            'FieldName'
+        cAttributeValues = pcFileName + CHR(1) +            
+                           cObjectTemplate + CHR(1) +       
+                           coDisplayedField + CHR(1) +      
+                           coKeyField + CHR(1) +            
+                           fiFieldLabel + CHR(1) +          
+                           fiFieldToolTip + CHR(1) +        
+                           fiFieldFormat + CHR(1) +         
+                           fiFieldDataType + CHR(1) +       
+                           gcDisplayFormat + CHR(1) +       
+                           gcDisplayDatatype + CHR(1) +     
+                           EdQuery + CHR(1) +               
+                           fiQueryTables + CHR(1) +         
+                           gcBrowseFields + CHR(1) +        
+                           gcColumnLabels + CHR(1) +        
+                           gcColumnFormat + CHR(1) +        
+                           gcBrowseFieldDataTypes + CHR(1) +
+                           gcBrowseFieldFormats + CHR(1) +  
+                           STRING(fiRowsToBatch) + CHR(1) + 
+                           fiBrowseTitle + CHR(1) +         
+                           gcViewerLinkedFields + CHR(1) +  
+                           gcLinkedFieldDataTypes + CHR(1) +
+                           gcLinkedFieldFormats + CHR(1) +  
+                           gcViewerLinkedWidgets + CHR(1) + 
+                           gcLLookupImage + CHR(1) +        
+                           fiParentField + CHR(1) +         
+                           edParentFilterQuery + CHR(1) +   
+                           cMaintenanceObject + CHR(1) +    
+                           cMaintenanceSDO + CHR(1) +       
+                           "SmartDataField":U + CHR(1) +    
+                           "adeicon/select.bmp":U + CHR(1) +
+                           "1":U + CHR(1) +                 
+                           STRING(fiFieldWidth) + CHR(1) +  
+                           "1":U + CHR(1) +                 
+                           "1":U + CHR(1) +                 
+                           "TRUE":U + CHR(1) +              
+                           "TRUE" + CHR(1) +                
+                           "FALSE" + CHR(1) +               
+                           "FALSE" + CHR(1) +               
+                           cObjectLayout + CHR(1) +         
+                           "":U
+         cAttributeDataType = '{&CHARACTER-DATA-TYPE}' + CHR(1) + 
+                            '{&CHARACTER-DATA-TYPE}' + CHR(1) + 
+                            '{&CHARACTER-DATA-TYPE}' + CHR(1) + 
+                            '{&CHARACTER-DATA-TYPE}' + CHR(1) + 
+                            '{&CHARACTER-DATA-TYPE}' + CHR(1) + 
+                            '{&CHARACTER-DATA-TYPE}' + CHR(1) + 
+                            '{&CHARACTER-DATA-TYPE}' + CHR(1) + 
+                            '{&CHARACTER-DATA-TYPE}' + CHR(1) + 
+                            '{&CHARACTER-DATA-TYPE}' + CHR(1) + 
+                            '{&CHARACTER-DATA-TYPE}' + CHR(1) + 
+                            '{&CHARACTER-DATA-TYPE}' + CHR(1) + 
+                            '{&CHARACTER-DATA-TYPE}' + CHR(1) + 
+                            '{&CHARACTER-DATA-TYPE}' + CHR(1) + 
+                            '{&CHARACTER-DATA-TYPE}' + CHR(1) + 
+                            '{&CHARACTER-DATA-TYPE}' + CHR(1) + 
+                            '{&CHARACTER-DATA-TYPE}' + CHR(1) + 
+                            '{&CHARACTER-DATA-TYPE}' + CHR(1) + 
+                            '{&INTEGER-DATA-TYPE}'   + CHR(1) + 
+                            '{&CHARACTER-DATA-TYPE}' + CHR(1) + 
+                            '{&CHARACTER-DATA-TYPE}' + CHR(1) + 
+                            '{&CHARACTER-DATA-TYPE}' + CHR(1) + 
+                            '{&CHARACTER-DATA-TYPE}' + CHR(1) + 
+                            '{&CHARACTER-DATA-TYPE}' + CHR(1) + 
+                            '{&CHARACTER-DATA-TYPE}' + CHR(1) + 
+                            '{&CHARACTER-DATA-TYPE}' + CHR(1) + 
+                            '{&CHARACTER-DATA-TYPE}' + CHR(1) + 
+                            '{&CHARACTER-DATA-TYPE}' + CHR(1) + 
+                            '{&CHARACTER-DATA-TYPE}' + CHR(1) + 
+                            '{&CHARACTER-DATA-TYPE}' + CHR(1) + 
+                            '{&CHARACTER-DATA-TYPE}' + CHR(1) + 
+                            '{&DECIMAL-DATA-TYPE}'   + CHR(1) + 
+                            '{&DECIMAL-DATA-TYPE}'   + CHR(1) + 
+                            '{&DECIMAL-DATA-TYPE}'   + CHR(1) + 
+                            '{&DECIMAL-DATA-TYPE}'   + CHR(1) + 
+                            '{&LOGICAL-DATA-TYPE}'   + CHR(1) + 
+                            '{&LOGICAL-DATA-TYPE}'   + CHR(1) + 
+                            '{&LOGICAL-DATA-TYPE}'   + CHR(1) + 
+                            '{&LOGICAL-DATA-TYPE}'   + CHR(1) + 
+                            '{&CHARACTER-DATA-TYPE}' + CHR(1) + 
+                            '{&CHARACTER-DATA-TYPE}'.
+  
+  RUN generateDynamicSDF IN ghRepositoryDesignManager ( INPUT  pcFileName,               /*pcObjectName              */
+                                                        INPUT  fiObjectDescription,      /*pcObjectDescription       */
+                                                        INPUT  cProductModule,           /*pcProductModuleCode       */
+                                                        INPUT  "":U,                     /*pcResultCode              */
+                                                        INPUT  TRUE,                     /*plDeleteExistingInstances */
+                                                        INPUT  coObjType:SCREEN-VALUE,   /*pcSDFType                 */
+                                                        INPUT  cSuperProcedure,          /*pcSuperProcedure          */
+                                                        INPUT  cAttributeLabels,         /*pcAttributeLabels         */
+                                                        INPUT  cAttributeValues,         /*pcAttributeValues         */
+                                                        INPUT  cAttributeDataType,       /*pcAttributeDateType       */
+                                                        OUTPUT dSDFObjectObj ) NO-ERROR. /*pdSDFObjectObj            */
+  
   IF RETURN-VALUE <> "":U THEN
     ASSIGN cErrorText = RETURN-VALUE. 
-
-  IF cErrorText = "":U THEN DO:
-    ASSIGN cAttributes = 'SDFFileName,SDFTemplate,DisplayedField,KeyField,FieldLabel,FieldTooltip,KeyFormat,KeyDataType,'
-                                    + 'DisplayFormat,DisplayDataType,BaseQueryString,QueryTables,BrowseFields,ColumnLabels,ColumnFormat,'
-                                    + 'BrowseFieldDataTypes,BrowseFieldFormats,RowsToBatch,BrowseTitle,ViewerLinkedFields,'
-                                    + 'LinkedFieldDataTypes,LinkedFieldFormats,ViewerLinkedWidgets,LookupImage,ParentField,ParentFilterQuery,'
-                                    + 'MaintenanceObject,MaintenanceSDO,MasterFile,VisualizationType,LookupImage,Height-Chars,Width-Chars,'
-                                    + 'Column,Row,DisplayField,EnableField,HideOnInit,DisableOnInit,ObjectLayout,FieldName'
-          cValues     = pcFileName + CHR(3) + cObjectTemplate + CHR(3) + coDisplayedField + CHR(3) + coKeyField + CHR(3) 
-                                    + fiFieldLabel + CHR(3) + fiFieldToolTip + CHR(3) + fiFieldFormat + CHR(3) + fiFieldDataType + CHR(3)
-                                    + gcDisplayFormat + CHR(3) + gcDisplayDatatype + CHR(3) + EdQuery + CHR(3) + fiQueryTables + CHR(3) 
-                                    + gcBrowseFields + CHR(3) + gcColumnLabels + CHR(3) + gcColumnFormat + CHR(3) + gcBrowseFieldDataTypes
-                                    + CHR(3) + gcBrowseFieldFormats + CHR(3) + STRING(fiRowsToBatch) + CHR(3) + fiBrowseTitle + CHR(3) 
-                                    + gcViewerLinkedFields + CHR(3) + gcLinkedFieldDataTypes + CHR(3) + gcLinkedFieldFormats + CHR(3) 
-                                    + gcViewerLinkedWidgets + CHR(3) + gcLLookupImage + CHR(3) + fiParentField + CHR(3) + edParentFilterQuery 
-                                    + CHR(3) + cMaintenanceObject + CHR(3) + cMaintenanceSDO + CHR(3) + "adm2/dynlookup.w" + CHR(3)
-                                    + "SmartDataField":U + CHR(3) + "adeicon/select.bmp":U + CHR(3) + "1":U + CHR(3) 
-                                    + STRING(fiFieldWidth) + CHR(3) + "1":U + CHR(3) + "1":U + CHR(3) + "YES":U
-                                    + CHR(3) + STRING(YES) + CHR(3) + STRING(NO) + CHR(3) + STRING(NO) + CHR(3) + cObjectLayout + CHR(3) + "":U.
-    /* Update attribute values */
-    RUN updateAttributeValues (INPUT dContainerType,
-                               INPUT dContainer,
-                               INPUT 0,
-                               INPUT 0,
-                               INPUT cAttributes,
-                               INPUT cValues).
-    IF RETURN-VALUE <> "":U THEN
-      ASSIGN cErrorText = RETURN-VALUE.
-  END.
   
   IF cErrorText <> "":U THEN DO:
     RUN showMessages IN gshSessionManager (INPUT  cErrorText,    /* message to display */
@@ -2378,7 +2693,6 @@ PROCEDURE saveLookupDetails :
                                            OUTPUT cButton           /* button pressed */
                                           ).
   END.
-
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2393,9 +2707,11 @@ PROCEDURE setSmartObjectDetails :
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE lOk AS LOGICAL    NO-UNDO.
   
+  IF 1 = 2 THEN VIEW FRAME {&FRAME-NAME}. /* Lazy frame scoping */
+
   lOk = TRUE NO-ERROR.
   SESSION:SET-WAIT-STATE("GENERAL":U).
-  IF raSDFType = "DynLookup":U THEN
+  IF LOOKUP(coObjType:SCREEN-VALUE, cLookupChildClasses) > 0 THEN
     RUN assignLookupValues.
   ELSE
     RUN assignComboValues.
@@ -2404,9 +2720,9 @@ PROCEDURE setSmartObjectDetails :
   IF ERROR-STATUS:ERROR OR
      RETURN-VALUE <> "":U OR 
      NOT lOk THEN
-    RETURN.
+    RETURN "VALIDATION-FAILED":U.
   SESSION:SET-WAIT-STATE("GENERAL":U).
-  IF raSDFType = "DynLookup":U THEN
+  IF LOOKUP(coObjType:SCREEN-VALUE, cLookupChildClasses) > 0 THEN
     RUN saveLookupDetails (INPUT fiObjectName).
   ELSE
     RUN saveComboDetails (INPUT fiObjectName).
@@ -2419,390 +2735,6 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE updateAttributeValues vTableWin 
-PROCEDURE updateAttributeValues :
-/*------------------------------------------------------------------------------
-  Purpose:     Procedure to update attribute values for an object type, a
-               smartobject, or an object instance.
-  Parameters:  input object type object number
-               input smartobject object number (optional)
-               input container smartobject object number (optional)
-               input object instance object number (optional)
-               input comma delimited list of attribute labels
-               input CHR(3) delimited list of corresponding attribute values
-  Notes:       If only an object type is passed in, then the attribute values
-               will be set for the object type.
-               If an object type and smartobject are passed in but no container
-               and object instance, then the smartobject attribute values will be
-               updated.
-               If a container object instance is passed in then the object instance
-               attribute values will be updated.
-               The attribute value record should first be created if it does not
-               yet exist.
-               This procedure does not deal with attribute collections and simply
-               sets the collect_attribute_value_obj equal to the attribute_value_obj
-               when creating a new attribute, and the sequence to 0.
-------------------------------------------------------------------------------*/
-
-DEFINE INPUT PARAMETER  pdObjectType                  AS DECIMAL    NO-UNDO.
-DEFINE INPUT PARAMETER  pdSmartObject                 AS DECIMAL    NO-UNDO.
-DEFINE INPUT PARAMETER  pdContainer                   AS DECIMAL    NO-UNDO.
-DEFINE INPUT PARAMETER  pdInstance                    AS DECIMAL    NO-UNDO.
-DEFINE INPUT PARAMETER  pcAttributeLabels             AS CHARACTER  NO-UNDO.
-DEFINE INPUT PARAMETER  pcAttributeValues             AS CHARACTER  NO-UNDO.
-
-DEFINE BUFFER bryc_attribute_value FOR ryc_attribute_value.
-
-DEFINE VARIABLE iLoop                                 AS INTEGER    NO-UNDO.
-DEFINE VARIABLE cAttributeLabel                       AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cAttributeValue                       AS CHARACTER  NO-UNDO.
-
-ASSIGN cMessageList = "":U.
-
-/* In case run from rycsomainw.w */
-ON FIND OF ryc_attribute OVERRIDE DO: END.
-
-trn-block:
-DO FOR bryc_attribute_value TRANSACTION ON ERROR UNDO trn-block, LEAVE trn-block:
-
-  DO iLoop = 1 TO NUM-ENTRIES(pcAttributeLabels):
-    ASSIGN
-      cAttributeLabel = ENTRY(iLoop, pcAttributeLabels)
-      cAttributeValue = ENTRY(iLoop, pcAttributeValues, CHR(3))
-      .
-
-    FIND FIRST ryc_attribute NO-LOCK
-         WHERE ryc_attribute.attribute_label = cAttributeLabel
-         NO-ERROR.
-    IF NOT AVAILABLE ryc_attribute THEN
-    DO:
-      ASSIGN cMessageList = {af/sup2/aferrortxt.i 'AF' '5' '?' '?' "'Attribute Label'" cAttributeLabel}.
-      UNDO trn-block, LEAVE trn-block.      
-    END.
-
-    FIND FIRST bryc_attribute_value EXCLUSIVE-LOCK
-         WHERE bryc_attribute_value.OBJECT_type_obj = pdObjectType
-           AND bryc_attribute_value.smartobject_obj = pdSmartObject
-           AND bryc_attribute_value.container_smartobject_obj = pdContainer
-           AND bryc_attribute_value.object_instance_obj = pdInstance
-           AND bryc_attribute_value.attribute_label = cAttributeLabel
-         NO-ERROR.
-
-    IF NOT AVAILABLE bryc_attribute_value THEN
-    DO:
-      CREATE bryc_attribute_value NO-ERROR.
-      {checkerr.i &no-return = YES}
-      IF cMessageList <> "":U THEN UNDO trn-block, LEAVE trn-block.
-      ASSIGN
-        bryc_attribute_value.OBJECT_type_obj = pdObjectType
-        bryc_attribute_value.smartobject_obj = pdSmartObject
-        bryc_attribute_value.container_smartobject_obj = pdContainer
-        bryc_attribute_value.object_instance_obj = pdInstance
-        bryc_attribute_value.attribute_label = ryc_attribute.attribute_label
-        bryc_attribute_value.attribute_group_obj = ryc_attribute.attribute_group_obj
-        bryc_attribute_value.attribute_type_tla = ryc_attribute.attribute_type_tla
-        bryc_attribute_value.constant_value = NO
-        NO-ERROR.        
-      IF bryc_attribute_value.container_smartobject_obj > 0 THEN
-        ASSIGN bryc_attribute_value.primary_smartobject_obj = bryc_attribute_value.container_smartobject_obj NO-ERROR.
-      ELSE
-        ASSIGN bryc_attribute_value.primary_smartobject_obj = bryc_attribute_value.smartobject_obj NO-ERROR.
-    END.
-
-    ASSIGN
-      bryc_attribute_value.collect_attribute_value_obj = bryc_attribute_value.attribute_value_obj
-      bryc_attribute_value.collection_sequence = 0
-      bryc_attribute_value.attribute_value = cAttributeValue
-      bryc_attribute_value.inheritted_value = NO
-      NO-ERROR.
-
-    VALIDATE bryc_attribute_value NO-ERROR.  
-    {checkerr.i &no-return = YES}
-    IF cMessageList <> "":U THEN UNDO trn-block, LEAVE trn-block.
-
-  END. /* iLoop = 1 TO NUM-ENTRIES(pcAttributeLabels): */
-
-END. /* trn-block */
-IF cMessageList <> "":U THEN RETURN cMessageList.
-
-RETURN.
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE updateDynamicObject vTableWin 
-PROCEDURE updateDynamicObject :
-/*------------------------------------------------------------------------------
-  Purpose:     Procedure to create / update ASDB gsc_object and RYDB
-               ryc_smartobject records for dynamic object passed in.
-  Parameters:  input object type (menc, objc, fold, view, brow)
-               input product module code
-               input object name
-               input object description
-               input sdo name if required (browsers / viewers only)
-               input custom super procedure
-               input layout code
-               output object number of smartobject created / updated
-               output object type object number
-  Notes:       Attribute values are cascaded down onto new smartobjects from the
-               object type by the replication write trigger of the smartobject
-               coded in rycsoreplw.i
-               Despite this we copy them down again and update them, in case
-               used delete object first option.
-               Errors are passed back in return value.
-------------------------------------------------------------------------------*/
-
-DEFINE INPUT PARAMETER  pcObjectType                AS CHARACTER  NO-UNDO.
-DEFINE INPUT PARAMETER  pcProductModuleCode         AS CHARACTER  NO-UNDO.
-DEFINE INPUT PARAMETER  pcObjectName                AS CHARACTER  NO-UNDO.
-DEFINE INPUT PARAMETER  pcObjectDescription         AS CHARACTER  NO-UNDO.
-DEFINE INPUT PARAMETER  pcSDOName                   AS CHARACTER  NO-UNDO.
-DEFINE INPUT PARAMETER  pcSuper                     AS CHARACTER  NO-UNDO.
-DEFINE INPUT PARAMETER  pcLayout                    AS CHARACTER  NO-UNDO.
-DEFINE OUTPUT PARAMETER pdSmartObject               AS DECIMAL    NO-UNDO.
-DEFINE OUTPUT PARAMETER pdObjectType                AS DECIMAL    NO-UNDO.
-
-DEFINE BUFFER bgsc_object FOR gsc_object.
-DEFINE BUFFER bryc_smartobject FOR ryc_smartobject.
-DEFINE BUFFER bryc_attribute_value FOR ryc_attribute_value.
-
-DEFINE VARIABLE lContainer                          AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE cPhysicalObject                     AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE dPhysicalObject                     AS DECIMAL    NO-UNDO.
-DEFINE VARIABLE cObjectType                         AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE dObjectType                         AS DECIMAL    NO-UNDO.
-DEFINE VARIABLE dProductModule                      AS DECIMAL    NO-UNDO.
-DEFINE VARIABLE cLayout                             AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE dLayout                             AS DECIMAL    NO-UNDO.
-DEFINE VARIABLE dSDO                                AS DECIMAL    NO-UNDO.
-
-ASSIGN cMessageList = "":U.
-
-CASE pcObjectType:
-  WHEN "Combo":U THEN  /* Dynamic Combo */
-  DO:
-    ASSIGN
-      lContainer = YES
-      cPhysicalObject = "dyncombo.w":U
-      cObjectType = "dyncombo":U
-      cLayout = (IF pcLayout <> "":U THEN pcLayout ELSE "Top/Center/Bottom":U)
-      .
-  END.
-  WHEN "Lookup":U THEN  /* Dynamic Combo */
-  DO:
-    ASSIGN
-      lContainer = YES
-      cPhysicalObject = "dynlookup.w":U
-      cObjectType = "dynlookup":U
-      cLayout = (IF pcLayout <> "":U THEN pcLayout ELSE "Top/Center/Bottom":U)
-      .
-  END.
-  OTHERWISE
-  DO:
-    RETURN {af/sup2/aferrortxt.i 'RY' '5' '?' '?' pcObjectType}.   
-  END.
-END CASE.
-
-/* find product module for object */
-FIND FIRST gsc_product_module NO-LOCK
-     WHERE gsc_product_module.product_module_code = pcProductModuleCode
-     NO-ERROR.
-IF NOT AVAILABLE gsc_product_module THEN
-DO:
-  RETURN {af/sup2/aferrortxt.i 'AF' '5' '?' '?' "'Product Module'" pcProductModuleCode}.   
-END.
-ELSE ASSIGN dProductModule = gsc_product_module.product_module_obj.
-
-/* Find layout if required */
-IF cLayout <> "":U THEN
-DO:
-  FIND FIRST ryc_layout NO-LOCK
-       WHERE ryc_layout.layout_name = cLayout
-       NO-ERROR.
-  IF NOT AVAILABLE ryc_layout THEN
-  DO:
-    RETURN {af/sup2/aferrortxt.i 'AF' '5' '?' '?' "'Layout'" cLayout}.   
-  END.
-END.
-IF cLayout <> "":U AND AVAILABLE ryc_layout THEN
-  ASSIGN dLayout = ryc_layout.layout_obj.
-ELSE
-  ASSIGN dLayout = 0.
-
-/* find corresponding physical object */
-FIND FIRST gsc_object NO-LOCK
-     WHERE gsc_object.OBJECT_filename = cPhysicalObject
-     NO-ERROR.
-IF NOT AVAILABLE gsc_object THEN
-DO:
-  RETURN {af/sup2/aferrortxt.i 'RY' '3' '?' '?' cPhysicalObject}.   
-END.
-ELSE ASSIGN dPhysicalObject = gsc_object.OBJECT_obj.
-
-/* find object type for object */
-FIND FIRST gsc_object_type NO-LOCK
-     WHERE gsc_object_type.OBJECT_type_code = cObjectType
-     NO-ERROR.
-IF NOT AVAILABLE gsc_object_type THEN
-DO:
-  RETURN {af/sup2/aferrortxt.i 'RY' '4' '?' '?' cObjectType}.   
-END.
-ELSE ASSIGN dObjectType = gsc_object_type.OBJECT_type_obj.
-
-/* Find SDO name if passed in (viewers / browsers) */
-IF pcSDOName <> "":U THEN
-DO:
-  FIND FIRST ryc_smartobject NO-LOCK
-       WHERE ryc_smartobject.OBJECT_filename = pcSDOName
-       NO-ERROR.
-  IF NOT AVAILABLE ryc_smartobject THEN
-  DO:
-    RETURN {af/sup2/aferrortxt.i 'AF' '5' '?' '?' "'SDO Object'" pcSDOName}.   
-  END.
-  ELSE ASSIGN dSDO = ryc_smartobject.smartobject_obj.
-END.
-ELSE ASSIGN dSDO = 0.
-
-trn-block:
-DO FOR bgsc_object, bryc_smartobject, bryc_attribute_value TRANSACTION ON ERROR UNDO trn-block, LEAVE trn-block:
-
-  /* find existing ASDB object / create new one */
-  FIND FIRST bgsc_object EXCLUSIVE-LOCK
-       WHERE bgsc_object.OBJECT_filename = pcObjectName
-       NO-ERROR.
-  IF NOT AVAILABLE bgsc_object THEN
-  DO:
-    CREATE bgsc_object NO-ERROR.
-    {checkerr.i &no-return = YES}
-    IF cMessageList <> "":U THEN UNDO trn-block, LEAVE trn-block.
-
-    ASSIGN
-      bgsc_object.object_filename = pcObjectName
-      bgsc_object.DISABLED = NO
-      NO-ERROR.      
-  END.
-
-  /* Update ASDB object details */
-  ASSIGN
-    bgsc_object.object_description = pcObjectDescription 
-    bgsc_object.logical_object = YES
-    bgsc_object.generic_object = NO
-    bgsc_object.container_object = lContainer
-    bgsc_object.object_path = "":U
-    bgsc_object.object_type_obj = dObjectType
-    bgsc_object.physical_object_obj = dPhysicalObject
-    bgsc_object.product_module_obj = dProductModule
-    bgsc_object.required_db_list = "":U
-    bgsc_object.runnable_from_menu = lContainer  
-    bgsc_object.run_persistent = YES
-    bgsc_object.run_when = "ANY":U
-    bgsc_object.security_object_obj = bgsc_object.object_obj
-    bgsc_object.toolbar_image_filename = "":U
-    bgsc_object.toolbar_multi_media_obj = 0
-    bgsc_object.tooltip_text = "":U
-    NO-ERROR.
-  VALIDATE bgsc_object NO-ERROR.
-  {checkerr.i &no-return = YES}
-  IF cMessageList <> "":U THEN UNDO trn-block, LEAVE trn-block.
-
-  /* Find/create RYDB repository object */
-  FIND FIRST bryc_smartobject EXCLUSIVE-LOCK
-       WHERE bryc_smartobject.OBJECT_filename = pcObjectName
-       NO-ERROR.
-
-  IF NOT AVAILABLE bryc_smartobject THEN
-  DO:
-    CREATE bryc_smartobject NO-ERROR.
-    {checkerr.i &no-return = YES}
-    IF cMessageList <> "":U THEN UNDO trn-block, LEAVE trn-block.
-    ASSIGN
-      bryc_smartobject.object_filename = pcObjectName
-      bryc_smartobject.system_owned = NO
-      bryc_smartobject.shutdown_message_text = "":U
-      bryc_smartobject.template_smartobject = NO
-      NO-ERROR.
-  END.
-
-  /* Update rest of details */
-  ASSIGN
-    bryc_smartobject.static_object = NO
-    bryc_smartobject.product_module_obj = dProductModule
-    bryc_smartobject.layout_obj = dLayout
-    bryc_smartobject.object_obj = bgsc_object.OBJECT_obj
-    bryc_smartobject.object_type_obj = dObjectType
-    bryc_smartobject.sdo_smartobject_obj = dSDO
-    bryc_smartobject.custom_super_procedure = pcSuper
-    NO-ERROR.  
-  VALIDATE bryc_smartobject NO-ERROR.
-  {checkerr.i &no-return = YES}
-  IF cMessageList <> "":U THEN UNDO trn-block, LEAVE trn-block.
-
-  ASSIGN
-    pdSmartObject = bryc_smartobject.smartobject_obj
-    pdObjectType = dObjectType
-    NO-ERROR.
-
-  /* now cascade attribute values down off object type, updating them if they
-     already exist.
-  */
-
-  attribute-loop:
-  FOR EACH ryc_attribute_value NO-LOCK
-      WHERE ryc_attribute_value.object_type_obj           = pdObjectType
-        AND ryc_attribute_value.smartobject_obj           = 0
-        AND ryc_attribute_value.OBJECT_instance_obj       = 0
-        AND ryc_attribute_value.container_smartobject_obj = 0:
-
-    FIND FIRST bryc_attribute_value EXCLUSIVE-LOCK
-         WHERE bryc_attribute_value.object_type_obj = pdObjectType
-           AND bryc_attribute_value.smartobject_obj = pdSmartObject
-           AND bryc_attribute_value.object_instance_obj = 0
-           AND bryc_attribute_value.container_smartobject_obj = 0
-           AND bryc_attribute_value.attribute_label = ryc_attribute_value.attribute_label
-         NO-ERROR.           
-
-    IF AVAILABLE bryc_attribute_value AND bryc_attribute_value.inheritted_value = FALSE THEN
-      NEXT attribute-loop.  /* do not override manual customisations */
-
-    IF NOT AVAILABLE bryc_attribute_value THEN
-    DO:
-      CREATE bryc_attribute_value NO-ERROR.
-      {checkerr.i &no-return = YES}
-      IF cMessageList <> "":U THEN UNDO trn-block, LEAVE trn-block.
-    END.
-
-    ASSIGN
-      bryc_attribute_value.object_type_obj = pdObjectType
-      bryc_attribute_value.smartobject_obj = pdSmartObject
-      bryc_attribute_value.object_instance_obj = 0
-      bryc_attribute_value.container_smartobject_obj = 0
-      bryc_attribute_value.collect_attribute_value_obj = bryc_attribute_value.attribute_value_obj
-      bryc_attribute_value.collection_sequence = 0
-      bryc_attribute_value.constant_value = ryc_attribute_value.constant_value
-      bryc_attribute_value.attribute_group_obj = ryc_attribute_value.attribute_group_obj
-      bryc_attribute_value.attribute_type_tla = ryc_attribute_value.attribute_type_tla
-      bryc_attribute_value.attribute_label = ryc_attribute_value.attribute_label
-      bryc_attribute_value.PRIMARY_smartobject_obj = pdSmartObject
-      bryc_attribute_value.inheritted_value = TRUE
-      bryc_attribute_value.attribute_value = ryc_attribute_value.attribute_value
-      NO-ERROR.
-
-    VALIDATE bryc_attribute_value NO-ERROR.
-    {checkerr.i &no-return = YES}
-    IF cMessageList <> "":U THEN UNDO trn-block, LEAVE trn-block.
-
-  END. /* attribute-loop */
-
-END. /* trn-block */
-IF cMessageList <> "":U THEN RETURN cMessageList.
-
-RETURN.
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE validateData vTableWin 
 PROCEDURE validateData :
 /*------------------------------------------------------------------------------
@@ -2810,30 +2742,22 @@ PROCEDURE validateData :
   Parameters:  output ok, yes or no.
   Notes:       
 ------------------------------------------------------------------------------*/
-
 DEFINE OUTPUT PARAMETER plOk                AS LOGICAL    NO-UNDO.
-
 DEFINE VARIABLE cButton                     AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cAllFields                  AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cAllNames                   AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cField                      AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cName                       AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE iLoop                       AS INTEGER    NO-UNDO.
-
 DEFINE VARIABLE dDate                       AS DATE       NO-UNDO.
 DEFINE VARIABLE dDecimal                    AS DECIMAL    NO-UNDO.
 DEFINE VARIABLE iInteger                    AS INTEGER    NO-UNDO.
-
 DEFINE VARIABLE cMaintenanceObject          AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cMaintenanceSDO             AS CHARACTER  NO-UNDO.
-
 ASSIGN plOK = YES.
-
 ASSIGN cMaintenanceObject = DYNAMIC-FUNCTION("getDataValue":U IN hMaintenanceObject)
         cMaintenanceSDO   = DYNAMIC-FUNCTION("getDataValue":U IN hMaintenanceSDO). 
-
 DO WITH FRAME {&FRAME-NAME}:
-
   IF fiObjectName = "":U THEN DO:
     MESSAGE "You must specify an object name."
            VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
@@ -2861,37 +2785,33 @@ DO WITH FRAME {&FRAME-NAME}:
     ASSIGN plOK = NO.
     RETURN.
   END.
-
-  IF fiBrowseTitle:SCREEN-VALUE = "":U AND raSDFType = "DynLookup":U THEN
+  IF fiBrowseTitle:SCREEN-VALUE = "":U AND LOOKUP(coObjType:SCREEN-VALUE, cLookupChildClasses) > 0 THEN
   DO:
     MESSAGE "A Browse Title Must be Specified - cannot apply changes"
       VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
     ASSIGN plOK = NO.
     RETURN.
   END.
-
-  IF NOT INTEGER(fiRowsToBatch:SCREEN-VALUE) > 0 AND raSDFType = "DynLookup":U THEN
+  IF NOT INTEGER(fiRowsToBatch:SCREEN-VALUE) > 0 AND LOOKUP(coObjType:SCREEN-VALUE, cLookupChildClasses) > 0 THEN
   DO:
     MESSAGE "Rows to Batch Must be Greater Than 0 - cannot apply changes"
       VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
     ASSIGN plOK = NO.
     RETURN.
   END.
-
-  IF gcBrowseFields = "":U AND raSDFType = "DynLookup":U THEN
+  IF gcBrowseFields = "":U AND LOOKUP(coObjType:SCREEN-VALUE, cLookupChildClasses) > 0 THEN
   DO:
     MESSAGE "At Least 1 Browse Field Must be Specified - cannot apply changes"
       VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
     ASSIGN plOK = NO.
     RETURN.
   END.
-
   /* check that we do not have a duplicate field name in 2 buffers for any
      of the selected browse fields, linked fields, key field, or description
      field as this will cause an issue when building the dynamic temp-table
      to store the results in
   */
-  IF raSDFType = "DynLookup":U THEN DO:
+  IF LOOKUP(coObjType:SCREEN-VALUE, cLookupChildClasses) > 0 THEN DO:
     ASSIGN cAllFields = coKeyField.
     IF coKeyField <> coDisplayedField THEN
       ASSIGN cAllFields = cAllFields + ",":U + coDisplayedField.
@@ -2927,10 +2847,9 @@ DO WITH FRAME {&FRAME-NAME}:
       END.
     END.
   END.
-
   IF cMaintenanceObject <> "":U AND
      cMaintenanceSDO     = "":U AND 
-     raSDFType = "DynLookup":U THEN DO:
+     LOOKUP(coObjType:SCREEN-VALUE, cLookupChildClasses) > 0 THEN DO:
     RUN showMessages IN gshSessionManager (INPUT  "You must specify a Maintenance SDO name when you specify a Maintenance Object.",    /* message to display */
                                            INPUT  "ERR":U,          /* error type */
                                            INPUT  "&OK,&Cancel":U,    /* button list */
@@ -2944,10 +2863,9 @@ DO WITH FRAME {&FRAME-NAME}:
     ASSIGN plOK = NO.
     RETURN NO-APPLY.
   END.
-
   IF cMaintenanceSDO    <> "":U AND
      cMaintenanceObject = "":U  AND 
-     raSDFType = "DynLookup":U THEN DO:
+     LOOKUP(coObjType:SCREEN-VALUE, cLookupChildClasses) > 0 THEN DO:
     RUN showMessages IN gshSessionManager (INPUT  "You must specify a Maintenance Object when you specify a Maintenance SDO name.",    /* message to display */
                                            INPUT  "ERR":U,          /* error type */
                                            INPUT  "&OK,&Cancel":U,    /* button list */
@@ -2962,14 +2880,13 @@ DO WITH FRAME {&FRAME-NAME}:
     RETURN NO-APPLY.
   END.
   
-  IF gcDisplayedFields = "":U AND raSDFType = "DynCombo":U THEN
+  IF gcDisplayedFields = "":U AND LOOKUP(coObjType:SCREEN-VALUE, cComboChildClasses) <> 0 THEN
   DO:
     MESSAGE "At Least 1 Description Field Must be Specified - cannot apply changes"
       VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
     ASSIGN plOK = NO.
     RETURN.
   END.
-
   IF fiFieldLabel = "":U THEN DO:
     MESSAGE "You must specify a field Label!"
       VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
@@ -2978,16 +2895,15 @@ DO WITH FRAME {&FRAME-NAME}:
   END.
   
   IF NUM-ENTRIES(gcDisplayedFields) <> numOccurance(fiDescSubstitute,"&":U) AND 
-     raSDFType = "DynCombo":U THEN DO:
+     LOOKUP(coObjType:SCREEN-VALUE, cComboChildClasses) <> 0 THEN DO:
     MESSAGE "The number of fields to display does not match the field substitution entries." gcDisplayedFields
       VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
     ASSIGN plOK = NO.
     RETURN.
   END.
-
   /* Check for valid data types in the default value */
   IF fiDefaultValue <> "":U AND 
-     raSDFType = "DynCombo":U THEN DO:
+     LOOKUP(coObjType:SCREEN-VALUE, cComboChildClasses) <> 0 THEN DO:
     IF (fiFieldDatatype = "CHARACTER":U AND
        (fiDefaultValue  = "?" OR
         fiDefaultValue  = ?)) THEN DO:
@@ -3038,7 +2954,7 @@ DO WITH FRAME {&FRAME-NAME}:
          fiInnerLines.
   IF (fiInnerLines = ? OR 
       fiInnerLines <= 0) AND 
-     raSDFType = "DynCombo":U THEN DO:
+     LOOKUP(coObjType:SCREEN-VALUE, cComboChildClasses) <> 0 THEN DO:
     RUN showMessages IN gshSessionManager (INPUT  "The Inner Lines specified for this combo is invalid. The inner lines must be equal to or more than 1.",    /* message to display */
                                            INPUT  "ERR":U,          /* error type */
                                            INPUT  "&OK,&Cancel":U,    /* button list */
@@ -3055,7 +2971,7 @@ DO WITH FRAME {&FRAME-NAME}:
   END.
   
   IF NUM-ENTRIES(fiParentField) <> numOccurance(edParentFilterQuery,"&":U) AND
-     raSDFType = "DynCombo":U THEN DO:
+     LOOKUP(coObjType:SCREEN-VALUE, cComboChildClasses) <> 0 THEN DO:
     RUN showMessages IN gshSessionManager (INPUT  "The Parent Filter Query specified is Invalid. The substitution fields in the query does not match the number of parent widgets specified.",    /* message to display */
                                            INPUT  "ERR":U,          /* error type */
                                            INPUT  "&OK,&Cancel":U,    /* button list */
@@ -3094,10 +3010,7 @@ DO WITH FRAME {&FRAME-NAME}:
       RETURN NO-APPLY.
     END.
   END.
-
-
 END.
-
 RETURN.
 END PROCEDURE.
 
@@ -3105,6 +3018,114 @@ END PROCEDURE.
 &ANALYZE-RESUME
 
 /* ************************  Function Implementations ***************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION fetchObjectDetail vTableWin 
+FUNCTION fetchObjectDetail RETURNS LOGICAL
+    ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE hBufferCacheBuffer          AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE hObjectTable                AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE hClassTable                 AS HANDLE   EXTENT 26   NO-UNDO.
+    DEFINE VARIABLE hPageTable                  AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE hPageInstanceTable          AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE hLinkTable                  AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE hUiEventTable               AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE hCustomizationManager       AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE iAttributeExtent            AS INTEGER              NO-UNDO.
+    DEFINE VARIABLE cProperties                 AS CHARACTER            NO-UNDO.
+
+    ASSIGN cProperties = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
+                                          INPUT "currentUserObj,currentLanguageObj":U,
+                                          INPUT YES).
+    ASSIGN gdCurrentUserObj     = DECIMAL(ENTRY(1, cProperties, CHR(3))) NO-ERROR.
+    ASSIGN gdCurrentLanguageObj = DECIMAL(ENTRY(2, cProperties, CHR(3))) NO-ERROR.
+
+    ASSIGN hCustomizationManager = DYNAMIC-FUNCTION("getManagerHandle":U, INPUT "CustomizationManager":U).
+    IF VALID-HANDLE(hCustomizationManager) THEN
+        ASSIGN gcSessionResultCodes  = DYNAMIC-FUNCTION("getSessionResultCodes":U IN hCustomizationManager).
+    ELSE
+        ASSIGN gcSessionResultCodes  = "{&DEFAULT-RESULT-CODE}":U.
+    
+    RUN fetchObject IN gshRepositoryManager ( INPUT  gcLogicalObjectName,
+                                              INPUT  gdCurrentUserObj,
+                                              INPUT  gcSessionResultCodes,
+                                              INPUT  "":U,
+                                              INPUT  gdCurrentLanguageObj,
+                                              INPUT  NO,        /* Get all contained records? */
+                                              INPUT  NO,        /* design mode? */
+
+                                              OUTPUT hBufferCacheBuffer,
+                                              OUTPUT TABLE-HANDLE hObjectTable,
+                                              OUTPUT TABLE-HANDLE hPageTable,
+                                              OUTPUT TABLE-HANDLE hPageInstanceTable,
+                                              OUTPUT TABLE-HANDLE hLinkTable,
+                                              OUTPUT TABLE-HANDLE hUiEventTable,
+                                              OUTPUT TABLE-HANDLE hClassTable[01], OUTPUT TABLE-HANDLE hClassTable[02],
+                                              OUTPUT TABLE-HANDLE hClassTable[03], OUTPUT TABLE-HANDLE hClassTable[04],
+                                              OUTPUT TABLE-HANDLE hClassTable[05], OUTPUT TABLE-HANDLE hClassTable[06],
+                                              OUTPUT TABLE-HANDLE hClassTable[07], OUTPUT TABLE-HANDLE hClassTable[08],
+                                              OUTPUT TABLE-HANDLE hClassTable[09], OUTPUT TABLE-HANDLE hClassTable[10],
+                                              OUTPUT TABLE-HANDLE hClassTable[11], OUTPUT TABLE-HANDLE hClassTable[12],
+                                              OUTPUT TABLE-HANDLE hClassTable[13], OUTPUT TABLE-HANDLE hClassTable[14],
+                                              OUTPUT TABLE-HANDLE hClassTable[15], OUTPUT TABLE-HANDLE hClassTable[16],
+                                              OUTPUT TABLE-HANDLE hClassTable[17], OUTPUT TABLE-HANDLE hClassTable[18],
+                                              OUTPUT TABLE-HANDLE hClassTable[19], OUTPUT TABLE-HANDLE hClassTable[20],
+                                              OUTPUT TABLE-HANDLE hClassTable[21], OUTPUT TABLE-HANDLE hClassTable[22],
+                                              OUTPUT TABLE-HANDLE hClassTable[23], OUTPUT TABLE-HANDLE hClassTable[24],
+                                              OUTPUT TABLE-HANDLE hClassTable[25], OUTPUT TABLE-HANDLE hClassTable[26]  ) NO-ERROR.
+    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN FALSE.
+
+    IF NOT VALID-HANDLE(hBufferCacheBuffer) THEN
+    DO:
+        ASSIGN hBufferCacheBuffer = TEMP-TABLE cache_BufferCache:DEFAULT-BUFFER-HANDLE.
+
+        /* Populate with class attribute tables.
+         * The class attribute tables will be in a contiguous sequence. */
+        DO iAttributeExtent = 1 TO EXTENT(hClassTable) WHILE VALID-HANDLE(hClassTable[iAttributeExtent]):
+            DYNAMIC-FUNCTION("CreateBufferCacheRecord":U IN gshRepositoryManager, INPUT hClassTable[iAttributeExtent], INPUT YES, INPUT hBufferCacheBuffer).
+        END.    /* loop through extents */
+
+        DYNAMIC-FUNCTION("CreateBufferCacheRecord":U IN gshRepositoryManager, INPUT hObjectTable,       INPUT NO, INPUT hBufferCacheBuffer).
+        DYNAMIC-FUNCTION("CreateBufferCacheRecord":U IN gshRepositoryManager, INPUT hPageTable,         INPUT NO, INPUT hBufferCacheBuffer).
+        DYNAMIC-FUNCTION("CreateBufferCacheRecord":U IN gshRepositoryManager, INPUT hPageInstanceTable, INPUT NO, INPUT hBufferCacheBuffer).
+        DYNAMIC-FUNCTION("CreateBufferCacheRecord":U IN gshRepositoryManager, INPUT hLinkTable,         INPUT NO, INPUT hBufferCacheBuffer).
+        DYNAMIC-FUNCTION("CreateBufferCacheRecord":U IN gshRepositoryManager, INPUT hUiEventTable,      INPUT NO, INPUT hBufferCacheBuffer).            
+    END.    /* not valid buffer cache. */        
+    
+    ASSIGN ghBufferCacheBuffer = hBufferCacheBuffer.
+
+    RETURN TRUE.
+END FUNCTION.   /* fetchObjectDetail */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getBufferHandle vTableWin 
+FUNCTION getBufferHandle RETURNS HANDLE
+    ( INPUT pcBufferName                AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Returns the buffer handle for a specified buffer from the buffer cache
+            temp-table.
+    Notes:  * fetchObjectDetail ensures that the buffer object cache temptable
+              is always populated and that the ghBufferCacheBuffer handle is set.
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE hBuffer             AS HANDLE                       NO-UNDO.
+    
+    IF NOT VALID-HANDLE(ghBufferCacheBuffer) THEN
+      RETURN ?.
+
+    ghBufferCacheBuffer:FIND-FIRST(" WHERE ":U + ghBufferCacheBuffer:NAME + ".tBufferName = '":U + pcBufferName + "' ":U ) NO-ERROR.
+    IF ghBufferCacheBuffer:AVAILABLE THEN
+        ASSIGN hBuffer = ghBufferCacheBuffer:BUFFER-FIELD("tBufferHandle":U):BUFFER-VALUE.
+
+    RETURN hBuffer.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION numOccurance vTableWin 
 FUNCTION numOccurance RETURNS INTEGER
@@ -3123,6 +3144,93 @@ FUNCTION numOccurance RETURNS INTEGER
   END.
   
   RETURN iCnt.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setAttrValues vTableWin 
+FUNCTION setAttrValues RETURNS LOGICAL
+  ( pcAttrLabel AS CHARACTER,
+    pcAttrValue AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Set the values of the screen variables from the attribute values
+    Notes:  
+------------------------------------------------------------------------------*/
+  CASE pcAttrLabel:
+    WHEN "DisplayedField" THEN
+      gcLDisplayedField = pcAttrValue.
+    WHEN "KeyField" THEN
+      gcLKeyField = pcAttrValue.
+    WHEN "FieldLabel" THEN
+      gcLFieldLabel = pcAttrValue.
+    WHEN "FieldTooltip" THEN
+      gcLFieldTooltip = pcAttrValue.
+    WHEN "KeyFormat" THEN
+      gcLKeyFormat = pcAttrValue.
+    WHEN "KeyDataType" THEN
+      gcLKeyDataType = pcAttrValue.
+    WHEN "DisplayFormat" THEN
+      gcLDisplayFormat = pcAttrValue.
+    WHEN "DisplayDataType" THEN
+      gcLDisplayDataType = pcAttrValue.
+    WHEN "BaseQueryString" THEN
+      gcLBaseQueryString = pcAttrValue.
+    WHEN "QueryTables" THEN
+      gcLQueryTables = pcAttrValue.
+    WHEN "ParentField" THEN
+      gcLParentField = pcAttrValue.
+    WHEN "ParentFilterQuery" THEN
+      gcLParentFilterQuery = pcAttrValue.
+    /** Combo Specific Fields **/
+    WHEN "DescSubstitute" THEN
+      gcLDescSubstitute = pcAttrValue.
+    WHEN "ComboFlag" THEN
+      gcLComboFlag = pcAttrValue.
+    WHEN "FlagValue" THEN
+      gcLFlagValue = pcAttrValue.
+    WHEN "InnerLines" THEN
+      giLInnerLines = INTEGER(pcAttrValue).
+    WHEN "BuildSequence" THEN
+      giLBuildSeq = INTEGER(pcAttrValue).
+    /** Lookup Specific Fields **/
+    WHEN "BrowseFields" THEN
+      gcLBrowseFields = pcAttrValue.
+    WHEN "ColumnLabels" THEN
+      gcLColumnLabels = pcAttrValue.
+    WHEN "ColumnFormat" THEN
+      gcLCoulmnFormat = pcAttrValue.
+    WHEN "BrowseFieldDataTypes" THEN
+      gcLBrowseFieldDataTypes = pcAttrValue.
+    WHEN "BrowseFieldFormats" THEN
+      gcLBrowseFieldFormats = pcAttrValue.
+    WHEN "RowsToBatch" THEN
+      giLRowsToBatch = INTEGER(pcAttrValue).
+    WHEN "BrowseTitle" THEN
+      gcLBrowseTitle = pcAttrValue.
+    WHEN "ViewerLinkedFields" THEN
+      gcLViewerLinkedFields = pcAttrValue.
+    WHEN "LinkedFieldDataTypes" THEN
+      gcLLinkedFieldDataTypes = pcAttrValue.
+    WHEN "LinkedFieldFormats" THEN
+      gcLLinkedFieldFormats = pcAttrValue.
+    WHEN "ViewerLinkedWidgets" THEN
+      gcLViewerLinkedWidgets = pcAttrValue.
+    WHEN "LookupImage" THEN
+      gcLLookupImage = pcAttrValue.
+    WHEN "ParentField" THEN
+      gcLParentField = pcAttrValue.
+    WHEN "ParentFilterQuery" THEN
+      gcLParentFilterQuery = pcAttrValue.
+    WHEN "MaintenanceObject" THEN
+      gcLMaintenanceObject = pcAttrValue.
+    WHEN "MaintenanceSDO" THEN
+      gcLMaintenanceSDO = pcAttrValue.
+    WHEN "WIDTH-CHARS" THEN
+      gdLFieldWidth = DECIMAL(pcAttrValue).
+  END CASE.
+
+  RETURN TRUE.   /* Function return value. */
 
 END FUNCTION.
 
@@ -3136,7 +3244,6 @@ FUNCTION setParentFilterHelp RETURNS LOGICAL
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-
   ASSIGN edHelp:SCREEN-VALUE IN FRAME {&FRAME-NAME} = 
          "Specifying a Parent Filter Query: ~n" +
          "When this object is dependant on the value " +
@@ -3158,7 +3265,6 @@ FUNCTION setParentFilterHelp RETURNS LOGICAL
          "Example:~n" + 
          "Customer.CustNum = INTEGER('&1') AND Customer.Name BEGINS '&2'".
   RETURN TRUE.
-
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

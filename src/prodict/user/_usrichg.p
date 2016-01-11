@@ -140,7 +140,7 @@ FORM
 |  MakeInactive  Browse  SwitchTable  GoField  Undo  Exit
 */
 
-DEFINE VARIABLE new_lang AS CHARACTER EXTENT 36 NO-UNDO INITIAL [
+DEFINE VARIABLE new_lang AS CHARACTER EXTENT 37 NO-UNDO INITIAL [
   /* 1*/ "This index is already the Primary Index of this table.",
   /* 2*/ "Are you sure that you want to make this the PRIMARY INDEX?",
   /* 3*/ "You cannot delete the Primary Index of a table.",
@@ -176,7 +176,8 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 36 NO-UNDO INITIAL [
   /*33*/ "Index field is not Mandatory - Your application has to take care of that.",
   /*34*/ "Are you sure you want to make this the index for ROWID support?",
   /*35*/ "This DataServer does not support/need ROWID-Indexes to be specified.",
-  /*36*/ "This index can not be used for ROWID support."
+  /*36*/ "This index can not be used for ROWID support.",
+  /*37*/ "PROGRESS/SQL92 Table, cannot modify."
 ].
 
 ASSIGN
@@ -591,9 +592,10 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
     IF ENTRY(qbf#,qbf#list) BEGINS "-" THEN DO:   
       MESSAGE new_lang[- INTEGER(ENTRY(qbf#,qbf#list))] view-as alert-box.
     IF _File._Db-lang = 0 THEN .
-      ELSE IF qbf# = 6 THEN MESSAGE new_lang[24]. /* use CREATE INDEX */
-      ELSE IF qbf# = 7 THEN MESSAGE new_lang[25]. /* use DROP INDEX */
-      NEXT.
+    ELSE IF qbf# = 6 THEN MESSAGE new_lang[24]. /* use CREATE INDEX */
+    ELSE IF qbf# = 7 THEN MESSAGE new_lang[25]. /* use DROP INDEX */
+    ELSE IF qbf# >= 5 AND qbf# <= 10 THEN MESSAGE new_lang[37].
+    NEXT.
     END.
 
     IF qbf# > 2 THEN redraw = TRUE.
@@ -641,6 +643,11 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
         MESSAGE new_lang[7].
         MESSAGE new_lang[8].
       END.
+      ELSE IF _File._Db-lang > 1 THEN DO: 
+          MESSAGE new_lang[37].
+          PAUSE 3 NO-MESSAGE.
+          LEAVE _qbf5.
+      END.
       ELSE DO ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
               adding = false.
         MESSAGE new_lang[12].
@@ -658,7 +665,10 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
         MESSAGE new_lang[27]. /* table is frozen */
               LEAVE _qbf6.
       END.
-
+      ELSE IF _File._Db-lang > 1 THEN DO: 
+          MESSAGE new_lang[37].
+          LEAVE _qbf6.
+      END.
       /* are there any fields */
       FIND FIRST _Field OF _File WHERE _Extent = 0 NO-ERROR.
       IF NOT AVAILABLE _Field THEN DO:
@@ -833,9 +843,12 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
       IF _File._Frozen THEN 
         MESSAGE new_lang[27]. /* table is frozen */
       ELSE IF _File._Prime-Index = RECID(_Index) THEN DO:
-        MESSAGE new_lang[3]. /* cannot delete primary index, stupid */
+        MESSAGE new_lang[3]. /* cannot delete primary index */
         MESSAGE new_lang[4]. /* try again */
       END.
+      ELSE IF _File._Db-lang > 1 THEN  
+          MESSAGE new_lang[37].
+
       ELSE DO ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
         answer = FALSE. /* are you sure... delete? */
         RUN "prodict/user/_usrdbox.p"
@@ -853,6 +866,9 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
     IF qbf# = 8 AND rpos <> ? THEN DO: /*------ start of CHANGE-PRIMARY */
       IF _File._Frozen THEN 
         MESSAGE new_lang[27]. /* table is frozen */
+      ELSE IF _File._Db-lang > 1 THEN  
+          MESSAGE new_lang[37].
+
       ELSE IF _Index._Wordidx = 1 THEN
       do:
         MESSAGE new_lang[26].  /* word index can't be primary */
@@ -877,6 +893,9 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
     IF qbf# = 9 AND rpos <> ? THEN DO: /*---------- start of UNIQUENESS */
       IF _File._Frozen THEN 
         MESSAGE new_lang[27]. /* table is frozen */
+      ELSE IF _File._Db-lang > 1 THEN  
+          MESSAGE new_lang[37].
+          
       ELSE IF _Index._Wordidx = 1 THEN
         MESSAGE new_lang[28].  /* word index can't be unique */
       ELSE IF NOT qbf_idx_uniq THEN
@@ -900,6 +919,9 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
     IF qbf# = 10 AND rpos <> ? THEN DO: /*------ start of MAKE-INACTIVE */
       IF _File._Frozen THEN 
         MESSAGE new_lang[27]. /* table is frozen */
+      ELSE IF _File._Db-lang > 1 THEN  
+          MESSAGE new_lang[37].
+          
       ELSE IF NOT qbf_idx_deac THEN
         MESSAGE new_lang[19]. /* not PROGRESS db */
       ELSE IF NOT _Index._Active THEN

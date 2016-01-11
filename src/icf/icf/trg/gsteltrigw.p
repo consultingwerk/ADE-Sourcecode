@@ -24,11 +24,6 @@
 
 TRIGGER PROCEDURE FOR WRITE OF gst_extract_log OLD BUFFER o_gst_extract_log.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "gst_extract_log"
-                      &TRIGGER-TYPE = "WRITE"}
-
 /* Created automatically using ERwin ICF Trigger template db/af/erw/afercustrg.i
    Do not change manually. Customisations to triggers should be placed in separate
    include files pulled into the trigger. ICF auto generates write trigger custom
@@ -126,6 +121,8 @@ IF NOT NEW gst_extract_log AND gst_extract_log.{&TRIGGER_OBJ} <> o_gst_extract_l
 
 /* Customisations to WRITE trigger */
 {icf/trg/gsteltrigw.i}
+
+
 
 /* Update Audit Log */
 IF CAN-FIND(FIRST gsc_entity_mnemonic

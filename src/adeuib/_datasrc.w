@@ -674,7 +674,8 @@ PROCEDURE SaveData :
                
        ELSE  /* ie: lastbutton = PREV */ 
        IF fDataObject = "":U THEN 
-         ASSIGN fDataObject = ?.   
+         ASSIGN
+          fDataObject = ?.   
                           
        /* THIS MUST also happen on BACK, because the INIT data is read 
           from what is stored !! */
@@ -750,11 +751,18 @@ PROCEDURE SaveData :
      FIND _p WHERE RECID(_p) = INT(gProcRecStr).
      
      IF VALID-HANDLE(_p._tv-proc) AND gHTMLMapping THEN
-     DO:       
+     DO:
+       /* fix several years after...  to ensure that BACK and NEXT 
+          keeps default datasource... could probably just set it always
+          the original logic probably never though the tv-proc was valid when 
+          called from wizard */  
+       
+       IF fDataObject = ? THEN
+         _P._DATA-OBJECT = fDataObject.
        IF fDataObject <> gInitSDO OR QueryTables <> "" THEN 
           RUN setDataObject IN _p._tv-proc  (fDataObject).
      END.
-     ELSE     
+     ELSE  /* see above.. there is a chance that we never get here.. */   
         _P._DATA-OBJECT = fDataObject.
      
    END. /* do with frame */

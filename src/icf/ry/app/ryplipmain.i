@@ -198,6 +198,46 @@ THIS-PROCEDURE:PRIVATE-DATA = cObjectName.
 &ANALYZE-RESUME
 
 
+/* **********************  Internal Procedures  *********************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getPLIPInfo Include 
+PROCEDURE getPLIPInfo :
+/*------------------------------------------------------------------------------
+  Purpose:     Returns the PLIP description, version number and list of internal
+               entries.  This procedure is mainly used to get all the PLIP information
+               in one Appserver hit when running Appserver.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE OUTPUT PARAMETER pcObjectDescription AS CHARACTER  NO-UNDO.
+DEFINE OUTPUT PARAMETER pdObjectVersion     AS DECIMAL    NO-UNDO.
+DEFINE OUTPUT PARAMETER pcInternalEntries   AS CHARACTER  NO-UNDO.
+
+/* Get the object description */
+
+IF LOOKUP("objectDescription":U, THIS-PROCEDURE:INTERNAL-ENTRIES) > 0 THEN
+    RUN objectDescription (OUTPUT pcObjectDescription).
+ELSE
+    IF LOOKUP("mip-object-description":U, THIS-PROCEDURE:INTERNAL-ENTRIES) > 0 THEN
+        RUN mip-object-description (OUTPUT pcObjectDescription).
+
+/* Get the version number */
+
+RUN getObjectVersion (OUTPUT pcObjectDescription,
+                      OUTPUT pdObjectVersion).
+
+/* Get the procedure internal entries */
+
+ASSIGN pcInternalEntries = DYNAMIC-FUNCTION("getInternalEntries":U IN THIS-PROCEDURE).
+
+ASSIGN ERROR-STATUS:ERROR = NO.
+RETURN "":U.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 /* ************************  Function Implementations ***************** */
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getInternalEntries Include 

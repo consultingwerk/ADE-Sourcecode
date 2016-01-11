@@ -96,7 +96,7 @@ xd = SCREEN-LINES - 8.
 
 /* LANGUAGE DEPENDENCIES START */ /*---------------------------------------*/
 
-DEFINE VARIABLE new_lang AS CHARACTER EXTENT 27 NO-UNDO INITIAL [
+DEFINE VARIABLE new_lang AS CHARACTER EXTENT 28 NO-UNDO INITIAL [
   /* 1*/ "This field is used in a View - cannot delete.",
   /* 2*/ "This field is used in an Index - cannot delete.",
   /* 3*/ "Are you sure that you want to delete the field named",
@@ -123,7 +123,8 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 27 NO-UNDO INITIAL [
   /*24*/ "There are more than 512 fields.  Only 512 will be shown.",
   /*25*/ "Fields are now shown", /* goes with 26 and 27 */
   /*26*/ "alphabetically.",
-  /*27*/ "by Order number."
+  /*27*/ "by Order number.",
+  /*28*/ "This is a PROGRESS/SQL92 table cannot be modified."
 ].
 
 new_lang[6] = "Are you sure that you want to undo all changes since the "
@@ -577,19 +578,22 @@ DO FOR dfields TRANSACTION ON ERROR UNDO,RETRY:
     END. /*----------------------------------------------------- end of ADD */
     ELSE
     IF qbf# = {&MODIFY} THEN DO: /*------------------------ start of MODIFY */
-      ASSIGN
+      IF _File._Db-lang > 1 THEN MESSAGE new_lang[28].
+      ELSE DO:
+        ASSIGN
         i       = dfields._Order
         oldname = dfields._Field-name
         rsave = ?.
-      PAUSE 0.
-      { prodict/user/userfchg.i fld r/w ? answer }
-      ASSIGN
-      	newname = dfields._Field-name
-        intrans = intrans OR answer
-        redraw  = NOT AVAILABLE dfields
-                  OR oldname <> newname
-                  OR (NOT alfa-ord AND i <> dfields._Order)
-        recache = redraw.
+        PAUSE 0.
+        { prodict/user/userfchg.i fld r/w ? answer }
+        ASSIGN
+      	  newname = dfields._Field-name
+          intrans = intrans OR answer
+          redraw  = NOT AVAILABLE dfields
+                    OR oldname <> newname
+                    OR (NOT alfa-ord AND i <> dfields._Order)
+          recache = redraw.
+      END.
     END. /*-------------------------------------------------- end of MODIFY */
     ELSE
     IF qbf# = {&DELETE} THEN DO: /*------------------------ start of DELETE */

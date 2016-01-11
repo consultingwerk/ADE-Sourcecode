@@ -113,7 +113,7 @@ PROCEDURE read-attributes:
   
   /* If we change the position of any widget with a label, then
      make sure the label moves as well. */
-  IF CAN-DO ("FILL-IN,COMBO-BOX":U, _U._TYPE) AND
+  IF CAN-DO ("FILL-IN,COMBO-BOX,EDITOR,SELECTION-LIST,RADIO-SET,SLIDER":U, _U._TYPE) AND
      (CAN-DO (pc_attr, "ROW":U) OR
       CAN-DO (pc_attr, "COLUMN":U))
   THEN RUN adeuib/_showlbl.p (_U._HANDLE).

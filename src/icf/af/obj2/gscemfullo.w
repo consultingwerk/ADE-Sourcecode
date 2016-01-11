@@ -56,9 +56,9 @@ adm2/support/_wizqry.w,adm2/support/_wizfld.w
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
-  File: rysttasdoo.w
+  File: gscemfullo.w
 
-  Description:  Template Astra 2 SmartDataObject Template
+  Description:  Template Astra 2 SmartDataObject Templat
 
   Purpose:      Template Astra 2 SmartDataObject Template
 
@@ -71,7 +71,18 @@ adm2/support/_wizqry.w,adm2/support/_wizfld.w
 
   Update Notes: V9 Templates
 
---------------------------------------------------------------------*/
+  (v:010001)    Task:           0   UserRef:    
+                Date:   11/28/2001  Author:     Mark Davies (MIP)
+
+  Update Notes: Fix for issue #2589 - "Mnemonic" should be removed from all visible entity labels
+
+  (v:010002)    Task:                UserRef:    
+                Date:   APR/11/2002  Author:     Mauricio J. dos Santos (MJS) 
+                                                 mdsantos@progress.com
+  Update Notes: Adapted for WebSpeed by changing SESSION:PARAM = "REMOTE" 
+                to SESSION:CLIENT-TYPE = "WEBSPEED" in rowObjectValidate.
+
+-------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.      */
 /*----------------------------------------------------------------------*/
 
@@ -117,6 +128,8 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 /* ********************  Preprocessor Definitions  ******************** */
 
+&Global-define DATA-LOGIC-PROCEDURE af/obj2/gscemlogcp.p
+
 &Scoped-define PROCEDURE-TYPE SmartDataObject
 &Scoped-define DB-AWARE yes
 
@@ -130,6 +143,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -142,7 +156,8 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
  entity_object_field table_has_object_field entity_key_field~
  table_prefix_length field_name_separator auditing_enabled deploy_data~
  entity_dbname replicate_entity_mnemonic replicate_key scm_field_name~
- version_data
+ version_data reuse_deleted_keys EntityObjectProductModule EntityObjectClass~
+ AssociateDataFields
 &Scoped-define ENABLED-FIELDS-IN-gsc_entity_mnemonic entity_mnemonic ~
 entity_mnemonic_description entity_mnemonic_short_desc ~
 auto_properform_strings entity_mnemonic_label_prefix ~
@@ -150,14 +165,15 @@ entity_description_field entity_description_procedure entity_narration ~
 entity_object_field table_has_object_field entity_key_field ~
 table_prefix_length field_name_separator auditing_enabled deploy_data ~
 entity_dbname replicate_entity_mnemonic replicate_key scm_field_name ~
-version_data 
+version_data reuse_deleted_keys 
 &Scoped-Define DATA-FIELDS  entity_mnemonic entity_mnemonic_description entity_mnemonic_short_desc~
  auto_properform_strings entity_mnemonic_label_prefix entity_mnemonic_obj~
  entity_description_field entity_description_procedure entity_narration~
  entity_object_field table_has_object_field entity_key_field~
  table_prefix_length field_name_separator auditing_enabled deploy_data~
  entity_dbname replicate_entity_mnemonic replicate_key scm_field_name~
- version_data
+ version_data reuse_deleted_keys EntityObjectProductModule EntityObjectClass~
+ AssociateDataFields
 &Scoped-define DATA-FIELDS-IN-gsc_entity_mnemonic entity_mnemonic ~
 entity_mnemonic_description entity_mnemonic_short_desc ~
 auto_properform_strings entity_mnemonic_label_prefix entity_mnemonic_obj ~
@@ -165,11 +181,13 @@ entity_description_field entity_description_procedure entity_narration ~
 entity_object_field table_has_object_field entity_key_field ~
 table_prefix_length field_name_separator auditing_enabled deploy_data ~
 entity_dbname replicate_entity_mnemonic replicate_key scm_field_name ~
-version_data 
+version_data reuse_deleted_keys 
 &Scoped-Define MANDATORY-FIELDS 
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gscemfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsc_entity_mnemonic NO-LOCK ~
+    BY gsc_entity_mnemonic.entity_mnemonic INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsc_entity_mnemonic NO-LOCK ~
     BY gsc_entity_mnemonic.entity_mnemonic INDEXED-REPOSITION.
@@ -227,8 +245,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW dTables ASSIGN
-         HEIGHT             = 1.62
-         WIDTH              = 46.6.
+         HEIGHT             = 1.76
+         WIDTH              = 61.8.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -261,17 +279,17 @@ END.
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _OrdList          = "icfdb.gsc_entity_mnemonic.entity_mnemonic|yes"
      _FldNameList[1]   > icfdb.gsc_entity_mnemonic.entity_mnemonic
-"entity_mnemonic" "entity_mnemonic" ? ? "character" ? ? ? ? ? ? yes ? no 16 yes
+"entity_mnemonic" "entity_mnemonic" "Entity" ? "character" ? ? ? ? ? ? yes ? no 16 yes
      _FldNameList[2]   > icfdb.gsc_entity_mnemonic.entity_mnemonic_description
 "entity_mnemonic_description" "entity_mnemonic_description" "Entity Tablename" ? "character" ? ? ? ? ? ? yes ? no 70 yes
      _FldNameList[3]   > icfdb.gsc_entity_mnemonic.entity_mnemonic_short_desc
-"entity_mnemonic_short_desc" "entity_mnemonic_short_desc" ? ? "character" ? ? ? ? ? ? yes ? no 35 yes
+"entity_mnemonic_short_desc" "entity_mnemonic_short_desc" "Entity Short Desc" ? "character" ? ? ? ? ? ? yes ? no 35 yes
      _FldNameList[4]   > icfdb.gsc_entity_mnemonic.auto_properform_strings
 "auto_properform_strings" "auto_properform_strings" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
      _FldNameList[5]   > icfdb.gsc_entity_mnemonic.entity_mnemonic_label_prefix
-"entity_mnemonic_label_prefix" "entity_mnemonic_label_prefix" ? ? "character" ? ? ? ? ? ? yes ? no 56 yes
+"entity_mnemonic_label_prefix" "entity_mnemonic_label_prefix" "Entity Label Prefix" ? "character" ? ? ? ? ? ? yes ? no 56 yes
      _FldNameList[6]   > icfdb.gsc_entity_mnemonic.entity_mnemonic_obj
-"entity_mnemonic_obj" "entity_mnemonic_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
+"entity_mnemonic_obj" "entity_mnemonic_obj" "Entity Obj" ? "decimal" ? ? ? ? ? ? no ? no 21 yes
      _FldNameList[7]   > icfdb.gsc_entity_mnemonic.entity_description_field
 "entity_description_field" "entity_description_field" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
      _FldNameList[8]   > icfdb.gsc_entity_mnemonic.entity_description_procedure
@@ -295,13 +313,21 @@ END.
      _FldNameList[17]   > icfdb.gsc_entity_mnemonic.entity_dbname
 "entity_dbname" "entity_dbname" ? ? "character" ? ? ? ? ? ? yes ? no 35 yes
      _FldNameList[18]   > icfdb.gsc_entity_mnemonic.replicate_entity_mnemonic
-"replicate_entity_mnemonic" "replicate_entity_mnemonic" ? ? "character" ? ? ? ? ? ? yes ? no 25.2 yes
+"replicate_entity_mnemonic" "replicate_entity_mnemonic" "Replicate Entity" ? "character" ? ? ? ? ? ? yes ? no 25.2 yes
      _FldNameList[19]   > icfdb.gsc_entity_mnemonic.replicate_key
 "replicate_key" "replicate_key" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
      _FldNameList[20]   > icfdb.gsc_entity_mnemonic.scm_field_name
 "scm_field_name" "scm_field_name" ? ? "character" ? ? ? ? ? ? yes ? no 35 yes
      _FldNameList[21]   > icfdb.gsc_entity_mnemonic.version_data
 "version_data" "version_data" ? ? "logical" ? ? ? ? ? ? yes ? no 12.2 yes
+     _FldNameList[22]   > icfdb.gsc_entity_mnemonic.reuse_deleted_keys
+"reuse_deleted_keys" "reuse_deleted_keys" ? ? "logical" ? ? ? ? ? ? yes ? no 19.4 yes
+     _FldNameList[23]   > "_<CALC>"
+""""":U /* This is determined from the Repository*/" "EntityObjectProductModule" ? "x(8)" "Character" ? ? ? ? ? ? yes ? no 8 no
+     _FldNameList[24]   > "_<CALC>"
+""""":U /* This is determined from the Repository*/" "EntityObjectClass" ? "x(8)" "character" ? ? ? ? ? ? yes ? no 8 no
+     _FldNameList[25]   > "_<CALC>"
+"YES" "AssociateDataFields" ? "YES/NO" "Logical" ? ? ? ? ? ? yes ? no 4.2 no
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
@@ -324,6 +350,28 @@ END.
 
 /* **********************  Internal Procedures  *********************** */
 
+{&DB-REQUIRED-START}
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE DATA.CALCULATE dTables  DATA.CALCULATE _DB-REQUIRED
+PROCEDURE DATA.CALCULATE :
+/*------------------------------------------------------------------------------
+  Purpose:     Calculate all the Calculated Expressions found in the
+               SmartDataObject.
+  Parameters:  <none>
+------------------------------------------------------------------------------*/
+      ASSIGN 
+         rowObject.AssociateDataFields = (YES)
+         rowObject.EntityObjectClass = ("":U /* This is determined from the Repository*/)
+         rowObject.EntityObjectProductModule = ("":U /* This is determined from the Repository*/)
+      .
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI dTables  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
@@ -336,186 +384,6 @@ PROCEDURE disable_UI :
 ------------------------------------------------------------------------------*/
   /* Hide all frames. */
   IF THIS-PROCEDURE:PERSISTENT THEN DELETE PROCEDURE THIS-PROCEDURE.
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-{&DB-REQUIRED-START}
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE endTransactionValidate dTables  _DB-REQUIRED
-PROCEDURE endTransactionValidate :
-/*------------------------------------------------------------------------------
-  Purpose:     Procedure run as part of transaction but at end - to update
-               entity display field information
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-
-DEFINE BUFFER bgsc_entity_display_field FOR gsc_entity_display_field.
-
-row-loop:
-FOR EACH RowObjUpd WHERE CAN-DO("A,C,U":U,RowObjUpd.RowMod):
-
-  IF NOT CAN-FIND(FIRST ttDisplayField
-                  WHERE ttDisplayField.entity_mnemonic = RowObjUpd.entity_mnemonic) THEN
-    NEXT row-loop.
-  
-  /* Got correct rowobjupd record for temp-table display fields */
-  DO FOR bgsc_entity_display_field:
-
-    /* Delete entity display fields no longer valid or required */
-    FOR EACH bgsc_entity_display_field EXCLUSIVE-LOCK
-       WHERE bgsc_entity_display_field.entity_mnemonic = rowObjUpd.entity_mnemonic:
-
-      IF NOT CAN-FIND(FIRST ttDisplayField
-                      WHERE ttDisplayField.DISPLAY_field_name = bgsc_entity_display_field.DISPLAY_field_name
-                        AND ttDisplayField.cInclude = YES) THEN
-      DO:
-        DELETE bgsc_entity_display_field.
-        {af/sup2/afcheckerr.i}
-      END.
-      
-    END.
-
-    /* add/update entity display fields specified for include */      
-    FOR EACH ttDisplayField
-       WHERE ttDisplayField.cInclude = YES:
-      
-      FIND FIRST bgsc_entity_display_field EXCLUSIVE-LOCK
-           WHERE bgsc_entity_display_field.entity_mnemonic = rowObjUpd.entity_mnemonic
-             AND bgsc_entity_display_field.DISPLAY_field_name = ttDisplayField.DISPLAY_field_name
-           NO-ERROR.
-      IF NOT AVAILABLE bgsc_entity_display_field THEN
-      DO:
-        CREATE bgsc_entity_display_field.
-        {af/sup2/afcheckerr.i}
-      END.
-
-      BUFFER-COPY ttDisplayField EXCEPT entity_display_field_obj cInclude cLabel cColLabel cFormat iOrder TO bgsc_entity_display_field.
-      {af/sup2/afcheckerr.i}
-
-      VALIDATE bgsc_entity_display_field NO-ERROR.
-      {af/sup2/afcheckerr.i}
-    
-    END.
-  
-  END. /* do for bgsc_entity_display_field */
-
-END. /* row-loop - loop around rowobjupd records */
-
-ERROR-STATUS:ERROR = NO.
-RETURN.
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-{&DB-REQUIRED-END}
-
-{&DB-REQUIRED-START}
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE preTransactionValidate dTables  _DB-REQUIRED
-PROCEDURE preTransactionValidate :
-/*------------------------------------------------------------------------------
-  Purpose:     Procedure used to validate RowObjUpd records server-side
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-
-DEFINE VARIABLE cMessageList    AS CHARACTER    NO-UNDO.
-
-DEFINE VARIABLE cValueList      AS CHARACTER    NO-UNDO.
-
-FOR EACH RowObjUpd WHERE CAN-DO('A,C,U':U,RowObjUpd.RowMod): 
-  IF (RowObjUpd.RowMod = 'U':U AND
-    CAN-FIND(FIRST gsc_entity_mnemonic
-      WHERE gsc_entity_mnemonic.entity_mnemonic = rowObjUpd.entity_mnemonic
-      AND ROWID(gsc_entity_mnemonic) <> TO-ROWID(ENTRY(1,RowObjUpd.RowIDent))))
-  OR (RowObjUpd.RowMod <> 'U':U AND
-    CAN-FIND(FIRST gsc_entity_mnemonic
-      WHERE gsc_entity_mnemonic.entity_mnemonic = rowObjUpd.entity_mnemonic))
-  THEN
-    ASSIGN
-      cValueList   = STRING(RowObjUpd.entity_mnemonic)
-      cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                    {af/sup2/aferrortxt.i 'AF' '8' 'gsc_entity_mnemonic' '' "'entity_mnemonic, '" cValueList }.
-END.
-
-  ERROR-STATUS:ERROR = NO.
-  RETURN cMessageList.
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-{&DB-REQUIRED-END}
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE rowObjectValidate dTables 
-PROCEDURE rowObjectValidate :
-/*------------------------------------------------------------------------------
-  Purpose:     Procedure used to validate RowObject record client-side
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-
-DEFINE VARIABLE cMessageList        AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE hAppServerPortion   AS HANDLE       NO-UNDO.
-DEFINE VARIABLE cValueList          AS CHARACTER    NO-UNDO.
-
-  IF LENGTH(RowObject.entity_mnemonic) = 0 OR LENGTH(RowObject.entity_mnemonic) = ? THEN
-    ASSIGN
-      cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                    {af/sup2/aferrortxt.i 'AF' '1' 'gsc_entity_mnemonic' 'entity_mnemonic' "'Entity Mnemonic'"}.
-
-  IF LENGTH(RowObject.entity_mnemonic_description) = 0 OR LENGTH(RowObject.entity_mnemonic_description) = ? THEN
-    ASSIGN
-      cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                    {af/sup2/aferrortxt.i 'AF' '1' 'gsc_entity_mnemonic' 'entity_mnemonic_description' "'Entity Mnemonic Description'"}.
-
-  IF LENGTH(RowObject.entity_mnemonic_short_desc) = 0 OR LENGTH(RowObject.entity_mnemonic_short_desc) = ? THEN
-    ASSIGN
-      cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                    {af/sup2/aferrortxt.i 'AF' '1' 'gsc_entity_mnemonic' 'entity_mnemonic_short_desc' "'Entity Mnemonic Short Description'"}.
-
-  IF LENGTH(RowObject.entity_dbname) = 0 OR LENGTH(RowObject.entity_dbname) = ? THEN
-    ASSIGN
-      cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                    {af/sup2/aferrortxt.i 'AF' '1' 'gsc_entity_mnemonic' 'entity_dbname' "'Entity DbName'"}.
-
-
-  /** Pass the related data through to the server-side (db aware) connection
-   *  ----------------------------------------------------------------------- **/
-  IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
-  DO:
-      {get asHandle hAppServerPortion}.
-      IF VALID-HANDLE(hAppServerPortion) THEN
-      DO:
-          RUN sendRelatedData IN hAppServerPortion ( INPUT TABLE ttDisplayField) NO-ERROR.
-      END.    /* valid client side exists. */
-  END.    /* client side only */
-
-  ERROR-STATUS:ERROR = NO.
-  RETURN cMessageList.
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE sendRelatedData dTables 
-PROCEDURE sendRelatedData :
-/*------------------------------------------------------------------------------
-  Purpose:     This procedure exists to receive details of the temp-table for
-               updating the entity display field records
-  Parameters:  see below
-  Notes:       On the client, the viewer runs this from collect changes to pass
-               the temp-table details in.
-               On the server, this is sent from the client as part of 
-               rowobjectvalidate.
-------------------------------------------------------------------------------*/
-
-DEFINE INPUT PARAMETER TABLE FOR ttDisplayField.
-
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

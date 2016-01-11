@@ -57,6 +57,7 @@ in:       user_env[2] = Name of file to dump to.
 changes:  user_env[19]
 
 History:  02/12/02 Fernando Corrected sequence logic
+          02/24/03 McMann Moved UPDATE PRIMARY to update section
     
         
 */
@@ -1684,13 +1685,6 @@ PROCEDURE create-delta:
       ASSIGN otpt = TRUE.
   END.
 
-  FOR EACH act-table WHERE a-code = "p":
-     PUT STREAM ddl UNFORMATTED syntax SKIP.    
-     DELETE act-table.
-     IF NOT otpt THEN
-       ASSIGN otpt = TRUE.
-  END.
-
   FOR EACH act-table WHERE a-code = "a" 
                        AND atype = "s":
     IF syntax BEGINS "ADD" THEN
@@ -1715,6 +1709,13 @@ PROCEDURE create-delta:
     DELETE act-table.
     IF NOT otpt THEN
       ASSIGN otpt = TRUE.
+  END.
+  
+  FOR EACH act-table WHERE a-code = "p":
+     PUT STREAM ddl UNFORMATTED syntax SKIP.    
+     DELETE act-table.
+     IF NOT otpt THEN
+       ASSIGN otpt = TRUE.
   END.
 
   IF otpt THEN DO:

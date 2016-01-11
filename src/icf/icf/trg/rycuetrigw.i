@@ -83,7 +83,7 @@ af/cod/aftemwizpw.w
    can be displayed in the about window of the container */
 
 &scop object-name       rycuetrigw.i
-&scop object-version    010000
+&scop object-version    000000
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -130,125 +130,10 @@ af/cod/aftemwizpw.w
 
 
 /* ***************************  Main Block  *************************** */
-    DEFINE BUFFER rycue FOR ryc_ui_event.
-
-    DEFINE VARIABLE lCascade                AS LOGICAL        NO-UNDO INITIAL FALSE.
-    DEFINE VARIABLE cAttributeList          AS CHARACTER      NO-UNDO.
-
     IF ryc_ui_event.container_smartobject_obj > 0 THEN
         ASSIGN ryc_ui_event.primary_smartobject_obj = ryc_ui_event.container_smartobject_obj.
     ELSE
         ASSIGN ryc_ui_event.primary_smartobject_obj = ryc_ui_event.smartobject_obj.
-
-    /* Cascade changes to the attribute from ObjectType to SmartObject, or from SmartObject to ObjectInstance */
-    /* Warning: this trigger is essentially recursive, since write of one UI event results in the writes of others */    
-
-    /* This trigger will only fire if anything changes on the UI trigger record. */
-    ASSIGN lCascade = (ryc_ui_event.object_instance_obj EQ 0 AND ryc_ui_event.smartobject_obj EQ 0).
-
-    IF lCascade THEN
-    DO:
-        IF ryc_ui_event.smartobject_obj = 0 THEN
-        DO:
-            /* MESSAGE "Cascading values for attribute " ryc_ui_event.event_name " objecttype " ryc_ui_event.object_type_obj. */
-            /* this attribute was entered against an Object Type */
-            FOR EACH ryc_smartobject WHERE
-                     ryc_smartobject.object_type_obj = ryc_ui_event.object_type_obj
-                     NO-LOCK:
-
-                FIND FIRST rycue WHERE
-                           rycue.event_name          = ryc_ui_event.event_name         AND
-                           rycue.smartobject_obj     = ryc_smartobject.smartobject_obj AND
-                           rycue.object_instance_obj = 0
-                           EXCLUSIVE-LOCK NO-ERROR.
-                IF NOT AVAILABLE rycue THEN
-                DO:
-                    CREATE rycue.
-                    ASSIGN rycue.event_name          = ryc_ui_event.event_name
-                           rycue.smartobject_obj     = ryc_ui_event.smartobject_obj
-                           rycue.object_instance_obj = 0
-                           rycue.smartobject_obj     = ryc_smartobject.smartobject_obj
-                           .
-                    BUFFER-COPY ryc_ui_event
-                            EXCEPT
-                                inheritted_value
-                                container_smartobject_obj
-                                ui_event_obj
-                                event_name
-                                smartobject_obj
-                                object_instance_obj
-                        TO rycue.
-                END.    /* n/a rycue */
-                ELSE
-                DO:
-                    IF rycue.inheritted_value THEN
-                        BUFFER-COPY ryc_ui_event
-                                EXCEPT
-                                    inheritted_value
-                                    container_smartobject_obj
-                                    ui_event_obj
-                                    event_name                                    
-                                    smartobject_obj
-                                    object_instance_obj
-                            TO rycue.
-                END.    /* avail rycue */
-            END.    /* each smartobject */
-        END.    /* smartobject = 0 */
-        ELSE
-        IF ryc_ui_event.object_instance_obj = 0 THEN
-        DO:
-            /* This UI Event was entered against a Smartobject */
-            FOR EACH ryc_object_instance WHERE
-                     ryc_object_instance.smartobject_obj = ryc_ui_event.smartobject_obj
-                     NO-LOCK:
-
-                FIND FIRST rycue WHERE
-                           rycue.event_name          = ryc_ui_event.event_name                 AND
-                           rycue.smartobject_obj     = ryc_ui_event.smartobject_obj            AND
-                           rycue.object_instance_obj = ryc_object_instance.object_instance_obj
-                           EXCLUSIVE-LOCK NO-ERROR.
-                IF NOT AVAILABLE rycue THEN
-                DO:
-                    { af/sup/afvalidtrg.i
-                        &ACTION = CREATE
-                        &TABLE  = rycue
-                    }
-                    ASSIGN rycue.event_name                = ryc_ui_event.event_name
-                           rycue.smartobject_obj           = ryc_ui_event.smartobject_obj
-                           rycue.object_instance_obj       = ryc_object_instance.object_instance_obj
-                           rycue.container_smartobject_obj = ryc_object_instance.container_smartobject_obj
-                           .
-                    BUFFER-COPY ryc_ui_event
-                            EXCEPT
-                                inheritted_value
-                                container_smartobject_obj
-                                ui_event_obj
-                                event_name                                
-                                smartobject_obj
-                                object_instance_obj
-                        TO rycue.
-                END.    /* n/a rycue */
-                ELSE                  
-                DO:
-                    IF rycue.inheritted_value THEN
-                        BUFFER-COPY ryc_ui_event
-                            EXCEPT
-                                inheritted_value
-                                container_smartobject_obj
-                                ui_event_obj
-                                event_name
-                                smartobject_obj
-                                object_instance_obj
-                        TO rycue.
-                END.
-
-                { af/sup/afvalidtrg.i
-                    &ACTION = VALIDATE
-                    &TABLE  = rycue
-                }
-            END.    /* each obj inst */
-        END.    /* obj inst = 0 */
-    END.    /* cascade attribute values */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

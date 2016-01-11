@@ -24,6 +24,9 @@
 /*
 
 history:
+    D. McMann   09/19/02    Change SQL-WIDTH to MAX-WIDTH
+    D. McMann   08/14/02    Removed "UPDATE DATABASE ?" for all tables - On-line schema support
+    D. McMann   08/08/02    Eliminated any sequences whose name begins "$" - Peer Direct
     D. McMann   00/08/17    Added _db-recid to StorageObject find 20000815029
     D. McMann   00/05/26    Changed check for shadow column for only ORACLE
     D. McMann   00/03/08    Added check for default indices for SQL tables
@@ -148,18 +151,8 @@ IF pi_method BEGINS "d" OR pi_method BEGINS "a" THEN DO: /* auto-conn records */
   END.
 END.
 
-/* to prevent users from accidently loading old collation-stuff */
-/* into new db's we just don't dump it anymore when "all"       */
-/* definitions are chosen; we just dump "update DATABASE..."    */
 
-IF pi_method BEGINS "d"
- THEN DO: 
-  FIND _Db WHERE RECID(_Db) = pi_recid NO-LOCK.
-  IF _Db._Db-name = ?
-    THEN PUT STREAM ddl UNFORMATTED "UPDATE DATABASE """ _Db._Db-name """" SKIP(1).
-  END.
-  
-/* If the user wants the collation-stuff he gets it. */
+/* If the user wants the collation-stuff he gets it in _tran.df. */
 
 IF pi_method BEGINS "c" THEN DO: /* collation and conversion tables */
   FIND _Db WHERE RECID(_Db) = pi_recid NO-LOCK.
@@ -205,7 +198,7 @@ ELSE
 
 IF pi_method BEGINS "s" THEN DO: /*-------------------------*/ /* sequences */
   FIND _Db WHERE RECID(_Db) = pi_recid NO-LOCK.
-  FOR EACH _Sequence OF _Db NO-LOCK BY _Seq-Num:
+  FOR EACH _Sequence OF _Db WHERE NOT _Sequence._Seq-name BEGINS "$" NO-LOCK BY _Seq-Num:
     PUT STREAM ddl UNFORMATTED "ADD SEQUENCE """ _Sequence._Seq-Name """" SKIP.
     PUT STREAM ddl UNFORMATTED "  INITIAL " _Sequence._Seq-Init SKIP.
     PUT STREAM ddl UNFORMATTED "  INCREMENT " _Sequence._Seq-Incr SKIP.
@@ -464,7 +457,7 @@ IF pi_method BEGINS "t" THEN DO: /*----------------------*/ /* table_record */
        EXPORT STREAM ddl _Field._Field-rpos. 
     END.   
     IF _Field._Width <> ? THEN DO: 
-      PUT STREAM ddl CONTROL "  SQL-WIDTH ".
+      PUT STREAM ddl CONTROL "  MAX-WIDTH ".
       EXPORT STREAM ddl _Field._Width.  
     END.
     IF _Field._View-As <> ? THEN DO:

@@ -52,14 +52,8 @@ PROCEDURE recur-rycso:
         FOR EACH ryc_smartlink WHERE ryc_smartlink.container_smartobject_obj = ryc_smartobject.smartobject_obj:
             RUN export-rycsl(BUFFER ryc_smartlink).
         END.
-        FOR EACH ryc_smartobject_field WHERE ryc_smartobject_field.smartobject_obj = ryc_smartobject.smartobject_obj:
-            RUN export-rycsf(BUFFER ryc_smartobject_field).
-        END.
-        FOR EACH ryc_custom_ui_trigger WHERE ryc_custom_ui_trigger.smartobject_obj = ryc_smartobject.smartobject_obj:
-            RUN export-ryccu(BUFFER ryc_custom_ui_trigger).
-        END.
 
-        RUN recur-rycav(INPUT ryc_smartobject.smartobject_obj, 0).
+        RUN recur-rycav(INPUT ryc_smartobject.smartobject_obj).
 
         /* and now export its children */
 
@@ -70,23 +64,11 @@ END.
 PROCEDURE recur-rycav:
 
     DEFINE INPUT PARAM ip_smartobject_obj AS DECIMAL.
-    DEFINE INPUT PARAM ip_collect_attribute_value_obj AS DECIMAL.
 
     DEFINE BUFFER ryc_attribute_value FOR ryc_attribute_value.
 
     FOR EACH ryc_attribute_value
-        WHERE ryc_attribute_value.primary_smartobject_obj = ip_smartobject_obj
-        AND   
-            (
-                (ip_collect_attribute_value_obj <> 0 
-                AND ryc_attribute_value.collect_attribute_value_obj = ip_collect_attribute_value_obj 
-                AND ryc_attribute_value.collect_attribute_value_obj <> ryc_attribute_value.attribute_value_obj
-            ) 
-            OR (ip_collect_attribute_value_obj = 0 
-                AND ryc_attribute_value.collect_attribute_value_obj = ryc_attribute_value.attribute_value_obj
-            )
-
-        ):
+        WHERE ryc_attribute_value.primary_smartobject_obj = ip_smartobject_obj:
 
         /* export the attribute value */
         RUN export-rycav(BUFFER ryc_attribute_value).               
@@ -134,17 +116,6 @@ PROCEDURE export-rycav:
     EXPORT STREAM str-export ip_buff.
 END.
 
-PROCEDURE export-rycsf:
-    DEFINE PARAM BUFFER ip_buff FOR ryc_smartobject_field.
-    PUT STREAM str-export "~"ryc_smartobject_field~"" SKIP.
-    EXPORT STREAM str-export ip_buff.
-END.
-
-PROCEDURE export-ryccu:
-    DEFINE PARAM BUFFER ip_buff FOR ryc_custom_ui_trigger.
-    PUT STREAM str-export "~"ryc_custom_ui_trigger~"" SKIP.
-    EXPORT STREAM str-export ip_buff.
-END.
 
 
 

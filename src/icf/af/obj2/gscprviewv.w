@@ -1,8 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          afdb             PROGRESS
-          asdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" vTableWin _INLINE
@@ -88,7 +87,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gscprviewv.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010001
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -126,11 +125,12 @@ RowObject.product_description RowObject.product_installed ~
 RowObject.number_of_users 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define DISPLAYED-FIELDS RowObject.product_code ~
 RowObject.product_description RowObject.product_installed ~
 RowObject.number_of_users 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
+
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -144,26 +144,26 @@ RowObject.number_of_users
 
 
 /* Definitions of handles for SmartObjects                              */
-DEFINE VARIABLE h_gsmlgdcsfv AS HANDLE NO-UNDO.
+DEFINE VARIABLE h_dyncombo AS HANDLE NO-UNDO.
 
 /* Definitions of the field level widgets                               */
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     RowObject.product_code AT ROW 1.1 COL 24.2 COLON-ALIGNED
+     RowObject.product_code AT ROW 1 COL 24.2 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 15.6 BY 1
-     RowObject.product_description AT ROW 2.1 COL 24.2 COLON-ALIGNED
+          SIZE 24 BY 1
+     RowObject.product_description AT ROW 2.05 COL 24.2 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 37 BY 1
+          SIZE 78.4 BY 1
      RowObject.product_installed AT ROW 3.1 COL 26.2
           VIEW-AS TOGGLE-BOX
-          SIZE 20.8 BY .81
-     RowObject.number_of_users AT ROW 3.91 COL 24.2 COLON-ALIGNED
+          SIZE 20.8 BY 1
+     RowObject.number_of_users AT ROW 4.14 COL 24.2 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 11.8 BY 1
-     SPACE(42.20) SKIP(1.33)
+     SPACE(38.20) SKIP(1.10)
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -203,8 +203,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 5.48
-         WIDTH              = 83.8.
+         HEIGHT             = 5.24
+         WIDTH              = 103.6.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -244,7 +244,7 @@ ASSIGN
 */  /* FRAME frMain */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK vTableWin 
@@ -279,15 +279,15 @@ PROCEDURE adm-create-objects :
 
     WHEN 0 THEN DO:
        RUN constructObject (
-             INPUT  'af/obj2/gsmlgdcsfv.w':U ,
+             INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'FieldNamesupplier_organisation_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
-             OUTPUT h_gsmlgdcsfv ).
-       RUN repositionObject IN h_gsmlgdcsfv ( 4.91 , 6.60 ) NO-ERROR.
-       RUN resizeObject IN h_gsmlgdcsfv ( 1.33 , 73.60 ) NO-ERROR.
+             INPUT  'DisplayedFieldgsm_login_company.login_company_code,gsm_login_company.login_company_short_nameKeyFieldgsm_login_company.login_company_objFieldLabelLogin CompanyFieldTooltipSelect a login company from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsm_login_company NO-LOCK BY gsm_login_company.login_company_codeQueryTablesgsm_login_companySDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 / &2CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines5ComboFlagNFlagValue0BuildSequence1SecurednoCustomSuperProcFieldNamesupplier_organisation_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT h_dyncombo ).
+       RUN repositionObject IN h_dyncombo ( 5.19 , 26.20 ) NO-ERROR.
+       RUN resizeObject IN h_dyncombo ( 1.05 , 50.00 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */
-       RUN adjustTabOrder ( h_gsmlgdcsfv ,
+       RUN adjustTabOrder ( h_dyncombo ,
              RowObject.number_of_users:HANDLE IN FRAME frMain , 'AFTER':U ).
     END. /* Page 0 */
 

@@ -24,11 +24,6 @@
 
 TRIGGER PROCEDURE FOR WRITE OF gsm_profile_date_value OLD BUFFER o_gsm_profile_date_value.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "gsm_profile_date_value"
-                      &TRIGGER-TYPE = "WRITE"}
-
 /* Created automatically using ERwin ICF Trigger template db/af/erw/afercustrg.i
    Do not change manually. Customisations to triggers should be placed in separate
    include files pulled into the trigger. ICF auto generates write trigger custom
@@ -98,6 +93,8 @@ IF NOT NEW gsm_profile_date_value AND gsm_profile_date_value.{&TRIGGER_OBJ} <> o
 
 /* Customisations to WRITE trigger */
 {icf/trg/gsmpdtrigw.i}
+
+
 
 /* Update Audit Log */
 IF CAN-FIND(FIRST gsc_entity_mnemonic

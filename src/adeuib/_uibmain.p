@@ -116,6 +116,10 @@ Modified    :
 {adeuib/windvars.i NEW}
 {adeuib/dialvars.i NEW}    /* Dialog box border variables         */
 
+/* Necessary to launch a dynamic container and clear its cache */
+DEFINE NEW GLOBAL SHARED VARIABLE gshRepositoryManager AS HANDLE   NO-UNDO.
+DEFINE NEW GLOBAL SHARED VARIABLE gshSessionManager    AS HANDLE   NO-UNDO.
+
 /* ===================================================================== */
 /*                          OTHER Definitions                            */
 /* ===================================================================== */

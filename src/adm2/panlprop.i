@@ -151,9 +151,10 @@ OR  ('{&ADM-Panel-Type}' = '') &THEN
 &ENDIF
  
   {src/adm2/actiprop.i}
-
+  
+IF NOT {&ADM-PROPS-DEFINED} THEN
+DO:
 &IF "{&ADMSuper}":U = "":U &THEN
-
   ghADMProps:ADD-NEW-FIELD('DisabledActions':U, 'CHARACTER':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('PanelType':U, 'CHAR':U, 0, ?, '{&ADM-Panel-Type}':U).
   ghADMProps:ADD-NEW-FIELD('ButtonCount':U, 'INT':U, 0, ?, 0).
@@ -198,6 +199,7 @@ OR  ('{&ADM-Panel-Type}' = '') &THEN
 &ENDIF
 
   {src/adm2/custom/panlpropcustom.i}
+END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

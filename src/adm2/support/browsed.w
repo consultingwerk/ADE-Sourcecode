@@ -120,7 +120,7 @@ DEFINE VARIABLE l_View AS LOGICAL INITIAL no
 
 DEFINE FRAME Attribute-Dlg
      l_Enable AT ROW 2.29 COL 5
-     c_Layout AT ROW 2.29 COL 13.4
+     c_Layout AT ROW 2.29 COL 26
      l_View AT ROW 3.33 COL 5
      l_ScrollRemote AT ROW 4.33 COL 5
      l_FetchOnReposToEnd AT ROW 5.38 COL 5
@@ -240,7 +240,7 @@ THEN FRAME {&FRAME-NAME}:PARENT = ACTIVE-WINDOW.
 
 /* Attach the standard OK/Cancel/Help button bar. */
 { adecomm/okbar.i  &TOOL = "AB"
-                   &CONTEXT = {&VisualSmartObject_Attributes_Dlg_Box} }
+                   &CONTEXT = {&BrowserSmartObject_Attributes_Dlg_Box} }
 
 /* ***************************  Main Block  *************************** */
 

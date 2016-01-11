@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          afdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" vTableWin _INLINE
@@ -9,13 +9,6 @@
 /* This has to go above the definitions sections, as that is what it modifies.
    If its not, then the definitions section will have been saved before the
    XFTR code kicks in and changes it */
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Astra 2 Static SmartDataViewer Wizard" vTableWin _INLINE
-/* Actions: af/cod/aftemwizcw.w ? ? ? af/sup/afwizdeltp.p */
-/* Astra 2 Static SmartDataViewer Wizard
-Destroy on next read */
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -94,7 +87,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gscpcviewv.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -131,10 +124,11 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 RowObject.profile_description RowObject.profile_narrative 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define DISPLAYED-FIELDS RowObject.profile_code ~
 RowObject.profile_description RowObject.profile_narrative 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
+&Scoped-Define DISPLAYED-OBJECTS fiProfileNarrativeLabel 
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -148,21 +142,24 @@ RowObject.profile_description RowObject.profile_narrative
 
 
 /* Definitions of the field level widgets                               */
+DEFINE VARIABLE fiProfileNarrativeLabel AS CHARACTER FORMAT "X(35)":U INITIAL "Profile Narrative:" 
+      VIEW-AS TEXT 
+     SIZE 16 BY .62 NO-UNDO.
+
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
      RowObject.profile_code AT ROW 1 COL 22 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 15.6 BY 1
-     RowObject.profile_description AT ROW 2 COL 22 COLON-ALIGNED
+          SIZE 24 BY 1
+     RowObject.profile_description AT ROW 2.05 COL 22 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 37 BY 1
-     RowObject.profile_narrative AT ROW 3 COL 24 NO-LABEL
+          SIZE 78.4 BY 1
+     RowObject.profile_narrative AT ROW 3.1 COL 24 NO-LABEL
           VIEW-AS EDITOR MAX-CHARS 500 SCROLLBAR-VERTICAL
-          SIZE 69.2 BY 6.19
-     "Profile Narrative:" VIEW-AS TEXT
-          SIZE 16.4 BY .62 AT ROW 3.05 COL 7.8
+          SIZE 78.4 BY 6
+     fiProfileNarrativeLabel AT ROW 3.14 COL 5.8 COLON-ALIGNED NO-LABEL
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -202,8 +199,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 9.67
-         WIDTH              = 96.6.
+         HEIGHT             = 8.1
+         WIDTH              = 101.4.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -230,6 +227,12 @@ ASSIGN
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
 
+/* SETTINGS FOR FILL-IN fiProfileNarrativeLabel IN FRAME frMain
+   NO-ENABLE                                                            */
+ASSIGN 
+       fiProfileNarrativeLabel:PRIVATE-DATA IN FRAME frMain     = 
+                "Profile Narrative:".
+
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
@@ -243,7 +246,7 @@ ASSIGN
 */  /* FRAME frMain */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK vTableWin 

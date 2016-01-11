@@ -110,7 +110,7 @@ DEFINE BROWSE br_table
   
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-    WITH NO-ASSIGN NO-ROW-MARKERS SEPARATORS SIZE 66 BY 6.67 EXPANDABLE.
+    WITH NO-ASSIGN NO-ROW-MARKERS SEPARATORS SIZE 66 BY 6.67 FIT-LAST-COLUMN.
 
 
 /* ************************  Frame Definitions  *********************** */
@@ -226,6 +226,16 @@ END.
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTableWin
+ON DEFAULT-ACTION OF br_table IN FRAME F-Main
+DO:
+ {src/adm2/brsdefault.i}
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTableWin
 ON END OF br_table IN FRAME F-Main
 DO:
   {src/adm2/brsend.i}
@@ -296,6 +306,16 @@ END.
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTableWin
+ON START-SEARCH OF br_table IN FRAME F-Main
+DO:
+  RUN startSearch IN TARGET-PROCEDURE (INPUT SELF).
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTableWin
 ON VALUE-CHANGED OF br_table IN FRAME F-Main
 DO:
   {src/adm2/brschnge.i}
@@ -311,35 +331,9 @@ END.
 
 
 /* ***************************  Main Block  *************************** */
-&IF DEFINED(UIB_IS_RUNNING) <> 0 &THEN          
+   &IF DEFINED(UIB_IS_RUNNING) <> 0 &THEN          
 RUN initializeObject.        
-&ENDIF
-
-DEFINE VARIABLE cEnabledFields   AS CHARACTER NO-UNDO.
-DEFINE VARIABLE cDisplayedFields AS CHARACTER NO-UNDO.
-
-ON VALUE-CHANGED OF BROWSE {&BROWSE-NAME} ANYWHERE 
-DO:
-  {get EnabledFields cEnabledFields}.
-  IF cEnabledFields NE "":U THEN 
-    APPLY 'U10':U TO THIS-PROCEDURE.
-END.  /* END ON VALUE-CHANGED */
-
-ON 'U10':U OF THIS-PROCEDURE 
-DO:
-  {get DisplayedFields cDisplayedFields}.
-  /* Ignore the event if it wasn't a browse field. */
-  IF LOOKUP(FOCUS:NAME, cDisplayedFields) NE 0 
-  THEN DO:
-    {get FieldsEnabled lResult}.
-    IF lResult THEN                 /* Only if browse enabled for input. */
-    DO:             
-      {get DataModified lResult}.
-      IF NOT lResult THEN           /* Don't send the event more than once. */
-        {set DataModified yes}.
-    END.  /* END DO IF lResult */
-  END.    /* END DO IF LOOKUP */
-END.      /* END ON U10 */
+   &ENDIF
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

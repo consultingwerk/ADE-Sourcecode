@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          asdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
@@ -92,7 +92,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gscspfullo.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010001
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -124,6 +124,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -144,6 +145,8 @@ default_property_value always_used
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gscspfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsc_session_property NO-LOCK ~
+    BY gsc_session_property.session_property_name INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsc_session_property NO-LOCK ~
     BY gsc_session_property.session_property_name INDEXED-REPOSITION.
@@ -231,26 +234,26 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "asdb.gsc_session_property"
+     _TblList          = "ICFDB.gsc_session_property"
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _OrdList          = "asdb.gsc_session_property.session_property_name|yes"
-     _FldNameList[1]   > ASDB.gsc_session_property.session_property_obj
+     _FldNameList[1]   > ICFDB.gsc_session_property.session_property_obj
 "session_property_obj" "session_property_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
-     _FldNameList[2]   > ASDB.gsc_session_property.session_property_name
+     _FldNameList[2]   > ICFDB.gsc_session_property.session_property_name
 "session_property_name" "session_property_name" ? ? "character" ? ? ? ? ? ? yes ? no 56 yes
-     _FldNameList[3]   > ASDB.gsc_session_property.session_property_description
+     _FldNameList[3]   > ICFDB.gsc_session_property.session_property_description
 "session_property_description" "session_property_description" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
-     _FldNameList[4]   > ASDB.gsc_session_property.system_owned
+     _FldNameList[4]   > ICFDB.gsc_session_property.system_owned
 "system_owned" "system_owned" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[5]   > ASDB.gsc_session_property.default_property_value
+     _FldNameList[5]   > ICFDB.gsc_session_property.default_property_value
 "default_property_value" "default_property_value" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
-     _FldNameList[6]   > ASDB.gsc_session_property.always_used
+     _FldNameList[6]   > ICFDB.gsc_session_property.always_used
 "always_used" "always_used" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK dTables 

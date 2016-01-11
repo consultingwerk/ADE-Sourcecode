@@ -121,7 +121,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-FIELDS RowObject.category_type ~
-RowObject.category_subgroup RowObject.category_group ~
+RowObject.category_group RowObject.category_subgroup ~
 RowObject.category_group_seq RowObject.category_label ~
 RowObject.category_description RowObject.validation_min_length ~
 RowObject.view_as_columns RowObject.validation_max_length ~
@@ -129,15 +129,15 @@ RowObject.view_as_rows RowObject.system_owned RowObject.category_mandatory ~
 RowObject.category_active 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define DISPLAYED-FIELDS RowObject.category_type ~
-RowObject.category_subgroup RowObject.category_group ~
+RowObject.category_group RowObject.category_subgroup ~
 RowObject.category_group_seq RowObject.category_label ~
 RowObject.category_description RowObject.validation_min_length ~
 RowObject.view_as_columns RowObject.validation_max_length ~
 RowObject.view_as_rows RowObject.system_owned RowObject.category_mandatory ~
 RowObject.category_active 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define DISPLAYED-OBJECTS fiRelatedEntityDesc fiOwningEntityDesc 
 
 /* Custom List Definitions                                              */
@@ -168,52 +168,52 @@ DEFINE VARIABLE fiRelatedEntityDesc AS CHARACTER FORMAT "X(35)":U
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     fiRelatedEntityDesc AT ROW 1.1 COL 48.2 COLON-ALIGNED NO-LABEL
-     RowObject.category_type AT ROW 2.1 COL 27.2 COLON-ALIGNED
+     fiRelatedEntityDesc AT ROW 1 COL 52.4 COLON-ALIGNED NO-LABEL
+     RowObject.category_type AT ROW 2.05 COL 27 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 15 BY 1
-     RowObject.category_subgroup AT ROW 3.1 COL 27.2 COLON-ALIGNED
-          LABEL "Subgroup"
-          VIEW-AS FILL-IN 
-          SIZE 15 BY 1
-     RowObject.category_group AT ROW 4.1 COL 27.2 COLON-ALIGNED
+          SIZE 8.6 BY 1
+     RowObject.category_group AT ROW 3.1 COL 27 COLON-ALIGNED
           LABEL "Group"
           VIEW-AS FILL-IN 
-          SIZE 15 BY 1
-     RowObject.category_group_seq AT ROW 5.1 COL 27.2 COLON-ALIGNED
+          SIZE 8.6 BY 1
+     RowObject.category_subgroup AT ROW 4.14 COL 27 COLON-ALIGNED
+          LABEL "Subgroup"
+          VIEW-AS FILL-IN 
+          SIZE 8.6 BY 1
+     RowObject.category_group_seq AT ROW 5.19 COL 27 COLON-ALIGNED
           LABEL "Group Seq."
           VIEW-AS FILL-IN 
-          SIZE 15 BY 1
-     RowObject.category_label AT ROW 6.1 COL 27.2 COLON-ALIGNED
+          SIZE 11.4 BY 1
+     RowObject.category_label AT ROW 6.24 COL 27 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 72.2 BY 1
-     RowObject.category_description AT ROW 7.1 COL 27.2 COLON-ALIGNED
+          SIZE 76.4 BY 1
+     RowObject.category_description AT ROW 7.29 COL 27 COLON-ALIGNED
           LABEL "Description"
           VIEW-AS FILL-IN 
-          SIZE 72.2 BY 1
-     fiOwningEntityDesc AT ROW 8.1 COL 48.2 COLON-ALIGNED NO-LABEL
-     RowObject.validation_min_length AT ROW 9.1 COL 27 COLON-ALIGNED
+          SIZE 76.4 BY 1
+     fiOwningEntityDesc AT ROW 8.33 COL 52.4 COLON-ALIGNED NO-LABEL
+     RowObject.validation_min_length AT ROW 9.43 COL 27 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 15 BY 1
-     RowObject.view_as_columns AT ROW 9.1 COL 91.8 COLON-ALIGNED
+     RowObject.view_as_columns AT ROW 9.43 COL 95.8 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 7.6 BY 1
-     RowObject.validation_max_length AT ROW 10.1 COL 27 COLON-ALIGNED
+     RowObject.validation_max_length AT ROW 10.48 COL 27 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 15 BY 1
-     RowObject.view_as_rows AT ROW 10.1 COL 91.8 COLON-ALIGNED
+     RowObject.view_as_rows AT ROW 10.48 COL 95.8 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 7.6 BY 1
-     RowObject.system_owned AT ROW 11.14 COL 29
+     RowObject.system_owned AT ROW 11.52 COL 29
           VIEW-AS TOGGLE-BOX
-          SIZE 19.2 BY .81
-     RowObject.category_mandatory AT ROW 11.95 COL 29
+          SIZE 19.2 BY 1
+     RowObject.category_mandatory AT ROW 12.57 COL 29
           VIEW-AS TOGGLE-BOX
-          SIZE 24 BY .81
-     RowObject.category_active AT ROW 12.76 COL 29
+          SIZE 24 BY 1
+     RowObject.category_active AT ROW 13.62 COL 29
           VIEW-AS TOGGLE-BOX
-          SIZE 20 BY .81
-     SPACE(1.00) SKIP(0.00)
+          SIZE 20 BY 1
+     SPACE(4.80) SKIP(0.00)
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -253,8 +253,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 13.14
-         WIDTH              = 105.8.
+         HEIGHT             = 13.62
+         WIDTH              = 104.6.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -343,18 +343,18 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_entity_mnemonic.entity_mnemonicKeyFieldgsc_entity_mnemonic.entity_mnemonicFieldLabelRelated Entity MnemonicFieldTooltipChoose a related entity mnemonic or choose F4 for LookupKeyFormatX(8)KeyDatatypecharacterDisplayFormatX(8)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_entity_mnemonic NO-LOCK BY gsc_entity_mnemonic.entity_mnemonicQueryTablesgsc_entity_mnemonicBrowseFieldsgsc_entity_mnemonic.entity_mnemonic,gsc_entity_mnemonic.entity_mnemonic_descriptionBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(8),X(35)RowsToBatch200BrowseTitleLookup Related Entity MnemonicViewerLinkedFieldsgsc_entity_mnemonic.entity_mnemonic_descriptionLinkedFieldDataTypescharacterLinkedFieldFormatsX(35)ViewerLinkedWidgetsfiRelatedEntityDescColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOFieldNamerelated_entity_mnemonicDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_entity_mnemonic.entity_mnemonicKeyFieldgsc_entity_mnemonic.entity_mnemonicFieldLabelRelated EntityFieldTooltipChoose a related entity mnemonic or choose F4 for LookupKeyFormatX(8)KeyDatatypecharacterDisplayFormatX(8)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_entity_mnemonic NO-LOCK BY gsc_entity_mnemonic.entity_mnemonicQueryTablesgsc_entity_mnemonicBrowseFieldsgsc_entity_mnemonic.entity_mnemonic,gsc_entity_mnemonic.entity_mnemonic_descriptionBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(8),X(35)RowsToBatch200BrowseTitleLookup Related Entity MnemonicViewerLinkedFieldsgsc_entity_mnemonic.entity_mnemonic_descriptionLinkedFieldDataTypescharacterLinkedFieldFormatsX(35)ViewerLinkedWidgetsfiRelatedEntityDescColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcFieldNamerelated_entity_mnemonicDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dynlookup ).
-       RUN repositionObject IN h_dynlookup ( 1.10 , 29.00 ) NO-ERROR.
-       RUN resizeObject IN h_dynlookup ( 1.00 , 20.00 ) NO-ERROR.
+       RUN repositionObject IN h_dynlookup ( 1.00 , 29.00 ) NO-ERROR.
+       RUN resizeObject IN h_dynlookup ( 1.00 , 24.80 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_entity_mnemonic.entity_mnemonicKeyFieldgsc_entity_mnemonic.entity_mnemonicFieldLabelOwning Entity MnemonicFieldTooltipEnter an Owning Entity Mnemonic or press F4 for LookupKeyFormatX(5)KeyDatatypecharacterDisplayFormatX(5)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_entity_mnemonic NO-LOCK BY gsc_entity_mnemonic.entity_mnemonicQueryTablesgsc_entity_mnemonicBrowseFieldsgsc_entity_mnemonic.entity_mnemonic,gsc_entity_mnemonic.entity_mnemonic_descriptionBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(5),X(35)RowsToBatch200BrowseTitleLookup Owning Entity MnemonicViewerLinkedFieldsgsc_entity_mnemonic.entity_mnemonic_descriptionLinkedFieldDataTypescharacterLinkedFieldFormatsX(35)ViewerLinkedWidgetsfiOwningEntityDescColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOFieldNameowning_entity_mnemonicDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_entity_mnemonic.entity_mnemonicKeyFieldgsc_entity_mnemonic.entity_mnemonicFieldLabelOwning EntityFieldTooltipEnter an Owning Entity Mnemonic or press F4 for LookupKeyFormatX(8)KeyDatatypecharacterDisplayFormatX(8)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_entity_mnemonic NO-LOCK BY gsc_entity_mnemonic.entity_mnemonicQueryTablesgsc_entity_mnemonicBrowseFieldsgsc_entity_mnemonic.entity_mnemonic,gsc_entity_mnemonic.entity_mnemonic_descriptionBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(8),X(35)RowsToBatch200BrowseTitleLookup Owning Entity MnemonicViewerLinkedFieldsgsc_entity_mnemonic.entity_mnemonic_descriptionLinkedFieldDataTypescharacterLinkedFieldFormatsX(35)ViewerLinkedWidgetsfiOwningEntityDescColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcFieldNameowning_entity_mnemonicDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dynlookup-2 ).
-       RUN repositionObject IN h_dynlookup-2 ( 8.10 , 29.00 ) NO-ERROR.
-       RUN resizeObject IN h_dynlookup-2 ( 1.00 , 21.00 ) NO-ERROR.
+       RUN repositionObject IN h_dynlookup-2 ( 8.33 , 29.00 ) NO-ERROR.
+       RUN resizeObject IN h_dynlookup-2 ( 1.00 , 24.80 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */
        RUN adjustTabOrder ( h_dynlookup ,

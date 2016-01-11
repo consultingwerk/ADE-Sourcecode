@@ -125,13 +125,13 @@ RowObject.item_link RowObject.item_category_description ~
 RowObject.system_owned 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define ENABLED-OBJECTS fiItem raTarget RECT-1 
 &Scoped-Define DISPLAYED-FIELDS RowObject.item_category_label ~
 RowObject.item_link RowObject.item_category_description ~
 RowObject.system_owned RowObject.item_category_obj 
-&Scoped-Define DISPLAYED-OBJECTS fiItem raTarget 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
+&Scoped-Define DISPLAYED-OBJECTS fiItem raTarget fiCategoriesLabel 
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -145,6 +145,10 @@ RowObject.system_owned RowObject.item_category_obj
 
 
 /* Definitions of the field level widgets                               */
+DEFINE VARIABLE fiCategoriesLabel AS CHARACTER FORMAT "X(15)":U INITIAL "Categories" 
+      VIEW-AS TEXT 
+     SIZE 10.6 BY .62 NO-UNDO.
+
 DEFINE VARIABLE fiItem AS CHARACTER FORMAT "X(70)":U 
      LABEL "Item  Link Default" 
      VIEW-AS FILL-IN 
@@ -155,37 +159,40 @@ DEFINE VARIABLE raTarget AS CHARACTER
      RADIO-BUTTONS 
           "Source", "1",
 "Target", "2"
-     SIZE 28 BY .71 NO-UNDO.
+     SIZE 28 BY 1 NO-UNDO.
 
 DEFINE RECTANGLE RECT-1
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 104 BY 8.57.
+     SIZE 104 BY 6.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     RowObject.item_category_label AT ROW 2.43 COL 23 COLON-ALIGNED
+     RowObject.item_category_label AT ROW 1.86 COL 23 COLON-ALIGNED
+          LABEL "Category Label"
           VIEW-AS FILL-IN 
           SIZE 30 BY 1
-     RowObject.item_link AT ROW 2.43 COL 57 NO-LABEL
+     RowObject.item_link AT ROW 1.86 COL 55.6 NO-LABEL
           VIEW-AS FILL-IN 
           SIZE 11 BY 1
-     RowObject.item_category_description AT ROW 3.86 COL 23 COLON-ALIGNED
+     RowObject.item_category_description AT ROW 2.95 COL 23 COLON-ALIGNED
+          LABEL "Description"
           VIEW-AS FILL-IN 
-          SIZE 40 BY 1
-     fiItem AT ROW 5.29 COL 23 COLON-ALIGNED
-     raTarget AT ROW 6.71 COL 25 HELP
+          SIZE 78.6 BY 1
+     fiItem AT ROW 4 COL 23 COLON-ALIGNED
+     raTarget AT ROW 5.05 COL 25 HELP
           "This item will publish the action acrros the specified link" NO-LABEL
-     RowObject.system_owned AT ROW 8.14 COL 25
+     RowObject.system_owned AT ROW 6.14 COL 25
+          LABEL "System owned"
           VIEW-AS TOGGLE-BOX
-          SIZE 42.4 BY .81
+          SIZE 42.4 BY 1
+     fiCategoriesLabel AT ROW 1.24 COL 2.8 NO-LABEL
      RowObject.item_category_obj AT ROW 1.95 COL 89 COLON-ALIGNED
+          LABEL "Item Category Obj"
            VIEW-AS TEXT 
           SIZE 8.6 BY .62
      RECT-1 AT ROW 1.48 COL 1
-     "Categories" VIEW-AS TEXT
-          SIZE 11 BY .62 AT ROW 1.24 COL 3
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -225,8 +232,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 9.52
-         WIDTH              = 104.6.
+         HEIGHT             = 6.48
+         WIDTH              = 104.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -253,16 +260,29 @@ ASSIGN
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
 
-/* SETTINGS FOR FILL-IN RowObject.item_category_obj IN FRAME frMain
-   NO-ENABLE                                                            */
+/* SETTINGS FOR FILL-IN fiCategoriesLabel IN FRAME frMain
+   NO-ENABLE ALIGN-L                                                    */
 ASSIGN 
-       RowObject.item_category_obj:HIDDEN IN FRAME frMain           = TRUE.
+       fiCategoriesLabel:PRIVATE-DATA IN FRAME frMain     = 
+                "Categories".
+
+/* SETTINGS FOR FILL-IN RowObject.item_category_description IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR FILL-IN RowObject.item_category_label IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR FILL-IN RowObject.item_category_obj IN FRAME frMain
+   NO-ENABLE EXP-LABEL                                                  */
+ASSIGN 
+       RowObject.item_category_obj:HIDDEN IN FRAME frMain           = TRUE
+       RowObject.item_category_obj:READ-ONLY IN FRAME frMain        = TRUE.
 
 /* SETTINGS FOR FILL-IN RowObject.item_link IN FRAME frMain
-   ALIGN-L                                                              */
+   ALIGN-L EXP-LABEL                                                    */
 ASSIGN 
        RowObject.item_link:HIDDEN IN FRAME frMain           = TRUE.
 
+/* SETTINGS FOR TOGGLE-BOX RowObject.system_owned IN FRAME frMain
+   EXP-LABEL                                                            */
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 

@@ -6,4 +6,5 @@
   FIELD security_token LIKE ryc_page.security_token VALIDATE ~
   FIELD enable_on_create LIKE ryc_page.enable_on_create VALIDATE ~
   FIELD enable_on_modify LIKE ryc_page.enable_on_modify VALIDATE ~
-  FIELD enable_on_view LIKE ryc_page.enable_on_view VALIDATE 
+  FIELD enable_on_view LIKE ryc_page.enable_on_view VALIDATE ~
+  FIELD page_reference LIKE ryc_page.page_reference VALIDATE 

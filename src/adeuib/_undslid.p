@@ -38,6 +38,9 @@ Modified by gfs on 03/08/96 Added support for Win95 slider
 ----------------------------------------------------------------------------*/
 DEFINE INPUT PARAMETER uRecId AS RECID NO-UNDO.
 
+DEFINE VARIABLE lIsICFRunning AS LOGICAL    NO-UNDO.
+   
+{src/adm2/globals.i}
 {adeuib/uniwidg.i}
 {adeuib/layout.i}
 {adeuib/sharvars.i}
@@ -52,6 +55,8 @@ FIND _F       WHERE RECID(_F)       eq _U._x-recid.
 FIND parent_U WHERE RECID(parent_U) eq _U._parent-recid.
 FIND parent_L WHERE RECID(parent_L) eq parent_U._lo-recid.
 FIND parent_C WHERE RECID(parent_C) eq parent_U._x-recid.
+
+ASSIGN lisICFRunning = DYNAMIC-FUNCTION("IsICFRunning":U) NO-ERROR.
 
 ASSIGN _F._FRAME    = parent_U._HANDLE
        _L._WIN-TYPE = parent_L._WIN-TYPE.
@@ -81,6 +86,14 @@ CASE _F._TIC-MARKS:
   OTHERWISE _U._HANDLE:TIC-MARKS = _F._TIC-MARKS.
 END CASE.                                                       
 
+IF lIsICFRunning THEN DO:
+  IF LOOKUP(_U._CLASS-NAME,  
+            DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager,
+                             INPUT "DataField":U)) <> 0 THEN
+     /* Attach the edit master popup */
+    RUN createDataFieldPopup IN _h_uib (_U._HANDLE).
+END.  /* If ICF is running */
+
 /* Assign Handles that we now know */
 ASSIGN  {adeuib/std_uf.i &SECTION = "HANDLES"} .
 
@@ -89,6 +102,15 @@ ASSIGN  {adeuib/std_uf.i &SECTION = "HANDLES"} .
    &_whFrameHandle = "_F._FRAME"
    &_whObjHandle   = "_U._HANDLE"
    &_lvHidden      = _L._REMOVE-FROM-LAYOUT}
+
+IF NOT _L._NO-LABELS THEN DO:  /* Note: we allow labels for dynamic sliders */
+  /* Add a label to the current widget */
+  { adeuib/addlabel.i }
+
+  /* NOTE: _showlbl.p runs onframe to guarantee that the object is within
+     frame boundary. */
+  RUN adeuib/_showlbl.p (INPUT _U._HANDLE).
+END.  /* If NOT no-label */
 
 /* Make sure the Universal Widget Record is "correct" by reading the actually
    instantiated values. */

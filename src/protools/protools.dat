@@ -14,11 +14,12 @@
 "Screen Capture" "protools/_scrcap.w" "adeicon/scrcap" yes yes 140 no
 "SmartObject Upgrade Utility" "protools/_v89conv.w" "adeicon/smoupgrd" yes yes 150 no
 "Screen Scaling Utility" "protools/_ppuscl.p" "adeicon/fntupgrd" no yes 160 no
-"Progress COM Object Viewer" "protools/_proobjv.p" "adeicon/proobjvw" no yes 170 no
-"Service Parameter Maintenance" "protools/waspartn.w" "adeicon/appsrvr" yes yes 180 no
-"ProtoGen" "protools/_protgen.w" "adeicon/protogen" yes yes 190 no
-"AppServer Information" "protools/_asinfo.w" "adeicon/asinfo" no yes 200 no
-"PRO*Spy for Version 9" "protools/_prospy9.w" "adeicon/prospy9.bmp" yes yes 210 no
-"WebClient Application Assembler" "protools/_prowcapped.p" "adeicon/prowcapped" no yes 220 no
-"XML Schema Mapping" "adexml/_xmlview.w" "adexml/images/xmlmap" yes yes 230 no
-"Widget Attr Help" "protools/widattrs.w" "adeicon/w-widattrs-sm" yes yes 240 no
+"ADM to Dynamics" "icf/ry/uib/_v89dcnv.w" "adeicon/admtodyn.gif" yes yes 170 no
+"Progress COM Object Viewer" "protools/_proobjv.p" "adeicon/proobjvw" no yes 180 no
+"Service Parameter Maintenance" "protools/waspartn.w" "adeicon/appsrvr" yes yes 190 no
+"ProtoGen" "protools/_protgen.w" "adeicon/protogen" yes yes 200 no
+"AppServer Information" "protools/_asinfo.w" "adeicon/asinfo" no yes 210 no
+"Pro*Spy Plus" "protools/_psplus.w" "adeicon/prospy9.bmp" yes yes 220 no
+"WebClient Application Assembler" "protools/_prowcapped.p" "adeicon/prowcapped" no yes 230 no
+"XML Schema Mapping" "adexml/_xmlview.w" "adexml/images/xmlmap" yes yes 240 no
+"Widget Attr Help" "protools/widattrs.w" "adeicon/w-widattrs-sm" yes yes 250 no

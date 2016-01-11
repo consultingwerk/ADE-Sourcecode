@@ -92,7 +92,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gstadviewv.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010001
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -118,6 +118,8 @@ DEFINE TEMP-TABLE ttAudit NO-UNDO RCODE-INFORMATION
             INDEX tiAkey1      AS PRIMARY
                   ttAFieldName
             .
+DEFINE VARIABLE ghOldValCol     AS HANDLE     NO-UNDO.
+DEFINE VARIABLE ghNewValCol     AS HANDLE     NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -142,11 +144,13 @@ DEFINE TEMP-TABLE ttAudit NO-UNDO RCODE-INFORMATION
 
 /* Standard List Definitions                                            */
 &Scoped-Define DISPLAYED-FIELDS RowObject.owning_entity_mnemonic ~
-RowObject.audit_date RowObject.audit_time_str ~
-RowObject.entity_mnemonic_description RowObject.user_login_name ~
-RowObject.audit_action RowObject.program_procedure ~
-RowObject.owning_reference RowObject.program_name RowObject.old_detail ~
-RowObject.entity_object_field RowObject.entity_key_field 
+RowObject.entity_mnemonic_description RowObject.audit_date ~
+RowObject.audit_time_str RowObject.user_login_name RowObject.audit_action ~
+RowObject.program_procedure RowObject.program_name RowObject.old_detail ~
+RowObject.entity_object_field RowObject.entity_key_field ~
+RowObject.owning_reference 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define DISPLAYED-OBJECTS cOwningEntityKeyField 
 
 /* Custom List Definitions                                              */
@@ -164,52 +168,62 @@ RowObject.entity_object_field RowObject.entity_key_field
 DEFINE VARIABLE cOwningEntityKeyField AS CHARACTER FORMAT "X(256)":U 
      LABEL "Owning Entity Key Field" 
      VIEW-AS FILL-IN 
-     SIZE 37 BY 1 NO-UNDO.
+     SIZE 52 BY 1 NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     RowObject.owning_entity_mnemonic AT ROW 1 COL 28 COLON-ALIGNED
-          VIEW-AS FILL-IN 
-          SIZE 13.6 BY 1
-     RowObject.audit_date AT ROW 1 COL 85 COLON-ALIGNED
-          VIEW-AS FILL-IN 
-          SIZE 20 BY 1
-     RowObject.audit_time_str AT ROW 1 COL 125 COLON-ALIGNED
-          VIEW-AS FILL-IN 
-          SIZE 12 BY 1
-     RowObject.entity_mnemonic_description AT ROW 2.14 COL 28 COLON-ALIGNED
-          VIEW-AS FILL-IN 
-          SIZE 37 BY 1
-     RowObject.user_login_name AT ROW 2.14 COL 85 COLON-ALIGNED
-          VIEW-AS FILL-IN 
-          SIZE 20 BY 1
-     RowObject.audit_action AT ROW 2.14 COL 125 COLON-ALIGNED
-          VIEW-AS FILL-IN 
-          SIZE 12 BY 1
-     cOwningEntityKeyField AT ROW 3.19 COL 28 COLON-ALIGNED
-     RowObject.program_procedure AT ROW 3.29 COL 85 COLON-ALIGNED
+     RowObject.owning_entity_mnemonic AT ROW 1.1 COL 39.8 COLON-ALIGNED
+          LABEL "Owning Entity"
           VIEW-AS FILL-IN 
           SIZE 52 BY 1
-     RowObject.owning_reference AT ROW 4.24 COL 29.8 NO-LABEL
-          VIEW-AS EDITOR MAX-CHARS 3000 SCROLLBAR-VERTICAL LARGE
-          SIZE 38 BY 1.14
-     RowObject.program_name AT ROW 4.43 COL 85 COLON-ALIGNED
+     RowObject.entity_mnemonic_description AT ROW 2.14 COL 39.8 COLON-ALIGNED
+          LABEL "Entity Description"
           VIEW-AS FILL-IN 
           SIZE 52 BY 1
-     RowObject.old_detail AT ROW 5.48 COL 30.2 NO-LABEL
+     cOwningEntityKeyField AT ROW 3.19 COL 39.8 COLON-ALIGNED
+     RowObject.audit_date AT ROW 4.24 COL 39.8 COLON-ALIGNED
+          LABEL "Audit Date"
+          VIEW-AS FILL-IN 
+          SIZE 20 BY 1
+     RowObject.audit_time_str AT ROW 4.24 COL 79.8 COLON-ALIGNED
+          LABEL "Audit Time"
+          VIEW-AS FILL-IN 
+          SIZE 12 BY 1
+     RowObject.user_login_name AT ROW 5.29 COL 39.8 COLON-ALIGNED
+          LABEL "User Login Name"
+          VIEW-AS FILL-IN 
+          SIZE 20 BY 1
+     RowObject.audit_action AT ROW 5.29 COL 79.8 COLON-ALIGNED
+          LABEL "Audit Action"
+          VIEW-AS FILL-IN 
+          SIZE 12 BY 1
+     RowObject.program_procedure AT ROW 6.33 COL 39.8 COLON-ALIGNED
+          LABEL "Program Procedure"
+          VIEW-AS FILL-IN 
+          SIZE 52 BY 1
+     RowObject.program_name AT ROW 7.38 COL 39.8 COLON-ALIGNED
+          LABEL "Program Name"
+          VIEW-AS FILL-IN 
+          SIZE 52 BY 1
+     RowObject.old_detail AT ROW 8.48 COL 13 NO-LABEL
           VIEW-AS EDITOR MAX-CHARS 10000 SCROLLBAR-VERTICAL LARGE
-          SIZE 109.2 BY 8.19
-     RowObject.entity_object_field AT ROW 13.76 COL 28 COLON-ALIGNED
+          SIZE 81.2 BY 8
+     RowObject.entity_object_field AT ROW 16.52 COL 40.4 COLON-ALIGNED
+          LABEL "Entity Object Field"
           VIEW-AS FILL-IN 
-          SIZE 37 BY 1
-     RowObject.entity_key_field AT ROW 14.76 COL 28 COLON-ALIGNED
+          SIZE 38 BY 1
+     RowObject.entity_key_field AT ROW 17.48 COL 40.4 COLON-ALIGNED
+          LABEL "Entity Key Field"
           VIEW-AS FILL-IN 
-          SIZE 37 BY 1
+          SIZE 38 BY 1
+     RowObject.owning_reference AT ROW 18.52 COL 42.4 NO-LABEL
+          VIEW-AS EDITOR MAX-CHARS 3000
+          SIZE 38 BY 1
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
-         AT COL 1 ROW 1 SCROLLABLE .
+         AT COL 1.2 ROW 1 SCROLLABLE .
 
 
 /* *********************** Procedure Settings ************************ */
@@ -246,8 +260,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 14.95
-         WIDTH              = 140.
+         HEIGHT             = 18.71
+         WIDTH              = 93.2.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -275,68 +289,70 @@ ASSIGN
        FRAME frMain:HIDDEN           = TRUE.
 
 /* SETTINGS FOR FILL-IN RowObject.audit_action IN FRAME frMain
-   NO-ENABLE                                                            */
+   NO-ENABLE EXP-LABEL                                                  */
 ASSIGN 
        RowObject.audit_action:READ-ONLY IN FRAME frMain        = TRUE.
 
 /* SETTINGS FOR FILL-IN RowObject.audit_date IN FRAME frMain
-   NO-ENABLE                                                            */
+   NO-ENABLE EXP-LABEL                                                  */
 ASSIGN 
-       RowObject.audit_date:READ-ONLY IN FRAME frMain        = TRUE.
+       RowObject.audit_date:READ-ONLY IN FRAME frMain        = TRUE
+       RowObject.audit_date:PRIVATE-DATA IN FRAME frMain     = 
+                "NOLOOKUPS".
 
 /* SETTINGS FOR FILL-IN RowObject.audit_time_str IN FRAME frMain
-   NO-ENABLE                                                            */
+   NO-ENABLE EXP-LABEL                                                  */
 ASSIGN 
        RowObject.audit_time_str:READ-ONLY IN FRAME frMain        = TRUE.
 
 /* SETTINGS FOR FILL-IN cOwningEntityKeyField IN FRAME frMain
    NO-ENABLE                                                            */
 /* SETTINGS FOR FILL-IN RowObject.entity_key_field IN FRAME frMain
-   NO-ENABLE                                                            */
+   NO-ENABLE EXP-LABEL                                                  */
 ASSIGN 
        RowObject.entity_key_field:HIDDEN IN FRAME frMain           = TRUE
        RowObject.entity_key_field:READ-ONLY IN FRAME frMain        = TRUE.
 
 /* SETTINGS FOR FILL-IN RowObject.entity_mnemonic_description IN FRAME frMain
-   NO-ENABLE                                                            */
+   NO-ENABLE EXP-LABEL                                                  */
 ASSIGN 
        RowObject.entity_mnemonic_description:READ-ONLY IN FRAME frMain        = TRUE.
 
 /* SETTINGS FOR FILL-IN RowObject.entity_object_field IN FRAME frMain
-   NO-ENABLE                                                            */
+   NO-ENABLE EXP-LABEL                                                  */
 ASSIGN 
        RowObject.entity_object_field:HIDDEN IN FRAME frMain           = TRUE
        RowObject.entity_object_field:READ-ONLY IN FRAME frMain        = TRUE.
 
 /* SETTINGS FOR EDITOR RowObject.old_detail IN FRAME frMain
-   NO-ENABLE                                                            */
+   NO-ENABLE EXP-LABEL                                                  */
 ASSIGN 
        RowObject.old_detail:HIDDEN IN FRAME frMain           = TRUE
        RowObject.old_detail:READ-ONLY IN FRAME frMain        = TRUE.
 
 /* SETTINGS FOR FILL-IN RowObject.owning_entity_mnemonic IN FRAME frMain
-   NO-ENABLE                                                            */
+   NO-ENABLE EXP-LABEL                                                  */
 ASSIGN 
        RowObject.owning_entity_mnemonic:READ-ONLY IN FRAME frMain        = TRUE.
 
 /* SETTINGS FOR EDITOR RowObject.owning_reference IN FRAME frMain
-   NO-ENABLE                                                            */
+   NO-ENABLE EXP-LABEL                                                  */
 ASSIGN 
        RowObject.owning_reference:HIDDEN IN FRAME frMain           = TRUE
        RowObject.owning_reference:READ-ONLY IN FRAME frMain        = TRUE.
 
 /* SETTINGS FOR FILL-IN RowObject.program_name IN FRAME frMain
-   NO-ENABLE                                                            */
+   NO-ENABLE EXP-LABEL                                                  */
 ASSIGN 
        RowObject.program_name:READ-ONLY IN FRAME frMain        = TRUE.
 
 /* SETTINGS FOR FILL-IN RowObject.program_procedure IN FRAME frMain
-   NO-ENABLE                                                            */
+   NO-ENABLE EXP-LABEL                                                  */
 ASSIGN 
        RowObject.program_procedure:READ-ONLY IN FRAME frMain        = TRUE.
 
 /* SETTINGS FOR FILL-IN RowObject.user_login_name IN FRAME frMain
-   NO-ENABLE                                                            */
+   NO-ENABLE EXP-LABEL                                                  */
 ASSIGN 
        RowObject.user_login_name:READ-ONLY IN FRAME frMain        = TRUE.
 
@@ -373,6 +389,28 @@ ASSIGN
 
 /* **********************  Internal Procedures  *********************** */
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE browseRowDisplay vTableWin 
+PROCEDURE browseRowDisplay :
+/*------------------------------------------------------------------------------
+  Purpose:     If fields are secured, change the cell colour to gray.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+IF ttAudit.ttAValueOld = "<Field Secured>" THEN
+    ASSIGN ghOldValCol:BGCOLOR = 8.
+
+IF ttAudit.ttAValueNew = "<Field Secured>" THEN
+    ASSIGN ghNewValCol:BGCOLOR = 8.
+
+ASSIGN ERROR-STATUS:ERROR = NO.
+RETURN "":U.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE buildBrowser vTableWin 
 PROCEDURE buildBrowser :
 /*------------------------------------------------------------------------------
@@ -389,6 +427,7 @@ PROCEDURE buildBrowser :
   DEFINE VARIABLE cLinkHandles              AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cBrowseLabels             AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hContainerSource          AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hColumn                   AS HANDLE     NO-UNDO.
 
   DEFINE VARIABLE iLoop                     AS INTEGER    NO-UNDO.
   DEFINE VARIABLE hLoopValue                AS HANDLE     NO-UNDO.
@@ -397,16 +436,20 @@ PROCEDURE buildBrowser :
   DO WITH FRAME {&FRAME-NAME}:
 
     /* populate temp-table */
-    ASSIGN
-      ghTable  = TEMP-TABLE ttAudit:HANDLE
-      ghBuffer = ghTable:DEFAULT-BUFFER-HANDLE
-      .
+    ASSIGN ghTable  = TEMP-TABLE ttAudit:HANDLE
+           ghBuffer = ghTable:DEFAULT-BUFFER-HANDLE.
 
     RUN buildEntityField.
     RUN buildTempTable (INPUT NO).
 
-    CREATE QUERY ghQuery.
-    ghQuery:ADD-BUFFER(ghBuffer).
+    IF NOT VALID-HANDLE(ghQuery) 
+    THEN DO:
+        CREATE QUERY ghQuery.
+        ghQuery:ADD-BUFFER(ghBuffer).
+    END.
+    ELSE
+        ghQuery:QUERY-CLOSE().
+
     ASSIGN cQuery = "FOR EACH ttAudit NO-LOCK":U.
     ghQuery:QUERY-PREPARE(cQuery).
 
@@ -418,61 +461,78 @@ PROCEDURE buildBrowser :
     DEFINE VARIABLE dHeight               AS DECIMAL NO-UNDO.
     DEFINE VARIABLE dWidth                AS DECIMAL NO-UNDO.
 
-    FRAME {&FRAME-NAME}:HEIGHT-PIXELS = ghWindow:HEIGHT-PIXELS - 70 .
+    FRAME {&FRAME-NAME}:HEIGHT-PIXELS = ghWindow:HEIGHT-PIXELS - 80 .
     FRAME {&FRAME-NAME}:WIDTH-PIXELS  = ghWindow:WIDTH-PIXELS  - 28 .
 
-    CREATE BROWSE ghBrowse
-      ASSIGN FRAME              = FRAME {&FRAME-NAME}:HANDLE
-        ROW                     = 5.66
-        COL                     = 1.5
-        WIDTH-CHARS             = FRAME {&FRAME-NAME}:WIDTH-CHARS   - 2
-        HEIGHT-PIXELS           = FRAME {&FRAME-NAME}:HEIGHT-PIXELS - 110
-        SEPARATORS              = TRUE
-        ROW-MARKERS             = FALSE
-        EXPANDABLE              = TRUE
-        COLUMN-RESIZABLE        = TRUE
-        COLUMN-SCROLLING        = TRUE
-        ALLOW-COLUMN-SEARCHING  = NO
-        READ-ONLY               = NO
-        QUERY                   = ghQuery
-        .
+    IF NOT VALID-HANDLE(ghBrowse) 
+    THEN DO:
+        CREATE BROWSE ghBrowse
+          ASSIGN FRAME              = FRAME {&FRAME-NAME}:HANDLE
+            ROW                     = 9
+            COL                     = 1.5
+            WIDTH-CHARS             = FRAME {&FRAME-NAME}:WIDTH-CHARS   - 3
+            HEIGHT-CHARS            = FRAME {&FRAME-NAME}:HEIGHT-CHARS - ghBrowse:ROW + 1
+            SEPARATORS              = TRUE
+            ROW-MARKERS             = FALSE
+            EXPANDABLE              = TRUE
+            COLUMN-RESIZABLE        = TRUE
+            COLUMN-SCROLLING        = TRUE
+            ALLOW-COLUMN-SEARCHING  = NO
+            READ-ONLY               = NO
+            QUERY                   = ghQuery
+            TRIGGERS:
+                ON 'row-display':U PERSISTENT RUN browseRowDisplay.
+            END TRIGGERS.
+    
+        /* Hide the browse while it is repopulated to avoid flashing */
+        ghBrowse:VISIBLE   = NO.
+        ghBrowse:SENSITIVE = NO.
+        ghBrowse:MODIFIED  = NO.
+    
+        /* Add fields to browser */
+        field-loop:
+        DO iLoop = 1 TO ghBuffer:NUM-FIELDS:
+    
+          hLoopValue = ghBuffer:BUFFER-FIELD(iLoop).
+          hCurValue  = ghBrowse:ADD-LIKE-COLUMN(hLoopValue).
+    
+          /* Build up the list of browse columns for use in rowDisplay */
+          IF VALID-HANDLE(hCurValue)
+          THEN
+            cBrowseColHdls = cBrowseColHdls
+                           + (IF cBrowseColHdls = "":U THEN "":U ELSE ",":U) 
+                           + STRING(hCurValue).
+    
+        END.
+    
+        column-loop:
+        DO iLoop = 1 TO ghBrowse:NUM-COLUMNS:
+    
+          IF iLoop = 1
+          THEN
+            ASSIGN
+              hCurValue  = ghBrowse:FIRST-COLUMN.
+          ELSE
+            ASSIGN
+              hLoopValue = hCurValue:NEXT-COLUMN
+              hCurValue  = hLoopValue.
+    
+          ASSIGN
+            hCurValue:WIDTH-PIXELS = ( ghBrowse:WIDTH-PIXELS / ghBrowse:NUM-COLUMNS ).
+    
+        END.
 
-    /* Hide the browse while it is repopulated to avoid flashing */
-    ghBrowse:VISIBLE   = NO.
-    ghBrowse:SENSITIVE = NO.
-    ghBrowse:MODIFIED  = NO.
+        /* Store the browse columns */
+        ASSIGN hColumn = ghBrowse:FIRST-COLUMN.
 
-    /* Add fields to browser */
-    field-loop:
-    DO iLoop = 1 TO ghBuffer:NUM-FIELDS:
+        DO WHILE VALID-HANDLE(hColumn):
+            CASE hColumn:NAME:
+                WHEN "ttAValueOld":U THEN ASSIGN ghOldValCol = hColumn.
+                WHEN "ttAValueNew":U THEN ASSIGN ghNewValCol = hColumn.
+            END CASE.
 
-      hLoopValue = ghBuffer:BUFFER-FIELD(iLoop).
-      hCurValue  = ghBrowse:ADD-LIKE-COLUMN(hLoopValue).
-
-      /* Build up the list of browse columns for use in rowDisplay */
-      IF VALID-HANDLE(hCurValue)
-      THEN
-        cBrowseColHdls = cBrowseColHdls
-                       + (IF cBrowseColHdls = "":U THEN "":U ELSE ",":U) 
-                       + STRING(hCurValue).
-
-    END.
-
-    column-loop:
-    DO iLoop = 1 TO ghBrowse:NUM-COLUMNS:
-
-      IF iLoop = 1
-      THEN
-        ASSIGN
-          hCurValue  = ghBrowse:FIRST-COLUMN.
-      ELSE
-        ASSIGN
-          hLoopValue = hCurValue:NEXT-COLUMN
-          hCurValue  = hLoopValue.
-
-      ASSIGN
-        hCurValue:WIDTH-PIXELS = ( ghBrowse:WIDTH-PIXELS / ghBrowse:NUM-COLUMNS ).
-
+            ASSIGN hColumn = hColumn:NEXT-COLUMN.
+        END.
     END.
 
     /* Now open the query */
@@ -535,8 +595,11 @@ PROCEDURE buildTempTable :
 
   DEFINE INPUT PARAMETER plOpenQuery              AS LOGICAL    NO-UNDO.
 
-  DEFINE VARIABLE iLoop                           AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iLoopEntry                      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iLoop         AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iLoopEntry    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFieldList    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSecurityList AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iFieldCnt     AS INTEGER    NO-UNDO.
 
   /* 1st empty current temp-table contents */
   EMPTY TEMP-TABLE ttAudit.
@@ -546,17 +609,34 @@ PROCEDURE buildTempTable :
     detail-loop:
     DO iLoop = 1 TO NUM-ENTRIES(RowObject.old_detail:INPUT-VALUE , CHR(5)):
 
-      ASSIGN
-        iLoopEntry = ENTRY( iLoop , RowObject.old_detail:INPUT-VALUE , CHR(5) ).
+      ASSIGN iLoopEntry = ENTRY(iLoop ,RowObject.old_detail:INPUT-VALUE, CHR(5)).
 
       CREATE ttAudit.
-
-      IF NUM-ENTRIES( iLoopEntry , CHR(6) ) >  0 THEN ASSIGN ttAFieldName = ENTRY(  1 , iLoopEntry, CHR(6) ).
-      IF NUM-ENTRIES( iLoopEntry , CHR(6) ) >  1 THEN ASSIGN ttAValueNew  = ENTRY(  2 , iLoopEntry, CHR(6) ).
-      IF NUM-ENTRIES( iLoopEntry , CHR(6) ) >  2 THEN ASSIGN ttAValueOld  = ENTRY(  3 , iLoopEntry, CHR(6) ).
-
+      ASSIGN ttAudit.ttAFieldName = ENTRY(1, iLoopEntry, CHR(6)) WHEN NUM-ENTRIES(iLoopEntry , CHR(6)) > 0
+             ttAudit.ttAValueNew  = ENTRY(2, iLoopEntry, CHR(6)) WHEN NUM-ENTRIES(iLoopEntry , CHR(6)) > 1
+             ttAudit.ttAValueOld  = ENTRY(3, iLoopEntry, CHR(6)) WHEN NUM-ENTRIES(iLoopEntry , CHR(6)) > 2
+             cFieldList           = cFieldList + CHR(1) + ttAudit.ttAFieldName.
     END. /* detail-loop */
+    ASSIGN cFieldList = SUBSTRING(cFieldList, 2) NO-ERROR.
+  END.
 
+  /* Now that we have all the fields, check which ones are secured */
+
+  RUN getFieldSecurity IN gshSecurityManager (INPUT  cFieldList,
+                                              OUTPUT cSecurityList).
+  
+  DO iFieldCnt = 1 TO NUM-ENTRIES(cFieldList, CHR(1)):
+
+      IF ENTRY(iFieldCnt, cSecurityList) = "HIDDEN":U
+      THEN DO:
+          FIND ttAudit
+               WHERE ttAudit.ttAFieldName = ENTRY(iFieldCnt, cFieldList, CHR(1))
+               NO-ERROR.
+
+          IF AVAILABLE ttAudit THEN
+              ASSIGN ttAudit.ttAValueNew = "<Field Secured>"
+                     ttAudit.ttAValueOld = "<Field Secured>".
+      END.
   END.
 
   /* Re-open query if required */
@@ -635,6 +715,54 @@ PROCEDURE initializeObject :
   {get ContainerHandle ghWindow ghContainerHandle}.
 
   RUN buildBrowser.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE resizeObject vTableWin 
+PROCEDURE resizeObject :
+/*------------------------------------------------------------------------------
+  Purpose:    Resize the viewer
+  Parameters: pd_height AS DECIMAL - the desired height (in rows)
+              pd_width  AS DECIMAL - the desired width (in columns)
+    Notes:    Used internally. Calls to resizeObject are generated by the
+              AppBuilder in adm-create-objects for objects which implement it.
+              Having a resizeObject procedure is also the signal to the AppBuilder
+              to allow the object to be resized at design time.
+------------------------------------------------------------------------------*/
+
+  DEFINE INPUT PARAMETER pdHeight       AS DECIMAL NO-UNDO.
+  DEFINE INPUT PARAMETER pdWidth        AS DECIMAL NO-UNDO.
+
+  DEFINE VARIABLE lPreviouslyHidden     AS LOGICAL NO-UNDO.
+  DEFINE VARIABLE hWindow               AS HANDLE  NO-UNDO.
+  DEFINE VARIABLE hContainerSource      AS HANDLE  NO-UNDO.
+
+  /* Get container and window handles */
+  {get ContainerSource hContainerSource}.
+  {get ContainerHandle hWindow hContainerSource}.
+
+  /* Save hidden state of current frame, then hide it */
+  FRAME {&FRAME-NAME}:SCROLLABLE = FALSE.                                               
+  lPreviouslyHidden = FRAME {&FRAME-NAME}:HIDDEN.                                                           
+  FRAME {&FRAME-NAME}:HIDDEN = TRUE.
+
+  /* Resize frame relative to containing window size */
+  FRAME {&FRAME-NAME}:HEIGHT-PIXELS = hWindow:HEIGHT-PIXELS - 80.
+  FRAME {&FRAME-NAME}:WIDTH-PIXELS  = hWindow:WIDTH-PIXELS  - 28.
+
+  /* Resize dynamic browser (if exists) relative to current frame */
+  IF VALID-HANDLE(ghBrowse) THEN
+  DO:
+    ghBrowse:WIDTH-CHARS  = FRAME {&FRAME-NAME}:WIDTH-CHARS     - 3.
+    ghBrowse:HEIGHT-CHARS = FRAME {&FRAME-NAME}:HEIGHT-CHARS - ghBrowse:ROW + 1.
+  END.
+
+  /* Restore original hidden state of current frame */
+  APPLY "end-resize":U TO FRAME {&FRAME-NAME}.
+  FRAME {&FRAME-NAME}:HIDDEN = lPreviouslyHidden NO-ERROR.
 
 END PROCEDURE.
 

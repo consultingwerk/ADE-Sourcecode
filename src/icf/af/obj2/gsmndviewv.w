@@ -76,6 +76,10 @@ DEFINE TEMP-TABLE RowObject
                 way of fixing this, but I traced the GPF to the 'APPLY "ENTRY" TO'
                 statement in applyEntry (smart.p).
 
+      Modified: 02/22/2002      Mark Davies (MIP)
+                Disable the Launch Container lookup field when the data source type
+                is Plain Text and Menu structure.
+                Fix for issue #3838 - Treeview fails to display text node data
 ---------------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
@@ -106,7 +110,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /* Astra 2 object identifying preprocessor */
 &glob   astra2-staticSmartDataViewer yes
 
-{af/sup2/afglobals.i}
+{src/adm2/globals.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -137,15 +141,16 @@ RowObject.fields_to_store RowObject.node_text_label_expression ~
 RowObject.label_text_substitution_fields RowObject.foreign_fields 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define ENABLED-OBJECTS coDataSourceType fiChar 
 &Scoped-Define DISPLAYED-FIELDS RowObject.node_code ~
 RowObject.node_description RowObject.node_label RowObject.node_checked ~
 RowObject.data_source_type RowObject.data_source RowObject.run_attribute ~
 RowObject.fields_to_store RowObject.node_text_label_expression ~
 RowObject.label_text_substitution_fields RowObject.foreign_fields 
-&Scoped-Define DISPLAYED-OBJECTS coDataSourceType fiChar 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
+&Scoped-Define DISPLAYED-OBJECTS coDataSourceType fiSDOChildren fiChar ~
+fiFieldsToStoreLabel fiLabelTextSubsLabel fiForeignFieldsLabel 
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -169,8 +174,9 @@ DEFINE VARIABLE h_SelectedImageFileName AS HANDLE NO-UNDO.
 
 /* Definitions of the field level widgets                               */
 DEFINE BUTTON buFindPhysical 
-     LABEL "Find &Physical..." 
-     SIZE 15 BY 1 TOOLTIP "Find an object"
+     IMAGE-UP FILE "icf/ry/img/view.gif":U
+     LABEL "..." 
+     SIZE 4.2 BY .91 TOOLTIP "Find an object"
      BGCOLOR 8 .
 
 DEFINE VARIABLE coDataSourceType AS CHARACTER FORMAT "X(256)" INITIAL "SDO" 
@@ -181,73 +187,85 @@ DEFINE VARIABLE coDataSourceType AS CHARACTER FORMAT "X(256)" INITIAL "SDO"
                      "Menu Structure","MNU",
                      "Plain Text","TXT"
      DROP-DOWN-LIST
-     SIZE 37 BY 1 TOOLTIP "Select the data source type to populate this node." NO-UNDO.
+     SIZE 50 BY 1 TOOLTIP "Select the data source type to populate this node." NO-UNDO.
 
 DEFINE VARIABLE cExtractProgram AS CHARACTER FORMAT "x(70)" 
      LABEL "Extract Program" 
      VIEW-AS FILL-IN 
-     SIZE 45.2 BY 1.
+     SIZE 78.4 BY 1.
 
 DEFINE VARIABLE cPlainText AS CHARACTER FORMAT "x(70)" 
      LABEL "Plain Text" 
      VIEW-AS FILL-IN 
-     SIZE 61.6 BY 1.
+     SIZE 78.4 BY 1.
 
 DEFINE VARIABLE fiChar AS CHARACTER FORMAT "X(256)":U 
      VIEW-AS FILL-IN 
      SIZE .2 BY .1 TOOLTIP "Used to get rid of GPF errors" NO-UNDO.
 
+DEFINE VARIABLE fiFieldsToStoreLabel AS CHARACTER FORMAT "X(35)":U INITIAL "Fields To Store:" 
+      VIEW-AS TEXT 
+     SIZE 15.2 BY 1 NO-UNDO.
+
+DEFINE VARIABLE fiForeignFieldsLabel AS CHARACTER FORMAT "X(35)":U INITIAL "Foreign Fields:" 
+      VIEW-AS TEXT 
+     SIZE 14 BY 1 NO-UNDO.
+
+DEFINE VARIABLE fiLabelTextSubsLabel AS CHARACTER FORMAT "X(35)":U INITIAL "Label Text Substitution:" 
+      VIEW-AS TEXT 
+     SIZE 22.6 BY 1 NO-UNDO.
+
+DEFINE VARIABLE fiSDOChildren AS CHARACTER FORMAT "X(256)":U 
+     VIEW-AS FILL-IN 
+     SIZE 3.6 BY 1 NO-UNDO.
+
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     RowObject.node_code AT ROW 1 COL 25.8 COLON-ALIGNED
+     RowObject.node_code AT ROW 1 COL 28.2 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 15.6 BY 1
-     RowObject.node_description AT ROW 2 COL 25.8 COLON-ALIGNED
+          SIZE 24 BY 1
+     RowObject.node_description AT ROW 2.05 COL 28.2 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 37 BY 1
-     RowObject.node_label AT ROW 4 COL 25.8 COLON-ALIGNED
+          SIZE 78.4 BY 1
+     RowObject.node_label AT ROW 4.14 COL 28.2 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 30 BY 1
-     RowObject.node_checked AT ROW 5 COL 27.8
+          SIZE 63.2 BY 1
+     RowObject.node_checked AT ROW 5.19 COL 30.2
           VIEW-AS TOGGLE-BOX
-          SIZE 19.4 BY .81
-     coDataSourceType AT ROW 5.76 COL 25.8 COLON-ALIGNED
-     RowObject.data_source_type AT ROW 5.81 COL 25.8 COLON-ALIGNED
+          SIZE 19.4 BY 1
+     RowObject.data_source_type AT ROW 6.24 COL 28.2 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 8.6 BY 1
-     cExtractProgram AT ROW 6.81 COL 25.8 COLON-ALIGNED
-     cPlainText AT ROW 6.81 COL 25.8 COLON-ALIGNED
-     RowObject.data_source AT ROW 6.81 COL 25.8 COLON-ALIGNED
+     coDataSourceType AT ROW 6.24 COL 28.2 COLON-ALIGNED
+     RowObject.data_source AT ROW 7.29 COL 28.2 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 37 BY 1
-     buFindPhysical AT ROW 6.81 COL 73.8
-     fiChar AT ROW 8.91 COL 77.8 NO-LABEL
-     RowObject.run_attribute AT ROW 9.91 COL 25.8 COLON-ALIGNED
+          SIZE 78.4 BY 1
+     cExtractProgram AT ROW 7.29 COL 28.2 COLON-ALIGNED
+     cPlainText AT ROW 7.29 COL 28.2 COLON-ALIGNED
+     buFindPhysical AT ROW 7.33 COL 104.2
+     fiSDOChildren AT ROW 8.81 COL 103 COLON-ALIGNED NO-LABEL
+     fiChar AT ROW 9.76 COL 80.2 NO-LABEL
+     RowObject.run_attribute AT ROW 10.43 COL 28.2 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 37 BY 1
-     RowObject.fields_to_store AT ROW 10.91 COL 27.8 NO-LABEL
-          VIEW-AS EDITOR MAX-CHARS 70 SCROLLBAR-VERTICAL
-          SIZE 36 BY 2
-     RowObject.node_text_label_expression AT ROW 12.91 COL 27.8 NO-LABEL
-          VIEW-AS EDITOR MAX-CHARS 70 SCROLLBAR-VERTICAL
-          SIZE 36 BY 2
-     RowObject.label_text_substitution_fields AT ROW 14.91 COL 27.8 NO-LABEL
+          SIZE 78.4 BY 1
+     RowObject.fields_to_store AT ROW 11.48 COL 30.2 NO-LABEL
+          VIEW-AS EDITOR MAX-CHARS 5000 SCROLLBAR-VERTICAL
+          SIZE 78.4 BY 3
+     RowObject.node_text_label_expression AT ROW 14.52 COL 28.2 COLON-ALIGNED
+          VIEW-AS FILL-IN 
+          SIZE 78.4 BY 1
+     RowObject.label_text_substitution_fields AT ROW 15.57 COL 30.2 NO-LABEL
           VIEW-AS EDITOR MAX-CHARS 256 SCROLLBAR-VERTICAL
-          SIZE 36 BY 2
-     RowObject.foreign_fields AT ROW 16.91 COL 27.8 NO-LABEL
+          SIZE 78.4 BY 3
+     RowObject.foreign_fields AT ROW 18.62 COL 30.2 NO-LABEL
           VIEW-AS EDITOR MAX-CHARS 256 SCROLLBAR-VERTICAL
-          SIZE 36 BY 2
-     "Fields To Store:" VIEW-AS TEXT
-          SIZE 15.2 BY 1 AT ROW 10.81 COL 12.6
-     "Node Label Expression:" VIEW-AS TEXT
-          SIZE 22.4 BY 1 AT ROW 12.91 COL 5.2
-     "Label Text Substitution:" VIEW-AS TEXT
-          SIZE 22.8 BY 1 AT ROW 14.91 COL 5
-     "Foreign Fields:" VIEW-AS TEXT
-          SIZE 13.6 BY 1 AT ROW 16.91 COL 14
-     SPACE(50.20) SKIP(3.09)
+          SIZE 78.4 BY 3
+     fiFieldsToStoreLabel AT ROW 11.48 COL 12.8 COLON-ALIGNED NO-LABEL
+     fiLabelTextSubsLabel AT ROW 15.57 COL 5.6 COLON-ALIGNED NO-LABEL
+     fiForeignFieldsLabel AT ROW 18.62 COL 14.2 COLON-ALIGNED NO-LABEL
+     SPACE(78.40) SKIP(4.09)
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -287,8 +305,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 20
-         WIDTH              = 93.6.
+         HEIGHT             = 22.71
+         WIDTH              = 107.6.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -341,6 +359,29 @@ ASSIGN
 ASSIGN 
        RowObject.fields_to_store:RETURN-INSERTED IN FRAME frMain  = TRUE.
 
+/* SETTINGS FOR FILL-IN fiFieldsToStoreLabel IN FRAME frMain
+   NO-ENABLE                                                            */
+ASSIGN 
+       fiFieldsToStoreLabel:PRIVATE-DATA IN FRAME frMain     = 
+                "Fields To Store:".
+
+/* SETTINGS FOR FILL-IN fiForeignFieldsLabel IN FRAME frMain
+   NO-ENABLE                                                            */
+ASSIGN 
+       fiForeignFieldsLabel:PRIVATE-DATA IN FRAME frMain     = 
+                "Foreign Fields:".
+
+/* SETTINGS FOR FILL-IN fiLabelTextSubsLabel IN FRAME frMain
+   NO-ENABLE                                                            */
+ASSIGN 
+       fiLabelTextSubsLabel:PRIVATE-DATA IN FRAME frMain     = 
+                "Label Text Substitution:".
+
+/* SETTINGS FOR FILL-IN fiSDOChildren IN FRAME frMain
+   NO-ENABLE                                                            */
+ASSIGN 
+       fiSDOChildren:HIDDEN IN FRAME frMain           = TRUE.
+
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
@@ -362,7 +403,7 @@ ASSIGN
 
 &Scoped-define SELF-NAME buFindPhysical
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buFindPhysical vTableWin
-ON CHOOSE OF buFindPhysical IN FRAME frMain /* Find Physical... */
+ON CHOOSE OF buFindPhysical IN FRAME frMain /* ... */
 DO:
   DO WITH FRAME {&FRAME-NAME}:
     DEFINE VARIABLE lOk                 AS   LOGICAL                NO-UNDO.
@@ -392,7 +433,7 @@ DO:
         MUST-EXIST
         UPDATE   lOk IN WINDOW {&WINDOW-NAME}.  
 
-    cFileName = REPLACE(cFileName,"\":U,"/":U).
+    cFileName = REPLACE(cFileName,"~\":U,"/":U).
     cRoot = SUBSTRING(cFileName,1,R-INDEX(cFileName,"/":U,R-INDEX(cFileName,"/":U,R-INDEX(cFileName,"/":U) - 1) - 1)).
     
     IF  lOk THEN DO:
@@ -510,69 +551,61 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsm_node.node_codeKeyFieldgsm_node.node_objFieldLabelParent Node CodeFieldTooltipSelect the parent for this nodeKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(10)DisplayDatatypecharacterBaseQueryStringFOR EACH gsm_node NO-LOCK BY gsm_node.node_codeQueryTablesgsm_nodeBrowseFieldsgsm_node.node_code,gsm_node.node_description,gsm_node.node_labelBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(10),X(35),X(28)RowsToBatch200BrowseTitleParent Node LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOFieldNameparent_node_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsm_node.node_codeKeyFieldgsm_node.node_objFieldLabelParent Node CodeFieldTooltipSelect the parent for this nodeKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(10)DisplayDatatypecharacterBaseQueryStringFOR EACH gsm_node NO-LOCK BY gsm_node.node_codeQueryTablesgsm_nodeBrowseFieldsgsm_node.node_code,gsm_node.node_description,gsm_node.node_labelBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(10),X(35),X(28)RowsToBatch200BrowseTitleParent Node LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNameparent_node_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_ParentNodeCode ).
-       RUN repositionObject IN h_ParentNodeCode ( 3.00 , 27.80 ) NO-ERROR.
+       RUN repositionObject IN h_ParentNodeCode ( 3.10 , 30.20 ) NO-ERROR.
        RUN resizeObject IN h_ParentNodeCode ( 1.00 , 50.00 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsm_menu_structure.menu_structure_codeKeyFieldgsm_menu_structure.menu_structure_codeFieldLabelMenu Structure CodeFieldTooltipSelect the menu structure to be used for this node.KeyFormatX(10)KeyDatatypecharacterDisplayFormatX(10)DisplayDatatypecharacterBaseQueryStringFOR EACH gsm_menu_structure
-                     WHERE gsm_menu_structure.menu_structure_type = "SubMenu" NO-LOCKQueryTablesgsm_menu_structureBrowseFieldsgsm_menu_structure.menu_structure_code,gsm_menu_structure.menu_structure_description,gsm_menu_structure.menu_structure_hidden,gsm_menu_structure.menu_structure_type,gsm_menu_structure.disabledBrowseFieldDataTypescharacter,character,logical,character,logicalBrowseFieldFormatsX(10),X(35),YES/NO,X(15),YES/NORowsToBatch200BrowseTitleLookup Menu StructureViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOFieldNamecMenuStructureCodeDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
-             OUTPUT h_MenuCode ).
-       RUN repositionObject IN h_MenuCode ( 6.81 , 27.80 ) NO-ERROR.
-       RUN resizeObject IN h_MenuCode ( 1.00 , 50.00 ) NO-ERROR.
-
-       RUN constructObject (
-             INPUT  'adm2/dynlookup.w':U ,
-             INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.object_filenameFieldLabelData SourceFieldTooltipSelect Data Source SDO/SBO nameKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type NO-LOCK
-                     WHERE gsc_object_type.object_type_code = "SDO"
-                     OR gsc_object_type.object_type_code = "SBO",
+             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.object_filenameFieldLabelData SourceFieldTooltipSelect Data Source SDO/SBO nameKeyFormatX(70)KeyDatatypecharacterDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type NO-LOCK
+                     WHERE gsc_object_type.object_type_code = "SDO":U
+                     OR gsc_object_type.object_type_code = "DYNSDO":U
+                     OR gsc_object_type.object_type_code = "SBO":U,
                      EACH ryc_smartobject NO-LOCK
                      WHERE ryc_smartobject.OBJECT_type_obj = gsc_object_type.object_type_obj,
-                     FIRST gsc_object NO-LOCK
-                     WHERE gsc_object.OBJECT_obj = ryc_smartobject.object_obj,
                      FIRST gsc_product_module NO-LOCK
                      WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj
-                     BY ryc_smartobject.object_filenameQueryTablesgsc_object_type,ryc_smartobject,gsc_object,gsc_product_moduleBrowseFieldsgsc_product_module.product_module_code,ryc_smartobject.object_filename,gsc_object.object_description,gsc_object.object_pathBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(10),X(70),X(35),X(70)RowsToBatch200BrowseTitleData Source LookupViewerLinkedFieldsgsc_object.object_pathLinkedFieldDataTypescharacterLinkedFieldFormatsX(70)ViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOFieldNamecSDODataSourceDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY ryc_smartobject.object_filenameQueryTablesgsc_object_type,ryc_smartobject,gsc_product_moduleBrowseFieldsgsc_product_module.product_module_code,ryc_smartobject.object_filename,ryc_smartobject.object_description,ryc_smartobject.object_pathBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(10),X(70),X(35),X(70)RowsToBatch200BrowseTitleData Source LookupViewerLinkedFieldsryc_smartobject.object_pathLinkedFieldDataTypescharacterLinkedFieldFormatsX(70)ViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNamecSDODataSourceDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_DataSource ).
-       RUN repositionObject IN h_DataSource ( 6.81 , 27.80 ) NO-ERROR.
+       RUN repositionObject IN h_DataSource ( 7.29 , 30.20 ) NO-ERROR.
        RUN resizeObject IN h_DataSource ( 1.00 , 50.00 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.object_filenameFieldLabelPrimary SDOFieldTooltipSelect the primary SDO/SBO nameKeyFormatX(70)KeyDatatypecharacterDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type NO-LOCK
-                     WHERE gsc_object_type.object_type_code = "SDO"
-                     OR gsc_object_type.object_type_code = "SBO",
+             INPUT  'DisplayedFieldgsm_menu_structure.menu_structure_codeKeyFieldgsm_menu_structure.menu_structure_codeFieldLabelMenu Structure CodeFieldTooltipSelect the menu structure to be used for this node.KeyFormatX(28)KeyDatatypecharacterDisplayFormatX(28)DisplayDatatypecharacterBaseQueryStringFOR EACH gsm_menu_structure
+                     WHERE gsm_menu_structure.menu_structure_type = "SubMenu" NO-LOCKQueryTablesgsm_menu_structureBrowseFieldsgsm_menu_structure.menu_structure_code,gsm_menu_structure.menu_structure_description,gsm_menu_structure.menu_structure_hidden,gsm_menu_structure.menu_structure_type,gsm_menu_structure.disabledBrowseFieldDataTypescharacter,character,logical,character,logicalBrowseFieldFormatsX(28),X(35),YES/NO,X(15),YES/NORowsToBatch200BrowseTitleLookup Menu StructureViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNamecMenuStructureCodeDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT h_MenuCode ).
+       RUN repositionObject IN h_MenuCode ( 7.29 , 30.20 ) NO-ERROR.
+       RUN resizeObject IN h_MenuCode ( 1.00 , 50.00 ) NO-ERROR.
+
+       RUN constructObject (
+             INPUT  'adm2/dynlookup.w':U ,
+             INPUT  FRAME frMain:HANDLE ,
+             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.object_filenameFieldLabelPrimary Data ObjectFieldTooltipSelect the primary SDO/SBO nameKeyFormatX(70)KeyDatatypecharacterDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type NO-LOCK,
                      EACH ryc_smartobject NO-LOCK
                      WHERE ryc_smartobject.OBJECT_type_obj = gsc_object_type.object_type_obj,
-                     FIRST gsc_object NO-LOCK
-                     WHERE gsc_object.OBJECT_obj = ryc_smartobject.object_obj,
                      FIRST gsc_product_module NO-LOCK
                      WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj
-                     BY ryc_smartobject.object_filenameQueryTablesgsc_object_type,ryc_smartobject,gsc_object,gsc_product_moduleBrowseFieldsgsc_product_module.product_module_code,ryc_smartobject.object_filename,gsc_object.object_description,gsc_object.object_pathBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(10),X(70),X(35),X(70)RowsToBatch200BrowseTitlePrimary SDO LookupViewerLinkedFieldsgsc_object.object_pathLinkedFieldDataTypescharacterLinkedFieldFormatsX(70)ViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDOSmartObjectLookupSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOFieldNameprimary_sdoDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY ryc_smartobject.object_filenameQueryTablesgsc_object_type,ryc_smartobject,gsc_product_moduleBrowseFieldsgsc_product_module.product_module_code,ryc_smartobject.object_filename,ryc_smartobject.object_description,ryc_smartobject.object_pathBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(10)|X(70)|X(35)|X(70)RowsToBatch200BrowseTitlePrimary SDO LookupViewerLinkedFieldsryc_smartobject.object_pathLinkedFieldDataTypescharacterLinkedFieldFormatsX(70)ViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldfiSDOChildrenParentFilterQueryLOOKUP(gsc_object_type.object_type_code, "&1") > 0MaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNameprimary_sdoDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_primarySDO ).
-       RUN repositionObject IN h_primarySDO ( 7.86 , 27.80 ) NO-ERROR.
+       RUN repositionObject IN h_primarySDO ( 8.33 , 30.20 ) NO-ERROR.
        RUN resizeObject IN h_primarySDO ( 1.00 , 50.00 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_object.object_filenameKeyFieldgsc_object.object_filenameFieldLabelLaunch ContainerFieldTooltipSelect the object to be launched when this node is selected.KeyFormatX(35)KeyDatatypecharacterDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object NO-LOCK
-                     WHERE gsc_object.runnable_from_menu = YES,
-                     FIRST ryc_smartobject NO-LOCK
-                     WHERE ryc_smartobject.OBJECT_obj = gsc_object.OBJECT_obj
-                     AND ryc_smartobject.OBJECT_type_obj = gsc_object.OBJECT_type_obj,
+             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.object_filenameFieldLabelLaunch ContainerFieldTooltipSelect the object to be launched when this node is selected.KeyFormatX(70)KeyDatatypecharacterDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_smartobject NO-LOCK
+                     WHERE ryc_smartobject.runnable_from_menu = YES,
                      FIRST gsc_object_type NO-LOCK
                      WHERE gsc_object_type.OBJECT_type_obj = ryc_smartobject.OBJECT_type_obj,
                      FIRST gsc_product_module NO-LOCK
                      WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj
-                     BY ryc_smartobject.OBJECT_filenameQueryTablesgsc_object,ryc_smartobject,gsc_object_type,gsc_product_moduleBrowseFieldsgsc_product_module.product_module_code,gsc_object.object_filename,gsc_object_type.object_type_code,gsc_object.object_description,ryc_smartobject.static_objectBrowseFieldDataTypescharacter,character,character,character,logicalBrowseFieldFormatsX(10),X(35),X(15),X(35),YES/NORowsToBatch200BrowseTitleLogical Object LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOFieldNamelogical_objectDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY ryc_smartobject.OBJECT_filenameQueryTablesryc_smartobject,gsc_object_type,gsc_product_moduleBrowseFieldsgsc_product_module.product_module_code,ryc_smartobject.object_filename,gsc_object_type.object_type_code,ryc_smartobject.object_description,ryc_smartobject.static_objectBrowseFieldDataTypescharacter,character,character,character,logicalBrowseFieldFormatsX(10),X(70),X(15),X(35),YES/NORowsToBatch200BrowseTitleLogical Object LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNamelogical_objectDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_LogicalObject ).
-       RUN repositionObject IN h_LogicalObject ( 8.91 , 27.80 ) NO-ERROR.
+       RUN repositionObject IN h_LogicalObject ( 9.38 , 30.20 ) NO-ERROR.
        RUN resizeObject IN h_LogicalObject ( 1.00 , 50.00 ) NO-ERROR.
 
        RUN constructObject (
@@ -588,10 +621,10 @@ PROCEDURE adm-create-objects :
                      AND gsm_category.category_type = ~'IMG~':U
                      AND gsm_category.category_group = ~'TRE~':U
                      AND gsm_category.category_subgroup = ~'ANY~':U
-                     AND gsm_category.category_active = TRUEQueryTablesgsm_multi_media,gsc_multi_media_type,gsm_categoryBrowseFieldsgsm_multi_media.multi_media_description,gsm_multi_media.physical_file_nameBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(35),X(70)RowsToBatch200BrowseTitleImage File Name LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOFieldNameimage_file_nameDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     AND gsm_category.category_active = TRUEQueryTablesgsm_multi_media,gsc_multi_media_type,gsm_categoryBrowseFieldsgsm_multi_media.multi_media_description,gsm_multi_media.physical_file_nameBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(35),X(70)RowsToBatch200BrowseTitleImage File Name LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNameimage_file_nameDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_ImageFileName ).
-       RUN repositionObject IN h_ImageFileName ( 18.95 , 27.80 ) NO-ERROR.
-       RUN resizeObject IN h_ImageFileName ( 1.00 , 50.00 ) NO-ERROR.
+       RUN repositionObject IN h_ImageFileName ( 21.67 , 30.20 ) NO-ERROR.
+       RUN resizeObject IN h_ImageFileName ( 1.00 , 78.40 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
@@ -606,22 +639,22 @@ PROCEDURE adm-create-objects :
                      AND gsm_category.category_type = ~'IMG~':U
                      AND gsm_category.category_group = ~'TRE~':U
                      AND gsm_category.category_subgroup = ~'ANY~':U
-                     AND gsm_category.category_active = TRUEQueryTablesgsm_multi_media,gsc_multi_media_type,gsm_categoryBrowseFieldsgsm_multi_media.multi_media_description,gsm_multi_media.physical_file_nameBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(35),X(70)RowsToBatch200BrowseTitleImage File Name LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOFieldNameselected_image_file_nameDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     AND gsm_category.category_active = TRUEQueryTablesgsm_multi_media,gsc_multi_media_type,gsm_categoryBrowseFieldsgsm_multi_media.multi_media_description,gsm_multi_media.physical_file_nameBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(35),X(70)RowsToBatch200BrowseTitleImage File Name LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNameselected_image_file_nameDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_SelectedImageFileName ).
-       RUN repositionObject IN h_SelectedImageFileName ( 20.00 , 27.80 ) NO-ERROR.
-       RUN resizeObject IN h_SelectedImageFileName ( 1.00 , 50.00 ) NO-ERROR.
+       RUN repositionObject IN h_SelectedImageFileName ( 22.71 , 30.20 ) NO-ERROR.
+       RUN resizeObject IN h_SelectedImageFileName ( 1.00 , 78.40 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */
        RUN adjustTabOrder ( h_ParentNodeCode ,
              RowObject.node_description:HANDLE IN FRAME frMain , 'AFTER':U ).
-       RUN adjustTabOrder ( h_MenuCode ,
-             cExtractProgram:HANDLE IN FRAME frMain , 'AFTER':U ).
        RUN adjustTabOrder ( h_DataSource ,
-             h_MenuCode , 'AFTER':U ).
+             coDataSourceType:HANDLE IN FRAME frMain , 'AFTER':U ).
+       RUN adjustTabOrder ( h_MenuCode ,
+             cPlainText:HANDLE IN FRAME frMain , 'AFTER':U ).
        RUN adjustTabOrder ( h_primarySDO ,
              buFindPhysical:HANDLE IN FRAME frMain , 'AFTER':U ).
        RUN adjustTabOrder ( h_LogicalObject ,
-             h_primarySDO , 'AFTER':U ).
+             fiSDOChildren:HANDLE IN FRAME frMain , 'AFTER':U ).
        RUN adjustTabOrder ( h_ImageFileName ,
              RowObject.foreign_fields:HANDLE IN FRAME frMain , 'AFTER':U ).
        RUN adjustTabOrder ( h_SelectedImageFileName ,
@@ -660,20 +693,67 @@ PROCEDURE changeFieldStates :
   CASE coDataSourceType:
     WHEN "PRG" THEN DO:
       {set FieldHidden TRUE h_DataSource}.
+      IF RowObject.node_code:SENSITIVE THEN DO:
+        RUN enableField IN h_DataSource.
+        RUN enableField IN h_primarySDO.
+        RUN enableField IN h_LogicalObject.
+        ENABLE RowObject.run_attribute 
+                RowObject.fields_to_store
+                RowObject.node_text_label_expression
+                RowObject.label_text_substitution
+                RowObject.foreign_fields
+                WITH FRAME {&FRAME-NAME}.
+      END.
       ASSIGN cExtractProgram:HIDDEN    = FALSE
              cExtractProgram:SENSITIVE = RowObject.node_code:SENSITIVE
              buFindPhysical:HIDDEN     = FALSE
              buFindPhysical:SENSITIVE  = RowObject.node_code:SENSITIVE.
     END.
     WHEN "MNU" THEN DO:
+      IF RowObject.node_code:SENSITIVE THEN DO:
+        RUN disableField IN h_LogicalObject.
+        RUN disableField IN h_primarySDO.
+        RUN disableField IN h_DataSource.
+        DISABLE RowObject.run_attribute 
+                RowObject.fields_to_store
+                RowObject.node_text_label_expression
+                RowObject.label_text_substitution
+                RowObject.foreign_fields
+                WITH FRAME {&FRAME-NAME}.
+      END.
       {set FieldHidden FALSE h_MenuCode}.
+        
+      RUN assignNewValue IN h_LogicalObject ("":U,"":U,FALSE).
     END.
     WHEN "TXT":U THEN DO:
       ASSIGN cPlainText:HIDDEN    = FALSE
              cPlainText:SENSITIVE = RowObject.node_code:SENSITIVE.
+      IF RowObject.node_code:SENSITIVE THEN DO:
+        RUN enableField IN h_primarySDO.
+        RUN enableField IN h_LogicalObject.
+        RUN assignNewValue IN h_LogicalObject ("":U,"":U,FALSE).
+        DISABLE RowObject.run_attribute 
+                RowObject.fields_to_store
+                RowObject.node_text_label_expression
+                RowObject.label_text_substitution
+                RowObject.foreign_fields
+                WITH FRAME {&FRAME-NAME}.
+      END.
     END.
-    WHEN "SDO":U THEN
+    WHEN "SDO":U THEN DO:
       {set FieldHidden FALSE h_DataSource}.
+      IF RowObject.node_code:SENSITIVE THEN DO:
+        RUN enableField IN h_DataSource.
+        RUN enableField IN h_primarySDO.
+        RUN enableField IN h_LogicalObject.
+        ENABLE RowObject.run_attribute 
+                RowObject.fields_to_store
+                RowObject.node_text_label_expression
+                RowObject.label_text_substitution
+                RowObject.foreign_fields
+                WITH FRAME {&FRAME-NAME}.
+      END.
+    END.
   END CASE.
 
 END PROCEDURE.
@@ -828,6 +908,9 @@ PROCEDURE initializeObject :
   Notes:       
 ------------------------------------------------------------------------------*/
 
+  ASSIGN fiSDOChildren:SCREEN-VALUE IN FRAME {&FRAME-NAME} = DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, INPUT "Data")
+         fiSDOChildren:SCREEN-VALUE = fiSDOChildren:SCREEN-VALUE + "," + DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, INPUT "SBO")
+         fiSDOChildren.
   /* Code placed here will execute PRIOR to standard behavior. */
   
   SUBSCRIBE TO "lookupComplete":U IN THIS-PROCEDURE.
@@ -907,6 +990,30 @@ PROCEDURE updateMode :
 
   RUN changeFieldStates.
   /* Code placed here will execute AFTER standard behavior.    */
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE updateRecord vTableWin 
+PROCEDURE updateRecord :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+  /* Code placed here will execute PRIOR to standard behavior. */
+  
+  /* To ensure that we LEAVE the Parent Node Code lookup when 
+     Save is pressed and the focus is still in the lookup - 
+     This fixes issue #8061 */
+  RUN leaveLookup IN h_ParentNodeCode.
+
+  RUN SUPER.
+
+  /* Code placed here will execute AFTER standard behavior.    */
+
 
 END PROCEDURE.
 

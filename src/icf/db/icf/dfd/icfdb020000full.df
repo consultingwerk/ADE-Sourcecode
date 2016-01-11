@@ -16622,6 +16622,6 @@ ADD INDEX "XIE2rym_lookup_field" ON "rym_lookup_field"
 
 .
 PSC
-cpstream=ISO8859-1
+cpstream=UTF-8
 .
 0000590182

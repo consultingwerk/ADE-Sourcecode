@@ -15,7 +15,10 @@ This is the SmartTreeView component."
 
   Author:
   Created: 04/05/2001
-
+  Modified: 03/25/2002      Mark Davies (MIP)
+            Moved getTreeDataTable from treeview.p to here to avoid the 
+            same table being used for all running TreeViews.
+            
 ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.      */
 /*----------------------------------------------------------------------*/
@@ -39,6 +42,8 @@ CREATE WIDGET-POOL.
 
 &Scoped-Define LOGPIXELSX 88    /* API CONSTANTS */
 &Scoped-Define LOGPIXELSY 90
+
+DEFINE VARIABLE ghTreeData AS HANDLE NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -64,6 +69,13 @@ CREATE WIDGET-POOL.
 
 
 /* ************************  Function Prototypes ********************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getTreeDataTable sObject 
+FUNCTION getTreeDataTable RETURNS HANDLE
+  ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD pixelsToTwips sObject 
 FUNCTION pixelsToTwips RETURNS INTEGER
@@ -307,6 +319,75 @@ END PROCEDURE.
 &ANALYZE-RESUME
 
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL hTreeView sObject OCX.MouseDown
+PROCEDURE hTreeView.TreeView.MouseDown .
+/*------------------------------------------------------------------------------
+  Purpose:     A bug with the FullRowSelect requires the capturing on this 
+               event when the blank area next to the node is selected
+  Parameters:  Required for OCX.
+    Button
+    Shift
+    x
+    y
+  Notes:       
+------------------------------------------------------------------------------*/
+
+DEFINE INPUT PARAMETER p-Button AS INTEGER NO-UNDO.
+DEFINE INPUT PARAMETER p-Shift  AS INTEGER NO-UNDO.
+DEFINE INPUT PARAMETER p-x      AS INTEGER NO-UNDO.
+DEFINE INPUT PARAMETER p-y      AS INTEGER NO-UNDO.
+
+DEFINE VARIABLE iX              AS INTEGER    NO-UNDO. 
+DEFINE VARIABLE iY              AS INTEGER    NO-UNDO. 
+DEFINE VARIABLE chItem          AS COM-HANDLE NO-UNDO.
+DEFINE VARIABLE lFullRowSelect  AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE iIndent         AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iLoop           AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iMax            AS INTEGER    NO-UNDO.
+
+ASSIGN lFullRowSelect = DYNAMIC-FUNC("getFullRowSelect")
+       iIndent        = DYNAMIC-FUNC("getIndentation":U)
+       iMax           = FRAME frtreeview:WIDTH-PIXELS
+       iIndent        = IF iindent = 0 THEN 1 ELSE iIndent.
+
+/* If the FullRowSelect property is set, the user may have clicked on the
+     blank area beside the node. This causes the hitTest method to fail, but the
+     node is selected. therefore, we must find the node by looping trhough the
+     x-coordinates by the increment value */
+
+IF lFullRowSelect THEN 
+DO:
+  ASSIGN iX = DYNAMIC-FUNCTION("PixelsToTwips":U, p-x, 0)
+         iY = DYNAMIC-FUNCTION("PixelsToTwips":U, ABS(p-y), 1)
+         NO-ERROR.
+  chItem =  chhTreeView:TreeView:HitTest(ix, iy) NO-ERROR.
+  IF NOT VALID-HANDLE(chItem) THEN
+  Item-Loop:
+  DO WHILE iLoop < iMax:
+    ASSIGN iX = DYNAMIC-FUNCTION("PixelsToTwips":U, iLoop, 0)
+           iY = DYNAMIC-FUNCTION("PixelsToTwips":U, ABS(p-y), 1)
+          NO-ERROR.
+    chItem =  chhTreeView:TreeView:HitTest(ix, iy) NO-ERROR.
+    IF VALID-HANDLE(chItem) THEN
+    DO:
+      PUBLISH "tvNodeEvent":U (INPUT "CLICK":U, 
+                              INPUT chItem:KEY ).
+      LEAVE Item-Loop.
+    END.
+    iLoop = iLoop + iIndent.
+  END.
+  
+  RELEASE OBJECT chItem NO-ERROR.       
+  chitem = ?.
+END. /* END FullRowSelect */
+
+  
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL hTreeView sObject OCX.MouseUp
 PROCEDURE hTreeView.TreeView.MouseUp .
 /*------------------------------------------------------------------------------
@@ -324,26 +405,52 @@ DEFINE INPUT PARAMETER piShift  AS INTEGER NO-UNDO.
 DEFINE INPUT PARAMETER pdx      AS INTEGER NO-UNDO.
 DEFINE INPUT PARAMETER pdy      AS INTEGER NO-UNDO.
 
-DEFINE VARIABLE iX      AS INTEGER    NO-UNDO. 
-DEFINE VARIABLE iY      AS INTEGER    NO-UNDO. 
-DEFINE VARIABLE cItem   AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE chItem  AS COM-HANDLE NO-UNDO.
+DEFINE VARIABLE iX              AS INTEGER    NO-UNDO. 
+DEFINE VARIABLE iY              AS INTEGER    NO-UNDO. 
+DEFINE VARIABLE cItem           AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE chItem          AS COM-HANDLE NO-UNDO.
+DEFINE VARIABLE lFullRowSelect  AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE iIndent         AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iLoop           AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iMax            AS INTEGER    NO-UNDO.
 
+ASSIGN lFullRowSelect = DYNAMIC-FUNC("getFullRowSelect")
+       iIndent        = DYNAMIC-FUNC("getIndentation":U)
+       iMax           = FRAME frtreeview:WIDTH-PIXELS 
+       iIndent        = IF iIndent = 0 THEN 1 ELSE iIndent.
 
-IF piButton = 2 THEN DO:
-   
+IF piButton = 2 THEN DO:   
   ASSIGN iX = DYNAMIC-FUNCTION("PixelsToTwips":U, pdx, 0)
          iY = DYNAMIC-FUNCTION("PixelsToTwips":U, ABS(pdy), 1)
          NO-ERROR.
 
-   chItem =  chhTreeView:TreeView:HitTest(ix, iy) NO-ERROR.
-   IF VALID-HANDLE(chItem) THEN
+  chItem =  chhTreeView:TreeView:HitTest(ix, iy) NO-ERROR.
+  IF VALID-HANDLE(chItem) THEN
      PUBLISH "tvNodeEvent":U (INPUT "RIGHTCLICK":U, 
                              INPUT chItem:KEY ).
-  ELSE /* This is to allow addition of root node */
-    PUBLISH "tvNodeEvent":U (INPUT "RIGHTCLICK":U, 
-                             INPUT ? ).
-  
+  /* If the FullRowSelect property is set, the user may have clicked on the
+     blank area beside the node. This causes the hitTest method to fail, but the
+     node is selected. Therefore, we must find the node by looping trhough the
+     x-coordinates by the increment value */
+  ELSE IF lFullRowSelect THEN
+  Item-Loop:
+  DO WHILE iLoop < iMax:
+    ASSIGN iX = DYNAMIC-FUNCTION("PixelsToTwips":U, iLoop, 0)
+           iY = DYNAMIC-FUNCTION("PixelsToTwips":U, ABS(pdy), 1)
+          NO-ERROR.
+    chItem =  chhTreeView:TreeView:HitTest(ix, iy) NO-ERROR.
+    IF VALID-HANDLE(chItem) THEN
+    DO:
+      PUBLISH "tvNodeEvent":U (INPUT "RIGHTCLICK":U, 
+                              INPUT chItem:KEY ).
+      chhTreeView:TreeView:SelectedItem = chitem.
+      LEAVE Item-Loop.
+    END.
+    iLoop = iLoop + iIndent.
+  END.
+  ELSE
+      PUBLISH "tvNodeEvent":U (INPUT "RIGHTCLICK":U, 
+                              INPUT ? ).
   DEFINE VARIABLE iReturn AS INTEGER    NO-UNDO.
   RUN SendMessageA(SELF:HWND, 517, 0, 0,OUTPUT ireturn).
   
@@ -639,6 +746,58 @@ END PROCEDURE.
 &ANALYZE-RESUME
 
 /* ************************  Function Implementations ***************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getTreeDataTable sObject 
+FUNCTION getTreeDataTable RETURNS HANDLE
+  ( ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Creates a dynamic temp table, if it doesn't already exist
+    Notes:  
+------------------------------------------------------------------------------*/
+IF VALID-HANDLE(ghTreeData) THEN
+   RETURN ghTreeData.
+
+CREATE TEMP-TABLE ghTreeData.
+ghTreeData:ADD-NEW-FIELD('node_key':U,        'CHARACTER':U).
+ghTreeData:ADD-NEW-FIELD('parent_node_key':U, 'CHARACTER':U).
+ghTreeData:ADD-NEW-FIELD('node_obj':U,        'DECIMAL':U).
+ghTreeData:ADD-NEW-FIELD('node_label':U,      'CHARACTER':U).
+ghTreeData:ADD-NEW-FIELD('private_data':U,    'CHARACTER':U).
+ghTreeData:ADD-NEW-FIELD('record_ref':U,      'CHARACTER':U).
+ghTreeData:ADD-NEW-FIELD('record_rowid':U,    'ROWID':U).
+ghTreeData:ADD-NEW-FIELD('node_checked':U,    'LOGICAL':U, 0, ?, FALSE).
+ghTreeData:ADD-NEW-FIELD('node_expanded':U,   'LOGICAL':U, 0, ?, FALSE).
+ghTreeData:ADD-NEW-FIELD('image':U,           'CHARACTER':U).
+ghTreeData:ADD-NEW-FIELD('selected_image':U,  'CHARACTER':U).
+ghTreeData:ADD-NEW-FIELD('node_insert':U,     'INTEGER':U).
+ghTreeData:ADD-NEW-FIELD('node_sort':U,       'LOGICAL':U,0,?,FALSE).
+
+/* Add Indices */
+/* Node Handle - Primary - Unique */
+ghTreeData:ADD-NEW-INDEX('puNodeKey':U, TRUE, TRUE).
+ghTreeData:ADD-INDEX-FIELD('puNodeKey':U, 'node_key':U).
+
+/* Parent Node Handle */
+ghTreeData:ADD-NEW-INDEX('ParentNodeKey':U, FALSE, FALSE).
+ghTreeData:ADD-INDEX-FIELD('ParentNodeKey':U, 'node_key':U).
+ghTreeData:ADD-INDEX-FIELD('ParentNodeKey':U, 'parent_node_key':U).
+
+/* Reference To Record's Data Loaded - Unique Identifier of the record (obj) */
+ghTreeData:ADD-NEW-INDEX('record_ref':U, FALSE, FALSE).
+ghTreeData:ADD-INDEX-FIELD('record_ref':U, 'record_ref':U).
+
+/* The RowId of the record's data loaded into this node */
+ghTreeData:ADD-NEW-INDEX('record_rowid':U, FALSE, FALSE).
+ghTreeData:ADD-INDEX-FIELD('record_rowid':U, 'record_rowid':U).
+
+ghTreeData:temp-table-prepare("tTreeData":U).
+
+RETURN ghTreeData.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION pixelsToTwips sObject 
 FUNCTION pixelsToTwips RETURNS INTEGER

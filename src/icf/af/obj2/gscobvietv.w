@@ -24,7 +24,7 @@ af/cod/aftemwizpw.w
 
 /* Temp-Table and Buffer definitions                                    */
 DEFINE TEMP-TABLE RowObject
-       {"af/obj2/gscobful2o.i"}.
+       {"ry/obj/rycsoful2o.i"}.
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
@@ -76,14 +76,31 @@ DEFINE TEMP-TABLE RowObject
                 Date:   11/07/2001  Author:     Mark Davies (MIP)
 
   Update Notes: Set state to MODIFIED when user selected a file using the Find Object options.
-                Added check not to set state to modified for logical_object when in view mode.
+                Added check not to set state to modified for logical objects when in view mode.
 
   (v:010003)    Task:           0   UserRef:    
                 Date:   11/14/2001  Author:     Mark Davies (MIP)
 
   Update Notes: Disable object_filename when modifying.
 
-------------------------------------------------------------------------------*/
+  (v:010004)    Task:           0   UserRef:    
+                Date:   12/03/2001  Author:     Mark Davies (MIP)
+
+  Update Notes: Fix for issue #3372 - A debug message is left in the code in Repository Maint. tool
+
+  (v:010005)    Task:           0   UserRef:    
+                Date:   12/12/2001  Author:     Mark Davies (MIP)
+
+  Update Notes: Fixed issue #2925 - Repository Object Maintenance Tool - Toolbar error
+                
+                Added checks to cancel a record when adding and pressing the reset button.
+
+  (v:010006)    Task:           0   UserRef:    
+                Date:   05/30/2002  Author:     Mark Davies (MIP)
+
+  Update Notes: Default to correct object type when adding a new smartobject - fix for issue #4636
+
+---------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
 
@@ -118,6 +135,23 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 DEFINE VARIABLE gcRunWhen           AS CHARACTER  NO-UNDO INITIAL "Anytime,ANY,When no other running,NOR,With only one instance,ONE":U.
 DEFINE VARIABLE gcMode              AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE glEnableObjectName  AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE glAddRecord         AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE glCopyRecord        AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE gcOldObjectName     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcOldProdModCode    AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcObjectTypeCode    AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gdCustomResultObj   AS DECIMAL    NO-UNDO.
+
+{ry/inc/rycntnerbi.i}
+
+DEFINE TEMP-TABLE ttTmpltObjectMenuStructure  LIKE ttObjectMenuStructure.
+DEFINE TEMP-TABLE ttTmpltObjectInstance       LIKE ttObjectInstance.
+DEFINE TEMP-TABLE ttTmpltAttributeValue       LIKE ttAttributeValue.
+DEFINE TEMP-TABLE ttTmpltSmartObject          LIKE ttSmartObject.
+DEFINE TEMP-TABLE ttTmpltPageObject           LIKE ttPageObject.
+DEFINE TEMP-TABLE ttTmpltSmartLink            LIKE ttSmartLink.
+DEFINE TEMP-TABLE ttTmpltUiEvent              LIKE ttUiEvent.
+DEFINE TEMP-TABLE ttTmpltPage                 LIKE ttPage.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -135,7 +169,7 @@ DEFINE VARIABLE glEnableObjectName  AS LOGICAL    NO-UNDO.
 &Scoped-define ADM-SUPPORTED-LINKS Data-Target,Update-Source,TableIO-Target,GroupAssign-Source,GroupAssign-Target
 
 /* Include file with RowObject temp-table definition */
-&Scoped-define DATA-FIELD-DEFS "af/obj2/gscobful2o.i"
+&Scoped-define DATA-FIELD-DEFS "ry/obj/rycsoful2o.i"
 
 /* Name of first Frame and/or Browse and/or first Query                 */
 &Scoped-define FRAME-NAME frMain
@@ -143,15 +177,16 @@ DEFINE VARIABLE glEnableObjectName  AS LOGICAL    NO-UNDO.
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-FIELDS RowObject.object_filename ~
 RowObject.object_description RowObject.object_path RowObject.run_when ~
-RowObject.logical_object 
+RowObject.static_object 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define ENABLED-OBJECTS bu_find_object 
 &Scoped-Define DISPLAYED-FIELDS RowObject.object_filename ~
-RowObject.object_description RowObject.object_path RowObject.run_when ~
-RowObject.object_obj RowObject.smartobject_obj RowObject.logical_object 
+RowObject.object_extension RowObject.object_description ~
+RowObject.object_path RowObject.run_when RowObject.static_object 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
+&Scoped-Define DISPLAYED-OBJECTS fiSDOClasses 
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -165,6 +200,8 @@ RowObject.object_obj RowObject.smartobject_obj RowObject.logical_object
 
 
 /* Definitions of handles for SmartObjects                              */
+DEFINE VARIABLE hCustomizationResultCode AS HANDLE NO-UNDO.
+DEFINE VARIABLE hExtendsSmartObject AS HANDLE NO-UNDO.
 DEFINE VARIABLE hProduct AS HANDLE NO-UNDO.
 DEFINE VARIABLE hProductModule AS HANDLE NO-UNDO.
 DEFINE VARIABLE h_Layout AS HANDLE NO-UNDO.
@@ -175,39 +212,42 @@ DEFINE VARIABLE h_SecurityObject AS HANDLE NO-UNDO.
 
 /* Definitions of the field level widgets                               */
 DEFINE BUTTON bu_find_object 
+     IMAGE-UP FILE "icf/ry/img/view.gif":U
      LABEL "Find O&bject..." 
-     SIZE 15 BY 1 TOOLTIP "Find an object"
+     SIZE 4.8 BY 1 TOOLTIP "Find an object"
      BGCOLOR 8 .
+
+DEFINE VARIABLE fiSDOClasses AS CHARACTER FORMAT "X(256)":U 
+     VIEW-AS FILL-IN 
+     SIZE 7.6 BY 1 TOOLTIP "SDO classes for SDO lookup, this field is hidden" NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     RowObject.object_filename AT ROW 4.24 COL 18.6 COLON-ALIGNED
+     fiSDOClasses AT ROW 15.1 COL 88.6 COLON-ALIGNED NO-LABEL
+     RowObject.object_filename AT ROW 4.14 COL 28.2 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 53 BY 1
-     bu_find_object AT ROW 4.24 COL 73.8 NO-TAB-STOP 
-     RowObject.object_description AT ROW 5.24 COL 18.6 COLON-ALIGNED
+     bu_find_object AT ROW 4.19 COL 83.4
+     RowObject.object_extension AT ROW 6.24 COL 28.2 COLON-ALIGNED
+          VIEW-AS FILL-IN 
+          SIZE 37 BY 1
+     RowObject.object_description AT ROW 7.24 COL 28.2 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 53 BY 1
-     RowObject.object_path AT ROW 6.24 COL 18.6 COLON-ALIGNED
+     RowObject.object_path AT ROW 8.24 COL 28.2 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 53 BY 1
-     RowObject.run_when AT ROW 7.24 COL 18.6 COLON-ALIGNED
+     RowObject.run_when AT ROW 9.24 COL 28.2 COLON-ALIGNED
           VIEW-AS COMBO-BOX INNER-LINES 5
           LIST-ITEM-PAIRS "Item 1","Item 1"
           DROP-DOWN-LIST
           SIZE 53.2 BY 1
-     RowObject.object_obj AT ROW 13.1 COL 21.8 COLON-ALIGNED
-          VIEW-AS FILL-IN 
-          SIZE 2 BY 1
-     RowObject.smartobject_obj AT ROW 13.14 COL 18.6 COLON-ALIGNED
-          VIEW-AS FILL-IN 
-          SIZE 2 BY 1
-     RowObject.logical_object AT ROW 12.24 COL 20.6
+     RowObject.static_object AT ROW 14.29 COL 30.2
           VIEW-AS TOGGLE-BOX
           SIZE 18.6 BY .81
-     SPACE(34.60) SKIP(0.00)
+     SPACE(34.60) SKIP(1.00)
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -218,7 +258,7 @@ DEFINE FRAME frMain
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
 /* Settings for THIS-PROCEDURE
    Type: SmartDataViewer
-   Data Source: "af/obj2/gscobful2o.w"
+   Data Source: "ry/obj/rycsoful2o.w"
    Allow: Basic,DB-Fields,Smart
    Container Links: Data-Target,Update-Source,TableIO-Target,GroupAssign-Source,GroupAssign-Target
    Frames: 1
@@ -227,7 +267,7 @@ DEFINE FRAME frMain
    Temp-Tables and Buffers:
       TABLE: RowObject D "?" ?  
       ADDITIONAL-FIELDS:
-          {af/obj2/gscobful2o.i}
+          {ry/obj/rycsoful2o.i}
       END-FIELDS.
    END-TABLES.
  */
@@ -247,8 +287,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 13.14
-         WIDTH              = 87.8.
+         HEIGHT             = 15.1
+         WIDTH              = 97.4.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -275,21 +315,15 @@ ASSIGN
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
 
-/* SETTINGS FOR FILL-IN RowObject.object_obj IN FRAME frMain
+/* SETTINGS FOR FILL-IN fiSDOClasses IN FRAME frMain
    NO-ENABLE                                                            */
 ASSIGN 
-       RowObject.object_obj:HIDDEN IN FRAME frMain           = TRUE
-       RowObject.object_obj:READ-ONLY IN FRAME frMain        = TRUE
-       RowObject.object_obj:PRIVATE-DATA IN FRAME frMain     = 
-                "NOLOOKUPS".
+       fiSDOClasses:HIDDEN IN FRAME frMain           = TRUE.
 
-/* SETTINGS FOR FILL-IN RowObject.smartobject_obj IN FRAME frMain
+/* SETTINGS FOR FILL-IN RowObject.object_extension IN FRAME frMain
    NO-ENABLE                                                            */
 ASSIGN 
-       RowObject.smartobject_obj:HIDDEN IN FRAME frMain           = TRUE
-       RowObject.smartobject_obj:READ-ONLY IN FRAME frMain        = TRUE
-       RowObject.smartobject_obj:PRIVATE-DATA IN FRAME frMain     = 
-                "NOLOOKUPS".
+       RowObject.object_extension:READ-ONLY IN FRAME frMain        = TRUE.
 
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
@@ -309,17 +343,6 @@ ASSIGN
 
 
 /* ************************  Control Triggers  ************************ */
-
-&Scoped-define SELF-NAME frMain
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL frMain vTableWin
-ON MOUSE-SELECT-DBLCLICK OF FRAME frMain
-DO:
-  MESSAGE RowObject.LOGICAL_object:MODIFIED.
-END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
 
 &Scoped-define SELF-NAME bu_find_object
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL bu_find_object vTableWin
@@ -354,13 +377,13 @@ DO:
                   MUST-EXIST
                   UPDATE   lOk IN WINDOW {&WINDOW-NAME}.  
 
-    cRoot = IF  REPLACE(cFilename,"\":U,"/":U) BEGINS REPLACE(ENTRY(2,PROPATH),"\":U,"/":U) THEN
-                REPLACE(ENTRY(2,PROPATH),"\":U,"/":U)
-                ELSE REPLACE(ENTRY(1,PROPATH),"\":U,"/":U).
+    cRoot = IF  REPLACE(cFilename,"~\":U,"/":U) BEGINS REPLACE(ENTRY(2,PROPATH),"~\":U,"/":U) THEN
+                REPLACE(ENTRY(2,PROPATH),"~\":U,"/":U)
+                ELSE REPLACE(ENTRY(1,PROPATH),"~\":U,"/":U).
 
     IF  lOk THEN DO:
         ASSIGN
-            cFile                                  = REPLACE(REPLACE(TRIM(LC(cFilename)),"\":U,"/":U),cRoot + "/":U,"":U)
+            cFile                                  = REPLACE(REPLACE(TRIM(LC(cFilename)),"~\":U,"/":U),cRoot + "/":U,"":U)
             RowObject.object_filename:SCREEN-VALUE = SUBSTRING(cFile,R-INDEX(cFile,"/":U) + 1)
             cPath                                  = SUBSTRING(cFile,1,R-INDEX(cFile,"/":U))
             RowObject.object_filename:MODIFIED     = TRUE.
@@ -378,9 +401,20 @@ END.
 &ANALYZE-RESUME
 
 
-&Scoped-define SELF-NAME RowObject.logical_object
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL RowObject.logical_object vTableWin
-ON VALUE-CHANGED OF RowObject.logical_object IN FRAME frMain /* Logical Object */
+&Scoped-define SELF-NAME RowObject.run_when
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL RowObject.run_when vTableWin
+ON VALUE-CHANGED OF RowObject.run_when IN FRAME frMain /* Run When */
+DO:
+    {set DataModified TRUE}.  
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME RowObject.static_object
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL RowObject.static_object vTableWin
+ON VALUE-CHANGED OF RowObject.static_object IN FRAME frMain /* Static Object */
 DO:
   DEFINE VARIABLE hGroupAssign  AS HANDLE   NO-UNDO.
   
@@ -388,31 +422,20 @@ DO:
   
   IF gcMode = "View":U THEN
     RETURN NO-APPLY.
-  IF NOT RowObject.logical_object:CHECKED THEN DO:
+  IF RowObject.static_object:CHECKED THEN DO:
       DYNAMIC-FUNCTION("setDataValue":U IN h_PhysicalObject, INPUT "0").
       {set DataModified TRUE h_PhysicalObject}.
       RUN disableField IN h_PhysicalObject.
   END.
   ELSE
-    IF RowObject.logical_object:SENSITIVE THEN
+    IF RowObject.static_object:SENSITIVE THEN
       RUN enableField IN h_PhysicalObject.
 
-  IF RowObject.logical_object:SENSITIVE THEN DO:
+  IF RowObject.static_object:SENSITIVE THEN DO:
     {set DataModified TRUE}.
     IF VALID-HANDLE(hGroupAssign) THEN
-      RUN logicalObject IN hGroupAssign (INPUT RowObject.logical_object:CHECKED).
+      RUN logicalObject IN hGroupAssign (NOT INPUT RowObject.static_object:CHECKED).
   END.
-END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
-&Scoped-define SELF-NAME RowObject.run_when
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL RowObject.run_when vTableWin
-ON VALUE-CHANGED OF RowObject.run_when IN FRAME frMain /* Run When */
-DO:
-    {set DataModified TRUE}.  
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -445,15 +468,32 @@ PROCEDURE addRecord :
   Parameters:  
   Notes:       
 ------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hDataSource       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hParentDataSource AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE dObjType          AS DECIMAL    NO-UNDO.
 
-  /* Code placed here will execute PRIOR to standard behavior. */
-
+  glAddRecord = TRUE.
   glEnableObjectName = TRUE.
+  
+  /* Code placed here will execute PRIOR to standard behavior. */
+  
   RUN SUPER.
-  APPLY "VALUE-CHANGED":U TO RowObject.logical_object IN FRAME {&FRAME-NAME}.
-  RUN valueChanged IN hProduct.
+
   /* Code placed here will execute AFTER standard behavior.    */
 
+  APPLY "VALUE-CHANGED":U TO RowObject.static_object IN FRAME {&FRAME-NAME}.
+  RUN valueChanged IN hProduct.
+  RUN valueChanged IN hProductModule.
+
+  /* Set the correct object type in the combo */
+  {get DataSource hDataSource}.
+  IF VALID-HANDLE(hDataSource) THEN DO:
+    {get DataSource hParentDataSource hDataSource}.
+    IF VALID-HANDLE(hParentDataSource) THEN DO:
+      dObjType = DECIMAL(DYNAMIC-FUNCTION("columnStringValue" IN hParentDataSource,"object_type_obj")).
+      RUN assignNewValue IN h_ObjectType (INPUT STRING(dObjType), "":U, TRUE).
+    END.
+  END.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -476,82 +516,102 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_product.product_code,gsc_product.product_descriptionKeyFieldgsc_product.product_objFieldLabelProductFieldTooltipSelect a Product from the listKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_product NO-LOCK INDEXED-REPOSITIONQueryTablesgsc_productSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 / &2CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines0ComboFlagFlagValueBuildSequence1SecurednoFieldNamedProductObjDisplayFieldyesEnableFieldyesHideOnInitDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_product.product_code,gsc_product.product_descriptionKeyFieldgsc_product.product_objFieldLabelProductFieldTooltipSelect a Product from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(10)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_product NO-LOCK WHERE [EXCLUDE_REPOSITORY_PRODUCTS] INDEXED-REPOSITIONQueryTablesgsc_productSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 / &2CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNamedProductObjDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hProduct ).
-       RUN repositionObject IN hProduct ( 1.00 , 20.60 ) NO-ERROR.
-       RUN resizeObject IN hProduct ( 1.00 , 53.20 ) NO-ERROR.
+       RUN repositionObject IN hProduct ( 1.00 , 30.20 ) NO-ERROR.
+       RUN resizeObject IN hProduct ( 1.05 , 53.20 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_product_module.product_module_code,gsc_product_module.product_module_descriptionKeyFieldgsc_product_module.product_module_objFieldLabelProduct ModuleFieldTooltipSelect a Product Module from the listKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_product_module NO-LOCK INDEXED-REPOSITIONQueryTablesgsc_product_moduleSDFFileNameSDFTemplateParentFielddProductObjParentFilterQuerygsc_product_module.product_obj = DECIMAL(~'&1~')DescSubstitute&1 / &2CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines0ComboFlagFlagValueBuildSequence1SecurednoFieldNameproduct_module_objDisplayFieldyesEnableFieldyesHideOnInitDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_product_module.product_module_code,gsc_product_module.product_module_descriptionKeyFieldgsc_product_module.product_module_objFieldLabelProduct ModuleFieldTooltipSelect a Product Module from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(10)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_product_module NO-LOCK WHERE [EXCLUDE_REPOSITORY_PRODUCT_MODULES] INDEXED-REPOSITIONQueryTablesgsc_product_moduleSDFFileNameSDFTemplateParentFielddProductObjParentFilterQuerygsc_product_module.product_obj = DECIMAL(~'&1~')DescSubstitute&1 / &2CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNameproduct_module_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hProductModule ).
-       RUN repositionObject IN hProductModule ( 2.05 , 20.60 ) NO-ERROR.
-       RUN resizeObject IN hProductModule ( 1.00 , 53.20 ) NO-ERROR.
-
-       RUN constructObject (
-             INPUT  'adm2/dyncombo.w':U ,
-             INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_object_type.object_type_code,gsc_object_type.object_type_descriptionKeyFieldgsc_object_type.object_type_objFieldLabelObject TypeFieldTooltipSelect this object~'s type.KeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_object_type NO-LOCK BY gsc_object_type.object_type_code INDEXED-REPOSITIONQueryTablesgsc_object_typeSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 / &2CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines0ComboFlagFlagValueBuildSequence1SecurednoFieldNameobject_type_objDisplayFieldyesEnableFieldyesHideOnInitDisableOnInitnoObjectLayout':U ,
-             OUTPUT h_ObjectType ).
-       RUN repositionObject IN h_ObjectType ( 3.24 , 20.60 ) NO-ERROR.
-       RUN resizeObject IN h_ObjectType ( 1.00 , 53.20 ) NO-ERROR.
-
-       RUN constructObject (
-             INPUT  'adm2/dyncombo.w':U ,
-             INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldryc_layout.layout_code,ryc_layout.layout_nameKeyFieldryc_layout.layout_objFieldLabelLayoutFieldTooltipSelect the default layout for this object.KeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH ryc_layout NO-LOCK BY ryc_layout.layout_code INDEXED-REPOSITIONQueryTablesryc_layoutSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&2 (&1)CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines0ComboFlagFlagValueBuildSequence1SecurednoFieldNamedLayoutObjDisplayFieldyesEnableFieldyesHideOnInitDisableOnInitnoObjectLayout':U ,
-             OUTPUT h_Layout ).
-       RUN repositionObject IN h_Layout ( 8.24 , 20.60 ) NO-ERROR.
-       RUN resizeObject IN h_Layout ( 1.00 , 53.20 ) NO-ERROR.
+       RUN repositionObject IN hProductModule ( 2.05 , 30.20 ) NO-ERROR.
+       RUN resizeObject IN hProductModule ( 1.05 , 53.20 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.smartobject_objFieldLabelSDO NameFieldTooltipKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type NO-LOCK
-                     WHERE gsc_object_type.OBJECT_type_code = "SDO",
+             INPUT  'DisplayedFieldgsc_object_type.object_type_codeKeyFieldgsc_object_type.object_type_objFieldLabelObject Type CodeFieldTooltipPress F4 for LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatx(30)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type NO-LOCK
+                     BY gsc_object_type.object_type_code INDEXED-REPOSITIONQueryTablesgsc_object_typeBrowseFieldsgsc_object_type.object_type_code,gsc_object_type.object_type_description,gsc_object_type.static_object,gsc_object_type.disabledBrowseFieldDataTypescharacter,character,logical,logicalBrowseFieldFormatsX(15)|X(35)|YES/NO|YES/NORowsToBatch200BrowseTitleLookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatx(30)SDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListNO-LOCK INDEXED-REPOSITIONQueryBuilderOrderListobject_type_code^yesQueryBuilderTableOptionListNO-LOCKQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNameobject_type_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT h_ObjectType ).
+       RUN repositionObject IN h_ObjectType ( 3.10 , 30.20 ) NO-ERROR.
+       RUN resizeObject IN h_ObjectType ( 1.00 , 53.20 ) NO-ERROR.
+
+       RUN constructObject (
+             INPUT  'adm2/dynlookup.w':U ,
+             INPUT  FRAME frMain:HANDLE ,
+             INPUT  'DisplayedFieldryc_customization_result.customization_result_codeKeyFieldryc_customization_result.customization_result_objFieldLabelCustomization Result CodeFieldTooltipSelect a customization result code or leave blank for the default object.KeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_customization_result NO-LOCK,
+                     EACH ryc_customization_type
+                     WHERE ryc_customization_type.customization_type_obj = ryc_customization_result.customization_type_obj BY ryc_customization_result.customization_result_codeQueryTablesryc_customization_result,ryc_customization_typeBrowseFieldsryc_customization_result.customization_result_code,ryc_customization_result.customization_result_desc,ryc_customization_type.customization_type_code,ryc_customization_type.customization_type_descBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(70),X(70),X(15),X(35)RowsToBatch200BrowseTitleCustomization Result Code LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNamecustomization_result_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT hCustomizationResultCode ).
+       RUN repositionObject IN hCustomizationResultCode ( 5.19 , 30.20 ) NO-ERROR.
+       RUN resizeObject IN hCustomizationResultCode ( 1.00 , 53.20 ) NO-ERROR.
+
+       RUN constructObject (
+             INPUT  'adm2/dyncombo.w':U ,
+             INPUT  FRAME frMain:HANDLE ,
+             INPUT  'DisplayedFieldryc_layout.layout_code,ryc_layout.layout_nameKeyFieldryc_layout.layout_objFieldLabelLayoutFieldTooltipSelect the default layout for this object.KeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH ryc_layout NO-LOCK BY ryc_layout.layout_code INDEXED-REPOSITIONQueryTablesryc_layoutSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&2 (&1)CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines0ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNamelayout_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT h_Layout ).
+       RUN repositionObject IN h_Layout ( 10.24 , 30.20 ) NO-ERROR.
+       RUN resizeObject IN h_Layout ( 1.05 , 53.20 ) NO-ERROR.
+
+       RUN constructObject (
+             INPUT  'adm2/dynlookup.w':U ,
+             INPUT  FRAME frMain:HANDLE ,
+             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.smartobject_objFieldLabelSDO NameFieldTooltipPress F4 For LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type NO-LOCK,
                      EACH ryc_smartobject NO-LOCK
-                     WHERE ryc_smartobject.OBJECT_type_obj = gsc_object_type.OBJECT_type_obj INDEXED-REPOSITIONQueryTablesgsc_object_type,ryc_smartobjectBrowseFieldsryc_smartobject.object_filename,ryc_smartobject.template_smartobject,gsc_object_type.object_type_code,gsc_object_type.object_type_descriptionBrowseFieldDataTypescharacter,logical,character,characterBrowseFieldFormatsX(70),YES/NO,X(15),X(35)RowsToBatch200BrowseTitleLookup SDOViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOFieldNamedSDOSmartObjectDisplayFieldyesEnableFieldyesHideOnInitDisableOnInitnoObjectLayout':U ,
+                     WHERE ryc_smartobject.OBJECT_type_obj = gsc_object_type.OBJECT_type_obj INDEXED-REPOSITIONQueryTablesgsc_object_type,ryc_smartobjectBrowseFieldsryc_smartobject.object_filename,ryc_smartobject.template_smartobject,gsc_object_type.object_type_code,gsc_object_type.object_type_descriptionBrowseFieldDataTypescharacter,logical,character,characterBrowseFieldFormatsX(70)|YES/NO|X(15)|X(35)RowsToBatch200BrowseTitleLookup SDOViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldfiSDOClassesParentFilterQueryLOOKUP(gsc_object_type.object_type_code, "&1") > 0MaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNamesdo_smartobject_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_SDOName ).
-       RUN repositionObject IN h_SDOName ( 9.24 , 20.60 ) NO-ERROR.
+       RUN repositionObject IN h_SDOName ( 11.29 , 30.20 ) NO-ERROR.
        RUN resizeObject IN h_SDOName ( 1.00 , 53.20 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_object.object_filenameKeyFieldgsc_object.object_objFieldLabelPhysical ObjectFieldTooltipKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object NO-LOCK
-                     WHERE NOT gsc_object.LOGICAL_object,
+             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.smartobject_objFieldLabelPhysical ObjectFieldTooltipKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_smartobject NO-LOCK
+                     WHERE ryc_smartobject.static_object,
                      FIRST gsc_object_type NO-LOCK
-                     WHERE gsc_object_type.OBJECT_type_obj = gsc_object.OBJECT_type_obj,
+                     WHERE gsc_object_type.OBJECT_type_obj = ryc_smartobject.OBJECT_type_obj,
                      FIRST gsc_product_module NO-LOCK
-                     WHERE gsc_product_module.product_module_obj = gsc_object.product_module_obj,
+                     WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj,
                      FIRST gsc_product NO-LOCK
-                     WHERE gsc_product.product_obj = gsc_product_module.product_obj INDEXED-REPOSITIONQueryTablesgsc_object,gsc_object_type,gsc_product_module,gsc_productBrowseFieldsgsc_product.product_code,gsc_product_module.product_module_code,gsc_object_type.object_type_code,gsc_object.object_filename,gsc_object.logical_object,gsc_object.object_description,gsc_object.container_objectBrowseFieldDataTypescharacter,character,character,character,logical,character,logicalBrowseFieldFormatsX(10),X(10),X(15),X(35),YES/NO,X(35),YES/NORowsToBatch200BrowseTitleLookup Physical ObjectViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOFieldNamephysical_object_objDisplayFieldyesEnableFieldyesHideOnInitDisableOnInitnoObjectLayout':U ,
+                     WHERE gsc_product.product_obj = gsc_product_module.product_obj INDEXED-REPOSITIONQueryTablesryc_smartobject,gsc_object_type,gsc_product_module,gsc_productBrowseFieldsgsc_product.product_code,gsc_product_module.product_module_code,gsc_object_type.object_type_code,ryc_smartobject.object_filename,ryc_smartobject.static_object,ryc_smartobject.object_description,ryc_smartobject.container_objectBrowseFieldDataTypescharacter,character,character,character,logical,character,logicalBrowseFieldFormatsX(10),X(10),X(15),X(35),YES/NO,X(35),YES/NORowsToBatch200BrowseTitleLookup Physical ObjectViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNamephysical_smartobject_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_PhysicalObject ).
-       RUN repositionObject IN h_PhysicalObject ( 10.24 , 20.60 ) NO-ERROR.
+       RUN repositionObject IN h_PhysicalObject ( 12.29 , 30.20 ) NO-ERROR.
        RUN resizeObject IN h_PhysicalObject ( 1.00 , 53.20 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_object.object_filenameKeyFieldgsc_object.object_objFieldLabelSecurity ObjectFieldTooltipPress F4 for LookupKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object NO-LOCK,
+             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.smartobject_objFieldLabelSecurity ObjectFieldTooltipPress F4 for LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_smartobject NO-LOCK,
                      FIRST gsc_object_type NO-LOCK
-                     WHERE gsc_object_type.OBJECT_type_obj = gsc_object.OBJECT_type_obj,
+                     WHERE gsc_object_type.OBJECT_type_obj = ryc_smartobject.OBJECT_type_obj,
                      FIRST gsc_product_module NO-LOCK
-                     WHERE gsc_product_module.product_module_obj = gsc_object.product_module_obj,
+                     WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj,
                      FIRST gsc_product NO-LOCK
-                     WHERE gsc_product.product_obj = gsc_product_module.product_obj INDEXED-REPOSITIONQueryTablesgsc_object,gsc_object_type,gsc_product_module,gsc_productBrowseFieldsgsc_product.product_code,gsc_product_module.product_module_code,gsc_object_type.object_type_code,gsc_object.object_filename,gsc_object.container_object,gsc_object.logical_object,gsc_object.generic_object,gsc_object.disabledBrowseFieldDataTypescharacter,character,character,character,logical,logical,logical,logicalBrowseFieldFormatsX(10),X(10),X(15),X(35),YES/NO,YES/NO,YES/NO,YES/NORowsToBatch200BrowseTitleLookup Security ObjectViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOFieldNamesecurity_object_objDisplayFieldyesEnableFieldyesHideOnInitDisableOnInitnoObjectLayout':U ,
+                     WHERE gsc_product.product_obj = gsc_product_module.product_obj INDEXED-REPOSITIONQueryTablesryc_smartobject,gsc_object_type,gsc_product_module,gsc_productBrowseFieldsgsc_product.product_code,gsc_product_module.product_module_code,gsc_object_type.object_type_code,ryc_smartobject.object_filename,ryc_smartobject.container_object,ryc_smartobject.static_object,ryc_smartobject.generic_object,ryc_smartobject.disabledBrowseFieldDataTypescharacter,character,character,character,logical,logical,logical,logicalBrowseFieldFormatsX(10),X(10),X(15),X(70),YES/NO,YES/NO,YES/NO,YES/NORowsToBatch200BrowseTitleLookup Security ObjectViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNamesecurity_smartobject_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_SecurityObject ).
-       RUN repositionObject IN h_SecurityObject ( 11.24 , 20.60 ) NO-ERROR.
+       RUN repositionObject IN h_SecurityObject ( 13.29 , 30.20 ) NO-ERROR.
        RUN resizeObject IN h_SecurityObject ( 1.00 , 53.20 ) NO-ERROR.
+
+       RUN constructObject (
+             INPUT  'adm2/dynlookup.w':U ,
+             INPUT  FRAME frMain:HANDLE ,
+             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.smartobject_objFieldLabelExtends SmartobjectFieldTooltipPress F4 For LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_smartobject NO-LOCK BY ryc_smartobject.object_filenameQueryTablesryc_smartobjectBrowseFieldsryc_smartobject.object_filename,ryc_smartobject.object_description,ryc_smartobject.object_extensionBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(70),X(35),X(35)RowsToBatch200BrowseTitleExtends SmartObject LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNameextends_smartobject_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT hExtendsSmartObject ).
+       RUN repositionObject IN hExtendsSmartObject ( 15.10 , 30.20 ) NO-ERROR.
+       RUN resizeObject IN hExtendsSmartObject ( 1.00 , 52.80 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */
        RUN adjustTabOrder ( hProduct ,
-             RowObject.object_filename:HANDLE IN FRAME frMain , 'BEFORE':U ).
+             fiSDOClasses:HANDLE IN FRAME frMain , 'AFTER':U ).
        RUN adjustTabOrder ( hProductModule ,
              hProduct , 'AFTER':U ).
        RUN adjustTabOrder ( h_ObjectType ,
              hProductModule , 'AFTER':U ).
+       RUN adjustTabOrder ( hCustomizationResultCode ,
+             bu_find_object:HANDLE IN FRAME frMain , 'AFTER':U ).
        RUN adjustTabOrder ( h_Layout ,
              RowObject.run_when:HANDLE IN FRAME frMain , 'AFTER':U ).
        RUN adjustTabOrder ( h_SDOName ,
@@ -560,9 +620,451 @@ PROCEDURE adm-create-objects :
              h_SDOName , 'AFTER':U ).
        RUN adjustTabOrder ( h_SecurityObject ,
              h_PhysicalObject , 'AFTER':U ).
+       RUN adjustTabOrder ( hExtendsSmartObject ,
+             RowObject.static_object:HANDLE IN FRAME frMain , 'AFTER':U ).
     END. /* Page 0 */
 
   END CASE.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE cancelRecord vTableWin 
+PROCEDURE cancelRecord :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  /* Code placed here will execute PRIOR to standard behavior. */
+  ASSIGN glAddRecord  = FALSE.
+         glCopyRecord = FALSE.
+  RUN SUPER.
+
+  /* Code placed here will execute AFTER standard behavior.    */
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE collectChanges vTableWin 
+PROCEDURE collectChanges :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  DEFINE INPUT-OUTPUT PARAMETER pcChanges AS CHARACTER NO-UNDO.
+  DEFINE INPUT-OUTPUT PARAMETER pcInfo    AS CHARACTER NO-UNDO.
+
+  /* Code placed here will execute PRIOR to standard behavior. */
+
+  RUN SUPER( INPUT-OUTPUT pcChanges, INPUT-OUTPUT pcInfo).
+
+  ASSIGN glAddRecord  = FALSE.
+  /* Code placed here will execute AFTER standard behavior.    */
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE comboValueChanged vTableWin 
+PROCEDURE comboValueChanged :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT PARAMETER pcKeyFieldValue  AS CHARACTER  NO-UNDO.
+  DEFINE INPUT PARAMETER pcScreenValue          AS CHARACTER  NO-UNDO.
+  DEFINE INPUT PARAMETER phCombo                AS HANDLE     NO-UNDO. 
+
+  DEFINE VARIABLE hDataSource             AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE dProductObj             AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE dProductModuleObj       AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE cObjectPath             AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cOldRelPath             AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cNewRelPath             AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataset                AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hLookup                 AS HANDLE     NO-UNDO.
+  
+  IF phCombo = hProduct THEN
+    RUN valueChanged IN hProductModule.
+  
+  IF phCombo = hProductModule THEN DO:
+    {get DataSource hDataSource}.
+    IF NOT VALID-HANDLE(hDataSource) THEN
+      RETURN.
+    ASSIGN dProductModuleObj = DECIMAL(DYNAMIC-FUNCTION("columnValue":U IN hDataSource,"product_module_obj":U))
+           cObjectPath       = DYNAMIC-FUNCTION("columnValue":U IN hDataSource,"object_path":U).
+    /* If the object did have a path - check if we need to change it */
+    IF cObjectPath <> "":U THEN DO:
+      /* If the old path was equal to the product module's relative path
+         then we need to change the object_path to that of the product module.
+         If not, we should leave it up to the user to change */
+  
+      /* First get the old Product Module's relative path */
+      RUN getRecordDetail IN gshGenManager ( INPUT "FOR EACH gsc_product_module 
+                                                    WHERE gsc_product_module.product_module_obj = " + TRIM(QUOTER(dProductModuleObj)) + " NO-LOCK ":U,
+                                             OUTPUT cDataset ).
+      ASSIGN cOldRelPath = "":U.
+      IF cDataset <> "":U AND cDataset <> ? THEN 
+        ASSIGN cOldRelPath = ENTRY(LOOKUP("gsc_product_module.relative_path":U, cDataSet, CHR(3)) + 1 , cDataSet, CHR(3)) 
+               dProductObj = DECIMAL(ENTRY(LOOKUP("gsc_product_module.product_obj":U, cDataSet, CHR(3)) + 1 , cDataSet, CHR(3)))
+               NO-ERROR.
+  
+      /* Now get the new Product Module's relative path */
+      RUN getRecordDetail IN gshGenManager ( INPUT "FOR EACH gsc_product_module 
+                                                    WHERE gsc_product_module.product_module_obj = " + TRIM(QUOTER(DECIMAL(pcKeyFieldValue))) + " NO-LOCK ":U,
+                                             OUTPUT cDataset ).
+      ASSIGN cNewRelPath = "":U.
+      IF cDataset <> "":U AND cDataset <> ? THEN 
+        ASSIGN cNewRelPath = ENTRY(LOOKUP("gsc_product_module.relative_path":U, cDataSet, CHR(3)) + 1 , cDataSet, CHR(3)) 
+               NO-ERROR.
+  
+      /* If the Object's Path was the same as the Product Module relative path,
+         then we can change it */
+      IF cOldRelPath = cObjectPath THEN
+        ASSIGN RowObject.object_path:SCREEN-VALUE IN FRAME {&FRAME-NAME} = cNewRelPath.
+  
+    END.
+  END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE copyObject vTableWin 
+PROCEDURE copyObject :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cCustomizationResultCode  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cNewRecordValues          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hDataSource               AS HANDLE     NO-UNDO.
+
+  DEFINE BUFFER ttTmpltObjectInstance FOR ttTmpltObjectInstance.
+  DEFINE BUFFER ttTmpltAttributeValue FOR ttTmpltAttributeValue.
+  DEFINE BUFFER ttTmpltSmartObject    FOR ttTmpltSmartObject.
+  DEFINE BUFFER ttTmpltPageObject     FOR ttTmpltPageObject.
+  DEFINE BUFFER ttTmpltSmartLink      FOR ttTmpltSmartLink.
+  DEFINE BUFFER ttTmpltPage           FOR ttTmpltPage.
+  DEFINE BUFFER ttObjectInstance      FOR ttObjectInstance.
+  DEFINE BUFFER ttAttributeValue      FOR ttAttributeValue.
+  DEFINE BUFFER ttSmartObject         FOR ttSmartObject.
+  DEFINE BUFFER ttPageObject          FOR ttPageObject.
+  DEFINE BUFFER ttSmartLink           FOR ttSmartLink.
+  DEFINE BUFFER ttPage                FOR ttPage.
+
+  EMPTY TEMP-TABLE ttTmpltObjectMenuStructure.
+  EMPTY TEMP-TABLE ttTmpltObjectInstance.
+  EMPTY TEMP-TABLE ttTmpltAttributeValue.
+  EMPTY TEMP-TABLE ttTmpltSmartObject.
+  EMPTY TEMP-TABLE ttTmpltPageObject.
+  EMPTY TEMP-TABLE ttTmpltSmartLink.
+  EMPTY TEMP-TABLE ttTmpltUiEvent.
+  EMPTY TEMP-TABLE ttTmpltPage.
+
+  SESSION:SET-WAIT-STATE("GENERAL":U).
+
+  {launch.i &PLIP     = 'ry/app/rycntbplip.p'
+            &IProc    = 'getContainerDetails'
+            &PList    = "(INPUT  gcOldObjectName,
+                          INPUT  gcOldProdModCode,
+                          INPUT  gcObjectTypeCode,
+                          INPUT  gdCustomResultObj,
+                          OUTPUT TABLE ttTmpltSmartObject,
+                          OUTPUT TABLE ttTmpltPage,
+                          OUTPUT TABLE ttTmpltPageObject,
+                          OUTPUT TABLE ttTmpltObjectInstance,
+                          OUTPUT TABLE ttTmpltAttributeValue,
+                          OUTPUT TABLE ttTmpltUiEvent,
+                          OUTPUT TABLE ttTmpltSmartLink,
+                          OUTPUT TABLE ttTmpltObjectMenuStructure)"
+            &OnApp    = 'YES'
+            &AutoKill = YES}
+
+  /* ------------------------------------------------------ SmartObject ------------------------------------------------------ */
+  
+  FIND FIRST ttTmpltSmartObject
+       WHERE ttTmpltSmartObject.d_smartobject_obj <> 0.00.
+  
+  CREATE ttSmartObject.
+
+  BUFFER-COPY ttTmpltSmartObject
+       EXCEPT ttTmpltSmartObject.d_smartobject_obj
+              ttTmpltSmartObject.l_template
+              ttTmpltSmartObject.d_product_module_obj
+              ttTmpltSmartObject.d_customization_result_obj
+              ttTmpltSmartObject.c_object_description
+              ttTmpltSmartObject.c_object_filename
+              ttTmpltSmartObject.d_layout_obj
+              ttTmpltSmartObject.d_object_obj
+              ttTmpltSmartObject.c_action
+           TO ttSmartObject.
+
+  IF ttSmartObject.c_object_description = "":U OR
+     ttSmartObject.c_object_description = ?    THEN
+    ttSmartObject.c_object_description = ttTmpltSmartObject.c_object_description.
+
+  /* Assign SmartObject values from SDO */
+  {get DataSource hDataSource}.
+  cNewRecordValues = DYNAMIC-FUNCTION("colValues" IN hDataSource,"smartobject_obj,object_filename,customization_result_obj,object_type_obj,product_module_obj,layout_obj,object_description,static_object,template_smartobject,system_owned,shutdown_message_text,sdo_smartobject_obj,custom_smartobject_obj").
+  ASSIGN ttSmartObject.c_object_description       = ENTRY(8,cNewRecordValues,CHR(1))
+         ttSmartObject.d_smartobject_obj          = DECIMAL(ENTRY(2,cNewRecordValues,CHR(1)))
+         ttSmartObject.d_customization_result_obj = DECIMAL(ENTRY(4,cNewRecordValues,CHR(1)))
+         ttSmartObject.d_layout_obj               = DECIMAL(ENTRY(7,cNewRecordValues,CHR(1)))
+         ttSmartObject.d_object_type_obj          = DECIMAL(ENTRY(5,cNewRecordValues,CHR(1)))
+         ttSmartObject.c_object_filename          = ENTRY(3,cNewRecordValues,CHR(1))
+         ttSmartObject.d_product_module_obj       = DECIMAL(ENTRY(6,cNewRecordValues,CHR(1)))
+         ttSmartObject.l_static_object            = LOGICAL(ENTRY(9,cNewRecordValues,CHR(1)))
+         ttSmartObject.d_custom_smartobject_obj   = DECIMAL(ENTRY(14,cNewRecordValues,CHR(1)))
+         ttSmartObject.l_system_owned             = LOGICAL(ENTRY(11,cNewRecordValues,CHR(1)))
+         ttSmartObject.c_shutdown_message_text    = ENTRY(12,cNewRecordValues,CHR(1))
+         ttSmartObject.d_sdo_smartobject_obj      = DECIMAL(ENTRY(13,cNewRecordValues,CHR(1)))
+         ttSmartObject.l_template_smartobject     = LOGICAL(ENTRY(10,cNewRecordValues,CHR(1)))
+         ttSmartObject.c_action                   = "M":U.
+
+
+  /* ------------------------------------ Page, PageObject, ObjectInstance and SmartLink ------------------------------------- */
+  /* DELETING*/
+  /* --------- Page --------- */
+  FOR EACH ttPage:
+    ttPage.c_action = "D":U.
+    
+    IF ttPage.d_page_obj <= 0.00 THEN
+      DELETE ttPage.
+  END.
+    
+  /* --------- PageObject --------- */
+  FOR EACH ttPageObject:
+    ttPageObject.c_action = "D":U.
+    
+    IF ttPageObject.d_page_object_obj <= 0.00 THEN
+      DELETE ttPageObject.
+  END.
+      
+  /* --------- ObjectInstance --------- */
+  FOR EACH ttObjectInstance
+     WHERE ttObjectInstance.d_smartobject_obj <> 0.00:
+
+    ttObjectInstance.c_action = "D":U.
+  
+    IF ttObjectInstance.d_object_instance_obj <= 0.00 THEN
+      DELETE ttObjectInstance.
+  END.
+      
+  /* --------- SmartLink --------- */
+  FOR EACH ttSmartLink:
+    ttSmartLink.c_action = "D":U.
+
+    IF ttSmartLink.d_smartlink_obj <= 0.00 THEN
+      DELETE ttSmartLink.
+  END.
+  
+  /* --------- AttributeValue --------- */
+  FOR EACH ttAttributeValue:
+    ttAttributeValue.c_action = "D":U.
+
+    IF ttAttributeValue.d_attribute_value_obj <= 0.00 THEN
+      DELETE ttAttributeValue.
+  END.
+  
+  /* --------- UiEvent --------- */
+  FOR EACH ttUiEvent:
+    ttUiEvent.c_action = "D":U.
+
+    IF ttUiEvent.d_ui_event_obj <= 0.00 THEN
+      DELETE ttUiEvent.
+  END.
+  
+  /* --------- ObjectMenuStructure --------- */
+  FOR EACH ttObjectMenuStructure:
+     ttObjectMenuStructure.c_action = "D":U.
+
+    IF ttObjectMenuStructure.d_object_menu_structure_obj <= 0.00 THEN
+      DELETE ttObjectMenuStructure.
+  END.
+
+  /* CREATING*/
+  /* --------- Page --------- */
+  FOR EACH ttTmpltPage:
+
+    CREATE ttPage.
+    
+    BUFFER-COPY ttTmpltPage
+             TO ttPage.
+         ASSIGN ttPage.d_container_smartobject_obj = ttSmartObject.d_smartobject_obj
+                ttPage.d_page_obj                  = DYNAMIC-FUNCTION("getTemporaryObj":U IN TARGET-PROCEDURE)
+                ttPage.c_action                    = "A":U.
+
+    /* --------- PageObject --------- */
+    FOR EACH ttTmpltPageObject
+       WHERE ttTmpltPageObject.d_page_obj = ttTmpltPage.d_page_obj:
+      
+      CREATE ttPageObject.
+      
+      BUFFER-COPY ttTmpltPageObject
+               TO ttPageObject.
+           ASSIGN ttPageObject.d_container_smartobject_obj = ttSmartObject.d_smartobject_obj
+                  ttPageObject.d_page_object_obj           = DYNAMIC-FUNCTION("getTemporaryObj":U IN TARGET-PROCEDURE)
+                  ttPageObject.d_page_obj                  = ttPage.d_page_obj
+                  ttPageObject.c_action                    = "A":U.
+    END.
+  END.
+
+  /* --------- ObjectMenuStructure --------- */
+  FOR EACH ttTmpltObjectMenuStructure:
+    CREATE ttObjectMenuStructure.
+    
+    BUFFER-COPY ttTmpltObjectMenuStructure
+             TO ttObjectMenuStructure
+         ASSIGN ttObjectMenuStructure.d_object_menu_structure_obj = DYNAMIC-FUNCTION("getTemporaryObj":U IN TARGET-PROCEDURE)
+                ttObjectMenuStructure.d_object_obj                = ttSmartObject.d_smartobject_obj
+                ttObjectMenuStructure.c_action                    = "A":U.
+  END.
+  
+  /* --------- SmartLink --------- */
+  FOR EACH ttTmpltSmartLink:
+    
+    CREATE ttSmartLink.
+    
+    BUFFER-COPY ttTmpltSmartLink
+             TO ttSmartLink.
+         ASSIGN ttSmartLink.d_container_smartobject_obj = ttSmartObject.d_smartobject_obj
+                ttSmartLink.d_smartlink_obj             = DYNAMIC-FUNCTION("getTemporaryObj":U IN TARGET-PROCEDURE)
+                ttSmartLink.c_action                    = "A":U.
+  END.
+  
+  /* --------- AttributeValue --------- */
+  FOR EACH ttTmpltAttributeValue:
+
+    CREATE ttAttributeValue.
+
+    BUFFER-COPY ttTmpltAttributeValue
+             TO ttAttributeValue
+         ASSIGN ttAttributeValue.d_container_smartobject_obj = (IF ttTmpltAttributeValue.d_container_smartobject_obj = 0.00 THEN 0.00 ELSE ttSmartObject.d_smartobject_obj)
+                ttAttributeValue.d_primary_smartobject_obj   = ttSmartObject.d_smartobject_obj
+                ttAttributeValue.d_customization_result_obj  = 0.00
+                ttAttributeValue.d_attribute_value_obj       = DYNAMIC-FUNCTION("getTemporaryObj":U IN TARGET-PROCEDURE)
+                /* Check if it is a container property - if so, point it at the new container, else it was a property for an object instance, so point it at the correct smartobject */
+                ttAttributeValue.d_smartobject_obj           = (IF ttTmpltAttributeValue.d_smartobject_obj = 0.00 THEN
+                                                                  0.00
+                                                                ELSE
+                                                                  IF ttTmpltAttributeValue.d_smartobject_obj = ttTmpltSmartObject.d_smartobject_obj THEN
+                                                                    ttSmartObject.d_smartobject_obj
+                                                                  ELSE
+                                                                    ttTmpltAttributeValue.d_smartobject_obj)
+                ttAttributeValue.c_action                    = "A":U.
+  END.
+
+  /* --------- AttributeValue --------- */
+  FOR EACH ttTmpltUiEvent:
+
+    CREATE ttUiEvent.
+
+    BUFFER-COPY ttTmpltUiEvent
+             TO ttUiEvent
+         ASSIGN ttUiEvent.d_container_smartobject_obj = (IF ttTmpltUiEvent.d_container_smartobject_obj = 0.00 THEN 0.00 ELSE ttSmartObject.d_smartobject_obj)
+                ttUiEvent.d_primary_smartobject_obj   = ttSmartObject.d_smartobject_obj
+                ttUiEvent.d_customization_result_obj  = gdCustomResultObj
+                ttUiEvent.d_ui_event_obj              = DYNAMIC-FUNCTION("getTemporaryObj":U IN TARGET-PROCEDURE)
+                /* Check if it is a container ui event - if so, point it at the new container, else it was a ui event for an object instance, so point it at the correct smartobject */
+                ttUiEvent.d_smartobject_obj           = (IF ttTmpltUiEvent.d_smartobject_obj = 0.00 THEN
+                                                           0.00
+                                                         ELSE
+                                                           IF ttTmpltUiEvent.d_smartobject_obj = ttTmpltSmartObject.d_smartobject_obj THEN
+                                                             ttSmartObject.d_smartobject_obj
+                                                           ELSE
+                                                             ttTmpltUiEvent.d_smartobject_obj)
+                ttUiEvent.c_action                    = "A":U.
+  END.
+
+  /* --------- ObjectInstance --------- */
+  FOR EACH ttTmpltObjectInstance
+     WHERE ttTmpltObjectInstance.d_smartobject_obj <> 0.00:
+    
+    CREATE ttObjectInstance.
+
+    BUFFER-COPY ttTmpltObjectInstance
+             TO ttObjectInstance.
+         ASSIGN ttObjectInstance.d_container_smartobject_obj = ttSmartObject.d_smartobject_obj
+                ttObjectInstance.d_object_instance_obj       = DYNAMIC-FUNCTION("getTemporaryObj":U IN TARGET-PROCEDURE)
+                ttObjectInstance.c_action                    = "A":U.
+    
+    /* Make sure the PageObjects point to the newly created object instances */
+    FOR EACH ttPageObject
+       WHERE ttPageObject.d_object_instance_obj = ttTmpltObjectInstance.d_object_instance_obj
+         AND ttPageObject.c_action             <> "D":U:
+      
+      ttPageObject.d_object_instance_obj = ttObjectInstance.d_object_instance_obj.
+    END.
+    
+    /* Make sure the SmartLinks point to the newly created object instances */
+    FOR EACH  ttSmartLink
+       WHERE  ttSmartLink.d_container_smartobject_obj  = ttSmartObject.d_smartobject_obj
+         AND (ttSmartLink.d_source_object_instance_obj = ttTmpltObjectInstance.d_object_instance_obj
+          OR  ttSmartLink.d_target_object_instance_obj = ttTmpltObjectInstance.d_object_instance_obj)
+         AND  ttSmartLink.c_action                     <> "D":U:
+      
+      IF ttSmartLink.d_source_object_instance_obj = ttTmpltObjectInstance.d_object_instance_obj THEN
+        ttSmartLink.d_source_object_instance_obj = ttObjectInstance.d_object_instance_obj.
+        
+      IF ttSmartLink.d_target_object_instance_obj = ttTmpltObjectInstance.d_object_instance_obj THEN
+        ttSmartLink.d_target_object_instance_obj = ttObjectInstance.d_object_instance_obj.
+    END.
+
+    /* Make sure the attributes of the object instance point to the new object instance record */
+    FOR EACH ttAttributeValue
+       WHERE ttAttributeValue.d_primary_smartobject_obj = ttSmartObject.d_smartobject_obj
+         AND ttAttributeValue.d_object_instance_obj     = ttTmpltObjectInstance.d_object_instance_obj:
+
+      ttAttributeValue.d_object_instance_obj = (IF ttAttributeValue.d_object_instance_obj = 0.00 THEN 0.00 ELSE ttObjectInstance.d_object_instance_obj).
+    END.
+
+    /* Make sure the ui events of the object instance point to the new object instance record */
+    FOR EACH ttUiEvent
+       WHERE ttUiEvent.d_primary_smartobject_obj = ttSmartObject.d_smartobject_obj
+         AND ttUiEvent.d_object_instance_obj     = ttTmpltObjectInstance.d_object_instance_obj:
+
+      ttUiEvent.d_object_instance_obj = (IF ttUiEvent.d_object_instance_obj = 0.00 THEN 0.00 ELSE ttObjectInstance.d_object_instance_obj).
+    END.
+
+  END.
+  
+  EMPTY TEMP-TABLE ttTmpltObjectMenuStructure.
+  EMPTY TEMP-TABLE ttTmpltObjectInstance.
+  EMPTY TEMP-TABLE ttTmpltAttributeValue.
+  EMPTY TEMP-TABLE ttTmpltSmartObject.
+  EMPTY TEMP-TABLE ttTmpltPageObject.
+  EMPTY TEMP-TABLE ttTmpltSmartLink.
+  EMPTY TEMP-TABLE ttTmpltUiEvent.
+  EMPTY TEMP-TABLE ttTmpltPage.
+  
+  {launch.i &PLIP     = 'ry/app/rycntbplip.p'
+            &IProc    = 'setContainerDetails'
+            &PList    = "(INPUT  DYNAMIC-FUNCTION('getDataValue':U IN hCustomizationResultCode),
+                          INPUT-OUTPUT TABLE ttSmartObject,
+                          INPUT-OUTPUT TABLE ttPage,
+                          INPUT-OUTPUT TABLE ttPageObject,
+                          INPUT-OUTPUT TABLE ttObjectInstance,
+                          INPUT-OUTPUT TABLE ttAttributeValue,
+                          INPUT-OUTPUT TABLE ttUiEvent,
+                          INPUT-OUTPUT TABLE ttSmartLink,
+                          INPUT-OUTPUT TABLE ttObjectMenuStructure)"
+            &OnApp    = 'YES'
+            &AutoKill = YES}
+  
+  SESSION:SET-WAIT-STATE("":U).
 
 END PROCEDURE.
 
@@ -576,16 +1078,47 @@ PROCEDURE copyRecord :
   Parameters:  
   Notes:       
 ------------------------------------------------------------------------------*/
-
+  DEFINE VARIABLE hComboHandle AS HANDLE     NO-UNDO.
   /* Code placed here will execute PRIOR to standard behavior. */
   
+  ASSIGN glAddRecord = TRUE
+         glCopyRecord = TRUE.
   glEnableObjectName = TRUE.
 
   RUN SUPER.
 
-  APPLY "VALUE-CHANGED":U TO RowObject.logical_object IN FRAME {&FRAME-NAME}.
+  {get ComboHandle hComboHandle hProductModule}.
+  DO WITH FRAME {&FRAME-NAME}:
+    ASSIGN gcOldObjectName   = RowObject.object_filename:SCREEN-VALUE
+           gcOldProdModCode  = TRIM(ENTRY(1,ENTRY(LOOKUP(STRING(DECIMAL(DYNAMIC-FUNCTION("getDataValue":U IN hProductModule)),DYNAMIC-FUNCTION("getKeyFormat":U IN hProductModule)),hComboHandle:LIST-ITEM-PAIRS,hComboHandle:DELIMITER) - 1,hComboHandle:LIST-ITEM-PAIRS,hComboHandle:DELIMITER),"/":U))
+           gcObjectTypeCode  = DYNAMIC-FUNCTION("getDisplayValue":U IN h_ObjectType)
+           gdCustomResultObj = DYNAMIC-FUNCTION("getDataValue":U IN hCustomizationResultCode).
+  END.
+
+  APPLY "VALUE-CHANGED":U TO RowObject.static_object IN FRAME {&FRAME-NAME}.
   /* Code placed here will execute AFTER standard behavior.    */
 
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disableFields vTableWin 
+PROCEDURE disableFields :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  DEFINE INPUT PARAMETER pcFieldType AS CHARACTER NO-UNDO.
+
+  /* Code placed here will execute PRIOR to standard behavior. */
+
+  RUN SUPER( INPUT pcFieldType).
+
+  /* Code placed here will execute AFTER standard behavior.    */
+  DISABLE bu_find_object WITH FRAME {&FRAME-NAME}.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -651,10 +1184,11 @@ PROCEDURE enableFields :
 
   /* The object type is defaulted to the selected object type from
      the parent node. The user should not be able to change this */
-  RUN disableField IN h_ObjectType.
-  IF NOT glEnableObjectName THEN
-    DISABLE RowObject.object_filename bu_find_object
+  
+  IF NOT glEnableObjectName THEN DO:
+    DISABLE bu_find_object RowObject.object_filename bu_find_object
             WITH FRAME {&FRAME-NAME}.
+  END.
   
   /* Code placed here will execute AFTER standard behavior.    */
 
@@ -676,18 +1210,64 @@ PROCEDURE genericObject :
   DO WITH FRAME {&FRAME-NAME}:
     IF RowObject.object_filename:SENSITIVE THEN DO:
       IF plGenericObject THEN DO:
-        ASSIGN RowObject.logical_object:CHECKED   = FALSE
-               RowObject.logical_object:SENSITIVE = FALSE.
+        ASSIGN RowObject.static_object:CHECKED    = TRUE
+               RowObject.static_object:SENSITIVE = FALSE.
         {set DataValue '0' h_PhysicalObject}.
         {set DataModified TRUE h_PhysicalObject}.
         RUN disableField IN h_PhysicalObject.
       END.
       ELSE DO:
-        ASSIGN RowObject.logical_object:SENSITIVE = TRUE.
+        ASSIGN RowObject.static_object:SENSITIVE = TRUE.
       END.
     END.
   END.
   
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initializeObject vTableWin 
+PROCEDURE initializeObject :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+  ASSIGN fiSDOClasses:SCREEN-VALUE IN FRAME {&FRAME-NAME} = DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, INPUT "data":U)
+         fiSDOClasses.
+
+  /* Code placed here will execute PRIOR to standard behavior. */
+  SUBSCRIBE TO "comboValueChanged":U IN THIS-PROCEDURE.
+
+  RUN SUPER.
+
+  /* Code placed here will execute AFTER standard behavior.    */
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE resetRecord vTableWin 
+PROCEDURE resetRecord :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  /* Code placed here will execute PRIOR to standard behavior. */
+  IF glAddRecord THEN DO:
+    ASSIGN glAddRecord  = FALSE
+           glCopyRecord = FALSE.
+    RUN cancelRecord.
+    RETURN.
+  END.
+  RUN SUPER.
+
+  /* Code placed here will execute AFTER standard behavior.    */
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -728,10 +1308,139 @@ PROCEDURE updateMode :
   RUN SUPER( INPUT pcMode).
   
   IF pcMode = "Modify":U THEN
-    APPLY "VALUE-CHANGED":U TO RowObject.logical_object IN FRAME {&FRAME-NAME}.
+    APPLY "VALUE-CHANGED":U TO RowObject.static_object IN FRAME {&FRAME-NAME}.
   gcMode = pcMode.
   /* Code placed here will execute AFTER standard behavior.    */
 
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE updateRecord vTableWin 
+PROCEDURE updateRecord :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hDataSource       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE dObjType          AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE cAnswer           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cButton           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cMessage          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lRefresh          AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hContainer        AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cObjectName       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE dProductModuleObj AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE dProductObj       AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE cMessageList      AS CHARACTER  NO-UNDO.
+
+  /* Code placed here will execute PRIOR to standard behavior. */
+  ASSIGN glAddRecord  = FALSE.
+
+  IF NOT glAddRecord THEN DO:
+    {get DataSource hDataSource}.
+    IF VALID-HANDLE(hDataSource) THEN
+      ASSIGN dObjType          = DECIMAL(DYNAMIC-FUNCTION("columnStringValue" IN hDataSource,"object_type_obj"))
+             cObjectName       = DYNAMIC-FUNCTION("columnStringValue" IN hDataSource,"object_filename")
+             dProductModuleObj = DECIMAL(DYNAMIC-FUNCTION("columnValue":U IN hDataSource,"product_module_obj":U)).
+
+    /* They are Changing the Object Type - Warn them */
+    IF dObjType <> DYNAMIC-FUNCTION("getDataValue":U IN h_ObjectType) THEN DO:
+      cMessage = "WARNING - PLEASE READ:~n" + 
+                 "You are about to change the Object Type and this could have serious consequences.~n~n" +
+                 "Please make sure of the following before continuing:~n" +
+                 "1. Ensure you have a reliable backup~n" +
+                 "2. Ensure that the object type you are changing to is relevant to this object~n" +
+                 "3. Ensure that you know what you are doing.~n~n" +
+                 "When this change has taken place it cannot be undone.~n~n" +
+                 "You should be aware that " +
+                 "any Attributes or UI Events on this object that is not a valid for the new class selected " +
+                 "will be removed.~n~n" +
+                 "Are you sure you want to continue with this change?".
+      RUN askQuestion IN gshSessionManager (INPUT         cMessage,    /* message to display */
+                                             INPUT        "&YES,&NO,&Cancel":U,    /* button list */
+                                             INPUT        "&YES":U,                /* default button */ 
+                                             INPUT        "&Cancel":U,             /* cancel button */
+                                             INPUT        "Are you sure you want to change the Object Type":U, /* window title */
+                                             INPUT        "":U,                    /* data type of question */ 
+                                             INPUT        "":U,                    /* format mask for question */ 
+                                             INPUT-OUTPUT cAnswer,                 /* character value of answer to question */ 
+                                                   OUTPUT cButton                  /* button pressed */
+                                             ).
+      IF cButton <> "&YES":U THEN 
+        RETURN ERROR "ADM-ERROR":U.
+      lRefresh = TRUE.
+    END. /* Change Object Type */
+
+    /* User is changing the Product Module - Show WARNING MESSAGE */
+    IF dProductModuleObj <> DECIMAL(DYNAMIC-FUNCTION("getDataValue":U IN hProductModule)) THEN DO:
+      cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
+                    {af/sup2/aferrortxt.i 'AF' '44'}.
+      RUN showMessages IN gshSessionManager (INPUT cMessageList,
+                                             INPUT "WAR":U,
+                                             INPUT "&Yes,&No,&Cancel":U,
+                                             INPUT "&Yes":U,
+                                             INPUT "&Yes":U,
+                                             INPUT "Confirm Product Module Change",
+                                             INPUT YES,
+                                             INPUT ?,
+                                             OUTPUT cButton).
+      IF cButton <> "&YES":U THEN DO:
+        /* Reset back to old Product Module */
+        IF VALID-HANDLE(hDataSource) THEN
+          ASSIGN dProductObj       = DECIMAL(DYNAMIC-FUNCTION("columnValue":U IN hDataSource,"product_obj":U))
+                 dProductModuleObj = DECIMAL(DYNAMIC-FUNCTION("columnValue":U IN hDataSource,"product_module_obj":U))
+                 RowObject.object_path:SCREEN-VALUE IN FRAME {&FRAME-NAME} = DYNAMIC-FUNCTION("columnValue":U IN hDataSource,"object_path":U).
+
+        {set DataValue dProductObj hProduct}.
+        RUN refreshChildDependancies IN hProductModule (INPUT "dProductObj").
+        {set DataValue dProductModuleObj hProductModule}.
+        RETURN ERROR "ADM-ERROR":U.
+      END.
+    END. /* Change Product Module */
+  END.
+
+  RUN SUPER.
+
+  IF lRefresh THEN DO:
+    {get ContainerSource hContainer}.
+    PUBLISH "refreshFilter" FROM hContainer (INPUT cObjectName).
+  END.
+
+  /* Code placed here will execute AFTER standard behavior.    */
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE updateState vTableWin 
+PROCEDURE updateState :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  DEFINE INPUT PARAMETER pcState AS CHARACTER NO-UNDO.
+
+  /* Code placed here will execute PRIOR to standard behavior. */
+
+  RUN SUPER( INPUT pcState).
+
+  /* Code placed here will execute AFTER standard behavior.    */
+  
+  /* If we copied an object we need to copy all it's pages, instances etc too */
+  IF pcState = "UpdateComplete":U AND
+     glCopyRecord = TRUE THEN DO:
+    /* I'm using the PLIP used for the Container Builder to copy
+       all the other components of the object */
+    RUN copyObject.
+    glCopyRecord = FALSE.
+  END.
+  
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

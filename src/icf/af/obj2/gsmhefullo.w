@@ -1,8 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          afdb             PROGRESS
-          asdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
@@ -93,7 +92,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gsmhefullo.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -125,6 +124,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -146,9 +146,15 @@ help_context
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gsmhefullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsm_help NO-LOCK, ~
+      FIRST gsc_language WHERE afdb.gsc_language.language_obj = asdb.gsm_help.language_obj NO-LOCK ~
+    BY gsm_help.help_container_filename ~
+       BY gsm_help.help_object_filename ~
+        BY gsm_help.help_fieldname ~
+         BY gsm_help.language_obj INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsm_help NO-LOCK, ~
-      FIRST gsc_language WHERE gsc_language.language_obj = gsm_help.language_obj NO-LOCK ~
+      FIRST gsc_language WHERE afdb.gsc_language.language_obj = asdb.gsm_help.language_obj NO-LOCK ~
     BY gsm_help.help_container_filename ~
        BY gsm_help.help_object_filename ~
         BY gsm_help.help_fieldname ~
@@ -240,32 +246,32 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "asdb.gsm_help,afdb.gsc_language WHERE asdb.gsm_help ..."
+     _TblList          = "ICFDB.gsm_help,ICFDB.gsc_language WHERE ICFDB.gsm_help ..."
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _TblOptList       = ", FIRST USED"
      _OrdList          = "asdb.gsm_help.help_container_filename|yes,asdb.gsm_help.help_object_filename|yes,asdb.gsm_help.help_fieldname|yes,asdb.gsm_help.language_obj|yes"
      _JoinCode[2]      = "afdb.gsc_language.language_obj = asdb.gsm_help.language_obj"
-     _FldNameList[1]   > asdb.gsm_help.help_obj
+     _FldNameList[1]   > ICFDB.gsm_help.help_obj
 "help_obj" "help_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
-     _FldNameList[2]   > asdb.gsm_help.help_filename
+     _FldNameList[2]   > ICFDB.gsm_help.help_filename
 "help_filename" "help_filename" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
-     _FldNameList[3]   > asdb.gsm_help.help_container_filename
+     _FldNameList[3]   > ICFDB.gsm_help.help_container_filename
 "help_container_filename" "help_container_filename" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
-     _FldNameList[4]   > asdb.gsm_help.help_object_filename
+     _FldNameList[4]   > ICFDB.gsm_help.help_object_filename
 "help_object_filename" "help_object_filename" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
-     _FldNameList[5]   > asdb.gsm_help.help_fieldname
+     _FldNameList[5]   > ICFDB.gsm_help.help_fieldname
 "help_fieldname" "help_fieldname" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
-     _FldNameList[6]   > asdb.gsm_help.language_obj
+     _FldNameList[6]   > ICFDB.gsm_help.language_obj
 "language_obj" "language_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
-     _FldNameList[7]   > afdb.gsc_language.language_code
+     _FldNameList[7]   > ICFDB.gsc_language.language_code
 "language_code" "language_code" ? ? "character" ? ? ? ? ? ? no ? no 20 yes
-     _FldNameList[8]   > asdb.gsm_help.help_context
+     _FldNameList[8]   > ICFDB.gsm_help.help_context
 "help_context" "help_context" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK dTables 
@@ -315,28 +321,27 @@ DEFINE VARIABLE cMessageList    AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE cValueList      AS CHARACTER    NO-UNDO.
 
 FOR EACH RowObjUpd WHERE CAN-DO('A,C,U':U,RowObjUpd.RowMod): 
-  IF (RowObjUpd.RowMod = 'U':U AND
-    CAN-FIND(FIRST gsm_help
-      WHERE gsm_help.help_container_filename = rowObjUpd.help_container_filename
-        AND gsm_help.help_object_filename = rowObjUpd.help_object_filename
-        AND gsm_help.help_fieldname = rowObjUpd.help_fieldname
-        AND gsm_help.language_obj = rowObjUpd.language_obj
-      AND ROWID(gsm_help) <> TO-ROWID(ENTRY(1,RowObjUpd.RowIDent))))
-  OR (RowObjUpd.RowMod <> 'U':U AND
-    CAN-FIND(FIRST gsm_help
-      WHERE gsm_help.help_container_filename = rowObjUpd.help_container_filename
-        AND gsm_help.help_object_filename = rowObjUpd.help_object_filename
-        AND gsm_help.help_fieldname = rowObjUpd.help_fieldname
-        AND gsm_help.language_obj = rowObjUpd.language_obj))
-  THEN
-    ASSIGN
-      cValueList   = STRING(RowObjUpd.help_container_filename) + ', ' + STRING(RowObjUpd.help_object_filename) + ', ' + STRING(RowObjUpd.help_fieldname) + ', ' + STRING(RowObjUpd.language_obj)
-      cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                    {af/sup2/aferrortxt.i 'AF' '8' 'gsm_help' 'help_container_filename' "'help_container_filename, help_object_filename, help_fieldname, language_obj, '" cValueList }.
+  IF (RowObjUpd.RowMod = 'U':U 
+  AND CAN-FIND(FIRST gsm_help
+               WHERE gsm_help.help_container_filename = rowObjUpd.help_container_filename
+                 AND gsm_help.help_object_filename = rowObjUpd.help_object_filename
+                 AND gsm_help.help_fieldname = rowObjUpd.help_fieldname
+                 AND gsm_help.language_obj = rowObjUpd.language_obj
+                 AND ROWID(gsm_help) <> TO-ROWID(ENTRY(1,RowObjUpd.RowIDent))))
+  OR (RowObjUpd.RowMod <> 'U':U 
+  AND CAN-FIND(FIRST gsm_help
+               WHERE gsm_help.help_container_filename = rowObjUpd.help_container_filename
+                 AND gsm_help.help_object_filename = rowObjUpd.help_object_filename
+                 AND gsm_help.help_fieldname = rowObjUpd.help_fieldname
+                 AND gsm_help.language_obj = rowObjUpd.language_obj)) THEN
+    ASSIGN cValueList   = STRING(RowObjUpd.help_container_filename) + ', ' + STRING(RowObjUpd.help_object_filename) + ', ' + STRING(RowObjUpd.help_fieldname) + ', ' + STRING(RowObjUpd.language_obj)
+           cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
+                          {af/sup2/aferrortxt.i 'AF' '8' 'gsm_help' 'help_container_filename' "'help_container_filename, help_object_filename, help_fieldname, language_obj, '" cValueList }.
 END.
 
-  ERROR-STATUS:ERROR = NO.
-  RETURN cMessageList.
+ERROR-STATUS:ERROR = NO.
+RETURN cMessageList.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -356,20 +361,10 @@ DEFINE VARIABLE cMessageList    AS CHARACTER    NO-UNDO.
 
 DEFINE VARIABLE cValueList      AS CHARACTER    NO-UNDO.
 
-  IF LENGTH(RowObject.help_container_filename) = 0 OR LENGTH(RowObject.help_container_filename) = ? THEN
-    ASSIGN
-      cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                    {af/sup2/aferrortxt.i 'AF' '1' 'gsm_help' 'help_container_filename' "'Help Container Filename'"}.
-
  IF RowObject.language_obj = 0 OR RowObject.language_obj = ? THEN
     ASSIGN
       cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
                     {af/sup2/aferrortxt.i 'AF' '1' 'gsm_help' 'language_obj' "'Language Obj'"}.
-
-  IF LENGTH(RowObject.help_context) = 0 OR LENGTH(RowObject.help_context) = ? THEN
-    ASSIGN
-      cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                    {af/sup2/aferrortxt.i 'AF' '1' 'gsm_help' 'help_context' "'Help Context'"}.
 
   ERROR-STATUS:ERROR = NO.
   RETURN cMessageList.

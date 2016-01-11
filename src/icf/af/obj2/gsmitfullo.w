@@ -63,6 +63,7 @@ DEFINE VARIABLE miLastUpper   AS INTEGER    NO-UNDO.
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -88,6 +89,10 @@ menu_item_reference
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gsmitfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsm_menu_structure_item NO-LOCK, ~
+      FIRST gsm_menu_item WHERE gsm_menu_item.menu_item_obj = gsm_menu_structure_item.menu_item_obj NO-LOCK ~
+    BY gsm_menu_structure_item.menu_structure_obj ~
+       BY gsm_menu_structure_item.menu_item_sequence INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsm_menu_structure_item NO-LOCK, ~
       FIRST gsm_menu_item WHERE gsm_menu_item.menu_item_obj = gsm_menu_structure_item.menu_item_obj NO-LOCK ~
@@ -186,15 +191,15 @@ END.
      _OrdList          = "icfdb.gsm_menu_structure_item.menu_structure_obj|yes,icfdb.gsm_menu_structure_item.menu_item_sequence|yes"
      _JoinCode[2]      = "icfdb.gsm_menu_item.menu_item_obj = icfdb.gsm_menu_structure_item.menu_item_obj"
      _FldNameList[1]   > icfdb.gsm_menu_structure_item.child_menu_structure_obj
-"child_menu_structure_obj" "child_menu_structure_obj" ? "->>>>>>>>>>>>>>>>>9.999999999" "decimal" ? ? ? ? ? ? yes ? no 33.6 yes
+"child_menu_structure_obj" "child_menu_structure_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 33.6 yes
      _FldNameList[2]   > icfdb.gsm_menu_structure_item.menu_item_obj
-"menu_item_obj" "menu_item_obj" ? "->>>>>>>>>>>>>>>>>9.999999999" "decimal" ? ? ? ? ? ? yes ? yes 33.6 yes
+"menu_item_obj" "menu_item_obj" ? ? "decimal" ? ? ? ? ? ? yes ? yes 33.6 yes
      _FldNameList[3]   > icfdb.gsm_menu_structure_item.menu_item_sequence
 "menu_item_sequence" "menu_item_sequence" ? ? "integer" ? ? ? ? ? ? yes ? yes 14 yes
      _FldNameList[4]   > icfdb.gsm_menu_structure_item.menu_structure_item_obj
-"menu_structure_item_obj" "menu_structure_item_obj" ? "->>>>>>>>>>>>>>>>>9.999999999" "decimal" ? ? ? ? ? ? no ? no 33.6 yes
+"menu_structure_item_obj" "menu_structure_item_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 33.6 yes
      _FldNameList[5]   > icfdb.gsm_menu_structure_item.menu_structure_obj
-"menu_structure_obj" "menu_structure_obj" ? "->>>>>>>>>>>>>>>>>9.999999999" "decimal" ? ? ? ? ? ? yes ? yes 33.6 yes
+"menu_structure_obj" "menu_structure_obj" ? ? "decimal" ? ? ? ? ? ? yes ? yes 33.6 yes
      _FldNameList[6]   > icfdb.gsm_menu_item.item_control_type
 "item_control_type" "item_control_type" ? ? "character" ? ? ? ? ? ? no ? no 11.2 yes
      _FldNameList[7]   > icfdb.gsm_menu_item.item_toolbar_label

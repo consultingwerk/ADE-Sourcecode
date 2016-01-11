@@ -5,10 +5,10 @@ PSC
 filename=gsm_status_history
 records=0000000000002
 ldbname=ICFDB
-timestamp=2002/02/23-13:24:43
+timestamp=2003/04/02-13:47:46
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
-cpstream=ISO8859-1
+cpstream=utf-8
 .
 0000000076

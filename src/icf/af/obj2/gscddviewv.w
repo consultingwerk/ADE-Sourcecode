@@ -123,17 +123,20 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &Scoped-Define ENABLED-FIELDS RowObject.dataset_code ~
 RowObject.dataset_description RowObject.default_ado_filename ~
 RowObject.xml_generation_procedure RowObject.disable_ri ~
-RowObject.source_code_data RowObject.deploy_full_data 
+RowObject.source_code_data RowObject.enable_data_versioning ~
+RowObject.deletion_dataset RowObject.deploy_full_data ~
+RowObject.deploy_additions_only 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
-&Scoped-Define ENABLED-OBJECTS fiSiteName 
 &Scoped-Define DISPLAYED-FIELDS RowObject.dataset_code ~
 RowObject.dataset_description RowObject.default_ado_filename ~
 RowObject.xml_generation_procedure RowObject.disable_ri ~
-RowObject.source_code_data RowObject.deploy_full_data 
-&Scoped-Define DISPLAYED-OBJECTS fiSiteName 
+RowObject.source_code_data RowObject.enable_data_versioning ~
+RowObject.deletion_dataset RowObject.deploy_full_data ~
+RowObject.deploy_additions_only 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
+&Scoped-Define DISPLAYED-OBJECTS fiDatasetDescriptionLabel 
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -146,41 +149,46 @@ RowObject.source_code_data RowObject.deploy_full_data
 /* ***********************  Control Definitions  ********************** */
 
 
-/* Definitions of handles for SmartObjects                              */
-DEFINE VARIABLE h_dynlookup AS HANDLE NO-UNDO.
-
 /* Definitions of the field level widgets                               */
-DEFINE VARIABLE fiSiteName AS CHARACTER FORMAT "X(256)":U 
-     VIEW-AS FILL-IN 
-     SIZE 45.6 BY 1 NO-UNDO.
+DEFINE VARIABLE fiDatasetDescriptionLabel AS CHARACTER FORMAT "X(70)":U INITIAL "Dataset Description:" 
+      VIEW-AS TEXT 
+     SIZE 19.6 BY .62 NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     RowObject.dataset_code AT ROW 1.1 COL 28.2 COLON-ALIGNED
+     RowObject.dataset_code AT ROW 1 COL 27.8 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 26.2 BY 1
-     RowObject.dataset_description AT ROW 2.1 COL 28.2 COLON-ALIGNED
+          SIZE 24 BY 1
+     RowObject.dataset_description AT ROW 2.05 COL 29.8 NO-LABEL
+          VIEW-AS EDITOR MAX-CHARS 500 SCROLLBAR-VERTICAL LARGE
+          SIZE 78.4 BY 4
+     RowObject.default_ado_filename AT ROW 6.14 COL 27.8 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 72 BY 1
-     fiSiteName AT ROW 3.1 COL 54.8 COLON-ALIGNED NO-LABEL
-     RowObject.default_ado_filename AT ROW 4.05 COL 28.4 COLON-ALIGNED
+          SIZE 78.4 BY 1
+     RowObject.xml_generation_procedure AT ROW 7.14 COL 27.8 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 72 BY 1
-     RowObject.xml_generation_procedure AT ROW 5.1 COL 28.4 COLON-ALIGNED
-          VIEW-AS FILL-IN 
-          SIZE 72 BY 1
-     RowObject.disable_ri AT ROW 6.14 COL 30.6
+          SIZE 78.4 BY 1
+     RowObject.disable_ri AT ROW 8.19 COL 29.8
           VIEW-AS TOGGLE-BOX
-          SIZE 14.6 BY .81
-     RowObject.source_code_data AT ROW 6.95 COL 30.6
+          SIZE 14.6 BY 1
+     RowObject.source_code_data AT ROW 9.29 COL 29.8
           VIEW-AS TOGGLE-BOX
-          SIZE 22.6 BY .81
-     RowObject.deploy_full_data AT ROW 7.76 COL 30.6
+          SIZE 22.6 BY 1
+     RowObject.enable_data_versioning AT ROW 10.38 COL 29.8
           VIEW-AS TOGGLE-BOX
-          SIZE 20.6 BY .81
-     SPACE(5.40) SKIP(0.00)
+          SIZE 27.2 BY .81
+     RowObject.deletion_dataset AT ROW 11.29 COL 29.8
+          VIEW-AS TOGGLE-BOX
+          SIZE 20.8 BY .81
+     RowObject.deploy_full_data AT ROW 12.19 COL 29.8
+          VIEW-AS TOGGLE-BOX
+          SIZE 20.6 BY 1
+     RowObject.deploy_additions_only AT ROW 13.24 COL 29.8
+          VIEW-AS TOGGLE-BOX
+          SIZE 25.6 BY .81
+     fiDatasetDescriptionLabel AT ROW 2.24 COL 8 COLON-ALIGNED NO-LABEL
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -220,8 +228,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 7.57
-         WIDTH              = 101.4.
+         HEIGHT             = 14
+         WIDTH              = 109.2.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -247,6 +255,15 @@ END.
 ASSIGN 
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
+
+ASSIGN 
+       RowObject.dataset_description:RETURN-INSERTED IN FRAME frMain  = TRUE.
+
+/* SETTINGS FOR FILL-IN fiDatasetDescriptionLabel IN FRAME frMain
+   NO-ENABLE                                                            */
+ASSIGN 
+       fiDatasetDescriptionLabel:PRIVATE-DATA IN FRAME frMain     = 
+                "Dataset Description:".
 
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
@@ -288,28 +305,6 @@ PROCEDURE adm-create-objects :
                After SmartObjects are initialized, then SmartLinks are added.
   Parameters:  <none>
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE currentPage  AS INTEGER NO-UNDO.
-
-  ASSIGN currentPage = getCurrentPage().
-
-  CASE currentPage: 
-
-    WHEN 0 THEN DO:
-       RUN constructObject (
-             INPUT  'adm2/dynlookup.w':U ,
-             INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsm_site.site_codeKeyFieldgsm_site.site_codeFieldLabelSite CodeFieldTooltipEnter Site Code or Press F4 for Site LookupKeyFormatX(10)KeyDatatypecharacterDisplayFormatX(10)DisplayDatatypecharacterBaseQueryStringFOR EACH gsm_site NO-LOCK
-                     BY gsm_site.site_codeQueryTablesgsm_siteBrowseFieldsgsm_site.site_code,gsm_site.site_nameBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(10),X(35)RowsToBatch200BrowseTitleLookup SitesViewerLinkedFieldsgsm_site.site_nameLinkedFieldDataTypescharacterLinkedFieldFormatsX(35)ViewerLinkedWidgetsfiSiteNameColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOFieldNameowner_site_codeDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
-             OUTPUT h_dynlookup ).
-       RUN repositionObject IN h_dynlookup ( 3.10 , 30.40 ) NO-ERROR.
-       RUN resizeObject IN h_dynlookup ( 1.00 , 26.20 ) NO-ERROR.
-
-       /* Adjust the tab order of the smart objects. */
-       RUN adjustTabOrder ( h_dynlookup ,
-             RowObject.dataset_description:HANDLE IN FRAME frMain , 'AFTER':U ).
-    END. /* Page 0 */
-
-  END CASE.
 
 END PROCEDURE.
 

@@ -52,8 +52,10 @@ CREATE WIDGET-POOL.
 &Scoped-define FRAME-NAME fMain
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS edComment fiNumber buFile fiFile 
-&Scoped-Define DISPLAYED-OBJECTS edComment fiNumber fiFile 
+&Scoped-Define ENABLED-OBJECTS edComment fiNumber fiSiteSeq1 fiSiteSeq2 ~
+fiSessionID 
+&Scoped-Define DISPLAYED-OBJECTS edComment fiNumber fiSiteSeq1 fiSiteSeq2 ~
+fiSessionID 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -67,33 +69,39 @@ CREATE WIDGET-POOL.
 
 
 /* Definitions of the field level widgets                               */
-DEFINE BUTTON buFile 
-     LABEL "Select..." 
-     SIZE 15 BY 1.14
-     BGCOLOR 8 .
-
 DEFINE VARIABLE edComment AS CHARACTER 
      VIEW-AS EDITOR SCROLLBAR-VERTICAL LARGE
      SIZE 77.2 BY 8.67 NO-UNDO.
 
-DEFINE VARIABLE fiFile AS CHARACTER FORMAT "X(256)":U 
-     LABEL "File" 
-     VIEW-AS FILL-IN 
-     SIZE 43.2 BY 1 NO-UNDO.
-
 DEFINE VARIABLE fiNumber AS INTEGER FORMAT ">>>>>>>>9":U INITIAL 0 
-     LABEL "Number" 
+     LABEL "Site Number" 
      VIEW-AS FILL-IN 
-     SIZE 14.8 BY 1 NO-UNDO.
+     SIZE 25 BY 1 NO-UNDO.
+
+DEFINE VARIABLE fiSessionID AS INTEGER FORMAT ">>>,>>>,>>9":U INITIAL 0 
+     LABEL "Session ID" 
+     VIEW-AS FILL-IN 
+     SIZE 25.2 BY 1 NO-UNDO.
+
+DEFINE VARIABLE fiSiteSeq1 AS INTEGER FORMAT ">>>,>>>,>>9":U INITIAL 0 
+     LABEL "Site Sequence 1" 
+     VIEW-AS FILL-IN 
+     SIZE 25.2 BY 1 NO-UNDO.
+
+DEFINE VARIABLE fiSiteSeq2 AS INTEGER FORMAT ">>>,>>>,>>9":U INITIAL 0 
+     LABEL "Site Sequence 2" 
+     VIEW-AS FILL-IN NATIVE 
+     SIZE 25.2 BY 1 NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME fMain
      edComment AT ROW 1.19 COL 1.4 NO-LABEL
-     fiNumber AT ROW 11.19 COL 17.8 COLON-ALIGNED
-     buFile AT ROW 13.05 COL 63.4
-     fiFile AT ROW 13.1 COL 17.8 COLON-ALIGNED
+     fiNumber AT ROW 10.1 COL 27.4 COLON-ALIGNED
+     fiSiteSeq1 AT ROW 11.24 COL 27.2 COLON-ALIGNED
+     fiSiteSeq2 AT ROW 12.38 COL 27.2 COLON-ALIGNED
+     fiSessionID AT ROW 13.52 COL 27.2 COLON-ALIGNED
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1
@@ -107,7 +115,7 @@ DEFINE FRAME fMain
    Type: SmartFrame
    Allow: Basic,Browse,DB-Fields,Query,Smart
    Container Links: Data-Target,Data-Source,Page-Target,Update-Source,Update-Target
-   Other Settings: PERSISTENT-ONLY
+   Other Settings: PERSISTENT-ONLY COMPILE
  */
 
 /* This procedure should always be RUN PERSISTENT.  Report the error,  */
@@ -172,33 +180,9 @@ ASSIGN
 
 /* ************************  Control Triggers  ************************ */
 
-&Scoped-define SELF-NAME buFile
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buFile fFrameWin
-ON CHOOSE OF buFile IN FRAME fMain /* Select... */
-DO:
-  RUN btnChoose IN THIS-PROCEDURE.
-END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
-&Scoped-define SELF-NAME fiFile
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL fiFile fFrameWin
-ON LEAVE OF fiFile IN FRAME fMain /* File */
-DO:
-  RUN eventProc IN THIS-PROCEDURE ("LEAVE":U,"{&SELF-NAME}":U) NO-ERROR.
-  IF ERROR-STATUS:ERROR THEN
-    RETURN NO-APPLY.
-END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
 &Scoped-define SELF-NAME fiNumber
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL fiNumber fFrameWin
-ON LEAVE OF fiNumber IN FRAME fMain /* Number */
+ON LEAVE OF fiNumber IN FRAME fMain /* Site Number */
 DO:
   
   RUN eventProc IN THIS-PROCEDURE ("LEAVE":U,"{&SELF-NAME}":U) NO-ERROR.
@@ -266,9 +250,9 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  DISPLAY edComment fiNumber fiFile 
+  DISPLAY edComment fiNumber fiSiteSeq1 fiSiteSeq2 fiSessionID 
       WITH FRAME fMain.
-  ENABLE edComment fiNumber buFile fiFile 
+  ENABLE edComment fiNumber fiSiteSeq1 fiSiteSeq2 fiSessionID 
       WITH FRAME fMain.
   {&OPEN-BROWSERS-IN-QUERY-fMain}
 END PROCEDURE.

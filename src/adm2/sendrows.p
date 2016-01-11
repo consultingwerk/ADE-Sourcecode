@@ -1,31 +1,5 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12
 &ANALYZE-RESUME
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Check Version Notes Wizard" Procedure _INLINE
-/* Actions: af/cod/aftemwizcw.w ? ? ? ? */
-/* MIP Update Version Notes Wizard
-Check object version notes.
-af/cod/aftemwizpw.w
-*/
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" Procedure _INLINE
-/* Actions: ? ? ? ? af/sup/afverxftrp.p */
-/* This has to go above the definitions sections, as that is what it modifies.
-   If its not, then the definitions section will have been saved before the
-   XFTR code kicks in and changes it */
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Definition Comments Wizard" Procedure _INLINE
-/* Actions: ? af/cod/aftemwizcw.w ? ? ? */
-/* Program Definition Comment Block Wizard
-Welcome to the Program Definition Comment Block Wizard. Press Next to proceed.
-af/cod/aftemwizpw.w
-*/
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
 * Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
@@ -159,7 +133,7 @@ af/cod/aftemwizpw.w
 /* ***************************  Main Block  *************************** */
 DEFINE VARIABLE hObject    AS HANDLE  NO-UNDO.
 DEFINE VARIABLE hRowObject AS HANDLE  NO-UNDO.
-DEFINE VARIABLE lStatic    AS LOGICAL NO-UNDO.
+DEFINE VARIABLE lStatic    AS LOGICAL NO-UNDO. 
 
 DO ON STOP UNDO, LEAVE:   
   RUN VALUE(pcObject) PERSISTENT SET hObject NO-ERROR.   
@@ -170,7 +144,7 @@ DO:
   RETURN.
 END.
 
-lStatic = CAN-DO(hObject:INTERNAL-ENTRIES,'Data.Calculate':U).
+{get UseStaticOnFetch lStatic hObject}.
 IF lStatic THEN 
 DO:
   RUN remoteSendRows IN hObject
@@ -186,22 +160,20 @@ DO:
 END.
 ELSE DO:
   CREATE TEMP-TABLE phRowObject.
-  {fnarg prepareRowObject phRowObject hObject}.
-
-  RUN setContextAndInitialize IN hObject (piocContext). 
+  {set RowObjectTable phRowObject hObject}.
+  RUN setContextAndInitialize IN hObject (piocContext).
 
   RUN sendRows IN hObject
           (piStartRow, 
            pcRowIdent, 
            plNext,
-           piRowsToReturn, 
+           piRowsToReturn,
            OUTPUT piRowsReturned).
- 
   IF {fn anyMessage hObject} THEN
     pocMessages = {fn fetchMessages hObject}.
-
-  RUN getContextAndDestroy IN hObject (OUTPUT piocContext).
 END.
+
+RUN getContextAndDestroy IN hObject (OUTPUT piocContext).
 
 IF NOT lStatic AND VALID-HANDLE(phRowObject) THEN
   DELETE OBJECT phRowObject.

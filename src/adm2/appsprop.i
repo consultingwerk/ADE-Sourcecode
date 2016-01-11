@@ -107,6 +107,9 @@
 /* include properties from smart */
 {src/adm2/smrtprop.i}
 
+IF NOT {&ADM-PROPS-DEFINED} THEN
+DO:
+
 &IF "{&ADMSuper}":U = "":U &THEN
   ghADMProps:ADD-NEW-FIELD('AppService':U, 'CHAR':U, 0, ?, '':U).  
   ghADMProps:ADD-NEW-FIELD('ASDivision':U, 'CHAR':U, 0, ?, ?).
@@ -125,6 +128,7 @@
  &ENDIF
 
   {src/adm2/custom/appspropcustom.i}
+END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

@@ -47,7 +47,7 @@ DEFINE VARIABLE ghTargetProcedure AS HANDLE     NO-UNDO.
 DEFINE VARIABLE gcLoadedPanels    AS CHARACTER  NO-UNDO.
  
 /* Used in resizeObject to avoid changing the order of NO-FOCUS buttons. */                        
-DEFINE TEMP-TABLE tButton
+DEFINE TEMP-TABLE tButton NO-UNDO
   FIELD hdl     AS HANDLE
   FIELD btnY    AS INT
   FIELD btnX    AS INT
@@ -71,6 +71,17 @@ DEFINE TEMP-TABLE tButton
 
 
 /* ************************  Function Prototypes ********************** */
+
+&IF DEFINED(EXCLUDE-actionTarget) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD actionTarget Procedure 
+FUNCTION actionTarget RETURNS HANDLE 
+  ( pcAction AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-activeTarget) = 0 &THEN
 
@@ -618,7 +629,7 @@ PROCEDURE linkState :
   DEFINE VARIABLE lDeactivateTargetOnHide AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE iTarget                 AS INTEGER   NO-UNDO.
   DEFINE VARIABLE hTarget                 AS HANDLE    NO-UNDO.
-
+  
   {get PanelType cPanelType}.
   {get DeactivateTargetOnHide lDeactivateTargetOnHide}.
 
@@ -644,8 +655,8 @@ PROCEDURE linkState :
         IF hTarget <> SOURCE-PROCEDURE THEN
         DO:
           RUN linkStateHandler IN hTarget ('inactive':U,
-                                            TARGET-PROCEDURE,
-                                            REPLACE(cLink,'Target','Source':U)).
+                                           TARGET-PROCEDURE,
+                                           REPLACE(cLink,'Target','Source':U)).
         END.
       END.
     END.
@@ -1275,20 +1286,10 @@ PROCEDURE updateState :
 
   {get PanelType cPanelType}.
   IF cPanelType BEGINS 'Save':U OR cPanelType BEGINS 'Update':U THEN
-  DO:
-    /* If 'updateComplete' and update 'mode' ensure that fields are disabled */
-    IF pcState = 'updateComplete':U THEN
-    DO:
-      /* disable */ 
-      IF cPanelType BEGINS 'Update':U THEN
-         PUBLISH 'updateMode':U FROM TARGET-PROCEDURE ('updateEnd':U).
-    END.
     RUN resetTableio IN TARGET-PROCEDURE.   
-  END. /* tableio */
   ELSE IF cPanelType BEGINS 'Nav':U THEN  
-     RUN resetNavigation IN TARGET-PROCEDURE.  
+    RUN resetNavigation IN TARGET-PROCEDURE.  
   
-  ELSE 
   RETURN.
 END PROCEDURE.
 
@@ -1359,6 +1360,42 @@ END PROCEDURE.
 
 /* ************************  Function Implementations ***************** */
 
+&IF DEFINED(EXCLUDE-actionTarget) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION actionTarget Procedure 
+FUNCTION actionTarget RETURNS HANDLE 
+  ( pcAction AS CHAR ) :
+/*------------------------------------------------------------------------------
+ Purpose:  Returns the handle of the target.
+           Used by actions of Type RUN or PROPERTY. 
+Parameter: pcAction - Action id     
+    Notes: Overriden by toolbar  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cPanelType AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hObject        AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cLink          AS CHARACTER  NO-UNDO.
+  
+  {get PanelType cPanelType}.
+
+  IF cPanelType BEGINS 'Nav':U THEN
+    cLink = 'Navigation':U.
+  ELSE IF cPanelType BEGINS 'Save':U OR cPanelType BEGINS 'Update':U THEN
+    cLink = 'Tableio':U.
+  ELSE IF cPanelType BEGINS 'Commit':U THEN
+    cLink = 'Commit':U.
+  
+  IF cLink <> "":U THEN
+    hObject = {fnarg activeTarget cLink}.
+  
+  RETURN hObject.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-activeTarget) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION activeTarget Procedure 
@@ -1384,16 +1421,23 @@ FUNCTION activeTarget RETURNS HANDLE
   DEFINE VARIABLE cInactiveLinks AS CHARACTER NO-UNDO.
   DEFINE VARIABLE lQuery         AS LOGICAL    NO-UNDO.
 
-  cLinkHandles = DYNAMIC-FUNCTION("get":U + pcLink + "Target":U
-                                   IN TARGET-PROCEDURE) NO-ERROR.
-  
+  cLinkHandles = DYNAMIC-FUNCTION("get":U + pcLink + "Target":U IN TARGET-PROCEDURE) NO-ERROR.
+
+  /* This addition is to incorporate user-defined links. If the function does not exist, cLinkHandles will be ? */
+  IF ERROR-STATUS:ERROR     OR
+     cLinkHandles       = ? THEN
+    cLinkHandles = DYNAMIC-FUNCTION("linkHandles":U IN TARGET-PROCEDURE, pcLink + "-Target":U) NO-ERROR.
+
   IF NUM-ENTRIES(cLinkHandles) = 1 THEN
   DO:
     hObject = WIDGET-HANDLE(cLinkHandles).
-    {get inactiveLinks cInactiveLinks hObject}.
-    IF NOT CAN-DO(cInactiveLinks,pcLink + "Source":U) THEN
-      RETURN hObject.
-    ELSE RETURN ?.
+    IF VALID-HANDLE(hObject) THEN
+    DO:
+      {get inactiveLinks cInactiveLinks hObject}.
+      IF NOT CAN-DO(cInactiveLinks,pcLink + "Source":U) THEN
+        RETURN hObject.
+    END.
+    RETURN ?.
   END.
   ELSE 
   DO iLink = 1 TO NUM-ENTRIES(cLinkHandles):
@@ -1860,14 +1904,14 @@ Parameters: pcMode
    Notes:  - ADD: The actions will be immediately disabled and subsequent calls 
              to enableActions will not enable them again.
              REMOVE: Actions that are removed from the list will be enabled 
-             the next time they are called with enableActions.  
+             in setDisabledActions if the checkRule is true.  
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cDisabledActions AS CHAR NO-UNDO.
-  DEFINE VARIABLE cAction          AS CHAR NO-UNDO.
-  DEFINE VARIABLE iLoop            AS INT  NO-UNDO.
-  DEFINE VARIABLE iNum             AS INT  NO-UNDO.
-  DEFINE VARIABLE iAction          AS INT  NO-UNDO.
-
+  DEFINE VARIABLE cDisabledActions AS CHAR      NO-UNDO.
+  DEFINE VARIABLE cEnabledActions  AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cAction          AS CHAR      NO-UNDO.
+  DEFINE VARIABLE iLoop            AS INT       NO-UNDO.
+  DEFINE VARIABLE iNum             AS INT       NO-UNDO.
+ 
   {get DisabledActions cDisabledActions}.  
   DO iLoop = 1 TO NUM-ENTRIES(pcActions):
     ASSIGN
@@ -1880,17 +1924,18 @@ Parameters: pcMode
                          + cAction.
 
     ELSE IF iNum <> 0 AND pcMode = 'REMOVE':U THEN
+   
                 /* Add comma before and after entry to make sure we replace 
                    a complete action.
                    Add comma before and after the list to replace first,last.
                    Trim any leading or trailing commas away  */
-                      
       cDisabledActions = TRIM(REPLACE(",":U + cDisabledActions + ",":U,
-                                      ",":U + cAction + ",":U,","),
-                              ",":U). 
+                                        ",":U + cAction + ",":U,","),
+                                        ",":U).
   END. /* do iloop = 1 to num-entries */
 
   RETURN {set DisabledActions cDisabledActions}.
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1981,18 +2026,71 @@ FUNCTION setDisabledActions RETURNS LOGICAL
              to enableActions will not enable them again. This makes it 
              possible to permanently disable actions independent of state 
              changes.
-           - If you remove actions from the list they will be enabled the next
-             time enableActions is used on them.
            - Use the modifyDisabledActions to add or remove actions. 
 ------------------------------------------------------------------------------*/
-  /* Immediately disable the actions. */
-  {fnarg disableActions pcActions}.
+  DEFINE VARIABLE cEnabledActions    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDisabledActions   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lInitialized       AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE iLoop              AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cOldActions        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAction            AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hTarget            AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cEnableRule        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lEnable            AS LOGICAL    NO-UNDO.
+  
+  {get ObjectInitialized lInitialized}.
+  
+  cDisabledActions = pcActions.
+  /* If initialized then check if states should be enabled */ 
+  IF lInitialized THEN
+  DO:
+    {get DisabledActions cOldActions}.
+    DO iLoop = 1 TO NUM-ENTRIES(cOldActions):
+      cAction = ENTRY(iLoop,cOldActions).
+      /* Removed from list, potential candidate for enabling */   
+      IF NOT CAN-DO(pcActions,cAction) THEN
+         cEnabledActions = cEnabledActions
+                         + (IF cEnabledActions = "":U THEN "":U ELSE ",":U)
+                         + cAction.
+      ELSE /* Already in list noneed to disable */
+        cDisabledActions = TRIM(REPLACE(",":U + cDisabledActions + ",":U,
+                                        ",":U + cAction + ",":U,","),
+                                        ",":U). 
+    END.
+    
+    /* loop through enable candidates and check if the Enablerule allows 
+       immediate enabling */
+    DO iLoop = 1 TO NUM-ENTRIES(cEnabledActions):
+      cAction = ENTRY(iLoop,cEnabledActions).
+      hTarget = {fnarg actionTarget cAction}.
+      IF VALID-HANDLE(hTarget) THEN
+      DO:
+        ASSIGN
+          cEnableRule = {fnarg actionEnableRule cAction}
+          lEnable     = TRUE.
 
-  ASSIGN ghProp = WIDGET-HANDLE(ENTRY(1, TARGET-PROCEDURE:ADM-DATA, CHR(1)))
-         ghProp = ghProp:BUFFER-FIELD('DisabledActions':U)
-         ghProp:BUFFER-VALUE = pcActions.
+        IF cEnableRule > "":U THEN
+          lEnable = DYNAMIC-FUNCTION('checkRule':U IN TARGET-PROCEDURE,
+                                      cEnableRule,
+                                      hTarget,
+                                      lEnable).
+        IF lEnable THEN
+          {fnarg EnableActions cAction}.
+      END.
+    END.    
+  END.
+  
+  /* This could possibly also be done only if initializated, but we do it
+     always to ensure that old behavior is not broken 
+     (this could  possibly be used for unsupported/unlinked actions ) */
+  {fnarg disableActions cDisabledActions}.
+
+  &SCOPED-DEFINE xpDisabledActions
+  {set DisabledActions pcActions}.
+  &UNDEFINE xpDisabledActions
 
   RETURN TRUE.
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

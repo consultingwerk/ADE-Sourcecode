@@ -151,7 +151,7 @@ DEFINE FRAME DEFAULT-FRAME
 IF SESSION:DISPLAY-TYPE = "GUI":U THEN
   CREATE WINDOW C-Win ASSIGN
          HIDDEN             = YES
-         TITLE              = "Run ICF Container / Start Managers / Connect to Appserver"
+         TITLE              = "Run Container / Start Managers / Connect to Appserver"
          HEIGHT             = 4
          WIDTH              = 86
          MAX-HEIGHT         = 16
@@ -283,7 +283,7 @@ DO:
     "Are you sure you want to shutdown all Manager procedures and disconnect" SKIP
     "from the Appserver if connected?" SKIP(1)
     "You will need to re-connect and re-start the Managers by pressing the" SKIP
-    "START button again in order to load / run any further ICF objects." SKIP(1)
+    "START button again in order to load / run any further objects." SKIP(1)
     "WARNING" SKIP
     "If you have any objects open, they may become unusable as all super" SKIP
     "procedures will also be shutdown." SKIP(1)

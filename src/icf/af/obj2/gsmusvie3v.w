@@ -402,7 +402,7 @@ PROCEDURE buildBrowser :
         /* Fetch first batch of records in a dynamic temp-table */
         {af/sup2/afrun2.i      &PLIP  = 'af/app/gsmusplipp.p'
                                &IPROC = 'getTypesResultSet'
-                               &onApp = 'no'
+                               &onApp = 'yes'
                                &PLIST = "(INPUT gdUserObj,~
                                           INPUT gdCompanyObj,~
                                           OUTPUT TABLE-HANDLE ghTT,~
@@ -447,7 +447,7 @@ PROCEDURE buildBrowser :
         {get ContainerSource hContainerSource}.
         {get ContainerHandle hWindow hContainerSource}.
         ASSIGN
-           FRAME {&FRAME-NAME}:HEIGHT-PIXELS  = hWindow:HEIGHT-PIXELS - 70
+           FRAME {&FRAME-NAME}:HEIGHT-PIXELS  = hWindow:HEIGHT-PIXELS - 80
            FRAME {&FRAME-NAME}:WIDTH-PIXELS   = hWindow:WIDTH-PIXELS  - 28.  
 
         /* Create the dynamic browser and size it relative to the containing window */
@@ -455,8 +455,8 @@ PROCEDURE buildBrowser :
                ASSIGN FRAME            = FRAME {&FRAME-NAME}:handle
                       ROW              = 3.5
                       COL              = 1.5
-                      WIDTH-CHARS      = FRAME {&FRAME-NAME}:WIDTH-CHARS   - 2
-                      HEIGHT-PIXELS    = FRAME {&FRAME-NAME}:HEIGHT-PIXELS - 80
+                      WIDTH-CHARS      = FRAME {&FRAME-NAME}:WIDTH-CHARS   - 3
+                      HEIGHT-CHARS     = FRAME {&FRAME-NAME}:HEIGHT-CHARS - ghBrowse:ROW + 1
                       SEPARATORS       = TRUE
                       ROW-MARKERS      = FALSE
                       EXPANDABLE       = TRUE
@@ -588,7 +588,7 @@ PROCEDURE cascadeData :
 
     {af/sup2/afrun2.i      &PLIP  = 'af/app/gsmusplipp.p'
                            &IPROC = 'cascadeTypesData'
-                           &onApp = 'no'
+                           &onApp = 'yes'
                            &PLIST = "(INPUT gdUserObj,~
                                       INPUT gdCompanyObj,~
                                       INPUT TABLE-HANDLE ghTT,~
@@ -756,14 +756,14 @@ PROCEDURE resizeObject :
   FRAME {&FRAME-NAME}:HIDDEN = TRUE.
 
   /* Resize frame relative to containing window size */
-  FRAME {&FRAME-NAME}:HEIGHT-PIXELS = hWindow:HEIGHT-PIXELS - 70.
+  FRAME {&FRAME-NAME}:HEIGHT-PIXELS = hWindow:HEIGHT-PIXELS - 80.
   FRAME {&FRAME-NAME}:WIDTH-PIXELS  = hWindow:WIDTH-PIXELS  - 28.
 
   /* Resize dynamic browser (if exists) relative to current frame */
   IF VALID-HANDLE(ghBrowse) THEN
   DO:
-    ghBrowse:WIDTH-CHARS   = FRAME {&FRAME-NAME}:WIDTH-CHARS   - 2.
-    ghBrowse:HEIGHT-PIXELS = FRAME {&FRAME-NAME}:HEIGHT-PIXELS - 80.
+    ghBrowse:WIDTH-CHARS  = FRAME {&FRAME-NAME}:WIDTH-CHARS   - 3.
+    ghBrowse:HEIGHT-CHARS = FRAME {&FRAME-NAME}:HEIGHT-CHARS - ghBrowse:ROW + 1.
 
     buCascade:COLUMN = ghBrowse:COLUMN + ghBrowse:WIDTH-CHARS - buCascade:WIDTH-CHARS.
 

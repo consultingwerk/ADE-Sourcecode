@@ -21,7 +21,7 @@
 *                                                                    *
 *********************************************************************/
 DEFINE VARIABLE vdirname AS CHARACTER FORMAT "X(70)" NO-UNDO.
-DEFINE TEMP-TABLE ttfiles
+DEFINE TEMP-TABLE ttfiles NO-UNDO
        FIELD filename AS CHARACTER FORMAT "X(20)"
        FIELD fullname AS CHARACTER FORMAT "X(40)"
        FIELD fileattr AS CHARACTER

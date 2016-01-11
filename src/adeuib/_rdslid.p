@@ -131,6 +131,11 @@ FIND _L WHERE RECID(_L) = _U._lo-recid.
    instantiated values. */
 ASSIGN  {adeuib/std_uf.i &section = "GEOMETRY"} .
 
+
+
+/* Explicitly set NO-LABELS for static Sliders */
+_L._NO-LABELS = YES.
+         
 /* Avoid ugly message for unmapped webobjects when disconnected. 
    BUG 98-060-02-018
    WEbobjects cannot have sliders, but who knows what may happen in the future

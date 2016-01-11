@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          rydb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
@@ -81,6 +81,7 @@ CREATE WIDGET-POOL.
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -101,6 +102,8 @@ system_owned layout_obj
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "ry/obj/ryclafullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH ryc_layout NO-LOCK ~
+    BY ryc_layout.layout_name INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH ryc_layout NO-LOCK ~
     BY ryc_layout.layout_name INDEXED-REPOSITION.
@@ -188,30 +191,30 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "RYDB.ryc_layout"
+     _TblList          = "ICFDB.ryc_layout"
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _OrdList          = "RYDB.ryc_layout.layout_name|yes"
-     _FldNameList[1]   > RYDB.ryc_layout.layout_name
+     _FldNameList[1]   > ICFDB.ryc_layout.layout_name
 "layout_name" "layout_name" ? ? "character" ? ? ? ? ? ? yes ? no 28 yes
-     _FldNameList[2]   > RYDB.ryc_layout.layout_type
+     _FldNameList[2]   > ICFDB.ryc_layout.layout_type
 "layout_type" "layout_type" ? ? "character" ? ? ? ? ? ? yes ? no 11.8 yes
-     _FldNameList[3]   > RYDB.ryc_layout.layout_code
+     _FldNameList[3]   > ICFDB.ryc_layout.layout_code
 "layout_code" "layout_code" ? ? "character" ? ? ? ? ? ? yes ? no 12 yes
-     _FldNameList[4]   > RYDB.ryc_layout.layout_filename
+     _FldNameList[4]   > ICFDB.ryc_layout.layout_filename
 "layout_filename" "layout_filename" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[5]   > RYDB.ryc_layout.layout_narrative
+     _FldNameList[5]   > ICFDB.ryc_layout.layout_narrative
 "layout_narrative" "layout_narrative" ? ? "character" ? ? ? ? ? ? yes ? no 500 yes
-     _FldNameList[6]   > RYDB.ryc_layout.sample_image_filename
+     _FldNameList[6]   > ICFDB.ryc_layout.sample_image_filename
 "sample_image_filename" "sample_image_filename" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[7]   > RYDB.ryc_layout.system_owned
+     _FldNameList[7]   > ICFDB.ryc_layout.system_owned
 "system_owned" "system_owned" ? ? "logical" ? ? ? ? ? ? yes ? no 14.2 yes
-     _FldNameList[8]   > RYDB.ryc_layout.layout_obj
+     _FldNameList[8]   > ICFDB.ryc_layout.layout_obj
 "layout_obj" "layout_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21.6 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK dTables 

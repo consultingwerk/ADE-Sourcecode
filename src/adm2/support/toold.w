@@ -83,7 +83,7 @@ DEFINE VARIABLE gcCurrentCategory     AS CHARACTER  NO-UNDO INIT ?.
 DEFINE VARIABLE gcImagePath           AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE glUseRepository       AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE gcEditSingleInstance  AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE xcToolbarObjectType   AS CHARACTER  NO-UNDO INIT 'SmartToolbar'.
+DEFINE VARIABLE xcToolbarObjectType   AS CHARACTER  NO-UNDO INIT 'SmartToolbar'. /* Note this variable gets reassigned in getToolbars */
 DEFINE VARIABLE xdScrollToggleHeight  AS DECIMAL    NO-UNDO INIT 0.72.
 DEFINE VARIABLE xdScrollToggleCol     AS DECIMAL    NO-UNDO INIT 1.12.
 
@@ -112,7 +112,7 @@ gdMaxWidth  = 640 / SESSION:PIXELS-PER-column.
 &SCOP CANCEL btnCancel 
 &SCOP HELP btnHelp
 
-DEFINE TEMP-TABLE tBand  
+DEFINE TEMP-TABLE tBand NO-UNDO  
  FIELD Name   AS CHAR
  FIELD Hdl    AS HANDLE
  FIELD Seq    AS INT
@@ -120,7 +120,7 @@ DEFINE TEMP-TABLE tBand
  FIELD Tool   AS LOG
  INDEX Band NAME.
 
-DEFINE TEMP-TABLE tAction  
+DEFINE TEMP-TABLE tAction NO-UNDO
  FIELD Name   AS CHAR
  FIELD Hdl AS HANDLE
  FIELD RectHdl AS HANDLE
@@ -133,7 +133,7 @@ DEFINE TEMP-TABLE tAction
  FIELD Tool   AS LOG
  INDEX Sort AS PRIMARY sort1 sort2.
 
-DEFINE TEMP-TABLE tChildAction  
+DEFINE TEMP-TABLE tChildAction NO-UNDO
  FIELD Name     AS CHAR
  FIELD Category   AS CHAR
  FIELD DisableHdl AS HANDLE
@@ -147,7 +147,7 @@ DEFINE TEMP-TABLE tChildAction
  INDEX PARENT Category sequence
  INDEX Sort AS PRIMARY Sequence.
 
-DEFINE TEMP-TABLE tPage
+DEFINE TEMP-TABLE tPage NO-UNDO
  FIELD PageNum AS INT FORMAT "ZZ9" LABEL "Page"
  FIELD Hdl     AS HANDLE
  FIELD Name    AS CHAR
@@ -169,6 +169,8 @@ DEFINE FRAME {&FRAME-NAME}
      bPAge .
 
 bPAge:HIDDEN IN FRAME {&FRAME-NAME} = TRUE.
+
+{src/adm2/globals.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -234,21 +236,21 @@ FUNCTION createFrameBorder RETURNS LOGICAL
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD createMenuBands SP-attr-dialog 
 FUNCTION createMenuBands RETURNS LOGICAL
-  (pcBand AS CHAR,
-   INPUT-OUTPUT pdRow AS DEC,
-   pdCol  AS DEC)  FORWARD.
+  (pcBand             AS CHARACTER,
+   INPUT-OUTPUT pdRow AS DECIMAL,
+   pdCol              AS DECIMAL)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD createToggle SP-attr-dialog 
 FUNCTION createToggle RETURNS HANDLE
-  ( phFrame  AS HANDLE,
+  ( phFrame     AS HANDLE,
     plSelection AS LOGICAL,
-    pcType   AS CHAR,
-    pcLabel  AS CHAR,
-    pdRow    AS DEC,
-    pdCol    AS DEC)  FORWARD.
+    pcType      AS CHARACTER,
+    pcLabel     AS CHARACTER,
+    pdRow       AS DECIMAL,
+    pdCol       AS DECIMAL)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -339,7 +341,7 @@ FUNCTION setObjectStates RETURNS LOGICAL
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setTableioState SP-attr-dialog 
-FUNCTION setTableioState RETURNS LOGICAL 
+FUNCTION setTableioState RETURNS LOGICAL
   ( pcState AS CHAR )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -625,8 +627,10 @@ DO:
   DEFINE VARIABLE dMinSize      AS DECIMAL  NO-UNDO.
   DEFINE VARIABLE hFrame        AS HANDLE  NO-UNDO.
   DEFINE VARIABLE i AS INTEGER   NO-UNDO.
+
   RUN supportLinks(OUTPUT ok).
-  IF NOT ok THEN 
+
+  IF NOT (gcEditSingleInstance = "YES":U) AND NOT ok THEN 
     RETURN NO-APPLY.
   
   ASSIGN 
@@ -649,7 +653,7 @@ DO:
   DO:
     {get ContainerHandle hFrame p_hSMO}.
     hFrame:HIDDEN = TRUE. 
-    IF cDrawDirection BEGINS 'v' THEN
+    IF cDrawDirection BEGINS 'v':U THEN
       hFrame:HEIGHT = 1.
     ELSE 
       hFrame:WIDTH = 1.
@@ -682,6 +686,11 @@ DO:
 
   IF gcEditSingleInstance <> "YES" THEN
     RUN InitializeObject IN p_hSMO.
+
+  /* These next two lines fix IZ 847 (Deleting another object in the AppBuilder
+     design static smart window caused the toolbar to be deleted also.) */
+  {get ContainerHandle hFrame p_hSMO}.
+  hFrame:SELECTED = YES.
 
 END.
 
@@ -1031,21 +1040,17 @@ PROCEDURE enableActionWidgets :
   
   DO WITH FRAME frmain :
     CASE pcCategory:
-      WHEN "TABLEIO" THEN 
-        v-type:SENSITIVE = plSelected.
-      WHEN "Navigation" THEN
-        c_SDOList:SENSITIVE = plSelected.
+      WHEN "Navigation" THEN  c_SDOList:SENSITIVE = plSelected.
+      WHEN "TABLEIO"    THEN  v-type:SENSITIVE    = plSelected.
     END CASE.
   END.
   
-  FOR EACH tchildaction WHERE tChildAction.Category = pcCategory:
-     ASSIGN 
-       tchildAction.DisableHdl:SENSITIVE = plSelected
-                      WHEN VALID-HANDLE(tchildAction.DisableHdl)
-       tchildAction.HideHdl:SENSITIVE = plSelected
-                       WHEN VALID-HANDLE(tchildAction.HideHdl).
-          .
-  END.  
+  FOR EACH tchildaction
+     WHERE tChildAction.Category = pcCategory:
+
+    IF VALID-HANDLE(tchildAction.DisableHdl) THEN tchildAction.DisableHdl:SENSITIVE = plSelected.
+    IF VALID-HANDLE(tchildAction.HideHdl)    THEN tchildAction.HideHdl:SENSITIVE    = plSelected.
+  END.
 
 END PROCEDURE.
 
@@ -1099,33 +1104,95 @@ PROCEDURE getToolbars :
  DEFINE VARIABLE cObjectTypeId AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cToolbars     AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cClientSuffix AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cDispRepos    AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cProfileData  AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE iCnt          AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE rRowid        AS ROWID      NO-UNDO.
 
  cClientSuffix = IF NOT CONNECTED('icfdb':U) THEN '_cl':U ELSE '':U.   
- 
+
+ /* Initialize the gsc_object_type and ryc_smartobject SDOs */
+
  DO ON STOP UNDO, RETURN:
    RUN VALUE('af/obj2/gscotfullo':U + cClientSuffix + '.w':U) PERSISTENT SET hType.
    IF cClientSuffix <> '':U THEN
       {set Appservice 'Astra':u hType}.
-   RUN VALUE('af/obj2/gscobful2o':U + cClientSuffix + '.w':U) PERSISTENT SET hObj.
+
+   RUN VALUE('ry/obj/rycsoful2o':U + cClientSuffix + '.w':U) PERSISTENT SET hObj.
    IF cClientSuffix <> '':U THEN
       {set Appservice 'Astra':u hObj}.
  END.
 
- DYNAMIC-FUNCTION('assignQuerySelection' IN hType,
-                  'object_type_code',
-                  xcToolbarObjectType,
-                  ?).
+ /* Set the SDO query to filter on smartToolbars */
+
+ IF VALID-HANDLE(gshRepositoryManager) 
+ THEN DO:
+     /* Determine if the user has added any user-defined classes.  If so, include them in the result set as well */
+
+     ASSIGN xcToolbarObjectType = DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, INPUT xcToolbarObjectType).
+
+     IF NUM-ENTRIES(xcToolbarObjectType) = 1 THEN
+         DYNAMIC-FUNCTION('assignQuerySelection' IN hType,
+                          'object_type_code',
+                          xcToolbarObjectType, /* Value set in variable definition */
+                          ?).
+     ELSE
+         DYNAMIC-FUNCTION('addQueryWhere' IN hType,
+                          "LOOKUP(gsc_object_type.object_type_code, '" + xcToolbarObjectType + "') > 0",
+                          "gsc_object_type":U,
+                          "AND":U).
+ END.
+ ELSE
+     DYNAMIC-FUNCTION('assignQuerySelection' IN hType,
+                      'object_type_code',
+                      xcToolbarObjectType, /* Value set in variable definition */
+                      ?).
 
  RUN initializeObject IN hType.
 
  cObjectTypeId = {fnarg columnValue 'object_type_obj' hType}.
  
+ /* Set the ryc_smartobject SDO to only retrieve smartToolbar objects, and then initialize */
+
  DYNAMIC-FUNCTION('assignQuerySelection' IN hObj,
-                  'object_type_obj,logical_object',
-                   cObjectTypeId + CHR(1) + 'yes',
+                  'object_type_obj,static_object',
+                   cObjectTypeId + CHR(1) + 'no',
                    ?).
 
+ IF VALID-HANDLE(gshProfileManager) THEN DO:
+   rRowid = ?.
+   RUN getProfileData IN gshProfileManager ( INPUT        "General":U,
+                                             INPUT        "DispRepos":U,
+                                             INPUT        "DispRepos":U,
+                                             INPUT        NO,
+                                             INPUT-OUTPUT rRowid,
+                                                   OUTPUT cProfileData).
+   cDispRepos = cProfileData.
+ 
+   /* Temporarily set profile to Yes so we can see the toolbars from all PMs */
+   RUN setProfileData IN gshProfileManager (INPUT "General":U,
+                                            INPUT "DispRepos":U,
+                                            INPUT "DispRepos":U,
+                                            INPUT ?,
+                                            INPUT "YES",
+                                            INPUT NO,
+                                            INPUT "SES":U).
+ END.  /* If valid-handle for profile namager */
+
  RUN initializeObject IN hObj.
+
+ IF VALID-HANDLE(gshProfileManager) THEN DO:
+   /* Restore profile data */
+   RUN setProfileData IN gshProfileManager (INPUT "General":U,
+                                            INPUT "DispRepos":U,
+                                            INPUT "DispRepos":U,
+                                            INPUT ?,
+                                            INPUT cDispRepos,
+                                            INPUT NO,
+                                            INPUT "SES":U).
+ END.  /* If valid-handle for profile namager */
+
+ /* Get the object filename(s) */
 
  pctoolbars = DYNAMIC-FUNCTION('rowValues' IN hObj,
                                'object_filename',
@@ -1134,6 +1201,8 @@ PROCEDURE getToolbars :
 
  DELETE OBJECT hType.
  DELETE OBJECT hObj.
+
+  RETURN.
 
 END PROCEDURE.
 
@@ -1148,11 +1217,14 @@ PROCEDURE hideActionWidgets :
   Notes:       
 ------------------------------------------------------------------------------*/
   DO WITH FRAME frMain:
-   ASSIGN
-      v-type:HIDDEN = TRUE
-      c_SDOlist:HIDDEN = TRUE
-      c_SDOLabel:HIDDEN = TRUE.
+    ASSIGN
+        v-type:HIDDEN = TRUE
+        c_SDOlist:HIDDEN = TRUE
+        c_SDOLabel:HIDDEN = TRUE.
   END.
+
+  RETURN.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1173,6 +1245,7 @@ PROCEDURE onClick :
   ELSE SELF:CHECKED = CAN-DO(gcActionGroups,pcName)
                       OR  glUseRepository AND NOT {fnarg canfindCategory pcNAME p_hSMO}.
 
+  RETURN.
 
 END PROCEDURE.
 
@@ -1199,6 +1272,8 @@ PROCEDURE OnDown :
 
   END.
 
+  RETURN.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1215,6 +1290,9 @@ PROCEDURE onEntry :
   FIND tAction WHERE tAction.Hdl = h NO-ERROR.
   IF AVAIL taction THEN
     initActions(tAction.NAME).
+
+  RETURN.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1232,6 +1310,9 @@ PROCEDURE onLeave :
   h:BGCOLOR = ?.
   h:fgColor = ?.
   */
+
+  RETURN.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1256,6 +1337,9 @@ PROCEDURE OnUp :
       APPLY 'Entry' TO tAction.Hdl.
 
   END.
+
+  RETURN.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1334,6 +1418,7 @@ PROCEDURE onValueChanged :
 
   END CASE.
 
+  RETURN.
 
 END PROCEDURE.
 
@@ -1365,6 +1450,8 @@ PROCEDURE onValueChangedChild :
       removeDisabledAction(pcAction). 
    IF tChildaction.HideHdl:CHECKED = FALSE THEN
       removeHiddenAction(pcAction). 
+
+  RETURN.
 
 END PROCEDURE.
 
@@ -1468,13 +1555,18 @@ PROCEDURE supportLinks :
        END. /* if cinfo <> '' (found unsupported links) */
      END. /* linkpos = 0 (not supported anymore) */ 
    END. /* do i = 1 to num-entries(oldsupported) */
-   
-   plOk = DYNAMIC-FUNC("setSupportedLinks":U IN p_hSMO,cSuppLinks).
-   
+
+   IF cSuppLinks = "":U THEN /* If no links, don't set them */
+       ASSIGN plOK = YES.
+   ELSE
+       plOk = DYNAMIC-FUNC("setSupportedLinks":U IN p_hSMO,cSuppLinks).
+
    /* The current advslnk suggests already linked links  
    IF lAnyNew THEN
      RUN adeuib/_advslnk.p (iRecid).
    */
+
+  RETURN.
 
 END PROCEDURE.
 
@@ -1488,46 +1580,47 @@ PROCEDURE visualizeActionWidgets :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
- DEFINE INPUT        PARAMETER pcAction AS CHARACTER  NO-UNDO.
- DEFINE INPUT        PARAMETER phToggle AS HANDLE     NO-UNDO.
- DEFINE INPUT-OUTPUT PARAMETER pdRow    AS DECIMAL    NO-UNDO.
- DEFINE INPUT-OUTPUT PARAMETER pdCol    AS DECIMAL    NO-UNDO.
+  DEFINE INPUT        PARAMETER pcAction AS CHARACTER  NO-UNDO.
+  DEFINE INPUT        PARAMETER phToggle AS HANDLE     NO-UNDO.
+  DEFINE INPUT-OUTPUT PARAMETER pdRow    AS DECIMAL    NO-UNDO.
+  DEFINE INPUT-OUTPUT PARAMETER pdCol    AS DECIMAL    NO-UNDO.
  
- DEFINE VARIABLE hWidg   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hWidg   AS HANDLE     NO-UNDO.
  
- DO WITH FRAME frmain:
-   CASE pcAction:
-     WHEN "TABLEIO":U THEN
-       ASSIGN v-type:HIDDEN = FALSE
-              v-type:ROW = pdRow
-              V-type:COL = pdCol 
-              hWidg = v-type:HANDLE NO-ERROR. 
-     WHEN "NAVIGATION":U THEN
-     DO:
-       IF c_SDOList:NUM-ITEMS > 1 THEN
-         ASSIGN 
-             /* we do not use side-label-handle because it's not manageable 
-                before it's been viewed and we want to hide everything until
-                last  */
-             c_SDOLabel:SCREEN-VALUE = c_SDOLabel
-             c_SDoLabel:COL = pdCol    
-             c_SDOList:COL = pdCol
-             c_sdoLabel:HIDDEN = FALSE
-             c_sdoList:HIDDEN = FALSE
-             c_SDOlabel:ROW = pdRow
-             c_SDOList:ROW = pdRow + c_SDOLabel:HEIGHT
-             hWidg = c_sdolist:HANDLE NO-ERROR.  
+  DO WITH FRAME frmain:
+    CASE pcAction:
+      WHEN "TABLEIO":U THEN
+        ASSIGN v-type:HIDDEN = FALSE
+               v-type:ROW = pdRow
+               V-type:COL = pdCol 
+               hWidg = v-type:HANDLE NO-ERROR. 
+      WHEN "NAVIGATION":U THEN
+      DO:
+        IF c_SDOList:NUM-ITEMS > 1 THEN
+          ASSIGN 
+              /* we do not use side-label-handle because it's not manageable 
+                 before it's been viewed and we want to hide everything until
+                 last  */
+              c_SDOLabel:SCREEN-VALUE = c_SDOLabel
+              c_SDoLabel:COL = pdCol    
+              c_SDOList:COL = pdCol
+              c_sdoLabel:HIDDEN = FALSE
+              c_sdoList:HIDDEN = FALSE
+              c_SDOlabel:ROW = pdRow
+              c_SDOList:ROW = pdRow + c_SDOLabel:HEIGHT
+              hWidg = c_sdolist:HANDLE NO-ERROR.  
+      END.   /* END DO WHEN Navigation */
+    END.
+  END.
+  IF VALID-HANDLE(hWidg) THEN
+  DO:
+    hwidg:MOVE-AFTER(phToggle).
+    ASSIGN
+        pdRow = hWidg:ROW + hWidg:HEIGHT  
+        pdCol = hWidg:COL + hWidg:WIDTH.
+  END.
 
-     END.   /* END DO WHEN Navigation */
-   END.
- END.
- IF VALID-HANDLE(hWidg) THEN
- DO:
-   hwidg:MOVE-AFTER(phToggle).
-   ASSIGN
-     pdRow = hWidg:ROW + hWidg:HEIGHT  
-     pdCol = hWidg:COL + hWidg:WIDTH.
- END.
+  RETURN.
 
 END PROCEDURE.
 
@@ -1547,7 +1640,7 @@ FUNCTION addDisabledAction RETURNS LOGICAL
     gcDisabledActions = gcDisabledActions 
                       + (IF gcDisabledActions = "":U THEN "":U ELSE ",":U)
                       + pcAction.
-  RETURN TRUE .
+  RETURN TRUE.
 
 END FUNCTION.
 
@@ -1746,9 +1839,9 @@ END FUNCTION.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION createMenuBands SP-attr-dialog 
 FUNCTION createMenuBands RETURNS LOGICAL
-  (pcBand AS CHAR,
-   INPUT-OUTPUT pdRow AS DEC,
-   pdCol  AS DEC) :
+  (pcBand             AS CHARACTER,
+   INPUT-OUTPUT pdRow AS DECIMAL,
+   pdCol              AS DECIMAL) :
 /*------------------------------------------------------------------------------
   Purpose:  
     Notes:  
@@ -1761,23 +1854,23 @@ FUNCTION createMenuBands RETURNS LOGICAL
                                   
   DO i = 1 TO NUM-ENTRIES(cAvailBands):
     CREATE tBand.
-    ASSIGN 
-      tBand.NAME = ENTRY(i,cAvailBands)
-      tBand.menu = TRUE.
-    tBand.hdl  = createToggle(FRAME frMenuBands:HANDLE,
-                              NO,
-                             'MenuBand':U,
-                             REPLACE(DYNAMIC-FUNCTION('bandSubmenuLabel':U IN p_hSMO,
-                                                     pcBand,
-                                                     tBand.name),
-                                     '&',''), 
-                              pdRow,
-                              pdcol).
-    tBand.hdl:CHECKED = NOT CAN-DO(gcHiddenMenuBands,tBand.NAME).
-    pdRow = pdRow + xdScrollToggleHeight.
-    
-    createMenuBands(tBand.NAME,INPUT-OUTPUT pdRow, pdCol + 3).
+    ASSIGN tBand.NAME = ENTRY(i,cAvailBands)
+           tBand.menu = TRUE.
 
+    ASSIGN
+       tBand.hdl         = createToggle(FRAME frMenuBands:HANDLE,
+                                        NO,
+                                        "MenuBand":U,
+                                        tBand.name + "  ":U,
+                                        pdRow,
+                                        pdCol)
+       tBand.hdl:CHECKED = NOT CAN-DO(gcHiddenMenuBands, tBand.NAME)
+       pdRow             = pdRow + xdScrollToggleHeight
+       cLabel            = REPLACE(DYNAMIC-FUNCTION("bandSubmenuLabel":U IN p_hSMO, pcBand, tBand.name), "&":U, "":U)
+       cLabel            = CAPS(SUBSTR(cLabel, 1, 1)) + LC(SUBSTR(cLabel, 2))
+       tBand.hdl:LABEL   = cLabel.
+
+    createMenuBands(tBand.NAME, INPUT-OUTPUT pdRow, pdCol + 3).
   END.
 
   RETURN TRUE.
@@ -1789,66 +1882,50 @@ END FUNCTION.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION createToggle SP-attr-dialog 
 FUNCTION createToggle RETURNS HANDLE
-  ( phFrame  AS HANDLE,
+  ( phFrame     AS HANDLE,
     plSelection AS LOGICAL,
-    pcType   AS CHAR,
-    pcLabel  AS CHAR,
-    pdRow    AS DEC,
-    pdCol    AS DEC) :
+    pcType      AS CHARACTER,
+    pcLabel     AS CHARACTER,
+    pdRow       AS DECIMAL,
+    pdCol       AS DECIMAL) :
 /*------------------------------------------------------------------------------
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hToggle AS HANDLE     NO-UNDO.
-  pcLabel = CAPS(SUBSTR(pcLabel,1,1)) 
-            + LC(SUBSTR(pcLabel,2)). 
+
+  pcLabel = CAPS(SUBSTR(pcLabel,1,1)) + LC(SUBSTR(pcLabel,2)). 
+
   CREATE TOGGLE-BOX hToggle
-    ASSIGN 
-      FRAME     = phFrame
-      LABEL     = pcLabel
-                  + IF plSelection THEN fill(' ',100) ELSE ''
-      HIDDEN    = TRUE
-      HEIGHT    = xdScrollToggleHeight
-    TRIGGERS:
-     /*
-      ON VALUE-CHANGED 
-          PERSISTENT RUN onValueChanged IN TARGET-PROCEDURE (pcType,pcLabel).
-      */
-    END. 
-    /* if Selection add triggers to override default value-changed */ 
-    IF plSelection THEN 
-    DO:
-      ON 'left-mouse-click' OF hToggle    
-         PERSISTENT RUN onClick IN THIS-PROCEDURE (pcType,pcLabel).
-      ON 'left-mouse-dblclick'  OF hToggle    
-         PERSISTENT RUN onValueChanged IN THIS-PROCEDURE (pcType,pcLabel).
-      /*
-      ON ' '  OF hToggle    
-         PERSISTENT RUN onValueChanged IN THIS-PROCEDURE (pcType,pcLabel).
-         */
-      ON ENTRY OF hToggle 
-         PERSISTENT RUN onEntry IN THIS-PROCEDURE (hToggle).
-      ON LEAVE OF hToggle 
-         PERSISTENT RUN onLeave IN THIS-PROCEDURE (hToggle).
-      ON 'cursor-down' OF hToggle    
-         PERSISTENT RUN onDown IN THIS-PROCEDURE (hToggle).
-      ON 'cursor-right' OF hToggle    
-         PERSISTENT RUN onDown IN THIS-PROCEDURE (hToggle).
-      ON 'cursor-up' OF hToggle    
-         PERSISTENT RUN onUp IN THIS-PROCEDURE (hToggle).
-      ON 'cursor-left' OF hToggle    
-         PERSISTENT RUN onUp IN THIS-PROCEDURE (hToggle).
-      ASSIGN 
-        hToggle:WIDTH     = phFrame:WIDTH - (pdCol + 2.5).
-    END.
-    
-    ON VALUE-CHANGED OF hToggle
-        PERSISTENT RUN onValueChanged IN THIS-PROCEDURE (pcType,pcLabel).
-    ASSIGN
-      hToggle:COL       = pdCol
-      hToggle:ROW       = pdRow  NO-ERROR.
-    
-    RETURN hToggle.   /* Function return value. */
+  ASSIGN 
+      FRAME   = phFrame
+      LABEL   = pcLabel + IF plSelection THEN FILL(" ":U, 100) ELSE "":U
+      HIDDEN  = TRUE
+      HEIGHT  = xdScrollToggleHeight.
+
+  /* if Selection add triggers to override default value-changed */ 
+  IF plSelection THEN 
+  DO:
+    ON "LEFT-MOUSE-DBLCLICK":U OF hToggle PERSISTENT RUN onValueChanged IN THIS-PROCEDURE (pcType, TRIM(pcLabel)).
+    ON "LEFT-MOUSE-CLICK":U    OF hToggle PERSISTENT RUN onClick        IN THIS-PROCEDURE (pcType, TRIM(pcLabel)).
+    ON "ENTRY":U               OF hToggle PERSISTENT RUN onEntry        IN THIS-PROCEDURE (hToggle).
+    ON "LEAVE":U               OF hToggle PERSISTENT RUN onLeave        IN THIS-PROCEDURE (hToggle).
+    ON "CURSOR-RIGHT":U        OF hToggle PERSISTENT RUN onDown         IN THIS-PROCEDURE (hToggle).
+    ON "CURSOR-DOWN":U         OF hToggle PERSISTENT RUN onDown         IN THIS-PROCEDURE (hToggle).
+    ON "CURSOR-LEFT":U         OF hToggle PERSISTENT RUN onUp           IN THIS-PROCEDURE (hToggle).
+    ON "CURSOR-UP":U           OF hToggle PERSISTENT RUN onUp           IN THIS-PROCEDURE (hToggle).
+
+    hToggle:WIDTH = phFrame:WIDTH - (pdCol + 2.5).
+  END.
+
+  ON VALUE-CHANGED OF hToggle
+    PERSISTENT RUN onValueChanged IN THIS-PROCEDURE (pcType, TRIM(pcLabel)).
+
+  ASSIGN
+      hToggle:COL = pdCol
+      hToggle:ROW = pdRow  NO-ERROR.
+
+  RETURN hToggle.   /* Function return value. */
 
 END FUNCTION.
 
@@ -2360,7 +2437,7 @@ END FUNCTION.
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setTableioState SP-attr-dialog 
-FUNCTION setTableioState RETURNS LOGICAL 
+FUNCTION setTableioState RETURNS LOGICAL
   ( pcState AS CHAR ) :
 /*------------------------------------------------------------------------------
   Purpose:  

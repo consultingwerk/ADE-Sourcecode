@@ -24,11 +24,6 @@
 
 TRIGGER PROCEDURE FOR CREATE OF ryc_layout .
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "ryc_layout"
-                      &TRIGGER-TYPE = "CREATE"}
-
 /* Created automatically using ERwin ICF Trigger template db/af/erw/afercustrg.i
    Do not change manually. Customisations to triggers should be placed in separate
    include files pulled into the trigger. ICF auto generates write trigger custom
@@ -69,6 +64,8 @@ DEFINE BUFFER o_ryc_layout FOR ryc_layout.
 
 
 ASSIGN ryc_layout.{&TRIGGER_OBJ} = getNextObj().
+
+
 
 
 

@@ -404,6 +404,12 @@ FUNCTION buildElementsFromBuffer RETURNS LOGICAL
       hField = phBuff:BUFFER-FIELD(iCount) 
       NO-ERROR.
 
+    /* This is a temporary fix. We have to find a way to support 
+       raw data */
+    IF hField:DATA-TYPE = "RAW":U THEN
+      NEXT DO-BLK.
+
+
     /* If there's an error, or the field handle is invalid or we need to ignore 
        this field or the field is blank, skip it */
     IF ERROR-STATUS:ERROR OR
@@ -771,7 +777,7 @@ FUNCTION skipLine RETURNS LOGICAL
   hText = createTextNode(phNode).
 
   /* Set the node value */
-  hText:NODE-VALUE = CHR(13) + CHR(10).
+  hText:NODE-VALUE = CHR(10).
 
   DELETE OBJECT hText.
   hText = ?.
@@ -863,7 +869,7 @@ FUNCTION writeDBSchemaInfo RETURNS LOGICAL
 
   /* Set a node element value for the table name and the dbname */
   setNodeElementValue( hTableNode, "name", phBuff:NAME).
-  setNodeElementValue( hTableNode, "dbname", phBuff:DBNAME).
+  setNodeElementValue( hTableNode, "dbname", LC(phBuff:DBNAME)).
 
   iCount = 1.
   /* Write a node for each index */

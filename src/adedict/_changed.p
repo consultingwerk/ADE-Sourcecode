@@ -54,6 +54,7 @@ Last modified on:
 
 08/26/94 by gfs       Added Recid index support.
 05/19/99 by Mario B.  Adjust Width Field browser integration.
+09/19/02 by D. McMann Changed SQL Width to Max Width
 ----------------------------------------------------------------------------*/
 &GLOBAL-DEFINE WIN95-BTN YES
 {adedict/dictvar.i shared}
@@ -113,7 +114,7 @@ case (p_Obj):
          IF changed THEN
          DO:
             current-window = s_win_Width.
-            MESSAGE msg1 "SQL Width Values." SKIP msg2
+            MESSAGE msg1 "Max Width Values." SKIP msg2
                     view-as ALERT-BOX QUESTION buttons YES-NO update save_ans
                     in window s_win_Width.
          	    

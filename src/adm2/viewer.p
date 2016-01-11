@@ -53,6 +53,14 @@
     Modified    : 11/17/2001        Mark Davies (MIP)
                   Added 'CAN-QUERY' in initializeObject to check if the
                   TABLE attribute can be queried of the current widget 
+    Modified    : 05/09/20002       Mark Davies (MIP)
+                  Added override procedure for destroyObject to remove
+                  Dynamic Lookup and Combo temp-table records.
+                  Force a valueChanged event in Dynamic Combos on add.
+                  Issue #4525
+    Modified    : 05/10/20002       Mark Davies (MIP)
+                  Fixed issue #2793 - Lookups should obtain Description Fields 
+                  locally
   ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
 /*----------------------------------------------------------------------*/
@@ -124,8 +132,8 @@ FUNCTION getTargetProcedure RETURNS HANDLE
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 15.19
-         WIDTH              = 46.4.
+         HEIGHT             = 18
+         WIDTH              = 56.6.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -146,6 +154,10 @@ FUNCTION getTargetProcedure RETURNS HANDLE
 
 
 /* ***************************  Main Block  *************************** */
+
+  /* Clear out lookup/combo query temp-table */
+  EMPTY TEMP-TABLE ttLookup.   
+  EMPTY TEMP-TABLE ttDCombo.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -169,8 +181,11 @@ PROCEDURE addRecord :
    DEFINE VARIABLE hSource            AS HANDLE    NO-UNDO.
    DEFINE VARIABLE cColValues         AS CHARACTER NO-UNDO.
    DEFINE VARIABLE hGaSource          AS HANDLE    NO-UNDO.
+   DEFINE VARIABLE cUpdateNames       AS CHARACTER  NO-UNDO.
+   DEFINE VARIABLE iV                 AS INTEGER    NO-UNDO.
 
       RUN SUPER.
+
       IF RETURN-VALUE = "ADM-ERROR":U THEN RETURN "ADM-ERROR":U.
       
       /* Note: SUPER (datavis.p) verifies that UpdateTarget is present. */
@@ -179,11 +194,19 @@ PROCEDURE addRecord :
       /* If we're a GroupAssign-Target, then our Source has already done 
          the add; otherwise we invoke addRow in the UpdateTarget.*/           
 
-
-
       IF VALID-HANDLE(hUpdateTarget) THEN
       DO:
-       {get DisplayedFields cFields}.
+        &SCOPED-DEFINE xpUpdateTargetNames
+        {get UpdateTargetNames cUpdateNames}.
+        &UNDEFINE xpUpdateTargetNames
+        
+        {get DisplayedFields cFields}.
+        IF NUM-ENTRIES(cUpdateNames) = 1 
+        THEN DO iV = 1 TO NUM-ENTRIES(cFields):
+          IF index(entry(iV,cFields), '.':U) = 0 THEN
+            entry(iV,cFields) = cUpdateNames + '.':U + entry(iV,cFields) .
+        END.
+
         ghTargetProcedure = TARGET-PROCEDURE.
         cColValues = DYNAMIC-FUNCTION("addRow":U IN hUpdateTarget, cFields). 
         ghTargetProcedure = ?.
@@ -199,7 +222,15 @@ PROCEDURE addRecord :
       
       IF VALID-HANDLE(hUpdateTarget) THEN
         RUN applyEntry IN TARGET-PROCEDURE (?).
-    
+      
+      /* For dynamic combos who are a parent to another dynamic combo
+         we need to force a valueChange to ensure that the child combos
+         are refreshed */
+      FOR EACH  ttDCombo
+          WHERE ttDCombo.hViewer = TARGET-PROCEDURE
+          NO-LOCK:
+        RUN valueChanged IN ttDCombo.hWidget.
+      END.
       PUBLISH 'updateState':U FROM TARGET-PROCEDURE ('update').
     RETURN.
       
@@ -250,23 +281,39 @@ PROCEDURE copyRecord :
    DEFINE VARIABLE hSource            AS HANDLE    NO-UNDO.
    DEFINE VARIABLE cColValues         AS CHARACTER NO-UNDO.
    DEFINE VARIABLE hGaSource          AS HANDLE    NO-UNDO.
+   DEFINE VARIABLE cUpdateNames       AS CHARACTER  NO-UNDO.
+   DEFINE VARIABLE iV                 AS INTEGER    NO-UNDO.
 
       RUN SUPER.
       IF RETURN-VALUE = "ADM-ERROR":U THEN RETURN "ADM-ERROR":U.
-      
+
       /* Note: SUPER (datavis.p) verifies that UpdateTarget is present. */
       {get UpdateTarget cTarget}.
       hUpdateTarget = WIDGET-HANDLE(cTarget).
       /* If we're a GroupAssign-Target, then our Source has already done 
          the add; otherwise we invoke addRow in the UpdateTarget.*/           
-
-
-
       IF VALID-HANDLE(hUpdateTarget) THEN
       DO:
-       {get DisplayedFields cFields}.
+        &SCOPED-DEFINE xpUpdateTargetNames
+        {get UpdateTargetNames cUpdateNames}.
+        &UNDEFINE xpUpdateTargetNames
+        
+        {get DisplayedFields cFields}.
+        IF NUM-ENTRIES(cUpdateNames) = 1 
+        THEN DO iV = 1 TO NUM-ENTRIES(cFields):
+          IF index(entry(iV,cFields), '.':U) = 0 THEN
+             entry(iV,cFields) = cUpdateNames + '.':U + entry(iV,cFields) .
+        END.
+
         ghTargetProcedure = TARGET-PROCEDURE.
         cColValues = DYNAMIC-FUNCTION("copyRow":U IN hUpdateTarget, cFields). 
+        IF cColValues = ? THEN
+        do:
+          {set NewRecord "NO"}.
+          {fn showDataMessages}.
+          RETURN "ADM-ERROR":U.
+        END.
+
         ghTargetProcedure = ?.
         RUN displayFields IN TARGET-PROCEDURE(cColValues). 
       END.
@@ -282,8 +329,41 @@ PROCEDURE copyRecord :
         RUN applyEntry IN TARGET-PROCEDURE (?).
 
       PUBLISH 'updateState':U FROM TARGET-PROCEDURE ('update').
+      
     RETURN.
       
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-destroyObject) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE destroyObject Procedure 
+PROCEDURE destroyObject :
+/*------------------------------------------------------------------------------
+  Purpose:     Added this override procedure to remove any Dynamic Lookup and
+               Dynamic Combo temp-table records for the viewer being destroyed.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  
+  FOR EACH  ttDCombo
+      WHERE ttDCombo.hViewer = TARGET-PROCEDURE
+      EXCLUSIVE-LOCK:
+    DELETE ttDCombo.
+  END.
+
+  FOR EACH ttLookup
+      WHERE ttLookup.hViewer = TARGET-PROCEDURE
+      EXCLUSIVE-LOCK:
+  DELETE ttLookup.
+  END.
+  
+  RUN SUPER.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -307,7 +387,6 @@ PROCEDURE disableFields :
                SmartField), disableField is run in the SmartObject to disable
                it.
 ------------------------------------------------------------------------------*/
-
   DEFINE INPUT PARAMETER pcFieldType AS CHARACTER NO-UNDO.
   
   DEFINE VARIABLE cEnableFields  AS CHARACTER NO-UNDO. /* Field handles. */
@@ -315,7 +394,10 @@ PROCEDURE disableFields :
   DEFINE VARIABLE iField         AS INTEGER   NO-UNDO.
   DEFINE VARIABLE hField         AS HANDLE    NO-UNDO.
   DEFINE VARIABLE lEnabled       AS LOGICAL   NO-UNDO.
-  
+  DEFINE VARIABLE cObjectsToDisable AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cName          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hPopup         AS HANDLE     NO-UNDO.
+
   {get FieldsEnabled lEnabled}.
   
   IF lEnabled THEN
@@ -329,6 +411,7 @@ PROCEDURE disableFields :
       DO:
         {get EnabledHandles cEnableFields}.
         {get EnabledObjHdls cEnableObjects}.
+        {get EnabledObjFldsToDisable cObjectsToDisable}.
         /* {get CreateHandles cCreateFields}.
            IF cCreateFields NE "":U THEN
              cEnableFields = cEnableFields + ",":U + cCreateFields.*/
@@ -344,30 +427,45 @@ PROCEDURE disableFields :
            IF hField:TYPE = "EDITOR":U THEN /* Editors must be sensitive, not R-O*/
              hField:READ-ONLY = yes.  
            ELSE hField:SENSITIVE = no.     
+           hPopup = {fnarg popupHandle hField}.
+           IF VALID-HANDLE(hPopup) THEN
+             hPopup:SENSITIVE = NO.
          END.  /* END DO NOT HIDDEN */
       END.     /* END DO iField     */
       
       /* Disable no db fields */
+      IF cObjectsToDisable <> '(none)':U THEN
       DO iField = 1 TO NUM-ENTRIES(cEnableObjects):
          hField = WIDGET-HANDLE(ENTRY(iField, cEnableObjects)).
-         /* "Frame Field" May be a SmartObject procedure handle */
-         IF hField:TYPE = "PROCEDURE":U THEN
-           RUN disableField IN hField NO-ERROR.
-         ELSE IF NOT hField:HIDDEN THEN /* Skip fields hidden for multi-layout */
+         IF hField:TYPE = "PROCEDURE":U THEN 
+           cName = {fn getFieldName hField} NO-ERROR.
+         ELSE 
+           cName = hField:NAME.  
+          
+         IF cObjectsToDisable = '(All)':U OR CAN-DO(cObjectsToDisable,cName) THEN
          DO:
-           IF hField:TYPE = "EDITOR":U THEN /* Editors must be sensitive, not R-O*/
-             hField:READ-ONLY = yes.  
-           ELSE hField:SENSITIVE = no.     
-         END.  /* END DO NOT HIDDEN */
+           /* "Frame Field" May be a SmartObject procedure handle */
+           IF hField:TYPE = "PROCEDURE":U THEN
+             RUN disableField IN hField NO-ERROR.
+           ELSE IF NOT hField:HIDDEN THEN /* Skip fields hidden for multi-layout */
+           DO:
+             IF hField:TYPE = "EDITOR":U THEN /* Editors must be sensitive, not R-O*/
+               hField:READ-ONLY = yes.  
+             ELSE hField:SENSITIVE = no.     
+             hPopup = {fnarg popupHandle hField}.
+             IF VALID-HANDLE(hPopup) THEN
+               hPopup:SENSITIVE = NO.
+           END.  /* END DO NOT HIDDEN */
+         END.
       END.     /* END DO iField     */
       
       {set fieldsEnabled no}.
   END.
   
   RUN SUPER(pcFieldType).
-
-  PUBLISH 'disableFields':U FROM TARGET-PROCEDURE 
-      (pcFieldType). /* In case there's a GroupAssign */
+   
+  /* In case there's a GroupAssign */
+  PUBLISH 'disableFields':U FROM TARGET-PROCEDURE (pcFieldType).
   
   RETURN.
 END PROCEDURE.
@@ -391,7 +489,6 @@ PROCEDURE displayFields :
                SmartField), setDataValue is invoked in the SmartObject to set 
                its value.
 ------------------------------------------------------------------------------*/
-
   DEFINE INPUT PARAMETER pcColValues AS CHARACTER NO-UNDO.
   
   DEFINE VARIABLE hFrameField   AS HANDLE    NO-UNDO.
@@ -400,8 +497,8 @@ PROCEDURE displayFields :
   DEFINE VARIABLE cFieldHandles AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cRowIdent     AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cValue        AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cNewRecord    AS CHARACTER NO-UNDO. 
   DEFINE VARIABLE iSecuredEntry AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE hGASource     AS HANDLE     NO-UNDO.
   
    /* Used for Dynamic Combos */
   DEFINE VARIABLE cWidgetNames  AS CHARACTER  NO-UNDO.
@@ -426,6 +523,7 @@ PROCEDURE displayFields :
   iColCount = NUM-ENTRIES(cFieldHandles). 
   /* Save off the row number, which is always the first value returned. */
   cRowIdent = ENTRY(1, pcColValues, CHR(1)).
+
   {set RowIdent cRowIdent}.
   IF cFieldHandles NE "":U THEN
   DO iValue = 1 TO iColCount:
@@ -434,7 +532,6 @@ PROCEDURE displayFields :
     hFrameField = WIDGET-HANDLE(ENTRY(iValue,cFieldHandles)).
    
     iFieldPos = LOOKUP(STRING(hFrameField),cAllFieldHandles).
-    
     IF hFrameField:TYPE = "PROCEDURE":U THEN
     DO:
       /* Make sure that we do not set the value of the data field here 
@@ -447,7 +544,7 @@ PROCEDURE displayFields :
             ENTRY(iFieldPos,cSecuredFields) = "Hidden":U) THEN
           {set Secured TRUE hFrameField}.
       END.
-      
+
       {set DataModified no hFrameField}.
       
       /* Set Static SDF Values for Dynamic Combo */
@@ -457,13 +554,17 @@ PROCEDURE displayFields :
       
         IF cWidgetNames = "":U THEN
           ASSIGN cWidgetNames  = cFieldName
-                 cWidgetValues = cValue.   
+                 cWidgetValues = IF cValue = ? OR cValue = "?":U THEN "":U ELSE cValue.
         ELSE
           ASSIGN cWidgetNames  = cWidgetNames + CHR(3) + cFieldName
-                 cWidgetValues = cWidgetValues + CHR(3) + cValue.
+                 cWidgetValues = cWidgetValues + CHR(3) + (IF cValue = ? OR cValue = "?":U THEN "":U ELSE cValue).
       END.
     END.
     ELSE DO:
+      /* reset selection list */
+      IF hFrameField:TYPE = "SELECTION-LIST":U THEN
+        hFrameField:SCREEN-VALUE = "":U.
+
       /* Check Security for hidden fields */
       IF (iFieldPos <> 0 AND
           NUM-ENTRIES(cSecuredFields) >= iFieldPos AND
@@ -478,7 +579,8 @@ PROCEDURE displayFields :
              ELSE
                /* otherwise we have to take the entry on the appropriate side of the "/" 
                   in the field's FORMAT attribute */
-               (IF cValue = "yes":U THEN ENTRY(1,hFrameField:FORMAT,"/":U) 
+               (IF hFrameField:TYPE = "FILL-IN":U AND cValue = "?":U THEN cValue 
+                ELSE IF cValue = "yes":U THEN ENTRY(1,hFrameField:FORMAT,"/":U)
                 ELSE ENTRY(2,hFrameField:FORMAT,"/":U)))
           ELSE 
             (IF hFrameField:DATA-TYPE NE "LOGICAL":U OR hFrameField:TYPE = "RADIO-SET":U THEN "":U 
@@ -489,49 +591,58 @@ PROCEDURE displayFields :
       
       IF cWidgetNames = "":U THEN
         ASSIGN cWidgetNames  = hFrameField:NAME
-               cWidgetValues = hFrameField:SCREEN-VALUE.   
+               cWidgetValues = IF hFrameField:SCREEN-VALUE = ? OR hFrameField:SCREEN-VALUE = "?":U THEN "":U ELSE hFrameField:SCREEN-VALUE.
       ELSE
         ASSIGN cWidgetNames  = cWidgetNames + CHR(3) +  hFrameField:NAME        
-               cWidgetValues = cWidgetValues + CHR(3) + hFrameField:SCREEN-VALUE.
+               cWidgetValues = cWidgetValues + CHR(3) + (IF hFrameField:SCREEN-VALUE = ? OR hFrameField:SCREEN-VALUE = "?":U THEN "":U ELSE hFrameField:SCREEN-VALUE).
       
     END.
   END.
 
-    {get NewRecord cNewRecord}. 
-
-    RUN displayObjects IN TARGET-PROCEDURE NO-ERROR.
+  RUN displayObjects IN TARGET-PROCEDURE NO-ERROR.
 
   {get DataSource hDataSource}.
-  IF VALID-HANDLE(hDataSource)
-  THEN DO:
-    cRowUserProp = {fnarg columnValue 'RowUserProp':U hDataSource} NO-ERROR.
-    DO iPropLoop = 1 TO NUM-ENTRIES(cRowUserProp,CHR(4)):
-      IF ENTRY( 1 , ENTRY( iPropLoop , cRowUserProp , CHR(4) ) , CHR(3) ) = 'gsmcmauto':U
-      THEN MESSAGE
-          ENTRY( 2 , ENTRY( iPropLoop , cRowUserProp , CHR(4) ) , CHR(3) )
-          VIEW-AS ALERT-BOX INFORMATION TITLE "Comment(s) for Record".
-    END.
-  END.
+  {get GroupAssignSource hGASource}.
 
-  /* Clear out lookup/combo query temp-table */
-  EMPTY TEMP-TABLE ttLookup.   
-  EMPTY TEMP-TABLE ttDCombo.
+  IF {fn getUseRepository} THEN 
+  DO:     
+    IF VALID-HANDLE(hDataSource) AND NOT VALID-HANDLE(hGASource) THEN 
+    DO:
+      cRowUserProp = {fnarg columnValue 'RowUserProp':U hDataSource} NO-ERROR.
+      DO iPropLoop = 1 TO NUM-ENTRIES(cRowUserProp,CHR(4)):
+        IF ENTRY( 1 , ENTRY( iPropLoop , cRowUserProp , CHR(4) ) , CHR(3) ) = 'gsmcmauto':U THEN 
+          MESSAGE ENTRY( 2 , ENTRY( iPropLoop , cRowUserProp , CHR(4) ) , CHR(3) )
+          VIEW-AS ALERT-BOX INFORMATION TITLE "Comment(s) for Record".
+      END.
+    END.
+
+    /* get lookup queries for specific data value and redisplay data */
+    PUBLISH "getLookupQuery":U FROM TARGET-PROCEDURE (INPUT-OUTPUT TABLE ttLookup).
+    PUBLISH "getComboQuery":U FROM TARGET-PROCEDURE (INPUT-OUTPUT TABLE ttDCombo).
   
-  /* get lookup queries for specific data value and redisplay data */
-  PUBLISH "getLookupQuery":U FROM TARGET-PROCEDURE (INPUT-OUTPUT TABLE ttLookup).
-  PUBLISH "getComboQuery":U FROM TARGET-PROCEDURE (INPUT-OUTPUT TABLE ttDCombo).
-  
-  IF VALID-HANDLE(gshAstraAppserver) AND 
-    (CAN-FIND(FIRST ttLookup) OR
-     CAN-FIND(FIRST ttDCombo)) THEN
-    RUN adm2/lookupqp.p ON gshAstraAppserver (INPUT-OUTPUT TABLE ttLookup,
-                                                  INPUT-OUTPUT TABLE ttDCombo,
-                                                  INPUT cWidgetNames,
-                                                  INPUT cWidgetValues).
-  /* display Lookup query/Combo results */          
-  PUBLISH "displayLookup":U FROM TARGET-PROCEDURE (INPUT TABLE ttLookup).
-  PUBLISH "displayCombo":U  FROM TARGET-PROCEDURE (INPUT TABLE ttDCombo).
-  
+    /* Check if we can get the values of other fields to be displayed for any 
+       of the Dynamic Lookups from the DataSource */
+    IF CAN-FIND(FIRST ttLookup WHERE ttLookup.hViewer = TARGET-PROCEDURE) THEN
+      RUN stripLookupFields IN TARGET-PROCEDURE NO-ERROR.
+
+    IF VALID-HANDLE(gshAstraAppserver) 
+    AND (CAN-FIND(FIRST ttLookup WHERE ttLookup.hViewer = TARGET-PROCEDURE 
+                                 AND   ttLookup.lRefreshQuery = TRUE) OR
+         CAN-FIND(FIRST ttDCombo WHERE ttDCombo.hViewer = TARGET-PROCEDURE)) THEN DO:
+      RUN adm2/lookupqp.p ON gshAstraAppserver (INPUT-OUTPUT TABLE ttLookup,
+                                                INPUT-OUTPUT TABLE ttDCombo,
+                                                INPUT cWidgetNames,
+                                                INPUT cWidgetValues,
+                                                INPUT TARGET-PROCEDURE).
+    END.
+    /* display Lookup query/Combo results */          
+    PUBLISH "displayLookup":U FROM TARGET-PROCEDURE (INPUT TABLE ttLookup).
+    PUBLISH "displayCombo":U  FROM TARGET-PROCEDURE (INPUT TABLE ttDCombo).
+  END.
+  RUN updateTitle IN TARGET-PROCEDURE.
+
+  RUN rowDisplay IN TARGET-PROCEDURE NO-ERROR. /* Custom display checks. */
+
   RETURN.
  END PROCEDURE.
 
@@ -561,13 +672,14 @@ PROCEDURE enableFields :
   DEFINE VARIABLE cUpdateTarget  AS CHARACTER NO-UNDO.
   DEFINE VARIABLE hGASource      AS HANDLE    NO-UNDO.
   DEFINE VARIABLE hFrameHandle   AS HANDLE    NO-UNDO.
-  
+  DEFINE VARIABLE hPopup         AS HANDLE     NO-UNDO.
   
   /* Field Security Check */
   DEFINE VARIABLE cAllFieldHandles AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cSecuredFields   AS CHARACTER NO-UNDO.
   DEFINE VARIABLE iFieldPos        AS INTEGER   NO-UNDO.
-
+  DEFINE VARIABLE cObjectsToDisable AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cName            AS CHARACTER  NO-UNDO.
   {get FieldsEnabled lEnabled}.
   {get GroupAssignSource hGASource}.
   {get AllFieldHandles cAllFieldHandles}.
@@ -596,65 +708,109 @@ PROCEDURE enableFields :
   DO:  
     {get EnabledHandles cEnableFields}.
     {get EnabledObjHdls cEnableObjects}.
+    {get EnabledObjFldsToDisable cObjectsToDisable}.
     DO iField = 1 TO NUM-ENTRIES(cEnableFields):
-       hField = WIDGET-HANDLE(ENTRY(iField, cEnableFields)).
+      ASSIGN 
+        hField    = WIDGET-HANDLE(ENTRY(iField, cEnableFields))      
+        iFieldPos = LOOKUP(STRING(hField),cAllFieldHandles).
       
-       iFieldPos = LOOKUP(STRING(hField),cAllFieldHandles).
-      
-      /* "Frame Field" May be a SmartObject procedure handle */
-      IF hField:TYPE = "PROCEDURE":U THEN DO:
-        IF ((iFieldPos <> 0 AND
-           NUM-ENTRIES(cSecuredFields) >= iFieldPos AND
-           ENTRY(iFieldPos,cSecuredFields) = "":U) OR
-           iFieldPos = 0) OR 
-          cSecuredFields = "":U THEN /* Check Security */
-          RUN enableField IN hField NO-ERROR.
-        ELSE
-          RUN disableField IN hField NO-ERROR.
-       END.
-       ELSE IF NOT hField:HIDDEN THEN /* Skip fields hidden for multi-layout */
-       DO:
-         /* Check Security */
-         IF (iFieldPos <> 0 AND
-          NUM-ENTRIES(cSecuredFields) >= iFieldPos AND
-          ENTRY(iFieldPos,cSecuredFields) = "":U) OR
-          iFieldPos = 0 OR 
-          cSecuredFields = "":U THEN DO:
-           hField:SENSITIVE = YES.
-           IF hField:TYPE = "EDITOR":U THEN /* Ed's must be sensitive, not R-O*/
-             hField:READ-ONLY = NO.     
-         END.
-       END.
-    END.
-     /* Enable no db fields */
+      IF VALID-HANDLE(hField) THEN 
+      DO:
+        /* "Frame Field" May be a SmartObject procedure handle */
+        IF hField:TYPE = "PROCEDURE":U THEN 
+        DO:
+          IF ((iFieldPos <> 0 
+               AND NUM-ENTRIES(cSecuredFields) >= iFieldPos 
+               AND ENTRY(iFieldPos,cSecuredFields) = "":U) 
+              OR iFieldPos = 0) 
+             OR cSecuredFields = "":U THEN 
+            /* Check Security */
+            RUN enableField IN hField NO-ERROR.
+          ELSE DO:  
+            IF ENTRY(iFieldPos,cSecuredFields) = "Hidden":U THEN
+              RUN hideObject IN hField NO-ERROR.
+            ELSE 
+              RUN disableField IN hField NO-ERROR.
+          END.  /* else do - secured */
+        END.  /* If Handle type is PROCEDURE */
+        ELSE IF NOT hField:HIDDEN THEN /* Skip fields hidden for multi-layout */
+        DO:
+           /* Check Security */
+          IF ((iFieldPos <> 0 
+               AND NUM-ENTRIES(cSecuredFields) >= iFieldPos
+               AND ENTRY(iFieldPos,cSecuredFields) = "":U) 
+              OR iFieldPos = 0) 
+             OR cSecuredFields = "":U THEN 
+          DO:
+            hField:SENSITIVE = YES.
+            IF hField:TYPE = "EDITOR":U THEN /* Ed's must be sensitive, not R-O*/
+              hField:READ-ONLY = NO.     
+            /* don't enable if read-only (can-query is ok as only fields can 
+               have popups) */
+            IF CAN-QUERY(hField,'read-only':U) AND NOT hField:READ-ONLY THEN
+            DO:
+              hPopup = {fnarg popupHandle hField}.
+              IF VALID-HANDLE(hPopup) THEN
+                hPopup:SENSITIVE = YES.
+            END.
+         END.  /* IF security check succeeds */
+        END.  /* If the field is not hidden */
+      END.  /* If hField is a valid handle */
+    END.  /* Looping through the fields */
+    /* Enable no db fields */
+    IF cObjectsToDisable <> '(none)':U THEN
     DO iField = 1 TO NUM-ENTRIES(cEnableObjects):
-       hField = WIDGET-HANDLE(ENTRY(iField, cEnableObjects)).
-       
-       iFieldPos = 0.
-       iFieldPos = LOOKUP(STRING(hField),cAllFieldHandles).
-    
-         /* "Frame Field" May be a SmartObject procedure handle */
-       IF hField:TYPE = "PROCEDURE":U AND          
-          ((iFieldPos <> 0 AND
-          NUM-ENTRIES(cSecuredFields) >= iFieldPos AND
-          ENTRY(iFieldPos,cSecuredFields) = "":U) OR
-          iFieldPos = 0) OR 
-          cSecuredFields = "":U THEN /* Check Security */
-         RUN enableField IN hField NO-ERROR.
-       ELSE IF NOT hField:HIDDEN THEN /* Skip fields hidden for multi-layout */
-       DO:
-         /* Check Security */
-         IF (iFieldPos <> 0 AND
-          NUM-ENTRIES(cSecuredFields) >= iFieldPos AND
-          ENTRY(iFieldPos,cSecuredFields) = "":U) OR
-          iFieldPos = 0 OR 
-          cSecuredFields = "":U THEN DO:
-           hField:SENSITIVE = yes.
-           IF hField:TYPE = "EDITOR":U THEN /* Ed's must be sensitive, not R-O*/
-             hField:READ-ONLY = no.     
-         END.
-       END.
-    END.
+      hField = WIDGET-HANDLE(ENTRY(iField, cEnableObjects)).      
+      IF hField:TYPE = "PROCEDURE":U THEN 
+        cName = {fn getFieldName hField} NO-ERROR.
+      ELSE 
+        cName = hField:NAME.  
+      IF cObjectsToDisable = '(All)':U OR CAN-DO(cObjectsToDisable,cName) THEN
+      DO:      
+        iFieldPos = 0.
+        iFieldPos = LOOKUP(STRING(hField),cAllFieldHandles).     
+        IF VALID-HANDLE(hField) THEN DO:  
+          /* "Frame Field" May be a SmartObject procedure handle */
+          IF hField:TYPE = "PROCEDURE":U THEN 
+          DO:          
+            IF ((iFieldPos <> 0 
+                 AND NUM-ENTRIES(cSecuredFields) >= iFieldPos 
+                 AND ENTRY(iFieldPos,cSecuredFields) = "":U) 
+                OR iFieldPos = 0) 
+               OR cSecuredFields = "":U THEN /* Check Security */
+              RUN enableField IN hField NO-ERROR.
+            ELSE DO:
+              IF ENTRY(iFieldPos,cSecuredFields) = "Hidden":U THEN
+                RUN hideObject IN hField NO-ERROR.
+              ELSE 
+                RUN disableField IN hField NO-ERROR.
+            END.
+          END.
+          ELSE IF NOT hField:HIDDEN THEN /* Skip fields hidden for multi-layout */
+          DO:
+            /* Check Security */
+            IF ((iFieldPos <> 0 
+                 AND NUM-ENTRIES(cSecuredFields) >= iFieldPos 
+                 AND ENTRY(iFieldPos,cSecuredFields) = "":U) 
+                OR iFieldPos = 0) 
+               OR cSecuredFields = "":U THEN 
+            DO:
+              hField:SENSITIVE = YES.
+              IF hField:TYPE = "EDITOR":U THEN /* Ed's must be sensitive, not R-O*/
+                hField:READ-ONLY = NO.
+             /* don't enable if read-only (can-query is ok as only fields can 
+                have popups) */
+              IF CAN-QUERY(hField,'read-only':U) AND NOT hField:READ-ONLY THEN
+              DO:
+                hPopup = {fnarg popupHandle hField}.
+                IF VALID-HANDLE(hPopup) THEN
+                  hPopup:SENSITIVE = YES.
+              END.
+            END.  /* If security check succeeds */
+          END.  /* If the field isn't hidden */
+        END.  /* IF it is a valid field */
+      END.
+    END.  /* Do for all enabled objects */
 
     /* If the list of enabled field handles isn't set, it may because this
        object hasn't been fully initialized yet. So don't set the enabled
@@ -667,40 +823,63 @@ PROCEDURE enableFields :
   DO:
     {get EnabledHandles cEnableFields}.
     {get EnabledObjHdls cEnableObjects}.
+    {get EnabledObjFldsToDisable cObjectsToDisable}.
     DO iField = 1 TO NUM-ENTRIES(cEnableFields):
-       hField = WIDGET-HANDLE(ENTRY(iField, cEnableFields)).
+      ASSIGN
+        hField    = WIDGET-HANDLE(ENTRY(iField, cEnableFields))       
+        iFieldPos = 0
+        iFieldPos = LOOKUP(STRING(hField),cAllFieldHandles).
        
-       iFieldPos = 0.
-       iFieldPos = LOOKUP(STRING(hField),cAllFieldHandles).
-       
-       /* "Frame Field" May be a SmartObject procedure handle */
-       IF hField:TYPE = "PROCEDURE":U THEN
-         RUN disableField IN hField NO-ERROR.
-       ELSE IF NOT hField:HIDDEN THEN /* Skip fields hidden for multi-layout */
-       DO:
-         IF hField:TYPE = "EDITOR":U THEN /* Editors must be sensitive, not R-O*/
-           hField:READ-ONLY = yes.  
-         ELSE hField:SENSITIVE = no.     
-       END.  /* END DO NOT HIDDEN */
+      IF VALID-HANDLE(hField) THEN 
+      DO:
+        /* "Frame Field" May be a SmartObject procedure handle */
+        IF hField:TYPE = "PROCEDURE":U THEN
+          RUN disableField IN hField NO-ERROR.
+        ELSE IF NOT hField:HIDDEN THEN /* Skip fields hidden for multi-layout */
+        DO:
+          IF hField:TYPE = "EDITOR":U THEN /* Editors must be sensitive, not R-O*/
+            hField:READ-ONLY = yes.  
+          ELSE 
+            hField:SENSITIVE = NO.     
+          hPopup = {fnarg popupHandle hField}.
+          IF VALID-HANDLE(hPopup) THEN
+            hPopup:SENSITIVE = NO.
+        END.  /* END DO NOT HIDDEN */
+      END.  /* If hField is valid */
     END.     /* END DO iField     */
     
+    IF cObjectsToDisable <> '(none)':U THEN
     DO iField = 1 TO NUM-ENTRIES(cEnableObjects):
-       hField = WIDGET-HANDLE(ENTRY(iField, cEnableObjects)).
-       
-       iFieldPos = 0.
-       iFieldPos = LOOKUP(STRING(hField),cAllFieldHandles).
-       
-       /* "Frame Field" May be a SmartObject procedure handle */
-       IF hField:TYPE = "PROCEDURE":U THEN
-         RUN disableField IN hField NO-ERROR.
-       ELSE IF NOT hField:HIDDEN THEN /* Skip fields hidden for multi-layout */
-       DO:
-         IF hField:TYPE = "EDITOR":U THEN /* Editors must be sensitive, not R-O*/
-           hField:READ-ONLY = yes.  
-         ELSE hField:SENSITIVE = no.     
-       END.  /* END DO NOT HIDDEN */
-    END.     /* END DO iField     */
-  END. 
+      hField = WIDGET-HANDLE(ENTRY(iField, cEnableObjects)).
+      IF hField:TYPE = "PROCEDURE":U THEN 
+        cName = {fn getFieldName hField} NO-ERROR.
+      ELSE 
+        cName = hField:NAME.  
+      IF cObjectsToDisable = '(All)':U OR CAN-DO(cObjectsToDisable,cName) THEN
+      DO:   
+        ASSIGN 
+          iFieldPos = 0
+          iFieldPos = LOOKUP(STRING(hField),cAllFieldHandles).
+        
+        IF VALID-HANDLE(hField) THEN 
+        DO:
+          /* "Frame Field" May be a SmartObject procedure handle */
+          IF hField:TYPE = "PROCEDURE":U THEN
+            RUN disableField IN hField NO-ERROR.
+          ELSE IF NOT hField:HIDDEN THEN /* Skip fields hidden for multi-layout */
+          DO:
+            IF hField:TYPE = "EDITOR":U THEN /* Editors must be sensitive, not R-O*/
+              hField:READ-ONLY = YES.  
+            ELSE 
+              hField:SENSITIVE = NO.   
+            hPopup = {fnarg popupHandle hField}.
+            IF VALID-HANDLE(hPopup) THEN
+              hPopup:SENSITIVE = NO.
+          END.  /* END DO NOT HIDDEN */
+        END.  /* If a valid handle */
+      END.
+    END.  /* END DO iField     */
+  END.  /* Disbling SDF if not data available */ 
   RUN SUPER.
 
   PUBLISH 'enableFields':U FROM TARGET-PROCEDURE.  /* In case of GroupAssign */
@@ -736,7 +915,7 @@ PROCEDURE initializeObject :
  DEFINE VARIABLE hContainerHandle   AS HANDLE    NO-UNDO.
  DEFINE VARIABLE lSaveSource        AS LOGICAL   NO-UNDO.
  DEFINE VARIABLE hGaSource          AS HANDLE    NO-UNDO.
- DEFINE VARIABLE lGaEnabled         AS LOGICAL   NO-UNDO.
+ DEFINE VARIABLE cGaMode            AS CHARACTER NO-UNDO.
  DEFINE VARIABLE iField             AS INTEGER   NO-UNDO.
  DEFINE VARIABLE cFieldName         AS CHARACTER NO-UNDO.
  DEFINE VARIABLE cTableName         AS CHARACTER NO-UNDO.
@@ -746,12 +925,19 @@ PROCEDURE initializeObject :
  DEFINE VARIABLE cContainerTargets  AS CHARACTER NO-UNDO.
  DEFINE VARIABLE hSDFHandle         AS HANDLE    NO-UNDO.
  DEFINE VARIABLE hSDFFrameHandle    AS HANDLE    NO-UNDO.
+ DEFINE VARIABLE cNewRecord         AS CHARACTER NO-UNDO.
 
  RUN SUPER.            /* Invoke the standard behavior first. */
-  IF RETURN-VALUE = "ADM-ERROR":U
+ {get UIBMode cUIBMode}.
+
+ /* UIBmode gives errors because handles for SDFs is not added */ 
+ IF (cUIBMode BEGINS 'Design':U) THEN
+   RETURN.
+
+ IF RETURN-VALUE = "ADM-ERROR":U
     THEN RETURN "ADM-ERROR":U.      
   
-  {get UpdateTarget cTarget}.
+ {get UpdateTarget cTarget}.
   hUpdateTarget = WIDGET-HANDLE(cTarget).
   
   /* Initialize the list of handles of the frame fields that are for
@@ -777,17 +963,19 @@ PROCEDURE initializeObject :
      and retrieve the object's FieldName property. */
 
   /* Initialise the variables to an empty CSV list.
-   * We need to be absolutely sure that the order of the lists of handles
-   * matches the order of the DisplayedField and EnabledField properties,
-   * so we initialise a string with the correct number of entries, and
-   * we will make sure that the handle matches the column name.             */
+     We need to be absolutely sure that the order of the lists of handles
+     matches the order of the DisplayedField and EnabledField properties,
+     so we initialise a string with the correct number of entries, and
+     we will make sure that the handle matches the column name.             */
   ASSIGN cEnabledHandles = FILL(",":U, NUM-ENTRIES(cEnabledFields)   - 1)
          cFieldHandles   = FILL(",":U, NUM-ENTRIES(cDisplayedFields) - 1)
          .
+ 
   DO WHILE VALID-HANDLE(hFrameField):
     /* Check for existance of SDFs */
-    IF hFrameField:TYPE = "FRAME":U AND 
-       cContainerTargets <> "":U THEN DO:
+    IF  hFrameField:TYPE = "FRAME":U 
+    AND cContainerTargets <> "":U THEN 
+    DO:
       /* To move away from reading the procedure handle from the 
          frame's PRIVATE-DATA we are checking that the FRAME we
          are reading is indeed that of an SDF and that the handle
@@ -799,16 +987,20 @@ PROCEDURE initializeObject :
       DO iSDFLoop = 1 TO NUM-ENTRIES(cContainerTargets):
         hSDFHandle = WIDGET-HANDLE(ENTRY(iSDFLoop,cContainerTargets)).
         IF VALID-HANDLE(hSDFHandle) THEN
-          hSDFFrameHandle = DYNAMIC-FUNCTION("getSDFFrameHandle":U IN hSDFHandle) NO-ERROR.
+          hSDFFrameHandle = DYNAMIC-FUNCTION("getContainerHandle":U IN hSDFHandle) NO-ERROR.
         IF hFrameField = hSDFFrameHandle THEN DO:
           hFrameProc = hSDFHandle.
           LEAVE SDF_LOOP.
         END.
       END.
+      /* We rely on the fact that FieldName becomes unknown if this is a 
+         SmartFrame (unsupported) to avoid it messing up the list */ 
       IF VALID-HANDLE(hFrameProc) THEN
         ASSIGN cFieldName = DYNAMIC-FUNCTION('getFieldName' IN hFrameProc) NO-ERROR.
+      ELSE 
+        cFieldName = ?.
     END.
-    ELSE
+    ELSE  
     DO:
         ASSIGN hFrameProc = ?.   /* Signal no SMo here */
         /* As of 9.1B, the DisplayedFields can be qualified by
@@ -827,63 +1019,61 @@ PROCEDURE initializeObject :
             ASSIGN cTableName = hFrameField:TABLE.
         END.
 
-        ASSIGN cFieldName = (IF cTableName NE "RowObject":U THEN cTableName + ".":U ELSE "":U) + hFrameField:NAME.
+        /* Dynamic viewers built on SBOs will have a blank table name, since the SDO instance-name will
+         * be part of the field's name.                                                                */
+        ASSIGN cFieldName = (IF NOT CAN-DO("RowObject,":U, cTableName) THEN cTableName + ".":U ELSE "":U) + hFrameField:NAME.
     END.    /* not a SDF */
 
-    IF cFieldName                           NE ? AND
-       LOOKUP(cFieldName, cDisplayedFields) NE 0 THEN
+    IF cFieldName NE ? AND LOOKUP(cFieldName, cDisplayedFields) NE 0 THEN
     DO:
-        /* Displayed Fields */
-        ENTRY(LOOKUP(cFieldName, cDisplayedFields), cFieldHandles) = (IF hFrameProc EQ ? THEN STRING(hFrameField) ELSE STRING(hFrameProc)).
+      /* Displayed Fields */
+      ENTRY(LOOKUP(cFieldName, cDisplayedFields), cFieldHandles) = (IF hFrameProc EQ ? THEN STRING(hFrameField) ELSE STRING(hFrameProc)).
 
-        /* Enabled Fields */
-        IF LOOKUP(cFieldName, cEnabledFields) NE 0 THEN
-            ENTRY(LOOKUP(cFieldName, cEnabledFields), cEnabledHandles) = (IF hFrameProc EQ ? THEN STRING(hFrameField) ELSE STRING(hFrameProc)).
+      /* Enabled Fields */
+      IF LOOKUP(cFieldName, cEnabledFields) NE 0 THEN
+         ENTRY(LOOKUP(cFieldName, cEnabledFields), cEnabledHandles) = (IF hFrameProc EQ ? THEN STRING(hFrameField) ELSE STRING(hFrameProc)).
     END.    /* END DO IF LOOKUP */
     hFrameField = hFrameField:NEXT-SIBLING.
   END.      /* END DO WHILE     */
-
-  /* Strip out any invalid handles. */
-  ASSIGN cEnabledHandles = TRIM(cEnabledHandles, ",":U)
-         cFieldHandles   = TRIM(cFieldHandles, ",":U)
-         .
+  
+  /* After invalid handles have been stripped, set the properties */
   {set EnabledHandles cEnabledHandles}.
   {set CreateHandles cCreateHandles}.
   {set FieldHandles cFieldHandles}.
-  {get UIBMode cUIBMode}.
+
+  RUN dataAvailable IN TARGET-PROCEDURE (?). /* See if there's a rec waiting. */
   
-  IF NOT (cUIBMode BEGINS 'Design':U) THEN
-    RUN dataAvailable IN TARGET-PROCEDURE (?). /* See if there's a rec waiting. */
-  
-  /* Is this a GaTarget, if so get SaveSOurce and FieldsEnabled from the 
-     GA source so we can find out whether we should be enabled (further down) */
+  /* Is this a GaTarget, if so get SaveSOurce, FieldsEnabled and NewRecord from the 
+     GA source so we can find out whether we should be enabled (further down) or 
+     display the current record 
+     (if the GASource is in "Add" or "Copy" mode already */
   {get GroupAssignSource hGASOurce}.
   IF VALID-HANDLE(hGaSource) THEN
   DO:
-    {get SaveSource lSaveSource hGASource}.
-    {get FieldsEnabled lGaEnabled hGaSource}.
+    {get ObjectMode cGaMode hGaSource}.
+    /* The NewRecord is only set at the tableioTarget yet, 
+        so check through a potential GroupAssingSource link chain. */ 
+    DO WHILE VALID-HANDLE(hGASource):
+      {get NewRecord cNewRecord hGASource}.
+      {get GroupAssignSource hGASource hGASource}.
+    END.
+    IF cNewRecord <> "NO":U THEN
+      RUN displayRecord IN TARGET-PROCEDURE.
   END.
   ELSE
     {get SaveSource lSaveSource}.
   
   /* If we have NO tableio-source (?) or a Tableio-Source in Save mode 
-     OR if groupAssign-source is enabled the target also should be,
-    (that would have been the case if this GAtarget had been initialized) */
-  
-  IF NOT (lSaveSource = FALSE) 
-  OR lGaEnabled THEN
+     OR if our groupAssign-source is not in view mode the target also should be,
+    (that would have been the case if this GAtarget had been initialized) */  
+  IF (cGaMode > '':U AND cGaMode <> "view":U)
+  OR NOT (lSaveSource = FALSE) THEN
     RUN enableFields IN TARGET-PROCEDURE.
-
-  ELSE DO:
-    /* If we're not enabling all fields, we must at least set editors to
-       be Sensitive so they can be viewed and scrolled. */
-    DO iField = 1 TO NUM-ENTRIES(cFieldHandles):
-      hFrameField = WIDGET-HANDLE(ENTRY(iField, cFieldHandles)).
-      IF hFrameField:TYPE = "EDITOR":U AND
-         NOT hFrameField:HIDDEN THEN   /* Skip fields hidden for multi-layout */
-           ASSIGN hFrameField:SENSITIVE = YES 
-                  hFrameField:READ-ONLY = YES.
-    END.       /* END DO iField */
+  
+  ELSE 
+  DO:
+    {set FieldsEnabled YES}.
+    RUN disableFields IN TARGET-PROCEDURE ('ALL':U).
   END.         /* END ELSE DO IF not enableFields */
       
   /* Ensure only has entries for this viewer */
@@ -951,6 +1141,15 @@ PROCEDURE linkStateHandler :
   DEFINE VARIABLE hTarget  AS HANDLE     NO-UNDO.
   DEFINE VARIABLE iTarget  AS INTEGER    NO-UNDO.
 
+  IF pcLink = 'DataSource':U AND pcState ='Add':U THEN
+  DO:
+     /* Some DataSources do not yet support this property     */
+     /* (ie SBO, passThru links thru containers etc.).        */
+     /* Must be reviewed for complete solution                */
+     IF lookup('setFetchAutoComment', phObject:INTERNAL-ENTRIES) > 0 THEN
+       {set FetchAutoComment TRUE phObject}.
+  END.
+  
   RUN SUPER(pcState,phObject,pcLink).
   
   IF CAN-DO('ACTIVE,INACTIVE':U,pcState) AND pcLink = 'DataSource':U THEN
@@ -962,6 +1161,183 @@ PROCEDURE linkStateHandler :
       RUN LinkStateHandler IN hTarget(pcState,phObject,pcLink).
     END.
   END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-locateWidget) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE locateWidget Procedure 
+PROCEDURE locateWidget :
+/*------------------------------------------------------------------------------
+  Purpose:     Locates a widget and retuns its handle and the handle of its
+               TARGET-PROCEDURE
+  Parameters:  pcWidget AS CHARACTER
+               phWidget AS HANDLE
+               phTarget AS HANDLE
+  Notes:       Contains code to locate a widget specific to viewers's when 
+               the qualifier is 'Browse'
+------------------------------------------------------------------------------*/
+DEFINE INPUT  PARAMETER pcWidget AS CHARACTER  NO-UNDO.
+DEFINE OUTPUT PARAMETER phWidget AS HANDLE     NO-UNDO.
+DEFINE OUTPUT PARAMETER phTarget AS HANDLE     NO-UNDO.
+
+DEFINE VARIABLE cDataTargets  AS CHARACTER  NO-UNDO. 
+DEFINE VARIABLE cField        AS CHARACTER  NO-UNDO. 
+DEFINE VARIABLE cObjectType   AS CHARACTER  NO-UNDO. 
+DEFINE VARIABLE cQualifier    AS CHARACTER  NO-UNDO. 
+DEFINE VARIABLE hDataSource   AS HANDLE     NO-UNDO. 
+DEFINE VARIABLE hDataTarget   AS HANDLE     NO-UNDO. 
+DEFINE VARIABLE iDataTargets  AS INTEGER    NO-UNDO.
+DEFINE VARIABLE lBrowsed      AS LOGICAL    NO-UNDO. 
+
+  IF NUM-ENTRIES(pcWidget, '.':U) > 1 AND ENTRY(1, pcWidget, '.':U) = 'Browse':U THEN
+  DO:
+    cField = DYNAMIC-FUNCTION('deleteEntry':U IN TARGET-PROCEDURE,
+                               INPUT 1,
+                               INPUT pcWidget,
+                               INPUT '.':U). 
+    {get DataSource hDataSource}.
+    IF VALID-HANDLE(hDataSource) THEN
+    DO:
+      {get DataQueryBrowsed lBrowsed hDataSource}.
+      /* If the qualifier is Browse and the data source does not have a
+         browser data target, then there is no need to search further. */
+      IF cQualifier BEGINS 'Browse':U AND NOT lBrowsed THEN RETURN.
+
+      {get DataTarget cDataTargets hDataSource}.
+      DO iDataTargets = 1 TO NUM-ENTRIES(cDataTargets):
+        ASSIGN hDataTarget = WIDGET-HANDLE(ENTRY(iDataTargets, cDataTargets)) NO-ERROR.
+        IF VALID-HANDLE(hDataTarget) AND hDataTarget NE TARGET-PROCEDURE THEN
+        DO:
+         {get ObjectType cObjectType hDataTarget}.
+         IF cObjectType = 'SmartDataBrowser':U THEN
+           ASSIGN 
+             phWidget = DYNAMIC-FUNCTION('internalWidgetHandle':U IN hDataTarget,
+                                          INPUT cField, INPUT 'DATA':U)
+             phTarget = hDataTarget NO-ERROR.
+           IF phWidget NE ? THEN RETURN.
+        END.  /* if valid data target */
+      END.  /* do iLoop to number data targets */
+    END.  /* if valid data source */
+  END.  /* if browser qualifier */
+  ELSE RUN SUPER (INPUT pcWidget, OUTPUT phWidget, OUTPUT phTarget).
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-stripLookupFields) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE stripLookupFields Procedure 
+PROCEDURE stripLookupFields :
+/*------------------------------------------------------------------------------
+  Purpose:     This procedure will check all the lookups in the current viewer
+               and try to get the displayed fields and linked field values from
+               it's data source before attempting to fetch the data from the 
+               query on the server.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  DEFINE VARIABLE iLoop        AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iDataLoop    AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cField       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cValue       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hDataSource  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cTablesInQ   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataSources AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFieldName   AS CHARACTER  NO-UNDO.
+  
+  {get DataSource hDataSource}.
+  
+  /* If we don't have a valid Data Source then leave */
+  IF NOT VALID-HANDLE(hDataSource) THEN
+    RETURN.
+
+  /* Get a list of tables in the Data Source */
+  cTablesInQ = DYNAMIC-FUNCTION("getTables":U IN hDataSource) NO-ERROR.
+  
+  cDataSources = "":U.
+  /* Check if our Data Source is an SBO */
+  IF cTablesInQ = ? OR
+     cTablesInQ = "?":U THEN DO:
+    DEFINE VARIABLE hContainer AS HANDLE     NO-UNDO.
+    {get ContainerSource hContainer}.
+    cDataSources = DYNAMIC-FUNCTION("getContainedDataObjects":U IN hDataSource).
+  END.
+  ELSE
+    cDataSources = STRING(hDataSource).
+
+  DO iDataLoop = 1 TO NUM-ENTRIES(cDataSources):
+    hDataSource = WIDGET-HANDLE(ENTRY(iDataLoop,cDataSources)).
+    IF NOT VALID-HANDLE(hDataSource) THEN
+      NEXT.
+    
+    /* Get a list of tables in the Data Source */
+    cTablesInQ = DYNAMIC-FUNCTION("getTables":U IN hDataSource) NO-ERROR.
+    /* We need to do this to ensure that we do not think that the
+     fields available in the data source is available for our 
+     lookup since the data source might be the exact same table
+     as the table the lookup is using - e.g. Object type maint with
+     a lookup on object type of extends_object_type_obj would result
+     in the lookup thinking it's got the object type of the extends_objec_type
+     lookup */
+
+    FOR EACH  ttLookup
+        WHERE ttLookup.hViewer = TARGET-PROCEDURE
+        EXCLUSIVE-LOCK: /* This is for the sake of consistency - *bite me* */
+      ASSIGN ttLookup.lRefreshQuery    = FALSE
+             ttLookup.cFoundDataValues = "":U.
+      cFieldName = IF NUM-ENTRIES(ttLookup.cWidgetName,".":U) > 1 THEN ENTRY(2,ttLookup.cWidgetName,".":U) ELSE ttLookup.cWidgetName.
+      FIELD_LOOP:
+      DO iLoop = 1 TO NUM-ENTRIES(ttLookup.cFieldList):
+        ASSIGN cField = ENTRY(iLoop,ttLookup.cFieldList).
+        IF cField = "":U THEN
+          NEXT FIELD_LOOP.
+        IF NUM-ENTRIES(cField,".":U) > 1 THEN DO:
+          IF ENTRY(1,cField,".":U) = ENTRY(1,cTablesInQ) AND 
+             NUM-ENTRIES(cDataSources) = 1 THEN DO:
+            ttLookup.lRefreshQuery = TRUE.
+            RETURN.
+          END.
+        END.
+  
+        /* Check if the field we are looking for is infact from the table used 
+           in the lookup */
+        IF NUM-ENTRIES(cField,".":U) > 1 AND iDataLoop = 1 THEN DO:
+          IF DYNAMIC-FUNCTION("columnTable":U IN hDataSource,ENTRY(2,cField,".")) = ENTRY(1,cTablesInQ) AND
+             cFieldName <> ENTRY(2,cField,".") AND
+             NUM-ENTRIES(cDataSources) = iDataLoop THEN DO:
+            ttLookup.lRefreshQuery = TRUE.
+            RETURN.
+          END.
+        END.
+  
+        /* First try to get the value of the field with the table name joined */
+        cValue = TRIM(DYNAMIC-FUNCTION("columnStringValue":U IN hDataSource,cField)) NO-ERROR.
+        /* If the failed, then try to get the value for the field name only */
+        IF ERROR-STATUS:ERROR OR 
+           cValue = ? OR cValue = "?":U THEN DO:
+          cField = IF NUM-ENTRIES(cField,".":U) > 1 THEN ENTRY(2,cField,".":U) ELSE cField.
+          cValue = TRIM(DYNAMIC-FUNCTION("columnStringValue":U IN hDataSource,cField)) NO-ERROR.
+        END.
+        IF cValue = ? OR cValue = "?":U THEN
+          ASSIGN cValue = "":U
+                 ttLookup.lRefreshQuery = TRUE.
+        ttLookup.cFoundDataValues = ttLookup.cFoundDataValues +
+                                    (IF iLoop = 1 THEN "":U ELSE CHR(1)) +
+                                    cValue.
+      END.
+    END.
+  END. /* iLoop */
 
 END PROCEDURE.
 

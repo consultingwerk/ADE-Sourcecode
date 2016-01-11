@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          asdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" vTableWin _INLINE
@@ -87,7 +87,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gsciaviewv.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -125,11 +125,12 @@ RowObject.attribute_description RowObject.attribute_type RowObject.disabled ~
 RowObject.system_owned 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define DISPLAYED-FIELDS RowObject.attribute_code ~
 RowObject.attribute_description RowObject.attribute_type RowObject.disabled ~
 RowObject.system_owned 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
+
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -147,23 +148,25 @@ RowObject.system_owned
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     RowObject.attribute_code AT ROW 1.14 COL 23 COLON-ALIGNED
+     RowObject.attribute_code AT ROW 1 COL 23 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 37 BY 1
-     RowObject.attribute_description AT ROW 2.14 COL 23 COLON-ALIGNED
+          SIZE 78.4 BY 1
+     RowObject.attribute_description AT ROW 2.05 COL 23 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 66.4 BY 1
-     RowObject.attribute_type AT ROW 3.14 COL 23 COLON-ALIGNED
+          SIZE 78.4 BY 1
+     RowObject.attribute_type AT ROW 3.1 COL 23 COLON-ALIGNED
           VIEW-AS COMBO-BOX INNER-LINES 5
-          LIST-ITEMS "MEN","REP","OTH" 
+          LIST-ITEM-PAIRS "Menu","MEN",
+                     "Report","REP",
+                     "Other","OTH"
           DROP-DOWN-LIST
           SIZE 16 BY 1
-     RowObject.disabled AT ROW 4.14 COL 25
+     RowObject.disabled AT ROW 4.15 COL 25
           VIEW-AS TOGGLE-BOX
-          SIZE 13.2 BY .81
-     RowObject.system_owned AT ROW 4.95 COL 25
+          SIZE 13.2 BY 1
+     RowObject.system_owned AT ROW 5.1 COL 25
           VIEW-AS TOGGLE-BOX
-          SIZE 19.2 BY .81
+          SIZE 19.2 BY 1
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -203,8 +206,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 5
-         WIDTH              = 95.
+         HEIGHT             = 5.1
+         WIDTH              = 102.4.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -244,7 +247,7 @@ ASSIGN
 */  /* FRAME frMain */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK vTableWin 

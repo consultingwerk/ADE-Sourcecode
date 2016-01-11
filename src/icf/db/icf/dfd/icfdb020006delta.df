@@ -85,6 +85,6 @@ UPDATE SEQUENCE "seq_ICFDB_DBVersion"
 
 .
 PSC
-cpstream=ISO8859-1
+cpstream=UTF-8
 .
 0000002961

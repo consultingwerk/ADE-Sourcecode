@@ -24,47 +24,26 @@ af/cod/aftemwizpw.w
 
 /* Temp-Table and Buffer definitions                                    */
 DEFINE TEMP-TABLE RowObject
-       {"af/obj2/gscotful1o.i"}.
+       {"af/obj2/gscotfullo.i"}.
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
 /*---------------------------------------------------------------------------------
   File: gscotviewv.w
 
   Description:  Object Type Smart Data Viewer
 
-  Purpose:      Object Type Smart Data Viewer
+  Purpose:
 
   Parameters:   <none>
 
   History:
   --------
   (v:010000)    Task:           0   UserRef:    
-                Date:   21/08/2000  Author:     
+                Date:   05/15/2002  Author:     Mark Davies (MIP)
 
   Update Notes: Created from Template rysttviewv.w
+                Created from Template 12345678901234567890
 
 ---------------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
@@ -87,16 +66,16 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gscotviewv.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
 /* Local Variable Definitions ---                                       */
 
-/* Astra 2 object identifying preprocessor */
+/*  object identifying preprocessor */
 &glob   astra2-staticSmartDataViewer yes
 
-{af/sup2/afglobals.i}
+{src/adm2/globals.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -121,15 +100,18 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-FIELDS RowObject.object_type_code ~
-RowObject.object_type_description RowObject.layout_supported ~
-RowObject.disabled 
+RowObject.object_type_description RowObject.disabled ~
+RowObject.layout_supported RowObject.deployment_type ~
+RowObject.static_object 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
+&Scoped-Define DISPLAYED-FIELDS RowObject.object_type_code ~
+RowObject.object_type_description RowObject.disabled ~
+RowObject.layout_supported RowObject.deployment_type ~
+RowObject.static_object 
 &Scoped-define DISPLAYED-TABLES RowObject
 &Scoped-define FIRST-DISPLAYED-TABLE RowObject
-&Scoped-Define DISPLAYED-FIELDS RowObject.object_type_code ~
-RowObject.object_type_description RowObject.layout_supported ~
-RowObject.disabled 
+&Scoped-Define DISPLAYED-OBJECTS fiDepTypeTitle 
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -142,27 +124,49 @@ RowObject.disabled
 /* ***********************  Control Definitions  ********************** */
 
 
+/* Definitions of handles for SmartObjects                              */
+DEFINE VARIABLE hClassObjectName AS HANDLE NO-UNDO.
+DEFINE VARIABLE hExtendsObjectType AS HANDLE NO-UNDO.
+
 /* Definitions of the field level widgets                               */
+DEFINE BUTTON buClear 
+     LABEL "&Clear" 
+     SIZE 15 BY 1.14 TOOLTIP "Clear selecttion"
+     BGCOLOR 8 .
+
+DEFINE VARIABLE fiDepTypeTitle AS CHARACTER FORMAT "X(20)":U INITIAL "Deployment Type" 
+      VIEW-AS TEXT 
+     SIZE 45.2 BY 1 NO-UNDO.
+
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     RowObject.object_type_code AT ROW 1 COL 26 COLON-ALIGNED
-          LABEL "Object Type Code"
+     RowObject.object_type_code AT ROW 1 COL 26 COLON-ALIGNED FORMAT "X(30)"
           VIEW-AS FILL-IN 
-          SIZE 13.6 BY 1
-     RowObject.object_type_description AT ROW 2 COL 26 COLON-ALIGNED
-          LABEL "Object Type Description"
+          SIZE 55.4 BY 1
+     RowObject.object_type_description AT ROW 2.05 COL 26 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 37 BY 1
-     RowObject.layout_supported AT ROW 3 COL 28
-          LABEL "Layout Supported"
+          SIZE 74.8 BY 1
+     RowObject.disabled AT ROW 3.1 COL 28
           VIEW-AS TOGGLE-BOX
-          SIZE 21.8 BY .81
-     RowObject.disabled AT ROW 3.81 COL 28
-          LABEL "Disabled"
+          SIZE 13.2 BY 1
+     RowObject.layout_supported AT ROW 4.14 COL 28
           VIEW-AS TOGGLE-BOX
-          SIZE 13.2 BY .81
+          SIZE 21.8 BY 1
+     RowObject.deployment_type AT ROW 6.24 COL 27.8 NO-LABEL
+          VIEW-AS SELECTION-LIST MULTIPLE 
+          LIST-ITEM-PAIRS "Server","SRV",
+                     "Client","CLN",
+                     "Web","WEB" 
+          SIZE 45 BY 3
+          FONT 3
+     buClear AT ROW 9.29 COL 27.8
+     RowObject.static_object AT ROW 10.52 COL 27.8
+          VIEW-AS TOGGLE-BOX
+          SIZE 17.2 BY 1
+     fiDepTypeTitle AT ROW 5.19 COL 25.8 COLON-ALIGNED NO-LABEL
+     SPACE(4.80) SKIP(7.43)
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -182,7 +186,7 @@ DEFINE FRAME frMain
    Temp-Tables and Buffers:
       TABLE: RowObject D "?" ?  
       ADDITIONAL-FIELDS:
-          {af/obj2/gscotful1o.i}
+          {af/obj2/gscotfullo.i}
       END-FIELDS.
    END-TABLES.
  */
@@ -202,8 +206,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 3.62
-         WIDTH              = 64.
+         HEIGHT             = 12.62
+         WIDTH              = 101.8.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -230,14 +234,16 @@ ASSIGN
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
 
-/* SETTINGS FOR TOGGLE-BOX RowObject.disabled IN FRAME frMain
-   EXP-LABEL                                                            */
-/* SETTINGS FOR TOGGLE-BOX RowObject.layout_supported IN FRAME frMain
-   EXP-LABEL                                                            */
+/* SETTINGS FOR BUTTON buClear IN FRAME frMain
+   NO-ENABLE                                                            */
+/* SETTINGS FOR FILL-IN fiDepTypeTitle IN FRAME frMain
+   NO-ENABLE                                                            */
+ASSIGN 
+       fiDepTypeTitle:PRIVATE-DATA IN FRAME frMain     = 
+                "Deployment Type".
+
 /* SETTINGS FOR FILL-IN RowObject.object_type_code IN FRAME frMain
-   EXP-LABEL                                                            */
-/* SETTINGS FOR FILL-IN RowObject.object_type_description IN FRAME frMain
-   EXP-LABEL                                                            */
+   EXP-FORMAT                                                           */
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
@@ -253,6 +259,23 @@ ASSIGN
 
  
 
+
+
+/* ************************  Control Triggers  ************************ */
+
+&Scoped-define SELF-NAME buClear
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buClear vTableWin
+ON CHOOSE OF buClear IN FRAME frMain /* Clear */
+DO:
+  ASSIGN rowObject.deployment_type:SCREEN-VALUE = "":U.
+  {set dataModified TRUE}.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&UNDEFINE SELF-NAME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK vTableWin 
 
@@ -271,6 +294,102 @@ ASSIGN
 
 /* **********************  Internal Procedures  *********************** */
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE addRecord vTableWin 
+PROCEDURE addRecord :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hContainerSource  AS HANDLE  NO-UNDO.
+  DEFINE VARIABLE dObjectTypeObj    AS DECIMAL NO-UNDO.
+
+  /* Code placed here will execute PRIOR to standard behavior. */
+
+  RUN SUPER.
+
+  /* Code placed here will execute AFTER standard behavior.    */
+  {get ContainerSource hContainerSource}. /* This should return the handle of the Dynamic TreeView Container */
+
+  IF VALID-HANDLE(hContainerSource) THEN DO:
+    dObjectTypeObj = DECIMAL(DYNAMIC-FUNCTION("getUserProperty":U IN hContainerSource, "ParentKeyValue":U)).
+    RUN assignNewValue IN hExtendsObjectType (INPUT STRING(dObjectTypeObj),"":U,TRUE).
+    RUN disableField IN hExtendsObjectType.
+  END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE adm-create-objects vTableWin  _ADM-CREATE-OBJECTS
+PROCEDURE adm-create-objects :
+/*------------------------------------------------------------------------------
+  Purpose:     Create handles for all SmartObjects used in this procedure.
+               After SmartObjects are initialized, then SmartLinks are added.
+  Parameters:  <none>
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE currentPage  AS INTEGER NO-UNDO.
+
+  ASSIGN currentPage = getCurrentPage().
+
+  CASE currentPage: 
+
+    WHEN 0 THEN DO:
+       RUN constructObject (
+             INPUT  'adm2/dynlookup.w':U ,
+             INPUT  FRAME frMain:HANDLE ,
+             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.smartobject_objFieldLabelClass Object NameFieldTooltipSelect an class object from this object type.KeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_smartobject NO-LOCK BY ryc_smartobject.object_filenameQueryTablesryc_smartobjectBrowseFieldsryc_smartobject.object_filename,ryc_smartobject.object_description,ryc_smartobject.object_extension,ryc_smartobject.container_object,ryc_smartobject.deployment_type,ryc_smartobject.generic_object,ryc_smartobject.static_object,ryc_smartobject.template_smartobjectBrowseFieldDataTypescharacter,character,character,logical,character,logical,logical,logicalBrowseFieldFormatsX(70),X(35),X(35),YES/NO,X(35),YES/NO,YES/NO,YES/NORowsToBatch200BrowseTitleClass Object LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNameclass_smartobject_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT hClassObjectName ).
+       RUN repositionObject IN hClassObjectName ( 11.57 , 27.80 ) NO-ERROR.
+       RUN resizeObject IN hClassObjectName ( 1.00 , 50.00 ) NO-ERROR.
+
+       RUN constructObject (
+             INPUT  'adm2/dynlookup.w':U ,
+             INPUT  FRAME frMain:HANDLE ,
+             INPUT  'DisplayedFieldgsc_object_type.object_type_codeKeyFieldgsc_object_type.object_type_objFieldLabelExtends Object TypeFieldTooltipPress F4 For LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(30)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type NO-LOCK BY gsc_object_type.object_type_codeQueryTablesgsc_object_typeBrowseFieldsgsc_object_type.object_type_code,gsc_object_type.object_type_description,gsc_object_type.static_object,gsc_object_type.disabledBrowseFieldDataTypescharacter,character,logical,logicalBrowseFieldFormatsX(15)|X(35)|YES/NO|YES/NORowsToBatch200BrowseTitleObject Type LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatX(30)SDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListNO-LOCKQueryBuilderOrderListgsc_object_type.object_type_code^yesQueryBuilderTableOptionListNO-LOCKQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNameextends_object_type_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT hExtendsObjectType ).
+       RUN repositionObject IN hExtendsObjectType ( 12.62 , 27.80 ) NO-ERROR.
+       RUN resizeObject IN hExtendsObjectType ( 1.00 , 50.00 ) NO-ERROR.
+
+       /* Adjust the tab order of the smart objects. */
+       RUN adjustTabOrder ( hClassObjectName ,
+             RowObject.static_object:HANDLE IN FRAME frMain , 'AFTER':U ).
+       RUN adjustTabOrder ( hExtendsObjectType ,
+             hClassObjectName , 'AFTER':U ).
+    END. /* Page 0 */
+
+  END CASE.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disableFields vTableWin 
+PROCEDURE disableFields :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  DEFINE INPUT PARAMETER pcFieldType AS CHARACTER NO-UNDO.
+
+  /* Code placed here will execute PRIOR to standard behavior. */
+
+  RUN SUPER( INPUT pcFieldType).
+
+  DO WITH FRAME {&FRAME-NAME}:
+    ASSIGN buClear:SENSITIVE = rowObject.deployment_type:SENSITIVE.
+  END.
+  /* Code placed here will execute AFTER standard behavior.    */
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI vTableWin  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
@@ -284,6 +403,39 @@ PROCEDURE disable_UI :
   /* Hide all frames. */
   HIDE FRAME frMain.
   IF THIS-PROCEDURE:PERSISTENT THEN DELETE PROCEDURE THIS-PROCEDURE.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enableFields vTableWin 
+PROCEDURE enableFields :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hContainer  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cTreeObject AS CHARACTER  NO-UNDO.
+
+  {get ContainerSource hContainer}.
+
+  /* Code placed here will execute PRIOR to standard behavior. */
+
+  RUN SUPER.
+
+  /* Code placed here will execute AFTER standard behavior.    */
+  
+  DO WITH FRAME {&FRAME-NAME}:
+    ASSIGN buClear:SENSITIVE = rowObject.deployment_type:SENSITIVE.
+  END.
+
+  /* Ensure that we never allow the changing of the Extends Object Type field when
+     in the Object Type TreeView */
+  cTreeObject = DYNAMIC-FUNCTION("getLogicalObjectName":U IN hContainer) NO-ERROR.
+  IF cTreeObject = "gscottreew":U THEN
+    RUN disableField IN hExtendsObjectType.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

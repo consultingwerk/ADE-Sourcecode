@@ -31,8 +31,8 @@ DEFINE INPUT PARAMETER pdNewObj             AS DECIMAL    NO-UNDO.
 %ForEachParentRel() 
 {
 FOR EACH %Child EXCLUSIVE-LOCK
-   WHERE %ForEachFKAtt() {%If(%==(%ParentAtt(%AttFieldName),%lower(%Substr(%Parent,5))_obj)) {  %Child.%AttFieldName = pdOldObj}}:
-%ForEachFKAtt() {%If(%==(%ParentAtt(%AttFieldName),%lower(%Substr(%Parent,5))_obj)) {  ASSIGN %Child.%AttFieldName = pdNewObj.}}
+   WHERE %ForEachFKAtt() {%If(%==(%ParentAtt(%AttFieldName),%lower(%Substr(%Parent,%DiagramProp("TableSubstr")))_obj)) {  %Child.%AttFieldName = pdOldObj}}:
+%ForEachFKAtt() {%If(%==(%ParentAtt(%AttFieldName),%lower(%Substr(%Parent,%DiagramProp("TableSubstr")))_obj)) {  ASSIGN %Child.%AttFieldName = pdNewObj.}}
 END.
 
 }

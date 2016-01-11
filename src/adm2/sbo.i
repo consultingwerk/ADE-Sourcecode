@@ -45,6 +45,13 @@
 
 &IF "{&ADMClass}":U = "sbo":U &THEN
   {src/adm2/sboprop.i}
+&ELSE  
+  /* if this is included in an extended class ensure that start-super-proc
+     keeps the DataLogicObject started in this main block at the bottom
+     of the super-procedure stack */  
+   &IF DEFINED(LAST-SUPER-PROCEDURE-PROP) = 0 &THEN
+ &SCOPED-DEFINE LAST-SUPER-PROCEDURE-PROP DataLogicObject 
+   &ENDIF
 &ENDIF
 
   /* This is an array of all the update table handles. */
@@ -140,7 +147,6 @@ FUNCTION initDataObjectOrdering RETURNS CHARACTER
 
 
 /* ***************************  Main Block  *************************** */
-  
   /* Starts super procedure */
   RUN start-super-proc("adm2/sbo.p":U).
   RUN start-super-proc("adm2/sboext.p":U).
@@ -148,6 +154,7 @@ FUNCTION initDataObjectOrdering RETURNS CHARACTER
      because functions don't have their own action segement and sbo.p got
      too big and had to be broken up.  All of the functions in sboext.p
      are get and set property functions.  */
+
   RUN modifyListProperty IN TARGET-PROCEDURE
        ( THIS-PROCEDURE, 'ADD':U, 'SupportedLinks':U, 'Filter-Target':U).
   
@@ -162,295 +169,40 @@ FUNCTION initDataObjectOrdering RETURNS CHARACTER
       .
   RUN modifyListProperty IN TARGET-PROCEDURE
       ( THIS-PROCEDURE, 'ADD':U, 'NavigationSourceEvents':U, 'unRegisterObject':U).
+  
 
   {set QueryObject yes}.               /* True for SBOs as for SDOs. */
       
-  /* _ADM-CODE-BLOCK-START _CUSTOM _INCLUDED-LIB-CUSTOM CUSTOM */
-
   {src/adm2/custom/sbocustom.i}
+   
+/* Add and start the datalogic procedure */
+&IF '{&DATA-LOGIC-PROCEDURE}':U <> '':U AND '{&DATA-LOGIC-PROCEDURE}':U <> '.p':U &THEN
+  {set DataLogicProcedure '{&DATA-LOGIC-PROCEDURE}':U}.
+&ENDIF
 
-  /* _ADM-CODE-BLOCK-END */
+/* Exclude the static function for a dynamic data object */ 
+&IF DEFINED(UpdTable1) = 0 &THEN
+   &SCOPED-DEFINE EXCLUDE-remoteCommitTransaction
+   &SCOPED-DEFINE EXCLUDE-serverCommitTransaction
+   &SCOPED-DEFINE EXCLUDE-initDataObjectOrdering
+   {set DynamicData YES}.
+&ELSE
+    DEFINE VARIABLE i_ AS INTEGER    NO-UNDO. /* to avoid conflict with user vars */
+    DEFINE VARIABLE c_ AS CHARACTER  NO-UNDO.
+    DO i_ = 1 TO 20: /* 20: Hardcoded number of max supported SDOs */
+      IF VALID-HANDLE(ghUpdTables[i_]) THEN
+        c_ = c_ + (IF c_ = "" THEN "" ELSE ",") + STRING(ghUpdTables[i_]).
+      ELSE LEAVE.
+    END.
+    {set UpdateTables c_}.
+    {set DynamicData NO}.
+&ENDIF
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
 
 /* **********************  Internal Procedures  *********************** */
-
-&IF DEFINED(EXCLUDE-bufferCommitTransaction) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE bufferCommitTransaction Method-Library 
-PROCEDURE bufferCommitTransaction :
-/*------------------------------------------------------------------------------
-  Purpose:     database-side part of CommitTransaction to save all RowObjUpd 
-               table updates and store them thru the server-side SDOs.
-  Parameters:  OUTPUT pcMessages AS CHARACTER -- error messages
-               OUTPUT pcUndoIds  AS CHARACTER -- rowids of error'd rows 
-       Notes:  Intended for internal use by other APIs that manages the buffers
-               for example received as table parameters like 
-               serverCommitTransaction, remoteCommitTransaction 
-------------------------------------------------------------------------------*/
-  DEFINE OUTPUT PARAMETER pcMessages AS CHARACTER   NO-UNDO.
-  DEFINE OUTPUT PARAMETER pcUndoIds  AS CHARACTER   NO-UNDO.
- 
-  DEFINE VARIABLE cContained  AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE iDO         AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE hDO         AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE hTable      AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE cOrdering   AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE iEntry      AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cASDivision AS CHARACTER  NO-UNDO.
-
-  /* These vars are for foreign field assignment. */
-  DEFINE VARIABLE hBuf           AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hFld           AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hQry           AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hSaveDO        AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hSaveTable     AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hSource        AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cForeignFields AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cForeignValues AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hSaveBuf       AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hSaveQry       AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hSaveCol       AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE iCol           AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE hCol           AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hRowMod        AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cFld           AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cUndoIds       AS CHARACTER  NO-UNDO.
-
-  {get ContainedDataObjects cContained}.
-  {get DataObjectOrdering cOrdering}.
-  {get ASDivision cASDivision}.
-
-  /* First do any validation the SBO needs to do at the very outset. */
-  RUN preTransactionValidate IN THIS-PROCEDURE NO-ERROR.
-  IF RETURN-VALUE NE "":U THEN
-  DO:
-      RUN prepareErrorsForReturn(INPUT RETURN-VALUE, INPUT cASDivision,
-                                 INPUT-OUTPUT pcMessages).
-      RETURN.
-  END.      /* DO IF error return */
-  
-  DO iDO = 1 TO NUM-ENTRIES(cContained):
-    hDO = WIDGET-HANDLE(ENTRY(iDO, cContained)).
-    IF LOOKUP('preTransactionValidate':U, hDO:INTERNAL-ENTRIES) NE 0 THEN
-    DO:
-      /* This will find which of the hard-coded AppBuilder-generated
-         update table definitions corresponds to this entry in the
-         ContainedDataObjects list. */
-      iEntry = LOOKUP(STRING(iDO), cOrdering).
-      hTable = ghUpdTables[iEntry].
-      IF hTable:HAS-RECORDS THEN
-        RUN pushTableAndValidate IN hDO (INPUT "Pre":U, 
-                                INPUT-OUTPUT TABLE-HANDLE hTable).
-      IF RETURN-VALUE NE "":U THEN
-      DO:
-        RUN prepareErrorsForReturn(INPUT RETURN-VALUE, INPUT cASDivision,
-                                   INPUT-OUTPUT pcMessages).
-        RETURN.
-      END.     /* END DO IF error return */
-    END.       /* END DO IF preTV defined in SDO */
-  END.         /* END DO iDO -- for each contained SDO */
-
-  DO TRANSACTION ON ERROR UNDO, LEAVE:
- 
-      /* First run any SBO specific logic for the transaction start. */
-      RUN beginTransactionValidate IN THIS-PROCEDURE NO-ERROR.
-      IF RETURN-VALUE NE "":U THEN
-      DO:
-        RUN prepareErrorsForReturn(INPUT RETURN-VALUE, 
-                                   INPUT cASDivision,
-                                   INPUT-OUTPUT pcMessages).
-        UNDO, RETURN.
-      END.     /* END DO IF error return */
-
-      DO iDO = 1 TO NUM-ENTRIES(cContained):
-        hDO = WIDGET-HANDLE(ENTRY(iDO, cContained)).
-        iEntry = LOOKUP(STRING(iDO), cOrdering).
-        hTable = ghUpdTables[iEntry].
-        
-        IF hTable:HAS-RECORDS THEN
-        DO:
-          /* In this section we look to see if a parent and one or more child
-             rows are being Added at the same time. If so, we copy ForeignField
-             key values from the parent rec to all newly added child recs,
-             *after* running serverCommit in the parent (so that the key values
-             will have been assigned for it), and *before* running it for
-             the child SDO. */
-          IF VALID-HANDLE(hSaveDO) THEN
-          DO:
-          /* We have saved off keys from the previous table. See if that's
-             a Data-Source for the current table. */
-             {get DataSource hSource hDO}.
-             IF hSource = hSaveDO THEN
-             DO:
-               /* The previous SDO was the current SDO's data-source,
-                  so look for key values to assign. */
-               {get ForeignFields cForeignFields hDO}.
-               IF cForeignFields NE "":U THEN
-               DO:
-                   hSaveBuf = hSaveTable:DEFAULT-BUFFER-HANDLE.
-                   CREATE QUERY hSaveQry.
-                   hSaveQry:SET-BUFFERS(hSaveBuf).
-                   hSaveQry:QUERY-PREPARE('For each ':U 
-                                          + hSaveTable:NAME
-                                          + ' WHERE ':U
-                                          + hSaveTable:NAME
-                                          + '.RowMod = "A"':U).
-                   hSaveQry:QUERY-OPEN().
-                   hSaveQry:GET-FIRST().
-                   /* Now we have the buffer the the parent record. 
-                      Create another query to loop through the children. */
-                   ASSIGN hBuf    = hTable:DEFAULT-BUFFER-HANDLE
-                          hRowMod = hBuf:BUFFER-FIELD('RowMod':U).
-                   CREATE QUERY hQry.
-                   hQry:SET-BUFFERS(hBuf).
-                   hQry:QUERY-PREPARE('For each ':U 
-                                      + hTable:NAME 
-                                      + ' WHERE ':U
-                                      + hTable:NAME
-                                      + '.RowMod = "A"':U).
-                   hQry:QUERY-OPEN().
-                   hQry:GET-FIRST().
-                   DO WHILE hBuf:AVAILABLE:
-                     cForeignValues = "":U.
-                     /* Assign the key values from the Saved record
-                          to each added row in the current SDO. */
-                     DO iCol = 1 TO NUM-ENTRIES(cForeignFields) BY 2:
-                         ASSIGN     /* This is the parent */
-                           hSaveCol = hSaveBuf:BUFFER-FIELD(ENTRY(iCol + 1,
-                                                            cForeignFields))
-                           /* remove the ObjectName qualifier from the
-                              field name for the child SDO. */
-                           cFld = ENTRY(iCol, cForeignFields)
-                            /* This is the child */
-                           hCol = hBuf:BUFFER-FIELD(
-                                     ENTRY(NUM-ENTRIES(cFld, ".":U), cFld, ".":U)
-                                                   )
-                           hCol:BUFFER-VALUE = hSaveCol:BUFFER-VALUE
-                           cForeignValues    = cForeignValues 
-                                             + (IF iCol = 1 THEN '':U ELSE CHR(1))
-                                             + IF hSaveCol:BUFFER-VALUE = ?
-                                               THEN '?' 
-                                               ELSE hSaveCol:BUFFER-VALUE.
-                     END.      /* END DO iCol == for each foreign field */ 
-                     /* ForeignValues will be returned to the client and 
-                        ensure that the query is not reopened as they will 
-                        match the data on the client */ 
-                     {set ForeignValues cForeignValues hDO}.
-                     hQry:GET-NEXT().
-                   END.          /* END DO WHILE AVAIL == for each child. */
-                   hQry:QUERY-CLOSE().
-                   hSaveQry:QUERY-CLOSE().
-                   DELETE OBJECT hQry.
-                   DELETE OBJECT hSaveQry.
-               END.              /* END DO if foreign fields */
-             END.                /* END DO IF SaveDO is DataSource */
-          END.                   /* END DO IF ValidHandle SaveDO */
-
-          RUN serverCommit IN hDO
-              (INPUT-OUTPUT TABLE-HANDLE hTable, 
-               OUTPUT pcMessages,
-               OUTPUT cUndoIds).
-          
-          IF cUndoIds <> '':U THEN
-          DO:
-            /* Make the UndoIds into a semicolon separated list, in order to 
-               identify which of the SDOs the UndoIds (RowNumCHR(3)text) belongs
-               to. The intention is not to create another completely confusing 
-               internal format, the semicolon separator is almost an SBO 
-               standard used to identify SDO also in other parameters... OK? */ 
-            ASSIGN 
-              pcUndoIds = FILL(';':U, NUM-ENTRIES(cContained) - 1)
-              ENTRY(iDO,pcUndoIds,';':U) = cUndoIds.
-          END.
-
-          /* if we're on the Server-side of a divided SBO, serverCommit for
-             the SDO will have put any error messages into pcMessages.
-             Otherwise it will simply have logged them with addMessage. */
-          IF (cASDivision = 'Server':U AND pcMessages NE "":U) OR
-              DYNAMIC-FUNCTION ('anyMessage':U IN TARGET-PROCEDURE) THEN
-          DO:
-            UNDO, RETURN.
-          END.
-
-          /* Now that we're back from the commit, check to see if it
-             was an Add. If so, save the DO and Table handles to use to
-             create keys for the next table if appropriate. */
-          hBuf = hTable:DEFAULT-BUFFER-HANDLE.
-          CREATE QUERY hQry.
-          hQry:SET-BUFFERS(hBuf).
-          hQry:QUERY-PREPARE('For each ':U 
-                              + hTable:NAME 
-                              + ' WHERE ':U
-                              + hTable:NAME
-                              + '.RowMod = "A"':U).
-          hQry:QUERY-OPEN().
-          hQry:GET-FIRST().
-          ASSIGN
-            hSaveDO = ?
-            hSaveTable = ?.
-          IF hBuf:AVAILABLE THEN
-          DO:
-            hCol = hBuf:BUFFER-FIELD('RowMod':U).
-            hQry:GET-NEXT(). 
-            /* Only if one 'A' add record  */
-            IF hQry:QUERY-OFF-END THEN
-              ASSIGN hSaveDO    = hDO
-                     hSaveTable = hTable.
-          END.
-          hQry:QUERY-CLOSE().
-          DELETE OBJECT hQry.
-        END.      /* END DO IF HAS-RECORDS */
-      END.        /* END DO iDO -- serverCommit for each SDO */
-      /* Finally do any validation the SBO needs to do at the very end
-         of the transaction. */
-        RUN endTransactionValidate IN THIS-PROCEDURE NO-ERROR.
-        IF RETURN-VALUE NE "":U THEN
-        DO:
-          RUN prepareErrorsForReturn(INPUT RETURN-VALUE, INPUT cASDivision,
-                                     INPUT-OUTPUT pcMessages).
-          UNDO, RETURN.
-        END.     /* END DO IF error return */
-
-  END.            /* END TRANSACTION */
-          
-  DO iDO = 1 TO NUM-ENTRIES(cContained):
-      hDO = WIDGET-HANDLE(ENTRY(iDO, cContained)).
-      IF LOOKUP('postTransactionValidate':U, hDO:INTERNAL-ENTRIES) 
-          NE 0 THEN
-      DO:
-        iEntry = LOOKUP(STRING(iDO), cOrdering).
-        hTable = ghUpdTables[iEntry].
-         
-        IF hTable:HAS-RECORDS THEN
-          RUN pushTableAndValidate IN hDO (INPUT "Post":U,
-                                 INPUT-OUTPUT TABLE-HANDLE hTable).
-          IF RETURN-VALUE NE "":U THEN
-          DO:
-              RUN prepareErrorsForReturn(INPUT RETURN-VALUE, INPUT cASDivision,
-                                         INPUT-OUTPUT pcMessages).
-              RETURN.
-          END.      /* END DO IF error return */
-      END.          /* END DO IF postTV defined in SDO */
-  END.              /* END DO iDO -- for each contained SDO */
-  /* Finally do any validation the SBO needs to do at the very end. */
-  RUN postTransactionValidate IN THIS-PROCEDURE NO-ERROR.
-  IF RETURN-VALUE NE "":U THEN
-  DO:
-      RUN prepareErrorsForReturn(INPUT RETURN-VALUE, INPUT cASDivision,
-                                 INPUT-OUTPUT pcMessages).
-      RETURN.
-  END.     /* END DO IF error return */
-
-  RETURN.     
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
 
 &IF DEFINED(EXCLUDE-remoteCommitTransaction) = 0 &THEN
 
@@ -466,26 +218,26 @@ PROCEDURE remoteCommitTransaction :
 ------------------------------------------------------------------------------*/ 
   DEFINE INPUT-OUTPUT PARAMETER pccontext AS CHAR NO-UNDO.
 
-  {src/adm2/updparam.i 1}
-  {src/adm2/updparam.i 2}
-  {src/adm2/updparam.i 3}
-  {src/adm2/updparam.i 4}
-  {src/adm2/updparam.i 5}
-  {src/adm2/updparam.i 6}
-  {src/adm2/updparam.i 7}
-  {src/adm2/updparam.i 8}
-  {src/adm2/updparam.i 9}
-  {src/adm2/updparam.i 10}
-  {src/adm2/updparam.i 11}
-  {src/adm2/updparam.i 12}
-  {src/adm2/updparam.i 13}
-  {src/adm2/updparam.i 14}
-  {src/adm2/updparam.i 15}
-  {src/adm2/updparam.i 16}
-  {src/adm2/updparam.i 17}
-  {src/adm2/updparam.i 18}
-  {src/adm2/updparam.i 19}
-  {src/adm2/updparam.i 20}
+  {src/adm2/updparam.i 1 INPUT-OUTPUT}
+  {src/adm2/updparam.i 2 INPUT-OUTPUT}
+  {src/adm2/updparam.i 3 INPUT-OUTPUT}
+  {src/adm2/updparam.i 4 INPUT-OUTPUT}
+  {src/adm2/updparam.i 5 INPUT-OUTPUT}
+  {src/adm2/updparam.i 6 INPUT-OUTPUT}
+  {src/adm2/updparam.i 7 INPUT-OUTPUT}
+  {src/adm2/updparam.i 8 INPUT-OUTPUT}
+  {src/adm2/updparam.i 9 INPUT-OUTPUT}
+  {src/adm2/updparam.i 10 INPUT-OUTPUT}
+  {src/adm2/updparam.i 11 INPUT-OUTPUT}
+  {src/adm2/updparam.i 12 INPUT-OUTPUT}
+  {src/adm2/updparam.i 13 INPUT-OUTPUT}
+  {src/adm2/updparam.i 14 INPUT-OUTPUT}
+  {src/adm2/updparam.i 15 INPUT-OUTPUT}
+  {src/adm2/updparam.i 16 INPUT-OUTPUT}
+  {src/adm2/updparam.i 17 INPUT-OUTPUT}
+  {src/adm2/updparam.i 18 INPUT-OUTPUT}
+  {src/adm2/updparam.i 19 INPUT-OUTPUT}
+  {src/adm2/updparam.i 20 INPUT-OUTPUT}
 
   DEFINE OUTPUT PARAMETER pcMessages AS CHARACTER   NO-UNDO.
   DEFINE OUTPUT PARAMETER pcUndoIds  AS CHARACTER   NO-UNDO.
@@ -516,31 +268,31 @@ PROCEDURE serverCommitTransaction :
                OUTPUT pcMessages AS CHARACTER -- error messages
                OUTPUT pcUndoIds  AS CHARACTER -- rowids of error'd rows
 ------------------------------------------------------------------------------*/ 
-  {src/adm2/updparam.i 1}
-  {src/adm2/updparam.i 2}
-  {src/adm2/updparam.i 3}
-  {src/adm2/updparam.i 4}
-  {src/adm2/updparam.i 5}
-  {src/adm2/updparam.i 6}
-  {src/adm2/updparam.i 7}
-  {src/adm2/updparam.i 8}
-  {src/adm2/updparam.i 9}
-  {src/adm2/updparam.i 10}
-  {src/adm2/updparam.i 11}
-  {src/adm2/updparam.i 12}
-  {src/adm2/updparam.i 13}
-  {src/adm2/updparam.i 14}
-  {src/adm2/updparam.i 15}
-  {src/adm2/updparam.i 16}
-  {src/adm2/updparam.i 17}
-  {src/adm2/updparam.i 18}
-  {src/adm2/updparam.i 19}
-  {src/adm2/updparam.i 20}
+  {src/adm2/updparam.i 1 INPUT-OUTPUT}
+  {src/adm2/updparam.i 2 INPUT-OUTPUT}
+  {src/adm2/updparam.i 3 INPUT-OUTPUT}
+  {src/adm2/updparam.i 4 INPUT-OUTPUT}
+  {src/adm2/updparam.i 5 INPUT-OUTPUT}
+  {src/adm2/updparam.i 6 INPUT-OUTPUT}
+  {src/adm2/updparam.i 7 INPUT-OUTPUT}
+  {src/adm2/updparam.i 8 INPUT-OUTPUT}
+  {src/adm2/updparam.i 9 INPUT-OUTPUT}
+  {src/adm2/updparam.i 10 INPUT-OUTPUT}
+  {src/adm2/updparam.i 11 INPUT-OUTPUT}
+  {src/adm2/updparam.i 12 INPUT-OUTPUT}
+  {src/adm2/updparam.i 13 INPUT-OUTPUT}
+  {src/adm2/updparam.i 14 INPUT-OUTPUT}
+  {src/adm2/updparam.i 15 INPUT-OUTPUT}
+  {src/adm2/updparam.i 16 INPUT-OUTPUT}
+  {src/adm2/updparam.i 17 INPUT-OUTPUT}
+  {src/adm2/updparam.i 18 INPUT-OUTPUT}
+  {src/adm2/updparam.i 19 INPUT-OUTPUT}
+  {src/adm2/updparam.i 20 INPUT-OUTPUT}
 
   DEFINE OUTPUT PARAMETER pcMessages AS CHARACTER   NO-UNDO.
   DEFINE OUTPUT PARAMETER pcUndoIds  AS CHARACTER   NO-UNDO.
 
-  RUN bufferCommitTransaction (OUTPUT pcMessages, OUTPUT pcUndoIds). 
+  RUN bufferCommitTransaction IN TARGET-PROCEDURE (OUTPUT pcMessages, OUTPUT pcUndoIds). 
 
 END PROCEDURE.
 

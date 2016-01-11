@@ -53,6 +53,7 @@ DEFINE VAR cur-lo          AS CHARACTER                         NO-UNDO.
 
 DEFINE BUFFER parent_U FOR _U.
 DEFINE BUFFER parent_L FOR _L.
+DEFINE BUFFER x_U      FOR _U.
 
 FIND _U WHERE _U._HANDLE = _h_win.
 cur-lo = _U._LAYOUT-NAME.
@@ -149,6 +150,10 @@ END.
 /* For Logicals make sure that the INITIAL-DATA is either "no", "yes" or "?" */
 IF _F._DATA-TYPE = "LOGICAL":U AND _F._INITIAL-DATA = "":U THEN
   _F._INITIAL-DATA = "no":U.
+
+/* Make a final check on the name */
+IF CAN-FIND(FIRST x_U WHERE x_U._NAME = _U._NAME AND x_U._STATUS = "NORMAL":U)
+  THEN RUN adeshar/_bstname.p (_U._NAME, ?, ?, ?, _h_win, OUTPUT _U._NAME).  
 
 /* Create the widget based on the Universal widget record. */
 RUN adeuib/_undfill.p (RECID(_U)).

@@ -141,6 +141,11 @@ FUNCTION deleteRecordStatic RETURNS LOGICAL
   {src/adm2/custom/querycustom.i}
   /* _ADM-CODE-BLOCK-END */
 
+/* Exclude the static delete for a dynamic data object */ 
+&IF DEFINED(DATA-FIELD-DEFS) = 0 &THEN
+   &SCOPED-DEFINE EXCLUDE-deleteRecordStatic
+&ENDIF
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -159,6 +164,7 @@ PROCEDURE initProps :
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cTable          AS CHARACTER  NO-UNDO. 
   DEFINE VARIABLE iTable          AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cColumns        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cDataCols       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cUpdCols        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cCalcData       AS CHARACTER  NO-UNDO.
@@ -178,6 +184,7 @@ PROCEDURE initProps :
   DEFINE VARIABLE cField          AS CHAR       NO-UNDO.
   DEFINE VARIABLE cKeyTable       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cQueryString    AS CHARACTER NO-UNDO.
+  
 
   /* New for 9.1D to allow storage of this in the client SDO so the one-hit 
      appserver can be utilized also oat initialization */
@@ -198,9 +205,16 @@ PROCEDURE initProps :
   DEFINE VARIABLE cKeyTableEntityObjField AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lHasObjectField         AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE iLookup                 AS INTEGER    NO-UNDO.
-  
-  ASSIGN hQuery = QUERY {&QUERY-NAME}:HANDLE.   /* Database query */
-  
+  DEFINE VARIABLE lHasAudit               AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lHasComment             AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lHasAutoComment         AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cEntityFields           AS CHARACTER  NO-UNDO.
+
+  ASSIGN hQuery = QUERY {&QUERY-NAME}:HANDLE   /* Database query */
+         hQuery:ADM-DATA = (IF hQuery:ADM-DATA <> ?
+                              THEN (hQuery:ADM-DATA + chr(1)) ELSE "")
+                           + "STATIC":U.
+
   /* Initialize the list of buffer handles for the tables in the db query,
      which is used to build the "RowIdent" key passed to clients. 
      Also initialize DBNames, which is used to forgive developers that
@@ -230,11 +244,13 @@ PROCEDURE initProps :
   /* Store the original query in the OpenQuery property and prepare the query 
      with it. 
      - setOpenQuery -> setQueryWhere -> prepareQuery */
+ 
   IF NOT {fnarg setOpenQuery cQueryString} THEN
     DYNAMIC-FUNCTION('showMessage':U IN TARGET-PROCEDURE, '5':U). 
 &ELSE  /* if defined(open-query) */
   /* Store the original query in the BaseQuery client property */ 
-  {set BaseQuery cQueryString}.
+  IF cQueryString <> '' THEN
+     {set BaseQuery cQueryString}.
 &ENDIF /* client */  
 
 &IF "{&TABLES-IN-QUERY-{&QUERY-NAME}}":U NE "":U &THEN
@@ -288,6 +304,7 @@ PROCEDURE initProps :
 
 &ENDIF   /* If TABLES-IN-QUERY */
 
+&IF "{&DATA-FIELDS}":U NE "":U &THEN
   /* Now set the UpdatableColumns and DataColumnsByTable property to be all 
      the Enabled-Fields and Data-Fields, delimited by CHR(1).
      Also store the original list which may xontain computed fields */
@@ -321,21 +338,23 @@ PROCEDURE initProps :
  &UNDEFINE datacount   
  &UNDEFINE enabledcount   
  
+ cColumns =  REPLACE('{&DATA-FIELDS}':U,' ':U,',':U).
+ {set DataColumns cColumns}.
  {set UpdatableColumnsByTable cUpdCols}.
  {set DataColumnsByTable cDataCols}.
  
 /* Is there any calculated fields? */
-DO iCount = 1 TO NUM-ENTRIES('{&DATA-FIELDS}',' ':U) 
-WHILE  (iNumUpd  < NUM-ENTRIES('{&ENABLED-FIELDS}',' ':U)
+DO iCount = 1 TO NUM-ENTRIES(cColumns) 
+WHILE  (iNumUpd  < NUM-ENTRIES('{&ENABLED-FIELDS}':U,' ':U)
         OR 
-        iNumData < NUM-ENTRIES('{&DATA-FIELDS}',' ':U)):
+        iNumData < NUM-ENTRIES(cColumns)):
   /* All fields are in data-fields so we don't care about enabled-fields */
-  cField = ENTRY(iCount,'{&DATA-FIELDS}',' ':U).
+  cField = ENTRY(iCount,cColumns).
   /* Replace the commas with CHR(1) in order to can-do */
   IF NOT CAN-DO(REPLACE(cDataCols,CHR(1),",":U),cField) THEN
   DO:
     ASSIGN 
-      cCalcData = cCalcData + (IF cCalcData = "":U THEN "":U ELSE ",") + cField
+      cCalcData = cCalcData + (IF cCalcData = "":U THEN "":U ELSE ",":U) + cField
       iNumData  = iNumData  + 1.
   END. /* not can-do(datacols with commas,cfield) */
   /* Replace the commas with CHR(1) in order to can-do */
@@ -343,7 +362,7 @@ WHILE  (iNumUpd  < NUM-ENTRIES('{&ENABLED-FIELDS}',' ':U)
   AND LOOKUP(cField,'{&enabled-fields}':U,' ':U) > 0 THEN
   DO:  
     ASSIGN 
-      cCalcUpd = cCalcUpd + (IF cCalcUpd = "":U THEN "":U ELSE ",") + cField
+      cCalcUpd = cCalcUpd + (IF cCalcUpd = "":U THEN "":U ELSE ",":U) + cField
       iNumUpd  = iNumUpd + 1.
   END. /* not can-do(updcols with commas,cfield) and lookup(enabled,cfield > 0)*/
 END.
@@ -355,57 +374,11 @@ END.
 ASSIGN
   cDataCols = cDataCols + CHR(1) + cCalcData
   cUpdCols  = cUpdCols + CHR(1)  + cCalcUpd.
-  
+
 {set UpdatableColumnsByTable cUpdCols}.
 {set DataColumnsByTable cDataCols}.
 
-&IF DEFINED(OPEN-QUERY-{&QUERY-NAME}) NE 0 &THEN
-/* We do this after updatableColumnsBytable has been set as this 
-   will give us the Enabledtables 
-   (we still only do it on the server as the to as getEntityDetail is a server 
-    procedure) */
-  
- {get EnabledTables cKeyTable}.
- /* First enabled .. */
- cKeyTable = ENTRY(1,cKeyTable).
- /* if no enabled use the first table */
- IF cKeyTable = '':U THEN
-   cKeyTable = "{&FIRST-TABLE-IN-QUERY-{&QUERY-NAME}}".
-  
-
- IF cKeyTable <> "":U
- AND VALID-HANDLE(gshGenManager) THEN  
-  /* AND LOOKUP("getEntityDetail":U, gshGenManager:INTERNAL-ENTRIES) > 0 */
- DO:
-
-    RUN getEntityDetail IN gshGenManager
-                       (INPUT  cKeyTable,
-                        OUTPUT cKeyTableEntityFields,
-                        OUTPUT cKeyTableEntityValues) NO-ERROR.
-
-    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN
-    DO:
-      {checkerr.i &display-error = "YES"}
-    END.
-    IF cKeyTableEntityFields <> "":U THEN 
-    DO:
-      IF LOOKUP("entity_mnemonic",cKeyTableEntityFields,CHR(1)) <> 0 THEN 
-         ASSIGN cKeyTableEntityMnemonic = ENTRY( LOOKUP("entity_mnemonic",cKeyTableEntityFields,CHR(1))    ,cKeyTableEntityValues,CHR(1) ).
- 
-      IF LOOKUP("table_has_object_field",cKeyTableEntityFields,CHR(1)) <> 0 THEN 
-        ASSIGN lHasObjectField = CAN-DO("TRUE,YES",ENTRY( LOOKUP("table_has_object_field",cKeyTableEntityFields,CHR(1)) ,cKeyTableEntityValues,CHR(1) )).
-       
-      IF lHasObjectField THEN
-         IF LOOKUP("entity_object_field",cKeyTableEntityFields,CHR(1)) <> 0 THEN 
-           ASSIGN cKeyTableEntityObjField = ENTRY( LOOKUP("entity_object_field",cKeyTableEntityFields,CHR(1)) ,cKeyTableEntityValues,CHR(1) ).
-      ELSE
-        IF LOOKUP("entity_key_field",cKeyTableEntityFields,CHR(1)) <> 0 THEN 
-           ASSIGN cKeyTableEntityObjField = ENTRY( LOOKUP("entity_key_field",cKeyTableEntityFields,CHR(1)) ,cKeyTableEntityValues,CHR(1) ).
-      {set KeyTableId cKeyTableEntityMnemonic}.
-      {set KeyFields  cKeyTableEntityObjField}.
-    END.
- END.
-&ENDIF
+&ENDIF /* DATA-FIELDS NE "" */
 
 END PROCEDURE.
 
@@ -461,6 +434,30 @@ FUNCTION deleteRecordStatic RETURNS LOGICAL
     END.
     WHEN 10 THEN DO:
       {src/adm2/delrecst.i &num=TENTH}
+    END.
+    WHEN 11 THEN DO:
+      {src/adm2/delrecst.i &num=ELEVENTH}
+    END.
+    WHEN 12 THEN DO:
+      {src/adm2/delrecst.i &num=TWELFTH}
+    END.
+    WHEN 13 THEN DO:
+      {src/adm2/delrecst.i &num=THIRTEENTH}
+    END.
+    WHEN 14 THEN DO:
+      {src/adm2/delrecst.i &num=FOURTEENTH}
+    END.
+    WHEN 15 THEN DO:
+      {src/adm2/delrecst.i &num=FIFTEENTH}
+    END.
+    WHEN 16 THEN DO:
+      {src/adm2/delrecst.i &num=SIXTEENTH}
+    END.
+    WHEN 17 THEN DO:
+      {src/adm2/delrecst.i &num=SEVENTEENTH}
+    END.
+    WHEN 18 THEN DO:
+      {src/adm2/delrecst.i &num=EIGHTEENTH}
     END.
   END CASE.
 

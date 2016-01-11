@@ -150,7 +150,7 @@ DO iLoop = 1 TO NUM-ENTRIES(pcPropertyList):
 
   ASSIGN cProperty = TRIM(ENTRY(iLoop,pcPropertyList)).
   FIND FIRST gsm_server_context NO-LOCK
-       WHERE gsm_server_context.CONTEXT_id = gscSessionID
+       WHERE gsm_server_context.session_obj = gsdSessionObj
          AND gsm_server_context.CONTEXT_name = cProperty
        NO-ERROR.
   ASSIGN pcValueList = pcValueList + (IF iLoop = 1 THEN "":U ELSE CHR(3)) +

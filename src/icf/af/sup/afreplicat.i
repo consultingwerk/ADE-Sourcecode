@@ -99,11 +99,13 @@ af/cod/aftemwizpw.w
    can be displayed in the about window of the container */
 
 &scop object-name       afreplicat.i
-&scop object-version    010002
+&scop object-version    000000
 
 
 /* ICF object identifying preprocessor */
 &glob   mip-structured-include  yes
+
+{src/adm2/globals.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -137,8 +139,8 @@ af/cod/aftemwizpw.w
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Include ASSIGN
-         HEIGHT             = 7.33
-         WIDTH              = 40.
+         HEIGHT             = 12.24
+         WIDTH              = 40.8.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -195,11 +197,17 @@ IF TRIM("{&VERSION-DATA}") = "YES":U
 THEN
 DO ON ERROR UNDO, RETURN ERROR RETURN-VALUE:
 
-  RUN af/app/afversionp.p (
-      INPUT BUFFER {&TABLE-NAME}:HANDLE,
-      INPUT "{&TABLE-FLA}",
-      INPUT "{&ACTION}"
-      ).
+  ERROR-STATUS:ERROR = NO.
+  
+  RUN versionData IN gshRIManager
+    (INPUT BUFFER {&TABLE-NAME}:HANDLE, 
+     INPUT "{&TABLE-FLA}", 
+     INPUT "{&ACTION}") NO-ERROR.
+
+  IF ERROR-STATUS:ERROR OR 
+     (RETURN-VALUE <> "":U AND
+      RETURN-VALUE <> ?) THEN
+    RETURN ERROR RETURN-VALUE.
 
 END.
 

@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          afdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" vTableWin _INLINE
@@ -87,7 +87,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gsmraviewv.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -124,10 +124,11 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 RowObject.range_description RowObject.disabled RowObject.system_owned 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define DISPLAYED-FIELDS RowObject.range_code ~
 RowObject.range_description RowObject.disabled RowObject.system_owned 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
+
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -145,18 +146,18 @@ RowObject.range_description RowObject.disabled RowObject.system_owned
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     RowObject.range_code AT ROW 1 COL 23.8 COLON-ALIGNED
+     RowObject.range_code AT ROW 1 COL 23.72 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 15.6 BY 1
-     RowObject.range_description AT ROW 2 COL 23.8 COLON-ALIGNED
+          SIZE 24 BY 1
+     RowObject.range_description AT ROW 2.04 COL 23.72 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 37 BY 1
-     RowObject.disabled AT ROW 3 COL 25.8
+          SIZE 78.43 BY 1
+     RowObject.disabled AT ROW 3.12 COL 25.72
           VIEW-AS TOGGLE-BOX
-          SIZE 13.2 BY .81
-     RowObject.system_owned AT ROW 3.81 COL 25.8
+          SIZE 13.14 BY 1
+     RowObject.system_owned AT ROW 4.15 COL 25.72
           VIEW-AS TOGGLE-BOX
-          SIZE 19.2 BY .81
+          SIZE 19.14 BY 1
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -196,8 +197,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 4.24
-         WIDTH              = 80.
+         HEIGHT             = 4.35
+         WIDTH              = 104.72.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -237,7 +238,7 @@ ASSIGN
 */  /* FRAME frMain */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK vTableWin 

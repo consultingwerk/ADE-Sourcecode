@@ -57,7 +57,7 @@
 
 
 /* ***************************  Definitions  ************************** */
-{ adm2/support/admhlp.i} /* ADM Help File Defs */
+{ src/adm2/support/admhlp.i} /* ADM Help File Defs */
 
 /* Parameters Definitions ---                                           */
 DEFINE INPUT PARAMETER hWizard AS WIDGET-HANDLE                    NO-UNDO.
@@ -77,7 +77,9 @@ DEFINE VARIABLE lWeb           AS LOG           NO-UNDO.
 DEFINE VARIABLE hWizProc       AS HANDLE        NO-UNDO.
 DEFINE VARIABLE valid-msg      AS CHARACTER     NO-UNDO.
 DEFINE VARIABLE valid-sdo      AS LOGICAL       NO-UNDO INITIAL TRUE.
-
+DEFINE VARIABLE cReposObject   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cReposType     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE lIsRepos       AS LOGICAL    NO-UNDO.
 
 FUNCTION is-sdo RETURNS LOGICAL
         (INPUT h_do AS HANDLE) IN hFuncLib.
@@ -375,6 +377,7 @@ RUN adeuib/_uibinfo.p (?, "PROCEDURE ?":U, "PROCEDURE":U, OUTPUT proc-recid).
 
 /* Get procedure type (SmartViewer or SmartBrowser) */
 RUN adeuib/_uibinfo.p (INT(proc-recid),"":U, "TYPE":U, OUTPUT objtype).
+
 ASSIGN lWeb =(ObjType BEGINS "WEB":U).
 
 /* Get the name of the associated DataObject */

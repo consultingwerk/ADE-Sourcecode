@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html 
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style>
+body      {font-family: arial;}
+table     {background-color: #ECFFED;
+           border-left-style: solid;
+           border-bottom-style: solid;
+           border-width: 1;}
+th        {background-color: #ABFEAF;
+           text-align: left;
+           border-right-style: solid;
+           border-top-style: solid;
+           border-width: 1;}
+td        {border-right-style: solid;
+           border-top-style: solid;
+           border-width: 1;}
+</style>
+</head>
+<body background="../img/wsbgr.gif" onLoad="setFocus()">
+<a name="top"><img src="../img/icflogo.gif" />&#160;&#160;<font size="+3">Progress Dynamics Web</font></a>
+<hr />
+<h2>Repository Objects and Attributes</h2>
+<form name="form" method="post" action="_repository.icf">
+Object: 
+<input type="text" id="object1" name="object1" size="40" 
+  value="`if get-value('object1') > '' then get-value('object1') else 'afallmencw' `" />
+<input type="submit" name="bsubmit" value="Submit" />
+</form>
+<script language="javascript"><!--
+function getObject(obj){
+  window.document.form.object1.value=obj;
+  window.document.form.submit();
+}
+function setFocus(){
+  document.getElementById('object1').focus();
+  document.getElementById('object1').select();
+}
+--></script>
+<br />
+<!--wss
+{ry/app/ryobjretri.i} 
+{src/adm2/globals.i}
+
+DEFINE VARIABLE cAttrHdls             AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cAttributeList        AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cError                AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cName                 AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cProperties           AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cRunAttribute         AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cSessionResultCodes   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cValue                AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cWhere                AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE dCurrentLanguageObj   AS DECIMAL    NO-UNDO.
+DEFINE VARIABLE dCurrentUserObj       AS DECIMAL    NO-UNDO.
+DEFINE VARIABLE e                     AS INTEGER    NO-UNDO.
+DEFINE VARIABLE ghObjectBuffer        AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hAttributeBuffer      AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hBufferCacheBuffer    AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hColumn               AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hCustomManager        AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hCustomizationManager AS HANDLE     NO-UNDO.
+DEFINE VARIABLE iAttributeExtent      AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iColumn               AS INTEGER    NO-UNDO. 
+DEFINE VARIABLE lFound                AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE lGotIt                AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE pcLogObjName          AS CHARACTER  NO-UNDO INITIAL "afallmencw". 
+DEFINE VARIABLE plShowAttrs           AS LOGICAL    NO-UNDO INITIAL TRUE.
+
+/*******************************************************************************************/
+FUNCTION listRecs RETURNS LOGICAL
+  (INPUT phBuf AS HANDLE):
+
+  DEFINE VARIABLE cField AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE ix     AS INTEGER   NO-UNDO. 
+  DEFINE VARIABLE hQ     AS HANDLE    NO-UNDO.
+
+  IF NOT VALID-HANDLE(phBuf) THEN RETURN FALSE.
+  
+  CREATE QUERY hQ .
+  hQ:ADD-BUFFER(phBuf).
+  hQ:QUERY-PREPARE("FOR EACH "  + phBuf:NAME ).
+  hQ:QUERY-OPEN().
+  hQ:GET-FIRST().
+  {&OUT}
+    '<br /><b>Buffer: <font color=blue>' phBuf:NAME ' (' phBuf:TABLE ')</font></b> Handle:<font color=blue> ' string(phBuf) '</font><br />' SKIP
+    '<table cellspacing=0 cellpadding=0>' SKIP
+    '<tr>'.
+    
+  /* Column headings */  
+  DO ix = 1 TO phBuf:NUM-FIELDS:
+    {&OUT} '<th>' phBuf:BUFFER-FIELD(ix):NAME '</th>'.
+  END.
+  {&OUT} '</tr>' SKIP.
+
+  /* Data rows */
+  DO WHILE phBuf:AVAILABLE AND hQ:IS-OPEN:
+    {&OUT} '<tr>'.
+    DO ix = 1 TO phBuf:NUM-FIELDS:
+      ASSIGN cField = phBuf:BUFFER-FIELD(ix):BUFFER-VALUE.
+      IF phBuf:NAME = "cache_object":U AND ix = 1 THEN
+        ASSIGN cField = '<a href="#' + cField + '">' + cField + '</a>'.
+      
+      {&OUT} '<td nowrap>' 
+        (IF phBuf:BUFFER-FIELD(ix):BUFFER-VALUE = '' OR phBuf:BUFFER-FIELD(ix):BUFFER-VALUE = ? 
+         THEN '&#160;' ELSE cField) '</td>'.
+    END.
+    {&OUT} '</tr>' SKIP.
+    hQ:GET-NEXT().
+  END.
+  {&OUT} '</table><br />' SKIP.
+
+  RETURN TRUE.
+
+END FUNCTION. /* listRecs */
+
+FUNCTION forEach RETURNS LOGICAL
+  (phBuf AS HANDLE,
+   pcWhere  AS CHARACTER,
+   pcProcessFunc AS CHARACTER):
+
+  DEFINE VARIABLE cQuery AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cName  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cValue AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hCol   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hQ     AS HANDLE     NO-UNDO.
+
+  CREATE QUERY hQ.
+  hQ:ADD-BUFFER(phBuf).
+  cQuery = "FOR EACH "  + phBuf:NAME + ' ' + pcWhere.
+  {&OUT} '<br />Query:' cQuery + '<br />'.
+  hQ:QUERY-PREPARE(cQuery).
+  hQ:QUERY-OPEN().
+  hQ:GET-FIRST().
+    
+  /* Loop through records and process. */
+  DO WHILE phBuf:AVAILABLE AND hQ:IS-OPEN:
+    DYNAMIC-FUNCTION(pcProcessFunc, phBuf) NO-ERROR. 
+    hQ:GET-NEXT().
+  END.
+  
+  RETURN TRUE.
+  
+END FUNCTION.
+
+FUNCTION listObjAttrs RETURNS LOGICAL
+  (INPUT phBuf AS HANDLE):
+
+  DEFINE VARIABLE cLogicalObject    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cObjAttrId        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE dRecordIdentifier AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE hAttributeBuffer  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE ix                AS INTEGER    NO-UNDO.
+  
+  ASSIGN
+    hAttributeBuffer  = phBuf:BUFFER-FIELD("tClassBufferHandle":U):BUFFER-VALUE
+    dRecordIdentifier = phBuf:BUFFER-FIELD("tRecordIdentifier":U):BUFFER-VALUE
+    cLogicalObject    = phBuf:BUFFER-FIELD("tLogicalObjectName":U):BUFFER-VALUE NO-ERROR.
+
+  /* Show ones already done. */
+  cObjAttrId = STRING(hAttributeBuffer) + ':' + STRING(dRecordIdentifier).
+  IF LOOKUP(cObjAttrId, cAttrHdls) > 0 THEN DO:
+    {&OUT} '<br />Skipping attributes for object: ' cLogicalObject
+      ' as attribute table (HANDLE:recidentifier= ' 
+      cObjAttrId ') has already been listed.<br />' SKIP.
+    RETURN FALSE.
+  END.
+  cAttrHdls = cAttrHdls + ',':U + cObjAttrId.
+  
+  hAttributeBuffer:FIND-FIRST(" WHERE ":U + hAttributeBuffer:NAME + 
+                              ".tRecordIdentifier = ":U + 
+                              STRING(dRecordIdentifier)) NO-ERROR.
+
+  {&OUT}
+    '<b><font size="+1"><a name="' cLogicalObject '"></a>'
+    'Object:<font color="blue">' 
+    '<a href="javascript: void getObject(~'' cLogicalObject '~');">' cLogicalObject '</a>'
+    '</font></font></b><a href="#top"><img src="../img/moveup.gif" border="0" /></a><br />' skip
+    '(Attribute Buffer: <font color="blue">' hAttributeBuffer:NAME ' (' hAttributeBuffer:TABLE ')</font> Handle:<font color="blue"> ' string(hAttributeBuffer) '</font><br />' SKIP
+    '<table cellspacing="0" cellpadding="0">' SKIP
+    '<tr bgcolor="#ABFEAF">'.
+    
+  /* Data rows */
+  DO ix = 1 TO hAttributeBuffer:NUM-FIELDS:
+    {&OUT}
+      '<tr><th> ' hAttributeBuffer:BUFFER-FIELD(ix):NAME ' </th>'
+      '<td>' (IF hAttributeBuffer:BUFFER-FIELD(ix):BUFFER-VALUE = '' OR 
+                 hAttributeBuffer:BUFFER-FIELD(ix):BUFFER-VALUE = ? 
+              THEN '&#160;' ELSE hAttributeBuffer:BUFFER-FIELD(ix):BUFFER-VALUE) 
+      '</td></tr>'.
+  END.
+  {&OUT} '</table><br />' SKIP.
+  
+  RETURN TRUE.
+  
+END FUNCTION.
+
+/*******************************************************************************************/
+IF get-value('object1') > '' THEN
+  pcLogObjName = get-value('object1').
+
+ASSIGN 
+  e                   = ETIME
+  cProperties         = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager, "currentUserObj,currentLanguageObj":U, YES)
+  dCurrentUserObj     = DECIMAL(ENTRY(1, cProperties, CHR(3)))
+  dCurrentLanguageObj = DECIMAL(ENTRY(2, cProperties, CHR(3)))
+  hCustomManager      = DYNAMIC-FUNCTION("getManagerHandle":U, "CustomizationManager":U)
+  cSessionResultCodes = DYNAMIC-FUNCTION("getSessionResultCodes":U IN hCustomManager) 
+  cRunAttribute       = ''.
+  
+RUN clearClientCache IN gshRepositoryManager.
+
+/* Retrieve outermost container object and it's children */
+ASSIGN lGotIt = DYNAMIC-FUNCTION("cacheObjectOnClient":U IN gshRepositoryManager,
+                                 INPUT pcLogObjName,
+                                 INPUT cSessionResultCodes,
+                                 INPUT cRunAttribute,
+                                 INPUT NO).
+IF ERROR-STATUS:ERROR OR NOT lGotIt THEN DO:
+  IF CAN-FIND(FIRST ryc_smartobject WHERE ryc_smartobject.object_filename BEGINS pcLogObjName) THEN 
+  DO:
+    FOR EACH ryc_smartobject NO-LOCK
+      WHERE ryc_smartobject.object_filename BEGINS pcLogObjName
+      BY ryc_smartobject.object_filename:
+      
+      IF NOT lFound THEN DO:
+        {&out} 
+          '~n<table border="0"><tr valign="center">'
+          '<td width="1"><img src="../img/afinfo.gif" /></td>'
+          '<td><b>&#160;Information:<br />&#160;One or more container objects were found that begin "' pcLogObjName '".  Select one below.</b>&#160;</td>'
+          '</tr></table>~n'
+          '<form id="choices" name="choices" method="post" action="_repository.icf">~n'
+          'Choice:'
+          '<select onChange="((this[selectedIndex].value)!=~'~' ? document.getElementById(~'object1~').value=this[selectedIndex].value : null); document.forms[0].submit()">~n'
+          '  <option value="">--Select--~n'.
+      END.
+      {&out}
+        '  <option value="' ryc_smartobject.object_filename '">' ryc_smartobject.object_filename '~n'.
+        
+      lFound = TRUE.
+    END.
+    IF lFound THEN
+      {&out} 
+        '</select>~n'
+        '<input type="hidden" name="object1" value="" />~n'
+        '</form>~n'.
+    ELSE
+      {&out} 
+        '~n<table border="0"><tr valign="center">'
+        '<td width="1"><img src="../img/afwarning.gif" /></td>'
+        '<td><b>&#160;Warning:<br />&#160;No container objects found which begins "' pcLogObjName '"</b>&#160;</td>'
+        '</tr></table>'.
+  END.
+  ELSE DO:
+    ASSIGN
+      cError = ERROR-STATUS:GET-MESSAGE(1)
+      cError = (IF cError <> "" THEN cError ELSE
+                  "Unknown error, possibly invalid object name.").
+    {&out} 
+      '~n<table border="0"><tr valign="center">'
+      '<td width="1"><img src="../img/aferror.gif" /></td><td><b>Error:<br />' cError '</b></td>'
+      '</tr></table>'.
+  END.
+  RETURN.
+END.
+
+ghObjectBuffer = DYNAMIC-FUNCTION("getCacheObjectBuffer":U IN gshRepositoryManager, INPUT ?).
+{&OUT} 'Time to run repository API: ' ETIME - e ' milliseconds<br />' SKIP.
+
+listRecs(ghObjectBuffer).
+listRecs(DYNAMIC-FUNCTION("getCachePageBuffer":U IN gshRepositoryManager)).
+listRecs(DYNAMIC-FUNCTION("getCachePageInstanceBuffer":U IN gshRepositoryManager)).
+listRecs(DYNAMIC-FUNCTION("getCacheLinkBuffer":U IN gshRepositoryManager)).
+listRecs(DYNAMIC-FUNCTION("getCacheUIEventBuffer":U IN gshRepositoryManager)).
+
+{&OUT} 
+  '<hr color="red">' skip
+  '<h1>Attribute Listings</h1>' skip.
+ASSIGN 
+  cWhere = " WHERE ":U
+          + "cache_Object.tContainerObjectName = '" + pcLogObjName + "'":U.
+forEach(ghObjectBuffer,cWhere,'listObjAttrs').
+-->
+</body>
+</html>

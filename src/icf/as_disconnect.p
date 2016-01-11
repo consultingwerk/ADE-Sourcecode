@@ -29,6 +29,9 @@
 RUN deleteSessionProfile IN gshProfileManager.
 
 /* get rid of session context records */
-RUN deleteContext IN gshSessionManager.
+RUN deleteActiveSession IN gshSessionManager.
+
+
+
 
 

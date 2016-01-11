@@ -1,8 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          afdb             PROGRESS
-          asdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" vTableWin _INLINE
@@ -89,7 +88,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gsmheviewv.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -127,11 +126,12 @@ RowObject.help_object_filename RowObject.help_fieldname ~
 RowObject.help_filename RowObject.help_context 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define DISPLAYED-FIELDS RowObject.help_container_filename ~
 RowObject.help_object_filename RowObject.help_fieldname ~
 RowObject.help_filename RowObject.help_context 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
+
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -145,29 +145,28 @@ RowObject.help_filename RowObject.help_context
 
 
 /* Definitions of handles for SmartObjects                              */
-DEFINE VARIABLE h_gsclgdcs2v AS HANDLE NO-UNDO.
+DEFINE VARIABLE h_dyncombo AS HANDLE NO-UNDO.
 
 /* Definitions of the field level widgets                               */
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     RowObject.help_container_filename AT ROW 2.71 COL 26.4 COLON-ALIGNED
+     RowObject.help_container_filename AT ROW 2.04 COL 25.72 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 48 BY 1
-     RowObject.help_object_filename AT ROW 4.24 COL 26.2 COLON-ALIGNED
+          SIZE 78.43 BY 1
+     RowObject.help_object_filename AT ROW 3.12 COL 25.72 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 48 BY 1
-     RowObject.help_fieldname AT ROW 5.67 COL 26.6 COLON-ALIGNED
+          SIZE 78.43 BY 1
+     RowObject.help_fieldname AT ROW 4.15 COL 25.72 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 48 BY 1
-     RowObject.help_filename AT ROW 7 COL 26.6 COLON-ALIGNED
+          SIZE 78.43 BY 1
+     RowObject.help_filename AT ROW 5.19 COL 25.72 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 48 BY 1
-     RowObject.help_context AT ROW 8.43 COL 26.6 COLON-ALIGNED
+          SIZE 78.43 BY 1
+     RowObject.help_context AT ROW 6.23 COL 25.72 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 48 BY 1
-     SPACE(2.40) SKIP(0.00)
+          SIZE 78.43 BY 1
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -207,8 +206,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 9.1
-         WIDTH              = 78.4.
+         HEIGHT             = 6.65
+         WIDTH              = 106.29.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -248,7 +247,7 @@ ASSIGN
 */  /* FRAME frMain */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK vTableWin 
@@ -283,15 +282,15 @@ PROCEDURE adm-create-objects :
 
     WHEN 0 THEN DO:
        RUN constructObject (
-             INPUT  'af/obj2/gsclgdcs2v.w':U ,
+             INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'FieldNamelanguage_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
-             OUTPUT h_gsclgdcs2v ).
-       RUN repositionObject IN h_gsclgdcs2v ( 1.38 , 15.40 ) NO-ERROR.
-       RUN resizeObject IN h_gsclgdcs2v ( 1.05 , 63.60 ) NO-ERROR.
+             INPUT  'DisplayedFieldgsc_language.language_name,gsc_language.language_codeKeyFieldgsc_language.language_objFieldLabelLanguageFieldTooltipSelect a language from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 (&2)CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines5ComboFlagNFlagValue0BuildSequence1SecurednoCustomSuperProcFieldNamelanguage_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT h_dyncombo ).
+       RUN repositionObject IN h_dyncombo ( 1.00 , 27.72 ) NO-ERROR.
+       RUN resizeObject IN h_dyncombo ( 1.04 , 78.43 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */
-       RUN adjustTabOrder ( h_gsclgdcs2v ,
+       RUN adjustTabOrder ( h_dyncombo ,
              RowObject.help_container_filename:HANDLE IN FRAME frMain , 'BEFORE':U ).
     END. /* Page 0 */
 

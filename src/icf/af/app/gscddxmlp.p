@@ -102,7 +102,7 @@ DEFINE STREAM str_xmlout.
 
 DEFINE VARIABLE cObjectName         AS CHARACTER NO-UNDO.
 DEFINE VARIABLE ghXMLHlpr           AS HANDLE    NO-UNDO.
-DEFINE VARIABLE ghDDO               AS HANDLE    NO-UNDO.
+/* DEFINE VARIABLE ghDDO               AS HANDLE    NO-UNDO.  */
 DEFINE VARIABLE gcMessageList       AS CHARACTER NO-UNDO.
 DEFINE VARIABLE giRequestNo         AS INTEGER   NO-UNDO.
 DEFINE VARIABLE giSiteNo            AS INTEGER   NO-UNDO.
@@ -152,6 +152,9 @@ DEFINE TEMP-TABLE ttTable NO-UNDO  {&RCodeInfo}
   INDEX dx2
     cJoinMnemonic
     iEntitySeq
+  INDEX dx3
+    cEntityMnemonic
+    lPrimary
   .
 
 /* The ttEntityList table is a working table used to make sure that the 
@@ -267,6 +270,7 @@ DEFINE TEMP-TABLE ttTransaction NO-UNDO {&RCodeInfo}
    need to have their version status re-set. */
 DEFINE TEMP-TABLE ttVersionReset NO-UNDO
   FIELD record_version_obj LIKE gst_record_version.record_version_obj
+  FIELD delete_record      AS LOGICAL
   INDEX pudx IS UNIQUE PRIMARY
     record_version_obj
   .
@@ -322,6 +326,13 @@ DEFINE TEMP-TABLE ttImportParam NO-UNDO
 
 /* This temp-table is used to pass parameters into import deployment dataset */
 DEFINE TEMP-TABLE ttExportParam NO-UNDO
+  FIELD cParam             AS CHARACTER
+  FIELD cValue             AS CHARACTER
+  INDEX dx IS PRIMARY
+    cParam
+  .
+
+DEFINE TEMP-TABLE ttADOParam NO-UNDO
   FIELD cParam             AS CHARACTER
   FIELD cValue             AS CHARACTER
   INDEX dx IS PRIMARY
@@ -424,6 +435,18 @@ FUNCTION buildKeyVal RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-buildWhereFromKeyList) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD buildWhereFromKeyList Procedure 
+FUNCTION buildWhereFromKeyList RETURNS CHARACTER
+  ( INPUT pcFieldList AS CHARACTER,
+    INPUT pcFieldVal  AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-buildWhereFromKeyVal) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD buildWhereFromKeyVal Procedure 
@@ -482,7 +505,9 @@ FUNCTION compareKeys RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD convDTForWhere Procedure 
 FUNCTION convDTForWhere RETURNS CHARACTER
   ( INPUT pcDataType AS CHARACTER,
-    INPUT pcValue AS CHARACTER )  FORWARD.
+    INPUT pcValue AS CHARACTER,
+    INPUT piRequestNo AS INTEGER,
+    INPUT lInput  AS LOGICAL )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -623,6 +648,19 @@ FUNCTION isDataModified RETURNS LOGICAL
   ( INPUT pcEntityMnemonic AS CHARACTER,
     INPUT phBuffer         AS HANDLE,
     INPUT plIgnoreMinus    AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-matchKeys) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD matchKeys Procedure 
+FUNCTION matchKeys RETURNS LOGICAL
+  ( INPUT pcFieldList  AS CHARACTER,
+    INPUT pcFieldValue AS CHARACTER,
+    INPUT phBuffer     AS HANDLE)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -819,7 +857,21 @@ FUNCTION writeContainedRecord RETURNS LOGICAL
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD writeDataset Procedure 
 FUNCTION writeDataset RETURNS INTEGER
-  ( INPUT phNode AS HANDLE)  FORWARD.
+  ( INPUT phNode          AS HANDLE,
+    INPUT plDeletions     AS LOGICAL,
+    INPUT plDeletionsOnly AS LOGICAL)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-writeDatasetDeletions) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD writeDatasetDeletions Procedure 
+FUNCTION writeDatasetDeletions RETURNS INTEGER
+  ( INPUT phRecordNode AS HANDLE,
+    INPUT pcEntityMnemonic AS CHARACTER)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -866,6 +918,18 @@ FUNCTION writeRecordVersionAttr RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-writeVersionAttr) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD writeVersionAttr Procedure 
+FUNCTION writeVersionAttr RETURNS LOGICAL
+  ( INPUT phRecordNode AS HANDLE,
+    INPUT phRVBuffer   AS HANDLE )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 
 /* *********************** Procedure Settings ************************ */
 
@@ -884,7 +948,7 @@ FUNCTION writeRecordVersionAttr RETURNS LOGICAL
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 28.81
+         HEIGHT             = 27.57
          WIDTH              = 54.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -953,7 +1017,7 @@ PROCEDURE applyDeleteList :
       hDBBuffer:DISABLE-LOAD-TRIGGERS(NO).
       hDBBuffer:DISABLE-DUMP-TRIGGERS().
     END.
-
+/*
     /* Try and find the temp-table record for this delete list entry. */
     IF bttDeleteList.lHasObj AND
        bttDeleteList.cObjFieldList <> "":U AND
@@ -975,7 +1039,7 @@ PROCEDURE applyDeleteList :
                      bttDeleteList.cKeyFieldValue, 
                      hTTBuffer,
                      "NO-LOCK":U).
-
+  */
     /* If we still don't have a temp-table record, there isn't one. Now we need to 
        delete the database record. */
     IF NOT hTTBuffer:AVAILABLE THEN
@@ -1083,6 +1147,9 @@ PROCEDURE buildDeleteList :
   DEFINE VARIABLE lHasObj           AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lAns              AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lVersion          AS LOGICAL    NO-UNDO.
+
+  ERROR-STATUS:ERROR = NO.
+  RETURN-VALUE = "":U.
 
 
   /* Iterate through all the dependent tables in the dataset and
@@ -1292,7 +1359,7 @@ PROCEDURE buildStructFromDB :
   DO:
     cMessage = "dataset_code = ":U + pcDatasetCode.
     cRetVal = {af/sup2/aferrortxt.i 'AF' '11' 'gsc_deploy_dataset' 'dataset_code' '"gsc_deploy_dataset"' 'cMessage'}.
-    RETURN.
+    RETURN cRetVal.
   END.
   
   /* Empty the entity list table */
@@ -1604,6 +1671,23 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-clearRetVal) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE clearRetVal Procedure 
+PROCEDURE clearRetVal :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  RETURN "":U.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-createTopLevelNodes) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createTopLevelNodes Procedure 
@@ -1618,7 +1702,7 @@ PROCEDURE createTopLevelNodes :
 
   CREATE X-DOCUMENT phXMLDoc.
 
-  phXMLDoc:ENCODING = SESSION:CPSTREAM.
+  phXMLDoc:ENCODING = "utf-8":U.
 
   /* Create a table_def node */
   phRootNode = DYNAMIC-FUNCTION("createElementNode":U IN ghXMLHlpr,
@@ -1808,15 +1892,7 @@ PROCEDURE importDeploymentDataset :
 
   /* Check and see if we have an empty dataset. If we do, just return. */
   cEmpty = getAttribute(iRequest, "EmptyDataset":U).
-  /* Set the attributes for the exception log and the override triggers. The
-     reason that we set these attributes is that loadDataSet needs to be 
-     able to function in a different role. loadDataSet calls importDataSet
-     which actually writes the data to the database for a particular dataset, 
-     and it is requires the information on the triggers. */
-
-  /* If the override triggers have not already been set (which they may have at 
-     the dataset level, we set the OverrideTriggers */
-
+  
   IF pcReturnValue = "":U AND
      cEmpty <> "YES":U THEN
   DO:
@@ -2058,6 +2134,7 @@ PROCEDURE loadRecordNode :
   DEFINE INPUT  PARAMETER phNode        AS HANDLE     NO-UNDO.
   DEFINE INPUT  PARAMETER piTransNo     AS INTEGER    NO-UNDO.
   DEFINE INPUT  PARAMETER piNodeLevel   AS INTEGER    NO-UNDO.
+  DEFINE INPUT  PARAMETER plDeleteTran  AS LOGICAL    NO-UNDO.
 
   DEFINE VARIABLE hChildNode            AS HANDLE     NO-UNDO.
   DEFINE VARIABLE iCount                AS INTEGER    NO-UNDO.
@@ -2071,25 +2148,31 @@ PROCEDURE loadRecordNode :
   
   IF phNode:NAME = "contained_record":U THEN
   DO:
-    cDBName    = phNode:GET-ATTRIBUTE("DB":U).
-    cTableName = phNode:GET-ATTRIBUTE("Table":U).
-    FIND FIRST bttTableList NO-LOCK
-      WHERE bttTableList.iRequestNo = piRequestNo
-        AND bttTableList.cDBName    = cDBName
-        AND bttTableList.cTableName = cTableName NO-ERROR.
-    IF NOT AVAILABLE(bttTableList) THEN
+    IF CAN-DO(phNode:ATTRIBUTE-NAMES,"Table":U) THEN
     DO:
-      cMessage = {af/sup2/aferrortxt.i 'AF' '1999' '?' '?' cDBName cTableName}.
-      RETURN cMessage.
+      cDBName    = phNode:GET-ATTRIBUTE("DB":U).
+      cTableName = phNode:GET-ATTRIBUTE("Table":U).
+      FIND FIRST bttTableList NO-LOCK
+        WHERE bttTableList.iRequestNo = piRequestNo
+          AND bttTableList.cDBName    = cDBName
+          AND bttTableList.cTableName = cTableName NO-ERROR.
+      IF NOT AVAILABLE(bttTableList) THEN
+      DO:
+        cMessage = {af/sup2/aferrortxt.i 'AF' '1999' '?' '?' cDBName cTableName}.
+        RETURN cMessage.
+      END.
+      iTableNo   = bttTableList.iTableNo.
+      setNodeValue
+        (piRequestNo,
+         piNodeLevel,
+         iTableNo,
+         "oRVObj":U,
+         STRING(readRecordVersionAttr(piRequestNo, phNode)),
+         YES).
     END.
-    iTableNo   = bttTableList.iTableNo.
-    setNodeValue
-      (piRequestNo,
-       piNodeLevel,
-       iTableNo,
-       "oRVObj":U,
-       STRING(readRecordVersionAttr(piRequestNo, phNode)),
-       YES).
+    ELSE IF plDeleteTran THEN
+      readRecordVersionAttr(piRequestNo, phNode).
+
   END.
   
   /* Iterate through the node's children */
@@ -2121,7 +2204,7 @@ PROCEDURE loadRecordNode :
 
     /* If the child node is a contained record, recurse this call into this procedure again */
     IF hChildNode:NAME = "contained_record":U THEN
-      RUN loadRecordNode (piRequestNo, hChildNode, piTransNo, piNodeLevel + 1).
+      RUN loadRecordNode (piRequestNo, hChildNode, piTransNo, piNodeLevel + 1, plDeleteTran).
 
     /* Otherwise assume that this is a field on this record */
     ELSE
@@ -2133,7 +2216,8 @@ PROCEDURE loadRecordNode :
     DELETE OBJECT hChildNode.
     hChildNode = ?.
 
-    IF RETURN-VALUE <> "":U THEN
+    IF RETURN-VALUE <> "":U AND
+       RETURN-VALUE <> ?    THEN
       RETURN RETURN-VALUE.
   
   END. /* REPEAT iCount = 1  */
@@ -2143,6 +2227,8 @@ PROCEDURE loadRecordNode :
   DO:
     RUN writeTempTableData (piRequestNo, piNodeLevel, iTableNo, piTransNo).
   END.
+
+  RETURN "":U.
 
 END PROCEDURE.
 
@@ -2171,12 +2257,16 @@ PROCEDURE loadTransactionNodes :
   DEFINE VARIABLE lOverwrite  AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cVal        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lError      AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cTranType   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lDeleteTran AS LOGICAL    NO-UNDO.
 
   DEFINE BUFFER bttTransaction FOR ttTransaction.
-  
+
   lError = NO.
   /* Iterate through the root node's children */
   REPEAT iCount = 1 TO phNode:NUM-CHILDREN:
+    RUN clearRetVal.
+    ERROR-STATUS:ERROR = NO.
     
     /* Create a Child Node ref */
     CREATE X-NODEREF hChildNode.
@@ -2206,7 +2296,16 @@ PROCEDURE loadTransactionNodes :
       NEXT.
     END.
 
-    iTransNo = INTEGER(hChildNode:GET-ATTRIBUTE("TransactionNo":U)).
+    iTransNo    = INTEGER(hChildNode:GET-ATTRIBUTE("TransactionNo":U)).
+
+    lDeleteTran = NO.
+
+    IF CAN-DO(hChildNode:ATTRIBUTE-NAMES,"TransactionType":U) THEN
+    DO:
+      cTranType    = hChildNode:GET-ATTRIBUTE("TransactionType":U).
+      IF cTranType = "DELETION":U THEN
+        lDeleteTran = YES.
+    END.
     
 
     /* Now we need to pass this node on to the record processor that
@@ -2216,11 +2315,25 @@ PROCEDURE loadTransactionNodes :
 
     EMPTY TEMP-TABLE ttNode.
 
-    RUN loadRecordNode (piRequestNo, hChildNode, iTransNo, 0).
+    ERROR-STATUS:ERROR = NO.
+    RUN clearRetVal.
+    
+    RUN loadRecordNode (piRequestNo, hChildNode, iTransNo, 0, lDeleteTran).
+
+    IF ERROR-STATUS:ERROR OR 
+       (RETURN-VALUE <> "":U AND
+        RETURN-VALUE <> ?) THEN
+    DO:
+      RUN writeNodeToErrorLog (piRequestNo, hChildNode, "999|" + RETURN-VALUE).
+      lError = YES.
+      ERROR-STATUS:ERROR = NO.
+    END.
 
     EMPTY TEMP-TABLE ttNode.
     
-    IF plImportData THEN 
+    IF plImportData AND
+       (RETURN-VALUE = "":U OR
+        RETURN-VALUE = ?) THEN 
     DO:
 
       cVal = getAttribute(piRequestNo,"OverwriteNodes":U).
@@ -2238,22 +2351,36 @@ PROCEDURE loadTransactionNodes :
       PUBLISH "DSAPI_StatusUpdate":U 
         ("Writing Dataset to Database: " + STRING(iTransNo)).
 
+      /* If this is a deletion then apply the deletion */
+      IF lDeleteTran THEN 
+        RUN removeDeletions (piRequestNo).
+
+      ERROR-STATUS:ERROR = NO.
+      RUN clearRetVal.
       /* This code has to deal with writing the stuff to the database */
       RUN writeDataToDB (piRequestNo, hChildNode, YES, lDelete, lOverwrite).
 
       IF RETURN-VALUE = "EDO":U THEN
-        lError = YES.
-    
+      DO:
+        ASSIGN
+          lError = YES
+        .
+        ERROR-STATUS:ERROR = NO.
+      END.
     END.
     
     DELETE OBJECT hChildNode.
     hChildNode = ?.
-
-    IF RETURN-VALUE <> "":U OR
-       lError THEN
-      RETURN "EDO":U.
   
   END. /* REPEAT iCount = 1  */
+
+  /* This is just to notify the caller that an EDO file needs to be written. */
+  IF (RETURN-VALUE <> "":U AND
+      RETURN-VALUE <> ?) OR
+     lError THEN
+    RETURN "EDO":U.
+  ELSE
+    RETURN "":U.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2533,11 +2660,11 @@ PROCEDURE plipSetup :
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hProc AS HANDLE     NO-UNDO.
 
-
+/*
   /* Start the Dataset API procedure */
   RUN startProcedure IN THIS-PROCEDURE ("ONCE|af/app/afddo.p":U, 
                                         OUTPUT ghDDO).
-
+  */
   /* Start the XML helper API */
   RUN startProcedure IN THIS-PROCEDURE ("ONCE|af/app/afxmlhlprp.p":U, 
                                         OUTPUT ghXMLHlpr).
@@ -2586,6 +2713,207 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-removeDeletions) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE removeDeletions Procedure 
+PROCEDURE removeDeletions :
+/*------------------------------------------------------------------------------
+  Purpose:     This procedure loops through the imported record version records
+               that are marked for deletion and removes the record from the
+               database if applicable and clears the ttImportData record for it.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER piRequestNo AS INTEGER    NO-UNDO.
+
+  DEFINE BUFFER bttImportVersion    FOR ttImportVersion.
+  DEFINE BUFFER bgst_record_version FOR gst_record_version.
+  DEFINE BUFFER bttEntityList       FOR ttEntityList.
+  DEFINE BUFFER bttTable            FOR ttTable.
+
+  DEFINE VARIABLE oObj        AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE cAttributes AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hField      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hBuffer     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iCount      AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cVal        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lRemDels    AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cWhere      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cWhere2     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lAns        AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lKeyMatch   AS LOGICAL    NO-UNDO.
+
+  cVal = getAttribute(piRequestNo,"RemoveDeletions":U).
+  IF cVal = ? THEN
+    lRemDels = YES.
+  ELSE
+    lRemDels = cVal = "YES":U.
+
+  DISABLE TRIGGERS FOR LOAD OF bgst_record_version.
+  DISABLE TRIGGERS FOR DUMP OF bgst_record_version.
+
+  FOR EACH bttImportVersion
+    WHERE bttImportVersion.deletion_flag = YES TRANSACTION:
+
+    /* Now we need to see if this record exists on the database.
+       First try it on the obj... */
+    FIND FIRST bgst_record_version
+      WHERE bgst_record_version.record_version_obj = bttImportVersion.record_version_obj
+      NO-ERROR.
+    IF NOT AVAILABLE(bgst_record_version) THEN
+    DO:
+      /* And if the obj version is not found, look for the entity_mnemonic and 
+         key field value */
+      FIND FIRST bgst_record_version
+        WHERE bgst_record_version.entity_mnemonic = bttImportVersion.entity_mnemonic
+          AND bgst_record_version.key_field_value = bttImportVersion.key_field_value
+        NO-ERROR.
+    END.
+    ERROR-STATUS:ERROR = NO.
+
+    /* Now we need to find the record in the database that actually applies */
+    FIND bttEntityList 
+      WHERE bttEntityList.cEntityMnemonic = bttImportVersion.entity_mnemonic
+      NO-ERROR.
+    IF NOT AVAILABLE(bttEntityList) THEN
+      NEXT.
+    ERROR-STATUS:ERROR = NO.
+
+    /* Get the handle to the buffer that we need to use to read the data */
+    FIND FIRST bttTable
+      WHERE bttTable.cEntityMnemonic = bttImportVersion.entity_mnemonic
+        AND lPrimary = YES NO-ERROR.
+    IF NOT AVAILABLE(bttTable) THEN
+      NEXT.
+    ERROR-STATUS:ERROR = NO.
+
+    /* Build up the where clause for the deletion. */
+    cWhere  = "":U.
+    cWhere2 = "":U.
+    IF bttEntityList.lHasObj THEN
+      ASSIGN
+        cWhere  = "WHERE ":U + bttEntityList.cObjField + " = ":U + TRIM(QUOTER(bttImportVersion.key_field_value))
+        cWhere2 = buildWhereFromKeyList(bttEntityList.cKeyField,bttImportVersion.secondary_key_value)
+      .
+    ELSE
+      cWhere = buildWhereFromKeyList(bttEntityList.cKeyField,bttImportVersion.key_field_value).
+
+    /* Build a for each statement for this buffer */
+    CREATE BUFFER hBuffer FOR TABLE bttTable.cDatabase + ".":U + bttTable.cTableName.
+    ERROR-STATUS:ERROR = NO.
+
+    /* If this is not a valid buffer then next. */
+    IF NOT VALID-HANDLE(hBuffer) THEN
+      NEXT.
+
+    hBuffer:DISABLE-LOAD-TRIGGERS(NO).
+    hBuffer:DISABLE-DUMP-TRIGGERS().
+
+    IF cWhere <> "":U THEN
+      lAns = hBuffer:FIND-FIRST(cWhere,EXCLUSIVE-LOCK) NO-ERROR.
+    ERROR-STATUS:ERROR = NO.
+    
+    IF NOT hBuffer:AVAILABLE AND
+       cWhere2 <> "":U THEN
+      lAns = hBuffer:FIND-FIRST(cWhere2,EXCLUSIVE-LOCK) NO-ERROR.
+    ERROR-STATUS:ERROR = NO.
+
+    IF hBuffer:AVAILABLE THEN
+    DO:
+      lKeyMatch = YES.
+      IF bttEntityList.lHasObj AND
+         bttEntityList.cKeyField <> "":U AND
+         bttImportVersion.secondary_key_value <> "":U THEN
+        lKeyMatch = matchKeys(bttEntityList.cKeyField, bttImportVersion.secondary_key_value, hBuffer).
+
+      IF lKeyMatch THEN
+        /* Go and build a list of the tables that have data that may need to be
+           deleted and delete the appropriate records. These records have to be
+           deleted before we start building writing in the new dataset, otherwise
+           we could land up with key field clashes. */
+
+        RUN deleteOldData (piRequestNo,
+                           Yes,
+                           Yes,
+                           hBuffer,
+                           BUFFER bttTable) NO-ERROR.
+      IF hBuffer:AVAILABLE THEN
+      DO:
+        hBuffer:BUFFER-DELETE().
+        hBuffer:BUFFER-RELEASE().
+      END.
+      
+      DELETE OBJECT hBuffer.
+      
+      IF ERROR-STATUS:ERROR THEN 
+      DO:
+        UNDO, NEXT.
+      END.
+
+    END.
+
+    IF AVAILABLE(bgst_record_version) AND 
+       lRemDels THEN
+      DELETE bgst_record_version.
+    ELSE
+    DO:
+      IF NOT AVAILABLE(bgst_record_version) THEN
+      DO:
+        CREATE bgst_record_version.
+        ASSIGN
+          bgst_record_version.last_version_number_seq = DECIMAL(giSiteRev / giSiteDiv)
+        .
+      END.
+      BUFFER-COPY bttImportVersion 
+        EXCEPT last_version_number_seq
+        TO bgst_record_version.
+    END.
+    
+    /* Whack the bttImport record that we created temporarily */
+    DELETE bttImportVersion.
+
+  END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-resetAllModifiedStatus) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE resetAllModifiedStatus Procedure 
+PROCEDURE resetAllModifiedStatus :
+/*------------------------------------------------------------------------------
+  Purpose:     Reset the modified status on the gst_record_version records so 
+               that no data is signalled as having been changed.
+  Parameters:  <none>
+  Notes:       This procedure loops through the gst_record_version table and
+               sets the value of the import_version_number_seq to the value
+               of the version_number_seq, thereby indicating that nothing has 
+               changed since the last update. This means that when the user
+               chooses to deploy all modified data, nothing will be deployed.
+------------------------------------------------------------------------------*/
+
+  DEFINE BUFFER bgst_record_version FOR gst_record_version.
+
+  FOR EACH bgst_record_version EXCLUSIVE-LOCK:
+    ASSIGN
+      bgst_record_version.version_number_seq = ABS(bgst_record_version.version_number_seq)
+      bgst_record_version.import_version_number_seq = bgst_record_version.version_number_seq
+    .
+  END.
+
+  RETURN.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-resetModifiedStatus) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE resetModifiedStatus Procedure 
@@ -2594,9 +2922,12 @@ PROCEDURE resetModifiedStatus :
   Purpose:     Find all the gst_record_versions that are currently in the 
                ttVersionReset table and reset the modified status.
                
-  Parameters:  <none>
+  Parameters:  
+    plDelete - Indicates that deletion gst_record_versions should be removed
+               from the target repository.
   Notes:       
 ------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER plDelete AS LOGICAL    NO-UNDO.
 
   DEFINE BUFFER bttVersionReset FOR ttVersionReset.
   DEFINE BUFFER bgst_record_version FOR gst_record_version.
@@ -2615,10 +2946,14 @@ PROCEDURE resetModifiedStatus :
          version_number_seq to the import_version_number_seq */
       IF AVAILABLE(bgst_record_version) THEN
       DO:
-        ASSIGN
-          bgst_record_version.version_number_seq = ABS(bgst_record_version.version_number_seq)
-          bgst_record_version.import_version_number_seq = bgst_record_version.version_number_seq
-        .
+        IF bttVersionReset.delete_record = YES AND
+           plDelete THEN
+          DELETE bgst_record_version.
+        ELSE
+          ASSIGN
+            bgst_record_version.version_number_seq = ABS(bgst_record_version.version_number_seq)
+            bgst_record_version.import_version_number_seq = bgst_record_version.version_number_seq
+          .
       END.
     END.
   END.
@@ -2694,13 +3029,16 @@ PROCEDURE selectDSRecords :
       hField = hEntityBuff:BUFFER-FIELD(ENTRY(iCount,cDSKey)).
       cKey = cKey + (IF cKey = "":U THEN "":U ELSE CHR(3)) + STRING(hField:BUFFER-VALUE).
     END.
-    cWhere = phRecordSet:NAME + ".dataset_code = '":U + pcDatasetCode 
-           + "' AND ":U + phRecordSet:NAME + ".cKey = '":U + cKey + "'":U. 
+    cWhere = "WHERE ":U + phRecordSet:NAME + ".dataset_code = ":U + TRIM(QUOTER(pcDatasetCode))
+           + " AND ":U + phRecordSet:NAME + ".cKey = ":U + TRIM(QUOTER(cKey)).
+    lAns = phRecordSet:FIND-FIRST(cWhere, EXCLUSIVE-LOCK) NO-ERROR.
+    /*  
     lAns = DYNAMIC-FUNCTION("findFirst":U IN ghDDO,
                             phRecordSet,
                             cWhere,
                             "EXCLUSIVE-LOCK":U,
-                            NO).
+                            NO). */
+    ERROR-STATUS:ERROR = NO.
     IF NOT lAns OR
        NOT phRecordSet:AVAILABLE THEN
     DO:
@@ -2889,6 +3227,10 @@ PROCEDURE writeADOSet :
   DEFINE INPUT  PARAMETER pcPath          AS CHARACTER  NO-UNDO.
   DEFINE INPUT  PARAMETER pcBlankPath     AS CHARACTER  NO-UNDO.
   DEFINE INPUT  PARAMETER plResetModified AS LOGICAL    NO-UNDO.
+  DEFINE INPUT  PARAMETER plDeployDeletes AS LOGICAL    NO-UNDO.
+  DEFINE INPUT  PARAMETER plRemoveDeletes AS LOGICAL    NO-UNDO.
+  DEFINE INPUT  PARAMETER plAllModified   AS LOGICAL    NO-UNDO.
+  DEFINE INPUT  PARAMETER plFullDS        AS LOGICAL    NO-UNDO.
   DEFINE INPUT  PARAMETER phDataset       AS HANDLE     NO-UNDO.
   DEFINE INPUT  PARAMETER phRecordSet     AS HANDLE     NO-UNDO.
 
@@ -2901,6 +3243,8 @@ PROCEDURE writeADOSet :
   DEFINE VARIABLE hFilePerRec     AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hFileName       AS HANDLE     NO-UNDO.
   DEFINE VARIABLE iRecCount       AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hMainTable      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cWhereClause    AS CHARACTER  NO-UNDO.
   
   DEFINE VARIABLE cRetVal         AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cOutFile        AS CHARACTER  NO-UNDO.
@@ -2910,9 +3254,162 @@ PROCEDURE writeADOSet :
   DEFINE VARIABLE cProc           AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lResetModified  AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cExtra          AS CHARACTER  NO-UNDO.
-     
+  DEFINE VARIABLE cRecKey         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cRecFileName    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hField          AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iCount          AS INTEGER    NO-UNDO.
+
+  DEFINE BUFFER bttADOParam          FOR ttADOParam.
+  DEFINE BUFFER bgst_record_version  FOR gst_record_version.
+  DEFINE BUFFER bgsc_entity_mnemonic FOR gsc_entity_mnemonic.
+  DEFINE BUFFER bgsc_dataset_entity  FOR gsc_dataset_entity.
+  DEFINE BUFFER bgsc_deploy_dataset  FOR gsc_deploy_dataset.
+
   /* Open a query on the dataset buffer */
-  CREATE BUFFER hDataset FOR TABLE phDataset.
+  CREATE BUFFER hDataset   FOR TABLE phDataset.
+  CREATE BUFFER hRecordset FOR TABLE phRecordset.
+
+  IF plAllModified THEN
+  DO:
+    /* We ALWAYS deploy deletions with all modified data */
+    plDeployDeletes = YES.
+    hDataset:EMPTY-TEMP-TABLE().
+    hRecordSet:EMPTY-TEMP-TABLE().
+    /* We need to loop through each deployment dataset.*/
+    FOR EACH bgsc_deploy_dataset NO-LOCK:
+
+      /* Find the PRIMARY dataset entity in the deployment dataset */
+      FIND FIRST  bgsc_dataset_entity NO-LOCK
+        WHERE bgsc_dataset_entity.deploy_dataset_obj = bgsc_deploy_dataset.deploy_dataset_obj
+          AND bgsc_dataset_entity.primary_entity
+        NO-ERROR.
+
+      IF NOT AVAILABLE(bgsc_dataset_entity) THEN
+        NEXT.
+
+      /* If we have the entity and either the source code data flag is set (RYCSO dataset) or
+         FULLDS is off, we need a buffer for the entity to be able derive key values. */
+      IF bgsc_deploy_dataset.source_code_data OR
+         plFullDS = NO THEN
+      DO:
+        FIND FIRST bgsc_entity_mnemonic NO-LOCK
+          WHERE bgsc_entity_mnemonic.entity_mnemonic = bgsc_dataset_entity.entity_mnemonic.
+        CREATE BUFFER hMainTable FOR TABLE bgsc_entity_mnemonic.entity_dbname + ".":U + bgsc_entity_mnemonic.entity_mnemonic_description.
+      END.
+
+      /* Loop through all the gst_record_versions for this dataset entity that have changed */
+      FOR EACH bgst_record_version NO-LOCK
+        WHERE bgst_record_version.entity_mnemonic = bgsc_dataset_entity.entity_mnemonic
+          AND bgst_record_version.version_number_seq <> bgst_record_version.import_version_number_seq
+          AND NOT bgst_record_version.deletion_flag
+          BREAK BY bgst_record_version.entity_mnemonic:
+
+        /* If this is the first record version for this dataset entity, make sure we have a
+           record in the dataset table for it so that we will dump datasets for it */
+        IF FIRST-OF(bgst_record_version.entity_mnemonic) THEN
+        DO:
+          phDataset:FIND-FIRST("WHERE dataset_code = ":U + bgsc_deploy_dataset.dataset_code) NO-ERROR.
+          ERROR-STATUS:ERROR = NO.
+
+          IF NOT phDataset:AVAILABLE THEN /* Add a record to the dataset list so that we update them all */
+          DO:
+            hDataset:BUFFER-CREATE().
+            hDataset:BUFFER-FIELD("dataset_code":U):BUFFER-VALUE   = bgsc_deploy_dataset.dataset_code.
+            hDataset:BUFFER-FIELD("lFilePerRecord":U):BUFFER-VALUE = bgsc_deploy_dataset.source_code_data.
+            hDataset:BUFFER-FIELD("cFileName":U):BUFFER-VALUE      = LC((IF bgsc_deploy_dataset.default_ado_filename <> "":U 
+                                                                         THEN bgsc_deploy_dataset.default_ado_filename
+                                                                         ELSE bgsc_deploy_dataset.dataset_code + ".ado":U)).
+            hDataset:BUFFER-RELEASE().
+          END.
+        END.
+
+        /* If we're deploying a full dataset and this is not source code data, then we're done for this
+           record version record because everything will be put in the ADO.*/
+        IF plFullDS AND
+           NOT bgsc_deploy_dataset.source_code_data THEN 
+          LEAVE.
+
+        /* Deletions get dumped anyway */
+        IF bgst_record_version.deletion_flag THEN
+          NEXT.
+
+        /* At this point we need to figure out what data we are going to dump. First we need to find the
+           record in the main table for this record version record */
+        IF bgsc_entity_mnemonic.table_has_object_field THEN
+          cWhereClause = "WHERE ":U + buildWhereFromKeyVal(CHR(1),
+                                              bgsc_entity_mnemonic.entity_object_field,
+                                              bgst_record_version.key_field_value,
+                                              hMainTable).
+        ELSE
+          cWhereClause = "WHERE ":U + buildWhereFromKeyVal(CHR(1),
+                                             bgsc_entity_mnemonic.entity_key_field,
+                                             bgst_record_version.key_field_value,
+                                             hMainTable).
+
+        IF cWhereClause = "":U OR
+           cWhereClause = ? THEN
+          NEXT.
+
+        /* Now we actually try the find. */
+        hMainTable:FIND-FIRST(cWhereClause, NO-LOCK) NO-ERROR.
+        ERROR-STATUS:ERROR = NO.
+
+        
+        IF hMainTable:AVAILABLE THEN
+        DO:
+
+          /* If this is a source_code_data dataset, we need to build up the name of the file
+             that will be dumped. */
+          IF bgsc_deploy_dataset.source_code_data THEN
+          DO:
+            cRecFileName = getFileNameFromField(bgsc_dataset_entity.join_field_list,
+                                                hMainTable).
+            IF cRecFileName = ? THEN
+              cRecFileName = "":U.
+          END.
+          ELSE
+            cRecFileName = "":U.
+
+          /* Now we need to build up the record key on the format of the primary entity in the
+             dataset */
+          cRecKey = "":U.
+          DO iCount = 1 TO NUM-ENTRIES(bgsc_dataset_entity.join_field_list):
+            hField = hMainTable:BUFFER-FIELD(ENTRY(iCount,bgsc_dataset_entity.join_field_list)) NO-ERROR.
+            IF VALID-HANDLE(hField) THEN
+              cRecKey = cRecKey + (IF cRecKey <> "":U THEN CHR(3) ELSE "":U)
+                   + STRING(hField:BUFFER-VALUE).
+            ELSE
+              cRecKey = cRecKey + (IF cRecKey <> "":U THEN CHR(3) ELSE "":U)
+                   + "?":U.
+          END.
+            
+
+          /* Now we need to try and find a record in the record list that we will dump */
+          hRecordSet:FIND-FIRST("WHERE dataset_code = ":U + bgsc_deploy_dataset.dataset_code 
+                                 + " AND cKey = ":U + QUOTER(cRecKey)) NO-ERROR.
+          ERROR-STATUS:ERROR = NO.
+
+          /* If we don't have one, create it */
+          IF NOT hRecordSet:AVAILABLE THEN
+          DO:
+            hRecordSet:BUFFER-CREATE().
+            hRecordSet:BUFFER-FIELD("dataset_code":U):BUFFER-VALUE = bgsc_deploy_dataset.dataset_code.
+            hRecordSet:BUFFER-FIELD("cKey":U):BUFFER-VALUE         = cRecKey.
+            hRecordSet:BUFFER-FIELD("cFileName":U):BUFFER-VALUE    = cRecFileName.
+            hRecordSet:BUFFER-RELEASE().
+          END.
+        END.
+      END. /* FOR EACH bgst_record_version NO-LOCK */
+
+      IF VALID-HANDLE(hMainTable) THEN
+      DO: 
+        DELETE OBJECT hMainTable.
+        hMainTable = ?.
+      END.
+
+    END. /* FOR EACH bgsc_deploy_dataset NO-LOCK */
+  END. /* IF plAllModified THEN */
+    
   CREATE QUERY hDatasetQry.
   hDatasetQry:ADD-BUFFER(hDataset).
   hDatasetQry:QUERY-PREPARE("PRESELECT EACH ":U + hDataset:NAME).
@@ -2934,10 +3431,31 @@ PROCEDURE writeADOSet :
                             pcBlankPath,
                             hFileName:BUFFER-VALUE,
                             plResetModified,
+                            plDeployDeletes,
+                            plRemoveDeletes,
+                            plAllModified,
+                            plFullDS,
                             phRecordSet).
     ELSE
     DO:
-      CREATE BUFFER hRecordset FOR TABLE phRecordset.
+
+      EMPTY TEMP-TABLE ttADOParam.
+
+      /* Set the ADO Parameters that need to be passed in as
+         additionals. */
+      DO FOR bttADOParam:
+        CREATE bttADOParam.
+        ASSIGN                                       
+          bttADOParam.cParam = "WriteDeletionsDataset":U
+          bttADOParam.cValue = STRING(plDeployDeletes,"YES/NO":U)
+        .
+        CREATE bttADOParam.
+        ASSIGN                                       
+          bttADOParam.cParam = "RemoveDeletions":U
+          bttADOParam.cValue = STRING(plRemoveDeletes,"YES/NO":U)
+        .
+      END.
+
       CREATE QUERY hRecordsetQry.
       hRecordsetQry:ADD-BUFFER(hRecordset).
       hRecordsetQry:QUERY-PREPARE("FOR EACH ":U + hRecordset:NAME + " WHERE ":U + hRecordSet:NAME + ".dataset_code = '" + hDSCode:BUFFER-VALUE + "'":U).
@@ -2959,9 +3477,7 @@ PROCEDURE writeADOSet :
       hRecordsetQry:QUERY-CLOSE().
       DELETE OBJECT hRecordSetQry.
       hRecordsetQry = ?.
-      DELETE OBJECT hRecordSet.
-      hRecordset = ?.
-  
+
       cOutFile = setFileDetails(hFileName:BUFFER-VALUE,
                                 pcPath,
                                 pcBlankPath,
@@ -2971,8 +3487,9 @@ PROCEDURE writeADOSet :
         (cProc + " - ":U + 
          (IF LENGTH(cOutFile) > 45 THEN SUBSTRING(cOutFile,1,10) + "..." + SUBSTRING(cOutFile,LENGTH(cOutFile) - 32)
           ELSE cOutFile)).
-        
-  
+      PROCESS EVENTS.
+
+
       RUN writeDeploymentDataset
           (hDSCode:BUFFER-VALUE,
            "":U,
@@ -2980,10 +3497,10 @@ PROCEDURE writeADOSet :
            cOutPath,
            YES,
            plResetModified,
-           INPUT TABLE-HANDLE hRecordSet, /* Pass the unknown value here */
+           INPUT TABLE ttADOParam,
            INPUT TABLE ttRequiredRecord,
            OUTPUT cRetVal).      
-  
+
     END.
     hDataset:BUFFER-DELETE().
     hDatasetQry:GET-NEXT().
@@ -2991,10 +3508,16 @@ PROCEDURE writeADOSet :
   PUBLISH "DSAPI_StatusUpdate":U ("":U).
 
   hDatasetQry:QUERY-CLOSE().
+
   DELETE OBJECT hDatasetQry.
   hDatasetQry = ?.
+  
+  DELETE OBJECT hRecordSet.
+  hRecordSet = ?.
+
   DELETE OBJECT hDataset.
   hDataset = ?.
+
 
 END PROCEDURE.
 
@@ -3018,6 +3541,10 @@ PROCEDURE writeContainedADOs :
   DEFINE INPUT  PARAMETER pcBlankPath     AS CHARACTER  NO-UNDO.
   DEFINE INPUT  PARAMETER pcFileField     AS CHARACTER  NO-UNDO.
   DEFINE INPUT  PARAMETER plResetModified AS LOGICAL    NO-UNDO.
+  DEFINE INPUT  PARAMETER plDeployDeletes AS LOGICAL    NO-UNDO.
+  DEFINE INPUT  PARAMETER plRemoveDeletes AS LOGICAL    NO-UNDO.
+  DEFINE INPUT  PARAMETER plAllModified   AS LOGICAL    NO-UNDO.
+  DEFINE INPUT  PARAMETER plFullDS        AS LOGICAL    NO-UNDO.
   DEFINE INPUT  PARAMETER phRecordSet     AS HANDLE     NO-UNDO.
 
   
@@ -3033,7 +3560,55 @@ PROCEDURE writeContainedADOs :
   DEFINE VARIABLE iRecsProc       AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cProc           AS CHARACTER  NO-UNDO.
 
+  DEFINE BUFFER bttADOParam       FOR ttADOParam.
 
+  EMPTY TEMP-TABLE ttADOParam.
+  /* If we are going to deploy the deletions, the first thing to do is write
+     the deletions dataset out */
+  IF plDeployDeletes THEN 
+  DO:
+    /* Set the ADO Parameters that need to be passed in as
+       additionals. */
+    DO FOR bttADOParam:
+      CREATE bttADOParam.
+      ASSIGN                                       
+        bttADOParam.cParam = "WriteDeletionsDataset":U
+        bttADOParam.cValue = STRING(plDeployDeletes,"YES/NO":U)
+      .
+      CREATE bttADOParam.
+      ASSIGN                                       
+        bttADOParam.cParam = "WriteDeletionsOnly":U
+        bttADOParam.cValue = "YES":U
+      .
+      CREATE bttADOParam.
+      ASSIGN                                       
+        bttADOParam.cParam = "RemoveDeletions":U
+        bttADOParam.cValue = STRING(plRemoveDeletes,"YES/NO":U)
+      .
+    END.
+
+    /* Now write an ADO for the deletions */
+
+    cOutFile = setFileDetails(LC(pcDSCode + ".ado":U),
+                              pcPath,
+                              pcBlankPath,
+                              cOutPath). 
+
+    hTT = ?.
+
+    RUN writeDeploymentDataset
+        (pcDSCode,
+         "":U,
+         cOutFile,
+         cOutPath,
+         YES,
+         plResetModified,
+         INPUT TABLE ttADOParam, 
+         INPUT TABLE-HANDLE hTT, /* Unknown */
+         OUTPUT cRetVal).      
+
+    EMPTY TEMP-TABLE ttADOParam.
+  END.
   CREATE BUFFER hRecordset FOR TABLE phRecordset.
   CREATE QUERY hRecordsetQry.
   hRecordsetQry:ADD-BUFFER(hRecordset).
@@ -3065,6 +3640,7 @@ PROCEDURE writeContainedADOs :
     iRecsProc = iRecsProc + 1.
     cProc = pcProc + " (Subset " + STRING(iRecsProc) + " of ":U + STRING(iTotRec) + " - ":U + cOutFile + ")". 
     PUBLISH "DSAPI_StatusUpdate" (cProc).
+    PROCESS EVENTS.
 
     hTT = ?.
 
@@ -3075,7 +3651,7 @@ PROCEDURE writeContainedADOs :
          cOutPath,
          YES,
          plResetModified,
-         INPUT TABLE-HANDLE hTT, /* Unknown */
+         INPUT TABLE ttADOParam, 
          INPUT TABLE-HANDLE hTT, /* Unknown */
          OUTPUT cRetVal).      
                 
@@ -3185,512 +3761,15 @@ PROCEDURE writeDatasetToDB :
                sure the objects get properly cleaned up otherwise we'll have
                a memory leak. So if the code leaves a block, the intention is
                that nothing further in that block gets executed.
-------------------------------------------------------------------------------*/
+------------------------------------------------------------------------------
   DEFINE INPUT  PARAMETER piRequestNo    AS INTEGER    NO-UNDO.
   DEFINE INPUT  PARAMETER phTTBuff       AS HANDLE     NO-UNDO.
   DEFINE INPUT  PARAMETER plOverwrite    AS LOGICAL    NO-UNDO.
-  DEFINE PARAMETER BUFFER pbttTable      FOR ttTable.
+  DEFINE PARAMETER BUFFER pbttTable      FOR ttTable.                         */
 
-  DEFINE VARIABLE hQuery          AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hTableBuff      AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hChildBuff      AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cForEach        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cErrMess        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cMessage        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hAttValue       AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hAttDT          AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cKeyField       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cKey            AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cObjField       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cObj            AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iCount          AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE lHasObj         AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lAns            AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lVersion        AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE hRVObj          AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE lAccept         AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lOverwrite      AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lError          AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cErrorList      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iRule           AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE lSetModified   AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE iFactor         AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cCurrTimeSource AS CHARACTER  NO-UNDO.
-
-  DEFINE BUFFER bttTable            FOR ttTable.
-  DEFINE BUFFER bttTableList        FOR ttTableList.
-  DEFINE BUFFER bttEntityList       FOR ttEntityList.
-  DEFINE BUFFER bttImportVersion    FOR ttImportVersion.
-  DEFINE BUFFER bgst_record_version FOR gst_record_version.
-  DEFINE BUFFER bttTableProps       FOR ttTableProps.
-  
-  /* Check the table override properties */
-  FIND FIRST bttTableProps NO-LOCK
-    WHERE bttTableProps.cEntityMnemonic = pbttTable.cEntityMnemonic
-    NO-ERROR.
-  IF AVAILABLE(bttTableProps) THEN
-    lOverwrite     = bttTableProps.lOverwrite.
-  ELSE
-    lOverwrite     = plOverwrite.
-  ERROR-STATUS:ERROR = NO.
-
-  /* Get the version record for the temp-table record if there is one */
-  hRVObj = phTTBuff:BUFFER-FIELD("oRVObj":U).
-  IF hRVObj:BUFFER-VALUE > 0.0 THEN
-  DO:
-    FIND FIRST bttImportVersion
-      WHERE bttImportVersion.record_version_obj = hRVObj:BUFFER-VALUE
-      NO-ERROR.
-    ERROR-STATUS:ERROR = NO.
-  END.
-
-  /* Build a for each statement for this buffer */
-  CREATE BUFFER hTableBuff FOR TABLE pbttTable.cDatabase + ".":U + pbttTable.cTableName.
-
-  /* Disable all the schema triggers on all the tables */
-  hTableBuff:DISABLE-LOAD-TRIGGERS(NO).
-  hTableBuff:DISABLE-DUMP-TRIGGERS().
-  DISABLE TRIGGERS FOR LOAD OF bgst_record_version.
-  DISABLE TRIGGERS FOR DUMP OF bgst_record_version.
-
-  iRule   = ?.
-  lAccept = ?. /* We set this to ? because we need to know if it falls through
-                  all the rules below */
-
-  rule-block:
-  DO:
-    /* Obtain the key field and obj field values for this record */
-    lAns = getEntityData("TT":U,
-                         pbttTable.cEntityMnemonic,
-                         phTTBuff,
-                         CHR(1),
-                         OUTPUT cKeyField,
-                         OUTPUT cKey,
-                         OUTPUT cObjField,
-                         OUTPUT cObj,
-                         OUTPUT lHasObj,
-                         OUTPUT lVersion).
-  
-    IF NOT lAns THEN
-    DO:
-      lAccept = NO.
-      cErrorList = cErrorList + (IF cErrorList = "":U THEN "":U ELSE CHR(3))
-                 + "100|EM=":U + pbttTable.cEntityMnemonic.
-      lError = YES.
-      LEAVE rule-block.
-    END.
-  
-    /* Try and find the record using the object key if it has one. */
-    IF lHasObj THEN
-    DO:
-      obtainTableRec(CHR(1), 
-                     cObjField, 
-                     cObj, 
-                     hTableBuff,
-                     "EXCLUSIVE-LOCK":U).
-  
-      /* If we find a database record, we need to check if the record has 
-         changed. */
-      IF hTableBuff:AVAILABLE AND
-         cKeyField <> "":U AND
-         NOT compareKeys(cKeyField, phTTBuff, hTableBuff) THEN
-      DO:
-        iRule = 0.
-        IF NOT lOverwrite THEN
-        DO:
-          lAccept = NO.
-          cErrorList = cErrorList + (IF cErrorList = "":U THEN "":U ELSE CHR(3))
-                     + "000|EM=":U + pbttTable.cEntityMnemonic
-                     + "|Obj=":U + cObj
-                     + "|Key=":U + cKey.
-          lError = YES.
-          LEAVE rule-block.
-
-        END.
-        ELSE 
-          lAccept = YES.
-      END.
-    END.
-  
-    /* If we don't have a record available at this point, try and 
-       find it on the key value */
-    IF NOT hTableBuff:AVAILABLE THEN
-    DO:
-       IF cKeyField <> "":U AND
-          cKeyField <> ? THEN
-         obtainTableRec(CHR(1), 
-                        cKeyField, 
-                        cKey, 
-                        hTableBuff,
-                        "EXCLUSIVE-LOCK":U).
-    END.
-  
-    /* If the record is available, we need to determine if the data that 
-       we are getting in clashes with the data in the target database.
-       The rule numbers mentioned in comments in the following code 
-       map to rules in the specs. */
-    IF hTableBuff:AVAILABLE THEN
-    DO:
-      /* Get the version record for the database record if there is one */
-      obtainDataVersionRec(pbttTable.cEntityMnemonic,
-                           hTableBuff,
-                           (IF lHasObj THEN cObj ELSE cKey),
-                           INPUT BUFFER bgst_record_version:HANDLE,
-                           "EXCLUSIVE-LOCK":U).
-  
-      /* RULE #1. If there is no record version record in either place, we 
-         accept the record as we have no way of verifying it. If it does not 
-         clash on unique indexes, there is no way to make sure it is not valid. */
-      IF NOT AVAILABLE(bttImportVersion) AND
-         NOT AVAILABLE(bgst_record_version) THEN
-      DO:
-        iRule = 1.
-        lAccept = YES.
-        LEAVE rule-block.
-      END.
-
-      /* RULE #2 is the ELSE condition on the IF hTableBuff:AVAILABLE block */
-
-      /* RULE #3. If there is no record version in the target repository, 
-         but the data exists in the target repository, reject it unless
-         the overwrite flag is on */
-      IF AVAILABLE(bttImportVersion) AND
-         NOT AVAILABLE(bgst_record_version) THEN
-      DO:
-        iRule = 3.
-        IF NOT lOverwrite THEN
-        DO:
-          lAccept = NO.
-          cErrorList = cErrorList + (IF cErrorList = "":U THEN "":U ELSE CHR(3))
-                     + "003|EM=":U + pbttTable.cEntityMnemonic
-                     + "|Obj=":U + cObj
-                     + "|Key=":U + cKey.
-          lError = YES.
-        END.
-        ELSE 
-          lAccept = YES.
-        LEAVE rule-block.
-      END.
-
-      /* RULE #4. If there is no record version in the Import stuff, but there
-         is a record version in the target repository, we're about to overwrite
-         old data with new data that has just come in from the dataset. Only
-         do this if lOverwrite is on */
-      IF NOT AVAILABLE(bttImportVersion) AND
-         AVAILABLE(bgst_record_version) THEN
-      DO:
-        iRule = 4.
-        IF NOT lOverwrite THEN
-        DO:
-          lAccept = NO.
-          cErrorList = cErrorList + (IF cErrorList = "":U THEN "":U ELSE CHR(3))
-                     + "004|EM=":U + pbttTable.cEntityMnemonic
-                     + "|Obj=":U + cObj
-                     + "|Key=":U + cKey.
-          lError = YES.
-        END.
-        ELSE
-          lAccept = YES.
-        LEAVE rule-block.
-      END.
-
-      /* Now we deal with the case where both record version records are
-         available */
-      IF AVAILABLE(bttImportVersion) AND
-         AVAILABLE(bgst_record_version) THEN
-      DO:
-        /* RULE #5: If they both have the same version_number_seq, accept the
-           incoming record */
-        IF bttImportVersion.version_number_seq = ABS(bgst_record_version.version_number_seq) THEN
-        DO:
-          lAccept = YES.
-          iRule   = 5.
-          LEAVE rule-block.
-        END.
-
-        /* RULE #6: If the import_version_number_seq matches and the existing
-           version_number_seq is the same as the incoming import_version, we are
-           simply updating existing data */
-        IF bttImportVersion.import_version_number_seq = bgst_record_version.import_version_number_seq AND
-           bttImportVersion.import_version_number_seq = ABS(bgst_record_version.version_number_seq) THEN
-        DO:
-          lAccept = YES.
-          iRule   = 6.
-          LEAVE rule-block.
-        END.
-
-        /* All the other rules result in rejection unless overwrite. We're
-           providing the checks to be able to show the users why the record
-           was rejected. */
-        /* RULE #7: If the import's version matches the target import_version,
-           but the version_numbers don't, the data has been updated since it was sent
-           out from this repository. */
-        IF bttImportVersion.version_number_seq = bgst_record_version.import_version_number_seq AND
-           bttImportVersion.version_number_seq <> ABS(bgst_record_version.version_number_seq) THEN
-        DO:
-          iRule   = 7.
-          IF NOT lOverwrite THEN
-          DO:
-            lAccept = NO.
-            cErrorList = cErrorList + (IF cErrorList = "":U THEN "":U ELSE CHR(3))
-                       + "007|EM=":U + pbttTable.cEntityMnemonic
-                       + "|Obj=":U + cObj
-                       + "|Key=":U + cKey.
-            lError = YES.
-          END.
-          ELSE
-            lAccept = YES.
-          LEAVE rule-block.
-        END.
-
-        /* RULE #8: If the import's import_version matches the target import_version,
-           but the version_numbers don't, the data has been updated since it was 
-           imported into this repository. */
-        IF bttImportVersion.import_version_number_seq = bgst_record_version.import_version_number_seq AND
-           bttImportVersion.version_number_seq <> ABS(bgst_record_version.version_number_seq) THEN
-        DO:
-          iRule   = 8.
-          IF NOT lOverwrite THEN
-          DO:
-            lAccept = NO.
-            cErrorList = cErrorList + (IF cErrorList = "":U THEN "":U ELSE CHR(3))
-                       + "008|EM=":U + pbttTable.cEntityMnemonic
-                       + "|Obj=":U + cObj
-                       + "|Key=":U + cKey.
-            lError = YES.
-          END.
-          ELSE
-            lAccept = YES.
-          LEAVE rule-block.
-        END.
-      END.
-    END. /* IF hTableBuff:AVAILABLE */
-    ELSE
-    DO:
-      /* RULE #2. There's no data in the target repository. This is therefore
-         new data. We accept the record */
-      iRule = 2.
-      lAccept = YES.
-    END. /* ELSE of IF hTableBuff:AVAILABLE */
-
-    /* This is a catch all. We should never get to this point. Anthony and I could
-       not figure a case where you would. But if we hit we reject unless we're
-       overwriting */
-    IF lAccept = ? THEN
-    DO:
-      iRule   = 9.
-      IF NOT lOverwrite THEN
-      DO:
-        lAccept = NO.
-        cErrorList = cErrorList + (IF cErrorList = "":U THEN "":U ELSE CHR(3))
-                   + "009|EM=":U + pbttTable.cEntityMnemonic
-                   + "|Obj=":U + cObj
-                   + "|Key=":U + cKey.
-        lError = YES.
-      END.
-      ELSE
-        lAccept = YES.
-      LEAVE rule-block.
-    END.
-  END. /* END rule-block */
-
-
-  IF lAccept THEN
-  assign-block:
-  DO ON ERROR UNDO, LEAVE:
-    /* If we didn't find a record for table, create one. */
-    IF NOT hTableBuff:AVAILABLE THEN
-    DO:
-      hTableBuff:BUFFER-CREATE().
-      /* IZ 4064 
-      setFieldLiteral(hTableBuff, YES). /* Make sure we handle ? properly */
-      */
-      hTableBuff:BUFFER-COPY(phTTBuff) NO-ERROR.
-      /* IZ 4064
-      setFieldLiteral(hTableBuff, NO).
-      */
-    END.
-    ELSE IF lOverwrite THEN
-    DO:
-      /* IZ 4064
-      setFieldLiteral(hTableBuff, YES). /* Make sure we handle ? properly */
-      */
-      hTableBuff:BUFFER-COPY(phTTBuff) NO-ERROR.
-      /* IZ 4064
-      setFieldLiteral(hTableBuff, NO).
-      */
-    END.
-    
-  
-    /* If there's an error writing the database record, build up the
-       error string and return it */
-    IF ERROR-STATUS:ERROR OR 
-       ERROR-STATUS:NUM-MESSAGES > 0 THEN
-    DO:
-      cErrMess = buildErrList().
-      cErrorList = cErrorList + (IF cErrorList = "":U THEN "":U ELSE CHR(3))
-                 + "101|EM=":U + pbttTable.cEntityMnemonic 
-                 + "|Obj=":U + cObj 
-                 + "|Key=":U + cKey
-                 + "|":U + (IF cErrMess = ? THEN "UNKOWN":U ELSE cErrMess).
-      lError = YES.
-      LEAVE assign-block.
-    END.
-
-    /* We succeeded in writing the data to the database. Now lets update
-       the gst_record_version information. */
-
-    /* If neither record is available, we're done. */
-    IF NOT AVAILABLE(bttImportVersion) AND
-       NOT AVAILABLE(bgst_record_version) THEN
-      LEAVE assign-block.
-   
-    /* If there is no bttImportVersion, but there is a gst_record_version,
-       the user has chosen to overwrite the data completely. We need to 
-       whack the gst_record_version record. */
-    IF NOT AVAILABLE(bttImportVersion) AND
-       AVAILABLE(bgst_record_version) THEN
-    DO:
-      DELETE bgst_record_version.
-      LEAVE assign-block.
-    END.
-
-    /* If bttImportVersion is available, and there is no
-       gst_record_version, we need to create the gst_record_version. */
-    IF AVAILABLE(bttImportVersion) AND
-       NOT AVAILABLE(bgst_record_version) THEN
-    DO:
-      /* Make sure that there is no existing record on the database */
-      FIND bgst_record_version EXCLUSIVE-LOCK
-        WHERE bgst_record_version.record_version_obj = bttImportVersion.record_version_obj
-        NO-ERROR.
-      IF NOT AVAILABLE(bgst_record_version) THEN
-      DO:
-        CREATE bgst_record_version.
-        ASSIGN
-          bgst_record_version.record_version_obj      = bttImportVersion.record_version_obj
-          bgst_record_version.last_version_number_seq = DECIMAL(giSiteRev / giSiteDiv)
-          .
-      END.
-    END.
-
-    /* Does the user want to keep track of imported data changes? */
-    lSetModified = getAttribute(piRequestNo,
-                                 "SetModified":U) = "YES":U.
-    IF lSetModified = YES THEN
-      iFactor = -1.
-    ELSE
-      iFactor = 1.
-    
-    /* Now apply the changes to the version record */
-    ASSIGN
-      bgst_record_version.entity_mnemonic           = bttImportVersion.entity_mnemonic
-      bgst_record_version.key_field_value           = bttImportVersion.key_field_value
-
-      /* Imported version_number_seq becomes the import_version_number_seq */
-      bgst_record_version.import_version_number_seq = bttImportVersion.version_number_seq
-
-      /* Version_number_seq are set the same, unless the user is tracking changes, in 
-         which case we multiply it by -1 */
-      bgst_record_version.version_number_seq        = bttImportVersion.version_number_seq
-                                                    * iFactor
-
-      /* Get the date and time from the database */
-      bgst_record_version.version_date              = TODAY
-      bgst_record_version.version_time              = TIME
-      bgst_record_version.version_user              = bttImportVersion.version_user
-      NO-ERROR.
-
-    IF ERROR-STATUS:ERROR OR 
-       ERROR-STATUS:NUM-MESSAGES > 0 THEN
-    DO:
-      cErrMess = buildErrList().
-      cErrorList = cErrorList + (IF cErrorList = "":U THEN "":U ELSE CHR(3))
-                 + "101|EM=":U + pbttTable.cEntityMnemonic 
-                 + "|Obj=":U + cObj 
-                 + "|Key=":U + cKey
-                 + "|":U + (IF cErrMess = ? THEN "UNKOWN":U ELSE cErrMess).
-      lError = YES.
-      LEAVE assign-block.
-    END.
-  END. /* IF lAccept -- assign-block */
-
-  IF NOT lError THEN
-  DO:
-      /* Now we need to copy all the child data into its tables.
-       Iterate through all the dependent tables in the dataset and
-       remove the data in them from the list */
-    FOR EACH bttTable NO-LOCK
-      WHERE bttTable.cJoinMnemonic = pbttTable.cEntityMnemonic:
-  
-      /* Find the entity that is related to this table */
-      FIND FIRST bttEntityList NO-LOCK
-        WHERE bttEntityList.cEntityMnemonic = bttTable.cEntityMnemonic.
-  
-      /* Now find the temp-table that contains the data for this table */
-      FIND FIRST bttTableList NO-LOCK
-        WHERE bttTableList.iRequestNo = piRequestNo
-          AND bttTableList.iTableNo   = bttEntityList.iTableNo.
-  
-      /* Get the handle to the buffer for the temp-table */
-      CREATE BUFFER hChildBuff FOR TABLE bttTableList.hTable:DEFAULT-BUFFER-HANDLE.
-  
-      /* Build a for each statement for this buffer */
-      IF VALID-HANDLE(hChildBuff) THEN
-        cForEach = buildForEach(hChildBuff, 
-                                bttTable.cJoinFieldList, 
-                                phTTBuff, 
-                                "":U, 
-                                "":U,
-                                YES).
-  
-      /* Open a query on the temp-table */
-      CREATE QUERY hQuery.
-      hQuery:ADD-BUFFER(hChildBuff).
-      hQuery:QUERY-PREPARE(cForEach).
-      hQuery:QUERY-OPEN().
-      hQuery:GET-FIRST().
-  
-      /* Loop through the query and write the data in. */
-      REPEAT WHILE NOT hQuery:QUERY-OFF-END:
-  
-        /* Write the temp-table contents to the database */
-        RUN writeDatasetToDB (piRequestNo,
-                              hChildBuff,
-                              plOverwrite,
-                              BUFFER bttTable) NO-ERROR.
-  
-        IF ERROR-STATUS:ERROR THEN
-          UNDO, LEAVE.
-  
-        hQuery:GET-NEXT().
-  
-      END.
-      /* Close the query and delete the query object */
-      hQuery:QUERY-CLOSE().
-      DELETE OBJECT hQuery.
-      hQuery = ?.
-      DELETE OBJECT hChildBuff.
-      hChildBuff = ?.
-      
-      IF ERROR-STATUS:ERROR THEN
-        UNDO, LEAVE.
-    END.
-  END. /* IF NOT lError */
-  
-  phTTBuff:BUFFER-DELETE().
-  phTTBuff:BUFFER-RELEASE().
-  hTableBuff:BUFFER-RELEASE().
-  DELETE OBJECT hTableBuff.
-  hTableBuff = ?.
-  IF lError OR 
-     ERROR-STATUS:ERROR THEN
-  DO:
-    IF cErrorList = "":U THEN
-      UNDO, RETURN ERROR RETURN-VALUE.
-    ELSE
-      UNDO, RETURN ERROR cErrorList.
-  END.
+/* This code has been moved to an include file because it is too big to fit in
+   the AppBuilder's section editor */
+  {icf/af/app/gscddwritedstodb.i}
 
 END PROCEDURE.
 
@@ -3749,44 +3828,46 @@ PROCEDURE writeDataToDB :
     hQuery:QUERY-OPEN().
     hQuery:GET-FIRST().
 
-    /* Start a transaction */
-    trans-block:
-    REPEAT WHILE NOT hQuery:QUERY-OFF-END TRANSACTION:
-      /* Go and build a list of the tables that have data that may need to be
-         deleted and delete the appropriate records. These records have to be
-         deleted before we start building writing in the new dataset, otherwise
-         we could land up with key field clashes. */
+    REPEAT WHILE NOT hQuery:QUERY-OFF-END:
+      /* Start a transaction */
+      trans-block:
+      DO TRANSACTION:
+        /* Go and build a list of the tables that have data that may need to be
+           deleted and delete the appropriate records. These records have to be
+           deleted before we start building writing in the new dataset, otherwise
+           we could land up with key field clashes. */
+  
+        RUN deleteOldData (piRequestNo,
+                           plDeleteFirst,
+                           plOverwrite,
+                           hQryBuff,
+                           BUFFER bttTable) NO-ERROR.
+  
+        IF ERROR-STATUS:ERROR THEN 
+          UNDO trans-block, LEAVE trans-block.
+  
+        
+        /* Write the temp-table contents to the database */
+        RUN writeDatasetToDB (piRequestNo,
+                              hQryBuff,
+                              plOverwrite,
+                              BUFFER bttTable) NO-ERROR.
+        
+        IF ERROR-STATUS:ERROR OR 
+           (RETURN-VALUE <> "":U AND
+            RETURN-VALUE <> ?) THEN
+        DO:
+          RUN writeNodeToErrorLog (piRequestNo, phNode, RETURN-VALUE).
+          ERROR-STATUS:ERROR = NO.
+          lError = YES.
+          UNDO trans-block, LEAVE trans-block.
+        END.
 
-      RUN deleteOldData (piRequestNo,
-                         plDeleteFirst,
-                         plOverwrite,
-                         hQryBuff,
-                         BUFFER bttTable) NO-ERROR.
-
-      IF ERROR-STATUS:ERROR THEN 
-        UNDO trans-block, LEAVE trans-block.
-
-      
-      /* Write the temp-table contents to the database */
-      RUN writeDatasetToDB (piRequestNo,
-                            hQryBuff,
-                            plOverwrite,
-                            BUFFER bttTable) NO-ERROR.
-      
-      IF ERROR-STATUS:ERROR OR 
-         (RETURN-VALUE <> "":U AND
-          RETURN-VALUE <> ?) THEN
-      DO:
-        RUN writeNodeToErrorLog (piRequestNo, phNode, RETURN-VALUE).
-        ERROR-STATUS:ERROR = NO.
-        lError = YES.
-        UNDO trans-block, LEAVE trans-block.
-      END.
-
+      END. /* trans-block: DO TRANSACTION:*/
       /* Get the next record */
       hQuery:GET-NEXT().
     
-    END. /* REPEAT ... TRANSACTION */
+    END. /* REPEAT  */
 
     hQuery:QUERY-CLOSE().
     DELETE OBJECT hQuery.
@@ -3810,6 +3891,8 @@ PROCEDURE writeDataToDB :
 
   IF lError THEN
     RETURN "EDO":U.
+  ELSE
+    RETURN "":U.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -3895,6 +3978,12 @@ PROCEDURE writeDeploymentDataset :
   DEFINE VARIABLE iNoRecs               AS INTEGER    NO-UNDO.
   DEFINE VARIABLE lWriteEmpty           AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cWriteEmpty           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lWriteDeletions       AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cWriteDeletions       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cWriteDeletionsOnly   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lWriteDeletionsOnly   AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lRemoveDeletionRV     AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cRemoveDeletionRV     AS CHARACTER  NO-UNDO.
   
   DEFINE BUFFER bgsc_deploy_dataset FOR gsc_deploy_dataset.
   DEFINE BUFFER bttTable            FOR ttTable.
@@ -3905,6 +3994,13 @@ PROCEDURE writeDeploymentDataset :
   /* Make sure there are no errors in the message list. */
   gcMessageList = "":U.
 
+  FOR EACH ttDSAttribute 
+    WHERE ttDSAttribute.iRequestNo = 0:
+    DELETE ttDSAttribute.
+  END.
+
+  /* Set an attribute for ResetModifiedStatus so that other procedures can get
+     at this value. */
   setAttribute(0, 
                "ResetModifiedStatus":U, 
                (IF plModified THEN "YES":U ELSE "NO":U)).
@@ -3912,7 +4008,7 @@ PROCEDURE writeDeploymentDataset :
   pcFileName = REPLACE(pcFileName,"~\":U, "/":U).
   pcFileName = TRIM(pcFileName, "/":U).
 
-
+  /* Set an attribute for each of the parameters in ttExportParams */
   FOR EACH ttExportParam:
     setAttribute(0, 
                  ttExportParam.cParam, 
@@ -3920,6 +4016,20 @@ PROCEDURE writeDeploymentDataset :
   END.
   
   cFileName = buildFileName(pcRootDir, pcFileName).
+
+  /* Figure out if we have to write out an empty dataset */
+  cWriteDeletions = getAttribute(0, "WriteDeletionsDataset":U).
+  IF cWriteDeletions = "YES":U THEN
+    lWriteDeletions = YES.
+  ELSE
+    lWriteDeletions = NO.
+
+  /* Figure out if we have to write out an empty dataset */
+  cWriteDeletionsOnly = getAttribute(0, "WriteDeletionsOnly":U).
+  IF cWriteDeletionsOnly = "YES":U THEN
+    lWriteDeletionsOnly = YES.
+  ELSE
+    lWriteDeletionsOnly = NO.
 
   /* Empty the ttVersionReset temp-table */
   EMPTY TEMP-TABLE ttVersionReset.
@@ -3964,16 +4074,23 @@ PROCEDURE writeDeploymentDataset :
     RETURN.
   END.
 
+  /* If this is not a deletions dataset, we need to skip deletions */
+  IF NOT bgsc_deploy_dataset.deletion_dataset THEN
+    ASSIGN
+      lWriteDeletions = NO
+      lWriteDeletionsOnly = NO
+    .
+
   RUN createTopLevelNodes(OUTPUT hXMLDoc, OUTPUT hRootNode).
     /* Create the header portion of the XML file */
   lAns = writeDatasetHeader(hRootNode,
                             INPUT BUFFER bgsc_deploy_dataset:HANDLE, 
                             plFullHeader).
-
+   
   IF lAns THEN
   DO:
     /* Now we need to create the deployment dataset data */
-    iNoRecs = writeDataset(hRootNode).
+    iNoRecs = writeDataset(hRootNode, lWriteDeletions, lWriteDeletionsOnly).
 
     IF iNoRecs = ? THEN
       lAns = NO.
@@ -4062,8 +4179,12 @@ PROCEDURE writeDeploymentDataset :
                       {af/sup2/aferrortxt.i 'AF' '117' '?' '?' 'save' cMessage cMessageList}.
     ELSE
     DO:
-      IF lReset THEN
-        RUN resetModifiedStatus.
+      /* Check the ResetModifiedStatus flag. */
+      lRemoveDeletionRV = getAttribute(0, "RemoveDeletions":U) = "YES":U.
+      IF lRemoveDeletionRV = ? THEN
+        lRemoveDeletionRV = NO.
+      IF plModified THEN
+        RUN resetModifiedStatus (lRemoveDeletionRV).
     END.
   END.
   EMPTY TEMP-TABLE bttTable.
@@ -4408,7 +4529,7 @@ PROCEDURE writeTempTableData :
     DELETE bttNode.
   END.
 
-
+  RETURN.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -4547,7 +4668,7 @@ FUNCTION buildFileName RETURNS CHARACTER
   ASSIGN
     pcRootDir = REPLACE(pcRootDir,"~\":U, "/":U)
     pcFileName = REPLACE(pcFileName,"~\":U, "/":U)
-    pcRootDir = TRIM(pcRootDir, "/":U)
+    pcRootDir = RIGHT-TRIM(pcRootDir, "/":U)
     pcFileName = TRIM(pcFileName, "/":U)
     cFileName = pcRootDir + "/":U + pcFileName
   .
@@ -4689,6 +4810,40 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-buildWhereFromKeyList) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION buildWhereFromKeyList Procedure 
+FUNCTION buildWhereFromKeyList RETURNS CHARACTER
+  ( INPUT pcFieldList AS CHARACTER,
+    INPUT pcFieldVal  AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Build up the where clause to do a find of a record.
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cWhere AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iCount AS INTEGER    NO-UNDO.
+
+  IF NUM-ENTRIES(pcFieldList) = NUM-ENTRIES(pcFieldVal,CHR(3)) THEN
+  DO iCount = 1 TO NUM-ENTRIES(pcFieldList):
+    cWhere = cWhere + (IF cWhere = "":U THEN "":U ELSE " AND ":U)
+           + ENTRY(iCount,pcFieldList) + " = ":U 
+           + TRIM(QUOTER(ENTRY(iCount,pcFieldVal,CHR(3)))).
+  END.
+  ELSE
+    cWhere = "":U.
+
+  IF cWhere <> "":U THEN
+    cWhere = "WHERE ":U + cWhere.
+  
+  RETURN cWhere.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-buildWhereFromKeyVal) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION buildWhereFromKeyVal Procedure 
@@ -4708,6 +4863,9 @@ FUNCTION buildWhereFromKeyVal RETURNS CHARACTER
   DEFINE VARIABLE cFieldValue  AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hField       AS HANDLE     NO-UNDO.
 
+  IF NUM-ENTRIES(pcFieldList) <> NUM-ENTRIES(pcFieldValue, pcDelimiter) THEN
+    RETURN "":U.
+
   /* Loop through the fields in the list */
   DO iCount = 1 TO NUM-ENTRIES(pcFieldList):
 
@@ -4723,7 +4881,7 @@ FUNCTION buildWhereFromKeyVal RETURNS CHARACTER
     /* Build up the where clause */
     cWhereClause = cWhereClause + (IF cWhereClause = "":U THEN "":U ELSE " AND ":U)
                  + phTableBuff:NAME + ".":U + cField + " = ":U 
-                 + convDTForWhere(hField:DATA-TYPE, cFieldValue).
+                 + convDTForWhere(hField:DATA-TYPE, cFieldValue, 0, NO).
   END.
 
   RETURN cWhereClause.   /* Function return value. */
@@ -4821,7 +4979,9 @@ FUNCTION calcFieldListWhere RETURNS CHARACTER
                 + phBuffer:NAME + ".":U
                 + cChildField + " = ":U  
                 + convDTForWhere(hChildField:DATA-TYPE,
-                                 (IF lDefault THEN STRING(hParentField:INITIAL) ELSE STRING(hParentField:BUFFER-VALUE))).
+                                 (IF lDefault THEN STRING(hParentField:INITIAL) ELSE STRING(hParentField:BUFFER-VALUE)),
+                                 0,
+                                 NO).
     END.
   END.
   ELSE
@@ -4852,7 +5012,10 @@ FUNCTION calcFieldListWhere RETURNS CHARACTER
       cRetVal = cRetVal + (IF cRetVal = "":U THEN "":U ELSE " AND ":U)
               + phBuffer:NAME + ".":U
               + cChildField + " = ":U  
-              + convDTForWhere(hChildField:DATA-TYPE,(IF lDefault THEN STRING(hChildField:INITIAL) ELSE ENTRY(iCount,pcJoinFieldValue,CHR(3)))).
+              + convDTForWhere(hChildField:DATA-TYPE,
+                               (IF lDefault THEN STRING(hChildField:INITIAL) ELSE ENTRY(iCount,pcJoinFieldValue,CHR(3))),
+                               0,
+                               NO).
     END.
   END.
   
@@ -4981,21 +5144,80 @@ END FUNCTION.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION convDTForWhere Procedure 
 FUNCTION convDTForWhere RETURNS CHARACTER
   ( INPUT pcDataType AS CHARACTER,
-    INPUT pcValue AS CHARACTER ) :
+    INPUT pcValue AS CHARACTER,
+    INPUT piRequestNo AS INTEGER,
+    INPUT lInput  AS LOGICAL ) :
 /*------------------------------------------------------------------------------
   Purpose:   Converts the a string value to the appropriate expression in 
              a where clause for a dynamic query based on the datatype passed 
              in.
     Notes:  
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cRetVal  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cCurrDateFormat     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDatasetDateFormat  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cCurrNumFormat      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDatasetNumFormat   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cCurrNumSep         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDatasetNumSep      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cCurrNumDec         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDatasetNumDec      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cRetVal             AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE deValue             AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE daValue             AS DATE       NO-UNDO.
+  
   
   CASE pcDataType:
     WHEN "CHARACTER":U THEN
       cRetVal = "'":U + pcValue + "'":U.
-    WHEN "DECIMAL":U OR
+    WHEN "DECIMAL":U THEN
+    DO:
+      IF lInput THEN
+      DO:
+        /* With a decimal, we need to swap the numeric format so that it
+           is the same as it was in the incoming dataset */
+        cCurrNumSep = SESSION:NUMERIC-SEPARATOR.
+        cDatasetNumSep = getAttribute(piRequestNo,"NumericSeparator":U).
+        cCurrNumDec = SESSION:NUMERIC-DECIMAL-POINT.
+        cDatasetNumDec = getAttribute(piRequestNo,"NumericDecimal":U).
+        cCurrNumFormat = SESSION:NUMERIC-FORMAT.
+        cDatasetNumFormat = getAttribute(piRequestNo,"NumericFormat":U). 
+        IF cDatasetNumSep <> ? AND
+           cDatasetNumSep <> "":U AND
+           cDatasetNumDec <> ? AND
+           cDatasetNumDec <> "":U THEN
+          SESSION:SET-NUMERIC-FORMAT(cDatasetNumSep, cDatasetNumDec).
+        IF cDatasetNumFormat <> ? AND
+           cDatasetNumFormat <> "":U THEN
+          SESSION:NUMERIC-FORMAT = cDatasetNumFormat. 
+      END.
+      deValue = DECIMAL(pcValue).
+      IF lInput THEN
+      DO:
+        SESSION:NUMERIC-FORMAT = cCurrNumFormat.  
+        SESSION:SET-NUMERIC-FORMAT(cCurrNumSep, cCurrNumDec).
+      END.
+      cRetVal = QUOTER(deValue).
+    END.
     WHEN "DATE":U THEN
-      cRetVal = "'":U + TRIM(pcValue) + "'":U.
+    DO:
+      IF lInput THEN
+      DO:
+        /* With a date, we need to swap the date format so that it
+           is the same as it was in the incoming dataset */
+        cCurrDateFormat = SESSION:DATE-FORMAT.
+        cDatasetDateFormat = getAttribute(piRequestNo,"DateFormat":U).
+        IF cDatasetDateFormat <> ? AND
+           cDatasetDateFormat <> "":U THEN
+          SESSION:DATE-FORMAT = cDatasetDateFormat.
+      END.
+      daValue = DATE(pcValue).
+      IF lInput THEN
+      DO:
+        SESSION:DATE-FORMAT = cCurrDateFormat.
+      END.
+      cRetVal = QUOTER(daValue).
+    END.
+
     WHEN "INTEGER":U OR
     WHEN "LOGICAL":U THEN
       cRetVal = TRIM(pcValue).
@@ -5096,6 +5318,7 @@ FUNCTION datasetQuery RETURNS INTEGER
     iTransNo = iTransNo + 1.
 
     hTransGroup:SET-ATTRIBUTE("TransactionNo":U, STRING(iTransNo)).
+    hTransGroup:SET-ATTRIBUTE("TransactionType":U, "DATA":U).
 
     /* Write out this record and anything it contains */
     writeContainedRecord(hTransGroup, 
@@ -5456,7 +5679,7 @@ FUNCTION getFileNameFromField RETURNS CHARACTER
   DEFINE VARIABLE cPath       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE oProductMod AS DECIMAL    NO-UNDO.
 
-  DEFINE BUFFER bgsc_object         FOR gsc_object.
+  DEFINE BUFFER bryc_smartobject         FOR ryc_smartobject.
   DEFINE BUFFER bgsc_product_module FOR gsc_product_module.
 
   hField = phBuffer:BUFFER-FIELD(pcFieldForFile) NO-ERROR.
@@ -5465,12 +5688,12 @@ FUNCTION getFileNameFromField RETURNS CHARACTER
   DO:
     cFileName = hField:BUFFER-VALUE.
 
-    FIND FIRST bgsc_object NO-LOCK
-      WHERE bgsc_object.object_filename = cFileName
+    FIND FIRST bryc_smartobject NO-LOCK
+      WHERE bryc_smartobject.object_filename = cFileName
       NO-ERROR.
-    IF AVAILABLE(bgsc_object) AND
-       bgsc_object.object_path <> "":U THEN
-      cPath = bgsc_object.object_path.
+    IF AVAILABLE(bryc_smartobject) AND
+       bryc_smartobject.object_path <> "":U THEN
+      cPath = bryc_smartobject.object_path.
     ELSE
     DO:
       hField = phBuffer:BUFFER-FIELD("product_module_obj") NO-ERROR.
@@ -5597,6 +5820,59 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-matchKeys) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION matchKeys Procedure 
+FUNCTION matchKeys RETURNS LOGICAL
+  ( INPUT pcFieldList  AS CHARACTER,
+    INPUT pcFieldValue AS CHARACTER,
+    INPUT phBuffer     AS HANDLE) :
+/*------------------------------------------------------------------------------
+  Purpose:  Loop through the fields in the field list and check that the 
+            value in the pcFieldValue = value in phBuffer.
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE iCount   AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hField   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cCurr    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cBuffVal AS CHARACTER  NO-UNDO.
+
+  /* If the field value is empty the possibility exists that this is old data that
+     existed *before* secondary key values were available. We whack these records
+     as we need to get rid of the deployment */
+  IF pcFieldValue = "":U OR 
+     pcFieldValue = ?    THEN
+    RETURN TRUE.
+
+  /* If someone has changed the way that the field list is made up on the entity
+     mnemonic, we have to deal with this the same way as a blank field value */
+  IF NUM-ENTRIES(pcFieldList) <> NUM-ENTRIES(pcFieldValue,CHR(3)) THEN
+    RETURN TRUE.
+
+  DO iCount = 1 TO NUM-ENTRIES(pcFieldList):
+    hField = phBuffer:BUFFER-FIELD(ENTRY(iCount,pcFieldList)) NO-ERROR.
+    ERROR-STATUS:ERROR = NO.
+    /* If the field list is invalid, return true */
+    IF NOT VALID-HANDLE(hField) THEN
+      RETURN TRUE.
+
+    /* Now see if we are happy with the buffer value */
+    cCurr = ENTRY(iCount,pcFieldValue,CHR(3)).
+    cBuffVal = STRING(hField:BUFFER-VALUE).
+
+    IF cCurr <> cBuffVal THEN
+      RETURN FALSE.
+  END.
+
+  RETURN TRUE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-obtainDatabaseRec) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION obtainDatabaseRec Procedure 
@@ -5684,6 +5960,7 @@ FUNCTION obtainDataVersionRec RETURNS LOGICAL
   DEFINE VARIABLE cFieldValue  AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lAns         AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cWhereClause AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iLock        AS INTEGER    NO-UNDO.
 
   IF VALID-HANDLE(phDBRecord) THEN
     /* Calculate the version key for this record */
@@ -5698,16 +5975,30 @@ FUNCTION obtainDataVersionRec RETURNS LOGICAL
     /* This where clause needs to read something like this:
        gst_record_version.entity_mnemonic = pcEntityMnemonic
        AND gst_record_version.key_field_value = cFieldValue */
-    cWhereClause = phDVRecord:NAME + ".entity_mnemonic = '":U + pcEntityMnemonic 
-                 + "' AND ":U + phDVRecord:NAME + ".key_field_value = '":U 
-                 + cFieldValue + "'":U.
+    cWhereClause = "WHERE ":U + phDVRecord:NAME + ".entity_mnemonic = ":U 
+                 + TRIM(QUOTER(pcEntityMnemonic))
+                 + " AND ":U + phDVRecord:NAME + ".key_field_value = ":U 
+                 + TRIM(QUOTER(cFieldValue)).
 
-    /* Now call the findFirst method on this. */
+    CASE pcLock:
+      WHEN "EXCLUSIVE-LOCK":U THEN
+        iLock = EXCLUSIVE-LOCK.
+      WHEN "NO-LOCK":U THEN
+        iLock = NO-LOCK.
+      WHEN "SHARE-LOCK":U THEN
+        iLock = SHARE-LOCK.
+    END CASE.
+    
+    lAns = phDVRecord:FIND-FIRST(cWhereClause, iLock) NO-ERROR.
+    
+    ERROR-STATUS:ERROR = NO.
+
+    /*    
     lAns = DYNAMIC-FUNCTION("findFirst":U IN ghDDO,
                             phDVRecord,
                             cWhereClause,
                             pcLock,
-                            NO).
+                            NO). */
     RETURN lAns.
   END.
   ELSE 
@@ -5735,17 +6026,46 @@ FUNCTION obtainTableRec RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
 
   DEFINE VARIABLE cWhereClause AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iLock        AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE lAns         AS LOGICAL    NO-UNDO.
 
   cWhereClause = buildWhereFromKeyVal(pcDelimiter,
                                       pcFieldList,
                                       pcFieldValue,
                                       phTableBuff).
 
-  RETURN DYNAMIC-FUNCTION("findFirst":U IN ghDDO,
+  IF cWhereClause = "":U OR
+     cWhereClause = ? THEN
+  DO:
+    IF phTableBuff:AVAILABLE THEN
+      phTableBuff:BUFFER-RELEASE().
+    lAns = NO.
+  END.
+  ELSE
+  DO:
+    IF SUBSTRING(cWhereClause, 1, 5) <> "WHERE":U THEN
+      cWhereClause = "WHERE ":U + cWhereClause. 
+
+    CASE pcLockType:
+      WHEN "EXCLUSIVE-LOCK":U THEN
+        iLock = EXCLUSIVE-LOCK.
+      WHEN "NO-LOCK":U THEN
+        iLock = NO-LOCK.
+      WHEN "SHARE-LOCK":U THEN
+        iLock = SHARE-LOCK.
+    END CASE.
+
+    lAns = phTableBuff:FIND-FIRST(cWhereClause, iLock) NO-ERROR.
+    ERROR-STATUS:ERROR = NO.
+  END.
+                                      
+  RETURN lAns.
+  
+  /* DYNAMIC-FUNCTION("findFirst":U IN ghDDO,
                           phTableBuff,
                           cWhereClause,
                           pcLockType,
-                          NO).
+                          NO). */
 
 END FUNCTION.
 
@@ -5805,6 +6125,8 @@ FUNCTION obtainTempTableRec RETURNS LOGICAL
 
     IF NOT VALID-HANDLE(hField) THEN
     DO:
+      MESSAGE "Invalid field handle - " cIndexField
+        VIEW-AS ALERT-BOX INFO BUTTONS OK.
       cWhereClause = ?.
       LEAVE.
     END.
@@ -5822,32 +6144,23 @@ FUNCTION obtainTempTableRec RETURNS LOGICAL
     END.
 
     /* Build up a phrase for this field. */
-    cPhrase = cIndexField + " = ":U + convDTForWhere(hField:DATA-TYPE,bttNode.cValue).
-
+    cPhrase = cIndexField + " = ":U + convDTForWhere(hField:DATA-TYPE,
+                                                     bttNode.cValue,
+                                                     piRequestNo,
+                                                     YES).
+    
     IF cWhereClause = "":U THEN
       cWhereClause = "WHERE " + cPhrase.
     ELSE
       cWhereClause = " AND " + cPhrase.
-
+      
   END.
 
   IF cWhereClause = ? THEN
     RETURN FALSE.
 
-  cWhereClause = "FOR EACH ":U + phWriteBuff:NAME + " ":U + cWhereClause.
-
-  CREATE QUERY hQuery.
-  hQuery:ADD-BUFFER(phWriteBuff).
-  lAns = hQuery:QUERY-PREPARE(cWhereClause) NO-ERROR.
-
-  IF lAns THEN
-  DO:
-    hQuery:QUERY-OPEN().
-    hQuery:GET-FIRST() NO-ERROR.
-    hQuery:QUERY-CLOSE().
-  END.
-
-  DELETE OBJECT hQuery.
+  phWriteBuff:FIND-FIRST(cWhereClause) NO-ERROR.
+  ERROR-STATUS:ERROR = NO.
 
   RETURN phWriteBuff:AVAILABLE.   /* Function return value. */
 
@@ -5992,11 +6305,13 @@ FUNCTION readRecordVersionAttr RETURNS DECIMAL
             bttImportVersion.oObjOnDB = bgst_record_version.record_version_obj
           .
         ASSIGN
-          bttImportVersion.import_version_number_seq = bttImport.import_version_number_seq
-          bttImportVersion.version_number_seq        = bttImport.version_number_seq
+          bttImportVersion.secondary_key_value       = bttImport.secondary_key_value
+          bttImportVersion.import_version_number_seq = ABS(bttImport.import_version_number_seq)
+          bttImportVersion.version_number_seq        = ABS(bttImport.version_number_seq)
           bttImportVersion.version_date              = bttImport.version_date
           bttImportVersion.version_time              = bttImport.version_time
           bttImportVersion.version_user              = bttImport.version_user
+          bttImportVersion.deletion_flag             = bttImport.deletion_flag
         .
       END. /* IF NOT AVAILABLE(bgst_record_version) */
       ELSE
@@ -6010,11 +6325,13 @@ FUNCTION readRecordVersionAttr RETURNS DECIMAL
            transaction. For that reason, I have not wasted any time doing any checks.
            We may need to revisit this code if it becomes an issue. */
         ASSIGN
-          bttImportVersion.import_version_number_seq = bttImport.import_version_number_seq
-          bttImportVersion.version_number_seq        = bttImport.version_number_seq
+          bttImportVersion.secondary_key_value       = bttImport.secondary_key_value
+          bttImportVersion.import_version_number_seq = ABS(bttImport.import_version_number_seq)
+          bttImportVersion.version_number_seq        = ABS(bttImport.version_number_seq)
           bttImportVersion.version_date              = bttImport.version_date
           bttImportVersion.version_time              = bttImport.version_time
           bttImportVersion.version_user              = bttImport.version_user
+          bttImportVersion.deletion_flag             = bttImport.deletion_flag
         .
 
       END. /* ELSE IF NOT AVAILABLE(bgst_record_version) */
@@ -6232,7 +6549,7 @@ FUNCTION setFieldValue RETURNS LOGICAL
       cCurrNumDec = SESSION:NUMERIC-DECIMAL-POINT.
       cDatasetNumDec = getAttribute(piRequestNo,"NumericDecimal":U).
       cCurrNumFormat = SESSION:NUMERIC-FORMAT.
-      cDatasetNumFormat = getAttribute(piRequestNo,"NumericFormat":U).
+      cDatasetNumFormat = getAttribute(piRequestNo,"NumericFormat":U). 
       IF cDatasetNumSep <> ? AND
          cDatasetNumSep <> "":U AND
          cDatasetNumDec <> ? AND
@@ -6240,9 +6557,9 @@ FUNCTION setFieldValue RETURNS LOGICAL
         SESSION:SET-NUMERIC-FORMAT(cDatasetNumSep, cDatasetNumDec).
       IF cDatasetNumFormat <> ? AND
          cDatasetNumFormat <> "":U THEN
-        SESSION:NUMERIC-FORMAT = cDatasetNumFormat.
+        SESSION:NUMERIC-FORMAT = cDatasetNumFormat. 
       phField:BUFFER-VALUE = DECIMAL(pcFieldValue).
-      SESSION:NUMERIC-FORMAT = cCurrNumFormat.
+      SESSION:NUMERIC-FORMAT = cCurrNumFormat.  
       SESSION:SET-NUMERIC-FORMAT(cCurrNumSep, cCurrNumDec).
     END.
     WHEN "DATE":U THEN
@@ -6502,7 +6819,7 @@ FUNCTION writeContainedRecord RETURNS LOGICAL
                                  "contained_record":U).
   
   /* Make sure we know what table is getting written out */
-  hRecordNode:SET-ATTRIBUTE("DB", phBuff:DBNAME).
+  hRecordNode:SET-ATTRIBUTE("DB", LC(phBuff:DBNAME)).
   hRecordNode:SET-ATTRIBUTE("Table", phBuff:NAME).
 
   /* Write out the record version attributes of this record,
@@ -6574,7 +6891,9 @@ END FUNCTION.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION writeDataset Procedure 
 FUNCTION writeDataset RETURNS INTEGER
-  ( INPUT phNode AS HANDLE) :
+  ( INPUT phNode          AS HANDLE,
+    INPUT plDeletions     AS LOGICAL,
+    INPUT plDeletionsOnly AS LOGICAL) :
 /*------------------------------------------------------------------------------
   Purpose:  Writes out the header node and calls the code to write the dataset
             entities.
@@ -6603,8 +6922,13 @@ FUNCTION writeDataset RETURNS INTEGER
 
     IF bttTable.lPrimary THEN
     DO:
+
+      IF plDeletions THEN
+        iTransNo = writeDatasetDeletions(hRecordNode, bttTable.cEntityMnemonic).
+
       /* Loop through the required records table to figure out what records
          need to be deployed. */
+      IF NOT plDeletionsOnly THEN
       FOR EACH bttRequiredRecord NO-LOCK
         BY bttRequiredRecord.iSequence:
   
@@ -6631,11 +6955,18 @@ FUNCTION writeDataset RETURNS INTEGER
     END. /* IF bttTable.lPrimary */
     ELSE
     DO:
-      /* Just get all the records */
-      cQueryString = buildForEach(hBuffer, "":U, ?, "":U, bttTable.cWhereClause, NO).
-  
-      /* Open the query and write the XML */
-      iTransNo = datasetQuery(hBuffer, cQueryString, hRecordNode, bttTable.cEntityMnemonic, iTransNo).
+      IF plDeletions THEN
+        iTransNo = writeDatasetDeletions(hRecordNode, bttTable.cEntityMnemonic).
+
+      IF NOT plDeletionsOnly THEN
+      DO:
+        /* Just get all the records */
+        cQueryString = buildForEach(hBuffer, "":U, ?, "":U, bttTable.cWhereClause, NO).
+
+
+        /* Open the query and write the XML */
+        iTransNo = datasetQuery(hBuffer, cQueryString, hRecordNode, bttTable.cEntityMnemonic, iTransNo).
+      END.
 
     END.
   
@@ -6648,6 +6979,89 @@ FUNCTION writeDataset RETURNS INTEGER
   DELETE OBJECT hRecordNode.
   hRecordNode = ?.
   
+  RETURN iTransNo.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-writeDatasetDeletions) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION writeDatasetDeletions Procedure 
+FUNCTION writeDatasetDeletions RETURNS INTEGER
+  ( INPUT phRecordNode AS HANDLE,
+    INPUT pcEntityMnemonic AS CHARACTER) :
+/*------------------------------------------------------------------------------
+  Purpose:    Writes a deletions node for each of the primary entities that 
+              are marked as deleted.
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE BUFFER bgst_record_version FOR gst_record_version.
+  DEFINE BUFFER bttVersionReset     FOR ttVersionReset.
+
+  DEFINE VARIABLE iTransNo    AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hTransGroup AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hContained  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lReset      AS LOGICAL    NO-UNDO.
+  
+  /* Check the ResetModifiedStatus flag. */
+  lReset = getAttribute(0, "ResetModifiedStatus":U) = "YES":U.
+  IF lReset = ? THEN
+    lReset = NO.
+
+  FOR EACH bgst_record_version NO-LOCK
+    WHERE bgst_record_version.entity_mnemonic = pcEntityMnemonic
+      AND bgst_record_version.deletion_flag:
+
+    /* Add a transaction level entry */
+    hTransGroup = DYNAMIC-FUNCTION("createElementNode":U IN ghXMLHlpr,
+                                   phRecordNode, 
+                                   "dataset_transaction":U).
+
+    /* Increment Transaction Number */
+    iTransNo = iTransNo + 1.
+
+    hTransGroup:SET-ATTRIBUTE("TransactionNo":U, STRING(iTransNo)).
+    hTransGroup:SET-ATTRIBUTE("TransactionType":U, "DELETION":U).
+
+    hContained = DYNAMIC-FUNCTION("createElementNode":U IN ghXMLHlpr,
+                                   hTransGroup, 
+                                   "contained_record":U).
+
+
+    writeVersionAttr(hContained, INPUT BUFFER bgst_record_version:HANDLE).
+    
+    DELETE OBJECT hContained.
+    hContained = ?.
+
+    /* Delete the transaction group node */
+    DELETE OBJECT hTransGroup.
+    hTransGroup = ?.
+
+
+    /* If the reset modified status flag is set to yes, we need to reset this record
+       when we have finished dumping the dataset. This means that we need to write
+       the obj into the ttVersionReset table so that we can reset it later. */
+    IF lReset THEN
+    DO:
+      FIND bttVersionReset 
+        WHERE bttVersionReset.record_version_obj = bgst_record_version.record_version_obj
+        NO-ERROR.
+      IF NOT AVAILABLE(bttVersionReset) THEN
+      DO:
+        CREATE bttVersionReset.
+        ASSIGN
+          bttVersionReset.record_version_obj = bgst_record_version.record_version_obj
+          bttVersionReset.delete_record      = YES
+        .
+      END.
+    END.
+
+  END.
+
   RETURN iTransNo.   /* Function return value. */
 
 END FUNCTION.
@@ -6713,12 +7127,12 @@ FUNCTION writeDatasetHeader RETURNS LOGICAL
   /*
   cCurrTimeSource = SESSION:TIME-SOURCE.
   SESSION:TIME-SOURCE = phBuff:DBNAME.
-  */
+  
   hHeaderNode:SET-ATTRIBUTE("DateCreated":U,
                             STRING(TODAY, 
                                    ENTRY(LOOKUP(SESSION:DATE-FORMAT,{&DateFormats}),{&FormatMasks}))).
   hHeaderNode:SET-ATTRIBUTE("TimeCreated":U,STRING(TIME,"HH:MM:SS":U)).
-  /*
+  
   SESSION:TIME-SOURCE = cCurrTimeSource.
   */
   hHeaderNode:SET-ATTRIBUTE("DatasetCode":U,STRING(hDSetCode:BUFFER-VALUE)).
@@ -6947,23 +7361,7 @@ FUNCTION writeRecordVersionAttr RETURNS LOGICAL
        write out all the attributes */
     IF lAns AND AVAILABLE(bgst_record_version) THEN
     DO:
-      phRecordNode:SET-ATTRIBUTE("version_number_seq":U, 
-                                STRING(bgst_record_version.version_number_seq)).
-      phRecordNode:SET-ATTRIBUTE("import_version_number_seq":U, 
-                                STRING(bgst_record_version.import_version_number_seq)).
-      phRecordNode:SET-ATTRIBUTE("version_user", 
-                                bgst_record_version.version_user).
-      phRecordNode:SET-ATTRIBUTE("version_date", 
-                                STRING(bgst_record_version.version_date, 
-                                       ENTRY(LOOKUP(SESSION:DATE-FORMAT,{&DateFormats}),{&FormatMasks}))).
-      phRecordNode:SET-ATTRIBUTE("version_time", 
-                                STRING(bgst_record_version.version_time)).
-      phRecordNode:SET-ATTRIBUTE("key_field_value", 
-                                replaceCtrlChar(bgst_record_version.key_field_value,YES)).
-      phRecordNode:SET-ATTRIBUTE("entity_mnemonic", 
-                                bgst_record_version.entity_mnemonic).
-      phRecordNode:SET-ATTRIBUTE("record_version_obj",
-                                STRING(bgst_record_version.record_version_obj)).
+      writeVersionAttr(phRecordNode, INPUT BUFFER bgst_record_version:HANDLE).
       
       /* Check the ResetModifiedStatus flag. */
       lReset = getAttribute(0, "ResetModifiedStatus":U) = "YES":U.
@@ -6992,6 +7390,46 @@ FUNCTION writeRecordVersionAttr RETURNS LOGICAL
     ELSE
       RETURN FALSE.   
   END. /* DO FOR bgst_record_version, bttVersionReset */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-writeVersionAttr) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION writeVersionAttr Procedure 
+FUNCTION writeVersionAttr RETURNS LOGICAL
+  ( INPUT phRecordNode AS HANDLE,
+    INPUT phRVBuffer   AS HANDLE ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  phRecordNode:SET-ATTRIBUTE("version_number_seq":U, 
+                            STRING(ABS(phRVBuffer:BUFFER-FIELD("version_number_seq":U):BUFFER-VALUE))).
+  phRecordNode:SET-ATTRIBUTE("import_version_number_seq":U, 
+                            STRING(ABS(phRVBuffer:BUFFER-FIELD("import_version_number_seq":U):BUFFER-VALUE))).
+  phRecordNode:SET-ATTRIBUTE("version_user":U, 
+                            phRVBuffer:BUFFER-FIELD("version_user":U):BUFFER-VALUE).
+  phRecordNode:SET-ATTRIBUTE("version_date":U, 
+                            STRING(phRVBuffer:BUFFER-FIELD("version_date":U):BUFFER-VALUE, 
+                                   ENTRY(LOOKUP(SESSION:DATE-FORMAT,{&DateFormats}),{&FormatMasks}))).
+  phRecordNode:SET-ATTRIBUTE("version_time":U, 
+                            STRING(phRVBuffer:BUFFER-FIELD("version_time":U):BUFFER-VALUE)).
+  phRecordNode:SET-ATTRIBUTE("key_field_value":U, 
+                            replaceCtrlChar(phRVBuffer:BUFFER-FIELD("key_field_value":U):BUFFER-VALUE,YES)).
+  phRecordNode:SET-ATTRIBUTE("secondary_key_value":U, 
+                            replaceCtrlChar(phRVBuffer:BUFFER-FIELD("secondary_key_value":U):BUFFER-VALUE,YES)).
+  phRecordNode:SET-ATTRIBUTE("entity_mnemonic":U, 
+                            phRVBuffer:BUFFER-FIELD("entity_mnemonic":U):BUFFER-VALUE).
+  phRecordNode:SET-ATTRIBUTE("record_version_obj":U,
+                            STRING(phRVBuffer:BUFFER-FIELD("record_version_obj":U):BUFFER-VALUE)).
+  phRecordNode:SET-ATTRIBUTE("deletion_flag":U,
+                            STRING(phRVBuffer:BUFFER-FIELD("deletion_flag":U):BUFFER-VALUE)).
+  RETURN TRUE.   /* Function return value. */
 
 END FUNCTION.
 

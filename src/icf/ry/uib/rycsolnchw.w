@@ -32,19 +32,27 @@ CREATE WIDGET-POOL.
 {adeuib/uibhlp.i}          /* Help File Preprocessor Directives         */
 /* Parameters Definitions ---                                           */
 
-/* Local Variable Definitions ---                                       */ 
- 
+/* Local Variable Definitions ---                                       */  
 DEFINE VARIABLE xcADMDestroy AS CHARACTER  NO-UNDO  
               INIT 'adm2/*,*/custom/*,web2/*' .
   
 DEFINE NEW GLOBAL SHARED VARIABLE h_ade_tool    AS HANDLE    NO-UNDO.
  
-DEFINE VARIABLE hLaunchContainer AS HANDLE   NO-UNDO.
-DEFINE VARIABLE glStop           AS LOGICAL.
-DEFINE VARIABLE glStopped        AS LOGICAL    NO-UNDO.
-DEFINE TEMP-TABLE ttRun 
+DEFINE VARIABLE hLaunchContainer  AS HANDLE   NO-UNDO.
+DEFINE VARIABLE glStop            AS LOGICAL.
+DEFINE VARIABLE glStopped         AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE rRowID            AS ROWID      NO-UNDO.
+DEFINE VARIABLE cProfileData      AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE ghrycSmartObject AS HANDLE     NO-UNDO.
+DEFINE VARIABLE lWindowClose     AS LOGICAL    NO-UNDO.
+
+DEFINE TEMP-TABLE ttRun NO-UNDO
   FIELD hdl        AS HANDLE
   FIELD ObjectName AS CHARACTER.
+
+{src/adm2/globals.i}
+
+{ launch.i &Define-only = YES }
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -65,10 +73,10 @@ DEFINE TEMP-TABLE ttRun
 &Scoped-define FRAME-NAME fMain
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS fiFile buRun ToPersistent toTreeView ~
+&Scoped-Define ENABLED-OBJECTS buBrowse coHistory fiFile ToPersistent buRun ~
 ToClearCache ToDestroyAdm 
-&Scoped-Define DISPLAYED-OBJECTS fiFile ToPersistent toTreeView ~
-ToClearCache ToDestroyAdm 
+&Scoped-Define DISPLAYED-OBJECTS coHistory fiFile ToPersistent ToClearCache ~
+ToDestroyAdm 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -100,6 +108,13 @@ FUNCTION destroyADM RETURNS LOGICAL
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getOpenObjectFilter wWin 
+FUNCTION getOpenObjectFilter RETURNS CHARACTER
+ (   )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getWindowHandle wWin 
 FUNCTION getWindowHandle RETURNS HANDLE
   ( /* parameter-definitions */ )  FORWARD.
@@ -114,6 +129,12 @@ FUNCTION getWindowHandle RETURNS HANDLE
 DEFINE VAR wWin AS WIDGET-HANDLE NO-UNDO.
 
 /* Definitions of the field level widgets                               */
+DEFINE BUTTON buBrowse 
+     IMAGE-UP FILE "ry/img/afbinos.gif":U
+     LABEL "" 
+     SIZE 5 BY 1.14
+     BGCOLOR 8 .
+
 DEFINE BUTTON buRun 
      LABEL "&Run" 
      SIZE 14 BY 1.14
@@ -124,9 +145,19 @@ DEFINE BUTTON buStop
      SIZE 14 BY 1.14
      BGCOLOR 8 .
 
-DEFINE VARIABLE fiFile AS CHARACTER FORMAT "X(256)" INITIAL "rywizmencw" 
+DEFINE VARIABLE coHistory AS CHARACTER 
+     VIEW-AS COMBO-BOX INNER-LINES 10
+     DROP-DOWN
+     SIZE 73 BY 1 NO-UNDO.
+
+DEFINE VARIABLE fiChar AS CHARACTER FORMAT "X(256)":U 
      VIEW-AS FILL-IN 
-     SIZE 50 BY 1 TOOLTIP "Specify the dynamic container to launch".
+     SIZE .2 BY .91
+     BGCOLOR 7 FGCOLOR 7  NO-UNDO.
+
+DEFINE VARIABLE fiFile AS CHARACTER FORMAT "X(256)" 
+     VIEW-AS FILL-IN 
+     SIZE 69.2 BY 1 TOOLTIP "Specify the dynamic container to launch".
 
 DEFINE VARIABLE ToClearCache AS LOGICAL INITIAL no 
      LABEL "&Clear Cache" 
@@ -143,29 +174,26 @@ DEFINE VARIABLE ToPersistent AS LOGICAL INITIAL no
      VIEW-AS TOGGLE-BOX
      SIZE 18.4 BY .81 NO-UNDO.
 
-DEFINE VARIABLE toTreeView AS LOGICAL INITIAL no 
-     LABEL "&Tree View Container" 
-     VIEW-AS TOGGLE-BOX
-     SIZE 24 BY .81 NO-UNDO.
-
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME fMain
+     buBrowse AT ROW 1.95 COL 76
+     coHistory AT ROW 2.05 COL 1 COLON-ALIGNED NO-LABEL
      fiFile AT ROW 2.05 COL 3 HELP
           "Enter the name of the dynamic container you wish to run" NO-LABEL
-     buRun AT ROW 3.19 COL 39
+     fiChar AT ROW 2.05 COL 70.2 COLON-ALIGNED NO-LABEL NO-TAB-STOP 
      ToPersistent AT ROW 3.29 COL 3
-     toTreeView AT ROW 4.14 COL 3
-     buStop AT ROW 4.52 COL 39
-     ToClearCache AT ROW 5 COL 3
-     ToDestroyAdm AT ROW 5.91 COL 3
+     buRun AT ROW 3.33 COL 67
+     ToClearCache AT ROW 4.1 COL 3
+     buStop AT ROW 4.76 COL 67
+     ToDestroyAdm AT ROW 4.91 COL 3
      "&Name of Container to Launch" VIEW-AS TEXT
           SIZE 29.2 BY .62 AT ROW 1.19 COL 3.4
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1
-         SIZE 52.2 BY 5.86
+         SIZE 80.2 BY 5.05
          DEFAULT-BUTTON buRun.
 
 
@@ -187,12 +215,12 @@ IF SESSION:DISPLAY-TYPE = "GUI":U THEN
   CREATE WINDOW wWin ASSIGN
          HIDDEN             = YES
          TITLE              = "Dynamic Launcher"
-         HEIGHT             = 5.86
-         WIDTH              = 52.4
-         MAX-HEIGHT         = 28.81
-         MAX-WIDTH          = 146.2
-         VIRTUAL-HEIGHT     = 28.81
-         VIRTUAL-WIDTH      = 146.2
+         HEIGHT             = 5.24
+         WIDTH              = 80.2
+         MAX-HEIGHT         = 5.24
+         MAX-WIDTH          = 80.2
+         VIRTUAL-HEIGHT     = 5.24
+         VIRTUAL-WIDTH      = 80.2
          MAX-BUTTON         = no
          RESIZE             = no
          SCROLL-BARS        = no
@@ -206,15 +234,6 @@ ELSE {&WINDOW-NAME} = CURRENT-WINDOW.
 /* END WINDOW DEFINITION                                                */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB wWin 
-/* ************************* Included-Libraries *********************** */
-
-{src/adm2/smrtprop.i}
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
 
 
 /* ***********  Runtime Attributes and AppBuilder Settings  *********** */
@@ -226,6 +245,8 @@ ELSE {&WINDOW-NAME} = CURRENT-WINDOW.
                                                                         */
 /* SETTINGS FOR BUTTON buStop IN FRAME fMain
    NO-ENABLE                                                            */
+/* SETTINGS FOR FILL-IN fiChar IN FRAME fMain
+   NO-DISPLAY NO-ENABLE                                                 */
 /* SETTINGS FOR FILL-IN fiFile IN FRAME fMain
    ALIGN-L                                                              */
 ASSIGN 
@@ -263,6 +284,7 @@ ON WINDOW-CLOSE OF wWin /* Dynamic Launcher */
 DO:
   /* This ADM code must be left here in order for the SmartWindow
      and its descendents to terminate properly on exit. */
+  lWindowClose = YES.
   APPLY "CLOSE":U TO THIS-PROCEDURE.
   RETURN NO-APPLY.
 END.
@@ -287,17 +309,34 @@ END.
 &ANALYZE-RESUME
 
 
+&Scoped-define SELF-NAME buBrowse
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buBrowse wWin
+ON CHOOSE OF buBrowse IN FRAME fMain
+DO:
+ DEFINE VARIABLE cFilename AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE lOK AS LOGICAL    NO-UNDO.
+
+ ASSIGN {&WINDOW-NAME}:PRIVATE-DATA = STRING(THIS-PROCEDURE).
+ 
+ RUN ry/obj/gopendialog.w (INPUT {&WINDOW-NAME},
+                           INPUT "",
+                           INPUT No,
+                           INPUT "Get Object",
+                           OUTPUT cFilename,
+                           OUTPUT lok).
+ IF lOK THEN
+    ASSIGN fiFile:SCREEN-VALUE = cFilename.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
 &Scoped-define SELF-NAME buRun
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buRun wWin
 ON CHOOSE OF buRun IN FRAME fMain /* Run */
 DO:
   RUN runContainer (INPUT fiFile:SCREEN-VALUE).
-
-/*     RUN launchContainer (                                                                                      */
-/*         INPUT 'ry/uib/rydyncontw.w':U,                                                                         */
-/*         INPUT 'LogicalObjectName' + fiFile:SCREEN-VALUE + 'HideOnInitnoDisableOnInitnoObjectLayout':U). */
-
-
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -309,7 +348,23 @@ END.
 ON CHOOSE OF buStop IN FRAME fMain /* Stop */
 DO:
   IF glStop THEN STOP.
-  ELSE RUN destroyPersistent.
+  ELSE
+  DO:
+    lWindowClose = YES.
+    RUN destroyPersistent.
+  END.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME coHistory
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL coHistory wWin
+ON VALUE-CHANGED OF coHistory IN FRAME fMain
+DO:
+    ASSIGN fiFile:SCREEN-VALUE = SELF:SCREEN-VALUE.
+    APPLY "ENTRY":U TO fiFile.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -323,35 +378,43 @@ END.
 
 /* ***************************  Main Block  *************************** */
 
-DEFINE VARIABLE hOtherME AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hWin     AS HANDLE     NO-UNDO.
+DEFINE VARIABLE cColumn                     AS CHARACTER            NO-UNDO.
+DEFINE VARIABLE cRow                        AS CHARACTER            NO-UNDO.
+DEFINE VARIABLE cMruList                    AS CHARACTER            NO-UNDO.
+DEFINE VARIABLE rProfileRid                 AS ROWID                NO-UNDO.
+DEFINE VARIABLE dSavedRow                   AS DECIMAL              NO-UNDO.
+DEFINE VARIABLE dSavedColumn                AS DECIMAL              NO-UNDO.
+DEFINE VARIABLE hOtherME                    AS HANDLE               NO-UNDO.
+DEFINE VARIABLE hWin                        AS HANDLE               NO-UNDO.
+
+/*
+ Loop through the session and check if another launcher is running.
+ We only start one launcher. This shoould not be a problem as it is able to launch as many persistent objects
+ as one like and ity does not make sense to run several non-persistent objects.
+ The ability to destroy supers may also cause problems if several launchers were able to run.
+*/
 
 hOtherMe = SESSION:FIRST-PROCEDURE.
-/* loop through the session and check if another kauncher is running.
-   We only start one launcher. This shoould not be a problem as it 
-   is able to launch as many persistent objects as one like and ity does
-   not make sense to run several non-persistent objects. The ability to 
-   destroy supers may also cause problems if several launchers were able 
-   to run  */
 
 DO WHILE VALID-HANDLE(hOtherMe):
-  IF hOtherME:FILE-NAME = PROGRAM-NAME(1) AND hOtherMe <> THIS-PROCEDURE THEN
+  IF hOtherME:FILE-NAME = PROGRAM-NAME(1)
+  AND hOtherMe <> THIS-PROCEDURE THEN
   DO:
     hWin = DYNAMIC-FUNCTION('getWindowHandle' IN hOtherMe).
     hWin:MOVE-TO-TOP().
     /* just in case we found a hidden one */ 
     VIEW hWin.
     /* or minimized one (max is disabled) */
-    hWin:WINDOW-STATE = window-normal.
+    hWin:WINDOW-STATE = WINDOW-NORMAL.
     APPLY "ENTRY":U TO hWin.
-    
+
     /* Commit suicide */
     RUN DISABLE_ui.   
     RETURN.
   END.
   hOtherMe = hOtherMe:NEXT-SIBLING. 
 END.
- 
+
 ON ALT-N OF FRAME {&FRAME-NAME} ANYWHERE DO:
   APPLY "ENTRY" TO fifile IN FRAME {&FRAME-NAME}.
 END.
@@ -364,10 +427,91 @@ DO:
      RETURN NO-APPLY.
 END.
 
-toClearCache = TRUE.
-toPersistent = TRUE.
+ASSIGN
+  toClearCache = TRUE
+  toPersistent = TRUE
+  coHistory:DELIMITER IN FRAME {&FRAME-NAME} = CHR(3). 
+
+RUN constructSDO IN THIS-PROCEDURE.
+
+/* Get the MRU list */
+RUN getProfileData IN gshProfileManager ( INPUT        "General":U,
+                                          INPUT        "DispRepos":U,
+                                          INPUT        "DynLauncherMRU":U,
+                                          INPUT        NO,
+                                          INPUT-OUTPUT rRowid,
+                                          OUTPUT       cMruList).
+ASSIGN coHistory:LIST-ITEM-PAIRS  = cMruList  NO-ERROR.
+
+/* Get the previous position of the window . */
+RUN getProfileData IN gshProfileManager ( INPUT "Window":U,
+                                          INPUT "SaveSizPos":U,
+                                          INPUT "SaveSizPos":U,
+                                          INPUT NO,
+                                          INPUT-OUTPUT rProfileRid,
+                                          OUTPUT cProfileData).
+IF cProfileData EQ "Yes":U THEN
+DO:
+    ASSIGN cProfileData = "":U
+           rProfileRid  = ?
+           .
+    RUN getProfileData IN gshProfileManager ( INPUT "Window":U,             /* Profile type code                            */
+                                              INPUT "SizePos":U,            /* Profile code                                 */
+                                              INPUT "rycsolnchw.w",         /* Profile data key                             */
+                                              INPUT "NO":U,                 /* Get next record flag                         */
+                                              INPUT-OUTPUT rProfileRid,     /* Rowid of profile data                        */
+                                              OUTPUT cProfileData       ).  /* Found profile data. Positions as follows:    */
+                                                                            /* 1 = col,         2 = row,                    */
+                                                                            /* 3 = width chars, 4 = height chars            */
+
+    IF NUM-ENTRIES(cProfileData, CHR(3)) EQ 4 THEN
+    DO:
+        ASSIGN 
+            /* Ensure that the values have the correct decimal points. 
+             * These values are always stored using the American numeric format
+             * ie. using a "." as decimal point.                               */
+            cColumn = ENTRY(1, cProfileData, CHR(3))
+            cColumn = REPLACE(cColumn, ".":U, SESSION:NUMERIC-DECIMAL-POINT)
+
+            cRow = ENTRY(2, cProfileData, CHR(3))
+            cRow = REPLACE(cRow, ".":U, SESSION:NUMERIC-DECIMAL-POINT)
+
+            dSavedRow    = DECIMAL(cRow)
+            dSavedColumn = DECIMAL(cColumn)
+
+            NO-ERROR.
+
+        ASSIGN {&WINDOW-NAME}:COLUMN = IF (dSavedColumn + {&WINDOW-NAME}:WIDTH-CHARS) GE SESSION:WIDTH-CHARS THEN
+                                           MAX(SESSION:WIDTH-CHARS - {&WINDOW-NAME}:WIDTH-CHARS, 1)
+                                       ELSE
+                                       IF dSavedColumn LT 0 THEN
+                                           1
+                                       ELSE
+                                           dSavedColumn
+               {&WINDOW-NAME}:ROW    = IF (dSavedRow + {&WINDOW-NAME}:HEIGHT-CHARS) GE SESSION:HEIGHT-CHARS THEN
+                                           MAX(SESSION:HEIGHT-CHARS - {&WINDOW-NAME}:HEIGHT-CHARS - 1.5, 1)
+                                       ELSE
+                                       IF dSavedRow LT 0 THEN
+                                           1
+                                       ELSE
+                                           dSavedRow.
+    END.    /* There are saved positions. */
+END.    /* Window positions are saved. */
 
 RUN ENABLE_UI.
+
+/* Check whether the AppBuilder is running. We need to know this because the lookup button
+ * is dependent on the AppBulder running. If the AB is not running, then we simply disable the 
+ * button. */
+ASSIGN buBrowse:HIDDEN = NOT VALID-HANDLE(h_ade_tool).
+
+IF cProfileData > "" THEN
+  ASSIGN coHistory:LIST-ITEM-PAIRS  = cMruList  
+         fiFile:SCREEN-VALUE        = ENTRY(1,coHistory:ENTRY(1)," ")
+         coHistory:SCREEN-VALUE     = fiFile:SCREEN-VALUE 
+         NO-ERROR.
+
+fiFile:MOVE-TO-TOP().
 APPLY 'ENTRY' TO fifile IN FRAME {&FRAME-NAME}.
 
 /* _UIB-CODE-BLOCK-END */
@@ -375,19 +519,6 @@ APPLY 'ENTRY' TO fifile IN FRAME {&FRAME-NAME}.
 
 
 /* **********************  Internal Procedures  *********************** */
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE adm-create-objects wWin  _ADM-CREATE-OBJECTS
-PROCEDURE adm-create-objects :
-/*------------------------------------------------------------------------------
-  Purpose:     Create handles for all SmartObjects used in this procedure.
-               After SmartObjects are initialized, then SmartLinks are added.
-  Parameters:  <none>
-------------------------------------------------------------------------------*/
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE closeObject wWin 
 PROCEDURE closeObject :
@@ -397,38 +528,56 @@ PROCEDURE closeObject :
   Parameters:  
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE INPUT PARAMETER phRun AS HANDLE  NO-UNDO.
-  DEFINE BUFFER bttRun FOR ttRun.
-  FIND bttRun WHERE bttRun.hdl = phRun NO-ERROR.
-  IF VALID-HANDLE(phRun) THEN
-  DO:
 
-    RUN destroyObject IN phRun.
-  
-    IF AVAIL bttRun THEN 
-      DELETE bttRun. 
-  
-    IF NOT CAN-FIND(FIRST ttRun)  THEN
-    DO WITH FRAME {&FRAME-NAME}:
-      ASSIGN 
-        toDestroyADM:SENSITIVE = TRUE
-        toDestroyADM:CHECKED = toDestroyADM
-        buStop:SENSITIVE       = FALSE.        
-    END.
-  END. 
+  DEFINE INPUT PARAMETER phRun AS HANDLE  NO-UNDO.
+
+  DEFINE BUFFER bttRun FOR ttRun.
+
+  FOR EACH bttRun EXCLUSIVE-LOCK
+    WHERE bttRun.hdl = phRun
+    :
+
+    IF VALID-HANDLE(phRun)
+    THEN
+      RUN destroyObject IN phRun.
+
+    DELETE bttRun. 
+
+  END.
+
+  IF NOT CAN-FIND(FIRST ttRun)
+  THEN
+  DO WITH FRAME {&FRAME-NAME}:
+    ASSIGN 
+      toDestroyADM:SENSITIVE  = TRUE
+      toDestroyADM:CHECKED    = toDestroyADM
+      buStop:SENSITIVE        = FALSE
+      .
+  END.
 
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createObjects wWin 
-PROCEDURE createObjects :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE constructSDO wWin 
+PROCEDURE constructSDO :
 /*------------------------------------------------------------------------------
-  Purpose:     
+  Purpose:   Constructs the ryc_smartObject SDO to be used to retrieve the
+             description.
   Parameters:  <none>
   Notes:       
-------------------------------------------------------------------------------*/
+------------------------------------------------------------------------------*/  
+  RUN startDataObject IN gshRepositoryManager("dopendialog.w":U, 
+                                              OUTPUT ghRycSmartObject).
+
+  IF VALID-HANDLE(ghRycSmartObject) THEN
+  DO:
+    RUN setPropertyList IN ghRycSmartObject 
+            ('AppServiceAstraASUsePromptASInfoForeignFieldsRowsToBatch10CheckCurrentChangedyesRebuildOnReposnoServerOperatingModeNONEDestroyStatelessnoDisconnectAppServernoObjectNamedopendialogUpdateFromSourcenoToggleDataTargetsyesOpenOnInitnoPromptOnDeleteyesPromptColumns(NONE)':U).
+   
+    RUN initializeObject IN ghRycSmartObject. 
+  END.
 
 END PROCEDURE.
 
@@ -440,23 +589,58 @@ PROCEDURE destroyObject :
 /*------------------------------------------------------------------------------
   Purpose:     
   Parameters:  <none>
-  Notes:       
+  Notes:       Remember this procedure may be run when the Appbuilder shuts down.
+               If so, deletePersistentProc is run in the session manager which
+               shuts down all persistent procs in the session.  Keep in mind
+               that some of the procedures launched by this launcher may already
+               be shut when we get here.
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE lOk AS LOGICAL    NO-UNDO.
-  IF glStop OR CAN-FIND(FIRST ttrun) THEN
+  IF (glStop OR CAN-FIND(FIRST ttrun))
+  AND lWindowClose = YES THEN
   DO:
-
-    MESSAGE 'This will close all containers that is running from the Launcher.'
+    MESSAGE 'This will close all containers that are running from the Launcher.'
             SKIP
             'Confirm close of the Launcher and all running containers?' 
-
         VIEW-AS ALERT-BOX QUESTION  BUTTONS YES-NO UPDATE lok.
     IF NOT lok THEN RETURN.
   END.
 
+  IF VALID-HANDLE(gshProfileManager) /* Probably not necessary, belts and braces */
+  THEN DO:
+      /* Check if we should be saving window positions */
+      ASSIGN rProfileRid = ?.    
+      RUN getProfileData IN gshProfileManager ( INPUT "Window":U,
+                                                INPUT "SaveSizPos":U,
+                                                INPUT "SaveSizPos":U,
+                                                INPUT NO,
+                                                INPUT-OUTPUT rProfileRid,
+                                                OUTPUT cProfileData).
+
+      /* If the user wants to save window positions, save them */
+      IF cProfileData EQ "Yes":U 
+      THEN DO:
+          /* Always store decimal values as if they were in American numeric format.
+           * When retrieving decimal values, we need to convert to the current
+           * SESSION:NUMERIC-DECIMAL-POINT.                                         */
+          ASSIGN cProfileData = REPLACE(STRING({&WINDOW-NAME}:COLUMN),       SESSION:NUMERIC-DECIMAL-POINT, ".":U) + CHR(3) +
+                                REPLACE(STRING({&WINDOW-NAME}:ROW),          SESSION:NUMERIC-DECIMAL-POINT, ".":U) + CHR(3) +
+                                REPLACE(STRING({&WINDOW-NAME}:WIDTH-CHARS),  SESSION:NUMERIC-DECIMAL-POINT, ".":U) + CHR(3) +
+                                REPLACE(STRING({&WINDOW-NAME}:HEIGHT-CHARS), SESSION:NUMERIC-DECIMAL-POINT, ".":U).
+    
+          RUN setProfileData IN gshProfileManager (INPUT "Window":U,        /* Profile type code */
+                                                   INPUT "SizePos":U,       /* Profile code */
+                                                   INPUT "rycsolnchw.w",    /* Profile data key */
+                                                   INPUT ?,                 /* Rowid of profile data */
+                                                   INPUT cProfileData,      /* Profile data value */
+                                                   INPUT NO,                /* Delete flag */
+                                                   INPUT "PER":u).          /* Save flag (permanent) */
+      END.
+  END.
+
   /* glStop is set to true to indicate that we need to STOP to get
      out of a non persistent run */ 
-  IF glStop THEN 
+  IF glStop THEN
   DO:
     /* We cannot run disable_UI from here as we are in a wait-for of the
        non-persistent object. glStopped will tell the runContainer to 
@@ -467,8 +651,13 @@ PROCEDURE destroyObject :
   ELSE DO:
     /* destroy  all persistent objects that we have started */
     RUN destroyPersistent.
+    IF VALID-HANDLE(ghrycSmartObject) THEN /* This object may have been closed already by the Appbuilder shutdown */
+        RUN destroyObject IN ghrycSmartObject NO-ERROR.
     RUN DISABLE_ui. 
   END.
+
+  ASSIGN ERROR-STATUS:ERROR = NO.
+  RETURN.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -481,9 +670,12 @@ PROCEDURE destroyPersistent :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  FOR EACH ttRun:
-    APPLY 'close' TO ttRun.hdl. 
-  END.
+DEFINE VARIABLE hWindow AS HANDLE     NO-UNDO.
+ IF lWindowClose THEN
+    FOR EACH ttRun:
+       IF VALID-HANDLE(ttRun.hdl) THEN
+          APPLY 'close':U TO ttRun.hdl. 
+    END.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -519,9 +711,9 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  DISPLAY fiFile ToPersistent toTreeView ToClearCache ToDestroyAdm 
+  DISPLAY coHistory fiFile ToPersistent ToClearCache ToDestroyAdm 
       WITH FRAME fMain IN WINDOW wWin.
-  ENABLE fiFile buRun ToPersistent toTreeView ToClearCache ToDestroyAdm 
+  ENABLE buBrowse coHistory fiFile ToPersistent buRun ToClearCache ToDestroyAdm 
       WITH FRAME fMain IN WINDOW wWin.
   {&OPEN-BROWSERS-IN-QUERY-fMain}
   VIEW wWin.
@@ -541,47 +733,6 @@ PROCEDURE exitObject :
   APPLY "CLOSE":U TO THIS-PROCEDURE.
   RETURN.
 
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE launchContainer wWin 
-PROCEDURE launchContainer :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-DEFINE INPUT PARAMETER pcContainerName AS CHARACTER.
-DEFINE INPUT PARAMETER pcAttributeList AS CHARACTER.
-DEFINE VARIABLE iETime1   AS INTEGER.
-DEFINE VARIABLE iETime2   AS INTEGER.
-DEFINE VARIABLE iETime3   AS INTEGER.
-DEFINE VARIABLE h_object AS HANDLE NO-UNDO.
-
-PROCESS EVENTS.
-
-ASSIGN h_Object = ?.
-
-iETime1 = ETIME(YES).
-/* MESSAGE "about to construct". */
-    RUN constructObject (
-         INPUT  pcContainerName,
-         INPUT  {&WINDOW-NAME} ,
-         INPUT  pcAttributeList,
-         OUTPUT h_object ).
-
-    iETime1 = ETIME(YES).                         
-/*     RUN addLink IN h_object (THIS-PROCEDURE, 'container', h_object). */
-/* MESSAGE "about to init". */
-    RUN initializeObject IN h_object.            
-
-    iETime2 = ETIME(YES).
-    
-    iETime3 = iETime1 + iETime2.           
-/*     MESSAGE "Construct=" iETime1 / 1000  "s Initialize=" iETime2 / 1000  "s Total =" iEtime3 / 1000 "s". */
-    
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -663,7 +814,7 @@ PROCEDURE refreshADM :
  
  cOpenProc = checkADM('').
  
- IF cOpenProc <> '':U THEN
+ IF cOpenProc <> '':U AND cOpenProc <> ghRycSmartObject:FILE-NAME THEN
  DO WITH FRAME {&FRAME-NAME}:
   MESSAGE 'The ADM Super Procedures are currently being used by' cOpenProc '.'
           SKIP
@@ -674,8 +825,11 @@ PROCEDURE refreshADM :
   RETURN ERROR.
  END.
 
+ RUN destroyObject IN ghRycSmartObject NO-ERROR.
 
  destroyADM(). 
+
+ RUN constructSDO.
 
  DO i = 1 TO NUM-ENTRIES(cfileList):
   cFile = ENTRY(i,cFileList).
@@ -686,7 +840,6 @@ PROCEDURE refreshADM :
        'OPEN').
  END.
 
-
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -695,111 +848,274 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE runContainer wWin 
 PROCEDURE runContainer :
 /*------------------------------------------------------------------------------
-  Purpose:     
+  Purpose:     Launches the container specified.
+  Parameters:  pcRunFile - 
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  DEFINE INPUT PARAMETER pcRunFile            AS CHARACTER    NO-UNDO.
+
+  DEFINE VARIABLE cPropertyList               AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cValueList                  AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE lStopped                    AS LOGICAL      NO-UNDO.
+  DEFINE VARIABLE cContainer                  AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE hUIB                        AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE cLogicalName                AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cContainerSuperProcedure    AS CHARACTER    NO-UNDO.
+
+  DEFINE VARIABLE lMultiInstance              AS LOGICAL      NO-UNDO.
+  DEFINE VARIABLE cChildDataKey               AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cRunAttribute               AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE hContainerWindow            AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE hContainerSource            AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE hObject                     AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE hRunContainer               AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE cRunContainerType           AS CHARACTER    NO-UNDO.
+
+  ASSIGN
+    lMultiInstance    = NO
+    cChildDataKey     = "":U
+    cRunAttribute     = "":U
+    hContainerWindow  = ?
+    hContainerSource  = ?
+    hObject           = ?
+    hContainerWindow  = ?
+    cRunContainerType = "":U
+    hRunContainer     = ?.
+
+  DO WITH FRAME {&FRAME-NAME}:
+
+    IF NOT VALID-HANDLE(gshSessionManager) THEN 
+    DO:
+      MESSAGE
+        "Please correct, Session Manager is not running. Ensure the Dynamics Application is running"
+      VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+      RETURN.
+    END. /* NOT VALID-HANDLE(gshRepositoryManager) */
+
+    IF NOT VALID-HANDLE(gshRepositoryManager) THEN 
+    DO:
+      MESSAGE
+        "Please correct, Repository Manager is not running. Ensure the Dynamics Application is running"
+      VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+      RETURN.
+    END. /* NOT VALID-HANDLE(gshRepositoryManager) */
+
+    IF pcRunFile = "":U THEN 
+    DO:
+      MESSAGE
+        "Please specify the name of an object to run."
+      VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+      RETURN.
+    END.    /* runfile = '' */
+
+    IF toClearCache:CHECKED THEN 
+      RUN clearClientCache IN gshRepositoryManager.
+
+    IF toDestroyADM:SENSITIVE
+    AND toDestroyAdm:CHECKED THEN 
+    DO:
+      RUN refreshADM NO-ERROR.
+      IF ERROR-STATUS:ERROR THEN 
+        RETURN.
+    END.    /* destroy ADM */
+
+    DO ON STOP UNDO,  LEAVE ON ERROR UNDO, LEAVE:
+
+      IF toPersistent:CHECKED THEN 
+      DO:
+
+        ASSIGN
+          toDestroyAdm:SENSITIVE = FALSE
+          buStop:SENSITIVE       = TRUE
+          .
+
+        IF VALID-HANDLE(gshSessionManager) THEN
+          RUN launchContainer IN gshSessionManager 
+                              (INPUT  pcRunFile            /* object filename if physical/logical names unknown */
+                              ,INPUT  "":U                 /* physical object name (with path and extension) if known */
+                              ,INPUT  pcRunFile            /* logical object name if applicable and known */
+                              ,INPUT  (NOT lMultiInstance) /* run once only flag YES/NO */
+                              ,INPUT  "":U                 /* instance attributes to pass to container */
+                              ,INPUT  cChildDataKey        /* child data key if applicable */
+                              ,INPUT  cRunAttribute        /* run attribute if required to post into container run */
+                              ,INPUT  "":U                 /* container mode, e.g. modify, view, add or copy */
+                              ,INPUT  hContainerWindow     /* parent (caller) window handle if known (container window handle) */
+                              ,INPUT  hContainerSource     /* parent (caller) procedure handle if known (container procedure handle) */
+                              ,INPUT  hObject              /* parent (caller) object handle if known (handle at end of toolbar link, e.g. browser) */
+                              ,OUTPUT hRunContainer        /* procedure handle of object run/running */
+                              ,OUTPUT cRunContainerType    /* procedure type (e.g ADM1, Astra1, ADM2, ICF, "") */
+                              ).
+
+        IF VALID-HANDLE(hRunContainer) THEN 
+        DO:
+
+          /* Steal the close event so we can keep track of deleted objects 
+           * in order to enable the Destroy adm check box again */
+          ON "CLOSE":U OF hRunContainer PERSISTENT RUN closeObject IN THIS-PROCEDURE (hRunContainer).
+
+          RUN setMRULIST IN THIS-PROCEDURE (pcRunFile,YES).
+
+          /* Keep the handles of the obejct we run to clean up afterwwards. */
+          /* Only add a record if it does not already exist */
+          FIND FIRST ttRun EXCLUSIVE-LOCK
+            WHERE ttRun.hdl        = hRunContainer
+            AND   ttRun.ObjectName = pcRunFile
+            NO-ERROR.
+          IF NOT AVAILABLE ttRUN
+          THEN DO:
+            CREATE ttRun.
+            ASSIGN ttRun.hdl        = hRunContainer
+                   ttRun.ObjectName = pcRunFile
+                   .
+          END.
+
+        END.    /* valid hRun */
+
+      END. /* Persistent */
+      ELSE DO:
+
+        IF checkAB() = FALSE THEN 
+        DO:
+          MESSAGE
+            'You must close procedures running from the AppBuilder before'
+            'you do a non persistent launch of a container.' 
+            VIEW-AS ALERT-BOX  INFORMATION BUTTONS OK.
+          RETURN. 
+        END.
+
+        /* Get the Logical and Physical Names */
+        RUN getObjectNames IN gshRepositoryManager ( INPUT  pcRunFile,
+                                                     OUTPUT cContainer,
+                                                     OUTPUT cLogicalName).
+
+        IF cContainer = "":U THEN 
+        DO:
+          MESSAGE
+            "A physical object could not be found for the logical object '" pcRunFile "'":U
+            VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+          RETURN.
+        END.    /* container = '' */
+
+        ASSIGN
+          hUIB             = h_ade_tool
+          buRun:SENSITIVE  = FALSE
+          buStop:SENSITIVE = TRUE
+          glStop           = TRUE
+          .
+
+        IF VALID-HANDLE(hUIB) THEN
+          RUN disable_widgets in hUIB.
+
+        RUN setMRULIST IN THIS-PROCEDURE (pcRunFile,YES).
+        RUN VALUE(cContainer).
+
+      END.    /* not persistent, with frame ... */
+
+    END.    /* on stop undo leave. */
+
+    IF NOT toPersistent:CHECKED THEN 
+    DO:
+
+      IF VALID-HANDLE(hUIB)THEN
+        RUN enable_widgets in hUIB.
+
+      buStop:SENSITIVE = FALSE.
+
+    END.
+
+    ASSIGN
+      buRun:SENSITIVE = TRUE
+      glStop          = FALSE
+      .
+
+    IF glStopped THEN
+      RUN destroyObject.
+
+  END.    /* with frame ... */
+
+  RETURN.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setMRUList wWin 
+PROCEDURE setMRUList :
+/*------------------------------------------------------------------------------
+  Purpose:     Adds the most recently opened file to the User profile data
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-DEFINE INPUT PARAMETER pcRunFile      AS CHARACTER    NO-UNDO.
+DEFINE INPUT  PARAMETER pcObjectName     AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER plGetDescription AS LOGICAL    NO-UNDO.
 
-DEFINE VARIABLE cPropertyList         AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE cValueList            AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE hRun                  AS HANDLE       NO-UNDO.
-DEFINE VARIABLE lStopped              AS LOGICAL      NO-UNDO.
-DEFINE VARIABLE cContainer            AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE hUIB                  AS HANDLE       NO-UNDO.
-  
-DO WITH FRAME {&FRAME-NAME}:
- IF toClearCache:CHECKED THEN 
-    RUN clearClientCache IN gshRepositoryManager.
- ASSIGN 
-  cContainer   = IF INDEX(pcRunfile,'.':U) <> 0 THEN pcrunfile
-                 ELSE IF toTreeView:CHECKED 
-                 THEN "ry/uib/rydyntreew.w":U 
-                 ELSE "ry/uib/rydyncontw.w":U
-  toPersistent
-  toDestroyADM WHEN toDestroyADM:SENSITIVE.
-  
-  IF toDestroyAdm AND toDestroyADM:SENSITIVE THEN
-  DO:
-    RUN refreshADM NO-ERROR.
-    IF ERROR-STATUS:ERROR THEN RETURN.
-  END.
-  IF pcRunFile = '':U THEN RETURN.
+DEFINE VARIABLE iPos           AS INTEGER    NO-UNDO.
+DEFINE VARIABLE cListItems     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cProfileData   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cNewProfile    AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cObjectDesc    AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cQueryPosition AS CHARACTER  NO-UNDO.
 
-  ASSIGN
-   cPropertyList = "launchphysicalobject,launchlogicalobject,launchrunattribute":U
-   cValueList = "ry/uib/rydyncontw.w":U + CHR(3) +
-                 pcRunFile + CHR(3) +
-                 "":U.
-END.
+/* Maximum number of Most recent items to store and display in combo-box */
+&SCOPED-DEFINE MAX_MRU_ITEMS 15
 
-
-DYNAMIC-FUNCTION("setPropertyList":U IN gshSessionManager,
-                                     INPUT cPropertyList,
-                                     INPUT cValueList,
-                                     INPUT YES).
-
-
-DO ON STOP UNDO, LEAVE ON ERROR UNDO, LEAVE:
-  IF toPersistent THEN
-  DO WITH FRAME {&FRAME-NAME}:
-    RUN VALUE(ccontainer) PERSISTENT SET hRun.
-    SESSION:SET-WAIT-STATE('wait':U).
-    DYNAMIC-FUNCTION('setLogicalObjectName' IN hrun, pcRunfile). 
-    RUN initializeObject IN hRun.
-    ASSIGN
-      toDestroyAdm:SENSITIVE = FALSE
-      toDestroyAdm:CHECKED = FALSE
-      buStop:SENSITIVE = TRUE.
-
-    IF VALID-HANDLE(hRun) THEN
-    DO:
-        /* steal the close event so we can keep track of deleted objects 
-         * in order to enable the Destroy adm check box again */
-        ON 'close':U OF hrun PERSISTENT RUN closeObject IN THIS-PROCEDURE (hRun).
-
-        CREATE ttRun.
-        ASSIGN ttRun.hdl        = hRun
-               ttRun.ObjectNAME = pcRunFile
-               .
-    END.    /* valid hRun */
-  END.
-  ELSE DO WITH FRAME {&FRAME-NAME}:
-    IF checkAB() = FALSE THEN
-    DO:
-       MESSAGE
-           'You must close procedures running from the AppBuilder before'
-           'you do a non persistent launch of a container.' 
-           VIEW-AS ALERT-BOX  INFORMATION BUTTONS OK.
-       RETURN. 
-    END.
-    ASSIGN
-      hUIB             = h_ade_tool
-      buRun:SENSITIVE  = FALSE
-      buStop:SENSITIVE = TRUE
-      glStop           = TRUE.
-
-    IF VALID-HANDLE(hUIB) THEN
-       RUN disable_widgets in hUIB.
-    SESSION:SET-WAIT-STATE('wait':U).
-    RUN VALUE("ry/uib/rydyncontw.w":U).
-  END.
-END.
-SESSION:SET-WAIT-STATE('':U).
-
-IF NOT toPersistent THEN
+IF plGetDescription AND VALID-HANDLE(ghrycSmartObject) THEN
 DO:
-  IF VALID-HANDLE(hUIB) THEN
-    RUN enable_widgets in hUIB.
-  buStop:SENSITIVE = FALSE. 
+  DYNAMIC-FUNC('removeQuerySelection':U IN ghRycSmartObject,'object_type_obj':U,'EQ':U).
+  DYNAMIC-FUNC('assignQuerySelection':U IN ghRycSmartObject,'object_filename':U,pcObjectName,'EQ':U).
+    
+    /* open the new query  */
+  DYNAMIC-FUNCTION('openQuery':U IN ghRycSmartObject).
+    
+  {get QueryPosition cQueryPosition ghRycSmartObject}. /* any data? */
+  IF cQueryPosition <> 'NoRecordAvailable':U THEN 
+  DO:   
+    cObjectDesc = TRIM(DYNAMIC-FUNCTION("ColumnStringValue":U IN  ghRycSmartObject,"object_description":U)) .
+  END.
 END.
 
-buRun:SENSITIVE = TRUE. 
-glStop = FALSE.
-IF glStopped THEN 
-  RUN destroyObject.
+ASSIGN 
+  cListitems = coHistory:LIST-ITEM-PAIRS IN FRAME {&FRAME-NAME}.
 
-RETURN.
+
+/* If the object is already in the list, put the object at the top of the list */
+IF pcObjectName > "" THEN
+   cProfileData = pcObjectName + FILL(" ":u, MAX(2,INTEGER((150 - FONT-TABLE:GET-TEXT-WIDTH-P(pcObjectName)) / 3)))
+                               + cObjectDesc + CHR(3) + pcObjectName.
+/*   cProfileData = pcObjectName + "  /  ":U + cObjectDesc + CHR(3) + pcObjectName.*/
+
+IF cListItems > "" THEN
+DO:
+  DO ipos = 2 TO MIN({&MAX_MRU_ITEMS} * 2,NUM-ENTRIES(cListItems,CHR(3))) BY 2:
+     IF ENTRY(iPos,cListItems,CHR(3)) = pcObjectName THEN
+       NEXT.
+     ELSE
+       cProfileData = cProfileData + (IF cProfileData = "" THEN "" ELSE CHR(3))
+                          + ENTRY(iPos - 1,cListItems,CHR(3)) + CHR(3) + ENTRY(iPos,cListItems,CHR(3)).
+  END.
+  /* Ensure the profile data doesn't have more than the maximum number of items allowed */
+  IF NUM-ENTRIES(cProfileData,CHR(3)) >  {&MAX_MRU_ITEMS} * 2 THEN
+  DO:
+    DO iPos = 1 TO {&MAX_MRU_ITEMS} * 2:
+       cNewProfile = cNewProfile + (IF cNewProfile = "" THEN "" ELSE CHR(3)) 
+                        + ENTRY(iPos,cProfileData,CHR(3)).
+    END.
+    ASSIGN cProfileData =  cNewProfile.
+  END.
+END.
+
+RUN setProfileData IN gshProfileManager (INPUT "General":U,        /* Profile type code */
+                                         INPUT "DispRepos":U,  /* Profile code */
+                                         INPUT "DynLauncherMRU",     /* Profile data key */
+                                         INPUT ?,                 /* Rowid of profile data */
+                                         INPUT cProfileData,      /* Profile data value */
+                                         INPUT NO,                /* Delete flag */
+                                         INPUT "PER":u).          /* Save flag (permanent) */
+
+ASSIGN coHistory:LIST-ITEM-PAIRS  = cProfileData NO-ERROR.
+
 
 END PROCEDURE.
 
@@ -893,6 +1209,27 @@ FUNCTION destroyADM RETURNS LOGICAL
    ASSIGN hSuper = h.   
  END.
  return TRUE. 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getOpenObjectFilter wWin 
+FUNCTION getOpenObjectFilter RETURNS CHARACTER
+ (   ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE cDynWindows    AS CHARACTER  NO-UNDO.
+
+
+ASSIGN
+  cDynWindows = DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, "DynFold,DynObjc,DynMenc,DynTree":U)
+  cDynWindows = REPLACE(cDynWindows,CHR(3),",").
+  
+RETURN cDynWindows.
 
 END FUNCTION.
 

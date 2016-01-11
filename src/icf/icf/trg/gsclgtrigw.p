@@ -24,11 +24,6 @@
 
 TRIGGER PROCEDURE FOR WRITE OF gsc_language OLD BUFFER o_gsc_language.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "gsc_language"
-                      &TRIGGER-TYPE = "WRITE"}
-
 /* Created automatically using ERwin ICF Trigger template db/af/erw/afercustrg.i
    Do not change manually. Customisations to triggers should be placed in separate
    include files pulled into the trigger. ICF auto generates write trigger custom
@@ -83,6 +78,8 @@ IF NOT NEW gsc_language AND gsc_language.{&TRIGGER_OBJ} <> o_gsc_language.{&TRIG
 
 /* Customisations to WRITE trigger */
 {icf/trg/gsclgtrigw.i}
+
+
 
 /* Update Audit Log */
 IF CAN-FIND(FIRST gsc_entity_mnemonic

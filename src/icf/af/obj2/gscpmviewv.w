@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          asdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" vTableWin _INLINE
@@ -61,10 +61,11 @@ DEFINE TEMP-TABLE RowObject
 
   History:
   --------
-  (v:010000)    Task:    90000015   UserRef:    posse
-                Date:   02/04/2001  Author:     Tammy St Pierre
+  (v:010000)    Task:          28   UserRef:    
+                Date:   03/12/2003  Author:     Thomas Hansen
 
-  Update Notes: Created from Template rysttviewv.w
+  Update Notes: Issue 5385:
+                - Extended the length of the product_module_code field to 35 characters.
 
 ---------------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
@@ -87,7 +88,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gscpmviewv.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010001
+&scop object-version    010000
 
 /* Parameters Definitions ---                                           */
 
@@ -125,11 +126,12 @@ RowObject.product_module_description RowObject.product_module_installed ~
 RowObject.number_of_users RowObject.relative_path 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define DISPLAYED-FIELDS RowObject.product_module_code ~
 RowObject.product_module_description RowObject.product_module_installed ~
 RowObject.number_of_users RowObject.relative_path 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
+
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -149,19 +151,19 @@ RowObject.number_of_users RowObject.relative_path
 DEFINE FRAME frMain
      RowObject.product_module_code AT ROW 1 COL 30 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 15.6 BY 1
-     RowObject.product_module_description AT ROW 2 COL 30 COLON-ALIGNED
+          SIZE 35 BY 1
+     RowObject.product_module_description AT ROW 2.05 COL 30 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 72 BY 1
-     RowObject.product_module_installed AT ROW 3 COL 32
+          SIZE 78.4 BY 1
+     RowObject.product_module_installed AT ROW 3.1 COL 32
           VIEW-AS TOGGLE-BOX
-          SIZE 28.4 BY .81
-     RowObject.number_of_users AT ROW 3.81 COL 30 COLON-ALIGNED
+          SIZE 28.4 BY 1
+     RowObject.number_of_users AT ROW 4.14 COL 30 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 11.8 BY 1
-     RowObject.relative_path AT ROW 4.81 COL 30 COLON-ALIGNED
+     RowObject.relative_path AT ROW 5.19 COL 30 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 72 BY 1
+          SIZE 78.4 BY 1
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -201,8 +203,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 5.05
-         WIDTH              = 109.
+         HEIGHT             = 5.81
+         WIDTH              = 111.8.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -242,7 +244,7 @@ ASSIGN
 */  /* FRAME frMain */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK vTableWin 

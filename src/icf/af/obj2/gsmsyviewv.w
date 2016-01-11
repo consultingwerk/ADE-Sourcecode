@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          asdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" vTableWin _INLINE
@@ -87,7 +87,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gsmsyviewv.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010003
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -126,9 +126,10 @@ DEFINE VARIABLE ghForeignFieldLookup AS HANDLE NO-UNDO.
 &Scoped-Define ENABLED-FIELDS RowObject.property_value 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
+&Scoped-Define DISPLAYED-FIELDS RowObject.property_value 
 &Scoped-define DISPLAYED-TABLES RowObject
 &Scoped-define FIRST-DISPLAYED-TABLE RowObject
-&Scoped-Define DISPLAYED-FIELDS RowObject.property_value 
+&Scoped-Define DISPLAYED-OBJECTS fiPropertyValueLabel 
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -146,16 +147,19 @@ DEFINE VARIABLE h_gscspdynlookup AS HANDLE NO-UNDO.
 DEFINE VARIABLE h_gsmsedynlookup AS HANDLE NO-UNDO.
 
 /* Definitions of the field level widgets                               */
+DEFINE VARIABLE fiPropertyValueLabel AS CHARACTER FORMAT "X(35)":U INITIAL "Property Value:" 
+      VIEW-AS TEXT 
+     SIZE 14.8 BY .62 NO-UNDO.
+
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     RowObject.property_value AT ROW 3 COL 26.6 NO-LABEL
+     RowObject.property_value AT ROW 3.1 COL 26.6 NO-LABEL
           VIEW-AS EDITOR SCROLLBAR-VERTICAL
           SIZE 68.6 BY 4
-     "Property Value:" VIEW-AS TEXT
-          SIZE 14.8 BY .62 AT ROW 3.05 COL 11.6
-     SPACE(68.80) SKIP(0.00)
+     fiPropertyValueLabel AT ROW 3.1 COL 9.8 COLON-ALIGNED NO-LABEL
+     SPACE(68.60) SKIP(0.00)
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -195,8 +199,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 6.43
-         WIDTH              = 101.6.
+         HEIGHT             = 6.1
+         WIDTH              = 94.2.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -223,6 +227,15 @@ ASSIGN
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
 
+/* SETTINGS FOR FILL-IN fiPropertyValueLabel IN FRAME frMain
+   NO-ENABLE                                                            */
+ASSIGN 
+       fiPropertyValueLabel:HIDDEN IN FRAME frMain           = TRUE
+       fiPropertyValueLabel:PRIVATE-DATA IN FRAME frMain     = 
+                "Property Value:".
+
+/* SETTINGS FOR EDITOR RowObject.property_value IN FRAME frMain
+   EXP-LABEL                                                            */
 ASSIGN 
        RowObject.property_value:RETURN-INSERTED IN FRAME frMain  = TRUE.
 
@@ -239,7 +252,7 @@ ASSIGN
 */  /* FRAME frMain */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK vTableWin 
@@ -316,8 +329,8 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsm_session_type.session_type_codeKeyFieldgsm_session_type.session_type_objFieldLabelSession TypeFieldTooltipEnter Session Type or Press F4 for Session Type LookupKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(10)DisplayDatatypecharacterBaseQueryStringFOR EACH gsm_session_type NO-LOCK
-                     BY gsm_session_type.session_type_codeQueryTablesgsm_session_typeBrowseFieldsgsm_session_type.session_type_code,gsm_session_type.session_type_descriptionBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(10),X(35)RowsToBatch200BrowseTitleLookup Session TypesViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsFieldNamesession_type_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsm_session_type.session_type_codeKeyFieldgsm_session_type.session_type_objFieldLabelSession TypeFieldTooltipEnter Session Type or Press F4 for Session Type LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(20)DisplayDatatypecharacterBaseQueryStringFOR EACH gsm_session_type NO-LOCK
+                     BY gsm_session_type.session_type_codeQueryTablesgsm_session_typeBrowseFieldsgsm_session_type.session_type_code,gsm_session_type.session_type_descriptionBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(20),X(35)RowsToBatch200BrowseTitleLookup Session TypesViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNamesession_type_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_gsmsedynlookup ).
        RUN repositionObject IN h_gsmsedynlookup ( 1.00 , 26.60 ) NO-ERROR.
        RUN resizeObject IN h_gsmsedynlookup ( 1.00 , 68.60 ) NO-ERROR.
@@ -325,10 +338,10 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_session_property.session_property_nameKeyFieldgsc_session_property.session_property_objFieldLabelSession PropertyFieldTooltipEnter Session Property or Press F4 for Session Property LookupKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(28)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_session_property NO-LOCK
-                     BY gsc_session_property.session_property_nameQueryTablesgsc_session_propertyBrowseFieldsgsc_session_property.session_property_name,gsc_session_property.session_property_descriptionBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(28),X(70)RowsToBatch200BrowseTitleLookup Session PropertiesViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsFieldNamesession_property_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_session_property.session_property_nameKeyFieldgsc_session_property.session_property_objFieldLabelProperty NameFieldTooltipEnter Session Property or Press F4 for Session Property LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_session_property NO-LOCK
+                     BY gsc_session_property.session_property_nameQueryTablesgsc_session_propertyBrowseFieldsgsc_session_property.session_property_name,gsc_session_property.session_property_descriptionBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(70)|X(70)RowsToBatch200BrowseTitleLookup Session PropertiesViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListNO-LOCKQueryBuilderOrderListgsc_session_property.session_property_name^yesQueryBuilderTableOptionListNO-LOCKQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNamesession_property_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_gscspdynlookup ).
-       RUN repositionObject IN h_gscspdynlookup ( 2.00 , 26.60 ) NO-ERROR.
+       RUN repositionObject IN h_gscspdynlookup ( 2.05 , 26.60 ) NO-ERROR.
        RUN resizeObject IN h_gscspdynlookup ( 1.00 , 68.60 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */

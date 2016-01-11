@@ -83,7 +83,7 @@ af/cod/aftemwizpw.w
 
 &scop object-name       afupdmtrnp.p
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010001
+&scop object-version    000000
 
 
 /* MIP object identifying preprocessor */
@@ -134,7 +134,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
                                                                         */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
@@ -153,7 +153,8 @@ DO FOR bgsm_translation TRANSACTION ON ERROR UNDO trn-block, LEAVE trn-block:
   FOR EACH ttTranslate:
 
     FIND FIRST bgsm_translation EXCLUSIVE-LOCK
-         WHERE bgsm_translation.language_obj = ttTranslate.dLanguageObj
+         WHERE bgsm_translation.source_language_obj = ttTranslate.dSourceLanguageObj
+           AND bgsm_translation.language_obj = ttTranslate.dLanguageObj
            AND bgsm_translation.OBJECT_filename = (IF ttTranslate.lGlobal = NO THEN ttTranslate.cObjectName ELSE "":U)
            AND bgsm_translation.WIDGET_type = ttTranslate.cWidgetType
            AND bgsm_translation.WIDGET_name = ttTranslate.cWidgetName
@@ -180,6 +181,7 @@ DO FOR bgsm_translation TRANSACTION ON ERROR UNDO trn-block, LEAVE trn-block:
       CREATE bgsm_translation NO-ERROR.
       IF ERROR-STATUS:ERROR THEN UNDO trn-block, LEAVE trn-block.
       ASSIGN
+        bgsm_translation.source_language_obj = ttTranslate.dSourceLanguageObj
         bgsm_translation.language_obj = ttTranslate.dLanguageObj
         bgsm_translation.OBJECT_filename = (IF ttTranslate.lGlobal = NO THEN ttTranslate.cObjectName ELSE "":U)
         bgsm_translation.WIDGET_type = ttTranslate.cWidgetType

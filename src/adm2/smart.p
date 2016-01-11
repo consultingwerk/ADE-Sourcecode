@@ -49,7 +49,7 @@
    
   DEFINE VARIABLE gcDataMessages  AS CHARACTER NO-UNDO INIT "":U.
 
-DEFINE TEMP-TABLE ADMLink
+DEFINE TEMP-TABLE ADMLink NO-UNDO
   FIELD LinkSource AS HANDLE
   FIELD LinkTarget AS HANDLE
   FIELD LinkType   AS CHARACTER.
@@ -330,6 +330,17 @@ FUNCTION getInactiveLinks RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getInstanceId) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getInstanceId Procedure 
+FUNCTION getInstanceId RETURNS DECIMAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getInstanceProperties) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getInstanceProperties Procedure 
@@ -561,11 +572,44 @@ FUNCTION getUserProperty RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-instanceOf) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD instanceOf Procedure 
+FUNCTION instanceOf RETURNS LOGICAL
+    ( INPUT pcObjectType        AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-instancePropertyList) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD instancePropertyList Procedure 
 FUNCTION instancePropertyList RETURNS CHARACTER
   ( pcPropList AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-isDialogBoxParent) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD isDialogBoxParent Procedure 
+FUNCTION isDialogBoxParent RETURNS LOGICAL
+  ( INPUT hWidget AS HANDLE )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-isFunctionInCallStack) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD isFunctionInCallStack Procedure 
+FUNCTION isFunctionInCallStack RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -614,6 +658,21 @@ FUNCTION mappedEntry RETURNS CHARACTER
    pcList      AS CHAR,
    plFirst     AS LOG,
    pcDelimiter AS CHAR)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-mergeLists) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD mergeLists Procedure 
+FUNCTION mergeLists RETURNS CHARACTER
+  ( pcList1     AS CHAR,
+    pcList2     AS CHAR,
+    pcDlm1      AS CHAR,
+    pcDlm2      AS CHAR,
+    pcNewDlm    AS CHAR)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -812,6 +871,17 @@ FUNCTION setHideOnInit RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setInactiveLinks Procedure 
 FUNCTION setInactiveLinks RETURNS LOGICAL
   ( pcInactiveLinks AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setInstanceId) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setInstanceId Procedure 
+FUNCTION setInstanceId RETURNS LOGICAL
+  ( pdInstanceId AS DECIMAL )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1594,7 +1664,6 @@ PROCEDURE displayLinks :
   Notes:       Can be executed by selecting displayLinks from the ProTools
                procedure object viewer for the desired SmartContainer.
 ------------------------------------------------------------------------------*/
-
   DEFINE VARIABLE hContainer AS HANDLE NO-UNDO.
   DEFINE VARIABLE Radio-Sort AS CHARACTER  LABEL "Sort By" INIT "Type":U   
      VIEW-AS RADIO-SET HORIZONTAL
@@ -1652,7 +1721,8 @@ PROCEDURE displayLinks :
   {&OPEN-QUERY-BROWSE-1} 
 
   WAIT-FOR GO OF FRAME Dialog-Frame.
-
+ 
+                                          
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2520,8 +2590,10 @@ PROCEDURE showMessageProcedure :
   DEFINE VARIABLE cAnswer AS CHARACTER.
   DEFINE VARIABLE cButtonPressed AS CHARACTER.            
   DEFINE VARIABLE hContainerSource AS HANDLE NO-UNDO.
+  DEFINE VARIABLE hContainer       AS HANDLE NO-UNDO.
   
   {get ContainerSource hContainerSource}.
+  {get ContainerHandle hContainer}.
               
   iMessage = INTEGER(ENTRY(1,pcMessage)) NO-ERROR.  /* was a number passed? */
   IF ERROR-STATUS:ERROR THEN 
@@ -2548,7 +2620,9 @@ PROCEDURE showMessageProcedure :
     CASE cMessageType:
       WHEN 'Question':U OR WHEN 'YesNo':U THEN
       DO:
-        IF VALID-HANDLE(gshSessionManager) THEN
+        IF NOT {fnarg IsDialogBoxParent hContainer}
+           AND NOT {fn IsFunctionInCallStack}
+           AND VALID-HANDLE(gshSessionManager) THEN
         DO:
             RUN askQuestion IN gshSessionManager (    
                 INPUT cMessage,         /* pcMessageList     */
@@ -2577,7 +2651,9 @@ PROCEDURE showMessageProcedure :
       END.
       WHEN 'OkCancel':U THEN
       DO:
-        IF VALID-HANDLE(gshSessionManager) THEN
+        IF NOT {fnarg IsDialogBoxParent hContainer}
+           AND NOT {fn IsFunctionInCallStack}
+           AND VALID-HANDLE(gshSessionManager) THEN
         DO:
               RUN askQuestion IN gshSessionManager (    
                   INPUT cMessage,         /* pcMessageList     */
@@ -2605,7 +2681,9 @@ PROCEDURE showMessageProcedure :
       END.
       WHEN 'YesNoCancel':U THEN
       DO:
-          IF VALID-HANDLE(gshSessionManager) THEN
+          IF NOT {fnarg IsDialogBoxParent hContainer}
+             AND NOT {fn IsFunctionInCallStack}
+             AND VALID-HANDLE(gshSessionManager) THEN
           DO:   
             
             RUN askQuestion IN gshSessionManager (    
@@ -2638,7 +2716,9 @@ PROCEDURE showMessageProcedure :
       END.
       OTHERWISE 
       DO:
-        IF VALID-HANDLE(gshSessionManager) THEN
+          IF NOT {fnarg IsDialogBoxParent hContainer}
+             AND NOT {fn IsFunctionInCallStack}
+             AND VALID-HANDLE(gshSessionManager) THEN
         DO:       
             RUN showMessages IN gshSessionManager (
                 INPUT cMessage,         /* pcMessageList */
@@ -3396,6 +3476,25 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getInstanceId) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getInstanceId Procedure 
+FUNCTION getInstanceId RETURNS DECIMAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Returns the Repository manager's unique identifier of this instance  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE dId AS DECIMAL    NO-UNDO.
+  {get InstanceId dId}.
+  RETURN dId.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getInstanceProperties) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getInstanceProperties Procedure 
@@ -3856,7 +3955,7 @@ FUNCTION getUIBMode RETURNS CHARACTER
   
   IF cMode = "":U OR cMode = ? THEN
   DO:
-    {get ContainerSource hContainer}.
+    {get ContainerSource hContainer} NO-ERROR.
     IF VALID-HANDLE(hContainer) THEN
     DO:
       cMode = DYNAMIC-FUNCTION("getUIBmode":U IN hContainer) NO-ERROR.
@@ -3928,6 +4027,53 @@ FUNCTION getUserProperty RETURNS CHARACTER
   RETURN ?.          /* Property was not found. */
   
 END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-instanceOf) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION instanceOf Procedure 
+FUNCTION instanceOf RETURNS LOGICAL
+    ( INPUT pcObjectType        AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose: Resolve if this is an instance Of a particular class/object type 
+    Notes: For Dynamics this does include the inheritance hierarchy 
+ ------------------------------------------------------------------------------*/  
+    DEFINE VARIABLE hProps                      AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE hField                      AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE cLogicalObjectName          AS CHARACTER            NO-UNDO.
+
+    IF {fn getUseRepository} AND VALID-HANDLE(gshRepositoryManager) THEN
+    DO:
+        /* The tInheritsFromClasses field in the ADMProps is not strictly an ADM
+         * property. It is inherited from the c_<Class Name> buffer which is 
+         * used to construct the ADMProps temp-table when this object is being
+         * constructed.                                                          */
+        ASSIGN hProps = WIDGET-HANDLE(ENTRY(1, TARGET-PROCEDURE:ADM-DATA, CHR(1)))
+               hField = hProps:BUFFER-FIELD("tInheritsFromClasses":U)
+               NO-ERROR.
+
+        /** This field will only be present in ADM objects that have been constructed
+         *  based on information taken from the Dynamics Repository.
+         *  ----------------------------------------------------------------------- **/
+        IF VALID-HANDLE(hField) THEN
+            RETURN CAN-DO(hField:BUFFER-VALUE, pcObjectType).
+        ELSE
+        DO:
+            {get LogicalObjectName cLogicalObjectName}.
+            RETURN DYNAMIC-FUNCTION('IsA':U IN gshRepositoryManager,
+                                    INPUT cLogicalObjectName,
+                                    INPUT pcObjectType              ).
+        END.    /* not in the ADMProps TT. */
+    END.    /* Using the Repository */
+
+    /* Current workaround to ensure that this can replace all direct use of 
+     * objecttype is to compare with the object type */ 
+    RETURN pcObjectType EQ {fn getObjectType}.  
+END FUNCTION.   /* instanceOf */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -4027,8 +4173,14 @@ FUNCTION instancePropertyList RETURNS CHARACTER
     cPropValues = "''":U.                   /*   just close the quote.*/
   DO iEntry = 1 TO iNumProps:
     cProperty = ENTRY(iEntry, cInstanceProperties).
-    cValue = STRING(dynamic-function('get':U + cProperty IN TARGET-PROCEDURE))
+    /* We better avoid calling asHandle if unbound as this actually will
+       do a bind ..*/
+    IF cProperty = 'AsHandle':U AND NOT {fn getAsBound} THEN
+       cValue = '':U.  
+    ELSE
+      cValue = STRING(dynamic-function('get':U + cProperty IN TARGET-PROCEDURE))
       NO-ERROR.
+
     IF cValue = ? THEN    /* This is an ad hoc user property. */
       cValue = {fnarg getUserProperty cProperty}. 
     IF cValue = ? THEN cValue = "":U.
@@ -4054,6 +4206,99 @@ FUNCTION instancePropertyList RETURNS CHARACTER
     
   RETURN cPropValues.
   
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-isDialogBoxParent) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION isDialogBoxParent Procedure 
+FUNCTION isDialogBoxParent RETURNS LOGICAL
+  ( INPUT hWidget AS HANDLE ) :
+/*------------------------------------------------------------------------------
+  Purpose: TRUE if any parent widget of 'hWidget' is a DIALOG-BOX
+    Notes:  
+------------------------------------------------------------------------------*/
+  IF VALID-HANDLE(hWidget) THEN
+      IF hWidget:TYPE = "DIALOG-BOX":U THEN
+         RETURN TRUE.
+      ELSE 
+         IF CAN-QUERY(hWidget, "PARENT":U) THEN
+             RETURN isDialogBoxParent(hWidget:PARENT).
+         ELSE
+             RETURN FALSE.
+  ELSE
+      RETURN FALSE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-isFunctionInCallStack) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION isFunctionInCallStack Procedure 
+FUNCTION isFunctionInCallStack RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Returns TRUE if there is a Function in the call stack. 
+    Notes:  
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE cSuperList     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cSuperNameList AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE iVar           AS INTEGER    NO-UNDO INIT 1. 
+DEFINE VARIABLE cName          AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cIpName        AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE hProcedure     AS HANDLE     NO-UNDO.
+DEFINE VARIABLE cSignature     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE iIdx           AS INTEGER    NO-UNDO.
+
+/* create a list of session procedures and their names */
+hProcedure = SESSION:FIRST-PROCEDURE.
+REPEAT WHILE valid-handle(hProcedure):
+  IF hProcedure:TYPE = "PROCEDURE":U THEN
+    ASSIGN
+      cSuperList = cSuperList + (IF cSuperList > "" THEN "," ELSE "") +
+                   STRING(hProcedure)
+      cSuperNameList = cSuperNameList + 
+                        (IF cSuperNameList > "" THEN "," ELSE "") +
+                        hProcedure:FILE-NAME.
+  hProcedure = hProcedure:NEXT-SIBLING.
+END.
+                                             
+/* scan the call stack until a fuction is found (return true) or we reach */
+/* the end of the stack (return false) */
+REPEAT:
+  ASSIGN 
+    iVar = iVar + 1     /* do not include THIS function */
+    cName = PROGRAM-NAME(iVar)
+    hProcedure = ?.
+
+  IF cName = ? THEN     /* end of stack */
+    LEAVE.
+  IF NUM-ENTRIES(cName, " ") = 1 THEN  
+    NEXT.               /* not interested in external procedures */
+
+  ASSIGN
+      cIpName = ENTRY(1, cname, " ")
+      cName = ENTRY(2, cname, " ")
+      iIdx = LOOKUP(cName, cSuperNameList).
+  
+  IF iIdx > 0 THEN
+      hProcedure = WIDGET-HANDLE(ENTRY(iIdx, cSuperList)).
+
+  IF VALID-HANDLE(hProcedure) THEN
+      IF entry(1, hProcedure:GET-SIGNATURE(cIpName)) = "FUNCTION":U THEN
+         RETURN TRUE.
+END.
+
+RETURN FALSE.
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -4258,36 +4503,103 @@ Parameters:  INPUT pcEntry    - entry to lookup.
     Notes: Used to find mapped RowObject or database column in assignList.  
            In other cases, such as the ObjectMapping property of SBOs, an
            entry may occur more than once in the list, in which case a list
-           of matching values is returned, using the same delimiter as the list.          
+           of matching values is returned, using the same delimiter as the list.
+        -  Returns ? if no entry is found          
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE iLookUp AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cList   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cValues AS CHARACTER  NO-UNDO INIT "":U.
+  DEFINE VARIABLE cValues AS CHARACTER  NO-UNDO.
 
   /* We use a work list so we are free to remove entries from it without
      risking to remove the value that we eventually want to return */
-  cList = pcList.
+  ASSIGN
+    cValues = ? /* Set to ? to identify not found (Blank may be found) */
+    cList   = pcList.
   DO WHILE TRUE:
     iLookup = LOOKUP(pcEntry,cList,pcDelimiter).
     
-    /* The entry is no longer in the list, so return any values we have
-       found in earlier passes; if there are none, return unknown. */
+    /* The entry is no longer in the list or not at all, so return any values 
+       we have found in earlier passes; if none found unknown will be returned.*/
     IF iLookup = 0 OR iLookup = ? THEN 
-      RETURN IF cValues = "":U THEN ? ELSE cValues.
+      RETURN cValues.
 
     /* If this is the correct half of the pair add the other part from the
        original list to the list of values to return. */
     IF iLookup MODULO 2 = (IF plFirst THEN 1 ELSE 0) THEN
-      cValues = cValues + (IF cValues = "":U THEN "":U ELSE pcDelimiter) +
-         ENTRY(IF plFirst THEN (iLookup + 1) ELSE (iLookup - 1),
-               pcList,
-               pcDelimiter).
+      cValues = (IF cValues <> ? THEN cValues + pcDelimiter ELSE '':U)
+              + ENTRY(IF plFirst THEN (iLookup + 1) ELSE (iLookup - 1),
+                      pcList,
+                      pcDelimiter).
     
     /* We remove this entry (right or wrong) from the work list to be able 
        to lookup the next. (Setting it to blank if we are looking for blank
        will cause an endless loop so we set it to '?' in that case )*/ 
     ENTRY(iLookup,cList,pcDelimiter) = IF pcEntry <> '':U THEN '':U ELSE '?':U.
   END. /* do while true */
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-mergeLists) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION mergeLists Procedure 
+FUNCTION mergeLists RETURNS CHARACTER
+  ( pcList1     AS CHAR,
+    pcList2     AS CHAR,
+    pcDlm1      AS CHAR,
+    pcDlm2      AS CHAR,
+    pcNewDlm    AS CHAR) :
+/*------------------------------------------------------------------------------
+  Purpose: Return a paired list of two lists 
+    Notes: The main reason that this exists is performance, it is approx 
+           50% faster to merge without a loop.  
+------------------------------------------------------------------------------*/
+ DEFINE VARIABLE iNumEntries AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE cMergeList  AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE iNum        AS INTEGER    NO-UNDO.
+ 
+ ASSIGN
+   pcDlm1    = IF pcDlm1  = '':U THEN ' ':U ELSE IF pcDlm1 <> ? THEN pcDlm1 ELSE ',':U 
+   pcDlm2    = IF pcDlm2 = '':U THEN ' ':U ELSE IF pcDlm2 <> ? THEN pcDlm2 ELSE ',':U 
+   pcNewDlm  = IF pcNewDlm = '':U THEN ' ':U ELSE IF pcNewDlm <> ? THEN pcNewDlm ELSE ',':U 
+   iNumEntries = NUM-ENTRIES(pcList1,pcDlm1).
+ /* New assign for WHEN evaluation of iNumentries */ 
+ ASSIGN  
+   cMergeList  = REPLACE(pcList1,pcDlm1,pcNewDlm)
+   ENTRY(( 1 * 2) - 1,cMergelist,pcNewDlm) = ENTRY( 1,pcList1,pcDlm1) + pcNewDlm + ENTRY( 1,pcList2,pcDlm2) WHEN iNumEntries >= 1
+   ENTRY(( 2 * 2) - 1,cMergelist,pcNewDlm) = ENTRY( 2,pcList1,pcDlm1) + pcNewDlm + ENTRY( 2,pcList2,pcDlm2) WHEN iNumEntries >= 2
+   ENTRY(( 3 * 2) - 1,cMergelist,pcNewDlm) = ENTRY( 3,pcList1,pcDlm1) + pcNewDlm + ENTRY( 3,pcList2,pcDlm2) WHEN iNumEntries >= 3
+   ENTRY(( 4 * 2) - 1,cMergelist,pcNewDlm) = ENTRY( 4,pcList1,pcDlm1) + pcNewDlm + ENTRY( 4,pcList2,pcDlm2) WHEN iNumEntries >= 4
+   ENTRY(( 5 * 2) - 1,cMergelist,pcNewDlm) = ENTRY( 5,pcList1,pcDlm1) + pcNewDlm + ENTRY( 5,pcList2,pcDlm2) WHEN iNumEntries >= 5
+   ENTRY(( 6 * 2) - 1,cMergelist,pcNewDlm) = ENTRY( 6,pcList1,pcDlm1) + pcNewDlm + ENTRY( 6,pcList2,pcDlm2) WHEN iNumEntries >= 6
+   ENTRY(( 7 * 2) - 1,cMergelist,pcNewDlm) = ENTRY( 7,pcList1,pcDlm1) + pcNewDlm + ENTRY( 7,pcList2,pcDlm2) WHEN iNumEntries >= 7
+   ENTRY(( 8 * 2) - 1,cMergelist,pcNewDlm) = ENTRY( 8,pcList1,pcDlm1) + pcNewDlm + ENTRY( 8,pcList2,pcDlm2) WHEN iNumEntries >= 8
+   ENTRY(( 9 * 2) - 1,cMergelist,pcNewDlm) = ENTRY( 9,pcList1,pcDlm1) + pcNewDlm + ENTRY( 9,pcList2,pcDlm2) WHEN iNumEntries >= 9
+   ENTRY((10 * 2) - 1,cMergelist,pcNewDlm) = ENTRY(10,pcList1,pcDlm1) + pcNewDlm + ENTRY(10,pcList2,pcDlm2) WHEN iNumEntries >= 10
+   ENTRY((11 * 2) - 1,cMergelist,pcNewDlm) = ENTRY(11,pcList1,pcDlm1) + pcNewDlm + ENTRY(11,pcList2,pcDlm2) WHEN iNumEntries >= 11
+   ENTRY((12 * 2) - 1,cMergelist,pcNewDlm) = ENTRY(12,pcList1,pcDlm1) + pcNewDlm + ENTRY(12,pcList2,pcDlm2) WHEN iNumEntries >= 12
+   ENTRY((13 * 2) - 1,cMergelist,pcNewDlm) = ENTRY(13,pcList1,pcDlm1) + pcNewDlm + ENTRY(13,pcList2,pcDlm2) WHEN iNumEntries >= 13
+   ENTRY((14 * 2) - 1,cMergelist,pcNewDlm) = ENTRY(14,pcList1,pcDlm1) + pcNewDlm + ENTRY(14,pcList2,pcDlm2) WHEN iNumEntries >= 14
+   ENTRY((15 * 2) - 1,cMergelist,pcNewDlm) = ENTRY(15,pcList1,pcDlm1) + pcNewDlm + ENTRY(15,pcList2,pcDlm2) WHEN iNumEntries >= 15
+   ENTRY((16 * 2) - 1,cMergelist,pcNewDlm) = ENTRY(16,pcList1,pcDlm1) + pcNewDlm + ENTRY(16,pcList2,pcDlm2) WHEN iNumEntries >= 16
+   ENTRY((17 * 2) - 1,cMergelist,pcNewDlm) = ENTRY(17,pcList1,pcDlm1) + pcNewDlm + ENTRY(17,pcList2,pcDlm2) WHEN iNumEntries >= 17
+   ENTRY((18 * 2) - 1,cMergelist,pcNewDlm) = ENTRY(18,pcList1,pcDlm1) + pcNewDlm + ENTRY(18,pcList2,pcDlm2) WHEN iNumEntries >= 18
+   ENTRY((19 * 2) - 1,cMergelist,pcNewDlm) = ENTRY(19,pcList1,pcDlm1) + pcNewDlm + ENTRY(19,pcList2,pcDlm2) WHEN iNumEntries >= 19
+   ENTRY((20 * 2) - 1,cMergelist,pcNewDlm) = ENTRY(20,pcList1,pcDlm1) + pcNewDlm + ENTRY(20,pcList2,pcDlm2) WHEN iNumEntries >= 20
+   ENTRY((21 * 2) - 1,cMergelist,pcNewDlm) = ENTRY(21,pcList1,pcDlm1) + pcNewDlm + ENTRY(21,pcList2,pcDlm2) WHEN iNumEntries >= 21
+   ENTRY((22 * 2) - 1,cMergelist,pcNewDlm) = ENTRY(22,pcList1,pcDlm1) + pcNewDlm + ENTRY(22,pcList2,pcDlm2) WHEN iNumEntries >= 22
+   ENTRY((23 * 2) - 1,cMergelist,pcNewDlm) = ENTRY(23,pcList1,pcDlm1) + pcNewDlm + ENTRY(23,pcList2,pcDlm2) WHEN iNumEntries >= 23
+   ENTRY((24 * 2) - 1,cMergelist,pcNewDlm) = ENTRY(24,pcList1,pcDlm1) + pcNewDlm + ENTRY(24,pcList2,pcDlm2) WHEN iNumEntries >= 24
+   .
+ DO iNum = 25 TO iNumEntries:
+   ENTRY((iNum * 2) - 1,cMergelist,pcNewDlm) = ENTRY(iNum,pcList1,pcDlm1) + pcNewDlm + ENTRY(iNum,pcList2,pcDlm2).
+ END.
+
+ RETURN cMergeList.
+ 
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -4742,6 +5054,25 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setInstanceId) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setInstanceId Procedure 
+FUNCTION setInstanceId RETURNS LOGICAL
+  ( pdInstanceId AS DECIMAL ) :
+/*------------------------------------------------------------------------------
+  Purpose: This is the Repository manager's unique identifier of this instance  
+    Notes: This should never need to be set.. except by the Repository Manager,
+           which doesn't use this function...   
+------------------------------------------------------------------------------*/
+  {set InstanceId pdInstanceId}.
+  RETURN TRUE.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setInstanceProperties) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setInstanceProperties Procedure 
@@ -4871,7 +5202,10 @@ FUNCTION setObjectParent RETURNS LOGICAL
   IF VALID-HANDLE(hObject) AND VALID-HANDLE(phParent) THEN
   DO:
     IF CAN-DO( "DIALOG-BOX,FRAME":U, phParent:TYPE) THEN
-         ASSIGN hObject:FRAME = phParent.
+    DO:
+        IF CAN-SET(hObject, "FRAME":U) THEN
+            ASSIGN hObject:FRAME = phParent.
+    END.    /* Dialogue box or frame */
     ELSE ASSIGN hObject:PARENT = phParent.
     RETURN TRUE.
   END.
@@ -5020,7 +5354,9 @@ FUNCTION setSupportedLinks RETURNS LOGICAL
     Notes:  Because this is a comma-separated list, it should normally be
             invoked indirectly, through modifyListProperty.
 ------------------------------------------------------------------------------*/
-
+  IF pcLinkList = '':U THEN
+     RETURN FALSE.
+             
    {set SupportedLinks pcLinkList}.
   RETURN TRUE.
 

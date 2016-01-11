@@ -77,7 +77,7 @@ af/cod/aftemwizpw.w
 
 &scop object-name       gscstmntop.p
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 
 /* Astra object identifying preprocessor */
@@ -141,12 +141,12 @@ DEFINE OUTPUT PARAMETER pcFileName      AS CHARACTER NO-UNDO.
 IF pdServiceTypeObj = 0 THEN 
 DO:
   FOR EACH gsc_service_type NO-LOCK BY gsc_service_type.service_type_code:
-    FIND gsc_object WHERE gsc_object.object_obj = gsc_service_type.maintenance_object NO-LOCK NO-ERROR.
-    IF AVAILABLE gsc_object THEN 
+    FIND ryc_smartobject WHERE ryc_smartobject.smartobject_obj = gsc_service_type.maintenance_object NO-LOCK NO-ERROR.
+    IF AVAILABLE ryc_smartobject THEN 
     DO:
-      ASSIGN pcPath = gsc_object.object_path
-             pcFileName = gsc_object.object_filename
-                          + (IF gsc_object.object_extension <> "":U THEN "." + gsc_object.object_extension
+      ASSIGN pcPath = ryc_smartobject.object_path
+             pcFileName = ryc_smartobject.object_filename
+                          + (IF ryc_smartobject.object_extension <> "":U THEN "." + ryc_smartobject.object_extension
                                 ELSE "":U).
       RETURN.
     END.
@@ -156,11 +156,11 @@ ELSE DO:
   FIND gsc_service_type WHERE gsc_service_type.service_type_obj = pdServiceTypeObj NO-LOCK NO-ERROR.
   IF AVAILABLE gsc_service_type THEN
   DO:
-    FIND gsc_object WHERE gsc_object.object_obj = gsc_service_type.maintenance_object NO-LOCK NO-ERROR.
-    IF AVAILABLE gsc_object THEN
-      ASSIGN pcPath = gsc_object.object_path
-             pcFileName = gsc_object.object_filename
-                          + (IF gsc_object.object_extension <> "":U THEN "." + gsc_object.object_extension
+    FIND ryc_smartobject WHERE ryc_smartobject.smartobject_obj = gsc_service_type.maintenance_object NO-LOCK NO-ERROR.
+    IF AVAILABLE ryc_smartobject THEN
+      ASSIGN pcPath = ryc_smartobject.object_path
+             pcFileName = ryc_smartobject.object_filename
+                          + (IF ryc_smartobject.object_extension <> "":U THEN "." + ryc_smartobject.object_extension
                                 ELSE "":U).
   END.  /* if avail service type */
 END.

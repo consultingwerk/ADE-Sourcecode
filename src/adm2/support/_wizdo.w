@@ -58,7 +58,7 @@
 CREATE WIDGET-POOL.
 
 /* ***************************  Definitions  ************************** */
-{ adm2/support/admhlp.i } /* ADM Help File Defs */
+{ src/adm2/support/admhlp.i } /* ADM Help File Defs */
 
 /* Parameters Definitions ---                                           */
 DEFINE INPUT        PARAMETER hWizard   AS WIDGET-HANDLE NO-UNDO.

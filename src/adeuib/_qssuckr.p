@@ -35,6 +35,9 @@ Input Parameters:
                   "WINDOW UNTITLED" - open a .w file but don't save the
                              name (open as UNTITLED).
                   "IMPORT" - import from an EXPORT (Copy to File) action
+                  "Window-Silent" - same as "WINDOW" but nothing is visualized
+                             on the screen.  This is useful when a batch of
+                             objects are being converted programatically.
    from_schema - True if processing schema-picker output.
    
 Output Parameters:
@@ -75,6 +78,12 @@ History:
     jep-icf 10/11/01 IZ 2467 - Open object cannot open Static SDV.
                      Fix: processRepositoryObject now adds the object_extension
                      to the file to open (input parameter open_file).
+    Hunter  03/05/02 Add "silent" mode to the "WINDOW"s import mode.
+    
+    Hanter  12/18/02 Added code submitted by Alan J Copeland of OPENLOGISTIX 
+                     SYSTEMS LIMITED to make sure delimiters are properly 
+                     written and read to static objects for RADIO-SETS, 
+                     SELECTION-LISTS and COMBO-BOXes.  (IZ 8044)
 ---------------------------------------------------------------------------- */
 
 {adeuib/timectrl.i}  /* Controls inclusion of profiling code */
@@ -162,6 +171,7 @@ DEFINE VARIABLE dyn_object    AS     LOGICAL                           NO-UNDO. 
 DEFINE VARIABLE dyn_temp_file AS     CHARACTER                         NO-UNDO. /* jep-icf */
 DEFINE VARIABLE isRyObject    AS     LOGICAL                           NO-UNDO. /* jep-icf */
 DEFINE VARIABLE import_unnamedframe  AS LOGICAL                        NO-UNDO.
+DEFINE VARIABLE notVisual     AS     LOGICAL                           NO-UNDO.
 
 DEFINE NEW SHARED VARIABLE def_found  AS LOGICAL INITIAL FALSE         NO-UNDO.
 DEFINE NEW SHARED VARIABLE main_found AS LOGICAL INITIAL FALSE         NO-UNDO.
@@ -191,6 +201,14 @@ ASSIGN
   SESSION:NUMERIC-FORMAT = "AMERICAN":U
   web_file               = (web_temp_file <> "").
   
+
+/* If import mode is Window-Silent turn notVisual to true.  This supports */
+/* the reading in of windows that don't visualize for batch processing of */
+/* multiple windows.                                                      */
+IF import_mode = "Window-Silent":U THEN DO:
+  ASSIGN import_mode = "Window"
+         notVisual   = TRUE.
+END.
 
 /* If the mode is not WINDOW/IMPORT, put a message                        */
 /* and abort importing the file.                                          */
@@ -288,7 +306,9 @@ AbortImport = no.
 
 IF AbortImport THEN DO:
   RUN qssucker_cleanup.
-  RETURN "_ABORT":U.
+  IF notVisual AND err_msgs NE "":U THEN
+    RETURN "_ABORT ":U + err_msgs.
+  ELSE RETURN "_ABORT":U.
 END.
 
 /* jep-icf: If dynamic object, reset variable dot-w-file to the object name. */
@@ -464,6 +484,12 @@ REPEAT WHILE NOT _inp_line[1] begins "_ANALYZER_BEGIN"
        first line. */
     IF NOT AVAILABLE _P THEN CREATE _P.
     _P._file-version = file_version.  /* Its important to save file_version early */
+    /* It is also important to set the _P.object_type_code if available as
+       these are used in the wizards                                        */
+    IF AVAILABLE _RyObject THEN
+      ASSIGN _P.object_type_code   = _ryObject.object_type_code
+             _P.object_description = _ryObject.object_description.
+
     RUN adeuib/_rdproc.p (RECID(_P)).
 
     /* If we are reading this into an UNTITLED window, then the file is no
@@ -1011,7 +1037,8 @@ IF _U._TYPE = "DIALOG-BOX" THEN h = _U._HANDLE:PARENT. /* the "real" window */
 ELSE h = _h_win.
 
 /* Don't show the dummy wizard for HTML files in design mode. */
-IF NOT AVAILABLE (_P) OR _P._file-type <> "HTML" OR _P._TEMPLATE THEN
+IF (NOT AVAILABLE (_P) OR _P._file-type <> "HTML" OR _P._TEMPLATE) AND
+  NOT notVisual THEN
 DO:  
   h:VISIBLE = TRUE.
 END.
@@ -1240,7 +1267,12 @@ PROCEDURE analyze-suspend-reader :
                            VIEW-AS ALERT-BOX ERROR. 
             END.
             DONE = YES.  /* Nothing else to read here */
-          END.  
+          END. 
+          ELSE IF _inp_line[1] BEGINS "&Global-define DATA-LOGIC-PROCEDURE ":U THEN DO:
+             FIND _U WHERE _U._HANDLE = _h_win.
+             FIND _C WHERE RECID(_C) = _U._x-recid.
+             ASSIGN _C._DATA-LOGIC-PROC = TRIM(SUBSTRING(_inp_line[1], 37, -1, "CHARACTER":U)).                                  
+          END.
           ELSE DONE = _inp_line[1] BEGINS "/* _UIB-PREPROCESSOR-BLOCK-END".
         END.
       END.
@@ -2198,7 +2230,6 @@ PROCEDURE read_run_time_attributes.
           ELSE MESSAGE "Can't locate popup menu" ENTRY(1,_inp_line[5],":")
             VIEW-AS ALERT-BOX WARNING BUTTONS OK.
         END.
-
         WHEN "PRIVATE-DATA"     THEN DO:
           _inp_line = "".
           IMPORT STREAM _P_QS _inp_line.
@@ -2325,7 +2356,15 @@ PROCEDURE read_run_time_attributes.
           ELSE MESSAGE "Can't locate popup menu" ENTRY(1,_inp_line[7 + dyn_offset],":")
             VIEW-AS ALERT-BOX WARNING BUTTONS OK.
         END.
-            
+        /* AJC start */
+        WHEN "DELIMITER"        THEN DO:           	
+         	FIND _F WHERE RECID(_F) = _U._x-recid.   	
+		      _F._DELIMITER = IF LENGTH(_inp_line[6]) = 1 
+			         THEN  _inp_line[6]
+         	 	         ELSE IF SUBSTR(trim(_inp_line[6]),1,4) = "Chr(":U  and SUBSTR(trim(_inp_line[6]),LENGTH(trim(_inp_line[6])),1) = ")":U          	      		       
+         	      		       THEN CHR(INTEGER(SUBSTR(_inp_line[6],5,length(_inp_line[6]) - 5)))
+         	      		       ELSE ",":U.
+        END. /* AJC END */
         WHEN "PRIVATE-DATA"       THEN DO:
           /* This is for backwards compatability for beta blitz early versions of 7.3a */
           IF _inp_line[6 + dyn_offset] NE "" THEN _U._PRIVATE-DATA = _inp_line[6].
@@ -2422,18 +2461,31 @@ END PROCEDURE.
 PROCEDURE setRepositoryObject:
 /* jep-icf: Setup an _P record and it's design window for a repository object. */
 
-  DO ON ERROR UNDO, LEAVE:
+  DEFINE VARIABLE cPath   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFlnm   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDesc   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSrcR   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cCmpR   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cPrdM   AS CHARACTER  NO-UNDO.
 
+  DO ON ERROR UNDO, LEAVE:
     /* jep-icf: If there isn't an _RyObject, then we aren't processing a
        repository object. */
     IF NOT AVAILABLE _RyObject THEN
       FIND _RyObject WHERE _RyObject.object_filename = open_file NO-LOCK NO-ERROR.
     IF NOT AVAILABLE _RyObject THEN RETURN.
 
-    IF AVAILABLE _RyObject THEN
-    DO:
+    IF AVAILABLE _RyObject THEN DO:
       FIND _P WHERE _P._WINDOW-HANDLE eq _h_win.
-  
+
+      /* Save some info */
+      ASSIGN cPath = _P.object_path
+             cFlnm = _P.object_filename
+             cDesc = _P.object_description
+             cSrcR = _P._save-as-path
+             cCmpR = _P._compile-into
+             cPrdM = _P.product_module_code.
+
       /*  jep-icf: Copy the repository related field values into the object's _P 
           record. With that accomplished, we no longer need the _RyObject record. It 
           only exists long enough to create a new or open an existing repository 
@@ -2442,13 +2494,47 @@ PROCEDURE setRepositoryObject:
       DELETE _RyObject.
 
       /* jep-icf: When creating a NEW object, set object_filename to unknown (?). */
-      IF (_P.design_action = "NEW":u) THEN
-      DO:
-        ASSIGN _P.object_filename = ?.
-      END.
+      IF CAN-DO(_P.design_action, "NEW":U) THEN DO:
+        IF cFlnm = "":U THEN
+          ASSIGN _P.object_filename = ?.
+        ELSE
+          ASSIGN _P.object_path         = cPath
+                 _P.object_filename     = cFlnm
+                 _P.object_description  = cDesc
+                 _P._save-as-path       = cSrcR
+                 _P._compile-into       = cCmpR
+                 _P.product_module_code = cPrdM.
+      END. /* If a new object */
+
       /* jep-icf: Set some properties of the special dynamic object design window. */
-      IF dyn_object THEN
-        RUN adeuib/_setdesignwin.p (INPUT RECID(_P)).
+      IF dyn_object
+      THEN DO:
+        /* We don't want an image on this object if it is a dynamic viewer,
+           we also want to fix up the _P with a few things.   */
+        IF LOOKUP("DynBrow":U, _P.PARENT_classes) <> 0
+        OR LOOKUP("DynSDO":U, _P.PARENT_classes)  <> 0
+        OR LOOKUP("DynView":U, _P.PARENT_classes) <> 0
+        OR _P.OBJECT_type_code = "DynBrow":U
+        OR _P.OBJECT_type_code = "DynSDO":U
+        OR _P.OBJECT_type_code = "DynView":U
+        THEN DO:
+          ASSIGN
+            _P.object_filename = _P._save-as-file
+            _P.run_when        = "ANY":U.
+        END.
+        ELSE
+          RUN adeuib/_setdesignwin.p (INPUT RECID(_P)).
+      END.  /* If a dynamic object */
+      ELSE IF CAN-DO(_P.design_action, "NEW":U)
+      THEN DO:
+        IF INDEX(_P._save-as-file,cPath) = 0 and cpath <> "" 
+        THEN
+          ASSIGN
+            _P._save-as-file = cPath + "/":U + _P._save-as-file.
+        ELSE
+          ASSIGN
+            _P._save-as-file = _P._save-as-file.
+      END.
     END.
 
   END.  /* DO ON ERROR */
@@ -2468,13 +2554,21 @@ PROCEDURE processRepositoryObject:
     ASSIGN isRyObject = AVAILABLE _RyObject.
     IF NOT AVAILABLE _RyObject THEN RETURN.
 
-    ASSIGN dyn_object = _RyObject.logical_object.
+    ASSIGN dyn_object = (NOT _RyObject.static_object).
     IF dyn_object THEN
     DO:
       ASSIGN dyn_temp_file = _Ryobject.design_template_file.
 
       /* If we can't determine the template file or the property sheet procedure, we can't open the object. */
-      IF (SEARCH(_Ryobject.design_template_file) = ?) OR (SEARCH(_Ryobject.design_propsheet_file) = ?) THEN DO:
+      IF (SEARCH(_Ryobject.design_template_file)  = ?)
+      OR (SEARCH(_Ryobject.design_propsheet_file) = ? AND 
+          LOOKUP("DynView":U, _Ryobject.parent_classes) = 0 AND
+          LOOKUP("DynBrow":U, _Ryobject.parent_classes) = 0 AND
+          LOOKUP("DynSDO":U, _Ryobject.parent_classes)  = 0 AND
+          _Ryobject.OBJECT_type_code <> "DynView":U AND
+          _Ryobject.OBJECT_type_code <> "DynBrow":U AND
+          _Ryobject.OBJECT_type_code <> "DynSDO":U)
+      THEN DO:
         /* Reset the cursor for user input.*/
         RUN adecomm/_setcurs.p ("").
         MESSAGE "Cannot open or create the dynamic object." SKIP(1)
@@ -2497,7 +2591,7 @@ PROCEDURE processRepositoryObject:
     END.
     ELSE IF NOT dyn_object THEN /* Static Object */
     DO:
-      IF _RyObject.design_action = "OPEN":u THEN
+      IF CAN-DO(_RyObject.design_action,"OPEN":u) THEN
       DO:
         /* jep-icf-temp: Need to make some API call to return a static object's physical file name. */
         RUN adecomm/_osfmush.p (INPUT _Ryobject.object_path, INPUT _Ryobject.object_filename,

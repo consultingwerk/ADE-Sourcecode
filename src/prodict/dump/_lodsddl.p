@@ -89,7 +89,7 @@ ASSIGN
   warn_text[24] = "Can't change case-sensitivity of ""&1""  because it is part of an index.":t72
   warn_text[25] = "SQL client cannot access fields having widths greater than 31995.  ":t72
   warn_text[26] = "The width of the field ""&1"" in the .df file is &2.  ":t72
-  warn_text[27] = "Use data dictionary Adjust SQL width utility to correct width.":t72
+  warn_text[27] = "Use the data dictionary Adjust Width Utility to correct width.":t72
 .
 
 DEFINE NEW SHARED STREAM loaderr.
@@ -1231,9 +1231,8 @@ if cerror = ?
           when    "CAN-READ"  or when "CAN-SELECT"  then wfld._Can-Read = iarg.
           when    "CAN-WRITE" or when "CAN-UPDATE"  then wfld._Can-Write = iarg.
           when    "NULL" or when "NULL-ALLOWED" then wfld._Mandatory = (iarg = "no").
-          when    "SQL-WIDTH" then
-	  DO:
-	     wfld._Width = INTEGER(iarg).
+          when    "SQL-WIDTH" OR WHEN "MAX-WIDTH" then DO:
+	         wfld._Width = INTEGER(iarg).
              IF LOOKUP(wfld._Data-Type,"character,decimal,raw") > 0 OR
              wfld._Extent > 0 THEN
                 IF INTEGER(iarg) > 31995 THEN

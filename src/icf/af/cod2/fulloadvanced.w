@@ -64,8 +64,8 @@ fiLogicSuffix fiLogFile toAppendToLog ToSDOOverwrite ToLogicOverwrite ~
 fiSDOGroup fiLogicGroup fiSDOSubtype fiLogicSubtype Btn_OK Btn_Cancel ~
 Btn_Help RECT-6 RECT-7 RECT-8 
 &Scoped-Define DISPLAYED-OBJECTS fiTemplate fiSuffix fiLogicTemplate ~
-fiLogicSuffix fiLogFile toAppendToLog fiWspace ToSDOOverwrite fiTask ~
-ToLogicOverwrite fiSDOGroup fiLogicGroup fiSDOSubtype fiLogicSubtype 
+fiLogicSuffix fiLogFile toAppendToLog fiWspace ToSDOOverwrite ~
+ToLogicOverwrite fiTask fiSDOGroup fiLogicGroup fiSDOSubtype fiLogicSubtype 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -96,22 +96,22 @@ DEFINE BUTTON Btn_OK AUTO-GO
      BGCOLOR 8 .
 
 DEFINE VARIABLE fiLogFile AS CHARACTER FORMAT "X(256)":U 
-     LABEL "Log File" 
+     LABEL "Log &File" 
      VIEW-AS FILL-IN 
-     SIZE 36.2 BY 1 NO-UNDO.
+     SIZE 36.2 BY 1 TOOLTIP "Enter the name of the log file where the status and errors would be logged" NO-UNDO.
 
 DEFINE VARIABLE fiLogicGroup AS CHARACTER FORMAT "X(256)":U 
-     LABEL "Logic Group" 
+     LABEL "Logic Gr&oup" 
      VIEW-AS FILL-IN 
-     SIZE 16.6 BY 1 TOOLTIP "Specify SDO Logic Procedure Group (usually same as subtype)" NO-UNDO.
+     SIZE 20.8 BY 1 TOOLTIP "Specify SDO Logic Procedure Group (usually same as subtype)" NO-UNDO.
 
 DEFINE VARIABLE fiLogicSubtype AS CHARACTER FORMAT "X(256)":U 
-     LABEL "Logic Subtype" 
+     LABEL "Logic Subtyp&e" 
      VIEW-AS FILL-IN 
-     SIZE 16.6 BY 1 TOOLTIP "Specify SDO Logic Procedure subtype, e.g. DLProc" NO-UNDO.
+     SIZE 20.8 BY 1 TOOLTIP "Specify SDO Logic Procedure subtype, e.g. DLProc" NO-UNDO.
 
 DEFINE VARIABLE fiLogicSuffix AS CHARACTER FORMAT "X(256)":U INITIAL "logcp.p" 
-     LABEL "Logic Su&ffix" 
+     LABEL "Logic Suffi&x" 
      VIEW-AS FILL-IN 
      SIZE 36.2 BY 1 TOOLTIP "A suffix for the selected table's dump name when creating SDO logic" NO-UNDO.
 
@@ -121,24 +121,24 @@ DEFINE VARIABLE fiLogicTemplate AS CHARACTER FORMAT "X(256)":U INITIAL "ry/obj/r
      SIZE 36.2 BY 1 TOOLTIP "A Template Filename from which to take default information for the SDO logic" NO-UNDO.
 
 DEFINE VARIABLE fiSDOGroup AS CHARACTER FORMAT "X(256)":U 
-     LABEL "SDO Group" 
+     LABEL "SDO Grou&p" 
      VIEW-AS FILL-IN 
-     SIZE 16.6 BY 1 TOOLTIP "Specify SDO Group (usually same as subtype)" NO-UNDO.
+     SIZE 20.8 BY 1 TOOLTIP "Specify SDO Group (usually same as subtype)" NO-UNDO.
 
 DEFINE VARIABLE fiSDOSubtype AS CHARACTER FORMAT "X(256)":U 
-     LABEL "SDO Subtype" 
+     LABEL "SDO Subt&ype" 
      VIEW-AS FILL-IN 
-     SIZE 16.6 BY 1 TOOLTIP "Specify SDO subtype, e.g. SDO" NO-UNDO.
+     SIZE 20.8 BY 1 TOOLTIP "Specify SDO subtype, e.g. SDO" NO-UNDO.
 
 DEFINE VARIABLE fiSuffix AS CHARACTER FORMAT "X(256)":U INITIAL "fullo.w" 
-     LABEL "&Suffix" 
+     LABEL "S&uffix" 
      VIEW-AS FILL-IN 
      SIZE 36.2 BY 1 TOOLTIP "A suffix for the selected table's dump name when creating a SmartDataObject" NO-UNDO.
 
 DEFINE VARIABLE fiTask AS INTEGER FORMAT ">>>>>>>>9":U INITIAL 0 
-     LABEL "Task" 
+     LABEL "Tas&k" 
      VIEW-AS FILL-IN 
-     SIZE 20.8 BY 1 NO-UNDO.
+     SIZE 20.8 BY 1 TOOLTIP "Current selected task number in SCM" NO-UNDO.
 
 DEFINE VARIABLE fiTemplate AS CHARACTER FORMAT "X(256)":U INITIAL "ry/obj/rysttasdoo.w" 
      LABEL "&SDO Template" 
@@ -146,9 +146,9 @@ DEFINE VARIABLE fiTemplate AS CHARACTER FORMAT "X(256)":U INITIAL "ry/obj/rystta
      SIZE 36.2 BY 1 TOOLTIP "A Template Filename from which to take default information for the SDO" NO-UNDO.
 
 DEFINE VARIABLE fiWspace AS CHARACTER FORMAT "X(256)":U 
-     LABEL "Workspace" 
+     LABEL "&Workspace" 
      VIEW-AS FILL-IN 
-     SIZE 20.8 BY 1 NO-UNDO.
+     SIZE 20.8 BY 1 TOOLTIP "Name of current SCM workspace selected" NO-UNDO.
 
 DEFINE RECTANGLE RECT-6
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
@@ -163,17 +163,17 @@ DEFINE RECTANGLE RECT-8
      SIZE 84.4 BY 6.43.
 
 DEFINE VARIABLE toAppendToLog AS LOGICAL INITIAL no 
-     LABEL "Append?" 
+     LABEL "&Append?" 
      VIEW-AS TOGGLE-BOX
-     SIZE 17.8 BY .81 NO-UNDO.
+     SIZE 17.8 BY .81 TOOLTIP "Check to always append to an existing log file" NO-UNDO.
 
 DEFINE VARIABLE ToLogicOverwrite AS LOGICAL INITIAL no 
-     LABEL "Overwite Logic in task" 
+     LABEL "Overwite Logi&c in task" 
      VIEW-AS TOGGLE-BOX
      SIZE 27.6 BY .81 TOOLTIP "If SDO Logic is found checked-out in the selected task, it will be overwritten" NO-UNDO.
 
 DEFINE VARIABLE ToSDOOverwrite AS LOGICAL INITIAL yes 
-     LABEL "Overwite SDO in task" 
+     LABEL "Ove&rwite SDO in task" 
      VIEW-AS TOGGLE-BOX
      SIZE 27.6 BY .81 TOOLTIP "If a SDO is found checked-out in the selected task, it will be overwritten" NO-UNDO.
 
@@ -181,29 +181,29 @@ DEFINE VARIABLE ToSDOOverwrite AS LOGICAL INITIAL yes
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME fSDOGenAdvanced
-     fiTemplate AT ROW 2.19 COL 22 COLON-ALIGNED
-     fiSuffix AT ROW 3.14 COL 22 COLON-ALIGNED
-     fiLogicTemplate AT ROW 4.1 COL 22 COLON-ALIGNED
-     fiLogicSuffix AT ROW 5.05 COL 22 COLON-ALIGNED
-     fiLogFile AT ROW 6 COL 22 COLON-ALIGNED
-     toAppendToLog AT ROW 6.14 COL 60.8
+     fiTemplate AT ROW 2.05 COL 22 COLON-ALIGNED
+     fiSuffix AT ROW 3.1 COL 22 COLON-ALIGNED
+     fiLogicTemplate AT ROW 4.14 COL 22 COLON-ALIGNED
+     fiLogicSuffix AT ROW 5.19 COL 22 COLON-ALIGNED
+     fiLogFile AT ROW 6.24 COL 22 COLON-ALIGNED
+     toAppendToLog AT ROW 6.43 COL 60.8
      fiWspace AT ROW 8.86 COL 16 COLON-ALIGNED
      ToSDOOverwrite AT ROW 8.86 COL 57
-     fiTask AT ROW 9.81 COL 16 COLON-ALIGNED
      ToLogicOverwrite AT ROW 9.81 COL 57
-     fiSDOGroup AT ROW 11.48 COL 16 COLON-ALIGNED
-     fiLogicGroup AT ROW 11.48 COL 58 COLON-ALIGNED
-     fiSDOSubtype AT ROW 12.43 COL 16 COLON-ALIGNED
-     fiLogicSubtype AT ROW 12.52 COL 58 COLON-ALIGNED
-     Btn_OK AT ROW 14.57 COL 2
-     Btn_Cancel AT ROW 14.57 COL 18
-     Btn_Help AT ROW 14.57 COL 69
+     fiTask AT ROW 9.91 COL 16 COLON-ALIGNED
+     fiSDOGroup AT ROW 11.43 COL 16 COLON-ALIGNED
+     fiLogicGroup AT ROW 11.43 COL 55 COLON-ALIGNED
+     fiSDOSubtype AT ROW 12.48 COL 16 COLON-ALIGNED
+     fiLogicSubtype AT ROW 12.48 COL 55 COLON-ALIGNED
+     Btn_OK AT ROW 14.71 COL 2.8
+     Btn_Cancel AT ROW 14.71 COL 18.4
+     Btn_Help AT ROW 14.71 COL 70.6
      RECT-6 AT ROW 1.24 COL 2
-     RECT-7 AT ROW 14.33 COL 1
-     RECT-8 AT ROW 7.67 COL 2
+     RECT-7 AT ROW 14.43 COL 2
+     RECT-8 AT ROW 7.71 COL 2
      "Source Control Management" VIEW-AS TEXT
           SIZE 32 BY .95 AT ROW 7.91 COL 4
-     SPACE(50.40) SKIP(7.18)
+     SPACE(50.40) SKIP(7.34)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "Advanced Settings for Object Generator"
@@ -395,7 +395,7 @@ PROCEDURE enable_UI :
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
   DISPLAY fiTemplate fiSuffix fiLogicTemplate fiLogicSuffix fiLogFile 
-          toAppendToLog fiWspace ToSDOOverwrite fiTask ToLogicOverwrite 
+          toAppendToLog fiWspace ToSDOOverwrite ToLogicOverwrite fiTask 
           fiSDOGroup fiLogicGroup fiSDOSubtype fiLogicSubtype 
       WITH FRAME fSDOGenAdvanced.
   ENABLE fiTemplate fiSuffix fiLogicTemplate fiLogicSuffix fiLogFile 

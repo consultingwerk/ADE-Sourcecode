@@ -6,7 +6,7 @@ Use this template to create a new Astra 2 SmartDataObject with the assistance of
 */
 &ANALYZE-RESUME
 /* Connected Databases 
-          rydb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
@@ -106,7 +106,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       rycpafullo.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010001
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -138,6 +138,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -163,10 +164,13 @@ enable_on_modify enable_on_view
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "ry/obj/rycpafullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH ryc_page NO-LOCK, ~
+      FIRST ryc_layout WHERE rydb.ryc_layout.layout_obj = rydb.ryc_page.layout_obj NO-LOCK, ~
+      FIRST ryc_smartobject WHERE rydb.ryc_smartobject.smartobject_obj = rydb.ryc_page.container_smartobject_obj NO-LOCK INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH ryc_page NO-LOCK, ~
-      FIRST ryc_layout WHERE ryc_layout.layout_obj = ryc_page.layout_obj NO-LOCK, ~
-      FIRST ryc_smartobject WHERE ryc_smartobject.smartobject_obj = ryc_page.container_smartobject_obj NO-LOCK INDEXED-REPOSITION.
+      FIRST ryc_layout WHERE rydb.ryc_layout.layout_obj = rydb.ryc_page.layout_obj NO-LOCK, ~
+      FIRST ryc_smartobject WHERE rydb.ryc_smartobject.smartobject_obj = rydb.ryc_page.container_smartobject_obj NO-LOCK INDEXED-REPOSITION.
 {&DB-REQUIRED-END}
 &Scoped-define TABLES-IN-QUERY-Query-Main ryc_page ryc_layout ~
 ryc_smartobject
@@ -257,38 +261,38 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "rydb.ryc_page,rydb.ryc_layout WHERE rydb.ryc_page ...,rydb.ryc_smartobject WHERE rydb.ryc_page ..."
+     _TblList          = "ICFDB.ryc_page,ICFDB.ryc_layout WHERE ICFDB.ryc_page ...,ICFDB.ryc_smartobject WHERE ICFDB.ryc_page ..."
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _TblOptList       = ", FIRST USED, FIRST"
      _JoinCode[2]      = "rydb.ryc_layout.layout_obj = rydb.ryc_page.layout_obj"
      _JoinCode[3]      = "rydb.ryc_smartobject.smartobject_obj = rydb.ryc_page.container_smartobject_obj"
-     _FldNameList[1]   > rydb.ryc_page.container_smartobject_obj
+     _FldNameList[1]   > ICFDB.ryc_page.container_smartobject_obj
 "container_smartobject_obj" "container_smartobject_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
-     _FldNameList[2]   > rydb.ryc_page.page_obj
+     _FldNameList[2]   > ICFDB.ryc_page.page_obj
 "page_obj" "page_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
-     _FldNameList[3]   > rydb.ryc_page.layout_obj
+     _FldNameList[3]   > ICFDB.ryc_page.layout_obj
 "layout_obj" "layout_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
-     _FldNameList[4]   > rydb.ryc_layout.layout_code
+     _FldNameList[4]   > ICFDB.ryc_layout.layout_code
 "layout_code" "layout_code" ? ? "character" ? ? ? ? ? ? no ? no 20 yes
-     _FldNameList[5]   > rydb.ryc_page.page_sequence
+     _FldNameList[5]   > ICFDB.ryc_page.page_sequence
 "page_sequence" "page_sequence" ? ? "integer" ? ? ? ? ? ? yes ? no 4 yes
-     _FldNameList[6]   > rydb.ryc_page.page_label
+     _FldNameList[6]   > ICFDB.ryc_page.page_label
 "page_label" "page_label" ? ? "character" ? ? ? ? ? ? yes ? no 56 yes
-     _FldNameList[7]   > rydb.ryc_page.security_token
+     _FldNameList[7]   > ICFDB.ryc_page.security_token
 "security_token" "security_token" ? ? "character" ? ? ? ? ? ? yes ? no 56 yes
-     _FldNameList[8]   > rydb.ryc_page.enable_on_create
+     _FldNameList[8]   > ICFDB.ryc_page.enable_on_create
 "enable_on_create" "enable_on_create" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[9]   > rydb.ryc_page.enable_on_modify
+     _FldNameList[9]   > ICFDB.ryc_page.enable_on_modify
 "enable_on_modify" "enable_on_modify" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[10]   > rydb.ryc_page.enable_on_view
+     _FldNameList[10]   > ICFDB.ryc_page.enable_on_view
 "enable_on_view" "enable_on_view" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[11]   > rydb.ryc_smartobject.object_filename
+     _FldNameList[11]   > ICFDB.ryc_smartobject.object_filename
 "object_filename" "object_filename" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK dTables 

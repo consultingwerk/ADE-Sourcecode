@@ -1,21 +1,18 @@
-  FIELD object_obj LIKE gsc_object.object_obj VALIDATE ~
-  FIELD object_type_obj LIKE gsc_object.object_type_obj VALIDATE ~
-  FIELD object_type_code LIKE gsc_object_type.object_type_code VALIDATE ~
-  FIELD product_module_obj LIKE gsc_object.product_module_obj VALIDATE ~
+  FIELD smartobject_obj LIKE ryc_smartobject.smartobject_obj VALIDATE ~
+  FIELD object_type_obj LIKE ryc_smartobject.object_type_obj VALIDATE ~
+  FIELD object_type_code LIKE gsc_object_type.object_type_code VALIDATE  FORMAT "X(30)"~
+  FIELD product_module_obj LIKE ryc_smartobject.product_module_obj VALIDATE ~
   FIELD product_module_code LIKE gsc_product_module.product_module_code VALIDATE ~
-  FIELD object_description LIKE gsc_object.object_description VALIDATE ~
-  FIELD object_filename LIKE gsc_object.object_filename VALIDATE ~
-  FIELD object_path LIKE gsc_object.object_path VALIDATE ~
-  FIELD toolbar_multi_media_obj LIKE gsc_object.toolbar_multi_media_obj VALIDATE ~
-  FIELD toolbar_image_filename LIKE gsc_object.toolbar_image_filename VALIDATE ~
-  FIELD tooltip_text LIKE gsc_object.tooltip_text VALIDATE ~
-  FIELD runnable_from_menu LIKE gsc_object.runnable_from_menu VALIDATE ~
-  FIELD disabled LIKE gsc_object.disabled VALIDATE ~
-  FIELD run_persistent LIKE gsc_object.run_persistent VALIDATE ~
-  FIELD run_when LIKE gsc_object.run_when VALIDATE ~
-  FIELD security_object_obj LIKE gsc_object.security_object_obj VALIDATE ~
-  FIELD container_object LIKE gsc_object.container_object VALIDATE ~
-  FIELD physical_object_obj LIKE gsc_object.physical_object_obj VALIDATE ~
-  FIELD logical_object LIKE gsc_object.logical_object VALIDATE ~
-  FIELD generic_object LIKE gsc_object.generic_object VALIDATE ~
-  FIELD required_db_list LIKE gsc_object.required_db_list VALIDATE 
+  FIELD object_description LIKE ryc_smartobject.object_description VALIDATE ~
+  FIELD object_filename LIKE ryc_smartobject.object_filename VALIDATE ~
+  FIELD object_path LIKE ryc_smartobject.object_path VALIDATE ~
+  FIELD runnable_from_menu LIKE ryc_smartobject.runnable_from_menu VALIDATE ~
+  FIELD disabled LIKE ryc_smartobject.disabled VALIDATE ~
+  FIELD run_persistent LIKE ryc_smartobject.run_persistent VALIDATE ~
+  FIELD run_when LIKE ryc_smartobject.run_when VALIDATE ~
+  FIELD security_smartobject_obj LIKE ryc_smartobject.security_smartobject_obj VALIDATE ~
+  FIELD container_object LIKE ryc_smartobject.container_object VALIDATE ~
+  FIELD physical_smartobject_obj LIKE ryc_smartobject.physical_smartobject_obj VALIDATE ~
+  FIELD static_object LIKE ryc_smartobject.static_object VALIDATE ~
+  FIELD generic_object LIKE ryc_smartobject.generic_object VALIDATE ~
+  FIELD required_db_list LIKE ryc_smartobject.required_db_list VALIDATE 

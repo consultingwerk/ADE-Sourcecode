@@ -64,6 +64,7 @@ PROCEDURE DeleteFrameContents.ip.
                _action._operation     = "Delete"
                _action._u-recid       = RECID(t_U)
                _action._window-handle = _h_win
+               _action._widget-handle = t_U._HANDLE
                _undo-seq-num          = _undo-seq-num + 1.
       END.
     END.  /* For non frame children of the frame */ 

@@ -102,6 +102,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &glob   astra2-staticSmartDataObject yes
 
 {af/sup2/afglobals.i}
+{af/app/afdatatypi.i}
 
 &glob DATA-LOGIC-PROCEDURE       ry/obj/rycavlog5p.p
 
@@ -126,43 +127,51 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
-&Scoped-define INTERNAL-TABLES ryc_attribute_value
+&Scoped-define INTERNAL-TABLES ryc_attribute_value ryc_attribute
 
 /* Definitions for QUERY Query-Main                                     */
 &Scoped-Define ENABLED-FIELDS  object_type_obj container_smartobject_obj smartobject_obj~
- object_instance_obj collect_attribute_value_obj collection_sequence~
- inheritted_value constant_value attribute_group_obj attribute_type_tla~
- attribute_label primary_smartobject_obj attribute_value
+ object_instance_obj constant_value attribute_label primary_smartobject_obj~
+ character_value date_value decimal_value integer_value logical_value~
+ raw_value dAttributeGroupObj
 &Scoped-define ENABLED-FIELDS-IN-ryc_attribute_value object_type_obj ~
 container_smartobject_obj smartobject_obj object_instance_obj ~
-collect_attribute_value_obj collection_sequence inheritted_value ~
-constant_value attribute_group_obj attribute_type_tla attribute_label ~
-primary_smartobject_obj attribute_value 
+constant_value attribute_label primary_smartobject_obj character_value ~
+date_value decimal_value integer_value logical_value raw_value 
 &Scoped-Define DATA-FIELDS  attribute_value_obj object_type_obj container_smartobject_obj~
- smartobject_obj object_instance_obj collect_attribute_value_obj~
- collection_sequence inheritted_value constant_value attribute_group_obj~
- attribute_type_tla attribute_label primary_smartobject_obj attribute_value~
- FormattedAttributeValue
+ smartobject_obj object_instance_obj constant_value attribute_label~
+ primary_smartobject_obj character_value date_value decimal_value~
+ integer_value logical_value raw_value data_type attribute_group_obj~
+ dAttributeGroupObj
 &Scoped-define DATA-FIELDS-IN-ryc_attribute_value attribute_value_obj ~
 object_type_obj container_smartobject_obj smartobject_obj ~
-object_instance_obj collect_attribute_value_obj collection_sequence ~
-inheritted_value constant_value attribute_group_obj attribute_type_tla ~
-attribute_label primary_smartobject_obj attribute_value 
+object_instance_obj constant_value attribute_label primary_smartobject_obj ~
+character_value date_value decimal_value integer_value logical_value ~
+raw_value 
+&Scoped-define DATA-FIELDS-IN-ryc_attribute data_type attribute_group_obj 
 &Scoped-Define MANDATORY-FIELDS 
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "ry/obj/rycavful5o.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH ryc_attribute_value ~
+      WHERE ryc_attribute_value.smartobject_obj = 0 ~
+ AND ryc_attribute_value.object_instance_obj = 0 NO-LOCK, ~
+      FIRST ryc_attribute WHERE ryc_attribute.attribute_label = ryc_attribute_value.attribute_label NO-LOCK ~
+    BY ryc_attribute_value.attribute_label INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH ryc_attribute_value ~
       WHERE ryc_attribute_value.smartobject_obj = 0 ~
- AND ryc_attribute_value.object_instance_obj = 0 NO-LOCK ~
+ AND ryc_attribute_value.object_instance_obj = 0 NO-LOCK, ~
+      FIRST ryc_attribute WHERE ryc_attribute.attribute_label = ryc_attribute_value.attribute_label NO-LOCK ~
     BY ryc_attribute_value.attribute_label INDEXED-REPOSITION.
 {&DB-REQUIRED-END}
-&Scoped-define TABLES-IN-QUERY-Query-Main ryc_attribute_value
+&Scoped-define TABLES-IN-QUERY-Query-Main ryc_attribute_value ryc_attribute
 &Scoped-define FIRST-TABLE-IN-QUERY-Query-Main ryc_attribute_value
+&Scoped-define SECOND-TABLE-IN-QUERY-Query-Main ryc_attribute
 
 
 /* Custom List Definitions                                              */
@@ -172,6 +181,30 @@ attribute_label primary_smartobject_obj attribute_value
 &ANALYZE-RESUME
 
 
+/* ************************  Function Prototypes ********************** */
+
+{&DB-REQUIRED-START}
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getAttributeValue dTables  _DB-REQUIRED
+FUNCTION getAttributeValue RETURNS CHARACTER
+  ( pcDataType AS INTEGER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
+
+{&DB-REQUIRED-START}
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getSDOLevel dTables  _DB-REQUIRED
+FUNCTION getSDOLevel RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
+
 
 /* ***********************  Control Definitions  ********************** */
 
@@ -180,7 +213,8 @@ attribute_label primary_smartobject_obj attribute_value
 /* Query definitions                                                    */
 &ANALYZE-SUSPEND
 DEFINE QUERY Query-Main FOR 
-      ryc_attribute_value SCROLLING.
+      ryc_attribute_value, 
+      ryc_attribute SCROLLING.
 &ANALYZE-RESUME
 {&DB-REQUIRED-END}
 
@@ -244,11 +278,13 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "icfdb.ryc_attribute_value"
+     _TblList          = "ICFDB.ryc_attribute_value,ICFDB.ryc_attribute WHERE ICFDB.ryc_attribute_value ..."
      _Options          = "NO-LOCK INDEXED-REPOSITION"
-     _OrdList          = "icfdb.ryc_attribute_value.attribute_label|yes"
+     _TblOptList       = ", FIRST"
+     _OrdList          = "ICFDB.ryc_attribute_value.attribute_label|yes"
      _Where[1]         = "ryc_attribute_value.smartobject_obj = 0
  AND ryc_attribute_value.object_instance_obj = 0"
+     _JoinCode[2]      = "ryc_attribute.attribute_label = ryc_attribute_value.attribute_label"
      _FldNameList[1]   > icfdb.ryc_attribute_value.attribute_value_obj
 "attribute_value_obj" "attribute_value_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
      _FldNameList[2]   > icfdb.ryc_attribute_value.object_type_obj
@@ -259,26 +295,30 @@ END.
 "smartobject_obj" "smartobject_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
      _FldNameList[5]   > icfdb.ryc_attribute_value.object_instance_obj
 "object_instance_obj" "object_instance_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
-     _FldNameList[6]   > icfdb.ryc_attribute_value.collect_attribute_value_obj
-"collect_attribute_value_obj" "collect_attribute_value_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
-     _FldNameList[7]   > icfdb.ryc_attribute_value.collection_sequence
-"collection_sequence" "collection_sequence" ? ? "integer" ? ? ? ? ? ? yes ? no 4 yes
-     _FldNameList[8]   > icfdb.ryc_attribute_value.inheritted_value
-"inheritted_value" "inheritted_value" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[9]   > icfdb.ryc_attribute_value.constant_value
+     _FldNameList[6]   > icfdb.ryc_attribute_value.constant_value
 "constant_value" "constant_value" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[10]   > icfdb.ryc_attribute_value.attribute_group_obj
-"attribute_group_obj" "attribute_group_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
-     _FldNameList[11]   > icfdb.ryc_attribute_value.attribute_type_tla
-"attribute_type_tla" "attribute_type_tla" ? ? "character" ? ? ? ? ? ? yes ? no 6 yes
-     _FldNameList[12]   > icfdb.ryc_attribute_value.attribute_label
+     _FldNameList[7]   > icfdb.ryc_attribute_value.attribute_label
 "attribute_label" "attribute_label" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[13]   > icfdb.ryc_attribute_value.primary_smartobject_obj
+     _FldNameList[8]   > icfdb.ryc_attribute_value.primary_smartobject_obj
 "primary_smartobject_obj" "primary_smartobject_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
-     _FldNameList[14]   > icfdb.ryc_attribute_value.attribute_value
-"attribute_value" "attribute_value" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[15]   > "_<CALC>"
-"dynamic-function(""FormatAttributeValue"":U in gshRepositoryManager, input RowObject.attribute_type_tla, input RowObject.attribute_value)" "FormattedAttributeValue" "Formatted Attribute Value" "x(8)" "character" ? ? ? ? ? ? no ? no 23.8 no
+     _FldNameList[9]   > ICFDB.ryc_attribute_value.character_value
+"character_value" "character_value" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
+     _FldNameList[10]   > ICFDB.ryc_attribute_value.date_value
+"date_value" "date_value" ? ? "date" ? ? ? ? ? ? yes ? no 11.6 yes
+     _FldNameList[11]   > ICFDB.ryc_attribute_value.decimal_value
+"decimal_value" "decimal_value" ? ? "decimal" ? ? ? ? ? ? yes ? no 19.8 yes
+     _FldNameList[12]   > ICFDB.ryc_attribute_value.integer_value
+"integer_value" "integer_value" ? ? "integer" ? ? ? ? ? ? yes ? no 12.6 yes
+     _FldNameList[13]   > ICFDB.ryc_attribute_value.logical_value
+"logical_value" "logical_value" ? ? "logical" ? ? ? ? ? ? yes ? no 12.8 yes
+     _FldNameList[14]   > ICFDB.ryc_attribute_value.raw_value
+"raw_value" "raw_value" ? ? "raw" ? ? ? ? ? ? yes ? no 10.4 yes
+     _FldNameList[15]   > ICFDB.ryc_attribute.data_type
+"data_type" "data_type" ? ? "integer" ? ? ? ? ? ? no ? no 10 yes
+     _FldNameList[16]   > ICFDB.ryc_attribute.attribute_group_obj
+"attribute_group_obj" "attribute_group_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 33.6 yes
+     _FldNameList[17]   > "_<CALC>"
+"RowObject.attribute_group_obj" "dAttributeGroupObj" "Attribute Group Obj" "->>>>>>>>>>>>>>>>>9.999999999" "Decimal" ? ? ? ? ? ? yes ? no 8 no
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
@@ -311,7 +351,7 @@ PROCEDURE DATA.CALCULATE :
   Parameters:  <none>
 ------------------------------------------------------------------------------*/
       ASSIGN 
-         rowObject.FormattedAttributeValue = (dynamic-function("FormatAttributeValue":U in gshRepositoryManager, input RowObject.attribute_type_tla, input RowObject.attribute_value))
+         rowObject.dAttributeGroupObj = (RowObject.attribute_group_obj)
       .
 
 END PROCEDURE.
@@ -337,4 +377,55 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
+
+/* ************************  Function Implementations ***************** */
+
+{&DB-REQUIRED-START}
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getAttributeValue dTables  _DB-REQUIRED
+FUNCTION getAttributeValue RETURNS CHARACTER
+  ( pcDataType AS INTEGER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  DEFINE VARIABLE cAttributeValue AS CHARACTER  NO-UNDO.
+
+  CASE pcDataType:
+    WHEN {&DECIMAL-DATA-TYPE}   THEN cAttributeValue = STRING(ryc_attribute_value.decimal_value) NO-ERROR.
+    WHEN {&INTEGER-DATA-TYPE}   THEN cAttributeValue = STRING(ryc_attribute_value.integer_value) NO-ERROR.
+    WHEN {&DATE-DATA-TYPE}      THEN cAttributeValue = STRING(ryc_attribute_value.date_value)    NO-ERROR.
+    WHEN {&RAW-DATA-TYPE}       THEN cAttributeValue = "":U.
+    WHEN {&LOGICAL-DATA-TYPE}   THEN cAttributeValue = STRING(ryc_attribute_value.logical_value) NO-ERROR.
+    WHEN {&CHARACTER-DATA-TYPE} THEN cAttributeValue = ryc_attribute_value.character_value       NO-ERROR.
+  END CASE.
+  
+  RETURN cAttributeValue.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
+
+{&DB-REQUIRED-START}
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getSDOLevel dTables  _DB-REQUIRED
+FUNCTION getSDOLevel RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN "ObjectType".   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
 

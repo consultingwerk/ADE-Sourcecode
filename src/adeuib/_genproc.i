@@ -77,7 +77,8 @@ Date Modified:
 /* This procedure puts out a HELP message if any                            */
 PROCEDURE put_help_msg.
   IF (x_U._HELP NE "" AND x_U._HELP NE ? AND 
-      (x_U._TABLE = ? OR x_U._HELP-SOURCE = "E":U)) OR 
+      (x_U._TABLE = ? OR x_U._HELP-SOURCE = "E":U)) OR
+     (AVAILABLE _F AND _F._DISPOSITION = "LIKE":U) OR
      (x_U._HELP = "" AND x_U._HELP-SOURCE = "E":U AND x_U._TABLE NE ?) THEN DO:
     ASSIGN q_label = REPLACE( REPLACE( REPLACE( REPLACE( REPLACE(
                       x_U._HELP,"~~","~~~~"), "~"","~~~""), "~\","~~~\"),
@@ -127,10 +128,12 @@ PROCEDURE put_view-as.
                          ELSE "").
          END.  /* DO i = 1 to Num-Entries */
        END.
-       PUT STREAM P_4GL UNFORMATTED SKIP indent x_U._SUBTYPE.
+       IF X_U._SUBTYPE NE ? THEN
+         PUT STREAM P_4GL UNFORMATTED SKIP indent x_U._SUBTYPE.
+       ELSE PUT STREAM P_4GL UNFORMATTED SKIP indent.
        PUT STREAM P_4GL UNFORMATTED 
-         IF x_U._SUBTYPE NE "DROP-DOWN-LIST" AND 
-           _F._MAX-CHARS NE 0 AND _F._MAX-CHARS NE ?
+           IF x_U._SUBTYPE NE "DROP-DOWN-LIST" AND 
+             _F._MAX-CHARS NE 0 AND _F._MAX-CHARS NE ?
            THEN " MAX-CHARS " + STRING(_F._MAX-CHARS) ELSE "".
        IF _F._AUTO-COMPLETION THEN DO:
          PUT STREAM P_4GL UNFORMATTED " AUTO-COMPLETION":U.
@@ -1224,6 +1227,13 @@ PROCEDURE put_tblFldList:
                              ENTRY(2,tmp_item,".") ELSE tmp_item
 
              more_code  = more_code + tmp_item + " ".
+
+      IF NUM-ENTRIES(tmp_item,".") = 1 THEN DO:
+        FIND FIRST _TT WHERE _TT._p-recid = RECID(_P)
+                         AND _TT._NAME = tmp_item NO-ERROR.
+        IF AVAILABLE _TT THEN db = "Temp-Tables":U.
+      END.  /* if tmp_item has one item */
+
       FOR EACH _BC WHERE _BC._x-recid = RECID(_U)
                      AND _BC._DBNAME  = db
                      AND _BC._TABLE   = tblName

@@ -43,17 +43,21 @@ DEFINE INPUT PARAMETER uRecId AS RECID NO-UNDO.
 
 &Global-define SKP &IF "{&WINDOW-SYSTEM}" = "OSF/Motif" &THEN SKIP &ELSE &ENDIF
 
-DEFINE VARIABLE cnt           AS INTEGER NO-UNDO.
-DEFINE VARIABLE file-name     AS CHAR    NO-UNDO.
-DEFINE VARIABLE file-prfx     AS CHAR    NO-UNDO.
-DEFINE VARIABLE file-base     AS CHAR    NO-UNDO.
-DEFINE VARIABLE file-ext      AS CHAR    NO-UNDO.
-DEFINE VARIABLE lEditMaster   AS LOGICAL NO-UNDO.
-DEFINE VARIABLE src-file      AS CHAR    NO-UNDO.
+DEFINE NEW GLOBAL SHARED VARIABLE gshSessionManager    AS HANDLE  NO-UNDO.
+DEFINE NEW GLOBAL SHARED VARIABLE gshRepositoryManager AS HANDLE  NO-UNDO.
+
+DEFINE VARIABLE cnt                                 AS INTEGER    NO-UNDO.
+DEFINE VARIABLE FILE-NAME                           AS CHAR       NO-UNDO.
+DEFINE VARIABLE file-prfx                           AS CHAR       NO-UNDO.
+DEFINE VARIABLE file-base                           AS CHAR       NO-UNDO.
+DEFINE VARIABLE file-ext                            AS CHAR       NO-UNDO.
+DEFINE VARIABLE lEditMaster                         AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE src-file                            AS CHAR       NO-UNDO.
 
 /* Find the information about this SmartObject. */
 FIND _U       WHERE RECID(_U)       eq uRecId.
 FIND _S       WHERE RECID(_S)       eq _U._x-recid.
+
 
 /* Assume the master can be editted. */
 ASSIGN lEditMaster = yes
@@ -64,6 +68,58 @@ ASSIGN lEditMaster = yes
                              file-ext  "r" 
  */
 RUN adecomm/_osprefx.p (INPUT file-name, OUTPUT file-prfx, OUTPUT file-base).
+
+IF CAN-DO("dynlookup.w,dyncombo.w":U, file-base) THEN DO:
+  /* Dynamic lookup or combo -- launch the apropriate editor */
+
+  DEFINE VARIABLE lMultiInstance          AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cChildDataKey           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cRunAttribute           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSDFFilename            AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hContainerWindow        AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hContainerSource        AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hObject                 AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE ghSDFMaintWindow        AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cRunContainerType       AS CHARACTER  NO-UNDO.
+
+  ASSIGN
+    lMultiInstance    = NO
+    cChildDataKey     = "":U
+    cRunAttribute     = STRING(THIS-PROCEDURE)
+    hContainerWindow  = ?
+    hContainerSource  = ?
+    hObject           = ?
+    hContainerWindow  = ?
+    cRunContainerType = "":U
+    .
+
+  IF VALID-HANDLE(gshSessionManager) AND VALID-HANDLE(gshRepositoryManager) THEN DO:
+    cSDFFileName = DYNAMIC-FUNCTION("getSDFFileName" IN _S._HANDLE).
+
+    /* If there is no SDFFileName and we are dealing with a Static viewer then
+       pass in "NOMASTER".                                                     */
+    IF cSDFFileName EQ "":U OR cSDFFileName = ? THEN
+        ASSIGN cSDFFileName = "NOMASTER".
+                                 
+    RUN clearClientCache IN gshRepositoryManager.
+    RUN launchContainer IN gshSessionManager 
+                        (INPUT  "rysdfmaintw"        /* object filename if physical/logical names unknown */
+                        ,INPUT  "":U                 /* physical object name (with path and extension) if known */
+                        ,INPUT  "":U                 /* logical object name if applicable and known */
+                        ,INPUT  (NOT lMultiInstance) /* run once only flag YES/NO */
+                        ,INPUT  "":U                 /* instance attributes to pass to container */
+                        ,INPUT  cChildDataKey        /* child data key if applicable */
+                        ,INPUT  cSDFFileName         /* run attribute if required to post into container run */
+                        ,INPUT  "":U                 /* container mode, e.g. modify, view, add or copy */
+                        ,INPUT  hContainerWindow     /* parent (caller) window handle if known (container window handle) */
+                        ,INPUT  hContainerSource     /* parent (caller) procedure handle if known (container procedure handle) */
+                        ,INPUT  hObject              /* parent (caller) object handle if known (handle at end of toolbar link, e.g. browser) */
+                        ,OUTPUT ghSDFMaintWindow     /* procedure handle of object run/running */
+                        ,OUTPUT cRunContainerType    /* procedure type (e.g ADM1, Astra1, ADM2, ICF, "") */
+                        ).
+  END.  /* If the repository manager is running */
+  RETURN.
+END.
 ASSIGN cnt      = NUM-ENTRIES(file-base, ".")
        file-ext = IF cnt < 2 THEN "" ELSE ENTRY(cnt, file-base, "." ).
 

@@ -133,7 +133,7 @@
 {adeuib/brwscols.i}   /* Definitions for _BC records                    */
 {adecomm/_adetool.i}  /* Mark this file as an ADE Tool                  */
 {adecomm/adestds.i}
-
+{src/adm2/globals.i}  /* Dynamics global variables */
 /***
 Keep track of SmartDataObject handles or remote SDO info handles.
 This does NOT belong in sharvars.i 
@@ -174,6 +174,21 @@ DEFINE STREAM TempStream.
 
 
 /* ************************  Function Prototypes ********************** */
+
+&IF DEFINED(EXCLUDE-assignMappedEntry) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD assignMappedEntry Procedure 
+FUNCTION assignMappedEntry RETURNS CHARACTER
+   (pcEntryNames  AS CHAR,
+    pcList        AS CHAR,
+    pcEntryValues AS CHAR,
+    pcDelimiter   AS CHAR,
+    plFirst       AS LOG)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-center-frame) = 0 &THEN
 
@@ -316,6 +331,47 @@ FUNCTION is-sdo-proxy RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-mappedEntry) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD mappedEntry Procedure 
+FUNCTION mappedEntry RETURNS CHARACTER
+  (pcEntry     AS CHAR,
+   pcList      AS CHAR,
+   plFirst     AS LOG,
+   pcDelimiter AS CHAR)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-RepositoryDynamicClass) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD RepositoryDynamicClass Procedure 
+FUNCTION RepositoryDynamicClass RETURNS CHARACTER
+  ( pType AS CHARACTER  /* Procedure Type */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDynamicProcData) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDynamicProcData Procedure 
+FUNCTION setDynamicProcData RETURNS LOGICAL
+  ( prPRecid AS RECID,                /* Recid of _P to update     */
+    pcObjectFileName AS CHARACTER,    /* New Object Filename       */
+    pcObjectDescription AS CHARACTER, /* New Object Description    */
+    pcProductModule AS CHARACTER,     /* New Object Product Module */
+    pcProductModulePath AS CHARACTER  /* New object relative path  */
+ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-shutdown-proc) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD shutdown-proc Procedure 
@@ -411,6 +467,7 @@ FUNCTION x-2-c RETURNS CHARACTER
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
 /* Settings for THIS-PROCEDURE
    Type: Procedure
+   Compile into: 
    Allow: 
    Frames: 0
    Add Fields to: Neither
@@ -442,18 +499,80 @@ FUNCTION x-2-c RETURNS CHARACTER
    CREATE _PDP.
    ASSIGN _PDP._procFileName = SEARCH(THIS-PROCEDURE:FILE-NAME)
           _PDP._hInstance    = THIS-PROCEDURE.
-          
-   /* jep-icf: Start the repository api procedure as a session super proc. */
-   DEFINE VARIABLE hReposProc AS HANDLE NO-UNDO.
-   hReposProc = DYNAMIC-FUNCTION("get-proc-hdl" IN THIS-PROCEDURE, INPUT "ry/app/ryreposobp.p":u).
-   IF VALID-HANDLE(hReposProc) THEN
-      SESSION:ADD-SUPER-PROCEDURE(hReposProc, SEARCH-TARGET).
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
 
 /* ************************  Function Implementations ***************** */
+
+&IF DEFINED(EXCLUDE-assignMappedEntry) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION assignMappedEntry Procedure 
+FUNCTION assignMappedEntry RETURNS CHARACTER
+   (pcEntryNames  AS CHAR,
+    pcList        AS CHAR,
+    pcEntryValues AS CHAR,
+    pcDelimiter   AS CHAR,
+    plFirst       AS LOG) :
+/*------------------------------------------------------------------------------
+  Purpose: Assign a value to a mapped entry list. This is the analog of the
+           mappedEntry function copied from smart.p
+           Returns the updated list.
+              
+Parameters:  INPUT pcEntryNames  - entry names to set (pcDelimiter delimited).  
+             INPUT pcList        - Delimited Name<deL>Value string to assign new values to.
+             INPUT pcEntryValues - New values to assign (pcDelimiter delimited).
+             INPUT pcDelmiter    - Delimiter of 1st 3 parameters    
+             INPUT plFirst       - TRUE  - Name first, value second.
+                                   FALSE - Value first, Name second.
+                                          
+    Notes: Assigns the value to all occurances of pcEntry in the pcList     
+           If it can't find the pcEntry, it adds the pcEntry <DEL> pcValue at the end.
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cName       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cValue      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iEntry      AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iLookUp     AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iNumEntries AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE lAssigned   AS LOGICAL    NO-UNDO.
+
+  /* Find out how many name/values need to be set */
+  iNumEntries = NUM-ENTRIES(pcEntryNames, pcDelimiter).
+  /* Make sure that we have the correct number of values */
+  IF NUM-ENTRIES(pcEntryValues, pcDelimiter) NE iNumEntries THEN DO:
+    RETURN ?.  /* Names and values don't match, return ? */
+  END.
+
+  DO iEntry = 1 TO iNumEntries:
+    ASSIGN lAssigned = NO
+           cName     = ENTRY(iEntry, pcEntryNames,  pcDelimiter)
+           cValue    = ENTRY(iEntry, pcEntryValues, pcDelimiter).
+
+    /* Find all occurances */
+    DO iLookUp = IF plFirst THEN 1 ELSE 2 TO NUM-ENTRIES(pcList, pcDelimiter) BY 2:
+      IF ENTRY(iLookup, pcList, pcDelimiter) = cName THEN DO:
+         ENTRY(iLookup + (IF plFirst THEN 1 ELSE -1), pcList, pcDelimiter) = cValue.
+         lAssigned = YES.
+      END.
+    END. /* Look to find all occurances */
+
+    IF NOT lAssigned THEN DO: /* Couldn't find at least one instance,
+      create the name value pair at the end */
+      pcList = pcList + (IF pcList = "":U THEN "" ELSE pcDelimiter) +
+                        (IF plFirst THEN cName + pcDelimiter + cValue
+                                    ELSE cValue + pcDelimiter + cName).
+    END. /* If we can't find the pcEntry */
+  END.  /* Loop through all name/value pairs to be assigned */
+
+  RETURN pcList.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-center-frame) = 0 &THEN
 
@@ -960,26 +1079,48 @@ FUNCTION get-proc-hdl RETURNS HANDLE
     Notes:  Currently we only start persistent procedures that have no
             parameters
 ------------------------------------------------------------------------------*/
-  DEF VAR Hdl         AS HANDLE  NO-UNDO.
-  DEF VAR search-file AS CHAR    NO-UNDO.  
-
+  DEF VAR Hdl           AS HANDLE     NO-UNDO.
+  DEF VAR search-file   AS CHAR       NO-UNDO.  
+  DEF VAR cType         AS CHARACTER  NO-UNDO.
+  DEF VAR lRepos        AS LOG        NO-UNDO.
+  DEF VAR lIsICFRunning AS LOG        NO-UNDO.
+  DEF VAR lIsInRepos    AS LOG       NO-UNDO.
+  DEF VAR hReposSDO     AS HANDLE     NO-UNDO.
 
   /* See if the procedure source or .r file is in the PROPATH somewhere. */
   RUN adecomm/_rsearch.p (INPUT proc-file-name , OUTPUT search-file).
-  IF search-file = ? THEN RETURN ?.  /* Can't find it, return ? */
+  
+  /* Check whether specified proc-filename is a repository object if Dynamics is running*/
+  ASSIGN lIsICFRunning = DYNAMIC-FUNCTION("IsICFRunning":U) NO-ERROR.
+  IF lisICFRunning AND search-file = ? THEN 
+     lIsInrepos = DYNAMIC-FUNCTION("cacheObjectOnClient":U IN gshRepositoryManager,
+                                 INPUT proc-file-name,
+                                 INPUT "",  /* Get all Result Codes */
+                                 INPUT "",  /* RunTime Attributes not applicable in design mode */
+                                 INPUT YES  /* Design Mode is yes */
+                                 ) .
+
+  IF search-file = ? AND NOT lIsInrepos  THEN RETURN ?.  /* Can't find static object return ? */
 
   /* The file exists, so look up its name in the table */
   FIND FIRST _PDP WHERE _PDP._procFileName = proc-file-name NO-ERROR.
   
   IF NOT AVAILABLE _PDP THEN DO ON STOP UNDO, LEAVE: /* Not there, start it up */
-    RUN VALUE(proc-file-name) PERSISTENT SET Hdl NO-ERROR.
+    /* Don't create if it's a repository object */
+    IF NOT lIsInrepos  THEN
+       RUN VALUE(proc-file-name) PERSISTENT SET Hdl NO-ERROR.
+    ELSE 
+       RUN StartDataObject IN gshRepositoryManager
+              (INPUT proc-file-name, OUTPUT hReposSDO).
     /** Don't create _PDP until we know its started (_PDP is UNDO ) */
-    IF VALID-HANDLE(Hdl) THEN DO:
+    IF VALID-HANDLE(Hdl) OR VALID-HANDLE(hReposSDO) THEN 
+    DO:
       CREATE _PDP.
       ASSIGN _PDP._procFileName = proc-file-name
-             _PDP._hInstance    = Hdl.
-      
-      RUN createObjects IN Hdl NO-ERROR.
+             _PDP._hInstance    = IF VALID-HANDLE(hReposSDO) THEN hReposSDO ELSE Hdl.
+      cType = DYNAMIC-FUNCTION('getObjectType':U IN Hdl) NO-ERROR.
+      IF cType <> 'SUPER':U AND NOT VALID-HANDLE(hreposSDO) THEN
+        RUN createObjects IN Hdl NO-ERROR.
     END.
   END.  /* If not avail _PDP */
 
@@ -1030,10 +1171,16 @@ FUNCTION get-sdo-hdl RETURNS HANDLE
   DEF VAR Ok              AS LOG    NO-UNDO.
   DEF VAR lWeb            AS LOG    NO-UNDO.
   DEF VAR cCurrentObjType AS CHAR   NO-UNDO.
-      
+  DEF VAR lIsICFRunning   AS LOG    NO-UNDO.
+  DEF VAR hReposSDO       AS HANDLE NO-UNDO.
+  DEF VAR search-file     AS CHAR   NO-UNDO.
+
   FIND _SDO WHERE _SDO._FileName = pName 
             AND   _SDO._OwnerHdl = pOwnerHdl NO-ERROR.
- 
+
+  /* Check whether Dynamics is running */
+  ASSIGN lIsICFRunning = DYNAMIC-FUNCTION("IsICFRunning":U) NO-ERROR.
+
   IF NOT AVAIL _SDO THEN 
   DO:
     
@@ -1065,13 +1212,27 @@ FUNCTION get-sdo-hdl RETURNS HANDLE
       DYNAMIC-FUNCTION ("setSDOName":U in Hdl, pName).
      
     END. /* if web object and remote development */ 
-    ELSE DO ON STOP UNDO, LEAVE:
-      /* pName may have been deleted. Account for the situation */
-      IF SEARCH(pName) <> ? THEN 
-      RUN VALUE(pName) PERSISTENT SET Hdl NO-ERROR.
-    END. /* else (not web) */
+    ELSE DO:
+       /* See if the procedure source or .r file is in the PROPATH somewhere. */
+       RUN adecomm/_rsearch.p (INPUT pName , OUTPUT search-file).
+       IF lisICFRunning AND search-File = ? THEN 
+       DO:
+          RUN StartDataObject IN gshRepositoryManager
+              (INPUT pName, OUTPUT hReposSDO).
+          ASSIGN Hdl = hReposSDO.
+          {set UIBMode 'Design':U hdl}.
+/*           RUN initializeObject IN hdl.  */
+       END.
 
-    RUN createObjects IN Hdl NO-ERROR.
+       IF NOT VALID-HANDLE(Hdl) THEN
+       DO ON STOP UNDO, LEAVE:
+      /* pName may have been deleted. Account for the situation */
+         IF search-file <> ? THEN 
+           RUN VALUE(pName) PERSISTENT SET Hdl NO-ERROR.
+       END. /* else (not web) */
+    END.
+    IF VALID-HANDLE(Hdl) AND NOT VALID-HANDLE(hReposSDO) THEN
+       RUN createObjects IN Hdl NO-ERROR.
     
     IF VALID-HANDLE(hdl) THEN 
     DO:
@@ -1187,6 +1348,151 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-mappedEntry) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION mappedEntry Procedure 
+FUNCTION mappedEntry RETURNS CHARACTER
+  (pcEntry     AS CHAR,
+   pcList      AS CHAR,
+   plFirst     AS LOG,
+   pcDelimiter AS CHAR) :
+/*------------------------------------------------------------------------------
+  Purpose: Return the 'other' entry in a separated list of paired entries.
+           This is required to ensure that the lookup does not find a matching
+           entry in the wrong part of the pair.  
+              
+Parameters:  INPUT pcEntry    - entry to lookup.  
+             INPUT pcList     - comma separated list with paired entries. 
+             INPUT plFirst    - TRUE  - lookup first and RETURN second.
+                                FALSE - lookup second and RETURN first.
+             INPUT pcDelmiter - Delimiter of pcList               
+    Notes: Used to find mapped RowObject or database column in assignList.  
+           In other cases, such as the ObjectMapping property of SBOs, an
+           entry may occur more than once in the list, in which case a list
+           of matching values is returned, using the same delimiter as the list.
+        -  Returns ? if no entry is found          
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE iLookUp AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cList   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cValues AS CHARACTER  NO-UNDO.
+
+  /* We use a work list so we are free to remove entries from it without
+     risking to remove the value that we eventually want to return */
+  ASSIGN
+    cValues = ? /* Set to ? to identify not found (Blank may be found) */
+    cList   = pcList.
+  DO WHILE TRUE:
+    iLookup = LOOKUP(pcEntry,cList,pcDelimiter).
+    
+    /* The entry is no longer in the list or not at all, so return any values 
+       we have found in earlier passes; if none found unknown will be returned.*/
+    IF iLookup = 0 OR iLookup = ? THEN 
+      RETURN cValues.
+
+    /* If this is the correct half of the pair add the other part from the
+       original list to the list of values to return. */
+    IF iLookup MODULO 2 = (IF plFirst THEN 1 ELSE 0) THEN
+      cValues = (IF cValues <> ? THEN cValues + pcDelimiter ELSE '':U)
+              + ENTRY(IF plFirst THEN (iLookup + 1) ELSE (iLookup - 1),
+                      pcList,
+                      pcDelimiter).
+    
+    /* We remove this entry (right or wrong) from the work list to be able 
+       to lookup the next. (Setting it to blank if we are looking for blank
+       will cause an endless loop so we set it to '?' in that case )*/ 
+    ENTRY(iLookup,cList,pcDelimiter) = IF pcEntry <> '':U THEN '':U ELSE '?':U.
+  END. /* do while true */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-RepositoryDynamicClass) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION RepositoryDynamicClass Procedure 
+FUNCTION RepositoryDynamicClass RETURNS CHARACTER
+  ( pType AS CHARACTER  /* Procedure Type */ ) :
+
+/*------------------------------------------------------------------------------
+  Purpose: To return the dynamic class (Currently DynView, DynBrow, DynSDO or 
+           DynSBO) that the input type extends.
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cDynClass    AS CHARACTER                            NO-UNDO.
+  DEFINE VARIABLE lIsICFRunning AS LOGICAL                             NO-UNDO.
+
+  ASSIGN cDynClass     = "":U
+         lIsICFRunning = DYNAMIC-FUNCTION("IsICFRunning":U) NO-ERROR.
+
+  IF lIsICFRunning THEN DO:
+    CASE pType:
+        WHEN "SmartDataViewer":U     THEN cDynClass = "DynView":U.
+        WHEN "SmartViewer":U         THEN cDynClass = "DynView":U.  /* V8 */
+        WHEN "SmartDataBrowser":U    THEN cDynClass = "DynBrow":U.
+        WHEN "SmartBrowser":U        THEN cDynClass = "DynBrow":U.  /* V8 */
+        WHEN "SmartDataObject":U     THEN cDynClass = "DynSDO":U.
+        WHEN "SmartBusinessObject":U THEN cDynClass = "DynSBO":U.
+        OTHERWISE DO:
+           cDynClass = 
+                IF LOOKUP(pType, DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, 
+                                 INPUT "DynView":U)) <> 0  THEN "DynView":U
+                ELSE IF LOOKUP(pType, DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, 
+                                 INPUT "DynBrow":U)) <> 0 THEN "DynBrow":U
+                ELSE IF LOOKUP(pType, DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, 
+                                 INPUT "DynSDO":U)) <> 0 THEN "DynSDO":U
+                ELSE IF LOOKUP(pType, DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager,
+                                 INPUT "DynSBO":U)) <> 0 THEN "DynSBO":U
+                ELSE "":U.
+        END.
+    END CASE.
+  END.
+
+  RETURN cDynClass.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDynamicProcData) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDynamicProcData Procedure 
+FUNCTION setDynamicProcData RETURNS LOGICAL
+  ( prPRecid AS RECID,                /* Recid of _P to update     */
+    pcObjectFileName AS CHARACTER,    /* New Object Filename       */
+    pcObjectDescription AS CHARACTER, /* New Object Description    */
+    pcProductModule AS CHARACTER,     /* New Object Product Module */
+    pcProductModulePath AS CHARACTER  /* New object relative path  */
+ ) :
+/*------------------------------------------------------------------------------
+  Purpose: When creating new dynamic objects, wizzards need to initialize the current
+           procedure temp-table (_P) with user specified data.  This procedure does this.
+       
+     
+------------------------------------------------------------------------------*/
+  FIND _P WHERE RECID(_P) = prPRecid NO-ERROR.
+
+  IF AVAILABLE _P THEN DO:
+    ASSIGN _P.object_filename     = pcObjectFileName
+           _P.object_description  = pcObjectDescription
+           _P.product_module_code = pcProductModule
+           _P.object_path         = pcProductModulePath.
+    RETURN TRUE.
+  END.
+  ELSE
+    RETURN FALSE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-shutdown-proc) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION shutdown-proc Procedure 
@@ -1216,7 +1522,9 @@ FUNCTION shutdown-proc RETURNS CHARACTER
   END.
   
   ELSE DO:
-    DELETE PROCEDURE _PDP._hInstance.
+    RUN DestroyObject IN _PDP._hInstance NO-ERROR.
+    IF VALID-HANDLE(_PDP._hInstance) THEN
+       DELETE PROCEDURE _PDP._hInstance.
     DELETE _PDP.
     RETURN "Stopped".
   END.  /* Have started the procedure */
@@ -1239,7 +1547,6 @@ FUNCTION shutdown-sdo RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
   DEF VAR lDeleted AS log NO-UNDO.
   FOR EACH _SDO WHERE _SDO._OwnerHdl = pOwnerHdl:
-     
     IF VALID-HANDLE(_SDO._HDL) THEN
        RUN destroyObject IN _SDO._HDL.
     
@@ -1346,11 +1653,11 @@ FUNCTION validate-list-item-pairs RETURNS LOGICAL
   ELSE 
   DO i = 1 TO NUM-ENTRIES(_F._LIST-ITEM-PAIRS,CHR(10)):
     PUT STREAM tempStream UNFORMATTED """"  + /* first item of pair (quoted) */
-            ENTRY(1,ENTRY(i,_F._LIST-ITEM-PAIRS,CHR(10))) + '",' +
+            ENTRY(1,ENTRY(i,_F._LIST-ITEM-PAIRS,CHR(10)),_F._DELIMITER) + '",' +
             /* Quote the second item only if it's a CHAR field */
             (IF _F._DATA-TYPE = "Character":U THEN '"' + 
-              ENTRY(2,ENTRY(i,_F._LIST-ITEM-PAIRS,CHR(10))) + '"'
-             ELSE ENTRY(2,ENTRY(i,_F._LIST-ITEM-PAIRS,CHR(10)))) +
+              ENTRY(2,ENTRY(i,_F._LIST-ITEM-PAIRS,CHR(10)),_F._DELIMITER) + '"'
+             ELSE ENTRY(2,ENTRY(i,_F._LIST-ITEM-PAIRS,CHR(10)),_F._DELIMITER)) +
             (IF i < NUM-ENTRIES(_F._LIST-ITEM-PAIRS,CHR(10)) THEN ",":U + CHR(10)
              ELSE "").
   END.  /* DO i = 1 to Num-Entries */

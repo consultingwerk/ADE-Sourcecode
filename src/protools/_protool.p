@@ -43,7 +43,8 @@
 
   Created: Sept 8, 1994 
   
-  Modified by: JEP on 08/19/01 ICF support. Changed AB License call.
+  Modified by: TAJ on 01/22/02 Don't show webclient applet if executable not installed.
+               JEP on 08/19/01 ICF support. Changed AB License call.
                GFS on 04/08/98 Changed default .dat file for Webspeed
                GFS on 01/27/95 Added applet order
 ------------------------------------------------------------------------*/
@@ -105,6 +106,16 @@ REPEAT TRANSACTION ON ERROR UNDO, LEAVE:
     IMPORT pt-function.
 END.
 INPUT CLOSE.
+
+/* IZ 1901: Don't show the WebClient Assembler 
+ * applet if its executable is not installed. 
+ */
+IF SEARCH("prowcappmgr.exe") = ? THEN
+DO:
+    FIND pt-function WHERE pt-function.pcFile
+                           = "protools/_prowcapped.p":u NO-ERROR.
+    IF AVAIL pt-function THEN pt-function.pdisplay = no.
+END.
 
 FOR EACH pt-function WHERE pt-function.pdisplay = yes BY pt-function.order:
     ASSIGN pitems = pitems + CHR(10).

@@ -92,7 +92,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gsmmmfullo.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -126,6 +126,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -150,6 +151,10 @@ creation_date
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gsmmmfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsm_multi_media NO-LOCK, ~
+      FIRST gsm_category WHERE gsm_category.category_obj = gsm_multi_media.category_obj NO-LOCK, ~
+      FIRST gsc_multi_media_type WHERE gsc_multi_media_type.multi_media_type_obj = gsm_multi_media.multi_media_type_obj NO-LOCK ~
+    BY gsm_multi_media.multi_media_obj INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsm_multi_media NO-LOCK, ~
       FIRST gsm_category WHERE gsm_category.category_obj = gsm_multi_media.category_obj NO-LOCK, ~

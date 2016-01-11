@@ -73,6 +73,7 @@ History:
      mcmann    02/15/01 Added check for enhanced incremental df
      mcmann    02/12/02 Changes message 50
      mcmann    04/12/02 Added conversion of replication trigger names
+     mcmann    09/18/02 Added code to recognize MAX-WIDTH
           
 */                            
 
@@ -968,7 +969,7 @@ IF cerror = ?
                 END.
           END.
           WHEN "POSITION" THEN .
-          WHEN "SQL-WIDTH" THEN .
+          WHEN "SQL-WIDTH" OR WHEN "MAX-WIDTH" THEN .
 	  WHEN    "INITIAL"   OR WHEN "DEFAULT"     THEN wfld._Initial = iarg.
 	  WHEN    "CAN-READ"  OR WHEN "CAN-SELECT"  THEN wfld._Can-Read = iarg.
 	  WHEN    "CAN-WRITE" OR WHEN "CAN-UPDATE"  THEN wfld._Can-Write = iarg.

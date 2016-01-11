@@ -40,6 +40,17 @@
 
   {src/adm2/custom/viewerdefscustom.i}
 
+  &IF "{&xcInstanceProperties}":U NE "":U &THEN
+    &GLOB xcInstanceProperties {&xcInstanceProperties},
+  &ENDIF
+  &GLOB xcInstanceProperties {&xcInstanceProperties}~
+EnabledObjFldsToDisable
+
+/* This is the procedure to execute to set InstanceProperties at design time. */
+&IF DEFINED (ADM-PROPERTY-DLG) = 0 &THEN
+  &SCOP ADM-PROPERTY-DLG adm2/support/viewerd.w
+&ENDIF
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -99,11 +110,14 @@
 
   {src/adm2/dvisprop.i}
 
+IF NOT {&ADM-PROPS-DEFINED} THEN
+DO:
 &IF "{&ADMSuper}":U = "":U &THEN
    /* No property fields of our own. */
 &ENDIF
 
   {src/adm2/custom/viewpropcustom.i}
+END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

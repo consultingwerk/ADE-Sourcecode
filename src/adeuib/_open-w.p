@@ -66,6 +66,9 @@ DEFINE VARIABLE ldummy      AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE returnValue AS CHARACTER NO-UNDO.
 DEFINE VARIABLE sectionID   AS INTEGER   NO-UNDO.
 DEFINE VARIABLE sectionText AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cObjectName AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE lICFRunning AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE lSetMRU     AS LOGICAL    NO-UNDO.
 
 /* BEFORE-OPEN hook */
 IF pMode NE "UNTITLED" AND pMode NE "IMPORT" THEN DO:
@@ -77,17 +80,74 @@ END.
 /* Save the handle of the current window and it's visualization. */
 ASSIGN hActiveWin = _h_win.
 
-RUN adeuib/_qssuckr.p (pFileName, pTempFile, 
-   (IF pMode eq "OPEN":U THEN "WINDOW":U
-      ELSE IF pMode eq "UNTITLED":U THEN "WINDOW UNTITLED":U
-      ELSE pMode), FALSE).
-
+/* Check to see if we are attempting to open a Dynamic Viewer for Dynamics */
+ASSIGN lICFRunning = DYNAMIC-FUNCTION("IsICFRunning":U) NO-ERROR.
+IF lICFRunning  THEN
+DO:
+   FIND FIRST _RyObject WHERE _RyObject.OBJECT_filename = pFileName NO-ERROR.
+   IF AVAILABLE _RyObject 
+       AND (LOOKUP("DynBrow":U, _RyObject.parent_classes) > 0
+         OR LOOKUP("DynView":U, _RyObject.parent_classes) > 0
+         OR LOOKUP("DynSDO":U, _RyObject.parent_classes)  > 0
+         OR _RyObject.object_type_code = "DynBrow":U
+         OR _RyObject.object_type_code = "DynView":U
+         OR _RyObject.object_type_code = "DynSDO":U)
+       AND pMode = "WINDOW":U AND pTempFile = "":U 
+   THEN 
+      RUN ry/prc/rydynsckrp.p (pFileName, pMode).
+   ELSE DO:
+    /* If opening a file using the MRU, the entire qualified filename is passed.
+       First see if this file can be opened, if not find the registered version
+       in the repository and open it. */
+     /* Get filename and see if it is found in RyObject */
+     ASSIGN cObjectName = REPLACE(pFilename,"~\":U,"/":U).
+     IF NUM-ENTRIES(cObjectname,"/":U) > 1 THEN 
+     DO:  /* The file is not fully qualified, look it up in the repository */
+        ASSIGN cObjectName = ENTRY(NUM-ENTRIES(cObjectname,"/"),cObjectName,"/":U).
+        FIND FIRST _RyObject WHERE _RyObject.OBJECT_filename = cObjectName NO-ERROR.
+        IF AVAIL(_RyObject) THEN
+           pFileName = cObjectName.
+        ELSE DO:
+           /* Try finding the objectname without the extension */
+          ASSIGN cObjectName = ENTRY(1,cObjectName,".").
+          FIND FIRST _RyObject WHERE _RyObject.OBJECT_filename = cObjectName NO-ERROR.
+          IF AVAIL(_RyObject) AND 
+            ( (NUM-ENTRIES(pFileName,".":U) = 1 AND _RyObject.object_extension = "":U) OR
+              (NUM-ENTRIES(pFileName,".":U) = 2 AND 
+                  (_RyObject.OBJECT_extension = ENTRY(2, pFileName,".":U) OR 
+                   pFileName = _RyObject.OBJECT_filename))) THEN
+             pFileName = cObjectName.
+        END.
+     END.
+     
+     /* Turn mru off as it will set the fullpath instead of object name */
+     ASSIGN lSetMRU = _mru_filelist
+            _mru_filelist = NO.
+     /* Now run the _qssucker with the converted filename */       
+     
+     RUN adeuib/_qssuckr.p (pFileName, pTempFile, 
+        (IF pMode eq "OPEN":U THEN "WINDOW":U
+         ELSE IF pMode eq "UNTITLED":U THEN "WINDOW UNTITLED":U
+         ELSE pMode), FALSE).
+     ASSIGN _mru_filelist = lSetMRU 
+            returnValue   = RETURN-VALUE.
+     IF _mru_filelist AND pMode <> "UNTITLED":U THEN
+         RUN adeshar/_mrulist.p (pFileName, IF _remote_file THEN _BrokerURL ELSE "").
+   END.
+END.
+ELSE DO:
+   RUN adeuib/_qssuckr.p (pFileName, pTempFile, 
+       (IF pMode eq "OPEN":U THEN "WINDOW":U
+        ELSE IF pMode eq "UNTITLED":U THEN "WINDOW UNTITLED":U
+        ELSE pMode), FALSE).
+   ASSIGN returnValue            = RETURN-VALUE.
+END.
 SESSION:SET-NUMERIC-FORMAT(_numeric_separator,_numeric_decimal).
-ASSIGN returnValue            = RETURN-VALUE.
+
 IF returnValue = "_ABORT":U THEN DO:
   RUN choose-pointer IN _h_uib.
   RUN display_current IN _h_uib.
-  RETURN.
+  RETURN "_ABORT":U.
 END. /* If return value is abort */
 
 FIND _P WHERE _P._WINDOW-HANDLE = _h_win NO-ERROR.
@@ -106,7 +166,7 @@ DO:
                      (IF INDEX(_h_win:TITLE, cHostName) EQ 0 
                       THEN cHostName ELSE "").
 END.
-
+                     
 /* In case of _qssuckr failure, reset the cursors */
 RUN adecomm/_setcurs.p ("":U).
 

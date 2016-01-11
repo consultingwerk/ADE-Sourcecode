@@ -32,9 +32,10 @@
     Description :
 
     Modified    : June 23, 1999 Version 9.1A
-    Modified    : 10/25/2001         Mark Davies (MIP)
+    Modified    : 10/25/2001        Mark Davies (MIP)
                   1. Added ADM props fields for DataValue and DisplayedValue
-    
+    Modified    : 03/15/2002        Mark Davies (MIP)
+                  Added ADM props field for CustomSuperProc
   ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
 /*----------------------------------------------------------------------*/
@@ -46,7 +47,7 @@
 &IF "{&xcInstanceProperties}":U NE "":U &THEN
   &GLOB xcInstanceProperties {&xcInstanceProperties},
 &ENDIF
-&GLOB xcInstanceProperties {&xcInstanceProperties}FieldName,DisplayField,EnableField
+&GLOB xcInstanceProperties {&xcInstanceProperties}FieldName,DisplayField,EnableField,LocalField
 
 /* This is the procedure to execute to set InstanceProperties at design time. */
 &IF DEFINED (ADM-PROPERTY-DLG) = 0 &THEN
@@ -114,12 +115,14 @@
   &GLOB xpFieldEnabled
   &GLOB xpEnableField
   &GLOB xpDisplayField
+  
 
   /* Include the next property file up the chain to get property FIELDs
      defined. */
 
   {src/adm2/visprop.i}
-
+IF NOT {&ADM-PROPS-DEFINED} THEN
+DO:
 &IF "{&ADMSuper}":U = "":U &THEN
   ghADMProps:ADD-NEW-FIELD('DataValue':U,      'CHARACTER':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('DisplayValue':U, 'CHARACTER':U, 0, ?, '':U).
@@ -128,9 +131,12 @@
   ghADMProps:ADD-NEW-FIELD('EnableField':U, 'LOGICAL':U, 0, ?, no).
   ghADMProps:ADD-NEW-FIELD('DisplayField':U, 'LOGICAL':U, 0, ?, yes).
   ghADMProps:ADD-NEW-FIELD('DataModified':U, 'LOGICAL':U, 0, ?, no).
+  ghADMProps:ADD-NEW-FIELD('CustomSuperProc':U, 'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('LocalField':U, 'LOGICAL':U, 0, ?, NO).
 &ENDIF
 
   {src/adm2/custom/fieldpropcustom.i}
+END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

@@ -63,6 +63,9 @@ To get the Odbc-to-PROGRESS tables copied to the environment:
     94/07/14    hutegger    added output of format in user_env[17] 
                             plus support of i, l, # for formats
                             plus usage of this program for _xxx_mak.p
+                            
+    04/17/02    D. McMann replaced "?" with "l" for logical data types 
+    06/09/02    D. McMann added format x(26) for timestamp
 */ 
 
                             
@@ -73,45 +76,45 @@ To get the Odbc-to-PROGRESS tables copied to the environment:
 3) the format can contain either 
    * a specific format                                             OR 
    * {c,d,i,l,#} for (character, date, integer, logical, decimal} to use 
-     the format created by the hardcoded algorithm in _xxx_mak.i   OR
-   * ? to use the PROGRESS default format  
+     the format created by the hardcoded algorithm in _xxx_mak.i   
+   
 */ 
 
 DEFINE VARIABLE gate-config AS CHARACTER EXTENT 33 NO-UNDO INITIAL [
   /*description      datatype      sz cd  pro type  fm format*/
   /*-----------      --------      -- --  --------  -- ------*/ 
-  "Char,	     Char,	   0, 35, character,0, |c",
+  "Char,	         Char,         0, 35, character,0, |c",
   "Longvarbinary,    Longvarbinary,0, 40, character,0, |c",
-  "Time,	     Time,	   0, 143,character,0, |c",
-  "Timestamp,	     Timestamp,	   0, 44, character,a, |c",
+  "Time,             Time,         0, 143,character,0, |c",
+  "Timestamp,	     Timestamp,	   0, 44, character,a, |x(26)",
   "Timestamp,	     Timestamp,	   0, 44, date,     a, |d",
   "Longvarchar,	     Longvarchar,  0, 37, character,0, |c",
-  "Binary,	     Binary,       0, 38, character,0, |c",
+  "Binary,           Binary,       0, 38, character,0, |c",
   "Varbinary,	     Varbinary,    0, 39, character,0, |c",
-  "Date,	     Date,         0, 43, date,     0, |d",
-  "Numeric,	     Numeric,      0, 136,decimal,  1, |#",
-  "Numeric,	     Numeric,      0, 136,integer,  1, |i",
-  "Decimal,	     Decimal,      0, 236,decimal,  2, |#",
-  "Decimal,	     Decimal,      0, 236,integer,  2, |i",
-  "Integer,	     Integer,      0, 33, integer,  3, |i",
-  "Integer,	     Integer,      0, 33, decimal,  3, |#",
-  "Integer,	     Integer,      0, 33, logical,  3, |?",
+  "Date,             Date,         0, 43, date,     0, |d",
+  "Numeric,          Numeric,      0, 136,decimal,  1, |#",
+  "Numeric,          Numeric,      0, 136,integer,  1, |i",
+  "Decimal,          Decimal,      0, 236,decimal,  2, |#",
+  "Decimal,          Decimal,      0, 236,integer,  2, |i",
+  "Integer,          Integer,      0, 33, integer,  3, |i",
+  "Integer,          Integer,      0, 33, decimal,  3, |#",
+  "Integer,          Integer,      0, 33, logical,  3, |l",
   "Smallint,	     Smallint,     0, 32, integer,  4, |i",
   "Smallint,         Smallint,     0, 32, decimal,  4, |#",
-  "Smallint,	     Smallint,     0, 32, logical,  4, |?",
-  "Float,	     Float,        0, 34, decimal,  5, |#",
-  "Float,	     Float,        0, 34, integer,  5, |i",
-  "Real,	     Real,         0, 48, decimal,  6, |#",
-  "Real,	     Real,         0, 48, integer,  6, |i",
-  "Double,	     Double,       0, 134,decimal,  7, |#",
-  "Double,	     Double,       0, 134,integer,  7, |i",
-  "Varchar,	     Varchar,      0, 36, character,0, |c",
-  "Bigint,	     Bigint,       0, 234,decimal,  8, |#",
-  "Bigint,	     Bigint,       0, 234,integer,  8, |i",
-  "Tinyint,	     Tinyint,      0, 31, integer,  9, |->>9",
-  "Tinyint,	     Tinyint,      0, 31, decimal,  9, |->>>>9",
-  "Tinyint,	     Tinyint,      0, 31, logical,  9, |?",
-  "Bit,	     	     Bit,          0, 41, logical,  0, |?",
+  "Smallint,	     Smallint,     0, 32, logical,  4, |l",
+  "Float,            Float,        0, 34, decimal,  5, |#",
+  "Float,            Float,        0, 34, integer,  5, |i",
+  "Real,             Real,         0, 48, decimal,  6, |#",
+  "Real,             Real,         0, 48, integer,  6, |i",
+  "Double,           Double,       0, 134,decimal,  7, |#",
+  "Double,           Double,       0, 134,integer,  7, |i",
+  "Varchar,          Varchar,      0, 36, character,0, |c",
+  "Bigint,           Bigint,       0, 234,decimal,  8, |#",
+  "Bigint,           Bigint,       0, 234,integer,  8, |i",
+  "Tinyint,          Tinyint,      0, 31, integer,  9, |->>9",
+  "Tinyint,          Tinyint,      0, 31, decimal,  9, |->>>>9",
+  "Tinyint,          Tinyint,      0, 31, logical,  9, |l",
+  "Bit,	     	     Bit,          0, 41, logical,  0, |l",
   ?
 ].
 

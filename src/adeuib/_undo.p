@@ -114,7 +114,7 @@ DO i = endSequenceNumber TO startSequenceNumber BY -1:
              ASSIGN _U._HANDLE:HIDDEN      = FALSE
                     _L._REMOVE-FROM-LAYOUT = FALSE
                     _U._STATUS             = "NORMAL":U.
-           IF CAN-DO("FILL-IN,COMBO-BOX",_U._TYPE) THEN 
+           IF CAN-DO("FILL-IN,COMBO-BOX,EDITOR,SELECTION-LIST,RADIO-SET,SLIDER",_U._TYPE) THEN 
              RUN adeuib/_showlbl.p (_U._HANDLE).
         END.  /* An alternative layout */
         ELSE DO:  /* Normal Undo */
@@ -170,11 +170,19 @@ DO i = endSequenceNumber TO startSequenceNumber BY -1:
             /* If there is a POP-UP create the popups */
             IF _U._POPUP-RECID NE ?
               THEN RUN adeuib/_undmenu.p ( _U._POPUP-RECID, _U._HANDLE ).
-  	
+         
+          /* Update the Dynamic Property Sheet if Dynamics is running */
+         IF VALID-HANDLE(_h_menubar_proc) THEN
+           RUN PropUndoWidget IN _h_menubar_proc 
+                  (INPUT IF _U._TABLE > "" 
+                         THEN _U._TABLE + "." + _U._NAME
+                         ELSE _U._NAME,
+                   INPUT _U._HANDLE) NO-ERROR.
+
             /* If we have undone the delete of a db.table.field, then keep a
   	     record of this so that we can modify the frame's query.
   	     Important: See note (i) above. */
-            IF _U._TABLE ne ? THEN DO:
+          IF _U._TABLE ne ? THEN DO:
   	      FIND tt WHERE tt.rFrame eq _U._parent-recid NO-ERROR.
   	      IF NOT AVAILABLE tt THEN DO:
   	        CREATE tt.

@@ -38,7 +38,7 @@ define input parameter hClient as integer.
 define input parameter ThinBorder as logical.
 
   {af/sup/windows.i}
-  {af/sup/ProExtra.i}
+  {af/sup/proextra.i}
 
   def var hNonclient as integer no-undo.
   def var style as integer no-undo.

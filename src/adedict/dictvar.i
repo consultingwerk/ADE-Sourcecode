@@ -37,6 +37,7 @@ Date Created: 01/28/92
 History:
        12/28/98 Mario B.  Add s_In_Schema_Area enabling one time notification.
        05/19/99 Mario B.  Adjust Width Field browser integration.     
+       04/23/02 Donna M.  Added new table recid variable
 ----------------------------------------------------------------------------*/
 {adecomm/adestds.i}  
 
@@ -75,6 +76,7 @@ Define {1} var s_CurrIdx  as char init "" NO-UNDO.
 Define {1} var s_DbRecId   as recid    NO-UNDO.       
 Define {1} var s_TblRecId  as recid    NO-UNDO.
 Define {1} var s_DomRecId  as recid    NO-UNDO.
+DEFINE {1} VAR n_tblRecid  AS RECID    NO-UNDO.
 
 /* These come in handy for a bunch of things. */
 &global-define    OBJ_NONE    0
@@ -118,7 +120,7 @@ Define {1} var s_DictState as integer NO-UNDO.
    This is a list of widget handles for all menu items and icon widgets
    that need graying. 
 */
-&global-define  NUM_GRAY_ITEMS   33
+&global-define  NUM_GRAY_ITEMS   34
 Define {1} var Gray_Items  as widget-handle extent {&NUM_GRAY_ITEMS}  NO-UNDO.
 
 

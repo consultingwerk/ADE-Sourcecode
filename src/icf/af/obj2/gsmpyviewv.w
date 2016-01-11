@@ -117,6 +117,8 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 DEFINE VARIABLE gdServiceTypeObj    AS DECIMAL    NO-UNDO.
 DEFINE VARIABLE gcMode              AS CHARACTER  NO-UNDO.
 
+DEFINE VARIABLE glComboValueChanged AS LOGICAL    NO-UNDO.
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -143,11 +145,12 @@ DEFINE VARIABLE gcMode              AS CHARACTER  NO-UNDO.
 RowObject.physical_service_description 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define ENABLED-OBJECTS RECT-1 
 &Scoped-Define DISPLAYED-FIELDS RowObject.physical_service_code ~
 RowObject.physical_service_description 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
+&Scoped-Define DISPLAYED-OBJECTS fiConnectionParametersLabel 
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -161,10 +164,14 @@ RowObject.physical_service_description
 
 
 /* Definitions of handles for SmartObjects                              */
+DEFINE VARIABLE hServiceType AS HANDLE NO-UNDO.
 DEFINE VARIABLE h_connectParam AS HANDLE NO-UNDO.
-DEFINE VARIABLE h_gscstdcsfv AS HANDLE NO-UNDO.
 
 /* Definitions of the field level widgets                               */
+DEFINE VARIABLE fiConnectionParametersLabel AS CHARACTER FORMAT "X(35)":U INITIAL "Connection Parameters:" 
+      VIEW-AS TEXT 
+     SIZE 23.2 BY .62 NO-UNDO.
+
 DEFINE RECTANGLE RECT-1
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
      SIZE 109.2 BY 15.81.
@@ -175,14 +182,12 @@ DEFINE RECTANGLE RECT-1
 DEFINE FRAME frMain
      RowObject.physical_service_code AT ROW 1 COL 32.2 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 15.6 BY 1
-     RowObject.physical_service_description AT ROW 2 COL 32.2 COLON-ALIGNED
+          SIZE 45.4 BY 1
+     RowObject.physical_service_description AT ROW 2.05 COL 32.2 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 71.2 BY 1
+          SIZE 78.4 BY 1
+     fiConnectionParametersLabel AT ROW 4.33 COL 4.6 COLON-ALIGNED NO-LABEL
      RECT-1 AT ROW 4.52 COL 5
-     "Connection Parameters:" VIEW-AS TEXT
-          SIZE 23.2 BY .62 AT ROW 4.14 COL 6.6
-     SPACE(76.80) SKIP(5.38)
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -250,6 +255,12 @@ ASSIGN
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
 
+/* SETTINGS FOR FILL-IN fiConnectionParametersLabel IN FRAME frMain
+   NO-ENABLE                                                            */
+ASSIGN 
+       fiConnectionParametersLabel:PRIVATE-DATA IN FRAME frMain     = 
+                "Connection Parameters:".
+
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
@@ -298,12 +309,12 @@ PROCEDURE adm-create-objects :
 
     WHEN 0 THEN DO:
        RUN constructObject (
-             INPUT  'af/obj2/gscstdcsfv.w':U ,
+             INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'FieldNameservice_type_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
-             OUTPUT h_gscstdcsfv ).
-       RUN repositionObject IN h_gscstdcsfv ( 3.00 , 17.40 ) NO-ERROR.
-       RUN resizeObject IN h_gscstdcsfv ( 1.05 , 89.20 ) NO-ERROR.
+             INPUT  'DisplayedFieldgsc_service_type.service_type_description,gsc_service_type.service_type_codeKeyFieldgsc_service_type.service_type_objFieldLabelService TypeFieldTooltipSelect a service type from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_service_type NO-LOCK BY gsc_service_type.service_type_codeQueryTablesgsc_service_typeSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 / &2CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcFieldNameservice_type_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT hServiceType ).
+       RUN repositionObject IN hServiceType ( 3.10 , 34.20 ) NO-ERROR.
+       RUN resizeObject IN hServiceType ( 1.05 , 50.00 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'af/obj2/gsmpydatfv.w':U ,
@@ -314,14 +325,35 @@ PROCEDURE adm-create-objects :
        RUN resizeObject IN h_connectParam ( 5.14 , 92.00 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */
-       RUN adjustTabOrder ( h_gscstdcsfv ,
+       RUN adjustTabOrder ( hServiceType ,
              RowObject.physical_service_description:HANDLE IN FRAME frMain , 'AFTER':U ).
        RUN adjustTabOrder ( h_connectParam ,
-             h_gscstdcsfv , 'AFTER':U ).
+             hServiceType , 'AFTER':U ).
     END. /* Page 0 */
 
   END CASE.
 
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE comboValueChanged vTableWin 
+PROCEDURE comboValueChanged :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT PARAMETER pcKeyFieldValue  	AS CHARACTER  NO-UNDO.
+  DEFINE INPUT PARAMETER pcScreenValue  	AS CHARACTER  NO-UNDO.
+  DEFINE INPUT PARAMETER phCombo         	AS HANDLE     NO-UNDO. 
+
+  IF phCombo = hServiceType THEN DO:
+    glComboValueChanged = TRUE.
+    RUN recreateSDF.
+    glComboValueChanged = FALSE.
+  END.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -376,6 +408,27 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initializeObject vTableWin 
+PROCEDURE initializeObject :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  SUBSCRIBE TO "comboValueChanged":U IN THIS-PROCEDURE.
+
+  /* Code placed here will execute PRIOR to standard behavior. */
+
+  RUN SUPER.
+
+  /* Code placed here will execute AFTER standard behavior.    */
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE recreateSDF vTableWin 
 PROCEDURE recreateSDF :
 /*------------------------------------------------------------------------------
@@ -417,11 +470,12 @@ PROCEDURE recreateSDF :
     /* Destroy the SDF that is currently there */
     RUN destroyObject IN h_connectParam.
 
+    
     /* If recreateSDF is being called from the service type SDF on value-changed event we want to 
        get the current data value to determine which SDF need to be run */
-    IF SOURCE-PROCEDURE:FILE-NAME = h_gscstdcsfv:FILE-NAME THEN 
+    IF glComboValueChanged THEN 
     DO:
-      cDataValue = DYNAMIC-FUNCTION('getDataValue':U IN h_gscstdcsfv). 
+      cDataValue = DYNAMIC-FUNCTION('getDataValue':U IN hServiceType). 
       RUN af/sup2/gscstmntop.p ON gshAstraAppServer (INPUT cDataValue , OUTPUT cPath, OUTPUT cFileName).
     END.  /* if source-proc = service type SDF */
     /* If recreateSDF is not being called from the service type SDF and is being called from

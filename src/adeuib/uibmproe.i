@@ -83,7 +83,10 @@ Modified:
                      to handle static saves properly. Static files are now saved
                      when they are already from the repository or when they are
                      being added using AppBuilder's Add to Repository option.
-----------------------------------------------------------------------------*/
+    02/12/02 Ross  - Revised save_window_static to check to see if it should save
+                     as dynamic (viewers and browsers only at this point) then
+                     call ry/prc/rygendynp.p if it should.
+-----------------------------------------------------------------------------*/
 /*  =======================================================================  */
 /*                        INTERNAL PROCEDURE Definitions                     */
 /*  =======================================================================  */
@@ -102,6 +105,52 @@ END.
 PROCEDURE editing_options.
     RUN ABEditingOptions (INPUT _h_menu_win, INPUT 'w':u).
 END.
+
+/* editMasterDataField - Procedure to bring up the data field master editor */
+PROCEDURE editMasterDataField:
+  DEFINE INPUT  PARAMETER hField AS HANDLE     NO-UNDO.
+
+  DEFINE VARIABLE cProcType      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTargets       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hProcHandle    AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hViewer        AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iCnt           AS INTEGER    NO-UNDO.
+
+
+  IF NOT VALID-HANDLE(hField) THEN RETURN.
+  FIND _U WHERE _U._HANDLE = hField NO-ERROR.
+  IF NOT AVAILABLE _U THEN RETURN.
+
+  RUN launchContainer IN gshSessionManager
+      (INPUT "datafieldw",
+       INPUT "",
+       INPUT "datafieldw",
+       INPUT NO,
+       INPUT "",
+       INPUT "",
+       INPUT "",
+       INPUT "",
+       INPUT ?,
+       INPUT ?,
+       INPUT ?,
+       OUTPUT hProcHandle,
+       OUTPUT cProcType).
+
+  {get containerTarget cTargets hProcHandle}.
+
+  /* Look for the datafield viewer and then run setParentInfo in it */
+  DO iCnt = 1 TO NUM-ENTRIES(cTargets):
+      ASSIGN hViewer = WIDGET-HANDLE(ENTRY(iCnt, cTargets)) NO-ERROR.
+      IF VALID-HANDLE(hViewer)
+      AND LOOKUP("setParentInfo":U, hViewer:INTERNAL-ENTRIES) > 0 THEN
+          RUN setParentInfo IN hViewer (INPUT _U._TABLE,
+                                        INPUT _U._OBJECT-NAME).
+  END.
+
+
+
+END PROCEDURE.  /* editMasterDataField */
+
 
 /* enable_widgets - procedure to enable the UIB after another tool ran      */
 procedure enable_widgets.
@@ -308,7 +357,7 @@ PROCEDURE endmove.
                      }
 
   /* Move a fill-in's label */
-  IF CAN-DO("FILL-IN,COMBO-BOX":U,_U._TYPE) THEN DO:
+  IF CAN-DO("FILL-IN,COMBO-BOX,EDITOR,SELECTION-LIST,RADIO-SET,SLIDER":U,_U._TYPE) THEN DO:
     RUN adeuib/_showlbl.p (SELF).
     SELF:SELECTED = TRUE.
   END. 
@@ -316,6 +365,11 @@ PROCEDURE endmove.
   /* Update the Geometry in the Attribute Window, if necessary. */
   IF VALID-HANDLE(hAttrEd) AND hAttrEd:FILE-NAME eq "{&AttrEd}"
   THEN RUN show-geometry IN hAttrEd NO-ERROR.
+
+  /* Update the Dynamic Property Sheet */
+  IF VALID-HANDLE(_h_menubar_proc) THEN
+     RUN Prop_Changegeometry IN _h_menubar_proc (_U._HANDLE) NO-ERROR.
+
 
 END.
 
@@ -384,8 +438,8 @@ PROCEDURE endresize.
          _action._u-recid       = RECID(_U)
          _action._window-handle = _U._WINDOW-HANDLE
          _action._data          = STRING(_L._COL) + "|":U + STRING(_L._ROW) + "|":U +
-		                  STRING(_L._WIDTH) + "|":U + STRING(_L._HEIGHT)
-         _action._other_Ls      = recid-string	                  
+                    STRING(_L._WIDTH) + "|":U + STRING(_L._HEIGHT)
+         _action._other_Ls      = recid-string                   
          _undo-seq-num          = _undo-seq-num + 1.
 
   CREATE _action.
@@ -503,7 +557,7 @@ PROCEDURE endresize.
     END. /* DO  1 to num-entries */
              
     /* Move a fill-in's label */
-    IF CAN-DO("FILL-IN,COMBO-BOX":U,_U._TYPE) THEN DO:
+    IF CAN-DO("FILL-IN,COMBO-BOX,EDITOR,SELECTION-LIST,RADIO-SET,SLIDER":U,_U._TYPE) THEN DO:
       RUN adeuib/_showlbl.p (SELF).
       SELF:SELECTED = TRUE.
     END. /* Fill-in or combo-box */
@@ -527,6 +581,10 @@ PROCEDURE endresize.
   IF VALID-HANDLE(hAttrEd) AND hAttrEd:FILE-NAME eq "{&AttrEd}"
   THEN RUN show-geometry IN hAttrEd NO-ERROR.
 
+  /* Update the Dynamic Property Sheet */
+  IF VALID-HANDLE(_h_menubar_proc) THEN
+     RUN Prop_Changegeometry IN _h_menubar_proc (_U._HANDLE) NO-ERROR.
+
 END.  /* endresize */
 
 
@@ -546,7 +604,7 @@ END PROCEDURE.  /* exit_proc */
 /* frame-select-up  - short tag to run this on frame select up.            */
 /*             This is run for both FRAMES and DIALOG-BOXES.               */
 /*             Look at the function and decide what to do.  This routine   */
-/*	       This routine lets us click respond differently toframe      */
+/*        This routine lets us click respond differently toframe      */
 /*             events which are all triggered by a MOUSE-SELECT-UP         */
 /*             We also call this with MOUSE-EXTEND-UP, because it uses the */
 /*             same mouse button in MS-WINDOWS (Ctrl-SELECT == EXTEND)     */
@@ -638,10 +696,20 @@ END.
 
 /* Load another custom object file */
 PROCEDURE get_custom_widget_defs : 
-  DEFINE VARIABLE rc AS LOGICAL NO-UNDO. /* return code yes=ok no=cancel */
+  DEFINE VARIABLE rc       AS LOGICAL NO-UNDO. /* return code yes=ok no=cancel */
+  DEFINE VARIABLE cDynList AS CHARACTER NO-UNDO. /* Add Palette/Template to list */
 
   RUN setstatus ("":U, "Select custom object files...":U).
-  RUN adeuib/_getcust.w (INPUT-OUTPUT {&CUSTOM-FILES}, OUTPUT rc). /* ask for file */
+   /* If Dynamics is running and it's using the cst in the repository, send template and palette objects */
+  IF CAN-DO(_AB_Tools,"Enable-ICF") AND _dyn_cst_template > "" AND _dyn_cst_palette > "" THEN
+  DO:
+     ASSIGN cDynList = "~~@DummyTemplates:,*************,":U +  _dyn_cst_template
+            cDynList = cDynlist + ",,Palettes:,************," + _dyn_cst_palette.
+     
+     RUN adeuib/_getcust.w (INPUT-OUTPUT cDynlist, OUTPUT rc). /* ask for file */  
+  END.
+  ELSE
+     RUN adeuib/_getcust.w (INPUT-OUTPUT {&CUSTOM-FILES}, OUTPUT rc). /* ask for file */
   IF NOT rc THEN DO: /* cancelled. */
     RUN setstatus("":U,"":U).
     RETURN.
@@ -691,6 +759,65 @@ PROCEDURE Set_Control_Dirty.
   END.
 
 END.
+
+
+/* Launch a dynamic object */
+PROCEDURE launch_object.
+  DEFINE INPUT  PARAMETER pRecid     AS RECID      NO-UNDO.
+
+  DEFINE VARIABLE lMultiInstance              AS LOGICAL      NO-UNDO.
+  DEFINE VARIABLE cChildDataKey               AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cRunAttribute               AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE hContainerWindow            AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE hContainerSource            AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE hObject                     AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE hRunContainer               AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE cRunContainerType           AS CHARACTER    NO-UNDO.
+
+  FIND _P WHERE RECID(_P) = pRecid.
+
+  /* Assume user wants the cache cleared, if not they need to use the 
+     dynamic launcher noddy                                           */
+  IF VALID-HANDLE(gshRepositoryManager) THEN
+    RUN clearClientCache IN gshRepositoryManager.
+
+  ASSIGN
+    lMultiInstance    = NO
+    cChildDataKey     = "":U
+    cRunAttribute     = "":U
+    hContainerWindow  = ?
+    hContainerSource  = ?
+    hObject           = ?
+    hContainerWindow  = ?
+    cRunContainerType = "":U
+    .
+
+  DO ON STOP UNDO, LEAVE ON ERROR UNDO, LEAVE:
+    RUN launchContainer IN gshSessionManager
+        (INPUT  _P._save-as-file     /* object filename if physical/logical names unknown */
+        ,INPUT  "":U                 /* physical object name (with path and extension) if known */
+        ,INPUT  _P._save-as-file     /* logical object name if applicable and known */
+        ,INPUT  (NOT lMultiInstance) /* run once only flag YES/NO */
+        ,INPUT  "":U                 /* instance attributes to pass to container */
+        ,INPUT  cChildDataKey        /* child data key if applicable */
+        ,INPUT  cRunAttribute        /* run attribute if required to post into container run */
+        ,INPUT  "":U                 /* container mode, e.g. modify, view, add or copy */
+        ,INPUT  hContainerWindow     /* parent (caller) window handle if known (container window handle) */
+        ,INPUT  hContainerSource     /* parent (caller) procedure handle if known (container procedure handle) */
+        ,INPUT  hObject              /* parent (caller) object handle if known (handle at end of toolbar link, e.g. browser) */
+        ,OUTPUT hRunContainer        /* procedure handle of object run/running */
+        ,OUTPUT cRunContainerType    /* procedure type (e.g ADM1, Astra1, ADM2, ICF, "") */
+        ).
+    
+    WAIT-FOR WINDOW-CLOSE, CLOSE OF hRunContainer. 
+
+  END.  /* do on stop, on error */
+
+  /* Choosing the stop button raises the stop condition and leaves the DO 
+     block so the container that was launched needs to be closed. */
+  IF VALID-HANDLE(hRunContainer) THEN APPLY "CLOSE":U TO hRunContainer.
+
+END.  /* PROCEDURE launch_object */
 
 
 /* The mode between local and remote has changed */
@@ -775,7 +902,6 @@ PROCEDURE mode-morph.
     ASSIGN m_hFile    = h_menu-bar:FIRST-CHILD. /* jep-icf: File menu. */
     ASSIGN m_hEdit    = m_hFile:NEXT-SIBLING.   /* jep-icf: Edit menu. */
   
-
     /* jep-icf: "Open Object" Button takes the place of "Open" button and shifts all remaining buttons to the right. */
     IF CAN-DO(_AB_Tools, "Enable-ICF":u) THEN
     DO:
@@ -812,11 +938,15 @@ PROCEDURE mode-morph.
       /* Adjust all the icon group rectangles for the new icf buttons. */
       ASSIGN  group1:WIDTH-P IN FRAME action_icons = group1:WIDTH-P IN FRAME action_icons + 25
               group2:WIDTH-P IN FRAME action_icons = group2:WIDTH-P IN FRAME action_icons + 25
-              group3:WIDTH-P IN FRAME action_icons = group3:WIDTH-P IN FRAME action_icons + 25
-              group4:WIDTH-P IN FRAME action_icons = group4:WIDTH-P IN FRAME action_icons + 25 NO-ERROR.
+              group3:WIDTH-P IN FRAME action_icons = group3:WIDTH-P IN FRAME action_icons + 50
+              group4:WIDTH-P IN FRAME action_icons = group4:WIDTH-P IN FRAME action_icons + 50 NO-ERROR.
               
       ASSIGN OpenObject_Button:HIDDEN    = FALSE
              OpenObject_Button:SENSITIVE = YES.
+      
+      IF CAN-DO(_AB_Tools,"Enable-ICF") AND VALID-HANDLE(_h_menubar_proc) THEN
+         RUN addPropertyButton IN _h_menubar_proc (INPUT bar_count) NO-ERROR.
+
     END. /* Enable-ICF */
 
 
@@ -829,7 +959,9 @@ PROCEDURE mode-morph.
             X            = /*_h_status_line:X + _h_status_line:WIDTH-PIXELS -
                                               _h_button_bar[1]:WIDTH-PIXELS -
                                               SESSION:PIXELS-PER-COLUMN*/
-                                              _h_button_bar[10]:X + _h_button_bar[10]:WIDTH-P + 6
+                           IF CAN-DO(_AB_Tools,"Enable-ICF") AND VALID-HANDLE(_h_menubar_proc) 
+                           THEN  _h_button_bar[10]:X + _h_button_bar[10]:WIDTH-P + 31
+                           ELSE  _h_button_bar[10]:X + _h_button_bar[10]:WIDTH-P + 6
             Y            = _h_button_bar[1]:Y
             WIDTH-P      = _h_button_bar[1]:WIDTH-P
             HEIGHT-P     = _h_button_bar[1]:HEIGHT-P
@@ -890,6 +1022,9 @@ PROCEDURE mode-morph.
       CREATE MENU-ITEM mi_chlayout ASSIGN LABEL = "Alternate &Layout..."
                    PARENT = m_layout
          TRIGGERS: ON CHOOSE PERSISTENT RUN morph_layout. END TRIGGERS.
+      CREATE MENU-ITEM mi_chCustLayout ASSIGN LABEL = "Custom &Layout..."
+                   PARENT = m_layout
+      TRIGGERS: ON CHOOSE PERSISTENT RUN morph_layout. END TRIGGERS.
       CREATE MENU-ITEM h_s ASSIGN SUBTYPE = "RULE"                   PARENT = m_layout.
       CREATE MENU-ITEM h_s ASSIGN LABEL = "&Center Left-to-Right in Frame"
                    PARENT = m_layout SENSITIVE = TRUE
@@ -948,6 +1083,10 @@ PROCEDURE mode-morph.
       CREATE MENU-ITEM mi_control_props ASSIGN LABEL = "&OCX Property Editor"
                                                                            PARENT = _h_WindowMenu
          TRIGGERS: ON CHOOSE PERSISTENT RUN choose_control_props. END TRIGGERS.
+    /* Check whether Dynamics is Running */
+    IF CAN-DO(_AB_Tools, "Enable-ICF":u) AND VALID-HANDLE(_h_menubar_proc) THEN
+       RUN AddPropertyMenu IN _h_menubar_proc NO-ERROR.
+      
 
     /* Help Menu */
     CREATE SUB-MENU h_sm ASSIGN LABEL = "&Help"                            PARENT = h.
@@ -1122,10 +1261,19 @@ END.  /* mode-morph */
 
 /* Morph the Layout  */
 PROCEDURE morph_layout.
-  DEFINE VARIABLE cur-lo-name AS CHARACTER                           NO-UNDO.
-  DEFINE VARIABLE tmp-win     AS WIDGET-HANDLE                       NO-UNDO.
+  
+  DEFINE VARIABLE cObjType      AS CHARACTER                 NO-UNDO.
+  DEFINE VARIABLE cur-lo-name   AS CHARACTER                 NO-UNDO.
+  DEFINE VARIABLE hCustomLayout AS HANDLE                    NO-UNDO.
+  DEFINE VARIABLE lDynamic      AS LOGICAL                   NO-UNDO.
+  DEFINE VARIABLE tmp-win       AS WIDGET-HANDLE             NO-UNDO.
+
+  DEFINE BUFFER b_U    FOR _U.
+  DEFINE BUFFER b_L    FOR _L.
+  DEFINE BUFFER sync_L FOR _L.
 
   tmp-win = _h_win.
+  FIND _P WHERE _P._WINDOW-HANDLE eq _h_win NO-ERROR.
   FIND _U WHERE _U._HANDLE = _h_win NO-ERROR.
   IF NOT AVAILABLE _U THEN DO:
     BELL.
@@ -1138,8 +1286,62 @@ PROCEDURE morph_layout.
          _cur_win_type = _U._WIN-TYPE      /* This is probably redundant */
          .
       
-  RUN adeuib/_layout.w.
+  /* Determine if this is a customizable Dynamic object */
+  lICFIsRunning = DYNAMIC-FUNCTION("IsICFRunning":U) NO-ERROR.
+  IF lICFIsRunning = TRUE THEN
+     lDynamic = DYNAMIC-FUNCTION("ClassIsA" IN gshRepositoryManager, _P.object_type_code, "DynView":U) OR
+                DYNAMIC-FUNCTION("ClassIsA" IN gshRepositoryManager, _P.object_type_code, "DynBrow":U).
+  ELSE lDynamic = FALSE.
 
+  IF lDynamic THEN DO:
+    RUN disable_widgets.
+
+    DO ON STOP UNDO, LEAVE ON ERROR UNDO, LEAVE:
+
+      /* Before morphing Copy all labels to _L record */
+      FOR EACH b_U WHERE b_U._WINDOW-HANDLE = _h_win:
+        FIND b_L WHERE b_L._LO-NAME = cur-lo-name AND b_L._u-recid = RECID(b_U) NO-ERROR.
+        IF AVAILABLE b_L THEN DO:
+          /* If we are morphing "away" from the master change the _L of all labels that are 
+             in sync with the master */
+          IF b_L._LO-NAME = "Master Layout":U THEN DO:
+            FOR EACH sync_L WHERE sync_L._u-recid = b_L._u-recid AND
+                                  sync_L._LABEL   = b_L._LABEL:
+              sync_L._LABEL = b_U._LABEL.  /* b_U._LABEL has the latest version */
+            END.  /* Updated all labels in sync with the master */
+          END.  /* If we're morphing away from the master layout */
+          b_L._LABEL = b_U._LABEL.  /* Update _L of what we are morphing away from */
+        END.  /* If this object has an _L */
+      END.  /* Copy labels for layout morphing away from */
+           
+      RUN launchContainer IN gshSessionManager
+          (INPUT  "rycstlow":U         /* object filename if physical/logical names unknown */
+          ,INPUT  "":U                 /* physical object name (with path and extension) if known */
+          ,INPUT  "rycstlow":U         /* logical object name if applicable and known */
+          ,INPUT  YES                  /* run once only flag YES/NO */
+          ,INPUT  "":U                 /* instance attributes to pass to container */
+          ,INPUT  "":U                 /* child data key if applicable */
+          ,INPUT  "":U                 /* run attribute if required to post into container run */
+          ,INPUT  "":U                 /* container mode, e.g. modify, view, add or copy */
+          ,INPUT  ?                    /* parent (caller) window handle if known (container window handle) */
+          ,INPUT  ?                    /* parent (caller) procedure handle if known (container procedure handle) */
+          ,INPUT  ?                    /* parent (caller) object handle if known (handle at end of toolbar link, e.g. browser) */
+          ,OUTPUT hCustomLayout        /* procedure handle of object run/running */
+          ,OUTPUT cObjType             /* procedure type (e.g ADM1, Astra1, ADM2, ICF, "") */
+          ).
+      
+      WAIT-FOR WINDOW-CLOSE, CLOSE OF hCustomLayout.   
+    
+    END.  /* do on stop, on error */
+
+    RUN enable_widgets.
+  END.  /* If we have a dynamic object */
+  ELSE RUN adeuib/_layout.w.
+
+  IF NOT AVAILABLE _U THEN DO:  /* It gets losts with the disable_widgets */
+    FIND _P WHERE _P._WINDOW-HANDLE eq _h_win NO-ERROR.
+    FIND _U WHERE _U._HANDLE = _h_win NO-ERROR.
+  END.
   IF (cur-lo-name <> _U._LAYOUT-NAME) OR (_cur_win_type <> _U._WIN-TYPE) THEN
   DO:
     /* Bug fix 19940518-055  jep
@@ -1148,8 +1350,32 @@ PROCEDURE morph_layout.
     RUN call_sew ( INPUT "SE_CLOSE_SELECTED" ).
 
     ASSIGN _U._WIN-TYPE = _cur_win_type.
+
+    IF lDynamic THEN DO:
+      /* Before rendering the new layout, set the Labels in the _U */
+      FOR EACH b_U WHERE b_U._WINDOW-HANDLE = _h_win:
+        FIND b_L WHERE b_L._LO-NAME = _U._LAYOUT-NAME AND b_L._u-recid = RECID(b_U) NO-ERROR.
+        IF AVAILABLE b_L THEN
+          b_U._LABEL = b_L._LABEL. /* Copy the label from the new layout _L */
+        ELSE DO:  /* There is no new _L ... create it from the old one */
+          CREATE b_L.
+          ASSIGN b_L._LO-NAME = _U._LAYOUT-NAME
+                 b_L._u-recid = RECID(b_U).
+          FIND sync_L WHERE sync_L._LO-NAME = cur-lo-name AND 
+                            sync_L._u-recid = RECID(b_U) NO-ERROR.
+          IF AVAILABLE sync_L THEN
+            BUFFER-COPY sync_L EXCEPT _LO-NAME _u-recid TO b_L.
+        END.
+      END.  /* Copy labels for layout morphing away from */
+    END.  /* If Dynamics */
+
+
     RUN sensitize_main_window ("WINDOW").
     RUN adeuib/_recreat.p (RECID(_U)).
+    /* If dynamic, may need to inform the Dynamic Property Sheet */
+    IF lDynamic AND VALID-HANDLE(_h_menubar_proc) THEN
+       RUN prop_changeContainer in _h_menubar_proc (STRING(tmp-win),STRING(_h_win)) NO-ERROR.
+    
     /* After morphing disable undo */
     FOR EACH _action:
       DELETE _action.
@@ -1250,7 +1476,11 @@ END.  /* PROCEDURE mru_menu */
 PROCEDURE Open_SO_Untitled:
   DEFINE INPUT PARAMETER so-type      AS CHARACTER NO-UNDO.
   DEFINE INPUT PARAMETER file_to_open AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE        l            AS LOGICAL   NO-UNDO.
+  
+  DEFINE VARIABLE l                   AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE lICFRunning         AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cProductModuleCode  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hRepDesignManager   AS HANDLE     NO-UNDO.
   
   FIND _palette_item WHERE _palette_item._name = so-type NO-ERROR.
   IF AVAILABLE _palette_item THEN DO:
@@ -1266,18 +1496,68 @@ PROCEDURE Open_SO_Untitled:
         END.
     END.
   END.
+  ASSIGN lICFRunning = DYNAMIC-FUNCTION("IsICFRunning":U) NO-ERROR.
+  IF lICFRunning  THEN
+  DO:
+    FIND FIRST _custom WHERE _design_template_file     = file_to_open 
+                         AND _custom._object_type_code = so-type NO-ERROR.
+    IF AVAILABLE (_custom) THEN
+    DO:
+       ASSIGN hRepDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U, INPUT "RepositoryDesignManager":U) NO-ERROR.
+       IF VALID-HANDLE(hRepDesignManager) THEN
+          ASSIGN cProductModuleCode = DYNAMIC-FUNC("getCurrentProductModule":U IN hRepDesignManager) 
+                 cProductModuleCode = ENTRY(1,cProductModuleCode,"/":U)  NO-ERROR. 
+
+       /* Fill in the _RyObject record for the AppBuilder. */
+       FIND _RyObject WHERE _RyObject.object_filename = so-type NO-ERROR.
+       IF NOT AVAILABLE _RyObject THEN
+          CREATE _RyObject.
+       ASSIGN _RyObject.object_type_code       = IF _custom._object_type_code = ""
+                                                 THEN _custom._type ELSE _custom._object_type_code
+              _RyObject.parent_classes         = DYNAMIC-FUNCTION("getClassParentsFromDB":U IN gshRepositoryManager, INPUT _RyObject.object_type_code)
+              _RyObject.object_filename        = file_to_open
+              _RyObject.product_module_code    = cProductModuleCode
+              _RyObject.static_object          = _custom._static_object
+              _RyObject.container_object       = _custom._type = "Container":u
+              _RyObject.design_action          = "NEW":u
+              _RyObject.design_ryobject        = YES
+              _RyObject.design_template_file   = file_to_open
+              _RyObject.design_propsheet_file  = _custom._design_propsheet_file
+              _RyObject.design_image_file      = _custom._design_image_file.
+
+    END. /* If AVAIL(_custom) */
+            
+  END.
   RUN Open_Untitled (file_to_open).
+
+
 END PROCEDURE.
    
 /* open_untitled : Open a .W file untitled (i.e. template) */
 PROCEDURE Open_Untitled:
   DEFINE INPUT PARAMETER file_to_open AS CHARACTER NO-UNDO.
 
+  DEFINE VARIABLE hWin AS HANDLE  NO-UNDO.
+  DEFINE VARIABLE lExtendsDynObject AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lICFRunning         AS LOGICAL    NO-UNDO.
+
   RUN deselect_all (?, ?).
   /* Open the choice as an untitled window. */
   RUN setstatus ("WAIT":U, "Opening template...").
   RUN adeuib/_open-w.p (file_to_open, "", "UNTITLED":U).
-
+  ASSIGN lICFRunning = DYNAMIC-FUNCTION("IsICFRunning":U) NO-ERROR.
+  IF RETURN-VALUE <> "_ABORT":U AND lICFRunning AND AVAILABLE _P
+  THEN DO:
+     lExtendsDynObject  = DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, _P.object_type_code,"DynView":U)
+                         OR DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, _P.object_type_code,"DynSDO":U)
+                         OR DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, _P.object_type_code,"DynBrow":U).
+     IF lExtendsDynObject THEN
+        ASSIGN hWin        =  _P._WINDOW-HANDLE:WINDOW
+               hWin:TITLE  = IF NUM-ENTRIES(hWin:TITLE,"-") >= 2
+                             THEN ENTRY(1,hWin:TITLE,"-") + "(":U + _P.object_type_code + ")" + " - " + ENTRY(2,hWin:TITLE,"-") 
+                             ELSE hwin:TITLE + "(":U + _P.object_type_code + ")"
+               NO-ERROR.
+  END.
   /* Select the current name of the base widget. */
   APPLY "ENTRY":U TO cur_widg_name IN FRAME action_icons.
   
@@ -1289,7 +1569,7 @@ END PROCEDURE.
 
 /* property_sheet : Edit the property sheet of a widget (h_self).       */
 PROCEDURE property_sheet:
-  DEFINE INPUT PARAMETER h_self	AS WIDGET			NO-UNDO.
+  DEFINE INPUT PARAMETER h_self AS WIDGET   NO-UNDO.
 
   DEFINE VAR   h_parent_win     AS WIDGET                       NO-UNDO.
   DEFINE VAR   h_temp           AS WIDGET                       NO-UNDO.
@@ -1342,6 +1622,7 @@ PROCEDURE property_sheet:
     RUN choose_attributes.
   ELSE
     RUN adeuib/_proprty.p (h_self).
+    
   /* For menus, the property sheet may have deleted the widget. */
   IF CAN-DO("MENU,MENU-ITEM,SUB-MENU",cTYPE) THEN DO:
     IF AVAILABLE _U THEN  
@@ -1350,6 +1631,8 @@ PROCEDURE property_sheet:
     RUN del_cur_widg_check.
   END.
   ELSE DO:
+     IF NOT AVAILABLE _U THEN
+        FIND _U WHERE _U._HANDLE = h_self.  
     /* If removed from layout everywhere, delete it */
     IF NOT CAN-FIND(FIRST _L WHERE _L._u-recid = RECID(_U) AND
                                NOT _L._REMOVE-FROM-LAYOUT) THEN RUN choose_erase.
@@ -1387,7 +1670,7 @@ PROCEDURE report-no-win.
   BELL.
   MESSAGE  "No window is selected." {&SKP}
            "Please choose an existing window," {&SKP}
-  	   "or new one." VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+      "or new one." VIEW-AS ALERT-BOX ERROR BUTTONS OK.
 END PROCEDURE.
 
 /* save_palette  Save the position and orientation of the object palette as
@@ -1450,7 +1733,7 @@ END PROCEDURE. /* Save Palette */
 PROCEDURE save_window:
   DEFINE INPUT  PARAMETER ask_file_name  AS LOGICAL NO-UNDO.
   DEFINE OUTPUT PARAMETER user_cancel    AS LOGICAL NO-UNDO.
-  
+
   DEFINE VARIABLE cAction       AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cBrokerURL    AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cFile         AS CHARACTER NO-UNDO.
@@ -1474,206 +1757,448 @@ PROCEDURE save_window:
   DEFINE VARIABLE hWin          AS WIDGET    NO-UNDO.
   DEFINE VARIABLE hCurWidg      AS WIDGET    NO-UNDO.
   DEFINE VARIABLE cError        AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cDefCode      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iRecID        AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iStart        AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iEnd          AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE lICFRunning   AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lRegisterObj  AS LOGICAL    NO-UNDO.  
+  DEFINE VARIABLE lNew          AS LOGICAL    NO-UNDO.
+  
 
   DEFINE BUFFER d_P FOR _P.
   DEFINE BUFFER x_U FOR _U.
-  
+
   FIND _P WHERE _P._u-recid eq RECID(_U).    
   
   /* Is the file missing any links, or is it OK to Save */
   RUN adeuib/_advsrun.p (_h_win,"SAVE":U, OUTPUT lok2save).  
   IF NOT lOk2save THEN RETURN.
-  
+
   ASSIGN 
     h_title_win   = _U._HANDLE
     _save_file    = _P._SAVE-AS-FILE
     user_cancel   = YES 
-    lSaveUntitled = (_remote_file AND NOT ask_file_name AND _save_file eq ?)
-	.
-  
-  IF _P.design_ryobject AND _P.logical_object THEN
-  DO:
+    lSaveUntitled = (_remote_file AND NOT ask_file_name AND _save_file = ?)
+    lICFRunning   = DYNAMIC-FUNCTION("IsICFRunning":U) 
+   NO-ERROR.
+
+ 
+  IF _P.design_ryobject AND lICFRunning
+  AND (NOT _P.static_object)
+  THEN DO:
+
     /* Set the cursor pointer in all windows */
     RUN setstatus ("WAIT":U,"Saving object...").
 
-    IF VALID-HANDLE(_P.design_hpropsheet) THEN
+    IF _P.container_object THEN
     DO:
-      DEFINE VARIABLE lNewObject  AS LOGICAL NO-UNDO.
+      IF VALID-HANDLE(_P.design_hpropsheet)
+      THEN DO:
+        DEFINE VARIABLE lNewObject  AS LOGICAL NO-UNDO.
       
-      /* Plan to add this object to the MRU list of its new and save is completed. */
-      ASSIGN lNewObject = (_P.design_action = "NEW":u)
-             lMRUSave   = lNewObject.
+        /* Plan to add this object to the MRU list of its new and save is completed. */
+        ASSIGN lNewObject = CAN-DO(_P.design_action ,"NEW":u)
+               lMRUSave   = lNewObject.
 
-      /* Call the object's property sheet to save the object. */
-      RUN saveObject IN _P.design_hpropsheet
-        (INPUT-OUTPUT _save_file, OUTPUT user_cancel).
-        
-      /* Update MRU list if save of new object is successful. */
-      ASSIGN lMRUSave = (lNewObject AND user_cancel = NO).
+        /* Call the object's property sheet to save the object. */
+        RUN saveObject IN _P.design_hpropsheet
+          (INPUT-OUTPUT _save_file, OUTPUT user_cancel).
+        /* Update MRU list if save of new object is successful. */
+        ASSIGN lMRUSave = (lNewObject AND user_cancel = NO).
 
-      IF NOT user_cancel THEN
-      DO:
-        ASSIGN
-          user_cancel            = NO 
-          _P._FILE-SAVED         = TRUE
-          _P._SAVE-AS-FILE       = _save_file
-          _P.design_action       = "OPEN":u
-          h_title_win            = _P._WINDOW-HANDLE:WINDOW
-          OldTitle               = h_title_win:TITLE.
+        IF NOT user_cancel THEN
+        DO:
+          ASSIGN
+            user_cancel            = NO 
+            _P._FILE-SAVED         = TRUE
+            _P._SAVE-AS-FILE       = _save_file
+            _P.design_action       = "OPEN":u
+            h_title_win            = _P._WINDOW-HANDLE:WINDOW
+            OldTitle               = h_title_win:TITLE.
 
-        RUN adeuib/_wintitl.p (h_title_win, _U._LABEL, _U._LABEL-ATTR, 
-                               _P._SAVE-AS-FILE).
+          RUN adeuib/_wintitl.p (h_title_win, _U._LABEL, _U._LABEL-ATTR, 
+                                 _P._SAVE-AS-FILE).
   
-        /* Change the active window title on the Window menu. */
-        IF (h_title_win:TITLE <> OldTitle) AND VALID-HANDLE(_h_WinMenuMgr) THEN
-          RUN WinMenuChangeName IN _h_WinMenuMgr
-            (_h_WindowMenu, OldTitle, h_title_win:TITLE). 
+          /* Change the active window title on the Window menu. */
+          IF (h_title_win:TITLE <> OldTitle) AND VALID-HANDLE(_h_WinMenuMgr) THEN
+            RUN WinMenuChangeName IN _h_WinMenuMgr
+              (_h_WindowMenu, OldTitle, h_title_win:TITLE). 
   
-        /* Notify the Section Editor of the window title change. Data after 
-           "SE_PROPS" added for 19990910-003. */
-        RUN call_sew ( "SE_PROPS":U ). 
+          /* Notify the Section Editor of the window title change. Data after 
+             "SE_PROPS" added for 19990910-003. */
+          RUN call_sew ( "SE_PROPS":U ). 
   
-        /* Update most recently used filelist */    
-        IF lMRUSave AND _mru_filelist THEN 
-          RUN adeshar/_mrulist.p (_save_file, IF _remote_file THEN _BrokerURL ELSE "").
+          /* Update most recently used filelist */    
+          IF lMRUSave AND _mru_filelist THEN 
+            RUN adeshar/_mrulist.p (_save_file, IF _remote_file THEN _BrokerURL ELSE "").
   
-        /* IZ 776 Redisplay current filename in AB Main window. */
-        RUN display_current IN _h_uib.
-      END. /* save ok */
+          /* IZ 776 Redisplay current filename in AB Main window. */
+          RUN display_current IN _h_uib.
+        END. /* save ok */
   
-    END. /* valid-handle prop sheet */
+      END. /* valid-handle prop sheet */
+      /* This message should never be given.  The container builder will now open
+         for any container opened in the AppBuilder.  When a container is run in the 
+         AppBuilder, the container builder will not be destroyed (it was to avoid being
+         viewed when the container stopped running even if it was hidden before it was run). */
+      ELSE 
+        MESSAGE "Container not saved to the repository.  Its property sheet is not open.":U  VIEW-AS ALERT-BOX.
+    END.  /* if container object */
+    /* Check for DynBrowse, DYnView and DynSDO which are not containers */
+    ELSE DO:
+       ASSIGN lNew = CAN-DO(_P.design_action, "NEW":u).
+       IF lNew OR ask_file_name THEN 
+       DO: 
+          RUN adeuib/_accsect.p("GET":U,
+                                 ?,
+                                 "DEFINITIONS":U,
+                                 INPUT-OUTPUT iRecID,
+                                 INPUT-OUTPUT cDefCode ).
+          ASSIGN 
+            iStart     = INDEX(cDefCode,"File:")
+            iEnd       = INDEX(cDefCode,CHR(10),iStart)
+            _save_file = IF iStart > 0 AND iEnd > 0 
+                         THEN TRIM(SUBSTRING(cDefCode,iStart + 5,  iEnd - iStart - 5 ))
+                         ELSE _save_file
+            _P._SAVE-AS-FILE = _save_File
+            NO-ERROR.
+          /* If we are saving As, set the save-as-file equal to the original object name */
+          IF _P._SAVE-AS-FILE = "" THEN
+             ASSIGN _P._SAVE-AS-FILE = _P.object_fileName.
+          
+          RUN af/cod/afsvwizdw.w (INPUT NO, OUTPUT lRegisterObj, OUTPUT lOK).
+          IF NOT lOK THEN 
+          DO:
+             IF lNew THEN ASSIGN _P._SAVE-AS-FILE = ?.
+             ASSIGN user_cancel     = YES.
+             RETURN.
+          END.
+       END.
+       /* If we are saving an existing dynamic object as another dynamic object, we must */
+       /* set the object_obj to zero for all instances */
+       IF NOT lNew AND ask_file_name THEN
+       DO:
+          /* Need to change the object filename */
+          FIND _RyObject WHERE _RyObject.design_precid = RECID(_P) NO-ERROR.
+          IF AVAIL _RyObject THEN ASSIGN _RyObject.object_filename = _P.object_filename.
+          IF AVAIL _U THEN
+          DO:
+           /* Save the object-obj values in private data in case save fails and it needs to be reset */
+             IF VALID-HANDLE(_U._HANDLE) AND _U._OBJECT-OBJ <> ? THEN
+               ASSIGN _U._HANDLE:PRIVATE-DATA = STRING(_U._OBJECT-OBJ) + CHR(4) 
+                                                 + IF _U._HANDLE:PRIVATE-DATA = ? THEN "" ELSE _U._HANDLE:PRIVATE-DATA.
+
+           
+             ASSIGN _U._OBJECT-OBJ = 0. 
+             FOR EACH x_U WHERE x_U._WINDOW-HANDLE = _U._WINDOW-HANDLE AND
+                              x_U._STATUS = "NORMAL":U AND
+                              NOT x_U._NAME BEGINS "_LBL-":U AND
+                              x_U._TYPE NE "WINDOW":U AND
+                              x_U._TYPE NE "FRAME":U:
+                IF VALID-HANDLE(x_U._HANDLE) AND x_U._OBJECT-OBJ <> ? THEN
+                   ASSIGN x_U._HANDLE:PRIVATE-DATA = STRING(x_U._OBJECT-OBJ) + CHR(4) + x_U._HANDLE:PRIVATE-DATA.
+                ASSIGN x_U._OBJECT-OBJ = 0.
+             END.
+          END.
+       END.
+
+       /* The design action might have been "NEW", but now object is save. So the
+          action is changed to "OPEN". */
+       IF lNew THEN
+         ASSIGN _P.design_action  = REPLACE(_P.design_action, "NEW":U, "OPEN":U).
+
+       RUN setstatus ("WAIT":U,"Saving object...":U).
+
+       /* Here's where we save the dynamic object */
+       RUN ry/prc/rygendynp.p (INPUT RECID(_P), OUTPUT cError).
+       
+       RUN setstatus ("":U, "":U).
+
+       IF (cError <> "") THEN
+       DO:
+          MESSAGE "Object was not saved to the repository." SKIP(1)
+             cError
+             VIEW-AS ALERT-BOX.
+          IF lNew THEN
+             ASSIGN _P._SAVE-AS-FILE = ?
+                    _P.design_action = REPLACE (_P.design_action, "OPEN":U,"NEW":U ).
+          ELSE DO:
+             /* Reset the Object-Obj fields back to their original state */
+             FIND _U WHERE RECID(_U) = _P._u-recid NO-ERROR.
+             IF AVAIL _U THEN
+             DO:
+             /* Save the object-obj values in private data in case user cancels and it needs to be rest */
+                IF VALID-HANDLE(_U._HANDLE) AND NUM-ENTRIES(_U._HANDLE:PRIVATE-DATA, CHR(4)) = 2 THEN
+                   ASSIGN _U._OBJECT-OBJ = DECIMAL(ENTRY(1,_U._HANDLE:PRIVATE-DATA, CHR(4))) 
+                          _U._HANDLE:PRIVATE-DATA = ENTRY(2,_U._HANDLE:PRIVATE-DATA, CHR(4))
+                          NO-ERROR.
+                FOR EACH x_U WHERE x_U._WINDOW-HANDLE = _U._WINDOW-HANDLE AND
+                                   x_U._STATUS = "NORMAL":U AND
+                                   NOT x_U._NAME BEGINS "_LBL-":U AND
+                                   x_U._TYPE NE "WINDOW":U AND
+                                   x_U._TYPE NE "FRAME":U:
+                   IF VALID-HANDLE(x_U._HANDLE) AND NUM-ENTRIES(x_U._HANDLE:PRIVATE-DATA, CHR(4)) = 2 THEN
+                      ASSIGN x_U._OBJECT-OBJ = DECIMAL(ENTRY(1,x_U._HANDLE:PRIVATE-DATA, CHR(4))) 
+                             x_U._HANDLE:PRIVATE-DATA = ENTRY(2,x_U._HANDLE:PRIVATE-DATA, CHR(4))
+                             NO-ERROR.
+                END.
+             END. /* End if avail _U */
+          END. /* End if existing object */
+
+          RETURN.
+       END. /* If there was an error */
+
+      /* Return the private data to it's original state */
+       IF NOT lNew AND ask_file_name THEN
+       DO:
+          FIND _U WHERE RECID(_U) = _P._u-recid NO-ERROR.
+          IF AVAIL _U THEN
+          DO:
+          /* Save the object-obj values in private data in case user cancels and it needs to be rest */
+             IF VALID-HANDLE(_U._HANDLE) AND NUM-ENTRIES(_U._HANDLE:PRIVATE-DATA, CHR(4)) = 2 THEN
+                ASSIGN _U._HANDLE:PRIVATE-DATA = ENTRY(2,_U._HANDLE:PRIVATE-DATA, CHR(4)) NO-ERROR.
+             
+             FOR EACH x_U WHERE x_U._WINDOW-HANDLE = _U._WINDOW-HANDLE AND
+                                x_U._STATUS = "NORMAL":U AND
+                                NOT x_U._NAME BEGINS "_LBL-":U AND
+                                x_U._TYPE NE "WINDOW":U AND
+                                x_U._TYPE NE "FRAME":U:
+                IF VALID-HANDLE(x_U._HANDLE) AND NUM-ENTRIES(x_U._HANDLE:PRIVATE-DATA, CHR(4)) = 2 THEN
+                   ASSIGN x_U._HANDLE:PRIVATE-DATA = ENTRY(2,x_U._HANDLE:PRIVATE-DATA, CHR(4)) NO-ERROR.
+             END.
+           END. /* End if avail _U */
+       END.
+       
+       ASSIGN
+         _P._FILE-SAVED         = TRUE
+         h_title_win            = _P._WINDOW-HANDLE:WINDOW
+         OldTitle               = h_title_win:TITLE
+         User_cancel            = NO.
+
+       RUN adeuib/_wintitl.p (h_title_win, _U._LABEL + "(" + _P.OBJECT_type_code + ")", _U._LABEL-ATTR, 
+                              _P._SAVE-AS-FILE).
+ 
+       /* Change the active window title on the Window menu. */
+       IF (h_title_win:TITLE <> OldTitle) AND VALID-HANDLE(_h_WinMenuMgr) THEN
+         RUN WinMenuChangeName IN _h_WinMenuMgr
+           (_h_WindowMenu, OldTitle, h_title_win:TITLE). 
+ 
+       /* Notify the Section Editor of the window title change. Data after 
+          "SE_PROPS" added for 19990910-003. */
+       RUN call_sew ( "SE_PROPS":U ). 
+ 
+       /* Update most recently used filelist */  
+       
+       IF _mru_filelist THEN 
+         RUN adeshar/_mrulist.p (_P.Object_fileName,IF _remote_file THEN _BrokerURL ELSE "").
+ 
+       /* IZ 776 Redisplay current filename in AB Main window. */
+       RUN display_current IN _h_uib.
+
+
+    END. /* End check for DynBrowse, DynView or DynSDO */
 
     RUN setstatus ("":U,"":U).  /* Set the cursor pointer in all windows */
     RETURN.
-    
   END. /* dynamic repository object save */          
 
-  
-  /* If there is no name, or we need to ask, then get a new file name. */
-  IF ask_file_name OR _save_file eq ? THEN DO:
+  /* If there is no name, or we need to ask, or if there was a wizard which 
+     assigned a product_module, then get a new file name. */
+  IF ask_file_name OR _save_file = ?  THEN 
+  DO:
     /* When saving a new file or saving an existing file as something
        else we need to update the MRU filelist after the save is done */
-    lMRUSave = TRUE.
+    ASSIGN lMRUSave    = TRUE.
     /*  If we can't find the file, that means this is a new file. */
-    IF _save_file = ? THEN DO:
-      IF _P._html-file ne "":U THEN DO:
+    
+    IF _save_file = ?
+    THEN DO:
+      IF _P._html-file <> "":U
+      THEN DO:
         /* Set the filename to be like the name of the HTML file. */
         ASSIGN 
-          cSaveFile = IF _remote_file THEN _P._html-file
+          cSaveFile = IF _remote_file
+                      THEN _P._html-file
                       ELSE SEARCH(_P._html-file)
           ix        = R-INDEX(cSaveFile, ".":U).
-        IF i > 0 AND INDEX(cSaveFile, "/":U, ix) eq 0 THEN
+        IF i > 0 AND INDEX(cSaveFile, "/":U, ix) = 0
+        THEN
           cSaveFile = SUBSTRING(cSaveFile, 1, ix - 1, "CHARACTER":U).
-          
+
         /* Watch for cases of a period in the directory, but not in the file 
            extension, e,g. /user/test.dir/myfile) */
-        IF ix > 0 AND INDEX(REPLACE(cSaveFile,"~\":U,"/":U), "/":U, ix) eq 0 THEN
+        IF ix > 0 AND INDEX(REPLACE(cSaveFile,"~\":U,"/":U), "/":U, ix) = 0
+        THEN
           ASSIGN cSaveFile = SUBSTRING(cSaveFile, 1, ix - 1, "CHARACTER":U).
-        IF _P._file-type eq "":U OR _P._file-type eq ? THEN _P._file-type eq "w":U.
-        ASSIGN _save_file = cSaveFile + ".":U + _P._file-type.
+        IF _P._file-type = "":U
+        OR _P._file-type = ?
+        THEN _P._file-type = "w":U.
+        ASSIGN
+          _save_file = cSaveFile + ".":U + _P._file-type.
       END.
-      ELSE
+      ELSE DO:
+        /* Get the current contents of the definition section 
+           and set the default filename equal to the previously entered value
+           donb-Issue 3393  */
+        RUN adeuib/_accsect.p("GET":U,
+                              ?,
+                              "DEFINITIONS":U,
+                              INPUT-OUTPUT iRecID,
+                              INPUT-OUTPUT cDefCode ).
+        ASSIGN 
+          iStart     = INDEX(cDefCode,"File:")
+          iEnd       = INDEX(cDefCode,CHR(10),iStart)
+          _save_file = IF iStart > 0 AND iEnd > 0 
+                       THEN TRIM(SUBSTRING(cDefCode,iStart + 5,  iEnd - iStart - 5 ))
+                       ELSE _save_file
+          NO-ERROR.
+
+
         /* WIN95-LFN - Win95 long filename support. jep 12/14/95 */
-        _save_file = IF LENGTH(_U._NAME, "RAW":U) < 9 OR OPSYS <> "WIN32":u
-                     THEN lc(_U._NAME) + ".":U + _P._FILE-TYPE
-                     ELSE lc(SUBSTRING(_U._NAME,1,8,"FIXED":U)) + ".":U + 
-                       _P._FILE-TYPE.
-    END.
- 
-    /* Handle cases where local file is being saved remotely or remote 
-       file is being saved locally.  Strip off the file path, since it 
-       will invariably be invalid. */
-    IF ask_file_name AND _save_file ne "" AND _save_file ne ? AND
-      ((    _remote_file AND _P._broker-url eq "") OR
-       (NOT _remote_file AND _P._broker-url ne "")) THEN DO:
+        IF _save_file = ? THEN
+          _save_file = IF LENGTH(_U._NAME, "RAW":U) < 9 OR OPSYS <> "WIN32":u
+                       THEN lc(_U._NAME) + ".":U + _P._FILE-TYPE
+                       ELSE lc(SUBSTRING(_U._NAME,1,8,"FIXED":U)) + ".":U + 
+                         _P._FILE-TYPE.
+      END.
+
+    END. /* END _Save-file = ? */
+
+      /* Handle cases where local file is being saved remotely or remote file is being saved locally.
+         Strip off the file path, since it will invariably be invalid. */
+    IF ask_file_name  AND _save_file <> "" AND _save_file <> ?
+       AND ((   _remote_file AND _P._broker-url =  "")
+       OR  (NOT _remote_file AND _P._broker-url <> ""))
+    THEN DO:
       RUN adecomm/_osprefx.p (_save_file, OUTPUT cPath, OUTPUT cFile).
       _save_file = cFile.
     END.
-      
-    /* Get name for an untitled, remote file, check to see if it exists and
-       is writeable. _save_file will contain the relative file path. */
-    IF _remote_file THEN
+
+    /* Get name for an untitled, remote file, check to see if it exists and is writeable.
+       _save_file will contain the relative file path. */
+    IF _remote_file
+    THEN DO:
       RUN adeweb/_webfile.w ("uib":U, "saveas":U, "Save As":U, "":U,
                              INPUT-OUTPUT _save_file, OUTPUT cTempFile, 
                              OUTPUT lOk).
-    ELSE
-      RUN adeuib/_sel_fn.p ("Save As", _save_file).
-
-    IF _save_file = ? OR (_remote_file AND NOT lOk) THEN RETURN. /* the user cancelled */
+      IF NOT lOk THEN RETURN.   /* the user cancelled */
+    END.
     ELSE DO:
-      /*
-       * If ask_file_name is set then a "save as" is occuring.
-       * Cover a situation with a OCX control. If an existing
-       * file is being saved-as something else and the OCX binary
-       * file is not using the default name, find out if the 
-       * user wants to keep or reset the OCX binary name
-       */
-      IF OPSYS = "WIN32":u THEN DO:
-        IF ask_file_name AND
-          CAN-FIND(FIRST x_U WHERE x_U._TYPE = "{&WT-CONTROL}") THEN DO:
-          /*
-           * There is a OCX control and this a save as. If the OCX binary
-           * file is not being saved in the default location then 
-           * ask the user	for direction.
-           */
-                
-          IF _P._VBX-FILE <> ? THEN DO:
-          
-            MESSAGE "Do you want to continue to save the" skip
-                    "{&WT-CONTROL} binary file in" _P._VBX-FILE + "?" skip
-                    "Choose YES to to continue; Choose NO to" skip
-                    "reset to the default location." skip
-                    VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO
-                    TITLE "Save {&WT-CONTROL} Binary File?"
-                    UPDATE lOk.
-        
-            IF lOk = no THEN _P._VBX-FILE = ?.
-          END.
-        END.
-      END. /* MS-WINDOWS OCX */
+       /* Check whether wizard previously saved the filename and module */
+      IF lICFRunning AND _P.Product_module_code > "" THEN
+      DO: /* Run wizard confirmation dialog */
+         ASSIGN _P._SAVE-AS-FILE = _save_file.
 
-      /* If the filename doesn't have an extension, use the proc type extension. - jep */
-      RUN adecomm/_osfext.p
-          (INPUT  _save_file , OUTPUT File_Ext ).
-      IF (File_Ext = "") THEN
-        ASSIGN _save_file = _save_file + "." + _P._FILE-TYPE.
- 
-      /*  Make sure that we have the full pathname of the local file, not
-          just a local path. Build the full pathname.  */
-      IF NOT _remote_file THEN DO:
-        FILE-INFO:FILE-NAME = _save_file.
-        IF FILE-INFO:FULL-PATHNAME = ? THEN DO:
-          /* Figure out the current path, but first, figure out if the
-             proposed name already is a fully qualified name. 
-             If the path is "?" then there was no path. The _save_file 
-             is a simple name. Build a full path for it.  */
-          RUN adecomm/_osprefx.p(_save_file, OUTPUT cPath, OUTPUT cFile).
-          IF (LENGTH(cPath) = 0) THEN DO:
-            FILE-INFO:FILE-NAME = ".":U.
-            RUN adecomm/_osfmush.p(FILE-INFO:FULL-PATHNAME, _save_file,
-                                   OUTPUT _save_file).
-          END.
-        END.
-        ELSE _save_file = FILE-INFO:FULL-PATHNAME.
-      END. /* NOT remote_file */
+         /* IZ 9872 and IZ 9903 Workaround to be fixed properly later */
+         IF NOT VALID-HANDLE(_h_cur_widg) THEN _h_cur_widg = _h_win.
 
-      /*
-       * Now check to see if the file that the user selected is already in
-       * the list of active windows. If it is, then let the user know there
-       * is a conflict. It is up to the user to get everything figured
-       * out. We check to see if there are 2 records with the same name.
-       * If there are 0 or 1 the FIND NEXT will fail.
-       */
-      FIND d_P WHERE d_P._SAVE-AS-FILE = _save_file  AND
-                     RECID(d_P) <> RECID(_P) NO-ERROR.
-      IF AVAILABLE d_P THEN DO:
-        MESSAGE
-          "Another window uses" _save_file "to save into." SKIP
-          "Either close that window or choose another filename" SKIP
-          "for this window. The 'Save As...' operation has been cancelled."
-          VIEW-AS ALERT-BOX WARNING BUTTONS OK.
-        _save_file = ?.
+         RUN af/cod/afsvwizdw.w (INPUT IF ask_file_name THEN YES ELSE NO, 
+                                 OUTPUT lRegisterObj,OUTPUT lOK).
+         IF NOT lOK THEN DO:
+            ASSIGN _P._SAVE-AS-FILE = ?.
+            RETURN.
+         END.
+         
+         ASSIGN _save_file = _P._SAVE-AS-FILE.
+         IF lRegisterObj THEN _P.design_ryObject = YES.
       END.
+      ELSE DO:
+         RUN adeuib/_sel_fn.p ("Save As", 
+               IF (_save_file = ? OR _save_file = "") THEN "":U 
+               ELSE ENTRY(NUM-ENTRIES(_save_file,"/":U), _save_file, "/":U)).
+         IF _save_file = ? THEN RETURN.  /* the user cancelled */
+      END.
+    END.
+
+    /*
+     * If ask_file_name is set then a "save as" is occuring.
+     * Cover a situation with a OCX control. If an existing
+     * file is being saved-as something else and the OCX binary
+     * file is not using the default name, find out if the 
+     * user wants to keep or reset the OCX binary name
+     */
+    IF OPSYS = "WIN32":U
+    THEN DO:
+      IF ask_file_name
+      AND CAN-FIND(FIRST x_U WHERE x_U._TYPE = "{&WT-CONTROL}")
+      THEN DO:
+        /* There is a OCX control and this a save as.
+           If the OCX binary file is not being saved in the default location
+           then ask the user for direction. */
+
+        IF _P._VBX-FILE <> ?
+        THEN DO:
+
+          MESSAGE "Do you want to continue to save the" SKIP
+                  "{&WT-CONTROL} binary file in" _P._VBX-FILE + "?" SKIP
+                  "Choose YES to to continue; Choose NO to" SKIP
+                  "reset to the default location." SKIP
+                  VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO
+                  TITLE "Save {&WT-CONTROL} Binary File?"
+                  UPDATE lOk.
+
+          IF lOk = NO THEN _P._VBX-FILE = ?.
+        END.
+      END.
+    END. /* MS-WINDOWS OCX */
+
+    /* If the filename doesn't have an extension, use the proc type extension. - jep */
+    RUN adecomm/_osfext.p
+        (INPUT  _save_file , OUTPUT File_Ext ).
+    IF (File_Ext = "") THEN
+      ASSIGN _save_file = _save_file + "." + _P._FILE-TYPE.
+
+    /*  Make sure that we have the full pathname of the local file,
+        not just a local path. Build the full pathname.  */
+    IF NOT _remote_file
+    THEN DO:
+      _save_file = REPLACE(_save_file,"~\":U, "/").
+      /* If filename has not been selected, fix it up */
+      FILE-INFO:FILE-NAME = _save_file.
+      IF FILE-INFO:FULL-PATHNAME = ? 
+          AND _P._save-as-path <> "":U
+          AND _P._save-as-path <> ".":U
+          AND NOT _save_file BEGINS (_P._save-as-path + "/":U) /* Don't double it */
+      THEN
+        FILE-INFO:FILE-NAME = RIGHT-TRIM(_P._save-as-path, "/":U) + "/":U + _save_file.
+
+
+      IF FILE-INFO:FULL-PATHNAME = ?
+      THEN DO:
+        /* Figure out the current path, but first, figure out if the
+           proposed name already is a fully qualified name. 
+           If the path is "?" then there was no path. The _save_file 
+           is a simple name. Build a full path for it.  */
+        RUN adecomm/_osprefx.p(_save_file, OUTPUT cPath, OUTPUT cFile).
+        IF (LENGTH(cPath) = 0)
+        THEN DO:
+          FILE-INFO:FILE-NAME = ".":U.
+          RUN adecomm/_osfmush.p(FILE-INFO:FULL-PATHNAME, _save_file,
+                                 OUTPUT _save_file).
+        END.
+      END.
+      ELSE
+        _save_file = FILE-INFO:FULL-PATHNAME.
+
+    END. /* NOT remote_file */
+
+    /*
+     * Now check to see if the file that the user selected is already in
+     * the list of active windows. If it is, then let the user know there
+     * is a conflict. It is up to the user to get everything figured
+     * out. We check to see if there are 2 records with the same name.
+     * If there are 0 or 1 the FIND NEXT will fail.
+     */
+    FIND d_P WHERE d_P._SAVE-AS-FILE = _save_file  AND
+                   RECID(d_P) <> RECID(_P) NO-ERROR.
+    IF AVAILABLE d_P THEN DO:
+      MESSAGE
+        "Another window uses" _save_file "to save into." SKIP
+        "Either close that window or choose another filename" SKIP
+        "for this window. The 'Save As...' operation has been cancelled."
+        VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+      _save_file = ?.
     END.
   END.
 
@@ -1749,7 +2274,7 @@ PROCEDURE save_window:
     /* Save remote file to a WebSpeed agent and restore web-tmp-file. */
     IF (NOT ask_file_name AND _P._broker-url <> "") OR 
        (    ask_file_name AND _remote_file        ) OR lSaveUntitled THEN DO:
-      IF NOT RETURN-VALUE BEGINS "Error":U THEN	DO:
+      IF NOT RETURN-VALUE BEGINS "Error":U THEN DO:
         ASSIGN
           cBrokerURL = IF (ask_file_name OR _P._broker-url eq "")
                        THEN _BrokerURL ELSE _P._broker-url
@@ -1804,8 +2329,8 @@ PROCEDURE save_window:
           REPEAT PRESELECT EACH _U WHERE _U._TYPE EQ "SmartObject" 
                                  AND   _U._STATUS NE "DELETED":U:
           
-	        FIND NEXT _U.
-	        FIND _S WHERE RECID(_S) = _u._x-recid.
+         FIND NEXT _U.
+         FIND _S WHERE RECID(_S) = _u._x-recid.
                            
             /* If the smartObject is the saved one */
             IF _s._file-name = _save_file THEN 
@@ -1818,14 +2343,14 @@ PROCEDURE save_window:
               AND d_P._broker-url = cBrokerUrl 
               AND VALID-HANDLE(d_p._tv-proc) THEN 
                 RUN adeuib/_recreat.p (RECID(_U)).
-	        END.
-	      END. /* repeat preselect */	
+         END.
+       END. /* repeat preselect */ 
           _h_win = hWin. /* window handle may change in  _recreat.p  */
         END.
                     
         RUN enable_widgets.                              
-	 
-		/* Refind _U that was "lost" during previous run of enable_widgets. */
+  
+  /* Refind _U that was "lost" during previous run of enable_widgets. */
         FIND _U WHERE _U._HANDLE = _h_win.
       END.
       OS-DELETE VALUE(web-tmp-file).
@@ -1866,7 +2391,7 @@ PROCEDURE save_window:
         RUN reopen-lib IN _h_mlmgr (_save_file, _P._Broker-URL).     
           
       /* Update most recently used filelist */    
-      IF lMRUSave AND _mru_filelist THEN 
+      IF lMRUSave AND _mru_filelist AND NOT lRegisterObj THEN 
         RUN adeshar/_mrulist.p (_save_file, IF _remote_file THEN _BrokerURL ELSE "").
 
       /* IZ 776 Redisplay current filename in AB Main window. */
@@ -1886,8 +2411,11 @@ PROCEDURE save_window:
        (see bug 19931206-02). */
        
     /* jep-icf: IZ 1981 Save static repository object. */
-    RUN save_window_static (INPUT RECID(_P), OUTPUT cError).
-    
+    /* Only save if user specified to register the object */
+    IF lICFRunning  AND lRegisterObj THEN 
+       RUN save_window_static (INPUT RECID(_P), OUTPUT cError).
+
+    _P.design_action = "OPEN":U.
   END. /* _save_file NE ? */
 END PROCEDURE. /* save_window */
 
@@ -1895,34 +2423,82 @@ END PROCEDURE. /* save_window */
 /* save_window_static Saves the current _P as a static repository object. */
 PROCEDURE save_window_static :
   
+/* Note this is the historical name.  This will also identify if a window is
+   to be converted to a dynamic window and save it accordingly           */
+
     DEFINE INPUT  PARAMETER pPrecid   AS RECID      NO-UNDO.
     DEFINE OUTPUT PARAMETER pError    AS CHARACTER  NO-UNDO.
     
-    DEFINE VARIABLE lPrompt     AS LOGICAL   NO-UNDO.
-    DEFINE VARIABLE cSavedPath  AS CHARACTER NO-UNDO.
-    DEFINE VARIABLE cObjPath    AS CHARACTER NO-UNDO.
-    DEFINE VARIABLE cFilename   AS CHARACTER NO-UNDO.
-    DEFINE VARIABLE cRelname    AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE lPrompt          AS LOGICAL    NO-UNDO.
+    DEFINE VARIABLE cSavedPath       AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cObjPath         AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cFilename        AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cLine            AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cLogicProc       AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cRelname         AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cObjectType      AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE dDlObj           AS DECIMAL    NO-UNDO.
+    DEFINE VARIABLE hObjectBuffer    AS HANDLE     NO-UNDO.
+    DEFINE VARIABLE hAttributeBuffer AS HANDLE     NO-UNDO.
+    DEFINE VARIABLE hAttributeTable  AS HANDLE     NO-UNDO.
+    DEFINE VARIABLE lmrusave         AS LOGICAL    NO-UNDO.
+    DEFINE VARIABLE lregLP           AS LOGICAL    NO-UNDO.
+    DEFINE VARIABLE iEnd             AS INTEGER    NO-UNDO.
+    DEFINE VARIABLE iStart           AS INTEGER    NO-UNDO.
 
     /* If we aren't running ICF, leave now. */
     IF NOT CAN-DO(_AB_Tools,"Enable-ICF") THEN RETURN.
+
+    /* Save off type code as we may need it later (IZ 6132) */
+    ASSIGN cObjectType = _P.object_type_code.
 
     FIND _P WHERE RECID(_P) = pPrecid NO-ERROR.
     IF NOT AVAILABLE _P THEN
     DO:
       RETURN.
     END.
-    
-    /* If the object isn't defined as a repository object or isn't a static object, leave. */
-    IF (_P.design_ryobject = NO) OR (_P.logical_object = YES) THEN RETURN.
-    
-    DO ON ERROR UNDO, LEAVE:
 
+    ASSIGN  lMRUSave   = CAN-DO(_P.design_action ,"NEW":u).
+
+    /* If this is a NEW static SDO and user has indicated it should be registered,
+       then the logic procedure should be registered also                      */
+    IF lMRUSave AND _P.OBJECT_type_code = "SmartDataObject":U AND 
+       _P.static_object THEN lregLP = YES.
+
+    /* If the object isn't to be defined as a repository object */
+    IF (_P.design_ryobject = NO) THEN RETURN.
+      
+    /* If the object is to be stored as a dynamic object then call rygendynp.p */
+    IF (_P.static_object = NO) THEN DO ON ERROR UNDO, LEAVE:
+
+      RUN setstatus ("WAIT":U,"Saving object...":U).
+      
+      /* The design action might have been "NEW", but now object is save. So the
+         action is changed to "OPEN". */
+      IF CAN-DO(_P.design_action, "NEW":U) THEN
+        ASSIGN _P.design_action = REPLACE(_P.design_action, "NEW":U, "OPEN":U).
+
+      RUN ry/prc/rygendynp.p (INPUT pPrecid, OUTPUT pError).
+         
+      RUN setstatus ("":U,"":U).
+
+      IF (pError <> "") THEN
+      DO ON  STOP UNDO, LEAVE ON ERROR UNDO, LEAVE:
+          MESSAGE "Object not saved to repository." SKIP(1)
+                  pError
+            VIEW-AS ALERT-BOX.
+      END.
+
+    END. /* If a dynamic or logical object */
+
+    ELSE DO ON ERROR UNDO, LEAVE:
+    
       RUN setstatus ("":U,"":U).
       
       /* The design action might have been "NEW", but now object is save. So the
          action is changed to "OPEN". */
-      ASSIGN _P.design_action     = "OPEN":U.
+      IF CAN-DO(_P.design_action, "NEW":U) THEN
+        ASSIGN _P.design_action = REPLACE(_P.design_action, "NEW":U, "OPEN":U).
 
       /* For consistent translation from AB type to repository type, reset to AB type.
          Save code will translate properly to repository type. */
@@ -1949,6 +2525,104 @@ PROCEDURE save_window_static :
       ASSIGN cRelname = REPLACE(LC(RIGHT-TRIM(cRelname, '~\/')), "~\", "/").
       ASSIGN _P.object_path = cRelname.
       
+
+      /* Prompt for Product Module if for some reason we don't have it. */
+      ASSIGN lPrompt = (_P.product_module_code = "":u).
+      
+      RUN setstatus ("WAIT":U,"Saving object...":U).
+      RUN af/sup2/afsdocrdbp.p
+        (INPUT _P._SAVE-AS-FILE, 
+         INPUT _P._TYPE, 
+         INPUT _P.product_module_code,
+         INPUT _P.object_description, 
+         INPUT _P.deployment_type,
+         INPUT _P.design_only,
+         INPUT lPrompt, /* prompt for PM */
+         OUTPUT pError).
+
+      IF pError <> "":U AND NOT pError MATCHES "directory":U THEN DO:
+        /* Don't give up yet, try the Dynamics Object Type ... IZ 6132 */
+
+          RUN af/sup2/afsdocrdbp.p
+            (INPUT _P._SAVE-AS-FILE, 
+             INPUT cObjectType, 
+             INPUT _P.product_module_code,
+             INPUT _P.object_description, 
+             INPUT _P.deployment_type,
+             INPUT _P.design_only,
+             INPUT lPrompt,  /* prompt for PM */
+             OUTPUT pError).
+      END.
+
+      /* If registering a static SDO then register its logic procedure (if specified) */
+      IF lregLP AND pError = "":U THEN DO:
+        /* Find the name of the logic procedure, only register is valid */
+        FIND _TRG WHERE _TRG._pRecid = RECID(_P) AND
+                        _TRG._tSECTION = "_CUSTOM":U AND
+                        _TRG._tEVENT = "_DEFINITIONS":U NO-ERROR.
+        IF AVAILABLE _TRG THEN DO:
+          /* Get the DATA-LOGIC-PROCEDURE line from the definitions sesction */
+          ASSIGN iStart     = INDEX(_TRG._tCode,"&GLOB DATA-LOGIC-PROCEDURE":U)
+                 iStart     = IF iStart = 0 
+                              THEN INDEX(_TRG._tCode,"&GLOBAL-DEFINE DATA-LOGIC-PROCEDURE":U)
+                              ELSE iStart
+                 iEnd       = IF iStart > 0 
+                              THEN INDEX(_TRG._tCode,".p":U, iStart)
+                              ELSE 0
+                 iEnd       = IF iEnd = 0  
+                              THEN INDEX(_TRG._tCode,CHR(10), iStart)
+                              ELSE iEnd
+                 cLine      = IF iStart > 0 AND iEnd > 0 
+                              THEN  SUBSTRING(_TRG._tCode, iStart, iEnd - iStart + 2)
+                              ELSE ""
+                 cLogicProc = IF cLine > ""
+                              THEN  TRIM(SUBSTRING(cLine,R-INDEX(cline," ":U)))
+                              ELSE "".
+          /* Default template for preprocessor is .p. Ignore this if unchanged */
+          IF cLogicProc <> ".p":U AND cLogicProc <> "" THEN DO:
+            ASSIGN ghRepositoryDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U, INPUT "RepositoryDesignManager":U).
+            IF VALID-HANDLE(ghRepositoryDesignManager) THEN DO:
+              ASSIGN hAttributeBuffer = ?
+                     hAttributeTable  = ?
+                     .
+              RUN insertObjectMaster IN ghRepositoryDesignManager 
+                  ( INPUT  cLogicProc,                               /* pcObjectName         */
+                    INPUT  "":U,                                     /* pcResultCode         */
+                    INPUT  _P.product_module_code,                   /* pcProductModuleCode  */
+                    INPUT  "DLProc":U,                               /* pcObjectTypeCode     */
+                    INPUT  "Logic Procedure for ":U + cFilename,     /* pcObjectDescription  */
+                    INPUT  "":U,                                     /* pcObjectPath         */
+                    INPUT  _P._SAVE-AS-FILE,                         /* pcSdoObjectName      */
+                    INPUT  "":U,                                     /* pcSuperProcedureName */
+                    INPUT  NO,                                       /* plIsTemplate         */
+                    INPUT  YES,                                      /* plIsStatic           */
+                    INPUT  "":U,                                     /* pcPhysicalObjectName */
+                    INPUT  NO,                                       /* plRunPersistent      */
+                    INPUT  "":U,                                     /* pcTooltipText        */
+                    INPUT  "":U,                                     /* pcRequiredDBList     */
+                    INPUT  "":U,                                     /* pcLayoutCode         */
+                    INPUT  hAttributeBuffer,
+                    INPUT  TABLE-HANDLE hAttributeTable,
+                    OUTPUT dDlObj                                   ) NO-ERROR.
+
+            END.  /* We have the handle of the Repository Design Manager */
+          END.  /* If we have a logic proc name */
+        END. /* If available _TRG */
+      END.  /* If we should attempt to register the LP */
+
+      RUN setstatus ("":U,"":U).
+          
+      IF DYNAMIC-FUNCTION("cacheObjectOnClient":U IN gshRepositoryManager,
+                        INPUT _P.object_filename,
+                        INPUT "", /* Get all Result Codes */
+                        INPUT "",  /* RunTime Attributes not applicable in design mode */
+                        INPUT YES  /* Design Mode is yes */
+                         )  
+     THEN ASSIGN 
+         hObjectBuffer = DYNAMIC-FUNC("getCacheObjectBuffer":U IN gshRepositoryManager, INPUT ?)
+           _P.SmartObject_Obj =  hObjectBuffer:BUFFER-FIELD("tSmartObjectObj":U):BUFFER-VALUE
+           _P.Object_FileName = hObjectBuffer:BUFFER-FIELD("tLogicalObjectName":U):BUFFER-VALUE
+           _P.design_RyObject = yes.
 /*
       message "Saving object..." SKIP(1)
               "File:  " _P._SAVE-AS-FILE  SKIP
@@ -1958,25 +2632,25 @@ PROCEDURE save_window_static :
               "Path:  " _P.object_path    SKIP
               "Name:  " _P.object_filename SKIP
               "Desc:  " _P.object_description SKIP
-              "Action:" _P.design_action    SKIP.
+              "Action:" _P.design_action    SKIP
+              "Object:" _P.object_filename SKIP
+              "SmartObj:" _P.smartObject_Obj SKIP
+              "ParClasses:" _P.PARENT_classes
+           VIEW-AS ALERT-BOX.
 */
-
-      /* Prompt for Product Module if for some reason we don't have it. */
-      ASSIGN lPrompt = (_P.product_module_code = "":u).
-      
-      RUN setstatus ("WAIT":U,"Saving object...":U).
-      RUN af/sup2/afsdocrdbp.p
-        (INPUT _P._SAVE-AS-FILE, INPUT _P._TYPE, INPUT _P.product_module_code,
-         INPUT _P.object_description, INPUT lPrompt /* prompt for PM */, OUTPUT pError).
-      RUN setstatus ("":U,"":U).
-        
+  
       IF (pError <> "") THEN
       DO ON  STOP UNDO, LEAVE ON ERROR UNDO, LEAVE:
           MESSAGE "Object not saved to repository." SKIP(1)
                   pError
             VIEW-AS ALERT-BOX.
       END.
-
+      ELSE
+      DO:   /* Add static registered object to mru list */
+         IF lMRUSave AND _mru_filelist  THEN 
+            RUN adeshar/_mrulist.p ( _P.Object_FileName, IF _remote_file THEN _BrokerURL ELSE "").
+         RUN display_current IN _h_uib.
+      END.
     END. /* DO ON ERROR */
   
 END PROCEDURE.  /* save_window_static */
@@ -1992,12 +2666,13 @@ END PROCEDURE.  /* save_window_static */
 PROCEDURE sensitize_main_window :
   DEFINE INPUT PARAMETER pCheck AS CHAR NO-UNDO.
   
-  DEFINE VARIABLE l            AS LOGICAL NO-UNDO.  
-  DEFINE VARIABLE lMulti       AS LOGICAL NO-UNDO.
-  DEFINE VARIABLE menu_handle  AS HANDLE  NO-UNDO.
-  DEFINE VARIABLE window-check AS LOGICAL NO-UNDO.
-  DEFINE VARIABLE widget-check AS LOGICAL NO-UNDO.
-  DEFINE VARIABLE frame_cnt    AS INTEGER INITIAL 0 NO-UNDO.
+  DEFINE VARIABLE l             AS LOGICAL           NO-UNDO.
+  DEFINE VARIABLE lDynamic      AS LOGICAL           NO-UNDO.
+  DEFINE VARIABLE lMulti        AS LOGICAL           NO-UNDO.
+  DEFINE VARIABLE menu_handle   AS HANDLE            NO-UNDO.
+  DEFINE VARIABLE window-check  AS LOGICAL           NO-UNDO.
+  DEFINE VARIABLE widget-check  AS LOGICAL           NO-UNDO.
+  DEFINE VARIABLE frame_cnt     AS INTEGER INITIAL 0 NO-UNDO.
 
   /* Decide what items to check. */
   ASSIGN widget-check = CAN-DO(pCheck, "WIDGET") 
@@ -2017,8 +2692,12 @@ PROCEDURE sensitize_main_window :
              _h_button_bar[6]:SENSITIVE = l /* run */
              _h_button_bar[7]:SENSITIVE = l /* edit */
              _h_button_bar[8]:SENSITIVE = l /* list */
-             _h_button_bar[10]:SENSITIVE = l AND _visual-obj /* color */.
-             
+             _h_button_bar[10]:SENSITIVE = l AND _visual-obj.  /* color */
+     /* IF VALID-HANDLE(_h_button_bar[11]) THEN
+         ASSIGN
+           _h_button_bar[11]:SENSITIVE = l.
+           
+     */
              /* File Menu */
       ASSIGN MENU-ITEM mi_close:SENSITIVE     IN MENU m_file = l 
              MENU-ITEM mi_close_all:SENSITIVE IN MENU m_file = l
@@ -2058,16 +2737,26 @@ PROCEDURE sensitize_main_window :
     /* Some actions depend on the _P settings. This is the
        Pages (which only work in PAGE-TARGETS) and Alternate Layouts. */
     IF NOT l THEN
-      ASSIGN mi_goto_page:SENSITIVE = NO WHEN VALID-HANDLE(mi_goto_page)
-             mi_chlayout:SENSITIVE  = NO WHEN VALID-HANDLE(mi_chlayout).
+      ASSIGN mi_goto_page:SENSITIVE    = NO WHEN VALID-HANDLE(mi_goto_page)
+             mi_chlayout:SENSITIVE     = NO WHEN VALID-HANDLE(mi_chlayout)
+             mi_chCustLayout:SENSITIVE = NO WHEN VALID-HANDLE(mi_chCustLayout)
+      .
     ELSE DO:
+      /* Determine if this is a customizable Dynamic object */
+      lICFIsRunning = DYNAMIC-FUNCTION("IsICFRunning":U) NO-ERROR.
+      IF lICFIsRunning = TRUE THEN
+         lDynamic = DYNAMIC-FUNCTION("ClassIsA" IN gshRepositoryManager, _P.object_type_code, "DynView":U) OR
+                    DYNAMIC-FUNCTION("ClassIsA" IN gshRepositoryManager, _P.object_type_code, "DynBrow":U).
+      ELSE lDynamic = FALSE.
+      
       /* Does the SmartContainer support paging. */
       ASSIGN mi_goto_page:SENSITIVE = CAN-DO(_P._links, "PAGE-TARGET")
                         WHEN VALID-HANDLE(mi_goto_page)
-             lMulti = (_P._FILE-TYPE eq "w":U)  /* Are multi-layout supported by
-                                                   this type? That is, by anything
-                                                   that is a .w file. */
+             lMulti = (_P._FILE-TYPE eq "w":U) AND NOT lDynamic
+                      /* Are multi-layout supported by this type? 
+                         That is, by anything that is a .w file. */
              mi_chlayout:SENSITIVE = lMulti WHEN VALID-HANDLE(mi_chlayout)
+             mi_chCustLayout:SENSITIVE = lDynamic WHEN VALID-HANDLE(mi_chCustLayout)
              
              /* Disable Debug for WebSpeed Web objects. */
              MENU-ITEM mi_debugger:SENSITIVE IN MENU m_compile = 
@@ -2221,25 +2910,36 @@ PROCEDURE setDataFieldEnable.
   DEFINE BUFFER x_U            FOR _U.
   DEFINE BUFFER x_P            FOR _P.
 
-  DEFINE VAR upd-fields   AS CHARACTER NO-UNDO.
-  DEFINE VAR ret-msg      AS CHARACTER NO-UNDO.
-  DEFINE VAR hSDO         AS HANDLE    NO-UNDO.
+  DEFINE VAR upd-fields    AS CHARACTER NO-UNDO.
+  DEFINE VAR ret-msg       AS CHARACTER NO-UNDO.
+  DEFINE VAR hSDO          AS HANDLE    NO-UNDO.
+  DEFINE VAR lICFIsRunning AS LOGICAL   NO-UNDO.
 
   FIND x_P WHERE RECID(x_P) = p-rec.
   
   /* Get the handle of the SDO. */
   hSDO       = DYNAMIC-FUNCTION("get-proc-hdl" IN _h_func_lib, INPUT x_P._data-object).
   IF NOT VALID-HANDLE(hSDO) THEN RETURN.
-  
+  lICFIsRunning = DYNAMIC-FUNCTION("isICFRunning":U IN THIS-PROCEDURE) NO-ERROR.
+
   /* Get the comma-list of updatable colums from the data object. */
   upd-fields = DYNAMIC-FUNCTION("getUpdatableColumns":U IN hSDO).
   /* Go through all SmartViewer fields that are not in the updatable list and set
      enable attribute to no. */
   FOR EACH x_U WHERE x_U._WINDOW-HANDLE = _h_win
                  AND x_U._DBNAME = "Temp-Tables":U
-                 AND x_U._TABLE  = "RowObject":U
-                 AND NOT CAN-DO(upd-fields, x_U._NAME):
-    x_U._ENABLE = NO.
+                 AND x_U._TABLE  = "RowObject":U:
+    IF NOT CAN-DO(upd-fields, x_U._NAME) THEN x_U._ENABLE = NO.
+    IF lICFIsRunning = TRUE AND LOOKUP(x_P.OBJECT_type_code,
+                                DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager,
+                                                  INPUT "DynView":U)) <> 0 THEN DO:
+      ASSIGN x_U._TABLE = DYNAMIC-FUNCTION("ColumnTable":U IN hSDO, x_U._NAME) NO-ERROR.
+      ASSIGN x_U._CLASS-NAME = "DataField":U
+             x_U._OBJECT-NAME = x_U._TABLE + ".":U + x_U._NAME.
+             x_U._LABEL-SOURCE = "E".
+      IF NOT VALID-HANDLE(X_U._HANDLE:POPUP-MENU) THEN
+        RUN createDataFieldPopup IN _h_uib (x_U._HANDLE).
+    END.  /* If working with a dynamic viewer */
   END.
   ret-msg = DYNAMIC-FUNCTION("shutdown-proc" IN _h_func_lib, INPUT x_P._data-object).
 END.
@@ -2369,6 +3069,11 @@ PROCEDURE setselect.
              Attributes window. */
           IF VALID-HANDLE(hAttrEd) AND hAttrEd:FILE-NAME eq "{&AttrEd}"
           THEN RUN show-attributes IN hAttrEd NO-ERROR.
+
+           /* Show the current values in the dynamic attribute window */
+          IF VALID-HANDLE(_h_menubar_proc) THEN
+             RUN Display_PropSheet IN _h_menubar_proc NO-ERROR.
+
           RUN show_control_properties (INPUT 0).
         END.
       END.     
@@ -2401,7 +3106,7 @@ PROCEDURE setxy:
   &IF {&dbgmsg_lvl} > 0 &THEN run msg_watch("setxy"). &ENDIF
 
   /* See where the user clicked and record this as the start of a draw.  */
-  /* (if we are drawing)					         */
+  /* (if we are drawing)              */
   IF _next_draw eq  ? THEN ASSIGN _frmx = ?
                                   _frmy = ?.
   ELSE DO:
@@ -2720,7 +3425,7 @@ PROCEDURE tapit.
                        }
 
     /* Move a fill-in's label */
-    IF CAN-DO("FILL-IN,COMBO-BOX":U,_U._TYPE) THEN DO:
+    IF CAN-DO("FILL-IN,COMBO-BOX,EDITOR,SELECTION-LIST,RADIO-SET,SLIDER":U,_U._TYPE) THEN DO:
       RUN adeuib/_showlbl.p (_U._HANDLE).
       _U._HANDLE:SELECTED = TRUE.
     END. /* For fill-ins and combos */
@@ -2741,6 +3446,10 @@ PROCEDURE tapit.
     /* Update the Geometry in the Attribute Window, if necessary. */
     IF VALID-HANDLE(hAttrEd) AND hAttrEd:FILE-NAME eq "{&AttrEd}"
     THEN RUN show-geometry IN hAttrEd NO-ERROR.
+
+     /* Update the Dynamic Property Sheet */
+  IF VALID-HANDLE(_h_menubar_proc) THEN
+     RUN Prop_ChangeGeometry IN _h_menubar_proc (_U._HANDLE) NO-ERROR.
 
   END.  /* For each selected object */
 
@@ -2874,9 +3583,9 @@ procedure tool_choose:
     .
             /*message "   CUSTOM REC" skip
                 "tool     " tool skip
-                "custom   "	custom skip
+                "custom   " custom skip
                 "base type" _custom._type skip
-                         view-as alert-box.	 */
+                         view-as alert-box.  */
 
   END.
   ELSE DO:
@@ -2887,10 +3596,10 @@ procedure tool_choose:
          
     /*    message "NO CUSTOM REC" skip
                 "tool     " tool skip
-                "custom   "	custom skip
+                "custom   " custom skip
                 "cType    " cType skip
                 "parse    " parse skip
-                view-as alert-box.	*/
+                view-as alert-box. */
   END.                
   /* If the click count is 1 then the user
    * moved off the POINTER.
@@ -2959,7 +3668,7 @@ procedure tool_choose:
          widget_click_cnt = 2.          
          RUN tool_lock (saveNextdraw, saveCustomdraw).
 
-       	 RETURN.
+         RETURN.
          
        END.
        ELSE
@@ -2968,7 +3677,7 @@ procedure tool_choose:
            widget_click_cnt = 1
         .
     
-	 END.
+  END.
      ELSE
        ASSIGN 
          goBack2pntr      = YES
@@ -3029,8 +3738,8 @@ procedure tool_choose:
     
       ASSIGN toolframe         = hDrawTool:FRAME
              toolframe:BGCOLOR = ?.
-	
-     	/* "Depress" the new choice widget tool by hiding it. */
+ 
+      /* "Depress" the new choice widget tool by hiding it. */
     
       ASSIGN
           hDrawTool   = _h_up_image
@@ -3042,10 +3751,10 @@ procedure tool_choose:
       ASSIGN toolframe         = hDrawTool:FRAME
              toolframe:BGCOLOR = 7.
       
-	/* For SmartObjects, the user could have chosen "NEW" or cancel from
+ /* For SmartObjects, the user could have chosen "NEW" or cancel from
      * a "CHOOSE", in which case we don't want to do anything
      */
-	IF _palette_item._TYPE <> {&P-BASIC} THEN DO: /* custom icon, SmartObject or OCX control*/
+ IF _palette_item._TYPE <> {&P-BASIC} THEN DO: /* custom icon, SmartObject or OCX control*/
       IF custom eq "NEW" THEN DO:
           IF _palette_item._New_Template <> "" THEN DO:
             FILE-INFO:FILE-NAME = _palette_item._New_Template.
@@ -3305,6 +4014,7 @@ procedure wind-close.
   DEFINE VAR lib_parent AS CHAR              NO-UNDO.
   DEFINE VAR askToSave  AS LOGICAL           NO-UNDO INITIAL FALSE.
   DEFINE VAR tmp_hSecEd AS HANDLE            NO-UNDO.
+  DEFINE VAR hPropSheet AS HANDLE            NO-UNDO.
   
   FIND _U WHERE _U._HANDLE = h_self NO-ERROR.
   FIND _P WHERE _P._u-recid eq RECID(_U).
@@ -3376,7 +4086,25 @@ procedure wind-close.
        multiple Section Editors" preference has been selected. (dma) */
     IF _multiple_section_ed THEN
       RUN call_sew ( INPUT "SE_EXIT").
-  
+
+    /* db: dynamics propertysheet unregister */
+    IF VALID-HANDLE(_h_menubar_proc) THEN
+    DO:
+        hPropSheet = DYNAMIC-FUNCTION("getpropertySheetBuffer":U IN _h_menubar_proc).
+        IF VALID-HANDLE(hpropSheet) THEN
+        DO:
+          RUN unregisterObject IN hPropSheet (INPUT _h_menuBar_proc,
+                                              INPUT STRING(_U._WINDOW-HANDLE),
+                                              INPUT "*").
+          RUN destroyObject IN hPropSheet.
+        END.
+    END.
+
+    /* Tell the dynamics property sheets, like the Container Builder to close
+       before we delete the frames, widgets, etc. */
+    IF VALID-HANDLE(_P.design_hpropsheet) THEN
+      PUBLISH "closePropSheet":U FROM _P.design_hpropsheet.
+
     /* Delete all the contained widgets. This will recursively call itself
        and delete contained frames. */
     RUN adeuib/_delet_u.p (INPUT RECID(_U), INPUT TRUE /* Trash */) .
@@ -3384,6 +4112,7 @@ procedure wind-close.
     /* Delete the procedure record */
     {adeuib/delete_p.i} 
 
+    
     /* Have we deleted the current widget */
     RUN del_cur_widg_check.
 
@@ -3509,7 +4238,7 @@ PROCEDURE wind-event:
      &ENDIF
     END.
     WHEN "WINDOW-CLOSE"     THEN RUN wind-close (SELF).
-    WHEN "WINDOW-ENTRY"     THEN DO: 
+    WHEN "WINDOW-ENTRY" OR WHEN "DIALOG-ENTRY":U THEN DO: 
       IF SELF:TYPE EQ "WINDOW" AND SELF:WINDOW-STATE NE WINDOW-MINIMIZED AND
          SELF NE _h_win THEN DO:
         IF NOT VALID-HANDLE(_h_win) THEN _h_win = SELF.

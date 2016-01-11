@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          afdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
@@ -92,7 +92,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gsmcafullo.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010002
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -123,6 +123,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &ENDIF
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
+
 
 &Scoped-define QUERY-NAME Query-Main
 
@@ -155,6 +156,11 @@ category_active
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gsmcafullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsm_category NO-LOCK ~
+    BY gsm_category.related_entity_mnemonic ~
+       BY gsm_category.category_type ~
+        BY gsm_category.category_group ~
+         BY gsm_category.category_subgroup INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsm_category NO-LOCK ~
     BY gsm_category.related_entity_mnemonic ~
@@ -245,46 +251,46 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "afdb.gsm_category"
+     _TblList          = "icfdb.gsm_category"
      _Options          = "NO-LOCK INDEXED-REPOSITION"
-     _OrdList          = "afdb.gsm_category.related_entity_mnemonic|yes,afdb.gsm_category.category_type|yes,afdb.gsm_category.category_group|yes,afdb.gsm_category.category_subgroup|yes"
-     _FldNameList[1]   > afdb.gsm_category.category_obj
+     _OrdList          = "icfdb.gsm_category.related_entity_mnemonic|yes,icfdb.gsm_category.category_type|yes,icfdb.gsm_category.category_group|yes,icfdb.gsm_category.category_subgroup|yes"
+     _FldNameList[1]   > icfdb.gsm_category.category_obj
 "category_obj" "category_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
-     _FldNameList[2]   > afdb.gsm_category.related_entity_mnemonic
-"related_entity_mnemonic" "related_entity_mnemonic" ? ? "character" ? ? ? ? ? ? yes ? no 10 yes
-     _FldNameList[3]   > afdb.gsm_category.category_type
+     _FldNameList[2]   > icfdb.gsm_category.related_entity_mnemonic
+"related_entity_mnemonic" "related_entity_mnemonic" "Related Entity" ? "character" ? ? ? ? ? ? yes ? no 10 yes
+     _FldNameList[3]   > icfdb.gsm_category.category_type
 "category_type" "category_type" ? ? "character" ? ? ? ? ? ? yes ? no 6 yes
-     _FldNameList[4]   > afdb.gsm_category.category_group
+     _FldNameList[4]   > icfdb.gsm_category.category_group
 "category_group" "category_group" ? ? "character" ? ? ? ? ? ? yes ? no 6 yes
-     _FldNameList[5]   > afdb.gsm_category.category_subgroup
+     _FldNameList[5]   > icfdb.gsm_category.category_subgroup
 "category_subgroup" "category_subgroup" ? ? "character" ? ? ? ? ? ? yes ? no 6 yes
-     _FldNameList[6]   > afdb.gsm_category.category_group_seq
+     _FldNameList[6]   > icfdb.gsm_category.category_group_seq
 "category_group_seq" "category_group_seq" ? ? "integer" ? ? ? ? ? ? yes ? no 4 yes
-     _FldNameList[7]   > afdb.gsm_category.category_label
+     _FldNameList[7]   > icfdb.gsm_category.category_label
 "category_label" "category_label" ? ? "character" ? ? ? ? ? ? yes ? no 56 yes
-     _FldNameList[8]   > afdb.gsm_category.category_description
+     _FldNameList[8]   > icfdb.gsm_category.category_description
 "category_description" "category_description" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[9]   > afdb.gsm_category.owning_entity_mnemonic
-"owning_entity_mnemonic" "owning_entity_mnemonic" ? ? "character" ? ? ? ? ? ? yes ? no 10 yes
-     _FldNameList[10]   > afdb.gsm_category.system_owned
+     _FldNameList[9]   > icfdb.gsm_category.owning_entity_mnemonic
+"owning_entity_mnemonic" "owning_entity_mnemonic" "Owning Entity" ? "character" ? ? ? ? ? ? yes ? no 10 yes
+     _FldNameList[10]   > icfdb.gsm_category.system_owned
 "system_owned" "system_owned" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[11]   > afdb.gsm_category.validation_min_length
+     _FldNameList[11]   > icfdb.gsm_category.validation_min_length
 "validation_min_length" "validation_min_length" ? ? "integer" ? ? ? ? ? ? yes ? no 4 yes
-     _FldNameList[12]   > afdb.gsm_category.validation_max_length
+     _FldNameList[12]   > icfdb.gsm_category.validation_max_length
 "validation_max_length" "validation_max_length" ? ? "integer" ? ? ? ? ? ? yes ? no 4 yes
-     _FldNameList[13]   > afdb.gsm_category.view_as_columns
+     _FldNameList[13]   > icfdb.gsm_category.view_as_columns
 "view_as_columns" "view_as_columns" ? ? "integer" ? ? ? ? ? ? yes ? no 4 yes
-     _FldNameList[14]   > afdb.gsm_category.view_as_rows
+     _FldNameList[14]   > icfdb.gsm_category.view_as_rows
 "view_as_rows" "view_as_rows" ? ? "integer" ? ? ? ? ? ? yes ? no 4 yes
-     _FldNameList[15]   > afdb.gsm_category.category_mandatory
+     _FldNameList[15]   > icfdb.gsm_category.category_mandatory
 "category_mandatory" "category_mandatory" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[16]   > afdb.gsm_category.category_active
+     _FldNameList[16]   > icfdb.gsm_category.category_active
 "category_active" "category_active" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK dTables 

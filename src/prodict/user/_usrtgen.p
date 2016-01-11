@@ -56,6 +56,7 @@ run on another database to define those tables. */
  user_env[33] = to use _Width of field or calculate.
  
 History:
+    D. McMann   09/18/02    Change SQL Width to Width
     D. McMann   08/18/00    Incresed size of max length for identifiers 200008007028
     D. McMann   08/18/00    Added support for MS SQL Server 20000727013
     D. McMann   04/13/00    Added support for long path names
@@ -171,9 +172,9 @@ FORM
           HELP "Create PROGRESS_RECID Column/Index, Shadow-Columns...?"
 
   SKIP({&VM_WID})
-    sqlwidth AT 2 label "Use Sql Width Definition"
+    sqlwidth AT 2 label "Use Width Definition"
             VIEW-AS toggle-box
-            HELP "Use the fields SQL Width Value instead of format."
+            HELP "Use the fields Width Value instead of format."
 
     SKIP({&VM_WID})
 
@@ -219,9 +220,9 @@ FORM
           HELP "Create PROGRESS_RECID Column/Index, Shadow-Columns...?"
 
   SKIP({&VM_WID})
-  sqlwidth AT 2 label "Use Sql Width Definition"
+  sqlwidth AT 2 label "Use Width Definition"
             VIEW-AS toggle-box
-            HELP "Use the fields SQL Width Value instead of format."
+            HELP "Use the fields Width Value instead of format."
 
     SKIP({&VM_WID})
   {prodict/user/userbtns.i}
@@ -257,9 +258,9 @@ FORM
           HELP "Create PROGRESS_RECID Column/Index, Shadow-Columns...?"
 
   SKIP({&VM_WIDG})
-  sqlwidth AT 2 label "Use Sql Width Definition"
+  sqlwidth AT 2 label "Use Width Definition"
             VIEW-AS toggle-box
-            HELP "Use the fields SQL Width Value instead of format."
+            HELP "Use the fields Width Value instead of format."
 
     SKIP({&VM_WID})
   "This program generates a SQL DDL program containing CREATE TABLE statements" 
@@ -299,9 +300,9 @@ FORM
   l_cmptbl label "Generate PROGRESS-Compatible Schema" COLON {&LINEUP2}
           HELP "Create PROGRESS_RECID Column/Index, Shadow-Columns...?"
   SKIP({&VM_WIDG})
-  sqlwidth AT 2 label "Use Sql Width Definition"
+  sqlwidth AT 2 label "Use Width Definition"
             VIEW-AS toggle-box
-            HELP "Use the fields SQL Width Value instead of format."
+            HELP "Use the fields Width Value instead of format."
 
     SKIP({&VM_WID})
   "This program generates a SQL DDL program containing CREATE TABLE statements" 

@@ -67,11 +67,26 @@ DEFINE TEMP-TABLE RowObject
 
   Update Notes: Created from Template rysttviewv.w
       
-      Modified: 10/15/2001        Mark Davies (MIP)
-                Changed lookup fields to use new Parent Fields and 
+  (v:010001)    Task:               UserRef:    
+                Date:   10/15/2001  Author:     Mark Davies (MIP)
+
+  Update Notes: Changed lookup fields to use new Parent Fields and 
                 Parent Filter Query properties rather than setting
                 the lookup queries manually.
----------------------------------------------------------------------------------*/
+      
+
+  (v:010002)    Task:           0   UserRef:    
+                Date:   03/07/2002  Author:     Mark Davies (MIP)
+
+  Update Notes: Fix for issue #3843 - Field security lookups function wrong.
+                This was due to the container mode not be correct for the structure viewer.
+
+  (v:010003)    Task:           0   UserRef:    
+                Date:   04/12/2002  Author:     Mark Davies (MIP)
+
+  Update Notes: Fixed issue #4316 - Token/Field/Range Security maint Errors
+
+------------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
 
@@ -107,6 +122,7 @@ DEFINE VARIABLE gcUIBMode                  AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE gcObjectQueryString        AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE gcProductModuleCode        AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE gdProductModuleObj         AS DECIMAL      NO-UNDO.
+DEFINE VARIABLE gcContainerMode            AS CHARACTER    NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -133,9 +149,10 @@ DEFINE VARIABLE gdProductModuleObj         AS DECIMAL      NO-UNDO.
 &Scoped-Define ENABLED-FIELDS RowObject.disabled 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
+&Scoped-Define DISPLAYED-FIELDS RowObject.disabled 
 &Scoped-define DISPLAYED-TABLES RowObject
 &Scoped-define FIRST-DISPLAYED-TABLE RowObject
-&Scoped-Define DISPLAYED-FIELDS RowObject.disabled 
+
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -201,8 +218,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 4.43
-         WIDTH              = 89.4.
+         HEIGHT             = 3.95
+         WIDTH              = 85.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -245,6 +262,22 @@ ASSIGN
  
 
 
+
+/* ************************  Control Triggers  ************************ */
+
+&Scoped-define SELF-NAME frMain
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL frMain vTableWin
+ON MOUSE-SELECT-DBLCLICK OF FRAME frMain
+DO:
+  MESSAGE DYNAMIC-FUNCTION("getDataValue" IN h_product_module) " - " gdProductModuleObj.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&UNDEFINE SELF-NAME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK vTableWin 
 
 
@@ -269,12 +302,20 @@ PROCEDURE addRecord :
   Parameters:  
   Notes:       
 ------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hContainer  AS HANDLE     NO-UNDO.
 
   RUN SUPER.
+  
+  {get containerSource hContainer}.
+  
+  IF VALID-HANDLE(hContainer) THEN
+    {set ContainerMode 'Add' hContainer}.
+  
+  gcContainerMode = "Add":U.
 
-  /* When a new gsm_security_structure record is being added, the object and
-     attribute lookups need to be disabled until a product module code is 
-     entered. */
+  /* When a new gsm_security_structure record is being added, the object and *
+   * attribute lookups need to be disabled until a product module code is    *
+   * entered.                                                                */
   RUN disableField IN h_object.
   RUN disableField IN h_attribute.
 
@@ -300,8 +341,8 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_product_module.product_module_codeKeyFieldgsc_product_module.product_module_objFieldLabelProduct Module CodeFieldTooltipPress F4 for Product Module LookupKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(10)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_product_module NO-LOCK
-                     BY gsc_product_module.product_module_codeQueryTablesgsc_product_moduleBrowseFieldsgsc_product_module.product_module_code,gsc_product_module.product_module_descriptionBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(10),X(35)RowsToBatch200BrowseTitleLookup Product ModulesViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOFieldNameproduct_module_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_product_module.product_module_codeKeyFieldgsc_product_module.product_module_objFieldLabelProduct Module CodeFieldTooltipPress F4 for Product Module LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(10)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_product_module NO-LOCK
+                     BY gsc_product_module.product_module_codeQueryTablesgsc_product_moduleBrowseFieldsgsc_product_module.product_module_code,gsc_product_module.product_module_descriptionBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(10),X(35)RowsToBatch200BrowseTitleLookup Product ModulesViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNameproduct_module_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_product_module ).
        RUN repositionObject IN h_product_module ( 1.10 , 28.00 ) NO-ERROR.
        RUN resizeObject IN h_product_module ( 1.00 , 57.40 ) NO-ERROR.
@@ -309,10 +350,10 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_object.object_filenameKeyFieldgsc_object.object_objFieldLabelObject FilenameFieldTooltipPress F4 for Object LookupKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object NO-LOCK,
+             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.smartobject_objFieldLabelObject FilenameFieldTooltipPress F4 for Object LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_smartobject NO-LOCK,
                      EACH gsc_product_module NO-LOCK
-                     WHERE gsc_product_module.product_module_obj = gsc_object.product_module_obj
-                     BY gsc_object.object_filenameQueryTablesgsc_object,gsc_product_moduleBrowseFieldsgsc_object.object_filename,gsc_object.object_description,gsc_product_module.product_module_codeBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(35),X(35),X(10)RowsToBatch200BrowseTitleLookup ObjectsViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldproduct_module_objParentFilterQuerygsc_object.product_module_obj = DECIMAL(~'&1~')MaintenanceObjectMaintenanceSDOFieldNameobject_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj
+                     BY ryc_smartobject.object_filenameQueryTablesryc_smartobject,gsc_product_moduleBrowseFieldsryc_smartobject.object_filename,ryc_smartobject.object_description,gsc_product_module.product_module_codeBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(35),X(35),X(10)RowsToBatch200BrowseTitleLookup ObjectsViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldproduct_module_objParentFilterQueryryc_smartobject.product_module_obj = DECIMAL(~'&1~')MaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNameobject_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_object ).
        RUN repositionObject IN h_object ( 2.10 , 28.00 ) NO-ERROR.
        RUN resizeObject IN h_object ( 1.00 , 57.40 ) NO-ERROR.
@@ -320,9 +361,9 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_instance_attribute.attribute_codeKeyFieldgsc_instance_attribute.instance_attribute_objFieldLabelAttribute CodeFieldTooltipPress F4 for Instance Attribute LookupKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_instance_attribute NO-LOCK
+             INPUT  'DisplayedFieldgsc_instance_attribute.attribute_codeKeyFieldgsc_instance_attribute.instance_attribute_objFieldLabelAttribute CodeFieldTooltipPress F4 for Instance Attribute LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_instance_attribute NO-LOCK
                      WHERE gsc_instance_attribute.attribute_type = "MEN"
-                     BY gsc_instance_attribute.attribute_codeQueryTablesgsc_instance_attributeBrowseFieldsgsc_instance_attribute.attribute_code,gsc_instance_attribute.attribute_descriptionBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(35),X(500)RowsToBatch200BrowseTitleLookup Instance AttributesViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOFieldNameinstance_attribute_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY gsc_instance_attribute.attribute_codeQueryTablesgsc_instance_attributeBrowseFieldsgsc_instance_attribute.attribute_code,gsc_instance_attribute.attribute_descriptionBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(35),X(500)RowsToBatch200BrowseTitleLookup Instance AttributesViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNameinstance_attribute_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_attribute ).
        RUN repositionObject IN h_attribute ( 3.10 , 28.00 ) NO-ERROR.
        RUN resizeObject IN h_attribute ( 1.00 , 57.40 ) NO-ERROR.
@@ -337,6 +378,31 @@ PROCEDURE adm-create-objects :
     END. /* Page 0 */
 
   END CASE.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE copyRecord vTableWin 
+PROCEDURE copyRecord :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  DEFINE VARIABLE hContainer AS HANDLE     NO-UNDO.
+
+
+  RUN SUPER.
+  {get containerSource hContainer}.
+  IF VALID-HANDLE(hContainer) THEN
+    {set ContainerMode 'Copy' hContainer}.
+  
+  gcContainerMode = "Copy":U.
+
+  /* Code placed here will execute AFTER standard behavior.    */
 
 END PROCEDURE.
 
@@ -361,6 +427,45 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE dispAllInCombos vTableWin 
+PROCEDURE dispAllInCombos :
+/*------------------------------------------------------------------------------
+  Purpose:     We'll check the 3 combos, if any of their values are 0, set their display value to <All>
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  DEFINE VARIABLE dValue          AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE hLookupFillIn   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hLoopLookup         AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iCnt            AS INTEGER    NO-UNDO.
+
+  DO iCnt = 1 TO 3:
+
+      CASE iCnt:
+          WHEN 1 THEN ASSIGN hLoopLookup = h_product_module.
+          WHEN 2 THEN ASSIGN hLoopLookup = h_object.
+          WHEN 3 THEN ASSIGN hLoopLookup = h_attribute.
+      END CASE.
+
+      {get dataValue dValue hLoopLookup}.
+
+      IF dValue = 0 
+      THEN DO:
+          {get lookupHandle hLookupFillIn hLoopLookup}.
+          ASSIGN hLookupFillIn:SCREEN-VALUE = "<All>".
+
+          /* If the user is in the lookup, select <All>, so he can just start typing without having to delete the <All> first */
+          IF SELF = hLookupFillIn THEN
+              hLookupFillIn:SET-SELECTION(1,6).
+      END.
+  END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enableFields vTableWin 
 PROCEDURE enableFields :
 /*------------------------------------------------------------------------------
@@ -376,10 +481,10 @@ DEFINE VARIABLE dObjectObj          AS DECIMAL      NO-UNDO.
   /* The object and attribute lookups need to be disabled if the product module
      obj is zero. */
   dProductModuleObj = DECIMAL(DYNAMIC-FUNCTION('getKeyFieldValue':U IN h_product_module)).
-  IF dProductModuleObj = 0 THEN 
-  DO:
-    RUN disableField IN h_object.
-    RUN disableField IN h_attribute.
+  IF dProductModuleObj = 0 
+  THEN DO:
+      RUN disableField IN h_object.
+      RUN disableField IN h_attribute.
   END.  /* if dProductModuleObj = 0 */
 
 END PROCEDURE.
@@ -394,17 +499,25 @@ PROCEDURE initializeObject :
   Parameters:  
   Notes:       
 ------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hContainer AS HANDLE     NO-UNDO.
 
   /* Code placed here will execute PRIOR to standard behavior. */
 
   {get UIBMode gcUIBMode}.   
 
   /* Subscribe to lookup events */
-  IF NOT (gcUIBMode BEGINS "DESIGN":U) THEN
-  DO:
-    SUBSCRIBE TO "lookupComplete":U IN THIS-PROCEDURE.
-    SUBSCRIBE TO "lookupDisplayComplete":U IN THIS-PROCEDURE.
+  IF NOT (gcUIBMode BEGINS "DESIGN":U) 
+  THEN DO: 
+      SUBSCRIBE TO "lookupComplete":U        IN THIS-PROCEDURE.
+      SUBSCRIBE TO "lookupDisplayComplete":U IN THIS-PROCEDURE.
+      SUBSCRIBE TO "lookupEntry":U           IN THIS-PROCEDURE.
+      SUBSCRIBE TO "initializeBrowse":U      IN THIS-PROCEDURE.
   END.
+
+  {get containerSource hContainer}.
+  /* Default Container mode to MODIFY since it will 
+     always be created with the <All> record #3843 */
+  {set ContainerMode 'Modify' hContainer}.
 
   RUN SUPER.
 
@@ -463,6 +576,9 @@ DEFINE VARIABLE iEntry          AS INTEGER      NO-UNDO.
       DYNAMIC-FUNCTION('setDataModified':U IN h_attribute, INPUT TRUE).
     END.  /* if pcKeyFieldValue blank */
   END.  /* if h_object */
+
+  RUN dispAllInCombos.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -485,44 +601,84 @@ DEFINE VARIABLE hLookupField    AS HANDLE       NO-UNDO.
 DEFINE VARIABLE iEntry          AS INTEGER      NO-UNDO.
 DEFINE VARIABLE lEnabled        AS LOGICAL      NO-UNDO.
 
-  lEnabled = DYNAMIC-FUNCTION('getFieldEnabled':U IN h_product_module).
+/* The object lookup needs to be enabled when the product module obj has   *
+ * a value and the object and attribute lookups need to be disabled if the *
+ * product module obj is zero.  The BaseQuerySring also needs to be set    *
+ * for the object lookup.                                                  */
 
-  /* The object lookup needs to be enabled when the product module obj has 
-     a value and the object and attribute lookups need to be disabled if the 
-     product module obj is zero.  The BaseQuerySring also needs to be set 
-     for the object lookup. */
-  IF phLookup = h_product_module THEN
-  DO:
+lEnabled = DYNAMIC-FUNCTION('getFieldEnabled':U IN h_product_module).
+
+IF phLookup = h_product_module 
+THEN DO:
     ASSIGN gdProductModuleObj = DECIMAL(pcKeyFieldValue) NO-ERROR.
-    IF lEnabled THEN
-    DO:
-      IF gdProductModuleObj > 0 THEN
-        RUN enableField IN h_object.
-      ELSE DO:
-        RUN disableField IN h_object.
-        RUN disableField IN h_attribute.
-      END.  /* else do */
-    END.  /* if lEnabled */
-    ASSIGN iEntry = LOOKUP("gsc_product_module.product_module_code":U, pcFieldNames).
-    IF iEntry > 0 AND gdProductModuleObj > 0 THEN
-      ASSIGN gcProductModuleCode = ENTRY(iEntry, pcFieldValues, CHR(1)).
-    ELSE
-      ASSIGN gcProductModuleCode = "":U.
-  END.  /* if h_product_module */
 
-  /* The attribute lookup needs to be enabled when the object obj has a
-     value and the attribute lookup needs to be disabled if the object 
-     obj has not value. */
-  IF phLookup = h_object THEN
-  DO:
-    ASSIGN iEntry = LOOKUP("gsc_object.object_filename":U, pcFieldNames).
-    IF iEntry > 0 AND lEnabled THEN
-    DO:
-      IF pcKeyFieldValue = "":U THEN
-        RUN disableField IN h_attribute.
-      ELSE RUN enableField IN h_attribute.
+    IF lEnabled 
+    THEN DO:
+        IF gdProductModuleObj > 0 THEN
+            RUN enableField IN h_object.
+        ELSE DO:
+            RUN disableField IN h_object.
+            RUN disableField IN h_attribute.
+        END.  /* else do */
+    END.  /* if lEnabled */
+
+    ASSIGN iEntry = LOOKUP("gsc_product_module.product_module_code":U, pcFieldNames).
+
+    IF iEntry > 0 AND gdProductModuleObj > 0 THEN
+        ASSIGN gcProductModuleCode = ENTRY(iEntry, pcFieldValues, CHR(1)).
+    ELSE
+        ASSIGN gcProductModuleCode = "":U.
+END.  /* if h_product_module */
+
+/* The attribute lookup needs to be enabled when the object obj has a *
+* value and the attribute lookup needs to be disabled if the object  *
+* obj has not value.                                                 */
+
+IF phLookup = h_object 
+THEN DO:
+    ASSIGN iEntry = LOOKUP("ryc_smartobject.object_filename":U, pcFieldNames).
+    IF iEntry > 0 AND lEnabled 
+    THEN DO:
+        IF pcKeyFieldValue = "":U THEN
+            RUN disableField IN h_attribute.
+        ELSE 
+            RUN enableField IN h_attribute.
     END.  /* if iEntry > 0 */
-  END.  /* if h_object */
+END.  /* if h_object */
+
+RUN dispAllInCombos.
+
+ASSIGN ERROR-STATUS:ERROR = NO.
+RETURN "":U.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE lookupEntry vTableWin 
+PROCEDURE lookupEntry :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER pcScreenValue            AS CHARACTER    NO-UNDO.
+DEFINE INPUT PARAMETER phLookup                 AS HANDLE       NO-UNDO. 
+
+DEFINE VARIABLE hContainer    AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hLookupFillIn AS HANDLE     NO-UNDO.
+
+  {get containerSource hContainer}.
+  {set ContainerMode gcContainerMode hContainer}.
+
+  /* If the user is in a lookup with screen value <All>, select the whole string, *
+   * so he can just start typing, instead of having to delete the <All> first.    */
+
+  {get lookupHandle hLookupFillIn phLookup}.
+
+  IF hLookupFillIn:SCREEN-VALUE = "<All>":U THEN
+      hLookupFillIn:SET-SELECTION(1,6).
 
 END PROCEDURE.
 
@@ -541,6 +697,68 @@ Notes:      This code is generated by the UIB.  DO NOT modify it.
             program as it never gets executed.
 -------------------------------------------------------------*/
   RUN "adm2\dynlookup.w *RTB-SmObj* ".
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE updateRecord vTableWin 
+PROCEDURE updateRecord :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hLoopLookup   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hLookupFillIn AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iCnt          AS INTEGER    NO-UNDO.
+
+  /* Make sure the LEAVE trigger has fired if we're in a lookup */
+
+  IF VALID-HANDLE(SELF) THEN
+      APPLY "VALUE-CHANGED":U TO SELF.
+
+  /* Code placed here will execute PRIOR to standard behavior. */
+
+  RUN SUPER.
+
+  /* Code placed here will execute AFTER standard behavior.    */
+
+  DEFINE VARIABLE hDataSource AS HANDLE     NO-UNDO.
+
+  {get DataSource hDataSource}.
+  IF VALID-HANDLE(hDataSource) THEN
+      RUN refreshRow IN hDataSource.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE updateState vTableWin 
+PROCEDURE updateState :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  DEFINE INPUT PARAMETER pcState AS CHARACTER NO-UNDO.
+  
+  DEFINE VARIABLE hContainer AS HANDLE     NO-UNDO.
+  
+  {get containerSource hContainer}.
+  
+  /* Code placed here will execute PRIOR to standard behavior. */
+
+  IF pcState = "UpdateComplete" THEN
+    gcContainerMode = "Modify":U.
+      {set ContainerMode gcContainerMode hContainer}.
+    
+  RUN SUPER( INPUT pcState).
+
+  /* Code placed here will execute AFTER standard behavior.    */
 
 END PROCEDURE.
 

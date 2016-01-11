@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          afdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" vTableWin _INLINE
@@ -87,7 +87,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gsmlgviewv.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -125,11 +125,12 @@ RowObject.login_company_short_name RowObject.login_company_name ~
 RowObject.login_company_email RowObject.login_company_disabled 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define DISPLAYED-FIELDS RowObject.login_company_code ~
 RowObject.login_company_short_name RowObject.login_company_name ~
 RowObject.login_company_email RowObject.login_company_disabled 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
+
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -147,21 +148,21 @@ RowObject.login_company_email RowObject.login_company_disabled
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     RowObject.login_company_code AT ROW 1.14 COL 31.8 COLON-ALIGNED
+     RowObject.login_company_code AT ROW 1 COL 31.72 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 37 BY 1
-     RowObject.login_company_short_name AT ROW 2.14 COL 31.8 COLON-ALIGNED
+          SIZE 78.43 BY 1
+     RowObject.login_company_short_name AT ROW 2.04 COL 31.86 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 17 BY 1
-     RowObject.login_company_name AT ROW 3.14 COL 31.8 COLON-ALIGNED
+          SIZE 34.86 BY 1
+     RowObject.login_company_name AT ROW 3.12 COL 31.72 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 72 BY 1
-     RowObject.login_company_email AT ROW 4.14 COL 31.8 COLON-ALIGNED
+          SIZE 78.43 BY 1
+     RowObject.login_company_email AT ROW 4.15 COL 31.72 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 37 BY 1
-     RowObject.login_company_disabled AT ROW 5.14 COL 33.8
+          SIZE 78.43 BY 1
+     RowObject.login_company_disabled AT ROW 5.19 COL 33.86
           VIEW-AS TOGGLE-BOX
-          SIZE 28.4 BY .81
+          SIZE 28.43 BY 1
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -201,8 +202,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 5.14
-         WIDTH              = 108.4.
+         HEIGHT             = 5.35
+         WIDTH              = 112.57.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -242,7 +243,7 @@ ASSIGN
 */  /* FRAME frMain */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK vTableWin 

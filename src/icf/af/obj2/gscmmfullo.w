@@ -124,6 +124,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -144,6 +145,8 @@ application_launch_command file_extension template_extension
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gscmmfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsc_multi_media_type NO-LOCK ~
+    BY gsc_multi_media_type.multi_media_type_code INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsc_multi_media_type NO-LOCK ~
     BY gsc_multi_media_type.multi_media_type_code INDEXED-REPOSITION.

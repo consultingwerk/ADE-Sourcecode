@@ -156,7 +156,7 @@
         FIND gsc_global_default NO-LOCK
             WHERE gsc_global_default.default_type = "RPD":U     /* RePort Data directory */
             NO-ERROR.
-        ASSIGN lv_rep_dir = (IF AVAILABLE gsc_global_default THEN REPLACE( REPLACE(gsc_global_default.default_value, "\":U,"/":U) + "/":U, "//":U, "/":U ) ELSE "":U ).
+        ASSIGN lv_rep_dir = (IF AVAILABLE gsc_global_default THEN REPLACE( REPLACE(gsc_global_default.default_value, "~\":U,"/":U) + "/":U, "//":U, "/":U ) ELSE "":U ).
         &if "{1}" = "1"
         &then
             FIND gsm_report_definition NO-LOCK

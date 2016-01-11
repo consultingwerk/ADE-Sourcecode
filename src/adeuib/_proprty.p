@@ -64,7 +64,8 @@ IF _U._TYPE = "QUERY":U THEN FIND _P WHERE _P._WINDOW-HANDLE = _U._WINDOW-HANDLE
 {adeuib/_adjcols.i}             
 
 /*  jep-icf: Open a dynamic repository object property sheet. */
-IF CAN-DO(_AB_Tools, "Enable-ICF":U) THEN
+IF CAN-DO(_AB_Tools, "Enable-ICF":U) AND 
+  NOT CAN-FIND(_F WHERE RECID(_F) = _U._x-recid) THEN
 DO:
   FIND _P WHERE _P._WINDOW-HANDLE = _U._WINDOW-HANDLE NO-ERROR.
   IF NOT AVAILABLE _P THEN
@@ -74,8 +75,9 @@ DO:
     RETURN.
   END.
 
-  /* Must be a repository object and dynamic (logical_object is YES). */
-  IF _P.design_ryobject AND _P.logical_object THEN
+  /* Must be a repository object and dynamic. */
+  IF _P.design_ryobject AND (NOT _P.static_object) AND 
+    LOOKUP(_P._TYPE,"SmartDataBrowser,SmartDataObject,SmartDataViewer":U) = 0 THEN
   DO:
     RUN showRepositoryObjectPropSheet.
     RETURN.

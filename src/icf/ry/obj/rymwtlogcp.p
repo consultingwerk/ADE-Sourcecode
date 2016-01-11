@@ -111,7 +111,7 @@ af/cod/aftemwizpw.w
 
 &scop object-name       rymwtlogcp.p
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Astra object identifying preprocessor */
 &glob   AstraPlip    yes
@@ -125,10 +125,12 @@ ASSIGN cObjectName = "{&object-name}":U.
 
 /* Data Preprocessor Definitions */
 &GLOB DATA-LOGIC-TABLE rym_wizard_tree
-&GLOB DATA-FIELD-DEFS  "ry\obj\rymwtfullo.i"
+&GLOB DATA-FIELD-DEFS  "ry/obj/rymwtfullo.i"
 
 /* Error handling definitions */
 {af/sup2/afcheckerr.i &define-only = YES}
+
+{ry/inc/ryrepprmod.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -148,6 +150,8 @@ ASSIGN cObjectName = "{&object-name}":U.
 &ENDIF
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
+
+
 
 
 
@@ -247,6 +251,54 @@ END PROCEDURE.
 &ANALYZE-RESUME
 
 {&DB-REQUIRED-END}
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initializeObject DataLogicProcedure 
+PROCEDURE initializeObject :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE rRowid             AS ROWID      NO-UNDO.
+  DEFINE VARIABLE cProfileData       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lDisplayRepository AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hDataSource        AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cProduct           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iLoop              AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cWhere             AS CHARACTER  NO-UNDO.
+  
+  ASSIGN rRowid = ?.
+  RUN getProfileData IN gshProfileManager ( INPUT        "General":U,
+                                            INPUT        "DispRepos":U,
+                                            INPUT        "DispRepos":U,
+                                            INPUT        NO,
+                                            INPUT-OUTPUT rRowid,
+                                                  OUTPUT cProfileData).
+  ASSIGN lDisplayRepository = (cProfileData EQ "YES":U).
+  rRowID = ?.
+  
+  IF NOT lDisplayRepository THEN DO:
+    DO iLoop = 1 TO NUM-ENTRIES("{&REPOSITORY-PRODUCTS}":U):
+      cProduct = TRIM(ENTRY(iLoop,"{&REPOSITORY-PRODUCTS}":U)).
+      IF cProduct = "":U THEN
+        NEXT.
+      DYNAMIC-FUNCTION("addQueryWhere":U IN TARGET-PROCEDURE, "rym_wizard_tree.product_code <> '" + cProduct + "'":U, "":U, "AND":U).
+      cWhere = "rym_wizard_tree.product_code <> '" + cProduct + "'":U + CHR(3) + CHR(3) + "AND":U.
+      cWhere = DYNAMIC-FUNCTION("fixQueryString":U IN gshSessionManager, cWhere).
+      {set manualAddQueryWhere cWhere TARGET-PROCEDURE}.
+    END.
+  END.
+
+  DYNAMIC-FUNCTION("setOpenOnInit" IN TARGET-PROCEDURE, FALSE).
+  
+  RUN SUPER.
+  
+  DYNAMIC-FUNCTION("OpenQuery" IN TARGET-PROCEDURE).
+  
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE killPlip DataLogicProcedure 
 PROCEDURE killPlip :

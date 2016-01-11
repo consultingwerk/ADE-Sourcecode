@@ -90,15 +90,18 @@ ASSIGN cObjectName = "{&object-name}":U.
 
 {af/sup2/afglobals.i}
 
-DEFINE TEMP-TABLE tt_datasource
-FIELD tt_tag   AS CHARACTER
-FIELD tt_value AS CHARACTER EXTENT {&max-crystal-fields}.
+DEFINE TEMP-TABLE tt_datasource NO-UNDO
+            FIELD tt_tag        AS CHARACTER
+            FIELD tt_value      AS CHARACTER EXTENT {&max-crystal-fields}.
 
-&scop data-engine   "DAO.DBEngine.35"
-&scop report-design "CrystalRuntime.Application.7"
-&scop report-engine "Crystal.CRPE.Application"
-&scop crpe_dll p2smon.dll    
+DEFINE VARIABLE cRegReportDesign  AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cRegReportEngine  AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cRegDataEngine    AS CHARACTER  NO-UNDO.
+
+&scop crpe_dll p2smon.dll
 &scop pixels-per-char 96
+
+DEFINE VARIABLE giMaxPageWidth    AS INTEGER    NO-UNDO INITIAL 16000.
 
 DEFINE VARIABLE ghDataObject      AS COM-HANDLE NO-UNDO.
 DEFINE VARIABLE ghWorkspace       AS COM-HANDLE NO-UNDO.
@@ -127,19 +130,19 @@ DEFINE VARIABLE gcTitle           AS CHARACTER NO-UNDO.
 DEFINE VARIABLE gcFilter          AS CHARACTER NO-UNDO.
 
 PROCEDURE CreateReportOnRuntimeDS EXTERNAL "{&CRPE_DLL}":
-    DEFINE INPUT  PARAMETER phDataObject     AS HANDLE TO LONG.
-    DEFINE INPUT  PARAMETER pcReportFile     AS CHARACTER.
-    DEFINE INPUT  PARAMETER pcFieldEfile     AS CHARACTER.
-    DEFINE INPUT  PARAMETER pcOverwrite      AS LONG.
-    DEFINE INPUT  PARAMETER pcOpenCrystal    AS LONG.
-    DEFINE RETURN PARAMETER pcReturnStatus   AS LONG.
+  DEFINE INPUT  PARAMETER phDataObject     AS HANDLE TO LONG.
+  DEFINE INPUT  PARAMETER pcReportFile     AS CHARACTER.
+  DEFINE INPUT  PARAMETER pcFieldEfile     AS CHARACTER.
+  DEFINE INPUT  PARAMETER pcOverwrite      AS LONG.
+  DEFINE INPUT  PARAMETER pcOpenCrystal    AS LONG.
+  DEFINE RETURN PARAMETER pcReturnStatus   AS LONG.
 END.
 
 PROCEDURE CreateFieldDefFile EXTERNAL "{&CRPE_DLL}":
-    DEFINE INPUT  PARAMETER phDataObject     AS HANDLE TO LONG.
-    DEFINE INPUT  PARAMETER pcFieldEfile     AS CHARACTER.
-    DEFINE INPUT  PARAMETER pcOverwrite      AS LONG.
-    DEFINE RETURN PARAMETER pcReturnStatus   AS LONG.
+  DEFINE INPUT  PARAMETER phDataObject     AS HANDLE TO LONG.
+  DEFINE INPUT  PARAMETER pcFieldEfile     AS CHARACTER.
+  DEFINE INPUT  PARAMETER pcOverwrite      AS LONG.
+  DEFINE RETURN PARAMETER pcReturnStatus   AS LONG.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -183,7 +186,7 @@ END.
                                                                         */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
@@ -326,7 +329,7 @@ PROCEDURE mip-design-report :
     DEFINE VARIABLE cInsert                       AS CHARACTER    NO-UNDO.      
     DEFINE VARIABLE cErrorMessage                 AS CHARACTER    NO-UNDO.      
 
-    CREATE {&report-engine} ghApplication NO-ERROR.
+    CREATE VALUE(cRegReportEngine) ghApplication NO-ERROR.
     IF ERROR-STATUS:ERROR OR NOT VALID-HANDLE(ghApplication) THEN DO:
       ASSIGN
         cInsert = "create of report engine failed in mip-design-report " + ERROR-STATUS:GET-MESSAGE(1)
@@ -484,7 +487,7 @@ FOR EACH tt_datasource NO-LOCK
         END.
         WHEN "F3":U THEN
         DO lv_counter = 1 TO {&max-crystal-fields}:
-            gcFieldWidths[lv_counter] = STRING(INTEGER(tt_datasource.tt_value[lv_counter]) * {&pixels-per-char}).
+            gcFieldWidths[lv_counter] = STRING( INTEGER(tt_datasource.tt_value[lv_counter]) * {&pixels-per-char} ).
         END.
         WHEN "F4":U THEN
         DO lv_counter = 1 TO {&max-crystal-fields}:
@@ -656,7 +659,7 @@ DEFINE VARIABLE cAbort                        AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE cInsert                       AS CHARACTER    NO-UNDO.      
 DEFINE VARIABLE cErrorMessage                 AS CHARACTER    NO-UNDO.      
 
-CREATE {&data-engine} ghDataObject NO-ERROR.
+CREATE VALUE(cRegDataEngine) ghDataObject NO-ERROR.
 IF ERROR-STATUS:ERROR OR NOT VALID-HANDLE(ghDataObject) THEN DO:
     ASSIGN
       cInsert = "create of data engine failed in mip-open-datasource " + ERROR-STATUS:GET-MESSAGE(1)
@@ -848,52 +851,157 @@ PROCEDURE mip-populate-report :
   Notes:       
 ------------------------------------------------------------------------------*/
 
-DEFINE INPUT PARAMETER ip_template  AS CHARACTER NO-UNDO.
-DEFINE INPUT PARAMETER ip_newreport AS CHARACTER NO-UNDO.
+  DEFINE INPUT PARAMETER ip_template            AS CHARACTER NO-UNDO.
+  DEFINE INPUT PARAMETER ip_newreport           AS CHARACTER NO-UNDO.
 
-DEFINE VARIABLE lv_returnstatus AS INTEGER NO-UNDO.
-DEFINE VARIABLE lv_counter      AS INTEGER NO-UNDO.
-DEFINE VARIABLE lv_left         AS INTEGER NO-UNDO.
-DEFINE VARIABLE lv_toowide      AS LOGICAL NO-UNDO.
+  DEFINE VARIABLE lv_returnstatus               AS INTEGER NO-UNDO.
+  DEFINE VARIABLE lv_counter                    AS INTEGER NO-UNDO.
+  DEFINE VARIABLE lv_left                       AS INTEGER NO-UNDO.
+  DEFINE VARIABLE lv_toowide                    AS LOGICAL NO-UNDO.
 
-DEFINE VARIABLE cAbort                        AS CHARACTER    NO-UNDO.      
-DEFINE VARIABLE cInsert                       AS CHARACTER    NO-UNDO.      
-DEFINE VARIABLE cErrorMessage                 AS CHARACTER    NO-UNDO.      
+  DEFINE VARIABLE lv_object_left                AS INTEGER NO-UNDO.
+  DEFINE VARIABLE lv_object_width               AS INTEGER NO-UNDO.
 
-    RUN mip-release-report IN THIS-PROCEDURE.
+  DEFINE VARIABLE lv_field_width                AS INTEGER NO-UNDO.
 
-    CREATE {&report-design} ghApplication NO-ERROR.
-    IF ERROR-STATUS:ERROR OR NOT VALID-HANDLE(ghApplication) THEN DO:
-        ASSIGN
-          cInsert = "create of report design failed in mip-populate-report " + ERROR-STATUS:GET-MESSAGE(1)
-          cErrorMessage = {af/sup2/aferrortxt.i 'AF' '15' '?' '?' cInsert}.
-        RUN showMessages IN gshSessionManager (INPUT cErrorMessage,
-                                               INPUT "ERR":U,
-                                               INPUT "OK":U,
-                                               INPUT "OK":U,
-                                               INPUT "OK":U,
-                                               INPUT "Crystal Print Error",
-                                               INPUT YES,
-                                               INPUT ?,
-                                               OUTPUT cAbort).
-        RUN mip-release-report in THIS-PROCEDURE.
-        RETURN ERROR "ADM-ERROR":U.
-    END.
+  DEFINE VARIABLE lv_section_width              AS INTEGER NO-UNDO.
+
+  DEFINE VARIABLE cAbort                        AS CHARACTER    NO-UNDO.      
+  DEFINE VARIABLE cInsert                       AS CHARACTER    NO-UNDO.      
+  DEFINE VARIABLE cErrorMessage                 AS CHARACTER    NO-UNDO.      
+
+  RUN mip-release-report IN THIS-PROCEDURE.
+
+  CREATE VALUE(cRegReportDesign) ghApplication NO-ERROR.
+
+  IF ERROR-STATUS:ERROR
+  OR NOT VALID-HANDLE(ghApplication)
+  THEN DO:
+    ASSIGN
+      cInsert = "create of report design failed in mip-populate-report " + ERROR-STATUS:GET-MESSAGE(1)
+      cErrorMessage = {af/sup2/aferrortxt.i 'AF' '15' '?' '?' cInsert}.
+    RUN showMessages IN gshSessionManager (INPUT cErrorMessage,
+                                           INPUT "ERR":U,
+                                           INPUT "OK":U,
+                                           INPUT "OK":U,
+                                           INPUT "OK":U,
+                                           INPUT "Crystal Print Error",
+                                           INPUT YES,
+                                           INPUT ?,
+                                           OUTPUT cAbort).
+    RUN mip-release-report in THIS-PROCEDURE.
+    RETURN ERROR "ADM-ERROR":U.
+  END.
+
+  /* Master */
+  ASSIGN
+    ghReport                = ghApplication:OpenReport(ip_template,1)
+    ghSections              = ghReport:Sections
+    ghReport:ReportTitle    = gcTitle
+    ghReport:ReportComments = gcFilter
+    NO-ERROR.
+
+  /* Section - Page Header */
+  ASSIGN
+    ghSection               = ghSections:Item(2) /* Page Header */
+    ghRepObjects            = ghSection:ReportObjects
+    lv_left                 = 100
+    lv_toowide              = NO
+    NO-ERROR.
+
+  IF ERROR-STATUS:ERROR
+  OR NOT VALID-HANDLE(ghApplication)
+  THEN DO:
+    ASSIGN
+      cInsert = "open of label report objects failed in mip-populate-repor " + ERROR-STATUS:GET-MESSAGE(1)
+      cErrorMessage = {af/sup2/aferrortxt.i 'AF' '15' '?' '?' cInsert}.
+    RUN showMessages IN gshSessionManager (INPUT cErrorMessage,
+                                           INPUT "ERR":U,
+                                           INPUT "OK":U,
+                                           INPUT "OK":U,
+                                           INPUT "OK":U,
+                                           INPUT "Crystal Print Error",
+                                           INPUT YES,
+                                           INPUT ?,
+                                           OUTPUT cAbort).
+    RUN mip-release-report in THIS-PROCEDURE.
+    RETURN ERROR "ADM-ERROR":U.
+  END.
+
+  ASSIGN
+    lv_section_width = ghSection:width
+    NO-ERROR.
+  IF lv_section_width = ?
+  OR lv_section_width = 0
+  THEN
+    ASSIGN
+      lv_section_width = giMaxPageWidth.
+
+  DO lv_counter = 1 to ghRepObjects:Count:
 
     ASSIGN
-        ghReport      = ghApplication:OpenReport(ip_template,1)
-        ghSections    = ghReport:Sections
-        ghSection     = ghSections:Item(2) /*Page Header*/
-        ghRepObjects  = ghSection:ReportObjects
-        lv_left        = 100 
-        lv_toowide     = NO
-        ghReport:ReportTitle    = gcTitle
-        ghReport:ReportComments = gcFilter
+      lv_field_width  = INTEGER(gcFieldWidths[lv_counter]).
+
+    IF gcFieldWidths[lv_counter] = ?
+    OR lv_field_width = 0
+    THEN
+      ASSIGN
+        lv_toowide = YES.
+
+    IF NOT lv_toowide
+    THEN DO:
+
+      ASSIGN
+        ghRepObject       = ghRepObjects:Item(lv_counter)
+        lv_object_left    = INTEGER(lv_left)
+        lv_object_width   = MIN( lv_field_width , ( lv_section_width - INTEGER(lv_left) ) )
+        ghRepObject:left  = lv_object_left
+        ghRepObject:width = lv_object_width
+        lv_left           = lv_left + lv_object_width + {&pixels-per-char}
         NO-ERROR.
 
-    IF ERROR-STATUS:ERROR OR NOT VALID-HANDLE(ghApplication) THEN DO:
+      IF ERROR-STATUS:ERROR
+      OR NOT VALID-HANDLE(ghApplication)
+      THEN DO:
         ASSIGN
-          cInsert = "open of label report objects failed in mip-populate-repor " + ERROR-STATUS:GET-MESSAGE(1)
+          cInsert       = "column label # ":U + STRING(lv_counter)
+                 + "~n" + " Width ":U         + gcFieldWidths[lv_counter]
+                 + "~n" + " Left ":U          + STRING(lv_left)
+                 + "~n" + " failed in mip-populate-report ":U
+                 + "~n" + ERROR-STATUS:GET-MESSAGE(1)
+          cErrorMessage = {af/sup2/aferrortxt.i 'AF' '15' '?' '?' cInsert}.
+        RUN showMessages IN gshSessionManager (INPUT cErrorMessage,
+                                               INPUT "ERR":U,
+                                               INPUT "OK":U,
+                                               INPUT "OK":U,
+                                               INPUT "OK":U,
+                                               INPUT "Crystal Print Error",
+                                               INPUT YES,
+                                               INPUT ?,
+                                               OUTPUT cAbort).
+
+        RUN mip-release-report in THIS-PROCEDURE.
+        RETURN ERROR "ADM-ERROR":U.
+      END.
+
+      ghRepObject:settext(SUBSTRING(gcFieldLabels[lv_counter],1,INTEGER(INTEGER(ghRepObject:width) / {&pixels-per-char}))).
+
+      IF lv_left >= lv_section_width
+      THEN
+        lv_toowide = YES.
+
+    END.    
+    ELSE DO:
+
+      ASSIGN
+          ghRepObject = ghRepObjects:Item(lv_counter)
+          ghRepObject:suppress = 1
+          NO-ERROR.
+      IF ERROR-STATUS:ERROR
+      OR NOT VALID-HANDLE(ghApplication)
+      THEN DO:
+        ASSIGN
+          cInsert = "oversize column label # " + STRING(lv_counter) + " failed in mip-populate-report " + ERROR-STATUS:GET-MESSAGE(1)
           cErrorMessage = {af/sup2/aferrortxt.i 'AF' '15' '?' '?' cInsert}.
         RUN showMessages IN gshSessionManager (INPUT cErrorMessage,
                                                INPUT "ERR":U,
@@ -906,74 +1014,106 @@ DEFINE VARIABLE cErrorMessage                 AS CHARACTER    NO-UNDO.
                                                OUTPUT cAbort).
         RUN mip-release-report in THIS-PROCEDURE.
         RETURN ERROR "ADM-ERROR":U.
+      END.
+
     END.
 
+  END.
 
-    DO lv_counter = 1 to ghRepObjects:Count:
+  /* Section - Page Detail */
+  ASSIGN
+    ghSection     = ghSections:Item(3) /* Page Detail */
+    ghRepObjects  = ghSection:ReportObjects
+    lv_left       = 100
+    lv_toowide    = NO
+    NO-ERROR.
 
-        IF gcFieldWidths[lv_counter] = ? OR INTEGER(gcFieldWidths[lv_counter]) = 0 THEN lv_toowide = YES.
-        IF NOT lv_toowide THEN DO:
-            ASSIGN
-                ghRepObject = ghRepObjects:Item(lv_counter)
-                ghRepObject:left  = INTEGER(lv_left)
-                ghRepObject:width = MIN(INTEGER(gcFieldWidths[lv_counter]),16000 - INTEGER(lv_left))
-                lv_left = lv_left + ghRepObject:width + {&pixels-per-char} 
-                NO-ERROR.
-            IF ERROR-STATUS:ERROR OR NOT VALID-HANDLE(ghApplication) THEN DO:
-                ASSIGN
-                  cInsert = "column label # ":U + STRING(lv_counter) + " Width ":U + gcFieldWidths[lv_counter] + " Left ":U + STRING(lv_left) +
-                            " failed in mip-populate-report ":U + ERROR-STATUS:GET-MESSAGE(1)
-                  cErrorMessage = {af/sup2/aferrortxt.i 'AF' '15' '?' '?' cInsert}.
-                RUN showMessages IN gshSessionManager (INPUT cErrorMessage,
-                                                       INPUT "ERR":U,
-                                                       INPUT "OK":U,
-                                                       INPUT "OK":U,
-                                                       INPUT "OK":U,
-                                                       INPUT "Crystal Print Error",
-                                                       INPUT YES,
-                                                       INPUT ?,
-                                                       OUTPUT cAbort).
+  IF ERROR-STATUS:ERROR
+  OR NOT VALID-HANDLE(ghApplication)
+  THEN DO:
+    ASSIGN
+      cInsert = "open of field report objects failed in mip-populate-report " + ERROR-STATUS:GET-MESSAGE(1)
+      cErrorMessage = {af/sup2/aferrortxt.i 'AF' '15' '?' '?' cInsert}.
+    RUN showMessages IN gshSessionManager (INPUT cErrorMessage,
+                                           INPUT "ERR":U,
+                                           INPUT "OK":U,
+                                           INPUT "OK":U,
+                                           INPUT "OK":U,
+                                           INPUT "Crystal Print Error",
+                                           INPUT YES,
+                                           INPUT ?,
+                                           OUTPUT cAbort).
 
-                RUN mip-release-report in THIS-PROCEDURE.
-                RETURN ERROR "ADM-ERROR":U.
-            END.
-            ghRepObject:settext(SUBSTRING(gcFieldLabels[lv_counter],1,INTEGER(INTEGER(ghRepObject:width) / {&pixels-per-char}))).
-            IF lv_left >= 16000 THEN lv_toowide = YES.
-        END.    
-        ELSE DO:
-            ASSIGN
-                ghRepObject = ghRepObjects:Item(lv_counter)
-                ghRepObject:suppress = 1
-                NO-ERROR.
-            IF ERROR-STATUS:ERROR OR NOT VALID-HANDLE(ghApplication) THEN DO:
-                ASSIGN
-                  cInsert = "oversize column label # " + STRING(lv_counter) + " failed in mip-populate-report " + ERROR-STATUS:GET-MESSAGE(1)
-                  cErrorMessage = {af/sup2/aferrortxt.i 'AF' '15' '?' '?' cInsert}.
-                RUN showMessages IN gshSessionManager (INPUT cErrorMessage,
-                                                       INPUT "ERR":U,
-                                                       INPUT "OK":U,
-                                                       INPUT "OK":U,
-                                                       INPUT "OK":U,
-                                                       INPUT "Crystal Print Error",
-                                                       INPUT YES,
-                                                       INPUT ?,
-                                                       OUTPUT cAbort).
-                RUN mip-release-report in THIS-PROCEDURE.
-                RETURN ERROR "ADM-ERROR":U.
-            END.
-        END.    
-    END.
+
+    RUN mip-release-report in THIS-PROCEDURE.
+    RETURN ERROR "ADM-ERROR":U.
+  END.
+
+  ASSIGN
+    lv_section_width = ghSection:width
+    NO-ERROR.
+  IF lv_section_width = ?
+  OR lv_section_width = 0
+  THEN
+    ASSIGN
+      lv_section_width = giMaxPageWidth.
+
+  DO lv_counter = 1 to ghRepObjects:Count:
 
     ASSIGN
-        ghSection     = ghSections:Item(3) /*Detail*/
-        ghRepObjects  = ghSection:ReportObjects
-        lv_left        = 100
-        lv_toowide     = NO
+      lv_field_width  = INTEGER(gcFieldWidths[lv_counter]).
+
+    IF gcFieldWidths[lv_counter] = ?
+    OR lv_field_width = 0
+    THEN lv_toowide = YES.
+
+    IF NOT lv_toowide
+    THEN DO:
+
+      ASSIGN
+        ghRepObject       = ghRepObjects:Item(lv_counter)
+        lv_object_left    = INTEGER(lv_left)
+        lv_object_width   = MIN( lv_field_width , ( lv_section_width - INTEGER(lv_left) ) )
+        ghRepObject:left  = lv_object_left
+        ghRepObject:width = lv_object_width
+        lv_left           = lv_left + lv_object_width + {&pixels-per-char}
         NO-ERROR.
 
-    IF ERROR-STATUS:ERROR OR NOT VALID-HANDLE(ghApplication) THEN DO:
+      IF ERROR-STATUS:ERROR
+      OR NOT VALID-HANDLE(ghApplication)
+      THEN DO:
+          ASSIGN
+            cInsert = "field-sizing # " + STRING(lv_counter) + " failed in mip-populate-report " + ERROR-STATUS:GET-MESSAGE(1)
+            cErrorMessage = {af/sup2/aferrortxt.i 'AF' '15' '?' '?' cInsert}.
+          RUN showMessages IN gshSessionManager (INPUT cErrorMessage,
+                                                 INPUT "ERR":U,
+                                                 INPUT "OK":U,
+                                                 INPUT "OK":U,
+                                                 INPUT "OK":U,
+                                                 INPUT "Crystal Print Error",
+                                                 INPUT YES,
+                                                 INPUT ?,
+                                                 OUTPUT cAbort).
+          RUN mip-release-report in THIS-PROCEDURE.
+          RETURN ERROR "ADM-ERROR":U.
+      END.
+
+      IF lv_left >= lv_section_width
+      THEN
         ASSIGN
-          cInsert = "open of field report objects failed in mip-populate-report " + ERROR-STATUS:GET-MESSAGE(1)
+          lv_toowide = YES.
+
+    END.
+    ELSE DO:
+
+      ASSIGN
+        ghRepObject = ghRepObjects:Item(lv_counter)
+        ghRepObject:suppress = 1
+        NO-ERROR.
+      IF ERROR-STATUS:ERROR
+      OR NOT VALID-HANDLE(ghApplication) THEN DO:
+        ASSIGN
+          cInsert = "field-shrinking # " + STRING(lv_counter) + " failed in mip-populate-report " + ERROR-STATUS:GET-MESSAGE(1)
           cErrorMessage = {af/sup2/aferrortxt.i 'AF' '15' '?' '?' cInsert}.
         RUN showMessages IN gshSessionManager (INPUT cErrorMessage,
                                                INPUT "ERR":U,
@@ -984,66 +1124,17 @@ DEFINE VARIABLE cErrorMessage                 AS CHARACTER    NO-UNDO.
                                                INPUT YES,
                                                INPUT ?,
                                                OUTPUT cAbort).
-
-
         RUN mip-release-report in THIS-PROCEDURE.
         RETURN ERROR "ADM-ERROR":U.
+      END.
+
     END.
 
-    DO lv_counter = 1 to ghRepObjects:Count:
-        IF gcFieldWidths[lv_counter] = ? OR INTEGER(gcFieldWidths[lv_counter]) = 0 THEN lv_toowide = YES.
-        IF NOT lv_toowide THEN DO:
-            ASSIGN
-                ghRepObject = ghRepObjects:Item(lv_counter)
-                ghRepObject:left  = INTEGER(lv_left)
-                ghRepObject:width = MIN(INTEGER(gcFieldWidths[lv_counter]),16000 - INTEGER(lv_left))
-                lv_left = lv_left + ghRepObject:width + {&pixels-per-char} 
-                NO-ERROR.
-            IF ERROR-STATUS:ERROR OR NOT VALID-HANDLE(ghApplication) THEN DO:
-                ASSIGN
-                  cInsert = "field-sizing # " + STRING(lv_counter) + " failed in mip-populate-report " + ERROR-STATUS:GET-MESSAGE(1)
-                  cErrorMessage = {af/sup2/aferrortxt.i 'AF' '15' '?' '?' cInsert}.
-                RUN showMessages IN gshSessionManager (INPUT cErrorMessage,
-                                                       INPUT "ERR":U,
-                                                       INPUT "OK":U,
-                                                       INPUT "OK":U,
-                                                       INPUT "OK":U,
-                                                       INPUT "Crystal Print Error",
-                                                       INPUT YES,
-                                                       INPUT ?,
-                                                       OUTPUT cAbort).
-                RUN mip-release-report in THIS-PROCEDURE.
-                RETURN ERROR "ADM-ERROR":U.
-            END.
-            IF lv_left >= 16000 THEN lv_toowide = YES.
-        END.    
-        ELSE DO:
-            ASSIGN
-                ghRepObject = ghRepObjects:Item(lv_counter)
-                ghRepObject:suppress = 1
-                NO-ERROR.
-            IF ERROR-STATUS:ERROR OR NOT VALID-HANDLE(ghApplication) THEN DO:
-                ASSIGN
-                  cInsert = "field-shrinking # " + STRING(lv_counter) + " failed in mip-populate-report " + ERROR-STATUS:GET-MESSAGE(1)
-                  cErrorMessage = {af/sup2/aferrortxt.i 'AF' '15' '?' '?' cInsert}.
-                RUN showMessages IN gshSessionManager (INPUT cErrorMessage,
-                                                       INPUT "ERR":U,
-                                                       INPUT "OK":U,
-                                                       INPUT "OK":U,
-                                                       INPUT "OK":U,
-                                                       INPUT "Crystal Print Error",
-                                                       INPUT YES,
-                                                       INPUT ?,
-                                                       OUTPUT cAbort).
-                RUN mip-release-report in THIS-PROCEDURE.
-                RETURN ERROR "ADM-ERROR":U.
-            END.
-        END.            
-    END.
+  END.
 
-    ghReport:Save(ip_newreport).
+  ghReport:Save(ip_newreport).
 
-    RUN mip-release-report IN THIS-PROCEDURE.
+  RUN mip-release-report IN THIS-PROCEDURE.
 
 END PROCEDURE.
 
@@ -1070,14 +1161,24 @@ PROCEDURE mip-print-report :
 
     DEFINE VARIABLE li-int AS INTEGER.
 
-/*     MESSAGE ip_template ip_newreport.                                      */
-/*     FOR EACH tt_datasource :                                               */
-/*                                                                            */
-/*         DO li-int = 1 TO 20:                                               */
-/*         MESSAGE "Tag " tt_tag                                              */
-/*                 "Value " STRING(li-int,"99") " " tt_value[li-int]. PAUSE.  */
-/*         END.                                                               */
-/*     END.                                                                   */
+/*
+  {af/sup/afdebug.i}
+*/
+/*
+  MESSAGE
+    SKIP "Template : " ip_template
+    SKIP "Report   : " ip_newreport
+    VIEW-AS ALERT-BOX INFO BUTTONS OK.
+
+  FOR EACH tt_datasource NO-LOCK:
+    DO li-int = 1 TO 20:
+      MESSAGE
+        SKIP "Tag   : " tt_tag
+        SKIP "Value : " STRING(li-int,"99") " " tt_value[li-int]
+        VIEW-AS ALERT-BOX INFO BUTTONS OK.
+    END.
+  END.
+*/
 
     RUN mip-release-report      IN THIS-PROCEDURE.
     RUN mip-close-datasource    IN THIS-PROCEDURE ( INPUT ip_datatable,  INPUT NO           ).
@@ -1193,7 +1294,7 @@ PROCEDURE mip-view-report :
     DEFINE VARIABLE cInsert                       AS CHARACTER    NO-UNDO.      
     DEFINE VARIABLE cErrorMessage                 AS CHARACTER    NO-UNDO.      
 
-    CREATE {&report-engine} ghApplication NO-ERROR.
+    CREATE VALUE(cRegReportEngine) ghApplication NO-ERROR.
     IF ERROR-STATUS:ERROR OR NOT VALID-HANDLE(ghApplication) THEN DO:
         ASSIGN
           cInsert = "create of report engine failed in mip-view-report " + ERROR-STATUS:GET-MESSAGE(1)
@@ -1291,7 +1392,65 @@ PROCEDURE plipSetup :
   Notes:       
 ------------------------------------------------------------------------------*/
 
-{ry/app/ryplipsetu.i}
+  {ry/app/ryplipsetu.i}
+
+  /* Get the values for Crystal Reports from the Repository */
+  DEFINE VARIABLE cKeyReportDesign      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDefaultReportDesign  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cKeyReportEngine      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDefaultReportEngine  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cKeyDataEngine        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDefaultDataEngine    AS CHARACTER  NO-UNDO.
+
+  ASSIGN
+    cKeyReportDesign = "CrystalRuntime.Application"  cDefaultReportDesign = "CrystalRuntime.Application.7"
+    cKeyReportEngine = "Crystal.CRPE.Application"    cDefaultReportEngine = "Crystal.CRPE.Application"
+    cKeyDataEngine   = "DAO.DBEngine.35"             cDefaultDataEngine   = "DAO.DBEngine.35"
+    .
+
+  ASSIGN
+    cRegReportDesign = cDefaultReportDesign
+    cRegReportEngine = cDefaultReportEngine
+    cRegDataEngine   = cDefaultDataEngine
+    .
+
+  /* cRegReportDesign */
+  LOAD cKeyReportDesign BASE-KEY "HKEY_CLASSES_ROOT":U NO-ERROR.
+  IF NOT ERROR-STATUS:ERROR
+  THEN DO:
+    USE cKeyReportDesign.
+    GET-KEY-VALUE SECTION "CurVer":U KEY DEFAULT VALUE cRegReportDesign.
+  END. /* then */
+  UNLOAD cKeyReportDesign NO-ERROR.
+
+  /* cRegReportEngine */
+  LOAD cKeyReportEngine BASE-KEY "HKEY_CLASSES_ROOT":U NO-ERROR.
+  IF NOT ERROR-STATUS:ERROR
+  THEN DO:
+    ASSIGN
+      cRegReportEngine = cDefaultReportEngine.
+  END. /* then */
+  UNLOAD cKeyReportEngine NO-ERROR.
+
+  /* cRegDataEngine */
+  /* Find DAO.DBEngine.35 */
+  LOAD cKeyDataEngine BASE-KEY "HKEY_CLASSES_ROOT":U NO-ERROR.
+  IF NOT ERROR-STATUS:ERROR
+  THEN DO:
+    ASSIGN
+      cRegDataEngine = cDefaultDataEngine.
+  END. /* then */
+  UNLOAD cKeyDataEngine NO-ERROR.
+
+  /* Try and find DAO.DBEngine.36 if available
+  LOAD "DAO.DBEngine.36":U BASE-KEY "HKEY_CLASSES_ROOT":U NO-ERROR.
+  IF NOT ERROR-STATUS:ERROR
+  THEN DO:
+    ASSIGN
+      cRegDataEngine = "DAO.DBEngine.36".
+  END. /* then */
+  UNLOAD "DAO.DBEngine.36":U NO-ERROR.
+  */
 
 END PROCEDURE.
 

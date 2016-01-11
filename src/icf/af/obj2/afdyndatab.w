@@ -572,11 +572,8 @@ PROCEDURE buildQueryString :
 
   pcQuery = "FOR EACH ":U + hTable:DBNAME + ".":U + hTable:NAME + ":":U.
 
-  DELETE OBJECT hField.
   DELETE OBJECT hTable.
-  ASSIGN
-    hTable = ?
-    hField = ?.
+  ASSIGN hTable = ?.
 
 END PROCEDURE.
 
@@ -746,8 +743,6 @@ DEFINE VARIABLE cWidget                     AS CHARACTER  NO-UNDO.
 
   /* Cleanup */
   hQuery:QUERY-CLOSE.
-  DELETE OBJECT hQuery NO-ERROR.
-  ASSIGN hQuery = ?.
 
   DO iLoop = 1 TO NUM-ENTRIES(cBufferHandles):
     ASSIGN
@@ -919,13 +914,11 @@ DO WITH FRAME {&FRAME-NAME}:
   ASSIGN
     fiIndex:SCREEN-VALUE = ENTRY(2,coIndex:SCREEN-VALUE,"|":U).
 
-  IF VALID-HANDLE(hTable) THEN
-  DELETE OBJECT hTable.
-  hTable = ?.
-  IF VALID-HANDLE(hField) THEN
-  DELETE OBJECT hField.
-  hField = ?.
-
+  IF VALID-HANDLE(hTable) 
+  THEN DO:
+      DELETE OBJECT hTable.
+      hTable = ?.
+  END.
 END.
 
 END PROCEDURE.

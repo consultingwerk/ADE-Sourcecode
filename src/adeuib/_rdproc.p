@@ -91,6 +91,7 @@ REPEAT:
                WHEN "COMPILE"         THEN _P._compile         = yes.
                WHEN "APPSERVER"       THEN _P._app-srv-aware   = yes.
                WHEN "DB-AWARE"        THEN _P._DB-AWARE        = yes.
+               WHEN "NO-PROXY"        THEN _P._NO-PROXY        = yes.
              END CASE.
             i = i + 1.
            END. /* DO... */

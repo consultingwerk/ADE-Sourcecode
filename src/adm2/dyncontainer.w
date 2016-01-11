@@ -2,7 +2,6 @@
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
-DEFINE VARIABLE h_asbroker1                AS HANDLE          NO-UNDO.
 DEFINE VARIABLE h_Astra                    AS HANDLE          NO-UNDO.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS cContainer 
 /*------------------------------------------------------------------------
@@ -27,8 +26,8 @@ DEFINE VARIABLE h_Astra                    AS HANDLE          NO-UNDO.
      that this procedure's triggers and internal procedures 
      will execute in this procedure's storage, and that proper
      cleanup will occur on deletion of the procedure. */
-
-CREATE WIDGET-POOL.
+ 
+CREATE WIDGET-POOL. 
 
 /* ***************************  Definitions  ************************** */
 
@@ -58,6 +57,19 @@ CREATE WIDGET-POOL.
 /* _UIB-PREPROCESSOR-BLOCK-END */
 &ANALYZE-RESUME
 
+
+/* ************************  Function Prototypes ********************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD addDataObject cContainer 
+FUNCTION addDataObject RETURNS HANDLE
+  ( pcPhysicalObject AS CHAR,
+    pcName           AS CHAR,
+    phParent          AS HANDLE,
+    pcForeignFields  AS CHAR,
+    pcProperties     AS CHAR)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
 
 /* ***********************  Control Definitions  ********************** */
@@ -499,12 +511,11 @@ PROCEDURE serverCreateDataObjects :
    ASSIGN 
      cPhysicalObject = ENTRY(iProc,pcObjects)
      cClientName     = ENTRY(iProc,pcClientNames).
-   
    IF cPhysicalObject <> '':U THEN
    DO:
      RUN constructObject (cPhysicalObject,
                           ?,
-                          'OpenOnInit':U + CHR(4) + 'NO':U,
+                          '':U,
                           OUTPUT hObject). 
      ASSIGN
        cClientNames = cClientNames 
@@ -523,7 +534,7 @@ PROCEDURE serverCreateDataObjects :
          ENTRY(1,cForeignFields) = '':U            
          cForeignFields  = LEFT-TRIM(cForeignFields,',':U)
          iParentInstance = LOOKUP(cParent,cClientNames)
-         hParent         = WIDGET-HANDLE(ENTRY(iParentInstance,cTargets)).
+         hParent         = WIDGET-HANDLE(ENTRY(iParentInstance,cTargets)) NO-ERROR.
        
        IF VALID-HANDLE(hParent) THEN
           RUN addLink IN TARGET-PROCEDURE(hParent,'Data':u,hObject).
@@ -536,7 +547,7 @@ PROCEDURE serverCreateDataObjects :
        ASSIGN 
          cParent         = ENTRY(1,cPositionFields)  
          iParentInstance = LOOKUP(cParent,cClientNames)
-         hParent         = WIDGET-HANDLE(ENTRY(iParentInstance,cTargets)).       
+         hParent         = WIDGET-HANDLE(ENTRY(iParentInstance,cTargets)) NO-ERROR.       
        IF VALID-HANDLE(hParent) THEN
        DO:
          cFetchOnOpen = 'findRowFromObject':U    + CHR(2)
@@ -552,7 +563,14 @@ PROCEDURE serverCreateDataObjects :
        ASSIGN
          hSBO       = hObject  
          iSBOSDONum = 1.
-       RUN createObjects IN hSBO.  
+
+       {set LogicalObjectName cClientName hSBO}.
+       RUN createObjects IN hSBO. 
+       
+       {set AsDivision 'Server':U hSBO}.
+       /* Don't open during initialization */ 
+       {set OpenOnInit FALSE hSBO}. 
+
        {get ContainedDataObjects cSBOContained hSBO}.
      END.
      ELSE 
@@ -565,8 +583,6 @@ PROCEDURE serverCreateDataObjects :
 
    IF iSBOSDONum > 0 THEN
      hObject = WIDGET-HANDLE(ENTRY(iSBOSDONum,cSBOcontained)).
-
-   {get ObjectName cObjectName}.
    
    cContainedDataObjects = cContainedDataObjects 
                          + (IF iProc = 1 THEN '':U ELSE ',':U)
@@ -575,8 +591,13 @@ PROCEDURE serverCreateDataObjects :
       the objects are server objects even if this is run on a client...
       so just force it  */
    {set AsDivision 'Server':U hObject}.
-   /* let openQuery fetchFirst () */
+   /* Don't open during initialization */ 
+   {set OpenOnInit FALSE hObject}. 
+   /* set fetch on open from above ('first' or findRowFromObject) */
    {set FetchOnOpen cFetchOnOpen hObject}.
+   /* Ensure that the rowobject is not deleted 
+      (and that dynamic is used also if possible when definition is static)  */
+   {set IsRowObjectExternal TRUE hObject}.
  END.
 
   /* just as a precaution...  */
@@ -585,7 +606,9 @@ PROCEDURE serverCreateDataObjects :
  {set ContainedDataObjects cContainedDataObjects}. 
  {set ClientNames cClientNames}.
  
- RUN setContextAndInitialize IN TARGET-PROCEDURE(pcContext).
+ DYNAMIC-FUNCTION('assignContainedProperties':U IN TARGET-PROCEDURE,
+                   pcContext,
+                   '':U). 
 
 END PROCEDURE.
 
@@ -850,6 +873,72 @@ PROCEDURE serverFetchRows :
  END.
 
 END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+/* ************************  Function Implementations ***************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION addDataObject cContainer 
+FUNCTION addDataObject RETURNS HANDLE
+  ( pcPhysicalObject AS CHAR,
+    pcName           AS CHAR,
+    phParent          AS HANDLE,
+    pcForeignFields  AS CHAR,
+    pcProperties     AS CHAR) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hObject        AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cTargets       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iInstance      AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cInstanceNames AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lstarted       AS LOGICAL    NO-UNDO.
+
+  {get ContainerTarget cTargets}.
+  {get InstanceNames cInstancenames}
+
+  iInstance = LOOKUP(pcName,cInstanceNames).
+  
+  IF iInstance > 0 THEN
+  DO:
+    hObject = WIDGET-HANDLE(ENTRY(iInstance,cTargets)).
+    lstarted = TRUE.
+  END.
+  ELSE
+    RUN constructObject (pcPhysicalObject,
+                         ?,
+                         (IF pcName > '':U THEN 
+                             'LogicalObjectName':U + CHR(4) + pcName + CHR(3) +
+                             'ObjectName':U + CHR(4) + pcName + CHR(3)
+                          ELSE '':U)
+                          + 'OpenOnInit':U + CHR(4) + 'NO':U 
+                          + (IF pcProperties > '':U 
+                             THEN CHR(3) + pcProperties
+                             ELSE '':U),
+                        OUTPUT hObject). 
+
+  IF pcForeignFields > '':U THEN
+  DO:
+    /*
+    ASSIGN 
+      iParentInstance = LOOKUP(cParent,cClientNames)
+      hParent         = WIDGET-HANDLE(ENTRY(iParentInstance,cTargets)).
+    */
+    IF VALID-HANDLE(phParent) THEN
+      RUN addLink IN TARGET-PROCEDURE(phParent,'Data':u,hObject).
+      {set ForeignFields pcForeignFields hObject}.
+  END.
+  IF NOT lstarted THEN
+  DO:
+    {set FetchOnOpen '':u hObject}.
+    RUN initializeObject IN hObject.
+  END.
+
+  RETURN hObject.
+
+END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

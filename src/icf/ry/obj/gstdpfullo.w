@@ -126,6 +126,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -154,6 +155,11 @@ load_after_deployment_obj
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "ry/obj/gstdpfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gst_deployment NO-LOCK, ~
+      FIRST gsc_deploy_package WHERE gsc_deploy_package.deploy_package_obj = gst_deployment.deploy_package_obj NO-LOCK ~
+    BY gst_deployment.deploy_package_obj ~
+       BY gst_deployment.originating_site_number ~
+        BY gst_deployment.deployment_number INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gst_deployment NO-LOCK, ~
       FIRST gsc_deploy_package WHERE gsc_deploy_package.deploy_package_obj = gst_deployment.deploy_package_obj NO-LOCK ~

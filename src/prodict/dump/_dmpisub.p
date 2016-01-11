@@ -26,9 +26,10 @@
 History:
     Mario B     10/19/99    Several Bug Fixes and support for AREAS.  Added
                             warnings mechanisim.  BUG#'s  19981112-011,
-			    19990915-022, 19970814-029 (re-opened & re-fixed).
+                            19990915-022, 19970814-029 (re-opened & re-fixed).
                 20000926-011 Needed to add parameters to FileAreaMatch call
-			    
+    vap         01/29/02     Added batch-mode support (IZ# 1525)
+                            
 -----------------------------------------------------------------------------*/
 
 { prodict/dictvar.i }
@@ -52,7 +53,7 @@ FUNCTION fileAreaMatch RETURNS LOGICAL (INPUT db1FileNo AS INT,
                                         INPUT db2FileNo AS INT,
                                         INPUT db1recid  AS RECID,
                                         INPUT db2recid  AS RECID) IN h_dmputil.
-					
+                                        
 /* LANGUAGE DEPENDENCIES START */ /*----------------------------------------*/
 DEFINE VARIABLE new_lang AS CHARACTER EXTENT 20 NO-UNDO INITIAL [
   /* 1*/ "<deleted>",
@@ -94,11 +95,11 @@ FORM
     DICTDB._File._File-name   FORMAT "x(32)" SKIP
   new_lang[5] FORMAT "x(6)"
     DICTDB._Field._Field-name FORMAT "x(32)" SKIP
-  new_lang[6]  	     	      FORMAT "x(32)" SKIP(1)
-  new_lang[7]		      FORMAT "x(32)" SKIP
-  new_lang[8]		      FORMAT "x(32)" SKIP
-  new_lang[9]		      FORMAT "x(32)" SKIP
-  new_lang[10]		      FORMAT "x(30)"
+  new_lang[6]                             FORMAT "x(32)" SKIP(1)
+  new_lang[7]                      FORMAT "x(32)" SKIP
+  new_lang[8]                      FORMAT "x(32)" SKIP
+  new_lang[9]                      FORMAT "x(32)" SKIP
+  new_lang[10]                      FORMAT "x(30)"
   WITH FRAME f-help NO-LABELS NO-ATTR-SPACE ROW 3 COLUMN 1 USE-TEXT.
 
 FORM
@@ -161,31 +162,39 @@ IF which = "t" THEN _file: DO:
   DO:
      ASSIGN
        table-list.t2-name = missing
-       missing            = ?.
-     FIND DICTDB._File WHERE
-          DICTDB._File._File-name = table-list.t1-name NO-ERROR.
-     FIND DICTDB2._File WHERE
-          DICTDB2._File._File-name = table-list.t2-name NO-ERROR.
-     IF NOT fileAreaMatch(INPUT DICTDB._File._File-number,
-                          INPUT DICTDB2._File._File-number,
-                          INPUT DICTDB._File._Db-recid,
-                          INPUT DICTDB2._File._Db-recid) THEN
-     DO:
-       s_errorsLogged = TRUE.
-       OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
-       PUT STREAM err-log UNFORMATTED new_lang[12] +
-       '"' + LDBNAME("DICTDB") + "." + DICTDB._File._File-name + '"' +
-       new_lang[13] +
-       '"' + LDBNAME("DICTDB2") + "." + DICTDB2._File._File-name + '"' +
-       new_lang[14]                                                   SKIP.
-       DO i = 15 to 19:
-          PUT STREAM err-log UNFORMATTED new_lang[i]                  SKIP.
-       END.
-       PUT STREAM err-log UNFORMATTED new_lang[20]                    SKIP(1).
-       OUTPUT STREAM err-log CLOSE.
-     END.
+       missing            = ?
+       which              = "table_check," + table-list.t1-name + "," +
+                             table-list.t2-name.
   END.
 END.
+
+/* 02/01/29 vap (IZ# 1525) */
+IF which BEGINS "table_check" AND
+   NUM-ENTRIES(which) EQ 3 THEN DO:
+   FIND DICTDB._File WHERE
+        DICTDB._File._File-name = ENTRY(2, which) NO-ERROR.
+   FIND DICTDB2._File WHERE
+        DICTDB2._File._File-name = ENTRY(3, which) NO-ERROR.
+   IF NOT fileAreaMatch(INPUT DICTDB._File._File-number,
+                        INPUT DICTDB2._File._File-number,
+                        INPUT DICTDB._File._Db-recid,
+                        INPUT DICTDB2._File._Db-recid) THEN
+   DO:
+     s_errorsLogged = TRUE.
+     OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+     PUT STREAM err-log UNFORMATTED new_lang[12] +
+     '"' + LDBNAME("DICTDB") + "." + DICTDB._File._File-name + '"' +
+     new_lang[13] +
+     '"' + LDBNAME("DICTDB2") + "." + DICTDB2._File._File-name + '"' +
+     new_lang[14]                                                   SKIP.
+     DO i = 15 to 19:
+        PUT STREAM err-log UNFORMATTED new_lang[i]                  SKIP.
+     END.
+     PUT STREAM err-log UNFORMATTED new_lang[20]                    SKIP(1).
+     OUTPUT STREAM err-log CLOSE.
+   END.
+END.  /* check table area */
+/* 02/01/29 vap (IZ# 1525) */
 
 IF which = "f" THEN _field: DO:
   FOR EACH field-list WHERE
@@ -206,9 +215,9 @@ IF which = "f" THEN _field: DO:
       new_lang[10] 
       WITH FRAME f-help.
     RUN "prodict/user/_usrpick.p".
-  &ELSE	 
+  &ELSE         
     pik_text = new_lang[4] + " " + user_env[19] + ", " + 
-      	       new_lang[5] + " " + missing.
+                     new_lang[5] + " " + missing.
     DO ix = 6 TO 10:
       pik_text = pik_text + "~n" + new_lang[ix].
     END.

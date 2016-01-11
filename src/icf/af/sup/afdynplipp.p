@@ -89,12 +89,12 @@ ASSIGN cObjectName = "{&object-name}":U.
 DEFINE VARIABLE lv_last_query_cnt   AS INTEGER      NO-UNDO.
 DEFINE VARIABLE lv_last_query_list  AS CHARACTER    NO-UNDO.
 
-DEFINE TEMP-TABLE tt_datatable 
+DEFINE TEMP-TABLE tt_datatable NO-UNDO
     FIELD tt_tag AS CHARACTER 
     FIELD tt_data AS CHARACTER EXTENT {&MAX-BRW-FIELD} FORMAT "X(20)" 
     INDEX tt_main tt_tag.
 
-DEFINE TEMP-TABLE tt_filetable 
+DEFINE TEMP-TABLE tt_filetable NO-UNDO
     FIELD tt_db     AS CHARACTER format "X(20)"
     FIELD tt_type   AS CHARACTER format "X(20)"
     FIELD tt_tag    AS CHARACTER format "X(20)"
@@ -420,15 +420,10 @@ PROCEDURE mipDynamicQuery :
     DO lv_int_table = 1 TO lv_cnt_tables:
 
         lh_buffer_table[lv_int_table]:BUFFER-RELEASE.
-
-        DELETE OBJECT lh_buffer_table[lv_int_table].
-
     END.
 
 /* Close the Query */
     lh_query:QUERY-CLOSE.
-
-    DELETE OBJECT lh_query.
 
 /* Delete the Widget pool */
     DELETE WIDGET-POOL lv_widget_pool.
@@ -719,7 +714,6 @@ PROCEDURE mipGetLinkData :
     END.
 
     lh_query:QUERY-CLOSE.
-    DELETE OBJECT lh_query.
     DELETE WIDGET-POOL lv_widget_pool.
 
 END PROCEDURE.

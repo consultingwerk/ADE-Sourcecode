@@ -124,33 +124,37 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
 &Scoped-define INTERNAL-TABLES gsc_deploy_dataset
 
 /* Definitions for QUERY Query-Main                                     */
-&Scoped-Define ENABLED-FIELDS  owner_site_code dataset_code dataset_description disable_ri~
+&Scoped-Define ENABLED-FIELDS  dataset_code dataset_description disable_ri source_code_data~
+ deploy_full_data default_ado_filename xml_generation_procedure~
+ deletion_dataset deploy_additions_only enable_data_versioning
+&Scoped-define ENABLED-FIELDS-IN-gsc_deploy_dataset dataset_code ~
+dataset_description disable_ri source_code_data deploy_full_data ~
+default_ado_filename xml_generation_procedure deletion_dataset ~
+deploy_additions_only enable_data_versioning 
+&Scoped-Define DATA-FIELDS  deploy_dataset_obj dataset_code dataset_description disable_ri~
  source_code_data deploy_full_data default_ado_filename~
- xml_generation_procedure
-&Scoped-define ENABLED-FIELDS-IN-gsc_deploy_dataset owner_site_code ~
-dataset_code dataset_description disable_ri source_code_data ~
-deploy_full_data default_ado_filename xml_generation_procedure 
-&Scoped-Define DATA-FIELDS  deploy_dataset_obj owner_site_code dataset_code dataset_description~
- disable_ri source_code_data deploy_full_data default_ado_filename~
- xml_generation_procedure
+ xml_generation_procedure deletion_dataset deploy_additions_only~
+ enable_data_versioning
 &Scoped-define DATA-FIELDS-IN-gsc_deploy_dataset deploy_dataset_obj ~
-owner_site_code dataset_code dataset_description disable_ri ~
-source_code_data deploy_full_data default_ado_filename ~
-xml_generation_procedure 
+dataset_code dataset_description disable_ri source_code_data ~
+deploy_full_data default_ado_filename xml_generation_procedure ~
+deletion_dataset deploy_additions_only enable_data_versioning 
 &Scoped-Define MANDATORY-FIELDS 
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gscddfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsc_deploy_dataset NO-LOCK ~
+    BY gsc_deploy_dataset.dataset_code INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsc_deploy_dataset NO-LOCK ~
-    BY gsc_deploy_dataset.owner_site_code ~
-       BY gsc_deploy_dataset.dataset_code INDEXED-REPOSITION.
+    BY gsc_deploy_dataset.dataset_code INDEXED-REPOSITION.
 {&DB-REQUIRED-END}
 &Scoped-define TABLES-IN-QUERY-Query-Main gsc_deploy_dataset
 &Scoped-define FIRST-TABLE-IN-QUERY-Query-Main gsc_deploy_dataset
@@ -237,25 +241,29 @@ END.
 /* Query rebuild information for SmartDataObject Query-Main
      _TblList          = "icfdb.gsc_deploy_dataset"
      _Options          = "NO-LOCK INDEXED-REPOSITION"
-     _OrdList          = "icfdb.gsc_deploy_dataset.owner_site_code|yes,icfdb.gsc_deploy_dataset.dataset_code|yes"
+     _OrdList          = "icfdb.gsc_deploy_dataset.dataset_code|yes"
      _FldNameList[1]   > icfdb.gsc_deploy_dataset.deploy_dataset_obj
 "deploy_dataset_obj" "deploy_dataset_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
-     _FldNameList[2]   > icfdb.gsc_deploy_dataset.owner_site_code
-"owner_site_code" "owner_site_code" ? ? "character" ? ? ? ? ? ? yes ? no 20 yes
-     _FldNameList[3]   > icfdb.gsc_deploy_dataset.dataset_code
+     _FldNameList[2]   > icfdb.gsc_deploy_dataset.dataset_code
 "dataset_code" "dataset_code" ? ? "character" ? ? ? ? ? ? yes ? no 20 yes
-     _FldNameList[4]   > icfdb.gsc_deploy_dataset.dataset_description
+     _FldNameList[3]   > icfdb.gsc_deploy_dataset.dataset_description
 "dataset_description" "dataset_description" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[5]   > icfdb.gsc_deploy_dataset.disable_ri
+     _FldNameList[4]   > icfdb.gsc_deploy_dataset.disable_ri
 "disable_ri" "disable_ri" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[6]   > icfdb.gsc_deploy_dataset.source_code_data
+     _FldNameList[5]   > icfdb.gsc_deploy_dataset.source_code_data
 "source_code_data" "source_code_data" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[7]   > icfdb.gsc_deploy_dataset.deploy_full_data
+     _FldNameList[6]   > icfdb.gsc_deploy_dataset.deploy_full_data
 "deploy_full_data" "deploy_full_data" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[8]   > icfdb.gsc_deploy_dataset.default_ado_filename
+     _FldNameList[7]   > icfdb.gsc_deploy_dataset.default_ado_filename
 "default_ado_filename" "default_ado_filename" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[9]   > icfdb.gsc_deploy_dataset.xml_generation_procedure
+     _FldNameList[8]   > icfdb.gsc_deploy_dataset.xml_generation_procedure
 "xml_generation_procedure" "xml_generation_procedure" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
+     _FldNameList[9]   > icfdb.gsc_deploy_dataset.deletion_dataset
+"deletion_dataset" "deletion_dataset" ? ? "logical" ? ? ? ? ? ? yes ? no 15.8 yes
+     _FldNameList[10]   > icfdb.gsc_deploy_dataset.deploy_additions_only
+"deploy_additions_only" "deploy_additions_only" ? ? "logical" ? ? ? ? ? ? yes ? no 20.6 yes
+     _FldNameList[11]   > icfdb.gsc_deploy_dataset.enable_data_versioning
+"enable_data_versioning" "enable_data_versioning" ? ? "logical" ? ? ? ? ? ? yes ? no 22.2 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
@@ -311,16 +319,14 @@ PROCEDURE preTransactionValidate :
   FOR EACH RowObjUpd WHERE CAN-DO('A,C,U':U,RowObjUpd.RowMod): 
     IF (RowObjUpd.RowMod = 'U':U AND
       CAN-FIND(FIRST gsc_deploy_dataset
-        WHERE gsc_deploy_dataset.owner_site_code = RowObjUpd.owner_site_code
-          AND gsc_deploy_dataset.dataset_code = RowObjUpd.dataset_code
+        WHERE gsc_deploy_dataset.dataset_code = RowObjUpd.dataset_code
           AND ROWID(gsc_deploy_dataset) <> TO-ROWID(ENTRY(1,RowObjUpd.RowIDent))))
     OR (RowObjUpd.RowMod <> 'U':U AND
       CAN-FIND(FIRST gsc_deploy_dataset
-        WHERE gsc_deploy_dataset.owner_site_code = RowObjUpd.owner_site_code
-          AND gsc_deploy_dataset.dataset_code = RowObjUpd.dataset_code))
+        WHERE gsc_deploy_dataset.dataset_code = RowObjUpd.dataset_code))
     THEN
       ASSIGN
-        cValueList   = STRING(RowObjUpd.owner_site_code) + ', ':U + STRING(RowObjUpd.dataset_code)
+        cValueList   = STRING(RowObjUpd.dataset_code)
         cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
                       {af/sup2/aferrortxt.i 'AF' '8' 'gsc_deploy_dataset' '' "'owner_site_code, dataset_code, '" cValueList }.
   END.

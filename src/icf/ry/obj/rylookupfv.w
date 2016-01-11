@@ -154,7 +154,7 @@ DEFINE BUTTON buApply
      BGCOLOR 8 .
 
 DEFINE BUTTON buClear 
-     LABEL "C&lear" 
+     LABEL "&Clear" 
      SIZE 15 BY 1.14 TOOLTIP "Clear Filter Settings - must then press APPLY button to refresh query"
      BGCOLOR 8 .
 
@@ -365,6 +365,8 @@ ASSIGN
   ttLookCtrl.cBaseQueryString = DYNAMIC-FUNCTION('getBaseQueryString':U IN hSDF)
   ttLookCtrl.cQueryTables = DYNAMIC-FUNCTION('getQueryTables':U IN hSDF)
   ttLookCtrl.cKeyValue = DYNAMIC-FUNCTION('getDataValue':U IN hSDF)
+  ttLookCtrl.cColumnLabels = DYNAMIC-FUNCTION('getColumnLabels':U IN hSDF)
+  ttLookCtrl.cColumnFormat = DYNAMIC-FUNCTION('getColumnFormat':U IN hSDF)
   ttLookCtrl.cDisplayValue = cValue
   ttLookCtrl.cRowIdent = DYNAMIC-FUNCTION('getRowIdent':U IN hSDF)
   ttLookCtrl.iFirstRowNum = 0
@@ -385,12 +387,41 @@ IF ttLookCtrl.cKeyField <> ttLookCtrl.cDisplayedField THEN
     ttLookCtrl.cAllFieldTypes = ttLookCtrl.cAllFieldTypes + ",":U + ttLookCtrl.cDisplayDataType
     ttLookCtrl.cAllFieldFormats = ttLookCtrl.cAllFieldFormats + ",":U + ttLookCtrl.cDisplayFormat
     .
+/* Changed Browse Field Format delimiter to '|' - need to check for old lookups
+   where ',' is still used and carer for this */
+IF NUM-ENTRIES(ttLookCtrl.cBrowseFieldFormats,"|":U) <> NUM-ENTRIES(ttLookCtrl.cBrowseFieldDataTypes) THEN 
+  ASSIGN ttLookCtrl.cBrowseFieldFormats = REPLACE(ttLookCtrl.cBrowseFieldFormats,",":U,"|":U)
+         ttLookCtrl.cColumnFormat       = IF ttLookCtrl.cColumnFormat <> "":U THEN ttLookCtrl.cBrowseFieldFormats ELSE REPLACE(ttLookCtrl.cColumnFormaT,",":U,"|":U).
+IF NUM-ENTRIES(ttLookCtrl.cBrowseFieldFormats,"|":U) <> NUM-ENTRIES(ttLookCtrl.cBrowseFieldDataTypes) THEN DO:
+  /* Now we need to assign default formats depending on data types */
+  ttLookCtrl.cBrowseFieldFormats = FILL("|":U,NUM-ENTRIES(ttLookCtrl.cBrowseFieldDataTypes) - 1).
+  DO iLoop = 1 TO NUM-ENTRIES(ttLookCtrl.cBrowseFields):
+    CASE ENTRY(iLoop,ttLookCtrl.cBrowseFieldDataTypes):
+      WHEN "DECIMAL":U THEN DO:
+        IF SUBSTRING(ENTRY(iLoop,ttLookCtrl.cBrowseFields),LENGTH(ENTRY(iLoop,ttLookCtrl.cBrowseFields)) - 3,4) = "_obj":U THEN
+          ENTRY(iLoop,ttLookCtrl.cBrowseFieldFormats,"|":U) = "->>>>>>>>>>>>>>>>>>>>9.999999":U.
+        ELSE
+          ENTRY(iLoop,ttLookCtrl.cBrowseFieldFormats,"|":U) = "->>>,>>>,>>>,>>>,>>>,>>>,>>9.99":U.
+      END.
+      WHEN "LOGICAL":U THEN
+        ENTRY(iLoop,ttLookCtrl.cBrowseFieldFormats,"|":U) = "YES/NO":U.
+      WHEN "INTEGER":U THEN
+        ENTRY(iLoop,ttLookCtrl.cBrowseFieldFormats,"|":U) = "->>>,>>>,>>9":U.
+      WHEN "DATE":U THEN
+        ENTRY(iLoop,ttLookCtrl.cBrowseFieldFormats,"|":U) = "99/99/9999":U.
+      OTHERWISE 
+        ENTRY(iLoop,ttLookCtrl.cBrowseFieldFormats,"|":U) = "X(75)":U.
+    END CASE.
+  END.
+  ttLookCtrl.cColumnFormat = IF ttLookCtrl.cColumnFormat <> "":U THEN ttLookCtrl.cBrowseFieldFormats ELSE "":U.
+END.
+
 DO iLoop = 1 TO NUM-ENTRIES(ttLookCtrl.cBrowseFields):
   IF LOOKUP(ENTRY(iLoop,ttLookCtrl.cBrowseFields),ttLookCtrl.cAllFields) = 0 THEN
     ASSIGN
       ttLookCtrl.cAllFields = ttLookCtrl.cAllFields + ",":U + ENTRY(iLoop,ttLookCtrl.cBrowseFields)
       ttLookCtrl.cAllFieldTypes = ttLookCtrl.cAllFieldTypes + ",":U + ENTRY(iLoop,ttLookCtrl.cBrowseFieldDataTypes)
-      ttLookCtrl.cAllFieldFormats = ttLookCtrl.cAllFieldFormats + ",":U + ENTRY(iLoop,ttLookCtrl.cBrowseFieldFormats)
+      ttLookCtrl.cAllFieldFormats = ttLookCtrl.cAllFieldFormats + ",":U + ENTRY(iLoop,ttLookCtrl.cBrowseFieldFormats,"|":U)
       .
 END.
 DO iLoop = 1 TO NUM-ENTRIES(ttLookCtrl.cViewerLinkedFields):
@@ -407,16 +438,29 @@ RUN getBrowseLabels IN ghGASource (OUTPUT cBrowseLabels).
 
 /* populate temp-table */
 EMPTY TEMP-TABLE ttLookFilt.
+
 DO iLoop = 1 TO NUM-ENTRIES(ttLookCtrl.cBrowseFields):
+  /* Exclude extent fields */
+  IF INDEX(ENTRY(iLoop, cBrowseLabels),"[":U) > 0 THEN
+    NEXT.
   CREATE ttLookFilt.
   ASSIGN
     ttLookFilt.cFieldName = ENTRY(iLoop, ttLookCtrl.cBrowseFields)
     ttLookFilt.cFieldLabel = ENTRY(iLoop, cBrowseLabels)
-    ttLookFilt.cFieldFormat = ENTRY(iLoop, ttLookCtrl.cBrowseFieldFormats)
+    ttLookFilt.cFieldFormat = ENTRY(iLoop, ttLookCtrl.cBrowseFieldFormats,"|":U)
     ttLookFilt.cFieldDataType = ENTRY(iLoop, ttLookCtrl.cBrowseFieldDataTypes)
     ttLookFilt.cFromValue = "":U
     ttLookFilt.cToValue = "":U
     .
+    IF ttLookCtrl.cColumnFormat <> "":U AND 
+       NUM-ENTRIES(ttLookCtrl.cColumnFormat,"|":U) >= iLoop AND 
+       ENTRY(iLoop,ttLookCtrl.cColumnFormat,"|":U) <> "":U  THEN
+      ttLookFilt.cFieldFormat = ENTRY(iLoop,ttLookCtrl.cColumnFormat,"|":U).
+    IF ttLookCtrl.cColumnFormat <> "":U AND 
+       NUM-ENTRIES(ttLookCtrl.cColumnLabels) >= iLoop AND 
+       ENTRY(iLoop,ttLookCtrl.cColumnLabels) <> "":U  THEN
+      ttLookFilt.cFieldLabel = ENTRY(iLoop,ttLookCtrl.cColumnLabels).
+
     IF cFilterValue <> "":U AND
        cFilterValue <> ?    AND 
        ttLookFilt.cFieldName = cDisplayedField THEN
@@ -426,7 +470,7 @@ DO iLoop = 1 TO NUM-ENTRIES(ttLookCtrl.cBrowseFields):
 END.
 
 ASSIGN
-  ghTable = TEMP-TABLE ttLookFilt:HANDLE
+  ghTable  = TEMP-TABLE ttLookFilt:HANDLE
   ghBuffer = ghTable:DEFAULT-BUFFER-HANDLE
   . 
 
@@ -493,17 +537,17 @@ DO iLoop = 1 TO 5:
         .
     WHEN 2 THEN
       ASSIGN
-        hCurField:FORMAT = "x(20)":U
+        hCurField:FORMAT = "x(35)":U
         hCurField:LABEL = "From Value":U
         .
     WHEN 3 THEN
       ASSIGN
-        hCurField:FORMAT = "x(20)":U
+        hCurField:FORMAT = "x(35)":U
         hCurField:LABEL = "To Value":U
         .
     WHEN 4 THEN
       ASSIGN
-        hCurField:FORMAT = "x(20)":U
+        hCurField:FORMAT = "x(35)":U
         hCurField:LABEL = "Format":U
         .
     WHEN 5 THEN
@@ -712,30 +756,27 @@ PROCEDURE resizeObject :
   {get ContainerSource hContainerSource}.
   {get ContainerHandle hWindow hContainerSource}.
 
-  FRAME {&FRAME-NAME}:SCROLLABLE = FALSE.                                               
-  lPreviouslyHidden = FRAME {&FRAME-NAME}:HIDDEN.                                                           
-  FRAME {&FRAME-NAME}:HIDDEN = TRUE.
-
-
-  FRAME {&FRAME-NAME}:HEIGHT-PIXELS = hWindow:HEIGHT-PIXELS - 80.
-  FRAME {&FRAME-NAME}:WIDTH-PIXELS = hWindow:WIDTH-PIXELS - 28.
+  ASSIGN
+      lPreviouslyHidden                = FRAME {&FRAME-NAME}:HIDDEN
+      FRAME {&FRAME-NAME}:SCROLLABLE   = FALSE
+      FRAME {&FRAME-NAME}:HIDDEN       = TRUE
+      FRAME {&FRAME-NAME}:HEIGHT-CHARS = pdHeight
+      FRAME {&FRAME-NAME}:WIDTH-CHARS  = pdWidth  NO-ERROR.
 
   IF VALID-HANDLE(ghBrowse) THEN
-  DO:
-    ghBrowse:WIDTH-CHARS = FRAME {&FRAME-NAME}:WIDTH-CHARS - 2.
-    ghBrowse:HEIGHT-PIXELS = FRAME {&FRAME-NAME}:HEIGHT-PIXELS - 40.
-  END.
+    ASSIGN
+        ghBrowse:WIDTH-CHARS   = FRAME {&FRAME-NAME}:WIDTH-CHARS   - 2
+        ghBrowse:HEIGHT-PIXELS = FRAME {&FRAME-NAME}:HEIGHT-PIXELS - 40.
 
   ASSIGN
     buApply:COL = FRAME {&FRAME-NAME}:WIDTH-CHARS - buApply:WIDTH-CHARS - 1
-    buClear:COL = FRAME {&FRAME-NAME}:WIDTH-CHARS - buApply:WIDTH-CHARS - buClear:WIDTH-CHARS - 2
-    .
+    buClear:COL = FRAME {&FRAME-NAME}:WIDTH-CHARS - buApply:WIDTH-CHARS - buClear:WIDTH-CHARS - 2.
 
   APPLY "end-resize":U TO FRAME {&FRAME-NAME}.
+  
   FRAME {&FRAME-NAME}:HIDDEN = lPreviouslyHidden NO-ERROR.
 
-  IF VALID-HANDLE(ghMaintToolbar) 
-     AND glObjectVisible THEN
+  IF VALID-HANDLE(ghMaintToolbar) AND glObjectVisible THEN
     RUN hideObject IN ghMaintToolbar.
 
 END PROCEDURE.

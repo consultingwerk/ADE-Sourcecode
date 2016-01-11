@@ -70,18 +70,24 @@ af/cod/aftemwizpw.w
 
   Update Notes: Implement Wizard Controller
 
-  (v:010003)    Task:         103   UserRef:    
+  (v:010003)    Task:         103   UserRef:
                 Date:   20/03/1998  Author:     Anthony Swindells
 
   Update Notes: Fix WRX problems.
+
+  (v:010004)    Task:           0   UserRef:
+                Date:   04/23/2002  Author:     Sunil Belgaonkar
+
+  Update Notes: Changed the Image paths from af/bmp to ry/img
+                Also Changed the images from .bmp to .gif formats.
 
 ---------------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
 
-/* Create an unnamed pool to store all the widgets created 
+/* Create an unnamed pool to store all the widgets created
      by this procedure. This is a good default which assures
-     that this procedure's triggers and internal procedures 
+     that this procedure's triggers and internal procedures
      will execute in this procedure's storage, and that proper
      cleanup will occur on deletion of the procedure. */
 
@@ -95,7 +101,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       aftemwizew.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010003
+&scop object-version    000000
 
 
 
@@ -116,6 +122,7 @@ DEFINE VARIABLE l       AS LOGICAL   NO-UNDO.
 /* ********************  Preprocessor Definitions  ******************** */
 
 &Scoped-define PROCEDURE-TYPE WINDOW
+&Scoped-define DB-AWARE no
 
 /* Name of first Frame and/or Browse and/or first Query                 */
 &Scoped-define FRAME-NAME DEFAULT-FRAME
@@ -151,7 +158,7 @@ DEFINE VARIABLE msg2 AS CHARACTER FORMAT "X(256)":U INITIAL "You may now Save an
      SIZE 77.6 BY 1.05 NO-UNDO.
 
 DEFINE IMAGE IMAGE-4
-     FILENAME "af/bmp\afwizdone":U CONVERT-3D-COLORS
+     FILENAME "ry/img/afwizdone.gif":U CONVERT-3D-COLORS
      SIZE 41 BY 7.71.
 
 DEFINE RECTANGLE RECT-4
@@ -214,7 +221,8 @@ ASSIGN C-Win = CURRENT-WINDOW.
 
 
 
-/* ***************  Runtime Attributes and UIB Settings  ************** */
+
+/* ***********  Runtime Attributes and AppBuilder Settings  *********** */
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR WINDOW C-Win
@@ -230,7 +238,7 @@ ASSIGN C-Win = CURRENT-WINDOW.
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
-
+ 
 
 
 
@@ -286,19 +294,19 @@ IF h:SENSITIVE = NO THEN
   ASSIGN msg = "You have not completed this"
          msg1 = objtype + "!"
          msg2 = "Go Back or press Cancel."
-         l = IMAGE-4:LOAD-IMAGE("af/bmp/afwizndone":U).
-ELSE      
+         l = IMAGE-4:LOAD-IMAGE("ry/img/afwizndone.gif":U).
+ELSE
   ASSIGN msg = "Congratulations!"
          msg1 = "You have completed this " + objtype + "!"
          IMAGE-4:HIDDEN = no.
 
 /* Set CURRENT-WINDOW: this will parent dialog-boxes and frames.        */
-ASSIGN CURRENT-WINDOW                = {&WINDOW-NAME} 
+ASSIGN CURRENT-WINDOW                = {&WINDOW-NAME}
        THIS-PROCEDURE:CURRENT-WINDOW = {&WINDOW-NAME}.
 
 /* The CLOSE event can be used from inside or outside the procedure to  */
 /* terminate it.                                                        */
-ON CLOSE OF THIS-PROCEDURE 
+ON CLOSE OF THIS-PROCEDURE
    RUN disable_UI.
 
 /* Best default for GUI applications is...                              */
@@ -321,7 +329,7 @@ END.
 
 /* **********************  Internal Procedures  *********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI C-Win _DEFAULT-DISABLE
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI C-Win  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     DISABLE the User Interface
@@ -339,8 +347,7 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI C-Win _DEFAULT-ENABLE
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI C-Win  _DEFAULT-ENABLE
 PROCEDURE enable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     ENABLE the User Interface
@@ -361,5 +368,4 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-
 

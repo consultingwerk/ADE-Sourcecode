@@ -1,0 +1,109 @@
+<html>
+<head>
+<title>Progress Dynamics Web Test Page</title>
+<style type="text/css">
+body  {font-family: arial;}
+table {background-color: #ECFFED;
+       border-left-style: solid;
+       border-bottom-style: solid;
+       border-width: 1;}
+th    {background-color: #ABFEAF;
+       text-align: left;
+       border-right-style: solid;
+       border-top-style: solid;
+       border-width: 1;}
+td    {border-right-style: solid;
+       border-top-style: solid;
+       border-width: 1;}
+</style>
+</head>
+<body background="img/wsbgr.gif">
+<img src="img/icflogo.gif"/>&#160;&#160;<font size="+3">Progress Dynamics Web Test Page</font>
+<hr/>
+This page is provided for testing your Progress Dynamics Web setup and configuration.  Please be aware that although the Administration and Development menus are provided, most of the objects are static so very few of the screens can be fully used.
+
+<h3>Test pages</h3>
+  <li><a href="javascript:void fLaunch();">Dynamic Launcher</a></li>
+  <li><a href="dhtml/default.htm">Administration Menu</a></li>
+  <li><a href="dhtml/default.htm?icfobj=rywizmencw">Development Menu</a></li>
+  <li><a href="dhtml/default.hta">Internet Explorer HTML Application</a></li>
+<hr/>
+<h3>Tools &amp; Utilities</h3>
+  <li><a href="dhtml/_repository.icf">Repository Objects and Attributes</a></li>
+  <li><a href="dhtml/_repobjects.icf">Repository Objects By Type</a></li>
+  <li><a href="dhtml/_toolbars.icf">Toolbar Objects</a></li>
+  <li><a href="dhtml/_images.icf">Dynamics Images</a></li>
+  <li><a href="javascript:void fWS('workshop')">WebTools</a></li>
+  <li><a href="javascript:void fWS('ping')">WebSpeed Ping</a></li>
+  
+<script language="javascript"><!--
+var objects;
+function fLaunch(){
+  var obj=prompt('Name of container to launch:','afallmencw');
+  if(obj==''||obj==null) return false;
+  /*
+  var obj=window.open('dhtml/ryrunobj.htm','runobj','modal=1,height=250,width=250,scrollbars=0,alwaysRaised=1,dependent=1');
+  alert(obj);
+  if(obj==''||obj==false||obj==null) return false;
+
+  var fnd=false, vals='';
+  var prs=(document.cookie).split(';');
+  for(var i=0;i<prs.length;i++){
+    if(prs[i].split('=')[0]=='objects'){ // found objects cookie
+      vals=prs[i].split('=')[1];         // fetch object list
+      for(var j=0;j<vals.length;j++){    // process object list
+        if(vals.split(',')[j]!=obj)   // look for this object in list
+          continue;
+        else {
+          fnd=true;
+          break;
+        }
+      }
+      if(fnd) break;
+      if(j>1) vals+=',';
+      vals+=obj;
+      break;
+    }
+  }
+  if(!fnd) document.cookie='objects='+vals;
+  */
+  window.document.location='dhtml/default.htm?icfobj=' + obj;
+  return true;
+}
+function fNew(){
+  var obj=prompt('Object to run:','afallmencw');
+  if (obj==''||obj==null) return false;
+  var link="dhtml/default.htm?icfobj=" + obj;
+  window.fnew.href=link;
+  newwin=window.top.open(link,"newwin","top=100,left=100,width=800,height=600,resizable=1,scrollbars=0,menubar=0,location=0,status=0,titlebar=1,toolbar=0",false);
+}
+function fSame(link){
+  var s_y = window.top.screenTop;
+  var s_x = window.top.screenLeft;
+  window.top.moveTo(0,0);
+  var b_y = s_y - window.top.screenTop;
+  var b_x = s_x - window.top.screenLeft;
+  window.top.moveTo(b_x,b_y);
+  var d_y = event.screenY - event.clientY;
+  var b_h = window.top.document.body.clientHeight + d_y - b_y - 6;
+  var b_w = window.top.document.body.clientWidth;
+
+  c_size = "top=" + b_y + ",left=" + b_x;
+  c_size+= ",height=" + b_h + ",width=" + b_w;
+
+  newwin  = window.top.open(link,"newwin",c_size + ",resizable=1,scrollbars=0,menubar=0,location=0,status=0,titlebar=1,toolbar=0",false);
+  window.top.focus();
+  window.top.close(true);
+  newwin.focus();
+}
+
+function fWS(prog){
+  var obj=prompt('Please specify scripts directory to use','/scripts/cgiip.exe/WService=wsdynamics1');
+  if (obj==''||obj==null) return false;
+  window.document.location=obj+'/'+prog;
+  return true;
+}
+
+--></script>
+</body>
+</html>

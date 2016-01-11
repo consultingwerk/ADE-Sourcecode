@@ -59,7 +59,8 @@ History:
                         19991231-006
     D. McMann 10/01/01 Added logic not to pull system tables or overloaded procedures
                        for DB2.
-    D. McMann 10/16/01 Added logic for fields that begin with progress_                       
+    D. McMann 10/16/01 Added logic for fields that begin with progress_   
+    D. McMann 10/08/02 Added logic for shadow columns and arrays for MS Access                    
     
 
 */
@@ -710,8 +711,9 @@ for each gate-work
           s_ttb_tbl.ds_msc23 = TRIM(DICTDBG.SQLColumns_buffer.column-name). 
 
       if can-do (fld-properties, "S") OR 
-        DICTDBG.SQLColumns_buffer.column-name BEGINS "_S#_"
-         then do:
+        DICTDBG.SQLColumns_buffer.column-name BEGINS "_S#_" OR
+        DICTDBG.SQLColumns_Buffer.column-name BEGINS "U##" OR
+        DICTDBG.SQLColumns_Buffer.column-name BEGINS "U__" then do:
         assign
           shadow_col      = field-position
           shadow_col_name = ( if LENGTH(quote, "character") = 1
@@ -742,7 +744,7 @@ for each gate-work
           m1 = 0.
 
         if (TRIM(DICTDBG.SQLColumns_buffer.column-name) MATCHES "*##1" OR
-            (TRIM(DICTDBG.SQLColumns_buffer.column-name) MATCHES "*__1" AND foreign_dbms = "Informix"))
+            (TRIM(DICTDBG.SQLColumns_buffer.column-name) MATCHES "*__1" ))
           and doextent then do:  /* Collect array elements & determine extent */
 
 	  assign

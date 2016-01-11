@@ -48,6 +48,8 @@
   
   {src/adm2/custom/fieldexclcustom.i}
 
+{launch.i &define-only = YES }
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -66,6 +68,28 @@
 
 
 /* ************************  Function Prototypes ********************** */
+
+&IF DEFINED(EXCLUDE-formattedValue) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD formattedValue Procedure 
+FUNCTION formattedValue RETURNS CHARACTER
+  (pcValue AS CHAR)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getCustomSuperProc) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCustomSuperProc Procedure 
+FUNCTION getCustomSuperProc RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-getDataModified) = 0 &THEN
 
@@ -155,6 +179,17 @@ FUNCTION getKeyFieldValue RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getLocalField) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getLocalField Procedure 
+FUNCTION getLocalField RETURNS LOGICAL
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getSavedScreenValue) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getSavedScreenValue Procedure 
@@ -171,6 +206,17 @@ FUNCTION getSavedScreenValue RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getSDFFrameHandle Procedure 
 FUNCTION getSDFFrameHandle RETURNS HANDLE
   ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setCustomSuperProc) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setCustomSuperProc Procedure 
+FUNCTION setCustomSuperProc RETURNS LOGICAL
+  ( INPUT pcCustomSuperProc AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -265,6 +311,17 @@ FUNCTION setKeyFieldValue RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setLocalField) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setLocalField Procedure 
+FUNCTION setLocalField RETURNS LOGICAL
+  ( plLocal AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setSavedScreenValue) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setSavedScreenValue Procedure 
@@ -338,11 +395,13 @@ PROCEDURE initializeObject :
                logical property is true, and, if EnableField is true, 
                to the EnabledFields property as well.
 ------------------------------------------------------------------------------*/
-    DEFINE VARIABLE hFrame          AS HANDLE                           NO-UNDO.
-    DEFINE VARIABLE cField          AS CHARACTER                        NO-UNDO.
-    DEFINE VARIABLE cPropertyName   AS CHARACTER                        NO-UNDO.
-    DEFINE VARIABLE lResult         AS LOGICAL                          NO-UNDO.
-    DEFINE VARIABLE hSOurce         AS HANDLE                           NO-UNDO.
+    DEFINE VARIABLE hFrame            AS HANDLE                           NO-UNDO.
+    DEFINE VARIABLE cField            AS CHARACTER                        NO-UNDO.
+    DEFINE VARIABLE cPropertyName     AS CHARACTER                        NO-UNDO.
+    DEFINE VARIABLE lLocal            AS LOGICAL                          NO-UNDO.
+    DEFINE VARIABLE lResult           AS LOGICAL                          NO-UNDO.
+    DEFINE VARIABLE hSOurce           AS HANDLE                           NO-UNDO.
+    DEFINE VARIABLE cCustomSuperProc  AS CHARACTER                        NO-UNDO.
 
     {get ContainerSource hSource}.
     IF VALID-HANDLE(hSource) THEN
@@ -352,21 +411,54 @@ PROCEDURE initializeObject :
             ASSIGN hFrame:PRIVATE-DATA = STRING(TARGET-PROCEDURE).
 
         {get FieldName cField}.
+        {get LocalField lLocal}.
         {get DisplayField lResult}.
-        /* Local SmartDataFields will have names along the lines of <Local> or <FieldName> */
-        IF lResult AND NOT cField BEGINS "<":U THEN
+        IF lResult AND NOT lLocal THEN
             RUN modifyListProperty IN TARGET-PROCEDURE (hSource, 'ADD':U, 'DisplayedFields':U, cField).
 
         {get EnableField lResult}.
         IF lResult THEN
         DO:
-            IF cField BEGINS "<":U THEN
+            IF lLocal THEN
                 ASSIGN cPropertyName = "EnabledObjFlds":U.
             ELSE
+            DO:
                 ASSIGN cPropertyName = "EnabledFields":U.
+                /* If this field is Enabled, set the Editable Property to true.
+                 * This is because the 'Add', 'Update' and 'Copy' actions require 
+                 * this property to be set as part of their ENABLE_RULEs.         */
+                {set Editable YES hSource}.
+            END.    /* SDO field */
 
             RUN modifyListProperty IN TARGET-PROCEDURE (hSource, 'ADD':U, cPropertyName, cField).
         END.    /* EnableField = yes */
+
+        /* Start the SDF's super procedure - if specified */
+        {get CustomSuperProc cCustomSuperProc}.
+        IF cCustomSuperProc <> "":U AND cCustomSuperProc <> ? THEN
+        DO:
+            /* Is Dynamics running? */
+            IF VALID-HANDLE(gshSessionManager) THEN
+            DO:
+                {launch.i
+                    &PLIP  = cCustomSuperProc
+                    &IProc = ''
+                    &OnApp = 'NO'
+                }
+                /* Add all the super procedures. */
+                DYNAMIC-FUNCTION("addAsSuperProcedure":U IN gshSessionManager,
+                                 INPUT hPlip, INPUT TARGET-PROCEDURE).
+            END.    /* session manager is running */
+            ELSE
+            DO:
+                DO ON STOP UNDO, RETURN 'ADM-ERROR':U:
+                    RUN VALUE(cCustomSuperProc) PERSISTENT SET hPlip.
+                END.    /* run the super procedure */
+
+                IF VALID-HANDLE(hPlip) THEN
+                    TARGET-PROCEDURE:ADD-SUPER-PROCEDURE(hPlip, SEARCH-TARGET).
+            END.    /* sesison manger not running */
+        END.    /* super procedure existst */
     END.   /* END DO IF ContainerSource */
 
     RUN SUPER.
@@ -499,6 +591,90 @@ END PROCEDURE.
 &ENDIF
 
 /* ************************  Function Implementations ***************** */
+
+&IF DEFINED(EXCLUDE-formattedValue) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION formattedValue Procedure 
+FUNCTION formattedValue RETURNS CHARACTER
+  (pcValue AS CHAR) :
+/*------------------------------------------------------------------------------
+  Purpose: Return the formatted value of a passed value according to the 
+           SmartSelect/Dynamic Combo/Dynamic Lookup/SDF format. 
+Parameter: pcValue - The value that need to be formatted.      
+    Notes: Used internally in order to ensure that unformatted data can be 
+           applied to screen-value (setDataValue) or used as lookup in
+           list-item-pairs in (getDisplayValue)  
+           This code was moved from select.p into field.p to accomodate
+           dynamic lookups and combos
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hSelection AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cFormat    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataType  AS CHARACTER  NO-UNDO.
+
+  {get SelectionHandle hSelection TARGET-PROCEDURE} NO-ERROR.
+  /* For selection lists */
+  IF VALID-HANDLE(hSelection) AND CAN-QUERY(hSelection,'FORMAT':U) THEN
+    ASSIGN cFormat   = hSelection:FORMAT
+           cDataType = hSelection:DATA-TYPE.
+  /* For Dynamic Lookups and Combos */
+  ELSE DO: 
+    ASSIGN cFormat   = DYNAMIC-FUNCTION("getKeyFormat":U IN TARGET-PROCEDURE) NO-ERROR.
+    ASSIGN cDataType = DYNAMIC-FUNCTION("getKeyDataType":U IN TARGET-PROCEDURE) NO-ERROR.
+  END.
+
+  /* Invalid Format */
+  IF cFormat = "":U OR cFormat = ? OR cFormat = "?":U THEN
+    RETURN pcValue.
+  IF cDataType = "":U OR cDataType = ? OR cDataType = "?":U THEN
+    RETURN pcValue.
+
+  CASE cDataType:
+    WHEN 'CHARACTER':U THEN
+      pcValue = RIGHT-TRIM(STRING(pcValue,cFormat)).
+    WHEN 'DATE':U THEN
+      pcValue = STRING(DATE(pcValue),cFormat).
+    WHEN 'DECIMAL':U THEN
+      pcValue = STRING(DECIMAL(pcValue),cFormat).
+    WHEN 'INTEGER':U THEN
+      pcValue = STRING(INT(pcValue),cFormat).
+    WHEN 'LOGICAL':U THEN
+      pcValue = ENTRY(IF CAN-DO('yes,true':U,pcValue) THEN 1 ELSE 2,
+                       cFormat,'/':U).
+  END CASE.
+  
+  RETURN pcValue.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getCustomSuperProc) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getCustomSuperProc Procedure 
+FUNCTION getCustomSuperProc RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Returns the value of a SmartDataField.
+   Params:  <none>
+------------------------------------------------------------------------------*/
+
+ DEFINE VARIABLE cCustomSuperProc AS CHARACTER NO-UNDO.
+  
+ &SCOPED-DEFINE xpCustomSuperProc
+ {get CustomSuperProc cCustomSuperProc}.
+ &UNDEFINE xpCustomSuperProc
+
+  RETURN cCustomSuperProc.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-getDataModified) = 0 &THEN
 
@@ -686,6 +862,37 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getLocalField) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getLocalField Procedure 
+FUNCTION getLocalField RETURNS LOGICAL
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Returns TRUE if the field name begins with "<" (backswards 
+            compatibility where fields were called <Local> to indicate
+            that they were local fields) or it returns the value
+            of the LocalField property.
+   Params:  <none>
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE cFieldName AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE lLocal     AS LOGICAL NO-UNDO.
+  
+  {get FieldName cFieldName}.
+  IF cFieldName BEGINS '<':U THEN RETURN TRUE.
+
+  &SCOPED-DEFINE xpLocalField
+  {get LocalField lLocal}.
+  &UNDEFINE xpLocalField
+  
+  RETURN lLocal.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getSavedScreenValue) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getSavedScreenValue Procedure 
@@ -724,6 +931,26 @@ FUNCTION getSDFFrameHandle RETURNS HANDLE
   END.
   
   RETURN ?.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setCustomSuperProc) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setCustomSuperProc Procedure 
+FUNCTION setCustomSuperProc RETURNS LOGICAL
+  ( INPUT pcCustomSuperProc AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  &SCOPED-DEFINE xpCustomSuperProc
+  {set CustomSuperProc pcCustomSuperProc}.
+  &UNDEFINE xpCustomSuperProc
 
 END FUNCTION.
 
@@ -917,6 +1144,30 @@ FUNCTION setKeyFieldValue RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
   RETURN {set DataValue pcValue}.
 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setLocalField) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setLocalField Procedure 
+FUNCTION setLocalField RETURNS LOGICAL
+  ( plLocal AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Sets the LocalField property of the SmartDataField.
+   Params:  plLocal AS LOGICAL
+    Notes:  This property determines whether the field provides data to
+            a local field rather than a data field.
+------------------------------------------------------------------------------*/
+
+  &SCOPED-DEFINE xpLocalField
+  {set LocalField plLocal}.
+  &UNDEFINE xpLocalField
+  
+  RETURN TRUE.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

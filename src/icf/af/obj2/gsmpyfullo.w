@@ -124,11 +124,12 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
 &Scoped-define INTERNAL-TABLES gsm_physical_service gsc_service_type ~
-gsc_object
+ryc_smartobject
 
 /* Definitions for QUERY Query-Main                                     */
 &Scoped-Define ENABLED-FIELDS  physical_service_code physical_service_description service_type_obj~
@@ -143,22 +144,26 @@ physical_service_code physical_service_description service_type_obj ~
 connection_parameters 
 &Scoped-define DATA-FIELDS-IN-gsc_service_type service_type_code ~
 maintenance_object_obj 
-&Scoped-define DATA-FIELDS-IN-gsc_object object_path object_filename 
+&Scoped-define DATA-FIELDS-IN-ryc_smartobject object_path object_filename 
 &Scoped-Define MANDATORY-FIELDS 
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gsmpyfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsm_physical_service NO-LOCK, ~
+      FIRST gsc_service_type WHERE gsc_service_type.service_type_obj = gsm_physical_service.service_type_obj NO-LOCK, ~
+      EACH ryc_smartobject WHERE ryc_smartobject.smartobject_obj = gsc_service_type.maintenance_object_obj NO-LOCK ~
+    BY gsm_physical_service.physical_service_code INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsm_physical_service NO-LOCK, ~
       FIRST gsc_service_type WHERE gsc_service_type.service_type_obj = gsm_physical_service.service_type_obj NO-LOCK, ~
-      EACH gsc_object WHERE gsc_object.object_obj = gsc_service_type.maintenance_object_obj NO-LOCK ~
+      EACH ryc_smartobject WHERE ryc_smartobject.smartobject_obj = gsc_service_type.maintenance_object_obj NO-LOCK ~
     BY gsm_physical_service.physical_service_code INDEXED-REPOSITION.
 {&DB-REQUIRED-END}
 &Scoped-define TABLES-IN-QUERY-Query-Main gsm_physical_service ~
-gsc_service_type gsc_object
+gsc_service_type ryc_smartobject
 &Scoped-define FIRST-TABLE-IN-QUERY-Query-Main gsm_physical_service
 &Scoped-define SECOND-TABLE-IN-QUERY-Query-Main gsc_service_type
-&Scoped-define THIRD-TABLE-IN-QUERY-Query-Main gsc_object
+&Scoped-define THIRD-TABLE-IN-QUERY-Query-Main ryc_smartobject
 
 
 /* Custom List Definitions                                              */
@@ -180,7 +185,7 @@ DEFINE QUERY Query-Main FOR
       gsc_service_type
     FIELDS(gsc_service_type.service_type_code
       gsc_service_type.maintenance_object_obj), 
-      gsc_object SCROLLING.
+      ryc_smartobject SCROLLING.
 &ANALYZE-RESUME
 {&DB-REQUIRED-END}
 
@@ -244,12 +249,12 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "ICFDB.gsm_physical_service,ICFDB.gsc_service_type WHERE ICFDB.gsm_physical_service ...,ICFDB.gsc_object WHERE ICFDB.gsc_service_type ..."
+     _TblList          = "ICFDB.gsm_physical_service,ICFDB.gsc_service_type WHERE ICFDB.gsm_physical_service ...,ICFDB.ryc_smartobject WHERE ICFDB.gsc_service_type ..."
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _TblOptList       = ", FIRST USED,"
      _OrdList          = "ICFDB.gsm_physical_service.physical_service_code|yes"
      _JoinCode[2]      = "ICFDB.gsc_service_type.service_type_obj = ICFDB.gsm_physical_service.service_type_obj"
-     _JoinCode[3]      = "ICFDB.gsc_object.object_obj = ICFDB.gsc_service_type.maintenance_object_obj"
+     _JoinCode[3]      = "ICFDB.ryc_smartobject.smartobject_obj = ICFDB.gsc_service_type.maintenance_object_obj"
      _FldNameList[1]   > ICFDB.gsm_physical_service.physical_service_obj
 "physical_service_obj" "physical_service_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
      _FldNameList[2]   > ICFDB.gsm_physical_service.physical_service_code
@@ -264,9 +269,9 @@ END.
 "connection_parameters" "connection_parameters" ? ? "character" ? ? ? ? ? ? yes ? no 1000 yes
      _FldNameList[7]   > ICFDB.gsc_service_type.maintenance_object_obj
 "maintenance_object_obj" "maintenance_object_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 29.4 yes
-     _FldNameList[8]   > ICFDB.gsc_object.object_path
+     _FldNameList[8]   > ICFDB.ryc_smartobject.object_path
 "object_path" "object_path" ? ? "character" ? ? ? ? ? ? no ? no 70 yes
-     _FldNameList[9]   > ICFDB.gsc_object.object_filename
+     _FldNameList[9]   > ICFDB.ryc_smartobject.object_filename
 "object_filename" "object_filename" ? ? "character" ? ? ? ? ? ? no ? no 35 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */

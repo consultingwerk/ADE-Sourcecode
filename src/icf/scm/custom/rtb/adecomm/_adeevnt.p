@@ -197,7 +197,7 @@ Details on Specific Events:
      p_other (for both events) as follows:
             p_context = STRING(Procedure Window window handle)
             p_other   = STRING(Procedure Window Parent ID)
-     
+
      The comments related to UIB usage of _adeevnt.p also apply to the 
      Procedure Editor.
 
@@ -216,7 +216,7 @@ Details on Specific Events:
          4. NEW is called after the window is created.  You will see the
             window before the NEW event is called.
 
-Author: John Palazzo, Wm.T.Wood
+Author: D. Ross Hunter,  John Palazzo,  Wm.T.Wood
 
 Date Created: December, 1994
 
@@ -232,26 +232,28 @@ Modified:
               Procedure Editor and Procedure Windows.
 ----------------------------------------------------------------------------*/
 
-DEFINE INPUT        PARAMETER p_product  AS CHAR    NO-UNDO.
-DEFINE INPUT        PARAMETER p_event    AS CHAR    NO-UNDO.
-DEFINE INPUT        PARAMETER p_context  AS CHAR    NO-UNDO.
-DEFINE INPUT        PARAMETER p_other    AS CHAR    NO-UNDO.
-DEFINE       OUTPUT PARAMETER p_ok       AS LOGICAL NO-UNDO INITIAL TRUE.
+DEFINE INPUT  PARAMETER p_product  AS CHAR    NO-UNDO.
+DEFINE INPUT  PARAMETER p_event    AS CHAR    NO-UNDO.
+DEFINE INPUT  PARAMETER p_context  AS CHAR    NO-UNDO.
+DEFINE INPUT  PARAMETER p_other    AS CHAR    NO-UNDO.
+DEFINE OUTPUT PARAMETER p_ok       AS LOGICAL NO-UNDO INITIAL TRUE.
 
-DEFINE VARIABLE Mwindow-handle AS HANDLE NO-UNDO.
-DEFINE VARIABLE lICFIsRunning AS LOGICAL NO-UNDO.
+DEFINE VARIABLE Mwindow-handle     AS HANDLE NO-UNDO.
+DEFINE VARIABLE lICFIsRunning      AS LOGICAL NO-UNDO.
+DEFINE VARIABLE ghScmTool          AS HANDLE   NO-UNDO.
 /* By default, we always return after doing nothing */
 
 /* The following debugging code can be uncommented... */
 /*
-MESSAGE "Product:" p_product SKIP
-        "Event:" p_event SKIP
-        "Context:" p_context SKIP
-        "Other Data:" p_other
-           VIEW-AS ALERT-BOX QUESTION 
-                   BUTTONS OK-CANCEL
-                   TITLE "adecomm/_adeevnt.p"
-                   UPDATE p_ok.
+MESSAGE
+  "Product:"    p_product SKIP
+  "Event:"      p_event   SKIP
+  "Context:"    p_context SKIP
+  "Other Data:" p_other
+  VIEW-AS ALERT-BOX QUESTION 
+  BUTTONS OK-CANCEL
+  TITLE "adecomm/_adeevnt.p"
+  UPDATE p_ok.
 */
 
 /* --- Start Roundtable section ---
@@ -259,18 +261,59 @@ MESSAGE "Product:" p_product SKIP
  * it exists.  Note that it IS possible for Roundtable to send
  * back NO for our p_ok.
  * -------------------------------- */
-DEFINE NEW GLOBAL SHARED VARIABLE Grtb-proc-handle AS HANDLE NO-UNDO.
+{rtb/inc/afrtbglobs.i}
 
+/* Dynamics Section for dynamic objects : 
+  
+  For Dynamic objects we need to make sure that the full path of 
+  the object (including the .ado extension is passed to the event handler. 
+  If this is not done, then the Version Notes dialog will not be started 
+  for Dynamic objects. 
+  
+  To do this, it is best to find the object in the RTB repository by adding the 
+  .ado extension (which the AB does not send), making an internal call in RTB 
+  to get the full physical filename name of the .ado file - and changing the 
+  p_other parameter to be the full RTB object name. 
+*/
+IF CONNECTED("RTB":U) THEN
+IF p_product = "UIB" AND 
+   INDEX(p_other, ".ado") = 0 AND 
+   INDEX(p_other, "~\":U) = 0 /*If there is no \ we do not have a path in the 
+                              object name, and therefore have a logical object */
+  THEN DO:   
+  
+  /* Get the handle of the RTB API procedure which should be running */  
+  ghScmTool = DYNAMIC-FUNCTION('getProcedureHandle':U IN THIS-PROCEDURE, INPUT "PRIVATE-DATA:SCMTool":U).
+  
+  IF VALID-HANDLE(ghScmTool) THEN DO:
+    RUN scmGetObjectParts IN ghScmTool (INPUT p_other + ".ado":U, 
+                                               INPUT Grtb-wsroot, 
+                                               OUTPUT p_other). 
+    /* We are only interested in the first part if there are multiple parts. 
+       for logical objects, there is only one part.*/
+    IF ENTRY(1,p_other) <> "":U THEN
+      ASSIGN 
+        p_other = ENTRY(1,p_other)
+        .                                                 
+  END. 
+END.
+
+/* Reset the error status, as this is being checked by other adecomm procedures */
+ASSIGN 
+  ERROR-STATUS:ERROR = NO.
+  
 IF VALID-HANDLE( Grtb-proc-handle ) 
 THEN RUN ade_event IN Grtb-proc-handle
-     ( INPUT p_product, p_event, p_context, p_other,
+     ( INPUT p_product, INPUT p_event, INPUT p_context, INPUT p_other,
        OUTPUT p_ok ).
 /* --- End Roundtable section --- */
 
 /* --- Capture "Startup" event to add "Roundtable" to the PROGRESS
        tools menus.  This needs to be done here instead of in
        rtb_desk as the roundtable tabletop may be closed. --- */       
-IF p_event = "Startup" AND (p_product = "UIB" OR p_product = "Editor") THEN DO:
+IF p_event = "Startup"
+AND (p_product = "UIB" OR p_product = "Editor")
+THEN DO:
 
   /* --- get handle of the window --- */
   IF SESSION:FIRST-CHILD <> ? THEN DO:
@@ -283,7 +326,8 @@ IF p_event = "Startup" AND (p_product = "UIB" OR p_product = "Editor") THEN DO:
 END.  /* if p_event = "startup" and (p_product ... ) */
 
 /* ICF compile hook to copy code to Appserver */
-IF p_event = "compile":U THEN DO:
+IF p_event = "compile":U
+THEN DO:
 
   IF CONNECTED("RTB":U)
   THEN DO:
@@ -298,27 +342,15 @@ IF p_event = "compile":U THEN DO:
 
 END.
 
-/* Runs the automated backup feature. Will save up to n backups of the procedure
-   being saved. The second parameter controls the number of backups */
-IF  p_event = "Before-save" THEN
-DO:
-  IF SEARCH("v91tools.pl":U) <> ? THEN
-    RUN se-tools/backup-uib.p (p_other,3).							  
-END.
-
-/* ICF hook to add ICF options to Roundtable or Appbuilder menu */
 IF p_event = "Startup"
 AND p_product = "UIB":U
 THEN DO:
 
-  /* Note that we do not add menus to the AppBuilder here any more
-     as these are done from within the AppBuilder code */
-  /* SCM hook to add Dynamics options to Roundtable menu */
-  IF SEARCH("rtb/prc/afrtbmenup.p") <> ?
-  OR SEARCH("rtb/prc/afrtbmenup.r") <> ?
-  THEN DO:
-    RUN rtb/prc/afrtbmenup.p (INPUT Grtb-proc-handle).
-  END.
+  /* Check if ICF is running. */
+  lICFIsRunning = DYNAMIC-FUNCTION("isICFRunning":U IN THIS-PROCEDURE) NO-ERROR.
+  IF lICFIsRunning = ? THEN
+    lICFIsRunning = NO.
+  ERROR-STATUS:ERROR = NO.
 
   /* Run protools pallette */
   RUN protools/_protool.p PERSISTENT.
@@ -326,7 +358,7 @@ THEN DO:
 END.  /* If connected */
 
 IF p_event = "Shutdown"
-  AND (p_product = "Desktop":U
+AND (p_product = "Desktop":U
   /* OR  p_product = "UIB":U */
   /* We need to check if the Desktop is not running before we can attempt
      to shut the system for the UIB as well.

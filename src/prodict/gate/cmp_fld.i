@@ -45,7 +45,7 @@ Included in:
 History:
     hutegger    95/03   creation
     mcmann    08/21/01  Removed check on ORDER
-    
+    mcmann   06/04/02   Added output to file logic
 --------------------------------------------------------------------*/        
 /*h-*/
 
@@ -236,17 +236,18 @@ History:
               &object = "FIELD"
               &o-name = "s_ttb_fld.ds_name"
               &sh     = "DICTDB._Field._Field-Name"
-              }
+              } 
      { prodict/gate/cmp_msg.i
               &attrbt = "Description:"
               &msgidx = "l_fld-msg[23]"
-              &msgvar = "ret"
+              &msgvar = "ret2"
               &ns     = "s_ttb_fld.pro_desc"
               &object = "FIELD"
               &o-name = "s_ttb_fld.ds_name"
               &sh     = "DICTDB._Field._Desc" 
               } 
-      if NOT (
+      
+    if NOT (
        (   can-do(l_char-types + l_chda-types               ,s_ttb_fld.ds_type) 
        AND can-do("character"              ,DICTDB._Field._Data-type) )
        OR
@@ -308,8 +309,8 @@ History:
               &object = "FIELD"
               &o-name = "s_ttb_fld.ds_name"
               &sh     = "DICTDB._Field._Format"
-              }
-        end.  /* new data-type not compatible with old one */
+              } 
+        end.  /* new data-type not compatible with old one */ 
 
       end.     /* compare this field */
 

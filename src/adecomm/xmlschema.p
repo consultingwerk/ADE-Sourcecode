@@ -1067,8 +1067,10 @@ PROCEDURE loadSchema :
       hData   = TEMP-TABLE tData:HANDLE
       hSchema = TEMP-TABLE tSchema:HANDLE.
       
-  IF pDelete THEN
-    RUN reset.
+  IF pDelete THEN DO:
+    hdoc = deleteObject(hdoc).
+    hroot = DELETEObject(hroot).
+  END.
   
 END PROCEDURE.
 

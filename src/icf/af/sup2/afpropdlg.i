@@ -53,7 +53,7 @@
 
 &GLOBAL-DEFINE TEST-BITMAP "adeicon/u-logo.bmp",150,1,0,0
 
-DEFINE TEMP-TABLE wProperty
+DEFINE TEMP-TABLE wProperty NO-UNDO
     FIELD wIndex  AS INTEGER
     FIELD wHandle AS HANDLE
     FIELD wValue  AS CHARACTER
@@ -134,7 +134,7 @@ FUNCTION FOLDER-OF RETURNS CHARACTER
 &ANALYZE-RESUME
 
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Method-Library 
@@ -1014,17 +1014,22 @@ DO WHILE VALID-HANDLE(wh):
                 ASSIGN cPropertyValue = cPropertyValue + "{&DELIMITER}" + wProperty.wValue.
         END.
 
-        IF cPropertyName <> "{&PRIMARY-PROPERTY}"
-        AND cPropertyValue = FILL("{&DELIMITER}",iCount - 1)
-        THEN
-            ASSIGN cPropertyValue = "".
+        /* HCK (2002/10/29) - Fix for issue 7330. When there is no function name (cPropertyName = ""),
+                              there is no need to try and execute a set function */
+        IF cPropertyName <> "":U THEN
+        DO:
+          IF cPropertyName <> "{&PRIMARY-PROPERTY}"
+          AND cPropertyValue = FILL("{&DELIMITER}",iCount - 1)
+          THEN
+              ASSIGN cPropertyValue = "".
 
-        ASSIGN vResult = DYNAMIC-FUNCTION("set" + cPropertyName IN ip-caller, cPropertyValue).
+          ASSIGN vResult = DYNAMIC-FUNCTION("set" + cPropertyName IN ip-caller, cPropertyValue).
 
-        IF NOT vResult 
-        THEN
-            MESSAGE "Unable to set value for Array Property" cPropertyName
-                VIEW-AS ALERT-BOX WARNING TITLE "{&PRODUCT_ID}".
+          IF NOT vResult 
+          THEN
+              MESSAGE "Unable to set value for Array Property" cPropertyName
+                  VIEW-AS ALERT-BOX WARNING TITLE "{&PRODUCT_ID}".
+        END.
     END.
 
     ASSIGN wh = wh:NEXT-SIBLING.
@@ -1167,7 +1172,7 @@ FUNCTION FOLDER-OF RETURNS CHARACTER
   DEFINE VARIABLE vShort AS CHARACTER NO-UNDO.
   DEFINE VARIABLE vFname AS CHARACTER NO-UNDO.
 
-  ASSIGN ip-filename = REPLACE(ip-filename,"\","/")
+  ASSIGN ip-filename = REPLACE(ip-filename,"~\","/")
          iCount = NUM-ENTRIES(ip-filename,"/")
          vFname = ENTRY(iCount,ip-filename,"/").
 

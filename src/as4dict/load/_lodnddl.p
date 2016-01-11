@@ -50,6 +50,7 @@ History:
                09/09/99 Added stored procedure support.
                05/18/00 Added support for new keyword MAX-GLYPHS
                04/12/02 Added conversion of replication trigger names
+               09/18/02 Added code to recognize MAX-WIDTH
                                                             
 */                            
 
@@ -817,7 +818,7 @@ IF cerror = ?
                         END.
                     END.
          WHEN "POSITION" THEN .  
-         WHEN "SQL-WIDTH" THEN .        
+         WHEN "SQL-WIDTH" OR WHEN "MAX-WIDTH" THEN .        
 	  WHEN    "INITIAL"   OR WHEN "DEFAULT"     THEN wfld._Initial = iarg.
 	  WHEN    "CAN-READ"  OR WHEN "CAN-SELECT"  THEN wfld._Can-Read = iarg.
 	  WHEN    "CAN-WRITE" OR WHEN "CAN-UPDATE"  THEN wfld._Can-Write = iarg.

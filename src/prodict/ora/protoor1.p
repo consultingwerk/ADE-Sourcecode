@@ -36,7 +36,9 @@
                           if I can delete schema holder or need just to remove
                           database from existing schema holder. 
              02/01/00 DLM Added handling of sqlwidth parameter.  
-             10/12/01 DLM Added logic to handle dumping DEFAULTs      
+             10/12/01 DLM Added logic to handle dumping DEFAULTs     
+             06/04/02 DLM Added logic to handle error on creating hidden files 
+             06/25/02 DLM Added logic for function based indexes
                    
 */    
 
@@ -74,7 +76,7 @@ IF batch_mode THEN DO:
        "Oracle Tablespace for tables:  " ora_tspace skip
        "Oracle Tablespace for indexes: " ora_ispace skip
        "Compatible structure:          " pcompatible skip
-       "Using Sql Width:               " sqlwidth SKIP
+       "Using Width field:             " sqlwidth SKIP
        "Create objects in Oracle:      " loadsql skip
        "Moved data to Oracle:          " movedata skip(2).
 END.
@@ -178,7 +180,6 @@ ASSIGN user_env[1]  = "ALL"
        user_env[17] = "number"
        user_env[19] = "number"
        user_env[20] = "##"
-       user_env[21] = "y"
        user_env[22] = "ORACLE"
        user_env[23] = "30"
        user_env[24] = "15"
@@ -199,6 +200,12 @@ IF sqlwidth THEN
    ASSIGN user_env[33] = "y".
 ELSE
    ASSIGN user_env[33] = "no".
+
+/* Create shadow columns */
+IF shadowcol THEN
+  ASSIGN user_env[21] = "y".
+ELSE
+  ASSIGN user_env[21] = "n".
 
     /* md0: creates SQL and .d-files */
 RUN "prodict/ora/_ora_md0.p".
@@ -226,6 +233,7 @@ IF loadsql THEN DO:
    */
 
   RUN "prodict/ora/_ora_md1.p".
+
   IF RETURN-VALUE = "1" THEN DO:
     cmd = "Error creating ORACLE Database - Check logfile " + osh_dbname + 
       	  ".log".
@@ -235,6 +243,8 @@ IF loadsql THEN DO:
       PUT STREAM logfile UNFORMATTED  cmd.  
     UNDO, RETURN error.
   END.  
+  ELSE IF RETURN-VALUE = "2" THEN
+    UNDO, RETURN ERROR.
 
   IF batch_mode and NOT logfile_open THEN DO:
     OUTPUT TO VALUE(output_file) APPEND UNBUFFERED NO-ECHO NO-MAP.

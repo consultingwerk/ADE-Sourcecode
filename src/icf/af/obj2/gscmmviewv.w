@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          afdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" vTableWin _INLINE
@@ -87,7 +87,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gscmmviewv.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010001
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -125,11 +125,12 @@ RowObject.multi_media_type_description RowObject.application_launch_command ~
 RowObject.file_extension RowObject.template_extension 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define DISPLAYED-FIELDS RowObject.multi_media_type_code ~
 RowObject.multi_media_type_description RowObject.application_launch_command ~
 RowObject.file_extension RowObject.template_extension 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
+
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -149,17 +150,17 @@ RowObject.file_extension RowObject.template_extension
 DEFINE FRAME frMain
      RowObject.multi_media_type_code AT ROW 1 COL 34.6 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 15.6 BY 1
-     RowObject.multi_media_type_description AT ROW 2 COL 34.6 COLON-ALIGNED
+          SIZE 24 BY 1
+     RowObject.multi_media_type_description AT ROW 2.05 COL 34.6 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 60 BY 1
-     RowObject.application_launch_command AT ROW 3 COL 36.6 NO-LABEL
+          SIZE 78.4 BY 1
+     RowObject.application_launch_command AT ROW 3.1 COL 36.6 NO-LABEL
           VIEW-AS EDITOR MAX-CHARS 70 SCROLLBAR-VERTICAL
-          SIZE 60 BY 2
-     RowObject.file_extension AT ROW 5 COL 34.6 COLON-ALIGNED
+          SIZE 78.4 BY 2
+     RowObject.file_extension AT ROW 5.14 COL 34.6 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 8.6 BY 1
-     RowObject.template_extension AT ROW 6 COL 34.6 COLON-ALIGNED
+     RowObject.template_extension AT ROW 6.19 COL 34.6 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 8.6 BY 1
      "Launch Command:" VIEW-AS TEXT
@@ -203,8 +204,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 6.86
-         WIDTH              = 101.
+         HEIGHT             = 6.19
+         WIDTH              = 114.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -244,7 +245,7 @@ ASSIGN
 */  /* FRAME frMain */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK vTableWin 

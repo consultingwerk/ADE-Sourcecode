@@ -72,10 +72,10 @@ af/cod/aftemwizpw.w
 
   Update Notes: Create from dlc82b/src/adm/support/_wizfld.w
 
-  (v:010001)    Task:          54   UserRef:    
-                Date:   12/02/1998  Author:     Anthony Swindells
+  (v:010001)    Task:          18   UserRef:    
+                Date:   02/18/2003  Author:     Thomas Hansen
 
-  Update Notes: Delete rtbprocp.p persistent procedure when finished
+  Update Notes: - Removed code that start afrtbprocp.p itself. Changed to use the version already running in memory.
 
   (v:010002)    Task:          53   UserRef:    
                 Date:   16/02/1998  Author:     Anthony Swindells
@@ -144,7 +144,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       aftemwizpw.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    000000
+&scop object-version    010001
 
 
 /*{ adm/support/admhlp.i} /* ADM Help File Defs */*/
@@ -185,6 +185,10 @@ DEFINE VARIABLE lv_previous_versions    AS CHARACTER NO-UNDO.
 DEFINE VARIABLE lv_object_version_task  AS INTEGER NO-UNDO.
 
 {af/sup/afproducts.i}
+{src/adm2/globals.i}
+
+DEFINE VARIABLE ghRepositoryDesignManager AS HANDLE     NO-UNDO.
+DEFINE VARIABLE gFuncLibHdl               AS HANDLE     NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -208,7 +212,7 @@ bu_help fi_object_version fi_task fi_date fi_author fi_project_ref RECT-4 ~
 RECT-5 
 &Scoped-Define DISPLAYED-OBJECTS fi_object_name fi_object_description ~
 ed_object_purpose ed_object_parameters ed_version_notes fi_object_version ~
-fi_task fi_date fi_author fi_project_ref 
+fi_task fi_date fi_author fi_project_ref cProductModule 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -216,6 +220,22 @@ fi_task fi_date fi_author fi_project_ref
 /* _UIB-PREPROCESSOR-BLOCK-END */
 &ANALYZE-RESUME
 
+
+/* ************************  Function Prototypes ********************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFuncLibHandle C-Win 
+FUNCTION getFuncLibHandle RETURNS HANDLE
+  ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getRDMHandle C-Win 
+FUNCTION getRDMHandle RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
 
 /* ***********************  Control Definitions  ********************** */
@@ -256,15 +276,19 @@ DEFINE BUTTON bu_update_scm
 
 DEFINE VARIABLE ed_object_parameters AS CHARACTER 
      VIEW-AS EDITOR NO-WORD-WRAP MAX-CHARS 100000 SCROLLBAR-HORIZONTAL SCROLLBAR-VERTICAL LARGE
-     SIZE 74.2 BY 4 TOOLTIP "The parameters and their type for this object" NO-UNDO.
+     SIZE 74.2 BY 3.52 TOOLTIP "The parameters and their type for this object" NO-UNDO.
 
 DEFINE VARIABLE ed_object_purpose AS CHARACTER 
      VIEW-AS EDITOR NO-WORD-WRAP MAX-CHARS 100000 SCROLLBAR-HORIZONTAL SCROLLBAR-VERTICAL LARGE
-     SIZE 74.2 BY 4 TOOLTIP "The purpose of the object, full description" NO-UNDO.
+     SIZE 74.2 BY 3.52 TOOLTIP "The purpose of the object, full description" NO-UNDO.
 
 DEFINE VARIABLE ed_version_notes AS CHARACTER 
      VIEW-AS EDITOR NO-WORD-WRAP MAX-CHARS 100000 SCROLLBAR-HORIZONTAL SCROLLBAR-VERTICAL LARGE
-     SIZE 74.2 BY 4 TOOLTIP "Version update notes for entered object version" NO-UNDO.
+     SIZE 74.2 BY 3.52 TOOLTIP "Version update notes for entered object version" NO-UNDO.
+
+DEFINE VARIABLE cProductModule AS CHARACTER FORMAT "X(256)":U 
+      VIEW-AS TEXT 
+     SIZE 52.4 BY 1 NO-UNDO.
 
 DEFINE VARIABLE fi_author AS CHARACTER FORMAT "X(256)":U 
      LABEL "Author" 
@@ -281,7 +305,7 @@ DEFINE VARIABLE fi_object_description AS CHARACTER FORMAT "X(40)":U
      VIEW-AS FILL-IN 
      SIZE 52.4 BY 1 TOOLTIP "The summary description for the object - what it does" NO-UNDO.
 
-DEFINE VARIABLE fi_object_name AS CHARACTER FORMAT "X(20)":U 
+DEFINE VARIABLE fi_object_name AS CHARACTER FORMAT "X(35)":U 
      LABEL "Object" 
      VIEW-AS FILL-IN 
      SIZE 52.4 BY 1 TOOLTIP "Enter the filename and extension of the object, minus the path" NO-UNDO.
@@ -303,7 +327,7 @@ DEFINE VARIABLE fi_task AS INTEGER FORMAT ">>>>>>>>9":U INITIAL 0
 
 DEFINE RECTANGLE RECT-4
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 92 BY 13.33.
+     SIZE 92 BY 11.81.
 
 DEFINE RECTANGLE RECT-5
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
@@ -315,9 +339,9 @@ DEFINE RECTANGLE RECT-5
 DEFINE FRAME fr_main
      fi_object_name AT ROW 1.24 COL 14 COLON-ALIGNED
      fi_object_description AT ROW 2.43 COL 14 COLON-ALIGNED
-     ed_object_purpose AT ROW 4.81 COL 16 NO-LABEL
-     ed_object_parameters AT ROW 9.1 COL 16 NO-LABEL
-     ed_version_notes AT ROW 13.38 COL 16 NO-LABEL
+     ed_object_purpose AT ROW 6.33 COL 16 NO-LABEL
+     ed_object_parameters AT ROW 10.1 COL 16 NO-LABEL
+     ed_version_notes AT ROW 13.81 COL 16 NO-LABEL
      bu_blank_definition AT ROW 8.14 COL 98
      bu_reread_definition AT ROW 9.33 COL 98
      bu_import_scm AT ROW 10.52 COL 98
@@ -329,18 +353,23 @@ DEFINE FRAME fr_main
      fi_date AT ROW 4.48 COL 100 COLON-ALIGNED
      fi_author AT ROW 5.71 COL 100 COLON-ALIGNED
      fi_project_ref AT ROW 6.86 COL 100 COLON-ALIGNED
-     RECT-4 AT ROW 4.1 COL 1
+     cProductModule AT ROW 3.62 COL 14 COLON-ALIGNED NO-LABEL
+     RECT-4 AT ROW 5.62 COL 1
      RECT-5 AT ROW 1.48 COL 93
      "Purpose:" VIEW-AS TEXT
-          SIZE 8.8 BY .62 AT ROW 4.81 COL 7
+          SIZE 8.8 BY .62 AT ROW 6.33 COL 7
      "Parameters:" VIEW-AS TEXT
-          SIZE 12 BY .62 AT ROW 9.1 COL 4
+          SIZE 12 BY .62 AT ROW 10.1 COL 4
      "Version Notes:" VIEW-AS TEXT
-          SIZE 14 BY .62 AT ROW 13 COL 1.8
+          SIZE 14 BY .62 AT ROW 13.52 COL 1.8
      "Definition Section" VIEW-AS TEXT
-          SIZE 17 BY .62 AT ROW 3.86 COL 2
+          SIZE 17 BY .62 AT ROW 5.38 COL 2
      "Source Code Management Info" VIEW-AS TEXT
           SIZE 31 BY .62 AT ROW 1.24 COL 94
+     "Product" VIEW-AS TEXT
+          SIZE 8 BY .62 AT ROW 3.52 COL 7.4
+     "Module:" VIEW-AS TEXT
+          SIZE 8 BY .62 AT ROW 4.1 COL 7.6
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS THREE-D 
          AT COL 1 ROW 1.05
@@ -353,6 +382,7 @@ DEFINE FRAME fr_main
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
 /* Settings for THIS-PROCEDURE
    Type: Window
+   Compile into: 
    Allow: Basic,Browse,DB-Fields,Window,Query
    Other Settings: COMPILE
  */
@@ -397,6 +427,11 @@ ASSIGN C-Win = CURRENT-WINDOW.
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME fr_main
    UNDERLINE L-To-R,COLUMNS                                             */
+/* SETTINGS FOR FILL-IN cProductModule IN FRAME fr_main
+   NO-ENABLE                                                            */
+ASSIGN 
+       cProductModule:READ-ONLY IN FRAME fr_main        = TRUE.
+
 ASSIGN 
        ed_object_parameters:RETURN-INSERTED IN FRAME fr_main  = TRUE.
 
@@ -434,7 +469,6 @@ DO:
   /* (NOTE: this will override any user-defined triggers previously       */
   /*  defined on the window.)                                             */
 
-  IF VALID-HANDLE(hScmTool) THEN DELETE PROCEDURE hScmTool. /* (V:010002) */
   APPLY "CLOSE":U TO THIS-PROCEDURE.
   RETURN NO-APPLY.
 END.
@@ -669,7 +703,6 @@ ASSIGN CURRENT-WINDOW                = {&WINDOW-NAME}
 /* The CLOSE event can be used from inside or outside the procedure to  */
 /* terminate it.                                                        */
 ON CLOSE OF THIS-PROCEDURE DO:
-    IF VALID-HANDLE(hScmTool) THEN DELETE PROCEDURE hScmTool.
     RUN disable_UI.
 END.
 
@@ -681,6 +714,15 @@ PAUSE 0 BEFORE-HIDE.
 MAIN-BLOCK:
 DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
    ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
+  getRDMHandle().
+  IF VALID-HANDLE(ghRepositoryDesignManager) THEN
+    cProductModule = DYNAMIC-FUNCTION("getCurrentProductModule":U IN ghRepositoryDesignManager).
+  IF cProductModule = "" OR cProductModule = ? THEN
+  DO:
+     FIND FIRST gsc_product_module NO-LOCK NO-ERROR.
+     ASSIGN cproductModule = gsc_product_module.product_module_code + " // ":U + gsc_product_module.product_module_description .
+  END.
+
   RUN enable_UI.
 
   RUN setup.
@@ -691,9 +733,6 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
   {af/sup/afendcmain.i}
   IF NOT THIS-PROCEDURE:PERSISTENT THEN
     WAIT-FOR CLOSE OF THIS-PROCEDURE.
-
-/*  IF VALID-HANDLE(hScmTool) THEN DELETE PROCEDURE hScmTool. /* (v:010001) */*/
-
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -733,7 +772,7 @@ PROCEDURE enable_UI :
 ------------------------------------------------------------------------------*/
   DISPLAY fi_object_name fi_object_description ed_object_purpose 
           ed_object_parameters ed_version_notes fi_object_version fi_task 
-          fi_date fi_author fi_project_ref 
+          fi_date fi_author fi_project_ref cProductModule 
       WITH FRAME fr_main.
   ENABLE fi_object_name fi_object_description ed_object_purpose 
          ed_object_parameters ed_version_notes bu_blank_definition 
@@ -1219,12 +1258,7 @@ DO WITH FRAME {&FRAME-NAME}:
     bu_import_scm_history
     .
 
-  IF NOT VALID-HANDLE(hScmTool)
-  AND CONNECTED("rtb":U)
-  AND (SEARCH("rtb/prc/afrtbprocp.p":U) <> ?
-    OR SEARCH("rtb/prc/afrtbprocp.p":U) <> ?)
-  THEN
-      RUN rtb/prc/afrtbprocp.p PERSISTENT SET hScmTool.
+  hScmTool = DYNAMIC-FUNCTION('getProcedureHandle':U IN THIS-PROCEDURE, INPUT 'PRIVATE-DATA:SCMTool':U).
 
   IF VALID-HANDLE(hScmTool)
   THEN DO:
@@ -1250,7 +1284,7 @@ DO WITH FRAME {&FRAME-NAME}:
     RUN adeuib/_uibinfo.p ( ?, ?, "FILE-NAME":U, OUTPUT lv_uibinfo ).
     IF lv_uibinfo <> ? THEN
         DO:
-            ASSIGN lv_uibinfo = TRIM(LC(REPLACE(lv_uibinfo,"\":U,"/":U))).
+            ASSIGN lv_uibinfo = TRIM(LC(REPLACE(lv_uibinfo,"~\":U,"/":U))).
             IF R-INDEX(lv_uibinfo,"/":U) > 0 THEN
                 ASSIGN lv_uibinfo = TRIM(SUBSTRING(lv_uibinfo, R-INDEX(lv_uibinfo,"/":U) + 1)).
             ASSIGN lv_object_name = lv_uibinfo.
@@ -1603,14 +1637,48 @@ DEFINE VARIABLE lv_line             AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE lv_lookup           AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE lv_start_posn       AS INTEGER      NO-UNDO.
 DEFINE VARIABLE lv_end_posn         AS INTEGER      NO-UNDO.
+DEFINE VARIABLE cPrecid             AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cObjectPM           AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cObjectPath         AS CHARACTER  NO-UNDO.
 
 DO WITH FRAME {&FRAME-NAME}:
 
-  /*update information automatically*/    
-    ASSIGN
-        fi_object_name
-        fi_object_version.
+ /* update information automatically*/    
+ ASSIGN
+     fi_object_name
+     fi_object_version
+     fi_object_description.
 
+ ASSIGN cObjectPM = TRIM(ENTRY(1, cProductModule, '/':u)).
+     
+ FIND FIRST gsc_product_module NO-LOCK WHERE gsc_product_module.product_module_code =
+                                             cObjectPM NO-ERROR.
+ IF NOT AVAILABLE gsc_product_module THEN
+   FIND FIRST gsc_product_module NO-LOCK NO-ERROR.
+ IF AVAILABLE gsc_product_module THEN
+   ASSIGN cObjectPath = gsc_product_module.relative_path
+          cObjectPM   = gsc_product_module.product_module_code.
+
+ /* Assign this info to the _P record for this viewer */
+ RUN adeuib/_uibinfo.p (INPUT ?, INPUT ?, INPUT "PROCEDURE":U, OUTPUT cPrecid).
+ getFuncLibHandle().
+ DYNAMIC-FUNCTION("setDynamicProcData":U IN gFuncLibHdl, 
+                            INTEGER(cPrecid),
+                            fi_object_name,
+                            fi_object_description,
+                            cObjectPM,
+                            cObjectPath).
+
+/*
+   /* Change the TITLE of the design window */
+   IF fi_object_name NE "":U THEN DO:
+     /* Get the handle of the window */
+     RUN adeuib/_uibinfo.p(?,'WINDOW ?','HANDLE', OUTPUT cWin).
+     hWin = WIDGET-HANDLE(cWin).
+     IF NUM-ENTRIES(hWin:TITLE,"-":U) > 1 THEN
+         hWin:TITLE = ENTRY(1, hWin:TITLE, "-":U) + " - " + fi_object_name.
+   END.
+*/
 /*    MESSAGE "Are you sure you want to update the definition section comment block with the" SKIP
  *             "object details and version notes for object " + fi_object_name + ", version " + STRING(fi_object_version,"999999":U) + " !"
  *             UPDATE lv_continue AS LOGICAL
@@ -1781,6 +1849,47 @@ IF NUM-ENTRIES(ip_version_notes,CHR(10)) > 1 THEN
 ASSIGN iop_code = iop_code + CHR(10).
 
 END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+/* ************************  Function Implementations ***************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFuncLibHandle C-Win 
+FUNCTION getFuncLibHandle RETURNS HANDLE
+  ( ) :
+/*------------------------------------------------------------------------------
+  Purpose: Return the handle of the AppBuilder function library .   
+    Notes:  
+------------------------------------------------------------------------------*/
+  IF NOT VALID-HANDLE(gFuncLibHdl) THEN 
+  DO:
+      gFuncLibHdl = SESSION:FIRST-PROCEDURE.
+      DO WHILE VALID-HANDLE(gFuncLibHdl):
+        IF gFuncLibHdl:FILE-NAME = "adeuib/_abfuncs.w":U THEN LEAVE.
+        gFuncLibHdl = gFuncLibHdl:NEXT-SIBLING.
+      END.
+  END.
+  RETURN gFuncLibHdl.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getRDMHandle C-Win 
+FUNCTION getRDMHandle RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  
+  ASSIGN ghRepositoryDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U, INPUT "RepositoryDesignManager":U).
+
+  RETURN TRUE.   /* Function return value. */
+
+END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

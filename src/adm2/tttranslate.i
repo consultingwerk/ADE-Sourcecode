@@ -34,7 +34,8 @@
 
   History:
   --------
-
+  Modified: 05/07/2002 - Mark Davies (MIP)
+            Added field for Source Language obj
   
 -----------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
@@ -85,13 +86,13 @@
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Include ASSIGN
-         HEIGHT             = 5.57
+         HEIGHT             = 5.62
          WIDTH              = 64.4.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Include 
@@ -102,18 +103,19 @@
 &IF DEFINED(ttTranslate) = 0 &THEN
   DEFINE TEMP-TABLE ttTranslate NO-UNDO RCODE-INFORMATION
   FIELD dLanguageObj        AS DECIMAL                                                  /* language object or 0 for login language */
+  FIELD dSourceLanguageObj  AS DECIMAL                                                  /* language object or 0 for login language */
   FIELD cLanguageName       AS CHARACTER FORMAT "X(20)":U LABEL "Language":U            /* language name if known */
   FIELD cObjectName         AS CHARACTER FORMAT "X(40)":U LABEL "Object Name":U         /* object name or blank for all */
   FIELD lGlobal             AS LOGICAL   FORMAT "YES/NO":U LABEL "Global":U             /* yes = global translation, no = specific object (if not blank) */
   FIELD cWidgetType         AS CHARACTER FORMAT "X(20)":U LABEL "Widget Type":U         /* widget type, e.g. text, button, etc. */
   FIELD cWidgetName         AS CHARACTER FORMAT "X(40)":U LABEL "Widget Name":U         /* widget name or if type is text, text to translate */
   FIELD hWidgetHandle       AS HANDLE                                                   /* handle of widget if known / required */
-  FIELD iWidgetEntry        AS INTEGER   FORMAT "9":U     LABEL "Element":U             /* widget entry, used for radio-sets, etc. */
+  FIELD iWidgetEntry        AS INTEGER   FORMAT ">9":U     LABEL "Element":U             /* widget entry, used for radio-sets, etc. */
   FIELD lDelete             AS LOGICAL   FORMAT "YES/NO":U LABEL "Delete":U             /* yes = global translation, no = specific object (if not blank) */
-  FIELD cTranslatedLabel    AS CHARACTER FORMAT "X(30)":U LABEL "Translated Label":U    /* translated label */
-  FIELD cOriginalLabel      AS CHARACTER FORMAT "X(30)":U LABEL "Original Label":U      /* original untranslated label */
-  FIELD cTranslatedTooltip  AS CHARACTER FORMAT "X(40)":U LABEL "Translated Tooltip":U  /* translated tooltip */
-  FIELD cOriginalTooltip    AS CHARACTER FORMAT "X(40)":U LABEL "Original Tooltip":U    /* original untranslated tooltip */
+  FIELD cTranslatedLabel    AS CHARACTER FORMAT "X(60)":U LABEL "Translated Label":U    /* translated label */
+  FIELD cOriginalLabel      AS CHARACTER FORMAT "X(60)":U LABEL "Original Label":U      /* original untranslated label */
+  FIELD cTranslatedTooltip  AS CHARACTER FORMAT "X(70)":U LABEL "Translated Tooltip":U  /* translated tooltip */
+  FIELD cOriginalTooltip    AS CHARACTER FORMAT "X(70)":U LABEL "Original Tooltip":U    /* original untranslated tooltip */
   INDEX key1 AS UNIQUE PRIMARY dLanguageObj cObjectName cWidgetType cWidgetName hWidgetHandle iWidgetEntry
   INDEX key2 cLanguageName cObjectName cWidgetType cWidgetName iWidgetEntry
   INDEX key3 cObjectName cWidgetType cWidgetName iWidgetEntry
@@ -124,3 +126,5 @@
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
+
+

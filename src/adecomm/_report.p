@@ -59,7 +59,7 @@ Author: Laura Stern
 Date Created: 10/02/92
 
 HISTORY
-
+    mcmann      09/19/02    Added support for data width report
 	nordhougen  08/22/95    Initialized p_flags:width to its content's 
 				length prior to the format calculation 
 	hutegger    95/01/19    changed p_flags:format calculation to not
@@ -203,10 +203,14 @@ FORM
 PROCEDURE Display_Schema_Info:
 
    run adecomm/_setcurs.p ("WAIT").
+   
+   IF (INDEX(p_Btns, "f") > 0 OR INDEX(p_Btns, "w") > 0) THEN 
+     ASSIGN a_or_o = p_Btns.
+           
 
    IF p_Tbl = "" THEN
       RUN VALUE(p_Func) (INPUT p_DbId).
-   ELSE IF NOT show_order THEN
+   ELSE IF NOT show_order AND (a_or_o <> "F" AND a_or_o <> "W") THEN
       RUN VALUE(p_Func) (INPUT p_DbId, INPUT p_Tbl).
    ELSE
       RUN VALUE(p_Func) (INPUT p_DbId, INPUT p_Tbl, INPUT a_or_o).
@@ -543,7 +547,8 @@ end.
 ASSIGN
    show_switch = (if INDEX(p_Btns, "s") = 0 then no else yes) 
    btn_Switch:hidden in frame report = NOT show_switch
-   show_order = (IF INDEX(p_Btns, "o") > 0 OR INDEX(p_Btns, "a") > 0 THEN yes ELSE no)
+   show_order = (IF INDEX(p_Btns, "o") > 0 OR INDEX(p_Btns, "a") > 0 THEN yes 
+                 ELSE no)
    btn_Order:hidden in frame report = NOT show_order.
 
 wid = 0.

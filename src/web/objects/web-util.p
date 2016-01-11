@@ -61,7 +61,7 @@ DEFINE VARIABLE cfg-cookiepath       AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cfg-debugging        AS CHARACTER  NO-UNDO.
 
 /* Configuration options for enhanced functionality. */
-DEFINE VARIABLE cfg-checktime        AS LOGICAL    NO-UNDO INITIAL TRUE.
+DEFINE VARIABLE cfg-checktime        AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE cfg-compile-on-fly   AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE cfg-compile-options  AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cfg-compile-xcode    AS CHARACTER  NO-UNDO.
@@ -79,9 +79,6 @@ DEFINE VARIABLE cfg-web-run-path     AS CHARACTER  NO-UNDO.
 
 { src/web/method/cookies.i}
 { src/web/method/message.i}
-
-/* Open Source Enhancements */
-DEFINE VARIABLE lDevMode               AS LOGICAL    NO-UNDO.
 { src/web/method/webutils.i }
 
 /* _UIB-CODE-BLOCK-END */
@@ -92,8 +89,8 @@ DEFINE VARIABLE lDevMode               AS LOGICAL    NO-UNDO.
 
 /* ********************  Preprocessor Definitions  ******************** */
 
-&SCOPED-DEFINE PROCEDURE-TYPE Procedure
-&SCOPED-DEFINE DB-AWARE no
+&Scoped-define PROCEDURE-TYPE Procedure
+&Scoped-define DB-AWARE no
 
 
 
@@ -373,7 +370,7 @@ PROCEDURE get-transaction-state :
   END.
   ELSE
     DYNAMIC-FUNCTION ("logNote":U IN web-utilities-hdl, "Error":U,
-                      "#3 StateAware support is inactive.  To activate, create a broker 'stateAware' environment variable with value of 'yes'.") NO-ERROR.
+                      "#3 StateAware support is inactive.  To activate, create a broker 'STATE_AWARE_ENABLED' environment variable with value of 'yes'.") NO-ERROR.
 
 END PROCEDURE.
 
@@ -382,92 +379,13 @@ END PROCEDURE.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-init-config) = 0 &THEN
+&IF DEFINED(EXCLUDE-init-cgi) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE init-config Procedure 
-PROCEDURE init-config :
-/*------------------------------------------------------------------------------
-  Purpose:     Read in extra configuration options at Agent startup.
-  Parameters:  None
-  Notes:       Watch the propath issues
-               Check for @{workpath} and v-workdir 
-               Review Xcode option(s)
-               Consider prefixing settings.
-               Bring all Dynamics vars (icf*) into variable(s) then parse. This will avoid 
-               hard-coding, but it will add a level of complexity.
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cValue     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE ix         AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cDatabases AS CHARACTER  NO-UNDO.
-
-  /* Set a default session tracking cookie. This allows the application to automatically 
-     track anonymouse/unidentified user 'movements' through the system.  This is 
-     the prefix of the cookie. If it is non-blank the session tracking cookie 
-     will be used automatically. */
-  ASSIGN cValue = OS-GETENV("SESSION_COOKIE":U).
-  IF cValue > "" THEN
-    setAgentSetting("Session":U,"","Cookie":U,cValue).
-
-  /* WebRunPath example.  Allow specific resources to be accessed via the URL.  
-     This does not override the PROPATH.
-        
-     WebRunPath=c:\webapps\apps\ *,c:\program files\progress\tty\webtools\ *,
-                c:\program files\progress\tty\webedit\ *,
-                c:\program files\progress\tty\workshop.r
-  */
-  ASSIGN cValue = REPLACE(OS-GETENV("WEB_RUN_PATH":U),';',',').
-  IF cValue > "" THEN
-    setAgentSetting("Path":U,"","WebRunPath":U,cValue).
-  
-  /* Batch Interval Time.  Amount of time agents sit idle before breaking out 
-     of WAIT-FOR and running DB checks and the batch procedure.  Wait for 
-     web-request for the larger of either 15, or cfg-check-interval seconds. By 
-     breaking out of WAIT-FOR we can simulate a batch procedure.  NOTE: Anything 
-     that goes into the batch program should have a relatively short run time,
-     otherwise agents could potentially all lock. */ 
-  ASSIGN ix = INTEGER(OS-GETENV("BATCH_INTERVAL":U)) NO-ERROR.
-  ASSIGN ix = IF ix > 0 THEN MAXIMUM(15,ix) ELSE -1.
-  setAgentSetting("Misc":U,"","BatchInterval":U,STRING(ix)).
-
-  /* CompileOnFly.  What options to use when compilation is needed.
-     Save:  Save the r-code after the compile
-     CheckTime: Check the time difference between the source and R-code and compile if Source is newer.
-  */    
-  ASSIGN cValue  = REPLACE(OS-GETENV("COMPILE_ON_FLY":U),";",",").
-  IF cValue > "" THEN
-    setAgentSetting("Compile":U,"":U, "Options":U,cValue).
-
-  /* CompileXCODE -- Xcode to be used when compile code. */
-  ASSIGN cValue = OS-GETENV("COMPILE_XCODE":U).
-  IF cValue > "" THEN
-    setAgentSetting("Compile":U,"","xcode",cValue).
-
-  /* SessionPath configuration -- path for storing session information.
-     This option is not used when using database-driven session storage 
-     mechanism. */
-  ASSIGN cValue = OS-GETENV("SESSION_PATH":U).
-  IF cValue > "" THEN
-    setAgentSetting("Session":U,"","StorePath":U, REPLACE(cValue,"~\","~/")).
-
-  /* Set flag that activates state-aware support code. */
-  ASSIGN cValue = OS-GETENV("STATE_AWARE_ENABLED":U).
-  IF cValue > "" THEN
-    setAgentSetting("Session":U, "", "StateAware":U, cValue).
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-init-request) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE init-request Procedure 
-PROCEDURE init-request :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE init-cgi Procedure 
+PROCEDURE init-cgi :
 /*---------------------------------------------------------------------------
-  Procedure:   init-request
-  Description: Initializes WebSpeed environment for each web request
+  Procedure:   init-cgi
+  Description: Initializes WebSpeed functionality prior to web request
   Input:       Environment variables
   Output:      Sets global variables defined in src/web/method/cgidefs.i
 ---------------------------------------------------------------------------*/
@@ -563,12 +481,111 @@ PROCEDURE init-request :
  
   ASSIGN
     http-newline = (IF SERVER_SOFTWARE BEGINS "Netscape-":U 
-                     OR SERVER_SOFTWARE BEGINS "FrontPage-PWS":U THEN "~n":U
+                    OR SERVER_SOFTWARE BEGINS "IPlanet-":U 
+                    OR SERVER_SOFTWARE BEGINS "FrontPage-PWS":U THEN "~n":U
                     ELSE "~r~n":U)
 
     /* Set cookie defaults from either configuration defaults or AppURL */
     CookiePath   = (IF cfg-cookiepath <> "" THEN cfg-cookiepath ELSE AppURL)
     CookieDomain = cfg-cookiedomain.
+  
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-init-config) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE init-config Procedure 
+PROCEDURE init-config :
+/*------------------------------------------------------------------------------
+  Purpose:     Read in extra configuration options at Agent startup.
+  Parameters:  None
+  Notes:       Watch the propath issues
+               Check for @{workpath} and v-workdir 
+               Review Xcode option(s)
+               Consider prefixing settings.
+               Bring all Dynamics vars (icf*) into variable(s) then parse. This will avoid 
+               hard-coding, but it will add a level of complexity.
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cValue     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE ix         AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cDatabases AS CHARACTER  NO-UNDO.
+
+  /* Set a default session tracking cookie. This allows the application to automatically 
+     track anonymouse/unidentified user 'movements' through the system.  This is 
+     the prefix of the cookie. If it is non-blank the session tracking cookie 
+     will be used automatically. */
+  ASSIGN cValue = OS-GETENV("SESSION_COOKIE":U).
+  IF cValue > "" THEN
+    setAgentSetting("Session":U,"","Cookie":U,cValue).
+
+  /* WebRunPath example.  Allow specific resources to be accessed via the URL.  
+     This does not override the PROPATH.
+        
+     WebRunPath=c:\webapps\apps\ *,c:\program files\progress\tty\webtools\ *,
+                c:\program files\progress\tty\webedit\ *,
+                c:\program files\progress\tty\workshop.r
+  */
+  ASSIGN cValue = REPLACE(OS-GETENV("WEB_RUN_PATH":U),';',',').
+  IF cValue > "" THEN
+    setAgentSetting("Path":U,"","WebRunPath":U,cValue).
+  
+  /* Batch Interval Time.  Amount of time agents sit idle before breaking out 
+     of WAIT-FOR and running DB checks and the batch procedure.  Wait for 
+     web-request for the larger of either 15, or cfg-check-interval seconds. By 
+     breaking out of WAIT-FOR we can simulate a batch procedure.  NOTE: Anything 
+     that goes into the batch program should have a relatively short run time,
+     otherwise agents could potentially all lock. */ 
+  ASSIGN ix = INTEGER(OS-GETENV("BATCH_INTERVAL":U)) NO-ERROR.
+  ASSIGN ix = IF ix > 0 THEN MAXIMUM(15,ix) ELSE -1.
+  setAgentSetting("Misc":U,"","BatchInterval":U,STRING(ix)).
+
+  /* CompileOnFly.  What options to use when compilation is needed.
+     Save:  Save the r-code after the compile.
+     CheckTime: Check the time difference between the source and R-code and 
+     compile if source is newer. */    
+  ASSIGN cValue  = REPLACE(OS-GETENV("COMPILE_ON_FLY":U),";",",").
+  IF cValue > "" THEN
+    setAgentSetting("Compile":U,"":U, "Options":U,cValue).
+
+  /* CompileXCODE -- Xcode to be used when compile code. */
+  ASSIGN cValue = OS-GETENV("COMPILE_XCODE":U).
+  IF cValue > "" THEN
+    setAgentSetting("Compile":U,"","xcode",cValue).
+
+  /* SessionPath configuration -- path for storing session information.
+     This option is not used when using database-driven session storage 
+     mechanism. */
+  ASSIGN cValue = OS-GETENV("SESSION_PATH":U).
+  IF cValue > "" THEN
+    setAgentSetting("Session":U,"","StorePath":U, REPLACE(cValue,"~\","~/")).
+
+  /* Set flag that activates state-aware support code. Check for missing value
+     for backward compatability. */
+  ASSIGN cValue = OS-GETENV("STATE_AWARE_ENABLED":U).
+  IF cValue = "yes":U OR cValue = "" OR cValue = ? THEN
+    setAgentSetting("Session":U, "", "StateAware":U, "yes":U).
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-init-request) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE init-request Procedure 
+PROCEDURE init-request :
+/*---------------------------------------------------------------------------
+  Procedure:   init-request
+  Description: Initializes WebSpeed environment for each web request
+  Input:       Environment variables
+  Output:      Sets global variables defined in src/web/method/cgidefs.i
+---------------------------------------------------------------------------*/
   
   IF glStateAware THEN  
     RUN SUPER.
@@ -632,8 +649,7 @@ PROCEDURE init-session :
       .
       
   ASSIGN
-    glStateAware = (getAgentSetting("Session":U, "":U, "StateAware":U) = "yes":U)
-    lDevMode     = cfg-development-mode.
+    glStateAware = (getAgentSetting("Session":U, "":U, "StateAware":U) = "yes":U).
 
 END PROCEDURE.
 
@@ -857,6 +873,7 @@ PROCEDURE run-web-object :
   DEFINE VARIABLE cFileExt               AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cLog                   AS CHARACTER  NO-UNDO. 
   DEFINE VARIABLE cRFile                 AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSearch                AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cSearchFile            AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cSessionPrefix         AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE dFile                  AS DATE       NO-UNDO.
@@ -887,31 +904,38 @@ PROCEDURE run-web-object :
   IF cSearchFile = ? THEN DO:
       /* If we found rcode but the file was not in the propath then reject it */
     DYNAMIC-FUNCTION ("logNote":U IN web-utilities-hdl, "WARNING",
-                                SUBSTITUTE ("&1 was requested by &2 but was not in the propath and was rejected. (Ref: &3)", 
-                                               pcFilename, REMOTE_ADDR, HTTP_REFERER)) NO-ERROR.
+      SUBSTITUTE ("&1 was requested by &2 but was not in the propath and was rejected. (Ref: &3)", 
+                  pcFilename, REMOTE_ADDR, HTTP_REFERER)) NO-ERROR.
     DYNAMIC-FUNCTION ("ShowErrorScreen":U IN web-utilities-hdl,
-                                SUBSTITUTE ("Unable to find web object file '&1'", 
-                                            pcFilename)) NO-ERROR.  
+      SUBSTITUTE ("Unable to find web object file '&1'", 
+                  pcFilename)) NO-ERROR.  
     RETURN.
   END. /* Not found in the propath */
 
-  /* If this is configured then perform the check, if its left blank, then allow 
-     anything.  Check and see if there is a more restricted path for running 
-     objects. */
+  /* If this is configured then perform the check, if its left blank, then 
+     allow anything.  Check and see if there is a more restricted path for 
+     running objects. */
   ASSIGN
     cSearchFile = SEARCH(cSearchFile).
+    
   IF cfg-web-run-path > "" AND NOT CAN-DO(cfg-web-run-path,cSearchFile) THEN DO:
     DYNAMIC-FUNCTION ("logNote":U IN web-utilities-hdl, "WARNING":U,
                                 SUBSTITUTE ("&1 was requested by &2 but was not in the WebRunPath and was rejected. (Ref: &3)",
                                             pcFilename, REMOTE_ADDR, HTTP_REFERER)) NO-ERROR.
     DYNAMIC-FUNCTION ("ShowErrorScreen":U IN web-utilities-hdl,
-                                SUBSTITUTE ("Unable to find web object file '&1'", 
+                                SUBSTITUTE ("Unable to find web object file '&1'",
                                             pcFilename )) NO-ERROR.  
     RETURN.
   END. /* not found in the WebRunPath */
 
   /* Verify file extension is valid, i.e. .w, .r, .p, or .  */
-  RUN adecomm/_osfext.p (INPUT pcFilename, OUTPUT cFileExt) NO-ERROR.
+  ASSIGN
+    cSearch = IF cSearchFile = ? THEN pcFileName
+              ELSE IF cSearchFile MATCHES ('*<<*>>':U) THEN
+                ENTRY(1,ENTRY(3,cSearchFile,'<':U),'>':U)
+              ELSE cSearchFile.
+  RUN adecomm/_osfext.p (INPUT cSearch, OUTPUT cFileExt) NO-ERROR.
+    
   IF cFileExt > "" AND NOT CAN-DO(".w,.p,.r,.":U, cFileExt) THEN 
     /* if the file cannot be run directly then look for rcode by the same file name */
     cSearchFile = SEARCH(SUBSTRING(pcFilename, 1, R-INDEX(pcFilename, ".":U),"CHARACTER":U) + "r":U).
@@ -919,7 +943,7 @@ PROCEDURE run-web-object :
   IF cfg-compile-xcode > "" AND CAN-DO(".w,.p":U, cFileExt) THEN
     cSearchFile = SEARCH(SUBSTRING(pcFilename, 1, R-INDEX(pcFilename, ".":U),"CHARACTER":U) + "r":U).
 
-  IF cfg-checktime AND cSearchFile > "" THEN DO:
+  IF cfg-checktime AND cSearchFile > "" AND NOT CAN-DO(".r,.":U, cFileExt) THEN DO:
     ASSIGN
       FILE-INFO:FILE-NAME = cSearchFile
       dFile               = FILE-INFO:FILE-MOD-DATE
@@ -977,8 +1001,7 @@ PROCEDURE run-web-object :
   END.  /* cannot find a file to run anywhere (or not in development )*/
         
   /* Now check database connections prior to running/compiling. */
-  RUN dbCheck  IN web-utilities-hdl (INPUT pcFilename, OUTPUT lRetVal).
- 
+  RUN dbCheck IN web-utilities-hdl (INPUT pcFilename, OUTPUT lRetVal).
   IF lRetVal EQ FALSE THEN DO:
     DYNAMIC-FUNCTION ("logNote":U IN web-utilities-hdl, "ERROR":U,
                                 SUBSTITUTE("&1 did not have the required databases connected (Ref: &2)",
@@ -1005,7 +1028,7 @@ PROCEDURE run-web-object :
      /* Assumes state-aware support is turned on.  Run run-web-object in
         web/objects/stateaware.p. */
      IF glStateAware THEN
-       RUN SUPER (pcFileName).
+       RUN SUPER (pcFileName) NO-ERROR.
      ELSE 
        RUN VALUE(pcFilename) NO-ERROR. 
   END.
@@ -1014,11 +1037,10 @@ PROCEDURE run-web-object :
      may run a program directly without running it through run-web-object */
   lRunOk = (NOT ERROR-STATUS:ERROR AND NOT COMPILER:ERROR).  
   IF NOT lRunOk THEN DO:
-    IF COMPILER:ERROR = TRUE THEN DO:
+    IF COMPILER:ERROR = TRUE THEN
       DYNAMIC-FUNCTION ("logNote":U IN web-utilities-hdl, "Error":U,
                                    SUBSTITUTE ("Compile error in &1 at line &2.",
                                                COMPILER:FILENAME, COMPILER:ERROR-ROW)) NO-ERROR.
-    END.
     DYNAMIC-FUNCTION ("logNote":U IN web-utilities-hdl, "Error":U,
                                  SUBSTITUTE ("&1 tried to run but failed. Message: &2", pcFilename, ERROR-STATUS:GET-MESSAGE(1))) NO-ERROR.
 
@@ -1102,7 +1124,7 @@ PROCEDURE set-transaction-state :
     RUN SUPER (pState).
   ELSE
     DYNAMIC-FUNCTION ("logNote":U IN web-utilities-hdl, "Error":U,
-                      "#1 StateAware support is inactive.  To activate, create a broker 'stateAware' environment variable with value of 'yes'.") NO-ERROR.
+                      "#1 StateAware support is inactive.  To activate, create a broker 'STATE_AWARE_ENABLED' environment variable with value of 'yes'.") NO-ERROR.
 
 END PROCEDURE.
 
@@ -1130,7 +1152,7 @@ PROCEDURE set-web-state :
     RUN SUPER (p_wo-hdl, p_timeout).
   ELSE
     DYNAMIC-FUNCTION ("logNote":U IN web-utilities-hdl, "Error":U,
-                      "#2 StateAware support is inactive.  To activate, create a broker 'stateAware' environment variable with value of 'yes'.") NO-ERROR.
+                      "#2 StateAware support is inactive.  To activate, create a broker 'STATE_AWARE_ENABLED' environment variable with value of 'yes'.") NO-ERROR.
                       
 END PROCEDURE.
 
@@ -1280,7 +1302,7 @@ Description: Sets and outputs the MIME Content-Type header followed by a
    
    IF output-content-type EQ "" THEN DO:
       ASSIGN 
-      	output-content-type = (IF p_type = "" THEN ? ELSE p_type).
+        output-content-type = (IF p_type = "" THEN ? ELSE p_type).
       
       &IF KEYWORD-ALL("HTML-CHARSET") <> ? &THEN  
       /* Add MIME codepage, if available. */

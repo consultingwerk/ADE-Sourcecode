@@ -696,15 +696,15 @@ PROCEDURE Create_LinkType :
   DEFINE BUTTON b_Help SIZE 10 BY 1 LABEL "&Help".
   DEFINE RECTANGLE r1 NO-FILL EDGE-PIXELS 2 SIZE 49 BY 1.6.  
   
-  FORM linktype at row 1.5 col 2
-    b_ok at row 3.5 col 3 b_cancel at row 3.5 col 14
-    b_help at row 3.5 col 40 r1 at row 3.2 col 2
+  FORM linktype at row 1.5 col 3
+    b_ok at row 3.5 col 4 b_cancel at row 3.5 col 15
+    b_help at row 3.5 col 41 r1 at row 3.2 col 3
     WITH FRAME pt SIDE-LABELS 
     TITLE "New Link Type" THREE-D 
     &IF "{&WINDOW-SYSTEM}" EQ "OSF/MOTIF" &THEN
       SIZE 52 BY 4.2
     &ELSE
-      SIZE 52 BY 5.2
+      SIZE 54 BY 5.6
     &ENDIF
     VIEW-AS DIALOG-BOX DEFAULT-BUTTON b_OK.
 

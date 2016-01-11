@@ -59,6 +59,7 @@ CREATE WIDGET-POOL.
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -79,6 +80,7 @@ system_owned
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gscicfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsc_item_category NO-LOCK INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsc_item_category NO-LOCK INDEXED-REPOSITION.
 {&DB-REQUIRED-END}
@@ -172,7 +174,7 @@ END.
      _FldNameList[2]   > icfdb.gsc_item_category.item_category_label
 "item_category_label" "item_category_label" "Category Label*" ? "character" ? ? ? ? ? ? yes ? yes 28 yes
      _FldNameList[3]   > icfdb.gsc_item_category.item_category_obj
-"item_category_obj" "item_category_obj" ? "->>>>>>>>>>>>>>>>>9.999999999" "decimal" ? ? ? ? ? ? no ? no 33.6 yes
+"item_category_obj" "item_category_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 33.6 yes
      _FldNameList[4]   > icfdb.gsc_item_category.item_link
 "item_link" "item_link" "Item Link Default" ? "character" ? ? ? ? ? ? yes ? no 70 yes
      _FldNameList[5]   > icfdb.gsc_item_category.parent_item_category_obj

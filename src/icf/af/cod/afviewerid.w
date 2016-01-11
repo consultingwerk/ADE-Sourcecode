@@ -84,7 +84,7 @@ DEFINE VARIABLE orig-layout AS CHARACTER NO-UNDO.
 &Scoped-define no-layout [default]
 
 /*(010000)...*/
-DEFINE TEMP-TABLE tt_fieldview
+DEFINE TEMP-TABLE tt_fieldview NO-UNDO
   FIELD tt_hide     AS LOGICAL   LABEL "Hide ?"
   FIELD tt_disable  AS LOGICAL   LABEL "Disable ?"
   FIELD tt_field    AS CHARACTER LABEL "Widget Name" FORMAT "X(30)":U

@@ -111,18 +111,21 @@
   /* Starts super procedure */
   RUN start-super-proc("adm2/appserver.p":U).
   
- /* NOTE: If REMOTE = true, we are running on an AppServer, so ignore the 
-    AppService (partition) value, which is meaningful only to the client. 
-    Also set the ASDivision property to Server.
-    Note that AsDivision is set to 'Client' or blank in connectServer upon 
-    in appserver.p */
+  /* May have been retrieved from repository */ 
+  {get AppService cAppService}.
+
+  /* NOTE: If REMOTE = true, we are running on an AppServer, so ignore the 
+     AppService (partition) value, which is meaningful only to the client. 
+     Also set the ASDivision property to Server.
+     Note that AsDivision is set to 'Client' or blank in connectServer upon 
+     in appserver.p */
   IF SESSION:REMOTE THEN
   DO:
     ASSIGN cAppService          = '':U
            cASDivision          = 'Server':U
            cServerOperatingMode = CAPS(SESSION:SERVER-OPERATING-MODE).
   END.  /* remote */
-  ELSE /* Not running on an AppServer */
+  ELSE IF cAppService = '':U THEN 
     ASSIGN cAppService  = '{&APPLICATION-SERVICE}':U.
 
   &IF '{&DB-REQUIRED}':U = 'FALSE':U &THEN

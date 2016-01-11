@@ -48,6 +48,8 @@ History:
     mcmann      07/13/98    Added check for both cpstream and codepage
     mcmann      03/14/01    Added ability to pass in two entries in input parameter
                             to allow user to commit when errors are found.
+    mcmann      04/23/02    Added ability to pass in three entries so that the
+                            user can do on-line schema adds.
 
 ----------------------------------------------------------------------------*/
 /*h-*/
@@ -59,11 +61,13 @@ DEFINE INPUT PARAMETER df-file-name AS CHARACTER NO-UNDO.
 { prodict/user/uservar.i NEW }
 { prodict/dictvar.i NEW }
 
-DEFINE VAR save_ab       AS LOGICAL        NO-UNDO.
-DEFINE VAR codepage AS CHARACTER      NO-UNDO FORMAT "X(20)".
-DEFINE VAR lvar     AS CHAR EXTENT 10 NO-UNDO.
-DEFINE VAR lvar#    AS INT            NO-UNDO.
-DEFINE VAR i        AS INT            NO-UNDO.
+DEFINE VARIABLE save_ab     AS LOGICAL        NO-UNDO.
+DEFINE VARIABLE codepage    AS CHARACTER      NO-UNDO FORMAT "X(20)".
+DEFINE VARIABLE lvar        AS CHAR EXTENT 10 NO-UNDO.
+DEFINE VARIABLE lvar#       AS INT            NO-UNDO.
+DEFINE VARIABLE i           AS INT            NO-UNDO.
+DEFINE VARIABLE old-session AS CHARACTER      NO-UNDO.
+DEFINE VARIABLE counter     AS INTEGER        NO-UNDO INITIAL 1.
 
 
 /*========================= MAINLINE CODE ============================*/
@@ -90,19 +94,35 @@ ASSIGN
 /* If user wants to commit even if there are errors in the df, they can
    pass in a string composed of "df-file-name,yes"  If user_env[15] is
    set to yes, the _lodsddl.p will handle for committing with errors.
+   
+   If user wants to load new tables and sequences on-line than df-file-name
+   must have three entries, "df-file-name,<commit>,<session parameter>".  
+   example:  Commit with errors and loading on-line = "sports,df,yes,NEW OBJECTS" 
+             Do not commit with errors and loading on line = "sports.df,,NEW OBJECTS"
+             Just passing in file name "sports.df".
 */   
-IF NUM-ENTRIES(df-file-name) > 1 THEN
+&IF PROVERSION >= "9.1E" &THEN
+IF NUM-ENTRIES(df-file-name) = 3 THEN
+    ASSIGN user_env[2] = ENTRY(1,df-file-name)
+           user_env[15] = (IF ENTRY(2,df-file-name) <> "" THEN ENTRY(2,df-file-name)
+                          ELSE "")
+           old-session = SESSION:SCHEMA-CHANGE
+           SESSION:SCHEMA-CHANGE = ENTRY(3,df-file-name) .
+ELSE 
+&ENDIF    
+IF NUM-ENTRIES(df-file-name) = 2 THEN
     ASSIGN user_env[2] = ENTRY(1,df-file-name)
            user_env[15] = ENTRY(2,df-file-name).
 ELSE
-    ASSIGN user_env[2] = df-file-name.
+   ASSIGN user_env[2] = df-file-name.
 
 RUN read-cp.  /* get codepage out of the .df file trailer (tomn 8/28/95) */ 
-user_env[10] = codepage.
 
-SESSION:APPL-ALERT-BOXES = NO.
-save_ab = SESSION:APPL-ALERT-BOXES.
-DEFINE VAR counter AS INT NO-UNDO INITIAL 1.
+ASSIGN user_env[10] = CODEPAGE
+       save_ab = SESSION:APPL-ALERT-BOXES
+       SESSION:APPL-ALERT-BOXES = NO.
+
+
 
 /*Fernando: 20020129-017 check how many message the client issued before running the 
   load process. Counter will be pointing to the next position in the message queue */
@@ -138,8 +158,9 @@ DO:
             
         OUTPUT CLOSE.
 END.
-
-
+&IF PROVERSION >= "9.1E" &THEN
+  ASSIGN SESSION:SCHEMA-CHANGE = old-session
+&ENDIF
 SESSION:APPL-ALERT-BOXES = save_ab.
 RETURN.
 

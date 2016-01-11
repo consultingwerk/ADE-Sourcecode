@@ -78,7 +78,7 @@ af/cod/aftemwizpw.w
    can be displayed in the about window of the container */
 
 &scop object-name       afgetuserp.p
-&scop object-version    010000
+&scop object-version    000000
 
 
 /* MIP object identifying preprocessor */
@@ -130,7 +130,7 @@ DEFINE TEMP-TABLE ttUser NO-UNDO LIKE gsm_user.
                                                                         */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
@@ -142,19 +142,45 @@ DEFINE INPUT PARAMETER  pdUserObj                       AS DECIMAL      NO-UNDO.
 DEFINE INPUT PARAMETER  pcLoginName                     AS CHARACTER    NO-UNDO.
 DEFINE OUTPUT PARAMETER TABLE FOR ttUser.
 
-EMPTY TEMP-TABLE ttUser.  
-
-IF pdUserObj <> 0 THEN
-  FIND FIRST gsm_user NO-LOCK
-       WHERE gsm_user.USER_obj = pdUserObj
-       NO-ERROR.
+IF NOT TRANSACTION THEN
+    EMPTY TEMP-TABLE ttUser.  
 ELSE
-  FIND FIRST gsm_user NO-LOCK
-       WHERE gsm_user.USER_login_name = pcLoginName
-       NO-ERROR.
+    FOR EACH ttUser: DELETE ttUser. END.
 
-IF AVAILABLE gsm_user THEN 
-  BUFFER-COPY gsm_user TO ttUser.
+IF  pdUserObj   = 0
+AND pcLoginName = "":U 
+THEN DO:
+    FOR EACH gsm_user NO-LOCK:
+        CREATE ttUser.
+        BUFFER-COPY gsm_user TO ttUser.
+
+        /* For security reasons, don't pass the user obj or password */
+
+        ASSIGN ttUser.user_obj      = ?
+               ttUser.user_password = "":U.
+    END.
+END.
+ELSE DO:
+    IF pdUserObj <> 0 THEN
+        FIND FIRST gsm_user NO-LOCK
+             WHERE gsm_user.USER_obj = pdUserObj
+             NO-ERROR.
+    ELSE
+        FIND FIRST gsm_user NO-LOCK
+             WHERE gsm_user.USER_login_name = pcLoginName
+             NO-ERROR.
+
+    IF AVAILABLE gsm_user 
+    THEN DO:
+        BUFFER-COPY gsm_user TO ttUser.
+
+        /* For security reasons, don't pass the user obj or password */
+
+        IF pdUserObj = 0 THEN
+            ASSIGN ttUser.user_obj = ?.
+        ASSIGN ttUser.user_password = "":U.
+    END.
+END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

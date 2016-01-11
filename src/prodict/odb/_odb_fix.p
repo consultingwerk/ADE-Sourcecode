@@ -36,6 +36,7 @@
             D. McMann 07/05/01 Added assignment of _Order to be greater than original
                              Progress database so conflict would not happen.
                              20010703-019
+            D.McMann  08/07/02 Added _Owner to FOR EACH on delete loop.
 */  
 
 DEFINE INPUT PARAMETER p_edbtype AS CHARACTER NO-UNDO.
@@ -583,9 +584,11 @@ END. /* each DICTDB2._File */
 
 /* Now check DICTDB._File to make sure we get only those we pushed */
 IF del-cycle THEN DO:
-  FOR EACH DICTDB._File WHERE DICTDB._File._Tbl-type = "T":
+  FOR EACH DICTDB._File WHERE DICTDB._File._Tbl-type = "T"
+                          AND DICTDB._File._Owner = "_Foreign":
     IF DICTDB._File._Hidden THEN NEXT.
-    FIND DICTDB2._File WHERE DICTDB2._File._File-name = DICTDB._File._File-name NO-ERROR.
+    FIND DICTDB2._File WHERE DICTDB2._File._File-name = DICTDB._File._File-name 
+                         AND DICTDB2._File._Owner = "PUB" NO-ERROR.
     IF NOT AVAILABLE DICTDB2._File THEN DO:
       FOR EACH DICTDB._INDEX OF DICTDB._File:
         FOR EACH DICTDB._Index-field of DICTDB._Index:

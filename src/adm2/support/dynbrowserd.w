@@ -43,7 +43,7 @@
 /*----------------------------------------------------------------------*/
 
 /* ***************************  Definitions  ************************** */
-{adeuib/uibhlp.i}          /* Help File Preprocessor Directives         */
+
 &GLOBAL-DEFINE WIN95-BTN YES
 
 /* Parameters Definitions ---                                           */
@@ -183,8 +183,8 @@ DEFINE FRAME Attribute-Dlg
      l_Enable AT ROW 10.52 COL 2.8
      l_View AT ROW 11.71 COL 2.8
      l_calcWidth AT ROW 12.91 COL 2.8
-     c_Layout AT ROW 10.52 COL 33.2 COLON-ALIGNED
-     i_numdown AT ROW 11.67 COL 33.2 COLON-ALIGNED
+     c_Layout AT ROW 10.43 COL 33.2 COLON-ALIGNED
+     i_numdown AT ROW 11.62 COL 33.2 COLON-ALIGNED
      i_maxWidth AT ROW 12.81 COL 33.2 COLON-ALIGNED
      l_ScrollRemote AT ROW 14.05 COL 2.8
      l_FetchOnReposToEnd AT ROW 15.1 COL 2.8
@@ -281,7 +281,8 @@ DO:
   DYNAMIC-FUNC("setDataSourceNames":U IN p_hSMO,cObjectName) NO-ERROR. 
   
   IF gcEnabledFields <> '':U THEN
-    DYNAMIC-FUNC("setUpdateTargetNames":U IN p_hSMO,cObjectName) NO-ERROR.
+    IF {fn getObjectType ghSDO} = "SmartBusinessObject":U THEN
+      DYNAMIC-FUNC("setUpdateTargetNames":U IN p_hSMO,cObjectName) NO-ERROR.
 
   DYNAMIC-FUNC("setSearchField":U IN p_hSMO, 
     IF c_SearchField = "<none>":U THEN "":U ELSE c_SearchField) NO-ERROR.
@@ -632,7 +633,16 @@ PROCEDURE get-SmO-attributes :
         OUTPUT cSDO).
     
     ghDataSource = WIDGET-HANDLE(cSDO).
- 
+    
+    /* When trying to run the PropertySheet from the GenericDynamicsPropSheet (af/cod2/afpropwin.p),
+       objects are run out of conext and as such, the SDO/SBO for a browser cannot be picked up.
+       From afpropwin,p, the only way I could get the handle of the SDO across was to set a UserProperty
+       in the Browse that was fired up. This will not break any current functionality and will ensure
+       that if it could not locate a DataSource through the AppBuilder context, that it at least manages
+       to get it through a UserProperty (Which also would not break anything) */
+    IF NOT VALID-HANDLE(ghDataSource) THEN
+      ghDataSource = WIDGET-HANDLE({fnarg getUserProperty 'DataSource' p_hSMO}).
+    
     cTargets = DYNAMIC-FUNCTION('getContainedDataObjects' IN ghDataSource)
          NO-ERROR.
     IF cTargets = "":U THEN
@@ -659,7 +669,6 @@ PROCEDURE get-SmO-attributes :
           cListPairs  = cListPairs +  ",":U 
                         + cObjectName +  ",":U + STRING(ghSDO)
           c_SDOList   = STRING(ghSDO). 
-
     END. /* cTargets = ? (Linked to an SDO) */
     ELSE 
     DO:

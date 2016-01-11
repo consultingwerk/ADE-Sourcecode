@@ -69,22 +69,22 @@ buPath3 fiPath3 buPath4 fiPath4
 
 /* Definitions of the field level widgets                               */
 DEFINE BUTTON buPath1 
-     LABEL "Select..." 
+     LABEL "Browse..." 
      SIZE 15 BY 1.14
      BGCOLOR 8 .
 
 DEFINE BUTTON buPath2 
-     LABEL "Select..." 
+     LABEL "Browse..." 
      SIZE 15 BY 1.14
      BGCOLOR 8 .
 
 DEFINE BUTTON buPath3 
-     LABEL "Select..." 
+     LABEL "Browse..." 
      SIZE 15 BY 1.14
      BGCOLOR 8 .
 
 DEFINE BUTTON buPath4 
-     LABEL "Select..." 
+     LABEL "Browse..." 
      SIZE 15 BY 1.14
      BGCOLOR 8 .
 
@@ -138,7 +138,7 @@ DEFINE FRAME fMain
    Type: SmartFrame
    Allow: Basic,Browse,DB-Fields,Query,Smart
    Container Links: Data-Target,Data-Source,Page-Target,Update-Source,Update-Target
-   Other Settings: PERSISTENT-ONLY
+   Other Settings: PERSISTENT-ONLY COMPILE
  */
 
 /* This procedure should always be RUN PERSISTENT.  Report the error,  */
@@ -205,7 +205,7 @@ ASSIGN
 
 &Scoped-define SELF-NAME buPath1
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buPath1 fFrameWin
-ON CHOOSE OF buPath1 IN FRAME fMain /* Select... */
+ON CHOOSE OF buPath1 IN FRAME fMain /* Browse... */
 DO:
   RUN btnChoose IN THIS-PROCEDURE.
 END.
@@ -216,7 +216,7 @@ END.
 
 &Scoped-define SELF-NAME buPath2
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buPath2 fFrameWin
-ON CHOOSE OF buPath2 IN FRAME fMain /* Select... */
+ON CHOOSE OF buPath2 IN FRAME fMain /* Browse... */
 DO:
   RUN btnChoose IN THIS-PROCEDURE.
 END.
@@ -227,7 +227,7 @@ END.
 
 &Scoped-define SELF-NAME buPath3
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buPath3 fFrameWin
-ON CHOOSE OF buPath3 IN FRAME fMain /* Select... */
+ON CHOOSE OF buPath3 IN FRAME fMain /* Browse... */
 DO:
   RUN btnChoose IN THIS-PROCEDURE.
 END.
@@ -238,7 +238,7 @@ END.
 
 &Scoped-define SELF-NAME buPath4
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buPath4 fFrameWin
-ON CHOOSE OF buPath4 IN FRAME fMain /* Select... */
+ON CHOOSE OF buPath4 IN FRAME fMain /* Browse... */
 DO:
   RUN btnChoose IN THIS-PROCEDURE.
 END.

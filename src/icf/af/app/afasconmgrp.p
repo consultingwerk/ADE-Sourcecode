@@ -347,6 +347,22 @@ PROCEDURE connectService :
   DEFINE VARIABLE hServer               AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lAns                  AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lDefault              AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cAppServerInfo        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSessionType          AS CHARACTER  NO-UNDO.
+
+  cAppServerInfo = SESSION:NUMERIC-SEPARATOR + SESSION:NUMERIC-DECIMAL-POINT
+                 + SESSION:DATE-FORMAT + ",":U.
+
+  cSessionType = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
+                                  "ICFSESSTYPE":U).
+
+  IF cSessionType <> ? THEN
+    cAppServerInfo = cAppServerInfo + cSessionType.
+  
+  
+  IF gscSessionID <> "":U AND
+     gscSessionID <> ? THEN
+    cAppServerInfo = cAppServerInfo + ",":U + gscSessionID.
 
   {aficfcheck.i}
 
@@ -374,17 +390,13 @@ PROCEDURE connectService :
   IF isConnected(pcServiceName) THEN
     RUN disconnectService (pcServiceName).
 
-/*  /* If ICF is not running, connect to the AppServer with a generated
-     user name and password */
-  IF NOT lICFRunning THEN
-  DO: */
-    cUserName = DYNAMIC-FUNCTION("generateUserName":U IN hDynUser).
-    cPassword = DYNAMIC-FUNCTION("createPassword":U IN hDynUser, cUserName).
-/*  END. */
+  /* Connect to the AppServer with a generated user name and password */
+  cUserName = DYNAMIC-FUNCTION("generateUserName":U IN hDynUser).
+  cPassword = DYNAMIC-FUNCTION("createPassword":U IN hDynUser, cUserName).
 
   /* Now create the server and connect it */
   CREATE SERVER hServer.
-  lAns = hServer:CONNECT(cConnectString,cUserName,cPassword,"":U) NO-ERROR.
+  lAns = hServer:CONNECT(cConnectString,cUserName,cPassword,cAppServerInfo) NO-ERROR.
 
   IF ERROR-STATUS:ERROR OR
      ERROR-STATUS:NUM-MESSAGES <> 0 OR
@@ -400,7 +412,10 @@ PROCEDURE connectService :
   lDefault = DYNAMIC-FUNCTION("isDefaultService":U IN THIS-PROCEDURE,
                               INPUT pcServiceName ).
   IF lDefault = YES THEN
+  DO:
     gshAstraAppServer = hServer.
+    gscSessionID = hServer:CLIENT-CONNECTION-ID.
+  END.
 
 END PROCEDURE.
 
@@ -436,7 +451,10 @@ PROCEDURE disconnectService :
   lDefault = DYNAMIC-FUNCTION("isDefaultService":U IN THIS-PROCEDURE,
                           INPUT pcServiceName ).
 
-  hServer:DISCONNECT().
+
+  IF hServer:CONNECTED() THEN
+    hServer:DISCONNECT().
+
   DELETE OBJECT hServer.
   
   DYNAMIC-FUNCTION('setServiceHandle':U IN THIS-PROCEDURE,
@@ -525,6 +543,33 @@ PROCEDURE plipShutdown :
     DELETE OBJECT hDynUser.
 
   DELETE OBJECT THIS-PROCEDURE.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-reconnectService) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE reconnectService Procedure 
+PROCEDURE reconnectService :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER pcServiceName AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER pcHandle      AS CHARACTER  NO-UNDO.
+
+  /* Clean up the old handle */
+  RUN disconnectService (pcServiceName).
+
+  /* Connect the service again */
+  RUN connectService (pcServiceName, OUTPUT pcHandle).
+
+
 
 END PROCEDURE.
 

@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<relationships>
+<table TableName="ryc_page" DBName="ICFDB">
+   <relationship RelDir="PC">
+      <relationship_reference></relationship_reference>
+      <relationship_description></relationship_description>
+      <parent_entity>ryc_page</parent_entity>
+      <ParentDBName>ICFDB</ParentDBName>
+      <child_entity>ryc_page_object</child_entity>
+      <ChildDBName>ICFDB</ChildDBName>
+      <primary_relationship></primary_relationship>
+      <identifying_relationship>YES</identifying_relationship>
+      <nulls_allowed>NO</nulls_allowed>
+      <cardinality></cardinality>
+      <update_parent_allowed></update_parent_allowed>
+      <parent_delete_action>CASCADE</parent_delete_action>
+      <parent_insert_action>NONE</parent_insert_action>
+      <parent_update_action>RESTRICT</parent_update_action>
+      <parent_verb_phrase>contains</parent_verb_phrase>
+      <child_delete_action>NONE</child_delete_action>
+      <child_insert_action>RESTRICT</child_insert_action>
+      <child_update_action>RESTRICT</child_update_action>
+      <model_external_reference>858f0bd7_43e2b0d1_3fc38890_bae1a92a_3ac_</model_external_reference>
+      <JoinFields>ryc_page_object.page_obj = ryc_page.page_obj</JoinFields>
+    </relationship>
+   <relationship RelDir="CP">
+      <relationship_reference></relationship_reference>
+      <relationship_description></relationship_description>
+      <parent_entity>ryc_smartobject</parent_entity>
+      <ParentDBName>ICFDB</ParentDBName>
+      <child_entity>ryc_page</child_entity>
+      <ChildDBName>ICFDB</ChildDBName>
+      <primary_relationship></primary_relationship>
+      <identifying_relationship>YES</identifying_relationship>
+      <nulls_allowed>NO</nulls_allowed>
+      <cardinality></cardinality>
+      <update_parent_allowed></update_parent_allowed>
+      <parent_delete_action>RESTRICT</parent_delete_action>
+      <parent_insert_action>NONE</parent_insert_action>
+      <parent_update_action>RESTRICT</parent_update_action>
+      <child_delete_action>NONE</child_delete_action>
+      <child_insert_action>RESTRICT</child_insert_action>
+      <child_update_action>RESTRICT</child_update_action>
+      <child_verb_phrase>contains</child_verb_phrase>
+      <model_external_reference>30e5ad2d_42fc69f8_66167690_f77ea3a2_3ae_</model_external_reference>
+      <JoinFields>ryc_page.container_smartobject_obj = ryc_smartobject.smartobject_obj</JoinFields>
+    </relationship>
+   <relationship RelDir="CP">
+      <relationship_reference></relationship_reference>
+      <relationship_description></relationship_description>
+      <parent_entity>ryc_layout</parent_entity>
+      <ParentDBName>ICFDB</ParentDBName>
+      <child_entity>ryc_page</child_entity>
+      <ChildDBName>ICFDB</ChildDBName>
+      <primary_relationship></primary_relationship>
+      <identifying_relationship>YES</identifying_relationship>
+      <nulls_allowed>NO</nulls_allowed>
+      <cardinality></cardinality>
+      <update_parent_allowed></update_parent_allowed>
+      <parent_delete_action>RESTRICT</parent_delete_action>
+      <parent_insert_action>NONE</parent_insert_action>
+      <parent_update_action>RESTRICT</parent_update_action>
+      <child_delete_action>NONE</child_delete_action>
+      <child_insert_action>RESTRICT</child_insert_action>
+      <child_update_action>RESTRICT</child_update_action>
+      <child_verb_phrase>organises</child_verb_phrase>
+      <model_external_reference>a8aff9b3_47c5bf19_b0595789_214463da_3ad_</model_external_reference>
+      <JoinFields>ryc_page.layout_obj = ryc_layout.layout_obj</JoinFields>
+    </relationship>
+  </table>
+<table TableName="ryc_page_object" DBName="ICFDB">
+   <relationship RelDir="CP">
+      <relationship_reference></relationship_reference>
+      <relationship_description></relationship_description>
+      <parent_entity>ryc_smartobject</parent_entity>
+      <ParentDBName>ICFDB</ParentDBName>
+      <child_entity>ryc_page_object</child_entity>
+      <ChildDBName>ICFDB</ChildDBName>
+      <primary_relationship></primary_relationship>
+      <identifying_relationship>YES</identifying_relationship>
+      <nulls_allowed>NO</nulls_allowed>
+      <cardinality></cardinality>
+      <update_parent_allowed></update_parent_allowed>
+      <parent_delete_action>RESTRICT</parent_delete_action>
+      <parent_insert_action>NONE</parent_insert_action>
+      <parent_update_action>RESTRICT</parent_update_action>
+      <child_delete_action>NONE</child_delete_action>
+      <child_insert_action>RESTRICT</child_insert_action>
+      <child_update_action>RESTRICT</child_update_action>
+      <child_verb_phrase>contains</child_verb_phrase>
+      <model_external_reference>2dbcdc0_4e3fb4cc_ffb505b6_ee0c8d1f_0_</model_external_reference>
+      <JoinFields>ryc_page_object.container_smartobject_obj = ryc_smartobject.smartobject_obj</JoinFields>
+    </relationship>
+   <relationship RelDir="CP">
+      <relationship_reference></relationship_reference>
+      <relationship_description></relationship_description>
+      <parent_entity>ryc_page</parent_entity>
+      <ParentDBName>ICFDB</ParentDBName>
+      <child_entity>ryc_page_object</child_entity>
+      <ChildDBName>ICFDB</ChildDBName>
+      <primary_relationship></primary_relationship>
+      <identifying_relationship>YES</identifying_relationship>
+      <nulls_allowed>NO</nulls_allowed>
+      <cardinality></cardinality>
+      <update_parent_allowed></update_parent_allowed>
+      <parent_delete_action>CASCADE</parent_delete_action>
+      <parent_insert_action>NONE</parent_insert_action>
+      <parent_update_action>RESTRICT</parent_update_action>
+      <child_delete_action>NONE</child_delete_action>
+      <child_insert_action>RESTRICT</child_insert_action>
+      <child_update_action>RESTRICT</child_update_action>
+      <child_verb_phrase>contains</child_verb_phrase>
+      <model_external_reference>858f0bd7_43e2b0d1_3fc38890_bae1a92a_3ac_</model_external_reference>
+      <JoinFields>ryc_page_object.page_obj = ryc_page.page_obj</JoinFields>
+    </relationship>
+   <relationship RelDir="CP">
+      <relationship_reference></relationship_reference>
+      <relationship_description></relationship_description>
+      <parent_entity>ryc_object_instance</parent_entity>
+      <ParentDBName>ICFDB</ParentDBName>
+      <child_entity>ryc_page_object</child_entity>
+      <ChildDBName>ICFDB</ChildDBName>
+      <primary_relationship></primary_relationship>
+      <identifying_relationship>YES</identifying_relationship>
+      <nulls_allowed>NO</nulls_allowed>
+      <cardinality></cardinality>
+      <update_parent_allowed></update_parent_allowed>
+      <parent_delete_action>CASCADE</parent_delete_action>
+      <parent_insert_action>NONE</parent_insert_action>
+      <parent_update_action>RESTRICT</parent_update_action>
+      <child_delete_action>NONE</child_delete_action>
+      <child_insert_action>RESTRICT</child_insert_action>
+      <child_update_action>RESTRICT</child_update_action>
+      <child_verb_phrase>is on</child_verb_phrase>
+      <model_external_reference>e2cba35c_41c7fd5d_4952f696_be402403_3ab_</model_external_reference>
+      <JoinFields>ryc_page_object.object_instance_obj = ryc_object_instance.object_instance_obj</JoinFields>
+    </relationship>
+  </table>
+</relationships>

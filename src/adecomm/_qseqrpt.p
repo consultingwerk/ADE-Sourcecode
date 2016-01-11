@@ -41,7 +41,7 @@ Modified on 06/14/94 by Gerry Seidl. Added NO-LOCKs to file accesses.
             07/14/98 by D. McMann Added DBVERSION check and _Owner for _File find
             03/29/99 by Mario B      BUG# 99-03-26-19 Changed DBNAME to 
                                      "DICTDB" in _Owner check.
-            
+            08/08/02 by D. McMann Eliminated any sequences whose name begins "$" - Peer Direct
 ----------------------------------------------------------------------------*/
 
 {adecomm/commeng.i}  /* Help contexts */
@@ -65,7 +65,8 @@ IF NOT CAN-DO(_File._Can-read,USERID("DICTDB")) THEN DO:
   RETURN.
 END.
 
-FIND LAST _Sequence WHERE _Sequence._Db-recid = p_DbId NO-LOCK NO-ERROR.
+FIND LAST _Sequence WHERE _Sequence._Db-recid = p_DbId 
+                      AND NOT _Sequence._Seq-name BEGINS "$" NO-LOCK NO-ERROR.
 IF NOT AVAILABLE _Sequence THEN DO:
   MESSAGE "There are no sequences in this database to look at."
     VIEW-AS ALERT-BOX ERROR BUTTONS OK.

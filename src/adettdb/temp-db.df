@@ -60,7 +60,6 @@ ADD FIELD "Info" OF "ttAppSrv-TT" AS character
   SCROLLBAR-VERTICAL
   MAX-CHARS 255
   NO-WORD-WRAP
-
 "
   ORDER 60
 
@@ -84,7 +83,7 @@ ADD FIELD "PartitionType" OF "ttAppSrv-TT" AS character
    ""JMS Message Server"",""J"",
    ""Report Server - (Actuate)"",""R""
   SIZE-CHARS 20 BY 1
-   "
+"
   ORDER 100
 
 ADD FIELD "ServerURL" OF "ttAppSrv-TT" AS character 
@@ -157,6 +156,11 @@ ADD FIELD "unsubscribeClose" OF "destination" AS logical
   SQL-WIDTH 1
   ORDER 50
 
+ADD INDEX "destination" ON "destination" 
+  AREA "Schema Area"
+  PRIMARY
+  INDEX-FIELD "destination" ASCENDING
+
 ADD TABLE "routerRef"
   AREA "Schema Area"
   DUMP-NAME "router"
@@ -176,6 +180,12 @@ ADD FIELD "internalref" OF "routerRef" AS character
   POSITION 3
   SQL-WIDTH 16
   ORDER 20
+
+ADD INDEX "routerRef" ON "routerRef"
+  AREA "Schema Area"
+  PRIMARY
+  INDEX-FIELD "internalref" ASCENDING
+  INDEX-FIELD "externalref" ASCENDING
 
 ADD TABLE "mapping"
   AREA "Schema Area"
@@ -245,158 +255,11 @@ ADD FIELD "dtdSystemId" OF "mapping" AS character
   SQL-WIDTH 120
   ORDER 80
 
-ADD TABLE "rym_propsheet_brow"
+ADD INDEX "mapping" ON "mapping"
   AREA "Schema Area"
-  DESCRIPTION "This table captures property sheet responses for the creation / modification of a standard ICF Dynamic SmartDataBrowser object.
-
-It is used to forward engineer the object into the full Repository, generating all appropriate smartobject instances and attributes. Many assumptions are made regarding the look and feel of a standard ICF Browser which significantly simplifies the data that must be captured.
-
-More complex specific modifications to an object may be made using the standard Repository Maintenance options.
-
-This table also facilitates generation of the object into different UI's, e.g. Java.
-"
-  DUMP-NAME "rymb"
-
-ADD FIELD "propsheet_brow_obj" OF "rym_propsheet_brow" AS decimal 
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "Wizard Brow Obj"
-  POSITION 2
-  SQL-WIDTH 21
-  VALMSG "o_obj"
-  HELP "Wizard brow obj"
-  DECIMALS 9
-  ORDER 10
-
-ADD FIELD "object_name" OF "rym_propsheet_brow" AS character 
-  DESCRIPTION "The name of the logical object with no path or extension (as logical objects do not have these).
-
-The object does not have to exist anywhere at time of capture."
-  FORMAT "X(35)"
-  INITIAL ""
-  LABEL "Object Name"
-  POSITION 3
-  SQL-WIDTH 70
-  VALMSG "s_name"
-  HELP "Object name"
-  ORDER 40
-
-ADD FIELD "object_description" OF "rym_propsheet_brow" AS character 
-  DESCRIPTION "A description of the object"
-  FORMAT "X(35)"
-  INITIAL ""
-  LABEL "Object Description"
-  POSITION 5
-  SQL-WIDTH 70
-  VALMSG "s_description"
-  HELP "Object description"
-  ORDER 50
-
-ADD FIELD "product_module_code" OF "rym_propsheet_brow" AS character 
-  DESCRIPTION "A unique code to identify the product module this dynamic object belongs to. This code should correspond to a code that exists in gsc_product_module in the ICFDB database, plus should be a product module that exists in the SCM tool.
-
-This code is used when forward engineering the object into the full Repository, at which time it must exist or optionally be created in the gsc_product_module table."
-  FORMAT "X(10)"
-  INITIAL ""
-  LABEL "Product Module Code"
-  POSITION 6
-  SQL-WIDTH 20
-  VALMSG "s_code"
-  HELP "Product module code"
-  ORDER 30
-
-ADD FIELD "sdo_name" OF "rym_propsheet_brow" AS character 
-  DESCRIPTION "The name of the SDO that will be used as the data source for the browser. This is only required in order to select fields for the browser. The actual SDO linked to the browser at runtime may be different.
-
-A valid existing SDO must be specified, with a relative path and extension to enable the SDO to be located on the operating system.
-
-"
-  FORMAT "X(35)"
-  INITIAL ""
-  LABEL "Sdo Name"
-  POSITION 10
-  SQL-WIDTH 70
-  VALMSG "s_name"
-  HELP "Sdo name"
-  ORDER 60
-
-ADD FIELD "custom_super_procedure" OF "rym_propsheet_brow" AS character 
-  DESCRIPTION "The name of a custom super procedure to attach to the browser when the browser is instantiated onto a container.
-A relative path and file extension must be specified for the super procedure.
-This facilitates the coding of specific business logic for a dynamic object. Your super procedure could include an initializeObject procedure that does a RUN SUPER, and after that subscribes to events in the containers toolbar. User defined menu items can then be attached to the conrtainer that publish the event to action the specific business logic."
-  FORMAT "X(35)"
-  INITIAL ""
-  LABEL "Custom Super Procedure"
-  POSITION 12
-  SQL-WIDTH 70
-  VALMSG "s_name"
-  HELP "Custom super procedure"
-  ORDER 100
-
-ADD FIELD "selected_fields" OF "rym_propsheet_brow" AS character 
-  DESCRIPTION "A list of selected fields chr(4) delimited. within each entry, the following entries exist chr(3) delimited:
-
-field number
-field name
-field enabled
-"
-  FORMAT "X(3000)"
-  INITIAL ""
-  LABEL "Selected Fields"
-  POSITION 13
-  SQL-WIDTH 6000
-  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL LARGE MAX-CHARS 3000"
-  VALMSG "s_big_text_block"
-  HELP "Selected fields"
-  ORDER 110
-
-ADD FIELD "launch_container" OF "rym_propsheet_brow" AS character 
-  DESCRIPTION "The object name of the container to launch when an action is taken on the selected record in the browser.
-
-This should be specified without a path and extension and should relate to a record in gsc_object in ICFDB. A dynamic or static container may be specified.
-
-The validity of the container to launch will not be checked until runtime.
-
-This may be superseded by a specific launch container specified for a specific object controller.
-
-"
-  FORMAT "X(35)"
-  INITIAL ""
-  LABEL "Launch Container"
-  POSITION 14
-  SQL-WIDTH 70
-  VALMSG "s_description"
-  HELP "Launch container"
-  ORDER 80
-
-ADD INDEX "XPKrym_propsheet_brow" ON "rym_propsheet_brow" 
-  AREA "Schema Area"
-  UNIQUE
   PRIMARY
-  INDEX-FIELD "propsheet_brow_obj" ASCENDING 
-
-ADD INDEX "XAK1rym_propsheet_brow" ON "rym_propsheet_brow" 
-  AREA "Schema Area"
-  UNIQUE
-  INDEX-FIELD "object_name" ASCENDING 
-
-ADD INDEX "XAK2rym_propsheet_brow" ON "rym_propsheet_brow" 
-  AREA "Schema Area"
-  UNIQUE
-  INDEX-FIELD "product_module_code" ASCENDING 
-  INDEX-FIELD "object_name" ASCENDING 
-
-ADD INDEX "XIE1rym_propsheet_brow" ON "rym_propsheet_brow" 
-  AREA "Schema Area"
-  INDEX-FIELD "object_description" ASCENDING 
-
-ADD INDEX "XIE2rym_propsheet_brow" ON "rym_propsheet_brow" 
-  AREA "Schema Area"
-  INDEX-FIELD "sdo_name" ASCENDING 
-
-ADD INDEX "XIE3rym_propsheet_brow" ON "rym_propsheet_brow" 
-  AREA "Schema Area"
-  INDEX-FIELD "launch_container" ASCENDING 
+  INDEX-FIELD "direction" ASCENDING
+  INDEX-FIELD "name" ASCENDING
 
 ADD TABLE "ttlbObject"
   AREA "Schema Area"
@@ -453,6 +316,11 @@ ADD FIELD "ProductModule" OF "ttlbObject" AS character
   SQL-WIDTH 16
   ORDER 80
 
+ADD INDEX "ttlbObject" ON "ttlbObject"
+  AREA "Schema Area"
+  PRIMARY
+  INDEX-FIELD "ObjectName" ASCENDING
+
 ADD TABLE "ttlbLink"
   AREA "Schema Area"
   DESCRIPTION "Layout Builder temp-table for Layout links."
@@ -478,6 +346,11 @@ ADD FIELD "LinkTarget" OF "ttlbLink" AS character
   POSITION 10
   SQL-WIDTH 16
   ORDER 30
+
+ADD INDEX "ttlbLink" ON "ttlbLink"
+  AREA "Schema Area"
+  PRIMARY
+  INDEX-FIELD "LinkName" ASCENDING
 
 .
 PSC

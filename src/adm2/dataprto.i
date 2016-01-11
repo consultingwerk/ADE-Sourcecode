@@ -20,11 +20,14 @@
 * Contributors:                                                      *
 *                                                                    *
 *********************************************************************/
-/*
- * Prototype include file: S:\astra\object\admenh\dev\src\adm2\dataprto.i
- * Created from procedure: S:\astra\object\admenh\dev\src\adm2\data.p at 14:17 on 22/03/01
- * by the PROGRESS PRO*Tools Prototype Include File Generator
- */
+/*--------------------------------------------------------------------------
+    Library     : dataprto.i - Prototypes for data class
+     Notes    : Manually maitained 
+               -  Uses preprocessor Data-fields-def to conditionally include 
+                  severCommit and remoteCommit since the compiler do not
+                  understand that table and table-handle is the same.   
+  -------------------------------------------------------------------------*/
+
 
 PROCEDURE batchServices IN SUPER:
   DEFINE INPUT PARAMETER pcServices AS CHARACTER.
@@ -104,6 +107,25 @@ END PROCEDURE.
 PROCEDURE refreshRow IN SUPER:
 END PROCEDURE.
 
+   &IF DEFINED(DATA-FIELD-DEFS) = 0 &THEN
+PROCEDURE remoteCommit IN SUPER:
+  DEFINE INPUT-OUTPUT  PARAMETER pcContext AS CHARACTER  NO-UNDO.
+  DEFINE INPUT-OUTPUT  PARAMETER TABLE-HANDLE phRowObjUpd.
+  DEFINE OUTPUT PARAMETER pcMessages AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER pcUndoIds  AS CHARACTER  NO-UNDO.
+END PROCEDURE.
+  &ENDIF 
+  
+PROCEDURE remoteSendRows IN SUPER:
+  DEFINE INPUT-OUTPUT PARAMETER piocContext  AS CHARACTER  NO-UNDO. 
+  DEFINE INPUT  PARAMETER piStartRow     AS INTEGER   NO-UNDO.
+  DEFINE INPUT  PARAMETER pcRowIdent     AS CHARACTER NO-UNDO.
+  DEFINE INPUT  PARAMETER plNext         AS LOGICAL   NO-UNDO.
+  DEFINE INPUT  PARAMETER piRowsToReturn AS INTEGER   NO-UNDO.
+  DEFINE OUTPUT PARAMETER pioRowsReturned AS INTEGER   NO-UNDO.
+  DEFINE OUTPUT PARAMETER TABLE-HANDLE   phRowObject.
+END PROCEDURE.
+
 PROCEDURE restartServerObject IN SUPER:
 END PROCEDURE.
 
@@ -118,12 +140,21 @@ PROCEDURE saveContextAndDestroy IN SUPER:
   DEFINE OUTPUT PARAMETER pcContext AS CHARACTER.
 END PROCEDURE.
 
-PROCEDURE sendRows IN SUPER:
-  DEFINE INPUT PARAMETER piStartRow AS INTEGER.
-  DEFINE INPUT PARAMETER pcRowIdent AS CHARACTER.
-  DEFINE INPUT PARAMETER plNext AS LOGICAL.
-  DEFINE INPUT PARAMETER piRowsToReturn AS INTEGER.
-  DEFINE OUTPUT PARAMETER piRowsReturned AS INTEGER.
+ &IF DEFINED(DATA-FIELD-DEFS) = 0 &THEN
+PROCEDURE serverCommit IN SUPER:
+  DEFINE INPUT-OUTPUT  PARAMETER TABLE-HANDLE phRowObjUpd.
+  DEFINE OUTPUT PARAMETER pcMessages AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER pcUndoIds  AS CHARACTER  NO-UNDO.
+END PROCEDURE.
+ &ENDIF 
+ 
+PROCEDURE serverSendRows IN SUPER:
+  DEFINE INPUT  PARAMETER piStartRow     AS INTEGER NO-UNDO.
+  DEFINE INPUT  PARAMETER pcRowIdent     AS CHARACTER NO-UNDO.
+  DEFINE INPUT  PARAMETER plNext         AS LOGICAL NO-UNDO.
+  DEFINE INPUT  PARAMETER piRowsToReturn AS INTEGER NO-UNDO.
+  DEFINE OUTPUT PARAMETER piRowsReturned AS INTEGER NO-UNDO.
+  DEFINE OUTPUT PARAMETER TABLE-HANDLE   phRowObject.
 END PROCEDURE.
 
 PROCEDURE serverFetchRowObjUpdTable IN SUPER:
@@ -132,6 +163,15 @@ END PROCEDURE.
 
 PROCEDURE setPropertyList IN SUPER:
   DEFINE INPUT PARAMETER pcProperties AS CHARACTER.
+END PROCEDURE.
+
+PROCEDURE serverSendRows IN SUPER:
+ DEFINE INPUT  PARAMETER piStartRow     AS INTEGER NO-UNDO.
+ DEFINE INPUT  PARAMETER pcRowIdent     AS CHARACTER NO-UNDO.
+ DEFINE INPUT  PARAMETER plNext         AS LOGICAL NO-UNDO.
+ DEFINE INPUT  PARAMETER piRowsToReturn AS INTEGER NO-UNDO.
+ DEFINE OUTPUT PARAMETER piRowsReturned AS INTEGER NO-UNDO.
+ DEFINE OUTPUT PARAMETER TABLE-HANDLE   phRowObject.
 END PROCEDURE.
 
 PROCEDURE startServerObject IN SUPER:
@@ -234,6 +274,8 @@ FUNCTION findRowWhere RETURNS LOGICAL
 
 FUNCTION firstRowIds RETURNS CHARACTER
   (INPUT pcQueryString AS CHARACTER) IN SUPER.
+
+FUNCTION getLastCommitErrorType RETURNS CHARACTER IN SUPER.
 
 FUNCTION hasForeignKeyChanged RETURNS LOGICAL IN SUPER.
 

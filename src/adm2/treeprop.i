@@ -140,7 +140,8 @@ ExpandOnAdd,FullRowSelect,OLEDrag,OLEDrop,Scroll,SingleSel,Indentation,LabelEdit
   &GLOBAL-DEFINE xpMinHeight  
   
 {src/adm2/visprop.i}
-
+IF NOT {&ADM-PROPS-DEFINED} THEN
+DO:
 &IF "{&ADMSuper}":U = "":U &THEN
   /* Put your property field definitions here.
      Use the following syntax, e.g.,
@@ -169,6 +170,8 @@ ExpandOnAdd,FullRowSelect,OLEDrag,OLEDrop,Scroll,SingleSel,Indentation,LabelEdit
 &ENDIF
 
 {src/adm2/custom/treepropcustom.i}
+
+END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

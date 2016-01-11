@@ -55,9 +55,10 @@
 
 /* Local Variable Definitions ---                                       */
 
-  DEFINE VARIABLE lv_answer    AS DECIMAL NO-UNDO.
+  DEFINE VARIABLE lv_answer    AS DECIMAL   NO-UNDO.
   DEFINE VARIABLE lv_display   AS CHARACTER NO-UNDO.
   DEFINE VARIABLE lv_operation AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE lFirstTime   AS LOGICAL   NO-UNDO   INIT YES.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -74,9 +75,9 @@
 &Scoped-define FRAME-NAME Dialog-Frame
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS fi_value bu_mu bu_bk bu_7 bu_8 bu_9 bu_di ~
-bu_cl bu_4 bu_5 bu_6 bu_pr bu_1 bu_2 bu_3 bu_mi bu_1x bu_0 bu_pm bu_pt ~
-bu_pl bu_eq bu_ok bu_cn RECT-1 
+&Scoped-Define ENABLED-OBJECTS bu_bk bu_mu bu_7 bu_8 bu_9 bu_di bu_cl bu_4 ~
+bu_5 bu_6 bu_pr bu_1 bu_2 bu_3 bu_mi bu_1x bu_0 bu_pm bu_pt bu_pl bu_eq ~
+bu_ok bu_cn RECT-1 
 &Scoped-Define DISPLAYED-OBJECTS fi_value 
 
 /* Custom List Definitions                                              */
@@ -85,6 +86,15 @@ bu_pl bu_eq bu_ok bu_cn RECT-1
 /* _UIB-PREPROCESSOR-BLOCK-END */
 &ANALYZE-RESUME
 
+
+/* ************************  Function Prototypes ********************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD formatValue Dialog-Frame 
+FUNCTION formatValue RETURNS CHARACTER
+  (INPUT pcValue AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
 
 /* ***********************  Control Definitions  ********************** */
@@ -200,8 +210,8 @@ DEFINE RECTANGLE RECT-1
 
 DEFINE FRAME Dialog-Frame
      fi_value AT ROW 1 COL 1 NO-LABEL
-     bu_mu AT ROW 4.1 COL 23
      bu_bk AT ROW 1 COL 31
+     bu_mu AT ROW 4.1 COL 23
      bu_7 AT ROW 2.43 COL 2
      bu_8 AT ROW 2.43 COL 9
      bu_9 AT ROW 2.43 COL 16
@@ -221,8 +231,8 @@ DEFINE FRAME Dialog-Frame
      bu_pt AT ROW 7.43 COL 16
      bu_pl AT ROW 7.43 COL 23
      bu_eq AT ROW 7.43 COL 31
-     bu_ok AT ROW 9.33 COL 1
-     bu_cn AT ROW 9.33 COL 29 RIGHT-ALIGNED
+     bu_ok AT ROW 9.38 COL 6.2
+     bu_cn AT ROW 9.38 COL 18.8
      RECT-1 AT ROW 2.19 COL 1
      SPACE(7.39) SKIP(1.37)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
@@ -252,17 +262,15 @@ ASSIGN
        FRAME Dialog-Frame:SCROLLABLE       = FALSE
        FRAME Dialog-Frame:HIDDEN           = TRUE.
 
-/* SETTINGS FOR BUTTON bu_cn IN FRAME Dialog-Frame
-   ALIGN-R                                                              */
 /* SETTINGS FOR FILL-IN fi_value IN FRAME Dialog-Frame
-   ALIGN-L                                                              */
+   NO-ENABLE ALIGN-L                                                    */
 ASSIGN 
        fi_value:READ-ONLY IN FRAME Dialog-Frame        = TRUE.
 
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
-
+ 
 
 
 
@@ -275,7 +283,7 @@ DO:
   IF VALID-HANDLE(ip_handle) AND CAN-QUERY(ip_handle,"screen-value":U) THEN
   DO:
     DEFINE VARIABLE dValue AS DECIMAL INITIAL 0 NO-UNDO.
-    ASSIGN dValue = DECIMAL(fi_value:SCREEN-VALUE) NO-ERROR.      
+    ASSIGN dValue = DECIMAL({fnarg formatValue fi_value:SCREEN-VALUE}) NO-ERROR.      
     ASSIGN ip_handle:SCREEN-VALUE = STRING(dValue).
   END.
 END.
@@ -298,20 +306,24 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL bu_0 Dialog-Frame
 ON CHOOSE OF bu_0 IN FRAME Dialog-Frame /* 0 */
 ,bu_1,bu_2,bu_3,bu_4,bu_5,bu_6,bu_7,bu_8,bu_9
-DO:
-    IF DECIMAL(lv_display + SELF:LABEL) GT 99999999999999 
+DO:    
+    IF DECIMAL({fnarg formatValue "lv_display + SELF:LABEL"}) GT 99999999999999 
     THEN DO:
       BELL.
       RETURN NO-APPLY.
     END.  
-
-    ASSIGN
-        lv_display = lv_display + SELF:LABEL.
+    
+    IF lFirstTime THEN 
+      ASSIGN lv_display = Self:LABEL.
+    ELSE
+      ASSIGN lv_display = lv_display + SELF:LABEL.     
+     
+    ASSIGN lFirstTime = NO.
 
     DISPLAY 
-        DECIMAL(lv_display) @ fi_value 
-        WITH FRAME {&FRAME-NAME}.
-
+        DECIMAL({fnarg formatValue lv_display}) @ fi_value 
+        WITH FRAME {&FRAME-NAME} NO-ERROR.
+    
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -323,11 +335,11 @@ END.
 ON CHOOSE OF bu_1x IN FRAME Dialog-Frame /* 1/x */
 DO:
     ASSIGN
-      lv_display = STRING(1 / DECIMAL(fi_value:SCREEN-VALUE)).
+      lv_display = STRING(1 / DECIMAL({fnarg formatValue lv_display})).
 
     DISPLAY
-        DECIMAL(lv_display) @ fi_value 
-        WITH FRAME {&FRAME-NAME}.
+        DECIMAL({fnarg formatValue lv_display}) @ fi_value 
+        WITH FRAME {&FRAME-NAME} NO-ERROR.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -342,8 +354,8 @@ DO:
         lv_display = SUBSTRING(lv_display,1,LENGTH(lv_display) - 1 ).
 
     DISPLAY
-        DECIMAL(lv_display) @ fi_value 
-        WITH FRAME {&FRAME-NAME}.
+        DECIMAL({fnarg formatValue lv_display}) @ fi_value 
+        WITH FRAME {&FRAME-NAME} NO-ERROR.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -359,7 +371,7 @@ DO:
         lv_answer  = 0.
     DISPLAY
         lv_answer @ fi_value 
-        WITH FRAME {&FRAME-NAME}.
+        WITH FRAME {&FRAME-NAME} NO-ERROR.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -405,7 +417,7 @@ END.
 ON CHOOSE OF bu_pm IN FRAME Dialog-Frame /* +\- */
 DO:
     ASSIGN
-        fi_value:SCREEN-VALUE = STRING(DECIMAL(fi_value:SCREEN-VALUE) * -1)
+        fi_value:SCREEN-VALUE = STRING(DECIMAL({fnarg formatValue fi_value:SCREEN-VALUE}) * -1)
         lv_display            = fi_value:SCREEN-VALUE.
 END.
 
@@ -418,11 +430,11 @@ END.
 ON CHOOSE OF bu_pr IN FRAME Dialog-Frame /* % */
 DO:
     ASSIGN
-        lv_display = STRING(lv_answer * DECIMAL(fi_value:SCREEN-VALUE) / 100).
+        lv_display = STRING(lv_answer * DECIMAL({fnarg formatValue fi_value:SCREEN-VALUE}) / 100).
 
     DISPLAY
-        DECIMAL(lv_display) @ fi_value 
-        WITH FRAME {&FRAME-NAME}.
+        DECIMAL({fnarg formatValue lv_display}) @ fi_value 
+        WITH FRAME {&FRAME-NAME} NO-ERROR.
 
 END.
 
@@ -434,14 +446,23 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL bu_pt Dialog-Frame
 ON CHOOSE OF bu_pt IN FRAME Dialog-Frame /* . */
 DO:
-    IF INDEX(lv_display,SESSION:NUMERIC-DECIMAL-POINT) = 0 
-    THEN DO:
+   IF lFirstTime THEN 
+   DO:
+     lv_display = "0" + SESSION:NUMERIC-DECIMAL-POINT .
+     DISPLAY
+         DECIMAL({fnarg formatValue lv_display}) @ fi_value 
+         WITH FRAME {&FRAME-NAME} NO-ERROR.
+   END.    
+   ELSE IF INDEX(lv_display,SESSION:NUMERIC-DECIMAL-POINT) = 0 
+   THEN DO:
         ASSIGN
             lv_display = lv_display + SELF:LABEL.
+            
         DISPLAY
-            DECIMAL(lv_display) @ fi_value 
-            WITH FRAME {&FRAME-NAME}.
-    END.  
+            DECIMAL({fnarg formatValue lv_display}) @ fi_value 
+            WITH FRAME {&FRAME-NAME} NO-ERROR.
+   END.
+   lFirstTime = No.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -466,7 +487,6 @@ IF SESSION:NUMERIC-DECIMAL-POINT = ",":U THEN
 DO:
   bu_pt:LABEL = ",":U.
 END.
-
 
 ON ANY-PRINTABLE ANYWHERE DO:
     DO WITH FRAME {&FRAME-NAME}:
@@ -511,52 +531,49 @@ END.
 
 
 /* position dialog */
-DEFINE VARIABLE hParent AS HANDLE   NO-UNDO.
-DEFINE VARIABLE dRow    AS DECIMAL  NO-UNDO.
-DEFINE VARIABLE dCol    AS DECIMAL  NO-UNDO.
+DEFINE VARIABLE hParentFrame  AS HANDLE     NO-UNDO. /* This is the parent fill-in's frame */
+DEFINE VARIABLE hParentWindow AS HANDLE     NO-UNDO. /* This is the parent fill-in's window */
+DEFINE VARIABLE hParent       AS HANDLE     NO-UNDO. /* This is the calculator's window */
+DEFINE VARIABLE dRow          AS DECIMAL    NO-UNDO.
+DEFINE VARIABLE dCol          AS DECIMAL    NO-UNDO.
 
-ASSIGN
-  hParent        = FRAME {&FRAME-NAME}:PARENT.
+ASSIGN hParent = FRAME {&FRAME-NAME}:PARENT.
 
-IF VALID-HANDLE(ip_handle) THEN
-DO: /* Position with field */
-  ASSIGN
-    drow = MAXIMUM(1,(ip_handle:ROW + hParent:ROW + ip_handle:HEIGHT-CHARS + 1))
-                     - hParent:ROW
-    dcol = MAXIMUM(1,(ip_handle:COLUMN + hParent:COLUMN))
-                     - hParent:COLUMN.
+/* Calculate where the calculator should be */
 
-  IF  (hParent:ROW + drow + FRAME {&FRAME-NAME}:HEIGHT-CHARS) > SESSION:HEIGHT-CHARS THEN
-      ASSIGN  drow = drow - FRAME {&FRAME-NAME}:HEIGHT-CHARS - ip_handle:height - 2.
-  IF  hParent:COL + dcol + FRAME {&FRAME-NAME}:WIDTH-CHARS > SESSION:WIDTH-CHARS THEN
-      ASSIGN dcol = dcol - FRAME {&FRAME-NAME}:WIDTH-CHARS.
+IF VALID-HANDLE(ip_handle) THEN /* Position with field */
+  ASSIGN hParentFrame   = ip_handle:FRAME
+         hParentWindow  = hParentFrame:PARENT
+         dcol           = MAXIMUM(1,hParentWindow:COL + hParentFrame:COL + ip_handle:COL + ip_handle:WIDTH - 5)
+         drow           = MAXIMUM(1,hParentWindow:ROW + hParentFrame:ROW + ip_handle:ROW).
+ELSE /* Centre widget on display */
+  ASSIGN drow = MAXIMUM(1,(SESSION:HEIGHT - FRAME {&FRAME-NAME}:HEIGHT) / 2)
+              - hParent:ROW
+         dcol = MAXIMUM(1,(SESSION:WIDTH - FRAME {&FRAME-NAME}:WIDTH) / 2)
+              - hParent:COLUMN.
 
-END.
-ELSE
-DO: /* Centre widget on display */
-  ASSIGN
-    drow = MAXIMUM(1,(SESSION:HEIGHT - FRAME {&FRAME-NAME}:HEIGHT) / 2)
-                     - hParent:ROW
-    dcol = MAXIMUM(1,(SESSION:WIDTH - FRAME {&FRAME-NAME}:WIDTH) / 2)
-                     - hParent:COLUMN.
+/* Position the calculator on where we determined it should be */
 
-END.
-
-ASSIGN
-  FRAME {&FRAME-NAME}:ROW    = drow
-  FRAME {&FRAME-NAME}:COLUMN = dcol.
+ASSIGN FRAME {&FRAME-NAME}:ROW    = drow
+       FRAME {&FRAME-NAME}:COLUMN = dcol.
 
 /* Now enable the interface and wait for the exit condition.            */
 /* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */
 MAIN-BLOCK:
 DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
    ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
+    
+    /* Now make sure the calculator and parent field formats are synched */
+
+    IF VALID-HANDLE(ip_handle) AND CAN-QUERY(ip_handle, "FORMAT":U) THEN
+        ASSIGN fi_value:FORMAT = ip_handle:FORMAT NO-ERROR.
+
     RUN enable_UI.
     IF VALID-HANDLE(ip_handle) AND CAN-QUERY(ip_handle,"screen-value":U) THEN
     DO WITH FRAME {&FRAME-NAME}:
       DEFINE VARIABLE dValue AS DECIMAL INITIAL 0 NO-UNDO.
-      ASSIGN dValue = DECIMAL(ip_handle:SCREEN-VALUE) NO-ERROR.      
-      DISPLAY STRING(dValue) @ fi_value.
+      ASSIGN dValue = DECIMAL({fnarg formatValue ip_handle:SCREEN-VALUE}) NO-ERROR.      
+      DISPLAY dValue @ fi_value.
       lv_display = fi_value:SCREEN-VALUE.
     END.
     WAIT-FOR GO OF FRAME {&FRAME-NAME}.
@@ -599,9 +616,8 @@ PROCEDURE enable_UI :
 ------------------------------------------------------------------------------*/
   DISPLAY fi_value 
       WITH FRAME Dialog-Frame.
-  ENABLE fi_value bu_mu bu_bk bu_7 bu_8 bu_9 bu_di bu_cl bu_4 bu_5 bu_6 bu_pr 
-         bu_1 bu_2 bu_3 bu_mi bu_1x bu_0 bu_pm bu_pt bu_pl bu_eq bu_ok bu_cn 
-         RECT-1 
+  ENABLE bu_bk bu_mu bu_7 bu_8 bu_9 bu_di bu_cl bu_4 bu_5 bu_6 bu_pr bu_1 bu_2 
+         bu_3 bu_mi bu_1x bu_0 bu_pm bu_pt bu_pl bu_eq bu_ok bu_cn RECT-1 
       WITH FRAME Dialog-Frame.
   VIEW FRAME Dialog-Frame.
   {&OPEN-BROWSERS-IN-QUERY-Dialog-Frame}
@@ -622,24 +638,59 @@ PROCEDURE mip-calculate :
 
     DO WITH FRAME {&FRAME-NAME}:
         CASE lv_operation:
-          WHEN "bu_pl" THEN lv_answer = lv_answer + DECIMAL(fi_value:SCREEN-VALUE).
-          WHEN "bu_mi" THEN lv_answer = lv_answer - DECIMAL(fi_value:SCREEN-VALUE).
-          WHEN "bu_mu" THEN lv_answer = lv_answer * DECIMAL(fi_value:SCREEN-VALUE).
-          WHEN "bu_di" THEN lv_answer = lv_answer / DECIMAL(fi_value:SCREEN-VALUE).
-          OTHERWISE lv_answer = DECIMAL(fi_value:SCREEN-VALUE).
+          WHEN "bu_pl" THEN lv_answer = lv_answer + DECIMAL({fnarg formatValue fi_value:SCREEN-VALUE}).
+          WHEN "bu_mi" THEN lv_answer = lv_answer - DECIMAL({fnarg formatValue fi_value:SCREEN-VALUE}).
+          WHEN "bu_mu" THEN lv_answer = lv_answer * DECIMAL({fnarg formatValue fi_value:SCREEN-VALUE}).
+          WHEN "bu_di" THEN lv_answer = lv_answer / DECIMAL({fnarg formatValue fi_value:SCREEN-VALUE}).
+          OTHERWISE lv_answer = DECIMAL({fnarg formatValue fi_value:SCREEN-VALUE}).
         END CASE.
     END.
 
     ASSIGN
         lv_display = ""
         lv_operation = ip_operation.
-
-    DISPLAY
+        
+   DISPLAY
         lv_answer @ fi_value 
-        WITH FRAME {&FRAME-NAME}.
-
-
+        WITH FRAME {&FRAME-NAME} NO-ERROR.
+    
 END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+/* ************************  Function Implementations ***************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION formatValue Dialog-Frame 
+FUNCTION formatValue RETURNS CHARACTER
+  (INPUT pcValue AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  DEFINE VARIABLE iCount              AS INTEGER                NO-UNDO.
+  DEFINE VARIABLE cFormattedValue     AS CHARACTER INITIAL  ""  NO-UNDO.
+  DEFINE VARIABLE cSingleCharacter    AS CHARACTER INITIAL  ""  NO-UNDO.
+  
+  DO WITH FRAME {&FRAME-NAME}:
+  
+    DO iCount = 1 TO LENGTH(pcValue):
+    
+      ASSIGN cSingleCharacter = SUBSTRING(pcValue, iCount, 1) NO-ERROR.
+      
+      IF cSingleCharacter >= "0":U AND cSingleCharacter <= "9":U
+      OR cSingleCharacter  = SESSION:NUMERIC-DECIMAL-POINT
+      THEN
+        ASSIGN cFormattedValue = cFormattedValue + cSingleCharacter.                              
+                               
+    END.
+    
+  END.
+  
+  RETURN cFormattedValue.   /* Function return value. */
+  
+END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

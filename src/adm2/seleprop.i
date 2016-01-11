@@ -143,7 +143,8 @@ DefineAnyKeyTrigger,StartBrowseKeys
   &GLOBAL-DEFINE xpStartBrowseKeys
   
   {src/adm2/fieldprop.i}
-
+IF NOT {&ADM-PROPS-DEFINED} THEN
+DO:
 &IF "{&ADMSuper}":U = "":U &THEN
   /* and then we add our Selection property defs to that... */
   ghADMProps:ADD-NEW-FIELD('AutoRefresh':U, 'LOG':U, 0, ?, no).       
@@ -186,6 +187,7 @@ DefineAnyKeyTrigger,StartBrowseKeys
   /*<<BEGIN-CUSTOM-PROPERTIES>>*/
   {src/adm2/custom/selepropcustom.i}
   /*<<END-CUSTOM-PROPERTIES>>*/
+END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

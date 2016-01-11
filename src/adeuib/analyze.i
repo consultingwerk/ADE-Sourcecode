@@ -116,6 +116,7 @@
 &Global ABW_RowHeight-val  _inp_line[45]
 &Global ABW_context-help-id _inp_line[46]
 &Global ABW_no-auto-validate _inp_line[47]
+&Global ABW_no-empty_space  _inp_line[48]
 
 &ELSEIF "{&TYPE}" eq "BUTTON" &THEN
 

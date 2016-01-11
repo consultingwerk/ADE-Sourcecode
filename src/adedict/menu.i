@@ -34,7 +34,9 @@ Author: Laura Stern
 
 Date Created: 02/17/92 
     Modified: 01/05/98 Added Storage Area Report for V9
-              05/19/99 Mario B.  Adjust Width Field browser integration.    
+              05/19/99 Mario B.  Adjust Width Field browser integration.   
+              09/18/02 D. McMann Added verify data report  
+              10/01/02 D. McMann Change menu name for Adjust Schema
 ----------------------------------------------------------------------------*/
 
 {adecomm/toolmenu.i &EXCLUDE_DICT = yes}
@@ -62,7 +64,8 @@ Define sub-menu s_mnu_Reports
    menu-item mi_Trigger	      	 label "Tri&gger"
    menu-item mi_QuickUsr         label "&User"
    sub-menu  s_mnu_TblRel        label "Table &Relations"
-   menu-item mi_QuickArea        label "Storage &Areas".
+   menu-item mi_QuickArea        label "Storage &Areas"
+   MENU-ITEM mi_Width            label "Verify Data &Width".
 
 Define sub-menu s_mnu_Database
    menu-item mi_Crt_Database	 label "&Create..."   ACCELERATOR "SHIFT-F3"
@@ -84,14 +87,14 @@ Define sub-menu s_mnu_Create
    menu-item mi_Crt_Sequence	 label "&Sequence..." ACCELERATOR "CTRL-S"
    menu-item mi_Crt_Field     	 label "&Field..."    ACCELERATOR "CTRL-F"
    menu-item mi_Crt_Index     	 label "&Index..."    ACCELERATOR "CTRL-X".
-
+/*
 Define sub-menu s_mnu_SQL_Props    
    menu-item mi_SQL_Width          label "Adjust Field Width".
-   
+*/   
 Define sub-menu s_mnu_Options
    menu-item mi_Field_Rename   	 label "&Globally Rename Fields..."
    menu-item mi_Field_Renumber 	 label "&Renumber Fields in Table..."
-   sub-menu s_mnu_SQL_Props        label "S&QL Properties..."   
+   menu-item mi_SQL_Width        label "Adjust Field Width".  
    RULE
    menu-item mi_Mode_Db 	 label "&Database Mode" ACCELERATOR "SHIFT-F6"
    menu-item mi_Mode_Tbl 	 label "&Table Mode"    ACCELERATOR "SHIFT-F7"

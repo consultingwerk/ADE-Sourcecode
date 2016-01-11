@@ -70,15 +70,33 @@ af/cod/aftemwizpw.w
 
   Update Notes: Check out to create procedure
 
-  (v:010002)    Task:    90000027   UserRef:    
-                Date:   25/04/2001  Author:     Bruce Gruenbaum
+  (v:010002)    Task:          22   UserRef:    
+                Date:   03/02/2003  Author:     Thomas Hansen
 
-  Update Notes: Writes the code. Initial version was a placeholder.
+  Update Notes: Issue 8778:
+                Added getSessionRootDirectory function to get the root directory in the following order:
+                _scm_root_directory
+                _framework_root_directory
+                _start_in-directory
+                SESSION:TEMP-DIR
+                
+                Also added getComponentRootDirectory to get the root directory for the following components:
+                AB
+                framework
+                SCM
+                "" - returns getSessionrootDirectory
 
   (v:010003)    Task:    90000132   UserRef:    
                 Date:   14/05/2001  Author:     Bruce Gruenbaum
 
   Update Notes: XML configuration manager
+  
+  (v:010004)    Task:       
+                Date:   12/06/2002  Author:     Bruce Gruenbaum
+
+  Update Notes: Improved support for integration with RoundTable.
+                Made program into a plip.
+
 
 ------------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
@@ -94,6 +112,9 @@ af/cod/aftemwizpw.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
 &scop object-version    000000
 
+DEFINE VARIABLE cObjectName         AS CHARACTER NO-UNDO.
+ASSIGN
+  cObjectName = "{&object-name}":U.
 
 /* Astra object identifying preprocessor */
 &glob   AstraProcedure    yes
@@ -109,33 +130,27 @@ DEFINE NEW GLOBAL SHARED VARIABLE appSrvUtils AS HANDLE                NO-UNDO.
    has been properly established. It is set using setICFIsRunning and its value
    can be retrieved from anywhere using a dynamic function call to isICFRunning */
 DEFINE VARIABLE glICFIsRunning AS LOGICAL INITIAL ? NO-UNDO.
+DEFINE VARIABLE glProfiler     AS LOGICAL           NO-UNDO.
 
 
 /* The global variables that are used by the existing ICF framework are
    included so that they can be manually set as well. */
-{afglobals.i}
+{src/adm2/globals.i}
 
 /* The following include brings in the temp-tables that we need to parse
    the XML file */
-{afxmlcfgtt.i}
+&GLOBAL-DEFINE defineTTParam YES
+{af/sup2/afxmlcfgtt.i}
+&UNDEFINE defineTTParam
 
 /* The following include contains the replaceCtrlChar function */
-{afxmlreplctrl.i}
+{af/sup2/afxmlreplctrl.i}
 
 /* The following include contains the manipulation of the ttNode table */
-{afttnode.i}
+{af/sup2/afttnode.i}
 
 /* The AppBuilder should not remove this procedure */
 {adecomm/_adetool.i}
-
-/* This table contains the session's parameters. All values are get and
-   set using the getValue and setValue functions. */
-DEFINE TEMP-TABLE ttParam NO-UNDO RCODE-INFORMATION
-  FIELD cOption AS CHARACTER FORMAT "X(25)" LABEL "Parameter"
-  FIELD cValue  AS CHARACTER FORMAT "X(50)" LABEL "Value"
-  INDEX pudx IS UNIQUE PRIMARY
-    cOption
-  .
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -178,11 +193,55 @@ FUNCTION detectFileType RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-expandTokens) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD expandTokens Procedure 
+FUNCTION expandTokens RETURNS CHARACTER
+  ( INPUT pcString AS CHARACTER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-findFile) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD findFile Procedure 
+FUNCTION findFile RETURNS CHARACTER
+  ( INPUT pcFileName AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getCodePath) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCodePath Procedure 
 FUNCTION getCodePath RETURNS CHARACTER
   (INPUT pcFileName AS CHARACTER) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getComponentRootDirectory) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getComponentRootDirectory Procedure 
+FUNCTION getComponentRootDirectory RETURNS CHARACTER
+  ( pcComponent AS CHARACTER /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getExpandablePropertyValue) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getExpandablePropertyValue Procedure 
+FUNCTION getExpandablePropertyValue RETURNS CHARACTER
+  ( INPUT pcProperty AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -233,6 +292,17 @@ FUNCTION getSessionParam RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getSessionRootDirectory) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getSessionRootDirectory Procedure 
+FUNCTION getSessionRootDirectory RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-isConfigManRunning) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD isConfigManRunning Procedure 
@@ -260,6 +330,28 @@ FUNCTION isICFRunning RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setICFIsRunning Procedure 
 FUNCTION setICFIsRunning RETURNS LOGICAL
   ( INPUT plRunning AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setProfilerAttrs) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setProfilerAttrs Procedure 
+FUNCTION setProfilerAttrs RETURNS LOGICAL
+  (INPUT pcAttrList AS CHARACTER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setProfilerDefaults) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setProfilerDefaults Procedure 
+FUNCTION setProfilerDefaults RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -318,8 +410,8 @@ FUNCTION writeNode RETURNS LOGICAL PRIVATE
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 26.52
-         WIDTH              = 63.8.
+         HEIGHT             = 36.86
+         WIDTH              = 67.6.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -332,15 +424,40 @@ FUNCTION writeNode RETURNS LOGICAL PRIVATE
 
 /* ***************************  Main Block  *************************** */ 
 
+{ry/app/ryplipmain.i}
 
 /* We want to make this procedure a SESSION:SUPER-PROCEDURE for now. */
 IF THIS-PROCEDURE:PERSISTENT THEN
   SESSION:ADD-SUPER-PROCEDURE(THIS-PROCEDURE).
 
-
-ON "CLOSE":U OF THIS-PROCEDURE
+ON "CTRL-ALT-SHIFT-S":U ANYWHERE
 DO:
-  RUN sessionShutdown.
+  IF getSessionParam("_debug_tools_on":U) = "YES":U THEN
+    RUN af/cod2/afsessinfo.w PERSISTENT.
+END.
+
+ON "CTRL-ALT-SHIFT-C":U ANYWHERE
+DO:
+  IF getSessionParam("_debug_tools_on":U) = "YES":U 
+  AND VALID-HANDLE(gshSessionManager) 
+  THEN DO:
+      DEFINE VARIABLE hContainerHandle AS HANDLE     NO-UNDO.
+      DEFINE VARIABLE cProcedureType   AS CHARACTER  NO-UNDO.
+
+      RUN launchContainer IN gshSessionManager (INPUT "cachefoldw":U,
+                                                INPUT "":U,
+                                                INPUT "cachefoldw":U,
+                                                INPUT YES,
+                                                INPUT "":U,
+                                                INPUT "":U,
+                                                INPUT "":U,
+                                                INPUT "":U,
+                                                INPUT ?,
+                                                INPUT ?,
+                                                INPUT ?,
+                                                OUTPUT hContainerHandle,
+                                                OUTPUT cProcedureType).
+  END.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -384,8 +501,8 @@ PROCEDURE initializeSession :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE INPUT  PARAMETER pcICFParam  AS CHARACTER  NO-UNDO.
-  
+  DEFINE INPUT PARAMETER pcICFParam   AS CHARACTER  NO-UNDO.
+
   DEFINE VARIABLE hConfig             AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hCurrManager        AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hConnManager        AS HANDLE     NO-UNDO.
@@ -397,6 +514,8 @@ PROCEDURE initializeSession :
   DEFINE VARIABLE iCount              AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cLoginWindow        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hHandle             AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cMode               AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lOSUpdates          AS LOGICAL    NO-UNDO.
 
   DEFINE BUFFER bttProperty           FOR ttProperty.
   DEFINE BUFFER bttManager            FOR ttManager.
@@ -433,6 +552,7 @@ PROCEDURE initializeSession :
 
   /* By this point we should have a session type, so get its value */
   cCurrSessType = getSessionParam("ICFSESSTYPE":U).
+
   /* If the session type has not been set, we're hosed. Bail out */
   IF cCurrSessType = "":U OR
      cCurrSessType = ? THEN
@@ -453,31 +573,32 @@ PROCEDURE initializeSession :
   /* Now we need to parse the configuration file and read in the data from
      the file. */
   RUN parseConfig (hConfig,cCurrSessType).
+  IF RETURN-VALUE <> "":U THEN
+    RETURN "ICFSTARTUPERR: ":U + RETURN-VALUE.
 
-  /* Publish the ICFCFM_ConfigParsed event. This notifies any subscribers
-     that the file has been parsed in and provides an opportunity to parse
-     the XML file further if necessary */
-  PUBLISH "ICFCFM_ParametersSet":U (INPUT hConfig, INPUT cCurrSessType).
-  
-  /* We're done with the XML file, so we delete the object */
-  DELETE OBJECT hConfig.
-  hConfig = ?.
 
   /* If there was a RETURN-VALUE from the parse, we need to return it */
   IF RETURN-VALUE <> "":U THEN
     RETURN RETURN-VALUE.
 
-  /* Now we need to copy the properties to the ttParams */
+  /* Now we need to run a procedure that will set up the system params
+     that can be used as macros to expand the other properties */
+  RUN setSystemParams.
+
+  /* Now we need to copy the other properties to the ttParams */
   FOR EACH bttProperty:
     setSessionParam(bttProperty.cProperty,bttProperty.cValue).
   END.
   /* As we're now done with the ttProperty table, empty it */
   EMPTY TEMP-TABLE ttProperty.
 
-  
   /* Now we need to figure out if this is a valid session type for this 
      environment. Get the list of supported physical session types */
   cPhysSessTypes = getSessionParam("physical_session_list":U).
+
+  /* If the profiler is running we need to do regular run statements so we
+     get debug listings. */
+  glProfiler    = getSessionParam("_profiler_run":U) = "YES":U.
 
   /* If the physical session type is not supported in this Progress client,
      bail out. */
@@ -496,8 +617,20 @@ PROCEDURE initializeSession :
      NOT CAN-DO(cValidOsList,OPSYS) THEN
     RETURN "ICFSTARTUPERR: OPERATING SYSTEM NOT SUPPORTED BY SESSION TYPE":U.
 
+  /* Set the manager handle for the configuration file manager in case
+     there is code that needs to get the handle of the CFM. */
+  RUN setConfigManagerHandle (cCurrSessType).
+
+  /* Read the registry key list and it's values */
+  IF OPSYS = "WIN32":U THEN
+    RUN obtainRegistryKeys.
+
+  /* Expand the properties that should be expanded */ 
+  RUN propertyExpander.
+
   /* Now we set up all the SESSION attributes */
   RUN setSessionAttributes.
+
   /* If there was a RETURN-VALUE from the parse, we need to return it */
   IF RETURN-VALUE <> "":U THEN
     RETURN RETURN-VALUE.
@@ -630,13 +763,61 @@ PROCEDURE initializeSession :
 
   END.
 
+  /* See if there are any outstanding database updates that still need to be
+     run. */
+  IF VALID-HANDLE(gshGenManager) THEN
+  DO:
+    lOSUpdates = DYNAMIC-FUNCTION("haveOutstandingUpdates":U IN gshGenManager).
+    IF lOSUpdates = ? THEN
+      lOSUpdates = NO.
+
+    IF lOSUpdates AND
+       (cCurrPhysSessType <> "GUI":U OR
+        NOT CONNECTED("ICFDB":U)) THEN
+      RETURN "ICFSTARTUPERR: OUTSTANDING DATABASE UPDATES. PLEASE RUN GUI CLIENT CLIENT-SERVER":U.
+  END.
+
+
+  /* Publish the ICFCFM_ConfigParsed event. This notifies any subscribers
+     that the file has been parsed in and provides an opportunity to parse
+     the XML file further if necessary before the XML handle is deleted.
+     This needs to happen after the managers have been started so that
+     the manager handles are all valid at this point */
+  PUBLISH "ICFCFM_ConfigParsed":U (INPUT hConfig, INPUT cCurrSessType).
+
+  /* We're done with the XML file, so we delete the object */
+  DELETE OBJECT hConfig.
+  hConfig = ?.
+  
   /* Publish the login event */
   PUBLISH "ICFCFM_Login":U.
   IF RETURN-VALUE <> "":U AND 
      RETURN-VALUE <> ? THEN
     RETURN RETURN-VALUE.
 
-  
+  /* If we have updates to do, see if this is an admin user. If not,
+     we need to jump out */
+  IF lOSUpdates THEN
+  DO:
+    /* Publish an event that indicates that an upgrade is starting */
+    PUBLISH "ICFCFM_UpgradeStart":U.
+
+    /* Do the upgrade */
+    RUN startProcedure("install/prc/insessupdp.p":U, OUTPUT hHandle) NO-ERROR.
+    IF ERROR-STATUS:ERROR OR
+       (RETURN-VALUE <> "":U AND
+        RETURN-VALUE <> ?) THEN
+      RETURN RETURN-VALUE.
+    
+    /* Publish an event that indicates that an upgrade is complete */
+    PUBLISH "ICFCFM_UpgradeComplete":U.
+  END.
+
+  /* If the login is successful, then publish that fact. */
+  PUBLISH "ICFCFM_LoginComplete":U.
+  IF RETURN-VALUE NE "":U AND RETURN-VALUE NE ? THEN
+      RETURN RETURN-VALUE.
+
   /* Finally, run each of the startup procedures that have been
      specified. Note that if any of them fail, we quit the session */
   FOR EACH bttParam 
@@ -645,16 +826,49 @@ PROCEDURE initializeSession :
     
     PUBLISH "ICFCFM_StartingProcedure":U (INPUT bttParam.cValue).
 
+    IF NUM-ENTRIES(bttParam.cValue, "|":U) > 1 THEN
+      ASSIGN 
+        cMode = ENTRY(1, bttParam.cValue, "|":U)
+      .
+
     RUN startProcedure(bttParam.cValue, OUTPUT hHandle) NO-ERROR.
+
     IF ERROR-STATUS:ERROR OR 
        RETURN-VALUE <> "":U THEN
       RETURN "ICFSTARTUPERR: STARTUP PROCEDURE ":U + bttParam.cValue +
              " RETURNED ERROR " + RETURN-VALUE.
+
+    IF cMode = "PERSIST":U OR
+       cMode = "ADM2":U OR
+       cMode = "ICFOBJ":U OR
+       cMode = "ONCE":U THEN
+    DO:
+      setSessionParam("wait_for_required":U, "YES":U).
+      setSessionParam("wait_for_proc":U, STRING(hHandle)).
+    END.
     
     PUBLISH "ICFCFM_StartedProcedure":U (INPUT bttParam.cValue).
   END.
 
-  
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-killPlip) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE killPlip Procedure 
+PROCEDURE killPlip :
+/*------------------------------------------------------------------------------
+  Purpose:     entry point to instantly kill the plip if it should get lost in memory
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  {ry/app/ryplipkill.i}
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -690,6 +904,139 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-obtainRegistryKeys) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE obtainRegistryKeys Procedure 
+PROCEDURE obtainRegistryKeys :
+/*------------------------------------------------------------------------------
+  Purpose:     This procedure parses the RegistryKeys property for the list
+               of properties that contain registry keys that need to be loaded.
+               It then parses each of those keys and loads the key values.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  DEFINE VARIABLE iCount       AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cKeyList     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cCurrKeyProp AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cKeyString   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cBaseKey     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cEnvironment AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSection     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cKey         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iLoop        AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cEntry       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cKeyValue    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cProp        AS CHARACTER  NO-UNDO.
+
+  /* Obtain a list of all the properties that contain registry keys */
+  cKeyList = getSessionParam("registry_keys":U).
+
+  /* Ignore the key list if it is blank. */
+  IF cKeyList = "":U OR
+     cKeyList = ? THEN 
+    RETURN.
+
+  /* Loop through those properties */
+  REPEAT iCount = 1 TO NUM-ENTRIES(cKeyList):
+    ASSIGN
+      cCurrKeyProp  = ENTRY(iCount,cKeyList)
+      cKeyString    = getSessionParam(cCurrKeyProp)
+      cBaseKey      = "":U
+      cEnvironment  = "":U
+      cSection      = "":U
+      cKey          = "":U
+      .
+    /* Set up the three strings that affect this. */
+    DO iLoop = 1 TO NUM-ENTRIES(cKeyString,":":U):
+      cEntry = ENTRY(iLoop,cKeyString,":":U).
+      CASE iLoop:
+        WHEN 1 THEN
+          cBaseKey = cEntry.
+        WHEN 2 THEN
+          cEnvironment = cEntry.
+        WHEN 3 THEN
+          cSection = cEntry.
+        WHEN 4 THEN
+          cKey = cEntry.
+      END CASE.
+    END.
+    ERROR-STATUS:ERROR = NO.
+
+    /* Try and load the environment */
+    IF cBaseKey <> "":U THEN
+      LOAD cEnvironment BASE-KEY cBaseKey NO-ERROR.
+    ELSE
+      LOAD cEnvironment NO-ERROR.
+    IF ERROR-STATUS:ERROR THEN
+    DO:
+      ERROR-STATUS:ERROR = NO.
+      setSessionParam(cCurrKeyProp,"ERROR":U).
+      NEXT.
+    END.
+
+    /* Now try and use the environment we loaded */
+    USE cEnvironment NO-ERROR.                   
+    IF ERROR-STATUS:ERROR THEN
+    DO:
+      UNLOAD cEnvironment.
+      ERROR-STATUS:ERROR = NO.
+      setSessionParam(cCurrKeyProp,"ERROR":U).
+      NEXT.
+    END.
+
+    /* Now we get the key value */
+    IF cSection <> "":U THEN
+    DO:
+      IF cKey = "DEFAULT":U THEN
+        GET-KEY-VALUE SECTION cSection 
+          KEY DEFAULT 
+          VALUE cKeyValue.
+      ELSE
+        GET-KEY-VALUE SECTION cSection 
+          KEY cKey 
+          VALUE cKeyValue.
+    END.
+    IF ERROR-STATUS:ERROR THEN
+    DO:
+      UNLOAD cEnvironment.
+      ERROR-STATUS:ERROR = NO.
+      setSessionParam(cCurrKeyProp,"ERROR":U).
+      NEXT.
+    END.
+
+    /* If the cKey field is "" or unknown, we get all the keys in that section */
+    IF cKey = ? OR 
+       cKey = "":U THEN
+    DO:
+      DO iLoop = 1 TO NUM-ENTRIES(cKey):
+        GET-KEY-VALUE SECTION cSection
+          KEY ENTRY(iLoop,cKey)
+          VALUE cKeyValue.
+        ASSIGN 
+          cProp  = cBaseKey + "~\":U + cEnvironment + "~\":U + cSection + "~\":U + ENTRY(iLoop,cKey)
+          .
+        setSessionParam(cProp, cKeyValue).
+      END.
+    END.
+    /* Otherwise we just set the key to what we got in */
+    ELSE
+    DO:
+      ASSIGN 
+        cProp  = cBaseKey + "~\":U + cEnvironment + "~\":U + cSection + "~\":U + cKey
+        .
+      setSessionParam(cProp, cKeyValue).
+    END.
+
+    UNLOAD cEnvironment.
+  END.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-parseConfig) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE parseConfig Procedure 
@@ -702,13 +1049,19 @@ PROCEDURE parseConfig :
                             all the data.
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE INPUT  PARAMETER phXDoc  AS HANDLE   NO-UNDO.
+
+  DEFINE INPUT  PARAMETER phXDoc      AS HANDLE     NO-UNDO.
   DEFINE INPUT  PARAMETER pcSessType  AS CHARACTER  NO-UNDO.
 
-  DEFINE VARIABLE hRootNode     AS HANDLE   NO-UNDO.
-  DEFINE VARIABLE hSessionNode  AS HANDLE   NO-UNDO.
-  DEFINE VARIABLE lSuccess      AS LOGICAL  NO-UNDO.
-  DEFINE VARIABLE iCount        AS INTEGER  NO-UNDO.
+
+  DEFINE VARIABLE hRootNode           AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hSessionNode        AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lSuccess            AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE iCount              AS INTEGER    NO-UNDO.
+
+  DEFINE VARIABLE lSessTypeFound AS LOGICAL    NO-UNDO.
+
+
 
   /* Create two node references */
   CREATE X-NODEREF hRootNode.
@@ -723,6 +1076,7 @@ PROCEDURE parseConfig :
 
   /* Iterate through the root node's children */
   REPEAT iCount = 1 TO hRootNode:NUM-CHILDREN:
+
     /* Set the current Session Node */
     lSuccess = hRootNode:GET-CHILD(hSessionNode,iCount).
 
@@ -741,6 +1095,7 @@ PROCEDURE parseConfig :
         hSessionNode:GET-ATTRIBUTE("SessionType":U) = pcSessType) THEN
     DO:
       EMPTY TEMP-TABLE ttNode.
+      lSessTypeFound = YES.
       RUN recurseNodes(hSessionNode,hSessionNode:GET-ATTRIBUTE("SessionType":U)).
     END.
   END.
@@ -753,6 +1108,110 @@ PROCEDURE parseConfig :
   hRootNode = ?.
   DELETE OBJECT hSessionNode.
   hSessionNode = ?.
+
+  /* If we don't find the session type, return an error message to that effect */
+  IF NOT lSessTypeFound THEN
+    RETURN "SESSION TYPE " + pcSessType + " NOT FOUND IN CONFIGURATION FILE.".
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-plipSetup) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE plipSetup Procedure 
+PROCEDURE plipSetup :
+/*------------------------------------------------------------------------------
+  Purpose:    Run by main-block of PLIP at startup of PLIP
+  Parameters: <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  {ry/app/ryplipsetu.i}
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-plipShutdown) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE plipShutdown Procedure 
+PROCEDURE plipShutdown :
+/*------------------------------------------------------------------------------
+  Purpose:     This procedure will be run just before the calling program 
+               terminates
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  {ry/app/ryplipshut.i}
+
+  RUN sessionShutdown.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-propertyExpander) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE propertyExpander Procedure 
+PROCEDURE propertyExpander :
+/*------------------------------------------------------------------------------
+  Purpose:     Expands all the properties in the expand list using the
+               appropriate method.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cExpandList    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iCount         AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iCount2        AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cPropertyList  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cExpander      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cExpand        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cPropertyValue AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cProperty      AS CHARACTER  NO-UNDO.
+
+  /* We need to know what order to expand the stuff in */
+  cExpandList = getSessionParam("expand_list":U).
+
+  /* Loop through all the properties in expand list */
+  DO iCount = 1 TO NUM-ENTRIES(cExpandList):
+    
+    /* Obtain the current entry */
+    cExpand = ENTRY(iCount,cExpandList).
+
+    /* Get the property list to be expanded */
+    cPropertyList = ENTRY(1,cExpand,"|":U).
+
+    /* If there is a | sign, there is a special procedure to run to 
+       expand the list */
+    IF NUM-ENTRIES(cExpand,"|":U) > 1 THEN
+    DO:
+      cExpander = ENTRY(2,cExpand,"|":U).
+      RUN VALUE(cExpander) IN THIS-PROCEDURE
+        (cPropertyList).
+    END.
+
+    /* Otherwise just expand the list the normal way */
+    ELSE  
+    DO:
+      DO iCount2 = 1 TO NUM-ENTRIES(cPropertyList):
+        cProperty = ENTRY(iCount2,cPropertyList).
+        cPropertyValue = getExpandablePropertyValue(cProperty).
+        cPropertyValue = expandTokens(cPropertyValue).
+        setSessionParam(cProperty,cPropertyValue).
+      END.
+    END.
+  END.
 
 END PROCEDURE.
 
@@ -929,7 +1388,17 @@ PROCEDURE sessionShutdown :
   DEFINE VARIABLE hNext        AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cPath        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cFile        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSessionType AS CHARACTER  NO-UNDO.
   DEFINE BUFFER bttManager FOR ttManager.
+
+  cSessionType = getSessionParam("ICFSESSTYPE":U).
+
+  /* We shut procedures in this order:                                            *
+   * 1) Running Dynamics procedures. (deletePersistentProc IN gshSessionManager)  *
+   * 2) ADM procedures               (deletePersistentProc IN gshSessionManager)  *
+   * 3) Managers                                                                  */
+  IF VALID-HANDLE(gshSessionManager) THEN
+    RUN deletePersistentProc IN gshSessionManager.
 
   /* First shutdown the ICF managers */
   IF VALID-HANDLE(gshAgnManager)          THEN 
@@ -948,6 +1417,8 @@ PROCEDURE sessionShutdown :
     APPLY "CLOSE":U TO gshSecurityManager.
   IF VALID-HANDLE(gshSessionManager)      THEN 
     APPLY "CLOSE":U TO gshSessionManager.
+  IF VALID-HANDLE(gshRIManager)           THEN 
+    APPLY "CLOSE":U TO gshRIManager.
 
   /* Now make sure that all their handles are unknown */
   ASSIGN 
@@ -963,7 +1434,7 @@ PROCEDURE sessionShutdown :
     .
 
   /* Now shut down the Connection Manager */
-  hConnManager = getManagerHandle("ConnectionManager":U).  
+  hConnManager = getManagerHandle(INPUT "ConnectionManager":U).
 
   IF VALID-HANDLE(hConnManager) THEN
   DO:
@@ -976,14 +1447,16 @@ PROCEDURE sessionShutdown :
   /* Now go through anything else that is left in the procedure handle table
      and try and shut it down. */
 
-  FOR EACH bttManager:
+  FOR EACH bttManager
+    WHERE bttManager.cSessionType = cSessionType
+      AND bttManager.iOrder > 0:
     hManager = bttManager.hHandle.
     IF VALID-HANDLE(hManager) THEN
     DO:
       IF CAN-DO(hManager:INTERNAL-ENTRIES,"plipShutdown":U) THEN
-        RUN plipShutdown IN hConnManager.
+        RUN plipShutdown IN hManager.
       ELSE
-        DELETE PROCEDURE hConnManager.
+        DELETE PROCEDURE hManager.
     END.
     DELETE bttManager.
   END.
@@ -1025,6 +1498,51 @@ PROCEDURE sessionShutdown :
     /* Set hProc */
     hProc = hNext.
   END.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setConfigManagerHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setConfigManagerHandle Procedure 
+PROCEDURE setConfigManagerHandle PRIVATE :
+/*------------------------------------------------------------------------------
+  Purpose:     This procedure simply writes a record the the ttManager table
+               with the handle of THIS-PROCEDURE so that calls to 
+               getManagerHandle using ConfigFileManager as the manager name
+               will succeed.
+               
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER pcSessType  AS CHARACTER  NO-UNDO.
+  DEFINE BUFFER bttManager      FOR ttManager.
+
+  DO TRANSACTION:
+    FIND bttManager NO-LOCK 
+      WHERE bttManager.cSessionType = pcSessType
+        AND bttManager.iOrder = 0
+      NO-ERROR.
+    IF NOT AVAILABLE(bttManager) THEN
+    DO:
+      CREATE bttManager.
+      ASSIGN 
+        bttManager.cSessionType = pcSessType
+        bttManager.iOrder       = 0
+      .
+    END.
+    ASSIGN
+        bttManager.cManagerName = "ConfigFileManager":U
+        bttManager.cFileName    = THIS-PROCEDURE:FILE-NAME
+        bttManager.cHandleName  = "NON"
+        bttManager.hHandle      = THIS-PROCEDURE:HANDLE
+        bttManager.iUniqueID    = THIS-PROCEDURE:UNIQUE-ID
+      .
+  END.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1096,7 +1614,7 @@ PROCEDURE setSessionAttributes PRIVATE :
       WHEN "IMMEDIATE-DISPLAY":U THEN
         SESSION:IMMEDIATE-DISPLAY = bttParam.cValue = "YES":U.
 
-      WHEN "MULTITASKING-INTERVAL":U THEN
+      WHEN "MULTITASKING-INTERVA":U THEN
         SESSION:MULTITASKING-INTERVAL = INTEGER(bttParam.cValue).
 
       WHEN "NUMERIC-FORMAT":U THEN
@@ -1129,6 +1647,202 @@ PROCEDURE setSessionAttributes PRIVATE :
       WHEN "YEAR-OFFSET":U THEN
         SESSION:YEAR-OFFSET = INTEGER(bttParam.cValue).
     END CASE.
+  END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setSystemParams) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setSystemParams Procedure 
+PROCEDURE setSystemParams :
+/*------------------------------------------------------------------------------
+  Purpose:     There are several system parameters that may be referenced
+               in the configuration XML file macros. These have values that the
+               environment automatically derives for the user. This is where
+               those parameters get set.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  DEFINE VARIABLE cICFPath      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iCount        AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cPath         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cStartupPath  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cStartupProc  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDynamicsPath AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cStartIn      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cString       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cEntry        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDirToDrop    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDropParam    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDirToAdd     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAddParam     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDriveLetter  AS CHARACTER  NO-UNDO.
+
+  cDirToDrop  = "/af/app,/icf,/gui,/src,/tty":U.
+  cDropParam  = "_framework_directory,_framework_code_directory,_framework_root_directory,_framework_root_directory,_framework_root_directory":U.
+  cDirToAdd   = "/src,/gui,/tty":U.
+  cAddParam   = "_framework_source_directory,_framework_gui_directory,_framework_tty_directory":U.
+
+  /* Establish the full path to the _start_in and
+     root_directory */
+  FILE-INFO:FILE-NAME = ".":U.
+  cStartIn = REPLACE(FILE-INFO:FULL-PATHNAME, "~\":U, "/":U).
+  setSessionParam("_start_in_directory":U, cStartIn).
+  setSessionParam("root_directory":U, cStartIn).
+
+  /* First break ICFPATH into all its components. Now there will be 
+     ICFPATH<n> session params where <n> is the entry number in the list. 
+     We also add an ICFPATHn which contains the value of the last entry in 
+     the path list. */
+  cICFPath = getSessionParam("ICFPATH":U).
+  IF cICFPath <> "":U THEN
+  DO:
+    DO iCount = 1 TO NUM-ENTRIES(cICFPath,";":U):
+      cPath = ENTRY(iCount,cICFPath,";":U).
+      setSessionParam("ICFPATH":U + STRING(iCount), cPath).
+      IF iCount = NUM-ENTRIES(cICFPath,";":U) THEN
+        setSessionParam("ICFPATHn":U, cPath).
+    END.
+  END.
+
+  /* Figure out the name of the startup procedure. */
+  iCount = 1.
+  DO WHILE PROGRAM-NAME(iCount) <> ?:
+    iCount = iCount + 1.
+  END.
+  cStartupProc = PROGRAM-NAME(iCount - 1).
+  setSessionParam("_startup_proc":U, cStartupProc).
+
+  /* Find the file that contains the startup procedure. */
+  cStartupPath = SEARCH(cStartupProc).
+  IF cStartupPath = ? THEN
+    cStartupPath = SEARCH(THIS-PROCEDURE:FILE-NAME).
+
+  /* Replace all the backslashes with forward slashes and get drop the
+     file name off the end. */
+  cStartupPath = REPLACE(cStartupPath, "~\":U, "/":U).
+  iCount = R-INDEX(cStartupPath,"/":U).
+  IF iCount > 0 THEN
+    cStartupPath = SUBSTRING(cStartupPath,1,iCount - 1).
+  ELSE
+    cStartupPath = "":U.
+
+  /* If the startup path is invalid at this point, we need to accept the
+     startup procedure path. */
+  IF cStartupPath = ? OR
+     cStartupPath = "":U OR
+     SUBSTRING(cStartupPath,1,1) = ".":U THEN
+    cStartupPath = cStartIn.
+
+  /* Set the framework drive letter from the path */
+  IF LENGTH(cStartupPath) > 2 AND
+     SUBSTRING(cStartupPath,2,2) = ":/":U THEN
+  DO:
+    cDriveLetter = SUBSTRING(cStartupPath,1,1).
+    setSessionParam("_framework_drive_letter":U, cDriveLetter).
+  END.
+  ELSE
+    setSessionParam("_framework_drive_letter":U, "":U).
+
+  /* Whatever is left in cStartupPath now is the _framework_directory */
+  setSessionParam("_framework_directory":U, cStartupPath).
+
+  /* See if we can drop any of the directories in cDirToDrop off the path. */
+  DO iCount = 1 TO NUM-ENTRIES(cDirToDrop):
+    cEntry = ENTRY(iCount,cDirToDrop).
+    IF LENGTH(cStartupPath) > LENGTH(cEntry) THEN
+    DO:
+      cString = SUBSTRING(cStartupPath,LENGTH(cStartupPath) - LENGTH(cEntry) + 1).
+      IF cString = cEntry THEN
+        cStartupPath = SUBSTRING(cStartupPath,1,LENGTH(cStartupPath) - LENGTH(cEntry)).
+      setSessionParam(ENTRY(iCount,cDropParam), cStartupPath).
+    END.
+  END.
+
+  /* Add back any of the additional directories */
+  DO iCount = 1 TO NUM-ENTRIES(cDirToAdd):
+    cEntry = ENTRY(iCount,cDirToAdd).
+    cString = cStartupPath + cEntry.
+    FILE-INFO:FILE-NAME = cString.
+    IF FILE-INFO:FULL-PATHNAME <> ? THEN
+      setSessionParam(ENTRY(iCount,cAddParam), cStartupPath + cEntry).
+  END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setupPaths) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setupPaths Procedure 
+PROCEDURE setupPaths :
+/*------------------------------------------------------------------------------
+  Purpose:     This procedure establishes all the defaults for the paths.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER pcPathOrder AS CHARACTER  NO-UNDO.
+
+  DEFINE VARIABLE cString     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iCount      AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iCount2     AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cRawPath    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cPath       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cPathOrder  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cStripStart AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cStripEnd   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cCurrPath   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iNoColon    AS INTEGER    NO-UNDO.
+
+
+  cPathOrder = getSessionParam(pcPathOrder).
+
+
+  /* Now we loop through the paths in the right order and handle them */
+  DO iCount = 1 TO NUM-ENTRIES(cPathOrder):
+
+    /* Get the current path value */
+    cCurrPath = ENTRY(iCount, cPathOrder).
+
+    cRawPath = getExpandablePropertyValue(cCurrPath).
+
+    /* If the current path value is ?, there's nothing we can do with
+       it except set it to "" to avoid making anything that depends
+       on it ? */
+    IF cRawPath = ? THEN
+      cRawPath = "":U.
+    
+    /* Break the path into its components and expand the tokens */
+    iNoColon = NUM-ENTRIES(cRawPath,"|":U).
+    cPath = expandTokens(ENTRY(1,cRawPath,"|":U)).
+    IF iNoColon > 1 THEN
+      cStripStart = expandTokens(ENTRY(2,cRawPath,"|":U)).
+    IF iNoColon > 2 THEN
+      cStripEnd = expandTokens(ENTRY(3,cRawPath,"|":U)).
+
+    /* Now strip off the front portion if there's anything to strip */
+    IF cStripStart <> ? AND
+       cStripStart <> "":U AND
+       SUBSTRING(cPath,1,LENGTH(cStripStart)) = cStripStart THEN
+      cPath = SUBSTRING(cPath,LENGTH(cPath) - LENGTH(cStripStart)).
+
+    /* And strip off the back if there's anything to strip */
+    IF cStripEnd <> ? AND
+       cStripEnd <> "":U AND
+       SUBSTRING(cPath,LENGTH(cPath) - LENGTH(cStripEnd) + 1) = cStripEnd THEN
+      cPath = SUBSTRING(cPath,1,LENGTH(cPath) - LENGTH(cStripEnd)).
+
+    setSessionParam(cCurrPath, cPath).
+
   END.
 
 END PROCEDURE.
@@ -1210,6 +1924,7 @@ PROCEDURE startManager :
   DEFINE VARIABLE cFileName     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cRetVal       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iCount        AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hSuperOf AS HANDLE     NO-UNDO.
 
 
 
@@ -1279,6 +1994,9 @@ PROCEDURE startManager :
         bttManager.hHandle = phManager
         bttManager.iUniqueID = phManager:UNIQUE-ID
         .
+
+      IF bttManager.cHandleName = "":U THEN
+        bttManager.cHandleName = "NON":U.
     END.
 
     /* The handle ties certain hardcoded global variables to certain
@@ -1287,6 +2005,8 @@ PROCEDURE startManager :
     CASE bttManager.cHandleName:
       WHEN "SM":U THEN
         gshSessionManager = phManager.
+      WHEN "RI":U THEN
+        gshRIManager = phManager.
       WHEN "SEM":U THEN
         gshSecurityManager = phManager.
       WHEN "PM":U THEN
@@ -1306,6 +2026,22 @@ PROCEDURE startManager :
       WHEN "AU":U THEN
         appSrvUtils = phManager.
     END CASE.
+
+    /* Now we need to handle the SUPER case */
+    IF bttManager.cSuperOf <> "":U AND
+       bttManager.cSuperOf <> ? THEN
+    DO:
+      CASE bttManager.cSuperOf:
+         WHEN "SESSION":U THEN
+           SESSION:ADD-SUPER-PROCEDURE(phManager, SEARCH-TARGET).
+         OTHERWISE
+         DO:
+           hSuperOf = getManagerHandle(bttManager.cSuperOf).
+           IF VALID-HANDLE(hSuperOf) THEN
+             hSuperOf:ADD-SUPER-PROCEDURE(phManager, SEARCH-TARGET).
+         END.
+      END CASE.
+    END.
 
     /* Now we need to start the event handler for the manager
        if there is one. */
@@ -1337,6 +2073,15 @@ PROCEDURE startProcedure :
   DEFINE VARIABLE cLogicalName AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hProc        AS HANDLE     NO-UNDO.
 
+  DEFINE VARIABLE lMultiInstance              AS LOGICAL      NO-UNDO.
+  DEFINE VARIABLE cChildDataKey               AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cRunAttribute               AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE hContainerWindow            AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE hContainerSource            AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE hObject                     AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE hRunContainer               AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE cRunContainerType           AS CHARACTER    NO-UNDO.
+
   {aficfcheck.i}
 
   IF NUM-ENTRIES(pcProcName,"|":U) > 1 THEN
@@ -1354,7 +2099,7 @@ PROCEDURE startProcedure :
      cMode <> "EVENT":U THEN
   DO:
     cFileName = getCodePath(cProcName).
-    IF cFileName = cProcName THEN
+    IF cFileName = ? THEN
       RETURN "UNKNOWN FILENAME ":U + cProcName.
   END.
 
@@ -1386,25 +2131,49 @@ PROCEDURE startProcedure :
     END.
     WHEN "ICFOBJ":U THEN
     DO:
-      RUN getObjectNames IN gshRepositoryManager (
-          INPUT  cProcName,
-          OUTPUT cFileName,
-          OUTPUT cLogicalName).
-      IF cFileName = "":U THEN
-        RETURN "Could not find Physical Name for Logical Object: ":U + cProcName.
 
-      IF cLogicalName <> "":U THEN
-        DYNAMIC-FUNCTION("setPropertyList":U IN gshSessionManager,
-                                             INPUT "LaunchLogicalObject":U,
-                                             INPUT cLogicalName,
-                                             INPUT NO).
+      IF cProcName = "":U
+      THEN
+        RETURN "Please specify the name of an object to run.: ":U.
 
       /* Run startup window if specified */
-      IF cFileName <> "":U THEN
+      IF cProcName <> "":U THEN
       RUN-BLOCK:
       DO ON STOP UNDO RUN-BLOCK, LEAVE RUN-BLOCK ON ERROR UNDO RUN-BLOCK, LEAVE RUN-BLOCK:
-      /*   SESSION:SET-WAIT-STATE('general':U). */
-        RUN VALUE(cFileName).
+
+        ASSIGN
+          lMultiInstance    = NO
+          cChildDataKey     = "":U
+          cRunAttribute     = "":U
+          hContainerWindow  = ?
+          hContainerSource  = ?
+          hObject           = ?
+          hContainerWindow  = ?
+          cRunContainerType = "":U
+          .
+
+        IF NOT VALID-HANDLE(gshSessionManager) THEN
+          RETURN "Session Manager is not running. Ensure the Progress Dynamics Application is running".
+
+        IF VALID-HANDLE(gshSessionManager) THEN
+        DO:
+          RUN launchContainer IN gshSessionManager
+                             (INPUT  cProcName            /* object filename if physical/logical names unknown */
+                             ,INPUT  "":U                 /* physical object name (with path and extension) if known */
+                             ,INPUT  cProcName            /* logical object name if applicable and known */
+                             ,INPUT  (NOT lMultiInstance) /* run once only flag YES/NO */
+                             ,INPUT  "":U                 /* instance attributes to pass to container */
+                             ,INPUT  cChildDataKey        /* child data key if applicable */
+                             ,INPUT  cRunAttribute        /* run attribute if required to post into container run */
+                             ,INPUT  "":U                 /* container mode, e.g. modify, view, add or copy */
+                             ,INPUT  hContainerWindow     /* parent (caller) window handle if known (container window handle) */
+                             ,INPUT  hContainerSource     /* parent (caller) procedure handle if known (container procedure handle) */
+                             ,INPUT  hObject              /* parent (caller) object handle if known (handle at end of toolbar link, e.g. browser) */
+                             ,OUTPUT hRunContainer        /* procedure handle of object run/running */
+                             ,OUTPUT cRunContainerType    /* procedure type (e.g ADM1, Astra1, ADM2, ICF, "") */
+                             ).
+          hProc = hRunContainer.
+        END.
       END.
 
     END.
@@ -1425,8 +2194,8 @@ PROCEDURE startProcedure :
 
   IF ERROR-STATUS:ERROR OR
      (RETURN-VALUE <> "":U AND
-      RETURN-VALUE <> ?) THEN
-    RETURN ERROR RETURN-VALUE + CHR(10) + buildErrorList().
+      RETURN-VALUE <> ?) THEN 
+    RETURN ERROR RETURN-VALUE + CHR(10) + buildErrorList().      
 
   IF cMode = "ADM2":U THEN
     RUN initializeObject IN hProc.
@@ -1461,7 +2230,7 @@ PROCEDURE subscribeAll :
   IF phSourceProc <> ? AND
      NOT VALID-HANDLE(phSourceProc) THEN
     RETURN.
-  
+
   /* If the target procedure handle is invalid, use THIS-PROCEDURE */
   IF NOT VALID-HANDLE(phTargetProc) THEN
     phTargetProc = THIS-PROCEDURE:HANDLE.
@@ -1492,7 +2261,7 @@ PROCEDURE subscribeAll :
     END.
 
   END.
-  
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1661,6 +2430,186 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-expandTokens) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION expandTokens Procedure 
+FUNCTION expandTokens RETURNS CHARACTER
+  ( INPUT pcString AS CHARACTER) :
+/*------------------------------------------------------------------------------
+  Purpose:  Replaces tokens in the string with the values from the session
+            parameters.
+    Notes:  Takes a string with tokens in the form #<token># and replaces the
+            token with a value that is derived from getSessionParam.
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cRetVal  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cToken   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iPos     AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iLastPos AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cString  AS CHARACTER  NO-UNDO.
+
+  /* If the string is blank, then just return */
+  IF pcString = "":U THEN 
+    RETURN pcString.
+
+  /* Get the position of the first # */
+  iLastPos = 1.
+  iPos     = INDEX(pcString,"#":U).
+
+  /* Keep looping until we get to the end of the string */
+  DO WHILE iPos <= LENGTH(pcString) AND iPos <> 0:
+    cRetVal = cRetVal + SUBSTRING(pcString, iLastPos, iPos - iLastPos).
+    /* Set the last position */
+    iLastPos = iPos + 1.
+    /* Find the next # in the string -- this would give us a token in between */
+    iPos = INDEX(pcString,"#":U, iLastPos).
+
+    /* If there is another #, we have a token */
+    IF iPos <> 0 THEN 
+    DO:
+      /* Extract the token and look up its value */
+      cToken = SUBSTRING(pcString, iLastPos, iPos - iLastPos).
+      cString = getSessionParam(cToken).
+
+      /* If the value of the token is unknow, set it to blank */
+      IF cString = ? THEN
+         cString = "":U.
+      /* Put the value into the return value */
+      cRetVal = cRetVal + cString.
+
+      /* Set the last position ahead of this token */
+      iLastPos = iPos + 1.
+
+      /* And find the next # */
+      iPos = INDEX(pcString,"#":U, iLastPos).
+
+    END.
+  END.
+  cRetVal = cRetVal + SUBSTRING(pcString, iLastPos).
+
+  RETURN cRetVal.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-findFile) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION findFile Procedure 
+FUNCTION findFile RETURNS CHARACTER
+  ( INPUT pcFileName AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Takes a file name and tries to find the file on disk using the 
+            _start_in_dir and _framework directories.
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cDisk      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDirectory AS CHARACTER  NO-UNDO.
+
+  DEFINE VARIABLE cFile      AS CHARACTER  NO-UNDO.
+
+  /* First try and find the file using the PROPATH */
+  cFile = SEARCH(pcFileName).
+  IF cFile <> ? THEN
+    RETURN cFile.
+
+  /* At this point we couldn't find the file, so lets try and find it in the 
+     _start_in_directory */
+  cDirectory = getSessionParam("_start_in_directory":U).
+  IF cDirectory <> ? THEN
+  DO:
+    cFile = REPLACE(cDirectory,"~\":U,"/":U).
+    IF SUBSTRING(cFile,LENGTH(cFile)) = "/":U THEN
+      cFile = cFile + "/":U.
+    cFile = SEARCH(cFile + pcFileName).
+    IF cFile <> ? THEN
+      RETURN cFile.
+  END.
+
+  /* Get the framework drive letter */
+  cDisk = getSessionParam("_framework_drive_letter":U).
+  IF cDisk = ? OR
+     cDisk = "":U THEN
+    cDisk = "":U.
+  ELSE
+    cDisk = cDisk + ":":U.
+
+  /* Next look in the framework source directory */
+  cDirectory = getSessionParam("_framework_directory":U).
+  IF cDirectory <> ? THEN
+  DO:
+    cFile = REPLACE(cDirectory,"~\":U,"/":U).
+    IF SUBSTRING(cFile,LENGTH(cFile)) = "/":U THEN
+      cFile = cFile + "/":U.
+    cFile = SEARCH(cDisk + cFile + pcFileName).
+    IF cFile <> ? THEN
+      RETURN cFile.
+  END.
+
+  /* Next, look in the framework directory */
+  cDirectory = getSessionParam("_framework_code_directory":U).
+  IF cDirectory <> ? THEN
+  DO:
+    cFile = REPLACE(cDirectory,"~\":U,"/":U).
+    IF SUBSTRING(cFile,LENGTH(cFile)) = "/":U THEN
+      cFile = cFile + "/":U.
+    cFile = SEARCH(cDisk + cFile + pcFileName).
+    IF cFile <> ? THEN
+      RETURN cFile.
+  END.
+
+
+  /* Next, look in the object code directory */
+  IF SESSION:WINDOW-SYSTEM = "TTY":U THEN
+    cDirectory = getSessionParam("_framework_tty_directory":U).
+  ELSE
+    cDirectory = getSessionParam("_framework_gui_directory":U).
+  IF cDirectory <> ? THEN
+  DO:
+    cFile = REPLACE(cDirectory,"~\":U,"/":U).
+    IF SUBSTRING(cFile,LENGTH(cFile)) = "/":U THEN
+      cFile = cFile + "/":U.
+    cFile = SEARCH(cDisk + cFile + pcFileName).
+    IF cFile <> ? THEN
+      RETURN cFile.
+  END.
+
+
+  /* Next, look in the source code directory */
+  cDirectory = getSessionParam("_framework_source_directory":U).
+  IF cDirectory <> ? THEN
+  DO:
+    cFile = REPLACE(cDirectory,"~\":U,"/":U).
+    IF SUBSTRING(cFile,LENGTH(cFile)) = "/":U THEN
+      cFile = cFile + "/":U.
+    cFile = SEARCH(cDisk + cFile + pcFileName).
+    IF cFile <> ? THEN
+      RETURN cFile.
+  END.
+
+  /* Next, look in the root code directory */
+  cDirectory = getSessionParam("_framework_root_directory":U).
+  IF cDirectory <> ? THEN
+  DO:
+    cFile = REPLACE(cDirectory,"~\":U,"/":U).
+    IF SUBSTRING(cFile,LENGTH(cFile)) = "/":U THEN
+      cFile = cFile + "/":U.
+    cFile = SEARCH(cDisk + cFile + pcFileName).
+    IF cFile <> ? THEN
+      RETURN cFile.
+  END.
+  
+  RETURN ?.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getCodePath) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getCodePath Procedure 
@@ -1677,6 +2626,15 @@ FUNCTION getCodePath RETURNS CHARACTER
   DEFINE VARIABLE iEntry      AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cRetVal     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lRunSource  AS LOGICAL    NO-UNDO.
+
+  /* If the profiler is running, just run the file as the name was provided */
+  IF glProfiler THEN
+  DO:
+    cRetVal = SEARCH(pcFileName).
+    IF cRetVal <> ? THEN
+      cRetVal = pcFileName.
+    RETURN cRetVal.
+  END.
   
   iEntry = NUM-ENTRIES(pcFileName,".":U).
 
@@ -1721,6 +2679,108 @@ FUNCTION getCodePath RETURNS CHARACTER
     cRetVal = pcFileName.
 
   RETURN cRetVal.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getComponentRootDirectory) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getComponentRootDirectory Procedure 
+FUNCTION getComponentRootDirectory RETURNS CHARACTER
+  ( pcComponent AS CHARACTER /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Return the root directory for a given component. 
+    Notes:  Valid components are : 
+            AB (AppBuilder)
+            framework
+            SCM
+            "" - will run getSessionrootDirectory
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cRootDirectory  AS CHARACTER  NO-UNDO.
+  
+  IF pcComponent = "":U  THEN 
+  ASSIGN 
+    cRootDirectory = DYNAMIC-FUNCTION('getSessionRootDirectory':U) NO-ERROR. 
+  
+  CASE pcComponent:  
+     WHEN "SCM":U THEN
+        /* Get the root directory set by the SCM tool */
+        ASSIGN 
+          cRootDirectory = DYNAMIC-FUNCTION('getSessionParam':U IN THIS-PROCEDURE, '_scm_root_directory':U) NO-ERROR. 
+     
+     WHEN "AB":U THEN
+        /* Get the root directory set for the AB */
+        ASSIGN 
+          cRootDirectory = DYNAMIC-FUNCTION('getSessionParam':U IN THIS-PROCEDURE, 'AB_root_directory':U) NO-ERROR. 
+     
+     WHEN "framework":U THEN
+        /* get the root directory set for the framework */
+        ASSIGN 
+          cRootDirectory = DYNAMIC-FUNCTION('getSessionParam':U IN THIS-PROCEDURE, '_framework_root_directory':U) NO-ERROR.         
+  END CASE.
+  
+  /* Finally, make sure that we have a directory, it is valid and that we can write to it. */
+  ASSIGN  
+    FILE-INFO:FILE-NAME = cRootDirectory NO-ERROR.
+  IF FILE-INFO:FULL-PATHNAME = ?
+    OR INDEX(FILE-INFO:FILE-TYPE,"D") = 0
+    OR INDEX(FILE-INFO:FILE-TYPE,"W") = 0
+  THEN 
+    ASSIGN 
+      cRootDirectory  = "":U.
+  ELSE DO:
+    ASSIGN 
+      cRootDirectory = FILE-INFO:FULL-PATHNAME      
+      /* Clean up the directory name to replace back slashes with slashes and remove trailing slashes */
+      cRootDirectory               = REPLACE(cRootDirectory,"~\":U,"~/":U)
+      cRootDirectory               = RIGHT-TRIM(cRootDirectory,"/":U)
+      .
+  END.
+
+  RETURN cRootDirectory.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getExpandablePropertyValue) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getExpandablePropertyValue Procedure 
+FUNCTION getExpandablePropertyValue RETURNS CHARACTER
+  ( INPUT pcProperty AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Obtains the value of the expandable property. 
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cRetVal  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cOrigVal AS CHARACTER  NO-UNDO.
+
+  /* See if there is an original value */
+  cOrigVal = getSessionParam(";:":U + pcProperty).
+
+  /* See if we have expanded this before. If we have there 
+     will be a :: property */
+  cRetVal = getSessionParam("::":U + pcProperty).
+
+  /* We haven't set it up before if cRetVal is unknown, so we 
+     expand it from the original path */
+  IF cRetVal = ? THEN
+  DO:
+    cRetVal = getSessionParam(pcProperty).
+    setSessionParam("::":U + pcProperty, cRetVal).
+  END.
+
+  IF cOrigVal = ? THEN
+   setSessionParam(";:":U + pcProperty, cRetVal).
+
+  RETURN cRetVal.   /* Function return value. */
 
 END FUNCTION.
 
@@ -1835,26 +2895,49 @@ FUNCTION getProcedureHandle RETURNS HANDLE
     Notes:  This function assumes that there is only one running copy of the
             procedure.
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hProc     AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cFullPath AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cRCode    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hProc               AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cFullPath           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cRCode              AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lUsePrivateData     AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cPrivateDataString  AS CHARACTER  NO-UNDO.
   
-  cFullPath = SEARCH(pcFileName).
-  cRCode    = SEARCH(SUBSTRING(pcFileName,1,LENGTH(pcFileName) - 2) + ".r":U).
-  IF cFullPath = ? THEN
-    cFullPath = "":U.
-  IF cRCode = ? THEN
-    cRCode = "":U.
-
+  IF INDEX(pcFileName, "PRIVATE-DATA:") > 0 THEN 
+     ASSIGN 
+        lUsePrivateData = TRUE
+        cPrivateDataString = REPLACE(pcFileName, "PRIVATE-DATA:":U, "":U). 
+  ELSE
+     lUsePrivateData = FALSE.    
+  
+  IF NOT lUsePrivateData THEN DO:
+    cFullPath = SEARCH(pcFileName).
+  
+    IF SUBSTRING(pcFileName,LENGTH(pcFileName) - 2,1) = ".":U THEN
+      cRCode = SUBSTRING(pcFileName,1,LENGTH(pcFileName) - 2).
+    ELSE
+      cRCode = pcFileName.
+     
+    cRCode = SEARCH(cRCode + ".r":U).
+  
+    IF cFullPath = ? THEN
+      cFullPath = "":U.
+    IF cRCode = ? THEN
+      cRCode = "":U.
+  END.
+  
   hProc = SESSION:FIRST-PROCEDURE.
 
   DO WHILE VALID-HANDLE(hProc):
+    IF lUsePrivateData AND cPrivateDataString <> "":U THEN DO: 
+       IF hProc:PRIVATE-DATA = cPrivateDataString THEN
+          RETURN hProc.
+    END.
+    ELSE 
     IF hProc:FILE-NAME = pcFileName OR
        hProc:FILE-NAME = cFullPath OR
        hProc:FILE-NAME = cRCode THEN
       RETURN hProc.
     hProc = hProc:NEXT-SIBLING.
-  END.
+  END.  
 
   RETURN ?.   /* Function return value. */
 
@@ -1889,6 +2972,73 @@ FUNCTION getSessionParam RETURNS CHARACTER
       cRetVal = bttParam.cValue.
   END.
   RETURN cRetVal.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getSessionRootDirectory) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getSessionRootDirectory Procedure 
+FUNCTION getSessionRootDirectory RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Get the root directory for the session
+    Notes:  The root directory will vary, depending on whether we are running with 
+            the SCM tool or not. If the SCM tool is running, then the root 
+            directory for the currently selected workspace must be returned. If not, 
+            then the framework root directory or the session start up or session temp
+            directories wil be returned. 
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cRootDirectory AS CHARACTER  NO-UNDO.
+  
+  /* Check to see if the _scm_root_directory has been set - this should be used if available */
+  ASSIGN 
+    cRootDirectory = DYNAMIC-FUNCTION('getSessionParam':U IN THIS-PROCEDURE, '_scm_root_directory':U) NO-ERROR
+    .
+    
+/*   IF cRootDirectory = ? OR cRootDirectory = "":U THEN                                                                */
+/*   /* If the SCM root directory is not available, then get the _framework_root_directory */                           */
+/*   ASSIGN                                                                                                             */
+/*     cRootDirectory = DYNAMIC-FUNCTION('getSessionParam':U IN THIS-PROCEDURE, '_framework_root_directory':U) NO-ERROR */
+/*     .                                                                                                                */
+  IF cRootDirectory = ? OR cRootDirectory = "":U THEN
+  /* if the _framework_root_directory is not available then we need to get the AB_source_code_directory */
+  ASSIGN
+    cRootDirectory = DYNAMIC-FUNCTION('getSessionParam':U IN THIS-PROCEDURE, 'AB_source_code_directory':U) NO-ERROR
+    .
+  IF cRootDirectory = ? OR cRootDirectory = "":U THEN
+  /* if the AB_source_code_directory is not available then we need to get the _start_in_directory */
+  ASSIGN 
+    cRootDirectory = DYNAMIC-FUNCTION('getSessionParam':U IN THIS-PROCEDURE, '_start_in_directory':U) NO-ERROR
+    .  
+  IF cRootDirectory = ? OR cRootDirectory = "":U THEN
+    /* If the root-directory is not available then we get the "." directory */    
+    ASSIGN 
+      cRootDirectory = ".":U. 
+  /* Finally, make sure that we have a directory, it is valid and that we can write to it. */
+  ASSIGN  
+    FILE-INFO:FILE-NAME = cRootDirectory NO-ERROR
+    .
+  
+  IF FILE-INFO:FULL-PATHNAME = ?
+    OR INDEX(FILE-INFO:FILE-TYPE,"D") = 0
+    OR INDEX(FILE-INFO:FILE-TYPE,"W") = 0
+  THEN
+    cRootDirectory  = SESSION:TEMP-DIRECTORY.
+  ELSE
+    cRootDirectory = FILE-INFO:FULL-PATHNAME.
+      
+  /* Clean up the directory name to replace back slashes with slashes and remove trailing slashes */
+  ASSIGN 
+    cRootDirectory = REPLACE(cRootDirectory,"~\":U,"~/":U)
+    cRootDirectory = RIGHT-TRIM(cRootDirectory,"/":U)
+    .
+
+  RETURN cRootDirectory.   /* Function return value. */
 
 END FUNCTION.
 
@@ -1976,6 +3126,83 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setProfilerAttrs) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setProfilerAttrs Procedure 
+FUNCTION setProfilerAttrs RETURNS LOGICAL
+  (INPUT pcAttrList AS CHARACTER) :
+/*------------------------------------------------------------------------------
+  Purpose:  Sets the profiler's attributes.
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE iCount     AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cCurrAttr  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAttrName  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAttrValue AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hCall      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iCallNo    AS INTEGER    NO-UNDO.
+
+  DEFINE VARIABLE cCalls     AS CHARACTER  INITIAL
+    "FILE-NAME,COVERAGE,DESCRIPTION,DIRECTORY,ENABLED,LISTINGS,PROFILING,TRACING,TRACE-FILTER"
+    NO-UNDO.
+  DEFINE VARIABLE cCallType  AS CHARACTER  INITIAL
+    "CHARACTER,LOGICAL,CHARACTER,CHARACTER,LOGICAL,CHARACTER,LOGICAL,LOGICAL,CHARACTER"
+    NO-UNDO.
+
+
+  CREATE CALL hCall.
+  DO iCount = 1 TO NUM-ENTRIES(pcAttrList):
+    ASSIGN
+      cCurrAttr  = ENTRY(iCount, pcAttrList)
+      cAttrName  = ENTRY(1,cCurrAttr,"=":U)
+      cAttrValue = ENTRY(2,cCurrAttr,"=":U)
+      iCallNo    = LOOKUP(cAttrName, cCalls)
+    .
+    IF iCallNo <> 0 AND
+       iCallNo <> ? THEN
+    DO:
+      hCall:CLEAR().
+      ASSIGN
+        hCall:IN-HANDLE      = PROFILER:HANDLE
+        hCall:CALL-TYPE      = SET-ATTR-CALL-TYPE
+        hCall:CALL-NAME      = cAttrName
+        hCall:NUM-PARAMETERS = 1
+      .
+      hCall:SET-PARAMETER(1, ENTRY(iCallNo,cCallType), "INPUT":U, cAttrValue).
+      hCall:INVOKE.
+      hCall:CLEAR().
+    END.
+  END.
+  DELETE OBJECT hCall.
+
+  RETURN FALSE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setProfilerDefaults) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setProfilerDefaults Procedure 
+FUNCTION setProfilerDefaults RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN FALSE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setSessionParam) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setSessionParam Procedure 
@@ -2010,7 +3237,15 @@ FUNCTION setSessionParam RETURNS LOGICAL
         DELETE bttParam.
     END.
     ELSE
-      bttParam.cValue = pcValue.
+    DO:
+      ASSIGN
+        bttParam.cValue = pcValue.
+      IF LENGTH(pcValue) > 128 THEN
+        bttParam.cDispValue = SUBSTRING(pcValue,1,128).
+      ELSE
+        bttParam.cDispValue = pcValue.
+    END.
+
   END.
 
   RETURN TRUE.   /* Function return value. */

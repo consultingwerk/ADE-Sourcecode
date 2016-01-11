@@ -24,11 +24,6 @@
 
 TRIGGER PROCEDURE FOR DELETE OF gsm_node .
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "gsm_node"
-                      &TRIGGER-TYPE = "DELETE"}
-
 /* Created automatically using ERwin ICF Trigger template db/af/erw/afercustrg.i
    Do not change manually. Customisations to triggers should be placed in separate
    include files pulled into the trigger. ICF auto generates write trigger custom
@@ -132,6 +127,8 @@ IF CAN-FIND(FIRST lbx_gsm_multi_media
             {af/sup/afvalidtrg.i &action = "DELETE" &table = "lby_gsm_multi_media"}
           END.
     END.
+
+
 
 
 

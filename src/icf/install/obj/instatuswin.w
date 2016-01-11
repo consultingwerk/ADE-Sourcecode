@@ -99,7 +99,7 @@ DEFINE FRAME DEFAULT-FRAME
 IF SESSION:DISPLAY-TYPE = "GUI":U THEN
   CREATE WINDOW C-Win ASSIGN
          HIDDEN             = YES
-         TITLE              = "Dynamics Configuration Utility"
+         TITLE              = "Progress Dynamics Configuration Utility"
          HEIGHT             = 3.52
          WIDTH              = 59.4
          MAX-HEIGHT         = 16

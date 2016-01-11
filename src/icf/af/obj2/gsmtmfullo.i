@@ -1,7 +1,7 @@
-  FIELD toolbar_menu_structure_obj LIKE gsm_toolbar_menu_structure.toolbar_menu_structure_obj VALIDATE  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"~
-  FIELD object_obj LIKE gsm_toolbar_menu_structure.object_obj VALIDATE  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"~
+  FIELD toolbar_menu_structure_obj LIKE gsm_toolbar_menu_structure.toolbar_menu_structure_obj VALIDATE ~
+  FIELD object_obj LIKE gsm_toolbar_menu_structure.object_obj VALIDATE ~
   FIELD menu_structure_sequence LIKE gsm_toolbar_menu_structure.menu_structure_sequence VALIDATE  LABEL "Band Sequence"~
-  FIELD menu_structure_obj LIKE gsm_toolbar_menu_structure.menu_structure_obj VALIDATE  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"~
+  FIELD menu_structure_obj LIKE gsm_toolbar_menu_structure.menu_structure_obj VALIDATE ~
   FIELD menu_structure_alignment LIKE gsm_toolbar_menu_structure.menu_structure_alignment VALIDATE  LABEL "Band Alignment"~
   FIELD menu_structure_row LIKE gsm_toolbar_menu_structure.menu_structure_row VALIDATE  LABEL "Band Row"~
   FIELD menu_structure_spacing LIKE gsm_toolbar_menu_structure.menu_structure_spacing VALIDATE  LABEL "Band Spacing"~

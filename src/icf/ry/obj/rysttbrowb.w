@@ -92,7 +92,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       rysttbrowb.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -102,6 +102,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &glob   astra2-staticSmartDataBrowser yes
 
 {src/adm2/globals.i}
+{src/adm2/widgetprto.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -141,10 +142,10 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /* Browse definitions                                                   */
 DEFINE BROWSE brTable
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _DISPLAY-FIELDS brTable bTableWin _STRUCTURED
-
+  
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-    WITH NO-ASSIGN NO-AUTO-VALIDATE NO-ROW-MARKERS SEPARATORS SIZE 66 BY 6.67 EXPANDABLE.
+    WITH NO-ASSIGN NO-AUTO-VALIDATE NO-ROW-MARKERS SEPARATORS SIZE 66 BY 6.67 FIT-LAST-COLUMN.
 
 
 /* ************************  Frame Definitions  *********************** */
@@ -231,7 +232,7 @@ ASSIGN
 */  /* FRAME frMain */
 &ANALYZE-RESUME
 
-
+ 
 
 
 
@@ -253,6 +254,16 @@ END.
 ON CTRL-HOME OF brTable IN FRAME frMain
 DO:
   APPLY "HOME":U TO BROWSE brTable.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL brTable bTableWin
+ON DEFAULT-ACTION OF brTable IN FRAME frMain
+DO:
+  {src/adm2/brsdefault.i}
 END.
 
 /* _UIB-CODE-BLOCK-END */

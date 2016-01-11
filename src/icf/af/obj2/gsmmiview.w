@@ -61,18 +61,24 @@ DEFINE TEMP-TABLE RowObject
 
   History:
   --------
-  (v:010000)    Task:           0   UserRef:    
+  (v:010000)    Task:           0   UserRef:
                 Date:   22/08/2001  Author:     Don Bulua
 
   Update Notes: Created from Template rysttviewv.w
+
+  (v:010001)    Task:           0   UserRef:
+                Date:   04/23/2002  Author:     Sunil Belgaonkar
+
+  Update Notes: Changed the Image paths from af/bmp to ry/img
+                 Also Changed the images from .bmp to .gif formats.
 
 ---------------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
 
-/* Create an unnamed pool to store all the widgets created 
+/* Create an unnamed pool to store all the widgets created
      by this procedure. This is a good default which assures
-     that this procedure's triggers and internal procedures 
+     that this procedure's triggers and internal procedures
      will execute in this procedure's storage, and that proper
      cleanup will occur on deletion of the procedure. */
 
@@ -99,6 +105,8 @@ DEFINE VARIABLE giRulePage AS INTEGER    NO-UNDO INIT 1.
 
 {af/sup2/afglobals.i}
 
+DEFINE VARIABLE ghTransContainer AS HANDLE     NO-UNDO.
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -122,38 +130,38 @@ DEFINE VARIABLE giRulePage AS INTEGER    NO-UNDO INIT 1.
 
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-FIELDS RowObject.menu_item_reference ~
-RowObject.menu_item_label RowObject.shortcut_key ~
-RowObject.menu_item_description RowObject.item_control_type ~
-RowObject.item_narration RowObject.under_development RowObject.system_owned ~
-RowObject.disabled RowObject.hide_if_disabled RowObject.item_select_type ~
-RowObject.item_select_action RowObject.item_select_parameter ~
-RowObject.substitute_text_property RowObject.item_link ~
-RowObject.item_toolbar_label RowObject.tooltip_text ~
+RowObject.item_control_type RowObject.menu_item_label ~
+RowObject.menu_item_description RowObject.item_narration ~
+RowObject.item_select_type RowObject.item_select_action ~
+RowObject.item_select_parameter RowObject.substitute_text_property ~
+RowObject.item_link RowObject.item_toolbar_label RowObject.tooltip_text ~
 RowObject.item_control_style RowObject.security_token ~
-RowObject.on_create_publish_event RowObject.item_menu_drop ~
-RowObject.enable_rule RowObject.hide_rule RowObject.image_alternate_rule 
+RowObject.shortcut_key RowObject.on_create_publish_event ~
+RowObject.item_menu_drop RowObject.enable_rule RowObject.hide_rule ~
+RowObject.image_alternate_rule RowObject.under_development ~
+RowObject.disabled RowObject.system_owned RowObject.hide_if_disabled 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
-&Scoped-Define ENABLED-OBJECTS EdRuleHelp buKey buImage buImage2 RECT-2 ~
-RECT-3 RECT-4 
+&Scoped-Define ENABLED-OBJECTS buKey buImage buImage2 EdRuleHelp buClear ~
+RECT-2 RECT-3 RECT-4 
 &Scoped-Define DISPLAYED-FIELDS RowObject.menu_item_reference ~
-RowObject.menu_item_label RowObject.shortcut_key ~
-RowObject.menu_item_description RowObject.item_control_type ~
-RowObject.item_narration RowObject.under_development RowObject.system_owned ~
-RowObject.disabled RowObject.hide_if_disabled RowObject.item_select_type ~
-RowObject.item_select_action RowObject.item_select_parameter ~
-RowObject.substitute_text_property RowObject.item_link ~
-RowObject.item_toolbar_label RowObject.tooltip_text ~
+RowObject.item_control_type RowObject.menu_item_label ~
+RowObject.menu_item_description RowObject.item_narration ~
+RowObject.item_select_type RowObject.item_select_action ~
+RowObject.item_select_parameter RowObject.substitute_text_property ~
+RowObject.item_link RowObject.item_toolbar_label RowObject.tooltip_text ~
 RowObject.item_control_style RowObject.security_token ~
-RowObject.on_create_publish_event RowObject.image2_up_filename ~
+RowObject.shortcut_key RowObject.on_create_publish_event ~
 RowObject.item_menu_drop RowObject.enable_rule RowObject.hide_rule ~
-RowObject.image_alternate_rule RowObject.image2_down_filename ~
+RowObject.image_alternate_rule RowObject.under_development ~
+RowObject.disabled RowObject.system_owned RowObject.hide_if_disabled ~
+RowObject.image2_up_filename RowObject.image2_down_filename ~
 RowObject.image1_up_filename RowObject.image1_down_filename ~
 RowObject.image2_insensitive_filename RowObject.image1_insensitive_filename ~
-RowObject.menu_item_obj RowObject.product_module_obj 
-&Scoped-Define DISPLAYED-OBJECTS fiProdMod 
+RowObject.menu_item_obj 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
+&Scoped-Define DISPLAYED-OBJECTS fiToolbarLabel fiAction fiOtherLabel 
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -190,13 +198,20 @@ FUNCTION setRuleDisplay RETURNS LOGICAL
 
 
 /* Definitions of handles for SmartObjects                              */
+DEFINE VARIABLE hSourceLanguage AS HANDLE NO-UNDO.
 DEFINE VARIABLE h_afspfoldrw AS HANDLE NO-UNDO.
 DEFINE VARIABLE h_dyncombo AS HANDLE NO-UNDO.
+DEFINE VARIABLE h_dyncombo-2 AS HANDLE NO-UNDO.
 DEFINE VARIABLE h_dynlookup-3 AS HANDLE NO-UNDO.
 DEFINE VARIABLE h_dynlookup-4 AS HANDLE NO-UNDO.
 DEFINE VARIABLE h_gscicfullo AS HANDLE NO-UNDO.
 
 /* Definitions of the field level widgets                               */
+DEFINE BUTTON buClear 
+     LABEL "Clear" 
+     SIZE 9 BY 1.05
+     BGCOLOR 8 .
+
 DEFINE BUTTON buImage 
      LABEL "" 
      SIZE 5.2 BY 1.24
@@ -216,6 +231,10 @@ DEFINE VARIABLE EdRuleHelp AS CHARACTER
      VIEW-AS EDITOR SCROLLBAR-VERTICAL
      SIZE 106 BY 2.76 NO-UNDO.
 
+DEFINE VARIABLE fiAction AS CHARACTER FORMAT "X(10)":U INITIAL "Action" 
+      VIEW-AS TEXT 
+     SIZE 6.2 BY .62 NO-UNDO.
+
 DEFINE VARIABLE fiAttr AS CHARACTER FORMAT "X(256)":U 
      VIEW-AS FILL-IN 
      SIZE 20 BY 1 NO-UNDO.
@@ -224,10 +243,13 @@ DEFINE VARIABLE fiObject AS CHARACTER FORMAT "X(256)":U
      VIEW-AS FILL-IN 
      SIZE 20 BY 1 NO-UNDO.
 
-DEFINE VARIABLE fiProdMod AS CHARACTER FORMAT "X(256)":U 
-     LABEL "Module" 
-     VIEW-AS FILL-IN 
-     SIZE 23 BY 1 NO-UNDO.
+DEFINE VARIABLE fiOtherLabel AS CHARACTER FORMAT "X(10)":U INITIAL "Other" 
+      VIEW-AS TEXT 
+     SIZE 5.4 BY .62 NO-UNDO.
+
+DEFINE VARIABLE fiToolbarLabel AS CHARACTER FORMAT "X(15)":U INITIAL "Toolbar" 
+      VIEW-AS TEXT 
+     SIZE 7.8 BY .62 NO-UNDO.
 
 DEFINE RECTANGLE RECT-2
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
@@ -235,7 +257,7 @@ DEFINE RECTANGLE RECT-2
 
 DEFINE RECTANGLE RECT-3
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 109 BY 2.71.
+     SIZE 109 BY 2.67.
 
 DEFINE RECTANGLE RECT-4
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
@@ -250,23 +272,13 @@ DEFINE VARIABLE ToAutoGen AS LOGICAL INITIAL no
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     fiProdMod AT ROW 3.48 COL 64 COLON-ALIGNED
      RowObject.menu_item_reference AT ROW 1 COL 19 COLON-ALIGNED
+          LABEL "Item Reference"
           VIEW-AS FILL-IN 
           SIZE 25.6 BY 1
      ToAutoGen AT ROW 1.05 COL 47.6
-     RowObject.menu_item_label AT ROW 2.29 COL 19 COLON-ALIGNED
-          VIEW-AS FILL-IN 
-          SIZE 34 BY 1
-     EdRuleHelp AT ROW 16.76 COL 2 NO-LABEL NO-TAB-STOP 
-     buKey AT ROW 2.29 COL 59
-     RowObject.shortcut_key AT ROW 2.29 COL 64 COLON-ALIGNED NO-LABEL
-          VIEW-AS FILL-IN 
-          SIZE 23 BY 1 NO-TAB-STOP 
-     RowObject.menu_item_description AT ROW 3.48 COL 19 COLON-ALIGNED
-          VIEW-AS FILL-IN 
-          SIZE 34 BY 1
-     RowObject.item_control_type AT ROW 4.67 COL 9.6 FORMAT "X(15)"
+     RowObject.item_control_type AT ROW 3.29 COL 10.4
+          LABEL "Item Type" FORMAT "X(15)"
           VIEW-AS COMBO-BOX SORT 
           LIST-ITEM-PAIRS "Action  (Button or Menu Item)","Action",
                      "Separator","Separator",
@@ -274,87 +286,118 @@ DEFINE FRAME frMain
                      "Placeholder","Placeholder"
           DROP-DOWN-LIST
           SIZE 34 BY 1
-     RowObject.item_narration AT ROW 4.67 COL 66 NO-LABEL
+     RowObject.menu_item_label AT ROW 4.38 COL 19 COLON-ALIGNED
+          LABEL "Menu Label"
+          VIEW-AS FILL-IN 
+          SIZE 34 BY 1
+     RowObject.menu_item_description AT ROW 5.48 COL 19 COLON-ALIGNED
+          LABEL "Description"
+          VIEW-AS FILL-IN 
+          SIZE 34 BY 1
+     fiToolbarLabel AT ROW 6.71 COL 64.2 COLON-ALIGNED NO-LABEL
+     buKey AT ROW 2.57 COL 59
+     fiAction AT ROW 6.71 COL 1.6 COLON-ALIGNED NO-LABEL
+     RowObject.item_narration AT ROW 4.95 COL 66 NO-LABEL
           VIEW-AS EDITOR MAX-CHARS 500 SCROLLBAR-VERTICAL
           SIZE 44 BY 1.67
-     RowObject.under_development AT ROW 1.19 COL 91
-          VIEW-AS TOGGLE-BOX
-          SIZE 17 BY .81 TOOLTIP "Under development"
-     RowObject.system_owned AT ROW 2.05 COL 91
-          VIEW-AS TOGGLE-BOX
-          SIZE 18.8 BY .81
-     RowObject.disabled AT ROW 2.91 COL 91
-          VIEW-AS TOGGLE-BOX
-          SIZE 13.2 BY .81
-     RowObject.hide_if_disabled AT ROW 3.76 COL 91
-          VIEW-AS TOGGLE-BOX
-          SIZE 19.4 BY .81
-     RowObject.item_select_type AT ROW 6.86 COL 8.4
+     RowObject.item_select_type AT ROW 7.24 COL 8.4
+          LABEL "Action Type"
           VIEW-AS COMBO-BOX 
-          LIST-ITEMS "LAUNCH","PUBLISH","PROPERTY","RUN" 
+          LIST-ITEMS "LAUNCH","PUBLISH","PROPERTY","RUN","URL" 
           DROP-DOWN-LIST
           SIZE 21.2 BY 1
-     RowObject.item_select_action AT ROW 8.05 COL 19 COLON-ALIGNED
+     fiOtherLabel AT ROW 12.62 COL 3.2 NO-LABEL
+     RowObject.item_select_action AT ROW 8.33 COL 19 COLON-ALIGNED
+          LABEL "Item Select Action" FORMAT "X(100)"
           VIEW-AS FILL-IN 
           SIZE 42 BY 1
-     RowObject.item_select_parameter AT ROW 9 COL 10.2
+     RowObject.item_select_parameter AT ROW 9.29 COL 10.2
+          LABEL "Parameter"
           VIEW-AS FILL-IN 
           SIZE 42 BY 1
-     RowObject.substitute_text_property AT ROW 9.95 COL 19 COLON-ALIGNED
+     RowObject.substitute_text_property AT ROW 10.33 COL 19 COLON-ALIGNED
+          LABEL "Label Substitute"
           VIEW-AS FILL-IN 
           SIZE 42 BY 1
-     RowObject.item_link AT ROW 11 COL 11.2
+     RowObject.item_link AT ROW 11.38 COL 11.2
+          LABEL "Item Link"
           VIEW-AS FILL-IN 
           SIZE 42 BY 1
-     RowObject.item_toolbar_label AT ROW 7.1 COL 72 COLON-ALIGNED
+     RowObject.item_toolbar_label AT ROW 7.48 COL 72 COLON-ALIGNED
           LABEL "Label"
           VIEW-AS FILL-IN 
           SIZE 28 BY 1
-     RowObject.tooltip_text AT ROW 8.14 COL 66.4
+     RowObject.tooltip_text AT ROW 8.43 COL 66.4
+          LABEL "Tooltip"
           VIEW-AS FILL-IN 
           SIZE 35 BY 1
-     RowObject.item_control_style AT ROW 9.24 COL 68.2
+     RowObject.item_control_style AT ROW 9.52 COL 68.2
+          LABEL "Style"
           VIEW-AS COMBO-BOX 
           LIST-ITEMS "Icon only","Text only" 
           DROP-DOWN-LIST
           SIZE 19 BY 1
-     buImage AT ROW 10.57 COL 78
-     buImage2 AT ROW 10.57 COL 94
-     RowObject.security_token AT ROW 14.05 COL 19 COLON-ALIGNED
+     buImage AT ROW 10.86 COL 78
+     buImage2 AT ROW 10.86 COL 94
+     EdRuleHelp AT ROW 17.05 COL 2 NO-LABEL NO-TAB-STOP 
+     RowObject.security_token AT ROW 14.19 COL 19 COLON-ALIGNED
+          LABEL "Security Token"
           VIEW-AS FILL-IN 
-          SIZE 23 BY 1
-     RowObject.on_create_publish_event AT ROW 12.86 COL 72 COLON-ALIGNED
+          SIZE 32 BY 1
+     RowObject.shortcut_key AT ROW 2.57 COL 64 COLON-ALIGNED NO-LABEL FORMAT "X(35)"
           VIEW-AS FILL-IN 
-          SIZE 34.8 BY 1
-     RowObject.image2_up_filename AT ROW 3.38 COL 1 NO-LABEL
+          SIZE 35 BY 1 NO-TAB-STOP 
+     RowObject.on_create_publish_event AT ROW 13.14 COL 75 COLON-ALIGNED
+          LABEL "Create Event"
           VIEW-AS FILL-IN 
-          SIZE 4 BY 1 NO-TAB-STOP 
-     RowObject.item_menu_drop AT ROW 14.05 COL 53.4
+          SIZE 31.8 BY 1
+     RowObject.item_menu_drop AT ROW 14.19 COL 56.2
+          LABEL "Menu Drop Function"
           VIEW-AS FILL-IN 
-          SIZE 35 BY 1
-     RowObject.enable_rule AT ROW 16.76 COL 2 NO-LABEL
-          VIEW-AS EDITOR NO-WORD-WRAP SCROLLBAR-VERTICAL
-          SIZE 106 BY 2.76
+          SIZE 32.2 BY 1
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
 
 /* DEFINE FRAME statement is approaching 4K Bytes.  Breaking it up   */
 DEFINE FRAME frMain
-     RowObject.hide_rule AT ROW 16.76 COL 2 NO-LABEL
-          VIEW-AS EDITOR NO-WORD-WRAP SCROLLBAR-VERTICAL
+     RowObject.enable_rule AT ROW 17.05 COL 2 NO-LABEL
+          VIEW-AS EDITOR NO-WORD-WRAP MAX-CHARS 500 SCROLLBAR-VERTICAL
           SIZE 106 BY 2.76
-     RowObject.image_alternate_rule AT ROW 16.76 COL 2 NO-LABEL
-          VIEW-AS EDITOR NO-WORD-WRAP SCROLLBAR-VERTICAL
+     RowObject.hide_rule AT ROW 17.05 COL 2 NO-LABEL
+          VIEW-AS EDITOR NO-WORD-WRAP MAX-CHARS 500 SCROLLBAR-VERTICAL
           SIZE 106 BY 2.76
+     RowObject.image_alternate_rule AT ROW 17.05 COL 2 NO-LABEL
+          VIEW-AS EDITOR NO-WORD-WRAP MAX-CHARS 500 SCROLLBAR-VERTICAL
+          SIZE 106 BY 2.76
+     RowObject.under_development AT ROW 1 COL 67
+          LABEL "Under Development"
+          VIEW-AS TOGGLE-BOX
+          SIZE 23 BY .81 TOOLTIP "Under development"
+     RowObject.disabled AT ROW 1.71 COL 67
+          LABEL "Disabled"
+          VIEW-AS TOGGLE-BOX
+          SIZE 12 BY .81
+     RowObject.system_owned AT ROW 1 COL 91
+          LABEL "System Owned"
+          VIEW-AS TOGGLE-BOX
+          SIZE 18.8 BY .81
+     RowObject.hide_if_disabled AT ROW 1.71 COL 91
+          LABEL "Hide if Disabled"
+          VIEW-AS TOGGLE-BOX
+          SIZE 18.4 BY .81
+     buClear AT ROW 2.57 COL 100.8
+     RowObject.image2_up_filename AT ROW 3.38 COL 1 NO-LABEL
+          VIEW-AS FILL-IN 
+          SIZE 4 BY 1 NO-TAB-STOP 
      RowObject.image2_down_filename AT ROW 3.38 COL 1 NO-LABEL
           VIEW-AS FILL-IN 
           SIZE 4 BY 1 NO-TAB-STOP 
      RowObject.image1_up_filename AT ROW 3.38 COL 1 NO-LABEL
           VIEW-AS FILL-IN 
           SIZE 4 BY 1 NO-TAB-STOP 
-     fiObject AT ROW 8.05 COL 41 COLON-ALIGNED NO-LABEL NO-TAB-STOP 
-     fiAttr AT ROW 9 COL 41 COLON-ALIGNED NO-LABEL NO-TAB-STOP 
+     fiObject AT ROW 8.24 COL 41 COLON-ALIGNED NO-LABEL NO-TAB-STOP 
+     fiAttr AT ROW 9.29 COL 41 COLON-ALIGNED NO-LABEL NO-TAB-STOP 
      RowObject.image1_down_filename AT ROW 3.38 COL 1 NO-LABEL
           VIEW-AS FILL-IN 
           SIZE 4 BY 1 NO-TAB-STOP 
@@ -367,25 +410,16 @@ DEFINE FRAME frMain
      RowObject.menu_item_obj AT ROW 3.38 COL 1 NO-LABEL
            VIEW-AS TEXT 
           SIZE 3 BY .62
-     RowObject.product_module_obj AT ROW 3.86 COL 2 NO-LABEL
-           VIEW-AS TEXT 
-          SIZE 2 BY .62
-     RECT-2 AT ROW 6.62 COL 1
-     RECT-3 AT ROW 12.52 COL 1
-     RECT-4 AT ROW 6.62 COL 65
+     RECT-2 AT ROW 6.91 COL 1
+     RECT-3 AT ROW 12.81 COL 1
+     RECT-4 AT ROW 6.91 COL 65
      "Narration:" VIEW-AS TEXT
-          SIZE 9.6 BY .62 AT ROW 4.81 COL 56.4
+          SIZE 9.6 BY .62 AT ROW 4.91 COL 56.4
      "Image 2:" VIEW-AS TEXT
-          SIZE 8 BY .62 AT ROW 10.81 COL 85
-     "Action" VIEW-AS TEXT
-          SIZE 7 BY .62 AT ROW 6.38 COL 3
-     "Other" VIEW-AS TEXT
-          SIZE 6 BY .62 AT ROW 12.29 COL 3
-     "Toolbar" VIEW-AS TEXT
-          SIZE 8 BY .62 AT ROW 6.38 COL 67
+          SIZE 8 BY .62 AT ROW 11.1 COL 85
      "Image 1:" VIEW-AS TEXT
-          SIZE 8 BY .62 AT ROW 10.81 COL 69
-     SPACE(33.00) SKIP(8.33)
+          SIZE 8 BY .62 AT ROW 11.1 COL 69
+     SPACE(33.00) SKIP(8.32)
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -425,8 +459,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 19.29
-         WIDTH              = 110.6.
+         HEIGHT             = 20.76
+         WIDTH              = 116.6.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -453,6 +487,8 @@ ASSIGN
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
 
+/* SETTINGS FOR TOGGLE-BOX RowObject.disabled IN FRAME frMain
+   EXP-LABEL                                                            */
 /* SETTINGS FOR EDITOR EdRuleHelp IN FRAME frMain
    NO-DISPLAY                                                           */
 ASSIGN 
@@ -460,91 +496,130 @@ ASSIGN
        EdRuleHelp:RETURN-INSERTED IN FRAME frMain  = TRUE
        EdRuleHelp:READ-ONLY IN FRAME frMain        = TRUE.
 
+/* SETTINGS FOR EDITOR RowObject.enable_rule IN FRAME frMain
+   EXP-LABEL                                                            */
 ASSIGN 
        RowObject.enable_rule:RETURN-INSERTED IN FRAME frMain  = TRUE.
+
+/* SETTINGS FOR FILL-IN fiAction IN FRAME frMain
+   NO-ENABLE                                                            */
+ASSIGN 
+       fiAction:PRIVATE-DATA IN FRAME frMain     = 
+                "Action".
 
 /* SETTINGS FOR FILL-IN fiAttr IN FRAME frMain
    NO-DISPLAY NO-ENABLE                                                 */
 /* SETTINGS FOR FILL-IN fiObject IN FRAME frMain
    NO-DISPLAY NO-ENABLE                                                 */
-/* SETTINGS FOR FILL-IN fiProdMod IN FRAME frMain
+/* SETTINGS FOR FILL-IN fiOtherLabel IN FRAME frMain
+   NO-ENABLE ALIGN-L                                                    */
+ASSIGN 
+       fiOtherLabel:PRIVATE-DATA IN FRAME frMain     = 
+                "Other".
+
+/* SETTINGS FOR FILL-IN fiToolbarLabel IN FRAME frMain
    NO-ENABLE                                                            */
+ASSIGN 
+       fiToolbarLabel:PRIVATE-DATA IN FRAME frMain     = 
+                "Toolbar".
+
+/* SETTINGS FOR TOGGLE-BOX RowObject.hide_if_disabled IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR EDITOR RowObject.hide_rule IN FRAME frMain
+   EXP-LABEL                                                            */
 ASSIGN 
        RowObject.hide_rule:RETURN-INSERTED IN FRAME frMain  = TRUE.
 
 /* SETTINGS FOR FILL-IN RowObject.image1_down_filename IN FRAME frMain
-   NO-ENABLE ALIGN-L                                                    */
+   NO-ENABLE ALIGN-L EXP-LABEL                                          */
 ASSIGN 
        RowObject.image1_down_filename:HIDDEN IN FRAME frMain           = TRUE.
 
 /* SETTINGS FOR FILL-IN RowObject.image1_insensitive_filename IN FRAME frMain
-   NO-ENABLE ALIGN-L                                                    */
+   NO-ENABLE ALIGN-L EXP-LABEL                                          */
 ASSIGN 
        RowObject.image1_insensitive_filename:HIDDEN IN FRAME frMain           = TRUE.
 
 /* SETTINGS FOR FILL-IN RowObject.image1_up_filename IN FRAME frMain
-   NO-ENABLE ALIGN-L                                                    */
+   NO-ENABLE ALIGN-L EXP-LABEL                                          */
 ASSIGN 
        RowObject.image1_up_filename:HIDDEN IN FRAME frMain           = TRUE.
 
 /* SETTINGS FOR FILL-IN RowObject.image2_down_filename IN FRAME frMain
-   NO-ENABLE ALIGN-L                                                    */
+   NO-ENABLE ALIGN-L EXP-LABEL                                          */
 ASSIGN 
        RowObject.image2_down_filename:HIDDEN IN FRAME frMain           = TRUE.
 
 /* SETTINGS FOR FILL-IN RowObject.image2_insensitive_filename IN FRAME frMain
-   NO-ENABLE ALIGN-L                                                    */
+   NO-ENABLE ALIGN-L EXP-LABEL                                          */
 ASSIGN 
        RowObject.image2_insensitive_filename:HIDDEN IN FRAME frMain           = TRUE.
 
 /* SETTINGS FOR FILL-IN RowObject.image2_up_filename IN FRAME frMain
-   NO-ENABLE ALIGN-L                                                    */
+   NO-ENABLE ALIGN-L EXP-LABEL                                          */
 ASSIGN 
        RowObject.image2_up_filename:HIDDEN IN FRAME frMain           = TRUE.
 
+/* SETTINGS FOR EDITOR RowObject.image_alternate_rule IN FRAME frMain
+   EXP-LABEL                                                            */
 ASSIGN 
        RowObject.image_alternate_rule:RETURN-INSERTED IN FRAME frMain  = TRUE.
 
 /* SETTINGS FOR COMBO-BOX RowObject.item_control_style IN FRAME frMain
-   ALIGN-L                                                              */
+   ALIGN-L EXP-LABEL                                                    */
 /* SETTINGS FOR COMBO-BOX RowObject.item_control_type IN FRAME frMain
-   ALIGN-L EXP-FORMAT                                                   */
+   ALIGN-L EXP-LABEL EXP-FORMAT                                         */
 /* SETTINGS FOR FILL-IN RowObject.item_link IN FRAME frMain
-   ALIGN-L                                                              */
+   ALIGN-L EXP-LABEL                                                    */
 /* SETTINGS FOR FILL-IN RowObject.item_menu_drop IN FRAME frMain
-   ALIGN-L                                                              */
+   ALIGN-L EXP-LABEL                                                    */
+/* SETTINGS FOR EDITOR RowObject.item_narration IN FRAME frMain
+   EXP-LABEL                                                            */
 ASSIGN 
        RowObject.item_narration:RETURN-INSERTED IN FRAME frMain  = TRUE.
 
+/* SETTINGS FOR FILL-IN RowObject.item_select_action IN FRAME frMain
+   EXP-LABEL EXP-FORMAT                                                 */
 /* SETTINGS FOR FILL-IN RowObject.item_select_parameter IN FRAME frMain
-   ALIGN-L                                                              */
+   ALIGN-L EXP-LABEL                                                    */
 /* SETTINGS FOR COMBO-BOX RowObject.item_select_type IN FRAME frMain
-   ALIGN-L                                                              */
+   ALIGN-L EXP-LABEL                                                    */
 /* SETTINGS FOR FILL-IN RowObject.item_toolbar_label IN FRAME frMain
    EXP-LABEL                                                            */
+/* SETTINGS FOR FILL-IN RowObject.menu_item_description IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR FILL-IN RowObject.menu_item_label IN FRAME frMain
+   EXP-LABEL                                                            */
 /* SETTINGS FOR FILL-IN RowObject.menu_item_obj IN FRAME frMain
-   NO-ENABLE ALIGN-L                                                    */
+   NO-ENABLE ALIGN-L EXP-LABEL                                          */
 ASSIGN 
        RowObject.menu_item_obj:HIDDEN IN FRAME frMain           = TRUE
        RowObject.menu_item_obj:READ-ONLY IN FRAME frMain        = TRUE.
 
-/* SETTINGS FOR FILL-IN RowObject.product_module_obj IN FRAME frMain
-   NO-ENABLE ALIGN-L                                                    */
-ASSIGN 
-       RowObject.product_module_obj:HIDDEN IN FRAME frMain           = TRUE.
-
-/* SETTINGS FOR FILL-IN RowObject.shortcut_key IN FRAME frMain
+/* SETTINGS FOR FILL-IN RowObject.menu_item_reference IN FRAME frMain
    EXP-LABEL                                                            */
+/* SETTINGS FOR FILL-IN RowObject.on_create_publish_event IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR FILL-IN RowObject.security_token IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR FILL-IN RowObject.shortcut_key IN FRAME frMain
+   EXP-LABEL EXP-FORMAT                                                 */
 ASSIGN 
        RowObject.shortcut_key:READ-ONLY IN FRAME frMain        = TRUE.
 
+/* SETTINGS FOR FILL-IN RowObject.substitute_text_property IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR TOGGLE-BOX RowObject.system_owned IN FRAME frMain
+   EXP-LABEL                                                            */
 /* SETTINGS FOR TOGGLE-BOX ToAutoGen IN FRAME frMain
    NO-DISPLAY NO-ENABLE                                                 */
 ASSIGN 
        ToAutoGen:HIDDEN IN FRAME frMain           = TRUE.
 
 /* SETTINGS FOR FILL-IN RowObject.tooltip_text IN FRAME frMain
-   ALIGN-L                                                              */
+   ALIGN-L EXP-LABEL                                                    */
+/* SETTINGS FOR TOGGLE-BOX RowObject.under_development IN FRAME frMain
+   EXP-LABEL                                                            */
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
@@ -564,13 +639,28 @@ ASSIGN
 
 /* ************************  Control Triggers  ************************ */
 
+&Scoped-define SELF-NAME buClear
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buClear vTableWin
+ON CHOOSE OF buClear IN FRAME frMain /* Clear */
+DO:
+  IF RowObject.shortcut_key:SCREEN-VALUE <> "" THEN
+  DO:
+    RowObject.shortcut_key:SCREEN-VALUE = "".
+    {set DataModified YES}.
+  END.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
 &Scoped-define SELF-NAME buImage
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buImage vTableWin
 ON CHOOSE OF buImage IN FRAME frMain
 DO:
   RUN getButtonImage (INPUT RowObject.image1_up_filename:HANDLE,
                       INPUT SELF).
-  
+
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -595,7 +685,7 @@ ON CHOOSE OF buKey IN FRAME frMain /* Key */
 DO:
   DEFINE VARIABLE cOutput       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cOutputBefore AS CHARACTER  NO-UNDO.
- 
+
   DO WITH FRAME {&FRAME-NAME}:
     ASSIGN cOutput       = RowObject.shortcut_key:SCREEN-VALUE
            cOutputBefore = cOutput.
@@ -625,7 +715,7 @@ END.
 
 &Scoped-define SELF-NAME RowObject.item_control_type
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL RowObject.item_control_type vTableWin
-ON VALUE-CHANGED OF RowObject.item_control_type IN FRAME frMain /* Item Type* */
+ON VALUE-CHANGED OF RowObject.item_control_type IN FRAME frMain /* Item Type */
 DO:
   setControlDisplay(SELF:SCREEN-VALUE).
   {set DataModified YES}.
@@ -649,10 +739,35 @@ END.
 
 &Scoped-define SELF-NAME RowObject.menu_item_label
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL RowObject.menu_item_label vTableWin
-ON LEAVE OF RowObject.menu_item_label IN FRAME frMain /* Menu Label* */
+ON LEAVE OF RowObject.menu_item_label IN FRAME frMain /* Menu Label */
 DO:
-  IF SELF:MODIFIED AND rowObject.ITEM_toolbar_label:SCREEN-VALUE = "" THEN
-     rowObject.ITEM_toolbar_label:SCREEN-VALUE = SELF:SCREEN-VALUE.
+  IF SELF:MODIFIED THEN
+    APPLY "VALUE-CHANGED":U TO SELF.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL RowObject.menu_item_label vTableWin
+ON VALUE-CHANGED OF RowObject.menu_item_label IN FRAME frMain /* Menu Label */
+DO:
+  DEFINE VARIABLE cNew AS CHARACTER  NO-UNDO.
+
+  {get Newrecord cNew}.
+  IF cNew = "Add":U AND rowObject.item_control_type:SCREEN-VALUE = "Action":U THEN
+  DO:
+     IF SELF:MODIFIED  AND NOT rowObject.ITEM_toolbar_label:MODIFIED THEN
+       ASSIGN rowObject.ITEM_toolbar_label:SCREEN-VALUE = SELF:SCREEN-VALUE
+              rowObject.ITEM_toolbar_label:MODIFIED     = FALSE.
+    IF SELF:MODIFIED AND NOT rowObject.tooltip_text:MODIFIED  THEN
+       ASSIGN rowObject.tooltip_text:SCREEN-VALUE  = REPLACE(SELF:SCREEN-VALUE,"&","")
+              rowObject.tooltip_text:MODIFIED      = FALSE.
+    IF SELF:MODIFIED AND NOT rowObject.menu_item_description:MODIFIED THEN
+       ASSIGN rowObject.menu_item_description:SCREEN-VALUE  = REPLACE(SELF:SCREEN-VALUE,"&","")
+              rowObject.menu_item_description:MODIFIED      = FALSE.
+  END.
+
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -661,17 +776,13 @@ END.
 
 &Scoped-define SELF-NAME RowObject.menu_item_reference
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL RowObject.menu_item_reference vTableWin
-ON LEAVE OF RowObject.menu_item_reference IN FRAME frMain /* Item Reference* */
+ON LEAVE OF RowObject.menu_item_reference IN FRAME frMain /* Item Reference */
 DO:
-  IF self:MODIFIED 
-     AND RowObject.MENU_item_description:SCREEN-VALUE = "" THEN
-    ASSIGN RowObject.MENU_item_description:SCREEN-VALUE = SELF:SCREEN-VALUE.
-  
-  IF self:MODIFIED 
-     AND RowObject.MENU_item_label:SCREEN-VALUE = "" THEN
-    ASSIGN RowObject.MENU_item_label:SCREEN-VALUE = SELF:SCREEN-VALUE.
+  DEFINE VARIABLE cNew AS CHARACTER  NO-UNDO.
 
-  
+  {get Newrecord cNew}.
+  IF cNew = "Add":U  AND self:MODIFIED AND RowObject.MENU_item_label:SCREEN-VALUE = "" THEN
+    ASSIGN RowObject.MENU_item_label:SCREEN-VALUE = SELF:SCREEN-VALUE.
 
 END.
 
@@ -688,8 +799,8 @@ DO:
            RowObject.MENU_item_reference:SENSITIVE = FALSE.
   ELSE
     ASSIGN RowObject.MENU_item_reference:SENSITIVE    = TRUE
-           RowObject.MENU_item_reference:SCREEN-VALUE = 
-                 IF RowObject.MENU_item_reference:SCREEN-VALUE = "Autogenerate":U 
+           RowObject.MENU_item_reference:SCREEN-VALUE =
+                 IF RowObject.MENU_item_reference:SCREEN-VALUE = "Autogenerate":U
                  THEN ""
                  ELSE RowObject.MENU_item_reference:SCREEN-VALUE.
 END.
@@ -705,9 +816,9 @@ END.
 
 /* ***************************  Main Block  *************************** */
 
-  &IF DEFINED(UIB_IS_RUNNING) <> 0 &THEN          
+  &IF DEFINED(UIB_IS_RUNNING) <> 0 &THEN
     RUN initializeObject.
-  &ENDIF         
+  &ENDIF
 
   /************************ INTERNAL PROCEDURES ********************/
 
@@ -721,8 +832,8 @@ END.
 PROCEDURE addRecord :
 /*------------------------------------------------------------------------------
   Purpose:     Super Override
-  Parameters:  
-  Notes:       
+  Parameters:
+  Notes:
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hComboHandle   AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cCols          AS CHARACTER  NO-UNDO.
@@ -736,9 +847,14 @@ PROCEDURE addRecord :
   DEFINE VARIABLE i              AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cComboValue    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cComboKey      AS CHARACTER  NO-UNDO.
- 
+  DEFINE VARIABLE cModuleObj     AS CHARACTER  NO-UNDO.
+
+  DEFINE VARIABLE dUserObj       AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE dSrcLang       AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE hContainer     AS HANDLE     NO-UNDO.
+
   /* Code placed here will execute PRIOR to standard behavior. */
-  
+
   ASSIGN hComboHandle = DYNAMIC-FUNCTION("getComboHandle":U IN h_dyncombo)
          cControlType = rowObject.ITEM_control_type:SCREEN-VALUE IN FRAME {&FRAME-NAME}
          cAction      = rowObject.ITEM_select_type:SCREEN-VALUE
@@ -751,6 +867,9 @@ PROCEDURE addRecord :
   {get ContainerSource hSource}.
   DYNAMIC-FUNC("getCatgInfo":U IN hSource, OUTPUT cKey,  OUTPUT cLabel,
                                            OUTPUT cDesc, OUTPUT cLink).
+  /* Set the Product Module to the current filtdred value*/
+  cModuleObj = DYNAMIC-FUNC('getModuleObj':U IN hSource).
+  {set DataValue cModuleObj h_dyncombo-2}.
   
 /* Set the combo box to the value that is the same as it's parent*/
   IF cKey > "" THEN
@@ -775,17 +894,33 @@ PROCEDURE addRecord :
      cControlType = "Action":U.
   IF cControlType = "Action":U AND (cAction = "" OR cAction = ?) THEN
      cAction = "LAUNCH":U.
-  ASSIGN rowObject.ITEM_control_type:SCREEN-VALUE = cControlType 
+  ASSIGN rowObject.ITEM_control_type:SCREEN-VALUE = cControlType
          rowObject.ITEM_select_type:SCREEN-VALUE  = cAction.
   
-  setActionDisplay(rowObject.ITEM_select_type:SCREEN-VALUE).
   setControlDisplay(RowObject.Item_control_type:SCREEN-VALUE).
-
+  setActionDisplay(rowObject.ITEM_select_type:SCREEN-VALUE).
+  
+  
   ASSIGN toAutogen:HIDDEN IN FRAME {&FRAME-NAME}    = FALSE
-         toAutogen:SENSITIVE IN FRAME {&FRAME-NAME} = TRUE 
-         rowObject.ITEM_link:SCREEN-VALUE = cLink
+         toAutogen:SENSITIVE IN FRAME {&FRAME-NAME} = TRUE
+         rowObject.ITEM_link:SCREEN-VALUE = IF cLink = ? THEN "" ELSE cLink
          NO-ERROR.
 
+  /* Set source language to user default source language */
+  RUN enableField IN hSourceLanguage.
+  dUserObj = DECIMAL(DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
+                                       INPUT "CurrentUserObj":U,
+                                       INPUT NO)) NO-ERROR.
+  RUN getUserSourceLanguage IN gshGenManager (INPUT dUserObj, OUTPUT dSrcLang).
+  IF dSrcLang <> 0 AND dSrcLang <> ? THEN DO:
+    DYNAMIC-FUNCTION("setDataValue":U IN hSourceLanguage, STRING(dSrcLang,"->>>>>>>>>>>>>>>>>9.999999999":U)).
+  END.
+  PUBLISH "NewMenuItemSelected" FROM THIS-PROCEDURE (INPUT TRUE).
+  
+  {get ContainerSource hContainer}.
+  IF VALID-HANDLE(hContainer) AND 
+     LOOKUP("sensitizeTranslation",hContainer:INTERNAL-ENTRIES) > 0 THEN
+    RUN sensitizeTranslation IN hContainer (INPUT FALSE).
 
 END PROCEDURE.
 
@@ -809,48 +944,69 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'af/obj2/gscicfullo.wDB-AWARE':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'AppServiceASUsePromptASInfoForeignFieldsRowsToBatch200CheckCurrentChangedyesRebuildOnReposnoServerOperatingModeNONEDestroyStatelessnoDisconnectAppServernoObjectNamegscicfulloUpdateFromSourceno':U ,
+             INPUT  'AppServiceAstraASUsePromptASInfoForeignFieldsRowsToBatch200CheckCurrentChangedyesRebuildOnReposnoServerOperatingModeNONEDestroyStatelessnoDisconnectAppServernoObjectNamegscicfulloUpdateFromSourcenoToggleDataTargetsyesOpenOnInityesPromptOnDeleteyesPromptColumns(NONE)':U ,
              OUTPUT h_gscicfullo ).
-       RUN repositionObject IN h_gscicfullo ( 9.95 , 100.00 ) NO-ERROR.
+       RUN repositionObject IN h_gscicfullo ( 10.24 , 100.00 ) NO-ERROR.
        /* Size in AB:  ( 2.14 , 9.00 ) */
+
+       RUN constructObject (
+             INPUT  'adm2/dyncombo.w':U ,
+             INPUT  FRAME frMain:HANDLE ,
+             INPUT  'DisplayedFieldgsc_language.language_nameKeyFieldgsc_language.language_objFieldLabelSource LanguageFieldTooltipSelect source language from listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1ComboDelimiterListItemPairsInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNamesource_language_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT hSourceLanguage ).
+       RUN repositionObject IN hSourceLanguage ( 2.14 , 21.00 ) NO-ERROR.
+       RUN resizeObject IN hSourceLanguage ( 1.05 , 34.00 ) NO-ERROR.
+
+       RUN constructObject (
+             INPUT  'adm2/dyncombo.w':U ,
+             INPUT  FRAME frMain:HANDLE ,
+             INPUT  'DisplayedFieldgsc_product_module.product_module_code,gsc_product_module.product_module_descriptionKeyFieldgsc_product_module.product_module_objFieldLabelModuleFieldTooltipSelect module from listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(10)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_product_module WHERE [EXCLUDE_REPOSITORY_PRODUCT_MODULES] NO-LOCK BY gsc_product_module.product_module_code INDEXED-REPOSITIONQueryTablesgsc_product_moduleSDFFileNameproduct_module_objSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 / &2ComboDelimiterListItemPairsInnerLines5ComboFlagNFlagValue0BuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNameproduct_module_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT h_dyncombo-2 ).
+       RUN repositionObject IN h_dyncombo-2 ( 3.76 , 66.00 ) NO-ERROR.
+       RUN resizeObject IN h_dyncombo-2 ( 1.05 , 44.00 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_object.object_filenameKeyFieldgsc_object.object_objFieldLabelObject FilenameFieldTooltipPress F4 for lookupKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object where container_object = true NO-LOCK,
+             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.smartobject_objFieldLabelObject FilenameFieldTooltipPress F4 for lookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_smartobject where container_object = true
+                     AND ryc_smartobject.customization_result_obj = 0 NO-LOCK,
                      FIRST gsc_product_module NO-LOCK
-                     WHERE gsc_product_module.product_module_obj = gsc_object.product_module_obj
-                     BY gsc_object.object_filenameQueryTablesgsc_object,gsc_product_moduleBrowseFieldsgsc_object.object_filename,gsc_object.object_description,gsc_product_module.product_module_codeBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(35),X(35),X(10)RowsToBatch200BrowseTitleObject LookupViewerLinkedFieldsgsc_object.object_descriptionLinkedFieldDataTypescharacterLinkedFieldFormatsX(35)ViewerLinkedWidgetsfiObjectColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOFieldNameobject_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj
+                     BY ryc_smartobject.object_filenameQueryTablesryc_smartobject,gsc_product_moduleBrowseFieldsryc_smartobject.object_filename,ryc_smartobject.object_description,gsc_product_module.product_module_codeBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(70)|X(35)|X(10)RowsToBatch200BrowseTitleObject LookupViewerLinkedFieldsryc_smartobject.object_descriptionLinkedFieldDataTypescharacterLinkedFieldFormatsX(35)ViewerLinkedWidgetsfiObjectColumnLabelsColumnFormatSDFFileNameobject_objSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNameobject_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dynlookup-3 ).
-       RUN repositionObject IN h_dynlookup-3 ( 8.05 , 21.00 ) NO-ERROR.
+       RUN repositionObject IN h_dynlookup-3 ( 8.19 , 21.00 ) NO-ERROR.
        RUN resizeObject IN h_dynlookup-3 ( 1.00 , 22.00 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_instance_attribute.attribute_codeKeyFieldgsc_instance_attribute.instance_attribute_objFieldLabelRun with AttributeFieldTooltippress F4 for lookupKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_instance_attribute NO-LOCK
-                     BY gsc_instance_attribute.attribute_codeQueryTablesgsc_instance_attributeBrowseFieldsgsc_instance_attribute.attribute_code,gsc_instance_attribute.attribute_description,gsc_instance_attribute.attribute_typeBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(35),X(500),X(3)RowsToBatch200BrowseTitleAttribute LookupViewerLinkedFieldsgsc_instance_attribute.attribute_descriptionLinkedFieldDataTypescharacterLinkedFieldFormatsX(500)ViewerLinkedWidgetsfiAttrColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOFieldNameinstance_attribute_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_instance_attribute.attribute_codeKeyFieldgsc_instance_attribute.instance_attribute_objFieldLabelRun with AttributeFieldTooltippress F4 for lookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_instance_attribute NO-LOCK
+                     BY gsc_instance_attribute.attribute_codeQueryTablesgsc_instance_attributeBrowseFieldsgsc_instance_attribute.attribute_code,gsc_instance_attribute.attribute_description,gsc_instance_attribute.attribute_typeBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(35),X(500),X(3)RowsToBatch200BrowseTitleAttribute LookupViewerLinkedFieldsgsc_instance_attribute.attribute_descriptionLinkedFieldDataTypescharacterLinkedFieldFormatsX(500)ViewerLinkedWidgetsfiAttrColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNameinstance_attribute_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dynlookup-4 ).
-       RUN repositionObject IN h_dynlookup-4 ( 9.00 , 21.00 ) NO-ERROR.
+       RUN repositionObject IN h_dynlookup-4 ( 9.29 , 21.00 ) NO-ERROR.
        RUN resizeObject IN h_dynlookup-4 ( 1.00 , 22.00 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_item_category.item_category_labelKeyFieldgsc_item_category.item_category_objFieldLabelCategoryFieldTooltipSelect option from listKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_item_category no-lockQueryTablesgsc_item_categorySDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines0ComboFlagNFlagValue0BuildSequence1SecurednoFieldNameitem_category_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_item_category.item_category_labelKeyFieldgsc_item_category.item_category_objFieldLabelCategoryFieldTooltipSelect option from listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_item_category no-lockQueryTablesgsc_item_categorySDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1ComboDelimiterListItemPairsInnerLines0ComboFlagNFlagValue0BuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNameitem_category_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dyncombo ).
-       RUN repositionObject IN h_dyncombo ( 12.86 , 21.00 ) NO-ERROR.
+       RUN repositionObject IN h_dyncombo ( 13.19 , 21.00 ) NO-ERROR.
        RUN resizeObject IN h_dyncombo ( 1.00 , 32.00 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'afspfoldrw.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'FolderLabels':U + ' Enable Rule| Hide Rule| Alternate Image Rule|Syntax Help' + 'TabFGcolor':U + 'Default|Default|Default|Default' + 'TabBGcolor':U + 'Default|Default|Default|Default' + 'TabINColor':U + 'GrayText|GrayText|GrayText|GrayText' + 'ImageEnabled':U + '' + 'ImageDisabled':U + '' + 'Hotkey':U + '' + 'Tooltip':U + '' + 'TabHidden':U + 'no|no|no|no' + 'EnableStates':U + 'All|All|All|All' + 'DisableStates':U + 'All|All|All|All' + 'VisibleRows':U + '10' + 'PanelOffset':U + '0' + 'FolderMenu':U + '' + 'TabsPerRow':U + '4' + 'TabHeight':U + '6' + 'TabFont':U + '4' + 'LabelOffset':U + '0' + 'ImageWidth':U + '0' + 'ImageHeight':U + '0' + 'ImageXOffset':U + '2' + 'ImageYOffset':U + '2' + 'TabSize':U + 'Justified' + 'SelectorFGcolor':U + 'Default' + 'SelectorBGcolor':U + 'Default' + 'SelectorFont':U + '4' + 'SelectorWidth':U + '2' + 'TabPosition':U + 'Upper' + 'MouseCursor':U + '' + 'InheritColor':U + 'no' + 'HideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'FolderLabels':U + 'Enable Rule|Hide Rule|Alternate Image Rule|Syntax Help' + 'TabFGcolor':U + 'Default|Default|Default|Default' + 'TabBGcolor':U + 'Default|Default|Default|Default' + 'TabINColor':U + 'GrayText|GrayText|GrayText|GrayText' + 'ImageEnabled':U + '' + 'ImageDisabled':U + '' + 'Hotkey':U + '' + 'Tooltip':U + '' + 'TabHidden':U + 'no|no|no|no' + 'EnableStates':U + 'All|All|All|All' + 'DisableStates':U + 'All|All|All|All' + 'VisibleRows':U + '10' + 'PanelOffset':U + '0' + 'FolderMenu':U + '' + 'TabsPerRow':U + '4' + 'TabHeight':U + '6' + 'TabFont':U + '4' + 'LabelOffset':U + '0' + 'ImageWidth':U + '0' + 'ImageHeight':U + '0' + 'ImageXOffset':U + '2' + 'ImageYOffset':U + '2' + 'TabSize':U + 'Proportional' + 'SelectorFGcolor':U + 'Default' + 'SelectorBGcolor':U + 'Default' + 'SelectorFont':U + '4' + 'SelectorWidth':U + '2' + 'TabPosition':U + 'Upper' + 'MouseCursor':U + '' + 'InheritColor':U + 'no' + 'TabVisualization':U + 'Tabs' + 'PopupSelectionEnabled':U + 'yes' + 'HideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_afspfoldrw ).
        RUN repositionObject IN h_afspfoldrw ( 15.52 , 1.00 ) NO-ERROR.
-       RUN resizeObject IN h_afspfoldrw ( 4.24 , 109.00 ) NO-ERROR.
+       RUN resizeObject IN h_afspfoldrw ( 4.52 , 109.00 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */
+       RUN adjustTabOrder ( hSourceLanguage ,
+             ToAutoGen:HANDLE IN FRAME frMain , 'AFTER':U ).
+       RUN adjustTabOrder ( h_dyncombo-2 ,
+             buKey:HANDLE IN FRAME frMain , 'AFTER':U ).
        RUN adjustTabOrder ( h_dynlookup-3 ,
              RowObject.item_select_type:HANDLE IN FRAME frMain , 'AFTER':U ).
        RUN adjustTabOrder ( h_dynlookup-4 ,
@@ -858,7 +1014,7 @@ PROCEDURE adm-create-objects :
        RUN adjustTabOrder ( h_dyncombo ,
              buImage2:HANDLE IN FRAME frMain , 'AFTER':U ).
        RUN adjustTabOrder ( h_afspfoldrw ,
-             RowObject.item_menu_drop:HANDLE IN FRAME frMain , 'AFTER':U ).
+             buClear:HANDLE IN FRAME frMain , 'AFTER':U ).
     END. /* Page 0 */
 
   END CASE.
@@ -872,8 +1028,8 @@ END PROCEDURE.
 PROCEDURE cancelRecord :
 /*------------------------------------------------------------------------------
   Purpose:     Super Override
-  Parameters:  
-  Notes:       
+  Parameters:
+  Notes:
 ------------------------------------------------------------------------------*/
 DEFINE VARIABLE cNew    AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE hSource AS HANDLE     NO-UNDO.
@@ -888,7 +1044,9 @@ DEFINE VARIABLE cKey    AS CHARACTER  NO-UNDO.
     IF VALID-HANDLE(hSource) THEN
        RUN treeSynch IN hSource ("ITEM":U).
   END.
-
+ 
+  RUN disableField IN hSourceLanguage.
+  
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -902,7 +1060,7 @@ PROCEDURE comboValueChanged :
   Parameters: pcKeyFieldValue   The selected combo's key value
               pcScreenValue     The screen value of the selected item
               phCombo           The handle of the dynamic combo
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 DEFINE INPUT  PARAMETER pckeyFieldValue AS CHARACTER  NO-UNDO.
 DEFINE INPUT  PARAMETER pcScreenValue   AS CHARACTER  NO-UNDO.
@@ -923,12 +1081,64 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE copyRecord vTableWin 
+PROCEDURE copyRecord :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hContainer AS HANDLE     NO-UNDO.
+  /* Code placed here will execute PRIOR to standard behavior. */
+
+  RUN SUPER.
+
+  /* Code placed here will execute AFTER standard behavior.    */
+  {get ContainerSource hContainer}.
+  IF VALID-HANDLE(hContainer) AND 
+     LOOKUP("sensitizeTranslation",hContainer:INTERNAL-ENTRIES) > 0 THEN
+    RUN sensitizeTranslation IN hContainer (INPUT FALSE).
+
+  ASSIGN toAutogen:HIDDEN IN FRAME {&FRAME-NAME}    = FALSE
+         toAutogen:SENSITIVE IN FRAME {&FRAME-NAME} = TRUE.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE dataAvailable vTableWin 
+PROCEDURE dataAvailable :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  DEFINE INPUT PARAMETER pcRelative AS CHARACTER NO-UNDO.
+  
+  DEFINE VARIABLE hContainer AS HANDLE     NO-UNDO.
+  /* Code placed here will execute PRIOR to standard behavior. */
+
+  RUN SUPER( INPUT pcRelative).
+  
+  PUBLISH "NewMenuItemSelected" FROM THIS-PROCEDURE (INPUT FALSE).
+  /* Code placed here will execute AFTER standard behavior.    */
+  {get ContainerSource hContainer}.
+  IF VALID-HANDLE(hContainer) AND 
+     LOOKUP("sensitizeTranslation",hContainer:INTERNAL-ENTRIES) > 0 THEN
+    RUN sensitizeTranslation IN hContainer (INPUT TRUE).
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE deleteComplete vTableWin 
 PROCEDURE deleteComplete :
 /*------------------------------------------------------------------------------
   Purpose:     Delete the node in the tree
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 DEFINE VARIABLE hSource AS HANDLE     NO-UNDO.
 
@@ -964,11 +1174,11 @@ END PROCEDURE.
 PROCEDURE displayFields :
 /*------------------------------------------------------------------------------
   Purpose:     Super Override
-  Parameters:  
-  Notes:       
+  Parameters:
+  Notes:
 ------------------------------------------------------------------------------*/
   DEFINE INPUT PARAMETER pcColValues AS CHARACTER NO-UNDO.
- 
+
   DEFINE VARIABLE hFrameField   AS HANDLE    NO-UNDO.
   DEFINE VARIABLE iValue        AS INTEGER   NO-UNDO.
   DEFINE VARIABLE cFieldHandles AS CHARACTER NO-UNDO.
@@ -976,7 +1186,7 @@ PROCEDURE displayFields :
   DEFINE VARIABLE hSource       AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hFrame        AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cNew          AS CHARACTER  NO-UNDO.
-  
+
 
   RUN SUPER( INPUT pcColValues).
 
@@ -988,15 +1198,15 @@ PROCEDURE displayFields :
            toAutogen:CHECKED                         = FALSE
            NO-ERROR.
   ELSE
-    ASSIGN RowObject.MENU_item_reference:SCREEN-VALUE = IF  toAutogen:CHECKED 
-                                                        THEN "AutoGenerate":U 
+    ASSIGN RowObject.MENU_item_reference:SCREEN-VALUE = IF  toAutogen:CHECKED
+                                                        THEN "AutoGenerate":U
                                                         ELSE "".
 
   /* Set the fields hidden based on the item_select_type field */
   setActionDisplay(rowObject.ITEM_select_type:SCREEN-VALUE).
   setControlDisplay(RowObject.Item_control_type:SCREEN-VALUE).
   setRuleDisplay(giRulepage).
- 
+
  /* Load the image accordingly */
   buImage:load-image(RowObject.image1_up_filename:SCREEN-VALUE) NO-ERROR.
   buImage:TOOLTIP = RowObject.image1_up_filename:SCREEN-VALUE.
@@ -1005,15 +1215,17 @@ PROCEDURE displayFields :
 
   /* Set the product module Object (for filtering the lookups) and the product module code (for display only)*/
   {get ContainerSource hSource}.
-  fiProdMod:SCREEN-VALUE = DYNAMIC-FUNC('getProductModuleCode':U IN hSource,RowObject.product_module_obj:SCREEN-VALUE) .
-  
+
   {get ContainerHandle hSource h_afspfoldrw}.
   hSource:MOVE-TO-BOTTOM().
   ASSIGN fiObject:TOOLTIP = fiObject:SCREEN-VALUE
          fiAttr:TOOLTIP   = fiAttr:SCREEN-VALUE.
-  
-  
-  
+
+  /* The source language will only ever be enabled when adding a
+     new menu item for the first time. */
+  RUN disableField IN hSourceLanguage.
+
+
  END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1023,14 +1235,14 @@ PROCEDURE displayFields :
 PROCEDURE enableFields :
 /*------------------------------------------------------------------------------
   Purpose:     Super Override
-  Parameters:  
-  Notes:       
+  Parameters:
+  Notes:
 ------------------------------------------------------------------------------*/
 
   /* Code placed here will execute PRIOR to standard behavior. */
 
   RUN SUPER.
-  
+
   /* Code placed here will execute AFTER standard behavior.    */
   DO WITH FRAME {&FRAME-NAME}:
   setActionDisplay(rowObject.ITEM_select_type:SCREEN-VALUE).
@@ -1045,14 +1257,14 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getButtonImage vTableWin 
 PROCEDURE getButtonImage :
 /*------------------------------------------------------------------------------
-  Purpose:     
+  Purpose:
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
   DEFINE INPUT  PARAMETER phImageUp  AS HANDLE    NO-UNDO.
- 
+
   DEFINE INPUT  PARAMETER phButton   AS HANDLE    NO-UNDO.
- 
+
 
   define variable cFileName     as character format "x(60)":U no-undo.
   define variable cDirectory    as character format "x(60)":U no-undo.
@@ -1062,7 +1274,7 @@ PROCEDURE getButtonImage :
   DEFINE VARIABLE image-formats AS CHARACTER  NO-UNDO.
   assign cFileName  = phImageUp:SCREEN-VALUE
          cFileName  = substring(cFileName, 1, r-index(cFileName , ".":u)- 1)
-         cDirectory = "adeicon,af/bmp":U 
+         cDirectory = "adeicon,ry/img":U
          image-formats = "All Picture Files|*.bmp,*.dib,*.ico,*.gif,*.jpg,*.cal,*.cut,*.dcx,*.eps,*.ica,*.iff,*.img," +
                          "*.lv,*.mac,*.msp,*.pcd,*.pct,*.pcx,*.psd,*.ras,*.im,*.im1,*.im8,*.tga,*.tif,*.xbm,*.bm,*.xpm,*.wmf,*.wpg" +
                         "|Bitmaps (*.bmp,*.dib)|*.bmp,*.dib|Icons (*.ico)|*.ico|GIF (*.gif)|*.gif|JPEG (*.jpg)|*.jpg" +
@@ -1087,11 +1299,35 @@ PROCEDURE getButtonImage :
                             output lOk).
 
   IF lOK THEN DO:
-     phButton:load-image(cFileName) NO-ERROR.    
+     phButton:load-image(cFileName) NO-ERROR.
      phImageUp:SCREEN-VALUE = cFileName.
     {set DataModified YES}.
   END.
-       
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE hideObject vTableWin 
+PROCEDURE hideObject :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hContainer AS HANDLE     NO-UNDO.
+
+  /* Code placed here will execute PRIOR to standard behavior. */
+  RUN SUPER.
+  
+  /* Code placed here will execute AFTER standard behavior.    */
+  
+  {get ContainerSource hContainer}.
+  IF VALID-HANDLE(hContainer) AND 
+     LOOKUP("sensitizeTranslation",hContainer:INTERNAL-ENTRIES) > 0 THEN
+    RUN sensitizeTranslation IN hContainer (INPUT FALSE).
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1101,37 +1337,92 @@ END PROCEDURE.
 PROCEDURE initializeObject :
 /*------------------------------------------------------------------------------
   Purpose:     Super Override
-  Parameters:  
-  Notes:       
+  Parameters:
+  Notes:
 ------------------------------------------------------------------------------*/
- 
+
   /* Code placed here will execute PRIOR to standard behavior. */
   SUBSCRIBE TO "lookupComplete":U IN THIS-PROCEDURE.
   SUBSCRIBE TO 'lookupDisplayComplete':U IN THIS-PROCEDURE.
   SUBSCRIBE TO "comboValueChanged":U in THIS-PROCEDURE.
- 
-  
+
+
   RUN SUPER.
-  ASSIGN EDRuleHelp:SCREEN-VALUE IN FRAME {&FRAME-NAME} 
+  ASSIGN EDRuleHelp:SCREEN-VALUE IN FRAME {&FRAME-NAME}
     = " A rule contains a delimited list of either function references " +
       "or properties that return a logical result." + CHR(13) +
       "Syntax:  [ property | function ] = list [ AND | OR ] ..." + CHR(13) +
       "    property:  The name of a property (without the get) that is executed across the specified Item link" + CHR(13) +
       "    function:  A function that is executed across the specified Item link" + CHR(13) +
-      "    list    :      A comma delimited list of values that is compared to the property or function result. An 'OR' comparison is performed'" + CHR(13) + 
-      "Example:  " + CHR(13) + 
+      "    list    :      A comma delimited list of values that is compared to the property or function result. An 'OR' comparison is performed'" + CHR(13) +
+      "Example:  " + CHR(13) +
       '    RecordState=RecordAvailable,NoRecordAvailable' + ' and Editable' + ' and DataModified=no' + ' and CanNavigate()'.
- 
 
- 
+
+
   /* Code placed here will execute AFTER standard behavior.    */
   setRuleDisplay(1).
-  
+
   /* Set the first tab of the folder to be selected */
   {set CurrentPage 1}.
   RUN changefolderpage IN h_afspfoldrw.
-  
 
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE launchTranslator vTableWin 
+PROCEDURE launchTranslator :
+/*------------------------------------------------------------------------------
+  Purpose:     This procedure will launch the Menu Item Translation control window
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hContainer      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hTransSDV       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cObjects        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iLoop           AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hWindowHandle   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cProcedureType  AS CHARACTER  NO-UNDO.
+
+  /* Construct the window and objects */
+  IF VALID-HANDLE(ghTransContainer) THEN
+    RETURN.
+  
+  {get ContainerSource hContainer}.
+  {get ContainerHandle hWindowHandle hContainer}.
+  IF VALID-HANDLE(gshSessionManager) THEN
+    RUN launchContainer IN gshSessionManager (                                                    
+        INPUT "gsmtifoldw",     /* pcObjectFileName       */
+        INPUT "",               /* pcPhysicalName         */
+        INPUT "",               /* pcLogicalName          */
+        INPUT TRUE,             /* plOnceOnly             */
+        INPUT "",               /* pcInstanceAttributes   */
+        INPUT "",               /* pcChildDataKey         */
+        INPUT "":U,             /* pcRunAttribute         */
+        INPUT "",               /* container mode         */
+        INPUT hWindowHandle,    /* phParentWindow         */
+        INPUT hContainer,       /* phParentProcedure      */
+        INPUT hContainer,       /* phObjectProcedure      */
+        OUTPUT ghTransContainer, /* phProcedureHandle      */
+        OUTPUT cProcedureType   /* pcProcedureType        */       
+    ).       
+
+  RUN initializeObject IN ghTransContainer.  
+  cObjects = DYNAMIC-FUNCTION("linkHandles":U IN ghTransContainer,"Container-Target":U).
+  
+  DO iLoop = 1 TO NUM-ENTRIES(cObjects):
+    hTransSDV = WIDGET-HANDLE(ENTRY(iLoop,cObjects)).
+    IF VALID-HANDLE(hTransSDV) AND 
+      DYNAMIC-FUNCTION("getObjectType":U IN hTransSDV) = "SmartDataViewer":U THEN DO:
+      SUBSCRIBE PROCEDURE hTransSDV TO "NewMenuItemSelected" IN THIS-PROCEDURE.
+      RUN addLink (THIS-PROCEDURE,"Translation":U,hTransSDV).
+      IF LOOKUP("NewMenuItemSelected":U,hTransSDV:INTERNAL-ENTRIES) > 0 THEN
+        RUN NewMenuItemSelected IN hTransSDV (INPUT FALSE).
+    END.
+  END.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1140,9 +1431,9 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE lookupDisplayComplete vTableWin 
 PROCEDURE lookupDisplayComplete :
 /*------------------------------------------------------------------------------
-  Purpose:     
+  Purpose:
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 DEFINE INPUT  PARAMETER pcnames         AS CHARACTER  NO-UNDO.
 DEFINE INPUT  PARAMETER pcValues        AS CHARACTER  NO-UNDO.
@@ -1163,13 +1454,56 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE postCreateObjects vTableWin 
+PROCEDURE postCreateObjects :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hAttributeBuffer  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hClassBuffer      AS HANDLE     NO-UNDO.
+
+  /* Fetch the repository class*/
+  hClassBuffer = DYNAMIC-FUNCTION("getCacheClassBuffer":U IN gshRepositoryManager, "SmartFolder":U).
+
+  IF VALID-HANDLE(hClassBuffer) THEN
+    hAttributeBuffer = hClassBuffer:BUFFER-FIELD("classBufferHandle":U):BUFFER-VALUE.   
+
+  IF VALID-HANDLE(hAttributeBuffer) THEN
+  DO:
+    hAttributeBuffer:BUFFER-CREATE().
+
+    {fnarg setPopupSelectionEnabled "hAttributeBuffer:BUFFER-FIELD('PopupSelectionEnabled'):BUFFER-VALUE" h_afspfoldrw}.
+    {fnarg setTabVisualization      "hAttributeBuffer:BUFFER-FIELD('TabVisualization'):BUFFER-VALUE"      h_afspfoldrw}.
+    {fnarg setTabPosition           "hAttributeBuffer:BUFFER-FIELD('TabPosition'):BUFFER-VALUE"           h_afspfoldrw}.
+
+    hAttributeBuffer:BUFFER-DELETE().
+  END.
+
+  IF {fn getTabPosition h_afspfoldrw} = "Lower":U THEN
+  DO WITH FRAME {&FRAME-NAME}:
+    RUN initializeObject IN h_afspfoldrw.
+
+    ASSIGN
+        RowObject.image_alternate_rule:ROW = {fn getInnerRow h_afspfoldrw} + 0.06
+        RowObject.enable_rule:ROW          = RowObject.image_alternate_rule:ROW
+        RowObject.hide_rule:ROW            = RowObject.image_alternate_rule:ROW
+        EdRuleHelp:ROW                     = RowObject.image_alternate_rule:ROW.
+  END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE resetRecord vTableWin 
 PROCEDURE resetRecord :
 /*------------------------------------------------------------------------------
   Purpose:     Ensure delete remains insensitive when required (Item band node
                is selected )
-  Parameters:  
-  Notes:       
+  Parameters:
+  Notes:
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hSource    AS HANDLE     NO-UNDO.
 
@@ -1189,8 +1523,8 @@ PROCEDURE resetRecord :
 PROCEDURE selectPage :
 /*------------------------------------------------------------------------------
   Purpose:     Super Override
-  Parameters:  
-  Notes:       
+  Parameters:
+  Notes:
 ------------------------------------------------------------------------------*/
 
   DEFINE INPUT PARAMETER piPageNum AS INTEGER NO-UNDO.
@@ -1210,58 +1544,60 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setSensitive vTableWin 
 PROCEDURE setSensitive :
 /*------------------------------------------------------------------------------
-  Purpose:     
+  Purpose:
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
  DEFINE INPUT  PARAMETER plSensitive AS LOGICAL    NO-UNDO.
- 
- ASSIGN   
+
+ ASSIGN
    buImage:SENSITIVE IN FRAME {&FRAME-NAME} = plSensitive
    buImage2:SENSITIVE = plSensitive
    buKey:SENSITIVE = plSensitive
-   EdRuleHelp:READ-ONLY = NOT plSensitive 
+   EdRuleHelp:READ-ONLY = NOT plSensitive
   /* fiModule:SENSITIVE = plSensitive*/
-   RowObject.disabled:SENSITIVE = plSensitive 
+   RowObject.disabled:SENSITIVE = plSensitive
    RowObject.enable_rule:SENSITIVE = plSensitive
-   RowObject.hide_if_disabled:SENSITIVE = plSensitive 
+   RowObject.hide_if_disabled:SENSITIVE = plSensitive
    RowObject.hide_rule:SENSITIVE = plSensitive
-   RowObject.image_alternate_rule:SENSITIVE = plSensitive  
-   RowObject.item_control_style:SENSITIVE = plSensitive 
-   RowObject.item_control_type:SENSITIVE = plSensitive 
-   RowObject.item_link:SENSITIVE = plSensitive 
-   RowObject.item_menu_drop:SENSITIVE = plSensitive 
-   RowObject.item_narration:SENSITIVE = plSensitive 
-   RowObject.item_select_action:SENSITIVE = plSensitive 
-   RowObject.item_select_parameter:SENSITIVE = plSensitive 
-   RowObject.item_select_type:SENSITIVE = plSensitive 
-   RowObject.item_toolbar_label:SENSITIVE = plSensitive 
-   RowObject.menu_item_description:SENSITIVE = plSensitive 
-   RowObject.menu_item_label:SENSITIVE = plSensitive 
-   RowObject.menu_item_obj:SENSITIVE = plSensitive 
-   RowObject.menu_item_reference:SENSITIVE = plSensitive 
-   RowObject.on_create_publish_event:SENSITIVE = plSensitive 
-   RowObject.product_module_obj:SENSITIVE = plSensitive 
-   RowObject.security_token:SENSITIVE = plSensitive 
-   RowObject.substitute_text_property:SENSITIVE = plSensitive 
-   RowObject.system_owned:SENSITIVE = plSensitive 
-   RowObject.tooltip_text:SENSITIVE = plSensitive 
-   RowObject.under_development:SENSITIVE = plSensitive 
+   RowObject.image_alternate_rule:SENSITIVE = plSensitive
+   RowObject.item_control_style:SENSITIVE = plSensitive
+   RowObject.item_control_type:SENSITIVE = plSensitive
+   RowObject.item_link:SENSITIVE = plSensitive
+   RowObject.item_menu_drop:SENSITIVE = plSensitive
+   RowObject.item_narration:SENSITIVE = plSensitive
+   RowObject.item_select_action:SENSITIVE = plSensitive
+   RowObject.item_select_parameter:SENSITIVE = plSensitive
+   RowObject.item_select_type:SENSITIVE = plSensitive
+   RowObject.item_toolbar_label:SENSITIVE = plSensitive
+   RowObject.menu_item_description:SENSITIVE = plSensitive
+   RowObject.menu_item_label:SENSITIVE = plSensitive
+   RowObject.menu_item_obj:SENSITIVE = plSensitive
+   RowObject.menu_item_reference:SENSITIVE = plSensitive
+   RowObject.on_create_publish_event:SENSITIVE = plSensitive
+   RowObject.security_token:SENSITIVE = plSensitive
+   RowObject.substitute_text_property:SENSITIVE = plSensitive
+   RowObject.system_owned:SENSITIVE = plSensitive
+   RowObject.tooltip_text:SENSITIVE = plSensitive
+   RowObject.under_development:SENSITIVE = plSensitive
    ToAutoGen:SENSITIVE = plSensitive
+   buClear:SENSITIVE   = plSensitive
    NO-ERROR.
 
-   IF NOT plsensitive THEN 
+   IF NOT plsensitive THEN
    DO:
      RUN disableField IN  h_dyncombo .
-     RUN disableField IN  h_dynlookup-3. 
-     RUN disableField IN  h_dynlookup-4. 
+     RUN disableField IN  h_dynlookup-3.
+     RUN disableField IN  h_dynlookup-4.
+     RUN disableField IN  h_dyncombo-2.
    END.
    ELSE DO:
      RUN enableField IN  h_dyncombo .
-     RUN enableField IN  h_dynlookup-3. 
-     RUN enableField IN  h_dynlookup-4. 
+     RUN enableField IN  h_dynlookup-3.
+     RUN enableField IN  h_dynlookup-4.
+     RUN enableField IN  h_dyncombo-2.
    END.
-  
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1271,8 +1607,8 @@ END PROCEDURE.
 PROCEDURE updateRecord :
 /*------------------------------------------------------------------------------
   Purpose:     Super Override
-  Parameters:  
-  Notes:       
+  Parameters:
+  Notes:
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cNew       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hSource    AS HANDLE     NO-UNDO.
@@ -1283,12 +1619,11 @@ PROCEDURE updateRecord :
 
   {get ContainerSource hSource}.
   {get NewRecord cNew}.
-  IF VALID-HANDLE(hSource) AND (cNew = "Add":U OR cNew = "Copy":U) THEN 
-    RowObject.product_module_obj:SCREEN-VALUE IN FRAME {&FRAME-NAME} = DYNAMIC-FUNC('getModuleObj':U IN hSource) NO-ERROR.
   
+
   RUN SUPER.
 
-  IF RETURN-VALUE <> "ADM-ERROR":U AND VALID-HANDLE(hSource) THEN 
+  IF RETURN-VALUE <> "ADM-ERROR":U AND VALID-HANDLE(hSource) THEN
   DO WITH FRAME {&FRAME-NAME}:
     {get  KeyFieldValue cKeyField h_dyncombo}.
     ASSIGN cLabel = DYNAMIC-FUNC("getItemLabel":U IN hSource,
@@ -1296,19 +1631,61 @@ PROCEDURE updateRecord :
                                   INPUT RowObject.MENU_item_reference:SCREEN-VALUE,
                                   INPUT RowObject.menu_item_description:SCREEN-VALUE,
                                   INPUT RowObject.ITEM_control_type:SCREEN-VALUE).
-    
-     IF cNew = "Add":U OR cNew = "Copy":U THEN 
+
+     IF cNew = "Add":U OR cNew = "Copy":U THEN
      DO:
-       RUN addNode IN hSource 
+       RUN addNode IN hSource
             ("Item":U,
               cLabel ,
               RowObject.menu_ITEM_obj:SCREEN-VALUE + "|":U + cKeyField + "|" +  RowObject.ITEM_control_type:SCREEN-VALUE).
      END.
      ELSE DO:
-       
+
        RUN updateNode IN hSource("item",ckeyField,cLabel).
      END.
   END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE viewObject vTableWin 
+PROCEDURE viewObject :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hContainer AS HANDLE     NO-UNDO.
+  
+  DEFINE VARIABLE cObjects  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iLoop     AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hTransSDV AS HANDLE     NO-UNDO.
+
+  /* Code placed here will execute PRIOR to standard behavior. */
+  RUN SUPER.
+  
+  /* Code placed here will execute AFTER standard behavior.    */
+  
+  {get ContainerSource hContainer}.
+  IF VALID-HANDLE(hContainer) AND 
+     LOOKUP("sensitizeTranslation",hContainer:INTERNAL-ENTRIES) > 0 THEN
+    RUN sensitizeTranslation IN hContainer (INPUT TRUE).
+
+  IF VALID-HANDLE(ghTransContainer) THEN DO:
+    cObjects = DYNAMIC-FUNCTION("linkHandles":U IN ghTransContainer,"Container-Target":U).
+    
+    DO iLoop = 1 TO NUM-ENTRIES(cObjects):
+      hTransSDV = WIDGET-HANDLE(ENTRY(iLoop,cObjects)).
+      IF VALID-HANDLE(hTransSDV) AND 
+        DYNAMIC-FUNCTION("getObjectType":U IN hTransSDV) = "SmartDataViewer":U THEN DO:
+        IF LOOKUP("frameVisible":U,hTransSDV:INTERNAL-ENTRIES) > 0 THEN
+          RUN frameVisible IN hTransSDV.
+      END.
+    END.
+  END.
+  
   
 END PROCEDURE.
 
@@ -1321,13 +1698,13 @@ END PROCEDURE.
 FUNCTION setActionDisplay RETURNS LOGICAL
   ( pcAction AS CHAR) :
 /*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
+  Purpose:
+    Notes:
 ------------------------------------------------------------------------------*/
 DEFINE VARIABLE hSideLabel  AS HANDLE     NO-UNDO.
 
-DO WITH FRAME {&FRAME-NAME}: 
-  CASE pcAction:
+DO WITH FRAME {&FRAME-NAME}:
+    CASE pcAction:
       WHEN "PUBLISH":U THEN DO:
           ASSIGN rowObject.item_select_action:HIDDEN       = FALSE
                  rowObject.item_select_action:SENSITIVE    = TRUE
@@ -1335,14 +1712,16 @@ DO WITH FRAME {&FRAME-NAME}:
                  rowObject.item_select_parameter:SENSITIVE = TRUE
                  fiObject:HIDDEN                           = TRUE
                  fiObject:SENSITIVE                        = FALSE
-                 fiAttr:HIDDEN                             = TRUE 
-                 fiAttr:SENSITIVE                          = FALSE 
+                 fiAttr:HIDDEN                             = TRUE
+                 fiAttr:SENSITIVE                          = FALSE
                  NO-ERROR.
-                 
+
           RUN hideObject IN h_dynLookup-3.
           RUN hideObject IN h_dynLookup-4.
           hSideLabel = rowObject.item_select_action:SIDE-LABEL-HANDLE.
           hSidelabel:SCREEN-VALUE = "Action" .
+          IF rowObject.item_select_action:SCREEN-VALUE BEGINS "http://":U THEN
+                 rowObject.item_select_action:SCREEN-VALUE =  rowObject.item_select_action:PRIVATE-DATA.
 
       END.
 
@@ -1352,7 +1731,7 @@ DO WITH FRAME {&FRAME-NAME}:
                  rowObject.item_select_parameter:HIDDEN    = FALSE
                  rowObject.item_select_parameter:SENSITIVE = TRUE
                  fiObject:HIDDEN                           = TRUE
-                 fiAttr:HIDDEN                             = TRUE   
+                 fiAttr:HIDDEN                             = TRUE
                  fiObject:SENSITIVE                        = FALSE
                  fiAttr:SENSITIVE                          = FALSE
                  NO-ERROR.
@@ -1360,8 +1739,11 @@ DO WITH FRAME {&FRAME-NAME}:
           RUN hideObject IN h_dynLookup-4.
           hSideLabel = rowObject.item_select_action:SIDE-LABEL-HANDLE.
           hSidelabel:SCREEN-VALUE = "Action" .
+          IF rowObject.item_select_action:SCREEN-VALUE BEGINS "http://":U THEN
+                 rowObject.item_select_action:SCREEN-VALUE = rowObject.item_select_action:PRIVATE-DATA.
+
       END.
-      
+
       WHEN "PROPERTY":U THEN DO:
           ASSIGN rowObject.item_select_action:HIDDEN       = FALSE
                  rowObject.item_select_action:SENSITIVE    = TRUE
@@ -1376,7 +1758,9 @@ DO WITH FRAME {&FRAME-NAME}:
           RUN hideObject IN h_dynLookup-4.
           hSideLabel = rowObject.item_select_action:SIDE-LABEL-HANDLE.
           hSidelabel:SCREEN-VALUE = "Toggle Property" .
-                 
+          IF rowObject.item_select_action:SCREEN-VALUE BEGINS "http://":U THEN
+                 rowObject.item_select_action:SCREEN-VALUE = rowObject.item_select_action:PRIVATE-DATA.
+
       END.
       WHEN "LAUNCH":U THEN DO:
           ASSIGN rowObject.item_select_action:HIDDEN       = TRUE
@@ -1387,9 +1771,32 @@ DO WITH FRAME {&FRAME-NAME}:
                  fiAttr:SENSITIVE                          = FALSE.
           RUN viewObject IN h_dynLookup-3.
           RUN viewObject IN h_dynLookup-4.
-              
+
       END.
-      
+     WHEN "URL":U  THEN DO:
+          ASSIGN rowObject.item_select_action:HIDDEN       = FALSE
+                 rowObject.item_select_action:SENSITIVE    = TRUE
+                 rowObject.item_select_parameter:HIDDEN    = TRUE
+                 rowObject.item_select_parameter:SENSITIVE = TRUE
+                 fiObject:HIDDEN                           = TRUE
+                 fiAttr:HIDDEN                             = TRUE
+                 fiObject:SENSITIVE                        = FALSE
+                 fiAttr:SENSITIVE                          = FALSE
+                 NO-ERROR.
+          RUN hideObject IN h_dynLookup-3.
+          RUN hideObject IN h_dynLookup-4.
+          ASSIGN hSideLabel = rowObject.item_select_action:SIDE-LABEL-HANDLE
+                 hSidelabel:SCREEN-VALUE = "URL" 
+                 rowObject.item_select_action:PRIVATE-DATA = rowObject.item_select_action:SCREEN-VALUE.
+          IF NOT rowObject.item_select_action:SCREEN-VALUE BEGINS "http://":U THEN
+                 rowObject.item_select_action:SCREEN-VALUE = "http://".
+     END.
+     OTHERWISE DO:
+        RUN hideObject IN h_dynLookup-3.
+        RUN hideObject IN h_dynLookup-4.
+        ASSIGN fiObject:HIDDEN                           = TRUE
+               fiAttr:HIDDEN                             = TRUE.
+     END.
   END CASE.
   RETURN FALSE.   /* Function return value. */
  END.
@@ -1402,8 +1809,8 @@ END FUNCTION.
 FUNCTION setControlDisplay RETURNS LOGICAL
   ( pcControlType AS CHAR) :
 /*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
+  Purpose:
+    Notes:
 ------------------------------------------------------------------------------*/
  CASE pcControlType:
     WHEN "ACTION":U THEN
@@ -1425,12 +1832,16 @@ FUNCTION setControlDisplay RETURNS LOGICAL
             RowObject.hide_rule:SENSITIVE                = TRUE
             RowObject.image_alternate_rule:SENSITIVE     = TRUE
             NO-ERROR.
+     IF RowObject.Item_control_type:MODIFIED THEN
+         RowObject.Item_select_type:SCREEN-VALUE = RowObject.Item_select_type:ENTRY(1).
+                                                            
      RUN enableField IN h_dynLookup-3.
      RUN enableField IN h_dynLookup-4.
-          
+
     END.
     WHEN "Separator":U THEN DO:
-      ASSIGN RowObject.Item_select_type:SENSITIVE         = FALSE
+      ASSIGN RowObject.Item_select_type:LIST-ITEMS        = RowObject.Item_select_type:LIST-ITEMS
+             RowObject.Item_select_type:SENSITIVE         = FALSE
              RowObject.Item_select_action:SENSITIVE       = FALSE
              RowObject.Item_select_parameter:SENSITIVE    = FALSE
              RowObject.Substitute_text_property:SENSITIVE = FALSE
@@ -1452,20 +1863,17 @@ FUNCTION setControlDisplay RETURNS LOGICAL
     END.
 
     WHEN "Label":U OR WHEN "Placeholder":U THEN DO:
-       ASSIGN RowObject.Item_select_type:SENSITIVE         = FALSE
+       ASSIGN RowObject.Item_select_type:LIST-ITEMS        = RowObject.Item_select_type:LIST-ITEMS
+              RowObject.Item_select_type:SENSITIVE         = FALSE
               RowObject.Item_select_action:SENSITIVE       = FALSE
               RowObject.Item_select_parameter:SENSITIVE    = FALSE
               RowObject.Substitute_text_property:SENSITIVE = TRUE
               RowObject.Item_link:SENSITIVE                = TRUE
-              RowObject.item_toolbar_label:SENSITIVE       = IF pcControlType = "PlaceHolder":U
-                                                             THEN FALSE
-                                                             ELSE TRUE
-              RowObject.tooltip_text:SENSITIVE             = IF pcControlType = "PlaceHolder":U
-                                                             THEN FALSE
-                                                             ELSE TRUE
-              RowObject.item_control_style:SENSITIVE       = FALSE 
-              buImage:SENSITIVE                            = FALSE 
-              buImage2:SENSITIVE                           = FALSE 
+              RowObject.item_toolbar_label:SENSITIVE       = FALSE
+              RowObject.tooltip_text:SENSITIVE             = FALSE
+              RowObject.item_control_style:SENSITIVE       = FALSE
+              buImage:SENSITIVE                            = FALSE
+              buImage2:SENSITIVE                           = FALSE
               RowObject.security_token:SENSITIVE           = TRUE
               RowObject.on_create_publish_event:SENSITIVE  = TRUE
               RowObject.item_menu_drop:SENSITIVE           = TRUE
@@ -1490,10 +1898,10 @@ END FUNCTION.
 FUNCTION setRuleDisplay RETURNS LOGICAL
   ( piRule AS INTEGER) :
 /*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
+  Purpose:
+    Notes:
 ------------------------------------------------------------------------------*/
-DO WITH FRAME {&FRAME-NAME}: 
+DO WITH FRAME {&FRAME-NAME}:
   CASE piRule:
     WHEN 1 THEN DO:
         ASSIGN RowObject.image_alternate_rule:HIDDEN    = TRUE
@@ -1502,9 +1910,9 @@ DO WITH FRAME {&FRAME-NAME}:
               RowObject.enable_rule:READ-ONLY           = FALSE
               EdRuleHelp:READ-ONLY                      = TRUE
               EdRuleHelp:HIDDEN                         = TRUE.
-      
+
     END.
-    
+
     WHEN 2 THEN DO:
        ASSIGN RowObject.image_alternate_rule:HIDDEN     = TRUE
               RowObject.Hide_rule:READ-ONLY             = FALSE
@@ -1512,9 +1920,9 @@ DO WITH FRAME {&FRAME-NAME}:
               RowObject.enable_rule:HIDDEN              = TRUE
               EdRuleHelp:READ-ONLY                      = TRUE
               EdRuleHelp:HIDDEN                         = TRUE.
-      
+
     END.
-    
+
     WHEN 3 THEN DO:
         ASSIGN RowObject.image_alternate_rule:HIDDEN     = FALSE
                RowObject.image_alternate_rule:READ-ONLY  = FALSE
@@ -1522,18 +1930,18 @@ DO WITH FRAME {&FRAME-NAME}:
                RowObject.enable_rule:HIDDEN              = TRUE
                EdRuleHelp:READ-ONLY                      = TRUE
                EdRuleHelp:HIDDEN                         = TRUE.
-      
+
     END.
-    
+
     WHEN 4 THEN DO:
-       ASSIGN RowObject.image_alternate_rule:HIDDEN     = TRUE 
+       ASSIGN RowObject.image_alternate_rule:HIDDEN     = TRUE
               RowObject.image_alternate_rule:READ-ONLY  = TRUE
               RowObject.Hide_rule:HIDDEN                = TRUE
               RowObject.enable_rule:HIDDEN              = TRUE
               EdRuleHelp:HIDDEN                         = FALSE
               EdRulehelp:SENSITIVE                      = TRUE
               EdRuleHelp:READ-ONLY                      = TRUE.
-    
+
     END.
 
   END CASE.

@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          rydb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" vTableWin _INLINE
@@ -9,13 +9,6 @@
 /* This has to go above the definitions sections, as that is what it modifies.
    If its not, then the definitions section will have been saved before the
    XFTR code kicks in and changes it */
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Astra 2 Static SmartDataViewer Wizard" vTableWin _INLINE
-/* Actions: af/cod/aftemwizcw.w ? ? ? af/sup/afwizdeltp.p */
-/* Astra 2 Static SmartDataViewer Wizard
-Destroy on next read */
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -92,9 +85,9 @@ CREATE WIDGET-POOL.
    saved. They pull the object and version from Roundtable if possible so that it
    can be displayed in the about window of the container */
 
-&scop object-name       rysttviewv.w
+&scop object-name       rycstviewv.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -128,13 +121,14 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-FIELDS RowObject.link_name ~
-RowObject.used_defined_link RowObject.system_owned 
+RowObject.user_defined_link RowObject.system_owned 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
+&Scoped-Define DISPLAYED-FIELDS RowObject.link_name ~
+RowObject.user_defined_link RowObject.system_owned 
 &Scoped-define DISPLAYED-TABLES RowObject
 &Scoped-define FIRST-DISPLAYED-TABLE RowObject
-&Scoped-Define DISPLAYED-FIELDS RowObject.link_name ~
-RowObject.used_defined_link RowObject.system_owned 
+
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -154,13 +148,13 @@ RowObject.used_defined_link RowObject.system_owned
 DEFINE FRAME frMain
      RowObject.link_name AT ROW 1 COL 20 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 45 BY 1
-     RowObject.used_defined_link AT ROW 2 COL 22
+          SIZE 63.2 BY 1
+     RowObject.user_defined_link AT ROW 2.05 COL 22
           VIEW-AS TOGGLE-BOX
-          SIZE 22.6 BY .81
-     RowObject.system_owned AT ROW 2.81 COL 22
+          SIZE 22.6 BY 1
+     RowObject.system_owned AT ROW 3.1 COL 22
           VIEW-AS TOGGLE-BOX
-          SIZE 19.2 BY .81
+          SIZE 19.2 BY 1
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -200,8 +194,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 2.62
-         WIDTH              = 66.
+         HEIGHT             = 3.1
+         WIDTH              = 84.2.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -241,7 +235,7 @@ ASSIGN
 */  /* FRAME frMain */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK vTableWin 

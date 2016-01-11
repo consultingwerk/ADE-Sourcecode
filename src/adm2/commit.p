@@ -1,31 +1,5 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12
 &ANALYZE-RESUME
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Check Version Notes Wizard" Procedure _INLINE
-/* Actions: af/cod/aftemwizcw.w ? ? ? ? */
-/* MIP Update Version Notes Wizard
-Check object version notes.
-af/cod/aftemwizpw.w
-*/
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" Procedure _INLINE
-/* Actions: ? ? ? ? af/sup/afverxftrp.p */
-/* This has to go above the definitions sections, as that is what it modifies.
-   If its not, then the definitions section will have been saved before the
-   XFTR code kicks in and changes it */
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Definition Comments Wizard" Procedure _INLINE
-/* Actions: ? af/cod/aftemwizcw.w ? ? ? */
-/* Program Definition Comment Block Wizard
-Welcome to the Program Definition Comment Block Wizard. Press Next to proceed.
-af/cod/aftemwizpw.w
-*/
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
 * Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
@@ -80,18 +54,7 @@ DEFINE INPUT-OUTPUT PARAMETER piocContext  AS CHARACTER  NO-UNDO.
 DEFINE INPUT-OUTPUT PARAMETER TABLE-HANDLE phRowObjUpd. 
 
 DEFINE OUTPUT PARAMETER pocMessages AS CHARACTER NO-UNDO.
-DEFINE OUTPUT PARAMETER pocUndoIds  AS CHARACTER NO-UNDO.                                                                           
-                                                                           
-
-
-
-/* MIP-GET-OBJECT-VERSION pre-processors
-   The following pre-processors are maintained automatically when the object is
-   saved. They pull the object and version from Roundtable if possible so that it
-   can be displayed in the about window of the container */
-
-&scop object-name       commit.p
-&scop object-version    000000
+DEFINE OUTPUT PARAMETER pocUndoIds  AS CHARACTER NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -128,8 +91,8 @@ DEFINE OUTPUT PARAMETER pocUndoIds  AS CHARACTER NO-UNDO.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 4.81
-         WIDTH              = 80.4.
+         HEIGHT             = 6.48
+         WIDTH              = 47.6.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -141,8 +104,9 @@ DEFINE OUTPUT PARAMETER pocUndoIds  AS CHARACTER NO-UNDO.
 
 
 /* ***************************  Main Block  *************************** */
-DEFINE VARIABLE hObject    AS HANDLE  NO-UNDO.
-DEFINE VARIABLE hRowObjUpd AS HANDLE  NO-UNDO.
+DEFINE VARIABLE hObject       AS HANDLE   NO-UNDO.
+DEFINE VARIABLE hRowObjUpd    AS HANDLE   NO-UNDO.
+DEFINE VARIABLE lDynamicData  AS LOGICAL  NO-UNDO.
 
 DO ON STOP UNDO, LEAVE:   
   RUN VALUE(pcObject) PERSISTENT SET hObject NO-ERROR.   
@@ -154,28 +118,31 @@ DO:
   RETURN.
 END.
 
-/* As of current we call remoteCommit since we need to copy this to the 
-   static table, but when the logic in bufferCommit becomes dynamic we
-   will call setRowObjUpdTable nas run bufferCommit as remote commit then will 
-   become inefficient as it is an extra copy of data */       
+{get DynamicData lDynamicData hObject}.
 
-/** Futre code for dynamic sdo 
-{set RowObjUpdTable phRowObjUpd hObject}.
+IF lDynamicData THEN
+DO:
+
+  {set RowObjUpdTable phRowObjUpd hObject}.
     
-RUN setContextAndInitialize IN hObject (piocContext).
+  RUN setContextAndInitialize IN hObject (piocContext).
 
-RUN bufferCommit IN hObject (OUTPUT pocMessages, 
-                             OUTPUT pocUndoIds).
+  RUN bufferCommit IN hObject (OUTPUT pocMessages, 
+                               OUTPUT pocUndoIds).
 
-RUN getContextAndDestroy IN hObject (OUTPUT piocContext).
-***/
+  RUN getContextAndDestroy IN hObject (OUTPUT piocContext).
+END.
+ELSE DO:
+  RUN remoteCommit IN hObject ( INPUT-OUTPUT piocContext,
+                                INPUT-OUTPUT TABLE-HANDLE phRowObjUpd,
+                                OUTPUT pocMessages, 
+                                OUTPUT pocUndoIds).
 
-RUN remoteCommit IN hObject (INPUT-OUTPUT piocContext, 
-                             INPUT-OUTPUT TABLE-HANDLE phRowObjUpd, 
-                             OUTPUT pocMessages, 
-                             OUTPUT pocUndoIds).
 
-RUN destroyObject IN hObject.
+  RUN destroyObject IN hObject. 
+END.
+
+DELETE OBJECT phRowObjUpd NO-ERROR.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

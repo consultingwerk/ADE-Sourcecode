@@ -50,7 +50,7 @@ af/cod/aftemwizpw.w
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
-  File: rvreplicat.p
+  File: ryreplicat.p
 
   Description:  SCM Replication Trigger Code
   
@@ -101,7 +101,7 @@ af/cod/aftemwizpw.w
    saved. They pull the object and version from Roundtable if possible so that it
    can be displayed in the about window of the container */
 
-{af/sup2/afglobals.i}
+{src/adm2/globals.i}
 
 /* Define RTB global shared variables - used for RTB integration hooks (if installed) */
 DEFINE NEW GLOBAL SHARED VARIABLE grtb-wspace-id  AS CHARACTER    NO-UNDO.
@@ -109,41 +109,42 @@ DEFINE NEW GLOBAL SHARED VARIABLE grtb-task-num   AS INTEGER      NO-UNDO.
 
 &scop object-name       ryreplicat.p
 DEFINE VARIABLE lv_this_object_name               AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    010002
 
 
 /* MIP object identifying preprocessor */
 &glob   mip-structured-procedure    yes
 
-DEFINE INPUT PARAMETER ip_table_buffer_handle     AS HANDLE       NO-UNDO.
-DEFINE INPUT PARAMETER ip_old_buffer_handle       AS HANDLE       NO-UNDO.
-DEFINE INPUT PARAMETER ip_table_name              AS CHARACTER    NO-UNDO.
-DEFINE INPUT PARAMETER ip_table_fla               AS CHARACTER    NO-UNDO.  
-DEFINE INPUT PARAMETER ip_table_pk_fields         AS CHARACTER    NO-UNDO.             
-DEFINE INPUT PARAMETER ip_action                  AS CHARACTER    NO-UNDO.   
-DEFINE INPUT PARAMETER ip_new                     AS LOGICAL      NO-UNDO. 
-DEFINE INPUT PARAMETER ip_primary_fla             AS CHARACTER    NO-UNDO.
-DEFINE INPUT PARAMETER ip_primary_key_fields      AS CHARACTER    NO-UNDO.
+DEFINE INPUT PARAMETER phTableBufferHandle        AS HANDLE       NO-UNDO.
+DEFINE INPUT PARAMETER phOldBufferHandle          AS HANDLE       NO-UNDO.
+DEFINE INPUT PARAMETER pcTableName                AS CHARACTER    NO-UNDO.
+DEFINE INPUT PARAMETER pcTableFla                 AS CHARACTER    NO-UNDO.  
+DEFINE INPUT PARAMETER pcTablePkFields            AS CHARACTER    NO-UNDO.             
+DEFINE INPUT PARAMETER pcAction                   AS CHARACTER    NO-UNDO.   
+DEFINE INPUT PARAMETER lNew                       AS LOGICAL      NO-UNDO. 
+DEFINE INPUT PARAMETER pcPrimaryFla               AS CHARACTER    NO-UNDO.
+DEFINE INPUT PARAMETER pcPrimaryKeyFields         AS CHARACTER    NO-UNDO.
 
 DEFINE VARIABLE lActionUnderway                   AS LOGICAL      NO-UNDO.
 
-DEFINE VARIABLE lv_workspace_obj                  AS DECIMAL      NO-UNDO.
-DEFINE VARIABLE lv_task_number                    AS INTEGER      NO-UNDO.
+DEFINE VARIABLE dWorkspace_obj                    AS DECIMAL      NO-UNDO.
+DEFINE VARIABLE iTaskNumber                       AS INTEGER      NO-UNDO.
 
-DEFINE VARIABLE lv_workspace_code                 AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE lv_creating_item                  AS LOGICAL      NO-UNDO.
-DEFINE VARIABLE lv_deleting_item                  AS LOGICAL      NO-UNDO.
-DEFINE VARIABLE lv_arguments                      AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE lv_version_number                 AS INTEGER      NO-UNDO.
-DEFINE VARIABLE lv_logical_db_name                AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE lv_alias                          AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE lv_inherited_modification_type    AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE lv_object_name                    AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE lv_object_name_ext                AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE lv_object_name_ado                AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE lv_nulls_in_primary_key           AS LOGICAL      NO-UNDO.
+DEFINE VARIABLE cWorkspaceCode                    AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE lCreatingItem                     AS LOGICAL      NO-UNDO.
+DEFINE VARIABLE lDeletingItem                     AS LOGICAL      NO-UNDO.
+DEFINE VARIABLE cArguments                        AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE iVersionNumber                    AS INTEGER      NO-UNDO.
+DEFINE VARIABLE lLogicalDbName                    AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cAlias                            AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cInheritedModificationType        AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cObjectName                       AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cObjectName_ext                   AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cObjectName_ado                   AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cObjectDescription                AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE lNullsInPrimaryKey                AS LOGICAL      NO-UNDO.
 
-DEFINE BUFFER lb_gsc_object             FOR gsc_object.
+DEFINE BUFFER lb_ryc_smartobject             FOR ryc_smartobject.
 
 &SCOPED-DEFINE VER-INCREMENT   010000
 &SCOPED-DEFINE REV-INCREMENT   000100
@@ -151,29 +152,29 @@ DEFINE BUFFER lb_gsc_object             FOR gsc_object.
 
 DEFINE VARIABLE hScmTool                          AS HANDLE       NO-UNDO.
 
-DEFINE VARIABLE lv_error_status                   AS LOGICAL      NO-UNDO.
-DEFINE VARIABLE lv_return_value                   AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE lErrorStatus                      AS LOGICAL      NO-UNDO.
+DEFINE VARIABLE cReturnValue                      AS CHARACTER    NO-UNDO.
 
-DEFINE VARIABLE lv_scm_object_exists              AS LOGICAL      NO-UNDO.
-DEFINE VARIABLE lv_scm_object_exists_in_ws        AS LOGICAL      NO-UNDO.
-DEFINE VARIABLE lv_scm_version_in_workspace       AS INTEGER      NO-UNDO.
-DEFINE VARIABLE lv_scm_checked_out_in_workspace   AS LOGICAL      NO-UNDO.
-DEFINE VARIABLE lv_scm_version_task_number        AS INTEGER      NO-UNDO.
-DEFINE VARIABLE lv_scm_highest_version            AS INTEGER      NO-UNDO.
+DEFINE VARIABLE lScmObjectExists                  AS LOGICAL      NO-UNDO.
+DEFINE VARIABLE lScmObjectExistsInWs              AS LOGICAL      NO-UNDO.
+DEFINE VARIABLE iScmVersionInWorkspace            AS INTEGER      NO-UNDO.
+DEFINE VARIABLE lScmCheckedOutInWorkspace         AS LOGICAL      NO-UNDO.
+DEFINE VARIABLE iScmVersionTaskNumber             AS INTEGER      NO-UNDO.
+DEFINE VARIABLE iScmHighestVersion                AS INTEGER      NO-UNDO.
 
-{af/sup2/afcheckerr.i &define-only = YES}
+{checkerr.i &define-only = YES}
 
 /* Database logical name for primary table */
 DEFINE VARIABLE gcDBName                          AS CHARACTER    NO-UNDO.
-
-DEFINE VARIABLE lc_configuration_type             AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE lc_type_table_name                AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE lc_scm_identifying_fieldname      AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE lc_scm_identifying_fieldext       AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE lc_scm_primary_key_fields         AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE lc_description_fieldname          AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE lc_product_module_fieldname       AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE lc_object_type_fieldname          AS CHARACTER    NO-UNDO.
+                                                
+DEFINE VARIABLE cConfigurationType                AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cTypeTableName                    AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cScmIdentifyingFieldname          AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cScmIdentifyingFieldext           AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cScmPrimaryKeyFields              AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cDescriptionFieldname             AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cProductModuleFieldname           AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cObjectTypeFieldname              AS CHARACTER    NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -275,14 +276,14 @@ FUNCTION getQuotedFieldValue RETURNS CHARACTER
 /* ***************************  Main Block  *************************** */
 
 ASSIGN
-  lc_configuration_type         = "RYCSO":U
-  lc_type_table_name            = "ryc_smartobject":U
-  lc_scm_identifying_fieldname  = "object_filename":U
-  lc_scm_identifying_fieldext   = "object_extension":U
-  lc_scm_primary_key_fields     = "smartobject_obj":U
-  lc_description_fieldname      = "object_filename"
-  lc_product_module_fieldname   = "product_module_obj":U
-  lc_object_type_fieldname      = "object_type_obj":U
+  cConfigurationType          = "RYCSO":U
+  cTypeTableName              = "ryc_smartobject":U
+  cScmIdentifyingFieldname    = "object_filename":U
+  cScmIdentifyingFieldext     = "object_extension":U
+  cScmPrimaryKeyFields        = "smartobject_obj":U
+  cDescriptionFieldname       = "object_description"
+  cProductModuleFieldname     = "product_module_obj":U
+  cObjectTypeFieldname        = "object_type_obj":U
   .
 
 /* DO NOTHING IF NO RTB CONNECTED */
@@ -297,13 +298,13 @@ AND gsc_security_control.scm_checks_on = NO
 THEN RETURN.
 
 ASSIGN
-  lv_arguments = "TableName="        + ip_table_name
-               + "TableFLa="         + ip_table_fla
-               + "TablePkFields="    + ip_table_pk_fields
-               + "Action="           + ip_action
-               + "New="              + STRING(ip_new)
-               + "PrimaryFla="       + ip_primary_fla
-               + "PrimaryKeyFields=" + ip_primary_key_fields
+  cArguments = "TableName="          + pcTableName          + "~n"
+               + "TableFLa="         + pcTableFla           + "~n"
+               + "TablePkFields="    + pcTablePkFields      + "~n"
+               + "Action="           + pcAction             + "~n"
+               + "New="              + STRING(lNew)         + "~n"
+               + "PrimaryFla="       + pcPrimaryFla         + "~n"
+               + "PrimaryKeyFields=" + pcPrimaryKeyFields   + "~n"
                .
 
 /* ignore CREATE actions - this work is done on WRITE NEW */
@@ -322,18 +323,17 @@ THEN
                        ,INPUT  NO
                        ,OUTPUT lActionUnderway).
 
-IF lActionUnderway = YES
-THEN RETURN.
+IF lActionUnderway = YES THEN RETURN.
 
 IF deletionUnderway(FALSE)
-AND ip_table_fla <> ip_primary_fla
+AND pcTableFla <> pcPrimaryFla
 THEN RETURN.
 
 /* create trigger does nothing */
-IF ip_action = "CREATE"
+IF pcAction = "CREATE"
 THEN DO:
   ASSIGN
-    lv_return_value = lv_return_value
+    cReturnValue = cReturnValue
     NO-ERROR. /* clear error status */
   RETURN.    
 END.
@@ -350,16 +350,16 @@ DO ON ERROR UNDO outer-block, RETURN RETURN-VALUE:
   THEN
     RUN setActionUnderway IN gshSessionManager
                          (INPUT "DYN":U
-                         ,INPUT ip_action
+                         ,INPUT pcAction
                          ,INPUT ""
-                         ,INPUT ip_primary_fla
-                         ,INPUT ip_primary_key_fields
+                         ,INPUT pcPrimaryFla
+                         ,INPUT pcPrimaryKeyFields
                          ).
 
   RUN doReplication NO-ERROR.
 
-  lv_error_status = ERROR-STATUS:ERROR.
-  lv_return_value = RETURN-VALUE.
+  lErrorStatus = ERROR-STATUS:ERROR.
+  cReturnValue = RETURN-VALUE.
 
   /* Clear Action Underway for "DYN" */
   IF VALID-HANDLE(gshSessionManager)
@@ -367,19 +367,19 @@ DO ON ERROR UNDO outer-block, RETURN RETURN-VALUE:
 
     RUN getActionUnderway IN gshSessionManager
                          (INPUT  "DYN":U
-                         ,INPUT ip_action
+                         ,INPUT pcAction
                          ,INPUT ""
-                         ,INPUT ip_primary_fla
-                         ,INPUT ip_primary_key_fields
+                         ,INPUT pcPrimaryFla
+                         ,INPUT pcPrimaryKeyFields
                          ,INPUT  YES
                          ,OUTPUT lActionUnderway).
 
-    IF ip_table_fla <> ip_primary_fla
+    IF pcTableFla <> pcPrimaryFla
     THEN DO:
       RUN getActionUnderway IN gshSessionManager
                            (INPUT "DYN":U
                            ,INPUT "DEL":U
-                           ,INPUT lv_object_name
+                           ,INPUT cObjectName
                            ,INPUT "RYCSO":U
                            ,INPUT "":U
                            ,INPUT  YES
@@ -390,9 +390,9 @@ DO ON ERROR UNDO outer-block, RETURN RETURN-VALUE:
 
   RUN stopPersistentProcs.
 
-  IF lv_error_status 
-  THEN RETURN ERROR lv_return_value.
-  ELSE RETURN lv_return_value.
+  IF lErrorStatus 
+  THEN RETURN ERROR cReturnValue.
+  ELSE RETURN cReturnValue.
 
 END.
 
@@ -412,87 +412,91 @@ PROCEDURE createItem :
   Notes:       
 ------------------------------------------------------------------------------*/
 
-  DEFINE VARIABLE lv_product_module_obj       AS DECIMAL    NO-UNDO.
-  DEFINE VARIABLE lv_object_type_obj          AS DECIMAL    NO-UNDO.
-  DEFINE VARIABLE lv_object_description       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE dProductModuleObj         AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE dObjectTypeObj            AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE cObjectDescription        AS CHARACTER  NO-UNDO.
 
-  DEFINE VARIABLE iRecid                      AS RECID      NO-UNDO.
-  DEFINE VARIABLE cError                      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iRecid                    AS RECID      NO-UNDO.
+  DEFINE VARIABLE cError                    AS CHARACTER  NO-UNDO.
 
   /* see if this item, which is new to the repository, exists in the SCM tool */
   RUN scmObjectExists.
 
-  IF lv_scm_object_exists
+  IF lScmObjectExists
   THEN DO:
     /* a couple of checks first */
-    IF NOT lv_scm_object_exists_in_ws 
-    THEN RETURN ERROR {af/sup2/aferrortxt.i 'RV' '26' '?' '?' lv_object_name lv_workspace_code lv_arguments}.
+    IF NOT lScmObjectExistsInWs 
+    THEN RETURN ERROR {af/sup2/aferrortxt.i 'RV' '26' '?' '?' cObjectName cWorkspaceCode cArguments}.
           
-    IF NOT lv_scm_checked_out_in_workspace 
-    THEN RETURN ERROR {af/sup2/aferrortxt.i 'RV' '27' '?' '?' lv_object_name lv_workspace_code lv_arguments}. 
+    IF NOT lScmCheckedOutInWorkspace 
+    THEN RETURN ERROR {af/sup2/aferrortxt.i 'RV' '27' '?' '?' cObjectName cWorkspaceCode cArguments}. 
          
-    IF lv_scm_version_task_number <> lv_task_number 
-    THEN RETURN ERROR {af/sup2/aferrortxt.i 'RV' '28' '?' '?' lv_object_name lv_task_number lv_scm_version_task_number}.
+    IF iScmVersionTaskNumber <> iTaskNumber 
+    THEN RETURN ERROR {af/sup2/aferrortxt.i 'RV' '28' '?' '?' cObjectName iTaskNumber iScmVersionTaskNumber}.
   END.
   ELSE DO:
-    /* before we create the workspace object we must ensire that a version record exists.
+    /* before we create the workspace object we must ensure that a version record exists.
     Pre-existence of this item is not a problem */
 
     /* Find current version of object in the workspace */
     FIND FIRST rtb_object NO-LOCK
-      WHERE rtb_object.wspace-id  = lv_workspace_code
+      WHERE rtb_object.wspace-id  = cWorkspaceCode
       AND   rtb_object.obj-type   = "PCODE":U
-      AND   rtb_object.object     = lv_object_name_ado
+      AND   rtb_object.object     = cObjectName_ado
       NO-ERROR.
     IF NOT AVAILABLE rtb_object
     THEN DO:
 
       /* get product module */
-      IF lc_product_module_fieldname <> ""
+      IF cProductModuleFieldname <> ""
       THEN DO:
         /* determine the product module from the primary table buffer */
-        lv_product_module_obj = DECIMAL(getFieldValue(ip_table_buffer_handle, lc_product_module_fieldname)).
+        dProductModuleObj = DECIMAL(getFieldValue(phTableBufferHandle, cProductModuleFieldname)).
       END.
       ELSE
-        RETURN ERROR {af/sup2/aferrortxt.i 'RV' '14' '?' '?' lc_configuration_type lv_task_number lv_arguments}.
+        RETURN ERROR {af/sup2/aferrortxt.i 'RV' '14' '?' '?' cConfigurationType iTaskNumber cArguments}.
       FIND gsc_product_module no-lock
-        WHERE gsc_product_module.product_module_obj = lv_product_module_obj
+        WHERE gsc_product_module.product_module_obj = dProductModuleObj
         NO-ERROR.
 
       /* get object type */
-      IF lc_object_type_fieldname <> ""
+      IF cObjectTypeFieldname <> ""
       THEN DO:
         /* determine the product module from the primary table buffer */
-        lv_object_type_obj = DECIMAL(getFieldValue(ip_table_buffer_handle, lc_object_type_fieldname)).
+        dObjectTypeObj = DECIMAL(getFieldValue(phTableBufferHandle, cObjectTypeFieldname)).
       END.
       ELSE
-        RETURN ERROR {af/sup2/aferrortxt.i 'RV' '14' '?' '?' lc_configuration_type lv_task_number lv_arguments}.
+        RETURN ERROR {af/sup2/aferrortxt.i 'RV' '14' '?' '?' cConfigurationType iTaskNumber cArguments}.
       FIND gsc_object_type no-lock
-        WHERE gsc_object_type.object_type_obj = lv_object_type_obj
+        WHERE gsc_object_type.object_type_obj = dObjectTypeObj
         NO-ERROR.
 
       /* get object description */
-      IF lc_description_fieldname <> ""
+      IF cDescriptionFieldname <> ""
       THEN DO:
         /* determine the product module from the primary table buffer */
-        lv_object_description = getFieldValue(ip_table_buffer_handle, lc_description_fieldname).
+        cObjectDescription = getFieldValue(phTableBufferHandle, cDescriptionFieldname).
+        
+        /* If the Object Description is blank when the object is created, then set the description 
+           to be the same as the Object Name  */
+        IF cObjectDescription = "":U THEN
+        cObjectDescription = getFieldValue(phTableBufferHandle, cScmIdentifyingFieldname).
       END.
       ELSE
-        RETURN ERROR {af/sup2/aferrortxt.i 'RV' '14' '?' '?' lc_configuration_type lv_task_number lv_arguments}.
+        RETURN ERROR {af/sup2/aferrortxt.i 'RV' '14' '?' '?' cConfigurationType iTaskNumber cArguments}.
 
       IF VALID-HANDLE(hScmTool)
       THEN DO:
-
         RUN scmCreateObjectControl IN hScmTool
-                                  (INPUT lv_object_name
+                                  (INPUT cObjectName
                                   ,INPUT "PCODE":U
                                   ,INPUT (IF AVAILABLE gsc_object_type    THEN gsc_object_type.object_type_code       ELSE "":U)
                                   ,INPUT (IF AVAILABLE gsc_product_module THEN gsc_product_module.product_module_code ELSE "":U)
                                   ,INPUT (IF AVAILABLE gsc_object_type    THEN gsc_object_type.object_type_code       ELSE "":U)
                                   ,INPUT "00000"
-                                  ,INPUT lv_object_description
+                                  ,INPUT cObjectDescription
                                   ,INPUT "":U       /* ip_options                */
-                                  ,INPUT lv_task_number
+                                  ,INPUT iTaskNumber
                                   ,INPUT NO         /* ip_ui_on                  */
                                   ,INPUT "central"  /* ip_share_status           */
                                   ,INPUT YES        /* ip_create_physical_file   */
@@ -502,12 +506,9 @@ PROCEDURE createItem :
         IF cError <> "":U
         THEN RETURN ERROR cError.
 
-      END.
-
-
-    END.
-
-  END.
+      END. /* IF VALID-HANDLE(hScmTool) ...*/
+    END. /* IF NOT AVAILABLE rtb_object ...*/
+  END. /* IF lScmObjectExists ...*/
 
 END PROCEDURE.
 
@@ -535,11 +536,11 @@ PROCEDURE deleteItem :
   /* see if this item, which should be in the repository, exists in the SCM tool */
   RUN scmObjectExists.
 
-  IF NOT lv_scm_object_exists
-  THEN RETURN ERROR {af/sup2/aferrortxt.i 'RV' '26' '?' '?' lv_object_name lv_workspace_code lv_arguments}.
+  IF NOT lScmObjectExists
+  THEN RETURN ERROR {af/sup2/aferrortxt.i 'RV' '26' '?' '?' cObjectName cWorkspaceCode cArguments}.
           
-  IF NOT lv_scm_object_exists_in_ws 
-  THEN RETURN ERROR {af/sup2/aferrortxt.i 'RV' '26' '?' '?' lv_object_name lv_workspace_code lv_arguments}.
+  IF NOT lScmObjectExistsInWs 
+  THEN RETURN ERROR {af/sup2/aferrortxt.i 'RV' '26' '?' '?' cObjectName cWorkspaceCode cArguments}.
 
   IF VALID-HANDLE(hScmTool)
   THEN DO:
@@ -547,7 +548,7 @@ PROCEDURE deleteItem :
                               (INPUT rtb_object.pmod
                               ,INPUT "PCODE":U
                               ,INPUT rtb_object.object
-                              ,INPUT lv_task_number
+                              ,INPUT iTaskNumber
                               ,INPUT "no-prompt"  /* ip_params */
                               ,OUTPUT cError).
       
@@ -582,39 +583,37 @@ PROCEDURE determineObjectName :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hBufferHandle          AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cWhereString           AS CHARACTER  NO-UNDO.  
+  DEFINE VARIABLE iIdx                   AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE lOk                    AS LOGICAL    NO-UNDO.
 
-  DEFINE VARIABLE lv_buffer_handle      AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE lv_query_handle       AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE lv_query_string       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lv_idx                AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE lv_ok                 AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cOldObjectName         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cNewObjectName         AS CHARACTER  NO-UNDO.
 
-  DEFINE VARIABLE cOldObjectName        AS CHARACTER  NO-UNDO.
-
-  DEFINE VARIABLE cNewObjectName        AS CHARACTER  NO-UNDO.
-
-  DEFINE VARIABLE dOldProductModule     AS DECIMAL    NO-UNDO.
-  DEFINE VARIABLE dNewProductModule     AS DECIMAL    NO-UNDO.
-
-  IF ip_table_fla = ip_primary_fla
+  DEFINE VARIABLE dOldProductModule      AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE cOldProductModuleCode  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE dNewProductModule      AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE cNewProductModuleCode  AS CHARACTER  NO-UNDO.
+    
+  IF pcTableFla = pcPrimaryFla
   THEN DO:
-
     /*
     this is the primary table - no need to open a query.
     Indeed we cannot open a query because this would fail to find the record if it is being deleted
     */
 
     ASSIGN
-      lv_nulls_in_primary_key = FALSE  /* although there were nulls we have found a corresponding record, so continue. */
-      gcDBName                = ip_table_buffer_handle:DBNAME
-      cNewObjectName          = getFieldValue(ip_table_buffer_handle, lc_scm_identifying_fieldname)
-      lv_object_name          = cNewObjectName
+      lNullsInPrimaryKey = FALSE  /* although there were nulls we have found a corresponding record, so continue. */
+      gcDBName           = phTableBufferHandle:DBNAME
+      cNewObjectName     = getFieldValue(phTableBufferHandle, cScmIdentifyingFieldname)
+      cObjectName        = cNewObjectName
       .
 
-    IF VALID-HANDLE(ip_old_buffer_handle)
-    AND CAN-QUERY(ip_old_buffer_handle,"available":U)
-    AND ip_old_buffer_handle:AVAILABLE = TRUE
-    THEN ASSIGN cOldObjectName = getFieldValue(ip_old_buffer_handle, lc_scm_identifying_fieldname).
+    IF VALID-HANDLE(phOldBufferHandle)
+    AND CAN-QUERY(phOldBufferHandle,"AVAILABLE":U)
+    AND phOldBufferHandle:AVAILABLE = TRUE
+    THEN ASSIGN cOldObjectName = getFieldValue(phOldBufferHandle, cScmIdentifyingFieldname).
     ELSE ASSIGN cOldObjectName = cNewObjectName.
 
     IF cOldObjectName = "":U
@@ -623,24 +622,24 @@ PROCEDURE determineObjectName :
       ASSIGN
         cOldObjectName = cNewObjectName.
 
-    /* PM? - Should we rename in RTB  */
+    /* Product Modules - Should be renamed in RTB  */
     IF  cNewObjectName <> ?
     AND cNewObjectName <> "":U
     AND cNewObjectName <> cOldObjectName
-    THEN RETURN ERROR {af/sup2/aferrortxt.i 'AF' '110' '?' '?' cOldObjectName cNewObjectName lv_arguments}.
+    THEN RETURN ERROR {af/sup2/aferrortxt.i 'AF' '110' '?' '?' cOldObjectName cNewObjectName cArguments}.
 
-    IF lc_product_module_fieldname <> "":U
+    IF cProductModuleFieldname <> "":U
     THEN DO:
       
       ASSIGN
-        dNewProductModule = DECIMAL(getFieldValue(ip_table_buffer_handle, lc_product_module_fieldname)).
+        dNewProductModule = DECIMAL(getFieldValue(phTableBufferHandle, cProductModuleFieldname)).
   
-      IF VALID-HANDLE(ip_old_buffer_handle)
-      AND CAN-QUERY(ip_old_buffer_handle,"available":U)
-      AND ip_old_buffer_handle:AVAILABLE = TRUE
+      IF VALID-HANDLE(phOldBufferHandle)
+      AND CAN-QUERY(phOldBufferHandle,"available":U)
+      AND phOldBufferHandle:AVAILABLE = TRUE
       THEN
         ASSIGN
-          dOldProductModule = DECIMAL(getFieldValue(ip_old_buffer_handle, lc_product_module_fieldname)).
+          dOldProductModule = DECIMAL(getFieldValue(phOldBufferHandle, cProductModuleFieldname)).
       ELSE
         ASSIGN
           dOldProductModule = dNewProductModule.
@@ -652,110 +651,95 @@ PROCEDURE determineObjectName :
         dOldProductModule = 0
         .
 
-    /* We cannot move product module in RTB  */
+    /* We cannot move product module in ICFDB - this has to be done from RTB.   */
     IF  dNewProductModule <> ?
     AND dNewProductModule <> 0
     AND dOldProductModule <> 0
     AND dOldProductModule <> ?
     AND dNewProductModule <> dOldProductModule
-    THEN RETURN ERROR {af/sup2/aferrortxt.i 'AF' '110' '?' '?' dOldProductModule dNewProductModule lv_arguments}.
+    THEN DO:
+        /* Find the names of the product modules and use these instead of the _obj values in the error message */
+        FIND FIRST gsc_product_module WHERE product_module_obj = dNewProductModule NO-LOCK NO-ERROR.
+        IF AVAILABLE gsc_product_module THEN
+            ASSIGN
+               cNewProductModuleCode = "product module " + gsc_product_module.product_module_code
+                                     + "(" + STRING(dNewProductModule) + ")".
 
-    RETURN.
-
-  END.
-
-  CREATE BUFFER lv_buffer_handle FOR TABLE lc_type_table_name.
-  ASSIGN
-    gcDBName = lv_buffer_handle:DBNAME.
-
-  ASSIGN
-    lv_query_string = "FOR EACH " + lc_type_table_name + " NO-LOCK WHERE ".
-
-  DO lv_idx = 1 TO NUM-ENTRIES(ip_primary_key_fields):
-    ASSIGN
-      lv_nulls_in_primary_key = LOOKUP(getQuotedFieldValue(ip_table_buffer_handle, ENTRY(lv_idx,ip_primary_key_fields)),",?,0") > 0.
-    IF lv_idx > 1
-    THEN
-      ASSIGN
-        lv_query_string = lv_query_string + " AND ".
-    ASSIGN
-      lv_query_string = lv_query_string + lc_type_table_name + "." + ENTRY(lv_idx,lc_scm_primary_key_fields) + " = " + getQuotedFieldValue(ip_table_buffer_handle, ENTRY(lv_idx,ip_primary_key_fields)) + " ".                                                                                                                                  
-  END.
-
-  DO ON ERROR UNDO, RETURN ERROR {af/sup2/aferrortxt.i 'RV' '19' '?' '?' lv_query_string lc_scm_identifying_fieldname lv_arguments}:
-
-    CREATE QUERY lv_query_handle.
-
-    ASSIGN
-      lv_ok = lv_query_handle:SET-BUFFERS(lv_buffer_handle)
-      NO-ERROR.
-    IF NOT lv_ok
-    THEN RETURN ERROR {af/sup2/aferrortxt.i 'RV' '19' '?' '?' lv_query_string lc_scm_identifying_fieldname lv_arguments}.
-
-    lv_query_string = DYNAMIC-FUNCTION("fixQueryString":U IN gshSessionManager, INPUT lv_query_string).
-    ASSIGN
-      lv_ok = lv_query_handle:QUERY-PREPARE(lv_query_string)
-      NO-ERROR.
-    IF NOT lv_ok
-    THEN RETURN ERROR {af/sup2/aferrortxt.i 'RV' '19' '?' '?' lv_query_string lc_scm_identifying_fieldname lv_arguments}.
-
-    ASSIGN
-      lv_ok = lv_query_handle:QUERY-OPEN()
-      NO-ERROR.
-    IF NOT lv_ok
-    THEN RETURN ERROR {af/sup2/aferrortxt.i 'RV' '19' '?' '?' lv_query_string lc_scm_identifying_fieldname lv_arguments}.
-
-    ASSIGN
-      lv_ok = lv_query_handle:GET-FIRST()
-      NO-ERROR.
-
-  END.
-
-  IF NOT lv_buffer_handle:AVAILABLE
-  THEN DO:
-    /* cleanup dynamic query */
-
-    lv_buffer_handle:BUFFER-RELEASE() NO-ERROR.
-    lv_query_handle:QUERY-CLOSE().
-    DELETE OBJECT lv_query_handle.
-    DELETE OBJECT lv_buffer_handle.
-    ASSIGN
-      lv_buffer_handle = ?
-      lv_query_handle = ?
-      .
-
-    IF lv_nulls_in_primary_key 
-    THEN RETURN.
-    ELSE DO:
-      RETURN ERROR {af/sup2/aferrortxt.i 'RV' '20' '?' '?' lv_query_string lc_scm_identifying_fieldname lv_arguments}.
+        FIND FIRST gsc_product_module WHERE product_module_obj = dOldProductModule NO-LOCK NO-ERROR.
+        IF AVAILABLE gsc_product_module THEN
+            ASSIGN
+               cOldProductModuleCode = "product module " + gsc_product_module.product_module_code
+                                     + "(" + STRING(dOldProductModule) + ")".
+                                     
+        /* Pass a message back informing the user that the product modules are different. */
+        RETURN ERROR {af/sup2/aferrortxt.i 'AF' '110' '?' '?' cOldProductModuleCode cNewProductModuleCode cArguments}.
     END.
-
-    RETURN ERROR {af/sup2/aferrortxt.i 'RV' '19' '?' '?' lv_query_string lc_scm_identifying_fieldname lv_arguments}.
-
+    
+    RETURN.
   END.
-
-  ASSIGN
-   lv_object_name          = getFieldValue(lv_buffer_handle, lc_scm_identifying_fieldname)
-   lv_nulls_in_primary_key = FALSE  /* although there were nulls we have found a corresponding record, so continue. */
-   .
-
-  /* cleanup dynamic query */        
-  lv_buffer_handle:BUFFER-RELEASE() NO-ERROR.
-
-  /* For some reason this handle is sometimes invalid when creating Dynamic Objects */
-  IF VALID-HANDLE(lv_query_handle)
-  THEN DO:
-    lv_query_handle:QUERY-CLOSE().
-    DELETE OBJECT lv_query_handle.
+  
+  /* If we are not in a delete event, then the buffer that is passed into the replication 
+     procedure is not valid - it does not yet exist in memory - but has been written to the 
+     database. Therefore we have to create a new separate buffer to access the object details. 
+  */
+  IF NOT lDeletingItem THEN DO:
+    CREATE BUFFER hBufferHandle FOR TABLE cTypeTableName.
+    ASSIGN
+      gcDBName = hBufferHandle:DBNAME.
+  
+    ASSIGN
+      cWhereString = "WHERE ":U.
+  
+    DO iIdx = 1 TO NUM-ENTRIES(pcPrimaryKeyFields):
+      ASSIGN
+        lNullsInPrimaryKey = LOOKUP(getQuotedFieldValue(phTableBufferHandle, ENTRY(iIdx,pcPrimaryKeyFields)),',?,0,"0"') > 0.
+      
+      IF iIdx > 1
+      THEN
+        ASSIGN
+          cWhereString = cWhereString + " AND ".
+      ASSIGN
+        cWhereString = cWhereString + cTypeTableName + "." + ENTRY(iIdx,cScmPrimaryKeyFields) + " = " + getQuotedFieldValue(phTableBufferHandle, ENTRY(iIdx,pcPrimaryKeyFields)) + " ". 
+    END.
+    IF lNullsInPrimaryKey THEN
+    RETURN.
+    ELSE
+    hBufferHandle:FIND-FIRST(cWherestring, NO-LOCK) NO-ERROR. 
+  
+    IF NOT hBufferHandle:AVAILABLE
+    THEN DO:
+      /* cleanup dynamic query */
+  
+      hBufferHandle:BUFFER-RELEASE() NO-ERROR.
+      DELETE OBJECT hBufferHandle.
+      ASSIGN
+        hBufferHandle = ?
+        .
+  
+      IF lNullsInPrimaryKey 
+      THEN RETURN.
+      ELSE DO:
+        RETURN ERROR {af/sup2/aferrortxt.i 'RV' '20' '?' '?' cWhereString cScmIdentifyingFieldname cArguments}.
+      END.
+  
+      RETURN ERROR {af/sup2/aferrortxt.i 'RV' '19' '?' '?' cWhereString cScmIdentifyingFieldname cArguments}.
+  
+    END.
+  
+    ASSIGN
+     cObjectName          = getFieldValue(hBufferHandle, cScmIdentifyingFieldname)
+     lNullsInPrimaryKey = FALSE  /* although there were nulls we have found a corresponding record, so continue. */
+     .
+  
+    /* cleanup dynamic query */        
+    hBufferHandle:BUFFER-RELEASE() NO-ERROR.
+  
+    DELETE OBJECT hBufferHandle.
+  
+    ASSIGN
+      hBufferHandle = ?
+      .
   END.
-
-  DELETE OBJECT lv_buffer_handle.
-
-  ASSIGN
-    lv_buffer_handle = ?
-    lv_query_handle  = ?
-    .
-
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -774,10 +758,8 @@ PROCEDURE determineObjectNameExt :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-
   DEFINE VARIABLE hBufferHandle         AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hQueryHandle          AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cQueryString          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cWhereString          AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lQueryOK              AS LOGICAL    NO-UNDO.
 
   DEFINE VARIABLE cQueryObjectFullName  AS CHARACTER  NO-UNDO.
@@ -789,99 +771,102 @@ PROCEDURE determineObjectNameExt :
   DEFINE VARIABLE cQueryObjectFieldExt  AS CHARACTER    NO-UNDO.
 
   ASSIGN
-    cQueryTableName        = "gsc_object":U
+    cQueryTableName        = "ryc_smartobject":U
     cQueryObjectFieldName  = "object_filename":U
     cQueryObjectFieldExt   = "object_extension":U
-    cQueryObjectFullName   = lv_object_name
-    cQueryObjectName       = lv_object_name
+    cQueryObjectFullName   = cObjectName
+    cQueryObjectName       = cObjectName
     cQueryObjectExt        = "":U.
     .
 
-  CREATE BUFFER hBufferHandle FOR TABLE cQueryTableName.
-  ASSIGN
-    gcDBName = hBufferHandle:DBNAME.
+  /* If we are deleting and item, it is not gonig to be possible to create 
+   a new buffer for the table, as this has already been deleted at this stage.
+   Instead, we can use the buffer that is benig passed in, as thi sstill exists 
+   in memory - and can be accessed directly. 
+   
+   So for the delete event the phTableBufferHandle can be used directly. 
+  */
 
-  ASSIGN
-    cQueryString = "FOR EACH " + cQueryTableName + " NO-LOCK "
-                 + "  WHERE "  + cQueryTableName + "." + cQueryObjectFieldName
-                 + " = "       + '"' + cQueryObjectFullName + '"'
-                 + " ".
-  DO ON ERROR UNDO, RETURN ERROR {af/sup2/aferrortxt.i 'RV' '19' '?' '?' cQueryString cQueryObjectFieldName lv_arguments}:
-
-    CREATE QUERY hQueryHandle.
-
-    ASSIGN
-      lQueryOK = hQueryHandle:SET-BUFFERS(hBufferHandle)
-      NO-ERROR.
-    IF NOT lQueryOK
-    THEN RETURN ERROR {af/sup2/aferrortxt.i 'RV' '19' '?' '?' cQueryString cQueryObjectFieldName lv_arguments}.
-
-    cQueryString = DYNAMIC-FUNCTION("fixQueryString":U IN gshSessionManager, INPUT cQueryString).
-    ASSIGN
-      lQueryOK = hQueryHandle:QUERY-PREPARE(cQueryString)
-      NO-ERROR.
-    IF NOT lQueryOK
-    THEN RETURN ERROR {af/sup2/aferrortxt.i 'RV' '19' '?' '?' cQueryString cQueryObjectFieldName lv_arguments}.
-
-    ASSIGN
-      lQueryOK = hQueryHandle:QUERY-OPEN()
-      NO-ERROR.
-    IF NOT lQueryOK
-    THEN RETURN ERROR {af/sup2/aferrortxt.i 'RV' '19' '?' '?' cQueryString cQueryObjectFieldName lv_arguments}.
-
-    ASSIGN
-      lQueryOK = hQueryHandle:GET-FIRST()
-      NO-ERROR.
-
+  IF lDeletingItem THEN DO:    
+    /* First of all, we only want to check if the current buffer is for the 
+       table defined in the cQueryTablename variable. We are not interested in 
+       other buffers.  */
+    IF phTableBufferHandle:TABLE = cQueryTableName THEN DO:
+      /* Make sure the buffer is available. */
+      IF phTableBufferHandle:AVAILABLE THEN DO:
+        ASSIGN
+          cQueryObjectName = getFieldValue(phTableBufferHandle, cQueryObjectFieldName)
+          cQueryObjectExt  = getFieldValue(phTableBufferHandle, cQueryObjectFieldExt)
+          .
+        IF cQueryObjectExt <> "":U
+        THEN ASSIGN cQueryObjectFullName = cQueryObjectName + "." + cQueryObjectExt.
+        ELSE ASSIGN cQueryObjectFullName = cQueryObjectName.
+  
+        ASSIGN
+          cObjectName     = cQueryObjectFullName
+          cObjectName_ext = cQueryObjectExt
+          .        
+      END.       
+      /* Buffer is not available - finding the object is therefore going to fail */
+      ELSE DO:
+        RETURN ERROR {af/sup2/aferrortxt.i 'RV' '19' '?' '?' cWhereString cQueryObjectFieldName cArguments}.  
+      END.
+      
+    END.
+  
   END.
-
-  IF NOT hBufferHandle:AVAILABLE
-  THEN DO:
-    /* cleanup dynamic query */
-
+  ELSE DO:
+    /* If we are in a write event, then the buffer that is passed into the 
+       replaication code is not yet been committed to memory, and is therefore 
+       not available directly from the phTableBufferHandle. It has been written 
+       to the database however, and we can therefore create a new buffer and access 
+       the record from there.
+         */
+    CREATE BUFFER hBufferHandle FOR TABLE cQueryTableName .
+    ASSIGN
+      gcDBName = hBufferHandle:DBNAME.
+  
+    ASSIGN
+      cWhereString = "WHERE ":U  + cQueryTableName + ".":U + cQueryObjectFieldName + " = ":U + QUOTER(cQueryObjectFullName).
+               
+    hBufferHandle:FIND-FIRST(cWhereString, NO-LOCK) NO-ERROR. 
+    
+    IF NOT hBufferHandle:AVAILABLE
+    THEN DO:
+      /* cleanup dynamic query */
+  
+      hBufferHandle:BUFFER-RELEASE() NO-ERROR.
+      DELETE OBJECT hBufferHandle.
+      ASSIGN
+        hBufferHandle = ?
+        .
+  
+      RETURN ERROR {af/sup2/aferrortxt.i 'RV' '19' '?' '?' cWhereString cQueryObjectFieldName cArguments}.
+  
+    END.
+  
+    ASSIGN
+      cQueryObjectName = getFieldValue(hBufferHandle, cQueryObjectFieldName)
+      cQueryObjectExt  = getFieldValue(hBufferHandle, cQueryObjectFieldExt)
+      .
+    IF cQueryObjectExt <> "":U
+    THEN ASSIGN cQueryObjectFullName = cQueryObjectName + "." + cQueryObjectExt.
+    ELSE ASSIGN cQueryObjectFullName = cQueryObjectName.
+  
+    ASSIGN
+      cObjectName     = cQueryObjectFullName
+      cObjectName_ext = cQueryObjectExt
+      .
+  
+    /* cleanup dynamic query */        
     hBufferHandle:BUFFER-RELEASE() NO-ERROR.
-    hQueryHandle:QUERY-CLOSE().
-    DELETE OBJECT hQueryHandle.
+  
     DELETE OBJECT hBufferHandle.
+  
     ASSIGN
       hBufferHandle = ?
-      hQueryHandle  = ?
-      .
-
-    RETURN ERROR {af/sup2/aferrortxt.i 'RV' '19' '?' '?' cQueryString cQueryObjectFieldName lv_arguments}.
-
+      .  
   END.
-
-  ASSIGN
-    cQueryObjectName = getFieldValue(hBufferHandle, cQueryObjectFieldName)
-    cQueryObjectExt  = getFieldValue(hBufferHandle, cQueryObjectFieldExt)
-    .
-  IF cQueryObjectExt <> "":U
-  THEN ASSIGN cQueryObjectFullName = cQueryObjectName + "." + cQueryObjectExt.
-  ELSE ASSIGN cQueryObjectFullName = cQueryObjectName.
-
-  ASSIGN
-    lv_object_name     = cQueryObjectFullName
-    lv_object_name_ext = cQueryObjectExt
-    .
-
-  /* cleanup dynamic query */        
-  hBufferHandle:BUFFER-RELEASE() NO-ERROR.
-
-  /* For some reason this handle is sometimes invalid when creating Dynamic Objects */
-  IF VALID-HANDLE(hQueryHandle)
-  THEN DO:
-    hQueryHandle:QUERY-CLOSE().
-    DELETE OBJECT hQueryHandle.
-  END.
-
-  DELETE OBJECT hBufferHandle.
-
-  ASSIGN
-    hBufferHandle = ?
-    hQueryHandle  = ?
-    .
-
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -926,15 +911,16 @@ PROCEDURE determineTask :
   END.
 
   ASSIGN
-    lv_task_number = cScmTaskNumber
+    iTaskNumber = cScmTaskNumber
     cScmTaskOpen   = (cScmTaskstatus = "W") /* W = Work in progress */
     .
 
-  IF lv_task_number = ? 
-  THEN RETURN ERROR {af/sup2/aferrortxt.i 'RV' '5' '?' '?' lv_arguments}.
+  IF iTaskNumber = ? OR 
+     iTaskNumber = 0 
+  THEN RETURN ERROR {af/sup2/aferrortxt.i 'RV' '5' '?' '?' cArguments}.
 
   IF NOT cScmTaskOpen        
-  THEN RETURN ERROR {af/sup2/aferrortxt.i 'RV' '25' '?' '?' lv_arguments}.
+  THEN RETURN ERROR {af/sup2/aferrortxt.i 'RV' '25' '?' '?' cArguments}.
 
 END PROCEDURE.
 
@@ -955,14 +941,14 @@ PROCEDURE determineWorkspace :
 
   /* get the Workspace details */
   ASSIGN
-    lv_workspace_code = Grtb-wspace-id.
+    cWorkspaceCode = Grtb-wspace-id.
 
-  IF lv_workspace_code = ?
-  OR lv_workspace_code = ""
-  THEN RETURN ERROR {af/sup2/aferrortxt.i 'RV' '2' '?' '?' lv_arguments}.
+  IF cWorkspaceCode = ?
+  OR cWorkspaceCode = ""
+  THEN RETURN ERROR {af/sup2/aferrortxt.i 'RV' '2' '?' '?' cArguments}.
 
   ASSIGN
-    lv_arguments = lv_arguments + "~nWORKSPACE='" + lv_workspace_code + "'".
+    cArguments = cArguments + "~nWORKSPACE='" + cWorkspaceCode + "'".
 
 END PROCEDURE.
 
@@ -996,21 +982,23 @@ PROCEDURE doReplication :
 
     /* Determine the action to follow */
     ASSIGN    
-      lv_creating_item = (ip_action = "WRITE"  AND ip_table_fla = ip_primary_fla AND ip_new )
-      lv_deleting_item = (ip_action = "DELETE" AND ip_table_fla = ip_primary_fla)
+      lCreatingItem = (pcAction = "WRITE"  AND pcTableFla = pcPrimaryFla AND lNew )
+      lDeletingItem = (pcAction = "DELETE" AND pcTableFla = pcPrimaryFla)
       .
-
+    
     /* First we need to determine the object name */
     RUN determineObjectName.
+    
+    /* Some of the involved tables have nulls-allowed relationships to the primary table. We return if the primary key is null.*/
+    IF lNullsInPrimaryKey
+    THEN RETURN.
+    
     RUN determineObjectNameExt.
 
     /* do nothing if doing an assignment */
     IF assignmentUnderway(FALSE)
     THEN RETURN.
 
-    /* Some of the involved tables have nulls-allowed relationships to the primary table. We return if the primary key is null.*/
-    IF lv_nulls_in_primary_key
-    THEN RETURN.
 
     /* We need to determine the Workspace */
     RUN determineWorkspace.
@@ -1023,34 +1011,34 @@ PROCEDURE doReplication :
     THEN RETURN ERROR RETURN-VALUE.
 
     ASSIGN
-      lv_object_name_ado = lv_object_name.
+      cObjectName_ado = cObjectName.
     IF VALID-HANDLE(hScmTool)
     THEN
-      RUN scmADOExtAdd IN hScmTool (INPUT-OUTPUT lv_object_name_ado).
+      RUN scmADOExtAdd IN hScmTool (INPUT-OUTPUT cObjectName_ado).
 
     /* now check for availability of the RTB object itself in the designated workspace */
     FIND FIRST rtb_object NO-LOCK
-      WHERE rtb_object.wspace-id  = lv_workspace_code
+      WHERE rtb_object.wspace-id  = cWorkspaceCode
       AND   rtb_object.obj-type   = "PCODE":U
-      AND   rtb_object.object     = lv_object_name_ado
+      AND   rtb_object.object     = cObjectName_ado
       NO-ERROR.
 
 /*
 {af/sup/afdebug.i}
 MESSAGE
-  SKIP lv_object_name
-  SKIP lv_object_name_ext
-  SKIP lv_object_name_ado
+  SKIP cObjectName
+  SKIP cObjectName_ext
+  SKIP cObjectName_ado
   SKIP AVAILABLE(rtb_object)
-  SKIP "ACT  " ip_action
-  SKIP "CRE  " lv_creating_item
-  SKIP "DEL  " lv_deleting_item
-  SKIP "WORK " lv_workspace_code
-  SKIP "TASK " lv_task_number
+  SKIP "ACT  " pcAction
+  SKIP "CRE  " lCreatingItem
+  SKIP "DEL  " lDeletingItem
+  SKIP "WORK " cWorkspaceCode
+  SKIP "TASK " iTaskNumber
   VIEW-AS ALERT-BOX INFORMATION.
 */  
 
-    IF lv_creating_item
+    IF lCreatingItem
     THEN DO:
 
       RUN createItem NO-ERROR.
@@ -1060,10 +1048,10 @@ MESSAGE
 
     END. /* creating the item */
     ELSE
-    IF lv_deleting_item
+    IF lDeletingItem
     THEN DO:   
 
-      IF AVAILABLE (rtb_object)
+      IF AVAILABLE rtb_object
       THEN DO:
 
         RUN deleteItem NO-ERROR.
@@ -1080,8 +1068,8 @@ MESSAGE
     END. /* item pre-exists */
     ELSE DO:
 
-      IF NOT AVAILABLE (rtb_object) 
-      THEN RETURN ERROR {af/sup2/aferrortxt.i 'RV' '11' '?' '?' ip_primary_fla lv_object_name lv_workspace_code lv_arguments}.
+      IF NOT AVAILABLE rtb_object 
+      THEN RETURN ERROR {af/sup2/aferrortxt.i 'RV' '11' '?' '?' pcPrimaryFla cObjectName cWorkspaceCode cArguments}.
 
       FIND FIRST rtb_ver NO-LOCK
         WHERE rtb_ver.obj-type = rtb_object.obj-type
@@ -1091,7 +1079,7 @@ MESSAGE
         NO-ERROR.
 
       IF NOT AVAILABLE rtb_ver
-      THEN RETURN ERROR  {af/sup2/aferrortxt.i 'RV' '7' '?' '?' ip_primary_fla rtb_object.object lv_arguments}.
+      THEN RETURN ERROR  {af/sup2/aferrortxt.i 'RV' '7' '?' '?' pcPrimaryFla rtb_object.object cArguments}.
 
       RUN updateItem NO-ERROR.
       IF RETURN-VALUE <> "":U
@@ -1103,7 +1091,7 @@ MESSAGE
     /* successful completion */
     ERROR-STATUS:ERROR = FALSE.
     RETURN.
-      
+
   END. /* do on error undo, return return-value */
 
 END PROCEDURE.
@@ -1122,11 +1110,8 @@ PROCEDURE fixTablePkFields :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-
-  DEFINE VARIABLE before AS CHARACTER.
-
   ASSIGN
-    ip_table_pk_fields = REPLACE(REPLACE(REPLACE(ip_table_pk_fields," ",""),CHR(13),""),CHR(10),"").
+    pcTablePkFields = REPLACE(REPLACE(REPLACE(pcTablePkFields," ",""),CHR(13),""),CHR(10),"").
 
 END PROCEDURE.
 
@@ -1144,19 +1129,17 @@ PROCEDURE scmObjectExists :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-
   IF VALID-HANDLE(hScmTool)
   THEN DO:
-
     RUN scmObjectExists IN hScmTool
-                       (INPUT  lv_object_name_ado
-                       ,INPUT  lv_workspace_code
-                       ,OUTPUT lv_scm_object_exists
-                       ,OUTPUT lv_scm_object_exists_in_ws
-                       ,OUTPUT lv_scm_version_in_workspace
-                       ,OUTPUT lv_scm_checked_out_in_workspace
-                       ,OUTPUT lv_scm_version_task_number
-                       ,OUTPUT lv_scm_highest_version
+                       (INPUT  cObjectName_ado
+                       ,INPUT  cWorkspaceCode
+                       ,OUTPUT lScmObjectExists
+                       ,OUTPUT lScmObjectExistsInWs
+                       ,OUTPUT iScmVersionInWorkspace
+                       ,OUTPUT lScmCheckedOutInWorkspace
+                       ,OUTPUT iScmVersionTaskNumber
+                       ,OUTPUT iScmHighestVersion
                        ).
   END.
   ELSE DO:
@@ -1212,8 +1195,7 @@ PROCEDURE stopPersistentProcs :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-
-  IF VALID-HANDLE(hScmTool)
+IF VALID-HANDLE(hScmTool)
   THEN DO:
     RUN killPlip IN hScmTool.
   END.
@@ -1234,24 +1216,49 @@ PROCEDURE updateItem :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-
   DEFINE VARIABLE iRecid                      AS RECID      NO-UNDO.
   DEFINE VARIABLE cError                      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cNewObjectDescription       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cOldObjectDescription       AS CHARACTER  NO-UNDO. 
 
   /* Is the record checked out ? */ 
-
   RUN scmObjectExists.
 
-  IF NOT lv_scm_object_exists_in_ws
+  IF NOT lScmObjectExistsInWs
   THEN
-    RETURN ERROR {af/sup2/aferrortxt.i 'RV' '24' '?' '?' lv_object_name lv_workspace_code lv_arguments}.
+    RETURN ERROR {af/sup2/aferrortxt.i 'RV' '11' '?' '?' pcPrimaryFla cObjectName cWorkspaceCode cArguments}.
 
-  IF lv_scm_checked_out_in_workspace
+  IF lScmCheckedOutInWorkspace
   THEN DO:
     /* the item is checked out explicitly */
-    IF lv_scm_version_task_number <> lv_task_number 
-    THEN RETURN ERROR {af/sup2/aferrortxt.i 'RV' '12' '?' '?' ip_primary_fla lv_object_name lv_task_number lv_scm_version_task_number lv_arguments}.
+    IF iScmVersionTaskNumber <> iTaskNumber 
+    THEN RETURN ERROR {af/sup2/aferrortxt.i 'RV' '12' '?' '?' pcPrimaryFla cObjectName iTaskNumber iScmVersionTaskNumber cArguments}.
     /* this item is explicitly checked out */
+    
+    /* Check if the description of the object has changed - 
+       if it has we need to update this in RTB as well*/
+    IF cDescriptionFieldname <> "":U
+    THEN DO:
+      ASSIGN 
+        cNewObjectDescription = getFieldValue(phTableBufferHandle, cDescriptionFieldname)
+        .                       
+      
+      IF VALID-HANDLE(phOldBufferHandle)
+      AND CAN-QUERY(phOldBufferHandle,"AVAILABLE":U)
+      AND phOldBufferHandle:AVAILABLE = TRUE
+      THEN 
+        ASSIGN cOldObjectDescription = getFieldValue(phOldBufferHandle, cDescriptionFieldname).
+      ELSE 
+        ASSIGN cOldObjectDescription = cNewObjectDescription.        
+    END. /* IF cDescriptionFieldname <> "":U ...*/
+      
+    IF cNewObjectDescription <> cOldObjectDescription THEN DO:    
+      RUN scmUpdateObjectDescription IN hScmTool (INPUT cWorkspaceCode, 
+                                                  INPUT rtb_object.OBJECT, 
+                                                  INPUT "PCODE":U,       /* PCODE */
+                                                  INPUT YES, /* Overwrite */
+                                                  INPUT cNewObjectDescription).   
+    END.
   END.
   ELSE DO:
     /* Checkout the item */
@@ -1262,7 +1269,7 @@ PROCEDURE updateItem :
                                   ,INPUT rtb_object.pmod
                                   ,INPUT "PCODE":U
                                   ,INPUT rtb_object.object
-                                  ,INPUT lv_task_number
+                                  ,INPUT iTaskNumber
                                   ,INPUT NO /* ip_ui_on */
                                   ,INPUT NO /* ip_allow_nonprimary */
                                   ,INPUT NO /* ip_allow_orphans */
@@ -1270,11 +1277,9 @@ PROCEDURE updateItem :
                                   ,OUTPUT cError).
       IF cError <> "":U
       THEN RETURN ERROR cError.
-
     END.
-
   END.
-
+  
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1299,15 +1304,15 @@ FUNCTION assignmentUnderway RETURNS LOGICAL
   DEFINE VARIABLE lv_idx                  AS INTEGER.
   DEFINE VARIABLE lv_assignment_underway  AS LOGICAL.    
 
-  DO lv_idx = 1 TO NUM-ENTRIES(ip_primary_key_fields):        
+  DO lv_idx = 1 TO NUM-ENTRIES(pcPrimaryKeyFields):        
     IF lv_idx > 1 THEN lv_primary_key_values = lv_primary_key_values + CHR(3).
-    lv_primary_key_values = lv_primary_key_values + getFieldValue(ip_table_buffer_handle, ENTRY(lv_idx,ip_primary_key_fields)).
+    lv_primary_key_values = lv_primary_key_values + getFieldValue(phTableBufferHandle, ENTRY(lv_idx,pcPrimaryKeyFields)).
   END.
 
   RUN getActionUnderway IN gshSessionManager
                        (INPUT  "DYN":U
                        ,INPUT  "ASS":U
-                       ,INPUT  lv_object_name
+                       ,INPUT  cObjectName
                        ,INPUT  "":U
                        ,INPUT  "":U
                        ,INPUT  ip_remove
@@ -1337,16 +1342,16 @@ FUNCTION deletionUnderway RETURNS LOGICAL
   DEFINE VARIABLE lv_idx                  AS INTEGER    NO-UNDO.
   DEFINE VARIABLE lv_deletion_underway    AS LOGICAL    NO-UNDO.
 
-  DO lv_idx = 1 TO NUM-ENTRIES(ip_primary_key_fields):        
+  DO lv_idx = 1 TO NUM-ENTRIES(pcPrimaryKeyFields):        
     IF lv_idx > 1 THEN lv_primary_key_values = lv_primary_key_values + CHR(3).
-    lv_primary_key_values = lv_primary_key_values + getFieldValue(ip_table_buffer_handle, ENTRY(lv_idx,ip_primary_key_fields)).
+    lv_primary_key_values = lv_primary_key_values + getFieldValue(phTableBufferHandle, ENTRY(lv_idx,pcPrimaryKeyFields)).
   END.
 
   RUN getActionUnderway IN gshSessionManager
                        (INPUT  "DYN":U
                        ,INPUT  "DEL":U
                        ,INPUT  "":U
-                       ,INPUT  ip_primary_fla
+                       ,INPUT  pcPrimaryFla
                        ,INPUT  lv_primary_key_values
                        ,INPUT  ip_remove
                        ,OUTPUT lv_deletion_underway).
@@ -1409,14 +1414,14 @@ FUNCTION getQuotedFieldValue RETURNS CHARACTER
   ASSIGN
     h_buffer_field = ip_buffer_handle:BUFFER-FIELD(ip_description_fieldname)
     NO-ERROR.
-        
+            
   IF ERROR-STATUS:ERROR THEN RETURN "".  /* field not found in buffer */
     
   IF VALID-HANDLE(h_buffer_field)
   THEN DO:
     IF h_buffer_field:DATA-TYPE = "CHARACTER"  
-    THEN RETURN "'" + h_buffer_field:BUFFER-VALUE() + "'".
-    ELSE RETURN       h_buffer_field:BUFFER-VALUE().
+    THEN RETURN "'"        + h_buffer_field:BUFFER-VALUE() + "'".
+    ELSE RETURN  TRIM(QUOTER( h_buffer_field:BUFFER-VALUE() )).
   END.
   ELSE RETURN "".
 

@@ -35,11 +35,25 @@
   DEFINE VARIABLE cEnabledHandles AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cModifiedFields AS CHARACTER NO-UNDO.
   DEFINE VARIABLE iCnt            AS INTEGER   NO-UNDO.
-  
+  DEFINE VARIABLE hUpdateTarget   AS HANDLE    NO-UNDO.
 
   /* 9.0B 99-02-03-026 */
   {get NewRecord cNewRecord}.
   {get EnabledHandles cEnabledHandles}.
+  {get DataModified lModified}.
+  
+  /* Browse bug. if column is changed from blank and saved (toolbar) 
+     without leaving focus the value is reset to blank on row-leave (9.1D03) */
+  IF NOT lModified AND LOOKUP(STRING(FOCUS),cEnabledHandles) > 0 THEN
+  DO:
+    IF FOCUS:SCREEN-VALUE = '':U THEN
+    DO:
+      {get UpdateTarget hUpdateTarget}.
+      IF VALID-HANDLE(hUpdateTarget) THEN
+        FOCUS:SCREEN-VALUE = {fnarg columnValue FOCUS:NAME hUpdateTarget}.
+    END.
+  END.
+  
   DO iCnt = 1 TO NUM-ENTRIES(cEnabledHandles):
     hCell = WIDGET-HANDLE(ENTRY(iCnt,cEnabledHandles)).
     IF hCell:MODIFIED THEN
@@ -48,8 +62,12 @@
   ASSIGN
     hQuery          = {&BROWSE-NAME}:QUERY
     hBuffer         = hQuery:GET-BUFFER-HANDLE(1)
-    cModifiedFields = (IF cNewRecord NE 'no':U THEN '':U ELSE STRING(hBuffer:ROWID)) + cModifiedFields
+    cModifiedFields = (IF cNewRecord NE 'no':U 
+                       THEN '':U 
+                       ELSE STRING(hBuffer:ROWID))
+                    + cModifiedFields
     .
+
   {set ModifiedFields cModifiedFields}.
 
   /* If the object has a valid frame attribute, see if it's a SmartPanel. */
@@ -76,13 +94,22 @@
          from outside then check before continuing. Otherwise just save. 
          If they were adding a new record and didn't change any initial values,
          make sure that gets Saved as well. */
-      {get DataModified lModified}. /* 9.0B 98-11-25-039 */
+       /* 9.0B 98-11-25-039 */
       IF lModified OR 
         (cNewRecord NE 'No':U AND 
          BROWSE {&BROWSE-NAME}:NUM-SELECTED-ROWS = 1) THEN
       DO:
-        IF VALID-HANDLE (hParent) AND hParent:TYPE NE "BROWSE":U
-        THEN DO:
+        /* if the leave is because we went into a wait-for in the message 
+           procedure then just return.. */          
+        iCnt = 1.
+        DO WHILE PROGRAM-NAME(iCnt) <> ?:
+          iCnt = iCnt + 1.
+          IF PROGRAM-NAME(iCnt) BEGINS 'showDataMessagesProcedure ':U THEN
+            RETURN. 
+        END.
+        IF (VALID-HANDLE (hParent) AND hParent:TYPE NE "BROWSE":U) THEN
+        DO:
+         
           /* "Current record has been changed. save those changes?" */
           IF showMessage('7,Question':U) THEN
           DO:
@@ -95,7 +122,8 @@
           END.
           ELSE DO:
             RUN cancelRecord.
-            APPLY "ENTRY":U TO hEntered.            /* 9.0B 99-01-26-030 */
+            IF VALID-HANDLE(hEntered) THEN
+              APPLY "ENTRY":U TO hEntered.            /* 9.0B 99-01-26-030 */
           END.  
         END. 
         ELSE DO:

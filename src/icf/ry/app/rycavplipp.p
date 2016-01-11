@@ -83,7 +83,7 @@ af/cod/aftemwizpw.w
 
 &scop object-name       rycavplipp.p
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010100
+&scop object-version    000000
 
 /* Astra object identifying preprocessor */
 &glob   AstraPlip    yes
@@ -150,7 +150,7 @@ ASSIGN cObjectName = "{&object-name}":U.
 &ANALYZE-RESUME
 
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
@@ -197,7 +197,7 @@ PROCEDURE objectDescription :
 
 DEFINE OUTPUT PARAMETER cDescription AS CHARACTER NO-UNDO.
 
-ASSIGN cDescription = "Dynamics gsc_object PLIP".
+ASSIGN cDescription = "Dynamics ryc_smartobject PLIP".
 
 END PROCEDURE.
 
@@ -256,119 +256,9 @@ PROCEDURE readGscObject :
                 INPUT  PARAMETER pcForEach   
                     query to read DB    
                 INPUT-OUTPUT PARAMETER TABLE FOR ttGscObject
-                    table defined like rowobjupd table for gscobfullo.w
-  Notes:       
+                    table defined like rowobjupd table for rycsofullo.w
+  Notes:       This procedure is redundant - NEIL 
 ------------------------------------------------------------------------------*/
-/*DEFINE INPUT  PARAMETER pcBufferList    AS CHARACTER    NO-UNDO.*/
-/*DEFINE INPUT  PARAMETER pcForEach       AS CHARACTER    NO-UNDO.*/
-/*DEFINE INPUT-OUTPUT PARAMETER TABLE FOR ttGscObject.*/
-/*DEFINE INPUT-OUTPUT PARAMETER TABLE FOR ttRycAttributeValue.*/
-/**/
-/**/
-/*DEFINE VARIABLE plAdd               AS LOGICAL      NO-UNDO.*/
-/**/
-/*DEFINE VARIABLE hQuery              AS HANDLE       NO-UNDO.*/
-/*DEFINE VARIABLE hBufferList         AS HANDLE       NO-UNDO EXTENT 20.*/
-/*DEFINE VARIABLE hBuffer             AS HANDLE       NO-UNDO.*/
-/*DEFINE VARIABLE iLoop               AS INTEGER      NO-UNDO.*/
-/*DEFINE VARIABLE iBuffer             AS INTEGER      NO-UNDO.*/
-/*DEFINE VARIABLE lOk                 AS LOGICAL      NO-UNDO.*/
-/*DEFINE VARIABLE httGscObject        AS HANDLE       NO-UNDO.*/
-/*DEFINE VARIABLE hdbGscObject        AS HANDLE       NO-UNDO.*/
-/*DEFINE VARIABLE httColumn           AS HANDLE       NO-UNDO.*/
-/*DEFINE VARIABLE hdbColumn           AS HANDLE       NO-UNDO.*/
-/**/
-/*    /* Create a query */*/
-/*    CREATE QUERY hQuery NO-ERROR.*/
-/*    */
-/*    buffer-loop:*/
-/*    DO iLoop = 1 TO NUM-ENTRIES(pcBufferList):*/
-/*        CREATE BUFFER hBufferList[iLoop] FOR TABLE ENTRY(iLoop, pcBufferList) NO-ERROR.*/
-/*        IF ERROR-STATUS:ERROR THEN NEXT buffer-loop.*/
-/*        hQuery:ADD-BUFFER(hBufferList[iLoop]) NO-ERROR.*/
-/*        {af/sup2/afcheckerr.i}*/
-/*    END. /* buffer-loop */*/
-/**/
-/*    /* Prepare the query */*/
-/*    IF pcForEach <> "" THEN DO:*/
-/*        lOk = hQuery:QUERY-PREPARE(pcForEach) NO-ERROR.*/
-/*        {af/sup2/afcheckerr.i}*/
-/*    END.*/
-/*    ELSE lOk = NO.*/
-/*  */
-/*    IF lOk THEN DO:*/
-/*    /* Open the query */*/
-/*        hQuery:QUERY-OPEN() NO-ERROR.*/
-/*        {af/sup2/afcheckerr.i}*/
-/*    END.*/
-/**/
-/*    QueryLoop:*/
-/*    REPEAT:*/
-/*        IF  lOk THEN*/
-/*            hQuery:GET-NEXT().*/
-/**/
-/*        IF  NOT VALID-HANDLE(hBufferList[1]) THEN*/
-/*            LEAVE QueryLoop.*/
-/**/
-/*        IF  VALID-HANDLE(hBufferList[1]) AND NOT hBufferList[1]:AVAILABLE THEN*/
-/*            ASSIGN*/
-/*                plAdd = YES.*/
-/**/
-/*        IF  ((VALID-HANDLE(hBufferList[1]) AND NOT hBufferList[1]:AVAILABLE)*/
-/*        OR  hQuery:QUERY-OFF-END) AND NOT plAdd THEN*/
-/*            LEAVE QueryLoop.*/
-/**/
-/*        CREATE ttGscObject.*/
-/**/
-/*        httGscObject = BUFFER ttGscObject:HANDLE.*/
-/*        hdbGscObject = hQuery:GET-BUFFER-HANDLE.*/
-/**/
-/*        FieldsLoop:*/
-/*        DO iLoop = 1 TO httGscObject:NUM-FIELDS:*/
-/*            httColumn = httGscObject:BUFFER-FIELD(iLoop) NO-ERROR.*/
-/*            hdbColumn = hdbGscObject:BUFFER-FIELD(httColumn:NAME) NO-ERROR.*/
-/**/
-/*            IF httColumn = ? OR hdbColumn = ? THEN NEXT FieldsLoop.*/
-/*            */
-/*            IF NOT plAdd THEN*/
-/*                httColumn:BUFFER-VALUE = hdbColumn:BUFFER-VALUE.*/
-/*            ELSE*/
-/*                httColumn:BUFFER-VALUE = IF httColumn:INITIAL = ? THEN "":U*/
-/*                    ELSE IF httColumn:DATA-TYPE = "DATE":U AND httColumn:INITIAL = "TODAY":U THEN STRING(TODAY)*/
-/*                    ELSE httColumn:INITIAL NO-ERROR.*/
-/*        END.*/
-/*        */
-/*        ttGscObject.RowIdent       = STRING(hdbGscObject:ROWID).*/
-/*        ttGscObject.changedFields = "gsc_object.container_object     */
-/*                                     gsc_object.DISABLED             */
-/*                                     gsc_object.generic_object       */
-/*                                     gsc_object.logical_object       */
-/*                                     gsc_object.object_description   */
-/*                                     gsc_object.object_filename      */
-/*                                     gsc_object.object_obj           */
-/*                                     gsc_object.object_path          */
-/*                                     gsc_object.object_type_obj      */
-/*                                     gsc_object.physical_object_obj  */
-/*                                     gsc_object.product_module_obj   */
-/*                                     gsc_object.required_db_list     */
-/*                                     gsc_object.runnable_from_menu   */
-/*                                     gsc_object.run_persistent       */
-/*                                     gsc_object.run_when             */
-/*                                     gsc_object.security_object_obj  */
-/*                                     gsc_object.toolbar_image_filename*/
-/*                                     gsc_object.toolbar_multi_media_obj*/
-/*                                     gsc_object.tooltip_text".*/
-/**/
-/*        IF  plAdd THEN*/
-/*            LEAVE QueryLoop.*/
-/*    END.*/
-/**/
-/*    DELETE OBJECT hQuery.*/
-/*    ASSIGN*/
-/*        hQuery = ?*/
-/*        ERROR-STATUS:ERROR = NO.*/
-/**/
-/**/
 
 END PROCEDURE.
 

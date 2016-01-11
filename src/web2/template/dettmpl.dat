@@ -1,6 +1,6 @@
 <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
 <!--------------------------------------------------------------------
-* Copyright (C) 2001 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2001-2003 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -52,25 +52,16 @@ DEFINE VARIABLE DelimiterField  AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE JoinParam       AS CHARACTER  NO-UNDO. 
 DEFINE VARIABLE FieldName       AS CHARACTER  NO-UNDO.
   
-DEFINE VARIABLE UseRowidsInLink AS LOGICAL    NO-UNDO 
-  INITIAL ##getField('JoinLink')##. 
-DEFINE VARIABLE UseNavigation   AS LOGICAL    NO-UNDO 
-  INITIAL ##getField('UseNavigationPanel')##.
-DEFINE VARIABLE UseSubmit       AS LOGICAL    NO-UNDO 
-  INITIAL ##getField('UseSubMit')##.
-DEFINE VARIABLE UseReset        AS LOGICAL    NO-UNDO 
-  INITIAL ##getField('UseReset')##.
-DEFINE VARIABLE UseAdd          AS LOGICAL    NO-UNDO 
-  INITIAL ##getField('UseAdd')##.
-DEFINE VARIABLE UseCancel       AS LOGICAL    NO-UNDO 
-  INITIAL ##getField('UseCancel')##.
-DEFINE VARIABLE UseDelete       AS LOGICAL    NO-UNDO 
-  INITIAL ##getField('UseDelete')##.
-DEFINE VARIABLE UseSearchForm   AS LOGICAL    NO-UNDO 
-  INITIAL ##getField('UseSearchForm')##.
-DEFINE VARIABLE DataObject      AS CHARACTER  NO-UNDO
-  INITIAL '##getField('DataObject')##'.
-DEFINE VARIABLE DataSourceHdl   AS HANDLE NO-UNDO.
+DEFINE VARIABLE UseRowidsInLink AS LOGICAL    NO-UNDO INITIAL  ##getField('JoinLink')##. 
+DEFINE VARIABLE UseNavigation   AS LOGICAL    NO-UNDO INITIAL  ##getField('UseNavigationPanel')##.
+DEFINE VARIABLE UseSubmit       AS LOGICAL    NO-UNDO INITIAL  ##getField('UseSubMit')##.
+DEFINE VARIABLE UseReset        AS LOGICAL    NO-UNDO INITIAL  ##getField('UseReset')##.
+DEFINE VARIABLE UseAdd          AS LOGICAL    NO-UNDO INITIAL  ##getField('UseAdd')##.
+DEFINE VARIABLE UseCancel       AS LOGICAL    NO-UNDO INITIAL  ##getField('UseCancel')##.
+DEFINE VARIABLE UseDelete       AS LOGICAL    NO-UNDO INITIAL  ##getField('UseDelete')##.
+DEFINE VARIABLE UseSearchForm   AS LOGICAL    NO-UNDO INITIAL  ##getField('UseSearchForm')##.
+DEFINE VARIABLE DataObject      AS CHARACTER  NO-UNDO INITIAL '##getField('DataObject')##'.
+DEFINE VARIABLE DataSourceHdl   AS HANDLE     NO-UNDO.
 
 /** Defines properties and starts the super procedure web2/wbdata.p */ 
 {src/web2/wbdata.i}

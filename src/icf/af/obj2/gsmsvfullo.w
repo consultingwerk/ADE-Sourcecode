@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          asdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
@@ -103,7 +103,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gsmsvfullo.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010002
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -135,6 +135,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -161,11 +162,17 @@ physical_service_type_obj
 &Scoped-Define ASSIGN-LIST   rowObject.logical_service_type_obj = gsc_logical_service.service_type_obj~
   rowObject.physical_service_type_obj = gsm_physical_service.service_type_obj
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gsmsvfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsm_session_service NO-LOCK, ~
+      FIRST gsm_session_type WHERE ASDB.gsm_session_type.session_type_obj = ASDB.gsm_session_service.session_type_obj NO-LOCK, ~
+      FIRST gsc_logical_service WHERE ASDB.gsc_logical_service.logical_service_obj = ASDB.gsm_session_service.logical_service_obj NO-LOCK, ~
+      FIRST gsm_physical_service WHERE ASDB.gsm_physical_service.physical_service_obj = ASDB.gsm_session_service.physical_service_obj NO-LOCK ~
+    BY gsm_session_service.session_type_obj ~
+       BY gsm_session_service.logical_service_obj INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsm_session_service NO-LOCK, ~
-      FIRST gsm_session_type WHERE gsm_session_type.session_type_obj = gsm_session_service.session_type_obj NO-LOCK, ~
-      FIRST gsc_logical_service WHERE gsc_logical_service.logical_service_obj = gsm_session_service.logical_service_obj NO-LOCK, ~
-      FIRST gsm_physical_service WHERE gsm_physical_service.physical_service_obj = gsm_session_service.physical_service_obj NO-LOCK ~
+      FIRST gsm_session_type WHERE ASDB.gsm_session_type.session_type_obj = ASDB.gsm_session_service.session_type_obj NO-LOCK, ~
+      FIRST gsc_logical_service WHERE ASDB.gsc_logical_service.logical_service_obj = ASDB.gsm_session_service.logical_service_obj NO-LOCK, ~
+      FIRST gsm_physical_service WHERE ASDB.gsm_physical_service.physical_service_obj = ASDB.gsm_session_service.physical_service_obj NO-LOCK ~
     BY gsm_session_service.session_type_obj ~
        BY gsm_session_service.logical_service_obj INDEXED-REPOSITION.
 {&DB-REQUIRED-END}
@@ -277,32 +284,32 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "asdb.gsm_session_service,ASDB.gsm_session_type WHERE asdb.gsm_session_service ...,ASDB.gsc_logical_service WHERE asdb.gsm_session_service ...,ASDB.gsm_physical_service WHERE asdb.gsm_session_service ..."
+     _TblList          = "ICFDB.gsm_session_service,ICFDB.gsm_session_type WHERE ICFDB.gsm_session_service ...,ICFDB.gsc_logical_service WHERE ICFDB.gsm_session_service ...,ICFDB.gsm_physical_service WHERE ICFDB.gsm_session_service ..."
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _TblOptList       = ", FIRST USED, FIRST USED, FIRST USED"
      _OrdList          = "asdb.gsm_session_service.session_type_obj|yes,asdb.gsm_session_service.logical_service_obj|yes"
      _JoinCode[2]      = "ASDB.gsm_session_type.session_type_obj = ASDB.gsm_session_service.session_type_obj"
      _JoinCode[3]      = "ASDB.gsc_logical_service.logical_service_obj = ASDB.gsm_session_service.logical_service_obj"
      _JoinCode[4]      = "ASDB.gsm_physical_service.physical_service_obj = ASDB.gsm_session_service.physical_service_obj"
-     _FldNameList[1]   > ASDB.gsm_session_service.session_service_obj
+     _FldNameList[1]   > ICFDB.gsm_session_service.session_service_obj
 "session_service_obj" "session_service_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
-     _FldNameList[2]   > ASDB.gsm_session_service.session_type_obj
+     _FldNameList[2]   > ICFDB.gsm_session_service.session_type_obj
 "session_type_obj" "session_type_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
-     _FldNameList[3]   > ASDB.gsm_session_type.session_type_code
+     _FldNameList[3]   > ICFDB.gsm_session_type.session_type_code
 "session_type_code" "session_type_code" ? ? "character" ? ? ? ? ? ? no ? no 20 yes
-     _FldNameList[4]   > ASDB.gsm_session_service.logical_service_obj
+     _FldNameList[4]   > ICFDB.gsm_session_service.logical_service_obj
 "logical_service_obj" "logical_service_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
-     _FldNameList[5]   > ASDB.gsc_logical_service.logical_service_code
-"logical_service_code" "logical_service_code" ? "X(20)" "character" ? ? ? ? ? ? no ? no 20.2 yes
-     _FldNameList[6]   > ASDB.gsm_session_service.physical_service_obj
+     _FldNameList[5]   > ICFDB.gsc_logical_service.logical_service_code
+"logical_service_code" "logical_service_code" ? ? "character" ? ? ? ? ? ? no ? no 20.2 yes
+     _FldNameList[6]   > ICFDB.gsm_session_service.physical_service_obj
 "physical_service_obj" "physical_service_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
-     _FldNameList[7]   > ASDB.gsm_physical_service.physical_service_code
-"physical_service_code" "physical_service_code" ? "X(20)" "character" ? ? ? ? ? ? no ? no 21.2 yes
-     _FldNameList[8]   > asdb.gsc_logical_service.service_type_obj
+     _FldNameList[7]   > ICFDB.gsm_physical_service.physical_service_code
+"physical_service_code" "physical_service_code" ? ? "character" ? ? ? ? ? ? no ? no 21.2 yes
+     _FldNameList[8]   > ICFDB.gsc_logical_service.service_type_obj
 "service_type_obj" "logical_service_type_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 29.4 yes
      _FldNameList[9]   > "_<CALC>"
 "returnServiceTypeCode(RowObject.logical_service_type_obj)" "logical_service_type_code" "Logical Service Type" "x(20)" "character" ? ? ? ? ? ? no ? no 20 no
-     _FldNameList[10]   > asdb.gsm_physical_service.service_type_obj
+     _FldNameList[10]   > ICFDB.gsm_physical_service.service_type_obj
 "service_type_obj" "physical_service_type_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 29.4 yes
      _FldNameList[11]   > "_<CALC>"
 "returnServiceTypeCode(RowObject.physical_service_type_obj)" "physical_service_type_code" "Physical Service Type" "x(20)" "character" ? ? ? ? ? ? no ? no 21 no
@@ -312,7 +319,7 @@ END.
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK dTables 

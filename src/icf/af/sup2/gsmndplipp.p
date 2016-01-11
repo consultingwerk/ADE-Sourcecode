@@ -210,7 +210,7 @@ FOR EACH gsc_logical_service NO-LOCK:
   ASSIGN hParentNodeKey:BUFFER-VALUE = phParentNode 
          hNodeKef:BUFFER-VALUE       = STRING(gsc_logical_service.logical_service_obj)
          hNodeLabel:BUFFER-VALUE     = gsc_logical_service.logical_service_code
-         hRecordRef:BUFFER-VALUE     = TRIM(STRING(gsc_logical_service.logical_service_obj,">>>>>>>>>>>>>9.999999999":U))
+         hRecordRef:BUFFER-VALUE     = TRIM(STRING(gsc_logical_service.logical_service_obj,"->>>>>>>>>>>>>>>>>9.999999999":U))
          hRecordRowid:BUFFER-VALUE   = ROWID(gsc_logical_service)
          hPrivateData:BUFFER-VALUE   = "gsclsfullo.w":U.
 END.

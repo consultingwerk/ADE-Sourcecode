@@ -24,11 +24,6 @@
 
 TRIGGER PROCEDURE FOR WRITE OF gsm_menu_structure OLD BUFFER o_gsm_menu_structure.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "gsm_menu_structure"
-                      &TRIGGER-TYPE = "WRITE"}
-
 /* Created automatically using ERwin ICF Trigger template db/af/erw/afercustrg.i
    Do not change manually. Customisations to triggers should be placed in separate
    include files pulled into the trigger. ICF auto generates write trigger custom
@@ -122,6 +117,8 @@ IF NOT NEW gsm_menu_structure AND gsm_menu_structure.{&TRIGGER_OBJ} <> o_gsm_men
 
 /* Customisations to WRITE trigger */
 {icf/trg/gsmmstrigw.i}
+
+
 
 /* Update Audit Log */
 IF CAN-FIND(FIRST gsc_entity_mnemonic

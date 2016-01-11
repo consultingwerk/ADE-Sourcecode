@@ -1,6 +1,5 @@
-<?xml version="1.0" encoding="ISO8859-1" ?>
-<dataset Transactions="1" version_date="02/23/2002" version_time="43009" version_user="admin" entity_mnemonic="GSTDF" key_field_value="3000000403.09" record_version_obj="3000000404.09" version_number_seq="2.09" import_version_number_seq="1.09"><dataset_header DisableRI="yes" DatasetObj="1007600205.08" DateFormat="mdy" FullHeader="yes" SCMManaged="no" YearOffset="1950" DatasetCode="GSCSC" DateCreated="02/23/2002" TimeCreated="11:56:48" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="93" NumericSeparator=","><deploy_dataset_obj>1007600205.08</deploy_dataset_obj>
-<owner_site_code></owner_site_code>
+<?xml version="1.0" encoding="utf-8" ?>
+<dataset Transactions="1"><dataset_header DisableRI="yes" DatasetObj="1007600205.08" DateFormat="mdy" FullHeader="yes" SCMManaged="no" YearOffset="1950" DatasetCode="GSCSC" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="90" NumericSeparator=","><deploy_dataset_obj>1007600205.08</deploy_dataset_obj>
 <dataset_code>GSCSC</dataset_code>
 <dataset_description>gsc_security_control - Security Ctr</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -8,6 +7,9 @@
 <deploy_full_data>yes</deploy_full_data>
 <xml_generation_procedure></xml_generation_procedure>
 <default_ado_filename></default_ado_filename>
+<deploy_additions_only>no</deploy_additions_only>
+<enable_data_versioning>yes</enable_data_versioning>
+<deletion_dataset>yes</deletion_dataset>
 <dataset_entity><dataset_entity_obj>1007600206.08</dataset_entity_obj>
 <deploy_dataset_obj>1007600205.08</deploy_dataset_obj>
 <entity_sequence>1</entity_sequence>
@@ -19,24 +21,27 @@
 <delete_related_records>yes</delete_related_records>
 <overwrite_records>yes</overwrite_records>
 <keep_own_site_data>no</keep_own_site_data>
+<use_relationship>no</use_relationship>
+<relationship_obj>0</relationship_obj>
+<deletion_action></deletion_action>
 <entity_mnemonic_description>gsc_security_control</entity_mnemonic_description>
-<entity_dbname>icfdb</entity_dbname>
+<entity_dbname>ICFDB</entity_dbname>
 </dataset_entity>
 <table_definition><name>gsc_security_control</name>
-<dbname>ICFDB</dbname>
+<dbname>icfdb</dbname>
 <index-1>XPKgsc_security_control,1,1,0,security_control_obj,0</index-1>
 <field><name>security_control_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Security Control Obj</label>
 <column-label>Security Control Obj</column-label>
 </field>
 <field><name>password_max_retries</name>
 <data-type>integer</data-type>
 <extent>0</extent>
-<format>->>9</format>
+<format>-&gt;&gt;9</format>
 <initial>   0</initial>
 <label>Password Max. Retries</label>
 <column-label>Password Max. Retries</column-label>
@@ -44,7 +49,7 @@
 <field><name>password_history_life_time</name>
 <data-type>integer</data-type>
 <extent>0</extent>
-<format>->>>>>9</format>
+<format>-&gt;&gt;&gt;&gt;&gt;9</format>
 <initial>      0</initial>
 <label>Password History Life Time</label>
 <column-label>Password History Life Time</column-label>
@@ -203,7 +208,7 @@
 </field>
 </table_definition>
 </dataset_header>
-<dataset_records><dataset_transaction TransactionNo="1"><contained_record DB="ICFDB" Table="gsc_security_control"><security_control_obj>1004926868.09</security_control_obj>
+<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_security_control"><security_control_obj>1004926868.09</security_control_obj>
 <password_max_retries>5</password_max_retries>
 <password_history_life_time>365</password_history_life_time>
 <full_access_by_default>yes</full_access_by_default>

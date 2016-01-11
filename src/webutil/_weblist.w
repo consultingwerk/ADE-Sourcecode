@@ -3,7 +3,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _CODE-BLOCK _CUSTOM Definitions 
 /*********************************************************************
-* Copyright (C) 2002 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2002 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -68,15 +68,6 @@ DEFINE VARIABLE isIE         AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE lEditor      AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE optList      AS CHARACTER NO-UNDO.
 
-&SCOPED-DEFINE debug FALSE
-
-&if {&debug} &then
-define stream debug.
-output stream debug to "_weblist.log":u.
-put stream debug unformatted skip(1)
-  "Time: " string(time,"hh:mm":u) skip.
-&endif
-
 /* Read the entire directory and store it in a temp-table. */
 DEFINE TEMP-TABLE tt NO-UNDO
   FIELD name   AS CHARACTER 
@@ -126,9 +117,6 @@ DEFINE STREAM instream.
 /* Process the latest WEB event. */
 RUN process-web-request.
 
-&if {&debug} &then
-output stream debug close.
-&endif
 &ANALYZE-RESUME
 /* **********************  Internal Procedures  *********************** */
 
@@ -264,11 +252,6 @@ PROCEDURE process-web-request :
           FIND tt WHERE tt.iSeq = ix + ((iy - 1) * 8) NO-ERROR.
           IF AVAILABLE tt THEN DO:
 
-            &if {&debug} &then
-            put stream debug 
-              tt.name format "x(30)" " seq " tt.iseq " ix " ix " iy " iy skip.
-            &endif
-          
             ASSIGN
               tt.x-row = ix
               tt.y-col = iy.
@@ -288,10 +271,10 @@ PROCEDURE process-web-request :
         '  ILAYER ~{ position:absolute; font-family:sans-serif; font-size:9pt } ':U SKIP
         '  TD     ~{ font-family:sans-serif; font-size:8pt } ':U SKIP
         '</STYLE>':U SKIP
-        '<SCRIPT LANGUAGE="JavaScript1.2" SRC="' RootURL '/workshop/common.js">':U SKIP
+        '<SCRIPT LANGUAGE="JavaScript1.2" SRC="' RootURL '/script/common.js">':U SKIP
         '  document.write("Included common.js file not found.");':U SKIP
         '</SCRIPT>':U SKIP
-        '<SCRIPT LANGUAGE="JavaScript1.2" SRC="' RootURL '/workshop/weblist.js">':U SKIP
+        '<SCRIPT LANGUAGE="JavaScript1.2" SRC="' RootURL '/script/weblist.js">':U SKIP
         '  document.write("Included weblist.js file not found.");':U SKIP
         '</SCRIPT>':U SKIP
         '</HEAD>':U SKIP
@@ -394,12 +377,6 @@ PROCEDURE read-dir :
       proFilter = REPLACE (proFilter, '?':U, '.':U)
       proFilter = REPLACE (proFilter, CHR(10), '~~.').
            
-  &if {&debug} &then
-  put stream debug unformatted
-    "Filter: " profilter skip
-    "p_dir: " p_dir skip(1).
-  &endif
-  
   /* Create ".." entry if we're NOT at the root directory level. */
   IF lEditor THEN DO:
     CREATE tt.
@@ -432,11 +409,6 @@ PROCEDURE read-dir :
           tt.name   = next-name
           tt.is-dir = (INDEX(next-type,"D":U) > 0)
           ifiles    = iFiles + (IF (tt.is-dir AND NOT lEditor) THEN 0 ELSE 1).
-        
-        &if {&debug} &then
-        put stream debug 
-          tt.name format "x(30)" next-type " " tt.is-dir skip.
-        &endif
       END.
     END.
   END. /* Read-Block: */

@@ -93,7 +93,8 @@ History:
     D. McMann   04/06/00 Added Unicode datatypes for MSS and a check
                          for Procedures for ODBC so they don't show
                          up as orphan files.
-    
+    D. McMann   06/04/02 Added output to file logic
+    D. McMann   08/08/02 Eliminated any sequences whose name begins "$" - Peer Direct
 --------------------------------------------------------------------*/
 
 &SCOPED-DEFINE xxDS_DEBUG                   DEBUG
@@ -116,14 +117,13 @@ define variable l_no-diff        as character no-undo initial
 define variable l_no-diff1       as character no-undo initial
           "     All objects in PROGRESS image exist also on the &1 side.".
 define variable l_ret-msg-txt    as character no-undo. /* title-txt    */
-define variable l_ret-msg        as character no-undo. /* retainables  */
+DEFINE VARIABLE l_ret-msg        AS CHARACTER NO-UNDO. /* retainables  */
+DEFINE VARIABLE l_ret2-msg       AS CHARACTER NO-UNDO.
+DEFINE VARIABLE l_reti-msg       AS CHARACTER NO-UNDO.
 define variable l_sev-msg-txt    as character no-undo. /* title-txt    */
 define variable l_sev-msg        as character no-undo. /* severe diffs */
 define variable l_shupd-msg      as character no-undo.
-/*
-define variable l_no-pro         as character no-undo initial
-          "     This object doesn't exist in the PROGRESS schemaholder.".
-*/
+DEFINE VARIABLE dif-found        AS LOGICAL INITIAL FALSE NO-UNDO.
 
 define variable l_seq-msg        as integer   no-undo extent  4 initial
     [ 2,1,1,10 ].
@@ -164,12 +164,6 @@ define variable l_msg            as character no-undo extent 20 initial
 
 define variable batch_mode	 as logical.
 define variable edbtyp           as character no-undo. /*db-type ext frmt*/
-/*
-define variable has_id_ix        as logical   no-undo.
-define variable i                as integer   no-undo.
-define variable indn             as integer   no-undo.
-define variable l_extnt-char     as character no-undo initial "##".
-*/
 define variable l_char-types     as character no-undo.
 define variable l_chda-types     as character no-undo.
 define variable l_date-types     as character no-undo.
@@ -186,6 +180,9 @@ define variable odbtyp           as character no-undo. /* ODBC db-types */
 define buffer   gate-work1       for gate-work.
 define buffer   s_ttb_idx1       for s_ttb_idx.
 
+DEFINE STREAM comp_e.
+DEFINE VARIABLE dbcomp_e AS CHARACTER NO-UNDO.
+
 /* LANGUAGE DEPENDENCIES START */ /*--------------------------------*/
 
 FORM
@@ -193,14 +190,7 @@ FORM
   msg[1]   FORMAT "x(29)" LABEL "Table"  colon 8 
     "->"
     msg[2] FORMAT "x(25)" LABEL "Table"             SKIP(1)
-/*
-  msg[3]   FORMAT "x(29)" LABEL "Column" colon 8 
-    "->"
-    msg[4] FORMAT "x(25)" LABEL "Field"             SKIP
-  msg[5]   FORMAT "x(29)" LABEL "Key"    colon 8 
-    "->"
-    msg[6] FORMAT "x(25)" LABEL "Index"             SKIP (1)
-*/
+
   WITH FRAME ds_make ATTR-SPACE OVERLAY SIDE-LABELS ROW 4 CENTERED
   TITLE " Comparing " + edbtyp + " Definition " USE-TEXT 
     VIEW-AS DIALOG-BOX THREE-D.
@@ -267,7 +257,8 @@ RUN adecomm/_setcurs.p ("WAIT").
 /**/      with width 140. 
 /**/    end.
 /**/  for each DICTDB._Sequence
-/**/    where DICTDB._Sequence._Db-Recid    = drec_db:
+/**/    where DICTDB._Sequence._Db-Recid    = drec_db
+          AND NOT DICTDB._Sequence._Seq-name BEGINS "$":
 /**/    display stream s_stm_errors
 /**/      DICTDB._Sequence._Seq-Name 
 /**/      DICTDB._Sequence._Seq-misc[8] format "x(20)".
@@ -295,6 +286,7 @@ RUN adecomm/_setcurs.p ("WAIT").
 
 assign
   batch_mode    = SESSION:BATCH-MODE
+  dbcomp_e      = LDBNAME("DICTDBG") + ".vfy"
   edbtyp        = {adecomm/ds_type.i
                      &direction = "itoe"
                      &from-type = "user_dbtype"
@@ -376,83 +368,59 @@ else if user_dbtype = "ORACLE"
 if SESSION:BATCH-MODE and logfile_open
  then put unformatted  "Verifying objects" skip(1).
 
-
 /*---------------------------- Sequences ---------------------------*/  
 
-for each gate-work
-  where gate-work.gate-slct = TRUE
-  and   gate-work.gate-type = "SEQUENCE":
+for each gate-work where gate-work.gate-slct = TRUE
+                     and gate-work.gate-type = "SEQUENCE":
 
-  assign
-    l_min-msg           = ""
-    l_int-msg           = ""
-    l_ret-msg           = ""
-    l_sev-msg           = ""
-    gate-work.gate-flag = FALSE.
+  assign l_min-msg           = ""
+         l_int-msg           = ""
+         l_ret-msg           = ""
+         l_sev-msg           = ""
+         gate-work.gate-flag = FALSE.
     
-  find first s_ttb_seq
-    where RECID(s_ttb_seq) = gate-work.ttb-recid
-    no-error.
-  if not available s_ttb_seq
-   then do:
-    if SESSION:BATCH-MODE and logfile_open
-     then put unformatted
-       "SEQUENCE"                at 10
-       gate-work.gate-name       at 25
-       "s_ttb_seq NOT FOUND !!!" at 60 skip.
+  find first s_ttb_seq where RECID(s_ttb_seq) = gate-work.ttb-recid no-error.
+  if not available s_ttb_seq then do:
+    if SESSION:BATCH-MODE and logfile_open then 
+        PUT UNFORMATTED "SEQUENCE"                at 10
+                        gate-work.gate-name       at 25
+                        "s_ttb_seq NOT FOUND !!!" at 60 skip.
     run error_handling(14, gate-work.gate-name ,"").
     next.
-    end.
+  end.
   
-  if TERMINAL <> "" and NOT batch_mode
-   then DISPLAY
-      s_ttb_seq.ds_name  @ msg[1]
-      s_ttb_seq.pro_name @ msg[2]
+  if TERMINAL <> "" and NOT batch_mode then 
+    DISPLAY s_ttb_seq.ds_name  @ msg[1]
+            s_ttb_seq.pro_name @ msg[2]
       WITH FRAME ds_make.
-/* 
- * changed because of performance resaons
- *  
- *     s_ttb_seq.ds_name  @ msg[1] ""       @ msg[4]
- *     s_ttb_seq.pro_name @ msg[2] ""       @ msg[5]
- *     ""                 @ msg[3] ""       @ msg[6]
- *     WITH FRAME ds_make.
- */
  
-  if s_ttb_seq.pro_recid = ?
-   then do:
-   if user_dbtype = "ORACLE"
-     then find first DICTDB._Sequence
-      where DICTDB._Sequence._Db-Recid    = drec_db
-      and   DICTDB._Sequence._Seq-Name    = s_ttb_seq.pro_name
-      and   DICTDB._Sequence._Seq-misc[8] = s_ttb_seq.ds_spcl
-      no-error.
+  if s_ttb_seq.pro_recid = ? then do:
+    if user_dbtype = "ORACLE"
+      then find first DICTDB._Sequence
+          where DICTDB._Sequence._Db-Recid    = drec_db
+            and DICTDB._Sequence._Seq-Name    = s_ttb_seq.pro_name
+            and DICTDB._Sequence._Seq-misc[8] = s_ttb_seq.ds_spcl no-error.
     else if can-do(odbtyp,user_dbtype)
-     then find first DICTDB._Sequence
-      where DICTDB._Sequence._Db-Recid    = drec_db
-      and   DICTDB._Sequence._Seq-Name    = s_ttb_seq.pro_name
-      and   DICTDB._Sequence._Seq-misc[8] = s_ttb_seq.ds_spcl
-      no-error.
-    /*  sequences not supported for sybase-4
-     else find first DICTDB._Sequence
-      where DICTDB._Sequence._Db-Recid    = drec_db
-      and   DICTDB._Sequence._Seq-Misc[1] = s_ttb_seq.ds_name
-      and   DICTDB._Sequence._Seq-Misc[2] = s_ttb_seq.ds_user
-      no-error. */
-    if available DICTDB._Sequence
-     then assign s_ttb_seq.pro_recid = RECID(DICTDB._Sequence).
-    end.
-   else find first DICTDB._Sequence
-    where RECID(DICTDB._Sequence) = s_ttb_seq.pro_recid
-    no-error.
-  if not available DICTDB._Sequence
-   then assign
-    { prodict/gate/cmp_nav.i
+      then find first DICTDB._Sequence
+        where DICTDB._Sequence._Db-Recid    = drec_db
+          and DICTDB._Sequence._Seq-Name    = s_ttb_seq.pro_name
+          and DICTDB._Sequence._Seq-misc[8] = s_ttb_seq.ds_spcl no-error.
+    
+    if available DICTDB._Sequence THEN
+      ASSIGN s_ttb_seq.pro_recid = RECID(DICTDB._Sequence).
+  end.
+  else find first DICTDB._Sequence where RECID(DICTDB._Sequence) = s_ttb_seq.pro_recid
+                                     AND NOT DICTDB._Sequence._Seq-name BEGINS "$"
+                   no-error.
+  if not available DICTDB._Sequence THEN
+    ASSIGN
+      { prodict/gate/cmp_nav.i
             &object = "SEQUENCE"
             &obj    = "seq"
             &objm   = "seq"
             }
-   else do:
-    { prodict/gate/cmp_msg.i
+  else do:
+      { prodict/gate/cmp_msg.i
             &attrbt = "Name in PROGRESS:"
             &msgidx = "l_seq-msg[2]"
             &msgvar = "min"
@@ -461,8 +429,8 @@ for each gate-work
             &o-name = "s_ttb_seq.ds_name"
             &sh     = "DICTDB._Sequence._Seq-Name"
             }
-    if can-do(odbtyp,user_dbtype)
-     then { prodict/gate/cmp_msg.i
+      if can-do(odbtyp,user_dbtype) THEN
+        { prodict/gate/cmp_msg.i
             &attrbt = "Special Name:"
             &msgidx = "l_seq-msg[3]"
             &msgvar = "sev"
@@ -471,19 +439,18 @@ for each gate-work
             &o-name = "s_ttb_seq.ds_name"
             &sh     = "DICTDB._Sequence._Seq-Misc[3]"
             }
-    end.
+  end.
     
-  { prodict/gate/cmp_sum.i
+   { prodict/gate/cmp_sum.i
       &object = "seq"
       }
 
-  end. /* for each gate-work "SEQUENCE" */
+end. /* for each gate-work "SEQUENCE" */
 
 
 /*------------------------------ Tables ----------------------------*/  
 
-for each gate-work
-  where gate-work.gate-slct = TRUE:
+for each gate-work where gate-work.gate-slct = TRUE:
 
   if  gate-work.gate-type = "SEQUENCE"
    or gate-work.gate-type = "PROGRESS" then next.
@@ -492,6 +459,8 @@ for each gate-work
     l_min-msg           = ""
     l_int-msg           = ""
     l_ret-msg           = ""
+    l_ret2-msg          = ""
+    l_reti-msg          = ""
     l_sev-msg           = ""
     gate-work.gate-flag = FALSE
     gate-work.gate-edit = "".
@@ -504,14 +473,6 @@ for each gate-work
       s_ttb_tbl.ds_name  @ msg[1]
       s_ttb_tbl.pro_name @ msg[2]
       WITH FRAME ds_make.
-/* 
- * changed because of performance resaons
- *  
- *     s_ttb_tbl.ds_name  @ msg[1] ""       @ msg[4]
- *     s_ttb_tbl.pro_name @ msg[2] ""       @ msg[5]
- *     ""                 @ msg[3] ""       @ msg[6]
- *     WITH FRAME ds_make.
- */
 
   if s_ttb_tbl.pro_recid <> ?
    then find first DICTDB._File
@@ -554,17 +515,6 @@ for each gate-work
       where DICTDB._Field._For-Name = s_ttb_fld.ds_name
       no-error.
 
-/* turned off because of performance resaons
- *  
- *   if TERMINAL <> "" and NOT batch_mode
- *    then DISPLAY
- *        s_ttb_fld.ds_name             @ msg[3] 
- *        ( if available DICTDB._Field
- *           then DICTDB._Field._Field-name 
- *           else s_ttb_fld.pro_name
- *        )                             @ msg[4]  
- *        with frame ds_make.
- */     
 
     /* Oracle splits up the foreign date-fields into two PROGRESS-fields
      * one of foreign type DATE and one of foreign type TIME. Protoora
@@ -596,14 +546,6 @@ for each gate-work
   for each s_ttb_idx
     where s_ttb_idx.ttb_tbl = RECID(s_ttb_tbl):
     
-/* turned off because of performance resaons
- *  
- *   if TERMINAL <> "" and NOT batch_mode
- *    then DISPLAY
- *      s_ttb_idx.ds_name  @ msg[5] 
- *      s_ttb_idx.pro_name @ msg[6]
- *      with frame ds_make.
- */
     if user_dbtype = "SYB"
      then do:
       find first DICTDB._Index of DICTDB._File
@@ -673,38 +615,26 @@ for each gate-work
 /*---------------- CHECK INDEXES IN OTHER DIRECTION ----------------*/
 
   for each DICTDB._Index of DICTDB._File:
-    if   DICTDB._Index._For-name <> ?
-     and DICTDB._Index._For-name <> ""
-     then do:
-      find first s_ttb_idx
-        where s_ttb_idx.ttb_tbl = RECID(s_ttb_tbl)
-        no-error.
-      if not available s_ttb_idx
-       then { prodict/gate/cmp_nav.i
-              &nr     = "1"
-              &object = "INDEX"
-              &obj    = "idx"
-              &objm   = "idx"
-              }
-      end.
-     else do:
-      assign
-        l_min-msg = l_min-msg + "    INDEX "
+    IF DICTDB._File._For-type = "VIEW" THEN NEXT.
+    if   DICTDB._Index._For-name <> ? and DICTDB._Index._For-name <> "" then do:
+      find first s_ttb_idx where s_ttb_idx.ttb_tbl = RECID(s_ttb_tbl) no-error.
+    
+       if not available s_ttb_idx THEN     
+         IF INDEX("_V##", DICTDB._Index._For-name) = 0 THEN    
+           ASSIGN l_min-msg = l_min-msg + "    INDEX "
                   + DICTDB._Index._index-name + ": " + chr(10) + chr(9)
                   + l_msg[l_idx-msg[12]]             + chr(10).
-      end.
-
+     
     end.
+  end.
     
 /*------------------------- PRIMARY-INDEX --------------------------*/
 
   find first DICTDB._Index of DICTDB._File
     where RECID(DICTDB._Index) = DICTDB._File._Prime-Index
     no-lock no-error.
-  if available DICTDB._Index
-   then do:
-    if user_dbtype = "SYB"
-     then do:
+  if available DICTDB._Index then do:
+    if user_dbtype = "SYB" then do:
       find first s_ttb_idx
         where s_ttb_idx.ttb_tbl        = RECID(s_ttb_tbl)
         and   s_ttb_idx.ds_name
@@ -716,12 +646,10 @@ for each gate-work
         and   s_ttb_idx.ds_name 
           + STRING(DICTDB._Index._idx-num) = DICTDB._Index._For-name
         no-error.
-      end.
-     else find first s_ttb_idx
-      where s_ttb_idx.ttb_tbl = RECID(s_ttb_tbl)
-      and   s_ttb_idx.ds_name = DICTDB._Index._For-name
-      no-error.
-    if not available s_ttb_idx
+    end.
+    else find first s_ttb_idx where s_ttb_idx.ttb_tbl = RECID(s_ttb_tbl)
+               and s_ttb_idx.ds_name = DICTDB._Index._For-name no-error.
+    if not available s_ttb_idx AND DICTDB._File._For-type <> "VIEW"
      then assign  /* primary index doesn't exist anymore */
        l_sev-msg = l_sev-msg + "    INDEX "
                  + DICTDB._Index._For-name + ": " + chr(10)
@@ -732,6 +660,7 @@ for each gate-work
   { prodict/gate/cmp_sum.i
     &object = "tbl"
     }
+   
 
     end.  /* for each s_ttb_tbl of gate-work */
     
@@ -758,6 +687,8 @@ for each gate-work
     l_min-msg = ""
     l_int-msg = ""
     l_ret-msg = ""
+    l_ret2-msg = ""
+    l_reti-msg = ""
     l_sev-msg = "".
     
   for each DICTDB._File
@@ -932,8 +863,7 @@ for each gate-work
         where DICTDB._Index._For-name > ""
         no-lock:
 
-        if user_dbtype = "SYB"
-         then do:
+        if user_dbtype = "SYB" then do:
           find first s_ttb_idx
             where s_ttb_idx.ttb_tbl       =  RECID(s_ttb_tbl)
             and   s_ttb_idx.ds_name
@@ -945,7 +875,7 @@ for each gate-work
             and   s_ttb_idx.ds_name
              + STRING(DICTDB._Index._idx-num) = DICTDB._Index._For-name
             no-error.
-          end.
+         end.
          else find first s_ttb_idx
           where s_ttb_idx.ttb_tbl =  RECID(s_ttb_tbl)
           and   s_ttb_idx.ds_name =  DICTDB._Index._For-name
@@ -963,17 +893,16 @@ for each gate-work
 
     end.  /* for each DICTDB._File */
 
-  if   l_sev-msg = ""
-   and l_crt-msg = ""
-   and l_min-msg = ""
-   then assign
-      gate-work.gate-edit = gate-work.gate-name + " " 
-                          + gate-work.gate-user + gate-work.gate-type 
-                          + gate-work.gate-qual + chr(10) + chr(10)
-                          + l_no-diff1
-      gate-work.gate-flag = FALSE.
-   else assign
-      gate-work.gate-edit = ( if l_sev-msg <> ""
+  if   l_sev-msg = "" and l_crt-msg = "" and l_min-msg = "" then 
+    ASSIGN gate-work.gate-edit = gate-work.gate-name + " " 
+                                 + gate-work.gate-user + gate-work.gate-type 
+                                 + gate-work.gate-qual + chr(10) + chr(10)
+                                 + l_no-diff1
+           gate-work.gate-flag = FALSE.
+  else do:
+
+     IF NOT s_outf THEN
+       assign gate-work.gate-edit = ( if l_sev-msg <> ""
                                 then l_dict-msg + l_sev-msg
                                 else ""
                               )
@@ -985,8 +914,25 @@ for each gate-work
                                 then "  Orphan Fields/Indexes:" + chr(10) + l_min-msg
                                 else ""
                               )
-      gate-work.gate-flag = TRUE.
-
+             gate-work.gate-flag = TRUE.
+      ELSE DO:
+        OUTPUT STREAM comp_e TO VALUE(dbcomp_e) APPEND.
+        IF l_sev-msg <> "" THEN DO:
+          PUT STREAM comp_e UNFORMATTED l_dict-msg l_sev-msg SKIP.
+          ASSIGN dif-found = TRUE.
+        END.
+        IF l_crt-msg <> "" THEN DO:
+          PUT STREAM comp_e UNFORMATTED "  Orphan Fields/Indexes: " SKIP l_crt-msg SKIP.
+          ASSIGN dif-found = TRUE.
+        END.
+        IF l_min-msg <> "" THEN DO:
+          PUT STREAM comp_e UNFORMATTED "  Orphan Fields/Indexes:" SKIP l_min-msg SKIP.
+          ASSIGN dif-found = TRUE.
+        END.
+        OUTPUT STREAM comp_e CLOSE.
+        ASSIGN gate-work.gate-flag = TRUE.                         
+      END.
+   END.
   end. /* for each gate-work "PROGRESS" */
 
 
@@ -1007,7 +953,7 @@ if NOT batch_mode
 /*-------------------- 4. Step: tell user diffs --------------------*/
 /*------------------------------------------------------------------*/        
 
-if user_env[25] begins "AUTO"
+if user_env[25] begins "AUTO" 
  then do:   /*========= automatically select all possible tables =======*/
 
     assign
@@ -1034,11 +980,20 @@ if user_env[25] begins "AUTO"
   end.      /*========= automatically select all possible tables =======*/
 
  else do:   /*=========== let user select the tables he wants ==========*/
-   
-  RUN "prodict/gui/_guigge1.p" (INPUT edbtyp, INPUT "Compare").
-  assign l_canned = (if RETURN-VALUE = "cancel" then yes else no).
-
-  end.     /*=========== let user select the tables he wants ==========*/
+  IF s_outf = FALSE THEN DO:
+    RUN "prodict/gui/_guigge1.p" (INPUT edbtyp, INPUT "Compare").
+    assign l_canned = (if RETURN-VALUE = "cancel" then yes else no).
+  END.
+  ELSE DO:
+    IF dif-found THEN
+      MESSAGE "A report of differences has been created in your working directory.  " SKIP
+              "See file  " dbcomp_e "  for results." SKIP 
+              VIEW-AS ALERT-BOX TITLE "Verify Table Results".
+    ELSE
+      MESSAGE l_no-diff VIEW-AS ALERT-BOX TITLE "Verify Table Results".
+    l_canned = YES.
+  END.
+ end.     /*=========== let user select the tables he wants ==========*/
 
 if l_canned 
  then assign
@@ -1051,7 +1006,10 @@ for each gate-work
   or    l_canned = TRUE:
   assign gate-work.gate-slct = FALSE.
   end.
-  
+
+/* clear out variable in case user does again */
+ASSIGN s_outf = FALSE.
+
 RETURN.
 
 /*------------------------------------------------------------------*/        

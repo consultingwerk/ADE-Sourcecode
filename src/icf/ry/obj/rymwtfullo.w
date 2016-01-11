@@ -1,6 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
@@ -91,7 +92,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       rymwtfullo.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -125,6 +126,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -157,8 +159,10 @@ generated_time generated_date
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "ry/obj/rymwtfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH rym_wizard_tree NO-LOCK ~
+    BY rym_wizard_tree.object_name INDEXED-REPOSITION
 {&DB-REQUIRED-START}
-&Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH rydb.rym_wizard_tree NO-LOCK ~
+&Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH rym_wizard_tree NO-LOCK ~
     BY rym_wizard_tree.object_name INDEXED-REPOSITION.
 {&DB-REQUIRED-END}
 &Scoped-define TABLES-IN-QUERY-Query-Main rym_wizard_tree
@@ -244,52 +248,52 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "rydb.rym_wizard_tree"
+     _TblList          = "ICFDB.rym_wizard_tree"
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _OrdList          = "rydb.rym_wizard_tree.object_name|yes"
-     _FldNameList[1]   > RYDB.rym_wizard_tree.wizard_tree_obj
+     _FldNameList[1]   > ICFDB.rym_wizard_tree.wizard_tree_obj
 "wizard_tree_obj" "wizard_tree_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
-     _FldNameList[2]   > RYDB.rym_wizard_tree.product_code
+     _FldNameList[2]   > ICFDB.rym_wizard_tree.product_code
 "product_code" "product_code" ? ? "character" ? ? ? ? ? ? yes ? no 20 yes
-     _FldNameList[3]   > RYDB.rym_wizard_tree.product_module_code
+     _FldNameList[3]   > ICFDB.rym_wizard_tree.product_module_code
 "product_module_code" "product_module_code" ? ? "character" ? ? ? ? ? ? yes ? no 20 yes
-     _FldNameList[4]   > RYDB.rym_wizard_tree.object_name
+     _FldNameList[4]   > ICFDB.rym_wizard_tree.object_name
 "object_name" "object_name" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[5]   > RYDB.rym_wizard_tree.object_description
+     _FldNameList[5]   > ICFDB.rym_wizard_tree.object_description
 "object_description" "object_description" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[6]   > RYDB.rym_wizard_tree.window_title
+     _FldNameList[6]   > ICFDB.rym_wizard_tree.window_title
 "window_title" "window_title" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[7]   > RYDB.rym_wizard_tree.window_title_field
+     _FldNameList[7]   > ICFDB.rym_wizard_tree.window_title_field
 "window_title_field" "window_title_field" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[8]   > RYDB.rym_wizard_tree.root_node_code
+     _FldNameList[8]   > ICFDB.rym_wizard_tree.root_node_code
 "root_node_code" "root_node_code" ? ? "character" ? ? ? ? ? ? yes ? no 20 yes
-     _FldNameList[9]   > RYDB.rym_wizard_tree.root_node_sdo_name
+     _FldNameList[9]   > ICFDB.rym_wizard_tree.root_node_sdo_name
 "root_node_sdo_name" "root_node_sdo_name" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
-     _FldNameList[10]   > RYDB.rym_wizard_tree.sdo_foreign_fields
+     _FldNameList[10]   > ICFDB.rym_wizard_tree.sdo_foreign_fields
 "sdo_foreign_fields" "sdo_foreign_fields" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
-     _FldNameList[11]   > RYDB.rym_wizard_tree.custom_super_procedure
+     _FldNameList[11]   > ICFDB.rym_wizard_tree.custom_super_procedure
 "custom_super_procedure" "custom_super_procedure" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[12]   > RYDB.rym_wizard_tree.page_layout
+     _FldNameList[12]   > ICFDB.rym_wizard_tree.page_layout
 "page_layout" "page_layout" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[13]   > RYDB.rym_wizard_tree.filter_viewer
+     _FldNameList[13]   > ICFDB.rym_wizard_tree.filter_viewer
 "filter_viewer" "filter_viewer" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
-     _FldNameList[14]   > RYDB.rym_wizard_tree.auto_sort
+     _FldNameList[14]   > ICFDB.rym_wizard_tree.auto_sort
 "auto_sort" "auto_sort" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[15]   > RYDB.rym_wizard_tree.hide_selection
+     _FldNameList[15]   > ICFDB.rym_wizard_tree.hide_selection
 "hide_selection" "hide_selection" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[16]   > RYDB.rym_wizard_tree.image_height
+     _FldNameList[16]   > ICFDB.rym_wizard_tree.image_height
 "image_height" "image_height" ? ? "integer" ? ? ? ? ? ? yes ? no 4 yes
-     _FldNameList[17]   > RYDB.rym_wizard_tree.image_width
+     _FldNameList[17]   > ICFDB.rym_wizard_tree.image_width
 "image_width" "image_width" ? ? "integer" ? ? ? ? ? ? yes ? no 4 yes
-     _FldNameList[18]   > RYDB.rym_wizard_tree.show_check_boxes
+     _FldNameList[18]   > ICFDB.rym_wizard_tree.show_check_boxes
 "show_check_boxes" "show_check_boxes" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[19]   > RYDB.rym_wizard_tree.show_root_lines
+     _FldNameList[19]   > ICFDB.rym_wizard_tree.show_root_lines
 "show_root_lines" "show_root_lines" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[20]   > RYDB.rym_wizard_tree.tree_style
+     _FldNameList[20]   > ICFDB.rym_wizard_tree.tree_style
 "tree_style" "tree_style" ? ? "integer" ? ? ? ? ? ? yes ? no 4 yes
-     _FldNameList[21]   > RYDB.rym_wizard_tree.generated_time
+     _FldNameList[21]   > ICFDB.rym_wizard_tree.generated_time
 "generated_time" "generated_time" ? ? "integer" ? ? ? ? ? ? yes ? no 4 yes
-     _FldNameList[22]   > RYDB.rym_wizard_tree.generated_date
+     _FldNameList[22]   > ICFDB.rym_wizard_tree.generated_date
 "generated_date" "generated_date" ? ? "date" ? ? ? ? ? ? yes ? no 4 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */

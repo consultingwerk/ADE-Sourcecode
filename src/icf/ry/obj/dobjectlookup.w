@@ -76,41 +76,44 @@ CREATE WIDGET-POOL.
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
-&Scoped-define INTERNAL-TABLES gsc_object gsc_object_type ~
+&Scoped-define INTERNAL-TABLES ryc_smartobject gsc_object_type ~
 gsc_product_module
 
 /* Definitions for QUERY Query-Main                                     */
 &Scoped-Define ENABLED-FIELDS 
-&Scoped-Define DATA-FIELDS  object_obj object_type_obj object_type_code product_module_obj~
+&Scoped-Define DATA-FIELDS  smartobject_obj object_type_obj object_type_code product_module_obj~
  product_module_code object_description object_filename object_path~
- toolbar_multi_media_obj toolbar_image_filename tooltip_text~
- runnable_from_menu disabled run_persistent run_when security_object_obj~
- container_object physical_object_obj logical_object generic_object~
- required_db_list
-&Scoped-define DATA-FIELDS-IN-gsc_object object_obj object_type_obj ~
-product_module_obj object_description object_filename object_path ~
-toolbar_multi_media_obj toolbar_image_filename tooltip_text ~
-runnable_from_menu disabled run_persistent run_when security_object_obj ~
-container_object physical_object_obj logical_object generic_object ~
-required_db_list 
+ runnable_from_menu disabled run_persistent run_when~
+ security_smartobject_obj container_object physical_smartobject_obj~
+ static_object generic_object required_db_list
+&Scoped-define DATA-FIELDS-IN-ryc_smartobject smartobject_obj ~
+object_type_obj product_module_obj object_description object_filename ~
+object_path runnable_from_menu disabled run_persistent run_when ~
+security_smartobject_obj container_object physical_smartobject_obj ~
+static_object generic_object required_db_list 
 &Scoped-define DATA-FIELDS-IN-gsc_object_type object_type_code 
 &Scoped-define DATA-FIELDS-IN-gsc_product_module product_module_code 
 &Scoped-Define MANDATORY-FIELDS 
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "ry/obj/dobjectlookup.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH ryc_smartobject NO-LOCK, ~
+      FIRST gsc_object_type WHERE gsc_object_type.object_type_obj = ryc_smartobject.object_type_obj NO-LOCK, ~
+      FIRST gsc_product_module WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj NO-LOCK ~
+    BY ryc_smartobject.object_filename INDEXED-REPOSITION
 {&DB-REQUIRED-START}
-&Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsc_object NO-LOCK, ~
-      FIRST gsc_object_type WHERE gsc_object_type.object_type_obj = gsc_object.object_type_obj NO-LOCK, ~
-      FIRST gsc_product_module WHERE gsc_product_module.product_module_obj = gsc_object.product_module_obj NO-LOCK ~
-    BY gsc_object.object_filename INDEXED-REPOSITION.
+&Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH ryc_smartobject NO-LOCK, ~
+      FIRST gsc_object_type WHERE gsc_object_type.object_type_obj = ryc_smartobject.object_type_obj NO-LOCK, ~
+      FIRST gsc_product_module WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj NO-LOCK ~
+    BY ryc_smartobject.object_filename INDEXED-REPOSITION.
 {&DB-REQUIRED-END}
-&Scoped-define TABLES-IN-QUERY-Query-Main gsc_object gsc_object_type ~
+&Scoped-define TABLES-IN-QUERY-Query-Main ryc_smartobject gsc_object_type ~
 gsc_product_module
-&Scoped-define FIRST-TABLE-IN-QUERY-Query-Main gsc_object
+&Scoped-define FIRST-TABLE-IN-QUERY-Query-Main ryc_smartobject
 &Scoped-define SECOND-TABLE-IN-QUERY-Query-Main gsc_object_type
 &Scoped-define THIRD-TABLE-IN-QUERY-Query-Main gsc_product_module
 
@@ -130,7 +133,7 @@ gsc_product_module
 /* Query definitions                                                    */
 &ANALYZE-SUSPEND
 DEFINE QUERY Query-Main FOR 
-      gsc_object, 
+      ryc_smartobject, 
       gsc_object_type
     FIELDS(gsc_object_type.object_type_code), 
       gsc_product_module
@@ -198,53 +201,47 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "icfdb.gsc_object,icfdb.gsc_object_type WHERE icfdb.gsc_object ...,icfdb.gsc_product_module WHERE icfdb.gsc_object ..."
+     _TblList          = "icfdb.ryc_smartobject,icfdb.gsc_object_type WHERE icfdb.ryc_smartobject ...,icfdb.gsc_product_module WHERE icfdb.ryc_smartobject ..."
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _TblOptList       = ", FIRST USED, FIRST USED"
-     _OrdList          = "icfdb.gsc_object.object_filename|yes"
-     _JoinCode[2]      = "icfdb.gsc_object_type.object_type_obj = icfdb.gsc_object.object_type_obj"
-     _JoinCode[3]      = "icfdb.gsc_product_module.product_module_obj = icfdb.gsc_object.product_module_obj"
-     _FldNameList[1]   > icfdb.gsc_object.object_obj
-"object_obj" "object_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 29.4 yes
-     _FldNameList[2]   > icfdb.gsc_object.object_type_obj
+     _OrdList          = "icfdb.ryc_smartobject.object_filename|yes"
+     _JoinCode[2]      = "icfdb.gsc_object_type.object_type_obj = icfdb.ryc_smartobject.object_type_obj"
+     _JoinCode[3]      = "icfdb.gsc_product_module.product_module_obj = icfdb.ryc_smartobject.product_module_obj"
+     _FldNameList[1]   > icfdb.ryc_smartobject.smartobject_obj
+"smartobject_obj" "smartobject_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 29.4 yes
+     _FldNameList[2]   > icfdb.ryc_smartobject.object_type_obj
 "object_type_obj" "object_type_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 29.4 yes
      _FldNameList[3]   > icfdb.gsc_object_type.object_type_code
-"object_type_code" "object_type_code" ? ? "character" ? ? ? ? ? ? no ? no 17.2 yes
-     _FldNameList[4]   > icfdb.gsc_object.product_module_obj
+"object_type_code" "object_type_code" ? "X(30)" "character" ? ? ? ? ? ? no ? no 30 yes
+     _FldNameList[4]   > icfdb.ryc_smartobject.product_module_obj
 "product_module_obj" "product_module_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 29.4 yes
      _FldNameList[5]   > icfdb.gsc_product_module.product_module_code
 "product_module_code" "product_module_code" ? ? "character" ? ? ? ? ? ? no ? no 20.6 yes
-     _FldNameList[6]   > icfdb.gsc_object.object_description
+     _FldNameList[6]   > icfdb.ryc_smartobject.object_description
 "object_description" "object_description" ? ? "character" ? ? ? ? ? ? no ? no 35 yes
-     _FldNameList[7]   > icfdb.gsc_object.object_filename
+     _FldNameList[7]   > icfdb.ryc_smartobject.object_filename
 "object_filename" "object_filename" ? ? "character" ? ? ? ? ? ? no ? no 35 yes
-     _FldNameList[8]   > icfdb.gsc_object.object_path
+     _FldNameList[8]   > icfdb.ryc_smartobject.object_path
 "object_path" "object_path" ? ? "character" ? ? ? ? ? ? no ? no 70 yes
-     _FldNameList[9]   > icfdb.gsc_object.toolbar_multi_media_obj
-"toolbar_multi_media_obj" "toolbar_multi_media_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 29.4 yes
-     _FldNameList[10]   > icfdb.gsc_object.toolbar_image_filename
-"toolbar_image_filename" "toolbar_image_filename" ? ? "character" ? ? ? ? ? ? no ? no 70 yes
-     _FldNameList[11]   > icfdb.gsc_object.tooltip_text
-"tooltip_text" "tooltip_text" ? ? "character" ? ? ? ? ? ? no ? no 70 yes
-     _FldNameList[12]   > icfdb.gsc_object.runnable_from_menu
+     _FldNameList[9]   > icfdb.ryc_smartobject.runnable_from_menu
 "runnable_from_menu" "runnable_from_menu" ? ? "logical" ? ? ? ? ? ? no ? no 20.4 yes
-     _FldNameList[13]   > icfdb.gsc_object.disabled
+     _FldNameList[10]   > icfdb.ryc_smartobject.disabled
 "disabled" "disabled" ? ? "logical" ? ? ? ? ? ? no ? no 8.2 yes
-     _FldNameList[14]   > icfdb.gsc_object.run_persistent
+     _FldNameList[11]   > icfdb.ryc_smartobject.run_persistent
 "run_persistent" "run_persistent" ? ? "logical" ? ? ? ? ? ? no ? no 13.8 yes
-     _FldNameList[15]   > icfdb.gsc_object.run_when
+     _FldNameList[12]   > icfdb.ryc_smartobject.run_when
 "run_when" "run_when" ? ? "character" ? ? ? ? ? ? no ? no 10.4 yes
-     _FldNameList[16]   > icfdb.gsc_object.security_object_obj
-"security_object_obj" "security_object_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 29.4 yes
-     _FldNameList[17]   > icfdb.gsc_object.container_object
+     _FldNameList[13]   > icfdb.ryc_smartobject.security_smartobject_obj
+"security_smartobject_obj" "security_smartobject_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 29.4 yes
+     _FldNameList[14]   > icfdb.ryc_smartobject.container_object
 "container_object" "container_object" ? ? "logical" ? ? ? ? ? ? no ? no 15.8 yes
-     _FldNameList[18]   > icfdb.gsc_object.physical_object_obj
-"physical_object_obj" "physical_object_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 29.4 yes
-     _FldNameList[19]   > icfdb.gsc_object.logical_object
-"logical_object" "logical_object" ? ? "logical" ? ? ? ? ? ? no ? no 13.6 yes
-     _FldNameList[20]   > icfdb.gsc_object.generic_object
+     _FldNameList[15]   > icfdb.ryc_smartobject.physical_smartobject_obj
+"physical_smartobject_obj" "physical_smartobject_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 29.4 yes
+     _FldNameList[16]   > icfdb.ryc_smartobject.static_object
+"static_object" "static_object" ? ? "logical" ? ? ? ? ? ? no ? no 13.6 yes
+     _FldNameList[17]   > icfdb.ryc_smartobject.generic_object
 "generic_object" "generic_object" ? ? "logical" ? ? ? ? ? ? no ? no 14.2 yes
-     _FldNameList[21]   > icfdb.gsc_object.required_db_list
+     _FldNameList[18]   > icfdb.ryc_smartobject.required_db_list
 "required_db_list" "required_db_list" ? ? "character" ? ? ? ? ? ? no ? no 35 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */

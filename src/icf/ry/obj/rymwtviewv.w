@@ -135,8 +135,6 @@ RowObject.show_check_boxes RowObject.show_root_lines RowObject.image_height ~
 RowObject.image_width 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define ENABLED-OBJECTS coTreeStyle 
 &Scoped-Define DISPLAYED-FIELDS RowObject.object_name ~
 RowObject.object_description RowObject.window_title ~
@@ -145,6 +143,8 @@ RowObject.sdo_foreign_fields RowObject.custom_super_procedure ~
 RowObject.tree_style RowObject.auto_sort RowObject.hide_selection ~
 RowObject.show_check_boxes RowObject.show_root_lines RowObject.image_height ~
 RowObject.image_width RowObject.generated_date RowObject.generated_time 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define DISPLAYED-OBJECTS coTreeStyle fiGeneratedTimeStr 
 
 /* Custom List Definitions                                              */
@@ -284,7 +284,7 @@ END.
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
          HEIGHT             = 22.29
-         WIDTH              = 80.
+         WIDTH              = 76.8.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -435,7 +435,9 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_product.product_code,gsc_product.product_descriptionKeyFieldgsc_product.product_codeFieldLabelProduct CodeFieldTooltipSelect a Product CodeKeyFormatX(10)KeyDatatypecharacterDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_product NO-LOCK BY gsc_product.product_codeQueryTablesgsc_productSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 / &2CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueINNER-LINES5ComboFlagFlagValueBuildSequence1SecurednoFieldNameproduct_codeDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_product.product_code,gsc_product.product_descriptionKeyFieldgsc_product.product_codeFieldLabelProduct CodeFieldTooltipSelect option from listKeyFormatX(10)KeyDatatypecharacterDisplayFormatX(10)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_product
+                           WHERE [EXCLUDE_REPOSITORY_PRODUCTS] NO-LOCK
+                         BY ICFDB.gsc_product.product_codeQueryTablesgsc_productSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 / &2CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNameproduct_codeDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_product ).
        RUN repositionObject IN h_product ( 1.00 , 27.80 ) NO-ERROR.
        RUN resizeObject IN h_product ( 1.00 , 50.00 ) NO-ERROR.
@@ -445,7 +447,7 @@ PROCEDURE adm-create-objects :
              INPUT  FRAME frMain:HANDLE ,
              INPUT  'DisplayedFieldgsc_product_module.product_module_code,gsc_product_module.product_module_descriptionKeyFieldgsc_product_module.product_module_codeFieldLabelProduct Module CodeFieldTooltipSelect a Product ModuleKeyFormatX(10)KeyDatatypecharacterDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_product NO-LOCK,
                      EACH gsc_product_module NO-LOCK WHERE gsc_product_module.product_obj = gsc_product.product_obj
-                     BY gsc_product_module.product_module_codeQueryTablesgsc_product,gsc_product_moduleSDFFileNameSDFTemplateParentFieldproduct_codeParentFilterQuerygsc_product.product_code = ~'&1~'DescSubstitute&1 / &2CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueINNER-LINES5ComboFlagFlagValueBuildSequence1SecurednoFieldNameproduct_module_codeDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY gsc_product_module.product_module_codeQueryTablesgsc_product,gsc_product_moduleSDFFileNameSDFTemplateParentFieldproduct_codeParentFilterQuerygsc_product.product_code = ~'&1~'DescSubstitute&1 / &2CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines0ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNameproduct_module_codeDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_product_module ).
        RUN repositionObject IN h_product_module ( 2.05 , 27.80 ) NO-ERROR.
        RUN resizeObject IN h_product_module ( 1.00 , 50.00 ) NO-ERROR.
@@ -453,7 +455,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsm_node.node_codeKeyFieldgsm_node.node_codeFieldLabelNode CodeFieldTooltipSelect the node that will serve as the root node for this TreeView objectKeyFormatX(10)KeyDatatypecharacterDisplayFormatX(10)DisplayDatatypecharacterBaseQueryStringFOR EACH gsm_node WHERE gsm_node.parent_node_obj = 0QueryTablesgsm_nodeBrowseFieldsgsm_node.node_code,gsm_node.node_description,gsm_node.node_labelBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(10),X(35),X(28)RowsToBatch200BrowseTitleRoot Node Code LookupViewerLinkedFieldsgsm_node.primary_sdoLinkedFieldDataTypescharacterLinkedFieldFormatsX(35)ViewerLinkedWidgetsRowObject.root_node_sdo_nameColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOFieldNameroot_node_codeDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsm_node.node_codeKeyFieldgsm_node.node_codeFieldLabelNode CodeFieldTooltipSelect the node that will serve as the root node for this TreeView objectKeyFormatX(10)KeyDatatypecharacterDisplayFormatX(10)DisplayDatatypecharacterBaseQueryStringFOR EACH gsm_node WHERE gsm_node.parent_node_obj = 0QueryTablesgsm_nodeBrowseFieldsgsm_node.node_code,gsm_node.node_description,gsm_node.node_labelBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(10),X(35),X(28)RowsToBatch200BrowseTitleRoot Node Code LookupViewerLinkedFieldsgsm_node.primary_sdoLinkedFieldDataTypescharacterLinkedFieldFormatsX(35)ViewerLinkedWidgetsRowObject.root_node_sdo_nameColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNameroot_node_codeDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_RootNodeCode ).
        RUN repositionObject IN h_RootNodeCode ( 7.29 , 27.80 ) NO-ERROR.
        RUN resizeObject IN h_RootNodeCode ( 1.00 , 50.00 ) NO-ERROR.
@@ -469,15 +471,13 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.object_filenameFieldLabelFilter ViewerFieldTooltipEnter the name of the Root Node filter viewer objectKeyFormatX(70)KeyDatatypecharacterDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type NO-LOCK
-                     WHERE gsc_object_type.object_type_code MATCHES "*SDV*",
+             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.object_filenameFieldLabelFilter ViewerFieldTooltipEnter the name of the Root Node filter viewer objectKeyFormatX(70)KeyDatatypecharacterDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type NO-LOCK,
                      EACH ryc_smartobject NO-LOCK
-                     WHERE ryc_smartobject.OBJECT_type_obj = gsc_object_type.OBJECT_type_obj,
-                     FIRST gsc_object NO-LOCK
-                     WHERE gsc_object.OBJECT_obj = ryc_smartobject.OBJECT_obj,
+                     WHERE ryc_smartobject.OBJECT_type_obj = gsc_object_type.OBJECT_type_obj
+                     AND ryc_smartobject.container_object = FALSE,
                      FIRST gsc_product_module NO-LOCK
                      WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj
-                     BY ryc_smartobject.OBJECT_filenameQueryTablesgsc_object_type,ryc_smartobject,gsc_object,gsc_product_moduleBrowseFieldsgsc_product_module.product_module_code,ryc_smartobject.object_filename,gsc_object_type.object_type_codeBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(10),X(70),X(15)RowsToBatch200BrowseTitleFilter Viewer LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOFieldNamefilter_viewerDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY ryc_smartobject.OBJECT_filenameQueryTablesgsc_object_type,ryc_smartobject,gsc_product_moduleBrowseFieldsgsc_product_module.product_module_code,ryc_smartobject.object_filename,gsc_object_type.object_type_codeBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(10),X(70),X(15)RowsToBatch200BrowseTitleFilter Viewer LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNamefilter_viewerDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dynlookup ).
        RUN repositionObject IN h_dynlookup ( 13.52 , 27.80 ) NO-ERROR.
        RUN resizeObject IN h_dynlookup ( 1.00 , 50.00 ) NO-ERROR.

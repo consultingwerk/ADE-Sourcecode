@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          afdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
@@ -92,7 +92,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gscpcfullo.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -124,6 +124,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -142,9 +143,13 @@ profile_code_obj profile_type_obj profile_description profile_narrative
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gscpcfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsc_profile_code NO-LOCK, ~
+      FIRST gsc_profile_type WHERE AFDB.gsc_profile_type.profile_type_obj = AFDB.gsc_profile_code.profile_type_obj NO-LOCK ~
+    BY gsc_profile_code.profile_type_obj ~
+       BY gsc_profile_code.profile_code INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsc_profile_code NO-LOCK, ~
-      FIRST gsc_profile_type WHERE gsc_profile_type.profile_type_obj = gsc_profile_code.profile_type_obj NO-LOCK ~
+      FIRST gsc_profile_type WHERE AFDB.gsc_profile_type.profile_type_obj = AFDB.gsc_profile_code.profile_type_obj NO-LOCK ~
     BY gsc_profile_code.profile_type_obj ~
        BY gsc_profile_code.profile_code INDEXED-REPOSITION.
 {&DB-REQUIRED-END}
@@ -234,28 +239,28 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "afdb.gsc_profile_code,AFDB.gsc_profile_type WHERE afdb.gsc_profile_code ..."
+     _TblList          = "ICFDB.gsc_profile_code,ICFDB.gsc_profile_type WHERE ICFDB.gsc_profile_code ..."
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _TblOptList       = ", FIRST USED"
      _OrdList          = "afdb.gsc_profile_code.profile_type_obj|yes,afdb.gsc_profile_code.profile_code|yes"
      _JoinCode[2]      = "AFDB.gsc_profile_type.profile_type_obj = AFDB.gsc_profile_code.profile_type_obj"
-     _FldNameList[1]   > afdb.gsc_profile_code.profile_code
+     _FldNameList[1]   > ICFDB.gsc_profile_code.profile_code
 "profile_code" "profile_code" ? ? "character" ? ? ? ? ? ? yes ? no 11.4 yes
-     _FldNameList[2]   > AFDB.gsc_profile_code.profile_code_obj
+     _FldNameList[2]   > ICFDB.gsc_profile_code.profile_code_obj
 "profile_code_obj" "profile_code_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
-     _FldNameList[3]   > AFDB.gsc_profile_code.profile_type_obj
+     _FldNameList[3]   > ICFDB.gsc_profile_code.profile_type_obj
 "profile_type_obj" "profile_type_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
-     _FldNameList[4]   > AFDB.gsc_profile_type.profile_type_code
+     _FldNameList[4]   > ICFDB.gsc_profile_type.profile_type_code
 "profile_type_code" "profile_type_code" ? ? "character" ? ? ? ? ? ? no ? no 20 yes
-     _FldNameList[5]   > AFDB.gsc_profile_code.profile_description
+     _FldNameList[5]   > ICFDB.gsc_profile_code.profile_description
 "profile_description" "profile_description" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[6]   > AFDB.gsc_profile_code.profile_narrative
+     _FldNameList[6]   > ICFDB.gsc_profile_code.profile_narrative
 "profile_narrative" "profile_narrative" ? ? "character" ? ? ? ? ? ? yes ? no 1000 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK dTables 

@@ -1,6 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v9r12 GUI
 &ANALYZE-RESUME
 /* Connected Databases 
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME C-Win
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS C-Win 
@@ -88,33 +89,28 @@ DEFINE NEW GLOBAL SHARED VARIABLE grtb-access       AS CHARACTER    NO-UNDO.
 &Scoped-define BROWSE-NAME BrBrowse
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
-&Scoped-define INTERNAL-TABLES gsc_product_module ryc_smartobject ~
-gsc_object
+&Scoped-define INTERNAL-TABLES gsc_product_module ryc_smartobject
 
 /* Definitions for BROWSE BrBrowse                                      */
 &Scoped-define FIELDS-IN-QUERY-BrBrowse ~
 gsc_product_module.product_module_code ryc_smartobject.object_filename ~
-gsc_object.object_description 
+ryc_smartobject.object_description 
 &Scoped-define ENABLED-FIELDS-IN-QUERY-BrBrowse 
 &Scoped-define QUERY-STRING-BrBrowse FOR EACH gsc_product_module ~
       WHERE gsc_product_module.product_module_code = (IF coProductModule = "<ALL>":U THEN gsc_product_module.product_module_code ELSE coProductModule) NO-LOCK, ~
       EACH ryc_smartobject WHERE ryc_smartobject.product_module_obj = gsc_product_module.product_module_obj ~
-  AND ryc_smartobject.object_filename BEGINS fiObject NO-LOCK, ~
-      FIRST gsc_object WHERE gsc_object.object_obj = ryc_smartobject.object_obj NO-LOCK ~
+  AND ryc_smartobject.object_filename BEGINS fiObject NO-LOCK ~
     BY gsc_product_module.product_module_code ~
        BY ryc_smartobject.object_filename INDEXED-REPOSITION
 &Scoped-define OPEN-QUERY-BrBrowse OPEN QUERY BrBrowse FOR EACH gsc_product_module ~
       WHERE gsc_product_module.product_module_code = (IF coProductModule = "<ALL>":U THEN gsc_product_module.product_module_code ELSE coProductModule) NO-LOCK, ~
       EACH ryc_smartobject WHERE ryc_smartobject.product_module_obj = gsc_product_module.product_module_obj ~
-  AND ryc_smartobject.object_filename BEGINS fiObject NO-LOCK, ~
-      FIRST gsc_object WHERE gsc_object.object_obj = ryc_smartobject.object_obj NO-LOCK ~
+  AND ryc_smartobject.object_filename BEGINS fiObject NO-LOCK ~
     BY gsc_product_module.product_module_code ~
        BY ryc_smartobject.object_filename INDEXED-REPOSITION.
-&Scoped-define TABLES-IN-QUERY-BrBrowse gsc_product_module ryc_smartobject ~
-gsc_object
+&Scoped-define TABLES-IN-QUERY-BrBrowse gsc_product_module ryc_smartobject
 &Scoped-define FIRST-TABLE-IN-QUERY-BrBrowse gsc_product_module
 &Scoped-define SECOND-TABLE-IN-QUERY-BrBrowse ryc_smartobject
-&Scoped-define THIRD-TABLE-IN-QUERY-BrBrowse gsc_object
 
 
 /* Definitions for FRAME DEFAULT-FRAME                                  */
@@ -204,8 +200,7 @@ DEFINE VARIABLE ToIgnoreSCM AS LOGICAL INITIAL no
 &ANALYZE-SUSPEND
 DEFINE QUERY BrBrowse FOR 
       gsc_product_module, 
-      ryc_smartobject, 
-      gsc_object SCROLLING.
+      ryc_smartobject SCROLLING.
 &ANALYZE-RESUME
 
 /* Browse definitions                                                   */
@@ -214,10 +209,10 @@ DEFINE BROWSE BrBrowse
   QUERY BrBrowse NO-LOCK DISPLAY
       gsc_product_module.product_module_code COLUMN-LABEL "Product Module" FORMAT "X(15)":U
       ryc_smartobject.object_filename FORMAT "X(36)":U
-      gsc_object.object_description WIDTH 40
+      ryc_smartobject.object_description WIDTH 40
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-    WITH NO-ROW-MARKERS SEPARATORS MULTIPLE SIZE 97.8 BY 13.33 EXPANDABLE.
+    WITH NO-ROW-MARKERS SEPARATORS MULTIPLE SIZE 97.8 BY 13.33 FIT-LAST-COLUMN.
 
 
 /* ************************  Frame Definitions  *********************** */
@@ -309,20 +304,19 @@ THEN C-Win:HIDDEN = no.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK BROWSE BrBrowse
 /* Query rebuild information for BROWSE BrBrowse
-     _TblList          = "gsc_product_module,ryc_smartobject WHERE gsc_product_module ...,gsc_object WHERE ryc_smartobject ..."
+     _TblList          = "icfdb.gsc_product_module,icfdb.ryc_smartobject WHERE icfdb.gsc_product_module ..."
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _TblOptList       = ",, FIRST"
-     _OrdList          = "gsc_product_module.product_module_code|yes,ryc_smartobject.object_filename|yes"
+     _OrdList          = "icfdb.gsc_product_module.product_module_code|yes,icfdb.ryc_smartobject.object_filename|yes"
      _Where[1]         = "gsc_product_module.product_module_code = (IF coProductModule = ""<ALL>"":U THEN gsc_product_module.product_module_code ELSE coProductModule)"
      _JoinCode[2]      = "ryc_smartobject.product_module_obj = gsc_product_module.product_module_obj
   AND ryc_smartobject.object_filename BEGINS fiObject"
-     _JoinCode[3]      = "gsc_object.object_obj = ryc_smartobject.object_obj"
      _FldNameList[1]   > "_<CALC>"
 "gsc_product_module.product_module_code" "Product Module" "X(15)" "character" ? ? ? ? ? ? no ? no no ? yes no no "U" "" ""
      _FldNameList[2]   > "_<CALC>"
 "ryc_smartobject.object_filename" ? "X(36)" "character" ? ? ? ? ? ? no ? no no ? yes no no "U" "" ""
      _FldNameList[3]   > "_<CALC>"
-"gsc_object.object_description" ? ? "character" ? ? ? ? ? ? no ? no no "40" yes no no "U" "" ""
+"ryc_smartobject.object_description" ? ? "character" ? ? ? ? ? ? no ? no no "40" yes no no "U" "" ""
      _Query            is OPENED
 */  /* BROWSE BrBrowse */
 &ANALYZE-RESUME
@@ -929,11 +923,24 @@ PROCEDURE ProcessObjects :
   DEFINE VARIABLE cError                        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cButton                       AS CHARACTER  NO-UNDO.
 
+  DEFINE VARIABLE ghRyXmlPlip                   AS HANDLE       NO-UNDO.
+
   SESSION:SET-WAIT-STATE("general":U).
 
   EMPTY TEMP-TABLE ttError.
   EMPTY TEMP-TABLE ttObject.
   RUN buildObjectTT (INPUT-OUTPUT TABLE ttObject).
+
+  IF toDumpXml
+  OR toCheckOut
+  THEN DO:
+    {af/sup2/afrun2.i &PLIP = 'rtb/prc/ryxmlplipp.p'
+                      &IProc = ''
+                      &OnApp = 'no'
+                      &Autokill = NO}
+    ASSIGN
+      ghRyXmlPlip = hPlip.
+  END.
 
   /* Dump XML .ado files if selected */
   IF toDumpXml
@@ -942,7 +949,7 @@ PROCEDURE ProcessObjects :
               &IProc = 'dumpXMLForObjects'
               &PList = "( INPUT TABLE ttObject, INPUT-OUTPUT TABLE ttError, OUTPUT cError )"
               &OnApp = 'no'
-              &Autokill = YES}
+              &Autokill = NO}
   END.
 
   /* create/checkout SCM objects if selected */
@@ -951,10 +958,14 @@ PROCEDURE ProcessObjects :
   THEN DO:
     {launch.i &PLIP = 'rtb/prc/ryxmlplipp.p'
               &IProc = 'checkOutObjects'
-              &PList = "( INPUT TABLE ttObject, INPUT grtb-task-num, INPUT-OUTPUT TABLE ttError, OUTPUT cError )"
+              &PList = "( INPUT TABLE ttObject, INPUT grtb-task-num, INPUT NO, INPUT-OUTPUT TABLE ttError, OUTPUT cError )"
               &OnApp = 'no'
-              &Autokill = YES}
+              &Autokill = NO}
   END.
+
+  IF VALID-HANDLE(ghRyXmlPlip)
+  THEN
+    RUN killPlip IN ghRyXmlPlip.
 
   SESSION:SET-WAIT-STATE("":U).
 

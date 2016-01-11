@@ -1,6 +1,5 @@
-<?xml version="1.0" encoding="ISO8859-1" ?>
-<dataset Transactions="5" version_date="02/23/2002" version_time="43012" version_user="admin" entity_mnemonic="GSTDF" key_field_value="3000000411.09" record_version_obj="3000000412.09" version_number_seq="2.09" import_version_number_seq="1.09"><dataset_header DisableRI="yes" DatasetObj="1007600190.08" DateFormat="mdy" FullHeader="yes" SCMManaged="no" YearOffset="1950" DatasetCode="GSMCA" DateCreated="02/23/2002" TimeCreated="11:56:51" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="93" NumericSeparator=","><deploy_dataset_obj>1007600190.08</deploy_dataset_obj>
-<owner_site_code></owner_site_code>
+<?xml version="1.0" encoding="utf-8" ?>
+<dataset Transactions="5"><dataset_header DisableRI="yes" DatasetObj="1007600190.08" DateFormat="mdy" FullHeader="yes" SCMManaged="no" YearOffset="1950" DatasetCode="GSMCA" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="90" NumericSeparator=","><deploy_dataset_obj>1007600190.08</deploy_dataset_obj>
 <dataset_code>GSMCA</dataset_code>
 <dataset_description>gsm_category - Categories</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -8,6 +7,9 @@
 <deploy_full_data>yes</deploy_full_data>
 <xml_generation_procedure></xml_generation_procedure>
 <default_ado_filename></default_ado_filename>
+<deploy_additions_only>no</deploy_additions_only>
+<enable_data_versioning>yes</enable_data_versioning>
+<deletion_dataset>yes</deletion_dataset>
 <dataset_entity><dataset_entity_obj>1007600191.08</dataset_entity_obj>
 <deploy_dataset_obj>1007600190.08</deploy_dataset_obj>
 <entity_sequence>1</entity_sequence>
@@ -19,11 +21,14 @@
 <delete_related_records>yes</delete_related_records>
 <overwrite_records>yes</overwrite_records>
 <keep_own_site_data>no</keep_own_site_data>
+<use_relationship>no</use_relationship>
+<relationship_obj>0</relationship_obj>
+<deletion_action></deletion_action>
 <entity_mnemonic_description>gsm_category</entity_mnemonic_description>
-<entity_dbname>icfdb</entity_dbname>
+<entity_dbname>ICFDB</entity_dbname>
 </dataset_entity>
 <table_definition><name>gsm_category</name>
-<dbname>ICFDB</dbname>
+<dbname>icfdb</dbname>
 <index-1>XAK1gsm_category,1,0,0,related_entity_mnemonic,0,category_type,0,category_group,0,category_subgroup,0</index-1>
 <index-2>XIE1gsm_category,0,0,0,category_label,0</index-2>
 <index-3>XIE2gsm_category,0,0,0,category_description,0</index-3>
@@ -34,8 +39,8 @@
 <field><name>category_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Category Obj</label>
 <column-label>Category Obj</column-label>
 </field>
@@ -74,7 +79,7 @@
 <field><name>category_group_seq</name>
 <data-type>integer</data-type>
 <extent>0</extent>
-<format>->>>>>9</format>
+<format>-&gt;&gt;&gt;&gt;&gt;9</format>
 <initial>      0</initial>
 <label>Category Group Seq.</label>
 <column-label>Category Group Seq.</column-label>
@@ -114,7 +119,7 @@
 <field><name>validation_min_length</name>
 <data-type>integer</data-type>
 <extent>0</extent>
-<format>->>>>>>>9</format>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;9</format>
 <initial>        0</initial>
 <label>Validation Min. Length</label>
 <column-label>Validation Min. Length</column-label>
@@ -122,7 +127,7 @@
 <field><name>validation_max_length</name>
 <data-type>integer</data-type>
 <extent>0</extent>
-<format>->>>>>>>9</format>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;9</format>
 <initial>        0</initial>
 <label>Validation Max. Length</label>
 <column-label>Validation Max. Length</column-label>
@@ -130,7 +135,7 @@
 <field><name>view_as_columns</name>
 <data-type>integer</data-type>
 <extent>0</extent>
-<format>->>9</format>
+<format>-&gt;&gt;9</format>
 <initial>   0</initial>
 <label>View as Columns</label>
 <column-label>View as Columns</column-label>
@@ -138,7 +143,7 @@
 <field><name>view_as_rows</name>
 <data-type>integer</data-type>
 <extent>0</extent>
-<format>->9</format>
+<format>-&gt;9</format>
 <initial>  0</initial>
 <label>View as Rows</label>
 <column-label>View as Rows</column-label>
@@ -161,7 +166,7 @@
 </field>
 </table_definition>
 </dataset_header>
-<dataset_records><dataset_transaction TransactionNo="1"><contained_record DB="ICFDB" Table="gsm_category"><category_obj>827</category_obj>
+<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_category"><category_obj>827</category_obj>
 <related_entity_mnemonic>GSMCM</related_entity_mnemonic>
 <category_type>NOT</category_type>
 <category_group>NOT</category_group>
@@ -179,7 +184,7 @@
 <category_active>no</category_active>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="2"><contained_record DB="ICFDB" Table="gsm_category"><category_obj>246566</category_obj>
+<dataset_transaction TransactionNo="2" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_category"><category_obj>246566</category_obj>
 <related_entity_mnemonic>GSMCM</related_entity_mnemonic>
 <category_type>NOT</category_type>
 <category_group>ALL</category_group>
@@ -197,7 +202,7 @@
 <category_active>no</category_active>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="3"><contained_record DB="ICFDB" Table="gsm_category"><category_obj>2122116</category_obj>
+<dataset_transaction TransactionNo="3" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_category"><category_obj>2122116</category_obj>
 <related_entity_mnemonic>GSMST</related_entity_mnemonic>
 <category_type>STS</category_type>
 <category_group>HST</category_group>
@@ -215,7 +220,7 @@
 <category_active>yes</category_active>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="4"><contained_record DB="ICFDB" Table="gsm_category"><category_obj>2292438</category_obj>
+<dataset_transaction TransactionNo="4" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_category"><category_obj>2292438</category_obj>
 <related_entity_mnemonic>GSMST</related_entity_mnemonic>
 <category_type>STS</category_type>
 <category_group>HST</category_group>
@@ -233,7 +238,7 @@
 <category_active>yes</category_active>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="5"><contained_record DB="ICFDB" Table="gsm_category"><category_obj>1005081017.28</category_obj>
+<dataset_transaction TransactionNo="5" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_category"><category_obj>1005081017.28</category_obj>
 <related_entity_mnemonic>GSMMM</related_entity_mnemonic>
 <category_type>IMG</category_type>
 <category_group>TRE</category_group>

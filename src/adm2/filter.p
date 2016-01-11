@@ -1695,7 +1695,8 @@ PROCEDURE initializeObject :
     DO:
       hContainerHandle:HEIGHT = MAX(dMinHeight,dHeight + drow - 1).
       /* store the size in the AppBuilder */
-      APPLY  "END-RESIZE":U TO hContainerHandle.
+    /* Issue 4771 - not necessary to apply in appbuilder */
+    /*  APPLY  "END-RESIZE":U TO hContainerHandle.*/
     END. /* if cUIBmode begins 'design' */
 
     IF NOT lHidden THEN 

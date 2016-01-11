@@ -71,7 +71,7 @@
   DEFINE VARIABLE glDesignSDO       AS LOGICAL   NO-UNDO.
 
 /* keep track of changes to field attributes */ 
-DEFINE TEMP-TABLE tField 
+DEFINE TEMP-TABLE tField NO-UNDO
 FIELD FieldName    AS CHAR
 FIELD FieldLabel   AS CHAR
 FIELD FieldWidth   AS DEC

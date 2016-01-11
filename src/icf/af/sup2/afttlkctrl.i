@@ -82,7 +82,7 @@ af/cod/aftemwizpw.w
    can be displayed in the about window of the container */
 
 &scop object-name       afttlkctrl.i
-&scop object-version    010002
+&scop object-version    000000
 
 
 /* MIP object identifying preprocessor */
@@ -105,6 +105,8 @@ FIELD cLinkedFieldDataTypes   AS CHARACTER  /* Data Types of Linked Fields to di
 FIELD cLinkedFieldFormats     AS CHARACTER  /* Formats of Linked Fields to display in viewer, comma list */
 FIELD cBaseQueryString        AS CHARACTER  /* Base Browser query string (design time) */
 FIELD cQueryTables            AS CHARACTER  /* Comma list of query tables (buffers) */
+FIELD cPhysicalTableNames     AS CHARACTER  /* comma delimited list of actual DB Tables names of buffers defined that corresponds with cQueryTables */
+FIELD cTempTableNames         AS CHARACTER  /* comma delimited list of PLIP names where data for define temp-tables could be retrieved, corresponds with cQueryTables */
 FIELD cAllFields              AS CHARACTER  /* Comma list of all selected fields minus duplicates */
 FIELD cAllFieldTypes          AS CHARACTER  /* Comma list of all selected fields minus duplicates data types */
 FIELD cAllFieldFormats        AS CHARACTER  /* Comma list of all selected fields minus duplicates formats */

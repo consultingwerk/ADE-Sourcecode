@@ -56,25 +56,24 @@ adm2/support/_wizqry.w,adm2/support/_wizfld.w
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
-  File: gscotfullo.w
+  File: rysttasdoo.w
 
-  Description:  Object Type Maintenance
+  Description:  Template SmartDataObject Template
 
-  Purpose:      Object Type Maintenance
+  Purpose:      Template SmartDataObject Template
 
   Parameters:   <none>
 
   History:
   --------
-  (v:010000)    Task:        6517   UserRef:    
-                Date:   21/08/2000  Author:     Jenny Bond
+  (v:010000)    Task:        6180   UserRef:    
+                Date:   28/06/2000  Author:     Anthony Swindells
 
-  Update Notes: Created from Template rysttasdoo.w.  Initial coding.
-                Created from Template gscotsdoo.w
+  Update Notes: V9 Templates
 
----------------------------------------------------------------------------------*/
-/*                   This .W file was created with the Progress UIB.             */
-/*-------------------------------------------------------------------------------*/
+--------------------------------------------------------------------*/
+/*          This .W file was created with the Progress AppBuilder.      */
+/*----------------------------------------------------------------------*/
 
 /* Create an unnamed pool to store all the widgets created 
      by this procedure. This is a good default which assures
@@ -99,10 +98,12 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 /* Local Variable Definitions ---                                       */
 
-/* Astra 2 object identifying preprocessor */
+/* Object identifying preprocessor */
 &glob   astra2-staticSmartDataObject yes
 
-{af/sup2/afglobals.i}
+{src/adm2/globals.i}
+
+&glob DATA-LOGIC-PROCEDURE       af/obj2/gscotlogcp.p
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -125,23 +126,30 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
 &Scoped-define INTERNAL-TABLES gsc_object_type
 
 /* Definitions for QUERY Query-Main                                     */
-&Scoped-Define ENABLED-FIELDS  object_type_code object_type_description layout_supported disabled
+&Scoped-Define ENABLED-FIELDS  object_type_code object_type_description disabled layout_supported~
+ deployment_type static_object class_smartobject_obj extends_object_type_obj
 &Scoped-define ENABLED-FIELDS-IN-gsc_object_type object_type_code ~
-object_type_description layout_supported disabled 
-&Scoped-Define DATA-FIELDS  object_type_code object_type_description layout_supported disabled~
- object_type_obj
-&Scoped-define DATA-FIELDS-IN-gsc_object_type object_type_code ~
-object_type_description layout_supported disabled object_type_obj 
+object_type_description disabled layout_supported deployment_type ~
+static_object class_smartobject_obj extends_object_type_obj 
+&Scoped-Define DATA-FIELDS  object_type_obj object_type_code object_type_description disabled~
+ layout_supported deployment_type static_object class_smartobject_obj~
+ extends_object_type_obj
+&Scoped-define DATA-FIELDS-IN-gsc_object_type object_type_obj ~
+object_type_code object_type_description disabled layout_supported ~
+deployment_type static_object class_smartobject_obj extends_object_type_obj 
 &Scoped-Define MANDATORY-FIELDS 
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gscotfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsc_object_type NO-LOCK ~
+    BY gsc_object_type.object_type_code INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsc_object_type NO-LOCK ~
     BY gsc_object_type.object_type_code INDEXED-REPOSITION.
@@ -156,6 +164,19 @@ object_type_description layout_supported disabled object_type_obj
 /* _UIB-PREPROCESSOR-BLOCK-END */
 &ANALYZE-RESUME
 
+
+/* ************************  Function Prototypes ********************** */
+
+{&DB-REQUIRED-START}
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getSDOLevel dTables  _DB-REQUIRED
+FUNCTION getSDOLevel RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
 
 
 /* ***********************  Control Definitions  ********************** */
@@ -199,8 +220,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW dTables ASSIGN
-         HEIGHT             = 1.57
-         WIDTH              = 46.6.
+         HEIGHT             = 1.62
+         WIDTH              = 57.8.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -229,19 +250,27 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "icfdb.gsc_object_type"
-     _Options          = "NO-LOCK INDEXED-REPOSITION"
-     _OrdList          = "icfdb.gsc_object_type.object_type_code|yes"
-     _FldNameList[1]   > icfdb.gsc_object_type.object_type_code
-"object_type_code" "object_type_code" ? ? "character" ? ? ? ? ? ? yes ? no 17.2 no
-     _FldNameList[2]   > icfdb.gsc_object_type.object_type_description
-"object_type_description" "object_type_description" ? ? "character" ? ? ? ? ? ? yes ? no 35 no
-     _FldNameList[3]   > icfdb.gsc_object_type.layout_supported
-"layout_supported" "layout_supported" ? ? "logical" ? ? ? ? ? ? yes ? no 16.8 no
-     _FldNameList[4]   > icfdb.gsc_object_type.disabled
-"disabled" "disabled" ? ? "logical" ? ? ? ? ? ? yes ? no 8.2 no
-     _FldNameList[5]   > icfdb.gsc_object_type.object_type_obj
-"object_type_obj" "object_type_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 29.4 no
+     _TblList          = "ICFDB.gsc_object_type"
+     _Options          = "NO-LOCK INDEXED-REPOSITION "
+     _OrdList          = "ICFDB.gsc_object_type.object_type_code|yes"
+     _FldNameList[1]   > ICFDB.gsc_object_type.object_type_obj
+"object_type_obj" "object_type_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 24 yes
+     _FldNameList[2]   > ICFDB.gsc_object_type.object_type_code
+"object_type_code" "object_type_code" ? "X(30)" "character" ? ? ? ? ? ? yes ? no 30 no
+     _FldNameList[3]   > ICFDB.gsc_object_type.object_type_description
+"object_type_description" "object_type_description" ? ? "character" ? ? ? ? ? ? yes ? no 70 no
+     _FldNameList[4]   > ICFDB.gsc_object_type.disabled
+"disabled" "disabled" ? ? "logical" ? ? ? ? ? ? yes ? no 1 no
+     _FldNameList[5]   > ICFDB.gsc_object_type.layout_supported
+"layout_supported" "layout_supported" ? ? "logical" ? ? ? ? ? ? yes ? no 1 no
+     _FldNameList[6]   > ICFDB.gsc_object_type.deployment_type
+"deployment_type" "deployment_type" ? ? "character" ? ? ? ? ? ? yes ? no 70 no
+     _FldNameList[7]   > ICFDB.gsc_object_type.static_object
+"static_object" "static_object" ? ? "logical" ? ? ? ? ? ? yes ? no 1 no
+     _FldNameList[8]   > ICFDB.gsc_object_type.class_smartobject_obj
+"class_smartobject_obj" "class_smartobject_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 24 yes
+     _FldNameList[9]   > ICFDB.gsc_object_type.extends_object_type_obj
+"extends_object_type_obj" "extends_object_type_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 24 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
@@ -281,96 +310,24 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+/* ************************  Function Implementations ***************** */
+
 {&DB-REQUIRED-START}
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initializeObject dTables  _DB-REQUIRED
-PROCEDURE initializeObject :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getSDOLevel dTables  _DB-REQUIRED
+FUNCTION getSDOLevel RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
 /*------------------------------------------------------------------------------
-  Purpose:     Super Override
-  Parameters:  
-  Notes:       
+  Purpose:  
+    Notes:  
 ------------------------------------------------------------------------------*/
 
-    /* Code placed here will execute PRIOR to standard behavior. */
+  RETURN "ObjectType".   /* Function return value. */
 
-    DYNAMIC-FUNCTION("setUserProperty":U, INPUT "owningEntityMnemonic", INPUT "GSCOT":U).
-
-    RUN SUPER.
-
-    DYNAMIC-FUNCTION("setUserProperty":U, INPUT "owningEntityMnemonic", INPUT "GSCOT":U).
-
-    /* Code placed here will execute AFTER standard behavior.    */
-
-END PROCEDURE.
+END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
 {&DB-REQUIRED-END}
-
-{&DB-REQUIRED-START}
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE preTransactionValidate dTables  _DB-REQUIRED
-PROCEDURE preTransactionValidate :
-/*------------------------------------------------------------------------------
-  Purpose:     To perform validation that requires access to the database but
-               that can occur before the transaction has started.
-  Parameters:  <none>
-  Notes:       Batch up errors using a chr(3) delimiter and be sure not to leave
-               the error status raised.
-------------------------------------------------------------------------------*/
-
-DEFINE VARIABLE cMessageList                  AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cText                         AS CHARACTER  NO-UNDO.
-
-FOR EACH RowObjUpd WHERE LOOKUP(RowObjUpd.RowMod,"A,C,U":U) <> 0:
-
-  /* ensure object name specified is unique */
-  IF (RowObjUpd.RowMod = "U":U AND
-      CAN-FIND(FIRST gsc_object_type
-               WHERE gsc_object_type.object_type_code = RowObjUpd.object_type_code
-                 AND ROWID(gsc_object_type) <> TO-ROWID(RowObjUpd.ROWIDent))) OR 
-     (RowObjUpd.RowMod <> "U":U AND
-      CAN-FIND(FIRST gsc_object_type
-               WHERE gsc_object_type.OBJECT_type_code = RowObjUpd.object_type_code))  THEN
-    ASSIGN cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE "":U) +
-           {af/sup2/aferrortxt.i 'AF' '8' 'gsc_object_type' 'object_type_code' "'object type code'" RowObjUpd.object_type_code "'. Please use a different object type code'"}
-           .
-END.
-
-/* pass back errors in return value and ensure error status not left raised */
-ERROR-STATUS:ERROR = NO.
-RETURN cMessageList.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-{&DB-REQUIRED-END}
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE rowObjectValidate dTables 
-PROCEDURE rowObjectValidate :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-DEFINE VARIABLE cMessageList                  AS CHARACTER  NO-UNDO.
-
-IF LENGTH(RowObject.object_type_code) = 0 THEN
-    ASSIGN cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE "":U) +
-                        {af/sup2/aferrortxt.i 'AF' '1' 'gsc_object_type' 'object_type_code' "'object type code'"}.
-
-IF LENGTH(RowObject.object_type_description) = 0 THEN
-    ASSIGN cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE "":U) +
-                     {af/sup2/aferrortxt.i 'AF' '1' 'gsc_object_type' 'object_type_description' "'object type description'"}.
-
-RETURN cMessageList.
-
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 

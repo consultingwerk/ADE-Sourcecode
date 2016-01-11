@@ -38,7 +38,6 @@
 
 &SCOPED-DEFINE ADMSuper sbocustom.p
 
-
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -83,7 +82,7 @@
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB Procedure 
 /* ************************* Included-Libraries *********************** */
 
-{adm2/sboprop.i}
+{src/adm2/sboprop.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

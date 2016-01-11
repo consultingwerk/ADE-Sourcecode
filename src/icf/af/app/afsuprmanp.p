@@ -92,7 +92,7 @@ af/cod/aftemwizpw.w
 
 &scop object-name       afsuprmanp.p
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010002
+&scop object-version    000000
 
 
 /* Astra object identifying preprocessor */
@@ -186,7 +186,7 @@ FUNCTION removeSuperProcedure RETURNS LOGICAL
                                                                         */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
@@ -249,12 +249,17 @@ PROCEDURE setAsSuperProcedure :
 
     DEFINE VARIABLE hManagerUsed            AS HANDLE                   NO-UNDO.
     DEFINE VARIABLE iManagerLoop            AS INTEGER                  NO-UNDO.
+    DEFINE VARIABLE cManagerName            AS CHARACTER                NO-UNDO.
 
     IF pcAction = "":U THEN
         ASSIGN pcAction = "ADD":U.
 
     DO iManagerLoop = 1 TO NUM-ENTRIES(pcUsethisManager):
-        CASE ENTRY(iManagerLoop, pcUseThisManager):
+        ASSIGN cManagerName = ENTRY(iManagerLoop, pcUseThisManager).
+        ASSIGN hManagerUsed = DYNAMIC-FUNCTION("getManagerHandle":U, INPUT cManagerName).
+
+        IF NOT VALID-HANDLE(hManagerUsed) THEN
+        CASE cManagerName:
             WHEN "FIN":U         THEN ASSIGN hManagerUsed = gshFinManager.
             WHEN "GEN":U         THEN ASSIGN hManagerUsed = gshGenManager.
             WHEN "SESSION":U     THEN ASSIGN hManagerUsed = gshSessionManager.
@@ -264,15 +269,34 @@ PROCEDURE setAsSuperProcedure :
             WHEN "TRANSLATION":U THEN ASSIGN hManagerUsed = gshTranslationManager.
             WHEN "WEB":U         THEN ASSIGN hManagerUsed = gshWebManager.
             WHEN "AGN":U         THEN ASSIGN hManagerUsed = gshAgnManager.
-            OTHERWISE                 ASSIGN hManagerUsed = ?.
+            OTHERWISE
+            DO:
+                ASSIGN hManagerUsed = SESSION:FIRST-PROCEDURE.
+
+                PROCDURE-SEARCH-LOOP:
+                DO WHILE VALID-HANDLE(hManagerUsed):
+                    IF hManagerUsed:FILE-NAME EQ cManagerName                          OR
+                       hManagerUsed:FILE-NAME EQ REPLACE(cManagerName, ".p":U, ".r":U) THEN
+                        LEAVE PROCDURE-SEARCH-LOOP.
+                    ASSIGN hManagerUsed = hManagerUsed:NEXT-SIBLING.
+                END.    /* PROCDURE-SEARCH-LOOP: walk the proceduretry */
+
+                /* If there is a valid handle, check that the file-name matches that
+                 * which we're searching. If not, set the handle to an invalid value. */
+                IF VALID-HANDLE(hManagerUsed)                                      AND
+                   hManagerUsed:FILE-NAME NE cManagerName                          AND
+                   hManagerUsed:FILE-NAME NE REPLACE(cManagerName, ".p":U, ".r":U) THEN
+                    ASSIGN hManagerUsed = ?.
+            END.    /* otherwise */
         END CASE.   /* use this manager */
 
+        IF VALID-HANDLE(hManagerUsed) THEN
         CASE pcAction:
             WHEN "ADD":U     THEN DYNAMIC-FUNCTION("addSuperProcedure":U,    INPUT hManagerUsed).
             WHEN "REMOVE":U  THEN DYNAMIC-FUNCTION("removeSuperProcedure":U, INPUT hManagerUsed).
             WHEN "REPLACE":U THEN
             DO:
-                IF iManagerLoop = 1 THEN
+                IF iManagerLoop EQ 1 THEN
                 DO:
                     /* If there is only one entry in the list, remove all other
                      * entries and add that manager, if it exists.

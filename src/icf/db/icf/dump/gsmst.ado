@@ -1,6 +1,5 @@
-<?xml version="1.0" encoding="ISO8859-1" ?>
-<dataset Transactions="4" version_date="02/23/2002" version_time="43071" version_user="admin" entity_mnemonic="GSTDF" key_field_value="3000000447.09" record_version_obj="3000000448.09" version_number_seq="2.09" import_version_number_seq="1.09"><dataset_header DisableRI="yes" DatasetObj="1007600209.08" DateFormat="mdy" FullHeader="yes" SCMManaged="no" YearOffset="1950" DatasetCode="GSMST" DateCreated="02/23/2002" TimeCreated="11:57:51" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="93" NumericSeparator=","><deploy_dataset_obj>1007600209.08</deploy_dataset_obj>
-<owner_site_code></owner_site_code>
+<?xml version="1.0" encoding="utf-8" ?>
+<dataset Transactions="4"><dataset_header DisableRI="yes" DatasetObj="1007600209.08" DateFormat="mdy" FullHeader="yes" SCMManaged="no" YearOffset="1950" DatasetCode="GSMST" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="90" NumericSeparator=","><deploy_dataset_obj>1007600209.08</deploy_dataset_obj>
 <dataset_code>GSMST</dataset_code>
 <dataset_description>gsm_status</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -8,6 +7,9 @@
 <deploy_full_data>yes</deploy_full_data>
 <xml_generation_procedure></xml_generation_procedure>
 <default_ado_filename></default_ado_filename>
+<deploy_additions_only>no</deploy_additions_only>
+<enable_data_versioning>yes</enable_data_versioning>
+<deletion_dataset>yes</deletion_dataset>
 <dataset_entity><dataset_entity_obj>1007600210.08</dataset_entity_obj>
 <deploy_dataset_obj>1007600209.08</deploy_dataset_obj>
 <entity_sequence>1</entity_sequence>
@@ -19,8 +21,11 @@
 <delete_related_records>yes</delete_related_records>
 <overwrite_records>yes</overwrite_records>
 <keep_own_site_data>no</keep_own_site_data>
+<use_relationship>no</use_relationship>
+<relationship_obj>0</relationship_obj>
+<deletion_action></deletion_action>
 <entity_mnemonic_description>gsm_status</entity_mnemonic_description>
-<entity_dbname>icfdb</entity_dbname>
+<entity_dbname>ICFDB</entity_dbname>
 </dataset_entity>
 <dataset_entity><dataset_entity_obj>1007600211.08</dataset_entity_obj>
 <deploy_dataset_obj>1007600209.08</deploy_dataset_obj>
@@ -33,11 +38,14 @@
 <delete_related_records>yes</delete_related_records>
 <overwrite_records>yes</overwrite_records>
 <keep_own_site_data>no</keep_own_site_data>
+<use_relationship>no</use_relationship>
+<relationship_obj>0</relationship_obj>
+<deletion_action></deletion_action>
 <entity_mnemonic_description>gsm_status_history</entity_mnemonic_description>
-<entity_dbname>icfdb</entity_dbname>
+<entity_dbname>ICFDB</entity_dbname>
 </dataset_entity>
 <table_definition><name>gsm_status</name>
-<dbname>ICFDB</dbname>
+<dbname>icfdb</dbname>
 <index-1>XAK1gsm_status,1,0,0,category_obj,0,status_seq,0</index-1>
 <index-2>XAK2gsm_status,1,0,0,category_obj,0,status_tla,0</index-2>
 <index-3>XIE1gsm_status,0,0,0,category_obj,0,status_description,0</index-3>
@@ -46,23 +54,23 @@
 <field><name>status_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Status Obj</label>
 <column-label>Status Obj</column-label>
 </field>
 <field><name>category_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Category Obj</label>
 <column-label>Category Obj</column-label>
 </field>
 <field><name>status_seq</name>
 <data-type>integer</data-type>
 <extent>0</extent>
-<format>->>9</format>
+<format>-&gt;&gt;9</format>
 <initial>   0</initial>
 <label>Status Seq.</label>
 <column-label>Status Seq.</column-label>
@@ -117,7 +125,7 @@
 </field>
 </table_definition>
 <table_definition><name>gsm_status_history</name>
-<dbname>ICFDB</dbname>
+<dbname>icfdb</dbname>
 <index-1>XAK1gsm_status_history,1,0,0,status_obj,0,owning_obj,0,from_date,0</index-1>
 <index-2>XAK2gsm_status_history,1,0,0,status_history_obj,0</index-2>
 <index-3>XIE1gsm_status_history,0,0,0,owning_obj,0,from_date,0</index-3>
@@ -125,8 +133,8 @@
 <field><name>owning_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Owning Obj</label>
 <column-label>Owning Obj</column-label>
 </field>
@@ -141,8 +149,8 @@
 <field><name>status_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Status Obj</label>
 <column-label>Status Obj</column-label>
 </field>
@@ -157,14 +165,18 @@
 <field><name>status_history_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Status History Obj</label>
 <column-label>Status History Obj</column-label>
 </field>
 </table_definition>
 </dataset_header>
-<dataset_records><dataset_transaction TransactionNo="1"><contained_record DB="ICFDB" Table="gsm_status"><status_obj>2122131</status_obj>
+<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DELETION"><contained_record version_date="03/21/2003" version_time="51311" version_user="admin" deletion_flag="yes" entity_mnemonic="gsmst" key_field_value="2124893" record_version_obj="3000044737.09" version_number_seq="1.09" secondary_key_value="2122116#CHR(1)#ANT" import_version_number_seq="1.09"/>
+</dataset_transaction>
+<dataset_transaction TransactionNo="2" TransactionType="DELETION"><contained_record version_date="03/21/2003" version_time="51313" version_user="admin" deletion_flag="yes" entity_mnemonic="gsmst" key_field_value="2292439" record_version_obj="3000044738.09" version_number_seq="1.09" secondary_key_value="2292438#CHR(1)#HLD" import_version_number_seq="1.09"/>
+</dataset_transaction>
+<dataset_transaction TransactionNo="3" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_status"><status_obj>2122131</status_obj>
 <category_obj>2122116</category_obj>
 <status_seq>1</status_seq>
 <status_tla>HST</status_tla>
@@ -173,7 +185,7 @@
 <retain_status_history>yes</retain_status_history>
 <system_owned>no</system_owned>
 <auto_display>no</auto_display>
-<contained_record DB="ICFDB" Table="gsm_status_history"><owning_obj>249</owning_obj>
+<contained_record DB="icfdb" Table="gsm_status_history"><owning_obj>249</owning_obj>
 <from_date>06/20/00</from_date>
 <status_obj>2122131</status_obj>
 <to_date>?</to_date>
@@ -181,18 +193,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="2"><contained_record DB="ICFDB" Table="gsm_status"><status_obj>2124893</status_obj>
-<category_obj>2122116</category_obj>
-<status_seq>2</status_seq>
-<status_tla>ANT</status_tla>
-<status_short_desc>Another Flag</status_short_desc>
-<status_description>Another Flag</status_description>
-<retain_status_history>yes</retain_status_history>
-<system_owned>no</system_owned>
-<auto_display>no</auto_display>
-</contained_record>
-</dataset_transaction>
-<dataset_transaction TransactionNo="3"><contained_record DB="ICFDB" Table="gsm_status"><status_obj>2292399</status_obj>
+<dataset_transaction TransactionNo="4" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_status"><status_obj>2292399</status_obj>
 <category_obj>2122116</category_obj>
 <status_seq>0</status_seq>
 <status_tla>HLD</status_tla>
@@ -201,23 +202,12 @@
 <retain_status_history>yes</retain_status_history>
 <system_owned>no</system_owned>
 <auto_display>no</auto_display>
-<contained_record DB="ICFDB" Table="gsm_status_history"><owning_obj>250140</owning_obj>
+<contained_record DB="icfdb" Table="gsm_status_history"><owning_obj>250140</owning_obj>
 <from_date>06/27/00</from_date>
 <status_obj>2292399</status_obj>
 <to_date>?</to_date>
 <status_history_obj>1003581391</status_history_obj>
 </contained_record>
-</contained_record>
-</dataset_transaction>
-<dataset_transaction TransactionNo="4"><contained_record DB="ICFDB" Table="gsm_status"><status_obj>2292439</status_obj>
-<category_obj>2292438</category_obj>
-<status_seq>0</status_seq>
-<status_tla>HLD</status_tla>
-<status_short_desc>Hld Transaction</status_short_desc>
-<status_description>Account Transaction Hold</status_description>
-<retain_status_history>yes</retain_status_history>
-<system_owned>no</system_owned>
-<auto_display>no</auto_display>
 </contained_record>
 </dataset_transaction>
 </dataset_records>

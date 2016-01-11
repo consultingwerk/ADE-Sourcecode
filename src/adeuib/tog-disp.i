@@ -29,7 +29,7 @@ Description:
 
 Author: D. Ross Hunter 
 
-Date Generated: 10/05/00
+Date Generated: 07/03/02
 
 Note: This procedure is generated via the Property Sheet Generator and 
       the abAttribute table of the ab database. 
@@ -374,21 +374,6 @@ Note: This procedure is generated via the Property Sheet Generator and
         END TRIGGERS.
   END.
 
-  WHEN "EXPANDABLE" THEN DO:
-    CREATE TOGGLE-BOX h_EXPANDABLE
-        ASSIGN FRAME         = FRAME prop_sht:HANDLE
-               ROW           = cur-row + ((togcnt - 1) MOD tog-rows) * tog-spc
-               COLUMN        = IF togcnt <= tog-rows THEN 4.5
-                               ELSE IF togcnt <= tog-rows * 2 THEN tog-col-2
-                               ELSE tog-col-3
-               LABEL         = "Expandable"
-               CHECKED       = _C._EXPANDABLE
-               SENSITIVE     = TRUE
-        TRIGGERS:
-          ON VALUE-CHANGED PERSISTENT RUN EXPANDABLE_proc.
-        END TRIGGERS.
-  END.
-
   WHEN "EXPLICIT-POSITION" THEN DO:
     CREATE TOGGLE-BOX h_EXPLICIT-POSITION
         ASSIGN FRAME         = FRAME prop_sht:HANDLE
@@ -416,6 +401,21 @@ Note: This procedure is generated via the Property Sheet Generator and
                SENSITIVE     = TRUE
         TRIGGERS:
           ON VALUE-CHANGED PERSISTENT RUN FILLED_proc.
+        END TRIGGERS.
+  END.
+
+  WHEN "FIT-LAST-COLUMN" THEN DO:
+    CREATE TOGGLE-BOX h_FIT-LAST-COLUMN
+        ASSIGN FRAME         = FRAME prop_sht:HANDLE
+               ROW           = cur-row + ((togcnt - 1) MOD tog-rows) * tog-spc
+               COLUMN        = IF togcnt <= tog-rows THEN 4.5
+                               ELSE IF togcnt <= tog-rows * 2 THEN tog-col-2
+                               ELSE tog-col-3
+               LABEL         = "Fit-Last-Column"
+               CHECKED       = _C._FIT-LAST-COLUMN
+               SENSITIVE     = TRUE
+        TRIGGERS:
+          ON VALUE-CHANGED PERSISTENT RUN FIT-LAST-COLUMN_proc.
         END TRIGGERS.
   END.
 
@@ -671,6 +671,21 @@ Note: This procedure is generated via the Property Sheet Generator and
                SENSITIVE     = TRUE
         TRIGGERS:
           ON VALUE-CHANGED PERSISTENT RUN NO-CURRENT-VALUE_proc.
+        END TRIGGERS.
+  END.
+
+  WHEN "NO-EMPTY-SPACE" THEN DO:
+    CREATE TOGGLE-BOX h_NO-EMPTY-SPACE
+        ASSIGN FRAME         = FRAME prop_sht:HANDLE
+               ROW           = cur-row + ((togcnt - 1) MOD tog-rows) * tog-spc
+               COLUMN        = IF togcnt <= tog-rows THEN 4.5
+                               ELSE IF togcnt <= tog-rows * 2 THEN tog-col-2
+                               ELSE tog-col-3
+               LABEL         = "No-Empty-Space"
+               CHECKED       = _C._NO-EMPTY-SPACE
+               SENSITIVE     = TRUE
+        TRIGGERS:
+          ON VALUE-CHANGED PERSISTENT RUN NO-EMPTY-SPACE_proc.
         END TRIGGERS.
   END.
 
@@ -1031,6 +1046,21 @@ Note: This procedure is generated via the Property Sheet Generator and
                SENSITIVE     = TRUE
         TRIGGERS:
           ON VALUE-CHANGED PERSISTENT RUN SHOW-IN-TASKBAR_proc.
+        END TRIGGERS.
+  END.
+
+  WHEN "SHOW-POPUP" THEN DO:
+    CREATE TOGGLE-BOX h_SHOW-POPUP
+        ASSIGN FRAME         = FRAME prop_sht:HANDLE
+               ROW           = cur-row + ((togcnt - 1) MOD tog-rows) * tog-spc
+               COLUMN        = IF togcnt <= tog-rows THEN 4.5
+                               ELSE IF togcnt <= tog-rows * 2 THEN tog-col-2
+                               ELSE tog-col-3
+               LABEL         = "Show-popup"
+               CHECKED       = _U._SHOW-POPUP
+               SENSITIVE     = TRUE
+        TRIGGERS:
+          ON VALUE-CHANGED PERSISTENT RUN SHOW-POPUP_proc.
         END TRIGGERS.
   END.
 

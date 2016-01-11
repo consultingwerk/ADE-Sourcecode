@@ -84,6 +84,7 @@ DEFINE VARIABLE app_handle AS HANDLE   NO-UNDO.
 /* ********************  Preprocessor Definitions  ******************** */
 
 &Scoped-define PROCEDURE-TYPE WINDOW
+&Scoped-define DB-AWARE no
 
 /* Name of first Frame and/or Browse and/or first Query                 */
 &Scoped-define FRAME-NAME f_Run
@@ -157,6 +158,7 @@ DEFINE FRAME f_Run
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
 /* Settings for THIS-PROCEDURE
    Type: WINDOW
+   Other Settings: COMPILE
  */
 &ANALYZE-RESUME _END-PROCEDURE-SETTINGS
 
@@ -184,15 +186,17 @@ IF SESSION:DISPLAY-TYPE = "GUI":U THEN
          SENSITIVE          = yes.
 ELSE {&WINDOW-NAME} = CURRENT-WINDOW.
 
+&IF '{&WINDOW-SYSTEM}' NE 'TTY' &THEN
 IF NOT run_win:LOAD-ICON("adeicon/run":U) THEN
     MESSAGE "Unable to load icon: adeicon/run"
             VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+&ENDIF
 /* END WINDOW DEFINITION                                                */
 &ANALYZE-RESUME
 
 
 
-/* ***************  Runtime Attributes and UIB Settings  ************** */
+/* ***********  Runtime Attributes and AppBuilder Settings  *********** */
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR WINDOW run_win
@@ -247,7 +251,7 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL f_Run run_win
 ON GO OF FRAME f_Run
 DO:
-
+  
   /* Is there a non-blank name? */
   IF TRIM(run-pgm:SCREEN-VALUE) NE "":U THEN DO:
     run-pgm = SEARCH (run-pgm:SCREEN-VALUE) NO-ERROR.
@@ -283,6 +287,8 @@ DO:
           RUN disable_widgets IN h_tool NO-ERROR.
           RUN adecomm/_runcode.p
             (INPUT run-pgm , INPUT run_flags , INPUT ? /* Stop_Widget */, OUTPUT app_handle ).
+          IF NOT VALID-HANDLE(h_tool) THEN
+             UNDO run-block.
         END.
         RUN enable_widgets IN h_tool NO-ERROR.
         RUN enable_widgets IN THIS-PROCEDURE.
@@ -294,8 +300,12 @@ DO:
     MESSAGE "Enter a procedure to run."
         VIEW-AS ALERT-BOX ERROR BUTTONS OK IN WINDOW {&WINDOW-NAME}.
   END.
-  IF {&WINDOW-NAME}:MOVE-TO-TOP() THEN.
-  APPLY "ENTRY" TO run-pgm.
+  IF VALID-HANDLE({&WINDOW-NAME}) THEN 
+  DO:
+     {&WINDOW-NAME}:MOVE-TO-TOP() .
+     APPLY "ENTRY" TO run-pgm.
+  END.
+
   RETURN NO-APPLY.
 END.
 
@@ -399,6 +409,7 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
    ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
   RUN enable_UI.
   APPLY "ENTRY" TO run-pgm.
+  
   IF NOT THIS-PROCEDURE:PERSISTENT THEN
     WAIT-FOR CLOSE OF THIS-PROCEDURE.
 END.
@@ -409,7 +420,7 @@ END.
 
 /* **********************  Internal Procedures  *********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI run_win _DEFAULT-DISABLE
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI run_win  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     DISABLE the User Interface
@@ -449,7 +460,7 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI run_win _DEFAULT-ENABLE
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI run_win  _DEFAULT-ENABLE
 PROCEDURE enable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     ENABLE the User Interface

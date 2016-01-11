@@ -258,3 +258,6 @@
 
 /* Multi-Field mapping dialog (adecomm/_mfldmap.p) */
 &GLOBAL-DEFINE Multi_Field_DB 49354
+
+/*New Report Data Width */
+&GLOBAL-DEFINE Verify_Data_Width_Report_Dialog_Box 62

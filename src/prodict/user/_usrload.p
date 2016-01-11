@@ -58,6 +58,7 @@ Output:
   user_env[15]= user wants to commit even if errors are found.
 
 History:
+    D. McMann   04/23/02 Added option for on-line schema changes
     D. McMann   01/03/13 Added option to commit even if error present.
     D. McMann   00/06/08 Added check for non table records on load of data
     D. McMann   00/04/12 Added support for long path names
@@ -85,38 +86,40 @@ History:
 { prodict/dictvar.i }
 { prodict/user/uservar.i }
 
-DEFINE VARIABLE answer   AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE canned   AS LOGICAL    NO-UNDO INITIAL TRUE.
-DEFINE VARIABLE base     AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE class    AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE comma    AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE err        AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE i          AS INTEGER    NO-UNDO.
-DEFINE VARIABLE io-file    AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE io-frame   AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE io-title   AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE is-all     AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE is-one     AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE is-some    AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE stop_flg   AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE commit_flg AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE msg-num  AS INTEGER    NO-UNDO INITIAL 0.
-DEFINE VARIABLE noload   AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE prefix   AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE trash    AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE dis_trig AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE codepage AS CHARACTER  NO-UNDO FORMAT "X(20)".
-DEFINE VARIABLE lvar     AS CHAR EXTENT 10 NO-UNDO.
-DEFINE VARIABLE lvar#    AS INT            NO-UNDO.  
-DEFINE VARIABLE cr       AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE answer        AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE canned        AS LOGICAL    NO-UNDO INITIAL TRUE.
+DEFINE VARIABLE base          AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE class         AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE comma         AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE err           AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE i             AS INTEGER    NO-UNDO.
+DEFINE VARIABLE io-file       AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE io-frame      AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE io-title      AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE is-all        AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE is-one        AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE is-some       AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE stop_flg      AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE commit_flg    AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE no-schema-lock AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE msg-num       AS INTEGER    NO-UNDO INITIAL 0.
+DEFINE VARIABLE noload        AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE prefix        AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE trash         AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE dis_trig      AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE codepage      AS CHARACTER  NO-UNDO FORMAT "X(20)".
+DEFINE VARIABLE lvar          AS CHAR EXTENT 10 NO-UNDO.
+DEFINE VARIABLE lvar#         AS INT            NO-UNDO.  
+DEFINE VARIABLE cr            AS CHARACTER  NO-UNDO.
 
-DEFINE VARIABLE do-screen AS LOGICAL NO-UNDO INIT FALSE.
-DEFINE VARIABLE err-to-file AS LOGICAL NO-UNDO INIT FALSE.
-DEFINE VARIABLE err-to-screen AS LOGICAL NO-UNDO INIT TRUE.
+DEFINE VARIABLE do-screen     AS LOGICAL   NO-UNDO INIT FALSE.
+DEFINE VARIABLE err-to-file   AS LOGICAL   NO-UNDO INIT FALSE.
+DEFINE VARIABLE err-to-screen AS LOGICAL   NO-UNDO INIT TRUE.
+DEFINE VARIABLE oldsession    AS CHARACTER NO-UNDO.
 
 &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
 DEFINE VARIABLE warntxt  AS CHARACTER  NO-UNDO VIEW-AS EDITOR NO-BOX 
- INNER-CHARS 64 INNER-LINES 5.
+ INNER-CHARS 69 INNER-LINES 8.
 &ENDIF
 /* To support fill-in label mnemonic (Nordhougen 07/26/95) */
 &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN 
@@ -153,41 +156,58 @@ FORM SKIP({&TFM_WID})
 FORM SKIP({&TFM_WID})
   user_env[2] {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" VIEW-AS FILL-IN SIZE 40 BY 1
          LABEL "&Input File" COLON {&LINEUP}
-  btn_File  SKIP ({&VM_WIDG})
-    stop_flg VIEW-AS TOGGLE-BOX LABEL "Stop If Error Found in Definition"
-        COLON {&LINEUP} SKIP({&VM_WIDG})    
+  btn_File  SKIP ({&VM_WIDG}) 
+    stop_flg VIEW-AS TOGGLE-BOX LABEL "Stop If Errors Found"
+     COLON 3
+    commit_flg VIEW-AS TOGGLE-BOX LABEL "Commit Even with Errors" COLON 38
+     SKIP({&VM_WID})
     err-to-file VIEW-AS TOGGLE-BOX LABEL "Output Errors to File"
-        COLON {&LINEUP} SKIP({&VM_WIDG})
+   COLON 3  
     err-to-screen VIEW-AS TOGGLE-BOX LABEL "Output Errors to Screen"
-        COLON {&LINEUP} SKIP({&VM_WIDG})
-    commit_flg VIEW-AS TOGGLE-BOX LABEL "Commit Even If Errors Found in Definition"
-        COLON {&LINEUP} SKIP({&VM_WIDG})
+       COLON 38  
+  &IF PROVERSION >= "9.1E" &THEN
+    SKIP({&VM_WID}) 
+    no-schema-lock VIEW-AS TOGGLE-BOX LABEL "Add new objects on-line"
+        COLON 3 SKIP({&VM_WIDG})
+  &ELSE
+     SKIP (1)
+  &ENDIF
   &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
   warntxt AT 2 NO-LABEL SKIP ({&VM_WIDG})
   &ELSE
-    "Warning: If a .df file was generated by an incremental dump it"
-      AT 2 VIEW-AS TEXT SKIP
-    "may contain DROP statements which will cause data to be deleted."
-      AT 2 VIEW-AS TEXT SKIP(1)
-   "If you select to commit even with errors, your database could be " 
-      AT 2 VIEW-AS TEXT SKIP 
-   "corrupted." AT 2 VIEW-AS TEXT SKIP
+    "WARNING: " AT 2 VIEW-AS TEXT skip
+    "  If .df file is an incremental .df it may contain DROP statements which" 
+       AT 2 VIEW-AS TEXT SKIP
+    "  will cause data to be deleted."  
+       AT 2 VIEW-AS TEXT SKIP (1)
+    &IF PROVERSION >= "9.1E" &THEN
+    "  If you select that you are only adding new objects on-line and you try" 
+       AT 2 VIEW-AS TEXT SKIP
+    "  to modify existing objects all changes could be rolled back. "  
+       AT 2 VIEW-AS TEXT SKIP (1)
+    &ENDIF
+    "  If you select to commit with errors, your database could be corrupted." 
+       AT 2 VIEW-AS TEXT SKIP     
   &ENDIF
   {prodict/user/userbtns.i}
-  WITH FRAME read-df
+  WITH FRAME read-df KEEP-TAB-ORDER
   SIDE-LABELS NO-ATTR-SPACE CENTERED 
   DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel
   VIEW-AS DIALOG-BOX TITLE " " + io-title + " ".
 
-cr = CHR(10).
+ASSIGN cr = CHR(10).
 
 &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
-ASSIGN warntxt:SCREEN-VALUE =
-"Warning: If a .df file was generated by an incremental dump it" + cr +
-"may contain DROP statements which will cause data to be deleted." + cr + cr +
-"If you select to commit even with errors, your database could" + cr +
-"be corrupted.". 
-warntxt:READ-ONLY = yes.   
+  ASSIGN warntxt:SCREEN-VALUE =
+   "WARNING:" + cr + "  If the input file is an incremental .df it may contain DROP statements" 
+   + cr + "  which will cause data to be deleted." + cr + cr +
+   &IF PROVERSION >= "9.1E" &THEN
+   "  If you select to add new objects on-line and you try to modify existing" + cr +
+   "  objects, all changes could be rolled back." + cr + cr +
+   &ENDIF
+   "  If you select to commit with errors, your database could be corrupted." .
+ 
+  ASSIGN warntxt:READ-ONLY = yes.   
 &ENDIF
 
 /* form for .d file input */
@@ -243,7 +263,7 @@ FORM
   "Please enter a Code Page to use for this load." AT 2 SKIP
   codepage {&STDPH_FILL} LABEL "&Code Page" AT 2
   {prodict/user/userbtns.i}
-  WITH FRAME get-cp SIDE-LABELS NO-ATTR-SPACE CENTERED
+  WITH FRAME get-cp SIDE-LABELS NO-ATTR-SPACE CENTERED 
   DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel
   VIEW-AS DIALOG-BOX TITLE " Code Page ".
 
@@ -352,17 +372,35 @@ ON LEAVE OF user_env[2] in frame read-d-dir
    user_env[2]:screen-value in frame read-d-dir = 
         TRIM(user_env[2]:screen-value in frame read-d-dir).
 
+
 /*-----On value change of flags --*/
 ON VALUE-CHANGED OF stop_flg IN FRAME read-df DO:
   IF SELF:screen-value = "yes" THEN DISABLE commit_flg WITH FRAME read-df.
-  ELSE ENABLE commit_flg WITH FRAME read-df.
+  ELSE DO: 
+    &IF PROVERSION >= "9.1E" &THEN
+      IF no-schema-lock:SCREEN-VALUE IN FRAME read-df = "no" THEN
+        ENABLE commit_flg WITH FRAME read-df.
+    &ENDIF
+  END.
   RETURN.
 END.
 ON VALUE-CHANGED OF commit_flg IN FRAME read-df DO:
-  IF SELF:screen-value = "yes" THEN DISABLE stop_flg WITH FRAME read-df.
-  ELSE ENABLE stop_flg WITH FRAME read-df.
+  IF SELF:screen-value = "yes" THEN DISABLE stop_flg 
+    &IF PROVERSION >= "9.1E" &THEN  no-schema-lock &ENDIF WITH FRAME read-df.
+  ELSE ENABLE stop_flg &IF PROVERSION >= "9.1E" &THEN no-schema-lock &ENDIF
+      WITH FRAME read-df.
   RETURN.
 END.
+&IF PROVERSION >= "9.1E" &THEN
+ON VALUE-CHANGED OF no-schema-lock IN FRAME read-df DO:
+  IF SELF:screen-value = "yes" THEN DISABLE commit_flg WITH FRAME read-df.      
+  ELSE DO:
+    IF stop_flg:SCREEN-VALUE IN FRAME read-df = "no" THEN
+      ENABLE commit_flg WITH FRAME read-df.      
+  END.
+  RETURN.
+END.
+&ENDIF
 
 /*----- HIT of FILE BUTTON -----*/
 ON CHOOSE OF btn_File in frame read-input DO:
@@ -582,7 +620,9 @@ IF class = "h" THEN DO:
   &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
      HIDE MESSAGE NO-PAUSE.
   &ENDIF
-  
+  &IF PROVERSION >= "9.1E" &THEN
+    ASSIGN SESSION:SCHEMA-CHANGE = user_env[35].
+  &ENDIF
    /* Fernando: 20020129-017 Also, if there was an error that backed out the changes, 
    do not display the message */
    if user_env[4] <> "error" THEN
@@ -596,6 +636,7 @@ IF class = "h" THEN DO:
 END.
 /*----------------------------------------*/ /* LOAD FILE DEFINITIONS */
 IF class = "d" OR class begins "4" or class = "s" THEN DO:
+
   IF msg-num = 0 THEN DO FOR DICTDB._File i = 1 TO 4:
     FIND DICTDB._File
       WHERE DICTDB._File._File-name = ENTRY(i,"_Db,_File,_Field,_Index")
@@ -603,7 +644,7 @@ IF class = "d" OR class begins "4" or class = "s" THEN DO:
     IF   NOT CAN-DO(_Can-read,  USERID("DICTDB"))
       OR NOT CAN-DO(_Can-write, USERID("DICTDB"))
       OR NOT CAN-DO(_Can-delete,USERID("DICTDB"))
-      OR NOT CAN-DO(_Can-create,USERID("DICTDB")) THEN msg-num = 4.
+      OR NOT CAN-DO(_Can-create,USERID("DICTDB")) THEN msg-num = 4.    
   END.
   ASSIGN
     base        = PDBNAME(user_dbname)
@@ -621,7 +662,8 @@ IF class = "d" OR class begins "4" or class = "s" THEN DO:
     user_env[8] = user_dbname  /* dbname to load into - used by _lodsddl.p */
     class = "d". /* if class was 's', reassign to run as class 'd' after 
                     input file name default (user_env[2]) */
-END.
+    
+ END.
 
 /*--------------------------------------*/ /* LOAD DATA FILE CONTENTS */
 ELSE IF class = "f" THEN DO FOR DICTDB._File:
@@ -826,15 +868,32 @@ IF io-frame = "df" THEN DO:
 
 
   DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE WITH FRAME read-df:
-     ENABLE stop_flg err-to-file err-to-screen commit_flg &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN warntxt &ENDIF WITH FRAME read-df.
-   ASSIGN
-      stop_flg = user_env[4] BEGINS "y".
+     ENABLE stop_flg commit_flg err-to-file err-to-screen  
+     &IF PROVERSION >= "9.1E" &THEN no-schema-lock  &ENDIF
+     &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN warntxt &ENDIF 
+         WITH FRAME read-df.
+
+     ASSIGN stop_flg = user_env[4] BEGINS "y".
     
-    UPDATE user_env[2] btn_File stop_flg err-to-file err-to-screen commit_flg
-      btn_OK btn_Cancel {&HLP_BTN_NAME}.
+    UPDATE user_env[2] btn_File stop_flg commit_flg err-to-file err-to-screen 
+      &IF PROVERSION >= "9.1E" &THEN no-schema-lock  &ENDIF
+        btn_OK btn_Cancel {&HLP_BTN_NAME}.
 
     ASSIGN user_env[15] = STRING(commit_flg)
            user_env[4] = STRING(stop_flg).
+    &IF PROVERSION >= "9.1E" &THEN
+      IF no-schema-lock THEN
+        ASSIGN user_path = "_lodv5df,*C,_lodsddl,9=h,_usrload"
+               oldsession = SESSION:SCHEMA-CHANGE
+               SESSION:SCHEMA-CHANGE = "NEW OBJECTS"
+                user_env[35] = oldsession.
+      ELSE
+        ASSIGN user_path = "*T,_lodv5df,*C,_lodsddl,9=h,_usrload"
+               user_env[35] = "".
+    &ELSE
+      ASSIGN user_path = "*T,_lodv5df,*C,_lodsddl,9=h,_usrload"
+             user_env[35] = "".
+    &ENDIF
 
     { prodict/dictnext.i trash }
     canned = FALSE.
@@ -924,8 +983,13 @@ HIDE FRAME read-input NO-PAUSE.
 HIDE FRAME read-df    NO-PAUSE.
 HIDE FRAME read-d-file NO-PAUSE.
 HIDE FRAME read-d-dir NO-PAUSE.
-IF canned THEN
+IF canned THEN DO:
   user_path = "".
+  &IF PROVERSION >= "9.1E" &THEN
+    IF no-schema-lock THEN
+      ASSIGN SESSION:SCHEMA-CHANGE = oldsession.
+  &ENDIF
+END.
 RETURN.
 
 /*====================================================================*/

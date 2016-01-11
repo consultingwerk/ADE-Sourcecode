@@ -117,7 +117,7 @@ af/cod/aftemwizpw.w
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Include ASSIGN
-         HEIGHT             = 2
+         HEIGHT             = 5.81
          WIDTH              = 40.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -131,27 +131,56 @@ af/cod/aftemwizpw.w
 
 /* ***************************  Main Block  *************************** */
 
-IF NOT CAN-FIND(FIRST gsc_object
-                WHERE gsc_object.object_obj = ryc_smartobject.object_obj
-                AND   gsc_object.object_filename = ryc_smartobject.object_filename) THEN
+
+/* ** Issue #6736 requests that we allow the changing of the object types                                                                            */
+/*                                                                                                                                                   */
+/* /* ObjType - The smartobject exists already, if the object type is being changed, raise an error */                                               */
+/*                                                                                                                                                   */
+/* IF NOT NEW ryc_smartobject                                                                                                                        */
+/*    AND AVAILABLE o_ryc_smartobject                                                                                                                */
+/*    AND AVAILABLE ryc_smartobject                                                                                                                  */
+/*    AND o_ryc_smartobject.object_type_obj <> ryc_smartobject.object_type_obj                                                                       */
+/* THEN DO:                                                                                                                                          */
+/*    ASSIGN lv-error = YES lv-errgrp = "AF ":U lv-errnum = 36 lv-include = "the repository object|object types can not be updated once assigned":U. */
+/*    RUN error-message (lv-errgrp, lv-errnum, lv-include).                                                                                          */
+/* END.                                                                                                                                              */
+
+/* Issue 6832 - Must not allow customized object to be created without the default object */
+DEFINE BUFFER buff_smartObject FOR ryc_smartObject.
+IF NEW ryc_smartObject THEN 
 DO:
-    /*In this case find a gsc_object using the filename*/
-    FIND FIRST gsc_object NO-LOCK
-        WHERE gsc_object.object_filename = ryc_smartobject.object_filename
-        NO-ERROR.
-    /*And assign the correct object number to ryc_smartobject if one is available. (Possibly due to versioning errors -  see task 6435) */
-    IF AVAILABLE gsc_object
-    THEN
-        ASSIGN
-            ryc_smartobject.object_obj = gsc_object.object_obj.
-    /* or give an error if it is not available */
-    ELSE
-    DO:
-        /* Cannot update child because parent does not exist ! */
-        ASSIGN
-            lv-error = YES lv-errgrp = "AF ":U lv-errnum = 103 lv-include = "ryc_smartobject|gsc_object":U.
-        RUN error-message (lv-errgrp, lv-errnum, lv-include).
-    END.
+   IF ryc_smartobject.customization_result_obj > 0  
+      AND NOT CAN-FIND(FIRST buff_smartObject 
+                       WHERE buff_smartObject.OBJECT_filename = ryc_smartObject.object_filename
+                         AND buff_smartObject.customization_result_obj = 0)
+   THEN DO :
+      ASSIGN lv-error   = YES lv-errgrp = "AF ":U lv-errnum = 102 
+             lv-include =  ryc_smartObject.object_filename + "|the default object|You must first create a default object (No customization code) before creating a customized object":U.
+      RUN error-message (lv-errgrp, lv-errnum, lv-include).
+   END.
+   ELSE IF ryc_smartobject.customization_result_obj > 0  
+      AND CAN-FIND(FIRST buff_smartObject 
+                   WHERE buff_smartObject.OBJECT_filename = ryc_smartObject.object_filename
+                     AND buff_smartObject.customization_result_obj = ryc_smartObject.customization_result_obj
+                     AND buff_smartObject.smartObject_obj <> ryc_smartobject.smartObject_obj)
+   THEN DO :
+      ASSIGN lv-error   = YES lv-errgrp = "AF ":U lv-errnum = 8 
+             lv-include =  ryc_smartObject.object_filename + "|for the specified customization code|":U.
+      RUN error-message (lv-errgrp, lv-errnum, lv-include).
+   END.
+
+END.
+ELSE IF NOT NEW ryc_smartObject 
+        AND ryc_smartobject.customization_result_obj > 0  
+        AND NOT CAN-FIND(FIRST buff_smartObject 
+                         WHERE buff_smartObject.OBJECT_filename = ryc_smartObject.object_filename
+                           AND buff_smartObject.customization_result_obj = 0
+                           AND buff_smartObject.smartObject_obj <> ryc_smartobject.smartObject_obj)
+THEN DO:
+   ASSIGN lv-error = YES lv-errgrp = "AF ":U lv-errnum = 36 
+          lv-include = "the repository object|you cannot change the customization of the default object. You must create a new customized object":U.
+     RUN error-message (lv-errgrp, lv-errnum, lv-include).
+
 END.
 
 /* _UIB-CODE-BLOCK-END */

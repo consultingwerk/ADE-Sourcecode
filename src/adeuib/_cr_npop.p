@@ -60,8 +60,16 @@ CREATE MENU newpopup
          
 /* First, add Container and records */
 FOR EACH _custom WHERE _custom._type = "Container":
-  FILE-INFO:FILE-NAME = TRIM(SUBSTRING(TRIM(_attr),13,-1,"CHARACTER")).
-  IF FILE-INFO:FULL-PATHNAME NE ? THEN DO:
+  so-type = "".
+  DO i = 1 TO NUM-ENTRIES(_custom._attr, CHR(10)):      
+      IF ENTRY(i,_custom._attr,CHR(10)) BEGINS "TYPE" THEN
+        so-type = TRIM(SUBSTRING(TRIM(ENTRY(i,_custom._attr,CHR(10))),5,-1,"CHARACTER")).
+      IF ENTRY(i,_custom._attr,CHR(10)) BEGINS "NEW-TEMPLATE" THEN
+        FILE-INFO:FILE-NAME = TRIM(SUBSTRING(TRIM(ENTRY(i,_custom._attr,CHR(10))),13,-1,"CHARACTER")).
+  END.
+ /* FILE-INFO:FILE-NAME = TRIM(SUBSTRING(TRIM(_attr),13,-1,"CHARACTER")).*/
+
+  IF FILE-INFO:FULL-PATHNAME NE ? and so-type = "" THEN DO:
     CREATE MENU-ITEM newmi
       ASSIGN PARENT = newpopup
              LABEL  = _custom._name
@@ -70,6 +78,15 @@ FOR EACH _custom WHERE _custom._type = "Container":
                   RUN Open_Untitled IN _h_uib (FILE-INFO:FULL-PATHNAME).
              END TRIGGERS.
   END.    
+  ELSE IF FILE-INFO:FULL-PATHNAME NE ? and so-type > "" THEN DO:
+     CREATE MENU-ITEM newmi
+        ASSIGN PARENT = newpopup
+               LABEL  = _custom._name
+               TRIGGERS:
+                 ON CHOOSE PERSISTENT 
+                    RUN Open_SO_Untitled IN _h_uib (so-type, FILE-INFO:FULL-PATHNAME).
+               END TRIGGERS.
+  END.
 END.
 
 IF VALID-HANDLE(newmi) THEN /* created at least one Container */

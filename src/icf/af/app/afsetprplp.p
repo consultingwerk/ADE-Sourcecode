@@ -161,7 +161,7 @@ DEFINE INPUT PARAMETER  pcPropertyValues        AS CHARACTER  NO-UNDO.
     DO FOR bgsm_server_context TRANSACTION ON ERROR UNDO trn-block, LEAVE trn-block:
 
       FIND FIRST bgsm_server_context EXCLUSIVE-LOCK
-           WHERE bgsm_server_context.CONTEXT_id = gscSessionId
+           WHERE bgsm_server_context.session_obj = gsdSessionObj
              AND bgsm_server_context.CONTEXT_name = cProperty
            NO-ERROR.
       IF NOT AVAILABLE bgsm_server_context THEN
@@ -169,7 +169,7 @@ DEFINE INPUT PARAMETER  pcPropertyValues        AS CHARACTER  NO-UNDO.
         CREATE bgsm_server_context NO-ERROR.
         IF ERROR-STATUS:ERROR THEN UNDO trn-block, LEAVE trn-block.
         ASSIGN
-          bgsm_server_context.CONTEXT_id = gscSessionId
+          bgsm_server_context.session_obj = gsdSessionObj
           bgsm_server_context.CONTEXT_name = cProperty
           .
       END.

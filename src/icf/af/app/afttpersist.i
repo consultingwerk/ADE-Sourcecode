@@ -143,7 +143,7 @@ af/cod/aftemwizpw.w
      progress sessions. The appserver knows nothing about the client, but the
      client could obtain the rnning procedures from the appserver.
   */
-  DEFINE TEMP-TABLE ttPersistentProc
+  DEFINE TEMP-TABLE ttPersistentProc NO-UNDO
   FIELD physicalName            AS CHARACTER  /* Physical name of running procedure (inc path) */
   FIELD logicalName             AS CHARACTER  /* If logical, logical object name, else blank */
   FIELD runAttribute            AS CHARACTER  /* Run attribute passed into object (if any) */
@@ -159,6 +159,7 @@ af/cod/aftemwizpw.w
   FIELD startTime               AS INTEGER    /* The time the procedure was started */
   FIELD procedureVersion        AS CHARACTER  /* The version of the procedure running */
   FIELD procedureNarration      AS CHARACTER  /* a description of the running procedure if available */
+  FIELD internalEntries         AS CHARACTER  /* a list of all the procedure internal entries */
   INDEX key1 IS PRIMARY PhysicalName LogicalName RunAttribute ChildDataKey onAppserver
   INDEX key2 procedureType PhysicalName LogicalName RunAttribute ChildDataKey onAppserver
   .

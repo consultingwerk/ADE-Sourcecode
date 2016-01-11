@@ -24,6 +24,7 @@
    Procedure _ora_md2.p
    
    History: 02/16/99 DLM Added assignment of ora_conparms
+            06/04/02 DLM Added check for error creating hidden files.
    
 */
 
@@ -56,6 +57,8 @@ ASSIGN
   c           = "add".
 
 RUN prodict/ora/_ora_sys.p (drec_db,INPUT-OUTPUT c).
-
-RETURN.
+IF RETURN-VALUE = "2" THEN
+    RETURN "2".
+ELSE
+  RETURN.
 

@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          afdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
@@ -92,7 +92,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gscscfullo.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010001
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -123,6 +123,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &ENDIF
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
+
 
 &Scoped-define QUERY-NAME Query-Main
 
@@ -163,6 +164,8 @@ scm_checks_on scm_tool_code
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gscscfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsc_security_control NO-LOCK ~
+    BY gsc_security_control.security_control_obj INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsc_security_control NO-LOCK ~
     BY gsc_security_control.security_control_obj INDEXED-REPOSITION.
@@ -263,58 +266,58 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "afdb.gsc_security_control"
+     _TblList          = "ICFDB.gsc_security_control"
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _OrdList          = "afdb.gsc_security_control.security_control_obj|yes"
-     _FldNameList[1]   > afdb.gsc_security_control.security_control_obj
+     _FldNameList[1]   > ICFDB.gsc_security_control.security_control_obj
 "security_control_obj" "security_control_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
-     _FldNameList[2]   > afdb.gsc_security_control.password_max_retries
+     _FldNameList[2]   > ICFDB.gsc_security_control.password_max_retries
 "password_max_retries" "password_max_retries" ? ? "integer" ? ? ? ? ? ? yes ? no 4 yes
-     _FldNameList[3]   > afdb.gsc_security_control.password_history_life_time
+     _FldNameList[3]   > ICFDB.gsc_security_control.password_history_life_time
 "password_history_life_time" "password_history_life_time" ? ? "integer" ? ? ? ? ? ? yes ? no 4 yes
-     _FldNameList[4]   > afdb.gsc_security_control.full_access_by_default
+     _FldNameList[4]   > ICFDB.gsc_security_control.full_access_by_default
 "full_access_by_default" "full_access_by_default" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[5]   > afdb.gsc_security_control.security_enabled
+     _FldNameList[5]   > ICFDB.gsc_security_control.security_enabled
 "security_enabled" "security_enabled" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[6]   > afdb.gsc_security_control.help_writer_enabled
+     _FldNameList[6]   > ICFDB.gsc_security_control.help_writer_enabled
 "help_writer_enabled" "help_writer_enabled" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[7]   > afdb.gsc_security_control.build_top_menus_only
+     _FldNameList[7]   > ICFDB.gsc_security_control.build_top_menus_only
 "build_top_menus_only" "build_top_menus_only" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[8]   > afdb.gsc_security_control.default_help_filename
+     _FldNameList[8]   > ICFDB.gsc_security_control.default_help_filename
 "default_help_filename" "default_help_filename" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
-     _FldNameList[9]   > afdb.gsc_security_control.error_log_filename
+     _FldNameList[9]   > ICFDB.gsc_security_control.error_log_filename
 "error_log_filename" "error_log_filename" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
-     _FldNameList[10]   > afdb.gsc_security_control.translation_enabled
+     _FldNameList[10]   > ICFDB.gsc_security_control.translation_enabled
 "translation_enabled" "translation_enabled" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[11]   > afdb.gsc_security_control.login_filename
+     _FldNameList[11]   > ICFDB.gsc_security_control.login_filename
 "login_filename" "login_filename" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
-     _FldNameList[12]   > afdb.gsc_security_control.multi_user_check
+     _FldNameList[12]   > ICFDB.gsc_security_control.multi_user_check
 "multi_user_check" "multi_user_check" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[13]   > afdb.gsc_security_control.program_access_check
+     _FldNameList[13]   > ICFDB.gsc_security_control.program_access_check
 "program_access_check" "program_access_check" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[14]   > afdb.gsc_security_control.minimise_siblings
+     _FldNameList[14]   > ICFDB.gsc_security_control.minimise_siblings
 "minimise_siblings" "minimise_siblings" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[15]   > afdb.gsc_security_control.enable_window_positioning
+     _FldNameList[15]   > ICFDB.gsc_security_control.enable_window_positioning
 "enable_window_positioning" "enable_window_positioning" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[16]   > afdb.gsc_security_control.force_unique_password
+     _FldNameList[16]   > ICFDB.gsc_security_control.force_unique_password
 "force_unique_password" "force_unique_password" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[17]   > afdb.gsc_security_control.company_logo_filename
+     _FldNameList[17]   > ICFDB.gsc_security_control.company_logo_filename
 "company_logo_filename" "company_logo_filename" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
-     _FldNameList[18]   > afdb.gsc_security_control.system_icon_filename
+     _FldNameList[18]   > ICFDB.gsc_security_control.system_icon_filename
 "system_icon_filename" "system_icon_filename" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
-     _FldNameList[19]   > afdb.gsc_security_control.small_icon_filename
+     _FldNameList[19]   > ICFDB.gsc_security_control.small_icon_filename
 "small_icon_filename" "small_icon_filename" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
-     _FldNameList[20]   > afdb.gsc_security_control.product_logo_filename
+     _FldNameList[20]   > ICFDB.gsc_security_control.product_logo_filename
 "product_logo_filename" "product_logo_filename" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
-     _FldNameList[21]   > afdb.gsc_security_control.scm_checks_on
+     _FldNameList[21]   > ICFDB.gsc_security_control.scm_checks_on
 "scm_checks_on" "scm_checks_on" ? ? "logical" ? ? ? ? ? ? yes ? no 15.4 yes
-     _FldNameList[22]   > afdb.gsc_security_control.scm_tool_code
+     _FldNameList[22]   > ICFDB.gsc_security_control.scm_tool_code
 "scm_tool_code" "scm_tool_code" ? ? "character" ? ? ? ? ? ? yes ? no 35 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK dTables 

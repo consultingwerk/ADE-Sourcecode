@@ -31,6 +31,7 @@ History
     D. McMann 07/09/98    Added AND (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN")
                           to FIND _File.
     D. McMann 08/24/98    Added check for user_env = "ALL". 98-08-21-014
+    D. McMann 06/10/02    Added check for new SESSION attribute schema change.
 **************************************************************/
 
 { prodict/dictvar.i }
@@ -72,6 +73,10 @@ IF user_env[9] = "pre" THEN _pre: DO:
     IF NOT CAN-DO(_Can-delete,USERID("DICTDB")) THEN msg-txt =
       "You do not have permission to delete table definitions.".
   END.
+  &IF PROVERSION >= "9.1E" &THEN
+    IF SESSION:SCHEMA-CHANGE = "New Objects" THEN
+      ASSIGN msg-txt = 'You can not delete existing object when SESSION:SCHEMA-CHANGE = "New Objects".'.
+  &ENDIF
   IF msg-txt <> ? THEN LEAVE _pre.
 
   ASSIGN

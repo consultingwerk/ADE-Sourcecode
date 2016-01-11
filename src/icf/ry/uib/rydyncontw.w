@@ -1,10 +1,11 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 /* Procedure Description
-"This is the Astra 2 Dynamic Container. No new instances of this should be created. Use the Astra 2 Wizard Menu Controller to create instances using Repository Data."
+"This is the Dynamic Container. No new instances of this should be created."
 */
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME wWin
 {adecomm/appserv.i}
+DEFINE VARIABLE h_Astra                    AS HANDLE          NO-UNDO.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Check Version Notes Wizard" wWin _INLINE
 /* Actions: af/cod/aftemwizcw.w ? ? ? ? */
 /* MIP Update Version Notes Wizard
@@ -213,60 +214,14 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &scop object-version    000000
 
 /* Astra 2 object identifying preprocessor */
-&glob   astra2-dynamiccontainer yes
+&glob   astra2-dynamiccontainer YES
 
 /* Parameters Definitions ---                                           */
 
 /* Local Variable Definitions ---                                       */
-
-/* include temp-table definitions */
-{af/sup2/afglobals.i}
-{ry/app/rycsofetch.i}
-
-&SCOPED-DEFINE SDO-TYPE-CODE SmartDataObject
-&GLOBAL-DEFINE xpLogicalObjectName
-
-DEFINE VARIABLE glOnceOnlyDone AS LOGICAL INITIAL FALSE.
-DEFINE VARIABLE glInitialised AS LOGICAL INITIAL FALSE.
-
-DEFINE NEW GLOBAL SHARED VARIABLE gsh_LayoutManager AS HANDLE.
-DEFINE NEW GLOBAL SHARED VARIABLE gsh_LayoutManagerID AS INTEGER.
-
-IF NOT VALID-HANDLE(gsh_LayoutManager) 
-OR gsh_LayoutManager:UNIQUE-ID <> gsh_LayoutManagerID THEN 
-DO: 
-    RUN ry/prc/rylayoutsp.p PERSISTENT SET gsh_LayoutManager.
-    IF VALID-HANDLE(gsh_LayoutManager) THEN ASSIGN gsh_LayoutManagerID = gsh_LayoutManager:UNIQUE-ID.
-END.
-
-DEFINE VARIABLE gdMinimumWindowWidth AS DECIMAL INITIAL ?.
-DEFINE VARIABLE gdMinimumWindowHeight AS DECIMAL INITIAL ?.
-DEFINE VARIABLE gdMaximumWindowWidth AS DECIMAL INITIAL ?.
-DEFINE VARIABLE gdMaximumWindowHeight AS DECIMAL INITIAL ?.
-
-DEFINE VARIABLE gcLaunchLogicalObject AS CHARACTER NO-UNDO.
-DEFINE VARIABLE gcLaunchRunAttribute  AS CHARACTER NO-UNDO.
-DEFINE VARIABLE gcValueList           AS CHARACTER NO-UNDO.
-
-DEFINE VARIABLE gcContainerMode       AS CHARACTER NO-UNDO.
-
-DEFINE VARIABLE gcObjectHandles       AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE gcToolbarHandles      AS CHARACTER    NO-UNDO.
-
-/* use global variables as createobjects called for each page and only
-   want to get this info once - for performance reasons mainly
-*/
-DEFINE VARIABLE glMenuController      AS LOGICAL INITIAL NO NO-UNDO.
-DEFINE VARIABLE glSaveWindowPos       AS LOGICAL INITIAL ? NO-UNDO.
-DEFINE VARIABLE glFoundSavedSize      AS LOGICAL INITIAL NO NO-UNDO.
-DEFINE VARIABLE gdSavedWidth          AS DECIMAL INITIAL ? NO-UNDO.
-DEFINE VARIABLE gdSavedHeight         AS DECIMAL INITIAL ? NO-UNDO.
-DEFINE VARIABLE gdSavedColumn         AS DECIMAL INITIAL ? NO-UNDO.
-DEFINE VARIABLE gdSavedRow            AS DECIMAL INITIAL ? NO-UNDO.
-DEFINE VARIABLE giResizeOnPage        AS INTEGER INITIAL 0 NO-UNDO.
-DEFINE VARIABLE gcPageLinkList        AS CHARACTER  NO-UNDO.
-
-{af/app/afttsecurityctrl.i}
+DEFINE VARIABLE gcLaunchLogicalObject   AS CHARACTER        NO-UNDO.
+DEFINE VARIABLE gcLaunchRunAttribute    AS CHARACTER        NO-UNDO.
+DEFINE VARIABLE gcValueList             AS CHARACTER        NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -293,57 +248,6 @@ DEFINE VARIABLE gcPageLinkList        AS CHARACTER  NO-UNDO.
 &ANALYZE-RESUME
 
 
-/* ************************  Function Prototypes ********************** */
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD childWindowsOpen wWin 
-FUNCTION childWindowsOpen RETURNS LOGICAL
-  ( )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getContainerObjectHandles wWin 
-FUNCTION getContainerObjectHandles RETURNS CHARACTER
-  (  )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFrameHandle wWin 
-FUNCTION getFrameHandle RETURNS HANDLE
-  ( ip_procedure_handle AS HANDLE )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getInstanceObjectId wWin 
-FUNCTION getInstanceObjectId RETURNS DECIMAL
-    ( phProcedureHandle     AS HANDLE    )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getToolbarHandles wWin 
-FUNCTION getToolbarHandles RETURNS CHARACTER
-  (  )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getWindowName wWin 
-FUNCTION getWindowName RETURNS CHARACTER
-  (  )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setWindowName wWin 
-FUNCTION setWindowName RETURNS LOGICAL
-  ( pcWindowName AS CHARACTER )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
 
 /* ***********************  Control Definitions  ********************** */
 
@@ -356,7 +260,7 @@ DEFINE FRAME fMain
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1
-         SIZE 118.8 BY 15.57.
+         SIZE 64.8 BY 9.81.
 
 
 /* *********************** Procedure Settings ************************ */
@@ -377,8 +281,8 @@ IF SESSION:DISPLAY-TYPE = "GUI":U THEN
   CREATE WINDOW wWin ASSIGN
          HIDDEN             = YES
          TITLE              = "Dynamic Object Controller"
-         HEIGHT             = 15.57
-         WIDTH              = 118.8
+         HEIGHT             = 9.81
+         WIDTH              = 64.8
          MAX-HEIGHT         = 34.33
          MAX-WIDTH          = 204.8
          VIRTUAL-HEIGHT     = 34.33
@@ -428,34 +332,17 @@ THEN wWin:HIDDEN = yes.
 &Scoped-define SELF-NAME wWin
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL wWin wWin
 ON END-ERROR OF wWin /* Dynamic Object Controller */
-OR ENDKEY OF {&WINDOW-NAME} ANYWHERE DO:
-  
-  /* If ESC pressed on 1st window, application will exit - give chance to 
-     abort this if windows open
-  */
-  IF NOT THIS-PROCEDURE:PERSISTENT AND childWindowsOpen() THEN
-  DO:
-    DEFINE VARIABLE cButton AS CHARACTER NO-UNDO.
-    DEFINE VARIABLE cAnswer AS CHARACTER NO-UNDO.
-    RUN askQuestion IN gshSessionManager (INPUT "There are child windows open - continue with exit of application?",    /* messages */
-                                          INPUT "&Yes,&No":U,     /* button list */
-                                          INPUT "&Yes":U,         /* default */
-                                          INPUT "&No":U,          /* cancel */
-                                          INPUT "Exit Application":U, /* title */
-                                          INPUT "":U,             /* datatype */
-                                          INPUT "":U,             /* format */
-                                          INPUT-OUTPUT cAnswer,   /* answer */
-                                          OUTPUT cButton          /* button pressed */
-                                          ).
-    IF cButton = "&No":U OR cButton = "No":U THEN RETURN NO-APPLY.
-  END.
-  
-  /* This case occurs when the user presses the "Esc" key.
-     In a persistently run window, just ignore this.  If we did not, the
-     application would exit. */
-  IF THIS-PROCEDURE:PERSISTENT THEN RETURN NO-APPLY.
-  ELSE APPLY "CLOSE":U TO THIS-PROCEDURE. /* ensure close down nicely */
+OR ENDKEY OF {&WINDOW-NAME} ANYWHERE
+DO:
+    RUN windowEndError IN TARGET-PROCEDURE NO-ERROR.
+    IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN
+        RETURN NO-APPLY.
+    
+    APPLY "CLOSE":U TO TARGET-PROCEDURE. /* ensure close down nicely */
 
+    /* Add the return no-apply so that the entire application doesn't shut down. */
+    IF TARGET-PROCEDURE:PERSISTENT THEN
+        RETURN NO-APPLY.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -465,29 +352,22 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL wWin wWin
 ON WINDOW-CLOSE OF wWin /* Dynamic Object Controller */
 DO:
-  /* This ADM code must be left here in order for the SmartWindow
-     and its descendents to terminate properly on exit. */
-  
-  /* If close window - give chance to abort this if windows open */
-  IF childWindowsOpen() THEN
-  DO:
-    DEFINE VARIABLE cButton AS CHARACTER NO-UNDO.
-    DEFINE VARIABLE cAnswer AS CHARACTER NO-UNDO.
-    RUN askQuestion IN gshSessionManager (INPUT "The window you are closing has child windows open." + CHR(10) + "Do you want to continue to close this window and all its children?",    /* messages */
-                                          INPUT "&Yes,&No":U,     /* button list */
-                                          INPUT "&Yes":U,         /* default */
-                                          INPUT "&No":U,          /* cancel */
-                                          INPUT "Windows Open on EXIT":U, /* title */
-                                          INPUT "":U,             /* datatype */
-                                          INPUT "":U,             /* format */
-                                          INPUT-OUTPUT cAnswer,   /* answer */
-                                          OUTPUT cButton          /* button pressed */
-                                          ).
-    IF cButton = "&No":U OR cButton = "No":U THEN RETURN NO-APPLY.
-  END.
-  
-  APPLY "CLOSE":U TO THIS-PROCEDURE.
-  RETURN NO-APPLY.
+    /* This ADM code must be left here in order for the SmartWindow
+     * and its descendents to terminate properly on exit. */
+    APPLY "CLOSE":U TO TARGET-PROCEDURE.
+    RETURN NO-APPLY.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL wWin wWin
+ON WINDOW-MINIMIZED OF wWin /* Dynamic Object Controller */
+DO:
+    RUN windowMinimized IN TARGET-PROCEDURE NO-ERROR.
+    IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN
+        RETURN NO-APPLY.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -497,7 +377,9 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL wWin wWin
 ON WINDOW-RESIZED OF wWin /* Dynamic Object Controller */
 DO:
-    RUN resizeWindow.
+    RUN resizeWindow IN TARGET-PROCEDURE NO-ERROR.
+    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN
+        RETURN NO-APPLY.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -514,18 +396,20 @@ DEFINE VARIABLE iStartPage AS INTEGER NO-UNDO.
 
 IF VALID-HANDLE({&WINDOW-NAME}) THEN
 DO:
-  ASSIGN
-    CURRENT-WINDOW                = {&WINDOW-NAME} 
-    {&WINDOW-NAME}:KEEP-FRAME-Z-ORDER = YES
-    THIS-PROCEDURE:CURRENT-WINDOW = {&WINDOW-NAME}.
+    /* Frame Container Specific Stuff */
+    RUN start-super-proc IN TARGET-PROCEDURE ("ry/app/rydynframp.p":U).
+    /* Window Container Specific Stuff */
+    RUN start-super-proc IN TARGET-PROCEDURE ("ry/app/rydynwindp.p":U).   
 
-  {aficonload.i}
-
+    ASSIGN CURRENT-WINDOW                    = {&WINDOW-NAME} 
+           {&WINDOW-NAME}:KEEP-FRAME-Z-ORDER = YES
+           TARGET-PROCEDURE:CURRENT-WINDOW   = {&WINDOW-NAME}
+           .
   /* The CLOSE event can be used from inside or outside the procedure to  */
   /* terminate it.                                                        */
-  ON CLOSE OF THIS-PROCEDURE 
+  ON CLOSE OF TARGET-PROCEDURE
   DO:
-     RUN destroyObject.
+     RUN destroyObject IN TARGET-PROCEDURE NO-ERROR.
      IF ERROR-STATUS:ERROR THEN
        RETURN NO-APPLY.
   END.
@@ -533,7 +417,7 @@ DO:
   /* This will bring up all the links of the current object */
   ON CTRL-ALT-SHIFT-HOME ANYWHERE
   DO:
-      RUN displayLinks IN THIS-PROCEDURE.
+      RUN displayLinks IN TARGET-PROCEDURE.
   END.      
 
   /* By default, Make sure current-window is always the window with focus. */
@@ -549,7 +433,7 @@ DO:
    'initialize' until told to do so. */
 
   &IF DEFINED(UIB_IS_RUNNING) EQ 0 &THEN
-  IF NOT THIS-PROCEDURE:PERSISTENT THEN
+  IF NOT TARGET-PROCEDURE:PERSISTENT THEN
   DO:
   &ENDIF
     /* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */
@@ -558,7 +442,7 @@ DO:
        ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
  
     /* Now enable the interface and wait for the exit condition.            */
-        IF NOT THIS-PROCEDURE:PERSISTENT THEN
+        IF NOT TARGET-PROCEDURE:PERSISTENT THEN
         DO: 
             
             ASSIGN
@@ -581,10 +465,10 @@ DO:
               /* Try and get launch logical object and run attribute from
                  session properties instead
               */
-              gcValueList = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
-                                                                 INPUT "launchlogicalobject,launchrunattribute":U,
-                                                                 INPUT YES).
-              ASSIGN
+                ASSIGN gcValueList = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
+                                                      INPUT "launchlogicalobject,launchrunattribute":U,
+                                                      INPUT YES).
+                ASSIGN
                 gcLaunchLogicalObject = TRIM(ENTRY(1,gcValueList, CHR(3)))
                 gcLaunchRunAttribute = TRIM(ENTRY(2,gcValueList, CHR(3)))
                 .
@@ -599,13 +483,13 @@ DO:
             setLogicalObjectName(gcLaunchLogicalObject).
             IF gcLaunchRunAttribute <> "":U THEN setRunAttribute(gcLaunchRunAttribute).
         END.
-        RUN initializeObject.
+        RUN initializeObject IN TARGET-PROCEDURE.
        
-        IF NOT THIS-PROCEDURE:PERSISTENT THEN
-           WAIT-FOR CLOSE OF THIS-PROCEDURE.
+        IF NOT TARGET-PROCEDURE:PERSISTENT THEN
+           WAIT-FOR CLOSE OF TARGET-PROCEDURE.
     END.
   &IF DEFINED(UIB_IS_RUNNING) EQ 0 &THEN
-  END. /* IF NOT THIS-PROCEDURE:PERSISTENT THEN */
+  END. /* IF NOT TARGET-PROCEDURE:PERSISTENT THEN */
   &ENDIF
 
 END. /* IF VALID-HANDLE({&WINDOW-NAME}) */
@@ -624,591 +508,6 @@ PROCEDURE adm-create-objects :
   Parameters:  <none>
 ------------------------------------------------------------------------------*/
 
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE buildPageLinkRecursive wWin 
-PROCEDURE buildPageLinkRecursive :
-/*------------------------------------------------------------------------------
-  Purpose:     For a given object, this procedure calculates those pages
-               that are dependent on that object. The system checks whether there
-               exist any ADM DATA or GROUP-ASSIGN links that would necessitate the initialization of
-               those objects across the link.
-               
-  Parameters:  INPUT        piCurrentPage   The current page that is being contstructed
-               INPUT        pdSourceObject  ObjectID of object    
-               INPUT-OUTPUT pcPageList      Comma delimited list of relative pages
-  Notes:       This procedure is called from buildPageLinks and is recursivly called.
-------------------------------------------------------------------------------*/
-DEFINE INPUT        PARAMETER piCurrentPage AS INTEGER    NO-UNDO.
-DEFINE INPUT        PARAMETER pdSourceObj   AS DECIMAL    NO-UNDO.
-DEFINE INPUT-OUTPUT PARAMETER pcPageList    AS CHARACTER  NO-UNDO.
-
-DEFINE BUFFER BBtt_object_instance FOR tt_object_instance.
-DEFINE BUFFER BBtt_link FOR tt_link.
-
-DEFINE VARIABLE cObjects AS CHARACTER  NO-UNDO.
-
-FIND BBtt_object_instance
-  WHERE BBtt_object_instance.object_instance_obj = pdSourceObj NO-ERROR.
-IF NOT AVAILABLE  BBtt_object_instance THEN RETURN.
-
-IF BBtt_object_instance.page_number > 0 AND BBtt_object_instance.PAGE_number <> piCurrentPage
-      AND LOOKUP(STRING(BBtt_object_instance.page_number),pcPageList) = 0 THEN
-DO:
-   cObjects = pageNTargets(THIS-PROCEDURE, BBtt_object_instance.page_number).
-   IF cObjects = "" THEN
-      pcPageList = pcPageList + (IF pcPageList = "" THEN "" ELSE ",") + STRING(BBtt_object_instance.page_number).
-END.
-FOR EACH BBtt_link
-     WHERE BBtt_link.target_object_instance_obj = BBtt_object_instance.object_instance_obj
-       AND (BBtt_link.link_name = "DATA":U OR BBtt_link.link_name = "GROUP-ASSIGN":U):
-    
-  IF BBtt_link.source_object_instance_obj > 0 THEN
-     RUN buildPageLinkRecursive ( INPUT piCurrentPage,
-                                  INPUT BBtt_link.source_object_instance_obj,
-                                  INPUT-OUTPUT pcPageList).
-
-  END.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE buildPageLinks wWin 
-PROCEDURE buildPageLinks :
-/*------------------------------------------------------------------------------
-  Purpose:     For a given page, this procedure calculates those pages
-               that are dependent on that page. The system checks whether there
-               exist any ADM DATA links that would necessitate the initialization of
-               those objects across the link.
-               
-  Parameters:  INPUT  piCurrentPage  Current selected page
-               OUTPUT pcPageList     Comma delimited list of relative pages
-  Notes:       This procedure is called from createObjects and calls procedure
-               buildPageLinkrecursive.
-------------------------------------------------------------------------------*/
-DEFINE INPUT  PARAMETER piCurrentPage AS INTEGER    NO-UNDO.
-DEFINE OUTPUT PARAMETER pcPageList    AS CHARACTER  NO-UNDO.
-
-DEFINE VARIABLE cPageList AS CHARACTER  NO-UNDO.
-
-FOR EACH tt_object_instance
-    WHERE tt_object_instance.page_number = piCurrentPage
-      AND tt_object_instance.object_instance_obj <> 0
-       BY tt_object_instance.page_number 
-        BY tt_object_instance.instance_order 
-         BY tt_object_instance.layout_position :
-
-  FOR EACH tt_link
-     WHERE tt_link.target_object_instance_obj = tt_object_instance.object_instance_obj
-       AND tt_link.link_name = "DATA":U :
-    
-    IF tt_link.source_object_instance_obj > 0  THEN DO:
-      RUN buildPageLinkRecursive ( INPUT piCurrentPage,
-                                   INPUT tt_link.source_object_instance_obj,
-                                   INPUT-OUTPUT cPageList).
-    END.
-  END.
-END.
-ASSIGN pcPageList = cPageList.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createObjects wWin 
-PROCEDURE createObjects :
-/*------------------------------------------------------------------------------
-  Purpose:     Super Override
-  Parameters:  
-  Notes:       Use many global variables in here as it is called for each page
-               and much of what it does must only be done once.
-------------------------------------------------------------------------------*/
-
-ASSIGN glOnceOnlyDone = TRUE. /* used when initializing page 0 */
-
-DEFINE BUFFER tt_source_object_instance FOR tt_object_instance.
-DEFINE BUFFER tt_target_object_instance FOR tt_object_instance.
-
-DEFINE VARIABLE cLocalAttributes    AS CHARACTER    NO-UNDO.                                                      
-DEFINE VARIABLE cLogicalObjectName  AS CHARACTER    NO-UNDO.                                                      
-DEFINE VARIABLE lv_object_handle    AS HANDLE       NO-UNDO.
-DEFINE VARIABLE hSourceObject       AS HANDLE       NO-UNDO.
-DEFINE VARIABLE hTargetObject       AS HANDLE       NO-UNDO.
-DEFINE VARIABLE cProfileData        AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE rProfileRid         AS ROWID        NO-UNDO.
-DEFINE VARIABLE cObjectName         AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE cPhysicalObject     AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE iCurrentPage        AS INTEGER      NO-UNDO.
-DEFINE VARIABLE iStartPage          AS INTEGER      NO-UNDO.
-DEFINE VARIABLE lResized            AS LOGICAL      NO-UNDO.
-DEFINE VARIABLE cInitialPageList    AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE cInitPages          AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE iEntry              AS INTEGER      NO-UNDO.
-DEFINE VARIABLE iLoop               AS INTEGER      NO-UNDO.
-DEFINE VARIABLE cDataTargets        AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE cSdoForeignFields   AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE hDataTarget         AS HANDLE       NO-UNDO.
-DEFINE VARIABLE cPageLinkList       AS CHARACTER    NO-UNDO.
-
-
-/* Code placed here will execute PRIOR to standard behavior. */
-
-RUN SUPER.
-
-/* get logical object name once only and store in a variable */
-ASSIGN 
-  cLogicalObjectName = getLogicalObjectName().
-
-ASSIGN
-  iCurrentPage = getCurrentPage()
-  iStartPage = iCurrentPage
-  lResized = NO.
-
-IF iCurrentPage = 0 THEN
-DO:
-    /* get attributes for all objects on all pages. This is so that we only have a single
-       appserver hit for the entire container for retrieving its dynamic properties from 
-       the repository - instead of getting a hit per page */
-    RUN getObjectAttributes IN gshRepositoryManager (INPUT  cLogicalObjectName,
-                                                     OUTPUT TABLE tt_object_instance,
-                                                     OUTPUT TABLE tt_page,
-                                                     OUTPUT TABLE tt_page_instance,
-                                                     OUTPUT TABLE tt_link,
-                                                     OUTPUT TABLE ttAttributeValue,
-                                                     OUTPUT TABLE ttUiEvent         ) NO-ERROR.
-    IF ERROR-STATUS:ERROR THEN
-    DO:
-        {af/sup2/afcheckerr.i &NO-RETURN=YES}
-        RUN destroyObject.
-        RETURN.
-    END.
-
-    ASSIGN cLocalAttributes = "":U.
-    
-    /* get attributes that are for the container itself - special instance record with 0 object number */
-    FIND FIRST tt_object_instance 
-         WHERE tt_object_instance.OBJECT_instance_obj = 0
-         NO-ERROR.
-    IF AVAILABLE tt_object_instance THEN
-      ASSIGN cLocalAttributes = tt_object_instance.instance_attribute_list. 
-
-    /* Container Attribute Values */
-    RUN setLocalAttributes( INPUT cLocalAttributes ).
-
-    /* Clear list of constructed objects on container */
-    ASSIGN
-      gcObjectHandles = "":U
-      gcToolbarHandles = "":U.                
-
-    FIND FIRST tt_page WHERE tt_page.PAGE_number = 0 NO-ERROR.
-    IF AVAILABLE tt_page THEN
-    DO:
-      {set Page0LayoutManager tt_page.layout_code}.
-    END.
-
-    /* get list of initial pages to construct - if setup.
-       The list is a comma delimited list of initial pages, or * for all or
-       empty for just the start page and page 0, which is the default
-    */
-    {get InitialPageList cInitialPageList}.
-    IF cInitialPageList = "*":U THEN /* Deal with all pages option */
-    DO:
-      ASSIGN cInitialPageList = "":U.
-      FOR EACH tt_page WHERE tt_page.PAGE_number > 0 BY tt_page.PAGE_number:
-        ASSIGN 
-          cInitialPageList = cInitialPageList + (IF cInitialPageList = "":U THEN "":U ELSE ",":U)
-                             + STRING(tt_page.PAGE_number)
-          .
-      END.
-    END.
-
-END. /* page 0 */
-
-/* Common code for all pages - including page 0 */    
-
-/* exit if invalid page */
-IF iCurrentPage > 0 AND NOT CAN-FIND(FIRST tt_page WHERE tt_page.PAGE_number = iCurrentPage) THEN RETURN.
-
-/* start off by making the frame's virtual dimensions very big */
-ASSIGN
-    FRAME {&FRAME-NAME}:SCROLLABLE     = TRUE
-    FRAME {&FRAME-NAME}:VIRTUAL-WIDTH  = SESSION:WIDTH + 1
-    FRAME {&FRAME-NAME}:VIRTUAL-HEIGHT = SESSION:HEIGHT + 1
-    FRAME {&FRAME-NAME}:SCROLLABLE     = FALSE
-    .
-/* Work out start page and if pages exist */
-FIND FIRST tt_page WHERE tt_page.PAGE_number > 0 NO-ERROR.
-IF AVAILABLE tt_page THEN 
-  ASSIGN iStartPage = tt_page.PAGE_number.
-/* set resize on page to start page */
-IF iCurrentPage = 0 THEN ASSIGN giResizeOnPage = iStartPage.
-
-/* Set page initialized flag */
-FIND FIRST tt_page
-     WHERE tt_page.PAGE_number = iCurrentPage
-     NO-ERROR.
-IF AVAILABLE tt_page THEN
-  ASSIGN tt_page.page_initialized = YES.
-
- /* loop through instances on page and create objects on them */
-FOR EACH tt_object_instance
-   WHERE tt_object_instance.PAGE_number = iCurrentPage
-     AND tt_object_instance.OBJECT_instance_obj <> 0
-      BY tt_object_instance.PAGE_number BY tt_object_instance.instance_order BY tt_object_instance.layout_position :
-
-
-  IF tt_object_instance.object_pathed_filename = "ry/obj/rystatusbv.w" THEN
-      ASSIGN
-          glMenuController = YES.
-  
-  IF tt_object_instance.PAGE_number <> ? THEN
-    DYNAMIC-FUNCTION("setCurrentPage":U, INPUT tt_object_instance.PAGE_number).
-  ELSE
-    DYNAMIC-FUNCTION("setCurrentPage":U, INPUT 0).
-  
-  RUN constructObject (INPUT  tt_object_instance.object_pathed_filename + (IF tt_object_instance.db_aware OR  tt_object_instance.object_pathed_filename MATCHES "*o.w" THEN CHR(3) + "DBAWARE" ELSE ""),
-                       INPUT  FRAME {&FRAME-NAME}:HANDLE,
-                       INPUT  tt_object_instance.instance_attribute_list,
-                       OUTPUT lv_object_handle).
-  /* keep ordered list of objects constructed on container */
-  IF VALID-HANDLE(lv_object_handle) THEN
-    ASSIGN 
-      gcObjectHandles = gcObjectHandles + (IF gcObjectHandles <> "":U THEN ",":U ELSE "":U) +
-                       STRING(lv_object_handle).
-  IF VALID-HANDLE(lv_object_handle)
-  AND INDEX(lv_object_handle:FILE-NAME, "dyntool":U) <> 0 THEN
-    ASSIGN 
-      gcToolbarHandles = gcToolbarHandles + (IF gcToolbarHandles <> "":U THEN ",":U ELSE "":U) +
-                       STRING(lv_object_handle).
-  IF VALID-HANDLE(lv_object_handle) AND tt_object_instance.custom_super_procedure <> "":U THEN DO:
-    {launch.i &PLIP = tt_object_instance.custom_super_procedure &OnApp = 'NO' &Iproc = '' &NewInstance = YES}
-    IF VALID-HANDLE(hPlip) THEN
-    DO:
-       lv_object_handle:ADD-SUPER-PROCEDURE(hPlip, SEARCH-TARGET).       
-       ASSIGN tt_object_instance.custom_super_handle = hPlip
-              tt_object_instance.destroy_custom_super = TRUE.
-
-    END.
-  END.
-  
-  IF VALID-HANDLE(lv_object_handle) THEN
-  DO:
-    ASSIGN tt_object_instance.object_instance_handle = lv_object_handle.
-  END.
-  ELSE
-  DO:
-    ASSIGN
-        tt_object_instance.object_instance_handle = ?
-        tt_object_instance.object_frame_handle = ?.           
-  END.
-
-  /* update page instance temp-table with correct handle */
-  FOR EACH tt_page_instance
-     WHERE tt_page_instance.OBJECT_instance_obj = tt_object_instance.OBJECT_instance_obj:
-    ASSIGN
-        tt_page_instance.OBJECT_instance_handle = tt_object_instance.OBJECT_instance_handle
-        tt_page_instance.OBJECT_type_code = tt_object_instance.OBJECT_type_code.
-  END. /* FOR EACH tt_page_instance */
-
-
-END. /* FOR EACH tt_object_instance on page */
-
-/* Add links between objects that are now valid handles and for which the links do not yet exist */    
-FOR EACH tt_link
-   WHERE tt_link.link_created = NO :
-    FIND FIRST tt_source_object_instance
-        WHERE tt_source_object_instance.object_instance_obj = tt_link.source_object_instance_obj NO-ERROR.
-
-    FIND FIRST tt_target_object_instance
-        WHERE tt_target_object_instance.object_instance_obj = tt_link.target_object_instance_obj NO-ERROR.
-
-    hSourceObject = (IF AVAILABLE tt_source_object_instance AND tt_link.source_object_instance_obj > 0 THEN tt_source_object_instance.object_instance_handle
-        ELSE THIS-PROCEDURE).
-    hTargetObject = (IF AVAILABLE tt_target_object_instance AND tt_link.target_object_instance_obj > 0 THEN tt_target_object_instance.object_instance_handle
-        ELSE THIS-PROCEDURE).
-
-    IF VALID-HANDLE(hSourceObject) AND VALID-HANDLE(hTargetObject) THEN
-    DO:
-      RUN addLink(hSourceObject, tt_link.link_name, hTargetObject).
-      ASSIGN tt_link.link_created = YES.    
-    END.
-END. /* FOR EACH tt_link */
-
-{get DataTarget cDataTargets}.
-{get SdoForeignFields cSdoForeignFields}.
-
-IF cSdoForeignFields <> "" THEN DO:   
-    DO iEntry = 1 TO NUM-ENTRIES(cDataTargets):
-        hDataTarget = WIDGET-HANDLE(ENTRY(iEntry,cDataTargets)).
-        
-        IF LOOKUP("setForeignFields", hDataTarget:INTERNAL-ENTRIES) <> 0 THEN DO: 
-    
-            DYNAMIC-FUNCTION('setForeignFields' IN hDataTarget, cSdoForeignFields).                                             
-        END.
-    END.
-END.
-
-IF iCurrentPage = 0 THEN
-DO:
-  IF glMenuController THEN
-  DO:
-    ASSIGN
-        gdMinimumWindowWidth = 84.4
-        gdMinimumWindowHeight = 2.38                  
-        gdMaximumWindowWidth = SESSION:WIDTH - 1
-        gdMaximumWindowHeight = 2.38.                  
-  END.
-  ELSE DO:
-    ASSIGN 
-        gdMinimumWindowWidth = 81
-        gdMinimumWindowHeight = 10.14                  
-        gdMaximumWindowWidth = SESSION:WIDTH - 1
-        gdMaximumWindowHeight = SESSION:HEIGHT - 1.                  
-  END.
-
-  {&WINDOW-NAME}:MIN-WIDTH-CHARS =  gdMinimumWindowWidth.
-  {&WINDOW-NAME}:MIN-HEIGHT-CHARS =  gdMinimumWindowHeight.
-  {&WINDOW-NAME}:WIDTH-CHARS =  gdMinimumWindowWidth.
-  {&WINDOW-NAME}:HEIGHT-CHARS =  gdMinimumWindowHeight.
-END.
-
-IF glSaveWindowPos = ? THEN /* do once */
-DO:
-  RUN getProfileData IN gshProfileManager (INPUT "Window":U,
-                                           INPUT "SaveSizPos":U,
-                                           INPUT "SaveSizPos":U,
-                                           INPUT NO,
-                                           INPUT-OUTPUT rProfileRid,
-                                           OUTPUT cProfileData).
-  ASSIGN
-      glSaveWindowPos = cProfileData <> "NO":U.
-
-  IF glSaveWindowPos THEN
-  DO:
-    ASSIGN
-      cObjectName  = getLogicalObjectName()
-      cProfileData = "":U
-      rProfileRid  = ?.
-    
-    RUN getProfileData IN gshProfileManager (INPUT "Window":U,          /* Profile type code                            */
-                                             INPUT "SizePos":U,         /* Profile code                                 */
-                                             INPUT cObjectName,         /* Profile data key                             */
-                                             INPUT "NO":U,              /* Get next record flag                         */
-                                             INPUT-OUTPUT rProfileRid,  /* Rowid of profile data                        */
-                                             OUTPUT cProfileData).      /* Found profile data. Positions as follows:    */
-                                                                        /* 1 = col,         2 = row,                    */
-                                                                        /* 3 = width chars, 4 = height chars            */
-  END. 
-  ELSE ASSIGN cProfileData = "":U.
-
-  IF NUM-ENTRIES(cProfileData, CHR(3)) = 4 THEN
-  DO:
-    DEFINE VARIABLE cWidth      AS CHARACTER  NO-UNDO.
-    DEFINE VARIABLE cHeight     AS CHARACTER  NO-UNDO.
-    DEFINE VARIABLE cColumn     AS CHARACTER  NO-UNDO.
-    DEFINE VARIABLE cRow        AS CHARACTER  NO-UNDO.
-
-    ASSIGN
-      glFoundSavedSize = YES
-
-        /* Ensure that the values have the correct decimal points. 
-         * These values are always stored using the American numeric format
-         * ie. using a "." as decimal point.                               */
-        cColumn = ENTRY(1, cProfileData, CHR(3))
-        cColumn = REPLACE(cColumn, ".":U, SESSION:NUMERIC-DECIMAL-POINT)
-
-        cRow = ENTRY(2, cProfileData, CHR(3))
-        cRow = REPLACE(cRow, ".":U, SESSION:NUMERIC-DECIMAL-POINT)
-
-        cWidth = ENTRY(3, cProfileData, CHR(3))
-        cWidth = REPLACE(cWidth, ".":U, SESSION:NUMERIC-DECIMAL-POINT)
-
-        cHeight = ENTRY(4, cProfileData, CHR(3))
-        cHeight = REPLACE(cHeight, ".":U, SESSION:NUMERIC-DECIMAL-POINT)        
-      .
-    ASSIGN
-      gdSavedWidth = DECIMAL(cWidth)
-      gdSavedHeight = DECIMAL(cHeight)
-      gdSavedColumn = DECIMAL(cColumn)
-      gdSavedRow = DECIMAL(cRow)
-      NO-ERROR.   
-  END. 
-  ELSE
-    ASSIGN
-        gdSavedWidth = ?
-        gdSavedHeight = ?
-        gdSavedColumn = ?
-        gdSavedRow = ?
-        .    
-END. /* getting saved size and position */
-
-/* Work out new min sizes to ensure the contents of this page fit onto the
-   folder. Do not do this for page 0 if the start page is > 0 as the work will
-   just be duplicated.
-*/
-IF NOT(iCurrentPage = 0 AND iStartPage > 0) THEN
-DO:
-    RUN packWindow IN THIS-PROCEDURE (INPUT iCurrentPage, INPUT NOT(glFoundSavedSize)) NO-ERROR.
-
-    IF RETURN-VALUE NE "":U THEN
-        ASSIGN {&WINDOW-NAME}:PRIVATE-DATA = "ForcedExit":U + CHR(3) + RETURN-VALUE.
-
-    /* save off new minimums and maximums */
-    ASSIGN gdMinimumWindowWidth = {&WINDOW-NAME}:MIN-WIDTH-CHARS
-           gdMinimumWindowHeight = {&WINDOW-NAME}:MIN-HEIGHT-CHARS
-           gdMaximumWindowWidth = {&WINDOW-NAME}:MAX-WIDTH-CHARS
-           gdMaximumWindowHeight = {&WINDOW-NAME}:MAX-HEIGHT-CHARS
-           .
-END.
-
-/* if on 0, init other initial pages */
-IF iCurrentPage = 0 AND iStartPage > 0 THEN
-DO:
-    ASSIGN
-      cInitPages = "":U
-      .
-    page-loop:
-    DO iLoop = 1 TO NUM-ENTRIES(cInitialPageList):
-      ASSIGN iEntry = INTEGER(ENTRY(iLoop, cInitialPageList)) NO-ERROR.
-      IF ERROR-STATUS:ERROR OR iEntry = 0 THEN NEXT page-loop.
-      ASSIGN
-        cInitPages = cInitPages + (IF cInitPages = "":U THEN "":U ELSE ",":U) + STRING(iEntry)
-        giResizeOnPage = iEntry. /* ensure only resize on last page being initialized */
-        .
-    END.
-    IF LOOKUP(STRING(iStartPage),cInitPages) = 0 THEN
-      ASSIGN giResizeOnPage = iStartPage. /* start page not in list so resize on start page */
-    IF cInitPages <> "":U THEN RUN initPages(cInitPages).
-END.
-
-IF iCurrentPage > 0 THEN DO:
-   /* Build string 'cPageLinkList' containing delimited list of pages that 
-   are dependent on the current page, then run initpages */
-    RUN BuildPageLinks (INPUT  iCurrentPage,
-                        OUTPUT cPageLinkList).
-    ASSIGN gcPageLinkList = gcPageLinkList + (IF cPageLinkList = "" THEN "" ELSE ",") + cPageLinkList.
-
-    IF cPageLinkList <> "":U THEN RUN initPages(cPageLinkList).
-END.
-
-/* resize if on resize page or dimensions now too small */
-IF iCurrentPage = giResizeOnPage
-                   OR {&WINDOW-NAME}:MIN-WIDTH-CHARS > {&WINDOW-NAME}:WIDTH-CHARS 
-                   OR {&WINDOW-NAME}:MIN-HEIGHT-CHARS > {&WINDOW-NAME}:HEIGHT-CHARS THEN
-DO:
-  IF glFoundSavedSize THEN
-  DO:
-  
-    /* avoid re-move */
-    IF iCurrentPage <> giResizeOnPage THEN
-      ASSIGN
-        gdSavedColumn = {&WINDOW-NAME}:COLUMN
-        gdSavedRow = {&WINDOW-NAME}:ROW
-        .  
-    
-    ASSIGN
-        FRAME {&FRAME-NAME}:SCROLLABLE     = TRUE
-        {&WINDOW-NAME}:WIDTH-CHARS  = MIN(MAX(gdSavedWidth, {&WINDOW-NAME}:MIN-WIDTH-CHARS), 
-                                           (SESSION:WIDTH-CHARS - 2.5))
-        {&WINDOW-NAME}:HEIGHT-CHARS = MIN(MAX(gdSavedHeight, ({&WINDOW-NAME}:MIN-HEIGHT-CHARS)),({&WINDOW-NAME}:MAX-HEIGHT-CHARS),
-                                           (SESSION:HEIGHT-CHARS - 2))
-        .
-    
-    ASSIGN
-        {&WINDOW-NAME}:COLUMN        = IF (gdSavedColumn + {&WINDOW-NAME}:WIDTH-CHARS) >= SESSION:WIDTH-CHARS THEN
-                                            MAX(SESSION:WIDTH-CHARS - {&WINDOW-NAME}:WIDTH-CHARS, 1)
-                                       ELSE IF gdSavedColumn < 0 THEN 1
-                                       ELSE gdSavedColumn
-        {&WINDOW-NAME}:ROW           = IF (gdSavedRow + {&WINDOW-NAME}:HEIGHT-CHARS) >= SESSION:HEIGHT-CHARS THEN
-                                            MAX(SESSION:HEIGHT-CHARS - {&WINDOW-NAME}:HEIGHT-CHARS - 1.5, 1)
-                                       ELSE IF gdSavedRow < 0 THEN 1
-                                       ELSE gdSavedRow
-        FRAME {&FRAME-NAME}:WIDTH = {&WINDOW-NAME}:WIDTH
-        FRAME {&FRAME-NAME}:HEIGHT = {&WINDOW-NAME}:HEIGHT
-        FRAME {&FRAME-NAME}:VIRTUAL-WIDTH = {&WINDOW-NAME}:WIDTH
-        FRAME {&FRAME-NAME}:VIRTUAL-HEIGHT = {&WINDOW-NAME}:HEIGHT
-        FRAME {&FRAME-NAME}:SCROLLABLE     = FALSE
-        gdSavedColumn = {&WINDOW-NAME}:COLUMN
-        gdSavedRow = {&WINDOW-NAME}:ROW
-        .                                                  
-    IF LOOKUP(string(iCurrentPage),gcPageLinkList) = 0  THEN DO: /* Added check to not run if page being init is a linked page */
-      APPLY "window-resized":u TO {&WINDOW-NAME}.
-      ASSIGN lResized = YES.
-  END.
-  END.
-  ELSE IF glMenuController AND iCurrentPage = iStartPage THEN
-  DO:        
-    ASSIGN
-        FRAME {&FRAME-NAME}:SCROLLABLE     = TRUE
-        {&WINDOW-NAME}:ROW = 1
-        {&WINDOW-NAME}:COL = 1
-        {&WINDOW-NAME}:MIN-WIDTH-CHARS = gdMinimumWindowWidth
-        {&WINDOW-NAME}:WIDTH-CHARS = gdMaximumWindowWidth
-        {&WINDOW-NAME}:MIN-HEIGHT-CHARS = gdMinimumWindowHeight
-        {&WINDOW-NAME}:MAX-HEIGHT-CHARS = gdMaximumWindowHeight
-        FRAME {&FRAME-NAME}:WIDTH = {&WINDOW-NAME}:WIDTH
-        FRAME {&FRAME-NAME}:HEIGHT = {&WINDOW-NAME}:HEIGHT
-        FRAME {&FRAME-NAME}:VIRTUAL-WIDTH = {&WINDOW-NAME}:WIDTH
-        FRAME {&FRAME-NAME}:VIRTUAL-HEIGHT = {&WINDOW-NAME}:HEIGHT
-        FRAME {&FRAME-NAME}:SCROLLABLE     = FALSE
-        .
-    IF LOOKUP(string(iCurrentPage),gcPageLinkList) = 0  THEN DO: /* Added check to not run if page being init is a linked page */
-      APPLY "window-resized":u TO {&WINDOW-NAME}.
-      ASSIGN lResized = YES.
-    END.
-  END.
-END.
-
-/* finish off by resetting frame's virtual dimensions */
-ASSIGN
-    FRAME {&FRAME-NAME}:SCROLLABLE     = TRUE
-    FRAME {&FRAME-NAME}:VIRTUAL-WIDTH  = {&WINDOW-NAME}:WIDTH
-    FRAME {&FRAME-NAME}:VIRTUAL-HEIGHT = {&WINDOW-NAME}:HEIGHT
-    FRAME {&FRAME-NAME}:SCROLLABLE     = FALSE
-    .
-/* if on 0, select start page */
-IF iCurrentPage = 0 AND iStartPage > 0 THEN
-DO:
-  RUN selectPage(iStartPage).
-END.
-ELSE IF NOT lResized THEN 
-DO:
-  IF LOOKUP(string(iCurrentPage),gcPageLinkList) = 0  THEN  /* Added check to not run if page being init is a linked page */ 
-    APPLY "window-resized":u TO {&WINDOW-NAME}.  /* position objects correctly */
-  IF (({&WINDOW-NAME}:COLUMN + {&WINDOW-NAME}:WIDTH-CHARS) >= SESSION:WIDTH-CHARS)THEN
-    ASSIGN
-      {&WINDOW-NAME}:COLUMN        = MAX(SESSION:WIDTH-CHARS - {&WINDOW-NAME}:WIDTH-CHARS, 1)
-      .
-  IF (({&WINDOW-NAME}:ROW + {&WINDOW-NAME}:HEIGHT-CHARS) >= SESSION:HEIGHT-CHARS) THEN
-    ASSIGN
-      {&WINDOW-NAME}:ROW           = MAX(SESSION:HEIGHT-CHARS - {&WINDOW-NAME}:HEIGHT-CHARS - 1.5, 1)
-      .
-END.
-
-ERROR-STATUS:ERROR = NO.
-RETURN.
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE destroyObject wWin 
-PROCEDURE destroyObject :
-/*------------------------------------------------------------------------------
-  Purpose:     Override to delete custom super procedures   
-  Parameters:  
-  Notes:        
-------------------------------------------------------------------------------*/
-   RUN SUPER.
-   FOR EACH tt_object_instance WHERE tt_object_instance.destroy_custom_super = TRUE:
-      DELETE OBJECT tt_object_instance.custom_super_handle NO-ERROR. 
-   END.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1236,20 +535,19 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE doThisOnceOnly wWin 
 PROCEDURE doThisOnceOnly :
 /*------------------------------------------------------------------------------
-  Purpose:     Call from initializeObject to do createObjects for page 0.
+  Purpose:     
   Parameters:  <none>
-  Notes:       Do NOT remove this procedure as the session manager looks for
-               it and this is how the pass through links work - I know, I spent
-               3 hours trying to fix things after removing this procedure !!
+  Notes:       * This procedure is here because doThisOnceOnly is not part of the ADM
+                 procedures and is thus not 'visible' from the INTERNAL-ENTRIES
+                 attribute. This API is needed so that doThisOnceOnly will happen for 
+                 dynamic containers.
 ------------------------------------------------------------------------------*/
-    IF glOnceOnlyDone THEN RETURN.
+    IF NOT {fn getObjectsCreated} THEN
+        RUN createObjects IN TARGET-PROCEDURE.
 
-    RUN createObjects. 
-    {get StartPage iStartPage}.
-    IF iStartPage NE ? AND iStartPage NE 0 THEN
-      RUN selectPage(iStartPage).
-
-END PROCEDURE.
+    ASSIGN ERROR-STATUS:ERROR = NO.
+    RETURN.
+END PROCEDURE.  /* doThisOnceOnly */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1280,10 +578,8 @@ PROCEDURE exitObject :
             its contents and itself.
     Notes:  
 ------------------------------------------------------------------------------*/
-          
-    APPLY "CLOSE":U TO THIS-PROCEDURE.
-
-END PROCEDURE.
+    APPLY "CLOSE":U TO TARGET-PROCEDURE.
+END PROCEDURE.  /* exitObject */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1291,191 +587,58 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initializeObject wWin 
 PROCEDURE initializeObject :
 /*------------------------------------------------------------------------------
-  Purpose:     Super Override
-  Parameters:  
+  Purpose:     
+  Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  IF glInitialised THEN RETURN.
-  glInitialised = TRUE.
-  
-  DEFINE VARIABLE iCurrentPageNumber  AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cSavedContainerMode AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cErrorMessage       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cButton             AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hContainerToolbar   AS HANDLE     NO-UNDO.
+    DEFINE VARIABLE hWindow                 AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE cErrorMessage           AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE cButton                 AS CHARACTER                NO-UNDO.
 
-  /* retrieve container mode set already, i.e. from where window was launched from
-     and before initializeobject was run. If a mode is retrieved here, we will not
-     overwrite it with the default mode from the object properties.
-  */
-  gcContainerMode = getContainerMode().
-    /* Do initial run of createObjects for page 0 */
-    IF NOT glOnceOnlyDone THEN
-        RUN doThisOnceOnly.
-    /* Check forced exit of the dynamic container.
-     * We may get window packing errors here.      */
-    IF LENGTH({&WINDOW-NAME}:PRIVATE-DATA)           GT 0              AND
-       ENTRY(1, {&WINDOW-NAME}:PRIVATE-DATA, CHR(3)) EQ "ForcedExit":U THEN
+    /* This is to in the .W to ensure that if there is stuff in a custom super procedure
+     * that it will run. This is because the custom super procedure will execute BEFORE
+     * any of the super procedures associated with this container window, rydywindp.p and
+     * rydynframp.p.                                                                      */
+    IF NOT {fn getObjectsCreated} THEN
     DO:
-        IF NUM-ENTRIES({&WINDOW-NAME}:PRIVATE-DATA, CHR(3)) GE 2 THEN
-            ASSIGN cErrorMessage = ENTRY(2, {&WINDOW-NAME}:PRIVATE-DATA, CHR(3)).
-        ELSE
-            ASSIGN cErrorMessage = "Program aborted due to unknown reason":U.
+        RUN createObjects IN TARGET-PROCEDURE.
 
-        RUN showMessages IN gshSessionManager ( INPUT  cErrorMessage,            /* message to display */
-                                                INPUT  "ERR":U,                  /* error type */
-                                                INPUT  "&OK":U,                  /* button list */
-                                                INPUT  "&OK":U,                  /* default button */ 
-                                                INPUT  "&OK":U,                  /* cancel button */
-                                                INPUT  "Folder window error":U,  /* error window title */
-                                                INPUT  YES,                      /* display if empty */ 
-                                                INPUT  THIS-PROCEDURE,           /* container handle */ 
-                                                OUTPUT cButton               ).  /* button pressed */
-        RUN exitObject.
-        RETURN.
-    END.    /* forced exit */
+        /* The container handle will always be a window.
+         * Check the error status because the window may already have been
+         * shut down.                                                     */
+        {get ContainerHandle hWindow} NO-ERROR.
 
-  RUN SUPER.
+        /* Check forced exit of the dynamic container. We may get window packing errors here. */
+        IF NOT VALID-HANDLE(hWindow)                                     OR
+            ( LENGTH(hWindow:PRIVATE-DATA) GT 0 AND
+              ENTRY(1, hWindow:PRIVATE-DATA, CHR(3)) EQ "ForcedExit":U ) THEN
+        DO:
+            IF VALID-HANDLE(hWindow) AND NUM-ENTRIES(hWindow:PRIVATE-DATA, CHR(3)) GE 2 THEN
+                ASSIGN cErrorMessage = ENTRY(2, hWindow:PRIVATE-DATA, CHR(3)).
 
-  /* This is to see whether the folder window changed the mode because there is
-     possibly no enabled tab */
-  
-  ASSIGN gcContainerMode    = getContainerMode()
-         iCurrentPageNumber = getCurrentPage().
-    
-  FOR EACH tt_page WHERE tt_page.PAGE_number <> iCurrentPageNumber:
-    RUN hidePage(tt_page.PAGE_number).
-  END.
+            IF cErrorMessage EQ "":U OR cErrorMessage EQ ? THEN
+                ASSIGN cErrorMessage = "Program aborted due to unknown reason":U.
 
-  /* Check if any enabled tabs and if not - exit the program */
-  DEFINE VARIABLE hFolder AS HANDLE NO-UNDO.
-  ASSIGN hFolder = WIDGET-HANDLE(DYNAMIC-FUNCTION('linkHandles':U, 'Page-Source':U)).
-  IF VALID-HANDLE(hFolder) AND DYNAMIC-FUNCTION("getTabsEnabled" IN hFolder) = NO THEN
-  DO:
-    RUN showMessages IN gshSessionManager (INPUT  {aferrortxt.i 'RY' '11'},
-                                           INPUT  "ERR":U,                  /* error type */
-                                           INPUT  "&OK":U,                  /* button list */
-                                           INPUT  "&OK":U,                  /* default button */ 
-                                           INPUT  "&OK":U,                  /* cancel button */
-                                           INPUT  "Folder window error":U,  /* error window title */
-                                           INPUT  YES,                      /* display if empty */ 
-                                           INPUT  THIS-PROCEDURE,           /* container handle */ 
-                                           OUTPUT cButton                   /* button pressed */
-                                          ).
-    
-    /* Shut down the folder window */
-    RUN exitObject. 
-    RETURN.             
-  END.
+            RUN showMessages IN gshSessionManager ( INPUT  cErrorMessage,           /* message to display */
+                                                    INPUT  "ERR":U,                 /* error type */
+                                                    INPUT  "&OK":U,                 /* button list */
+                                                    INPUT  "&OK":U,                 /* default button */
+                                                    INPUT  "&OK":U,                 /* cancel button */
+                                                    INPUT  "Error on folder window creation":U, /* error window title */
+                                                    INPUT  YES,                     /* display if empty */
+                                                    INPUT  TARGET-PROCEDURE,        /* container handle */
+                                                    OUTPUT cButton               ). /* button pressed */
+            RUN destroyObject IN TARGET-PROCEDURE.
+            RETURN.
+        END.    /* forced exit */
+    END.    /* Objects not already created. */
 
-  /* check forced exit of the dynamic container */    
-  IF LENGTH({&WINDOW-NAME}:PRIVATE-DATA) > 0 AND
-     ENTRY(1,{&WINDOW-NAME}:PRIVATE-DATA,CHR(3)) = "forcedexit":U THEN
-  DO:
-    IF NUM-ENTRIES({&WINDOW-NAME}:PRIVATE-DATA,CHR(3)) = 2 THEN
-      ASSIGN cErrorMessage = ENTRY(2,{&WINDOW-NAME}:PRIVATE-DATA,CHR(3)).
-    ELSE 
-      ASSIGN cErrorMessage = "Program aborted due to unknown reason":U.
-    RUN showMessages IN gshSessionManager (INPUT  cErrorMessage,            /* message to display */
-                                           INPUT  "ERR":U,                  /* error type */
-                                           INPUT  "&OK":U,                  /* button list */
-                                           INPUT  "&OK":U,                  /* default button */ 
-                                           INPUT  "&OK":U,                  /* cancel button */
-                                           INPUT  "Folder window error":U,  /* error window title */
-                                           INPUT  YES,                      /* display if empty */ 
-                                           INPUT  THIS-PROCEDURE,           /* container handle */ 
-                                           OUTPUT cButton                   /* button pressed */
-                                          ).
-    RUN exitObject.
+    /* The super will not run if there has been a forced exit. */
+    RUN SUPER.
+
+    ASSIGN ERROR-STATUS:ERROR = NO.
     RETURN.
-  END.
-
-  {get ToolbarSource hContainerToolbar}.
-
-  IF VALID-HANDLE (hContainerToolbar) THEN
-  DO:
-      /* go back into modify mode after an add is saved */
-      IF gcContainerMode = "add":U OR
-         gcContainerMode = "Copy":U THEN
-      DO:
-        ASSIGN cSavedContainerMode = "modify":U.
-        {set savedContainerMode cSavedContainerMode}.
-      END.
-  
-      CASE gcContainerMode:
-          WHEN "view" THEN RUN setContainerViewMode.
-          WHEN "modify" THEN RUN setContainerModifyMode.
-          WHEN "Copy"   THEN PUBLISH 'copyRecord' FROM hContainerToolbar.
-          WHEN "Add"    THEN PUBLISH 'addRecord'  FROM hContainerToolbar.
-      END CASE.
-  END.
-
-  /* Special case for container toolbar and view mode - put all other toolbars
-     into view mode
-  */
-    
-  /* see if navigation target of container toolbar is a valid SDO. If this is the case, then
-     enable the navigation buttons on the container toolbar.
-  */
-  DEFINE VARIABLE hNavigateSdo AS HANDLE NO-UNDO.
-  IF VALID-HANDLE(hContainerToolbar) THEN
-    hNavigateSdo = DYNAMIC-FUNCTION("linkHandles" IN hContainerToolbar, 'Navigation-Target') NO-ERROR.
-  
-  /* end of initialization - now turn off data links */
-
-  PUBLISH 'ToggleData' (INPUT FALSE).
-  
-  /* calculate window width */
-  DEFINE VARIABLE hMenuBar AS HANDLE NO-UNDO.
-  DEFINE VARIABLE hSubMenu AS HANDLE NO-UNDO.
-  DEFINE VARIABLE dTextWidth AS DECIMAL NO-UNDO.
-  DEFINE VARIABLE dTotalTextWidth AS DECIMAL NO-UNDO.
-  DEFINE VARIABLE iMenus AS INTEGER NO-UNDO.
-  DEFINE VARIABLE dMenuControllerWidth AS DECIMAL NO-UNDO.
-  {&WINDOW-NAME}:VISIBLE = TRUE.
-
-/*  PROCESS EVENTS. I'm removing this statement due to Issue #3333 and #3641 loged on issuezilla */
-
-  /* calculate the menu width */
-  hMenuBar = {&WINDOW-NAME}:MENU-BAR NO-ERROR.
-  
-  IF VALID-HANDLE(hMenuBar) THEN
-  DO:
-    hSubMenu = hMenuBar:FIRST-CHILD.
-    REPEAT WHILE VALID-HANDLE(hSubMenu):
-        dTextWidth = FONT-TABLE:GET-TEXT-WIDTH(REPLACE(hSubMenu:LABEL,"&",""), hSubMenu:FONT).
-        dTotalTextWidth = dTotalTextWidth + dTextWidth.
-        iMenus = iMenus + 1.
-        hSubMenu = hSubMenu:NEXT-SIBLING.
-    END.
-
-    dMenuControllerWidth = MAX(dTotalTextWidth + (iMenus * 2.6) + 1, 1).
-    dMenuControllerWidth = MAX({&WINDOW-NAME}:MIN-WIDTH,MIN(dMenuControllerWidth, SESSION:WIDTH - 1)).
-
-    IF {&WINDOW-NAME}:WIDTH < dMenuControllerWidth THEN
-    DO:
-      ASSIGN
-        FRAME {&FRAME-NAME}:SCROLLABLE     = TRUE
-        {&WINDOW-NAME}:MIN-WIDTH = dMenuControllerWidth
-        {&WINDOW-NAME}:WIDTH = dMenuControllerWidth
-        FRAME {&FRAME-NAME}:VIRTUAL-WIDTH = dMenuControllerWidth
-        FRAME {&FRAME-NAME}:WIDTH = dMenuControllerWidth
-        FRAME {&FRAME-NAME}:SCROLLABLE     = FALSE
-        .
-      APPLY "window-resized":u TO {&WINDOW-NAME}.
-    END.
-
-    IF {&WINDOW-NAME}:MIN-WIDTH < dMenuControllerWidth THEN
-    DO:
-      ASSIGN
-        {&WINDOW-NAME}:MIN-WIDTH = dMenuControllerWidth.
-    END.
-  
-  END.
-
-  RUN applyEntry(?).
-
-END PROCEDURE.
+END PROCEDURE.  /* initializeObject */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1483,357 +646,44 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE manualInitializeObjects wWin 
 PROCEDURE manualInitializeObjects :
 /*------------------------------------------------------------------------------
-  Purpose:     To instantiate objects on container in controlled order.
-  Parameters:  <none>
-  Notes:       Called from initializeObject of containr.p via Astra2
-               customisation.
-------------------------------------------------------------------------------*/
-
-  DEFINE VARIABLE iLoop                     AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE hHandle                   AS HANDLE     NO-UNDO.
-  
-  IF NUM-ENTRIES(gcObjectHandles) > 0 THEN
-  DO iLoop = 1 TO NUM-ENTRIES(gcObjectHandles):
-    ASSIGN hHandle = WIDGET-HANDLE(ENTRY(iLoop, gcObjectHandles)).
-    RUN initializeObject IN hHandle.
-  END.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE packWindow wWin 
-PROCEDURE packWindow :
-/*------------------------------------------------------------------------------
-  Purpose:     To work out new minimum window dimensions according to contents
-  Parameters:  input current page number, 
-               input resize flag
-  Notes:       
-------------------------------------------------------------------------------*/
-
-DEFINE INPUT PARAMETER piPage   AS INTEGER NO-UNDO.
-DEFINE INPUT PARAMETER plResize AS LOGICAL NO-UNDO.
-
-DEFINE VARIABLE lv_layout_code  AS CHARACTER.
-DEFINE VARIABLE hPageInstanceTT AS HANDLE NO-UNDO.
-DEFINE VARIABLE hPageTT         AS HANDLE NO-UNDO.
-
-    {get Page0LayoutManager lv_layout_code}.
-
-    hPageInstanceTT = TEMP-TABLE tt_page_instance:HANDLE.
-    hPageTT         = TEMP-TABLE tt_page:HANDLE.
-
-    RUN packWindow IN gsh_LayoutManager (
-        INPUT piPage,
-        INPUT lv_layout_code,
-        INPUT hPageInstanceTT:DEFAULT-BUFFER-HANDLE,
-        INPUT hPageTT:DEFAULT-BUFFER-HANDLE,
-        INPUT {&WINDOW-NAME}, 
-        INPUT FRAME {&FRAME-NAME}:HANDLE,
-        INPUT gdMinimumWindowWidth,
-        INPUT gdMinimumWindowHeight,
-        INPUT gdMaximumWindowWidth,
-        INPUT gdMaximumWindowHeight,
-        INPUT plResize
-        ).  
-    
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE resizeWindow wWin 
-PROCEDURE resizeWindow :
-/*------------------------------------------------------------------------------
   Purpose:     
   Parameters:  <none>
-  Notes:       
+  Notes:       * This procedure is here because manualInitializeObjects is not part of the ADM
+                 procedures and is thus not 'visible' from the INTERNAL-ENTRIES
+                 attribute. This API is needed so that manualInitializeObjects will happen for 
+                 dynamic containers.
 ------------------------------------------------------------------------------*/
+    RUN SUPER.
 
-DEFINE VARIABLE lv_layout_code  AS CHARACTER.
-DEFINE VARIABLE hPageInstanceTT AS HANDLE NO-UNDO.
-DEFINE VARIABLE hPageTT         AS HANDLE NO-UNDO.  
-                                               
-    {get Page0LayoutManager lv_layout_code}.                                               
+    ASSIGN ERROR-STATUS:ERROR = NO.
+    RETURN.
+END PROCEDURE.  /* manualInitializeObjects */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE resizeObject wWin 
+PROCEDURE resizeObject :
+/*------------------------------------------------------------------------------
+  Purpose:     Resize procedure.
+  Parameters:  pdHeight -
+               pcWidth  -
+  Notes:       * This procedure is here because resizeObject is not part of the ADM
+                 procedures and is thus not 'visible' from the INTERNAL-ENTRIES
+                 attribute. This API is needed so that resizing will happen for 
+                 dynamic containers.
+------------------------------------------------------------------------------*/
+    DEFINE INPUT PARAMETER pdHeight             AS DECIMAL              NO-UNDO.
+    DEFINE INPUT PARAMETER pdWidth              AS DECIMAL              NO-UNDO.
     
-    hPageInstanceTT = TEMP-TABLE tt_page_instance:HANDLE.
-    hPageTT         = TEMP-TABLE tt_page:HANDLE.
-    PUBLISH "windowToBeSized":U FROM THIS-PROCEDURE.
-    RUN resizeWindow IN gsh_LayoutManager (
-        INPUT lv_layout_code,
-        INPUT hPageInstanceTT:DEFAULT-BUFFER-HANDLE,
-        INPUT hPageTT:DEFAULT-BUFFER-HANDLE,
-        INPUT {&WINDOW-NAME}, 
-        INPUT FRAME {&FRAME-NAME}:HANDLE
-        ).  
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setContainerModifyMode wWin 
-PROCEDURE setContainerModifyMode :
-/*------------------------------------------------------------------------------
-  Purpose:     Force whole container intio modify mode - including header/detail
-               windows where they have many toolbars.
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-
-  DEFINE VARIABLE iLoop                     AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE hHandle                   AS HANDLE     NO-UNDO.
-  
-  IF NUM-ENTRIES(gcToolbarHandles) > 0 THEN
-  DO iLoop = 1 TO NUM-ENTRIES(gcToolbarHandles):
-    ASSIGN hHandle = WIDGET-HANDLE(ENTRY(iLoop, gcToolbarHandles)).
-    PUBLISH "updateMode" FROM hHandle ("enable").
-  END.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setContainerViewMode wWin 
-PROCEDURE setContainerViewMode :
-/*------------------------------------------------------------------------------
-  Purpose:     Force whole container intio view mode - including header/detail
-               windows where they have many toolbars.
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-
-  DEFINE VARIABLE iLoop                     AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE hHandle                   AS HANDLE     NO-UNDO.
-  
-  IF NUM-ENTRIES(gcToolbarHandles) > 0 THEN
-  DO iLoop = 1 TO NUM-ENTRIES(gcToolbarHandles):
-    ASSIGN hHandle = WIDGET-HANDLE(ENTRY(iLoop, gcToolbarHandles)).
-    PUBLISH "updateMode" FROM hHandle ("view").
-  END.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setLocalAttributes wWin 
-PROCEDURE setLocalAttributes :
-/*------------------------------------------------------------------------------
-  Purpose:     Setup properties of dynamic container as read from object
-               repository
-  Parameters:  Input list of properties.
-  Notes:       The list is in the same format as returned to the function
-               instancePropertyList, with CHR(3) between entries and CHR(4)
-               between the property name and its value in each entry. 
-               NOTE: we must get the datatype for each property in order to set
-               it.
-------------------------------------------------------------------------------*/
-DEFINE INPUT PARAMETER pcPropList AS CHARACTER NO-UNDO.
-
-DEFINE VARIABLE iEntry            AS INTEGER    NO-UNDO.
-DEFINE VARIABLE cProperty         AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cEntry            AS CHARACTER  NO-UNDO.    
-DEFINE VARIABLE cValue            AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cSignature        AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE phObject          AS HANDLE     NO-UNDO.
-DEFINE VARIABLE lAnswer           AS LOGICAL    NO-UNDO.
-
-phObject = THIS-PROCEDURE.
-     
-attribute-loop:
-DO iEntry = 1 TO NUM-ENTRIES(pcPropList, CHR(3)):
-  ASSIGN
-    cEntry = ENTRY(iEntry, pcPropList, CHR(3))
-    cProperty = ENTRY(1, cEntry, CHR(4))
-    cValue = ENTRY(2, cEntry, CHR(4))
-    .
-  /* Do not overwrite container mode if set */
-  IF cProperty = "ContainerMode":U AND gcContainerMode <> "":U THEN
-    NEXT attribute-loop.
-  
-  /* Get the datatype from the return type of the get function. */
-  cSignature = dynamic-function
-    ("Signature":U IN phObject, "get":U + cProperty).
-  
-  /** The message code removed to avoid issues with attributes being set in an
-   *  object which are not available as properties in the object. This becomes
-   *  as issue as more objects become dynamic (eg viewers, lookups, etc); attributes
-   *  such as HEIGHT-CHARS are necessary for the instantiation of the object, but 
-   *  are not strictly properties of the object.                                  */
-  IF cSignature NE "":U THEN  
-  CASE ENTRY(2,cSignature):
-    WHEN "INTEGER":U THEN
-      dynamic-function("set":U + cProperty IN phObject, INT(cValue)).
-    WHEN "DECIMAL":U THEN
-      dynamic-function("set":U + cProperty IN phObject, DEC(cValue)).
-    WHEN "CHARACTER":U THEN
-      dynamic-function("set":U + cProperty IN phObject, cValue).
-    WHEN "LOGICAL":U THEN
-      dynamic-function("set":U + cProperty IN phObject,
-        IF cValue = "yes":U THEN yes ELSE no).
-  END CASE.
-END.
-
-RETURN.
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-/* ************************  Function Implementations ***************** */
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION childWindowsOpen wWin 
-FUNCTION childWindowsOpen RETURNS LOGICAL
-  ( ) :
-/*------------------------------------------------------------------------------
-  Purpose: to check if child windows open from this window - use to give warning
-           when closing window with X or ESC 
-    Notes:  
-------------------------------------------------------------------------------*/
-
-  DEFINE VARIABLE iLoop             AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cTargets          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hHandle           AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE lChildren         AS LOGICAL    NO-UNDO.
-
-  {get containertarget cTargets}.
-
-  ASSIGN lChildren  = NO.
-  
-  target-loop:
-  DO iLoop = 1 TO NUM-ENTRIES(cTargets):
-    ASSIGN hHandle = WIDGET-HANDLE(ENTRY(iLoop, cTargets)) NO-ERROR.
-    IF VALID-HANDLE(hHandle) AND
-       INDEX(hHandle:FILE-NAME, "rydyncontw":U) <> 0 THEN
-    DO:
-      ASSIGN lChildren  = YES.
-      LEAVE target-loop.    
-    END.
-  END.
-  
-  RETURN lChildren.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getContainerObjectHandles wWin 
-FUNCTION getContainerObjectHandles RETURNS CHARACTER
-  (  ) :
-/*------------------------------------------------------------------------------
-  Purpose:     To pass out a comma delimited list of object handles created on
-               the container - in createobjects.
-  Notes:       Used as part of initializeObject in containr.p to initialize
-               objects in best possible order, i.e. toolbars, then sdos, then
-               other objects, by page.
-------------------------------------------------------------------------------*/
-
-  RETURN gcObjectHandles.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFrameHandle wWin 
-FUNCTION getFrameHandle RETURNS HANDLE
-  ( ip_procedure_handle AS HANDLE ) :
-/*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
-------------------------------------------------------------------------------*/
-DEF VAR idx AS INT NO-UNDO.
-DEF VAR hdl AS HANDLE NO-UNDO.
-DEF VAR FRAME_handle AS HANDLE NO-UNDO.
-
-                              
-    hdl = ip_procedure_handle:FIRST-CHILD.
-    FRAME_handle = ?.
+    /* We don't check for errors because there will be many cases where
+     * there is no resizeObject for the viewer. In this cse, simply ignore 
+     * any errors.                                                         */
+    RUN SUPER (INPUT pdHeight, INPUT pdWidth) NO-ERROR.
     
-    DO WHILE VALID-HANDLE(hdl):
-        MESSAGE hdl:TYPE.
-        hdl = hdl:FIRST-CHILD.       
-    END.
-                                 
-  RETURN FRAME_handle.   /* Function return value. */
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getInstanceObjectId wWin 
-FUNCTION getInstanceObjectId RETURNS DECIMAL
-    ( phProcedureHandle     AS HANDLE    ) :
-/*------------------------------------------------------------------------------
-  Purpose:  Returns the object Id of the object instance which is found
-            using the procedure handle.
-    Notes:  
-------------------------------------------------------------------------------*/
-    DEFINE VARIABLE dObjectInstanceObj      AS DECIMAL                  NO-UNDO.
-
-    DEFINE BUFFER tt_object_instance            FOR tt_object_instance.
-    
-    FIND FIRST tt_object_instance WHERE
-               tt_object_instance.object_instance_handle = phProcedureHandle
-               NO-ERROR.
-    IF AVAILABLE tt_object_instance THEN
-        ASSIGN dObjectInstanceObj = tt_object_instance.object_instance_obj.
-    ELSE
-        ASSIGN dObjectInstanceObj = 0.
-
-    RETURN dObjectInstanceObj.
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getToolbarHandles wWin 
-FUNCTION getToolbarHandles RETURNS CHARACTER
-  (  ) :
-/*------------------------------------------------------------------------------
-  Purpose: Return handles of all toolbars on the container 
-    Notes:  
-------------------------------------------------------------------------------*/
-
-  RETURN gcToolbarHandles.   /* Function return value. */
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getWindowName wWin 
-FUNCTION getWindowName RETURNS CHARACTER
-  (  ) :
-/*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
-------------------------------------------------------------------------------*/
-
-  RETURN {&WINDOW-NAME}:TITLE.   /* Function return value. */
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setWindowName wWin 
-FUNCTION setWindowName RETURNS LOGICAL
-  ( pcWindowName AS CHARACTER ) :
-/*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
-------------------------------------------------------------------------------*/
-
-   
-   {&WINDOW-NAME}:TITLE = pcWindowName.                             
-  RETURN TRUE.   /* Function return value. */
-
-END FUNCTION.
+    ASSIGN ERROR-STATUS:ERROR = NO.
+    RETURN.
+END PROCEDURE.  /* resizeObject */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

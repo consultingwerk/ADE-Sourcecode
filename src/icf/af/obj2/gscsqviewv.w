@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          afdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" vTableWin _INLINE
@@ -87,7 +87,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gscsqviewv.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010001
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -127,13 +127,13 @@ RowObject.number_of_sequences RowObject.sequence_active ~
 RowObject.auto_generate RowObject.multi_transaction 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define DISPLAYED-FIELDS RowObject.sequence_short_desc ~
 RowObject.sequence_description RowObject.sequence_tla RowObject.min_value ~
 RowObject.max_value RowObject.sequence_format RowObject.next_value ~
 RowObject.number_of_sequences RowObject.sequence_active ~
 RowObject.auto_generate RowObject.multi_transaction 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define DISPLAYED-OBJECTS fiEntityMnemonic 
 
 /* Custom List Definitions                                              */
@@ -148,8 +148,8 @@ RowObject.auto_generate RowObject.multi_transaction
 
 
 /* Definitions of handles for SmartObjects                              */
+DEFINE VARIABLE h_dyncombo AS HANDLE NO-UNDO.
 DEFINE VARIABLE h_dynlookup-2 AS HANDLE NO-UNDO.
-DEFINE VARIABLE h_gsmlgdcsfv AS HANDLE NO-UNDO.
 
 /* Definitions of the field level widgets                               */
 DEFINE VARIABLE fiEntityMnemonic AS CHARACTER FORMAT "X(256)":U 
@@ -160,41 +160,41 @@ DEFINE VARIABLE fiEntityMnemonic AS CHARACTER FORMAT "X(256)":U
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     RowObject.sequence_short_desc AT ROW 1.19 COL 31.8 COLON-ALIGNED
+     RowObject.sequence_short_desc AT ROW 1 COL 31.8 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 17 BY 1
-     RowObject.sequence_description AT ROW 2.19 COL 31.8 COLON-ALIGNED
+          SIZE 34.8 BY 1
+     RowObject.sequence_description AT ROW 2.05 COL 31.8 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 37 BY 1
+          SIZE 74.8 BY 1
      fiEntityMnemonic AT ROW 4.19 COL 83 COLON-ALIGNED NO-LABEL
-     RowObject.sequence_tla AT ROW 5.19 COL 31.8 COLON-ALIGNED
+     RowObject.sequence_tla AT ROW 5.24 COL 31.8 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 8.6 BY 1
-     RowObject.min_value AT ROW 6.19 COL 31.8 COLON-ALIGNED
+     RowObject.min_value AT ROW 6.29 COL 31.8 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 14.6 BY 1
-     RowObject.max_value AT ROW 7.19 COL 31.8 COLON-ALIGNED
+     RowObject.max_value AT ROW 7.33 COL 31.8 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 14.6 BY 1
-     RowObject.sequence_format AT ROW 8.19 COL 31.8 COLON-ALIGNED
+     RowObject.sequence_format AT ROW 8.38 COL 31.8 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 37 BY 1
-     RowObject.next_value AT ROW 9.19 COL 31.8 COLON-ALIGNED
+          SIZE 74.8 BY 1
+     RowObject.next_value AT ROW 9.43 COL 31.8 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 14.6 BY 1
-     RowObject.number_of_sequences AT ROW 10.19 COL 31.8 COLON-ALIGNED
+     RowObject.number_of_sequences AT ROW 10.48 COL 31.8 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 11.8 BY 1
-     RowObject.sequence_active AT ROW 11.29 COL 33.8
+     RowObject.sequence_active AT ROW 11.54 COL 33.8
           VIEW-AS TOGGLE-BOX
-          SIZE 21.4 BY .81
-     RowObject.auto_generate AT ROW 12.1 COL 33.8
+          SIZE 21.4 BY 1
+     RowObject.auto_generate AT ROW 12.59 COL 33.8
           VIEW-AS TOGGLE-BOX
-          SIZE 18.8 BY .81
-     RowObject.multi_transaction AT ROW 12.91 COL 33.8
+          SIZE 18.8 BY 1
+     RowObject.multi_transaction AT ROW 13.64 COL 33.8
           VIEW-AS TOGGLE-BOX
-          SIZE 21.2 BY .81
-     SPACE(29.20) SKIP(0.00)
+          SIZE 21.2 BY 1
+     SPACE(28.80) SKIP(0.00)
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -234,8 +234,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 12.95
-         WIDTH              = 129.2.
+         HEIGHT             = 13.62
+         WIDTH              = 126.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -277,7 +277,7 @@ ASSIGN
 */  /* FRAME frMain */
 &ANALYZE-RESUME
 
-
+ 
 
 
 
@@ -333,26 +333,26 @@ PROCEDURE adm-create-objects :
 
     WHEN 0 THEN DO:
        RUN constructObject (
-             INPUT  'af/obj2/gsmlgdcsfv.w':U ,
+             INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'FieldNamecompany_organisation_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
-             OUTPUT h_gsmlgdcsfv ).
-       RUN repositionObject IN h_gsmlgdcsfv ( 3.19 , 14.20 ) NO-ERROR.
-       RUN resizeObject IN h_gsmlgdcsfv ( 1.05 , 70.00 ) NO-ERROR.
+             INPUT  'DisplayedFieldgsm_login_company.login_company_short_name,gsm_login_company.login_company_codeKeyFieldgsm_login_company.login_company_objFieldLabelLogin CompanyFieldTooltipSelect a login company from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsm_login_company NO-LOCK BY gsm_login_company.login_company_codeQueryTablesgsm_login_companySDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 (&2)CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines5ComboFlagAFlagValue0BuildSequence1SecurednoCustomSuperProcFieldNamecompany_organisation_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT h_dyncombo ).
+       RUN repositionObject IN h_dyncombo ( 3.10 , 33.80 ) NO-ERROR.
+       RUN resizeObject IN h_dyncombo ( 1.05 , 50.00 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_entity_mnemonic.entity_mnemonicKeyFieldgsc_entity_mnemonic.entity_mnemonicFieldLabelEntity MnemonicFieldTooltipEnter an Entity Mnemonic or press F4 for LookupKeyFormatX(8)KeyDatatypecharacterDisplayFormatX(8)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_entity_mnemonic NO-LOCK BY gsc_entity_mnemonic.entity_mnemonicQueryTablesgsc_entity_mnemonicBrowseFieldsgsc_entity_mnemonic.entity_mnemonic,gsc_entity_mnemonic.entity_mnemonic_descriptionBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(8),X(35)RowsToBatch200BrowseTitleLookup Entity MnemonicViewerLinkedFieldsgsc_entity_mnemonic.entity_mnemonic_descriptionLinkedFieldDataTypescharacterLinkedFieldFormatsX(35)ViewerLinkedWidgetsfiEntityMnemonicFieldNameowning_entity_mnemonicDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_entity_mnemonic.entity_mnemonicKeyFieldgsc_entity_mnemonic.entity_mnemonicFieldLabelEntityFieldTooltipEnter an Entity Mnemonic or press F4 for LookupKeyFormatX(8)KeyDatatypecharacterDisplayFormatX(8)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_entity_mnemonic NO-LOCK BY gsc_entity_mnemonic.entity_mnemonicQueryTablesgsc_entity_mnemonicBrowseFieldsgsc_entity_mnemonic.entity_mnemonic,gsc_entity_mnemonic.entity_mnemonic_descriptionBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(8),X(35)RowsToBatch200BrowseTitleLookup Entity MnemonicViewerLinkedFieldsgsc_entity_mnemonic.entity_mnemonic_descriptionLinkedFieldDataTypescharacterLinkedFieldFormatsX(35)ViewerLinkedWidgetsfiEntityMnemonicColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcFieldNameowning_entity_mnemonicDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dynlookup-2 ).
        RUN repositionObject IN h_dynlookup-2 ( 4.19 , 33.80 ) NO-ERROR.
        RUN resizeObject IN h_dynlookup-2 ( 1.00 , 50.00 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */
-       RUN adjustTabOrder ( h_gsmlgdcsfv ,
+       RUN adjustTabOrder ( h_dyncombo ,
              RowObject.sequence_description:HANDLE IN FRAME frMain , 'AFTER':U ).
        RUN adjustTabOrder ( h_dynlookup-2 ,
-             h_gsmlgdcsfv , 'AFTER':U ).
+             h_dyncombo , 'AFTER':U ).
     END. /* Page 0 */
 
   END CASE.

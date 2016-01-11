@@ -74,6 +74,18 @@ af/cod/aftemwizpw.w
    handles to these buffers may be passed around to other procedures.
    */
 
+&IF DEFINED(defineTTParam) &THEN
+/* This table contains the session's parameters. All values are get and
+   set using the getValue and setValue functions. */
+DEFINE TEMP-TABLE ttParam NO-UNDO RCODE-INFORMATION
+  FIELD cOption    AS CHARACTER FORMAT "X(25)" LABEL "Parameter"
+  FIELD cValue     AS CHARACTER
+  FIELD cDispValue AS CHARACTER FORMAT "X(128)" LABEL "Value"
+  INDEX pudx IS UNIQUE PRIMARY
+    cOption
+  .
+&ENDIF
+
 /* ttProperty are read from the "attributes" section of the icfconfig.xml
    file. */
 DEFINE TEMP-TABLE ttProperty NO-UNDO
@@ -117,6 +129,7 @@ DEFINE TEMP-TABLE ttManager NO-UNDO RCODE-INFORMATION
   FIELD cManagerName     AS CHARACTER FORMAT "X(30)" LABEL "Manager Name"
   FIELD cFileName        AS CHARACTER FORMAT "X(60)" LABEL "Manager Procedure"
   FIELD cHandleName      AS CHARACTER FORMAT "X(5)"  LABEL "Handle Used"
+  FIELD cSuperOf         AS CHARACTER FORMAT "X(30)"  LABEL "Super Of"
   FIELD hHandle          AS HANDLE 
   FIELD iUniqueID        AS INTEGER
   INDEX pudx IS PRIMARY UNIQUE

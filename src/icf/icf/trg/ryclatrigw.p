@@ -24,11 +24,6 @@
 
 TRIGGER PROCEDURE FOR WRITE OF ryc_layout OLD BUFFER o_ryc_layout.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "ryc_layout"
-                      &TRIGGER-TYPE = "WRITE"}
-
 /* Created automatically using ERwin ICF Trigger template db/af/erw/afercustrg.i
    Do not change manually. Customisations to triggers should be placed in separate
    include files pulled into the trigger. ICF auto generates write trigger custom
@@ -83,6 +78,8 @@ IF NOT NEW ryc_layout AND ryc_layout.{&TRIGGER_OBJ} <> o_ryc_layout.{&TRIGGER_OB
 
 /* Customisations to WRITE trigger */
 {icf/trg/ryclatrigw.i}
+
+
 
 /* Update Audit Log */
 IF CAN-FIND(FIRST gsc_entity_mnemonic

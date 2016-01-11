@@ -259,7 +259,7 @@ IF VALID-HANDLE(ACTIVE-WINDOW) AND FRAME {&FRAME-NAME}:PARENT eq ?
 THEN FRAME {&FRAME-NAME}:PARENT = ACTIVE-WINDOW.
 
 /* Define Context ID's for HELP files */
-{ adm2/support/admhlp.i }    
+{ src/adm2/support/admhlp.i }    
 
 /* Attach the standard OK/Cancel/Help button bar. */
 { adecomm/okbar.i  &TOOL = "AB"

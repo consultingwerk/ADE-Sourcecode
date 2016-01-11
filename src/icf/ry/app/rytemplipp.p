@@ -26,7 +26,7 @@ af/cod/aftemwizpw.w
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Create Wizard" Procedure _INLINE
 /* Actions: af/cod/aftemwizcw.w ? ? ? af/sup/afwizdeltp.p */
 /* New PLIP Wizard
-Welcome to the MIP New PLIP Wizard! During the next few steps, the wizard will lead you through all the stages necessary to create this type of object. If you cancel the wizard at any time, then all your changes will be lost. Once the wizard is completed, it is possible to recall parts of the wizard using the LIST option from the section editor. Press Next to proceed.
+Welcome to the PLIP Wizard! During the next few steps, the wizard will lead you through all the stages necessary to create this type of object. If you cancel the wizard at any time, then all your changes will be lost. Once the wizard is completed, it is possible to recall parts of the wizard using the LIST option from the section editor. Press Next to proceed.
 af/cod/aftemwiziw.w,af/cod/aftemwizpw.w,af/cod/aftemwizew.w 
 */
 /* _UIB-CODE-BLOCK-END */
@@ -98,7 +98,7 @@ af/cod/aftemwizpw.w
 
 &scop object-name       rytemplipp.p
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010001
+&scop object-version    000000
 
 /* Astra object identifying preprocessor */
 &glob   AstraPlip    yes
@@ -161,7 +161,7 @@ ASSIGN cObjectName = "{&object-name}":U.
 &ANALYZE-RESUME
 
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 

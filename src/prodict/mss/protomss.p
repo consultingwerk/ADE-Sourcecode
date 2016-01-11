@@ -26,6 +26,7 @@
              D. McMann 06/07/00 Changed frame layout for UNIX
              D. McMann 07/19/00 Added specific help topic for MSS
              D. McMann 06/18/01 Added case and collation options
+             D. McMann 09/18/02 Changed label for _Width
                   
                                 
 */            
@@ -84,7 +85,7 @@ FORM
   shadowcol VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns" 
   descidx   VIEW-AS TOGGLE-BOX LABEL "Create Desc Index" AT 32 
   dflt      VIEW-AS TOGGLE-BOX LABEL "Include DEFAULTS"  AT 55 SKIP({&VM_WID}) SPACE(2)
-  sqlwidth   VIEW-AS TOGGLE-BOX LABEL "Use SQL Width Column"  SPACE(2)
+  sqlwidth   VIEW-AS TOGGLE-BOX LABEL "Use Width Column"  SPACE(2)
   
     SKIP({&VM_WID})
              {prodict/user/userbtns.i}

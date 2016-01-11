@@ -568,17 +568,32 @@
 /* New for Dynamics 1.1A ----------------------------------------*/
 /* help file is icabeng.hlp -- Dynamics AppBuilder --------------*/
 
+/* Help for Application Login Dialog V2 */
+&GLOBAL-DEFINE Application_Login_Dialog_Box                     47003
+
+/* Help for Application Change Password Dialog V2*/
+&GLOBAL-DEFINE Change_User_Password_Dialog_Box                  47012
+
+/* Help for Selecting Directory  */
+&GLOBAL-DEFINE Select_a_Directory_Dialog_Box                  47008
+
+/* Help for Suspending Dynamic Application  */
+&GLOBAL-DEFINE Suspend_User_Dialog_Box                        47010
+
+/* Help for Dynamic Property Sheet   */
+&GLOBAL-DEFINE Dynamic_Property_Sheet                         47014
+
 /* Help for Advanced Settings Dialog in Object Generator */
 &GLOBAL-DEFINE Adv_Settings_for_Object_Generator_Dlg_Box        47208
 
 /* Help for Generate Objects Dialog Box */
-&GLOBAL-DEFINE Generate_Objects_Dlg_Box                            47210
+&GLOBAL-DEFINE Generate_Objects_Dlg_Box                         47210
 
 /* Help for Choose a Layout Dialog box in Page Layout Builder (Open) */
 &GLOBAL-DEFINE Choose_a_Layout_Object_Dialog_Box                47217
 
 /* Help for Dynamic Launcher Dialog Box */
-&GLOBAL-DEFINE Dynamic_Launcher_Dialog_Box                        47113
+&GLOBAL-DEFINE Dynamic_Launcher_Dialog_Box                      47113
 
 /* Help for Object Lookup Dialog Box in Page Layout Builder*/
 &GLOBAL-DEFINE Object_Lookup_Dialog_Box                            47211
@@ -604,12 +619,11 @@
 /* Help for Dynamic Lookup Instance Properties */
 &GLOBAL-DEFINE Dynamic_Lookup_Instance_Properties_Dialog_Box    47240
 
-/* Help for Dynamic SDB Instance Properties */
-&GLOBAL-DEFINE Dynamic_SmDataBrowser_Instance_Properties_Dialog_Box 47245
-
 /* Help for SmartData Field Cue Card */
 &GLOBAL-DEFINE SmDataField_Cue_Card	                                47247 
 
+/* Help for Viewer instance dialog */
+&GLOBAL-DEFINE Viewer_Instance_Properties_Dialog_Box	47035
 
 /* help file is icadseng.hlp -- Dynamics Administration Menu -----*/
 
@@ -618,5 +632,7 @@
 
 /* Help for DataSet Export Properties Dialog box */
 &GLOBAL-DEFINE DataSet_Export_Properties_Dialog_Box	2098
+
+
 
 

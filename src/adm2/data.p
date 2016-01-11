@@ -62,6 +62,11 @@
     Modified    : 04/03/2002        Mark Davies (MIP)
                   Fix for issue #4253 - Filter gives error at run-time and does 
                   not set filter state
+    Modified    : 04/11/2002        mdsantos@progress.com (MJS)
+                  Adapted for WebSpeed by changing SESSION:PARAM = "REMOTE" 
+                  to SESSION:CLIENT-TYPE = "WEBSPEED" in procedure retrieveFilter
+    Modified    : 03/17/2003        Neil Bell
+                  updateAddQueryWhere not retrieving filter information correctly.
   ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
 /*----------------------------------------------------------------------*/
@@ -76,7 +81,7 @@
   DEFINE VARIABLE ghRowObject         AS HANDLE  NO-UNDO. /* Current TT rec.*/
   DEFINE VARIABLE glShowMessageAnswer AS LOGICAL NO-UNDO. /* used in showMessage */
   
-  /* This variable is needed at least temporarily in 9.1B so that a called
+  /* This variable is needed at least temporarily so that a called
     fn can tell who the actual source was. */
   DEFINE VARIABLE ghTargetProcedure AS HANDLE     NO-UNDO.
 
@@ -118,6 +123,19 @@
 
 /* ************************  Function Prototypes ********************** */
 
+&IF DEFINED(EXCLUDE-addNotFoundMessage) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD addNotFoundMessage Procedure 
+FUNCTION addNotFoundMessage RETURNS LOGICAL
+  ( pcFields AS CHAR,
+    pcValues AS CHAR,
+    pcOperators AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-addRow) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD addRow Procedure 
@@ -140,11 +158,47 @@ FUNCTION applyContextFromServer RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-batchRowAvailable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD batchRowAvailable Procedure 
+FUNCTION batchRowAvailable RETURNS LOGICAL
+  ( pcMode AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-bufferCompareFields) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD bufferCompareFields Procedure 
+FUNCTION bufferCompareFields RETURNS CHARACTER
+  ( INPUT phBuffer1 AS HANDLE,
+    INPUT phBuffer2 AS HANDLE,
+    INPUT pcExclude AS CHAR,
+    INPUT pcOption  AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-cancelRow) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD cancelRow Procedure 
 FUNCTION cancelRow RETURNS CHARACTER
   ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-canFindModRow) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD canFindModRow Procedure 
+FUNCTION canFindModRow RETURNS LOGICAL
+  ( pcRowIdent AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -173,6 +227,19 @@ FUNCTION closeQuery RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-colStringValues) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD colStringValues Procedure 
+FUNCTION colStringValues RETURNS CHARACTER
+  ( pcColumnList   AS CHARACTER,
+    pcFormatOption AS CHARACTER,
+    pcDelimiter    AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-columnProps) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD columnProps Procedure 
@@ -195,6 +262,17 @@ FUNCTION colValues RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-commit) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD commit Procedure 
+FUNCTION commit RETURNS LOGICAL
+  ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-copyRow) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD copyRow Procedure 
@@ -211,6 +289,50 @@ FUNCTION copyRow RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD createRow Procedure 
 FUNCTION createRow RETURNS LOGICAL
   (pcValueList AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-createRowObjectTable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD createRowObjectTable Procedure 
+FUNCTION createRowObjectTable RETURNS LOGICAL
+  () FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-createRowObjUpdTable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD createRowObjUpdTable Procedure 
+FUNCTION createRowObjUpdTable RETURNS LOGICAL
+  ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-dataContainerHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD dataContainerHandle Procedure 
+FUNCTION dataContainerHandle RETURNS HANDLE
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-defineTempTables) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD defineTempTables Procedure 
+FUNCTION defineTempTables RETURNS LOGICAL
+  (  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -261,6 +383,17 @@ FUNCTION fetchRowIdent RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-fetchRowWhere) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD fetchRowWhere Procedure 
+FUNCTION fetchRowWhere RETURNS LOGICAL
+  ( pcQueryString AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-findRow) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD findRow Procedure 
@@ -279,6 +412,17 @@ FUNCTION findRowFromObject RETURNS LOGICAL
   ( pcColumns AS CHAR,
     pcValColumns AS CHAR,
     phObject AS HANDLE)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-findRowObjectUseRowIdent) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD findRowObjectUseRowIdent Procedure 
+FUNCTION findRowObjectUseRowIdent RETURNS LOGICAL
+  ( pcRowident AS CHAR )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -458,6 +602,17 @@ FUNCTION openQuery RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-prepareColumnsFromRepos) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD prepareColumnsFromRepos Procedure 
+FUNCTION prepareColumnsFromRepos RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-prepareForFetch) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD prepareForFetch Procedure 
@@ -578,8 +733,8 @@ FUNCTION updateRow RETURNS LOGICAL
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 11.48
-         WIDTH              = 73.6.
+         HEIGHT             = 16.48
+         WIDTH              = 59.4.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -732,6 +887,801 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-beginTransactionValidate) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE beginTransactionValidate Procedure 
+PROCEDURE beginTransactionValidate :
+/*------------------------------------------------------------------------------
+  Purpose: Validation hook for code to be executed immediately after the 
+           transaction has started before the updates is done. 
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  RUN bufferTransactionValidate IN TARGET-PROCEDURE ('begin':U). 
+
+  RETURN RETURN-VALUE.  
+  
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-bufferCollectChanges) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE bufferCollectChanges Procedure 
+PROCEDURE bufferCollectChanges :
+/*------------------------------------------------------------------------------
+  Purpose:     Construct the changed value list. This list is actually stored in the 
+               before version of the record for an update.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hRowObject    AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRowObjUpd    AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE hRowObjUpd2   AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE hQuery        AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iVar          AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cChangedFlds  AS CHARACTER NO-UNDO INIT "":U.
+  DEFINE VARIABLE cUpdatable    AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cBufName      AS CHARACTER  NO-UNDO.
+
+  {get UpdatableColumns cUpdatable}.
+  {get RowObjUpd hRowObjUpd}.
+  {get RowObject hRowObject}.
+  CREATE BUFFER hRowObject  FOR TABLE hRowObject.
+  CREATE BUFFER hRowObjUpd  FOR TABLE hRowObjUpd.
+  CREATE BUFFER hRowObjUpd2 FOR TABLE hRowObjUpd.
+
+  /* set up RowObjUpd query */
+  CREATE QUERY hQuery.
+  hQuery:SET-BUFFERS(hRowObjUpd).
+  hQuery:QUERY-PREPARE('FOR EACH ' + hRowObjUpd:NAME + 
+                       ' WHERE RowMod = "A" OR RowMod = "C" OR RowMod = "U"':U).
+  hQuery:QUERY-OPEN().
+  hQuery:GET-FIRST().
+
+  DO WHILE hRowObjUpd:AVAILABLE:
+     cChangedFlds = "".
+     IF hRowObjUpd:BUFFER-FIELD('RowMod':U):BUFFER-VALUE = "U":U THEN
+     DO:
+       hRowObjUpd2:FIND-FIRST('WHERE RowMod = "" AND RowNum = ':U +
+                              STRING(hRowObjUpd:BUFFER-FIELD('RowNum':U):BUFFER-VALUE)).
+         /* As of 9.1A, we no longer rely on ChangedFields being set
+            before this point. Calculate it here so it includes any
+            application-generated values. */    
+       cChangedFlds = bufferCompareFields(hRowObjUpd, hRowObjUpd2,
+                                          "ChangedFields,RowMod,RowIdent,RowIdentIdx,RowNum":U,
+                                          "CASE-SENSITIVE":U).
+     END.    /* END DO IF RowMod = U */
+     ELSE IF hRowObjUpd:BUFFER-FIELD('RowMod':U):BUFFER-VALUE = "A":U THEN
+     DO:
+        /* For an Add, set ChangedFields to all fields no longer
+           equal to their defined INITIAL value. Determine this by
+           creating a RowObject record to compare against. */
+       hRowObject:BUFFER-CREATE().
+       cChangedFlds = bufferCompareFields(hRowObjUpd, hRowObject,
+                                         "ChangedFields,RowMod,RowIdent,RowIdentIdx,RowNum":U,
+                                         "CASE-SENSITIVE":U).
+     END.      /* END DO If "A" for Add */
+     ELSE            /* use all enabled fields for copy */ 
+       cChangedFlds = cUpdatable.
+        /* Now assign the list of fields into the ROU record. 
+           (Put it in the before record as well for an Update.) 
+           This list will be used by query.p code to ASSIGN changes
+           back to the database. */
+     IF hRowObjUpd:BUFFER-FIELD('RowMod':U):BUFFER-VALUE = "U":U THEN
+       hRowObjUpd2:BUFFER-FIELD('ChangedFields':U):BUFFER-VALUE = cChangedFlds.
+
+     hRowObjUpd:BUFFER-FIELD('ChangedFields':U):BUFFER-VALUE = cChangedFlds.
+     /* if a row was temporarily created to supply initial values for the
+        Add operation BUFFER-COMPARE, delete it now. */
+     IF hRowObjUpd:BUFFER-FIELD('RowMod':U):BUFFER-VALUE = "A":U AND hRowObject:AVAILABLE THEN
+       hRowObject:BUFFER-DELETE(). 
+
+     hQuery:GET-NEXT().
+  END.     /* END FOR EACH */
+  
+  DELETE OBJECT hQuery.
+  DELETE OBJECT hRowObject.
+  DELETE OBJECT hRowObjUpd.
+  DELETE OBJECT hRowObjUpd2.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-bufferCommit) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE bufferCommit Procedure 
+PROCEDURE bufferCommit :
+/*------------------------------------------------------------------------------
+  Purpose:     Update procedure executed on the server side of a split 
+               SmartDataObject, called from the client Commit function.
+               Commit passes a set up RowObjUpdate records both have changes to
+               be committed and their pre-change copies (before-images).  
+               commitRows verifies that the records have not been changed 
+               since they were read, and then commits the changes to the 
+               database.
+  Parameters:
+    OUTPUT cMessages - a CHR(3) delimited string of accumulated messages from
+                       server.
+    OUTPUT cUndoIds  - list of any RowObject ROWIDs whose changes need to be 
+                       undone as the result of errors in the form of:
+               "RowNumCHR(3)ADM-ERROR-STRING,RowNumCHR(3)ADM-ERROR-STRING,..."
+
+ Notes:        If another user has modified the database records since the 
+               original was read, the new database values are copied into the 
+               RowObjUpd record and returned to Commit so the UI object can 
+               diaply them.
+           -   We need to identify where the hooks are because if a hook is 
+               ONLY in the Logical Object then the TT need to be transfered 
+               back and forth. If the hook is local then we cannot transfer 
+               here asa the local then would change a different TT. 
+               It there for some reason should be hooks both locally and in 
+               the logic procedure the local hook would be a complete 
+               overrride or it would need to do the transfer itself  
+------------------------------------------------------------------------------*/
+  DEFINE OUTPUT PARAMETER pocMessages AS CHARACTER NO-UNDO.
+  DEFINE OUTPUT PARAMETER pocUndoIds  AS CHARACTER NO-UNDO INIT "":U.
+  
+  DEFINE VARIABLE hRowObject    AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRowObjUpd    AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRowObjUpd1   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRowObjUpd2   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRowObjFld    AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE cASDivision   AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE lSubmitVal    AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE iChange       AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE cChanged      AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cChangedFlds  AS CHARACTER NO-UNDO INIT "":U.
+  DEFINE VARIABLE cChangedVals  AS CHARACTER NO-UNDO INIT "":U.
+  DEFINE VARIABLE cUpdatable    AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE lQueryContainer  AS LOGICAL NO-UNDO INIT NO.
+  DEFINE VARIABLE hQuery1           AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hQuery2          AS HANDLE     NO-UNDO.
+  
+  {get ASDivision cASDivision}.
+  /* 9.1B: Find out if our Container is itself a Query Object.
+     If it is, it's an SBO or other object that handles the transaction
+     for us, in which case we will not run pre/post transaction ourselves. */
+  {get QueryContainer lQueryContainer}.
+  /* TransactionValidate is maintained for backward (pre 9.1A) compatibility; 
+     the new procedure for this slot before the transaction is 
+     preTransactionValidate. ChangedFields is calculated further down and will 
+     picked up fields changed in these hooks.  
+     NOTE: The principle is (as with fieldValidate and rowobjectValidate) that 
+     this application object returns an error message if there is one;     
+     trigger errors get captured below. */
+
+  IF NOT lQueryContainer THEN
+  DO:
+    RUN TransactionValidate IN TARGET-PROCEDURE NO-ERROR. 
+    IF NOT ERROR-STATUS:ERROR AND RETURN-VALUE NE "":U THEN
+    DO:
+      RUN prepareErrorsForReturn IN TARGET-PROCEDURE 
+                                (INPUT RETURN-VALUE, INPUT cASDivision, 
+                                 INPUT-OUTPUT pocMessages).
+      RETURN.      /* Bail out if application code rejected the txn. */
+    END.   /* END DO IF RETURN-VALUE NE "" */
+
+    RUN bufferValidate IN TARGET-PROCEDURE ("pre":U).
+    IF RETURN-VALUE NE "":U THEN
+    DO:
+      RUN prepareErrorsForReturn IN TARGET-PROCEDURE
+                                (INPUT RETURN-VALUE, INPUT cASDivision, 
+                                 INPUT-OUTPUT pocMessages).
+      RETURN.      /* Bail out if application code rejected the txn. */
+    END.   /* END DO IF RETURN-VALUE NE "" */
+
+  END.       /* END DO IF Container (SBO) is not doing the Commit. */
+
+  RUN bufferCollectChanges IN TARGET-PROCEDURE.  /* Collect ChangedFields */
+
+  {get RowObjUpd hRowObjUpd}.
+  /* If this is the server side and the ServerSubmitValidation property
+     has been set to *yes*, then we execute that normally client side 
+     validation here to make sure that it has been done. */
+  IF cASDivision = "Server":U THEN 
+  DO:
+    {get ServerSubmitValidation lSubmitVal}.
+    IF lSubmitVal THEN
+    DO:
+      {get UpdatableColumns cUpdatable}.
+      {get RowObject hRowObject}.
+      CREATE BUFFER hRowObjUpd1  FOR TABLE hRowObjUpd.
+
+      /* set up RowObjUpd query */
+      CREATE QUERY hQuery1.
+      hQuery1:SET-BUFFERS(hRowObjUpd1).
+      hQuery1:QUERY-PREPARE('FOR EACH ' + hRowObjUpd1:NAME +
+                           ' WHERE RowMod = "A" OR RowMod = "C" OR RowMod = "U"':U).
+      hQuery1:QUERY-OPEN().
+      hQuery1:GET-FIRST().
+
+      DO WHILE hRowObjUpd1:AVAILABLE:
+        /* Validation procs look at RowObject, so we have to create a row
+           temporarily for it to use. This will be deleted below. */
+        DO TRANSACTION:
+          hRowObject:BUFFER-CREATE().     
+          hRowObject:BUFFER-COPY(hRowObjUpd1).
+        END.
+        
+        ASSIGN
+          cChangedFlds = hRowObjUpd1:BUFFER-FIELD('ChangedFields':U):BUFFER-VALUE
+          cChangedVals = "".
+
+        DO iChange = 1 TO NUM-ENTRIES(cChangedFlds):
+          ASSIGN cChanged = ENTRY(iChange, cChangedFlds)
+                 cChangedVals = cChangedVals +
+                   (IF cChangedVals NE "":U THEN CHR(1) ELSE "":U) +
+                   cChanged + CHR(1) + STRING(hRowObjUpd1:BUFFER-FIELD(cChanged):BUFFER-VALUE).
+        END.    /* END DO iChange */
+
+        /* Now pass the values and column list to the client validation. */
+        RUN submitValidation IN TARGET-PROCEDURE (INPUT cChangedVals, cUpdatable).
+        DO TRANSACTION:
+          hRowObject:BUFFER-DELETE(). 
+        END.
+        hQuery1:GET-NEXT().
+      END.      /* END FOR EACH RowObjUpd */  
+
+      DELETE OBJECT hRowObjUpd1.
+      DELETE OBJECT hQuery1.
+
+      /* Exit if any error messages were generated. This means that
+         all messages associated with the "client" SubmitValidation will
+         be accumulated, but the update transaction will not be attempted
+         if there are any prior errors. */
+      IF {fn anyMessage} THEN
+      DO:
+        RUN prepareErrorsForReturn IN TARGET-PROCEDURE 
+                                  (INPUT "":U, INPUT cASDivision, 
+                                   INPUT-OUTPUT pocMessages).
+        RETURN.
+      END.  /* END IF anyMessage */
+    END.   /* END DO IF SUbMitVal */
+  END.   /* END DO IF Server */
+ 
+  TRANS-BLK:
+  DO TRANSACTION ON ERROR UNDO, LEAVE:
+    /* This user-defined validation hook is for code to be executed
+       inside the transaction, but before any updates occur. */
+    RUN bufferValidate IN TARGET-PROCEDURE ("begin":U).   
+    IF RETURN-VALUE NE "":U THEN
+    DO:
+      RUN prepareErrorsForReturn IN TARGET-PROCEDURE 
+                                (INPUT RETURN-VALUE, INPUT cASDivision, 
+                                 INPUT-OUTPUT pocMessages).
+      UNDO, RETURN.      /* Bail out if application code rejected the txn. */
+    END.   /* END DO IF RETURN-VALUE NE "" */
+
+    RUN bufferProcessUpdate IN TARGET-PROCEDURE (INPUT-OUTPUT pocMessages, INPUT-OUTPUT pocUndoIds).    
+    RUN bufferProcessDelete IN TARGET-PROCEDURE (INPUT-OUTPUT pocMessages, INPUT-OUTPUT pocUndoIds).
+    RUN bufferProcessNew IN TARGET-PROCEDURE (INPUT-OUTPUT pocMessages, INPUT-OUTPUT pocUndoIds).
+    
+    IF pocUndoIds NE "":U THEN
+      UNDO Trans-Blk, LEAVE Trans-Blk.
+
+    RUN bufferValidate IN TARGET-PROCEDURE ("end":U).  
+    IF RETURN-VALUE NE "":U THEN
+    DO:
+      RUN prepareErrorsForReturn IN TARGET-PROCEDURE
+                                (INPUT RETURN-VALUE, INPUT cASDivision, 
+                                 INPUT-OUTPUT pocMessages).
+      UNDO, RETURN.      /* Bail out if application code rejected the txn. */
+    END.   /* END DO IF RETURN-VALUE NE "" */
+
+    /* return the latest version of the record to the client */
+    CREATE BUFFER hRowObjUpd2  FOR TABLE hRowObjUpd.    
+    CREATE QUERY hQuery2.
+    hQuery2:SET-BUFFERS(hRowObjUpd2).
+    hQuery2:QUERY-PREPARE('FOR EACH ' + hRowObjUpd2:NAME +
+                         ' WHERE RowMod = "A" OR RowMod = "C" OR RowMod = "U"':U).
+    hQuery2:QUERY-OPEN().
+    hQuery2:GET-FIRST().
+    DO WHILE hRowObjUpd2:AVAILABLE:
+      RUN refetchDBRow IN TARGET-PROCEDURE (hRowObjUpd2) NO-ERROR.   
+             /* Support return-value from triggers (from RefetchDbRow)*/ 
+      IF ERROR-STATUS:ERROR THEN
+        RUN addMessage IN TARGET-PROCEDURE
+             (IF RETURN-VALUE <> '':U THEN RETURN-VALUE ELSE ?, ?, ?).
+      hQuery2:GET-NEXT().
+    END.
+    DELETE OBJECT hRowObjUpd2.
+    DELETE OBJECT hQuery2.
+  END.          /* END transaction block. */ 
+    
+    /* RELEASE the database record(s). */
+  RUN releaseDBRow IN TARGET-PROCEDURE.
+
+  /* Add a message to indicate the update has been cancelled. */
+  IF pocUndoIds NE "":U THEN
+    RUN addMessage IN TARGET-PROCEDURE ({fnarg messageNumber 15},?,?).
+
+  /* This user-defined validation hook is for code to be executed
+     outside the transaction, after all updates occur. */
+  IF NOT lQueryContainer THEN
+  DO:
+    RUN bufferValidate IN TARGET-PROCEDURE ("post":U).    
+    IF RETURN-VALUE NE "":U THEN
+    DO:
+      RUN prepareErrorsForReturn IN TARGET-PROCEDURE
+                                (INPUT RETURN-VALUE, INPUT cASDivision, 
+                                 INPUT-OUTPUT pocMessages).
+      RETURN.      /* Bail out if application code rejected the txn. */
+    END.   /* END DO IF RETURN-VALUE NE "" */
+  END.       /* END DO IF Container (SBO) is not doing the commit for us. */
+
+  /* If we're not on an AppServer, the messages will be available to the
+     caller, so don't "fetch" them (which would also delete them). */
+  RUN prepareErrorsForReturn IN TARGET-PROCEDURE
+                            (INPUT RETURN-VALUE, INPUT cASDivision, 
+                             INPUT-OUTPUT pocMessages).
+  RETURN.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-bufferProcessDelete) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE bufferProcessDelete Procedure 
+PROCEDURE bufferProcessDelete PRIVATE :
+/*------------------------------------------------------------------------------
+  Purpose:     Code to handle DELETE operations (RowMod = "D")
+  Parameters:  
+  Notes:       This should only be called as part of a commit transaction, 
+               (bufferCommit), so it's made PRIVATE
+------------------------------------------------------------------------------*/
+  DEFINE INPUT-OUTPUT PARAMETER pocMessages AS CHARACTER NO-UNDO.
+  DEFINE INPUT-OUTPUT PARAMETER pocUndoIds  AS CHARACTER NO-UNDO.
+
+  DEFINE VARIABLE hRowObjUpd    AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE hQuery           AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cDeleteMsg       AS CHARACTER NO-UNDO.  
+
+    {get RowObjUpd hRowObjUpd}.
+
+     /* set up RowObjUpd query */
+    CREATE QUERY hQuery.
+    hQuery:SET-BUFFERS(hRowObjUpd).
+    hQuery:QUERY-PREPARE('FOR EACH ' + hRowObjUpd:NAME + ' WHERE RowMod = "D"':U).
+    hQuery:QUERY-OPEN().
+    hQuery:GET-FIRST().
+
+    DO WHILE hRowObjUpd:AVAILABLE:
+      /* This will procedure will do the Delete (looking at RowMod) */
+      RUN fetchDBRowForUpdate IN TARGET-PROCEDURE.
+      IF RETURN-VALUE NE "":U THEN
+      DO:
+        /* fetchDbRowForUpdate will return "Delete" as LAST element of the 
+           return-value if the Delete and not the FIND EXCLUSIVE-LOCK failed. */
+        IF ENTRY(NUM-ENTRIES(RETURN-VALUE),RETURN-VALUE) = "Delete":U THEN
+        DO:
+          IF NUM-ENTRIES(RETURN-VALUE) = 2 THEN
+            cDeleteMsg = {fnarg messageNumber 23}.
+          ELSE /* support return-value from triggers */
+            ASSIGN 
+              cDeleteMsg = RETURN-VALUE 
+              ENTRY(NUM-ENTRIES(cDeleteMsg),cDeleteMsg) = "":U
+              ENTRY(1,cDeleteMsg) = "":U
+              cDeleteMsg = TRIM(cDeleteMsg,",":U).
+        END. /* if entry(num-entries(return-value) = 'delete' */ 
+        ELSE /* locked record */
+          cDeleteMsg = {fnarg messageNumber 18}.
+
+        RUN addMessage IN TARGET-PROCEDURE
+              (cDeleteMsg, ?, ENTRY(1,RETURN-VALUE)).
+        pocUndoIds = pocUndoIds + string(hRowObjUpd:BUFFER-FIELD('RowNum':U):BUFFER-VALUE) + CHR(3) + ",":U.
+      END.      /* END DO IF RETURN-VALUE NE "" */
+      hQuery:GET-NEXT().
+    END.        /* END FOR EACH block */
+
+    DELETE OBJECT hQuery.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-bufferProcessNew) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE bufferProcessNew Procedure 
+PROCEDURE bufferProcessNew PRIVATE :
+/*------------------------------------------------------------------------------
+  Purpose:     Code to handle ADD/COPY operations
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/  
+  DEFINE INPUT-OUTPUT PARAMETER pocMessages AS CHARACTER NO-UNDO.
+  DEFINE INPUT-OUTPUT PARAMETER pocUndoIds  AS CHARACTER NO-UNDO.
+
+  DEFINE VARIABLE hRowObjUpd       AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE hQuery           AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hModRow          AS HANDLE     NO-UNDO.
+
+    {get RowObjUpd hRowObjUpd}.
+/*     CREATE BUFFER hRowObjUpd FOR TABLE hRowObjUpd.  */
+  
+     /* set up RowObjUpd query */
+    CREATE QUERY hQuery.
+    hQuery:SET-BUFFERS(hRowObjUpd).
+    hQuery:QUERY-PREPARE('FOR EACH ' + hRowObjUpd:NAME + 
+                         ' WHERE RowMod = "A" OR RowMod = "C"':U).
+    hQuery:QUERY-OPEN().
+  
+    REPEAT:
+      hQuery:GET-NEXT().
+      IF hQuery:QUERY-OFF-END THEN LEAVE.
+
+      /* This procedure will do the record Create (looking at RowMod) */
+      RUN assignDBRow IN TARGET-PROCEDURE (INPUT hRowObjUpd).
+      IF RETURN-VALUE NE "":U THEN  /* returns table name in error. */
+      DO:
+        /* If the add failed, clear the rowident field because the rowid 
+           assigned to it after the BUFFER-CREATE in assignDBRow is now invalid 
+           due to the failure. */
+        ASSIGN 
+          hRowObjUpd:BUFFER-FIELD('RowIdent':U):BUFFER-VALUE = "" 
+          hRowObjUpd:BUFFER-FIELD('RowIdentIdx':U):BUFFER-VALUE = "".
+        /* If BUFFER-CREATE faile because of a CREATE trigger we add return-value
+           before the table name, otherwise set the first parameter of addMessage
+           to ? to retireve errors from error-status */
+        RUN addMessage IN TARGET-PROCEDURE                                  
+                          (IF NUM-ENTRIES(RETURN-VALUE,CHR(3)) > 1                 
+                           THEN ENTRY(1,RETURN-VALUE,CHR(3))                           
+                           ELSE ?,                                                   
+                           ?,                                                        
+                           ENTRY(NUM-ENTRIES(RETURN-VALUE, CHR(3)),RETURN-VALUE,CHR(3))       
+                           ).                                                        
+         pocUndoIds = pocUndoIds + STRING(hRowObjUpd:BUFFER-FIELD('RowNum':U):BUFFER-VALUE) + CHR(3) + ",":U.
+         UNDO, NEXT. /* The FOR EACH block is undone and nexted. */
+      END.    /* END DO IF ERROR-STATUS:ERROR OR cErrorMsgs NE "":U */
+      /* Pass back the final values to the client. Note - because we
+         want to get values changed by the db trigger, we copy *all*
+         fields, not just the ones that are enabled in the Data Object. */
+      RUN refetchDBRow In TARGET-PROCEDURE (INPUT hRowObjUpd) NO-ERROR.      
+      /* if a database trigger returns error it will be catched here */
+      IF ERROR-STATUS:ERROR THEN
+      DO:
+        pocUndoIds = pocUndoIds + STRING(hRowObjUpd:BUFFER-FIELD('RowNum':U):BUFFER-VALUE) + CHR(3) + ",":U.
+        RUN addMessage IN TARGET-PROCEDURE 
+            /* Support return-value from triggers (from RefetchDbRow)*/ 
+            (IF RETURN-VALUE <> '':U THEN RETURN-VALUE ELSE ?, ?, ?).
+        UNDO, NEXT. /* The FOR EACH block is undone and nexted. */
+      END.
+
+      /* Add a record to the ModRowIdent table */
+      {get ModRowIdent hModRow}.
+      hModRow:FIND-FIRST('WHERE RowIdentIdx = "':U +
+                         hRowObjUpd:BUFFER-FIELD('RowIdentIdx':U):BUFFER-VALUE +
+                         '" AND RowIdent = "' + 
+                         hRowObjUpd:BUFFER-FIELD('RowIdent':U):BUFFER-VALUE + '"') NO-ERROR.
+      IF NOT hModRow:AVAILABLE THEN
+      DO:
+        hModRow:BUFFER-CREATE().
+        ASSIGN hModRow:BUFFER-FIELD('RowIdent':U):BUFFER-VALUE = 
+                       hRowObjUpd:BUFFER-FIELD('RowIdent':U):BUFFER-VALUE
+               hModRow:BUFFER-FIELD('RowIdentIdx':U):BUFFER-VALUE = 
+                       SUBSTR(hRowObjUpd:BUFFER-FIELD('RowIdent':U):BUFFER-VALUE, 1, xiRocketIndexLimit).
+      END.  /* DO if ModRowIdent is already there */
+
+    END.  /* END REPEAT for Adds. */
+
+    DELETE OBJECT hQuery.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-bufferProcessUpdate) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE bufferProcessUpdate Procedure 
+PROCEDURE bufferProcessUpdate PRIVATE :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT-OUTPUT PARAMETER pocMessages AS CHARACTER NO-UNDO.
+  DEFINE INPUT-OUTPUT PARAMETER pocUndoIds  AS CHARACTER NO-UNDO.
+
+  DEFINE VARIABLE hRowObjUpd    AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE hRowObjUpd2   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hQuery           AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hModRow          AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lCheck        AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE cASDivision   AS CHARACTER NO-UNDO.
+
+    {get ASDivision cASDivision}.
+    {get RowObjUpd hRowObjUpd}.
+    CREATE BUFFER hRowObjUpd2 FOR TABLE hRowObjUpd.
+
+      /* set up RowObjUpd query */
+    CREATE QUERY hQuery.
+    hQuery:SET-BUFFERS(hRowObjUpd).
+    hQuery:QUERY-PREPARE('FOR EACH ' + hRowObjUpd:NAME + ' WHERE RowMod = ""':U).
+    hQuery:QUERY-OPEN().
+
+    /* First locate each pre-change record. Find corresponding database record
+       and do a buffer-compare to make sure it hasn't been changed. */
+    Process-Update-Records-Blk:
+    REPEAT:
+      hQuery:GET-NEXT().
+      IF hQuery:QUERY-OFF-END THEN LEAVE Process-Update-Records-Blk.
+
+       /* For each table in the join, update its fields if on the enabled list.
+         NOTE: at present at least we don't check whether fields in this table
+         have actually been modified in this record. */
+      RUN fetchDBRowForUpdate IN TARGET-PROCEDURE.
+      IF RETURN-VALUE NE "":U THEN
+      DO:
+        RUN addMessage IN TARGET-PROCEDURE ({fnarg messageNumber 18}, ?, RETURN-VALUE).
+        pocUndoIds = pocUndoIds + string(hRowObjUpd:BUFFER-FIELD('RowNum':U):BUFFER-VALUE) + CHR(3) + ",":U.
+        UNDO Process-Update-Records-Blk, NEXT Process-Update-Records-Blk.
+      END.
+        /* Check first whether we care if the database record has been
+           changed by another user. This is a settable instance property. */
+      {get CheckCurrentChanged lCheck}.
+      IF lCheck THEN
+      DO:
+          RUN compareDBRow IN TARGET-PROCEDURE.
+          IF RETURN-VALUE NE "":U THEN /* Table name that didn't compare is returned. */
+          DO:
+            RUN addMessage IN TARGET-PROCEDURE
+                  (SUBSTITUTE({fnarg messageNumber 8}, '':U /* No field names available. */) , ?, 
+                   RETURN-VALUE  /* Table name that didn't compare */).
+            pocUndoIds = pocUndoIds + string(hRowObjUpd:BUFFER-FIELD('RowNum':U):BUFFER-VALUE) + 
+                         CHR(3) + "ADM-FIELDS-CHANGED":U + ",":U.
+            /* Get the changed version of the record in order to copy
+               the new database values into it to pass back to the client.*/
+            hRowObjUpd2:FIND-FIRST('WHERE RowMod = "U" AND RowNum = ':U +
+                                   STRING(hRowObjUpd:BUFFER-FIELD('RowNum':U):BUFFER-VALUE)).
+            RUN refetchDBRow IN TARGET-PROCEDURE (INPUT hRowObjUpd2) NO-ERROR.
+            IF ERROR-STATUS:ERROR THEN
+            DO:
+              RUN addMessage IN TARGET-PROCEDURE
+                   /* Support return-value from triggers (from RefetchDbRow)*/ 
+                   (IF RETURN-VALUE <> '':U THEN RETURN-VALUE ELSE ?, ?, ?).
+              pocUndoIds = pocUndoIds + STRING(hRowObjUpd2:BUFFER-FIELD('RowNum':U):BUFFER-VALUE) + CHR(3) + ",":U.
+            END.  /* If ERROR */
+            IF cASDivision = 'Server':U THEN
+              pocMessages = LEFT-TRIM(pocMessages + CHR(3) + 
+                                      DYNAMIC-FUNCTION('fetchMessages':U IN TARGET-PROCEDURE) , CHR(3)).
+
+            /* Don't try to write values to db. Just process next update record. */
+            NEXT Process-Update-Records-Blk.
+          END.  /* END DO IF compareDBRow returned a table value */
+      END.    /* END DO IF CheckCurrentChanged */
+
+      DO:   /* If we haven't 'next'ed because of an error, do the update. */
+          /* Now find the changed version of the record, move its fields to the
+             database record(s) which were found above, and report any errors
+             (which would be database triggers at this point). */
+          hRowObjUpd2:FIND-FIRST('WHERE RowMod = "U" AND RowNum = ':U +
+                                 STRING(hRowObjUpd:BUFFER-FIELD('RowNum':U):BUFFER-VALUE)).
+          /* Copy the ChangedFields to this buffer too */
+          ASSIGN hRowObjUpd2:BUFFER-FIELD('ChangedFields':U):BUFFER-VALUE = 
+                       hRowObjUpd:BUFFER-FIELD('ChangedFields':U):BUFFER-VALUE.
+          RUN assignDBRow IN TARGET-PROCEDURE (INPUT hRowObjUpd2).
+          IF RETURN-VALUE NE "":U THEN  /* returns table name in error. */
+          DO:
+            RUN addMessage IN TARGET-PROCEDURE (?, ?, RETURN-VALUE).
+            pocUndoIds = pocUndoIds + STRING(hRowObjUpd:BUFFER-FIELD('RowNum':U):BUFFER-VALUE) + CHR(3) + ",":U.
+            UNDO, NEXT. /* The FOR EACH block is undone and nexted. */
+          END.   /* END DO IF RETURN-VALUE NE "" */
+          
+          /* Pass back the final values to the client. Note - because we
+             want to get values changed by the db trigger, we copy *all*
+             fields, not just the ones that are enabled in the Data Object. */
+          RUN refetchDBRow IN TARGET-PROCEDURE (INPUT hRowObjUpd2) NO-ERROR.
+          IF ERROR-STATUS:ERROR THEN
+          DO:
+            RUN addMessage IN TARGET-PROCEDURE 
+                   /* Support return-value from triggers (from RefetchDbRow)*/ 
+                  (IF RETURN-VALUE <> '':U THEN RETURN-VALUE ELSE ?, ?, ?).
+            pocUndoIds = pocUndoIds + STRING(hRowObjUpd2:BUFFER-FIELD('RowNum':U):BUFFER-VALUE) + CHR(3) + ",":U.
+          END.  /* if ERROR */
+
+          /* Add a record to the ModRowIdent table */
+          {get ModRowIdent hModRow}.
+          hModRow:FIND-FIRST('WHERE RowIdentIdx = "':U +
+                             STRING(hRowObjUpd2:BUFFER-FIELD('RowIdentIdx':U):BUFFER-VALUE) +
+                             '" AND RowIdent = "' + 
+                             STRING(hRowObjUpd2:BUFFER-FIELD('RowIdent':U):BUFFER-VALUE) + '"') NO-ERROR.
+          IF NOT hModRow:AVAILABLE THEN
+          DO:
+            hModRow:BUFFER-CREATE().
+            ASSIGN hModRow:BUFFER-FIELD('RowIdent':U):BUFFER-VALUE = 
+                           hRowObjUpd2:BUFFER-FIELD('RowIdent':U):BUFFER-VALUE
+                   hModRow:BUFFER-FIELD('RowIdentIdx':U):BUFFER-VALUE = 
+                           SUBSTR(STRING(hRowObjUpd2:BUFFER-FIELD('RowIdent':U):BUFFER-VALUE), 1, xiRocketIndexLimit).
+          END.  /* DO if ModRowIdent is already there */
+      END.  /* END DO the update for this row if no error */
+    END.  /* END FOR EACH RowObjUpd */
+   
+    DELETE OBJECT hQuery.
+    DELETE OBJECT hRowObjUpd2.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-bufferTransactionValidate) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE bufferTransactionValidate Procedure 
+PROCEDURE bufferTransactionValidate :
+/*------------------------------------------------------------------------------
+  Purpose: General logic for the commit/transaction hooks that does a dynmaic
+           'for each' and fires the relevant low level record hooks.
+  Parameters:  pcLevel - The level/place from which this hook is fired, used to fire the 
+                         correct low level hook.
+                             
+                         Pre   - Before the transaction is started
+                         Begin - At the beginning/top of transaction
+                         End   - At end of transaction
+                         Post  - After the transaction is started
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER pcLevel  AS CHARACTER  NO-UNDO.
+
+  DEFINE VARIABLE hQuery        AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRowObjUpd    AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRowObjUpdBI  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cMessageList  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hReturnBuffer AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE xcFixedName   AS CHARACTER  NO-UNDO INIT 'TransValidate':U.
+  DEFINE VARIABLE hLogicObject  AS HANDLE     NO-UNDO.
+
+  {get RowObjUpd hRowObjUpd}.
+
+  CREATE BUFFER hRowObjUpd   FOR TABLE hRowObjUpd.
+  CREATE BUFFER hRowObjUpdBI FOR TABLE hRowObjUpd.
+
+  {get DataLogicObject hLogicObject}.
+
+  IF NOT VALID-HANDLE(hLogicObject) THEN
+    RETURN.
+
+       /* set up RowObjUpd query */
+  CREATE QUERY hQuery.
+  hQuery:SET-BUFFERS(hRowObjUpd).
+  hQuery:QUERY-PREPARE('FOR EACH ' + hRowObjUpd:NAME + ' WHERE RowMod <> ""':U).
+  hQuery:QUERY-OPEN().
+  hQuery:GET-FIRST().
+  
+  DO WHILE hRowObjUpd:AVAILABLE:
+    
+    /* Fetch the before image of the current record if this is an update */
+    IF hRowObjUpd:BUFFER-FIELD('RowMod':U):BUFFER-VALUE = "U":U THEN
+      hRowObjUpdBI:FIND-FIRST('WHERE RowMod = "" AND RowNum = ':U +
+                                 STRING(hRowObjUpd:BUFFER-FIELD('RowNum':U):BUFFER-VALUE)).
+    ELSE 
+      hROwObjUpdBI:BUFFER-RELEASE. 
+    
+    RUN setLogicBuffer IN TARGET-PROCEDURE
+           (INPUT hRowObjUpd,
+            INPUT IF hRowObjUpdBI:AVAILABLE THEN hRowObjUpdBI ELSE ?).
+
+    IF CAN-DO("A,C,U":U,hRowObjUpd:BUFFER-FIELD('RowMod':U):BUFFER-VALUE) THEN
+    DO:
+      IF CAN-DO("A,C":U,hRowObjUpd:BUFFER-FIELD('RowMod':U):BUFFER-VALUE) THEN
+      DO:
+        RUN VALUE('create':U + pcLevel + xcFixedName) IN TARGET-PROCEDURE NO-ERROR.
+        IF RETURN-VALUE NE "":U THEN
+          cMessageList = cMessageList
+                       + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) 
+                       + RETURN-VALUE.
+      END.
+
+      RUN VALUE('write':U + pcLevel + xcFixedName) IN TARGET-PROCEDURE NO-ERROR.
+      IF RETURN-VALUE NE "":U THEN
+        cMessageList = cMessageList
+                     + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) 
+                     + RETURN-VALUE.
+    END. /* Add, Copy, Update */
+    ELSE IF hRowObjUpd:BUFFER-FIELD('RowMod':U):BUFFER-VALUE = "D":U THEN
+    DO:
+      RUN VALUE('delete':U + pcLevel + xcFixedName) IN TARGET-PROCEDURE NO-ERROR.
+      IF RETURN-VALUE NE "":U THEN
+        cMessageList = cMessageList
+                     + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) 
+                     + RETURN-VALUE.
+    END. /* Delete */
+
+    RUN getLogicBuffer IN TARGET-PROCEDURE (OUTPUT hReturnBuffer).
+     
+    hRowObjUpd:BUFFER-COPY(hReturnBuffer).
+    
+    RUN clearLogicRows IN TARGET-PROCEDURE.
+    
+    hQuery:GET-NEXT.
+
+  END.
+   
+  DELETE OBJECT hRowObjUpd. 
+  DELETE OBJECT hRowObjUpdBI. 
+  DELETE OBJECT hQuery. 
+  
+  ERROR-STATUS:ERROR = NO.
+  RETURN cMessageList.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-bufferValidate) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE bufferValidate Procedure 
+PROCEDURE bufferValidate :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  INPUT pcValType AS CHARACTER -- "Pre", "Begin", "End", "Post"
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER pcValType AS CHAR   NO-UNDO.
+
+DEFINE VARIABLE lLogicHook        AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE lLocalHook        AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE cHook             AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE hLogicObject      AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hRowObjUpdTable   AS HANDLE     NO-UNDO.
+DEFINE VARIABLE cReturn           AS CHARACTER  NO-UNDO.
+
+   {get RowObjUpdTable hRowObjUpdTable}.
+   {get DataLogicObject hLogicObject}.
+   
+   /* We need to identify where the hook is because if the hook is ONLY in 
+      the Logical Object then the TT need to be transfered back and forth.
+      If the hook is local then we cannot transfer here asa th elocal then would
+      change a different TT. It there for some reason should be hooks both
+      locally and in the logic procedure the local hook would be a complete 
+      overrride or it would need to do the transfer itself  */
+   
+   ASSIGN
+     cHook      = pcValType + "TransactionValidate":U
+     lLocalHook = LOOKUP(cHook,TARGET-PROCEDURE:INTERNAL-ENTRIES) > 0
+     lLogicHook = VALID-HANDLE(hLogicObject) 
+                  AND LOOKUP(cHook,hLogicObject:INTERNAL-ENTRIES) > 0.
+   
+   IF NOT lLocalHook AND lLogicHook THEN
+     RUN setLogicRows IN TARGET-PROCEDURE (INPUT TABLE-HANDLE hRowObjUpdTable).
+
+   RUN VALUE(cHook) IN TARGET-PROCEDURE.
+   cReturn = RETURN-VALUE.
+   
+   IF NOT lLocalHook AND lLogicHook THEN
+     RUN getLogicRows IN TARGET-PROCEDURE (OUTPUT TABLE-HANDLE hRowObjUpdTable).
+
+   RETURN cReturn.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-clientSendRows) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE clientSendRows Procedure 
@@ -777,40 +1727,37 @@ PROCEDURE clientSendRows :
  DEFINE INPUT  PARAMETER piRowsToReturn AS INTEGER   NO-UNDO.
  DEFINE OUTPUT PARAMETER piRowsReturned AS INTEGER   NO-UNDO.
  
- DEFINE VARIABLE cQueryString   AS CHARACTER         NO-UNDO.
- DEFINE VARIABLE hAppServer     AS HANDLE            NO-UNDO.
- DEFINE VARIABLE hDataQuery     AS HANDLE            NO-UNDO.
- DEFINE VARIABLE hRowNum        AS HANDLE            NO-UNDO.
- DEFINE VARIABLE hRowIdent      AS HANDLE            NO-UNDO.
- DEFINE VARIABLE hRowObject     AS HANDLE            NO-UNDO.
- DEFINE VARIABLE lAdded         AS LOGICAL           NO-UNDO INIT TRUE.
- DEFINE VARIABLE nextPosition   AS ROWID             NO-UNDO.
- DEFINE VARIABLE cLastResult    AS CHARACTER         NO-UNDO.
- DEFINE VARIABLE cOperatingMode AS CHARACTER         NO-UNDO.
- DEFINE VARIABLE lInitRowObject AS LOGICAL           NO-UNDO.
- DEFINE VARIABLE hSource        AS HANDLE            NO-UNDO.
- DEFINE VARIABLE cObjectName    AS CHARACTER         NO-UNDO.
- DEFINE VARIABLE lBrowsed       AS LOGICAL           NO-UNDO.
- DEFINE VARIABLE cAsDivision    AS CHARACTER         NO-UNDO.
- DEFINE VARIABLE hRowObjectTbl  AS HANDLE            NO-UNDO.
- DEFINE VARIABLE lAsBound       AS LOGICAL           NO-UNDO.
- DEFINE VARIABLE hAppService    AS HANDLE            NO-UNDO.
- DEFINE VARIABLE cServerFileName AS CHARACTER        NO-UNDO.
- DEFINE VARIABLE cContext        AS CHARACTER        NO-UNDO.
- DEFINE VARIABLE cBindScope      AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE cError          AS CHARACTER        NO-UNDO.
- DEFINE VARIABLE lDataContainer  AS LOGICAL    NO-UNDO.
- DEFINE VARIABLE lSBO            AS LOGICAL    NO-UNDO.
- DEFINE VARIABLE lUseContainer  AS LOGICAL    NO-UNDO.
- 
- {get DataHandle hDataQuery}.
- IF VALID-HANDLE(hDataQuery) THEN 
-   hRowObject = hDataQuery:GET-BUFFER-HANDLE(1).
- 
- {get serverOperatingMode cOperatingMode}.                     
+ DEFINE VARIABLE cQueryString    AS CHARACTER         NO-UNDO.
+ DEFINE VARIABLE hAppServer      AS HANDLE            NO-UNDO.
+ DEFINE VARIABLE hDataQuery      AS HANDLE            NO-UNDO.
+ DEFINE VARIABLE hRowNum         AS HANDLE            NO-UNDO.
+ DEFINE VARIABLE hRowIdent       AS HANDLE            NO-UNDO.
+ DEFINE VARIABLE hRowObject      AS HANDLE            NO-UNDO.
+ DEFINE VARIABLE lAdded          AS LOGICAL           NO-UNDO INIT TRUE.
+ DEFINE VARIABLE nextPosition    AS ROWID             NO-UNDO.
+ DEFINE VARIABLE cLastResult     AS CHARACTER         NO-UNDO.
+ DEFINE VARIABLE cOperatingMode  AS CHARACTER         NO-UNDO.
+ DEFINE VARIABLE lInitRowObject  AS LOGICAL           NO-UNDO.
+ DEFINE VARIABLE hDataContainer  AS HANDLE            NO-UNDO.
+ DEFINE VARIABLE cObjectName     AS CHARACTER         NO-UNDO.
+ DEFINE VARIABLE lBrowsed        AS LOGICAL           NO-UNDO.
+ DEFINE VARIABLE cAsDivision     AS CHARACTER         NO-UNDO.
+ DEFINE VARIABLE hRowObjectTbl   AS HANDLE            NO-UNDO.
+ DEFINE VARIABLE hAppService     AS HANDLE            NO-UNDO.
+ DEFINE VARIABLE cServerFileName AS CHARACTER         NO-UNDO.
+ DEFINE VARIABLE cContext        AS CHARACTER         NO-UNDO.
+ DEFINE VARIABLE cError          AS CHARACTER         NO-UNDO.
+ DEFINE VARIABLE hRowObjUpdTbl   AS HANDLE            NO-UNDO.
 
- IF piStartRow = ? OR piStartRow = 0 THEN 
- DO:
+ DEFINE VARIABLE cPositionForClient  AS CHARACTER  NO-UNDO.
+
+  {get DataHandle hDataQuery}.
+  IF VALID-HANDLE(hDataQuery) THEN 
+    hRowObject = hDataQuery:GET-BUFFER-HANDLE(1).
+ 
+  {get serverOperatingMode cOperatingMode}.                     
+  IF piStartRow = ? OR piStartRow = 0 THEN 
+  DO:
     /* If the query is already open then we need to get last in order to 
        save the rowid of the last RowObject in the batch so that we can 
        reposition appropriately after retrieving another batch below. */
@@ -859,62 +1806,35 @@ PROCEDURE clientSendRows :
     END.  /* If Query is open */
   END.  /* If piStartRow = ? or 0 */
  
-  /* 9.1B - If this object is in a container with its own AppServer Handle,
+  /* If this object is in a container with its own AppServer Handle,
      then we run fetchContainedRows in that in order to retrieve this objects
      data together with all child objects data. */
-  {get ContainerSource hSource}.
-  IF VALID-HANDLE(hSource) THEN
-  DO:
-    {get DataContainer lDataContainer hSource}.
-    {get QueryObject   lSBO hSource}. 
-    IF lDataContainer AND NOT lSBO THEN
-    DO:
-      {get AsDivision cAsDivision}.
-      {get AsBound lASBound}.
-      {get ServerOperatingMode cOperatingMode}.
-      {get BindScope cBindScope}.
-      IF  cAsDivision = 'Client':U
-      AND NOT lAsBound 
-      AND NOT CAN-DO('state-aware,state-reset':U,cOperatingMode)
-      AND NOT CAN-DO('Strong,this':U,cBindScope) THEN
-        lUseContainer = TRUE.
-    END.
-    /* If this SDO's Container is an SBO which is a CLient, then ask it to
-      fetch the data from the server starting at this object's level. */
-    ELSE DO:
-      {get ASDivision cASDivision hSource} NO-ERROR.
-      lUseContainer  = (cASDivision = 'Client':U).
-    END.
-  END.
-
-  IF lUseContainer  THEN
+  hDataContainer = {fn dataContainerHandle}.
+  IF VALID-HANDLE(hDataContainer)  THEN
   DO:
     {get ObjectName cObjectName}.
-    /* If we are inside a split SBO let it take care of the connection/data */ 
-    RUN fetchContainedRows IN hSource 
+    RUN fetchContainedRows IN hDataContainer 
         (cObjectName, 
          piStartRow, 
          pcRowIdent, 
          plNext, 
          piRowsToReturn, 
          OUTPUT piRowsReturned).
-
-  END.     /* END DO IF parent is a CLient object. */
+  END.  /* if valid DataContaine */
   ELSE DO:
     {get RowObjectTable hRowObjectTbl}. /* get handle to pass to server call */
     lInitRowObject = NOT VALID-HANDLE(hRowObjectTbl).
-    cContext = {fn obtainContextForServer}.
-    {get BindScope cBindScope}.
-    {get ASBound lAsBound}.
-    IF  NOT lAsBound 
-    AND NOT CAN-DO('state-reset,state-aware':U,cOperatingMode) 
-    AND NOT CAN-DO('Strong,this':U,cBindScope) THEN
+  
+    /* Checks AppServer properties to see if the object has no current or future 
+       server bindings and is using a stateless operating mode.*/    
+    IF {fn hasNoServerBinding} THEN
     DO:
       RUN connectServer IN TARGET-PROCEDURE (OUTPUT hAppService). 
       IF hAppService  = ? THEN
          RETURN ERROR 'ADM-ERROR':U.
 
       {get ServerFileName cServerFileName}.
+      cContext = {fn obtainContextForServer}.
       RUN adm2/sendrows.p ON hAppService
                          (cServerFileName,
                           INPUT-OUTPUT cContext,
@@ -937,6 +1857,7 @@ PROCEDURE clientSendRows :
          been initialized by going through this code. If not, then simply
          receive the temp-table into the handle, and set the corresponding
          SDO properties now. */
+        cContext = {fn obtainContextForServer}.
         RUN remoteSendRows IN hAppServer 
             (INPUT-OUTPUT cContext,
              piStartRow, 
@@ -955,66 +1876,30 @@ PROCEDURE clientSendRows :
        its property to the table handle we got back, and create
        the query for it here and set query/buffer properties. */    
     IF lInitRowObject THEN 
-      {set RowObjectTable hRowObjectTbl}.
-       
-  END. /* not client sbo  */
-  
-  {fnarg openDataQuery '':U}.  
-   
-  /* refetch these as they may have been set by container or if linitObject */  
-  {get RowObject hRowObject}.
-  {get DataHandle hDataQuery}.
-
-  IF nextPosition = ? AND (piStartRow = ? OR piStartRow = 0) THEN
-  DO:               /* This was our first fetch. Position BEFORE the first row. */
-    hDataQuery:GET-FIRST().
-    hDataQuery:GET-PREV().
-  END.
-
-  ELSE IF piRowsReturned > 0 THEN 
-  DO:
-    /* When piStartRow is > 0 then this (may) have been called from refreshRow 
-       and we need to reposition to the same row. We don't know anything but 
-       the rownum, because the rowobject is deleted in refreshRow we cannot use
-       the old ROWID.  */
-    IF piStartRow > 0 THEN 
     DO:
-        DEFINE VARIABLE hReposQuery   AS HANDLE     NO-UNDO.
-        DEFINE VARIABLE hAltRowObject AS HANDLE     NO-UNDO.
-        CREATE QUERY hReposQuery.
-        CREATE BUFFER hAltRowObject FOR TABLE hRowObject.
-        hReposQuery:SET-BUFFERS(hAltRowObject).
-        hReposQuery:QUERY-PREPARE
-            ('FOR EACH RowObject WHERE RowObject.RowNum = ':U +
-             STRING(piStartRow)).
-        hReposQuery:QUERY-OPEN().
-        hReposQuery:GET-FIRST().
-        nextPosition = hAltRowObject:ROWID.
-        hDataQuery:REPOSITION-TO-ROWID(nextPosition) NO-ERROR.
-        hReposQuery:QUERY-CLOSE().
-        DELETE OBJECT hReposQuery.
-        DELETE OBJECT hAltRowObject.
-    END.  /* If piStartRow > 0 */
-    ELSE DO:
-      /* If piRowsToReturn is negative - we are navigating backwards, we need 
-         to reposition to the last record in the new batch. */
-      IF piRowsToReturn < 0 THEN
-          hDataQuery:REPOSITION-TO-ROW(piRowsReturned).
-      ELSE DO:
-      /* We need to reposition to the last row in the previous batch and
-         depending on plNext, we may need to move one additional row forward. */
-        hDataQuery:REPOSITION-TO-ROWID(nextPosition).       
-        IF plNext THEN 
-        DO:
-          /* Another akward effect of the fact that reposition of a browse 
-             implicit fetches a record is that reposition-forward(1) will go
-             to the SECOND record.... */ 
-          {get DataQueryBrowsed lBrowsed}.
-          hDataQuery:REPOSITION-FORWARD(IF lBrowsed THEN 0 ELSE 1).
-        END.
-      END.  /* Else do - piRowsToReturn is positive */
-    END.  /* Else do - piStartRow = 0 or ? */
-  END.  /* If piRowsReturned > 0 */
+      {set RowObjectTable hRowObjectTbl}.
+      {get RowObjUpdTable hRowObjUpdTbl}.
+      IF NOT VALID-HANDLE(hRowObjUpdTbl) THEN
+         {fn createRowObjUpdTable}.
+    END.
+  END. /* not client sbo  */
+ 
+  {fnarg openDataQuery '':U}.  
+  
+  IF pcRowident = "FIRST":U THEN
+    hDataQuery:GET-FIRST.
+  
+  ELSE IF pcRowident = "LAST":U THEN
+    hDataQuery:GET-LAST.
+
+  ELSE DO: 
+    {get PositionForClient cPositionForClient}.
+    IF cPositionForClient > "":U THEN
+    DO:
+      {fnarg findRowObjectUseRowident cPositionForClient}.
+      {set PositionForClient ?}.
+    END.   
+  END.
 
   RETURN.
 END PROCEDURE.
@@ -1059,23 +1944,25 @@ PROCEDURE commitTransaction :
     PUBLISH 'confirmCommit':U FROM TARGET-PROCEDURE (INPUT-OUTPUT lCancel).
     IF lCancel THEN RETURN 'ADM-ERROR':U.
   END.    /* END IF hSource  */
-  
+
   /* Continue only if no unsaved changes. */
   lSuccess = {fn Commit}. 
-     /* IF no errors, signal to Commit Panel to disable itself again. */
+
+  /* IF no errors, signal to Commit Panel to disable itself again. */
   IF lSuccess THEN 
     {set RowObjectState 'NoUpdates':U}.
   ELSE DO:
-    DEFINE VARIABLE cSource AS CHARACTER  NO-UNDO.
-      /* If there were errors, get the Update-Source to deal with them. */
-    {get UpdateSource cSource}.
-    hSource = widget-handle(entry(1,cSource)).
+    IF hSource = SOURCE-PROCEDURE THEN  /* coming from commit panel */
+    DO:
+        DEFINE VARIABLE cSource AS CHARACTER  NO-UNDO.
+        DEFINE VARIABLE cDummy AS CHARACTER  NO-UNDO.
+          /* If there were errors, get the Update-Source to deal with them. */
+        {get UpdateSource cSource}. 
+        hSource = widget-handle(entry(1,cSource)).
 
-   /* We use the function version of 'showDataMessages' since */
-   /* the procedure version (showDataMessagesProcedure) will generate */
-   /* an error when 'commitTransaction' is called from a function */
-    IF VALID-HANDLE (hSource) THEN 
-       {fn showDataMessages hSource}.
+        IF VALID-HANDLE (hSource) THEN      
+          RUN showDataMessagesProcedure IN hSource (OUTPUT cDummy) .
+    END.
 
     RETURN "ADM-ERROR":U.               /* Signal error to caller. */
   END.  /* END ELSE DO IF Not lSuccess */
@@ -1168,12 +2055,12 @@ PROCEDURE copyColumns :
         cArrayVal = cArrayVal +
                     (IF iValue > 1 THEN CHR(2) ELSE "":U) +
                     IF hCol:BUFFER-VALUE(iValue) = ? THEN "":U
-                    ELSE hCol:STRING-VALUE[iValue].
+                    ELSE hCol:BUFFER-VALUE[iValue].
       END.   /* END DO iValue */
       cVals = cVals + (IF iCol > 1 THEN CHR(1) ELSE "":U) + cArrayVal.
     END.     /* END DO for EXTENT */
     ELSE cVals = cVals + (IF iCol > 1 THEN CHR(1) ELSE "":U) +
-                 IF hCol:BUFFER-VALUE = ? THEN "":U ELSE hCol:STRING-VALUE.
+                 IF hCol:BUFFER-VALUE = ? THEN "":U ELSE hCol:BUFFER-VALUE.
   END.       /* END DO iCol */
   ELSE    /* DO IF NOT IS-OPEN - get current vals from db rec */
     cVals = {fnarg colValues pcViewColList}.
@@ -1205,6 +2092,139 @@ PROCEDURE copyColumns :
   {fnarg newRowObject 'Copy':U}.
  
   RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-createData) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createData Procedure 
+PROCEDURE createData :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+ DEFINE INPUT         PARAMETER pcColumnNames AS CHARACTER  NO-UNDO.
+ DEFINE INPUT-OUTPUT  PARAMETER pcNewValues   AS CHARACTER  NO-UNDO.
+ DEFINE OUTPUT        PARAMETER pcError       AS CHARACTER  NO-UNDO.
+
+ DEFINE VARIABLE cKeyFields        AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cKeyValues        AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cNewValueList     AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE iLoop             AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE iField            AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE cKey              AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cValue            AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cDataDelimiter    AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE lFoundOnClient    AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE hRowObject        AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE hCol              AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE lReopen           AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE lCreated          AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE lSave             AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE lNoKeyFields      AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE cUpdatableColumns AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cColumn           AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE iColumn           AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE cNewValue         AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cDataReadFormat AS CHARACTER  NO-UNDO.
+ 
+ {get DataReadFormat cDataReadFormat}.
+ {get DataDelimiter cDataDelimiter}.
+ 
+ DYNAMIC-FUNCTION("addRow":U IN TARGET-PROCEDURE,"":U).
+ 
+ {get RowObject hRowObject}.
+ {get UpdatableColumns cUpdatableColumns}.
+ 
+ DO iLoop = 1 TO NUM-ENTRIES(cUpdatableColumns):
+   ASSIGN
+     hCol    = ?
+     cColumn = ENTRY(iLoop,cUpdatableColumns)
+     iColumn = LOOKUP(cColumn,pcColumnNames)
+     hCol    = hRowObject:BUFFER-FIELD(cColumn) NO-ERROR.
+   IF VALID-HANDLE(hCol) AND iColumn > 0 THEN
+   DO:
+     ASSIGN
+       cNewValue       = ENTRY(iColumn,pcNewValues,cDataDelimiter)      
+       cNewValueList   = cNewValueList 
+                       + (IF cNewValueList = '':U THEN '':U ELSE CHR(1))
+                       + cColumn
+                       + CHR(1)
+                       + (IF cNewValue <> ? THEN cNewValue ELSE '?':U).
+   END.
+ END.
+
+ lSave = DYNAMIC-FUNCTION('submitRow':U IN TARGET-PROCEDURE,
+                           STRING(hRowObject:ROWID),
+                           cNewValueList).
+
+ IF {fn anyMessage} THEN
+   pcError = {fn fetchMessages}.
+ 
+ pcNewValues = DYNAMIC-FUNCTION('colStringValues':U IN TARGET-PROCEDURE,
+                                 pcColumnNames,
+                                cDataReadFormat,
+                                cDataDelimiter). 
+
+ IF NOT lSave THEN  
+    DYNAMIC-FUNCTION('cancelRow':U IN TARGET-PROCEDURE).  
+
+ RETURN.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-createObjects) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createObjects Procedure 
+PROCEDURE createObjects :
+/*------------------------------------------------------------------------------
+  Purpose:    Define the temp-tables for a dynamic SDO   
+  Parameters:  <none>
+  Notes:      This is in createObjects because this is the common API that
+              should be used to realize objects for design time use.
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cBindScope           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hContainer           AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lOpenOnInit          AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cAsdivision          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lFetchDefs           AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lDefined             AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hRowObjectTable      AS HANDLE     NO-UNDO.
+  
+  lDefined = {fn defineTempTables}.  
+  
+  IF NOT lDefined THEN
+  DO:
+    /* The logic below only applies to design mode where the SDO is running
+       standalone. We use BindScope <> 'data' to idnetify that createobjects 
+       is called directly and not from initializeObject. 
+       If we are in a container we also avoid this as the SBO's createObjects 
+       handles this for us
+       (initializeObject will call fetchDefinitions for non-container runtime 
+        cases) */
+    {get BindScope cBindScope}.
+    {get ContainerSource hContainer}.
+    IF cBindScope <> 'Data':U  AND NOT VALID-HANDLE(hContainer)  THEN 
+    DO:
+      {get AsDivision cAsDivision}.
+      IF cAsDivision = 'CLIENT':U THEN
+         RUN fetchDefinitions IN TARGET-PROCEDURE.
+    END.
+  END.
+
+  RETURN.
+  
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1268,7 +2288,8 @@ PROCEDURE dataAvailable :
   DEFINE VARIABLE cRowObjectState   AS CHARACTER  NO-UNDO. 
   DEFINE VARIABLE hContainer        AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lOpen             AS LOGICAL    NO-UNDO.
-
+  DEFINE VARIABLE hDataReadHandler  AS HANDLE     NO-UNDO.
+  
   {get ObjectInitialized lInitted}.
   /* Ignore if we haven't been initialized yet; also, 
      if for some reason this object is in addmode.
@@ -1283,7 +2304,9 @@ PROCEDURE dataAvailable :
   /* get foreign fields and values and setManualAssignQuerySelection 
      so that filter does not lose info */ 
     ***/
-  RUN updateManualForeignFields IN TARGET-PROCEDURE.
+    /* This is no-longer needed. Changes in behavior of 'setQueryWhere' */
+    /* provide the same functionality */
+/*   RUN updateManualForeignFields IN TARGET-PROCEDURE.  */
   
   /* For backwards Compatibility we still deal with 'different' calls 
      from DataTargets as a request to NOT reapply ForeignFields. */
@@ -1338,6 +2361,102 @@ PROCEDURE dataAvailable :
   END.
 
   RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-deleteData) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE deleteData Procedure 
+PROCEDURE deleteData :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+ DEFINE INPUT         PARAMETER pcColumnNames AS CHARACTER  NO-UNDO.
+ DEFINE INPUT         PARAMETER pcOldValues   AS CHARACTER  NO-UNDO.
+ DEFINE OUTPUT        PARAMETER pcError       AS CHARACTER  NO-UNDO.
+
+ DEFINE VARIABLE cKeyFields     AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cKeyValues     AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cNewValueList  AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE iLoop          AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE iField         AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE cKey           AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cValue         AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cDataDelimiter AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE lFoundOnClient AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE hRowObject     AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE hCol           AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE lReopen        AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE lCreated       AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE lSave          AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE lNoKeyFields   AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE lFound         AS LOGICAL    NO-UNDO.
+ {get KeyFields cKeyFields}.
+ {get DataDelimiter cDataDelimiter}.
+
+ DO iLoop = 1 TO NUM-ENTRIES(cKeyFields):
+   ASSIGN
+     cKey     = ENTRY(iLoop,cKeyFields)
+     iField   = LOOKUP(cKey,pcColumnNames).
+   
+   IF iField = 0 THEN
+   DO:
+     lNoKeyFields = TRUE.
+     LEAVE.
+   END.
+   
+   ASSIGN 
+     cValue     = ENTRY(iField,pcOldValues,cDataDelimiter). 
+     cKeyValues = cKeyValues 
+                  + (IF iloop = 1 THEN '':U ELSE CHR(1))
+                  +  cValue.
+ END.
+
+ IF lNoKeyFields THEN
+ DO:
+   iField = LOOKUP('RowIdent':U,pcColumnNames).
+   IF iField = 0 THEN
+   DO:
+     pcError = "Missing one or some of the '" 
+               + REPLACE(cKeyFields,',',' ') + "' or RowIdent in list of columnns.".
+     RETURN.
+   END.
+   cValue     = ENTRY(iField,pcOldValues,cDataDelimiter).   
+ END.
+
+ {get RowObject hRowObject}.
+ 
+  /* Currently we need the RowObject with all fields from the db */
+ IF lNoKeyFields THEN
+ DO:
+   DYNAMIC-FUNCTION('fetchRowident':U IN TARGET-PROCEDURE,cValue,'':U).
+   lFound = cValue = hRowObject:BUFFER-FIELD('Rowident':U):BUFFER-VALUE NO-ERROR.
+ END.
+ ELSE
+   lFound = DYNAMIC-FUNCTION('findRowWhere':U IN TARGET-PROCEDURE,
+                             cKeyFields,
+                             cKeyValues,
+                             '=':U).
+ IF lFound THEN
+   DYNAMIC-FUNCTION('deleteRow':U IN TARGET-PROCEDURE,
+                     STRING(hRowObject:ROWID)).
+ ELSE 
+   DYNAMIC-FUNCTION('addNotFoundMessage':U IN TARGET-PROCEDURE,
+                     IF lNoKeyFields THEN 'ROWIDENT':U ELSE cKeyFields,
+                     IF lNoKeyFields THEN cValue ELSE cKeyValues,
+                    '=':U).
+
+ IF {fn anyMessage} THEN
+   pcError = {fn fetchMessages}.
+  
+ RETURN.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1400,9 +2519,9 @@ DEFINE VARIABLE cSdoOrder               AS CHARACTER  NO-UNDO.
         ASSIGN cLogicalSDOName = TARGET-PROCEDURE:FILE-NAME.
 
     {get ContainerSource hContainer}.
-    {get ObjectType cContainerObjectType hContainer}.
 
-    IF cContainerObjectType EQ "SmartBusinessObject":U THEN
+    IF VALID-HANDLE(hContainer) 
+    AND {fnarg instanceOf 'SmartBusinessObject':U hContainer} THEN
     DO:        
         {get ContainedDataObjects cDataObjectHandles hContainer}.
         {get DataObjectOrdering   cSdoOrder          hContainer}.
@@ -1411,7 +2530,7 @@ DEFINE VARIABLE cSdoOrder               AS CHARACTER  NO-UNDO.
     END.    /* SBO */
     ELSE
         ASSIGN iSdoOrder = 1.
-
+    
     DO iCol = 1 TO hRowObject:NUM-FIELDS:
         hColumn = hRowObject:BUFFER-FIELD(iCol).
         /* If the buffer-field is not in the list of fields we want, */
@@ -1446,7 +2565,7 @@ DEFINE VARIABLE cSdoOrder               AS CHARACTER  NO-UNDO.
     
     ASSIGN iIndexSequence  = 1
            iColumnSequence = 0.
-    
+
     /* find the table/field/index info */
     DO iTable = 1 TO NUM-ENTRIES(cTableList):
         cTableIndex = ''.    /* Reset in case WHEN clause below fails */
@@ -1491,8 +2610,8 @@ DEFINE VARIABLE cSdoOrder               AS CHARACTER  NO-UNDO.
     END.
     
     /* Lastly, mark all with no index as "None" */
-    FOR EACH ttSchema WHERE INDEX_position = "":
-        ttSchema.INDEX_position = "None".
+    FOR EACH ttSchema WHERE INDEX_position = "":U:
+        ttSchema.INDEX_position = "None":U.
     END.
 
 
@@ -1516,15 +2635,936 @@ PROCEDURE destroyObject :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hObject AS HANDLE     NO-UNDO.
- 
-  PUBLISH 'unRegisterObject':U FROM TARGET-PROCEDURE.  /* iz 996*/
+  DEFINE VARIABLE hObject         AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRowObjectTable AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRowObjUpdTable AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lExternal       AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cDivision       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lInitialized    AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hDataHandle     AS HANDLE     NO-UNDO.
+
+  PUBLISH 'unRegisterObject':U FROM TARGET-PROCEDURE. 
 
   {get DataLogicObject hObject} NO-ERROR.
   IF VALID-HANDLE(hObject) THEN 
     DELETE PROCEDURE hObject.  
+
+  /* Only delete the RowObjUpd if it's the Client version. */
+  /* The server-side RowObjUpd is returned back to the client */
+  /* AFTER destroyObject is run so it cannot be deleted explicitly here */
+  /* if not initialized then then this is a master started with startdataObject */ 
+  {get ASDivision cDivision}.
+  {get ObjectInitialized lInitialized}.
+
+  IF cDivision <> "Server":U OR NOT lInitialized THEN 
+  DO:
+    {get RowObjUpdTable hRowObjUpdTable}.
+    DELETE OBJECT hRowObjUpdTable NO-ERROR.
+  END.
+
+  {get IsRowObjectExternal lExternal}.  
+  IF NOT lExternal THEN 
+  DO:
+    {get RowObjectTable hRowObjectTable}.
+    DELETE OBJECT hRowObjectTable NO-ERROR.
+  END.
+
+  /* delete the RowObject Query (in case it is dynamic) */
+  {get DataHandle hDataHandle}.
+  DELETE OBJECT hDataHandle NO-ERROR.
+
   RUN SUPER.
 
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-doBuildUpd) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE doBuildUpd Procedure 
+PROCEDURE doBuildUpd :
+/*------------------------------------------------------------------------------
+  Purpose:     Transfers changed rows into the Update Temp-Table and returns
+               it to the caller (the Commit function).
+
+  Parameters:  None
+
+  Notes:       For each existing row to be updated, there is already a "before"
+               copy in the RowObjUpd table, so we create an "after" row.
+               There is already a row in RowObjUpd for each Added/Copied row, 
+               so we just update it with the latest values.
+               There is already a row in RowObjUpd for each Deleted row, so
+               we don't need to do anything for these rows.
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE hRowObject AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hRowObjUpd AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hQuery     AS HANDLE     NO-UNDO.
+
+  {get RowObject hRowObject}.    
+  {get RowObjUpd hRowObjUpd}.
+
+  /* local buffer to the RowObject table to eliminate repositioning problems */
+  CREATE BUFFER hRowObject FOR TABLE hRowObject.
+  CREATE BUFFER hRowObjUpd FOR TABLE hRowObjUpd.
+
+
+  CREATE QUERY  hQuery.
+  hQuery:SET-BUFFERS(hRowObject).
+  hQuery:QUERY-PREPARE('FOR EACH ' + hRowObject:NAME + ' WHERE RowMod = "U"':U).
+  hQuery:QUERY-OPEN().
+  hQuery:GET-FIRST().
+  DO WHILE NOT hQuery:QUERY-OFF-END:
+      hRowObjUpd:BUFFER-CREATE().
+      hRowObjUpd:BUFFER-COPY(hRowObject).
+      hQuery:GET-NEXT().
+  END.
+  hQuery:QUERY-CLOSE().
+
+  hQuery:QUERY-PREPARE('FOR EACH ' + hRowObject:NAME + 
+                       ' WHERE RowMod = "A" OR RowMod = "C"':U).
+  hQuery:QUERY-OPEN().
+  hQuery:GET-FIRST().
+  DO WHILE NOT hQuery:QUERY-OFF-END:
+      hRowObjUpd:FIND-FIRST('WHERE RowNum = ':U + 
+                            STRING(hRowObject:BUFFER-FIELD('RowNum':U):BUFFER-VALUE)).
+      hRowObjUpd:BUFFER-COPY(hRowObject).
+      hQuery:GET-NEXT().
+  END.
+  
+  DELETE OBJECT hRowObject.
+  DELETE OBJECT hRowObjUpd.
+  DELETE OBJECT hQuery.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-doCreateUpdate) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE doCreateUpdate Procedure 
+PROCEDURE doCreateUpdate :
+/*------------------------------------------------------------------------------
+  Purpose:     FINDs the specified row to be updated and creates a "backup" 
+               (a before-image) copy of it in the RowObjUpd table, to support
+               Undo.  Run from submitRow when it receives a set of value 
+               changes from a UI object.
+
+  Parameters:
+    INPUT  pcRowIdent  - encoded "key" of the row to be updated.
+    INPUT  pcValueList - the list of changes made.  A CHR(1) delimited list
+                         of FieldName/NewValue pairs.
+    OUTPUT plReopen    - true if the row was new (either a copy or an add),
+                         so reopen RowObject query.
+    OUTPUT pcMessage   - error messages.
+ 
+  Notes:       Run from submitRow.  Returns error message or "". 
+               If the row is not available in the RowObject temp-table
+               (this would be because the SmartDataObject was not the 
+               DataSource) this routine FINDs the database record(s) using 
+               the RowIdent key before applying the changes, unless it's a 
+               new row.
+------------------------------------------------------------------------------*/
+DEFINE INPUT  PARAMETER pcRowIdent  AS CHARACTER NO-UNDO.
+DEFINE INPUT  PARAMETER pcValueList AS CHARACTER NO-UNDO.
+DEFINE OUTPUT PARAMETER plReopen    AS LOGICAL   NO-UNDO.
+DEFINE OUTPUT PARAMETER pcMessage   AS CHARACTER NO-UNDO.
+
+DEFINE VARIABLE hRowObject  AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hRowObjUpd  AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hDataQuery  AS HANDLE     NO-UNDO.
+DEFINE VARIABLE iNextRowNum AS INTEGER    NO-UNDO.
+
+  {get RowObject hRowObject}.    
+  {get RowObjUpd hRowObjUpd}.
+  CREATE BUFFER hRowObjUpd FOR TABLE hRowObjUpd.
+
+  /* get the "Data" (RowObject) query handle */
+  {get DataHandle hDataQuery}.
+
+  /* If it is empty, re-FIND the db rec(s), unless it's a newly */
+  /* added row (no db rowids in RowIdent).                    */
+  IF (NOT hDataQuery:IS-OPEN OR hDataQuery:NUM-RESULTS = 0) AND
+      NUM-ENTRIES(pcRowIdent) > 1 AND ENTRY(2, pcRowIdent) NE "":U THEN
+  DO:
+    /* Now create a RowObject record and assign a RowNum to it. */
+    hRowObject:BUFFER-CREATE().
+    {get LastRowNum iNextRowNum}.
+    iNextRowNum = iNextRowNum + 1.
+    hRowObject:BUFFER-FIELD('RowNum':U):BUFFER-VALUE = iNextRowNum.
+    /* This creates a temp-table row from the db recs. */
+    RUN transferDBRow IN TARGET-PROCEDURE(pcRowIdent, iNextRowNum). 
+    {set LastRowNum inextRowNum}.
+  END.       /* END DO if no query */
+  ELSE
+    hRowObject:FIND-BY-ROWID(TO-ROWID(ENTRY(1, pcRowIdent))).
+
+  /* First check to see if there's already a saved pre-change version 
+     of the record; this would be so if the same row is changed 
+     multiple times before commit. */
+  hRowObjUpd:FIND-FIRST('WHERE RowNum = ':U + 
+                        STRING(hRowObject:BUFFER-FIELD('RowNum':U):BUFFER-VALUE))
+                        NO-ERROR.
+  DO TRANSACTION:
+    IF NOT hRowObjUpd:AVAILABLE THEN
+    DO:
+      hRowObjUpd:BUFFER-CREATE().
+      hRowObjUpd:BUFFER-COPY(hRowObject).
+    END.        /* END DO IF NO ROU available */
+
+    /* If this isn't an add/copy then  flag it as update. */
+    IF hRowObject:BUFFER-FIELD('RowMod':U):BUFFER-VALUE NE "A":U AND 
+       hRowObject:BUFFER-FIELD('RowMod':U):BUFFER-VALUE NE "C":U
+    THEN 
+        hRowObject:BUFFER-FIELD('RowMod':U):BUFFER-VALUE = "U":U. 
+    ELSE 
+        plReopen = TRUE.            /* Tell caller to reopen query. */
+  END.     /* END TRANSACTION */
+
+  pcMessage = "".   /* "Success" output value. */
+
+  DELETE OBJECT hRowObjUpd.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-doEmptyModTable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE doEmptyModTable Procedure 
+PROCEDURE doEmptyModTable :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE hModRowIdent AS HANDLE     NO-UNDO.
+
+  {get ModRowIdent hModRowIdent}.
+  hModRowIdent:EMPTY-TEMP-TABLE().
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-doEmptyTempTable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE doEmptyTempTable Procedure 
+PROCEDURE doEmptyTempTable :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       Cannot use EMPTY-TEMP-TABLE method within a TRANSACTION if the
+               Temp-table is UNDO
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE hRowObject AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hQuery     AS HANDLE     NO-UNDO.
+
+  {get RowObject hRowObject}.    
+  CREATE BUFFER hRowObject FOR TABLE hRowObject.
+
+  CREATE QUERY  hQuery.
+  hQuery:SET-BUFFERS(hRowObject).
+  hQuery:QUERY-PREPARE('FOR EACH ' + hRowObject:NAME).
+  hQuery:QUERY-OPEN().
+
+  DO TRANSACTION:
+      hQuery:GET-FIRST().
+      DO WHILE NOT hQuery:QUERY-OFF-END:
+          hRowObject:BUFFER-DELETE().
+          hQuery:GET-NEXT().
+      END.
+  END.
+
+  DELETE OBJECT hQuery.
+  DELETE OBJECT hRowObject.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-doReturnToAddMode) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE doReturnToAddMode Procedure 
+PROCEDURE doReturnToAddMode :
+/*------------------------------------------------------------------------------
+  Purpose:    Return current record to addmode after an unsuccesful commit   
+  Parameters:  <none>
+  Notes:      This is only used by the SBO to return to addmode when an Add 
+              failed wehn AutoCommit. Since the SDO has AutoCommit doReturnUpd
+              does not remove the ROwObjUpd.
+           -  This logic is expected to become obsolete as ROwObjUpd records 
+              for add/copy really are created too early.                      
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE hRowObject AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hRowObjUpd AS HANDLE     NO-UNDO.
+
+  {get RowObject hRowObject}.
+  IF hRowObject:AVAILABLE THEN
+  DO:
+     {get RowObjUpd hRowObjUpd}.
+     CREATE BUFFER hRowObjUpd FOR TABLE hRowObjUpd.
+
+     hRowObjUpd:FIND-FIRST('WHERE RowNum = ':U +
+                           string(hRowObject:BUFFER-FIELD('RowNum':U):BUFFER-VALUE) +
+                           ' AND (RowMod = "A" OR RowMod = "C")') NO-ERROR.
+     IF hRowObjUpd:AVAILABLE THEN
+         hRowObjUpd:BUFFER-DELETE().
+
+     DELETE OBJECT hRowObjUpd.
+  END.
+
+  RETURN.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-doReturnUpd) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE doReturnUpd Procedure 
+PROCEDURE doReturnUpd :
+/*------------------------------------------------------------------------------
+  Purpose:     RUN from Commit on the client side to get back the Update 
+               (RowObjUpd) table (from the server side) and undo any failed 
+               changes or return final versions of record values to the client.
+ 
+  Parameters:  
+    INPUT cUndoIds - list of any RowObject Rownum whose changes were 
+                     rejected by a commit. Delimited list of the form:
+               "RowNumCHR(3)ADM-ERROR-STRING,RowNumCHR(3)ADM-ERROR-STRING,..."
+           - A '?' as RowNum means do NOT reposition, but stay on current record. 
+            
+  Notes:   - If the error string in cUndoIds is "ADM-FIELDS-CHANGED", then
+             another user has changed at least one field value.  In this 
+             case, RowObjUpd fields will contain the refreshed db values 
+             and we pass those values back to the client.
+           - If not autocommit we may also reposition here, but otherwise the caller 
+             both has the rowident and has more info. (submitCommit knows whether 
+             a reopen is required, deleteRow just uses fetchNext if required) 
+------------------------------------------------------------------------------*/
+  DEFINE INPUT PARAMETER pcUndoIds AS CHARACTER NO-UNDO.
+
+  DEFINE VARIABLE hRowObject      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRowObject2     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRowObjUpd      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRowObjUpd2     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hQuery          AS HANDLE     NO-UNDO.
+ 
+  DEFINE VARIABLE lAutoCommit     AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE hDataQuery      AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE lQueryContainer AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE lBrowsed        AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE hMsgSource      AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE iCurrentRowNum  AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE iRowNum         AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE lCommitOk       AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE lQueryOpened    AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE iTempRowNum     AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE cFirstError     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cErrorType      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cKeyFields      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataDelimiter  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iLoop           AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iLoop2          AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cKeyValues      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hRowObjUpdTable AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lHasRecords     AS LOGICAL    NO-UNDO.
+
+  {get AutoCommit lAutoCommit}.
+  {get RowObject hRowObject}.    
+  {get RowObjUpd hRowObjUpd}.
+  {get RowObjUpdTable hRowObjUpdTable}.
+
+  lHasRecords = hRowObjUpdTable:HAS-RECORDS.
+
+  /* local buffers */
+  CREATE BUFFER hRowObject2 FOR TABLE hRowObject.
+  CREATE BUFFER hRowObjUpd2 FOR TABLE hRowObjUpd. 
+
+  /* set up RowObjUpd query */
+  CREATE QUERY hQuery.
+  hQuery:SET-BUFFERS(hRowObjUpd).
+
+  /* Find out whether this SDO is inside an SBO or other Query Object. 
+     If so, we will refer to that object to check for error messages. */
+  {get QueryContainer lQueryContainer}.  
+  IF lQueryContainer THEN
+    {get ContainerSource hMsgSource}.
+  ELSE 
+    hMsgSource = TARGET-PROCEDURE.
+
+  lCommitOk = NOT DYNAMIC-FUNCTION('anyMessage':U IN hMsgSource) AND (pcUndoIds = "":U).
+
+  /* Balnk if no error.. */ 
+  /* Commit successful. */
+  IF lCommitOk THEN
+  DO:
+    
+    {set LastCommitErrorType '':U}.
+    {set LastCommitErrorKeys '':U}.
+
+    /* Delete ALL RowObjUpd records, but before the delete, move updated versions of records
+       back into the RowObject table for the client to see (they may have new values from CREATE 
+       or WRITE triggers or other server side logic) "A" = Add, "C" = Copy, "U" = update. */
+    hQuery:QUERY-PREPARE('FOR EACH ' + hRowObjUpd:NAME).
+    hQuery:QUERY-OPEN().
+    hQuery:GET-FIRST().
+    DO WHILE hRowObjUpd:AVAILABLE:
+      IF LOOKUP(hRowObjUpd:BUFFER-FIELD('RowMod':U):BUFFER-VALUE, "A,C,U":U) > 0 THEN
+      DO:
+        hRowObject2:FIND-FIRST('WHERE RowNum = ':U +
+                               string(hRowObjUpd:BUFFER-FIELD('RowNum':U):BUFFER-VALUE)) NO-ERROR.
+        IF hRowObject2:AVAILABLE THEN
+        DO:
+          hRowObject2:BUFFER-COPY(hRowObjUpd).
+          hRowObject2:BUFFER-FIELD('RowMod':U):BUFFER-VALUE = "":U.
+        END.
+      END. /* can-do('A,C,U',RowObjUpd.Rowmod)  */
+      hRowObjUpd:BUFFER-DELETE().
+      hQuery:GET-NEXT().
+    END. /* for each RowObjUpd */
+    hQuery:QUERY-CLOSE().
+  END.  /* Commit successful. */
+  ELSE DO:    /* Commit not successful. */
+    /* log the error type (the first encountered error) */ 
+    ASSIGN
+      cFirstError = ENTRY(1,pcUndoIds)
+      cFirstError = TRIM(ENTRY(2,cFirstError,CHR(3))) NO-ERROR.
+    CASE cFirstError:
+      WHEN 'ADM-FIELDS-CHANGED':U THEN
+         cErrorType = 'Conflict':U. 
+      OTHERWISE
+        cErrorType = 'Error':U. 
+    END.
+    {set LastCommitErrorType cErrorType}.
+
+    /* log the key values of all failed records */
+    {get KeyFields cKeyFields}.
+    {get DataDelimiter cDataDelimiter}.
+    DO iLoop = 1 TO NUM-ENTRIES(pcUndoIds):
+                      /* there is a trailing ',' in pcUndoIds */
+      IF ENTRY(iLoop, pcUndoIds) = '':U THEN LEAVE. 
+      hRowObject2:FIND-FIRST('WHERE RowNum = ':U + ENTRY(1, ENTRY(iLoop, pcUndoIds), CHR(3))) NO-ERROR.
+      IF hRowObject2:AVAILABLE THEN
+      DO iLoop2 = 1 TO NUM-ENTRIES(cKeyFields):
+        cKeyValues = cKeyValues + (IF cKeyValues = "" THEN "" ELSE cDataDelimiter) +
+                     string(hRowObject2:buffer-field(ENTRY(iLoop2, cKeyFields)):BUFFER-VALUE).
+      END.
+    END.
+    {set LastCommitErrorKeys cKeyValues}.
+    
+    /* If not autocommit we want to know where we shall position to after */    
+    IF NOT lAutoCommit THEN 
+    DO:
+      /* Keep track of where we are for no AutoCommit repositioning logic below */
+      iCurrentRowNum = IF hRowObject:AVAILABLE THEN 
+                         hRowObject:BUFFER-FIELD('RowNum':U):BUFFER-VALUE 
+                       ELSE ?.  /* ? if not avail */ 
+      
+      /* We noramlly reposition to the firstr entry passed in, note that a 
+         value of '?' in the first RowNum entry  means that we must stay where 
+         we are */  
+      IF pcUndoIds <> '':U THEN
+        iRowNum = INTEGER(ENTRY(1, ENTRY(1, pcUndoIds, ",":U), CHR(3))).
+      
+      /* Do we need to restore deleted records? */
+      hRowObjUpd:FIND-FIRST('WHERE RowMod = "D"':U) NO-ERROR.
+      IF hRowObjUpd:AVAILABLE THEN 
+      DO:
+        /* If nowhere to reposition to yet, then position to the first undeleted row */ 
+        IF iRowNum = 0 THEN 
+          iRowNum = hRowObjUpd:BUFFER-FIELD('RowNum':U):BUFFER-VALUE.
+
+        /* Restore deleted records */
+        RUN doUndoDelete IN TARGET-PROCEDURE. 
+        {fnarg openDataQuery '':U}.
+        lQueryOpened = TRUE.  /* Must reposition below  */ 
+      END.          
+    END. /* not autocommit  */
+
+    /* Go through each 'U' copy and use it to find the 'before-image' for delete
+       or refresh also copy the contents to rowObject if adm-fields-changed */
+    hQuery:QUERY-PREPARE('FOR EACH ' + hRowObjUpd:NAME + ' WHERE RowMod = "U"':U).
+    hQuery:QUERY-OPEN().
+    hQuery:GET-FIRST().
+    DO WHILE hRowObjUpd:AVAILABLE:
+      iTempRowNum = hRowObjUpd:BUFFER-FIELD('RowNum':U):BUFFER-VALUE.
+      /* Refreshing the update record if required (changed data was reset on server).*/
+      IF INDEX(pcUndoIds,STRING(iTempRowNum) + CHR(3) + "ADM-FIELDS-CHANGED":U) <> 0 THEN
+      DO:
+        hRowObject:FIND-FIRST('WHERE RowNum = ' + STRING(iTempRowNum)).
+        /* Copy the refreshed db field values to row object. */
+        hRowObject:BUFFER-COPY(hRowObjUpd,'RowMod':U).
+        
+        hRowObjUpd2:FIND-FIRST('WHERE RowNum = ' + STRING(iTempRowNum) + ' AND RowMod = ""').
+          /* Copy the refreshed db field values to the pre-commit row.
+             Don't copy over the RowMod (that could change what the
+             record is used for). And don't copy over ChangedFields. Leave
+             that as the client set it. */
+        hRowObjUpd2:BUFFER-COPY(hRowObjUpd,'RowMod,ChangedFields':U).
+      END. /* UndoIds matches RowNum and ADM-FIELDS-CHANGED */
+
+      /* The pre-commit update record (RowMod = "") contains the right values for
+         an undo, so we no longer need the commit copy (RowMod = "U") of
+         the update record. */
+      hRowObjUpd:BUFFER-DELETE().
+      hQuery:GET-NEXT().
+    END. /* for each RowObjUpd .. RowMod = "U" */     
+    hQuery:QUERY-CLOSE().
+
+    /* Failed AutoCommit Add, copy and Delete should also be removed.
+       Non AutoCommit currently need to be kept as they are creted on save
+       not on the actual commit, but an Autocommit SBO also has the SDO in 
+       non autocommit and calls doReturnToAddMode to get rid of the RowObjUpd 
+       in cases where it was in add mode before the save.*/
+    IF lAutoCommit THEN
+    DO:
+      hQuery:QUERY-PREPARE('FOR EACH ' + hRowObjUpd:NAME + 
+                           ' WHERE RowMod = "A" OR RowMod = "C" OR RowMod = "D"':U).
+      hQuery:QUERY-OPEN().
+      hQuery:GET-FIRST().
+      DO WHILE hRowObjUpd:AVAILABLE:
+        hRowObjUpd:BUFFER-DELETE().
+        hQuery:GET-NEXT().
+      END.
+      hQuery:QUERY-CLOSE().
+    END.    
+  END.  /* commit not successful */
+
+  IF lHasRecords THEN DO:
+      /* Deal with reopen, reposition and publish dataavailable for non auto commit */
+      IF NOT lAutoCommit THEN
+      DO:
+        {get QueryContainer lQueryContainer}.
+        {get DataQueryBrowsed lBrowsed}.
+
+        IF lCommitOk THEN
+        DO:
+          {set RowObjectState 'NoUpdates':U}.
+          /* If not Autocommit changes can be to more than one record, so if object
+             is being browsed then ensure all records in the browser are refreshed 
+             correctly.*/
+          IF lBrowsed THEN
+            PUBLISH 'refreshBrowse':U FROM TARGET-PROCEDURE.
+          /* The SBO does publish dataavailable, when all objects have been returned,
+             so don't do it here. */
+          IF NOT lQueryContainer THEN
+            PUBLISH "dataAvailable":U FROM TARGET-PROCEDURE ('SAME':U). 
+        END. /* CommitOk */
+        ELSE DO:
+          hRowObject:FIND-FIRST('WHERE RowNum = ':U +
+                                (IF iRowNum = ? OR iRowNum = 0 
+                                    THEN STRING(iCurrentRowNum) 
+                                    ELSE STRING(iRowNum))) NO-ERROR.
+
+          /* just in case the above failed (RowNum 0 and no current rec maybe.. ) */
+          IF NOT hRowObject:AVAILABLE THEN
+            hRowObject:FIND-FIRST() NO-ERROR.
+
+          /* If we have changed position we need to reposition the query also if
+             we are not browsed (fetchNext etc. assumes that the query is synched) */
+          IF lQueryOpened
+          OR hRowObject:AVAILABLE AND 
+            hRowObject:BUFFER-FIELD('RowNum':U):BUFFER-VALUE <> iCurrentRowNum  THEN 
+          DO:
+            {get DataHandle hDataQuery}.
+            hDataQuery:REPOSITION-TO-ROWID(hRowObject:ROWID) NO-ERROR.
+            /* if not browsed, get-next to get the buffer */
+            IF (ERROR-STATUS:GET-MESSAGE(1) = '':U) AND NOT lBrowsed THEN 
+              hDataQuery:GET-NEXT.
+          END. 
+
+          hRowObject2:FIND-FIRST('WHERE RowMod <> ""':U) NO-ERROR.
+          IF NOT hRowObject2:AVAILABLE THEN
+            {set RowObjectState 'NoUpdates':U}.
+
+          RUN updateQueryPosition IN TARGET-PROCEDURE.         
+
+          IF NOT lQueryContainer THEN
+            PUBLISH "dataAvailable":U FROM TARGET-PROCEDURE
+               /* not avail is overkill as there always is a rowObject in 
+                  an undo, but.. */
+               (IF NOT hRowObject:AVAILABLE OR 
+                   hRowObject:BUFFER-FIELD('RowNum':U):BUFFER-VALUE <> iCurrentRowNum   
+                THEN 'DIFFERENT':U                  
+                ELSE 'SAME':U).
+        END.  /* not ok  */
+      END. /* not autocommit */
+  END.
+
+  DELETE OBJECT hQuery.
+  DELETE OBJECT hRowObjUpd2.
+  DELETE OBJECT hRowObject2.
+
+  RETURN.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-doUndoDelete) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE doUndoDelete Procedure 
+PROCEDURE doUndoDelete :
+/*------------------------------------------------------------------------------
+  Purpose:     Restore deleted rows. 
+  Parameters:  <none>
+ 
+  Notes:       This is separated because: 
+               - a failed commit should restore this, otherwise the user has to 
+                 undo to correct mistakes. 
+               - The regualar undo need to restore these.
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hRowObject      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRowObjUpd      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hQuery          AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iFirstRowNum    AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE iLastRowNum     AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE cLastResultRow  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFirstResultRow AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hRowNum         AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRowident       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lNew            AS LOGICAL    NO-UNDO.
+
+  {get RowObjUpd hRowObjUpd}.
+  {get RowObject hRowObject}.
+  CREATE BUFFER hRowObjUpd FOR TABLE hRowObjUpd.
+  CREATE BUFFER hRowObject FOR TABLE hRowObject.
+
+  CREATE QUERY hQuery.
+  hQuery:SET-BUFFERS(hRowObjUpd).
+  /* Start from last so the first delete is avail when we are finished */ 
+  hQuery:QUERY-PREPARE('FOR EACH ' + hRowObjUpd:NAME + 
+                       ' WHERE RowMod = "D" BY RowNum DESCENDING':U).
+  hQuery:QUERY-OPEN().
+  hQuery:GET-FIRST().
+  ASSIGN
+    hRowNum   = hRowObjUpd:BUFFER-FIELD('RowNum':U)
+    hRowIdent = hRowObjUpd:BUFFER-FIELD('RowIdent':U).
+
+  DO WHILE NOT hQuery:QUERY-OFF-END:
+    lNew = hRowIdent:BUFFER-VALUE = '':U.
+    
+    hRowObject:BUFFER-CREATE().
+    hRowObject:BUFFER-COPY(hRowObjUpd).
+    hRowObject:BUFFER-FIELD('RowMod':U):BUFFER-VALUE = IF lNew THEN 'A':U ELSE '':U.
+
+    /* Reset the firstRowNum if the undeleted record is before the current */
+    {get FirstRowNum iFirstRowNum}.
+    IF hRowNum:BUFFER-VALUE < iFirstRowNum THEN
+       {set FirstRowNum hRowNum:BUFFER-VALUE}.
+    
+    IF NOT lNew THEN
+    DO:
+      /* Reset the firstResultRow if the undeleted record is before the current */
+      {get FirstResultRow cFirstResultRow}.
+      iFirstRowNum = INT(ENTRY(1,cFirstResultRow,";":U)).
+      IF hRowNum:BUFFER-VALUE < iFirstRowNum THEN
+      DO:
+        cFirstResultRow = hRowNum:BUFFER-VALUE + ";":U + hRowIdent:BUFFER-VALUE.
+        {set FirstResultRow cFirstResultRow}.
+      END.
+    END. /* Not new */
+
+    /* Reset the LastRowNum if the undeleted record is after the current */
+    {get LastRowNum iLastRowNum}.
+    IF hRowObjUpd:BUFFER-FIELD('RowNum':U):BUFFER-VALUE > iLastRowNum THEN
+    DO:
+      {set LastRowNum hRowObjUpd:BUFFER-FIELD('RowNum':U):BUFFER-VALUE}.
+      {set LastDbRowIdent hRowObjUpd:BUFFER-FIELD('RowIdent':U):BUFFER-VALUE}.
+    END.
+    
+    IF NOT lNew THEN
+    DO:
+      /* Reset the LastResultRow if the undeleted record is after the current */
+      {get LastResultRow cLastResultRow}.
+      iLastRowNum = INT(ENTRY(1,cLastResultRow,";":U)).
+      IF hRowNum:BUFFER-VALUE > iLastRowNum THEN
+      DO:
+        cLastResultRow = hRowNum:BUFFER-VALUE + ";":U
+                       + hRowObjUpd:BUFFER-FIELD('RowIdent':U):BUFFER-VALUE.
+        {set LastResultRow cLastResultRow}.
+      END.
+    END. /* not new */
+    hRowObjUpd:BUFFER-DELETE().
+    hQuery:GET-NEXT().
+  END.
+
+  DELETE OBJECT hQuery.
+  DELETE OBJECT hRowObjUpd.
+  DELETE OBJECT hRowObject. 
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-doUndoRow) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE doUndoRow Procedure 
+PROCEDURE doUndoRow :
+/*------------------------------------------------------------------------------
+  Purpose:  Rollback using the before image RowObjUpd record    
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE hRowObject AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hRowObjUpd AS HANDLE     NO-UNDO.
+
+  {get RowObject hRowObject}.
+  IF hRowObject:AVAILABLE THEN
+  DO:
+    {get RowObjUpd hRowObjUpd}.
+    hRowObjUpd:FIND-FIRST('WHERE RowMod = "" AND RowNum = ':U +
+                           string(hRowObject:BUFFER-FIELD('RowNum':U):BUFFER-VALUE))
+                           NO-ERROR.
+    
+    IF hRowObjUpd:AVAILABLE THEN
+    DO:
+      hRowObject:BUFFER-COPY(hRowObjUpd).
+      hRowObjUpd:BUFFER-DELETE().
+    END.
+  END.
+
+  RETURN.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-doUndoTrans) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE doUndoTrans Procedure 
+PROCEDURE doUndoTrans :
+/*------------------------------------------------------------------------------
+  Purpose:     Does the buffer delete and copy operations to restore the
+               RowObject temp-table when an Undo occurs.  New RowObject records
+               (added or copied, RowObject.RowMod = "A"/"C") are deleted, modified 
+               records (RowObject.RowMod = "U") are restored to their original 
+               states and deleted records (RowObjUpd.RowMod = "D") are recreated.  
+               The RowObjUpd table is emptied.
+
+  Parameters:  <none>
+ 
+  Notes:       Invoked from the event procedure undoTransaction.
+               doUndoTrans is run on the client side.
+               This code is currently operating directly on RowObject 
+               as it always FINDs after the looping.
+               The caller (f.ex undoTransaction) must check the position 
+               before it reopens the query and reposition to it. 
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hRowObject      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRowObjUpd      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hQuery          AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iLastRowNum     AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE lLastRowInBatch AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE lAny            AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cRowMod         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE rRowid          AS ROWID      NO-UNDO.
+
+  {get RowObject hRowObject}.    
+  {get RowObjUpd hRowObjUpd}.
+  
+  rRowid = hRowObject:ROWID.
+
+  RUN doUndoDelete IN TARGET-PROCEDURE. 
+  /* doUndoDelete may change LastRowNum */
+  {get LastRowNum iLastRowNum}.
+  
+  CREATE QUERY hQuery.
+  hQuery:SET-BUFFERS(hRowObject).
+  hQuery:QUERY-PREPARE('FOR EACH ' + hRowObject:NAME + ' WHERE RowMod > ""':U).
+  hQuery:QUERY-OPEN().
+  hQuery:GET-FIRST().
+  DO WHILE NOT hQuery:QUERY-OFF-END:
+    cRowMod = hRowObject:BUFFER-FIELD('RowMod':U):BUFFER-VALUE.
+    /* new record */
+    IF cRowMod = "A":U OR cRowMod = "C":U THEN
+    DO:
+      lAny = TRUE.
+      /* If a new record is last, we know that we have the original new 
+         record in the batch, because that's the requirement for a new record 
+         to be marked as last. */
+      IF hRowObject:BUFFER-FIELD('RowNum':U):BUFFER-VALUE = iLastRowNum THEN
+        lLastRowInBatch = TRUE.
+      hRowObject:BUFFER-DELETE().
+    END.
+    /* updated record */
+    ELSE IF cRowMod = "U":U THEN
+    DO:
+      hRowObjUpd:FIND-UNIQUE('WHERE RowMod = "" AND RowNum = ':U + 
+                             STRING(hRowObject:BUFFER-FIELD('RowNum':U):BUFFER-VALUE))
+                             NO-ERROR.
+      IF hRowObjUpd:AVAILABLE THEN 
+      DO:
+        lAny = TRUE.
+        hRowObject:BUFFER-COPY(hRowObjUpd).
+      END.
+    END.
+    hQuery:GET-NEXT().
+  END.  /* for each RowObject */
+  
+  DELETE OBJECT hQuery.
+  
+  /* We have undone an Added record that was last and know that the real last
+     is in the batch */  
+  IF lLastRowInBatch THEN
+  DO:
+    hRowObject:FIND-LAST() NO-ERROR.
+    IF hRowObject:AVAILABLE THEN
+    DO:
+      {set LastRowNum hRowObject:BUFFER-FIELD('RowNum':U):BUFFER-VALUE}.
+      {set LastDbRowIdent '':U}. /* We don't need this if we have lastRownum*/
+    END.
+  END. /* lLastrowInbatch */
+
+  /* For repositioning, locate the first Update or Delete record thats being
+     undone and position there. */
+  hRowObjUpd:FIND-FIRST('WHERE RowObjUpd.RowMod = "" OR RowObjUpd.RowMod = "D"':U +
+                        ' USE-INDEX RowNum':U) NO-ERROR.
+  
+  IF hRowObjUpd:AVAILABLE THEN
+    hRowObject:FIND-UNIQUE('WHERE RowNum = ':U +
+                           STRING(hRowObjUpd:BUFFER-FIELD('RowNum':U):BUFFER-VALUE)) NO-ERROR.
+  
+  /* If there aren't any, but lAny is true then we are undoing an Add.
+     In that case, position to the last record in the batch. */
+  ELSE IF lAny THEN
+    hRowObject:FIND-LAST() NO-ERROR.
+  ELSE IF rRowid <> ? THEN /* just in case this was called with no trans */
+    hRowObject:FIND-BY-ROWID(rRowid) NO-ERROR.
+
+  ELSE  /* this would only happen of no RowObject was avail before this started */
+    hRowObject:FIND-FIRST() NO-ERROR.
+
+  IF NOT hRowObject:AVAILABLE THEN
+  DO:
+    {set FirstRowNum ?}.
+    {set LastRowNum ?}.
+  END.
+
+  RUN updateQueryPosition IN TARGET-PROCEDURE.
+    
+  hRowObjUpd:EMPTY-TEMP-TABLE.
+  
+  RETURN.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-doUndoUpdate) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE doUndoUpdate Procedure 
+PROCEDURE doUndoUpdate :
+/*------------------------------------------------------------------------------
+  Purpose:     Supports a cancelRow by copying the current RowObjUpd record back 
+               to the current RowObject record. 
+  Parameters:  
+  Notes:       From 9.1C the rollback of updates is really no longer needed by 
+               the visual objects, the only case where it would happen was 
+               with AutoCommit off, but it would roll back ALL changes, which
+               was quite confusing if changes had been done in several steps. 
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hRowObject    AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE hRowObjUpd    AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE hDataQuery    AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE rRowObject    AS ROWID     NO-UNDO.
+  DEFINE VARIABLE lNewMode      AS LOGICAL   NO-UNDO.
+
+  {get RowObject hRowObject}.    
+  {get RowObjUpd hRowObjUpd}.
+
+  IF hRowObject:AVAILABLE THEN
+  DO:
+    hRowObjUpd:FIND-UNIQUE('WHERE RowMod = "" AND RowNum = ':U +
+                           string(hRowObject:BUFFER-FIELD('RowNum':U):BUFFER-VALUE))
+                           NO-ERROR.
+    IF hRowObjUpd:AVAILABLE THEN  /* may not be there if never saved */
+    DO:
+      hRowObject:BUFFER-COPY(hRowObjUpd).
+      hRowObjUpd:BUFFER-DELETE().
+      PUBLISH 'dataAvailable':U FROM TARGET-PROCEDURE ("SAME":U). 
+    END.
+    ELSE DO:
+      /* Check new mode to avoid deleting new uncommitted records in updatemode*/
+      {get NewMode lNewMode}.
+      IF lNewMode AND 
+         hRowObject:BUFFER-FIELD('RowMod':U):BUFFER-VALUE = "A":U OR 
+         hRowObject:BUFFER-FIELD('RowMod':U):BUFFER-VALUE = "C":U THEN
+      DO:
+        hRowObject:BUFFER-DELETE().
+
+        /* Tell a browse updateSource to get rid of the insert-row */
+        PUBLISH 'cancelNew':U FROM TARGET-PROCEDURE.
+
+        /* Re-establish the current row */
+        {get DataHandle hDataQuery}.
+        {get CurrentRowid rRowObject}.
+        IF hDataQuery:IS-OPEN AND rRowObject <> ? THEN 
+        DO:
+          hDataQuery:REPOSITION-TO-ROWID(rRowObject) NO-ERROR.
+          /* Next needed if not browser (Data-Target) */
+          IF NOT hRowObject:AVAILABLE AND ERROR-STATUS:GET-MESSAGE(1) = '':U THEN  
+            hDataQuery:GET-NEXT() NO-ERROR.
+        END.  /* IF the query is open */
+      END.  /* DO IF "A"/"C" */
+    END.  /* if NOT avail RowObjUpd */
+  END.  /* if avail rowobject */
+
+  RETURN.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-endTransactionValidate) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE endTransactionValidate Procedure 
+PROCEDURE endTransactionValidate :
+/*------------------------------------------------------------------------------
+  Purpose: Validation hook for code to be executed in the transaction after the 
+           updates have been done. 
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  
+  RUN bufferTransactionValidate IN TARGET-PROCEDURE ('end':U). 
+
+  RETURN RETURN-VALUE.  
+  
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1618,6 +3658,84 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-fetchDefinitions) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE fetchDefinitions Procedure 
+PROCEDURE fetchDefinitions :
+/*------------------------------------------------------------------------------
+  Purpose:   Fetch definitions from server  
+  Parameters:  <none>
+  Notes:     Retrieves the rowobject for dynamic objects when openOnInit 
+             is false. It also retrieves other definitional properties like 
+             Tables, DbNames, IndexInformation and BaseQuery
+           - Dynamics will call this also for static objects when openOninit 
+             is false to ensure that Repository field definitions are applied
+             to the rowobject table.
+           - This should not be called when IsFetchPending as the DataContainer
+             will handle data objects with openOnInit.  
+           - The SBO has its own version, which is used when the SBO's 
+             OpenOnInit is false.
+------------------------------------------------------------------------------*/   
+ DEFINE VARIABLE hAppservice     AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE cServerFileName AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cContext        AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE hRowObjectTable AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE hRowObjUpdTable AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE hFetchTable     AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE cErrors         AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE hAsHandle       AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE hRowObject      AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE hFetchBuffer    AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE iColumn         AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE hColumn         AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE hFetchColumn    AS HANDLE     NO-UNDO.
+ 
+ {get RowObjectTable hRowObjectTable}.
+ 
+ IF NOT VALID-HANDLE(hRowObjectTable) THEN
+ DO:   
+   IF {fn hasNoServerBinding} THEN
+   DO:
+     RUN connectServer IN TARGET-PROCEDURE (OUTPUT hAppService). 
+     IF hAppService  = ? THEN
+       RETURN ERROR 'ADM-ERROR':U.
+
+     {get ServerFileName cServerFileName}.
+     cContext = {fn obtainContextForServer}.   
+  
+     RUN adm2/fetchdefs.p ON hAppservice (cServerFileName,
+                                          INPUT-OUTPUT cContext,
+                                          OUTPUT TABLE-HANDLE hFetchTable,
+                                          OUTPUT cErrors). /* Errors not used yet */
+   END.
+   ELSE DO:
+     {get AsHandle hAshandle}.
+     /* a remoteFetchDefinitions with input-output context and output errors
+        may be added to the data object if we want errors  */
+     RUN fetchRowObjectTable IN hAsHandle( OUTPUT TABLE-HANDLE hFetchTable ).
+     cContext = {fn obtainContextForClient hAsHandle}.
+   END.
+
+   {fnarg applyContextFromserver cContext}.
+
+   IF VALID-HANDLE(hFetchTable) THEN
+   DO:
+     {set RowObjectTable hFetchTable}.
+     {get RowObjUpdTable hRowObjUpdTable}.
+     IF NOT VALID-HANDLE(hRowObjUpdTable) THEN
+       {fn createRowObjUpdTable}.
+   END.   
+ END.
+ 
+ RETURN.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-fetchFirst) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE fetchFirst Procedure 
@@ -1632,19 +3750,20 @@ PROCEDURE fetchFirst :
  
   Parameters:  <none>
 ------------------------------ ------------------------------------------------*/
-  DEFINE VARIABLE iReturnRows   AS INTEGER NO-UNDO.
-  DEFINE VARIABLE hDataQuery    AS HANDLE  NO-UNDO.
-  DEFINE VARIABLE hRowObject    AS HANDLE  NO-UNDO.
-  DEFINE VARIABLE hColumn       AS HANDLE  NO-UNDO.
-  DEFINE VARIABLE lHidden       AS LOGICAL NO-UNDO.
-  DEFINE VARIABLE iRowsToBatch  AS INTEGER  NO-UNDO.
+  DEFINE VARIABLE iReturnRows   AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE hDataQuery    AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE hRowObject    AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE hColumn       AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE lHidden       AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE iRowsToBatch  AS INTEGER   NO-UNDO.
   DEFINE VARIABLE cRowIdent     AS CHARACTER NO-UNDO.
   DEFINE VARIABLE iRowNum       AS INTEGER   NO-UNDO.
   DEFINE VARIABLE lRowIdent     AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE lRebuild      AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE iFirstRow     AS INTEGER   NO-UNDO.
   DEFINE VARIABLE cRowState     AS CHARACTER NO-UNDO.
-    
+  DEFINE VARIABLE lReposAvail   AS LOGICAL   NO-UNDO.
+
     {get DataHandle hDataQuery}.
     {get RowObject hRowObject}.
     {get FirstRowNum iRowNum}.
@@ -1657,10 +3776,11 @@ PROCEDURE fetchFirst :
          the temp-table and restart from the beginning. Otherwise if
          QueryRowIdent is set, then start at that row. Otherwise just
          start at the beginning. */
-      IF NOT VALID-HANDLE(hRowObject) OR NOT hRowObject:AVAILABLE THEN 
+
+      IF NOT VALID-HANDLE(hRowObject) OR NOT hRowObject:AVAILABLE THEN
       DO: /* First time through. */
         {get QueryRowIdent cRowIdent}.     /* See if there's a special start row.*/
-        IF cRowIdent NE ? AND cRowIdent NE "":U THEN 
+        IF cRowIdent NE ? AND cRowIdent NE "":U THEN
         DO:
           lRowIdent = yes.
           {set QueryRowIdent ?}.          /* Reset once we have the value. */
@@ -1677,6 +3797,9 @@ PROCEDURE fetchFirst :
       /* New to 9.1B: If the temp-table is dynamic and wasn't already 
          initialized, the handle variables set above will be unknown,
          so reset them here -- clientSendRows has set the properties for them.*/
+       
+      /* if avail after sendrows avoid passing 'home' to avoid problems 
+         since value-changed not will fire */
       IF NOT VALID-HANDLE(hDataQuery) THEN
       DO:
         {get DataHandle hDataQuery}.
@@ -1699,6 +3822,7 @@ PROCEDURE fetchFirst :
         END.   /* END DO IF < iRowsToBatch */
         
         hDataQuery:GET-FIRST().
+        lReposAvail = hRowObject:AVAILABLE. 
         
         IF NOT lRowIdent THEN /* If there was no QueryRowIdent prop then we */
           {set FirstRowNum hColumn:BUFFER-VALUE}.
@@ -1728,7 +3852,9 @@ PROCEDURE fetchFirst :
     RUN updateQueryPosition IN TARGET-PROCEDURE.
     /* Send dataAvail whether's a record or not; if not, the recipients
        will close queries or clear frames. */
-    PUBLISH 'dataAvailable':U FROM TARGET-PROCEDURE ("FIRST":U).     
+    PUBLISH 'dataAvailable':U FROM TARGET-PROCEDURE 
+       (IF lReposAvail THEN "REPOSITIONED":U ELSE "FIRST":U).     
+      
   RETURN.
 END PROCEDURE.
 
@@ -1769,8 +3895,10 @@ PROCEDURE fetchLast :
   DEFINE VARIABLE iLastRow      AS INTEGER NO-UNDO.
   DEFINE VARIABLE iRowsToBatch  AS INTEGER NO-UNDO.
   DEFINE VARIABLE lRebuild      AS LOGICAL NO-UNDO.
+  DEFINE VARIABLE lReposAvail   AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE cRowState     AS CHARACTER NO-UNDO.
-  
+  DEFINE VARIABLE cAsDivision   AS CHARACTER NO-UNDO.
+
     {get DataHandle hDataQuery}.
     {get RowObject hRowObject}.
      hRowNum    = hRowObject:BUFFER-FIELD('RowNum':U).
@@ -1782,23 +3910,42 @@ PROCEDURE fetchLast :
       RUN changeCursor IN TARGET-PROCEDURE('WAIT':U).
       {get RowsToBatch iRowsToBatch}.
       {get RebuildOnRepos lRebuild}. 
-      IF lRebuild THEN   /* Jump direct to Last and rebuilt temp-table */
+      IF lRebuild THEN 
+      DO:    /* Jump direct to Last and rebuilt temp-table */
+        /* Set the cursor first in case this takes a while. */
+        PUBLISH 'fetchDataSet':U FROM TARGET-PROCEDURE 
+            ('LastStart':U).
+       
         RUN sendRows IN TARGET-PROCEDURE 
           (?,            /* No particular rownum to start at */
            'Last':U,     /* special value for pcRowIdent */
            FALSE,        /* No need to "next" after repositioning */
            iRowsToBatch, /* sendRows knows to go backwards from Last */
            OUTPUT iRowsReturned).
+        PUBLISH 'fetchDataSet':U FROM TARGET-PROCEDURE ('LastEnd':U).  
+      END.
       ELSE DO:           /* No Rebuild on Reposition */
-        /* Set the cursor first in case this takes a while. */
+        /* Set the cursor first in case this takes a while. */    
         PUBLISH 'fetchDataSet':U FROM TARGET-PROCEDURE 
             ('LastStart':U).
-        
+ 
         RUN sendRows IN TARGET-PROCEDURE 
-            (?,'Last', TRUE, 0 /* get all */, OUTPUT iRowsReturned).
-
-        PUBLISH 'fetchDataSet':U FROM TARGET-PROCEDURE ('LastEnd':U).   
+            (?,
+            'Last':U,
+             TRUE, 
+             0, /* Last and 0 is use as a signal that we are appending data  */ 
+             OUTPUT iRowsReturned).
+        PUBLISH 'fetchDataSet':U FROM TARGET-PROCEDURE ('LastEnd':U).          
       END.    /* END ELSE DO IF NOT lRebuild */
+      
+      {get AsDivision cAsDivision}.
+      /* If we run locally the browse will not fire value-changed..
+        ( because it already knows  ???? ) 
+         dataAvailable publishes this  */
+      {get LastRowNum iLastRow}.
+       
+      IF cAsDivision = "":U AND lRebuild THEN 
+        lReposAvail = hRowObject:AVAILABLE.
       IF NOT hDataQuery:IS-OPEN THEN
         hDataQuery:QUERY-OPEN(). /* Query on the Temp-Table. */
 
@@ -1807,6 +3954,7 @@ PROCEDURE fetchLast :
         /* See if fetch failed due to an update in progress */
         {get LastRowNum iLastRow}.
         {get RowObjectState cRowState}.
+   
         IF cRowState = 'RowUpdated':U AND iLastRow eq ? THEN 
         DO:
           /*DYNAMIC-FUNCTION("showMessage":U IN TARGET-PROCEDURE, "17":U).*/
@@ -1818,9 +3966,9 @@ PROCEDURE fetchLast :
       END.  /* iRowsReturned = 0 */      
       RUN changeCursor IN TARGET-PROCEDURE('':U).
     END.
-    
-    hDataQuery:GET-LAST().
-     
+
+    hDataQuery:GET-LAST(). 
+
     IF hRowObject:AVAILABLE THEN
     DO:
       hRowIdent = hRowObject:BUFFER-FIELD('RowIdent':U).
@@ -1830,9 +3978,11 @@ PROCEDURE fetchLast :
     
      /* set QueryPosition from FirstRowNum, LastRowNum and DbLastDbRowIdent */
     RUN updateQueryPosition IN TARGET-PROCEDURE.
-
+    
     /* Signal row change in any case. */
-    PUBLISH 'dataAvailable':U FROM TARGET-PROCEDURE ("LAST":U).
+    PUBLISH 'dataAvailable':U FROM TARGET-PROCEDURE
+        (IF lReposAvail THEN "Repositioned":U ELSE "LAST":U).      
+        
   RETURN.  
 END PROCEDURE.
 
@@ -1899,9 +4049,8 @@ PROCEDURE fetchNext :
       IF cQueryPos = 'FirstRecord':U THEN
          lFirstDeleted = TRUE.
     END.
-
     hDataQuery:GET-NEXT().
-
+   
     IF NOT hRowObject:AVAILABLE THEN
     DO:                                 /* No data so ask the Query. */
       {get RowsToBatch iRowsToBatch}.
@@ -1936,7 +4085,9 @@ PROCEDURE fetchNext :
         /* Set ReposAvail flag if avail after reposition above or in sendRows
            (will be avail if we browse) so we can pass right parameter to the
            browser when we publish dataAvailable further down */  
+        
         lReposAvail = hRowObject:AVAILABLE. 
+
         IF NOT lReposAvail THEN 
           hDataQuery:GET-NEXT().           
       END.     /* END DO IF ReturnRows NE 0 */
@@ -1979,7 +4130,6 @@ PROCEDURE fetchNext :
     /* Signal row change in any case, even if NoRecordAvail. 
        If REPOSITION-TO-ROWID made the record available it must be browsed 
        so we pass 'REPOSITIONED' to make sure dataAvailable doesn't select-next- */
-
     PUBLISH 'dataAvailable':U FROM TARGET-PROCEDURE 
            (IF lReposAvail THEN "REPOSITIONED":U ELSE "NEXT":U). 
 
@@ -2049,26 +4199,12 @@ PROCEDURE fetchPrev :
           TRUE, /* start with previous row */
           - iRowsToBatch, /* Negative rows means move backwards */
           OUTPUT iReturnRows).
-
+         
         PUBLISH 'fetchDataSet':U FROM TARGET-PROCEDURE ('PrevEnd':U).
-        
+
         IF iReturnRows NE 0 THEN
         DO:
           PUBLISH 'assignMaxGuess':U FROM TARGET-PROCEDURE (iReturnRows).
-          IF iReturnRows < iRowsToBatch THEN
-          DO:
-          /* If we got something back, but fewer rows than we asked for, 
-             then we have the whole dataset, so set FirstRowNum. 
-             First save off the current position so we can get back to it.
-           (if the REPOSITION in sendRows made it available it's browsed so
-            don't get-next) */
-            IF NOT hRowObject:AVAILABLE THEN
-              hDataQuery:GET-NEXT().         
-            rCurrentRow = hRowObject:ROWID.  /* save its ROWID to repos to. */
-            hDataQuery:GET-FIRST().
-            {set FirstRowNum hRowNum:BUFFER-VALUE}.
-            hDataQuery:REPOSITION-TO-ROWID(rCurrentRow).
-          END.   /* END DO IF < iRowsToBatch */
           /* Set ReposAvail flag if avail after reposition above or in sendRows
              (will be avail if we browse) so we can pass right parameter to the
              browser when we publish dataAvailable further down */  
@@ -2117,7 +4253,6 @@ PROCEDURE fetchPrev :
     
     /* set QueryPosition from FirstRowNum, LastRowNum and DbLastDbRowIdent */
     RUN updateQueryPosition IN TARGET-PROCEDURE.
-   
     /* Signal row change in any case, even if NoRecordAvail. 
        If REPOSITION-TO-ROWID made the record available it must be browsed 
        so we pass 'REPSOTIONED' to make sure dataAvailable doesn't select-prev- */
@@ -2125,6 +4260,25 @@ PROCEDURE fetchPrev :
            (IF lReposAvail THEN "REPOSITIONED":U ELSE "PREV":U). 
            
   RETURN.  
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-fetchRowObjectTable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE fetchRowObjectTable Procedure 
+PROCEDURE fetchRowObjectTable :
+/*------------------------------------------------------------------------------
+  Purpose:  Fetch the RowObject table    
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE OUTPUT PARAMETER TABLE-HANDLE phRowObjectTable. 
+  {get RowObjectTable phRowObjectTable}.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2156,7 +4310,22 @@ PROCEDURE genContextList :
   DEFINE VARIABLE cLastResultRow        AS CHARACTER   NO-UNDO.
   DEFINE VARIABLE cQueryRowIdent        AS CHARACTER   NO-UNDO.
   DEFINE VARIABLE iLastRowNum           AS INTEGER     NO-UNDO.
+  DEFINE VARIABLE iFirstRowNum          AS INTEGER     NO-UNDO.
   DEFINE VARIABLE cLastRowNum           AS CHARACTER   NO-UNDO.
+  DEFINE VARIABLE cQueryWhere           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cQueryString          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cQueryColumns         AS CHARACTER  NO-UNDO.
+  
+  /* Dynamic SDO on server  */
+  DEFINE VARIABLE cDefs                    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTables                  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cBaseQuery               AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataColumns             AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataColumnsByTable      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAssignList              AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cUpdatableColumnsByTable AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataLogicProcedure      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cPositionForClient       AS CHARACTER  NO-UNDO.
 
   {get CheckCurrentChanged lCheckCurrentChanged}.
   {get RowObjectState cRowObjectState}.
@@ -2164,12 +4333,14 @@ PROCEDURE genContextList :
   {get LastResultRow cLastResultRow}.
   {get QueryRowIdent cQueryRowIdent}.
   {get LastRowNum iLastRowNum}. 
-
+  {get FirstRowNum iFirstRowNum}. 
+  {get PositionForClient cPositionForClient}.
+  
   /* Rebuild the context string to look like:
      prop1 CHR(4) val1 CHR(3) prop2 CHR(4) val2 CHR(3) ...                  */
           
   ASSIGN pcContext =
-       "CheckCurrentChanged":U + CHR(4) +
+        "CheckCurrentChanged":U + CHR(4) +
             (IF lCheckCurrentChanged THEN "Yes":U ELSE "No":U)     + CHR(3) +
         "RowObjectState":U + CHR(4) + 
             (IF cRowObjectState = ? THEN "?":U ELSE cRowObjectState) + CHR(3) +
@@ -2179,9 +4350,72 @@ PROCEDURE genContextList :
             (IF cLastResultRow = ? THEN "?":U ELSE cLastResultRow)   + CHR(3) +
         "LastRowNum":U + CHR(4) + 
             (IF iLastRowNum = ? THEN "?":U ELSE STRING(iLastRowNum))   + CHR(3) +
+        "FirstRowNum":U + CHR(4) + 
+            (IF iFirstRowNum = ? THEN "?":U ELSE STRING(iFirstRowNum))   + CHR(3) +
         "QueryRowIdent":U + CHR(4) + 
-            (IF cQueryRowIdent = ? THEN "?":U ELSE cQueryRowIdent).
+            (IF cQueryRowIdent = ? THEN "?":U ELSE cQueryRowIdent)
+         /* only needed if not unknown */
+         + (IF cPositionForClient <> ? 
+            THEN CHR(3) + "PositionForClient":U + CHR(4) + cPositionForClient
+            ELSE '':U).
 
+  IF SESSION:CLIENT-TYPE = "WEBSPEED":U THEN 
+  DO:   
+    {get DataFieldDefs cDefs}.
+    IF cDefs = '':U THEN
+    DO:
+       {get Tables cTables}.
+       {get DataColumns cDataColumns}.
+       {get DataColumnsByTable cDataColumnsByTable}.
+       {get UpdatableColumnsByTable cUpdatableColumnsByTable}.
+       {get AssignList cAssignList}.
+       {get BaseQuery cBaseQuery}.
+       {get DataLogicProcedure cDataLogicProcedure}.
+       pcContext = pccontext + CHR(3)                               
+                 + "Tables":U + CHR(4) + cTables 
+                 + CHR(3)  
+                 + "BaseQuery":U + CHR(4) + cBaseQuery 
+                 + CHR(3)  
+                 + "DataColumns":U + CHR(4) + cDataColumns
+                 + CHR(3)  
+                 + "DataColumnsByTable":U + CHR(4) + cDataColumnsByTable
+                 + CHR(3)  
+                 + "UpdatableColumnsByTable":U + CHR(4) + cUpdatableColumnsByTable
+                 + CHR(3)  
+                 + "AssignList":U + CHR(4) + cAssignList
+                 + CHR(3)  
+                 + "DataLogicProcedure":U + CHR(4) + cDataLogicProcedure.
+    END.
+    {get QueryWhere cQueryWhere}.
+    IF cQueryWhere = ? THEN cQueryWhere = '':U.
+    
+    /* if the Qstring <> Qwhere then we better return nothing as it indicates
+       something is wrong or out of synch.. known case: the querystring is set
+       when dataAvilable('reset') is called (possibly not necessary, but... ) 
+       and not applied because the parent had no data after all 
+       Under these circum stances we do not need the foreign fields in the 
+       query as there is no requests that can happen until the parent 
+       changes again. (The reason why we return FF in the query is that 
+       the data may be batched) */           
+    {get QueryString cQueryString}.    
+    IF cQueryString > '':U AND (cQueryString <> cQueryWhere) THEN
+      cQueryWhere = '':U.
+    
+    /* The Qcolumns is in synch with QString, so do not return it if it 
+       is not in synch, indicated by queryWhere blank  see above   */     
+    IF cQueryWhere > '':U THEN
+      {get Querycolumns cQueryColumns}.
+
+    ELSE cQueryColumns = ?.
+
+    pcContext = pcContext  
+              + (IF cQueryWhere <> ? 
+                 THEN CHR(3) + "QueryWhere":U + CHR(4) + cQueryWhere
+                 ELSE '':U)
+              + (IF cQueryColumns <> ? 
+                 THEN CHR(3) + "QueryColumns":U + CHR(4) + cQueryColumns
+                 ELSE '':U).
+  END.
 
 END PROCEDURE.
 
@@ -2204,7 +4438,144 @@ PROCEDURE getContextAndDestroy :
    DEFINE OUTPUT PARAMETER pcContext AS CHAR NO-UNDO.
                                                                                       
    pcContext = {fn obtainContextForClient}.
-   RUN destroyObject IN TARGET-PROCEDURE.              
+   RUN destroyObject IN TARGET-PROCEDURE.  
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-initializeLogicObject) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initializeLogicObject Procedure 
+PROCEDURE initializeLogicObject :
+/*------------------------------------------------------------------------------
+  Purpose:     Start the logic procedure for the data object
+  Parameters:  <none>
+  Notes:       The Logic Procedure is an optional object that can contain 
+               validation and business logic for a particular table.  
+               Rules: 
+               - The RUN is ALWAYS executed with (or without) the extension that 
+                 is defined in DataLogicProcedure property 
+                 ( this ensures that program-name and :file-name behave as expected)
+               - follows Progress core run rules:       
+                1. ANY extention will run r-code if found 
+                2. will run .r if NO period in run name 
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cLogicProc   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDummy       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDotRFile    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cMemberFile  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDbList      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iDb          AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE lUseProxy    AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lSourceExt   AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE iExt         AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cProxyName   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cProxyDotR   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cExtension   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFile        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cRunName     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hObject      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lWebClient   AS LOGICAL    NO-UNDO.
+
+  {get DataLogicProcedure cLogicProc}.
+  
+  IF cLogicProc = '':U THEN
+    RETURN.
+
+  {get DataLogicObject hObject}.
+  IF VALID-HANDLE(hObject) THEN
+    RETURN.
+
+  iExt = R-INDEX(cLogicProc,'.':U).
+  
+  IF iExt > 1 THEN
+    ASSIGN
+      cFile      = SUBSTR(cLogicProc,1,iExt - 1)
+      cExtension = SUBSTR(cLogicProc,iExt).
+  ELSE
+    cFile = cLogicProc.
+
+  lWebClient = SESSION:CLIENT-TYPE = 'WEBCLIENT':U.
+  
+  /* If not web client and any db connections find r-code for inspection */   
+  IF NOT lWebClient AND NUM-DBS > 0 THEN
+  DO:
+    ASSIGN /* Find the .r file */
+      FILE-INFO:FILE-NAME = cFile + ".r":U
+      cDotRFile           = FILE-INFO:FULL-PATHNAME
+       /* If .r in proc lib, get the member name (ie, filename). */
+      cMemberFile = MEMBER(cDotRFile).
+  
+    IF cMemberFile <> ? THEN
+      cDotRFile = cMemberFile.
+  END. /* any db */
+  ELSE
+    lUseProxy = TRUE.
+
+  /* We have found the base .r */
+  IF cDotRFile NE ? THEN 
+  DO:  
+    ASSIGN 
+      RCODE-INFO:FILE-NAME = cDotRFile
+      cDBList              = RCODE-INFO:DB-REFERENCES.
+    DO iDB = 1 TO NUM-ENTRIES(TRIM(cDBList)):   /* Remove blank when no db */
+      IF NOT CONNECTED(ENTRY(iDB,cDBList)) THEN 
+      DO:
+        lUseProxy = TRUE. /* Flag that we can't use the base file. */
+        LEAVE.
+      END.  /* Found a DB that needs to be connected that isn't */
+    END.  /* Do for each required DB */
+    IF NOT lUseProxy THEN
+      cRunName = cFile + cExtension.
+  END.
+  
+  /* if not connected or no r-code found check if there is proxy r-code */
+  IF cRunName = '':U THEN
+  DO:
+    ASSIGN
+      cProxyName = cFile      + '_cl':U
+      cProxyDotR = cProxyName + '.r':U.
+    
+    /* if no proxy r-code, check if we have source code */
+    IF /* NOT lWebClient AND*/ SEARCH(cProxyDotR) = ? THEN
+    DO:
+      IF cExtension > '':U THEN
+      DO:
+        IF lUseProxy THEN
+          cRunName = cProxyName + cExtension.
+        ELSE 
+          cRunName = cFile + cExtension.        
+        IF SEARCH(cRunName) = ? THEN
+          cRunName = '':U.
+      END.
+    END.
+    ELSE
+      cRunName = cProxyName + cExtension.
+  END.
+  
+  IF cRunName > '':U THEN
+  DO: 
+    DO ON STOP UNDO, LEAVE:   
+      RUN VALUE(cRunName) PERSISTENT SET hObject.
+      TARGET-PROCEDURE:ADD-SUPER-PROCEDURE(hObject, SEARCH-TARGET).
+      {set DataLogicObject hObject}.   
+    END.
+    /* The SDO cannot run without the specified data logic */
+    IF NOT VALID-HANDLE(hObject) THEN
+      RUN destroyObject IN TARGET-PROCEDURE. 
+  END.  
+  ELSE IF NOT lUseProxy THEN
+  DO:
+    RUN showMessageProcedure IN TARGET-PROCEDURE("33,":U + cLogicProc, 
+                                                 OUTPUT cDummy).
+    RUN destroyObject IN TARGET-PROCEDURE. 
+  END.
+     
+  RETURN.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2229,22 +4600,25 @@ PROCEDURE initializeObject :
   DEFINE VARIABLE hSource         AS HANDLE    NO-UNDO.
   DEFINE VARIABLE cQuerySource    AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cDataSource     AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE iProp           AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE cPropName       AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cSignature      AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cProp           AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cValue          AS CHARACTER NO-UNDO.
   DEFINE VARIABLE hContainer      AS HANDLE    NO-UNDO.
   DEFINE VARIABLE lQueryContainer AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE cDynamicSDO     AS CHARACTER NO-UNDO.
   DEFINE VARIABLE lOpenOnInit     AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE hAppService     AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE cOperatingMode  AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE lAsBound        AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE cBindScope      AS CHARACTER NO-UNDO.
   DEFINE VARIABLE lWait           AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE lInitialized    AS LOGICAL    NO-UNDO.
-    
+  DEFINE VARIABLE hDataSource     AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE lQuerySource    AS LOGICAL   NO-UNDO.
+  
+  DEFINE VARIABLE cDataTargets    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iCnt            AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hDataTarget     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cObjectType     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cContAppservice AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hRowObjectTable AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cAsDivision     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cReturn         AS CHARACTER  NO-UNDO.
+
   /* If the object has a Partition named, then connect to it. */
   /* Skip all this if we're in design mode. */
   {get UIBMode cUIBMode}.
@@ -2253,7 +4627,7 @@ PROCEDURE initializeObject :
     /* ensure that initialization only happens once */
     {get ObjectInitialized lInitialized}.
     IF lInitialized THEN
-      RETURN. 
+      RETURN.
 
     /* If this object's Container is itself a query, set a prop
        to indicate that; this tells us if we're in an SBO. */
@@ -2264,13 +4638,18 @@ PROCEDURE initializeObject :
     IF lQueryContainer = YES THEN
       {set QueryContainer YES}.   /* by default it's NO */
    
+    {get DataSource hDataSource}.
+    {get QueryObject lQuerySource hDataSource} NO-ERROR.
+
     /* The sbo subscribes to this event in order to update ObjectMapping
        (This is needed in the case the dataSource is an SBO)*/
     PUBLISH 'registerObject':U FROM TARGET-PROCEDURE.
     
     /* Get foreign fields and values and setManualAssignQuerySelection 
        so that filter does not lose info */ 
-    RUN updateManualForeignFields IN TARGET-PROCEDURE.
+    /* This is no-longer needed. Changes in behavior of 'setQueryWhere' */
+    /* provide the same functionality */
+/*     RUN updateManualForeignFields IN TARGET-PROCEDURE.  */
     
     {get AppService cAppService}.
     IF cAppService NE "":U THEN
@@ -2289,7 +4668,7 @@ PROCEDURE initializeObject :
       RUN connectServer IN TARGET-PROCEDURE (OUTPUT hAppService). 
       IF hAppService  = ? THEN
          RETURN ERROR 'ADM-ERROR':U.
-
+     
       IF VALID-HANDLE(hContainer) THEN
           {fnarg registerAppService cAppservice hContainer}.
     END.  /* IF AppService NE "":U */
@@ -2309,17 +4688,33 @@ PROCEDURE initializeObject :
           {get DynamicSDOProcedure cDynamicSDO hContainer} NO-ERROR.
           cDynamicSDO = ENTRY(1, cDynamicSDO, ".":U).  /* Remove .r or .w */
           IF (TARGET-PROCEDURE:FILE-NAME MATCHES '*_cl.*':U OR
-              TARGET-PROCEDURE:FILE-NAME MATCHES '*':U + cDynamicSDO + '.*':U) AND
-              NOT lQueryContainer THEN  /* DOn't complain if inside an SBO - 9.1B */
+              TARGET-PROCEDURE:FILE-NAME MATCHES '*':U + cDynamicSDO + '.*':U) THEN
           DO:
-            /*DYNAMIC-FUNCTION("showMessage":U IN TARGET-PROCEDURE,*/
-            RUN showMessageProcedure IN TARGET-PROCEDURE (
-              cSvrFileName 
-              + " SmartDataObject has no AppServer partition defined and is ":U 
-              + "running locally without proper database connection(s).":U, 
-              OUTPUT glShowMessageAnswer).
-              RETURN "ADM-ERROR":U.
-           END.    /* END DO IF running the wrong object -- showMessage */
+            IF lQueryContainer THEN DO:  /* if part of SBO make sure we have AppService */
+              {get AppService cContAppService hContainer}.
+              IF cContAppService = "":U THEN DO:
+                RUN showMessageProcedure IN TARGET-PROCEDURE (
+                  "SmartDataObject '" + cSvrFileName + "' is part of SmartBusinessObject '" 
+                  + hcontainer:FILE-NAME + "' that has no AppServer partition defined and is " 
+                  + "running locally without proper database connection(s).", 
+                  OUTPUT glShowMessageAnswer).
+                       /* This is necessary to inform the SBO of the problem. */
+                       /* The RETURN value is not enough as 'initializeObject' has */
+                       /* been PUBLISHED and not RUN */
+                  RUN addMessage IN TARGET-PROCEDURE ("ADM-ERROR":U,?,?).
+                  RETURN "ADM-ERROR":U. 
+              END.
+            END.
+            ELSE DO: 
+              /*DYNAMIC-FUNCTION("showMessage":U IN TARGET-PROCEDURE,*/
+              RUN showMessageProcedure IN TARGET-PROCEDURE (
+                cSvrFileName 
+                + " SmartDataObject has no AppServer partition defined and is " 
+                + "running locally without proper database connection(s).", 
+                OUTPUT glShowMessageAnswer).
+                RETURN "ADM-ERROR":U.
+            END.
+          END.    /* END DO IF running the wrong object -- showMessage */
       END.      /* END DO IF hContainer defined -- not on AppServer. */   
     END.          /* ELSE DO IF AppService EQ "":U */
 
@@ -2348,40 +4743,65 @@ PROCEDURE initializeObject :
     IF hSource NE ? THEN
       {set AutoCommit no}.
   END.       /* END IF not UIBMode   */
-     
   {get OpenOnInit lOpenOnInit}.
   
-  /* set openOnInit false if a datacontainer can handle the server request*/ 
-  IF VALID-HANDLE(hContainer) AND VALID-HANDLE(hAppservice) AND hAppService <> SESSION THEN
+  /* Set openOnInit false if a datacontainer can handle the server request*/ 
+  IF VALID-HANDLE(hContainer) AND VALID-HANDLE(hAppservice) AND hAppService <> SESSION  THEN
   DO:
-    {get AsBound lASBound}.
-    {get ServerOperatingMode cOperatingMode}.
-    {get BindScope cBindScope}.
-    IF  NOT lAsBound 
-    AND NOT CAN-DO('state-aware,state-reset':U,cOperatingMode)
-    AND NOT CAN-DO('Strong,this':U,cBindScope) 
+    /* Check AppServer properties to see if the object has no current or future 
+       server bindings and is using a stateless operating mode. */   
+    IF  {fn hasNoServerBinding} 
+    /* check if the container is an unititilaized dataContainer */ 
     AND {fn isFetchPending hContainer}  THEN
     DO:
       {set openOnInit FALSE}.
       lWait = TRUE.
     END.
   END.
-
+ 
   /* If not managed by a DataContainer or an SBO ensure that any ad-hoc 
      appserver request from this object keeps the connection until the data 
      request has completed */
   IF NOT lWait AND NOT lQueryContainer THEN
     {set BindScope 'data':U}. 
+   
+  {get AsDivision cAsDivision}.
 
+  /* Create temptables if dynamic, unless we are inside an SBO in which case
+     the SBO will run createObjects from its createObjects. */
+  IF NOT lQueryContainer OR cAsDivision = 'SERVER':U THEN
+    RUN createObjects IN TARGET-PROCEDURE.
+ 
   /* Retrieve stored filter information */  
-  IF VALID-HANDLE (hContainer) 
+  IF VALID-HANDLE (hContainer)
   AND LOOKUP("retrieveFilter":U, TARGET-PROCEDURE:INTERNAL-ENTRIES) > 0 THEN
-     RUN retrieveFilter IN TARGET-PROCEDURE.  
+    RUN retrieveFilter IN TARGET-PROCEDURE.
 
+  /* Check if we need to sort the column.  We'll check if we're a data source to any browsers.          *
+   * If we are, set the sort column.  We don't set this in the browser, because we want the data object *                                                         
+   * to initialize with the correct sort column set.                                                    */
+
+  {get dataTarget cDataTargets}.
+
+  IF cDataTargets <> "":U THEN
+  do-blk:
+  DO iCnt = 1 TO NUM-ENTRIES(cDataTargets):
+    ASSIGN hDataTarget = WIDGET-HANDLE(ENTRY(iCnt, cDataTargets)) NO-ERROR.
+
+    IF VALID-HANDLE(hDataTarget) THEN 
+    DO:
+      {get ObjectType cObjectType hDataTarget}.
+      IF cObjectType = "SmartDataBrowser":U THEN 
+      DO:
+        RUN resetSortColumn IN hDataTarget (INPUT NO).
+        LEAVE do-blk.
+      END.
+    END.
+  END.
+   
   RUN SUPER.   
+  cReturn = RETURN-VALUE.
   
-  RUN unbindServer IN TARGET-PROCEDURE('unconditional':U).
-
   /* If the query is not opened at initialize, we must ensure that 
      queryposition is correct. This is managed from the container if 
      queryContainer (SBO). */
@@ -2392,16 +4812,29 @@ PROCEDURE initializeObject :
   ELSE 
     {get OpenOnInit lOpenOnInit}.
    */
-
+  
   IF NOT lOpenOnInit THEN
      RUN updateQueryPosition IN TARGET-PROCEDURE.
 
   {set OpenOnInit lOpenOnInit}.
 
-  IF RETURN-VALUE = "ADM-ERROR":U THEN
-     RETURN "ADM-ERROR":U.
+  /* If no query container and no fetch pending in datacontainer and still 
+     no TT defined then we will go to the server and get it. 
+     This will typically be the case in dynamic data objects when OpenOnInit 
+     is false either in this object or in a datasource object */   
+  IF cAsDivision = 'CLIENT':U AND NOT lQueryContainer AND NOT lWait THEN
+  DO:
+    {get RowObjectTable hRowObjectTable}.
+    IF NOT VALID-HANDLE(hRowObjectTable) THEN
+      RUN fetchDefinitions IN TARGET-PROCEDURE.
+  END.
+  
+  RUN unbindServer IN TARGET-PROCEDURE('unconditional':U).
 
-  ELSE RETURN.
+  IF cRETURN = "ADM-ERROR":U THEN
+    RETURN "ADM-ERROR":U.
+  ELSE 
+    RETURN.
    
 END PROCEDURE.
 
@@ -2538,9 +4971,9 @@ PROCEDURE linkState :
     IF VALID-HANDLE(hGaSource) THEN
        RETURN.
     
-    /* Ignore an 'inactive' message from a visual object if it or any of the 
-       GAtargets are visible */
-    IF pcState = 'inactive':U THEN
+   /* Ignore an 'inactive' message from a visual object if it or any of the 
+       GAtargets are visible (or will become visible) */
+   IF pcState = 'inactive':U THEN
     DO:
       {get GroupAssignHidden lHidden hSourceProcedure} NO-ERROR.
       IF NOT lHidden THEN
@@ -2592,7 +5025,7 @@ PROCEDURE linkState :
         DO:
           {get GroupAssignHidden lHidden hTarget} NO-ERROR.
           /* Ignore the message if 'inactive' and a visual object or any of
-             its Group Assign targets are visible*/
+             its Group Assign targets are visible (or will become visible)*/
         END.
       END. /* valid Containerhandle  (visual) */
       ELSE DO:
@@ -2669,10 +5102,31 @@ PROCEDURE linkStateHandler :
   
   RUN SUPER(pcState,phObject,pcLink).
 
-
   IF lDataInactive THEN
     RUN dataAvailable IN TARGET-PROCEDURE('RESET':U).
 
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-postTransactionValidate) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE postTransactionValidate Procedure 
+PROCEDURE postTransactionValidate :
+/*------------------------------------------------------------------------------
+  Purpose: Validation hook for code to be executed immediately after the 
+           transaction. 
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  
+  RUN bufferTransactionValidate IN TARGET-PROCEDURE ('post':U). 
+
+  RETURN RETURN-VALUE.  
+  
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2685,17 +5139,25 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE prepareDataForFetch Procedure 
 PROCEDURE prepareDataForFetch :
 /*------------------------------------------------------------------------------
-  Purpose:     
+  Purpose:    Prepare the object and retrieve all info for a stateless server
+              request.
   Parameters: 
     phTopContainer Handle of the container that manages the request 
     pcAppService   AppService of this request      
     pcSourceName   Qualified DataSource name
-                   Blank if this is the top level in this request.
-    pcOptions      Options for this request         
-                   - 'Init', initialization, used to skip DataObjects where 
+                   Unknown if this is the top level in this request.
+                   For a 'POSITION' request the position information is 
+                   appended (cKeyField + ",":U + cFieldName)  
+                   
+    pcOptions      Options for this request          
+                   - 'INIT', initialization, used to skip DataObjects where 
                       OpenOnInit is false.
-                   - 'Batch', request for another batch, tells prepareForFetch
-                     to keep the temp-table.                     
+                   - 'BATCH', request for another batch, tells prepareForFetch
+                     to keep the temp-table.        
+                   - 'POSITION', prepare position info. If the object already 
+                     is prepared then this just adds another chr(2) entry to 
+                     the QueryFields, otherwise we also need to prepare. 
+                                        
 i-o pcHandles      Data object handle, comma-separated 
 i-o pcRunNames     Name that the server can use to start the object, comma-separated. Currently the physical name only.
 i-o pcQualNames    [ContainerName: [Containername:].. InstanceName, comma-separated
@@ -2703,8 +5165,9 @@ i-o pcQualNames    [ContainerName: [Containername:].. InstanceName, comma-separa
 i-o pcQueryFields  Contains ForeignField information and position information
 i-o pcQueries      QueryString, chr(1)-separated.
 i-o pcTempTables   Temp-table handles. comma-separated                     
-  Notes:       
   
+  Notes:           Returns SKIP for SDOs with openOnInit true if they need to 
+                   get the table definition from the server.      
 ------------------------------------------------------------------------------*/
  DEFINE INPUT        PARAMETER phTopContainer  AS HANDLE     NO-UNDO.
  DEFINE INPUT        PARAMETER pcAppService    AS CHARACTER  NO-UNDO.
@@ -2717,10 +5180,12 @@ i-o pcTempTables   Temp-table handles. comma-separated
  DEFINE INPUT-OUTPUT PARAMETER pcQueryFields AS CHARACTER  NO-UNDO.
  DEFINE INPUT-OUTPUT PARAMETER pcQueries       AS CHARACTER  NO-UNDO.
  DEFINE INPUT-OUTPUT PARAMETER pcTempTables    AS CHARACTER  NO-UNDO.
-   
+ DEFINE VARIABLE lPosition        AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE lVisualTargets   AS LOGICAL    NO-UNDO.
  DEFINE VARIABLE cQualName        AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE hContainerSource AS HANDLE     NO-UNDO.
  DEFINE VARIABLE cContainerName   AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE iPrepare         AS INTEGER    NO-UNDO.
  DEFINE VARIABLE hParent          AS HANDLE     NO-UNDO.
  DEFINE VARIABLE cTargets         AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE hTarget          AS HANDLE     NO-UNDO.
@@ -2739,37 +5204,64 @@ i-o pcTempTables   Temp-table handles. comma-separated
  DEFINE VARIABLE lOpenOnInit      AS LOGICAL    NO-UNDO.
  DEFINE VARIABLE lUseRepository   AS LOGICAL    NO-UNDO.
  DEFINE VARIABLE cFieldName       AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE lInTopContainer  AS LOGICAL    NO-UNDO.
- DEFINE VARIABLE hViewDataSource  AS HANDLE     NO-UNDO.
- DEFINE VARIABLE cPosSourceName   AS CHAR       NO-UNDO.
- DEFINE VARIABLE lPosSourceFound  AS LOGICAL    NO-UNDO.
- DEFINE VARIABLE cPosKeyField     AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE iPosField        AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE cContainerType   AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cInactiveLinks   AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cPosition        AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cColumn          AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cValue           AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE lRebuild         AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE iLastRowNum      AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE iFirstRowNum     AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE lInit            AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE lSkip            AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE hRowObject       AS HANDLE     NO-UNDO.
 
  {get AppService cAppService}.
  IF pcAppservice <> ? AND cAppService <> pcAppservice THEN
    RETURN.
 
- /* Skip this data object if this is initialization and OpenOnInit is false  */
- IF LOOKUP('INIT':U,pcOptions) > 0 THEN
+ ASSIGN
+   lPosition      = LOOKUP('POSITION':U,pcOptions) > 0
+   lVisualTargets = LOOKUP('VISUALTARGETS':U,pcOptions) > 0
+   lInit          = LOOKUP('INIT':U,pcOptions) > 0.
+
+ /* return or set Skip flag if this is initialization and OpenOnInit is false
+   (the skip falg is set if we need to get the rowObject definition from server)*/  
+ IF lInit THEN
  DO:
    {get OpenOnInit lOpenOnInit}.
-   IF NOT lOpenOnInit THEN
-     RETURN.
+   IF NOT lOpenOnInit THEN 
+   DO:
+     {get RowObject hRowObject}.
+     /* Return if the rowobject is defined */
+     IF VALID-HANDLE(hRowObject) THEN
+        RETURN.
+
+     /* If this is a dynamic object not yet defined then we pass 'SKIP' 
+        to the server to retrieve the definitions */   
+     lSkip = TRUE.
+   END.
  END.
 
- /* Skip this data object if the DataSource link is inactive */
- {get Inactivelinks cInactiveLinks}.
- IF LOOKUP('DataSource':U,cInactiveLinks) > 0 THEN
-   RETURN.
-
+ /* Skip this data object if the DataSource link is inactive unless this 
+    is a position prepare OR we are the top requesting object
+   (If a container uses initPages to start this page it (need to) set 
+    hideOnInit to true in all objects before notifyPage(initializeObject). 
+    The hideOnInit make the SDO link to a potential DataSource inactive, 
+    which again made initializeObject -> dataAvailable - openQuery 
+     - fetchContainedData -> fail as it bailed out here)  */ 
+ IF NOT lPosition AND pcSourceName > '':U AND NOT lSkip THEN
+ DO:
+   {get Inactivelinks cInactiveLinks}.
+   IF LOOKUP('DataSource':U,cInactiveLinks) > 0 THEN
+     RETURN.
+ END.
+ 
  /* In order to return and pass a unique qualified name we find out where we 
     are in the container hierarchy by looping upwards from our container uptil 
     the container that originated the request. Each containername is prepended
     as qualifier */   
  {get ContainerSource hContainerSource}. 
- lInTopContainer = (hContainerSource = phTopContainer).
  DO WHILE hContainerSource <> phTopContainer:
    {get ObjectName cContainerName hContainerSource}
    cQualName = cContainerName
@@ -2778,130 +5270,193 @@ i-o pcTempTables   Temp-table handles. comma-separated
                + (IF cQualName = '':U THEN ':':U ELSE '':U).
    {get ContainerSource hContainerSource hContainerSource}.   
    IF hContainerSource = ? THEN RETURN.
- END.
+ END. 
  
  {get ObjectName cObjectName}.
  cQualName = cQualName + cObjectName.
-
- IF pcSourceName <> ? AND pcSourceName <> '':U THEN
+ iPrepare = LOOKUP(cQualName,pcQualNames).
+ 
+ IF NOT lPosition AND NOT lVisualtargets AND NOT lSkip THEN 
  DO:
-   {get ForeignFields cForeignFields}.
-   cForeignFields = pcSourceName + ',':U + cForeignFields. 
-   cMode = 'Child':U.
+   IF pcSourceName <> ? AND pcSourceName <> '':U THEN
+   DO:
+     {get ForeignFields cForeignFields}.
+     cForeignFields = pcSourceName + ',':U + cForeignFields. 
+     cMode = 'Child':U.
+   END.
+   ELSE IF CAN-DO(pcOptions,'Batch':U) THEN
+     cMode = 'Batch':U.
  END.
- ELSE IF CAN-DO(pcOptions,'Batch':U) THEN
-   cMode = 'Batch':U.
-
+ 
  /***********  Not yet 
  IF lUseRepository THEN
-   {get LogicalObjectName cRunName}.
- 
+  {get LogicalObjectName cRunName}.
  /* If logicalObjectname is blank use serverfilename. This is the case if 
     we do not use the Repository OR if the file isn't in the Repository
-   */  
+  */  
  IF cRunName = '':U THEN
- ***************/
-
- {get ServerFileName cRunName}. 
- {get RowObjectTable hRowObjectTable}.
- cQuery = {fnarg prepareForFetch cMode}.
- 
- ASSIGN
-   lFirst          = (pcHandles = '':U)  
-   pcHandles       = pcHandles
-                   + (IF lFirst THEN '':U ELSE ',':U)
-                   + STRING(TARGET-PROCEDURE)
-   pcQueries       = pcQueries
-                   + (IF lFirst THEN '':U ELSE CHR(1))
-                   + cQuery
-   pcTempTables    = pcTempTables
-                   + (IF lFirst THEN '':U ELSE ',':U)
-                   + (IF VALID-HANDLE(hRowObjectTable) 
-                      THEN STRING(hRowObjectTable)
-                      ELSE '?':U)
-   pcQualNames     = pcQualNames
-                   + (IF lFirst THEN '':U ELSE ',':U)
-                   + cQualName
-   pcRunNames = pcRunNames
-                   + (IF lFirst THEN '':U ELSE ',':U)
-                   + cRunName
-   pcQueryFields = pcQueryFields
-                   + (IF lFirst THEN '':U ELSE CHR(1))
-                   + IF cForeignFields <> ? 
-                     THEN cForeignFields ELSE '':u.   
-
- {get DataTarget cTargets}.
- TargetLoop:
- DO iTarget = 1 TO NUM-ENTRIES(cTargets):
-   hTarget = WIDGET-HANDLE(ENTRY(iTarget,cTargets)).
-   lQuery = FALSE.
-   {get QueryObject lQuery hTarget}.
-   IF lQuery THEN
-     RUN prepareDataForFetch IN hTarget
-          (phTopContainer,
-           IF pcAppService = ? THEN cAppService ELSE pcAppService,
-           cQualName,
-           pcOptions,
-           INPUT-OUTPUT pcHandles,
-           INPUT-OUTPUT pcRunNames,
-           INPUT-OUTPUT pcQualNames,
-           INPUT-OUTPUT pcQueryFields,
-           INPUT-OUTPUT pcQueries,
-           INPUT-OUTPUT pcTempTables).     
-   
-   ELSE IF NOT lInTopContainer AND NOT lPosSourceFound THEN
+  ***************/
+ IF iPrepare = 0 THEN
+ DO:
+   IF lPosition AND NOT lSkip THEN
    DO:
-     cFieldName = '':U.
-     {get FieldName cFieldName hTarget} NO-ERROR.
-     IF cFieldName > '':U THEN
-     DO:
-       /* We currently assume that the SmartDataField Datatarget is in the 
-          same container as this data source */
-       {get ContainerSource hContainerSource hTarget}.
-       {get DataSource hViewDataSource hContainerSource}.       
-       IF VALID-HANDLE(hViewDataSource) AND VALID-HANDLE(hContainerSource) THEN
-       DO:
-         /* Skip this positioning if the DataSource link to the viewer is 
-            inactive */
-         {get Inactivelinks cInactiveLinks hContainerSource}.
-         IF LOOKUP('DataSource':U,cInactiveLinks) > 0 THEN
-           NEXT TargetLoop.
+     {get FirstRowNum iFirstRowNum}. 
+     {get LastRowNum iLastRowNum}. 
 
-         {get ContainerSource hContainerSource hViewDataSource}.
-         cQualName = "":U.
-         DO WHILE hContainerSource <> phTopContainer:
-           IF hContainerSource = ? THEN
-              NEXT TargetLoop.
-           
-           {get ObjectName cContainerName hContainerSource}
-            cQualName = cContainerName
-                        + (IF cQualName = '':U THEN '':U ELSE ':':U)
-                        + cQualName
-                        + (IF cQualName = '':U THEN ':':U ELSE '':U).
-            {get ContainerSource hContainerSource hContainerSource}.  
-         END.
-         {get ObjectName cPosSourceName hViewDataSource}.
-         cPosSourcename = cQualName + cPosSourceName.
-         
-         IF LOOKUP(cPosSourceName,pcQualNames) > 0 THEN
-         DO:
-           {get KeyField cPosKeyField hTarget}.
-           IF cPosKeyField > '':U THEN
-           DO:
-             ASSIGN /* We keep the same order as FF even if it is a bit backwards*/
-               pcQueryFields = pcQueryFields + CHR(2) 
-                             + cPosSourceName + ',':U
-                             /* we currently support one keyfield for SDFs */
-                             + cPosKeyField   + ',':U  /* our field name   */
-                             + cFieldName              /* pos source name  */                             
-               /* only one position source so set flag to  stop searching  */
-               lPosSourceFound = TRUE. 
-           END.
-         END.
-       END. /* the target has valid container and datasource */
-     END. /* the target is an SDF */
+     /* If we have all data on the client, just return */  
+     IF iFirstRowNum <> ? AND iLastRowNum <> ? THEN
+        RETURN.
+
+     {get RebuildOnRepos lRebuild}.
+     IF NOT lRebuild THEN 
+     DO:
+       RETURN. /* -------------->  get out */
+       /* we need better info about the client data set before we can search 
+          on the server with some data on the client, but if this is to be 
+          supported then we would just set the mode and make this into a batch 
+          request  
+       cMode = 'Batch':U. 
+       */
+     END.
+   END.
+   
+   IF NOT lSkip THEN 
+     cQuery = {fnarg prepareForFetch cMode}.
+   ELSE 
+     cQuery = 'SKIP':U.
+   
+   {get RowObjectTable hRowObjectTable}.
+   {get ServerFileName cRunName}. 
+   
+   ASSIGN
+     lFirst          = (pcHandles = '':U)  
+     pcHandles       = pcHandles
+                     + (IF lFirst THEN '':U ELSE ',':U)
+                     + STRING(TARGET-PROCEDURE)
+     pcQueries       = pcQueries
+                     + (IF lFirst THEN '':U ELSE CHR(1))
+                     + cQuery
+     pcTempTables    = pcTempTables
+                     + (IF lFirst THEN '':U ELSE ',':U)
+                     + (IF VALID-HANDLE(hRowObjectTable) 
+                        THEN STRING(hRowObjectTable)
+                        ELSE '?':U)
+     pcQualNames     = pcQualNames
+                     + (IF lFirst THEN '':U ELSE ',':U)
+                     + cQualName
+     pcRunNames = pcRunNames
+                     + (IF lFirst THEN '':U ELSE ',':U)
+                     + cRunName
+     pcQueryFields = pcQueryFields
+                     + (IF lFirst THEN '':U ELSE CHR(1))
+                     + IF cForeignFields <> ? 
+                       THEN cForeignFields ELSE '':u.   
+  
+ END. /* not prepared */
+
+ IF lPosition THEN
+ DO:
+   IF iPrepare > 0  THEN
+     ENTRY(iPrepare,pcQueryFields,CHR(1)) = 
+           ENTRY(iPrepare,pcQueryFields,CHR(1)) 
+           + CHR(2)
+           + pcSourceName.
+   ELSE DO:
+     pcQueryFields = pcQueryFields
+                   + CHR(2)
+                   + pcSourceName.
    END.
  END.
+ ELSE DO:   
+   {get DataTarget cTargets}. 
+   TargetLoop:
+   DO iTarget = 1 TO NUM-ENTRIES(cTargets):
+     hTarget = WIDGET-HANDLE(ENTRY(iTarget,cTargets)).
+     lQuery = FALSE.
+     {get QueryObject lQuery hTarget}.       
+     {get ContainerType cContainerType hTarget}.  
+     
+     IF lQuery THEN
+       /* prepare data object data targets */
+       RUN prepareDataForFetch IN hTarget
+            (phTopContainer,
+             IF pcAppService = ? THEN cAppService ELSE pcAppService,
+             cQualName,
+             pcOptions,
+             INPUT-OUTPUT pcHandles,
+             INPUT-OUTPUT pcRunNames,
+             INPUT-OUTPUT pcQualNames,
+             INPUT-OUTPUT pcQueryFields,
+             INPUT-OUTPUT pcQueries,
+             INPUT-OUTPUT pcTempTables).  
+
+     ELSE IF lVisualTargets AND cContainerType > '':U THEN
+       /* prepare Visual container targets 
+           -> prepare position info for their SDF data Sources    */
+       RUN prepareDataForFetch IN hTarget
+            (phTopContainer,
+             IF pcAppService = ? THEN cAppService ELSE pcAppService,
+             cQualName,
+             'POSITION':U + IF lInit THEN ',INIT':U ELSE '':U,
+             INPUT-OUTPUT pcHandles,
+             INPUT-OUTPUT pcRunNames,
+             INPUT-OUTPUT pcQualNames,
+             INPUT-OUTPUT pcQueryFields,
+             INPUT-OUTPUT pcQueries,
+             INPUT-OUTPUT pcTempTables).  
+   END.
+ END.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-prepareErrorsForReturn) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE prepareErrorsForReturn Procedure 
+PROCEDURE prepareErrorsForReturn :
+/*------------------------------------------------------------------------------
+  Purpose:  This appends the RETURN-VALUE from the user-defined transaction
+            validation procedure or other update-related error to the list
+            of any errors already in the log, and formats this string to
+            prepare for returning it to the client.
+    Notes:  invoked internally from serverCommit.
+------------------------------------------------------------------------------*/
+ DEFINE INPUT        PARAMETER pcReturnValue AS CHARACTER NO-UNDO.
+ DEFINE INPUT        PARAMETER pcASDivision  AS CHARACTER NO-UNDO.
+ DEFINE INPUT-OUTPUT PARAMETER pcMessages    AS CHARACTER NO-UNDO.  
+ 
+  IF pcReturnValue NE "":U THEN
+    RUN addMessage IN TARGET-PROCEDURE (pcReturnValue, ?, ?).
+  IF pcASDivision = 'Server':U THEN
+     pcMessages = LEFT-TRIM(pcMessages + CHR(3) + {fn fetchMessages} ,CHR(3)).
+  
+  RETURN.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-preTransactionValidate) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE preTransactionValidate Procedure 
+PROCEDURE preTransactionValidate :
+/*------------------------------------------------------------------------------
+  Purpose: Validation hook for code to be executed immediately before the 
+           transaction. 
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  
+  RUN bufferTransactionValidate IN TARGET-PROCEDURE ('pre':U). 
+
+  RETURN RETURN-VALUE.  
+  
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2922,54 +5477,125 @@ PROCEDURE printToCrystal :
                e.g. RowNum,RowIdent,RowMod
                Uses tableout procedure defined in here also.
 ------------------------------------------------------------------------------*/
-DEFINE INPUT PARAMETER pcFieldList            AS CHARACTER    NO-UNDO.
-DEFINE INPUT PARAMETER plIncludeObj           AS LOGICAL      NO-UNDO.
-DEFINE INPUT PARAMETER piMaxRecords           AS INTEGER      NO-UNDO.
 
-DEFINE VARIABLE cDataObject                   AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE cTemplate                     AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE cNewReport                    AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE cFilter                       AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE hContainerSource              AS HANDLE       NO-UNDO.
-DEFINE VARIABLE cLogicalObjectName            AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE cRunAttribute                 AS CHARACTER    NO-UNDO.                                                         
-DEFINE VARIABLE csdoName                      AS CHARACTER    NO-UNDO.                                                     
-DEFINE VARIABLE cWindowTitle                  AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE cTables                       AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE cFirstTable                   AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE iLoop                         AS INTEGER      NO-UNDO.
-DEFINE VARIABLE hParentWindow                 AS HANDLE       NO-UNDO.
-DEFINE VARIABLE cSdoSignature                 AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE cFilterSettings               AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE rRowid                        AS ROWID        NO-UNDO.
-DEFINE VARIABLE cFieldNames                   AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE cFieldValues                  AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE cFieldOperators               AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE cOperator                     AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE cValue                        AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE iNumberOfColumns              AS INTEGER      NO-UNDO.
-DEFINE VARIABLE iNumberOfRows                 AS INTEGER      NO-UNDO.
-DEFINE VARIABLE cAbort                        AS CHARACTER    NO-UNDO.      
-DEFINE VARIABLE cErrorMessage                 AS CHARACTER    NO-UNDO.      
-DEFINE VARIABLE cDataType                     AS CHARACTER    NO-UNDO.      
-DEFINE VARIABLE cDataTypeList                 AS CHARACTER    NO-UNDO.      
-DEFINE VARIABLE cFieldLabel                   AS CHARACTER    NO-UNDO.      
-DEFINE VARIABLE cFieldLabelList               AS CHARACTER    NO-UNDO.      
-DEFINE VARIABLE cFieldName                    AS CHARACTER    NO-UNDO.      
-DEFINE VARIABLE cFieldNameList                AS CHARACTER    NO-UNDO.      
-DEFINE VARIABLE dWidth                        AS DECIMAL      NO-UNDO.      
-DEFINE VARIABLE dReportWidth                  AS DECIMAL      NO-UNDO.      
-DEFINE VARIABLE cFieldWidthList               AS CHARACTER    NO-UNDO.      
-DEFINE VARIABLE cLabel                        AS CHARACTER    NO-UNDO.      
-DEFINE VARIABLE iRecordCnt                    AS INTEGER      NO-UNDO.
-DEFINE VARIABLE cHighChar                     AS CHARACTER    NO-UNDO.
+  DEFINE INPUT PARAMETER pcFieldList            AS CHARACTER    NO-UNDO.
+  DEFINE INPUT PARAMETER plIncludeObj           AS LOGICAL      NO-UNDO.
+  DEFINE INPUT PARAMETER piMaxRecords           AS INTEGER      NO-UNDO.
 
-IF SEARCH(SESSION:TEMP-DIRECTORY + "/aftemfullb.mdb":U) = ? THEN
-DO:
-  IF SEARCH("af/rep/aftemfullb.mdb":U) = ? THEN
+  DEFINE VARIABLE cDataObject                   AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cTemplate                     AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cNewReport                    AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cFilter                       AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE hContainerSource              AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE cLogicalObjectName            AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cRunAttribute                 AS CHARACTER    NO-UNDO.                                                         
+  DEFINE VARIABLE csdoName                      AS CHARACTER    NO-UNDO.                                                     
+  DEFINE VARIABLE cWindowTitle                  AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cTables                       AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cFirstTable                   AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE iLoop                         AS INTEGER      NO-UNDO.
+  DEFINE VARIABLE hParentWindow                 AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE cSdoSignature                 AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cFilterSettings               AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE rRowid                        AS ROWID        NO-UNDO.
+  DEFINE VARIABLE cFieldNames                   AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cFieldValues                  AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cFieldOperators               AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cOperator                     AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cValue                        AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE iNumberOfColumns              AS INTEGER      NO-UNDO.
+  DEFINE VARIABLE iNumberOfRows                 AS INTEGER      NO-UNDO.
+  DEFINE VARIABLE cAbort                        AS CHARACTER    NO-UNDO.      
+  DEFINE VARIABLE cErrorMessage                 AS CHARACTER    NO-UNDO.      
+  DEFINE VARIABLE cDataType                     AS CHARACTER    NO-UNDO.      
+  DEFINE VARIABLE cDataTypeList                 AS CHARACTER    NO-UNDO.      
+  DEFINE VARIABLE cFieldLabel                   AS CHARACTER    NO-UNDO.      
+  DEFINE VARIABLE cFieldLabelList               AS CHARACTER    NO-UNDO.      
+  DEFINE VARIABLE cFieldName                    AS CHARACTER    NO-UNDO.      
+  DEFINE VARIABLE cFieldNameList                AS CHARACTER    NO-UNDO.      
+  DEFINE VARIABLE dWidth                        AS DECIMAL      NO-UNDO.      
+  DEFINE VARIABLE dReportWidth                  AS DECIMAL      NO-UNDO.      
+  DEFINE VARIABLE cFieldWidthList               AS CHARACTER    NO-UNDO.      
+  DEFINE VARIABLE cLabel                        AS CHARACTER    NO-UNDO.      
+  DEFINE VARIABLE iRecordCnt                    AS INTEGER      NO-UNDO.
+  DEFINE VARIABLE cHighChar                     AS CHARACTER    NO-UNDO.
+
+  IF SEARCH(SESSION:TEMP-DIRECTORY + "/aftemfullb.mdb":U) = ? THEN
+  DO:
+    IF SEARCH("af/rep/aftemfullb.mdb":U) = ? THEN
+    DO:
+      ASSIGN
+        cErrorMessage = "Crystal reports dataobject af/rep/aftemfullb.mdb is not set up. Please contact your system administrator".
+      IF VALID-HANDLE(gshSessionManager) THEN
+        RUN showMessages IN gshSessionManager (INPUT cErrorMessage,
+                                               INPUT "INF":U,
+                                               INPUT "OK":U,
+                                               INPUT "OK":U,
+                                               INPUT "OK":U,
+                                               INPUT "Crystal Print Error",
+                                               INPUT YES,
+                                               INPUT ?,
+                                               OUTPUT cAbort).
+      ELSE
+        MESSAGE cErrorMessage
+                VIEW-AS ALERT-BOX 
+                  INFORMATION 
+                  TITLE "Crystal Print Error".
+      RETURN.
+    END.
+    ELSE
+    DO:
+      OS-COPY VALUE(SEARCH("af/rep/aftemfullb.mdb":U)) VALUE((SESSION:TEMP-DIRECTORY + "/aftemfullb.mdb":U)).
+      IF OS-ERROR <> 0 THEN
+      DO:
+        ASSIGN
+          cErrorMessage = "The copy of Crystal reports dataobject af/rep/aftemfullb.mdb details failed.".
+        IF VALID-HANDLE(gshSessionManager) THEN
+          RUN showMessages IN gshSessionManager (INPUT cErrorMessage,
+                                                 INPUT "INF":U,
+                                                 INPUT "OK":U,
+                                                 INPUT "OK":U,
+                                                 INPUT "OK":U,
+                                                 INPUT "Crystal Print Error",
+                                                 INPUT YES,
+                                                 INPUT ?,
+                                                 OUTPUT cAbort).
+        ELSE
+          MESSAGE cErrorMessage
+                  VIEW-AS ALERT-BOX 
+                    INFORMATION 
+                    TITLE "Crystal Print Error".
+        RETURN.
+      END.    
+    END.
+  END.    
+
+  IF SEARCH("af/rep/aflandscap.rpt":U) = ?  THEN
   DO:
     ASSIGN
-      cErrorMessage = "Crystal reports dataobject af/rep/aftemfullb.mdb is not set up. Please contact your system administrator".
+      cErrorMessage = "Crystal reports landscape template af/rep/aflandscap.rpt is not set up. Please contact your system administrator".
+    IF VALID-HANDLE(gshSessionManager) THEN
+      RUN showMessages IN gshSessionManager (INPUT cErrorMessage,
+                                             INPUT "INF":U,
+                                             INPUT "OK":U,
+                                             INPUT "OK":U,
+                                             INPUT "OK":U,
+                                             INPUT "Crystal Print Error",
+                                             INPUT YES,
+                                             INPUT ?,
+                                             OUTPUT cAbort).
+      ELSE
+        MESSAGE cErrorMessage
+                VIEW-AS ALERT-BOX 
+                  INFORMATION 
+                  TITLE "Crystal Print Error".
+    RETURN.
+  END.
+
+  IF SEARCH("af/rep/afportrait.rpt":U) = ? THEN
+  DO:
+    ASSIGN
+      cErrorMessage = "Crystal reports portrait template af/rep/afportrait.rpt is not set up. Please contact your system administrator".
     IF VALID-HANDLE(gshSessionManager) THEN
       RUN showMessages IN gshSessionManager (INPUT cErrorMessage,
                                              INPUT "INF":U,
@@ -2987,329 +5613,314 @@ DO:
                 TITLE "Crystal Print Error".
     RETURN.
   END.
-  ELSE
-  DO:
-    OS-COPY VALUE(SEARCH("af/rep/aftemfullb.mdb":U)) VALUE((SESSION:TEMP-DIRECTORY + "/aftemfullb.mdb":U)).
-    IF OS-ERROR <> 0 THEN
-    DO:
-      ASSIGN
-        cErrorMessage = "The copy of Crystal reports dataobject af/rep/aftemfullb.mdb details failed.".
-      IF VALID-HANDLE(gshSessionManager) THEN
-        RUN showMessages IN gshSessionManager (INPUT cErrorMessage,
-                                               INPUT "INF":U,
-                                               INPUT "OK":U,
-                                               INPUT "OK":U,
-                                               INPUT "OK":U,
-                                               INPUT "Crystal Print Error",
-                                               INPUT YES,
-                                               INPUT ?,
-                                               OUTPUT cAbort).
-      ELSE
-        MESSAGE cErrorMessage
-                VIEW-AS ALERT-BOX 
-                  INFORMATION 
-                  TITLE "Crystal Print Error".
-      RETURN.
-    END.    
-  END.
-END.    
 
-IF SEARCH("af/rep/aflandscap.rpt":U) = ?  THEN
-DO:
+  SESSION:SET-WAIT-STATE("GENERAL":U).
+
   ASSIGN
-    cErrorMessage = "Crystal reports landscape template af/rep/aflandscap.rpt is not set up. Please contact your system administrator".
-  IF VALID-HANDLE(gshSessionManager) THEN
-    RUN showMessages IN gshSessionManager (INPUT cErrorMessage,
-                                           INPUT "INF":U,
-                                           INPUT "OK":U,
-                                           INPUT "OK":U,
-                                           INPUT "OK":U,
-                                           INPUT "Crystal Print Error",
-                                           INPUT YES,
-                                           INPUT ?,
-                                           OUTPUT cAbort).
-    ELSE
+    pcFieldList = pcFieldList
+                + (IF pcFieldList <> "":U THEN ",":U  ELSE "":U)
+                + "!RowNum,!RowIdent,!RowMod,!RowIdentIdx,!RowUserProp":U
+                + (IF pcFieldList =  "":U THEN ",*":U ELSE "":U)
+                .
+/*
+  IF pcFieldList = "":U
+  THEN ASSIGN pcFieldList =                     "!RowNum,!RowIdent,!RowMod,!RowIdentIdx,!RowUserProp" + ",*":U.
+  ELSE ASSIGN pcFieldList = pcFieldList + "," + "!RowNum,!RowIdent,!RowMod,!RowIdentIdx,!RowUserProp":U.
+*/
+
+  /* get data to export */
+  RUN tableOut IN TARGET-PROCEDURE (INPUT pcFieldList, INPUT plIncludeObj, INPUT piMaxRecords, OUTPUT TABLE ttTable, OUTPUT iRecordCnt).
+
+  IF NOT CAN-FIND(FIRST ttTable) THEN
+  DO:
+    SESSION:SET-WAIT-STATE("":U).
+    ASSIGN cErrorMessage = "No data to print".
+    IF VALID-HANDLE(gshSessionManager) THEN
+      RUN showMessages IN gshSessionManager (INPUT cErrorMessage,
+                                             INPUT "INF":U,
+                                             INPUT "OK":U,
+                                             INPUT "OK":U,
+                                             INPUT "OK":U,
+                                             INPUT "Crystal Print Error",
+                                             INPUT YES,
+                                             INPUT ?,
+                                             OUTPUT cAbort).
+    ELSE  
       MESSAGE cErrorMessage
               VIEW-AS ALERT-BOX 
                 INFORMATION 
                 TITLE "Crystal Print Error".
-  RETURN.
-END.
+    
+    RETURN.
+  END.
 
-IF SEARCH("af/rep/afportrait.rpt":U) = ? THEN
-DO:
-  ASSIGN
-    cErrorMessage = "Crystal reports portrait template af/rep/afportrait.rpt is not set up. Please contact your system administrator".
-  IF VALID-HANDLE(gshSessionManager) THEN
-    RUN showMessages IN gshSessionManager (INPUT cErrorMessage,
-                                           INPUT "INF":U,
-                                           INPUT "OK":U,
-                                           INPUT "OK":U,
-                                           INPUT "OK":U,
-                                           INPUT "Crystal Print Error",
-                                           INPUT YES,
-                                           INPUT ?,
-                                           OUTPUT cAbort).
-  ELSE
-    MESSAGE cErrorMessage
-            VIEW-AS ALERT-BOX 
-              INFORMATION 
-              TITLE "Crystal Print Error".
-  RETURN.
-END.
+  ASSIGN 
+    iNumberOfColumns  = 0
+    iNumberOfRows     = 0
+    cDataTypeList     = "":U
+    cFieldLabelList   = "":U
+    cFieldNameList    = "":U
+    cFieldWidthList   = "":U
+    .
 
-SESSION:SET-WAIT-STATE("GENERAL":U).
-
-IF pcFieldList = "":U THEN
-  ASSIGN pcFieldList = "!RowNum,!RowIdent,!RowMod,*":U.
-ELSE
-  ASSIGN pcFieldList = pcFieldList + ",!RowNum,!RowIdent,!RowMod":U.
-
-/* get data to export */
-RUN tableOut IN TARGET-PROCEDURE (INPUT pcFieldList, INPUT plIncludeObj, INPUT piMaxRecords, OUTPUT TABLE ttTable, OUTPUT iRecordCnt).
-IF NOT CAN-FIND(FIRST ttTable) THEN
-DO:
-  SESSION:SET-WAIT-STATE("":U).
-  ASSIGN cErrorMessage = "No data to print".
-  IF VALID-HANDLE(gshSessionManager) THEN
-    RUN showMessages IN gshSessionManager (INPUT cErrorMessage,
-                                           INPUT "INF":U,
-                                           INPUT "OK":U,
-                                           INPUT "OK":U,
-                                           INPUT "OK":U,
-                                           INPUT "Crystal Print Error",
-                                           INPUT YES,
-                                           INPUT ?,
-                                           OUTPUT cAbort).
-  ELSE  
-    MESSAGE cErrorMessage
-            VIEW-AS ALERT-BOX 
-              INFORMATION 
-              TITLE "Crystal Print Error".
-  
-  RETURN.
-END.
-
-ASSIGN 
-  iNumberOfColumns = 0
-  iNumberOfRows    = 0
-  cDataTypeList = "":U
-  cFieldLabelList = "":U
-  cFieldNameList = "":U
-  cFieldWidthList = "":U
-  .
-
-/* build list of field labels */
-FOR EACH ttTable WHERE ttTable.irow = 0:
-  ASSIGN
-    cFieldLabelList = cFieldLabelList +
-                     (IF cFieldLabelList <> "":U THEN ",":U ELSE "":U) +
-                     ttTable.cCell
-    iNumberOfColumns = iNumberOfColumns + 1 
-    .     
-END.
-
-/* build list of field names */
-FOR EACH ttTable WHERE ttTable.irow = 1:
-  ASSIGN
-    cFieldNameList = cFieldNameList +
-                     (IF cFieldNameList <> "":U THEN ",":U ELSE "":U) +
-                     ttTable.cCell 
-    .     
-END.
-
-/* build list of field datatypes */
-FOR EACH ttTable WHERE ttTable.irow = 2:
-  ASSIGN
-    cDataTypeList = cDataTypeList +
-                     (IF cDataTypeList <> "":U THEN ",":U ELSE "":U) +
-                     ttTable.cCell 
-    .     
-END.
-
-/* list of field widths, chr(3) delimited to cope with European formats */
-ASSIGN dReportWidth = 0.
-FOR EACH ttTable WHERE ttTable.irow = 3:
-  ASSIGN
-    cFieldWidthList = cFieldWidthList +
-                     (IF cFieldWidthList <> "":U THEN CHR(3) ELSE "":U) +
-                     ttTable.cCell 
-    dWidth = 0
-    .     
-  ASSIGN
-    dWidth = DECIMAL(ttTable.cCell) NO-ERROR.
-  
-  IF dWidth > 0 THEN 
-    ASSIGN dReportWidth = dReportWidth + (dWidth * 96).
-END.
-
-/* get sdo signature and see if any filters exist so we can add these to the
-   report
-*/
-{get ContainerSource hContainerSource}.
-{get LogicalObjectName cLogicalObjectName hContainerSource}.
-{get RunAttribute cRunAttribute hContainerSource}.
-{get containerHandle hParentWindow hContainerSource}.
-
-/* cope with static objects */
-IF cLogicalObjectName = "":U THEN
-  {get LogicalObjectName cLogicalObjectName hContainerSource}.
-
-ASSIGN
-  cSdoName = TARGET-PROCEDURE:FILE-NAME
-  cSdoSignature = cSdoName + "," + cLogicalObjectName + "," /* + cRunAttribute */
-  cWindowTitle = IF VALID-HANDLE(hParentWindow) THEN " - " + hparentWindow:TITLE ELSE ""
-  rRowid = ?
-  cFilter = "":U
-  . 
-IF VALID-HANDLE(gshProfileManager) THEN
-  RUN getProfileData IN gshProfileManager (
-      INPUT "BrwFilters":U,
-      INPUT "FilterSet":U,
-      INPUT cSdoSignature,
-      INPUT NO,
-      INPUT-OUTPUT rRowid,
-      OUTPUT cFilterSettings).
-
-
-ASSIGN
-  cFilter = cFilter + "(extracted records = ":U + TRIM(STRING(iRecordCnt,">>>>>>>9")) + ") ":U +
-            "(max. records = ":U + TRIM(STRING(piMaxRecords,">>>>>>>9")) + ") ":U
-            .
-
-IF NUM-ENTRIES(cFilterSettings,CHR(3)) = 3 THEN
-DO:
-  IF VALID-HANDLE(gshGenManager) THEN
-    cHighChar = DYNAMIC-FUNCTION("getHighKey":U IN gshGenManager, SESSION:CPCOLL).
-  ELSE 
-    cHighChar = CHR(127). /* just as a default high character */
-  ASSIGN  
-    cFieldNames = ENTRY(1,cFilterSettings,CHR(3))
-    cFieldValues = ENTRY(2,cFilterSettings,CHR(3))
-    cFieldOperators = ENTRY(3,cFilterSettings,CHR(3)).
-  DO iLoop = 1 TO NUM-ENTRIES(cFieldNames):
+  /* build list of field labels */
+  FOR EACH ttTable WHERE ttTable.irow = 0:
     ASSIGN
-      cFieldName = ENTRY(iLoop,cFieldNames)
-      cOperator  = ENTRY(iLoop,cFieldOperators)
-      cValue     = TRIM(ENTRY(iLoop,cFieldValues,CHR(1)),cHighChar)
-      cFilter = cFilter + "(":U + cFieldName + cOperator + cValue + ") ":U
-      .  
+      cFieldLabelList = cFieldLabelList +
+                       (IF cFieldLabelList <> "":U THEN ",":U ELSE "":U) +
+                       ttTable.cCell
+      iNumberOfColumns = iNumberOfColumns + 1 
+      .
   END.
-END.
 
-ASSIGN
-  cTables = DYNAMIC-FUNCTION("getTables" IN TARGET-PROCEDURE)
-  cFirstTable = ENTRY(1,cTables)
-  cDataObject = SEARCH(SESSION:TEMP-DIRECTORY + "/aftemfullb.mdb":U)
-  cTemplate   = IF dReportWidth < 13000 THEN SEARCH("af/rep/afportrait.rpt":U) ELSE SEARCH("af/rep/aflandscap.rpt":U)
-  cNewReport  = SESSION:TEMP-DIRECTORY + "/":U + cFirstTable + ".rpt":U
-  .
+  /* build list of field names */
+  FOR EACH ttTable WHERE ttTable.irow = 1:
+    ASSIGN
+      cFieldNameList = cFieldNameList +
+                       (IF cFieldNameList <> "":U THEN ",":U ELSE "":U) +
+                       ttTable.cCell 
+      .
+  END.
 
-/* now build temp-table to transfer to crystal */
-EMPTY TEMP-TABLE ttDataSource.
+  /* build list of field datatypes */
+  FOR EACH ttTable WHERE ttTable.irow = 2:
+    ASSIGN
+      cDataTypeList = cDataTypeList +
+                       (IF cDataTypeList <> "":U THEN ",":U ELSE "":U) +
+                       ttTable.cCell 
+      .     
+  END.
 
-/*Heading*/
-CREATE ttDataSource.
-ASSIGN 
-    ttDataSource.ttTag      = "F0":U
-    ttDataSource.ttValue[1] = "Print ":U + cWindowTitle
-    ttDataSource.ttValue[2] = cFilter 
-    NO-ERROR.
+  /* list of field widths, chr(3) delimited to cope with European formats */
+  FOR EACH ttTable WHERE ttTable.irow = 3:
+    ASSIGN
+      cFieldWidthList = cFieldWidthList +
+                       (IF cFieldWidthList <> "":U THEN CHR(3) ELSE "":U) +
+                       ttTable.cCell 
+      .
+  END.
 
-/*Fieldnames*/
-CREATE ttDataSource.
-ASSIGN 
-    ttDataSource.ttTag = "F1":U.
-DO iLoop = 1 TO NUM-ENTRIES(cFieldNameList):
+  /* get sdo signature and see if any filters exist so we can add these to the report */
+  {get ContainerSource hContainerSource}.
+  {get LogicalObjectName cLogicalObjectName hContainerSource}.
+  {get RunAttribute cRunAttribute hContainerSource}.
+  {get containerHandle hParentWindow hContainerSource}.
+
+  /* cope with static objects */
+  IF cLogicalObjectName = "":U THEN
+    {get LogicalObjectName cLogicalObjectName hContainerSource}.
+
   ASSIGN
-    ttDataSource.ttValue[iLoop] = REPLACE(ENTRY(iLoop, cFieldNameList),".":U,"_":U).    
-END.
-
-/*Labels*/
-CREATE ttDataSource.
-ASSIGN 
-    ttDataSource.ttTag = "F2":U.
-DO iLoop = 1 TO NUM-ENTRIES(cFieldLabelList):
-  ASSIGN
-    ttDataSource.ttValue[iLoop] = ENTRY(iLoop, cFieldLabelList).
-END.
-
-/*Column Widths*/
-CREATE ttDataSource.
-ASSIGN 
-    ttDataSource.ttTag = "F3":U.
-DO iLoop = 1 TO NUM-ENTRIES(cFieldWidthList, CHR(3)):
-  ASSIGN
-    cLabel    = ENTRY(iLoop, cFieldLabelList)
-    dWidth    = DECIMAL(ENTRY(iLoop,cFieldWidthList,CHR(3)))
+    cSdoName      = TARGET-PROCEDURE:FILE-NAME
+    cSdoSignature = cSdoName + ",":U + cLogicalObjectName + ",":U /* + cRunAttribute */
+    cWindowTitle  = IF VALID-HANDLE(hParentWindow) THEN " - ":U + hparentWindow:TITLE ELSE "":U
+    rRowid        = ?
+    cFilter       = "":U
     .
-  IF LENGTH(cLabel) > dWidth THEN
-    ASSIGN dWidth = LENGTH(cLabel).
-  
-  ASSIGN
-    ttDataSource.ttValue[iLoop] = STRING(dWidth).
-END.
 
-/*Data Types*/
-CREATE ttDataSource.
-ASSIGN 
-    ttDataSource.ttTag = "F4":U.
-DO iLoop = 1 TO NUM-ENTRIES(cDataTypeList):
-  ASSIGN
-    ttDataSource.ttValue[iLoop] = "10":U.
-END.
-
-ASSIGN
-  iNumberOfColumns = IF iNumberOfColumns > 26 THEN 26 ELSE iNumberOfColumns.
-
-data-loop:
-FOR EACH ttTable
-   WHERE ttTable.iRow > 9
-   BREAK BY ttTable.iRow:
-
-  IF ttTable.iCol > iNumberOfColumns THEN NEXT data-loop.
-  IF ttTable.iCol = 1 THEN ASSIGN iNumberOfRows = ttTable.iRow.
+  IF VALID-HANDLE(gshProfileManager) THEN
+    RUN getProfileData IN gshProfileManager (
+        INPUT "BrwFilters":U,
+        INPUT "FilterSet":U,
+        INPUT cSdoSignature,
+        INPUT NO,
+        INPUT-OUTPUT rRowid,
+        OUTPUT cFilterSettings).
 
   ASSIGN
-    cLabel    = ENTRY(ttTable.iCol, cFieldLabelList)
-    cDataType = ENTRY(ttTable.iCol, cDataTypeList)
-    dWidth    = DECIMAL(ENTRY(ttTable.iCol,cFieldWidthList,CHR(3)))
-    .
-  
-  IF LENGTH(cLabel) > dWidth THEN
-    ASSIGN dWidth = LENGTH(cLabel).
+    cFilter = {fnarg messageNumber 35}.
 
-  IF FIRST-OF(ttTable.iRow) THEN
+  ASSIGN 
+    cFilter = SUBSTITUTE( cFilter , TRIM(STRING(iRecordCnt,">>>>>>>9")) , TRIM(STRING(piMaxRecords,">>>>>>>9")) ).
+
+  IF NUM-ENTRIES(cFilterSettings,CHR(3)) = 3 THEN
   DO:
-    CREATE ttDataSource.
-    ASSIGN 
-        ttDataSource.ttTag = "D":U.
+    IF VALID-HANDLE(gshGenManager) THEN
+      cHighChar = DYNAMIC-FUNCTION("getHighKey":U IN gshGenManager, SESSION:CPCOLL).
+    ELSE 
+      cHighChar = CHR(127). /* just as a default high character */
+    ASSIGN  
+      cFieldNames     = ENTRY(1,cFilterSettings,CHR(3))
+      cFieldValues    = ENTRY(2,cFilterSettings,CHR(3))
+      cFieldOperators = ENTRY(3,cFilterSettings,CHR(3)).
+    DO iLoop = 1 TO NUM-ENTRIES(cFieldNames):
+      ASSIGN
+        cFieldName  = ENTRY(iLoop,cFieldNames)
+        cOperator   = ENTRY(iLoop,cFieldOperators)
+        cValue      = TRIM(ENTRY(iLoop,cFieldValues,CHR(1)),cHighChar)
+        cFilter     = cFilter + "(":U + cFieldName + cOperator + cValue + ") ":U
+        .  
+    END.
+  END.
+
+  /* now build temp-table to transfer to crystal */
+  EMPTY TEMP-TABLE ttDataSource.
+
+  /*Heading*/
+  CREATE ttDataSource.
+  ASSIGN 
+      ttDataSource.ttTag      = "F0":U
+      ttDataSource.ttValue[1] = "Print ":U + cWindowTitle
+      ttDataSource.ttValue[2] = cFilter 
+      NO-ERROR.
+
+  /*Fieldnames*/
+  CREATE ttDataSource.
+  ASSIGN 
+      ttDataSource.ttTag = "F1":U.
+  DO iLoop = 1 TO NUM-ENTRIES(cFieldNameList):
+    ASSIGN
+      ttDataSource.ttValue[iLoop] = REPLACE(ENTRY(iLoop, cFieldNameList),".":U,"_":U).    
+  END.
+
+  /*Labels*/
+  CREATE ttDataSource.
+  ASSIGN 
+      ttDataSource.ttTag = "F2":U.
+  DO iLoop = 1 TO NUM-ENTRIES(cFieldLabelList):
+    ASSIGN
+      ttDataSource.ttValue[iLoop] = ENTRY(iLoop, cFieldLabelList).
   END.
 
   ASSIGN
-      ttDataSource.ttValue[ttTable.iCol] = IF cDataType = "INTEGER":U THEN
-                                           STRING(INTEGER(ttTable.cCell))
-                                        ELSE IF cDataType = "DECIMAL":U THEN
-                                           STRING(DECIMAL(REPLACE(ttTable.cCell,"%":U,"":U)))
+    dReportWidth = 0.
+
+  /*Column Widths*/
+  CREATE ttDataSource.
+  ASSIGN 
+      ttDataSource.ttTag = "F3":U.
+  DO iLoop = 1 TO NUM-ENTRIES(cFieldWidthList, CHR(3)):
+    ASSIGN
+      cLabel    = ENTRY(iLoop, cFieldLabelList)
+      dWidth    = DECIMAL(ENTRY(iLoop,cFieldWidthList,CHR(3)))
+      .
+    IF LENGTH(cLabel) > dWidth THEN
+      ASSIGN dWidth = LENGTH(cLabel).
+
+    ASSIGN
+      ttDataSource.ttValue[iLoop] = STRING(dWidth).
+
+    IF dWidth > 0 THEN
+      ASSIGN dReportWidth = dReportWidth + (dWidth * 96).
+
+  END.
+
+  /*Data Types*/
+  CREATE ttDataSource.
+  ASSIGN 
+      ttDataSource.ttTag = "F4":U.
+  DO iLoop = 1 TO NUM-ENTRIES(cDataTypeList):
+    ASSIGN
+      ttDataSource.ttValue[iLoop] = "10":U.
+  END.
+
+  ASSIGN
+    iNumberOfColumns = IF iNumberOfColumns > 26 THEN 26 ELSE iNumberOfColumns.
+
+  data-loop:
+  FOR EACH ttTable
+     WHERE ttTable.iRow > 9
+     BREAK BY ttTable.iRow:
+
+    IF ttTable.iCol > iNumberOfColumns THEN NEXT data-loop.
+    IF ttTable.iCol = 1 THEN ASSIGN iNumberOfRows = ttTable.iRow.
+
+    ASSIGN
+      cDataType = ENTRY(ttTable.iCol, cDataTypeList)
+      .
+
+    IF FIRST-OF(ttTable.iRow) THEN
+    DO:
+      CREATE ttDataSource.
+      ASSIGN 
+          ttDataSource.ttTag = "D":U.
+    END.
+
+    ASSIGN
+        ttDataSource.ttValue[ttTable.iCol] = IF cDataType = "INTEGER":U
+                                        THEN STRING(INTEGER(ttTable.cCell))
+                                        ELSE IF cDataType = "DECIMAL":U
+                                        THEN STRING(DECIMAL(REPLACE(ttTable.cCell,"%":U,"":U)))
                                         ELSE IF cDataType = "CHARACTER":U
-                                                AND LENGTH( ttTable.cCell ) > 319
-                                             THEN
-                                                SUBSTRING( ttTable.cCell, 1, 319 )
-                                        ELSE
-                                            ttTable.cCell
-      .                                            
-END.  /* data-loop */
+                                        AND  LENGTH( ttTable.cCell ) > 319
+                                        THEN SUBSTRING( ttTable.cCell, 1, 319 )
+                                        ELSE ttTable.cCell
+                                        .
+  END.  /* data-loop */
 
-SESSION:SET-WAIT-STATE("":U).
+  ASSIGN
+    cTables     = DYNAMIC-FUNCTION("getTables" IN TARGET-PROCEDURE)
+    cFirstTable = ENTRY(1,cTables)
+    cDataObject = SEARCH(SESSION:TEMP-DIRECTORY + "/aftemfullb.mdb":U)
+    cTemplate   = IF dReportWidth <= 11150 THEN SEARCH("af/rep/afportrait.rpt":U) /* WIDTH = 11150 */
+                                           ELSE SEARCH("af/rep/aflandscap.rpt":U) /* WIDTH = 16219 */
+    cNewReport  = RIGHT-TRIM(RIGHT-TRIM(SESSION:TEMP-DIRECTORY,"~\"),"/") + "/":U + cFirstTable + ".rpt":U
+    .
 
-{launch.i &PLIP = 'af/sup2/afcrplip2p.p'
-          &IProc = 'mip-print-report'
-          &PList="(TABLE ttDataSource,cDataObject,cFirstTable,NO,cTemplate,cNewReport)"
-          &OnApp = 'no'
-          &Autokill = NO}
+  SESSION:SET-WAIT-STATE("":U).
 
-ERROR-STATUS:ERROR = NO.
-RETURN.
+  {launch.i &PLIP = 'af/sup2/afcrplip2p.p'
+            &IProc = 'mip-print-report'
+            &PList="(TABLE ttDataSource,cDataObject,cFirstTable,NO,cTemplate,cNewReport)"
+            &OnApp = 'no'
+            &Autokill = NO}
+
+  ERROR-STATUS:ERROR = NO.
+  RETURN.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-pushRowObjUpdTable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pushRowObjUpdTable Procedure 
+PROCEDURE pushRowObjUpdTable :
+/*------------------------------------------------------------------------------
+  Purpose:     Transfer RowObjUpd table 
+  Parameters:  INPUT pcValType AS CHARACTER -- "Pre" or "Post",
+               INPUT-OUTPUT TABLE FOR RowObjUpd.
+  Notes:       The static override is used for sbo server side updates
+               in commitTransaction.p. This dynamic version is not used.   
+------------------------------------------------------------------------------*/
+   DEFINE INPUT PARAMETER TABLE-HANDLE phRowObjUpd.
+   {set RowObjUpdTable phRowObjUpd}.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-pushTableAndValidate) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pushTableAndValidate Procedure 
+PROCEDURE pushTableAndValidate :
+/*------------------------------------------------------------------------------
+  Purpose:     wrapper for pre and postTransactionValidate procedures when
+               run from SBO.
+  Parameters:  INPUT pcValType AS CHARACTER -- "Pre" or "Post",
+               INPUT-OUTPUT TABLE FOR RowObjUpd.
+  Notes:       
+------------------------------------------------------------------------------*/
+   DEFINE INPUT PARAMETER pcValType AS CHAR   NO-UNDO.
+   DEFINE INPUT-OUTPUT PARAMETER TABLE-HANDLE phRowObjUpd.
+   
+
+   {set RowObjUpdTable phRowObjUpd}.
+
+   /* Split into two to accomodate the DynSBO which shares buffers instead of */
+   /* transfering tables */
+
+   RUN bufferValidate IN TARGET-PROCEDURE (INPUT pcValType).
+
+   DELETE OBJECT phRowObjUpd NO-ERROR.
+
+   RETURN RETURN-VALUE.   /* Return whatever we got from the val. proc. */
 
 END PROCEDURE.
 
@@ -3338,11 +5949,12 @@ PROCEDURE refreshRow :
   DEFINE VARIABLE hDataQuery      AS HANDLE    NO-UNDO.
   DEFINE VARIABLE hRowObject      AS HANDLE    NO-UNDO.
   DEFINE VARIABLE iRows           AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE hField          AS HANDLE    NO-UNDO.
   DEFINE VARIABLE cRowIdent       AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cRowState       AS CHARACTER NO-UNDO.
   DEFINE VARIABLE iRowNum         AS INTEGER   NO-UNDO.
   DEFINE VARIABLE lNewRow         AS LOG       NO-UNDO.
+  DEFINE VARIABLE rRowid          AS ROWID     NO-UNDO.
+  DEFINE VARIABLE lDeleted        AS LOGICAL   NO-UNDO.
 
   {get RowObjectState cRowState}.
   IF cRowState = 'RowUpdated':U THEN DO: /* if updates are in progress, can not continue */
@@ -3365,33 +5977,98 @@ PROCEDURE refreshRow :
 
   /* Save off the current RowIdent to pass to sendRows. It will re-retrieve
      that row from the database. */
-  ASSIGN hField    = hRowObject:BUFFER-FIELD('RowIdent':U)
-         cRowIdent = hField:BUFFER-VALUE
-         hField    = hRowObject:BUFFER-FIELD('RowNum':U)
-         iRowNum   = hField:BUFFER-VALUE.
+  ASSIGN cRowIdent = hRowObject:BUFFER-FIELD('RowIdent':U):BUFFER-VALUE
+         iRowNum   = hRowObject:BUFFER-FIELD('RowNum':U):BUFFER-VALUE.
   
   hRowObject:BUFFER-DELETE().      /* remove the old copy of the row. */
+  
+  /** find the prev rec as we want to position to it in case the refresh is
+      gone */ 
+  hDataQuery:GET-PREV. 
+  IF NOT hRowObject:AVAIL THEN
+    hdataQuery:GET-FIRST.
+
+  rRowid = hRowObject:ROWID.
+
   /* This special calling sequence tells sendRows to retrieve a new copy
      of the record pointed to by cRowIdent, give it the number iRowNum,
      and add it to the existing RowObject table. */
-  
   RUN sendRows IN TARGET-PROCEDURE
                 (iRowNum, 
                  cRowIdent, 
-                 false /* no Next */, 
+                 FALSE /* no Next */, 
                  1 /* Get just 1 row */, 
                  OUTPUT iRows).  
-  /* sendRows has re-opened the query and repositioned to the newly
-     retrieved row; so if the row is not available we do a Next to 
-     move onto the row itself. We check whether the record is available
-     in order NOT to do this on a browser, which of course fetches the record
-     when the query is repositioned.  */  
-  IF NOT hRowObject:AVAILABLE THEN
-     hDataQuery:GET-NEXT().          
   
+  /* If nothing to refresh resort to plan B */
+  IF iRows = 0 THEN
+  DO:
+    /* get rid of the non existing row from the browse */
+    PUBLISH 'DeleteComplete':U FROM TARGET-PROCEDURE. 
+    lDeleted  = TRUE.
+    IF rRowid <> ? THEN
+      hdataQuery:REPOSITION-TO-ROWID(rRowid).
+  END.
+    /* We check whether the record is available in order NOT to do this on a 
+    browser, which fetches the record when the query is repositioned.  */  
+  IF NOT hRowObject:AVAILABLE THEN
+   hDataQuery:GET-NEXT().          
+
   /* Tell everyone we have a new copy of the same row. */
-  PUBLISH 'dataAvailable' FROM TARGET-PROCEDURE ('SAME':U).
+  PUBLISH 'dataAvailable' FROM TARGET-PROCEDURE (IF lDeleted THEN 'DIFFERENT' ELSE 'SAME':U).
   RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-remoteCommit) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE remoteCommit Procedure 
+PROCEDURE remoteCommit :
+/*------------------------------------------------------------------------------
+  Purpose:     Procedure executed on a server side SmartDataObject.   
+               This is the equivalent of serverCommit, but can be run in 
+               a not intialized object as it has input-ouput parameters for \
+               context.  
+  Parameters: 
+   INPUT-OUTPUT  pcContext  - in Contextfrom client 
+                              out new context
+   INPUT-OUTPUT TABLE RowObjUpd - The Update version of the RowObject 
+                                  Temp-Table
+ 
+   OUTPUT cMessages - a CHR(3) delimited string of accumulated messages from
+                      server.
+   OUTPUT cUndoIds  - list of any RowObject ROWIDs whose changes need to be 
+                       undone as the result of errors in the form of:
+               "RowNumCHR(3)ADM-ERROR-STRING,RowNumCHR(3)ADM-ERROR-STRING,..."
+
+ Notes:        If another user has modified the database records since the 
+               original was read, the new database values are copied into the 
+               RowObjUpd record and returned to Commit so the UI object can 
+               display them.
+------------------------------------------------------------------------------*/
+  DEFINE INPUT-OUTPUT  PARAMETER pcContext AS CHARACTER  NO-UNDO.
+  DEFINE INPUT-OUTPUT  PARAMETER TABLE-HANDLE phRowObjUpd.
+  DEFINE OUTPUT PARAMETER pcMessages AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER pcUndoIds  AS CHARACTER  NO-UNDO.
+                          
+  {set RowObjUpdTable phRowObjUpd}.
+
+  RUN setContextAndInitialize IN TARGET-PROCEDURE (pcContext).
+
+  RUN bufferCommit IN TARGET-PROCEDURE
+                 (OUTPUT pcMessages,
+                  OUTPUT pcUndoIds).
+                  
+  pcContext = {fn obtainContextForClient}.
+  
+  DELETE OBJECT phRowObjUpd NO-ERROR.
+
+  RETURN.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -3463,7 +6140,7 @@ PROCEDURE remoteSendRows :
                                    plNext,
                                    piRowsToReturn, 
                                    OUTPUT pioRowsReturned).
-
+ 
  {get RowObjectTable phRowObject}.
 
  piocContext = {fn obtainContextForClient}.
@@ -3498,6 +6175,10 @@ PROCEDURE reopenToRowid :
   DEFINE VARIABLE hRowObject      AS HANDLE    NO-UNDO.
   DEFINE VARIABLE cQuery          AS CHARACTER NO-UNDO.
 
+    {get RowObject hRowObject}.
+    IF prRowObject = ? THEN
+       prRowObject = hRowObject:ROWID.
+
     {get DataHandle hDataQuery}.
     hDataQuery:QUERY-CLOSE().
     hDataQuery:QUERY-OPEN().    
@@ -3505,11 +6186,6 @@ PROCEDURE reopenToRowid :
     {get DataQueryBrowsed lBrowsed}.
     IF lBrowsed THEN 
       PUBLISH 'fetchDataSet':U FROM TARGET-PROCEDURE ('NextEnd':U).      
-
-    {get RowObject hRowObject}.
-
-/*     IF prRowObject = ? THEN                                      */
-/*        prRowObject = hRowObject:ROWID.  /* use current rowid */  */
 
     /* A new record is added at the end so fix LastRowNum and maybe First- */
     IF prRowObject <> ? THEN
@@ -3537,6 +6213,7 @@ PROCEDURE reopenToRowid :
         {set LastDBRowIdent '':U}. /* We don't need this if we have lastRownum*/
       END.
     END. /*else do (records was available) */  
+    
     /* Tell everybody about a potential change of QueryPosition. */
     RUN updateQueryPosition IN TARGET-PROCEDURE.
 
@@ -3620,10 +6297,16 @@ DEFINE VARIABLE lRebuildOnRepos                 AS LOGICAL      NO-UNDO.
 DEFINE VARIABLE cDataContainerName              AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE lQueryObject                    AS LOGICAL      NO-UNDO.
 DEFINE VARIABLE hSboContainer                   AS HANDLE       NO-UNDO.
+DEFINE VARIABLE iCnt                            AS INTEGER      NO-UNDO.
+DEFINE VARIABLE cTableName                      AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cQualifiedFieldList             AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cQualifiedField                 AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cField                          AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cQueryString                    AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cNewQueryString                 AS CHARACTER  NO-UNDO.
  
-
 /* RETRIEVAL OF FILTER IS DEPENDANT UPON LINKS WHICH ONLY EXIST CLIENT-SIDE */
-IF (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN RETURN.
+    IF (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN RETURN.
     IF VALID-HANDLE(gshProfileManager) THEN
     DO:
         {get LogicalObjectName cSdoName}.
@@ -3696,13 +6379,40 @@ IF (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN RETURN.
                 cFieldNames,
                 cFieldValues,
                 cFieldOperators).
-            
-            
-/*             {fn OpenQuery}. */
 
+            /* If we've filtered on any OUTER-JOINs, we need to remove the OUTER-JOIN keyword. *  
+             * Otherwise, the filter isn't going to be effective.                              */
+            {get QueryString cQueryString}.
 
-/*             MESSAGE "filter set to " cFieldNames SKIP cFieldValues SKIP cFieldOperators SKIP lSuccess. */
+            IF  INDEX(cQueryString, "OUTER-JOIN":U) > 0
+            AND NUM-ENTRIES(cFieldNames) > 0
+            AND VALID-HANDLE(gshSessionManager)
+            THEN DO:
+                DO iCnt = 1 TO NUM-ENTRIES(cFieldNames):
+                    ASSIGN cField = ENTRY(iCnt, cFieldNames).
 
+                    IF NUM-ENTRIES(cField, ".":U) = 1 THEN
+                        ASSIGN cTableName      = {fnarg columnTable cField}
+                               cTableName      = IF NUM-ENTRIES(cTableName, ".":U) = 2 /* Remove db qualifier if one has been returned */
+                                                 THEN ENTRY(2, cTableName, ".":U)
+                                                 ELSE cTableName
+                               cQualifiedField = cTableName + ".":U + cField.
+                    ELSE
+                        ASSIGN cQualifiedField = cField. /* Already in the correct format */
+
+                    ASSIGN cQualifiedFieldList  = cQualifiedFieldList + cQualifiedField + ",":U.
+                END.
+                ASSIGN cQualifiedFieldList = RIGHT-TRIM(cQualifiedFieldList, ",":U)
+                       cNewQueryString     = DYNAMIC-FUNCTION("filterEvaluateOuterJoins":U IN gshSessionManager, INPUT cQueryString, INPUT cQualifiedFieldList).
+
+                /* The OUTER-JOIN keyword has now been removed.  Update the query if necessary. */
+                IF cNewQueryString <> cQueryString 
+                THEN DO:
+                    {set queryString cNewQueryString}.
+                END.
+            END.
+
+            /* Set filterActive to YES or NO */
             IF cFieldNames <> "" THEN
             DO:
                 /* saved filter was not blank */
@@ -3740,7 +6450,21 @@ IF (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN RETURN.
             DYNAMIC-FUNCTION('setFilterActive' IN TARGET-PROCEDURE, FALSE).    
         END.
 
-        /* see if any SDO attributes set */
+        /* Store the current (default) rowsToBatch and rebuildOnRepos settings in case *
+         * we need them later, for instance when resetting default SDO values.         */
+        {get rowsToBatch iRowsToBatch}.
+        {get rebuildOnRepos lRebuildOnRepos}.
+
+        RUN setProfileData IN gshProfileManager (
+            INPUT "SDO":U,
+            INPUT "Attributes":U,
+            INPUT cSDOSignature + ",defAttrs":U,
+            INPUT ?,
+            INPUT STRING(iRowsToBatch) + CHR(3) + STRING(lRebuildOnRepos),
+            INPUT NO,
+            INPUT "SES":U). /* We NEVER want to save this profile permanently, always session only */
+
+        /* See if any SDO attributes set */
         ASSIGN rRowid = ?.
         RUN getProfileData IN gshProfileManager (
             INPUT "SDO":U,
@@ -3752,6 +6476,7 @@ IF (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN RETURN.
 
         IF NUM-ENTRIES(cSDOSettings, CHR(3)) = 2 THEN
         DO:
+          /* Now we can set the attributes to the values the user wants */
           ASSIGN
             iRowsToBatch = INTEGER(ENTRY(1,cSDOSettings, CHR(3)))
             lRebuildOnRepos = ENTRY(2,cSDOSettings, CHR(3)) = "YES":U
@@ -3762,11 +6487,8 @@ IF (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN RETURN.
             {set rowstobatch iRowsToBatch}.
             {set rebuildonrepos lRebuildOnRepos}.
           END.
-          
         END.
-        
     END.
-
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -3808,11 +6530,10 @@ PROCEDURE saveContextAndDestroy :
   Purpose:  See and use getContextAndDestroy.   
     Notes:  kept for backwards compatibility.
          -  A more consistent and balanced set of functions and methods for 
-            context management has been implemented and this was destroying the 
-            balance...  
+            context management has been implemented.
 ------------------------------------------------------------------------------*/
   DEFINE OUTPUT PARAMETER pcContext AS CHARACTER     NO-UNDO.
-  RUN getContextAndDestroy IN TARGET-PROCEDURE (pcContext).
+  RUN getContextAndDestroy IN TARGET-PROCEDURE ( OUTPUT pcContext).
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -3832,7 +6553,7 @@ Purpose:     To fetch the requested number of rows (views) from the DB Query
              parameter.
 Parameters:
    INPUT piStartRow      - RowNum to start on. (? indicates that pcRowIdent
-                           will determine the start of the batcvh to be 
+                          will determine the start of the batcvh to be 
                            returned.) 
    INPUT pcRowIdent      - An alternative to StartRow. pcRowIdent is either
                            "FIRST", "LAST" or a comma delimited list of DB
@@ -3863,88 +6584,66 @@ Parameters:
  DEFINE OUTPUT PARAMETER piRowsReturned AS INTEGER   NO-UNDO INIT 0.
  
  DEFINE VARIABLE hQuery         AS HANDLE  NO-UNDO.
- DEFINE VARIABLE hBuffer        AS HANDLE  NO-UNDO.
- DEFINE VARIABLE hFirstBuffer   AS HANDLE  NO-UNDO.
  DEFINE VARIABLE hRowObject     AS HANDLE  NO-UNDO.
  DEFINE VARIABLE hDataQuery     AS HANDLE  NO-UNDO.
- DEFINE VARIABLE hFldRowIdent   AS HANDLE  NO-UNDO.
- DEFINE VARIABLE hAppServer     AS HANDLE  NO-UNDO.
  DEFINE VARIABLE cASDivision    AS CHARACTER NO-UNDO.
- DEFINE VARIABLE rRowIDs        AS ROWID   EXTENT 19 NO-UNDO. 
  DEFINE VARIABLE lOK            AS LOGICAL   NO-UNDO.
- DEFINE VARIABLE iCnt           AS INTEGER   NO-UNDO.
- DEFINE VARIABLE rCurrentRow    AS ROWID     NO-UNDO.
- DEFINE VARIABLE cStartRow      AS CHARACTER NO-UNDO.
- DEFINE VARIABLE cFirstRow      AS CHARACTER NO-UNDO.
- DEFINE VARIABLE cLastRow       AS CHARACTER NO-UNDO.
- DEFINE VARIABLE cStartRowIds   AS CHARACTER NO-UNDO.
- DEFINE VARIABLE cCurrentRow    AS CHARACTER NO-UNDO.
- DEFINE VARIABLE cRowIdent      AS CHARACTER NO-UNDO.
- DEFINE VARIABLE iRowNum        AS INTEGER   NO-UNDO.
+ DEFINE VARIABLE cRowObjectstate AS CHARACTER NO-UNDO.
  DEFINE VARIABLE lNexting       AS LOGICAL   NO-UNDO.
- DEFINE VARIABLE hRowNum        AS HANDLE    NO-UNDO.
- DEFINE VARIABLE lRefresh       AS LOGICAL   NO-UNDO.
- DEFINE VARIABLE cOperatingMode AS CHARACTER NO-UNDO.
- DEFINE VARIABLE cContext       AS CHARACTER NO-UNDO.
- DEFINE VARIABLE lOffEnd        AS LOGICAL   NO-UNDO.
- DEFINE VARIABLE iLastRowNum    AS INTEGER   NO-UNDO INIT ?.
- DEFINE VARIABLE iFirstRowNum   AS INTEGER   NO-UNDO INIT ?.
- DEFINE VARIABLE cLastDbRowident AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE cFetchOnOpen    AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE lRebuild       AS LOGICAL     NO-UNDO.
- DEFINE VARIABLE lOpened        AS LOGICAL     NO-UNDO.
- 
+ DEFINE VARIABLE cFetchOnOpen    AS CHARACTER NO-UNDO.
+ DEFINE VARIABLE lOpened         AS LOGICAL   NO-UNDO.
+ DEFINE VARIABLE lAppend         AS LOGICAL   NO-UNDO.
+ DEFINE VARIABLE lFill           AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE iLength         AS INTEGER   NO-UNDO.
+ DEFINE VARIABLE cMode           AS CHARACTER NO-UNDO.
+ DEFINE VARIABLE cLastResultRow  AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cFirstResultRow AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE hDataSource     AS HANDLE     NO-UNDO.
+  
   /* The RowObjectState property signals whether there are uncommitted
      changes. If so, we cannot get more rows from the database until
      changes are committed. */
-  {get RowObjectState cStartRow}.
-  
-  IF cStartRow = 'RowUpdated':U THEN
+  {get RowObjectState cRowObjectState}.  
+  IF cRowObjectState = 'RowUpdated':U THEN
     RETURN.
 
   /* Filter out invalid input parameters */
-  IF piStartRow     = 0 THEN piStartRow = ?.
-  /* unknown or 0 means get all, the code below checks for the 0  */
-  IF piRowsToReturn = ? THEN piRowsToReturn = 0. 
-  
+  IF piStartRow = 0 THEN
+    piStartRow = ?.
+
   IF LOOKUP(pcRowIdent,"FIRST,LAST":U) > 0 THEN
     ASSIGN piStartRow = ?
-           plNext     = no.
+           plNext     = NO.
 
   {get ASDivision cASDivision}.
   {get RowObject hRowObject}.
+  
   /* Find out whether we're running with a query on an AppServer.
      If so then run a special client-to-server version of sendRows.*/
   IF cASDivision = 'Client':U THEN
   DO:
-    {get ServerOperatingMode cOperatingMode}.
     RUN changeCursor IN TARGET-PROCEDURE('WAIT':U).
-    
-    IF LOOKUP(pcRowIdent,"FIRST,LAST":U) > 0 THEN 
-    DO:
+     /* piRowsToReturn = 0 tells that this is an append (RebuildOnRepos=false) */   
+    IF pcRowIdent = "FIRST":U OR (pcRowident = "LAST":U AND piRowsTOReturn <> 0)  THEN 
       {fnarg emptyRowObject 'reset':U}.
-      {get ServerOperatingMode cOperatingMode}.
-    END.  /* If first or last */
     
     RUN clientSendRows IN TARGET-PROCEDURE
-      (piStartRow, pcRowIdent, plNext, piRowsToReturn, OUTPUT piRowsReturned).
-    
+      (piStartRow, pcRowIdent, plNext, piRowsToReturn, OUTPUT piRowsReturned). 
     RUN changeCursor IN TARGET-PROCEDURE('':U).
-    
     RETURN.
   END.
   ELSE IF cASDivision = 'Server':U THEN  /* Always empty RowObject on Server */
     {fnarg emptyRowObject '':U}.
 
-      /* If we're running locally or on a server, continue on... */
+  /* Unknown or 0 means get all, the code below checks for the 0. 
+     We do not change this on the client as it used to indicate LAST */
+  IF piRowsToReturn = ? THEN piRowsToReturn = 0. 
+  {get LastResultRow cLastResultRow}.
+  {get FirstResultRow cFirstResultRow}.
+
+  /* If we're running locally or on a server, continue on... */
   {get QueryHandle hQuery}.
-  {get DataHandle hDataQuery}.      
-  hFirstBuffer = hQuery:GET-BUFFER-HANDLE(1).
-  /* NB! Get these context properties before openQuery */    
-  {get LastResultRow cLastRow}.
-  {get FirstResultRow cFirstRow}.
-  {get LastRowNum  iLastRowNum}.
-  {get FirstRowNum iFirstRowNum}.
+  {get DataHandle hDataQuery}.  
   IF NOT hQuery:IS-OPEN THEN
   DO:
     {get FetchOnOpen cFetchOnOpen}.
@@ -3952,19 +6651,20 @@ Parameters:
     hDataQuery:QUERY-CLOSE. /* just avoid closeQuery */
     {fn openQuery}.
     {set FetchOnOpen cFetchOnOpen}.
-    /* Avoid trouble if record is avail, but not in synch with query */ 
-    hFirstbuffer:BUFFER-RELEASE().
-    lOpened = TRUE. /* if lRefresh we always reopen so set this flag (see below)*/
+    lOpened = TRUE. /* if Refresh we always reopen so set this flag (see below)*/
   END.
-
   IF hQuery:IS-OPEN THEN 
   DO:
     RUN changeCursor IN TARGET-PROCEDURE('WAIT':U).
-    ASSIGN lNexting       = (piRowsToReturn >= 0)
-           piRowsToReturn = ABS(piRowsToReturn).
-    /* Check the RowIdent argument first; if this is set, it overrides the
-       RowNum argument. */
-    IF pcRowIdent NE ? AND pcRowIdent NE "":U THEN
+    ASSIGN 
+      lNexting       = (piRowsToReturn >= 0). 
+
+    IF pcRowident = "LAST":U AND piRowsToReturn = 0 THEN
+      ASSIGN 
+        cMode   = 'LAST':U
+        lAppend = YES.
+
+    ELSE IF pcRowIdent > "":U THEN
     DO:
       /* First close the RowObject query and empty the current temp-table. 
          Reset all the associated properties and variables.
@@ -3978,292 +6678,136 @@ Parameters:
           hDataQuery:QUERY-CLOSE().
           RUN doEmptyModTable IN TARGET-PROCEDURE.
         END.  /* IF Local (NOT Server and we don't get here if Client) */
-        {fnarg emptyRowObject 'reset':U}.
-        ASSIGN cFirstRow = ? cLastRow = ? lRefresh = no.
-      END.  /* END plNext or Return > 1 */
-      ELSE DO:
-        lRefresh = yes.   /* IF StartRow also there, signal refresh. */
-        IF NOT lOpened THEN hQuery:QUERY-OPEN. /* include new records */
-      END.
-      IF pcRowIdent = "Last":U THEN   /* Special signal for fetchLast */
-      DO:
-        ASSIGN lNexting = no           /* Last means work backwards */
-               iRowNum = 2000000       /* All Rows will have high numbers */
-                                       /* We know to go backwards whether */
-               piRowsToReturn = ABS(piRowsToReturn).  /* Rows is + or - */
-        hQuery:GET-LAST().
-      END.  /* END DO IF 'Last' */
-      ELSE IF pcRowIdent = "First":U THEN  /* Re-starting the query */
-      DO:
-        ASSIGN lNexting = yes
-               iRowNum = 0.
-        hQuery:GET-FIRST().
-      END.  /* END DO IF 'First' */
-      ELSE DO:           /* Reposition to a specific RowIdent */
-        /* If StartRow is specified, use that
-           RowNum as a starting number. */        
-        ASSIGN iRowNum = IF piStartRow NE ? 
-                         THEN IF lNexting 
-                              THEN piStartRow - 1
-                              ELSE piStartRow + 1 /* Allow for incr/decr below*/
-                         ELSE 2000000    /* Start with a high row num.*/
-               rRowIDs = ?.       /* Fill in this array with the rowids. */        
-        DO iCnt = 1 TO NUM-ENTRIES(pcRowIdent):
-          rRowIDs[iCnt] = TO-ROWID(ENTRY(iCnt, pcRowIdent)).
-        END.        /* END DO iCnt */ 
-     /* When there is a join, the first buffer may still be available here. 
-        This causes a problem down below where we only GET-NEXT if it is NOT
-        available. When the GET-NEXT doesn't get done any additional buffers 
-        are not available. We now release the buffer here before the reposition 
-        so that it is not available and the GET-NEXT is done. */
-        hFirstBuffer:BUFFER-RELEASE. 
-        hQuery:REPOSITION-TO-ROWID(rRowIDs) NO-ERROR.        
-        IF NOT ERROR-STATUS:ERROR THEN
-          hQuery:GET-NEXT().
-      END.  /* END ELSE DO IF real RowIdent */
-    END.    /* END DO pcRowIdent */
-    ELSE DO:
-     /* Starting in 9.0B, piStartRow of ? means either start at the
-        beginning if no rows have been retrieved yet, or start at the
-        current end of the retrieved rows (if RowsToReturn > 0) or the
-        beginning of the retrieved rows (if RowsToReturn < 0). */
-      cStartRow = IF lNexting THEN cLastRow ELSE cFirstRow.
-      IF cStartRow = ? AND (piStartRow = 0 OR piStartRow = ?) THEN
-        /* means no rows have been retrieved yet. */
-      DO:
-        hQuery:GET-FIRST().
-        iRowNum = 0.                 /* Starting at the beginning. */
-      END.    /* END DO IF No StartRow */
-      ELSE DO:
-        /* Reposition to the right starting point unless we're already there.*/
-        DO iCnt = 1 TO hQuery:NUM-BUFFERS:  /* Assemble the list of rowids */
-          ASSIGN hBuffer = hQuery:GET-BUFFER-HANDLE(iCnt)
-                 cCurrentRow = cCurrentRow + 
-                  (IF cCurrentRow NE "":U THEN ",":U ELSE "":U)
-                    + (IF hBuffer:AVAILABLE THEN STRING(hBuffer:ROWID) ELSE "":U).
-        END.   /* END DO iCnt */
-        /* Format of First/LastResultRow is "RowNum;ROWID1[,...]ROWIDn" */
-        cStartRowIds = ENTRY(2, cStartRow, ";":U).
-        /* Restrict piStartRow to the same first or last
-           RowNum that sendRows would have calculated on its own. If some
-           other row is wanted which is already in RowObject, fetchRow
-           will reposition to it. Otherwise RowNum is not meaningful. */
-        iRowNum = INT(ENTRY(1, cStartRow, ";":U)).        
-        IF piStartRow NE ? AND piStartRow NE iRowNum THEN
-        DO:
-          RUN addMessage IN TARGET-PROCEDURE("Invalid RowNum argument to procedure sendRows.":U,
-            ?, ?).
-          RETURN ERROR.
-        END.  /* END TEMPORARY error block. */
-          
-        IF cCurrentRow NE cStartRowIds THEN  /* If not already on right row. */
-        DO:
-          rRowIDs = ?.       /* Fill in this array with all the rowids. */
-          DO iCnt = 1 TO NUM-ENTRIES(cStartRowIds):
-            rRowIDs[iCnt] = TO-ROWID(ENTRY(iCnt, cStartRowIds)).
-          END.        /* END DO iCnt */
-          lOffEnd = hQuery:QUERY-OFF-END. 
-          /* When we delete the absolute last record the reposition 
-             returns false in some rare cases also when we are OFF-END. 
-             We use the off-end flag to ensure that we always do get-next 
-             if we were off-end. (Assuming that the rare case when it returns 
-             false must indicate that we repositioned to the last record) */
-          lok = hQuery:REPOSITION-TO-ROWID(rRowIDs) NO-ERROR.
-          IF lok OR (lOffEnd AND NOT ERROR-STATUS:ERROR) THEN 
-            hQuery:GET-NEXT().
-        END.  /* END DO IF Not on StartRowIds */
-      END.    /* END ELSE DO IF cStartRow NOT ? */
-    END.      /* END ELSE DO IF no pcRowIdent */    
-    IF plNext THEN 
-    DO:
-      IF lNexting THEN 
-        hQuery:GET-NEXT().
-      ELSE 
-        hQuery:GET-PREV().
-    END.  /* If plNext */    
-    IF NOT lRefresh THEN
-    DO:
-      {get RebuildOnRepos lRebuild}.
-      IF lRebuild THEN
-        ASSIGN iFirstrowNum = ? 
-               iLastRowNum = ?.
-    END.
-    
-    ASSIGN piRowsReturned = 0.    
-    Generate-Record-Blk:
-    DO WHILE hFirstBuffer:AVAILABLE 
-       AND  (piRowsReturned < piRowsToReturn OR piRowsToReturn = 0):      
-      hRowObject:BUFFER-CREATE().
-      iRowNum      = IF lNexting THEN iRowNum + 1
-                     ELSE             iRowNum - 1.
-      
-      RUN transferDBRow IN TARGET-PROCEDURE
-        ("":U /* Signal to use the current db row */, iRowNum).
-      
-      IF RETURN-VALUE = "ADM-ERROR":U THEN 
-      DO:
-        piRowsReturned = 0. /* NOTE: Error conditions? Do the right thing here. */
-        RUN changeCursor IN TARGET-PROCEDURE('':U).
-        RETURN.
-      END.  /* END DO on error */
+        
+        IF CAN-DO("LAST,FIRST":U,pcRowIdent) THEN
+          ASSIGN 
+            lAppend = FALSE
+            cMode   = pcRowident.  
 
-      /* Check to see if this record is already on the client */
-      ASSIGN hFldRowIdent = hRowObject:BUFFER-FIELD("RowIdent")
-             cRowIdent    = hFldRowIdent:BUFFER-VALUE.
-      
-      IF NOT lRefresh AND {fnarg canFindModRow cRowIdent} THEN 
-      DO:
-        /* Back out of this */
-        hRowObject:BUFFER-DELETE().
-        iRowNum = IF lNexting 
-                  THEN iRowNum - 1
-                  ELSE iRowNum + 1.
-        IF lNexting THEN 
-          hQuery:GET-NEXT().
-        ELSE 
-          hQuery:GET-PREV().
-        NEXT Generate-Record-Blk.
-      END.  /* If record is all ready on the client */
-      IF piRowsReturned = 0 THEN
-      DO:               
-        /* At the *start* of the loop, save off the rownum & id
-           if we're Nexting and FirstResult isn't set, or vice versa. 
-           Don't bother in the special "refresh" case where both RowNum and
-           RowIdent are specified. */
-        IF (NOT lRefresh) AND 
-           ((lNexting AND cFirstRow = ?) OR
-            ((NOT lNexting) AND cLastRow = ?)) THEN
-        DO:
-          cStartRow = STRING(iRowNum) + ';':U.
-          DO iCnt = 1 TO hQuery:NUM-BUFFERS:
-            hBuffer = hQuery:GET-BUFFER-HANDLE(iCnt).
-            cStartRow = cStartRow + 
-              (IF iCnt > 1 THEN ",":U ELSE "":U) + 
-                (IF hBuffer:AVAILABLE THEN STRING(hBuffer:ROWID) ELSE "":U).
-          END.  /* END DO iCnt */
+        ELSE DO: /* Reposition to a specific RowIdent */
+          ASSIGN
+            lAppend = piRowsToReturn = 0 /* 0 indicates appending search */  
+            iLength = LENGTH(pcRowident).
+          /* Special trick-1 appended '+' means start from as rebuild is false */
+          IF SUBSTR(pcRowident,iLength,1) = "+":U THEN
+            lAppend = TRUE.
+          /* Special trick-2 appended '-' means fill batch (- is backwards, ok)*/
+          ELSE IF SUBSTR(pcRowident,iLength,1) = "-":U THEN
+            lFill = TRUE.
+        
+          IF lFill OR lAppend THEN
+            pcRowident = SUBSTR(pcRowident,1,iLength - 1).
+        
           IF lNexting THEN
           DO:
-            {set FirstResultRow cStartRow}.
-            IF pcRowident = 'FIRST':U THEN
-              iFirstRowNum = iRowNum.
-            ELSE IF iFirstRowNum = ? THEN
-            DO: /* We may have started on the first  */
-              hQuery:GET-PREV. /* We only get here if we are NOT yet off end */
-              IF hQuery:QUERY-OFF-END THEN
-                iFirstRowNum = iRowNum.
-              hQuery:GET-NEXT.
-            END.
+            cMode = "REPOSITION":U.
+            IF plNext = TRUE THEN
+              cMode = "REPOSITION-AFTER":U.
           END.
-          ELSE DO: 
-            {set LastResultRow cStartRow}.
-            IF pcRowident = 'LAST':U THEN
-              iLastRowNum = iRowNum.
-            ELSE IF iLastRowNum = ? THEN 
-            DO: /* we may have started on the last  */
-              hQuery:GET-NEXT. /* We only get here if we are NOT off end */
-              IF hQuery:QUERY-OFF-END THEN 
-                iLastRowNum = iRowNum.
-              hQuery:GET-PREV. 
-            END.
+          ELSE DO:
+            cMode = "REPOSITION-TO":U.
+            IF plNext = TRUE THEN
+              cMode = "REPOSITION-BEFORE":U.
           END.
-        END.    /* END DO IF lNexting */
-        /* We want to save off the Rowid of the first newly created
-           RowObject row to reposition to before returning. */
-        rCurrentRow = hRowObject:ROWID.
-      END.  /* END DO IF RowsReturned = 0 */
-      piRowsReturned = piRowsReturned + 1.
-      
-      IF piRowsReturned < piRowsToReturn OR piRowsToReturn = 0 THEN
-      DO:
-        IF lNexting THEN 
-        DO:
-          hQuery:GET-NEXT().
-          /* Is this is the Last record?*/
-          IF hQuery:QUERY-OFF-END THEN
-            iLastRowNum = iRowNum.
         END.
-        ELSE DO: 
-          hQuery:GET-PREV().
-          /* Is this the First record?*/
-          IF hQuery:QUERY-OFF-END THEN
-            iFirstRowNum = iRowNum.
-        END.
-      END.  /* END DO IF not last RowToReturn */
-    END.    /* END DO WHILE hFirstBuffer:AVAILABLE... */
-    IF piRowsReturned > 0 THEN /* Repos. to where we were before we started. */
-    DO:
-      /* At the *end* of the loop, save off the final rownum & id.
-         To do this, we must be prepared to go back to the first/last
-         row if we've gone off the end. Again, don't bother if we're
-         refreshing existing rows. */
-      IF (NOT lRefresh) THEN
-      DO:
-        cStartRow = STRING(iRowNum) + ';':U.     
-        DO iCnt = 1 TO hQuery:NUM-BUFFERS:
-          hBuffer = hQuery:GET-BUFFER-HANDLE(iCnt).
-          IF iCnt = 1 AND NOT hBuffer:AVAILABLE THEN
-          DO:
-            IF lNexting THEN hQuery:GET-PREV().
-            ELSE             hQuery:GET-NEXT().
-          END.
-          cStartRow = cStartRow + 
-            (IF iCnt > 1 THEN ",":U ELSE "":U) + 
-              (IF hBuffer:AVAILABLE THEN STRING(hBuffer:ROWID) ELSE "":U).
-        END.  /* END DO iCnt */
         
-        IF lNexting THEN
-          {set LastResultRow cStartRow}.
-        ELSE 
-          {set FirstResultRow cStartRow}.
-      END.    /* END DO IF NOT lRefresh */
-      /* If we are nexting, check if lastrow need to be detected */
-      IF lNexting THEN
-      DO:
-        /* We MUST now find out if we are on the last record. */
-        IF iLastRowNum = ? THEN
-        DO: 
-          /* Did we get-last on open? */
-          {get LastDbRowIdent cLastDbRowIdent}.
-          /* if no lastDbrowIdent then look ahead */
-          IF cLastDbRowident = '':U THEN
-          DO:
-            hQuery:GET-NEXT. /* We only get here if we are NOT off end */
-            IF hQuery:QUERY-OFF-END THEN 
-              iLastRowNum = iRowNum.
-            hQuery:GET-PREV. 
-          END. /* LastDbrowIdent = ''  */
-          ELSE IF cLastDbRowident = ENTRY(2,cLastRow,';':U) THEN
-            iLastRowNum = iRowNum.
-        END. /* lastrowNum ? (try to find last) */
-      END. /* lNexting */
-      ELSE IF iFirstRowNum = ? THEN 
-      DO:
-        /* If we implemented a firstDbrowident we may avoid this..*/
-        hQuery:GET-PREV. /* We only get here if we are NOT yet off end */
-        IF hQuery:QUERY-OFF-END THEN
-          iFirstRowNum = iRowNum.
-        hQuery:GET-NEXT.
-      END. /* Not nexting and FirstrowNum = ? */
-      
-      IF iLastrowNum <> ? THEN
-        {set LastRowNum iLastRowNum}.
-      IF iFirstrowNum <> ? THEN
-        {set FirstRowNum iFirstRowNum}.
+        IF NOT lAppend THEN
+          {fnarg emptyRowObject 'reset':U}.     
 
-      IF cASDivision NE "Server":U THEN
+      END.  /* END plNext or Return > 1 */
+      ELSE DO:
+        ASSIGN
+          cMode      = "REFRESH":U
+          pcRowident = STRING(piStartRow) + ";":U + pcRowIdent.   
+        IF NOT lOpened THEN hQuery:QUERY-OPEN. /* include new records */
+      END.
+    END.    /* END DO pcRowIdent */
+    ELSE 
+      /* If no rowident is passed then we are batching (or reading the first 
+         batch), so set append flag to pass to transferRows. */ 
+      ASSIGN
+        cMode   = IF piRowsToReturn >= 0 THEN "NEXT":U
+                  ELSE "PREV":U 
+        lAppend = YES.
+    RUN transferRows IN TARGET-PROCEDURE (lAppend,
+                                          cMode,
+                                          IF cMode BEGINS "REPOSITION":U 
+                                          OR cMode = "REFRESH":U
+                                          THEN pcRowIdent
+                                          ELSE "":U,
+                                          lFill,
+                                          ABS(piRowsToReturn),
+                                          OUTPUT piRowsReturned).
+    /* if failure return current batch */
+    IF NOT lAppend AND piRowsReturned = 0 AND cMode = "REPOSITION":U THEN
+    DO: 
+      /* Avoid this if we do not have info about what was current */
+      IF cFirstResultrow <> ? AND cLastResultrow <> ? THEN
       DO:
-        hDataQuery:QUERY-OPEN(). /* Re-open the Temp-Table query. */
-        IF rCurrentRow = ? THEN
-        DO: /* This was our first fetch. Position BEFORE the first row. */
-          hDataQuery:GET-FIRST().
-          hDataQuery:GET-PREV().
-        END.  /* END DO IF rCurrentRow = ? */
-        ELSE hDataQuery:REPOSITION-TO-ROWID(rCurrentRow).
-      END.    /* END DO IF NOT Server */
-    END.      /* END DO IF RowsReturned > 0 */
+        {set LastResultRow cLastResultRow}.
+        {set FirstResultRow cFirstResultRow}.
+        RUN transferRows IN TARGET-PROCEDURE 
+                 (lAppend,
+                  "CURRENT":U,  
+                  "":U,
+                  NO,
+                  0, /* we may have more than one batch */ 
+                  OUTPUT piRowsReturned).
+        /* Tell clientSendRows to not position */ 
+        {set QueryRowident ?}.
+        /* Tell locally that we have no position */
+         hRowObject:BUFFER-RELEASE.
+      END.
+    END.
+   
     RUN changeCursor IN TARGET-PROCEDURE('':U).
   END.    /* END IF query IS-OPEN */
   RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-serverCommit) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE serverCommit Procedure 
+PROCEDURE serverCommit :
+/*------------------------------------------------------------------------------
+  Purpose:     Update procedure executed on the server side of a split 
+               SmartDataObject, called from the client Commit function.
+               Commit passes a set of RowObjUpdate records both have changes to
+               be committed and their pre-change copies (before-images).  
+               commitRows verifies that the records have not been changed 
+               since they were read, and then commits the changes to the 
+               database.
+  Parameters:
+   INPUT-OUTPUT TABLE RowObjUpd - The Update version of the RowObject 
+                                  Temp-Table
+ 
+   OUTPUT cMessages - a CHR(3) delimited string of accumulated messages from
+                       server.
+    OUTPUT cUndoIds  - list of any RowObject ROWIDs whose changes need to be 
+                       undone as the result of errors in the form of:
+               "RowNumCHR(3)ADM-ERROR-STRING,RowNumCHR(3)ADM-ERROR-STRING,..."
+
+ Notes:        If another user has modified the database records since the 
+               original was read, the new database values are copied into the 
+               RowObjUpd record and returned to Commit so the UI object can 
+               display them.
+------------------------------------------------------------------------------*/
+  DEFINE INPUT-OUTPUT  PARAMETER TABLE-HANDLE phRowObjUpd.
+  DEFINE OUTPUT PARAMETER pcMessages AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER pcUndoIds  AS CHARACTER  NO-UNDO.
+  
+  {set RowObjUpdTable phRowObjUpd}.
+  
+  RUN bufferCommit IN TARGET-PROCEDURE (OUTPUT pcMessages,
+                                        OUTPUT pcUndoIds).
+  
+  DELETE OBJECT phRowObjUpd NO-ERROR.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -4288,6 +6832,7 @@ PROCEDURE serverFetchRowObjUpdTable :
  DEFINE OUTPUT PARAMETER TABLE-HANDLE phRowObjUpd.
 
   {get RowObjUpdTable phRowObjUpd}.
+ 
   RETURN.
 END PROCEDURE.
 
@@ -4529,16 +7074,22 @@ PROCEDURE submitCommit :
   DEFINE VARIABLE rRowObject      AS ROWID     NO-UNDO.
   DEFINE VARIABLE hRowObject      AS HANDLE    NO-UNDO.
   DEFINE VARIABLE cState          AS CHARACTER  NO-UNDO.
-  
+  DEFINE VARIABLE lQueryContainer AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hSBO            AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lAutoCommitSBO  AS LOGICAL    NO-UNDO.
+
   IF DYNAMIC-FUNCTION("anyMessage":U IN TARGET-PROCEDURE) THEN
   DO:
     /* Add the update cancelled message */
     RUN addMessage IN TARGET-PROCEDURE({fnarg messageNumber 15},?,?).
+    RUN doReturnToAddMode IN TARGET-PROCEDURE.
     RETURN "ADM-ERROR":U.    /* If there were any Data messages */
   END.
   ELSE DO:
     /* Tell others the update is done and to redisplay the rec if appropriate */
+    
     RUN dataAvailable IN TARGET-PROCEDURE ("SAME":U).  /* not a different row. */    
+    
     {get AutoCommit lAutoCommit}.
     IF lAutoCommit THEN 
     DO:
@@ -4554,48 +7105,46 @@ PROCEDURE submitCommit :
     rRowObject = TO-ROWID(ENTRY(1,pcRowIdent)).
     
     {get RowObject hRowObject}.
+    
     IF cReturn = '':U THEN
     DO: 
       {set DataModified FALSE}.
-      /* If doCreateUpdate told us to reopen (because a new record was added to 
-         the RowObject table), re-open the RowObject Query and reposition to the
-         newly added row. */
-      IF plReopen THEN
-      DO: 
-        /* check if there is a containing SBO and what its */
-        /* AutoCommit status is */
-        DEFINE VARIABLE lQueryContainer AS LOGICAL    NO-UNDO.
+
+      /* Check if we are inside an SBO with AutoCommit as the SBO 
+         handles most of the post commit logic in that case */
+      IF NOT lAutoCommit THEN
+      DO:
         {get QueryContainer lQueryContainer}.
-        IF NOT lQueryContainer THEN
-          RUN reopenToRowid IN TARGET-PROCEDURE (rRowObject).
-        ELSE DO:
-          DEFINE VARIABLE hSBO           AS HANDLE     NO-UNDO.
-          DEFINE VARIABLE lAutoCommitSBO AS LOGICAL    NO-UNDO.
+        IF lQueryContainer THEN
+        DO:
           {get ContainerSource hSBO}.
           {get AutoCommit lAutoCommitSBO hSBO}.
-          IF NOT lAutoCommitSBO THEN
-              RUN reopenToRowid IN TARGET-PROCEDURE (rRowObject).
-        END.
+        END.      
       END.
+                         
+      /* Avoid calling reopenToRowid and publish dataAvailable if Autocommit SBO*/
+      IF NOT lAutoCommitSBO THEN
+      DO:        
+        /* If doCreateUpdate told us to reopen (because a new record was added 
+           to the RowObject table), re-open the RowObject Query and reposition 
+           to the newly added row. */
+        IF plReopen THEN
+          RUN reopenToRowid IN TARGET-PROCEDURE (rRowObject).
+       
+        /* From 9.1B+ we also publish uncommitted changes. */ 
+        cState = (IF NOT plReopen     THEN 'SAME':U
+                  ELSE IF lAutoCommit THEN 'DIFFERENT':U
+                  /* we use 'RESET' for uncommitted new records, as this 
+                     will reset panels and only reopen if child has 
+                     no changes */
+                  ELSE                     'RESET':U).   
 
-       /* From 9.1B+ we also publish uncommitted changes. */ 
-      ASSIGN cState = (IF NOT plReopen     THEN 'SAME':U
-                       ELSE IF lAutoCommit THEN 'DIFFERENT':U
-                     /* we use 'RESET' for uncommitted new records, as this 
-                        will reset panels and only reopen if child has 
-                        no changes */
-                       ELSE                     'RESET':U).   
-
-      /*** Note that submitForeignKey currently still is getting
-          the ForeignFields from the parent instead of ForeignValues if
-           the source is NewRow and RowObjectState is 'RowUpdated'.
-          This is probably not necessary now as 'reset' will set Foreignvalues.*/     
-          
-      IF NOT lQueryContainer THEN 
+        /* Note that submitForeignKey currently still is getting
+           the ForeignFields from the parent instead of from the ForeignValues 
+           if the source is NewRow and RowObjectState is 'RowUpdated'.
+           This is probably not necessary now as 'reset' sets Foreignvalues.*/
         PUBLISH "dataAvailable":U FROM TARGET-PROCEDURE (cState).
-      ELSE IF NOT lAutoCommitSBO THEN
-          PUBLISH "dataAvailable":U FROM TARGET-PROCEDURE (cState).
-
+      END.
     END. /* Return = '' (Successful commit or not autocommit) */
     ELSE DO: 
 
@@ -4626,7 +7175,7 @@ PROCEDURE submitForeignKey :
                                 database.  Since this is a new record, only the
                                 first ROWID (that of the RowObject itself) is
                                 valid.  There are no DB ROWIDs because they
-                                have not yet been created.
+                                have not yet been created.                                
     INPUT-OUTPUT pcValueList  - A CHR(1) delimited list of ForeignField column
                                 and value pairs to be set in the RowObject 
                                 record identified by pcRowIdent.  On input it is
@@ -4638,14 +7187,13 @@ PROCEDURE submitForeignKey :
                                 
     Notes:     The list of udpdatable fields (pcUpdColumns - derived from the
                UpdatableColumns property in submitRow) usually doesn't
-               contain key fields.  However, because submitForiegnKey is called
+               contain key fields. However, because submitForiegnKey is called
                when creating a new RowObject record, key fields need to be 
                populated so pcUpdColumns is expanded to allow for this.  
                However, only the variable pcUpdColumns is expanded, the 
                UpdatableColumns property remains unchanged.
                
 ------------------------------------------------------------------------------*/
- 
   DEFINE INPUT        PARAMETER pcRowIdent   AS CHARACTER NO-UNDO.
   DEFINE INPUT-OUTPUT PARAMETER pcValueList  AS CHARACTER NO-UNDO.
   DEFINE INPUT-OUTPUT PARAMETER pcUpdColumns AS CHARACTER NO-UNDO.
@@ -4655,52 +7203,38 @@ PROCEDURE submitForeignKey :
   DEFINE VARIABLE cDataColumns    AS CHARACTER NO-UNDO.
   DEFINE VARIABLE iCol            AS INTEGER   NO-UNDO.
   DEFINE VARIABLE cField          AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE hRowObject      AS HANDLE    NO-UNDO.
   DEFINE VARIABLE hField          AS HANDLE    NO-UNDO.
   DEFINE VARIABLE cCurrField      AS CHARACTER NO-UNDO.
   DEFINE VARIABLE hSource         AS HANDLE    NO-UNDO.
   DEFINE VARIABLE cValue          AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cRowObjectState AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lNew            AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lNewSource      AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lLookupParent   AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lQueryContainer AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cObjectName     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iPass           AS INTEGER    NO-UNDO.
   DEFINE VARIABLE lObjectFound    AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lNew            AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cForName        AS CHARACTER  NO-UNDO.
 
   /* If this is a newly Added row, and there are Foreign Fields, 
-    assign those values to the RowObject columns. */
-  {get RowObject hRowObject}.
-  hField = hRowObject:BUFFER-FIELD('RowMod':U).
-  IF hField:BUFFER-VALUE = "A":U OR hField:BUFFER-VALUE = "C":U THEN
+     assign those values to the RowObject columns. */
+  {get NewRow lNew}.
+  IF lNew THEN
   DO:
-    {get ForeignFields cForFields}.
     /* Find out whether this SDO is inside an SBO */
     {get QueryContainer lQueryContainer}.
-    /* On first pass, check foreign fields of SDO, on second pass,
-       check foreign fields of SBO */
+    
+    /* On first pass, process foreign fields of SDO, on second pass,
+       process foreign fields from SBO */
     DO iPass = 1 TO (IF lQueryContainer THEN 2 ELSE 1):
-      IF iPass = 2 THEN
-      DO:
-        ASSIGN cForFields = "".
-        {get ContainerSource hSource}.
-        {get ForeignFields cForFields hSource}.
-        /* Check that the foreign field referenced is contained within this SDO */
-        {get ObjectName cObjectName}.
-        ASSIGN lObjectFound = FALSE.
-        Object-Loop:
-        DO iCol = 1 TO NUM-ENTRIES(cForFields) BY 2:
-          ASSIGN cCurrField = ENTRY(iCol, cForFields).
-          IF NUM-ENTRIES(cCurrField,".") > 1 
-              AND ENTRY(1,cCurrField, ".":U) = cObjectName THEN
-          DO:
-            ASSIGN lObjectFound = TRUE. 
-            LEAVE Object-Loop.
-          END.
-        END. /* END DO iCol = 1 to .. */
-        IF NOT lObjectFound THEN
-          cForFields = "".
-      END. /* END iPass = 2 */
+      CASE iPass:
+        WHEN 1 THEN
+          {get ForeignFields cForFields}.
+        WHEN 2 THEN
+          cForFields = {fn getForeignFieldsContainer}.
+      END CASE.
+
       IF cForFields NE "":U THEN
       DO:
         IF iPass = 1 THEN
@@ -4709,43 +7243,47 @@ PROCEDURE submitForeignKey :
           {get ContainerSource hSource}.
           {get DataSource hSource hSource}. /* get SBO's dataSource on pass 2 */     
         END.
+        /* if child runs stand-alone foreign fields don't matter */
+        IF VALID-HANDLE(hSource) THEN 
+        DO:
+          {get RowObjectState cRowObjectState hSource}.
+          {get NewRow lNewSource hSource}.
+          /* if multiple add for one-to-one or otherwise uncommitted new parent
+             get the foreignkey from the source, becasue submitcommit does not 
+             publish DataAvailable under these circumstances (new/autocommit off) 
+            NOTE: This is no longer true, but was changed too late to mess with it*/ 
+          IF cRowObjectstate = 'RowUpdated' AND lNewSource  THEN
+             lLookupParent = TRUE. 
+          ELSE 
+            {get ForeignValues cForValues}.
+          {get DataColumns cDataColumns}.
+          DO iCol = 1 TO NUM-ENTRIES(cForFields) BY 2:
+                          /* Make sure this works with unqualified field */ 
+            cCurrField = ENTRY(iCol, cForFields).
+            cField = ENTRY(NUM-ENTRIES(cCurrField,".":U),cCurrField, ".":U).
 
-        {get RowObjectState cRowObjectState hSource}.
-        {get NewRow lNew hSource}.
-        /* if multiple add for one-to-one or otherwise uncommitted new parent
-           get the foreignkey from the source, becasue submitcommit does not 
-           publish DataAvailable under these circumstances (new/autocommit off) 
-          NOTE: This is no longer true, but was changed too late to mess with it*/ 
-        IF cRowObjectstate = 'RowUpdated' AND lNew  THEN
-           lLookupParent = TRUE. 
-        ELSE 
-          {get ForeignValues cForValues}.
+            IF LOOKUP(cField, cDataColumns) NE 0 AND /* It's in the SDO, and */
+               LOOKUP(cField, pcValueList, CHR(1)) = 0 THEN /* not already assigned */
+            DO:
+              ASSIGN cForName     = ENTRY(iCol + 1, cForFields)
+                     cValue       = IF NOT lLookupParent 
+                                    THEN ENTRY(INT((iCol + 1) / 2), cForValues, CHR(1)) 
+                                    ELSE {fnarg columnValue cForName hSource}
 
-        {get DataColumns cDataColumns}.
-        DO iCol = 1 TO NUM-ENTRIES(cForFields) BY 2:
-                        /* Make sure this works with unqualified field */ 
-          cCurrField = ENTRY(iCol, cForFields).
-          cField = ENTRY(NUM-ENTRIES(cCurrField,".":U),cCurrField, ".":U).
-          
-          IF LOOKUP(cField, cDataColumns) NE 0 AND /* It's in the SDO, and */
-             LOOKUP(cField, pcValueList, CHR(1)) = 0 THEN /* not already assigned */
-          DO:
-            ASSIGN cValue       = IF NOT lLookupParent 
-                                  THEN ENTRY(INT((iCol + 1) / 2), cForValues, CHR(1)) 
-                                  ELSE {fnarg columnValue cField hSource}
-                
-                   pcValueList  = cField + CHR(1) 
-                                  + cValue 
-                                  + (IF pcValueList = "":U THEN "":U ELSE CHR(1)) 
-                                  + pcValueList
-                   /* Make it updatable for Add if not already */
-                   pcUpdColumns = cField + ",":U + pcUpdColumns.
-          END.   /* END DO IF LOOKUP... */
-        END.     /* END DO iCol         */
+                     pcValueList  = cField + CHR(1) 
+                                    + cValue 
+                                    + (IF pcValueList = "":U THEN "":U ELSE CHR(1)) 
+                                    + pcValueList
+                     /* Make it updatable for Add if not already */
+                     pcUpdColumns = cField + ",":U + pcUpdColumns.
+            END.   /* END DO IF LOOKUP... */
+          END.     /* END DO iCol         */
+        END.   /* IF VALID-HANDLE(hSource) */
       END.    /* END IF cForFields NE "" */
     END.      /* END DO iPass = 1 to .. */
-  END.        /* END DO IF "Add"     */
+  END.        /* END DO IF "New"     */
   RETURN.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -4775,22 +7313,47 @@ PROCEDURE submitValidation :
                     (FieldName)Validation procedure.
                  4) Any developer defined validation in the form of a
                     RowObjectValidation procedure for the whole row.
+         - Developer defined validation in the form (FieldName)Validation  
+           must be either in the Logic Procedure or in the static SDO. 
+           If any field validation procedure is found in the static SDO
+           the rest is also assumed to be there.  
 ------------------------------------------------------------------------------*/
 
   DEFINE INPUT PARAMETER pcValueList    AS CHARACTER NO-UNDO.
   DEFINE INPUT PARAMETER pcUpdColumns   AS CHARACTER NO-UNDO.
   
-  DEFINE VARIABLE iColNum     AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE cColName    AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE hCol        AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE iColNum        AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE cColName       AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE hCol           AS HANDLE    NO-UNDO.
   DEFINE VARIABLE hRowObject     AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE cValue      AS CHAR   NO-UNDO.
-  
+  DEFINE VARIABLE cValue         AS CHAR      NO-UNDO.
+  DEFINE VARIABLE hLogicObject   AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE hValRowObject  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lLocalVal      AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lLocalFieldVal AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lAnyFieldVal   AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cDataFieldDefs AS CHARACTER  NO-UNDO.
+
   {get RowObject hRowObject}.
-  
+  {get DataLogicObject hLogicObject}. 
+  IF VALID-HANDLE(hLogicObject) THEN
+  DO:
+    /* used to check if the SDO TT is static */ 
+    {get DataFieldDefs cDataFieldDefs}.
+    /* Set the buffer in the logic procedure and also return the handle
+       so that it is the Logic procedure buffer values that are passed 
+       as input to the field validation procedures */  
+    RUN setLogicBuffer IN TARGET-PROCEDURE (INPUT hRowObject, INPUT ?).
+    RUN getLogicBuffer IN TARGET-PROCEDURE (OUTPUT hValRowObject).
+  END.
+  ELSE
+    ASSIGN
+      hValRowObject  = hRowObject
+      lLocalFieldVal = TRUE.
+       
   DO iColNum = 1 TO NUM-ENTRIES(pcValueList,CHR(1)) BY 2:
     cColName = ENTRY(iColNum, pcValueList,CHR(1)).
-    hCol = hRowObject:BUFFER-FIELD(cColName) NO-ERROR.
+    hCol = hValRowObject:BUFFER-FIELD(cColName) NO-ERROR.
     IF hCol = ? THEN 
        RUN addMessage IN TARGET-PROCEDURE ("Column name ":U + cColName + 
          " not found in the SmartDataObject.":U, cColName, ?).
@@ -4815,29 +7378,64 @@ PROCEDURE submitValidation :
           /* If there's a field validation procedure, run it. */
           RUN VALUE(hCol:NAME + 'Validate':U) IN TARGET-PROCEDURE 
             (hCol:BUFFER-VALUE) NO-ERROR. 
-          /* The expectation is that such a procedure will return an error 
-             message if there is one; we will log it for the column. 
-             Otherwise the code assumes that an error-status simply means 
-             there wasn't a validate procedure for this column. 
-             We keep going even if there's a field error. */
-          IF NOT ERROR-STATUS:ERROR AND   /* procedure was found and executed */
-            /* NOTE: No longer checked? -> ERROR-STATUS:GET-NUMBER(1) NE 6456 THEN 
-               (proc not found) - here and below */
-            RETURN-VALUE NE "":U THEN
-              RUN addMessage IN TARGET-PROCEDURE (RETURN-VALUE, hCol:NAME, ?).
+          IF NOT ERROR-STATUS:GET-NUMBER(1) = 6456 THEN 
+          DO:
+            IF NOT lAnyFieldVal THEN lAnyFieldVal = TRUE.
+            /* The expectation is that such a procedure will return an error 
+               message if there is one; we will log it for the column. 
+               Otherwise the code assumes that an error-status simply means 
+               there wasn't a validate procedure for this column. 
+               We keep going even if there's a field error. */          
+            IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN
+              RUN addMessage IN TARGET-PROCEDURE 
+                    (IF RETURN-VALUE NE "" THEN RETURN-VALUE ELSE ERROR-STATUS:GET-MESSAGE(1), 
+                     hCol:NAME, 
+                      ?).
+            /* if we are using a logic procedure check if the FieldVal is local
+               also ensure that we use the SDO's buffer from now on  */   
+            IF cDataFieldDefs > '':U AND NOT lLocalFieldVal 
+            AND LOOKUP(hCol:NAME + 'Validate':U,TARGET-PROCEDURE:INTERNAL-ENTRIES) > 0 THEN
+              ASSIGN 
+                lLocalFieldVal = TRUE
+                hValRowObject = hRowObject.
+          END.
         END. /* END DO Validate procedure. */
       END.   /* END DO all column validation */
     END.     /* END DO check that column is updatable */
   END.       /* END DO for each updated column */
   
-  /* If there's a user-defined validation procedure for the entire row,
-     run that now. */
-  RUN RowObjectValidate IN TARGET-PROCEDURE NO-ERROR.   
-  IF NOT ERROR-STATUS:ERROR AND      /* Procedure was found and executed. */
-    RETURN-VALUE NE "":U THEN
-     RUN addMessage IN TARGET-PROCEDURE (RETURN-VALUE, ?, ?).
+  lLocalVal = NOT VALID-HANDLE(hLogicObject) 
+              OR LOOKUP("RowObjectValidate":U,TARGET-PROCEDURE:INTERNAL-ENTRIES) > 0.
+  
+  /* If we have a logic procedure we may need to copy the data from where 
+     the field validation is to where the rowObjectValidate is before we call it.
+     If no field validation there's no need as the copy was done above */    
+  IF VALID-HANDLE(hLogicObject) AND lAnyFieldVal THEN 
+  DO:
+    IF NOT lLocalFieldVal AND lLocalVal THEN
+      hRowObject:BUFFER-COPY(hValRowObject).  
+    ELSE IF lLocalFieldVal AND NOT lLocalVal THEN
+      RUN setLogicBuffer IN TARGET-PROCEDURE (INPUT hRowObject, INPUT ?).
+  END.
+
+  RUN RowObjectValidate IN TARGET-PROCEDURE NO-ERROR. 
+  
+  IF NOT ERROR-STATUS:ERROR  /* Procedure was found and executed. */
+  AND RETURN-VALUE NE "":U THEN
+    RUN addMessage IN TARGET-PROCEDURE (RETURN-VALUE, ?, ?).
+
+  IF VALID-HANDLE(hLogicObject) THEN
+  DO:  
+    /* if RowObjectValidation is local we got the values back before we called 
+       it (if we needed to) */
+    IF NOT lLocalVal THEN 
+       hRowObject:BUFFER-COPY(hValRowObject).
+    
+    RUN clearLogicRows IN TARGET-PROCEDURE.
+  END.
 
   RETURN.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -4863,14 +7461,12 @@ PROCEDURE tableOut :
                "!RowNum,!RowIdent,!RowMod, *" would use all non SDO specific
                fields.
                For fields passed in - do NOT use a table prefix
-               The temp table contains a record per record/field combination
-               
-               Currently has a hard coded limit of 5000 records to fetch - max!
+               The temp table contains a record per record/field combination               
 ------------------------------------------------------------------------------*/
 
-DEFINE INPUT PARAMETER pcFieldList                AS CHARACTER  NO-UNDO.
-DEFINE INPUT PARAMETER plIncludeObj               AS LOGICAL    NO-UNDO.
-DEFINE INPUT PARAMETER piMaxRecords               AS INTEGER    NO-UNDO.
+DEFINE INPUT  PARAMETER pcFieldList                AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER plIncludeObj               AS LOGICAL    NO-UNDO.
+DEFINE INPUT  PARAMETER piMaxRecords               AS INTEGER    NO-UNDO.
 DEFINE OUTPUT PARAMETER TABLE FOR ttTable.
 DEFINE OUTPUT PARAMETER iExtractedRecs            AS INTEGER    NO-UNDO.
 
@@ -4882,101 +7478,145 @@ DEFINE VARIABLE lAvailable                        AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE hQuery                            AS HANDLE     NO-UNDO.
 DEFINE VARIABLE hBuffer                           AS HANDLE     NO-UNDO.
 DEFINE VARIABLE hBufferField                      AS HANDLE     NO-UNDO.
-DEFINE VARIABLE lInitialized                      AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE iRowsToBatch                      AS INTEGER    NO-UNDO.
 DEFINE VARIABLE iNumRecords                       AS INTEGER    NO-UNDO.
-DEFINE VARIABLE cQueryPosition                    AS CHARACTER  NO-UNDO.
-
 DEFINE VARIABLE cRowIdent                         AS CHARACTER  NO-UNDO.
 
 /* Variables for Security Check of Fields */
-DEFINE VARIABLE hContainerHandle  AS HANDLE     NO-UNDO.
-DEFINE VARIABLE cRunAttribute     AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cContainerName    AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cSecuredFields    AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cHiddenFields     AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE iLoop             AS INTEGER    NO-UNDO.
-DEFINE VARIABLE cFieldName        AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cNewFieldList     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cQueryPosition      AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE hContainerHandle    AS HANDLE     NO-UNDO.
+DEFINE VARIABLE cRunAttribute       AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cContainerName      AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cSecuredFields      AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cHiddenFields       AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE iLoop               AS INTEGER    NO-UNDO.
+DEFINE VARIABLE cFieldName          AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cNewFieldList       AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cWantedFieldHandles AS CHARACTER  NO-UNDO.
+
+DEFINE VARIABLE hBrowser            AS HANDLE                   NO-UNDO.
+DEFINE VARIABLE hBrowseColumn       AS HANDLE                   NO-UNDO.
+DEFINE VARIABLE hDataTarget         AS HANDLE                   NO-UNDO.
+DEFINE VARIABLE cDataTargets        AS CHARACTER                NO-UNDO.
+DEFINE VARIABLE cColumnNames        AS CHARACTER                NO-UNDO.
+DEFINE VARIABLE cColumnHandles      AS CHARACTER                NO-UNDO.
+DEFINE VARIABLE hNavSource          AS HANDLE                   NO-UNDO.
 
 /* Start of Security check */
 ASSIGN hContainerHandle = TARGET-PROCEDURE.
+
 {get ContainerSource hContainerHandle}.
-IF VALID-HANDLE(hContainerHandle) THEN DO:
-  {get LogicalObjectName cContainerName hContainerHandle} NO-ERROR.
-  cRunAttribute = DYNAMIC-FUNCTION('getRunAttribute' IN hContainerHandle) NO-ERROR.  
+IF VALID-HANDLE(hContainerHandle) 
+THEN DO:
+    {get LogicalObjectName cContainerName hContainerHandle} NO-ERROR.
+    cRunAttribute = DYNAMIC-FUNCTION('getRunAttribute' IN hContainerHandle) NO-ERROR.  
+    IF cContainerName = "":U THEN
+        ASSIGN cContainerName = hContainerHandle:FILE-NAME.
 END.
 ELSE
-  cContainerName = "":U.
-   
-IF cContainerName = "":U AND
-  VALID-HANDLE(hContainerHandle) THEN
-   cContainerName = hContainerHandle:FILE-NAME.
-   
-IF cContainerName <> "":U THEN
-  ASSIGN cContainerName = REPLACE(cContainerName,"~\":U,"/":U)
-         cContainerName = SUBSTRING(cContainerName,R-INDEX(cContainerName,"/":U) + 1,LENGTH(cContainerName)).
-ELSE
- cContainerName = "":U.
+    cContainerName = "":U.
 
-RUN fieldSecurityCheck IN gshSecurityManager (INPUT cContainerName,
-                                              INPUT cRunAttribute,
-                                              OUTPUT cSecuredFields).
-  
+IF cContainerName <> "":U THEN
+    ASSIGN cContainerName = REPLACE(cContainerName,"~\":U,"/":U)
+           cContainerName = SUBSTRING(cContainerName,R-INDEX(cContainerName,"/":U) + 1,LENGTH(cContainerName)).
+
+RUN fieldSecurityGet IN gshSecurityManager (INPUT hContainerHandle, /* If not valid cContainerName will be used */
+                                            INPUT cContainerName,
+                                            INPUT cRunAttribute,
+                                            OUTPUT cSecuredFields).
 ASSIGN cHiddenFields = "":U
        cNewFieldList = "":U.
+
 /* Check if security on fields have been set */
-IF INDEX(cSecuredFields,"Hidden":U) > 0 THEN DO:
-  DO iLoop = 1 TO NUM-ENTRIES(cSecuredFields):
-    IF ENTRY(iLoop + 1,cSecuredFields) = "Hidden":U THEN
-      ASSIGN cHiddenFields = IF cHiddenFields = "":U 
-                                THEN ENTRY(iLoop,cSecuredFields)
-                                ELSE cHiddenFields + ",":U + ENTRY(iLoop,cSecuredFields).
-    iLoop = iLoop + 1. /* Skip One */
-  END.
-END.
+IF INDEX(cSecuredFields,"Hidden":U) > 0 THEN
+    DO iLoop = 1 TO NUM-ENTRIES(cSecuredFields):
+        IF ENTRY(iLoop + 1,cSecuredFields) = "Hidden":U THEN
+            ASSIGN cHiddenFields = IF cHiddenFields = "":U 
+                                   THEN ENTRY(iLoop,cSecuredFields)
+                                   ELSE cHiddenFields + ",":U + ENTRY(iLoop,cSecuredFields).
+        iLoop = iLoop + 1. /* Skip One */
+    END.
 
 /* Now Remove the hidden fields from pcFieldList */
-IF INDEX(pcFieldList,"*":U) > 0 THEN DO:
-  /* Now add ! to every field to exclude them */
-  DO iLoop = 1 TO NUM-ENTRIES(cHiddenFields):
-    ENTRY(iLoop,cHiddenFields) = "!":U + ENTRY(iLoop,cHiddenFields).
-  END.
-  pcFieldList = TRIM(pcFieldList,"*":U) + cHiddenFields + ",*":U.
+IF INDEX(pcFieldList,"*":U) > 0 
+THEN DO:
+    /* Now add ! to every field to exclude them */
+    DO iLoop = 1 TO NUM-ENTRIES(cHiddenFields):
+        ENTRY(iLoop,cHiddenFields) = "!":U + ENTRY(iLoop,cHiddenFields).
+    END.
+    pcFieldList = RIGHT-TRIM(pcFieldList,",*":U) + cHiddenFields + ",*":U.
 END.
 ELSE DO:
-  DO iLoop = 1 TO NUM-ENTRIES(pcFieldList):
-    cFieldName = ENTRY(iLoop,pcFieldList).
-    IF LOOKUP(cFieldName,cHiddenFields) > 0 THEN
-      NEXT.
-    cNewFieldList = IF cNewFieldList = "":U
-                       THEN cFieldName
-                       ELSE cNewFieldList + ",":U + cFieldName.
-  END.
-  ASSIGN pcFieldList = cNewFieldList.
+    DO iLoop = 1 TO NUM-ENTRIES(pcFieldList):
+        cFieldName = ENTRY(iLoop,pcFieldList).
+        IF LOOKUP(cFieldName,cHiddenFields) > 0 THEN
+            NEXT.
+        cNewFieldList = IF cNewFieldList = "":U
+                        THEN cFieldName
+                        ELSE cNewFieldList + ",":U + cFieldName.
+    END.
+    ASSIGN pcFieldList = cNewFieldList.
 END.
 
-ASSIGN
-  piMaxRecords = (IF piMaxRecords > 0 THEN piMaxRecords ELSE 99999999)
-  iNumRecords = 0
-  .
+ASSIGN piMaxRecords = (IF piMaxRecords > 0 THEN piMaxRecords ELSE 99999999)
+       iNumRecords  = 0.
 
 /* Store current position in query */
 cRowident = DYNAMIC-FUNCTION('getRowIdent':U IN TARGET-PROCEDURE) NO-ERROR.
 
-/* Pretend we are not initialized to disable datavailable messages, etc whilst
-   we do the business here
-*/
-{get objectinitialized lInitialized}.
-{set objectinitialized NO}.
+/* We need to do all this to ensure we don't pick up dataAvailable messages, queryPosition subscribes etc. */
+
+PUBLISH 'fetchDataSet':U FROM TARGET-PROCEDURE ('BatchStart':U).
+
+{get NavigationSource hNavSource}.
+RUN linkStateHandler IN TARGET-PROCEDURE(INPUT "Inactive":U,
+                                         INPUT hNavSource,
+                                         INPUT "NavigationSource":U).
+
+/* Get the browser handle that this request came from. If we are performing this request from a browser, *
+ * then we must use the browser's column labels, particularly because they may have been translated.     */
+
+{get DataTarget cDataTargets}.
+
+DATA-TARGET-LOOP:
+DO iLoop = 1 TO NUM-ENTRIES(cDataTargets):
+    ASSIGN hDataTarget = WIDGET-HANDLE(ENTRY(iLoop, cDataTargets)) NO-ERROR.
+
+    IF VALID-HANDLE(hDataTarget) 
+    THEN DO:
+        IF NOT VALID-HANDLE(hBrowser)
+        AND {fnarg instanceOf 'Browser' hDataTarget} THEN
+            {get BrowseHandle hBrowser hDataTarget}.
+
+        /* While we're here, disable the data link to improve performance */
+        RUN linkStateHandler IN hDataTarget (INPUT "inactive":U,
+                                             INPUT TARGET-PROCEDURE,
+                                             INPUT "dataSource":U).
+    END.
+END.
+
+/* Once we have found the browser, build a list of the browse column names and their handles. This is because
+ * the only way to retrieve the browser column handle is to use the GET-BROWSE-COLUMN() method, and this uses
+ * an ordinal value. We can not depend on the order of the browser columns being the same as the prder of the 
+ * fields in the DataObject, so we need to determine the browser column handle from our pre-built lists.    */
+IF VALID-HANDLE(hBrowser) 
+THEN DO:
+    DO iLoop = 1 TO hBrowser:NUM-COLUMNS:
+        ASSIGN hBrowseColumn  = hBrowser:GET-BROWSE-COLUMN(iLoop)
+               cColumnNames   = cColumnNames + hBrowseColumn:NAME + ",":U
+               cColumnHandles = cColumnHandles + STRING(hBrowseColumn) + ",":U
+               .
+    END.    /* loop through browser columns */
+    ASSIGN cColumnNames   = RIGHT-TRIM(cColumnNames, ",":U)
+           cColumnHandles = RIGHT-TRIM(cColumnHandles, ",":U)
+           .
+END.    /* valid browser. */
 
 /* Ensure temp-table is empty to start */
 EMPTY TEMP-TABLE ttTable.
 
-ASSIGN
-  iRowNum = 0
-  iColNum = 0
-  .
+ASSIGN iRowNum = 0
+       iColNum = 0.
 
 /* set rows to batch very high as we will read all the data */
 {get rowsToBatch iRowsToBatch}.
@@ -4990,115 +7630,123 @@ lAvailable = DYNAMIC-FUNCTION('getQueryPosition':U IN TARGET-PROCEDURE) <> "NoRe
  
 IF lAvailable THEN
 DO:
-  ASSIGN
-    iNumRecords = 1
-    hQuery = DYNAMIC-FUNCTION('getDataHandle':U IN TARGET-PROCEDURE)
-    hBuffer = hQuery:GET-BUFFER-HANDLE(1)
-    .
+  ASSIGN iNumRecords = 1
+         hQuery      = DYNAMIC-FUNCTION('getDataHandle':U IN TARGET-PROCEDURE)
+         hBuffer     = hQuery:GET-BUFFER-HANDLE(1).
 
-  /* loop through sdo fields and create TT records for field labels, names,  datatypes and widths */
+  /* loop through sdo fields and create TT records for field labels, names, datatypes and widths */
+
   field-loop:
   DO iField = 1 TO hBuffer:NUM-FIELDS:
+
     hBufferField = hBuffer:BUFFER-FIELD(iField).
     
-    IF plIncludeObj = NO AND hBufferField:NAME <> RIGHT-TRIM(hBufferField:NAME,"_obj") THEN NEXT field-loop.
-    
-    IF CAN-DO(pcFieldList, hBufferField:NAME) THEN
-    DO:
-      ASSIGN 
-        iColNum = iColNum + 1
-        iPosn = LOOKUP(hBufferField:NAME, pcFieldList)
-        .      
+    IF plIncludeObj = NO AND INDEX(hBufferField:NAME, "_obj":U) > 0 THEN NEXT field-loop.
+
+    IF CAN-DO(pcFieldList, hBufferField:NAME) 
+    THEN DO:
+      ASSIGN iColNum       = iColNum + 1
+             iPosn         = LOOKUP(hBufferField:NAME, pcFieldList)
+             hBrowseColumn = ?.
+
+      IF VALID-HANDLE(hBrowser) THEN
+          ASSIGN hBrowseColumn = WIDGET-HANDLE(ENTRY(LOOKUP(hBufferField:NAME, cColumnNames), cColumnHandles)) NO-ERROR.
+
+      /* While we're getting the labels, names etc. build the list of field handles we need to extract.   *
+       * This prevents us from looping through every single field in the buffer if the user only wanted 1 *
+       * when we're extracting the data later on.                                                         */
+      ASSIGN cWantedFieldHandles = cWantedFieldHandles + STRING(hBufferField) + CHR(3).
+
       /* Store labels in row 0 */
       CREATE ttTable.
-      ASSIGN 
-        ttTable.iRow = 0
-        ttTable.iCol = (IF iPosn = 0 THEN iColNum ELSE iPosn) /* use sdo col posittion if fields passed in as */
-        ttTable.cCell = TRIM(hBufferField:COLUMN-LABEL)
-        .
-      /* Store names in row 1 */
+      ASSIGN ttTable.iRow  = 0
+             ttTable.iCol  = (IF iPosn = 0 THEN iColNum ELSE iPosn) /* use sdo col posittion if fields passed in as */
+             ttTable.cCell = IF VALID-HANDLE(hBrowseColumn) 
+                             THEN TRIM(hBrowseColumn:LABEL)
+                             ELSE TRIM(hBufferField:COLUMN-LABEL).
+
+      /* Store field names in row 1 */
       CREATE ttTable.
-      ASSIGN 
-        ttTable.iRow = 1
-        ttTable.iCol = (IF iPosn = 0 THEN iColNum ELSE iPosn) /* use sdo col posittion if fields passed in as */
-        ttTable.cCell = TRIM(hBufferField:NAME)
-        .
+      ASSIGN ttTable.iRow  = 1
+             ttTable.iCol  = (IF iPosn = 0 THEN iColNum ELSE iPosn) /* use sdo col posittion if fields passed in as */
+             ttTable.cCell = TRIM(hBufferField:NAME).
+
       /* Store datatypes in row 2 */
       CREATE ttTable.
-      ASSIGN 
-        ttTable.iRow = 2
-        ttTable.iCol = (IF iPosn = 0 THEN iColNum ELSE iPosn) /* use sdo col posittion if fields passed in as */
-        ttTable.cCell = TRIM(hBufferField:DATA-TYPE)
-        .
-    
+      ASSIGN ttTable.iRow = 2
+             ttTable.iCol = (IF iPosn = 0 THEN iColNum ELSE iPosn) /* use sdo col posittion if fields passed in as */
+             ttTable.cCell = TRIM(hBufferField:DATA-TYPE).
+
       /* Store widths in row 3 */
       CREATE ttTable.
-      ASSIGN 
-        ttTable.iRow = 3
-        ttTable.iCol = (IF iPosn = 0 THEN iColNum ELSE iPosn) /* use sdo col posittion if fields passed in as */
-        ttTable.cCell = TRIM(STRING(hBufferField:WIDTH-CHARS))
-        .
+      ASSIGN ttTable.iRow = 3
+             ttTable.iCol = (IF iPosn = 0 THEN iColNum ELSE iPosn) /* use sdo col posittion if fields passed in as */
+             ttTable.cCell = TRIM(STRING(hBufferField:WIDTH-CHARS)).
     END. /* This field is requested */
   END. /* Loop through the buffer fields */
 
-  ASSIGN
-    iRowNum = 9.  /* >9 = data */
+  ASSIGN cWantedFieldHandles = RIGHT-TRIM(cWantedFieldHandles, CHR(3))
+         iRowNum             = 9.  /* >9 = data */
 
   /* now loop through all available records */
+
   REPEAT WHILE lAvailable:
     
     IF NOT hBuffer:AVAILABLE THEN LEAVE.
     
-    ASSIGN 
-      iRowNum = iRowNum + 1
-      iColNum = 0.
-    field-loop2:
-    DO iField = 1 to hBuffer:NUM-FIELDS:
-      ASSIGN hBufferField = hBuffer:BUFFER-FIELD(iField).
-      
-      IF plIncludeObj = NO AND hBufferField:NAME <> RIGHT-TRIM(hBufferField:NAME,"_obj") THEN NEXT field-loop2.
-      
-      IF CAN-DO(pcFieldList, hBufferField:NAME) THEN 
-      DO:
-        CREATE ttTable.
-        ASSIGN
-          iColNum = iColNum + 1
-          iPosn = LOOKUP(hBufferField:NAME, pcFieldList)
-          ttTable.iRow = iRowNum
-          ttTable.iCol = (IF iPosn = 0 THEN iColNum ELSE iPosn)
-          ttTable.cCell = TRIM(hBufferField:STRING-VALUE)
-        .
-      END. /* This field is requested */
-    END. /* Loop through the buffer fields */
-    
-    
-    cQueryPosition = DYNAMIC-FUNCTION('getQueryPosition':U IN TARGET-PROCEDURE).
-    lAvailable = NOT CAN-DO("LastRecord,OnlyRecord":U, cQueryPosition).
+    ASSIGN iRowNum = iRowNum + 1.
 
-    ASSIGN
-      iNumRecords = iNumRecords + 1.
-    
+    field-loop2:
+    DO iField = 1 TO NUM-ENTRIES(cWantedFieldHandles, CHR(3)):
+
+      CREATE ttTable.
+      ASSIGN hBufferField  = WIDGET-HANDLE(ENTRY(iField, cWantedFieldHandles, CHR(3)))
+             iPosn         = LOOKUP(hBufferField:NAME, pcFieldList)
+             ttTable.iRow  = iRowNum
+             ttTable.iCol  = (IF iPosn = 0 THEN iField ELSE iPosn)
+             ttTable.cCell = TRIM(hBufferField:STRING-VALUE).
+    END. /* Loop through the buffer fields */
+
+    ASSIGN cQueryPosition = DYNAMIC-FUNCTION('getQueryPosition':U IN TARGET-PROCEDURE)
+           lAvailable     = NOT CAN-DO("LastRecord,OnlyRecord":U, cQueryPosition)
+           iNumRecords    = iNumRecords + 1.
+
     IF lAvailable AND iNumRecords <= piMaxRecords THEN
-      RUN fetchNext IN TARGET-PROCEDURE.
+        RUN fetchNext IN TARGET-PROCEDURE.
     ELSE
-      ASSIGN lAvailable = NO.
-  
-  END. /* Loop through all available records */
- 
+        ASSIGN lAvailable = NO.
+  END. /* Loop through all available records */ 
+
 END.  /* lAvailable = true */
+
+/* to here */
 
 /* reposition back to previously selected record */
 IF cRowIdent <> ? AND cRowIdent <> "":U THEN
   DYNAMIC-FUNCTION('fetchRowIdent' IN TARGET-PROCEDURE, cRowIdent, '':U) NO-ERROR.
 
 /* tidy up */
-ASSIGN
-  hQuery = ?
-  hBuffer = ?
-  iExtractedRecs = iNumRecords - 1
-  .
+ASSIGN hQuery         = ?
+       hBuffer        = ?
+       iExtractedRecs = iNumRecords - 1.
 
-{set objectinitialized lInitialized}.
+/* Enable everything we disabled */
+
+DATA-TARGET-LOOP:
+DO iLoop = 1 TO NUM-ENTRIES(cDataTargets):
+    ASSIGN hDataTarget = WIDGET-HANDLE(ENTRY(iLoop, cDataTargets)) NO-ERROR.
+
+    IF VALID-HANDLE(hDataTarget) THEN
+        RUN linkStateHandler IN hDataTarget (INPUT "active":U,
+                                             INPUT TARGET-PROCEDURE,
+                                             INPUT "dataSource":U).
+END.
+
+RUN linkStateHandler IN TARGET-PROCEDURE(INPUT "active":U,
+                                         INPUT hNavSource,
+                                         INPUT "NavigationSource":U).
+
+PUBLISH 'fetchDataSet':U FROM TARGET-PROCEDURE ("BatchEnd":U).
 
 /* reset rows to batch back */
 {set rowsToBatch iRowsToBatch}.
@@ -5130,290 +7778,373 @@ DEFINE INPUT PARAMETER plIncludeObj     AS LOGICAL              NO-UNDO.
 DEFINE INPUT PARAMETER plUseExisting    AS LOGICAL              NO-UNDO.
 DEFINE INPUT PARAMETER piMaxRecords     AS INTEGER              NO-UNDO.
 
-DEFINE VARIABLE chExcel                 AS COM-HANDLE           NO-UNDO.
-DEFINE VARIABLE chWorkbook              AS COM-HANDLE           NO-UNDO.
-DEFINE VARIABLE chWorkSheet             AS COM-HANDLE           NO-UNDO.
-DEFINE VARIABLE chRange                 AS COM-HANDLE           NO-UNDO.
-DEFINE VARIABLE chColumns               AS COM-HANDLE           NO-UNDO.
-DEFINE VARIABLE cRow                    AS CHARACTER            NO-UNDO.
-DEFINE VARIABLE cRange1                 AS CHARACTER            NO-UNDO.
-DEFINE VARIABLE cRange2                 AS CHARACTER            NO-UNDO.
-DEFINE VARIABLE cRange3                 AS CHARACTER            NO-UNDO.
-DEFINE VARIABLE cFullRange              AS CHARACTER            NO-UNDO.
-DEFINE VARIABLE cHeading                AS CHARACTER            NO-UNDO.
-DEFINE VARIABLE cNumericCellString      AS CHARACTER            NO-UNDO.
-DEFINE VARIABLE iSplit                  AS INTEGER              NO-UNDO.
-DEFINE VARIABLE hBrowserColumn          AS WIDGET-HANDLE        NO-UNDO.
-DEFINE VARIABLE iNumberOfColumns        AS INTEGER              NO-UNDO.
-DEFINE VARIABLE iNumberOfRows           AS INTEGER              NO-UNDO.
-DEFINE VARIABLE iLoop                   AS INTEGER              NO-UNDO.
-DEFINE VARIABLE lDone                   AS LOGICAL              NO-UNDO INITIAL NO.
-DEFINE VARIABLE lExcelInstalled         AS LOGICAL              NO-UNDO.
-DEFINE VARIABLE cAbort                  AS CHARACTER            NO-UNDO.      
-DEFINE VARIABLE cErrorMessage           AS CHARACTER            NO-UNDO.      
-DEFINE VARIABLE cDataType               AS CHARACTER            NO-UNDO.      
-DEFINE VARIABLE cDataTypeList           AS CHARACTER            NO-UNDO.      
-DEFINE VARIABLE cFieldName              AS CHARACTER            NO-UNDO.      
-DEFINE VARIABLE cFieldNameList          AS CHARACTER            NO-UNDO.      
-DEFINE VARIABLE dWidth                  AS DECIMAL              NO-UNDO.      
-DEFINE VARIABLE cFieldWidthList         AS CHARACTER            NO-UNDO.      
-DEFINE VARIABLE iRecordCnt              AS INTEGER              NO-UNDO.
+DEFINE VARIABLE chExcel            AS COM-HANDLE NO-UNDO.
+DEFINE VARIABLE chWorkbook         AS COM-HANDLE NO-UNDO.
+DEFINE VARIABLE chWorkSheet        AS COM-HANDLE NO-UNDO.
+DEFINE VARIABLE cRow               AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cRange1            AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cRange2            AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cRange3            AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cFullRange         AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cHeading           AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cNumericCellString AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE iSplit             AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iNumberOfColumns   AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iNumberOfRows      AS INTEGER    NO-UNDO.
+DEFINE VARIABLE lExcelInstalled    AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE cAbort             AS CHARACTER  NO-UNDO.      
+DEFINE VARIABLE cErrorMessage      AS CHARACTER  NO-UNDO.      
+DEFINE VARIABLE cDataType          AS CHARACTER  NO-UNDO.      
+DEFINE VARIABLE cDataTypeList      AS CHARACTER  NO-UNDO.      
+DEFINE VARIABLE iRecordCnt         AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iTemp1             AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iTemp2             AS INTEGER    NO-UNDO.
+DEFINE VARIABLE lDispAnotherLine   AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE cNextLineToDisp    AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cLabel             AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE iHeadingRows       AS INTEGER    NO-UNDO.
+DEFINE VARIABLE cLastColumn        AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cExportFilename    AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE lCancel            AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE iColumns           AS INTEGER    NO-UNDO.
 
-IF plUseExisting = ? THEN ASSIGN plUseExisting = YES.
+/* First make sure we're not halfway through an update.  If so, the user must finish first */
+
+RUN confirmContinue IN TARGET-PROCEDURE (INPUT-OUTPUT lCancel).
+IF lCancel 
+THEN DO:
+    RUN showMessages IN gshSessionManager 
+        (INPUT "You can not perform an Excel Export while updating a record.  Please finish the update first.",
+         INPUT "INF":U,
+         INPUT "OK":U,
+         INPUT "OK":U,
+         INPUT "OK":U,
+         INPUT "Excel Tranfer Error",
+         INPUT YES,
+         INPUT ?,
+         OUTPUT cAbort).
+    RETURN.
+END.
 
 SESSION:SET-WAIT-STATE("GENERAL":U).
 
+/* If Excel is not installed, there's no point in going on.  Check first. */
+
+LOAD "Excel.Application":U BASE-KEY "HKEY_CLASSES_ROOT":U NO-ERROR.
+ASSIGN lExcelInstalled = (ERROR-STATUS:ERROR = NO).
+UNLOAD "Excel.Application":U NO-ERROR.
+
+IF NOT lExcelInstalled 
+THEN DO:
+    SESSION:SET-WAIT-STATE("":U).
+    RUN showMessages IN gshSessionManager 
+        (INPUT "Excel not installed or running version prior to Office 97",
+         INPUT "INF":U,
+         INPUT "OK":U,
+         INPUT "OK":U,
+         INPUT "OK":U,
+         INPUT "Excel Tranfer Error",
+         INPUT YES,
+         INPUT ?,
+         OUTPUT cAbort).
+    RETURN.
+END.
+
+/* Get data to export to excel */
 IF pcFieldList = "":U THEN
-  ASSIGN pcFieldList = "!RowNum,!RowIdent,!RowMod,*":U.
+    ASSIGN pcFieldList = "!RowIdentIdx,!RowUserProp,!RowNum,!RowIdent,!RowMod,*":U.
 ELSE
-  ASSIGN pcFieldList = pcFieldList + ",!RowNum,!RowIdent,!RowMod":U.
+    ASSIGN pcFieldList = pcFieldList + ",!RowIdentIdx,!RowUserProp,!RowNum,!RowIdent,!RowMod":U.
 
-/* get data to export to excel */
+/* tableOut will return a record for each cell we need to populate */
 RUN tableOut IN TARGET-PROCEDURE (INPUT pcFieldList, INPUT plIncludeObj, INPUT piMaxRecords, OUTPUT TABLE ttTable, OUTPUT iRecordCnt).
-IF NOT CAN-FIND(FIRST ttTable) THEN
-DO:
-  SESSION:SET-WAIT-STATE("":U).
-  ASSIGN cErrorMessage = "No data to export to Excel".
-  RUN showMessages IN gshSessionManager (INPUT cErrorMessage,
-                                         INPUT "INF":U,
-                                         INPUT "OK":U,
-                                         INPUT "OK":U,
-                                         INPUT "OK":U,
-                                         INPUT "Excel Tranfer Error",
-                                         INPUT YES,
-                                         INPUT ?,
-                                         OUTPUT cAbort).
-  RETURN.
+
+/* If we can't find anything to export, Houston... */
+IF NOT CAN-FIND(FIRST ttTable) 
+THEN DO:
+    SESSION:SET-WAIT-STATE("":U).
+    RUN showMessages IN gshSessionManager 
+        (INPUT "No data to export to Excel",
+         INPUT "INF":U,
+         INPUT "OK":U,
+         INPUT "OK":U,
+         INPUT "OK":U,
+         INPUT "Excel Tranfer Error",
+         INPUT YES,
+         INPUT ?,
+         OUTPUT cAbort).
+    RETURN.
 END.
 
-IF NOT lExcelInstalled THEN DO:
-    /* Only allow export to MS Excel if at least Office97 exists */
-    LOAD "Excel.Application":U BASE-KEY "HKEY_CLASSES_ROOT":U NO-ERROR. /* Open Registry key */
-    ASSIGN lExcelInstalled = (ERROR-STATUS:ERROR = NO).
-    UNLOAD "Excel.Application":U NO-ERROR.
-END.    /* check if Excel is installed. */
+/* We've got data, now get it into Excel.    *
+ * First, determine how many columns we have */
+FIND LAST ttTable WHERE ttTable.iCol = 1 NO-ERROR.
+IF AVAILABLE ttTable THEN
+    ASSIGN iNumberOfRows = ttTable.iRow.
 
-IF NOT lExcelInstalled THEN
-DO:
-  SESSION:SET-WAIT-STATE("":U).
-  ASSIGN cErrorMessage = "Excel not installed or running version prior to Office 97".
-  RUN showMessages IN gshSessionManager (INPUT cErrorMessage,
-                                         INPUT "INF":U,
-                                         INPUT "OK":U,
-                                         INPUT "OK":U,
-                                         INPUT "OK":U,
-                                         INPUT "Excel Tranfer Erro",
-                                         INPUT YES,
-                                         INPUT ?,
-                                         OUTPUT cAbort).
-  RETURN.
+FIND LAST ttTable WHERE ttTable.iRow = 1 NO-ERROR.
+
+IF AVAILABLE ttTable THEN
+  ASSIGN cDataTypeList = FILL(",":U, ttTable.iCol - 1)
+         cRow          = "A".
+
+/* build list of field datatypes */
+FOR EACH ttTable WHERE ttTable.irow = 2:
+    ASSIGN ENTRY(ttTable.iCol, cDataTypeList) = ttTable.cCell.
 END.
 
-IF lExcelInstalled THEN
-DO:
-  IF plUseExisting THEN
+/* Now dump all the data to disk, we'll load in into Excel from there. */
+FILE-INFO:FILE-NAME = SESSION:TEMP-DIRECTORY. /* The temp dir could be relatively pathed, so we need to use the full path */
+ASSIGN cLabel          = STRING(TIME, "HH:MM:SS")
+       cLabel          = REPLACE(cLabel, ":":U, "":U)       
+       cExportFilename = FILE-INFO:FULL-PATHNAME + "~\":U + "ExcelExport_" + cLabel + ".dmp":U.
+
+OUTPUT TO VALUE(cExportFilename).
+
+/* Export headers */
+fe-blk:
+FOR EACH ttTable
+   WHERE ttTable.iRow = 0
+   BREAK BY ttTable.iRow
+         BY ttTable.iCol:
+
+  /* If we have more than one line in the column label, we display the first entry in row 1. *
+   * The rest of the label is displayed in the second row.  We support a maximum of 2 rows   *
+   * for the column label.                                                                   */
+  IF INDEX(ttTable.cCell, "!":U) > 0 THEN
+      ASSIGN lDispAnotherLine = YES
+             cLabel           = ENTRY(1, ttTable.cCell ,"!":U)
+             cLabel           = REPLACE(ttTable.cCell, cLabel + "!":U, "":U)
+             cLabel           = REPLACE(cLabel, "!":U, " ":U)
+             cNextLineToDisp  = cNextLineToDisp + '"'+ cLabel + '"':U + CHR(9).
+  ELSE
+      ASSIGN cNextLineToDisp = cNextLineToDisp + '""':U + CHR(9).
+
+  ASSIGN cLabel = ENTRY(1, ttTable.cCell, "!":U)
+         cLabel = '"':U + cLabel + '"':U /* csv file wants quotes around characters */
+         cLabel = SUBSTRING(cLabel, 1, 319) WHEN LENGTH(cLabel) > 319 
+         NO-ERROR.
+
+  IF ttTable.iCol = 1 THEN 
+      PUT UNFORMATTED cLabel.
+  ELSE
+      PUT UNFORMATTED CHR(9) + cLabel.
+
+  IF LAST-OF(ttTable.iRow) 
+  THEN DO:
+      PUT SKIP.
+
+      /* Column Labels could take up more than one row.  If so, we've already built the next row to export. *
+       * Export it.  Note we only cater for 2 rows in the column label.                                     */
+      IF lDispAnotherLine = YES 
+      THEN DO:
+          ASSIGN lDispAnotherLine = NO /* Will only happen once for the column labels */
+                 cNextLineToDisp  = RIGHT-TRIM(cNextLineToDisp, CHR(9))
+                 iHeadingRows     = 2.
+          PUT UNFORMATTED cNextLineToDisp SKIP.
+      END.
+      ELSE
+          ASSIGN iHeadingRows = 1.
+  END.
+END.
+
+/* Export data */
+fe-blk:
+FOR EACH ttTable
+   WHERE ttTable.iRow > 9
+   BREAK BY ttTable.iRow
+         BY ttTable.iCol
+      ON ERROR UNDO fe-blk, LEAVE fe-blk:
+
+  ASSIGN cDataType = ENTRY(ttTable.iCol, cDataTypeList).
+
+  /* Remove any tabs from the cell.  We use them as a delimiter, so having them in data is going to screw up our layout */
+  ASSIGN ttTable.cCell = REPLACE(ttTable.cCell, CHR(9), " ":U).
+
+  /* If the data type is numeric, format it so it makes sense to Excel */
+  CASE cDataType:
+      WHEN "DECIMAL":U OR 
+      WHEN "INTEGER":U 
+      THEN DO:
+          /* Remove any percentage symbols, and plus signs ... */
+          ASSIGN cNumericCellString = REPLACE(ttTable.cCell, "%":U, "":U)
+                 cNumericCellString = REPLACE(cNumericCellString, "+":U, "":U).
+
+          /* ... the convert all DR/CR symbols and parentheses to '-' where neccessary ... */
+          IF cNumericCellString BEGINS "(":U THEN
+              ASSIGN cNumericCellString = "-":U + SUBSTRING(cNumericCellString,2)
+                     cNumericCellString = SUBSTRING(cNumericCellString, 1, LENGTH(cNumericCellString) - 1).
+
+          ASSIGN cNumericCellString = REPLACE(cNumericCellString, "DR":U, "-":U)
+                 cNumericCellString = REPLACE(cNumericCellString, "CR":U, "-":U)
+                 cNumericCellString = REPLACE(cNumericCellString, "DB":U, "-":U).
+
+          /* ... then make sure that the negative sign is leading (by now we should have a regular decimal/integer) */
+          IF cDataType = "DECIMAL":U THEN
+              IF  NOT cNumericCellString BEGINS "-":U
+              AND DECIMAL(cNumericCellString) < 0 THEN
+                  ASSIGN cNumericCellString = "-":U + STRING(ABSOLUTE(DECIMAL(cNumericCellString))) NO-ERROR.
+              ELSE IF cDataType = "INTEGER":U THEN
+                  IF NOT cNumericCellString BEGINS "-":U
+                  AND INTEGER(cNumericCellString)   < 0 THEN
+                      ASSIGN cNumericCellString = "-":U + STRING(ABSOLUTE(INTEGER(cNumericCellString))) NO-ERROR.
+
+          /* Just in case there's something wrong */
+          IF ERROR-STATUS:ERROR THEN
+              ASSIGN cNumericCellString = ttTable.cCell.
+
+          ASSIGN ttTable.cCell = cNumericCellString.
+      END.
+
+      WHEN "CHARACTER":U THEN
+          ASSIGN ttTable.cCell = '"':U + ttTable.cCell + '"':U /* csv file wants quotes around characters */
+                 ttTable.cCell = SUBSTRING(ttTable.cCell, 1, 319) WHEN LENGTH(ttTable.cCell) > 319 
+                 NO-ERROR.
+  END CASE.
+
+  /* Now export the value to the file on disk */
+  IF ttTable.iCol = 1 THEN 
+      PUT UNFORMATTED ttTable.cCell.
+  ELSE
+      PUT UNFORMATTED CHR(9) + ttTable.cCell.
+
+  IF LAST-OF(ttTable.iRow) THEN
+      PUT SKIP.
+END.
+OUTPUT CLOSE.
+
+/* The file is now on disk, open Excel and open the file on disk */
+
+IF plUseExisting = ? THEN ASSIGN plUseExisting = YES.
+
+IF plUseExisting THEN
     CREATE "Excel.Application" chExcel CONNECT NO-ERROR.
-  IF NOT VALID-HANDLE(chExcel) THEN
+
+IF NOT VALID-HANDLE(chExcel) THEN
     CREATE "Excel.Application" chExcel.
-  
-  chExcel:VISIBLE  = FALSE.                   /* Launch Excel so it is visible to the user    */
-  chWorkbook       = chExcel:Workbooks:ADD(). /* Create a new Workbook                        */
-  chWorkSheet      = chExcel:Sheets:ITEM(1).  /* Get the active Worksheet                     */
-  chWorkSheet:NAME = "Browser".               /* Set the worksheet name                       */
 
-  ASSIGN 
-    iNumberOfColumns = 0
-    iNumberOfRows    = 0
-    cDataTypeList = "":U
-    cFieldNameList = "":U
-    cFieldWidthList = "":U
-    cRow = "A"
-    .
+ASSIGN chExcel:WindowState   = -4140 /* Minimized */
+       chExcel:VISIBLE       = FALSE
+       chExcel:DisplayAlerts = FALSE
+       chWorkbook            = chExcel:Workbooks:OPEN(cExportFilename,,,1)
+       chWorkSheet           = chExcel:Sheets:ITEM(1).
 
-  /* build list of field names */
-  FOR EACH ttTable WHERE ttTable.irow = 1:
-    ASSIGN
-      cFieldNameList = cFieldNameList +
-                       (IF cFieldNameList <> "":U THEN ",":U ELSE "":U) +
-                       ttTable.cCell 
-      .     
-  END.
+/* Excel locks the file on disk until the workbook is closed, preventing us from cleaning up properly. *
+ * To get around this, we cut the cells from the existing worksheet, close the workbook, and paste the *
+ * data into a new workbook.  We can then delete the file on disk.  There must be a better way to do   *
+ * this, feel free to replace this code with a better solution.                                        */
+ASSIGN iColumns    = NUM-ENTRIES(cDataTypeList)
+       iTemp1      = IF iColumns MODULO 26 = 0 THEN 1 ELSE 0
+       iTemp2      = IF iColumns MODULO 26 = 0 THEN 26 ELSE 0
+       cLastColumn = IF iColumns LE 26
+                     THEN CHR(ASC(cRow) + (iColumns - 1))
+                     ELSE CHR(64 + INTEGER(TRUNCATE(iColumns / 26, 0)) - iTemp1 )
+                        + CHR(64 + (iColumns MODULO 26) + iTemp2).
 
-  /* build list of field datatypes */
-  FOR EACH ttTable WHERE ttTable.irow = 2:
-    ASSIGN
-      cDataTypeList = cDataTypeList +
-                       (IF cDataTypeList <> "":U THEN ",":U ELSE "":U) +
-                       ttTable.cCell 
-      .     
-  END.
+/* Cut the data and close the workbook */
+cFullRange = "A1:" + cLastColumn + STRING(iNumberOfRows - 8).
+chWorkSheet:Range(cFullRange):CUT.
+chWorkbook:CLOSE().
 
-  /* build list of field widths, chr(3) delimited to cope with European formats */
-  FOR EACH ttTable WHERE ttTable.irow = 3:
-    ASSIGN
-      cFieldWidthList = cFieldWidthList +
-                       (IF cFieldWidthList <> "":U THEN CHR(3) ELSE "":U) +
-                       ttTable.cCell 
-      .     
-  END.
+RELEASE OBJECT chWorkSheet NO-ERROR.
+RELEASE OBJECT chWorkbook  NO-ERROR.
+ASSIGN chWorkSheet = ?
+       chWorkbook  = ?.
 
+/* Create a new workbook and paste the data in there */
+chWorkbook = chExcel:workbooks:ADD.
+chWorkSheet = chExcel:Sheets:ITEM(1).
+chWorkSheet:NAME = "Browser". 
 
+/* Format the headers */
+heading-loop:
+FOR EACH ttTable 
+   WHERE ttTable.irow = 0
+   BREAK BY ttTable.iCol:
 
-  /* loop through column headings */
-  heading-loop:
-  FOR EACH ttTable 
-     WHERE ttTable.irow = 0
-     BREAK BY ttTable.iCol:
+    ASSIGN iNumberOfColumns 
+                     = iNumberOfColumns + 1
+           cRange1   = STRING((CHR(ASC(cRow) + (iNumberOfColumns - 1)) + STRING(1)))
+           iTemp1    = IF iNumberOfColumns MODULO 26 = 0 THEN 1 ELSE 0
+           iTemp2    = IF iNumberOfColumns MODULO 26 = 0 THEN 26 ELSE 0
+           cRange1   = IF iNumberOfColumns LE 26 
+                       THEN cRange1
+                       ELSE CHR(64 + INTEGER(TRUNCATE(iNumberOfColumns / 26, 0)) - iTemp1) 
+                          + CHR(64 + (iNumberOfColumns MODULO 26) + iTemp2) + STRING(1)
+           cHeading  = ttTable.cCell
+           iSplit    = INDEX(cHeading,"!":U)
+           cDataType = ENTRY(iNumberOfColumns, cDataTypeList).
 
-    ASSIGN 
-      iNumberOfColumns = iNumberOfColumns + 1
-      cRange1  = STRING((CHR(ASC(cRow) + (iNumberOfColumns - 1)) + STRING(1)))
-      cHeading = ttTable.cCell
-      iSplit   = INDEX(cHeading,"!":U)
-      cDataType = ENTRY(iNumberOfColumns, cDataTypeList)
-      dWidth    = DECIMAL(ENTRY(iNumberOfColumns,cFieldWidthList,CHR(3)))
-      .
-
-    IF iNumberOfColumns > 26 THEN LEAVE heading-loop. /* max 26 columns */
-    
+    /* If the column label is spread over two rows, we need to BOLD the second row as well */
     IF iSplit = 0 THEN
-        ASSIGN
-            chWorkSheet:Range(cRange1):Value     = cHeading
-            chWorkSheet:Range(cRange1):Font:Bold = TRUE.
+        ASSIGN chWorkSheet:Range(cRange1):Font:Bold = TRUE.
     ELSE
-        ASSIGN
-            cRange2                              = STRING((CHR(ASC(cRow) + (iNumberOfColumns - 1)) + STRING(2)))
-            chWorkSheet:Range(cRange1):Value     = SUBSTRING(cHeading, 1, iSplit - 1)
-            chWorkSheet:Range(cRange1):Font:Bold = TRUE
-            chWorkSheet:Range(cRange2):Value     = SUBSTRING(cHeading, iSplit + 1)
-            chWorkSheet:Range(cRange2):Font:Bold = TRUE.
-
-    ASSIGN
-        cRange3                                   = SUBSTRING(cRange1, 1, 1)
-        chWorkSheet:Columns(cRange3):ColumnWidth  = IF cDataType                       = "DECIMAL":U THEN 20
-                                                    ELSE IF cDataType                  = "INTEGER":U THEN 6
-                                                    ELSE IF dWidth > 100 THEN 100 ELSE dWidth
-        chWorkSheet:Columns(cRange3):NumberFormat = IF cDataType                       = "DECIMAL":U THEN "###,###,##0.00":U
-                                                    ELSE IF cDataType                  = "INTEGER":U THEN "#####0":U
-                                                    ELSE "@":U
-        .
-  END. /* heading-loop */
-
-  IF iNumberOfColumns > 26 THEN ASSIGN iNumberOfColumns = 26. /* max 26 columns */
-
-  ERROR-STATUS:ERROR = NO.
-
-  ASSIGN
-      cRow  = "A":U
-      lDone = NO NO-ERROR.
-  
-  /* Load the data
-     ============= */
-
-  data-loop:
-  FOR EACH ttTable
-     WHERE ttTable.iRow > 9:
-
-    IF ttTable.iCol > iNumberOfColumns THEN NEXT data-loop.
-    IF ttTable.iCol = 1 THEN ASSIGN iNumberOfRows = ttTable.iRow.
-
-    ASSIGN 
-      cDataType = ENTRY(ttTable.iCol, cDataTypeList)
-      dWidth    = DECIMAL(ENTRY(ttTable.iCol,cFieldWidthList,CHR(3)))
-      .
-
-    /* We must make sure that decimals and integers have a leading sign. */
-    IF  cDataType = "DECIMAL":U OR  cDataType = "INTEGER":U THEN
-    DO:
-      /* Remove any percentage symbols, and plus signs ... */
-      ASSIGN
-          cNumericCellString = REPLACE(ttTable.cCell, "%":U, "":U)
-          cNumericCellString = REPLACE(cNumericCellString, "+":U, "":U).
-      
-      /* ... the convert all DR/CR symbols and parentheses to '-' where neccessary ... */
-      IF cNumericCellString BEGINS "(":U THEN
-          ASSIGN
-              cNumericCellString = "-":U + SUBSTRING(cNumericCellString,2)
-              cNumericCellString = SUBSTRING(cNumericCellString, 1, LENGTH(cNumericCellString) - 1).
-
-      ASSIGN
-          cNumericCellString = REPLACE(cNumericCellString, "DR":U, "-":U)
-          cNumericCellString = REPLACE(cNumericCellString, "CR":U, "-":U)
-          cNumericCellString = REPLACE(cNumericCellString, "DB":U, "-":U).
-      
-      /* ... then make sure that the negative sign is leading (by now we should have a regular decimal/integer) */
-      IF cDataType = "DECIMAL":U THEN
-          IF  NOT cNumericCellString BEGINS "-":U
-          AND DECIMAL(cNumericCellString)   < 0 THEN
-              ASSIGN
-              cNumericCellString = "-":U + STRING(ABSOLUTE(DECIMAL(cNumericCellString))) NO-ERROR.
-      ELSE IF cDataType = "INTEGER":U THEN
-          IF  NOT cNumericCellString BEGINS "-":U
-          AND INTEGER(cNumericCellString)   < 0 THEN
-              ASSIGN
-                  cNumericCellString = "-":U + STRING(ABSOLUTE(INTEGER(cNumericCellString))) NO-ERROR.
-      
-      /* (just in case there's something wrong) */
-      IF  ERROR-STATUS:ERROR THEN
-          ASSIGN cNumericCellString = ttTable.cCell.
-    END.    /* decimal/integer */
+        ASSIGN cRange2 = STRING((CHR(ASC(cRow) + (iNumberOfColumns - 1)) + STRING(2)))
+               iTemp1  = IF iNumberOfColumns MODULO 26 = 0 THEN 1 ELSE 0
+               iTemp2  = IF iNumberOfColumns MODULO 26 = 0 THEN 26 ELSE 0
+               cRange2 = IF iNumberOfColumns LE 26 
+                         THEN cRange2
+                         ELSE (CHR(64 + INTEGER(TRUNCATE(iNumberOfColumns / 26, 0)) - iTemp1 ) + CHR(64 + (iNumberOfColumns MODULO 26) + iTemp2) + STRING(2))    
+               chWorkSheet:Range(cRange1):Font:Bold = TRUE
+               chWorkSheet:Range(cRange2):Font:Bold = TRUE.
     
-    ASSIGN
-      cRange1                          = STRING((CHR(ASC(cRow) + (ttTable.iCol - 1)) + STRING(ttTable.iRow - 8)))
-      chWorkSheet:Range(cRange1):Value = IF  cDataType = "INTEGER":U OR cDataType = "DECIMAL":U THEN
-                                             cNumericCellString
-                                         ELSE IF cDataType = "CHARACTER":U
-                                         AND LENGTH( ttTable.cCell ) > 319 THEN
-                                             SUBSTRING( ttTable.cCell, 1, 319 )
-                                         ELSE ttTable.cCell
-      .
+    /* Format the columns */
+    ASSIGN cRange3 = SUBSTRING(cRange1, 1, 1)
+           cRange3 = IF iNumberOfColumns LE 26 
+                     THEN cRange3
+                     ELSE SUBSTRING(cRange1, 1, 2) 
+           chWorkSheet:Columns(cRange3):NumberFormat = IF cDataType = "DECIMAL":U 
+                                                       THEN "###,###,##0.00":U
+                                                       ELSE IF cDataType = "INTEGER":U 
+                                                            THEN "#####0":U
+                                                            ELSE "@":U.
+END. /* heading-loop */
 
-    IF ttTable.iCol = iNumberOfColumns THEN
-    ASSIGN
-      cRow    = "A":U
-      cRange1 = cRow + ":":U + cRange3
-      .
-  END. /* data-loop */
+chWorkSheet:PASTE.
 
-  IF CAN-FIND(FIRST ttTable
-              WHERE ttTable.iRow > 9) THEN DO:
-    ASSIGN iNumberofRows = iNumberOfRows - 8.  /* real number of data rows, plus heading line */
-  
-    ASSIGN
-      cFullRange = "A1:" + STRING((CHR(ASC(cRow) + (iNumberofColumns - 1)) + STRING(iNumberofRows)))
-      chRange = chWorkSheet:Range(cFullRange)
-      chColumns = chRange:COLUMNS.
-      .
-    chColumns:autofit.
-  END.
+/* We're not currently formatting data in the spreadsheet, but if we decide to, put the code in here */
 
-  SESSION:SET-WAIT-STATE("":U).
-  
-  ASSIGN
-      chExcel:Visible = True.
-  
-  IF VALID-HANDLE(chRange) THEN
-    RELEASE OBJECT chRange.
-  IF VALID-HANDLE(chColumns) THEN
-    RELEASE OBJECT chColumns.
-  IF VALID-HANDLE(chWorkSheet) THEN
-    RELEASE OBJECT chWorkSheet.
-  IF VALID-HANDLE(chWorkbook) THEN
-    RELEASE OBJECT chWorkbook.
-  IF VALID-HANDLE(chExcel) THEN
-    RELEASE OBJECT chExcel.
+/* Put a nice border around the headings and make sure everything fits nicely */
+ASSIGN cLastColumn = IF iNumberofColumns LE 26
+                     THEN CHR(ASC(cRow) + (iNumberofColumns - 1))
+                     ELSE CHR(64 + INTEGER(TRUNCATE(iNumberofColumns / 26, 0)) - iTemp1 )
+                        + CHR(64 + (iNumberofColumns MODULO 26) + iTemp2)
+     iNumberofRows = iNumberOfRows - 8 + (iHeadingRows - 1). /* real number of data rows, plus heading line */
 
-  ASSIGN
-    chRange = ?
-    chColumns = ?
-    chWorkSheet = ?
-    chWorkbook = ?
-    chExcel = ?
-    .    
+cFullRange = "A1:" + cLastColumn + STRING(iHeadingRows).
+chWorkSheet:Range(cFullRange):COLUMNS:BorderAround(1,-4138,-4105,-4105).
 
-END.    /* valid handle - browse */
+cFullRange = "A1:" + cLastColumn + STRING(iNumberOfRows).
+chWorkSheet:Range(cFullRange):COLUMNS:BorderAround(1,-4138,-4105,-4105).
+chWorkSheet:Range(cFullRange):COLUMNS:AutoFit.
 
-RETURN.
+chWorkSheet:Range("A1":U):Select.
+
+SESSION:SET-WAIT-STATE("":U).
+
+ASSIGN chExcel:WindowState   = -4143 /* Maximized */
+       chExcel:VISIBLE       = TRUE
+       chExcel:DisplayAlerts = TRUE.
+
+/* Do some housekeeping */
+
+RELEASE OBJECT chWorkSheet NO-ERROR.
+RELEASE OBJECT chWorkbook  NO-ERROR.
+RELEASE OBJECT chExcel     NO-ERROR.
+
+ASSIGN chWorkSheet = ?
+       chWorkbook  = ?
+       chExcel     = ?.
+
+/* Empty the cell temp-table */
+EMPTY TEMP-TABLE ttTable.
+
+/* Delete our temp .csv file from disk */
+OS-DELETE VALUE(cExportFilename) NO-ERROR.
+
+ASSIGN ERROR-STATUS:ERROR = NO.
+RETURN "":U.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -5458,11 +8189,7 @@ PROCEDURE undoTransaction :
     IF lCancel THEN RETURN 'ADM-ERROR':U.
   END.    /* END IF hSource  */
 
-
-  /* Restore the RowObject Temp-Table and empty the RowObjUpd Temp-Table.
-     This is done in a separate procedure in data.i for simplicity, and
-     to support the needed BUFFER-COPY statements. */
-  
+  /* Restore the RowObject Temp-Table and empty the RowObjUpd Temp-Table.*/
   RUN doUndoTrans IN TARGET-PROCEDURE.
      
   /* Now reopen the RowObject query, in order to refresh any dependent 
@@ -5542,17 +8269,17 @@ DEFINE VARIABLE cEntry                          AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE cBuffer                         AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE iLoop                           AS INTEGER      NO-UNDO.
 
-ASSIGN
-  cSdoName = TARGET-PROCEDURE:FILE-NAME
-  hContainerSource = DYNAMIC-FUNCTION("getContainerSource":U IN TARGET-PROCEDURE)
-  .
+{get logicalObjectName cSDOName}.
+IF cSDOName = "":U THEN
+    ASSIGN cSdoName = TARGET-PROCEDURE:FILE-NAME.
+
+ASSIGN hContainerSource = DYNAMIC-FUNCTION("getContainerSource":U IN TARGET-PROCEDURE).
 IF VALID-HANDLE(hContainerSource) THEN
   ASSIGN cContainerName = DYNAMIC-FUNCTION("getLogicalObjectName":U IN hContainerSource).
   
 ASSIGN  
-  cSdoSignature = cSdoName + "," + cContainerName + "," + "":U
-  rRowid = ?
-  .
+  cSdoSignature = cSdoName + ",," + cContainerName + ","
+  rRowid = ?.
 
 IF VALID-HANDLE(hContainerSource) THEN
   RUN getProfileData IN gshProfileManager (
@@ -5623,6 +8350,158 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-updateData) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE updateData Procedure 
+PROCEDURE updateData :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+ DEFINE INPUT         PARAMETER pcUpdateColumnNames AS CHARACTER  NO-UNDO.
+ DEFINE INPUT         PARAMETER pcOldValues   AS CHARACTER  NO-UNDO.
+ DEFINE INPUT-OUTPUT  PARAMETER pcNewValues   AS CHARACTER  NO-UNDO.
+ DEFINE OUTPUT        PARAMETER pcError       AS CHARACTER  NO-UNDO.
+
+ DEFINE VARIABLE cKeyFields     AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cKeyValues     AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cNewValueList  AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE iLoop          AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE iField         AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE cKey           AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cValue         AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cNewValue      AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cOldValue      AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cDataDelimiter AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE lFoundOnClient AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE hRowObject     AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE hCol           AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE lReopen        AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE lCreated       AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE lSave          AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE lNoKeyFields   AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE cColumn        AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cChangedColumns AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cChangedValues  AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cDataReadFormat AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE lFound          AS LOGICAL    NO-UNDO.
+
+ {get KeyFields cKeyFields}.
+ {get DataDelimiter cDataDelimiter}.
+ {get DataReadFormat cDataReadFormat}.
+
+ DO iLoop = 1 TO NUM-ENTRIES(cKeyFields):
+   ASSIGN
+     cKey     = ENTRY(iLoop,cKeyFields)
+     iField   = LOOKUP(cKey,pcUpdateColumnNames).
+   
+   IF iField = 0 THEN
+   DO:
+     lNoKeyFields = TRUE.
+     LEAVE.
+   END.
+   
+   ASSIGN 
+     cValue     = ENTRY(iField,pcOldValues,cDataDelimiter). 
+     cKeyValues = cKeyValues 
+                  + (IF iloop = 1 THEN '':U ELSE CHR(1))
+                  +  cValue.
+ END.
+
+ IF lNoKeyFields THEN
+ DO:
+   iField = LOOKUP('RowIdent':U,pcUpdateColumnNames).
+   IF iField = 0 THEN
+   DO:
+     pcError = "'" + REPLACE(cKeyFields,',',' ') + "' or 'RowIdent' need to be in column list passed to UpdateData to be able to find a record.".
+     RETURN.
+   END.
+   cValue     = ENTRY(iField,pcOldValues,cDataDelimiter).   
+ END.
+ 
+ {get RowObject hRowObject}.
+
+ /* Currently we need the RowObject with all fields from the db */
+ IF lNoKeyFields THEN
+ DO:
+   DYNAMIC-FUNCTION('fetchRowident':U IN TARGET-PROCEDURE,cValue,'':U).
+   lFound = cValue = hRowObject:BUFFER-FIELD('Rowident':U):BUFFER-VALUE NO-ERROR.
+ END.
+ ELSE
+   lFound = DYNAMIC-FUNCTION('findRowWhere':U IN TARGET-PROCEDURE,
+                             cKeyFields,
+                             cKeyValues,
+                             '=':U).
+ 
+ IF lFound THEN
+ DO:
+   DO iLoop = 1 TO NUM-ENTRIES(pcUpdateColumnNames):
+     ASSIGN
+       hCol    = ?
+       cColumn = ENTRY(iLoop,pcUpdateColumnNames) 
+       hCol    = hRowObject:BUFFER-FIELD(cColumn) NO-ERROR.
+     IF VALID-HANDLE(hCol) THEN
+     DO:
+       ASSIGN
+         cOldValue = ENTRY(iLoop,pcOldValues,cDataDelimiter)
+         cNewValue = ENTRY(iLoop,pcNewValues,cDataDelimiter).     
+       
+       /* We do not assign the before image value to the RowObject if 
+          the b-i value is similar to the formatted value, but the buffer-value 
+          is not. This avoids error from the optimistic lock check in cases where 
+          formatting has sent a different value out than really stored */            
+       IF hCol:STRING-VALUE = hCol:BUFFER-VALUE OR cOldValue <> hCol:STRING-VALUE THEN
+         hCol:BUFFER-VALUE = cOldValue. 
+       
+       IF COMPARE(cOldValue,'NE':U,cNewValue,'case-sensitive':U) THEN
+       DO:           
+         cNewValueList  = cNewValueList 
+                       + (IF cNewValueList = '':U THEN '':U ELSE CHR(1))
+                       + cColumn
+                       + CHR(1)
+                       + (IF cNewValue <> ? THEN cNewValue ELSE '?':U).
+       END.
+     END.
+   END.
+   
+   lSave = DYNAMIC-FUNCTION('submitRow':U IN TARGET-PROCEDURE,
+                             STRING(hRowObject:ROWID),
+                             cNewValueList).
+ END.
+ ELSE 
+   DYNAMIC-FUNCTION('addNotFoundMessage':U IN TARGET-PROCEDURE,
+                    IF lNoKeyFields THEN 'ROWIDENT':U ELSE cKeyFields,
+                    IF lNoKeyFields THEN cValue ELSE cKeyValues,
+                    '=':U).
+
+ IF {fn anyMessage} THEN  
+   pcError = {fn fetchMessages}.
+
+ IF lFound AND hROwObject:AVAIL THEN
+   pcNewValues = DYNAMIC-FUNCTION('colStringValues':U IN TARGET-PROCEDURE,
+                                   pcUpdateColumnNames,
+                                   cDataReadFormat,
+                                   cDataDelimiter). 
+
+ /* Future .. not yet used.. 
+    If not present on the client remove any trace of the update*/
+ IF lCreated THEN 
+   hRowObject:BUFFER-DELETE(). 
+
+ /* If unsuccessful save the before-image record is still here, so get rid of it */ 
+ IF NOT lSave THEN  
+   DYNAMIC-FUNCTION('resetRow':U IN TARGET-PROCEDURE,STRING(hRowObject:ROWID)).
+
+ RETURN.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-updateManualForeignFields) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE updateManualForeignFields Procedure 
@@ -5633,34 +8512,45 @@ PROCEDURE updateManualForeignFields :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cForeignFields      AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE cLocalFields        AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE cSourceFields       AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE iField              AS INTEGER      NO-UNDO.
-  DEFINE VARIABLE cValues             AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE cField              AS CHARACTER    NO-UNDO.
-  
-  {get ForeignFields cForeignFields}.
-  IF cForeignFields <> "" THEN 
-  DO:
-     DO iField = 1 TO NUM-ENTRIES(cForeignFields) BY 2:
-            cLocalFields = cLocalFields +  /* 1st of each pair is local db query fld  */
-                (IF cLocalFields NE "":U THEN ",":U ELSE "":U) + ENTRY(iField, cForeignFields).
-     END.
 
-     ASSIGN
-       cField = IF NUM-ENTRIES(cLocalFields, ".") > 1 THEN 
-            ENTRY(2, cLocalFields, ".") ELSE cLocalFields.
+/* This has been commented out for the following reasons:
+    1. It's no longer necessary as 'setQueryWhere' now re-applies foreign field values
+    2. It may override previously saved values in 'ManualAssignQuerySelection'
+*/
 
-       cValues = {fnarg colValues cField} NO-ERROR.
-        /* Throw away the RowIdent entry returned by colValues*/
-     IF cValues NE ? THEN 
-         cValues = SUBSTR(cValues, INDEX(cValues, CHR(1)) + 1).
+/*   DEFINE VARIABLE cForeignFields      AS CHARACTER    NO-UNDO.                                   */
+/*   DEFINE VARIABLE cLocalFields        AS CHARACTER    NO-UNDO.                                   */
+/*   DEFINE VARIABLE cSourceFields       AS CHARACTER    NO-UNDO.                                   */
+/*   DEFINE VARIABLE iField              AS INTEGER      NO-UNDO.                                   */
+/*   DEFINE VARIABLE cValues             AS CHARACTER    NO-UNDO.                                   */
+/*   DEFINE VARIABLE cField              AS CHARACTER    NO-UNDO.                                   */
+/*                                                                                                  */
+/*     DEBUGGER:INITIATE().                                                                         */
+/*     DEBUGGER:SET-BREAK().                                                                        */
+/*   {get ForeignFields cForeignFields}.                                                            */
+/*   IF cForeignFields <> "" THEN                                                                   */
+/*   DO:                                                                                            */
+/*      DO iField = 1 TO NUM-ENTRIES(cForeignFields) BY 2:                                          */
+/*             cLocalFields = cLocalFields +  /* 1st of each pair is local db query fld  */         */
+/*                 (IF cLocalFields NE "":U THEN ",":U ELSE "":U) + ENTRY(iField, cForeignFields).  */
+/*      END.                                                                                        */
+/*                                                                                                  */
+/*                                                                                                  */
+/*      ASSIGN                                                                                      */
+/*        cField = IF NUM-ENTRIES(cLocalFields, ".") > 1 THEN                                       */
+/*             ENTRY(2, cLocalFields, ".") ELSE cLocalFields.                                       */
+/*                                                                                                  */
+/*        cValues = {fnarg colValues cField} NO-ERROR.                                              */
+/*         /* Throw away the RowIdent entry returned by colValues*/                                 */
+/*      IF cValues NE ? THEN                                                                        */
+/*          cValues = SUBSTR(cValues, INDEX(cValues, CHR(1)) + 1).                                  */
+/*                                                                                                  */
+/*      DYNAMIC-FUNCTION("setManualAssignQuerySelection":U IN TARGET-PROCEDURE,                     */
+/*                       cLocalFields + CHR(3) + cValues + CHR(3) + '':U).                          */
+/*   END.                                                                                           */
 
-     DYNAMIC-FUNCTION("setManualAssignQuerySelection":U IN TARGET-PROCEDURE, 
-                      cLocalFields + CHR(3) + cValues + CHR(3) + '':U).
-  END.
   RETURN.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -5699,8 +8589,7 @@ PROCEDURE updateQueryPosition :
   DEFINE VARIABLE hDataSource  AS HANDLE  NO-UNDO.
 
   {get RowObject hRowObject}.
-  
-  IF hRowObject:AVAILABLE THEN
+  IF VALID-HANDLE(hRowObject) AND hRowObject:AVAILABLE THEN
   DO:
     {get FirstRowNum iFirstRowNum}.
     {get LastRowNum iLastRowNum}.
@@ -5744,8 +8633,10 @@ PROCEDURE updateQueryPosition :
        END. /* cFFields <> ? */
        IF cQueryPos = '':U THEN
        DO:
-         /* Check if dataSource has an unsaved new record */
-         {get NewMode lNew hDataSource}.
+         /* Check if dataSource has an unsaved new record 
+            Use no-error in case the datasource is a container with 
+            ExternalForegnKey  */
+         {get NewMode lNew hDataSource} NO-ERROR.
          IF lNew THEN
            cQueryPos = 'NoRecordAvailableExt':U.
        END. /* cQueryPos = '' */
@@ -5754,6 +8645,7 @@ PROCEDURE updateQueryPosition :
      IF cQueryPos = '':U THEN
        cQueryPos = 'NoRecordAvailable':U.
   END.  /* else (not avail)*/
+
   {set QueryPosition cQueryPos}.
   RETURN.
 
@@ -5815,7 +8707,7 @@ PROCEDURE updateState :
   DEFINE VARIABLE hContainerSource  AS HANDLE    NO-UNDO.
   DEFINE VARIABLE cUpdateSource     AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cTargetSrcEvents  AS CHARACTER NO-UNDO.
-
+ 
   /* Ensure that the browse is updated. This needs to be done even if Asynch. 
      Refresh will make the current record in the browse available, so although 
      it is possible to do this very late in submitRow  (after submitCommit 
@@ -5876,6 +8768,56 @@ END PROCEDURE.
 
 /* ************************  Function Implementations ***************** */
 
+&IF DEFINED(EXCLUDE-addNotFoundMessage) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION addNotFoundMessage Procedure 
+FUNCTION addNotFoundMessage RETURNS LOGICAL
+  ( pcFields AS CHAR,
+    pcValues AS CHAR,
+    pcOperators AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose: Add an error message for record not found based on keys and values 
+           in the same format as findRowWhere and other query functions...  
+  
+  pcFields   - Column names (Comma separated)                    
+  pcValues   - corresponding Values (CHR(1) separated)
+ pcOperators - FUTURE not currently added to message 
+                Operator - one for all columns
+                                - blank - defaults to (EQ)  
+                                - Use slash to define alternative string operator
+                                  EQ/BEGINS etc..
+                              - comma separated for each column/value        
+    Notes: The message is for unique finds.  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cTables   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cKeyerror AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iLoop     AS INTEGER    NO-UNDO.
+  
+  {get Tables cTables}.
+
+  DO iLoop = 1 TO NUM-ENTRIES(pcFields):
+    cKeyError = cKeyError + ' ':U +  
+                {fnarg columnLabel ENTRY(iLoop,pcFields)}
+                + ' ':U
+                + IF NUM-ENTRIES(pcValues,CHR(1)) >= iLoop
+                  THEN ENTRY(iLoop,pcValues,CHR(1))
+                  ELSE ' ':U  .
+
+  END. /* do iloop = 1 to num-entries(cKeyFields) */ 
+   
+  /* MESSAGE 29: &1 was not found with &2 */ 
+  RUN addMessage IN TARGET-PROCEDURE 
+      (SUBSTITUTE({fnarg messageNumber 29},cTables,cKeyError),?,?).
+  
+  RETURN TRUE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-addRow) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION addRow Procedure 
@@ -5903,6 +8845,7 @@ FUNCTION addRow RETURNS CHARACTER
   DEFINE VARIABLE cForFields AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cForValues AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cField     AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE lQueryContainer AS LOGICAL    NO-UNDO.
 
     {get RowObject hRowObject}.
     /* Save off the "current" rowid in case the add is cancelled. 
@@ -5927,16 +8870,21 @@ FUNCTION addRow RETURNS CHARACTER
     iColCount = NUM-ENTRIES(cColList).
     DO iCol = 1 TO iColCount:
       hColumn = hRowObject:BUFFER-FIELD(iCol).
-      hColumn:BUFFER-VALUE = 
-        IF hColumn:INITIAL = ? THEN "":U
-        ELSE IF hColumn:DATA-TYPE = "DATE":U AND hColumn:INITIAL = "TODAY":U THEN
-          STRING(TODAY)
-        ELSE hColumn:INITIAL NO-ERROR.   /* INITIAL is always CHARACTER. */
+      hColumn:BUFFER-VALUE = IF hColumn:DATA-TYPE = "DATE":U AND hColumn:INITIAL = "TODAY":U 
+                             THEN STRING(TODAY)
+                             ELSE hColumn:INITIAL NO-ERROR.   
     END.
 
     /* If there are Foreign Fields, assign their values as initial
        values for those columns. */
     {get ForeignFields cForFields}.
+    IF cForFields = "" THEN DO:
+      /* Find out whether this SDO is inside an SBO */
+      {get QueryContainer lQueryContainer}.
+      IF lQueryContainer THEN
+        cForFields = {fn getForeignFieldsContainer}.
+    END.
+
     IF cForFields NE "":U THEN
     DO:
       {get ForeignValues cForValues}.
@@ -6001,6 +8949,114 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-batchRowAvailable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION batchRowAvailable Procedure 
+FUNCTION batchRowAvailable RETURNS LOGICAL
+  ( pcMode AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose: Check if there are more records available in the current batch 
+Parameters: pcMode - Specifies direction to look  
+                   - 'Next' 
+                   - 'Prev'
+                   - 'current'  
+    Notes: Check this before navigating with the normal fetch* navigation 
+           methods to avoid an implicit read of a new batch in cases where 
+           the intention is to just navigate through one batch of data.    
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cLastResultRow   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFirstResultRow  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hRowObject       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRowNum          AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iLastRowInBatch  AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iFirstRowInBatch AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hDataQuery       AS HANDLE     NO-UNDO.
+
+  {get RowObject hRowObject}.  
+  IF hRowObject:AVAILABLE THEN
+  DO:
+    hRowNum = hRowObject:BUFFER-FIELD('RowNum':U).
+    CASE pcMode:
+      WHEN 'Next':U THEN
+      DO:
+        {get LastResultRow cLastResultRow}.
+        iLastRowInBatch = INT(ENTRY(1,cLastResultRow,';':U)). 
+        IF hRowNum:BUFFER-VALUE < iLastRowInBatch THEN
+          RETURN TRUE.
+        IF hRowNum:BUFFER-VALUE = iLastRowInBatch THEN
+          RETURN FALSE.
+      END.
+      WHEN 'First':U THEN
+      DO:
+        {get FirstResultRow cFirstResultRow}.
+        iFirstRowInBatch = INT(ENTRY(1,cFirstResultRow,';':U)). 
+        IF hRowNum:BUFFER-VALUE > iFirstRowInBatch THEN
+          RETURN TRUE.
+        IF hRowNum:BUFFER-VALUE = iFirstRowInBatch THEN
+          RETURN FALSE.
+      END. 
+      OTHERWISE RETURN TRUE.
+    END CASE.
+  END.
+  ELSE DO:
+    
+    IF pcMode = 'current':U THEN
+      RETURN FALSE.
+    {get DataHandle hDataQuery}.
+    IF hDataQuery:CURRENT-RESULT-ROW = 1 THEN 
+      RETURN pcMode = 'NEXT':U.
+  END.
+
+  RETURN FALSE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-bufferCompareFields) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION bufferCompareFields Procedure 
+FUNCTION bufferCompareFields RETURNS CHARACTER
+  ( INPUT phBuffer1 AS HANDLE,
+    INPUT phBuffer2 AS HANDLE,
+    INPUT pcExclude AS CHAR,
+    INPUT pcOption  AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE iVar           AS INTEGER    NO-UNDO.
+DEFINE VARIABLE cChangedFlds AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cName          AS CHARACTER  NO-UNDO.
+
+     DO iVar = 1 TO phBuffer1:NUM-FIELDS: 
+       cName = phBuffer1:BUFFER-FIELD(iVar):NAME.
+       IF LOOKUP(cName, pcExclude) > 0  
+         THEN NEXT.
+       IF phBuffer1:BUFFER-FIELD(iVar):DATA-TYPE = "CHARACTER":U THEN 
+       DO:
+         IF NOT LOOKUP(pcOption, "RAW,CASE-SENSITIVE,CASE-INSENSITIVE":U) > 0 THEN
+           pcOption = "CASE-INSENSITIVE":U.
+         IF COMPARE(phBuffer1:BUFFER-FIELD(iVar):BUFFER-VALUE, '<>', 
+                    phBuffer2:BUFFER-FIELD(cName):BUFFER-VALUE, pcOption) THEN
+           cChangedFlds = cChangedFlds + (IF cChangedFlds > "" THEN "," ELSE "") + cName.
+       END.
+       ELSE IF phBuffer1:BUFFER-FIELD(iVar):BUFFER-VALUE <> phBuffer2:BUFFER-FIELD(cName):BUFFER-VALUE  
+         THEN cChangedFlds = cChangedFlds + (IF cChangedFlds > "" THEN "," ELSE "") + cName.
+     END.
+
+     RETURN cChangedFlds.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-cancelRow) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION cancelRow Procedure 
@@ -6027,6 +9083,32 @@ Note date: 2002/04/11
    PUBLISH "dataAvailable":U FROM TARGET-PROCEDURE ('DIFFERENT':U).
 
  RETURN '':U. /* This used to return a cError variable for some forgotten reason*/
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-canFindModRow) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION canFindModRow Procedure 
+FUNCTION canFindModRow RETURNS LOGICAL
+  ( pcRowIdent AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:     Looks up a rowIdent value in the ModRowIdent temp-table and 
+               returns TRUE if it is found or false if is isn't.
+  
+  Parameters:  pcRowIdent - The RowIdent value to look up.
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hModRow AS HANDLE     NO-UNDO.
+
+  {get ModRowIdent hModRow}.
+  hModRow:FIND-FIRST("WHERE ModRowIdent.RowIdentIdx = ":U +
+                     "SUBSTRING('" + pcRowIdent + "', 1," + STRING(xiRocketIndexLimit) + ") AND ":U +
+                     "ModRowIdent.RowIdent = '":U + pcRowIdent + "'") NO-ERROR.
+  RETURN hModRow:AVAILABLE.
 
 END FUNCTION.
 
@@ -6162,6 +9244,92 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-colStringValues) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION colStringValues Procedure 
+FUNCTION colStringValues RETURNS CHARACTER
+  ( pcColumnList   AS CHARACTER,
+    pcFormatOption AS CHARACTER,
+    pcDelimiter    AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:     Returns a delimited list of values for the requested
+               columns of the current row of the RowObject.
+  Parameters:
+    INPUT pcColumnList   - Comma delimited list of RowObject column names
+    INPUT pcFormatOption - Format of returned values
+                          - Blank or ? 
+                            No formatting, just buffer values 
+                          - 'Formatted' 
+                            Formatted according to the columnFormat with right 
+                            justified numeric values.
+                          - 'TrimNumeric' 
+                            Formatted according to the columnFormat with LEFT 
+                            justified numeric values.
+                             
+    INPUT pcDelimiter  - optional delimiter (default CHR(1)).   
+  Notes:       This function is different from colValues in that it does NOT 
+               return rowidents as the first entry and does not look in the 
+               dataSource.
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cColValues  AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE iCol        AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE hColumn     AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE hBuffer     AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE hRowObject  AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE cValue      AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cColumn     AS CHARACTER NO-UNDO.
+  {get RowObject hRowObject}.     
+  IF VALID-HANDLE(hRowObject) AND hRowObject:AVAILABLE THEN 
+  DO: 
+    IF pcDelimiter = ? THEN
+       pcDelimiter = CHR(1).
+
+    /* If pcViewColList is formatted with the SDO name in front, strip it out */
+    IF INDEX(pcColumnList, ".":U) > 0 THEN
+      pcColumnList = ENTRY(2, pcColumnList, ".":U).
+  
+    DO iCol = 1 TO NUM-ENTRIES(pcColumnList):
+      cColumn = ENTRY(iCol, pcColumnList). 
+      hColumn = hRowObject:BUFFER-FIELD(cColumn) NO-ERROR.      
+      IF NOT VALID-HANDLE(hColumn) THEN
+        cValue = '?':U.
+      ELSE DO:
+        IF cColumn = 'Rowident':U THEN
+            hColumn:FORMAT = "x(" + STRING(LENGTH(hColumn:BUFFER-VALUE))  + ")".
+        CASE pcFormatOption:
+          WHEN 'Formatted':U THEN
+            cValue = RIGHT-TRIM(hColumn:STRING-VALUE,' ':U).
+          WHEN 'TrimNumeric':U THEN
+            cValue = IF LOOKUP(hColumn:DATA-TYPE,'Decimal,Integer':U) > 0 
+                     THEN LEFT-TRIM(hColumn:STRING-VALUE,' ':U)
+                     ELSE RIGHT-TRIM(hColumn:STRING-VALUE,' ':U).
+          WHEN 'NoTrim':U THEN
+            cValue = hColumn:STRING-VALUE.
+          OTHERWISE 
+            cValue = hColumn:BUFFER-VALUE.
+        END CASE.
+      END.       /* END ELSE DO if hColumn found locally */
+
+      cColValues = cColValues 
+                 + (IF iCol > 1 
+                    THEN IF pcDelimiter <> '':U 
+                         THEN pcDelimiter 
+                         ELSE ' ':U
+                    ELSE '':U)
+                 + cValue. 
+    END.  /* END iCol */
+    RETURN cColValues.       
+  END. /* valid and avail rowObject*/
+  
+  RETURN ?.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-columnProps) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION columnProps Procedure 
@@ -6277,12 +9445,7 @@ FUNCTION colValues RETURNS CHARACTER
          /* If this is a <calc> field, make put a constant in so that the
             browser does not fail during displayFields */
          IF index(ENTRY(iCol, pcViewColList), "<calc>":U) > 0 THEN
-         DO:
            cColValues = cColValues + CHR(4) + "<calc>":U + CHR(4). 
-           /* the next entry in pcViewColList is the calc var */
-           /* that must be removed */
-           iCol = iCol + 1. 
-         END.
          ELSE
          DO:
            /* If the column was not found in this object, look to see
@@ -6294,8 +9457,7 @@ FUNCTION colValues RETURNS CHARACTER
                                         ENTRY(iCol, pcViewColList)).
              IF cValue NE ? THEN
                cColValues = cColValues + ENTRY(2, cValue, CHR(1)).
-             ELSE IF NOT ENTRY(iCol, pcViewColList) = "<Local>":U THEN 
-               RETURN ?.
+             ELSE RETURN ?.
            END.   /* IF cValue */
            ELSE RETURN ?.
          END.
@@ -6312,6 +9474,113 @@ FUNCTION colValues RETURNS CHARACTER
     RETURN cColValues.       
   END. /* valid and avail rowObject*/
   RETURN ?.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-commit) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION commit Procedure 
+FUNCTION commit RETURNS LOGICAL
+  ( ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Client-side part of the Commit function. Copies changed records
+            into an update temp-table and sends it to the serverCommit (the
+            server-side commit procedure.)
+    
+  Notes:    The code in submitRow (which calls commitTransaction, which calls
+            Commit) has already created a pre-change copy of each changed 
+            record in the update temp-table.
+            This function invokes procedures in the SmartDataObject itself to 
+            manipulate the RowObject Temp-Tables.
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cUndoIds        AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE hAppServer      AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE cMessages       AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cASDivision     AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE hAppservice     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cServerFileName AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cContext        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hRowObjUpd      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRowObject      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE rRowid          AS ROWID      NO-UNDO.
+  DEFINE VARIABLE lSuccess        AS LOGICAL    NO-UNDO.
+  
+  /* Transfer modified and added rows to the update table. */
+  RUN doBuildUpd IN TARGET-PROCEDURE. 
+ 
+  /* If we're running across an AppServer connection, run serverCommit
+     in that other object. Otherwise just run it in ourself. */
+  {get ASDivision cASDivision}.
+  IF cASDivision = 'Client':U THEN
+  DO:
+    /* Check AppServer properties to see if the object has no current or future 
+       server bindings and is using a stateless operating mode.*/    
+    IF {fn hasNoServerBinding} THEN
+    DO:
+      RUN connectServer IN TARGET-PROCEDURE (OUTPUT hAppService). 
+      IF hAppService  = ? THEN
+         RETURN FALSE.
+    END.
+    ELSE 
+      {get ASHandle hAppServer}.
+
+    cContext = {fn obtainContextForServer}.
+  END. /* client */
+
+  IF VALID-HANDLE(hAppserver) THEN
+  DO:
+    {get RowObjUpdTable hRowObjUpd}.
+    RUN remoteCommit IN hAppServer
+      (INPUT-OUTPUT cContext,
+       INPUT-OUTPUT TABLE-HANDLE hRowObjUpd, 
+       OUTPUT cMessages, 
+       OUTPUT cUndoIds).  
+    {fnarg applyContextFromServer cContext}.
+    /* unbind if stateless */ 
+    RUN endClientDataRequest IN TARGET-PROCEDURE.
+  END.
+  ELSE IF VALID-HANDLE(hAppService) THEN
+  DO:
+    {get ServerFileName cServerFileName}.
+    {get RowObjUpdTable hRowObjUpd}.
+
+    RUN adm2/commit.p ON hAppService
+        (cServerFileName,
+         INPUT-OUTPUT cContext,
+         INPUT-OUTPUT TABLE-HANDLE hRowObjUpd, 
+         OUTPUT cMessages, 
+         OUTPUT cUndoIds).
+
+    {fnarg applyContextFromServer cContext}.
+  END.
+  ELSE DO:
+    /* refetchDbRow may mess with the RowObject -- so keep track of it */
+    {get RowObject hRowObject}.
+    rRowid = hRowObject:ROWID.
+    RUN bufferCommit IN TARGET-PROCEDURE (OUTPUT cMessages, OUTPUT cUndoIds).
+    IF rRowid <> ? AND rRowid <> hRowObject:ROWID THEN
+      hRowObject:FIND-BY-ROWID(rRowid).  
+  END.
+
+  /* If we're running with a separate AppServer DataObject, then we must
+     append any error messages returned to the message log. Otherwise they
+     are already there. */
+  IF cASDivision = 'Client':U AND cMessages NE "" THEN
+    RUN addMessage IN TARGET-PROCEDURE (cMessages, ?, ?).
+
+  /* determine the success of the commit operation before anything else */
+  /* in case the error buffer is emptied... */
+  lSuccess = NOT {fn anyMessage}.
+
+  /* Return any rows to the client that have been changed by the server. */
+  RUN doReturnUpd IN TARGET-PROCEDURE (INPUT cUndoIds).
+  
+  RETURN lSuccess.  /* return success if no error msgs. */
 
 END FUNCTION.
 
@@ -6420,6 +9689,302 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-createRowObjectTable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION createRowObjectTable Procedure 
+FUNCTION createRowObjectTable RETURNS LOGICAL
+  ():
+/*------------------------------------------------------------------------------
+  Purpose:  creates the RowObjectTable for a dynamic SDO    
+  Parameters:  <none>
+  Notes:     It normally creates the RowObjectTable, but it will check if there 
+             is an unprepared RowObjectTable and use this. This is in support 
+             of the external create required for non-persistent procedures that 
+             need to outpout the TT.  
+------------------------------------------------------------------------------*/
+   DEFINE VARIABLE hLogicObject    AS HANDLE     NO-UNDO.
+   DEFINE VARIABLE hFromTable      AS HANDLE     NO-UNDO.
+   DEFINE VARIABLE hRowObjectTable AS HANDLE     NO-UNDO.
+   DEFINE VARIABLE cDataColumns    AS CHARACTER  NO-UNDO.
+   DEFINE VARIABLE cColumn         AS CHARACTER  NO-UNDO.
+   DEFINE VARIABLE hColumn         AS HANDLE     NO-UNDO.
+   DEFINE VARIABLE iLoop           AS INTEGER    NO-UNDO.
+   DEFINE VARIABLE hLogicBuffer    AS HANDLE     NO-UNDO.
+   DEFINE VARIABLE cBufferHandles  AS CHARACTER  NO-UNDO.
+   DEFINE VARIABLE cDBColumnName   AS CHARACTER  NO-UNDO.
+   DEFINE VARIABLE hRowObject      AS HANDLE     NO-UNDO.
+   DEFINE VARIABLE cAsDivision     AS CHARACTER  NO-UNDO.
+   DEFINE VARIABLE lExternal       AS LOGICAL    NO-UNDO.
+   DEFINE VARIABLE lDbExtent       AS LOGICAL    NO-UNDO.
+
+
+   /* If a logic object is available we copy its static data definition */
+   {get DataLogicObject hLogicObject}.
+   IF VALID-HANDLE(hLogicObject) THEN 
+   DO:
+     RUN getLogicRows IN TARGET-PROCEDURE (OUTPUT TABLE-HANDLE hFromTable).
+     hLogicBuffer = hFromTable:DEFAULT-BUFFER-HANDLE.
+   END.
+   IF NOT VALID-HANDLE(hLogicBuffer) THEN
+   DO:
+     {get AsDivision cAsDivision}.
+     IF cAsDivision = 'CLIENT':U THEN
+       RETURN FALSE.  
+   END.
+
+   {get RowObject hRowObject}.
+   DELETE OBJECT hRowObject NO-ERROR.
+
+   {get DataColumns cDataColumns}.
+   
+   IF cDataColumns = '':U THEN
+      RETURN FALSE.
+   
+   {get IsRowObjectExternal lExternal}.
+   IF lExternal THEN
+     {get RowObjectTable hRowObjectTable}.
+   ELSE
+     CREATE TEMP-TABLE hRowObjectTable.
+
+   DO iLoop = 1 TO NUM-ENTRIES(cDataColumns): 
+     ASSIGN 
+       cColumn  = ENTRY(iLoop,cDataColumns)
+       hColumn  = ?.
+
+     IF VALID-HANDLE(hLogicBuffer) THEN
+       hColumn  = hLogicBuffer:BUFFER-FIELD(cColumn).
+
+     IF NOT VALID-HANDLE(hColumn) THEN
+     DO:
+       cDbColumnName = {fnarg columnDbColumn cColumn}.
+       IF cDbColumnName > '':U THEN
+         hColumn = {fnarg dbColumnHandle cDbColumnName}.
+       IF VALID-HANDLE(hColumn) THEN
+         lDbExtent = hColumn:EXTENT > 0.
+     END.
+     IF VALID-HANDLE(hColumn) THEN
+     DO:
+       hColumn:VALIDATE-EXPRESSION='':U.
+       /* don't copy the extents if we copy from a db field */ 
+       IF NOT lDbExtent THEN
+         hRowObjectTable:ADD-LIKE-FIELD(cColumn,hColumn).
+       ELSE
+         hRowObjectTable:ADD-NEW-FIELD
+                    (cColumn,
+                     hColumn:DATA-TYPE,
+                     0,   /* Extent  */
+                     hcolumn:FORMAT,
+                     hColumn:INITIAL,
+                     hColumn:LABEL,
+                     hColumn:COLUMN-LABEL).
+     END.
+   END.  
+
+   hRowObjectTable:ADD-NEW-FIELD('RowNum':U,'INTEGER':U).
+   hRowObjectTable:ADD-NEW-FIELD('RowIdent':U,'CHARACTER':U).
+   hRowObjectTable:ADD-NEW-FIELD('RowMod':U,'CHARACTER':U).
+   hRowObjectTable:ADD-NEW-FIELD('RowIdentIdx':U,'CHARACTER':U).
+   hRowObjectTable:ADD-NEW-FIELD('RowUserProp':U,'CHARACTER':U).
+   hRowObjectTable:ADD-NEW-INDEX('RowNum':U,NO,YES).
+   hRowObjectTable:ADD-INDEX-FIELD('RowNum':U,'RowNum':U).
+   hRowObjectTable:ADD-NEW-INDEX('RowMod':U,NO,NO).
+   hRowObjectTable:ADD-INDEX-FIELD('RowMod':U,'RowMod':U).
+   hRowObjectTable:ADD-NEW-INDEX('RowIdentIdx':U,NO,NO).
+   hRowObjectTable:ADD-INDEX-FIELD('RowIdentIdx':U,'RowIdentIdx':U).
+   
+   hRowObjectTable:TEMP-TABLE-PREPARE('RowObject':U).
+   
+   {set RowObjectTable hRowObjectTable}.
+
+   {get AsDivision cAsDivision}.
+   
+   IF cAsDivision <> 'CLIENT':U AND VALID-HANDLE(gshRepositoryManager) THEN
+     {fn prepareColumnsFromRepos}.
+
+   DELETE OBJECT hFromTable NO-ERROR. 
+
+   RETURN VALID-HANDLE(hRowObjectTable).
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-createRowObjUpdTable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION createRowObjUpdTable Procedure 
+FUNCTION createRowObjUpdTable RETURNS LOGICAL
+  ( ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Creates the RowObjUpd table from the RowObject table. 
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hRowObjUpdTable  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hLogicTable      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hFromBuffer      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRowObjUpd       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hLogicObject     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lLogic AS LOGICAL    NO-UNDO.
+
+  {get DataLogicObject hLogicObject}.
+  IF VALID-HANDLE(hLogicObject) THEN
+  DO:
+    RUN getLogicRows IN TARGET-PROCEDURE (OUTPUT TABLE-HANDLE hLogicTable).
+    hFromBuffer = hLogicTable:DEFAULT-BUFFER-HANDLE.
+  END.
+  ELSE 
+    {get RowObject hFromBuffer}.
+
+  IF NOT VALID-HANDLE(hFromBuffer) THEN
+    RETURN FALSE.
+  
+  {get RowObjUpd hRowObjUpd}.
+  DELETE OBJECT hRowObjUpd NO-ERROR.
+
+  CREATE TEMP-TABLE hRowObjUpdTable.
+  hRowObjUpdTable:CREATE-LIKE(hFromBuffer).
+  
+  IF NOT VALID-HANDLE(hLogicObject) THEN
+    hRowObjUpdTable:ADD-NEW-FIELD('Changedfields':U, 'CHARACTER':U).
+
+  hRowObjUpdTable:TEMP-TABLE-PREPARE('RowObjUpd':U).
+
+  {set RowObjUpdTable hRowObjUpdTable}.
+  
+  DELETE OBJECT hLogicTable NO-ERROR. 
+
+  RETURN TRUE.  
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-dataContainerHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION dataContainerHandle Procedure 
+FUNCTION dataContainerHandle RETURNS HANDLE
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose: The DataContainer handle is an appserver aware container that can 
+           handle data requests and also is the container of this object. 
+           This can be a standard container or an sbo. This function also 
+           encapsulates the required checks of this object's AppServer properties
+           and only returns the handle if the current or permanent state allows 
+           it to be part of a stateless request handled by another object. 
+    Notes: It is rather likely that the DataContainer role and client container
+           role will be in separate objects in the future.      
+         - Currently duplicated in sbo.p.  
+------------------------------------------------------------------------------*/
+ DEFINE VARIABLE cASDivision      AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE hSource          AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE cObjectName      AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE lDataContainer   AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE lSBO             AS LOGICAL    NO-UNDO.
+
+ {get ContainerSource hSource}.
+ IF VALID-HANDLE(hSource) THEN
+ DO:
+   /* The DataContainer flag identifies an Appserver Container */
+   {get DataContainer lDataContainer hSource}.
+   {get QueryObject   lSBO hSource}. 
+   IF lDataContainer AND NOT lSBO THEN
+   DO:
+     /* Check AppServer properties to see if the object has no current or future 
+        server bindings and is using a stateless operating mode.*/    
+     IF {fn hasNoServerBinding} THEN
+       RETURN hSource.
+   END.
+   /* An SBO has AsDivision = 'client'. If the SDO is inside an SBO its data 
+      requests are always managed by the SBO, so the Appserver properties do 
+      not need to be checked and may not even apply */
+   ELSE DO: 
+     {get ASDivision cASDivision hSource} NO-ERROR.
+     IF (cASDivision = 'Client':U) THEN 
+       RETURN hSource.
+   END.
+ END.
+ 
+ RETURN ?. 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-defineTempTables) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION defineTempTables Procedure 
+FUNCTION defineTempTables RETURNS LOGICAL
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose: Define temp tables for a dynamic dataobject 
+           Returns true if a RowObjectTable is valid on exit.
+           I.e it was created here or the TT is static.   
+    Notes: Called from createObjects.     
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hRowObjectTable      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRowObjUpdTable      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lIsRowObjUpdExternal AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cDefs                AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lIsRowObjectExternal AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lUseRepository       AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cAsDivision          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hRowObject           AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cColumns             AS CHARACTER  NO-UNDO.
+
+  {get DataFieldDefs cDefs}.    
+  {get AsDivision cAsDivision}.
+  
+  /* Repository clients need definitions from server SDO, so skip this */  
+  IF cAsDivision <> 'CLIENT':U OR NOT {fn getUseRepository} THEN
+  DO:
+    IF cDefs = '':U THEN  
+    DO:
+      {fnarg emptyRowObject '':U}.
+      /* Destroy just in case , unless it is external in which case the TT is
+         unprepared */ 
+      {get IsRowObjectExternal lIsRowObjectExternal}.
+      IF NOT lIsRowObjectExternal THEN
+      DO:
+        {get RowObjectTable hRowObjectTable}.
+        DELETE OBJECT hRowObjectTable NO-ERROR.
+      END.    
+      
+      {fn createRowObjectTable}.    
+      /* Check if an external caller has set RowObjUpdTable. 
+         This is true whenever we commit data from a client with one 
+         appserver hit */
+      {get IsRowObjUpdExternal lIsRowObjUpdExternal}.
+      
+      /* Also skip this when rowbject is external as update is not needed then */
+      IF NOT lIsRowObjUpdExternal AND NOT lIsRowObjectExternal THEN
+      DO:
+        {get RowObjUpdTable hRowObjUpdTable}.
+        DELETE OBJECT hRowObjUpdTable NO-ERROR.
+        {fn createRowObjUpdTable}.
+      END.
+    END.
+    ELSE IF {fn getUseRepository} THEN
+      {fn prepareColumnsFromRepos}.
+  END.
+
+  {get RowObjectTable hRowObjectTable}.
+  RETURN VALID-HANDLE(hRowObjectTable).
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-deleteRow) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION deleteRow Procedure 
@@ -6454,6 +10019,11 @@ FUNCTION deleteRow RETURNS LOGICAL
   DEFINE VARIABLE lRepos         AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE cMsg           AS CHAR      NO-UNDO.
   DEFINE VARIABLE lNewDeleted    AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE cFirstResult   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cLastResult    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iFirstResult   AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iLastResult    AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hRowIdent      AS HANDLE     NO-UNDO.
 
   {get RowObject hRowObject}.
   {get RowObjUpd hRowObjUpd}.
@@ -6539,7 +10109,7 @@ FUNCTION deleteRow RETURNS LOGICAL
                    rowObjectState to only look in SDOs to make this work.                     
            hRowObjUpd:BUFFER-DELETE(). */
         lNewDeleted = TRUE.
-      hUpdRowMod:BUFFER-VALUE = "D".
+      hUpdRowMod:BUFFER-VALUE = "D":U.
     END.
     ELSE DO:
         /* IF first entry in RowIdent is blank, use the rest to create
@@ -6594,13 +10164,79 @@ FUNCTION deleteRow RETURNS LOGICAL
         hDataQuery:GET-PREV.
       END.
       ELSE lNextNeeded = TRUE.
+       
+      {get LastResultRow cLastResult}.
+      {get FirstResultRow cFirstResult}.
+      
+      ASSIGN
+        hRowIdent = hRowObject:BUFFER-FIELD('RowIdent':U)      
+        hRowNum = hRowObject:BUFFER-FIELD('RowNum':U)      
+        iFirstResult = INTEGER(ENTRY(1,cFirstResult,';':U))
+        iLastResult  = INTEGER(ENTRY(1,cLastResult,';':U)).
+
+      /* Set to unknown as signal to set new values after the delete */
+      IF iFirstResult = hRowNum:BUFFER-VALUE THEN
+        cFirstResult = ?.
+      IF iLastResult = hRowNum:BUFFER-VALUE THEN
+        cLastResult = ?.     
       
       hRowObject:BUFFER-DELETE().
+
     END.  /* END DO IF pcRowIdent */
     
     /* This will result in a delete-current-row in the browser */
     PUBLISH 'deleteComplete':U FROM TARGET-PROCEDURE. /* Tell Browser, e.g */
     
+    /* We deleted the first of the batch */
+    IF cFirstResult = ? THEN
+    DO:
+      IF NOT hRowObject:AVAIL THEN
+        hDataQuery:GET-FIRST.
+      /* This must now be the first record, unless it is new */
+      IF hRowObject:AVAIL AND hRowIdent:BUFFER-VALUE > '':U THEN
+      DO:
+        cFirstResult = hRowNum:BUFFER-VALUE + ';':U + hRowIdent:BUFFER-VALUE.
+        {set FirstResultRow cFirstResult}.
+      END.
+    END.
+
+    IF cLastResult = ? THEN
+    DO:
+      /* If we deleted the last (including a new which is last of the batch )
+         position to the prev */    
+      IF NOT hRowObject:AVAIL THEN
+        hDataQuery:GET-PREV.
+      /* This must be the last record of the current batch, unless it is new */      
+      IF hRowObject:AVAIL AND hRowIdent:BUFFER-VALUE > '':U THEN
+      DO:
+        cLastResult = hRowNum:BUFFER-VALUE + ';':U + hRowIdent:BUFFER-VALUE.
+        {set LastResultRow cLastResult}.
+      END.
+    END.
+    
+    /* if new deleted then it may not yet be in the browse and thus not
+       become available on the deletecomplete */      
+    IF lNewDeleted AND NOT hRowObject:AVAILABLE THEN
+       hDataQuery:GET-NEXT.
+    
+    IF NOT hRowObject:AVAIL THEN
+      hDataQuery:GET-PREV.
+
+    /* If we deleted the first then this must now be the first record */
+    IF hRowObject:AVAIL THEN
+    DO:
+      IF cQueryPos = 'FirstRecord':U THEN
+        {set FirstRowNum hRowNum:BUFFER-VALUE}.        
+       /* If we deleted the last then this must now be the last record */
+      IF cQueryPos = 'LastRecord':U THEN
+         {set LastRowNum hRowNum:BUFFER-VALUE}.              
+    END.
+    /* Last record deleted */
+    ELSE DO:
+      {set FirstRowNum 0}.        
+      {set LastRowNum 0}.              
+    END.
+
     /* if we are deleted as part of a one-to-one delete there's no need to try 
        to keep track of where we are since the parent will need to change anyway*/  
     {get UpdateFromSource lUpdFromSource}.
@@ -6619,31 +10255,6 @@ FUNCTION deleteRow RETURNS LOGICAL
         RUN fetchNext IN TARGET-PROCEDURE.
       ELSE 
       DO:    
-        /* If no browser is used the rowObject is unavail, but more records
-           may exists in a few cases (lNewDeleted and/or last deleted) */ 
-        
-        /* The only case we can get here and there may be records AFTER the 
-           deleted is if a new record has been deleted (it would normally be 
-           the last, but other new records may be behind  */
-        IF lNewDeleted AND NOT hRowObject:AVAILABLE THEN
-          hDataQuery:GET-NEXT.
-
-        /* If we deleted the last (including a new which is last of the batch )
-           position to the prev */ 
-        IF NOT hRowObject:AVAILABLE THEN
-           hDataQuery:GET-PREV.
-        
-        /* If we deleted the first/last record, we need to   
-           set the properties for the "new" first record or last record. */        
-        IF hRowObject:AVAILABLE THEN 
-        DO:
-          hRowNum = hRowObject:BUFFER-FIELD('RowNum':U).
-          IF cQueryPos = 'FirstRecord':U THEN
-            {set FirstRowNum hRowNum:BUFFER-VALUE}.        
-          IF cQueryPos = 'LastRecord':U THEN
-            {set LastRowNum hRowNum:BUFFER-VALUE}.        
-        END.
-
         RUN updateQueryPosition IN TARGET-PROCEDURE.
         PUBLISH 'dataAvailable':U FROM TARGET-PROCEDURE ('different':U).      
       END.
@@ -6832,213 +10443,138 @@ FUNCTION fetchRowIdent RETURNS CHARACTER
              The application need to call fetchRowident with a valid value 
              or fetchFirst, fetchLast or openQuery to get back to normal.                    
 ------------------------------------------------------------------------------*/ 
-  DEFINE VARIABLE rRowId        AS ROWID   NO-UNDO.
-  DEFINE VARIABLE hDataQuery    AS HANDLE  NO-UNDO.
-  DEFINE VARIABLE hDBQuery      AS HANDLE  NO-UNDO.
-  DEFINE VARIABLE hRowObject    AS HANDLE  NO-UNDO.
-  DEFINE VARIABLE hRowQuery     AS HANDLE  NO-UNDO.
-  DEFINE VARIABLE hRowNum       AS HANDLE  NO-UNDO.
-  DEFINE VARIABLE hRowIdent     AS HANDLE  NO-UNDO.
-  DEFINE VARIABLE iRowsReturned AS INTEGER NO-UNDO.
-  DEFINE VARIABLE iLastRow      AS INTEGER NO-UNDO.
-  DEFINE VARIABLE cLastDbRowId  AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE iRowsToBatch  AS INTEGER NO-UNDO.
-  DEFINE VARIABLE lOK           AS LOGICAL NO-UNDO.
-  DEFINE VARIABLE cRow          AS CHAR    NO-UNDO INIT ?.
-  DEFINE VARIABLE lBrowsed      AS LOGICAL NO-UNDO.
-  DEFINE VARIABLE lRebuild      AS LOGICAL NO-UNDO.
-  DEFINE VARIABLE cRowState     AS CHAR    NO-UNDO.
-  DEFINE VARIABLE lFillBatch    AS LOGICAL NO-UNDO.
-  DEFINE VARIABLE lFetchBatch   AS LOGICAL NO-UNDO.
-  DEFINE VARIABLE lNotOpened    AS LOGICAL NO-UNDO.
-  DEFINE VARIABLE iFirstRowNum  AS INTEGER NO-UNDO.
+  DEFINE VARIABLE lOnClient        AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lFromServer      AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cRows            AS CHARACTER  NO-UNDO INIT ?.
+  DEFINE VARIABLE hDataReadHandler AS HANDLE     NO-UNDO.
 
-  {get RowObjectState cRowState}.
-  {get RowsToBatch iRowsToBatch}.
-  {get DataHandle hDataQuery}.
+  lOnClient = {fnarg findRowObjectUseRowident pcRowident}.
   
-  hRowObject = hDataQuery:GET-BUFFER-HANDLE(1).
+  IF NOT lOnClient THEN
+    lFromServer = {fnarg fetchRowWhere pcRowident}.
   
-  /* Determines if this SDO is being browsed by a SmartDataBrowser */
-  {get DataQueryBrowsed lBrowsed}.
-     
-  CREATE QUERY hRowQuery.     /* Get a query to do the "FIND" */
-  lOK = hRowQuery:SET-BUFFERS(hRowObject).
-  IF lOK THEN
-      /* Note that the where clause uses 'BEGINS' because the caller
-         may have specified a partial RowIdent (first table of a join). */
-    lOK = hRowQuery:QUERY-PREPARE
-       (
-        'FOR EACH RowObject WHERE RowObject.RowIdentIdx BEGINS "':U 
-        + 
-        SUBSTR(pcRowIdent, 1, xiRocketIndexLimit) 
-        + 
-        '" AND ':U 
-        + 
-        'RowObject.RowIdent BEGINS "':U 
-        + 
-        pcRowIdent 
-        + 
-        '"':U
-       )
-       .
-  IF lOK THEN
-    lOK = hRowQuery:QUERY-OPEN().
-  
-  IF lOK THEN
-    lOK = hRowQuery:GET-FIRST().
-
-    /* If update in progress and record not in the current batch */    
-  IF cRowState = 'RowUpdated':U AND NOT hRowObject:AVAILABLE THEN 
+  IF lOnCLient OR lFromServer THEN
   DO:
-    /* DYNAMIC-FUNCTION("showMessage":U IN TARGET-PROCEDURE, "16":U).*/
+     cRows = {fnarg colValues pcViewColList}.
+     RUN updateQueryPosition IN TARGET-PROCEDURE.       
+     {get DataReadHandler hDataReadHandler}.
+     IF NOT VALID-HANDLE(hDataReadHandler) THEN
+       PUBLISH 'dataAvailable':U FROM TARGET-PROCEDURE("DIFFERENT":U). 
+  END.
+
+  RETURN cRows. 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-fetchRowWhere) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION fetchRowWhere Procedure 
+FUNCTION fetchRowWhere RETURNS LOGICAL
+  ( pcQueryString AS CHAR ) :
+/*------------------------------------------------------------------------------
+   Purpose: fetch or append rows positioned according to input query data. 
+Parameters: pcQueryData 
+              - A complete database query string. 
+              - Rowident - semi colon separated list of rowids for each table. 
+     Notes: This is the wrapper for the call to the server and should be called 
+            from code that first checks if the record is on the client.            Called from fetchRowident and findRowWhere. 
+          - Used by fetchRowident and findRowWhere  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cRowObjectState  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lRebuild         AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE iRowsToBatch     AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iRowsReturned    AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE lBrowsed         AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lFillBatch       AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cSpecial         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAsDivision      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hDataReadHandler AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cRowIdent        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hRowObject       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hDataQuery       AS HANDLE     NO-UNDO.
+
+  IF pcQueryString = "":U THEN
+    RETURN FALSE.
+
+  {get RowObjectState cRowObjectState}.
+  IF cRowObjectState = 'RowUpdated':U THEN 
+  DO:
     RUN showMessageProcedure IN TARGET-PROCEDURE 
-       (INPUT "16":U, OUTPUT glShowMessageAnswer). 
-   
-    DELETE WIDGET hRowQuery.
-    RETURN ?.
+       (INPUT "16":U, OUTPUT glShowMessageAnswer).    
+    RETURN FALSE.
   END.   
-    
+  
   /* If it's not in the current RowObject set, keep getting batches of
      rows until we get to it, unless the RebuildOnRepos property is set,
      in which case we get sendRows to jump right to that record. */
   {get RebuildOnRepos lRebuild}.
-
-  /* If RebuildOnReposition is true and the row we are looking for isn't in the
-     current batch and we have a valid ID to look for, flush out the current set
-     of RowObject records and reset the associated flags. */
-  IF lRebuild AND NOT hRowObject:AVAILABLE and pcRowIdent NE "" THEN 
-  DO:
-    {fnarg emptyRowObject 'reset':U}. 
-  END.
   
-  iRowsReturned = iRowsToBatch.
-
-  /* set browser refreshable = false, but not if we already found it as this 
-     has effect on set-repositioned-row conditional  */
+  /* If RebuildOnReposition, flush out the current set of RowObject records 
+     and reset the associated flags. */
+  {get RowObject hRowObject}.
+  /* We log rowident since the TTs may be recreated (could have used rowid when 
+    not rebuild...) */
+  cRowident = hRowObject:BUFFER-FIELD('Rowident':U):BUFFER-VALUE NO-ERROR.
+  IF lRebuild THEN 
+    {fnarg emptyRowObject '':U}. 
   
-  IF NOT hRowObject:AVAILABLE AND lBrowsed THEN
-  DO:
+  /* Determines if this SDO is being browsed by a SmartDataBrowser */
+  {get DataQueryBrowsed lBrowsed}.  
+  
+  /* Set browser refreshable = false */
+  IF lBrowsed THEN
     PUBLISH 'fetchDataSet':U FROM TARGET-PROCEDURE ('BatchStart':U).
-    lFetchBatch = TRUE. /* used below to turn this off again */
-  END.
   
-  /* Set this flag to ensure that the first record is included if
-     rebuild is false and the query has not been opened */
+  {get RebuildOnRepos lRebuild}.
+  /* We use special signals appended to the passed query to tell whether this 
+     is an appending search or a rebuild with fillbatch.  */
   IF NOT lRebuild THEN
-  DO:
-    {get FirstRowNum iFirstRowNum}.
-    lNotOpened = NOT hDataQuery:IS-OPEN AND iFirstRowNum = ?.
+    cSpecial = "+":U.
+  ELSE IF lBrowsed THEN
+  DO: 
+    {get fillBatchOnRepos lFillBatch}.
+    /* append '-' to indicate go back from found position to fill batch, 
+       (almost makes sense doesn't it?) */ 
+    IF lFillbatch THEN 
+      cSpecial = "-":U. 
   END.
 
-  ReadRows:
-  DO WHILE (NOT hRowObject:AVAILABLE) AND iRowsReturned EQ iRowsToBatch:
-    RUN sendRows IN TARGET-PROCEDURE 
-            (?,    /* No RowNum specified */
-             IF lRebuild THEN pcRowIdent ELSE ?, 
-             /* If we are cycling through until we locate the desired row,
-                (Rebuild = no), then nextflag is True; otherwise, if
-                we are jumping to that rec as a starting point, it is
-                the first row returned, so Nextflag is False. */
-             NOT lRebuild AND NOT lNotOpened,  
+  {get RowsTobatch iRowsToBatch}.
+
+  RUN sendRows IN TARGET-PROCEDURE 
+            (?,    /* RowNum is only for refresh  */
+             pcQueryString + cSpecial, 
+             FALSE,  
              iRowsToBatch, 
              OUTPUT iRowsReturned).
- 
-    IF iRowsReturned = 0 THEN    
-      LEAVE ReadRows.
-    ELSE IF NOT lRebuild THEN 
-      PUBLISH 'assignMaxGuess':U FROM TARGET-PROCEDURE (iRowsReturned).
-    
-    /* This caused problems with reposition to a record in the last batch
-       so it was just commented away, since it is not needed  
-    /* If last record read set properties */
-    IF iRowsReturned <> iRowsToBatch THEN
-    DO:
-      hDataQuery:GET-LAST.
-      IF hRowObject:AVAILABLE THEN
-      DO:
-        ASSIGN hRowNum    = hRowObject:BUFFER-FIELD('RowNum':U)
-               hRowIdent  = hRowObject:BUFFER-FIELD('RowIdent':U).
-        {set LastRowNum hRowNum:BUFFER-VALUE}.
-        {set LastDbRowIdent hRowIdent:BUFFER-VALUE}.
-      END.
-    END.
-    */
-
-    hRowQuery:QUERY-OPEN().     /* reopen the query on the one row. */
-    hRowQuery:GET-FIRST().      /* see if that row is now AVAILABLE */
-
-    IF hRowObject:AVAILABLE THEN
-      LEAVE ReadRows.
-    
-    IF lRebuild THEN  /* Only one loop if Rebuild */
-      LEAVE ReadRows.
-  END.   /* END DO WHILE */
   
-  IF hRowObject:AVAILABLE THEN
+  IF iRowsReturned = 0 AND NOT lRebuild THEN
   DO:
-    rRowId = hRowObject:ROWID.
-
-    lOK = hDataQuery:REPOSITION-TO-ROWID(rRowid) NO-ERROR.
-    
-    IF lOK AND (NOT lBrowsed) THEN 
-       lOK = hDataQuery:GET-NEXT().
-    
-    IF lOK THEN
-    DO:
-      /* When rebuild on reposition is turned on and a SmartDataBrowser is
-         being used to display data for this SDO, if the reposition is to 
-         the end or near the end of the dataset we may not get a full
-         batch and the browse may appear half empty and in certains 
-         cases (when we've repositioned to the last row) the scrollbar
-         becomes disabled.  To solve this we get more rows, enough rows
-         to fill the batch thus filling the browse.  This behavior is 
-         based on the fillBatchOnRepos property. */
-      {get fillBatchOnRepos lFillBatch}.
-      IF lFillBatch AND lRebuild AND lBrowsed AND iRowsReturned < iRowsToBatch THEN
-      DO:
-        /* this is the equivalent of a fetchPrev, but we adjust the batch size 
-           to not include the ones we already fetched  */ 
-        RUN sendRows IN TARGET-PROCEDURE
-            (?,
-             ?,
-             YES,
-             - (iRowsToBatch - iRowsReturned),
-             OUTPUT iRowsReturned).
-        lok = hDataQuery:REPOSITION-TO-ROWID(rRowid) NO-ERROR.
-      END.
-        /* This will return ? if not AVAILABLE. */
-      cRow = {fnarg colValues pcViewColList}.
-    END.     /* END DO IF lOK */
-    
-    RUN updateQueryPosition IN TARGET-PROCEDURE.
-    IF lFetchBatch THEN
-      PUBLISH 'fetchDataSet':U FROM TARGET-PROCEDURE ('BatchEnd':U).
-
-  END.         /* END DO IF AVAILABLE */
-  ELSE DO:   
-    /* No rows returned, close down everything 
-       This exception should normally not happen. 
-       The application would need to call fetchRowident with a valid value 
-       or fetchfirst, fetchLast or openQuery to get back to normal behavior */      
-    IF lFetchBatch THEN 
-      PUBLISH 'fetchDataSet':U FROM TARGET-PROCEDURE ('BatchEnd':U).
-
-    {fnarg emptyRowObject 'reset':U}.
-    hDataQuery:QUERY-CLOSE().
-      
-    /*DYNAMIC-FUNCTION("showMessage":U IN TARGET-PROCEDURE, */
-    RUN showMessageProcedure IN TARGET-PROCEDURE                  
-                      ("Unable to locate record in current query.",
-                       OUTPUT glShowMessageAnswer).
+    {get DataHandle hDataQuery}.
+    hDataQuery:QUERY-OPEN.
+    /* We could have used rowid directly when not Rebuild 
+      (If we logged it above that is) */      
+    IF cRowIdent > '':U THEN
+      {fnarg findRowObjectUseRowident cRowident}.
+    iRowsReturned = 0.
   END.
-  
-  /* Signal row change in any case. */
-  PUBLISH 'dataAvailable':U FROM TARGET-PROCEDURE ("DIFFERENT":U).
+  ELSE IF NOT hRowObject:AVAIL THEN
+  DO:
+    IF cRowIdent > '':U THEN
+      {fnarg findRowObjectUseRowident cRowident}.
+    iRowsReturned = 0.
+  END.
 
-  DELETE WIDGET hRowQuery.
- 
-  RETURN cRow.  
+  IF lBrowsed THEN
+    PUBLISH 'fetchDataSet':U FROM TARGET-PROCEDURE ('BatchEnd':U).
+
+  RETURN iRowsReturned > 0.
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -7107,6 +10643,81 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-findRowObjectUseRowIdent) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION findRowObjectUseRowIdent Procedure 
+FUNCTION findRowObjectUseRowIdent RETURNS LOGICAL
+  ( pcRowident AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Repositions the RowObject's query to the desired row, based on
+            the corresponding database record rowid(s) (specified by 
+            pcRowIdent),            
+            If that row is found in the RowObject table, it repositions the 
+            RowObject query to that row.
+ 
+  Parameters:
+    INPUT pcRowIdent    - desired rowid(s) within the result set, expressed 
+                          as a comma-separated list of db rowids;
+    Notes:  operates on RowObject only and does not publish the change 
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hRowObject  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hDataQuery  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRowQuery   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE rRowid      AS ROWID      NO-UNDO.
+  DEFINE VARIABLE lOk         AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE rCurrent    AS ROWID      NO-UNDO.
+
+  {get DataHandle hDataQuery}.
+  {get RowObject hRowObject}.
+  rCurrent = hRowObject:ROWID.
+  IF NOT VALID-HANDLE(hRowObject) OR NOT VALID-HANDLE(hDataQuery) THEN
+    RETURN FALSE.
+
+  CREATE QUERY hRowQuery.     /* Get a query to do the "FIND" */
+  hRowQuery:SET-BUFFERS(hRowObject).
+  /* Note that the where clause uses 'BEGINS' on Rowident because the caller
+     may have specified a partial RowIdent (first table of a join). 
+     (The RowidentIdx of course has to use BEGINS. It is the indexed version
+     of the RowidentIdx */  
+  hRowQuery:QUERY-PREPARE
+          (
+           'FOR EACH ':U + hRowObject:NAME + ' WHERE RowIdentIdx BEGINS "':U 
+           + 
+           SUBSTR(pcRowIdent, 1, xiRocketIndexLimit) 
+           + 
+           '" AND ':U 
+           + 
+           'RowIdent BEGINS "':U 
+           + 
+           pcRowIdent 
+           + 
+           '"':U
+          ).
+
+  hRowQuery:QUERY-OPEN().
+  hRowQuery:GET-FIRST().   
+  rRowId = hRowObject:ROWID.
+
+  IF rRowid <> ? THEN 
+  DO:
+    lOk = hDataQuery:REPOSITION-TO-ROWID(rRowid).
+    IF lOK AND (NOT hRowObject:AVAILABLE) THEN 
+      hDataQuery:GET-NEXT().
+  END.
+  ELSE IF rCurrent <> ? THEN 
+    hRowObject:FIND-BY-ROWID(rCurrent) NO-ERROR.
+  
+  DELETE OBJECT hRowQuery.
+
+  RETURN lOk. 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-findRowObjectWhere) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION findRowObjectWhere Procedure 
@@ -7149,6 +10760,7 @@ FUNCTION findRowObjectWhere RETURNS LOGICAL
  DEFINE VARIABLE hRowQuery      AS HANDLE     NO-UNDO.
  DEFINE VARIABLE lBrowsed       AS LOGICAL    NO-UNDO.
  DEFINE VARIABLE hRowObject     AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE hRowObjectBuf  AS HANDLE     NO-UNDO.
  DEFINE VARIABLE hDataQuery     AS HANDLE     NO-UNDO.
  DEFINE VARIABLE rRowid         AS ROWID      NO-UNDO.
  DEFINE VARIABLE lRange         AS LOGICAL    NO-UNDO.
@@ -7165,6 +10777,7 @@ FUNCTION findRowObjectWhere RETURNS LOGICAL
  DEFINE VARIABLE cIndex         AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE iIndex         AS INTEGER    NO-UNDO.
  DEFINE VARIABLE lDefinite      AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE rCurrent       AS ROWID      NO-UNDO.
 
  IF pcColumns = '':U OR pcColumns = ? THEN RETURN NO.
 
@@ -7174,7 +10787,7 @@ FUNCTION findRowObjectWhere RETURNS LOGICAL
  IF pcMode <> 'FIRST':U THEN
  DO:
     MESSAGE 
-      'firstRowObjectWhere() called with wrong mode' pcMode  SKIP       
+      'findRowObjectWhere() called with wrong mode' pcMode  SKIP       
       VIEW-AS ALERT-BOX ERROR.
     RETURN ?.
 
@@ -7245,7 +10858,7 @@ FUNCTION findRowObjectWhere RETURNS LOGICAL
    /* If range is used and we don't have the first record we 
       don't know and have to go to the server  
       We could actually detect a FOUND condition if the OTHER fields used 
-      equality on a unique index... but for now this will have to do   */
+      equality on a unique index... but for now this will have to do   */  
    IF lRange AND iFirstRowNum = ? THEN
       RETURN ?.
 
@@ -7258,12 +10871,13 @@ FUNCTION findRowObjectWhere RETURNS LOGICAL
                                 'AND':U).
 
  /* Determines if this SDO is being browsed by a SmartDataBrowser */
- {get RowObject hRowObject}.    
+ {get RowObject hRowObject}.
+ rCurrent = hRowObject:ROWID.
  /* Create local buffer */
- CREATE BUFFER hRowObject FOR TABLE hRowObject BUFFER-NAME hRowObject:NAME.
+ CREATE BUFFER hRowObjectBuf FOR TABLE hRowObject BUFFER-NAME hRowObject:NAME.
  CREATE QUERY hRowQuery.     /* Get a query to do the "FIND" */
  
- lOK = hRowQuery:SET-BUFFERS(hRowObject).
+ lOK = hRowQuery:SET-BUFFERS(hRowObjectBuf).
  IF lOK THEN 
     lOK = hRowQuery:QUERY-PREPARE(cQueryString).
  IF lOK THEN
@@ -7276,9 +10890,10 @@ FUNCTION findRowObjectWhere RETURNS LOGICAL
    ELSE IF pcMode = 'LAST':U THEN
      hRowQuery:GET-LAST().
  END.
+
  {get DataHandle hDataQuery}.
- lOK = hRowObject:AVAILABLE.
- 
+ lOK = hRowObjectBuf:AVAILABLE.
+
  /* Note that we have already returned ? if range match and firstrownum is ? */
  /* We have all records on the client so we know the answer */
  IF iFirstRowNum <> ? AND iLastRowNum <> ? THEN 
@@ -7341,7 +10956,7 @@ FUNCTION findRowObjectWhere RETURNS LOGICAL
  IF lDefinite AND lOk THEN 
  DO:
    {get DataQueryBrowsed lBrowsed}.
-   rRowId = hRowObject:ROWID.
+   rRowId = hRowObjectBuf:ROWID.
 
    lOK = hDataQuery:REPOSITION-TO-ROWID(rRowid) NO-ERROR.
 
@@ -7352,9 +10967,11 @@ FUNCTION findRowObjectWhere RETURNS LOGICAL
    RUN updateQueryPosition IN TARGET-PROCEDURE.
    PUBLISH 'dataAvailable':U FROM TARGET-PROCEDURE ("DIFFERENT":U).   
  END.
- 
+ ELSE  /* keep current record avail if not found */ 
+   hRowObject:FIND-BY-ROWID(rCurrent) NO-ERROR.
+
  /* delete local widget handles */
- DELETE WIDGET hRowObject. 
+ DELETE WIDGET hRowObjectBuf. 
  DELETE WIDGET hRowQuery.
 
  /* If we get here we do not know enough whether we have a record or not */
@@ -7375,27 +10992,18 @@ FUNCTION findRowObjUpd RETURNS LOGICAL
   ( phRowObject AS HANDLE,
     phRowObjUpd AS HANDLE ) :
 /*------------------------------------------------------------------------------
-  Purpose: Returns the handle for RowObjUpd buffer for the RowObjUpd record that 
-           corresponds to the RowObject record being passed to this function.
-   Params: phRowObject AS HANDLE
+  Purpose: REturns true if it finds the passed RowObjUpd that corresponds to 
+           the current record in the passed RowObject buffer
+Parameter: phRowObject AS HANDLE
            phRowObjUpd AS HANDLE  
     Notes: Called from deleteRow to check for a RowObjUpd for a row being deleted
            before creating a new one. 
+Note date: 2002/05/31          
 ------------------------------------------------------------------------------*/
-DEFINE VARIABLE cRowNum    AS CHARACTER NO-UNDO.
-DEFINE VARIABLE hRowNum    AS HANDLE    NO-UNDO.
-DEFINE VARIABLE hRowQuery  AS HANDLE NO-UNDO.
 
-  ASSIGN hRowNum = phRowObject:BUFFER-FIELD('RowNum':U)
-         cRowNum = hRowNum:BUFFER-VALUE.
-
-  CREATE QUERY hRowQuery.
-  hRowQuery:SET-BUFFERS(phRowObjUpd).
-  hRowQuery:QUERY-PREPARE('FOR EACH RowObjUpd WHERE RowObjUpd.RowNum = ':U + cRowNum).
-  hRowQuery:QUERY-OPEN().
-  hRowQuery:GET-FIRST().
-  DELETE WIDGET hRowQuery.
-
+  phRowObjUpd:FIND-UNIQUE('WHERE RowObjUpd.RowNum = ':U + 
+                        STRING(phRowObject:BUFFER-FIELD('RowNum':U):BUFFER-VALUE))
+                        NO-ERROR.
   RETURN phRowObjUpd:AVAILABLE.   /* Function return value. */
 
 END FUNCTION.
@@ -7428,47 +11036,49 @@ Parameters:
                                 - Use slash to define alternative string operator
                                   EQ/BEGINS etc..
                               - comma separated for each column/value
-                              
-  Notes: The logic is in the query.p super                            
+                                                        
 ---------------------------------------------------------------------------*/
-  DEFINE VARIABLE cColumn     AS CHAR  NO-UNDO.
-  DEFINE VARIABLE i           AS INT   NO-UNDO.
-  DEFINE VARIABLE cRowids     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lOnClient   AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cAsDivision AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cColumn          AS CHAR       NO-UNDO.
+  DEFINE VARIABLE lOnClient        AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cAsDivision      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cQueryString     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hDataReadHandler AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lQueryOpen       AS LOGICAL    NO-UNDO.
 
   {get AsDivision cAsDivision}.
-  IF cAsDivision <> 'Server':U THEN
+  {get QueryOpen lQueryOpen}.
+   /* don't search onclient if QueryOpen is false; stateless web requests
+      may call this after context has been set and findRowObjectWhere will 
+      think it has enough info to return no */   
+  IF cAsDivision <> 'Server':U AND lQueryOpen THEN
   DO:
     /* Check if the record already is on the client */
     lOnCLient = DYNAMIC-FUNCTION('findRowObjectWhere':U IN TARGET-PROCEDURE,
                                   pcColumns,
                                   pcValues,
                                   pcOperators,
-                                  'First':U).
-  
+                                  'First':U).  
     /* findRowObjectWhere returns ? if its not able to resolve the query */
     IF lOnCLient <> ? THEN 
        RETURN lOnCLient.
   END. /* not on server */
-  
-  DO i = 1 TO NUM-ENTRIES(pcColumns):
-    cColumn            = ENTRY(i,pcColumns).
-    /* pass the database columnname to the super. */
-    ENTRY(i,pcColumns) = {fnarg columnDbColumn cColumn}. 
+  cQueryString = DYNAMIC-FUNCTION('newQueryString':U IN TARGET-PROCEDURE,
+                                   pcColumns,
+                                   pcValues,
+                                   pcOperators,
+                                   ?,
+                                   ?).
+
+  IF {fnarg fetchRowWhere cQueryString} THEN
+  DO:
+    RUN updateQueryPosition IN TARGET-PROCEDURE.  
+    {get DataReadHandler hDataReadHandler}.
+    IF NOT VALID-HANDLE(hDataReadHandler) THEN
+       PUBLISH 'dataAvailable':U FROM TARGET-PROCEDURE("DIFFERENT":U). 
+    RETURN TRUE.
   END.
   
-  cRowids = DYNAMIC-FUNCTION('rowidWhereCols':U IN TARGET-PROCEDURE,
-                              pcColumns,pcValues,pcOperators).
-  
-  IF cRowids = ? THEN
-    RETURN FALSE.
-
-  DYNAMIC-FUNCTION('fetchRowident':U IN TARGET-PROCEDURE,
-                    cRowids,
-                    '':U).
-
-  RETURN TRUE.
+  RETURN FALSE.
 
 END FUNCTION.
 
@@ -7543,6 +11153,7 @@ FUNCTION getTargetProcedure RETURNS HANDLE
 ------------------------------------------------------------------------------*/
 
   RETURN ghTargetProcedure.
+
 
 END FUNCTION.
 
@@ -7711,7 +11322,7 @@ FUNCTION hasOneToOneTarget RETURNS LOGICAL
     IF VALID-HANDLE(hTarget) THEN
     DO:
       {get UpdateFromSource lOneToOne hTarget} NO-ERROR.
-       IF lOneTOOne THEN
+       IF lOneToOne THEN
          RETURN TRUE.
     END.
   END.
@@ -7847,11 +11458,23 @@ Parameters: pcMode - char  - A(dd) or C(opy)
             Currently defined as PRIVATE. 
             Used in procedure copyColumns and function addRow().  
 ------------------------------------------------------------------------------*/
- DEFINE VARIABLE cQueryPos  AS CHAR   NO-UNDO.
- DEFINE VARIABLE hColumn    AS HANDLE NO-UNDO.
- DEFINE VARIABLE hRowObject AS HANDLE NO-UNDO.
- DEFINE VARIABLE iLastRow   AS INT    NO-UNDO.
- DEFINE VARIABLE cBlank     AS CHAR   NO-UNDO.
+ DEFINE VARIABLE cQueryPos     AS CHAR       NO-UNDO.
+ DEFINE VARIABLE hColumn       AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE hRowObject    AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE iLastRow      AS INT        NO-UNDO.
+ DEFINE VARIABLE cBlank        AS CHAR       NO-UNDO.
+ DEFINE VARIABLE hLogicObject  AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE hNewRowObject AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE rRowid        AS ROWID      NO-UNDO.
+ DEFINE VARIABLE lBrowsed      AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE cTargets      AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cDTList       AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cUSList       AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE hDTarget      AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE hUSource      AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE cType         AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cNew          AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE iVar          AS INTEGER    NO-UNDO.
 
  {get RowObject hRowObject}.
  
@@ -7866,11 +11489,79 @@ Parameters: pcMode - char  - A(dd) or C(opy)
         hColumn:BUFFER-VALUE = SUBSTR(pcMode,1,1).  
 
  /* logic hook */
+ {get DataLogicObject hLogicObject}. 
+ IF VALID-HANDLE(hLogicObject) THEN
+    RUN setLogicBuffer IN TARGET-PROCEDURE (INPUT hRowObject,INPUT ?).
+ 
  RUN modifyNewRecord IN TARGET-PROCEDURE NO-ERROR. 
+ 
+ IF VALID-HANDLE(hLogicObject) THEN
+ DO:
+   RUN getLogicBuffer IN TARGET-PROCEDURE (OUTPUT hNewRowObject).
+   hRowObject:BUFFER-COPY(hNewRowObject).
+   RUN clearLogicRows IN TARGET-PROCEDURE.
+ END.
 
- /* Notify dataSources. They will check NewRow and close the query */ 
- PUBLISH "dataAvailable" FROM TARGET-PROCEDURE ('DIFFERENT').    
+ rRowid = hRowObject:ROWID.
+ 
+ /* Fix for issue 5931. ************************************************/
+ /* When a browser is a DataTarget we need to make sure that it gets an */
+ /* 'updateState' message before the SDO publishes 'dataAvailable'. */
+ /* Otherwise, the browser may respond to 'dataAvailable' for the new */
+ /* record when it gets re-enabled causing a RecordState of */
+ /* 'NoRecordAvailable' (which would cause state problems with child objects). */
 
+ /* The following solution is a temporary, targeted approach to the source of */
+ /* the problem (browse widget) so that system stability is maintained. */
+ /* A more thorough implementation should be considered */
+ /* where 'UpdateState' is generally published before 'dataAvailable' so */
+ /* that visual objects can correctly respond (or refuse to respond) to */
+ /* dataAvailable from their DataSource */
+ 
+ /* If we don't have a browse attached to the query then don't do anything */
+ {get DataQueryBrowsed lBrowsed}.
+ IF lBrowsed THEN DO:
+
+   /* determine the current update source */
+   {get UpdateSource cUSList}.
+   DO iVar = 1 TO NUM-ENTRIES(cUSList):
+     hUSource = WIDGET-HANDLE(ENTRY(iVar, cUSList)).
+     IF VALID-HANDLE(hUSource) THEN DO:
+       {get NewRecord cNew hUSource}.
+       IF LOOKUP(cNew, "ADD,COPY":U) > 0 THEN
+         LEAVE.
+       ELSE hUSource = ?.
+     END.
+     ELSE hUSource = ?.
+   END.
+
+   /* loop thru the DataTargets...*/
+   {get DataTarget cDTList}.
+   DO iVar = 1 TO NUM-ENTRIES(cDTList):
+     hDTarget = widget-handle(ENTRY(iVar, cDTList)).
+     IF VALID-HANDLE(hDTarget) THEN  DO:
+       /* ...looking for any browser that is NOT the current UpdateSource */
+       {get ObjectType cType hDTarget}.
+       IF cType = "SmartDataBrowser":U AND hDTarget <> hUSource THEN    
+         RUN 'updateState':U IN hDTarget('Update':U).
+     END.
+   END.
+ END.
+ /* End fix for issue 5931 **************************************/
+
+ /* Notify dataSources. They will check NewRow and close the query */  
+ PUBLISH "dataAvailable":U FROM TARGET-PROCEDURE ('DIFFERENT':U).    
+
+ /* Under certain circumstances (when focus between windows has been switched 
+    by JUST clicking the browses and these windows are recently initialized) 
+    the publish above causes a reposition of the query. 
+    The browse is the suspect as this is implicit behavior when a browse is 
+    refreshed/viewed. This event cannot be trapped and overridden in the browse.
+    (It could have been prevented by disabling the browse before this for
+    example by an earlier updateState though) */
+ IF rRowid <> hRowObject:ROWID THEN
+   hRowObject:FIND-BY-ROWID(rRowid).
+  
  RETURN TRUE. 
 END FUNCTION.
 
@@ -7900,20 +11591,23 @@ FUNCTION obtainContextForClient RETURNS CHARACTER
            context to ObjectInitialized=no as a way to set ServerFirstCall to 
            true on the server) 
 ------------------------------------------------------------------------------*/
- DEFINE VARIABLE lFirstCall       AS LOGICAL    NO-UNDO.
- DEFINE VARIABLE cContext         AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE cDataContext     AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE cOperatingMode   AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE cQueryWhere      AS CHARACTER  NO-UNDO INIT ?.
- DEFINE VARIABLE cOpenQuery       AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE cDBNames         AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE cIndexInfo       AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE cKeyFields       AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE lData            AS LOGICAL    NO-UNDO.
- DEFINE VARIABLE hRowObjUpdTable  AS HANDLE     NO-UNDO.
- DEFINE VARIABLE cKeyTableId       AS CHARACTER  NO-UNDO.
-
+ DEFINE VARIABLE lFirstCall         AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE cContext           AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cDataContext       AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cOperatingMode     AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cQueryWhere        AS CHARACTER  NO-UNDO INIT ?.
+ DEFINE VARIABLE cOpenQuery         AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cDBNames           AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cIndexInfo         AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cKeyFields         AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE lData              AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE hRowObjUpdTable    AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE cKeyTableId        AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cEntityFields      AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cPositionForClient AS CHARACTER  NO-UNDO.
+ 
  {get ServerFirstCall lFirstCall}.
+ 
  IF lFirstCall THEN
  DO:
    /* If stateless then send back QueryWhere as QueryContext, which will be 
@@ -7929,6 +11623,7 @@ FUNCTION obtainContextForClient RETURNS CHARACTER
    {get DBNames cDBNames}.
    {get KeyFields  cKeyFields}.
    {get KeyTableId cKeyTableId}.  /* After getKeyfields as it may be set there */
+   {get EntityFields cEntityFields}.
    /* Is this before or after a data request */
    {get QueryOpen lData}. 
    IF NOT lData THEN
@@ -7949,6 +11644,7 @@ FUNCTION obtainContextForClient RETURNS CHARACTER
      cDBNames       = (IF cDBNames       = ? THEN '?':U ELSE cDBNames)
      cKeyFields     = (IF cKeyFields     = ? THEN '?':U ELSE cKeyFields)
      cKeyTableId    = (IF cKeyTableId    = ? THEN '?':U ELSE cKeyTableId)
+     cEntityFields  = (IF cEntityFields  = ? THEN '?':U ELSE cEntityFields)
      cContext       =  "IndexInformation":U + CHR(4) + cIndexInfo
                     + CHR(3) 
                     + "ServerOperatingMode":U + CHR(4) + cOperatingMode
@@ -7963,15 +11659,12 @@ FUNCTION obtainContextForClient RETURNS CHARACTER
                     + CHR(3) 
                     + "KeyTableId":U + CHR(4) + cKeyTableId
                     + CHR(3) 
+                    + "EntityFields":U + CHR(4) + cEntityFields
+                    + CHR(3) 
                     /* we send it back as it usually is set to true on the client 
                        to be passed as context to this (server) side */
-                    + "ServerFirstCall":U + CHR(4) + 'NO':U
-                    /* Ensure that this querywhere is AFTER openQuery as setOpenQuery 
-                       will wipe out all other query manipulation data */
-                    + (IF cQueryWhere <> ? 
-                       THEN CHR(3) + "QueryContext":U + CHR(4) + cQueryWhere
-                       ELSE '':U).
-     
+                    + "ServerFirstCall":U + CHR(4) + 'NO':U.
+  
  END. /* firstCall */
  
  IF NOT lFirstCall OR lData THEN
@@ -8003,8 +11696,25 @@ FUNCTION obtainContextForServer RETURNS CHARACTER
   DEFINE VARIABLE lCheck               AS LOGICAL    NO-UNDO.  
   DEFINE VARIABLE lRebuild             AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lSubmitVal           AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lFetchHasAudit       AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lFetchHasComment     AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lFetchAutoComment    AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cFetchHasAudit       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFetchHasComment     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFetchAutoComment    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cEntityFields        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cQueryWhere          AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cPropertiesForServer AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lUseRepository       AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cDefs                AS CHARACTER  NO-UNDO.
+  /* Dynamic SDO on server  */
+  DEFINE VARIABLE cTables                  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cBaseQuery               AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataColumns             AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataColumnsByTable      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAssignList              AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cUpdatableColumnsByTable AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataLogicProcedure      AS CHARACTER  NO-UNDO.
 
   {get ASHasStarted lASHasStarted}. 
   IF NOT lASHasStarted THEN
@@ -8014,22 +11724,65 @@ FUNCTION obtainContextForServer RETURNS CHARACTER
       the number of AppServer calls  
       RUN initializeObject IN hAppServer. */ 
          
-    /* Set the CheckCurrentChanged property on the server and get back the 
-       AppServer Operating mode  */
-     {get CheckCurrentChanged lCheck}.
      cPropertiesForServer = 
          /* AsHasStarted is sent to the server to tell if this is the first call 
             will return the properties we need to retrieve at start up.
             We may come up with something better later...  */
-           "ServerFirstCall":U  + CHR(4) + "YES":U
-           + CHR(3) +
-           "CheckCurrentChanged":U + CHR(4) + STRING(lCheck).          
+           "ServerFirstCall":U  + CHR(4) + "YES":U.
   END. /* First call, if not lASHasStarted */
   ELSE     
     RUN genContextList IN TARGET-PROCEDURE (OUTPUT cPropertiesForServer).
   
   {get RebuildOnRepos lRebuild}. 
   {get ServerSubmitValidation lSubmitVal}.
+  {get CheckCurrentChanged lCheck}.
+  {get UseRepository lUseRepository}.
+  
+  {get DataFieldDefs cDefs}.
+  IF cDefs = '':U THEN
+  DO:
+    {get Tables cTables}.
+    {get DataColumns cDataColumns}.
+    {get DataColumnsByTable cDataColumnsByTable}.
+    {get UpdatableColumnsByTable cUpdatableColumnsByTable}.
+    {get AssignList cAssignList}.
+    {get BaseQuery cBaseQuery}.
+    {get DataLogicProcedure cDataLogicProcedure}.
+    cPropertiesForServer = (IF cPropertiesForServer > "":U 
+                            THEN cPropertiesForServer + CHR(3)
+                            ELSE "":U)
+                          + "Tables":U + CHR(4) + cTables 
+                          + CHR(3)  
+                          + "BaseQuery":U + CHR(4) + cBaseQuery 
+                          + CHR(3)  
+                          + "DataColumns":U + CHR(4) + cDataColumns
+                          + CHR(3)  
+                          + "DataColumnsByTable":U + CHR(4) + cDataColumnsByTable
+                          + CHR(3)  
+                          + "UpdatableColumnsByTable":U + CHR(4) + cUpdatableColumnsByTable
+                          + CHR(3)  
+                          + "AssignList":U + CHR(4) + cAssignList 
+                          + CHR(3)  
+                          + "DataLogicProcedure":U + CHR(4) + cDataLogicProcedure.
+
+  END.
+
+  IF lUseRepository THEN
+  DO:
+    {get FetchHasAudit lFetchHasAudit}.
+    {get FetchHasComment lFetchHasComment}.
+    {get FetchAutoComment lFetchHasComment}.
+    ASSIGN 
+      cFetchHasAudit = IF lFetchHasAudit = ? THEN '?':U ELSE STRING(lFetchHasAudit)
+      cFetchHasComment = IF lFetchHasComment = ? THEN '?':U ELSE STRING(lFetchHasComment)
+      cFetchAutoComment = IF lFetchAutoComment = ? THEN '?':U ELSE STRING(lFetchAutoComment)
+      .  
+    IF lAsHasStarted THEN
+    DO:
+      {get EntityFields cEntityFields}.
+      cEntityFields = (IF cEntityFields = ? THEN '?':U ELSE cEntityFields).
+    END.
+  END.
 
   /* Set QueryWhere on the server to reset context (includes BY phrases)
      First check if it has been changed BY assignQuerySelection or addQueryWhere */
@@ -8040,16 +11793,36 @@ FUNCTION obtainContextForServer RETURNS CHARACTER
   ELSE /* This is hereby the client context and can be used by openQuery to
           avoid sending QueryString in an extra call */  
     {set QueryContext cQueryWhere}. 
-   
-  IF cQuerywhere <> ? THEN
-    cPropertiesForServer = (IF cPropertiesForServer  <> ? 
-                            AND cPropertiesForServer <> "":U 
-                            THEN cPropertiesForServer + CHR(3)
-                            ELSE "":U) 
-                            + "QueryWhere":U + CHR(4) + cQueryWhere + CHR(3)
-                            + "RebuildOnRepos":U + CHR(4) + STRING(lRebuild) + CHR(3)      
-                            + "ServerSubmitValidation":U + CHR(4) + STRING(lSubmitVal).
+  
+  IF cQueryWhere = ? THEN cQuerywhere = '':U.
 
+  cPropertiesForServer = (IF cPropertiesForServer  <> ? 
+                          AND cPropertiesForServer <> "":U 
+                          THEN cPropertiesForServer + CHR(3)
+                          ELSE "":U)
+                          + "QueryWhere":U + CHR(4) + cQueryWhere 
+                          + CHR(3)  
+                          + "RebuildOnRepos":U + CHR(4) + STRING(lRebuild)
+                          + CHR(3)      
+                          + "ServerSubmitValidation":U + CHR(4) + STRING(lSubmitVal)
+                          + CHR(3) 
+                          + "CheckCurrentChanged":U + CHR(4) + STRING(lCheck).
+                          
+
+  IF lUseRepository THEN
+  DO:
+    cPropertiesForServer = cPropertiesForServer
+                          + CHR(3) 
+                         + "FetchHasAudit":U + CHR(4) + cFetchHasAudit
+                         + CHR(3) 
+                          + "FetchHasComment":U + CHR(4) + cFetchHasComment
+                          + CHR(3) 
+                          + "FetchAutoComment":U + CHR(4) + cFetchAutoComment.
+     IF lAsHasStarted THEN
+       cPropertiesForServer = cPropertiesForServer
+                            + CHR(3) 
+                            + "EntityFields":U + CHR(4) + cEntityFields.
+  END.
   RETURN cPropertiesForServer.
 
 END FUNCTION.
@@ -8070,8 +11843,9 @@ Parameters: pcPosition - 'first' or last'
                          Expected to be extended with Rowid support.  
      Notes: Currently used by SBOs after new temp-tables have been fetched.  
 ------------------------------------------------------------------------------*/
- DEFINE VARIABLE hDataQuery AS HANDLE  NO-UNDO.
- DEFINE VARIABLE cQuery     AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE hDataQuery  AS HANDLE  NO-UNDO.
+ DEFINE VARIABLE cQuery      AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cAsDivision AS CHARACTER  NO-UNDO.
  
  {get DataHandle hDataQuery}.
  {get DataQueryString cQuery}.
@@ -8079,7 +11853,6 @@ Parameters: pcPosition - 'first' or last'
  DO:
    hDataQuery:QUERY-PREPARE({fnarg fixQueryString cQuery}).
    hDataQuery:QUERY-OPEN().
-   
    CASE pcPosition: 
      WHEN 'FIRST':U THEN
        hDataQuery:GET-FIRST().
@@ -8102,6 +11875,15 @@ Parameters: pcPosition - 'first' or last'
    IF pcPosition <> '':U THEN 
      RUN updateQueryPosition IN TARGET-PROCEDURE.
 
+   /* Some visual objects that shows more than one record may need to know 
+      that the query changed, this cannot be detected through the ordinary
+      publish "dataAvailable" from the navigation methods. 
+      The SmartSelect populates its list on this event and OCX objects
+      like lists and Tree-views may also need to subscribe to this event. */
+   {get AsDivision cAsDivision}.
+   IF cAsDivision = 'CLIENT':U THEN
+     PUBLISH "queryOpened":U FROM TARGET-PROCEDURE.
+ 
  END. /* valid hDataquery */
 
  RETURN IF VALID-HANDLE(hDataQuery) 
@@ -8129,16 +11911,10 @@ FUNCTION openQuery RETURNS LOGICAL
  DEFINE VARIABLE cASDivision      AS CHARACTER NO-UNDO.
  DEFINE VARIABLE cDataQueryString AS CHARACTER NO-UNDO.
  DEFINE VARIABLE hDataQuery       AS HANDLE    NO-UNDO.
- DEFINE VARIABLE hSource          AS HANDLE    NO-UNDO.
+ DEFINE VARIABLE hDataContainer   AS HANDLE    NO-UNDO.
  DEFINE VARIABLE cObjectName      AS CHARACTER NO-UNDO.
  DEFINE VARIABLE lUpdating        AS LOGICAL   NO-UNDO.
- DEFINE VARIABLE lDataContainer   AS LOGICAL   NO-UNDO.
- DEFINE VARIABLE lASBound         AS LOGICAL   NO-UNDO.
- DEFINE VARIABLE cOperatingMode   AS CHARACTER NO-UNDO.
- DEFINE VARIABLE cBindScope       AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE lUseContainer    AS LOGICAL    NO-UNDO.
- DEFINE VARIABLE lSBO             AS LOGICAL    NO-UNDO.
-
+ 
  IF VALID-HANDLE(TARGET-PROCEDURE) AND
    LOOKUP("updateInProgress":U, TARGET-PROCEDURE:INTERNAL-ENTRIES) <> 0 THEN
     lUpdating = DYNAMIC-FUNCTION("updateInProgress":U IN TARGET-PROCEDURE).
@@ -8154,7 +11930,6 @@ FUNCTION openQuery RETURNS LOGICAL
  
  /* Close the RowObject query and empty the current RowObject table. */
  {get DataHandle hDataQuery}.
-
  IF VALID-HANDLE(hDataQuery) THEN 
  DO: 
    IF hDataQuery:IS-OPEN THEN
@@ -8166,36 +11941,14 @@ FUNCTION openQuery RETURNS LOGICAL
    END.  /* else do - query not open */
  END.  /* if valid hDataQuery */
 
- {get ContainerSource hSource}.
- IF VALID-HANDLE(hSource) THEN
- DO:
-   {get DataContainer lDataContainer hSource}.
-   {get QueryObject   lSBO hSource}. 
-   IF lDataContainer AND NOT lSBO THEN
-   DO:
-     {get ASDivision cASDivision}.
-     {get AsBound lASBound}.
-     {get ServerOperatingMode cOperatingMode}.
-     {get BindScope cBindScope}.
-     
-     IF  cAsDivision = 'Client':U
-     AND NOT lAsBound 
-     AND NOT CAN-DO('state-aware,state-reset':U,cOperatingMode)
-     AND NOT CAN-DO('Strong,this':U,cBindScope) THEN
-        lUseContainer = TRUE.
-   END.
-   /* If this SDO's Container is an SBO which is a CLient, then ask it to
-      fetch the data from the server starting at this object's level. */
-   ELSE DO:
-     {get ASDivision cASDivision hSource} NO-ERROR.
-     lUseContainer  = (cASDivision = 'Client':U).
-   END.
- END.
-
- IF lUseContainer THEN 
+ /* If this object can use a DataContainer then we run fetchContainedRows 
+    in that in order to retrieve this objects data together with all child 
+    objects data. */ 
+ hDataContainer = {fn dataContainerHandle}.
+ IF VALID-HANDLE(hDataContainer) THEN 
  DO:
    {get ObjectName cObjectName}.
-   RUN fetchContainedData IN hSource (INPUT cObjectName).
+   RUN fetchContainedData IN hDataContainer (INPUT cObjectName).
    RETURN RETURN-VALUE <> 'adm-error':U.
  END.     /* END DO IF parent is a CLient object. */
  ELSE 
@@ -8203,7 +11956,6 @@ FUNCTION openQuery RETURNS LOGICAL
    /* If this is the client half of a divided DataObject, fetchFirst will
       retrieve the Temp-table across the connection. */
    {get ASDivision cASDivision}.
-   
    IF cASDivision = 'Client':U THEN
    DO:
      /* Reset this last-record flag on the client */ 
@@ -8212,12 +11964,6 @@ FUNCTION openQuery RETURNS LOGICAL
         is called during this call */
      {set BindScope 'Data':U}. 
      RUN fetchFirst IN TARGET-PROCEDURE.
-     /* Some visual objects that shows more than one record may need to know 
-        that the query changed, this cannot be detected through the ordinary
-        publish "dataAvailable" from the navigation methods. 
-        The SmartSelect populates its list on this event and OCX objects
-        like lists and Tree-views may also need to subscribe to this event. */
-     PUBLISH "queryOpened":U FROM TARGET-PROCEDURE.
      /* unbind in case the datarequest did not happen  */
      RUN unbindServer IN TARGET-PROCEDURE (?).
      RETURN TRUE.
@@ -8225,6 +11971,56 @@ FUNCTION openQuery RETURNS LOGICAL
    ELSE   /* This is not the client */                 
      RETURN SUPER().
  END. /* else do (not sbo client ) */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-prepareColumnsFromRepos) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION prepareColumnsFromRepos Procedure 
+FUNCTION prepareColumnsFromRepos RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Prepares columns from repository 
+    Notes: Only run on server. Clients will get this indirectly through the
+           RowObject returned from server.     
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cDataColumns AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hRowObject   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cAsDivision  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lOk          AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lPrepare     AS LOGICAL    NO-UNDO.
+  
+  IF VALID-HANDLE(gshRepositoryManager) THEN
+  DO:
+    {get DataColumns cDataColumns}.
+    {get RowObject hRowObject}.
+    {get AsDivision cAsDivision}.
+    
+    /* If 'SERVER' only prepare entity fields for the first call */
+    /*  
+    IF cAsDivision = 'SERVER':U THEN
+      {get ServerFirstCall lPrepare}.
+    ELSE IF cAsDivision <> 'CLIENT':U THEN
+      lPrepare = TRUE.
+    IF lPrepare THEN
+    */
+    lOk = DYNAMIC-FUNCTION('prepareEntityFields':U IN gshRepositoryManager,
+                            TARGET-PROCEDURE,
+                            cDataColumns,
+                            hRowObject,
+                            'ALL':U,
+                            '':U,
+                            '':U,
+                            '':U).
+
+  END.
+
+  RETURN lOk.
 
 END FUNCTION.
 
@@ -8257,7 +12053,7 @@ Parameters: pcOptions - char
   DEFINE VARIABLE cBaseQuery     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cQueryWhere    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cForeignFields AS CHARACTER  NO-UNDO.
-
+  DEFINE VARIABLE hContainer     AS HANDLE     NO-UNDO.
   /* pcOptions = 'Batch' is used when batching in order to keep the temp-table
      and the batch properties  */  
   IF NOT CAN-DO(pcOptions,'Batch':U)THEN
@@ -8300,7 +12096,12 @@ Parameters: pcOptions - char
        since this only can occur if the parent is the same as it was on the 
        server) */ 
     {get ForeignFields cForeignFields}.
-    IF cForeignFields <> '':U THEN
+    IF cForeignFields = '':U THEN
+    DO:
+      {get ContainerSource hContainer}.
+      {get ForeignFields cForeignFields hContainer} NO-ERROR. 
+    END.
+    IF cForeignFields <> '':U AND cForeignFields <> ? THEN
     DO:
       {get BaseQuery cBaseQuery}.
       IF cBaseQuery = cQuery THEN
@@ -8392,12 +12193,12 @@ FUNCTION prepareRowObject RETURNS LOGICAL
   ( phTable AS HANDLE) :
 /*------------------------------------------------------------------------------
    Purpose: Prepare a rowObject table from the existing definition 
-            This allows the RowObject to persist after the object is destroyed  
 Parameters: phHandle created, but unprepared temp-table 
-     Notes:  
+     Notes: This is used to define a dynamic TT FROM another TT, which may be
+            a static one.
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hRowObjectTable AS HANDLE  NO-UNDO.
-  
+  DEFINE VARIABLE hRowObjectTable AS HANDLE     NO-UNDO.
+
   {get RowObjectTable hRowObjectTable}.
 
   phTable:CREATE-LIKE(hRowObjectTable:DEFAULT-BUFFER-HANDLE).
@@ -8469,7 +12270,6 @@ Parameter: pcRowident
   
   IF {fnarg repositionRowobject pcRowident} THEN
   DO:
-
     {get AutoCommit lAutoCommit}.
     IF NOT lAutoCommit THEN 
     DO:
@@ -8757,9 +12557,8 @@ FUNCTION submitRow RETURNS LOGICAL
      matched the current ROWID or could be repositioned to removed in 9.1B.
      There is no supported case where repositioning should be necessary,
      and the new SBO does not always have the correct RowIdent. */
- 
-  {get UpdatableColumns cUpdColumns}.
   
+  {get UpdatableColumns cUpdColumns}.
   /* Assign Foreign Key values if needed for new records. */
   RUN submitForeignKey IN TARGET-PROCEDURE
                         (INPUT pcRowIdent,
@@ -8779,7 +12578,7 @@ FUNCTION submitRow RETURNS LOGICAL
 
   /* Perform any validation on individual columns. */
   RUN submitValidation In TARGET-PROCEDURE (pcValueList, cUpdColumns).
-  
+ 
   /* Undo the update if there are errors; else commit if AutoCommit. */
   RUN submitCommit In TARGET-PROCEDURE (pcRowIdent, lReopen).
   
@@ -8832,7 +12631,7 @@ Parameters: pcKeyValues - comma separated or chr(1) separated list of keyvalues
 
   IF lNewRow AND NOT lok THEN
     DYNAMIC-FUNCTION('cancelRow':U IN TARGET-PROCEDURE).  
-
+  
   RETURN lOk.
 
 END FUNCTION.

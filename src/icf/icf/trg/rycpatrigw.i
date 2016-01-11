@@ -131,6 +131,9 @@ af/cod/aftemwizpw.w
 
 /* ***************************  Main Block  *************************** */
 
+/* ensure page reference has a unique value */
+IF ryc_page.PAGE_reference = ? OR ryc_page.PAGE_reference = "":U  THEN
+  ASSIGN ryc_page.PAGE_reference = ryc_page.PAGE_label + STRING(ryc_page.PAGE_sequence,"99":U).
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

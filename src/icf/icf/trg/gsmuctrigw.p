@@ -24,11 +24,6 @@
 
 TRIGGER PROCEDURE FOR WRITE OF gsm_user_category OLD BUFFER o_gsm_user_category.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "gsm_user_category"
-                      &TRIGGER-TYPE = "WRITE"}
-
 /* Created automatically using ERwin ICF Trigger template db/af/erw/afercustrg.i
    Do not change manually. Customisations to triggers should be placed in separate
    include files pulled into the trigger. ICF auto generates write trigger custom
@@ -83,6 +78,8 @@ IF NOT NEW gsm_user_category AND gsm_user_category.{&TRIGGER_OBJ} <> o_gsm_user_
 
 /* Customisations to WRITE trigger */
 {icf/trg/gsmuctrigw.i}
+
+
 
 /* Update Audit Log */
 IF CAN-FIND(FIRST gsc_entity_mnemonic

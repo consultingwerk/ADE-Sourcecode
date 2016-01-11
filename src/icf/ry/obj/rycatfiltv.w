@@ -78,7 +78,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       rycatfiltv.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -106,8 +106,8 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS coGroup buRefresh coType 
-&Scoped-Define DISPLAYED-OBJECTS coGroup coType 
+&Scoped-Define ENABLED-OBJECTS coGroup buRefresh coDataType 
+&Scoped-Define DISPLAYED-OBJECTS coGroup coDataType 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -126,27 +126,38 @@ DEFINE BUTTON buRefresh
      SIZE 15 BY 1.14 TOOLTIP "Refresh browser to only show data for selected group/type -plus existing filte"
      BGCOLOR 8 .
 
+DEFINE VARIABLE coDataType AS INTEGER FORMAT "->>9":U INITIAL 0 
+     LABEL "Data Type" 
+     VIEW-AS COMBO-BOX INNER-LINES 5
+     LIST-ITEM-PAIRS "<All>",0,
+                     "Character",1,
+                     "Date",2,
+                     "Logical",3,
+                     "Integer",4,
+                     "Decimal",5,
+                     "Recid",7,
+                     "Raw",8,
+                     "Rowid",9,
+                     "Handle",10,
+                     "Memptr",11,
+                     "Com-handle",14
+     DROP-DOWN-LIST
+     SIZE 50 BY 1 NO-UNDO.
+
 DEFINE VARIABLE coGroup AS DECIMAL FORMAT ">>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
      LABEL "Attribute Group" 
      VIEW-AS COMBO-BOX INNER-LINES 10
      LIST-ITEM-PAIRS "",0
      DROP-DOWN-LIST
-     SIZE 47.6 BY 1.05 NO-UNDO.
-
-DEFINE VARIABLE coType AS CHARACTER FORMAT "X(256)":U 
-     LABEL "Attribute Type" 
-     VIEW-AS COMBO-BOX INNER-LINES 10
-     LIST-ITEM-PAIRS "x","x"
-     DROP-DOWN-LIST
-     SIZE 47.6 BY 1 NO-UNDO.
+     SIZE 50 BY 1 NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     coGroup AT ROW 1.19 COL 23.4 COLON-ALIGNED
-     buRefresh AT ROW 1.19 COL 74.2
-     coType AT ROW 2.29 COL 23.4 COLON-ALIGNED
+     coGroup AT ROW 1 COL 19 COLON-ALIGNED
+     buRefresh AT ROW 1.91 COL 71.8
+     coDataType AT ROW 2.05 COL 19 COLON-ALIGNED
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -178,8 +189,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW sObject ASSIGN
-         HEIGHT             = 2.91
-         WIDTH              = 91.8.
+         HEIGHT             = 2.05
+         WIDTH              = 85.8.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -219,7 +230,7 @@ ASSIGN
 */  /* FRAME frMain */
 &ANALYZE-RESUME
 
-
+ 
 
 
 
@@ -243,10 +254,8 @@ DO WITH FRAME {&FRAME-NAME}:
 
   ASSIGN
     coGroup
-    coType
+    coDataType
     .
-  IF coType = ".":U THEN ASSIGN coType = "":U.  /* all = . for character */
-
   /* Assumes a user1 link from viewer to browser */
   hBrowser = WIDGET-HANDLE(DYNAMIC-FUNCTION('linkHandles' IN THIS-PROCEDURE, 'user1-Target')) NO-ERROR.
   IF VALID-HANDLE(hBrowser) THEN
@@ -254,17 +263,27 @@ DO WITH FRAME {&FRAME-NAME}:
 
   IF VALID-HANDLE(hSDO) THEN
   DO:
-    ASSIGN
-      cField = "ryc_attribute.attribute_type_tla":U
-      cWhere = cField + " BEGINS '":U + coType + "'":U
-      .
-    RUN updateAddQueryWhere IN hSDO (INPUT cWhere, INPUT cField).
-
+    IF coDataType <> 0 THEN DO:
+      ASSIGN
+        cField = "ryc_attribute.data_type":U
+        cWhere = cField + " = ":U + STRING(coDataType)
+        .
+      RUN updateAddQueryWhere IN hSDO (INPUT cWhere, INPUT cField).
+    END.
+    ELSE
+    DO:
+      ASSIGN
+        cField = "ryc_attribute.data_type":U
+        cWhere = "":U   /* get rid of criteria */
+        .
+      RUN updateAddQueryWhere IN hSDO (INPUT cWhere, INPUT cField).
+    END.
+    
     IF coGroup > 0 THEN
     DO:
       ASSIGN
         cField = "ryc_attribute.attribute_group_obj":U
-        cWhere = cField + " = ":U + STRING(coGroup)
+        cWhere = cField + " = ":U + QUOTER(coGroup)
         .
       RUN updateAddQueryWhere IN hSDO (INPUT cWhere, INPUT cField).
     END.
@@ -307,6 +326,19 @@ END.
 
 /* **********************  Internal Procedures  *********************** */
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE adm-create-objects sObject  _ADM-CREATE-OBJECTS
+PROCEDURE adm-create-objects :
+/*------------------------------------------------------------------------------
+  Purpose:     Create handles for all SmartObjects used in this procedure.
+               After SmartObjects are initialized, then SmartLinks are added.
+  Parameters:  <none>
+------------------------------------------------------------------------------*/
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI sObject  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
@@ -340,7 +372,6 @@ PROCEDURE initializeObject :
   /* Code placed here will execute AFTER standard behavior.    */
 
   RUN populateCombos.
-
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -376,23 +407,6 @@ DO WITH FRAME {&FRAME-NAME}:
     ttComboData.cCurrentDescValue = "":U
     .
 
-  CREATE ttComboData.
-  ASSIGN
-    ttComboData.cWidgetName = "coType":U
-    ttComboData.cWidgetType = "character":U
-    ttComboData.hWidget = coType:HANDLE
-    ttComboData.cForEach = "FOR EACH ryc_attribute_type NO-LOCK BY ryc_attribute_type.attribute_type_tla":U
-    ttComboData.cBufferList = "ryc_attribute_type":U
-    ttComboData.cKeyFieldName = "ryc_attribute_type.attribute_type_tla":U
-    ttComboData.cDescFieldNames = "ryc_attribute_type.attribute_type_tla, ryc_attribute_type.attribute_type_description":U
-    ttComboData.cDescSubstitute = "&1 / &2":U
-    ttComboData.cFlag = "A":U
-    ttComboData.cCurrentKeyValue = "":U
-    ttComboData.cListItemDelimiter = ",":U
-    ttComboData.cListItemPairs = "":U
-    ttComboData.cCurrentDescValue = "":U
-    .
-
   /* build combo list-item pairs */
   RUN af/app/afcobuildp.p ON gshAstraAppserver (INPUT-OUTPUT TABLE ttComboData).
 
@@ -415,24 +429,7 @@ DO WITH FRAME {&FRAME-NAME}:
     END.
   END.
 
-  FIND FIRST ttComboData WHERE ttComboData.cWidgetName = "coType":U.
-  coType:LIST-ITEM-PAIRS IN FRAME {&FRAME-NAME} = ttComboData.cListItemPairs.
-
-  /* Select 1st entry */
-  IF coType:NUM-ITEMS > 0 THEN
-  DO:
-    cEntry = coType:ENTRY(1) NO-ERROR.
-    IF cEntry <> ? AND NOT ERROR-STATUS:ERROR THEN
-    DO:
-      coType:SCREEN-VALUE = cEntry NO-ERROR.
-    END.
-    ELSE
-    DO:
-      /* blank the combo */
-      coType:LIST-ITEM-PAIRS = coType:LIST-ITEM-PAIRS.
-    END.
-  END.
-
+  ASSIGN coDataType:SCREEN-VALUE = coDataType:ENTRY(1).
 END. /* {&FRAME-NAME} */
 
 END PROCEDURE.

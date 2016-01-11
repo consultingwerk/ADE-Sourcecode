@@ -47,7 +47,8 @@ Date Created: 03/26/92
     Modified: 01/14/98 D. McMann added graying out of create button when
                                  AS400 or ORACLE databases
               05/19/99 Mario B.  Adjust Width Field browser integration.   
-              03/22/00 D. McMann Added support for MS SQL Server 7 (MSS) 			 
+              03/22/00 D. McMann Added support for MS SQL Server 7 (MSS)   
+              09/18/02 D. McMann Added verify data report 		 
 ----------------------------------------------------------------------------*/
 
 {adedict/dictvar.i shared}
@@ -93,6 +94,7 @@ Define var read_only as logical                          NO-UNDO.
 &Global-define    MODE_SEQUENCE    31
 &Global-define    MODE_FIELD       32
 &Global-define    MODE_INDEX       33
+&Global-define    DATA_RPT         34
 
 Define var item   as integer  	    NO-UNDO. /* index into Gray_Items array */
 Define var h_item as widget-handle  NO-UNDO. /* menu item handle value */
@@ -114,6 +116,7 @@ do:
       Gray_Items[{&QUICKUSR}]       = MENU-ITEM mi_QuickUsr:HANDLE
       Gray_Items[{&RELRPT_CURRTBL}] = MENU-ITEM mi_r_CurrTbl:HANDLE
       Gray_Items[{&RELRPT_ALLTBLS}] = MENU-ITEM mi_r_AllTbls:HANDLE
+      Gray_Items[{&DATA_RPT}]       = MENU-ITEM mi_Width:HANDLE
       Gray_Items[{&EXIT}]     	    = MENU-ITEM mi_Exit:HANDLE
       Gray_Items[{&DELETE}]   	    = MENU-ITEM mi_Delete:HANDLE
       Gray_Items[{&PROPERTIES}]     = MENU-ITEM mi_Properties:HANDLE
@@ -170,7 +173,8 @@ do:
       ungray[{&QUICKSEQ}] = yes
       ungray[{&QUICKUSR}] = yes
       ungray[{&TRIG_RPT}] = yes
-      ungray[{&RELRPT_ALLTBLS}] = yes.
+      ungray[{&RELRPT_ALLTBLS}] = yes
+     ungray[{&DATA_RPT}] = YES.
 
    if s_CurrObj = {&OBJ_DB} then
       assign
@@ -193,7 +197,8 @@ do:
        s_DbCache_Type[s_DbCache_ix] = "AS400"  THEN
        ASSIGN ungray[{&CRT_TABLE}] = no
               ungray[{&CRT_SEQUENCE}] = no
-              ungray[{&BUTTON_CREATE}] = no.
+              ungray[{&BUTTON_CREATE}] = no
+              ungray[{&DATA_RPT}] = NO.
 end.
 
 if s_DictState = {&STATE_OBJ_SELECTED} then

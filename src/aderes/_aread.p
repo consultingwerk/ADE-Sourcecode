@@ -209,6 +209,7 @@ REPEAT:
 
         RUN rebuild_structure (INPUT qbf-d, OUTPUT abortRead).
         IF abortRead THEN DO:
+          INPUT STREAM qbf-io CLOSE.
           OS-DELETE VALUE(tempFile).
           RETURN.
         END.
@@ -240,6 +241,7 @@ REPEAT:
           qbf-d = "A connected database was not found in the configuration file".
           RUN rebuild_structure (INPUT qbf-d, OUTPUT abortRead).
         IF abortRead THEN DO:
+          INPUT STREAM qbf-io CLOSE.
           OS-DELETE VALUE(tempFile).
           RETURN.
         END.
@@ -295,6 +297,7 @@ REPEAT:
   
           /* All of the information was retrieved from the fastload files.
            * So we are done reading. */
+          INPUT STREAM qbf-io CLOSE.
           OS-DELETE VALUE(tempFile).
           RETURN.
         END.
@@ -569,6 +572,7 @@ REPEAT:
       RUN af-rship (qbf-m[1], qbf-m[3], qbf-m[2], qbf-m[4], qbf-m[5], qbf-a,
                     OUTPUT abortRead).
       IF abortRead THEN DO:
+        INPUT STREAM qbf-io CLOSE.
         OS-DELETE VALUE(tempFile).
         RETURN.
       END.

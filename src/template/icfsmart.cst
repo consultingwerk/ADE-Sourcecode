@@ -66,23 +66,23 @@ TYPE		 SmartDataViewer
 NEW-TEMPLATE     ry/obj/rysttviewv.w
 
 *NEW-SMARTOBJECT Static SmartData&Field
-TYPE		 SmartDataField
+TYPE		 StaticSDF
 NEW-TEMPLATE     ry/obj/rysttdatfv.w
 
 *NEW-SMARTOBJECT Static Decimal Combo SmartData&Field
-TYPE		 SmartDataField
+TYPE		 StaticSDF
 NEW-TEMPLATE     ry/obj/rysttdcsfv.w
 
 *NEW-SMARTOBJECT Static Filtered Combo SmartData&Field
-TYPE		 SmartDataField
+TYPE		 StaticSDF
 NEW-TEMPLATE     ry/obj/rysttfcsfv.w
 
 *NEW-SMARTOBJECT Static Master Combo SmartData&Field
-TYPE		 SmartDataField
+TYPE		 StaticSDF
 NEW-TEMPLATE     ry/obj/rysttcmsfv.w
 
 *NEW-SMARTOBJECT Static Child Combo SmartData&Field
-TYPE		 SmartDataField
+TYPE		 StaticSDF
 NEW-TEMPLATE     ry/obj/rysttccsfv.w
 
 *NEW-SMARTOBJECT Static Simple Smart&Object (viewer)
@@ -132,9 +132,11 @@ USE             adm2/dynselect.w
 
 *SmartDataField Dynamic&Lookup
 USE             adm2/dynlookup.w
+EDIT-ON-DROP
 
 *SmartDataField Dynamic&Combo
 USE             adm2/dyncombo.w
+EDIT-ON-DROP
 
 *SmartDataField &Time Field
 USE             adm2/timesdfv.w

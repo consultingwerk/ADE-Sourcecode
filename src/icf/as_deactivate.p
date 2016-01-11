@@ -25,5 +25,6 @@
 /* pull in Astra global variables as new global */
 {af/sup2/afglobals.i NEW GLOBAL}
 
-ASSIGN gscSessionId = ?.
+ASSIGN gscSessionId  = ?
+       gsdSessionObj = 0.0.
 

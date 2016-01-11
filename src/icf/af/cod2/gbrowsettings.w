@@ -37,6 +37,8 @@ DEFINE INPUT-OUTPUT PARAMETER cmaxnumflds           AS INTEGER          NO-UNDO.
 DEFINE INPUT-OUTPUT PARAMETER cnamesuffix           AS CHARACTER        NO-UNDO.
 DEFINE INPUT-OUTPUT PARAMETER cSDOFields            AS LOGICAL          NO-UNDO.
 DEFINE INPUT-OUTPUT PARAMETER plDeleteOnGeneration  AS LOGICAL          NO-UNDO.
+DEFINE INPUT        PARAMETER pcAllModules          AS CHARACTER        NO-UNDO.
+DEFINE INPUT-OUTPUT PARAMETER pcBrowseModule        AS CHARACTER        NO-UNDO.
 
 /* Local Variable Definitions ---                                       */
 
@@ -59,10 +61,10 @@ DEFINE INPUT-OUTPUT PARAMETER plDeleteOnGeneration  AS LOGICAL          NO-UNDO.
 &Scoped-define FRAME-NAME gDialog
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS toSDOFields fimaxnumflds finamesuffix ~
-toAlwaysDelete Btn_OK Btn_Cancel Btn_Help 
-&Scoped-Define DISPLAYED-OBJECTS toSDOFields fimaxnumflds finamesuffix ~
-toAlwaysDelete 
+&Scoped-Define ENABLED-OBJECTS coModule toSDOFields fimaxnumflds ~
+finamesuffix toAlwaysDelete Btn_OK Btn_Cancel Btn_Help RECT-10 RECT-11 
+&Scoped-Define DISPLAYED-OBJECTS coModule toSDOFields fimaxnumflds ~
+finamesuffix toAlwaysDelete 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -72,6 +74,13 @@ toAlwaysDelete
 
 
 /* ************************  Function Prototypes ********************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getBrowseModule gDialog 
+FUNCTION getBrowseModule RETURNS CHARACTER
+    ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDeleteOnGeneration gDialog 
 FUNCTION getDeleteOnGeneration RETURNS LOGICAL
@@ -97,6 +106,13 @@ FUNCTION getnamesuffix RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getSDOFields gDialog 
 FUNCTION getSDOFields RETURNS LOGICAL
   ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setBrowseModule gDialog 
+FUNCTION setBrowseModule RETURNS LOGICAL
+    ( INPUT plBrowseModule  AS CHARACTER)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -147,20 +163,34 @@ DEFINE BUTTON Btn_OK AUTO-GO
      LABEL "OK" 
      SIZE 15 BY 1.14.
 
+DEFINE VARIABLE coModule AS CHARACTER FORMAT "X(256)":U 
+     LABEL "M&odule" 
+     VIEW-AS COMBO-BOX SORT INNER-LINES 5
+     DROP-DOWN-LIST
+     SIZE 36.2 BY 1 TOOLTIP "Product module associated with Browsers" NO-UNDO.
+
 DEFINE VARIABLE fimaxnumflds AS INTEGER FORMAT "->,>>>,>>9":U INITIAL 0 
      LABEL "Max Number Of Fields" 
      VIEW-AS FILL-IN 
-     SIZE 14 BY 1 NO-UNDO.
+     SIZE 14 BY 1 TOOLTIP "The maximum number of fields to be used in the browser" NO-UNDO.
 
 DEFINE VARIABLE finamesuffix AS CHARACTER FORMAT "X(10)":U 
      LABEL "Name Suffix" 
      VIEW-AS FILL-IN 
-     SIZE 14 BY 1 NO-UNDO.
+     SIZE 14 BY 1 TOOLTIP "A suffix for the selected table's dump name when creating a Dynamic Browser" NO-UNDO.
+
+DEFINE RECTANGLE RECT-10
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     SIZE 72.8 BY 5.81.
+
+DEFINE RECTANGLE RECT-11
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     SIZE 72.8 BY 1.81.
 
 DEFINE VARIABLE toAlwaysDelete AS LOGICAL INITIAL no 
      LABEL "Always delete before generation?" 
      VIEW-AS TOGGLE-BOX
-     SIZE 42 BY .81 NO-UNDO.
+     SIZE 42 BY .81 TOOLTIP "Check to always delete the existing object before generation" NO-UNDO.
 
 DEFINE VARIABLE toSDOFields AS LOGICAL INITIAL no 
      LABEL "Use SDO Fields" 
@@ -171,15 +201,18 @@ DEFINE VARIABLE toSDOFields AS LOGICAL INITIAL no
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME gDialog
-     toSDOFields AT ROW 2.81 COL 31
-     fimaxnumflds AT ROW 4.1 COL 29 COLON-ALIGNED HELP
+     coModule AT ROW 1.38 COL 29 COLON-ALIGNED
+     toSDOFields AT ROW 2.52 COL 31
+     fimaxnumflds AT ROW 3.38 COL 29 COLON-ALIGNED HELP
           "Max number of fields to include from SDO"
-     finamesuffix AT ROW 5.52 COL 29 COLON-ALIGNED
-     toAlwaysDelete AT ROW 7 COL 31
-     Btn_OK AT ROW 10.52 COL 3
-     Btn_Cancel AT ROW 10.52 COL 31
-     Btn_Help AT ROW 10.62 COL 59
-     SPACE(0.19) SKIP(0.52)
+     finamesuffix AT ROW 4.52 COL 29 COLON-ALIGNED
+     toAlwaysDelete AT ROW 5.67 COL 31
+     Btn_OK AT ROW 7.29 COL 2.4
+     Btn_Cancel AT ROW 7.29 COL 18
+     Btn_Help AT ROW 7.29 COL 57.8
+     RECT-10 AT ROW 1 COL 1.4
+     RECT-11 AT ROW 6.91 COL 1.4
+     SPACE(0.00) SKIP(0.13)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "Browser Settings"
@@ -282,6 +315,7 @@ DO:
            cnamesuffix          = DYNAMIC-FUNCTION('getnamesuffix':U)
            cSdoFields           = DYNAMIC-FUNCTION('getSdoFields':U)
            plDeleteOnGeneration = DYNAMIC-FUNCTION("getDeleteOnGeneration":U)
+           pcBrowseModule       = DYNAMIC-FUNCTION("getBrowseModule":U)
            .
 END.
 
@@ -345,10 +379,10 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  DISPLAY toSDOFields fimaxnumflds finamesuffix toAlwaysDelete 
+  DISPLAY coModule toSDOFields fimaxnumflds finamesuffix toAlwaysDelete 
       WITH FRAME gDialog.
-  ENABLE toSDOFields fimaxnumflds finamesuffix toAlwaysDelete Btn_OK Btn_Cancel 
-         Btn_Help 
+  ENABLE coModule toSDOFields fimaxnumflds finamesuffix toAlwaysDelete Btn_OK 
+         Btn_Cancel Btn_Help RECT-10 RECT-11 
       WITH FRAME gDialog.
   VIEW FRAME gDialog.
   {&OPEN-BROWSERS-IN-QUERY-gDialog}
@@ -366,10 +400,13 @@ PROCEDURE initializeObject :
 ------------------------------------------------------------------------------*/
     RUN SUPER.
 
-    DYNAMIC-FUNCTION('setmaxnumflds':U,cmaxnumflds ).     
+    ASSIGN coModule:LIST-ITEMS IN FRAME {&FRAME-NAME} = pcAllModules.
+    
+    DYNAMIC-FUNCTION('setmaxnumflds':U,cmaxnumflds ).
     DYNAMIC-FUNCTION('setnamesuffix':U,cnamesuffix ).
-    DYNAMIC-FUNCTION('setSDOFields':U,cSDOFields).    
+    DYNAMIC-FUNCTION('setSDOFields':U,cSDOFields).
     DYNAMIC-FUNCTION("setDeleteOnGeneration":U, plDeleteOnGeneration).
+    DYNAMIC-FUNCTION("setBrowseModule":U, INPUT pcBrowseModule).
 
     RETURN.
 END PROCEDURE.
@@ -378,6 +415,21 @@ END PROCEDURE.
 &ANALYZE-RESUME
 
 /* ************************  Function Implementations ***************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getBrowseModule gDialog 
+FUNCTION getBrowseModule RETURNS CHARACTER
+    ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    ASSIGN FRAME {&FRAME-NAME} coMOdule.
+
+    RETURN coModule.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDeleteOnGeneration gDialog 
 FUNCTION getDeleteOnGeneration RETURNS LOGICAL
@@ -439,6 +491,24 @@ DO WITH FRAME {&FRAME-NAME}:
   RETURN toSDOFields.  
 END.
 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setBrowseModule gDialog 
+FUNCTION setBrowseModule RETURNS LOGICAL
+    ( INPUT plBrowseModule  AS CHARACTER) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    ASSIGN coModule:SCREEN-VALUE IN FRAME {&FRAME-NAME} = plBrowseModule
+           NO-ERROR.
+    IF ERROR-STATUS:ERROR THEN
+        ASSIGN coModule:SCREEN-VALUE IN FRAME {&FRAME-NAME} = coModule:ENTRY(1).
+
+    RETURN TRUE.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

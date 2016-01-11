@@ -28,6 +28,7 @@
    History:  12/14/99 D. McMann Changed label for extended objects
              04/13/00 D. McMann Added support for long path names
              06/20/01 D. McMann Added Foreign Owner
+             06/25/02 D. McMann Added logic for function based indexes
    
 */   
 
@@ -64,11 +65,13 @@ FORM
      LABEL "ORACLE tablespace for Tables" colon 35 SKIP({&VM_WID})
   ora_ispace FORMAT "x(30)" view-as fill-in size 32  by 1
      LABEL "ORACLE tablespace for Indexes" colon 35 SKIP({&VM_WIDG})      
-  SPACE(3) pcompatible view-as toggle-box LABEL "Progress 4GL Compatible Objects"  
-  create_df view-as toggle-box LABEL "Create schema holder delta df"
-   SKIP({&VM_WID})
-  SPACE (3)  crtdefault VIEW-AS TOGGLE-BOX LABEL "Include Default" SPACE (18)
-  sqlwidth VIEW-AS TOGGLE-BOX LABEL "Use Sql Width" SKIP({&VM_WIDG}) 
+  SPACE(3) pcompatible view-as toggle-box LABEL "Create Progress RECID Field"  
+  shadowcol VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns" SKIP({&VM_WID})
+  SPACE (3) crtdefault VIEW-AS TOGGLE-BOX LABEL "Include Default" &IF "{&WINDOW-SYSTEM}" = "TTY"
+  &THEN SPACE(13) &ELSE SPACE (14) &ENDIF
+  sqlwidth VIEW-AS TOGGLE-BOX LABEL "Use Sql Width" SKIP({&VM_WID}) 
+  SPACE (13) create_df view-as toggle-box LABEL "Create schema holder delta df"
+   SKIP({&VM_WIDG})
              {prodict/user/userbtns.i}
   WITH FRAME read-df ROW 2 CENTERED SIDE-labels 
     DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel
@@ -178,7 +181,8 @@ IF LDBNAME("DICTDB") <> ? THEN DO:
   END.
 END.
 
-ASSIGN pcompatible = TRUE.
+ASSIGN pcompatible = TRUE
+       shadowcol = (IF ora_version = 7 THEN TRUE ELSE FALSE).
 
 UPDATE df-file 
        btn_file
@@ -189,9 +193,10 @@ UPDATE df-file
        ora_tspace
        ora_ispace
        pcompatible
-       create_df
+       shadowcol
        crtdefault
        sqlwidth  
+       create_df
        btn_OK btn_Cancel
        &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
             btn_Help
@@ -215,7 +220,6 @@ ASSIGN user_env[1]  = df-file
        user_env[17] = "number"
        user_env[19] = "number"
        user_env[20] = "##"
-       user_env[21] = "y"
        user_env[22] = "ORACLE"
        user_env[23] = "30"
        user_env[24] = "15"
@@ -227,16 +231,13 @@ ASSIGN user_env[1]  = df-file
        user_env[34] = ora_tspace
        user_env[35] = ora_ispace.
     
-IF pcompatible THEN 
-   ASSIGN user_env[27] = "y".
-ELSE
-   ASSIGN user_env[27] = "no".
 
+/* create df for schema holder */
 IF create_df THEN
   ASSIGN user_env[2] = "yes".
 ELSE
   ASSIGN user_env[2] = "no".
-   
+
 RUN prodict/ora/_gendsql.p.
  
 IF NOT schdbcon THEN 

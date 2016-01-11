@@ -404,7 +404,12 @@ PROCEDURE connect_dbs:
       IF RETRY THEN DO:
         ASSIGN AbortImport = YES.
         LEAVE.
-      END.     
+      END.
+      IF notVisual THEN DO:
+        ASSIGN AbortImport = YES
+               err_msgs = "Not connected to database " + _inp_line[1] + ".":U.
+        LEAVE.
+      END.
       choice = "_CONNECT":U.
       RUN adeuib/_advisor.w (
           INPUT "The database '" + _inp_line[1] + "' was used by " +

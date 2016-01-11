@@ -1466,15 +1466,15 @@ PROCEDURE setAccessTokensQuery :
 ------------------------------------------------------------------------------*/
 
     ASSIGN
-      ttQueryParams.cQueryTables             = 'gsm_security_structure,gsm_token,gsc_product_module,gsc_object,gsc_instance_attribute':U
+      ttQueryParams.cQueryTables             = 'gsm_security_structure,gsm_token,gsc_product_module,ryc_smartobject,gsc_instance_attribute':U
       ttQueryParams.cBaseQueryString         = 'FOR EACH gsm_security_structure NO-LOCK
                                                    WHERE gsm_security_structure.owning_entity_mnemonic EQ "GSMTO",
                                                    FIRST gsm_token NO-LOCK
                                                    WHERE gsm_token.token_obj EQ gsm_security_structure.owning_obj,
                                                    FIRST gsc_product_module OUTER-JOIN NO-LOCK
                                                    WHERE gsc_product_module.product_module_obj EQ gsm_security_structure.product_module_obj,
-                                                   FIRST gsc_object OUTER-JOIN NO-LOCK
-                                                   WHERE gsc_object.OBJECT_obj EQ gsm_security_structure.OBJECT_obj,
+                                                   FIRST ryc_smartobject OUTER-JOIN NO-LOCK
+                                                   WHERE ryc_smartobject.smartobject_obj EQ gsm_security_structure.OBJECT_obj,
                                                    FIRST gsc_instance_attribute OUTER-JOIN NO-LOCK
                                                    WHERE gsc_instance_attribute.instance_attribute_obj EQ gsm_security_structure.instance_attribute_obj
                                                    BY gsm_token.token_code':U
@@ -1484,7 +1484,7 @@ PROCEDURE setAccessTokensQuery :
       ttQueryParams.cKeyDataType             = 'CHARACTER':U
       ttQueryParams.cBrowseFields            = 'gsm_token.token_description,':U
                                              + 'gsc_product_module.product_module_code,':U
-                                             + 'gsc_object.object_description,':U
+                                             + 'ryc_smartobject.object_description,':U
                                              + 'gsc_instance_attribute.attribute_code,':U
                                              + 'gsm_token.disabled,':U
                                              + 'gsm_token.system_owned':U
@@ -1592,15 +1592,15 @@ PROCEDURE setDataRangesQuery :
 ------------------------------------------------------------------------------*/
 
     ASSIGN
-      ttQueryParams.cQueryTables             = 'gsm_security_structure,gsm_range,gsc_product_module,gsc_object,gsc_instance_attribute':U
+      ttQueryParams.cQueryTables             = 'gsm_security_structure,gsm_range,gsc_product_module,ryc_smartobject,gsc_instance_attribute':U
       ttQueryParams.cBaseQueryString         = 'FOR EACH gsm_security_structure NO-LOCK
                                                    WHERE gsm_security_structure.owning_entity_mnemonic EQ "GSMRA",
                                                    FIRST gsm_range NO-LOCK
                                                    WHERE gsm_range.range_obj EQ gsm_security_structure.owning_obj,
                                                    FIRST gsc_product_module OUTER-JOIN NO-LOCK
                                                    WHERE gsc_product_module.product_module_obj EQ gsm_security_structure.product_module_obj,
-                                                   FIRST gsc_object OUTER-JOIN NO-LOCK
-                                                   WHERE gsc_object.OBJECT_obj EQ gsm_security_structure.OBJECT_obj,
+                                                   FIRST ryc_smartobject OUTER-JOIN NO-LOCK
+                                                   WHERE ryc_smartobject.smartobject_obj EQ gsm_security_structure.OBJECT_obj,
                                                    FIRST gsc_instance_attribute OUTER-JOIN NO-LOCK
                                                    WHERE gsc_instance_attribute.instance_attribute_obj EQ gsm_security_structure.instance_attribute_obj
                                                    BY gsm_range.range_code':U
@@ -1610,7 +1610,7 @@ PROCEDURE setDataRangesQuery :
       ttQueryParams.cKeyDataType             = 'CHARACTER':U
       ttQueryParams.cBrowseFields            = 'gsm_range.range_description,':U
                                              + 'gsc_product_module.product_module_code,':U
-                                             + 'gsc_object.object_description,':U
+                                             + 'ryc_smartobject.object_description,':U
                                              + 'gsc_instance_attribute.attribute_code,':U
                                              + 'gsm_range.disabled,':U
                                              + 'gsm_range.system_owned':U
@@ -1687,15 +1687,15 @@ PROCEDURE setFieldsQuery :
 ------------------------------------------------------------------------------*/
 
     ASSIGN
-      ttQueryParams.cQueryTables             = 'gsm_security_structure,gsm_field,gsc_product_module,gsc_object,gsc_instance_attribute':U
+      ttQueryParams.cQueryTables             = 'gsm_security_structure,gsm_field,gsc_product_module,ryc_smartobject,gsc_instance_attribute':U
       ttQueryParams.cBaseQueryString         = 'FOR EACH gsm_security_structure NO-LOCK
                                                    WHERE gsm_security_structure.owning_entity_mnemonic EQ "GSMFF",
                                                    FIRST gsm_field NO-LOCK
                                                    WHERE gsm_field.FIELD_obj EQ gsm_security_structure.owning_obj,
                                                    FIRST gsc_product_module OUTER-JOIN NO-LOCK
                                                    WHERE gsc_product_module.product_module_obj EQ gsm_security_structure.product_module_obj,
-                                                   FIRST gsc_object OUTER-JOIN NO-LOCK
-                                                   WHERE gsc_object.OBJECT_obj EQ gsm_security_structure.OBJECT_obj,
+                                                   FIRST ryc_smartobject OUTER-JOIN NO-LOCK
+                                                   WHERE ryc_smartobject.smartobject_obj EQ gsm_security_structure.OBJECT_obj,
                                                    FIRST gsc_instance_attribute OUTER-JOIN NO-LOCK
                                                    WHERE gsc_instance_attribute.instance_attribute_obj EQ gsm_security_structure.instance_attribute_obj
                                                    BY gsm_field.field_name':U
@@ -1705,7 +1705,7 @@ PROCEDURE setFieldsQuery :
       ttQueryParams.cKeyDataType             = 'CHARACTER':U
       ttQueryParams.cBrowseFields            = 'gsm_field.field_description,':U
                                              + 'gsc_product_module.product_module_code,':U
-                                             + 'gsc_object.object_description,':U
+                                             + 'ryc_smartobject.object_description,':U
                                              + 'gsc_instance_attribute.attribute_code,':U
                                              + 'gsm_field.disabled,':U
                                              + 'gsm_field.system_owned':U

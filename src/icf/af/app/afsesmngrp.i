@@ -83,7 +83,23 @@ af/cod/aftemwizpw.w
 
   Update Notes: Remove RVDB dependency
 
-----------------------------------------------------*/
+  (v:010005)    Task:    90000010   UserRef:    
+                Date:   03/26/2002  Author:     Dynamics Admin User
+
+  Update Notes: 
+
+  (v:010006)    Task:                UserRef:    
+                Date:   04/11/2002   Author:     Mauricio J. dos Santos (MJS) 
+                                                 mdsantos@progress.com
+  Update Notes: Adapted for WebSpeed by changing SESSION:PARAM = "REMOTE" 
+                to SESSION:CLIENT-TYPE = "WEBSPEED" in various places.
+
+  (v:010007)    Task:    90000010   UserRef:    
+                Date:   03/26/2002  Author:     Dynamics Admin User
+
+  Update Notes: 
+
+---------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
 
@@ -106,7 +122,8 @@ FIELD propertyName            AS CHARACTER    /* property name */
 FIELD propertyValue           AS CHARACTER    /* prooperty value */
 INDEX propertyName AS PRIMARY UNIQUE propertyName.
 
-DEFINE VARIABLE giLoop                    AS INTEGER    NO-UNDO.
+DEFINE VARIABLE giLoop         AS INTEGER    NO-UNDO.
+DEFINE VARIABLE glPlipShutting AS LOGICAL    NO-UNDO.
 
 /* temp table of persistent procs started in client session since we started the
    session manager - i.e. procs we must shutdown when this manager closes.
@@ -117,18 +134,20 @@ INDEX ObjHandle IS PRIMARY hProc.
 
 DEFINE TEMP-TABLE ttUser NO-UNDO LIKE gsm_user.
 
-{af/app/afttglobalctrl.i}
-{af/app/afttsecurityctrl.i}
-
 {af/sup2/afcheckerr.i &define-only = YES}
 
+{af/app/afttglobalctrl.i}
+{af/app/afttsecurityctrl.i}
 {af/app/afttpersist.i}
+{af/app/aftttranslate.i}
+{af/app/logintt.i}
 
 /* Include the file which defines AppServerConnect procedures. */
+
 {adecomm/appsrvtt.i "NEW GLOBAL"}
 {adecomm/appserv.i}
 
-IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
+IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN
 DO:
   /* Code for windows API calls and Help Integration */
   &GLOB DONTRUN-WINFUNC
@@ -152,9 +171,8 @@ DO:
   END PROCEDURE.
 END.
 
-{af/app/aftttranslate.i}
-
 { af/sup2/aflaunch.i &Define-only = YES }
+{launch.i &Define-only = YES }
 
 DEFINE TEMP-TABLE ttActionUnderway NO-UNDO
 FIELD action_underway_origin  AS CHARACTER /* Identify the origin, i.e "DYN" "RTB" */
@@ -169,6 +187,74 @@ INDEX XPKrvt_action_underway  IS PRIMARY
       action_table_fla        ASCENDING
       action_primary_key      ASCENDING
       .
+
+/* Additional definitions needed for call batching */
+
+{af/sup2/afttcombo.i}       /* Combo data            */
+{af/app/afttglobalctrl.i}   /* Global control cache  */
+{af/app/afttsecurityctrl.i} /* Security Cache        */
+{af/app/afttprofiledata.i}  /* Profile Cache         */
+{af/app/gsttenmn.i}         /* Entity Mnemonic Cache */
+
+DEFINE VARIABLE hBufferCacheBuffer     AS HANDLE     NO-UNDO.
+DEFINE VARIABLE cNumericDecimalPoint   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cNumericSeparator      AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cNumericFormat         AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cAppDateFormat         AS CHARACTER  NO-UNDO.
+
+/* These definitions are used for the info cached for a dynamic container */
+
+{ry/app/rydefrescd.i} /* default result codes */
+
+&GLOBAL-DEFINE defineCache /* Will be undefined in the include */
+{src/adm2/ttaction.i}
+&GLOBAL-DEFINE defineCache /* Will be undefined in the include */
+{src/adm2/tttoolbar.i}
+{af/app/aftttranslation.i}
+
+DEFINE VARIABLE cTokenSecurityString AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cFieldSecurityString AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE hObjectTable         AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hPageTable           AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hPageInstanceTable   AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hLinkTable           AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hUIEventTable        AS HANDLE     NO-UNDO. 
+DEFINE VARIABLE gcLogicalContainerName AS CHARACTER  NO-UNDO.
+
+/* Definitions for dynamic call, only defined client side, as we're only using the dynamic call to reduce Appserver hits in this instance */
+
+&IF DEFINED(server-side) = 0 &THEN
+{
+ src/adm2/calltables.i &PARAM-TABLE-TYPE = "1"
+                       &PARAM-TABLE-NAME = "ttSeqType"
+}
+
+/* This temp-table is used to cache information for procedure 'showMessages'.  *
+ * A record is created in it, the message displayed, and the record deleted.   */
+
+DEFINE TEMP-TABLE ttMessageCache
+    FIELD cDBList          AS CHARACTER
+    FIELD cDBVersions      AS CHARACTER               
+    FIELD lRemote          AS LOGICAL
+    FIELD cConnid          AS CHARACTER
+    FIELD cOpmode          AS CHARACTER
+    FIELD lConnreg         AS LOGICAL
+    FIELD lConnbnd         AS LOGICAL
+    FIELD cConntxt         AS CHARACTER
+    FIELD cASppath         AS CHARACTER
+    FIELD cConndbs         AS CHARACTER
+    FIELD cConnpps         AS CHARACTER
+    FIELD cCustInfo1       AS CHARACTER
+    FIELD cCustInfo2       AS CHARACTER
+    FIELD cCustInfo3       AS CHARACTER
+    FIELD hTableHandle1    AS HANDLE
+    FIELD hTableHandle2    AS HANDLE
+    FIELD hTableHandle3    AS HANDLE
+    FIELD hTableHandle4    AS HANDLE
+    FIELD cSite            AS CHARACTER
+    FIELD cFieldSecurity   AS CHARACTER
+    FIELD cTokenSecurity   AS CHARACTER.
+&ENDIF
 
 /*
 ttActionUnderway - used for SCM Integration:
@@ -231,11 +317,46 @@ The object name of the data item being actioned as referenced in the SCM tool.
 
 /* ************************  Function Prototypes ********************** */
 
+&IF DEFINED(EXCLUDE-addAsSuperProcedure) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD addAsSuperProcedure Procedure 
+FUNCTION addAsSuperProcedure RETURNS LOGICAL
+    ( INPUT phSuperProcedure        AS HANDLE,
+      INPUT phProcedure             AS HANDLE   )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-filterEvaluateOuterJoins) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD filterEvaluateOuterJoins Procedure 
+FUNCTION filterEvaluateOuterJoins RETURNS CHARACTER
+  (pcQueryString  AS CHARACTER,
+   pcFilterFields AS CHARACTER) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-fixQueryString) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD fixQueryString Procedure 
 FUNCTION fixQueryString RETURNS CHARACTER
   ( INPUT pcQueryString AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getCurrentLogicalName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCurrentLogicalName Procedure 
+FUNCTION getCurrentLogicalName RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -324,8 +445,8 @@ FUNCTION setSecurityForDynObjects RETURNS CHARACTER
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 27.95
-         WIDTH              = 49.6.
+         HEIGHT             = 14.81
+         WIDTH              = 67.4.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -358,6 +479,21 @@ DO:
     RETURN.
 END.
 
+/* We use MAPI to send mail from Dynamics.  Unfortunately, MAPI changes the current application directory, which causes problems for us.     *
+ * So we're going to get the current application directory before we send our mail, store it, and reset it when we're finished. (Issue 5744) */
+&IF OPSYS = "WIN32" &THEN
+  PROCEDURE GetCurrentDirectoryA EXTERNAL "KERNEL32.DLL":
+      DEFINE INPUT        PARAMETER intBufferSize AS LONG.
+      DEFINE INPUT-OUTPUT PARAMETER ptrToString   AS MEMPTR.
+      DEFINE RETURN       PARAMETER intResult     AS SHORT.
+  END PROCEDURE.
+
+  PROCEDURE SetCurrentDirectoryA EXTERNAL "KERNEL32.DLL":
+      DEFINE INPUT  PARAMETER chrCurDir AS CHARACTER.
+      DEFINE RETURN PARAMETER intResult AS LONG.
+  END PROCEDURE.
+&ENDIF
+
 &IF DEFINED(server-side) <> 0 &THEN
   PROCEDURE afdelctxtp:         {af/app/afdelctxtp.p}     END PROCEDURE.
   PROCEDURE afgetprplp:         {af/app/afgetprplp.p}     END PROCEDURE.
@@ -367,9 +503,11 @@ END.
   PROCEDURE afgetglocp:         {af/app/afgetglocp.p}     END PROCEDURE.
 &ENDIF
 
+RUN seedTempUniqueID.
+
 RUN buildPersistentProc.  /* Build TT of running procedures */
 
-IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
+IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN
 DO:
 
   /* When instantiated, populate temp-table with standard properties that may be cached
@@ -383,6 +521,7 @@ DO:
      Session Manager. If these values are not set-up, then the user has not logged in
      sucessfully.
   */
+
   CREATE ttProperty.
   ASSIGN
     ttProperty.propertyName = "currentUserObj":U            /* logged in user object number */
@@ -452,13 +591,6 @@ DO:
   DEFINE VARIABLE cDateFormat AS CHARACTER NO-UNDO.
   ASSIGN cDateFormat = SESSION:DATE-FORMAT.
 
-/* The following code has been deliberately commented out to resolve 
-   issue 2235 
-/* get date format from global control */
-  RUN af/app/afsetsndfp.p ON gshAstraAppserver (INPUT-OUTPUT cDateFormat).
-  SESSION:DATE-FORMAT = cDateFormat. 
-              */
-
   DO  giLoop = 1 TO 3:
       CASE SUBSTRING(cDateFormat, giLoop, 1):
           WHEN "y" THEN
@@ -507,7 +639,20 @@ DO:
     ttProperty.propertyValue = "":U
     .
 
-END. /* not (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) */
+  IF SESSION <> gshAstraAppserver 
+  THEN DO:
+      /* The various programs needing the cached info are going to publish these events as they need it */
+    
+      SUBSCRIBE TO "loginGetMnemonicsCache":U IN SESSION:FIRST-PROCEDURE.
+      SUBSCRIBE TO "loginGetClassCache":U     IN SESSION:FIRST-PROCEDURE.
+      SUBSCRIBE TO "loginGetViewerCache":U    IN SESSION:FIRST-PROCEDURE.
+    
+      /* This manager should start just after the connection manager, cache the login stuff */
+    
+      RUN loginCacheUpfront.
+  END.
+
+END. /* not (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) */
 
 CREATE ttProperty.
 ASSIGN
@@ -520,6 +665,248 @@ ASSIGN
 
 
 /* **********************  Internal Procedures  *********************** */
+
+&IF DEFINED(EXCLUDE-activateSession) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE activateSession Procedure 
+PROCEDURE activateSession :
+/*------------------------------------------------------------------------------
+  Purpose:     Sets up the gst_session record for a session in a remote
+               session.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER pcOldSessionID   AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER pcNewSessionID   AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER pcSessType       AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER pcNumFormat      AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER pcDateFormat     AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER plReactivate     AS LOGICAL    NO-UNDO.
+  DEFINE INPUT  PARAMETER plConfirmExpired AS LOGICAL    NO-UNDO.
+
+  ASSIGN
+    gsdTempUniqueID =  gsdTempUniqueID + 100000000000000000.0  
+                    - (gsdTempUniqueID + 100000000000000000.0 
+                       - TRUNCATE(gsdTempUniqueID / 100000000000000000.0 + 1, 0) 
+                       * 100000000000000000.0)
+  .
+
+  &IF DEFINED(server-side) <> 0 &THEN
+
+    DEFINE VARIABLE dSessionTypeObj AS DECIMAL    NO-UNDO.
+    DEFINE VARIABLE cError          AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE dInactive       AS DECIMAL    NO-UNDO.
+    DEFINE VARIABLE iDays           AS INTEGER    NO-UNDO.
+    DEFINE VARIABLE iSeconds        AS INTEGER    NO-UNDO.
+    DEFINE VARIABLE cDateFormat     AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cNumFormat      AS CHARACTER  NO-UNDO.
+    
+    DEFINE BUFFER bgst_session      FOR gst_session.
+    DEFINE BUFFER bgsm_session_type FOR gsm_session_type.
+
+    /* If this is a reactivation and the session ID is blank,
+       get the old session id from the SESSION:SERVER-CONNECTION-ID */
+    IF plReactivate AND
+       pcOldSessionID = "":U OR
+       pcOldSessionID = ? THEN
+      pcOldSessionID = SESSION:SERVER-CONNECTION-ID.
+
+    DO TRANSACTION:
+      /* See if we can find a session with the old session ID. */
+      IF pcOldSessionID <> "":U AND
+         pcOldSessionID <> ? THEN
+      DO:
+        FIND bgst_session
+          WHERE bgst_session.session_id = pcOldSessionID
+          NO-ERROR.
+      END.
+
+      /* If the session record does not exist, we need to look at the
+         reactivate flag to decide what to do. */
+      IF NOT AVAILABLE(bgst_session) THEN
+      DO:
+        ERROR-STATUS:ERROR = NO.
+
+        /* If Reactivate is switched on, we should be reactivating an 
+           existing session. If the record was not found, there is a 
+           problem and we need to return an error. */
+        IF plReactivate THEN
+        DO:
+          ASSIGN
+            cError = {af/sup2/aferrortxt.i 'ICF' '4' '?' '?' "''"}.
+          RETURN ERROR cError.
+        END.
+
+        CREATE bgst_session.
+        ASSIGN
+          bgst_session.session_creation_date = TODAY
+          bgst_session.session_creation_time = TIME
+        .
+      END.
+      ELSE
+      DO:
+        /* If we have to check the session expiry then lets see if it has
+           expired. plConfirmExpired just tells us to perform this check. 
+           The gsm_session_type contains a flag that indicates whether the session
+           has expiry set, and how long a session should be allowed to run. */
+        IF plConfirmExpired AND
+           bgst_session.session_type_obj <> 0.0 THEN
+        DO:
+          /* Find the gsm_session type for this client session type. */
+          FIND bgsm_session_type NO-LOCK
+            WHERE bgsm_session_type.session_type_obj = bgst_session.session_type_obj
+            NO-ERROR.
+          /* We're only going to perform this check if the session type is available. */
+          IF AVAILABLE(bgsm_session_type) THEN
+          DO:
+            /* Inactivity timeout only counts if it is > 0. If it is greater than 0, 
+               the integer portion contains the number of days that a session is valid for
+               and the mantissa contains the number of seconds that it is valid for -
+               kind of a date/time data type. 
+               
+               This means that we can convert the time that has elapsed since the session
+               was last active into a similar thing where the days are in the integer portion
+               and the seconds are in the mantissa, and this means that we can then do a 
+               straight comparison of the elapsed time against the time out */
+            IF bgsm_session_type.inactivity_timeout_period > 0.0 THEN
+            DO:
+              /* First determine how many days have elapsed since the last access */
+              iDays = TODAY - bgst_session.last_access_date.
+
+              /* Get the number of seconds that have elapsed today. */
+              iSeconds = TIME.
+
+              /* If the number of seconds that has elapsed is less than the the last
+                 access time, we are into at least the next day (possibly more days) 
+                 and we therefore subtract the last access time from the number of 
+                 seconds in a day (86400) and add the number of seconds that have elapsed 
+                 today. We then subtract a day from the number of days that have elapsed
+                 as we can measure the difference in seconds. */
+              IF iSeconds < bgst_session.last_access_time THEN
+                ASSIGN
+                  iSeconds = 86400 - bgst_session.last_access_time + iSeconds
+                  iDays    = iDays - 1
+                .
+              ELSE
+                /* Otherwise we just subtract the elapsed seconds from the
+                   last access time */
+                ASSIGN
+                  iSeconds = iSeconds - bgst_session.last_access_time
+                .
+
+              /* The inactivity time has to be converted to the "date/time" format */
+              dInactive = iDays + (iSeconds / 100000).
+
+              /* Now we can compare the inactive time against the inactivity timeout.
+                 If the session has timed out, we return an error. */
+              IF dInactive >= bgsm_session_type.inactivity_timeout_period THEN
+              DO:
+                ASSIGN
+                  cError = {af/sup2/aferrortxt.i 'ICF' '4' '?' '?' "''"}.
+                RETURN ERROR cError.
+              END. /* IF dInactive >= bgsm_session_type.inactivity_timeout_period */
+            END. /* IF bgsm_session_type.inactivity_timeout_period > 0.0 */
+          END.  /* IF AVAILABLE(bgsm_session_type) */
+        END.  /* IF plConfirmExpired AND bgst_session.session_type_obj <> 0.0 */
+      END. /* IF NOT AVAILABLE(bgst_session) */
+
+      /* If we are not reactivating the session, we need to set up the
+         session ID. */
+      IF NOT plReactivate THEN
+      DO:
+        IF pcNewSessionID <> "":U AND
+           pcNewSessionID <> ?    THEN
+          ASSIGN
+            bgst_session.session_id  = pcNewSessionID.
+
+        ELSE
+          ASSIGN
+            bgst_session.session_id  = SESSION:SERVER-CONNECTION-ID.
+
+        ASSIGN
+          bgst_session.client_date_format    = pcDateFormat
+          bgst_session.client_numeric_format = pcNumFormat
+        .
+      END.
+
+      /* If the session type has not previously been set, we should set it 
+         here. */
+      IF bgst_session.session_type_obj = 0.0 AND
+         pcSessType <> ? AND
+         pcSessType <> "":U THEN
+      DO:
+        FIND bgsm_session_type NO-LOCK
+          WHERE bgsm_session_type.session_type_code = pcSessType
+          NO-ERROR.
+        IF NOT AVAILABLE(bgsm_session_type) THEN
+          ASSIGN
+            bgst_session.session_type_obj = 0.0.
+        ELSE
+          ASSIGN
+            bgst_session.session_type_obj = bgsm_session_type.session_type_obj.
+      END.
+
+      /* Now we need to make sure that the session's last date and time
+         is updated and that the session environment is synched up with 
+         the client */
+      ASSIGN
+        bgst_session.last_access_date      = TODAY
+        bgst_session.last_access_time      = TIME
+        gscSessionId = bgst_session.session_id
+        gsdSessionObj = bgst_session.session_obj
+      .
+
+      /* If we have a valid client date format, set the server to match */
+      IF bgst_session.client_date_format <> "":U AND
+         bgst_session.client_date_format <> ? AND
+         CAN-DO("dmy,dym,mdy,myd,ymd,ydm":U, bgst_session.client_date_format) THEN
+        SESSION:DATE-FORMAT = bgst_session.client_date_format.
+      ELSE
+      DO:
+        cDateFormat = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
+                                       "session_date_format":U).
+        IF cDateFormat <> ? AND
+           CAN-DO("dmy,dym,mdy,myd,ymd,ydm":U, cDateFormat) THEN
+          SESSION:DATE-FORMAT = cDateFormat.
+      END.
+        
+
+      /* If we have a valid client date format, set the server to match */
+      IF bgst_session.client_numeric_format <> "":U AND
+         bgst_session.client_numeric_format <> ? THEN
+      DO:
+        IF bgst_session.client_numeric_format = "EUROPEAN":U OR 
+           bgst_session.client_numeric_format = "AMERICAN":U THEN
+          SESSION:NUMERIC-FORMAT = bgst_session.client_numeric_format.
+        ELSE IF LENGTH(bgst_session.client_numeric_format) = 2 THEN
+          SESSION:SET-NUMERIC-FORMAT(SUBSTRING(bgst_session.client_numeric_format,1,1), SUBSTRING(bgst_session.client_numeric_format,2,1)).
+      END.
+      ELSE
+      DO:
+        cNumFormat = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
+                                      "session_numeric_format":U).
+        IF cNumFormat <> ? THEN
+        DO:
+          IF cNumFormat = "EUROPEAN":U OR 
+             cNumFormat = "AMERICAN":U THEN
+            SESSION:NUMERIC-FORMAT = cNumFormat.
+          ELSE IF LENGTH(cNumFormat) = 2 THEN
+            SESSION:SET-NUMERIC-FORMAT(SUBSTRING(cNumFormat,1,1), SUBSTRING(cNumFormat,2,1)).
+        END.
+      END.
+    END.
+
+    RETURN "":U. /* We need to make sure that we return because if we don't,
+                    the return value never gets set. */
+
+  &ENDIF
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-askQuestion) = 0 &THEN
 
@@ -638,8 +1025,9 @@ DEFINE OUTPUT PARAMETER       pcButtonPressed   AS CHARACTER.
 
   IF cSuppressDisplay = "YES":U THEN ASSIGN lSuppressDisplay = YES.
 
-  IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) AND NOT lSuppressDisplay THEN
+  IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) AND NOT lSuppressDisplay THEN
   DO:
+      ASSIGN gcLogicalContainerName = "afmessaged":U.
     RUN af/cod2/afmessaged.w (INPUT "QUE",
                               INPUT cSummaryMessages,
                               INPUT cFullMessages,
@@ -653,6 +1041,8 @@ DEFINE OUTPUT PARAMETER       pcButtonPressed   AS CHARACTER.
                               INPUT ?,
                               OUTPUT iButtonPressed,
                               OUTPUT pcAnswer).
+    ASSIGN gcLogicalContainerName = "":U.
+
     IF iButtonPressed > 0 AND iButtonPressed <= NUM-ENTRIES(pcButtonList) THEN
       ASSIGN pcButtonPressed = ENTRY(iButtonPressed, pcButtonList).  /* Pass back untranslated button pressed */
     ELSE
@@ -662,14 +1052,14 @@ DEFINE OUTPUT PARAMETER       pcButtonPressed   AS CHARACTER.
     ASSIGN pcButtonPressed = pcDefaultButton.  /* If remote, assume default button */
 
   /* If remote, or update error log set to YES, then update error log and send an email if possible */
-  IF (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) OR lUpdateErrorLog OR lSuppressDisplay THEN
+  IF (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) OR lUpdateErrorLog OR lSuppressDisplay THEN
   DO:
     RUN updateErrorLog IN gshSessionManager (INPUT cSummaryMessages,
                                              INPUT cFullMessages).
     RUN notifyUser IN gshSessionManager (INPUT 0,                           /* default user */
                                          INPUT "":U,                        /* default user */
                                          INPUT "email":U,                   /* by email */
-                                         INPUT "Dynamics " + cMessageTitle,    /* ICF message */
+                                         INPUT "Progress Dynamics " + cMessageTitle,    /* ICF message */
                                          INPUT cSummaryMessages,            /* Summary translated messages */
                                          OUTPUT cFailed).           
   END.
@@ -725,7 +1115,7 @@ PROCEDURE clearActionUnderwayCache :
   Notes:       
 ------------------------------------------------------------------------------*/
 
-  IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U)
+  IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U)
   THEN DO:
     IF TRANSACTION
     THEN
@@ -737,6 +1127,261 @@ PROCEDURE clearActionUnderwayCache :
   END.    /* runnign client side. */
 
   RETURN.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-containerCacheUpfront) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE containerCacheUpfront Procedure 
+PROCEDURE containerCacheUpfront :
+/*------------------------------------------------------------------------------
+  Purpose:     This procedures makes an Appserver call to cache all information
+               needed to build a dynamic container.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT  PARAMETER pcLogicalObjectName      AS CHARACTER  NO-UNDO. /* Needed for security & container retrieval */
+DEFINE INPUT  PARAMETER pcAttributeCode          AS CHARACTER  NO-UNDO. /* Needed for security & container retrieval */
+DEFINE INPUT  PARAMETER plReturnEntireContainer  AS LOGICAL    NO-UNDO. /* Needed for container retrieval */
+DEFINE INPUT  PARAMETER plDesignMode             AS LOGICAL    NO-UNDO. /* Needed for container retrieval */
+DEFINE INPUT  PARAMETER pcToolbar                AS CHARACTER  NO-UNDO. /* Needed for toolbar retrieval, blank for ALL */
+DEFINE INPUT  PARAMETER pcBandList               AS CHARACTER  NO-UNDO. /* Needed for toolbar retrieval, blank for ALL */
+DEFINE OUTPUT PARAMETER plContainerSecured       AS LOGICAL    NO-UNDO. /* Is the container, well...secured */
+
+DEFINE VARIABLE hTableHandle             AS HANDLE     NO-UNDO EXTENT 20.
+DEFINE VARIABLE dUserObj                 AS DECIMAL    NO-UNDO.
+DEFINE VARIABLE dOrganisationObj         AS DECIMAL    NO-UNDO.
+DEFINE VARIABLE dLanguageObj             AS DECIMAL    NO-UNDO. 
+DEFINE VARIABLE cProperties              AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cResultCodes             AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE hCustomizationManager    AS HANDLE     NO-UNDO.
+DEFINE VARIABLE iCnt                     AS INTEGER    NO-UNDO.
+DEFINE VARIABLE lGetObjectFromAppserver  AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE lGetTokensFromAppserver  AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE lGetFieldsFromAppserver  AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE lGetToolbars             AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE lProfileRecordExists     AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE cObjectName              AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cObjectSecurity          AS CHARACTER  NO-UNDO.
+
+/* Make sure we don't have any cached information left over from a previous container */
+IF NOT TRANSACTION 
+THEN DO:
+    EMPTY TEMP-TABLE ttStoreToolbarsCached.
+    EMPTY TEMP-TABLE ttCacheToolbarBand.
+    EMPTY TEMP-TABLE ttCacheObjectBand.
+    EMPTY TEMP-TABLE ttCacheBand.
+    EMPTY TEMP-TABLE ttCacheBandAction.
+    EMPTY TEMP-TABLE ttCacheAction.
+    EMPTY TEMP-TABLE ttCacheCategory.
+    EMPTY TEMP-TABLE ttProfileData.
+END.
+ELSE DO:
+    FOR EACH ttStoreToolbarsCached: DELETE ttStoreToolbarsCached. END.
+    FOR EACH ttCacheToolbarBand:    DELETE ttCacheToolbarBand.    END.
+    FOR EACH ttCacheObjectBand:     DELETE ttCacheObjectBand.     END.
+    FOR EACH ttCacheBand:           DELETE ttCacheBand.           END.
+    FOR EACH ttCacheBandAction:     DELETE ttCacheBandAction.     END.
+    FOR EACH ttCacheAction:         DELETE ttCacheAction.         END.
+    FOR EACH ttCacheCategory:       DELETE ttCacheCategory.       END.
+    FOR EACH ttProfileData:         DELETE ttProfileData.         END.
+END.
+
+IF VALID-HANDLE(hBufferCacheBuffer) THEN
+    DELETE OBJECT hBufferCacheBuffer.
+
+IF VALID-HANDLE(hObjectTable) THEN
+    DELETE OBJECT hObjectTable.
+
+IF VALID-HANDLE(hPageTable) THEN
+    DELETE OBJECT hPageTable.
+
+IF VALID-HANDLE(hPageInstanceTable) THEN
+    DELETE OBJECT hPageInstanceTable.
+
+IF VALID-HANDLE(hLinkTable) THEN
+    DELETE OBJECT hLinkTable.
+
+IF VALID-HANDLE(hUIEventTable) THEN
+    DELETE OBJECT hUIEventTable.
+
+ASSIGN cTokenSecurityString = "":U
+       cFieldSecurityString = "":U
+       hBufferCacheBuffer   = ?
+       hObjectTable         = ?
+       hPageTable           = ?
+       hPageInstanceTable   = ?
+       hLinkTable           = ?
+       hUIEventTable        = ?.
+
+/* Right, nothing in cache, now get the stuff we're going to need to retrieve the object detail */
+ASSIGN cProperties           = DYNAMIC-FUNCTION("getPropertyList":U, INPUT "currentUserObj,currentOrganisationObj,currentLanguageObj":U,INPUT NO)       
+       dUserObj              = DECIMAL(ENTRY(1, cProperties, CHR(3)))
+       dOrganisationObj      = DECIMAL(ENTRY(2, cProperties, CHR(3)))
+       dLanguageObj          = DECIMAL(ENTRY(3, cProperties, CHR(3)))
+       hCustomizationManager = DYNAMIC-FUNCTION("getManagerHandle":U, INPUT "CustomizationManager":U)
+       cResultCodes          = IF VALID-HANDLE(hCustomizationManager)
+                               THEN DYNAMIC-FUNCTION("getSessionResultCodes":U IN hCustomizationManager)
+                               ELSE "{&DEFAULT-RESULT-CODE}":U.
+
+/* Check what has already been cached, and what hasn't */
+ASSIGN lGetObjectFromAppserver = NOT DYNAMIC-FUNCTION("isObjectCached":U IN gshRepositoryManager, 
+                                     INPUT pcLogicalObjectName, INPUT dUserObj, 
+                                     INPUT cResultCodes,        INPUT pcAttributeCode,     
+                                     INPUT dLanguageObj,        INPUT plDesignMode)
+
+       /* These flags aren't necessary.  If we need to get the object, we won't have anything else. *
+        * If we don't need to get the object, we know we've fetched everything we need already.     */
+       lGetTokensFromAppserver = lGetObjectFromAppserver
+       lGetFieldsFromAppserver = lGetObjectFromAppserver
+       lGetToolbars            = lGetObjectFromAppserver.
+
+IF lGetObjectFromAppserver = NO THEN
+    RETURN.
+
+/* Run the procedure on the Appserver to return all the info we require to view the container */
+RUN af/app/cachecontr.p ON gshAstraAppserver
+                           (INPUT-OUTPUT lGetObjectFromAppserver,   /* Container */
+                            INPUT-OUTPUT lGetTokensFromAppserver,   /* Security  */
+                            INPUT-OUTPUT lGetFieldsFromAppserver,   /* Security  */
+                            INPUT-OUTPUT lGetToolbars,              /* Toolbars  */
+                            INPUT pcLogicalObjectName,              /* Security & Container */
+                            INPUT pcAttributeCode,                  /* Security & Container */                            
+                            INPUT dUserObj,                         /* Container */
+                            INPUT cResultCodes,                     /* Container */
+                            INPUT dLanguageObj,                     /* Container */
+                            INPUT plReturnEntireContainer,          /* Container */
+                            INPUT plDesignMode,                     /* Container */
+                            INPUT pcToolbar,                        /* Toolbars */
+                            INPUT pcLogicalObjectName,              /* Toolbars */
+                            INPUT pcBandList,                       /* Toolbars */
+                            INPUT dOrganisationObj,                 /* Toolbars */
+                            OUTPUT cTokenSecurityString,            /* Security */
+                            OUTPUT cFieldSecurityString,            /* Security */
+                            OUTPUT TABLE-HANDLE hObjectTable,       /* Container */
+                            OUTPUT TABLE-HANDLE hPageTable,         /* Container */
+                            OUTPUT TABLE-HANDLE hPageInstanceTable, /* Container */
+                            OUTPUT TABLE-HANDLE hLinkTable,         /* Container */
+                            OUTPUT TABLE-HANDLE hUIEventTable,      /* Container */
+                            OUTPUT TABLE-HANDLE hTableHandle[1],    /* Container */
+                            OUTPUT TABLE-HANDLE hTableHandle[2],    /* Container */
+                            OUTPUT TABLE-HANDLE hTableHandle[3],    /* Container */
+                            OUTPUT TABLE-HANDLE hTableHandle[4],    /* Container */
+                            OUTPUT TABLE-HANDLE hTableHandle[5],    /* Container */
+                            OUTPUT TABLE-HANDLE hTableHandle[6],    /* Container */
+                            OUTPUT TABLE-HANDLE hTableHandle[7],    /* Container */
+                            OUTPUT TABLE-HANDLE hTableHandle[8],    /* Container */
+                            OUTPUT TABLE-HANDLE hTableHandle[9],    /* Container */
+                            OUTPUT TABLE-HANDLE hTableHandle[10],   /* Container */
+                            OUTPUT TABLE-HANDLE hTableHandle[11],   /* Container */
+                            OUTPUT TABLE-HANDLE hTableHandle[12],   /* Container */
+                            OUTPUT TABLE-HANDLE hTableHandle[13],   /* Container */
+                            OUTPUT TABLE-HANDLE hTableHandle[14],   /* Container */
+                            OUTPUT TABLE-HANDLE hTableHandle[15],   /* Container */
+                            OUTPUT TABLE-HANDLE hTableHandle[16],   /* Container */
+                            OUTPUT TABLE-HANDLE hTableHandle[17],   /* Container */
+                            OUTPUT TABLE-HANDLE hTableHandle[18],   /* Container */
+                            OUTPUT TABLE-HANDLE hTableHandle[19],   /* Container */
+                            OUTPUT TABLE ttStoreToolbarsCached,     /* Toolbars */
+                            OUTPUT TABLE ttCacheToolbarBand,        /* Toolbars */
+                            OUTPUT TABLE ttCacheObjectBand,         /* Toolbars */
+                            OUTPUT TABLE ttCacheBand,               /* Toolbars */
+                            OUTPUT TABLE ttCacheBandAction,         /* Toolbars */
+                            OUTPUT TABLE ttCacheAction,             /* Toolbars */
+                            OUTPUT TABLE ttCacheCategory,           /* Toolbars */
+                            OUTPUT TABLE ttProfileData,
+                            OUTPUT plContainerSecured
+                           ).
+
+IF lGetObjectFromAppserver = NO THEN /* This flag could have been reset on the Appserver */
+    RETURN.
+
+RUN receiveCacheObject IN gshRepositoryManager (INPUT dUserObj,
+                                                INPUT cResultCodes,
+                                                INPUT pcAttributeCode,
+                                                INPUT dLanguageObj,
+
+                                                INPUT TABLE-HANDLE hObjectTable,
+                                                INPUT TABLE-HANDLE hPageTable,
+                                                INPUT TABLE-HANDLE hPageInstanceTable,
+                                                INPUT TABLE-HANDLE hLinkTable,
+                                                INPUT TABLE-HANDLE hUIEventTable,
+
+                                                INPUT TABLE-HANDLE hTableHandle[1],
+                                                INPUT TABLE-HANDLE hTableHandle[2],
+                                                INPUT TABLE-HANDLE hTableHandle[3],
+                                                INPUT TABLE-HANDLE hTableHandle[4],
+                                                INPUT TABLE-HANDLE hTableHandle[5],
+                                                INPUT TABLE-HANDLE hTableHandle[6],
+                                                INPUT TABLE-HANDLE hTableHandle[7],
+                                                INPUT TABLE-HANDLE hTableHandle[8],
+                                                INPUT TABLE-HANDLE hTableHandle[9],
+                                                INPUT TABLE-HANDLE hTableHandle[10],
+                                                INPUT TABLE-HANDLE hTableHandle[11],
+                                                INPUT TABLE-HANDLE hTableHandle[12],
+                                                INPUT TABLE-HANDLE hTableHandle[13],
+                                                INPUT TABLE-HANDLE hTableHandle[14],
+                                                INPUT TABLE-HANDLE hTableHandle[15],
+                                                INPUT TABLE-HANDLE hTableHandle[16],
+                                                INPUT TABLE-HANDLE hTableHandle[17],
+                                                INPUT TABLE-HANDLE hTableHandle[18],
+                                                INPUT TABLE-HANDLE hTableHandle[19]
+                                               ).
+/* Send the security stuff */
+do-blk:
+DO iCnt = 1 TO NUM-ENTRIES(cTokenSecurityString, CHR(27)):
+    ASSIGN cObjectName     = ENTRY(iCnt, cTokenSecurityString, CHR(27))
+           cObjectSecurity = ENTRY(2, cObjectName, CHR(4))
+           cObjectName     = ENTRY(1, cObjectName, CHR(4)).
+
+    RUN receiveCacheTokSecurity IN gshSecurityManager (INPUT cObjectName,
+                                                       INPUT pcAttributeCode,
+                                                       INPUT cObjectSecurity).
+
+END.
+
+do-blk:
+DO iCnt = 1 TO NUM-ENTRIES(cFieldSecurityString, CHR(27)):
+    ASSIGN cObjectName     = ENTRY(iCnt, cFieldSecurityString, CHR(27))
+           cObjectSecurity = ENTRY(2, cObjectName, CHR(4))
+           cObjectName     = ENTRY(1, cObjectName, CHR(4)).
+
+    RUN receiveCacheFldSecurity IN gshSecurityManager (INPUT cObjectName,
+                                                       INPUT pcAttributeCode,
+                                                       INPUT cObjectSecurity).
+END.
+
+/* Pass menu information */
+RUN receiveCacheMenu IN gshRepositoryManager (INPUT TABLE ttStoreToolbarsCached,
+                                              INPUT TABLE ttCacheToolbarBand,
+                                              INPUT TABLE ttCacheObjectBand,
+                                              INPUT TABLE ttCacheBand,
+                                              INPUT TABLE ttCacheBandAction,
+                                              INPUT TABLE ttCacheAction,
+                                              INPUT TABLE ttCacheCategory).
+
+/* Check what we need to add to the profile cache */
+FOR EACH ttProfileData:
+    RUN checkProfileDataExists IN gshProfileManager (INPUT ttProfileData.cProfileTypeCode,
+                                                     INPUT ttProfileData.cProfileCode,
+                                                     INPUT ttProfileData.profile_data_key,
+                                                     INPUT NO,  /* Check profile info on db */
+                                                     INPUT YES, /* Check profile cache only */
+                                                     OUTPUT lProfileRecordExists).
+    IF lProfileRecordExists THEN
+        DELETE ttProfileData.
+END.
+
+IF CAN-FIND(FIRST ttProfileData) THEN
+    RUN receiveProfileCache IN gshProfileManager (INPUT TABLE ttProfileData).
+
+ASSIGN ERROR-STATUS:ERROR = NO.
+RETURN "":U.
 
 END PROCEDURE.
 
@@ -773,66 +1418,99 @@ PROCEDURE contextHelp :
   DEFINE VARIABLE cHelpFound                          AS CHARACTER    NO-UNDO.
   DEFINE VARIABLE iHelpContext                        AS INTEGER      NO-UNDO.
   DEFINE VARIABLE cHelpText                           AS CHARACTER    NO-UNDO.
-
+  
+  
   IF VALID-HANDLE(phObject) THEN
+  DO:
+    /* Get logical object names (for dynamic objects) */
+    IF LOOKUP("getlogicalobjectname", phObject:INTERNAL-ENTRIES) <> 0 THEN
+      cLogicalObject = DYNAMIC-FUNCTION('getlogicalobjectname' IN phObject).
+    ELSE cLogicalObject = "":U.      
+
+    /* use logical object name if dynamic */
+    IF cLogicalObject <> "":U THEN
+      ASSIGN cObjectFilename = cLogicalObject.
+    ELSE
+    DO:
+      /* get filename of object and strip off path */
+      ASSIGN iPosn = R-INDEX(phObject:FILE-NAME,"/":U) + 1.
+      IF iPosn = 1 THEN
+          ASSIGN iPosn = R-INDEX(phObject:FILE-NAME,"~\":U) + 1.
+      ASSIGN cObjectFilename = SUBSTRING(phObject:FILE-NAME,iPosn).
+    END.
+
+    /* Check whether object is itself a window */
+    IF LOOKUP("getObjectType":U, phObject:INTERNAL-ENTRIES) > 0 
+          AND( DYNAMIC-FUNCTION("getObjectType":U IN phObject) = "Window":U 
+           OR DYNAMIC-FUNCTION("getObjectType":U IN phObject) = "SmartWindow":U) THEN 
+      ASSIGN cContainerFileName = cObjectFileName
+             hContainer         = ?.
+    ELSE
+    /* get container handle */        
+    IF LOOKUP("getContainerSource", phObject:INTERNAL-ENTRIES) <> 0 THEN
+    DO:
+      hContainer = DYNAMIC-FUNCTION('getContainerSource' IN phObject).
+      IF NOT VALID-HANDLE(hContainer) THEN
+        ASSIGN hContainer = phObject.
+    END.
+
+    /* Check whether current field is a smartDataField. If so, we need to get it's parent 
+       first to find container */
+    IF VALID-HANDLE(hContainer)
+       AND LOOKUP("getObjectType":U, phObject:INTERNAL-ENTRIES) > 0 
+       AND DYNAMIC-FUNCTION("getObjectType":U IN phObject) = "smartDataField":U 
+    THEN DO:
+       hContainer = DYNAMIC-FUNCTION('getContainerSource' IN hContainer).
+       IF NOT VALID-HANDLE(hContainer) THEN
+         ASSIGN hContainer = phObject.
+    END.
+
+
+    IF VALID-HANDLE(hContainer) THEN
     DO:
       /* Get logical object names (for dynamic objects) */
-      IF LOOKUP("getlogicalobjectname", phObject:INTERNAL-ENTRIES) <> 0 THEN
-        cLogicalObject = DYNAMIC-FUNCTION('getlogicalobjectname' IN phObject).
+      IF LOOKUP("getlogicalobjectname", hContainer:INTERNAL-ENTRIES) <> 0 THEN
+        cLogicalObject = DYNAMIC-FUNCTION('getlogicalobjectname' IN hContainer).
       ELSE cLogicalObject = "":U.      
 
       /* use logical object name if dynamic */
       IF cLogicalObject <> "":U THEN
-        ASSIGN cObjectFilename = cLogicalObject.
+        ASSIGN cContainerFilename = cLogicalObject.
       ELSE
       DO:
-        /* get filename of object and strip off path */
-        ASSIGN iPosn = R-INDEX(phObject:FILE-NAME,"/":U) + 1.
+        ASSIGN iPosn = R-INDEX(hContainer:FILE-NAME,"/":U) + 1.
         IF iPosn = 1 THEN
-            ASSIGN iPosn = R-INDEX(phObject:FILE-NAME,"~\":U) + 1.
-        ASSIGN cObjectFilename = SUBSTRING(phObject:FILE-NAME,iPosn).
+            ASSIGN iPosn = R-INDEX(hContainer:FILE-NAME,"~\":U) + 1.
+        ASSIGN cContainerFilename = SUBSTRING(hContainer:FILE-NAME,iPosn).
       END.
-
-      /* get container handle */        
-      IF LOOKUP("getContainerSource", phObject:INTERNAL-ENTRIES) <> 0 THEN
-      DO:
-        hContainer = DYNAMIC-FUNCTION('getContainerSource' IN phObject).
-        IF NOT VALID-HANDLE(hContainer) THEN
-          ASSIGN hContainer = phObject.
-      END.
-
-      IF VALID-HANDLE(hContainer) THEN
-      DO:
-        /* Get logical object names (for dynamic objects) */
-        IF LOOKUP("getlogicalobjectname", hContainer:INTERNAL-ENTRIES) <> 0 THEN
-          cLogicalObject = DYNAMIC-FUNCTION('getlogicalobjectname' IN hContainer).
-        ELSE cLogicalObject = "":U.      
-
-        /* use logical object name if dynamic */
-        IF cLogicalObject <> "":U THEN
-          ASSIGN cContainerFilename = cLogicalObject.
-        ELSE
-        DO:
-          ASSIGN iPosn = R-INDEX(hContainer:FILE-NAME,"/":U) + 1.
-          IF iPosn = 1 THEN
-              ASSIGN iPosn = R-INDEX(hContainer:FILE-NAME,"~\":U) + 1.
-          ASSIGN cContainerFilename = SUBSTRING(hContainer:FILE-NAME,iPosn).
-        END.
-      END.
-    END.
+    END. /* End Valid hContainer */
+  END. /* End valid-handle hObject */
   ELSE
-    ASSIGN
-      cContainerFilename = "<Unknown>":U
-      cObjectFilename = "<Unknown>":U.        
+    ASSIGN cContainerFilename = "<Unknown>":U
+           cObjectFilename = "<Unknown>":U.        
 
-  IF VALID-HANDLE(phWidget) AND CAN-QUERY(phWidget, "NAME":U) THEN
-    ASSIGN
-      cItemName = phWidget:NAME.
+
+  IF VALID-HANDLE(phWidget) AND CAN-QUERY(phWidget, "NAME":U)
+  THEN DO:
+      /* For smartDataFields, we don't want to use the widget name, as this is always going to be the same.           *
+       * For instance, if you had 4 dynamic combos on a viewer, the fieldname for all of them is going to be fiCombo. *
+       * So we try and determine if this is a SDF, and if so, get the field name from it.                             */
+      
+     IF LOOKUP("getObjectType":U, phObject:INTERNAL-ENTRIES) > 0 
+        AND DYNAMIC-FUNCTION("getObjectType":U IN phObject) = "smartDataField":U 
+      THEN DO:
+          IF LOOKUP("getFieldName":U, phObject:INTERNAL-ENTRIES) > 0 THEN
+              ASSIGN cItemName = DYNAMIC-FUNCTION("getFieldName":U IN phObject).
+      END.
+
+      IF cItemName = "":U THEN
+          ASSIGN cItemName = phWidget:NAME.
+  END.
   ELSE
-    ASSIGN
-      cItemName = "<Unknown>":U.
+      ASSIGN cItemName = "<Unknown>":U.
 
   /* get help context to use */
+
   RUN af/app/afgethctxp.p ON gshAstraAppserver (INPUT cContainerFilename,
                                                 INPUT cObjectFilename,
                                                 INPUT cItemName,
@@ -842,36 +1520,43 @@ PROCEDURE contextHelp :
   cHelpFound = SEARCH(cHelpFile).
 
   IF cHelpFound = ? OR cHelpFound = "":U THEN
-    DO:
-      DEFINE VARIABLE cButton AS CHARACTER NO-UNDO.
-      RUN showMessages IN gshSessionManager (INPUT {af/sup2/aferrortxt.i 'AF' '19' '?' '?' 'help' cHelpFile},
-                                             INPUT "ERR":U,
-                                             INPUT "OK":U,
-                                             INPUT "OK":U,
-                                             INPUT "OK":U,
-                                             INPUT "Dynamics Help",
-                                             INPUT NOT SESSION:REMOTE,
-                                             INPUT hContainer,
-                                             OUTPUT cButton).
-      RETURN.
-    END.
+  DO:
+     DEFINE VARIABLE cButton AS CHARACTER NO-UNDO.
+     RUN showMessages IN gshSessionManager (INPUT {af/sup2/aferrortxt.i 'AF' '19' '?' '?' 'help' cHelpFile},
+                                            INPUT "ERR":U,
+                                            INPUT "OK":U,
+                                            INPUT "OK":U,
+                                            INPUT "OK":U,
+                                            INPUT "Progress Dynamics Help",
+                                            INPUT NOT SESSION:REMOTE,
+                                            INPUT hContainer,
+                                            OUTPUT cButton).
+     RETURN.
+  END.
   IF INDEX(cHelpFound, ".hlp":U) > 0 THEN  /* Windows help */
   DO:
     IF cHelpText <> "":U THEN
       SYSTEM-HELP
         cHelpFound
         PARTIAL-KEY cHelpText.
-    ELSE
+    ELSE IF iHelpContext > 0 THEN
       SYSTEM-HELP
         cHelpFound
         CONTEXT iHelpContext.
+    ELSE 
+      SYSTEM-HELP
+         cHelpFound CONTENTS.
+
   END.
-  ELSE                                   /* HTML Help */
+  ELSE IF INDEX(cHelpFound, ".chm":U) > 0 
+       OR INDEX(cHelpFound, ".htm":U) > 0  THEN  /* HTML Help */
   DO:
     IF cHelpText <> "":U  THEN
       SYSTEM-HELP 
          cHelpFound HELP-TOPIC cHelpText.
-
+    ELSE
+      SYSTEM-HELP
+         cHelpFound CONTENTS.
   END.
 
 END PROCEDURE.
@@ -890,13 +1575,13 @@ PROCEDURE createLinks :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
- DEFINE INPUT PARAMETER pcPhysicalName AS CHARACTER NO-UNDO.
+ DEFINE INPUT PARAMETER pcPhysicalName AS CHARACTER NO-UNDO. 
  DEFINE INPUT PARAMETER phProcedureHandle AS HANDLE NO-UNDO.
  DEFINE INPUT PARAMETER phObjectProcedure AS HANDLE NO-UNDO.
  DEFINE INPUT PARAMETER plAlreadyRunning AS LOGICAL NO-UNDO.
 
-    IF pcPhysicalName = "ry/uib/rydyncontw.w" AND VALID-HANDLE(phProcedureHandle) 
-        AND VALID-HANDLE(phObjectProcedure) THEN
+    IF CAN-DO("ry/uib/rydyncontw.w,ry/uib/rydynframw.w":U, pcPhysicalName) AND 
+       VALID-HANDLE(phProcedureHandle) AND VALID-HANDLE(phObjectProcedure) THEN
     DO:
         DEFINE VARIABLE hDataSource AS HANDLE NO-UNDO.
         DEFINE VARIABLE hNavigationSource AS HANDLE NO-UNDO.
@@ -979,6 +1664,40 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-deleteActiveSession) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE deleteActiveSession Procedure 
+PROCEDURE deleteActiveSession :
+/*------------------------------------------------------------------------------
+  Purpose:     Deletes the active session and all its context.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  &IF DEFINED(server-side) <> 0 &THEN
+    DEFINE BUFFER bgst_session      FOR gst_session.
+
+    /* Delete all the context data */
+    RUN deleteContext IN THIS-PROCEDURE.
+
+    DO TRANSACTION:
+
+      /* Delete the session record. */
+      FIND bgst_session
+        WHERE bgst_session.session_id = gscSessionID
+        NO-ERROR.
+      IF AVAILABLE(bgst_session) THEN
+        DELETE bgst_session.
+    END.
+  &ENDIF
+  
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-deleteContext) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE deleteContext Procedure 
@@ -1017,18 +1736,39 @@ PROCEDURE deletePersistentProc :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hDeleteProc   AS HANDLE   NO-UNDO.
-  DEFINE VARIABLE hProcedure    AS HANDLE   NO-UNDO.
-  DEFINE VARIABLE lDesignMode   AS LOGICAL  NO-UNDO.
+DEFINE VARIABLE hDeleteProc   AS HANDLE   NO-UNDO.
+DEFINE VARIABLE hProcedure    AS HANDLE   NO-UNDO.
+DEFINE VARIABLE lDesignMode   AS LOGICAL  NO-UNDO.
 
-  IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN  /* check for objects open in design mode */
-  DO:
-    ASSIGN
-      hProcedure = SESSION:FIRST-PROCEDURE
-      lDesignMode = FALSE.
+DEFINE VARIABLE cManagerList AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE hConnManager AS HANDLE     NO-UNDO.
+
+/* If we're running this procedure because this PLIPP is shutting, we want to kill ALL procedures. *
+ * If we're running from somewhere else, managers need to stay running.                            */
+IF NOT glPlipShutting THEN
+    ASSIGN hConnManager = DYNAMIC-FUNCTION("getManagerHandle":U, INPUT "ConnectionManager":U).
+           cManagerList = (IF VALID-HANDLE(gshAgnManager)         THEN STRING(gshAgnManager) ELSE "") + CHR(3) 
+                        + (IF VALID-HANDLE(gshFinManager)         THEN STRING(gshFinManager) ELSE "") + CHR(3)                  
+                        + (IF VALID-HANDLE(gshRIManager)          THEN STRING(gshRIManager) ELSE "") + CHR(3)                 
+                        + (IF VALID-HANDLE(gshWebManager)         THEN STRING(gshWebManager) ELSE "") + CHR(3)
+                        + (IF VALID-HANDLE(gshSecurityManager)    THEN STRING(gshSecurityManager) ELSE "") + CHR(3) 
+                        + (IF VALID-HANDLE(gshGenManager)         THEN STRING(gshGenManager) ELSE "") + CHR(3) 
+                        + (IF VALID-HANDLE(gshTranslationManager) THEN STRING(gshTranslationManager) ELSE "") + CHR(3) 
+                        + (IF VALID-HANDLE(gshRepositoryManager)  THEN STRING(gshRepositoryManager) ELSE "") + CHR(3) 
+                        + (IF VALID-HANDLE(gshProfileManager)     THEN STRING(gshProfileManager) ELSE "") + CHR(3) 
+                        + (IF VALID-HANDLE(gshSessionManager)     THEN STRING(gshSessionManager) ELSE "") + CHR(3) 
+                        + (IF VALID-HANDLE(gshAstraAppserver)     THEN STRING(gshAstraAppserver) ELSE "") + CHR(3)
+                        + (IF VALID-HANDLE(hConnManager)          THEN STRING(hConnManager) ELSE "") + CHR(3).
+
+/* Check for objects open in design mode */
+IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN  
+DO:
+    ASSIGN hProcedure = SESSION:FIRST-PROCEDURE
+           lDesignMode = FALSE.
+
     designloop:
     DO WHILE VALID-HANDLE( hProcedure ):
-
+    
       IF CAN-DO(hProcedure:INTERNAL-ENTRIES,"get-attribute":U) /* V8-style */ THEN
       DO:
         RUN get-attribute IN hProcedure ("UIB-MODE":U).
@@ -1040,10 +1780,10 @@ PROCEDURE deletePersistentProc :
         lDesignMode = DYNAMIC-FUNCTION("getUIBMode":U IN hProcedure) = "Design":U NO-ERROR.
       END.
       IF lDesignMode THEN LEAVE designloop.
-
+    
       ASSIGN hProcedure = hProcedure:NEXT-SIBLING.
     END.
-
+    
     IF lDesignMode THEN
     DO:
       MESSAGE "Could not shutdown persistent procedures started in session as you" SKIP
@@ -1051,15 +1791,63 @@ PROCEDURE deletePersistentProc :
               VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
       RETURN.      
     END.
-  END.
+END.
 
-  ASSIGN hProcedure = SESSION:FIRST-PROCEDURE.
+/* Shut down, but don't shut ADM2 supers. We may shut a procedure after it that needs it. */
+ASSIGN hProcedure = SESSION:FIRST-PROCEDURE.
 
-  DO WHILE VALID-HANDLE( hProcedure ):
+do-blk:
+DO WHILE VALID-HANDLE(hProcedure):
     FIND FIRST ttPersistProc WHERE ttPersistProc.hProc = hProcedure NO-ERROR.
+
     IF NOT AVAILABLE ttPersistProc THEN
       ASSIGN hDeleteProc = hProcedure.
+    
     ASSIGN hProcedure = hProcedure:NEXT-SIBLING.
+
+    IF LOOKUP(STRING(hDeleteProc), cManagerList, CHR(3)) <> 0 THEN
+        NEXT do-blk.
+
+    /* Be VERY careful not to shutdown OpenAppbuilder if running, or the
+       editor extensions if running - as this will cause funny editor
+       problems and GPFs
+    */
+    IF VALID-HANDLE( hDeleteProc ) AND 
+        LOOKUP("ADEPersistent",hDeleteProc:INTERNAL-ENTRIES) = 0 AND
+        LOOKUP("OpenAppEMGetProcedures",hDeleteProc:INTERNAL-ENTRIES) = 0 AND
+        LOOKUP("CapKeyWord",hDeleteProc:INTERNAL-ENTRIES) = 0 AND 
+        NOT hDeleteProc:FILE-NAME BEGINS "rtb":U AND /* &IF "{&scmTool}" = "RTB":U */
+        NOT hDeleteProc:FILE-NAME BEGINS "ade":U AND
+        NOT hDeleteProc:FILE-NAME BEGINS "pro":U THEN
+    DO:
+        /* Make sure this isn't one of the ADM2 supers */
+        IF INDEX(hDeleteProc:FILE-NAME, "adm":U) > 0 THEN
+            NEXT do-blk.
+
+        IF LOOKUP("dispatch":U,hDeleteProc:INTERNAL-ENTRIES) NE 0 THEN
+           RUN dispatch IN hDeleteProc ('destroy':U).
+        IF VALID-HANDLE(hDeleteProc) AND INDEX(hDeleteProc:FILE-NAME,"rydyncont":U) = 0 THEN /* not container */
+           APPLY "CLOSE":U TO hDeleteProc.
+        IF VALID-HANDLE(hDeleteProc) THEN
+           DELETE PROCEDURE hDeleteProc .    
+    END.
+END.
+
+/* Now shut ADM supers as well */
+ASSIGN hProcedure = SESSION:FIRST-PROCEDURE.
+
+do-blk:
+DO WHILE VALID-HANDLE(hProcedure):
+    FIND FIRST ttPersistProc WHERE ttPersistProc.hProc = hProcedure NO-ERROR.
+
+    IF NOT AVAILABLE ttPersistProc THEN
+      ASSIGN hDeleteProc = hProcedure.
+    
+    ASSIGN hProcedure = hProcedure:NEXT-SIBLING.
+
+    IF LOOKUP(STRING(hDeleteProc), cManagerList, CHR(3)) <> 0 THEN
+        NEXT do-blk.
+
     /* Be VERY careful not to shutdown OpenAppbuilder if running, or the
        editor extensions if running - as this will cause funny editor
        problems and GPFs
@@ -1079,7 +1867,10 @@ PROCEDURE deletePersistentProc :
         IF VALID-HANDLE(hDeleteProc) THEN
            DELETE PROCEDURE hDeleteProc .    
     END.
-  END.
+END.
+
+ASSIGN ERROR-STATUS:ERROR = NO.
+RETURN "":U.
 
 END PROCEDURE.
 
@@ -1136,6 +1927,17 @@ PROCEDURE getActionUnderway :
       AND   ttActionUnderway.action_primary_key      = pcActionPrimaryKeyValues
       AND   ttActionUnderway.action_type             = pcActionType
       NO-ERROR.
+  ELSE
+  IF  pcActionScmObjectName     = "":U
+  AND pcActionTablePrimaryFla   = "":U
+  AND pcActionPrimaryKeyValues  = "":U
+  THEN
+  DO:
+    FIND FIRST ttActionUnderway EXCLUSIVE-LOCK
+      WHERE  ttActionUnderway.action_underway_origin BEGINS pcActionUnderwayOrigin
+      AND   ttActionUnderway.action_type             = pcActionType
+      NO-ERROR.
+  END.
 
   IF AVAILABLE ttActionUnderway
   THEN DO:
@@ -1174,7 +1976,7 @@ PROCEDURE getGlobalControl :
 ------------------------------------------------------------------------------*/
 DEFINE OUTPUT PARAMETER TABLE FOR ttGlobalControl.
 
-IF (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) OR NOT CAN-FIND(FIRST ttGlobalControl) THEN
+IF (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) OR NOT CAN-FIND(FIRST ttGlobalControl) THEN
 DO:
   &IF DEFINED(server-side) <> 0 &THEN
     RUN afgetglocp (OUTPUT TABLE ttGlobalControl).  
@@ -1182,6 +1984,179 @@ DO:
     RUN af/app/afgetglocp.p ON gshAstraAppserver (OUTPUT TABLE ttGlobalControl).
   &ENDIF
 END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getHelp) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getHelp Procedure 
+PROCEDURE getHelp :
+/*------------------------------------------------------------------------------
+  Purpose:     A temp-table of widgets for an object is passed in.  Populate the
+               temp-table with help context already stored on the database.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT-OUTPUT PARAMETER TABLE-HANDLE hHelpTable.
+
+&IF DEFINED(Server-Side) = 0 &THEN
+
+/* We're going to make a dynamic call to the Appserver, we need to build the temp-table of parameters */
+
+DEFINE VARIABLE hTableNotUsed    AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hParamTable      AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hTTHandlesToSend AS HANDLE     NO-UNDO EXTENT 64.        
+
+IF NOT TRANSACTION THEN EMPTY TEMP-TABLE ttSeqType. ELSE FOR EACH ttSeqType: DELETE ttSeqType. END.
+
+CREATE ttSeqType.
+ASSIGN ttSeqType.iParamNo   = 1
+       ttSeqType.cIOMode    = "INPUT-OUTPUT":U
+       ttSeqType.cParamName = "T:01":U
+       ttSeqType.cDataType  = "TABLE-HANDLE".
+
+/* Now assign the TABLE-HANDLEs, note they map directly to the ttSeq records of type TABLE-HANDLE */
+
+ASSIGN hTTHandlesToSend[1] = hHelpTable
+       hParamTable         = TEMP-TABLE ttSeqType:HANDLE.
+
+/* calltablett.p will construct and execute the call on the Appserver */
+
+RUN adm2/calltablett.p ON gshAstraAppserver
+    (
+     "getHelp":U,
+     "SessionManager":U,
+     INPUT "S":U,
+     INPUT-OUTPUT hTableNotUsed,
+     INPUT-OUTPUT TABLE-HANDLE hParamTable,
+     "",
+     {src/adm2/callttparam.i &ARRAYFIELD = "hTTHandlesToSend"}  /* The actual array of table handles */ 
+    ) NO-ERROR.
+
+IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
+
+&ELSE
+
+DEFINE VARIABLE hBuffer            AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hQuery             AS HANDLE     NO-UNDO.
+
+DEFINE VARIABLE hLanguageObj       AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hContainerFileName AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hObjectName        AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hWidgetName        AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hHelpFilename      AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hHelpContext       AS HANDLE     NO-UNDO.
+
+ASSIGN hBuffer            = hHelpTable:DEFAULT-BUFFER-HANDLE
+       hLanguageObj       = hBuffer:BUFFER-FIELD("dLanguageObj":U)
+       hContainerFileName = hBuffer:BUFFER-FIELD("cContainerFileName":U)
+       hObjectName        = hBuffer:BUFFER-FIELD("cObjectName":U)
+       hWidgetName        = hBuffer:BUFFER-FIELD("cWidgetName":U)
+       hHelpFilename      = hBuffer:BUFFER-FIELD("cHelpFilename":U)
+       hHelpContext       = hBuffer:BUFFER-FIELD("cHelpContext":U).
+
+CREATE QUERY hQuery.
+hQuery:ADD-BUFFER(hBuffer).
+hQuery:QUERY-PREPARE("FOR EACH ":U + hBuffer:NAME).
+hQuery:QUERY-OPEN().
+
+hQuery:GET-FIRST().
+
+DO WHILE NOT hQuery:QUERY-OFF-END:
+
+    FIND gsm_help NO-LOCK
+         WHERE gsm_help.language_obj            = hLanguageObj:BUFFER-VALUE
+           AND gsm_help.help_container_filename = hContainerFileName:BUFFER-VALUE
+           AND gsm_help.help_object_filename    = hObjectName:BUFFER-VALUE
+           AND gsm_help.help_fieldname          = hWidgetName:BUFFER-VALUE
+         NO-ERROR.
+
+    IF AVAILABLE gsm_help THEN
+        ASSIGN hHelpFilename:BUFFER-VALUE = gsm_help.help_filename
+               hHelpContext:BUFFER-VALUE  = gsm_help.help_context.
+    ELSE
+        ASSIGN hHelpFilename:BUFFER-VALUE = "":U
+               hHelpContext:BUFFER-VALUE  = "":U.
+
+    hQuery:GET-NEXT().
+END.
+
+hQuery:QUERY-CLOSE().
+
+DELETE OBJECT hQuery.
+ASSIGN hQuery  = ?
+       hBuffer = ?.
+&ENDIF
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getLoginUserInfo) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getLoginUserInfo Procedure 
+PROCEDURE getLoginUserInfo :
+/*------------------------------------------------------------------------------
+  Purpose:     This procedure returns user information used by the login process.
+               We only return the user name (encoded), default login company and
+               default language.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE OUTPUT PARAMETER TABLE FOR ttLoginUser.
+
+IF NOT TRANSACTION THEN EMPTY TEMP-TABLE ttLoginUser. ELSE FOR EACH ttLoginUser: DELETE ttLoginUser. END.
+
+RUN af/app/afgetuserp.p ON gshAstraAppserver
+                        (INPUT 0,
+                         INPUT "":U,
+                         OUTPUT TABLE ttUser).
+FOR EACH ttUser:
+    CREATE ttLoginUser.
+    ASSIGN ttLoginUser.encoded_user_name        = ENCODE(LC(ttUser.user_login_name)) /* Always encode the lowercase of the username.  Encoding is case sensitive */
+           ttLoginUser.default_organisation_obj = ttUser.default_login_company_obj
+           ttLoginUser.language_obj             = ttUser.language_obj.
+    DELETE ttUser.
+END.
+
+ASSIGN ERROR-STATUS:ERROR = NO.
+RETURN "":U.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getMessageCacheHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getMessageCacheHandle Procedure 
+PROCEDURE getMessageCacheHandle :
+/*------------------------------------------------------------------------------
+  Purpose:     A temp-table record is created to store message information retrieved
+               from the Appserver in showMessages.  External programs can use this
+               API to get at the temp-table record.  This API only applies client-side.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE OUTPUT PARAMETER hBufferHandle AS HANDLE     NO-UNDO.
+
+&IF DEFINED(server-side) = 0 &THEN
+    ASSIGN hBufferHandle = TEMP-TABLE ttMessageCache:DEFAULT-BUFFER-HANDLE.
+    hBufferHandle:FIND-FIRST() NO-ERROR.
+&ENDIF
+
+ASSIGN ERROR-STATUS:ERROR = NO.
+RETURN "":U.
 
 END PROCEDURE.
 
@@ -1229,8 +2204,8 @@ DEFINE VARIABLE cMessage            AS CHARACTER NO-UNDO.
 DEFINE VARIABLE cLine               AS CHARACTER NO-UNDO.
 DEFINE VARIABLE cVersion            AS CHARACTER NO-UNDO.
 
-ASSIGN cTextFile = SEARCH("ICFVersion":U)
-       cTextFile = IF cTextFile = ? THEN SEARCH("ICFVersion.txt":U)
+ASSIGN cTextFile = SEARCH("Version":U)
+       cTextFile = IF cTextFile = ? THEN SEARCH("Version.txt":U)
                                     ELSE cTextFile.
 
 IF cTextFile <> ? THEN
@@ -1245,7 +2220,7 @@ DO:
 END.
 ELSE DO:  /*  If this is a commercial version, the posse version info is not displayed  */
   /* Read the POSSE version from POSSEINFO.XML */
-  RUN adecomm/_readpossever.p (OUTPUT cVersion).
+  RUN ry/prc/_readpossever.p (OUTPUT cVersion).
 
   ASSIGN 
     cMessage = cMessage + (IF cMessage = "":U THEN "" ELSE CHR(10)) 
@@ -1306,7 +2281,7 @@ IF cHelpFound = ? THEN
                                            INPUT "OK":U,
                                            INPUT "OK":U,
                                            INPUT "OK":U,
-                                           INPUT "Dynamics Help",
+                                           INPUT "Progress Dynamics Help",
                                            INPUT NOT SESSION:REMOTE,
                                            INPUT phContainer,
                                            OUTPUT cButton).
@@ -1377,7 +2352,7 @@ IF cHelpFound = ? THEN
                                            INPUT "OK":U,
                                            INPUT "OK":U,
                                            INPUT "OK":U,
-                                           INPUT "Dynamics Help",
+                                           INPUT "Progress Dynamics Help",
                                            INPUT NOT SESSION:REMOTE,
                                            INPUT phContainer,
                                            OUTPUT cButton).
@@ -1444,15 +2419,19 @@ DO:
                                            INPUT "OK":U,
                                            INPUT "OK":U,
                                            INPUT "OK":U,
-                                           INPUT "Dynamics Help",
+                                           INPUT "Progress Dynamics Help",
                                            INPUT NOT SESSION:REMOTE,
                                            INPUT phContainer,
                                            OUTPUT cButton).
     RETURN.
 END.
 
-/* Will work for both .chm (Compiled HTML) and ,hlp  */
-SYSTEM-HELP cHelpFound CONTENTS.
+/* .chm (Compiled HTML) and ,hlp  */
+IF INDEX(cHelpFound, ".chm":U) > 0 
+       OR INDEX(cHelpFound, ".htm":U) > 0  THEN  /* HTML Help */
+  SYSTEM-HELP cHelpFound CONTENTS.
+ELSE
+  SYSTEM-HELP cHelpFound FINDER.
 
 RETURN.
 END PROCEDURE.
@@ -1489,7 +2468,7 @@ PROCEDURE htmlHelpKeywords :
   IF pcHelpFile = "":U THEN ASSIGN pcHelpFile = "gs/hlp/astramodule.chm":U.
 
   /* first use HH_DISPLAY_TOPIC to initialize the help window */
-  RUN ShowHelpTopic (phParent, pcHelpFile, "":U).
+  RUN HtmlHelpTopic (phParent, pcHelpFile, "":U).
 
   /* if succeeded then use HH_KEYWORD_LOOKUP */
   SET-SIZE (lpKeywords)     = length(pcHelpKeywords) + 2.
@@ -1549,6 +2528,86 @@ RUN HtmlHelpA( phParent:HWND,
                {&HH_DISPLAY_TOPIC},
                0, 
                OUTPUT hWndHelp).
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-increaseFrameforPopup) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE increaseFrameforPopup Procedure 
+PROCEDURE increaseFrameforPopup :
+/*------------------------------------------------------------------------------
+  Purpose:     Increase the width of a frame for a popup.  Remember
+               we may have to increase the window width as well, this procedure will
+               take care of the details. 
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER phObject           AS HANDLE     NO-UNDO.
+DEFINE INPUT PARAMETER phFrame            AS HANDLE     NO-UNDO.
+DEFINE INPUT PARAMETER phLookup           AS HANDLE     NO-UNDO.
+DEFINE INPUT PARAMETER phWidget           AS HANDLE     NO-UNDO.
+
+DEFINE VARIABLE dWindowMargin  AS DECIMAL    NO-UNDO.
+DEFINE VARIABLE dWindowWidth   AS DECIMAL    NO-UNDO.
+DEFINE VARIABLE dNewFrameWidth AS DECIMAL    NO-UNDO.
+DEFINE VARIABLE hWindow        AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hContainer     AS HANDLE     NO-UNDO.
+
+ASSIGN hWindow        = phFrame:WINDOW
+       dWindowMargin  = 1 /* Hardcoded, this is what we know it must be */
+       dWindowWidth   = hWindow:WIDTH - dWindowMargin
+       dNewFrameWidth = phWidget:COLUMN + phWidget:WIDTH + phLookup:WIDTH.
+
+/* 1st resize the window */
+
+IF phFrame:COLUMN + dNewFrameWidth + dWindowMargin > hWindow:WIDTH-CHARS 
+THEN DO:
+    ASSIGN hWindow:VIRTUAL-WIDTH  = 320
+           hWindow:WIDTH          = phFrame:COLUMN + dNewFrameWidth + dWindowMargin
+           hWindow:MIN-WIDTH      = hWindow:WIDTH.
+END.
+
+/* ...then resize the frame */
+
+IF dNewFrameWidth > phFrame:WIDTH 
+THEN DO:
+    ASSIGN phFrame:SCROLLABLE     = TRUE
+           phFrame:VIRTUAL-WIDTH  = 320
+           phFrame:WIDTH          = dNewFrameWidth 
+           phLookup:X             = phWidget:X + phWidget:WIDTH-PIXELS - 3
+           NO-ERROR.
+    {set minWidth phFrame:WIDTH phObject}.
+END.
+
+/* We're assuming we've been called from a viewer, so find it's container. */
+
+ASSIGN hContainer = DYNAMIC-FUNCTION("getcontainersource":U IN phObject) NO-ERROR.
+
+IF  VALID-HANDLE(hContainer)
+THEN DO:
+    IF LOOKUP("resizeWindow":U, hContainer:INTERNAL-ENTRIES) = 0 THEN
+        ASSIGN hContainer = DYNAMIC-FUNCTION("getContainerSource":U IN hContainer) NO-ERROR.
+    
+    IF VALID-HANDLE(hContainer) AND LOOKUP("resizeWindow":U, hContainer:INTERNAL-ENTRIES) <> 0 
+    THEN DO:
+        APPLY "window-resized":u TO hWindow.
+        RUN resizeWindow IN hContainer.
+    END.
+END.
+
+/* Set virtual size back */
+
+ASSIGN hWindow:VIRTUAL-WIDTH  = hWindow:WIDTH
+       phFrame:VIRTUAL-WIDTH  = phFrame:WIDTH
+       phFrame:SCROLLABLE     = FALSE
+       ERROR-STATUS:ERROR     = NO.
+
+RETURN "":U.
 
 END PROCEDURE.
 
@@ -1685,11 +2744,11 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE launchContainer Procedure 
 PROCEDURE launchContainer :
 /*------------------------------------------------------------------------------
-  Purpose:     To launch an Astra 1 and ICF container object, dealing with whether it
+  Purpose:     To launch an Dynamics container object, dealing with whether it
                is already running and whether the existing instance should be
                replaced or a new instance run. The temp-table of running
                persistent procedures is updated with the appropriate details.
-  Parameters:  input object filename if do not know physical/logical names
+  Parameters:  input object filename if the physical or physical and logical names are not known
                input physical object name (with path and extension) if known
                input logical object name if applicable and known
                input once only flag YES/NO
@@ -1702,336 +2761,522 @@ PROCEDURE launchContainer :
                input parent (caller) object handle if known (handle at end of toolbar link, e.g. browser)
                output procedure handle of object run/running
                output procedure type (e.g ADM1, Astra1, ADM2, ICF, "")
-  Notes:       See astraenvironment.doc or help file for detailed explanation of 
-               what this procedure does.
+  Notes:       See document or help file for detailed explanation of what this procedure does.
 ------------------------------------------------------------------------------*/
-DEFINE INPUT  PARAMETER pcObjectFileName     AS CHARACTER NO-UNDO.
-DEFINE INPUT  PARAMETER pcPhysicalName       AS CHARACTER NO-UNDO.
-DEFINE INPUT  PARAMETER pcLogicalName        AS CHARACTER NO-UNDO.
-DEFINE INPUT  PARAMETER plOnceOnly           AS LOGICAL   NO-UNDO.
-DEFINE INPUT  PARAMETER pcInstanceAttributes AS CHARACTER NO-UNDO.
-DEFINE INPUT  PARAMETER pcChildDataKey       AS CHARACTER NO-UNDO.
-DEFINE INPUT  PARAMETER pcRunAttribute       AS CHARACTER NO-UNDO.
-DEFINE INPUT  PARAMETER pcContainerMode      AS CHARACTER NO-UNDO.
-DEFINE INPUT  PARAMETER phParentWindow       AS HANDLE    NO-UNDO.
-DEFINE INPUT  PARAMETER phParentProcedure    AS HANDLE    NO-UNDO.
-DEFINE INPUT  PARAMETER phObjectProcedure    AS HANDLE    NO-UNDO.
-DEFINE OUTPUT PARAMETER phProcedureHandle    AS HANDLE    NO-UNDO.
-DEFINE OUTPUT PARAMETER pcProcedureType      AS CHARACTER NO-UNDO.
 
-DEFINE VARIABLE lAlreadyRunning           AS LOGICAL    NO-UNDO.                            
-DEFINE VARIABLE lRunSuccessful            AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE cProcedureDesc            AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cButtonPressed            AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE lMultiInstanceSupported   AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE cLaunchContainer          AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cContainerSuperProcedure  AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE hWindow                   AS HANDLE     NO-UNDO.
+  DEFINE INPUT  PARAMETER pcObjectFileName      AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER pcPhysicalName        AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER pcLogicalName         AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER plOnceOnly            AS LOGICAL    NO-UNDO.
+  DEFINE INPUT  PARAMETER pcInstanceAttributes  AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER pcChildDataKey        AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER pcRunAttribute        AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER pcContainerMode       AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER phParentWindow        AS HANDLE     NO-UNDO.
+  DEFINE INPUT  PARAMETER phParentProcedure     AS HANDLE     NO-UNDO.
+  DEFINE INPUT  PARAMETER phObjectProcedure     AS HANDLE     NO-UNDO.
+  DEFINE OUTPUT PARAMETER phProcedureHandle     AS HANDLE     NO-UNDO.
+  DEFINE OUTPUT PARAMETER pcProcedureType       AS CHARACTER  NO-UNDO.
 
-/* If object filename passed in, get logical and physical object names */
-IF pcObjectFileName <> "":U THEN
-DO:
-  RUN getObjectNames IN gshRepositoryManager (
-      INPUT  pcObjectFileName,
-      OUTPUT pcPhysicalName,
-      OUTPUT pcLogicalName).
+  DEFINE VARIABLE lAlreadyRunning               AS LOGICAL    NO-UNDO.                            
+  DEFINE VARIABLE lRunSuccessful                AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cProcedureDesc                AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cButtonPressed                AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lMultiInstanceSupported       AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cLaunchContainer              AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cContainerSuperProcedure      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hWindow                       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cObjectToCache                AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lContainerSecured             AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE dSmartObjectObj               AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE rProfileDataRowid             AS ROWID      NO-UNDO.
+  DEFINE VARIABLE cProfileDataValue             AS CHARACTER  NO-UNDO.
   
-END.
+  /* Work out what the object's name is going to be in the repository.  For caching and security. */
+  ASSIGN cObjectToCache = IF pcLogicalName <> "":U 
+                          THEN pcLogicalName 
+                          ELSE pcObjectFileName.
 
-/* If objects do not exist, give an error */
-IF pcPhysicalName = "":U THEN
-DO:
-  IF pcLogicalName <> "":U THEN
-    ASSIGN cLaunchContainer = pcLogicalName.
+  /* If we don't have a logical object name and we were passed a physical filename, deduce what we think the logical name is. *
+   * The caching and security procedures will massage it even more, to see if they can find the object.                       */
+
+  IF  cObjectToCache  = "":U 
+  AND pcPhysicalName <> "":U THEN
+      ASSIGN cObjectToCache = REPLACE(pcPhysicalName, "~\":U, "/":U)
+             cObjectToCache = ENTRY(NUM-ENTRIES(cObjectToCache, "/":U), cObjectToCache, "/":U). /* The caching and security functions will remove the file extension if necessary */
+
+  /* If we're running Appserver, cache all the info we're going to need to launch this container in one Appserver hit. *
+   * The call manager will then prepopulate the manager caches, to ensure the info is there when requested.            */
+
+  IF SESSION <> gshAstraAppserver THEN /* Only cache when running Appserver. */
+      RUN containerCacheUpfront (INPUT cObjectToCache,
+                                 INPUT pcRunAttribute,
+                                 INPUT YES,       /* Return entire container */    
+                                 INPUT NO,        /* Design mode */                
+                                 INPUT "":U,      /* Toolbar list, blank for all */
+                                 INPUT "":U,      /* Band list, blank for all */   
+                                 OUTPUT lContainerSecured).
   ELSE
-    ASSIGN cLaunchContainer = pcObjectFileName.
+      RUN objectSecurityCheck IN gshSecurityManager (INPUT-OUTPUT cObjectToCache,
+                                                     INPUT-OUTPUT dSmartObjectObj, /* Always going to be 0 here */
+                                                     OUTPUT lContainerSecured).
+  IF lContainerSecured = YES
+  THEN DO:
+      RUN showMessages IN THIS-PROCEDURE 
+           (INPUT {af/sup2/aferrortxt.i 'AF' '17' '?' '?' '"You do not have the necessary security permission to launch this container"'},
+            INPUT "ERR":U,
+            INPUT "OK",
+            INPUT "OK",
+            INPUT "OK",
+            INPUT "Security",
+            INPUT NO,
+            INPUT ?,
+            OUTPUT cButtonPressed).
+      RETURN.
+  END.
 
-  DEFINE VARIABLE cButton AS CHARACTER NO-UNDO.
-  RUN showMessages IN gshSessionManager (INPUT {af/sup2/aferrortxt.i 'RY' '6' '?' '?' cLaunchContainer},
-                                         INPUT "ERR":U,
-                                         INPUT "OK":U,
-                                         INPUT "OK":U,
-                                         INPUT "OK":U,
-                                         INPUT "Launch Container",
-                                         INPUT NOT SESSION:REMOTE,
-                                         INPUT ?,
-                                         OUTPUT cButton).
+  /* Save the RunAttribute value so that it can be retrieved by a "launched" *
+   * container during container initialization */
+  DYNAMIC-FUNCTION("setSessionParam":U, "RunAttribute":U, pcRunAttribute).
+
+  /* If object filename passed in, get logical and physical object names */
+  IF pcObjectFileName <> "":U THEN
+      RUN getObjectNames IN gshRepositoryManager (INPUT  pcObjectFileName,
+                                                  INPUT  pcRunAttribute,
+                                                  OUTPUT pcPhysicalName,
+                                                  OUTPUT pcLogicalName).
+
+  /** Even though dynamic frames are containers themselves, they are not
+   *  launchable by themselves. They should be first placed on a window,
+   *  and run from there. The underlying rendering engine is changed so
+   *  that the Dynamics default container is used. We can do this with
+   *  an expectation of success because both the frame and window rendering
+   *  engines use the same super procedures, and so much of the code is shared.
+   *  ----------------------------------------------------------------------- **/
+  IF pcPhysicalName MATCHES "*ry/uib/rydynframw.*":U THEN
+    ASSIGN pcPhysicalName = "ry/uib/rydyncontw.w".
+
+  /* smart objects does a Callback to getCurrentLogicalname which returns this
+     in order to read attribute data from repository BEFORE any set is done
+     (This may change when dynamic objects no longer include the .i)  */       
+  gcLogicalContainerName = pcLogicalName.
+  
+  /* If objects do not exit, give an error */
+
+  IF pcPhysicalName = "":U
+  THEN DO:
+    IF pcLogicalName <> "":U THEN
+        ASSIGN cLaunchContainer = pcLogicalName.
+    ELSE
+        ASSIGN cLaunchContainer = pcObjectFileName.
+
+    DEFINE VARIABLE cButton AS CHARACTER NO-UNDO.
+
+    RUN showMessages IN gshSessionManager
+                    (INPUT {af/sup2/aferrortxt.i 'RY' '6' '?' '?' cLaunchContainer}
+                    ,INPUT "ERR":U
+                    ,INPUT "OK":U
+                    ,INPUT "OK":U
+                    ,INPUT "OK":U
+                    ,INPUT "Launch Container"
+                    ,INPUT NOT SESSION:REMOTE
+                    ,INPUT ?
+                    ,OUTPUT cButton
+                    ).
+
+    ASSIGN phProcedureHandle = ?
+           pcProcedureType   = "":U.
+    gcLogicalContainerName = ?.
+    RETURN.
+  END.
+
   ASSIGN
+    cProcedureDesc    = "":U
+    lAlreadyRunning   = NO
+    lRunSuccessful    = NO
     phProcedureHandle = ?
-    pcProcedureType = "":U
-    .
-  RETURN.
-END.
+    pcProcedureType   = "CON":U.
 
+  /* regardless of once only flag, see if already running as it may be an object
+   * that does not support multiple instances. */
+  FIND FIRST ttPersistentProc
+    WHERE ttPersistentProc.physicalName  = pcPhysicalName
+    AND   ttPersistentProc.logicalName   = pcLogicalName
+    AND   ttPersistentProc.runAttribute  = pcRunAttribute
+    AND   ttPersistentProc.childDataKey  = pcChildDataKey
+    NO-ERROR.
+  IF NOT AVAILABLE ttPersistentProc
+  THEN
+    FIND FIRST ttPersistentProc
+      WHERE ttPersistentProc.physicalName  = pcPhysicalName
+      AND   ttPersistentProc.logicalName   = pcLogicalName
+      AND   ttPersistentProc.runAttribute  = pcRunAttribute
+      AND   ttPersistentProc.childDataKey  = "":U
+      NO-ERROR.
 
-ASSIGN
-  cProcedureDesc = "":U
-  lAlreadyRunning = NO
-  lRunSuccessful = NO
-  phProcedureHandle = ?
-  pcProcedureType = "CON":U.
+  /* check handle still valid */
 
-/* regardless of once only flag, see if already running as it may be an object
-   that does not support multiple instances.
-*/
-FIND FIRST ttPersistentProc
-     WHERE ttPersistentProc.physicalName = pcPhysicalName
-       AND ttPersistentProc.logicalName = pcLogicalName
-       AND ttPersistentProc.runAttribute = pcRunAttribute
-       AND ttPersistentProc.childDataKey = pcChildDataKey
-     NO-ERROR.
-IF NOT AVAILABLE ttPersistentProc THEN
-FIND FIRST ttPersistentProc
-     WHERE ttPersistentProc.physicalName = pcPhysicalName
-       AND ttPersistentProc.logicalName = pcLogicalName
-       AND ttPersistentProc.runAttribute = pcRunAttribute
-       AND ttPersistentProc.childDataKey = "":U
-     NO-ERROR.
-/* check handle still valid */
-IF AVAILABLE ttPersistentProc AND
-   (NOT VALID-HANDLE(ttPersistentProc.procedureHandle) OR
-    ttPersistentProc.ProcedureHandle:UNIQUE-ID <> ttPersistentProc.UniqueId) THEN
-DO:
-  DELETE ttPersistentProc.
-END.
-
-IF AVAILABLE ttPersistentProc THEN
-DO:
-  ASSIGN
-    lAlreadyRunning = YES
-    phProcedureHandle = ttPersistentProc.ProcedureHandle
-    pcChildDataKey = ttPersistentProc.childDataKey.       
-END.
-
-/* check in running instance if multiple instances supported */
-ASSIGN
-  lMultiInstanceSupported = YES.
-
-IF VALID-HANDLE(phProcedureHandle)
-   AND LOOKUP("getMultiInstanceSupported", phProcedureHandle:INTERNAL-ENTRIES) <> 0 THEN
-  lMultiInstanceSupported = DYNAMIC-FUNCTION('getMultiInstanceSupported' IN phProcedureHandle) = "YES":U NO-ERROR.
-
-/* if no support for multiple instances, force a single instance */
-/* IF NOT lMultiInstanceSupported THEN ASSIGN plOnceOnly = YES. */
-
-/* if not a valid handle or not once only, then run it */
-IF NOT VALID-HANDLE(phProcedureHandle) OR NOT plOnceOnly THEN
-DO:
-  ASSIGN
-    lAlreadyRunning = NO.
-
-  /* run the procedure */      
-  SESSION:SET-WAIT-STATE('general':U).
-  RUN-BLOCK:
-  DO ON STOP UNDO RUN-BLOCK, LEAVE RUN-BLOCK ON ERROR UNDO RUN-BLOCK, LEAVE RUN-BLOCK:
-    RUN VALUE(pcPhysicalName) PERSISTENT SET phProcedureHandle.
-  END.
-  IF NOT VALID-HANDLE(phProcedureHandle) THEN
-  DO:
-    SESSION:SET-WAIT-STATE('':U).
-    ASSIGN phProcedureHandle = ?.
+  IF AVAILABLE ttPersistentProc
+  AND (NOT VALID-HANDLE(ttPersistentProc.procedureHandle)
+  OR  ttPersistentProc.ProcedureHandle:UNIQUE-ID <> ttPersistentProc.UniqueId)
+  THEN DO:
+    DELETE ttPersistentProc.
   END.
 
-  /* Add the container's super procedure, if any. */  
-  IF VALID-HANDLE(phProcedureHandle) THEN
-  DO:
-      ASSIGN cContainerSuperProcedure = "":U.
-      
-      RUN getObjectSuperProcedure IN gshRepositoryManager ( INPUT  (IF pcLogicalName NE "":U THEN pcLogicalName ELSE pcPhysicalName),
-                                                            OUTPUT cContainerSuperProcedure).
+  IF AVAILABLE ttPersistentProc
+  THEN DO:
+    ASSIGN
+      lAlreadyRunning   = YES
+      phProcedureHandle = ttPersistentProc.ProcedureHandle
+      pcChildDataKey    = ttPersistentProc.childDataKey.       
+  END.
+
+  /* check in running instance if multiple instances supported */
+  ASSIGN
+    lMultiInstanceSupported = YES.
+
+  IF VALID-HANDLE(phProcedureHandle)
+  AND LOOKUP("getMultiInstanceSupported", phProcedureHandle:INTERNAL-ENTRIES) <> 0
+  THEN
+    ASSIGN
+      lMultiInstanceSupported = DYNAMIC-FUNCTION('getMultiInstanceSupported' IN phProcedureHandle) = "YES":U
+      NO-ERROR.
+
+  /*
+  IF multiple instances support is unknown
+  THEN default to the user preferences and if a attribute has been set for the container then use the conteiner default
+  ELSE force a single instance
+  */
+  IF plOnceOnly = ?
+  THEN DO:
+
+    ASSIGN
+      plOnceOnly = NO.
+
+    /* Find the User Preferences */
+    RUN getProfileData IN gshProfileManager (INPUT "Window":U,
+                                             INPUT "OneWindow":U,
+                                             INPUT "OneWindow":U,
+                                             INPUT NO,
+                                             INPUT-OUTPUT rProfileDataRowid,
+                                             OUTPUT cProfileDataValue).
+
+    /* Find the Object Attribute if possible */
+    /*
+      TO BE DONE LATER
+    */
+
+    ASSIGN
+      plOnceOnly = (IF cProfileDataValue = "YES":U THEN YES ELSE NO).
+
+  END.
+
+  /* if not a valid handle or not once only, then run it */
+  IF NOT VALID-HANDLE(phProcedureHandle)
+  OR NOT plOnceOnly
+  THEN DO:
+
+    ASSIGN
+      lAlreadyRunning = NO.
+
+    /* run the procedure */      
+    SESSION:SET-WAIT-STATE('general':U).
+
+    RUN-BLOCK:
+    DO ON STOP UNDO RUN-BLOCK, LEAVE RUN-BLOCK ON ERROR UNDO RUN-BLOCK, LEAVE RUN-BLOCK:
+
+      RUN VALUE(pcPhysicalName) PERSISTENT SET phProcedureHandle.
+
+    END.
+
+    IF NOT VALID-HANDLE(phProcedureHandle)
+    THEN DO:
+
+      SESSION:SET-WAIT-STATE('':U).
+      ASSIGN
+        phProcedureHandle = ?.
+
+    END.
+    /* Add the container's super procedure, if any. */  
+    ELSE DO:
+
+      ASSIGN
+        cContainerSuperProcedure = "":U.
+
+      RUN getObjectSuperProcedure IN gshRepositoryManager
+                                 (INPUT (IF pcLogicalName <> "":U THEN pcLogicalName ELSE pcPhysicalName)
+                                 ,INPUT pcRunAttribute
+                                 ,OUTPUT cContainerSuperProcedure
+                                 ).
 
       /* Make sure that the custom super procedure exists. */
-      IF SEARCH(cContainerSuperProcedure)                          NE ? OR
-         SEARCH(REPLACE(cContainerSuperProcedure, ".p":U, ".r":U)) NE ? THEN
-      DO:
-          { af/sup2/aflaunch.i
-              &PLIP  = cContainerSuperProcedure
-              &OnApp = 'NO'
-              &Iproc = ''
-          }
-          IF VALID-HANDLE(hPlip) THEN
-              phProcedureHandle:ADD-SUPER-PROCEDURE(hPlip, SEARCH-TARGET).
+      IF SEARCH(cContainerSuperProcedure)                          <> ?
+      OR SEARCH(REPLACE(cContainerSuperProcedure, ".p":U, ".r":U)) <> ?
+      THEN DO:
+        {launch.i
+            &PLIP  = cContainerSuperProcedure
+            &OnApp = 'NO'
+            &Iproc = ''
+            &NewInstance = YES 
+        }
+        IF VALID-HANDLE(hPlip) THEN
+            DYNAMIC-FUNCTION("addAsSuperProcedure":U, INPUT hPlip, INPUT phProcedureHandle).
       END.    /* add super procedure */
-  END.    /* valid handle */
 
-  /* work out the procedure type of the object run / running */
-  IF VALID-HANDLE(phProcedureHandle) AND 
-     LOOKUP( "dispatch":U, phProcedureHandle:INTERNAL-ENTRIES ) <> 0 THEN
-    ASSIGN pcProcedureType = "ADM1":U.
-  IF VALID-HANDLE(phProcedureHandle) AND 
-     LOOKUP( "getobjectversion":U, phProcedureHandle:INTERNAL-ENTRIES ) <> 0 THEN
-    ASSIGN pcProcedureType = "ADM2":U.
-  IF VALID-HANDLE(phProcedureHandle) AND 
-     LOOKUP( "getLogicalObjectName":U, phProcedureHandle:INTERNAL-ENTRIES ) <> 0 THEN
-    ASSIGN pcProcedureType = "ICF":U.
+      /* work out the procedure type of the object run / running */
+      IF LOOKUP( "dispatch":U, phProcedureHandle:INTERNAL-ENTRIES ) <> 0
+      THEN
+        ASSIGN
+          pcProcedureType = "ADM1":U.
 
-  /* set initial attributes in object */
-  IF VALID-HANDLE (phProcedureHandle) AND
-     (pcProcedureType = "ICF":U OR pcProcedureType = "ADM2":U) THEN
-  DO:   
-      RUN setAttributesInObject IN gshSessionManager (INPUT phProcedureHandle, 
-                                                      INPUT pcInstanceAttributes).
+      IF LOOKUP( "getobjectversion":U, phProcedureHandle:INTERNAL-ENTRIES ) <> 0
+      THEN
+        ASSIGN
+          pcProcedureType = "ADM2":U.
+
+      IF LOOKUP( "getLogicalObjectName":U, phProcedureHandle:INTERNAL-ENTRIES ) <> 0
+      THEN
+        ASSIGN
+          pcProcedureType = "ICF":U.
+
+      /* set initial attributes in object */
+      IF pcProcedureType = "ICF":U
+      OR pcProcedureType = "ADM2":U
+      THEN DO:   
+
+        RUN setAttributesInObject IN gshSessionManager
+                                 (INPUT phProcedureHandle
+                                 ,INPUT pcInstanceAttributes
+                                 ).
+
+      END.
+
+    END.    /* IF VALID-HANDLE(phProcedureHandle) */
+
   END.
 
-END.
-
-/* turn egg timer off */
-IF VALID-HANDLE(phProcedureHandle) THEN
-DO:
-  SESSION:SET-WAIT-STATE('':U).
-END.
-
-/* see if handle now valid and if so, update temp-table with details */        
-IF VALID-HANDLE(phProcedureHandle) THEN
-DO:
-  FIND FIRST ttPersistentProc
-       WHERE ttPersistentProc.physicalName = pcPhysicalName
-         AND ttPersistentProc.logicalName = pcLogicalName
-         AND ttPersistentProc.runAttribute = pcRunAttribute
-         AND ttPersistentProc.childDataKey = pcChildDataKey
-       NO-ERROR.
-
-    /* Create a new entry in the temp-table if the procedure is not yet running, or
-     * if this is an additional instance of a container. This will only happen if
-     * the call specifies that the container should be a multiple instance.         */
-  IF NOT AVAILABLE ttPersistentProc OR
-     ( AVAILABLE ttPersistentProc AND NOT plOnceOnly ) THEN
-  DO:
-    CREATE ttPersistentProc.
-    ASSIGN
-      ttPersistentProc.physicalName = pcPhysicalName
-      ttPersistentProc.logicalName = pcLogicalName
-      ttPersistentProc.runAttribute = pcRunAttribute
-      ttPersistentProc.childDataKey = pcChildDataKey
-      ttPersistentProc.procedureType = pcProcedureType
-      ttPersistentProc.onAppserver = NO
-      ttPersistentProc.multiInstanceSupported = lMultiInstanceSupported
-      ttPersistentProc.currentOperation = pcContainerMode
-      ttPersistentProc.startDate = TODAY
-      ttPersistentProc.startTime = TIME
-      ttPersistentProc.procedureVersion = "":U
-      ttPersistentProc.procedureNarration = "":U.
-  END.
-
-  /* try and get object version number */
+  /* turn egg timer off */
   IF VALID-HANDLE(phProcedureHandle)
-     AND LOOKUP("getLogicalVersion", phProcedureHandle:INTERNAL-ENTRIES) <> 0 THEN
-    ttPersistentProc.procedureVersion = DYNAMIC-FUNCTION('getLogicalVersion' IN phProcedureHandle) NO-ERROR.
-  ELSE IF LOOKUP( "mip-get-object-version":U, phProcedureHandle:INTERNAL-ENTRIES ) <> 0 THEN
-      RUN mip-get-object-version IN phProcedureHandle (OUTPUT ttPersistentProc.procedureNarration,
-                                                       OUTPUT ttPersistentProc.procedureVersion).
-  /* try and get object description from standard internal procedure */
-  IF LOOKUP( "objectDescription":U, phProcedureHandle:INTERNAL-ENTRIES ) <> 0 THEN
-      RUN objectDescription IN phProcedureHandle (OUTPUT ttPersistentProc.procedureNarration).
-  ELSE IF LOOKUP( "mip-object-description":U, phProcedureHandle:INTERNAL-ENTRIES ) <> 0 THEN
-      RUN mip-object-description IN phProcedureHandle (OUTPUT ttPersistentProc.procedureNarration).
+  THEN DO:
+    SESSION:SET-WAIT-STATE('':U).
+  END.
 
-  /* reset procedure handle, unique id, etc. */
-  ASSIGN
-    ttPersistentProc.ProcedureHandle = phProcedureHandle
-    ttPersistentProc.uniqueId = phProcedureHandle:UNIQUE-ID
-    ttPersistentProc.RunPermanent = NO
-    lRunSuccessful = YES.       
+  /* see if handle now valid and if so, update temp-table with details */        
+  IF VALID-HANDLE(phProcedureHandle)
+  THEN DO:
 
-  IF pcProcedureType = "ICF":U THEN
-  DO:
-    IF lAlreadyRunning THEN
-    DO:
-        DEFINE VARIABLE hOldContainerSource AS HANDLE NO-UNDO.
-        {get ContainerSource hOldContainerSource phProcedureHandle}.
-        IF VALID-HANDLE(hOldContainerSource) THEN 
-            RUN removeLink IN phParentProcedure (INPUT hOldContainerSource, INPUT "container", INPUT phProcedureHandle).
-    END.
-    RUN addLink IN phParentProcedure (INPUT phParentProcedure, INPUT "Container", INPUT phProcedureHandle).                              
+    FIND FIRST ttPersistentProc
+      WHERE ttPersistentProc.physicalName  = pcPhysicalName
+      AND   ttPersistentProc.logicalName   = pcLogicalName
+      AND   ttPersistentProc.runAttribute  = pcRunAttribute
+      AND   ttPersistentProc.childDataKey  = pcChildDataKey
+      NO-ERROR.
 
-    /* set the parent window */
-    {set ObjectParent phParentWIndow phProcedureHandle}.
+    /* Create a new entry in the temp-table if the procedure is not yet running,
+     * or if this is an additional instance of a container. This will only happen if
+     * the call specifies that the container should be a multiple instance.         */
+    IF NOT AVAILABLE ttPersistentProc
+    OR ( AVAILABLE ttPersistentProc AND NOT plOnceOnly )
+    THEN DO:
 
-    /* give it the run attribute */
-    IF pcRunAttribute <> "":U AND VALID-HANDLE(phProcedureHandle) AND 
-       LOOKUP("setRunAttribute", phProcedureHandle:INTERNAL-ENTRIES) <> 0 THEN
-    DO:
-      DYNAMIC-FUNCTION('setRunAttribute' IN phProcedureHandle, pcRunAttribute).
-    END.
+      CREATE ttPersistentProc.
+      ASSIGN
+        ttPersistentProc.physicalName           = pcPhysicalName
+        ttPersistentProc.logicalName            = pcLogicalName
+        ttPersistentProc.runAttribute           = pcRunAttribute
+        ttPersistentProc.childDataKey           = pcChildDataKey
+        ttPersistentProc.procedureType          = pcProcedureType
+        ttPersistentProc.onAppserver            = NO
+        ttPersistentProc.multiInstanceSupported = lMultiInstanceSupported
+        ttPersistentProc.currentOperation       = pcContainerMode
+        ttPersistentProc.startDate              = TODAY
+        ttPersistentProc.startTime              = TIME
+        ttPersistentProc.procedureVersion       = "":U
+        ttPersistentProc.procedureNarration     = "":U.
 
-    /* Object launched ok, set logical object name attribute to correct value if
-       required
-    */
-    IF VALID-HANDLE(phProcedureHandle) AND pcLogicalName <> "":U 
-       AND LOOKUP("setLogicalObjectName", phProcedureHandle:INTERNAL-ENTRIES) <> 0 THEN
-    DO:
-      DYNAMIC-FUNCTION('setLogicalObjectName' IN phProcedureHandle, INPUT pcLogicalName).
     END.
 
-    /* perform the required pre-initialization work */
+    /* try and get object version number */
+    IF LOOKUP("getLogicalVersion", phProcedureHandle:INTERNAL-ENTRIES) <> 0
+    THEN
+      ASSIGN
+        ttPersistentProc.procedureVersion = DYNAMIC-FUNCTION('getLogicalVersion' IN phProcedureHandle)
+        NO-ERROR.
+    ELSE
+    IF LOOKUP( "mip-get-object-version":U, phProcedureHandle:INTERNAL-ENTRIES ) <> 0
+    THEN
+      RUN mip-get-object-version IN phProcedureHandle
+                                (OUTPUT ttPersistentProc.procedureNarration
+                                ,OUTPUT ttPersistentProc.procedureVersion
+                                ).
+    /* try and get object description from standard internal procedure */
+    IF LOOKUP( "objectDescription":U, phProcedureHandle:INTERNAL-ENTRIES ) <> 0
+    THEN
+      RUN objectDescription IN phProcedureHandle
+                           (OUTPUT ttPersistentProc.procedureNarration).
+    ELSE
+    IF LOOKUP( "mip-object-description":U, phProcedureHandle:INTERNAL-ENTRIES ) <> 0
+    THEN
+      RUN mip-object-description IN phProcedureHandle
+                                (OUTPUT ttPersistentProc.procedureNarration).
 
-    RUN createLinks (
-        INPUT pcPhysicalName,
-        INPUT phProcedureHandle,
-        INPUT phObjectProcedure,
-        INPUT lAlreadyRunning).
+    /* reset procedure handle, unique id, etc. */
+    ASSIGN
+      ttPersistentProc.ProcedureHandle  = phProcedureHandle
+      ttPersistentProc.uniqueId         = phProcedureHandle:UNIQUE-ID
+      ttPersistentProc.RunPermanent     = NO
+      lRunSuccessful                    = YES.       
 
-    /* set correct container mode before initialize object */
-    IF pcContainerMode <> "":U AND VALID-HANDLE(phProcedureHandle) 
-       AND LOOKUP("setContainerMode", phProcedureHandle:INTERNAL-ENTRIES) <> 0 THEN
-    DO:
-      DYNAMIC-FUNCTION('setContainerMode' IN phProcedureHandle, INPUT pcContainerMode).
-    END.
+    IF pcProcedureType = "ICF":U
+    THEN DO:
 
-    /* set caller attributes in container just launched */
-    IF phObjectProcedure <> ? AND VALID-HANDLE(phProcedureHandle) 
-       AND LOOKUP("setCallerObject", phProcedureHandle:INTERNAL-ENTRIES) <> 0 THEN
-    DO:
-      DYNAMIC-FUNCTION('setCallerObject' IN phProcedureHandle, INPUT phObjectProcedure).
-    END.
-    IF phParentProcedure <> ? AND VALID-HANDLE(phProcedureHandle) 
-       AND LOOKUP("setCallerProcedure", phProcedureHandle:INTERNAL-ENTRIES) <> 0 THEN
-    DO:
-      DYNAMIC-FUNCTION('setCallerProcedure' IN phProcedureHandle, INPUT phParentProcedure).
-    END.
-    IF phParentWindow <> ? AND VALID-HANDLE(phProcedureHandle) 
-       AND LOOKUP("setCallerWindow", phProcedureHandle:INTERNAL-ENTRIES) <> 0 THEN
-    DO:
-      DYNAMIC-FUNCTION('setCallerWindow' IN phProcedureHandle, INPUT phParentWindow).
-    END.
+      IF VALID-HANDLE(phParentProcedure)
+      OR phParentProcedure <> ?
+      THEN DO:
 
-    /* Initialize the run object */
-    IF VALID-HANDLE(phProcedureHandle) 
-       AND LOOKUP("initializeObject", phProcedureHandle:INTERNAL-ENTRIES) <> 0 THEN
-    DO:
-      RUN initializeObject IN phProcedureHandle.
-    END.
+        IF lAlreadyRunning
+        THEN DO:
 
-  END.  /* END ICF code */
-      /* If ADM2 Container */
-  IF VALID-HANDLE(phprocedureHandle) AND
-     (pcProcedureType = "ADM2":U OR pcProcedureType = "ICF":U) AND 
-        LOOKUP("viewObject":U, phprocedureHandle:INTERNAL-ENTRIES) > 0 THEN
-    RUN viewObject IN phprocedureHandle.
-  ELSE IF VALID-HANDLE(phprocedureHandle) THEN
-  DO: 
-    /* For non adm2 container, bring container to front or restore if minimized and apply focus */
-    ASSIGN hWindow = phProcedureHandle:CURRENT-WINDOW NO-ERROR. 
-    IF VALID-HANDLE(hWindow) THEN
-    DO:  
-      IF hWindow:WINDOW-STATE = WINDOW-MINIMIZED THEN
+          DEFINE VARIABLE hOldContainerSource AS HANDLE NO-UNDO.
+
+          {get ContainerSource hOldContainerSource phProcedureHandle}.
+
+          IF VALID-HANDLE(hOldContainerSource)
+          THEN
+            RUN removeLink IN phParentProcedure
+                          (INPUT hOldContainerSource
+                          ,INPUT "container"
+                          ,INPUT phProcedureHandle
+                          ).
+
+        END.
+
+        RUN addLink IN phParentProcedure
+                   (INPUT phParentProcedure
+                   ,INPUT "Container"
+                   ,INPUT phProcedureHandle
+                   ).
+
+      END.
+
+      IF VALID-HANDLE(phParentWindow)
+      OR phParentWindow <> ?
+      THEN DO:
+
+        /* set the parent window */
+        {set ObjectParent phParentWindow phProcedureHandle}.
+
+      END.
+
+      /* give it the run attribute */
+      IF pcRunAttribute <> "":U
+      AND LOOKUP("setRunAttribute", phProcedureHandle:INTERNAL-ENTRIES) <> 0
+      THEN DO:
+        DYNAMIC-FUNCTION('setRunAttribute' IN phProcedureHandle, pcRunAttribute).
+      END.
+
+      /* Object launched ok, set logical object name attribute to correct value if required */
+      IF pcLogicalName <> "":U
+      AND LOOKUP("setLogicalObjectName", phProcedureHandle:INTERNAL-ENTRIES) <> 0
+      THEN DO:
+          DYNAMIC-FUNCTION('setLogicalObjectName' IN phProcedureHandle, INPUT pcLogicalName).
+      END.
+      ELSE
+          IF cObjectToCache <> "":U THEN
+              DYNAMIC-FUNCTION('setLogicalObjectName' IN phProcedureHandle, INPUT cObjectToCache).
+
+      IF VALID-HANDLE(phObjectProcedure)
+      OR phObjectProcedure <> ?
+      THEN DO:
+
+        /* perform the required pre-initialization work */
+        RUN createLinks (INPUT pcPhysicalName
+                        ,INPUT phProcedureHandle
+                        ,INPUT phObjectProcedure
+                        ,INPUT lAlreadyRunning
+                        ).
+
+      END.
+
+      /* set correct container mode before initialize object */
+      IF pcContainerMode <> "":U
+      AND LOOKUP("setContainerMode", phProcedureHandle:INTERNAL-ENTRIES) <> 0
+      THEN DO:
+        DYNAMIC-FUNCTION('setContainerMode' IN phProcedureHandle, INPUT pcContainerMode).
+      END.
+
+      /* set caller attributes in container just launched */
+      IF phObjectProcedure <> ?
+      AND LOOKUP("setCallerObject", phProcedureHandle:INTERNAL-ENTRIES) <> 0
+      THEN DO:
+        DYNAMIC-FUNCTION('setCallerObject' IN phProcedureHandle, INPUT phObjectProcedure).
+      END.
+
+      IF phParentProcedure <> ?
+      AND LOOKUP("setCallerProcedure", phProcedureHandle:INTERNAL-ENTRIES) <> 0
+      THEN DO:
+        DYNAMIC-FUNCTION('setCallerProcedure' IN phProcedureHandle, INPUT phParentProcedure).
+      END.
+
+      IF phParentWindow <> ?
+      AND LOOKUP("setCallerWindow", phProcedureHandle:INTERNAL-ENTRIES) <> 0
+      THEN DO:
+        DYNAMIC-FUNCTION('setCallerWindow' IN phProcedureHandle, INPUT phParentWindow).
+      END.
+
+      /* Initialize the run object */
+      IF LOOKUP("initializeObject", phProcedureHandle:INTERNAL-ENTRIES) <> 0 THEN 
+      DO:
+          RUN initializeObject IN phProcedureHandle.
+
+          /* There may be code in the container that forces a shutdown while the
+           * container is instantiating. We need to cater for this.             */
+          IF NOT VALID-HANDLE(phProcedureHandle) THEN
+          DO:
+              ASSIGN phProcedureHandle = ?
+                     pcProcedureType   = "":U
+                     .
+              IF AVAILABLE ttPersistentProc THEN
+                  DELETE ttPersistentProc NO-ERROR.
+
+              SESSION:SET-WAIT-STATE("":U).
+              RETURN.
+          END.  /* not valid procedure handle */
+      END.
+
+    END.  /* END ICF code */
+    /* Bring container to front or restore if minimized and apply focus */
+    ASSIGN
+      hWindow = phProcedureHandle:CURRENT-WINDOW NO-ERROR.
+
+    IF VALID-HANDLE(hWindow)
+    THEN DO:  
+
+      IF hWindow:WINDOW-STATE = WINDOW-MINIMIZED
+      THEN
          hWindow:WINDOW-STATE = WINDOW-NORMAL.
-      hWindow:MOVE-TO-TOP().
-      APPLY "ENTRY":U TO hWindow.
-    END.
-  END. /* END non adm2 container */
-END. /* END IF VALID-HANDLE(phProcedureHandle) */
-ELSE
-DO:
-  ASSIGN
-    lAlreadyRunning = NO
-    lRunSuccessful = NO
-    phProcedureHandle = ?
-    pcProcedureType = "":U
-    .       
-END.
 
-RETURN.
+      hWindow:MOVE-TO-TOP().
+
+      APPLY "ENTRY":U TO hWindow.
+
+    END.
+  END. /* END IF VALID-HANDLE(phProcedureHandle) */
+  ELSE DO:
+
+    ASSIGN
+      lAlreadyRunning   = NO
+      lRunSuccessful    = NO
+      phProcedureHandle = ?
+      pcProcedureType   = "":U
+      .       
+
+  END.
+
+  gcLogicalContainerName = ?.
+
+  RETURN.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2052,7 +3297,7 @@ PROCEDURE LaunchExternalProcess :
 
   Notes:       Uses the CreateProcess API function from af/sup/windows.i
 ------------------------------------------------------------------------------*/
-IF (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN RETURN.
+IF (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN RETURN.
 
 DEFINE INPUT  PARAMETER pcCommandLine         AS CHARACTER    NO-UNDO.
 DEFINE INPUT  PARAMETER pcCurrentDirectory    AS CHARACTER    NO-UNDO.
@@ -2173,10 +3418,51 @@ DEFINE VARIABLE lASUsePrompt                  AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE cASInfo                       AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cAsDivision                   AS CHARACTER  NO-UNDO.    
 
-ASSIGN
-    cAsDivision = "CLIENT"    /* Client appserver connection */
-    lAsUsePrompt = NO
-    cAsInfo = "".
+DEFINE VARIABLE hAttributeBuffer            AS HANDLE               NO-UNDO.
+DEFINE VARIABLE hObjectBuffer               AS HANDLE               NO-UNDO.
+DEFINE VARIABLE cClassType                  AS CHARACTER            NO-UNDO.
+DEFINE VARIABLE cCustomSuperProcedure       AS CHARACTER            NO-UNDO.
+DEFINE VARIABLE cAllCustomSuperProcedures   AS CHARACTER            NO-UNDO.
+DEFINE VARIABLE cPhysicalObjectName         AS CHARACTER            NO-UNDO.
+DEFINE VARIABLE dRecordIdentifier           AS DECIMAL              NO-UNDO.   
+DEFINE VARIABLE cAttributeList              AS CHARACTER            NO-UNDO.
+DEFINE VARIABLE iLoop                       AS INTEGER              NO-UNDO.
+
+ASSIGN cAsDivision = "CLIENT"    /* Client appserver connection */
+       lAsUsePrompt = NO
+       cAsInfo = "".
+
+/* Ensure we get the correct names form the Repository */
+RUN getObjectNames IN gshRepositoryManager ( INPUT  pcPhysicalName,
+                                             INPUT  "":U,                       /* run attribute only value for containers */
+                                             OUTPUT cPhysicalObjectName,
+                                             OUTPUT gcLogicalContainerName ) NO-ERROR.
+
+/* Get Repository data for this procedure */
+IF DYNAMIC-FUNCTION("cacheObjectOnClient":U IN gshRepositoryManager,
+                    INPUT gcLogicalContainerName, INPUT "{&DEFAULT-RESULT-CODE}":U,
+                    INPUT "":U, INPUT NO                                )  THEN
+DO:
+    /* The hObjectBuffer record should be available immediately after the cacheObjectOnClient() call.
+     * See that APIs comments for information.                                                       */
+    ASSIGN hObjectBuffer = DYNAMIC-FUNCTION("getCacheObjectBuffer":U IN gshRepositoryManager, INPUT ?).
+
+    /* getAllObjectSuperProcedures */
+    IF hObjectBuffer:AVAILABLE THEN
+    DO:
+        ASSIGN pcPhysicalName          = cPhysicalObjectName
+               dRecordIdentifier       = hObjectBuffer:BUFFER-FIELD("tRecordIdentifier":U):BUFFER-VALUE
+               hAttributeBuffer        = hObjectBuffer:BUFFER-FIELD("tClassBufferHandle":U):BUFFER-VALUE
+               cAttributeList          = DYNAMIC-FUNCTION("buildAttributeList":U IN gshRepositoryManager, 
+                                                          INPUT hAttributeBuffer, INPUT dRecordIdentifier)
+               .
+        ASSIGN cAllCustomSuperProcedures = DYNAMIC-FUNCTION("getAllObjectSuperProcedures":U IN gshRepositoryManager,
+                                                            INPUT gcLogicalContainerName,
+                                                            INPUT "":U  /* Run Attribute */ ).
+    END.    /* Object is in the Repository */       
+END.    /* can find object in cache. */
+ELSE
+    ASSIGN gcLogicalContainerName = "":U.
 
 /* check for pre-started managers running */
 CASE pcPhysicalName:
@@ -2280,15 +3566,17 @@ CASE pcPhysicalName:
       phProcedureHandle = gshRepositoryManager
       .
   END.
-  OTHERWISE
-  DO:
-    ASSIGN
-      cProcedureType = "PRO":U
-      cProcedureDesc = "":U
-      lAlreadyRunning = NO
-      lRunSuccessful = NO
-      phProcedureHandle = ?
-      .
+  OTHERWISE DO:
+    /* The user could have passed a manager description, see if he passed a manager in */
+
+    ASSIGN phProcedureHandle = DYNAMIC-FUNCTION("getManagerHandle":U IN THIS-PROCEDURE, pcPhysicalName) NO-ERROR.
+
+    IF NOT VALID-HANDLE(phProcedureHandle) THEN
+        ASSIGN cProcedureType = "PRO":U
+               cProcedureDesc = "":U
+               lAlreadyRunning = NO
+               lRunSuccessful = NO
+               phProcedureHandle = ?.
   END.
 END CASE.
 
@@ -2330,20 +3618,22 @@ DO:
     IF pcOnAppserver <> "NO":U AND VALID-HANDLE(hAppserver) AND hAppserver <> SESSION:HANDLE THEN
       FIND FIRST ttPersistentProc
            WHERE ttPersistentProc.physicalName = pcPhysicalName
-             AND ttPersistentProc.logicalName = "":U
+             AND ttPersistentProc.logicalName  = "":U
              AND ttPersistentProc.runAttribute = "":U
              AND ttPersistentProc.childDataKey = "":U
-             AND ttPersistentProc.onAppserver = YES
+             AND ttPersistentProc.onAppserver  = YES
            NO-ERROR.
     ELSE
       FIND FIRST ttPersistentProc
            WHERE ttPersistentProc.physicalName = pcPhysicalName
-             AND ttPersistentProc.logicalName = "":U
+             AND ttPersistentProc.logicalName  = "":U
              AND ttPersistentProc.runAttribute = "":U
              AND ttPersistentProc.childDataKey = "":U
-             AND ttPersistentProc.onAppserver = NO
+             AND ttPersistentProc.onAppserver  = NO
            NO-ERROR.
+
     /* check handle still valid */
+
     IF AVAILABLE ttPersistentProc AND
        (NOT VALID-HANDLE(ttPersistentProc.procedureHandle) OR
         ttPersistentProc.ProcedureHandle:UNIQUE-ID <> ttPersistentProc.UniqueId) THEN
@@ -2364,7 +3654,7 @@ DO:
   /* if still not a valid handle, then run it */
   IF NOT VALID-HANDLE(phProcedureHandle) THEN
   DO:
-    /* run the procedure */      
+    /* run the procedure */
     RUN-BLOCK:
     DO ON STOP UNDO RUN-BLOCK, LEAVE RUN-BLOCK ON ERROR UNDO RUN-BLOCK, LEAVE RUN-BLOCK:
       RUN VALUE(pcPhysicalName) PERSISTENT SET phProcedureHandle ON hAppserver.
@@ -2373,30 +3663,33 @@ DO:
 END. 
 
 /* see if handle now valid and if so, update temp-table with details */        
+
 IF VALID-HANDLE(phProcedureHandle) THEN
 DO:
   IF pcOnAppserver <> "NO":U AND VALID-HANDLE(hAppserver) AND hAppserver <> SESSION:HANDLE THEN
     FIND FIRST ttPersistentProc
          WHERE ttPersistentProc.physicalName = pcPhysicalName
-           AND ttPersistentProc.logicalName = "":U
+           AND ttPersistentProc.logicalName  = "":U
            AND ttPersistentProc.runAttribute = "":U
            AND ttPersistentProc.childDataKey = "":U
-           AND ttPersistentProc.onAppserver = YES
+           AND ttPersistentProc.onAppserver  = YES
          NO-ERROR.
   ELSE
     FIND FIRST ttPersistentProc
          WHERE ttPersistentProc.physicalName = pcPhysicalName
-           AND ttPersistentProc.logicalName = "":U
+           AND ttPersistentProc.logicalName  = "":U
            AND ttPersistentProc.runAttribute = "":U
            AND ttPersistentProc.childDataKey = "":U
-           AND ttPersistentProc.onAppserver = NO
+           AND ttPersistentProc.onAppserver  = NO
          NO-ERROR.
-    /* Create a new entry in the temp-table if the procedure is not yet running, or
-     * if this is an additional instance of a procedure. This will only happen if
-     * the call specifies that the procedure should be a multiple instance.         */
+
+  /* Create a new entry in the temp-table if the procedure is not yet running, or *
+   * if this is an additional instance of a procedure. This will only happen if   *
+   * the call specifies that the procedure should be a multiple instance.         */
+
   IF NOT AVAILABLE ttPersistentProc OR
-     ( AVAILABLE ttPersistentProc AND NOT plOnceOnly ) THEN
-  DO:
+     ( AVAILABLE ttPersistentProc AND NOT plOnceOnly ) 
+  THEN DO:
     CREATE ttPersistentProc.
     ASSIGN
       ttPersistentProc.physicalName = pcPhysicalName
@@ -2413,45 +3706,376 @@ DO:
       ttPersistentProc.procedureNarration = "":U
       .    
 
-    /* try and get object version number */
-      IF DYNAMIC-FUNCTION("getInternalEntryExists":U, phProcedureHandle, "getObjectVersion":U) THEN
-          RUN getObjectVersion IN phProcedureHandle (OUTPUT ttPersistentProc.procedureNarration,
-                                                     OUTPUT ttPersistentProc.procedureVersion).
-      ELSE
-      IF DYNAMIC-FUNCTION("getInternalEntryExists":U, phProcedureHandle, "mip-get-object-version":U) THEN
-          RUN mip-get-object-version IN phProcedureHandle (OUTPUT ttPersistentProc.procedureNarration,
-                                                           OUTPUT ttPersistentProc.procedureVersion).
+    /* First, we'll try and get all the PLIP detail in one Appserver hit.  Client-server should benefit as well. *
+     * Don't check if the procedure exists first, this will result in an extra Appserver hit, just run NO-ERROR  */
 
-      /* try and get object description from standard internal procedure */
-      IF DYNAMIC-FUNCTION("getInternalEntryExists":U, phProcedureHandle, "objectDescription":U) THEN
-          RUN objectDescription IN phProcedureHandle (OUTPUT ttPersistentProc.procedureNarration).
-      ELSE
-      IF DYNAMIC-FUNCTION("getInternalEntryExists":U, phProcedureHandle, "mip-object-description":U) THEN
-          RUN mip-object-description IN phProcedureHandle (OUTPUT ttPersistentProc.procedureNarration).
+    RUN getPlipInfo IN phProcedureHandle (OUTPUT ttPersistentProc.procedureNarration,
+                                          OUTPUT ttPersistentProc.procedureVersion,
+                                          OUTPUT ttPersistentProc.internalEntries) 
+                                          NO-ERROR.
 
-      /* use manager hard coded description */
-      IF ttPersistentProc.procedureNarration = "":U AND cProcedureDesc <> "":U THEN
-          ASSIGN ttPersistentProc.procedureNarration = cProcedureDesc.  
+    IF ERROR-STATUS:ERROR /* getPlipInfo doesn't exist */
+    THEN DO:
+        ASSIGN ERROR-STATUS:ERROR = NO.
+
+        /* Get the procedure internal entries */
+
+        ASSIGN ttPersistentProc.internalEntries = DYNAMIC-FUNCTION("getInternalEntries":U IN phProcedureHandle) NO-ERROR.
+
+        /* try and get object version number */
+
+        IF DYNAMIC-FUNCTION("getInternalEntryExists":U, phProcedureHandle, "getObjectVersion":U) THEN
+            RUN getObjectVersion IN phProcedureHandle (OUTPUT ttPersistentProc.procedureNarration,
+                                                       OUTPUT ttPersistentProc.procedureVersion).
+        ELSE
+            IF DYNAMIC-FUNCTION("getInternalEntryExists":U, phProcedureHandle, "mip-get-object-version":U) THEN
+                RUN mip-get-object-version IN phProcedureHandle (OUTPUT ttPersistentProc.procedureNarration,
+                                                                 OUTPUT ttPersistentProc.procedureVersion).
+    
+        /* try and get object description from standard internal procedure */
+
+        IF DYNAMIC-FUNCTION("getInternalEntryExists":U, phProcedureHandle, "objectDescription":U) THEN
+            RUN objectDescription IN phProcedureHandle (OUTPUT ttPersistentProc.procedureNarration).
+        ELSE
+            IF DYNAMIC-FUNCTION("getInternalEntryExists":U, phProcedureHandle, "mip-object-description":U) THEN
+                RUN mip-object-description IN phProcedureHandle (OUTPUT ttPersistentProc.procedureNarration).
+    END.
+
+    /* Use manager hard coded description */
+    IF ttPersistentProc.procedureNarration = "":U AND cProcedureDesc <> "":U THEN
+        ASSIGN ttPersistentProc.procedureNarration = cProcedureDesc.  
   END.
 
   /* always reset procedure handle, unique id and run permanent flag */
-  ASSIGN
-    ttPersistentProc.ProcedureHandle = phProcedureHandle
-    ttPersistentProc.uniqueId = phProcedureHandle:UNIQUE-ID
-    ttPersistentProc.RunPermanent = plRunPermanent
-    lRunSuccessful = YES
-    .       
+
+  ASSIGN ttPersistentProc.ProcedureHandle = phProcedureHandle
+         ttPersistentProc.uniqueId        = phProcedureHandle:UNIQUE-ID
+         ttPersistentProc.RunPermanent    = plRunPermanent
+         lRunSuccessful = YES
+         .       
 END. /* IF VALID-HANDLE(phProcedureHandle) */
 ELSE
-DO:
   ASSIGN
     lAlreadyRunning = NO
     lRunSuccessful = NO
     phProcedureHandle = ?
-    .       
+    .
+
+/* If this is the first time that this procedure has started, then start the super procedures. */
+IF NOT lAlreadyRunning AND lRunSuccessful THEN
+DO:
+    /* If this is a Repository Object, thens et any attributes necessary. */
+    IF gcLogicalContainerName NE "":U THEN
+    DO:
+        ASSIGN gcLogicalContainerName = "":U.
+        RUN setPropertyList IN phProcedureHandle ( INPUT cAttributeList ) NO-ERROR.
+    END.    /* wsa a logical object. */
+
+
+    /* Add any super proecdures required. Static objects wills tart their own super procedures. */
+    IF NUM-ENTRIES(cAllCustomSuperProcedures) GT 0 THEN
+    DO iLoop = NUM-ENTRIES(cAllCustomSuperProcedures) TO 1 BY -1:
+        ASSIGN cCustomSuperProcedure = ENTRY(iLoop, cAllCustomSuperProcedures).
+
+        {launch.i
+            &PLIP  = cCustomSuperProcedure
+            &OnApp = 'NO'
+            &Iproc = ''
+        }
+        IF VALID-HANDLE(hPlip) THEN
+            phProcedureHandle:ADD-SUPER-PROCEDURE(hPlip, SEARCH-TARGET).
+    END.    /* super procedure exists */
+END.    /* succesfull run; not already running */
+
+ASSIGN gcLogicalContainerName = "":U
+       ERROR-STATUS:ERROR     = NO.
+RETURN.
+END PROCEDURE.  /* launchProcedure */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-loginCacheAfter) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE loginCacheAfter Procedure 
+PROCEDURE loginCacheAfter :
+/*------------------------------------------------------------------------------
+  Purpose:     We can only cache certain information after we have a current user &
+               organisation etc.  This procedure will fire when the user presses OK
+               in the login screen, and get all the stuff to cache, and cache it 
+               client side, in one Appserver call.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+DEFINE INPUT  PARAMETER pcLoginName                AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER pcPassword                 AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER pdCompanyObj               AS DECIMAL    NO-UNDO.
+DEFINE INPUT  PARAMETER pdLanguageObj              AS DECIMAL    NO-UNDO.
+DEFINE INPUT  PARAMETER ptProcessDate              AS DATE       NO-UNDO.
+DEFINE INPUT  PARAMETER pcDateFormat               AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER pcLoginValues              AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER pcLoginProc                AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER pcCustTypesPrioritised     AS CHARACTER  NO-UNDO.
+
+DEFINE OUTPUT PARAMETER pdCurrentUserObj           AS DECIMAL   NO-UNDO.
+DEFINE OUTPUT PARAMETER pcCurrentUserName          AS CHARACTER NO-UNDO.
+DEFINE OUTPUT PARAMETER pcCurrentUserEmail         AS CHARACTER NO-UNDO.
+DEFINE OUTPUT PARAMETER pcCurrentOrganisationCode  AS CHARACTER NO-UNDO.
+DEFINE OUTPUT PARAMETER pcCurrentOrganisationName  AS CHARACTER NO-UNDO.
+DEFINE OUTPUT PARAMETER pcCurrentOrganisationShort AS CHARACTER NO-UNDO.
+DEFINE OUTPUT PARAMETER pcCurrentLanguageName      AS CHARACTER NO-UNDO.
+DEFINE OUTPUT PARAMETER pcFailedReason             AS CHARACTER NO-UNDO.
+
+DEFINE VARIABLE cTypeAPI              AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cSessionCustRefs      AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cSessionResultCodes   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE hCustomizationManager AS HANDLE     NO-UNDO.
+
+/* Clear the cached temp-tables */
+
+IF NOT TRANSACTION 
+THEN DO:
+    EMPTY TEMP-TABLE ttTranslation.
+    EMPTY TEMP-TABLE ttProfileData.
+    EMPTY TEMP-TABLE ttSecurityControl.
+END.
+ELSE DO:
+    FOR EACH ttProfileData:     DELETE ttProfileData.     END.
+    FOR EACH ttSecurityControl: DELETE ttSecurityControl. END.
+    FOR EACH ttTranslation:     DELETE ttTranslation.     END.
 END.
 
-RETURN.
+/* Initialize any variables */
+
+IF pcCustTypesPrioritised = ? THEN
+    ASSIGN pcCustTypesPrioritised = "":U.
+
+IF pcDateFormat = "":U THEN
+    ASSIGN pcDateFormat = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,INPUT "dateFormat":U,INPUT NO).
+
+/* Run the Appserver procedure to extract the stuff */
+
+RUN af/app/cacheafter.p ON gshAstraAppserver (INPUT pcLoginName,
+                                              INPUT pcPassword,
+                                              INPUT pdCompanyObj,
+                                              INPUT pdLanguageObj,
+                                              INPUT ptProcessDate,
+                                              INPUT pcDateFormat,
+                                              INPUT pcLoginValues,
+                                              INPUT pcLoginProc,
+                                              INPUT pcCustTypesPrioritised,
+
+                                              OUTPUT TABLE ttSecurityControl,
+                                              OUTPUT TABLE ttProfileData,
+                                              OUTPUT TABLE ttTranslation,
+                                              OUTPUT pdCurrentUserObj,
+                                              OUTPUT pcCurrentUserName,
+                                              OUTPUT pcCurrentUserEmail,
+                                              OUTPUT pcCurrentOrganisationCode,
+                                              OUTPUT pcCurrentOrganisationName,
+                                              OUTPUT pcCurrentOrganisationShort,
+                                              OUTPUT pcCurrentLanguageName,
+                                              OUTPUT pcFailedReason,
+                                              OUTPUT cTypeAPI,
+                                              OUTPUT cSessionCustRefs,
+                                              OUTPUT cSessionResultCodes).
+
+IF pcFailedReason <> "":U THEN /* This will cause the login to fail */
+    RETURN.
+
+/* Now send the profile cache to the profile manager */
+
+IF CAN-FIND(FIRST ttProfileData) THEN
+    RUN receiveProfileCache IN gshProfileManager (INPUT TABLE ttProfileData).
+
+/* Send the security cache to the security manager */
+
+IF CAN-FIND(FIRST ttSecurityControl) THEN
+    RUN receiveCacheSessionSecurity IN gshSecurityManager (INPUT TABLE ttSecurityControl).
+
+/* Send the translation cache to the translation manager */
+
+RUN receiveCacheClient IN gshTranslationManager (INPUT TABLE ttTranslation,
+                                                 INPUT pdLanguageObj).
+
+/* Send the type API to the customization manager */
+
+ASSIGN hCustomizationManager = DYNAMIC-FUNCTION("getManagerHandle":U IN THIS-PROCEDURE, "CustomizationManager":U).
+
+IF VALID-HANDLE(hCustomizationManager) 
+THEN DO:
+    RUN receiveCacheTypeAPI IN hCustomizationManager (INPUT pcCustTypesPrioritised,
+                                                      INPUT cTypeAPI).
+
+    RUN receiveCacheResultCodes IN hCustomizationManager (INPUT cSessionCustRefs,
+                                                          INPUT cSessionResultCodes).
+END.
+
+ASSIGN ERROR-STATUS:ERROR = NO.
+RETURN "":U.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-loginCacheUpfront) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE loginCacheUpfront Procedure 
+PROCEDURE loginCacheUpfront :
+/*------------------------------------------------------------------------------
+  Purpose:     This procedures makes an Appserver call to cache all information
+               needed for the login process.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE hClassAttributeTable AS HANDLE     NO-UNDO EXTENT 32.
+DEFINE VARIABLE iCnt                 AS INTEGER    NO-UNDO.
+
+/* Make sure we don't have any cached information left over from a previous login. */
+
+IF NOT TRANSACTION 
+THEN DO:
+    EMPTY TEMP-TABLE ttProfileData.
+    EMPTY TEMP-TABLE ttGlobalControl.
+    EMPTY TEMP-TABLE ttSecurityControl.
+    EMPTY TEMP-TABLE ttComboData.
+END.
+ELSE DO:
+    FOR EACH ttProfileData:     DELETE ttProfileData.     END.
+    FOR EACH ttGlobalControl:   DELETE ttGlobalControl.   END.
+    FOR EACH ttSecurityControl: DELETE ttSecurityControl. END.
+    FOR EACH ttComboData:       DELETE ttComboData.       END.
+END.
+
+ASSIGN hBufferCacheBuffer   = ?
+       cNumericDecimalPoint = "":U
+       cNumericSeparator    = "":U
+       cNumericSeparator    = "":U
+       cNumericFormat       = "":U
+       cAppDateFormat       = "":U.
+
+/* Get all the required information from the Appserver */
+
+RUN af/app/cachelogin.p ON gshAstraAppserver
+                           (OUTPUT TABLE ttTranslate,
+                            OUTPUT cNumericDecimalPoint,
+                            OUTPUT cNumericSeparator,
+                            OUTPUT cNumericFormat,
+                            OUTPUT cDateFormat,
+                            OUTPUT TABLE ttEntityMnemonic, /* Redundant, cachelogin.p isn't going to extract these either */
+                            OUTPUT TABLE ttLoginUser,
+                            OUTPUT TABLE ttGlobalControl,
+                            OUTPUT TABLE ttSecurityControl,
+                            OUTPUT TABLE ttComboData).
+
+RETURN "":U.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-loginGetClassCache) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE loginGetClassCache Procedure 
+PROCEDURE loginGetClassCache :
+/*------------------------------------------------------------------------------
+  Purpose:     Returns cached class information (gsc_object_type) to whoever 
+               requests it.
+  Parameters:  <none>
+  Notes:       This procedure is only going to contain cache up to the login 
+               screen appearing.
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER hCallingProcedure AS HANDLE NO-UNDO.
+
+ASSIGN ERROR-STATUS:ERROR = NO.
+RETURN "":U.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-loginGetMnemonicsCache) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE loginGetMnemonicsCache Procedure 
+PROCEDURE loginGetMnemonicsCache :
+/*------------------------------------------------------------------------------
+  Purpose:     Sends the entity_mnemonic table to whoever requests it.
+  Parameters:  <none>
+  Notes:       This procedure is only going to contain cache up to the login 
+               screen appearing.
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER hCallingProcedure AS HANDLE NO-UNDO.
+
+IF VALID-HANDLE(hCallingProcedure) 
+AND LOOKUP("sendLoginCache", hCallingProcedure:INTERNAL-ENTRIES) <> 0 
+THEN DO:
+    /* Send the info */
+
+    RUN sendLoginCache IN hCallingProcedure (INPUT TABLE ttEntityMnemonic).
+
+    /* Unsubscribe from the event, it's not going to be published again */
+
+    UNSUBSCRIBE TO "loginGetMnemonicsCache":U IN SESSION:FIRST-PROCEDURE.
+
+    /* Clear the cached info, we don't want it hanging around in memory, we're not going to need it again */
+
+    EMPTY TEMP-TABLE ttEntityMnemonic.
+END.
+
+ASSIGN ERROR-STATUS:ERROR = NO.
+RETURN "":U.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-loginGetViewerCache) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE loginGetViewerCache Procedure 
+PROCEDURE loginGetViewerCache :
+/*------------------------------------------------------------------------------
+  Purpose:     Sends all the information required by the login screen.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER hCallingProcedure AS HANDLE NO-UNDO.
+
+IF VALID-HANDLE(hCallingProcedure) 
+AND LOOKUP("sendLoginCache", hCallingProcedure:INTERNAL-ENTRIES) <> 0 
+THEN DO:
+    /* Send the info */
+
+    RUN sendLoginCache IN hCallingProcedure (INPUT cNumericDecimalPoint,
+                                             INPUT cNumericSeparator,
+                                             INPUT cNumericFormat,
+                                             INPUT cDateFormat,
+                                             INPUT TABLE ttGlobalControl,
+                                             INPUT TABLE ttSecurityControl,
+                                             INPUT TABLE ttComboData,
+                                             INPUT TABLE ttLoginUser,
+                                             INPUT TABLE ttTranslate).
+
+    /* We don't clear any cache, or unsubscribe from the event, because we may relogon, we'll want this information again then */
+END.
+
+ASSIGN ERROR-STATUS:ERROR = NO.
+RETURN "":U.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2483,42 +4107,100 @@ DEFINE OUTPUT PARAMETER pcFailedReason                AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE         cEmailAddress                 AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE         cEmailProfile                 AS CHARACTER    NO-UNDO.
 
-IF pdUserObj = 0 AND pcUserName = "" THEN
-DO:
-  /* get user email from property for current user */
-  cEmailAddress = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
-                                   INPUT "currentUserEmail":U,
-                                   INPUT NO).
+IF pcAction = "email":U
+THEN DO:
+    IF pdUserObj = 0 AND pcUserName = "":U THEN
+        /* get user email from property for current user */
+        cEmailAddress = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
+                                         INPUT "currentUserEmail":U,
+                                         INPUT NO).
+    ELSE DO:
+        /* find user email by reading user record */
+        RUN af/app/afgetuserp.p ON gshAstraAppserver (INPUT pdUserObj, INPUT pcUserName, OUTPUT TABLE ttUser).
+        FIND FIRST ttUser NO-ERROR.
+        IF AVAILABLE ttUser THEN ASSIGN cEmailAddress = ttUser.USER_email_address.
+    END.
+
+    IF cEmailAddress <> "":U THEN /* Send email message to user */
+        RUN sendEmail IN gshSessionManager
+                          ( INPUT cEmailProfile,        /* Email profile to use  */
+                            INPUT cEmailAddress,        /* Comma list of Email addresses for to: box */
+                            INPUT "":U,                 /* Comma list of Email addresses to cc */
+                            INPUT pcSubject,            /* Subject of message */
+                            INPUT pcMessage,            /* Message text */
+                            INPUT "":U,                 /* Comma list of attachment filenames */
+                            INPUT "":U,                 /* Comma list of attachment filenames with full path */
+                            INPUT NOT SESSION:REMOTE,   /* YES = display dialog for modification before send */
+                            INPUT 0,                    /* Importance 0 = low, 1 = medium, 2 = high */
+                            INPUT NO,                   /* YES = return a read receipt */
+                            INPUT NO,                   /* YES = return a delivery receipt */
+                            INPUT "":U,                 /* Not used yet but could be used for additional settings */
+                            OUTPUT pcFailedReason       /* If failed - the reason why, blank = it worked */
+                          ).
+    ELSE
+        ASSIGN pcFailedReason = "Your e-mail address has not been set up against your user account.  Please contact your System Administrator.".
 END.
-ELSE
-DO:
-  /* find user email by reading user record */
-  RUN af/app/afgetuserp.p ON gshAstraAppserver (INPUT pdUserObj, INPUT pcUserName, OUTPUT TABLE ttUser).
-  FIND FIRST ttUser NO-ERROR.
-  IF AVAILABLE ttUser THEN ASSIGN cEmailAddress = ttUser.USER_email_address.
-END.
 
-IF cEmailAddress <> "":U AND pcAction = "email":U THEN
-  DO:   /* Send email message to user */
-    RUN sendEmail IN gshSessionManager
-                      ( INPUT cEmailProfile,        /* Email profile to use  */
-                        INPUT cEmailAddress,        /* Comma list of Email addresses for to: box */
-                        INPUT "":U,                 /* Comma list of Email addresses to cc */
-                        INPUT pcSubject,            /* Subject of message */
-                        INPUT pcMessage,            /* Message text */
-                        INPUT "":U,                 /* Comma list of attachment filenames */
-                        INPUT "":U,                 /* Comma list of attachment filenames with full path */
-                        INPUT NOT SESSION:REMOTE,   /* YES = display dialog for modification before send */
-                        INPUT 0,                    /* Importance 0 = low, 1 = medium, 2 = high */
-                        INPUT NO,                   /* YES = return a read receipt */
-                        INPUT NO,                   /* YES = return a delivery receipt */
-                        INPUT "":U,                 /* Not used yet but could be used for additional settings */
-                        OUTPUT pcFailedReason       /* If failed - the reason why, blank = it worked */
-                      ).
-
-  END.
-
+ASSIGN ERROR-STATUS:ERROR = NO.
 RETURN.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-parseAppServerInfo) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE parseAppServerInfo Procedure 
+PROCEDURE parseAppServerInfo :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    DEFINE INPUT  PARAMETER pcAppSrvrInfo   AS CHARACTER  NO-UNDO.
+    DEFINE OUTPUT PARAMETER pcSessType      AS CHARACTER  NO-UNDO.
+    DEFINE OUTPUT PARAMETER pcNumFormat     AS CHARACTER  NO-UNDO.
+    DEFINE OUTPUT PARAMETER pcDateFormat    AS CHARACTER  NO-UNDO.
+    DEFINE OUTPUT PARAMETER pcOldSessionID  AS CHARACTER  NO-UNDO.
+
+    DEFINE VARIABLE cCurrAppSrv AS CHARACTER  NO-UNDO.
+    ASSIGN
+      pcSessType     = "":U
+      pcNumFormat    = "":U
+      pcDateFormat   = "":U
+      pcOldSessionID = "":U.
+
+    /* Parse out the information from AppSrvrInfo string. */
+    IF LENGTH(pcAppSrvrInfo) > 2 THEN
+    DO:
+      /* First two characters MUST be numeric format */
+      ASSIGN
+        pcNumFormat  = SUBSTRING(pcAppSrvrInfo, 1, 2)
+        cCurrAppSrv = SUBSTRING(pcAppSrvrInfo, 3).
+  
+      /* Next three characters must be date format */
+      IF LENGTH(cCurrAppSrv) > 3 THEN
+      DO:
+        ASSIGN
+          pcDateFormat = SUBSTRING(cCurrAppSrv, 1, 3)
+          cCurrAppSrv = SUBSTRING(cCurrAppSrv, 4).
+
+        /* The next entry (to the comma) is the client session type,
+           and everything after the comma is the old connection id. */
+        IF NUM-ENTRIES(cCurrAppSrv) >= 1 THEN
+        DO:
+          ASSIGN
+            pcSessType    = ENTRY(1,cCurrAppSrv)
+            pcOldSessionID = SUBSTRING(cCurrAppSrv, LENGTH(pcSessType) + 2).
+        END.
+      END.
+    END.
+
+    RETURN.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2536,6 +4218,7 @@ PROCEDURE plipShutdown :
   Notes:       
 ------------------------------------------------------------------------------*/
 
+  ASSIGN glPlipShutting = YES.
   RUN deletePersistentProc.  /* delete persistent procs started since we started */
 
 END PROCEDURE.
@@ -2771,7 +4454,6 @@ DO iLoop = 1 TO NUM-ENTRIES(cAllFieldHandles):
 
   IF VALID-HANDLE(hSideLabel) THEN
     hSideLabel:COLUMN = hSideLabel:COLUMN + pdAddCol.
-
 END.
 
 hWindow:VIRTUAL-WIDTH-CHARS  = hWindow:WIDTH-CHARS.
@@ -2799,7 +4481,9 @@ PROCEDURE resizeNormalFrame :
   Parameters:  input object handle
                input frame handle
                input number to add to all columns
-  Notes:       called from translatewidgets from widgetwalk procedure
+  Notes:       called from translatewidgets from widgetwalk procedure.  This procedure
+               will move all the widgets on the frame as well.  So if you want to 
+               resize the frame, but keep the widgets where they are, don't use it.
 ------------------------------------------------------------------------------*/
 
 DEFINE INPUT PARAMETER phObject           AS HANDLE     NO-UNDO.
@@ -2812,6 +4496,7 @@ DEFINE VARIABLE hWindow                   AS HANDLE     NO-UNDO.
 DEFINE VARIABLE hContainer                AS HANDLE     NO-UNDO.
 DEFINE VARIABLE hWidget                   AS HANDLE     NO-UNDO.
 DEFINE VARIABLE hSideLabel                AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hPopupHandle              AS HANDLE     NO-UNDO.
 
 hContainer = DYNAMIC-FUNCTION("getcontainersource":U IN phObject) NO-ERROR.
 IF VALID-HANDLE(hContainer) AND 
@@ -2854,11 +4539,40 @@ IF cAllFieldHandles = "":U OR cAllFieldHandles = ? THEN RETURN.
 field-loop:
 DO iLoop = 1 TO NUM-ENTRIES(cAllFieldHandles):
 
-  ASSIGN 
-    hWidget = WIDGET-HANDLE(ENTRY(iLoop, cAllFieldHandles)).
-  IF NOT VALID-HANDLE(hWidget) OR
-     LOOKUP(hWidget:TYPE, "text,button,fill-in,selection-list,editor,combo-box,radio-set,slider,toggle-box":U) = 0
-     OR NOT CAN-QUERY(hWidget, "column":U) THEN NEXT field-loop.
+  ASSIGN hWidget = WIDGET-HANDLE(ENTRY(iLoop, cAllFieldHandles)) NO-ERROR.
+
+  IF NOT VALID-HANDLE(hWidget) THEN
+      NEXT field-loop.
+
+  /* SDFs need to be resized individually */
+
+  IF hWidget:TYPE = "PROCEDURE":U 
+  THEN DO:
+      /* I'm not aware of an easy way to get the SDF frame handle.  So get the field handle, and then derive the frame handle from that */
+
+      DEFINE VARIABLE hSDFFrame AS HANDLE     NO-UNDO.
+      
+      IF LOOKUP("getComboHandle":U, hWidget:INTERNAL-ENTRIES) <> 0 THEN
+          {get ComboHandle hSDFFrame hWidget}.
+      ELSE
+          IF LOOKUP("getLookupHandle":U, hWidget:INTERNAL-ENTRIES) <> 0 THEN
+              {get LookupHandle hSDFFrame hWidget}.
+
+      IF VALID-HANDLE(hSDFFrame) 
+      THEN DO:
+          ASSIGN hSDFFrame = hSDFFrame:PARENT  /* Get the field FIELD-GROUP            */
+                 hSDFFrame = hSDFFrame:PARENT. /* The FIELD-GROUPs parent is the frame */
+
+          RUN resizeSDFFrame (INPUT hWidget,   /* The SDF procedure handle */
+                              INPUT hSDFFrame, /* The SDF frame */
+                              INPUT pdAddCol). /* The amount it needs to move */
+          NEXT field-loop.
+      END.
+  END.
+
+  IF LOOKUP(hWidget:TYPE, "text,button,fill-in,selection-list,editor,combo-box,radio-set,slider,toggle-box":U) = 0
+  OR NOT CAN-QUERY(hWidget, "column":U) THEN 
+      NEXT field-loop.
 
   /* got a valid widget to move */
   ASSIGN hSideLabel = ?.
@@ -2877,6 +4591,15 @@ DO iLoop = 1 TO NUM-ENTRIES(cAllFieldHandles):
      ( LOOKUP(STRING(hSideLabel), cAllFieldHandles) EQ 0 OR
        hSideLabel:TYPE                              EQ "LITERAL":U ) THEN
     hSideLabel:COLUMN = hSideLabel:COLUMN + pdAddCol.
+
+  /* And finally, check if the widget has a popup button (calendar or calculator). *
+   * If it does, move the popup as well.                                           */
+  IF LOOKUP("PopupHandle":U, hWidget:PRIVATE-DATA) <> 0 
+  THEN DO:
+      ASSIGN hPopupHandle = WIDGET-HANDLE(ENTRY(LOOKUP("PopupHandle":U, hWidget:PRIVATE-DATA) + 1, hWidget:PRIVATE-DATA)) NO-ERROR.
+      IF VALID-HANDLE(hPopupHandle) THEN
+          ASSIGN hPopupHandle:COLUMN = hPopupHandle:COLUMN + pdAddCol.
+  END.
 END.
 
 hWindow:VIRTUAL-WIDTH-CHARS  = hWindow:WIDTH-CHARS.
@@ -2908,99 +4631,26 @@ DEFINE INPUT PARAMETER phObject           AS HANDLE     NO-UNDO.
 DEFINE INPUT PARAMETER phFrame            AS HANDLE     NO-UNDO.
 DEFINE INPUT PARAMETER pdAddCol           AS DECIMAL    NO-UNDO.
 
-DEFINE VARIABLE cAllFieldHandles          AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE iLoop                     AS INTEGER    NO-UNDO.
-DEFINE VARIABLE hParent                   AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hWindow                   AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hContainer                AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hViewer                   AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hWidget                   AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hSideLabel                AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hParentFrame AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hWindow      AS HANDLE     NO-UNDO.
 
-hViewer = DYNAMIC-FUNCTION("getcontainersource":U IN phObject) NO-ERROR.
-IF VALID-HANDLE(hViewer) AND 
-   LOOKUP("resizeWindow":U, hViewer:INTERNAL-ENTRIES) = 0 THEN
-  hContainer = DYNAMIC-FUNCTION("getcontainersource":U IN hViewer) NO-ERROR.
+/* We're going to move the frame in line with the other widgets */
 
-hWindow = phFrame:WINDOW.
-hParent = DYNAMIC-FUNCTION("getcontainerhandle":U IN hViewer) NO-ERROR.
-IF hParent:TYPE = "window":U THEN
-  hParent = hParent:FIRST-CHILD.
+ASSIGN hParentFrame = phFrame:PARENT      /* Field group */
+       hParentFrame = hParentFrame:PARENT /* Frame */
+       NO-ERROR.
 
-/* 1st make frame virtually big to avoid size issues */
-hParent:SCROLLABLE = TRUE.
-phFrame:SCROLLABLE = TRUE.
-hWindow:VIRTUAL-WIDTH-CHARS  = 204.80.
-hWindow:VIRTUAL-HEIGHT-CHARS = 35.67.
-phFrame:VIRTUAL-WIDTH-CHARS  = 204.80.
-phFrame:VIRTUAL-HEIGHT-CHARS = 35.67.
-hParent:VIRTUAL-WIDTH-CHARS  = 204.80.
-hParent:VIRTUAL-HEIGHT-CHARS = 35.67.
+IF VALID-HANDLE(hParentFrame)
+AND hParentFrame:TYPE = "FRAME":U THEN
+    IF (phFrame:COLUMN + phFrame:WIDTH + pdAddCol) <= hParentFrame:WIDTH THEN
+        ASSIGN phFrame:COLUMN = phFrame:COLUMN + pdAddCol.
+    ELSE
+        RUN resizeLookupFrame (INPUT phObject, /* This proc will work for combos and lookups */
+                               INPUT phFrame,
+                               INPUT pdAddCol).
 
-/* move frame back if we can */
-IF phFrame:COLUMN - pdAddCol > 1 THEN
-  ASSIGN phFrame:COLUMN = phFrame:COLUMN - pdAddCol.
-ELSE
-  ASSIGN phFrame:COLUMN = 1.
-
-/* resize window if too small to fit frame (plus a bit for margin) */
-IF (phFrame:COLUMN + phFrame:WIDTH-CHARS + pdAddCol) > (hWindow:WIDTH-CHARS - 10) THEN
-DO:
-  hWindow:WIDTH-CHARS = phFrame:COLUMN + phFrame:WIDTH-CHARS + pdAddCol + 10.
-  hWindow:MIN-WIDTH-CHARS = phFrame:COLUMN + phFrame:WIDTH-CHARS + pdAddCol + 10.
-
-  IF VALID-HANDLE(hContainer) AND LOOKUP("resizeWindow":U, hContainer:INTERNAL-ENTRIES) <> 0 THEN
-  DO:
-    APPLY "window-resized":u TO hWindow.
-    RUN resizeWindow IN hContainer.
-  END.
-END.
-
-/* resize parent frame if too small to fit new SDF frame */
-IF (phFrame:COLUMN + phFrame:WIDTH-CHARS + pdAddCol) > (hParent:WIDTH-CHARS) THEN
-DO:
-  hParent:WIDTH-CHARS = phFrame:COLUMN + phFrame:WIDTH-CHARS + pdAddCol + 1.
-END.
-
-/* resize frame to fit new labels */
-phFrame:WIDTH-CHARS = phFrame:WIDTH-CHARS + pdAddCol.
-
-/* always ensure min window size set correctly - even if not resized */
-IF (hWindow:MIN-WIDTH-CHARS - 10) < (phFrame:WIDTH-CHARS + phFrame:COLUMN) THEN
-  ASSIGN hWindow:MIN-WIDTH-CHARS = phFrame:WIDTH-CHARS + phFrame:COLUMN + 10.
-
-cAllFieldHandles = DYNAMIC-FUNCTION("getAllFieldHandles":U IN phObject) NO-ERROR.
-
-IF cAllFieldHandles = "":U OR cAllFieldHandles = ? THEN RETURN.
-
-field-loop:
-DO iLoop = 1 TO NUM-ENTRIES(cAllFieldHandles):
-
-  ASSIGN 
-    hWidget = WIDGET-HANDLE(ENTRY(iLoop, cAllFieldHandles)).
-  IF NOT VALID-HANDLE(hWidget) OR
-     LOOKUP(hWidget:TYPE, "text,button,fill-in,selection-list,editor,combo-box,radio-set,slider,toggle-box":U) = 0
-     OR NOT CAN-QUERY(hWidget, "column":U) THEN NEXT field-loop.
-
-  /* got a valid widget to move */
-  ASSIGN hSideLabel = ?.    
-  ASSIGN hSideLabel = hWidget:SIDE-LABEL-HANDLE NO-ERROR.
-
-  hWidget:COLUMN = hWidget:COLUMN + pdAddCol.
-
-  IF VALID-HANDLE(hSideLabel) THEN
-    hSideLabel:COLUMN = hSideLabel:COLUMN + pdAddCol.
-
-END.
-
-hWindow:VIRTUAL-WIDTH-CHARS  = hWindow:WIDTH-CHARS.
-hWindow:VIRTUAL-HEIGHT-CHARS = hWindow:HEIGHT-CHARS.
-phFrame:VIRTUAL-WIDTH-CHARS  = phFrame:WIDTH-CHARS.
-phFrame:VIRTUAL-HEIGHT-CHARS = phFrame:HEIGHT-CHARS.
-phFrame:SCROLLABLE = FALSE.
-hParent:VIRTUAL-WIDTH-CHARS  = hParent:WIDTH-CHARS.
-hParent:VIRTUAL-HEIGHT-CHARS = hParent:HEIGHT-CHARS.
-hParent:SCROLLABLE = FALSE.
+ASSIGN ERROR-STATUS:ERROR = NO.
+RETURN "":U.
 
 END PROCEDURE.
 
@@ -3020,29 +4670,70 @@ PROCEDURE runLookup :
                If the data type is a integer or decimal then a pop-up calculator
                is displayed.
 ------------------------------------------------------------------------------*/
+    DEFINE INPUT PARAMETER phFocus      AS HANDLE                       NO-UNDO.
 
-DEFINE INPUT PARAMETER phFocus AS HANDLE NO-UNDO.
+    DEFINE VARIABLE cOldValue       AS CHARACTER                        NO-UNDO.
 
-DEFINE VARIABLE cOldValue AS CHARACTER NO-UNDO.  
-
-IF CAN-QUERY(phFocus,"data-type":U) AND CAN-QUERY(phFocus,"sensitive":U) 
-   AND phFocus:SENSITIVE = TRUE THEN
-DO:
-  APPLY "ENTRY":U TO phFocus.
-  ASSIGN cOldValue = phFocus:SCREEN-VALUE.
-  CASE phFocus:DATA-TYPE:
-    WHEN "date":U THEN
+    IF CAN-QUERY(phFocus,"data-type":U) AND
+       CAN-QUERY(phFocus,"sensitive":U) AND phFocus:SENSITIVE = TRUE THEN
     DO:
-      RUN af/cod2/afcalnpopd.w (INPUT phFocus).
-    END.
-    WHEN "decimal":U OR WHEN "integer":U THEN
-    DO:
-      RUN af/cod2/afcalcpopd.w (INPUT phFocus).
-    END.
-  END CASE.
-  IF cOldValue <> phFocus:SCREEN-VALUE THEN
-    APPLY "value-changed":U TO phFocus.
-END.
+        APPLY "ENTRY":U TO phFocus.
+        ASSIGN cOldValue = phFocus:SCREEN-VALUE.
+
+        CASE phFocus:DATA-TYPE:
+            WHEN "date":U THEN
+            DO:
+                ASSIGN gcLogicalContainerName = "afcalnpopd":U.
+                RUN af/cod2/afcalnpopd.w (INPUT phFocus).
+            END.    /* date*/
+            WHEN "decimal":U OR WHEN "integer":U THEN
+            DO:
+                ASSIGN gcLogicalContainerName = "afcalcpopd":U.
+                RUN af/cod2/afcalcpopd.w (INPUT phFocus).
+            END.    /* decimal/integer */
+        END CASE.   /* datatype */
+
+        ASSIGN gcLogicalContainerName = "":U.
+
+        IF cOldValue <> phFocus:SCREEN-VALUE THEN
+            APPLY "value-changed":U TO phFocus.
+    END.    /* is sensitive and has a data-type */
+
+    ASSIGN ERROR-STATUS:ERROR = NO.
+    RETURN.
+END PROCEDURE.  /* runLookup */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-seedTempUniqueID) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE seedTempUniqueID Procedure 
+PROCEDURE seedTempUniqueID :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+&IF DEFINED(server-side) <> 0 &THEN
+   DEFINE VARIABLE iSessNo AS INTEGER    NO-UNDO.
+   DEFINE VARIABLE iSiteRev AS INTEGER    NO-UNDO.
+   DEFINE VARIABLE iSiteDiv AS INTEGER    NO-UNDO.
+   ASSIGN
+     iSiteRev = CURRENT-VALUE(seq_site_reverse,ICFDB)
+     iSiteRev = (IF iSiteRev = ? THEN 0 ELSE iSiteRev)
+     iSiteDiv = CURRENT-VALUE(seq_site_division,ICFDB)
+     iSiteDiv = (IF iSiteDiv < 1 THEN 1 ELSE iSiteDiv)
+     gsdTempUniqueID = (NEXT-VALUE(seq_session_id,ICFDB) * 10000000000000000000000000000.0)
+                     + (iSiteRev / iSiteDiv)
+
+   .
+&ELSE
+   gsdTempUniqueID = 90000000000000000000000000000000000000000.0.
+&ENDIF
 
 END PROCEDURE.
 
@@ -3113,7 +4804,7 @@ DEFINE VARIABLE         chAttachment                    AS COM-HANDLE   NO-UNDO.
 DEFINE VARIABLE         lOk                             AS LOGICAL      NO-UNDO.
 DEFINE VARIABLE         iLoop                           AS INTEGER      NO-UNDO.
 
-IF (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
+IF (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN
 DO: /* on server so use sendmail */
 
   /* get current user email from property for current user */
@@ -3146,7 +4837,24 @@ DO: /* on server so use sendmail */
                                                '"' + cAttachmentLabel      + '"').
 END.
 ELSE
-DO: /* on client so use MAPI */
+DO: /* On client so use MAPI */
+
+  /* Before we start, get the current application directory and store it. We need to do this because *
+   * MAPI changes it.  NASTY...                                                                      */
+  &IF OPSYS = "WIN32" &THEN /* Probably the whole ELSE DO needs this check, will leave as is for now */
+      DEFINE VARIABLE cCurrentAppDir AS CHARACTER  NO-UNDO.
+      DEFINE VARIABLE iBufferSize    AS INTEGER    NO-UNDO INITIAL 256.
+      DEFINE VARIABLE iResult        AS INTEGER    NO-UNDO.
+      DEFINE VARIABLE mString        AS MEMPTR     NO-UNDO.
+    
+      SET-SIZE(mString) = 256.    
+      RUN GetCurrentDirectoryA (INPUT iBufferSize,
+                                INPUT-OUTPUT mString,
+                                OUTPUT iResult).
+      ASSIGN cCurrentAppDir = GET-STRING(mString,1).
+      SET-SIZE(mString) = 0.
+  &ENDIF
+
   /* Create MAPI Session */
   CREATE "MAPI.session" chSession NO-ERROR.
   IF NOT VALID-HANDLE (chSession) THEN
@@ -3183,7 +4891,7 @@ DO: /* on client so use MAPI */
       chRecipient1 = chMessage:Recipients:Add.
       chRecipient1:Name = cToEmail.
       chRecipient1:Type = 1.
-      IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
+      IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN
           chRecipient1:Resolve (YES) NO-ERROR.    /* Show dialog */
       ELSE
           chRecipient1:Resolve (NO) NO-ERROR.     /* Supress Dialog */
@@ -3193,7 +4901,7 @@ DO: /* on client so use MAPI */
       chRecipient2 = chMessage:Recipients:Add.
       chRecipient2:Name = cCcEmail.
       chRecipient2:Type = 2.
-      IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
+      IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN
           chRecipient2:Resolve (YES) NO-ERROR.    /* Show dialog */
       ELSE
           chRecipient2:Resolve (NO) NO-ERROR.     /* Supress Dialog */
@@ -3225,17 +4933,19 @@ DO: /* on client so use MAPI */
   RELEASE OBJECT chAttachment NO-ERROR.
   RELEASE OBJECT chRecipient1 NO-ERROR.
   RELEASE OBJECT chRecipient2 NO-ERROR.
-/*   RELEASE OBJECT chMessage NO-ERROR. */ /* causes GPF */
+/*RELEASE OBJECT chMessage NO-ERROR. - causes GPF */
   RELEASE OBJECT chSession.
 
-  ASSIGN
-    chAttachment = ?
-    chRecipient1 = ?
-    chRecipient2 = ?
-    chMessage = ?
-    chSession = ?
-    .
+  ASSIGN chAttachment = ?
+         chRecipient1 = ?
+         chRecipient2 = ?
+         chMessage    = ?
+         chSession    = ?.
 
+  /* Make sure the application directory is set correctly */
+  &IF OPSYS = "WIN32" &THEN
+      RUN SetCurrentDirectoryA (INPUT cCurrentAppDir, OUTPUT iResult).
+  &ENDIF
 END.
 
 RETURN.
@@ -3342,14 +5052,14 @@ DEFINE VARIABLE cSignature AS CHARACTER NO-UNDO.
     IF cSignature NE "":U THEN
     CASE ENTRY(2,cSignature):
       WHEN "INTEGER":U THEN
-        dynamic-function("set":U + cProperty IN phObject, INT(cValue)).
+        dynamic-function("set":U + cProperty IN phObject, INT(cValue)) NO-ERROR.
       WHEN "DECIMAL":U THEN
-        dynamic-function("set":U + cProperty IN phObject, DEC(cValue)).
+        dynamic-function("set":U + cProperty IN phObject, DEC(cValue)) NO-ERROR.
       WHEN "CHARACTER":U THEN
-        dynamic-function("set":U + cProperty IN phObject, cValue).
+        dynamic-function("set":U + cProperty IN phObject, cValue) NO-ERROR.
       WHEN "LOGICAL":U THEN
         dynamic-function("set":U + cProperty IN phObject,
-          IF cValue = "yes":U THEN yes ELSE no).
+          IF cValue = "yes":U THEN yes ELSE no) NO-ERROR.
     END CASE.
   END.
 
@@ -3472,13 +5182,13 @@ PROCEDURE showMessages :
     WHEN "HAL":U THEN
       ASSIGN pcMessageTitle = "Halt Condition":U.
     WHEN "ABO":U THEN
-      ASSIGN pcMessageTitle = "About ICF":U.
+      ASSIGN pcMessageTitle = "About Application":U.
   END CASE.
   IF plDisplayEmpty = ? THEN ASSIGN plDisplayEmpty = YES.
 
   /* Next interpret / translate the messages */
   &IF DEFINED(server-side) <> 0 &THEN
-    DO:
+  DO:
       RUN afmessagep (INPUT pcMessageList,
                       INPUT pcButtonList,
                       INPUT pcMessageTitle,
@@ -3488,19 +5198,68 @@ PROCEDURE showMessages :
                       OUTPUT cMessageTitle,
                       OUTPUT lUpdateErrorLog,
                       OUTPUT lSuppressDisplay).  
-    END.
+  END.
   &ELSE
-    DO:
-      RUN af/app/afmessagep.p ON gshAstraAppserver (INPUT pcMessageList,
-                                                    INPUT pcButtonList,
-                                                    INPUT pcMessageTitle,
-                                                    OUTPUT cSummaryMessages,
-                                                    OUTPUT cFullMessages,
-                                                    OUTPUT cButtonList,
-                                                    OUTPUT cMessageTitle,
-                                                    OUTPUT lUpdateErrorLog,
-                                                    OUTPUT lSuppressDisplay).  
-    END.
+  DO:
+      /* Build the list of connected databases.  We're going to need this info in our Appserver call */
+
+      DEFINE VARIABLE cDBList AS CHARACTER  NO-UNDO.
+      DEFINE VARIABLE iLoop   AS INTEGER    NO-UNDO.
+
+      ASSIGN cDBList = "":U.
+      DO iLoop = 1 TO NUM-DBS:
+          ASSIGN cDBList = cDBList + (IF cDBList <> "":U THEN ",":U ELSE "":U) + LDBNAME(iLoop).
+      END.
+
+      /* We're going to store the information returned on the ttMessageCache temp-table.  We can then get the handle to the *
+       * temp-table using API getMessageCacheHandle and retrieve whatever we need from there.                             */
+
+      IF NOT TRANSACTION THEN EMPTY TEMP-TABLE ttMessageCache. ELSE FOR EACH ttMessageCache: DELETE ttMessageCache. END.
+
+      CREATE ttMessageCache.
+      RUN af/app/cachemssgp.p ON gshAstraAppserver 
+               (INPUT pcMessageList,
+                INPUT pcButtonList,
+                INPUT pcMessageTitle,                
+                INPUT cDBList,                
+                OUTPUT cSummaryMessages,
+                OUTPUT cFullMessages,
+                OUTPUT cButtonList,
+                OUTPUT cMessageTitle,
+                OUTPUT lUpdateErrorLog,
+                OUTPUT lSuppressDisplay,
+                OUTPUT ttMessageCache.cDBVersions,
+                OUTPUT ttMessageCache.lRemote,
+                OUTPUT ttMessageCache.cConnid,
+                OUTPUT ttMessageCache.cOpmode,
+                OUTPUT ttMessageCache.lConnreg,
+                OUTPUT ttMessageCache.lConnbnd,
+                OUTPUT ttMessageCache.cConntxt,
+                OUTPUT ttMessageCache.cASppath,
+                OUTPUT ttMessageCache.cConndbs,
+                OUTPUT ttMessageCache.cConnpps,
+                OUTPUT ttMessageCache.cCustInfo1,
+                OUTPUT ttMessageCache.cCustInfo2,
+                OUTPUT ttMessageCache.cCustInfo3,
+                OUTPUT TABLE-HANDLE ttMessageCache.hTableHandle1,
+                OUTPUT TABLE-HANDLE ttMessageCache.hTableHandle2,
+                OUTPUT TABLE-HANDLE ttMessageCache.hTableHandle3,
+                OUTPUT TABLE-HANDLE ttMessageCache.hTableHandle4,
+                OUTPUT ttMessageCache.cSite,
+                OUTPUT ttMessageCache.cFieldSecurity,
+                OUTPUT ttMessageCache.cTokenSecurity
+               ).
+
+      /* Send token and security cache to the security manager */
+
+      RUN receiveCacheTokSecurity IN gshSecurityManager (INPUT "afmessaged.w":U,
+                                                         INPUT "":U,
+                                                         INPUT ttMessageCache.cTokenSecurity).
+
+      RUN receiveCacheFldSecurity IN gshSecurityManager (INPUT "afmessaged.w":U,
+                                                         INPUT "":U,
+                                                         INPUT ttMessageCache.cFieldSecurity).
+  END.
   &ENDIF
 
   /* Display message if not remote and not suppressed */
@@ -3514,8 +5273,10 @@ PROCEDURE showMessages :
 
   IF cSuppressDisplay = "YES":U THEN ASSIGN lSuppressDisplay = YES.
 
-  IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) AND NOT lSuppressDisplay THEN
+  IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) AND NOT lSuppressDisplay THEN
   DO:
+      ASSIGN gcLogicalContainerName = "afmessaged":U.
+
     RUN af/cod2/afmessaged.w (INPUT pcMessageType,
                               INPUT cSummaryMessages,
                               INPUT cFullMessages,
@@ -3529,6 +5290,8 @@ PROCEDURE showMessages :
                               INPUT phContainer,
                               OUTPUT iButtonPressed,
                               OUTPUT cAnswer).
+    ASSIGN gcLogicalContainerName = "":U.
+
     IF iButtonPressed > 0 AND iButtonPressed <= NUM-ENTRIES(pcButtonList) THEN
       ASSIGN pcButtonPressed = ENTRY(iButtonPressed, pcButtonList).  /* Pass back untranslated button pressed */
     ELSE
@@ -3538,21 +5301,24 @@ PROCEDURE showMessages :
     ASSIGN pcButtonPressed = pcDefaultButton.  /* If remote, assume default button */
 
   /* If remote, or update error log set to YES, then update error log and send an email if possible */
-  IF (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) OR lUpdateErrorLog OR lSuppressDisplay THEN
-  DO:
-    RUN updateErrorLog IN gshSessionManager (INPUT cSummaryMessages,
-                                             INPUT cFullMessages).
-/*    RUN notifyUser IN gshSessionManager (INPUT 0,                           /* default user */*/
-/*                                         INPUT "email":U,                   /* by email */*/
-/*                                         INPUT "ICF " + cMessageTitle,    /* ICF message */*/
-/*                                         INPUT cSummaryMessages,            /* Summary translated messages */*/
-/*                                         OUTPUT cFailed).           */
+  IF (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) OR lUpdateErrorLog OR lSuppressDisplay THEN
+      RUN updateErrorLog IN gshSessionManager (INPUT cSummaryMessages,
+                                               INPUT cFullMessages).
+
+  &IF DEFINED(server-side) = 0 &THEN
+  /* We're finished with our message, so clear our message cache temp-table */
+  FIND FIRST ttMessageCache NO-ERROR.
+  IF AVAILABLE ttMessageCache 
+  THEN DO:
+      DELETE OBJECT ttMessageCache.hTableHandle1 NO-ERROR.
+      DELETE OBJECT ttMessageCache.hTableHandle2 NO-ERROR.
+      DELETE OBJECT ttMessageCache.hTableHandle3 NO-ERROR.
+      DELETE OBJECT ttMessageCache.hTableHandle4 NO-ERROR.
+      DELETE ttMessageCache.
   END.
-
-
+  &ENDIF
+  
   RETURN.
-
-
 
 END PROCEDURE.
 
@@ -3667,6 +5433,7 @@ DEFINE VARIABLE dAddCol                   AS DECIMAL    NO-UNDO.
 DEFINE VARIABLE lResize                   AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE dMinCol                   AS DECIMAL    NO-UNDO.
 DEFINE VARIABLE iEntry                    AS INTEGER    NO-UNDO.
+DEFINE VARIABLE cListItemPairs            AS CHARACTER  NO-UNDO.
 
 ASSIGN hDataSource = DYNAMIC-FUNCTION("getDataSource":U IN phObject).
 RUN multiTranslation IN gshTranslationManager (INPUT NO,
@@ -3681,6 +5448,8 @@ ASSIGN
 
 size-check1:
 FOR EACH ttTranslate:
+  IF NOT VALID-HANDLE(ttTranslate.hWidgetHandle) THEN NEXT size-check1.
+
   IF ttTranslate.cTranslatedLabel = "":U AND
      ttTranslate.cTranslatedTooltip = "":U THEN NEXT size-check1.
 
@@ -3755,6 +5524,28 @@ FOR EACH ttTranslate:
         ttTranslate.hWidgetHandle:TOOLTIP = ttTranslate.cTranslatedTooltip.
       END.
     END.
+      WHEN "COMBO-BOX":U OR WHEN "SELECTION-LIST":U THEN
+      DO:
+          IF ttTranslate.cTranslatedLabel NE "":U AND ttTranslate.cTranslatedLabel NE ? THEN
+          DO:
+              IF ttTranslate.iWidgetEntry EQ 0 THEN
+                  ASSIGN ttTranslate.hWidgetHandle:LABEL = ttTranslate.cTranslatedLabel.
+              ELSE
+              DO:
+                  ASSIGN iEntry         = (ttTranslate.iWidgetEntry * 2) - 1
+                         cListItemPairs = ttTranslate.hWidgetHandle:LIST-ITEM-PAIRS.
+
+                  ENTRY(iEntry, cListItemPairs , ttTranslate.hWidgetHandle:DELIMITER) = ttTranslate.cTranslatedLabel.
+
+                  ASSIGN ttTranslate.hWidgetHandle:LIST-ITEM-PAIRS = cListItemPairs.
+              END.
+          END.    /* translated label has a value */
+
+          /* Only take the tooltip from the obejct itself, not any of the items. */
+          IF ttTranslate.cTranslatedTooltip NE "":U AND ttTranslate.cTranslatedTooltip NE ? AND
+             ttTranslate.iWidgetEntry                                                  EQ 0 THEN
+              ASSIGN ttTranslate.hWidgetHandle:TOOLTIP = ttTranslate.cTranslatedTooltip.          
+      END.  /* combo or selection list */
     WHEN "radio-set":U THEN
     DO:
       /* the program that creates ttTranslate table refers to the entries as 
@@ -3777,7 +5568,6 @@ FOR EACH ttTranslate:
     END.
     OTHERWISE
     DO:
-
       IF ttTranslate.cTranslatedLabel <> "":U AND 
          ttTranslate.hWidgetHandle = ? AND
          INDEX(ttTranslate.cObjectName, ":":U) <> 0 AND
@@ -3876,6 +5666,170 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-updateHelp) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE updateHelp Procedure 
+PROCEDURE updateHelp :
+/*------------------------------------------------------------------------------
+  Purpose:     Update the help table with the supplied temp-table.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER TABLE-HANDLE hHelpTable.
+
+&IF DEFINED(Server-Side) = 0 &THEN
+
+/* We're going to make a dynamic call to the Appserver, we need to build the temp-table of parameters */
+
+DEFINE VARIABLE hTableNotUsed    AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hParamTable      AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hTTHandlesToSend AS HANDLE     NO-UNDO EXTENT 64.        
+
+IF NOT TRANSACTION THEN EMPTY TEMP-TABLE ttSeqType. ELSE FOR EACH ttSeqType: DELETE ttSeqType. END.
+
+CREATE ttSeqType.
+ASSIGN ttSeqType.iParamNo   = 1
+       ttSeqType.cIOMode    = "INPUT":U
+       ttSeqType.cParamName = "T:01":U
+       ttSeqType.cDataType  = "TABLE-HANDLE".
+
+/* Now assign the TABLE-HANDLEs, note they map directly to the ttSeq records of type TABLE-HANDLE */
+
+ASSIGN hTTHandlesToSend[1] = hHelpTable
+       hParamTable         = TEMP-TABLE ttSeqType:HANDLE.
+
+/* calltablett.p will construct and execute the call on the Appserver */
+
+RUN adm2/calltablett.p ON gshAstraAppserver
+    (
+     "updateHelp":U,
+     "SessionManager":U,
+     INPUT "S":U,
+     INPUT-OUTPUT hTableNotUsed,
+     INPUT-OUTPUT TABLE-HANDLE hParamTable,
+     "",
+     {src/adm2/callttparam.i &ARRAYFIELD = "hTTHandlesToSend"}  /* The actual array of table handles */ 
+    ) NO-ERROR.
+
+DELETE OBJECT hParamTable.
+ASSIGN hParamTable = ?.
+
+IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
+
+&ELSE
+DEFINE BUFFER gsm_help FOR gsm_help.
+
+DEFINE VARIABLE hBuffer            AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hQuery             AS HANDLE     NO-UNDO.
+
+DEFINE VARIABLE hLanguageObj       AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hContainerFileName AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hObjectName        AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hWidgetName        AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hHelpFilename      AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hHelpContext       AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hDelete            AS HANDLE     NO-UNDO.
+DEFINE VARIABLE lDelete            AS LOGICAL    NO-UNDO.
+
+ASSIGN hBuffer            = hHelpTable:DEFAULT-BUFFER-HANDLE
+       hLanguageObj       = hBuffer:BUFFER-FIELD("dLanguageObj":U)
+       hContainerFileName = hBuffer:BUFFER-FIELD("cContainerFileName":U)
+       hObjectName        = hBuffer:BUFFER-FIELD("cObjectName":U)
+       hWidgetName        = hBuffer:BUFFER-FIELD("cWidgetName":U)
+       hHelpFilename      = hBuffer:BUFFER-FIELD("cHelpFilename":U)
+       hHelpContext       = hBuffer:BUFFER-FIELD("cHelpContext":U)
+       hDelete            = hBuffer:BUFFER-FIELD("lDelete":U).
+
+CREATE QUERY hQuery.
+hQuery:ADD-BUFFER(hBuffer).
+hQuery:QUERY-PREPARE("FOR EACH ":U + hBuffer:NAME).
+hQuery:QUERY-OPEN().
+
+hQuery:GET-FIRST().
+
+/* Update the whole record set in one transaction */
+
+trn-blk:
+DO FOR gsm_help TRANSACTION ON ERROR UNDO trn-blk, LEAVE trn-blk:
+
+    do-blk:
+    DO WHILE NOT hQuery:QUERY-OFF-END:
+    
+        FIND gsm_help EXCLUSIVE-LOCK
+             WHERE gsm_help.language_obj            = hLanguageObj:BUFFER-VALUE
+               AND gsm_help.help_container_filename = hContainerFileName:BUFFER-VALUE
+               AND gsm_help.help_object_filename    = hObjectName:BUFFER-VALUE
+               AND gsm_help.help_fieldname          = hWidgetName:BUFFER-VALUE
+             NO-ERROR.
+    
+        IF NOT AVAILABLE gsm_help
+        THEN DO:
+            ASSIGN ERROR-STATUS:ERROR = NO. /* We don't want afcheckerr.i to return a false error */
+
+            /* If no filename or context, or flagged for deletion, don't create */
+
+            IF (hHelpFilename:BUFFER-VALUE = "":U
+            AND hHelpContext:BUFFER-VALUE  = "":U)
+             OR hDelete:BUFFER-VALUE = YES
+            THEN DO:
+                hQuery:GET-NEXT().
+                NEXT do-blk.
+            END.
+
+            CREATE gsm_help NO-ERROR.
+            IF ERROR-STATUS:ERROR THEN UNDO trn-blk, LEAVE trn-blk.
+
+            ASSIGN gsm_help.language_obj            = hLanguageObj:BUFFER-VALUE
+                   gsm_help.help_container_filename = hContainerFileName:BUFFER-VALUE
+                   gsm_help.help_object_filename    = hObjectName:BUFFER-VALUE
+                   gsm_help.help_fieldname          = hWidgetName:BUFFER-VALUE
+                   NO-ERROR.
+            IF ERROR-STATUS:ERROR THEN UNDO trn-blk, LEAVE trn-blk.
+        END.
+        ELSE DO:
+            ASSIGN lDelete = (hDelete:BUFFER-VALUE = YES OR (hHelpFilename:BUFFER-VALUE = "":U AND hHelpContext:BUFFER-VALUE = "":U)).
+
+            IF lDelete = YES 
+            THEN DO:
+                DELETE gsm_help NO-ERROR.
+                IF ERROR-STATUS:ERROR THEN UNDO trn-blk, LEAVE trn-blk.
+
+                hQuery:GET-NEXT().
+                NEXT do-blk.
+            END.
+        END.
+
+        ASSIGN gsm_help.help_filename  = hHelpFilename:BUFFER-VALUE
+               gsm_help.help_context   = hHelpContext:BUFFER-VALUE
+               NO-ERROR.
+        IF ERROR-STATUS:ERROR THEN UNDO trn-blk, LEAVE trn-blk.
+
+        hQuery:GET-NEXT().
+    END.
+END.
+
+hQuery:QUERY-CLOSE().
+
+DELETE OBJECT hQuery.
+DELETE OBJECT hHelpTable.
+
+ASSIGN hQuery     = ?
+       hHelpTable = ?.
+
+{af/sup2/afcheckerr.i}
+
+&ENDIF
+
+ASSIGN ERROR-STATUS:ERROR = NO.
+RETURN "":U.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-widgetWalk) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE widgetWalk Procedure 
@@ -3888,10 +5842,11 @@ PROCEDURE widgetWalk :
                input action code (e.g. setup)
   Notes:       
 ------------------------------------------------------------------------------*/
-DEFINE INPUT PARAMETER phContainer AS HANDLE    NO-UNDO.
-DEFINE INPUT PARAMETER phObject    AS HANDLE    NO-UNDO.
-DEFINE INPUT PARAMETER phFrame     AS HANDLE    NO-UNDO.
-DEFINE INPUT PARAMETER pcAction    AS CHARACTER NO-UNDO.
+DEFINE INPUT PARAMETER phContainer      AS HANDLE    NO-UNDO.
+DEFINE INPUT PARAMETER phObject         AS HANDLE    NO-UNDO.
+DEFINE INPUT PARAMETER phFrame          AS HANDLE    NO-UNDO.
+DEFINE INPUT PARAMETER pcAction         AS CHARACTER NO-UNDO.
+DEFINE INPUT PARAMETER plPopupsInFields AS LOGICAL   NO-UNDO.
 
 DEFINE VARIABLE hRealContainer   AS HANDLE    NO-UNDO.
 DEFINE VARIABLE cContainerName   AS CHARACTER NO-UNDO.
@@ -3918,14 +5873,46 @@ DEFINE VARIABLE cParentField     AS CHARACTER NO-UNDO.
 DEFINE VARIABLE cDisplayedFields AS CHARACTER NO-UNDO.
 DEFINE VARIABLE cFieldSecurity   AS CHARACTER NO-UNDO.
 DEFINE VARIABLE iFieldPos        AS INTEGER   NO-UNDO.
+DEFINE VARIABLE cBufferTableName AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cColumnTableName AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cObjectType      AS CHARACTER NO-UNDO.
+DEFINE VARIABLE lObjectSecured       AS LOGICAL  NO-UNDO.
+DEFINE VARIABLE lObjectTranslated    AS LOGICAL NO-UNDO.
+DEFINE VARIABLE cFieldPopupMapping   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cObjectSecuredFields AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cDelimiter           AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cListItems           AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE iCnt                 AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iWhereInList         AS INTEGER    NO-UNDO.
 
 IF NOT VALID-HANDLE(phContainer) OR NOT VALID-HANDLE(phObject) OR NOT VALID-HANDLE(phFrame) THEN RETURN.
+ 
+cObjectType = DYNAMIC-FUNCTION("getObjectType":U IN phObject).
+ASSIGN lObjectTranslated = DYNAMIC-FUNCTION("getObjectTranslated":U IN phObject ) NO-ERROR.
+IF lObjectTranslated EQ ? THEN
+    ASSIGN lObjectTranslated = NO.
+
+ASSIGN lObjectSecured = DYNAMIC-FUNCTION("getObjectSecured":U IN phObject ) NO-ERROR.
+IF lObjectSecured EQ ? THEN
+    ASSIGN lObjectSecured = NO.
+
+/* If both object security and translation have been performed, then there is nothing
+ * to do here. Both of these values are usually set at the same time, but there may be
+ * cases where only one of these values is set. We need to cater for this.  */
+IF lObjectTranslated EQ YES AND lObjectSecured EQ YES THEN
+    RETURN.
+
+/* Where should field calendar and calculator popups go?  Default is RIGHT */
+IF plPopupsInFields = ? THEN
+    ASSIGN plPopupsInFields = NO.
 
 ASSIGN hDataSource = DYNAMIC-FUNCTION("getDataSource":U IN phObject).
 
 cDisplayedFields = DYNAMIC-FUNCTION("getAllFieldHandles" IN phObject) NO-ERROR.
-IF cDisplayedFields <> "":U THEN
-  cFieldSecurity = FILL(",":U,NUM-ENTRIES(cDisplayedFields)).
+/* FieldSecurity will be set for SmartDataBrowsers for browse columns only, not for objects on the 
+   SmartDataBrowser's frame */
+IF cDisplayedFields <> "":U AND cObjectType NE "SmartDataBrowser":U THEN
+  cFieldSecurity = FILL(",":U,NUM-ENTRIES(cDisplayedFields) - 1).
 IF phFrame:TYPE = "window":U THEN
   phFrame = phFrame:FIRST-CHILD.
 
@@ -3980,9 +5967,8 @@ IF VALID-HANDLE(phFrame) AND phFrame:NAME <> "FolderFrame":U THEN DO:
       hwidgetGroup = phFrame:HANDLE
       hwidgetGroup = hwidgetGroup:FIRST-CHILD
       hWidget = hwidgetGroup:FIRST-CHILD.
-
   /* deal with lookups and smartselects not initialized yet */
-  IF pcAction = "setup":U AND hWidget = ? AND INDEX(cObjectName, ":":U) <> 0 AND
+  IF pcAction = "setup":U AND hWidget = ? AND INDEX(cObjectName, ":":U) <> 0 AND lObjectTranslated NE YES AND
      LOOKUP("setfieldlabel":U, phObject:INTERNAL-ENTRIES) <> 0 THEN
   DO:
     CREATE ttTranslate.
@@ -4000,21 +5986,51 @@ IF VALID-HANDLE(phFrame) AND phFrame:NAME <> "FolderFrame":U THEN DO:
       ttTranslate.cOriginalTooltip = "nolabel":U
       ttTranslate.cTranslatedTooltip = "":U
       .
+    /* For Dynamic Combos we should set the Widget Type and Name correctly */
+    IF LOOKUP("dynamicCombo":U,phObject:INTERNAL-ENTRIES) > 0 THEN
+      ASSIGN ttTranslate.cWidgetType = "COMBO-BOX":U
+             ttTranslate.cWidgetName = "fiCombo":U.
   END.
 
   /* check field security and token security */
   ASSIGN cHiddenFields = "":U.
-  IF pcAction = "setup":U THEN
-    RUN fieldSecurityCheck IN gshSecurityManager (INPUT cContainerName,
-                                                INPUT cRunAttribute,
-                                                OUTPUT cSecuredFields).
-  IF pcAction = "setup":U THEN
-    RUN tokenSecurityCheck IN gshSecurityManager (INPUT cContainerName,
+  IF pcAction = "setup":U AND lObjectSecured NE YES THEN 
+  DO:
+      {get logicalObjectName cObjectName phObject}.
+      RUN fieldSecurityGet IN gshSecurityManager (INPUT phObject,
+                                                  INPUT cObjectName,
+                                                  INPUT cRunAttribute,
+                                                  OUTPUT cObjectSecuredFields).
+
+      RUN fieldSecurityGet IN gshSecurityManager (INPUT hRealContainer,
+                                                  INPUT cContainerName,
+                                                  INPUT cRunAttribute,
+                                                  OUTPUT cSecuredFields).
+      IF cSecuredFields <> "":U THEN
+          ASSIGN cSecuredFields = cSecuredFields + ",":U.
+
+      /* Now merge the 2 lists of secured fields */
+      IF NUM-ENTRIES(cObjectSecuredFields) <> 0 THEN
+          DO iCnt = 1 TO NUM-ENTRIES(cObjectSecuredFields) BY 2:
+              ASSIGN iWhereInList = LOOKUP(ENTRY(iCnt, cObjectSecuredFields), cSecuredFields). /* Check where the field is in the securedFields list */
+              IF iWhereInList = 0 THEN /* If not in the list, add it and it's security */
+                  ASSIGN cSecuredFields = cSecuredFields + ENTRY(iCnt, cObjectSecuredFields)     + ",":U
+                                                         + ENTRY(iCnt + 1, cObjectSecuredFields) + ",":U.
+              ELSE DO:
+                  IF ENTRY(iWhereInList + 1, cSecuredFields) <> "READ ONLY":U THEN
+                      ASSIGN ENTRY(iWhereInList + 1, cSecuredFields) = ENTRY(iCnt + 1, cObjectSecuredFields).
+              END.
+          END.
+
+      ASSIGN cSecuredFields = RIGHT-TRIM(cSecuredFields, ",":U).
+  END.
+  IF pcAction = "setup":U AND lObjectSecured NE YES THEN
+    RUN tokenSecurityGet IN gshSecurityManager (INPUT hRealContainer,
+                                                INPUT cContainerName,
                                                 INPUT cRunAttribute,
                                                 OUTPUT cSecuredTokens).
   widget-walk:
-  REPEAT WHILE VALID-HANDLE (hWidget):
-
+  DO WHILE VALID-HANDLE (hWidget):
     /* check if european format and if so and this is a decimal widget and the delimiter is a
        comma, then set the delimiter to chr(3) because comma is a decimal separator in european
        format */
@@ -4029,14 +6045,14 @@ IF VALID-HANDLE(phFrame) AND phFrame:NAME <> "FolderFrame":U THEN DO:
       hWidget:DELIMITER = CHR(3).    
     END.
     /* Set secured fields for Dynamic Combos and Lookups */
-    IF pcAction = "setup":U AND
-       hWidget:TYPE = "FRAME":U  THEN
+    IF pcAction = "setup":U AND lObjectSecured NE YES 
+    AND hWidget:TYPE = "FRAME":U THEN
       cFieldSecurity = setSecurityForDynObjects (hWidget,cSecuredFields,cDisplayedFields,cFieldSecurity,phObject).
       
     /* use database help for tooltip if no tooltip set-up */
     IF pcAction = "setup":U AND CAN-QUERY(hWidget,"tooltip":U) THEN
-    ASSIGN hWidget:TOOLTIP = (IF hWidget:TOOLTIP <> ? AND hWidget:TOOLTIP <> "":U THEN
-                         hWidget:TOOLTIP ELSE hWidget:HELP).
+      ASSIGN hWidget:TOOLTIP = (IF hWidget:TOOLTIP <> ? AND hWidget:TOOLTIP <> "":U THEN
+                               hWidget:TOOLTIP ELSE hWidget:HELP).
     /* translation and security */
     IF pcAction = "Setup":U AND LOOKUP(hWidget:TYPE, "text,button,fill-in,selection-list,editor,combo-box,radio-set,slider,toggle-box":U) > 0 THEN
     DO:
@@ -4048,37 +6064,29 @@ IF VALID-HANDLE(phFrame) AND phFrame:NAME <> "FolderFrame":U THEN DO:
       END.
 
       /* check security */
-      IF hWidget:TYPE = "button":U AND cSecuredTokens <> "":U AND LOOKUP(cFieldName,cSecuredTokens) <> 0 THEN DO:
+      IF lObjectSecured NE YES AND hWidget:TYPE = "button":U AND cSecuredTokens <> "":U AND LOOKUP(cFieldName,cSecuredTokens) <> 0 THEN DO:
         ASSIGN
           hWidget:SENSITIVE = FALSE
-          hWidget:MODIFIED = FALSE.
+          iFieldPos = LOOKUP(STRING(hWidget),cDisplayedFields)
+          ENTRY(iFieldPos,cFieldSecurity) = "ReadOnly":U.
       END.
       iFieldPos = LOOKUP(STRING(hWidget),cDisplayedFields).
-      IF hWidget:TYPE <> "button":U AND cSecuredFields <> "":U AND LOOKUP(cFieldName,cSecuredFields) <> 0 THEN DO:
+      IF lObjectSecured NE YES AND hWidget:TYPE <> "button":U AND cSecuredFields <> "":U AND LOOKUP(cFieldName,cSecuredFields) <> 0 THEN DO:
         ASSIGN iEntry = LOOKUP(cFieldName,cSecuredFields). /* Look for field in list */
         IF iEntry > 0 AND NUM-ENTRIES(cSecuredFields) > iEntry THEN
         DO:
           CASE ENTRY(iEntry + 1, cSecuredFields):
             WHEN "hidden":U THEN
             DO:
-              IF LOOKUP(hWidget:TYPE, "fill-in":U) > 0 THEN /* Can only blank fill-in's */
-                ASSIGN hWidget:BLANK = TRUE.
-              ASSIGN
-                hWidget:SENSITIVE = FALSE
-                hWidget:BGCOLOR = 8.
+              ASSIGN 
+                hWidget:VISIBLE = FALSE
                 cHiddenFields = (IF cHiddenFields <> "":U THEN cHiddenFields + ",":U + cFieldName ELSE cFieldName).
-              IF CAN-SET(hWidget,"READ-ONLY":U) THEN
-                hWidget:READ-ONLY = TRUE.
-              ELSE
-                hWidget:SENSITIVE = FALSE.
               IF iFieldPos <> 0 THEN
                 ENTRY(iFieldPos,cFieldSecurity) = "Hidden":U NO-ERROR.
             END.
             WHEN "Read Only":U THEN
             DO:
-              ASSIGN
-                hWidget:SENSITIVE = FALSE
-                hWidget:BGCOLOR = 8.
+              hWidget:SENSITIVE = FALSE.
               IF CAN-SET(hWidget,"READ-ONLY":U) THEN
                 hWidget:READ-ONLY = TRUE.
               IF iFieldPos <> 0 THEN
@@ -4095,7 +6103,8 @@ IF VALID-HANDLE(phFrame) AND phFrame:NAME <> "FolderFrame":U THEN DO:
       END.
 
       /* Avoid duplicates */
-      IF CAN-FIND(FIRST ttTranslate
+      IF lObjectTranslated NE YES 
+      AND CAN-FIND(FIRST ttTranslate
                   WHERE ttTranslate.dLanguageObj = 0
                     AND ttTranslate.cObjectName = cObjectName
                     AND ttTranslate.cWidgetType = hWidget:TYPE
@@ -4105,154 +6114,222 @@ IF VALID-HANDLE(phFrame) AND phFrame:NAME <> "FolderFrame":U THEN DO:
         NEXT widget-walk.
       END.
 
-      IF hWidget:TYPE <> "RADIO-SET":U THEN
+      IF lObjectTranslated NE YES THEN
       DO:
-        CREATE ttTranslate.
-        ASSIGN
-          ttTranslate.dLanguageObj = 0
-          ttTranslate.cObjectName = cObjectName
-          ttTranslate.lGlobal = NO
-          ttTranslate.lDelete = NO
-          ttTranslate.cWidgetType = hWidget:TYPE
-          ttTranslate.cWidgetName = cFieldName
-          ttTranslate.hWidgetHandle = hWidget
-          ttTranslate.iWidgetEntry = 0
-          ttTranslate.cOriginalLabel = (IF CAN-QUERY(hWidget,"LABEL":U) AND hWidget:LABEL <> ? THEN hWidget:LABEL ELSE "":U)
-          ttTranslate.cTranslatedLabel = "":U
-          ttTranslate.cOriginalTooltip = (IF CAN-QUERY(hWidget,"TOOLTIP":U) AND hWidget:TOOLTIP <> ? THEN hWidget:TOOLTIP ELSE "":U)
-          ttTranslate.cTranslatedTooltip = "":U
-          .
-
-        /* deal with SDF's where label is separate */
-        IF INDEX(cObjectName, ":":U) <> 0 AND ttTranslate.cOriginalLabel = "":U THEN
-        DO:
-          ASSIGN hLabel = ?.
-          ASSIGN hLabel = DYNAMIC-FUNCTION("getLabelHandle":U IN phObject) NO-ERROR.
-          IF VALID-HANDLE(hLabel) AND hLabel:SCREEN-VALUE <> ? AND hLabel:SCREEN-VALUE <> "":U THEN
+          IF CAN-DO("COMBO-BOX,SELECTION-LIST":U, hWidget:TYPE) AND
+             CAN-QUERY(hWidget, "LIST-ITEM-PAIRS":U)            THEN
           DO:
-            ttTranslate.cOriginalLabel = "nolabel":U /* REPLACE(hLabel:SCREEN-VALUE,":":U,"":U) */ .
-            ttTranslate.hWidgetHandle = hLabel.
+              ASSIGN cListItems = hWidget:LIST-ITEM-PAIRS
+                     cDelimiter = hWidget:DELIMITER.
+
+              IF cListItems NE ? AND NUM-ENTRIES(cListItems, cDelimiter) GE 2 THEN
+              DO iRadioLoop = 1 TO NUM-ENTRIES(cListItems, cDelimiter) BY 2:
+                CREATE ttTranslate.
+                ASSIGN
+                  ttTranslate.dLanguageObj        = 0
+                  ttTranslate.cObjectName         = cObjectName
+                  ttTranslate.lGlobal             = NO
+                  ttTranslate.lDelete             = NO
+                  ttTranslate.cWidgetType         = hWidget:TYPE
+                  ttTranslate.cWidgetName         = cFieldName
+                  ttTranslate.hWidgetHandle       = hWidget
+                  ttTranslate.iWidgetEntry        = (iRadioLoop + 1) / 2
+                  ttTranslate.cOriginalLabel      = ENTRY(iRadioLoop, cListItems, cDelimiter)
+                  ttTranslate.cTranslatedLabel    = "":U
+                  ttTranslate.cOriginalTooltip    = (IF CAN-QUERY(hWidget,"TOOLTIP":U) AND hWidget:TOOLTIP <> ? THEN hWidget:TOOLTIP ELSE "":U)
+                  ttTranslate.cTranslatedTooltip  = "":U.                
+              END.    /* loop through list items  */
+          END.    /* combos and selection list AND updatable list item pairs. */
+
+          IF hWidget:TYPE <> "RADIO-SET":U THEN
+          DO:
+            CREATE ttTranslate.
+            ASSIGN
+              ttTranslate.dLanguageObj = 0
+              ttTranslate.cObjectName = cObjectName
+              ttTranslate.lGlobal = NO
+              ttTranslate.lDelete = NO
+              ttTranslate.cWidgetType = hWidget:TYPE
+              ttTranslate.cWidgetName = cFieldName
+              ttTranslate.hWidgetHandle = hWidget
+              ttTranslate.iWidgetEntry = 0
+              ttTranslate.cOriginalLabel = (IF CAN-QUERY(hWidget,"LABEL":U) AND hWidget:LABEL <> ? THEN hWidget:LABEL ELSE "":U)
+              ttTranslate.cTranslatedLabel = "":U
+              ttTranslate.cOriginalTooltip = (IF CAN-QUERY(hWidget,"TOOLTIP":U) AND hWidget:TOOLTIP <> ? THEN hWidget:TOOLTIP ELSE "":U)
+              ttTranslate.cTranslatedTooltip = "":U
+              .
+    
+            /* deal with SDF's where label is separate */
+            IF INDEX(cObjectName, ":":U) <> 0 AND ttTranslate.cOriginalLabel = "":U THEN
+            DO:
+              ASSIGN hLabel = ?.
+              ASSIGN hLabel = DYNAMIC-FUNCTION("getLabelHandle":U IN phObject) NO-ERROR.
+              IF VALID-HANDLE(hLabel) AND hLabel:SCREEN-VALUE <> ? AND hLabel:SCREEN-VALUE <> "":U THEN
+              DO:
+                ttTranslate.cOriginalLabel = "nolabel":U /* REPLACE(hLabel:SCREEN-VALUE,":":U,"":U) */ .
+                ttTranslate.hWidgetHandle = hLabel.
+              END.
+            END.
+    
+          END. /* not a radio-set */
+          ELSE  /* It is a radio-set */
+          DO:
+            ASSIGN cRadioButtons = hWidget:RADIO-BUTTONS.
+            radio-loop:
+            DO iRadioLoop = 1 TO NUM-ENTRIES(cRadioButtons) BY 2:
+    
+              CREATE ttTranslate.
+              ASSIGN
+                ttTranslate.dLanguageObj = 0
+                ttTranslate.cObjectName = cObjectName
+                ttTranslate.lGlobal = NO
+                ttTranslate.lDelete = NO
+                ttTranslate.cWidgetType = hWidget:TYPE
+                ttTranslate.cWidgetName = cFieldName
+                ttTranslate.hWidgetHandle = hWidget
+                ttTranslate.iWidgetEntry = (iRadioLoop + 1) / 2
+                ttTranslate.cOriginalLabel = ENTRY(iRadioLoop, cRadioButtons)
+                ttTranslate.cTranslatedLabel = "":U
+                ttTranslate.cOriginalTooltip = (IF CAN-QUERY(hWidget,"TOOLTIP":U) AND hWidget:TOOLTIP <> ? THEN hWidget:TOOLTIP ELSE "":U)
+                ttTranslate.cTranslatedTooltip = "":U.
+            END. /* radio-loop */
+          END. /* radio-set */
+        END.  /* valid widget type */
+        ELSE IF pcAction = "Setup":U AND INDEX(hWidget:TYPE,"browse":U) <> 0 THEN DO:
+          ASSIGN hColumn        = hWidget:FIRST-COLUMN.
+          
+          IF cObjectType = "SmartDataBrowser":U THEN 
+            cFieldSecurity = FILL(",":U,hWidget:NUM-COLUMNS - 1).
+    
+          col-loop:
+          DO iBrowseLoop = 1 TO hWidget:NUM-COLUMNS:
+            IF NOT VALID-HANDLE(hColumn) THEN LEAVE col-loop.
+            
+            /*
+            Determine the buffer table name and the table name 
+            If two buffers for the same table is used, the table prefix will be the same 
+            This cause errors when creating the translation fields as a record will the same name already exist
+            */
+            ASSIGN
+              cBufferTableName = hColumn:BUFFER-FIELD:BUFFER-HANDLE:NAME
+              cColumnTableName = hColumn:TABLE
+              NO-ERROR.
+    
+            ASSIGN
+              cFieldName = (IF cBufferTableName <> ?
+                            AND cBufferTableName <> "RowObject":U
+                            AND LENGTH(cBufferTableName) > 0
+                            THEN (cBufferTableName + ".":U)
+                            ELSE
+                            (IF cColumnTableName <> ?
+                             AND cColumnTableName <> "RowObject":U
+                             AND LENGTH(cColumnTableName) > 0
+                             THEN (cColumnTableName + ".":U)
+                             ELSE
+                               "":U
+                            )
+                           )
+                         + (IF (hColumn:NAME = ? OR hColumn:NAME = "":U)
+                            AND hColumn:LABEL <> ?
+                            THEN hColumn:LABEL
+                            ELSE hColumn:NAME
+                           ).
+            /*
+            ASSIGN cFieldName = (IF CAN-QUERY(hColumn, "TABLE":U) AND LENGTH(hColumn:TABLE) > 0 AND hColumn:TABLE <> "RowObject":U THEN (hColumn:TABLE + ".":U) ELSE "":U) + hColumn:NAME.
+            */
+            IF cFieldName = ? OR cFieldName = "":U THEN DO:
+              ASSIGN hColumn = hcolumn:NEXT-COLUMN NO-ERROR.
+              NEXT col-loop.
+            END.
+    
+            /* Avoid duplicates */
+            IF CAN-FIND(FIRST ttTranslate
+                        WHERE ttTranslate.dLanguageObj = 0
+                          AND ttTranslate.cObjectName = cObjectName
+                          AND ttTranslate.cWidgetType = hWidget:TYPE
+                          AND ttTranslate.cWidgetName = cFieldName) THEN
+            DO:
+              ASSIGN hColumn = hcolumn:NEXT-COLUMN NO-ERROR.
+              NEXT col-loop.
+            END.
+    
+            CREATE ttTranslate.
+            ASSIGN
+              ttTranslate.dLanguageObj = 0
+              ttTranslate.cObjectName = cObjectName
+              ttTranslate.lGlobal = NO
+              ttTranslate.lDelete = NO
+              ttTranslate.cWidgetType = hWidget:TYPE
+              ttTranslate.cWidgetName = cFieldName
+              ttTranslate.hWidgetHandle = hColumn
+              ttTranslate.iWidgetEntry = 0
+              ttTranslate.cOriginalLabel = (IF CAN-QUERY(hColumn,"LABEL":U) AND hColumn:LABEL <> ? THEN hColumn:LABEL ELSE "":U)
+              ttTranslate.cTranslatedLabel = "":U
+              ttTranslate.cOriginalTooltip = (IF CAN-QUERY(hColumn,"TOOLTIP":U) AND hColumn:TOOLTIP <> ? THEN hColumn:TOOLTIP ELSE "":U)
+              ttTranslate.cTranslatedTooltip = "":U
+              .
+    
+            IF cObjectType = "SmartDataBrowser":U THEN
+            DO:
+              ASSIGN iEntry = LOOKUP(cFieldName,cSecuredFields). /* Look for field in list */
+              IF iEntry > 0 AND NUM-ENTRIES(cSecuredFields) > iEntry THEN
+                ENTRY(iBrowseLoop,cFieldSecurity) = ENTRY(iEntry + 1, cSecuredFields).
+            END.  /* if SmartDataBrowser */
+    
+            ASSIGN hColumn = hcolumn:NEXT-COLUMN NO-ERROR.
           END.
-        END.
+        END.    /* object not translated */
 
-      END. /* not a radio-set */
-      ELSE  /* It is a radio-set */
-      DO:
-        ASSIGN cRadioButtons = hWidget:RADIO-BUTTONS.
-        radio-loop:
-        DO iRadioLoop = 1 TO NUM-ENTRIES(cRadioButtons) BY 2:
-
-          CREATE ttTranslate.
-          ASSIGN
-            ttTranslate.dLanguageObj = 0
-            ttTranslate.cObjectName = cObjectName
-            ttTranslate.lGlobal = NO
-            ttTranslate.lDelete = NO
-            ttTranslate.cWidgetType = hWidget:TYPE
-            ttTranslate.cWidgetName = cFieldName
-            ttTranslate.hWidgetHandle = hWidget
-            ttTranslate.iWidgetEntry = (iRadioLoop + 1) / 2
-            ttTranslate.cOriginalLabel = ENTRY(iRadioLoop, cRadioButtons)
-            ttTranslate.cTranslatedLabel = "":U
-            ttTranslate.cOriginalTooltip = (IF CAN-QUERY(hWidget,"TOOLTIP":U) AND hWidget:TOOLTIP <> ? THEN hWidget:TOOLTIP ELSE "":U)
-            ttTranslate.cTranslatedTooltip = "":U.
-        END. /* radio-loop */
-      END. /* radio-set */
-    END.  /* valid widget type */
-    ELSE IF pcAction = "Setup":U AND INDEX(hWidget:TYPE,"browse":U) <> 0 THEN DO:
-      ASSIGN hColumn = hWidget:FIRST-COLUMN.
-      col-loop:
-      DO iBrowseLoop = 1 TO hWidget:NUM-COLUMNS:
-        IF NOT VALID-HANDLE(hColumn) THEN LEAVE col-loop.
-        ASSIGN cFieldName = (IF CAN-QUERY(hColumn, "TABLE":U) AND LENGTH(hColumn:TABLE) > 0 AND hColumn:TABLE <> "RowObject":U THEN (hColumn:TABLE + ".":U) ELSE "":U) + hColumn:NAME.
-
-        IF cFieldName = ? OR cFieldName = "":U THEN DO:
-          ASSIGN hColumn = hcolumn:NEXT-COLUMN NO-ERROR.
-          NEXT col-loop.
-        END.
-
-        /* Avoid duplicates */
-        IF CAN-FIND(FIRST ttTranslate
-                    WHERE ttTranslate.dLanguageObj = 0
-                      AND ttTranslate.cObjectName = cObjectName
-                      AND ttTranslate.cWidgetType = hWidget:TYPE
-                      AND ttTranslate.cWidgetName = cFieldName) THEN
-        DO:
-          ASSIGN hColumn = hcolumn:NEXT-COLUMN NO-ERROR.
-          NEXT col-loop.
-        END.
-
-        CREATE ttTranslate.
-        ASSIGN
-          ttTranslate.dLanguageObj = 0
-          ttTranslate.cObjectName = cObjectName
-          ttTranslate.lGlobal = NO
-          ttTranslate.lDelete = NO
-          ttTranslate.cWidgetType = hWidget:TYPE
-          ttTranslate.cWidgetName = cFieldName
-          ttTranslate.hWidgetHandle = hColumn
-          ttTranslate.iWidgetEntry = 0
-          ttTranslate.cOriginalLabel = (IF CAN-QUERY(hColumn,"LABEL":U) AND hColumn:LABEL <> ? THEN hColumn:LABEL ELSE "":U)
-          ttTranslate.cTranslatedLabel = "":U
-          ttTranslate.cOriginalTooltip = (IF CAN-QUERY(hColumn,"TOOLTIP":U) AND hColumn:TOOLTIP <> ? THEN hColumn:TOOLTIP ELSE "":U)
-          ttTranslate.cTranslatedTooltip = "":U
-          .
-
-        ASSIGN hColumn = hcolumn:NEXT-COLUMN NO-ERROR.
-      END.
+      IF lObjectSecured NE YES AND cObjectType = "SmartDataBrowser":U AND cFieldSecurity <> "":U THEN
+        DYNAMIC-FUNCTION("setFieldSecurity" IN phObject, cFieldSecurity) NO-ERROR.
     END. /* browse setup */
 
-    ASSIGN hWidget = hWidget:NEXT-SIBLING.
-  END. /* widget-walk */
+    /*-----------------------------------*
+     * Put popup on fields if applicable *
+     *-----------------------------------*/
 
-  /* translate widgets */
-  IF pcAction = "setup":U AND CAN-FIND(FIRST ttTranslate) THEN
-    RUN translateWidgets (INPUT phobject, INPUT phFrame, INPUT TABLE ttTranslate).
+    /* Only Date, Decimal or Integer Fill-ins will ever have popups. */
+    IF  pcAction = "setup":U
+    AND LOOKUP(hWidget:TYPE, "FILL-IN":U) NE 0 
+    AND CAN-QUERY(hWidget, "DATA-TYPE":U) 
+    AND LOOKUP(hWidget:DATA-TYPE, "DATE,DECIMAL,INTEGER":U) NE 0 THEN 
+    DO:
+        /* Check whether the ShowPopup property has been explicitly set.
+         * If so, use this value. If not, act according to the defaults. */
 
-  /* put popup buttons on - after translation and resizes */
-  IF pcAction = "setup":U  THEN
-  DO:
-    ASSIGN
-        hwidgetGroup = phFrame:HANDLE
-        hwidgetGroup = hwidgetGroup:FIRST-CHILD
-        hWidget = hwidgetGroup:FIRST-CHILD.
+        ASSIGN cShowPopup = "":U.
+        IF  CAN-QUERY(hWidget, "PRIVATE-DATA":U)             
+        AND LOOKUP("ShowPopup":U, hWidget:PRIVATE-DATA) GT 0 THEN
+            ASSIGN cShowPopup = ENTRY(LOOKUP("ShowPopup":U, hWidget:PRIVATE-DATA) + 1, hWidget:PRIVATE-DATA).
 
-    widget-walk2:
-    REPEAT WHILE VALID-HANDLE(hWidget):
-        /* Only Date, Decimal or Integer Fill-ins will ever have popups. */
-        IF LOOKUP(hWidget:TYPE, "FILL-IN":U)                   NE 0 AND
-           CAN-QUERY(hWidget, "DATA-TYPE":U)                        AND
-           LOOKUP(hWidget:DATA-TYPE, "DATE,DECIMAL,INTEGER":U) NE 0 THEN
+        /* Get the name of the field for which popup is to be created only if there are hidden fields here */
+        IF cHiddenFields <> "":U THEN 
         DO:
-            /* Check whether the ShowPopup property has been explicitly set.
-             * If so, use this value. If not, act according to the defaults. */
-            ASSIGN cShowPopup = "":U.
-            IF CAN-QUERY(hWidget, "PRIVATE-DATA":U)             AND
-               LOOKUP("ShowPopup":U, hWidget:PRIVATE-DATA) GT 0 THEN
-                ASSIGN cShowPopup = ENTRY(LOOKUP("ShowPopup":U, hWidget:PRIVATE-DATA) + 1, hWidget:PRIVATE-DATA).
-            /* Get the name of the field for which popup is to be created only if there are hidden fields here */
-            IF cHiddenFields <> "":U THEN DO:
-                cParentField = (IF CAN-QUERY(hWidget, "TABLE":U) AND LENGTH(hWidget:TABLE) > 0 AND hWidget:TABLE <> "RowObject":U THEN 
-                                  (hWidget:TABLE + ".":U) ELSE "":U) + hWidget:NAME.
-                IF cParentField <> "":U AND cParentField <> ? THEN
-                    IF LOOKUP(cParentField,cHiddenFields) <> 0 THEN /* Don't create popup for hidden fields */
-                        ASSIGN cShowPopup = "NO".
-            END.
-            /* Only check for ShowPopups = NO. If it is YES, create the popup. */
-            IF cShowPopup EQ "NO":U THEN
-            DO:
-                ASSIGN hWidget = hWidget:NEXT-SIBLING.
-                NEXT widget-walk2.
-            END.    /* ShowPopup is NO */
-            ELSE
-            IF cShowPopup NE "YES":U THEN
+            cParentField = (IF CAN-QUERY(hWidget, "TABLE":U) AND LENGTH(hWidget:TABLE) > 0 AND hWidget:TABLE <> "RowObject":U 
+                            THEN (hWidget:TABLE + ".":U) 
+                            ELSE "":U) 
+                         + hWidget:NAME.
+
+            IF cParentField <> "":U AND cParentField <> ? THEN
+                IF LOOKUP(cParentField,cHiddenFields) <> 0 THEN /* Don't create popup for hidden fields */
+                    ASSIGN cShowPopup = "NO".
+        END.
+
+        /* Only check for ShowPopups = NO. If it is YES, create the popup. */
+        IF cShowPopup EQ "NO":U THEN 
+        DO:
+            ASSIGN hWidget = hWidget:NEXT-SIBLING.
+            NEXT widget-walk.
+        END.    /* ShowPopup is NO */
+        ELSE
+            IF cShowPopup NE "YES":U THEN 
             DO:
                 /* By default there is no popup for integer widgets. */
                 IF CAN-QUERY(hWidget, "DATA-TYPE":U) AND
-                   hWidget:DATA-TYPE  EQ "INTEGER":U THEN
-                DO:
+                   hWidget:DATA-TYPE  EQ "INTEGER":U 
+                THEN DO:
                     ASSIGN hWidget = hWidget:NEXT-SIBLING.
-                    NEXT widget-walk2.
+                    NEXT widget-walk.
                 END.    /* integer default. */
 
                 /* Kept for backwards compatability. */
@@ -4260,42 +6337,77 @@ IF VALID-HANDLE(phFrame) AND phFrame:NAME <> "FolderFrame":U THEN DO:
                    (hWidget:PRIVATE-DATA NE ? AND INDEX(hWidget:PRIVATE-DATA, "NoLookups":U) NE 0) THEN
                 DO:
                     ASSIGN hWidget = hWidget:NEXT-SIBLING.
-                    NEXT widget-walk2.
+                    NEXT widget-walk.
                 END.    /* NOLOOKUPS set in private data */
             END.    /* default */
 
-            /* create a lookup button for pop-up calendar or calculator */
-            CREATE BUTTON hLookup
-                ASSIGN FRAME = phFrame
-                       NO-FOCUS = TRUE
-                       PRIVATE-DATA = "":U
-                TRIGGERS:
-                    ON CHOOSE PERSISTENT RUN runLookup IN gshSessionManager (INPUT hWidget).
-                END TRIGGERS.
-            ASSIGN hLookup:LABEL = "...":U
-                   hLookup:WIDTH-PIXELS = 15
-                   hLookup:HEIGHT-PIXELS = hWidget:HEIGHT-PIXELS - 1
-                   hLookup:HIDDEN = FALSE
-                   hLookup:SENSITIVE = TRUE
-                   hLookup:X = (hWidget:X + hWidget:WIDTH-PIXELS) - 15
-                   hLookup:Y = hWidget:Y + 1
-                   hWidget:WIDTH-PIXELS = hWidget:WIDTH-PIXELS - 15.
-            hLookup:MOVE-TO-TOP().
+        /* create a lookup button for pop-up calendar or calculator */
+        CREATE BUTTON hLookup
+            ASSIGN FRAME         = phFrame
+                   NO-FOCUS      = TRUE
+                   WIDTH-PIXELS  = 15
+                   LABEL         = "...":U
+                   PRIVATE-DATA  = "POPUP":U 
+                   HIDDEN        = FALSE
+            /* this is curretly called AFTER enableObjects, so ensure  
+               the popup has the right state */      
+                   SENSITIVE     = hWidget:SENSITIVE 
+                                   AND CAN-SET(hWidget,'READ-ONLY':U) 
+                                   AND NOT hWidget:READ-ONLY
+            TRIGGERS:
+                ON CHOOSE PERSISTENT RUN runLookup IN gshSessionManager (INPUT hWidget).
+            END TRIGGERS.
+        /* The lookup widget should be placed outside of the fill-in.  If the frame width is exceeded, widen it. */
+        IF plPopupsInFields = NO THEN 
+        DO:
+            ASSIGN hLookup:HEIGHT-PIXELS = hWidget:HEIGHT-PIXELS - 4
+                   hLookup:Y             = hWidget:Y + 2.
 
-            /* Add F4 trigger to widget */
-            ON F4 OF hWidget PERSISTENT RUN runLookup IN gshSessionManager (hWidget).
-            /* Store the handle of the lookup in the widget's private data. */
-            IF hWidget:PRIVATE-DATA EQ ? THEN
-                ASSIGN hWidget:PRIVATE-DATA = "":U.
-            ASSIGN hWidget:PRIVATE-DATA = hWidget:PRIVATE-DATA + ",":U + "PopupHandle,":U + STRING(hLookup).
-        END. /* setup of lookups */
-        ASSIGN hWidget = hWidget:NEXT-SIBLING.
-    END. /* widget-walk2 */
-  END. /*setup action */
+            IF hWidget:COLUMN + hWidget:WIDTH-CHARS + hLookup:WIDTH-CHARS > phFrame:WIDTH
+            THEN DO:
+                /* We're going to widen the frame to make space for the button. */
+                RUN increaseFrameforPopup (INPUT phObject,
+                                           INPUT phFrame,
+                                           INPUT hLookup,
+                                           INPUT hWidget).
+            END.
+            ELSE
+                ASSIGN hLookup:X = hWidget:X + hWidget:WIDTH-PIXELS - 3.
+
+            ASSIGN hWidget:WIDTH-PIXELS = hWidget:WIDTH-PIXELS + 14.
+        END.
+        ELSE
+            ASSIGN hLookup:HEIGHT-PIXELS = hWidget:HEIGHT-PIXELS - 4
+                   hLookup:Y             = hWidget:Y + 2
+                   hWidget:WIDTH-PIXELS  = hWidget:WIDTH-PIXELS
+                   hLookup:X             = (hWidget:X + hWidget:WIDTH-PIXELS) - 17.
+
+        hLookup:MOVE-TO-TOP().
+        IF VALID-HANDLE(hLookup) THEN
+          ASSIGN 
+           cFieldPopupMapping = cFieldPopupMapping
+                              + (IF cFieldPopupMapping = "":U THEN "":U ELSE ",":U)
+                              + STRING(hWidget)
+                              + ",":U
+                              + STRING(hLookup).
+        /* Add F4 trigger to widget */
+        ON F4 OF hWidget PERSISTENT RUN runLookup IN gshSessionManager (hWidget).
+    END. /* setup of lookups */
+    ASSIGN hWidget = hWidget:NEXT-SIBLING.
+  END. /* widget-walk */
+  /* Store the mapping of fields and popup handles */
+  IF cFieldPopupMapping > '':U THEN
+    DYNAMIC-FUNCTION('setFieldPopupMapping':U IN phObject,cFieldPopupMapping) NO-ERROR.   
+
+  /* translate widgets */
+  IF lObjectTranslated NE YES AND pcAction = "setup":U AND CAN-FIND(FIRST ttTranslate) THEN
+    RUN translateWidgets (INPUT phobject, INPUT phFrame, INPUT TABLE ttTranslate).
+
 END.  /* valid-handle(phframe) */
 
-/* Now we need to set the Secured fields */
-IF cFieldSecurity <> "":U THEN
+/* Now we need to set the Secured fields for objects that are not SmartDataBrowsers.  
+   SmartDataBrowsers support field security for its browse columns only.  */
+IF lObjectSecured NE YES AND cFieldSecurity <> "":U AND cObjectType NE "SmartDataBrowser":U THEN
   DYNAMIC-FUNCTION("setFieldSecurity" IN phObject, cFieldSecurity) NO-ERROR.
 
 RETURN.
@@ -4307,6 +6419,135 @@ END PROCEDURE.
 &ENDIF
 
 /* ************************  Function Implementations ***************** */
+
+&IF DEFINED(EXCLUDE-addAsSuperProcedure) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION addAsSuperProcedure Procedure 
+FUNCTION addAsSuperProcedure RETURNS LOGICAL
+    ( INPUT phSuperProcedure        AS HANDLE,
+      INPUT phProcedure             AS HANDLE   ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Adds a procedure (phSuperProcedure) and all of its super procedures
+            to a specified procedure (phProcedure).
+    Notes:  
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE hSuperProcedure         AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE iLoop                   AS INTEGER                  NO-UNDO.
+
+    DO iLoop = NUM-ENTRIES(phSuperProcedure:SUPER-PROCEDURES) TO 1 BY -1:
+        ASSIGN hSuperProcedure = WIDGET-HANDLE(ENTRY(iLoop, phSuperProcedure:SUPER-PROCEDURES)) NO-ERROR.
+
+        IF VALID-HANDLE(hSuperProcedure) THEN
+            phProcedure:ADD-SUPER-PROCEDURE(hSuperProcedure, SEARCH-TARGET).
+    END.    /* loop through all the super procedures */
+
+    /* Add this procedure as a super. */
+    phProcedure:ADD-SUPER-PROCEDURE(phSuperProcedure, SEARCH-TARGET).
+
+    RETURN FALSE.   /* Function return value. */  
+END FUNCTION.   /* addAsSuperProcedure */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-filterEvaluateOuterJoins) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION filterEvaluateOuterJoins Procedure 
+FUNCTION filterEvaluateOuterJoins RETURNS CHARACTER
+  (pcQueryString  AS CHARACTER,
+   pcFilterFields AS CHARACTER):
+/*------------------------------------------------------------------------------
+  Purpose:     When we're filtering on OUTER-JOINs in a browser, Dynamics removes\
+               the OUTER-JOIN keyword to ensure we do actually filter.  This procedure
+               accepts a query, and a list of fields.  It will check if the fields
+               apply to an OUTER-JOIN and remove it if so.
+  Parameters:  pcQueryString  - The query to evaluate.
+               pcFilterFields - Comma delimited list of fields.  <table>.<field>,<table.field>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+DEFINE VARIABLE cFilterFieldBuffers AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cNewQueryString     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cOuterJoinEntry     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cCurrentEntry       AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cBuffers            AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cWord               AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE iQueryLine          AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iEntry              AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iWord               AS INTEGER    NO-UNDO.
+DEFINE VARIABLE lEachFirstLast      AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE lFoundBuffer        AS LOGICAL    NO-UNDO.
+
+/* Step through the Query by each buffer / table entry */
+DO iEntry = 1 TO NUM-ENTRIES(pcQueryString):
+    ASSIGN cCurrentEntry  = ENTRY(iEntry, pcQueryString)
+           cCurrentEntry  = REPLACE(cCurrentEntry, CHR(10), " ":U) WHEN INDEX(cCurrentEntry, CHR(10)) <> 0
+           cCurrentEntry  = REPLACE(cCurrentEntry, CHR(13), " ":U) WHEN INDEX(cCurrentEntry, CHR(13)) <> 0
+           lEachFirstLast = FALSE
+           lFoundBuffer   = FALSE.
+    
+    /* If the Entry contains the OUTER-JOIN keyword, continue */
+    IF INDEX(cCurrentEntry, "OUTER-JOIN":U) <> 0 
+    THEN DO iWord = 1 TO NUM-ENTRIES(cCurrentEntry, " ":U):
+        ASSIGN cWord = ENTRY(iWord, cCurrentEntry, " ":U).
+    
+        /* Set the lEachFirstLast flag when the EACH, FIRST or LAST keywords are encountered */
+        IF TRIM(cWord) = "EACH":U  
+        OR TRIM(cWord) = "FIRST":U 
+        OR TRIM(cWord) = "LAST":U THEN
+            ASSIGN lEachFirstLast = TRUE.
+        ELSE
+            IF TRIM(cWord) <> "":U AND lEachFirstLast = TRUE THEN
+              /* Found the table name */
+              ASSIGN cOuterJoinEntry = cOuterJoinEntry + (IF TRIM(cOuterJoinEntry) = "":U THEN "":U ELSE ",":U) + STRING(iEntry)
+                     cBuffers        = cBuffers        + (IF TRIM(cBuffers)        = "":U THEN "":U ELSE ",":U) + cWord
+                     lFoundBuffer    = TRUE.
+    
+        IF lFoundBuffer = TRUE THEN LEAVE.
+    END.
+END.
+
+/* Ensure the variable is empty for the next steps */
+ASSIGN cWord = "":U.
+
+/* Pick up to which 'buffer line' in the query do we need to replace OUTER-JOINs with '' */
+IF TRIM(pcFilterFields) <> "":U 
+THEN DO iEntry = 1 TO NUM-ENTRIES(cBuffers):
+    ASSIGN cCurrentEntry = ENTRY(iEntry, cBuffers).
+    
+    DO iWord = 1 TO NUM-ENTRIES(pcFilterFields):
+        IF ENTRY(1, ENTRY(iWord, pcFilterFields), ".":U) = cCurrentEntry THEN
+            cWord = cCurrentEntry.
+    END.
+END.
+
+IF cWord <> "":U 
+THEN DO:
+    ASSIGN iQueryLine = INTEGER(ENTRY(LOOKUP(cWord, cBuffers), cOuterJoinEntry)).
+    
+    /* Remove the OUTER-JOIN keyword from the relevant strings */
+    DO iEntry = 1 TO NUM-ENTRIES(pcQueryString):
+        ASSIGN cCurrentEntry = ENTRY(iEntry, pcQueryString).
+    
+        IF INDEX(cCurrentEntry, "OUTER-JOIN":U) <> 0 AND iEntry <= iQueryLine THEN
+            cCurrentEntry = REPLACE(cCurrentEntry, "OUTER-JOIN":U, "":U).
+    
+        ASSIGN cNewQueryString = cNewQueryString +  (IF TRIM(cNewQueryString) = "":U THEN "":U ELSE ",":U) + cCurrentEntry.
+    END.
+END.
+ELSE
+    cNewQueryString = pcQueryString.
+
+RETURN cNewQueryString.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-fixQueryString) = 0 &THEN
 
@@ -4362,6 +6603,25 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getCurrentLogicalName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getCurrentLogicalName Procedure 
+FUNCTION getCurrentLogicalName RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN gcLogicalContainerName.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getInternalEntryExists) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getInternalEntryExists Procedure 
@@ -4380,11 +6640,29 @@ FUNCTION getInternalEntryExists RETURNS LOGICAL
     DEFINE VARIABLE iEntryNumber                AS INTEGER              NO-UNDO.
     DEFINE VARIABLE cInternalEntries            AS CHARACTER            NO-UNDO.
 
+    DEFINE BUFFER ttPersistentProc FOR ttPersistentProc.
+
     IF VALID-HANDLE(phProcedure) THEN
-        IF phProcedure:PROXY THEN
-        DO:
-            ASSIGN cInternalEntries = DYNAMIC-FUNCTION("getInternalEntries":U IN phProcedure) NO-ERROR.
-            ASSIGN iEntryNumber = LOOKUP(pcProcedureName, cInternalEntries) WHEN cInternalEntries <> ?.
+        IF phProcedure:PROXY 
+        THEN DO:
+            /* When a procedure is launched, we store the internal entries in the temp-table. *
+             * See if we can find the entry in there first                                    */
+
+            FIND FIRST ttPersistentProc
+                 WHERE ttPersistentProc.physicalName = phProcedure:FILE-NAME
+                   AND ttPersistentProc.onAppserver  = YES
+                 NO-ERROR.
+
+            IF AVAILABLE ttPersistentProc THEN
+                ASSIGN iEntryNumber = LOOKUP(pcProcedureName, ttPersistentProc.internalEntries).
+
+            /* Can't find the entry in the temp-table, retrieve from the Appserver */
+
+            IF iEntryNumber = 0 OR iEntryNumber = ? 
+            THEN DO:
+                ASSIGN cInternalEntries = DYNAMIC-FUNCTION("getInternalEntries":U IN phProcedure) NO-ERROR.
+                ASSIGN iEntryNumber = LOOKUP(pcProcedureName, cInternalEntries) WHEN cInternalEntries <> ?.
+            END.
         END.    /* procedure is a proxy: running on AppServer */
         ELSE
             ASSIGN iEntryNumber = LOOKUP(pcProcedureName, phProcedure:INTERNAL-ENTRIES).
@@ -4427,7 +6705,7 @@ FUNCTION getPropertyList RETURNS CHARACTER
   ASSIGN cReturnValues = FILL(CHR(3), NUM-ENTRIES(pcPropertyList) - 1).
 
   /* Properties to get from the database */
-  IF (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
+  IF (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN
     ASSIGN
       cDbPropertyList = pcPropertyList
       cDbValueList = cReturnValues.
@@ -4438,7 +6716,7 @@ FUNCTION getPropertyList RETURNS CHARACTER
       .
 
   /* Read cached values + build list of values to get from server if required */
-  IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
+  IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN
   cache-loop:
   DO iLoop = 1 TO NUM-ENTRIES(pcPropertyList):
     ASSIGN cProperty = TRIM(ENTRY(iLoop,pcPropertyList)).
@@ -4455,7 +6733,7 @@ FUNCTION getPropertyList RETURNS CHARACTER
 
   /* get properties from database if required */
   &IF DEFINED(server-side) <> 0 &THEN
-    IF (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) AND cDbPropertyList <> "":U THEN
+    IF (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) AND cDbPropertyList <> "":U THEN
     DO:
       RUN afgetprplp (INPUT cDbPropertyList,
                       OUTPUT cDbValueList).  
@@ -4603,7 +6881,7 @@ FUNCTION setPropertyList RETURNS LOGICAL
   DEFINE VARIABLE cProperty       AS CHARACTER  NO-UNDO.
 
   /* First update cache temp-table with all properties */
-  IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
+  IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN
   cache-loop:
   DO iLoop = 1 TO NUM-ENTRIES(pcPropertyList):
     ASSIGN cProperty = TRIM(ENTRY(iLoop,pcPropertyList)).
@@ -4638,7 +6916,7 @@ FUNCTION setPropertyList RETURNS LOGICAL
 
   /* Then update database with all properties if required */
   &IF DEFINED(server-side) <> 0 &THEN
-    IF (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
+    IF (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN
     DO:
       RUN afsetprplp (INPUT pcPropertyList,
                       INPUT pcPropertyValues).  
@@ -4678,7 +6956,6 @@ FUNCTION setSecurityForDynObjects RETURNS CHARACTER
   DEFINE VARIABLE iEntry        AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cFieldName    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hFrameHandle  AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hFieldHandle  AS HANDLE     NO-UNDO.
   
   DEFINE VARIABLE iSDFLoop           AS INTEGER   NO-UNDO.
   DEFINE VARIABLE cContainerTargets  AS CHARACTER NO-UNDO.
@@ -4733,44 +7010,13 @@ FUNCTION setSecurityForDynObjects RETURNS CHARACTER
   IF iEntry = 0 THEN
     RETURN pcFieldSecurity. 
 
-  /* Now we need to find the handle to the actual fill-in for lookups 
-     and the combo-box for dynamic combos */
-  hFieldHandle = ?.
-  
-  IF LOOKUP("dynamicCombo":U,phWidget:INTERNAL-ENTRIES) > 0 THEN
-    hFieldHandle = DYNAMIC-FUNCTION("getComboHandle":U IN phWidget) NO-ERROR.
-  ELSE
-    ASSIGN hFieldHandle  = DYNAMIC-FUNCTION("getLookupHandle":U IN phWidget) NO-ERROR.
-                                                
-  /* Make sure that the widget is valid */
-  IF NOT VALID-HANDLE(hFieldHandle) THEN
-    RETURN pcFieldSecurity.
-  
   CASE ENTRY(iEntry + 1, pcSecuredFields):
     WHEN "hidden":U THEN
-    DO:
-      IF LOOKUP(hFieldHandle:TYPE, "fill-in":U) > 0 THEN   /* Can only blank fill-in's */
-        ASSIGN hFieldHandle:BLANK = TRUE.
-      ASSIGN
-        hFieldHandle:SENSITIVE = FALSE
-        hFieldHandle:BGCOLOR = 8.
-      IF CAN-SET(hFieldHandle,"READ-ONLY":U) THEN
-        hFieldHandle:READ-ONLY = TRUE.
-      ELSE
-        hFieldHandle:SENSITIVE = FALSE.
       IF iFieldPos <> 0 THEN
         ENTRY(iFieldPos,pcFieldSecurity) = "Hidden":U NO-ERROR.
-    END.
     WHEN "Read Only":U THEN
-    DO:
-      ASSIGN
-        hFieldHandle:SENSITIVE = FALSE
-        hFieldHandle:BGCOLOR = 8.
-      IF CAN-SET(hFieldHandle,"READ-ONLY":U) THEN
-        hFieldHandle:READ-ONLY = TRUE.
       IF iFieldPos <> 0 THEN
         ENTRY(iFieldPos,pcFieldSecurity) = "ReadOnly":U NO-ERROR.
-    END.
   END CASE.
   
   RETURN pcFieldSecurity.

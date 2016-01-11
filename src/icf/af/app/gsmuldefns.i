@@ -9,7 +9,7 @@ af/cod/aftemwizpw.w
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include
 /*********************************************************************
 * Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
@@ -49,6 +49,10 @@ af/cod/aftemwizpw.w
 
   Update Notes: Created from Template ryteminclu.i
 
+  (v:010001)    Task:   0           UserRef:    POSSE
+                Date:   06/04/2002   Author:    Sunil Belgaonkar
+  Update Notes: Added Object Level Security
+
 ---------------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
@@ -57,22 +61,23 @@ af/cod/aftemwizpw.w
 &glob   AstraInclude    yes
 
 /* Constants corresponding to security type */
-&GLOBAL-DEFINE MENU-STRUCTURES 1
-&GLOBAL-DEFINE MENU-ITEMS      2
-&GLOBAL-DEFINE ACCESS-TOKENS   3
-&GLOBAL-DEFINE FIELDS          4
-&GLOBAL-DEFINE DATA-RANGES     5
-&GLOBAL-DEFINE DATA-RECORDS    6
-&GLOBAL-DEFINE LOGIN-COMPANIES 7
+&GLOBAL-DEFINE MENU-STRUCTURES   1
+&GLOBAL-DEFINE MENU-ITEMS        2
+&GLOBAL-DEFINE ACCESS-TOKENS     3
+&GLOBAL-DEFINE FIELDS            4
+&GLOBAL-DEFINE DATA-RANGES       5
+&GLOBAL-DEFINE DATA-RECORDS      6
+&GLOBAL-DEFINE LOGIN-COMPANIES   7
+&GLOBAL-DEFINE CONTAINER-OBJECTS 8
 
 /* Comma-delimited list of entity mnemonics relating to each security type */
-&GLOBAL-DEFINE ENTITY-MNEMONIC-LIST "GSMMS,GSMMI,GSMSS,GSMSS,GSMSS,,GSMLG":U
+&GLOBAL-DEFINE ENTITY-MNEMONIC-LIST "GSMMS,GSMMI,GSMSS,GSMSS,GSMSS,,GSMLG,RYCSO":U
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
+&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK
 
 /* ********************  Preprocessor Definitions  ******************** */
 
@@ -88,7 +93,7 @@ af/cod/aftemwizpw.w
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
 /* Settings for THIS-PROCEDURE
    Type: Include
-   Allow: 
+   Allow:
    Frames: 0
    Add Fields to: Neither
    Other Settings: INCLUDE-ONLY
@@ -98,7 +103,7 @@ af/cod/aftemwizpw.w
 /* *************************  Create Window  ************************** */
 
 &ANALYZE-SUSPEND _CREATE-WINDOW
-/* DESIGN Window definition (used by the UIB) 
+/* DESIGN Window definition (used by the UIB)
   CREATE WINDOW Include ASSIGN
          HEIGHT             = 12.81
          WIDTH              = 73.8.
@@ -109,7 +114,7 @@ af/cod/aftemwizpw.w
 
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Include 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Include
 
 
 /* ***************************  Main Block  *************************** */

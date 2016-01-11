@@ -83,7 +83,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gscobfiltv.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010002
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -136,19 +136,19 @@ DEFINE BUTTON buRefresh
      SIZE 15 BY 1.14 TOOLTIP "Refresh browser to only show data for selected Language (plus existing filters)"
      BGCOLOR 8 .
 
-DEFINE VARIABLE coObjectType AS DECIMAL FORMAT "->>>>>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
+DEFINE VARIABLE coObjectType AS DECIMAL FORMAT "->>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
      LABEL "Object Type" 
      VIEW-AS COMBO-BOX INNER-LINES 10
-     LIST-ITEM-PAIRS "x",0.00
+     LIST-ITEM-PAIRS "x",0
      DROP-DOWN-LIST
-     SIZE 45.6 BY 1 NO-UNDO.
+     SIZE 45.6 BY 1.05 NO-UNDO.
 
-DEFINE VARIABLE coProductModule AS DECIMAL FORMAT "->>>>>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
+DEFINE VARIABLE coProductModule AS DECIMAL FORMAT "->>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
      LABEL "Product Module" 
      VIEW-AS COMBO-BOX INNER-LINES 10
-     LIST-ITEM-PAIRS "x",0.00
+     LIST-ITEM-PAIRS "x",0
      DROP-DOWN-LIST
-     SIZE 45.6 BY 1 NO-UNDO.
+     SIZE 45.6 BY 1.05 NO-UNDO.
 
 DEFINE VARIABLE fiFileName AS CHARACTER FORMAT "X(256)":U 
      LABEL "Object Filename" 
@@ -235,7 +235,7 @@ ASSIGN
 */  /* FRAME frMain */
 &ANALYZE-RESUME
 
-
+ 
 
 
 
@@ -269,16 +269,16 @@ DO WITH FRAME {&FRAME-NAME}:
   DO:
     IF coObjectType <> 0 THEN
       ASSIGN
-        cField = "gsc_object.object_type_obj":U 
+        cField = "ryc_smartobject.object_type_obj":U 
         cWhere = cField + " = ":U + STRING(coObjectType). 
     IF coProductModule <> 0 THEN
       ASSIGN
-        cField = "gsc_object.product_module_obj":U 
+        cField = "ryc_smartobject.product_module_obj":U 
         cWhere = cWhere + (IF cWhere = "":U THEN "":U ELSE " AND ":U)
                + cField + " = ":U + STRING(coProductModule). 
     IF fiFileName <> "":U THEN
       ASSIGN
-        cField = "gsc_object.object_filename":U 
+        cField = "ryc_smartobject.object_filename":U 
         cWhere = cWhere + (IF cWhere = "":U THEN "":U ELSE " AND ":U)
                + cField + " BEGINS '":U + fiFileName + "'":U  .
     RUN updateAddQueryWhere IN hSDO (INPUT cWhere, INPUT cField). 

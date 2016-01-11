@@ -51,7 +51,16 @@
                                  the error is messaged, but not when running server side. 
                                  This parameter must contain all of the required logic needed when
                                  the above error occurs, since it is all that executes.
-
+              {&dynCall}         Run using dynamic call wrapper.  Note this option can only be selected
+                                 when running Appserver (&OnApp) = YES, and when {&AutoKill} = YES.  Note when
+                                 running like this, parameters are not specified using {&PList}, but are specified
+                                 individually, using {&mode1} {&parm1} {&dataType1} {&mode2} {&parm2} {&dataType2}...etc
+                                 
+              {&mode1} - {&mode64}          When running using dynamic call wrapper, parameter 1 -> 64 mode : INPUT INPUT-OUTPUT or OUTPUT
+              {&parm1} - {&parm64}          When running using dynamic call wrapper, the name of the variable or field storing parameter 1 -> 64.
+                                            When passing constants, put in single quotes, example 'Pass this string in'.
+              {&dataType1} - {&dataType64}  When running using dynamic call wrapper, the data type for parameter 1 -> 64 : BUFFER TABLE-HANDLE CHARACTER DECIMAL etc...
+                            
    RULES:
    1. Required logical arguments must be passed in unquoted as YES or NO. Other text
       arguments must be single quoted literals, e.g. 'text' or unquoted variables, 
@@ -76,7 +85,12 @@
       PLIP to use and will simply run a new version.
    9. If AutoKill is set to YES, and an error occurs when attempting to run an IP in the procedure,
       the procedure will be automatically closed, for the reasons specified in (7) above.
-
+  10. The dynamic call wrapper can only be used when running on the Appserver, and &autokill has been set to yes.
+      In other cases, the persistent procedure handle needs to be available after call has been invoked, which is not
+      going to be true in this case.  When using the dynamic call wrapper, specify your parameters as follows:
+      &mode1 = INPUT  &parm1 = cCharVarName &dataType1 = CHARACTER
+      &mode2 = OUTPUT &parm2 = hTableHandle &dataType2 = TABLE-HANDLE etc.
+  
    Following use of the include file, the following variable values will be defined and available:
    hPlip                  Handle of plip run
    lRunErrorStatus        Stored value of the ERROR-STATUS:ERROR after running an IP } needed when
@@ -90,6 +104,12 @@
   --------
   Created: 11/08/2001     Mark Davies (MIP)
            Combined ICF/Dynamics afrun2.i and aflaunch.i
+
+  (v:010001)    Task:                UserRef:    
+                Date:   APR/11/2002  Author:     Mauricio J. dos Santos (MJS) 
+                                                 mdsantos@progress.com
+  Update Notes: Adapted for WebSpeed by changing SESSION:PARAM = "REMOTE" 
+                to SESSION:CLIENT-TYPE = "WEBSPEED".
 
 ---------------------------------------------------------------------------*/
 /* Set-up defaults */
@@ -109,11 +129,11 @@
   &SCOPED-DEFINE AutoKill NO        /* Default to not killed automatically */
 &ENDIF
 &IF DEFINED(AutoKillOnError) = 0 &THEN
-    &IF {&AutoKill} = YES &THEN
-        &SCOPED-DEFINE AutoKillOnError YES
-    &ELSE
-        &SCOPED-DEFINE AutoKillOnError NO
-    &ENDIF
+&IF {&AutoKill} = YES &THEN
+    &SCOPED-DEFINE AutoKillOnError YES
+&ELSE
+    &SCOPED-DEFINE AutoKillOnError NO
+&ENDIF
 &ENDIF
 &IF DEFINED(NewInstance) = 0 &THEN
   &SCOPED-DEFINE NewInstance NO     /* Default to new instance */
@@ -122,19 +142,20 @@
   &SCOPED-DEFINE define-only FALSE  /* Default to not merely defining variables */
 &ENDIF
 
-/* Define variables */
 &IF DEFINED(afrun2-variables) = 0 &THEN
-    DEFINE VARIABLE hPlip               AS HANDLE    NO-UNDO.
     DEFINE VARIABLE lRunErrorStatus     AS LOGICAL   NO-UNDO.
     DEFINE VARIABLE cRunReturnValue     AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE hPlip               AS HANDLE    NO-UNDO.
     DEFINE VARIABLE cErrorMessage       AS CHARACTER NO-UNDO.
 
-    &GLOBAL-DEFINE afrun2-variables
+    &GLOBAL-DEFINE afrun2-variables YES
 &ENDIF
 
 &IF NOT {&define-only} &THEN
+
     /* Ensure handle is invalid to start with. */
     ASSIGN hPlip = ?.
+
     IF VALID-HANDLE(gshSessionManager) THEN
       RUN launchProcedure IN gshSessionManager (INPUT  {&PLIP},
                                                 INPUT  NOT {&NewInstance},
@@ -177,7 +198,7 @@
         {&PlipRunError}
         . /* This full stop is here in case anyone forgets to put one in. */
         &ELSE
-        IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) AND VALID-HANDLE(gshSessionManager) THEN
+        IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) AND VALID-HANDLE(gshSessionManager) THEN
             RUN showWarningMessages IN gshSessionManager (INPUT cErrorMessage,
                                                           INPUT "ERR":U,
                                                           INPUT "Business Logic Run (afrun2.i)").
@@ -188,8 +209,8 @@
     IF VALID-HANDLE(hPlip) AND {&IProc} <> "":U THEN
     DO:
         ASSIGN lRunErrorStatus = FALSE
-               cRunReturnValue = "":U
-               .
+               cRunReturnValue = "":U.
+
         RUN VALUE({&IProc}) IN hPlip {&PList} NO-ERROR.
 
         /* This stores the ERROR-STATUS and RETURN-VALUE resulting from the run statement */

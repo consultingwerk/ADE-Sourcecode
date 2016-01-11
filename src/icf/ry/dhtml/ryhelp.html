@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html 
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<title>Progress Dynamics Help Index</title>
+<style type="text/css">
+TH    {font:bold; text-align:left}
+.name {font-size:12px}
+</style>
+<script language="jscript"><!--
+window.document.onkeydown=key;
+function key(){
+  e=window.event;
+  // alert(e+'\n'+e.altKey+'\n'+e.keyCode);
+  if (e.altKey&&e.keyCode==67){
+    document.all('about').style.display   = 'none';
+    document.all('credits').style.display = '';
+  }
+  return false;
+}
+--></script>
+</head>
+<body background="`RootURL`/images/bgr/wsbgr.gif" bgcolor="#FFFFCC"
+  onBlur="window.focus()">
+<table width="100%" cellpadding="1" cellspacing="1">
+  <tr>
+    <td valign="top" width="1"><img src="../img/icflogo.gif" /></td>
+    <td><b>Progress Dynamics Web</b><br />
+      <script language="speedscript">
+        /* If this is MS-WINDOWS, go out and make some WIN API calls */
+        DEFINE VARIABLE cMachine AS CHARACTER NO-UNDO.
+        DEFINE VARIABLE cMemory  AS CHARACTER NO-UNDO.
+        DEFINE VARIABLE cVersion AS CHARACTER NO-UNDO.
+        IF OPSYS BEGINS "WIN":U THEN
+          RUN adecomm/_winsys.p (OUTPUT cMachine, OUTPUT cMemory).
+        ELSE
+          ASSIGN cMachine = 'Use the "showcfg" utility at the operating'
+                 cMemory  = 'system prompt for licensing information.'.
+        ASSIGN
+          cVersion = " " + SUBSTRING(RootURL,10,-1,"character") + ")"
+          SUBSTRING(cVersion,3,0) = "."
+          cVersion = REPLACE(PROVERSION,")":U,cVersion) 
+          cVersion = (IF cVersion <> ? THEN cVersion ELSE PROVERSION) NO-ERROR.
+      </script>
+      <font size="-1">Version `cVersion`</font><br />
+    </td>
+  </tr>
+  <tr id="about">
+    <td>&#160;</td>
+    <td><span><font size="-1">
+      Copyright(c) 1984-2002 Progress Software Corp.<br />
+      All rights reserved<br />
+      <hr />
+      `cMachine`<br />
+      `cMemory`</font></span>
+      <hr />
+      <br />
+    </td>
+  </tr>
+  <tr id="credits" style="display:none">
+    <td colspan="2">
+      <table width="100%" cellpadding="1" cellspacing="1">
+      <tr>
+        <td>
+          <fieldset>
+            <table width="100%" cellspacing="0">
+              <tr bgcolor="cyan"><th>Development</th><th>Testing</th></tr>
+              <tr><td class="name">Doug Adams</td>
+                  <td class="name">Mauricio dos Santos</td></tr>
+              <tr><td class="name">Sunil Belgaonkar</td>
+                  <td class="name">Aidan Jeffery</td></tr>
+              <tr><td class="name">Per Digre</td>
+                  <td class="name">Manoj Khani</td></tr>
+              <tr><td class="name">Andrew Finn</td>
+                  <td class="name">John Stahl, Manager</td></tr>
+              <tr><td class="name">Tim Huffam</td>
+                  <td class="name">Debbie Tamasanis</td></tr>
+            </table>
+          </fieldset>
+        </td>
+      </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<center>
+<form>
+<input type="button" value="  OK  " onClick="window.close()" />&#160;
+</form>
+</center>
+</body>
+</html>

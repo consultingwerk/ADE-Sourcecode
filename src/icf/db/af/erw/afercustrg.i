@@ -1,4 +1,4 @@
-%If(%Or(%==(%subjectareaprop("DBlogical"),"ICFDB"),%==(%subjectareaprop("DBlogical"),"RVDB"))) {
+%If(%Or(%==(%DiagramProp("DBlogical"),"ICFDB"),%==(%DiagramProp("DBlogical"),"RVDB"))) {
 /*********************************************************************
 * Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
@@ -25,11 +25,6 @@
 }
 TRIGGER PROCEDURE FOR %Action OF %TableName %If(%==(%Action, WRITE)) {OLD BUFFER o_%TableName}.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "%subjectareaprop("DBlogical")"
-                      &TABLE-NAME   = "%TableName"
-                      &TRIGGER-TYPE = "%Action"}
-
 /* Created automatically using ERwin ICF Trigger template db/af/erw/afercustrg.i
    Do not change manually. Customisations to triggers should be placed in separate
    include files pulled into the trigger. ICF auto generates write trigger custom
@@ -49,7 +44,7 @@ TRIGGER PROCEDURE FOR %Action OF %TableName %If(%==(%Action, WRITE)) {OLD BUFFER
 
 &SCOPED-DEFINE TRIGGER_TABLE %TableName
 &SCOPED-DEFINE TRIGGER_FLA %EntityProp("TableFLA")
-%If(%==("%EntityProp(TableObj)", "%EntityProp(XYZ)")) {&SCOPED-DEFINE TRIGGER_OBJ %lower(%Substr(%TableName,5))_obj}
+%If(%==("%EntityProp(TableObj)", "%EntityProp(XYZ)")) {&SCOPED-DEFINE TRIGGER_OBJ %lower(%Substr(%TableName,%DiagramProp("TableSubstr")))_obj}
 %If(%!=("%EntityProp(TableObj)", "%EntityProp(XYZ)")) {&SCOPED-DEFINE TRIGGER_OBJ %EntityProp("TableObj")}
 
 DEFINE BUFFER lb_table FOR %TableName.      /* Used for recursive relationships */
@@ -148,8 +143,12 @@ IF CAN-FIND(FIRST lbx_gsm_multi_media
         RUN error-message (lv-errgrp,lv-errnum,lv-include).
     END.
 }}
-%If(%==(%Action, WRITE)) {/* Customisations to %Action trigger */
-{%If(%!=(%SubjectAreaProp("TriggerRel"),%SubjectAreaProp("XYZ"))) {%SubjectAreaProp("TriggerRel")%triggername.i} %ELSE {%triggername.i}}}
+%If(%==(%Action, WRITE)) {%If(%==(%EntityProp("CustomWrite"), YES)){/* Customisations to %Action trigger */
+{%If(%!=(%DiagramProp("TriggerRel"),%DiagramProp("XYZ"))) {%DiagramProp("TriggerRel")%triggername.i} %ELSE {%triggername.i}}}}
+%If(%==(%Action, DELETE)) {%If(%==(%EntityProp("CustomDelete"), YES)){/* Customisations to %Action trigger */
+{%If(%!=(%DiagramProp("TriggerRel"),%DiagramProp("XYZ"))) {%DiagramProp("TriggerRel")%triggername.i} %ELSE {%triggername.i}}}}
+%If(%==(%Action, CREATE)) {%If(%==(%EntityProp("CustomCreate"), YES)){/* Customisations to %Action trigger */
+{%If(%!=(%DiagramProp("TriggerRel"),%DiagramProp("XYZ"))) {%DiagramProp("TriggerRel")%triggername.i} %ELSE {%triggername.i}}}}
 
 %If(%!==("%EntityProp(TableObj)", "none")) {
 /* Update Audit Log */

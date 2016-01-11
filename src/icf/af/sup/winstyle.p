@@ -29,7 +29,7 @@
    ===================================================================== */
 
 {af/sup/windows.i}
-{af/sup/ProExtra.i}
+{af/sup/proextra.i}
 
 PROCEDURE DeleteMinMaxButtons :
   define input parameter hClient as integer. /* hWnd */

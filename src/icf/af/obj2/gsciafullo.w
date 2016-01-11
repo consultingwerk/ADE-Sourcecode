@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          asdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
@@ -92,7 +92,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gsciafullo.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010001
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -124,6 +124,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -141,6 +142,8 @@ attribute_code attribute_description disabled system_owned attribute_type
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gsciafullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsc_instance_attribute NO-LOCK ~
+    BY gsc_instance_attribute.attribute_code INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsc_instance_attribute NO-LOCK ~
     BY gsc_instance_attribute.attribute_code INDEXED-REPOSITION.
@@ -228,26 +231,26 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "asdb.gsc_instance_attribute"
+     _TblList          = "ICFDB.gsc_instance_attribute"
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _OrdList          = "asdb.gsc_instance_attribute.attribute_code|yes"
-     _FldNameList[1]   > ASDB.gsc_instance_attribute.instance_attribute_obj
+     _FldNameList[1]   > ICFDB.gsc_instance_attribute.instance_attribute_obj
 "instance_attribute_obj" "instance_attribute_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
-     _FldNameList[2]   > ASDB.gsc_instance_attribute.attribute_code
+     _FldNameList[2]   > ICFDB.gsc_instance_attribute.attribute_code
 "attribute_code" "attribute_code" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[3]   > ASDB.gsc_instance_attribute.attribute_description
+     _FldNameList[3]   > ICFDB.gsc_instance_attribute.attribute_description
 "attribute_description" "attribute_description" ? "X(50)" "character" ? ? ? ? ? ? yes ? no 50 yes
-     _FldNameList[4]   > ASDB.gsc_instance_attribute.disabled
+     _FldNameList[4]   > ICFDB.gsc_instance_attribute.disabled
 "disabled" "disabled" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[5]   > ASDB.gsc_instance_attribute.system_owned
+     _FldNameList[5]   > ICFDB.gsc_instance_attribute.system_owned
 "system_owned" "system_owned" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[6]   > ASDB.gsc_instance_attribute.attribute_type
+     _FldNameList[6]   > ICFDB.gsc_instance_attribute.attribute_type
 "attribute_type" "attribute_type" ? ? "character" ? ? ? ? ? ? yes ? no 6 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK dTables 

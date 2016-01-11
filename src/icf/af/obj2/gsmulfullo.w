@@ -1,8 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
-
 &ANALYZE-RESUME
-/* Connected Databases
-          icfdb             PROGRESS
+/* Connected Databases 
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
@@ -12,13 +11,6 @@ DEFINE VARIABLE h_Astra                    AS HANDLE          NO-UNDO.
 /* This has to go above the definitions sections, as that is what it modifies.
    If its not, then the definitions section will have been saved before the
    XFTR code kicks in and changes it */
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Astra 2 Static SmartDataObject Wizard" dTables _INLINE
-/* Actions: af/cod/aftemwizcw.w ? ? ? af/sup/afwizdeltp.p */
-/* Astra 2 Static SmartDataObject Wizard
-Destroy on next read */
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -100,7 +92,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gsmulfullo.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010100
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -134,28 +126,47 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
-&SCOPED-DEFINE INTERNAL-TABLES gsm_user_allocation gsm_user
-&SCOPED-DEFINE ENABLED-FIELDS user_obj login_organisation_obj owning_entity_mnemonic owning_obj user_allocation_value1 user_allocation_value2
-&SCOPED-DEFINE ENABLED-FIELDS-IN-gsm_user_allocation user_obj login_organisation_obj owning_entity_mnemonic owning_obj user_allocation_value1 user_allocation_value2
-&SCOPED-DEFINE ENABLED-FIELDS-IN-gsm_user
-&SCOPED-DEFINE DATA-FIELDS user_obj external_userid user_full_name login_organisation_obj owning_entity_mnemonic owning_obj user_allocation_value1 user_allocation_value2 user_allocation_obj
-&SCOPED-DEFINE DATA-FIELDS-IN-gsm_user_allocation user_obj login_organisation_obj owning_entity_mnemonic owning_obj user_allocation_value1 user_allocation_value2 user_allocation_obj
-&SCOPED-DEFINE DATA-FIELDS-IN-gsm_user external_userid user_full_name
-&SCOPED-DEFINE MANDATORY-FIELDS
-&SCOPED-DEFINE APPLICATION-SERVICE
-&SCOPED-DEFINE ASSIGN-LIST
-&SCOPED-DEFINE DATA-FIELD-DEFS "af\obj2\gsmulfullo.i"
+&Scoped-define INTERNAL-TABLES gsm_user_allocation gsm_user
+
+/* Definitions for QUERY Query-Main                                     */
+&Scoped-Define ENABLED-FIELDS  user_obj login_organisation_obj owning_entity_mnemonic owning_obj~
+ user_allocation_value1 user_allocation_value2
+&Scoped-define ENABLED-FIELDS-IN-gsm_user_allocation user_obj ~
+login_organisation_obj owning_entity_mnemonic owning_obj ~
+user_allocation_value1 user_allocation_value2 
+&Scoped-Define DATA-FIELDS  user_obj external_userid login_organisation_obj owning_entity_mnemonic~
+ owning_obj user_allocation_value1 user_allocation_value2~
+ user_allocation_obj
+&Scoped-define DATA-FIELDS-IN-gsm_user_allocation user_obj ~
+login_organisation_obj owning_entity_mnemonic owning_obj ~
+user_allocation_value1 user_allocation_value2 user_allocation_obj 
+&Scoped-define DATA-FIELDS-IN-gsm_user external_userid 
+&Scoped-Define MANDATORY-FIELDS 
+&Scoped-Define APPLICATION-SERVICE 
+&Scoped-Define ASSIGN-LIST 
+&Scoped-Define DATA-FIELD-DEFS "af/obj2/gsmulfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsm_user_allocation NO-LOCK, ~
+      FIRST gsm_user WHERE gsm_user.user_obj = gsm_user_allocation.user_obj NO-LOCK ~
+    BY icfdb.gsm_user_allocation.user_obj ~
+       BY icfdb.gsm_user_allocation.login_organisation_obj ~
+        BY icfdb.gsm_user_allocation.owning_entity_mnemonic ~
+         BY icfdb.gsm_user_allocation.owning_obj INDEXED-REPOSITION
 {&DB-REQUIRED-START}
-&SCOPED-DEFINE OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsm_user_allocation NO-LOCK, ~
- FIRST gsm_user WHERE gsm_user.user_obj = gsm_user_allocation.user_obj NO-LOCK  ~
-BY gsm_user_allocation.user_obj BY gsm_user_allocation.login_organisation_obj BY gsm_user_allocation.owning_entity_mnemonic BY gsm_user_allocation.owning_obj INDEXED-REPOSITION.
+&Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsm_user_allocation NO-LOCK, ~
+      FIRST gsm_user WHERE gsm_user.user_obj = gsm_user_allocation.user_obj NO-LOCK ~
+    BY icfdb.gsm_user_allocation.user_obj ~
+       BY icfdb.gsm_user_allocation.login_organisation_obj ~
+        BY icfdb.gsm_user_allocation.owning_entity_mnemonic ~
+         BY icfdb.gsm_user_allocation.owning_obj INDEXED-REPOSITION.
 {&DB-REQUIRED-END}
-&SCOPED-DEFINE TABLES-IN-QUERY-Query-Main gsm_user_allocation gsm_user
-&SCOPED-DEFINE FIRST-TABLE-IN-QUERY-Query-Main gsm_user_allocation
-&SCOPED-DEFINE SECOND-TABLE-IN-QUERY-Query-Main gsm_user
+&Scoped-define TABLES-IN-QUERY-Query-Main gsm_user_allocation gsm_user
+&Scoped-define FIRST-TABLE-IN-QUERY-Query-Main gsm_user_allocation
+&Scoped-define SECOND-TABLE-IN-QUERY-Query-Main gsm_user
+
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -166,14 +177,18 @@ BY gsm_user_allocation.user_obj BY gsm_user_allocation.login_organisation_obj BY
 
 
 /* ***********************  Control Definitions  ********************** */
+
 {&DB-REQUIRED-START}
+
 /* Query definitions                                                    */
 &ANALYZE-SUSPEND
-DEFINE QUERY Query-Main FOR
-    gsm_user_allocation,
-    gsm_user FIELDS(gsm_user.external_userid gsm_user.user_full_name) SCROLLING.
+DEFINE QUERY Query-Main FOR 
+      gsm_user_allocation, 
+      gsm_user
+    FIELDS(gsm_user.external_userid) SCROLLING.
 &ANALYZE-RESUME
 {&DB-REQUIRED-END}
+
 
 /* ************************  Frame Definitions  *********************** */
 
@@ -241,27 +256,26 @@ END.
      _OrdList          = "icfdb.icfdb.gsm_user_allocation.user_obj|yes,icfdb.icfdb.gsm_user_allocation.login_organisation_obj|yes,icfdb.icfdb.gsm_user_allocation.owning_entity_mnemonic|yes,icfdb.icfdb.gsm_user_allocation.owning_obj|yes"
      _JoinCode[2]      = "icfdb.gsm_user.user_obj = icfdb.gsm_user_allocation.user_obj"
      _FldNameList[1]   > icfdb.gsm_user_allocation.user_obj
- "user_obj" "user_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
+"user_obj" "user_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
      _FldNameList[2]   > icfdb.gsm_user.external_userid
- "external_userid" "external_userid" ? ? "integer" ? ? ? ? ? ? no ? no 4 yes
+"external_userid" "external_userid" ? ? "integer" ? ? ? ? ? ? no ? no 4 yes
      _FldNameList[3]   > icfdb.gsm_user_allocation.login_organisation_obj
- "login_organisation_obj" "login_organisation_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
+"login_organisation_obj" "login_organisation_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
      _FldNameList[4]   > icfdb.gsm_user_allocation.owning_entity_mnemonic
- "owning_entity_mnemonic" "owning_entity_mnemonic" ? ? "character" ? ? ? ? ? ? yes ? no 16 yes
+"owning_entity_mnemonic" "owning_entity_mnemonic" ? ? "character" ? ? ? ? ? ? yes ? no 16 yes
      _FldNameList[5]   > icfdb.gsm_user_allocation.owning_obj
- "owning_obj" "owning_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
+"owning_obj" "owning_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
      _FldNameList[6]   > icfdb.gsm_user_allocation.user_allocation_value1
- "user_allocation_value1" "user_allocation_value1" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
+"user_allocation_value1" "user_allocation_value1" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
      _FldNameList[7]   > icfdb.gsm_user_allocation.user_allocation_value2
- "user_allocation_value2" "user_allocation_value2" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
+"user_allocation_value2" "user_allocation_value2" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
      _FldNameList[8]   > icfdb.gsm_user_allocation.user_allocation_obj
- "user_allocation_obj" "user_allocation_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
+"user_allocation_obj" "user_allocation_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
-
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK dTables 

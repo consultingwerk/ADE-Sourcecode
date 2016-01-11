@@ -116,7 +116,7 @@ DO:
     /* Use _P to get the full name, then call routine to get the base .w name. */
     FIND b_P WHERE b_P._WINDOW-HANDLE = p_hwin NO-ERROR.
     IF AVAILABLE b_P THEN
-      RUN adecomm/_osprefx.p (INPUT b_P._SAVE-AS, OUTPUT f_prefix, OUTPUT f_name).
+      RUN adecomm/_osprefx.p (INPUT b_P._SAVE-AS-FILE, OUTPUT f_prefix, OUTPUT f_name).
 
     CASE p_advtype:
 

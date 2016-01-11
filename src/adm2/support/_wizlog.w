@@ -473,7 +473,7 @@ END PROCEDURE.
 FUNCTION getObjectName RETURNS LOGICAL
   (  ) :
 /*------------------------------------------------------------------------------
-  Purpose:  
+  Purpose:  Get the data logic procedure name 
     Notes:  
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cDefCode    AS CHARACTER  NO-UNDO.
@@ -484,6 +484,11 @@ FUNCTION getObjectName RETURNS LOGICAL
   DEFINE VARIABLE cLine       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cObjectName AS CHARACTER  NO-UNDO.
 
+  /* Get the data logic procedure name */
+  RUN adeuib/_uibinfo.p (?, "PROCEDURE ?":U, "DATA-LOGIC-PROCEDURE":U, OUTPUT cContextID).
+  ASSIGN gcLogicProc = cContextID.
+  
+  /* Get the file name */
   RUN adeuib/_uibinfo.p (?, "PROCEDURE ?":U, "PROCEDURE":U, OUTPUT cContextID).
   
   /* Get the current contents of the definition section */
@@ -493,34 +498,17 @@ FUNCTION getObjectName RETURNS LOGICAL
                          INPUT-OUTPUT iRecID,
                          INPUT-OUTPUT cDefCode ).
   
-  ASSIGN iStart      = INDEX(cDefCode,"&GLOB DATA-LOGIC-PROCEDURE":U)
-         iStart      = IF iStart = 0 
-                       THEN INDEX(cDefCode,"&GLOBAL-DEFINE DATA-LOGIC-PROCEDURE":U)
-                       ELSE iStart
-         iEnd        = IF iStart > 0 
-                       THEN INDEX(cDefCode,".p":U, iStart)
-                       ELSE 0
-         iEnd        = IF iEnd = 0  
-                       THEN INDEX(cDefCode,CHR(10), iStart)
-                       ELSE iEnd
-         cLine       = IF iStart > 0 AND iEnd > 0 
-                       THEN  TRIM(SUBSTRING(cDefCode, iStart, iEnd - iStart + 2))
-                       ELSE ""
-         gcLogicProc = IF cLine > ""
-                       THEN  TRIM(SUBSTRING(cLine,R-INDEX(cline," ":U)))
-                       ELSE "".
-
-/* Find the ObjectName entered in the previous page */
-ASSIGN iStart       = INDEX(cDefCode,"File:":U)
-       iEnd         = IF iStart > 0 
-                      THEN INDEX(cDefCode,CHR(10), iStart)
-                      ELSE 0
-       cLine        = IF iStart > 0 AND iEnd > 0 
-                      THEN  SUBSTRING(cDefCode, iStart, iEnd - iStart + 2)
-                      ELSE ""
-       gcObjectName = IF iStart > 0 AND iEnd > 0
-                      THEN  trim(SUBSTRING(cLine, 6))
-                      ELSE "".
+  /* Find the ObjectName entered in the previous page */
+  ASSIGN iStart       = INDEX(cDefCode,"File:":U)
+         iEnd         = IF iStart > 0 
+                        THEN INDEX(cDefCode,CHR(10), iStart)
+                        ELSE 0
+         cLine        = IF iStart > 0 AND iEnd > 0 
+                        THEN  SUBSTRING(cDefCode, iStart, iEnd - iStart + 2)
+                        ELSE ""
+         gcObjectName = IF iStart > 0 AND iEnd > 0
+                        THEN  trim(SUBSTRING(cLine, 6))
+                        ELSE "".
 
   RETURN TRUE.   /* Function return value. */
 
@@ -537,63 +525,24 @@ FUNCTION setobjectName RETURNS LOGICAL
             and writes it to the definitions section. 
     Notes:  
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cDefCode    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cContextID  AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE iRecID      AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iStart      AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iEnd        AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cLine       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cObjectName AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE c_Win       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE l_status    AS LOGICAL    NO-UNDO.
 
   RUN adeuib/_uibinfo.p (?, "PROCEDURE ?":U, "PROCEDURE":U, OUTPUT cContextID).
   
-  /* Get the current contents of the definition section */
-  RUN adeuib/_accsect.p( "GET":U,
-                         INT(cContextID),
-                         "DEFINITIONS":U,
-                         INPUT-OUTPUT iRecID,
-                         INPUT-OUTPUT cDefCode ).
-  
-  ASSIGN iStart      = INDEX(cDefCode,"&GLOB DATA-LOGIC-PROCEDURE":U)
-         iStart      = IF iStart = 0 
-                       THEN INDEX(cDefCode,"&GLOBAL-DEFINE DATA-LOGIC-PROCEDURE":U)
-                       ELSE iStart
-         iEnd        = IF iStart > 0 
-                       THEN INDEX(cDefCode,".p":U, iStart)
-                       ELSE 0
-         iEnd        = IF iEnd = 0  
-                       THEN INDEX(cDefCode,CHR(10), iStart)
-                       ELSE iEnd
-         cLine       = IF iStart > 0 AND iEnd > 0 
-                       THEN  TRIM(SUBSTRING(cDefCode, iStart, iEnd - iStart + 2))
-                       ELSE ""
-         gcLogicProc = IF cLine > ""
-                       THEN  TRIM(SUBSTRING(cLine,R-INDEX(cline," ":U)))
-                       ELSE "".
-IF iStart > 0 AND iEnd > 0  THEN
-DO:
-  ASSIGN cDefCode = SUBSTRING(cDefCode,1, iStart - 1) +  
-                     "&GLOB DATA-LOGIC-PROCEDURE ":U  + 
-                       fLogicProc:SCREEN-VALUE IN FRAME {&FRAME-NAME} +
-                       IF iEnd + 2 < LENGTH(cDefCode) 
-                       THEN SUBSTRING(cDefcode, iEnd + 2)
-                       ELSE "".
- 
-  RUN adeuib/_accsect.p (INPUT "SET":U,
-                         INPUT ?,
-                         INPUT 'DEFINITIONS':U,
-                         INPUT-OUTPUT irecid,
-                         INPUT-OUTPUT cDefCode).
-                            
+  RUN adeuib/_setwatr.w (INPUT INT(cContextID), 
+                         INPUT "Data-Logic-Proc",
+                         INPUT fLogicProc:SCREEN-VALUE IN FRAME {&FRAME-NAME},
+                         OUTPUT l_status ).
+
  /* Get handle of the window */
   RUN adeuib/_uibinfo.p (?, "WINDOW ?":U, "HANDLE":U, OUTPUT c_win).
   
   /* flag window as 'dirty' (needs to be saved) */
   RUN adeuib/_winsave.p (WIDGET-HANDLE(c_win), FALSE).          
-END.
 
-RETURN TRUE.   /* Function return value. */
+  RETURN TRUE.   /* Function return value. */
 
 END FUNCTION.
 

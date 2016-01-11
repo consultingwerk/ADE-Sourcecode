@@ -157,6 +157,8 @@ OUTPUT CLOSE.
 
 /* **********************  Internal Procedures  *********************** */
 
+&IF DEFINED(EXCLUDE-object-menu-structure-dump) = 0 &THEN
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE object-menu-structure-dump Procedure 
 PROCEDURE object-menu-structure-dump :
 /*------------------------------------------------------------------------------
@@ -168,8 +170,8 @@ PROCEDURE object-menu-structure-dump :
 DEFINE VARIABLE lv_attribute_code AS CHARACTER NO-UNDO.
 
 FOR EACH gsm_object_menu_structure NO-LOCK,
-   FIRST gsc_object NO-LOCK
-   WHERE gsc_object.object_obj = gsm_object_menu_structure.object_obj,
+   FIRST ryc_smartobject NO-LOCK
+   WHERE ryc_smartobject.smartobject_obj = gsm_object_menu_structure.object_obj,
    FIRST gsm_menu_structure NO-LOCK
    WHERE gsm_menu_structure.menu_structure_obj = gsm_object_menu_structure.menu_structure_obj:
 
@@ -182,7 +184,7 @@ FOR EACH gsm_object_menu_structure NO-LOCK,
       ASSIGN lv_attribute_code = "":U.
 
     EXPORT
-        gsc_object.object_filename
+        ryc_smartobject.object_filename
         gsm_menu_structure.menu_structure_code
         lv_attribute_code
         .        
@@ -192,4 +194,6 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
+
+&ENDIF
 

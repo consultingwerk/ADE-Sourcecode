@@ -387,17 +387,14 @@ PROCEDURE buildFilters :
 
     /* Get dimensions of containing window */
     {get ContainerHandle hWindow hContainerSource}.    
-    ASSIGN
-       FRAME {&FRAME-NAME}:HEIGHT-PIXELS = hWindow:HEIGHT-PIXELS - 70
-       FRAME {&FRAME-NAME}:WIDTH-PIXELS = hWindow:WIDTH-PIXELS   - 28.
 
     /* Create the dynamic browser and size it relative to the containing window */
     CREATE BROWSE ghBrowse
            ASSIGN FRAME            = FRAME {&FRAME-NAME}:handle
                   ROW              = 2.5
                   COL              = 1.5
-                  WIDTH-CHARS      = FRAME {&FRAME-NAME}:WIDTH-CHARS   - 2
-                  HEIGHT-PIXELS    = FRAME {&FRAME-NAME}:HEIGHT-PIXELS - 40
+                  WIDTH-CHARS      = FRAME {&FRAME-NAME}:WIDTH-CHARS   - 3
+                  HEIGHT-CHARS     = FRAME {&FRAME-NAME}:HEIGHT-CHARS - ghBrowse:ROW + 1
                   SEPARATORS       = TRUE
                   ROW-MARKERS      = FALSE
                   EXPANDABLE       = TRUE
@@ -648,14 +645,14 @@ PROCEDURE resizeObject :
   FRAME {&FRAME-NAME}:HIDDEN = TRUE.
 
   /* Resize frame relative to containing window size */
-  FRAME {&FRAME-NAME}:HEIGHT-PIXELS = hWindow:HEIGHT-PIXELS - 70.
-  FRAME {&FRAME-NAME}:WIDTH-PIXELS  = hWindow:WIDTH-PIXELS  - 28.
+  FRAME {&FRAME-NAME}:HEIGHT-PIXELS = SESSION:PIXELS-PER-ROW * pdHeight.
+  FRAME {&FRAME-NAME}:WIDTH-PIXELS  = SESSION:PIXELS-PER-COL * pdWidth.
 
   /* Resize dynamic browser (if exists) relative to current frame */
   IF VALID-HANDLE(ghBrowse) THEN
   DO:
-    ghBrowse:WIDTH-CHARS = FRAME {&FRAME-NAME}:WIDTH-CHARS     - 2.
-    ghBrowse:HEIGHT-PIXELS = FRAME {&FRAME-NAME}:HEIGHT-PIXELS - 40.
+    ghBrowse:WIDTH-CHARS  = FRAME {&FRAME-NAME}:WIDTH-CHARS     - 3.
+    ghBrowse:HEIGHT-CHARS = FRAME {&FRAME-NAME}:HEIGHT-CHARS - ghBrowse:ROW + 1.
   END.
 
   /* Position Apply and Clear buttons */

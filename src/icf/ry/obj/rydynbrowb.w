@@ -146,7 +146,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       rydynbrowb.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010001
+&scop object-version    000000
 
 /* Astra 2 object identifying preprocessor */
 &glob   astra2-dynamicbrowser yes
@@ -214,7 +214,7 @@ FUNCTION notNull RETURNS CHARACTER
 /* Browse definitions                                                   */
 DEFINE BROWSE br_table
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _DISPLAY-FIELDS br_table bTableWin _STRUCTURED
-
+  
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
     WITH NO-ASSIGN NO-ROW-MARKERS NO-COLUMN-SCROLLING SEPARATORS SIZE 66 BY 6.67.
@@ -234,6 +234,7 @@ DEFINE FRAME F-Main
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
 /* Settings for THIS-PROCEDURE
    Type: SmartDataBrowser
+   Compile into: ry/obj
    Allow: Basic,Browse
    Frames: 1
    Add Fields to: Neither
@@ -304,7 +305,7 @@ ASSIGN
 */  /* FRAME F-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 
@@ -312,6 +313,16 @@ ASSIGN
 
 &Scoped-define BROWSE-NAME br_table
 &Scoped-define SELF-NAME br_table
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTableWin
+ON DEFAULT-ACTION OF br_table IN FRAME F-Main
+DO:
+ {src/adm2/brsdefault.i}
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTableWin
 ON END OF br_table IN FRAME F-Main
 DO:
@@ -350,53 +361,6 @@ END.
 ON HOME OF br_table IN FRAME F-Main
 DO:
   {src/adm2/brshome.i}
-END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTableWin
-ON MOUSE-MENU-DBLCLICK OF br_table IN FRAME F-Main
-DO:
-/*     DEFINE VARIABLE hBrowse AS HANDLE.                                                */
-/*     DEFINE VARIABLE cNames AS CHARACTER.                                              */
-/*     DEFINE VARIABLE hColumn AS HANDLE.                                                */
-/*     hBrowse = {&BROWSE-NAME}:HANDLE.                                                  */
-/*                                                                                       */
-/*                                                                                       */
-/*     hColumn = hBrowse:FIRST-COLUMN.                                                   */
-/*     REPEAT WHILE VALID-HANDLE(hColumn).                                               */
-/*         cNames = cNames + notNull(hColumn:TABLE) + "*" + notNull(hColumn:NAME) + " ". */
-/*         hColumn = hColumn:NEXT-COLUMN.                                                */
-/*     END.                                                                              */
-/*                                                                                       */
-/*     MESSAGE cNames.                                                                   */
-
-/*     DEFINE VARIABLE hDataSource AS HANDLE NO-UNDO.                                    */
-/*     DEFINE VARIABLE hDataSOurce2 AS HANDLE NO-UNDO.                                   */
-/*     DEFINE VARIABLE cForeignFields AS CHARACTER NO-UNDO.                              */
-/*     {get DataSource hDataSource}.                                                     */
-/*     {get DataSOurce hDataSource2 hDataSOurce}.                                        */
-/*     {set ForeignFields 'attribute_group_obj,attribute_group_obj' hDataSource}.        */
-/*     {get ForeignFields cForeignFields hDataSource}.                                   */
-/*                                                                                       */
-/*                                                                                       */
-/*     MESSAGE "datasource" hDataSOurce:FILE-NAME cForeignFields hDataSOurce2:FILE-NAME. */
-/*     DYNAMIC-FUNCTION('setFilterActive' IN hDataSource, TRUE).                         */
-
-    MESSAGE "browse width=" {&BROWSE-NAME}:WIDTH.
-
-END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTableWin
-ON MOUSE-SELECT-DBLCLICK OF br_table IN FRAME F-Main
-DO:
-  RUN launchFolderWindow ("View").
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -456,41 +420,7 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTableWin
 ON VALUE-CHANGED OF br_table IN FRAME F-Main
 DO:
-  /* If this browser data source is on the same container and the data links are
-     disabled - then enable them whilst we do the browse change code - to fix
-     problems with header / detail windows with browsers on them, so subpages
-     are always refreshed when move in browser.
-     The datalinks to the sub SDO are usually disabled to prevent parent browser
-     moving the data.
-  */    
-  DEFINE VARIABLE hvcDataSource           AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hvcContainerSource      AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hvcDataContainer        AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hvlDataLinksEnabled     AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE hvlDisable              AS LOGICAL    NO-UNDO.
-
-  {get DataSource hvcDataSource}.                       /* browser datasource */
-  ASSIGN hvlDisable = NO.
-
-  {get DataLinksEnabled hvlDataLinksEnabled hvcDataSource}. 
-  IF NOT hvlDataLinksEnabled THEN
-  DO:
-    {get ContainerSource hvcContainerSource}.             /* browsers container */
-    {get ContainerSource hvcDataContainer hvcDataSource}. /* datasource container */
-    IF hvcContainerSource = hvcDataContainer THEN
-    DO:
-      {set DataLinksEnabled YES hvcDataSource}.           /* Enable data links */ 
-      ASSIGN hvlDisable = YES.
-    END.
-  END.
-
-    {src/adm2/brschnge.i}
-
-  IF hvlDisable THEN
-  DO:
-    {set DataLinksEnabled NO hvcDataSource}.
-  END.
-
+  {src/adm2/brschnge.i}
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -503,100 +433,15 @@ END.
 
 
 /* ***************************  Main Block  *************************** */
-&IF DEFINED(UIB_IS_RUNNING) <> 0 &THEN          
+   &IF DEFINED(UIB_IS_RUNNING) <> 0 &THEN          
 RUN initializeObject.        
-&ENDIF
-
-DEFINE VARIABLE cEnabledFields   AS CHARACTER NO-UNDO.
-DEFINE VARIABLE cDisplayedFields AS CHARACTER NO-UNDO.
-
-ON VALUE-CHANGED OF BROWSE {&BROWSE-NAME} ANYWHERE 
-DO:
-  {get EnabledFields cEnabledFields}.
-  IF cEnabledFields NE "":U THEN 
-    APPLY 'U10':U TO THIS-PROCEDURE.
-END.  /* END ON VALUE-CHANGED */
-
-ON 'U10':U OF THIS-PROCEDURE 
-DO:
-  {get DisplayedFields cDisplayedFields}.
-  /* Ignore the event if it wasn't a browse field. */
-  IF LOOKUP(FOCUS:NAME, cDisplayedFields) NE 0 
-  THEN DO:
-    {get FieldsEnabled lResult}.
-    IF lResult THEN                 /* Only if browse enabled for input. */
-    DO:             
-      {get DataModified lResult}.
-      IF NOT lResult THEN           /* Don't send the event more than once. */
-        {set DataModified yes}.
-    END.  /* END DO IF lResult */
-  END.    /* END DO IF LOOKUP */
-END.      /* END ON U10 */
+   &ENDIF
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
 
 /* **********************  Internal Procedures  *********************** */
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE childObjc bTableWin 
-PROCEDURE childObjc :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-DEFINE VARIABLE cFolderWindow AS CHARACTER NO-UNDO.
-DEFINE VARIABLE hContainerSource AS HANDLE NO-UNDO.
-DEFINE VARIABLE hFolderWindow AS HANDLE NO-UNDO.    
-DEFINE VARIABLE hWindowHandle AS HANDLE NO-UNDO.
-DEFINE VARIABLE hDataSource AS HANDLE NO-UNDO.
-DEFINE VARIABLE hDataTarget AS HANDLE NO-UNDO.
-DEFINE VARIABLE hNavigationSource AS HANDLE NO-UNDO.
-DEFINE VARIABLE cProcedureType AS CHARACTER NO-UNDO.
-
-    {get FolderWindowToLaunch cFolderWindow}.
-    {get ContainerSource hContainerSource}.
-    {get DataSource hDataSource}.
-    {get ContainerHandle hWindowHandle hContainerSource}.
-
-    RUN launchContainer IN gshSessionManager (                                                    
-        INPUT "rycatobjcw",    /* pcObjectFileName  */
-        INPUT "",               /* pcPhysicalName    */
-        INPUT "",               /* pcLogicalName     */
-        INPUT FALSE,            /* plOnceOnly        */
-        INPUT "SdoForeignFields" + CHR(4) + "attribute_group_obj,attribute_group_obj",
-        INPUT "",               /* pcChildDataKey    */
-        INPUT "",               /* pcRunAttribute    */
-        INPUT "",               /* pcContainerMode   */
-        INPUT hWindowHandle,    /* phParentWindow    */
-        INPUT hContainerSource, /* phParentProcedure */
-        INPUT THIS-PROCEDURE,   /* phObjectProcedure */
-        OUTPUT hFolderWindow,   /* phProcedureHandle */
-        OUTPUT cProcedureType   /* pcProcedureType   */       
-    ).
-
-    PUBLISH "toggleData" FROM hFolderWindow (TRUE).
-
-       /* the removal of these links is ok if multiple update sources can be supported by SDO's */ 
-
-/*        RUN removeLink IN hContainerSource ( hDataSource , 'Data':U , hDataTarget ).     */
-/*        RUN removeLink IN hContainerSource ( hFolderWindow , 'Update':U , hDataSource ). */
-
-/*                                                                                    */
-/*        RUN addLink IN hContainerSource (hDataSource, 'Data', hFolderWindow).       */
-/*        RUN addLink IN hContainerSource (hFolderWindow, 'Navigation', hDataSource). */
-/*                                                                                    */
-/*        RUN initializeObject IN hFolderWindow.                                      */
-/*                                                                                    */
-/* MESSAGE "Removing Link".                                                           */
-/*                                                                                    */
-/*        RUN removeLink IN hContainerSource (hDataSource, 'Data', hFolderWindow).    */
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI bTableWin  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
@@ -623,12 +468,31 @@ PROCEDURE initializeObject :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+    
     RUN SUPER.
-
+      
+    /* fix for issues 5931, 8293 */
+    /* The following code is a workaround for a core bug in the browse */
+    /* widget which causes the browse query to release the current query */
+    /* buffer as a result of direct manipulation of certain attributes. */
+    /* So, we need to save the current Rowid, if any, and re-find it later */
+    DEFINE VARIABLE hRO       AS HANDLE     NO-UNDO. 
+    DEFINE VARIABLE rCurRowid AS ROWID      NO-UNDO.
+    hRO = BROWSE {&BROWSE-NAME}:QUERY:GET-BUFFER-HANDLE() NO-ERROR.
+    IF VALID-HANDLE(hRO) AND hRO:AVAILABLE THEN
+      rCurRowid = hRO:ROWID.
+ 
     BROWSE {&BROWSE-NAME}:EXPANDABLE = TRUE.
 
+    IF VALID-HANDLE(hRO) THEN 
+      IF rCurRowid <> ? THEN 
+        IF rCurRowid <> hRO:ROWID THEN     /* IF a valid buffer existed in the beginning... */
+          hRO:FIND-BY-ROWID (rCurRowid, NO-LOCK). /* ...attempt to find saved */
 
-END PROCEDURE.
+    ASSIGN ERROR-STATUS:ERROR = NO.
+    RETURN.
+
+END PROCEDURE.  /* initializeObject */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

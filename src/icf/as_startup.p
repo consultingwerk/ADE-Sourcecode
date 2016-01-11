@@ -29,35 +29,56 @@ DEFINE INPUT PARAMETER cStartupData       AS CHARACTER NO-UNDO.
 {af/sup/afghplipdf.i NEW GLOBAL}
 
 /* pull in Astra global variables as new global */
-{af/sup2/afglobals.i NEW GLOBAL}
+{src/adm2/globals.i NEW GLOBAL}
 
+/* The following code sets up the minimum path information that is
+   essential to get the environment going */
+{af/sup2/afsetuppath.i}
+
+DEFINE VARIABLE hLoopHandle AS HANDLE     NO-UNDO.
 DEFINE VARIABLE hProc AS HANDLE     NO-UNDO.
-DEFINE VARIABLE cProc AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cProc       AS CHARACTER  NO-UNDO.
 
 cProc = SEARCH("af/app/afxmlcfgp.r").
-
 IF cProc = ? THEN
   cProc = SEARCH("af/app/afxmlcfgp.p").
+
+hLoopHandle = SESSION:FIRST-PROCEDURE.
+DO WHILE VALID-HANDLE(hLoopHandle):
+  IF R-INDEX(hLoopHandle:FILE-NAME,"afxmlcfgp.p":U) > 0
+  OR R-INDEX(hLoopHandle:FILE-NAME,"afxmlcfgp.r":U) > 0 THEN 
+  DO:
+    hProc = hLoopHandle.
+    hLoopHandle = ?.
+  END.
+  ELSE
+    hLoopHandle = hLoopHandle:NEXT-SIBLING.
+END. /* VALID-HANDLE(hLoopHandle) */
 
 IF cProc = ? THEN
 DO:
   RUN ICFCFM_InitializedServices.
-END.
-ELSE
+END. /* cProc = ? */
+ELSE /* cProc <> ? */
 DO:
-  RUN VALUE(cProc) PERSISTENT SET hProc.
 
-  RUN subscribeAll IN THIS-PROCEDURE (hProc, THIS-PROCEDURE).
-  
-  RUN initializeSession IN THIS-PROCEDURE ("":U) NO-ERROR.
-  IF RETURN-VALUE <> "" THEN
+  IF NOT VALID-HANDLE(hProc) THEN 
   DO:
-    MESSAGE {&line-number} PROGRAM-NAME(1) SKIP
-        RETURN-VALUE.
-    QUIT.
-  END.
+    RUN VALUE(cProc) PERSISTENT SET hProc.
 
-END.
+    RUN subscribeAll IN THIS-PROCEDURE (hProc, THIS-PROCEDURE).
+  
+    RUN initializeSession IN THIS-PROCEDURE ("":U) NO-ERROR.
+    IF RETURN-VALUE <> "" THEN
+    DO:
+      MESSAGE {&line-number} PROGRAM-NAME(1) SKIP
+          RETURN-VALUE.
+      QUIT.
+    END. /* RETURN-VALUE <> "" */
+
+  END. /* NOT VALID-HANDLE(hProc) */
+
+END. /* cProc <> ? */
 
 
 /* prestart the data-related ADM2 super procedures */

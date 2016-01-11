@@ -39,6 +39,8 @@ Author: Laura Stern
 Date Created: 02/07/92 
     Modified: 06/30/98 D. McMann Added  (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN")
                                  to find of _File
+              03/27/02 D. McMann Added new _file find based on new table recid
+                                 variable.                   
 -----------------------------------------------------------------------*/
 
 {adedict/dictvar.i shared}
@@ -79,6 +81,8 @@ if p_ObjType = {&OBJ_DB}
       END.                         
       ELSE 
       p_Id = RECID(DICTDB._File).
+      IF p_id = ? THEN
+          ASSIGN p_Id = n_tblrecid.
    end.
   end.     /* table */
 

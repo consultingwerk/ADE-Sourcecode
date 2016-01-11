@@ -125,7 +125,7 @@ ASSIGN cObjectName = "{&object-name}":U.
 
 /* Data Preprocessor Definitions */
 &GLOB DATA-LOGIC-TABLE ryc_object_instance
-&GLOB DATA-FIELD-DEFS  "ry\obj\rycoiful2o.i"
+&GLOB DATA-FIELD-DEFS  "ry/obj/rycoiful2o.i"
 
 /* Error handling definitions */
 {af/sup2/afcheckerr.i &define-only = YES}

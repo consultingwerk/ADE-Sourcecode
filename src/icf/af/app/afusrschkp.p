@@ -92,7 +92,7 @@ af/cod/aftemwizpw.w
    can be displayed in the about window of the container */
 
 &scop object-name       afusrschkp.p
-&scop object-version    010100
+&scop object-version    000000
 
 
 /* MIP object identifying preprocessor */
@@ -151,7 +151,7 @@ af/cod/aftemwizpw.w
                                                                         */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
@@ -159,105 +159,68 @@ af/cod/aftemwizpw.w
 
 /* ***************************  Main Block  *************************** */
 
-    ASSIGN 
-       plSecurityRestricted = YES
-       pcSecurityValue1     = "":U
-       pcSecurityValue1     = "":U
-       .
-
 /*  0) If security is disabled, then just pass back that security is cleared */
-    IF CAN-FIND(FIRST gsc_security_control 
-                WHERE gsc_security_control.security_enabled = NO)
-    THEN DO:
-        ASSIGN
-            plSecurityRestricted = NO
-            pcSecurityValue1     = "":U
-            pcSecurityValue1     = "":U
-            .
-        RETURN.
-    END.       
+FIND FIRST gsc_security_control NO-LOCK NO-ERROR.
+
+IF NOT AVAILABLE gsc_security_control
+OR gsc_security_control.security_enabled = NO
+THEN DO:
+    ASSIGN plSecurityRestricted = NO.
+    RETURN.
+END.
+
+ASSIGN plSecurityRestricted = YES.
 
 /* 1) If any record is found with an owning_obj of 0, this means that security is restricted but no values are to be returned */
-/* 1a) AllAllNone */
+IF CAN-FIND(FIRST gsm_user_allocation
+            WHERE gsm_user_allocation.owning_entity_mnemonic = pcOwiningEntityMnemonic
+              AND gsm_user_allocation.owning_obj             = 0)
+THEN DO:
+    /* All users, all companies */
     IF CAN-FIND(FIRST gsm_user_allocation
                 WHERE gsm_user_allocation.user_obj               = 0
                   AND gsm_user_allocation.login_organisation_obj = 0
                   AND gsm_user_allocation.owning_entity_mnemonic = pcOwiningEntityMnemonic
                   AND gsm_user_allocation.owning_obj             = 0)
     THEN RETURN.
-
-/* 1b) AllCompaniesNone */
+    
+    /* This user, all companies */
     IF CAN-FIND(FIRST gsm_user_allocation
                 WHERE gsm_user_allocation.user_obj               = pdUserObj
                   AND gsm_user_allocation.login_organisation_obj = 0
                   AND gsm_user_allocation.owning_entity_mnemonic = pcOwiningEntityMnemonic
                   AND gsm_user_allocation.owning_obj             = 0)
     THEN RETURN.
-
-/* 1c) AllUsersNone */
+    
+    /* All users, this company */
     IF CAN-FIND(FIRST gsm_user_allocation
                 WHERE gsm_user_allocation.user_obj               = 0
                   AND gsm_user_allocation.login_organisation_obj = pdOrganisationObj
                   AND gsm_user_allocation.owning_entity_mnemonic = pcOwiningEntityMnemonic
                   AND gsm_user_allocation.owning_obj             = 0)
     THEN RETURN.
-
-/* 1d) SpecificNone */
+    
+    /* This user, this company */
     IF CAN-FIND(FIRST gsm_user_allocation
                 WHERE gsm_user_allocation.user_obj               = pdUserObj
                   AND gsm_user_allocation.login_organisation_obj = pdOrganisationObj
                   AND gsm_user_allocation.owning_entity_mnemonic = pcOwiningEntityMnemonic
                   AND gsm_user_allocation.owning_obj             = 0)
     THEN RETURN.
+END.
 
-
-/* 2) If no record is found with an owning_obj = 0 (ABOVE) or owning_obj > 0, this means that security is NOT restricted at all. */
-    /* 2a) No AllAllSome */
-    IF NOT CAN-FIND(FIRST gsm_user_allocation
-                    WHERE gsm_user_allocation.user_obj               = 0
-                      AND gsm_user_allocation.login_organisation_obj = 0
-                      AND gsm_user_allocation.owning_entity_mnemonic = pcOwiningEntityMnemonic
-                      AND gsm_user_allocation.owning_obj             > 0)
-    AND
-    /* 2b) No AllCompaniesSome */
-       NOT CAN-FIND(FIRST gsm_user_allocation
-                    WHERE gsm_user_allocation.user_obj               = pdUserObj
-                      AND gsm_user_allocation.login_organisation_obj = 0
-                      AND gsm_user_allocation.owning_entity_mnemonic = pcOwiningEntityMnemonic
-                      AND gsm_user_allocation.owning_obj             > 0)
-    AND
-    /* 2c) No AllUsersSome */
-       NOT CAN-FIND(FIRST gsm_user_allocation
-                    WHERE gsm_user_allocation.user_obj               = 0
-                      AND gsm_user_allocation.login_organisation_obj = pdOrganisationObj
-                      AND gsm_user_allocation.owning_entity_mnemonic = pcOwiningEntityMnemonic
-                      AND gsm_user_allocation.owning_obj             > 0)
-    AND
-    /* 2d) No SpecificSome */
-       NOT CAN-FIND(FIRST gsm_user_allocation
-                    WHERE gsm_user_allocation.user_obj               = pdUserObj
-                      AND gsm_user_allocation.login_organisation_obj = pdOrganisationObj
-                      AND gsm_user_allocation.owning_entity_mnemonic = pcOwiningEntityMnemonic
-                      AND gsm_user_allocation.owning_obj             > 0)
-    THEN
-    DO:
-        ASSIGN
-            plSecurityRestricted = NO
-            pcSecurityValue1     = "":U
-            pcSecurityValue2     = "":U
-            .
-        RETURN.
-    END.
-
-/*  3) If a record is found with an owning_obj NE 0, this means that security is restricted and values may be returned. */
-    /* 3a) AllAllThis */
+/*  If a record is found with an owning_obj = pdOwiningObj, this means that security is restricted and values may be returned. */
+IF CAN-FIND(FIRST gsm_user_allocation
+            WHERE gsm_user_allocation.owning_entity_mnemonic = pcOwiningEntityMnemonic
+              AND gsm_user_allocation.owning_obj             = pdOwiningObj) 
+THEN DO:
+    /* All users, all companies */
     IF CAN-FIND(FIRST gsm_user_allocation
                 WHERE gsm_user_allocation.user_obj               = 0
                   AND gsm_user_allocation.login_organisation_obj = 0
                   AND gsm_user_allocation.owning_entity_mnemonic = pcOwiningEntityMnemonic
                   AND gsm_user_allocation.owning_obj             = pdOwiningObj) 
     THEN DO:
-        plSecurityRestricted = YES.
         IF plReturnValues THEN
         DO:
             FIND FIRST gsm_user_allocation NO-LOCK
@@ -266,21 +229,20 @@ af/cod/aftemwizpw.w
                    AND gsm_user_allocation.owning_entity_mnemonic = pcOwiningEntityMnemonic
                    AND gsm_user_allocation.owning_obj             = pdOwiningObj
                    NO-ERROR.
-            ASSIGN
-                pcSecurityValue1     = gsm_user_allocation.user_allocation_value1
-                pcSecurityValue2     = gsm_user_allocation.user_allocation_value2.
+
+            ASSIGN pcSecurityValue1     = gsm_user_allocation.user_allocation_value1
+                   pcSecurityValue2     = gsm_user_allocation.user_allocation_value2.
         END.
         RETURN.
     END.
 
-    /* 3b) AllCompaniesThis */
+    /* This user, all companies */
     IF CAN-FIND(FIRST gsm_user_allocation
                 WHERE gsm_user_allocation.user_obj               = pdUserObj
                   AND gsm_user_allocation.login_organisation_obj = 0
                   AND gsm_user_allocation.owning_entity_mnemonic = pcOwiningEntityMnemonic
                   AND gsm_user_allocation.owning_obj             = pdOwiningObj) 
     THEN DO:   
-        plSecurityRestricted = YES.
         IF plReturnValues THEN
         DO:    
             FIND FIRST gsm_user_allocation NO-LOCK
@@ -289,44 +251,42 @@ af/cod/aftemwizpw.w
                    AND gsm_user_allocation.owning_entity_mnemonic = pcOwiningEntityMnemonic
                    AND gsm_user_allocation.owning_obj             = pdOwiningObj
                    NO-ERROR.
-            ASSIGN
-                pcSecurityValue1     = gsm_user_allocation.user_allocation_value1
-                pcSecurityValue2     = gsm_user_allocation.user_allocation_value2.
+
+            ASSIGN pcSecurityValue1     = gsm_user_allocation.user_allocation_value1
+                   pcSecurityValue2     = gsm_user_allocation.user_allocation_value2.
         END.
         RETURN.
     END.
 
-    /* 3c) AllCompaniesThis */
+    /* All users, this company */
     IF CAN-FIND(FIRST gsm_user_allocation
                 WHERE gsm_user_allocation.user_obj               = 0
                   AND gsm_user_allocation.login_organisation_obj = pdOrganisationObj
                   AND gsm_user_allocation.owning_entity_mnemonic = pcOwiningEntityMnemonic
                   AND gsm_user_allocation.owning_obj             = pdOwiningObj)
-    THEN DO:   
+    THEN DO:
         IF plReturnValues THEN
         DO:
-            plSecurityRestricted = YES.
             FIND FIRST gsm_user_allocation NO-LOCK
                  WHERE gsm_user_allocation.user_obj               = 0
                    AND gsm_user_allocation.login_organisation_obj = pdOrganisationObj
                    AND gsm_user_allocation.owning_entity_mnemonic = pcOwiningEntityMnemonic
                    AND gsm_user_allocation.owning_obj             = pdOwiningObj
                    NO-ERROR.
-            ASSIGN
-                pcSecurityValue1     = gsm_user_allocation.user_allocation_value1
-                pcSecurityValue2     = gsm_user_allocation.user_allocation_value2.
+
+            ASSIGN pcSecurityValue1     = gsm_user_allocation.user_allocation_value1
+                   pcSecurityValue2     = gsm_user_allocation.user_allocation_value2.
         END.
         RETURN.
     END.
 
-    /* 3d) SpecificThis */
+    /* This user, this company */
     IF CAN-FIND(FIRST gsm_user_allocation
                 WHERE gsm_user_allocation.user_obj               = pdUserObj
                   AND gsm_user_allocation.login_organisation_obj = pdOrganisationObj
                   AND gsm_user_allocation.owning_entity_mnemonic = pcOwiningEntityMnemonic
                   AND gsm_user_allocation.owning_obj             = pdOwiningObj) 
-    THEN DO: 
-        plSecurityRestricted = YES.
+    THEN DO:
         IF plReturnValues THEN
         DO:
            FIND FIRST gsm_user_allocation NO-LOCK
@@ -335,20 +295,17 @@ af/cod/aftemwizpw.w
                   AND gsm_user_allocation.owning_entity_mnemonic = pcOwiningEntityMnemonic
                   AND gsm_user_allocation.owning_obj             = pdOwiningObj
                 NO-ERROR.
-           ASSIGN
-              pcSecurityValue1     = gsm_user_allocation.user_allocation_value1
-              pcSecurityValue2     = gsm_user_allocation.user_allocation_value2
-              .
+           ASSIGN pcSecurityValue1     = gsm_user_allocation.user_allocation_value1
+                  pcSecurityValue2     = gsm_user_allocation.user_allocation_value2.
         END.
         RETURN.
-    END.                                 
+    END.
+END.
 
-    /* Should never get here!!! */
-    ASSIGN
-        plSecurityRestricted = NO
-        pcSecurityValue1     = "":U
-        pcSecurityValue1     = "":U
-        .
+/* If we get here, we couldn't find security applicable to all (owning obj = 0) or to the specific object (owning obj = pdOwiningObj) */
+ASSIGN plSecurityRestricted = NO
+       pcSecurityValue1     = "":U
+       pcSecurityValue1     = "":U.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

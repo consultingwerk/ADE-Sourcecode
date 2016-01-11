@@ -138,55 +138,60 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
 &Scoped-define INTERNAL-TABLES ryc_attribute_value gsc_object_type ~
-ryc_attribute_group ryc_smartobject ryc_object_instance
+ryc_smartobject ryc_object_instance ryc_attribute ryc_attribute_group
 
 /* Definitions for QUERY Query-Main                                     */
-&Scoped-Define ENABLED-FIELDS  inheritted_value constant_value attribute_type_tla attribute_label~
- attribute_value attribute_group_obj collection_sequence~
- collect_attribute_value_obj container_smartobject_obj object_instance_obj~
- object_type_obj primary_smartobject_obj smartobject_obj
-&Scoped-define ENABLED-FIELDS-IN-ryc_attribute_value inheritted_value ~
-constant_value attribute_type_tla attribute_label attribute_value ~
-attribute_group_obj collection_sequence collect_attribute_value_obj ~
-container_smartobject_obj object_instance_obj object_type_obj ~
-primary_smartobject_obj smartobject_obj 
-&Scoped-Define DATA-FIELDS  object_type_code instance_object_filename object_filename inheritted_value~
- constant_value attribute_group_name attribute_type_tla attribute_label~
- attribute_value FormattedAttributeValue attribute_group_obj~
- collection_sequence collect_attribute_value_obj container_smartobject_obj~
+&Scoped-Define ENABLED-FIELDS  constant_value attribute_label attribute_value container_smartobject_obj~
  object_instance_obj object_type_obj primary_smartobject_obj smartobject_obj~
- lContainer attribute_value_obj cContainedObject layout_position
-&Scoped-define DATA-FIELDS-IN-ryc_attribute_value inheritted_value ~
-constant_value attribute_type_tla attribute_label attribute_value ~
-attribute_group_obj collection_sequence collect_attribute_value_obj ~
-container_smartobject_obj object_instance_obj object_type_obj ~
-primary_smartobject_obj smartobject_obj attribute_value_obj 
+ character_value date_value decimal_value integer_value logical_value
+&Scoped-define ENABLED-FIELDS-IN-ryc_attribute_value constant_value ~
+attribute_label attribute_value container_smartobject_obj ~
+object_instance_obj object_type_obj primary_smartobject_obj smartobject_obj ~
+character_value date_value decimal_value integer_value logical_value 
+&Scoped-Define DATA-FIELDS  object_type_code instance_object_filename object_filename constant_value~
+ attribute_group_name attribute_label attribute_value~
+ container_smartobject_obj object_instance_obj object_type_obj~
+ primary_smartobject_obj smartobject_obj attribute_value_obj lContainer~
+ layout_position character_value cContainedObject date_value decimal_value~
+ integer_value logical_value
+&Scoped-define DATA-FIELDS-IN-ryc_attribute_value constant_value ~
+attribute_label attribute_value container_smartobject_obj ~
+object_instance_obj object_type_obj primary_smartobject_obj smartobject_obj ~
+attribute_value_obj character_value date_value decimal_value integer_value ~
+logical_value 
 &Scoped-define DATA-FIELDS-IN-gsc_object_type object_type_code 
-&Scoped-define DATA-FIELDS-IN-ryc_attribute_group attribute_group_name 
 &Scoped-define DATA-FIELDS-IN-ryc_smartobject object_filename 
 &Scoped-define DATA-FIELDS-IN-ryc_object_instance layout_position 
+&Scoped-define DATA-FIELDS-IN-ryc_attribute_group attribute_group_name 
 &Scoped-Define MANDATORY-FIELDS 
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "ry/obj/rycavfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH ryc_attribute_value NO-LOCK, ~
+      FIRST gsc_object_type WHERE gsc_object_type.object_type_obj = ryc_attribute_value.object_type_obj NO-LOCK, ~
+      FIRST ryc_smartobject WHERE ryc_smartobject.smartobject_obj = ryc_attribute_value.smartobject_obj NO-LOCK, ~
+      FIRST ryc_object_instance WHERE ryc_smartobject.smartobject_obj = ryc_attribute_value.primary_smartobject_obj OUTER-JOIN NO-LOCK, ~
+      FIRST ryc_attribute WHERE ryc_attribute.attribute_label = ryc_attribute_value.attribute_label OUTER-JOIN NO-LOCK, ~
+      FIRST ryc_attribute_group WHERE ryc_attribute_group.attribute_group_obj = ryc_attribute.attribute_group_obj NO-LOCK ~
+    BY ryc_attribute_value.attribute_label INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH ryc_attribute_value NO-LOCK, ~
       FIRST gsc_object_type WHERE gsc_object_type.object_type_obj = ryc_attribute_value.object_type_obj NO-LOCK, ~
-      FIRST ryc_attribute_group WHERE ryc_attribute_group.attribute_group_obj = ryc_attribute_value.attribute_group_obj NO-LOCK, ~
-      FIRST ryc_smartobject WHERE ryc_smartobject.smartobject_obj = ryc_attribute_value.primary_smartobject_obj OUTER-JOIN NO-LOCK, ~
-      FIRST ryc_object_instance WHERE ryc_object_instance.container_smartobject_obj = ryc_attribute_value.container_smartobject_obj ~
-  AND  ryc_object_instance.object_instance_obj = ryc_attribute_value.object_instance_obj OUTER-JOIN NO-LOCK ~
-    BY ryc_attribute_value.attribute_group_obj ~
-       BY ryc_attribute_value.attribute_type_tla ~
-        BY ryc_attribute_value.attribute_label INDEXED-REPOSITION.
+      FIRST ryc_smartobject WHERE ryc_smartobject.smartobject_obj = ryc_attribute_value.smartobject_obj NO-LOCK, ~
+      FIRST ryc_object_instance WHERE ryc_smartobject.smartobject_obj = ryc_attribute_value.primary_smartobject_obj OUTER-JOIN NO-LOCK, ~
+      FIRST ryc_attribute WHERE ryc_attribute.attribute_label = ryc_attribute_value.attribute_label OUTER-JOIN NO-LOCK, ~
+      FIRST ryc_attribute_group WHERE ryc_attribute_group.attribute_group_obj = ryc_attribute.attribute_group_obj NO-LOCK ~
+    BY ryc_attribute_value.attribute_label INDEXED-REPOSITION.
 {&DB-REQUIRED-END}
 &Scoped-define TABLES-IN-QUERY-Query-Main ryc_attribute_value ~
-gsc_object_type ryc_attribute_group ryc_smartobject ryc_object_instance
+gsc_object_type ryc_smartobject ryc_object_instance ryc_attribute ~
+ryc_attribute_group
 &Scoped-define FIRST-TABLE-IN-QUERY-Query-Main ryc_attribute_value
 &Scoped-define SECOND-TABLE-IN-QUERY-Query-Main gsc_object_type
-&Scoped-define THIRD-TABLE-IN-QUERY-Query-Main ryc_attribute_group
-&Scoped-define FOURTH-TABLE-IN-QUERY-Query-Main ryc_smartobject
-&Scoped-define FIFTH-TABLE-IN-QUERY-Query-Main ryc_object_instance
+&Scoped-define THIRD-TABLE-IN-QUERY-Query-Main ryc_smartobject
+&Scoped-define FOURTH-TABLE-IN-QUERY-Query-Main ryc_object_instance
+&Scoped-define FIFTH-TABLE-IN-QUERY-Query-Main ryc_attribute
+&Scoped-define SIXTH-TABLE-IN-QUERY-Query-Main ryc_attribute_group
 
 
 /* Custom List Definitions                                              */
@@ -237,9 +242,10 @@ FUNCTION getInstanceFilename RETURNS CHARACTER
 DEFINE QUERY Query-Main FOR 
       ryc_attribute_value, 
       gsc_object_type, 
-      ryc_attribute_group, 
       ryc_smartobject, 
-      ryc_object_instance SCROLLING.
+      ryc_object_instance, 
+      ryc_attribute, 
+      ryc_attribute_group SCROLLING.
 &ANALYZE-RESUME
 {&DB-REQUIRED-END}
 
@@ -303,59 +309,57 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "icfdb.ryc_attribute_value,icfdb.gsc_object_type WHERE icfdb.ryc_attribute_value ...,icfdb.ryc_attribute_group WHERE icfdb.ryc_attribute_value ...,icfdb.ryc_smartobject WHERE icfdb.ryc_attribute_value ...,icfdb.ryc_object_instance WHERE icfdb.ryc_attribute_value ..."
+     _TblList          = "ICFDB.ryc_attribute_value,ICFDB.gsc_object_type WHERE ICFDB.ryc_attribute_value ...,ICFDB.ryc_smartobject WHERE ICFDB.ryc_attribute_value ...,ICFDB.ryc_object_instance WHERE ICFDB.ryc_attribute_value ...,ICFDB.ryc_attribute WHERE ICFDB.ryc_attribute_value ...,ICFDB.ryc_attribute_group WHERE ICFDB.ryc_attribute ..."
      _Options          = "NO-LOCK INDEXED-REPOSITION"
-     _TblOptList       = ", FIRST, FIRST, FIRST OUTER, FIRST OUTER"
-     _OrdList          = "icfdb.ryc_attribute_value.attribute_group_obj|yes,icfdb.ryc_attribute_value.attribute_type_tla|yes,icfdb.ryc_attribute_value.attribute_label|yes"
+     _TblOptList       = ", FIRST, FIRST, FIRST OUTER, FIRST OUTER, FIRST"
+     _OrdList          = "ICFDB.ryc_attribute_value.attribute_label|yes"
      _JoinCode[2]      = "icfdb.gsc_object_type.object_type_obj = icfdb.ryc_attribute_value.object_type_obj"
-     _JoinCode[3]      = "icfdb.ryc_attribute_group.attribute_group_obj = icfdb.ryc_attribute_value.attribute_group_obj"
+     _JoinCode[3]      = "ryc_smartobject.smartobject_obj = ryc_attribute_value.smartobject_obj"
      _JoinCode[4]      = "icfdb.ryc_smartobject.smartobject_obj = icfdb.ryc_attribute_value.primary_smartobject_obj"
-     _JoinCode[5]      = "icfdb.ryc_object_instance.container_smartobject_obj = icfdb.ryc_attribute_value.container_smartobject_obj
-  AND  icfdb.ryc_object_instance.object_instance_obj = icfdb.ryc_attribute_value.object_instance_obj"
+     _JoinCode[5]      = "ryc_attribute.attribute_label = ryc_attribute_value.attribute_label"
+     _JoinCode[6]      = "ryc_attribute_group.attribute_group_obj = ryc_attribute.attribute_group_obj"
      _FldNameList[1]   > icfdb.gsc_object_type.object_type_code
 "object_type_code" "object_type_code" ? ? "character" ? ? ? ? ? ? no ? no 17.2 yes
      _FldNameList[2]   > "_<CALC>"
 "getInstanceFilename(RowObject.object_instance_obj)" "instance_object_filename" "Instance Filename" "x(20)" "character" ? ? ? ? ? ? no ? no 20 no
      _FldNameList[3]   > icfdb.ryc_smartobject.object_filename
 "object_filename" "object_filename" ? ? "character" ? ? ? ? ? ? no ? no 70 yes
-     _FldNameList[4]   > icfdb.ryc_attribute_value.inheritted_value
-"inheritted_value" "inheritted_value" ? ? "logical" ? ? ? ? ? ? yes ? no 14.8 yes
-     _FldNameList[5]   > icfdb.ryc_attribute_value.constant_value
+     _FldNameList[4]   > icfdb.ryc_attribute_value.constant_value
 "constant_value" "constant_value" ? ? "logical" ? ? ? ? ? ? yes ? no 14.4 yes
-     _FldNameList[6]   > icfdb.ryc_attribute_group.attribute_group_name
+     _FldNameList[5]   > icfdb.ryc_attribute_group.attribute_group_name
 "attribute_group_name" "attribute_group_name" ? ? "character" ? ? ? ? ? ? no ? no 28 yes
-     _FldNameList[7]   > icfdb.ryc_attribute_value.attribute_type_tla
-"attribute_type_tla" "attribute_type_tla" ? ? "character" ? ? ? ? ? ? yes ? no 17.8 yes
-     _FldNameList[8]   > icfdb.ryc_attribute_value.attribute_label
+     _FldNameList[6]   > icfdb.ryc_attribute_value.attribute_label
 "attribute_label" "attribute_label" ? ? "character" ? ? ? ? ? ? yes ? no 35 yes
-     _FldNameList[9]   > icfdb.ryc_attribute_value.attribute_value
+     _FldNameList[7]   > icfdb.ryc_attribute_value.attribute_value
 "attribute_value" "attribute_value" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[10]   > "_<CALC>"
-"dynamic-function(""FormatAttributeValue"":U in gshRepositoryManager, input RowObject.attribute_type_tla, input RowObject.attribute_value)" "FormattedAttributeValue" "Formatted Attribute Value" "x(20)" "character" ? ? ? ? ? ? no ? no 23.8 no
-     _FldNameList[11]   > icfdb.ryc_attribute_value.attribute_group_obj
-"attribute_group_obj" "attribute_group_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21.6 yes
-     _FldNameList[12]   > icfdb.ryc_attribute_value.collection_sequence
-"collection_sequence" "collection_sequence" "Collection Sequence" ? "integer" ? ? ? ? ? ? yes ? no 14.2 yes
-     _FldNameList[13]   > icfdb.ryc_attribute_value.collect_attribute_value_obj
-"collect_attribute_value_obj" "collect_attribute_value_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 24.6 yes
-     _FldNameList[14]   > icfdb.ryc_attribute_value.container_smartobject_obj
+     _FldNameList[8]   > icfdb.ryc_attribute_value.container_smartobject_obj
 "container_smartobject_obj" "container_smartobject_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 25 yes
-     _FldNameList[15]   > icfdb.ryc_attribute_value.object_instance_obj
+     _FldNameList[9]   > icfdb.ryc_attribute_value.object_instance_obj
 "object_instance_obj" "object_instance_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21.6 yes
-     _FldNameList[16]   > icfdb.ryc_attribute_value.object_type_obj
+     _FldNameList[10]   > icfdb.ryc_attribute_value.object_type_obj
 "object_type_obj" "object_type_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21.6 yes
-     _FldNameList[17]   > icfdb.ryc_attribute_value.primary_smartobject_obj
+     _FldNameList[11]   > icfdb.ryc_attribute_value.primary_smartobject_obj
 "primary_smartobject_obj" "primary_smartobject_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 22.8 yes
-     _FldNameList[18]   > icfdb.ryc_attribute_value.smartobject_obj
+     _FldNameList[12]   > icfdb.ryc_attribute_value.smartobject_obj
 "smartobject_obj" "smartobject_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21.6 yes
-     _FldNameList[19]   > "_<CALC>"
-"containerObject()" "lContainer" "Container" "YES/NO" "Logical" ? ? ? ? ? ? no ? no 9 no
-     _FldNameList[20]   > icfdb.ryc_attribute_value.attribute_value_obj
+     _FldNameList[13]   > icfdb.ryc_attribute_value.attribute_value_obj
 "attribute_value_obj" "attribute_value_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21.6 yes
-     _FldNameList[21]   > "_<CALC>"
-"containedObjectName()" "cContainedObject" "Contained Object" "x(70)" "character" ? ? ? ? ? ? no ? no 70 no
-     _FldNameList[22]   > icfdb.ryc_object_instance.layout_position
+     _FldNameList[14]   > "_<CALC>"
+"containerObject()" "lContainer" "Container" "YES/NO" "Logical" ? ? ? ? ? ? no ? no 9 no
+     _FldNameList[15]   > icfdb.ryc_object_instance.layout_position
 "layout_position" "layout_position" ? ? "character" ? ? ? ? ? ? no ? no 15 yes
+     _FldNameList[16]   > ICFDB.ryc_attribute_value.character_value
+"character_value" "character_value" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
+     _FldNameList[17]   > "_<CALC>"
+"containedObjectName()" "cContainedObject" "Contained Object" "x(70)" "character" ? ? ? ? ? ? no ? no 70 no
+     _FldNameList[18]   > ICFDB.ryc_attribute_value.date_value
+"date_value" "date_value" ? ? "date" ? ? ? ? ? ? yes ? no 11.6 yes
+     _FldNameList[19]   > ICFDB.ryc_attribute_value.decimal_value
+"decimal_value" "decimal_value" ? ? "decimal" ? ? ? ? ? ? yes ? no 19.8 yes
+     _FldNameList[20]   > ICFDB.ryc_attribute_value.integer_value
+"integer_value" "integer_value" ? ? "integer" ? ? ? ? ? ? yes ? no 12.6 yes
+     _FldNameList[21]   > ICFDB.ryc_attribute_value.logical_value
+"logical_value" "logical_value" ? ? "logical" ? ? ? ? ? ? yes ? no 12.8 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
@@ -389,7 +393,6 @@ PROCEDURE DATA.CALCULATE :
 ------------------------------------------------------------------------------*/
       ASSIGN 
          rowObject.cContainedObject = (containedObjectName())
-         rowObject.FormattedAttributeValue = (dynamic-function("FormatAttributeValue":U in gshRepositoryManager, input RowObject.attribute_type_tla, input RowObject.attribute_value))
          rowObject.instance_object_filename = (getInstanceFilename(RowObject.object_instance_obj))
          rowObject.lContainer = (containerObject())
       .
@@ -432,7 +435,7 @@ PROCEDURE initializeObject :
     /* Code placed here will execute PRIOR to standard behavior. */
 
     {get DataSource hDataSource}.
-
+/*
     IF VALID-HANDLE(hDataSource) THEN DO:
         cEntityMnemonic = DYNAMIC-FUNCTION("getUserProperty":U IN hDataSource, INPUT "owningEntityMnemonic").
 
@@ -454,7 +457,7 @@ PROCEDURE initializeObject :
         IF  cFields <> "" THEN
             {set ForeignFields cFields}.
     END.
-
+  */
     RUN SUPER.
 
     /* Code placed here will execute AFTER standard behavior.    */
@@ -488,8 +491,6 @@ FOR EACH RowObjUpd WHERE LOOKUP(RowObjUpd.RowMod,"A,C,U":U) <> 0:
                  AND ryc_attribute_value.smartobject_obj = RowObjUpd.smartobject_obj
                  AND ryc_attribute_value.object_instance_obj = RowObjUpd.object_instance_obj
                  AND ryc_attribute_value.attribute_label = RowObjUpd.attribute_label
-                 AND ryc_attribute_value.collect_attribute_value_obj = RowObjUpd.collect_attribute_value_obj
-                 AND ryc_attribute_value.collection_sequence = RowObjUpd.collection_sequence
                  AND ryc_attribute_value.container_smartobject_obj = RowObjUpd.container_smartobject_obj
                  AND ROWID(ryc_attribute_value) <> TO-ROWID(ENTRY(1,RowObjUpd.ROWIDent)))) OR
      (RowObjUpd.RowMod <> "U":U AND
@@ -498,8 +499,6 @@ FOR EACH RowObjUpd WHERE LOOKUP(RowObjUpd.RowMod,"A,C,U":U) <> 0:
                  AND ryc_attribute_value.smartobject_obj = RowObjUpd.smartobject_obj
                  AND ryc_attribute_value.object_instance_obj = RowObjUpd.object_instance_obj
                  AND ryc_attribute_value.attribute_label = RowObjUpd.attribute_label
-                 AND ryc_attribute_value.collect_attribute_value_obj = RowObjUpd.collect_attribute_value_obj
-                 AND ryc_attribute_value.collection_sequence = RowObjUpd.collection_sequence
                  AND ryc_attribute_value.container_smartobject_obj = RowObjUpd.container_smartobject_obj))  THEN
     ASSIGN cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE "":U) +
            {af/sup2/aferrortxt.i 'AF' '8' 'ryc_attribute_value' 'attribute_label' "'attribute label'" RowObjUpd.attribute_label "'. Please use a different attribute label as value already exists for this label'"}

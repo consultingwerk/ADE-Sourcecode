@@ -278,7 +278,8 @@ IF user_env[1] = "env":u THEN DO:
     arg_ld = SUBSTRING(arg_ld, 1, ix - 1, "CHARACTER":u).
 END.
 
-ASSIGN args[2] = TRIM(args[2] + " ":u + args[3] + " ":u + args[4]).
+/* Removed spaces from line break which were causing problems */
+ASSIGN args[2] = TRIM(args[2] + args[3] + args[4]).
 
 RUN adecomm/_dbconnx.p (INPUT        YES,
                         INPUT-OUTPUT arg_db,

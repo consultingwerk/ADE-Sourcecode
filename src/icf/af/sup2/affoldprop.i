@@ -158,6 +158,13 @@ FUNCTION getPanelOffset RETURNS INTEGER
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getPopupSelectionEnabled Include 
+FUNCTION getPopupSelectionEnabled RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getSelectorBGcolor Include 
 FUNCTION getSelectorBGcolor RETURNS CHARACTER
   ( /* parameter-definitions */ )  FORWARD.
@@ -189,6 +196,13 @@ FUNCTION getSelectorWidth RETURNS INTEGER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getTabBGcolor Include 
 FUNCTION getTabBGcolor RETURNS CHARACTER
   ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getTabEnabled Include 
+FUNCTION getTabEnabled RETURNS CHARACTER
+    ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -244,6 +258,13 @@ FUNCTION getTabSize RETURNS CHARACTER
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getTabsPerRow Include 
 FUNCTION getTabsPerRow RETURNS INTEGER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getTabVisualization Include 
+FUNCTION getTabVisualization RETURNS CHARACTER
   ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -361,6 +382,13 @@ FUNCTION setPanelOffset RETURNS LOGICAL
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setPopupSelectionEnabled Include 
+FUNCTION setPopupSelectionEnabled RETURNS LOGICAL
+  (plValue AS LOGICAL)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setSelectorBGcolor Include 
 FUNCTION setSelectorBGcolor RETURNS LOGICAL
   ( INPUT pSelectorBGcolor AS CHARACTER )  FORWARD.
@@ -392,6 +420,13 @@ FUNCTION setSelectorWidth RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setTabBGcolor Include 
 FUNCTION setTabBGcolor RETURNS LOGICAL
   ( INPUT pTabBGcolor AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setTabEnabled Include 
+FUNCTION setTabEnabled RETURNS LOGICAL
+  ( INPUT pTabEnabled AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -452,6 +487,13 @@ FUNCTION setTabsPerRow RETURNS LOGICAL
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setTabVisualization Include 
+FUNCTION setTabVisualization RETURNS LOGICAL
+  (pcValue  AS CHARACTER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setTooltip Include 
 FUNCTION setTooltip RETURNS LOGICAL
   ( INPUT pTooltip AS CHARACTER )  FORWARD.
@@ -499,7 +541,7 @@ FUNCTION setVisibleRows RETURNS LOGICAL
 &ANALYZE-RESUME
 
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Include 
@@ -782,6 +824,26 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getPopupSelectionEnabled Include 
+FUNCTION getPopupSelectionEnabled RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lValue  AS LOGICAL    NO-UNDO.
+  
+  &SCOPED-DEFINE xpPopupSelectionEnabled
+  {get PopupSelectionEnabled lValue}.
+  &UNDEFINE xpPopupSelectionEnabled
+
+  RETURN lValue.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getSelectorBGcolor Include 
 FUNCTION getSelectorBGcolor RETURNS CHARACTER
   ( /* parameter-definitions */ ) :
@@ -867,6 +929,23 @@ DEFINE VARIABLE pTabBGColor AS CHARACTER NO-UNDO.
 
 RETURN pTabBGColor.  
 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getTabEnabled Include 
+FUNCTION getTabEnabled RETURNS CHARACTER
+    ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE pTabEnabled AS CHARACTER NO-UNDO.
+
+    {get TabEnabled pTabEnabled}.
+
+    RETURN pTabEnabled.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1010,6 +1089,26 @@ DEFINE VARIABLE pTabsPerRow AS INTEGER NO-UNDO.
 {get TabsPerRow pTabsPerRow}.
 
 RETURN pTabsPerRow.  
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getTabVisualization Include 
+FUNCTION getTabVisualization RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cValue  AS CHARACTER  NO-UNDO.
+  
+  &SCOPED-DEFINE xpTabVisualization
+  {get TabVisualization cValue}.
+  &UNDEFINE xpTabVisualization
+
+  RETURN cValue.   /* Function return value. */
 
 END FUNCTION.
 
@@ -1290,6 +1389,24 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setPopupSelectionEnabled Include 
+FUNCTION setPopupSelectionEnabled RETURNS LOGICAL
+  (plValue AS LOGICAL) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  &SCOPED-DEFINE xpPopupSelectionEnabled
+  {set PopupSelectionEnabled plValue}.
+  &UNDEFINE xpPopupSelectionEnabled
+
+  RETURN TRUE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setSelectorBGcolor Include 
 FUNCTION setSelectorBGcolor RETURNS LOGICAL
   ( INPUT pSelectorBGcolor AS CHARACTER ) :
@@ -1367,6 +1484,23 @@ FUNCTION setTabBGcolor RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
 
 {set TabBGcolor pTabBGcolor}. 
+
+RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setTabEnabled Include 
+FUNCTION setTabEnabled RETURNS LOGICAL
+  ( INPUT pTabEnabled AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+{set TabEnabled pTabEnabled}. 
 
 RETURN TRUE.
 
@@ -1507,6 +1641,24 @@ ASSIGN pTabsPerRow = MINIMUM(MAXIMUM(1,pTabsPerRow),{&MAX-TABS}).
 {set TabsPerRow pTabsPerRow}. 
 
 RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setTabVisualization Include 
+FUNCTION setTabVisualization RETURNS LOGICAL
+  (pcValue  AS CHARACTER) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  &SCOPED-DEFINE xpTabVisualization
+  {set TabVisualization pcValue}.
+  &UNDEFINE xpTabVisualization
+
+  RETURN TRUE.   /* Function return value. */
 
 END FUNCTION.
 

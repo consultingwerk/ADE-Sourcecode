@@ -129,6 +129,7 @@ DEFINE NEW SHARED STREAM P_4GL.
 /* Notify others of BEFORE and AFTER the partial check syntax.  Provide
    opportunity for developer to cancel. */
 FIND _P WHERE _P._WINDOW-HANDLE eq _h_win.
+
 IF pcStatus NE "PRINT-SECTION":U THEN DO:
   RUN adecomm/_adeevnt.p (INPUT  "AB":U,
                           INPUT  "BEFORE-CHECK-SYNTAX-PARTIAL",
@@ -137,6 +138,12 @@ IF pcStatus NE "PRINT-SECTION":U THEN DO:
                           OUTPUT ok2continue).
   IF NOT ok2continue THEN RETURN.
 END.  /* if not printsection */
+
+/* Clean out _TRG._toffsets */
+FOR EACH _TRG WHERE _TRG._pRECID = RECID(_P):
+  _TRG._tOFFSET = ?.
+END.
+
 
 /* ************************************************************************* */
 DO ON STOP UNDO, LEAVE:

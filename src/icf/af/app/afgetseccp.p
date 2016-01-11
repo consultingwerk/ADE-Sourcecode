@@ -73,8 +73,6 @@ af/cod/aftemwizpw.w
 /*-------------------------------------------------------------------------------*/
 
 /* ***************************  Definitions  ************************** */
-DEFINE VARIABLE cDefaultHelpFile  AS CHARACTER  NO-UNDO.
-
 
 /* MIP-GET-OBJECT-VERSION pre-processors
    The following pre-processors are maintained automatically when the object is
@@ -144,30 +142,35 @@ DEFINE VARIABLE cDefaultHelpFile  AS CHARACTER  NO-UNDO.
 
 DEFINE OUTPUT PARAMETER TABLE FOR ttSecurityControl.
 
-EMPTY TEMP-TABLE ttSecurityControl.  
+DEFINE VARIABLE dCurrentLanguageObj AS DECIMAL INITIAL 0 NO-UNDO.
+
+EMPTY TEMP-TABLE ttSecurityControl.
 
 FIND FIRST gsc_security_control NO-LOCK NO-ERROR.
-IF AVAILABLE gsc_security_control THEN
-DO:
-  DEFINE VARIABLE dCurrentLanguageObj AS DECIMAL INITIAL 0 NO-UNDO.
-  dCurrentLanguageObj = DECIMAL(DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
-                                   INPUT "currentLanguageObj":U,
-                                   INPUT NO)) NO-ERROR.
 
-  CREATE ttSecurityControl.
-  BUFFER-COPY gsc_security_control TO ttSecurityControl.  
+IF AVAILABLE gsc_security_control 
+THEN DO:  
+    ASSIGN dCurrentLanguageObj = DECIMAL(DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
+                                         INPUT "currentLanguageObj":U,
+                                         INPUT NO)) NO-ERROR.
+    CREATE ttSecurityControl.
+    BUFFER-COPY gsc_security_control TO ttSecurityControl.  
 
-  /* check if a default help file exists for specific language */
-  cDefaultHelpFile = "prohelp/icabeng.hlp":U.
-  FIND FIRST gsm_help NO-LOCK
-       WHERE gsm_help.language_obj            = dCurrentLanguageObj
-         AND gsm_help.help_container_filename = "":U
-         AND gsm_help.help_object_filename    = "":U
-         AND gsm_help.help_fieldname          = "":U
-       NO-ERROR.
-  IF AVAILABLE gsm_help THEN
-    ASSIGN cDefaultHelpFile = gsm_help.help_filename.
-  ASSIGN ttSecurityControl.default_help_filename = cDefaultHelpFile.
+    /* Check if a default help file exists for specific language */
+
+    FIND FIRST gsm_help NO-LOCK
+         WHERE gsm_help.language_obj            = dCurrentLanguageObj
+           AND gsm_help.help_container_filename = "":U
+           AND gsm_help.help_object_filename    = "":U
+           AND gsm_help.help_fieldname          = "":U
+         NO-ERROR.
+
+    IF AVAILABLE gsm_help THEN
+        ASSIGN ttSecurityControl.default_help_filename = gsm_help.help_filename.
+    ELSE
+        IF ttSecurityControl.default_help_filename = "":U
+        OR ttSecurityControl.default_help_filename = ? THEN
+            ASSIGN ttSecurityControl.default_help_filename = "prohelp/icabeng.hlp":U.
 END.
 
 /* _UIB-CODE-BLOCK-END */

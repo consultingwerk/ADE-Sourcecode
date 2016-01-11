@@ -71,7 +71,7 @@ define variable odbtyp   as character.
 assign
   odbtyp = {adecomm/ds_type.i
              &direction = "odbc"
-             &from-type = "odbtyp
+             &from-type = "odbtyp"
              }.
 
 /*---------------------------  MAIN-CODE  --------------------------*/

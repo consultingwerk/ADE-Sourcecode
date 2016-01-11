@@ -38,13 +38,14 @@
   Created: 03/23/93 - 12:17 pm
 
   Modified:
-    04/06/99    tsm     Added support for various Intl Numeric Formats (in
+    04/06/99    tsp     Added support for various Intl Numeric Formats (in
                         addition to American and European) by using 
                         session set-numeric-format to set numeric format
                         back to user's setting after setting it to American in
                         CheckSyntax.ip
 
     11.20.00 achlensk   fixed BUG# 20000604-004
+    Jul 1 02    tsp     Fixed Issue 4839
 
   ---------------------------------------------------------------------------*/
 
@@ -89,6 +90,7 @@ ASSIGN cTblList = REPLACE({&TableRight}:LIST-ITEMS, 'TEMP-TABLES.', '').
         &Preprocess  = "in_UIB"
         &Mode        = "FALSE"
         }
+
   END.
   
   /* If there is any query, then add a "FOR...:" wrapper and continue */
@@ -260,9 +262,26 @@ PROCEDURE addTable.ip:
     END.  /* IF &Table-Mode */
     ELSE lOk = {&CurRight}:ADD-LAST (v_CurrentName).
 
+    /* If there are options defined for the query, create an _qo record for the 
+       new table because there are places in qurytrig.i where _TblOptList is set 
+       based on _qo records. */
+    DEFINE BUFFER b_qo FOR _qo.
     IF NUM-ENTRIES({&CurRight}:LIST-ITEMS, {&Sep1}) > NUM-ENTRIES(_TblOptList) AND
-       _TblOptList NE "" THEN
+       _TblOptList NE "" THEN 
+    DO:
       _TblOptList = _TblOptList + ",":U.
+      FIND LAST b_qo NO-ERROR.
+      IF AVAILABLE b_qo THEN
+      DO:
+        CREATE _qo.
+        ASSIGN
+          _qo._seq-no = b_qo._seq-no + 1
+          _qo._tbl-name = ENTRY(NUM-ENTRIES({&CurRight}:LIST-ITEMS, {&Sep1}), {&CurRight}:LIST-ITEMS, {&Sep1})
+          _qo._find-type = 'EACH':U
+          _qo._flds-returned = 'All Fields':U
+          _qo._join-type = 'INNER':U.
+      END.  /* if b_qo available */
+    END.  /* if number of tables is greater than number of tables in options list */
 
     IF v_CurrentName BEGINS "Temp-Tables":U AND
       NUM-ENTRIES(v_TblName, ".":U) = 1 THEN DO:  /* Quailify with Temp-Tables if not Buffer */

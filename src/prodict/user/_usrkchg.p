@@ -25,6 +25,7 @@
 /* HISTORY:
    
    Modified on 07/08/94 by gfs      Fixed 94-06-28-033
+               08/08/02 D. McMann  Eliminated any sequences whose name begins "$" - Peer Direct
 */
 { prodict/dictvar.i }
 { prodict/user/uservar.i }
@@ -51,6 +52,7 @@
 Modified: 07/14/98 D. McMann Added _Owner to _File finds
           01/11/00 D. McMann Added display of b_seq._seq-name to NEXT & PREV
                              19990820-003
+          07/01/02 D. McMann Added assignment of dict_dirty for on-line schema add.
 
 */
 &IF "{&WINDOW-SYSTEM}" = "TTY"
@@ -280,6 +282,7 @@ PROCEDURE Add_Modify:
             limit
             b_Seq._Cycle-Ok
             WITH FRAME seq-detail.
+         ASSIGN dict_dirty = TRUE.
       end.
       else do:  /*--------- updateing existing sequence ---------*/
                if b_Seq._Seq-Incr > 0 then 
@@ -328,6 +331,8 @@ PROCEDURE Add_Modify:
             b_Seq._Seq-Max = b_Seq._Seq-Init.
    
       p_Okay = true.
+     dict_dirty = TRUE.
+
       return.
    END.
 
@@ -364,17 +369,17 @@ IF INDEX(capab,"s":u) = 0
    index) there which will be displayed when that option is chosen.
 */
 qbf#list = "0,0,0,0,0,0,":u
-         +  IF dict_rog THEN "1":u ELSE
+         + ( IF dict_rog THEN "1":u ELSE
             (IF NOT CAN-DO(_Can-create ,USERID("DICTDB":u)) THEN "2":u ELSE
-            (IF INDEX(capab,"a":u) = 0 THEN "11":u ELSE "0":u))
+            (IF INDEX(capab,"a":u) = 0 THEN "11":u ELSE "0":u)))
          + ",":u +
-            IF dict_rog THEN "1":u ELSE
+           ( IF dict_rog THEN "1":u ELSE
             (IF NOT CAN-DO(_Can-write,USERID("DICTDB":u)) THEN "2":u ELSE 
-            (IF (INDEX(capab,"m":u) = 0 AND INDEX(capab,"r":u) = 0 )THEN "11":u ELSE "0":u))
+            (IF (INDEX(capab,"m":u) = 0 AND INDEX(capab,"r":u) = 0 )THEN "11":u ELSE "0":u)))
          + ",":u +
-            IF dict_rog THEN "1":u ELSE
+           ( IF dict_rog THEN "1":u ELSE
             (IF NOT CAN-DO(_Can-delete,USERID("DICTDB":u)) THEN "2":u ELSE 
-            (IF INDEX(capab,"d":u) = 0 THEN "11":u ELSE "0":u))
+            (IF INDEX(capab,"d":u) = 0 THEN "11":u ELSE "0":u)))
          + ",0,0":u.
 
 PAUSE 0.
@@ -400,7 +405,8 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
                  in the buffer - but w.o it things don't work right! */
         FIND b_Seq WHERE RECID(b_Seq) = qbf_rec NO-ERROR.
       ELSE DO:
-              FIND FIRST b_Seq where b_Seq._Db-recid = drec_db NO-ERROR.
+              FIND FIRST b_Seq where b_Seq._Db-recid = drec_db 
+                                 AND NOT b_Seq._Seq-name BEGINS "$" NO-ERROR.
               qbf_rec = RECID(b_Seq).
       END.
 
@@ -413,10 +419,12 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
         i = 3.
       UP j - 1.
       IF j > 1 THEN DO i = 2 TO j WHILE AVAILABLE b_Seq:
-        FIND PREV b_Seq where b_Seq._Db-recid = drec_db NO-ERROR.
+        FIND PREV b_Seq where b_Seq._Db-recid = drec_db
+                          AND NOT b_Seq._Seq-name BEGINS "$" NO-ERROR.
       END.
       IF NOT AVAILABLE b_Seq THEN DO:
-        FIND FIRST b_Seq where b_Seq._Db-recid = drec_db NO-ERROR.
+        FIND FIRST b_Seq where b_Seq._Db-recid = drec_db
+                           AND NOT b_Seq._Seq-name BEGINS "$" NO-ERROR.
         j = i - 2.
       END.
 
@@ -434,11 +442,13 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
           THEN "MESSAGES":u ELSE "NORMAL":u) b_Seq._Seq-Name.
         DOWN.
         IF AVAILABLE b_Seq THEN FIND NEXT b_Seq 
-                where b_Seq._Db-recid = drec_db NO-ERROR.
+                where b_Seq._Db-recid = drec_db 
+                  AND NOT b_Seq._Seq-name BEGINS "$" NO-ERROR.
       END.
       IF qbf_rec <> ? THEN
               /* Reset the b_Seq buffer to the one that's highlit. */
-        FIND b_Seq WHERE RECID(b_Seq) = qbf_rec NO-ERROR.
+        FIND b_Seq WHERE RECID(b_Seq) = qbf_rec 
+                     AND NOT b_Seq._Seq-name BEGINS "$" NO-ERROR.
       UP FRAME-DOWN - j + 1.
     END.
    
@@ -531,9 +541,11 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
     redraw = qbf# > 2.
 
     IF qbf# = {&NEXT} THEN DO: /*----------------------------- start of NEXT */
-      FIND NEXT b_Seq where b_Seq._Db-recid = drec_db NO-ERROR.
+      FIND NEXT b_Seq where b_Seq._Db-recid = drec_db
+                        AND NOT b_Seq._Seq-name BEGINS "$" NO-ERROR.
       IF NOT AVAILABLE b_Seq THEN DO:
-        FIND LAST b_Seq where b_Seq._Db-recid = drec_db NO-ERROR.
+        FIND LAST b_Seq where b_Seq._Db-recid = drec_db 
+                          AND NOT b_Seq._Seq-name BEGINS "$" NO-ERROR.
         MESSAGE new_lang[5].  /* last sequence */
       END.
       ELSE DO:
@@ -552,9 +564,11 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
     END. /*---------------------------------------------------- end of NEXT */
     ELSE
     IF qbf# = {&PREV} THEN DO: /*---------------------------- start of PREV */
-      FIND PREV b_Seq where b_Seq._Db-recid = drec_db NO-ERROR.
+      FIND PREV b_Seq where b_Seq._Db-recid = drec_db 
+                        AND NOT b_Seq._Seq-name BEGINS "$" NO-ERROR.
       IF NOT AVAILABLE b_Seq THEN DO:
-        FIND FIRST b_Seq where b_Seq._Db-recid = drec_db NO-ERROR.
+        FIND FIRST b_Seq where b_Seq._Db-recid = drec_db 
+                           AND NOT b_Seq._Seq-name BEGINS "$" NO-ERROR.
         MESSAGE new_lang[6].  /* first sequence */
       END.
       ELSE DO:
@@ -574,32 +588,38 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
     ELSE
     IF qbf# = {&NEXTPG} THEN DO: /*---------------------- start of NEXTPAGE */
       DO i = 1 TO FRAME-DOWN WHILE AVAILABLE b_Seq:
-        FIND NEXT b_Seq where b_Seq._Db-recid = drec_db NO-ERROR.
+        FIND NEXT b_Seq where b_Seq._Db-recid = drec_db 
+                          AND NOT b_Seq._Seq-name BEGINS "$" NO-ERROR.
       END.
       IF NOT AVAILABLE b_Seq THEN DO:
         DOWN FRAME-DOWN - FRAME-LINE.
-        FIND LAST b_Seq where b_Seq._Db-recid = drec_db NO-ERROR.
+        FIND LAST b_Seq where b_Seq._Db-recid = drec_db 
+                          AND NOT b_Seq._Seq-name BEGINS "$" NO-ERROR.
       END.
     END. /*------------------------------------------------ end of NEXTPAGE */
     ELSE
     IF qbf# = {&PREVPG} THEN DO: /*---------------------- start of PREVPAGE */
       DO i = 1 TO FRAME-DOWN WHILE AVAILABLE b_Seq:
-        FIND PREV b_Seq where b_Seq._Db-recid = drec_db NO-ERROR.
+        FIND PREV b_Seq where b_Seq._Db-recid = drec_db 
+                          AND NOT b_Seq._Seq-name BEGINS "$" NO-ERROR.
       END.
       IF NOT AVAILABLE b_Seq THEN DO:
-        FIND FIRST b_Seq where b_Seq._Db-recid = drec_db NO-ERROR.
+        FIND FIRST b_Seq where b_Seq._Db-recid = drec_db
+                           AND NOT b_Seq._Seq-name BEGINS "$" NO-ERROR.
         UP FRAME-LINE - 1.
       END.
     END. /*------------------------------------------------ end of PREVPAGE */
     ELSE
     IF qbf# = {&FIRST} THEN DO: /*-------------------------- start of FIRST */
-      FIND FIRST b_Seq where b_Seq._Db-recid = drec_db NO-ERROR.
+      FIND FIRST b_Seq where b_Seq._Db-recid = drec_db 
+                         AND NOT b_Seq._Seq-name BEGINS "$" NO-ERROR.
       qbf_rec = RECID(b_Seq).
       UP FRAME-LINE - 1.
     END. /*--------------------------------------------------- end of FIRST */
     ELSE
     IF qbf# = {&LAST} THEN DO: /*---------------------------- start of LAST */
-      FIND LAST b_Seq where b_Seq._Db-recid = drec_db NO-ERROR.
+      FIND LAST b_Seq where b_Seq._Db-recid = drec_db 
+                        AND NOT b_Seq._Seq-name BEGINS "$" NO-ERROR.
       qbf_rec = RECID(b_Seq).
       DOWN FRAME-DOWN - FRAME-LINE.
     END. /*--------------------------------------------------- end of LAST */
@@ -633,6 +653,7 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
           new_lang[3] + b_Seq._Seq-Name + '"?').
       IF answer THEN DELETE b_Seq.
       in_trans = in_trans OR answer.
+      dict_dirty = TRUE.
     END. /*-------------------------------------------------- end of DELETE */
     ELSE
     IF qbf# = {&UNDO} THEN DO: /*---------------------------- start of UNDO */

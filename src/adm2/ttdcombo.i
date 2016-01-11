@@ -43,6 +43,10 @@
                 Date:   08/30/2001  Author:     Mark Davies
 
   Update Notes: Added new field for KeyFormat
+  
+  Modified    : 05/09/2002        Mark Davies (MIP)
+                Added new field to ttDCombo called hViewer to contain the
+                handle a combo is on. Issue #4525
 
 -----------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
@@ -60,30 +64,6 @@
 
 /* MIP object identifying preprocessor */
 &glob   mip-structured-include  yes
-
-DEFINE TEMP-TABLE ttDCombo NO-UNDO
-FIELD hWidget               AS HANDLE           /* Handle of widget, e.g. coCompany:HANDLE */
-FIELD cWidgetName           AS CHARACTER        /* Name of widget, e.g. coCompany */
-FIELD cWidgetType           AS CHARACTER        /* Data Type of widget, e.g. DECIMAL, INTEGER, CHARACTER, DATE, etc. */
-FIELD cForEach              AS CHARACTER        /* FOR EACH statement used to retrieve the data, e.g. FOR EACH gsm_user NO-LOCK BY gsm_user.user_login_name */
-FIELD cBufferList           AS CHARACTER        /* comma delimited list of buffers used in FOR EACH, e.g. gsm_user */
-FIELD cKeyFieldName         AS CHARACTER        /* name of key field as table.fieldname, e.g. gsm_user.user_obj */
-FIELD cKeyFormat            AS CHARACTER        /* The Key Field's Format */
-FIELD cDescFieldNames       AS CHARACTER        /* comma delimited list of description fields as table.fieldname, e.g. gsm_user.user_login_name */
-FIELD cDescSubstitute       AS CHARACTER        /* Substitution string to use when description contains multiple fields, e.g. &1 / &2 */
-FIELD cFlag                 AS CHARACTER        /* Flag (N/A) N = <None>, A = <All> to include extra empty entry to indicate none or all */
-FIELD cFlagValue            AS CHARACTER        /* Default value for Optional Flags (N/A) */
-FIELD cCurrentKeyValue      AS CHARACTER        /* currently selected key field value */
-FIELD cListItemDelimiter    AS CHARACTER        /* Delimiter for list item pairs, e.g. , */
-FIELD cListItemPairs        AS CHARACTER        /* Found list item pairs */
-FIELD cCurrentDescValue     AS CHARACTER        /* If specified cCurrentKeyValue is valid, this field will contain corresponding list-item pair description */
-FIELD cKeyValues            AS CHARACTER        /* Contains a Delimited list of key field values in the combo list - the delimired used is that of field cListItemDelimiter */
-FIELD cDescriptionValues    AS CHARACTER        /* Contains a Delimited list of description field values (in substituted form) in the combo list - the delimired used is that of field cListItemDelimiter */
-FIELD cParentField          AS CHARACTER        /* Comma seperated list of parent dependancy fields */
-FIELD cParentFilterQuery    AS CHARACTER        /* A filter query to be applied to combo for parent dependancies */
-FIELD iBuildSequence        AS INTEGER          /* The sequence number in which the combo's data should be populated */
-INDEX keyIndex IS PRIMARY hWidget
-INDEX key2 cWidgetName.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -130,6 +110,34 @@ INDEX key2 cWidgetName.
 
 
 /* ***************************  Main Block  *************************** */
+
+DEFINE TEMP-TABLE ttDCombo NO-UNDO
+FIELD hWidget               AS HANDLE           /* Handle of widget, e.g. coCompany:HANDLE */
+FIELD hViewer               AS HANDLE           /* Handle if the viewer that the combo is on */
+FIELD cWidgetName           AS CHARACTER        /* Name of widget, e.g. coCompany */
+FIELD cWidgetType           AS CHARACTER        /* Data Type of widget, e.g. DECIMAL, INTEGER, CHARACTER, DATE, etc. */
+FIELD cForEach              AS CHARACTER        /* FOR EACH statement used to retrieve the data, e.g. FOR EACH gsm_user NO-LOCK BY gsm_user.user_login_name */
+FIELD cBufferList           AS CHARACTER        /* comma delimited list of buffers used in FOR EACH, e.g. gsm_user */
+FIELD cPhysicalTableNames   AS CHARACTER        /* comma delimited list of actual DB Tables names of buffers defined that corresponds with cBufferList */
+FIELD cTempTableNames       AS CHARACTER        /* comma delimited list of PLIP names where data for define temp-tables could be retrieved, corresponds with cBufferList */
+FIELD cKeyFieldName         AS CHARACTER        /* name of key field as table.fieldname, e.g. gsm_user.user_obj */
+FIELD cKeyFormat            AS CHARACTER        /* The Key Field's Format */
+FIELD cDescFieldNames       AS CHARACTER        /* comma delimited list of description fields as table.fieldname, e.g. gsm_user.user_login_name */
+FIELD cDescSubstitute       AS CHARACTER        /* Substitution string to use when description contains multiple fields, e.g. &1 / &2 */
+FIELD cFlag                 AS CHARACTER        /* Flag (N/A) N = <None>, A = <All> to include extra empty entry to indicate none or all */
+FIELD cFlagValue            AS CHARACTER        /* Default value for Optional Flags (N/A) */
+FIELD cCurrentKeyValue      AS CHARACTER        /* currently selected key field value */
+FIELD cListItemDelimiter    AS CHARACTER        /* Delimiter for list item pairs, e.g. , */
+FIELD cListItemPairs        AS CHARACTER        /* Found list item pairs */
+FIELD cCurrentDescValue     AS CHARACTER        /* If specified cCurrentKeyValue is valid, this field will contain corresponding list-item pair description */
+FIELD cKeyValues            AS CHARACTER        /* Contains a Delimited list of key field values in the combo list - the delimired used is that of field cListItemDelimiter */
+FIELD cDescriptionValues    AS CHARACTER        /* Contains a Delimited list of description field values (in substituted form) in the combo list - the delimired used is that of field cListItemDelimiter */
+FIELD cParentField          AS CHARACTER        /* Comma seperated list of parent dependancy fields */
+FIELD cParentFilterQuery    AS CHARACTER        /* A filter query to be applied to combo for parent dependancies */
+FIELD iBuildSequence        AS INTEGER          /* The sequence number in which the combo's data should be populated */
+INDEX keyIndex IS PRIMARY hWidget
+INDEX keyCont  hViewer
+INDEX key2 cWidgetName.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

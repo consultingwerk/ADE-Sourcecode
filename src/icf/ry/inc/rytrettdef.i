@@ -39,9 +39,9 @@ af/cod/aftemwizpw.w
    TreeView, this will help with speed increase, so 
    that we do not make any extra appServer calls to
    get the next node's details                      */
-DEFINE TEMP-TABLE ttNode LIKE gsm_node.
+DEFINE TEMP-TABLE ttNode NO-UNDO LIKE gsm_node.
 
-DEFINE TEMP-TABLE ttLinksAdded
+DEFINE TEMP-TABLE ttLinksAdded NO-UNDO
   FIELDS hSourceHandle    AS HANDLE
   FIELDS cLinkName        AS CHARACTER
   FIELDS hTargetHandle    AS HANDLE

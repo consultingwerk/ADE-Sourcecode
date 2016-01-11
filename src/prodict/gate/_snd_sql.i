@@ -113,6 +113,7 @@ History:
                           exists with name.
     03/13/00     DLM      Added change for Oracle to determine what version so the
                           proper field name is used type or type# 20000320022
+    11/19/01     DLM      Changed check for sqlnet connection string parsing
 
 /* 
  * TODO: Add error handling to deal w/ errors returned 
@@ -369,25 +370,22 @@ run error_handling(11,string(dropit),"","debug").
 ** 
 ** The name could be in three formats:
 **
-**      user
-**      user@connection_string
-**      user/password@connection_string
+**      user (i = 0 j = 0)
+**      user@connection_string (i = 0 j = #)
+**      user/password@connection_string (i = # j = # i < j)
 **
 */
 if l_edbtyp = "ORACLE" then do:
-    owner_name = CAPS(p_owner).
-    i = index(owner_name,'/').
-    j = index(owner_name,'@').
+  ASSIGN owner_name = CAPS(p_owner)
+         i = index(owner_name,'/')
+         j = index(owner_name,'@').
 
-    if i <> 0 then
-        owner_name = substr(owner_name, 1, i - 1, "character"). 
-    if j <> 0 and j < i then
-        owner_name = substr(owner_name, 1, j - 1, "character"). 
-
-  end.
-
-
-
+  if i <> 0 THEN
+    ASSIGN owner_name = substr(owner_name, 1, i - 1, "character"). 
+      
+  ELSE IF j <> 0 THEN
+    ASSIGN owner_name = substr(owner_name, 1, j - 1, "character"). 
+end.
 
 if change_chained_mode then do:
   

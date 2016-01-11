@@ -99,6 +99,10 @@ History:
     mcmann      03/20/01  Added decending index support for 8i Oracle
     mcmann      04/11/01  Added closed stored proc for send sql 
     mcmann      07/05/01  Added DICTDBG on stored proc finds
+    mcmann      07/08/02  DESC index fixes 20020702013,20020703006, 20020622001
+    mcmann      07/10/02  Support for UPPER function indexes
+    mcmann      07/18/02  20020718-043 shadow col fields being marked sensitive
+    mcmann      09/30/02  Added logic for synonmyns of procedures in packages
    
 
 */
@@ -115,7 +119,7 @@ History
 
 /*    &DS_DEBUG   DEBUG to protocol the creation    */
 /*                ""    to turn off protocol        */
-&SCOPED-DEFINE xxDS_DEBUG                   DEBUG
+&SCOPED-DEFINE DS_DEBUG   XXDEBUG
 
 &SCOPED-DEFINE DATASERVER                 YES
 &SCOPED-DEFINE FOREIGN_SCHEMA_TEMP_TABLES INCLUDE
@@ -181,12 +185,15 @@ define variable typevar-s       as character no-undo. /* synonym */
 define variable unique-prime    as logical   no-undo. /* upi already found */
 define variable uservar         as character no-undo.
 
-/* define variables for getting real field for decending indexes*/
+
+/* define variables for getting real field for function indexes*/
 DEFINE VARIABLE didx-name       AS CHARACTER              NO-UNDO.
 DEFINE VARIABLE didx-pos        AS INTEGER FORMAT "99999" NO-UNDO.
 DEFINE VARIABLE didx-col#       AS INTEGER                NO-UNDO.
+DEFINE VARIABLE col-num         AS INTEGER                NO-UNDO.
 DEFINE VARIABLE dsname          AS CHARACTER              NO-UNDO.
 DEFINE VARIABLE isasc           AS LOGICAL                NO-UNDO.
+DEFINE VARIABLE upperfld        AS LOGICAL                NO-UNDO.
 /*------------------------------------------------------------------*/
 
 /* LANGUAGE DEPENDENCIES START */ /*--------------------------------*/
@@ -375,7 +382,7 @@ RUN prodict/{&dbtyp}/_{&dbtyp}_typ.p
 
 for each gate-work
   where gate-work.gate-slct = TRUE:
-  
+ 
   /* Skip pseudo-entry, which is needed to signal, if user wants to 
    * compare not just <DS> -> PROGRESS, but also the other direction
    */
@@ -431,7 +438,7 @@ for each gate-work
     progvar   = gate-work.gate-prog
     spclvar   = gate-work.gate-qual
     .
-    
+
   if SESSION:BATCH-MODE and logfile_open
    then put unformatted
      gate-work.gate-type at 10
@@ -536,12 +543,19 @@ for each gate-work
                 s_ttb_tbl.ds_user  = "".
               end.     /* for each s_ttb_tbl */
             end.     /* package */
-
+           ELSE IF typevar = 9 THEN DO: /* synonym for package but a procedure */
+             find first s_ttb_tbl
+              where recid(s_ttb_tbl) = gate-work.ttb-recid
+              no-error.
+             if available s_ttb_tbl then 
+                 ASSIGN s_ttb_tbl.ds_msc21 = namevar-s 
+                        s_ttb_tbl.ds_user = "".              
+           END.
            else do:  /* procedure or function */
             find first s_ttb_tbl
               where recid(s_ttb_tbl) = gate-work.ttb-recid
               no-error.
-            if available s_ttb_tbl
+           if available s_ttb_tbl
              then assign
               s_ttb_tbl.ds_name = namevar-s
               s_ttb_tbl.ds_user = "".
@@ -661,6 +675,12 @@ for each gate-work
                                 then ds_comments.{&comment}
                                 else ""
                            ).
+
+     /* columns created for function based indexes should not be created for
+        the verify.  They will show as missing fields*/
+     IF ds_columns.NAME BEGINS "SYS_NC" AND user_env[25] = "compare" THEN
+         NEXT.
+
       if ds_columns.name MATCHES "*##1"
        then do:  /* collect array elements & determine extent */
 
@@ -693,7 +713,7 @@ for each gate-work
 
       assign
         l_fld-pos = ( IF ds_columns.{&colid} > 0 THEN ds_columns.{&colid}
-                      ELSE INTEGER(SUBSTRING(ds_columns.NAME, 7, 5))) .
+                      ELSE (INTEGER(SUBSTRING(ds_columns.NAME, 7, 5))) * -1) .
 
       { prodict/gate/gat_pulf.i 
         &extent       = "m1"
@@ -872,38 +892,59 @@ for each gate-work
                                string(ds_idx-cols.{&colid})
                               ).
             next.
-          end.     /* too many index-fields */        
-          if s_ttb_tbl.ds_recid = ds_idx-cols.{&colid} then next.  /* progress_recid */
-         
+          end.     /* too many index-fields */    
+
+          if s_ttb_tbl.ds_recid = ds_idx-cols.{&colid} AND
+             s_ttb_tbl.ds_recid <> 0  then next.  /* progress_recid */
+  
           IF ds_idx-cols.{&colid} = 0 THEN DO: 
             RUN STORED-PROC DICTDBG.send-sql-statement h1 = PROC-HANDLE
                 ( "select pos#, intcol# from sys.icol$ where obj# = " + string(ds_indexes.{&objid}) ).
             FOR EACH DICTDBG.proc-text-buffer WHERE PROC-HANDLE = h1:
               ASSIGN didx-pos =  INTEGER(SUBSTRING(proc-text, 1 ,25)) .
               IF didx-pos = ds_idx-cols.pos# THEN DO:
-                ASSIGN didx-col# = INTEGER(SUBSTRING(proc-text, 26 ,25)).
+                ASSIGN didx-col# = INTEGER(SUBSTRING(proc-text, 26 ,25))
+                       col-num = didx-col#.
                 find first s_ttb_fld where s_ttb_fld.ttb_tbl =  RECID(s_ttb_tbl)
-                                 and s_ttb_fld.ds_stoff =  didx-col#
+                                 and s_ttb_fld.ds_stoff =  (didx-col# * -1)
                                  and s_ttb_fld.ds_stdtype <> 7 * 4096 /* not of type TIME */
                                  no-error.
+
                 IF AVAILABLE s_ttb_fld THEN DO:
                   ASSIGN dsname = s_ttb_fld.defaultname.
+                  FIND FIRST DICTDBG.oracle_columns WHERE DICTDBG.oracle_columns.obj# = onum
+                                                     AND DICTDBG.oracle_columns.NAME = s_ttb_fld.ds_name NO-ERROR.
+                  IF AVAILABLE DICTDBG.oracle_columns THEN
+                    ASSIGN upperfld = (IF DICTDBG.oracle_columns.default$ BEGINS "UPPER" THEN TRUE
+                                       ELSE FALSE).        
+
                   find first s_ttb_fld where s_ttb_fld.ttb_tbl =  RECID(s_ttb_tbl)
                                  and s_ttb_fld.ds_name =  dsname
                                  and s_ttb_fld.ds_stdtype <> 7 * 4096 /* not of type TIME */
                                  no-error.
-                  IF AVAILABLE s_ttb_fld THEN
-                    ASSIGN didx-col# = s_ttb_fld.ds_stoff
-                          isasc = FALSE.
+                  IF AVAILABLE s_ttb_fld THEN 
+                    ASSIGN didx-col# = s_ttb_fld.ds_stoff.      
+
                 END.
                 LEAVE.
               END.
             END.
-            CLOSE STORED-PROC DICTDBG.send-sql-statement.
+            CLOSE STORED-PROC DICTDBG.send-sql-statement WHERE PROC-HANDLE = h1.
+
+            RUN STORED-PROC DICTDBG.send-sql-statement h1 = PROC-HANDLE
+              ( "select property from sys.col$ where obj# = " + STRING(onum) + " and intcol# = " + STRING(col-num) ).
+            FOR EACH DICTDBG.proc-text-buffer WHERE PROC-HANDLE = h1:
+              IF proc-text BEGINS "196904" AND upperfld THEN
+                ASSIGN isasc = FALSE.
+              ELSE
+                ASSIGN isasc = TRUE.
+            END.
+            CLOSE STORED-PROC DICTDBG.send-sql-statement WHERE PROC-HANDLE = h1.
           END.
           ELSE
             ASSIGN didx-col# = ds_idx-cols.{&colid}
-                  isasc = TRUE.
+                  isasc = TRUE
+                  upperfld = FALSE.
 
           find first s_ttb_fld where s_ttb_fld.ttb_tbl =  RECID(s_ttb_tbl)
                                  and s_ttb_fld.ds_stoff =  didx-col#
@@ -933,7 +974,12 @@ for each gate-work
                  s_ttb_idf.pro_asc   =isasc
                  s_ttb_idf.pro_order = ds_idx-cols.pos# + i
                  s_ttb_idf.ttb_fld   = RECID(s_ttb_fld)
-                 s_ttb_idf.ttb_idx   = RECID(s_ttb_idx).   
+                 s_ttb_idf.ttb_idx   = RECID(s_ttb_idx).
+
+          IF s_ttb_fld.pro_type = "character" THEN
+                 s_ttb_fld.pro_case  = (IF s_ttb_fld.pro_case THEN NOT upperfld
+                                        ELSE s_ttb_fld.pro_case).   
+
         end.   /* for each ds_idx-cols */
     
       &ENDIF

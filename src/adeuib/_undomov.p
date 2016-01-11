@@ -39,7 +39,7 @@ ASSIGN whObject            = _U._HANDLE
        whObject:ROW        = ((_L._ROW - 1) * _L._ROW-MULT) + 1 
        whObject:VISIBLE    = TRUE.
 
-IF CAN-DO("FILL-IN,COMBO-BOX",_U._TYPE) THEN RUN adeuib/_showlbl.p(whObject).
+IF CAN-DO("FILL-IN,COMBO-BOX,EDITOR,SELECTION-LIST,RADIO-SET,SLIDER",_U._TYPE) THEN RUN adeuib/_showlbl.p(whObject).
 
 /* Make sure that the object is internally ie. in the temp-table and
    externally have the same marked selected state.  If this is not true,

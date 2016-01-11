@@ -83,7 +83,7 @@ af/cod/aftemwizpw.w
 
 &scop object-name       gsgetenmnp.p
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 
 /* Astra object identifying preprocessor */
@@ -134,7 +134,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
                                                                         */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
@@ -147,6 +147,33 @@ DEFINE OUTPUT PARAMETER TABLE FOR ttEntityMnemonic.
 FOR EACH gsc_entity_mnemonic NO-LOCK:
     CREATE ttentityMnemonic.
     BUFFER-COPY gsc_entity_mnemonic TO ttentityMnemonic.
+    ASSIGN
+      ttentityMnemonic.HasAudit
+         = CAN-FIND(FIRST gst_audit
+                          WHERE gst_audit.owning_entity_mnemonic = 
+                                gsc_entity_mnemonic.entity_mnemonic)
+           OR 
+           CAN-FIND(FIRST gst_audit
+                          WHERE gst_audit.owning_entity_mnemonic
+                                = gsc_entity_mnemonic.entity_mnemonic_description)
+      ttentityMnemonic.HasComment
+         = CAN-FIND(FIRST gsm_comment
+                     WHERE gsm_comment.owning_entity_mnemonic 
+                           = gsc_entity_mnemonic.entity_mnemonic)
+           OR 
+           CAN-FIND(FIRST gsm_comment
+                     WHERE gsm_comment.owning_entity_mnemonic 
+                           = gsc_entity_mnemonic.entity_mnemonic_description)
+      /* until we get the correct index */
+     ttentityMnemonic.HasAutoComment = ttentityMnemonic.HasComment.
+    /* need index on enity auto and date
+    IF ttEntityMnemonic.HasComment THEN
+    DO:
+       FOR each
+       END.
+
+    END.
+    */
 END.
 
 /* _UIB-CODE-BLOCK-END */

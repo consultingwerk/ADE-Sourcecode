@@ -57,7 +57,12 @@ af/cod/aftemwizpw.w
 
   Update Notes: Created from Template rysttsimpv.w
 
----------------------------------------------------------------------------------*/
+  (v:010001)    Task:           0   UserRef:    
+                Date:   04/04/2002  Author:     Mark Davies (MIP
+
+  Update Notes: Added Source Language combo. This is part of the Menu Translation implementation required.
+
+--------------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
 
@@ -87,7 +92,10 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /* Astra 2 object identifying preprocessor */
 &glob   astra2-staticSmartObject yes
 
-{af/sup2/afglobals.i}
+{src/adm2/globals.i}
+{src/adm2/ttcombo.i}
+{af/app/afttsecurityctrl.i}
+{af/app/afttglobalctrl.i}
 
 DEFINE VARIABLE glModified                  AS LOGICAL INITIAL NO.
 DEFINE VARIABLE gcCallerName                AS CHARACTER  NO-UNDO.
@@ -108,13 +116,15 @@ DEFINE VARIABLE ghCallerHandle              AS HANDLE     NO-UNDO.
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS fiReportDirectory BuClearSesFilters ~
-BuClearPerFilters BuClearSesSDO BuClearPerSDO toSaveWindowPositions ~
-buClearWindowPositions toTopOnly BuClearTopOnly ToDebugEnabled ~
-toShowTooltips toDisplayRepository 
-&Scoped-Define DISPLAYED-OBJECTS fiReportDirectory ToSesFiltersActive ~
-ToPerFiltersActive ToSesSDOActive ToPerSDOActive toSaveWindowPositions ~
-toTopOnly ToDebugEnabled toShowTooltips toDisplayRepository 
+&Scoped-Define ENABLED-OBJECTS fiReportDirectory coSourceLanguage ~
+flnTemplate flnPalette BuClearSesFilters ToDebugEnabled BuClearPerFilters ~
+toShowTooltips BuClearSesSDO toDisplayRepository BuClearPerSDO ~
+toInitPagesForTrans buClearWindowPositions toSaveWindowPositions ~
+BuClearTopOnly toTopOnly 
+&Scoped-Define DISPLAYED-OBJECTS fiReportDirectory coSourceLanguage ~
+flnTemplate flnPalette ToSesFiltersActive ToDebugEnabled ToPerFiltersActive ~
+toShowTooltips ToSesSDOActive toDisplayRepository ToPerSDOActive ~
+toInitPagesForTrans toSaveWindowPositions toTopOnly 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -129,79 +139,101 @@ toTopOnly ToDebugEnabled toShowTooltips toDisplayRepository
 
 /* Definitions of the field level widgets                               */
 DEFINE BUTTON BuClearPerFilters 
-     LABEL "C&lear All" 
+     LABEL "C&lear All >>" 
      SIZE 15 BY 1 TOOLTIP "Clear all saved permanent filter settings"
      BGCOLOR 8 .
 
 DEFINE BUTTON BuClearPerSDO 
-     LABEL "C&lear All" 
+     LABEL "C&lear All >>" 
      SIZE 15 BY 1 TOOLTIP "Clear all saved permanent sdo attribute settings"
      BGCOLOR 8 .
 
 DEFINE BUTTON BuClearSesFilters 
-     LABEL "C&lear All" 
+     LABEL "C&lear All >>" 
      SIZE 15 BY 1 TOOLTIP "Clear all saved filter settings for session"
      BGCOLOR 8 .
 
 DEFINE BUTTON BuClearSesSDO 
-     LABEL "C&lear All" 
+     LABEL "C&lear All >>" 
      SIZE 15 BY 1 TOOLTIP "Clear all saved sdo attribute settings for session"
      BGCOLOR 8 .
 
 DEFINE BUTTON BuClearTopOnly 
-     LABEL "Clear &All" 
+     LABEL "Clear &All >>" 
      SIZE 15 BY 1 TOOLTIP "Remove top only setting from all windows for user"
      BGCOLOR 8 .
 
 DEFINE BUTTON buClearWindowPositions 
-     LABEL "Cl&ear All" 
+     LABEL "Cl&ear All >>" 
      SIZE 15 BY 1 TOOLTIP "Clear all saved window positions and sizes for current user"
      BGCOLOR 8 .
+
+DEFINE VARIABLE coSourceLanguage AS DECIMAL FORMAT "->>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
+     LABEL "Source Language" 
+     VIEW-AS COMBO-BOX INNER-LINES 5
+     LIST-ITEM-PAIRS "Item 1",0
+     DROP-DOWN-LIST
+     SIZE 49.6 BY 1 NO-UNDO.
 
 DEFINE VARIABLE fiReportDirectory AS CHARACTER FORMAT "X(256)":U 
      LABEL "Report Directory" 
      VIEW-AS FILL-IN 
-     SIZE 50.4 BY 1 TOOLTIP "Root Directory containing report definition files (*.rpt) e.g. g:/gs/dev/" NO-UNDO.
+     SIZE 49.6 BY 1 TOOLTIP "Root Directory containing report definition files (*.rpt) e.g. g:/gs/dev/" NO-UNDO.
+
+DEFINE VARIABLE flnPalette AS CHARACTER FORMAT "X(256)":U 
+     LABEL "Custom Palettes" 
+     VIEW-AS FILL-IN 
+     SIZE 50 BY 1 NO-UNDO.
+
+DEFINE VARIABLE flnTemplate AS CHARACTER FORMAT "X(256)":U 
+     LABEL "Custom Templates" 
+     VIEW-AS FILL-IN 
+     SIZE 50 BY 1 NO-UNDO.
 
 DEFINE VARIABLE ToDebugEnabled AS LOGICAL INITIAL no 
      LABEL "Debug Alert Enabled" 
      VIEW-AS TOGGLE-BOX
-     SIZE 49 BY 1 NO-UNDO.
+     SIZE 26.6 BY 1 NO-UNDO.
 
 DEFINE VARIABLE toDisplayRepository AS LOGICAL INITIAL no 
-     LABEL "Display &Repository Data?" 
+     LABEL "Display &Repository Data" 
      VIEW-AS TOGGLE-BOX
-     SIZE 49.4 BY 1 NO-UNDO.
+     SIZE 30.6 BY 1 NO-UNDO.
+
+DEFINE VARIABLE toInitPagesForTrans AS LOGICAL INITIAL no 
+     LABEL "Initialize all pages when translating" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 37.6 BY 1 NO-UNDO.
 
 DEFINE VARIABLE ToPerFiltersActive AS LOGICAL INITIAL no 
-     LABEL "Filterts Active Permanently" 
+     LABEL "Filters Active Permanently" 
      VIEW-AS TOGGLE-BOX
-     SIZE 47.4 BY 1 NO-UNDO.
+     SIZE 31.6 BY 1 NO-UNDO.
 
 DEFINE VARIABLE ToPerSDOActive AS LOGICAL INITIAL no 
      LABEL "SDO Attributes Active Permanently" 
      VIEW-AS TOGGLE-BOX
-     SIZE 47.8 BY 1 NO-UNDO.
+     SIZE 38.6 BY 1 NO-UNDO.
 
 DEFINE VARIABLE toSaveWindowPositions AS LOGICAL INITIAL no 
      LABEL "Save &Window Positions && Sizes" 
      VIEW-AS TOGGLE-BOX
-     SIZE 47.8 BY 1 NO-UNDO.
+     SIZE 37.6 BY 1 NO-UNDO.
 
 DEFINE VARIABLE ToSesFiltersActive AS LOGICAL INITIAL no 
      LABEL "Filters Active for Session" 
      VIEW-AS TOGGLE-BOX
-     SIZE 47.4 BY 1 NO-UNDO.
+     SIZE 33.6 BY 1 NO-UNDO.
 
 DEFINE VARIABLE ToSesSDOActive AS LOGICAL INITIAL no 
      LABEL "SDO Attributes Active for Session" 
      VIEW-AS TOGGLE-BOX
-     SIZE 47.8 BY 1 NO-UNDO.
+     SIZE 37.6 BY 1 NO-UNDO.
 
 DEFINE VARIABLE toShowTooltips AS LOGICAL INITIAL no 
      LABEL "&Show Tooltips" 
      VIEW-AS TOGGLE-BOX
-     SIZE 49.4 BY 1 NO-UNDO.
+     SIZE 26.6 BY 1 NO-UNDO.
 
 DEFINE VARIABLE toTopOnly AS LOGICAL INITIAL no 
      LABEL "&Top Only" 
@@ -212,22 +244,26 @@ DEFINE VARIABLE toTopOnly AS LOGICAL INITIAL no
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     fiReportDirectory AT ROW 1.38 COL 20.6 COLON-ALIGNED
-     ToSesFiltersActive AT ROW 2.62 COL 22.4
-     BuClearSesFilters AT ROW 2.62 COL 73
-     ToPerFiltersActive AT ROW 3.81 COL 22.4
-     BuClearPerFilters AT ROW 3.81 COL 73
-     ToSesSDOActive AT ROW 5 COL 22.4
-     BuClearSesSDO AT ROW 5 COL 73
-     ToPerSDOActive AT ROW 6.19 COL 22.4
-     BuClearPerSDO AT ROW 6.19 COL 73
-     toSaveWindowPositions AT ROW 7.38 COL 22.4
-     buClearWindowPositions AT ROW 7.38 COL 73
-     toTopOnly AT ROW 8.57 COL 22.4
-     BuClearTopOnly AT ROW 8.57 COL 73
-     ToDebugEnabled AT ROW 9.76 COL 22.4
-     toShowTooltips AT ROW 10.81 COL 22.4
-     toDisplayRepository AT ROW 11.95 COL 22.4
+     fiReportDirectory AT ROW 1.48 COL 20 COLON-ALIGNED
+     coSourceLanguage AT ROW 2.67 COL 20 COLON-ALIGNED
+     flnTemplate AT ROW 3.86 COL 20 COLON-ALIGNED
+     flnPalette AT ROW 5.05 COL 20 COLON-ALIGNED
+     BuClearSesFilters AT ROW 6.71 COL 5.8
+     ToSesFiltersActive AT ROW 6.71 COL 22
+     ToDebugEnabled AT ROW 6.71 COL 61.4
+     BuClearPerFilters AT ROW 7.91 COL 5.8
+     ToPerFiltersActive AT ROW 7.91 COL 22
+     toShowTooltips AT ROW 7.91 COL 61.4
+     BuClearSesSDO AT ROW 9.1 COL 5.8
+     ToSesSDOActive AT ROW 9.1 COL 22
+     toDisplayRepository AT ROW 9.1 COL 61.4
+     BuClearPerSDO AT ROW 10.29 COL 5.8
+     ToPerSDOActive AT ROW 10.29 COL 22
+     toInitPagesForTrans AT ROW 10.29 COL 61.4
+     buClearWindowPositions AT ROW 11.48 COL 5.8
+     toSaveWindowPositions AT ROW 11.48 COL 22
+     BuClearTopOnly AT ROW 12.67 COL 5.8
+     toTopOnly AT ROW 12.67 COL 22
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -259,8 +295,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW sObject ASSIGN
-         HEIGHT             = 11.95
-         WIDTH              = 87.
+         HEIGHT             = 13.95
+         WIDTH              = 98.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -316,7 +352,7 @@ ASSIGN
 
 &Scoped-define SELF-NAME BuClearPerFilters
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL BuClearPerFilters sObject
-ON CHOOSE OF BuClearPerFilters IN FRAME frMain /* Clear All */
+ON CHOOSE OF BuClearPerFilters IN FRAME frMain /* Clear All >> */
 /*------------------------------------------------------------------------------
   Purpose:     Clear all filter settings for user - session and permanent.
   Notes:       
@@ -366,7 +402,7 @@ END.
 
 &Scoped-define SELF-NAME BuClearPerSDO
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL BuClearPerSDO sObject
-ON CHOOSE OF BuClearPerSDO IN FRAME frMain /* Clear All */
+ON CHOOSE OF BuClearPerSDO IN FRAME frMain /* Clear All >> */
 /*------------------------------------------------------------------------------
   Purpose:     Clear all sdo settings for user - session and permanent.
   Notes:       
@@ -416,7 +452,7 @@ END.
 
 &Scoped-define SELF-NAME BuClearSesFilters
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL BuClearSesFilters sObject
-ON CHOOSE OF BuClearSesFilters IN FRAME frMain /* Clear All */
+ON CHOOSE OF BuClearSesFilters IN FRAME frMain /* Clear All >> */
 /*------------------------------------------------------------------------------
   Purpose:     Clear all filter settings for user - session and permanent.
   Notes:       
@@ -465,7 +501,7 @@ END.
 
 &Scoped-define SELF-NAME BuClearSesSDO
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL BuClearSesSDO sObject
-ON CHOOSE OF BuClearSesSDO IN FRAME frMain /* Clear All */
+ON CHOOSE OF BuClearSesSDO IN FRAME frMain /* Clear All >> */
 /*------------------------------------------------------------------------------
   Purpose:     Clear all sdo settings for user - session and permanent.
   Notes:       
@@ -514,7 +550,7 @@ END.
 
 &Scoped-define SELF-NAME BuClearTopOnly
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL BuClearTopOnly sObject
-ON CHOOSE OF BuClearTopOnly IN FRAME frMain /* Clear All */
+ON CHOOSE OF BuClearTopOnly IN FRAME frMain /* Clear All >> */
 /*------------------------------------------------------------------------------
   Purpose:     Update all top-only parameters for this user and clear them
   Notes:       
@@ -567,7 +603,7 @@ END.
 
 &Scoped-define SELF-NAME buClearWindowPositions
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buClearWindowPositions sObject
-ON CHOOSE OF buClearWindowPositions IN FRAME frMain /* Clear All */
+ON CHOOSE OF buClearWindowPositions IN FRAME frMain /* Clear All >> */
 /*------------------------------------------------------------------------------
   Purpose:     Remove all window geometry parameter records for this user
   Notes:       
@@ -601,9 +637,42 @@ END.
 &ANALYZE-RESUME
 
 
+&Scoped-define SELF-NAME coSourceLanguage
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL coSourceLanguage sObject
+ON VALUE-CHANGED OF coSourceLanguage IN FRAME frMain /* Source Language */
+DO:
+  {set DataModified TRUE}.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
 &Scoped-define SELF-NAME fiReportDirectory
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL fiReportDirectory sObject
 ON VALUE-CHANGED OF fiReportDirectory IN FRAME frMain /* Report Directory */
+DO:
+  RUN valueChanged.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME flnPalette
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL flnPalette sObject
+ON VALUE-CHANGED OF flnPalette IN FRAME frMain /* Custom Palettes */
+DO:
+  RUN valueChanged.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME flnTemplate
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL flnTemplate sObject
+ON VALUE-CHANGED OF flnTemplate IN FRAME frMain /* Custom Templates */
 DO:
   RUN valueChanged.
 END.
@@ -625,7 +694,18 @@ END.
 
 &Scoped-define SELF-NAME toDisplayRepository
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL toDisplayRepository sObject
-ON VALUE-CHANGED OF toDisplayRepository IN FRAME frMain /* Display Repository Data? */
+ON VALUE-CHANGED OF toDisplayRepository IN FRAME frMain /* Display Repository Data */
+DO:
+  RUN valueChanged.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME toInitPagesForTrans
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL toInitPagesForTrans sObject
+ON VALUE-CHANGED OF toInitPagesForTrans IN FRAME frMain /* Initialize all pages when translating */
 DO:
   RUN valueChanged.
 END.
@@ -685,6 +765,19 @@ END.
 
 /* **********************  Internal Procedures  *********************** */
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE adm-create-objects sObject  _ADM-CREATE-OBJECTS
+PROCEDURE adm-create-objects :
+/*------------------------------------------------------------------------------
+  Purpose:     Create handles for all SmartObjects used in this procedure.
+               After SmartObjects are initialized, then SmartLinks are added.
+  Parameters:  <none>
+------------------------------------------------------------------------------*/
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI sObject  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
@@ -714,6 +807,15 @@ PROCEDURE initializeObject :
   /* Code placed here will execute PRIOR to standard behavior. */
 
   RUN SUPER.
+  
+  IF NOT CAN-FIND(FIRST ttSecurityControl) OR
+     NOT CAN-FIND(FIRST ttGlobalControl) THEN
+  DO:
+    RUN af/app/afgetgansp.p ON gshAstraAppserver (OUTPUT TABLE ttGlobalControl,
+                                                  OUTPUT TABLE ttSecurityControl).
+    FIND FIRST ttGlobalControl NO-ERROR.
+    FIND FIRST ttSecurityControl NO-ERROR.
+  END.
 
   /* save handle of calling container */
   ghCallerHandle = DYNAMIC-FUNCTION('getContainerSource' IN THIS-PROCEDURE).
@@ -822,7 +924,71 @@ PROCEDURE initializeObject :
                                                     OUTPUT cProfileData).
     ASSIGN toDisplayRepository:CHECKED = cProfileData EQ "YES":U.
   END.
+  
+  /* Get Source Language */
+  ASSIGN rRowid = ?.
+  RUN getProfileData IN gshProfileManager (INPUT "General":U,
+                                           INPUT "SLanguage":U,
+                                           INPUT "SLanguage":U,
+                                           INPUT NO,
+                                           INPUT-OUTPUT rRowid,
+                                           OUTPUT cProfileData).
+  RUN populateCombo (INPUT cProfileData).
 
+  /* Display whether all pages should be initialized for translation */
+  ASSIGN rRowid = ?.
+  RUN checkProfileDataExists IN gshProfileManager (INPUT  "Window":U,
+                                                   INPUT  "InitForTrn":U,
+                                                   INPUT  "InitForTrn":U,
+                                                   INPUT  YES,
+                                                   INPUT  NO,
+                                                   OUTPUT lExists).
+  IF lExists THEN
+    RUN getProfileData IN gshProfileManager ( INPUT        "Window":U,
+                                              INPUT        "InitForTrn":U,
+                                              INPUT        "InitForTrn":U,
+                                              INPUT        NO,
+                                              INPUT-OUTPUT rRowid,
+                                                    OUTPUT cProfileData).
+
+  toInitPagesForTrans:CHECKED = (IF lExists THEN cProfileData = "YES":U ELSE TRUE).
+
+  /* Check for custom palettes and custom templates */
+  ASSIGN lExists = NO.
+  RUN checkProfileDataExists IN gshProfileManager (INPUT "General":U,
+                                                   INPUT "Preference":U,
+                                                   INPUT "":U,
+                                                   INPUT YES,
+                                                   INPUT NO,
+                                                   OUTPUT lExists).
+
+  .
+  IF lExists THEN 
+  DO:
+    ASSIGN rRowid       = ?
+         cProfileData = "".
+    RUN getProfileData IN gshProfileManager (INPUT "General":U,
+                                             INPUT "Preference":U,
+                                             INPUT "CustomTemplate":U,
+                                             INPUT NO,
+                                             INPUT-OUTPUT rRowid,
+                                             OUTPUT cProfileData).
+  
+    ASSIGN flnTemplate:SCREEN-VALUE = cProfileData .
+  END.
+  ELSE ASSIGN flnTemplate:SCREEN-VALUE = "*".
+  ASSIGN rRowid        = ?
+         cProfileData = "".   
+  IF lExists THEN DO:
+   RUN getProfileData IN gshProfileManager (INPUT "General":U,
+                                            INPUT "Preference":U,
+                                            INPUT "CustomPalette":U,
+                                            INPUT NO,
+                                            INPUT-OUTPUT rRowid,
+                                            OUTPUT cProfileData).
+      ASSIGN flnPalette:SCREEN-VALUE = cProfileData.
+  END.
+  ELSE ASSIGN flnPalette:SCREEN-VALUE = "*":U.
 
   /* Code placed here will execute AFTER standard behavior.    */
   DEFINE VARIABLE cLinkHandles              AS CHARACTER  NO-UNDO.
@@ -843,6 +1009,79 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE populateCombo sObject 
+PROCEDURE populateCombo :
+/*------------------------------------------------------------------------------
+  Purpose:     This procedure will read through all the available languages
+               and default to the system language if the user's source language
+               have not been selected.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER pcSourceLanguageObj AS CHARACTER  NO-UNDO.
+  
+  DEFINE VARIABLE dDefaultLanguageObj AS DECIMAL    NO-UNDO.
+  
+  DO WITH FRAME {&FRAME-NAME}:
+    ASSIGN coSourceLanguage:DELIMITER = CHR(3).
+
+  EMPTY TEMP-TABLE ttComboData.
+  CREATE ttComboData.
+  ASSIGN
+    ttComboData.cWidgetName = "coSourceLanguage":U
+    ttComboData.hWidget = coSourceLanguage:HANDLE
+    ttComboData.cForEach = "FOR EACH gsc_language NO-LOCK BY gsc_language.language_name":U
+    ttComboData.cBufferList = "gsc_language":U
+    ttComboData.cKeyFieldName = "gsc_language.language_obj":U
+    ttComboData.cDescFieldNames = "gsc_language.language_name":U
+    ttComboData.cDescSubstitute = "&1":U
+    ttComboData.cFlag = "N":U
+    ttComboData.cCurrentKeyValue = "":U
+    ttComboData.cListItemDelimiter = coSourceLanguage:DELIMITER
+    ttComboData.cListItemPairs = "":U
+    ttComboData.cCurrentDescValue = "":U
+    .
+  END.
+  
+  /* build combo list-item pairs */
+  RUN af/app/afcobuildp.p ON gshAstraAppserver (INPUT-OUTPUT TABLE ttComboData).
+  
+  FIND FIRST ttComboData WHERE ttComboData.cWidgetName = "coSourceLanguage":U.
+  coSourceLanguage:LIST-ITEM-PAIRS IN FRAME {&FRAME-NAME} = ttComboData.cListItemPairs.
+
+  /* If profile language was not set, default to user loging language, and
+     if it was not set, default to system language */
+  IF pcSourceLanguageObj = "":U OR
+     pcSourceLanguageObj = ? THEN DO:
+    /* First find the login language */
+    dDefaultLanguageObj = DECIMAL(DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
+                                                  INPUT "CurrentLanguageObj":U,
+                                                  INPUT NO)) NO-ERROR.
+    IF dDefaultLanguageObj = 0 OR
+       dDefaultLanguageObj = ? THEN DO:
+      IF AVAILABLE ttGlobalControl THEN 
+        dDefaultLanguageObj = ttGlobalControl.default_language_obj NO-ERROR.
+    END.
+    
+    IF dDefaultLanguageObj = ? THEN
+      dDefaultLanguageObj = 0.
+
+    ASSIGN coSourceLanguage:SCREEN-VALUE = STRING(dDefaultLanguageObj) NO-ERROR.
+    {set DataModified TRUE}.
+  END.
+  ELSE
+    ASSIGN coSourceLanguage:SCREEN-VALUE = pcSourceLanguageObj NO-ERROR.
+  
+  /* Make sure we could set the value */
+  IF ERROR-STATUS:ERROR OR coSourceLanguage:SCREEN-VALUE = ? THEN DO:
+    ASSIGN coSourceLanguage:SCREEN-VALUE = coSourceLanguage:ENTRY(1) NO-ERROR.
+    {set DataModified TRUE}.
+  END.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE updateRecord sObject 
 PROCEDURE updateRecord :
 /*------------------------------------------------------------------------------
@@ -851,7 +1090,7 @@ PROCEDURE updateRecord :
   Notes:       
 ------------------------------------------------------------------------------*/
  DEFINE VARIABLE lContinue AS LOGICAL    NO-UNDO.
-
+ 
  DO WITH FRAME {&FRAME-NAME}: 
           /* save our data */
           RUN setProfileData IN gshProfileManager (INPUT "General":U,
@@ -917,6 +1156,43 @@ PROCEDURE updateRecord :
                                                    INPUT STRING(toDisplayRepository:INPUT-VALUE),
                                                    INPUT NO,
                                                    INPUT "PER":U).
+          /* Save the User's Source Langauge */
+          ASSIGN coSourceLanguage.
+          RUN setProfileData IN gshProfileManager (INPUT "General":U,
+                                                   INPUT "SLanguage":U,
+                                                   INPUT "SLanguage":U,
+                                                   INPUT ?,
+                                                   INPUT coSourceLanguage,
+                                                   INPUT NO,
+                                                   INPUT "PER":U).
+
+          /* Save the preference that checks whether all pages should be initialized for translation */
+          ASSIGN toInitPagesForTrans.
+          RUN setProfileData IN gshProfileManager (INPUT "Window":U,
+                                                   INPUT "InitForTrn":U,
+                                                   INPUT "InitForTrn":U,
+                                                   INPUT ?,
+                                                   INPUT toInitPagesForTrans:SCREEN-VALUE,
+                                                   INPUT NO,
+                                                   INPUT "PER":U).
+
+          /* Save the custom template and palette information */
+          RUN setProfileData IN gshProfileManager (INPUT "General":U,
+                                                   INPUT "Preference":U,
+                                                   INPUT "CustomTemplate":U,
+                                                   INPUT ?,
+                                                   INPUT flnTemplate:SCREEN-VALUE,
+                                                   INPUT NO,
+                                                   INPUT "PER":U).
+
+          RUN setProfileData IN gshProfileManager (INPUT "General":U,
+                                                   INPUT "Preference":U,
+                                                   INPUT "CustomPalette":U,
+                                                   INPUT ?,
+                                                   INPUT flnPalette:SCREEN-VALUE,
+                                                   INPUT NO,
+                                                   INPUT "PER":U).
+
 
           /* instruct the other viewers to do likewise */
           lContinue = TRUE.  

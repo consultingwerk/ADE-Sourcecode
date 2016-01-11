@@ -101,10 +101,10 @@ DEFINE VARIABLE h_aftemcalnw AS HANDLE NO-UNDO.
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME gDialog
-     SPACE(36.80) SKIP(10.00)
+     SPACE(36.82) SKIP(10.02)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
-         TITLE "Dynamics Calendar".
+         TITLE "Calendar".
 
 
 /* *********************** Procedure Settings ************************ */
@@ -151,7 +151,7 @@ ASSIGN
 */  /* DIALOG-BOX gDialog */
 &ANALYZE-RESUME
 
-
+ 
 
 
 
@@ -159,7 +159,7 @@ ASSIGN
 
 &Scoped-define SELF-NAME gDialog
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL gDialog gDialog
-ON WINDOW-CLOSE OF FRAME gDialog /* ICF Calendar */
+ON WINDOW-CLOSE OF FRAME gDialog /* Calendar */
 DO:  
   /* Add Trigger to equate WINDOW-CLOSE to END-ERROR. */
   APPLY "END-ERROR":U TO SELF.
@@ -261,36 +261,24 @@ PROCEDURE initializeObject :
   /* Code placed here will execute PRIOR to standard behavior. */
 
   /* position dialog */
-  DEFINE VARIABLE hParent AS HANDLE   NO-UNDO.
-  DEFINE VARIABLE dRow    AS DECIMAL  NO-UNDO.
-  DEFINE VARIABLE dCol    AS DECIMAL  NO-UNDO.
+  DEFINE VARIABLE hParent                     AS HANDLE   NO-UNDO.
+  DEFINE VARIABLE dRow                        AS DECIMAL  NO-UNDO.
+  DEFINE VARIABLE dCol                        AS DECIMAL  NO-UNDO.
+  DEFINE VARIABLE hParentFrame                AS HANDLE   NO-UNDO.
+  DEFINE VARIABLE hParentWindow               AS HANDLE   NO-UNDO.
 
-  ASSIGN
-    hParent        = FRAME {&FRAME-NAME}:PARENT.
-
-  IF VALID-HANDLE(phWidget) THEN
-  DO: /* Position with field */
-    ASSIGN
-      drow = MAXIMUM(1,(phWidget:ROW + hParent:ROW + phWidget:HEIGHT-CHARS + 1))
-                       - hParent:ROW
-      dcol = MAXIMUM(1,(phWidget:COLUMN + hParent:COLUMN))
-                       - hParent:COLUMN.
-
-    IF  (hParent:ROW + drow + FRAME {&FRAME-NAME}:HEIGHT-CHARS) > SESSION:HEIGHT-CHARS THEN
-        ASSIGN  drow = drow - FRAME {&FRAME-NAME}:HEIGHT-CHARS - phwidget:height - 2.
-    IF  hParent:COL + dcol + FRAME {&FRAME-NAME}:WIDTH-CHARS > SESSION:WIDTH-CHARS THEN
-        ASSIGN dcol = dcol - FRAME {&FRAME-NAME}:WIDTH-CHARS.
-
-  END.
-  ELSE
-  DO: /* Centre widget on display */
-    ASSIGN
-      drow = MAXIMUM(1,(SESSION:HEIGHT - FRAME {&FRAME-NAME}:HEIGHT) / 2)
-                       - hParent:ROW
-      dcol = MAXIMUM(1,(SESSION:WIDTH - FRAME {&FRAME-NAME}:WIDTH) / 2)
-                       - hParent:COLUMN.
-
-  END.
+  ASSIGN hParent        = FRAME {&FRAME-NAME}:PARENT.
+  
+  IF VALID-HANDLE(phWidget) THEN /* Position with field */
+    ASSIGN hParentFrame   = phWidget:FRAME
+           hParentWindow  = hParentFrame:PARENT
+           dcol           = MAXIMUM(1,hParentWindow:COL + hParentFrame:COL + phWidget:COL + phWidget:WIDTH - 5)
+           drow           = MAXIMUM(1,hParentWindow:ROW + hParentFrame:ROW + phWidget:ROW).
+  ELSE /* Centre widget on display */
+    ASSIGN drow = MAXIMUM(1,(SESSION:HEIGHT - FRAME {&FRAME-NAME}:HEIGHT) / 2)
+                - hParent:ROW
+           dcol = MAXIMUM(1,(SESSION:WIDTH - FRAME {&FRAME-NAME}:WIDTH) / 2)
+                - hParent:COLUMN.
 
   ASSIGN
     FRAME {&FRAME-NAME}:ROW    = drow
@@ -301,7 +289,7 @@ PROCEDURE initializeObject :
   /* Code placed here will execute AFTER standard behavior.    */
 
   RUN setFieldHandle IN h_aftemcalnw (phWidget).
-
+  
   VIEW FRAME {&FRAME-NAME}.
 
 END PROCEDURE.

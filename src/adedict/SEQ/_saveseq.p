@@ -41,6 +41,7 @@ Returns: "error" if the save is not complete for any reason, otherwise "".
 Author: Laura Stern
 
 Date Created: 10/19/92
+History:  D. McMann 08/08/02 Eliminated any sequences whose name begins "$" - Peer Direct
 
 ----------------------------------------------------------------------------*/
 
@@ -74,7 +75,8 @@ PROCEDURE Add_to_List:
    Define var  	     	  ins_name as char NO-UNDO.
    
    find FIRST _Sequence where _Sequence._Db-recid = s_DbRecId AND
-     	     	      	      _Sequence._Seq-Name > p_name
+                          NOT _Sequence._Seq-name BEGINS "$"  AND
+     	     	      	      _Sequence._Seq-Name > p_name 
       NO-ERROR.
 
    ins_name = (if AVAILABLE _Sequence then _Sequence._Seq-name else "").

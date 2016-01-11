@@ -126,7 +126,7 @@ DEFINE FRAME frMain
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1
-         SIZE 20.8 BY 2.57.
+         SIZE 20.8 BY .76.
 
 
 /* *********************** Procedure Settings ************************ */
@@ -147,14 +147,14 @@ IF SESSION:DISPLAY-TYPE = "GUI":U THEN
   CREATE WINDOW wiWin ASSIGN
          HIDDEN             = YES
          TITLE              = "Propety Sheet"
-         HEIGHT             = 22
+         HEIGHT             = 1.05
          WIDTH              = 20.8
          MAX-HEIGHT         = 28.81
          MAX-WIDTH          = 146.2
          VIRTUAL-HEIGHT     = 28.81
          VIRTUAL-WIDTH      = 146.2
          SMALL-TITLE        = yes
-         SHOW-IN-TASKBAR    = yes
+         SHOW-IN-TASKBAR    = no
          CONTROL-BOX        = no
          MIN-BUTTON         = no
          MAX-BUTTON         = no
@@ -165,7 +165,7 @@ IF SESSION:DISPLAY-TYPE = "GUI":U THEN
          FGCOLOR            = ?
          THREE-D            = yes
          MESSAGE-AREA       = no
-         SENSITIVE          = yes.
+         SENSITIVE          = no.
 ELSE {&WINDOW-NAME} = CURRENT-WINDOW.
                                                                         */
 /* END WINDOW DEFINITION                                                */
@@ -188,7 +188,7 @@ ASSIGN wiWin = CURRENT-WINDOW.
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR WINDOW wiWin
-  VISIBLE,,RUN-PERSISTENT                                               */
+  NOT-VISIBLE,,RUN-PERSISTENT                                           */
 /* SETTINGS FOR FRAME frMain
                                                                         */
 /* _RUN-TIME-ATTRIBUTES-END */
@@ -291,7 +291,6 @@ PROCEDURE enable_UI :
 ------------------------------------------------------------------------------*/
   VIEW FRAME frMain.
   {&OPEN-BROWSERS-IN-QUERY-frMain}
-  VIEW wiWin.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

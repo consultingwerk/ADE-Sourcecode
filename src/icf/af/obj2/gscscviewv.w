@@ -133,8 +133,6 @@ RowObject.scm_tool_code RowObject.password_max_retries ~
 RowObject.password_history_life_time 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define DISPLAYED-FIELDS RowObject.login_filename ~
 RowObject.security_enabled RowObject.translation_enabled ~
 RowObject.error_log_filename RowObject.help_writer_enabled ~
@@ -145,6 +143,9 @@ RowObject.small_icon_filename RowObject.force_unique_password ~
 RowObject.product_logo_filename RowObject.scm_checks_on ~
 RowObject.scm_tool_code RowObject.password_max_retries ~
 RowObject.password_history_life_time 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
+
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -475,6 +476,13 @@ PROCEDURE updateRecord :
   RUN setButtonState.
   
   /* Code placed here will execute AFTER standard behavior.    */
+
+  /* Make sure our minimiseSiblings session property is in line with what it was set to here */
+
+  DYNAMIC-FUNCTION("setPropertyList":U IN gshSessionManager, 
+                                       INPUT "minimiseSiblings":U,
+                                       INPUT rowObject.minimise_siblings:SCREEN-VALUE IN FRAME {&FRAME-NAME},
+                                       INPUT YES). /* Set in client session only */
 
 END PROCEDURE.
 

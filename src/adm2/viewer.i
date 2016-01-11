@@ -118,11 +118,12 @@
 
     RUN start-super-proc("adm2/viewer.p":U).
 
-    /* Dynamics (ICF) Dynamic viewers will have their Displayed~ and EnabledFields
-     * properties set later.   */
-    &IF DEFINED(ICF-DYNAMIC-VIEWER) = 0 &THEN
+    /* Dynamics viewers will have their Displayed~ and EnabledFields
+       properties set later.   */
+
     /* As of 9.1B, the fields can be qualified by the SDO ObjectName rather
      * than just RowObject. In that case keep the SDO ObjectName qualifier. */
+ &IF "{&DISPLAYED-FIELDS}":U <> "":U &THEN
     iEntries = NUM-ENTRIES("{&DISPLAYED-FIELDS}":U, " ":U).
     DO iCol = 1 TO iEntries:
         cEntry = ENTRY(iCol, "{&DISPLAYED-FIELDS}":U, " ":U).
@@ -156,8 +157,9 @@
         RUN modifyListProperty(THIS-PROCEDURE, "REMOVE":U, "SupportedLinks":U,
                                "TableIO-Target":U).
     END.   /* END DO cEnabled "" */
-    &ENDIF    /* not defined &ICF-DYNAMIC-VIEWER */
-
+ &ENDIF
+    
+    
     /* _ADM-CODE-BLOCK-START _CUSTOM _INCLUDED-LIB-CUSTOM CUSTOM */
     {src/adm2/custom/viewercustom.i}
     /* _ADM-CODE-BLOCK-END */

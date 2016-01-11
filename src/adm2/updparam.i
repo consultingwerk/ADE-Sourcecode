@@ -22,7 +22,8 @@
 *********************************************************************/
 /* updparam.i */
 &IF DEFINED(UpdTable{1}) NE 0 &THEN
-  DEFINE INPUT-OUTPUT  PARAMETER TABLE FOR {&UpdTable{1}}.
+  DEFINE {2} PARAMETER TABLE FOR {&UpdTable{1}}.
 &ELSE
-  DEFINE INPUT-OUTPUT  PARAMETER TABLE-HANDLE phDummy{1}.
+  DEFINE {2} PARAMETER TABLE-HANDLE phDummy{1}.
+  ghUpdTables[{1}] = phDummy{1}.
 &ENDIF

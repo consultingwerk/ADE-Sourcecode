@@ -46,6 +46,13 @@
   {src/adm2/dvisprop.i}
 &ENDIF
 
+&IF DEFINED(UNLESS-OBJECTS-HIDDEN) = 0 &THEN
+   &SCOP UNLESS-OBJECTS-HIDDEN {&UNLESS-HIDDEN}
+   &IF "{&UNLESS-OBJECTS-HIDDEN}":U = "":U &THEN
+     &SCOP UNLESS-OBJECTS-HIDDEN UNLESS-HIDDEN
+   &ENDIF
+ &ENDIF
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -141,15 +148,19 @@ PROCEDURE displayObjects :
   DEFINE VARIABLE hFrameField           AS HANDLE               NO-UNDO.
   
   &IF "{&ICF-DYNAMIC-VIEWER}":U EQ "YES":U &THEN  
+  DEFINE VARIABLE cLogicalObjectName        AS CHARACTER            NO-UNDO.
+
+  {get LogicalObjectName cLogicalObjectName}.
   {get EnabledObjHdls cEnabledObjHdls}.
 
   DO iObjectLoop = 1 TO NUM-ENTRIES(cEnabledObjHdls):
       ASSIGN hFrameField = WIDGET-HANDLE(ENTRY(iObjectLoop, cEnabledObjHdls)) NO-ERROR. 
-      IF VALID-HANDLE(hFrameField) THEN        
+      IF VALID-HANDLE(hFrameField) THEN
       DO:
           FIND ttWidget WHERE
-               ttWidget.tWidgetHandle = hFrameField AND
-               ttWidget.tVisible      = YES
+               ttWidget.tViewerObjectName = cLogicalObjectName AND
+               ttWidget.tWidgetHandle     = hFrameField        AND
+               ttWidget.tVisible          = YES
                NO-ERROR.
           IF AVAILABLE ttWidget THEN
           DO:
@@ -163,7 +174,7 @@ PROCEDURE displayObjects :
       END.  /* valid frame field */
   END.  /* object loop */
   &ELSEIF "{&DISPLAYED-OBJECTS}":U NE "":U &THEN
-    DISPLAY {&UNLESS-HIDDEN} {&DISPLAYED-OBJECTS} WITH FRAME {&FRAME-NAME}.
+    DISPLAY {&UNLESS-OBJECTS-HIDDEN} {&DISPLAYED-OBJECTS} WITH FRAME {&FRAME-NAME}.
   &ENDIF  
 
   &IF "{&BROWSE-NAME}":U NE "":U &THEN

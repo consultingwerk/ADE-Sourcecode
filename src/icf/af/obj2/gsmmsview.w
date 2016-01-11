@@ -124,19 +124,19 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 RowObject.menu_structure_description RowObject.menu_structure_type ~
 RowObject.menu_structure_narrative RowObject.disabled ~
 RowObject.menu_structure_hidden RowObject.system_owned ~
-RowObject.under_development RowObject.product_module_obj 
+RowObject.under_development 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define ENABLED-OBJECTS RECT-2 
 &Scoped-Define DISPLAYED-FIELDS RowObject.menu_structure_code ~
 RowObject.menu_structure_description RowObject.menu_structure_type ~
 RowObject.menu_structure_narrative RowObject.disabled ~
 RowObject.menu_structure_hidden RowObject.system_owned ~
-RowObject.under_development RowObject.menu_structure_obj ~
-RowObject.product_module_obj 
-&Scoped-Define DISPLAYED-OBJECTS fiProdMod filabel fiModule 
+RowObject.under_development RowObject.menu_structure_obj 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
+&Scoped-Define DISPLAYED-OBJECTS fiBandsLabel fiDetailedDescriptionLabel ~
+filabel fiModule 
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -159,9 +159,18 @@ FUNCTION setToolbarType RETURNS LOGICAL
 
 
 /* Definitions of handles for SmartObjects                              */
+DEFINE VARIABLE h_dyncombo AS HANDLE NO-UNDO.
 DEFINE VARIABLE h_dynlookup-2 AS HANDLE NO-UNDO.
 
 /* Definitions of the field level widgets                               */
+DEFINE VARIABLE fiBandsLabel AS CHARACTER FORMAT "X(15)":U INITIAL "Bands" 
+      VIEW-AS TEXT 
+     SIZE 6.8 BY .71 NO-UNDO.
+
+DEFINE VARIABLE fiDetailedDescriptionLabel AS CHARACTER FORMAT "X(35)":U INITIAL "Detailed Description:" 
+      VIEW-AS TEXT 
+     SIZE 19.8 BY 1 NO-UNDO.
+
 DEFINE VARIABLE filabel AS CHARACTER FORMAT "X(256)":U 
      LABEL "Item Label" 
      VIEW-AS FILL-IN 
@@ -171,60 +180,56 @@ DEFINE VARIABLE fiModule AS CHARACTER FORMAT "X(256)":U
       VIEW-AS TEXT 
      SIZE 14 BY .62 NO-UNDO.
 
-DEFINE VARIABLE fiProdMod AS CHARACTER FORMAT "X(256)":U 
-     LABEL "Module" 
-     VIEW-AS FILL-IN 
-     SIZE 23 BY 1 NO-UNDO.
-
 DEFINE RECTANGLE RECT-2
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 104 BY 11.19.
+     SIZE 111 BY 12.05.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     fiProdMod AT ROW 1.95 COL 79 COLON-ALIGNED
-     filabel AT ROW 6.71 COL 31 COLON-ALIGNED
-     fiModule AT ROW 9.81 COL 13 COLON-ALIGNED NO-LABEL BLANK 
-     RowObject.menu_structure_code AT ROW 1.95 COL 31 COLON-ALIGNED
+     fiBandsLabel AT ROW 1 COL 2.4 NO-LABEL
+     fiDetailedDescriptionLabel AT ROW 8.62 COL 3.8 COLON-ALIGNED NO-LABEL
+     filabel AT ROW 7.43 COL 25 COLON-ALIGNED
+     fiModule AT ROW 1.71 COL 73 COLON-ALIGNED NO-LABEL BLANK 
+     RowObject.menu_structure_code AT ROW 1.48 COL 25 COLON-ALIGNED
+          LABEL "Band Code"
           VIEW-AS FILL-IN 
-          SIZE 35 BY 1 TOOLTIP "Unique Band Code"
-     RowObject.menu_structure_description AT ROW 3.38 COL 31 COLON-ALIGNED
+          SIZE 40 BY 1 TOOLTIP "Unique Band Code"
+     RowObject.menu_structure_description AT ROW 2.67 COL 25 COLON-ALIGNED
+          LABEL "Band Description"
           VIEW-AS FILL-IN 
-          SIZE 43 BY 1 TOOLTIP "Band Description"
-     RowObject.menu_structure_type AT ROW 4.57 COL 20.6
+          SIZE 53 BY 1 TOOLTIP "Band Description"
+     RowObject.menu_structure_type AT ROW 5.05 COL 15.4
+          LABEL "Band Type"
           VIEW-AS COMBO-BOX 
           LIST-ITEMS "Menubar","Submenu","Toolbar","Menu&Toolbar" 
           DROP-DOWN-LIST
-          SIZE 27 BY 1 TOOLTIP "Menu or Toolbar type"
-     RowObject.menu_structure_narrative AT ROW 7.91 COL 33 NO-LABEL
+          SIZE 34 BY 1 TOOLTIP "Menu or Toolbar type"
+     RowObject.menu_structure_narrative AT ROW 8.62 COL 27 NO-LABEL
           VIEW-AS EDITOR MAX-CHARS 500 SCROLLBAR-VERTICAL
-          SIZE 71 BY 4.05 TOOLTIP "Detailed description of band"
-     RowObject.disabled AT ROW 3.48 COL 81.4
+          SIZE 53 BY 4 TOOLTIP "Detailed description of band"
+     RowObject.disabled AT ROW 2.81 COL 86.2
+          LABEL "Disabled"
           VIEW-AS TOGGLE-BOX
-          SIZE 13.2 BY .81
-     RowObject.menu_structure_hidden AT ROW 4.43 COL 81.4
+          SIZE 13.2 BY 1
+     RowObject.menu_structure_hidden AT ROW 3.86 COL 86.2
+          LABEL "Hide band"
           VIEW-AS TOGGLE-BOX
-          SIZE 17 BY .81
-     RowObject.system_owned AT ROW 5.38 COL 81.4
+          SIZE 17 BY 1
+     RowObject.system_owned AT ROW 4.91 COL 86.2
+          LABEL "System owned"
           VIEW-AS TOGGLE-BOX
-          SIZE 19.2 BY .81
-     RowObject.under_development AT ROW 6.33 COL 81.4
+          SIZE 19.2 BY 1
+     RowObject.under_development AT ROW 5.95 COL 86.2
+          LABEL "Under development"
           VIEW-AS TOGGLE-BOX
-          SIZE 22 BY .81
-     RowObject.menu_structure_obj AT ROW 11.71 COL 60 COLON-ALIGNED
+          SIZE 22 BY 1
+     RowObject.menu_structure_obj AT ROW 12.24 COL 56.2 COLON-ALIGNED
+          LABEL "Menu Structure Obj"
            VIEW-AS TEXT 
           SIZE 7 BY .62
-     RowObject.product_module_obj AT ROW 11.71 COL 25 COLON-ALIGNED
-           VIEW-AS TEXT 
-          SIZE 9 BY .62
-     RECT-2 AT ROW 1.24 COL 2
-     "Detailed Description:" VIEW-AS TEXT
-          SIZE 20 BY .62 AT ROW 7.91 COL 12
-     "Bands" VIEW-AS TEXT
-          SIZE 6 BY .62 AT ROW 1 COL 3
-     SPACE(59.00) SKIP(5.14)
+     RECT-2 AT ROW 1.24 COL 1
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -264,8 +269,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 13.1
-         WIDTH              = 105.
+         HEIGHT             = 13.95
+         WIDTH              = 115.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -292,23 +297,44 @@ ASSIGN
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
 
+/* SETTINGS FOR TOGGLE-BOX RowObject.disabled IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR FILL-IN fiBandsLabel IN FRAME frMain
+   NO-ENABLE ALIGN-L                                                    */
+ASSIGN 
+       fiBandsLabel:PRIVATE-DATA IN FRAME frMain     = 
+                "Bands".
+
+/* SETTINGS FOR FILL-IN fiDetailedDescriptionLabel IN FRAME frMain
+   NO-ENABLE                                                            */
+ASSIGN 
+       fiDetailedDescriptionLabel:PRIVATE-DATA IN FRAME frMain     = 
+                "Detailed Description:".
+
 /* SETTINGS FOR FILL-IN filabel IN FRAME frMain
    NO-ENABLE                                                            */
 /* SETTINGS FOR FILL-IN fiModule IN FRAME frMain
    NO-ENABLE                                                            */
-/* SETTINGS FOR FILL-IN fiProdMod IN FRAME frMain
-   NO-ENABLE                                                            */
+/* SETTINGS FOR FILL-IN RowObject.menu_structure_code IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR FILL-IN RowObject.menu_structure_description IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR TOGGLE-BOX RowObject.menu_structure_hidden IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR EDITOR RowObject.menu_structure_narrative IN FRAME frMain
+   EXP-LABEL                                                            */
 /* SETTINGS FOR FILL-IN RowObject.menu_structure_obj IN FRAME frMain
-   NO-ENABLE                                                            */
+   NO-ENABLE EXP-LABEL                                                  */
 ASSIGN 
        RowObject.menu_structure_obj:HIDDEN IN FRAME frMain           = TRUE
        RowObject.menu_structure_obj:READ-ONLY IN FRAME frMain        = TRUE.
 
 /* SETTINGS FOR COMBO-BOX RowObject.menu_structure_type IN FRAME frMain
-   ALIGN-L                                                              */
-ASSIGN 
-       RowObject.product_module_obj:HIDDEN IN FRAME frMain           = TRUE.
-
+   ALIGN-L EXP-LABEL                                                    */
+/* SETTINGS FOR TOGGLE-BOX RowObject.system_owned IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR TOGGLE-BOX RowObject.under_development IN FRAME frMain
+   EXP-LABEL                                                            */
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
@@ -342,6 +368,30 @@ ASSIGN
 
 /* **********************  Internal Procedures  *********************** */
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE addRecord vTableWin 
+PROCEDURE addRecord :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cModuleObj AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hSOurce    AS HANDLE     NO-UNDO.
+  /* Code placed here will execute PRIOR to standard behavior. */
+
+  RUN SUPER.
+
+  /* Code placed here will execute AFTER standard behavior.    */
+ {get ContainerSource hSource}.
+  
+  /* Set the Product Module to the current filtdred value*/
+  cModuleObj = DYNAMIC-FUNC('getModuleObj':U IN hSource).
+  {set DataValue cModuleObj h_dyncombo}.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE adm-create-objects vTableWin  _ADM-CREATE-OBJECTS
 PROCEDURE adm-create-objects :
 /*------------------------------------------------------------------------------
@@ -359,16 +409,27 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsm_menu_item.menu_item_referenceKeyFieldgsm_menu_item.menu_item_objFieldLabelItem Reference used for LabelFieldTooltipPress F4 for lookupKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(15)DisplayDatatypecharacterBaseQueryStringfor each gsm_menu_item NO-LOCK
+             INPUT  'DisplayedFieldgsm_menu_item.menu_item_referenceKeyFieldgsm_menu_item.menu_item_objFieldLabelItem Ref. used for LabelFieldTooltipPress F4 for lookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(15)DisplayDatatypecharacterBaseQueryStringfor each gsm_menu_item NO-LOCK
                      WHERE gsm_menu_item.item_control_type = "Label":U
-                     by menu_item_referenceQueryTablesgsm_menu_itemBrowseFieldsgsm_menu_item.menu_item_reference,gsm_menu_item.menu_item_description,gsm_menu_item.menu_item_labelBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(15),X(35),X(28)RowsToBatch200BrowseTitleItem Lookup (Labels only)ViewerLinkedFieldsgsm_menu_item.menu_item_labelLinkedFieldDataTypescharacterLinkedFieldFormatsX(28)ViewerLinkedWidgetsfiLabelColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldfiModule,fiModule,fiModuleParentFilterQuerygsm_menu_item.product_module_obj =  (IF  ~'&1~' <> ~'~' THEN decimal(~'&1~') ELSE gsm_menu_item.product_module_obj )  OR   gsm_menu_item.product_module_obj  =   (IF  ~'&1~' <> ~'~' THEN 0 ELSE gsm_menu_item.product_module_obj )MaintenanceObjectMaintenanceSDOFieldNamemenu_item_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     by menu_item_referenceQueryTablesgsm_menu_itemBrowseFieldsgsm_menu_item.menu_item_reference,gsm_menu_item.menu_item_description,gsm_menu_item.menu_item_labelBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(15),X(35),X(28)RowsToBatch200BrowseTitleItem Lookup (Labels only)ViewerLinkedFieldsgsm_menu_item.menu_item_labelLinkedFieldDataTypescharacterLinkedFieldFormatsX(28)ViewerLinkedWidgetsfiLabelColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldfiModule,fiModule,fiModuleParentFilterQuerygsm_menu_item.product_module_obj =  (IF  ~'&1~' <> ~'~' THEN decimal(~'&1~') ELSE gsm_menu_item.product_module_obj )  OR   gsm_menu_item.product_module_obj  =   (IF  ~'&1~' <> ~'~' THEN 0 ELSE gsm_menu_item.product_module_obj )MaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNamemenu_item_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dynlookup-2 ).
-       RUN repositionObject IN h_dynlookup-2 ( 5.76 , 33.00 ) NO-ERROR.
+       RUN repositionObject IN h_dynlookup-2 ( 6.24 , 27.00 ) NO-ERROR.
        RUN resizeObject IN h_dynlookup-2 ( 1.00 , 35.00 ) NO-ERROR.
+
+       RUN constructObject (
+             INPUT  'adm2/dyncombo.w':U ,
+             INPUT  FRAME frMain:HANDLE ,
+             INPUT  'DisplayedFieldgsc_product_module.product_module_code,gsc_product_module.product_module_descriptionKeyFieldgsc_product_module.product_module_objFieldLabelProduct ModuleFieldTooltipSelect module from listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(10)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_product_module
+                     WHERE [EXCLUDE_REPOSITORY_PRODUCT_MODULES] NO-LOCK BY gsc_product_module.product_module_code INDEXED-REPOSITIONQueryTablesgsc_product_moduleSDFFileNameproduct_module_objSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 / &2ComboDelimiterListItemPairsInnerLines5ComboFlagNFlagValue0BuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNameproduct_module_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT h_dyncombo ).
+       RUN repositionObject IN h_dyncombo ( 3.86 , 27.00 ) NO-ERROR.
+       RUN resizeObject IN h_dyncombo ( 1.05 , 53.00 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */
        RUN adjustTabOrder ( h_dynlookup-2 ,
              RowObject.menu_structure_type:HANDLE IN FRAME frMain , 'AFTER':U ).
+       RUN adjustTabOrder ( h_dyncombo ,
+             RowObject.under_development:HANDLE IN FRAME frMain , 'AFTER':U ).
     END. /* Page 0 */
 
   END CASE.
@@ -463,7 +524,7 @@ PROCEDURE displayFields :
   /* Code placed here will execute AFTER standard behavior.    */
   {get ContainerSource hSource}.
   fiModule:SCREEN-VALUE IN FRAME {&FRAME-NAME} = DYNAMIC-FUNC("getModuleObj":U IN hSource).
-  fiProdMod:SCREEN-VALUE = DYNAMIC-FUNC('getProductModuleCode':U IN hSource,RowObject.product_module_obj:SCREEN-VALUE) .
+  
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -479,10 +540,12 @@ PROCEDURE initializeObject :
 
   /* Code placed here will execute PRIOR to standard behavior. */
   SUBSCRIBE TO "lookupDisplayComplete":U IN THIS-PROCEDURE.
+
+
   RUN SUPER.
 
-  /* Code placed here will execute AFTER standard behavior.    */
-
+  
+  
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -522,8 +585,6 @@ PROCEDURE updateRecord :
 
   {get ContainerSource hSource}.
   {get NewRecord cNew}.
-  IF VALID-HANDLE(hSource) AND (cNew = "Add":U OR cNew = "Copy":U ) THEN
-     RowObject.product_module_obj:SCREEN-VALUE IN FRAME {&FRAME-NAME} = DYNAMIC-FUNC('getModuleObj':U IN hSource) NO-ERROR.
   /* Code placed here will execute PRIOR to standard behavior. */
   
   

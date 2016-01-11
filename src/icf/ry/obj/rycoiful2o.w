@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          rydb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
@@ -92,7 +92,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       rycoiful2o.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -126,31 +126,32 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
 &Scoped-define INTERNAL-TABLES ryc_object_instance ryc_smartobject
 
 /* Definitions for QUERY Query-Main                                     */
-&Scoped-Define ENABLED-FIELDS  container_smartobject_obj smartobject_obj instance_x instance_y~
- instance_width instance_height attribute_list system_owned layout_position
+&Scoped-Define ENABLED-FIELDS  container_smartobject_obj smartobject_obj system_owned layout_position
 &Scoped-define ENABLED-FIELDS-IN-ryc_object_instance ~
-container_smartobject_obj smartobject_obj instance_x instance_y ~
-instance_width instance_height attribute_list system_owned layout_position 
+container_smartobject_obj smartobject_obj system_owned layout_position 
 &Scoped-Define DATA-FIELDS  container_smartobject_obj object_instance_obj smartobject_obj~
- object_filename instance_x instance_y instance_width instance_height~
- attribute_list system_owned layout_position
+ object_filename system_owned layout_position
 &Scoped-define DATA-FIELDS-IN-ryc_object_instance container_smartobject_obj ~
-object_instance_obj smartobject_obj instance_x instance_y instance_width ~
-instance_height attribute_list system_owned layout_position 
+object_instance_obj smartobject_obj system_owned layout_position 
 &Scoped-define DATA-FIELDS-IN-ryc_smartobject object_filename 
 &Scoped-Define MANDATORY-FIELDS 
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "ry/obj/rycoiful2o.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH ryc_object_instance NO-LOCK, ~
+      FIRST ryc_smartobject WHERE RYDB.ryc_smartobject.smartobject_obj = RYDB.ryc_object_instance.smartobject_obj NO-LOCK ~
+    BY ryc_object_instance.container_smartobject_obj ~
+       BY ryc_object_instance.object_instance_obj INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH ryc_object_instance NO-LOCK, ~
-      FIRST ryc_smartobject WHERE ryc_smartobject.smartobject_obj = ryc_object_instance.smartobject_obj NO-LOCK ~
+      FIRST ryc_smartobject WHERE RYDB.ryc_smartobject.smartobject_obj = RYDB.ryc_object_instance.smartobject_obj NO-LOCK ~
     BY ryc_object_instance.container_smartobject_obj ~
        BY ryc_object_instance.object_instance_obj INDEXED-REPOSITION.
 {&DB-REQUIRED-END}
@@ -241,38 +242,28 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "rydb.ryc_object_instance,RYDB.ryc_smartobject WHERE rydb.ryc_object_instance ..."
+     _TblList          = "ICFDB.ryc_object_instance,ICFDB.ryc_smartobject WHERE ICFDB.ryc_object_instance ..."
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _TblOptList       = ", FIRST USED"
      _OrdList          = "rydb.ryc_object_instance.container_smartobject_obj|yes,ryc_object_instance.object_instance_obj|yes"
      _JoinCode[2]      = "RYDB.ryc_smartobject.smartobject_obj = RYDB.ryc_object_instance.smartobject_obj"
-     _FldNameList[1]   > RYDB.ryc_object_instance.container_smartobject_obj
+     _FldNameList[1]   > ICFDB.ryc_object_instance.container_smartobject_obj
 "container_smartobject_obj" "container_smartobject_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
-     _FldNameList[2]   > RYDB.ryc_object_instance.object_instance_obj
+     _FldNameList[2]   > ICFDB.ryc_object_instance.object_instance_obj
 "object_instance_obj" "object_instance_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
-     _FldNameList[3]   > RYDB.ryc_object_instance.smartobject_obj
+     _FldNameList[3]   > ICFDB.ryc_object_instance.smartobject_obj
 "smartobject_obj" "smartobject_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
-     _FldNameList[4]   > RYDB.ryc_smartobject.object_filename
+     _FldNameList[4]   > ICFDB.ryc_smartobject.object_filename
 "object_filename" "object_filename" ? ? "character" ? ? ? ? ? ? no ? no 140 yes
-     _FldNameList[5]   > RYDB.ryc_object_instance.instance_x
-"instance_x" "instance_x" ? ? "integer" ? ? ? ? ? ? yes ? no 4 yes
-     _FldNameList[6]   > RYDB.ryc_object_instance.instance_y
-"instance_y" "instance_y" ? ? "integer" ? ? ? ? ? ? yes ? no 4 yes
-     _FldNameList[7]   > RYDB.ryc_object_instance.instance_width
-"instance_width" "instance_width" ? ? "integer" ? ? ? ? ? ? yes ? no 4 yes
-     _FldNameList[8]   > RYDB.ryc_object_instance.instance_height
-"instance_height" "instance_height" ? ? "integer" ? ? ? ? ? ? yes ? no 4 yes
-     _FldNameList[9]   > RYDB.ryc_object_instance.attribute_list
-"attribute_list" "attribute_list" ? ? "character" ? ? ? ? ? ? yes ? no 1000 yes
-     _FldNameList[10]   > RYDB.ryc_object_instance.system_owned
+     _FldNameList[5]   > ICFDB.ryc_object_instance.system_owned
 "system_owned" "system_owned" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[11]   > RYDB.ryc_object_instance.layout_position
+     _FldNameList[6]   > ICFDB.ryc_object_instance.layout_position
 "layout_position" "layout_position" ? ? "character" ? ? ? ? ? ? yes ? no 30 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK dTables 

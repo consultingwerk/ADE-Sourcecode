@@ -34,6 +34,10 @@
 /* Modified - 01/16/2002 - Mark Davies (MIP)
    - All path seperators MUST be '/' and not '\' - it will not compile on a UNIX platform
    */
+/* Modified June 10th 2002 - Mauricio dos Santos
+   -- Bad field width calculation when width is unknown (?) for character fields and format 
+   is not specified using parenthesis, as in x(8) or 9(8), e.g. xx:xx or anything else
+   */
 &GLOBAL-DEFINE ROLENAME  "company_|current_|login_|requested_by_|funeral_|paying_|donated_by_|transplanted_by_|received_by_|managed_by_|diagnosed_by_|closed_by_|transmitted_by_|policy_owner_|checked_by_|institution_|notify_|responsible_|admitted_by_|therapy_plan_by_|automated_by_|bill_to_|funding_|prescribed_by_|referred_by_|transfered_to_|authorised_by_|done_by_|debtor_"
 &GLOBAL-DEFINE FIELDNAME "*reference,*code,last_name,*tla,*short*,*id|*desc*,first_name,*name*"
 &GLOBAL-DEFINE TABLELIST "FIRST|SECOND|THIRD|FOURTH|FIFTH|SIXTH|SEVENTH|EIGHTH|NINTH|TENTH|ELEVENTH|TWELFTH"
@@ -333,7 +337,7 @@ DEFINE VARIABLE cFileName  AS CHARACTER  NO-UNDO.
         ASSIGN
           FILE-INFO:FILE-NAME = pcSaveFile
           cPathName = REPLACE(REPLACE(REPLACE(REPLACE(FILE-INFO:PATHNAME,"~\":U,"/":U),pcRootDir + "/":U,""),"~\":U,"/":U),".w":U,".i":U).
-            /*REPLACE(REPLACE(REPLACE(FILE-INFO:PATHNAME,REPLACE(pcRootDir,"/":U,"~\":U) + "\":U,"":U),".w",".i"),"~\":U,"/":U).*/
+            /*REPLACE(REPLACE(REPLACE(FILE-INFO:PATHNAME,REPLACE(pcRootDir,"/":U,"~\":U) + "~\":U,"":U),".w",".i"),"~\":U,"/":U).*/
         eEdit:INSERT-STRING("&SCOPED-DEFINE MANDATORY-FIELDS" + CHR(10)).
         eEdit:INSERT-STRING("&SCOPED-DEFINE APPLICATION-SERVICE" + CHR(10)).
         eEdit:INSERT-STRING("&SCOPED-DEFINE ASSIGN-LIST" + CHR(10)).
@@ -717,7 +721,7 @@ DEFINE BUFFER lb_field2 FOR tt_filetable.
 ASSIGN iIndex = 2. /* by order sequence */
 IF ip_sortField = 2 THEN ASSIGN iIndex = 3. /* by field name */
 
-    EMPTY TEMP-TABLE tt_filetable.
+    IF NOT TRANSACTION THEN EMPTY TEMP-TABLE tt_filetable. ELSE FOR EACH tt_filetable: DELETE tt_filetable. END.
 
     ASSIGN lv_value_table    = ENTRY(LOOKUP("EACH",ip_query_list," ") + 1,ip_query_list," ")
            lv_value_table    = IF NUM-ENTRIES(lv_value_table,".") > 1 THEN ENTRY(2,lv_value_table,".") ELSE lv_value_table
@@ -883,7 +887,7 @@ IF ip_sortField = 2 THEN ASSIGN iIndex = 3. /* by field name */
     THEN
         ip_field_list = SUBSTRING(ip_field_list,2).
 
-    EMPTY TEMP-TABLE tt_filetable.
+    IF NOT TRANSACTION THEN EMPTY TEMP-TABLE tt_filetable. ELSE FOR EACH tt_filetable: DELETE tt_filetable. END.
 
 END PROCEDURE.
 
@@ -1507,7 +1511,7 @@ PROCEDURE getDbData:
                    lb_filetable.tt_type    = hFieldBuffer:TABLE
                    .
             IF hFieldWidth:BUFFER-VALUE EQ ? THEN
-                IF lb_filetable.tt_data[5] EQ "CHARACTER":U THEN                
+                IF lb_filetable.tt_data[5] EQ "CHARACTER":U AND SUBSTRING(hFieldFormat:STRING-VALUE,2,1) = "(":U THEN                
                     ASSIGN cFieldWidth             = SUBSTRING(hFieldFormat:STRING-VALUE, INDEX(hFieldFormat:STRING-VALUE, "(":U) + 1)
                            cFieldWidth             = SUBSTRING(cFieldWidth, 1, R-INDEX(cFieldWidth, ")":U) - 1)
                            lb_filetable.tt_data[6] = TRIM(cFieldWidth)

@@ -147,33 +147,28 @@ DEFINE OUTPUT PARAMETER pcError                         AS CHARACTER  NO-UNDO.
 
 DEFINE BUFFER bryc_smartobject FOR ryc_smartobject.
 
-FIND LAST ryc_smartobject WHERE ryc_smartobject.object_filename = pctmp_propsheet_browObject_name
-                          NO-LOCK NO-ERROR.
+FIND LAST ryc_smartobject 
+    WHERE ryc_smartobject.object_filename = pctmp_propsheet_browObject_name
+    NO-LOCK NO-ERROR.
+
 IF NOT AVAILABLE ryc_smartobject THEN DO:
   pcerror = "Ryc_smartobject is not available.".
   RETURN.
 END.
-
 ELSE DO:
-   FIND FIRST gsc_object 
-        WHERE gsc_object.object_filename = ryc_smartobject.object_filename 
-        NO-LOCK NO-ERROR.
-   IF AVAILABLE gsc_object THEN
-      ASSIGN pcObjectDescription = gsc_object.object_description
-             pcObjectFileName    = gsc_object.object_filename.
+   ASSIGN pcObjectDescription = ryc_smartobject.object_description
+          pcObjectFileName    = ryc_smartobject.object_filename.
 
    FIND FIRST ryc_attribute_value 
         WHERE ryc_attribute_value.OBJECT_type_obj             = ryc_smartobject.object_type_obj 
         AND   ryc_attribute_value.smartobject_obj             = ryc_smartobject.smartobject_obj
         AND   ryc_attribute_value.object_instance_obj         = 0
         AND   ryc_attribute_value.attribute_label             = "displayedfields" 
-        AND   ryc_attribute_value.collect_attribute_value_obj = ryc_attribute_value.attribute_value_obj
-        AND   ryc_attribute_value.collection_sequence         = 0
         AND   ryc_attribute_value.container_smartobject_obj   = 0
         NO-LOCK NO-ERROR.
 
    IF AVAILABLE ryc_attribute_value THEN
-      ASSIGN pctmpdisplayedfields = ryc_attribute_value.attribute_value.
+      ASSIGN pctmpdisplayedfields = ryc_attribute_value.character_value.
    ELSE 
       ASSIGN pctmpdisplayedfields = "":U.
 
@@ -182,34 +177,41 @@ ELSE DO:
         AND   ryc_attribute_value.smartobject_obj             = ryc_smartobject.smartobject_obj
         AND   ryc_attribute_value.object_instance_obj         = 0
         AND   ryc_attribute_value.attribute_label             = "enabledfields" 
-        AND   ryc_attribute_value.collect_attribute_value_obj = ryc_attribute_value.attribute_value_obj
-        AND   ryc_attribute_value.collection_sequence         = 0
         AND   ryc_attribute_value.container_smartobject_obj   = 0
         NO-LOCK NO-ERROR.
 
    IF AVAILABLE ryc_attribute_value THEN
-      ASSIGN pctmpenabledfields = ryc_attribute_value.attribute_value.
+      ASSIGN pctmpenabledfields = ryc_attribute_value.character_value.
 
    FIND FIRST ryc_attribute_value 
         WHERE ryc_attribute_value.OBJECT_type_obj             = ryc_smartobject.object_type_obj 
         AND   ryc_attribute_value.smartobject_obj             = ryc_smartobject.smartobject_obj
         AND   ryc_attribute_value.object_instance_obj         = 0
         AND   ryc_attribute_value.attribute_label             = "FolderWindowToLaunch"
-        AND   ryc_attribute_value.collect_attribute_value_obj = ryc_attribute_value.attribute_value_obj
-        AND   ryc_attribute_value.collection_sequence         = 0
         AND   ryc_attribute_value.container_smartobject_obj   = 0
         NO-LOCK NO-ERROR.
 
-   IF AVAILABLE ryc_attribute_value THEN
-      ASSIGN pctmplaunchcontainer   = ryc_attribute_value.attribute_value
-             pcCustomSuperProcedure = ryc_smartobject.custom_super_procedure
-             pdProductModuleObj     = ryc_smartobject.product_module_obj.
+   IF AVAILABLE ryc_attribute_value 
+   THEN DO:
+       /* Find the custom super procedure filename */
+    
+        ASSIGN pcCustomSuperProcedure = "":U.
+        
+        IF  ryc_smartobject.custom_smartobject_obj <> 0
+        AND ryc_smartobject.custom_smartobject_obj <> ? THEN
+            IF VALID-HANDLE(gshRepositoryManager) THEN
+                RUN getObjectSuperProcedure IN gshRepositoryManager (INPUT ryc_smartobject.object_filename,
+                                                                     OUTPUT pcCustomSuperProcedure).
    
+       ASSIGN pctmplaunchcontainer   = ryc_attribute_value.character_value
+              pdProductModuleObj     = ryc_smartobject.product_module_obj.
+   END.
+
    FIND FIRST bryc_smartobject
         WHERE bryc_smartobject.smartobject_obj = ryc_smartobject.sdo_smartobject_obj
         NO-LOCK NO-ERROR.
     IF AVAIL bryc_smartobject THEN
-      ASSIGN pcsdoname = bryc_smartobject.OBJECT_filename.
+      ASSIGN pcsdoname = bryc_smartobject.object_filename.
 
 END.
 

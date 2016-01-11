@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          asdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
@@ -92,7 +92,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gscmtfullo.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -124,6 +124,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -144,6 +145,8 @@ static_handle manager_narration
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gscmtfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsc_manager_type NO-LOCK ~
+    BY gsc_manager_type.manager_type_code INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsc_manager_type NO-LOCK ~
     BY gsc_manager_type.manager_type_code INDEXED-REPOSITION.
@@ -231,28 +234,28 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "asdb.gsc_manager_type"
+     _TblList          = "ICFDB.gsc_manager_type"
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _OrdList          = "asdb.gsc_manager_type.manager_type_code|yes"
-     _FldNameList[1]   > ASDB.gsc_manager_type.manager_type_obj
+     _FldNameList[1]   > ICFDB.gsc_manager_type.manager_type_obj
 "manager_type_obj" "manager_type_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
-     _FldNameList[2]   > ASDB.gsc_manager_type.manager_type_code
+     _FldNameList[2]   > ICFDB.gsc_manager_type.manager_type_code
 "manager_type_code" "manager_type_code" ? ? "character" ? ? ? ? ? ? yes ? no 56 yes
-     _FldNameList[3]   > ASDB.gsc_manager_type.manager_type_name
+     _FldNameList[3]   > ICFDB.gsc_manager_type.manager_type_name
 "manager_type_name" "manager_type_name" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[4]   > ASDB.gsc_manager_type.system_owned
+     _FldNameList[4]   > ICFDB.gsc_manager_type.system_owned
 "system_owned" "system_owned" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[5]   > ASDB.gsc_manager_type.write_to_config
+     _FldNameList[5]   > ICFDB.gsc_manager_type.write_to_config
 "write_to_config" "write_to_config" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[6]   > ASDB.gsc_manager_type.static_handle
+     _FldNameList[6]   > ICFDB.gsc_manager_type.static_handle
 "static_handle" "static_handle" ? ? "character" ? ? ? ? ? ? yes ? no 6 yes
-     _FldNameList[7]   > ASDB.gsc_manager_type.manager_narration
+     _FldNameList[7]   > ICFDB.gsc_manager_type.manager_narration
 "manager_narration" "manager_narration" ? ? "character" ? ? ? ? ? ? yes ? no 1000 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK dTables 

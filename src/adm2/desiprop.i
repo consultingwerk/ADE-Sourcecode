@@ -101,7 +101,6 @@
      be retrieved directly from the temp-table */
 
 
-  
 
 &IF "{&ADMSuper}":U = "":U &THEN
   /* Put your property field definitions here.

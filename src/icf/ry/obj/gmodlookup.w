@@ -57,7 +57,7 @@ DEFINE OUTPUT PARAMETER cMod  AS CHARACTER NO-UNDO.
 
 /* Local Variable Definitions ---                                       */
 
-DEFINE TEMP-TABLE ttModule FIELD productName AS CHAR.
+DEFINE TEMP-TABLE ttModule NO-UNDO FIELD productName AS CHAR.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

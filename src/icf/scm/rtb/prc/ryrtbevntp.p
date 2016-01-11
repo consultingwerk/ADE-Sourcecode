@@ -50,7 +50,7 @@ af/cod/aftemwizpw.w
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
-  File: afrtbevntp.p
+  File: ryrtbevntp.p
 
   Description:  Roundtable events API hook
   
@@ -66,21 +66,25 @@ af/cod/aftemwizpw.w
 
   Update Notes: Created from scratch
 
-  (v:010001)    Task:    90000007   UserRef:    
-                Date:   29/03/2001  Author:     Anthony Swindells
+  (v:010001)    Task:           2   UserRef:    Issue 8482
+                Date:   02/13/2003  Author:     Thomas Hansen
 
-  Update Notes: Fix afrtbevntp.p to turn on rv system
+  Update Notes: 05/02/03 thomas:
+                - Added code to show additional information to the user when assigning objects.
+                - Added generic log capabilities and added sue of this to the import events
+                - Added support for new RTB events for RTB 9.1C02
 
-  (v:010002)    Task:    90000067   UserRef:    
-                Date:   25/04/2001  Author:     Anthony Swindells
+  (v:010002)    Task:          20   UserRef:    
+                Date:   03/06/2003  Author:     Thomas Hansen
 
-  Update Notes: Remove RTB dependancy, so code does not break if RTB not connected /
-                in use.
+  Update Notes: Issue 8696 : Module Load of DynObjc generate .edo?
 
-  (v:010003)    Task:    90000018   UserRef:    
-                Date:   01/24/2002  Author:     Dynamics Admin User
+  (v:010003)    Task:          26   UserRef:    
+                Date:   03/11/2003  Author:     Thomas Hansen
 
-  Update Notes: add after assign hook for SCM
+  Update Notes: Issue 7361:
+                - fixed bug where object checkin was not deletnig actionUnderWay records.
+                - changed some of the formatting of the object-checkin and object-checkin-befor eprocedures.
 
   (v:010004)    Task:    90000018   UserRef:    
                 Date:   01/28/2002  Author:     Dynamics Admin User
@@ -92,7 +96,19 @@ af/cod/aftemwizpw.w
 
   Update Notes: Remove RVDB dependency
 
-----------------------------------------------*/
+  (v:010006)    Task:    90000048   UserRef:    
+                Date:   12/18/2002  Author:     Dynamics Administration User
+
+  Update Notes: 
+
+  (v:020000)    Task:          31   UserRef:    
+                Date:   03/25/2003  Author:     Thomas Hansen
+
+  Update Notes: Issue 9648 :
+                - Checked handling of object extensions for events regarding processing of objects in ICFDB
+                - Removed auto-create of .ado file at cehck-out as this is not necessary
+
+--------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
 
@@ -104,14 +120,14 @@ af/cod/aftemwizpw.w
 
 &scop object-name       ryrtbevntp.p
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010001
+&scop object-version    020000
 
 DEFINE VARIABLE cObjectName         AS CHARACTER NO-UNDO.
 ASSIGN
   cObjectName = "{&object-name}":U.
 
 ASSIGN
-  THIS-PROCEDURE:PRIVATE-DATA = "afrtbevntp.p":U.
+  THIS-PROCEDURE:PRIVATE-DATA = "ryrtbevntp.p":U.
 
 /* MIP object identifying preprocessor */
 &glob   mip-structured-procedure    yes
@@ -119,17 +135,27 @@ ASSIGN
 DEFINE STREAM ls_output.
 
 /* Integrate with afdbintrap.p */
-{af/sup2/afglobals.i NEW GLOBAL}
+{src/adm2/globals.i NEW GLOBAL}
 
 {rtb/inc/afrtbglobs.i} /* pull in Roundtable global variables */
 
-{af/sup2/afrun2.i     &Define-only = YES}
-{af/sup2/afcheckerr.i &Define-only = YES}
+{launch.i     &Define-only = YES}
+{checkerr.i &Define-only = YES}
 
 DEFINE VARIABLE lv_assign_object_name       AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE lv_assign_object_type       AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE lv_assign_product_module    AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE lv_assign_object_version    AS CHARACTER    NO-UNDO.
+
+DEFINE VARIABLE cMesWinTitle                AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cMesWinMessage              AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cMesWinButtonList           AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cMesWinButtonDefault        AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cMesWinButtonCancel         AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cMesWinAnswerValue          AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cMesWinAnswerDataType       AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cMesWinAnswerFormat         AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cMesWinButtonPressed        AS CHARACTER    NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -166,8 +192,8 @@ DEFINE VARIABLE lv_assign_object_version    AS CHARACTER    NO-UNDO.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 27.14
-         WIDTH              = 52.6.
+         HEIGHT             = 33.67
+         WIDTH              = 69.6.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -219,40 +245,103 @@ PROCEDURE assign-object :
   DEFINE OUTPUT PARAMETER op_error_message    AS CHARACTER NO-UNDO.
 
   DEFINE VARIABLE lActionUnderway             AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE lImportUnderway             AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lSuppressMessages           AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cReturnCharacter  AS CHARACTER  NO-UNDO.
+  
   IF VALID-HANDLE(gshSessionManager)
   THEN
     RUN getActionUnderway IN gshSessionManager
-                         (INPUT  "DYN":U
-                         ,INPUT  "ANY":U
-                         ,INPUT  "":U
-                         ,INPUT  "":U
-                         ,INPUT  "":U
-                         ,INPUT  NO
-                         ,OUTPUT lActionUnderway).
+                         (INPUT  "DYN":U,
+                          INPUT  "ANY":U,
+                          INPUT  "":U,
+                          INPUT  "":U,
+                          INPUT  "":U,
+                          INPUT  NO,
+                          OUTPUT lActionUnderway).
   IF  lActionUnderway = YES
   THEN RETURN.
+  
+  /* Inform the user that additional processing is being done. */
+  IF VALID-HANDLE(Grtb-p-stat) THEN 
+    RUN show_status_line IN Grtb-p-stat ("Processing Dynamics extensions for " + lv_assign_object_name + " ...").
+  
+  RUN scmHookAssignObject (INPUT grtb-wspace-id,
+                           INPUT grtb-task-num,
+                           INPUT grtb-userid,
+                           INPUT lv_assign_object_name,
+                           INPUT lv_assign_object_type,
+                           INPUT lv_assign_product_module,
+                           INPUT INTEGER(lv_assign_object_version),
+                           OUTPUT op_error_message).
+   
+  /* If there are error messages from the assign process, 
+     we should write these to the log if we are inthe process of importing */
+      
+  /* First check if we are in the process of importing. 
+     If we are not importing, then we do not want to log the event, as 
+     this is not all that useful. The collection of assign changes that '
+     are made during the import process are much more useful. 
+  */     
+  IF VALID-HANDLE(gshSessionManager) THEN
+  RUN getActionUnderway IN gshSessionManager
+                       (INPUT  "SCM":U,
+                        INPUT  "IMPORT":U,
+                        INPUT  Grtb-wspace-id,
+                        INPUT  "":U,
+                        INPUT  "":U,
+                        INPUT  NO,
+                        OUTPUT lImportUnderway).
+                        
+  IF lImportUnderWay THEN DO:                                      
+    PUBLISH "logEvent" (INPUT ip_event, 
+                       INPUT "[":U + STRING(TIME, "HH:MM:SS":U) + "] ":U + ip_event + " - ":U + ip_other, 
+                       INPUT "INF":U, 
+                       INPUT Grtb-wspace-id, 
+                       INPUT Grtb-userid, 
+                       INPUT "LOG":U,
+                       INPUT "dynrtb_import.log", 
+                       INPUT "":U) .  
+  
+    IF op_error_message <> "":U THEN
+    PUBLISH "logEvent" (INPUT ip_event, 
+                       INPUT "ERROR / ":U + ip_event + " (":U + ip_other + ") : ":U + op_error_message, 
+                       INPUT "ERROR":U, 
+                       INPUT Grtb-wspace-id, 
+                       INPUT Grtb-userid, 
+                       INPUT "LOG,STATUS":U,
+                       INPUT "dynrtb_import.log", 
+                       INPUT "":U) .
+    /* If we are suppressing error messages then reset the error message - 
+       as we do not want this displaying in the process-event procedure 
+       afterwards
+    */    
+    cReturnCharacter =  DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager, 
+                        INPUT "SuppressMessages":U, 
+                        INPUT YES). 
+                        
+    IF cReturnCharacter = "YES" THEN 
+      ASSIGN 
+        lSuppressMessages = TRUE. 
+    ELSE 
+      ASSIGN   
+        lSuppressMessages = FALSE. 
+        
+    IF lSuppressMessages THEN 
+      ASSIGN 
+        op_error_message = "":U
+        .
+  END.   /* IF lImportUnderWay ...*/
 
-  RUN scmHookAssignObject (INPUT grtb-wspace-id
-                          ,INPUT grtb-task-num
-                          ,INPUT grtb-userid
-                          ,INPUT lv_assign_object_name
-                          ,INPUT lv_assign_object_type
-                          ,INPUT lv_assign_product_module
-                          ,INPUT INTEGER(lv_assign_object_version)
-                          ,OUTPUT op_error_message
-                          ).
-
-  DEFINE VARIABLE lAtionUnderway    AS LOGICAL    NO-UNDO.
-  IF VALID-HANDLE(gshSessionManager)
-  THEN
+  IF VALID-HANDLE(gshSessionManager) THEN
     RUN getActionUnderway IN gshSessionManager
-                         (INPUT  "SCM":U
-                         ,INPUT  "ASS":U
-                         ,INPUT  ip_other
-                         ,INPUT  "":U
-                         ,INPUT  "":U
-                         ,INPUT  YES
-                         ,OUTPUT lAtionUnderway).
+                         (INPUT  "SCM":U,
+                          INPUT  "ASS":U,
+                          INPUT  ip_other,
+                          INPUT  "":U,
+                          INPUT  "":U,
+                          INPUT  YES,
+                          OUTPUT lActionUnderway).
 
   IF op_error_message <> "":U
   THEN RETURN.
@@ -382,6 +471,15 @@ PROCEDURE change-workspace :
   DEFINE INPUT PARAMETER  ip_other            AS CHARACTER NO-UNDO.
   DEFINE OUTPUT PARAMETER op_error_message    AS CHARACTER NO-UNDO.
 
+  /* Set the workspace Root as an SCM session parameter */
+  DYNAMIC-FUNCTION ("setSessionParam":U IN THIS-PROCEDURE, "_scm_root_directory":U, Grtb-wsroot ).     
+  
+  /* Set the relative source code directory as an SCM session parameter */
+  DYNAMIC-FUNCTION ("setSessionParam":U IN THIS-PROCEDURE, "_scm_relative_source_directory":U, "src/icf":U).     
+
+  /* Set the Currently Selected workspace as an SCM session parameter  */
+  DYNAMIC-FUNCTION ("setSessionParam":U IN THIS-PROCEDURE, "_scm_current_workspace":U, Grtb-wspace-id ).     
+  
   ASSIGN
     op_error_message = "":U
     NO-ERROR.
@@ -412,7 +510,9 @@ PROCEDURE create-cv :
   DEFINE INPUT PARAMETER  ip_other            AS CHARACTER NO-UNDO.
   DEFINE OUTPUT PARAMETER op_error_message    AS CHARACTER NO-UNDO.
 
-  DEFINE VARIABLE lv_recid                    AS RECID NO-UNDO.
+  DEFINE VARIABLE ip_object_name              AS CHARACTER NO-UNDO.
+
+  DEFINE VARIABLE lv_recid                    AS RECID     NO-UNDO.
 
   DEFINE VARIABLE lActionUnderway             AS LOGICAL   NO-UNDO.
   IF VALID-HANDLE(gshSessionManager)
@@ -439,7 +539,7 @@ PROCEDURE create-cv :
   OR rtb_object.object <> ip_other
   THEN DO:
     MESSAGE
-      "The update of Dynamics data failed as the Roundtable object (rtb_object) could not be found."
+      "The update of data failed as the Roundtable object (rtb_object) could not be found."
       VIEW-AS ALERT-BOX WARNING BUTTONS OK.
     ASSIGN
       op_error_message = "error":U.
@@ -455,7 +555,6 @@ PROCEDURE create-cv :
                         ,OUTPUT op_error_message
                         ).
 
-  DEFINE VARIABLE lAtionUnderway    AS LOGICAL    NO-UNDO.
   IF VALID-HANDLE(gshSessionManager)
   THEN
     RUN getActionUnderway IN gshSessionManager
@@ -465,7 +564,26 @@ PROCEDURE create-cv :
                          ,INPUT  "":U
                          ,INPUT  "":U
                          ,INPUT  YES
-                         ,OUTPUT lAtionUnderway).
+                         ,OUTPUT lActionUnderway).
+
+  /* The following code will clean up the actionUnderway table and also 
+     re-enable the replication triggers - which may have been 
+     disabled in scmHookMoveModule in rtb/prc/ryscmevntp.p 
+  */
+  ASSIGN
+    ip_object_name = ip_other
+    ip_object_name = REPLACE(ip_object_name,".ado":U,"":U)
+    .
+  IF VALID-HANDLE(gshSessionManager)
+  THEN
+    RUN getActionUnderway IN gshSessionManager
+                         (INPUT  "SCM":U
+                         ,INPUT  "ASS":U
+                         ,INPUT  ip_object_name
+                         ,INPUT  "":U
+                         ,INPUT  "":U
+                         ,INPUT  YES
+                         ,OUTPUT lActionUnderway).
 
   IF op_error_message <> "":U
   THEN RETURN.
@@ -554,6 +672,68 @@ PROCEDURE deploy :
   DEFINE INPUT  PARAMETER ip_context          AS CHARACTER NO-UNDO.
   DEFINE INPUT  PARAMETER ip_other            AS CHARACTER NO-UNDO.
   DEFINE OUTPUT PARAMETER op_error_message    AS CHARACTER NO-UNDO.
+
+  DEFINE VARIABLE lDeployQuestion AS LOGICAL INITIAL YES NO-UNDO.
+
+  IF SEARCH("rtb/uib/rtbdeployw.w":U) <> ?
+  OR SEARCH("rtb/uib/rtbdeployw.r":U) <> ?
+  THEN DO:
+
+    MESSAGE   "Do you want to proceed with the Deployment Package enhancments ?"
+      SKIP(1) " This hook deals with Application specific deployment issues."
+      SKIP(1) "Continue with Deployment Package Hook?"
+      VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO
+      UPDATE lDeployQuestion.
+
+    IF lDeployQuestion = YES
+    THEN DO:
+
+      FIND FIRST rtb_site NO-LOCK
+        WHERE STRING(RECID(rtb_site)) = ip_context
+        NO-ERROR.
+      IF NOT AVAILABLE rtb_site
+      THEN DO:
+        ASSIGN
+          op_error_message = "Roundtable Site RECID value not found":U
+          lDeployQuestion  = NO
+          .
+        RETURN.
+      END.
+
+      FIND FIRST rtb_deploy NO-LOCK
+        WHERE STRING(RECID(rtb_deploy)) = ip_other
+        NO-ERROR.
+      IF NOT AVAILABLE rtb_deploy
+      THEN DO:
+        ASSIGN
+          op_error_message = "Roundtable Deployment RECID value not found":U
+          lDeployQuestion  = NO
+          .
+        RETURN.
+      END.
+
+      IF rtb_site.site-code <> rtb_deploy.site-code
+      OR rtb_site.wspace-id <> rtb_deploy.wspace-id
+      THEN DO:
+        ASSIGN
+          op_error_message = "Roundtable Site and Deployment value discrepencies":U
+          lDeployQuestion  = NO
+          .
+        RETURN.
+      END.
+  
+    END.
+
+  END.
+
+  IF lDeployQuestion = YES
+  AND (SEARCH("rtb/uib/rtbdeployw.w":U) <> ?
+    OR SEARCH("rtb/uib/rtbdeployw.r":U) <> ?)
+  THEN DO:
+
+    RUN rtb/uib/rtbdeployw.w (INPUT ip_context ,INPUT ip_other).
+
+  END.
 
   ASSIGN
     op_error_message = "":U
@@ -762,16 +942,39 @@ PROCEDURE import :
 
   DEFINE VARIABLE cFileName                   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cFileList                   AS CHARACTER  NO-UNDO.
-
+  
+  DEFINE VARIABLE lImportUnderway             AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cMessage                    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cButton                     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAnswer                     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cError  AS CHARACTER  NO-UNDO.
+  
+  
   ASSIGN
     op_error_message = "":U
     NO-ERROR.
 
-  MESSAGE
-    SKIP "Print a report of the import table as an audit detailing"
-    SKIP "what objects were included in the import."
-    SKIP
-    VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+  ASSIGN 
+    cMessage = "Print a report of the import table as an audit detailing " + 
+               "which objects were included in the import.".
+                 
+    IF VALID-HANDLE(gshSessionManager) THEN                 
+    RUN showMessages IN gshSessionManager (INPUT  cMessage,    /* message to display */
+                                           INPUT  "INF":U,          /* error type */
+                                           INPUT  "&OK":U,    /* button list */
+                                           INPUT  "&OK":U,           /* default button */ 
+                                           INPUT  "":U,       /* cancel button */
+                                           INPUT  "Roundtable Import Control (Dynamics Enhancement)":U,             /* error window title */
+                                           INPUT  NO,              /* display if empty */ 
+                                           INPUT  ?,                /* container handle */ 
+                                           OUTPUT cButton           /* button pressed */
+                                          ).
+    ELSE 
+    /* Display the message with a normal message dialog  */
+    MESSAGE 
+      cMessage
+      VIEW-AS ALERT-BOX INFO BUTTONS OK
+      TITLE "Roundtable Import Control (Dynamics Enhancement)":U.                                            
 
   ASSIGN
     cFileList = "":U
@@ -787,44 +990,103 @@ PROCEDURE import :
     IF INDEX(rtb_import.object,".df":U) = 0
     THEN NEXT import-loop.
 
-    FIND FIRST rtb_pmod NO-LOCK
-      WHERE rtb_pmod.pmod = rtb_import.pmod
-      NO-ERROR.
-    IF AVAILABLE rtb_pmod
-    THEN
-      FIND FIRST rtb_moddef NO-LOCK
-        WHERE rtb_moddef.module = rtb_pmod.module
-        NO-ERROR.
-    IF AVAILABLE rtb_moddef
-    THEN
-      ASSIGN
-        cFileName = TRIM(rtb_moddef.directory,"~/":U)
-                  + (IF rtb_moddef.directory = "":U THEN "":U ELSE "~/":U)
-                  + rtb_import.object.
-    ELSE
-      ASSIGN
-        cFileName = rtb_import.object.
+    RUN rtb/p/rtb_pnam.p (INPUT  "", /* no root path to get relative path names */ 
+                      INPUT  rtb_import.pmod, /*product Module */
+                      INPUT  "DataDef":U, /*Code Subtype */
+                      INPUT  rtb_import.OBJECT, /* Name of object */
+                      INPUT  "PCODE":U,
+                      OUTPUT cFileName, /* Comma separated list of object parts */ 
+                      OUTPUT cError).
+
+   /* As cFilename may contain multiple file parts, only kjeep the first part */
+   cFilename = ENTRY(1, cFileName). 
 
     ASSIGN
       cFileList         = cFileList
                         + (IF cFileList <> "":U THEN ",":U ELSE "":U)
                         + cFileName
       .
-
   END.
 
   IF cFileList <> "":U
-  THEN
-    MESSAGE   "The import table contained delta files that may need to be applied to the"
-      SKIP    "databases in this workspace manually. Review the import list to see what deltas"
-      SKIP    "were included. Ensure any databases you are going to apply deltas for are connected"
-      SKIP    "and that no procedures are running that reference them."
-      SKIP(1) "Also be sure that the deltas in the list are not for common databases or have"
-      SKIP    "not already been applied manually."
-      SKIP(1) "To apply the deltas manually, use the database administration tool, before doing a"
-      SKIP    "recompile of the workspace."
-      SKIP
-      VIEW-AS ALERT-BOX INFORMATION.
+  THEN DO:
+  
+    PUBLISH "logEvent" (INPUT ip_event, 
+                      INPUT "Import contained .df files. Remember to update databases with changes." + "~n", 
+                      INPUT "":U, 
+                      INPUT Grtb-wspace-id, 
+                      INPUT Grtb-userid, 
+                      INPUT "LOG":U,
+                      INPUT "dynrtb_import.log", 
+                      INPUT "":U) .
+
+    ASSIGN
+      cMessage = "The import table contained delta files that may need to be applied to the " + 
+                  "databases in this workspace manually. Review the import list to see what deltas " +
+                  "were included. Ensure any databases you are going to apply deltas for are connected " +
+                  "and that no procedures are running that reference them." + "~n" + "~n" +
+                  "Also be sure that the deltas in the list are not for common databases or have " +
+                  "not already been applied manually." + "~n" + "~n" +
+                  "To apply the deltas manually, use the database administration tool, before doing a " +
+                  "recompile of the workspace.".
+  
+      IF VALID-HANDLE(gshSessionManager) THEN
+      RUN showMessages IN gshSessionManager (INPUT  cMessage,    /* message to display */
+                                             INPUT  "INF":U,          /* error type */
+                                             INPUT  "&OK":U,    /* button list */
+                                             INPUT  "&OK":U,           /* default button */ 
+                                             INPUT  "":U,       /* cancel button */
+                                             INPUT  "Roundtable Import Control (Dynamics Enhancement)":U,             /* error window title */
+                                             INPUT  NO,              /* display if empty */ 
+                                             INPUT  ?,                /* container handle */ 
+                                             OUTPUT cButton           /* button pressed */
+                                            ).
+      ELSE 
+      /* Display the message with a normal message dialog  */
+      MESSAGE 
+        cMessage
+        VIEW-AS ALERT-BOX INFO BUTTONS OK
+        TITLE "Roundtable Import Control (Dynamics Enhancement)":U.                                            
+  END.
+  
+  /* Remove the actionUnderWay record for the import process. */
+  IF VALID-HANDLE(gshSessionManager) THEN 
+    RUN getActionUnderway IN gshSessionManager
+                       (INPUT  "SCM":U,
+                        INPUT  "IMPORT":U,
+                        INPUT  Grtb-wspace-id,
+                        INPUT  "":U,
+                        INPUT  "":U,
+                        INPUT  YES,
+                        OUTPUT lImportUnderway).
+  
+  /* Write a closing comment to the import log file */
+  ASSIGN cMessage = "[":U + STRING(TODAY) + " ":U + STRING(TIME, "HH:MM:SS") + "] ":U + 
+                    "Import Processing Complete for workspace : ":U + Grtb-wspace-id + "~n":U  
+                    + "===============================================================":U. 
+                    
+  PUBLISH "logEvent" (INPUT ip_event, 
+                      INPUT cMessage, 
+                      INPUT "":U, 
+                      INPUT Grtb-wspace-id, 
+                      INPUT Grtb-userid, 
+                      INPUT "LOG":U,
+                      INPUT "dynrtb_import.log", 
+                      INPUT "":U) .
+
+   RUN askQuestion IN gshSessionManager (INPUT        "Do you want to view the import log file? ",    /* message to display */
+                                         INPUT        "&Yes,&No":U,    /* button list */
+                                         INPUT        "&Yes":U,           /* default button */ 
+                                         INPUT        "&No":U,       /* cancel button */
+                                         INPUT        "Roundtable Import Control (Dynamics Enhancement)":U,             /* window title */
+                                         INPUT        "":U,      /* data type of question */ 
+                                         INPUT        "":U,          /* format mask for question */ 
+                                         INPUT-OUTPUT cAnswer,              /* character value of answer to question */ 
+                                               OUTPUT cButton           /* button pressed */
+                                         ).
+   
+   IF TRIM(cButton, "&":U) = "YES":U THEN
+   RUN rtb/p/rtb_rnpw.p (INPUT SEARCH("dynrtb_import.log"), INPUT 0).                                           
 
   ASSIGN
     op_error_message = "":U
@@ -857,7 +1119,69 @@ PROCEDURE import-before :
   DEFINE INPUT PARAMETER  ip_context          AS CHARACTER NO-UNDO.
   DEFINE INPUT PARAMETER  ip_other            AS CHARACTER NO-UNDO.
   DEFINE OUTPUT PARAMETER op_error_message    AS CHARACTER NO-UNDO.
-
+  
+  DEFINE VARIABLE cMessage  AS CHARACTER  NO-UNDO.
+  
+  ASSIGN cMessage = "[":U + STRING(TODAY) + " ":U + STRING(TIME, "HH:MM:SS") + "] ":U + 
+                    "Import Processing Begin for Workspace : ":U + Grtb-wspace-id. 
+                    
+  PUBLISH "logEvent" (INPUT ip_event, 
+                      INPUT cMessage, 
+                      INPUT "":U, 
+                      INPUT Grtb-wspace-id, 
+                      INPUT Grtb-userid, 
+                      INPUT "LOG":U,
+                      INPUT "dynrtb_import.log", 
+                      INPUT "":U) .
+       
+  IF VALID-HANDLE(gshSessionManager) THEN DO:
+    RUN setActionUnderway IN gshSessionManager
+                         (INPUT "SCM":U,
+                          INPUT "IMPORT":U,
+                          INPUT Grtb-wspace-id,
+                          INPUT "":U,
+                          INPUT "":U).
+                          
+    ASSIGN
+      cMesWinTitle            = "Roundtable Import Control (Dynamics Enhancement)":U
+      cMesWinButtonList       = "&Yes,&No":U
+      cMesWinButtonDefault    = "&Yes":U
+      cMesWinButtonCancel     = "&No":U
+      cMesWinAnswerValue      = "":U
+      cMesWinAnswerDataType   = "":U
+      cMesWinAnswerFormat     = "":U
+      cMesWinMessage          = "If errors are encountered during the import processing, " + 
+                                "do you want to continue having messages shown in a message dialog, " +
+                                "or have all subsequent messages written to the status window and log file?" + "~n":U + "~n":U +  
+                                "(Yes) - Show Messages / (No) - Suppress Messages".                    
+                                
+    RUN askQuestion IN gshSessionManager
+     (INPUT cMesWinMessage,
+      INPUT cMesWinButtonList,
+      INPUT cMesWinButtonDefault,
+      INPUT cMesWinButtonCancel,
+      INPUT cMesWinTitle,
+      INPUT cMesWinAnswerDataType,
+      INPUT cMesWinAnswerFormat,
+      INPUT-OUTPUT cMesWinAnswerValue,
+      OUTPUT cMesWinButtonPressed
+     ).
+  
+    IF TRIM(cMesWinButtonPressed, "&":U) = "No"
+    THEN DO: 
+        DYNAMIC-FUNCTION("setPropertyList":U IN gshSessionManager,
+                                             INPUT "SuppressMessages",
+                                             INPUT "YES":U,
+                                             INPUT YES).
+    END.
+    ELSE DO:
+        DYNAMIC-FUNCTION("setPropertyList":U IN gshSessionManager,
+                                             INPUT "SuppressMessages",
+                                             INPUT "NO":U,
+                                             INPUT YES).    
+    END.
+  END. /* IF VALID-HANDLE() ...*/
+                          
   ASSIGN
     op_error_message = "":U
     NO-ERROR.
@@ -974,20 +1298,18 @@ PROCEDURE object-add :
   DEFINE VARIABLE cButton                     AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cErrorText                  AS CHARACTER NO-UNDO.
 
-  ASSIGN
-    lv_recid = INTEGER(ip_context)
-    NO-ERROR.
+  ASSIGN lv_recid = INTEGER(ip_context) NO-ERROR.
 
   FIND FIRST rtb_object NO-LOCK
     WHERE RECID(rtb_object) = lv_recid
     NO-ERROR.
   IF NOT AVAILABLE rtb_object
-  OR rtb_object.object <> ip_other
-  THEN DO:
-    IF VALID-HANDLE(gshSessionManager)
-    THEN DO:
+  OR rtb_object.object <> ip_other THEN 
+  DO:
+    IF VALID-HANDLE(gshSessionManager) THEN 
+    DO:
       RUN showMessages IN gshSessionManager
-                      (INPUT {af/sup2/aferrortxt.i 'AF' '36' '?' '?' "'Dynamics'" "'because the rtb_object record could not be found or the wrong object was found from the recid'"}
+                      (INPUT {af/sup2/aferrortxt.i 'AF' '36' '?' '?' "'Progress Dynamics'" "'because the rtb_object record could not be found or the wrong object was found from the recid'"}
                       ,INPUT "ERR":U
                       ,INPUT "OK":U
                       ,INPUT "OK":U
@@ -997,9 +1319,10 @@ PROCEDURE object-add :
                       ,INPUT ?
                       ,OUTPUT cButton).
     END.
-    ELSE DO:
+    ELSE 
+    DO:
       MESSAGE
-        "The update of Dynamics failed because because the rtb_object record could not be found or the wrong object was found from the recid"
+        "The update of data failed because the rtb_object record could not be found or the wrong object was found from the recid"
         VIEW-AS ALERT-BOX WARNING BUTTONS OK.
     END.
     ASSIGN
@@ -1007,10 +1330,9 @@ PROCEDURE object-add :
     RETURN.
   END.
 
-  IF rtb_object.obj-type <> "PCODE":U
-  THEN DO:
-    IF VALID-HANDLE(gshSessionManager)
-    THEN
+  IF rtb_object.obj-type <> "PCODE":U THEN 
+  DO:
+    IF VALID-HANDLE(gshSessionManager) THEN
       RUN getActionUnderway IN gshSessionManager
                            (INPUT  "SCM":U
                            ,INPUT  "ADD":U
@@ -1023,8 +1345,7 @@ PROCEDURE object-add :
   END.
 
 
-  IF VALID-HANDLE(gshSessionManager)
-  THEN
+  IF VALID-HANDLE(gshSessionManager) THEN
     RUN getActionUnderway IN gshSessionManager
                          (INPUT  "DYN":U
                          ,INPUT  "ANY":U
@@ -1033,8 +1354,8 @@ PROCEDURE object-add :
                          ,INPUT  "":U
                          ,INPUT  NO
                          ,OUTPUT lActionUnderway).
-  IF  lActionUnderway = YES
-  THEN RETURN.
+  IF lActionUnderway = YES THEN 
+    RETURN.
 
   RUN scmHookCreateObject (INPUT  grtb-wspace-id
                           ,INPUT  grtb-task-num
@@ -1043,8 +1364,7 @@ PROCEDURE object-add :
                           ,OUTPUT op_error_message
                           ).
 
-  IF VALID-HANDLE(gshSessionManager)
-  THEN
+  IF VALID-HANDLE(gshSessionManager) THEN
     RUN getActionUnderway IN gshSessionManager
                          (INPUT  "SCM":U
                          ,INPUT  "ADD":U
@@ -1054,12 +1374,10 @@ PROCEDURE object-add :
                          ,INPUT  YES
                          ,OUTPUT lActionUnderway).
 
-  IF op_error_message <> "":U
-  THEN RETURN.
+  IF op_error_message <> "":U THEN 
+    RETURN.
 
-  ASSIGN
-    op_error_message = "":U
-    NO-ERROR.
+  ASSIGN op_error_message = "":U NO-ERROR.
   RETURN.
 
 END PROCEDURE.
@@ -1088,8 +1406,7 @@ PROCEDURE object-add-before :
   DEFINE OUTPUT PARAMETER op_error_message    AS CHARACTER NO-UNDO.
 
   DEFINE VARIABLE lActionUnderway             AS LOGICAL   NO-UNDO.
-  IF VALID-HANDLE(gshSessionManager)
-  THEN
+  IF VALID-HANDLE(gshSessionManager) THEN
     RUN getActionUnderway IN gshSessionManager
                          (INPUT  "DYN":U
                          ,INPUT  "ANY":U
@@ -1098,11 +1415,10 @@ PROCEDURE object-add-before :
                          ,INPUT  "":U
                          ,INPUT  NO
                          ,OUTPUT lActionUnderway).
-  IF  lActionUnderway = YES
-  THEN RETURN.
+  IF  lActionUnderway = YES THEN 
+    RETURN.
 
-  IF VALID-HANDLE(gshSessionManager)
-  THEN
+  IF VALID-HANDLE(gshSessionManager) THEN
     RUN setActionUnderway IN gshSessionManager
                          (INPUT "SCM":U
                          ,INPUT "ADD":U
@@ -1111,11 +1427,67 @@ PROCEDURE object-add-before :
                          ,INPUT "":U
                          ).
 
+  ASSIGN op_error_message = "":U NO-ERROR.
+  RETURN.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-object-change-share-status) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE object-change-share-status Procedure 
+PROCEDURE object-change-share-status :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:   ip_event          :   "OBJECT-CHANGE-SHARE-STATUS",
+                ip_context        :   String value of RECID for rtb.rtb_object
+                ip_other          :   Object, Old status, New Status, Workspace Path, Task Path
+                ip_error_message  :   Ignored
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER ip_event            AS CHARACTER NO-UNDO.
+  DEFINE INPUT  PARAMETER ip_context          AS CHARACTER NO-UNDO.
+  DEFINE INPUT  PARAMETER ip_other            AS CHARACTER NO-UNDO.
+  DEFINE OUTPUT PARAMETER op_error_message    AS CHARACTER NO-UNDO.
+
+  ASSIGN
+    op_error_message = "":U
+    NO-ERROR.
+  RETURN. 
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-object-change-share-status-before) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE object-change-share-status-before Procedure 
+PROCEDURE object-change-share-status-before :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters: ip_event     :   "OBJECT-CHANGE-SHARE-STATUS-BEFORE",
+              ip_context   :   String value of RECID for rtb.rtb_object
+              ip_other     :   Object, Old status, New Status, Workspace Path, Task Path
+              ip_ok        :   Cancel if false 
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER ip_event            AS CHARACTER NO-UNDO.
+  DEFINE INPUT  PARAMETER ip_context          AS CHARACTER NO-UNDO.
+  DEFINE INPUT  PARAMETER ip_other            AS CHARACTER NO-UNDO.
+  DEFINE OUTPUT PARAMETER op_error_message    AS CHARACTER NO-UNDO.
+  
   ASSIGN
     op_error_message = "":U
     NO-ERROR.
   RETURN.
 
+ 
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1141,42 +1513,74 @@ PROCEDURE object-check-in :
   DEFINE INPUT PARAMETER  ip_context          AS CHARACTER NO-UNDO.
   DEFINE INPUT PARAMETER  ip_other            AS CHARACTER NO-UNDO.
   DEFINE OUTPUT PARAMETER op_error_message    AS CHARACTER NO-UNDO.
-
+  
   DEFINE VARIABLE lv_recid                    AS RECID     NO-UNDO.
-
   DEFINE VARIABLE cButton                     AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cErrorText                  AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cObjectName                 AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE lActionUnderway             AS LOGICAL    NO-UNDO.
 
-  ASSIGN
-    lv_recid = INTEGER(ip_context)
-    NO-ERROR.
+  IF VALID-HANDLE(gshSessionManager) THEN 
+  DO:
+
+    RUN getActionUnderway IN gshSessionManager
+                         (INPUT  "SCM":U,
+                          INPUT  "TASKCOMP":U,
+                          INPUT  "":U,
+                          INPUT  "":U,
+                          INPUT  "":U,
+                          INPUT  NO,
+                          OUTPUT lActionUnderway).
+                         
+    IF lActionUnderway = NO THEN 
+    DO:
+
+      RUN getActionUnderway IN gshSessionManager
+                           (INPUT  "SCM":U,
+                            INPUT  "SKIPDUMPYES":U,
+                            INPUT  ip_other,
+                            INPUT  "":U,
+                            INPUT  "":U,
+                            INPUT  YES,
+                            OUTPUT lActionUnderway).
+
+      RUN getActionUnderway IN gshSessionManager
+                           (INPUT  "SCM":U,
+                            INPUT  "SKIPDUMPNO":U,
+                            INPUT  ip_other,
+                            INPUT  "":U,
+                            INPUT  "":U,
+                            INPUT  YES,
+                            OUTPUT lActionUnderway).
+
+    END. /* lActionUnderway = NO */
+  END. /* VALID-HANDLE(gshSessionManager) */
+
+  ASSIGN lv_recid = INTEGER(ip_context) NO-ERROR.
 
   FIND FIRST rtb_object NO-LOCK
     WHERE RECID(rtb_object) = lv_recid
     NO-ERROR.
   IF NOT AVAILABLE rtb_object
-  OR rtb_object.object <> ip_other
-  THEN DO:
-    IF VALID-HANDLE(gshSessionManager)
-    THEN DO:
+  OR rtb_object.object <> ip_other THEN 
+  DO:
+    IF VALID-HANDLE(gshSessionManager) THEN     
       RUN showMessages IN gshSessionManager
-                      (INPUT {af/sup2/aferrortxt.i 'AF' '36' '?' '?' "'Dynamics'" "'because the rtb_object record could not be found or the wrong object was found from the recid'"}
-                      ,INPUT "ERR":U
-                      ,INPUT "OK":U
-                      ,INPUT "OK":U
-                      ,INPUT "OK":U
-                      ,INPUT "RTB Error"
-                      ,INPUT YES
-                      ,INPUT ?
-                      ,OUTPUT cButton).
-    END.
-    ELSE DO:
+                      (INPUT {af/sup2/aferrortxt.i 'AF' '36' '?' '?' "'Progress Dynamics'" "'because the rtb_object record could not be found or the wrong object was found from the recid'"},
+                       INPUT "ERR":U,
+                       INPUT "OK":U,
+                       INPUT "OK":U,
+                       INPUT "OK":U,
+                       INPUT "RTB Error",
+                       INPUT YES,
+                       INPUT ?,
+                       OUTPUT cButton).
+    ELSE 
       MESSAGE
-        "The update of Dynamics failed because because the rtb_object record could not be found or the wrong object was found from the recid"
+        "The update of data failed because the rtb_object record could not be found or the wrong object was found from the recid"
         VIEW-AS ALERT-BOX WARNING BUTTONS OK.
-    END.
-    ASSIGN
-      op_error_message = "error":U.
+        
+    ASSIGN op_error_message = "error":U.
     RETURN.
   END.
 
@@ -1189,34 +1593,47 @@ PROCEDURE object-check-in :
     AND   rtb_ver.pmod      = rtb_object.pmod
     AND   rtb_ver.version   = rtb_object.version
     NO-ERROR.
-  IF NOT AVAILABLE rtb_ver
-  THEN DO:
-    IF VALID-HANDLE(gshSessionManager)
-    THEN DO:
+  IF NOT AVAILABLE rtb_ver THEN 
+  DO:
+    IF VALID-HANDLE(gshSessionManager) THEN 
       RUN showMessages IN gshSessionManager
-                      (INPUT {af/sup2/aferrortxt.i 'AF' '36' '?' '?' "'Dynamics'" "'because the rtb_ver record could not be found'"}
-                      ,INPUT "ERR":U
-                      ,INPUT "OK":U
-                      ,INPUT "OK":U
-                      ,INPUT "OK":U
-                      ,INPUT "RTB Error"
-                      ,INPUT YES
-                      ,INPUT ?
-                      ,OUTPUT cButton).
-    END.
-    ELSE DO:
+                      (INPUT {af/sup2/aferrortxt.i 'AF' '36' '?' '?' "'Progress Dynamics'" "'because the rtb_ver record could not be found'"},
+                       INPUT "ERR":U,
+                       INPUT "OK":U,
+                       INPUT "OK":U,
+                       INPUT "OK":U,
+                       INPUT "RTB Error",
+                       INPUT YES,
+                       INPUT ?,
+                       OUTPUT cButton).
+    ELSE 
       MESSAGE
-        "The update of Dynamics failed because the rtb_ver record could not be found"
+        "The update of data failed because the rtb_ver record could not be found"
         VIEW-AS ALERT-BOX WARNING BUTTONS OK.
-    END.
-    ASSIGN
-      op_error_message = "error":U.
+    
+    ASSIGN op_error_message = "error":U.
     RETURN.
   END.
 
+  /* The following code will clean up the actionUnderway table and also 
+     re-enable the replication triggers - which may have been 
+     disabled in scmHookMoveModule in rtb/prc/ryscmevntp.p 
+  */
   ASSIGN
-    op_error_message = "":U
-    NO-ERROR.
+    cObjectName = ip_other
+    cObjectName = REPLACE(cObjectName,".ado":U,"":U).
+    
+  IF VALID-HANDLE(gshSessionManager) THEN
+    RUN getActionUnderway IN gshSessionManager
+                         (INPUT  "SCM":U, 
+                          INPUT  "ASS":U,
+                          INPUT  cObjectName,
+                          INPUT  "":U,
+                          INPUT  "":U,
+                          INPUT  YES,
+                          OUTPUT lActionUnderway).
+
+  ASSIGN op_error_message = "":U NO-ERROR.
   RETURN.
 
 END PROCEDURE.
@@ -1230,8 +1647,8 @@ END PROCEDURE.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE object-check-in-before Procedure 
 PROCEDURE object-check-in-before :
-/*------------------------------------------------------------------------------
-  Purpose:     Before object is checked in
+/* ------------------------------------------------------------------------------
+Purpose:     Before object is checked in
   Parameter :  ip_context       : STRING value of RECID of the rtb_object table
   / Meaning :  ip_other         : Object name
                op_error_message : non blank will cancel check in
@@ -1242,46 +1659,46 @@ PROCEDURE object-check-in-before :
                Belt and braces really !
 ------------------------------------------------------------------------------*/
 
-  DEFINE INPUT PARAMETER  ip_event            AS CHARACTER NO-UNDO.
-  DEFINE INPUT PARAMETER  ip_context          AS CHARACTER NO-UNDO.
-  DEFINE INPUT PARAMETER  ip_other            AS CHARACTER NO-UNDO.
-  DEFINE OUTPUT PARAMETER op_error_message    AS CHARACTER NO-UNDO.
+  DEFINE INPUT PARAMETER  ip_event            AS CHARACTER  NO-UNDO.
+  DEFINE INPUT PARAMETER  ip_context          AS CHARACTER  NO-UNDO.
+  DEFINE INPUT PARAMETER  ip_other            AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER op_error_message    AS CHARACTER  NO-UNDO.
 
-  DEFINE VARIABLE lv_recid AS RECID NO-UNDO.
+  DEFINE VARIABLE lv_recid                    AS RECID      NO-UNDO.
 
-  DEFINE VARIABLE cButton                     AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE cErrorText                  AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cButton                     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cErrorText                  AS CHARACTER  NO-UNDO.
 
-  ASSIGN
-    lv_recid = INTEGER(ip_context)
-    NO-ERROR.
+  DEFINE VARIABLE lActionUnderway             AS LOGICAL    NO-UNDO.
+
+  ASSIGN lv_recid = INTEGER(ip_context) NO-ERROR.
 
   FIND FIRST rtb_object NO-LOCK
     WHERE RECID(rtb_object) = lv_recid
     NO-ERROR.
   IF NOT AVAILABLE rtb_object
-  OR rtb_object.object <> ip_other
-  THEN DO:
-    IF VALID-HANDLE(gshSessionManager)
-    THEN DO:
+  OR rtb_object.object <> ip_other THEN 
+  DO:
+    IF VALID-HANDLE(gshSessionManager) THEN 
+    DO:
       RUN showMessages IN gshSessionManager
-                      (INPUT {af/sup2/aferrortxt.i 'AF' '36' '?' '?' "'Dynamics'" "'the rtb_object record could not be found or the wrong object was found from the recid'"}
-                      ,INPUT "ERR":U
-                      ,INPUT "OK":U
-                      ,INPUT "OK":U
-                      ,INPUT "OK":U
-                      ,INPUT "RTB Error"
-                      ,INPUT YES
-                      ,INPUT ?
-                      ,OUTPUT cButton).
+                      (INPUT {af/sup2/aferrortxt.i 'AF' '36' '?' '?' "'Progress Dynamics'" "'the rtb_object record could not be found or the wrong object was found from the recid'"},
+                       INPUT "ERR":U,
+                       INPUT "OK":U,
+                       INPUT "OK":U,
+                       INPUT "OK":U,
+                       INPUT "RTB Error",
+                       INPUT YES,
+                       INPUT ?,
+                       OUTPUT cButton).
     END.
-    ELSE DO:
+    ELSE 
+    DO:
       MESSAGE
-        "The update of Dynamics failed because the rtb_object record could not be found or the wrong object was found from the recid"
+        "The update of data failed because the rtb_object record could not be found or the wrong object was found from the recid"
         VIEW-AS ALERT-BOX WARNING BUTTONS OK.
     END.
-    ASSIGN
-      op_error_message = "error":U.
+    ASSIGN op_error_message = "error":U.
     RETURN.
   END.
 
@@ -1294,46 +1711,140 @@ PROCEDURE object-check-in-before :
     AND   rtb_ver.pmod      = rtb_object.pmod
     AND   rtb_ver.version   = rtb_object.version
     NO-ERROR.
-  IF NOT AVAILABLE rtb_ver
-  THEN DO:
-    IF VALID-HANDLE(gshSessionManager)
-    THEN DO:
+  IF NOT AVAILABLE rtb_ver THEN 
+  DO:
+    IF VALID-HANDLE(gshSessionManager) THEN 
       RUN showMessages IN gshSessionManager
-                      (INPUT {af/sup2/aferrortxt.i 'AF' '36' '?' '?' "'Dynamics'" "'the rtb_ver record could not be found'"}
-                      ,INPUT "ERR":U
-                      ,INPUT "OK":U
-                      ,INPUT "OK":U
-                      ,INPUT "OK":U
-                      ,INPUT "RTB Error"
-                      ,INPUT YES
-                      ,INPUT ?
-                      ,OUTPUT cButton).
-    END.
-    ELSE DO:
+                      (INPUT {af/sup2/aferrortxt.i 'AF' '36' '?' '?' "'Progress Dynamics'" "'the rtb_ver record could not be found'"},
+                       INPUT "ERR":U,
+                       INPUT "OK":U,
+                       INPUT "OK":U,
+                       INPUT "OK":U,
+                       INPUT "RTB Error",
+                       INPUT YES,
+                       INPUT ?,
+                       OUTPUT cButton).
+    ELSE
       MESSAGE
-        "The update of Dynamics failed because the rtb_ver record could not be found"
+        "The update of data failed because the rtb_ver record could not be found"
         VIEW-AS ALERT-BOX WARNING BUTTONS OK.
-    END.
-    ASSIGN
-      op_error_message = "error":U.
+        
+    ASSIGN op_error_message = "error":U.
     RETURN.
   END.
 
-  RUN scmHookCheckInObject (INPUT grtb-wspace-id
-                           ,INPUT grtb-task-num
-                           ,INPUT grtb-userid
-                           ,INPUT ip_other
-                           ,OUTPUT op_error_message
-                           ).
+  IF VALID-HANDLE(gshSessionManager) THEN 
+  DO:
+    RUN getActionUnderway IN gshSessionManager
+                         (INPUT  "SCM":U,
+                          INPUT  "TASKCOMP":U,
+                          INPUT  "":U,
+                          INPUT  "":U,
+                          INPUT  "":U,
+                          INPUT  NO,
+                          OUTPUT lActionUnderway).
+                         
+    IF lActionUnderway = NO THEN 
+    DO:
+      ASSIGN
+        cMesWinTitle            = "Object Check-In (Dynamics Enhancement)":U
+        cMesWinButtonList       = "Export,Skip,Cancel":U
+        cMesWinButtonDefault    = "Export":U
+        cMesWinButtonCancel     = "Cancel":U
+        cMesWinAnswerValue      = "":U
+        cMesWinAnswerDataType   = "":U
+        cMesWinAnswerFormat     = "":U.
 
-  IF op_error_message <> "":U
-  THEN RETURN.
+      /* Question 01 */
+      ASSIGN
+        cMesWinMessage  = 'Do you wish to automatically export the object information from the Progress Dynamics repository (ICFDB)'
+                        + 'and generate the new/updated .ado file containing the XML content/information of the object.' + '~n':U + '~n' 
+                        + 'If you answer "Skip", an INCORRECT version could be checked into the Roundtable Repository.'
+                        + 'This should ONLY be skipped if the correct version is already on the O/S, i.e.'
+                        + 'a Module Load has been done and you are just completing the task. And NO changes have been done'
+                        + 'to the object in the Progress Dynamics repository since the module load.' + '~n':U + '~n':U
+                        + 'Generate .ado XML files ? (usually choose "Export")'.
 
-  ASSIGN
-    op_error_message = "":U
-    NO-ERROR.
+      /* Try and display a nice formatted error if we can */
+      RUN askQuestion IN gshSessionManager
+                     (INPUT cMesWinMessage,
+                      INPUT cMesWinButtonList,
+                      INPUT cMesWinButtonDefault,
+                      INPUT cMesWinButtonCancel,
+                      INPUT cMesWinTitle,
+                      INPUT cMesWinAnswerDataType,
+                      INPUT cMesWinAnswerFormat,
+                      INPUT-OUTPUT cMesWinAnswerValue,
+                      OUTPUT cMesWinButtonPressed).
 
-RETURN.
+      IF LOOKUP(cMesWinButtonPressed,"Skip":U) > 0 THEN 
+      DO:
+        /* Question 02 */
+        ASSIGN 
+          cMesWinMessage  = 'Are you really sure you know what you are doing and really do not want the Progress Dynamics enhancement.'
+                          + 'If you continue with this decision, then the INCORRECT version of objects could be checked into Roundtable.'
+                          + '~n':U + '~n':U 
+                          + 'So, to be sure we will ask again: '+ '~n':U
+                          + 'Do you want to SKIP the Progress Dynamics enhancement and NOT generate the new/updated .ado file'
+                          + ' containing the XML content/information of the object.'
+                          + '~n':U + '~n':U 
+                          + 'Please obtain appropriate authorisation if you answer "Skip" to this question'.
+
+        /* Try and display a nice formatted error if we can */
+        RUN askQuestion IN gshSessionManager
+                       (INPUT cMesWinMessage,
+                        INPUT cMesWinButtonList,
+                        INPUT cMesWinButtonDefault,
+                        INPUT cMesWinButtonCancel,
+                        INPUT cMesWinTitle,
+                        INPUT cMesWinAnswerDataType,
+                        INPUT cMesWinAnswerFormat,
+                        INPUT-OUTPUT cMesWinAnswerValue,
+                        OUTPUT cMesWinButtonPressed).
+      END.
+
+      CASE cMesWinButtonPressed:
+        WHEN cMesWinButtonCancel /* Cancel */ THEN 
+        DO:
+            ASSIGN
+              op_error_message = "Object Check-In Cancelled".
+            RETURN.
+        END.
+        WHEN "Export":U THEN
+            RUN setActionUnderway IN gshSessionManager
+                                 (INPUT "SCM":U,
+                                  INPUT "SKIPDUMPNO":U,
+                                  INPUT ip_other,
+                                  INPUT "":U,
+                                  INPUT "":U).
+        WHEN "Skip":U THEN
+            RUN setActionUnderway IN gshSessionManager
+                                 (INPUT "SCM":U,
+                                  INPUT "SKIPDUMPYES":U,
+                                  INPUT ip_other,
+                                  INPUT "":U,
+                                  INPUT "":U).
+        OTHERWISE 
+        DO: /* DECIDE LATER */
+          /* do nothing */
+        END.
+      END CASE.
+
+    END. /* lActionUnderway = NO */
+
+  END. /* VALID-HANDLE(gshSessionManager) */
+
+  RUN scmHookCheckInObject (INPUT grtb-wspace-id,
+                            INPUT grtb-task-num,
+                            INPUT grtb-userid,
+                            INPUT ip_other,
+                            OUTPUT op_error_message).
+
+  IF op_error_message <> "":U THEN 
+    RETURN.
+
+  ASSIGN op_error_message = "":U NO-ERROR.
+  RETURN.
 
 END PROCEDURE.
 
@@ -1360,11 +1871,14 @@ PROCEDURE object-check-out :
   DEFINE INPUT PARAMETER  ip_other            AS CHARACTER NO-UNDO.
   DEFINE OUTPUT PARAMETER op_error_message    AS CHARACTER NO-UNDO.
 
+  IF op_error_message <> "":U
+  THEN RETURN.
+
   ASSIGN
     op_error_message = "":U
     NO-ERROR.
   RETURN.
-
+  
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1382,7 +1896,18 @@ PROCEDURE object-check-out-before :
   / Meaning :  ip_other         : Object name
                op_error_message : non blank will cancel
 
-  Notes:       
+  Notes:       There is no concept of checking out objects in the Dynamics 
+               repository. But, we can use this hook to check if the object 
+               exists in the ICFDB database. If it does, then we should try 
+               and get it created in the ICFDB database. 
+               
+               The checks to see if objects should be registered in the ICFDB 
+               database (if RTB expects a .ado file) and other checks will be 
+               done in ryscmevntp.p - where this is already being done for the 
+               hooks to move objects to a new module. 
+               
+               We will use the same hook as the one to move objects to a new module 
+               as this does exactly the same thing. 
 ------------------------------------------------------------------------------*/
 
   DEFINE INPUT PARAMETER  ip_event            AS CHARACTER NO-UNDO.
@@ -1494,6 +2019,10 @@ PROCEDURE object-delete :
   DEFINE OUTPUT PARAMETER op_error_message    AS CHARACTER NO-UNDO.
 
   DEFINE VARIABLE lActionUnderway             AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE lImportUnderway             AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lSuppressMessages           AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cReturnCharacter  AS CHARACTER  NO-UNDO.
+
   IF VALID-HANDLE(gshSessionManager)
   THEN
     RUN getActionUnderway IN gshSessionManager
@@ -1507,7 +2036,61 @@ PROCEDURE object-delete :
   IF  lActionUnderway = YES
   THEN RETURN.
 
-  DEFINE VARIABLE lAtionUnderway    AS LOGICAL    NO-UNDO.
+  /* First check if we are in the process of importing. 
+     If we are not importing, then we do not want to log the event, as 
+     this is not all that useful. The collection of assign changes that '
+     are made during the import process are much more useful. 
+  */     
+  IF VALID-HANDLE(gshSessionManager) THEN
+  RUN getActionUnderway IN gshSessionManager
+                       (INPUT  "SCM":U,
+                        INPUT  "IMPORT":U,
+                        INPUT  Grtb-wspace-id,
+                        INPUT  "":U,
+                        INPUT  "":U,
+                        INPUT  NO,
+                        OUTPUT lImportUnderway).
+                        
+  IF lImportUnderWay THEN DO:                                      
+    PUBLISH "logEvent" (INPUT ip_event, 
+                       INPUT ip_event + " - ":U + ip_other, 
+                       INPUT "ERROR":U, 
+                       INPUT Grtb-wspace-id, 
+                       INPUT Grtb-userid, 
+                       INPUT "LOG":U,
+                       INPUT "dynrtb_import.log", 
+                       INPUT "":U) .  
+  
+    IF op_error_message <> "":U THEN
+    PUBLISH "logEvent" (INPUT ip_event, 
+                       INPUT "ERROR / ":U + ip_event + " (":U + ip_other + ") : ":U + op_error_message, 
+                       INPUT "ERROR":U, 
+                       INPUT Grtb-wspace-id, 
+                       INPUT Grtb-userid, 
+                       INPUT "LOG,STATUS":U,
+                       INPUT "dynrtb_import.log", 
+                       INPUT "":U) .
+    /* If we are suppressing error messages then reset the error message - 
+       as we do not want this displaying in the process-event procedure 
+       afterwards
+    */    
+    cReturnCharacter =  DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager, 
+                        INPUT "SuppressMessages":U, 
+                        INPUT YES). 
+                        
+    IF cReturnCharacter = "YES" THEN 
+      ASSIGN 
+        lSuppressMessages = TRUE. 
+    ELSE 
+      ASSIGN   
+        lSuppressMessages = FALSE. 
+        
+    IF lSuppressMessages THEN 
+      ASSIGN 
+        op_error_message = "":U
+        .
+  END.   /* IF lImportUnderWay ...*/
+
   IF VALID-HANDLE(gshSessionManager)
   THEN
     RUN getActionUnderway IN gshSessionManager
@@ -1517,7 +2100,18 @@ PROCEDURE object-delete :
                          ,INPUT  "":U
                          ,INPUT  "":U
                          ,INPUT  YES
-                         ,OUTPUT lAtionUnderway).
+                         ,OUTPUT lActionUnderway).
+
+  IF VALID-HANDLE(gshSessionManager)
+  THEN
+    RUN getActionUnderway IN gshSessionManager
+                         (INPUT  "SCM":U
+                         ,INPUT  "SKIPDEL":U
+                         ,INPUT  lv_assign_object_name
+                         ,INPUT  "":U
+                         ,INPUT  "":U
+                         ,INPUT  YES
+                         ,OUTPUT lActionUnderway).
 
   ASSIGN
     lv_assign_object_name = "":U
@@ -1549,6 +2143,7 @@ PROCEDURE object-delete-before :
   DEFINE INPUT PARAMETER  ip_context          AS CHARACTER NO-UNDO.
   DEFINE INPUT PARAMETER  ip_other            AS CHARACTER NO-UNDO.
   DEFINE OUTPUT PARAMETER op_error_message    AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE lChoice                     AS LOGICAL   NO-UNDO.
 
   ASSIGN
     lv_assign_object_name = ip_other.
@@ -1576,6 +2171,61 @@ PROCEDURE object-delete-before :
                          ,INPUT "":U
                          ,INPUT "":U
                          ).
+
+  ASSIGN
+    lChoice = YES.
+
+  MESSAGE
+    "Progress Dynamics Enhancement (usually say YES):"
+    SKIP(1)
+    "Do you wish to DELETE the objects information from the Progress Dynamics Repository (ICFDB)."
+    SKIP(1)
+    "If you answer NO, an data inconsistancy could occur between the two Repositories."
+    SKIP(1)
+    "This should ONLY be skipped if you reverting to a previous version, i.e."
+    SKIP
+    "By doing a DELETE and reverting back to a previous version"
+    SKIP(1)
+    "Delete the Object from the Progress Dynamics Repository ?"
+    SKIP(1)
+    VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO
+    UPDATE lChoice.
+
+  IF lChoice = NO
+  THEN DO:
+
+    MESSAGE
+      "Are you really sure you know what you are doing and really do not want the Progress Dynamics enhancement."
+      SKIP
+      "If you continue with this decision, then data inconsistancies could occur between the two Repositories."
+      SKIP(1)
+      "So, to be sure we will ask again."
+      SKIP
+      "Do you want to SKIP the Progress Dynamics enhancement and NOT delete the object from the Progress Dynamics Repository."
+      SKIP
+      "You should normally answer NO."
+      SKIP
+      "Please obtain appropriate authorisation if you answer YES to this question"
+      SKIP(1)
+      VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO
+      UPDATE lChoice.
+
+    IF lChoice = YES
+    THEN DO:
+
+      IF VALID-HANDLE(gshSessionManager)
+      THEN
+        RUN setActionUnderway IN gshSessionManager
+                             (INPUT "SCM":U
+                             ,INPUT "SKIPDEL":U
+                             ,INPUT ip_other
+                             ,INPUT "":U
+                             ,INPUT "":U
+                             ).
+
+    END.
+
+  END.
 
   RUN scmHookDeleteObject (INPUT grtb-wspace-id
                           ,INPUT grtb-task-num
@@ -1679,8 +2329,6 @@ PROCEDURE plipSetup :
     cProcName   = "rtb/prc/ryscmevntp.p":U
     hProcHandle = SESSION:FIRST-PROCEDURE.
 
-  /* handle:FILE-NAME    = "rtb/prc/ryscmevntp.p":U */
-  /* handle:PRIVATE-DATA = "ryscmevntp.p":U         */
   DO WHILE VALID-HANDLE(hProcHandle)
   AND hProcHandle:FILE-NAME <> cProcName
   :
@@ -1691,7 +2339,7 @@ PROCEDURE plipSetup :
   THEN
     RUN VALUE(cProcName) PERSISTENT SET hProcHandle.
 
-  THIS-PROCEDURE:ADD-SUPER-PROCEDURE(hProcHandle, SEARCH-TARGET).
+  THIS-PROCEDURE:ADD-SUPER-PROCEDURE(hProcHandle, SEARCH-TARGET). 
 
 END PROCEDURE.
 
@@ -1712,26 +2360,24 @@ PROCEDURE plipShutdown :
 ------------------------------------------------------------------------------*/
 
   DEFINE VARIABLE cProcName                   AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE hValidHanldles              AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE hValidHandles              AS HANDLE       NO-UNDO.
   DEFINE VARIABLE hProcHandle                 AS HANDLE       NO-UNDO.
 
   ASSIGN
     cProcName      = "ryscmevntp.p":U
-    hValidHanldles = SESSION:FIRST-PROCEDURE.
+    hValidHandles = SESSION:FIRST-PROCEDURE.
 
-  /* handle:FILE-NAME    = "rtb/prc/ryscmevntp.p":U */
-  /* handle:PRIVATE-DATA = "ryscmevntp.p":U         */
-  DO WHILE VALID-HANDLE(hValidHanldles)
+  DO WHILE VALID-HANDLE(hValidHandles)
   AND NOT (VALID-HANDLE(hProcHandle))
   :
 
-    IF hValidHanldles:PRIVATE-DATA = cProcName
+    IF hValidHandles:PRIVATE-DATA = cProcName
     THEN
       ASSIGN
-        hProcHandle = hValidHanldles.
+        hProcHandle = hValidHandles.
 
     ASSIGN
-      hValidHanldles = hValidHanldles:NEXT-SIBLING.
+      hValidHandles = hValidHandles:NEXT-SIBLING.
 
   END.
 
@@ -1769,6 +2415,14 @@ PROCEDURE process-event :
 
   DEFINE VARIABLE hValidHanldles              AS HANDLE    NO-UNDO.
 
+  DEFINE VARIABLE cSummaryMessages            AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFullMessages               AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cButtonList                 AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cMessageTitle               AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lUpdateErrorLog             AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lSuppressDisplay            AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cButton                     AS CHARACTER  NO-UNDO.
+  
   ASSIGN
     op_error_message = "":U
     NO-ERROR.
@@ -1804,63 +2458,87 @@ PROCEDURE process-event :
   THEN RETURN.
 
   CASE ip_event:
-    WHEN "ASSIGN-OBJECT":U              THEN RUN assign-object              (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "ASSIGN-OBJECT-BEFORE":U       THEN RUN assign-object-before       (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "BEFORE-CHANGE-WORKSPACE":U    THEN RUN before-change-workspace    (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "CHANGE-WORKSPACE":U           THEN RUN change-workspace           (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "CREATE-CV":U                  THEN RUN create-cv                  (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "CREATE-CV-BEFORE":U           THEN RUN create-cv-before           (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "DEPLOY":U                     THEN RUN deploy                     (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "DEPLOY-BEFORE":U              THEN RUN deploy-before              (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "DEPLOY-SITE-CREATE":U         THEN RUN deploy-site-create         (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "DEPLOY-SITE-CREATE-BEFORE":U  THEN RUN deploy-site-create-before  (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "IMPORT":U                     THEN RUN import                     (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "IMPORT-BEFORE":U              THEN RUN import-before              (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "MOVE-TO-WEB":U                THEN RUN move-to-web                (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "MOVE-TO-WEB-BEFORE":U         THEN RUN move-to-web-before         (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "OBJECT-ADD":U                 THEN RUN object-add                 (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "OBJECT-ADD-BEFORE":U          THEN RUN object-add-before          (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "OBJECT-CHECK-IN":U            THEN RUN object-check-in            (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "OBJECT-CHECK-IN-BEFORE":U     THEN RUN object-check-in-before     (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "OBJECT-CHECK-OUT":U           THEN RUN object-check-out           (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "OBJECT-CHECK-OUT-BEFORE":U    THEN RUN object-check-out-before    (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "OBJECT-COMPILE":U             THEN RUN object-compile             (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "OBJECT-COMPILE-BEFORE":U      THEN RUN object-compile-before      (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "OBJECT-DELETE":U              THEN RUN object-delete              (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "OBJECT-DELETE-BEFORE":U       THEN RUN object-delete-before       (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "PARTNER-LOAD":U               THEN RUN partner-load               (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "PARTNER-LOAD-BEFORE":U        THEN RUN partner-load-before        (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "PROPATH-CHANGE":U             THEN RUN propath-change             (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "PROPATH-CHANGE-BEFORE":U      THEN RUN propath-change-before      (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "RELEASE-CREATE":U             THEN RUN release-create             (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "RELEASE-CREATE-BEFORE":U      THEN RUN release-create-before      (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "SCHEMA-UPDATE":U              THEN RUN schema-update              (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "SCHEMA-UPDATE-BEFORE":U       THEN RUN schema-update-before       (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "TASK-CHANGE":U                THEN RUN task-change                (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "TASK-COMPLETE":U              THEN RUN task-complete              (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "TASK-COMPLETE-BEFORE":U       THEN RUN task-complete-before       (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "TASK-CREATE":U                THEN RUN task-create                (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "TASK-CREATE-BEFORE":U         THEN RUN task-create-before         (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
-    WHEN "TASK-CREATE-DURING":U         THEN RUN task-create-during         (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "ASSIGN-OBJECT":U                      THEN RUN assign-object              (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "ASSIGN-OBJECT-BEFORE":U               THEN RUN assign-object-before       (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "BEFORE-CHANGE-WORKSPACE":U            THEN RUN before-change-workspace    (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "CHANGE-WORKSPACE":U                   THEN RUN change-workspace           (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "CREATE-CV":U                          THEN RUN create-cv                  (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "CREATE-CV-BEFORE":U                   THEN RUN create-cv-before           (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "DEPLOY":U                             THEN RUN deploy                     (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "DEPLOY-BEFORE":U                      THEN RUN deploy-before              (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "DEPLOY-SITE-CREATE":U                 THEN RUN deploy-site-create         (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "DEPLOY-SITE-CREATE-BEFORE":U          THEN RUN deploy-site-create-before  (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "IMPORT":U                             THEN RUN import                     (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "IMPORT-BEFORE":U                      THEN RUN import-before              (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "MOVE-TO-WEB":U                        THEN RUN move-to-web                (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "MOVE-TO-WEB-BEFORE":U                 THEN RUN move-to-web-before         (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "OBJECT-ADD":U                         THEN RUN object-add                 (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "OBJECT-ADD-BEFORE":U                  THEN RUN object-add-before          (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "OBJECT-CHANGE-SHARE-STATUS-BEFORE":U  THEN RUN object-change-share-status-before (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "OBJECT-CHANGE-SHARE-STATUS":U         THEN RUN object-change-share-status (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "OBJECT-CHECK-IN":U                    THEN RUN object-check-in            (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "OBJECT-CHECK-IN-BEFORE":U             THEN RUN object-check-in-before     (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "OBJECT-CHECK-OUT":U                   THEN RUN object-check-out           (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "OBJECT-CHECK-OUT-BEFORE":U            THEN RUN object-check-out-before    (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "OBJECT-COMPILE":U                     THEN RUN object-compile             (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "OBJECT-COMPILE-BEFORE":U              THEN RUN object-compile-before      (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "OBJECT-DELETE":U                      THEN RUN object-delete              (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "OBJECT-DELETE-BEFORE":U               THEN RUN object-delete-before       (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "PARTNER-LOAD":U                       THEN RUN partner-load               (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "PARTNER-LOAD-BEFORE":U                THEN RUN partner-load-before        (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "PROPATH-CHANGE":U                     THEN RUN propath-change             (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "PROPATH-CHANGE-BEFORE":U              THEN RUN propath-change-before      (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "RELEASE-CREATE":U                     THEN RUN release-create             (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "RELEASE-CREATE-BEFORE":U              THEN RUN release-create-before      (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "ROUNDTABLE-STARTUP":U                 THEN RUN roundtable-startup         (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "ROUNDTABLE-SHUTDOWN":U                THEN RUN roundtable-shutdown        (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "SCHEMA-UPDATE":U                      THEN RUN schema-update              (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "SCHEMA-UPDATE-BEFORE":U               THEN RUN schema-update-before       (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "SESSION-SHUTDOWN":U                   THEN RUN session-shutdown           (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "TASK-CHANGE":U                        THEN RUN task-change                (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "TASK-COMPLETE":U                      THEN RUN task-complete              (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "TASK-COMPLETE-BEFORE":U               THEN RUN task-complete-before       (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "TASK-CREATE":U                        THEN RUN task-create                (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "TASK-CREATE-BEFORE":U                 THEN RUN task-create-before         (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
+    WHEN "TASK-CREATE-DURING":U                 THEN RUN task-create-during         (INPUT ip_event, INPUT ip_context, INPUT ip_other, OUTPUT op_error_message).
   END CASE.
 
   /* Try and display a nice formatted error if we can */
   IF op_error_message <> "":U
-  AND VALID-HANDLE(gshSessionManager)
   THEN DO:
-    DEFINE VARIABLE cButton AS CHARACTER NO-UNDO.
-    RUN showMessages IN gshSessionManager
-                    (INPUT op_error_message,
-                     INPUT "ERR":U,
-                     INPUT "OK":U,
-                     INPUT "OK":U,
-                     INPUT "OK":U,
-                     INPUT "RTB Error",
-                     INPUT YES,
-                     INPUT ?,
-                     OUTPUT cButton).
-    ASSIGN
-      op_error_message = "Failed".
+
+    IF VALID-HANDLE(gshSessionManager)
+    THEN DO:
+      RUN showMessages IN gshSessionManager
+                      (INPUT op_error_message
+                      ,INPUT "ERR":U
+                      ,INPUT "OK":U
+                      ,INPUT "OK":U
+                      ,INPUT "OK":U
+                      ,INPUT "RTB Error"
+                      ,INPUT YES
+                      ,INPUT ?
+                      ,OUTPUT cButton
+                      ).
+      ASSIGN
+        op_error_message = "Failed".
+    END.
+    ELSE DO:
+      RUN af/app/afmessagep.p (INPUT  op_error_message
+                              ,INPUT  "OK":U
+                              ,INPUT  "RTB Error":U
+                              ,OUTPUT cSummaryMessages
+                              ,OUTPUT cFullMessages
+                              ,OUTPUT cButtonList
+                              ,OUTPUT cMessageTitle
+                              ,OUTPUT lUpdateErrorLog
+                              ,OUTPUT lSuppressDisplay
+                              ).
+      ASSIGN
+        op_error_message = cFullMessages.
+
+    END.
+
   END.
 
   RETURN.
@@ -2028,6 +2706,65 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-roundtable-shutdown) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE roundtable-shutdown Procedure 
+PROCEDURE roundtable-shutdown :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:   ip_event          :   "ROUNDTABLE-SHUTDOWN",
+                ip_context        :   
+                ip_other          :   
+                ip_error_message  :   Ignored 
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT PARAMETER  ip_event            AS CHARACTER NO-UNDO.
+  DEFINE INPUT PARAMETER  ip_context          AS CHARACTER NO-UNDO.
+  DEFINE INPUT PARAMETER  ip_other            AS CHARACTER NO-UNDO.
+  DEFINE OUTPUT PARAMETER op_error_message    AS CHARACTER NO-UNDO.
+
+  ASSIGN
+    op_error_message = "":U
+    NO-ERROR.
+  RETURN.
+ 
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-roundtable-startup) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE roundtable-startup Procedure 
+PROCEDURE roundtable-startup :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:   ip_event          :   "ROUNDTABLE-STARTUP",
+                ip_context        :   
+                ip_other          :   
+                ip_error_message  :   Cancel if false 
+
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT PARAMETER  ip_event            AS CHARACTER NO-UNDO.
+  DEFINE INPUT PARAMETER  ip_context          AS CHARACTER NO-UNDO.
+  DEFINE INPUT PARAMETER  ip_other            AS CHARACTER NO-UNDO.
+  DEFINE OUTPUT PARAMETER op_error_message    AS CHARACTER NO-UNDO.
+  
+  ASSIGN
+    op_error_message = "":U
+    NO-ERROR.
+  RETURN.
+ 
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-schema-update) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE schema-update Procedure 
@@ -2088,6 +2825,35 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-session-shutdown) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE session-shutdown Procedure 
+PROCEDURE session-shutdown :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:   ip_event          :   "SESSION-SHUTDOWN",
+                ip_context        :   
+                ip_other          :   
+                ip_error_message  :   Ignored 
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT PARAMETER  ip_event            AS CHARACTER NO-UNDO.
+  DEFINE INPUT PARAMETER  ip_context          AS CHARACTER NO-UNDO.
+  DEFINE INPUT PARAMETER  ip_other            AS CHARACTER NO-UNDO.
+  DEFINE OUTPUT PARAMETER op_error_message    AS CHARACTER NO-UNDO.
+
+  ASSIGN
+    op_error_message = "":U
+    NO-ERROR.
+  RETURN.
+ 
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-task-change) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE task-change Procedure 
@@ -2106,6 +2872,9 @@ PROCEDURE task-change :
   DEFINE INPUT PARAMETER  ip_other            AS CHARACTER NO-UNDO.
   DEFINE OUTPUT PARAMETER op_error_message    AS CHARACTER NO-UNDO.
 
+  /* Set the currently selecte dtask number as an SCM session parameter  */
+  DYNAMIC-FUNCTION ("setSessionParam":U IN THIS-PROCEDURE, "_scm_current_task_number":U, ip_other ).  
+  
   ASSIGN
     op_error_message = "":U
     NO-ERROR.
@@ -2145,17 +2914,39 @@ PROCEDURE task-complete :
   DEFINE VARIABLE cButton                     AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cErrorText                  AS CHARACTER NO-UNDO.
 
-  DEFINE VARIABLE lAtionUnderway    AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lActionUnderway    AS LOGICAL    NO-UNDO.
+
   IF VALID-HANDLE(gshSessionManager)
-  THEN
+  THEN DO:
+
     RUN getActionUnderway IN gshSessionManager
                          (INPUT  "SCM":U
-                         ,INPUT  "SKIPDUMP":U
+                         ,INPUT  "SKIPDUMPYES":U
                          ,INPUT  ip_other
                          ,INPUT  "":U
                          ,INPUT  "":U
                          ,INPUT  YES
-                         ,OUTPUT lAtionUnderway).
+                         ,OUTPUT lActionUnderway).
+
+    RUN getActionUnderway IN gshSessionManager
+                         (INPUT  "SCM":U
+                         ,INPUT  "SKIPDUMPNO":U
+                         ,INPUT  ip_other
+                         ,INPUT  "":U
+                         ,INPUT  "":U
+                         ,INPUT  YES
+                         ,OUTPUT lActionUnderway).
+
+    RUN getActionUnderway IN gshSessionManager
+                         (INPUT  "SCM":U
+                         ,INPUT  "TASKCOMP":U
+                         ,INPUT  ip_other
+                         ,INPUT  "":U
+                         ,INPUT  "":U
+                         ,INPUT  YES
+                         ,OUTPUT lActionUnderway).
+
+  END. /* VALID-HANDLE(gshSessionManager) */
 
   FIND FIRST rtb_task NO-LOCK
     WHERE rtb_task.task-num = INTEGER(ip_other)
@@ -2196,66 +2987,119 @@ PROCEDURE task-complete-before :
   DEFINE INPUT PARAMETER  ip_other            AS CHARACTER NO-UNDO.
   DEFINE OUTPUT PARAMETER op_error_message    AS CHARACTER NO-UNDO.
 
-  DEFINE VARIABLE lChoice                     AS LOGICAL   NO-UNDO.
-
   ASSIGN
-    lChoice = YES.
+    cMesWinTitle            = "Task Completion (Dynamics Enhancement)":U
+    cMesWinButtonList       = "Export All,Skip All,Decide Later,Cancel":U
+    cMesWinButtonDefault    = "Export All":U
+    cMesWinButtonCancel     = "Cancel":U
+    cMesWinAnswerValue      = "":U
+    cMesWinAnswerDataType   = "":U
+    cMesWinAnswerFormat     = "":U
+    .
 
-  MESSAGE
-    "Dynamics Enhancement (usually say YES):"
-    SKIP(1)
-    "Do you wish to automatically export the objects information from the Dynamics repository (ICFDB)"
-    SKIP
-    "and generate the new/updated .ado file containing the XML content/information of the object."
-    SKIP(1)
-    "If you answer NO, an INCORRECT version could be checked into the Roundtable Repository."
-    SKIP(1)
-    "This should ONLY be skipped if the correct version is already on the O/S, i.e."
-    SKIP
-    "a Module Load has been done and you are just completing the task. And NO changes have been done"
-    SKIP
-    "to the object in the Dynamics repository since the module load."
-    SKIP(1)
-    "Generate .ado XML files ?"
-    SKIP(1)
-    VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO
-    UPDATE lChoice.
-
-  IF lChoice = NO
+  IF VALID-HANDLE(gshSessionManager)
   THEN DO:
 
-    MESSAGE
-      "Are you really sure you know what you are doing and really do not want the Dynamics enhancement."
-      SKIP
-      "If you continue with this decision, then the INCORRECT version of objects could be checked into Roundtable."
-      SKIP(1)
-      "So, to be sure we will ask again."
-      SKIP
-      "Do you want to SKIP the Dynamics enhancement and NOT generate the new/updated .ado file"
-      SKIP
-      "containing the XML content/information of the object. You should normally answer NO."
-      SKIP
-      "Please obtain appropriate authorisation if you answer YES to this question"
-      SKIP(1)
-      VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO
-      UPDATE lChoice.
+    /* Question 01 */
+    ASSIGN
+      cMesWinMessage  = 'Do you wish to automatically export the objects information from the Progress Dynamics repository (ICFDB)'
+                      + ' and generate the new/updated .ado file containing the XML content/information of the object.'
+                      + CHR(10)
+                      + 'If you choose "Decide Later", you will asked for each object if you wish to export it or not.'
+                      + CHR(10)
+                      + 'If you answer "Skip All", an INCORRECT version could be checked into the Roundtable Repository.'
+                      + ' This should ONLY be skipped if the correct version is already on the O/S, i.e.'
+                      + ' a Module Load has been done and you are just completing the task. And NO changes have been done'
+                      + ' to the object in the Progress Dynamics repository since the module load.'
+                      + CHR(10)
+                      + 'Generate .ado XML files ? (usually choose "Export All")'
+                      .
 
-    IF lChoice = YES
+    /* Try and display a nice formatted error if we can */
+    RUN askQuestion IN gshSessionManager
+                   (INPUT cMesWinMessage
+                   ,INPUT cMesWinButtonList
+                   ,INPUT cMesWinButtonDefault
+                   ,INPUT cMesWinButtonCancel
+                   ,INPUT cMesWinTitle
+                   ,INPUT cMesWinAnswerDataType
+                   ,INPUT cMesWinAnswerFormat
+                   ,INPUT-OUTPUT cMesWinAnswerValue
+                   ,OUTPUT cMesWinButtonPressed
+                   ).
+
+    IF LOOKUP(cMesWinButtonPressed,"Skip All":U) > 0
     THEN DO:
 
-      IF VALID-HANDLE(gshSessionManager)
-      THEN
-        RUN setActionUnderway IN gshSessionManager
-                             (INPUT "SCM":U
-                             ,INPUT "SKIPDUMP":U
-                             ,INPUT ip_other
-                             ,INPUT "":U
-                             ,INPUT "":U
-                             ).
+      /* Question 02 */
+      ASSIGN
+        cMesWinMessage  = 'Are you really sure you know what you are doing and really do not want the Progress Dynamics enhancement.'
+                        + CHR(10)
+                        + 'If you continue with this decision, then the INCORRECT version of objects could be checked into Roundtable.'
+                        + CHR(10)
+                        + 'So, to be sure we will ask again.'
+                        + CHR(10)
+                        + 'Do you want to SKIP the Progress Dynamics enhancement and NOT generate the new/updated .ado file'
+                        + ' containing the XML content/information of the object.'
+                        + CHR(10)
+                        + 'Please obtain appropriate authorisation if you answer "Skip All" to this question'
+                        .
+
+      /* Try and display a nice formatted error if we can */
+      RUN askQuestion IN gshSessionManager
+                     (INPUT cMesWinMessage
+                     ,INPUT cMesWinButtonList
+                     ,INPUT cMesWinButtonDefault
+                     ,INPUT cMesWinButtonCancel
+                     ,INPUT cMesWinTitle
+                     ,INPUT cMesWinAnswerDataType
+                     ,INPUT cMesWinAnswerFormat
+                     ,INPUT-OUTPUT cMesWinAnswerValue
+                     ,OUTPUT cMesWinButtonPressed
+                     ).
 
     END.
 
-  END.
+    CASE cMesWinButtonPressed:
+      WHEN cMesWinButtonCancel /* Cancel */
+        THEN DO:
+          ASSIGN
+            op_error_message = "Task Completion Cancelled".
+          RETURN.
+        END.
+      WHEN "Export All":U
+        THEN
+          RUN setActionUnderway IN gshSessionManager
+                               (INPUT "SCM":U
+                               ,INPUT "SKIPDUMPNO":U
+                               ,INPUT ip_other
+                               ,INPUT "":U
+                               ,INPUT "":U
+                               ).
+      WHEN "Skip All":U
+        THEN DO:
+          RUN setActionUnderway IN gshSessionManager
+                               (INPUT "SCM":U
+                               ,INPUT "SKIPDUMPYES":U
+                               ,INPUT ip_other
+                               ,INPUT "":U
+                               ,INPUT "":U
+                               ).        
+      END.
+      OTHERWISE DO: /* DECIDE LATER */
+        /* do nothing */
+      END.
+    END CASE.
+
+    RUN setActionUnderway IN gshSessionManager
+                         (INPUT "SCM":U
+                         ,INPUT "TASKCOMP":U
+                         ,INPUT ip_other
+                         ,INPUT "":U
+                         ,INPUT "":U
+                         ).
+
+  END. /* VALID-HANDLE(gshSessionManager) */
 
   ASSIGN
     op_error_message = "":U

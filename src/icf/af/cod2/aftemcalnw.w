@@ -52,8 +52,9 @@ DEFINE VARIABLE COLOR-Hilight      AS INTEGER NO-UNDO INITIAL 15.
 DEFINE VARIABLE COLOR-Hilight-Text AS INTEGER NO-UNDO INITIAL 0.
 DEFINE VARIABLE COLOR-Title        AS INTEGER NO-UNDO INITIAL 1.
 
-DEFINE VARIABLE lResult  AS LOGICAL NO-UNDO.
-DEFINE VARIABLE lInFrame AS LOGICAL NO-UNDO.
+DEFINE VARIABLE lResult     AS LOGICAL NO-UNDO.
+DEFINE VARIABLE lInFrame    AS LOGICAL NO-UNDO.
+DEFINE VARIABLE cWeekFormat AS CHARACTER  NO-UNDO.
 
 DEFINE VARIABLE iDay       AS INTEGER NO-UNDO.
 DEFINE VARIABLE iMonth     AS INTEGER NO-UNDO.
@@ -153,6 +154,19 @@ DEFINE VARIABLE caUSAFormat AS CHARACTER NO-UNDO EXTENT {&MAX-EXTENTS} INITIAL
    ""
 ].
 
+/* A smaller dmy (Swedish) version */
+DEFINE VARIABLE caSwedFormat AS CHARACTER NO-UNDO EXTENT {&MAX-EXTENTS} INITIAL
+[  "fd, ,nx, ,fm, ,yyyy",    /* Monday 6th July 2000 */
+   "fd, ,fm, ,nx, ,yyyy",    /* Monday July 6th 2000 */
+   "fm, ,nx, ,yyyy",         /* July 6th 2000 */
+   "nx, ,fm, ,yyyy",         /* 6th July 2000 */
+   "yy,/,m,/,d",             /* 00/7/6 */
+   "yy,/,mm,/,dd",           /* 00/07/06 */
+   "yyyy,/,m,/,d",            /* 2000/7/6 */
+   "yyyy,/,mm,/,dd",          /* 2000/07/06 */
+   ""
+].
+
 /* This large list is commented out. Smaller versions are defined above.
 
 DEFINE VARIABLE caFormat AS CHARACTER NO-UNDO EXTENT {&MAX-EXTENTS} INITIAL
@@ -224,8 +238,8 @@ DEFINE VARIABLE caFormat AS CHARACTER NO-UNDO EXTENT {&MAX-EXTENTS} INITIAL
 
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-OBJECTS CB-MONTH CB-YEAR CB-FORMAT RECT-44 
-&Scoped-Define DISPLAYED-OBJECTS CB-MONTH CB-YEAR CB-FORMAT TEXT-1 TEXT-2 ~
-TEXT-3 TEXT-4 TEXT-5 TEXT-6 TEXT-7 
+&Scoped-Define DISPLAYED-OBJECTS CB-MONTH CB-YEAR CB-FORMAT TEXT-3 TEXT-4 ~
+TEXT-5 TEXT-6 TEXT-7 TEXT-1 TEXT-2 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -233,6 +247,15 @@ TEXT-3 TEXT-4 TEXT-5 TEXT-6 TEXT-7
 /* _UIB-PREPROCESSOR-BLOCK-END */
 &ANALYZE-RESUME
 
+
+/* ************************  Function Prototypes ********************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFirstDayOfWeek F-Frame-Win 
+FUNCTION setFirstDayOfWeek RETURNS LOGICAL
+   ( pcFirstDayOfWeek AS CHARACTER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
 
 /* ***********************  Control Definitions  ********************** */
@@ -258,40 +281,40 @@ DEFINE VARIABLE CB-YEAR AS INTEGER FORMAT "9999":U INITIAL 0
      VIEW-AS FILL-IN NATIVE 
      SIZE 9.2 BY 1 NO-UNDO.
 
-DEFINE VARIABLE TEXT-1 AS CHARACTER FORMAT "X(256)":U INITIAL "Mo" 
-     LABEL "" 
-      VIEW-AS TEXT 
-     SIZE 3 BY .62 NO-UNDO.
-
-DEFINE VARIABLE TEXT-2 AS CHARACTER FORMAT "X(256)":U INITIAL "Tu" 
-     LABEL "" 
-      VIEW-AS TEXT 
-     SIZE 3 BY .62 NO-UNDO.
-
-DEFINE VARIABLE TEXT-3 AS CHARACTER FORMAT "X(256)":U INITIAL "We" 
+DEFINE VARIABLE TEXT-1 AS CHARACTER FORMAT "X(256)":U INITIAL "XX" 
      LABEL "" 
       VIEW-AS TEXT 
      SIZE 4 BY .62 NO-UNDO.
 
-DEFINE VARIABLE TEXT-4 AS CHARACTER FORMAT "X(256)":U INITIAL "Th" 
+DEFINE VARIABLE TEXT-2 AS CHARACTER FORMAT "X(256)":U INITIAL "XX" 
      LABEL "" 
       VIEW-AS TEXT 
-     SIZE 3 BY .62 NO-UNDO.
+     SIZE 4 BY .62 NO-UNDO.
 
-DEFINE VARIABLE TEXT-5 AS CHARACTER FORMAT "X(256)":U INITIAL "Fr" 
+DEFINE VARIABLE TEXT-3 AS CHARACTER FORMAT "X(256)":U INITIAL "XX" 
      LABEL "" 
       VIEW-AS TEXT 
-     SIZE 3 BY .62 NO-UNDO.
+     SIZE 4 BY .62 NO-UNDO.
 
-DEFINE VARIABLE TEXT-6 AS CHARACTER FORMAT "X(256)":U INITIAL "Sa" 
+DEFINE VARIABLE TEXT-4 AS CHARACTER FORMAT "X(256)":U INITIAL "XX" 
      LABEL "" 
       VIEW-AS TEXT 
-     SIZE 3.4 BY .62 NO-UNDO.
+     SIZE 4 BY .62 NO-UNDO.
 
-DEFINE VARIABLE TEXT-7 AS CHARACTER FORMAT "X(256)":U INITIAL "Su" 
+DEFINE VARIABLE TEXT-5 AS CHARACTER FORMAT "X(256)":U INITIAL "XX" 
      LABEL "" 
       VIEW-AS TEXT 
-     SIZE 3 BY .62 NO-UNDO.
+     SIZE 4 BY .62 NO-UNDO.
+
+DEFINE VARIABLE TEXT-6 AS CHARACTER FORMAT "X(256)":U INITIAL "XX" 
+     LABEL "" 
+      VIEW-AS TEXT 
+     SIZE 4 BY .62 NO-UNDO.
+
+DEFINE VARIABLE TEXT-7 AS CHARACTER FORMAT "X(256)":U INITIAL "XX" 
+     LABEL "" 
+      VIEW-AS TEXT 
+     SIZE 4 BY .62 NO-UNDO.
 
 DEFINE RECTANGLE RECT-44
      EDGE-PIXELS 999  NO-FILL 
@@ -308,13 +331,13 @@ DEFINE FRAME F-Main
      CB-MONTH AT ROW 1.19 COL 1.8 NO-LABEL
      CB-YEAR AT ROW 1.19 COL 26.2 NO-LABEL
      CB-FORMAT AT ROW 9.57 COL 1.8 NO-LABEL
-     TEXT-1 AT ROW 2.62 COL 12.2
-     TEXT-2 AT ROW 2.62 COL 17
-     TEXT-3 AT ROW 2.62 COL 21.2
-     TEXT-4 AT ROW 2.62 COL 26.2
-     TEXT-5 AT ROW 2.62 COL 31
-     TEXT-6 AT ROW 2.62 COL 3.4
-     TEXT-7 AT ROW 2.62 COL 7.6
+     TEXT-3 AT ROW 2.62 COL 12.2
+     TEXT-4 AT ROW 2.62 COL 16.8
+     TEXT-5 AT ROW 2.62 COL 21.2
+     TEXT-6 AT ROW 2.62 COL 26.2
+     TEXT-7 AT ROW 2.62 COL 31
+     TEXT-1 AT ROW 2.62 COL 3.4
+     TEXT-2 AT ROW 2.62 COL 7.6
      RECT-99 AT ROW 2.43 COL 2
      RECT-44 AT ROW 2.38 COL 1.8
     WITH 1 DOWN NO-BOX NO-HIDE KEEP-TAB-ORDER OVERLAY NO-HELP 
@@ -336,7 +359,6 @@ DEFINE FRAME FRAME-A
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
 /* Settings for THIS-PROCEDURE
    Type: SmartFrame
-   Compile into: gui/Adm2
    Allow: Basic,Browse,DB-Fields,Query,Smart
    Container Links: 
    Other Settings: PERSISTENT-ONLY COMPILE
@@ -357,7 +379,7 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW F-Frame-Win ASSIGN
-         HEIGHT             = 9.76
+         HEIGHT             = 9.62
          WIDTH              = 35.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -441,7 +463,7 @@ ASSIGN
 */  /* FRAME FRAME-A */
 &ANALYZE-RESUME
 
-
+ 
 
 
 
@@ -726,8 +748,8 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  DISPLAY CB-MONTH CB-YEAR CB-FORMAT TEXT-1 TEXT-2 TEXT-3 TEXT-4 TEXT-5 TEXT-6 
-          TEXT-7 
+  DISPLAY CB-MONTH CB-YEAR CB-FORMAT TEXT-3 TEXT-4 TEXT-5 TEXT-6 TEXT-7 TEXT-1 
+          TEXT-2 
       WITH FRAME F-Main.
   ENABLE CB-MONTH CB-YEAR CB-FORMAT RECT-44 
       WITH FRAME F-Main.
@@ -745,22 +767,47 @@ PROCEDURE initializeObject :
   Purpose:     Override standard ADM method
   Notes:       
 ------------------------------------------------------------------------------*/
-
-  /* Code placed here will execute PRIOR to standard behavior. */
-
+   DEFINE VARIABLE hText AS HANDLE EXTENT 7 NO-UNDO. 
+   ASSIGN
+     hText[1]  = text-1:HANDLE IN FRAME f-main
+     hText[2]  = text-2:HANDLE
+     hText[3]  = text-3:HANDLE
+     hText[4]  = text-4:HANDLE
+     hText[5]  = text-5:HANDLE
+     hText[6]  = text-6:HANDLE
+     hText[7]  = text-7:HANDLE.
+  
   /* Dispatch standard ADM method.                             */
   RUN SUPER.
 
-  IF NOT getUIBMode() BEGINS "Design":U
-  THEN DO:   
+  IF NOT getUIBMode() BEGINS "Design":U THEN 
+  DO:   
 
+      /* setFirstDayOfWeek may have set this already, otherwise we use 
+         the numeric-format; US = Sunday Europe = Monday */
+      IF cWeekFormat = "":U THEN 
+         cWeekFormat = IF SESSION:NUMERIC-FORMAT = 'American':U 
+                       THEN 'Sunday':U 
+                       ELSE 'Monday':U. 
+
+      /* Show the 2 first characters of each day as day column label. */ 
+      DO x = 1 TO 7:
+         hText[x]:SCREEN-VALUE = SUBSTR(
+                               clDayName[IF cWeekFormat BEGINS 'S':U 
+                                         THEN x 
+                                         ELSE IF x = 7 THEN 1 
+                                              ELSE x + 1],
+                                       1,2).
+      END.
+      
       /* Default the date format according to the session format */
       DO x = 1 TO {&MAX-EXTENTS}:
-         ASSIGN caFormat[x] = IF SESSION:DATE-FORMAT = "mdy" 
-                              THEN caUSAFormat[x]
+         ASSIGN caFormat[x] = IF SESSION:DATE-FORMAT = "mdy":U 
+                              THEN caUsaFormat[x]
+                              ELSE IF SESSION:DATE-FORMAT = "ymd":U 
+                              THEN caSwedFormat[x]
                               ELSE caEuroFormat[x].
       END.
-
       ASSIGN 
          hContainer = WIDGET-HANDLE(DYNAMIC-FUNCTION('linkHandles':U, 'Container-Source':U))
          iYear  = YEAR(TODAY)
@@ -997,19 +1044,26 @@ PROCEDURE _SetDay PRIVATE :
          iDay   = IF iDay = 0 THEN DAY(TODAY) ELSE iDay
          CalendarDate  = DATE(iMonth,1,iYear)
          iaViewDay = 0 
-
-         /* Progress returns 1-7 (Sun->Sat)from the WEEKDAY function. However, the
-            week is formatted in Sat->Fri on screen (Saturday has been moved to the
-            front). So we handle that difference here.
+     
+         /* Progress returns 1-7 (Sun->Sat)from the WEEKDAY function. 
+            However, if the numeric format is not american then we put
+            Monday first. So we handle that difference here.
          */
-         iDayOfWeek = IF WEEKDAY(CalendarDate) = 7 THEN 1 ELSE WEEKDAY(CalendarDate) + 1
-
+         iDayOfWeek = IF cWeekFormat BEGINS 'S':u
+                      THEN WEEKDAY(CalendarDate)
+                      ELSE IF WEEKDAY(CalendarDate) = 1 THEN 7
+                           ELSE WEEKDAY(CalendarDate) - 1       
+  
          NO-ERROR.
 
   /* Starting from day 1, we just keep adding 1 until the month changes */
   DO X = 1 TO 31:
-    ASSIGN iaViewDay[iDayOfWeek] = X iDayOfWeek = iDayOfWeek + 1 CalendarDate = CalendarDate + 1.
-    IF MONTH(CalendarDate) <> iMonth THEN LEAVE.
+    ASSIGN 
+      iaViewDay[iDayOfWeek] = X 
+      iDayOfWeek            = iDayOfWeek + 1 
+      CalendarDate          = CalendarDate + 1.
+    IF MONTH(CalendarDate) <> iMonth THEN 
+      LEAVE.
   END.
 
   /* Ensure iDay <= number of days in the month */ 
@@ -1106,6 +1160,36 @@ ASSIGN haViewDay[1] = iaViewDay[1]:HANDLE IN FRAME FRAME-A
        haViewDay[42] = iaViewDay[42]:HANDLE.
 
 END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+/* ************************  Function Implementations ***************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setFirstDayOfWeek F-Frame-Win 
+FUNCTION setFirstDayOfWeek RETURNS LOGICAL
+   ( pcFirstDayOfWeek AS CHARACTER) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  IF {fn getObjectInitialized} THEN
+  DO:
+    MESSAGE 'Cannot adjust week after object has been initialized.'
+      VIEW-AS ALERT-BOX INFO BUTTONS OK.
+    RETURN FALSE.
+  END.
+
+  IF NOT (pcFirstDayOfWeek BEGINS 'S':U OR pcFirstDayOfWeek BEGINS 'M':U) THEN
+  DO:
+    MESSAGE "First day of week must be 'Sunday' or 'Monday'"
+      VIEW-AS ALERT-BOX INFO BUTTONS OK.
+    RETURN FALSE.
+  END.
+
+  cWeekFormat = pcFirstDayOfWeek.
+  RETURN TRUE.
+END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

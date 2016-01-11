@@ -114,7 +114,7 @@ af/cod/aftemwizpw.w
 
 &scop object-name       aftemwizcw.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    000000
+&scop object-version    010001
 
 { adm2/support/admhlp.i } /* ADM Help File Defs */
 
@@ -146,26 +146,28 @@ DEFINE VARIABLE gPreViewName     AS CHAR                              NO-UNDO.
 DEFINE VARIABLE gDataSourceNames   AS CHARACTER     INIT ?            NO-UNDO.
 DEFINE VARIABLE gUpdateTargetNames AS CHARACTER     INIT ?            NO-UNDO.
 
-DEFINE VARIABLE ptype        AS CHARACTER NO-UNDO.
-DEFINE VARIABLE br-recid     AS CHARACTER NO-UNDO.
-DEFINE VARIABLE h_win        AS CHARACTER NO-UNDO.  
+DEFINE VARIABLE ptype            AS CHARACTER NO-UNDO.
+DEFINE VARIABLE br-recid         AS CHARACTER NO-UNDO.
+DEFINE VARIABLE h_win            AS CHARACTER NO-UNDO.  
 DEFINE VARIABLE lCancel          AS LOG                               NO-UNDO.  
 
-DEFINE VARIABLE pgm-list     AS CHARACTER NO-UNDO.
-DEFINE VARIABLE dheight      AS INTEGER   NO-UNDO.
-DEFINE VARIABLE dwidth       AS INTEGER   NO-UNDO.
-DEFINE VARIABLE dTitle       AS CHARACTER NO-UNDO.
-DEFINE VARIABLE Help-File    AS CHARACTER NO-UNDO.
-DEFINE VARIABLE Help-Context AS INTEGER   NO-UNDO.
-DEFINE VARIABLE current-page AS INTEGER   NO-UNDO.
-DEFINE VARIABLE current-proc AS HANDLE    NO-UNDO.
-DEFINE VARIABLE tcode        AS CHARACTER NO-UNDO.
-DEFINE VARIABLE lv_code      AS CHARACTER NO-UNDO.
+DEFINE VARIABLE pgm-list         AS CHARACTER NO-UNDO.
+DEFINE VARIABLE dheight          AS INTEGER   NO-UNDO.
+DEFINE VARIABLE dwidth           AS INTEGER   NO-UNDO.
+DEFINE VARIABLE dTitle           AS CHARACTER NO-UNDO.
+DEFINE VARIABLE Help-File        AS CHARACTER NO-UNDO.
+DEFINE VARIABLE Help-Context     AS INTEGER   NO-UNDO.
+DEFINE VARIABLE current-page     AS INTEGER   NO-UNDO.
+DEFINE VARIABLE current-proc     AS HANDLE    NO-UNDO.
+DEFINE VARIABLE tcode            AS CHARACTER NO-UNDO.
+DEFINE VARIABLE lv_code          AS CHARACTER NO-UNDO.
 
-DEFINE VARIABLE r            AS RECID     NO-UNDO.
-DEFINE VARIABLE ok_to_finish AS LOGICAL   NO-UNDO INITIAL NO.
-DEFINE VARIABLE cResult      AS CHARACTER NO-UNDO INITIAL NO.
-DEFINE VARIABLE l            AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE r                AS RECID     NO-UNDO.
+DEFINE VARIABLE ok_to_finish     AS LOGICAL   NO-UNDO INITIAL NO.
+DEFINE VARIABLE cResult          AS CHARACTER NO-UNDO INITIAL NO.
+DEFINE VARIABLE l                AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE gcRepositorySDO  AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE glRepository     AS LOGICAL    NO-UNDO INIT YES.
 
 FUNCTION shutdown-sdo RETURNS LOGICAL
         (INPUT procHandle     AS HANDLE) IN gFuncLibHdl.
@@ -225,19 +227,14 @@ IF INDEX(lv_code,"Check object version notes":U) <> 0 THEN
     RUN adeuib/_uibinfo.p ( ?, ?, "FILE-NAME":U, OUTPUT lv_uibinfo ).
     IF lv_uibinfo = ? THEN RETURN.
 
-    ASSIGN lv_uibinfo = TRIM(LC(REPLACE(lv_uibinfo,"\":U,"/":U))).
+    ASSIGN lv_uibinfo = TRIM(LC(REPLACE(lv_uibinfo,"~\":U,"/":U))).
     IF R-INDEX(lv_uibinfo,"/":U) > 0 THEN
         ASSIGN lv_uibinfo = TRIM(SUBSTRING(lv_uibinfo, R-INDEX(lv_uibinfo,"/":U) + 1)).
     ASSIGN lv_object_name = lv_uibinfo.
-
+                            
     /* Next check the definition section for the current version notes */    
-    IF NOT VALID-HANDLE(hScmTool)
-    AND CONNECTED("rtb":U)
-    AND (SEARCH("rtb/prc/afrtbprocp.p":U) <> ?
-      OR SEARCH("rtb/prc/afrtbprocp.p":U) <> ?)
-    THEN
-      RUN rtb/prc/afrtbprocp.p PERSISTENT SET hScmTool.
-
+    hScmTool = DYNAMIC-FUNCTION('getProcedureHandle':U IN THIS-PROCEDURE, INPUT "PRIVATE-DATA:SCMTool":U).    
+    
     IF VALID-HANDLE(hScmTool)
     THEN
       RUN rtb-get-taskinfo IN hScmTool
@@ -261,9 +258,6 @@ IF INDEX(lv_code,"Check object version notes":U) <> 0 THEN
                        OUTPUT  lv_object_upd_notes,
                        OUTPUT  lv_previous_versions,
                        OUTPUT  lv_object_version_task).
-    IF VALID-HANDLE(hScmTool)
-    THEN
-      DELETE PROCEDURE hScmTool. /* (v:010001) */
 
     /* Get the current contents of the definition section */
     RUN adeuib/_accsect.p( "GET":U, ?, "DEFINITIONS":U,
@@ -349,6 +343,13 @@ FUNCTION getPreViewName RETURNS CHARACTER
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getRepositorySDO daftemwizcw 
+FUNCTION getRepositorySDO RETURNS CHARACTER
+  ( OUTPUT plrep  AS LOGICAL)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getSupportHandle daftemwizcw 
 FUNCTION getSupportHandle RETURNS HANDLE
   (pName AS CHAR)  FORWARD.
@@ -394,6 +395,14 @@ FUNCTION setPreview RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setPreviewName daftemwizcw 
 FUNCTION setPreviewName RETURNS LOGICAL
   (pFileName AS CHAR)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setRepositorySDO daftemwizcw 
+FUNCTION setRepositorySDO RETURNS LOGICAL
+  ( INPUT pcSDO AS CHAR,
+    INPUT plRep AS LOGICAL )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -945,6 +954,26 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getRepositorySDO daftemwizcw 
+FUNCTION getRepositorySDO RETURNS CHARACTER
+  ( OUTPUT plrep  AS LOGICAL) :
+/*------------------------------------------------------------------------------
+  Purpose:     Gets the SDO repository type (Dynamic or Static) which is called 
+               from the wizard page icf/af/cod2/aftemwizow.w
+  Parameters   pcRep     Rep
+                         Static
+  ReturnValue  Name of SDO in repository         
+    Notes:  
+------------------------------------------------------------------------------*/
+  ASSIGN plrep  = glRepository .
+
+  RETURN gcRepositorySDO.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getSupportHandle daftemwizcw 
 FUNCTION getSupportHandle RETURNS HANDLE
   (pName AS CHAR) :
@@ -1071,6 +1100,27 @@ FUNCTION setPreviewName RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
   gPreViewName = pFileName. 
   RETURN TRUE.   
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setRepositorySDO daftemwizcw 
+FUNCTION setRepositorySDO RETURNS LOGICAL
+  ( INPUT pcSDO AS CHAR,
+    INPUT plRep AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose:     Sets the SDO repository type (Dynamic or Static) which is called 
+               from the wizard page icf/af/cod2/aftemwizow.w
+  Parameters   pcSDO  Name of SDO in repository         
+              
+    Notes:  
+------------------------------------------------------------------------------*/  
+   ASSIGN gcRepositorySDO  = pcSDO
+          glRepository     = plrep.
+         
+  RETURN TRUE.   /* Function return value. */
 
 END FUNCTION.
 

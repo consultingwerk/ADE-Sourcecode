@@ -7,4 +7,6 @@
   FIELD print_option_tlas LIKE gsm_comment.print_option_tlas VALIDATE ~
   FIELD expiry_date LIKE gsm_comment.expiry_date VALIDATE ~
   FIELD comment_description LIKE gsm_comment.comment_description VALIDATE ~
-  FIELD owning_reference LIKE gsm_comment.owning_reference VALIDATE 
+  FIELD owning_reference LIKE gsm_comment.owning_reference VALIDATE ~
+  FIELD last_updated_by_user LIKE gsm_comment.last_updated_by_user VALIDATE ~
+  FIELD last_updated_date LIKE gsm_comment.last_updated_date VALIDATE 

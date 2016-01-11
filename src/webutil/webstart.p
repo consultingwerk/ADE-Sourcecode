@@ -27,10 +27,10 @@
 
   File: webstart.p
 
-  Description: Load all the standard super procedures needed as configured.  
-               This file should only have handle declarations, PERSISTENT 
-               RUN statements of the procedures to be "super'd", and the 
-               adding of the procedure handles to the super call stack of 
+  Description: Load all the standard super procedures needed as configured.
+               This file should only have handle declarations, PERSISTENT
+               RUN statements of the procedures to be "super'd", and the
+               adding of the procedure handles to the super call stack of
                THIS-PROCEDURE.
 
   Input Parameters:
@@ -139,15 +139,16 @@ FUNCTION setSuperStack RETURNS CHARACTER
 
 /* make sure that THIS-PROCEDURE is a valid handle */
 web-utilities-hdl = THIS-PROCEDURE.
-  
+
 /* Start the WebSpeed standard utilities. */
 cSuperStack = "web/objects/web-util.p".
-    
-/* State-aware support only if asked for. */
-IF OS-GETENV("STATE_AWARE_ENABLED":U) = "yes":U THEN
+
+/* State-aware support if not explicitly refused or is missing (for backward
+   compatability). */
+IF OS-GETENV("STATE_AWARE_ENABLED":U) <> "no":U THEN
   cSuperStack = "web/objects/stateaware.p," + cSuperStack.
 
-/* Handles development propath modifications, this only functions 
+/* Handles development propath modifications, this only functions
    in a development environment. */
 IF OS-GETENV("MULTI_DEV_PROPATH":U) > "" THEN
   cSuperStack = cSuperStack + ",web/objects/devpath.p".
@@ -162,27 +163,25 @@ IF OS-GETENV("DATABASES":U) > "" THEN
 
 /* File-based Session management. */
   cSuperStack = cSuperStack + ",web/objects/session.p".
-  
-IF (SESSION:ICFPARAMETER > "") THEN
-  /* This is an API hook into the Dynamics session manager that 
-     standardizes the calls to the Session manager. This is mandatory if 
-     using the Dynamics web manager. */
-  cSuperStack = cSuperStack + ",ry/app/afreqsrvrp.p".
 
-/* Handles customized SUPER functionality.  Adds Super functionality to 
+IF (SESSION:ICFPARAMETER > "") THEN
+  /* Start the Dynamics environment. */
+  cSuperStack = cSuperStack + ",ry/app/rywebspeed.p".
+
+/* Handles customized SUPER functionality.  Adds Super functionality to
    init-session, init-request, end-request, if specified. */
-IF OS-GETENV("SUPER_PROC":U) > "" THEN 
+IF OS-GETENV("SUPER_PROC":U) > "" THEN
   cSuperStack = cSuperStack + "," + OS-GETENV("SUPER_PROC":U).
-    
+
 setSuperStack(cSuperStack). /** Start super procedures **/
 RUN init-config.   /** Set environment based configuration variables (allows override before init-session) **/
 RUN init-session.  /** Init-session **/
 
 /* set trigger to clean up the procedure */
 ON "close":U OF THIS-PROCEDURE DO:
-  setSuperStack(""). 
+  setSuperStack("").
   RUN captureErrs.
-  DELETE PROCEDURE THIS-PROCEDURE. 
+  DELETE PROCEDURE THIS-PROCEDURE.
   ERROR-STATUS:ERROR = NO.
 END.
 
@@ -197,9 +196,9 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE captureErrs Procedure 
 PROCEDURE captureErrs :
 /*------------------------------------------------------------------------------
-  Purpose:  Capture errors set by error-status and forward to server-log   
+  Purpose:  Capture errors set by error-status and forward to server-log
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cErrList AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iErr     AS INTEGER    NO-UNDO.
@@ -218,12 +217,12 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE destroy Procedure 
 PROCEDURE destroy :
 /*------------------------------------------------------------------------------
-  Purpose:     
+  Purpose:
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
   APPLY "close":U TO THIS-PROCEDURE.
-  
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -239,13 +238,15 @@ END PROCEDURE.
 FUNCTION getSuperHandle RETURNS HANDLE
   (INPUT cSuper AS CHARACTER) :
 /*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
+  Purpose:
+    Notes:
 ------------------------------------------------------------------------------*/
   FIND FIRST ttSuper WHERE ttSuper.ttProc = cSuper NO-ERROR.
-  IF AVAILABLE ttSuper 
-  THEN RETURN ttSuper.ttHandle.
-  ELSE RETURN ?.   /* Function return value. */
+  IF AVAILABLE ttSuper THEN
+        RETURN ttSuper.ttHandle.
+  ELSE
+        RETURN ?.   /* Function return value. */
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -259,8 +260,8 @@ END FUNCTION.
 FUNCTION getSuperStack RETURNS CHARACTER
   ( /* parameter-definitions */ ) :
 /*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
+  Purpose:
+    Notes:
 ------------------------------------------------------------------------------*/
 
   RETURN cSuperStack.   /* Function return value. */
@@ -278,14 +279,14 @@ END FUNCTION.
 FUNCTION setSuperStack RETURNS CHARACTER
   ( INPUT cSupers AS CHARACTER ) :
 /*------------------------------------------------------------------------------
-  Purpose: Sets the order and starts the associated super procedures 
-    Notes:  
+  Purpose: Sets the order and starts the associated super procedures
+    Notes:
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE i1         AS INTEGER    NO-UNDO.
-  
+
   ASSIGN cSuperStack = cSupers.
 
-/* Remove from web-utilities-hdl and clean up unwanted SUPERs */  
+  /* Remove from web-utilities-hdl and clean up unwanted SUPERs */
   FOR EACH ttSuper:
     web-utilities-hdl:REMOVE-SUPER-PROCEDURE(ttSuper.ttHandle).
     IF NOT CAN-DO(cSupers, ttSuper.ttProc) THEN DO:
@@ -299,7 +300,7 @@ FUNCTION setSuperStack RETURNS CHARACTER
     END.
   END.
 
-/* Start new SUPERs if necessary and add to web-utilities-hdl handle */
+  /* Start new SUPERs if necessary and add to web-utilities-hdl handle */
   DO i1 = 1 TO NUM-ENTRIES(cSupers):
     IF ENTRY(i1,cSupers) = "" THEN NEXT.
     FIND FIRST ttSuper WHERE ttSuper.ttProc = ENTRY(i1,cSupers) NO-ERROR.
@@ -310,7 +311,6 @@ FUNCTION setSuperStack RETURNS CHARACTER
     END.
     web-utilities-hdl:ADD-SUPER-PROCEDURE(ttSuper.ttHandle,SEARCH-TARGET).
   END.
-
 
   RETURN "".   /* Function return value. */
 

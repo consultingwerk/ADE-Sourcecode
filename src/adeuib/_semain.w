@@ -317,9 +317,9 @@ ON CHOOSE OF btn_help IN FRAME f_rename OR HELP OF FRAME f_rename
 &Scoped-define FRAME-NAME f_edit
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS isection btn_List btn_Pcall db_required ~
-private_block se_event btn_New btn_Rename wname txt 
-&Scoped-Define DISPLAYED-OBJECTS isection db_required private_block ~
+&Scoped-Define ENABLED-OBJECTS isection btn_List btn_Pcall private_block ~
+db_required se_event btn_New btn_Rename wname txt 
+&Scoped-Define DISPLAYED-OBJECTS isection private_block db_required ~
 se_event wname txt read_only 
 
 /* Custom List Definitions                                              */
@@ -458,8 +458,8 @@ DEFINE FRAME f_edit
      isection AT ROW 1.33 COL 8 COLON-ALIGNED
      btn_List AT ROW 1.33 COL 41.6
      btn_Pcall AT ROW 1.33 COL 53
-     db_required AT ROW 1.48 COL 72
      private_block AT ROW 1.48 COL 72
+     db_required AT ROW 1.48 COL 72
      se_event AT ROW 2.52 COL 8 COLON-ALIGNED
      btn_New AT ROW 2.52 COL 41.6
      btn_Rename AT ROW 2.52 COL 53
@@ -477,6 +477,7 @@ DEFINE FRAME f_edit
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
 /* Settings for THIS-PROCEDURE
    Type: Window
+   Compile into: 
    Allow: Basic,Browse,DB-Fields,Window,Query
    Other Settings: COMPILE
  */
@@ -1144,7 +1145,8 @@ DO:
   DEFINE VAR ok2change     AS LOGICAL NO-UNDO.
   DEFINE VAR new_event     AS CHAR    NO-UNDO.
   /* If the number of words > 1, then only use the first word */
-  new_event = se_event:SCREEN-VALUE.
+  ASSIGN new_event = se_event:SCREEN-VALUE.
+  
   IF NUM-ENTRIES(new_event, " ") > 1 
   THEN DO:
        ASSIGN new_event = ENTRY(1,new_event, " ")
@@ -1154,6 +1156,7 @@ DO:
                   yes, yes, OUTPUT ok2change).
   /* in case user decided not to change trg */
   IF NOT ok2change THEN se_event:SCREEN-VALUE = editted_event.
+  ELSE se_event:SCREEN-VALUE = new_event.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1368,9 +1371,9 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  DISPLAY isection db_required private_block se_event wname txt read_only 
+  DISPLAY isection private_block db_required se_event wname txt read_only 
       WITH FRAME f_edit IN WINDOW h_sewin.
-  ENABLE isection btn_List btn_Pcall db_required private_block se_event btn_New 
+  ENABLE isection btn_List btn_Pcall private_block db_required se_event btn_New 
          btn_Rename wname txt 
       WITH FRAME f_edit IN WINDOW h_sewin.
   VIEW FRAME f_edit IN WINDOW h_sewin.

@@ -46,6 +46,7 @@ Author: D. Ross Hunter
 Date Created: 1993
 
 Last Modifed:
+
     02/01/01 JEP  Added code to generate frame WITH phrase when breaking frame
                   statements for 4k limit. New: Procedure put-frame-with-clause
                   and added gentitle parameter to put_color_font_title.
@@ -88,6 +89,8 @@ Last Modifed:
 {adeuib/links.i}       /* ADM links TEMP-TABLE definition                    */
 {adeuib/xftr.i}        /* XFTR TEMP-TABLE definition                         */
 {adeuib/brwscols.i}    /* Browse Column Temp-table                           */
+{src/adm2/globals.i}   /* Dynamics global variables                          */
+
 
 /* FUNCTION PROTOTYPES */
 FUNCTION db-fld-name RETURNS CHARACTER
@@ -111,6 +114,7 @@ DEFINE VARIABLE cTemp            AS CHARACTER                             NO-UND
 DEFINE VARIABLE cTemp1           AS CHARACTER                             NO-UNDO.
 DEFINE STREAM P_4GLSDO.
 
+
 /* Local Definitions:  these variables are used only in _gendefs.i.  
    They are defined here because this is included in two files:
       adeshar/_gen4gl.p and adeuib/_qikcomp.p
@@ -132,6 +136,7 @@ DEF VAR i              AS INTEGER                                     NO-UNDO.
 DEF VAR include-name   AS CHARACTER                                   NO-UNDO.
 DEF VAR isaSO          AS LOGICAL                                     NO-UNDO.
 DEF VAR l_dummy        AS LOGICAL                                     NO-UNDO.
+DEF VAR lisICFRunning  AS LOGICAL                                     NO-UNDO.
 DEF VAR q_label        AS CHARACTER                                   NO-UNDO.
 DEF VAR seq-num        AS INTEGER                                     NO-UNDO.
 DEF VAR tab-ord        AS INTEGER                                     NO-UNDO.
@@ -142,6 +147,7 @@ DEF VAR tmp_str2       AS CHARACTER                                   NO-UNDO.
 DEF VAR tmp_db         AS CHARACTER                                   NO-UNDO.
 DEF VAR tmp_tbl        AS CHARACTER                                   NO-UNDO.
 DEF VAR win_variable   AS CHARACTER                                   NO-UNDO.
+DEF VAR lDbRequiredDone AS LOGICAL                                    NO-UNDO. 
 
 DEFINE TEMP-TABLE acopy
        FIELD _u-recid AS RECID
@@ -245,7 +251,8 @@ IF AVAILABLE x_U THEN first_browse = x_U._NAME.
 IF p_status NE "EXPORT" THEN RUN put_next_xftrs (INPUT {&TOPOFFILE}, INPUT no).
 
 /* Write out temp-tables and buffers */
-IF CAN-FIND(FIRST _TT WHERE _TT._p-recid = RECID(_P)) THEN DO:
+IF CAN-FIND(FIRST _TT WHERE _TT._p-recid = RECID(_P)) AND 
+  NOT CreatingSuper THEN DO:
   RUN gen-tt-def (OUTPUT def-line).
   PUT STREAM P_4GL UNFORMATTED SKIP(1)
      "/* Temp-Table and Buffer definitions                                    */"
@@ -268,10 +275,43 @@ FIND _TRG  WHERE _TRG._wRECID = RECID(_U) AND
                  _TRG._tEVENT = "_DEFINITIONS" AND
                  _TRG._STATUS EQ u_status NO-ERROR.
 IF AVAILABLE _TRG THEN DO:
+  IF CreatingSuper THEN DO:
+    /* Set FILE: line to just File: */
+    FileSet:
+    DO i = 1 TO NUM-ENTRIES(_TRG._tCode, CHR(10)):
+      cTemp = ENTRY(i, _TRG._tCode,CHR(10)).
+      IF cTemp BEGINS "  File: ":U THEN DO:
+        cTemp = "  File: ":U + IF INDEX(_P._SAVE-AS-FILE, "~\":U) > 0
+                THEN ENTRY( NUM-ENTRIES(_P._SAVE-AS-FILE, "~\":U), 
+                                        _P._SAVE-AS-FILE, "~\":U)
+                ELSE _P._SAVE-AS-FILE.
+        ENTRY(i, _TRG._tCode, CHR(10)) = cTemp.
+        LEAVE FileSet.
+      END. /* If we find the file name line */
+    END. /* IndentObject Do i = 1 to num-lines */
+
+    /* Set identifying object global to AstraProcedure */
+    IdentObject:
+    DO i = 1 TO NUM-ENTRIES(_TRG._tCode, CHR(10)):
+      cTemp = ENTRY(i, _TRG._tCode,CHR(10)).
+      IF cTemp BEGINS "&glob ":U THEN DO:
+        IF cTemp MATCHES "*astra* yes*" THEN DO:
+          cTemp = "&glob   AstraProcedure    yes":U.
+          ENTRY(i, _TRG._tCode, CHR(10)) = cTemp.
+          LEAVE IdentObject.
+        END.  /* If we find the line to replace */
+      END. /* If we find a global definition */
+    END. /* IndentObject Do i = 1 to num-lines */
+
+    /* Mesage the header comments to make it look like a real structured procedure */
+    ASSIGN _TRG._tCode = REPLACE(_TRG._tCode,
+                         "from viewer.w - Template for SmartDataViewer objects":U,
+                         "Custom Super Procedure":U).
+  END. /* If CreatingSuper */
   RUN put_code_block.
   /* Add any XFTR sections that follow DEFINITIONS */ 
   IF p_status NE "EXPORT" THEN RUN put_next_xftrs (INPUT {&DEFINITIONS}, INPUT no).
-END. 
+END. /* If we have the trigger */
 
 /* Before we write out any lists, compute the TAB-ORDER of all objects in
    all the frames we are going to be writing out.  */
@@ -318,6 +358,11 @@ PUT STREAM P_4GL UNFORMATTED SKIP (1)
     SKIP (1)
     .
 
+/* IF object is a smartDataObject and there is a datalogic procedure */
+IF _P._TYPE = "SmartDataObject":U AND _C._DATA-LOGIC-PROC > "" THEN
+   PUT STREAM P_4GL UNFORMATTED 
+    "&Global-define DATA-LOGIC-PROCEDURE ":U _C._DATA-LOGIC-PROC SKIP(1).
+    
 /* Only put out Procedure-Type for .p and .w files (not for .i's) */
 IF _P._TYPE ne "" AND _P._FILE-TYPE ne "i":U THEN
   PUT STREAM P_4GL UNFORMATTED 
@@ -332,7 +377,7 @@ IF _P._html-file ne ""  THEN
    Note that Frames are "no-window" windows.  The final (unusual) case
    is a "virtual" ADM-CONTAINER that holds only SmartObjects, but which can
    have no FRAME or WINDOW. */
-IF CAN-DO(_P._allow,"Smart") THEN
+IF CAN-DO(_P._allow,"Smart") AND NOT CreatingSuper THEN
   PUT STREAM P_4GL UNFORMATTED 
     "&Scoped-define ADM-CONTAINER " 
     (IF _U._TYPE eq "DIALOG-BOX":U      THEN "DIALOG-BOX":U
@@ -356,22 +401,27 @@ IF _P._TYPE = "SmartBusinessObject":U THEN
 /* Db-Required Preprocessor defs. */
 IF _P._DB-AWARE THEN
 DO:
-    PUT STREAM P_4GL UNFORMATTED SKIP(1)
-    '/* Db-Required definitions. */'        SKIP
-    '&IF DEFINED(DB-REQUIRED) = 0 &THEN'    SKIP
-    '    &GLOBAL-DEFINE DB-REQUIRED TRUE'   SKIP
-    '&ENDIF'                                SKIP
-    '&GLOBAL-DEFINE DB-REQUIRED-START   &IF ~{&DB-REQUIRED~} &THEN'   SKIP
-    '&GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF'
-    SKIP(1).
+  RUN gen-db-required(output def-line).
+  IF def-line <> '':U THEN
+   PUT STREAM P_4GL UNFORMATTED SKIP(1)
+       def-line.
 END.
 
 /* If a SmartBrowse or SmartViewer - define the temp-table include file */
 IF _P._data-object NE "" THEN DO:
+
   ASSIGN i            = R-INDEX(_P._data-object,".")
          include-name = IF i > 0 THEN SUBSTRING(_P._data-object,1,i) + "i" 
                                  ELSE _P._data-object + ".i"
          include-name = '"' + REPLACE(include-name,"~\","~/") + '"'.
+  
+  IF SEARCH(TRIM(include-name,'"':U)) = ? THEN DO: 
+    /* Check whether specified proc-filename is a repository object if Dynamics is running*/
+    ASSIGN lisICFRunning = DYNAMIC-FUNCTION("IsICFRunning":U) NO-ERROR.
+    IF lisICFRunning AND VALID-HANDLE(gshRepositoryManager) THEN 
+      include-name = '"':U + DYNAMIC-FUNCTION("getSDOincludeFile" IN gshRepositoryManager, 
+                                      TRIM(include-name,'"':U)) + '"':U.
+  END.  /* If unable to locate include-file and ICF is running */
 
   PUT STREAM P_4GL UNFORMATTED
     "/* Include file with RowObject temp-table definition */" SKIP
@@ -388,7 +438,7 @@ IF _P._data-object NE "" THEN DO:
 END.
 
 /* List the designated Frame-Name and First Browse */
-IF frame_name_f ne "" OR first_browse ne "" THEN DO:
+IF (frame_name_f ne "" OR first_browse ne "") AND NOT CreatingSuper THEN DO:
   ASSIGN curr_frame  = frame_name_f
          curr_browse = first_browse.
   IF _P._frame-name-recid = ? THEN
@@ -402,7 +452,7 @@ IF frame_name_f ne "" OR first_browse ne "" THEN DO:
     "&Scoped-define FRAME-NAME " curr_frame SKIP.
   IF curr_browse NE "" THEN PUT STREAM P_4GL UNFORMATTED
     "&Scoped-define BROWSE-NAME " curr_browse SKIP.
-END.
+END.  /* Frame_name_f or first_browse */
 
 /* Write out QUERY-NAME. This will get written out even if a query
  * exists without a table list 
@@ -522,7 +572,7 @@ FOR EACH _U WHERE _U._WINDOW-HANDLE eq _h_win
 END.
 
 /* Window preprocessor variables (eg. User &LIST-1) */
-IF _P._FILE-TYPE eq "w":U THEN RUN put_win_preproc_vars.
+IF _P._FILE-TYPE eq "w":U OR CreatingSuper THEN RUN put_win_preproc_vars.
 
 IF p_status NE "PREVIEW" THEN
     PUT STREAM P_4GL UNFORMATTED SKIP (1) "/* _UIB-PREPROCESSOR-BLOCK-END */" SKIP
@@ -1014,9 +1064,20 @@ FOR EACH _U WHERE _U._WINDOW-HANDLE = _h_win
          NOT (CAN-FIND(_TRG WHERE _TRG._wRECID = RECID(_U) AND _TRG._tEVENT = "OPEN_QUERY":U)) THEN 
       DO: /* NOTE: A Field List is not written out for a Freeform Query */
         /* Make a Field List */
-        ASSIGN tmp_db     = ENTRY(1, ENTRY(1, TRIM(ENTRY(i,_Q._TblList)), " "), ".")
-               tmp_tbl    = ENTRY(2, ENTRY(1, TRIM(ENTRY(i,_Q._TblList)), " "), ".")
-               tmp_string = tmp_string + CHR(10) + "    FIELDS(":U.
+        /* If there is only one entry then this may be a buffer and "Temp-Tables" needs to
+           be used as the db name to find the fields */
+        IF NUM-ENTRIES(ENTRY(1, TRIM(ENTRY(i,_Q._TblList)), " ":U),".":U) = 1 THEN
+        DO:
+          FIND FIRST _TT WHERE _TT._P-RECID = RECID(_P) 
+            AND _TT._NAME = ENTRY(1, TRIM(ENTRY(i,_Q._TblList)), " ":U) NO-ERROR.
+          IF AVAILABLE _TT THEN
+            ASSIGN tmp_db = "Temp-Tables":U
+                   tmp_tbl = ENTRY(1, TRIM(ENTRY(i,_Q._TblList)), " ":U).
+        END.  /* if one entry for the table */
+        ELSE 
+          ASSIGN tmp_db  = ENTRY(1, ENTRY(1, TRIM(ENTRY(i,_Q._TblList)), " "), ".")
+                 tmp_tbl = ENTRY(2, ENTRY(1, TRIM(ENTRY(i,_Q._TblList)), " "), ".").
+        ASSIGN tmp_string = tmp_string + CHR(10) + "    FIELDS(":U.
         IF _U._TYPE EQ "BROWSE":U 
            OR (_U._TYPE = "QUERY":U AND _U._SUBTYPE = "SmartDataObject":U)
         THEN DO:
@@ -1186,7 +1247,8 @@ IF CAN-FIND(FIRST _U WHERE _U._TYPE          = "BROWSE":U AND
       PUT STREAM P_4GL UNFORMATTED " ROW-HEIGHT-CHARS ":U ROUND(_C._ROW-HEIGHT,2).
     
     /* Write out expandable option if user specified it */
-    IF _C._EXPANDABLE THEN PUT STREAM P_4GL UNFORMATTED " EXPANDABLE":U.  
+    IF _C._FIT-LAST-COLUMN THEN PUT STREAM P_4GL UNFORMATTED " FIT-LAST-COLUMN":U.
+    IF _C._NO-EMPTY-SPACE  THEN PUT STREAM P_4GL UNFORMATTED " NO-EMPTY-SPACE":U.
 
     /* Write out the tooltip definition */
     RUN put_tooltip (INPUT _U._TOOLTIP, INPUT _U._TOOLTIP-ATTR).
@@ -1760,8 +1822,10 @@ PROCEDURE gen-tt-def :
 ------------------------------------------------------------------------------*/
   DEFINE OUTPUT PARAMETER def-line AS CHARACTER                         NO-UNDO.
 
-  DEFINE VAR addl_fields AS CHARACTER NO-UNDO.
-  
+  DEFINE VAR      addl_fields AS CHARACTER  NO-UNDO.
+  DEFINE VAR      cDefLine    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lBuffer     AS LOGICAL    NO-UNDO.
+
   FOR EACH _TT WHERE _TT._p-recid = RECID(_P):
     CASE _TT._TABLE-TYPE:
       WHEN "T":U THEN DO:
@@ -1779,11 +1843,17 @@ PROCEDURE gen-tt-def :
       END.
       
       WHEN "B":U THEN DO:
+        lBuffer = TRUE.
         def-line = def-line +
+                   (IF _P._db-aware THEN  
+                    "~{&DB-REQUIRED-START~}" + CHR(10) + " " ELSE "") 
+                   +
                    "DEFINE ":U + (IF _TT._SHARE-TYPE NE "" THEN
                    (_TT._SHARE-TYPE + " ":U) ELSE "") + "BUFFER " + _TT._NAME + 
                    " FOR ":U + (IF _suppress_dbname THEN "" ELSE _TT._LIKE-DB + ".":U) +
-                   _TT._LIKE-TABLE + ".":U + CHR(10).
+                   _TT._LIKE-TABLE + ".":U + CHR(10)
+                   + (IF _P._db-aware THEN  
+                       "~{&DB-REQUIRED-END~}" + CHR(10) ELSE "").
       END.
   
       WHEN "D":U OR WHEN "W":U THEN DO:    
@@ -1801,6 +1871,12 @@ PROCEDURE gen-tt-def :
                     addl_fields + ".":U) ELSE ".") + CHR(10).
       END.
     END CASE.
+    /* If buffer then prepend the db-required preprocessor  */
+    IF lBuffer THEN
+    DO:
+      RUN gen-db-required(OUTPUT cDefLine).
+      def-line = cDefLine + def-line.
+    END.
   END.
     
 END PROCEDURE.
@@ -1812,6 +1888,29 @@ PROCEDURE gen-uf-def :
    def-line = _UF._DEFINITION.            
 END.
 
+PROCEDURE gen-db-required:
+  DEFINE OUTPUT PARAMETER def-line AS CHARACTER NO-UNDO.
+  /* The dbrequired definition is normally defined with the preprocessors, 
+     but need to be higher up if there are buffers, so we use a flag to
+     check if it has already been defined.  */ 
+  IF _P._DB-AWARE THEN
+  DO:
+    IF lDbRequiredDone THEN
+      def-line = '/* Note that Db-Required is defined before the buffer definitions for this object. */'
+       +  CHR(10) + CHR(10).
+    ELSE DO:
+     def-line = 
+      '/* Db-Required definitions. */'      +  CHR(10) +
+      '&IF DEFINED(DB-REQUIRED) = 0 &THEN'  +  CHR(10) +
+      '    &GLOBAL-DEFINE DB-REQUIRED TRUE' +  CHR(10) +
+      '&ENDIF'                              +  CHR(10) +
+      '&GLOBAL-DEFINE DB-REQUIRED-START   &IF ~{&DB-REQUIRED~} &THEN'  +  CHR(10) +
+      '&GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF' +  CHR(10) +
+       CHR(10) + CHR(10).
+      lDbRequiredDone = TRUE.
+    END.
+  END.
+END.
 
 {adeuib/_genproc.i}
 {adeuib/_genpro2.i}

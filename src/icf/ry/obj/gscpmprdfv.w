@@ -157,19 +157,19 @@ FUNCTION setDataValue RETURNS LOGICAL
 
 
 /* Definitions of the field level widgets                               */
-DEFINE VARIABLE coProdMod AS DECIMAL FORMAT ">>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
+DEFINE VARIABLE coProdMod AS DECIMAL FORMAT "->>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
      LABEL "Product Module" 
      VIEW-AS COMBO-BOX INNER-LINES 5
      LIST-ITEM-PAIRS "",0
      DROP-DOWN-LIST
-     SIZE 45 BY 1 NO-UNDO.
+     SIZE 45 BY 1.05 NO-UNDO.
 
-DEFINE VARIABLE coProduct AS DECIMAL FORMAT ">>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
+DEFINE VARIABLE coProduct AS DECIMAL FORMAT "->>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
      LABEL "Product" 
      VIEW-AS COMBO-BOX INNER-LINES 10
      LIST-ITEM-PAIRS "",0
      DROP-DOWN-LIST
-     SIZE 45 BY 1 NO-UNDO.
+     SIZE 45 BY 1.05 NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */

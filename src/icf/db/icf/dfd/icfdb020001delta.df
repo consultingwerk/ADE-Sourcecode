@@ -964,6 +964,6 @@ UPDATE FIELD "owning_entity_mnemonic" OF "gst_audit"
 
 .
 PSC
-cpstream=ISO8859-1
+cpstream=UTF-8
 .
 0000037026

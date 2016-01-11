@@ -61,7 +61,7 @@ DEFINE VARIABLE ifont      AS INT       NO-UNDO.
 DEFINE VARIABLE cFormat    AS CHAR      NO-UNDO.
 DEFINE IMAGE    testHeight FILE "adeicon/righttab".  
  
-DEFINE TEMP-TABLE tab-label
+DEFINE TEMP-TABLE tab-label NO-UNDO
        FIELD      tab-number AS INTEGER  FORMAT ">9":U
        FIELD      tab-value  AS CHARACTER FORMAT "X(255)":U
        INDEX      tab-number tab-number.

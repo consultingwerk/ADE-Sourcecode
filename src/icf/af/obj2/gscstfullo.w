@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          asdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
@@ -34,7 +34,17 @@ adm2/support/_wizqry.w,adm2/support/_wizfld.w
 
 
 /* Temp-Table and Buffer definitions                                    */
-DEFINE BUFFER gsc_object_buffer FOR gsc_object.
+/* Db-Required definitions. */
+&IF DEFINED(DB-REQUIRED) = 0 &THEN
+    &GLOBAL-DEFINE DB-REQUIRED TRUE
+&ENDIF
+&GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
+&GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
+
+
+{&DB-REQUIRED-START}
+ DEFINE BUFFER ryc_smartobject_buffer FOR ryc_smartobject.
+{&DB-REQUIRED-END}
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS dTables 
@@ -97,7 +107,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gscstfullo.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -122,17 +132,12 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &Scoped-define ADM-SUPPORTED-LINKS Data-Source,Data-Target,Navigation-Target,Update-Target,Commit-Target,Filter-Target
 
 
-/* Db-Required definitions. */
-&IF DEFINED(DB-REQUIRED) = 0 &THEN
-    &GLOBAL-DEFINE DB-REQUIRED TRUE
-&ENDIF
-&GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
-&GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
+/* Note that Db-Required is defined before the buffer definitions for this object. */
 
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
-&Scoped-define INTERNAL-TABLES gsc_service_type gsc_object ~
+&Scoped-define INTERNAL-TABLES gsc_service_type ryc_smartobject ~
 gsc_logical_service
 
 /* Definitions for QUERY Query-Main                                     */
@@ -148,22 +153,26 @@ default_logical_service_obj
 &Scoped-define DATA-FIELDS-IN-gsc_service_type service_type_obj ~
 service_type_code service_type_description management_object_obj ~
 maintenance_object_obj default_logical_service_obj 
-&Scoped-define DATA-FIELDS-IN-gsc_object object_filename 
+&Scoped-define DATA-FIELDS-IN-ryc_smartobject object_filename 
 &Scoped-define DATA-FIELDS-IN-gsc_logical_service logical_service_code 
 &Scoped-Define MANDATORY-FIELDS 
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gscstfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsc_service_type NO-LOCK, ~
+      FIRST ryc_smartobject WHERE asdb.ryc_smartobject.smartobject_obj = asdb.gsc_service_type.management_object_obj OUTER-JOIN NO-LOCK, ~
+      FIRST gsc_logical_service WHERE asdb.gsc_logical_service.logical_service_obj = asdb.gsc_service_type.default_logical_service_obj OUTER-JOIN NO-LOCK ~
+    BY gsc_service_type.service_type_code INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsc_service_type NO-LOCK, ~
-      FIRST gsc_object WHERE gsc_object.object_obj = gsc_service_type.management_object_obj OUTER-JOIN NO-LOCK, ~
-      FIRST gsc_logical_service WHERE gsc_logical_service.logical_service_obj = gsc_service_type.default_logical_service_obj OUTER-JOIN NO-LOCK ~
+      FIRST ryc_smartobject WHERE asdb.ryc_smartobject.smartobject_obj = asdb.gsc_service_type.management_object_obj OUTER-JOIN NO-LOCK, ~
+      FIRST gsc_logical_service WHERE asdb.gsc_logical_service.logical_service_obj = asdb.gsc_service_type.default_logical_service_obj OUTER-JOIN NO-LOCK ~
     BY gsc_service_type.service_type_code INDEXED-REPOSITION.
 {&DB-REQUIRED-END}
-&Scoped-define TABLES-IN-QUERY-Query-Main gsc_service_type gsc_object ~
+&Scoped-define TABLES-IN-QUERY-Query-Main gsc_service_type ryc_smartobject ~
 gsc_logical_service
 &Scoped-define FIRST-TABLE-IN-QUERY-Query-Main gsc_service_type
-&Scoped-define SECOND-TABLE-IN-QUERY-Query-Main gsc_object
+&Scoped-define SECOND-TABLE-IN-QUERY-Query-Main ryc_smartobject
 &Scoped-define THIRD-TABLE-IN-QUERY-Query-Main gsc_logical_service
 
 
@@ -196,7 +205,7 @@ FUNCTION returnObjectFileName RETURNS CHARACTER
 &ANALYZE-SUSPEND
 DEFINE QUERY Query-Main FOR 
       gsc_service_type, 
-      gsc_object, 
+      ryc_smartobject, 
       gsc_logical_service SCROLLING.
 &ANALYZE-RESUME
 {&DB-REQUIRED-END}
@@ -215,7 +224,7 @@ DEFINE QUERY Query-Main FOR
    Add Fields to: Neither
    Other Settings: PERSISTENT-ONLY COMPILE APPSERVER DB-AWARE
    Temp-Tables and Buffers:
-      TABLE: gsc_object_buffer B "?" ? ASDB gsc_object
+      TABLE: ryc_smartobject_buffer B "?" ? ASDB ryc_smartobject
    END-TABLES.
  */
 
@@ -264,32 +273,32 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "asdb.gsc_service_type,asdb.gsc_object WHERE asdb.gsc_service_type ...,asdb.gsc_logical_service WHERE asdb.gsc_service_type ..."
+     _TblList          = "icfdb.gsc_service_type,icfdb.ryc_smartobject WHERE icfdb.gsc_service_type ...,icfdb.gsc_logical_service WHERE icfdb.gsc_service_type ..."
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _TblOptList       = ", FIRST OUTER, FIRST OUTER, FIRST OUTER"
      _OrdList          = "asdb.gsc_service_type.service_type_code|yes"
-     _JoinCode[2]      = "asdb.gsc_object.object_obj = asdb.gsc_service_type.management_object_obj"
+     _JoinCode[2]      = "asdb.ryc_smartobject.smartobject_obj = asdb.gsc_service_type.management_object_obj"
      _JoinCode[3]      = "asdb.gsc_logical_service.logical_service_obj = asdb.gsc_service_type.default_logical_service_obj"
-     _FldNameList[1]   > ASDB.gsc_service_type.service_type_obj
+     _FldNameList[1]   > icfdb.gsc_service_type.service_type_obj
 "service_type_obj" "service_type_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
-     _FldNameList[2]   > ASDB.gsc_service_type.service_type_code
+     _FldNameList[2]   > icfdb.gsc_service_type.service_type_code
 "service_type_code" "service_type_code" ? ? "character" ? ? ? ? ? ? yes ? no 20 yes
-     _FldNameList[3]   > ASDB.gsc_service_type.service_type_description
+     _FldNameList[3]   > icfdb.gsc_service_type.service_type_description
 "service_type_description" "service_type_description" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[4]   > ASDB.gsc_service_type.management_object_obj
+     _FldNameList[4]   > icfdb.gsc_service_type.management_object_obj
 "management_object_obj" "management_object_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
-     _FldNameList[5]   > asdb.gsc_object.object_filename
+     _FldNameList[5]   > icfdb.ryc_smartobject.object_filename
 "object_filename" "object_filename" ? ? "character" ? ? ? ? ? ? no ? no 35 yes
      _FldNameList[6]   > "_<CALC>"
 "(IF management_object_obj = 0 THEN '<None>'
 ELSE object_filename)" "mgnt_filename_display" "Management Object FileName" "x(35)" "character" ? ? ? ? ? ? no ? no 35 no
-     _FldNameList[7]   > ASDB.gsc_service_type.maintenance_object_obj
+     _FldNameList[7]   > icfdb.gsc_service_type.maintenance_object_obj
 "maintenance_object_obj" "maintenance_object_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
      _FldNameList[8]   > "_<CALC>"
 "returnObjectFileName(RowObject.maintenance_object_obj)" "maint_object_filename" "Maintenance Object Filename" "x(35)" "character" ? ? ? ? ? ? no ? no 35 no
-     _FldNameList[9]   > ASDB.gsc_service_type.default_logical_service_obj
+     _FldNameList[9]   > icfdb.gsc_service_type.default_logical_service_obj
 "default_logical_service_obj" "default_logical_service_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
-     _FldNameList[10]   > asdb.gsc_logical_service.logical_service_code
+     _FldNameList[10]   > icfdb.gsc_logical_service.logical_service_code
 "logical_service_code" "logical_service_code" ? ? "character" ? ? ? ? ? ? no ? no 20.2 yes
      _FldNameList[11]   > "_<CALC>"
 "(IF default_logical_service_obj = 0 THEN '<None>'
@@ -298,7 +307,7 @@ ELSE logical_service_code)" "logical_service_display" "Default Logical Service" 
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK dTables 
@@ -446,8 +455,8 @@ FUNCTION returnObjectFileName RETURNS CHARACTER
     Notes:  
 ------------------------------------------------------------------------------*/
 
-  FIND FIRST gsc_object WHERE gsc_object.object_obj = pdObjectObj NO-LOCK NO-ERROR.
-  IF AVAILABLE gsc_object THEN RETURN gsc_object.object_filename.
+  FIND FIRST ryc_smartobject WHERE ryc_smartobject.smartobject_obj = pdObjectObj NO-LOCK NO-ERROR.
+  IF AVAILABLE ryc_smartobject THEN RETURN ryc_smartobject.object_filename.
   ELSE RETURN "<None>":U.   /* Function return value. */
 
 END FUNCTION.

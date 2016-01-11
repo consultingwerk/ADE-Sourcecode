@@ -65,7 +65,7 @@ af/cod/aftemwizpw.w
 
   Update Notes: Security Allocations
 
-  (v:010001)    Task:    90000163   UserRef:    
+  (v:010001)    Task:    90000163   UserRef:
                 Date:   30/07/2001  Author:     Anthony Swindells
 
   Update Notes: Entity Table Normalization
@@ -74,6 +74,10 @@ af/cod/aftemwizpw.w
                 In procedure setDataRecordsQueryParams a reference was made
                 to a record in table gsc_entity_display_field which was not
                 available. This was incorrect, removed all these references.
+
+  (v:010002)    Task:   0           UserRef:    POSSE
+                Date:   06/04/2002   Author:    Sunil Belgaonkar
+  Update Notes: Added Object Level Security
 ---------------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
@@ -144,7 +148,7 @@ FUNCTION createTT RETURNS HANDLE PRIVATE
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getBufferHandleList Procedure 
 FUNCTION getBufferHandleList RETURNS CHARACTER
-  ( INPUT-OUTPUT phQuery      AS HANDLE )  FORWARD.
+  ( INPUT-OUTPUT phQuery AS HANDLE) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -167,34 +171,6 @@ FUNCTION getCompanyObj RETURNS DECIMAL PRIVATE
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFieldHandleList Procedure 
 FUNCTION getFieldHandleList RETURNS CHARACTER
    (INPUT pcBufferHdlList        AS CHARACTER) FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getFieldRestriction) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFieldRestriction Procedure 
-FUNCTION getFieldRestriction RETURNS CHARACTER PRIVATE
-  ( INPUT pdUserObj             AS DECIMAL,
-    INPUT pdOrganisationObj     AS DECIMAL,
-    INPUT pcEntityMnemonic      AS CHARACTER,
-    INPUT pdOwningObj           AS DECIMAL )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getLogicalRestriction) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getLogicalRestriction Procedure 
-FUNCTION getLogicalRestriction RETURNS LOGICAL PRIVATE
-  ( INPUT pdUserObj            AS DECIMAL,
-    INPUT pdOrganisationObj    AS DECIMAL,
-    INPUT pcEntityMnemonic     AS CHARACTER,
-    INPUT pdOwningObj          AS DECIMAL )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -283,7 +259,7 @@ PROCEDURE assignFieldValue :
   Parameters:  input comma-separated list of field handles
                input handle to temp table field
                input handle to buffer field object
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 
    DEFINE INPUT         PARAMETER pcFieldHdlList           AS CHARACTER NO-UNDO.
@@ -337,7 +313,7 @@ PROCEDURE cascadeUsers PRIVATE :
   Purpose:     If the given user is a profile user, then for each other user record
                which has been created from this profile user, propagate the security
                allocations to these user as well.
-  Parameters:  input string for a given User ID 
+  Parameters:  input string for a given User ID
                input string for a given Login Company
                input string for a given Security Type
                input string for a given Entity Mnemonic
@@ -373,29 +349,29 @@ PROCEDURE cascadeUsers PRIVATE :
   DO:
       /* construct and open query on b_gsm_user for users created from this profile user */
       CREATE QUERY hQuery.
-      hTTBuffer = BUFFER b_gsm_user:HANDLE.    
+      hTTBuffer = BUFFER b_gsm_user:HANDLE.
       hQuery:ADD-BUFFER(hTTBuffer).
       ASSIGN cQuery = "FOR EACH b_gsm_user NO-LOCK
-                          WHERE b_gsm_user.created_from_profile_user_obj EQ " + STRING(gsm_user.user_obj).
+                          WHERE b_gsm_user.created_from_profile_user_obj EQ DECIMAL('" + STRING(gsm_user.user_obj) + "')":U.
       hQuery:QUERY-PREPARE(cQuery).
       hQuery:QUERY-OPEN() NO-ERROR.
 
       /* process each user created from this profile user */
       hQuery:GET-FIRST().
-      DO WHILE hTTBuffer:AVAILABLE:      
+      DO WHILE hTTBuffer:AVAILABLE:
           /* Get user_login_name field of this user */
           hField = hTTBuffer:BUFFER-FIELD('user_login_name':U).
           /* Make recursive call to commitQueryResultSet using this user value of user_login_name (User ID) */
           RUN commitQueryResultSet (INPUT  hField:BUFFER-VALUE(),
-                                    INPUT  YES,
+                                    INPUT  NO,
                                     INPUT  pcLoginCompany,
                                     INPUT  pcSecurityType,
                                     INPUT  pcEntityMnemonic,
                                     INPUT  TABLE-HANDLE phTable,
-                                    OUTPUT cError).                                              
+                                    OUTPUT cError).
           IF cError NE "":U THEN
-             ocErrorText = ocErrorText 
-                         + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) 
+             ocErrorText = ocErrorText
+                         + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U)
                          + cError.
           hQuery:GET-NEXT().
       END. /* WHILE hTTBuffer AVAILABLE */
@@ -415,7 +391,7 @@ END PROCEDURE.
 PROCEDURE commitQueryResultSet :
 /*------------------------------------------------------------------------------
   Purpose:     Commits given security allocations
-  Parameters:  input string for a given User ID 
+  Parameters:  input string for a given User ID
                input string for a given Login Company
                input string for a given Security Type
                input string for a given Entity Mnemonic
@@ -427,10 +403,10 @@ PROCEDURE commitQueryResultSet :
                Iterates through the given temp table and delegates committing
                to the database to one of setLogicalRestriction, SetFieldRestrictiion
                or SetRangeRestriction according to Security Type
-               If given cascade flag has been set to YES for a given User, then run CascadeUsers 
+               If given cascade flag has been set to YES for a given User, then run CascadeUsers
 ------------------------------------------------------------------------------*/
 
-    DEFINE INPUT        PARAMETER              pcUserID                AS CHARACTER     NO-UNDO. /* Entered User Login ID */ 
+    DEFINE INPUT        PARAMETER              pcUserID                AS CHARACTER     NO-UNDO. /* Entered User Login ID */
     DEFINE INPUT        PARAMETER              plCascade               AS LOGICAL       NO-UNDO. /* flag to Cascade for Profile users */
     DEFINE INPUT        PARAMETER              pcLoginCompany          AS CHARACTER     NO-UNDO. /* Entered login company code */
     DEFINE INPUT        PARAMETER              pcSecurityType          AS CHARACTER     NO-UNDO. /* Type of security structure */
@@ -452,8 +428,8 @@ PROCEDURE commitQueryResultSet :
     dUserObj = getUserObj(pcUserID).
     IF dUserObj = -1.00 THEN
     DO:
-        ocErrorText   = ocErrorText 
-                      + (IF NUM-ENTRIES(ocErrorText,CHR(3)) > 0 THEN CHR(3) ELSE '':U)                   
+        ocErrorText   = ocErrorText
+                      + (IF NUM-ENTRIES(ocErrorText,CHR(3)) > 0 THEN CHR(3) ELSE '':U)
                       + {af/sup2/aferrortxt.i 'AF' '11' '?' '?' '"user object value"' pcUserID}.
         RETURN.
     END.
@@ -462,8 +438,8 @@ PROCEDURE commitQueryResultSet :
     dCompanyObj = getCompanyObj(pcLoginCompany).
     IF dCompanyObj = -1.00 THEN
     DO:
-        ocErrorText   = ocErrorText 
-                      + (IF NUM-ENTRIES(ocErrorText,CHR(3)) > 0 THEN CHR(3) ELSE '':U)                   
+        ocErrorText   = ocErrorText
+                      + (IF NUM-ENTRIES(ocErrorText,CHR(3)) > 0 THEN CHR(3) ELSE '':U)
                       + {af/sup2/aferrortxt.i 'AF' '11' '?' '?' '"login company object value"' pcLoginCompany}.
         RETURN.
     END.
@@ -473,7 +449,7 @@ PROCEDURE commitQueryResultSet :
                     WHERE gsc_entity_mnemonic.entity_mnemonic = pcEntityMnemonic) THEN
     DO:
         ocErrorText = ocErrorText
-                    + (IF NUM-ENTRIES(ocErrorText,CHR(3)) > 0 THEN CHR(3) ELSE '':U)                   
+                    + (IF NUM-ENTRIES(ocErrorText,CHR(3)) > 0 THEN CHR(3) ELSE '':U)
                     + {af/sup2/aferrortxt.i 'AF' '11' 'gsm_entity_mnemonic' 'entity_mnemonic' '"Entity Mnemonic"' pcEntityMnemonic}.
         RETURN.
     END.
@@ -487,6 +463,7 @@ PROCEDURE commitQueryResultSet :
     ASSIGN cQuery = "FOR EACH ":U + hTTBuffer:NAME + " NO-LOCK":U.
     hQuery:QUERY-PREPARE(cQuery).
     hQuery:QUERY-OPEN() NO-ERROR.
+    DEFINE VARIABLE hRestricted AS HANDLE     NO-UNDO.
 
     /* Process each record in the temp table */
     hQuery:GET-FIRST().
@@ -495,11 +472,12 @@ PROCEDURE commitQueryResultSet :
         /* Depending on Security Type parameter value */
         CASE pcSecurityType:
 
-            WHEN    "{&MENU-STRUCTURES}":U 
-            OR WHEN "{&MENU-ITEMS}":U 
-            OR WHEN "{&ACCESS-TOKENS}":U 
+            WHEN    "{&MENU-STRUCTURES}":U
+            OR WHEN "{&MENU-ITEMS}":U
+            OR WHEN "{&ACCESS-TOKENS}":U
             OR WHEN "{&DATA-RECORDS}":U
             OR WHEN "{&LOGIN-COMPANIES}":U
+            OR WHEN "{&CONTAINER-OBJECTS}":U
             THEN
                 RUN setLogicalRestriction
                     (INPUT  dUserObj,
@@ -527,8 +505,8 @@ PROCEDURE commitQueryResultSet :
         END CASE. /* CASE pcSecurityType */
 
         IF cError NE "":U THEN
-            ocErrorText   = ocErrorText 
-                          + (IF NUM-ENTRIES(ocErrorText,CHR(3)) > 0 THEN CHR(3) ELSE '':U)                   
+            ocErrorText   = ocErrorText
+                          + (IF NUM-ENTRIES(ocErrorText,CHR(3)) > 0 THEN CHR(3) ELSE '':U)
                           + {af/sup2/aferrortxt.i 'AF' cError}.
 
         hQuery:GET-NEXT().
@@ -548,8 +526,8 @@ PROCEDURE commitQueryResultSet :
              INPUT  phTable,
              OUTPUT cError).
         IF cError NE "":U THEN
-            ocErrorText   = ocErrorText 
-                          + (IF NUM-ENTRIES(ocErrorText,CHR(3)) > 0 THEN CHR(3) ELSE '':U)                   
+            ocErrorText   = ocErrorText
+                          + (IF NUM-ENTRIES(ocErrorText,CHR(3)) > 0 THEN CHR(3) ELSE '':U)
                           + {af/sup2/aferrortxt.i 'AF' cError}.
     END.
 
@@ -569,7 +547,7 @@ PROCEDURE getLoginCompanyName :
 /*------------------------------------------------------------------------------
   Purpose:     To validate a Login Company code and return Login Company Name
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 
     DEFINE INPUT  PARAMETER pcLoginCompany               AS CHARACTER    NO-UNDO.
@@ -583,8 +561,8 @@ PROCEDURE getLoginCompanyName :
     IF NOT AVAILABLE gsm_login_company THEN
     DO:
        /* Return an error message */
-       ocErrorText   = ocErrorText 
-                     + (IF NUM-ENTRIES(ocErrorText,CHR(3)) > 0 THEN CHR(3) ELSE '':U)                   
+       ocErrorText   = ocErrorText
+                     + (IF NUM-ENTRIES(ocErrorText,CHR(3)) > 0 THEN CHR(3) ELSE '':U)
                      + {af/sup2/aferrortxt.i 'AF' '11' '?' '?' '"login company"' pcLoginCompany}.
     END.
     ELSE
@@ -603,8 +581,8 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getQueryResultSet Procedure 
 PROCEDURE getQueryResultSet :
 /*------------------------------------------------------------------------------
-  Purpose:     Returns a batch of security allocation records in a dynamic temp table 
-               found via a query which is defined by query parameters in ttQueryParams.               
+  Purpose:     Returns a batch of security allocation records in a dynamic temp table
+               found via a query which is defined by query parameters in ttQueryParams.
   Parameters:  input string for a given User ID
                input string for a given Login Company
                input string for a given Security Type
@@ -618,64 +596,61 @@ PROCEDURE getQueryResultSet :
                in the dynamic temp table
 ------------------------------------------------------------------------------*/
 
-DEFINE INPUT        PARAMETER              pcUserID                AS CHARACTER     NO-UNDO. 
-DEFINE INPUT        PARAMETER              pcLoginCompany          AS CHARACTER     NO-UNDO. 
-DEFINE INPUT        PARAMETER              pcSecurityType          AS CHARACTER     NO-UNDO. 
-DEFINE INPUT        PARAMETER              pcEntityMnemonic        AS CHARACTER     NO-UNDO. 
+DEFINE INPUT  PARAMETER pcUserID         AS CHARACTER NO-UNDO.
+DEFINE INPUT  PARAMETER pcLoginCompany   AS CHARACTER NO-UNDO.
+DEFINE INPUT  PARAMETER pcSecurityType   AS CHARACTER NO-UNDO.
+DEFINE INPUT  PARAMETER pcEntityMnemonic AS CHARACTER NO-UNDO.
+DEFINE INPUT-OUTPUT PARAMETER TABLE FOR ttQueryParams.
+DEFINE OUTPUT PARAMETER TABLE-HANDLE ohttResultsSet.
+DEFINE OUTPUT PARAMETER ocMessageList    AS CHARACTER NO-UNDO.
 
-DEFINE INPUT-OUTPUT PARAMETER TABLE FOR    ttQueryParams.                                    
+DEFINE VARIABLE rRowIDs           AS ROWID EXTENT 10 NO-UNDO.
 
-DEFINE OUTPUT       PARAMETER TABLE-HANDLE ohttResultsSet.                                   
-DEFINE OUTPUT       PARAMETER              ocMessageList           AS CHARACTER     NO-UNDO. 
+DEFINE VARIABLE iLevel            AS INTEGER    NO-UNDO.
+DEFINE VARIABLE cSecuredLevel     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE hTT               AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hQuery            AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hBuffer           AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hField            AS HANDLE     NO-UNDO.
+DEFINE VARIABLE iStartRow         AS INTEGER    NO-UNDO.
+DEFINE VARIABLE cStartRowId       AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE iLoop             AS INTEGER    NO-UNDO.
+DEFINE VARIABLE dcUserObj         AS DECIMAL    NO-UNDO.
+DEFINE VARIABLE dcCompanyObj      AS DECIMAL    NO-UNDO.
+DEFINE VARIABLE cBufferHdlList    AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cFieldHdlList     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cBuffer           AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cField            AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE hTTBuff           AS HANDLE     NO-UNDO.
+DEFINE VARIABLE lOffEnd           AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE lOk               AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE lRestricted       AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE cFieldRestriction AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cRangeValueFrom   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cRangeValueTo     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE iLoop2            AS INTEGER    NO-UNDO.
+DEFINE VARIABLE hFromField        AS HANDLE     NO-UNDO.
+DEFINE VARIABLE cBrowseFields     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE iRow              AS INTEGER    NO-UNDO.
+DEFINE VARIABLE cRowid            AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cErrorMessage     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cUserName         AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cCompanyName      AS CHARACTER  NO-UNDO.
 
-
-DEFINE VARIABLE hTT                         AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hQuery                      AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hBuffer                     AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hField                      AS HANDLE     NO-UNDO.
-DEFINE VARIABLE iStartRow                   AS INTEGER    NO-UNDO.
-DEFINE VARIABLE cStartRowId                 AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE iLoop                       AS INTEGER    NO-UNDO.
-DEFINE VARIABLE dcUserObj                   AS DECIMAL    NO-UNDO.
-DEFINE VARIABLE dcCompanyObj                AS DECIMAL    NO-UNDO.
-DEFINE VARIABLE cBufferHdlList              AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cFieldHdlList               AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cBuffer                     AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cField                      AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE hTTBuff                     AS HANDLE     NO-UNDO.
-DEFINE VARIABLE rRowIDs                     AS ROWID EXTENT 10 NO-UNDO.
-DEFINE VARIABLE lOffEnd                     AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE lOk                         AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE lRestricted                 AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE cFieldRestriction           AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cRangeValueFrom             AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cRangeValueTo               AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE iLoop2                      AS INTEGER    NO-UNDO.
-DEFINE VARIABLE hFromField                  AS HANDLE     NO-UNDO.
-DEFINE VARIABLE cBrowseFields               AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE iRow                        AS INTEGER    NO-UNDO.
-DEFINE VARIABLE cRowid                      AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cErrorMessage               AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cUserName                   AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cCompanyName                AS CHARACTER  NO-UNDO.
-
+DEFINE BUFFER gsc_entity_mnemonic FOR gsc_entity_mnemonic.
 
 /* Initialise this batch */
-ASSIGN
-  ohttResultsSet = ?
-  .
+ASSIGN ohttResultsSet = ?.
 
 /* Get query parameters record*/
 FIND FIRST ttQueryParams NO-ERROR.
-IF NOT AVAILABLE ttQueryParams THEN 
-DO:    
-    ocMessageList = ocMessageList 
-                  + (IF NUM-ENTRIES(ocMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U)                   
-                  + {af/sup2/aferrortxt.i 'AF' '29' 'ttQueryParams' '?' '"query parameter temp table record'"}. 
+IF NOT AVAILABLE ttQueryParams THEN
+DO:
+    ocMessageList = ocMessageList + (IF NUM-ENTRIES(ocMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + {af/sup2/aferrortxt.i 'AF' '29' 'ttQueryParams' '?' '"query parameter temp table record'"}.
     RETURN.
 END.
 
-/* See if appending to an existing result set */ 
+/* See if appending to an existing result set */
 IF ttQueryParams.cLastResultRow <> "":U THEN
   ASSIGN
     iStartRow = INTEGER(ENTRY(1,ttQueryParams.cLastResultRow,";":U))
@@ -695,9 +670,7 @@ DO:
       OUTPUT cErrorMessage).
  IF cErrorMessage NE "":U THEN
  DO:
-    ocMessageList = ocMessageList 
-                  + (IF NUM-ENTRIES(ocMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U)                   
-                  + cErrorMessage.
+    ocMessageList = ocMessageList + (IF NUM-ENTRIES(ocMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + cErrorMessage.
     RETURN.
  END.
 END.
@@ -711,9 +684,7 @@ DO:
       OUTPUT cErrorMessage).
  IF cErrorMessage NE "":U THEN
  DO:
-    ocMessageList = ocMessageList 
-                  + (IF NUM-ENTRIES(ocMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U)                   
-                  + cErrorMessage.
+    ocMessageList = ocMessageList + (IF NUM-ENTRIES(ocMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + cErrorMessage.
     RETURN.
  END.
 END.
@@ -722,9 +693,7 @@ END.
 dcUserObj = getUserObj(pcUserID).
 IF dcUserObj = -1.00 THEN
 DO:
-    ocMessageList = ocMessageList 
-                  + (IF NUM-ENTRIES(ocMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U)                   
-                  + {af/sup2/aferrortxt.i 'AF' '11' '?' '?' '"user object value"' pcUserID}.
+    ocMessageList = ocMessageList + (IF NUM-ENTRIES(ocMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + {af/sup2/aferrortxt.i 'AF' '11' '?' '?' '"user object value"' pcUserID}.
    RETURN.
 END.
 
@@ -732,28 +701,38 @@ END.
 dcCompanyObj = getCompanyObj(pcLoginCompany).
 IF dcCompanyObj = -1.00 THEN
 DO:
-    ocMessageList = ocMessageList 
-                  + (IF NUM-ENTRIES(ocMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U)                   
-                  + {af/sup2/aferrortxt.i 'AF' '11' '?' '?' '"login company object value"' pcLoginCompany}.
+    ocMessageList = ocMessageList + (IF NUM-ENTRIES(ocMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + {af/sup2/aferrortxt.i 'AF' '11' '?' '?' '"login company object value"' pcLoginCompany}.
     RETURN.
 END.
 
 /* If Security Type is Data Records and the query is being run for the first time,
    set query parameters calling SetDataRecordsQueryParams procedure */
-IF pcSecurityType = "{&DATA-RECORDS}":U AND ttQueryParams.iFirstRowNum = 0 THEN
-DO:
-   RUN setDataRecordsQueryParams 
-       (INPUT  pcEntityMnemonic,
-        OUTPUT cErrorMessage).    
-   IF cErrorMessage NE "":U THEN
-   DO:
-       ocMessageList = ocMessageList 
-                     + (IF NUM-ENTRIES(ocMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U)                   
-                     + cErrorMessage.
-       RETURN.
-   END.
-    /* Re-Get query parameters record*/
-    FIND FIRST ttQueryParams NO-ERROR.
+IF pcSecurityType = "{&DATA-RECORDS}":U 
+THEN DO:
+    IF ttQueryParams.iFirstRowNum = 0 
+    THEN DO:
+        RUN setDataRecordsQueryParams (INPUT  pcEntityMnemonic,
+                                       OUTPUT cErrorMessage).
+        IF cErrorMessage NE "":U 
+        THEN DO:
+            ocMessageList = ocMessageList + (IF NUM-ENTRIES(ocMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + cErrorMessage.
+            RETURN.
+        END.
+
+        /* Re-Get query parameters record*/
+        FIND FIRST ttQueryParams NO-ERROR.
+    END.
+
+    FIND gsc_entity_mnemonic NO-LOCK
+         WHERE gsc_entity_mnemonic.entity_mnemonic = pcEntityMnemonic
+         NO-ERROR.
+    IF NOT AVAILABLE gsc_entity_mnemonic 
+    THEN DO:
+        ocMessageList = ocMessageList
+                      + (IF NUM-ENTRIES(ocMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U)
+                      + {af/sup2/aferrortxt.i 'AF' '11' 'gsc_entity_mnemonic' 'entity_mnemonic' '"Entity Mnemonic"' pcEntityMnemonic}.
+        RETURN.
+    END.
 END.
 
 /* Create query */
@@ -787,153 +766,163 @@ DO:
     hQuery:GET-FIRST() NO-ERROR.
 END.
 ELSE
-DO: 
+DO:
     /* Restart from after the last record read */
     ASSIGN rRowIDs = ?.       /* Fill in this array with all the rowids. */
     DO iLoop = 1 TO NUM-ENTRIES(cStartRowId):
-    rRowIDs[iLoop] = TO-ROWID(ENTRY(iLoop, cStartRowId)).
+        rRowIDs[iLoop] = TO-ROWID(ENTRY(iLoop, cStartRowId)).
     END.        /* END DO iCnt */
-    lOffEnd = hQuery:QUERY-OFF-END. 
+    lOffEnd = hQuery:QUERY-OFF-END.
     lOk = hQuery:REPOSITION-TO-ROWID(rRowIDs) NO-ERROR.
-    IF lOk OR (lOffEnd AND NOT ERROR-STATUS:ERROR) THEN 
-    DO:
-    hQuery:GET-NEXT() NO-ERROR. /* get row repositioned to */
-    hQuery:GET-NEXT() NO-ERROR. /* get next record */
+    IF lOk OR (lOffEnd AND NOT ERROR-STATUS:ERROR) 
+    THEN DO:
+        hQuery:GET-NEXT() NO-ERROR. /* get row repositioned to */
+        hQuery:GET-NEXT() NO-ERROR. /* get next record */
     END.
 END.
 
 /* Iterate for as many rows as the user has chosen, or until the query is off-end */
 REPEAT iRow = (iStartRow + 1) TO (ttQueryParams.iRowsToBatch + iStartRow) WHILE NOT hQuery:QUERY-OFF-END:
 
-  /* For a given Security Type parameter value, check security restrictions allocations */  
-  ASSIGN
-      lRestricted = NO
-      .
+  /* For a given Security Type parameter value, check security restrictions allocations */
+  ASSIGN lRestricted = NO.
+
   CASE pcSecurityType:
-      WHEN '{&MENU-STRUCTURES}':U THEN
-      DO:
+      WHEN '{&MENU-STRUCTURES}':U 
+      THEN DO:
           /* Get the handle to the buffer for gsm_menu_structure from the buffer handle list */
           hBuffer = WIDGET-HANDLE(ENTRY(LOOKUP('gsm_menu_structure':U,ttQueryParams.cQueryTables),cBufferHdlList)).
           /* Get the handle to the menu_structure_obj field of the gsm_menu_structure buffer */
-          hField  = hBuffer:BUFFER-FIELD('menu_structure_obj':U).          
+          hField  = hBuffer:BUFFER-FIELD('menu_structure_obj':U).
           /* Determine whether the menu structure - uniquely key by the menu_structure_obj field -
-            is restricted for a given value of User ID and Login Company */
-          lRestricted = getLogicalRestriction
-                           (INPUT dcUserObj,
-                            INPUT dcCompanyObj,
-                            INPUT pcEntityMnemonic,
-                            INPUT hField:BUFFER-VALUE()).                            
+            is restricted for a given value of User ID and Login Company */          
+          RUN getRestrictionLogical (INPUT dcUserObj,
+                                     INPUT dcCompanyObj,
+                                     INPUT pcEntityMnemonic,
+                                     INPUT hField:BUFFER-VALUE(),
+                                     OUTPUT lRestricted,
+                                     OUTPUT iLevel,
+                                     OUTPUT cSecuredLevel).
       END.
       WHEN '{&MENU-ITEMS}':U THEN
       DO:
           /* Get the handle to the buffer for gsm_menu_item from the buffer handle list */
           hBuffer = WIDGET-HANDLE(ENTRY(LOOKUP('gsm_menu_item':U,ttQueryParams.cQueryTables),cBufferHdlList)).
           /* Get the handle to the menu_item_obj field of the gsm_menu_item buffer */
-          hField  = hBuffer:BUFFER-FIELD('menu_item_obj':U).    
+          hField  = hBuffer:BUFFER-FIELD('menu_item_obj':U).
           /* Determine whether the menu item - uniquely key by the menu_item_obj field -
             is restricted for a given value of User ID and Login Company */
-          lRestricted = getLogicalRestriction
-                           (INPUT dcUserObj,
-                            INPUT dcCompanyObj,
-                            INPUT pcEntityMnemonic,
-                            INPUT hField:BUFFER-VALUE()).                            
+          RUN getRestrictionLogical (INPUT dcUserObj,
+                                     INPUT dcCompanyObj,
+                                     INPUT pcEntityMnemonic,
+                                     INPUT hField:BUFFER-VALUE(),
+                                     OUTPUT lRestricted,
+                                     OUTPUT iLevel,
+                                     OUTPUT cSecuredLevel).
       END.
       WHEN '{&ACCESS-TOKENS}':U THEN
       DO:
           /* Get the handle to the buffer for gsm_security_structure from the buffer handle list */
           hBuffer = WIDGET-HANDLE(ENTRY(LOOKUP('gsm_security_structure':U,ttQueryParams.cQueryTables),cBufferHdlList)).
           /* Get the handle to the security_structure_obj field of the gsm_security_structure buffer */
-          hField  = hBuffer:BUFFER-FIELD('security_structure_obj':U).         
+          hField  = hBuffer:BUFFER-FIELD('security_structure_obj':U).
           /* Determine whether the security structure for an access token - uniquely key by the security_structure_obj field -
             is restricted for a given value of User ID and Login Company */
-          lRestricted = getLogicalRestriction
-                           (INPUT dcUserObj,
-                            INPUT dcCompanyObj,
-                            INPUT pcEntityMnemonic,
-                            INPUT hField:BUFFER-VALUE()).                            
+          RUN getRestrictionLogical (INPUT dcUserObj,
+                                     INPUT dcCompanyObj,
+                                     INPUT pcEntityMnemonic,
+                                     INPUT hField:BUFFER-VALUE(),
+                                     OUTPUT lRestricted,
+                                     OUTPUT iLevel,
+                                     OUTPUT cSecuredLevel).
       END.
       WHEN '{&FIELDS}':U THEN
       DO:
           /* Get the handle to the buffer for gsm_security_structure from the buffer handle list */
           hBuffer = WIDGET-HANDLE(ENTRY(LOOKUP('gsm_security_structure':U,ttQueryParams.cQueryTables),cBufferHdlList)).
           /* Get the handle to the security_structure_obj field of the gsm_security_structure buffer */
-          hField  = hBuffer:BUFFER-FIELD('security_structure_obj':U).         
+          hField  = hBuffer:BUFFER-FIELD('security_structure_obj':U).
           /* Determine whether the security structure of an input field - uniquely key by the security_structure_obj field -
             is restricted for a given value of User ID and Login Company */
-          cFieldRestriction = getFieldRestriction
-                                 (INPUT dcUserObj,
-                                  INPUT dcCompanyObj,
-                                  INPUT pcEntityMnemonic,
-                                  INPUT hField:BUFFER-VALUE()).                            
+          RUN getRestrictionField (INPUT dcUserObj,
+                                   INPUT dcCompanyObj,
+                                   INPUT pcEntityMnemonic,
+                                   INPUT hField:BUFFER-VALUE(),
+                                   OUTPUT cFieldRestriction,
+                                   OUTPUT iLevel,
+                                   OUTPUT cSecuredLevel).
       END.
       WHEN '{&DATA-RANGES}':U THEN
       DO:
           /* Get the handle to the buffer for gsm_security_structure from the buffer handle list */
           hBuffer = WIDGET-HANDLE(ENTRY(LOOKUP('gsm_security_structure':U,ttQueryParams.cQueryTables),cBufferHdlList)).
           /* Get the handle to the security_structure_obj field of the gsm_security_structure buffer */
-          hField  = hBuffer:BUFFER-FIELD('security_structure_obj':U).          
+          hField  = hBuffer:BUFFER-FIELD('security_structure_obj':U).
           /* Determine whether the security structure for a data range - uniquely key by the security_structure_obj field -
             is restricted for a given value of User ID and Login Company */
-          RUN getRangeRestriction
+          RUN getRestrictionRange
               (INPUT dcUserObj,
                INPUT dcCompanyObj,
                INPUT pcEntityMnemonic,
                INPUT  hField:BUFFER-VALUE(),
                OUTPUT lRestricted,
                OUTPUT cRangeValueFrom,
-               OUTPUT cRangeValueTo).
+               OUTPUT cRangeValueTo,
+               OUTPUT iLevel,
+               OUTPUT cSecuredLevel).
       END.
       WHEN '{&DATA-RECORDS}':U THEN
-      DO:         
+      DO:
           /* Get the handle to the buffer for database table from the buffer handle list */
           hBuffer = WIDGET-HANDLE(ENTRY(1,cBufferHdlList)).
           /* Get the handle to the _obj field of the buffer */
           IF gsc_entity_mnemonic.table_has_object_field AND gsc_entity_mnemonic.entity_object_field <> "" THEN
               hField = hBuffer:BUFFER-FIELD(gsc_entity_mnemonic.entity_object_field).
           ELSE IF gsc_entity_mnemonic.table_has_object_field THEN
-              hField = hBuffer:BUFFER-FIELD(hBuffer:BUFFER-NAME + "_obj":U).
-          ELSE
-              hField = ?.
+                   hField = hBuffer:BUFFER-FIELD(hBuffer:BUFFER-NAME + "_obj":U).
+               ELSE
+                   hField = ?.
           /* Determine whether the database record - uniquely key by the _obj field -
              is restricted for a given value of User ID and Login Company */
           IF VALID-HANDLE(hField) THEN
-              lRestricted = getLogicalRestriction
-                               (INPUT dcUserObj,
-                                INPUT dcCompanyObj,
-                                INPUT gsc_entity_mnemonic.entity_mnemonic,
-                                INPUT hField:BUFFER-VALUE()).                            
+              RUN getRestrictionLogical (INPUT dcUserObj,
+                                         INPUT dcCompanyObj,
+                                         INPUT pcEntityMnemonic,
+                                         INPUT hField:BUFFER-VALUE(),
+                                         OUTPUT lRestricted,
+                                         OUTPUT iLevel,
+                                         OUTPUT cSecuredLevel).
       END.
-      WHEN '{&LOGIN-COMPANIES}':U THEN
-      DO:         
-          /* Get the handle to the buffer for gsc_login_company from the buffer handle list */
+      WHEN '{&LOGIN-COMPANIES}':U OR
+      WHEN '{&CONTAINER-OBJECTS}':U THEN
+      DO:
+          /* Get the handle to the buffer for gsc_login_company or gsc_object from the buffer handle list */
           hBuffer = WIDGET-HANDLE(ENTRY(1,cBufferHdlList)).
           /* Get the handle to the login_company_obj field of the gsm_login_company buffer */
-          hField  = hBuffer:BUFFER-FIELD(1).       
+          hField  = hBuffer:BUFFER-FIELD(1).
           /* Determine whether the login company - uniquely key by the login_company_obj field -
             is restricted for a given value of User ID and Login Company */
-          lRestricted = getLogicalRestriction
-                           (INPUT dcUserObj,
-                            INPUT dcCompanyObj,
-                            INPUT pcEntityMnemonic,
-                            INPUT hField:BUFFER-VALUE()).                            
+          RUN getRestrictionLogical (INPUT dcUserObj,
+                                     INPUT dcCompanyObj,
+                                     INPUT pcEntityMnemonic,
+                                     INPUT hField:BUFFER-VALUE(),
+                                     OUTPUT lRestricted,
+                                     OUTPUT iLevel,
+                                     OUTPUT cSecuredLevel).
       END.
   END CASE. /* CASE pcSecurityType */
 
-  /* Create a temp-table record */
   hTTBuff:BUFFER-CREATE().
-
-  /* Iterate through the fields in the temp table */  
   DO iLoop = 1 TO hTTBuff:NUM-FIELDS:
 
-    /* Get the handle to the current field */
     hField = hTTBuff:BUFFER-FIELD(iLoop).
 
     /* If this is the rowNum field, assign the row counter */
     IF iLoop = 1 THEN
-       hField:BUFFER-VALUE = iRow.
-    ELSE 
+         hField:BUFFER-VALUE = iRow.
+    ELSE
     /* If this is the rowIdent field, assign a comma-separated list of rowids for each buffer in the buffer handle list */
-    IF iLoop = 2 THEN 
+    IF iLoop = 2 THEN
     DO:
       hField:BUFFER-VALUE = "":U.
       /* for each entry in the buffer handle list */
@@ -941,91 +930,71 @@ REPEAT iRow = (iStartRow + 1) TO (ttQueryParams.iRowsToBatch + iStartRow) WHILE 
          /* Get the buffer handle */
          ASSIGN hBuffer = WIDGET-HANDLE(ENTRY(iLoop2, cBufferHdlList)).
          /* Get string of rowid of the buffer */
-         IF VALID-HANDLE(hbuffer) THEN
-            cRowid = STRING(hBuffer:ROWID).
-         ELSE
-            cRowid = "?":U.
+         IF VALID-HANDLE(hbuffer) THEN cRowid = STRING(hBuffer:ROWID). ELSE cRowid = "?":U.
          /* Add rowid string to list */
-         ASSIGN
-            hField:BUFFER-VALUE = hField:BUFFER-VALUE +
-                                  (IF iLoop2 = 1 THEN "":U ELSE ",":U) +
-                                  (IF cRowid = ? THEN "?":U ELSE cRowId).
+         ASSIGN hField:BUFFER-VALUE = hField:BUFFER-VALUE + (IF iLoop2 = 1 THEN "":U ELSE ",":U) + (IF cRowid = ? THEN "?":U ELSE cRowId).
       END.
 
       /* If first row, store first row details */
       IF ttQueryParams.iFirstRowNum = 0 AND iRow = 1 THEN
-         ASSIGN 
-            ttQueryParams.iFirstRowNum = 1
-            ttQueryParams.cFirstResultRow = "1;":U + hField:BUFFER-VALUE
-            .
+         ASSIGN ttQueryParams.iFirstRowNum = 1
+                ttQueryParams.cFirstResultRow = "1;":U + hField:BUFFER-VALUE.
 
       /* Store last result row details as we go */
-      ASSIGN
-         ttQueryParams.cLastResultRow = STRING(iRow) + ";":U + (IF hField:BUFFER-VALUE = ? THEN "?":U ELSE hField:BUFFER-VALUE)
-         .
+      ASSIGN ttQueryParams.cLastResultRow = STRING(iRow) + ";":U + (IF hField:BUFFER-VALUE = ? THEN "?":U ELSE hField:BUFFER-VALUE).
     END.  /* iloop = 2 */
-    ELSE
-    /* Set the value of the temp-table field to the value of the database buffer field */
-    DO:
-       /* If the field name is 'restricted' and the Security Type is correct, 
-          then assign buffer value to lRestricion calculated above */
-       IF  hField:NAME = 'restricted':U 
-       AND (   pcSecurityType = '{&MENU-STRUCTURES}':U 
-            OR pcSecurityType = '{&MENU-ITEMS}':U 
-            OR pcSecurityType = '{&ACCESS-TOKENS}':U
-            OR pcSecurityType = '{&DATA-RANGES}':U
-            OR pcSecurityType = '{&DATA-RECORDS}':U 
-            OR pcSecurityType = '{&LOGIN-COMPANIES}':U) 
-       THEN
-           hField:BUFFER-VALUE = lRestricted.
-       ELSE
-       /* If the field name is 'access_level' and the Security Type is correct (Fields),
-          then assign buffer value to cFieldRestriction calculated above */
-       IF hField:NAME = 'access_level':U AND pcSecurityType = '{&FIELDS}':U THEN
-          hField:BUFFER-VALUE = cFieldRestriction.
-       ELSE
-       /* If the field name is 'value_from' and the Security Type is correct (Data Ranges),
-          then assign buffer value to cRangeValueFrom calculated above */
-       IF hField:NAME = 'value_from' AND pcSecurityType = '{&DATA-RANGES}':U THEN
-          hField:BUFFER-VALUE = cRangeValueFrom.
-       ELSE
-       /* If the field name is 'value_to' and the Security Type is correct (Data Ranges),
-          then assign buffer value to cRangeValueTo calculated above */
-       IF hField:NAME = 'value_to' AND pcSecurityType = '{&DATA-RANGES}':U THEN
-          hField:BUFFER-VALUE = cRangeValueTo.
-       ELSE
-       DO:
+    ELSE DO: /* Set the value of the temp-table field to the value of the database buffer field */        
+       CASE hField:NAME:
+           /* If the field name is 'restricted' and the Security Type is correct, then assign buffer value to lRestricion calculated above */
+           WHEN "restricted":U THEN
+                IF pcSecurityType = '{&MENU-STRUCTURES}':U
+                OR pcSecurityType = '{&MENU-ITEMS}':U        OR pcSecurityType = '{&ACCESS-TOKENS}':U
+                OR pcSecurityType = '{&DATA-RANGES}':U       OR pcSecurityType = '{&DATA-RECORDS}':U
+                OR pcSecurityType = '{&CONTAINER-OBJECTS}':U OR pcSecurityType = '{&LOGIN-COMPANIES}':U THEN
+                    hField:BUFFER-VALUE = lRestricted.
 
-          ASSIGN
-              /* Otherwise get the handle of the corresponding field in the cFieldHdlList list */
-              hFromField = WIDGET-HANDLE(ENTRY(iLoop - 2,cFieldHdlList))
-              .
-          /* Set the value of the temp-table field to the value of the database buffer field */
-          RUN assignFieldValue
-              (INPUT cFieldHdlList, 
-               INPUT hFromField, 
-               INPUT hField).
+           WHEN "access_level":U THEN
+               IF pcSecurityType = '{&FIELDS}':U THEN
+                   hField:BUFFER-VALUE = cFieldRestriction.
 
-       END.
-    END. /* ELSE */
+           /* If the field name is 'value_from' and the Security Type is correct (Data Ranges), then assign buffer value to cRangeValueFrom calculated above */
+           WHEN "value_from":U THEN 
+               IF pcSecurityType = '{&DATA-RANGES}':U THEN
+                   hField:BUFFER-VALUE = cRangeValueFrom.
 
-  END. /* DO iLoop = 1 TO hTTBuff:NUM-FIELDS: */
+           /* If the field name is 'value_to' and the Security Type is correct (Data Ranges), then assign buffer value to cRangeValueTo calculated above */
+           WHEN "value_to":U THEN 
+               IF pcSecurityType = '{&DATA-RANGES}':U THEN
+                   hField:BUFFER-VALUE = cRangeValueTo.
 
-  /* Release the temp-table record */
+           WHEN "security_level_desc":U THEN
+               ASSIGN hField:BUFFER-VALUE = cSecuredLevel.
+
+           WHEN "security_level":U THEN
+               ASSIGN hField:BUFFER-VALUE = iLevel.
+
+           OTHERWISE DO:
+               ASSIGN hFromField = WIDGET-HANDLE(ENTRY(iLoop - 2,cFieldHdlList)) NO-ERROR.
+               IF NOT ERROR-STATUS:ERROR THEN
+                   RUN assignFieldValue (INPUT cFieldHdlList,
+                                         INPUT hFromField,
+                                         INPUT hField).
+           END.
+       END CASE.       
+    END.
+  END.
+
   hTTBuff:BUFFER-RELEASE().
   /* Get the next result in the query */
   hQuery:GET-NEXT().
-
 END. /* REPEAT */
 
 /* See if reached last record and set last rowNum if we have */
 IF hQuery:QUERY-OFF-END THEN
-   ASSIGN
-      ttQueryParams.iLastRowNum = iRow. 
+   ASSIGN ttQueryParams.iLastRowNum = iRow.
 ELSE
-/* More to records come, set last rowNUM to 0 */ 
-   ASSIGN
-      ttQueryParams.iLastRowNum = 0.   
+/* More records to come, set last rowNUM to 0 */
+   ASSIGN ttQueryParams.iLastRowNum = 0.
 
 /* Cleanup */
 DELETE OBJECT hQuery NO-ERROR.
@@ -1040,9 +1009,7 @@ DO iLoop = 1 TO NUM-ENTRIES(cBufferHdlList):
 END. /* buffer-loop2 */
 
 /* Assign the output parameter temp table handle */
-ASSIGN
-    ohttResultsSet = hTT
-    .
+ASSIGN ohttResultsSet = hTT.
 
 /* Delete temp-table object */
 DELETE OBJECT hTT.
@@ -1055,19 +1022,203 @@ END PROCEDURE.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getRangeRestriction) = 0 &THEN
+&IF DEFINED(EXCLUDE-getRestrictionField) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getRangeRestriction Procedure 
-PROCEDURE getRangeRestriction PRIVATE :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getRestrictionField Procedure 
+PROCEDURE getRestrictionField :
+/*------------------------------------------------------------------------------
+  Purpose:     Returns a field security restriction for a given combination
+               of user obj, company obj, entity mnemonic string, and security
+               structure obj (owning obj).
+  Notes:
+------------------------------------------------------------------------------*/
+DEFINE INPUT  PARAMETER pdUserObj         AS DECIMAL    NO-UNDO.
+DEFINE INPUT  PARAMETER pdOrganisationObj AS DECIMAL    NO-UNDO.
+DEFINE INPUT  PARAMETER pcEntityMnemonic  AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER pdOwningObj       AS DECIMAL    NO-UNDO.
+
+DEFINE OUTPUT PARAMETER pcAccess           AS CHARACTER  NO-UNDO.
+DEFINE OUTPUT PARAMETER piSecuredLevel     AS INTEGER    NO-UNDO.
+DEFINE OUTPUT PARAMETER pcSecuredLevelDesc AS CHARACTER  NO-UNDO.
+
+ASSIGN pcAccess           = "Full Access"
+       piSecuredLevel     = 0
+       pcSecuredLevelDesc = "N/A".
+
+ IF pdUserObj         = 0 THEN ASSIGN pdUserObj = ?.
+ IF pdOrganisationObj = 0 THEN ASSIGN pdOrganisationObj = ?.
+
+/* Attempt match for all input parameter values - pdUserObj, pdOrganisationObj, pcEntityMenmonic, pdOwningObj
+ ie. security restriction applied to a user within a login company */
+FIND FIRST gsm_user_allocation NO-LOCK
+     WHERE gsm_user_allocation.user_obj               = pdUserObj
+       AND gsm_user_allocation.login_organisation_obj = pdOrganisationObj
+       AND gsm_user_allocation.owning_entity_mnemonic = pcEntityMnemonic
+       AND gsm_user_allocation.owning_obj             = pdOwningObj
+     NO-ERROR.
+
+IF AVAILABLE gsm_user_allocation 
+THEN DO:
+    ASSIGN pcAccess           = gsm_user_allocation.user_allocation_value1
+           piSecuredLevel     = 4 
+           pcSecuredLevelDesc = "Secured for specified user in specified organisation.".
+    RETURN.
+END.
+
+/* Attempt match for where organisation obj is 0 ie. security restriciton applied to a user for all login companies */
+FIND FIRST gsm_user_allocation NO-LOCK
+     WHERE gsm_user_allocation.USER_obj               = pdUserObj
+       AND gsm_user_allocation.login_organisation_obj = 0
+       AND gsm_user_allocation.owning_entity_mnemonic = pcEntityMnemonic
+       AND gsm_user_allocation.owning_obj             = pdOwningObj
+     NO-ERROR.
+
+IF AVAILABLE gsm_user_allocation 
+THEN DO:
+    ASSIGN pcAccess           = gsm_user_allocation.user_allocation_value1
+           piSecuredLevel     = 3
+           pcSecuredLevelDesc = "Secured for specified user, all organisations.":U.
+    RETURN.
+END.
+
+/* Attempt match for where user obj is 0 ie. security restriciton applied to all users within a login company */
+FIND FIRST gsm_user_allocation NO-LOCK
+     WHERE gsm_user_allocation.USER_obj               = 0
+       AND gsm_user_allocation.login_organisation_obj = pdOrganisationObj
+       AND gsm_user_allocation.owning_entity_mnemonic = pcEntityMnemonic
+       AND gsm_user_allocation.owning_obj             = pdOwningObj
+     NO-ERROR.
+
+IF AVAILABLE gsm_user_allocation 
+THEN DO:
+    ASSIGN pcAccess           = gsm_user_allocation.user_allocation_value1
+           piSecuredLevel     = 2
+           pcSecuredLevelDesc = "Secured for all users in the specified organisation.":U.
+    RETURN.
+END.
+
+/* Attempt match for where organisation obj is 0 and user Obj is 0    *
+ * ie. security restriciton applied to a user for all login companies */
+FIND FIRST gsm_user_allocation NO-LOCK
+     WHERE gsm_user_allocation.USER_obj               = 0
+       AND gsm_user_allocation.login_organisation_obj = 0
+       AND gsm_user_allocation.owning_entity_mnemonic = pcEntityMnemonic
+       AND gsm_user_allocation.owning_obj             = pdOwningObj
+     NO-ERROR.
+
+IF AVAILABLE gsm_user_allocation 
+THEN DO:
+    ASSIGN pcAccess           = gsm_user_allocation.user_allocation_value1
+           piSecuredLevel     = 1
+           pcSecuredLevelDesc = "Secured for all users, all organisations.":U.
+    RETURN.
+END.
+
+ASSIGN ERROR-STATUS:ERROR = NO.
+
+RETURN "":U.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getRestrictionLogical) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getRestrictionLogical Procedure 
+PROCEDURE getRestrictionLogical :
+DEFINE INPUT  PARAMETER pdUserObj         AS DECIMAL    NO-UNDO.
+DEFINE INPUT  PARAMETER pdOrganisationObj AS DECIMAL    NO-UNDO.
+DEFINE INPUT  PARAMETER pcEntityMnemonic  AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER pdOwningObj       AS DECIMAL    NO-UNDO.
+
+DEFINE OUTPUT PARAMETER plSecured          AS LOGICAL    NO-UNDO.
+DEFINE OUTPUT PARAMETER piSecuredLevel     AS INTEGER    NO-UNDO.
+DEFINE OUTPUT PARAMETER pcSecuredLevelDesc AS CHARACTER  NO-UNDO.
+
+ASSIGN plSecured          = NO
+       piSecuredLevel     = 0
+       pcSecuredLevelDesc = "N/A".
+
+ IF pdUserObj         = 0 THEN ASSIGN pdUserObj = ?.
+ IF pdOrganisationObj = 0 THEN ASSIGN pdOrganisationObj = ?.
+
+ /* Attempt match for all input parameter values - pdUserObj, pdOrganisationObj, pcEntityMenmonic, pdOwningObj *
+  * ie. security restriction applied to a user within a login company                                          */
+
+ IF CAN-FIND(FIRST gsm_user_allocation
+             WHERE gsm_user_allocation.user_obj               = pdUserObj
+               AND gsm_user_allocation.login_organisation_obj = pdOrganisationObj
+               AND gsm_user_allocation.owning_entity_mnemonic = pcEntityMnemonic
+               AND gsm_user_allocation.owning_obj             = pdOwningObj) 
+ THEN DO:
+     ASSIGN plSecured          = YES
+            piSecuredLevel     = 4
+            pcSecuredLevelDesc = "Secured for specified user in specified organisation.".
+     RETURN.
+ END.
+
+ /* Attempt match for where organisation obj is 0 ie. security restriciton applied to a user for all login companies */
+ IF CAN-FIND(FIRST gsm_user_allocation
+             WHERE gsm_user_allocation.user_obj               = pdUserObj
+               AND gsm_user_allocation.login_organisation_obj = 0
+               AND gsm_user_allocation.owning_entity_mnemonic = pcEntityMnemonic
+               AND gsm_user_allocation.owning_obj             = pdOwningObj) 
+ THEN DO:
+     ASSIGN plSecured          = YES
+            piSecuredLevel     = 3
+            pcSecuredLevelDesc = "Secured for specified user, all organisations.".
+     RETURN.
+ END.
+
+  /* Attempt match for where user obj is 0 ie. security restriciton applied to all users within a login company */
+  IF CAN-FIND(FIRST gsm_user_allocation
+              WHERE gsm_user_allocation.USER_obj               = 0
+                AND gsm_user_allocation.login_organisation_obj = pdOrganisationObj
+                AND gsm_user_allocation.owning_entity_mnemonic = pcEntityMnemonic
+                AND gsm_user_allocation.owning_obj             = pdOwningObj) 
+  THEN DO:
+      ASSIGN plSecured          = YES
+             piSecuredLevel     = 2
+             pcSecuredLevelDesc = "Secured for all users in the specified organisation.".
+      RETURN.
+  END.
+
+  /* Attempt match for where organisation obj is 0 and user Obj is 0
+     ie. security restriciton applied to a user for all login companies */
+  IF CAN-FIND(FIRST gsm_user_allocation
+              WHERE gsm_user_allocation.USER_obj               = 0
+                AND gsm_user_allocation.login_organisation_obj = 0
+                AND gsm_user_allocation.owning_entity_mnemonic = pcEntityMnemonic
+                AND gsm_user_allocation.owning_obj             = pdOwningObj) 
+  THEN DO:
+      ASSIGN plSecured          = YES
+             piSecuredLevel     = 1
+             pcSecuredLevelDesc = "Secured for all users, all organisations.".
+      RETURN.
+  END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getRestrictionRange) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getRestrictionRange Procedure 
+PROCEDURE getRestrictionRange PRIVATE :
 /*------------------------------------------------------------------------------
   Purpose:     Returns a data range security restriction for a given combination
                of user obj, company obj, entity mnemonic string, and security
-               structure obj (owning obj).              
+               structure obj (owning obj).
   Parameters:  input decimal for the user obj
                input decimal for the company obj
                input string for the entity mnemonic
                input decimal for the security structure (owning) obj
-  Notes:       Uses strong buffer scoping               
+  Notes:       Uses strong buffer scoping
 ------------------------------------------------------------------------------*/
 
   DEFINE INPUT  PARAMETER pdUserObj          AS DECIMAL      NO-UNDO.
@@ -1078,14 +1229,22 @@ PROCEDURE getRangeRestriction PRIVATE :
   DEFINE OUTPUT PARAMETER plRangeRestriction AS LOGICAL      NO-UNDO.
   DEFINE OUTPUT PARAMETER pcRangeValueFrom   AS CHARACTER    NO-UNDO.
   DEFINE OUTPUT PARAMETER pcRangeValueTo     AS CHARACTER    NO-UNDO.
+  DEFINE OUTPUT PARAMETER piSecuredLevel     AS INTEGER    NO-UNDO.
+  DEFINE OUTPUT PARAMETER pcSecuredLevelDesc AS CHARACTER  NO-UNDO.
 
   DEFINE BUFFER b_gsm_user_allocation      FOR gsm_user_allocation.
 
   /* Initialise range restriction */
-  plRangeRestriction = NO.
+  ASSIGN plRangeRestriction = NO
+         piSecuredLevel     = 0
+         pcSecuredLevelDesc = "N/A".
+
+  IF pdUserObj         = 0 THEN ASSIGN pdUserObj = ?.
+  IF pdOrganisationObj = 0 THEN ASSIGN pdOrganisationObj = ?.
+
   user-allocation-block:
   DO FOR b_gsm_user_allocation:
-      /* Attempt match for all input parameter values - pdUserObj, pdOrganisationObj, pcEntityMenmonic, pdOwningObj 
+      /* Attempt match for all input parameter values - pdUserObj, pdOrganisationObj, pcEntityMenmonic, pdOwningObj
          ie. security restriction applied to a user within a login company */
       FIND FIRST b_gsm_user_allocation NO-LOCK
            WHERE b_gsm_user_allocation.user_obj               = pdUserObj
@@ -1093,43 +1252,71 @@ PROCEDURE getRangeRestriction PRIVATE :
              AND b_gsm_user_allocation.owning_entity_mnemonic = pcEntityMnemonic
              AND b_gsm_user_allocation.owning_obj             = pdOwningObj
            NO-ERROR.
-      IF NOT AVAILABLE b_gsm_user_allocation THEN
-         /* Attempt match for where organisation obj is 0 ie. security restriciton applied to a user for all login companies */ 
-         FIND FIRST b_gsm_user_allocation NO-LOCK
-              WHERE b_gsm_user_allocation.USER_obj               = pdUserObj
-                AND b_gsm_user_allocation.login_organisation_obj = 0
-                AND b_gsm_user_allocation.owning_entity_mnemonic = pcEntityMnemonic
-                AND b_gsm_user_allocation.owning_obj             = pdOwningObj
-              NO-ERROR.
-      IF NOT AVAILABLE b_gsm_user_allocation THEN
-         /* Attempt match for where user obj is 0 ie. security restriciton applied to all users within a login company */ 
-         FIND FIRST b_gsm_user_allocation NO-LOCK
-              WHERE gsm_user_allocation.USER_obj               = 0
-                AND gsm_user_allocation.login_organisation_obj = pdOrganisationObj
-                AND gsm_user_allocation.owning_entity_mnemonic = pcEntityMnemonic
-                AND gsm_user_allocation.owning_obj             = pdOwningObj
-              NO-ERROR.
-      IF NOT AVAILABLE b_gsm_user_allocation THEN
-         /* Attempt match for where organisation obj is 0 and user Obj is 0
-            ie. security restriciton applied to a user for all login companies */ 
-         FIND FIRST b_gsm_user_allocation NO-LOCK
-              WHERE b_gsm_user_allocation.USER_obj               = 0
-                AND b_gsm_user_allocation.login_organisation_obj = 0
-                AND b_gsm_user_allocation.owning_entity_mnemonic = pcEntityMnemonic
-                AND b_gsm_user_allocation.owning_obj             = pdUserObj
-              NO-ERROR.
-      IF NOT AVAILABLE b_gsm_user_allocation THEN
-          /* No security restriction */
-          ASSIGN
-             plRangeRestriction = NO
-             .
-      ELSE
-          /* Security restriction - return data range values */
-          ASSIGN
-             plRangeRestriction = YES
-             pcRangeValueFrom   = b_gsm_user_allocation.USER_allocation_value1
-             pcRangeValueTo     = b_gsm_user_allocation.USER_allocation_value2
-             .
+
+      IF AVAILABLE b_gsm_user_allocation 
+      THEN DO:
+          ASSIGN plRangeRestriction = YES
+                 pcRangeValueFrom   = b_gsm_user_allocation.USER_allocation_value1
+                 pcRangeValueTo     = b_gsm_user_allocation.USER_allocation_value2
+                 piSecuredLevel     = 4 
+                 pcSecuredLevelDesc = "Secured for specified user in specified organisation.".
+          RETURN.
+      END.
+      
+      /* Attempt match for where organisation obj is 0 ie. security restriciton applied to a user for all login companies */
+      FIND FIRST b_gsm_user_allocation NO-LOCK
+           WHERE b_gsm_user_allocation.USER_obj               = pdUserObj
+             AND b_gsm_user_allocation.login_organisation_obj = 0
+             AND b_gsm_user_allocation.owning_entity_mnemonic = pcEntityMnemonic
+             AND b_gsm_user_allocation.owning_obj             = pdOwningObj
+           NO-ERROR.
+
+      IF AVAILABLE b_gsm_user_allocation 
+      THEN DO:
+          ASSIGN plRangeRestriction = YES
+                 pcRangeValueFrom   = b_gsm_user_allocation.USER_allocation_value1
+                 pcRangeValueTo     = b_gsm_user_allocation.USER_allocation_value2
+                 piSecuredLevel     = 3 
+                 pcSecuredLevelDesc = "Secured for specified user, all organisations.".
+          RETURN.
+      END.
+      
+      /* Attempt match for where user obj is 0 ie. security restriciton applied to all users within a login company */
+      FIND FIRST b_gsm_user_allocation NO-LOCK
+           WHERE b_gsm_user_allocation.USER_obj               = 0
+             AND b_gsm_user_allocation.login_organisation_obj = pdOrganisationObj
+             AND b_gsm_user_allocation.owning_entity_mnemonic = pcEntityMnemonic
+             AND b_gsm_user_allocation.owning_obj             = pdOwningObj
+           NO-ERROR.
+
+      IF AVAILABLE b_gsm_user_allocation 
+      THEN DO:
+          ASSIGN plRangeRestriction = YES
+                 pcRangeValueFrom   = b_gsm_user_allocation.USER_allocation_value1
+                 pcRangeValueTo     = b_gsm_user_allocation.USER_allocation_value2
+                 piSecuredLevel     = 2 
+                 pcSecuredLevelDesc = "Secured for all users in the specified organisation.".
+          RETURN.
+      END.
+      
+      /* Attempt match for where organisation obj is 0 and user Obj is 0
+         ie. security restriciton applied to a user for all login companies */
+      FIND FIRST b_gsm_user_allocation NO-LOCK
+           WHERE b_gsm_user_allocation.USER_obj               = 0
+             AND b_gsm_user_allocation.login_organisation_obj = 0
+             AND b_gsm_user_allocation.owning_entity_mnemonic = pcEntityMnemonic
+             AND b_gsm_user_allocation.owning_obj             = pdOwningObj
+           NO-ERROR.
+
+      IF AVAILABLE b_gsm_user_allocation 
+      THEN DO:
+          ASSIGN plRangeRestriction = YES
+                 pcRangeValueFrom   = b_gsm_user_allocation.USER_allocation_value1
+                 pcRangeValueTo     = b_gsm_user_allocation.USER_allocation_value2
+                 piSecuredLevel     = 1 
+                 pcSecuredLevelDesc = "Secured for all users, all organisations.".
+          RETURN.
+      END.
   END.
 
 END PROCEDURE.
@@ -1146,7 +1333,7 @@ PROCEDURE getUserFullName :
 /*------------------------------------------------------------------------------
   Purpose:     To validate a User ID and return User Full Name
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 
     DEFINE INPUT  PARAMETER pcUserID                     AS CHARACTER    NO-UNDO.
@@ -1160,8 +1347,8 @@ PROCEDURE getUserFullName :
     IF NOT AVAILABLE gsm_user THEN
     DO:
        /* Return an error message */
-       ocErrorText   = ocErrorText 
-                     + (IF NUM-ENTRIES(ocErrorText,CHR(3)) > 0 THEN CHR(3) ELSE '':U)                   
+       ocErrorText   = ocErrorText
+                     + (IF NUM-ENTRIES(ocErrorText,CHR(3)) > 0 THEN CHR(3) ELSE '':U)
                      + {af/sup2/aferrortxt.i 'AF' '11' '?' '?' '"user login name"' pcUserID}.
     END.
     ELSE
@@ -1182,7 +1369,7 @@ PROCEDURE killPlip :
 /*------------------------------------------------------------------------------
   Purpose:     entry point to instantly kill the plip if it should get lost in memory
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 
 {ry/app/ryplipkill.i}
@@ -1222,7 +1409,7 @@ PROCEDURE plipSetup :
 /*------------------------------------------------------------------------------
   Purpose:    Run by main-block of PLIP at startup of PLIP
   Parameters: <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 
 {ry/app/ryplipsetu.i}
@@ -1239,10 +1426,10 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE plipShutdown Procedure 
 PROCEDURE plipShutdown :
 /*------------------------------------------------------------------------------
-  Purpose:     This procedure will be run just before the calling program 
+  Purpose:     This procedure will be run just before the calling program
                terminates
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 
 {ry/app/ryplipshut.i}
@@ -1263,10 +1450,10 @@ PROCEDURE setDataRecordsQueryParams PRIVATE :
                when security type is Data Records
   Parameters:  output string for error messages
   Notes:       Attempts to use information stored in the relevant record in
-               gsm_entity_mnemonic db table 
+               gsc_entity_mnemonic db table
                Requires some metaschema information which is provided by
                creating a buffer object for the db table described by the
-               gsm_entity_mnemonic.entity_mnemonic_description
+               gsc_entity_mnemonic.entity_mnemonic_description
 ------------------------------------------------------------------------------*/
 
     DEFINE INPUT  PARAMETER pcEntityMnemonic    AS CHARACTER  NO-UNDO.
@@ -1282,11 +1469,11 @@ PROCEDURE setDataRecordsQueryParams PRIVATE :
 
     /* Get query parameters record*/
     FIND FIRST ttQueryParams NO-ERROR.
-    IF NOT AVAILABLE ttQueryParams THEN 
+    IF NOT AVAILABLE ttQueryParams THEN
     DO:
-        ocError = ocError 
-                + (IF NUM-ENTRIES(ocError,CHR(3)) > 0 THEN CHR(3) ELSE '':U) 
-                  + {af/sup2/aferrortxt.i 'AF' '29' 'ttQueryParams' '?' '"query parameter temp table record'"}. 
+        ocError = ocError
+                + (IF NUM-ENTRIES(ocError,CHR(3)) > 0 THEN CHR(3) ELSE '':U)
+                  + {af/sup2/aferrortxt.i 'AF' '29' 'ttQueryParams' '?' '"query parameter temp table record'"}.
         RETURN.
     END.
 
@@ -1294,18 +1481,19 @@ PROCEDURE setDataRecordsQueryParams PRIVATE :
     FIND FIRST gsc_entity_mnemonic NO-LOCK
          WHERE gsc_entity_mnemonic.entity_mnemonic = pcEntityMnemonic
          NO-ERROR.
+
     IF NOT AVAILABLE gsc_entity_mnemonic THEN
     DO:
-        ocError = ocError 
-                + (IF NUM-ENTRIES(ocError,CHR(3)) > 0 THEN CHR(3) ELSE '':U)                   
-                + {af/sup2/aferrortxt.i 'AF' '11' 'gsm_entity_mnemonic' 'entity_mnemonic' '"Entity Mnemonic"' pcEntityMnemonic}.
+        ocError = ocError
+                + (IF NUM-ENTRIES(ocError,CHR(3)) > 0 THEN CHR(3) ELSE '':U)
+                + {af/sup2/aferrortxt.i 'AF' '11' 'gsc_entity_mnemonic' 'entity_mnemonic' '"Entity Mnemonic"' pcEntityMnemonic}.
         RETURN.
     END.
 
     /* Set key field in query parameters from Entity Mnemonic record is not blank */
     IF gsc_entity_mnemonic.entity_key_field NE "":U THEN
         ASSIGN
-            ttQueryParams.cKeyField                   = gsc_entity_mnemonic.entity_key_field
+            ttQueryParams.cKeyField = gsc_entity_mnemonic.entity_key_field
             .
 
     /* Create a buffer object for the table described by the Entity Mnemonic record
@@ -1313,9 +1501,9 @@ PROCEDURE setDataRecordsQueryParams PRIVATE :
     CREATE BUFFER hBuffer FOR TABLE gsc_entity_mnemonic.entity_mnemonic_description NO-ERROR.
     IF ERROR-STATUS:ERROR THEN
     DO:
-        ocError = ocError 
-                + (IF NUM-ENTRIES(ocError,CHR(3)) > 0 THEN CHR(3) ELSE '':U)                   
-                + {af/sup2/aferrortxt.i 'AF' '11' 'gsm_entity_mnemonic' 'entity_mnemonic' '"Entity Mnemonic"' pcEntityMnemonic}.
+        ocError = ocError
+                + (IF NUM-ENTRIES(ocError,CHR(3)) > 0 THEN CHR(3) ELSE '':U)
+                + {af/sup2/aferrortxt.i 'AF' '11' 'gsc_entity_mnemonic' 'entity_mnemonic' '"database table"' "'entity mnemonic ' + pcEntityMnemonic + '.  Please make sure the applicable database is connected and the table exists'"}.
         ERROR-STATUS:ERROR = NO.
         RETURN.
     END.
@@ -1336,7 +1524,7 @@ PROCEDURE setDataRecordsQueryParams PRIVATE :
                       gsc_entity_display_field.DISPLAY_field_label <> "":U THEN
                      gsc_entity_display_field.DISPLAY_field_label  ELSE IF
                       LENGTH(hField:COLUMN-LABEL) > 0 THEN
-                     hField:COLUMN-LABEL ELSE hField:LABEL)   
+                     hField:COLUMN-LABEL ELSE hField:LABEL)
           cBrowseFields                          = cBrowseFields
                                                 + (IF cBrowseFields    EQ "":U THEN "":U ELSE ",":U)
                                                 + gsc_entity_mnemonic.entity_mnemonic_description
@@ -1352,7 +1540,7 @@ PROCEDURE setDataRecordsQueryParams PRIVATE :
                                                 + (IF ttQueryParams.cBrowseFieldLabels EQ "":U THEN "":U ELSE CHR(3))
                                                 + cLabel
            .
-      
+
         IF hField:DATA-TYPE NE "CHARACTER":U THEN
            ttQueryParams.cBrowseFieldFormats      = ttQueryParams.cBrowseFieldFormats
                                                   + (IF ttQueryParams.cBrowseFieldFormats EQ "":U THEN "":U ELSE CHR(3))
@@ -1380,19 +1568,19 @@ PROCEDURE setDataRecordsQueryParams PRIVATE :
                                                   +  cFormat.
         END.
       END.
-      
+
       ASSIGN
         ttQueryParams.cBrowseFields             = cBrowseFields
         .
     END. /* display fields exist */
     ELSE
     /* If no display fields setup, then iterate through the fields in the created buffer object,
-       then build lists of fields and respective labels, formats, data types for query parameters */      
+       then build lists of fields and respective labels, formats, data types for query parameters */
     DO iLoop = 1 TO hBuffer:NUM-FIELDS:
-        ASSIGN 
+        ASSIGN
           hField = hBuffer:BUFFER-FIELD(iLoop)
           cLabel = IF LENGTH(hField:COLUMN-LABEL) > 0 THEN
-                      hField:COLUMN-LABEL ELSE hField:LABEL   
+                      hField:COLUMN-LABEL ELSE hField:LABEL
           .
         /* Ignore any field that ends in "_obj" */
         IF hField:NAME MATCHES "*_OBJ":U THEN NEXT.
@@ -1480,12 +1668,12 @@ PROCEDURE setFieldRestriction :
   dOwningObj = getOwningObj(phTTBuffer, pcEntityMnemonic).
 
   /* Get access level to the field */
-  hField = phTTBuffer:BUFFER-FIELD('access_level':U).                    
+  hField = phTTBuffer:BUFFER-FIELD('access_level':U).
   cAccessLevel = hField:BUFFER-VALUE().
 
   trans-block:
   DO FOR b_gsm_user_allocation TRANSACTION ON ERROR UNDO trans-block, LEAVE trans-block:
-      /* Attempt to find and exclusively lock existing security allocation for the given user, 
+      /* Attempt to find and exclusively lock existing security allocation for the given user,
          login company, entity mnemonic, and security structure (owning obj) */
       FIND b_gsm_user_allocation EXCLUSIVE-LOCK
           WHERE b_gsm_user_allocation.USER_obj               = pdUserObj
@@ -1512,7 +1700,7 @@ PROCEDURE setFieldRestriction :
               b_gsm_user_allocation.USER_allocation_value1 = cAccessLevel.
           /* Commit changes to the databases, fire triggers, and return any errors */
           VALIDATE b_gsm_user_allocation NO-ERROR.
-          {af/sup2/afcheckerr.i &no-return = YES}    
+          {af/sup2/afcheckerr.i &no-return = YES}
           ocErrorText = cMessageList.
           IF ocErrorText <> "":U THEN UNDO trans-block, LEAVE trans-block.
       END.
@@ -1558,15 +1746,15 @@ PROCEDURE setLogicalRestriction :
   DEFINE VARIABLE lRestricted                  AS LOGICAL      NO-UNDO.
 
   /* Get the owning obj of the entity to which the security restriction is being applied */
-  dOwningObj = getOwningObj(phTTBuffer, pcEntityMnemonic).  
+  dOwningObj = getOwningObj(phTTBuffer, pcEntityMnemonic).
 
   /* Get restriciton flag */
-  hField = phTTBuffer:BUFFER-FIELD('restricted':U).                    
+  hField = phTTBuffer:BUFFER-FIELD('restricted':U).
   lRestricted = hField:BUFFER-VALUE().
 
   trans-block:
   DO FOR b_gsm_user_allocation TRANSACTION ON ERROR UNDO trans-block, LEAVE trans-block:
-      /* Attempt to find and exclusively lock existing security allocation for the given user, 
+      /* Attempt to find and exclusively lock existing security allocation for the given user,
          login company, entity mnemonic, and security structure (owning obj) */
       FIND b_gsm_user_allocation EXCLUSIVE-LOCK
           WHERE b_gsm_user_allocation.USER_obj               = pdUserObj
@@ -1588,7 +1776,7 @@ PROCEDURE setLogicalRestriction :
               .
           /* Commit changes to the databases, fire triggers, and return any errors */
           VALIDATE b_gsm_user_allocation NO-ERROR.
-          {af/sup2/afcheckerr.i &no-return = YES}    
+          {af/sup2/afcheckerr.i &no-return = YES}
           ocErrorText = cMessageList.
           IF ocErrorText <> "":U THEN UNDO trans-block, LEAVE trans-block.
       END.
@@ -1640,18 +1828,18 @@ PROCEDURE setRangeRestriction :
   dOwningObj = getOwningObj(phTTBuffer, pcEntityMnemonic).
 
   /* Get restricted (logical) value */
-  hField      = phTTBuffer:BUFFER-FIELD('restricted':U).                    
+  hField      = phTTBuffer:BUFFER-FIELD('restricted':U).
   lRestricted = hField:BUFFER-VALUE().
   /* Get lower bound of range */
-  hField      = phTTBuffer:BUFFER-FIELD('value_from':U).                    
+  hField      = phTTBuffer:BUFFER-FIELD('value_from':U).
   cValueFrom  = hField:BUFFER-VALUE().
   /* Get upper bound of range */
-  hField      = phTTBuffer:BUFFER-FIELD('value_to':U).                    
+  hField      = phTTBuffer:BUFFER-FIELD('value_to':U).
   cValueTo    = hField:BUFFER-VALUE().
 
   trans-block:
   DO FOR b_gsm_user_allocation TRANSACTION ON ERROR UNDO trans-block, LEAVE trans-block:
-      /* Attempt to find and exclusively lock existing security allocation for the given user, 
+      /* Attempt to find and exclusively lock existing security allocation for the given user,
          login company, entity mnemonic, and security structure (owning obj) */
       FIND b_gsm_user_allocation EXCLUSIVE-LOCK
           WHERE b_gsm_user_allocation.USER_obj               = pdUserObj
@@ -1680,7 +1868,7 @@ PROCEDURE setRangeRestriction :
               .
           /* Commit changes to the databases, fire triggers, and return any errors */
           VALIDATE b_gsm_user_allocation NO-ERROR.
-          {af/sup2/afcheckerr.i &no-return = YES}    
+          {af/sup2/afcheckerr.i &no-return = YES}
           ocErrorText = cMessageList.
           IF ocErrorText <> "":U THEN UNDO trans-block, LEAVE trans-block.
       END.
@@ -1723,7 +1911,6 @@ FUNCTION createTT RETURNS HANDLE PRIVATE
   hTT:ADD-NEW-FIELD("RowNum":U,"INTEGER":U).      /* Row number for sequencing */
   hTT:ADD-NEW-FIELD("RowIdent":U,"CHARACTER":U).  /* string of Rowid of correspding record, comma delimited for multiple tables */
 
-
   /* Add selected fields */
   DO iLoop = 1 TO NUM-ENTRIES(pcFieldHdlList):
      hField = WIDGET-HANDLE(ENTRY(iLoop,pcFieldHdlList)).
@@ -1756,14 +1943,20 @@ FUNCTION createTT RETURNS HANDLE PRIVATE
         hTT:ADD-NEW-FIELD("value_to":U,"CHARACTER":U,0,"x(10)","","Value To","Value To").
     END.
     WHEN '{&DATA-RECORDS}':U THEN
-    DO:        
-        hTT:ADD-NEW-FIELD("restricted":U,"LOGICAL":U,0,"YES/NO","NO","Restricted?","Restricted?").        
-    END.
-    WHEN '{&LOGIN-COMPANIES}':U THEN
     DO:
-        hTT:ADD-NEW-FIELD("restricted":U,"LOGICAL":U,0,"YES/NO","NO","Restricted?","Restricted?").        
-    END.        
+        hTT:ADD-NEW-FIELD("restricted":U,"LOGICAL":U,0,"YES/NO","NO","Restricted?","Restricted?").
+    END.
+    WHEN '{&LOGIN-COMPANIES}':U OR
+    WHEN '{&CONTAINER-OBJECTS}':U THEN
+    DO:
+        hTT:ADD-NEW-FIELD("restricted":U,"LOGICAL":U,0,"YES/NO","NO","Restricted?","Restricted?").
+    END.
   END CASE.
+
+  /* Add the security level and security level description fields */
+
+  hTT:ADD-NEW-FIELD("security_level":U     ,"INTEGER":U  ,0,">>9","0","Security Level","Security Level").
+  hTT:ADD-NEW-FIELD("security_level_desc":U,"CHARACTER":U,0,"x(70)","","Where Set","Where Set").
 
   /* Add indexes to the temp-table */
   hTT:ADD-NEW-INDEX("idxRowNum":U,FALSE,FALSE).
@@ -1787,10 +1980,10 @@ END FUNCTION.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getBufferHandleList Procedure 
 FUNCTION getBufferHandleList RETURNS CHARACTER
-  ( INPUT-OUTPUT phQuery      AS HANDLE ) :
+  ( INPUT-OUTPUT phQuery AS HANDLE):
 /*------------------------------------------------------------------------------
   Purpose:  Returns a comma-separated list of buffer handles used in the dynamic query
-    Notes:  
+    Notes:
 ------------------------------------------------------------------------------*/
 
   DEFINE VARIABLE hBuffer         AS HANDLE     NO-UNDO.
@@ -1825,7 +2018,7 @@ END FUNCTION.
 FUNCTION getCompanyObj RETURNS DECIMAL PRIVATE
   ( INPUT pcLoginCompany    AS CHARACTER ) :
 /*------------------------------------------------------------------------------
-  Purpose:  Returns the _obj value for a given Login Company record  
+  Purpose:  Returns the _obj value for a given Login Company record
     Notes:  Returns 0.00 if given a blank login company value
             Returns -1.00 if the login company is not found
 ------------------------------------------------------------------------------*/
@@ -1836,7 +2029,7 @@ FUNCTION getCompanyObj RETURNS DECIMAL PRIVATE
          WHERE gsm_login_company.login_company_code = pcLoginCompany
          NO-ERROR.
     IF NOT AVAILABLE gsm_login_company THEN
-       RETURN -1.00.       
+       RETURN -1.00.
   END.
   ELSE
       RETURN 0.00.
@@ -1872,135 +2065,19 @@ FUNCTION getFieldHandleList RETURNS CHARACTER
       RETURN "":U.
 
   /* for each entry in ttQueryParams.cBrowseFields */
+
   DO iLoop = 1 TO NUM-ENTRIES(ttQueryParams.cBrowseFields):
-      cBuffer = ENTRY(iLoop,ttQueryParams.cBrowseFields).
-      cField  = ENTRY(2,cBuffer,".":U).
-      cBuffer = ENTRY(1,cBuffer,".":U).
-      hBuffer = WIDGET-HANDLE(ENTRY(LOOKUP(cBuffer,ttQueryParams.cQueryTables),pcBufferHdlList)).
-      hField  = hBuffer:BUFFER-FIELD(cField).
-      hField:LABEL  = ENTRY(iLoop,ttQueryParams.cBrowseFieldLabels,CHR(3)).
-      hField:FORMAT = ENTRY(iLoop,ttQueryParams.cBrowseFieldFormats,CHR(3)).
-      cFieldHdlList = cFieldHdlList + (IF cFieldHdlList <> "":U THEN ",":U ELSE "":U) + STRING(hField).
+      ASSIGN cBuffer       = ENTRY(iLoop,ttQueryParams.cBrowseFields).
+             cField        = ENTRY(2,cBuffer,".":U).
+             cBuffer       = ENTRY(1,cBuffer,".":U).
+             hBuffer       = WIDGET-HANDLE(ENTRY(LOOKUP(cBuffer,ttQueryParams.cQueryTables),pcBufferHdlList)).
+             hField        = hBuffer:BUFFER-FIELD(cField).
+             hField:LABEL  = ENTRY(iLoop,ttQueryParams.cBrowseFieldLabels,CHR(3)).
+             hField:FORMAT = ENTRY(iLoop,ttQueryParams.cBrowseFieldFormats,CHR(3)).
+             cFieldHdlList = cFieldHdlList + (IF cFieldHdlList <> "":U THEN ",":U ELSE "":U) + STRING(hField).
   END. /* iLoop */
 
   RETURN cFieldHdlList.   /* Function return value. */
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getFieldRestriction) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFieldRestriction Procedure 
-FUNCTION getFieldRestriction RETURNS CHARACTER PRIVATE
-  ( INPUT pdUserObj             AS DECIMAL,
-    INPUT pdOrganisationObj     AS DECIMAL,
-    INPUT pcEntityMnemonic      AS CHARACTER,
-    INPUT pdOwningObj           AS DECIMAL ) :
-/*------------------------------------------------------------------------------
-  Purpose:     Returns a field security restriction for a given combination
-               of user obj, company obj, entity mnemonic string, and security
-               structure obj (owning obj).              
-  Notes:       
-------------------------------------------------------------------------------*/
-
-  /* Attempt match for all input parameter values - pdUserObj, pdOrganisationObj, pcEntityMenmonic, pdOwningObj 
-     ie. security restriction applied to a user within a login company */
-  FIND FIRST gsm_user_allocation NO-LOCK
-       WHERE gsm_user_allocation.user_obj               = pdUserObj
-         AND gsm_user_allocation.login_organisation_obj = pdOrganisationObj
-         AND gsm_user_allocation.owning_entity_mnemonic = pcEntityMnemonic
-         AND gsm_user_allocation.owning_obj             = pdOwningObj
-       NO-ERROR.
-  IF NOT AVAILABLE gsm_user_allocation THEN
-     /* Attempt match for where organisation obj is 0 ie. security restriciton applied to a user for all login companies */ 
-     FIND FIRST gsm_user_allocation NO-LOCK
-          WHERE gsm_user_allocation.USER_obj               = pdUserObj
-            AND gsm_user_allocation.login_organisation_obj = 0
-            AND gsm_user_allocation.owning_entity_mnemonic = pcEntityMnemonic
-            AND gsm_user_allocation.owning_obj             = pdOwningObj
-          NO-ERROR.
-  IF NOT AVAILABLE gsm_user_allocation THEN
-     /* Attempt match for where user obj is 0 ie. security restriciton applied to all users within a login company */ 
-     FIND FIRST gsm_user_allocation NO-LOCK
-          WHERE gsm_user_allocation.USER_obj               = 0
-            AND gsm_user_allocation.login_organisation_obj = pdOrganisationObj
-            AND gsm_user_allocation.owning_entity_mnemonic = pcEntityMnemonic
-            AND gsm_user_allocation.owning_obj             = pdOwningObj
-          NO-ERROR.
-  IF NOT AVAILABLE gsm_user_allocation THEN
-     /* Attempt match for where organisation obj is 0 and user Obj is 0
-        ie. security restriciton applied to a user for all login companies */ 
-     FIND FIRST gsm_user_allocation NO-LOCK
-          WHERE gsm_user_allocation.USER_obj               = 0
-            AND gsm_user_allocation.login_organisation_obj = 0
-            AND gsm_user_allocation.owning_entity_mnemonic = pcEntityMnemonic
-            AND gsm_user_allocation.owning_obj             = pdOwningObj
-          NO-ERROR.
-
-  /* If no security allocation record, return full access, else return access level value */
-  RETURN (IF AVAILABLE gsm_user_allocation THEN gsm_user_allocation.USER_allocation_value1 ELSE "Full Access").   /* Function return value. */
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getLogicalRestriction) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getLogicalRestriction Procedure 
-FUNCTION getLogicalRestriction RETURNS LOGICAL PRIVATE
-  ( INPUT pdUserObj            AS DECIMAL,
-    INPUT pdOrganisationObj    AS DECIMAL,
-    INPUT pcEntityMnemonic     AS CHARACTER,
-    INPUT pdOwningObj          AS DECIMAL ) :
-/*------------------------------------------------------------------------------
-  Purpose:     Returns a security restriction for a given combination
-               of user obj, company obj, entity mnemonic string, and security
-               structure obj (owning obj).              
-  Notes:       Returns a logical indicating a security restriction exists or not
-------------------------------------------------------------------------------*/
-
-  RETURN 
-     /* Attempt match for all input parameter values - pdUserObj, pdOrganisationObj, pcEntityMenmonic, pdOwningObj 
-        ie. security restriction applied to a user within a login company */
-     (CAN-FIND(FIRST gsm_user_allocation
-               WHERE gsm_user_allocation.user_obj               = pdUserObj
-                 AND gsm_user_allocation.login_organisation_obj = pdOrganisationObj
-                 AND gsm_user_allocation.owning_entity_mnemonic = pcEntityMnemonic
-                 AND gsm_user_allocation.owning_obj             = pdOwningObj
-              )      
-      OR 
-      /* Attempt match for where organisation obj is 0 ie. security restriciton applied to a user for all login companies */ 
-      CAN-FIND(FIRST gsm_user_allocation
-               WHERE gsm_user_allocation.USER_obj               = pdUserObj
-                 AND gsm_user_allocation.login_organisation_obj = 0
-                 AND gsm_user_allocation.owning_entity_mnemonic = pcEntityMnemonic
-                 AND gsm_user_allocation.owning_obj             = pdOwningObj
-              )
-      OR
-      /* Attempt match for where user obj is 0 ie. security restriciton applied to all users within a login company */ 
-      CAN-FIND(FIRST gsm_user_allocation
-               WHERE gsm_user_allocation.USER_obj               = 0
-                 AND gsm_user_allocation.login_organisation_obj = pdOrganisationObj
-                 AND gsm_user_allocation.owning_entity_mnemonic = pcEntityMnemonic
-                 AND gsm_user_allocation.owning_obj             = pdOwningObj
-              )
-      OR
-      /* Attempt match for where organisation obj is 0 and user Obj is 0
-         ie. security restriciton applied to a user for all login companies */ 
-      CAN-FIND(FIRST gsm_user_allocation
-               WHERE gsm_user_allocation.USER_obj               = 0
-                 AND gsm_user_allocation.login_organisation_obj = 0
-                 AND gsm_user_allocation.owning_entity_mnemonic = pcEntityMnemonic
-                 AND gsm_user_allocation.owning_obj             = pdOwningObj
-              )
-     ).
 
 END FUNCTION.
 
@@ -2021,8 +2098,9 @@ FUNCTION getOwningObj RETURNS DECIMAL
     Notes:  If given entity mnemonic is not found, return -1.00
 ------------------------------------------------------------------------------*/
 
-  DEFINE VARIABLE hBuffer    AS HANDLE      NO-UNDO.
-  DEFINE VARIABLE hField     AS HANDLE      NO-UNDO.
+  DEFINE VARIABLE dFieldValue AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE hBuffer     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hField      AS HANDLE     NO-UNDO.
 
   /* Get entity mnemonic record - should have been validated in commitQueryResultSet */
   FIND FIRST gsc_entity_mnemonic NO-LOCK
@@ -2037,11 +2115,16 @@ FUNCTION getOwningObj RETURNS DECIMAL
   /* Create a buffer object for the db table described by gsc_entity_mnemonic.entity_mnemonic_description */
   CREATE BUFFER hBuffer FOR TABLE gsc_entity_mnemonic.entity_mnemonic_description.
   /* Populate the buffer object with a record with ROWID equal to the rowIdent from the record in the temp table */
-  hBuffer:FIND-BY-ROWID(TO-ROWID(ENTRY(1,hField:BUFFER-VALUE()))).  
+  hBuffer:FIND-BY-ROWID(TO-ROWID(ENTRY(1,hField:BUFFER-VALUE()))).
   /* Get handle to the _obj field of the db buffer */
-  hField = hBuffer:BUFFER-FIELD(gsc_entity_mnemonic.entity_object_field).
+  ASSIGN
+      hField      = hBuffer:BUFFER-FIELD(gsc_entity_mnemonic.entity_object_field)
+      dFieldValue = hField:BUFFER-VALUE().
 
-  RETURN (hField:BUFFER-VALUE()).  /* Function return value. */
+  IF VALID-HANDLE(hBuffer) THEN DELETE OBJECT hBuffer.
+  ASSIGN hBuffer = ?.
+
+  RETURN dFieldValue.  /* Function return value. */
 
 END FUNCTION.
 
@@ -2056,7 +2139,7 @@ END FUNCTION.
 FUNCTION getUserObj RETURNS DECIMAL PRIVATE
   ( INPUT pcUserID AS CHARACTER) :
 /*------------------------------------------------------------------------------
-  Purpose:  Returns the _obj value for a given Login Company record  
+  Purpose:  Returns the _obj value for a given Login Company record
     Notes:  Returns 0.00 if given a blank login company value
             Returns -1.00 if the login company is not found
 ------------------------------------------------------------------------------*/
@@ -2067,7 +2150,7 @@ FUNCTION getUserObj RETURNS DECIMAL PRIVATE
          WHERE gsm_user.USER_login_name = pcUserID
          NO-ERROR.
     IF NOT AVAILABLE gsm_user THEN
-       RETURN -1.00.       
+       RETURN -1.00.
   END.
   ELSE
       RETURN 0.00.

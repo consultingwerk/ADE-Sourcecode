@@ -84,13 +84,21 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &glob   AstraProcedure    yes
 
 /* Global variables belonging to ICF */
-{afglobals.i}
+{src/adm2/globals.i}
 
 /* Replace control character function call */
-{afxmlreplctrl.i}
+{af/sup2/afxmlreplctrl.i}
 
 /* ttNode table and manipulation include */
-{afttnode.i}
+{af/sup2/afttnode.i}
+
+/* Patch list temp-table */
+{install/inc/inttpatchlist.i}
+
+/* Install Windows API constants */
+{install/inc/inwinapiconst.i}
+
+DEFINE STREAM sLogFile.
 
 DEFINE VARIABLE giRecNo       AS INTEGER    NO-UNDO.
 DEFINE VARIABLE ghCurrPage    AS HANDLE     NO-UNDO.
@@ -99,7 +107,7 @@ DEFINE VARIABLE ghCurrFrame   AS HANDLE     NO-UNDO.
 DEFINE VARIABLE ghParentFrame AS HANDLE     NO-UNDO.
 DEFINE VARIABLE ghSourceProc  AS HANDLE     NO-UNDO.
 DEFINE VARIABLE gcWindowTitle AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE ghAPIProc     AS HANDLE     NO-UNDO.
+DEFINE VARIABLE glStreamOpen  AS LOGICAL    NO-UNDO.
 
 DEFINE TEMP-TABLE ttPage NO-UNDO
   FIELD iPageNo         AS INTEGER
@@ -202,64 +210,14 @@ DEFINE TEMP-TABLE ttService NO-UNDO
     cServiceName
   .
 
-/* The remainder of this section contains constants used for the MessageBoxA
-   Windows API call. */
-
-&SCOPED-DEFINE MB_OK                       0
-&SCOPED-DEFINE MB_OKCANCEL                 1
-&SCOPED-DEFINE MB_ABORTRETRYIGNORE         2
-&SCOPED-DEFINE MB_YESNOCANCEL              3
-&SCOPED-DEFINE MB_YESNO                    4
-&SCOPED-DEFINE MB_RETRYCANCEL              5
-
-
-&SCOPED-DEFINE MB_ICONHAND                 16
-&SCOPED-DEFINE MB_ICONQUESTION             32
-&SCOPED-DEFINE MB_ICONEXCLAMATION          48
-&SCOPED-DEFINE MB_ICONASTERISK             64
-
-&SCOPED-DEFINE MB_USERICON                 128
-&SCOPED-DEFINE MB_ICONWARNING              {&MB_ICONEXCLAMATION}
-&SCOPED-DEFINE MB_ICONERROR                {&MB_ICONHAND}
-
-&SCOPED-DEFINE MB_ICONINFORMATION          {&MB_ICONASTERISK}
-&SCOPED-DEFINE MB_ICONSTOP                 {&MB_ICONHAND}
-
-&SCOPED-DEFINE MB_DEFBUTTON1               0
-&SCOPED-DEFINE MB_DEFBUTTON2               256
-&SCOPED-DEFINE MB_DEFBUTTON3               512  
-&SCOPED-DEFINE MB_DEFBUTTON4               768
-
-&SCOPED-DEFINE MB_APPLMODAL                0
-&SCOPED-DEFINE MB_SYSTEMMODAL              4096
-&SCOPED-DEFINE MB_TASKMODAL                8192
-&SCOPED-DEFINE MB_HELP                     16384 
-
-&SCOPED-DEFINE MB_NOFOCUS                  32768
-&SCOPED-DEFINE MB_SETFOREGROUND            65536
-&SCOPED-DEFINE MB_DEFAULT_DESKTOP_ONLY     131072
-
-&SCOPED-DEFINE MB_TOPMOST                  262144
-&SCOPED-DEFINE MB_RIGHT                    524288
-&SCOPED-DEFINE MB_RTLREADING               1048576
-
-
-&SCOPED-DEFINE MB_TYPEMASK                 15
-&SCOPED-DEFINE MB_ICONMASK                 240
-&SCOPED-DEFINE MB_DEFMASK                  3840
-&SCOPED-DEFINE MB_MODEMASK                 12288
-&SCOPED-DEFINE MB_MISCMASK                 49152
-
-
-&SCOPED-DEFINE IDOK                        1
-&SCOPED-DEFINE IDCANCEL                    2
-&SCOPED-DEFINE IDABORT                     3
-&SCOPED-DEFINE IDRETRY                     4
-&SCOPED-DEFINE IDIGNORE                    5
-&SCOPED-DEFINE IDYES                       6
-&SCOPED-DEFINE IDNO                        7
-&SCOPED-DEFINE IDCLOSE                     8
-&SCOPED-DEFINE IDHELP                      9
+DEFINE TEMP-TABLE ttPatches NO-UNDO
+  FIELD cPatchDB         AS CHARACTER
+  FIELD cPatchLevel      AS CHARACTER
+  FIELD lApply           AS LOGICAL
+  INDEX pudx IS PRIMARY UNIQUE
+    cPatchDB
+    cPatchLevel
+  .
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -302,6 +260,18 @@ FUNCTION analyzeIf RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-deriveDBTable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD deriveDBTable Procedure 
+FUNCTION deriveDBTable RETURNS CHARACTER
+  ( INPUT pcDBName AS CHARACTER,
+    INPUT pcFile   AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-evaluateExpression) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD evaluateExpression Procedure 
@@ -313,22 +283,12 @@ FUNCTION evaluateExpression RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-expandTokens) = 0 &THEN
+&IF DEFINED(EXCLUDE-formatMessage) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD expandTokens Procedure 
-FUNCTION expandTokens RETURNS CHARACTER
-  ( INPUT pcString AS CHARACTER)  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getExpandablePropertyValue) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getExpandablePropertyValue Procedure 
-FUNCTION getExpandablePropertyValue RETURNS CHARACTER
-  ( INPUT pcProperty AS CHARACTER )  FORWARD.
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD formatMessage Procedure 
+FUNCTION formatMessage RETURNS CHARACTER
+  ( INPUT pcMessage AS CHARACTER,
+    INPUT pcTokens  AS CHARACTER)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -376,6 +336,28 @@ FUNCTION messageBox RETURNS INTEGER
   ( INPUT pcMessage AS CHARACTER,
     INPUT pcTokens  AS CHARACTER,
     INPUT pcStyle   AS CHARACTER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-obtainDBVersion) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD obtainDBVersion Procedure 
+FUNCTION obtainDBVersion RETURNS CHARACTER
+  ( INPUT pclDBName AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-showStatus) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD showStatus Procedure 
+FUNCTION showStatus RETURNS LOGICAL
+  ( INPUT pcStatus AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -452,6 +434,147 @@ END.
 
 /* **********************  Internal Procedures  *********************** */
 
+&IF DEFINED(EXCLUDE-applyUpgrade) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE applyUpgrade Procedure 
+PROCEDURE applyUpgrade :
+/*------------------------------------------------------------------------------
+  Purpose:     This procedure loops through all the records in the ttPatchList
+               table and applies the change that the patch requires to the
+               database it affects.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cSiteNo      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cCalReverse  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cCalDivision AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iCount       AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cFile        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDBTable     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lError       AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cMessage     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cPathDump    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cPathDF      AS CHARACTER  NO-UNDO.
+
+
+  DEFINE BUFFER bttPatchList FOR ttPatchList.
+
+  /* Loop through all the patches in the patch list.     
+     If the update stage > 6 we can't run these updates now. These  are reserved
+     for the "In Session" patch runner */
+  FOR EACH bttPatchList
+    WHERE bttPatchList.iUpdateWhen < 7 
+    BREAK BY bttPatchList.cPatchDB
+          BY bttPatchList.cPatchLevel
+          BY bttPatchList.iUpdateWhen
+          BY bttPatchList.iSeq
+    ON ERROR UNDO, LEAVE:
+
+
+    IF FIRST-OF(bttPatchList.cPatchDB) THEN
+    DO:
+      DELETE ALIAS VALUE("DICTDB":U).
+      CREATE ALIAS VALUE("DICTDB":U) FOR DATABASE VALUE(bttPatchList.cPatchDB).
+      cPathDump = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
+                                   "path_":U + bttPatchList.cPatchDB + "_dump":U).
+      cPathDump = REPLACE(cPathDump,"~\":U, "/":U).
+      cPathDF   = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
+                                   "path_":U + bttPatchList.cPatchDB + "_dfd":U).
+      cPathDF   = REPLACE(cPathDF,"~\":U, "/":U).
+    END.
+
+    IF FIRST-OF(bttPatchList.cPatchLevel) THEN
+    DO:
+      showStatus(SUBSTITUTE("Updating database &1 to level &2",bttPatchList.cPatchDB,bttPatchList.cPatchLevel)).
+    END.
+
+    showStatus(bttPatchList.cDescription).
+
+
+    /* If this is not a site number record, there is a file name that we need to find
+       in one of the directories. Use the API in the configuration file manager that
+       will find the file */
+    IF bttPatchList.cFileType <> "s":U THEN
+    DO:
+      IF bttPatchList.cFileType = "d":U THEN
+        cFile = DYNAMIC-FUNCTION("findFile":U IN THIS-PROCEDURE,
+                                 bttPatchList.cFileName + "/.":U).
+      ELSE
+    END.
+    
+    IF NOT lError THEN
+    DO:
+      /* Now figure out what to do with this record. */
+      CASE bttPatchList.cFileType:
+        WHEN "d":U THEN  /* Data load */
+        DO:
+          RUN prodict/load_d.p (INPUT "ALL":U, INPUT cPathDump) NO-ERROR. 
+        END.
+        WHEN "df":U THEN /* DF file for database schema */
+        DO:
+          cFile = cPathDF + (IF SUBSTRING(cPathDF,LENGTH(cPathDF)) = "/":U THEN "":U ELSE "/":U)
+                + bttPatchList.cFileName.
+          IF SEARCH(cFile) = ? THEN
+          DO:
+            cMessage = formatMessage("MSG_file_not_found":U, bttPatchList.cFileName).
+            lError = YES.
+          END.
+          ELSE
+            RUN prodict/load_df.p (INPUT cFile) NO-ERROR.
+        END.
+        WHEN "p":U THEN /* Procedure to run */
+        DO:
+          cFile = DYNAMIC-FUNCTION("findFile":U IN THIS-PROCEDURE,
+                         bttPatchList.cFileName).
+
+          IF cFile = ? THEN
+          DO:
+            cMessage = formatMessage("MSG_file_not_found":U, bttPatchList.cFileName).
+            lError = YES.
+          END.
+          ELSE
+            RUN VALUE(cFile) NO-ERROR.
+        END.
+        WHEN "s":U THEN  /* Set the site number */
+        DO:
+          RUN setSiteNumber IN THIS-PROCEDURE.
+        END.                                                  
+      END.
+      IF ERROR-STATUS:ERROR THEN 
+      DO:
+        ERROR-STATUS:ERROR = NO.
+        lError = YES.
+        IF RETURN-VALUE <> ? AND
+           RETURN-VALUE <> "":U THEN
+          cMessage = RETURN-VALUE.
+
+      END.
+      IF LAST-OF(bttPatchList.cPatchLevel) THEN
+        showStatus(SUBSTITUTE("Completed updating database &1 to level &2",bttPatchList.cPatchDB,bttPatchList.cPatchLevel)).
+    END.
+
+    IF lError THEN
+    DO:
+      IF NOT bttPatchList.lUpdateMandatory THEN
+        showStatus("WARNING: " + cMessage).
+      ELSE
+      DO:
+        showStatus("ERROR: " + cMessage).
+        RETURN ERROR cMessage.
+      END.
+    END.
+
+    ASSIGN
+      bttPatchList.lApplied = YES
+    .
+  END.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-btnChoose) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE btnChoose Procedure 
@@ -507,13 +630,17 @@ PROCEDURE checkForDBs :
     IF cDBPath <> "":U AND
        cDBPath <> ? AND
        SEARCH(cDBPath) <> ? THEN
+    DO:
       DYNAMIC-FUNCTION("setSessionParam":U IN THIS-PROCEDURE,
                        cDB + "_does_not_exist":U,
                        "NO":U).
+    END.
     ELSE
+    DO:
       DYNAMIC-FUNCTION("setSessionParam":U IN THIS-PROCEDURE,
                        cDB + "_does_not_exist":U,
                        "YES":U).
+    END.
   END.
 END PROCEDURE.
 
@@ -564,55 +691,62 @@ PROCEDURE createButtons :
   DEFINE VARIABLE iBtnWidth    AS INTEGER  NO-UNDO.
   DEFINE VARIABLE hButton      AS HANDLE     NO-UNDO.
   DEFINE VARIABLE iBtnPos      AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hWin         AS HANDLE   NO-UNDO.
+  DEFINE VARIABLE iWinWidth    AS INTEGER  NO-UNDO.
+  DEFINE VARIABLE iWinHeight   AS INTEGER  NO-UNDO.
 
   DEFINE BUFFER bttButton FOR ttButton.
 
   CREATE WIDGET-POOL gcPageName PERSISTENT.
 
+  /* Get the window width and height in characters */
+  RUN getFrameHandle IN ghCurrPage (OUTPUT ghCurrFrame).
+  ASSIGN
+      hWin = ghParentFrame:WINDOW
+      iWinWidth = hWin:WIDTH-CHARS
+      iWinHeight = hWin:HEIGHT-CHARS.
   FOR EACH bttButton 
     WHERE bttButton.iPageNo = piPageNo
     BY bttButton.iPageNo
     BY bttButton.cButtonJustify
     BY bttButton.iButtonNo:
+    iBtnWidth = LENGTH(bttButton.cButtonLabel,"COL":U) + 2.
+    IF iBtnWidth < 15 THEN
+        iBtnWidth = 15.
     CASE bttButton.cButtonJustify:
       WHEN "A":U THEN
-          iLeft = iLeft + 1.
+          iLeft = iLeft + iBtnWidth + 2.
       WHEN "B":U THEN
-          iCenter = iCenter + 1.
+          iCenter = iCenter + iBtnWidth + 2.
       WHEN "C":U THEN
-          iRight = iRight + 1.
+          iRight = iRight + iBtnWidth + 2.
     END CASE.
   END.
 
-  iBtnWidth = MIN(530 / (iLeft + iCenter + iRight), 81) - 6.
-  iStartLeft = 9.
-  iStartRight = 537 - ((iBtnWidth + 6)* iRight).
-  iStartCenter = (537  - ((iBtnWidth + 6)* iCenter)) / 2.
+  ASSIGN
+      iStartLeft = 3
+      iStartRight = iWinWidth - iRight
+      iStartCenter = (iWinWidth - iCenter) / 2.
 
-  IF (iStartCenter + ((iBtnWidth + 6)* iCenter)) > iStartRight - 6 THEN
-    iStartCenter = iStartRight - (iStartCenter + ((iBtnWidth + 6)* iCenter)) - 6.
 
   FOR EACH bttButton 
     WHERE bttButton.iPageNo = piPageNo
     BY bttButton.iPageNo
     BY bttButton.cButtonJustify
     BY bttButton.iButtonNo:
+    iBtnWidth = LENGTH(bttButton.cButtonLabel,"COL":U) + 2.
+    IF iBtnWidth < 15 THEN
+        iBtnWidth = 15.
     CASE bttButton.cButtonJustify:
       WHEN "A":U THEN
         ASSIGN
-          iBtnPos = iStartLeft
-          iStartLeft = iStartLeft + iBtnWidth + 6
-        .
+          iBtnPos = iStartLeft.
       WHEN "B":U THEN
         ASSIGN
-          iBtnPos = iStartCenter
-          iStartCenter = iStartCenter + iBtnWidth + 6
-        .
+          iBtnPos = iStartCenter.
       WHEN "C":U THEN
         ASSIGN
-          iBtnPos = iStartRight
-          iStartRight = iStartRight + iBtnWidth + 6
-        .
+          iBtnPos = iStartRight.
     END CASE.
 
     CREATE BUTTON hButton IN WIDGET-POOL gcPageName
@@ -621,10 +755,15 @@ PROCEDURE createButtons :
         AUTO-GO       = bttButton.cDefault = "YES":U */
         NAME          = bttButton.cButtonName
         LABEL         = bttButton.cButtonLabel
+        /*
         X             = iBtnPos
         Y             = 332
         WIDTH-PIXELS  = iBtnWidth
         HEIGHT-PIXELS = 24
+        */
+        ROW           = iWinHeight - .15
+        COL           = iBtnPos
+        WIDTH-CHARS   = iBtnWidth
         FRAME         = phFrame
         SENSITIVE     = TRUE
         VISIBLE       = TRUE
@@ -634,8 +773,196 @@ PROCEDURE createButtons :
             PERSISTENT RUN btnChoose IN THIS-PROCEDURE.
         END TRIGGERS.
 
+        CASE bttButton.cButtonJustify:
+          WHEN "A":U THEN
+            ASSIGN
+              iStartLeft = iStartLeft + hButton:WIDTH-CHARS + 2.
+          WHEN "B":U THEN
+            ASSIGN
+              iStartCenter = iStartCenter + hButton:WIDTH-CHARS + 2.
+          WHEN "C":U THEN
+            ASSIGN
+              iStartRight = iStartRight + hButton:WIDTH-CHARS + 2.
+        END CASE.
   END.
 
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-DCU_WriteLog) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE DCU_WriteLog Procedure 
+PROCEDURE DCU_WriteLog :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER pcStatus AS CHARACTER  NO-UNDO.
+
+  IF glStreamOpen THEN
+  DO:
+    pcStatus = "[":U + STRING(TODAY,"99/99/9999":U) + " ":U + STRING(TIME,"HH:MM:SS":U) + "]  ":U
+            + pcStatus.
+    PUT STREAM sLogFile UNFORMATTED
+      pcStatus SKIP.
+  END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-decidePatchList) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE decidePatchList Procedure 
+PROCEDURE decidePatchList :
+/*------------------------------------------------------------------------------
+  Purpose:     This procedure reads the contents of the ttPatchList table and
+               adds ryt_dbupdate_status records that may be needed to update
+               the database.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cDBsToSetup AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cCurrDB     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lBuildNew   AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cPatchList  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cBuildNew   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iCount      AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iCount2     AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cDB         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cVersion    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lDelete     AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cPatchNo    AS CHARACTER  NO-UNDO.
+
+  DEFINE BUFFER bttPatches   FOR ttPatches.
+  DEFINE BUFFER bttPatchList FOR ttPatchList.
+  DEFINE BUFFER bttValue     FOR ttValue.
+
+  /* Get the list of database to set up as this affects the name of the
+     page group. */
+  cDBsToSetup = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
+                                 "dbs_to_setup":U).
+  IF cDBsToSetup = "":U OR
+     cDBsToSetup = ? THEN
+    RETURN.
+
+  /* Loop through all the databases that we have to setup. */
+  DO iCount = 1 TO NUM-ENTRIES(cDBsToSetup):
+    cCurrDB   = ENTRY(iCount,cDBsToSetup).
+
+    /* Get the values we need for this database. */
+    cBuildNew  = getFieldValue(cCurrDB, "LoadDBSchema":U).
+    cPatchList = getFieldValue(cCurrDB, "PatchList":U).
+
+    IF cBuildNew = "YES":U OR 
+       cBuildNew = "TRUE":U THEN
+      lBuildNew = YES.
+    ELSE
+      lBuildNew = NO.
+
+    /* If the patch list is blank or unknown, and we are building a new
+       database, make sure we have marked only the last patches as needing 
+       to be applied. */
+    IF (cPatchList = "":U OR
+       cPatchList = ?) AND
+       lBuildNew THEN
+    DO:
+      FOR EACH bttPatches
+        WHERE bttPatches.cPatchDB = cCurrDB
+          BY bttPatches.cPatchLevel DESCENDING:
+        ASSIGN
+          bttPatches.lApply = YES
+          cPatchNo          = bttPatches.cPatchLevel
+        .
+        LEAVE.
+      END.
+    END.
+
+    /* cPatchList contains the SCREEN-VALUE of the selection list
+       for the patches to be applied. We need to loop through
+       the patch list and make sure that all the records in the 
+       bttPatches table are marked to be loaded. */
+    DO iCount2 = 1 TO NUM-ENTRIES(cPatchList,CHR(3)).
+      cDB      = ENTRY(1,ENTRY(iCount2,cPatchList,CHR(3)),CHR(4)).
+      cVersion = ENTRY(2,ENTRY(iCount2,cPatchList,CHR(3)),CHR(4)).
+      FIND bttPatches 
+        WHERE bttPatches.cPatchDB    = cDB
+          AND bttPatches.cPatchLevel = cVersion
+        NO-ERROR.
+      IF AVAILABLE(bttPatches) THEN
+        ASSIGN
+          bttPatches.lApply = YES
+        .
+    END.
+
+    /* Now we know what patches need to be applied, we need to loop through
+       and figure out what records are relevant. */
+    FOR EACH bttPatches
+      WHERE bttPatches.cPatchDB = cCurrDB:
+      FOR EACH bttPatchList
+        WHERE bttPatchList.cPatchDB    = bttPatches.cPatchDB
+          AND bttPatchList.cPatchLevel = bttPatches.cPatchLevel:
+        lDelete = NO.
+        /* If the bttPatches record is not lApply this record 
+           should be deleted */
+        IF NOT bttPatches.lApply THEN
+          lDelete = YES.
+
+        IF lBuildNew AND 
+          NOT lNewDB THEN
+          lDelete = YES.
+
+        IF NOT lBuildNew AND
+          NOT lExistingDB THEN
+          lDelete = YES.
+
+        IF lDelete THEN
+          DELETE bttPatchList.
+      END.
+      /* We're finished with this record. We're not going to use this
+         record again at this point, so whack it. */
+      DELETE bttPatches.
+    END.
+
+    /* If this is an existing database, add a record to the patch list so that 
+       we can assign the new site numbers */
+    IF NOT lBuildNew AND
+       cCurrDB = "ICFDB":U THEN
+    DO:
+      CREATE ttPatchList.
+      ASSIGN
+        ttPatchList.iSeq             = 0
+        ttPatchList.cPatchDB         = "ICFDB":U
+        ttPatchList.cPatchLevel      = "":U
+        ttPatchList.cStage           = "":U
+        ttPatchList.iUpdateWhen      = 1
+        ttPatchList.cFileType        = "s":U
+        ttPatchList.cFileName        = "":U
+        ttPatchList.cDescription     = "Applying sequences to ICFDB":U
+        ttPatchList.lRerunnable      = YES
+        ttPatchList.lNewDB           = NO
+        ttPatchList.lExistingDB      = YES
+        ttPatchList.lUpdateMandatory = YES
+        ttPatchList.lApplied         = NO
+      .
+    END.
+  END.
+
+  /* For testing... 
+  OUTPUT TO patchlist.log.
+  FOR EACH ttPatchList:
+    EXPORT ttPatchList.
+  END.
+  OUTPUT CLOSE.
+  */
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -707,12 +1034,14 @@ PROCEDURE eventProc :
                              "":U,
                              "MB_YESNO,MB_ICONQUESTION,MB_TASKMODAL":U).
         IF iRetVal = {&IDYES} THEN
-          QUIT.
+        DO:
+          PUBLISH "DCU_Quit":U.
+        END.
         ELSE
           RETURN.
       END.
       WHEN "FINISH":U THEN
-        QUIT.
+        PUBLISH "DCU_Quit":U.
       OTHERWISE
       DO:
         CASE bttAction.cActionTarget:
@@ -720,10 +1049,11 @@ PROCEDURE eventProc :
             hProc = ghSourceProc.
           WHEN "FRAME":U THEN
             hProc = ghCurrPage.
-          WHEN "API":U THEN
-            hProc = ghAPIProc.
-          OTHERWISE
+          WHEN "":U THEN
             hProc = THIS-PROCEDURE.
+          OTHERWISE
+            hProc = DYNAMIC-FUNCTION("getManagerHandle":U IN THIS-PROCEDURE,
+                                     bttAction.cActionTarget).
         END CASE.
         RUN VALUE(bttAction.cAction) IN hProc
           (INPUT bttAction.cActionParam) NO-ERROR.
@@ -952,24 +1282,22 @@ PROCEDURE initializeInstall :
   ghSourceProc = phSourceProc.
   ghParentFrame = phFrame.
   
-  /* Read the registry key list and it's values */
-  RUN obtainRegistryKeys.
-
-  /* Expand the properties that you can. */
-  RUN propertyExpander.
-
   /* Set up the Window title for the window */
   gcWindowTitle = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
                                    "window_title":U).
   IF gcWindowTitle = ? OR
      gcWindowTitle = "":U THEN
-    gcWindowTitle = "Dynamics Configuration Utility":U.
+    gcWindowTitle = "Progress Dynamics Configuration Utility":U.
 
+  SUBSCRIBE TO "DCU_WriteLog":U ANYWHERE.
 
-  RUN install/prc/indcuapip.p PERSISTENT SET ghAPIProc.
-
-  DYNAMIC-FUNCTION("setUIUtilHandle":U IN ghAPIProc,
-                   THIS-PROCEDURE).
+ /* This is just here for debugging purposes. 
+  OUTPUT TO initialize.log.
+  FOR EACH ttPatchList:
+    EXPORT ttPatchList.
+  END.
+  OUTPUT CLOSE.
+ */
 
 END PROCEDURE.
 
@@ -1098,7 +1426,8 @@ PROCEDURE loadFieldValues :
     DO:
       cValue = bttField.cDefaultValue.
       IF bttField.cExpandTokens = "YES":U THEN
-        cValue = expandTokens(cValue).
+        cValue = DYNAMIC-FUNCTION("expandTokens":U IN THIS-PROCEDURE,
+                                  cValue).
     END.
          
     hWidget = getWidgetHandle(bttField.cFieldName).
@@ -1148,6 +1477,9 @@ PROCEDURE loadSetupXML :
   DEFINE VARIABLE lSuccess      AS LOGICAL  NO-UNDO.
   DEFINE VARIABLE iCount        AS INTEGER  NO-UNDO.
 
+  DEFINE BUFFER bttPatchList FOR ttPatchList.
+  DEFINE BUFFER bttPatches   FOR ttPatches.
+
   /* Create two node references */
   CREATE X-NODEREF hRootNode.
 
@@ -1172,7 +1504,7 @@ PROCEDURE loadSetupXML :
     IF hSetupNode:SUBTYPE = "TEXT":U AND
        hSetupNode:NODE-VALUE = CHR(10) THEN
       NEXT.
-    /* If the name of this node is "Session" and the SessionType attribute matches the
+    /* If the name of this node is "setup" and the setuptype attribute matches the
        one(s) we need to retrieve, we'll process this node */  
     IF hSetupNode:NAME = "setup":U AND
        CAN-DO(hSetupNode:ATTRIBUTE-NAMES,"SetupType":U) AND
@@ -1195,6 +1527,29 @@ PROCEDURE loadSetupXML :
   DELETE OBJECT hSetupNode.
   hSetupNode = ?.
 
+  /* Make sure each patchlist record has the correct iUpdateWhen set */
+  FOR EACH bttPatchList:
+    bttPatchList.iUpdateWhen = LOOKUP(bttPatchList.cStage,
+     "PreDelta,Delta,PostDelta,PreDataLoad,DataLoad,PostDataLoad,PreADOLoad,ADOLoad,PostADOLoad":U).
+
+    /* Check to see if there is an existing patch record for this patch level.
+       If not, create it */
+    FIND bttPatches
+      WHERE bttPatches.cPatchDB    = bttPatchList.cPatchDB
+        AND bttPatches.cPatchLevel = bttPatchList.cPatchLevel
+      NO-ERROR.
+    IF NOT AVAILABLE(bttPatches) THEN
+    DO:
+      CREATE bttPatches.
+      ASSIGN
+        bttPatches.cPatchDB    = bttPatchList.cPatchDB
+        bttPatches.cPatchLevel = bttPatchList.cPatchLevel
+        bttPatches.lApply      = NO
+      .
+    END.
+  END.
+
+  /* Now make sure that the button justification has the right codes in it */
   FOR EACH ttButton:
     CASE ttButton.cButtonJustify:
       WHEN "LEFT":U THEN
@@ -1254,6 +1609,49 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-obtainICFSeqVals) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE obtainICFSeqVals Procedure 
+PROCEDURE obtainICFSeqVals :
+/*------------------------------------------------------------------------------
+  Purpose:     Obtains the sequence values for the ICFDB database
+               and populates the UI with the data.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT  PARAMETER pcInput AS CHARACTER  NO-UNDO. /* not used */
+
+DEFINE VARIABLE iSite AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iObj1 AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iObj2 AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iSess AS INTEGER    NO-UNDO.
+
+RUN install/prc/inicfdbgetseqp.p
+  (OUTPUT iSite,
+   OUTPUT iObj1,
+   OUTPUT iObj2,
+   OUTPUT iSess).
+
+DYNAMIC-FUNCTION("setSessionParam":U IN THIS-PROCEDURE,
+                 "icfdb_site":U,
+                 STRING(iSite)).
+DYNAMIC-FUNCTION("setSessionParam":U IN THIS-PROCEDURE,
+                 "icfdb_seq1":U,
+                 STRING(iObj1)).
+DYNAMIC-FUNCTION("setSessionParam":U IN THIS-PROCEDURE,
+                 "icfdb_seq2":U,
+                 STRING(iObj2)).
+DYNAMIC-FUNCTION("setSessionParam":U IN THIS-PROCEDURE,
+                 "icfdb_sess":U,
+                 STRING(iSess)).
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-obtainPatchList) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE obtainPatchList Procedure 
@@ -1268,204 +1666,53 @@ PROCEDURE obtainPatchList :
 
   DEFINE VARIABLE cDB          AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cControl     AS CHARACTER  NO-UNDO.
-
-  DEFINE VARIABLE cStartFolder AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cFileList    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iLastVersion AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iMinVersion  AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cPatchList   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hControl     AS HANDLE     NO-UNDO.
   DEFINE VARIABLE iWidth       AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iTextWidth   AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iCount       AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cCurrFile    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDispFile    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cVersionNo   AS CHARACTER  NO-UNDO.
 
-  cDB = ENTRY(1,pcParams).
-  cControl = IF NUM-ENTRIES(pcParams) > 1 THEN ENTRY(2,pcParams) ELSE "":U.
-  hControl = getWidgetHandle(cControl).
+  DEFINE BUFFER bttPatches FOR ttPatches.
 
-  cStartFolder = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
-                                  "path_":U + cDB + "_dfd":U).
+  cDB          = ENTRY(1,pcParams).
+  cControl     = IF NUM-ENTRIES(pcParams) > 1 THEN ENTRY(2,pcParams) ELSE "":U.
+  iLastVersion = INTEGER(obtainDBVersion(cDB)).
+  hControl     = getWidgetHandle(cControl).
 
-  IF cStartFolder <> ? AND
-     cStartFolder <> "":U THEN
-  DO:
-    FILE-INFO:FILE-NAME = cStartFolder.
-    IF FILE-INFO:FULL-PATHNAME = ? THEN
-      RETURN.
-
-    RUN getPatchFiles IN ghAPIProc
-      (INPUT cDB,
-       INPUT cStartFolder,
-       OUTPUT cFileList).
-    
-    IF cFileList <> "":U AND
-       cFileList <> ? AND
-       VALID-HANDLE(hControl) THEN
-    DO:
-      iWidth = hControl:WIDTH-CHARS - 3.
-      hControl:LIST-ITEM-PAIRS = hControl:LIST-ITEM-PAIRS.
-      hControl:DELIMITER = CHR(3).
-      DO iCount = 1 TO NUM-ENTRIES(cFileList,CHR(3)):
-        cCurrFile = LC(ENTRY(iCount,cFileList,CHR(3))).
-        iTextWidth = FONT-TABLE:GET-TEXT-WIDTH-CHARS(cCurrFile, hControl:FONT).
-        IF iTextWidth >= iWidth THEN
-          cDispFile = SUBSTRING(cCurrFile, 1, 10) + "...":U 
-                    + SUBSTRING(cCurrFile,iTextWidth - (iWidth - 18)).
-                   
-        ELSE
-          cDispFile = cCurrFile.
-        hControl:ADD-LAST(cDispFile,cCurrFile).             
-      END.
-      hControl:SCREEN-VALUE = cFileList.
-    END.
-  END.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-obtainRegistryKeys) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE obtainRegistryKeys Procedure 
-PROCEDURE obtainRegistryKeys :
-/*------------------------------------------------------------------------------
-  Purpose:     This procedure parses the RegistryKeys property for the list
-               of properties that contain registry keys that need to be loaded.
-               It then parses each of those keys and loads the key values.
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-
-  DEFINE VARIABLE iCount       AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cKeyList     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cCurrKeyProp AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cKeyString   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cBaseKey     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cEnvironment AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cSection     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cKey         AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iLoop        AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cEntry       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cKeyValue    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cProp        AS CHARACTER  NO-UNDO.
-
-
-  /* Obtain a list of all the properties that contain registry keys */
-  cKeyList = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
-                              "registry_keys":U).
-
-  /* Ignore the key list if it is blank. */
-  IF cKeyList = "":U OR
-     cKeyList = ? THEN 
+  IF NOT VALID-HANDLE(hControl) THEN
     RETURN.
 
-  /* Loop through those properties */
-  REPEAT iCount = 1 TO NUM-ENTRIES(cKeyList):
-    ASSIGN
-      cCurrKeyProp  = ENTRY(iCount,cKeyList)
-      cKeyString    = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
-                                      cCurrKeyProp)
-      cBaseKey      = "":U
-      cEnvironment  = "":U
-      cSection      = "":U
-      cKey          = "":U
-      .
-    /* Set up the three strings that affect this. */
-    DO iLoop = 1 TO NUM-ENTRIES(cKeyString,":":U):
-      cEntry = ENTRY(iLoop,cKeyString,":":U).
-      CASE iLoop:
-        WHEN 1 THEN
-          cBaseKey = cEntry.
-        WHEN 2 THEN
-          cEnvironment = cEntry.
-        WHEN 3 THEN
-          cSection = cEntry.
-        WHEN 4 THEN
-          cKey = cEntry.
-      END CASE.
-    END.
-    ERROR-STATUS:ERROR = NO.
+  /* Get the minimum DB version that we support to figure out if we can
+     support it */
+  iMinVersion = INTEGER(DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
+                                         "minimum_":U + cDB + "_version":U)).
 
-    /* Try and load the environment */
-    IF cBaseKey <> "":U THEN
-      LOAD cEnvironment BASE-KEY cBaseKey NO-ERROR.
-    ELSE
-      LOAD cEnvironment NO-ERROR.
-    IF ERROR-STATUS:ERROR THEN
-    DO:
-      ERROR-STATUS:ERROR = NO.
-      DYNAMIC-FUNCTION("setSessionParam":U IN THIS-PROCEDURE,
-                       cCurrKeyProp,
-                       "ERROR":U).
-      NEXT.
-    END.
-
-    /* Now try and use the environment we loaded */
-    USE cEnvironment NO-ERROR.                   
-    IF ERROR-STATUS:ERROR THEN
-    DO:
-      UNLOAD cEnvironment.
-      ERROR-STATUS:ERROR = NO.
-      DYNAMIC-FUNCTION("setSessionParam":U IN THIS-PROCEDURE,
-                       cCurrKeyProp,
-                       "ERROR":U).
-      NEXT.
-    END.
-
-    /* Now we get the key value */
-    IF cSection <> "":U THEN
-    DO:
-      IF cKey = "DEFAULT":U THEN
-        GET-KEY-VALUE SECTION cSection 
-          KEY DEFAULT 
-          VALUE cKeyValue.
-      ELSE
-        GET-KEY-VALUE SECTION cSection 
-          KEY cKey 
-          VALUE cKeyValue.
-    END.
-    IF ERROR-STATUS:ERROR THEN
-    DO:
-      UNLOAD cEnvironment.
-      ERROR-STATUS:ERROR = NO.
-      DYNAMIC-FUNCTION("setSessionParam":U IN THIS-PROCEDURE,
-                       cCurrKeyProp,
-                       "ERROR":U).
-      NEXT.
-    END.
-
-    /* If the cKey field is "" or unknown, we get all the keys in that section */
-    IF cKey = ? OR 
-       cKey = "":U THEN
-    DO:
-      DO iLoop = 1 TO NUM-ENTRIES(cKey):
-        GET-KEY-VALUE SECTION cSection
-          KEY ENTRY(iLoop,cKey)
-          VALUE cKeyValue.
-        ASSIGN 
-          cProp  = cBaseKey + "\":U + cEnvironment + "\":U + cSection + "\":U + ENTRY(iLoop,cKey)
-          .
-        DYNAMIC-FUNCTION("setSessionParam":U IN THIS-PROCEDURE,
-                         cProp,
-                         cKeyValue).
-      END.
-    END.
-    /* Otherwise we just set the key to what we got in */
-    ELSE
-    DO:
-      ASSIGN 
-        cProp  = cBaseKey + "\":U + cEnvironment + "\":U + cSection + "\":U + cKey
-        .
-      DYNAMIC-FUNCTION("setSessionParam":U IN THIS-PROCEDURE,
-                       cProp,
-                       cKeyValue).
-    END.
-
-    UNLOAD cEnvironment.
+  /* If this database is not greater than the minimum version number */
+  IF iLastVersion = ? OR
+     iMinVersion = ? OR
+     iMinVersion > iLastVersion THEN
+  DO:
+    messageBox("MSG_invalid_dbversion":U,
+               cDB + ",":U + STRING(iLastVersion, "999999":U) + ",":U + STRING(iMinVersion, "999999":U),
+               "MB_OK,MB_ICONSTOP,MB_TASKMODAL":U).
+    RETURN.
   END.
+
+
+  hControl:LIST-ITEM-PAIRS = hControl:LIST-ITEM-PAIRS.
+  hControl:DELIMITER = CHR(3).
+
+  FOR EACH bttPatches
+    WHERE bttPatches.cPatchDB = cDB
+      AND INTEGER(bttPatches.cPatchLevel) > iLastVersion:
+    hControl:ADD-LAST(bttPatches.cPatchDB + bttPatches.cPatchLevel,
+                      bttPatches.cPatchDB + CHR(4) + bttPatches.cPatchLevel).
+    cPatchList = cPatchList 
+               + (IF cPatchList = "":U THEN "":U ELSE CHR(3))
+               + bttPatches.cPatchDB + CHR(4) + bttPatches.cPatchLevel.
+END.
+  hControl:SCREEN-VALUE = cPatchList.
+    
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1492,6 +1739,7 @@ PROCEDURE processDB :
   DEFINE VARIABLE cDBFileName AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cConnParm  AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lCreate    AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lBuild     AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE iCount     AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cEntry     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cDBPath    AS CHARACTER  NO-UNDO.
@@ -1515,13 +1763,24 @@ PROCEDURE processDB :
           WHEN 2 THEN
             lCreate = hControl:SCREEN-VALUE = "YES":U.
           WHEN 3 THEN
-            cDBFile = hControl:SCREEN-VALUE.
+            lBuild = hControl:SCREEN-VALUE = "YES":U.
           WHEN 4 THEN
+            cDBFile = hControl:SCREEN-VALUE.
+          WHEN 5 THEN
             cConnParm = hControl:SCREEN-VALUE.
         END CASE.
       END.
     END CASE.
   END.
+
+  IF lCreate THEN
+  DO:
+    lBuild = YES.
+    DYNAMIC-FUNCTION("setSessionParam":U IN THIS-PROCEDURE,
+                     "load":U + cLogicalDB,
+                     "YES":U).
+  END.
+  
 
     /* Register the database and its connection parameters with the Connection
      Manager */
@@ -1550,8 +1809,8 @@ PROCEDURE processDB :
 
     /*Check that the directory for the db exists. if not create it*/  
     ASSIGN
-      cDbFilename = REPLACE(cDbFile,"/":U,"\":U)
-      cDbPAth     = SUBSTRING(cDbFilename,1,R-INDEX(cDbFilename,"\":U) - 1)
+      cDbFilename = REPLACE(cDbFile,"/":U,"~\":U)
+      cDbPAth     = SUBSTRING(cDbFilename,1,R-INDEX(cDbFilename,"~\":U) - 1)
       FILE-INFO:FILE-NAME = cDbPath
       lOk         = TRUE.
 
@@ -1567,10 +1826,8 @@ PROCEDURE processDB :
 
     IF SEARCH (cDbFilename) <> ? THEN 
     DO:
-      MESSAGE 
-        "Are you sure you want to overwrite the database ?" SKIP
-        cDbFilename
-        VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO UPDATE lOk.
+      iCount = messageBox("MSG_confirm_overwrite":U, cDBPath,"MB_YESNO,MB_ICONQUESTION,MB_TASKMODAL":U).
+      lOK = iCount = {&IDYES}.
     END.
 
     IF lOk THEN 
@@ -1587,7 +1844,7 @@ PROCEDURE processDB :
                  + (IF cError = "":U THEN "":U ELSE CHR(13))
                  + ERROR-STATUS:GET-MESSAGE(iCount).
         END.
-        messageBox("MSG_DB_creation_failed,NO", cError,"MB_OK,MB_ICONWARNING,MB_TASKMODAL":U).
+        messageBox("MSG_DB_creation_failed,NO)", cError,"MB_OK,MB_ICONWARNING,MB_TASKMODAL":U).
         RETURN ERROR RETURN-VALUE.
       END.
     END.
@@ -1601,7 +1858,7 @@ PROCEDURE processDB :
     (RETURN-VALUE <> "":U AND
      RETURN-VALUE <> ?) THEN
   DO:
-    messageBox("MSG_register_service,NO":U, RETURN-VALUE,"MB_OK,MB_ICONWARNING,MB_TASKMODAL":U).
+    messageBox("MSG_register_service":U, RETURN-VALUE,"MB_OK,MB_ICONWARNING,MB_TASKMODAL":U).
     RETURN ERROR RETURN-VALUE.
   END.
 
@@ -1631,7 +1888,7 @@ PROCEDURE processParams :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-DEFINE INPUT  PARAMETER cStatusHandle AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER pcInput AS CHARACTER  NO-UNDO. /* Not used */
 
   DEFINE VARIABLE iCount  AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cGroups AS CHARACTER  NO-UNDO.
@@ -1671,65 +1928,33 @@ DEFINE INPUT  PARAMETER cStatusHandle AS CHARACTER  NO-UNDO.
     END.
   END.
 
-  /* The databases are now connected. Everything is ready for the
-     ttValue table to be used to process the stuff */
-  
-  SUBSCRIBE PROCEDURE ghCurrPage TO "updateStatus":U IN ghApiProc NO-ERROR.
-  
-  RUN applyPatches IN ghApiProc(INPUT TABLE ttValue).
+  /* Add the patches that have to be applied to the ryt_dbupdate_status
+     table in the ICFDB database */
+  RUN decidePatchList.
 
+  /* Open the log file and put everything in there as we go */
+  OUTPUT STREAM sLogFile TO dcu.log UNBUFFERED.  
+  glStreamOpen = YES.
+  PUBLISH "DCU_StartStatus":U.
+  RUN applyUpgrade NO-ERROR.
+  PUBLISH "DCU_EndStatus":U.
+  glStreamOpen = NO.
+  OUTPUT STREAM sLogFile CLOSE.
 
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-propertyExpander) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE propertyExpander Procedure 
-PROCEDURE propertyExpander :
-/*------------------------------------------------------------------------------
-  Purpose:     Expands all the properties in the expand list using the
-               appropriate method.
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cExpandList    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iCount         AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iCount2        AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cPropertyList  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cExpander      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cExpand        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cPropertyValue AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cProperty      AS CHARACTER  NO-UNDO.
-
-  /* Now we need to know what order to expand the stuff in */
-  cExpandList = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
-                                 "expand_list":U).
-
-  DO iCount = 1 TO NUM-ENTRIES(cExpandList):
-    cExpand = ENTRY(iCount,cExpandList).
-    cPropertyList = ENTRY(1,cExpand,"|":U).
-    IF NUM-ENTRIES(cExpand,"|":U) > 1 THEN
-    DO:
-      cExpander = ENTRY(2,cExpand,"|":U).
-      RUN VALUE(cExpander) IN THIS-PROCEDURE
-        (cPropertyList).
-    END.
-    ELSE
-    DO:
-      DO iCount2 = 1 TO NUM-ENTRIES(cPropertyList):
-        cProperty = ENTRY(iCount2,cPropertyList).
-        cPropertyValue = getExpandablePropertyValue(cProperty).
-        cPropertyValue = expandTokens(cPropertyValue).
-        DYNAMIC-FUNCTION("setSessionParam":U IN THIS-PROCEDURE,
-                         cProperty,
-                         cPropertyValue).
-      END.
-    END.
+  IF ERROR-STATUS:ERROR OR 
+     (RETURN-VALUE <> "":U AND
+      RETURN-VALUE <> ?) THEN
+  DO:
+    DYNAMIC-FUNCTION("setSessionParam":U IN THIS-PROCEDURE,
+                     "errorCondition":U,
+                     "YES":U).
+    RETURN.
   END.
+
+  /* Now write the contents of the patch list to the user's repository */
+  RUN install/prc/inrytupdstatp.p (INPUT TABLE ttPatchList).
+  
+    
 
 END PROCEDURE.
 
@@ -1755,17 +1980,30 @@ PROCEDURE recurseNodes :
   DEFINE VARIABLE hNode       AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lSuccess    AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE iCount      AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iCount2     AS INTEGER    NO-UNDO.
   DEFINE VARIABLE iLevel      AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cTest       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cRecordType AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cGroupType  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cCurrAttrib AS CHARACTER  NO-UNDO.
+
+  IF NUM-ENTRIES(pcStack) > 1 THEN
+    cGroupType = ENTRY(NUM-ENTRIES(pcStack) - 1,pcStack).
+
+  IF NUM-ENTRIES(pcStack) = 2 AND
+     cGroupType = "patches":U THEN
+  DO:
+    cRecordType = "patches":U.
+    setNode("RecordType":U,cRecordType,2,NO).
+  END.
 
 
   /* If we're at the top of the stack, put the name in the node table */
   IF NUM-ENTRIES(pcStack) = 1 THEN
     setNode("SetupType":U,pcStack,NUM-ENTRIES(pcStack),NO).
 
-  /* If we're on level 2 we're going into a page node. */
-  IF NUM-ENTRIES(pcStack) = 2 THEN
+  /* If we're on level 3 we're going into a page node. */
+  IF NUM-ENTRIES(pcStack) = 3 THEN
   DO:
     giRecNo = giRecNo + 1.
     setNode("PageNo":U,STRING(giRecNo),NUM-ENTRIES(pcStack),NO).
@@ -1781,9 +2019,13 @@ PROCEDURE recurseNodes :
     IF NOT lSuccess THEN
       NEXT.
 
-    IF hNode:NAME = "page":U THEN
-      setNode("PageName":U,hNode:GET-ATTRIBUTE("PageName":U),2,NO).
-
+    /* Loop through all the attributes on the node and set
+       a property for the element */
+    DO iCount2 = 1 TO NUM-ENTRIES(hNode:ATTRIBUTE-NAMES):
+      cCurrAttrib = ENTRY(iCount2, hNode:ATTRIBUTE-NAMES).
+      setNode(cCurrAttrib, hNode:GET-ATTRIBUTE(cCurrAttrib),NUM-ENTRIES(pcStack),NO).
+    END.
+    
     /* If the text has nothing in it, skip it */
     IF hNode:SUBTYPE = "TEXT":U THEN
     DO:
@@ -1794,12 +2036,15 @@ PROCEDURE recurseNodes :
         NEXT.
     END.
 
-    /* When we hit level 3, we know what kind of records these are,
+    /* When we hit level 4, we know what kind of records these are,
        and we need to make sure that they get appropriately set. */
-    IF NUM-ENTRIES(pcStack) = 3 THEN
+    IF NUM-ENTRIES(pcStack) = 4 THEN
     DO:
-      cRecordType = ENTRY(1,pcStack).
-      setNode("RecordType":U,cRecordType,NUM-ENTRIES(pcStack),NO).
+      IF cGroupType <> "patches":U THEN
+      DO:
+        cRecordType = ENTRY(1,pcStack).
+        setNode("RecordType":U,cRecordType,NUM-ENTRIES(pcStack),NO).
+      END.
     END.
 
     /* Set a node value for this node */
@@ -1813,10 +2058,15 @@ PROCEDURE recurseNodes :
     /* If this is level 3 on the stack, we can write out this data
        to the appropriate files */
     cRecordType = getNode("RecordType":U).
-    IF NUM-ENTRIES(pcStack) = 2 AND
+    IF NUM-ENTRIES(pcStack) = 4 AND
+       cGroupType = "patches":U THEN
+      writeNode("patch":U,NUM-ENTRIES(pcStack)).
+
+    IF NUM-ENTRIES(pcStack) = 3 AND
        CAN-DO("button,action,field":U, cRecordType) THEN
       writeNode(cRecordType,NUM-ENTRIES(pcStack)).
-    IF NUM-ENTRIES(pcStack) = 1 THEN
+    IF NUM-ENTRIES(pcStack) = 2 AND
+       cGroupType <> "patches":U THEN
       writeNode("page":U,NUM-ENTRIES(pcStack)).
     
   END.
@@ -1945,104 +2195,38 @@ END PROCEDURE.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-setupPaths) = 0 &THEN
+&IF DEFINED(EXCLUDE-setSiteNumber) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setupPaths Procedure 
-PROCEDURE setupPaths :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setSiteNumber Procedure 
+PROCEDURE setSiteNumber :
 /*------------------------------------------------------------------------------
-  Purpose:     This procedure establishes all the defaults for the paths.
+  Purpose:     Sets the site number and sequence numbers in the database.
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE INPUT  PARAMETER pcPathOrder AS CHARACTER  NO-UNDO.
 
-  DEFINE VARIABLE cString     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iCount      AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iCount2     AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cRawPath    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cPath       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cPathOrder  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cStripStart AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cStripEnd   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cCurrPath   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iNoColon    AS INTEGER    NO-UNDO.
-
-  /* First thing we have to do is establish the full path to the 
-     root_directory */
-  cString = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
-                             "root_directory":U).
-  IF cString <> ? THEN
-    FILE-INFO:FILE-NAME = cString.
-  ELSE
-    FILE-INFO:FILE-NAME = ".":U.
-  cString = FILE-INFO:FULL-PATHNAME.
-  DYNAMIC-FUNCTION("setSessionParam":U IN THIS-PROCEDURE,
-                   "root_directory":U,
-                   cString).
-
-  cPathOrder = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
-                                pcPathOrder).
+DEFINE VARIABLE iSite AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iObj1 AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iObj2 AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iSess AS INTEGER    NO-UNDO.
 
 
-  /* Now we loop through the paths in the right order and handle them */
-  DO iCount = 1 TO NUM-ENTRIES(cPathOrder):
+iSite = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
+                         "icfdb_site":U).
+iObj1 = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
+                         "icfdb_seq1":U).
+iObj2 = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
+                         "icfdb_seq2":U).
+iSess = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
+                         "icfdb_sess":U).
 
-    /* Get the current path value */
-    cCurrPath = ENTRY(iCount, cPathOrder).
-
-    cRawPath = getExpandablePropertyValue(cCurrPath).
-
-    /* If the current path value is ?, there's nothing we can do with
-       it except set it to "" to avoid making anything that depends
-       on it ? */
-    IF cRawPath = ? THEN
-      cRawPath = "":U.
-    
-    /* Break the path into its components and expand the tokens */
-    iNoColon = NUM-ENTRIES(cRawPath,"|":U).
-    cPath = expandTokens(ENTRY(1,cRawPath,"|":U)).
-    IF iNoColon > 1 THEN
-      cStripStart = expandTokens(ENTRY(2,cRawPath,"|":U)).
-    IF iNoColon > 2 THEN
-      cStripEnd = expandTokens(ENTRY(3,cRawPath,"|":U)).
-
-    /* Now strip off the front portion if there's anything to strip */
-    IF cStripStart <> ? AND
-       cStripStart <> "":U AND
-       SUBSTRING(cPath,1,LENGTH(cStripStart)) = cStripStart THEN
-      cPath = SUBSTRING(cPath,LENGTH(cPath) - LENGTH(cStripStart)).
-
-    /* And strip off the back if there's anything to strip */
-    IF cStripEnd <> ? AND
-       cStripEnd <> "":U AND
-       SUBSTRING(cPath,LENGTH(cPath) - LENGTH(cStripEnd) + 1) = cStripEnd THEN
-      cPath = SUBSTRING(cPath,1,LENGTH(cPath) - LENGTH(cStripEnd)).
-
-    DYNAMIC-FUNCTION("setSessionParam":U IN THIS-PROCEDURE,
-                     cCurrPath, cPath).
-
-  END.
+RUN install/prc/inicfdbsetseqp.p
+  (INPUT iSite,
+   INPUT iObj1,
+   INPUT iObj2,
+   INPUT iSess).
 
 
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-showValues) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE showValues Procedure 
-PROCEDURE showValues :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE INPUT  PARAMETER pcInput AS CHARACTER  NO-UNDO. /* not used */
-
-  RUN sessinfo.w PERSISTENT.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2057,10 +2241,14 @@ PROCEDURE validateDirectory :
 /*------------------------------------------------------------------------------
   Purpose:     This procedure validates that the directory exists and
                can in fact be created if necessary.
-  Parameters:  <none>
+  Parameters:  
+    pcParamString - 2 entries separated by comma
+      entry 1 - name of widget to be tested
+      entry 2 - YES/TRUE (optional) indicates whether a blank file name
+                is permitted. Default is no/false.
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE INPUT  PARAMETER pcWidget AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER pcParamString AS CHARACTER  NO-UNDO.
 
   DEFINE VARIABLE hWidget   AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cPath     AS CHARACTER  NO-UNDO.
@@ -2068,20 +2256,35 @@ PROCEDURE validateDirectory :
   DEFINE VARIABLE cOutDir   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iCount    AS INTEGER    NO-UNDO.
   DEFINE VARIABLE iResult   AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cWidget   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cBlank    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lBlank    AS LOGICAL    NO-UNDO.
 
-  hWidget = getWidgetHandle(pcWidget).
+  cWidget = ENTRY(1,pcParamString).
+  IF NUM-ENTRIES(pcParamString) > 1 THEN
+    ASSIGN
+      cBlank = ENTRY(2,pcParamString)
+      lBlank = CAN-DO("YES,TRUE":U,cBlank)
+    .
+  ELSE
+    lBlank = NO.
+
+  hWidget = getWidgetHandle(cWidget).
 
   IF NOT VALID-HANDLE(hWidget) THEN
     RETURN.
 
   cPath = hWidget:SCREEN-VALUE.
 
-  IF cPath = "":U OR 
+  IF (lBlank = NO AND
+      cPath = "":U) OR 
      cPath = ? THEN
   DO:
     messageBox("MSG_blank_path":U, hWidget:LABEL,"MB_OK,MB_ICONWARNING,MB_TASKMODAL":U).
     RETURN ERROR "MSG_blank_path":U.
   END.
+  ELSE IF cPath = "":U THEN
+    cPath = ".":U.
 
   FILE-INFO:FILE-NAME = cPath.
   IF FILE-INFO:FULL-PATHNAME = ? THEN
@@ -2369,6 +2572,68 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-deriveDBTable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION deriveDBTable Procedure 
+FUNCTION deriveDBTable RETURNS CHARACTER
+  ( INPUT pcDBName AS CHARACTER,
+    INPUT pcFile   AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:   This procedure extracts the name of a dump file from the
+             file name that comes in as an input parameter and converts 
+             tries to find the database table that the dump file is for.
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hBuffer AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cWhere  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDump   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTable  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cRetVal AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lAns    AS LOGICAL    NO-UNDO.
+
+  cRetVal = ?.
+
+  /* Extract the dump name from the file. */
+  cDump = REPLACE(pcFile,"~\":U,"/":U).
+  cDump = ENTRY(NUM-ENTRIES(pcFile,"/":U),pcFile,"/":U).
+  IF SUBSTRING(cDump,LENGTH(cDump) - 1) = ".d":U THEN
+    cDump = SUBSTRING(cDump,1,LENGTH(cDump) - 2).
+
+  /* Construct the string version of the database table we want to work with */
+  cTable = pcDBName + (IF pcDBName <> "":U THEN ".":U ELSE "":U)
+         + "_File".
+
+  CREATE BUFFER hBuffer FOR TABLE cTable.
+
+  cWhere = "WHERE _Dump-name = ":U + TRIM(QUOTER(cDump)) NO-ERROR.
+  lAns = hBuffer:FIND-UNIQUE(cWhere, NO-LOCK).
+  IF NOT lAns OR
+     NOT hBuffer:AVAILABLE THEN
+  DO:
+    ERROR-STATUS:ERROR = NO.
+    cWhere = "WHERE _Dump-name = ":U + TRIM(QUOTER(cDump + ".d":U)) NO-ERROR.
+    lAns = hBuffer:FIND-UNIQUE(cWhere, NO-LOCK).
+  END.
+
+  IF hBuffer:AVAILABLE THEN
+  DO:
+    cRetVal = hBuffer:BUFFER-FIELD("_File-name":U):BUFFER-VALUE.
+    hBuffer:BUFFER-RELEASE().
+  END.
+
+  DELETE OBJECT hBuffer.
+  hBuffer = ?.
+  ERROR-STATUS:ERROR = NO.
+
+  RETURN cRetVal.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-evaluateExpression) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION evaluateExpression Procedure 
@@ -2450,110 +2715,39 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-expandTokens) = 0 &THEN
+&IF DEFINED(EXCLUDE-formatMessage) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION expandTokens Procedure 
-FUNCTION expandTokens RETURNS CHARACTER
-  ( INPUT pcString AS CHARACTER) :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION formatMessage Procedure 
+FUNCTION formatMessage RETURNS CHARACTER
+  ( INPUT pcMessage AS CHARACTER,
+    INPUT pcTokens  AS CHARACTER) :
 /*------------------------------------------------------------------------------
-  Purpose:  Replaces tokens in the string with the values from the session
-            parameters.
-    Notes:  Takes a string with tokens in the form #<token># and replaces the
-            token with a value that is derived from getSessionParam.
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cRetVal  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cToken   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iPos     AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iLastPos AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cString  AS CHARACTER  NO-UNDO.
-
-  /* If the string is blank, then just return */
-  IF pcString = "":U THEN 
-    RETURN pcString.
-
-  /* Get the position of the first # */
-  iLastPos = 1.
-  iPos     = INDEX(pcString,"#":U).
-
-  /* Keep looping until we get to the end of the string */
-  DO WHILE iPos <= LENGTH(pcString) AND iPos <> 0:
-    cRetVal = cRetVal + SUBSTRING(pcString, iLastPos, iPos - iLastPos).
-    /* Set the last position */
-    iLastPos = iPos + 1.
-    /* Find the next # in the string -- this would give us a token in between */
-    iPos = INDEX(pcString,"#":U, iLastPos).
-
-    /* If there is another #, we have a token */
-    IF iPos <> 0 THEN 
-    DO:
-      /* Extract the token and look up its value */
-      cToken = SUBSTRING(pcString, iLastPos, iPos - iLastPos).
-      cString = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
-                                 cToken).
-      /* If the value of the token is unknow, set it to blank */
-      IF cString = ? THEN
-         cString = "":U.
-      /* Put the value into the return value */
-      cRetVal = cRetVal + cString.
-
-      /* Set the last position ahead of this token */
-      iLastPos = iPos + 1.
-
-      /* And find the next # */
-      iPos = INDEX(pcString,"#":U, iLastPos).
-
-    END.
-  END.
-  cRetVal = cRetVal + SUBSTRING(pcString, iLastPos).
-
-  RETURN cRetVal.   /* Function return value. */
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getExpandablePropertyValue) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getExpandablePropertyValue Procedure 
-FUNCTION getExpandablePropertyValue RETURNS CHARACTER
-  ( INPUT pcProperty AS CHARACTER ) :
-/*------------------------------------------------------------------------------
-  Purpose:  Obtains the value of the expandable property. 
+  Purpose:  Obtains a message from a property and re-formats.
     Notes:  
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cRetVal  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cOrigVal AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cMessage AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iCount   AS INTEGER    NO-UNDO.
 
-  /* See if there is an original value */
-  cOrigVal = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
-                              ";:":U + pcProperty).
+  cMessage = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
+                              ENTRY(1,pcMessage)).
 
-  /* See if we have expanded this before. If we have there 
-     will be a :: property */
-  cRetVal = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
-                              "::":U + pcProperty).
-
-  /* We haven't set it up before if cRetVal is unknown, so we 
-     expand it from the original path */
-  IF cRetVal = ? THEN
+  IF cMessage = ? THEN
+    cMessage = pcMessage.
+  ELSE
   DO:
-    cRetVal = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
-                                pcProperty).
-    DYNAMIC-FUNCTION("setSessionParam":U IN THIS-PROCEDURE,
-                     "::":U + pcProperty,
-                     cRetVal).
+    IF NUM-ENTRIES(pcMessage) = 2 AND 
+       ENTRY(2,pcMessage) = "NO":U THEN
+    DO:
+      cMessage = cMessage + CHR(13) + pcTokens.
+    END.
+    ELSE
+    DO iCount = 1 TO NUM-ENTRIES(pcTokens):
+      cMessage = REPLACE(cMessage,"%":U + STRING(iCount),ENTRY(iCount,pcTokens)).
+    END.
+    cMessage = cMessage + " (" + ENTRY(1,pcMessage) + ")".
   END.
-
-  IF cOrigVal = ? THEN
-    DYNAMIC-FUNCTION("setSessionParam":U IN THIS-PROCEDURE,
-                     ";:":U + pcProperty,
-                     cRetVal).
-    
-
-  RETURN cRetVal.   /* Function return value. */
+  
+  RETURN cMessage.   /* Function return value. */
 
 END FUNCTION.
 
@@ -2692,24 +2886,7 @@ FUNCTION messageBox RETURNS INTEGER
           + ",{&MB_TOPMOST},{&MB_RIGHT},{&MB_RTLREADING},{&MB_TYPEMASK},{&MB_ICONMASK},{&MB_DEFMASK}"
           + ",{&MB_MODEMASK},{&MB_MISCMASK}".
 
-  cMessage = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
-                              ENTRY(1,pcMessage)).
-
-  IF cMessage = ? THEN
-    cMessage = pcMessage.
-  ELSE
-  DO:
-    IF NUM-ENTRIES(pcMessage) = 2 AND 
-       ENTRY(2,pcMessage) = "NO":U THEN
-    DO:
-      cMessage = cMessage + CHR(13) + pcTokens.
-    END.
-    ELSE
-    DO iCount = 1 TO NUM-ENTRIES(pcTokens):
-      cMessage = REPLACE(cMessage,"%":U + STRING(iCount),ENTRY(iCount,pcTokens)).
-    END.
-    cMessage = cMessage + " (" + pcMessage + ")".
-  END.
+  cMessage = formatMessage(pcMessage,pcTokens).
 
   DO iCount = 1 TO NUM-ENTRIES(pcStyle):
     iPos = LOOKUP(ENTRY(iCount,pcStyle),cConstants).
@@ -2726,6 +2903,88 @@ FUNCTION messageBox RETURNS INTEGER
 
 
   RETURN iRetVal.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-obtainDBVersion) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION obtainDBVersion Procedure 
+FUNCTION obtainDBVersion RETURNS CHARACTER
+  ( INPUT pclDBName AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Determines the version number from the database sequences.
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  DEFINE VARIABLE hQuery   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hBuffer  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hVersion AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cQuery   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cVersion AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lAns     AS LOGICAL    NO-UNDO.
+
+  lAns = DYNAMIC-FUNCTION("isConnected":U IN THIS-PROCEDURE,
+                          pclDBName).
+
+  IF NOT lAns THEN
+    RETURN ?.
+
+  /* Create a buffer on the sequence table */
+  CREATE BUFFER hBuffer FOR TABLE pclDBName + "._sequence":U.
+
+  /* We're only concerned with the value in the _seq-max field as this
+     comes from the delta file. */
+  hVersion = hBuffer:BUFFER-FIELD("_seq-max":U).
+
+  /* We need to find a record with the sequence name seq_<dbname>_DBVersion */
+  cQuery = "WHERE _Sequence._Seq-name = 'seq_":U 
+         + pclDBName 
+         + "_DBVersion'":U.
+  
+  hBuffer:FIND-FIRST(cQuery, NO-LOCK) NO-ERROR.
+  IF ERROR-STATUS:ERROR OR
+     ERROR-STATUS:NUM-MESSAGES > 0 THEN
+  DO:
+    ERROR-STATUS:ERROR = NO.
+    cVersion = "000000":U.
+  END.
+  ELSE
+    cVersion = STRING(hVersion:BUFFER-VALUE,"999999":U).
+
+  /* Release the record and delete the buffer object */
+  hBuffer:BUFFER-RELEASE().
+  DELETE OBJECT hBuffer.
+  hBuffer = ?.
+
+  RETURN cVersion.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-showStatus) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION showStatus Procedure 
+FUNCTION showStatus RETURNS LOGICAL
+  ( INPUT pcStatus AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  PUBLISH "DCU_SetStatus":U FROM THIS-PROCEDURE (INPUT pcStatus).
+
+  RUN DCU_WriteLog(pcStatus).
+
+  RETURN FALSE.   /* Function return value. */
 
 END FUNCTION.
 
@@ -2756,6 +3015,10 @@ FUNCTION writeNode RETURNS LOGICAL
       hBuffer = BUFFER ttAction:HANDLE.
     WHEN "page":U THEN
       hBuffer = BUFFER ttPage:HANDLE.
+    WHEN "patch":U THEN
+      hBuffer = BUFFER ttPatchList:HANDLE.
+    OTHERWISE 
+      RETURN FALSE.
   END.
 
   writeRecord(hBuffer, piStackLevel).
@@ -2787,14 +3050,25 @@ FUNCTION writeRecord RETURNS LOGICAL
 
   DEFINE VARIABLE iPageNo     AS INTEGER    NO-UNDO.
 
-  iPageNo = INTEGER(getNode("PageNo":U)).
+  IF phBuffer:NAME <> "ttPatchList":U THEN
+  DO:
+    iPageNo = INTEGER(getNode("PageNo":U)).
 
-  hPageNo = phBuffer:BUFFER-FIELD("iPageNo":U).
+    hPageNo = phBuffer:BUFFER-FIELD("iPageNo":U).
+  END.
 
-  IF phBuffer:NAME <> "ttPage":U THEN
-    hKeyField = phBuffer:BUFFER-FIELD("i":U + SUBSTRING(phBuffer:NAME,3) + "No":U).
-  ELSE
-    hKeyField = ?.
+  CASE phBuffer:NAME:
+    WHEN "ttPage":U THEN
+    DO:
+      hKeyField = ?.
+    END.
+    WHEN "ttPatchList":U THEN
+    DO:
+      hKeyField = phBuffer:BUFFER-FIELD("iSeq":U).
+    END.
+    OTHERWISE
+      hKeyField = phBuffer:BUFFER-FIELD("i":U + SUBSTRING(phBuffer:NAME,3) + "No":U).
+  END.
 
   /* Go into a transaction */
   DO TRANSACTION:
@@ -2802,20 +3076,22 @@ FUNCTION writeRecord RETURNS LOGICAL
     phBuffer:BUFFER-CREATE().
 
     giRecNo = giRecNo + 1.
-    hPageNo:BUFFER-VALUE = iPageNo.
+    IF VALID-HANDLE(hPageNo) THEN
+      hPageNo:BUFFER-VALUE = iPageNo.
     IF VALID-HANDLE(hKeyField) THEN
       hKeyField:BUFFER-VALUE = giRecNo.
 
     /* Loop through the records in the ttNode table that are not 
        either RecordType or SessionType properties.*/
     FOR EACH ttNode
-      WHERE NOT CAN-DO("RecordType,SetupType,PageNo",ttNode.cNode)
-        AND ttNode.iNodeLevel > piStackLevel:
-
+      WHERE NOT CAN-DO("RecordType,SetupType,PageNo":U,ttNode.cNode):
+      
       /* Get the handle to a field in the TEMP-TABLE that has 
          the name of this node. If we find
          it we set its value */
       hCurrField = phBuffer:BUFFER-FIELD("c":U + ttNode.cNode) NO-ERROR.
+      IF NOT VALID-HANDLE(hCurrField) THEN
+        hCurrField = phBuffer:BUFFER-FIELD("l":U + ttNode.cNode) NO-ERROR.
       ERROR-STATUS:ERROR = NO.
       IF VALID-HANDLE(hCurrField) THEN
         hCurrField:BUFFER-VALUE = ttNode.cValue.

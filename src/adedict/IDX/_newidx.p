@@ -783,7 +783,7 @@ end.
 /* Set up for filling the list of all fields from the current table */
 find x_File where RECID(x_file) = s_TblRecId.
 
-if x_File._Db-lang = {&TBLTYP_SQL} then
+if x_File._Db-lang >= {&TBLTYP_SQL} then
 do:
    message "This is a PROGRESS/SQL table." SKIP
       	   "You must use the CREATE INDEX statement."

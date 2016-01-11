@@ -78,7 +78,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gsmpydbdfv.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010002
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -143,8 +143,7 @@ DEFINE VARIABLE coNetwork AS CHARACTER FORMAT "X(256)":U INITIAL "<none>"
      LABEL "Network Type (-N)" 
      VIEW-AS COMBO-BOX INNER-LINES 5
      LIST-ITEM-PAIRS "<none>","<none>",
-                     "TCP","TCP",
-                     "AS400SNA","AS400SNA"
+                     "TCP","TCP"
      DROP-DOWN-LIST
      SIZE 18.4 BY 1 NO-UNDO.
 
@@ -251,7 +250,7 @@ ASSIGN
 */  /* FRAME frMain */
 &ANALYZE-RESUME
 
-
+ 
 
 
 
@@ -411,44 +410,51 @@ PROCEDURE parseValue :
 ------------------------------------------------------------------------------*/
 DEFINE INPUT PARAMETER pcValue AS CHARACTER NO-UNDO.
 
-DEFINE VARIABLE cList       AS CHARACTER  INIT '-D,-N,-H,-S'  NO-UNDO.
-DEFINE VARIABLE cString     AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE iAdditional AS INTEGER      NO-UNDO.
-DEFINE VARIABLE iPosition   AS INTEGER      NO-UNDO.
-DEFINE VARIABLE iNext       AS INTEGER      NO-UNDO.
-DEFINE VARIABLE iNum        AS INTEGER      NO-UNDO.
-DEFINE VARIABLE iSpace      AS INTEGER      NO-UNDO.
+DEFINE VARIABLE cList          AS CHARACTER  INIT '-D,-N,-H,-S'  NO-UNDO.
+DEFINE VARIABLE cString        AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE iAdditional    AS INTEGER      NO-UNDO.
+DEFINE VARIABLE iPosition      AS INTEGER      NO-UNDO.
+DEFINE VARIABLE iStorePosition AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iNext          AS INTEGER      NO-UNDO.
+DEFINE VARIABLE iNum           AS INTEGER      NO-UNDO.
+DEFINE VARIABLE iSpace         AS INTEGER      NO-UNDO.
 
-  ASSIGN
-    pcValue = ' ':U + pcValue.
+ASSIGN pcValue = ' ':U + pcValue.
 
-  DO WITH FRAME {&FRAME-NAME}:
+DO WITH FRAME {&FRAME-NAME}:
     DO iNum = 1 TO NUM-ENTRIES(cList):
-      iPosition = INDEX(pcValue, ENTRY(iNum, cList)).
-      IF iPosition > 0 THEN
-      DO:
-        iSpace = INDEX(pcValue, ' ':U, iPosition + 1).
-        iNext = INDEX(pcValue, ' -':U, iPosition + 1).
-        IF iNum = NUM-ENTRIES(cList) THEN
-          iAdditional = iNext.
-        IF iNext = 0 THEN iNext = -1.
-        ELSE iNext = (iNext - 1) - iSpace.
-        ASSIGN
-          cString = SUBSTRING(pcValue, iSpace + 1, iNext).
-        CASE ENTRY(iNum, cList):
-          WHEN '-D':U THEN fiDBName:SCREEN-VALUE = cString.
-          WHEN '-N':U THEN coNetwork:SCREEN-VALUE = cString.
-          WHEN '-H':U THEN fiHost:SCREEN-VALUE = cString.
-          WHEN '-S':U THEN fiService:SCREEN-VALUE = cString.
-        END CASE.
-      END.  /* option found */
+        ASSIGN iPosition = INDEX(pcValue, ENTRY(iNum, cList)).
+
+        IF iPosition > 0 
+        THEN DO:
+            iSpace = INDEX(pcValue, ' ':U, iPosition + 1).
+            iNext = INDEX(pcValue, ' -':U, iPosition + 1).
+            IF iNum = NUM-ENTRIES(cList) THEN
+                iAdditional = iNext.
+            IF iNext = 0 THEN iNext = -1.
+            ELSE iNext = (iNext - 1) - iSpace.
+            ASSIGN cString = TRIM(SUBSTRING(pcValue, iSpace + 1, iNext)).
+
+            CASE ENTRY(iNum, cList):
+                WHEN '-D':U THEN fiDBName:SCREEN-VALUE = cString.
+                WHEN '-N':U THEN coNetwork:SCREEN-VALUE = cString.
+                WHEN '-H':U THEN fiHost:SCREEN-VALUE = cString.
+                WHEN '-S':U THEN fiService:SCREEN-VALUE = cString.
+           END CASE.
+
+           ASSIGN iStorePosition = iPosition.
+        END.  /* option found */
+        ELSE
+            IF iNum = NUM-ENTRIES(cList) THEN
+                ASSIGN iAdditional = INDEX(pcValue, ' -':U, iStorePosition + 1).
     END.  /* do while */
 
     IF iAdditional > 0 THEN
-      edEditor:SCREEN-VALUE = SUBSTRING(pcValue, iAdditional).
+        ASSIGN edEditor:SCREEN-VALUE = TRIM(SUBSTRING(pcValue, iAdditional)).
     IF coNetwork:SCREEN-VALUE = ? THEN
-      coNetwork:SCREEN-VALUE = '<none>':U.
-  END.  /* do with frame */
+        ASSIGN coNetwork:SCREEN-VALUE = '<none>':U.
+END.  /* do with frame */
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

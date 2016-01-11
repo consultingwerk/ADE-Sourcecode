@@ -24,7 +24,7 @@ af/cod/aftemwizpw.w
 
 /* Temp-Table and Buffer definitions                                    */
 DEFINE TEMP-TABLE RowObject
-       {"af/obj2/gscobful2o.i"}.
+       {"ry/obj/rycsoful2o.i"}.
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
@@ -115,34 +115,29 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &Scoped-define ADM-SUPPORTED-LINKS Data-Target,Update-Source,TableIO-Target,GroupAssign-Source,GroupAssign-Target
 
 /* Include file with RowObject temp-table definition */
-&Scoped-define DATA-FIELD-DEFS "af/obj2/gscobful2o.i"
+&Scoped-define DATA-FIELD-DEFS "ry/obj/rycsoful2o.i"
 
 /* Name of first Frame and/or Browse and/or first Query                 */
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-FIELDS RowObject.edShutdownMessageText ~
-RowObject.container_object RowObject.lStaticObject ~
-RowObject.runnable_from_menu RowObject.lTemplateSmartObject ~
-RowObject.run_persistent RowObject.generic_object RowObject.lSystemOwned ~
-RowObject.disabled RowObject.required_db_list ~
-RowObject.cCustomSuperProcedure RowObject.tooltip_text ~
-RowObject.toolbar_image_filename 
+&Scoped-Define ENABLED-FIELDS RowObject.shutdown_message_text ~
+RowObject.container_object RowObject.generic_object ~
+RowObject.run_persistent RowObject.runnable_from_menu RowObject.design_only ~
+RowObject.template_smartobject RowObject.system_owned RowObject.disabled ~
+RowObject.required_db_list RowObject.deployment_type 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
+&Scoped-Define ENABLED-OBJECTS TeShutdownText TeRequiredDBList 
+&Scoped-Define DISPLAYED-FIELDS RowObject.shutdown_message_text ~
+RowObject.container_object RowObject.generic_object ~
+RowObject.run_persistent RowObject.runnable_from_menu RowObject.design_only ~
+RowObject.template_smartobject RowObject.system_owned RowObject.disabled ~
+RowObject.required_db_list RowObject.deployment_type 
 &Scoped-define DISPLAYED-TABLES RowObject
 &Scoped-define FIRST-DISPLAYED-TABLE RowObject
-&Scoped-Define ENABLED-OBJECTS TeShutdownText TeRequiredDBList ~
-TeCustomProcedure 
-&Scoped-Define DISPLAYED-FIELDS RowObject.edShutdownMessageText ~
-RowObject.container_object RowObject.lStaticObject ~
-RowObject.runnable_from_menu RowObject.lTemplateSmartObject ~
-RowObject.run_persistent RowObject.generic_object RowObject.lSystemOwned ~
-RowObject.disabled RowObject.required_db_list ~
-RowObject.cCustomSuperProcedure RowObject.tooltip_text ~
-RowObject.toolbar_image_filename 
 &Scoped-Define DISPLAYED-OBJECTS TeShutdownText TeRequiredDBList ~
-TeCustomProcedure 
+fiDepTypeTitle 
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -156,12 +151,17 @@ TeCustomProcedure
 
 
 /* Definitions of handles for SmartObjects                              */
-DEFINE VARIABLE h_dynlookup AS HANDLE NO-UNDO.
+DEFINE VARIABLE hCustomSuperProcedure AS HANDLE NO-UNDO.
 
 /* Definitions of the field level widgets                               */
-DEFINE VARIABLE TeCustomProcedure AS CHARACTER FORMAT "X(256)":U INITIAL "Custom Super Procedure:" 
+DEFINE BUTTON buClear 
+     LABEL "&Clear" 
+     SIZE 15 BY 1.14 TOOLTIP "Clear selecttion"
+     BGCOLOR 8 .
+
+DEFINE VARIABLE fiDepTypeTitle AS CHARACTER FORMAT "X(20)":U INITIAL "Deployment Type" 
       VIEW-AS TEXT 
-     SIZE 24 BY .62 NO-UNDO.
+     SIZE 45.2 BY .62 NO-UNDO.
 
 DEFINE VARIABLE TeRequiredDBList AS CHARACTER FORMAT "X(256)":U INITIAL "Required DB List:" 
       VIEW-AS TEXT 
@@ -175,50 +175,48 @@ DEFINE VARIABLE TeShutdownText AS CHARACTER FORMAT "X(256)":U INITIAL "Shutdown 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     RowObject.edShutdownMessageText AT ROW 1 COL 28.2 NO-LABEL
+     buClear AT ROW 15.48 COL 28.2
+     RowObject.shutdown_message_text AT ROW 1 COL 28.2 NO-LABEL
           VIEW-AS EDITOR SCROLLBAR-VERTICAL
           SIZE 45.2 BY 2
      RowObject.container_object AT ROW 3 COL 28.2
           VIEW-AS TOGGLE-BOX
-          SIZE 20.8 BY .81
-     RowObject.lStaticObject AT ROW 3 COL 54.2
+          SIZE 25.6 BY .81
+     RowObject.generic_object AT ROW 3.76 COL 28.2
           VIEW-AS TOGGLE-BOX
-          SIZE 19.2 BY .81
-     RowObject.runnable_from_menu AT ROW 3.81 COL 28.2
+          SIZE 25.6 BY .81
+     RowObject.run_persistent AT ROW 4.52 COL 28.2
+          VIEW-AS TOGGLE-BOX
+          SIZE 25.6 BY .81
+     RowObject.runnable_from_menu AT ROW 5.29 COL 28.2
           VIEW-AS TOGGLE-BOX
           SIZE 25.4 BY .81
-     RowObject.lTemplateSmartObject AT ROW 3.81 COL 54.2
-          LABEL "Template"
-          VIEW-AS TOGGLE-BOX
-          SIZE 19.2 BY .81
-     RowObject.run_persistent AT ROW 4.62 COL 28.2
-          VIEW-AS TOGGLE-BOX
-          SIZE 18.8 BY .81
-     RowObject.generic_object AT ROW 4.62 COL 54.2
-          VIEW-AS TOGGLE-BOX
-          SIZE 19.2 BY .81
-     RowObject.lSystemOwned AT ROW 5.43 COL 28.2
+     RowObject.design_only AT ROW 3 COL 54.2
           VIEW-AS TOGGLE-BOX
           SIZE 21.6 BY .81
-     RowObject.disabled AT ROW 6.24 COL 28.2
+     RowObject.template_smartobject AT ROW 3.76 COL 54.2
           VIEW-AS TOGGLE-BOX
-          SIZE 13.2 BY .81
-     RowObject.required_db_list AT ROW 7 COL 28.2 NO-LABEL
+          SIZE 21.6 BY .81
+     RowObject.system_owned AT ROW 4.52 COL 54.2
+          VIEW-AS TOGGLE-BOX
+          SIZE 21.6 BY .81
+     RowObject.disabled AT ROW 5.29 COL 54.2
+          VIEW-AS TOGGLE-BOX
+          SIZE 21.6 BY .81
+     RowObject.required_db_list AT ROW 6.05 COL 28.2 NO-LABEL
           VIEW-AS EDITOR SCROLLBAR-VERTICAL
           SIZE 45.2 BY 2
-     RowObject.cCustomSuperProcedure AT ROW 9 COL 28.2 NO-LABEL
-          VIEW-AS EDITOR SCROLLBAR-VERTICAL
-          SIZE 45.2 BY 2
-     RowObject.tooltip_text AT ROW 12.14 COL 26.2 COLON-ALIGNED
-          VIEW-AS FILL-IN 
-          SIZE 45.2 BY 1
-     RowObject.toolbar_image_filename AT ROW 13.14 COL 26.2 COLON-ALIGNED
-          VIEW-AS FILL-IN 
-          SIZE 45.2 BY 1
      TeShutdownText AT ROW 1.1 COL 3.4 NO-LABEL
-     TeRequiredDBList AT ROW 7.1 COL 11 NO-LABEL
-     TeCustomProcedure AT ROW 9.19 COL 3.8 NO-LABEL
-     SPACE(50.40) SKIP(2.29)
+     TeRequiredDBList AT ROW 6.05 COL 11 NO-LABEL
+     RowObject.deployment_type AT ROW 9.86 COL 28.2 NO-LABEL
+          VIEW-AS SELECTION-LIST MULTIPLE 
+          LIST-ITEM-PAIRS "Server","SRV",
+                     "Client","CLN",
+                     "Web","WEB" 
+          SIZE 45 BY 5.52
+          FONT 3
+     fiDepTypeTitle AT ROW 9.19 COL 26.2 COLON-ALIGNED NO-LABEL
+     SPACE(4.80) SKIP(0.00)
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -229,7 +227,7 @@ DEFINE FRAME frMain
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
 /* Settings for THIS-PROCEDURE
    Type: SmartDataViewer
-   Data Source: "af/obj2/gscobful2o.w"
+   Data Source: "ry/obj/rycsoful2o.w"
    Allow: Basic,DB-Fields,Smart
    Container Links: Data-Target,Update-Source,TableIO-Target,GroupAssign-Source,GroupAssign-Target
    Frames: 1
@@ -238,7 +236,7 @@ DEFINE FRAME frMain
    Temp-Tables and Buffers:
       TABLE: RowObject D "?" ?  
       ADDITIONAL-FIELDS:
-          {af/obj2/gscobful2o.i}
+          {ry/obj/rycsoful2o.i}
       END-FIELDS.
    END-TABLES.
  */
@@ -258,7 +256,7 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 13.14
+         HEIGHT             = 15.62
          WIDTH              = 77.2.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -281,24 +279,25 @@ END.
 /* SETTINGS FOR WINDOW vTableWin
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frMain
-   NOT-VISIBLE Size-to-Fit                                              */
+   NOT-VISIBLE Size-to-Fit Custom                                       */
 ASSIGN 
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
 
+/* SETTINGS FOR BUTTON buClear IN FRAME frMain
+   NO-ENABLE                                                            */
+/* SETTINGS FOR FILL-IN fiDepTypeTitle IN FRAME frMain
+   NO-ENABLE                                                            */
 ASSIGN 
-       RowObject.cCustomSuperProcedure:RETURN-INSERTED IN FRAME frMain  = TRUE.
+       fiDepTypeTitle:PRIVATE-DATA IN FRAME frMain     = 
+                "Deployment Type".
 
-ASSIGN 
-       RowObject.edShutdownMessageText:RETURN-INSERTED IN FRAME frMain  = TRUE.
-
-/* SETTINGS FOR TOGGLE-BOX RowObject.lTemplateSmartObject IN FRAME frMain
-   EXP-LABEL                                                            */
 ASSIGN 
        RowObject.required_db_list:RETURN-INSERTED IN FRAME frMain  = TRUE.
 
-/* SETTINGS FOR FILL-IN TeCustomProcedure IN FRAME frMain
-   ALIGN-L                                                              */
+ASSIGN 
+       RowObject.shutdown_message_text:RETURN-INSERTED IN FRAME frMain  = TRUE.
+
 /* SETTINGS FOR FILL-IN TeRequiredDBList IN FRAME frMain
    ALIGN-L                                                              */
 /* SETTINGS FOR FILL-IN TeShutdownText IN FRAME frMain
@@ -322,21 +321,11 @@ ASSIGN
 
 /* ************************  Control Triggers  ************************ */
 
-&Scoped-define SELF-NAME RowObject.cCustomSuperProcedure
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL RowObject.cCustomSuperProcedure vTableWin
-ON VALUE-CHANGED OF RowObject.cCustomSuperProcedure IN FRAME frMain
+&Scoped-define SELF-NAME buClear
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buClear vTableWin
+ON CHOOSE OF buClear IN FRAME frMain /* Clear */
 DO:
-  {set dataModified TRUE}.
-END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
-&Scoped-define SELF-NAME RowObject.edShutdownMessageText
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL RowObject.edShutdownMessageText vTableWin
-ON VALUE-CHANGED OF RowObject.edShutdownMessageText IN FRAME frMain
-DO:
+  ASSIGN rowObject.deployment_type:SCREEN-VALUE = "":U.
   {set dataModified TRUE}.
 END.
 
@@ -363,9 +352,9 @@ END.
 &ANALYZE-RESUME
 
 
-&Scoped-define SELF-NAME RowObject.lStaticObject
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL RowObject.lStaticObject vTableWin
-ON VALUE-CHANGED OF RowObject.lStaticObject IN FRAME frMain /* Static Object */
+&Scoped-define SELF-NAME RowObject.shutdown_message_text
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL RowObject.shutdown_message_text vTableWin
+ON VALUE-CHANGED OF RowObject.shutdown_message_text IN FRAME frMain
 DO:
   {set dataModified TRUE}.
 END.
@@ -374,9 +363,9 @@ END.
 &ANALYZE-RESUME
 
 
-&Scoped-define SELF-NAME RowObject.lSystemOwned
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL RowObject.lSystemOwned vTableWin
-ON VALUE-CHANGED OF RowObject.lSystemOwned IN FRAME frMain /* System Owned */
+&Scoped-define SELF-NAME RowObject.system_owned
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL RowObject.system_owned vTableWin
+ON VALUE-CHANGED OF RowObject.system_owned IN FRAME frMain /* System Owned */
 DO:
   {set dataModified TRUE}.
 END.
@@ -421,20 +410,42 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsm_multi_media.physical_file_nameKeyFieldgsm_multi_media.multi_media_objFieldLabelToolbar Multi MediaFieldTooltipPress F4 For LookupKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH gsm_multi_media NO-LOCK,
-                     EACH gsc_multi_media_type NO-LOCK
-                     WHERE gsc_multi_media_type.multi_media_type_obj = gsm_multi_media.multi_media_type_obj INDEXED-REPOSITIONQueryTablesgsm_multi_media,gsc_multi_media_typeBrowseFieldsgsc_multi_media_type.multi_media_type_code,gsc_multi_media_type.file_extension,gsm_multi_media.physical_file_name,gsm_multi_media.multi_media_description,gsm_multi_media.creation_dateBrowseFieldDataTypescharacter,character,character,character,dateBrowseFieldFormatsX(10),X(3),X(70),X(35),99/99/9999RowsToBatch200BrowseTitleLookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateMultiMediaTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOFieldNametoolbar_multi_media_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
-             OUTPUT h_dynlookup ).
-       RUN repositionObject IN h_dynlookup ( 11.10 , 28.20 ) NO-ERROR.
-       RUN resizeObject IN h_dynlookup ( 1.00 , 50.00 ) NO-ERROR.
+             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.smartobject_objFieldLabelCustom Super ProcedureFieldTooltipPress F4 For LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type NO-LOCK WHERE gsc_object_type.object_type_code = "PROCEDURE":U, EACH ryc_smartobject NO-LOCK WHERE ryc_smartobject.object_type_obj = gsc_object_type.object_type_obj AND ryc_smartobject.customization_result_obj = 0 BY ryc_smartobject.object_filenameQueryTablesgsc_object_type,ryc_smartobjectBrowseFieldsryc_smartobject.object_filename,ryc_smartobject.object_extension,ryc_smartobject.object_description,ryc_smartobject.object_pathBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(70),X(35),X(35),X(70)RowsToBatch200BrowseTitleLookup Custom Super ProcedureViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcFieldNamecustom_smartobject_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT hCustomSuperProcedure ).
+       RUN repositionObject IN hCustomSuperProcedure ( 8.05 , 28.20 ) NO-ERROR.
+       RUN resizeObject IN hCustomSuperProcedure ( 1.00 , 50.00 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */
-       RUN adjustTabOrder ( h_dynlookup ,
-             RowObject.cCustomSuperProcedure:HANDLE IN FRAME frMain , 'AFTER':U ).
+       RUN adjustTabOrder ( hCustomSuperProcedure ,
+             RowObject.required_db_list:HANDLE IN FRAME frMain , 'AFTER':U ).
     END. /* Page 0 */
 
   END CASE.
 
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disableFields vTableWin 
+PROCEDURE disableFields :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  DEFINE INPUT PARAMETER pcFieldType AS CHARACTER NO-UNDO.
+
+  /* Code placed here will execute PRIOR to standard behavior. */
+
+  RUN SUPER( INPUT pcFieldType).
+
+  /* Code placed here will execute AFTER standard behavior.    */
+
+  DO WITH FRAME {&FRAME-NAME}:
+    ASSIGN buClear:SENSITIVE = rowObject.deployment_type:SENSITIVE.
+  END.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -453,6 +464,28 @@ PROCEDURE disable_UI :
   /* Hide all frames. */
   HIDE FRAME frMain.
   IF THIS-PROCEDURE:PERSISTENT THEN DELETE PROCEDURE THIS-PROCEDURE.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enableFields vTableWin 
+PROCEDURE enableFields :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  /* Code placed here will execute PRIOR to standard behavior. */
+
+  RUN SUPER.
+
+  /* Code placed here will execute AFTER standard behavior.    */
+
+  DO WITH FRAME {&FRAME-NAME}:
+    ASSIGN buClear:SENSITIVE = rowObject.deployment_type:SENSITIVE.
+  END.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

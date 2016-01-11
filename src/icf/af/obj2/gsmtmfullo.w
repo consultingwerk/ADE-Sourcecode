@@ -130,6 +130,7 @@ DEFINE VARIABLE miLastUpper   AS INTEGER    NO-UNDO.
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -158,6 +159,10 @@ menu_structure_type menu_structure_description
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gsmtmfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsm_toolbar_menu_structure NO-LOCK, ~
+      FIRST gsm_menu_structure WHERE gsm_menu_structure.menu_structure_obj = gsm_toolbar_menu_structure.menu_structure_obj NO-LOCK ~
+    BY gsm_toolbar_menu_structure.object_obj ~
+       BY gsm_toolbar_menu_structure.menu_structure_sequence INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsm_toolbar_menu_structure NO-LOCK, ~
       FIRST gsm_menu_structure WHERE gsm_menu_structure.menu_structure_obj = gsm_toolbar_menu_structure.menu_structure_obj NO-LOCK ~
@@ -256,13 +261,13 @@ END.
      _OrdList          = "icfdb.gsm_toolbar_menu_structure.object_obj|yes,icfdb.gsm_toolbar_menu_structure.menu_structure_sequence|yes"
      _JoinCode[2]      = "icfdb.gsm_menu_structure.menu_structure_obj = icfdb.gsm_toolbar_menu_structure.menu_structure_obj"
      _FldNameList[1]   > icfdb.gsm_toolbar_menu_structure.toolbar_menu_structure_obj
-"toolbar_menu_structure_obj" "toolbar_menu_structure_obj" ? "->>>>>>>>>>>>>>>>>9.999999999" "decimal" ? ? ? ? ? ? no ? yes 33.6 yes
+"toolbar_menu_structure_obj" "toolbar_menu_structure_obj" ? ? "decimal" ? ? ? ? ? ? no ? yes 33.6 yes
      _FldNameList[2]   > icfdb.gsm_toolbar_menu_structure.object_obj
-"object_obj" "object_obj" ? "->>>>>>>>>>>>>>>>>9.999999999" "decimal" ? ? ? ? ? ? yes ? yes 33.6 yes
+"object_obj" "object_obj" ? ? "decimal" ? ? ? ? ? ? yes ? yes 33.6 yes
      _FldNameList[3]   > icfdb.gsm_toolbar_menu_structure.menu_structure_sequence
 "menu_structure_sequence" "menu_structure_sequence" "Band Sequence" ? "integer" ? ? ? ? ? ? yes ? yes 21.4 yes
      _FldNameList[4]   > icfdb.gsm_toolbar_menu_structure.menu_structure_obj
-"menu_structure_obj" "menu_structure_obj" ? "->>>>>>>>>>>>>>>>>9.999999999" "decimal" ? ? ? ? ? ? yes ? yes 33.6 yes
+"menu_structure_obj" "menu_structure_obj" ? ? "decimal" ? ? ? ? ? ? yes ? yes 33.6 yes
      _FldNameList[5]   > icfdb.gsm_toolbar_menu_structure.menu_structure_alignment
 "menu_structure_alignment" "menu_structure_alignment" "Band Alignment" ? "character" ? ? ? ? ? ? yes ? no 14.6 yes
      _FldNameList[6]   > icfdb.gsm_toolbar_menu_structure.menu_structure_row

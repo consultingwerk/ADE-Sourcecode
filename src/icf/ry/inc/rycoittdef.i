@@ -33,11 +33,11 @@ af/cod/aftemwizpw.w
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
-  File: gscobttdef.i
+  File: rycoittdef.i
 
-  Description:  TT defs for gsc_object
+  Description:  TT defs for ryc_object_instance
 
-  Purpose:      TT defs for gsc_object read and update
+  Purpose:      TT defs for ryc_object_instance read and update
 
   Parameters:   <none>
 

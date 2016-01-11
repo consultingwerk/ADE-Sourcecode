@@ -43,6 +43,8 @@
                                               that is associated with the 
                                               procedure pointed to by 
                                               pi_context
+                              "Data-Logic-Proc"  - the name of the associated
+                                                   data logic procedure
                   pc_value     is the value that pc_attribute will be set to.
                   pl_status    (OUTPUT) - TRUE if the value was successfully set.
 
@@ -75,6 +77,7 @@ DEFINE OUTPUT PARAMETER pl_status    AS LOGICAL    INITIAL YES       NO-UNDO.
 /* ********************  Preprocessor Definitions  ******************** */
 
 &Scoped-define PROCEDURE-TYPE Procedure
+&Scoped-define DB-AWARE no
 
 
 
@@ -100,13 +103,13 @@ DEFINE OUTPUT PARAMETER pl_status    AS LOGICAL    INITIAL YES       NO-UNDO.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 1.99
+         HEIGHT             = 5.57
          WIDTH              = 40.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
- 
 
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
@@ -125,8 +128,17 @@ CASE pc_attribute:
     IF AVAILABLE _P THEN _P._HTML-File = pc_value.
     ELSE pl_status = no.
   END. /* WHEN "DataObject" */
+  WHEN "DATA-LOGIC-PROC":U THEN
+  DO:
+      FIND _P WHERE RECID(_P) eq pi_context NO-ERROR.
+      IF AVAILABLE _P THEN
+         FIND _U WHERE _U._HANDLE = _P._WINDOW-HANDLE NO-ERROR.
+      IF AVAILABLE _U THEN
+         FIND _C WHERE RECID(_C) = _U._x-recid NO-ERROR.
+      IF AVAILABLE _C THEN
+         ASSIGN _C._DATA-LOGIC-PROC = pc_value.
+  END.
 END.  /* Case on pc_attribute */
-
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

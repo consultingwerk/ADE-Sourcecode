@@ -38,11 +38,13 @@ History:
                        to Find _File
    Mario B 12/11/98   The ALL option was appearing in places where
                       it should not.  Changed display with frame t-type so
-		      that p_all and p_allw are ANDed instead of ORed.  That
-		      fixed it.  BUG 98-05-06-056  
+                      that p_all and p_allw are ANDed instead of ORed.  That
+                      fixed it.  BUG 98-05-06-056  
    Mario B 11/11/98   More fixes to the "ALL" option.  All not needed when
                       pattern matching is presented.  BUG# 19991025-003
    D. McMann 05/10/00 Added ability for user to display hidden files
+   D. McMann 07/11/02 redo cache if session:schema-change is set to new objects.
+                      20020701-029
    
 *************************************************************/
 
@@ -162,6 +164,12 @@ FORM SKIP(1)
   COLOR DISPLAY VALUE(pick-fg) PROMPT VALUE(pick-bg).
 
 /* LANGUAGE DEPENDENCIES END */ /*------------------------------------------*/
+/* In case the last change was rolled back, we want to refresh the table list */
+&IF PROVERSION >= "9.1E" &THEN
+  IF SESSION:SCHEMA-CHANGE = "New objects" THEN
+    ASSIGN cache_dirty = true.
+&ENDIF
+
 IF cache_dirty THEN RUN "prodict/_dctcach.p" (inc-hid).
 
 i = 0.
@@ -408,14 +416,14 @@ IF NOT p_option THEN DO:
       THEN DO:
       IF p_some THEN DO:
         user_filename = "".
-	/* The commented out sections within this block are because we
-	 * no longer allow ALL to be in the list when we present the flavor
-	 * that allows wildcards and the select/deselect of one or more files. 
-	 * Bug# 19991025-003.
-	 */
+        /* The commented out sections within this block are because we
+         * no longer allow ALL to be in the list when we present the flavor
+         * that allows wildcards and the select/deselect of one or more files. 
+         * Bug# 19991025-003.
+         */
        IF user_filename = "" THEN DO p_recid = 1 TO cache_file#:
           IF point_flag[p_recid] /* OR (p_all AND point_flag[1]) OR (p_allw
-             AND point_flag[1]) */ THEN DO:	     
+             AND point_flag[1]) */ THEN DO:             
             count = count + 1.
             user_filename = user_filename + "," + cache_file[p_recid].
             END.
@@ -486,7 +494,7 @@ IF NOT p_option THEN DO:
         END. /*--------------------------------------- end of exchange sort */
         ASSIGN
           cache_dirty = lb <> cache_file#
-          cache_file# = lb.	  
+          cache_file# = lb.          
       END.
     END.
     ELSE

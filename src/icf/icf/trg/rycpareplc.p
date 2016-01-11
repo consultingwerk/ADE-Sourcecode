@@ -23,15 +23,9 @@
 *********************************************************************/
 TRIGGER PROCEDURE FOR REPLICATION-CREATE OF ryc_page.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "ryc_page"
-                      &TRIGGER-TYPE = "REPLICATION-CREATE"}
-
 {af/sup/afreplicat.i  &TABLE-NAME   = "ryc_page"
                       &TABLE-FLA    = "rycpa"
-                      &TABLE-PK     = "container_smartobject_obj,
-                                       page_obj"
+                      &TABLE-PK     = "page_obj"
                       &ACTION       = "CREATE"
                       &PRIMARY-FLA  = "rycso"
                       &PRIMARY-KEY  = "container_smartobject_obj"

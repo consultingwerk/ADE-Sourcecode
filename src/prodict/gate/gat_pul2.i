@@ -48,6 +48,7 @@ History:
     hutegger    95/03   combined from odb, ora and syb4
     mcmann    04/13/99  Added check for intial value in integers and decimals
     mcmann    04/05/00  Modified for MSS database type.
+    mcmann    07/10/02  Changed how integer's format are calculated
 
 --------------------------------------------------------------------*/
 
@@ -99,6 +100,7 @@ else if CAN-DO(l_dcml-types,s_ttb_fld.ds_type)      /**** DECIMALS ****/
                       then 0
                       else LENGTH(l_frmt, "character") - INDEX(l_frmt,".")
                    ).
+
        /* description of l_prec and l_dcml; (l_prec: sign does, decimal 
         *   point doesn't count). Example:   l_prec = 18; l_dcml = 8
         *          l_prec
@@ -143,7 +145,8 @@ else if CAN-DO(l_dcml-types,s_ttb_fld.ds_type)      /**** DECIMALS ****/
                      )
            l_dcml  = 0
            l_frmt  = "-"
-                   + FILL(">",l_prec - i - 1)
+                   + (IF i = 1 THEN FILL(">",l_prec - i)
+                       ELSE FILL(">",l_prec - i - 1))
                    + FILL("9",i).
          else if l_dcml <= 0
           then assign    /* 15,-2 =>  ->>>>>>>>>>>999 [->(11)9(3)] */ 

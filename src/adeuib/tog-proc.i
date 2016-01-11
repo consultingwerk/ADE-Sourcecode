@@ -30,7 +30,7 @@ Description:
 
 Author: Tammy Marshall 
 
-Date Generated: 10/05/00
+Date Generated: 07/03/02
 
 Note: This procedure is generated via the Property Sheet Generator and 
       the abAttribute table of the ab database. 
@@ -187,10 +187,6 @@ PROCEDURE EXPAND_proc:
   _F._EXPAND = SELF:CHECKED.
 END.
 
-PROCEDURE EXPANDABLE_proc:
-  _C._EXPANDABLE = SELF:CHECKED.
-END.
-
 PROCEDURE EXPLICIT-POSITION_proc:
   ASSIGN _C._EXPLICIT_POSITION = SELF:CHECKED
          h_col:SENSITIVE       = SELF:CHECKED
@@ -207,6 +203,13 @@ PROCEDURE FILLED_proc:
                      &FLD1       = "FILLED"
                      &NEW-VALUE1 = "SELF:CHECKED"}
   _L._FILLED = SELF:CHECKED.
+END.
+
+PROCEDURE FIT-LAST-COLUMN_proc:
+  _C._FIT-LAST-COLUMN = SELF:CHECKED.
+  IF _C._FIT-LAST-COLUMN THEN
+    ASSIGN _C._NO-EMPTY-SPACE = FALSE
+           h_no-empty-space:CHECKED = FALSE.
 END.
 
 PROCEDURE FLAT_proc:
@@ -310,6 +313,13 @@ END.
 
 PROCEDURE NO-CURRENT-VALUE_proc:
   _F._NO-CURRENT-VALUE = SELF:CHECKED.
+END.
+
+PROCEDURE NO-EMPTY-SPACE_proc:
+_C._NO-EMPTY-SPACE = SELF:CHECKED.
+  IF _C._NO-EMPTY-SPACE THEN
+    ASSIGN _C._FIT-LAST-COLUMN = FALSE
+           h_fit-last-column:CHECKED = FALSE.
 END.
 
 PROCEDURE NO-FOCUS_proc:
@@ -456,6 +466,15 @@ END.
 PROCEDURE SHOW-IN-TASKBAR_proc:
   _C._SHOW-IN-TASKBAR = SELF:CHECKED.
 
+END.
+
+PROCEDURE SHOW-POPUP_proc:
+
+_U._SHOW-POPUP =
+  if available _F and  can-do("DATE,DECIMAL,INTEGER":u, _F._DATA-TYPE) and lparentIsDynview  
+   OR isDynView
+      then self:checked
+   else false.
 END.
 
 PROCEDURE SIDE-LABELS_proc:

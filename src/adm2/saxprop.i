@@ -107,6 +107,8 @@
    property temp-table definition, to which we will add our field definitions. */
 {src/adm2/smrtprop.i}
 
+IF NOT {&ADM-PROPS-DEFINED} THEN
+DO:
 &IF "{&ADMSuper}":U = "":U &THEN
   ghADMProps:ADD-NEW-FIELD('ContextMode':U, 'LOGICAL':U, 0, ?, NO).
   ghADMProps:ADD-NEW-FIELD('Node':U, 'DECIMAL':U, 0, ?, 0.0).
@@ -114,6 +116,7 @@
   ghADMProps:ADD-NEW-FIELD('Sequence':U, 'INTEGER':U, 0, ?, 0).
   ghADMProps:ADD-NEW-FIELD('Path':U, 'CHARACTER':U, 0, ?, '').
 &ENDIF
+END.
 
 {src/adm2/custom/saxpropcustom.i}
 

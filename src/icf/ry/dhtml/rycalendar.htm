@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html 
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style>
+TD            {text-align:center;font:bold 14px Verdana;color:black;cursor:hand;background:white;}
+TD.over       {color:blue;cursor:pointer;}
+TD.disable    {background:gray;}
+TD.select     {background:red;}
+TD.button     {background:gray;cursor:pointer;}
+SMALL         {font:bolder 8px Verdana;}
+TABLE         {background-color:blue;border-color:black;border:1px;margin:0;padding:0;}
+#result       {color:white;text-align:right;background:black;}
+BODY          {margin:0;padding:0;}
+</style>
+<title>&#160;</title>
+</head>
+<body onload="win.autofit(window);">
+<div id="body">
+<form name="form" onsubmit="fYear(event)">
+<table border="2" cellspacing="0" cellpadding="0" width="150" id="table" onmouseover="fmouseover(event)" onmouseout="fmouseout(event)" onClick="fDay(event)">
+  <tr><td colspan="4" id="result">
+    <select name="month" onChange="fMonth()">
+      <option>1 &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; </option>
+      <option>2</option>
+      <option>3</option>
+      <option>4</option>
+      <option>5</option>
+      <option>6</option>
+      <option>7</option>
+      <option>8</option>
+      <option>9</option>
+      <option>10</option>
+      <option>11</option>
+      <option>12</option>
+    </select>
+    </td><td colspan="3">Year:
+      <input name="year" type="text" size="4" maxlength="4" onChange="fYear(event)" />
+      <input type="submit" style="display:none;" /></td>
+  </tr><tr> 
+    <th width="12%">Su</th>
+    <th width="12%">Mo</th>
+    <th width="12%">Tu</th>
+    <th width="12%">We</th>
+    <th width="12%">Th</th>
+    <th width="12%">Fr</th>
+    <th width="12%">Sa</th>
+  </tr>
+  <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+  <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+  <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+  <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+  <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+  <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+  <tr><td class="button" colspan="4">OK</td><td class="button" colspan="3">Cancel</td></tr>
+</table>
+</form>
+</div>
+<script language="javascript"><!--
+var win=document.all?window.dialogArguments:window.opener;
+var cal=window.document.getElementById('table');
+var res=new Date();
+var mdy=win.appcontrol.dateformat;
+var a=[1,2,3];
+if (win.returnfield){
+  a = (win.returnfield.value).split('/');
+  var dt=new Date(a[mdy.indexOf('m')]+'/'+a[mdy.indexOf('d')]+'/'+a[mdy.indexOf('y')]);  
+  if(dt!='NaN') res=dt;
+}
+var ctext=win.action('info.get|HTM7').split(';'); //ok
+window.document.title=ctext[0]+window.document.title;
+var mformat=(win.action('info.get|HTM8')).split(','); //ok
+if(mformat.length==12)
+  for(var i=0;i<12;i++)
+    window.document.form.month.options[i].innerHTML=mformat[i];
+fDraw();
+
+function fmouseover(e){
+  if(document.all) e=e.srcElement;
+  else             e=e.target;
+  if(e.nodeName=='#text') e=e.parentNode;
+  if(e.nodeName=='TD' && e.className=='') e.className='over';
+}
+function fmouseout(e){
+  if(document.all) e=e.srcElement;
+  else             e=e.target;
+  if(e.nodeName=='#text') e=e.parentNode;
+  if(e.nodeName=='TD' && e.className=='over') e.className='';
+}
+function fMonth(){
+  res.setMonth(document.form.month.selectedIndex);
+  fDraw();
+}
+function fYear(e){
+  if(document.all){
+    e.returnValue=false;
+    e.cancelBubble=true;
+  }else{             
+    e.stopPropagation();
+    e.preventDefault();
+  }
+  res.setFullYear(document.form.year.value);
+  fDraw();
+}
+function fDraw(){
+  var dt = new Date(res);
+  document.form.month.selectedIndex=dt.getMonth();  
+  document.form.year.value=dt.getFullYear();
+  for(var w=2;w<8;w++){
+    for(var i=0;i<7;i++){
+      cal.rows[w].cells[i].innerHTML='&#160;';
+      cal.rows[w].cells[i].className='disable';
+    }
+  }
+  var w=2;
+  for(var i=1;i<32;i++){
+    dt.setDate(i);
+    if(dt.getDate()!=i) break;
+    cal.rows[w].cells[dt.getDay()].innerHTML = i;
+    cal.rows[w].cells[dt.getDay()].className = (i==res.getDate()?'select':'');
+    if(dt.getDay()==6) w++;
+  }
+}
+
+function fDay(e){
+  if(document.all) e=e.srcElement;
+  else             e=e.target;
+  if(e.nodeName=='#text') e=e.parentNode;
+  if (e.nodeName=='SELECT') return false; 
+  if (e.nodeName!='TD') e=e.parentNode; 
+  if (e.nodeName!='TD') return false; 
+  if (e.className=='over' && e.innerHTML){
+    res.setDate(e.innerHTML);
+    fDraw();
+  }
+  if (e.className=='button'){
+    if (e.innerHTML=='OK'){
+      a[mdy.indexOf('m')]=res.getMonth()+1;
+      a[mdy.indexOf('d')]=res.getDate();
+      a[mdy.indexOf('y')]=res.getFullYear();
+      win.returnfield.value=a.join('/');
+    }
+    window.close();
+  }
+}
+--></script>
+</body>
+</html>

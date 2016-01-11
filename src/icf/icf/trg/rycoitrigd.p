@@ -24,11 +24,6 @@
 
 TRIGGER PROCEDURE FOR DELETE OF ryc_object_instance .
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "ryc_object_instance"
-                      &TRIGGER-TYPE = "DELETE"}
-
 /* Created automatically using ERwin ICF Trigger template db/af/erw/afercustrg.i
    Do not change manually. Customisations to triggers should be placed in separate
    include files pulled into the trigger. ICF auto generates write trigger custom
@@ -71,8 +66,7 @@ DEFINE BUFFER o_ryc_object_instance FOR ryc_object_instance.
   &GLOBAL-DEFINE lbe_ui_event yes
 &ENDIF
 FOR EACH ryc_ui_event NO-LOCK
-   WHERE ryc_ui_event.container_smartobject_obj = ryc_object_instance.container_smartobject_obj and
-         ryc_ui_event.object_instance_obj = ryc_object_instance.object_instance_obj
+   WHERE ryc_ui_event.object_instance_obj = ryc_object_instance.object_instance_obj
    ON STOP UNDO, RETURN ERROR "AF^104^rycoitrigd.p^delete ryc_ui_event":U:
     FIND FIRST lbe_ui_event EXCLUSIVE-LOCK
          WHERE ROWID(lbe_ui_event) = ROWID(ryc_ui_event)
@@ -94,8 +88,7 @@ END.
   &GLOBAL-DEFINE lbe_page_object yes
 &ENDIF
 FOR EACH ryc_page_object NO-LOCK
-   WHERE ryc_page_object.container_smartobject_obj = ryc_object_instance.container_smartobject_obj and
-         ryc_page_object.object_instance_obj = ryc_object_instance.object_instance_obj
+   WHERE ryc_page_object.object_instance_obj = ryc_object_instance.object_instance_obj
    ON STOP UNDO, RETURN ERROR "AF^104^rycoitrigd.p^delete ryc_page_object":U:
     FIND FIRST lbe_page_object EXCLUSIVE-LOCK
          WHERE ROWID(lbe_page_object) = ROWID(ryc_page_object)
@@ -117,8 +110,7 @@ END.
   &GLOBAL-DEFINE lbe_smartlink yes
 &ENDIF
 FOR EACH ryc_smartlink NO-LOCK
-   WHERE ryc_smartlink.container_smartobject_obj = ryc_object_instance.container_smartobject_obj and
-         ryc_smartlink.source_object_instance_obj = ryc_object_instance.object_instance_obj
+   WHERE ryc_smartlink.source_object_instance_obj = ryc_object_instance.object_instance_obj
    ON STOP UNDO, RETURN ERROR "AF^104^rycoitrigd.p^delete ryc_smartlink":U:
     FIND FIRST lbe_smartlink EXCLUSIVE-LOCK
          WHERE ROWID(lbe_smartlink) = ROWID(ryc_smartlink)
@@ -140,8 +132,7 @@ END.
   &GLOBAL-DEFINE lbe_smartlink yes
 &ENDIF
 FOR EACH ryc_smartlink NO-LOCK
-   WHERE ryc_smartlink.container_smartobject_obj = ryc_object_instance.container_smartobject_obj and
-         ryc_smartlink.target_object_instance_obj = ryc_object_instance.object_instance_obj
+   WHERE ryc_smartlink.target_object_instance_obj = ryc_object_instance.object_instance_obj
    ON STOP UNDO, RETURN ERROR "AF^104^rycoitrigd.p^delete ryc_smartlink":U:
     FIND FIRST lbe_smartlink EXCLUSIVE-LOCK
          WHERE ROWID(lbe_smartlink) = ROWID(ryc_smartlink)
@@ -163,8 +154,7 @@ END.
   &GLOBAL-DEFINE lbe_attribute_value yes
 &ENDIF
 FOR EACH ryc_attribute_value NO-LOCK
-   WHERE ryc_attribute_value.container_smartobject_obj = ryc_object_instance.container_smartobject_obj and
-         ryc_attribute_value.object_instance_obj = ryc_object_instance.object_instance_obj
+   WHERE ryc_attribute_value.object_instance_obj = ryc_object_instance.object_instance_obj
    ON STOP UNDO, RETURN ERROR "AF^104^rycoitrigd.p^delete ryc_attribute_value":U:
     FIND FIRST lbe_attribute_value EXCLUSIVE-LOCK
          WHERE ROWID(lbe_attribute_value) = ROWID(ryc_attribute_value)
@@ -229,6 +219,8 @@ IF CAN-FIND(FIRST lbx_gsm_multi_media
             {af/sup/afvalidtrg.i &action = "DELETE" &table = "lby_gsm_multi_media"}
           END.
     END.
+
+
 
 
 

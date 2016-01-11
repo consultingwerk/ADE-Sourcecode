@@ -153,6 +153,17 @@ FUNCTION getEnabledHandles RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getEnabledObjFldsToDisable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getEnabledObjFldsToDisable Procedure 
+FUNCTION getEnabledObjFldsToDisable RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getFieldHandles) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFieldHandles Procedure 
@@ -373,22 +384,23 @@ FUNCTION getWindowTitleField RETURNS CHARACTER
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-okToContinue) = 0 &THEN
+&IF DEFINED(EXCLUDE-internalWidgetHandle) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD okToContinue Procedure 
-FUNCTION okToContinue RETURNS LOGICAL
-  (pcAction AS CHAR) FORWARD.
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD internalWidgetHandle Procedure 
+FUNCTION internalWidgetHandle RETURNS HANDLE
+  ( INPUT pcField AS CHARACTER,
+    INPUT pcSearchMode AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-setContainerMode) = 0 &THEN
+&IF DEFINED(EXCLUDE-okToContinue) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setContainerMode Procedure 
-FUNCTION setContainerMode RETURNS LOGICAL
-  ( pcContainerMode AS CHARACTER )  FORWARD.
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD okToContinue Procedure 
+FUNCTION okToContinue RETURNS LOGICAL
+  (pcAction AS CHAR) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -444,6 +456,17 @@ FUNCTION setEnabledFields RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setEnabledHandles Procedure 
 FUNCTION setEnabledHandles RETURNS LOGICAL
   ( pcHandles AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setEnabledObjFldsToDisable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setEnabledObjFldsToDisable Procedure 
+FUNCTION setEnabledObjFldsToDisable RETURNS LOGICAL
+  ( pcEnabledObjFldsToDisable AS CHAR )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -655,8 +678,8 @@ FUNCTION showDataMessages RETURNS CHARACTER
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 14.76
-         WIDTH              = 55.4.
+         HEIGHT             = 16.52
+         WIDTH              = 56.6.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -781,10 +804,11 @@ PROCEDURE cancelRecord :
   DEFINE VARIABLE lHidden       AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE cState        AS CHARACTER NO-UNDO.
   DEFINE VARIABLE lModified     AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE cRowIdent     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cTarget       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lFound        AS LOGICAL    NO-UNDO.
-  
+  DEFINE VARIABLE cRowIdent     AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cTarget       AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE lFound        AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE lSaveSource   AS LOGICAL   NO-UNDO.
+
   {get GroupAssignSource hGroupSource}.  
   {get UpdateTarget cTarget}.
 
@@ -815,14 +839,6 @@ PROCEDURE cancelRecord :
        cErrors = "No UpdateTarget present for Cancel operation.":U.
   END.   /* END ELSE DO (No Update Target) */
   
-  /* NOTE: set DataModifed/updateState must happen AFTER cancelRow() because 
-     at the end of the events (depending of the toolbar mode) updatestate may 
-     fire back from the toolbar to disable and if this is a viewer the focus 
-     will be set to the browse and if 'add' or 'copy' the previous record will 
-     become available. When this was done BEFORE cancelRow the 'add' or 'copy'
-     would not be undone and these rowObject records would cause error messages
-     with the next save */                 
-  
   /* DataAvailable avoids display when newRecord <> 'no', so we set it to 'no'
      AFTER the call to the UpdateTarget that publishes DataAvailable 
      and always display here instead  */
@@ -830,10 +846,22 @@ PROCEDURE cancelRecord :
 
   RUN displayRecord IN TARGET-PROCEDURE.
 
+  /* Post 9.1D the disabling of the object in Update mode is managed
+      by the object and not by a publish from the toolbar's updateState */   
+  {get SaveSource lSaveSource}.
+  IF lSaveSource = FALSE THEN
+    RUN updateMode IN TARGET-PROCEDURE ('updateEnd':U).
+
+   /* NOTE: set DataModifed/updateState must happen AFTER cancelRow() because 
+     at the end of the events (depending of the toolbar mode) updatestate may 
+     fire back from the toolbar to disable and if this is a viewer the focus 
+     will be set to the browse and if 'add' or 'copy' the previous record will 
+     become available. When this was done BEFORE cancelRow the 'add' or 'copy'
+     would not be undone and these rowObject records would cause error messages
+     with the next save */                 
   {get DataModified lModified}.
   IF NOT lModified THEN
     PUBLISH 'updateState':U FROM TARGET-PROCEDURE ('updateComplete':U).
-
   ELSE 
     {set DataModified no}.   /* Turn off the modified flag. */
 
@@ -880,6 +908,7 @@ PROCEDURE collectChanges :
   
   DEFINE VARIABLE cChange        AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cFieldHandles  AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cFieldNames    AS CHARACTER NO-UNDO.
   DEFINE VARIABLE iCnt           AS INTEGER   NO-UNDO.
   DEFINE VARIABLE iChanges       AS INTEGER   NO-UNDO INIT 0.
   DEFINE VARIABLE hFrameField    AS HANDLE    NO-UNDO.
@@ -887,61 +916,77 @@ PROCEDURE collectChanges :
   DEFINE VARIABLE lMod           AS LOGICAL   NO-UNDO. 
   DEFINE VARIABLE cNew           AS CHARACTER NO-UNDO.  
   DEFINE VARIABLE cEnabledFields AS CHARACTER NO-UNDO.  
-  DEFINE VARIABLE cFieldName     AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cField         AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cValue         AS CHARACTER NO-UNDO. 
   DEFINE VARIABLE hUpdateTarget  AS HANDLE     NO-UNDO.  
+  DEFINE VARIABLE cUpdateNames   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lError         AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cMessage       AS CHARACTER  NO-UNDO.
 
-  /* As of 9.1A we use the list of all field handles, not just enabled ones,
-     to capture changes made programmatically to non-enabled fields. */
+  /* We use the list of all field handles, not just enabled ones, to capture 
+     changes made programmatically to non-enabled fields. */
   {get FieldHandles cFieldHandles}.
+  {get DisplayedFields cFieldNames}.
 
+  /* we need the stored property value. Not the one adjusted for GA links etc. */
+  &SCOPED-DEFINE xpUpdateTargetNames
+  {get UpdateTargetNames cUpdateNames}.
+  &UNDEFINE xpUpdateTargetNames
+  
   /* In an add or copy situation, we assume that all enabled fields have been 
      changed, regardless of their modified status, to ensure they have a valid 
      value, and that any errors from validation procedures can return back to 
-     the correct field in error. */
+     the field in error. */
   {get NewRecord cNew}.                                                  
   {get EnabledFields cEnabledFields}.  
   DO iCnt = 1 TO NUM-ENTRIES(cFieldHandles):
-    hFrameField = WIDGET-HANDLE(ENTRY(iCnt, cFieldHandles)).
+    ASSIGN 
+      hFrameField = WIDGET-HANDLE(ENTRY(iCnt, cFieldHandles))
+      cField      = ENTRY(iCnt,cFieldNames).   
+    
+    /* Qualify the fields if not qualified AND UpdateTargetNames has exacly */
+    /* one entry. The reason is that if it had more entries then the viewer */
+    /* has been created against a SBO, so the fields should be already qualified. */
+    /* On the other hand, if UpdateTargetNames is empty then our DataTarget */
+    /* is NOT an SBO, so no qualification is needed */
+    IF {fn getObjectType} <> "SmartDataBrowser":U THEN /* older dyn browsers may have set this property */
+      IF NUM-ENTRIES(cField, '.':U) = 1 THEN 
+        IF NUM-ENTRIES(cUpdateNames) = 1 THEN
+          cField = cUpdateNames + '.':U + cField.
 
-    /* The MODIFIED attribute of EDITOR widgets is NOT set when their */
-    /* SCREEN-VALUE is modified thru the 4GL, so we need to do more work. */
-    /* Note that we could just always commit EDITORs that are in the */
-    /* EnabledFields list but.. I think it's cleaner to check first.. */
-    IF hFrameField:TYPE = "EDITOR" AND 
-       hFrameField:MODIFIED = NO AND
-       CAN-DO(cEnabledFields,hFrameField:NAME) THEN
+    /* The MODIFIED attribute of EDITOR widgets is NOT set when their 
+       SCREEN-VALUE is modified thru the 4GL, so we need to do more work. 
+       Note that we could always commit EDITORs that are in the EnabledFields 
+       list but.. I think it's cleaner to check first.. */
+    IF  hFrameField:TYPE = "EDITOR":U
+    AND hFrameField:MODIFIED = NO 
+    AND CAN-DO(cEnabledFields,cField) THEN
     DO: 
-        {get UpdateTarget hUpdateTarget}.
-        /* If there is an UPDATE-TARGET, get the buffer and compare values */
-        IF VALID-HANDLE(hUpdateTarget) THEN
-        DO:
-          IF {fnarg columnValue hFrameField:NAME hUpdateTarget} <> hFrameField:SCREEN-VALUE THEN
-            hFrameField:MODIFIED = YES.
-        END.
+      {get UpdateTarget hUpdateTarget}.
+      /* If there is an UPDATE-TARGET, get the buffer and compare values */
+      IF VALID-HANDLE(hUpdateTarget) THEN
+      DO:
+        IF {fnarg columnValue hFrameField:NAME hUpdateTarget} <> hFrameField:SCREEN-VALUE THEN
+          hFrameField:MODIFIED = YES.
+      END.
     END.
 
-    /* The "Frame Field" may be a procedure handle for a SmartObject */
+    /* The "Frame Field" may be a procedure handle for a SmartDataField object */
     IF hFrameField:TYPE = "PROCEDURE":U THEN
     DO:
-      lMod = dynamic-function('getDataModified' IN hFrameField) NO-ERROR.
+      lMod = DYNAMIC-FUNCTION('getDataModified':U IN hFrameField) NO-ERROR.
       /* if in an add/copy then set modified flag if field is enabled */
       IF lMod = NO AND cNew <> "no":U THEN  
-        lMod = DYNAMIC-FUNCTION('getFieldEnabled' IN hFrameField) NO-ERROR.
+        lMod = DYNAMIC-FUNCTION('getFieldEnabled':U IN hFrameField) NO-ERROR.
       IF lMod THEN
       DO:
-        /* Store field name and value in variables and then deal with nulls 
-           coming back from a SDF - to avoid pcchanges being set to null*/
-        ASSIGN
-          cFieldName = DYNAMIC-FUNCTION('getFieldName' IN hFrameField)
-          cValue = DYNAMIC-FUNCTION('getDataValue' IN hFrameField).
-        
-        IF cFieldName = ? THEN ASSIGN cFieldName = "":U.
-        IF cValue = ?     THEN ASSIGN cValue = "?":U.
-      
-        ASSIGN iChanges = iChanges + 1
+        /* Store field value in variable and deal with nulls 
+           coming back from an SDF - to avoid pcchanges being set to null*/
+        cValue = DYNAMIC-FUNCTION('getDataValue':U IN hFrameField).
+        IF cValue = ?     THEN ASSIGN cValue = "?":U.      
+        ASSIGN iChanges  = iChanges + 1
                pcChanges = pcChanges + (IF pcChanges EQ "":U THEN "":U ELSE CHR(1)) 
-                         + cFieldname  + CHR(1)
+                         + cField    + CHR(1)
                          + cValue.
       END. /* if lMod */
     END.  /* END DO IF PROCEDURE */
@@ -954,22 +999,31 @@ PROCEDURE collectChanges :
          error with the INPUT-VALUE, for example an invalid date was
          entered by the user, if there is we add a message for this
          field */
-      ASSIGN cChange = hFrameField:INPUT-VALUE NO-ERROR.
-      IF ERROR-STATUS:GET-MESSAGE(1) NE '':U THEN DO:
-        RUN addMessage IN TARGET-PROCEDURE
-          (ERROR-STATUS:GET-MESSAGE(1), hFrameField:NAME, ?).
+      cChange  = hFrameField:INPUT-VALUE NO-ERROR.
+      IF ERROR-STATUS:GET-MESSAGE(1) NE '':U THEN 
+      DO:
+        cMessage = ERROR-STATUS:GET-MESSAGE(1).
+        /* Ignore the format error if this is a blank field that does
+           not match the format (It is possible to set screen-value to 
+           blank for a field where the format does not allow blanks, but a 
+           reference to input-value will give an error) */ 
+        IF {fnarg widgetIsBlank cField} THEN cChange = "":U.
+        ELSE DO:
+          lError = TRUE.
+          RUN addMessage IN TARGET-PROCEDURE
+               (cMessage, hFrameField:NAME, ?).
+        END.  /* else do */
       END.  /* if error with INPUT-VALUE */
-      ASSIGN iChanges = iChanges + 1
-             pcChanges = pcChanges 
-                       + (IF pcChanges EQ "":U THEN "":U ELSE CHR(1)) 
-                       + (IF  hFrameField:TABLE NE "RowObject":U 
-                          AND hFrameField:TABLE NE ? 
-                          THEN hFrameField:TABLE + ".":U 
-                          ELSE "":U) 
-                       + hFrameField:NAME + CHR(1) 
-                       + IF hFrameField:INPUT-VALUE = ? 
-                         THEN "?":U
-                         ELSE hFrameField:INPUT-VALUE NO-ERROR.
+      IF NOT lError THEN
+        ASSIGN 
+          iChanges  = iChanges + 1
+          pcChanges = pcChanges 
+                    + (IF pcChanges EQ "":U THEN "":U ELSE CHR(1)) 
+                    + cField
+                    + CHR(1) 
+                    + IF cChange = ? 
+                      THEN "?":U
+                      ELSE cChange.
     END. /* END DO IF MODIFIED */ 
   END.   /* END DO iCnt */
   
@@ -982,7 +1036,7 @@ PROCEDURE collectChanges :
              + STRING(iPage) + ",":U 
              + STRING(TARGET-PROCEDURE).
   END.  /* END DO iChanges */
-  
+   
   RETURN.
 END PROCEDURE.
 
@@ -1093,42 +1147,108 @@ PROCEDURE confirmDelete :
   DEFINE VARIABLE cMessage                      AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cAnswer                       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cButtonPressed                AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hSource                       AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cDataColumns                  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hUpdateTarget                 AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE cTarget                       AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cDisplayColumns               AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDisplayValues                AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iLoop                         AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hContainer                    AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cAllFieldNames                AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSecuredFields                AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cHiddenFields                 AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hField                        AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE cFieldName                    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cUpdateTargetNames            AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hSDO                          AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lAll                          AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cObjectType                   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cOneToOneList                 AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iCount                        AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iCount2                       AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cValue                        AS CHARACTER  NO-UNDO.
 
-  ASSIGN plAnswer = YES.
+  ASSIGN
+    plAnswer = NO
+    cMessage = {fnarg messageNumber 34}.
 
-  /* get list of data columns in the SDO */
-  {get DataSource hSource}.
-  cDataColumns = DYNAMIC-FUNCTION("getDataColumns":U IN hSource).
-  DO iLoop = 1 TO NUM-ENTRIES(cDataColumns):
-    IF DYNAMIC-FUNCTION("columnDataType":U IN hSource, INPUT ENTRY(iLoop,cDataColumns)) = "character":U THEN
+  {get UpdateTarget cTarget}.
+  hUpdateTarget = WIDGET-HANDLE(cTarget).
+  IF {fn getObjectType hUpdateTarget} = 'SmartBusinessObject':U THEN
+  DO:
+    {get UpdateTargetNames cUpdateTargetNames}.
+    hSDO = {fnarg dataObjectHandle ENTRY(1,cUpdateTargetNames) hUpdateTarget}.
+    cOneToOneList = {fnarg getUpdateSiblings hSDO hUpdateTarget}.
+    DO iCount = 1 TO NUM-ENTRIES(cOneToOneList):
+      hSDO = {fnarg dataObjectHandle ENTRY(iCount,cOneToOneList) hUpdateTarget}.
+      {get PromptColumns cAnswer  hSDO}.
+      IF cAnswer = '(NONE)':U OR cAnswer = '':U OR cAnswer = ? THEN
+        cAnswer = '':U.
+      ELSE IF cAnswer = '(ALL)':U THEN
+        cAnswer = {fn getDataColumns hSDO}.
+      DO iCount2 = 1 TO NUM-ENTRIES(cAnswer):
+        ENTRY(iCount2, cAnswer) = ENTRY(iCount, cOneToOneList) + '.' + ENTRY(iCount2, cAnswer).
+      END.
+      cDisplayColumns = cDisplayColumns + 
+                        (IF cDisplayColumns = '' THEN '' ELSE ',') +
+                        cAnswer.
+    END.
+    cAnswer = '':U.  /* reset borrowed variable... */
+  END.
+  ELSE DO:
+    {get PromptColumns cDisplayColumns hUpdateTarget}.
+    IF cDisplayColumns = '(NONE)':U 
+    OR cDisplayColumns = '':U
+    OR cDisplayColumns = ? THEN
+      cDisplayColumns = '':U.
+    ELSE IF cDisplayColumns = '(ALL)':U THEN
     DO:
-      ASSIGN 
-        cDisplayColumns = cDisplayColumns + (IF cDisplayColumns = "":U THEN "":U ELSE ",":U) +
-                          ENTRY(iLoop, cDataColumns).
+      lAll = TRUE. 
+      /* get list of data columns in the SDO */
+      cDisplayColumns = DYNAMIC-FUNCTION("getDataColumns":U IN hUpdateTarget).
+    END.
+  END.
+
+  {get ObjectType cObjectType}.
+  IF cObjectType = "smartDataBrowser":U 
+  THEN DO:
+      {get displayedFields cAllFieldNames}.
+  END.
+  ELSE DO:
+      {get AllFieldNames cAllFieldNames}.
+  END.
+
+  {get FieldSecurity cSecuredFields}.
+  DO iLoop = 1 TO NUM-ENTRIES(cSecuredFields):
+    IF ENTRY(iLoop,cSecuredFields) = 'Hidden':U THEN
+     cHiddenFields  = cHiddenFields + ',':U + ENTRY(iLoop,cAllFieldNames).
+  END.
+
+  DO iLoop = 1 TO NUM-ENTRIES(cDisplayColumns):
+    cFieldName = ENTRY(iLoop, cDisplayColumns).
+    IF NUM-ENTRIES(cFieldName, '.':U) = 2 THEN DO:
+      ASSIGN
+        hSDO = {fnarg dataObjectHandle ENTRY(1,cFieldName,'.':U) hUpdateTarget}
+        cFieldName = ENTRY(2, cFieldName, '.':U).
+    END.
+    ELSE
+      hSDO = hUpdateTarget.
+
+    IF NOT CAN-DO(cHiddenFields, cFieldName) 
+     /* Skip _obj for the all option */
+    AND (NOT lAll OR NOT (cFieldName MATCHES '*_obj':U) ) THEN DO:
+      cValue = DYNAMIC-FUNCTION("columnStringValue":U IN hSDO,
+                                INPUT cFieldName).
+      IF cValue = ? THEN cValue = '?':U.
+      cMessage = cMessage + CHR(10) +
+                 DYNAMIC-FUNCTION("columnLabel":U IN hSDO,
+                                  INPUT cFieldName)
+                 + " : ":U + cValue.
     END.
   END.
   
-  ASSIGN
-    cMessage = "Do you wish to delete the current record?":U + CHR(10).
-  
-  IF cDisplayColumns <> "":U THEN
-    cDisplayValues = DYNAMIC-FUNCTION("colValues":U in hSource, cDisplayColumns).
-  
-  IF NUM-ENTRIES(cDisplayValues,CHR(1)) = (NUM-ENTRIES(cDisplayColumns) + 1) THEN
-  DO iLoop = 1 TO NUM-ENTRIES(cDisplayColumns):
-    ASSIGN
-      cMessage = cMessage + CHR(10) +
-                 DYNAMIC-FUNCTION("columnLabel":U IN hSource, INPUT ENTRY(iLoop, cDisplayColumns)) + " : ":U +
-                 TRIM(ENTRY(iLoop + 1, cDisplayValues,CHR(1)))
-                 .
-  END.
-  
-  IF VALID-HANDLE(gshSessionManager) THEN
+  {get ContainerHandle hContainer}.
+  IF NOT {fnarg IsDialogBoxParent hContainer}
+     AND NOT {fn IsFunctionInCallStack}
+     AND VALID-HANDLE(gshSessionManager) THEN
   DO:
       RUN askQuestion IN gshSessionManager (    
           INPUT cMessage,         /* pcMessageList     */
@@ -1320,45 +1440,25 @@ PROCEDURE dataAvailable :
 ------------------------------------------------------------------------------*/
  DEFINE INPUT PARAMETER pcRelative AS CHARACTER NO-UNDO.
 
- DEFINE VARIABLE lDataLinksEnabled AS LOGICAL   NO-UNDO.
  DEFINE VARIABLE hAddSource        AS HANDLE    NO-UNDO.
  DEFINE VARIABLE cNewRecord        AS CHARACTER NO-UNDO.
  DEFINE VARIABLE lInitialized      AS LOGICAL   NO-UNDO.
- DEFINE VARIABLE hParentFocus      AS HANDLE    NO-UNDO.
- DEFINE VARIABLE lWrongRecord      AS LOGICAL   NO-UNDO.
 
  {get ObjectInitialized lInitialized}.
  IF NOT lInitialized THEN
     RETURN.
 
- /*
- {get DataLinksEnabled lDataLinksEnabled}.  
- IF NOT lDataLinksEnabled THEN RETURN.
- */
-
  /* The NewRecord is only set at the tableioTarget yet, 
-    so check through a potential GroupAssingSource link chain. */ 
+    so check through a potential GroupAssignSource link chain. */ 
  hAddSource = TARGET-PROCEDURE.
  DO WHILE VALID-HANDLE(hAddSource):
    {get NewRecord cNewRecord hAddSource}.
    {get GroupAssignSource hAddSource hAddSource}.
  END.
  
- /* if this happens as part of a trigger that navigates the browse with
-    select-next-row or select-prev-row then the row-leave and row-enter is
-    on the event que and the current record does not have focus yet.  */
- hParentFocus = FOCUS:PARENT. 
-
- IF VALID-HANDLE(FOCUS) AND hParentFocus:TYPE = 'BROWSE':U 
- AND (FOCUS = LAST-EVENT:WIDGET-LEAVE) 
- AND (FOCUS = LAST-EVENT:WIDGET-ENTER) THEN
-    lWrongRecord = TRUE.
-   
-  IF NOT lWrongRecord AND cNewRecord = 'NO':U THEN
+ IF cNewRecord = 'NO':U THEN
    RUN displayRecord IN TARGET-PROCEDURE.
  
- RUN updateTitle IN TARGET-PROCEDURE.
-
  RETURN.
 
 END PROCEDURE.
@@ -1387,32 +1487,46 @@ PROCEDURE deleteRecord :
   DEFINE VARIABLE lAutoCommit    AS LOGICAL   NO-UNDO. 
   DEFINE VARIABLE cDummy         AS CHARACTER NO-UNDO.
   DEFINE VARIABLE lConfirmDelete AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE cUpdateTargetNames  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hSDO                AS HANDLE    NO-UNDO.
  
-  RUN confirmDelete IN TARGET-PROCEDURE(INPUT-OUTPUT lConfirmDelete).
-   
-  IF lConfirmDelete THEN
-  DO:
+  {get UpdateTarget cTarget}.
+  hUpdateTarget = WIDGET-HANDLE(cTarget).  /* NOTE: Make sure there's just 1? */
   
-    {get UpdateTarget cTarget}.
-    hUpdateTarget = WIDGET-HANDLE(cTarget).  /* NOTE: Make sure there's just 1? */
-    IF VALID-HANDLE(hUpdateTarget) THEN
+  IF VALID-HANDLE(hUpdateTarget) THEN
+  DO:
+    IF {fn getObjectType hUpdateTarget} = 'SmartBusinessObject':U THEN
     DO:
-      {get RowIdent cRowIdent}.
-      lSuccess = dynamic-function("deleteRow":U IN hUpdateTarget,
-                                   cRowIdent).  
-    END.  /* END DO VALID-HANDLE */
-    ELSE DO:
-      RUN addMessage IN TARGET-PROCEDURE
-        ("No UpdateTarget present for Delete operation.":U, ?, ?).
-      lSuccess = no.
-    END.  /* END ELSE DO (NOT VALID-HANDLE) */
-    IF lSuccess = no THEN
-    DO:
-      /* {fn showDataMessages}. */
-      RUN showDataMessagesProcedure IN TARGET-PROCEDURE (OUTPUT cDummy) .
-      RETURN "ADM-ERROR":U.
+      {get UpdateTargetNames cUpdateTargetNames}.
+      hSDO = {fnarg dataObjectHandle ENTRY(1,cUpdateTargetNames) hUpdateTarget}.
+      {get PromptOnDelete lConfirmDelete hSDO}.
     END.
-  END. /* lConfirmDelete */
+    ELSE
+      {get PromptOnDelete lConfirmDelete hUpdateTarget}.
+
+    IF lConfirmDelete THEN
+      RUN confirmDelete IN TARGET-PROCEDURE(INPUT-OUTPUT lConfirmDelete).
+    ELSE
+      lConfirmDelete = YES.
+
+    IF lConfirmDelete THEN
+    DO:
+    {get RowIdent cRowIdent}. 
+    lSuccess = dynamic-function("deleteRow":U IN hUpdateTarget,
+                                cRowIdent).  
+    END. /* lConfirmDelete */
+  END.  /* END DO VALID-HANDLE */
+  ELSE DO:
+    RUN addMessage IN TARGET-PROCEDURE
+      ("No UpdateTarget present for Delete operation.":U, ?, ?).
+    lSuccess = no.
+  END.  /* END ELSE DO (NOT VALID-HANDLE) */
+  IF lSuccess = no THEN
+  DO:
+    /* {fn showDataMessages}. */
+    RUN showDataMessagesProcedure IN TARGET-PROCEDURE (OUTPUT cDummy) .
+    RETURN "ADM-ERROR":U.
+  END.
   RETURN.
  
 END PROCEDURE.
@@ -1509,7 +1623,7 @@ PROCEDURE displayRecord :
 
    ELSE RUN displayFields IN TARGET-PROCEDURE (cColumns).
  END. /* if valid datasource */
-
+ 
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1529,7 +1643,6 @@ PROCEDURE enableFields :
             directly. 
 ------------------------------------------------------------------------------*/
    DEFINE VARIABLE cObjectMode AS CHARACTER  NO-UNDO.
-   
    /* Ensure we don't override the 'stronger' modal update mode, which 
       is used to enable cancel */ 
 
@@ -1682,6 +1795,48 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-isUpdatePending) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE isUpdatePending Procedure 
+PROCEDURE isUpdatePending :
+/*------------------------------------------------------------------------------
+  Purpose:    Returns true if this object is in update mode 
+  Parameters:  I-O plUpdate - Is update pending
+               if it is input as true then some other subscriber has a pending 
+               update and we must just leave it as is. 
+  Notes:    -  DataSources publishes this from canNavigate to check if targets
+               have pending updates and return false to indicate that the object
+               cannot be navigated if the publish returns true.
+            -  It is also called directly from canNavigate in this class.     
+------------------------------------------------------------------------------*/
+  DEFINE INPUT-OUTPUT PARAMETER plUpdate AS LOGICAL NO-UNDO.
+ 
+  DEFINE VARIABLE cMode         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lModified     AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cNew          AS CHARACTER  NO-UNDO INIT 'no'.
+  DEFINE VARIABLE hGaSource     AS HANDLE     NO-UNDO.
+
+  {get GroupAssignSource hGaSource}.
+
+  IF VALID-HANDLE(hGaSource) THEN
+    RETURN.
+
+  /* Keep update was found somewhere else */
+  IF plUpdate = FALSE THEN
+  DO:
+    {get DataModified lModified}.
+    {get NewRecord cNew}. 
+    {get ObjectMode cMode}.
+    plUpdate = lModified OR cNew <> 'NO':U OR (cMode = 'Update':U).  
+  END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-linkStateHandler) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE linkStateHandler Procedure 
@@ -1689,21 +1844,32 @@ PROCEDURE linkStateHandler :
 /*------------------------------------------------------------------------------
   Purpose:     
   Parameters:  <none>
-  Notes:       
+  Notes:      if you think you get this... think again... 
+              Or more precisely ensure you realize that there is an override 
+              in viewer.p that runs this in all its GroupAssignTargets while the
+              SDO's linkState only runs this in the GroupAssignSource.  
 ------------------------------------------------------------------------------*/
   DEFINE INPUT PARAMETER pcState   AS CHARACTER  NO-UNDO.
   DEFINE INPUT PARAMETER phObject  AS HANDLE     NO-UNDO.
   DEFINE INPUT PARAMETER pcLink    AS CHARACTER  NO-UNDO.
  
-  DEFINE VARIABLE cInactiveLinks  AS CHAR      NO-UNDO.
-  DEFINE VARIABLE lDataInactive   AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE lInitialized    AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE cQueryPosition  AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cInactiveLinks  AS CHAR       NO-UNDO.
+  DEFINE VARIABLE lDataInactive   AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lInitialized    AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cQueryPosition  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hUpdateTarget   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cMyRowident     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSourceRowident AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lSameRecord     AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hGaSource       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hUpdateSource   AS HANDLE     NO-UNDO.
 
   {get ObjectInitialized lInitialized}.
-  IF lInitialized AND pcstate = 'active':U AND pcLink = 'DataSource':U  THEN
+  IF lInitialized 
+  AND pcstate = 'active':U 
+  AND pcLink = 'DataSource':U THEN
   DO:
-    /* if the source is inactive then just wait for the dataavailable
+    /* if the source is inactive then we want to wait for the dataavailable
        that it will publish when it becomes active */ 
     {get InactiveLinks cInactiveLinks phObject}.
     IF NOT CAN-DO(cInactiveLinks,'DataSource':U) THEN
@@ -1717,10 +1883,140 @@ PROCEDURE linkStateHandler :
   
   IF lDataInactive THEN
   DO:
-    {get QueryPosition cQueryPosition phObject}.
-    RUN queryPosition IN TARGET-PROCEDURE(cQueryPosition).
-    RUN dataAvailable IN TARGET-PROCEDURE('different':U).
+    /* (note that we only get here when 'active' 'DataSource' )
+       We want to avoid redisplay if we are on the same record, but we are a 
+       bit paranoid so we ensure that we're the updateSource, so that it is 
+       very unlikely that anything have changed in the source while we were 
+       unconscious.. (to find the updatetarget we must find the top in the 
+       GA link) */ 
+    
+    hGaSource = TARGET-PROCEDURE.
+    DO WHILE VALID-HANDLE(hGaSource):
+      hUpdateSource = hGaSource. 
+      {get GroupAssignSource hGaSource hUpdateSource}.
+    END.
+    {get UpdateTarget hUpdateTarget hUpdateSource}.    
+    
+    IF hUpdateTarget = phObject THEN
+    DO:
+      {get Rowident cMyRowident}.
+      ASSIGN /* check if we are on the same record (? is not avail or new 
+                on ANY parent... so make sure that is not seen as the same ) */
+        cSourceRowident = ENTRY(1,{fnarg colValues '':U phObject},CHR(1))
+        lSameRecord     = (cMyRowident <> ?) AND (cMyRowident = cSourceRowident)  .
+    END.
+   
+    IF NOT lSameRecord THEN
+    DO:
+      {get QueryPosition cQueryPosition phObject}.
+      RUN queryPosition IN TARGET-PROCEDURE(cQueryPosition).
+      RUN dataAvailable IN TARGET-PROCEDURE('different':U).
+    END.
   END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-locateWidget) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE locateWidget Procedure 
+PROCEDURE locateWidget :
+/*------------------------------------------------------------------------------
+  Purpose:     Locates a widget and retuns its handle and the handle of its
+               TARGET-PROCEDURE
+  Parameters:  pcWidget AS CHARACTER
+               phWidget AS HANDLE
+               phTarget AS HANDLE
+  Notes:       Supports self and no qualifiers
+               A field may be qualified in its field name with an SDO name 
+               if the viewer was built against an SBO.  This is first treated 
+               as no qualifier before treating it as an instance name qualifier.
+------------------------------------------------------------------------------*/
+DEFINE INPUT  PARAMETER pcWidget AS CHARACTER  NO-UNDO.
+DEFINE OUTPUT PARAMETER phWidget AS HANDLE     NO-UNDO.
+DEFINE OUTPUT PARAMETER phTarget AS HANDLE     NO-UNDO.
+
+DEFINE VARIABLE cDataTargets       AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cField             AS CHARACTER  NO-UNDO. 
+DEFINE VARIABLE cObjectType        AS CHARACTER  NO-UNDO. 
+DEFINE VARIABLE hDataSource        AS HANDLE     NO-UNDO. 
+DEFINE VARIABLE hDataTarget        AS HANDLE     NO-UNDO. 
+DEFINE VARIABLE iDataTargets       AS INTEGER    NO-UNDO.
+DEFINE VARIABLE lQueryObject       AS LOGICAL    NO-UNDO. 
+
+  /* Support for Self qualifier */
+  IF NUM-ENTRIES(pcWidget, '.':U) > 1 AND ENTRY(1, pcWidget, '.':U) = 'Self':U THEN
+  DO:
+    ASSIGN 
+      cField     = DYNAMIC-FUNCTION('deleteEntry':U IN TARGET-PROCEDURE,
+                                     INPUT 1,
+                                     INPUT pcWidget,
+                                     INPUT '.':U)
+      phWidget   = DYNAMIC-FUNCTION('internalWidgetHandle':U IN TARGET-PROCEDURE,
+                                     INPUT cField, INPUT 'ALL':U)
+      phTarget = TARGET-PROCEDURE NO-ERROR.
+    IF phWidget NE ? THEN RETURN. 
+  END.  /* if qualifier is self */
+  
+  /* Support for searching this object with no qualifier 
+     (or qualifier of SDO name for field of viewer built against SBO)
+     
+     If the number of entries is less than or equal to 2 then the field has
+     no qualifier or only has one qualifier which could be an SDO name for a
+     field of a viewer built with an SBO, check for a widget in this object 
+     first with the passed name.  */  
+  IF NUM-ENTRIES(pcWidget, '.':U) <= 2 THEN
+  DO:
+    ASSIGN
+      phWidget = DYNAMIC-FUNCTION('internalWidgetHandle':U IN TARGET-PROCEDURE,
+                                  INPUT pcWidget, INPUT 'ALL':U)
+      phTarget = TARGET-PROCEDURE NO-ERROR.
+    IF phWidget NE ? THEN RETURN.
+  END.  /* no qualifier or one qualifier */
+
+  /* Support for searching sibling objects with no qualifier 
+     (or qualifier of SDO name for field of viewer built against SBO)
+     
+     If the widget was not found in this object and there is no qualifier
+     or only one qualifier which could be an SDO name for a field of a 
+     viewer built with an SBO, check for the widget in objects with the 
+     same data source. */
+  IF NUM-ENTRIES(pcWidget, '.':U) <= 2 THEN
+  DO:
+    {get DataSource hDataSource}.
+    IF VALID-HANDLE(hDataSource) THEN
+    DO:
+      {get DataTarget cDataTargets hDataSource}.
+      DO iDataTargets = 1 TO NUM-ENTRIES(cDataTargets):
+        ASSIGN hDataTarget = WIDGET-HANDLE(ENTRY(iDataTargets, cDataTargets)) NO-ERROR.
+        {get QueryObject lQueryObject hDataTarget}.
+        {get ObjectType cObjectType hDataTarget}.
+        /* Only sibling viewer objects are searched when there is no 
+           qualifier */
+        IF VALID-HANDLE(hDataTarget) AND hDataTarget NE TARGET-PROCEDURE AND 
+           NOT lQueryObject AND cObjectType NE 'SmartDataBrowser':U THEN
+        DO:    
+          /* When searching for widgets with the same data source, only 
+             datafields should be searched so NO is being passed as the 
+             second parameter to widgetHandleInSelf.  */
+          ASSIGN
+            phWidget = DYNAMIC-FUNCTION('internalWidgetHandle':U IN hDataTarget,
+                                        INPUT pcWidget, INPUT 'DATA':U)
+            phTarget = hDataTarget NO-ERROR.
+          IF phWidget NE ? THEN RETURN.
+        END.  /* if field found */
+      END.  /* do iLoop 1 to number of data targets */
+    END.  /* valid data source */
+  END.  /* if no qualifier */
+  
+  /* If there is a qualifier other than self then run SUPER to locate widget
+     by datasource or instance name qualifiers */
+  IF NUM-ENTRIES(pcWidget, '.':U) > 1 AND ENTRY(1, pcWidget, '.':U) <> 'Self':U THEN
+    RUN SUPER (INPUT pcWidget, OUTPUT phWidget, OUTPUT phTarget).  
 
 END PROCEDURE.
 
@@ -1821,6 +2117,7 @@ PROCEDURE okToContinueProcedure :
          RUN showMessageProcedure IN TARGET-PROCEDURE 
                (INPUT '3,' + cOperation + ',YesNoCancel':U,
                 OUTPUT lAnswer).
+
      END CASE.
 
      /* Yes to save changes */
@@ -1938,7 +2235,6 @@ PROCEDURE queryPosition :
 ------------------------------------------------------------------------------*/
 
   DEFINE INPUT PARAMETER pcState AS CHARACTER NO-UNDO.
-  
   DEFINE VARIABLE cRecordState     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lEnabled         AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lSaveSource      AS LOGICAL    NO-UNDO.
@@ -1946,10 +2242,11 @@ PROCEDURE queryPosition :
   DEFINE VARIABLE hContainerSource AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cContainerMode   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lInitialized     AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lEnableNow       AS LOGICAL    NO-UNDO.
+  
   /* initializeObject deals with this so ignore if not initilized to avoid 
      unnecessary and incorrect publishing of states */  
   {get ObjectInitialized lInitialized}.
+
   IF NOT lInitialized THEN
     RETURN.
 
@@ -1961,7 +2258,7 @@ PROCEDURE queryPosition :
   {set RecordState cRecordState}.
 
   {get FieldsEnabled lEnabled}.
-  
+ 
   IF pcState BEGINS 'NoRecordAvail':U THEN
   DO:
     IF lEnabled THEN
@@ -1978,32 +2275,21 @@ PROCEDURE queryPosition :
     ELSE   
       {get SaveSource lSaveSource}.
     
-    /* The SaveSource is used to check whtehr to enable at start up 
+    /* The SaveSource is used to check whether to enable at start up 
        The only way to NOT make this happen is with an tableio-target 
        with UPDATE mode (lSaveSource = false).  
        We check NOT (lSaveSource = false) to ensure that we run enableFields 
        also when unknown value and no tableio source. 
        THIS IS INTENTIONAL from 9.1B ! but has been overridden in viewer.i for 
        backwards compatibility ...  
-       Also ensure that we don't enable if Containermode is 'view' */
+       The updateMode toggles SaveSource on/off to ensure that we don't enable 
+       if the user have explicitly set it to view. (This also includes the 
+       inititial Containermode = 'view', which the container publishes from 
+       its toolbars)  */
     IF NOT (lSaveSource = FALSE) THEN
-    DO:
-      lEnableNow = TRUE.
-      
-      {get ContainerSource hContainerSource}.
-      IF VALID-HANDLE(hContainerSource) THEN
-      DO:
-        {get ContainerMode cContainerMode hContainerSource}.
-        IF cContainerMode = "view":U THEN 
-          lEnableNow = FALSE.
-      END.
-    END. /* if not lSaveSource =  false */
-
-    IF lEnableNow THEN
       RUN updateMode IN TARGET-PROCEDURE ('modify':U).
-  END.   /* END DO NOT lEnabled */
-      
-  /* re-send the event to other objects (such as an Update Panel) */
+  END.  /*  NOT lEnabled */
+     /* re-send the event to other objects (such as an Update Panel) */
   PUBLISH 'queryPosition':U FROM TARGET-PROCEDURE (pcState).
   
   RETURN.
@@ -2092,41 +2378,83 @@ PROCEDURE showDataMessagesProcedure :
   DEFINE VARIABLE cTable      AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cText       AS CHARACTER NO-UNDO INIT "":U.
   DEFINE VARIABLE hContainerSource AS HANDLE NO-UNDO.
+  DEFINE VARIABLE hContainer  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cIgnore     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lIgnore     AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cSummary    AS CHARACTER  NO-UNDO.
                                                              
-  cMessages = DYNAMIC-FUNCTION('fetchMessages':U IN TARGET-PROCEDURE).
-  iMsgCnt = NUM-ENTRIES(cMessages, CHR(3)).
-  DO iMsg = 1 TO iMsgCnt:
-    /* Format a string of messages; each has a first line of
-       "Field:  <field>    "Table:  <table>"
-       (if either of these is defined) plus the error message on a
-        separate line. */
-    ASSIGN cMessage = ENTRY(iMsg, cMessages, CHR(3))
-           cField = IF NUM-ENTRIES(cMessage, CHR(4)) > 1 THEN
-             ENTRY(2, cMessage, CHR(4)) ELSE "":U
-           cTable = IF NUM-ENTRIES(cMessage, CHR(4)) > 2 THEN
-             ENTRY(3, cMessage, CHR(4)) ELSE "":U
-           cText = cText + (IF cField NE "":U THEN
-             dynamic-function('messageNumber':U IN TARGET-PROCEDURE, 10) ELSE "":U)              
-             + cField + "   ":U +       
-             (IF cTable NE "":U THEN 
-             dynamic-function('messageNumber':U IN TARGET-PROCEDURE, 11) ELSE "":U) + cTable + 
-             (IF cField NE "":U OR cTable NE "":U THEN "~n":U ELSE "":U)
-                 + "  ":U + ENTRY(1, cMessage, CHR(4)) + "~n":U.
+  ASSIGN cMessages = DYNAMIC-FUNCTION('fetchMessages':U IN TARGET-PROCEDURE).
+  DO:
+    iMsgCnt = NUM-ENTRIES(cMessages, CHR(3)).
+    DO iMsg = 1 TO iMsgCnt:
+      /* Format a string of messages; each has a first line of
+         "Field:  <field>    "Table:  <table>"
+         (if either of these is defined) plus the error message on a
+          separate line. */
+      ASSIGN cMessage = ENTRY(iMsg, cMessages, CHR(3))
+             cField = IF NUM-ENTRIES(cMessage, CHR(4)) > 1 THEN ENTRY(2, cMessage, CHR(4)) ELSE "":U
+             cTable = IF NUM-ENTRIES(cMessage, CHR(4)) > 2 THEN ENTRY(3, cMessage, CHR(4)) ELSE "":U
+             .
+        /* Is Dynamics running? If so then run the messages through the standard message routine.
+         * This will ensure that the messages are translated and correctly formatted.           */
+        IF VALID-HANDLE(gshSessionManager) THEN
+        DO:
+            /* We are only interested in getting the summary message here. Ignore all other 
+             * parameters.                                                                  */
+            RUN af/app/afmessagep.p ON gshAstraAppServer ( INPUT  cMessage,
+                                                           INPUT  "":U,
+                                                           INPUT  "":U,
+                                                           OUTPUT cSummary,
+                                                           OUTPUT cIgnore,
+                                                           OUTPUT cIgnore,
+                                                           OUTPUT cIgnore,
+                                                           OUTPUT lIgnore,
+                                                           OUTPUT lIgnore  ).
+            ASSIGN cText = cText
+                         + (IF cField NE "":U THEN DYNAMIC-FUNCTION("messageNumber":U IN TARGET-PROCEDURE, 10) ELSE "":U)
+                         + cField + "   ":U
+                         + (IF cTable NE "":U THEN DYNAMIC-FUNCTION('messageNumber':U IN TARGET-PROCEDURE, 11) ELSE "":U)
+                         + cTable
+                         + (IF cField NE "":U OR cTable NE "":U THEN "~n":U ELSE "":U)
+                         + "  ":U + cSummary + "~n":U.
+        END.    /* Use Dynamics error formatting routine */
+        ELSE
+            ASSIGN cText = cText + (IF cField NE "":U THEN
+                dynamic-function('messageNumber':U IN TARGET-PROCEDURE, 10) ELSE "":U)              
+               + cField + "   ":U +       
+               (IF cTable NE "":U THEN 
+               dynamic-function('messageNumber':U IN TARGET-PROCEDURE, 11) ELSE "":U) + cTable + 
+               (IF cField NE "":U OR cTable NE "":U THEN "~n":U ELSE "":U)
+                   + "  ":U + ENTRY(1, cMessage, CHR(4)) + "~n":U.
+        
+      /* since we are displaying in a resizable dialog we can afford a blank line between fields */
+      IF TRIM(cText) <> "" THEN ASSIGN cText = cText + "~n".
 
-    /* since we are displaying in a resizable dialog we can afford a blank line between fields */
-    IF TRIM(cText) <> "" THEN ASSIGN cText = cText + "~n".
-                     
-    /* Return the field name from the first error message so the caller can
-       use it to position the cursor. */
-    IF iMsg = 1 THEN cFirstField = cField.
-  END.   /* END DO iMsg */
+      /* Return the field name from the first error message so the caller can
+         use it to position the cursor. */
+      IF iMsg = 1 THEN cFirstField = cField.
+    END.   /* END DO iMsg */
+  END.
   
   IF cText NE "":U AND cMessages <> "":U THEN
   DO:
-    IF VALID-HANDLE(gshSessionManager) THEN
+    /* issue 6945 - we need to detect if a browse cell is involved */
+    DEFINE VARIABLE cParentType  AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cFocusType   AS CHARACTER  NO-UNDO.
+    IF VALID-HANDLE(FOCUS) THEN
+      ASSIGN cParentType = FOCUS:PARENT:TYPE
+             cFocusType = FOCUS:TYPE.
+
+    /* if a function is in the call stack or a Dialog-box is involved */
+    /* we have to use the standard message box */
+    {get ContainerHandle hContainer}.
+    IF NOT {fnarg IsDialogBoxParent hContainer}
+       AND NOT {fn IsFunctionInCallStack}
+       AND NOT (cFocusType = 'FILL-IN' AND cParentType BEGINS 'BROWSE':U) /* 6945 */
+       AND VALID-HANDLE(gshSessionManager) THEN
     DO:       
       DEFINE VARIABLE cButtonPressed AS CHARACTER NO-UNDO.
-      
+
       {get ContainerSource hContainerSource}.
     
       /* Astra showMessages handles message list in raw form */
@@ -2142,9 +2470,8 @@ PROCEDURE showDataMessagesProcedure :
           OUTPUT cButtonPressed   /* pcButtonPressed */               
           ).                
     END.
-    ELSE DO:
-        MESSAGE cText VIEW-AS ALERT-BOX ERROR.
-    END.
+    ELSE
+        MESSAGE cText VIEW-AS ALERT-BOX ERROR TITLE "Data Error".   
   END.
          
   pcReturn = cFirstField.
@@ -2168,32 +2495,85 @@ PROCEDURE updateMode :
   Parameters:  pcMode AS CHARACTER -- update mode
                Possible values are:
                updateBegin      - Signals that the user has pressed
-                                  the update button
+                                  the update button. This is a modal update that
+                                  only cancel or save can end with UpdateEnd.  
                updateEnd        - Signals that the user has pressed the save
-                                  button
+                                  or cancel button 
+               view             - Signals that the user has pressed the view
+                                  button.                    
+               Modify           - Signals that the user has pressed the modify
+                                  button. This is less modal than Update and
+                                  and is not included in canNavigate                     
   Notes:       'updateBegin' signals that the Update button has been pressed 
                in an Update SmartPanel in Update mode. Enable fields for data 
                entry. 'updateEnd' signals that Save has completed; disable 
                fields. 'update-begin' was a state msg in V8. updateEnd 
                corresponds to the save button dispatching disable-fields in V8.
+            -   
 ------------------------------------------------------------------------------*/
   DEFINE INPUT PARAMETER pcMode AS CHARACTER NO-UNDO.
+
+  DEFINE VARIABLE cObjectMode        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cLogicalObjectName AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cRunAttribute      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSecuredTokens     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hTableIOSource     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lSaveSource        AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hGASource          AS HANDLE     NO-UNDO. 
+  DEFINE VARIABLE cTableioType       AS CHARACTER  NO-UNDO.
+
+  {get TableIOSource hTableIOSource}.
+  {get SaveSource lSaveSource}. 
   
-  DEFINE VARIABLE lHidden      AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE cGroupTarget AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE hGroupSource AS HANDLE    NO-UNDO.
+  /* We change SaveSource to keep track of explicit 'view' and 'modify' requests to be able 
+     to avoid the automatic enabling in queryPosition when a record becomes 
+     available if the user explicitly pressed view previously. (This also 
+     includes the initial ContainerMode 'view' setting, which the dynamic 
+     container publishes from its toolbars). 
+     queryPosition used to avoid enabling when ContainerMode = view, but the
+     ContainerMode now reflects the 'Main' viewer's mode, so it was never enabled 
+     again if it was set in view mode automatically when no records existed 
+     (i.e due to filter criteria) */       
+  IF SOURCE-PROCEDURE = hTableioSource THEN
+  DO:
+    IF pcMode = 'view':U THEN
+      {set SaveSource NO}.
+    ELSE IF lSaveSource = NO AND pcMode = 'Modify':U THEN
+    DO:
+      {get TableIOType cTableioType hTableIOSource}.
+      IF cTableioType = 'Save':U THEN
+        {set SaveSource YES}.
+    END.
+  END.
 
-  /* If the visualization is hidden, this effectively disables 
-     "TableIO" operations, unless this is part of a GroupAssign.*/
-  {get ObjectHidden lHidden}.
-/*   IF lHidden THEN                                    */
-/*   DO:                                                */
-/*     {get GroupAssignTarget cGroupTarget}.            */
-/*     {get GroupAssignSource hGroupSource}.            */
-/*     IF cGroupTarget = "":U AND hGroupSource = ? THEN */
-/*       RETURN "ADM-ERROR":U.                          */
-/*   END.   /* END DO IF lHidden */                     */
+  /* For modes Modify, Enable and UpdateEnd, we check if security has been set for 'Modify'. 
+     If it has, we're going into view mode, end of story. :)  */
 
+  IF VALID-HANDLE(gshSecurityManager)
+  AND CAN-DO("Modify,Enable,UpdateEnd":U, pcMode) THEN 
+  DO:
+    {get LogicalObjectName cLogicalObjectName}.
+    {get runAttribute cRunAttribute}.
+    RUN tokenSecurityGet IN gshSecurityManager (INPUT TARGET-PROCEDURE,
+                                                INPUT cLogicalObjectName,
+                                                INPUT cRunAttribute,
+                                                OUTPUT cSecuredTokens).
+    ASSIGN cSecuredTokens = REPLACE(cSecuredTokens, "&":U, "":U).
+
+    /* We're going to set the mode to view and make sure the TableIO type is set to update */
+    IF LOOKUP("Modify":U, cSecuredTokens) > 0 THEN 
+    DO:
+      ASSIGN pcMode = "view":U.
+      {set SaveSource NO}.
+
+      IF VALID-HANDLE(hTableIOSource) THEN 
+      DO:
+        {set TableIOType 'Update' hTableIOSource}.
+      END.
+    END.
+  END.
+
+  /* Set the mode */
   CASE pcMode:
     WHEN 'enable':U OR WHEN 'modify':U THEN  
     DO:
@@ -2203,7 +2583,7 @@ PROCEDURE updateMode :
     END.
     WHEN 'view':U THEN    
     DO:
-      {set ObjectMode 'View':U}.
+      {set ObjectMode 'View':U}. 
       RUN disableFields IN TARGET-PROCEDURE ("All":U).
       PUBLISH 'resetTableio':U FROM TARGET-PROCEDURE.
     END.    
@@ -2215,10 +2595,19 @@ PROCEDURE updateMode :
     END.
     WHEN 'updateEnd':U THEN
     DO:
-      {set ObjectMode 'View':U}.
-      RUN disableFields IN TARGET-PROCEDURE ('All':U).  
+      /* only disable if SaveSource=no (TablioType=Update) */
+      IF lSaveSource = NO THEN
+      DO:
+        {get GroupAssignSource hGaSource}.
+        /* GroupAssignTargets does not have correct SaveSource and 
+           are also disabled and enabled from the source */ 
+        IF NOT VALID-HANDLE(hGaSource) THEN  
+        DO:
+          {set ObjectMode 'View':U}. 
+          RUN disableFields IN TARGET-PROCEDURE ('All':U).  
+        END.
+      END.
     END.
-
   END CASE.
   
   RETURN.
@@ -2270,7 +2659,8 @@ PROCEDURE updateRecord :
   DEFINE VARIABLE lModified        AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE cDummy           AS CHARACTER NO-UNDO.
   DEFINE VARIABLE lFound           AS LOGICAL   NO-UNDO.
-  
+  DEFINE VARIABLE lSaveSource      AS LOGICAL   NO-UNDO.
+
   {get RowIdent cRowIdent}.
   {get UpdateTarget cTarget}.
   hUpdateTarget = WIDGET-HANDLE(cTarget).
@@ -2282,14 +2672,14 @@ PROCEDURE updateRecord :
   END.
     /* Validate the fields */
   RUN validateFields IN TARGET-PROCEDURE (INPUT-OUTPUT cNoValidFlds).
-  
+
   /* If all the fields are valid go ahead and submit changes */
   IF cNoValidFlds = "":U THEN
   DO:
     /* First get any changed fields from the current object. */
     RUN collectChanges IN TARGET-PROCEDURE (INPUT-OUTPUT cValues,
       INPUT-OUTPUT cChangeInfo).
-      
+
     /* If there are GroupAssign-Targets for this object, get their changed 
        values and append them to this object's. Using an INPUT-OUTPUT parameter 
        on the PUBLISH allows each target to add its values to the list. */
@@ -2297,6 +2687,7 @@ PROCEDURE updateRecord :
       INPUT-OUTPUT cChangeInfo).
     
     {get NewRecord cNewRecord}.  /* Log Add/Copy flag in case of error */
+  
 
     /* DataAvailable checks this to avoid redisplay on add, so set it to 'no'
        in case it was 'add' or' copy' before we call the datasource that 
@@ -2314,10 +2705,15 @@ PROCEDURE updateRecord :
        ("No UpdateTarget present for Save operation.":U, ?,?).
       lSuccess = no.
     END.   /* END ELSE DO */
-    
-    /* If there are no errors set flags */
+     /* If there are no errors set flags */
     IF lSuccess THEN
     DO: 
+      /* Post 9.1D the disabling of the object in Update mode is managed
+         by the object and not by a publish from the toolbar's updateState */   
+      {get SaveSource lSaveSource}.
+      IF lSaveSource = FALSE THEN
+        RUN updateMode IN TARGET-PROCEDURE ('updateEnd':U).
+
       /* setDatamodifed currently publishes 'updateState' only if the modified 
          property was changed, so check if we need to publish directly */
       {get DataModified lModified}.
@@ -2338,10 +2734,17 @@ PROCEDURE updateRecord :
       cErrorField = {fn showDataMessages}.  /* Get the first field in error. */
       */
       {set NewRecord cNewRecord}.  /* Keep Add/Copy as it was before submit*/
-
+      /* Make sure the toolbar also gets it (SBOs may publish while newRecored is NO) */
+      IF cNewRecord <> 'NO':U THEN
+      DO:
+        PUBLISH 'resetTableio':U FROM TARGET-PROCEDURE.
+        PUBLISH 'updateState':U FROM TARGET-PROCEDURE ('update':U).
+      END.
+     
       IF lSuccess <> ? OR LOOKUP("showDataMessagesProcedure":U, 
                                  TARGET-PROCEDURE:INTERNAL-ENTRIES) <> 0 THEN
-        RUN showDataMessagesProcedure IN TARGET-PROCEDURE (OUTPUT cErrorField) . 
+        RUN showDataMessagesProcedure IN TARGET-PROCEDURE (OUTPUT cErrorField) .
+/*        cErrorField = {fn showDataMessages}.  */
       ELSE 
         RETURN. /* issue with lSuccess = ? and no errors with appserver partition maintenance */
 
@@ -2593,11 +2996,14 @@ PROCEDURE updateTitle :
               ELSE cWIndowTitle = SUBSTRING(cWindowName,1,INDEX(cWIndowName," - ") - 1).
           cWindowTitle = cWindowTitle + " - " + IF cContainerMode = "add":u OR cContainerMode = "copy":u THEN
                 "New" ELSE cWindowTitleValue.
-          IF VALID-HANDLE(hContainerSource) AND 
-             LOOKUP("updateTitleOverride":U,hContainerSource:INTERNAL-ENTRIES) > 0 THEN
-              RUN updateTitleOverride IN hContainerSource (cWindowTitle).
-          ELSE IF VALID-HANDLE(hContainerHandle) THEN
-              hContainerHandle:TITLE = cWindowTitle.
+
+          IF VALID-HANDLE(hContainerSource) THEN
+          DO:
+              /* Try to run the manual override. If it fails then we use the setWindowName function. */
+              RUN updateTitleOverride IN hContainerSource (INPUT cWindowTitle) NO-ERROR.
+              IF ERROR-STATUS:ERROR THEN
+                  {set WindowName cWindowTitle hContainerSource}.
+          END.  /* valid container */
         END.
     END.
   END.
@@ -2740,11 +3146,15 @@ FUNCTION canNavigate RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hUpdateTarget AS HANDLE  NO-UNDO.
   DEFINE VARIABLE lNavigate     AS LOGICAL NO-UNDO.
-  DEFINE VARIABLE lModified     AS LOGICAL NO-UNDO.
+  DEFINE VARIABLE lPending      AS LOGICAL    NO-UNDO.
 
-  {get DataModified lModified}.
-  IF lModified THEN
-     RETURN FALSE.
+  /* we call our own isUpdatePending first. 
+    (It will be reached from our UpdateTarget also as part of the check of 
+     all targets in canNavigate) */ 
+  RUN IsUpdatePending IN TARGET-PROCEDURE (INPUT-OUTPUT lPending).
+ 
+  IF lPending THEN
+    RETURN FALSE.
 
   {get UpdateTarget hUpdateTarget}.
   IF VALID-HANDLE(hUpdateTarget) THEN
@@ -2755,7 +3165,7 @@ FUNCTION canNavigate RETURNS LOGICAL
     ghTargetProcedure = ?.
   END.
   
-  /* return false only for active denials. */
+  /* Return false only for active denials. */
   RETURN IF lNavigate = FALSE THEN FALSE ELSE TRUE.
 
 END FUNCTION.
@@ -2879,7 +3289,7 @@ FUNCTION getEditable RETURNS LOGICAL
   &SCOPED-DEFINE xpEditable   
   {get Editable lEditable}.
   &UNDEFINE xpEditable 
-  
+   
   /* If undefined, we check for Enabled fields here and if no found we
      call the same function in all GroupAssignTarget, which then will do
      the same check in it self an all its GroupAssignTargets */     
@@ -2948,6 +3358,69 @@ FUNCTION getEnabledHandles RETURNS CHARACTER
   DEFINE VARIABLE cHandles AS CHARACTER NO-UNDO.
   {get EnabledHandles cHandles}.
   RETURN cHandles.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getEnabledObjFldsToDisable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getEnabledObjFldsToDisable Procedure 
+FUNCTION getEnabledObjFldsToDisable RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: This property decides whether non-db objects should be disabled
+           when the fields are disabled.
+           - (None)  - EnabledObjFlds remain enabled when the fields are 
+                       disabled.  
+           - (All)   - EnabledObjFlds should be disabled in view mode
+           - Comma separated list of object names that will be disabled in view
+             mode.               
+    Notes:  
+------------------------------------------------------------------------------*/  
+  DEFINE VARIABLE cDisable          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lUseRepository    AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cDataSourceFields AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hTableioSource    AS HANDLE     NO-UNDO.
+
+  &SCOPED-DEFINE xpEnabledObjFldsToDisable
+  {get EnabledObjFldsToDisable cDisable}.
+  &UNDEFINE xpEnabledObjFldsToDisable
+  
+  /* ? or blank means use default */  
+  IF cDisable = ? OR cDisable = '':U THEN
+  DO:
+    /* Default is (none) for adm2 and (all) for dynamics in order to 
+      be backward compatible with both. */
+    {get UseRepository lUseRepository}.
+    IF lUseRepository THEN
+    DO:
+       /* It also defaults to (none) for dynamics when there are no db fields 
+          in order to keep behavior of viewers that relied on the bug that 
+          did not disable them. This would be common in viewers with no
+          db fields or no tableiosource  */              
+      {get DisplayedFields cDataSourceFields}.
+      IF cDataSourceFields = '':U THEN
+        cDisable = '(None)':U.
+      ELSE DO:
+        {get TableioSource hTableioSource}.
+        IF NOT VALID-HANDLE(hTableioSource) THEN
+          cDisable = '(None)':U.
+        ELSE
+          cDisable = '(All)':U.
+      END.
+    END.
+    ELSE
+      cDisable = '(None)':U.
+
+    /* store it for the next time */ 
+    {set EnabledObjFldsToDisable cDisable}.
+  END.
+
+  RETURN cDisable.
 
 END FUNCTION.
 
@@ -3032,20 +3505,34 @@ END FUNCTION.
 FUNCTION getGroupAssignHidden RETURNS LOGICAL
   (  ) :
 /*------------------------------------------------------------------------------
-  Purpose: Check if the object is hidden including ALL GroupAssignTargets
+  Purpose: Check if the object is hidden and will remain hidden including 
+           ALL GroupAssignTargets
     Notes: Used by the data.p LinkState to check if it can deactivate the link
            and how to republish the message.
            Returns false as soon as any visible object is found.
+         - Checks pendingPage in order to return NO if it is becoming visible.             
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cTargets AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE iTarget  AS INT       NO-UNDO.
-  DEFINE VARIABLE hTarget  AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE lHidden  AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE cTargets     AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE iTarget      AS INT       NO-UNDO.
+  DEFINE VARIABLE hTarget      AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE lHidden      AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE iObjectPage  AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE hContainer   AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE iPendingPage AS INTEGER   NO-UNDO.
   
   {get ObjectHidden lHidden}.
   IF NOT lHidden THEN
      RETURN FALSE.
-
+  
+  /* Also return false if this object is about to become visible 
+     PendingPage is set in SelectPage before notify(hideObject) -> linkState
+     -> here, and before CurrentPage is set */ 
+  {get ObjectPage iObjectPage}.
+  {get ContainerSource hContainer}.
+  {get PendingPage iPendingPage hContainer}.
+  IF iPendingPage = iObjectPage THEN
+    RETURN FALSE.
+  
   {get GroupAssignTarget cTargets}. 
   DO iTarget = 1 TO NUM-ENTRIES(cTargets):
     hTarget = WIDGET-HANDLE(ENTRY(iTarget,cTargets)).
@@ -3555,6 +4042,48 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-internalWidgetHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION internalWidgetHandle Procedure 
+FUNCTION internalWidgetHandle RETURNS HANDLE
+  ( INPUT pcField AS CHARACTER,
+    INPUT pcSearchMode AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Return handle of named widget within this object  
+    Notes:  This version is for datavisual objects and uses search mode
+            to determine whether to search for datafields or invoke 
+            the SUPER version to search for local fields as well.
+            Valid values are:
+            ALL - searches datafields and local fields (if it doesn't find 
+                                                        datafield)
+            DATA - searches datafields only
+            LOCAL - searches local field only
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE cFieldNames   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cFieldHandles AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE iFieldPos     AS INTEGER    NO-UNDO.
+DEFINE VARIABLE hField        AS HANDLE     NO-UNDO.
+
+  IF LOOKUP(pcSearchMode, 'ALL,DATA':U) > 0 THEN
+  DO:
+    {get DisplayedFields cFieldNames}.
+    {get FieldHandles cFieldHandles}.
+    iFieldPos = LOOKUP(pcField, cFieldNames).
+    IF iFieldPos NE 0 AND NUM-ENTRIES(cFieldHandles) >= iFieldPos THEN 
+      hField = WIDGET-HANDLE(ENTRY(iFieldPos, cFieldHandles)).  
+  END.  /* if mode is all or data */
+  IF VALID-HANDLE(hField) THEN RETURN hField.
+  ELSE IF LOOKUP(pcSearchMode, 'ALL,LOCAL':U) > 0 THEN
+    RETURN SUPER (INPUT pcField, INPUT pcSearchMode).    
+  ELSE RETURN ?.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-okToContinue) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION okToContinue Procedure 
@@ -3672,25 +4201,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-setContainerMode) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setContainerMode Procedure 
-FUNCTION setContainerMode RETURNS LOGICAL
-  ( pcContainerMode AS CHARACTER ) :
-/*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
-------------------------------------------------------------------------------*/
-    {set ContainerMode pcContainerMode}.
-    RETURN TRUE.   /* Function return value. */
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-setDataModified) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDataModified Procedure 
@@ -3790,7 +4300,8 @@ Parameter: plEditable - yes, the object can be edited.
            should be enabled. 
            Can be specifically overridden in case add/copy and save should be
            enabled even when no fields are enabled. 
-  ------------------------------------------------------------------------------*/  
+------------------------------------------------------------------------------*/  
+  
   &SCOPED-DEFINE xpEditable   
   {set Editable plEditable}.
   &UNDEFINE xpEditable 
@@ -3837,6 +4348,33 @@ FUNCTION setEnabledHandles RETURNS LOGICAL
   
   {set EnabledHandles pcHandles}.
   RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setEnabledObjFldsToDisable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setEnabledObjFldsToDisable Procedure 
+FUNCTION setEnabledObjFldsToDisable RETURNS LOGICAL
+  ( pcEnabledObjFldsToDisable AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose: This property decides whether non-db objects should be disabled
+           when the fields are disabled.
+           - (All)   - All EnabledObjects should be disabled in view mode
+           - (None)  - All EnabledObjects should remain enabled when the 
+                       fields are disabled.  
+           - Comma separated list of object names that will be disabled in view
+             mode.               
+    Notes:  
+------------------------------------------------------------------------------*/  
+ &SCOPED-DEFINE xpEnabledObjFldsToDisable
+ {set EnabledObjFldsToDisable pcEnabledObjFldsToDisable}.
+ &UNDEFINE xpEnabledObjFldsToDisable  
+ RETURN TRUE.
 
 END FUNCTION.
 

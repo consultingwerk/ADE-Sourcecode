@@ -683,8 +683,7 @@ PROCEDURE put-differences :
      NOT wrttn[{&COL}] THEN DO:
     RUN geometry-diff (INPUT-OUTPUT l_geometry-diff).
     IF CAN-DO("COMBO-BOX,FILL-IN",_U._TYPE) THEN DO:
-      IF NOT put_L._NO-LABELS AND NOT f_L._NO-LABELS AND 
-         NOT put_L._REMOVE-FROM-LAYOUT THEN
+      IF NOT put_L._NO-LABELS AND NOT f_L._NO-LABELS THEN
         PUT STREAM P_4GL UNFORMATTED SKIP
           "         widg-pos = " + TRIM(w_NAME) + ":COL" + fram_exp.
     END.
@@ -702,8 +701,7 @@ PROCEDURE put-differences :
          
     /* IF a COMBO-BOX or FILL-IN then move the label too            */
     IF CAN-DO("COMBO-BOX,FILL-IN",_U._TYPE) THEN DO:
-      IF NOT put_L._NO-LABELS AND NOT f_L._NO-LABELS AND
-         NOT put_L._REMOVE-FROM-LAYOUT THEN
+      IF NOT put_L._NO-LABELS AND NOT f_L._NO-LABELS THEN
              PUT STREAM P_4GL UNFORMATTED SKIP
                "         lbl-hndl = " +
                            TRIM(w_NAME) + ":SIDE-LABEL-HANDLE" + fram_exp SKIP
@@ -825,8 +823,7 @@ PROCEDURE put-differences :
      AND NOT wrttn[{&ROW}] THEN DO:
     RUN geometry-diff (INPUT-OUTPUT l_geometry-diff).
     IF CAN-DO("COMBO-BOX,FILL-IN",_U._TYPE) THEN DO:
-      IF NOT put_L._NO-LABELS AND NOT f_L._NO-LABELS AND
-         NOT put_L._REMOVE-FROM-LAYOUT THEN
+      IF NOT put_L._NO-LABELS AND NOT f_L._NO-LABELS THEN
         PUT STREAM P_4GL UNFORMATTED SKIP
           "         widg-pos = " + TRIM(w_NAME) + ":ROW" + fram_exp.
     END.
@@ -844,8 +841,7 @@ PROCEDURE put-differences :
          
      /* IF a COMBO-BOX or FILL-IN then move the label too            */
      IF CAN-DO("COMBO-BOX,FILL-IN",_U._TYPE) THEN DO:
-       IF NOT put_L._NO-LABELS AND NOT f_L._NO-LABELS AND
-          NOT put_L._REMOVE-FROM-LAYOUT THEN
+       IF NOT put_L._NO-LABELS AND NOT f_L._NO-LABELS THEN
          PUT STREAM P_4GL UNFORMATTED SKIP
                "         lbl-hndl = " +
                            TRIM(w_NAME) + ":SIDE-LABEL-HANDLE" + fram_exp SKIP

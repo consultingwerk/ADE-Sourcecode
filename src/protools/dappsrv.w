@@ -5,8 +5,7 @@
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
-DEFINE VARIABLE h_asbroker1                AS HANDLE          NO-UNDO.
-DEFINE VARIABLE h_test                     AS HANDLE          NO-UNDO.
+DEFINE VARIABLE h_Astra                    AS HANDLE          NO-UNDO.
 
 /* Temp-Table and Buffer definitions                                    */
 DEFINE TEMP-TABLE ttAppSrv-TT NO-UNDO LIKE ttAppSrv-TT.
@@ -104,6 +103,7 @@ DEFINE VARIABLE cPtnType AS CHARACTER  NO-UNDO.
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -122,6 +122,7 @@ Info Partition PartitionType Security Service ServerURL PtnTblRecid
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "protools/dappsrv.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH ttAppSrv-TT NO-LOCK INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH ttAppSrv-TT NO-LOCK INDEXED-REPOSITION.
 {&DB-REQUIRED-END}
@@ -217,6 +218,7 @@ END.
 
 {adecomm/appsrvtt.i}
 {src/adm2/data.i}
+{adecomm/_adetool.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

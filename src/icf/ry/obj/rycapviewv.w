@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          rydb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" vTableWin _INLINE
@@ -87,7 +87,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       rycapviewv.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -124,11 +124,11 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 RowObject.attribute_group_narrative 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define ENABLED-OBJECTS fiNarrative 
 &Scoped-Define DISPLAYED-FIELDS RowObject.attribute_group_name ~
 RowObject.attribute_group_narrative 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define DISPLAYED-OBJECTS fiNarrative 
 
 /* Custom List Definitions                                              */
@@ -145,19 +145,19 @@ RowObject.attribute_group_narrative
 /* Definitions of the field level widgets                               */
 DEFINE VARIABLE fiNarrative AS CHARACTER FORMAT "X(256)":U INITIAL "Narrative:" 
       VIEW-AS TEXT 
-     SIZE 9.6 BY .62 NO-UNDO.
+     SIZE 9.6 BY 1 NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     RowObject.attribute_group_name AT ROW 1.1 COL 27 COLON-ALIGNED
+     RowObject.attribute_group_name AT ROW 1 COL 27 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 30 BY 1
-     RowObject.attribute_group_narrative AT ROW 2.14 COL 29 NO-LABEL
+          SIZE 63.2 BY 1
+     RowObject.attribute_group_narrative AT ROW 2.05 COL 29 NO-LABEL
           VIEW-AS EDITOR MAX-CHARS 500 SCROLLBAR-VERTICAL
-          SIZE 70 BY 8
-     fiNarrative AT ROW 2.24 COL 19.4 NO-LABEL
+          SIZE 63.2 BY 8
+     fiNarrative AT ROW 2.05 COL 19.4 NO-LABEL
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -197,8 +197,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 9.86
-         WIDTH              = 100.6.
+         HEIGHT             = 9.05
+         WIDTH              = 91.2.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -240,7 +240,7 @@ ASSIGN
 */  /* FRAME frMain */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK vTableWin 

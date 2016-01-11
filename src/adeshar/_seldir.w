@@ -59,6 +59,9 @@ DEFINE VARIABLE cur-drive AS CHARACTER                            NO-UNDO.
 DEFINE VARIABLE i         AS INTEGER                              NO-UNDO.
 DEFINE VARIABLE tmp-value AS CHARACTER                            NO-UNDO.
 
+
+{adeuib/uibhlp.i}          /* Help File Preprocessor Directives         */
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -113,12 +116,13 @@ DEFINE VARIABLE Drive-cb AS CHARACTER FORMAT "X(2)":U
      LABEL "Drive" 
      VIEW-AS COMBO-BOX SORT INNER-LINES 5
      LIST-ITEMS "C:" 
-     SIZE 9 BY 1 TOOLTIP "Select a different drive" NO-UNDO.
+     DROP-DOWN-LIST
+     SIZE 11 BY 1 TOOLTIP "Select a different drive" NO-UNDO.
 
 DEFINE VARIABLE directory AS CHARACTER FORMAT "X(256)":U 
      LABEL "Dir" 
      VIEW-AS FILL-IN 
-     SIZE 41 BY 1 NO-UNDO.
+     SIZE 39 BY 1 NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */
@@ -128,8 +132,8 @@ DEFINE FRAME Dialog-Frame
      Btn_OK AT ROW 1.52 COL 49
      Btn_Cancel AT ROW 2.76 COL 49
      Btn_Help AT ROW 4.76 COL 49
-     Drive-cb AT ROW 10.05 COL 44 COLON-ALIGNED
-     SPACE(10.13) SKIP(3.01)
+     Drive-cb AT ROW 12.43 COL 51 COLON-ALIGNED
+     SPACE(1.13) SKIP(0.83)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "Select a Directory"
@@ -138,9 +142,8 @@ DEFINE FRAME Dialog-Frame
 DEFINE FRAME FRAME-A
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
-         AT COL 3 ROW 2.67
-         SIZE 34 BY 8.33
-         BGCOLOR 15 FGCOLOR 15 .
+         AT COL 7 ROW 2.67
+         SIZE 39 BY 11.19.
 
 
 /* *********************** Procedure Settings ************************ */
@@ -176,6 +179,9 @@ ASSIGN
 
 /* SETTINGS FOR FILL-IN directory IN FRAME Dialog-Frame
    NO-ENABLE                                                            */
+ASSIGN 
+       directory:READ-ONLY IN FRAME Dialog-Frame        = TRUE.
+
 /* SETTINGS FOR FRAME FRAME-A
                                                                         */
 /* _RUN-TIME-ATTRIBUTES-END */
@@ -191,13 +197,13 @@ ASSIGN
 &IF "{&OPSYS}" = "WIN32":U AND "{&WINDOW-SYSTEM}" NE "TTY":U &THEN
 
 CREATE CONTROL-FRAME CtrlFrame ASSIGN
-       FRAME        = FRAME FRAME-A:HANDLE
-       ROW          = 1
-       COLUMN       = 1
-       HEIGHT       = 8.33
-       WIDTH        = 34
-       HIDDEN       = no
-       SENSITIVE    = yes.
+       FRAME           = FRAME FRAME-A:HANDLE
+       ROW             = 1
+       COLUMN          = 1
+       HEIGHT          = 11.19
+       WIDTH           = 39
+       HIDDEN          = no
+       SENSITIVE       = yes.
       CtrlFrame:NAME = "CtrlFrame":U .
 /* CtrlFrame OCXINFO:CREATE-CONTROL from: {02ADEC20-91D2-101B-874B-0020AF109266} type: CSList */
 
@@ -223,8 +229,10 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Btn_Help Dialog-Frame
 ON CHOOSE OF Btn_Help IN FRAME Dialog-Frame /* Help */
 OR HELP OF FRAME {&FRAME-NAME}
-DO: /* Call Help Function (or a simple message). */
-  MESSAGE "Help for File: {&FILE-NAME}" VIEW-AS ALERT-BOX INFORMATION.
+DO: 
+  /* Help for this Frame */
+  RUN adecomm/_adehelp.p
+                ("ICAB", "CONTEXT", {&Select_a_Directory_Dialog_Box}  , "").
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -477,6 +485,9 @@ PROCEDURE refresh-list :
     DISPLAY tmp-dir @ directory WITH FRAME {&FRAME-NAME}.
   END.
   ELSE DISPLAY directory WITH FRAME {&FRAME-NAME}.
+
+  directory:TOOLTIP = DIRECTORY:SCREEN-VALUE .
+
 
 END PROCEDURE.
 

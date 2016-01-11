@@ -24,7 +24,7 @@ af/cod/aftemwizpw.w
 
 /* Temp-Table and Buffer definitions                                    */
 DEFINE TEMP-TABLE RowObject
-       {"ry/obj/rycavfullo.i"}.
+       {"ry/obj/rycavful3o.i"}.
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS sObject 
@@ -62,7 +62,7 @@ DEFINE TEMP-TABLE RowObject
   History:
   --------
   (v:010000)    Task:           0   UserRef:    
-                Date:   10/30/2001  Author:     
+                Date:   05/14/2002  Author:     
 
   Update Notes: Created from Template rysttsimpv.w
 
@@ -76,6 +76,11 @@ DEFINE TEMP-TABLE RowObject
 
   Update Notes: Enable dynamic combo and lookup fields on initialization.
 
+  (v:010003)    Task:           0   UserRef:    
+                Date:   02/27/2002  Author:     Mark Davies (MIP)
+
+  Update Notes: When RTB is connected - Auto assign Check Out to TRUE and disable.
+                This is done by default by the TRIGGERS
 -------------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
@@ -109,6 +114,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 {af/sup2/afglobals.i}
 
 {af/sup2/afrun2.i     &define-only = YES}
+{af/app/afdatatypi.i}
 
 DEFINE VARIABLE gdRefreshPressed AS LOGICAL    NO-UNDO.
 
@@ -128,19 +134,19 @@ DEFINE VARIABLE gdRefreshPressed AS LOGICAL    NO-UNDO.
 &Scoped-define ADM-SUPPORTED-LINKS Data-Target,Update-Source,TableIO-Target,GroupAssign-Source,GroupAssign-Target
 
 /* Include file with RowObject temp-table definition */
-&Scoped-define DATA-FIELD-DEFS "ry/obj/rycavfullo.i"
+&Scoped-define DATA-FIELD-DEFS "ry/obj/rycavful3o.i"
 
 /* Name of first Frame and/or Browse and/or first Query                 */
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS raAction ToInherittedNo ToOverride ~
-EdAttributeValue fiProductObjC ToGenerateADO ToCheckOut fiLogFile ~
-buRootDirectory fiADODir buADODir ToScreen ToObjectType fiObjectFileName ~
-ToObjectMaster buRefresh ToObjectInstance ToAll 
-&Scoped-Define DISPLAYED-OBJECTS raAction ToInherittedNo ToOverride ~
-EdAttributeValue ToGenerateADO ToCheckOut fiLogFile fiADODir ToScreen ~
-ToObjectType fiObjectFileName ToObjectMaster ToObjectInstance ToAll 
+&Scoped-Define ENABLED-OBJECTS raAction ToOverride EdAttributeValue ~
+fiProductObjC ToGenerateADO ToCheckOut fiLogFile buRootDirectory fiADODir ~
+buADODir ToScreen ToObjectType fiObjectFileName ToObjectMaster buRefresh ~
+ToObjectInstance ToAll 
+&Scoped-Define DISPLAYED-OBJECTS raAction ToOverride EdAttributeValue ~
+ToGenerateADO ToCheckOut fiLogFile fiADODir ToScreen ToObjectType ~
+fiObjectFileName ToObjectMaster ToObjectInstance ToAll 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -199,7 +205,7 @@ DEFINE VARIABLE fiObjectFileName AS CHARACTER FORMAT "X(70)":U
      VIEW-AS FILL-IN 
      SIZE 48 BY 1 NO-UNDO.
 
-DEFINE VARIABLE fiProductObjC AS DECIMAL FORMAT ">>>>>>>>>>>>>9.999999999":U INITIAL 0 
+DEFINE VARIABLE fiProductObjC AS DECIMAL FORMAT "->>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
      VIEW-AS FILL-IN 
      SIZE 1.2 BY 1 NO-UNDO.
 
@@ -217,7 +223,7 @@ DEFINE RECTANGLE RECT-1
 
 DEFINE RECTANGLE RECT-2
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 38.8 BY 2.29.
+     SIZE 38.8 BY 1.52.
 
 DEFINE RECTANGLE RECT-3
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
@@ -245,11 +251,6 @@ DEFINE VARIABLE ToGenerateADO AS LOGICAL INITIAL no
      LABEL "Generate ADO's" 
      VIEW-AS TOGGLE-BOX
      SIZE 43.2 BY .81 NO-UNDO.
-
-DEFINE VARIABLE ToInherittedNo AS LOGICAL INITIAL no 
-     LABEL "Set Inherited Flag to No" 
-     VIEW-AS TOGGLE-BOX
-     SIZE 28 BY .81 NO-UNDO.
 
 DEFINE VARIABLE ToObjectInstance AS LOGICAL INITIAL no 
      LABEL "Update Object Instances" 
@@ -281,9 +282,8 @@ DEFINE VARIABLE ToScreen AS LOGICAL INITIAL no
 
 DEFINE FRAME frMain
      raAction AT ROW 1.57 COL 71 NO-LABEL
-     ToInherittedNo AT ROW 1.76 COL 118.6
      fiAttributeGrp AT ROW 1.86 COL 2.2 NO-LABEL
-     ToOverride AT ROW 2.62 COL 118.6
+     ToOverride AT ROW 1.86 COL 118.6
      EdAttributeValue AT ROW 4.14 COL 20.8 NO-LABEL
      fiProductObjC AT ROW 4.81 COL 1 NO-LABEL
      ToGenerateADO AT ROW 5.19 COL 71.2
@@ -299,11 +299,11 @@ DEFINE FRAME frMain
      buRefresh AT ROW 11.19 COL 140.4
      ToObjectInstance AT ROW 11.43 COL 71.2
      ToAll AT ROW 11.57 COL 118.6
-     RECT-5 AT ROW 9.33 COL 70.4
-     RECT-2 AT ROW 1.29 COL 117
      RECT-3 AT ROW 4.76 COL 70.4
      RECT-4 AT ROW 7.43 COL 70.4
      RECT-1 AT ROW 1.29 COL 70
+     RECT-5 AT ROW 9.33 COL 70.4
+     RECT-2 AT ROW 1.29 COL 117
      "New Attribute Value:" VIEW-AS TEXT
           SIZE 19.4 BY .62 AT ROW 4.24 COL 1.2
      "Action To Be Taken:" VIEW-AS TEXT
@@ -328,7 +328,7 @@ DEFINE FRAME frMain
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
 /* Settings for THIS-PROCEDURE
    Type: SmartDataViewer
-   Data Source: "ry/obj/rycavfullo.w"
+   Data Source: "ry/obj/rycavful3o.w"
    Allow: Basic,DB-Fields,Smart
    Container Links: Data-Target,Update-Source,TableIO-Target,GroupAssign-Source,GroupAssign-Target
    Frames: 1
@@ -337,7 +337,7 @@ DEFINE FRAME frMain
    Temp-Tables and Buffers:
       TABLE: RowObject D "?" ?  
       ADDITIONAL-FIELDS:
-          {ry/obj/rycavfullo.i}
+          {ry/obj/rycavful3o.i}
       END-FIELDS.
    END-TABLES.
  */
@@ -473,7 +473,7 @@ ON CHOOSE OF buRootDirectory IN FRAME frMain /* ... */
 DO:
   DEFINE VARIABLE cFileName AS CHARACTER  NO-UNDO.
   ASSIGN fiLogFile.
-  ASSIGN fiLogFile = REPLACE(fiLogFile,"\":U,"/":U)
+  ASSIGN fiLogFile = REPLACE(fiLogFile,"~\":U,"/":U)
          cFileName = TRIM(SUBSTRING(fiLogFile,R-INDEX(fiLogFile,"/":U) + 1,LENGTH(fiLogFile))).
          
   RUN getFolder("Directory", OUTPUT fiLogFile).
@@ -561,7 +561,7 @@ DO:
            buADODir:SENSITIVE    = TRUE
            FILE-INFO:FILE-NAME   = "." /* Current Work Directory */
            fiADODir:SCREEN-VALUE = IF FILE-INFO:FULL-PATHNAME <> ? THEN FILE-INFO:FULL-PATHNAME ELSE SESSION:TEMP-DIR
-           fiADODir:SCREEN-VALUE = REPLACE(fiADODir:SCREEN-VALUE,"\":U,"/":U).
+           fiADODir:SCREEN-VALUE = REPLACE(fiADODir:SCREEN-VALUE,"~\":U,"/":U).
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -625,15 +625,15 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldryc_attribute_group.attribute_group_nameKeyFieldryc_attribute_group.attribute_group_objFieldLabelAttribute Group ObjFieldTooltipSelect an Attribute Group from the listKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(28)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_attribute_group NO-LOCK BY ryc_attribute_group.attribute_group_nameQueryTablesryc_attribute_groupSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines5ComboFlagAFlagValue0BuildSequence10SecurednoFieldName<Local>DisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldryc_attribute_group.attribute_group_nameKeyFieldryc_attribute_group.attribute_group_objFieldLabelAttribute GroupFieldTooltipSelect an Attribute Group from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(28)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_attribute_group NO-LOCK BY ryc_attribute_group.attribute_group_nameQueryTablesryc_attribute_groupSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines5ComboFlagAFlagValue0BuildSequence10SecurednoCustomSuperProcFieldName<Local>DisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hAttributeGroupObj ).
        RUN repositionObject IN hAttributeGroupObj ( 1.00 , 21.00 ) NO-ERROR.
-       RUN resizeObject IN hAttributeGroupObj ( 1.00 , 48.00 ) NO-ERROR.
+       RUN resizeObject IN hAttributeGroupObj ( 1.05 , 48.00 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldryc_attribute.attribute_labelKeyFieldryc_attribute.attribute_labelFieldLabelAttribute LabelFieldTooltipPress F4 For Lookup on AttributesKeyFormatX(35)KeyDatatypecharacterDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_attribute NO-LOCK BY ryc_attribute.attribute_labelQueryTablesryc_attributeBrowseFieldsryc_attribute.attribute_label,ryc_attribute.attribute_type_tla,ryc_attribute.attribute_narrative,ryc_attribute.system_ownedBrowseFieldDataTypescharacter,character,character,logicalBrowseFieldFormatsX(35),X(3),X(500),YES/NORowsToBatch200BrowseTitleLookup Attribute LabelViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldfiAttributeGrp,fiAttributeGrpParentFilterQuery(IF DECIMAL(~'&1~') > 0 THEN ryc_attribute.attribute_group_obj = DECIMAL(~'&1~') ELSE TRUE)MaintenanceObjectrycatfoldwMaintenanceSDOrycatfullo.wFieldName<Local>DisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldryc_attribute.attribute_labelKeyFieldryc_attribute.attribute_labelFieldLabelAttribute LabelFieldTooltipPress F4 For Lookup on AttributesKeyFormatX(35)KeyDatatypecharacterDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_attribute NO-LOCK BY ryc_attribute.attribute_labelQueryTablesryc_attributeBrowseFieldsryc_attribute.attribute_label,ryc_attribute.attribute_narrative,ryc_attribute.system_ownedBrowseFieldDataTypescharacter,character,logicalBrowseFieldFormatsX(35),X(500),YES/NORowsToBatch200BrowseTitleLookup Attribute LabelViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldfiAttributeGrp,fiAttributeGrpParentFilterQuery(IF DECIMAL(~'&1~') > 0 THEN ryc_attribute.attribute_group_obj = DECIMAL(~'&1~') ELSE TRUE)MaintenanceObjectrycatfoldwMaintenanceSDOrycatfullo.wCustomSuperProcFieldName<Local>DisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hAttributeLabel ).
        RUN repositionObject IN hAttributeLabel ( 2.05 , 20.80 ) NO-ERROR.
        RUN resizeObject IN hAttributeLabel ( 1.00 , 47.80 ) NO-ERROR.
@@ -641,7 +641,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldryc_attribute.attribute_labelKeyFieldryc_attribute.attribute_labelFieldLabelNew Attribute LabelFieldTooltipPress F4 for LookupKeyFormatX(35)KeyDatatypecharacterDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_attribute NO-LOCK BY ryc_attribute.attribute_labelQueryTablesryc_attributeBrowseFieldsryc_attribute.attribute_label,ryc_attribute.attribute_type_tla,ryc_attribute.attribute_narrative,ryc_attribute.system_ownedBrowseFieldDataTypescharacter,character,character,logicalBrowseFieldFormatsX(35),X(3),X(500),YES/NORowsToBatch200BrowseTitleLookup New Attribute LabelViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectrycatfoldwMaintenanceSDOrycatfullo.wFieldName<Local>DisplayFieldyesEnableFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldryc_attribute.attribute_labelKeyFieldryc_attribute.attribute_labelFieldLabelNew Attribute LabelFieldTooltipPress F4 for LookupKeyFormatX(35)KeyDatatypecharacterDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_attribute NO-LOCK BY ryc_attribute.attribute_labelQueryTablesryc_attributeBrowseFieldsryc_attribute.attribute_label,ryc_attribute.attribute_narrative,ryc_attribute.system_ownedBrowseFieldDataTypescharacter,character,logicalBrowseFieldFormatsX(35),X(500),YES/NORowsToBatch200BrowseTitleLookup New Attribute LabelViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectrycatfoldwMaintenanceSDOrycatfullo.wCustomSuperProcFieldName<Local>DisplayFieldyesEnableFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hNewAttributeLabel ).
        RUN repositionObject IN hNewAttributeLabel ( 3.10 , 20.80 ) NO-ERROR.
        RUN resizeObject IN hNewAttributeLabel ( 1.00 , 47.80 ) NO-ERROR.
@@ -649,18 +649,18 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_product.product_code,gsc_product_module.product_module_code,gsc_product_module.product_module_descriptionKeyFieldgsc_product_module.product_module_objFieldLabelProduct ModuleFieldTooltipSelect a Product Module from the listKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_product NO-LOCK,
+             INPUT  'DisplayedFieldgsc_product.product_code,gsc_product_module.product_module_code,gsc_product_module.product_module_descriptionKeyFieldgsc_product_module.product_module_objFieldLabelProduct ModuleFieldTooltipSelect a Product Module from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_product NO-LOCK,
                      EACH gsc_product_module NO-LOCK
                      WHERE gsc_product_module.product_obj = gsc_product.product_obj
-                     BY gsc_product.product_code BY gsc_product_module.product_module_codeQueryTablesgsc_product,gsc_product_moduleSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 / &2 / &3CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines5ComboFlagAFlagValue0BuildSequence2SecurednoFieldName<Local>DisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY gsc_product.product_code BY gsc_product_module.product_module_codeQueryTablesgsc_product,gsc_product_moduleSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 / &2 / &3CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines5ComboFlagAFlagValue0BuildSequence2SecurednoCustomSuperProcFieldName<Local>DisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hProductModuleObj ).
        RUN repositionObject IN hProductModuleObj ( 8.24 , 21.00 ) NO-ERROR.
-       RUN resizeObject IN hProductModuleObj ( 1.00 , 47.60 ) NO-ERROR.
+       RUN resizeObject IN hProductModuleObj ( 1.05 , 47.60 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_object_type.object_type_code,gsc_object_type.object_type_descriptionKeyFieldgsc_object_type.object_type_objFieldLabelObject TypeFieldTooltipSelect an Object Type from the listKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_object_type NO-LOCK BY gsc_object_type.object_type_codeQueryTablesgsc_object_typeSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 / &2CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines5ComboFlagAFlagValue0BuildSequence1SecurednoFieldName<Local>DisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_object_type.object_type_code,gsc_object_type.object_type_descriptionKeyFieldgsc_object_type.object_type_objFieldLabelObject TypeFieldTooltipSelect an Object Type from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_object_type NO-LOCK BY gsc_object_type.object_type_codeQueryTablesgsc_object_typeSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 / &2CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines5ComboFlagAFlagValue0BuildSequence1SecurednoCustomSuperProcFieldName<Local>DisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hObjectTypeObj ).
        RUN repositionObject IN hObjectTypeObj ( 9.29 , 21.00 ) NO-ERROR.
        RUN resizeObject IN hObjectTypeObj ( 1.00 , 47.60 ) NO-ERROR.
@@ -669,9 +669,9 @@ PROCEDURE adm-create-objects :
        RUN adjustTabOrder ( hAttributeGroupObj ,
              raAction:HANDLE IN FRAME frMain , 'BEFORE':U ).
        RUN adjustTabOrder ( hAttributeLabel ,
-             fiAttributeGrp:HANDLE IN FRAME frMain , 'AFTER':U ).
-       RUN adjustTabOrder ( hNewAttributeLabel ,
              ToOverride:HANDLE IN FRAME frMain , 'AFTER':U ).
+       RUN adjustTabOrder ( hNewAttributeLabel ,
+             hAttributeLabel , 'AFTER':U ).
        RUN adjustTabOrder ( hProductModuleObj ,
              ToScreen:HANDLE IN FRAME frMain , 'AFTER':U ).
        RUN adjustTabOrder ( hObjectTypeObj ,
@@ -740,7 +740,6 @@ PROCEDURE getAttributeOptions :
   DEFINE OUTPUT PARAMETER pcAttributeValue        AS CHARACTER  NO-UNDO.
   DEFINE OUTPUT PARAMETER pdObjectTypeObj         AS DECIMAL    NO-UNDO.
   DEFINE OUTPUT PARAMETER pcAction                AS CHARACTER  NO-UNDO.
-  DEFINE OUTPUT PARAMETER plSetInheritedNo        AS LOGICAL    NO-UNDO.
   DEFINE OUTPUT PARAMETER plOverrideValues        AS LOGICAL    NO-UNDO.
   DEFINE OUTPUT PARAMETER plGenerateADO           AS LOGICAL    NO-UNDO.
   DEFINE OUTPUT PARAMETER plCheckOutObject        AS LOGICAL    NO-UNDO.
@@ -751,7 +750,6 @@ PROCEDURE getAttributeOptions :
   DO WITH FRAME {&FRAME-NAME}:
     ASSIGN EdAttributeValue
            raAction
-           ToInherittedNo
            ToOverride
            ToGenerateADO
            ToCheckOut
@@ -765,7 +763,6 @@ PROCEDURE getAttributeOptions :
          pdObjectTypeObj        = DYNAMIC-FUNCTION("getDataValue":U IN hObjectTypeObj)
          pcAttributeValue       = EdAttributeValue
          pcAction               = raAction
-         plSetInheritedNo       = ToInherittedNo
          plOverrideValues       = ToOverride
          plGenerateADO          = ToGenerateADO
          plCheckOutObject       = ToCheckOut
@@ -842,7 +839,7 @@ PROCEDURE getFolder :
     lhServer = ?
     .
   
-  ASSIGN opPath = TRIM(REPLACE(LC(opPath),"\":U,"/":U),"/":U).
+  ASSIGN opPath = TRIM(REPLACE(LC(opPath),"~\":U,"/":U),"/":U).
 
 END PROCEDURE.
 
@@ -905,14 +902,14 @@ PROCEDURE initializeObject :
     IF NOT CONNECTED("RTB":U) THEN
       ASSIGN toCheckOut:SENSITIVE = FALSE
              toCheckOut:CHECKED   = FALSE.
-    ELSE
-      ASSIGN toCheckOut:SENSITIVE = TRUE
+    ELSE /* CheckOut happens automatically */
+      ASSIGN toCheckOut:SENSITIVE = FALSE
              toCheckOut:CHECKED   = TRUE.
     ASSIGN FILE-INFO:FILE-NAME    = "." /* Current Work Directory */
            fiLogFile:SCREEN-VALUE = IF FILE-INFO:FULL-PATHNAME <> ? THEN FILE-INFO:FULL-PATHNAME ELSE SESSION:TEMP-DIR
-           fiLogFile:SCREEN-VALUE = REPLACE(fiLogFile:SCREEN-VALUE,"\":U,"/":U) + "/rycavupdt.log":U
+           fiLogFile:SCREEN-VALUE = REPLACE(fiLogFile:SCREEN-VALUE,"~\":U,"/":U) + "/rycavupdt.log":U
            fiADODir:SCREEN-VALUE  = IF FILE-INFO:FULL-PATHNAME <> ? THEN FILE-INFO:FULL-PATHNAME ELSE SESSION:TEMP-DIR
-           fiADODir:SCREEN-VALUE  = REPLACE(fiADODir:SCREEN-VALUE,"\":U,"/":U).
+           fiADODir:SCREEN-VALUE  = REPLACE(fiADODir:SCREEN-VALUE,"~\":U,"/":U).
   END.
   RUN disableField IN hNewAttributeLabel.
 
@@ -985,6 +982,25 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE RTB_xref_generator sObject 
+PROCEDURE RTB_xref_generator :
+/* -----------------------------------------------------------
+Purpose:    Generate RTB xrefs for SMARTOBJECTS.
+Parameters: <none>
+Notes:      This code is generated by the UIB.  DO NOT modify it.
+            It is included for Roundtable Xref generation. Without
+            it, Xrefs for SMARTOBJECTS could not be maintained by
+            RTB.  It will in no way affect the operation of this
+            program as it never gets executed.
+-------------------------------------------------------------*/
+  RUN "adm2\dyncombo.w *RTB-SmObj* ".
+  RUN "adm2\dynlookup.w *RTB-SmObj* ".
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE validateData sObject 
 PROCEDURE validateData :
 /*------------------------------------------------------------------------------
@@ -1012,7 +1028,6 @@ PROCEDURE validateData :
            ToAll 
            ToCheckOut 
            ToGenerateADO 
-           ToInherittedNo 
            ToObjectInstance 
            ToObjectMaster 
            ToObjectType 
@@ -1054,19 +1069,9 @@ PROCEDURE validateData :
       FIND FIRST ryc_attribute
            WHERE ryc_attribute.attribute_label = cAttributeLabel
            NO-LOCK NO-ERROR.
-      CASE ryc_attribute.attribute_type_tla:
-        WHEN "CHR":U THEN DO:
-          /* Anything can go into a character - no check needed - it may also be BLANK */
-        END.
-        WHEN "INT":U THEN DO:
-          ASSIGN iInteger = INTEGER(edAttributeValue) NO-ERROR.
-          IF ERROR-STATUS:ERROR THEN
-            cError = {aferrortxt.i 'AF' '5' '' 'edAttributeValue' "'Attribute Value'" "'The value specified must be of type INTEGER.'"}.
-          ELSE
-            IF TRIM(edAttributeValue) = "":U THEN
-              cError = {aferrortxt.i 'AF' '1' '' 'edAttributeValue' "'Attribute Value'" "'You must specify a valid INTEGER value.'"}.
-        END.
-        WHEN "DEC":U THEN DO:
+      
+      CASE ryc_attribute.data_type:
+        WHEN {&DECIMAL-DATA-TYPE}   THEN DO:
           ASSIGN dDecimal = DECIMAL(edAttributeValue) NO-ERROR.
           IF ERROR-STATUS:ERROR THEN
             cError = {aferrortxt.i 'AF' '5' '' 'edAttributeValue' "'Attribute Value'" "'The value specified must be of type DECIMAL.'"}.
@@ -1074,7 +1079,24 @@ PROCEDURE validateData :
             IF TRIM(edAttributeValue) = "":U THEN
               cError = {aferrortxt.i 'AF' '1' '' 'edAttributeValue' "'Attribute Value'" "'You must specify a valid DECIMAL value.'"}.
         END.
-        WHEN "LOG":U THEN DO:
+        WHEN {&INTEGER-DATA-TYPE}   THEN DO:
+          ASSIGN iInteger = INTEGER(edAttributeValue) NO-ERROR.
+          IF ERROR-STATUS:ERROR THEN
+            cError = {aferrortxt.i 'AF' '5' '' 'edAttributeValue' "'Attribute Value'" "'The value specified must be of type INTEGER.'"}.
+          ELSE
+            IF TRIM(edAttributeValue) = "":U THEN
+              cError = {aferrortxt.i 'AF' '1' '' 'edAttributeValue' "'Attribute Value'" "'You must specify a valid INTEGER value.'"}.
+        END.
+        WHEN {&DATE-DATA-TYPE}      THEN DO:
+          cString = "The value specified must be of type DATE. " + "(":U + CAPS(SESSION:DATE-FORMAT) + ")":U.
+          ASSIGN dDate = DATE(edAttributeValue) NO-ERROR.
+          IF ERROR-STATUS:ERROR THEN
+            cError = {aferrortxt.i 'AF' '5' '' 'edAttributeValue' "'Attribute Value'" "cString"}.
+          ELSE
+            IF TRIM(edAttributeValue) = "":U THEN
+              cError = {aferrortxt.i 'AF' '1' '' 'edAttributeValue' "'Attribute Value'" "'You must specify a valid DATE value.'"}.
+        END.
+        WHEN {&LOGICAL-DATA-TYPE}   THEN DO:
           IF edAttributeValue <> "TRUE":U  AND
              edAttributeValue <> "FALSE":U AND
              edAttributeValue <> "YES":U   AND
@@ -1085,19 +1107,8 @@ PROCEDURE validateData :
             IF TRIM(edAttributeValue) = "":U THEN
               cError = {aferrortxt.i 'AF' '1' '' 'edAttributeValue' "'Attribute Value'" "'You must specify a valid LOGICAL value.'"}.
         END.
-        WHEN "DAT":U THEN DO:
-          cString = "The value specified must be of type DATE. " + "(":U + CAPS(SESSION:DATE-FORMAT) + ")":U.
-          ASSIGN dDate = DATE(edAttributeValue) NO-ERROR.
-          IF ERROR-STATUS:ERROR THEN
-            cError = {aferrortxt.i 'AF' '5' '' 'edAttributeValue' "'Attribute Value'" "cString"}.
-          ELSE
-            IF TRIM(edAttributeValue) = "":U THEN
-              cError = {aferrortxt.i 'AF' '1' '' 'edAttributeValue' "'Attribute Value'" "'You must specify a valid DATE value.'"}.
-        END.
-        OTHERWISE DO:
-          /* OTHER TYPES - NOT SUPPORTED YET */
-        END.
       END CASE.
+      
       IF cError <> "":U THEN DO:
         plError = TRUE.
         RUN viewError (INPUT cError).

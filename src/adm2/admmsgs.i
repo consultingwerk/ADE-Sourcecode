@@ -23,45 +23,48 @@
 /* admmsgs.i -- include file with translatable ADM messages (and others
    which need to be modifiable without changing ADM source procedures). */
 
-  DEFINE VARIABLE cADMMessages AS CHARACTER NO-UNDO EXTENT 32
+  DEFINE VARIABLE cADMMessages AS CHARACTER NO-UNDO EXTENT 35
     INIT [
-     "You must select a single row for deletion.",                                      /*  1 */
-     "Current values must be saved or cancelled before Add or Copy.",                   /*  2 */
-     "",                                                                                /*  3  see below */
-      /* message 4 is no longer used by adm as commitTransaction 
-         now has yes-no-cancel and are using message 3 */   
-     "Current values must be saved or cancelled before Commit.",                        /*  4 */
-     "Query Prepare in initProps failed.",                                              /*  5 */
-     "You must complete or cancel the update before leaving the current row.",          /*  6 */
-     "Current record has been changed. Do you wish to save those changes?",             /*  7 */
-     "Field(s) &1 have been changed by another user. Your change has been rejected.",   /*  8 */
-     "Unable to locate the r-code for &1. Executing its source file.",                  /*  9 */
-     "Field:  ",  /* used in showDataMessages */                                        /* 10 */
-     "Table:  ",  /* used in showDataMessages */                                        /* 11 */
-     "You must complete the current update operation.",                                 /* 12 */
-     "You must complete the current add operation.",                                    /* 13 */
-     "You must complete the current copy operation.",                                   /* 14 */
-     "Update cancelled.",                                                               /* 15 */
-     "",                                                                                /* 16 - see below */
-     "",                                                                                /* 17 - see below */
-     "This database record does not exist or is locked by another user.",               /* 18 */
-     "",                                                                                /* 19 - see below */
-     "",                                                                                /* 20 - see below */
-     "exit",  /* used in okToContinue()  */                                             /* 21 */
-     "continue", /* used in okToContinue()  */                                          /* 22 */
-     "Attempt to delete record failed.",                                                /* 23 */
-     "",                                                                                /* 24 */
-    "The JMS broker is unavailable.",                                                   /* 25 */
-    "The message could not be sent because a valid JMS session is not available.",      /* 26 */
-    "The XML message could not be routed. It has no 'xmlns' attribute or DTD reference.", /* 27 */
-    "The XML message could not be routed. '&1' has no matching internal reference.",    /* 28 */
-    "&1 was not found with &2.",                                                        /* 29 */
-    "",                                                                                 /* 30 */
-    "commit",                                                                           /* 31 */       
-    ""].                                                                                /* 32 */
+     "You must select a single row for deletion.",                                        /*  1 */
+     "Current values must be saved or cancelled before Add or Copy.",                     /*  2 */
+     "",                                                                                  /*  3  see below */
+      /* message 4 is no longer used by adm as commitTransaction                          
+         now has yes-no-cancel and are using message 3 */                                 
+     "Current values must be saved or cancelled before Commit.",                          /*  4 */
+     "Query Prepare in initProps failed.",                                                /*  5 */
+     "You must complete or cancel the update before leaving the current row.",            /*  6 */
+     "Current record has been changed. Do you wish to save those changes?",               /*  7 */
+     "Field(s) &1 have been changed by another user. Your change has been rejected.",     /*  8 */
+     "Unable to locate the r-code for &1. Executing its source file.",                    /*  9 */
+     "Field:  ",  /* used in showDataMessages */                                          /* 10 */
+     "Table:  ",  /* used in showDataMessages */                                          /* 11 */
+     "You must complete the current update operation.",                                   /* 12 */
+     "You must complete the current add operation.",                                      /* 13 */
+     "You must complete the current copy operation.",                                     /* 14 */
+     "Update cancelled.",                                                                 /* 15 */
+     "",                                                                                  /* 16 - see below */
+     "",                                                                                  /* 17 - see below */
+     "This database record does not exist or is locked by another user.",                 /* 18 */
+     "",                                                                                  /* 19 - see below */
+     "",                                                                                  /* 20 - see below */
+     "exit",  /* used in okToContinue()  */                                               /* 21 */
+     "continue", /* used in okToContinue()  */                                            /* 22 */
+     "Attempt to delete record failed.",                                                  /* 23 */
+     "",                                                                                  /* 24 */
+     "The JMS broker is unavailable.",                                                    /* 25 */
+     "The message could not be sent because a valid JMS session is not available.",       /* 26 */
+     "The XML message could not be routed. It has no 'xmlns' attribute or DTD reference.",/* 27 */
+     "The XML message could not be routed. '&1' has no matching internal reference.",     /* 28 */
+     "&1 was not found with &2.",                                                         /* 29 */
+     "",                                                                                  /* 30 */
+     "commit",                                                                            /* 31 */       
+     "",                                                                                  /* 32 */
+     "The business logic procedure &1 was not found.",                                    /* 33 */ 
+     "",                                                                                  /* 34 - see Below */
+     ""                                                                                   /* 35 - see Below */
+    ].
 
-
-  ASSIGN
+    ASSIGN
     cADMMessages[3] = "Current values have not been saved." + CHR(10) + CHR(10) +
                       "Do you wish to save current values before you &1?"
     cADMMessages[16] = "It is necessary to commit (or undo) current changes" + CHR(10) +
@@ -82,4 +85,9 @@
                        "before refreshing the current row."
     cADMMessages[30] = "Unknown or ambiguous buffer reference ~'&1~'. Could not add expression to query.&2"
     cADMMessages[32] = "Current values have not been saved." + CHR(10) + CHR(10) +
-                       "Confirm undo of both unsaved and uncommitted changes?".
+                       "Confirm undo of both unsaved and uncommitted changes?"
+    cADMMessages[34] = "Do you wish to delete the current record?" + CHR(10)
+    cADMMessages[35] = "(extracted records = &1) (max. records = &2)".
+                       
+
+   

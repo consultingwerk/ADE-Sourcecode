@@ -2829,7 +2829,8 @@ FUNCTION loadSchema RETURNS LOGICAL
                                  OUTPUT TABLE-HANDLE hNode,
                                  OUTPUT TABLE-HANDLE hSchema,
                                  OUTPUT TABLE-HANDLE hNameSpace).
-  
+
+  RUN reset IN hSchemaMngr.
   {set SchemaHandle hSchema}.    
   {set NameSpaceHandle hNameSpace}.    
   DELETE OBJECT hNode NO-ERROR.

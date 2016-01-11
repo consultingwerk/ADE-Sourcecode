@@ -123,16 +123,19 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-FIELDS RowObject.page_sequence ~
 RowObject.container_smartobject_obj RowObject.page_label ~
-RowObject.security_token RowObject.enable_on_create ~
-RowObject.enable_on_modify RowObject.enable_on_view 
+RowObject.security_token RowObject.page_reference ~
+RowObject.enable_on_create RowObject.enable_on_modify ~
+RowObject.enable_on_view 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define DISPLAYED-FIELDS RowObject.page_sequence ~
 RowObject.container_smartobject_obj RowObject.page_label ~
-RowObject.security_token RowObject.enable_on_create ~
-RowObject.enable_on_modify RowObject.enable_on_view 
+RowObject.security_token RowObject.page_reference ~
+RowObject.enable_on_create RowObject.enable_on_modify ~
+RowObject.enable_on_view 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
+
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -156,25 +159,28 @@ DEFINE FRAME frMain
      RowObject.page_sequence AT ROW 1 COL 16.2 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 6.2 BY 1
-     RowObject.container_smartobject_obj AT ROW 1 COL 63.4 COLON-ALIGNED NO-LABEL
+     RowObject.container_smartobject_obj AT ROW 1 COL 76.6 COLON-ALIGNED NO-LABEL
           VIEW-AS FILL-IN 
           SIZE 2.6 BY 1
-     RowObject.page_label AT ROW 2 COL 16.2 COLON-ALIGNED
+     RowObject.page_label AT ROW 2.05 COL 16.2 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 30 BY 1
-     RowObject.security_token AT ROW 3 COL 16.2 COLON-ALIGNED
+          SIZE 63.2 BY 1
+     RowObject.security_token AT ROW 3.1 COL 16.2 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 30 BY 1
-     RowObject.enable_on_create AT ROW 5 COL 18.2
+          SIZE 63.2 BY 1
+     RowObject.page_reference AT ROW 4.14 COL 16.2 COLON-ALIGNED
+          VIEW-AS FILL-IN 
+          SIZE 63.2 BY 1
+     RowObject.enable_on_create AT ROW 6.33 COL 18.2
           VIEW-AS TOGGLE-BOX
-          SIZE 21.8 BY .81
-     RowObject.enable_on_modify AT ROW 5.81 COL 18.2
+          SIZE 21.8 BY 1
+     RowObject.enable_on_modify AT ROW 7.38 COL 18.2
           VIEW-AS TOGGLE-BOX
-          SIZE 21.8 BY .81
-     RowObject.enable_on_view AT ROW 6.62 COL 18.2
+          SIZE 21.8 BY 1
+     RowObject.enable_on_view AT ROW 8.43 COL 18.2
           VIEW-AS TOGGLE-BOX
-          SIZE 20.2 BY .81
-     SPACE(29.80) SKIP(0.00)
+          SIZE 20.2 BY 1
+     SPACE(43.00) SKIP(0.00)
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -214,8 +220,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 6.43
-         WIDTH              = 67.2.
+         HEIGHT             = 8.43
+         WIDTH              = 80.4.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -314,14 +320,14 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldryc_layout.layout_code,ryc_layout.layout_nameKeyFieldryc_layout.layout_objFieldLabelLayoutFieldTooltipSelect the default layout for this pageKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH ryc_layout NO-LOCK BY ryc_layout.layout_code INDEXED-REPOSITIONQueryTablesryc_layoutSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 / &2CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueINNER-LINES5ComboFlagFlagValueBuildSequence1SecurednoFieldNamelayout_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldryc_layout.layout_code,ryc_layout.layout_nameKeyFieldryc_layout.layout_objFieldLabelLayoutFieldTooltipSelect the default layout for this pageKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH ryc_layout NO-LOCK BY ryc_layout.layout_code INDEXED-REPOSITIONQueryTablesryc_layoutSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 / &2CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcFieldNamelayout_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dyncombo ).
-       RUN repositionObject IN h_dyncombo ( 4.00 , 18.20 ) NO-ERROR.
-       RUN resizeObject IN h_dyncombo ( 1.00 , 50.00 ) NO-ERROR.
+       RUN repositionObject IN h_dyncombo ( 5.19 , 18.20 ) NO-ERROR.
+       RUN resizeObject IN h_dyncombo ( 1.05 , 63.20 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */
        RUN adjustTabOrder ( h_dyncombo ,
-             RowObject.security_token:HANDLE IN FRAME frMain , 'AFTER':U ).
+             RowObject.page_reference:HANDLE IN FRAME frMain , 'AFTER':U ).
     END. /* Page 0 */
 
   END CASE.

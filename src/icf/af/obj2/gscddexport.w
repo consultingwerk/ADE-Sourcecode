@@ -93,7 +93,10 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 {afcheckerr.i &define-only = YES}
 
+DEFINE VARIABLE glDoOnceOnly  AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE ghDSAPI       AS HANDLE     NO-UNDO.
+
+{af/app/afttsecurityctrl.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -114,7 +117,7 @@ DEFINE VARIABLE ghDSAPI       AS HANDLE     NO-UNDO.
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS buGenerate buExit buHelp fiProcess RECT-1 
+&Scoped-Define ENABLED-OBJECTS buGenerate fiProcess RECT-1 
 &Scoped-Define DISPLAYED-OBJECTS fiProcess 
 
 /* Custom List Definitions                                              */
@@ -131,30 +134,21 @@ DEFINE VARIABLE ghDSAPI       AS HANDLE     NO-UNDO.
 DEFINE VAR wiWin AS WIDGET-HANDLE NO-UNDO.
 
 /* Definitions of handles for SmartObjects                              */
+DEFINE VARIABLE h_dyntoolbar AS HANDLE NO-UNDO.
 DEFINE VARIABLE h_folder AS HANDLE NO-UNDO.
 DEFINE VARIABLE h_gscdddsxprtf AS HANDLE NO-UNDO.
 DEFINE VARIABLE h_gscddrsxprtf AS HANDLE NO-UNDO.
 
 /* Definitions of the field level widgets                               */
-DEFINE BUTTON buExit 
-     LABEL "E&xit" 
-     SIZE 18.8 BY 1.14
-     BGCOLOR 8 .
-
 DEFINE BUTTON buGenerate 
      LABEL "&Generate" 
      SIZE 18.8 BY 1.14
      BGCOLOR 8 .
 
-DEFINE BUTTON buHelp 
-     LABEL "&Help" 
-     SIZE 19 BY 1.14
-     BGCOLOR 8 .
-
 DEFINE VARIABLE fiProcess AS CHARACTER FORMAT "X(256)":U 
      LABEL "Processing" 
       VIEW-AS TEXT 
-     SIZE 72.4 BY .62 NO-UNDO.
+     SIZE 113.2 BY .62 NO-UNDO.
 
 DEFINE RECTANGLE RECT-1
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
@@ -164,15 +158,13 @@ DEFINE RECTANGLE RECT-1
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     buGenerate AT ROW 25.48 COL 3.8
-     buExit AT ROW 25.48 COL 109
-     buHelp AT ROW 25.48 COL 129.4
-     fiProcess AT ROW 25.76 COL 33 COLON-ALIGNED
-     RECT-1 AT ROW 25.19 COL 2.2
+     buGenerate AT ROW 26.81 COL 3.8
+     fiProcess AT ROW 27.1 COL 33 COLON-ALIGNED
+     RECT-1 AT ROW 26.52 COL 2.2
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1
-         SIZE 150 BY 26.19.
+         SIZE 150 BY 27.38.
 
 
 /* *********************** Procedure Settings ************************ */
@@ -182,7 +174,7 @@ DEFINE FRAME frMain
    Type: SmartWindow
    Allow: Basic,Browse,DB-Fields,Query,Smart,Window
    Container Links: Data-Target,Data-Source,Page-Target,Update-Source,Update-Target,Filter-target,Filter-Source
-   Design Page: 2
+   Design Page: 1
    Other Settings: COMPILE
  */
 &ANALYZE-RESUME _END-PROCEDURE-SETTINGS
@@ -194,7 +186,7 @@ IF SESSION:DISPLAY-TYPE = "GUI":U THEN
   CREATE WINDOW wiWin ASSIGN
          HIDDEN             = YES
          TITLE              = "Dataset Export"
-         HEIGHT             = 26.19
+         HEIGHT             = 27.38
          WIDTH              = 150
          MAX-HEIGHT         = 28.57
          MAX-WIDTH          = 160
@@ -269,17 +261,6 @@ END.
 &ANALYZE-RESUME
 
 
-&Scoped-define SELF-NAME buExit
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buExit wiWin
-ON CHOOSE OF buExit IN FRAME frMain /* Exit */
-DO:
-  APPLY "CLOSE":U TO THIS-PROCEDURE.
-END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
 &Scoped-define SELF-NAME buGenerate
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buGenerate wiWin
 ON CHOOSE OF buGenerate IN FRAME frMain /* Generate */
@@ -322,12 +303,23 @@ PROCEDURE adm-create-objects :
 
     WHEN 0 THEN DO:
        RUN constructObject (
-             INPUT  'adm2/folder.w':U ,
+             INPUT  'adm2/dyntoolbar.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'FolderLabels':U + 'Datasets|Record List' + 'FolderTabWidth0FolderFont-1HideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'FlatButtonsyesMenuyesShowBorderyesToolbaryesActionGroupsTableio,NavigationSubModulesTableIOTypeSaveSupportedLinksNavigation-Source,TableIo-SourceToolbarBandsToolbarParentMenuToolbarAutoSizeyesToolbarDrawDirectionHorizontalToolbarInitialStateLogicalObjectNameFolderTopNoSDOAutoResizeDisabledActionsHiddenActionsUpdate,Txtok,TxtcancelHiddenToolbarBandsHiddenMenuBandsMenuMergeOrder0EdgePixels2PanelTypeToolbarDeactivateTargetOnHidenoDisabledActionsNavigationTargetNameHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT h_dyntoolbar ).
+       RUN repositionObject IN h_dyntoolbar ( 1.00 , 1.00 ) NO-ERROR.
+       RUN resizeObject IN h_dyntoolbar ( 1.57 , 150.00 ) NO-ERROR.
+
+       RUN constructObject (
+             INPUT  'af/sup2/afspfoldrw.w':U ,
+             INPUT  FRAME frMain:HANDLE ,
+             INPUT  'FolderLabels':U + 'Datasets|Record List' + 'TabFGcolor':U + 'Default|Default' + 'TabBGcolor':U + 'Default|Default' + 'TabINColor':U + 'GrayText|GrayText' + 'ImageEnabled':U + '' + 'ImageDisabled':U + '' + 'Hotkey':U + '' + 'Tooltip':U + '' + 'TabHidden':U + 'no|no' + 'EnableStates':U + 'All|All' + 'DisableStates':U + 'All|All' + 'VisibleRows':U + '10' + 'PanelOffset':U + '20' + 'FolderMenu':U + '' + 'TabsPerRow':U + '8' + 'TabHeight':U + '3' + 'TabFont':U + '4' + 'LabelOffset':U + '0' + 'ImageWidth':U + '0' + 'ImageHeight':U + '0' + 'ImageXOffset':U + '0' + 'ImageYOffset':U + '2' + 'TabSize':U + 'Proportional' + 'SelectorFGcolor':U + 'Default' + 'SelectorBGcolor':U + 'Default' + 'SelectorFont':U + '4' + 'SelectorWidth':U + '3' + 'TabPosition':U + 'Upper' + 'MouseCursor':U + '' + 'InheritColor':U + 'no' + 'TabVisualization':U + 'Tabs' + 'PopupSelectionEnabled':U + 'yes' + 'HideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_folder ).
-       RUN repositionObject IN h_folder ( 1.19 , 2.20 ) NO-ERROR.
-       RUN resizeObject IN h_folder ( 23.81 , 147.20 ) NO-ERROR.
+       RUN repositionObject IN h_folder ( 2.38 , 2.40 ) NO-ERROR.
+       RUN resizeObject IN h_folder ( 23.95 , 146.60 ) NO-ERROR.
+
+       /* Links to toolbar h_dyntoolbar. */
+       RUN addLink ( h_dyntoolbar , 'Toolbar':U , THIS-PROCEDURE ).
 
        /* Links to SmartFolder h_folder. */
        RUN addLink ( h_folder , 'Page':U , THIS-PROCEDURE ).
@@ -340,14 +332,13 @@ PROCEDURE adm-create-objects :
              INPUT  FRAME frMain:HANDLE ,
              INPUT  'LogicalObjectNamePhysicalObjectNamegsdddsxprtf.wDynamicObjectnoRunAttributeHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_gscdddsxprtf ).
-       RUN repositionObject IN h_gscdddsxprtf ( 2.62 , 3.00 ) NO-ERROR.
+       RUN repositionObject IN h_gscdddsxprtf ( 3.67 , 3.40 ) NO-ERROR.
        /* Size in AB:  ( 22.14 , 144.00 ) */
 
        /* Initialize other pages that this page requires. */
        RUN initPages ('2') NO-ERROR.
 
        /* Links to SmartFrame h_gscdddsxprtf. */
-       RUN addLink ( h_folder , 'Page':U , h_gscdddsxprtf ).
        RUN addLink ( h_gscddrsxprtf , 'recordSet':U , h_gscdddsxprtf ).
 
     END. /* Page 1 */
@@ -358,7 +349,7 @@ PROCEDURE adm-create-objects :
              INPUT  FRAME frMain:HANDLE ,
              INPUT  'LogicalObjectNamePhysicalObjectNamegscddrsxprtf.wDynamicObjectnoRunAttributeHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_gscddrsxprtf ).
-       RUN repositionObject IN h_gscddrsxprtf ( 2.91 , 3.00 ) NO-ERROR.
+       RUN repositionObject IN h_gscddrsxprtf ( 4.14 , 3.40 ) NO-ERROR.
        /* Size in AB:  ( 20.91 , 144.20 ) */
 
        /* Adjust the tab order of the smart objects. */
@@ -405,6 +396,7 @@ PROCEDURE DSAPI_StatusUpdate :
   DO WITH FRAME {&FRAME-NAME}:
     fiProcess:SCREEN-VALUE = pcText.
   END.
+  PROCESS EVENTS.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -423,7 +415,7 @@ PROCEDURE enable_UI :
 ------------------------------------------------------------------------------*/
   DISPLAY fiProcess 
       WITH FRAME frMain IN WINDOW wiWin.
-  ENABLE buGenerate buExit buHelp fiProcess RECT-1 
+  ENABLE buGenerate fiProcess RECT-1 
       WITH FRAME frMain IN WINDOW wiWin.
   {&OPEN-BROWSERS-IN-QUERY-frMain}
   VIEW wiWin.
@@ -469,6 +461,8 @@ PROCEDURE initializeObject :
     RETURN.
   END.
 
+  {af/sup2/aficonload.i}
+
     /* Start the Dataset API procedure */
   RUN startProcedure IN THIS-PROCEDURE ("ONCE|af/app/gscddxmlp.p":U, 
                                         OUTPUT ghDSAPI).
@@ -482,6 +476,56 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE postCreateObjects wiWin 
+PROCEDURE postCreateObjects :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE dInnerRow         AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE hAttributeBuffer  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hClassBuffer      AS HANDLE     NO-UNDO.
+
+  IF NOT glDoOnceOnly THEN
+  DO:
+    /* Fetch the repository class*/
+    hClassBuffer = DYNAMIC-FUNCTION("getCacheClassBuffer":U IN gshRepositoryManager, "SmartFolder":U).
+  
+    IF VALID-HANDLE(hClassBuffer) THEN
+      hAttributeBuffer = hClassBuffer:BUFFER-FIELD("classBufferHandle":U):BUFFER-VALUE.   
+  
+    IF VALID-HANDLE(hAttributeBuffer) THEN
+    DO:
+      hAttributeBuffer:BUFFER-CREATE().
+  
+      {fnarg setPopupSelectionEnabled "hAttributeBuffer:BUFFER-FIELD('PopupSelectionEnabled'):BUFFER-VALUE" h_folder}.
+      {fnarg setTabVisualization      "hAttributeBuffer:BUFFER-FIELD('TabVisualization'):BUFFER-VALUE"      h_folder}.
+      {fnarg setTabPosition           "hAttributeBuffer:BUFFER-FIELD('TabPosition'):BUFFER-VALUE"           h_folder}.
+  
+      hAttributeBuffer:BUFFER-DELETE().
+    END.
+    
+    glDoOnceOnly = TRUE.
+
+    RUN initializeObject IN h_folder.
+  END.
+  
+  dInnerRow = {fn getInnerRow h_folder} + 0.12.
+
+  IF VALID-HANDLE(h_gscdddsxprtf) THEN
+    RUN repositionObject IN h_gscdddsxprtf (INPUT dInnerRow,
+                                            INPUT {fn getCol h_gscdddsxprtf}).
+  
+  IF VALID-HANDLE(h_gscddrsxprtf) THEN
+    RUN repositionObject IN h_gscddrsxprtf (INPUT dInnerRow,
+                                            INPUT {fn getCol h_gscddrsxprtf}).
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE writeADOs wiWin 
 PROCEDURE writeADOs :
 /*------------------------------------------------------------------------------
@@ -489,13 +533,17 @@ PROCEDURE writeADOs :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hDataSet       AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hRecordSet     AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cOutDir        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cOutBlank      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lOutRelative   AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cExtra         AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lResetModified AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hDataSet        AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRecordSet      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cOutDir         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cOutBlank       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lOutRelative    AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cExtra          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lResetModified  AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lIncludeDeletes AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lRemoveDeletes  AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lDeployModified AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lFullDS         AS LOGICAL    NO-UNDO.
 
   /* Obtain the buffer handles to the two tables that we need to do this
      job. */
@@ -508,14 +556,26 @@ PROCEDURE writeADOs :
   RUN getDirectory IN h_gscdddsxprtf
     ( OUTPUT cOutDir /* CHARACTER */,
       OUTPUT cOutBlank,
-      OUTPUT lResetModified).
+      OUTPUT lResetModified,
+      OUTPUT lIncludeDeletes,
+      OUTPUT lRemoveDeletes,
+      OUTPUT lDeployModified,
+      OUTPUT lFullDS).
 
 
   SUBSCRIBE TO "DSAPI_StatusUpdate":U IN ghDSAPI.
   SESSION:SET-WAIT-STATE("GENERAL":U).
 
   RUN writeADOSet IN ghDSAPI
-    (cOutDir, cOutBlank, lResetModified, hDataset, hRecordSet).
+    (cOutDir, 
+     cOutBlank, 
+     lResetModified,
+     lIncludeDeletes,
+     lRemoveDeletes,
+     lDeployModified,
+     lFullDS,
+     hDataset, 
+     hRecordSet).
 
   SESSION:SET-WAIT-STATE("":U).
   UNSUBSCRIBE TO "DSAPI_StatusUpdate":U IN ghDSAPI.

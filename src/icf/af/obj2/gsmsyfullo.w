@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          icfdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
@@ -92,7 +92,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gsmsyfullo.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010002
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -124,6 +124,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -145,12 +146,17 @@ property_value
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gsmsyfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsm_session_type_property NO-LOCK, ~
+      FIRST gsm_session_type WHERE gsm_session_type.session_type_obj = gsm_session_type_property.session_type_obj NO-LOCK, ~
+      FIRST gsc_session_property WHERE gsc_session_property.session_property_obj = gsm_session_type_property.session_property_obj NO-LOCK ~
+    BY icfdb.gsm_session_type_property.session_property_obj ~
+       BY icfdb.gsm_session_type_property.session_type_obj INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsm_session_type_property NO-LOCK, ~
       FIRST gsm_session_type WHERE gsm_session_type.session_type_obj = gsm_session_type_property.session_type_obj NO-LOCK, ~
       FIRST gsc_session_property WHERE gsc_session_property.session_property_obj = gsm_session_type_property.session_property_obj NO-LOCK ~
-    BY gsm_session_type_property.session_property_obj ~
-       BY gsm_session_type_property.session_type_obj INDEXED-REPOSITION.
+    BY icfdb.gsm_session_type_property.session_property_obj ~
+       BY icfdb.gsm_session_type_property.session_type_obj INDEXED-REPOSITION.
 {&DB-REQUIRED-END}
 &Scoped-define TABLES-IN-QUERY-Query-Main gsm_session_type_property ~
 gsm_session_type gsc_session_property
@@ -264,7 +270,7 @@ END.
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK dTables 

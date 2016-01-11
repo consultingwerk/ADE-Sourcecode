@@ -136,7 +136,7 @@ DO ON STOP UNDO, LEAVE:
     */
     ASSIGN 
       curMsg = ERROR-STATUS:GET-MESSAGE( errorNum )
-      cEOL   = (IF errorNum < ERROR-STATUS:NUM-MESSAGES THEN "\n' + '":U ELSE "").
+      cEOL   = (IF errorNum < ERROR-STATUS:NUM-MESSAGES THEN "~\n' + '":U ELSE "").
       
     IF ERROR-STATUS:GET-NUMBER( errorNum ) <> {&PP-4345} THEN
       ASSIGN curMsg = REPLACE( curMsg , p_Comp_File , "" ) .

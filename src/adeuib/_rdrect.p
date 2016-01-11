@@ -58,6 +58,7 @@ ASSIGN _L._EDGE-PIXELS  = INTEGER({&ARC_edge-pixels})
        _L._GRAPHIC-EDGE = (_L._EDGE-PIXELS > 0 AND _L._EDGE-PIXELS < 7)
        _U._TOOLTIP      = {&ARC_TOOLTIP}
        _U._TOOLTIP-ATTR = {&ARC_TOOLTIP-ATTR}
+       _U._SENSITIVE    = NO
        .
        
 CREATE RECTANGLE _U._HANDLE

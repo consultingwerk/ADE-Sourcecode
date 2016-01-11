@@ -6,7 +6,7 @@ Use this template to create a new Astra 2 SmartDataObject with the assistance of
 */
 &ANALYZE-RESUME
 /* Connected Databases 
-          rydb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
@@ -97,7 +97,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       rycapfullo.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -129,6 +129,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -145,6 +146,8 @@ attribute_group_narrative attribute_group_obj
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "ry/obj/rycapfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH ryc_attribute_group NO-LOCK ~
+    BY ryc_attribute_group.attribute_group_name INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH ryc_attribute_group NO-LOCK ~
     BY ryc_attribute_group.attribute_group_name INDEXED-REPOSITION.
@@ -232,20 +235,20 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "rydb.ryc_attribute_group"
+     _TblList          = "ICFDB.ryc_attribute_group"
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _OrdList          = "rydb.ryc_attribute_group.attribute_group_name|yes"
-     _FldNameList[1]   > rydb.ryc_attribute_group.attribute_group_name
+     _FldNameList[1]   > ICFDB.ryc_attribute_group.attribute_group_name
 "attribute_group_name" "attribute_group_name" ? ? "character" ? ? ? ? ? ? yes ? no 56 yes
-     _FldNameList[2]   > rydb.ryc_attribute_group.attribute_group_narrative
+     _FldNameList[2]   > ICFDB.ryc_attribute_group.attribute_group_narrative
 "attribute_group_narrative" "attribute_group_narrative" ? ? "character" ? ? ? ? ? ? yes ? no 1000 yes
-     _FldNameList[3]   > rydb.ryc_attribute_group.attribute_group_obj
+     _FldNameList[3]   > ICFDB.ryc_attribute_group.attribute_group_obj
 "attribute_group_obj" "attribute_group_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK dTables 

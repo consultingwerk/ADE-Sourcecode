@@ -71,9 +71,12 @@ DEFINE {1} SHARED TEMP-TABLE _BC
    FIELD _FORMAT         AS CHARACTER CASE-SENSITIVE /* Like _U._FORMAT          */
    FIELD _FORMAT-ATTR    AS CHARACTER FORMAT "X(5)" INITIAL "U"
    		LABEL "FORMAT String Attributes"     /* Like _U._FORMAT-ATTR */
+   FIELD _HAS-DATAFIELD-MASTER  AS LOGICAL           /* Has datafield master defined */
    FIELD _HELP           AS CHARACTER CASE-SENSITIVE /* Like _U._HELP            */
    FIELD _HELP-ATTR      AS CHARACTER FORMAT "X(5)" INITIAL ""
    		LABEL "HELP String Attributes"       /* Like _U._HELP-ATTR */
+   FIELD _INSTANCE-LEVEL AS LOGICAL                  /* Store DataField Instance */
+   FIELD _STATUS         AS CHARACTER                /* Status of calc field column (NEW or UPDATE,colName) */
    FIELD _LABEL          AS CHARACTER CASE-SENSITIVE /* Like  _U._LABEL          */
    FIELD _LABEL-ATTR     AS CHARACTER   FORMAT "X(5)" INITIAL ""
    		LABEL "Label String Attributes"       /* Like _F._LABEL-ATTR */

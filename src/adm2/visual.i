@@ -112,20 +112,22 @@
 
   RUN start-super-proc ("adm2/visual.p":U).
 
+&IF "{&ENABLED-OBJECTS}":U <> "":U &THEN
   cFields =  REPLACE("{&ENABLED-OBJECTS}":U, " ":U, ",":U).
   {set EnabledObjFlds cFields}.
+&ENDIF
 
   /* _ADM-CODE-BLOCK-START _CUSTOM _INCLUDED-LIB-CUSTOM CUSTOM */
   {src/adm2/custom/visualcustom.i}
   /* _ADM-CODE-BLOCK-END */
 
 &IF "{&FRAME-NAME}":U <> "":U &THEN
-  
-  ON HELP OF FRAME {&FRAME-NAME} ANYWHERE DO:
-    IF VALID-HANDLE(gshSessionManager) THEN
+  IF VALID-HANDLE(gshSessionManager) THEN
+  DO:
+    ON HELP OF FRAME {&FRAME-NAME} ANYWHERE
       RUN contextHelp IN gshSessionManager (INPUT THIS-PROCEDURE, INPUT FOCUS).
   END.
-  
+
   ON CTRL-PAGE-UP OF FRAME {&FRAME-NAME} ANYWHERE DO:
     RUN processAction IN TARGET-PROCEDURE (INPUT "CTRL-PAGE-UP":U).
   END.

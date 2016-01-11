@@ -98,59 +98,84 @@ DEFINE OUTPUT PARAMETER pcCustomSuperProc   AS CHARACTER            NO-UNDO.
     DEFINE VARIABLE cObjectExt      AS CHARACTER NO-UNDO.
     DEFINE VARIABLE cObjectFileName AS CHARACTER NO-UNDO.
 
-    DEFINE BUFFER b_gsc_object FOR gsc_object.
-    DEFINE BUFFER ryc_smartObject               FOR ryc_smartObject.
+    DEFINE BUFFER b_ryc_smartobject FOR ryc_smartobject.
+    DEFINE BUFFER ryc_smartObject   FOR ryc_smartObject.
 
-    FIND FIRST gsc_object NO-LOCK
-        WHERE gsc_object.OBJECT_filename = pcObjectName
-        NO-ERROR.
-    IF NOT AVAILABLE gsc_object THEN DO:
-        IF R-INDEX(pcObjectName,".") > 0 THEN DO:
-           cObjectExt = ENTRY(NUM-ENTRIES(pcObjectName,"."),pcObjectName,".").
-           cObjectFileName = REPLACE(pcObjectName,("." + cObjectExt),"").
-           FIND FIRST gsc_object NO-LOCK
-               WHERE gsc_object.Object_FileName = cObjectFileName AND
-                     gsc_object.Object_Extension = cObjectExt
-                     NO-ERROR.
+    FIND FIRST ryc_smartobject NO-LOCK
+         WHERE ryc_smartobject.OBJECT_filename          = pcObjectName
+           AND ryc_smartobject.customization_result_obj = 0
+         NO-ERROR.
+
+    IF NOT AVAILABLE ryc_smartobject THEN
+        IF R-INDEX(pcObjectName,".") > 0 
+        THEN DO:
+           ASSIGN cObjectExt      = ENTRY(NUM-ENTRIES(pcObjectName,"."),pcObjectName,".")
+                  cObjectFileName = REPLACE(pcObjectName,("." + cObjectExt),"").
+           FIND FIRST ryc_smartobject NO-LOCK
+                WHERE ryc_smartobject.Object_FileName          = cObjectFileName 
+                  AND ryc_smartobject.Object_Extension         = cObjectExt
+                  AND ryc_smartobject.customization_result_obj = 0
+                NO-ERROR.
         END.
+
+    IF NOT AVAILABLE ryc_smartobject THEN 
+        RETURN ERROR "Physical object " + pcObjectName + " not available".
+
+    IF (NOT ryc_smartobject.static_object)
+    THEN DO:
+        FIND FIRST b_ryc_smartobject NO-LOCK
+             WHERE b_ryc_smartobject.smartobject_obj = ryc_smartobject.physical_smartobject_obj 
+             NO-ERROR.
+
+        IF NOT AVAILABLE b_ryc_smartobject THEN 
+            RETURN ERROR "Logical object for " + pcObjectName + " not available".
+
+        ASSIGN pcLogicalName  = pcObjectName
+               cFullPath      = LC(TRIM(REPLACE(b_ryc_smartobject.object_path,"~\":U,"/":U)))
+               cFullPath      = cFullPath 
+                              + (IF LENGTH(cFullPath) > 0 AND SUBSTRING(cFullPath,LENGTH(cFullPath)) <> "/":U THEN "/":U ELSE "":U) 
+                              + LC(TRIM(b_ryc_smartobject.OBJECT_filename) 
+                              + (IF b_ryc_smartobject.Object_Extension <> "" THEN ".":U + b_ryc_smartobject.Object_Extension ELSE "":U))
+               pcPhysicalName = cFullPath.
     END.
+    ELSE
+        ASSIGN pcLogicalName  = ""
+               cFullPath      = LC(TRIM(REPLACE(ryc_smartobject.object_path,"~\":U,"/":U)))
+               cFullPath      = cFullPath 
+                              + (IF LENGTH(cFullPath) > 0 AND SUBSTRING(cFullPath,LENGTH(cFullPath)) <> "/":U THEN "/":U ELSE "":U) 
+                              + LC(TRIM(ryc_smartobject.OBJECT_filename) 
+                              + (IF ryc_smartobject.Object_Extension <> "" THEN ".":U + ryc_smartobject.Object_Extension ELSE "":U))
+               pcPhysicalName = cFullPath.
 
-    IF NOT AVAILABLE gsc_object THEN RETURN ERROR "Physical object not available".
+    /* Neil B start */
+    DEFINE BUFFER bryc_smartobject FOR ryc_smartobject.
 
-    IF gsc_object.logical_object THEN
-    DO:
-        FIND FIRST b_gsc_object NO-LOCK
-            WHERE b_gsc_object.Object_obj = gsc_object.physical_object_obj 
+    DEFINE VARIABLE cCustomObjectPath AS CHARACTER  NO-UNDO.
+
+    IF  ryc_smartobject.custom_smartobject_obj <> 0
+    AND ryc_smartobject.custom_smartobject_obj <> ? 
+    THEN DO:
+       FIND bryc_smartobject NO-LOCK
+            WHERE bryc_smartobject.smartobject_obj = ryc_smartobject.custom_smartobject_obj
             NO-ERROR.
+    
+       IF AVAILABLE bryc_smartobject
+       THEN DO:
+           ASSIGN cCustomObjectPath = REPLACE(bryc_smartobject.object_path, "~\":U, "/":U).
 
-        IF NOT AVAILABLE b_gsc_object THEN RETURN ERROR "Logical object not available".
+           IF R-INDEX(cCustomObjectPath, "/":U) <> LENGTH(cCustomObjectPath) THEN
+               ASSIGN cCustomObjectPath = cCustomObjectPath + "/":U.
 
-        pcLogicalName = pcObjectName.
-        cFullPath = LC(TRIM(REPLACE(b_gsc_object.object_path,"~\":U,"/":U))).
-        cFullPath = cFullPath +
-                    (IF LENGTH(cFullPath) > 0 AND SUBSTRING(cFullPath,LENGTH(cFullPath)) <> "/":U THEN "/":U ELSE "":U) +
-                     LC(TRIM(b_gsc_object.OBJECT_filename) 
-                       + (IF b_gsc_object.Object_Extension <> "" THEN ".":U + b_gsc_object.Object_Extension ELSE "":U) ).
-        pcPhysicalName = cFullPath.
+           ASSIGN pcCustomSuperProc = cCustomObjectPath + bryc_smartobject.object_filename
+                                    + (IF bryc_smartobject.object_extension <> "":U AND bryc_smartobject.object_extension <> ?
+                                       THEN ".":U + bryc_smartobject.object_extension
+                                       ELSE "":U).
+       END.
     END.
-    ELSE DO:
-        pcLogicalName = "".
-        cFullPath = LC(TRIM(REPLACE(gsc_object.object_path,"~\":U,"/":U))).
-        cFullPath = cFullPath +
-                    (IF LENGTH(cFullPath) > 0 AND SUBSTRING(cFullPath,LENGTH(cFullPath)) <> "/":U THEN "/":U ELSE "":U) +
-                     LC(TRIM(gsc_object.OBJECT_filename) 
-                        + (IF gsc_object.Object_Extension <> "" THEN ".":U + gsc_object.Object_Extension ELSE "":U)).
-        pcPhysicalName = cFullPath.
-    END.
-
-    FIND FIRST ryc_smartObject WHERE
-               ryc_smartObject.object_obj = gsc_object.object_obj
-               NO-LOCK NO-ERROR.
-    IF AVAILABLE ryc_smartObject                   AND
-       ryc_smartObject.custom_super_procedure NE ? THEN
-        ASSIGN pcCustomSuperProc = ryc_smartObject.custom_super_procedure.
+    /* Neil B end */
 
     RETURN.
+
     /*--   EOF  --*/
 
 /* _UIB-CODE-BLOCK-END */

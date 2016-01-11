@@ -23,15 +23,9 @@
 *********************************************************************/
 TRIGGER PROCEDURE FOR REPLICATION-WRITE OF ryc_object_instance OLD BUFFER lb_old.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "ryc_object_instance"
-                      &TRIGGER-TYPE = "REPLICATION-WRITE"}
-
 {af/sup/afreplicat.i  &TABLE-NAME   = "ryc_object_instance"
                       &TABLE-FLA    = "rycoi"
-                      &TABLE-PK     = "container_smartobject_obj,
-                                       object_instance_obj"
+                      &TABLE-PK     = "object_instance_obj"
                       &OLD-BUFFER   = "lb_old"
                       &ACTION       = "WRITE"
                       &PRIMARY-FLA  = "rycso"

@@ -7,7 +7,7 @@ This is run persistently by web/objects/webstart.p. It includes methods for supp
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS State-Aware-Object 
 /*********************************************************************
-* Copyright (C) 2001 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2002 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -42,6 +42,9 @@ Author : D.Adams
 Updated: 01/10/02 adams@progress.com
            Adapted from web/objects/web-util.p V9.1C, this procedure provides 
            support for state-aware web-objects.
+         05/08/02 adams
+           Reimplemented support for database transactions that span multiple
+           web requests.
 
 ---------------------------------------------------------------------------*/
 
@@ -773,30 +776,31 @@ PROCEDURE set-transaction-state :
   
   CASE new-state:
     WHEN "START-PENDING":U THEN DO:
-      IF transaction-state eq "NONE":U 
-      THEN transaction-state = "START-PENDING":U.
-      ELSE RUN HtmlError (SUBSTITUTE (
-               'Transaction cannot be STARTED while the transaction state is &1.',
-                transaction-state)).
+      IF transaction-state eq "NONE":U THEN 
+      	transaction-state = "START-PENDING":U.
+      ELSE 
+      	RUN HtmlError (SUBSTITUTE (
+          'Transaction cannot be STARTED while the transaction state is &1.',
+          transaction-state)).
     END. /* WHEN "START"... */
     
     WHEN "UNDO-PENDING":U OR WHEN "RETRY-PENDING":U OR WHEN "COMMIT-PENDING":U 
     THEN DO:        
-      IF transaction-state eq "ACTIVE":U
-      THEN transaction-state = new-state.
-      ELSE RUN HtmlError (SUBSTITUTE (
-               'Transaction state cannot be set to &1 while the state is &2.',
-                p_state,
-                transaction-state)).
+      IF transaction-state eq "ACTIVE":U THEN 
+      	transaction-state = new-state.
+      ELSE 
+      	RUN HtmlError (SUBSTITUTE (
+          'Transaction state cannot be set to &1 while the state is &2.',
+          p_state,
+          transaction-state)).
     END. /* WHEN "UNDO" OR "COMMIT"... */
     
     OTHERWISE DO:        
       RUN HtmlError (SUBSTITUTE (
-               'Transaction state cannot be set to &1. It can only be set to ' +
-               ' START, UNDO, RETRY, and COMMIT.',
-                p_state)).
+        'Transaction state cannot be set to &1. It can only be set to ' +
+        ' START, UNDO, RETRY, and COMMIT.',
+        p_state)).
     END. /* OTHERWISE... */
-    
   END CASE.
     
 END PROCEDURE.
@@ -825,12 +829,12 @@ PROCEDURE set-web-state :
    * procedure in them.  Re:  97-02-06-028.
   */
   IF NOT CAN-DO(p_wo-hdl:INTERNAL-ENTRIES,"process-web-request":U) THEN DO:
-   RUN HtmlError ("A Web object must support 'process-web-request' in order to be State-Aware.").
-   RETURN.
+    RUN HtmlError ("A Web object must support 'process-web-request' in order to be State-Aware.").
+    RETURN.
   END.
 
   IF p_timeout > 0 THEN DO:
-    /* Re: 97-02-06-006.  Although, v1.0 allowed timeout to be entered as a
+    /* Re: 19970206-006.  Although, v1.0 allowed timeout to be entered as a
      * decimal, it was being converted to an integer in set-attribute-list
      * and stored as an integer in the wo temp-table.  So, in order to
      * maintain 1.0 backwards compatibility, where users may have set timeout

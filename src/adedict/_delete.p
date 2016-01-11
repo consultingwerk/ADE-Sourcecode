@@ -37,6 +37,8 @@ Author: Laura Stern
 
 Date Created: 02/24/92 
     Modified: 07/14/98 Added _Owner to _File finds D. McMann
+              08/08/02 Eliminated any sequences whose name begins "$" - Peer Direct D. McMann
+              10/01/02 DLM Changed check for SQL tables
 
 ----------------------------------------------------------------------------*/
 &GLOBAL-DEFINE WIN95-BTN YES
@@ -116,7 +118,7 @@ CASE p_Obj:
 	 return.
       end.   
    
-      if _File._Db-lang = {&TBLTYP_SQL} then
+      if _File._Db-lang >= {&TBLTYP_SQL} then
       do:
 	 message "This is a PROGRESS/SQL table.  Use DROP TABLE."
       	       	  view-as ALERT-BOX ERROR buttons OK.
@@ -187,7 +189,8 @@ CASE p_Obj:
       	 if confirmed then
       	 do:
       	    run adecomm/_setcurs.p ("WAIT").
-      	    find _Sequence where _Sequence._Seq-Name = s_CurrSeq.
+      	    find _Sequence where _Sequence._Db-recid = s_DbRecId
+                             AND _Sequence._Seq-Name = s_CurrSeq.
       	    delete _Sequence.
 
       	    run CleanupDisplay (INPUT s_lst_Seqs:HANDLE in frame browse,
@@ -211,7 +214,7 @@ CASE p_Obj:
       end.
    
       find _File where RECID(_File) = s_TblRecId.
-      if _File._Db-lang = {&TBLTYP_SQL} then
+      if _File._Db-lang >= {&TBLTYP_SQL} then
       do:
 	 message "This is a PROGRESS/SQL table.  Use ALTER TABLE/DROP COLUMN."
       	       	  view-as ALERT-BOX ERROR buttons OK.
@@ -289,7 +292,7 @@ CASE p_Obj:
       end.
    
       find _File where RECID(_File) = s_TblRecId.
-      if _File._Db-lang = {&TBLTYP_SQL} then
+      if _File._Db-lang >= {&TBLTYP_SQL} then
       do:
 	 message "This is a PROGRESS/SQL table.  Use the DROP INDEX statement."
       	       	  view-as ALERT-BOX ERROR buttons OK.

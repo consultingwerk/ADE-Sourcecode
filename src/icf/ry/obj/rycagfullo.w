@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          rydb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
@@ -81,6 +81,7 @@ CREATE WIDGET-POOL.
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -97,6 +98,8 @@ attribute_group_narrative attribute_group_obj
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "ry/obj/rycagfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH ryc_attribute_group NO-LOCK ~
+    BY ryc_attribute_group.attribute_group_name INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH ryc_attribute_group NO-LOCK ~
     BY ryc_attribute_group.attribute_group_name INDEXED-REPOSITION.
@@ -184,20 +187,20 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "RYDB.ryc_attribute_group"
+     _TblList          = "ICFDB.ryc_attribute_group"
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _OrdList          = "RYDB.ryc_attribute_group.attribute_group_name|yes"
-     _FldNameList[1]   > RYDB.ryc_attribute_group.attribute_group_name
+     _FldNameList[1]   > ICFDB.ryc_attribute_group.attribute_group_name
 "attribute_group_name" "attribute_group_name" ? ? "character" ? ? ? ? ? ? yes ? no 28 yes
-     _FldNameList[2]   > RYDB.ryc_attribute_group.attribute_group_narrative
+     _FldNameList[2]   > ICFDB.ryc_attribute_group.attribute_group_narrative
 "attribute_group_narrative" "attribute_group_narrative" ? ? "character" ? ? ? ? ? ? yes ? no 500 yes
-     _FldNameList[3]   > RYDB.ryc_attribute_group.attribute_group_obj
+     _FldNameList[3]   > ICFDB.ryc_attribute_group.attribute_group_obj
 "attribute_group_obj" "attribute_group_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21.6 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK dTables 

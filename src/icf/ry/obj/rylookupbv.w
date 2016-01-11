@@ -110,7 +110,17 @@ af/cod/aftemwizpw.w
                 Replace HIGH-CHARACTER preprocessor value with value retreived
                 from function getHighKey in general manager.
 
-------------------------------------------------------------------------*/
+  (v:010014)    Task:           0   UserRef:    
+                Date:   03/06/2002  Author:     Mark Davies (MIP)
+
+  Update Notes: Fix for issue #3717 - Dynamic Lookup Browser inherits dictionary validation
+
+  (v:010015)    Task:           0   UserRef:    
+                Date:   08/23/2002  Author:     Mark Davies (MIP)
+
+  Update Notes: Fix for issue #5848 - Errors launching Dyn Lookup Maintenance Container
+
+----------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
 
@@ -168,7 +178,6 @@ DEFINE VARIABLE gcNonCalcColumns    AS CHARACTER NO-UNDO.
 
 {af/sup2/afttlkctrl.i}
 {af/sup2/afttlkfilt.i}
-{ry/app/rycsofetch.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -318,9 +327,11 @@ ASSIGN
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL frMain sObject
 ON MOUSE-SELECT-DBLCLICK OF FRAME frMain
 DO:
-  FIND FIRST ttLookCtrl NO-LOCK.
-
-  MESSAGE ttLookCtrl.cBaseQueryString.
+  IF DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE, INPUT "_debug_tools_on":U) = "YES":U THEN
+  DO:
+    FIND FIRST ttLookCtrl NO-LOCK.
+    MESSAGE ttLookCtrl.cBaseQueryString.
+  END.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -456,12 +467,26 @@ IF INDEX(ttLookCtrl.cBaseQueryString, "OUTER-JOIN":U) <> 0 THEN
 
 /* Set Parent-Child filter */
 RUN returnParentFieldValues IN ghSDF (OUTPUT cParentFilterQuery).
-IF cParentFilterQuery <> "":U THEN
-  ttLookCtrl.cBaseQueryString = DYNAMIC-FUNCTION("newWhereClause" IN ghSDF,
-                                                 ENTRY(1,ttLookCtrl.cQueryTables),
-                                                 cParentFilterQuery,
-                                                 ttLookCtrl.cBaseQueryString,
-                                                 "AND":U).
+
+IF cParentFilterQuery <> "":U THEN DO:
+  IF NUM-ENTRIES(cParentFilterQuery,"|":U) > 1 AND 
+     NUM-ENTRIES(ttLookCtrl.cQueryTables) > 1 THEN DO:
+    DO iLoop = 1 TO NUM-ENTRIES(cParentFilterQuery,"|":U):
+      IF TRIM(ENTRY(iLoop,cParentFilterQuery,"|":U)) <> "":U THEN
+        ttLookCtrl.cBaseQueryString = DYNAMIC-FUNCTION("newWhereClause" IN ghSDF,
+                                     ENTRY(iLoop,ttLookCtrl.cQueryTables),
+                                     ENTRY(iLoop,cParentFilterQuery,"|":U),
+                                     ttLookCtrl.cBaseQueryString,
+                                     "AND":U).
+    END.
+  END.
+  ELSE
+      ttLookCtrl.cBaseQueryString = DYNAMIC-FUNCTION("newWhereClause" IN ghSDF,
+                                   ENTRY(NUM-ENTRIES(ttLookCtrl.cQueryTables),ttLookCtrl.cQueryTables),
+                                   cParentFilterQuery,
+                                   ttLookCtrl.cBaseQueryString,
+                                   "AND":U).
+END.
 
 RELEASE ttLookCtrl.
 
@@ -653,8 +678,9 @@ ASSIGN
   ttLookCtrl.cLastResultRow = "":U
   ttLookCtrl.cColumnLabels  = DYNAMIC-FUNCTION('getColumnLabels':U IN hSDF)
   ttLookCtrl.cColumnFormat  = DYNAMIC-FUNCTION('getColumnFormat':U IN hSDF)
+  ttLookCtrl.cPhysicalTableNames = DYNAMIC-FUNCTION('getPhysicalTableNames':U IN hSDF)
+  ttLookCtrl.cTempTableNames = DYNAMIC-FUNCTION('getTempTables':U IN hSDF)
   .
-
 /* Set filter on entered value */
 IF cFilterValue <> "":U AND
    cFilterValue <> ? THEN DO:
@@ -687,7 +713,7 @@ IF cFilterValue <> "":U AND
                                    ?,
                                    ?).
       ttLookCtrl.cBaseQueryString = DYNAMIC-FUNCTION("newWhereClause" IN hSDF,
-                                   (IF LOOKUP(cQueryTables,ENTRY(1,ttLookCtrl.cDisplayedField,".":U)) > 0 THEN ENTRY(LOOKUP(cQueryTables,ENTRY(1,ttLookCtrl.cDisplayedField,".":U)),cQueryTables) ELSE ENTRY(NUM-ENTRIES(cQueryTables),cQueryTables)),
+                                   (IF LOOKUP(ENTRY(1,ttLookCtrl.cDisplayedField,".":U),cQueryTables) > 0 THEN ENTRY(LOOKUP(ENTRY(1,ttLookCtrl.cDisplayedField,".":U),cQueryTables),cQueryTables) ELSE ENTRY(NUM-ENTRIES(cQueryTables),cQueryTables)),
                                    (ttLookCtrl.cDisplayedField + " <= '" + cFilterValue + "'"),
                                    ttLookCtrl.cBaseQueryString,
                                    "AND":U).
@@ -697,12 +723,25 @@ END.
 
 /* Set Parent-Child filter */
 RUN returnParentFieldValues IN hSDF (OUTPUT cParentFilterQuery).
-IF cParentFilterQuery <> "":U THEN
-  ttLookCtrl.cBaseQueryString = DYNAMIC-FUNCTION("newWhereClause" IN hSDF,
-                                                 ENTRY(NUM-ENTRIES(ttLookCtrl.cQueryTables),ttLookCtrl.cQueryTables),
-                                                 cParentFilterQuery,
-                                                 ttLookCtrl.cBaseQueryString,
-                                                 "AND":U).
+IF cParentFilterQuery <> "":U THEN DO:
+  IF NUM-ENTRIES(cParentFilterQuery,"|":U) > 1 AND 
+     NUM-ENTRIES(ttLookCtrl.cQueryTables) > 1 THEN DO:
+    DO iLoop = 1 TO NUM-ENTRIES(cParentFilterQuery,"|":U):
+      IF TRIM(ENTRY(iLoop,cParentFilterQuery,"|":U)) <> "":U THEN
+        ttLookCtrl.cBaseQueryString = DYNAMIC-FUNCTION("newWhereClause" IN hSDF,
+                                     ENTRY(iLoop,ttLookCtrl.cQueryTables),
+                                     ENTRY(iLoop,cParentFilterQuery,"|":U),
+                                     ttLookCtrl.cBaseQueryString,
+                                     "AND":U).
+    END.
+  END.
+  ELSE
+      ttLookCtrl.cBaseQueryString = DYNAMIC-FUNCTION("newWhereClause" IN hSDF,
+                                   ENTRY(NUM-ENTRIES(ttLookCtrl.cQueryTables),ttLookCtrl.cQueryTables),
+                                   cParentFilterQuery,
+                                   ttLookCtrl.cBaseQueryString,
+                                   "AND":U).
+END.
 
 /* build list of all fields */
 ASSIGN
@@ -716,12 +755,40 @@ IF ttLookCtrl.cKeyField <> ttLookCtrl.cDisplayedField THEN
     ttLookCtrl.cAllFieldTypes = ttLookCtrl.cAllFieldTypes + ",":U + ttLookCtrl.cDisplayDataType
     ttLookCtrl.cAllFieldFormats = ttLookCtrl.cAllFieldFormats + ",":U + ttLookCtrl.cDisplayFormat
     .
+/* Changed Browse Field Format delimiter to '|' - need to check for old lookups
+   where ',' is still used and carer for this */
+IF NUM-ENTRIES(ttLookCtrl.cBrowseFieldFormats,"|":U) <> NUM-ENTRIES(ttLookCtrl.cBrowseFieldDataTypes) THEN 
+  ASSIGN ttLookCtrl.cBrowseFieldFormats = REPLACE(ttLookCtrl.cBrowseFieldFormats,",":U,"|":U)
+         ttLookCtrl.cColumnFormat       = IF ttLookCtrl.cColumnFormat <> "":U THEN ttLookCtrl.cBrowseFieldFormats ELSE "":U.
+IF NUM-ENTRIES(ttLookCtrl.cBrowseFieldFormats,"|":U) <> NUM-ENTRIES(ttLookCtrl.cBrowseFieldDataTypes) THEN DO:
+  /* Now we need to assign default formats depending on data types */
+  ttLookCtrl.cBrowseFieldFormats = FILL("|":U,NUM-ENTRIES(ttLookCtrl.cBrowseFieldDataTypes) - 1).
+  DO iLoop = 1 TO NUM-ENTRIES(ttLookCtrl.cBrowseFields):
+    CASE ENTRY(iLoop,ttLookCtrl.cBrowseFieldDataTypes):
+      WHEN "DECIMAL":U THEN DO:
+        IF SUBSTRING(ENTRY(iLoop,ttLookCtrl.cBrowseFields),LENGTH(ENTRY(iLoop,ttLookCtrl.cBrowseFields)) - 3,4) = "_obj":U THEN
+          ENTRY(iLoop,ttLookCtrl.cBrowseFieldFormats,"|":U) = "->>>>>>>>>>>>>>>>>>>>9.999999":U.
+        ELSE
+          ENTRY(iLoop,ttLookCtrl.cBrowseFieldFormats,"|":U) = "->>>,>>>,>>>,>>>,>>>,>>>,>>9.99":U.
+      END.
+      WHEN "LOGICAL":U THEN
+        ENTRY(iLoop,ttLookCtrl.cBrowseFieldFormats,"|":U) = "YES/NO":U.
+      WHEN "INTEGER":U THEN
+        ENTRY(iLoop,ttLookCtrl.cBrowseFieldFormats,"|":U) = "->>>,>>>,>>9":U.
+      WHEN "DATE":U THEN
+        ENTRY(iLoop,ttLookCtrl.cBrowseFieldFormats,"|":U) = "99/99/9999":U.
+      OTHERWISE 
+        ENTRY(iLoop,ttLookCtrl.cBrowseFieldFormats,"|":U) = "X(75)":U.
+    END CASE.
+  END.
+  ttLookCtrl.cColumnFormat = IF ttLookCtrl.cColumnFormat <> "":U THEN ttLookCtrl.cBrowseFieldFormats ELSE "":U.
+END.
 DO iLoop = 1 TO NUM-ENTRIES(ttLookCtrl.cBrowseFields):
   IF LOOKUP(ENTRY(iLoop,ttLookCtrl.cBrowseFields),ttLookCtrl.cAllFields) = 0 THEN
     ASSIGN
       ttLookCtrl.cAllFields = ttLookCtrl.cAllFields + ",":U + ENTRY(iLoop,ttLookCtrl.cBrowseFields)
       ttLookCtrl.cAllFieldTypes = ttLookCtrl.cAllFieldTypes + ",":U + ENTRY(iLoop,ttLookCtrl.cBrowseFieldDataTypes)
-      ttLookCtrl.cAllFieldFormats = ttLookCtrl.cAllFieldFormats + ",":U + ENTRY(iLoop,ttLookCtrl.cBrowseFieldFormats)
+      ttLookCtrl.cAllFieldFormats = ttLookCtrl.cAllFieldFormats + ",":U + ENTRY(iLoop,ttLookCtrl.cBrowseFieldFormats,"|":U)
       .
 END.
 DO iLoop = 1 TO NUM-ENTRIES(ttLookCtrl.cViewerLinkedFields):
@@ -774,7 +841,7 @@ FRAME {&FRAME-NAME}:HEIGHT-PIXELS = hWindow:HEIGHT-PIXELS - 70.
 FRAME {&FRAME-NAME}:WIDTH-PIXELS = hWindow:WIDTH-PIXELS - 28.
 
 CREATE BROWSE ghBrowse
-       ASSIGN FRAME            = FRAME {&FRAME-NAME}:handle
+       ASSIGN FRAME            = FRAME {&FRAME-NAME}:HANDLE
               ROW              = 2.5
               COL              = 1.5
               WIDTH-CHARS      = FRAME {&FRAME-NAME}:WIDTH-CHARS - 2
@@ -786,8 +853,6 @@ CREATE BROWSE ghBrowse
               ALLOW-COLUMN-SEARCHING = TRUE
               QUERY            = ghQuery
         TRIGGERS:            
-          ON 'mouse-menu-down':U 
-            PERSISTENT RUN selectRow IN THIS-PROCEDURE.
           ON 'mouse-select-dblclick':U 
             PERSISTENT RUN toolbar IN THIS-PROCEDURE (INPUT "select":U).
           ON 'return':U 
@@ -813,16 +878,17 @@ ghBrowse:SENSITIVE = NO.
 /* Add field to browser */
 DO iLoop = 1 TO NUM-ENTRIES(ttLookCtrl.cBrowseFields):
   cField = ENTRY(iLoop,ttLookCtrl.cBrowseFields).
-  hCurField = ghBuffer:BUFFER-FIELD(ENTRY(2,cField,".":U)).
+  hCurField = ghBuffer:BUFFER-FIELD(ENTRY(1,cField,".":U) + "_":U + ENTRY(2,cField,".":U)).
   IF VALID-HANDLE(hCurField) THEN DO:
     gcNonCalcColumns = IF gcNonCalcColumns = "":U THEN hCurField:NAME ELSE gcNonCalcColumns + ",":U + hCurField:NAME.
     IF ttLookCtrl.cColumnFormat <> "":U AND
        ttLookCtrl.cColumnFormat <> ?    AND 
-       NUM-ENTRIES(ttLookCtrl.cColumnFormat) >= iLoop AND
-       ENTRY(iLoop,ttLookCtrl.cColumnFormat) <> "":U THEN
-      hCurField:FORMAT = ENTRY(iLoop,ttLookCtrl.cColumnFormat) NO-ERROR.
+       NUM-ENTRIES(ttLookCtrl.cColumnFormat,"|":U) >= iLoop AND
+       ENTRY(iLoop,ttLookCtrl.cColumnFormat,"|":U) <> "":U THEN
+      hCurField:FORMAT = ENTRY(iLoop,ttLookCtrl.cColumnFormat,"|":U) NO-ERROR.
   END.
   
+  hCurField:VALIDATE-EXPRESSION = "":U.
   hField = ghBrowse:ADD-LIKE-COLUMN(hCurField).
   /* Build up the list of browse columns for use in rowDisplay */
   IF VALID-HANDLE(hField) THEN DO:
@@ -1019,21 +1085,17 @@ PROCEDURE enableMaintenance :
     RETURN.
   cLaunchSDO = DYNAMIC-FUNCTION('getMaintenanceSDO':U IN ghSDF).
   
-  RUN returnSDODetails (INPUT-OUTPUT cLaunchSDO,
-                        OUTPUT cObjectName,
-                        OUTPUT cSDOAttributes).
-  IF cSDOAttributes = "":U OR
-     cSDOAttributes = ? THEN
+  RUN startDataObject IN gshRepositoryManager (INPUT cLaunchSDO, OUTPUT hSDOHandle).
+
+  IF RETURN-VALUE <> "":U THEN
     RETURN.
+
+  IF VALID-HANDLE(hSDOHandle) THEN DO:
+    DYNAMIC-FUNCTION("setRebuildOnRepos":U IN hSDOHandle, FALSE).
+    DYNAMIC-FUNCTION("setRowsToBatch":U IN hSDOHandle, 1).
+    DYNAMIC-FUNCTION("setObjectName":U IN hSDOHandle, cObjectName).
+  END.
     
-  ASSIGN cSDOAttributes = REPLACE(cSDOAttributes,"RebuildOnReposyes":U,"RebuildOnReposno":U)
-         cSDOAttributes = REPLACE(cSDOAttributes,"RowsToBatch200":U,"RowsToBatch1":U)
-         cSDOAttributes = cSDOAttributes + CHR(3) + "ObjectName":U + CHR(4) + cObjectName.
-          
-  RUN constructObject IN hContainer (INPUT  cLaunchSDO + CHR(3) + "DBAWARE",
-                                     INPUT  FRAME {&FRAME-NAME}:HANDLE,
-                                     INPUT  cSDOAttributes,
-                                     OUTPUT hSDOHandle).
   IF VALID-HANDLE(hSDOHandle) THEN DO:
     ghSDOHandle = hSDOHandle.
     RUN addLink ( hContainer , 'PrimarySDO':U , hSDOHandle).
@@ -1085,7 +1147,6 @@ DEFINE VARIABLE hColumn       AS HANDLE     NO-UNDO.
 DEFINE VARIABLE cLabel        AS CHARACTER  NO-UNDO.
 
 IF NOT VALID-HANDLE(ghBrowse) THEN RETURN.
-
 DO iLoop = 1 TO ghBrowse:NUM-COLUMNS:
   ASSIGN
     hColumn = ghBrowse:GET-BROWSE-COLUMN(iLoop).
@@ -1181,7 +1242,7 @@ PROCEDURE moveToSDORecord :
       DO iLoop = 1 TO NUM-ENTRIES(ttLookCtrl.cAllFields):
         ASSIGN
           cField = ENTRY(iLoop,ttLookCtrl.cAllFields)
-          cField = ENTRY(2, cField, ".":U)
+          cField = REPLACE(cField,".":U,"_":U)
           hField = ghBuffer:BUFFER-FIELD(cField)
           cValue = STRING(hField:BUFFER-VALUE)
           cValueList = cValueList +
@@ -1229,7 +1290,7 @@ PROCEDURE refreshLookup :
         DO iLoop = 1 TO NUM-ENTRIES(ttLookCtrl.cAllFields):
           ASSIGN
             cField = ENTRY(iLoop,ttLookCtrl.cAllFields)
-            cField = ENTRY(2, cField, ".":U)
+            cField = REPLACE(cField,".":U,"_":U)
             hField = ghBuffer:BUFFER-FIELD(cField)
             cValue = STRING(hField:BUFFER-VALUE)
             cValueList = cValueList +
@@ -1355,29 +1416,31 @@ PROCEDURE resizeObject :
   dToolBarHeight = 0.
   IF VALID-HANDLE(ghMaintToolbar) THEN DO:
     IF gcMaintenanceObject <> "":U THEN DO:
-      dToolBarHeight = (DYNAMIC-FUNCTION("getHeight" IN ghMaintToolbar)) * SESSION:PIXELS-PER-ROW + 5.
+      dToolBarHeight = (DYNAMIC-FUNCTION("getHeight" IN ghMaintToolbar)) + (5 / SESSION:PIXELS-PER-ROW).
     END.
   END.
 
   {get ContainerSource hContainerSource}.
   {get ContainerHandle hWindow hContainerSource}.
 
-  FRAME {&FRAME-NAME}:SCROLLABLE = FALSE.                                               
-  lPreviouslyHidden = FRAME {&FRAME-NAME}:HIDDEN.                                                           
-  FRAME {&FRAME-NAME}:HIDDEN = TRUE.
-
-
-  FRAME {&FRAME-NAME}:HEIGHT-PIXELS = hWindow:HEIGHT-PIXELS - 80 - dToolBarHeight.
-  FRAME {&FRAME-NAME}:WIDTH-PIXELS = hWindow:WIDTH-PIXELS - 28.
+  ASSIGN
+      lPreviouslyHidden                = FRAME {&FRAME-NAME}:HIDDEN
+      FRAME {&FRAME-NAME}:SCROLLABLE   = FALSE
+      FRAME {&FRAME-NAME}:HIDDEN       = TRUE
+      FRAME {&FRAME-NAME}:HEIGHT-CHARS = pdHeight - dToolBarHeight
+      FRAME {&FRAME-NAME}:WIDTH-CHARS  = pdWidth NO-ERROR.
 
   IF VALID-HANDLE(ghBrowse) THEN
   DO:
-    ghBrowse:WIDTH-CHARS = FRAME {&FRAME-NAME}:WIDTH-CHARS - 2.
-    ghBrowse:HEIGHT-PIXELS = FRAME {&FRAME-NAME}:HEIGHT-PIXELS - 40.
+    ASSIGN
+        ghBrowse:WIDTH-CHARS   = FRAME {&FRAME-NAME}:WIDTH-CHARS   - 2
+        ghBrowse:HEIGHT-PIXELS = FRAME {&FRAME-NAME}:HEIGHT-PIXELS - 40.
+
     RUN refreshLookup.
   END.
 
   APPLY "end-resize":U TO FRAME {&FRAME-NAME}.
+  
   FRAME {&FRAME-NAME}:HIDDEN = lPreviouslyHidden NO-ERROR.
   
   RUN resizeReposToolbar.
@@ -1421,105 +1484,8 @@ PROCEDURE resizeReposToolbar :
      gcMaintenanceObject <> "":U THEN DO:
     RUN hideObject IN ghMaintToolbar.
     RUN resizeObject     IN ghMaintToolbar (dToolBarHeight, dFolderWidth - 1).
-    RUN repositionObject IN ghMaintToolbar (ghBrowse:ROW + ghBrowse:HEIGHT-CHARS + 3.24, 2.48) NO-ERROR.
+    RUN repositionObject IN ghMaintToolbar (ghBrowse:ROW + ghBrowse:HEIGHT-CHARS + 3.48, 2.48) NO-ERROR.
     RUN viewObject IN ghMaintToolbar.
-  END.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE returnSDODetails sObject 
-PROCEDURE returnSDODetails :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE INPUT-OUTPUT PARAMETER pcSDOSBOName    AS CHARACTER  NO-UNDO.
-  DEFINE OUTPUT       PARAMETER pcSDONameOnly   AS CHARACTER  NO-UNDO.
-  DEFINE OUTPUT       PARAMETER pcSDOAttributes AS CHARACTER  NO-UNDO.
-  
-  DEFINE VARIABLE cDataSet    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cObjectPath AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cButton     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cObjectExt  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cAttrValue  AS CHARACTER  NO-UNDO.
-    
-  IF INDEX(pcSDOSBOName,"/":U) <> 0 AND
-     INDEX(pcSDOSBOName,"\":U) <> 0 THEN
-    ASSIGN
-      pcSDONameOnly = pcSDOSBOName
-      pcSDONameOnly = IF INDEX(pcSDONameOnly, "\":U) <> 0 THEN REPLACE(pcSDONameOnly, "\":U, "/":U) ELSE pcSDONameOnly
-      pcSDONameOnly = SUBSTRING(pcSDONameOnly, R-INDEX(pcSDONameOnly, "/":U) + 1).
-      /*pcSDONameOnly = SUBSTRING(pcSDONameOnly, 1, R-INDEX(pcSDONameOnly, ".":U) - 1).*/
-  ELSE
-    pcSDONameOnly = pcSDOSBOName.
-    
-  RUN getRecordDetail IN gshGenManager ( INPUT "FOR EACH ryc_smartobject 
-                                                WHERE ryc_smartobject.object_filename = '" + pcSDONameOnly + "', 
-                                                FIRST gsc_object 
-                                                WHERE gsc_object.object_obj = ryc_smartobject.object_obj NO-LOCK ":U,
-                                         OUTPUT cDataset ).
-  
-  ASSIGN cObjectPath = "":U
-         cObjectExt  = "":U.
-  IF cDataset = "":U OR cDataset = ? THEN 
-    ASSIGN cObjectPath = "":U
-           cObjectExt  = "":U.
-  ELSE
-    ASSIGN cObjectPath = ENTRY(LOOKUP("gsc_object.object_path":U, cDataSet, CHR(3)) + 1 , cDataSet, CHR(3)) 
-           cObjectExt  = ENTRY(LOOKUP("gsc_object.object_extension":U, cDataSet, CHR(3)) + 1 , cDataSet, CHR(3)) NO-ERROR.
-  
-  IF cObjectPath = "":U OR cObjectPath = ? THEN DO:
-    RUN showMessages IN gshSessionManager (INPUT  "The SDO/SBO specified is invalid, remove any path information and check for any typing errors.",    /* message to display */
-                                           INPUT  "ERR":U,          /* error type */
-                                           INPUT  "&OK,&Cancel":U,    /* button list */
-                                           INPUT  "&OK":U,           /* default button */ 
-                                           INPUT  "&Cancel":U,       /* cancel button */
-                                           INPUT  "Initializing SDO/SBO":U,             /* error window title */
-                                           INPUT  YES,              /* display if empty */ 
-                                           INPUT  ?,                /* container handle */ 
-                                           OUTPUT cButton           /* button pressed */
-                                          ).
-    
-    RETURN "":U.
-  END.
-  ELSE
-    ASSIGN pcSDOSBOName = cObjectPath + "/":U + pcSDOSBOName
-           pcSDOSBOName = REPLACE(pcSDOSBOName,"\":U,"/":U).
-  
-  IF cObjectExt <> "":U AND
-     NUM-ENTRIES(pcSDOSBOName,".":U) <= 1 THEN
-    pcSDOSBOName = pcSDOSBOName + ".w":U.
-
-  EMPTY TEMP-TABLE tt_object_instance.
-  EMPTY TEMP-TABLE tt_page.
-  EMPTY TEMP-TABLE tt_page_instance.
-  EMPTY TEMP-TABLE tt_link.
-  EMPTY TEMP-TABLE ttAttributeValue.
-  EMPTY TEMP-TABLE ttUiEvent.
-
-  RUN getObjectAttributes IN gshRepositoryManager (INPUT pcSDONameOnly,
-                                                   OUTPUT TABLE tt_object_instance,
-                                                   OUTPUT TABLE tt_page,
-                                                   OUTPUT TABLE tt_page_instance,
-                                                   OUTPUT TABLE tt_link,
-                                                   OUTPUT TABLE ttAttributeValue,
-                                                   OUTPUT TABLE ttUiEvent) NO-ERROR.
-  
-  
-  pcSDOAttributes = "":U.
-  FOR EACH ttAttributeValue
-      EXCLUSIVE-LOCK:
-    cAttrValue = "":U.
-    cAttrValue = ttAttributeValue.AttributeLabel + CHR(4) + ttAttributeValue.AttributeValue.
-    IF cAttrValue <> "":U AND
-       cAttrValue <> ? THEN
-    ASSIGN pcSDOAttributes = IF pcSDOAttributes = "":U 
-                            THEN cAttrValue
-                            ELSE pcSDOAttributes + CHR(3) + cAttrValue.
   END.
 
 END PROCEDURE.
@@ -1618,6 +1584,7 @@ PROCEDURE toolbar :
   DEFINE VARIABLE cProcedureType                      AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hNavigationSource                   AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hTableIOTarget                      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iExtentLoop                         AS INTEGER    NO-UNDO.
   
   DEFINE VARIABLE lAutoCommit                         AS LOGICAL    NO-UNDO.
 
@@ -1678,13 +1645,22 @@ PROCEDURE toolbar :
             DO iLoop = 1 TO NUM-ENTRIES(ttLookCtrl.cAllFields):
               ASSIGN
                 cField = ENTRY(iLoop,ttLookCtrl.cAllFields)
-                cField = ENTRY(2, cField, ".":U)
-                hField = ghBuffer:BUFFER-FIELD(cField)
-                cValue = STRING(hField:BUFFER-VALUE)
-                cValueList = cValueList +
-                             (IF iLoop = 1 THEN "":U ELSE CHR(1)) +
-                             (IF cValue = ? THEN "":U ELSE cValue)
-                .
+                cField = REPLACE(cField,".":U,"_":U)
+                hField = ghBuffer:BUFFER-FIELD(cField).
+              IF hField:EXTENT = 0 THEN
+                ASSIGN cValue = STRING(hField:BUFFER-VALUE)
+                       cValueList = cValueList +
+                                    (IF iLoop = 1 THEN "":U ELSE CHR(1)) +
+                                    (IF cValue = ? THEN "":U ELSE cValue).
+              ELSE DO:
+                DO iExtentLoop = 1 TO hField:EXTENT:
+                  ASSIGN cValue = STRING(hField:BUFFER-VALUE[iExtentLoop])
+                         cValueList = cValueList +
+                                      (IF iExtentLoop = 1 AND iLoop <> 1 THEN CHR(1) ELSE IF iExtentLoop = 1 AND iLoop <> 1 THEN "":U ELSE CHR(2)) +
+                                      (IF cValue = ? THEN "":U ELSE cValue).
+
+                END.
+              END.
             END.  /* all fields loop */
             ASSIGN hRowIdent  = ghBuffer:BUFFER-FIELD('RowIdent':U).
             RUN RowSelected IN ghSDF (INPUT ttLookCtrl.cAllFields,
@@ -1781,92 +1757,15 @@ FUNCTION evaluateOuterJoins RETURNS CHARACTER
   Purpose:  Replace OUTER-JOINs in a query with '' if filter criteria is specified
             on fields of the OUTER-JOINed buffers
 
-    Notes:  This function is identical to the function located in afsdofiltw.w.
-            If any modifications are made here, they should also be applied to
-            afsdofiltw.w please.
+    Notes:  This request is now simply passed on to the session manager.  We needed
+            to centralize it as it's called from so many places.  Afsdofiltw.w, 
+            rylookupbv.w and data.p.
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cFilterFieldBuffers AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cNewQueryString     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cOuterJoinEntry     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cCurrentEntry       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cBuffers            AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cWord               AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iQueryLine          AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iEntry              AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iWord               AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE lEachFirstLast      AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lFoundBuffer        AS LOGICAL    NO-UNDO.
 
-  /* Initialize the RETURN-VALUE */
-  ASSIGN
-      cNewQueryString = "":U
-      iQueryLine      = 0
-      cBuffers        = "":U.
-
-  /* Step through the Query by each buffer / table entry */
-  DO iEntry = 1 TO NUM-ENTRIES(pcQueryString):
-    ASSIGN
-        cCurrentEntry  = ENTRY(iEntry, pcQueryString)
-        cCurrentEntry  = REPLACE(cCurrentEntry, CHR(10), " ":U) WHEN INDEX(cCurrentEntry, CHR(10)) <> 0
-        cCurrentEntry  = REPLACE(cCurrentEntry, CHR(13), " ":U) WHEN INDEX(cCurrentEntry, CHR(13)) <> 0
-        lEachFirstLast = FALSE
-        lFoundBuffer   = FALSE.
-
-    /* If the Entry contains the OUTER-JOIN keyword, continue */
-    IF INDEX(cCurrentEntry, "OUTER-JOIN":U) <> 0 THEN
-    DO iWord = 1 TO NUM-ENTRIES(cCurrentEntry, " ":U):
-      ASSIGN
-          cWord = ENTRY(iWord, cCurrentEntry, " ":U).
-
-      /* Set the lEachFirstLast flag when the EACH, FIRST or LAST keywords are encountered */
-      IF TRIM(cWord) = "EACH":U  OR
-         TRIM(cWord) = "FIRST":U OR
-         TRIM(cWord) = "LAST":U  THEN
-        lEachFirstLast = TRUE.
-      ELSE
-        IF TRIM(cWord) <> "":U AND lEachFirstLast = TRUE THEN
-          /* Found the table name */
-          ASSIGN
-              cOuterJoinEntry = cOuterJoinEntry + (IF TRIM(cOuterJoinEntry) = "":U THEN "":U ELSE ",":U) + STRING(iEntry)
-              cBuffers        = cBuffers        + (IF TRIM(cBuffers)        = "":U THEN "":U ELSE ",":U) + cWord
-              lFoundBuffer    = TRUE.
-
-      IF lFoundBuffer = TRUE THEN LEAVE.
-    END.
-  END.
-
-  /* Ensure the variable is empty for the next steps */
-  cWord = "":U.
-
-  /* Pick up to which 'buffer line' in the query do we need to replace OUTER-JOINs with '' */
-  IF TRIM(pcFilterFields) <> "":U THEN
-  DO iEntry = 1 TO NUM-ENTRIES(cBuffers):
-    cCurrentEntry = ENTRY(iEntry, cBuffers).
-
-    DO iWord = 1 TO NUM-ENTRIES(pcFilterFields):
-      IF ENTRY(1, ENTRY(iWord, pcFilterFields), ".":U) = cCurrentEntry THEN
-        cWord = cCurrentEntry.
-    END.
-  END.
-
-  IF cWord <> "":U THEN
-  DO:
-    iQueryLine = INTEGER(ENTRY(LOOKUP(cWord, cBuffers), cOuterJoinEntry)).
-
-    /* Remove the OUTER-JOIN keyword from the relevant strings */
-    DO iEntry = 1 TO NUM-ENTRIES(pcQueryString):
-      cCurrentEntry = ENTRY(iEntry, pcQueryString).
-
-      IF INDEX(cCurrentEntry, "OUTER-JOIN":U) <> 0 AND iEntry <= iQueryLine THEN
-        cCurrentEntry = REPLACE(cCurrentEntry, "OUTER-JOIN":U, "":U).
-
-      cNewQueryString = cNewQueryString +  (IF TRIM(cNewQueryString) = "":U THEN "":U ELSE ",":U) + cCurrentEntry.
-    END.
-  END.
-  ELSE
-    cNewQueryString = pcQueryString.
-
-  RETURN cNewQueryString.   /* Function return value. */
+IF VALID-HANDLE(gshSessionManager) THEN
+    RETURN DYNAMIC-FUNCTION("filterEvaluateOuterJoins":U IN gshSessionManager, INPUT pcQueryString, INPUT pcFilterFields).
+ELSE
+    RETURN pcQueryString.
 
 END FUNCTION.
 

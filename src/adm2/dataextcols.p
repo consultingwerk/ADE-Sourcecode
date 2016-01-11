@@ -113,6 +113,18 @@ FUNCTION assignColumnHelp RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-assignColumnInitial) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD assignColumnInitial Procedure 
+FUNCTION assignColumnInitial RETURNS LOGICAL
+  ( pcColumn AS CHARACTER, 
+    pcInitial AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-assignColumnLabel) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD assignColumnLabel Procedure 
@@ -176,6 +188,17 @@ FUNCTION columnColumnLabel RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD columnDataType Procedure 
 FUNCTION columnDataType RETURNS CHARACTER
   ( pcColumn AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-columnDBName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD columnDBName Procedure 
+FUNCTION columnDBName RETURNS CHARACTER
+  ( pcColumn AS CHAR )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -526,6 +549,46 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-assignColumnInitial) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION assignColumnInitial Procedure 
+FUNCTION assignColumnInitial RETURNS LOGICAL
+  ( pcColumn AS CHARACTER, 
+    pcInitial AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:     Sets the Progress Format text of a specified column.
+  Parameters:  
+    INPUT pcColumn  - Unqualified column name of the RowObject field.
+                    - Column name qualified with "RowObject".   
+                    - qualified database field name. 
+                      (This requires that the field is mapped to the SDO).  
+    INPUT pcInitial - The new initial value
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hCol       AS HANDLE NO-UNDO.
+  DEFINE VARIABLE hRowObject AS HANDLE NO-UNDO.
+  
+  {get RowObject hRowObject}.
+  hCol = hRowObject:BUFFER-FIELD(pcColumn) NO-ERROR.
+  
+  /* The code would certainly look more elegant if we skipped the code above
+     and resolved all cases by a call to columnHandle, as below, but column 
+     functions are used extensively and we don't want to let the normal call 
+     with just a column name have to pay the performance overhead of an 
+     additional function call, in order to support the odd case with qualifiers. */  
+  IF hCol = ? AND NUM-ENTRIES(pcColumn,".":U) > 1 THEN
+    hCol = {fnarg columnHandle pcColumn}. 
+  
+  IF hCol NE ? THEN hCol:INITIAL = pcInitial.
+  
+  RETURN IF hCol = ? THEN FALSE ELSE TRUE.  
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-assignColumnLabel) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION assignColumnLabel Procedure 
@@ -821,6 +884,43 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-columnDBName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION columnDBName Procedure 
+FUNCTION columnDBName RETURNS CHARACTER
+  ( pcColumn AS CHAR ) :
+/*-----------------------------------------------------------------------------
+  Purpose:     Returns the database name of the column mapped to a
+               SmartDataObjects RowObject column.               
+  Parameters: INPUT pcColumn 
+              - column name of the RowObject field being queried or a 
+                qualified database column.                   
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cTable   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTables  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDBNames AS CHARACTER  NO-UNDO.
+
+  cTable = {fnarg columnTable pcColumn}.
+  
+  IF NUM-ENTRIES(cTable,'.':U) > 1 THEN
+     RETURN ENTRY(1,cTable,'.':U).
+  
+  ELSE IF cTable > '':U THEN 
+  DO:
+    {get Tables cTables}.
+    {get DBNames cDBNames}.
+    RETURN ENTRY(LOOKUP(cTable,cTables),cDBNames). 
+  END.
+
+  RETURN ?. 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-columnExtent) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION columnExtent Procedure 
@@ -1062,40 +1162,38 @@ FUNCTION columnModified RETURNS LOGICAL
   Notes:       NOTE: The only way to do this is to see if the row has been
                modified and then compare the changed and unchanged copies; 
                there's no MODIFIED attribute on the BUFFER-FIELD.
-------------------------------------------------------------------------------*/
-
-  DEFINE VARIABLE hRowObject AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE hColumn    AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE cValue     AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE hRowQuery  AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE cRowNum    AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE lChanged   AS LOGICAL   NO-UNDO.
+------------------------------------------------------------------------------*/  
+  DEFINE VARIABLE hRowObject   AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE hRowObjUpd   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lColModified AS LOGICAL    NO-UNDO.
   
   {get RowObject hRowObject}.
-  IF NOT hRowObject:AVAILABLE THEN
-      RETURN ?.
-  hColumn = hRowObject:BUFFER-FIELD('RowMod':U).
-  IF hColumn:BUFFER-VALUE = "U":U THEN
+  IF NOT VALID-HANDLE(hROwObject) OR NOT hRowObject:AVAILABLE THEN
+    RETURN FALSE.
+  
+  IF hRowObject:BUFFER-FIELD('RowMod':U):BUFFER-VALUE = "U":U THEN
   DO:
     /* The row has been changed; now get the unchanged copy and see if this
-       *column* has been changed. This requires defining a query for that row. */
-      hColumn = hRowObject:BUFFER-FIELD(pcColumn).
-      cValue = hColumn:BUFFER-VALUE.  /* Save off the value from the updated row. */
-      hColumn = hRowObject:BUFFER-FIELD('RowNum':U).
-      cRowNum = hColumn:STRING-VALUE. /* ...also the row number of the row. */
-      {get RowObjUpd hRowObject}.
-      CREATE QUERY hRowQuery.
-      hRowQuery:SET-BUFFERS(hRowObject).
-      hRowQuery:QUERY-PREPARE('FOR EACH RowObjUpd WHERE RowObjUpd.RowNum = ':U + 
-         cRowNum).
-      hRowQuery:QUERY-OPEN().
-      hRowQuery:GET-FIRST().
-      hColumn = hRowObject:BUFFER-FIELD(pcColumn).
-      lChanged = (hColumn:BUFFER-VALUE <> cValue).
-      DELETE WIDGET hRowQuery.
+       column has been changed. */
+    {get RowObjUpd hRowObjUpd}.
+    CREATE BUFFER hRowObjUpd FOR TABLE hRowObjUpd.
+    IF VALID-HANDLE(hRowObjUpd) THEN
+    DO:
+      hRowObjUpd:FIND-FIRST('WHERE ':U + hRowObjUpd:NAME + '.RowNum = ':U 
+                            + hRowObject:BUFFER-FIELD('RowNum':U):BUFFER-VALUE
+                            + ' AND  ':U + hRowObjUpd:NAME + '.RowMod = ""':U
+                            ) NO-ERROR.
+      
+      lColModified =  hRowObjUpd:AVAIL AND 
+             (hRowObjUpd:BUFFER-FIELD(pcColumn):BUFFER-VALUE 
+               <>
+              hRowObject:BUFFER-FIELD(pcColumn):BUFFER-VALUE). 
+    END.
+
+    DELETE OBJECT hRowObjUpd NO-ERROR.
   END. /* if hColumn:BUFFER-VALUE = "U" */
   
-  RETURN lChanged.    
+  RETURN lColModified.    
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

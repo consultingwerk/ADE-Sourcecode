@@ -78,7 +78,7 @@
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Include ASSIGN
-         HEIGHT             = 18.71
+         HEIGHT             = 4.52
          WIDTH              = 66.6.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -103,6 +103,7 @@
 
   /* Preprocs to identify to compiler which properties are in the temp-table.*/
   &GLOBAL-DEFINE xpCurrentPage
+  &GLOBAL-DEFINE xpPendingPage
   &GLOBAL-DEFINE xpContainerTarget
   &GLOBAL-DEFINE xpContainerTargetEvents
   &GLOBAL-DEFINE xpToolbarSource
@@ -133,7 +134,6 @@
  
  &GLOBAL-DEFINE xpMultiInstanceSupported
  &GLOBAL-DEFINE xpMultiInstanceActivated
- &GLOBAL-DEFINE xpContainerMode
  &GLOBAL-DEFINE xpSavedContainerMode
  &GLOBAL-DEFINE xpSdoForeignFields
  &GLOBAL-DEFINE xpPrimarySdoTarget
@@ -168,8 +168,12 @@
     {src/adm2/visprop.i}
 &ENDIF
 
+IF NOT {&ADM-PROPS-DEFINED} THEN
+DO:
+
 &IF "{&ADMSuper}":U = "":U &THEN
   ghADMProps:ADD-NEW-FIELD('CurrentPage':U, 'INT':U, 0, ?, 0).
+  ghADMProps:ADD-NEW-FIELD('PendingPage':U, 'INT':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('ContainerTarget':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('ContainerTargetEvents':U, 'CHAR':U, 0, ?,
     'exitObject,okObject,cancelObject,updateActive':U).
@@ -195,25 +199,25 @@
   ghADMProps:ADD-NEW-FIELD('RunDOOptions':U, 'CHARACTER':U, 0, ?,'':U).
   ghADMProps:ADD-NEW-FIELD('InitialPageList':U, 'CHARACTER':U, 0, ?, '':U). /* comma delimited list of pages to construct at startup or * for all or empty for just start page and page 0 */
   ghADMProps:ADD-NEW-FIELD('WindowFrameHandle':U, 'HANDLE':U). 
-  ghADMProps:ADD-NEW-FIELD('Page0LayoutManager', 'CHARACTER').
-  ghADMProps:ADD-NEW-FIELD('MultiInstanceSupported', 'LOGICAL', ?, ? ,&IF DEFINED(MULTI-INSTANCE-SUPPORTED) > 0 &THEN {&MULTI-INSTANCE-SUPPORTED} &ELSE NO &ENDIF).  
-  ghADMProps:ADD-NEW-FIELD('MultiInstanceActivated', 'LOGICAL').  
-  ghADMProps:ADD-NEW-FIELD('ContainerMode', 'CHARACTER').  
-  ghADMProps:ADD-NEW-FIELD('SavedContainerMode', 'CHARACTER').  
-  ghADMProps:ADD-NEW-FIELD('SdoForeignFields', 'CHARACTER').  
+  ghADMProps:ADD-NEW-FIELD('Page0LayoutManager':U, 'CHARACTER':U).
+  ghADMProps:ADD-NEW-FIELD('MultiInstanceSupported':U, 'LOGICAL':U, ?, ? ,&IF DEFINED(MULTI-INSTANCE-SUPPORTED) > 0 &THEN {&MULTI-INSTANCE-SUPPORTED} &ELSE NO &ENDIF).  
+  ghADMProps:ADD-NEW-FIELD('MultiInstanceActivated':U, 'LOGICAL':U).  
+  ghADMProps:ADD-NEW-FIELD('ContainerMode':U, 'CHARACTER':U).  
+  ghADMProps:ADD-NEW-FIELD('SavedContainerMode':U, 'CHARACTER':U).  
+  ghADMProps:ADD-NEW-FIELD('SdoForeignFields':U, 'CHARACTER':U).  
   ghADMProps:ADD-NEW-FIELD('NavigationSource':U, 'CHARACTER':U). 
-  ghADMProps:ADD-NEW-FIELD('NavigationTarget':U, 'HANDLE':U). 
+  ghADMProps:ADD-NEW-FIELD('NavigationTarget':U, 'CHARACTER':U). 
   ghADMProps:ADD-NEW-FIELD('PrimarySdoTarget':U, 'HANDLE':U). 
   ghADMProps:ADD-NEW-FIELD('NavigationSourceEvents':U, 'CHAR':U, 0, ?, 
     'fetchFirst,fetchNext,fetchPrev,fetchLast,startFilter':U).
   ghADMProps:ADD-NEW-FIELD('CallerWindow':U, 'HANDLE':U). 
   ghADMProps:ADD-NEW-FIELD('CallerProcedure':U, 'HANDLE':U). 
   ghADMProps:ADD-NEW-FIELD('CallerObject':U, 'HANDLE':U). 
-  ghADMProps:ADD-NEW-FIELD('DisabledAddModeTabs', 'CHARACTER').  
-  ghADMProps:ADD-NEW-FIELD('ReEnableDataLinks', 'CHARACTER').  
-  ghADMProps:ADD-NEW-FIELD('WindowTitleViewer', 'CHARACTER').  
-  ghADMProps:ADD-NEW-FIELD('UpdateActive', 'LOGICAL').  
-  ghADMProps:ADD-NEW-FIELD('ObjectsCreated', 'LOGICAL').  
+  ghADMProps:ADD-NEW-FIELD('DisabledAddModeTabs':U, 'CHARACTER':U).  
+  ghADMProps:ADD-NEW-FIELD('ReEnableDataLinks':U, 'CHARACTER':U).  
+  ghADMProps:ADD-NEW-FIELD('WindowTitleViewer':U, 'CHARACTER':U).  
+  ghADMProps:ADD-NEW-FIELD('UpdateActive':U, 'LOGICAL':U).  
+  ghADMProps:ADD-NEW-FIELD('ObjectsCreated':U, 'LOGICAL':U).  
   ghADMProps:ADD-NEW-FIELD('InstanceNames':U, 'CHARACTER':U, 0, ?,'':U) .
   ghADMProps:ADD-NEW-FIELD('ClientNames':U, 'CHARACTER':U, 0, ?,'':U) .
   ghADMProps:ADD-NEW-FIELD('ContainedDataObjects':U, 'CHARACTER':U, 0, ?,'':U).
@@ -224,6 +228,7 @@
 
 
   {src/adm2/custom/cntnpropcustom.i}
+END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

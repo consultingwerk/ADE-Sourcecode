@@ -24,11 +24,6 @@
 
 TRIGGER PROCEDURE FOR CREATE OF gsc_session_property .
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "gsc_session_property"
-                      &TRIGGER-TYPE = "CREATE"}
-
 /* Created automatically using ERwin ICF Trigger template db/af/erw/afercustrg.i
    Do not change manually. Customisations to triggers should be placed in separate
    include files pulled into the trigger. ICF auto generates write trigger custom
@@ -69,6 +64,8 @@ DEFINE BUFFER o_gsc_session_property FOR gsc_session_property.
 
 
 ASSIGN gsc_session_property.{&TRIGGER_OBJ} = getNextObj().
+
+
 
 
 

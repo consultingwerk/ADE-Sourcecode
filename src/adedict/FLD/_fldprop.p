@@ -39,6 +39,7 @@ Author: Laura Stern
 Date Created: 02/05/92 
     Modified: 07/14/98 D. McMann Added _Owner to _File find
               05/19/99 Mario B.  Adjust Width Field browser integration.
+              09/26/02 D. McMann Added check for SQL table
 ----------------------------------------------------------------------------*/
 
 /*---------------------------- Declarations --------------------------------*/
@@ -97,6 +98,11 @@ do:
       	    "Note: This table is frozen and cannot be modified.".
       	 s_Fld_ReadOnly = true.
       end.
+      ELSE IF _File._Db-lang > {&TBLTYP_SQL} THEN DO:
+        s_Status:screen-value in frame fldprops =
+      	    "Note: PROGRESS/SQL92 table cannot be modified.".
+      	 s_Fld_ReadOnly = true.
+      END.
    end.
 end.
 

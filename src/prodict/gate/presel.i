@@ -44,6 +44,7 @@ Included in:
     
 History:
     hutegger    94/07/29    creation
+    mcmann      05/21/2002  Added new input-output parameter
     
 --------------------------------------------------------------------*/        
 /*h-*/
@@ -74,6 +75,7 @@ if NOT user_env[25] begins "AUTO"
       INPUT-OUTPUT s_qual,
       INPUT-OUTPUT s_type,
       INPUT-OUTPUT s_vrfy,
+      INPUT-OUTPUT s_outf,
       INPUT-OUTPUT s_wildcard,
       INPUT        "{&frame}",
       INPUT        {&link},

@@ -83,16 +83,25 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /* Astra object identifying preprocessor */
 &glob   AstraProcedure    yes
 
-{afglobals.i}
+{src/adm2/globals.i}
+{af/sup2/afsetuppath.i}
 
-DEFINE VARIABLE hConfMan AS HANDLE     NO-UNDO.
-DEFINE VARIABLE lWaitFor AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE lICF     AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE cCFMProc AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE hConfMan     AS HANDLE     NO-UNDO.
+DEFINE VARIABLE lWaitFor     AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE lICF         AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE cCFMProc     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE hWaitForProc AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hLoopHandle  AS HANDLE     NO-UNDO.
 
 DEFINE VARIABLE cICFParam    AS CHARACTER  NO-UNDO INITIAL "":U.
-DEFINE VARIABLE lQuitOnEnd   AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE lShutOnEnd   AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE lQuitOnEnd   AS LOGICAL    INITIAL YES NO-UNDO.
+DEFINE VARIABLE lShutOnEnd   AS LOGICAL    INITIAL YES NO-UNDO.
+DEFINE VARIABLE cQuitOnEndB4 AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cQuitOnEnd   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cShutOnEndB4 AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cShutOnEnd   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE lError       AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE lStartConfMan AS LOGICAL    NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -142,17 +151,35 @@ DEFINE VARIABLE lShutOnEnd   AS LOGICAL    NO-UNDO.
 
 
 /* ***************************  Main Block  *************************** */
+
 SESSION:APPL-ALERT-BOXES = TRUE.
 
-SESSION:DEBUG-ALERT = YES.
+hLoopHandle = SESSION:FIRST-PROCEDURE.
+DO WHILE VALID-HANDLE(hLoopHandle):
+  IF R-INDEX(hLoopHandle:FILE-NAME,"afxmlcfgp.p":U) > 0
+  OR R-INDEX(hLoopHandle:FILE-NAME,"afxmlcfgp.r":U) > 0 THEN 
+  DO:
+    hConfMan = hLoopHandle.
+    hLoopHandle = ?.
+  END.
+  ELSE
+    hLoopHandle = hLoopHandle:NEXT-SIBLING.
+END. /* VALID-HANDLE(hLoopHandle) */
 
 cCFMProc = SEARCH("af/app/afxmlcfgp.r":U).
-
 IF cCFMProc = ? THEN
   cCFMProc = SEARCH("af/app/afxmlcfgp.p":U).
 
-IF cCFMProc <> ? THEN
+IF NOT VALID-HANDLE(hConfMan)
+AND cCFMProc <> ? THEN
+DO:
   RUN VALUE(cCFMProc) PERSISTENT SET hConfMan.
+  ASSIGN
+    lStartConfMan = YES.
+END.
+ELSE
+  ASSIGN
+    lStartConfMan = NO.
 
 IF VALID-HANDLE(hConfMan) THEN
 DO:
@@ -170,28 +197,85 @@ DO:
                                "ICFPARAM":U) NO-ERROR.
   ERROR-STATUS:ERROR = NO.
   /* Users that set this at this point may want control to return to 
-     anther procedure. */
-  lQuitOnEnd = DYNAMIC-FUNCTION("getSessionParam" IN THIS-PROCEDURE,
-                                 "quit_on_end":U) <> "NO":U NO-ERROR.
+     another procedure. */
+  cQuitOnEndB4 = DYNAMIC-FUNCTION("getSessionParam" IN THIS-PROCEDURE,
+                                  "quit_on_end":U) NO-ERROR.
   ERROR-STATUS:ERROR = NO.
 
-  lShutOnEnd = DYNAMIC-FUNCTION("getSessionParam" IN THIS-PROCEDURE,
-                                 "shut_on_end":U) <> "NO":U NO-ERROR.
+  cShutOnEndB4 = DYNAMIC-FUNCTION("getSessionParam" IN THIS-PROCEDURE,
+                                  "shut_on_end":U) NO-ERROR.
   ERROR-STATUS:ERROR = NO.
 
   IF cICFParam = ? THEN
     cICFParam = "":U.
 
-  /* Initialize the ICF session */
+  /* Initialize the Dynamics session */
   RUN initializeSession IN THIS-PROCEDURE (cICFParam).
-  IF RETURN-VALUE <> "" THEN
+  IF RETURN-VALUE <> "" AND
+     RETURN-VALUE <> "QUIT":U THEN
   DO:
     MESSAGE 
-      "Unable to start ICF environment. The Configuration File Manager returned the following errors:":U
+      "Unable to start the Progress Dynamics environment. The Configuration File Manager returned the following errors:":U
       SKIP
       RETURN-VALUE
       VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    lError = YES.
   END.
+
+  cQuitOnEnd  = DYNAMIC-FUNCTION("getSessionParam" IN THIS-PROCEDURE,
+                                 "quit_on_end":U) NO-ERROR.
+  ERROR-STATUS:ERROR = NO.
+  
+  cShutOnEnd  = DYNAMIC-FUNCTION("getSessionParam" IN THIS-PROCEDURE,
+                                 "shut_on_end":U) NO-ERROR.
+  ERROR-STATUS:ERROR = NO.
+
+  IF cQuitOnEnd <> ? THEN
+    lQuitOnEnd = (IF cQuitOnEnd   = "NO":U THEN NO ELSE YES).
+  ELSE IF cQuitOnEndB4 <> ? THEN
+    lQuitOnEnd = (IF cQuitOnEndB4 = "NO":U THEN NO ELSE YES).
+  ELSE
+    lQuitOnEnd = YES.
+    
+  IF cShutOnEnd <> ? THEN
+    lShutOnEnd = (IF cShutOnEnd   = "NO":U THEN NO ELSE YES).
+  ELSE IF cShutOnEndB4 <> ? THEN
+    lShutOnEnd = (IF cShutOnEndB4 = "NO":U THEN NO ELSE YES).
+  ELSE
+    lShutOnEnd = YES.
+
+  IF lError THEN
+  DO:
+    IF lQuitOnEnd = NO THEN
+      RETURN.
+    ELSE.
+      QUIT.
+  END.
+
+  lWaitFor = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
+                              "wait_for_required":U) = "YES":U NO-ERROR.
+
+  ERROR-STATUS:ERROR = NO.
+  IF lWaitFor = YES THEN
+  DO:
+    hWaitForProc = WIDGET-HANDLE(DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
+                                                  "wait_for_proc":U)) NO-ERROR.
+  
+    ERROR-STATUS:ERROR = NO.
+  
+    IF lWaitFor AND
+       VALID-HANDLE(hWaitForProc) THEN
+    DO ON ERROR UNDO, LEAVE:
+      WAIT-FOR CLOSE OF hWaitForProc.
+    END.
+  END.
+  
+  lICF = DYNAMIC-FUNCTION("isICFRunning":U IN THIS-PROCEDURE) = YES NO-ERROR.
+  ERROR-STATUS:ERROR = NO.
+  
+  /* Publish the shutdown event. This allows other code, such as RoundTable
+   * to trap this event and set a special -icfparam parameter if they want to. */
+  PUBLISH "ICFSTART_BeforeShutdown".
 
 END.
 ELSE
@@ -201,28 +285,17 @@ ELSE
   RETURN-VALUE
   VIEW-AS ALERT-BOX ERROR BUTTONS OK.
 
-
-lWaitFor = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
-                            "wait_for_required":U) = "YES":U NO-ERROR.
-
-IF lWaitFor = YES THEN
-DO ON ERROR UNDO, LEAVE:
-  WAIT-FOR CLOSE OF THIS-PROCEDURE.
-END.
-
-lICF = DYNAMIC-FUNCTION("isICFRunning":U IN THIS-PROCEDURE) = YES NO-ERROR.
-ERROR-STATUS:ERROR = NO.
-
-/* Publish the shutdown event. This allows other code, such as RoundTable
- * to trap this event and set a special -icfparam parameter if they want to. */
-PUBLISH "ICFSTART_BeforeShutdown".
-
 /* If Dynamics is running, then we need to shut down all the
  * manager procedures gracefully.                            */
 IF lICF
 AND lShutOnEnd
-THEN
-    RUN sessionShutdown IN THIS-PROCEDURE NO-ERROR.
+THEN DO:
+  RUN sessionShutdown IN THIS-PROCEDURE NO-ERROR.
+  IF VALID-HANDLE(hConfMan)
+  AND lStartConfMan = YES
+  THEN
+    RUN killPlip IN hConfMan.
+END.
 
 /* More support for RoundTable */
 IF lQuitOnEnd = NO THEN
@@ -340,18 +413,25 @@ PROCEDURE ICFCFM_Login :
                         OUTPUT cCurrentLoginValues) NO-ERROR.
   /* if failed to login then abort */
   IF ERROR-STATUS:ERROR OR 
-     RETURN-VALUE <> "":U OR
-     dCurrentUserObj <= 0 THEN
+     RETURN-VALUE <> "":U THEN
     RETURN "LOG IN FAILED":U.
+
+  IF dCurrentUserObj = 0 THEN
+    RETURN "QUIT":U.
 
   /* Must have logged in ok, set appropriate values in Client Session Manager,
    which will also set values in Context database via Server Session Manager
   */
   IF tCurrentProcessDate = ? THEN ASSIGN tCurrentProcessDate = TODAY.
   
-  cDateFormat = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
-                                                     INPUT "dateFormat":U,
-                                                     INPUT NO).
+  IF SESSION = gshAstraAppserver THEN /* client-server */
+      cDateFormat = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
+                                                         INPUT "dateFormat":U,
+                                                         INPUT NO).
+  ELSE /* If we're running Appserver, these properties have already been set on the Appserver by the call batching mechanism, we only need to set client side */
+      cDateFormat = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
+                                                         INPUT "dateFormat":U,
+                                                         INPUT YES).
   
   ASSIGN
     cPropertyList = "CurrentUserObj,CurrentUserLogin,CurrentUserName,CurrentUserEmail,CurrentOrganisationObj,CurrentOrganisationCode,CurrentOrganisationName,CurrentOrganisationShort,CurrentLanguageObj,CurrentLanguageName,CurrentProcessDate,CurrentLoginValues,DateFormat,LoginWindow":U
@@ -368,19 +448,24 @@ PROCEDURE ICFCFM_Login :
                  STRING(tCurrentProcessDate,cDateFormat) + CHR(3) +
                  cCurrentLoginValues + CHR(3) +
                  cDateFormat + CHR(3) +
-                 cLoginProc
-    .
-  
-  DYNAMIC-FUNCTION("setPropertyList":U IN gshSessionManager,
-                                       INPUT cPropertyList,
-                                       INPUT cValueList,
-                                       INPUT NO).
-  
+                 cLoginProc.
+
+  IF SESSION = gshAstraAppserver THEN /* client-server */
+      DYNAMIC-FUNCTION("setPropertyList":U IN gshSessionManager,
+                                           INPUT cPropertyList,
+                                           INPUT cValueList,
+                                           INPUT NO).
+  ELSE /* If we're running Appserver, these properties have already been set on the Appserver by the call batching mechanism, we only need to set client side */
+      DYNAMIC-FUNCTION("setPropertyList":U IN gshSessionManager,
+                                           INPUT cPropertyList,
+                                           INPUT cValueList,
+                                           INPUT YES).
+
   cCacheTranslations = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
                                    INPUT "cachedTranslationsOnly":U,
                                    INPUT NO).
-  lCacheTranslations = cCacheTranslations <> "NO":U NO-ERROR.
-  
+  lCacheTranslations = cCacheTranslations <> "NO":U NO-ERROR.  
+
   /* if caching translations - do so for logged into language */
   IF lCacheTranslations THEN
     RUN buildClientCache IN gshTranslationManager (INPUT dCurrentLanguageObj).
@@ -394,7 +479,7 @@ PROCEDURE ICFCFM_Login :
                                            INPUT-OUTPUT rRowid,
                                            OUTPUT cProfileData).
   SESSION:DEBUG-ALERT = cProfileData <> "NO":U.                                         
-  
+
   ASSIGN rRowid = ?.
   RUN getProfileData IN gshProfileManager (INPUT "Window":U,
                                            INPUT "Tooltips":U,
@@ -429,3 +514,4 @@ END PROCEDURE.
 
 &ENDIF
 
+ 

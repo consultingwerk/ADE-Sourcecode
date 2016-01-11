@@ -79,6 +79,7 @@ DEFINE {1} SHARED TEMP-TABLE _L
   FIELD _GRAPHIC-EDGE       AS LOG  LABEL "Graphic-Edge"           INITIAL NO
   FIELD _HEIGHT             AS DEC  LABEL "Height-Characters"      INITIAL ?
                                     DECIMALS 2
+  FIELD _LABEL              AS CHAR LABEL "Label"        FORMAT "X(32)"
   FIELD _NO-BOX             AS LOG  LABEL "No-Box"                 INITIAL NO
   FIELD _NO-FOCUS           AS LOG  LABEL "No-Focus"               INITIAL NO
   FIELD _NO-LABELS          AS LOG  LABEL "No-Labels"              INITIAL NO

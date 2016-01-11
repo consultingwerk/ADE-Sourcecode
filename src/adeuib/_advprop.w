@@ -200,6 +200,7 @@ ASSIGN FRAME adv-dial:HIDDEN = TRUE
        lbl-dummy2:HEIGHT     = 1
        lbl-dummy2:X          = h_lbl_lbl:X.
 
+FIND _P WHERE _P._WINDOW-HANDLE EQ _h_win.
 FIND _U WHERE RECID(_U) = u-recid.
 FIND _L WHERE RECID(_L) = _U._lo-recid.
 FIND _F WHERE RECID(_F) = _U._x-recid NO-ERROR.
@@ -219,7 +220,6 @@ ASSIGN FRAME adv-dial:TITLE = FRAME adv-dial:TITLE + " for " + _U._TYPE + " " +
        _U._PRIVATE-DATA:RETURN-INSERTED IN FRAME adv-dial = TRUE.
 
 IF _U._TYPE = "FRAME":U THEN DO:
-  FIND _P WHERE _P._WINDOW-HANDLE EQ _h_win.
   ASSIGN frame_name:CHECKED = (_P._frame-name-recid = RECID(_U)).
 END.
 ELSE frame_name:VISIBLE = FALSE.
@@ -1318,12 +1318,12 @@ PROCEDURE sensitivity.
     ENABLE _U._PRIVATE-DATA  WHEN _U._TYPE NE "TEXT"
            _U._LAYOUT-UNIT WITH FRAME adv-dial.
 
-    ASSIGN _U._USER-LIST[1]:SENSITIVE = YES
-           _U._USER-LIST[2]:SENSITIVE = YES
-           _U._USER-LIST[3]:SENSITIVE = YES
-           _U._USER-LIST[4]:SENSITIVE = YES
-           _U._USER-LIST[5]:SENSITIVE = YES
-           _U._USER-LIST[6]:SENSITIVE = YES
+    ASSIGN _U._USER-LIST[1]:SENSITIVE = (_P.static_object NE NO)
+           _U._USER-LIST[2]:SENSITIVE = (_P.static_object NE NO)
+           _U._USER-LIST[3]:SENSITIVE = (_P.static_object NE NO)
+           _U._USER-LIST[4]:SENSITIVE = (_P.static_object NE NO)
+           _U._USER-LIST[5]:SENSITIVE = (_P.static_object NE NO)
+           _U._USER-LIST[6]:SENSITIVE = (_P.static_object NE NO)
            .
 
     /* Establish proper tab order */

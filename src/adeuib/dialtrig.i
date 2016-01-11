@@ -23,6 +23,7 @@
 /* UIB triggers for dialog widgets - used in _drwdial and _rdfram */
 &IF "{&SECTION}" eq "WINDOW" &THEN
       /* Triggers on the "Window" part of the UIB dialog widget */
+      ON ENTRY            PERSISTENT RUN wind-event IN _h_uib ("DIALOG-ENTRY":U).
       ON WINDOW-MAXIMIZED PERSISTENT RUN wind-event IN _h_uib ("DIALOG-MAXIMIZED":U).
       ON WINDOW-RESTORED  PERSISTENT RUN wind-event IN _h_uib ("DIALOG-RESTORED":U).
       ON WINDOW-CLOSE     PERSISTENT RUN wind-event IN _h_uib ("DIALOG-CLOSE":U).

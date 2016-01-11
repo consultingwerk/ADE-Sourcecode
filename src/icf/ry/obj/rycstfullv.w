@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          rydb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 
@@ -86,13 +86,14 @@ CREATE WIDGET-POOL.
 
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-FIELDS RowObject.link_name RowObject.system_owned ~
-RowObject.used_defined_link 
+RowObject.user_defined_link 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
+&Scoped-Define DISPLAYED-FIELDS RowObject.smartlink_type_obj ~
+RowObject.link_name RowObject.system_owned RowObject.user_defined_link 
 &Scoped-define DISPLAYED-TABLES RowObject
 &Scoped-define FIRST-DISPLAYED-TABLE RowObject
-&Scoped-Define DISPLAYED-FIELDS RowObject.smartlink_type_obj ~
-RowObject.link_name RowObject.system_owned RowObject.used_defined_link 
+
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -119,7 +120,7 @@ DEFINE FRAME F-Main
      RowObject.system_owned AT ROW 3 COL 23
           VIEW-AS TOGGLE-BOX
           SIZE 19.2 BY .81
-     RowObject.used_defined_link AT ROW 3.81 COL 23
+     RowObject.user_defined_link AT ROW 3.81 COL 23
           VIEW-AS TOGGLE-BOX
           SIZE 22.6 BY .81
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
@@ -161,7 +162,7 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 17
+         HEIGHT             = 4
          WIDTH              = 80.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -207,7 +208,7 @@ ASSIGN
 */  /* FRAME F-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK vTableWin 

@@ -1,3 +1,38 @@
+1.7692 "prohelp/icdeveng.hlp" "gscottreew" "" "" 426 "3037"
+64.7692 "" "gscotviewv.w" "dynlookup.w" "class_smartobject_obj" 426 ""
+66.7692 "" "gscotviewv.w" "dynlookup.w" "extends_object_type_obj" 426 ""
+122.7692 "prohelp/icabeng.hlp" "afgenobjsw" "" "" 426 "47210"
+359.7692 "prohelp/icabeng.hlp" "rycntpshtw" "" "" 426 "47015"
+363.7692 "prohelp/icabeng.hlp" "cntainrpaw" "" "" 426 "47017"
+365.7692 "prohelp/icabeng.hlp" "cntainrliw" "" "" 426 "47018"
+368.7692 "prohelp/icabeng.hlp" "ryobjmnusw" "" "" 426 "47020"
+370.7692 "prohelp/icabeng.hlp" "rycbinitow" "" "" 426 "47021"
+372.7692 "prohelp/icabeng.hlp" "rycboblocw" "" "" 426 "47019"
+374.7692 "prohelp/icabeng.hlp" "rydynhelpw" "" "" 426 "47016"
+376.7692 "prohelp/icabeng.hlp" "gsmtifoldw" "" "" 426 "47022"
+378.7692 "prohelp/icadseng.hlp" "gscgcfoldw" "" "" 426 "2026"
+380.7692 "prohelp/icadseng.hlp" "gsmmmimgcw" "" "" 426 "2027"
+382.7692 "prohelp/icadseng.hlp" "gsmmmimgfw" "" "" 426 "2029"
+384.7692 "prohelp/icdeveng.hlp" "ryccyobjcw" "" "" 426 "3080"
+386.7692 "prohelp/icdeveng.hlp" "ryccrobjcw" "" "" 426 "3081"
+388.7692 "prohelp/icdeveng.hlp" "rymczobjcw" "" "" 426 "3082"
+391.7692 "prohelp/icabeng.hlp" "rycntprefw" "" "" 426 "47027"
+393.7692 "prohelp/icadseng.hlp" "gscemimptw" "" "" 426 "2080"
+395.7692 "prohelp/icabeng.hlp" "gobjectPropd.w" "" "" 426 "47007"
+397.7692 "prohelp/icabeng.hlp" "rysdfmaintw" "" "" 426 "47024"
+399.7692 "prohelp/icadseng.hlp" "gsmcrobjcw" "" "" 426 "2022"
+401.7692 "prohelp/icadseng.hlp" "gsmcrfoldw" "" "" 426 "2023"
+403.7692 "prohelp/icadseng.hlp" "deplstatcw" "" "" 426 "2031"
+405.7692 "prohelp/icadseng.hlp" "rycsodeplw" "" "" 426 "2030"
+407.7692 "prohelp/icdeveng.hlp" "ryccytreew" "" "" 426 "3012"
+455.6675 "prohelp/icabeng.hlp" "afmenusearchd.w" "" "" 426 "47226"
+457.6675 "prohelp/icabeng.hlp" "gsmsisetnw" "" "" 426 "47224"
+459.6675 "prohelp/icabeng.hlp" "rytoreposw.w" "" "" 426 "47005"
+461.6675 "prohelp/icabeng.hlp" "afsvwizdw.w" "" "" 426 "47006"
+463.6675 "prohelp/icadseng.hlp" "gsmsebconw.w" "" "" 426 "2007"
+470.6675 "prohelp/icadseng.hlp" "gscddimpcw" "" "" 426 "2085"
+472.6675 "prohelp/icadseng.hlp" "gscddfiltw.w" "" "" 426 "2099"
+475.6675 "prohelp/icdeveng.hlp" "rycatfol2w" "" "" 426 "3035"
 487.99 "prohelp/icabeng.hlp" "rymwtobjcw" "" "" 426 "47213"
 488.99 "prohelp/icabeng.hlp" "rycsotreew" "" "" 426 "47214"
 489.99 "prohelp/icabeng.hlp" "rydyntranw" "" "" 426 "47236"
@@ -29,7 +64,7 @@
 517.99 "prohelp/icadseng.hlp" "gsmffobjcw" "" "" 426 "2046"
 518.99 "prohelp/icadseng.hlp" "gsmfffol2w" "" "" 426 "2047"
 519.99 "prohelp/icadseng.hlp" "gsmucobjcw" "" "" 426 "2050"
-520.99 "prohelp/icadseng.hlp" "gsmucfol2w" "" "" 426 "2051"
+520.99 "prohelp/icadseng.hlp" "gsmucfol2w" "" "" 426 "2006"
 521.99 "prohelp/icadseng.hlp" "gsmusobjcw" "" "" 426 "2052"
 522.99 "prohelp/icadseng.hlp" "gsmulfol2w" "" "" 426 "2054"
 523.99 "prohelp/icadseng.hlp" "gscmtobjcw" "" "" 426 "2055"
@@ -63,7 +98,7 @@
 551.99 "prohelp/icadseng.hlp" "gsmusfol2w" "" "" 426 "2053"
 552.99 "prohelp/icadseng.hlp" "gscsqobjcw" "" "" 426 "2076"
 553.99 "prohelp/icadseng.hlp" "rydynprefw" "" "" 426 "2102"
-593.99 "prohelp/icabeng.hlp" "ryaddfile.w" "" "" 426 "47025"
+593.99 "prohelp/icabeng.hlp" "ryaddfile.w" "" "" 426 "47033"
 594.99 "prohelp/icabeng.hlp" "gopendialog.w" "" "" 426 "47219"
 595.99 "prohelp/icabeng.hlp" "containerd.w" "" "" 426 "47242"
 596.99 "prohelp/icabeng.hlp" "gbrowsettings.w" "" "" 426 "47216"
@@ -88,7 +123,7 @@
 615.99 "prohelp/icdeveng.hlp" "rymwoobjcw" "" "" 426 "3076"
 616.99 "prohelp/icdeveng.hlp" "rymwofoldw" "" "" 426 "3077"
 618.99 "prohelp/icdeveng.hlp" "rymwmfoldw" "" "" 426 "3041"
-627.99 "prohelp/icabeng.hlp" "rydynlookw" "" "" 426 "47232"
+627.99 "prohelp/icabeng.hlp" "rydynlookw" "" "" 426 "47030"
 628.99 "prohelp/icabeng.hlp" "afsdofiltw.w" "" "" 426 "47237"
 629.99 "prohelp/icvereng.hlp" "rvutlmencw" "" "" 426 "4000"
 630.99 "prohelp/icvereng.hlp" "rvmwsobjcw" "" "" 426 "4009"
@@ -111,16 +146,27 @@
 2330851 "" "gscerobjcw.w" "" "" 0 "htm\astrahelp.htm"
 2346905 "" "gscerfoldw.w" "gscerdetlv.w" "gsc_error.error_full_description" 0 "htm\usingthemouse.htm"
 2346925 "" "gscerfoldw.w" "gscerdetlv.w" "" 0 "htm/viewingoptionspreferences.htm"
-1000000172.39 "prohelp/icabeng.hlp" "" "" "" 426 ""
+3000001723.09 "prohelp/icabeng.hlp" "" "" "" 426 "47031"
+3000040666.09 "prohelp/icabeng.hlp" "afgenenimw" "" "" 426 "47028"
+3000045111.09 "prohelp/icabeng.hlp" "afgenprefw" "" "" 426 "47031"
+3000045113.09 "prohelp/icabeng.hlp" "rycstlov" "" "" 426 "47030"
+3000045115.09 "prohelp/icabeng.hlp" "rytreemntw" "" "" 426 "47032"
+3000045117.09 "prohelp/icadseng.hlp" "rynlstadow" "" "" 426 "2037"
+3000045119.09 "prohelp/ptlseng.hlp" "ryadvmigw" "" "" 426 "73"
+3000045127.09 "prohelp/icabeng.hlp" "rycstlow" "" "" 426 "47029"
+3000045131.09 "prohelp/icdeveng.hlp" "ryreplinstw" "" "" 426 "3013"
+3000045135.09 "prohelp/icadseng.hlp" "gstrvdilgd.w" "" "" 426 "2038"
+3000045137.09 "prohelp/icabeng.hlp" "viewerd" "" "" 426 "47035"
+3000045140.09 "prohelp/icabeng.hlp" "rycntbffmw" "" "" 426 "47034"
 .
 PSC
 filename=gsm_help
-records=0000000000114
+records=0000000000160
 ldbname=ICFDB
-timestamp=2002/02/23-13:24:37
+timestamp=2003/04/02-13:47:45
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
-cpstream=ISO8859-1
+cpstream=utf-8
 .
-0000007269
+0000010254

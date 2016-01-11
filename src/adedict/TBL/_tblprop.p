@@ -42,6 +42,7 @@ Date Created: 03/16/92
               07/10/98 DLM Added _Owner check on _File.     
               05/19/99 Mario B.  Adjust Width Field browser integration.
               08/16/00 DLM Added _db-recid to StorageObject find 20000815029
+              10/01/02 DLM Changed check for SQL tables
 ----------------------------------------------------------------------------*/
 &GLOBAL-DEFINE WIN95-BTN YES
 
@@ -117,7 +118,7 @@ run adedict/_capab.p (INPUT {&CAPAB_TBL}, OUTPUT capab).
 /* Figure out what the table type is */
 s_Tbl_Type =
    (
-   if b_File._Db-lang = {&TBLTYP_SQL} then
+   if b_File._Db-lang >= {&TBLTYP_SQL} then
       "PROGRESS/SQL"
    else if b_File._File-Number >= {&TBLNUM_FASTTRK_START} AND
       	   b_File._File-Number <= {&TBLNUM_FASTTRK_END} then
@@ -208,6 +209,11 @@ do:
       	 with frame tblprops.
       s_Tbl_ReadOnly = true.
    end.
+   ELSE IF b_File._Db-lang > {&TBLTYP_SQL} THEN DO:
+      DISPLAY "Note: PROGRESS/SQL92 table, cannot be modified." @ s_Status
+           WITH FRAME tblprops.
+       ASSIGN s_tbl_Readonly = TRUE.
+   END.
 end.
 
 IF b_File._For-type <> ? THEN
@@ -250,8 +256,8 @@ display  b_File._File-Name
           b_File._Fil-misc2[8] @ b_File._Fil-misc2[8]
    
       	 /* owner */
-      	 (if b_File._Db-lang = {&TBLTYP_SQL} then
-      	    ENTRY(1, b_File._Can-Create) 
+      	 (if b_File._Db-lang >= {&TBLTYP_SQL} then
+      	    ENTRY(1, b_File._Owner) 
       	  else if INDEX(capab, {&CAPAB_OWNER}) = 0 then
       	    "n/a"
       	  else      	    
@@ -290,7 +296,7 @@ end.
 else do:
    /* User is not allowed to modify the name of a SQL table or a view.  Also 
       some gateways don't allow rename. */
-   if b_File._Db-lang = {&TBLTYP_SQL} OR
+   if b_File._Db-lang >= {&TBLTYP_SQL} OR
       CAN-FIND(FIRST _View-ref
 	       where _View-ref._Ref-Table = b_File._File-Name) then
       name_editable = false.

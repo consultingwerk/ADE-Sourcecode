@@ -71,6 +71,12 @@ af/cod/aftemwizpw.w
 
   Update Notes: Fix for issue #3020 - 'Menu Item' security and Treeview.
                 Added security check for menu items
+  
+  (v:010002)    Task:           0   UserRef:    
+                Date:   04/10/2002  Author:     Mark Davies (MIP)
+
+  Update Notes: Fix for issue #3071 - It's not possible to translate menus
+                Added menu translation features for TreeView Menu structures
 
 --------------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
@@ -96,8 +102,16 @@ ASSIGN cObjectName = "{&object-name}":U.
 &scop   mip-notify-user-on-plip-close   NO
 
 {af/sup2/afglobals.i}
-/* Define temp-tables required */
-{ry/inc/rytrettdef.i}
+
+/* Define temp-tables required - changed to use ADM2 temp-table as this originally pulled
+   in the temp-table from ry/inc/rytrettdef.i which was defined LIKE and the temp table in the
+   ADM2 include file was hard coded - causing mismatch errors after schema changes.
+*/
+{src/adm2/treettdef.i}
+
+&IF DEFINED(server-side) = 0 &THEN
+   {ry/app/rymenufunc.i}
+&ENDIF
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -115,6 +129,19 @@ ASSIGN cObjectName = "{&object-name}":U.
 /* _UIB-PREPROCESSOR-BLOCK-END */
 &ANALYZE-RESUME
 
+
+/* ************************  Function Prototypes ********************** */
+
+&IF DEFINED(EXCLUDE-returnSDOName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD returnSDOName Procedure 
+FUNCTION returnSDOName RETURNS CHARACTER
+  ( INPUT pcSDOSBOName AS CHARACTER  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 
 /* *********************** Procedure Settings ************************ */
@@ -209,6 +236,14 @@ PROCEDURE cacheNodeTable :
                         OUTPUT TABLE ttNode).
   END.
   
+  FOR EACH ttNode:
+    IF ttNode.data_source_type = "SDO":U AND 
+       ttNode.data_source <> "":U THEN
+      ASSIGN ttNode.data_source = returnSDOName(ttNode.data_source).
+    IF ttNode.primary_sdo <> "":U THEN
+      ASSIGN ttNode.primary_sdo = returnSDOName(ttNode.primary_sdo).
+  END.
+    
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -325,6 +360,8 @@ PROCEDURE readMenuStructure :
   DEFINE VARIABLE lRestrict             AS LOGICAL      NO-UNDO.
   DEFINE VARIABLE cSecVal1              AS CHARACTER    NO-UNDO.
   DEFINE VARIABLE cSecVal2              AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cMenuItemLabel        AS CHARACTER    NO-UNDO.
+
   
   IF pcStructureCode = "":U AND
      pdMenuItemObj = 0 THEN
@@ -371,12 +408,17 @@ PROCEDURE readMenuStructure :
            WHERE gsc_instance_attribute.instance_attribute_obj = gsm_menu_item.instance_attribute_obj NO-ERROR.
       IF AVAILABLE gsc_instance_attribute THEN 
         cRunAttributes = gsc_instance_attribute.attribute_code.
-      FIND FIRST gsc_object
-           WHERE gsc_object.object_obj = gsm_menu_item.object_obj
+      FIND FIRST ryc_smartobject
+           WHERE ryc_smartobject.smartobject_obj = gsm_menu_item.object_obj
            NO-LOCK NO-ERROR.
-      IF AVAILABLE gsc_object THEN
-        ASSIGN cLogicalObject = gsc_object.object_filename.
+      IF AVAILABLE ryc_smartobject THEN
+        ASSIGN cLogicalObject = ryc_smartobject.object_filename.
       ASSIGN cPrivateData = "LogicalObject" + CHR(6) + cLogicalObject + CHR(7) + "RunAttribute" + CHR(6) + cRunAttributes + CHR(7) + "Obj":U + CHR(6) + STRING(gsm_menu_structure_item.child_menu_structure_obj) + CHR(7) + "MNU" + CHR(6) + "YES".
+      RUN translateMenuItem (INPUT  gsm_menu_item.menu_item_obj,
+                             INPUT  gsm_menu_item.source_language_obj,
+                             OUTPUT cMenuItemLabel).
+      IF cMenuItemLabel = "":U THEN
+        cMenuItemLabel = gsm_menu_item.menu_item_label.
       ASSIGN pcDetailList = IF pcDetailList = "":U 
                                THEN REPLACE(gsm_menu_item.menu_item_label,"&":U,"":U) + CHR(4) + cPrivateData
                                ELSE pcDetailList + CHR(3) + REPLACE(gsm_menu_item.menu_item_label,"&":U,"":U) + CHR(4) + cPrivateData.
@@ -409,13 +451,18 @@ PROCEDURE readMenuStructure :
              WHERE gsc_instance_attribute.instance_attribute_obj = gsm_menu_item.instance_attribute_obj NO-ERROR.
         IF AVAILABLE gsc_instance_attribute THEN 
           cRunAttributes = gsc_instance_attribute.attribute_code.
-        FIND FIRST gsc_object
-             WHERE gsc_object.object_obj = gsm_menu_item.object_obj
+        FIND FIRST ryc_smartobject
+             WHERE ryc_smartobject.smartobject_obj = gsm_menu_item.object_obj
              NO-LOCK NO-ERROR.
-        IF AVAILABLE gsc_object THEN
-          ASSIGN cLogicalObject = gsc_object.object_filename.
+        IF AVAILABLE ryc_smartobject THEN
+          ASSIGN cLogicalObject = ryc_smartobject.object_filename.
         
         ASSIGN cPrivateData = "LogicalObject" + CHR(6) + cLogicalObject + CHR(7) + "RunAttribute" + CHR(6) + cRunAttributes + CHR(7) + "Obj":U + CHR(6) + STRING(gsm_menu_structure_item.child_menu_structure_obj) + CHR(7) + "MNU" + CHR(6) + "YES".
+        RUN translateMenuItem (INPUT  gsm_menu_item.menu_item_obj,
+                               INPUT  gsm_menu_item.source_language_obj,
+                               OUTPUT cMenuItemLabel).
+        IF cMenuItemLabel = "":U THEN
+          cMenuItemLabel = gsm_menu_item.menu_item_label.
         ASSIGN pcDetailList = IF pcDetailList = "":U 
                                  THEN REPLACE(gsm_menu_item.menu_item_label,"&":U,"":U) + CHR(4) + cPrivateData
                                  ELSE pcDetailList + CHR(3) + REPLACE(gsm_menu_item.menu_item_label,"&":U,"":U) + CHR(4) + cPrivateData.
@@ -424,6 +471,87 @@ PROCEDURE readMenuStructure :
   END.
 
 END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-translateMenuItem) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE translateMenuItem Procedure 
+PROCEDURE translateMenuItem :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER pdMenuItemObj       AS DECIMAL    NO-UNDO.
+  DEFINE INPUT  PARAMETER pdSourceLanguageObj AS DECIMAL    NO-UNDO.
+  DEFINE OUTPUT PARAMETER pcMenuItemLabel     AS CHARACTER  NO-UNDO.
+
+  DEFINE VARIABLE dTransLanguageObj AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE dLoginLanguageObj AS DECIMAL    NO-UNDO.
+  
+  pcMenuItemLabel = "":U.
+
+  /* Get the current login language */
+  dLoginLanguageObj = DECIMAL(DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
+                                                INPUT "CurrentLanguageObj":U,
+                                                INPUT NO)) NO-ERROR.
+  /* If the login language is not the same as the menu item's source language
+     then we will attempt to try and find a translated menu item */
+  IF dLoginLanguageObj <> pdSourceLanguageObj THEN DO:
+    dTransLanguageObj = canFindTranslation(pdMenuItemObj,dLoginLanguageObj).
+    IF dTransLanguageObj <> 0 AND
+       dTransLanguageObj <> ? THEN DO:
+      FIND FIRST gsm_translated_menu_item
+           WHERE gsm_translated_menu_item.menu_item_obj = pdMenuItemObj
+           AND   gsm_translated_menu_item.language_obj  = dTransLanguageObj
+           NO-LOCK NO-ERROR.
+      IF AVAILABLE gsm_translated_menu_item THEN
+        pcMenuItemLabel = gsm_translated_menu_item.menu_item_label.
+    END.
+  END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+/* ************************  Function Implementations ***************** */
+
+&IF DEFINED(EXCLUDE-returnSDOName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION returnSDOName Procedure 
+FUNCTION returnSDOName RETURNS CHARACTER
+  ( INPUT pcSDOSBOName AS CHARACTER  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  This function will add a relative path to the SDO/SBO name passed to it
+    Notes:  
+------------------------------------------------------------------------------*/
+  FIND FIRST ryc_smartobject 
+       WHERE ryc_smartobject.object_filename = pcSDOSBOName
+       NO-LOCK NO-ERROR.
+  IF NOT AVAILABLE ryc_smartobject THEN
+    RETURN pcSDOSBOName.
+  
+  /* Dynamic objects have no object path, so we only check for the existence of the path
+   * for static objects.  */
+  IF LOGICAL(ryc_smartobject.static_object) AND (ryc_smartobject.object_path = "":U OR ryc_smartobject.object_path = ?) THEN
+    RETURN pcSDOSBOName.
+  ELSE
+    ASSIGN pcSDOSBOName = ryc_smartobject.object_path + "/":U + pcSDOSBOName
+           pcSDOSBOName = REPLACE(pcSDOSBOName,"~\":U,"/":U).
+  
+  IF ryc_smartobject.object_extension <> "":U AND
+     NUM-ENTRIES(pcSDOSBOName,".":U) < 2 THEN
+    pcSDOSBOName = pcSDOSBOName + ".":U + ryc_smartobject.object_extension.
+
+  RETURN pcSDOSBOName.
+END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

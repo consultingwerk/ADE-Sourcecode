@@ -96,13 +96,25 @@ af/cod/aftemwizpw.w
 
 &scop object-name       afqrydetlp.p
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010002
+&scop object-version    000000
 
 
 /* MIP object identifying preprocessor */
 &glob   mip-structured-procedure    yes
 
-DEFINE INPUT PARAMETER  pcQuery                 AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER pcQuery                 AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER pcBuffers               AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER TABLE-HANDLE phTempTable1.
+DEFINE INPUT  PARAMETER TABLE-HANDLE phTempTable2.
+DEFINE INPUT  PARAMETER TABLE-HANDLE phTempTable3.
+DEFINE INPUT  PARAMETER TABLE-HANDLE phTempTable4.
+DEFINE INPUT  PARAMETER TABLE-HANDLE phTempTable5.
+DEFINE INPUT  PARAMETER TABLE-HANDLE phTempTable6.
+DEFINE INPUT  PARAMETER TABLE-HANDLE phTempTable7.
+DEFINE INPUT  PARAMETER TABLE-HANDLE phTempTable8.
+DEFINE INPUT  PARAMETER TABLE-HANDLE phTempTable9.
+DEFINE INPUT  PARAMETER TABLE-HANDLE phTempTable10.
+DEFINE INPUT  PARAMETER plReturnExtents         AS LOGICAL    NO-UNDO.
 DEFINE OUTPUT PARAMETER plQueryValid            AS LOGICAL    NO-UNDO.
 DEFINE OUTPUT PARAMETER pcBufferList            AS CHARACTER  NO-UNDO.
 DEFINE OUTPUT PARAMETER pcFieldNameList         AS CHARACTER  NO-UNDO.
@@ -113,6 +125,9 @@ DEFINE OUTPUT PARAMETER pcFieldCLabelList       AS CHARACTER  NO-UNDO.
 DEFINE OUTPUT PARAMETER pcFieldValueList        AS CHARACTER  NO-UNDO.
 
 {af/sup2/afglobals.i}
+
+DEFINE VARIABLE gcTTList      AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcBufferList  AS CHARACTER  NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -170,6 +185,7 @@ DEFINE VARIABLE hField                      AS HANDLE     NO-UNDO.
 DEFINE VARIABLE cFieldHandles               AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE iLoop                       AS INTEGER    NO-UNDO.
 DEFINE VARIABLE iLoop2                      AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iLoop3                      AS INTEGER    NO-UNDO.
 DEFINE VARIABLE iBuffer                     AS INTEGER    NO-UNDO.
 DEFINE VARIABLE cField                      AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cRowid                      AS CHARACTER  NO-UNDO.
@@ -180,6 +196,7 @@ DEFINE VARIABLE lOk                         AS LOGICAL    NO-UNDO.
 ASSIGN plQueryValid = NO.
 
 RUN getBufferList (INPUT pcQuery, OUTPUT pcBufferList).
+RUN assignTTList.
 
 IF pcBufferList = "":U THEN RETURN.
 
@@ -188,7 +205,40 @@ CREATE QUERY hQuery NO-ERROR.
 
 buffer-loop:
 DO iLoop = 1 TO NUM-ENTRIES(pcBufferList):
-  CREATE BUFFER hBufferList[iLoop] FOR TABLE ENTRY(iLoop,pcBufferList) NO-ERROR.
+  /* Check for TEMP-TABLES */
+  IF LOOKUP(ENTRY(iLoop,pcBufferList),gcTTList) > 0 THEN DO:
+    CASE LOOKUP(ENTRY(iLoop,pcBufferList),gcTTList):
+      WHEN 1 THEN
+        CREATE BUFFER hBufferList[iLoop] FOR TABLE phTempTable1:DEFAULT-BUFFER-HANDLE NO-ERROR.
+      WHEN 2 THEN
+        CREATE BUFFER hBufferList[iLoop] FOR TABLE phTempTable2:DEFAULT-BUFFER-HANDLE NO-ERROR.
+      WHEN 3 THEN
+        CREATE BUFFER hBufferList[iLoop] FOR TABLE phTempTable3:DEFAULT-BUFFER-HANDLE NO-ERROR.
+      WHEN 4 THEN
+        CREATE BUFFER hBufferList[iLoop] FOR TABLE phTempTable4:DEFAULT-BUFFER-HANDLE NO-ERROR.
+      WHEN 5 THEN
+        CREATE BUFFER hBufferList[iLoop] FOR TABLE phTempTable5:DEFAULT-BUFFER-HANDLE NO-ERROR.
+      WHEN 6 THEN
+        CREATE BUFFER hBufferList[iLoop] FOR TABLE phTempTable6:DEFAULT-BUFFER-HANDLE NO-ERROR.
+      WHEN 7 THEN
+        CREATE BUFFER hBufferList[iLoop] FOR TABLE phTempTable7:DEFAULT-BUFFER-HANDLE NO-ERROR.
+      WHEN 8 THEN
+        CREATE BUFFER hBufferList[iLoop] FOR TABLE phTempTable8:DEFAULT-BUFFER-HANDLE NO-ERROR.
+      WHEN 9 THEN
+        CREATE BUFFER hBufferList[iLoop] FOR TABLE phTempTable9:DEFAULT-BUFFER-HANDLE NO-ERROR.
+      WHEN 10 THEN
+        CREATE BUFFER hBufferList[iLoop] FOR TABLE phTempTable10:DEFAULT-BUFFER-HANDLE NO-ERROR.
+    END CASE.
+  END.
+  
+  /* Check for BUFFERS */
+  IF LOOKUP(ENTRY(iLoop,pcBufferList),gcBufferList) > 0 THEN
+    CREATE BUFFER hBufferList[iLoop] FOR TABLE TRIM(ENTRY(LOOKUP(ENTRY(iLoop,pcBufferList),pcBuffers) + 1,pcBuffers)) BUFFER-NAME TRIM(ENTRY(LOOKUP(ENTRY(iLoop,pcBufferList),pcBuffers),pcBuffers)) NO-ERROR. 
+  
+  /* Actual DataBase Tables */
+  IF NOT VALID-HANDLE(hBufferList[iLoop]) THEN
+    CREATE BUFFER hBufferList[iLoop] FOR TABLE ENTRY(iLoop,pcBufferList) NO-ERROR.
+  
   IF ERROR-STATUS:ERROR THEN NEXT buffer-loop.
   hQuery:ADD-BUFFER(hBufferList[iLoop]) NO-ERROR.
 END. /* buffer-loop */
@@ -214,32 +264,57 @@ DO:
   /* build field lists for query buffers */
   buffer-loop2:
   DO iLoop = 1 TO NUM-ENTRIES(pcBufferList):
-
     field-loop:
     DO iLoop2 = 1 TO hBufferList[iLoop]:NUM-FIELDS:
-
-      ASSIGN
-        hField = hBufferList[iLoop]:BUFFER-FIELD(iLoop2)
-        pcFieldNameList = pcFieldNameList + 
-                          (IF pcFieldNameList <> "":U THEN ",":U ELSE "":U) +
-                          ENTRY(iLoop,pcBufferList) + ".":U + hField:NAME
-        pcFieldFormatList = pcFieldFormatList + 
-                          (IF pcFieldFormatList <> "":U THEN CHR(1) ELSE "":U) +
-                          hField:FORMAT
-        pcFieldDataTypeList = pcFieldDataTypeList + 
-                          (IF pcFieldDataTypeList <> "":U THEN ",":U ELSE "":U) +
-                          hField:DATA-TYPE
-        pcFieldLabelList = pcFieldLabelList + 
-                          (IF pcFieldLabelList <> "":U THEN CHR(1) ELSE "":U) +
-                          (IF hField:LABEL <> ? AND hField:LABEL <> "":U THEN hField:LABEL ELSE "?":U)
-        pcFieldCLabelList = pcFieldCLabelList + 
-                          (IF pcFieldCLabelList <> "":U THEN CHR(1) ELSE "":U) +
-                          (IF hField:COLUMN-LABEL <> ? AND hField:COLUMN-LABEL <> "":U THEN hField:COLUMN-LABEL ELSE "?":U)
-        cFieldHandles = cFieldHandles + 
-                          (IF cFieldHandles <> "":U THEN ",":U ELSE "":U) +
-                          STRING(hField)
-        .
-
+      IF hBufferList[iLoop]:BUFFER-FIELD(iLoop2):EXTENT = 0 OR 
+         plReturnExtents = FALSE THEN
+        ASSIGN
+          hField = hBufferList[iLoop]:BUFFER-FIELD(iLoop2)
+          pcFieldNameList = pcFieldNameList + 
+                            (IF pcFieldNameList <> "":U THEN ",":U ELSE "":U) +
+                            ENTRY(iLoop,pcBufferList) + ".":U + hField:NAME
+          pcFieldFormatList = pcFieldFormatList + 
+                            (IF pcFieldFormatList <> "":U THEN CHR(1) ELSE "":U) +
+                            hField:FORMAT
+          pcFieldDataTypeList = pcFieldDataTypeList + 
+                            (IF pcFieldDataTypeList <> "":U THEN ",":U ELSE "":U) +
+                            hField:DATA-TYPE
+          pcFieldLabelList = pcFieldLabelList + 
+                            (IF pcFieldLabelList <> "":U THEN CHR(1) ELSE "":U) +
+                            (IF hField:LABEL <> ? AND hField:LABEL <> "":U THEN hField:LABEL ELSE "?":U)
+          pcFieldCLabelList = pcFieldCLabelList + 
+                            (IF pcFieldCLabelList <> "":U THEN CHR(1) ELSE "":U) +
+                            (IF hField:COLUMN-LABEL <> ? AND hField:COLUMN-LABEL <> "":U THEN hField:COLUMN-LABEL ELSE "?":U)
+          cFieldHandles = cFieldHandles + 
+                            (IF cFieldHandles <> "":U THEN ",":U ELSE "":U) +
+                            STRING(hField)
+          .
+      ELSE DO:
+        hField = hBufferList[iLoop]:BUFFER-FIELD(iLoop2).
+        DO iLoop3 = 1 TO hBufferList[iLoop]:BUFFER-FIELD(iLoop2):EXTENT:
+          ASSIGN
+            pcFieldNameList = pcFieldNameList + 
+                              (IF pcFieldNameList <> "":U THEN ",":U ELSE "":U) +
+                              ENTRY(iLoop,pcBufferList) + ".":U + hField:NAME + "[":U + STRING(iLoop3) + "]":U
+            pcFieldFormatList = pcFieldFormatList + 
+                              (IF pcFieldFormatList <> "":U THEN CHR(1) ELSE "":U) +
+                              hField:FORMAT
+            pcFieldDataTypeList = pcFieldDataTypeList + 
+                              (IF pcFieldDataTypeList <> "":U THEN ",":U ELSE "":U) +
+                              hField:DATA-TYPE
+            pcFieldLabelList = pcFieldLabelList + 
+                              (IF pcFieldLabelList <> "":U THEN CHR(1) ELSE "":U) +
+                              (IF hField:LABEL <> ? AND hField:LABEL <> "":U THEN hField:LABEL ELSE "?":U)
+            pcFieldCLabelList = pcFieldCLabelList + 
+                              (IF pcFieldCLabelList <> "":U THEN CHR(1) ELSE "":U) +
+                              (IF hField:COLUMN-LABEL <> ? AND hField:COLUMN-LABEL <> "":U THEN hField:COLUMN-LABEL ELSE "?":U)
+            cFieldHandles = cFieldHandles + 
+                              (IF cFieldHandles <> "":U THEN ",":U ELSE "":U) +
+                              STRING(hField)
+            .
+  
+        END.
+      END.
       ASSIGN cValue = "?":U.
       IF VALID-HANDLE(hBufferList[iLoop]) AND hBufferList[iLoop]:AVAILABLE = YES THEN
         ASSIGN cValue = hField:BUFFER-VALUE NO-ERROR.
@@ -281,6 +356,54 @@ END. /* buffer-loop3 */
 
 
 /* **********************  Internal Procedures  *********************** */
+
+&IF DEFINED(EXCLUDE-assignTTList) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE assignTTList Procedure 
+PROCEDURE assignTTList :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  gcTTList = FILL(",":U,9).
+  IF VALID-HANDLE(phTempTable1) THEN
+    ENTRY(1,gcTTList) = phTempTable1:NAME.
+  IF VALID-HANDLE(phTempTable2) THEN
+    ENTRY(2,gcTTList) = phTempTable2:NAME.
+  IF VALID-HANDLE(phTempTable3) THEN
+    ENTRY(3,gcTTList) = phTempTable3:NAME.
+  IF VALID-HANDLE(phTempTable4) THEN
+    ENTRY(4,gcTTList) = phTempTable4:NAME.
+  IF VALID-HANDLE(phTempTable5) THEN
+    ENTRY(5,gcTTList) = phTempTable5:NAME.
+  IF VALID-HANDLE(phTempTable6) THEN
+    ENTRY(6,gcTTList) = phTempTable6:NAME.
+  IF VALID-HANDLE(phTempTable7) THEN
+    ENTRY(7,gcTTList) = phTempTable7:NAME.
+  IF VALID-HANDLE(phTempTable8) THEN
+    ENTRY(8,gcTTList) = phTempTable8:NAME.
+  IF VALID-HANDLE(phTempTable9) THEN
+    ENTRY(9,gcTTList) = phTempTable9:NAME.
+  IF VALID-HANDLE(phTempTable10) THEN
+    ENTRY(10,gcTTList) = phTempTable10:NAME.
+
+  IF pcBuffers <> "":U THEN DO:
+    DO iLoop = 1 TO NUM-ENTRIES(pcBuffers):
+      gcBufferList = IF gcBufferList = "":U THEN ENTRY(iLoop,pcBuffers)
+                                            ELSE gcBufferList + ",":U + ENTRY(iLoop,pcBuffers).
+      iLoop = iLoop + 1.
+    END.
+  END.
+
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-getBufferList) = 0 &THEN
 

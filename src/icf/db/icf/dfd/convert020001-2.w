@@ -3455,7 +3455,7 @@ FUNCTION checkMenu RETURNS LOGICAL
    DO: 
      MESSAGE "The Band '" ryc_band.band_name "' also exists as a menu_structure."
               SKIP
-             "Go to the ICF Administration's Menu Maintenance and rename this Menu Code before continuing the conversion."         
+             "Go to the Administration's Menu Maintenance and rename this Menu Code before continuing the conversion."         
          VIEW-AS ALERT-BOX INFO.
      RETURN FALSE.
    END.

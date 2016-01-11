@@ -55,6 +55,7 @@ DEFINE VARIABLE w           AS INTEGER NO-UNDO.
 DEFINE VARIABLE lblToCheck  AS CHAR    NO-UNDO.
 DEFINE VARIABLE num_ent     AS INTEGER NO-UNDO.
 DEFINE VARIABLE hDataObject AS HANDLE  NO-UNDO.
+DEFINE VARIABLE hSBO        AS HANDLE  NO-UNDO.
 DEFINE VARIABLE fl-name     AS CHAR    NO-UNDO.
 DEFINE VARIABLE fld-name    AS CHAR    NO-UNDO.
 DEFINE VARIABLE ret-msg     AS CHAR    NO-UNDO.
@@ -92,10 +93,28 @@ DO i = 1 TO num_ent:
         FIND dictdb._file WHERE _file-name = _TT._LIKE-TABLE NO-ERROR.
       /* If not avail, but the Temp-Table is type "D", then its a data object
          temp-table, so go get the label info from the data object. jep-code 03/04/98 */
-      IF NOT AVAILABLE dictdb._file AND _TT._TABLE-TYPE = "D" THEN
-      DO:
-          hDataObject = DYNAMIC-FUNC("get-proc-hdl" IN _h_func_lib, INPUT _P._DATA-OBJECT).
+      IF NOT AVAILABLE dictdb._file AND _TT._TABLE-TYPE = "D" THEN DO:
+          IF VALID-HANDLE(hSBO) THEN /* If we have already started an SBO set the dat object to it */
+            hDataObject = hSBO.
+
+          IF NOT VALID-HANDLE(hDataObject) THEN  /* Start this up the first time */
+            hDataObject = DYNAMIC-FUNC("get-sdo-hdl" IN _h_func_lib, INPUT _P._DATA-OBJECT, THIS-PROCEDURE).
+
           IF NOT VALID-HANDLE(hDataObject) THEN NEXT.
+
+          /* Could be either an SDO or and SBO */
+          IF DYNAMIC-FUNCTION("getObjectType":U IN hDataObject) = "SmartBusinessObject":U THEN DO:
+            hSBO = hDataObject.
+            /* The sdo name is the first part of the field name which was stripped off above and
+               is in fl-name */
+            hDataObject = DYNAMIC-FUNCTION("DataObjectHandle" IN hSBO, INPUT fl-name).
+
+            IF NOT VALID-HANDLE(hDataObject) THEN DO:
+              DYNAMIC-FUNCTION("shutdown-sdo" IN _h_func_lib, THIS-PROCEDURE).
+              NEXT.
+            END.
+          END.
+
           lblToCheck = DYNAMIC-FUNC("columnLabel" IN hDataObject, fld-name).
           IF (lblToCheck <> "") AND (lblToCheck <> ?) THEN RUN calcFrmx.
           NEXT.
@@ -114,6 +133,8 @@ DO i = 1 TO num_ent:
     RUN calcFrmx.
   END.  /* If we found the file */
 END.
+  
+DYNAMIC-FUNCTION("shutdown-sdo" IN _h_func_lib, THIS-PROCEDURE).
 IF AVAILABLE _P THEN
   ret-msg = DYNAMIC-FUNC("shutdown-proc" IN _h_func_lib, INPUT _P._DATA-OBJECT).
 

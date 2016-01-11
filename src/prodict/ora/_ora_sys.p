@@ -45,6 +45,8 @@ Output Parameter:
                 q       list of allowed/supported functions/features
                 
 History:
+    07/18/02    D. McMann   Changed default codepage to iso8859-1
+    06/04/02    D. McMann   Added check for problem creating hidden files
     07/13/98    D. McMann   Added _Owner to _File Find
     98/03       D. McMann   Added creation of oracle_tablespace table TS$
     95/08       hutegger    extracted non-queryable objects from l_sys-obj
@@ -128,7 +130,12 @@ system = "a" for add system tables
 ELSE IF system BEGINS "a"
  or NOT l_schema-ok THEN DO: /* add meta-schema definitions */
   RUN adecomm/_setcurs.p ("WAIT").
-  RUN "prodict/ora/_ora_cra.p" (dbkey). /* argument             */
+  RUN "prodict/ora/_ora_cra.p" (dbkey) NO-ERROR. /* argument             */
+  /* check to make sure table was created if not return */
+  IF NOT CAN-FIND(FIRST _file WHERE _db-recid = dbkey
+                                AND _file-name = "oracle_arguments") THEN
+    RETURN "2".
+
   RUN "prodict/ora/_ora_crc.p" (dbkey). /* columns              */
   RUN "prodict/ora/_ora_crg.p" (dbkey). /* PROC-TEXT-BUFFER
                                          * SEND-SQL-STATEMENT 
@@ -201,7 +208,7 @@ system = "q" for query
 
 */
 ELSE IF system BEGINS "q" THEN DO:
-  system = "acdu,dgor,adnrsu#,100,2l,16,DBA,SYS.*,ora,dnors,ibm850".
+  system = "acdu,dgor,adnrsu#,100,2l,16,DBA,SYS.*,ora,dnors,iso8859-1".
   ASSIGN dbkey = drec_db.
   RUN "prodict/ora/_ora_crt.p" (dbkey).
 end.

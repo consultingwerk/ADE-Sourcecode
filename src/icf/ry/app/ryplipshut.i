@@ -65,6 +65,12 @@ af/cod/aftemwizpw.w
 
   Update Notes: Created from Template afteminclu.i
 
+  (v:010001)    Task:                UserRef:    
+                Date:   APR/11/2002  Author:     Mauricio J. dos Santos (MJS) 
+                                                 mdsantos@progress.com
+  Update Notes: Adapted for WebSpeed by changing SESSION:PARAM = "REMOTE" 
+                to SESSION:CLIENT-TYPE = "WEBSPEED" in main block.
+  
 -------------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
@@ -76,7 +82,7 @@ af/cod/aftemwizpw.w
    can be displayed in the about window of the container */
 
 &scop object-name       ryplipshut.i
-&scop object-version    010000
+&scop object-version    000000
 
 
 /* MIP object identifying preprocessor */
@@ -114,13 +120,13 @@ af/cod/aftemwizpw.w
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Include ASSIGN
-         HEIGHT             = 2
-         WIDTH              = 40.
+         HEIGHT             = 6.76
+         WIDTH              = 44.6.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Include 
@@ -135,7 +141,8 @@ af/cod/aftemwizpw.w
                                              ,INPUT "":U
                                              ,INPUT "":U
                                              ,INPUT "":U
-                                             ,INPUT (IF SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U THEN YES ELSE NO)
+/* MJS 04/02/2002                            ,INPUT (IF SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U THEN YES ELSE NO) */
+                                             ,INPUT SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U
                                              ).
     END.
 

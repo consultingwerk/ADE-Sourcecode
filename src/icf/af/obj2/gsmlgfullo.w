@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          afdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
@@ -92,7 +92,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gsmlgfullo.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -124,6 +124,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -144,6 +145,8 @@ login_company_email login_company_disabled
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gsmlgfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsm_login_company NO-LOCK ~
+    BY gsm_login_company.login_company_obj INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsm_login_company NO-LOCK ~
     BY gsm_login_company.login_company_obj INDEXED-REPOSITION.
@@ -231,26 +234,26 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "afdb.gsm_login_company"
+     _TblList          = "ICFDB.gsm_login_company"
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _OrdList          = "afdb.gsm_login_company.login_company_obj|yes"
-     _FldNameList[1]   > afdb.gsm_login_company.login_company_obj
+     _FldNameList[1]   > ICFDB.gsm_login_company.login_company_obj
 "login_company_obj" "login_company_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
-     _FldNameList[2]   > afdb.gsm_login_company.login_company_code
+     _FldNameList[2]   > ICFDB.gsm_login_company.login_company_code
 "login_company_code" "login_company_code" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[3]   > afdb.gsm_login_company.login_company_short_name
+     _FldNameList[3]   > ICFDB.gsm_login_company.login_company_short_name
 "login_company_short_name" "login_company_short_name" ? ? "character" ? ? ? ? ? ? yes ? no 30 yes
-     _FldNameList[4]   > afdb.gsm_login_company.login_company_name
+     _FldNameList[4]   > ICFDB.gsm_login_company.login_company_name
 "login_company_name" "login_company_name" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
-     _FldNameList[5]   > afdb.gsm_login_company.login_company_email
+     _FldNameList[5]   > ICFDB.gsm_login_company.login_company_email
 "login_company_email" "login_company_email" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[6]   > afdb.gsm_login_company.login_company_disabled
+     _FldNameList[6]   > ICFDB.gsm_login_company.login_company_disabled
 "login_company_disabled" "login_company_disabled" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK dTables 

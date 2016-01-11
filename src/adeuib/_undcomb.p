@@ -32,7 +32,9 @@ DEFINE INPUT PARAMETER uRecId AS RECID NO-UNDO.
 
 DEFINE VARIABLE tmpstr AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE i      AS INTEGER      NO-UNDO.
+DEFINE VARIABLE lIsICFRunning AS LOGICAL    NO-UNDO.
    
+{src/adm2/globals.i}
 {adeuib/uniwidg.i}
 {adeuib/layout.i}
 {adeuib/sharvars.i}
@@ -49,6 +51,8 @@ FIND parent_U WHERE RECID(parent_U) eq _U._parent-recid.
 FIND parent_L WHERE RECID(parent_L) eq parent_U._lo-recid.
 FIND parent_C WHERE RECID(parent_C) eq parent_U._x-recid.
 
+ASSIGN lisICFRunning = DYNAMIC-FUNCTION("IsICFRunning":U) NO-ERROR.
+
 ASSIGN _F._FRAME    = parent_U._HANDLE
        _L._WIN-TYPE = parent_L._WIN-TYPE.
 IF NOT _L._WIN-TYPE THEN _L._HEIGHT = 1.
@@ -58,10 +62,10 @@ IF _L._WIN-TYPE THEN DO:
   CREATE COMBO-BOX _U._HANDLE
        ASSIGN { adeuib/std_attr.i }
               WIDTH             = _L._WIDTH * _L._COL-MULT
-              SUBTYPE           = _U._SUBTYPE 
         TRIGGERS:
               {adeuib/std_trig.i}
-        END TRIGGERS.  
+        END TRIGGERS.
+   IF _U._SUBTYPE NE ? THEN _U._HANDLE:SUBTYPE = _U._SUBTYPE.
 END.  /* if GUI */
 ELSE DO:
   CREATE TEXT _U._HANDLE
@@ -71,6 +75,14 @@ ELSE DO:
               {adeuib/std_trig.i}
         END TRIGGERS.
 END.  /* else do - TTY */
+
+IF lIsICFRunning THEN DO:
+  IF LOOKUP(_U._CLASS-NAME,  
+            DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager,
+                             INPUT "DataField":U)) <> 0 THEN
+     /* Attach the edit master popup */
+    RUN createDataFieldPopup IN _h_uib (_U._HANDLE).
+END.  /* If ICF is running */
 
 /* Assign Handles that we now know */
 ASSIGN { adeuib/std_uf.i &SECTION = "HANDLES" } .
@@ -92,10 +104,11 @@ IF _L._WIN-TYPE THEN DO:
     DO i = 1 to NUM-ENTRIES(_F._LIST-ITEM-PAIRS,CHR(10)):
       tmpstr = tmpstr + ENTRY(i,_F._LIST-ITEM-PAIRS,CHR(10)) + 
        (IF i < NUM-ENTRIES(_F._LIST-ITEM-PAIRS,CHR(10)) AND 
-        SUBSTRING(ENTRY(i,_F._LIST-ITEM-PAIRS,CHR(10)),LENGTH(ENTRY(i,_F._LIST-ITEM-PAIRS,CHR(10))),1,"CHARACTER":U) <> ",":U 
-        THEN ",":U ELSE "").
+        SUBSTRING(ENTRY(i,_F._LIST-ITEM-PAIRS,CHR(10)),LENGTH(ENTRY(i,_F._LIST-ITEM-PAIRS,CHR(10))),1,"CHARACTER":U) <> _F._DELIMITER 
+        THEN _F._DELIMITER ELSE "").
     END.
-    ASSIGN  _U._HANDLE:LIST-ITEM-PAIRS = tmpstr NO-ERROR.
+    ASSIGN _U._HANDLE:DELIMITER       = _F._DELIMITER. 
+    ASSIGN _U._HANDLE:LIST-ITEM-PAIRS = tmpstr NO-ERROR.
   END.
   /* If there are List-Items, then set the list and value. */ 
   ELSE IF _F._LIST-ITEMS NE ? AND _F._LIST-ITEMS NE "" THEN

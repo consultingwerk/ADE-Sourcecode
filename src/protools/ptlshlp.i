@@ -145,3 +145,8 @@
 
 /* Index value will change for 9.1B FCS */
 &GLOBAL-DEFINE XML_Schema_Mapping_Tool 74
+
+/* New for Dynamics 2.0 ----------------------------------------------------- */
+
+/* Convert old Smart Objects to Dynamic Objects Utility */ 
+&GLOBAL-DEFINE Static_to_Dynamic_Conversion_Utility 72 

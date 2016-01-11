@@ -84,34 +84,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &glob   AstraProcedure    yes
 
 {af/sup2/afglobals.i}
-
-/* List of service types */
-DEFINE TEMP-TABLE ttServiceType NO-UNDO RCODE-INFORMATION
-  FIELD cServiceType        AS CHARACTER FORMAT "X(30)" LABEL "Service Type"
-  FIELD cSTProcName         AS CHARACTER FORMAT "X(50)" LABEL "Manager Procedure Name"
-  FIELD hSTManager          AS HANDLE    
-  FIELD lUseHandle          AS LOGICAL
-  INDEX pudx IS PRIMARY UNIQUE
-    cServiceType
-  .
-
-
-
-/* List of services  */
-DEFINE TEMP-TABLE ttService NO-UNDO RCODE-INFORMATION
-  FIELD cServiceName     AS CHARACTER FORMAT "X(30)":U LABEL "Service Name"
-  FIELD cPhysicalService AS CHARACTER FORMAT "X(30)":U LABEL "Physical Service"
-  FIELD cServiceType     AS CHARACTER FORMAT "X(30)":U LABEL "Service Type"
-  FIELD cConnectParams   AS CHARACTER FORMAT "X(60)":U LABEL "Connection Parameters"
-  FIELD lDefaultService  AS LOGICAL FORMAT "Yes/No" LABEL "Default Service"
-  INDEX pudx IS PRIMARY UNIQUE
-    cServiceName
-  INDEX dxPhysServ
-    cPhysicalService
-  INDEX dxServType
-    cServiceType
-    cServiceName
-  .
+{af/app/afconttdef.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -521,6 +494,51 @@ PROCEDURE plipShutdown :
     DELETE OBJECT hProc.
 
   DELETE PROCEDURE THIS-PROCEDURE.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-reconnectService) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE reconnectService Procedure 
+PROCEDURE reconnectService :
+/*------------------------------------------------------------------------------
+  Purpose:     Reconnects a session after the session failed.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER pcServiceName AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER pcHandle      AS CHARACTER  NO-UNDO.
+
+  DEFINE VARIABLE hServiceType      AS HANDLE   NO-UNDO.
+
+  ERROR-STATUS:ERROR = NO.
+  RETURN-VALUE = "":U.
+
+  /* Get the handle to the procedure that is responsible for 
+     making the connection */
+  hServiceType = getServiceSTManager(pcServiceName).
+
+  IF NOT VALID-HANDLE(hServiceType) THEN
+    RETURN "INVALID SERVICE TYPE.":U.
+
+  /* Now call the connect procedure in the specific service
+     API */
+  RUN reconnectService 
+    IN hServiceType 
+    (pcServiceName, OUTPUT pcHandle) 
+    NO-ERROR.
+  IF RETURN-VALUE <> "":U THEN
+  DO:
+    pcHandle = "":U.
+    RETURN RETURN-VALUE.
+  END.
+  ELSE
+    RETURN "":U.
 
 END PROCEDURE.
 

@@ -59,7 +59,7 @@ IF OPSYS  = "UNIX"
 THEN
 	delim = "/".
 ELSE
-        delim = "\\".
+        delim = "~\~\".
 
 /* Make sure the filename is valid (by using the search command) */
 filename = SEARCH (p_imagefile).

@@ -104,6 +104,12 @@ af/cod/aftemwizpw.w
 
   Update Notes: translation fix
 
+  (v:010009)    Task:                UserRef:    
+                Date:   APR/11/2002  Author:     Mauricio J. dos Santos (MJS) 
+                                                 mdsantos@progress.com
+  Update Notes: Adapted for WebSpeed by changing SESSION:PARAM = "REMOTE" 
+                to SESSION:CLIENT-TYPE = "WEBSPEED" in various places.
+
 --------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
@@ -115,7 +121,7 @@ af/cod/aftemwizpw.w
    can be displayed in the about window of the container */
 
 &scop object-name       aftrnmngrp.i
-&scop object-version    010001
+&scop object-version    000000
 
 /* Astra object identifying preprocessor */
 &global-define astraTranslationManager  yes
@@ -124,9 +130,11 @@ af/cod/aftemwizpw.w
 
 
 {af/app/aftttranslation.i}
-{af/app/aftttranslate.i}
+{src/adm2/tttranslate.i}
 
 {af/sup2/afcheckerr.i &define-only = YES}
+
+DEFINE VARIABLE gdCachedLanguageObj AS DECIMAL    NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -177,7 +185,7 @@ FUNCTION translatePhrase RETURNS CHARACTER
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 5.76
+         HEIGHT             = 17.19
          WIDTH              = 53.4.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -185,14 +193,13 @@ FUNCTION translatePhrase RETURNS CHARACTER
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB Procedure 
 /* ************************* Included-Libraries *********************** */
-
 {src/adm/method/attribut.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
@@ -241,8 +248,12 @@ PROCEDURE buildClientCache :
 ------------------------------------------------------------------------------*/
 
 DEFINE INPUT PARAMETER  pdLanguageObj           AS DECIMAL  NO-UNDO.
+IF gdCachedLanguageObj = pdLanguageObj THEN /* We DO have this language cached */
+    RETURN.
+ELSE
+    ASSIGN gdCachedLanguageObj = pdLanguageObj. /* We're going to cache this language below */
 
-IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
+IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN
 DO:
   EMPTY TEMP-TABLE ttTranslation.
 
@@ -308,7 +319,7 @@ DEFINE VARIABLE cColumnFields             AS CHARACTER  NO-UNDO.
 
 EMPTY TEMP-TABLE ttTranslate.
 
-IF (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN RETURN.  /* not valid if on server */
+IF (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN RETURN.  /* not valid if on server */
 
 /* see if translation enabled */
 DEFINE VARIABLE cTranslationEnabled               AS CHARACTER  NO-UNDO.
@@ -447,9 +458,10 @@ PROCEDURE clearClientCache :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
+IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN
 DO:
   EMPTY TEMP-TABLE ttTranslation.
+  ASSIGN gdCachedLanguageObj = 0.
 END.
 
 END PROCEDURE.
@@ -524,7 +536,7 @@ PROCEDURE getTranslation :
   END.
 
   /* If client side, check local cache to see if already found and if so use cached value */
-  IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
+  IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN
   DO:
     FIND FIRST ttTranslation
          WHERE ttTranslation.language_obj = pdLanguageObj
@@ -563,7 +575,7 @@ PROCEDURE getTranslation :
     lCacheTranslations = cCacheTranslations <> "NO":U NO-ERROR.
     IF lCacheTranslations THEN RETURN.
 
-  END. /* NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) */
+  END. /* NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) */
 
 
   &IF DEFINED(server-side) <> 0 &THEN
@@ -589,7 +601,7 @@ PROCEDURE getTranslation :
   &ENDIF
 
   /* Update client cache */
-  IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
+  IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN
   DO:
     CREATE ttTranslation.
     ASSIGN
@@ -604,7 +616,7 @@ PROCEDURE getTranslation :
       ttTranslation.translation_tooltip = pcTranslatedTooltip
       .
     RELEASE ttTranslation.
-  END. /* NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) */
+  END. /* NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) */
 
 RETURN.
 END PROCEDURE.
@@ -659,13 +671,13 @@ dCurrentLanguageObj = DECIMAL(DYNAMIC-FUNCTION("getPropertyList":U IN gshSession
                                  INPUT NO)).
 
 /* set flag whether need to check database YES/NO */
-IF (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) OR plAllLanguages THEN
+IF (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) OR plAllLanguages THEN
   ASSIGN lNotInCache = YES. /* if remote or all languages, must check DB */
 ELSE
   ASSIGN lNotInCache = NO.  /* if local, assume all in cache until know different */
 
 /* check client cache if not remote */
-IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) AND NOT plAllLanguages THEN
+IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) AND NOT plAllLanguages THEN
 cache-loop:
 FOR EACH ttTranslate:
 
@@ -711,7 +723,7 @@ FOR EACH ttTranslate:
 
 END.  /* cache-loop */
 
-IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) AND NOT plAllLanguages THEN
+IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) AND NOT plAllLanguages THEN
 DO:
   /* see whether caching translations only, and if we are, do not check for translation
      server side as well
@@ -738,7 +750,7 @@ DO:
 END.
 
 /* update client cache */
-IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
+IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN
 FOR EACH ttTranslate:
 
   /* toolbar only supports global translations, window title and tabs and sdf's only specific */
@@ -773,7 +785,7 @@ FOR EACH ttTranslate:
     .
   RELEASE ttTranslation.
 
-END. /* NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) */
+END. /* NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) */
 
 END PROCEDURE.
 
@@ -791,8 +803,26 @@ PROCEDURE plipShutdown :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+END PROCEDURE.
 
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
+&ENDIF
+
+&IF DEFINED(EXCLUDE-receiveCacheClient) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE receiveCacheClient Procedure 
+PROCEDURE receiveCacheClient :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER TABLE FOR ttTranslation.
+DEFINE INPUT PARAMETER pdLanguageObj AS DECIMAL    NO-UNDO.
+
+ASSIGN gdCachedLanguageObj = pdLanguageObj.
 
 END PROCEDURE.
 
@@ -829,7 +859,7 @@ DEFINE INPUT PARAMETER plTranslated               AS LOGICAL    NO-UNDO.
 DEFINE INPUT PARAMETER pdLanguageObj              AS DECIMAL    NO-UNDO.
 DEFINE INPUT PARAMETER TABLE FOR ttTranslate.                                                       
 
-IF (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) OR
+IF (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) OR
    NOT CAN-FIND(FIRST ttTranslate) THEN RETURN.  /* not valid if on server */
 
 /* see if translation enabled */
@@ -951,7 +981,7 @@ dCurrentLanguageObj = DECIMAL(DYNAMIC-FUNCTION("getPropertyList":U IN gshSession
                                  INPUT NO)).
 
 /* update client cache */
-IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
+IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN
 translate-loop:
 FOR EACH ttTranslate:
   IF ttTranslate.dLanguageObj = 0 THEN
@@ -996,7 +1026,7 @@ FOR EACH ttTranslate:
     .
   RELEASE ttTranslation.
 
-END. /* NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) */
+END. /* NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) */
 
 ASSIGN dCurrentLanguageObj = dCurrentLanguageObj NO-ERROR.
 

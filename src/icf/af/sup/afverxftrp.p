@@ -137,6 +137,7 @@ DEFINE VARIABLE lv_object_version_task  AS INTEGER NO-UNDO.
 
 /* Shared variable from AppBuilder adeuib/sharvars.i */
 DEFINE SHARED VARIABLE _save_file       AS CHARACTER NO-UNDO.
+DEFINE SHARED VARIABLE _p_status        AS CHARACTER NO-UNDO.
 
 /* MIP-GET-OBJECT-VERSION pre-processors
    The following pre-processors are maintained automatically when the object is
@@ -144,7 +145,7 @@ DEFINE SHARED VARIABLE _save_file       AS CHARACTER NO-UNDO.
    can be displayed in the about window of the container */
 
 &scop object-name       afverxftrp.p
-&scop object-version    000000
+&scop object-version    010000
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -181,8 +182,8 @@ DEFINE SHARED VARIABLE _save_file       AS CHARACTER NO-UNDO.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 6.38
-         WIDTH              = 42.
+         HEIGHT             = 7.48
+         WIDTH              = 45.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -194,14 +195,12 @@ DEFINE SHARED VARIABLE _save_file       AS CHARACTER NO-UNDO.
 
 
 /* ***************************  Main Block  *************************** */
+/* Versioning not required when performing a check-syntax or running */
+IF CAN-DO("CHECK-SYNTAX,RUN",_p_status) THEN
+   RETURN.
 
-/* Startup persistent procedure containing Roundtable access Routines. */
-IF NOT VALID-HANDLE(hScmTool)
-AND CONNECTED("rtb":U)
-AND (SEARCH("rtb/prc/afrtbprocp.p":U) <> ?
-  OR SEARCH("rtb/prc/afrtbprocp.r":U) <> ?)
-THEN
-  RUN rtb/prc/afrtbprocp.p PERSISTENT SET hScmTool.
+/* Get the handle to the persistent procedure containing Roundtable access Routines. */
+hScmTool = DYNAMIC-FUNCTION('getProcedureHandle':U IN THIS-PROCEDURE, INPUT "PRIVATE-DATA:SCMTool":U).
 
 /* Get the object name if it has been saved */
 ASSIGN lv_object_name = "".
@@ -258,15 +257,13 @@ RUN adeuib/_accsect.p( "SET":U, ?, "DEFINITIONS":U,
                        INPUT-OUTPUT lv_srecid,
                        INPUT-OUTPUT lv_code ).
 
-/* Finally, mark the window as unsaved. */
+
+/*  Finally, mark the window as unsaved */          
 RUN adeuib/_uibinfo( INPUT  ?,              /* Don't know the context ID               */
                      INPUT  "WINDOW ?",     /* We want the handle of the design window */
                      INPUT  "HANDLE",       /* We want the handle                      */
                      OUTPUT lv_uibinfo ).   /* Returns a string of the handle          */
-
 RUN adeuib/_winsave( WIDGET-HANDLE( lv_uibinfo ), FALSE ).
-
-IF VALID-HANDLE(hScmTool) THEN DELETE PROCEDURE hScmTool. /* (v:010002) */
 
 /* Finished */
 

@@ -1,7 +1,6 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          sports2000       PROGRESS
 */
 &Scoped-define WINDOW-NAME wiWin
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" wiWin _INLINE
@@ -94,6 +93,7 @@ DEFINE INPUT  PARAMETER gpcTitle  AS CHARACTER  NO-UNDO.
 &glob   astra2-staticSmartWindow yes
 
 {af/sup2/afglobals.i}
+{af/app/afttsecurityctrl.i}
 
 DEFINE TEMP-TABLE ttFilter NO-UNDO RCODE-INFORMATION
   FIELD cFieldLabel AS CHARACTER FORMAT "X(40)":U LABEL "Field"
@@ -139,6 +139,7 @@ DEFINE TEMP-TABLE ttFilter NO-UNDO RCODE-INFORMATION
 &Scoped-define ENABLED-TABLES-IN-QUERY-brFilter ttFilter
 &Scoped-define FIRST-ENABLED-TABLE-IN-QUERY-brFilter ttFilter
 &Scoped-define SELF-NAME brFilter
+&Scoped-define QUERY-STRING-brFilter FOR EACH ttFilter
 &Scoped-define OPEN-QUERY-brFilter OPEN QUERY {&SELF-NAME} FOR EACH ttFilter.
 &Scoped-define TABLES-IN-QUERY-brFilter ttFilter
 &Scoped-define FIRST-TABLE-IN-QUERY-brFilter ttFilter
@@ -165,6 +166,9 @@ DEFINE TEMP-TABLE ttFilter NO-UNDO RCODE-INFORMATION
 /* Define the widget handle for the window                              */
 DEFINE VAR wiWin AS WIDGET-HANDLE NO-UNDO.
 
+/* Definitions of handles for SmartObjects                              */
+DEFINE VARIABLE h_dyntoolbar-2 AS HANDLE NO-UNDO.
+
 /* Definitions of the field level widgets                               */
 DEFINE BUTTON buApply 
      LABEL "&Apply" 
@@ -176,12 +180,12 @@ DEFINE BUTTON buClear
      SIZE 17.8 BY 1.14
      BGCOLOR 8 .
 
-DEFINE VARIABLE deProdMod AS DECIMAL FORMAT ">>>>>>>>>>>>>>>>>>>>>>9.999999999-":U INITIAL 0 
+DEFINE VARIABLE deProdMod AS DECIMAL FORMAT "->>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
      LABEL "Product Module" 
      VIEW-AS COMBO-BOX INNER-LINES 5
-     LIST-ITEM-PAIRS "Item 1",      0.00
+     LIST-ITEM-PAIRS "Item 1",0
      DROP-DOWN-LIST
-     SIZE 38.4 BY 1.05 TOOLTIP "Select a Product Module" NO-UNDO.
+     SIZE 38.4 BY 1 TOOLTIP "Select a Product Module" NO-UNDO.
 
 /* Query definitions                                                    */
 &ANALYZE-SUSPEND
@@ -201,16 +205,16 @@ DEFINE BROWSE brFilter
     ttFilter.cToValue
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-    WITH NO-ROW-MARKERS SEPARATORS SIZE 92.4 BY 11.14 ROW-HEIGHT-CHARS .71.
+    WITH NO-ROW-MARKERS SEPARATORS SIZE 92 BY 8.86 ROW-HEIGHT-CHARS .71 FIT-LAST-COLUMN.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     buClear AT ROW 1.1 COL 57.6
-     buApply AT ROW 1.1 COL 76
-     deProdMod AT ROW 1.19 COL 16.6 COLON-ALIGNED
-     brFilter AT ROW 2.43 COL 1.8
+     buClear AT ROW 2.67 COL 57.6
+     buApply AT ROW 2.67 COL 76
+     deProdMod AT ROW 2.76 COL 16.6 COLON-ALIGNED
+     brFilter AT ROW 4.71 COL 1.8
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1
@@ -342,6 +346,7 @@ END.
 ON CHOOSE OF buClear IN FRAME frMain /* Clear */
 DO:
   RUN clearFilter.
+  deProdMod:SCREEN-VALUE = "0":U.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -370,6 +375,8 @@ END.
 /* Include custom  Main Block code for SmartWindows. */
 {src/adm2/windowmn.i}
 
+{af/sup2/aficonload.i}
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -383,6 +390,30 @@ PROCEDURE adm-create-objects :
                After SmartObjects are initialized, then SmartLinks are added.
   Parameters:  <none>
 ------------------------------------------------------------------------------*/
+  DEFINE VARIABLE currentPage  AS INTEGER NO-UNDO.
+
+  ASSIGN currentPage = getCurrentPage().
+
+  CASE currentPage: 
+
+    WHEN 0 THEN DO:
+       RUN constructObject (
+             INPUT  'adm2/dyntoolbar.w':U ,
+             INPUT  FRAME frMain:HANDLE ,
+             INPUT  'FlatButtonsyesMenuyesShowBorderyesToolbaryesActionGroupsTableioSubModulesTableIOTypeSaveSupportedLinksNavigation-Source,TableIo-SourceToolbarBandsToolbarParentMenuToolbarAutoSizeyesToolbarDrawDirectionHorizontalToolbarInitialStateLogicalObjectNameObjcTopAutoResizeDisabledActionsHiddenActionsUpdateHiddenToolbarBandsNavigationHiddenMenuBandsNavigationMenuMergeOrder0EdgePixels2PanelTypeToolbarDeactivateTargetOnHidenoDisabledActionsNavigationTargetNameHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT h_dyntoolbar-2 ).
+       RUN repositionObject IN h_dyntoolbar-2 ( 1.00 , 1.00 ) NO-ERROR.
+       RUN resizeObject IN h_dyntoolbar-2 ( 1.57 , 94.00 ) NO-ERROR.
+
+       /* Links to toolbar h_dyntoolbar-2. */
+       RUN addLink ( h_dyntoolbar-2 , 'Toolbar':U , THIS-PROCEDURE ).
+
+       /* Adjust the tab order of the smart objects. */
+       RUN adjustTabOrder ( h_dyntoolbar-2 ,
+             buClear:HANDLE IN FRAME frMain , 'BEFORE':U ).
+    END. /* Page 0 */
+
+  END CASE.
 
 END PROCEDURE.
 
@@ -417,26 +448,26 @@ PROCEDURE applyFilter :
        WHEN "CHARACTER":U THEN
        DO:
          IF bttFilter.cToValue = bttFilter.cFromValue THEN
-           cWhere = cWhere + " BEGINS '":U + bttFilter.cToValue + "'":U.
+           cWhere = cWhere + " BEGINS ":U + QUOTER(bttFilter.cToValue).
          ELSE
-           cWhere = cWhere + " >= '":U + bttFilter.cFromValue + "' AND ":U 
-                  + hField:NAME + " <= '":U + bttFilter.cToValue + "'":U.
+           cWhere = cWhere + " >= ":U + QUOTER(bttFilter.cFromValue) + " AND ":U 
+                  + hField:NAME + " <= ":U + QUOTER(bttFilter.cToValue).
        END.
        WHEN "DATE":U THEN
        DO:
          IF bttFilter.cToValue = bttFilter.cFromValue THEN
-           cWhere = cWhere + " = '":U + bttFilter.cToValue + "'":U.
+           cWhere = cWhere + " = ":U + QUOTER(bttFilter.cToValue).
          ELSE
-           cWhere = cWhere + " >= '":U + bttFilter.cFromValue + "' AND ":U 
-                  + hField:NAME + " <= '":U + bttFilter.cToValue + "'":U.
+           cWhere = cWhere + " >= ":U + QUOTER(bttFilter.cFromValue) + " AND ":U 
+                  + hField:NAME + " <= ":U + QUOTER(bttFilter.cToValue).
        END.
        OTHERWISE
        DO:
          IF bttFilter.cToValue = bttFilter.cFromValue THEN
-           cWhere = cWhere + " = ":U + bttFilter.cToValue.
+           cWhere = cWhere + " = ":U + QUOTER(bttFilter.cToValue).
          ELSE
-           cWhere = cWhere + " >= ":U + bttFilter.cFromValue + " AND ":U 
-                  + hField:NAME + " <= ":U + bttFilter.cToValue.
+           cWhere = cWhere + " >= ":U + QUOTER(bttFilter.cFromValue) + " AND ":U 
+                  + hField:NAME + " <= ":U + QUOTER(bttFilter.cToValue).
        END.
      END.
    END.
@@ -686,8 +717,10 @@ PROCEDURE setFilterVal :
         
     END.
 
-    BROWSE brFilter:REFRESH().
+    BROWSE {&BROWSE-NAME}:REFRESH().
+
   END.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

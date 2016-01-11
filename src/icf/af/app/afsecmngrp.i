@@ -107,6 +107,13 @@ af/cod/aftemwizpw.w
                 Date:   26/05/2001  Author:     Phil Magnay
 
   Update Notes: test
+                  
+  (v:010300)    Task:                UserRef:    
+                Date:   APR/11/2002  Author:     Mauricio J. dos Santos (MJS) 
+                                                 mdsantos@progress.com
+  Update Notes: Adapted for WebSpeed by changing SESSION:PARAM = "REMOTE" 
+                to SESSION:CLIENT-TYPE = "WEBSPEED" in main block + various
+                procedures.
 
 --------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
@@ -168,13 +175,15 @@ INDEX key1 AS UNIQUE PRIMARY cRangeCode cObjectName cAttributeCode
 .
 
 DEFINE TEMP-TABLE ttObjectSecurityCheck NO-UNDO
-FIELD cObjectName                     AS CHARACTER
-FIELD dObjectObj                      AS DECIMAL
+FIELD cObjectName AS CHARACTER
+FIELD dObjectObj  AS DECIMAL
+FIELD lRestricted AS LOGICAL
 INDEX key1 AS UNIQUE PRIMARY cObjectName 
 INDEX key2 dObjectObj
 .
 
 {af/app/afttsecurityctrl.i}
+{dynlaunch.i &define-only = YES}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -192,6 +201,32 @@ INDEX key2 dObjectObj
 /* _UIB-PREPROCESSOR-BLOCK-END */
 &ANALYZE-RESUME
 
+
+/* ************************  Function Prototypes ********************** */
+
+&IF DEFINED(EXCLUDE-areFieldsCached) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD areFieldsCached Procedure 
+FUNCTION areFieldsCached RETURNS LOGICAL
+  (INPUT pcObjectName   AS CHARACTER,
+   INPUT pcRunAttribute AS CHARACTER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-areTokensCached) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD areTokensCached Procedure 
+FUNCTION areTokensCached RETURNS LOGICAL
+  (INPUT pcObjectName   AS CHARACTER,
+   INPUT pcRunAttribute AS CHARACTER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 
 /* *********************** Procedure Settings ************************ */
@@ -245,25 +280,33 @@ DO:
     RETURN.
 END.
 
-RUN getSecurityControl (OUTPUT TABLE ttSecurityControl).
-FIND FIRST ttSecurityControl NO-ERROR.
-IF NOT AVAILABLE ttSecurityControl OR ttSecurityControl.translation_enabled = YES THEN
-DO: /* set translation enabled property to true */
-  DYNAMIC-FUNCTION("setPropertyList":U IN gshSessionManager,
-                                   INPUT "translationEnabled":U,
-                                   INPUT "YES":U,
-                                   INPUT NO).
+/* This functionality has been moved to the session manager login cache call for the client. */
+&IF DEFINED(server-side) <> 0 &THEN
+IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN
+DO:
+    RUN getSecurityControl (OUTPUT TABLE ttSecurityControl).
+
+    FIND FIRST ttSecurityControl NO-ERROR.
+
+    IF NOT AVAILABLE ttSecurityControl OR ttSecurityControl.translation_enabled = YES 
+    THEN DO: /* set translation enabled property to true */
+        DYNAMIC-FUNCTION("setPropertyList":U IN gshSessionManager,
+                                             INPUT "translationEnabled":U,
+                                             INPUT "YES":U,
+                                             INPUT NO).
+    END.
+    ELSE DO: /* set translation enabled property to false */ 
+        DYNAMIC-FUNCTION("setPropertyList":U IN gshSessionManager,
+                                             INPUT "translationEnabled":U,
+                                             INPUT "NO":U,
+                                             INPUT NO).
+    END.
+
+    /* Need to empty temp table so that it re-caches after user login so that the default user info is reset */
+
+    EMPTY TEMP-TABLE ttSecurityControl.
 END.
-ELSE
-DO: /* set translation enabled property to false */ 
-  DYNAMIC-FUNCTION("setPropertyList":U IN gshSessionManager,
-                                   INPUT "translationEnabled":U,
-                                   INPUT "NO":U,
-                                   INPUT NO).
-END.
-/* Need to empty temp table so that it re-caches after user login so that
-   the default user info is reset */
-EMPTY TEMP-TABLE ttSecurityControl.
+&ENDIF
 
 &IF DEFINED(server-side) <> 0 &THEN
   PROCEDURE afusrschkp:         {af/app/afusrschkp.p}     END PROCEDURE.
@@ -277,6 +320,10 @@ EMPTY TEMP-TABLE ttSecurityControl.
   PROCEDURE afusrlgnop:         {af/app/afusrlgnop.p}     END PROCEDURE.
   PROCEDURE afobjschkp:         {af/app/afobjschkp.p}     END PROCEDURE.
 &ENDIF
+
+/* Listen for the clearing of the Repository cache. If the repository cache is cleared, then we need
+ * to signal the Security cache that it is also to be refreshed.                                        */
+SUBSCRIBE TO "repositoryCacheCleared" ANYWHERE RUN-PROCEDURE "clearClientCache":U.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -460,7 +507,7 @@ PROCEDURE clearClientCache :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
+IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN
 DO:
   EMPTY TEMP-TABLE ttUserSecurityCheck.
   EMPTY TEMP-TABLE ttFieldSecurityCheck.
@@ -484,62 +531,360 @@ PROCEDURE fieldSecurityCheck :
 /*------------------------------------------------------------------------------
   Purpose:     This procedure checks a user's security for fields permitted
                access to.
-
   Parameters:  input current program object for security check
                input current instance attribute posted to program
                output security options as comma delimited list of secured
-               fields, each with 2 entries. Entry 1 = table.fieldname,
-               Entry 2 = hidden / view
-
-  Notes:       See Astra Security Documentation for full information.
+               fields, each with 2 entries. 
+               Entry 1 = table.fieldname,
+               Entry 2 = hidden/read-only
+  Notes:       See Dynamics Security Documentation for full information.
 ------------------------------------------------------------------------------*/
-
   DEFINE INPUT PARAMETER  pcObjectName                    AS CHARACTER    NO-UNDO.
   DEFINE INPUT PARAMETER  pcAttributeCode                 AS CHARACTER    NO-UNDO.
   DEFINE OUTPUT PARAMETER pcSecurityOptions               AS CHARACTER    NO-UNDO.
 
-  ASSIGN
-      pcSecurityOptions = "":U
-      .
-
   /* If client side, check local cache to see if already checked and if so use cached value */
-  IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
-  DO:
-    FIND FIRST ttFieldSecurityCheck
-         WHERE ttFieldSecurityCheck.cObjectName = pcObjectName
-           AND ttFieldSecurityCheck.cAttributeCode = pcAttributeCode
-         NO-ERROR.
-    IF AVAILABLE ttFieldSecurityCheck THEN
-    DO:
-      ASSIGN
-        pcSecurityOptions = ttFieldSecurityCheck.cSecurityOptions
-        .
-      RETURN.        
-    END.
-  END. /* NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) */
+  IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) 
+  THEN DO:
+      FIND FIRST ttFieldSecurityCheck
+           WHERE ttFieldSecurityCheck.cObjectName = pcObjectName
+             AND ttFieldSecurityCheck.cAttributeCode = pcAttributeCode
+           NO-ERROR.
+
+      IF AVAILABLE ttFieldSecurityCheck 
+      THEN DO:
+          ASSIGN pcSecurityOptions = ttFieldSecurityCheck.cSecurityOptions.
+          RETURN.        
+      END.
+  END.
 
   &IF DEFINED(server-side) <> 0 &THEN
-    RUN affldschkp (INPUT pcObjectName,
-                    INPUT pcAttributeCode,
-                    OUTPUT pcSecurityOptions).  
+      RUN affldschkp (INPUT pcObjectName,
+                      INPUT pcAttributeCode,
+                      OUTPUT pcSecurityOptions).  
   &ELSE
-    RUN af/app/affldschkp.p ON gshAstraAppserver (INPUT pcObjectName,
-                                                  INPUT pcAttributeCode,
-                                                  OUTPUT pcSecurityOptions).
+      RUN af/app/affldschkp.p ON gshAstraAppserver (INPUT pcObjectName,
+                                                    INPUT pcAttributeCode,
+                                                    OUTPUT pcSecurityOptions).
   &ENDIF
 
   /* Update client cache */
-  IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
-  DO:
-    CREATE ttFieldSecurityCheck.
-    ASSIGN
-      ttFieldSecurityCheck.cObjectName = pcObjectName
-      ttFieldSecurityCheck.cAttributeCode = pcAttributeCode
-      ttFieldSecurityCheck.cSecurityOptions = pcSecurityOptions
-      .
-  END. /* NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) */
+  IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) 
+  THEN DO:
+      CREATE ttFieldSecurityCheck.
+      ASSIGN ttFieldSecurityCheck.cObjectName = pcObjectName
+             ttFieldSecurityCheck.cAttributeCode = pcAttributeCode
+             ttFieldSecurityCheck.cSecurityOptions = pcSecurityOptions.
+  END.
 
-RETURN.
+  ASSIGN ERROR-STATUS:ERROR = NO.
+  RETURN "":U.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-fieldSecurityGet) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE fieldSecurityGet Procedure 
+PROCEDURE fieldSecurityGet :
+/*------------------------------------------------------------------------------
+  Purpose:     This procedure will check fields secured for the passed in object.
+               If a valid procedure handle is passed in, and the object has been secured
+               by the repository manager already, the security stored in the object
+               will be used.  If we can't find the security in the object, we'll fetch
+               the applicable security from the db/Appserver and return it (by running
+               the fieldSecurityCheck procedure).
+  Parameters:  phObject          - The handle to the object being checked.  This parameter
+                                   is optional.  If not specified, a standard security check
+                                   will be done using the object name.
+               pcObjectName      - The name of the object being checked. (Mandatory)
+               pcAttributeCode   - The attribute code of the object being checked. (Mandatory)
+               pcSecurityOptions - The list of secured fields.
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT  PARAMETER phObject          AS HANDLE     NO-UNDO.
+DEFINE INPUT  PARAMETER pcObjectName      AS CHARACTER    NO-UNDO.
+DEFINE INPUT  PARAMETER pcAttributeCode   AS CHARACTER    NO-UNDO.
+DEFINE OUTPUT PARAMETER pcSecurityOptions AS CHARACTER    NO-UNDO.
+
+DEFINE BUFFER ttFieldSecurityCheck FOR ttFieldSecurityCheck.
+
+DEFINE VARIABLE lObjectSecured AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE cSecurity      AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cFields        AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cObjectType    AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE iCnt           AS INTEGER    NO-UNDO.
+
+IF (pcObjectName = "" OR pcObjectName = ?)
+AND VALID-HANDLE(phObject)
+THEN DO:
+    {get logicalObjectName pcObjectName phObject}.
+END.
+
+/* Always check the cache first */
+FIND FIRST ttFieldSecurityCheck
+     WHERE ttFieldSecurityCheck.cObjectName    = pcObjectName
+       AND ttFieldSecurityCheck.cAttributeCode = pcAttributeCode
+     NO-ERROR.
+
+IF AVAILABLE ttFieldSecurityCheck 
+THEN DO:
+    ASSIGN pcSecurityOptions = ttFieldSecurityCheck.cSecurityOptions.
+    RETURN.
+END.
+
+/* Has the object been secured?  No use in trying to get security from it if it hasn't... */
+IF VALID-HANDLE(phObject)
+THEN then-blk: DO:
+    {get objectSecured lObjectSecured phObject}.
+    
+    IF lObjectSecured 
+    THEN DO:
+        {get FieldSecurity cSecurity phObject}.
+        IF cSecurity = "":U
+        OR cSecurity = ? THEN
+            LEAVE then-blk.
+
+        /* Browsers have their list of fields in the displayedFields property */
+        {get ObjectType cObjectType phObject}.
+        CASE cObjectType:
+            WHEN "smartDataBrowser":U THEN
+                IF LOOKUP("getDisplayedFields":U, phObject:INTERNAL-ENTRIES) <> 0 THEN
+                    {get displayedFields cFields phObject}.
+
+            OTHERWISE
+                IF LOOKUP("allFieldNames":U, phObject:INTERNAL-ENTRIES) <> 0 THEN
+                    {get allFieldNames cFields phObject}.
+        END CASE.
+        IF cFields = "":U
+        OR cFields = ? 
+        OR NUM-ENTRIES(cFields) <> NUM-ENTRIES(cSecurity) THEN
+            LEAVE then-blk.
+
+        /* We've got the list of fields and the list of security, now merge them into one list */
+        DO iCnt = 1 TO NUM-ENTRIES(cFields):
+            ASSIGN pcSecurityOptions = pcSecurityOptions + ",":U + ENTRY(iCnt, cFields) + "," + ENTRY(iCnt, cSecurity).
+        END.
+        ASSIGN pcSecurityOptions = SUBSTRING(pcSecurityOptions, 2) NO-ERROR.
+
+        /* Add the security to the security manager cache. */
+        CREATE ttFieldSecurityCheck.
+        ASSIGN ttFieldSecurityCheck.cObjectName      = pcObjectName
+               ttFieldSecurityCheck.cAttributeCode   = pcAttributeCode
+               ttFieldSecurityCheck.cSecurityOptions = pcSecurityOptions.
+        RETURN.
+    END.
+END.
+
+/* If we can't find the name of the object we're trying to extract security for, return. */
+IF pcObjectName = ?
+OR pcObjectName = "":U THEN
+    RETURN.
+
+/* If we get here, the object hasn't been secured yet.  We're going to have to get security from the database/Appserver. */
+RUN fieldSecurityCheck (INPUT pcObjectName,
+                        INPUT pcAttributeCode,
+                        OUTPUT pcSecurityOptions).
+
+ASSIGN ERROR-STATUS:ERROR = NO.
+RETURN "":U.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getFieldSecurity) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getFieldSecurity Procedure 
+PROCEDURE getFieldSecurity :
+/*------------------------------------------------------------------------------
+  Purpose:     This procedure allows you to pass in a list of CHR(1) seperated 
+               field names. It will then return a comma seperated list of how 
+               the fields are secured.  Entry 1 in the field list will correspond 
+               to entry 1 in the 'how secured' list, and so on...
+  Parameters:  pcFieldList    - The fields to check
+               pcSecurityList - The list of security
+  Notes:       This API has been written to check field security for audit trails 
+               specifically, as we cannot determine which object or container
+               the field was updated from.  We'll check if the field has been 
+               secured anywhere, and apply the most restrictive security if set
+               up.  Rather safe than sorry...
+------------------------------------------------------------------------------*/
+DEFINE INPUT  PARAMETER pcFieldList    AS CHARACTER  NO-UNDO.
+DEFINE OUTPUT PARAMETER pcSecurityList AS CHARACTER  NO-UNDO.
+
+&IF DEFINED(server-side) = 0 &THEN
+    /* We need to pass the request to the Appserver */
+    {
+     dynlaunch.i &PLIP              = "'SecurityManager'"
+                 &iProc             = "'getFieldSecurity'"
+                 &compileStaticCall = NO
+                 &mode1  = INPUT  &parm1  = pcFieldList    &dataType1  = CHARACTER
+                 &mode2  = OUTPUT &parm2  = pcSecurityList &dataType2  = CHARACTER
+    }
+    IF lRunErrorStatus = YES THEN
+        ASSIGN pcSecurityList = "":U.
+&ELSE
+    DEFINE VARIABLE iFieldCnt           AS INTEGER    NO-UNDO.
+    DEFINE VARIABLE cProperties         AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE dUserObj            AS DECIMAL    NO-UNDO.
+    DEFINE VARIABLE dOrganisationObj    AS DECIMAL    NO-UNDO.
+    DEFINE VARIABLE lSecurityRestricted AS LOGICAL    NO-UNDO.
+    DEFINE VARIABLE cSecurityValue1     AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cSecurityValue2     AS CHARACTER  NO-UNDO.
+
+    DEFINE BUFFER gsm_field              FOR gsm_field.
+    DEFINE BUFFER gsm_security_structure FOR gsm_security_structure.
+    DEFINE BUFFER gsc_security_control   FOR gsc_security_control.
+
+    /* First, initialize the security list by ensuring it has the same number of *
+     * entries as the field list                                                 */
+    ASSIGN pcSecurityList = FILL(",":U, NUM-ENTRIES(pcFieldList, CHR(1)) - 1).
+
+    /* If security is disabled, return */
+    FIND FIRST gsc_security_control NO-LOCK NO-ERROR.
+    IF NOT AVAILABLE gsc_security_control OR gsc_security_control.security_enabled = NO THEN
+        RETURN.
+
+    /* Find out who the user is and which company he's logged into */
+    ASSIGN cProperties      = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager, INPUT "currentUserObj,currentOrganisationObj":U, INPUT YES)
+           dUserObj         = DECIMAL(ENTRY(1, cProperties, CHR(3)))
+           dOrganisationObj = DECIMAL(ENTRY(2, cProperties, CHR(3)))
+           NO-ERROR.
+
+    /* Cycle through the fields sent, and check for security against them */    
+    do-blk:
+    DO iFieldCnt = 1 TO NUM-ENTRIES(pcFieldList, CHR(1)):
+
+        FIND gsm_field NO-LOCK
+             WHERE gsm_field.field_name = ENTRY(iFieldCnt, pcFieldList, CHR(1))
+             NO-ERROR.
+
+        IF NOT AVAILABLE gsm_field THEN
+            NEXT do-blk.
+
+        FOR EACH gsm_security_structure NO-LOCK
+           WHERE gsm_security_structure.owning_entity_mnemonic = "GSMFF":U
+             AND gsm_security_structure.owning_obj             = gsm_field.field_obj:
+
+            /* Check if any security has been set applicable to this user */
+            RUN afusrschkp (INPUT  dUserObj,
+                            INPUT  dOrganisationObj,
+                            INPUT  "GSMSS":U,
+                            INPUT  gsm_security_structure.security_structure_obj,
+                            INPUT  YES, /* Return Values? */
+                            OUTPUT lSecurityRestricted,
+                            OUTPUT cSecurityValue1,
+                            OUTPUT cSecurityValue2).
+
+            /* We're dealing with fields, so securityValue1 should contain how the field is secured */
+
+            IF  lSecurityRestricted = YES 
+            AND cSecurityValue1 <> "":U                             /* must be HIDDEN or READ ONLY then */
+            AND ENTRY(iFieldCnt, pcSecurityList) <> "HIDDEN":U THEN /* If HIDDEN, leave it that way (most restrictive) */
+                ASSIGN ENTRY(iFieldCnt, pcSecurityList) = cSecurityValue1 NO-ERROR.
+        END.
+    END.
+&ENDIF
+
+ASSIGN ERROR-STATUS:ERROR = NO.
+RETURN "":U.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getMandatoryTables) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getMandatoryTables Procedure 
+PROCEDURE getMandatoryTables :
+/*------------------------------------------------------------------------------
+  Purpose:     A field is passed to this procedure, it will then run through the
+               connected databases, and determine on which tables the specified
+               field is mandatory.  If running Appserver, it will then run itself
+               on the Appserver, to determine mandatory tables for databases connected
+               to the Appserver.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER        pcFieldName AS CHARACTER  NO-UNDO.
+DEFINE INPUT-OUTPUT PARAMETER pcTableList AS CHARACTER  NO-UNDO.
+
+DEFINE VARIABLE iCnt       AS INTEGER    NO-UNDO.
+DEFINE VARIABLE hQuery     AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hField     AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hFile      AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hFilename  AS HANDLE     NO-UNDO.
+
+/* First, check if the specified field is mandatory on any table in any connected db */
+
+IF NUM-DBS <> 0 
+THEN DO iCnt = 1 TO NUM-DBS:
+
+    CREATE BUFFER hField FOR TABLE LDBNAME(iCnt) + "._field":U.
+    CREATE BUFFER hFile  FOR TABLE LDBNAME(iCnt) + "._file":U.
+
+    ASSIGN hFilename = hFile:BUFFER-FIELD("_file-name":U).
+
+    CREATE QUERY hQuery.
+    hQuery:SET-BUFFERS(hField,hFile).
+    hQuery:QUERY-PREPARE("FOR EACH ":U + LDBNAME(iCnt) + "." + hField:NAME + " NO-LOCK":U
+                         + " WHERE ":U + LDBNAME(iCnt) + "." + hField:NAME + "._field-name = '":U + pcFieldName + "'":U
+                         +   " AND ":U + LDBNAME(iCnt) + "." + hField:NAME + "._mandatory  = YES,":U
+                         + " FIRST ":U + LDBNAME(iCnt) + "." + hFile:NAME  + " NO-LOCK OF ":U + LDBNAME(iCnt) + "." + hField:NAME
+                        ).
+    hQuery:QUERY-OPEN().
+
+    /* Cycle through all mandatory fields with the name supplied */
+
+    hQuery:GET-FIRST().
+    DO WHILE hField:AVAILABLE:
+
+        IF LOOKUP(LDBNAME(iCnt) + " - ":U + hFilename:BUFFER-VALUE, pcTableList) = 0
+        OR LOOKUP(LDBNAME(iCnt) + " - ":U + hFilename:BUFFER-VALUE, pcTableList) = ? THEN
+            ASSIGN pcTableList = pcTableList + ",":U + LDBNAME(iCnt) + " - ":U + hFilename:BUFFER-VALUE. /* dbname - tablename */
+
+        hQuery:GET-NEXT().
+    END.
+
+    hQuery:QUERY-CLOSE().
+
+    DELETE OBJECT hField NO-ERROR.
+    DELETE OBJECT hFile  NO-ERROR.
+    DELETE OBJECT hQuery NO-ERROR.
+
+    ASSIGN hQuery    = ?
+           hField    = ?
+           hFile     = ?
+           hFileName = ?.
+END.
+IF SUBSTRING(pcTableList,1,1) = ",":U THEN
+    ASSIGN pcTableList = SUBSTRING(pcTableList,2).
+
+&IF DEFINED(Client-Side) <> 0 &THEN
+/* If we're client side, we've checked all db connections on the client, now check connected dbs on the Appserver */
+{
+ dynlaunch.i &PLIP              = "'SecurityManager'"
+             &iProc             = "'getMandatoryTables'"
+             &compileStaticCall = NO
+             &mode1  = INPUT        &parm1  = pcFieldName &dataType1  = CHARACTER
+             &mode2  = INPUT-OUTPUT &parm2  = pcTableList &dataType2  = CHARACTER
+}
+IF RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
+&ENDIF
+
+ASSIGN ERROR-STATUS:ERROR = NO.
+RETURN "":U.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -564,7 +909,7 @@ PROCEDURE getSecurityControl :
 ------------------------------------------------------------------------------*/
 DEFINE OUTPUT PARAMETER TABLE FOR ttSecurityControl.
 
-IF (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) OR NOT CAN-FIND(FIRST ttSecurityControl) THEN
+IF (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) OR NOT CAN-FIND(FIRST ttSecurityControl) THEN
 DO:
   &IF DEFINED(server-side) <> 0 &THEN
     RUN afgetseccp (OUTPUT TABLE ttSecurityControl).  
@@ -603,45 +948,66 @@ PROCEDURE objectSecurityCheck :
   DEFINE INPUT-OUTPUT PARAMETER  pdObjectObj                     AS DECIMAL      NO-UNDO.
   DEFINE OUTPUT       PARAMETER  plSecurityRestricted            AS LOGICAL      NO-UNDO.
 
+  IF pcObjectName = ? THEN ASSIGN pcObjectName = "":U.
+  IF pdObjectObj  = ? THEN ASSIGN pdObjectObj  = 0.
 
-  /* If client side, check local cache to see if already checked and if so use cached value */
-  IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
-  DO:
-    plSecurityRestricted = 
-        (IF pdObjectObj NE 0.0 THEN
-            CAN-FIND(FIRST ttObjectSecurityCheck
-                     WHERE ttObjectSecurityCheck.dObjectObj    = pdObjectObj)
-         ELSE
-         IF pcObjectName EQ "":U THEN
-             CAN-FIND(FIRST ttObjectSecurityCheck
-                      WHERE ttObjectSecurityCheck.cObjectName  = pcObjectName)
-         ELSE
-             FALSE).
-    RETURN.        
-  END. /* NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) */
+  /* If we're on the client, check the cache first.  Server side we don't have a cache. */
+
+  IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) 
+  THEN DO:
+      /* Find on the object name */
+      FIND ttObjectSecurityCheck
+           WHERE ttObjectSecurityCheck.cObjectName = pcObjectName
+           NO-ERROR.
+
+      /* Find on the object obj */
+      IF NOT AVAILABLE ttObjectSecurityCheck THEN
+          FIND ttObjectSecurityCheck
+               WHERE ttObjectSecurityCheck.dObjectObj = pdObjectObj
+               NO-ERROR.
+    
+      IF AVAILABLE ttObjectSecurityCheck 
+      THEN DO:
+          ASSIGN plSecurityRestricted = ttObjectSecurityCheck.lRestricted
+                 ERROR-STATUS:ERROR   = NO.
+          RETURN "":U.
+      END.
+  END.
+
+  /* Run afobjschkp to retrieve object security */
 
   &IF DEFINED(server-side) <> 0 &THEN
-    RUN afobjschkp (INPUT-OUTPUT  pcObjectName,
-                    INPUT-OUTPUT  pdObjectObj,
-                    OUTPUT        plSecurityRestricted).  
+  RUN afobjschkp (INPUT-OUTPUT  pcObjectName,
+                  INPUT-OUTPUT  pdObjectObj,
+                  OUTPUT        plSecurityRestricted).  
   &ELSE
-    RUN af/app/afobjschkp.p ON gshAstraAppserver (INPUT-OUTPUT  pcObjectName,
-                                                  INPUT-OUTPUT  pdObjectObj,
-                                                  OUTPUT        plSecurityRestricted).
+  RUN af/app/afobjschkp.p ON gshAstraAppserver (INPUT-OUTPUT  pcObjectName, /* We'll get ryc_smartobject.object_filename back */
+                                                INPUT-OUTPUT  pdObjectObj,  /* We'll get ryc_smartobject.smartobject_obj back */
+                                                OUTPUT        plSecurityRestricted).
   &ENDIF
 
-  /* Update client cache */
-  IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
-  DO:
-    CREATE ttObjectSecurityCheck.
-    ASSIGN
-      ttObjectSecurityCheck.cObjectName      = pcObjectName
-      ttObjectSecurityCheck.dObjectObj       = pdObjectObj
-      .
-  END. /* NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) */
+  /* If we're client side, add the result to the cache. */
 
-RETURN.
+  IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) 
+  THEN DO:
+      IF  pcObjectName <> "":U
+      AND pdObjectObj <> 0 
+      THEN DO:
+          /* We have to check for the record in the cache because pcObjectName in could differ from pcObjectName out */
+          IF NOT CAN-FIND(FIRST ttObjectSecurityCheck
+                          WHERE ttObjectSecurityCheck.cObjectName = pcObjectName
+                            AND ttObjectSecurityCheck.dObjectObj  = pdObjectObj) 
+          THEN DO:
+              CREATE ttObjectSecurityCheck.
+              ASSIGN ttObjectSecurityCheck.cObjectName = pcObjectName
+                     ttObjectSecurityCheck.dObjectObj  = pdObjectObj
+                     ttObjectSecurityCheck.lRestricted = plSecurityRestricted.
+          END.
+      END.
+  END.
 
+  ASSIGN ERROR-STATUS:ERROR = NO.
+  RETURN.
 
 END PROCEDURE.
 
@@ -698,7 +1064,7 @@ PROCEDURE rangeSecurityCheck :
       .
 
   /* If client side, check local cache to see if already checked and if so use cached value */
-  IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
+  IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN
   DO:
     FIND FIRST ttRangeSecurityCheck
          WHERE ttRangeSecurityCheck.cRangeCode = pcRangeCode
@@ -713,7 +1079,7 @@ PROCEDURE rangeSecurityCheck :
         .
       RETURN.        
     END.
-  END. /* NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) */
+  END. /* NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) */
 
   &IF DEFINED(server-side) <> 0 &THEN
     RUN afranschkp (INPUT pcRangeCode,
@@ -730,7 +1096,7 @@ PROCEDURE rangeSecurityCheck :
   &ENDIF
 
   /* Update client cache */
-  IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
+  IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN
   DO:
     CREATE ttRangeSecurityCheck.
     ASSIGN
@@ -740,9 +1106,95 @@ PROCEDURE rangeSecurityCheck :
       ttRangeSecurityCheck.cRangeFrom = pcRangeFrom
       ttRangeSecurityCheck.cRangeTo = pcRangeTo
       .
-  END. /* NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) */
+  END. /* NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) */
 
 RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-receiveCacheFldSecurity) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE receiveCacheFldSecurity Procedure 
+PROCEDURE receiveCacheFldSecurity :
+/*------------------------------------------------------------------------------
+  Purpose:     This procedure allows external procedures to supplement the security
+               cache.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT  PARAMETER pcObjectName      AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER pcAttributeCode   AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER pcSecurityOptions AS CHARACTER  NO-UNDO.
+DEFINE BUFFER ttFieldSecurityCheck FOR ttFieldSecurityCheck.
+FIND FIRST ttFieldSecurityCheck
+     WHERE ttFieldSecurityCheck.cObjectName    = pcObjectName
+       AND ttFieldSecurityCheck.cAttributeCode = pcAttributeCode
+     NO-ERROR.
+IF NOT AVAILABLE ttFieldSecurityCheck 
+THEN DO:
+    CREATE ttFieldSecurityCheck.
+    ASSIGN ttFieldSecurityCheck.cObjectName      = pcObjectName
+           ttFieldSecurityCheck.cAttributeCode   = pcAttributeCode.
+END.
+ASSIGN ttFieldSecurityCheck.cSecurityOptions = pcSecurityOptions
+       ERROR-STATUS:ERROR = NO.
+RETURN "":U.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-receiveCacheSessionSecurity) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE receiveCacheSessionSecurity Procedure 
+PROCEDURE receiveCacheSessionSecurity :
+/*------------------------------------------------------------------------------
+  Purpose:     Receives the initial session security cache
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER TABLE FOR ttSecurityControl.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-receiveCacheTokSecurity) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE receiveCacheTokSecurity Procedure 
+PROCEDURE receiveCacheTokSecurity :
+/*------------------------------------------------------------------------------
+  Purpose:     This procedure allows external procedures to supplement the security
+               cache.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT  PARAMETER pcObjectName      AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER pcAttributeCode   AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER pcSecurityOptions AS CHARACTER  NO-UNDO.
+DEFINE BUFFER ttTokenSecurityCheck FOR ttTokenSecurityCheck.
+FIND FIRST ttTokenSecurityCheck
+     WHERE ttTokenSecurityCheck.cObjectName    = pcObjectName
+       AND ttTokenSecurityCheck.cAttributeCode = pcAttributeCode
+     NO-ERROR.
+IF NOT AVAILABLE ttTokenSecurityCheck 
+THEN DO:
+    CREATE ttTokenSecurityCheck.
+    ASSIGN ttTokenSecurityCheck.cObjectName      = pcObjectName
+           ttTokenSecurityCheck.cAttributeCode   = pcAttributeCode.
+END.
+ASSIGN ttTokenSecurityCheck.cSecurityOptions = pcSecurityOptions
+       ERROR-STATUS:ERROR = NO.
+RETURN "":U.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -774,7 +1226,7 @@ PROCEDURE tableSecurityCheck :
       .
 
   /* If client side, check local cache to see if already checked and if so use cached value */
-  IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
+  IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN
   DO:
     FIND FIRST ttTableSecurityCheck
          WHERE ttTableSecurityCheck.cOwningEntityMnemonic = pcOwningEntityMnemonic
@@ -787,7 +1239,7 @@ PROCEDURE tableSecurityCheck :
         .
       RETURN.        
     END.
-  END. /* NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) */
+  END. /* NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) */
 
   &IF DEFINED(server-side) <> 0 &THEN
     RUN aftabschkp (INPUT pcOwningEntityMnemonic,
@@ -800,7 +1252,7 @@ PROCEDURE tableSecurityCheck :
   &ENDIF
 
   /* Update client cache */
-  IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
+  IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN
   DO:
     CREATE ttTableSecurityCheck.
     ASSIGN
@@ -808,7 +1260,7 @@ PROCEDURE tableSecurityCheck :
       ttTableSecurityCheck.cEntityFieldName = pcEntityFieldName
       ttTableSecurityCheck.cValidValues = pcValidValues
       .
-  END. /* NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) */
+  END. /* NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) */
 
 RETURN.
 END PROCEDURE.
@@ -836,52 +1288,119 @@ PROCEDURE tokenSecurityCheck :
   Notes:       See Astra Security Documentation for full information.
 ------------------------------------------------------------------------------*/
 
-  DEFINE INPUT PARAMETER  pcObjectName                    AS CHARACTER    NO-UNDO.
-  DEFINE INPUT PARAMETER  pcAttributeCode                 AS CHARACTER    NO-UNDO.
-  DEFINE OUTPUT PARAMETER pcSecurityOptions               AS CHARACTER    NO-UNDO.
-
-  ASSIGN
-      pcSecurityOptions = "":U
-      .
+  DEFINE INPUT  PARAMETER pcObjectName      AS CHARACTER NO-UNDO.
+  DEFINE INPUT  PARAMETER pcAttributeCode   AS CHARACTER NO-UNDO.
+  DEFINE OUTPUT PARAMETER pcSecurityOptions AS CHARACTER NO-UNDO.
 
   /* If client side, check local cache to see if already checked and if so use cached value */
-  IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
-  DO:
-    FIND FIRST ttTokenSecurityCheck
-         WHERE ttTokenSecurityCheck.cObjectName = pcObjectName
-           AND ttTokenSecurityCheck.cAttributeCode = pcAttributeCode
-         NO-ERROR.
-    IF AVAILABLE ttTokenSecurityCheck THEN
-    DO:
-      ASSIGN
-        pcSecurityOptions = ttTokenSecurityCheck.cSecurityOptions
-        .
-      RETURN.        
-    END.
-  END. /* NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) */
+  IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) 
+  THEN DO:
+      FIND FIRST ttTokenSecurityCheck
+           WHERE ttTokenSecurityCheck.cObjectName    = pcObjectName
+             AND ttTokenSecurityCheck.cAttributeCode = pcAttributeCode
+           NO-ERROR.
+
+      IF AVAILABLE ttTokenSecurityCheck 
+      THEN DO:
+          ASSIGN pcSecurityOptions = ttTokenSecurityCheck.cSecurityOptions.
+          RETURN.        
+      END.
+  END.
 
   &IF DEFINED(server-side) <> 0 &THEN
-    RUN aftokschkp (INPUT pcObjectName,
-                    INPUT pcAttributeCode,
-                    OUTPUT pcSecurityOptions).  
+      RUN aftokschkp (INPUT pcObjectName,
+                      INPUT pcAttributeCode,
+                      OUTPUT pcSecurityOptions).  
   &ELSE
-    RUN af/app/aftokschkp.p ON gshAstraAppserver (INPUT pcObjectName,
-                                                  INPUT pcAttributeCode,
-                                                  OUTPUT pcSecurityOptions).
+      RUN af/app/aftokschkp.p ON gshAstraAppserver (INPUT pcObjectName,
+                                                    INPUT pcAttributeCode,
+                                                    OUTPUT pcSecurityOptions).
   &ENDIF
 
   /* Update client cache */
-  IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
-  DO:
-    CREATE ttTokenSecurityCheck.
-    ASSIGN
-      ttTokenSecurityCheck.cObjectName = pcObjectName
-      ttTokenSecurityCheck.cAttributeCode = pcAttributeCode
-      ttTokenSecurityCheck.cSecurityOptions = pcSecurityOptions
-      .
-  END. /* NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) */
+  IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) 
+  THEN DO:
+      CREATE ttTokenSecurityCheck.
+      ASSIGN ttTokenSecurityCheck.cObjectName      = pcObjectName
+             ttTokenSecurityCheck.cAttributeCode   = pcAttributeCode
+             ttTokenSecurityCheck.cSecurityOptions = pcSecurityOptions.
+  END.
 
-RETURN.
+  ASSIGN ERROR-STATUS:ERROR = NO.
+  RETURN "":U.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-tokenSecurityGet) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE tokenSecurityGet Procedure 
+PROCEDURE tokenSecurityGet :
+/*------------------------------------------------------------------------------
+  Purpose:     This procedure will check tokens secured for the passed in object.
+               If a valid procedure handle is passed in, and the object has been secured
+               by the repository manager already, the security stored in the object
+               will be used.  If we can't find the security in the object, we'll fetch
+               the applicable security from the db/Appserver and return it (by running
+               the tokenSecurityCheck procedure).
+  Parameters:  phObject          - The handle to the object being checked.  This parameter
+                                   is optional.  If not specified, a standard security check
+                                   will be done using the object name.
+               pcObjectName      - The name of the object being checked. (Mandatory)
+               pcAttributeCode   - The attribute code of the object being checked. (Mandatory)
+               pcSecurityOptions - The list of secured fields.
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT  PARAMETER phObject          AS HANDLE     NO-UNDO.
+DEFINE INPUT  PARAMETER pcObjectName      AS CHARACTER    NO-UNDO.
+DEFINE INPUT  PARAMETER pcAttributeCode   AS CHARACTER    NO-UNDO.
+DEFINE OUTPUT PARAMETER pcSecurityOptions AS CHARACTER    NO-UNDO.
+
+DEFINE BUFFER ttTokenSecurityCheck FOR ttTokenSecurityCheck.
+
+DEFINE VARIABLE lObjectSecured AS LOGICAL    NO-UNDO.
+
+/* Always check the cache first */
+FIND FIRST ttTokenSecurityCheck
+     WHERE ttTokenSecurityCheck.cObjectName    = pcObjectName
+       AND ttTokenSecurityCheck.cAttributeCode = pcAttributeCode
+     NO-ERROR.
+
+IF AVAILABLE ttTokenSecurityCheck 
+THEN DO:
+    ASSIGN pcSecurityOptions = ttTokenSecurityCheck.cSecurityOptions.
+    RETURN.
+END.
+
+/* Has the object been secured?  No use in trying to get security from it if it hasn't... */
+IF VALID-HANDLE(phObject)
+THEN DO:
+    {get objectSecured lObjectSecured phObject}.
+    IF lObjectSecured
+    THEN DO:
+        {get SecuredTokens pcSecurityOptions phObject}.
+
+        /* Add the security to the security manager cache if its not in yet. */
+        CREATE ttTokenSecurityCheck.
+        ASSIGN ttTokenSecurityCheck.cObjectName      = pcObjectName
+               ttTokenSecurityCheck.cAttributeCode   = pcAttributeCode
+               ttTokenSecurityCheck.cSecurityOptions = pcSecurityOptions.
+        RETURN.
+    END.
+END.
+
+/* If we get here, the object hasn't been secured yet.  We're going to have to get security from the database/Appserver. */
+RUN tokenSecurityCheck (INPUT pcObjectName,
+                        INPUT pcAttributeCode,
+                        OUTPUT pcSecurityOptions).
+
+ASSIGN ERROR-STATUS:ERROR = NO.
+RETURN "":U.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -965,7 +1484,7 @@ PROCEDURE userSecurityCheck :
       .
 
   /* If client side, check local cache to see if already checked and if so use cached value */
-  IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
+  IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN
   DO:
     FIND FIRST ttUserSecurityCheck
          WHERE ttUserSecurityCheck.dUserObj = pdUserObj
@@ -982,7 +1501,7 @@ PROCEDURE userSecurityCheck :
         .
       RETURN.        
     END.
-  END. /* NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) */
+  END. /* NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) */
 
   &IF DEFINED(server-side) <> 0 &THEN
     RUN afusrschkp (INPUT pdUserObj,
@@ -1005,7 +1524,7 @@ PROCEDURE userSecurityCheck :
   &ENDIF
 
   /* Update client cache */
-  IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
+  IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN
   DO:
     CREATE ttUserSecurityCheck.
     ASSIGN
@@ -1017,10 +1536,52 @@ PROCEDURE userSecurityCheck :
       ttUserSecurityCheck.cSecurityValue1 = pcSecurityValue1
       ttUserSecurityCheck.cSecurityValue2 = pcSecurityValue2
       .
-  END. /* NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) */
+  END. /* NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) */
 
 RETURN.
 END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+/* ************************  Function Implementations ***************** */
+
+&IF DEFINED(EXCLUDE-areFieldsCached) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION areFieldsCached Procedure 
+FUNCTION areFieldsCached RETURNS LOGICAL
+  (INPUT pcObjectName   AS CHARACTER,
+   INPUT pcRunAttribute AS CHARACTER) :
+/*------------------------------------------------------------------------------
+  Purpose:  Indicates if security fields for a specific object have been cached.
+    Notes:  
+------------------------------------------------------------------------------*/
+RETURN CAN-FIND(FIRST ttFieldSecurityCheck
+                WHERE ttFieldSecurityCheck.cObjectName    = pcObjectName
+                  AND ttFieldSecurityCheck.cAttributeCode = pcRunAttribute).
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-areTokensCached) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION areTokensCached Procedure 
+FUNCTION areTokensCached RETURNS LOGICAL
+  (INPUT pcObjectName   AS CHARACTER,
+   INPUT pcRunAttribute AS CHARACTER) :
+/*------------------------------------------------------------------------------
+  Purpose:  Indicates if security tokens for a specific object have been cached.
+    Notes:  
+------------------------------------------------------------------------------*/
+RETURN CAN-FIND(FIRST ttTokenSecurityCheck
+                WHERE ttTokenSecurityCheck.cObjectName    = pcObjectName
+                  AND ttTokenSecurityCheck.cAttributeCode = pcRunAttribute).
+END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

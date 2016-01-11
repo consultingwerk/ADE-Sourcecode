@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2002 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -55,17 +55,6 @@
 /*-------------------------------------------------------------------------------*/
 
 /* ***************************  Definitions  ************************** */
-/* MIP-GET-OBJECT-VERSION pre-processors
-   The following pre-processors are maintained automatically when the object is
-   saved. They pull the object and version from Roundtable if possible so that it
-   can be displayed in the about window of the container */
-
-&scop object-name       globals.i
-&scop object-version    010000
-
-
-/* MIP object identifying preprocessor */
-&glob   mip-structured-include  yes
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -123,15 +112,21 @@
 
 DEFINE NEW GLOBAL SHARED VARIABLE  gshAstraAppserver     AS HANDLE    NO-UNDO.    /* Handle to Astra Application Server Partition */
 DEFINE NEW GLOBAL SHARED VARIABLE  gshSessionManager     AS HANDLE    NO-UNDO.    /* Handle Astra Session Manager */
+DEFINE NEW GLOBAL SHARED VARIABLE  gshRIManager          AS HANDLE    NO-UNDO.    /* Handle Astra Session Manager */
 DEFINE NEW GLOBAL SHARED VARIABLE  gshSecurityManager    AS HANDLE    NO-UNDO.    /* Handle Astra Security Manager */
 DEFINE NEW GLOBAL SHARED VARIABLE  gshProfileManager     AS HANDLE    NO-UNDO.    /* Handle Astra Profile Manager */
 DEFINE NEW GLOBAL SHARED VARIABLE  gshRepositoryManager  AS HANDLE    NO-UNDO.    /* Handle Astra Repository Manager */
 DEFINE NEW GLOBAL SHARED VARIABLE  gshTranslationManager AS HANDLE    NO-UNDO.    /* Handle Astra Translation Manager */
 DEFINE NEW GLOBAL SHARED VARIABLE  gshWebManager         AS HANDLE    NO-UNDO.    /* Handle Astra Web Manager */
 DEFINE NEW GLOBAL SHARED VARIABLE  gscSessionId          AS CHARACTER NO-UNDO.    /* Unique session id */
+DEFINE NEW GLOBAL SHARED VARIABLE  gsdSessionObj         AS DECIMAL DECIMALS 9 NO-UNDO.    /* Unique session id */
 DEFINE NEW GLOBAL SHARED VARIABLE  gshFinManager         AS HANDLE    NO-UNDO.    /* Handle AstraFin Generic Manager */
 DEFINE NEW GLOBAL SHARED VARIABLE  gshGenManager         AS HANDLE    NO-UNDO.    /* Handle AstraFramework Generic Manager */
 DEFINE NEW GLOBAL SHARED VARIABLE  gshAgnManager         AS HANDLE    NO-UNDO.    /* Handle AstraGen Generic Manager */
+DEFINE NEW GLOBAL SHARED VARIABLE  gsdTempUniqueID       AS DECIMAL DECIMALS 9  NO-UNDO.    /* A number for unique objects */
+
+
+{src/adm2/custom/globalscustom.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

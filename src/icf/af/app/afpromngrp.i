@@ -98,6 +98,12 @@ af/cod/aftemwizpw.w
                 Date:   28/06/2000  Author:     Anthony Swindells
 
   Update Notes: Write Preferences Window
+                  
+  (v:010007)    Task:                UserRef:    
+                Date:   APR/11/2002  Author:     Mauricio J. dos Santos (MJS) 
+                                                 mdsantos@progress.com
+  Update Notes: Adapted for WebSpeed by changing SESSION:PARAM = "REMOTE" 
+                to SESSION:CLIENT-TYPE = "WEBSPEED" in main block.
 
 ----------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
@@ -110,7 +116,7 @@ af/cod/aftemwizpw.w
    can be displayed in the about window of the container */
 
 &scop object-name       afpromngrp.i
-&scop object-version    010006
+&scop object-version    000000
 
 /* Astra object identifying preprocessor */
 &global-define astraProfileManager  yes
@@ -139,6 +145,18 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 
+/* ************************  Function Prototypes ********************** */
+
+&IF DEFINED(EXCLUDE-getProfileTTHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getProfileTTHandle Procedure 
+FUNCTION getProfileTTHandle RETURNS HANDLE FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 
 /* *********************** Procedure Settings ************************ */
 
@@ -157,7 +175,7 @@ af/cod/aftemwizpw.w
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 9.19
+         HEIGHT             = 20.95
          WIDTH              = 53.4.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -172,7 +190,7 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
@@ -190,9 +208,6 @@ DO:
     DELETE PROCEDURE THIS-PROCEDURE.
     RETURN.
 END.
-
-IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
-  RUN buildClientCache(INPUT "":U). /* load temp-table on client */
 
 &IF DEFINED(server-side) <> 0 &THEN
   PROCEDURE afbldclicp:         {af/app/afbldclicp.p}     END PROCEDURE.
@@ -230,7 +245,7 @@ PROCEDURE buildClientCache :
 
 DEFINE INPUT PARAMETER  pcProfileTypeCodes            AS CHARACTER  NO-UNDO.
 
-IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
+IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN
 DO:
   EMPTY TEMP-TABLE ttProfileData.
 
@@ -283,7 +298,7 @@ DEFINE OUTPUT PARAMETER plExists                      AS LOGICAL    NO-UNDO.
 ASSIGN plExists = NO.
 
 /* check client cache 1st if not remote */
-IF (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) = NO THEN
+IF (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) = NO THEN
 DO:
   IF plCheckPermanentOnly THEN
     FIND FIRST ttProfileData
@@ -342,7 +357,7 @@ PROCEDURE clearClientCache :
   Notes:       Any changes made within the session not already committed to the
                database will be lost.
 ------------------------------------------------------------------------------*/
-IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
+IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN
 DO:
   EMPTY TEMP-TABLE ttProfileData.
 END.
@@ -429,7 +444,7 @@ DEFINE VARIABLE dProfileCodeObj                       AS DECIMAL    NO-UNDO.
 DEFINE VARIABLE lServerProfileType                    AS LOGICAL   NO-UNDO.
 
 /* check client cache 1st if not remote */
-IF (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) = NO THEN
+IF (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) = NO THEN
 DO:
   IF prRowid <> ? THEN
     FIND FIRST ttProfileData
@@ -476,7 +491,7 @@ DEFINE VARIABLE lClientCache                          AS LOGICAL    NO-UNDO.
 /* see if any cached data exists for this profile type. If it does, then the profile data
    must only be got from the cache, as this profile type must be a client side only profile
 */
-IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) AND CAN-FIND(FIRST ttProfileData
+IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) AND CAN-FIND(FIRST ttProfileData
                                    WHERE ttProfileData.cProfileTypeCode = pcProfileTypeCode) THEN
   ASSIGN lClientCache = YES.
 ELSE  
@@ -491,7 +506,7 @@ ELSE
    we will be safe and will simply add any new cached data to the existing temp-table.
    This will only be required if not fully building the cache at login time.
 */   
-IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) AND lClientCache = NO THEN
+IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) AND lClientCache = NO THEN
 DO:
   RUN af/app/afbldclicp.p ON gshAstraAppserver (INPUT pcProfileTypeCode,
                                                 OUTPUT TABLE ttProfileData APPEND).
@@ -501,13 +516,13 @@ END.
    Note: even if no user data exists, at least one record will have been created for
    the user for each profile code in the type, if it is a profile type that should be cached.
 */  
-IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) AND CAN-FIND(FIRST ttProfileData
+IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) AND CAN-FIND(FIRST ttProfileData
                                    WHERE ttProfileData.cProfileTypeCode = pcProfileTypeCode) THEN
   ASSIGN lClientCache = YES.
 ELSE  
   ASSIGN lClientCache = NO.
 
-IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) AND lClientCache = YES THEN 
+IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) AND lClientCache = YES THEN 
 DO:
     FIND FIRST ttProfileData
          WHERE ttProfileData.cProfileTypeCode = pcProfileTypeCode
@@ -592,8 +607,99 @@ PROCEDURE plipShutdown :
   Notes:       
 ------------------------------------------------------------------------------*/
 
-  IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
+  IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN
     RUN updateCacheToDb(INPUT "":U). /* update cache to Database */
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-populateProfileCache) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE populateProfileCache Procedure 
+PROCEDURE populateProfileCache :
+/*------------------------------------------------------------------------------
+  Purpose:     This procedure takes a previously populated set of profiling
+               records, and populates them wiht the profile information set on
+               the database.
+  Parameters:  <none>
+  Notes:       This procedure is only meant to run on the server, and is currently
+               called by cachecontr.p, which only runs when an Appserver is connected.              
+               It is also worth noting that the ttProfileData temp-table in this procedure
+               is not going to correspond to the client side profile cache.  The table will
+               only contain the records we want to populate with information.  
+               The table we receive must have the following fields populated:
+               cProfileTypeCode
+               cProfileCode
+               profile_data_key
+               cAction
+------------------------------------------------------------------------------*/
+DEFINE INPUT-OUTPUT PARAMETER TABLE FOR ttProfileData.
+
+&IF DEFINED(server-side) <> 0 &THEN
+
+/* Cycle through all the profile records sent, and populate them.  Note that if we can not find profile information,                       *
+ * we still return the profile record.  This is so we don't keep on hitting the Appserver because we can't find profile info in the cache. */
+
+fe-blk:
+FOR EACH ttProfileData:
+    FOR FIRST gsc_profile_type NO-LOCK
+        WHERE gsc_profile_type.profile_type_code = ttProfileData.cProfileTypeCode,
+        FIRST gsc_profile_code NO-LOCK
+        WHERE gsc_profile_code.profile_type_obj = gsc_profile_type.profile_type_obj
+          AND gsc_profile_code.profile_code     = ttProfileData.cProfileCode:
+
+        /* We're returning client profile data.  If this profile type applies to the server only, skip. */
+        IF gsc_profile_type.server_profile_type = YES
+        AND (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) 
+        THEN DO:
+            DELETE ttProfileData.
+            NEXT fe-blk.
+        END.
+
+        FIND FIRST gsm_profile_data NO-LOCK
+             WHERE gsm_profile_data.user_obj         = ttProfileData.user_obj
+               AND gsm_profile_data.profile_type_obj = gsc_profile_code.profile_type_obj
+               AND gsm_profile_data.profile_code_obj = gsc_profile_code.profile_code_obj
+               AND gsm_profile_data.profile_data_key = ttProfileData.profile_data_key
+             NO-ERROR.
+
+        IF AVAILABLE gsm_profile_data THEN
+            BUFFER-COPY gsm_profile_data TO ttProfileData.
+        ELSE
+            ASSIGN ttProfileData.profile_type_obj = gsc_profile_type.profile_type_obj
+                   ttProfileData.profile_code_obj = gsc_profile_code.profile_code_obj.
+
+        ASSIGN ttProfileData.cAction = "NON":U. /* If this profile data is updated on the client, this flag will be reset */
+    END.
+END.
+&ENDIF
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-receiveProfileCache) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE receiveProfileCache Procedure 
+PROCEDURE receiveProfileCache :
+/*------------------------------------------------------------------------------
+  Purpose:     This procedure allows the profile cache to be supplemented from
+               an external source.  It is used to receive profile cache from the
+               login process and is also used when a container is launched.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER TABLE FOR ttProfileData APPEND.
+
+ASSIGN ERROR-STATUS:ERROR = NO.
+RETURN "":U.
 
 END PROCEDURE.
 
@@ -653,8 +759,16 @@ DEFINE INPUT PARAMETER  pcProfileDataValue            AS CHARACTER  NO-UNDO.
 DEFINE INPUT PARAMETER  plDeleteFlag                  AS LOGICAL    NO-UNDO.
 DEFINE INPUT PARAMETER  pcSaveFlag                    AS CHARACTER  NO-UNDO.
 
-DEFINE VARIABLE lUpdateCache                          AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE cContextId                            AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE lUpdateCache        AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE cContextId          AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE lAnonymousActivated AS LOGICAL    NO-UNDO.
+
+DEFINE BUFFER bttProfileData FOR ttProfileData.
+
+/* If we're dealing with an anonymous user session, we don't want to save ANY profile data permanently. */
+ASSIGN lAnonymousActivated = (DYNAMIC-FUNCTION("getSessionParam":U, INPUT "allow_anonymous_login":U) = "YES":U) NO-ERROR.
+IF lAnonymousActivated = YES THEN
+    ASSIGN pcSaveFlag = "SES":U.
 
 IF pcSaveFlag = "PER":U THEN
   ASSIGN cContextId = "":U.
@@ -664,11 +778,12 @@ ELSE
 /* see if any cached data exists for this profile type. If it does, then the profile data
    must only be set in the cache, as this profile type must be a client side only profile
 */
-IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) AND CAN-FIND(FIRST ttProfileData
+
+IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) AND CAN-FIND(FIRST ttProfileData
                                    WHERE ttProfileData.cProfileTypeCode = pcProfileTypeCode) THEN
-  ASSIGN lUpdateCache = YES.
+    ASSIGN lUpdateCache = YES.
 ELSE
-  ASSIGN lUpdateCache = NO.
+    ASSIGN lUpdateCache = NO.
 
 /* if running client side and could not find any cached data for this profile type,
    then try and build the cache for this profile type now, then check again.
@@ -679,7 +794,7 @@ ELSE
    we will be safe and will simply add any new cached data to the existing temp-table.
    This will only be required if not fully building the cache at login time.
 */
-IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) AND lUpdateCache = NO THEN
+IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) AND lUpdateCache = NO THEN
 DO:
   RUN af/app/afbldclicp.p ON gshAstraAppserver (INPUT pcProfileTypeCode,
                                                 OUTPUT TABLE ttProfileData APPEND).
@@ -689,7 +804,7 @@ END.
    Note: even if no user data exists, at least one record will have been created for
    the user for each profile code in the type, if it is a profile type that should be cached.
 */
-IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) AND CAN-FIND(FIRST ttProfileData
+IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) AND CAN-FIND(FIRST ttProfileData
                                    WHERE ttProfileData.cProfileTypeCode = pcProfileTypeCode) THEN
   ASSIGN lUpdateCache = YES.
 ELSE
@@ -704,15 +819,39 @@ DO: /* only work with client cache */
     FIND FIRST ttProfileData
          WHERE ROWID(ttProfileData) = prRowid
          NO-ERROR.
+
     IF AVAILABLE ttProfileData THEN
     DO:
+      /* We need to avoid a sticky situation here.  We can only have one record saved permanently and one session for the same keys.     *
+       * If we can find another record with the same keys to be saved the same way, we HAVE to delete it to avoid confusion.             *
+       * IOW if we're saving some profile data for the local session, and we can find another record with the same data for the session, *
+       * delete the other record.                                                                                                        */
+      IF CAN-FIND(FIRST bttProfileData
+                  WHERE bttProfileData.profile_type_obj = ttProfileData.profile_type_obj
+                    AND bttProfileData.profile_code_obj = ttProfileData.profile_code_obj 
+                    AND bttProfileData.profile_data_key = ttProfileData.profile_data_key
+                    AND bttProfileData.context_id       = cContextId
+                    AND bttProfileData.user_obj         = ttProfileData.user_obj
+                    AND ROWID(bttProfileData)          <> ROWID(ttProfileData)) 
+      THEN DO:
+          FIND FIRST bttProfileData
+               WHERE bttProfileData.profile_type_obj = ttProfileData.profile_type_obj
+                 AND bttProfileData.profile_code_obj = ttProfileData.profile_code_obj 
+                 AND bttProfileData.profile_data_key = ttProfileData.profile_data_key
+                 AND bttProfileData.context_id       = cContextId
+                 AND bttProfileData.user_obj         = ttProfileData.user_obj
+                 AND ROWID(bttProfileData)          <> ROWID(ttProfileData)
+               NO-ERROR.       
+          DELETE bttProfileData NO-ERROR.
+      END.
+
       IF plDeleteFlag THEN
-        ASSIGN
-          ttProfileData.cAction = "DEL":U.
+          ASSIGN ttProfileData.cAction    = "DEL":U
+                 ttProfileData.context_id = cContextId.
       ELSE
-        ASSIGN
-          ttProfileData.profile_data_value = pcProfileDataValue
-          ttProfileData.cAction = "MOD":U.
+          ASSIGN ttProfileData.profile_data_value = pcProfileDataValue
+                 ttProfileData.cAction    = "MOD":U
+                 ttProfileData.context_id = cContextId.
     END.
     RETURN.
   END.
@@ -728,12 +867,13 @@ DO: /* only work with client cache */
 
       IF plDeleteFlag THEN
         ASSIGN
-          ttProfileData.cAction = "DEL":U.
+          ttProfileData.cAction = "DEL":U
+          ttProfileData.context_id = cContextId.
       ELSE
         ASSIGN
           ttProfileData.profile_data_value = pcProfileDataValue
-          ttProfileData.cAction = "MOD":U.
-          .
+          ttProfileData.cAction = "MOD":U
+          ttProfileData.context_id = cContextId.
     END.
     RETURN.
   END.  /* wildcard update */
@@ -741,40 +881,41 @@ DO: /* only work with client cache */
   /* If get here, we are setting a specific value and if it does not exist, we should create it */
   FIND FIRST ttProfileData
        WHERE ttProfileData.cProfileTypeCode = pcProfileTypeCode
-         AND ttProfileData.cProfileCode = pcProfileCode
+         AND ttProfileData.cProfileCode     = pcProfileCode
          AND ttProfileData.profile_data_key = pcProfileDataKey
-         AND ttProfileData.CONTEXT_id = cContextId
+         AND ttProfileData.CONTEXT_id       = cContextId
        NO-ERROR.
 
-  IF NOT AVAILABLE ttProfileData AND NOT plDeleteFlag THEN
-  DO:
-    DEFINE BUFFER bttProfileData FOR ttProfileData.
-    FIND FIRST bttProfileData
-         WHERE bttProfileData.cProfileTypeCode = pcProfileTypeCode
-           AND bttProfileData.cProfileCode = pcProfileCode
-         NO-ERROR.
-    IF AVAILABLE bttProfileData THEN
-    DO:
-      CREATE ttProfileData.
-      BUFFER-COPY bttProfileData TO ttProfileData
-        ASSIGN
-          ttProfileData.profile_data_key = pcProfileDataKey
-          ttProfileData.CONTEXT_id = cContextId
-          ttProfileData.cAction = "ADD":U
-          ttProfileData.profile_data_obj = 0
-          .
-    END.
+  IF NOT AVAILABLE ttProfileData AND NOT plDeleteFlag 
+  THEN DO:    
+      FIND FIRST bttProfileData
+           WHERE bttProfileData.cProfileTypeCode = pcProfileTypeCode
+             AND bttProfileData.cProfileCode     = pcProfileCode
+           NO-ERROR.
+
+      IF AVAILABLE bttProfileData 
+      THEN DO:
+          CREATE ttProfileData.
+          BUFFER-COPY bttProfileData TO ttProfileData
+          ASSIGN ttProfileData.profile_data_key = pcProfileDataKey
+                 ttProfileData.CONTEXT_id       = cContextId
+                 ttProfileData.cAction          = "ADD":U
+                 ttProfileData.profile_data_obj = 0.
+      END.
   END.
-  ELSE ASSIGN ttProfileData.cAction = (IF plDeleteFlag THEN "DEL":U ELSE "MOD":U).
+  ELSE
+      ASSIGN ttProfileData.cAction = (IF plDeleteFlag THEN "DEL":U ELSE "MOD":U).
 
   IF AVAILABLE ttProfileData AND NOT plDeleteFlag THEN
-    ASSIGN
-      ttProfileData.CONTEXT_id = cContextId    
-      ttProfileData.profile_data_value = pcProfileDataValue.
+    ASSIGN ttProfileData.CONTEXT_id         = cContextId
+           ttProfileData.profile_data_value = pcProfileDataValue.
 
 END.  /* update cache */
 ELSE
 DO: /* update database */
+  /* Clear the ERROR-STATUS */
+  ERROR-STATUS:ERROR = FALSE.
+
   &IF DEFINED(server-side) <> 0 &THEN
     RUN afsetpdatp (INPUT pcProfileTypeCode,
                     INPUT pcProfileCode,
@@ -792,10 +933,9 @@ DO: /* update database */
                                                   INPUT plDeleteFlag,
                                                   INPUT pcSaveFlag).
   &ENDIF
+  {af/sup2/afcheckerr.i &display-error = YES}   /* check for errors and display if can */
 END.
-
-{af/sup2/afcheckerr.i &display-error = YES}   /* check for errors and display if can */
-
+ 
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -819,7 +959,7 @@ PROCEDURE updateCacheToDb :
 
 DEFINE INPUT PARAMETER  pcProfileTypeCodes            AS CHARACTER  NO-UNDO.
 
-IF NOT (SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U) THEN
+IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) THEN
 DO:
 
   &IF DEFINED(server-side) <> 0 &THEN
@@ -835,6 +975,26 @@ DO:
 END.
 
 END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+/* ************************  Function Implementations ***************** */
+
+&IF DEFINED(EXCLUDE-getProfileTTHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getProfileTTHandle Procedure 
+FUNCTION getProfileTTHandle RETURNS HANDLE:
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/  
+
+  RETURN TEMP-TABLE ttProfileData:HANDLE.
+
+END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

@@ -57,6 +57,8 @@ History:
     04/18/01 Added check for stored procedure parameter @RETURN_VALUE new for SQL Server 2000
     10/16/01 D. McMann Added logic for fields that begin with progress_
     04/02/02 D. McMann Added logic to increase counter after ident field
+    07/01/02 D. McMann Added logic to set pro_case to false if case-insentive code page.
+                       20020701-004
     
 */
 
@@ -741,6 +743,8 @@ for each gate-work
                s_ttb_fld.ds_shdn  = shadow_col_name
                shadow_col         = -1
                shadow_col_name    = ? .
+      ELSE IF DICTDB._Db._Db-Misc1[1] = 1 THEN
+          ASSIGN s_ttb_fld.pro_case = FALSE.
 
     end.      /* for each SQLColumns_buffer */
     
@@ -1200,6 +1204,8 @@ for each gate-work
                   s_ttb_fld.ds_shdn  = shadow_col_name
                   shadow_col         = -1
                   shadow_col_name    = ? .
+        ELSE IF DICTDB._Db._Db-misc1[1] = 1 THEN
+            ASSIGN s_ttb_fld.pro_case = FALSE.
 
      end.      /* for each SQLProcCols_buffer */
     

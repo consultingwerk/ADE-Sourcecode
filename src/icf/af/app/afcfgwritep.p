@@ -203,193 +203,21 @@ PROCEDURE buildTempTables :
 ------------------------------------------------------------------------------*/
   DEFINE INPUT  PARAMETER pcSessionTypes  AS CHARACTER  NO-UNDO.
 
-  DEFINE VARIABLE cMessage    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cText       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iOrder      AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cDateFormat AS CHARACTER  NO-UNDO.
-
-  DEFINE BUFFER b_ConMgr FOR gsc_manager_type.
-
-  /* Find out which is the connection manager's obj.
-     Without the connection manager, nothing else will work. 
-     As we need this for all the session types, we'll read this buffer
-     here and hold onto it.*/
-  FIND FIRST b_ConMgr NO-LOCK
-    WHERE b_ConMgr.manager_type_code = "ConnectionManager":U
-    NO-ERROR.
-  IF NOT AVAILABLE(b_ConMgr) THEN
-  DO:
-    cMessage = {aferrortxt.i 'AF' '124' '?' '?' "'ConnectionManager Manager Type not specified'"}.
-    RETURN cMessage.
-  END.
+  DEFINE BUFFER bgsm_session_type           FOR gsm_session_type.
 
   /* First lets populate the temp-tables */
-  FOR EACH gsm_session_type NO-LOCK
-    WHERE CAN-DO(pcSessionTypes,gsm_session_type.session_type_code):
+  FOR EACH bgsm_session_type NO-LOCK
+    WHERE CAN-DO(pcSessionTypes,bgsm_session_type.session_type_code):
 
     CREATE ttSession.
     ASSIGN
-      ttSession.cSessionType = gsm_session_type.session_type_code
+      ttSession.cSessionType = bgsm_session_type.session_type_code
       .
 
-    /* Set the property for valid OS list */
-    setProperty(gsm_session_type.session_type_code,
-                "valid_os_list":U,
-                gsm_session_type.valid_os_list).
+    RUN deriveSessionFromParent(bgsm_session_type.session_type_obj, bgsm_session_type.session_type_code).
+    {afcheckerr.i &return-only = yes}
 
-    /* Set the property for physical session list */
-    setProperty(gsm_session_type.session_type_code,
-                "physical_session_list":U,
-                gsm_session_type.physical_session_list).
-
-    /* Now loop through the session property table */
-    FOR EACH gsc_session_property NO-LOCK:
-
-      /* Try and find a specific gsm_session_type property for this 
-         session type */
-      FIND FIRST gsm_session_type_property NO-LOCK
-        WHERE gsm_session_type_property.session_property_obj = gsc_session_property.session_property_obj
-          AND gsm_session_type_property.session_type_obj = gsm_session_type.session_type_obj
-        NO-ERROR.
-
-      /* If we find one, set that property */
-      IF AVAILABLE(gsm_session_type_property) THEN
-        setProperty(gsm_session_type.session_type_code,
-                    gsc_session_property.session_property_name,
-                    gsm_session_type_property.property_value).
-
-      /* If we don't find a specific entry for this session type and
-         the property is supposed to always be used, set the property
-         to the default value. */
-      ELSE IF gsc_session_property.always_used THEN
-        setProperty(gsm_session_type.session_type_code,
-                    gsc_session_property.session_property_name,
-                    gsc_session_property.default_property_value).
-
-    END. /* FOR EACH gsc_session_property */
-
-
-    /* Now see if a session_date_format has been set. */
-    cDateFormat = getProperty(gsm_session_type.session_type_code,
-                              "session_date_format":U).
-    IF cDateFormat = ? OR
-       cDateFormat = "":U THEN
-    DO:
-      FIND FIRST gsc_global_control NO-LOCK
-        NO-ERROR.
-      IF AVAILABLE(gsc_global_control) AND
-        gsc_global_control.date_format <> ? AND
-        gsc_global_control.date_format <> "":U THEN
-        setProperty(gsm_session_type.session_type_code,
-                    "session_date_format":U,
-                    gsc_global_control.date_format).
-
-    END.
-                    
-
-    /* See if we can find the manager procedure for the connection manager */
-    FIND FIRST gsm_required_manager NO-LOCK
-      WHERE gsm_required_manager.manager_type_obj = b_ConMgr.manager_type_obj
-        AND gsm_required_manager.session_type_obj = gsm_session_type.session_type_obj
-      NO-ERROR.
-    IF NOT AVAILABLE(gsm_required_manager) THEN
-    DO:
-      cText    = "ConnectionManager not specified for session type " + gsm_session_type.session_type_code.
-      cMessage = {aferrortxt.i 'AF' '124' '?' '?' "cText" }.
-      RETURN cMessage.
-    END.
-
-    /* Add the connection manager to the list of managers */
-    addManager(INPUT BUFFER gsm_required_manager:HANDLE, "":U, "":U, 0.0).
-
-    /* Create a record for each of the Service Types Connection Managers that have to be 
-       started */
-    FOR EACH gsm_session_service NO-LOCK
-      WHERE gsm_session_service.session_type_obj = gsm_session_type.session_type_obj:
-
-      /* Find the logical service */
-      FIND FIRST gsc_logical_service NO-LOCK
-        WHERE gsc_logical_service.logical_service_obj = gsm_session_service.logical_service_obj
-        NO-ERROR.
-      IF NOT AVAILABLE(gsc_logical_service) OR
-         NOT gsc_logical_service.write_to_config THEN
-        NEXT.
-
-      /* Find the physical service */
-      FIND FIRST gsm_physical_service NO-LOCK
-        WHERE gsm_physical_service.physical_service_obj = gsm_session_service.physical_service_obj
-        NO-ERROR.
-      IF NOT AVAILABLE(gsm_physical_service) THEN
-        NEXT.
-
-      /* Now find the service type */
-      FIND FIRST gsc_service_type NO-LOCK
-        WHERE gsc_service_type.service_type_obj = gsc_logical_service.service_type_obj
-        NO-ERROR.
-      IF NOT AVAILABLE(gsc_service_type) THEN
-        NEXT.
-
-      /* Add the manager object to the manager list */
-      addManager(?,
-                 gsm_session_type.session_type_code,
-                 gsc_service_type.service_type_code + "ConnectionManager":U,
-                 gsc_service_type.management_object_obj).
-
-      /* Set the property for this connection manager */
-      setProperty(gsm_session_type.session_type_code,
-                  "ICFCM_":U + gsc_service_type.service_type_code,
-                  gsc_service_type.service_type_code + "ConnectionManager":U).
-
-      iOrder = getNextOrderNum(INPUT BUFFER ttService:HANDLE,
-                               gsm_session_type.session_type_code).
-      CREATE ttService.
-      ASSIGN
-        ttService.cSessionType     = gsm_session_type.session_type_code
-        ttService.iOrder           = iOrder
-        ttService.cServiceType     = gsc_service_type.service_type_code
-        ttService.cServiceName     = gsc_logical_service.logical_service_code
-        ttService.cPhysicalService = gsm_physical_service.physical_service_code
-        ttService.cConnectParams   = gsm_physical_service.connection_parameters
-        ttService.lDefaultService  = gsc_logical_service.logical_service_obj = gsc_service_type.default_logical_service_obj
-        ttService.lCanRunLocal     = gsc_logical_service.can_run_locally
-        .
-
-    END. /* FOR EACH gsm_session_service */
-
-
-    /* We should always add the AppServer and Database connection managers */
-    FOR EACH gsc_service_type NO-LOCK  
-      WHERE gsc_service_type.service_type_code = "AppServer":U
-         OR gsc_service_type.service_type_code = "Database":U:
-  
-      /* Add the manager object to the manager list */
-      addManager(?,
-                 gsm_session_type.session_type_code,
-                 gsc_service_type.service_type_code + "ConnectionManager":U,
-                 gsc_service_type.management_object_obj).
-  
-      /* Set the property for this connection manager */
-      setProperty(gsm_session_type.session_type_code,
-                  "ICFCM_":U + gsc_service_type.service_type_code,
-                  gsc_service_type.service_type_code + "ConnectionManager":U).
-    END.
-
-    /* Now just add the managers that are left over */
-    FOR EACH gsm_required_manager NO-LOCK
-      WHERE gsm_required_manager.session_type_obj = gsm_session_type.session_type_obj
-      BY gsm_required_manager.session_type_obj
-      BY gsm_required_manager.startup_order:
-
-      /* We've already set up the connection manager, so skip it */
-      IF gsm_required_manager.manager_type_obj = b_ConMgr.manager_type_obj THEN
-        NEXT.
-
-      addManager(INPUT BUFFER gsm_required_manager:HANDLE, "":U, "":U, 0.0).
-
-    END. /* FOR EACH gsm_required_manager */
-
-  END. /* FOR EACH gsm_session_type */
-
+  END. /* FOR EACH bgsm_session_type */
 
 END PROCEDURE.
 
@@ -533,6 +361,268 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-deriveSessionFromParent) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE deriveSessionFromParent Procedure 
+PROCEDURE deriveSessionFromParent :
+/*------------------------------------------------------------------------------
+  Purpose:     Recurses the session values from a top level session down onto
+               the child.
+  Parameters:  
+    poParentObj   - the object ID of the parent session.
+    pcSessionType - the session type to add these data for.
+    
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER poParentObj   AS DECIMAL    NO-UNDO.
+  DEFINE INPUT  PARAMETER pcSessionType AS CHARACTER  NO-UNDO.
+
+  DEFINE VARIABLE cMessage    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cText       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iOrder      AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cDateFormat AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cPropValue  AS CHARACTER  NO-UNDO.
+
+  DEFINE BUFFER bgsm_session_type           FOR gsm_session_type.
+  DEFINE BUFFER bgsm_session_type_property  FOR gsm_session_type_property.
+  DEFINE BUFFER bgsm_required_manager       FOR gsm_required_manager.
+  DEFINE BUFFER bgsm_session_service        FOR gsm_session_service.
+  DEFINE BUFFER bgsm_physical_service       FOR gsm_physical_service.
+  DEFINE BUFFER bgsc_manager_type           FOR gsc_manager_type.
+  DEFINE BUFFER bgsc_session_property       FOR gsc_session_property.
+  DEFINE BUFFER bgsc_global_control         FOR gsc_global_control.
+  DEFINE BUFFER bgsc_logical_service        FOR gsc_logical_service.
+  DEFINE BUFFER bgsc_service_type           FOR gsc_service_type.
+  DEFINE BUFFER b_ConMgr                    FOR gsc_manager_type.
+  DEFINE BUFFER bttManager                  FOR ttManager.
+
+  /* Find out which is the connection manager's obj.
+     Without the connection manager, nothing else will work. 
+     As we need this for all the session types, we'll read this buffer
+     here and hold onto it.*/
+  FIND FIRST b_ConMgr NO-LOCK
+    WHERE b_ConMgr.manager_type_code = "ConnectionManager":U
+    NO-ERROR.
+  IF NOT AVAILABLE(b_ConMgr) THEN
+  DO:
+    cMessage = {aferrortxt.i 'AF' '124' '?' '?' "'ConnectionManager Manager Type not specified'"}.
+    RETURN cMessage.
+  END.
+
+  /* First lets populate the temp-tables */
+  FIND FIRST bgsm_session_type NO-LOCK
+    WHERE bgsm_session_type.session_type_obj = poParentObj
+    NO-ERROR.
+  IF NOT AVAILABLE(bgsm_session_type) THEN
+  DO:
+    cMessage = {aferrortxt.i 'AF' '124' '?' '?' "'ConnectionManager Manager Type not specified'"}.
+    RETURN cMessage.
+  END.
+
+  IF bgsm_session_type.extends_session_type_obj <> 0.0 AND
+     bgsm_session_type.extends_session_type_obj <> ? THEN
+  DO:
+    RUN deriveSessionFromParent(bgsm_session_type.extends_session_type_obj, pcSessionType).
+    {afcheckerr.i &return-only = yes}
+  END.
+
+  /* Set the property for valid OS list */
+  setProperty(pcSessionType,
+              "valid_os_list":U,
+              bgsm_session_type.valid_os_list).
+
+  /* Set the property for physical session list */
+  setProperty(pcSessionType,
+              "physical_session_list":U,
+              bgsm_session_type.physical_session_list).
+
+  /* Now loop through the session property table */
+  FOR EACH bgsc_session_property NO-LOCK:
+
+    /* Try and find a specific bgsm_session_type property for this 
+       session type */
+    FIND FIRST bgsm_session_type_property NO-LOCK
+      WHERE bgsm_session_type_property.session_property_obj = bgsc_session_property.session_property_obj
+        AND bgsm_session_type_property.session_type_obj = bgsm_session_type.session_type_obj
+      NO-ERROR.
+
+    /* If we find one, set that property */
+    IF AVAILABLE(bgsm_session_type_property) THEN
+      setProperty(pcSessionType,
+                  bgsc_session_property.session_property_name,
+                  bgsm_session_type_property.property_value).
+
+    /* If we don't find a specific entry for this session type and
+       the property is supposed to always be used, set the property
+       to the default value. */
+    ELSE IF bgsc_session_property.always_used THEN
+    DO:
+      /* First check if there is a property in the property temp-table. If there
+         is it may have been overridden by the parent, so we don't set it here. */
+      cPropValue = getProperty(pcSessionType,
+                               bgsc_session_property.session_property_name).
+      IF cPropValue = ? OR
+         cPropValue = "":U THEN
+        setProperty(pcSessionType,
+                    bgsc_session_property.session_property_name,
+                    bgsc_session_property.default_property_value).
+    END.
+
+  END. /* FOR EACH bgsc_session_property */
+
+
+  /* Now see if a session_date_format has been set. */
+  cDateFormat = getProperty(pcSessionType,
+                            "session_date_format":U).
+  IF cDateFormat = ? OR
+     cDateFormat = "":U THEN
+  DO:
+    FIND FIRST bgsc_global_control NO-LOCK
+      NO-ERROR.
+    IF AVAILABLE(bgsc_global_control) AND
+      bgsc_global_control.date_format <> ? AND
+      bgsc_global_control.date_format <> "":U THEN
+      setProperty(pcSessionType,
+                  "session_date_format":U,
+                  bgsc_global_control.date_format).
+
+  END.
+                  
+
+  /* See if we can find the manager procedure for the connection manager */
+  FIND FIRST bgsm_required_manager NO-LOCK
+    WHERE bgsm_required_manager.manager_type_obj = b_ConMgr.manager_type_obj
+      AND bgsm_required_manager.session_type_obj = bgsm_session_type.session_type_obj
+    NO-ERROR.
+  IF NOT AVAILABLE(bgsm_required_manager) THEN
+  DO:
+    /* None of the parents have specified a connection manager, so we need to 
+       see if one has already been specified. */                                                                
+    FIND FIRST bttManager 
+      WHERE bttManager.cSessionType = pcSessionType 
+        AND bttManager.cManagerName = "ConnectionManager":U
+      NO-ERROR.
+    IF NOT AVAILABLE(bttManager) THEN
+    DO:
+      cText    = "ConnectionManager not specified for session type " + pcSessionType.
+      cMessage = {aferrortxt.i 'AF' '124' '?' '?' "cText" }.
+      RETURN cMessage.
+    END.
+  END.
+  ELSE
+    /* Add the connection manager to the list of managers */
+    addManager(INPUT BUFFER bgsm_required_manager:HANDLE, pcSessionType, "":U, 0.0).
+
+  /* Create a record for each of the Service Types Connection Managers that have to be 
+     started */
+  FOR EACH bgsm_session_service NO-LOCK
+    WHERE bgsm_session_service.session_type_obj = bgsm_session_type.session_type_obj:
+
+    /* Find the logical service */
+    FIND FIRST bgsc_logical_service NO-LOCK
+      WHERE bgsc_logical_service.logical_service_obj = bgsm_session_service.logical_service_obj
+      NO-ERROR.
+    IF NOT AVAILABLE(bgsc_logical_service) OR
+       NOT bgsc_logical_service.write_to_config THEN
+      NEXT.
+
+    /* Find the physical service */
+    FIND FIRST bgsm_physical_service NO-LOCK
+      WHERE bgsm_physical_service.physical_service_obj = bgsm_session_service.physical_service_obj
+      NO-ERROR.
+    IF NOT AVAILABLE(bgsm_physical_service) THEN
+      NEXT.
+
+    /* Now find the service type */
+    FIND FIRST bgsc_service_type NO-LOCK
+      WHERE bgsc_service_type.service_type_obj = bgsc_logical_service.service_type_obj
+      NO-ERROR.
+    IF NOT AVAILABLE(bgsc_service_type) THEN
+      NEXT.
+
+    /* Add the manager object to the manager list */
+    addManager(?,
+               pcSessionType,
+               bgsc_service_type.service_type_code + "ConnectionManager":U,
+               bgsc_service_type.management_object_obj).
+
+    /* Set the property for this connection manager */
+    setProperty(pcSessionType,
+                "ICFCM_":U + bgsc_service_type.service_type_code,
+                bgsc_service_type.service_type_code + "ConnectionManager":U).
+
+
+    FIND FIRST ttService 
+      WHERE ttService.cSessionType = pcSessionType
+        AND ttService.cServiceName = bgsc_logical_service.logical_service_code
+      NO-ERROR.
+    IF NOT AVAILABLE(ttService) THEN
+    DO:
+      iOrder = getNextOrderNum(INPUT BUFFER ttService:HANDLE,
+                               pcSessionType).
+      CREATE ttService.
+      ASSIGN
+        ttService.cSessionType     = pcSessionType
+        ttService.iOrder           = iOrder
+        ttService.cServiceType     = bgsc_service_type.service_type_code
+        ttService.cServiceName     = bgsc_logical_service.logical_service_code
+        ttService.cPhysicalService = bgsm_physical_service.physical_service_code
+        ttService.cConnectParams   = bgsm_physical_service.connection_parameters
+        ttService.lDefaultService  = bgsc_logical_service.logical_service_obj = bgsc_service_type.default_logical_service_obj
+        ttService.lCanRunLocal     = bgsc_logical_service.can_run_locally
+        .
+    END.
+    ELSE
+    DO:
+      ASSIGN
+        ttService.cPhysicalService = bgsm_physical_service.physical_service_code
+        ttService.cConnectParams   = bgsm_physical_service.connection_parameters
+        ttService.lDefaultService  = bgsc_logical_service.logical_service_obj = bgsc_service_type.default_logical_service_obj
+        ttService.lCanRunLocal     = bgsc_logical_service.can_run_locally
+        .
+    END.
+
+  END. /* FOR EACH bgsm_session_service */
+
+
+  /* We should always add the AppServer and Database connection managers */
+  FOR EACH bgsc_service_type NO-LOCK  
+    WHERE bgsc_service_type.service_type_code = "AppServer":U
+       OR bgsc_service_type.service_type_code = "Database":U:
+
+    /* Add the manager object to the manager list */
+    addManager(?,
+               pcSessionType,
+               bgsc_service_type.service_type_code + "ConnectionManager":U,
+               bgsc_service_type.management_object_obj).
+
+    /* Set the property for this connection manager */
+    setProperty(pcSessionType,
+                "ICFCM_":U + bgsc_service_type.service_type_code,
+                bgsc_service_type.service_type_code + "ConnectionManager":U).
+  END.
+
+  /* Now just add the managers that are left over */
+  FOR EACH bgsm_required_manager NO-LOCK
+    WHERE bgsm_required_manager.session_type_obj = bgsm_session_type.session_type_obj
+    BY bgsm_required_manager.session_type_obj
+    BY bgsm_required_manager.startup_order:
+
+    /* We've already set up the connection manager, so skip it */
+    IF bgsm_required_manager.manager_type_obj = b_ConMgr.manager_type_obj THEN
+      NEXT.
+
+    addManager(INPUT BUFFER bgsm_required_manager:HANDLE, pcSessionType, "":U, 0.0).
+
+  END. /* FOR EACH bgsm_required_manager */
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-killPlip) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE killPlip Procedure 
@@ -664,7 +754,7 @@ PROCEDURE writeConfigXML :
 
   CREATE X-DOCUMENT hXMLDoc.
 
-  hXMLDoc:ENCODING = SESSION:CPSTREAM.
+  hXMLDoc:ENCODING = "utf-8":U.
 
   /* Create a root node */
   hRootNode = DYNAMIC-FUNCTION("createElementNode":U IN ghXMLHlpr,
@@ -733,10 +823,10 @@ FUNCTION addManager RETURNS LOGICAL
     Notes:  
 ------------------------------------------------------------------------------*/
 
-  DEFINE BUFFER bttManager FOR ttManager.
-  DEFINE BUFFER bgsc_Object FOR gsc_object.
-  DEFINE BUFFER bgsc_Manager FOR gsc_manager_type.
-  DEFINE BUFFER bgsm_Session FOR gsm_session_type.
+  DEFINE BUFFER bttManager       FOR ttManager.
+  DEFINE BUFFER bryc_smartobject FOR ryc_smartobject.
+  DEFINE BUFFER bgsc_Manager     FOR gsc_manager_type.
+  DEFINE BUFFER bgsm_Session     FOR gsm_session_type.
 
   DEFINE VARIABLE hSessionObj AS HANDLE   NO-UNDO.
   DEFINE VARIABLE hObjectObj  AS HANDLE   NO-UNDO.
@@ -748,24 +838,31 @@ FUNCTION addManager RETURNS LOGICAL
   DEFINE VARIABLE cHandleName   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE dObjectObj    AS DECIMAL DECIMALS 9   NO-UNDO.
 
-
   DEFINE VARIABLE iOrder    AS INTEGER    NO-UNDO.
 
   /* If the buffer handle was specified, read the data from the database. */
   IF VALID-HANDLE(phRequiredManager) THEN
   DO:
-        /* Get the obj fields for the related tables */
+    /* Get the obj fields for the related tables */
+
     hSessionObj = phRequiredManager:BUFFER-FIELD("session_type_obj":U).
-    hObjectObj = phRequiredManager:BUFFER-FIELD("object_obj":U).
+    hObjectObj  = phRequiredManager:BUFFER-FIELD("object_obj":U).
     hManagerObj = phRequiredManager:BUFFER-FIELD("manager_type_obj":U).
 
-
-    /* Get the session type record */
-    FIND FIRST bgsm_Session NO-LOCK
-      WHERE bgsm_Session.session_type_obj = hSessionObj:BUFFER-VALUE
-      NO-ERROR.
-    IF NOT AVAILABLE(bgsm_Session) THEN
-      RETURN FALSE.
+    IF pcSessionType <> "":U THEN
+    DO:
+      cSessionType = pcSessionType.
+    END.
+    ELSE
+    DO:
+      /* Get the session type record */
+      FIND FIRST bgsm_Session NO-LOCK
+        WHERE bgsm_Session.session_type_obj = hSessionObj:BUFFER-VALUE
+        NO-ERROR.
+      IF NOT AVAILABLE(bgsm_Session) THEN
+        RETURN FALSE.
+      cSessionType = bgsm_Session.session_type_code.
+    END.
 
     /* Get the manager type record */
     FIND FIRST bgsc_Manager NO-LOCK
@@ -775,7 +872,6 @@ FUNCTION addManager RETURNS LOGICAL
       RETURN FALSE.
 
     ASSIGN
-      cSessionType = bgsm_Session.session_type_code
       cManagerName = bgsc_Manager.manager_type_code
       cHandleName  = bgsc_Manager.static_handle
       dObjectObj   = hObjectObj:BUFFER-VALUE
@@ -787,23 +883,25 @@ FUNCTION addManager RETURNS LOGICAL
     ASSIGN
       cSessionType = pcSessionType
       cManagerName = pcManagerName
-      cHandleName  = "":U
+      cHandleName  = "NON":U
       dObjectObj   = pdObjectObj
       .
   END.
 
-  /* Get the gsc_object record to base this on */
-  FIND FIRST bgsc_Object NO-LOCK
-    WHERE bgsc_Object.object_obj = dObjectObj
-    NO-ERROR.
-  IF NOT AVAILABLE(bgsc_Object) THEN
+  /* Get the ryc_smartobject record to base this on */
+
+  FIND FIRST bryc_smartobject NO-LOCK
+       WHERE bryc_smartobject.smartobject_obj = dObjectObj
+       NO-ERROR.
+
+  IF NOT AVAILABLE(bryc_smartobject) THEN
     RETURN FALSE.
 
   /* Build up the filename */
-  cFileName = bgsc_object.object_path 
-            + (IF bgsc_object.object_path <> "":U THEN "/":U ELSE "":U)
-            + bgsc_object.object_filename
-            + (IF bgsc_object.object_extension <> "":U THEN "." + bgsc_object.object_extension ELSE "":U).
+  cFileName = bryc_smartobject.object_path 
+            + (IF bryc_smartobject.object_path <> "":U THEN "/":U ELSE "":U)
+            + bryc_smartobject.object_filename
+            + (IF bryc_smartobject.object_extension <> "":U THEN "." + bryc_smartobject.object_extension ELSE "":U).
 
   /* Add this manager to the table */                                                                
   FIND FIRST bttManager 

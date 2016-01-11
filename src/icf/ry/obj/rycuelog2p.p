@@ -125,7 +125,7 @@ ASSIGN cObjectName = "{&object-name}":U.
 
 /* Data Preprocessor Definitions */
 &GLOB DATA-LOGIC-TABLE ryc_ui_event
-&GLOB DATA-FIELD-DEFS  "ry\obj\rycueful2o.i"
+&GLOB DATA-FIELD-DEFS  "ry/obj/rycueful2o.i"
 
 /* Error handling definitions */
 {af/sup2/afcheckerr.i &define-only = YES}
@@ -148,6 +148,8 @@ ASSIGN cObjectName = "{&object-name}":U.
 &ENDIF
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
+
+
 
 
 
@@ -322,6 +324,9 @@ PROCEDURE rowObjectValidate :
 
   DEFINE VARIABLE cMessageList    AS CHARACTER    NO-UNDO.
   DEFINE VARIABLE cValueList      AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE hDesignManager  AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE cObjectTypeCode AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE lFoundUIEvent   AS LOGICAL      NO-UNDO.
 
   IF b_ryc_ui_event.object_type_obj = 0 OR b_ryc_ui_event.object_type_obj = ? THEN
     ASSIGN
@@ -347,6 +352,22 @@ PROCEDURE rowObjectValidate :
     ASSIGN
       cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
                     {af/sup2/aferrortxt.i 'AF' '1' 'ryc_ui_event' 'container_smartobject_obj' "'Container SmartObject Obj'"}.
+
+  /* Check if UI Event is valid for this object type */
+  IF b_ryc_ui_event.smartobject_obj <> 0 THEN DO:
+   hDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U, INPUT "RepositoryDesignManager":U).
+   cObjectTypeCode = DYNAMIC-FUNCTION("getObjectTypeCodeFromDB":U IN hDesignManager, b_ryc_ui_event.object_type_obj).
+   lFoundUIEvent = DYNAMIC-FUNCTION("classHasAttribute" IN gshRepositoryManager, cObjectTypeCode,b_ryc_ui_event.event_name,TRUE).
+   IF NOT lFoundUIEvent THEN DO:
+     RUN clearClientCache IN gshRepositoryManager.
+     lFoundUIEvent = DYNAMIC-FUNCTION("classHasAttribute" IN gshRepositoryManager, cObjectTypeCode,b_ryc_ui_event.event_name,TRUE).
+   END.
+   IF NOT lFoundUIEvent THEN DO:
+     cObjectTypeCode = "The UI Event specified is not valid for the object's class. (" + cObjectTypeCode + ")":U.
+     cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
+                   {af/sup2/aferrortxt.i 'AF' '5' 'ryc_ui_event' 'event_name' "'Event Name'" cObjectTypeCode}.
+    END.
+  END.
 
   ERROR-STATUS:ERROR = NO.
   RETURN cMessageList.

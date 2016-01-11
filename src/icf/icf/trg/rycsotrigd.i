@@ -79,7 +79,7 @@
                                                                         */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Include 
@@ -102,6 +102,20 @@ FOR EACH ryc_attribute_value NO-LOCK
       DO:
         {af/sup/afvalidtrg.i &action = "DELETE" &table = "lbe_attribute_value"}
       END.
+END.
+
+/* Issue 6732.. RESTRICT deletion of a default object if there still exists 
+                a custom version */
+DEFINE BUFFER buff_smartObject FOR ryc_smartObject.
+IF ryc_smartobject.customization_result_obj = 0 
+   AND CAN-FIND(FIRST buff_smartObject 
+                WHERE buff_smartObject.object_filename = ryc_smartobject.object_filename
+                  AND buff_smartObject.customization_result_obj > 0 ) THEN
+DO:
+      /* Cannot delete parent because child exists! */
+      ASSIGN lv-error = YES lv-errgrp = "AF ":U lv-errnum = 101 
+             lv-include = ryc_smartObject.object_filename + "| a custom object":U.
+      RUN error-message (lv-errgrp, lv-errnum, lv-include).
 END.
 
 /* _UIB-CODE-BLOCK-END */

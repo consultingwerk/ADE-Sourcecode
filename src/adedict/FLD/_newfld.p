@@ -35,6 +35,7 @@ Date Created: 02/05/92
     Modified: 07/10/98 Added _Owner check for _File.
               12/11/98 Check for duplicate order numbers, warn and prevent.
               05/01/00 DLM Added _owner to find that was missed 20000428020
+              10/01/02 DLM Changed check for SQL tables.
 ----------------------------------------------------------------------------*/
 
 
@@ -367,7 +368,7 @@ end.
 
 find _File where RECID(_File) = s_TblRecId.
 msg = "".
-if _File._Db-lang = {&TBLTYP_SQL} then
+if _File._Db-lang >= {&TBLTYP_SQL} then
    msg = "This is a PROGRESS/SQL table.  Use ALTER TABLE/ADD COLUMN.".
 else if _File._Frozen then  
    msg = "This table is frozen and cannot be modified.".

@@ -45,6 +45,7 @@ Updated: 12/9/97 adams added WebSpeed support
 DEFINE INPUT PARAMETER p_Urecid AS RECID NO-UNDO.
 DEFINE INPUT PARAMETER p_TRASH  AS LOGICAL NO-UNDO.
 
+DEFINE SHARED VAR _h_menubar_proc  AS HANDLE   NO-UNDO. /* Dynamics prop sheet */
 {adeuib/uniwidg.i}   /* Universal Widget Records */
 {adeuib/layout.i}    /* Layout information */
 {adeuib/brwscols.i}  /* Browse column definitions */
@@ -52,6 +53,7 @@ DEFINE INPUT PARAMETER p_TRASH  AS LOGICAL NO-UNDO.
 {adeuib/links.i}     /* Links */
 {adeuib/xftr.i}      /* XFTR's */
 {adeweb/htmwidg.i}   /* WebSpeed _HTM temp-table */
+
 
 /* Find a _U record and delete it */
 FIND _U WHERE RECID(_U) eq p_Urecid.

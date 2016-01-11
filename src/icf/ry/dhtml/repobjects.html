@@ -1,0 +1,66 @@
+<html>
+<head>
+<style>
+body  {font-family: arial;}
+table {background-color: #ECFFED;
+       border-left-style: solid;
+       border-bottom-style: solid;
+       border-width: 1;}
+th    {background-color: #ABFEAF;
+       text-align: left;
+       border-right-style: solid;
+       border-top-style: solid;
+       border-width: 1;}
+td    {border-right-style: solid;
+       border-top-style: solid;
+       border-width: 1;}
+</style>
+</head>
+<body background="`RootURL`/images/bgr/wsbgr.gif">
+<img src="../img/icflogo.gif">&nbsp;&nbsp;<font size=+3>Progress Dynamics 2.0 Web</font>
+<hr>
+<form name="form" method="post" action="repobjects.icf">
+<h2>Repository Objects By Type</h2>
+Object Type: 
+<input type="text" name="object" size="40" 
+  value="`if get-value('object') > '' then get-value('object') else 'DynView' `">
+<input type="submit" name="submit" value="Submit">
+</form>
+<%
+DEFINE VARIABLE cDesc    AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cObjType AS CHARACTER  NO-UNDO INITIAL "DynView".
+IF get-value('object') > '' THEN 
+  cObjType = get-value('object').
+
+FIND FIRST gsc_object_type WHERE 
+  gsc_object_type.object_type_code BEGINS cObjType NO-LOCK.
+FIND FIRST ryc_smartobject 
+  WHERE ryc_smartobject.object_type_obj = gsc_object_type.object_type_obj NO-ERROR.
+IF AVAILABLE ryc_smartobject THEN
+  {&OUT} 
+    '<table>~n' 
+    '  <tr bgcolor="#ABFEAF">~n'
+    '    <th>' STRING(gsc_object_type.object_type_code) '</th>~n'
+    '    <th>' gsc_object_type.object_type_description '</th>~n'
+    '  </tr>'.
+
+FOR EACH ryc_smartobject 
+  WHERE ryc_smartobject.object_type_obj = gsc_object_type.object_type_obj
+  BY ryc_smartobject.object_filename:
+  
+  ASSIGN
+    cDesc = ryc_smartobject.object_description
+    cDesc = (IF cDesc = "" THEN "&nbsp;" ELSE cDesc).
+    
+  {&OUT}
+    '  <tr>~n'
+    '    <td>' ryc_smartobject.object_filename '</td>~n'
+    '    <td>' ryc_smartobject.object_description '</td>~n'
+    '  </tr>~n'.
+END.
+
+{&OUT}
+  '</table>~n'.
+%>
+</body>
+</html>

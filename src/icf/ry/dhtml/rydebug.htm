@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<!--  debug.html: Please see notes.txt for copyrights and comments -->
+<title>Debug</title>
+</head>
+<body>
+<form name="debugform">
+  <input type="checkbox" value='on' id='ihidden' name="ihidden" checked="false" onclick="iframes()"> Show iframe 
+  &nbsp; &nbsp; Samples<small>
+    <a href="javascript:run('window');">mainwin</a>
+    <a href="javascript:run('document');">maindoc</a>
+    <a href="javascript:run('app');">appwin</a>
+    <a href="javascript:run('app.document');">appdoc</a>
+    <a href="javascript:run('app.document.getElementById(\'wbo\')');">wbo</a>
+    <a href="javascript:run('app.document.getElementById(\''+prompt('elem','')+'\')');">elem</a>
+  </small><br>
+  <input name="irun" ID="irun" type="text" STYLE="width:450px;" value="app.document.body"><br>
+  <button tabindex=-1 name="IDOM" value="RUN" id="IDOM" onclick="run('',event)">[ ]</button>
+  <button tabindex=-1 name="JRUN" value="RUN" id="JRUN" onclick="runjs(event)">JS</button>
+  <button tabindex=-1 name="VRUN" value="RUN" id="VRUN" onclick="runvb(event)">VB</button>
+   &nbsp; => <b id='ireturn'></b>
+</form>
+<a href="javascript:run('copy')">Object</a> : <b id="DOM"></b>
+<table id="TABLE">
+ <tr><th align="left">Children</th><th align="left">Methods</th>
+     <th align="left">Attributes</th><th align="left">Value</th>
+ </tr>
+</table>
+<script language="javascript"><!--
+var win=window.opener; 
+var w=500;
+var h=400;
+window.resizeTo(w+4,h+4);
+
+/****************************/
+/*** Javascript debugging ***/
+/****************************/
+
+var ireturn=document.getElementById('ireturn');
+var irun=document.getElementById('irun');
+var ihidden=document.getElementById('ihidden');
+
+function runjs(e){
+  if(!document.all){
+    e.stopPropagation();
+    e.preventDefault();
+  }
+  ireturn.innerHTML=win.eval(irun.value)
+}
+
+function runvb(e){
+  if(!document.all){
+    e.stopPropagation();
+    e.preventDefault();
+    alert('This is Mozilla, not Microsoft!');
+  } else { 
+    ireturn.innerHTML=win.execScript(irun.value,'vbscript');
+  }
+}
+
+function iframes(){
+  win.appcontrol.debugging=ihidden.checked
+  win.action('app.debug');
+}
+
+/****************************/
+/*** DOM inspect          ***/
+/****************************/
+
+var DOM=document.getElementById('DOM');
+var TABLE=document.getElementById('TABLE');
+var DOMtext='|oapp|odocument|obody';
+var DOMeval='';
+ihidden.checked=win.appcontrol.debugging;
+refresh();
+
+function run(c,e){
+  if(!document.all && e){
+    e.stopPropagation();
+    e.preventDefault();
+  }
+  if(c=='copy'){
+    irun.value=DOMeval.substr(7);
+    return;
+  }
+  if(c>'') irun.value=c;
+  else     c=irun.value;
+  var a=c.split("'");
+  for(var i=1;i<a.length;i+=2) a[i]=a[i].replace('.','\001');       // deal with . within quotes
+  DOMtext='|o'+a.join("'").replace(/\./g,'|o').replace(/\001/g,'.');
+  refresh();
+  return;
+}
+
+function goDOM(e,c){
+  if(document.all){
+    window.event.returnValue=false;
+    window.event.cancelBubble=true;
+  } else {
+    e.stopPropagation();
+    e.preventDefault();
+  }
+  switch(c.substr(0,1)){
+  case 'd':  // Down
+    DOMtext=DOMtext.split('|').slice(0,c.substr(1)*1+1).join('|');
+    break;
+  case 'o':  // object within node
+  case 'c':  // DOM child node
+    DOMtext+='|'+c;
+  }
+  refresh();
+}
+
+function refresh(){
+  var DOMnode=win;
+  var cInner='';
+  var cInner='';
+  var iatt=0;
+  var catt='|';
+  while(TABLE.rows.length>1) TABLE.deleteRow(TABLE.rows.length-1);
+
+  // Show hierarchy  
+  var a=DOMtext.split('|');
+  DOMeval='window';
+  for(var i=1;i<a.length;i++){
+    var c=a[i].substr(1);
+    var t=a[i].substr(0,1);
+    if(t=='c'){
+      DOMeval+='.childNodes['+c+']';
+      DOMnode=win.eval(DOMeval);
+      cInner+='.<a href="" onclick="goDOM(event,\'d'+i+'\')">'+DOMnode.nodeName+'</a>';
+    }
+    if(t=='o'){
+      DOMeval+=isNaN(c)?'.'+c:'['+c+']';
+//      alert(DOMeval)
+      DOMnode=win.eval(DOMeval);
+      cInner+='.<a href="" onclick="goDOM(event,\'d'+i+'\')">'+c+'</a>';
+    }
+  }
+  DOM.innerHTML=cInner.substr(1);
+  ireturn.innerHTML=(DOMnode);
+  
+  if(DOMnode && DOMnode.nodeName>''){
+    var a=DOMnode.childNodes;              // DOM Childnodes
+    for(var i=0;i<a.length;i++){
+      var name=(a[i].nodeName).toLowerCase();
+      var TR=getRow(i);
+      TR.cells[0].innerHTML='<a href="" onclick="goDOM(event,\'c'+i+'\')">'+name+'</a>';
+    }
+    var a=DOMnode.attributes;              // DOM Attributes
+    if(a){
+      var ar=new Array();
+      for(var i=0;i<a.length;i++) ar[i]=a[i].nodeName+'|'+i;
+      ar.sort();
+      for(var j=0;j<a.length;j++){
+        var i=ar[j].split('|')[1];
+        var name=(a[i].nodeName).toLowerCase();
+        catt+=a[i].nodeName+'|';
+        listAtt(iatt++,a[i].nodeName,a[i].nodeValue,true);
+      }
+    }
+  }
+  
+
+
+  // Associated collection of properties 
+  var ifunc=0;
+  var ar=new Array();
+  for(e in DOMnode) if(catt.indexOf('|'+e+'|')<0) ar[ar.length]=e;
+  ar.sort();
+
+  for(var i=0;i<ar.length;i++){
+    var val;
+    var e=ar[i];
+    try{val=DOMnode[e]}
+    catch(e){val='ERROR='+e};
+    if(typeof val=='function'){
+      var TR=getRow(ifunc++);
+      TR.cells[1].innerHTML=(val+'').indexOf('native')>-1?'<i>'+e+'</i>':e;
+    } else {
+      listAtt(iatt++,e,val,false);
+    }
+  }
+
+  function format(c){
+    c=(c+'').substr(0,100);
+    c=c.replace(/\</g,'&lt;').replace(/\>/g,'&gt;');
+    return '<nobr>'+c+'</nobr>';
+  }
+
+  function listAtt(i,name,val,pri){
+    var TR=getRow(i);
+    var t=typeof val;
+    var txt=(t=='object' && val && val!='' ?'<a href="" onclick="goDOM(event,\'o'+name+'\')">'+name+'</a>':name);
+    TR.cells[2].innerHTML=(pri?txt:'<i>'+txt+'</i>');
+    TR.cells[3].innerHTML=format(val);
+  }
+
+  function getRow(irow){
+    if(TABLE.rows.length-1>irow) return TABLE.rows[irow+1];
+    var TR=TABLE.insertRow(TABLE.rows.length)
+    TR.insertCell(0);
+    TR.insertCell(1);
+    TR.insertCell(2);
+    TR.insertCell(3);
+    return TR;
+  }  
+}
+
+
+
+
+
+
+
+
+
+--></script>
+</body>
+</html>

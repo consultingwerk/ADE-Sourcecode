@@ -56,7 +56,7 @@ DEFINE INPUT-OUTPUT PARAMETER pcCustomSuperProcedure    AS CHARACTER NO-UNDO.
 DEFINE INPUT-OUTPUT PARAMETER plStaticObject            AS LOGICAL   NO-UNDO.
 DEFINE INPUT-OUTPUT PARAMETER plSystemOwned             AS LOGICAL   NO-UNDO.
 DEFINE INPUT-OUTPUT PARAMETER plTemplateSmartObject     AS LOGICAL   NO-UNDO.
-DEFINE INPUT-OUTPUT PARAMETER plLogicalObject           AS LOGICAL   NO-UNDO.
+DEFINE INPUT-OUTPUT PARAMETER plLogicalObject           AS LOGICAL   NO-UNDO. /* This parameter is only kept for backwards compatibility, rather use plStaticObject */
 DEFINE INPUT-OUTPUT PARAMETER pcPhysicalObjectName      AS CHARACTER NO-UNDO.
 DEFINE INPUT-OUTPUT PARAMETER pcObjectPath              AS CHARACTER NO-UNDO.
 DEFINE INPUT-OUTPUT PARAMETER pcObjectDescription       AS CHARACTER NO-UNDO.
@@ -86,12 +86,11 @@ DEFINE VARIABLE lValid      AS LOGICAL      NO-UNDO.
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-OBJECTS cbLayout cbObjectType cbProductModule ~
 fiObjectFileName fiObjectDescription fiObjectPath fiCustomSuperProcedure ~
-toStaticObject toSystemOwned toTemplateSmartObject toLogicalObject ~
-fiPhysicalObjectName Btn_OK Btn_Cancel 
+toStaticObject toSystemOwned toTemplateSmartObject fiPhysicalObjectName ~
+Btn_OK Btn_Cancel 
 &Scoped-Define DISPLAYED-OBJECTS cbLayout cbObjectType cbProductModule ~
 fiObjectFileName fiObjectDescription fiObjectPath fiCustomSuperProcedure ~
-toStaticObject toSystemOwned toTemplateSmartObject toLogicalObject ~
-fiPhysicalObjectName 
+toStaticObject toSystemOwned toTemplateSmartObject fiPhysicalObjectName 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -116,56 +115,51 @@ DEFINE BUTTON Btn_OK AUTO-GO
      SIZE 15 BY 1.14
      BGCOLOR 8 .
 
-DEFINE VARIABLE cbLayout AS DECIMAL FORMAT ">>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
+DEFINE VARIABLE cbLayout AS DECIMAL FORMAT "->>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
      LABEL "Layout" 
      VIEW-AS COMBO-BOX SORT INNER-LINES 5
      LIST-ITEM-PAIRS "",0
      DROP-DOWN-LIST
-     SIZE 53 BY 1.05 NO-UNDO.
+     SIZE 53 BY 1 NO-UNDO.
 
-DEFINE VARIABLE cbObjectType AS DECIMAL FORMAT ">>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
+DEFINE VARIABLE cbObjectType AS DECIMAL FORMAT "->>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
      LABEL "Object Type" 
      VIEW-AS COMBO-BOX SORT INNER-LINES 5
      LIST-ITEM-PAIRS "",0
      DROP-DOWN-LIST
-     SIZE 53 BY 1.05 NO-UNDO.
+     SIZE 53 BY 1 NO-UNDO.
 
-DEFINE VARIABLE cbProductModule AS DECIMAL FORMAT ">>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
+DEFINE VARIABLE cbProductModule AS DECIMAL FORMAT "->>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
      LABEL "Product Module" 
      VIEW-AS COMBO-BOX SORT INNER-LINES 5
      LIST-ITEM-PAIRS "",0
      DROP-DOWN-LIST
-     SIZE 24 BY 1.05 NO-UNDO.
+     SIZE 53 BY 1.05 NO-UNDO.
 
 DEFINE VARIABLE fiCustomSuperProcedure AS CHARACTER FORMAT "X(256)":U 
      LABEL "Custom Super Procedure" 
      VIEW-AS FILL-IN 
-     SIZE 24 BY 1 NO-UNDO.
+     SIZE 49 BY 1 NO-UNDO.
 
 DEFINE VARIABLE fiObjectDescription AS CHARACTER FORMAT "X(256)":U 
      LABEL "Object Description" 
      VIEW-AS FILL-IN 
-     SIZE 53 BY 1 NO-UNDO.
+     SIZE 49 BY 1 NO-UNDO.
 
 DEFINE VARIABLE fiObjectFileName AS CHARACTER FORMAT "X(256)":U 
      LABEL "Object Filename" 
      VIEW-AS FILL-IN 
-     SIZE 24 BY 1 NO-UNDO.
+     SIZE 49 BY 1 NO-UNDO.
 
 DEFINE VARIABLE fiObjectPath AS CHARACTER FORMAT "X(256)":U 
      LABEL "Object Path" 
      VIEW-AS FILL-IN 
-     SIZE 24 BY 1 NO-UNDO.
+     SIZE 49 BY 1 NO-UNDO.
 
 DEFINE VARIABLE fiPhysicalObjectName AS CHARACTER FORMAT "X(256)":U 
      LABEL "Physical Object Filename" 
      VIEW-AS FILL-IN 
      SIZE 24 BY 1 NO-UNDO.
-
-DEFINE VARIABLE toLogicalObject AS LOGICAL INITIAL no 
-     LABEL "Logical Object" 
-     VIEW-AS TOGGLE-BOX
-     SIZE 22 BY .81 NO-UNDO.
 
 DEFINE VARIABLE toStaticObject AS LOGICAL INITIAL no 
      LABEL "Static Object" 
@@ -196,7 +190,6 @@ DEFINE FRAME Dialog-Frame
      toStaticObject AT ROW 8.33 COL 27
      toSystemOwned AT ROW 9.29 COL 27
      toTemplateSmartObject AT ROW 10.24 COL 27
-     toLogicalObject AT ROW 11.19 COL 27
      fiPhysicalObjectName AT ROW 12 COL 25 COLON-ALIGNED
      Btn_OK AT ROW 13.38 COL 49
      Btn_Cancel AT ROW 13.38 COL 65
@@ -231,7 +224,7 @@ ASSIGN
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
-
+ 
 
 
 
@@ -260,8 +253,7 @@ DO:
         fiCustomSuperProcedure 
         toStaticObject 
         toTemplateSmartObject 
-        toSystemOwned
-        toLogicalObject
+        toSystemOwned        
         fiObjectPath
         fiPhysicalObjectName
         fiObjectDescription.
@@ -282,7 +274,7 @@ DO:
          plStaticObject         = toStaticObject
          plTemplateSmartObject  = toTemplateSMartObject
          plSystemOwned          = toSystemOwned
-         plLogicalObject        = toLogicalObject
+         plLogicalObject        = NOT toStaticObject
          pcObjectPath           = fiObjectPath
          pcPhysicalObjectName   = fiPhysicalObjectName
          pcObjectDescription    = fiObjectDescription
@@ -353,13 +345,12 @@ PROCEDURE enable_UI :
 ------------------------------------------------------------------------------*/
   DISPLAY cbLayout cbObjectType cbProductModule fiObjectFileName 
           fiObjectDescription fiObjectPath fiCustomSuperProcedure toStaticObject 
-          toSystemOwned toTemplateSmartObject toLogicalObject 
-          fiPhysicalObjectName 
+          toSystemOwned toTemplateSmartObject fiPhysicalObjectName 
       WITH FRAME Dialog-Frame.
   ENABLE cbLayout cbObjectType cbProductModule fiObjectFileName 
          fiObjectDescription fiObjectPath fiCustomSuperProcedure toStaticObject 
-         toSystemOwned toTemplateSmartObject toLogicalObject 
-         fiPhysicalObjectName Btn_OK Btn_Cancel 
+         toSystemOwned toTemplateSmartObject fiPhysicalObjectName Btn_OK 
+         Btn_Cancel 
       WITH FRAME Dialog-Frame.
   VIEW FRAME Dialog-Frame.
   {&OPEN-BROWSERS-IN-QUERY-Dialog-Frame}
@@ -402,7 +393,6 @@ PROCEDURE initialize :
         toStaticObject = plStaticObject
         toTemplateSMartObject = plTemplateSmartObject
         toSystemOwned = plSystemOwned
-        toLogicalObject = plLogicalObject
         fiPhysicalObjectName = pcPhysicalObjectName
         fiObjectPath = pcObjectPath
         fiObjectDescription = pcObjectDescription.
@@ -447,7 +437,7 @@ PROCEDURE validateRecord :
 ------------------------------------------------------------------------------*/
 DEFINE VARIABLE cErrorMessage AS CHARACTER  NO-UNDO.
 
-    IF toLogicalObject THEN DO:
+    IF (NOT toStaticObject) THEN DO:
         IF NUM-ENTRIES(fiObjectFilename, ".") > 1 THEN DO:
             cErrorMessage = {af/sup2/aferrortxt.i 'RY' '7'}.
             RUN showMessage (INPUT cErrorMessage).

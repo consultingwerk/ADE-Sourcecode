@@ -35,6 +35,8 @@ Date Created: 02/17/92
               12/30/98 Mario B Call _guivget.p b4 _qviwrpt.p.  Bug 98-08-13-026
               05/19/99 Mario B.  Adjust Width Field browser integration.  
               04/13/00 DLM     Added long path name support    
+              09/18/02 D. McMann Added verify data report 
+              10/01/02 D. McMann Changed menu name for Adjust Schema
 ----------------------------------------------------------------------------*/
 
 
@@ -383,6 +385,19 @@ do:
       (INPUT s_DbRecId).
 end.
 
+/*--------Data Width Report ----*/
+ON CHOOSE OF MENU-ITEM mi_Width IN MENU s_mnu_Reports DO: 
+    CURRENT-WINDOW = s_win_Browse.
+
+    RUN prodict/misc/_rptwdat.p
+    (INPUT s_dbRecId,
+     INPUT s_CurrDb,
+     INPUT "PROGRESS",
+     INPUT "",
+     INPUT s_TblRecId).
+END.
+
+
 /*=============================Edit menu=================================*/
 
 /*----- UNDO ----- */
@@ -583,8 +598,8 @@ do:
    run adedict/FLD/_renam.p.
 end.
 
-/*----- SQL PROPERTIES ----- */
-On Choose of MENU-ITEM mi_SQL_Width in MENU s_mnu_SQL_Props
+/*----- ADJUST FIELD WIDTH-- */
+On Choose of MENU-ITEM mi_SQL_Width in MENU s_mnu_Options
 do:
    /* Have to do this first in case the window is already running and they *
     * made changes they haven't saved.                                     */

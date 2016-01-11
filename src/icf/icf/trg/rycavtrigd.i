@@ -79,50 +79,13 @@
                                                                         */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Include 
 
 
 /* ***************************  Main Block  *************************** */
-
-DEFINE BUFFER rycav FOR ryc_attribute_value.                        
-DEFINE VARIABLE cAttributeList  AS CHARACTER NO-UNDO.
-
-IF ryc_attribute_value.OBJECT_instance_obj <> 0 AND 
-   CAN-FIND(FIRST ryc_object_instance
-            WHERE ryc_object_instance.object_instance_obj = ryc_attribute_value.OBJECT_instance_obj
-              AND ryc_object_instance.container_smartobject_obj = ryc_attribute_value.container_smartobject_obj) THEN
-DO:
-  cAttributeList = "".
-  FOR EACH rycav NO-LOCK
-      WHERE rycav.object_type_obj = ryc_attribute_value.object_type_obj
-        AND rycav.smartobject_obj = ryc_attribute_value.smartobject_obj
-        AND rycav.object_instance_obj = ryc_attribute_value.object_instance_obj
-        AND ROWID(rycav) <> ROWID(ryc_attribute_value):
-
-      IF cAttributeList <> "" THEN cAttributeList = cAttributeList + CHR(3).
-      cAttributeList = cAttributeList + rycav.attribute_label + CHR(4) + rycav.attribute_value.
-  END.
-
-  /*   ON WRITE OF ryc_object_instance OVERRIDE DO: END. */
-  IF CAN-FIND(FIRST ryc_object_instance
-              WHERE ryc_object_instance.object_instance_obj = ryc_attribute_value.OBJECT_instance_obj
-                AND ryc_object_instance.container_smartobject_obj = ryc_attribute_value.container_smartobject_obj) THEN
-  DO:
-    FIND FIRST ryc_object_instance EXCLUSIVE-LOCK
-         WHERE ryc_object_instance.object_instance_obj = ryc_attribute_value.OBJECT_instance_obj
-           AND ryc_object_instance.container_smartobject_obj = ryc_attribute_value.container_smartobject_obj
-         NO-ERROR.
-    IF ERROR-STATUS:ERROR = NO AND AVAILABLE ryc_object_instance THEN
-    DO:
-      ASSIGN ryc_object_instance.attribute_list = cAttributeList.
-      {af/sup/afvalidtrg.i &ACTION=VALIDATE &TABLE=ryc_object_instance}
-    END.
-  END.
-
-END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

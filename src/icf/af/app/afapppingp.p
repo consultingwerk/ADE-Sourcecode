@@ -33,15 +33,19 @@ DEFINE OUTPUT PARAMETER pcConnctxt AS CHARACTER NO-UNDO. /* SESSION:SERVER-CONNE
 DEFINE OUTPUT PARAMETER pcASppath  AS CHARACTER NO-UNDO. /* PROPATH */
 DEFINE OUTPUT PARAMETER pcConndbs  AS CHARACTER NO-UNDO. /* List of Databases */
 DEFINE OUTPUT PARAMETER pcConnpps  AS CHARACTER NO-UNDO. /* List of Running Persistent Procedures */
+DEFINE OUTPUT PARAMETER pcCustomisationTypes        AS CHARACTER    NO-UNDO.    /* from CustomizatinManager */
+DEFINE OUTPUT PARAMETER pcCustomisationReferences   AS CHARACTER    NO-UNDO.    /* from CustomizatinManager */
+DEFINE OUTPUT PARAMETER pcCustomisationResultCodes  AS CHARACTER    NO-UNDO.    /* from CustomizatinManager */
 DEFINE OUTPUT PARAMETER TABLE-HANDLE phTTParam.
 DEFINE OUTPUT PARAMETER TABLE-HANDLE phTTManager.
 DEFINE OUTPUT PARAMETER TABLE-HANDLE phTTServiceType.
 DEFINE OUTPUT PARAMETER TABLE-HANDLE phTTService.
 
-DEFINE VARIABLE iLoop              AS INTEGER   NO-UNDO. /* Generic counter */
-DEFINE VARIABLE hAS                AS HANDLE    NO-UNDO. /* AppServer connection handle */
-DEFINE VARIABLE cDBList            AS CHARACTER NO-UNDO.
-DEFINE VARIABLE cDBVersions        AS CHARACTER NO-UNDO.
+DEFINE VARIABLE iLoop                   AS INTEGER      NO-UNDO. /* Generic counter */
+DEFINE VARIABLE hAS                     AS HANDLE       NO-UNDO. /* AppServer connection handle */
+DEFINE VARIABLE cDBList                 AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cDBVersions             AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE hCustomizationManager   AS HANDLE       NO-UNDO.
 
 ASSIGN
   plRemote   = SESSION:REMOTE
@@ -80,5 +84,14 @@ END.
 /* Get the connections and config manager temp-tables */
 RUN obtainCFMTables        IN THIS-PROCEDURE ( OUTPUT phTTParam, OUTPUT phTTManager).
 RUN obtainConnectionTables IN THIS-PROCEDURE ( OUTPUT phTTServiceType, OUTPUT phTTService).
+
+/* Get customisation information. */
+ASSIGN hCustomizationManager = DYNAMIC-FUNCTION("getManagerHandle":U IN THIS-PROCEDURE, "CustomizationManager":U) NO-ERROR.
+
+IF VALID-HANDLE(hCustomizationManager) THEN
+    ASSIGN pcCustomisationTypes       = DYNAMIC-FUNCTION("getCustomisationTypesPrioritised":U IN hCustomizationManager)
+           pcCustomisationReferences  = DYNAMIC-FUNCTION("getSessionCustomisationReferences":U IN hCustomizationManager)
+           pcCustomisationResultCodes = DYNAMIC-FUNCTION("getSessionResultCodes":U IN hCustomizationManager)
+           .
 
 RETURN.

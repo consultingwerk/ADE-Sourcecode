@@ -188,6 +188,9 @@ ASSIGN
    NO-DISPLAY                                                           */
 /* SETTINGS FOR SELECTION-LIST path-list IN FRAME f
    NO-DISPLAY                                                           */
+ASSIGN 
+       path-list:DELIMITER IN FRAME f      = CHR(4) .
+
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
@@ -452,15 +455,15 @@ DO:
   DEFINE VAR l_ok        AS LOGICAL NO-UNDO.
   
   ASSIGN choice = path-list:SCREEN-VALUE.
-  DO i = NUM-ENTRIES(choice) TO 1 BY -1:
-    ASSIGN choice-item = ENTRY (i,choice) 
+  DO i = NUM-ENTRIES(choice, CHR(4)) TO 1 BY -1:
+    ASSIGN choice-item = ENTRY (i,choice,CHR(4)) 
            ipos        = INTEGER (SUBSTRING(choice-item,1,3)).
     IF ipos < path-list:NUM-ITEMS THEN DO:
       /* Get the item above the current choice and swap it with the current choice.
          Change the line numbers of the choice to the swapped line number (this
          is the first 3 characters). */
       swap-item  = path-list:ENTRY(ipos + 1).
-      IF LOOKUP(swap-item,choice) eq 0
+      IF LOOKUP(swap-item,choice,CHR(4)) eq 0
       THEN ASSIGN
              new-choice = choice-item
              new-swap   = swap-item
@@ -468,7 +471,7 @@ DO:
              SUBSTRING(new-choice,1,3) = SUBSTRING(swap-item,1,3)
              l_ok = path-list:REPLACE( new-swap, choice-item)
              l_ok = path-list:REPLACE( new-choice, swap-item)
-             ENTRY(i,choice) = new-choice.
+             ENTRY(i,choice,CHR(4)) = new-choice.
     END.
   END.
   /* reset the value of the choice. */
@@ -493,15 +496,15 @@ DO:
   DEFINE VAR l_ok        AS LOGICAL NO-UNDO.
   
   ASSIGN choice = path-list:SCREEN-VALUE.
-  DO i = 1 TO NUM-ENTRIES(choice):
-    ASSIGN choice-item = ENTRY (i,choice) 
+  DO i = 1 TO NUM-ENTRIES(choice, CHR(4)):
+    ASSIGN choice-item = ENTRY (i,choice, CHR(4)) 
            ipos        = INTEGER (SUBSTRING(choice-item,1,3)).
     IF ipos > 1 THEN DO:
       /* Get the item above the current choice and swap it with the current choice.
          Change the line numbers of the choice to the swapped line number (this
          is the first 3 characters). */
       swap-item  = path-list:ENTRY(ipos - 1).
-      IF LOOKUP(swap-item,choice) eq 0
+      IF LOOKUP(swap-item,choice,CHR(4)) eq 0
       THEN ASSIGN
              new-choice = choice-item
              new-swap   = swap-item
@@ -509,7 +512,7 @@ DO:
              SUBSTRING(new-choice,1,3) = SUBSTRING(swap-item,1,3)
              l_ok = path-list:REPLACE( new-swap, choice-item)
              l_ok = path-list:REPLACE( new-choice, swap-item)
-             ENTRY(i,choice) = new-choice.
+             ENTRY(i,choice,CHR(4)) = new-choice.
     END.
   END.
   /* reset the value of the choice. */
@@ -635,8 +638,8 @@ PROCEDURE get_path :
   /* Add a number to the front of each line (this will allow us to have unique entries). */
   DO i = 1 TO cnt:
     IF entry(i,PROPATH) = "." THEN 
-         plist = (IF i eq 1 THEN "" ELSE plist + ",") + STRING(i,">>9") + ". " + "[current directory]".
-    ELSE plist = (IF i eq 1 THEN "" ELSE plist + ",") + STRING(i,">>9") + ". " + ENTRY(i,PROPATH).
+         plist = (IF i eq 1 THEN "" ELSE plist + CHR(4)) + STRING(i,">>9") + ". " + "[current directory]".
+    ELSE plist = (IF i eq 1 THEN "" ELSE plist + CHR(4)) + STRING(i,">>9") + ". " + ENTRY(i,PROPATH).
   END.
   path-list:LIST-ITEMS IN FRAME {&FRAME-NAME} = plist.
 END PROCEDURE.
@@ -657,7 +660,7 @@ PROCEDURE number_path :
   DO WITH FRAME {&FRAME-NAME}:
     /* Remove a number from each line.  */
     DO i = 1 TO path-list:NUM-ITEMS:
-      plist = (IF i eq 1 THEN "" ELSE plist + ",") + 
+      plist = (IF i eq 1 THEN "" ELSE plist + CHR(4)) + 
               STRING(i,">>9") + SUBSTRING(path-list:ENTRY(i),4).
     END.
     path-list:LIST-ITEMS = plist.
@@ -685,7 +688,7 @@ PROCEDURE set_propath :
   DO WITH FRAME {&FRAME-NAME}:
     /* Remove a number from each line.  */
     DO i = 1 TO path-list:NUM-ITEMS:
-      path = (IF i eq 1 THEN "" ELSE path + ",") + SUBSTRING(path-list:ENTRY(i),6).
+      path = (IF i eq 1 THEN "" ELSE path + ",":U) + SUBSTRING(path-list:ENTRY(i),6).
     END.
   END.
   ASSIGN i = LOOKUP("[current directory]",path).

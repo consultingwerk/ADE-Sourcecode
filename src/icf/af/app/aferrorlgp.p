@@ -70,6 +70,10 @@ af/cod/aftemwizpw.w
                 Date:   26/06/2000  Author:     Pieter Meyer
 
   Update Notes: Add Web check in Managers
+                  
+    Modified    : 04/11/2002        mdsantos@progress.com (MJS)
+                  Adapted for WebSpeed by changing SESSION:PARAM = "REMOTE" 
+                  to SESSION:CLIENT-TYPE = "WEBSPEED" in Main Block
 
 --------------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
@@ -82,7 +86,7 @@ af/cod/aftemwizpw.w
    can be displayed in the about window of the container */
 
 &scop object-name       aferrorlgp.p
-&scop object-version    010001
+&scop object-version    000000
 
 
 /* MIP object identifying preprocessor */
@@ -126,13 +130,13 @@ af/cod/aftemwizpw.w
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 4.48
-         WIDTH              = 40.
+         HEIGHT             = 7.67
+         WIDTH              = 48.2.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
@@ -250,7 +254,8 @@ DO FOR bgst_error_log TRANSACTION ON ERROR UNDO trn-block, LEAVE trn-block
   IF ERROR-STATUS:ERROR THEN UNDO trn-block, LEAVE trn-block.
 
   ASSIGN
-    bgst_error_log.business_logic_error = IF SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U THEN YES ELSE NO
+/* MJS 4/11/2002    bgst_error_log.business_logic_error = IF SESSION:REMOTE OR SESSION:PARAM = "REMOTE":U THEN YES ELSE NO */
+    bgst_error_log.business_logic_error = SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U
     bgst_error_log.error_group = cErrorGroup
     bgst_error_log.error_number = iErrorCode
     bgst_error_log.error_date = TODAY

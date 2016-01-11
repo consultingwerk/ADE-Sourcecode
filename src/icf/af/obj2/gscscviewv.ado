@@ -1,6 +1,5 @@
-<?xml version="1.0" encoding="ISO8859-1" ?>
-<dataset Transactions="1" version_date="02/23/2002" version_time="44495" version_user="admin" entity_mnemonic="GSTDF" key_field_value="3000000713.09" record_version_obj="3000000714.09" version_number_seq="2.09" import_version_number_seq="1.09"><dataset_header DisableRI="yes" DatasetObj="1004928896.09" DateFormat="mdy" FullHeader="yes" SCMManaged="yes" YearOffset="1950" DatasetCode="RYCSO" DateCreated="02/23/2002" TimeCreated="12:21:26" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="93" NumericSeparator=","><deploy_dataset_obj>1004928896.09</deploy_dataset_obj>
-<owner_site_code></owner_site_code>
+<?xml version="1.0" encoding="utf-8" ?>
+<dataset Transactions="1"><dataset_header DisableRI="yes" DatasetObj="1004928896.09" DateFormat="mdy" FullHeader="yes" SCMManaged="yes" YearOffset="1950" DatasetCode="RYCSO" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="90" NumericSeparator=","><deploy_dataset_obj>1004928896.09</deploy_dataset_obj>
 <dataset_code>RYCSO</dataset_code>
 <dataset_description>ryc_smartobjects - Logical Objects</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -8,6 +7,9 @@
 <deploy_full_data>no</deploy_full_data>
 <xml_generation_procedure></xml_generation_procedure>
 <default_ado_filename></default_ado_filename>
+<deploy_additions_only>no</deploy_additions_only>
+<enable_data_versioning>yes</enable_data_versioning>
+<deletion_dataset>yes</deletion_dataset>
 <dataset_entity><dataset_entity_obj>1004928912.09</dataset_entity_obj>
 <deploy_dataset_obj>1004928896.09</deploy_dataset_obj>
 <entity_sequence>1</entity_sequence>
@@ -19,22 +21,28 @@
 <delete_related_records>yes</delete_related_records>
 <overwrite_records>yes</overwrite_records>
 <keep_own_site_data>no</keep_own_site_data>
+<use_relationship>no</use_relationship>
+<relationship_obj>0</relationship_obj>
+<deletion_action></deletion_action>
 <entity_mnemonic_description>ryc_smartobject</entity_mnemonic_description>
-<entity_dbname>icfdb</entity_dbname>
+<entity_dbname>ICFDB</entity_dbname>
 </dataset_entity>
-<dataset_entity><dataset_entity_obj>1004936305.09</dataset_entity_obj>
+<dataset_entity><dataset_entity_obj>3000004908.09</dataset_entity_obj>
 <deploy_dataset_obj>1004928896.09</deploy_dataset_obj>
 <entity_sequence>2</entity_sequence>
-<entity_mnemonic>GSCOB</entity_mnemonic>
+<entity_mnemonic>RYCUE</entity_mnemonic>
 <primary_entity>no</primary_entity>
-<join_entity_mnemonic>rycso</join_entity_mnemonic>
-<join_field_list>object_filename,object_filename</join_field_list>
+<join_entity_mnemonic>RYCSO</join_entity_mnemonic>
+<join_field_list>primary_smartobject_obj,smartobject_obj</join_field_list>
 <filter_where_clause></filter_where_clause>
 <delete_related_records>yes</delete_related_records>
 <overwrite_records>yes</overwrite_records>
 <keep_own_site_data>no</keep_own_site_data>
-<entity_mnemonic_description>gsc_object</entity_mnemonic_description>
-<entity_dbname>icfdb</entity_dbname>
+<use_relationship>no</use_relationship>
+<relationship_obj>0</relationship_obj>
+<deletion_action></deletion_action>
+<entity_mnemonic_description>ryc_ui_event</entity_mnemonic_description>
+<entity_dbname>ICFDB</entity_dbname>
 </dataset_entity>
 <dataset_entity><dataset_entity_obj>1004936278.09</dataset_entity_obj>
 <deploy_dataset_obj>1004928896.09</deploy_dataset_obj>
@@ -47,8 +55,11 @@
 <delete_related_records>yes</delete_related_records>
 <overwrite_records>yes</overwrite_records>
 <keep_own_site_data>no</keep_own_site_data>
+<use_relationship>no</use_relationship>
+<relationship_obj>0</relationship_obj>
+<deletion_action></deletion_action>
 <entity_mnemonic_description>ryc_page_object</entity_mnemonic_description>
-<entity_dbname>icfdb</entity_dbname>
+<entity_dbname>ICFDB</entity_dbname>
 </dataset_entity>
 <dataset_entity><dataset_entity_obj>1004928913.09</dataset_entity_obj>
 <deploy_dataset_obj>1004928896.09</deploy_dataset_obj>
@@ -61,8 +72,11 @@
 <delete_related_records>yes</delete_related_records>
 <overwrite_records>yes</overwrite_records>
 <keep_own_site_data>no</keep_own_site_data>
+<use_relationship>no</use_relationship>
+<relationship_obj>0</relationship_obj>
+<deletion_action></deletion_action>
 <entity_mnemonic_description>ryc_page</entity_mnemonic_description>
-<entity_dbname>icfdb</entity_dbname>
+<entity_dbname>ICFDB</entity_dbname>
 </dataset_entity>
 <dataset_entity><dataset_entity_obj>1004936275.09</dataset_entity_obj>
 <deploy_dataset_obj>1004928896.09</deploy_dataset_obj>
@@ -75,8 +89,11 @@
 <delete_related_records>yes</delete_related_records>
 <overwrite_records>yes</overwrite_records>
 <keep_own_site_data>no</keep_own_site_data>
+<use_relationship>no</use_relationship>
+<relationship_obj>0</relationship_obj>
+<deletion_action></deletion_action>
 <entity_mnemonic_description>ryc_object_instance</entity_mnemonic_description>
-<entity_dbname>icfdb</entity_dbname>
+<entity_dbname>ICFDB</entity_dbname>
 </dataset_entity>
 <dataset_entity><dataset_entity_obj>1004936279.09</dataset_entity_obj>
 <deploy_dataset_obj>1004928896.09</deploy_dataset_obj>
@@ -89,8 +106,11 @@
 <delete_related_records>yes</delete_related_records>
 <overwrite_records>yes</overwrite_records>
 <keep_own_site_data>no</keep_own_site_data>
+<use_relationship>no</use_relationship>
+<relationship_obj>0</relationship_obj>
+<deletion_action></deletion_action>
 <entity_mnemonic_description>ryc_smartlink</entity_mnemonic_description>
-<entity_dbname>icfdb</entity_dbname>
+<entity_dbname>ICFDB</entity_dbname>
 </dataset_entity>
 <dataset_entity><dataset_entity_obj>1004936297.09</dataset_entity_obj>
 <deploy_dataset_obj>1004928896.09</deploy_dataset_obj>
@@ -103,8 +123,11 @@
 <delete_related_records>yes</delete_related_records>
 <overwrite_records>yes</overwrite_records>
 <keep_own_site_data>no</keep_own_site_data>
+<use_relationship>no</use_relationship>
+<relationship_obj>0</relationship_obj>
+<deletion_action></deletion_action>
 <entity_mnemonic_description>ryc_attribute_value</entity_mnemonic_description>
-<entity_dbname>icfdb</entity_dbname>
+<entity_dbname>ICFDB</entity_dbname>
 </dataset_entity>
 <dataset_entity><dataset_entity_obj>1007600052.08</dataset_entity_obj>
 <deploy_dataset_obj>1004928896.09</deploy_dataset_obj>
@@ -117,6 +140,9 @@
 <delete_related_records>yes</delete_related_records>
 <overwrite_records>yes</overwrite_records>
 <keep_own_site_data>no</keep_own_site_data>
+<use_relationship>no</use_relationship>
+<relationship_obj>0</relationship_obj>
+<deletion_action></deletion_action>
 <entity_mnemonic_description>ryc_ui_event</entity_mnemonic_description>
 <entity_dbname>ICFDB</entity_dbname>
 </dataset_entity>
@@ -127,12 +153,15 @@
 <primary_entity>no</primary_entity>
 <join_entity_mnemonic>RYCSO</join_entity_mnemonic>
 <join_field_list>related_entity_key,smartobject_obj</join_field_list>
-<filter_where_clause>related_entity_mnemonic = "RYCSO"</filter_where_clause>
+<filter_where_clause>related_entity_mnemonic = &quot;RYCSO&quot;</filter_where_clause>
 <delete_related_records>yes</delete_related_records>
 <overwrite_records>yes</overwrite_records>
 <keep_own_site_data>no</keep_own_site_data>
+<use_relationship>no</use_relationship>
+<relationship_obj>0</relationship_obj>
+<deletion_action></deletion_action>
 <entity_mnemonic_description>rym_data_version</entity_mnemonic_description>
-<entity_dbname>icfdb</entity_dbname>
+<entity_dbname>ICFDB</entity_dbname>
 </dataset_entity>
 <dataset_entity><dataset_entity_obj>1007600076.08</dataset_entity_obj>
 <deploy_dataset_obj>1004928896.09</deploy_dataset_obj>
@@ -145,6 +174,9 @@
 <delete_related_records>yes</delete_related_records>
 <overwrite_records>yes</overwrite_records>
 <keep_own_site_data>no</keep_own_site_data>
+<use_relationship>no</use_relationship>
+<relationship_obj>0</relationship_obj>
+<deletion_action></deletion_action>
 <entity_mnemonic_description>rym_wizard_tree</entity_mnemonic_description>
 <entity_dbname>ICFDB</entity_dbname>
 </dataset_entity>
@@ -153,12 +185,15 @@
 <entity_sequence>11</entity_sequence>
 <entity_mnemonic>GSMTM</entity_mnemonic>
 <primary_entity>no</primary_entity>
-<join_entity_mnemonic>GSCOB</join_entity_mnemonic>
-<join_field_list>object_obj,object_obj</join_field_list>
+<join_entity_mnemonic>RYCSO</join_entity_mnemonic>
+<join_field_list>object_obj,smartobject_obj</join_field_list>
 <filter_where_clause></filter_where_clause>
 <delete_related_records>yes</delete_related_records>
 <overwrite_records>yes</overwrite_records>
 <keep_own_site_data>no</keep_own_site_data>
+<use_relationship>no</use_relationship>
+<relationship_obj>0</relationship_obj>
+<deletion_action></deletion_action>
 <entity_mnemonic_description>gsm_toolbar_menu_structure</entity_mnemonic_description>
 <entity_dbname>ICFDB</entity_dbname>
 </dataset_entity>
@@ -167,55 +202,57 @@
 <entity_sequence>12</entity_sequence>
 <entity_mnemonic>GSMOM</entity_mnemonic>
 <primary_entity>no</primary_entity>
-<join_entity_mnemonic>GSCOB</join_entity_mnemonic>
-<join_field_list>object_obj,object_obj</join_field_list>
+<join_entity_mnemonic>RYCSO</join_entity_mnemonic>
+<join_field_list>object_obj,smartobject_obj</join_field_list>
 <filter_where_clause></filter_where_clause>
 <delete_related_records>yes</delete_related_records>
 <overwrite_records>yes</overwrite_records>
 <keep_own_site_data>no</keep_own_site_data>
+<use_relationship>no</use_relationship>
+<relationship_obj>0</relationship_obj>
+<deletion_action></deletion_action>
 <entity_mnemonic_description>gsm_object_menu_structure</entity_mnemonic_description>
-<entity_dbname>icfdb</entity_dbname>
+<entity_dbname>ICFDB</entity_dbname>
+</dataset_entity>
+<dataset_entity><dataset_entity_obj>3000000079.09</dataset_entity_obj>
+<deploy_dataset_obj>1004928896.09</deploy_dataset_obj>
+<entity_sequence>13</entity_sequence>
+<entity_mnemonic>GSMVP</entity_mnemonic>
+<primary_entity>no</primary_entity>
+<join_entity_mnemonic>RYCSO</join_entity_mnemonic>
+<join_field_list>object_obj,smartobject_obj</join_field_list>
+<filter_where_clause></filter_where_clause>
+<delete_related_records>yes</delete_related_records>
+<overwrite_records>yes</overwrite_records>
+<keep_own_site_data>no</keep_own_site_data>
+<use_relationship>no</use_relationship>
+<relationship_obj>0</relationship_obj>
+<deletion_action></deletion_action>
+<entity_mnemonic_description>gsm_valid_object_partition</entity_mnemonic_description>
+<entity_dbname>ICFDB</entity_dbname>
 </dataset_entity>
 <table_definition><name>ryc_smartobject</name>
-<dbname>ICFDB</dbname>
-<index-1>XAK1ryc_smartobject,1,0,0,object_filename,0</index-1>
-<index-2>XAK2ryc_smartobject,1,0,0,object_type_obj,0,object_obj,0</index-2>
-<index-3>XAK3ryc_smartobject,1,0,0,product_module_obj,0,object_filename,0</index-3>
-<index-4>XIE1ryc_smartobject,0,0,0,sdo_smartobject_obj,0</index-4>
-<index-5>XIE2ryc_smartobject,0,0,0,layout_obj,0,object_type_obj,0</index-5>
-<index-6>XIE3ryc_smartobject,0,0,0,object_obj,0</index-6>
-<index-7>XPKryc_smartobject,1,1,0,smartobject_obj,0</index-7>
+<dbname>icfdb</dbname>
+<index-1>XAK1ryc_smartobject,1,0,0,object_filename,0,customization_result_obj,0</index-1>
+<index-2>XAK3ryc_smartobject,1,0,0,product_module_obj,0,object_filename,0,customization_result_obj,0</index-2>
+<index-3>XIE10ryc_smartobject,0,0,0,runnable_from_menu,0</index-3>
+<index-4>XIE11ryc_smartobject,0,0,0,template_smartobject,0</index-4>
+<index-5>XIE1ryc_smartobject,0,0,0,sdo_smartobject_obj,0</index-5>
+<index-6>XIE2ryc_smartobject,0,0,0,layout_obj,0,object_type_obj,0</index-6>
+<index-7>XIE4ryc_smartobject,0,0,0,custom_smartobject_obj,0</index-7>
+<index-8>XIE5ryc_smartobject,0,0,0,extends_smartobject_obj,0</index-8>
+<index-9>XIE6ryc_smartobject,0,0,0,customization_result_obj,0</index-9>
+<index-10>XIE7ryc_smartobject,0,0,0,object_type_obj,0</index-10>
+<index-11>XIE8ryc_smartobject,0,0,0,security_smartobject_obj,0</index-11>
+<index-12>XIE9ryc_smartobject,0,0,0,object_description,0</index-12>
+<index-13>XPKryc_smartobject,1,1,0,smartobject_obj,0</index-13>
 <field><name>smartobject_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>SmartObject Obj</label>
 <column-label>SmartObject Obj</column-label>
-</field>
-<field><name>layout_obj</name>
-<data-type>decimal</data-type>
-<extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
-<label>Layout Obj</label>
-<column-label>Layout Obj</column-label>
-</field>
-<field><name>object_type_obj</name>
-<data-type>decimal</data-type>
-<extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
-<label>Object Type Obj</label>
-<column-label>Object Type Obj</column-label>
-</field>
-<field><name>object_obj</name>
-<data-type>decimal</data-type>
-<extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
-<label>Object Obj</label>
-<column-label>Object Obj</column-label>
 </field>
 <field><name>object_filename</name>
 <data-type>character</data-type>
@@ -225,99 +262,37 @@
 <label>Object Filename</label>
 <column-label>Object Filename</column-label>
 </field>
-<field><name>product_module_obj</name>
+<field><name>customization_result_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
-<label>Product Module Obj</label>
-<column-label>Product Module Obj</column-label>
-</field>
-<field><name>static_object</name>
-<data-type>logical</data-type>
-<extent>0</extent>
-<format>YES/NO</format>
-<initial>NO </initial>
-<label>Static Object</label>
-<column-label>Static Object</column-label>
-</field>
-<field><name>custom_super_procedure</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(70)</format>
-<initial></initial>
-<label>Custom Super Procedure</label>
-<column-label>Custom Super Procedure</column-label>
-</field>
-<field><name>system_owned</name>
-<data-type>logical</data-type>
-<extent>0</extent>
-<format>YES/NO</format>
-<initial>NO </initial>
-<label>System Owned</label>
-<column-label>System Owned</column-label>
-</field>
-<field><name>shutdown_message_text</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(70)</format>
-<initial></initial>
-<label>Shutdown Message Text</label>
-<column-label>Shutdown Message Text</column-label>
-</field>
-<field><name>sdo_smartobject_obj</name>
-<data-type>decimal</data-type>
-<extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
-<label>Sdo SmartObject Obj</label>
-<column-label>Sdo SmartObject Obj</column-label>
-</field>
-<field><name>template_smartobject</name>
-<data-type>logical</data-type>
-<extent>0</extent>
-<format>YES/NO</format>
-<initial>NO </initial>
-<label>Template SmartObject</label>
-<column-label>Template SmartObject</column-label>
-</field>
-</table_definition>
-<table_definition><name>gsc_object</name>
-<dbname>ICFDB</dbname>
-<index-1>XAK1gsc_object,1,0,0,product_module_obj,0,object_filename,0</index-1>
-<index-2>XAK2gsc_object,1,0,0,object_filename,0</index-2>
-<index-3>XIE10gsc_object,0,0,0,generic_object,0</index-3>
-<index-4>XIE2gsc_object,0,0,0,object_description,0</index-4>
-<index-5>XIE4gsc_object,0,0,0,object_type_obj,0,object_filename,0</index-5>
-<index-6>XIE5gsc_object,0,0,0,product_module_obj,0,object_type_obj,0,object_filename,0</index-6>
-<index-7>XIE6gsc_object,0,0,0,runnable_from_menu,0,product_module_obj,0,object_type_obj,0</index-7>
-<index-8>XIE7gsc_object,0,0,0,security_object_obj,0</index-8>
-<index-9>XIE8gsc_object,0,0,0,logical_object,0</index-9>
-<index-10>XIE9gsc_object,0,0,0,container_object,0</index-10>
-<index-11>XPKgsc_object,1,1,0,object_obj,0</index-11>
-<field><name>object_obj</name>
-<data-type>decimal</data-type>
-<extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
-<label>Object Obj</label>
-<column-label>Object Obj</column-label>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
+<label>Customization Result Obj</label>
+<column-label>Customization Result Obj</column-label>
 </field>
 <field><name>object_type_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Object Type Obj</label>
 <column-label>Object Type Obj</column-label>
 </field>
 <field><name>product_module_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Product Module Obj</label>
 <column-label>Product Module Obj</column-label>
+</field>
+<field><name>layout_obj</name>
+<data-type>decimal</data-type>
+<extent>0</extent>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
+<label>Layout Obj</label>
+<column-label>Layout Obj</column-label>
 </field>
 <field><name>object_description</name>
 <data-type>character</data-type>
@@ -327,13 +302,13 @@
 <label>Object Description</label>
 <column-label>Object Description</column-label>
 </field>
-<field><name>object_filename</name>
+<field><name>object_path</name>
 <data-type>character</data-type>
 <extent>0</extent>
-<format>X(35)</format>
+<format>X(70)</format>
 <initial></initial>
-<label>Object Filename</label>
-<column-label>Object Filename</column-label>
+<label>Object Path</label>
+<column-label>Object Path</column-label>
 </field>
 <field><name>object_extension</name>
 <data-type>character</data-type>
@@ -343,37 +318,53 @@
 <label>Object Extension</label>
 <column-label>Object Extension</column-label>
 </field>
-<field><name>object_path</name>
+<field><name>static_object</name>
+<data-type>logical</data-type>
+<extent>0</extent>
+<format>YES/NO</format>
+<initial>NO </initial>
+<label>Static Object</label>
+<column-label>Static Object</column-label>
+</field>
+<field><name>generic_object</name>
+<data-type>logical</data-type>
+<extent>0</extent>
+<format>YES/NO</format>
+<initial>NO </initial>
+<label>Generic Object</label>
+<column-label>Generic Object</column-label>
+</field>
+<field><name>template_smartobject</name>
+<data-type>logical</data-type>
+<extent>0</extent>
+<format>YES/NO</format>
+<initial>NO </initial>
+<label>Template SmartObject</label>
+<column-label>Template SmartObject</column-label>
+</field>
+<field><name>system_owned</name>
+<data-type>logical</data-type>
+<extent>0</extent>
+<format>YES/NO</format>
+<initial>NO </initial>
+<label>System Owned</label>
+<column-label>System Owned</column-label>
+</field>
+<field><name>deployment_type</name>
 <data-type>character</data-type>
 <extent>0</extent>
-<format>X(70)</format>
+<format>X(35)</format>
 <initial></initial>
-<label>Object Path</label>
-<column-label>Object Path</column-label>
+<label>Deployment Type</label>
+<column-label>Deployment Type</column-label>
 </field>
-<field><name>toolbar_multi_media_obj</name>
-<data-type>decimal</data-type>
+<field><name>design_only</name>
+<data-type>logical</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
-<label>Toolbar Multi Media Obj</label>
-<column-label>Toolbar Multi Media Obj</column-label>
-</field>
-<field><name>toolbar_image_filename</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(70)</format>
-<initial></initial>
-<label>Toolbar Image Filename</label>
-<column-label>Toolbar Image Filename</column-label>
-</field>
-<field><name>tooltip_text</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(70)</format>
-<initial></initial>
-<label>Tooltip Text</label>
-<column-label>Tooltip Text</column-label>
+<format>YES/NO</format>
+<initial>NO </initial>
+<label>Design Only</label>
+<column-label>Design Only</column-label>
 </field>
 <field><name>runnable_from_menu</name>
 <data-type>logical</data-type>
@@ -382,6 +373,14 @@
 <initial>YES</initial>
 <label>Runnable From Menu</label>
 <column-label>Runnable From Menu</column-label>
+</field>
+<field><name>container_object</name>
+<data-type>logical</data-type>
+<extent>0</extent>
+<format>YES/NO</format>
+<initial>YES</initial>
+<label>Container Object</label>
+<column-label>Container Object</column-label>
 </field>
 <field><name>disabled</name>
 <data-type>logical</data-type>
@@ -407,45 +406,13 @@
 <label>Run When</label>
 <column-label>Run When</column-label>
 </field>
-<field><name>security_object_obj</name>
-<data-type>decimal</data-type>
+<field><name>shutdown_message_text</name>
+<data-type>character</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
-<label>Security Object Obj</label>
-<column-label>Security Object Obj</column-label>
-</field>
-<field><name>container_object</name>
-<data-type>logical</data-type>
-<extent>0</extent>
-<format>YES/NO</format>
-<initial>YES</initial>
-<label>Container Object</label>
-<column-label>Container Object</column-label>
-</field>
-<field><name>physical_object_obj</name>
-<data-type>decimal</data-type>
-<extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
-<label>Physical Object Obj</label>
-<column-label>Physical Object Obj</column-label>
-</field>
-<field><name>logical_object</name>
-<data-type>logical</data-type>
-<extent>0</extent>
-<format>YES/NO</format>
-<initial>NO </initial>
-<label>Logical Object</label>
-<column-label>Logical Object</column-label>
-</field>
-<field><name>generic_object</name>
-<data-type>logical</data-type>
-<extent>0</extent>
-<format>YES/NO</format>
-<initial>NO </initial>
-<label>Generic Object</label>
-<column-label>Generic Object</column-label>
+<format>X(70)</format>
+<initial></initial>
+<label>Shutdown Message Text</label>
+<column-label>Shutdown Message Text</column-label>
 </field>
 <field><name>required_db_list</name>
 <data-type>character</data-type>
@@ -455,40 +422,194 @@
 <label>Required Db List</label>
 <column-label>Required Db List</column-label>
 </field>
+<field><name>sdo_smartobject_obj</name>
+<data-type>decimal</data-type>
+<extent>0</extent>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
+<label>Sdo SmartObject Obj</label>
+<column-label>Sdo SmartObject Obj</column-label>
+</field>
+<field><name>custom_smartobject_obj</name>
+<data-type>decimal</data-type>
+<extent>0</extent>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
+<label>Custom SmartObject Obj</label>
+<column-label>Custom SmartObject Obj</column-label>
+</field>
+<field><name>extends_smartobject_obj</name>
+<data-type>decimal</data-type>
+<extent>0</extent>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
+<label>Extends SmartObject Obj</label>
+<column-label>Extends SmartObject Obj</column-label>
+</field>
+<field><name>physical_smartobject_obj</name>
+<data-type>decimal</data-type>
+<extent>0</extent>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
+<label>Physical SmartObject Obj</label>
+<column-label>Physical SmartObject Obj</column-label>
+</field>
+<field><name>security_smartobject_obj</name>
+<data-type>decimal</data-type>
+<extent>0</extent>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
+<label>Security SmartObject Obj</label>
+<column-label>Security SmartObject Obj</column-label>
+</field>
+</table_definition>
+<table_definition><name>ryc_ui_event</name>
+<dbname>icfdb</dbname>
+<index-1>XAK1ryc_ui_event,1,0,0,object_type_obj,0,smartobject_obj,0,object_instance_obj,0,event_name,0,container_smartobject_obj,0</index-1>
+<index-2>XIE1ryc_ui_event,0,0,0,primary_smartobject_obj,0</index-2>
+<index-3>XIE2ryc_ui_event,0,0,0,object_instance_obj,0</index-3>
+<index-4>XIE3ryc_ui_event,0,0,0,container_smartobject_obj,0</index-4>
+<index-5>XIE4ryc_ui_event,0,0,0,smartobject_obj,0</index-5>
+<index-6>XPKryc_ui_event,1,1,0,ui_event_obj,0</index-6>
+<field><name>ui_event_obj</name>
+<data-type>decimal</data-type>
+<extent>0</extent>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
+<label>UI Event Obj</label>
+<column-label>UI Event Obj</column-label>
+</field>
+<field><name>object_type_obj</name>
+<data-type>decimal</data-type>
+<extent>0</extent>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
+<label>Object Type Obj</label>
+<column-label>Object Type Obj</column-label>
+</field>
+<field><name>container_smartobject_obj</name>
+<data-type>decimal</data-type>
+<extent>0</extent>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
+<label>Container SmartObject Obj</label>
+<column-label>Container SmartObject Obj</column-label>
+</field>
+<field><name>smartobject_obj</name>
+<data-type>decimal</data-type>
+<extent>0</extent>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
+<label>SmartObject Obj</label>
+<column-label>SmartObject Obj</column-label>
+</field>
+<field><name>object_instance_obj</name>
+<data-type>decimal</data-type>
+<extent>0</extent>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
+<label>Object Instance Obj</label>
+<column-label>Object Instance Obj</column-label>
+</field>
+<field><name>event_name</name>
+<data-type>character</data-type>
+<extent>0</extent>
+<format>X(35)</format>
+<initial></initial>
+<label>Event Name</label>
+<column-label>Event Name</column-label>
+</field>
+<field><name>constant_value</name>
+<data-type>logical</data-type>
+<extent>0</extent>
+<format>YES/NO</format>
+<initial>NO </initial>
+<label>Constant Value</label>
+<column-label>Constant Value</column-label>
+</field>
+<field><name>action_type</name>
+<data-type>character</data-type>
+<extent>0</extent>
+<format>X(3)</format>
+<initial></initial>
+<label>Action Type</label>
+<column-label>Action Type</column-label>
+</field>
+<field><name>action_target</name>
+<data-type>character</data-type>
+<extent>0</extent>
+<format>X(28)</format>
+<initial></initial>
+<label>Action Target</label>
+<column-label>Action Target</column-label>
+</field>
+<field><name>event_action</name>
+<data-type>character</data-type>
+<extent>0</extent>
+<format>X(35)</format>
+<initial></initial>
+<label>Event Action</label>
+<column-label>Event Action</column-label>
+</field>
+<field><name>event_parameter</name>
+<data-type>character</data-type>
+<extent>0</extent>
+<format>X(500)</format>
+<initial></initial>
+<label>Event Parameter</label>
+<column-label>Event Parameter</column-label>
+</field>
+<field><name>event_disabled</name>
+<data-type>logical</data-type>
+<extent>0</extent>
+<format>YES/NO</format>
+<initial>NO </initial>
+<label>Event Disabled</label>
+<column-label>Event Disabled</column-label>
+</field>
+<field><name>primary_smartobject_obj</name>
+<data-type>decimal</data-type>
+<extent>0</extent>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
+<label>Primary SmartObject Obj</label>
+<column-label>Primary SmartObject Obj</column-label>
+</field>
 </table_definition>
 <table_definition><name>ryc_page_object</name>
-<dbname>ICFDB</dbname>
+<dbname>icfdb</dbname>
 <index-1>XAK1ryc_page_object,1,0,0,container_smartobject_obj,0,page_obj,0,page_object_sequence,0</index-1>
 <index-2>XIE1ryc_page_object,0,0,0,container_smartobject_obj,0,object_instance_obj,0,page_obj,0</index-2>
-<index-3>XPKryc_page_object,1,1,0,page_object_obj,0</index-3>
+<index-3>XIE2ryc_page_object,0,0,0,object_instance_obj,0</index-3>
+<index-4>XPKryc_page_object,1,1,0,page_object_obj,0</index-4>
 <field><name>page_object_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Page Object Obj</label>
 <column-label>Page Object Obj</column-label>
 </field>
 <field><name>container_smartobject_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Container SmartObject Obj</label>
 <column-label>Container SmartObject Obj</column-label>
 </field>
 <field><name>page_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Page Obj</label>
 <column-label>Page Obj</column-label>
 </field>
 <field><name>page_object_sequence</name>
 <data-type>integer</data-type>
 <extent>0</extent>
-<format>->>9</format>
+<format>-&gt;&gt;9</format>
 <initial>   0</initial>
 <label>Page Object Sequence</label>
 <column-label>Page Object Seq.</column-label>
@@ -496,49 +617,57 @@
 <field><name>object_instance_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Object Instance Obj</label>
 <column-label>Object Instance Obj</column-label>
 </field>
 </table_definition>
 <table_definition><name>ryc_page</name>
-<dbname>ICFDB</dbname>
+<dbname>icfdb</dbname>
 <index-1>XAK1ryc_page,1,0,0,container_smartobject_obj,0,page_sequence,0</index-1>
-<index-2>XIE1ryc_page,0,0,0,layout_obj,0,container_smartobject_obj,0</index-2>
-<index-3>XIE2ryc_page,0,0,0,page_obj,0</index-3>
-<index-4>XPKryc_page,1,1,0,container_smartobject_obj,0,page_obj,0</index-4>
-<field><name>container_smartobject_obj</name>
-<data-type>decimal</data-type>
-<extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
-<label>Container SmartObject Obj</label>
-<column-label>Container SmartObject Obj</column-label>
-</field>
+<index-2>XAK2ryc_page,1,0,0,container_smartobject_obj,0,page_reference,0</index-2>
+<index-3>XIE1ryc_page,0,0,0,layout_obj,0,container_smartobject_obj,0</index-3>
+<index-4>XPKryc_page,1,1,0,page_obj,0</index-4>
 <field><name>page_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Page Obj</label>
 <column-label>Page Obj</column-label>
+</field>
+<field><name>container_smartobject_obj</name>
+<data-type>decimal</data-type>
+<extent>0</extent>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
+<label>Container SmartObject Obj</label>
+<column-label>Container SmartObject Obj</column-label>
 </field>
 <field><name>layout_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Layout Obj</label>
 <column-label>Layout Obj</column-label>
 </field>
 <field><name>page_sequence</name>
 <data-type>integer</data-type>
 <extent>0</extent>
-<format>->9</format>
+<format>-&gt;9</format>
 <initial>  0</initial>
 <label>Page Sequence</label>
 <column-label>Page Seq.</column-label>
+</field>
+<field><name>page_reference</name>
+<data-type>character</data-type>
+<extent>0</extent>
+<format>X(28)</format>
+<initial></initial>
+<label>Page Reference</label>
+<column-label>Page Reference</column-label>
 </field>
 <field><name>page_label</name>
 <data-type>character</data-type>
@@ -582,75 +711,35 @@
 </field>
 </table_definition>
 <table_definition><name>ryc_object_instance</name>
-<dbname>ICFDB</dbname>
+<dbname>icfdb</dbname>
 <index-1>XIE1ryc_object_instance,0,0,0,smartobject_obj,0</index-1>
-<index-2>XIE2ryc_object_instance,0,0,0,container_smartobject_obj,0</index-2>
-<index-3>XIE3ryc_object_instance,0,0,0,container_smartobject_obj,0,smartobject_obj,0,layout_position,0</index-3>
-<index-4>XIE4ryc_object_instance,0,0,0,object_instance_obj,0</index-4>
-<index-5>XPKryc_object_instance,1,1,0,container_smartobject_obj,0,object_instance_obj,0</index-5>
-<field><name>container_smartobject_obj</name>
-<data-type>decimal</data-type>
-<extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
-<label>Container SmartObject Obj</label>
-<column-label>Container SmartObject Obj</column-label>
-</field>
+<index-2>XIE3ryc_object_instance,0,0,0,container_smartobject_obj,0,smartobject_obj,0,layout_position,0</index-2>
+<index-3>XIE4ryc_object_instance,0,0,0,instance_name,0</index-3>
+<index-4>XIE5ryc_object_instance,0,0,0,instance_description,0</index-4>
+<index-5>XPKryc_object_instance,1,1,0,object_instance_obj,0</index-5>
 <field><name>object_instance_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Object Instance Obj</label>
 <column-label>Object Instance Obj</column-label>
+</field>
+<field><name>container_smartobject_obj</name>
+<data-type>decimal</data-type>
+<extent>0</extent>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
+<label>Container SmartObject Obj</label>
+<column-label>Container SmartObject Obj</column-label>
 </field>
 <field><name>smartobject_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>SmartObject Obj</label>
 <column-label>SmartObject Obj</column-label>
-</field>
-<field><name>instance_x</name>
-<data-type>integer</data-type>
-<extent>0</extent>
-<format>->>>>>9</format>
-<initial>      0</initial>
-<label>Instance X</label>
-<column-label>Instance X</column-label>
-</field>
-<field><name>instance_y</name>
-<data-type>integer</data-type>
-<extent>0</extent>
-<format>->>>>>9</format>
-<initial>      0</initial>
-<label>Instance Y</label>
-<column-label>Instance Y</column-label>
-</field>
-<field><name>instance_width</name>
-<data-type>integer</data-type>
-<extent>0</extent>
-<format>->>>>>9</format>
-<initial>      0</initial>
-<label>Instance Width</label>
-<column-label>Instance Width</column-label>
-</field>
-<field><name>instance_height</name>
-<data-type>integer</data-type>
-<extent>0</extent>
-<format>->>>>>9</format>
-<initial>      0</initial>
-<label>Instance Height</label>
-<column-label>Instance Height</column-label>
-</field>
-<field><name>attribute_list</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(500)</format>
-<initial></initial>
-<label>Attribute List</label>
-<column-label>Attribute List</column-label>
 </field>
 <field><name>system_owned</name>
 <data-type>logical</data-type>
@@ -668,9 +757,25 @@
 <label>Layout Position</label>
 <column-label>Layout Position</column-label>
 </field>
+<field><name>instance_name</name>
+<data-type>character</data-type>
+<extent>0</extent>
+<format>X(35)</format>
+<initial></initial>
+<label>Instance Name</label>
+<column-label>Instance Name</column-label>
+</field>
+<field><name>instance_description</name>
+<data-type>character</data-type>
+<extent>0</extent>
+<format>X(70)</format>
+<initial></initial>
+<label>Instance Description</label>
+<column-label>Instance Description</column-label>
+</field>
 </table_definition>
 <table_definition><name>ryc_smartlink</name>
-<dbname>ICFDB</dbname>
+<dbname>icfdb</dbname>
 <index-1>XAK1ryc_smartlink,1,0,0,container_smartobject_obj,0,source_object_instance_obj,0,link_name,0,target_object_instance_obj,0</index-1>
 <index-2>XIE1ryc_smartlink,0,0,0,link_name,0,container_smartobject_obj,0</index-2>
 <index-3>XIE2ryc_smartlink,0,0,0,smartlink_type_obj,0,container_smartobject_obj,0</index-3>
@@ -680,24 +785,24 @@
 <field><name>smartlink_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Smartlink Obj</label>
 <column-label>Smartlink Obj</column-label>
 </field>
 <field><name>container_smartobject_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Container SmartObject Obj</label>
 <column-label>Container SmartObject Obj</column-label>
 </field>
 <field><name>smartlink_type_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Smartlink Type Obj</label>
 <column-label>Smartlink Type Obj</column-label>
 </field>
@@ -712,90 +817,68 @@
 <field><name>source_object_instance_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Source Object Instance Obj</label>
 <column-label>Source Object Instance Obj</column-label>
 </field>
 <field><name>target_object_instance_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Target Object Instance Obj</label>
 <column-label>Target Object Instance Obj</column-label>
 </field>
 </table_definition>
 <table_definition><name>ryc_attribute_value</name>
-<dbname>ICFDB</dbname>
-<index-1>XAK1ryc_attribute_value,1,0,0,object_type_obj,0,smartobject_obj,0,object_instance_obj,0,attribute_label,0,collect_attribute_value_obj,0,collection_sequence,0,container_smartobject_obj,0</index-1>
-<index-2>XAK2ryc_attribute_value,1,0,0,collect_attribute_value_obj,0,collection_sequence,0,attribute_label,0</index-2>
-<index-3>XIE1ryc_attribute_value,0,0,0,attribute_group_obj,0,attribute_type_tla,0,attribute_label,0,object_type_obj,0</index-3>
-<index-4>XIE2ryc_attribute_value,0,0,0,primary_smartobject_obj,0,attribute_group_obj,0,attribute_type_tla,0,attribute_label,0</index-4>
-<index-5>XPKryc_attribute_value,1,1,0,attribute_value_obj,0</index-5>
+<dbname>icfdb</dbname>
+<index-1>XAK1ryc_attribute_value,1,0,0,object_type_obj,0,smartobject_obj,0,object_instance_obj,0,attribute_label,0,container_smartobject_obj,0</index-1>
+<index-2>XIE1ryc_attribute_value,0,0,0,attribute_label,0,object_type_obj,0</index-2>
+<index-3>XIE2ryc_attribute_value,0,0,0,primary_smartobject_obj,0,attribute_label,0</index-3>
+<index-4>XIE3ryc_attribute_value,0,0,0,object_instance_obj,0</index-4>
+<index-5>XIE4ryc_attribute_value,0,0,0,container_smartobject_obj,0</index-5>
+<index-6>XIE5ryc_attribute_value,0,0,0,smartobject_obj,0</index-6>
+<index-7>XPKryc_attribute_value,1,1,0,attribute_value_obj,0</index-7>
 <field><name>attribute_value_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Attribute Value Obj</label>
 <column-label>Attribute Value Obj</column-label>
 </field>
 <field><name>object_type_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Object Type Obj</label>
 <column-label>Object Type Obj</column-label>
 </field>
 <field><name>container_smartobject_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Container SmartObject Obj</label>
 <column-label>Container SmartObject Obj</column-label>
 </field>
 <field><name>smartobject_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>SmartObject Obj</label>
 <column-label>SmartObject Obj</column-label>
 </field>
 <field><name>object_instance_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Object Instance Obj</label>
 <column-label>Object Instance Obj</column-label>
-</field>
-<field><name>collect_attribute_value_obj</name>
-<data-type>decimal</data-type>
-<extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
-<label>Collect Attribute Value Obj</label>
-<column-label>Collect Attribute Value Obj</column-label>
-</field>
-<field><name>collection_sequence</name>
-<data-type>integer</data-type>
-<extent>0</extent>
-<format>->>>>>9</format>
-<initial>      0</initial>
-<label>Collection Sequence</label>
-<column-label>Collection Seq.</column-label>
-</field>
-<field><name>inheritted_value</name>
-<data-type>logical</data-type>
-<extent>0</extent>
-<format>YES/NO</format>
-<initial>YES</initial>
-<label>Inheritted Value</label>
-<column-label>Inheritted Value</column-label>
 </field>
 <field><name>constant_value</name>
 <data-type>logical</data-type>
@@ -804,22 +887,6 @@
 <initial>NO </initial>
 <label>Constant Value</label>
 <column-label>Constant Value</column-label>
-</field>
-<field><name>attribute_group_obj</name>
-<data-type>decimal</data-type>
-<extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
-<label>Attribute Group Obj</label>
-<column-label>Attribute Group Obj</column-label>
-</field>
-<field><name>attribute_type_tla</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(3)</format>
-<initial></initial>
-<label>Attribute Type TLA</label>
-<column-label>Attribute Type TLA</column-label>
 </field>
 <field><name>attribute_label</name>
 <data-type>character</data-type>
@@ -829,150 +896,72 @@
 <label>Attribute Label</label>
 <column-label>Attribute Label</column-label>
 </field>
-<field><name>attribute_value</name>
+<field><name>character_value</name>
 <data-type>character</data-type>
 <extent>0</extent>
 <format>X(70)</format>
 <initial></initial>
-<label>Attribute Value</label>
-<column-label>Attribute Value</column-label>
+<label>Character Value</label>
+<column-label>Character Value</column-label>
 </field>
-<field><name>primary_smartobject_obj</name>
-<data-type>decimal</data-type>
+<field><name>integer_value</name>
+<data-type>integer</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
-<label>Primary SmartObject Obj</label>
-<column-label>Primary SmartObject Obj</column-label>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;9</format>
+<initial>        0</initial>
+<label>Integer Value</label>
+<column-label>Integer Value</column-label>
 </field>
-</table_definition>
-<table_definition><name>ryc_ui_event</name>
-<dbname>ICFDB</dbname>
-<index-1>XAK1ryc_ui_event,1,0,0,object_type_obj,0,smartobject_obj,0,object_instance_obj,0,event_name,0,container_smartobject_obj,0</index-1>
-<index-2>XIE1ryc_ui_event,0,0,0,primary_smartobject_obj,0</index-2>
-<index-3>XPKryc_ui_event,1,1,0,ui_event_obj,0</index-3>
-<field><name>ui_event_obj</name>
-<data-type>decimal</data-type>
+<field><name>date_value</name>
+<data-type>date</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
-<label>UI Event Obj</label>
-<column-label>UI Event Obj</column-label>
-</field>
-<field><name>object_type_obj</name>
-<data-type>decimal</data-type>
-<extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
-<label>Object Type Obj</label>
-<column-label>Object Type Obj</column-label>
-</field>
-<field><name>container_smartobject_obj</name>
-<data-type>decimal</data-type>
-<extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
-<label>Container SmartObject Obj</label>
-<column-label>Container SmartObject Obj</column-label>
-</field>
-<field><name>smartobject_obj</name>
-<data-type>decimal</data-type>
-<extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
-<label>SmartObject Obj</label>
-<column-label>SmartObject Obj</column-label>
-</field>
-<field><name>object_instance_obj</name>
-<data-type>decimal</data-type>
-<extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
-<label>Object Instance Obj</label>
-<column-label>Object Instance Obj</column-label>
-</field>
-<field><name>event_name</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(35)</format>
+<format>99/99/9999</format>
 <initial></initial>
-<label>Event Name</label>
-<column-label>Event Name</column-label>
+<label>Date Value</label>
+<column-label>Date Value</column-label>
 </field>
-<field><name>inheritted_value</name>
-<data-type>logical</data-type>
+<field><name>decimal_value</name>
+<data-type>decimal</data-type>
 <extent>0</extent>
-<format>YES/NO</format>
-<initial>YES</initial>
-<label>Inheritted Value</label>
-<column-label>Inheritted Value</column-label>
+<format>-&gt;&gt;&gt;,&gt;&gt;&gt;,&gt;&gt;&gt;,&gt;&gt;9.99</format>
+<initial>               0.00</initial>
+<label>Decimal Value</label>
+<column-label>Decimal Value</column-label>
 </field>
-<field><name>constant_value</name>
+<field><name>logical_value</name>
 <data-type>logical</data-type>
 <extent>0</extent>
 <format>YES/NO</format>
 <initial>NO </initial>
-<label>Constant Value</label>
-<column-label>Constant Value</column-label>
+<label>Logical Value</label>
+<column-label>Logical Value</column-label>
 </field>
-<field><name>action_type</name>
-<data-type>character</data-type>
+<field><name>raw_value</name>
+<data-type>raw</data-type>
 <extent>0</extent>
-<format>X(3)</format>
+<format>X(15)</format>
 <initial></initial>
-<label>Action Type</label>
-<column-label>Action Type</column-label>
-</field>
-<field><name>action_target</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(28)</format>
-<initial></initial>
-<label>Action Target</label>
-<column-label>Action Target</column-label>
-</field>
-<field><name>event_action</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(35)</format>
-<initial></initial>
-<label>Event Action</label>
-<column-label>Event Action</column-label>
-</field>
-<field><name>event_parameter</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(70)</format>
-<initial></initial>
-<label>Event Parameter</label>
-<column-label>Event Parameter</column-label>
-</field>
-<field><name>event_disabled</name>
-<data-type>logical</data-type>
-<extent>0</extent>
-<format>YES/NO</format>
-<initial>NO </initial>
-<label>Event Disabled</label>
-<column-label>Event Disabled</column-label>
+<label>Raw Value</label>
+<column-label>Raw Value</column-label>
 </field>
 <field><name>primary_smartobject_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Primary SmartObject Obj</label>
 <column-label>Primary SmartObject Obj</column-label>
 </field>
 </table_definition>
 <table_definition><name>rym_data_version</name>
-<dbname>ICFDB</dbname>
+<dbname>icfdb</dbname>
 <index-1>XAK1rym_data_version,1,0,0,related_entity_mnemonic,0,related_entity_key,0</index-1>
 <index-2>XPKrym_data_version,1,1,0,data_version_obj,0</index-2>
 <field><name>data_version_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Data Version Obj</label>
 <column-label>Data Version Obj</column-label>
 </field>
@@ -995,14 +984,14 @@
 <field><name>data_version_number</name>
 <data-type>integer</data-type>
 <extent>0</extent>
-<format>->>>>>9</format>
+<format>-&gt;&gt;&gt;&gt;&gt;9</format>
 <initial>      0</initial>
 <label>Data Version Number</label>
 <column-label>Data Version Number</column-label>
 </field>
 </table_definition>
 <table_definition><name>rym_wizard_tree</name>
-<dbname>ICFDB</dbname>
+<dbname>icfdb</dbname>
 <index-1>XAK1rym_wizard_tree,1,0,0,object_name,0</index-1>
 <index-2>XAK2rym_wizard_tree,1,0,0,product_code,0,product_module_code,0,object_name,0</index-2>
 <index-3>XIE1rym_wizard_tree,0,0,0,object_description,0</index-3>
@@ -1010,8 +999,8 @@
 <field><name>wizard_tree_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Wizard Tree Obj</label>
 <column-label>Wizard Tree Obj</column-label>
 </field>
@@ -1130,7 +1119,7 @@
 <field><name>image_height</name>
 <data-type>integer</data-type>
 <extent>0</extent>
-<format>->>>9</format>
+<format>-&gt;&gt;&gt;9</format>
 <initial>    0</initial>
 <label>Image Height</label>
 <column-label>Image Height</column-label>
@@ -1138,7 +1127,7 @@
 <field><name>image_width</name>
 <data-type>integer</data-type>
 <extent>0</extent>
-<format>->>>9</format>
+<format>-&gt;&gt;&gt;9</format>
 <initial>    0</initial>
 <label>Image Width</label>
 <column-label>Image Width</column-label>
@@ -1162,7 +1151,7 @@
 <field><name>tree_style</name>
 <data-type>integer</data-type>
 <extent>0</extent>
-<format>->>9</format>
+<format>-&gt;&gt;9</format>
 <initial>   0</initial>
 <label>Tree Style</label>
 <column-label>Tree Style</column-label>
@@ -1170,7 +1159,7 @@
 <field><name>generated_time</name>
 <data-type>integer</data-type>
 <extent>0</extent>
-<format>>>>>9</format>
+<format>&gt;&gt;&gt;&gt;9</format>
 <initial>    0</initial>
 <label>Generated Time</label>
 <column-label>Generated Time</column-label>
@@ -1185,22 +1174,22 @@
 </field>
 </table_definition>
 <table_definition><name>gsm_toolbar_menu_structure</name>
-<dbname>ICFDB</dbname>
+<dbname>icfdb</dbname>
 <index-1>XAK1gsm_toolbar_menu_structure,1,0,0,toolbar_menu_structure_obj,0</index-1>
 <index-2>XIE1gsm_toolbar_menu_structure,0,0,0,menu_structure_obj,0</index-2>
 <index-3>XPKgsm_toolbar_menu_structure,1,1,0,object_obj,0,menu_structure_sequence,0,menu_structure_obj,0</index-3>
 <field><name>object_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Object Obj</label>
 <column-label>Object Obj</column-label>
 </field>
 <field><name>menu_structure_sequence</name>
 <data-type>integer</data-type>
 <extent>0</extent>
-<format>->>>9</format>
+<format>-&gt;&gt;&gt;9</format>
 <initial>    0</initial>
 <label>Menu Structure Sequence</label>
 <column-label>Menu Structure Seq.</column-label>
@@ -1208,23 +1197,23 @@
 <field><name>menu_structure_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Menu Structure Obj</label>
 <column-label>Menu Structure Obj</column-label>
 </field>
 <field><name>toolbar_menu_structure_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Toolbar Menu Structure Obj</label>
 <column-label>Toolbar Menu Structure Obj</column-label>
 </field>
 <field><name>menu_structure_spacing</name>
 <data-type>integer</data-type>
 <extent>0</extent>
-<format>->>9</format>
+<format>-&gt;&gt;9</format>
 <initial>   0</initial>
 <label>Menu Structure Spacing</label>
 <column-label>Menu Structure Spacing</column-label>
@@ -1255,7 +1244,7 @@
 </field>
 </table_definition>
 <table_definition><name>gsm_object_menu_structure</name>
-<dbname>ICFDB</dbname>
+<dbname>icfdb</dbname>
 <index-1>XAK1gsm_object_menu_structure,1,0,0,menu_structure_obj,0,object_obj,0,instance_attribute_obj,0</index-1>
 <index-2>XAK2gsm_object_menu_structure,1,0,0,object_menu_structure_obj,0</index-2>
 <index-3>XIE1gsm_object_menu_structure,0,0,0,instance_attribute_obj,0</index-3>
@@ -1264,40 +1253,40 @@
 <field><name>object_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Object Obj</label>
 <column-label>Object Obj</column-label>
 </field>
 <field><name>menu_structure_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Menu Structure Obj</label>
 <column-label>Menu Structure Obj</column-label>
 </field>
 <field><name>instance_attribute_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Instance Attribute Obj</label>
 <column-label>Instance Attribute Obj</column-label>
 </field>
 <field><name>object_menu_structure_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Object Menu Structure Obj</label>
 <column-label>Object Menu Structure Obj</column-label>
 </field>
 <field><name>menu_item_obj</name>
 <data-type>decimal</data-type>
 <extent>0</extent>
-<format>>>>>>>>>>>>>>>>>>9.999999999</format>
-<initial>                 0.000000000</initial>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
 <label>Menu Item Obj</label>
 <column-label>Menu Item Obj</column-label>
 </field>
@@ -1312,76 +1301,70 @@
 <field><name>menu_structure_sequence</name>
 <data-type>integer</data-type>
 <extent>0</extent>
-<format>->>9</format>
+<format>-&gt;&gt;9</format>
 <initial>   0</initial>
 <label>Menu Structure Sequence</label>
 <column-label>Menu Structure Seq.</column-label>
 </field>
 </table_definition>
+<table_definition><name>gsm_valid_object_partition</name>
+<dbname>icfdb</dbname>
+<index-1>XAK1gsm_valid_object_partition,1,0,0,logical_service_obj,0,object_obj,0</index-1>
+<index-2>XAK2gsm_valid_object_partition,1,0,0,object_obj,0,logical_service_obj,0</index-2>
+<index-3>XPKgsm_valid_object_partition,1,1,0,valid_object_partition_obj,0</index-3>
+<field><name>valid_object_partition_obj</name>
+<data-type>decimal</data-type>
+<extent>0</extent>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
+<label>Valid Object Partition Obj</label>
+<column-label>Valid Object Partition Obj</column-label>
+</field>
+<field><name>logical_service_obj</name>
+<data-type>decimal</data-type>
+<extent>0</extent>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
+<label>Logical Service Obj</label>
+<column-label>Logical Service Obj</column-label>
+</field>
+<field><name>object_obj</name>
+<data-type>decimal</data-type>
+<extent>0</extent>
+<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
+<initial>                  0.000000000</initial>
+<label>Object Obj</label>
+<column-label>Object Obj</column-label>
+</field>
+</table_definition>
 </dataset_header>
-<dataset_records><dataset_transaction TransactionNo="1"><contained_record DB="ICFDB" Table="ryc_smartobject"><smartobject_obj>1004841105.09</smartobject_obj>
+<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" version_date="09/30/2002" version_time="23747" version_user="admin" deletion_flag="no" entity_mnemonic="rycso" key_field_value="1004841105.09" record_version_obj="3000033129.09" version_number_seq="2.09" secondary_key_value="gscscviewv.w#CHR(1)#0" import_version_number_seq="2.09"><smartobject_obj>1004841105.09</smartobject_obj>
+<object_filename>gscscviewv.w</object_filename>
+<customization_result_obj>0</customization_result_obj>
+<object_type_obj>1003498165</object_type_obj>
+<product_module_obj>1004874683.09</product_module_obj>
 <layout_obj>1003516362</layout_obj>
-<object_type_obj>1003498165</object_type_obj>
-<object_obj>1004841104.09</object_obj>
-<object_filename>gscscviewv.w</object_filename>
-<product_module_obj>1004874683.09</product_module_obj>
-<static_object>yes</static_object>
-<custom_super_procedure></custom_super_procedure>
-<system_owned>no</system_owned>
-<shutdown_message_text></shutdown_message_text>
-<sdo_smartobject_obj>?</sdo_smartobject_obj>
-<template_smartobject>no</template_smartobject>
-<contained_record DB="ICFDB" Table="gsc_object"><object_obj>1004841104.09</object_obj>
-<object_type_obj>1003498165</object_type_obj>
-<product_module_obj>1004874683.09</product_module_obj>
 <object_description>Security Control Static SmartDataViewer</object_description>
-<object_filename>gscscviewv.w</object_filename>
-<object_extension></object_extension>
 <object_path>af/obj2</object_path>
-<toolbar_multi_media_obj>0</toolbar_multi_media_obj>
-<toolbar_image_filename></toolbar_image_filename>
-<tooltip_text>Security Control Static SmartDataViewer</tooltip_text>
+<object_extension></object_extension>
+<static_object>yes</static_object>
+<generic_object>no</generic_object>
+<template_smartobject>no</template_smartobject>
+<system_owned>no</system_owned>
+<deployment_type>CLN</deployment_type>
+<design_only>no</design_only>
 <runnable_from_menu>no</runnable_from_menu>
+<container_object>no</container_object>
 <disabled>no</disabled>
 <run_persistent>yes</run_persistent>
 <run_when>ANY</run_when>
-<security_object_obj>1004841104.09</security_object_obj>
-<container_object>no</container_object>
-<physical_object_obj>0</physical_object_obj>
-<logical_object>no</logical_object>
-<generic_object>no</generic_object>
+<shutdown_message_text></shutdown_message_text>
 <required_db_list></required_db_list>
-</contained_record>
-<contained_record DB="ICFDB" Table="ryc_attribute_value"><attribute_value_obj>374.28</attribute_value_obj>
-<object_type_obj>1003498165</object_type_obj>
-<container_smartobject_obj>0</container_smartobject_obj>
-<smartobject_obj>1004841105.09</smartobject_obj>
-<object_instance_obj>0</object_instance_obj>
-<collect_attribute_value_obj>374.28</collect_attribute_value_obj>
-<collection_sequence>0</collection_sequence>
-<inheritted_value>yes</inheritted_value>
-<constant_value>no</constant_value>
-<attribute_group_obj>1003183341</attribute_group_obj>
-<attribute_type_tla>LOG</attribute_type_tla>
-<attribute_label>ResizeHorizontal</attribute_label>
-<attribute_value>NO</attribute_value>
-<primary_smartobject_obj>1004841105.09</primary_smartobject_obj>
-</contained_record>
-<contained_record DB="ICFDB" Table="ryc_attribute_value"><attribute_value_obj>461.28</attribute_value_obj>
-<object_type_obj>1003498165</object_type_obj>
-<container_smartobject_obj>0</container_smartobject_obj>
-<smartobject_obj>1004841105.09</smartobject_obj>
-<object_instance_obj>0</object_instance_obj>
-<collect_attribute_value_obj>461.28</collect_attribute_value_obj>
-<collection_sequence>0</collection_sequence>
-<inheritted_value>yes</inheritted_value>
-<constant_value>no</constant_value>
-<attribute_group_obj>1003183341</attribute_group_obj>
-<attribute_type_tla>LOG</attribute_type_tla>
-<attribute_label>ResizeVertical</attribute_label>
-<attribute_value>NO</attribute_value>
-<primary_smartobject_obj>1004841105.09</primary_smartobject_obj>
-</contained_record>
+<sdo_smartobject_obj>0</sdo_smartobject_obj>
+<custom_smartobject_obj>0</custom_smartobject_obj>
+<extends_smartobject_obj>0</extends_smartobject_obj>
+<physical_smartobject_obj>0</physical_smartobject_obj>
+<security_smartobject_obj>1004841105.09</security_smartobject_obj>
 </contained_record>
 </dataset_transaction>
 </dataset_records>

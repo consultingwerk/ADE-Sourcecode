@@ -217,7 +217,7 @@ PROCEDURE mip-encrypt-file :
 
     IF SEARCH(ip_file_directory + ip_file_name) = ?
     THEN DO:
-        RETURN "File to encrypt\decrypt not found: ":U + ip_file_directory + ip_file_name.
+        RETURN "File to encrypt/decrypt not found: ":U + ip_file_directory + ip_file_name.
     END.
 
     RUN mip-encrypt-procedure ( INPUT ip_encrypt_file,
@@ -242,7 +242,7 @@ PROCEDURE mip-encrypt-procedure :
               or copied or taken down for reference.
 
               Filecode.exe
-              Encryption/Decryption - Encode\Decode Program
+              Encryption/Decryption - Encode/Decode Program
               Options:
               /s    : Source directory
               /f    : Source File()
@@ -318,7 +318,7 @@ PROCEDURE mip-encrypt-report :
     IF AVAILABLE gsc_global_default
     THEN DO:
         ASSIGN
-            lv_rpd_directory = REPLACE( REPLACE(gsc_global_default.default_value, "\":U,"/":U) + "/":U, "//":U, "/":U ).
+            lv_rpd_directory = REPLACE( REPLACE(gsc_global_default.default_value, "~\":U,"/":U) + "/":U, "//":U, "/":U ).
     END.
     ELSE DO:
         RETURN "Report Directory not setup ":U.
@@ -326,7 +326,7 @@ PROCEDURE mip-encrypt-report :
 
     IF SEARCH(lv_rpd_directory + ip_file_name) = ?
     THEN DO:
-        RETURN "Report to encrypt\decrypt not found: ":U + lv_rpd_directory + ip_file_name.
+        RETURN "Report to encrypt/decrypt not found: ":U + lv_rpd_directory + ip_file_name.
     END.
 
     ASSIGN

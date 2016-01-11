@@ -196,6 +196,8 @@ Output Parameters:
      8/1/95   GFS   Added "WBX-FILE-NAME" AND "COMPILE-INTO-DIR".
      4/7/95   GFS   Added "HANDLE", "CONTAINS", "EXTERNAL-TABLES",
                       "TABLES" and "4GL-QUERY" for p_request.
+     3/31/03  DB    Added support for DATA-LOGIC-PROCEDURE and
+                    ACTION for p_request                 
                   
 -----------------------------------------------------------------------------*/
 
@@ -213,6 +215,7 @@ DEFINE OUTPUT PARAMETER p_info      AS CHAR    NO-UNDO.
 {adeuib/brwscols.i}
 {adeuib/custwidg.i}
 {adeuib/links.i}
+{src/adm2/globals.i}  /* Dynamics global variables */
 
 /* Local Variables */              
 DEFINE VAR contains-list AS CHAR    NO-UNDO.  
@@ -1014,7 +1017,8 @@ PROCEDURE process-request :
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE c AS INTEGER NO-UNDO.
   DEFINE VARIABLE i AS INTEGER NO-UNDO.
-  DEFINE VARIABLE include-name AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE include-name  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lisICFRunning AS LOGICAL    NO-UNDO.
 
   /* Check the special PROCEDURE requests */
   IF l_proc-info AND 
@@ -1030,6 +1034,12 @@ PROCEDURE process-request :
                                        ELSE _P._data-object + ".i"
                include-name = REPLACE(include-name, "~\", "~/")
                p_info       = include-name.
+        IF SEARCH(p_info) = ? THEN DO: 
+          /* Check whether specified proc-filename is a repository object if Dynamics is running*/
+         ASSIGN lisICFRunning = DYNAMIC-FUNCTION("IsICFRunning":U) NO-ERROR.
+            IF lisICFRunning AND VALID-HANDLE(gshRepositoryManager) THEN 
+              p_info = DYNAMIC-FUNCTION("getSDOincludeFile" IN gshRepositoryManager, include-name).
+        END.  /* If unable to locate include-file and ICF is running */
       END.
     END CASE.
     RETURN.
@@ -1046,6 +1056,15 @@ PROCEDURE process-request :
   
     /* Cases that request PROCEDURE information */
     WHEN "COMPILE-INTO-DIR" THEN p_info = _P._compile-into.
+    WHEN "DATA-LOGIC-PROCEDURE" THEN 
+    DO:
+       IF AVAILABLE _U THEN 
+       DO:
+          FIND x_C WHERE RECID(x_C) = _U._x-recid.
+          ASSIGN p_info = x_C._DATA-LOGIC-PROC.
+       END.
+    END.
+    WHEN "ACTION":U         THEN p_info = _P.design_action.
     WHEN "EXTERNAL-TABLES"  THEN p_info = _P._xTblList.
     WHEN "FILE-NAME"        THEN p_info = _P._SAVE-AS-FILE.
     WHEN "PROCEDURE"        THEN p_info = STRING(RECID(_P)).

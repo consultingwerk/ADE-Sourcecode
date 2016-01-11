@@ -56,7 +56,7 @@ DEFINE INPUT PARAMETER from_schema AS LOGICAL                      NO-UNDO.
 {adeuib/triggers.i}     /* Trigger TEMP-TABLE definition                     */
 {adeuib/sharvars.i}     /* Shared variables                                  */
 {adeuib/analyze.i &TYPE = "FILL-IN" } /* Analyzer Names for Combo-box        */
-
+{src/adm2/globals.i}
 
 DEFINE SHARED  STREAM    _P_QS2.
                         /* This is the input stream with "Quick Save"        */
@@ -72,6 +72,10 @@ DEFINE VARIABLE tmp-db             AS  CHAR INITIAL ?                 NO-UNDO.
 DEFINE VARIABLE tmp-entry          AS  CHAR                           NO-UNDO.
 DEFINE VARIABLE tmp-label          AS  CHAR                           NO-UNDO.
 DEFINE VARIABLE tmp-tbl            AS  CHAR INITIAL ?                 NO-UNDO.
+DEFINE VARIABLE lICFIsRunning      AS LOGICAL                         NO-UNDO.
+DEFINE VARIABLE hSDO               AS HANDLE                          NO-UNDO.
+
+lICFIsRunning = DYNAMIC-FUNCTION("IsICFRunning":U) NO-ERROR.
 
 FIND _P WHERE _P._WINDOW-HANDLE EQ _h_win.  /* Necessary for temp-table support  */
 
@@ -153,7 +157,7 @@ ASSIGN _U._SUBTYPE             = pcSubtype
        _U._LABEL               = IF _L._NO-LABELS 
                                  THEN ""
                                  ELSE (IF v_label = ? THEN _U._NAME ELSE v_label)
-       _U._LABEL-SOURCE        = IF from_schema OR _U._DBNAME NE ?
+       _U._LABEL-SOURCE        = IF (from_schema OR _U._DBNAME NE ?) AND _U._LABEL-SOURCE NE "E":U
                                  THEN "D" ELSE "E"
        _F._AUTO-RETURN         = ({&AFF_auto-return} eq "Y")
        _F._DEBLANK             = ({&AFF_deblank} eq "Y")
@@ -193,6 +197,24 @@ IF (_U._DBNAME NE ?) AND _L._NO-LABELS AND (_U._LABEL eq "") THEN DO:
     ELSE _U._LABEL = tmp-label.
   END.  /* If a temp-table */
 END.  /* If _U._LABEL = "" */
+
+/* If ICF is running and this is a dynamic viewer, get the label, format and help from 
+   the running SDO */
+IF lICFIsRunning THEN 
+DO:
+  IF DYNAMIC-FUNCTION("ClassIsA" IN gshRepositoryManager, _P.object_type_code, "DynView":U) AND 
+   _P._DATA-OBJECT NE "":U THEN DO:
+    hSDO = DYNAMIC-FUNCTION("get-sdo-hdl" IN _h_func_lib, INPUT _P._DATA-OBJECT, THIS-PROCEDURE) NO-ERROR.
+    IF VALID-HANDLE(hSDO) THEN
+    DO:
+      ASSIGN
+        _U._LABEL  = DYNAMIC-FUNCTION("columnLabel":U IN hSDO, INPUT _U._NAME)
+        _F._FORMAT = DYNAMIC-FUNCTION("columnFormat":U IN hSDO, INPUT _U._NAME)
+        _U._HELP   = DYNAMIC-FUNCTION("columnHelp":U IN hSDO, INPUT _U._NAME).
+      DYNAMIC-FUNCTION("shutdown-sdo" IN _h_func_lib, THIS-PROCEDURE).
+    END.  /* valid SDO */
+  END.  /* DynView */
+END.  /* ICF Running */
 
 CREATE VALUE(IF parent_U._WIN-TYPE AND _U._SUBTYPE NE "TEXT" THEN "FILL-IN" ELSE "TEXT")
     _U._HANDLE

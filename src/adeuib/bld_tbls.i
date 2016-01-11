@@ -40,59 +40,62 @@ Author: D. Ross Hunter
 
 Date Created: 1999
 
-Date Modified:
+Date Modified: 01/14/2003  Issue 3635.  
 
 ---------------------------------------------------------------------------- */
-/* ************************************************************************* */
-/*                                                                           */
-/*     COMMON PROCEDURES FOR DEFINING VIEW-AS SUPPORT, COLOR and FONT        */
-/*                                                                           */
-/* ************************************************************************* */
-
-
 
 /* Build a simple list of tables from a 4gl query */
 PROCEDURE build_table_list:
-DEFINE INPUT  PARAMETER iquery    AS CHARACTER     NO-UNDO.
-DEFINE INPUT  PARAMETER delmtr    AS CHARACTER     NO-UNDO.
-DEFINE INPUT  PARAMETER qualify   AS LOGICAL       NO-UNDO.
-DEFINE INPUT-OUTPUT PARAMETER otbls     AS CHARACTER     NO-UNDO.
+DEFINE INPUT  PARAMETER pcQuery        AS CHARACTER     NO-UNDO.
+DEFINE INPUT  PARAMETER pcdelmtr       AS CHARACTER     NO-UNDO.
+DEFINE INPUT  PARAMETER plqualify      AS LOGICAL       NO-UNDO.
+DEFINE INPUT-OUTPUT PARAMETER pcotbls  AS CHARACTER     NO-UNDO.
 
-DEFINE VARIABLE db_name           AS CHARACTER     NO-UNDO.
-DEFINE VARIABLE i                 AS INTEGER       NO-UNDO.
-DEFINE VARIABLE tmptbl            AS CHARACTER     NO-UNDO.
-DEFINE VARIABLE origDbName        AS CHARACTER     NO-UNDO.
+DEFINE VARIABLE db_name           AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cFullName         AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE i                 AS INTEGER    NO-UNDO.
+DEFINE VARIABLE ctmptbl           AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cEntry            AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE rRecid            AS RECID      NO-UNDO.
+DEFINE VARIABLE cTmpString        AS CHARACTER  NO-UNDO.
 
-origDbName = LDBNAME(1).                        /* IZ 448: take the first db for the dbname */ 
-IF (INDEX(otbls,".":U) > 0)                     /* like always BUT if there is a    */
-    THEN origDbName = ENTRY(1,otbls,".":U).     /* better choice then use it  */
-  
-ASSIGN iquery  = REPLACE(REPLACE(REPLACE(TRIM(iquery),CHR(13)," "),
+ASSIGN pcQuery     = REPLACE(REPLACE(REPLACE(TRIM(pcQuery),CHR(13)," "),
                                  CHR(10), " "), "~~", " ")
-       i       = 0
-       otbls   = "".
+       pcotbls      = ""
+       i          = 0.
 /* condense spaces */
-DO WHILE otbls NE iquery:
-  ASSIGN otbls  = iquery
-         iquery = REPLACE(iquery, "  ":U, " ").
+DO WHILE cTmpString NE pcQuery:
+  ASSIGN cTmpString  = pcQuery
+         pcQuery = REPLACE(pcQuery, "  ":U, " ").
 END.
-otbls = "".                     
-DO WHILE i < NUM-ENTRIES(iquery," ":U):
-  i = i + 1.
-  IF CAN-DO("EACH,FIRST,LAST,CURRENT,NEXT,PREV",ENTRY(i, iquery, " ":U))
+
+DO WHILE i < NUM-ENTRIES(pcQuery," ":U):
+  ASSIGN i       = i + 1
+         cEntry  = ENTRY(i, pcQuery, " ":U).
+  IF CAN-DO("EACH,FIRST,LAST,CURRENT,NEXT,PREV",cEntry)
   THEN DO: /* Next token is a table name */
-    IF (i > 1 AND ENTRY(i - 1, iquery, " ":U) NE "GET":U)
-        OR i = 1 THEN DO:  /* GET NEXT or GET PREV is followed by query-name */
-      ASSIGN i       = i + 1
-             db_name = TRIM(ENTRY(i, iquery, " ":U),",.":U)
-             tmptbl  = (IF NUM-ENTRIES(db_name,".":U) = 1 AND qualify 
-                        THEN  origDbName + "." + db_name
-                        ELSE db_name). 
-      IF LOOKUP(tmptbl,otbls,delmtr) = 0 THEN otbls   = otbls + delmtr + tmptbl.
+    IF (i > 1 AND ENTRY(i - 1, pcQuery, " ":U) NE "GET":U)
+        OR i = 1 THEN 
+    DO:  /* GET NEXT or GET PREV is followed by query-name */
+      ASSIGN i         = i + 1
+             cFullName = TRIM(ENTRY(i, pcQuery, " ":U),",.":U).
+      IF NUM-ENTRIES(cFullName,".") = 1 AND plqualify  THEN 
+      DO:  /* Get the db name from the specified table name */
+         RUN adecomm/_gttbldb.p (INPUT cFullName, OUTPUT db_name, 
+                                 OUTPUT rRecid, OUTPUT rRecid).
+         ASSIGN ctmptbl =  db_name + "." + cFullName.
+      END.
+      ELSE IF NUM-ENTRIES(cFullName,".") = 2 AND NOT plqualify THEN
+         ASSIGN ctmptbl = ENTRY(2,cFullname,".").
+      ELSE 
+         ASSIGN ctmptbl = cFullName.
+
+      IF LOOKUP(ctmptbl,pcotbls,pcdelmtr) = 0 THEN 
+         pcotbls   = pcotbls + pcdelmtr + ctmptbl.
     END.
   END. /* Next token is a table name */
 END.  /* While i < number of entries */
-ASSIGN otbls = TRIM(otbls,delmtr).
+ASSIGN pcotbls = TRIM(pcotbls,pcdelmtr).
 
 END PROCEDURE. /* build_table_list */
 

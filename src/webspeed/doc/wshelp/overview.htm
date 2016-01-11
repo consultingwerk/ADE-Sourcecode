@@ -1,22 +1,16 @@
 <html>
-
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
 <meta name="GENERATOR" content="Microsoft FrontPage 4.0">
 <meta name="ProgId" content="FrontPage.Editor.Document">
 <title>Application Framework</title>
 </head>
-
 <body>
-
 <h1><font COLOR="#000080" FACE="MS Sans Serif"><a href="default.htm"><img
-SRC="/Webspeed31C/doc/wshelp/images/helpbook.gif" WIDTH="53" HEIGHT="40">
+SRC="/webspeed31D/doc/wshelp/images/helpbook.gif" WIDTH="53" HEIGHT="40">
 </a> Application Framework</font></h1>
-
 <hr SIZE="4" COLOR="#0000FF">
-
 <p><a href="framework.htm">Configuration</a> Overview <a href="programming.htm">Programming</a></p>
-
 <h2><a name="_Ref530377711"></a><a name="_Toc534774979"><span style="mso-bookmark:
 _Ref530377711">1.1<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span>WebSpeed 4GL Changes</span></a></h2>
@@ -139,7 +133,7 @@ _Ref510357789">1.2.8<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&
 </span>Session variables and across-agents global variables.</span></a></h3>
 <p class="MsoBodyText"><span style="mso-bookmark: _Ref510357789">You can set and
 get variables for the current session based on the sessionID. This is
-file-based, but for dynamics it’s database based. You can also set and get
+file-based, but for Progress Dynamics it’s database based. You can also set and get
 global variables which for system purposes.</span></p>
 <h3><span style="mso-bookmark: _Ref510357789">1.2.9<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span>Check Database Connections</span></h3>
@@ -151,8 +145,8 @@ either by connection parameters or through a program. By specifying a program
 and adding logic to a custom “end-request” procedure you can even perform
 logic driven database connections, important if databases are separated into
 customer segments.<span style="mso-spacerun: yes">&nbsp;</span></p>
-<p class="MsoBodyText">For Agents running with Dynamics, the connection
-parameters will be read out of the Dynamics repository.</p>
+<p class="MsoBodyText">For Agents running with Progress Dynamics, the connection
+parameters will be read out of the Progress Dynamics repository.</p>
 <h3>1.2.10<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp; </span>Database
 failover to backup databases.</h3>
 <p class="MsoBodyText">When the 99.99% uptime matters then redundancy is the
@@ -161,7 +155,5 @@ and make sure all agent switch to a backup database set. The “failover” mode
 can also be set manually for maintenance situations. A “dbFailover” program
 may be specified to pick up the “failover” event and run programs to perform
 a system reset or maybe contact administrators.</p>
-
 </body>
-
 </html>

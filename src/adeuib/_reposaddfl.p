@@ -202,16 +202,16 @@ DO ON STOP UNDO, LEAVE:
           RUN save_ab_file_to_repos.
         ELSE
           RUN save_file_to_repos.
-        
+        /* This is redundant 
         IF (gcError <> "") THEN
         DO ON  STOP UNDO, LEAVE ON ERROR UNDO, LEAVE:
             MESSAGE "Object not added to repository." SKIP(1)
                     gcError
               VIEW-AS ALERT-BOX.
-        END.
-        ELSE IF (gcError = "") THEN
+        END. */
+        IF (gcError = "") THEN
         DO ON STOP UNDO, LEAVE ON ERROR UNDO, LEAVE:
-            MESSAGE "Object was added to repository."
+            MESSAGE "Object was registered in the repository."
               VIEW-AS ALERT-BOX INFORMATION.
         END.
     END. /* pressedOK */
@@ -277,7 +277,11 @@ DO ON ERROR UNDO, LEAVE:
         (INPUT pcFileName,
          INPUT _RyObject.object_type_code,
          INPUT _RyObject.product_module_code,
-         INPUT "" /* Description */, INPUT lPrompt /* prompt for PM */, OUTPUT gcError).
+         INPUT "" /* Description */, 
+         INPUT _RyObject.deployment_type,
+         INPUT _RyObject.design_only,
+         INPUT lPrompt /* prompt for PM */, 
+         OUTPUT gcError).
 
     /* Don't need this anymore. It's passed back the info we needed. */
     DELETE _RyObject.

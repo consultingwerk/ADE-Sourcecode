@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          afdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" vTableWin _INLINE
@@ -87,7 +87,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gsmusviewv.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010100
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -130,8 +130,6 @@ RowObject.password_expiry_days RowObject.user_email_address ~
 RowObject.external_userid 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define ENABLED-OBJECTS buBlank buBlank2 
 &Scoped-Define DISPLAYED-FIELDS RowObject.user_login_name ~
 RowObject.disabled RowObject.user_full_name RowObject.profile_user ~
@@ -146,6 +144,8 @@ RowObject.password_expiry_days RowObject.last_login_date ~
 RowObject.fmt_user_login_time RowObject.password_fail_date ~
 RowObject.fmt_password_fail_time RowObject.password_fail_count ~
 RowObject.user_email_address RowObject.external_userid 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define DISPLAYED-OBJECTS fiProfileUserName 
 
 /* Custom List Definitions                                              */
@@ -160,10 +160,10 @@ RowObject.user_email_address RowObject.external_userid
 
 
 /* Definitions of handles for SmartObjects                              */
+DEFINE VARIABLE h_dyncombo AS HANDLE NO-UNDO.
+DEFINE VARIABLE h_dyncombo-2 AS HANDLE NO-UNDO.
 DEFINE VARIABLE h_dynlookup AS HANDLE NO-UNDO.
 DEFINE VARIABLE h_dynlookup-2 AS HANDLE NO-UNDO.
-DEFINE VARIABLE h_gsclgdcs2v AS HANDLE NO-UNDO.
-DEFINE VARIABLE h_gsmucdcsfv AS HANDLE NO-UNDO.
 
 /* Definitions of the field level widgets                               */
 DEFINE BUTTON buBlank 
@@ -184,113 +184,120 @@ DEFINE VARIABLE fiProfileUserName AS CHARACTER FORMAT "X(35)":U
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     RowObject.user_login_name AT ROW 1 COL 23.4 COLON-ALIGNED
+     RowObject.user_login_name AT ROW 1 COL 22.6 COLON-ALIGNED
+          LABEL "User Login Name"
           VIEW-AS FILL-IN 
-          SIZE 21.2 BY 1
+          SIZE 34.8 BY 1
      RowObject.disabled AT ROW 1 COL 66.2
+          LABEL "Disabled"
           VIEW-AS TOGGLE-BOX
           SIZE 16 BY .81
-     RowObject.user_full_name AT ROW 2.05 COL 23.4 COLON-ALIGNED
+     RowObject.user_full_name AT ROW 2.05 COL 22.6 COLON-ALIGNED
           LABEL "Full Name"
           VIEW-AS FILL-IN 
-          SIZE 57.2 BY 1
-     RowObject.profile_user AT ROW 4.33 COL 25.4
+          SIZE 78.4 BY 1
+     RowObject.profile_user AT ROW 4.14 COL 24.6
+          LABEL "Profile User"
           VIEW-AS TOGGLE-BOX
-          SIZE 15.8 BY .81
-     RowObject.development_user AT ROW 4.33 COL 56.2
+          SIZE 15.8 BY 1
+     RowObject.development_user AT ROW 4.14 COL 56.2
+          LABEL "Development User"
           VIEW-AS TOGGLE-BOX
-          SIZE 22.6 BY .81
-     RowObject.maintain_system_data AT ROW 4.33 COL 85.8
+          SIZE 22.6 BY 1
+     RowObject.maintain_system_data AT ROW 4.14 COL 85.8
           LABEL "Maintain System Data"
           VIEW-AS TOGGLE-BOX
-          SIZE 25.6 BY .81
-     fiProfileUserName AT ROW 5.38 COL 54.2 COLON-ALIGNED NO-LABEL
-     RowObject.user_creation_date AT ROW 6.43 COL 23.4 COLON-ALIGNED
+          SIZE 25.6 BY 1
+     fiProfileUserName AT ROW 5.14 COL 54.2 COLON-ALIGNED NO-LABEL
+     RowObject.user_creation_date AT ROW 6.19 COL 22.6 COLON-ALIGNED
           LABEL "User Created Date"
           VIEW-AS FILL-IN 
           SIZE 20 BY 1
-     RowObject.fmt_user_create_time AT ROW 6.43 COL 54.2 COLON-ALIGNED
+     RowObject.fmt_user_create_time AT ROW 6.19 COL 54.2 COLON-ALIGNED
           LABEL "Time"
           VIEW-AS FILL-IN 
           SIZE 10 BY 1
-     RowObject.user_password AT ROW 8.29 COL 23.4 COLON-ALIGNED BLANK 
+     RowObject.user_password AT ROW 7.57 COL 22.6 COLON-ALIGNED BLANK 
           LABEL "Password"
           VIEW-AS FILL-IN 
           SIZE 41.2 BY 1
-     buBlank AT ROW 8.33 COL 67
-     RowObject.confirm_password AT ROW 9.33 COL 23.4 COLON-ALIGNED BLANK 
+     buBlank AT ROW 7.62 COL 67
+     RowObject.confirm_password AT ROW 8.62 COL 22.6 COLON-ALIGNED BLANK 
+          LABEL "Confirm Password"
           VIEW-AS FILL-IN 
           SIZE 41.2 BY 1
-     buBlank2 AT ROW 9.43 COL 67
-     RowObject.password_creation_date AT ROW 10.43 COL 23.4 COLON-ALIGNED
+     buBlank2 AT ROW 8.71 COL 67
+     RowObject.password_creation_date AT ROW 9.67 COL 22.6 COLON-ALIGNED
           LABEL "Password Created Date"
           VIEW-AS FILL-IN 
           SIZE 20 BY 1
-     RowObject.fmt_password_create_time AT ROW 10.43 COL 54.2 COLON-ALIGNED
+     RowObject.fmt_password_create_time AT ROW 9.67 COL 54.2 COLON-ALIGNED
           LABEL "Time"
           VIEW-AS FILL-IN 
           SIZE 10 BY 1
-     RowObject.password_minimum_length AT ROW 11.48 COL 23.4 COLON-ALIGNED
+     RowObject.password_minimum_length AT ROW 10.71 COL 22.6 COLON-ALIGNED
           LABEL "Minimum Length"
           VIEW-AS FILL-IN 
           SIZE 12.4 BY 1
-     RowObject.password_preexpired AT ROW 12.71 COL 25.4
+     RowObject.password_preexpired AT ROW 11.76 COL 24.6
           LABEL "Password Pre-expired"
           VIEW-AS TOGGLE-BOX
-          SIZE 24.8 BY .81
-     RowObject.update_password_history AT ROW 12.71 COL 56.2
+          SIZE 24.8 BY 1
+     RowObject.update_password_history AT ROW 11.76 COL 56.2
           LABEL "Update History"
           VIEW-AS TOGGLE-BOX
-          SIZE 18.8 BY .81
-     RowObject.check_password_history AT ROW 12.71 COL 85.8
+          SIZE 18.8 BY 1
+     RowObject.check_password_history AT ROW 11.76 COL 85.8
           LABEL "Check History"
           VIEW-AS TOGGLE-BOX
-          SIZE 18.8 BY .81
-     RowObject.password_expiry_date AT ROW 13.76 COL 23.4 COLON-ALIGNED
+          SIZE 18.8 BY 1
+     RowObject.password_expiry_date AT ROW 13.05 COL 22.6 COLON-ALIGNED
           LABEL "Password Expiry Date"
           VIEW-AS FILL-IN 
           SIZE 20 BY 1
-     RowObject.fmt_password_expire_time AT ROW 13.76 COL 54.2 COLON-ALIGNED
+     RowObject.fmt_password_expire_time AT ROW 13.05 COL 54.2 COLON-ALIGNED
           LABEL "Time"
           VIEW-AS FILL-IN 
           SIZE 10 BY 1
-     RowObject.password_expiry_days AT ROW 13.76 COL 83.8 COLON-ALIGNED
+     RowObject.password_expiry_days AT ROW 13.05 COL 83.8 COLON-ALIGNED
           LABEL "Expiry Days"
           VIEW-AS FILL-IN 
           SIZE 10.4 BY 1
-     RowObject.last_login_date AT ROW 14.81 COL 23.4 COLON-ALIGNED
+     RowObject.last_login_date AT ROW 14.1 COL 22.6 COLON-ALIGNED
+          LABEL "Last Login Date"
           VIEW-AS FILL-IN 
           SIZE 20 BY 1
-     RowObject.fmt_user_login_time AT ROW 14.81 COL 54.2 COLON-ALIGNED
+     RowObject.fmt_user_login_time AT ROW 14.1 COL 54.2 COLON-ALIGNED
           LABEL "Time"
           VIEW-AS FILL-IN 
           SIZE 10 BY 1
-     RowObject.password_fail_date AT ROW 15.86 COL 23.4 COLON-ALIGNED
-          VIEW-AS FILL-IN 
-          SIZE 20 BY 1
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
 
 /* DEFINE FRAME statement is approaching 4K Bytes.  Breaking it up   */
 DEFINE FRAME frMain
-     RowObject.fmt_password_fail_time AT ROW 15.86 COL 54.2 COLON-ALIGNED
+     RowObject.password_fail_date AT ROW 15.14 COL 22.6 COLON-ALIGNED
+          LABEL "Password Fail Date"
+          VIEW-AS FILL-IN 
+          SIZE 20 BY 1
+     RowObject.fmt_password_fail_time AT ROW 15.14 COL 54.2 COLON-ALIGNED
           LABEL "Time"
           VIEW-AS FILL-IN 
           SIZE 10 BY 1
-     RowObject.password_fail_count AT ROW 15.86 COL 83.8 COLON-ALIGNED
+     RowObject.password_fail_count AT ROW 15.14 COL 83.8 COLON-ALIGNED
           LABEL "Fail Count"
           VIEW-AS FILL-IN 
           SIZE 10.4 BY 1
-     RowObject.user_email_address AT ROW 19.95 COL 23.4 COLON-ALIGNED
+     RowObject.user_email_address AT ROW 19.24 COL 22.6 COLON-ALIGNED
           LABEL "Email Address"
           VIEW-AS FILL-IN 
-          SIZE 45.2 BY 1
-     RowObject.external_userid AT ROW 21 COL 23.4 COLON-ALIGNED
+          SIZE 50 BY 1
+     RowObject.external_userid AT ROW 20.29 COL 22.6 COLON-ALIGNED
           LABEL "External Reference"
           VIEW-AS FILL-IN 
           SIZE 21.6 BY 1
-     SPACE(36.80) SKIP(0.00)
+     SPACE(56.80) SKIP(0.00)
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -330,8 +337,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 22.48
-         WIDTH              = 118.8.
+         HEIGHT             = 20.29
+         WIDTH              = 110.4.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -359,6 +366,12 @@ ASSIGN
        FRAME frMain:HIDDEN           = TRUE.
 
 /* SETTINGS FOR TOGGLE-BOX RowObject.check_password_history IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR FILL-IN RowObject.confirm_password IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR TOGGLE-BOX RowObject.development_user IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR TOGGLE-BOX RowObject.disabled IN FRAME frMain
    EXP-LABEL                                                            */
 /* SETTINGS FOR FILL-IN RowObject.external_userid IN FRAME frMain
    EXP-LABEL                                                            */
@@ -390,7 +403,7 @@ ASSIGN
        RowObject.fmt_user_login_time:READ-ONLY IN FRAME frMain        = TRUE.
 
 /* SETTINGS FOR FILL-IN RowObject.last_login_date IN FRAME frMain
-   NO-ENABLE                                                            */
+   NO-ENABLE EXP-LABEL                                                  */
 /* SETTINGS FOR TOGGLE-BOX RowObject.maintain_system_data IN FRAME frMain
    EXP-LABEL                                                            */
 /* SETTINGS FOR FILL-IN RowObject.password_creation_date IN FRAME frMain
@@ -402,10 +415,12 @@ ASSIGN
 /* SETTINGS FOR FILL-IN RowObject.password_fail_count IN FRAME frMain
    NO-ENABLE EXP-LABEL                                                  */
 /* SETTINGS FOR FILL-IN RowObject.password_fail_date IN FRAME frMain
-   NO-ENABLE                                                            */
+   NO-ENABLE EXP-LABEL                                                  */
 /* SETTINGS FOR FILL-IN RowObject.password_minimum_length IN FRAME frMain
    EXP-LABEL                                                            */
 /* SETTINGS FOR TOGGLE-BOX RowObject.password_preexpired IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR TOGGLE-BOX RowObject.profile_user IN FRAME frMain
    EXP-LABEL                                                            */
 /* SETTINGS FOR TOGGLE-BOX RowObject.update_password_history IN FRAME frMain
    EXP-LABEL                                                            */
@@ -414,6 +429,8 @@ ASSIGN
 /* SETTINGS FOR FILL-IN RowObject.user_email_address IN FRAME frMain
    EXP-LABEL                                                            */
 /* SETTINGS FOR FILL-IN RowObject.user_full_name IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR FILL-IN RowObject.user_login_name IN FRAME frMain
    EXP-LABEL                                                            */
 /* SETTINGS FOR FILL-IN RowObject.user_password IN FRAME frMain
    EXP-LABEL                                                            */
@@ -430,7 +447,7 @@ ASSIGN
 */  /* FRAME frMain */
 &ANALYZE-RESUME
 
-
+ 
 
 
 
@@ -480,7 +497,7 @@ END.
 
 &Scoped-define SELF-NAME RowObject.user_login_name
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL RowObject.user_login_name vTableWin
-ON LEAVE OF RowObject.user_login_name IN FRAME frMain /* Login Name */
+ON LEAVE OF RowObject.user_login_name IN FRAME frMain /* User Login Name */
 DO:
   /* If a new user record and the full name has not yet been entered then,
      default full name to login name upon leave */
@@ -531,50 +548,50 @@ PROCEDURE adm-create-objects :
 
     WHEN 0 THEN DO:
        RUN constructObject (
-             INPUT  'af/obj2/gsmucdcsfv.w':U ,
+             INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'FieldNameuser_category_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
-             OUTPUT h_gsmucdcsfv ).
-       RUN repositionObject IN h_gsmucdcsfv ( 3.10 , 9.00 ) NO-ERROR.
-       RUN resizeObject IN h_gsmucdcsfv ( 1.05 , 74.80 ) NO-ERROR.
+             INPUT  'DisplayedFieldgsm_user_category.user_category_description,gsm_user_category.user_category_codeKeyFieldgsm_user_category.user_category_objFieldLabelUser CategoryFieldTooltipSelect the user category from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsm_user_category NO-LOCK BY gsm_user_category.user_category_descriptionQueryTablesgsm_user_categorySDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 (&2)ComboDelimiterListItemPairsInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNameuser_category_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT h_dyncombo ).
+       RUN repositionObject IN h_dyncombo ( 3.10 , 24.60 ) NO-ERROR.
+       RUN resizeObject IN h_dyncombo ( 1.05 , 78.40 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsm_user.user_login_nameKeyFieldgsm_user.user_objFieldLabelBased on ProfileFieldTooltipBased on ProfileKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(15)DisplayDatatypecharacterBaseQueryStringFOR EACH gsm_user NO-LOCK
+             INPUT  'DisplayedFieldgsm_user.user_login_nameKeyFieldgsm_user.user_objFieldLabelBased on ProfileFieldTooltipBased on ProfileKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(15)DisplayDatatypecharacterBaseQueryStringFOR EACH gsm_user NO-LOCK
                      WHERE gsm_user.profile_user = TRUE,
                      FIRST gsm_user_category NO-LOCK
                      WHERE gsm_user_category.user_category_obj = gsm_user.user_category_obj
-                     BY gsm_user.user_login_nameQueryTablesgsm_user,gsm_user_categoryBrowseFieldsgsm_user.user_login_name,gsm_user.user_full_name,gsm_user_category.user_category_codeBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(15),X(70),X(10)RowsToBatch200BrowseTitleLookup Profile UserViewerLinkedFieldsgsm_user.user_full_nameLinkedFieldDataTypescharacterLinkedFieldFormatsX(70)ViewerLinkedWidgetsfiProfileUserNameFieldNamecreated_from_profile_user_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY gsm_user.user_login_nameQueryTablesgsm_user,gsm_user_categoryBrowseFieldsgsm_user.user_login_name,gsm_user.user_full_name,gsm_user_category.user_category_codeBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(15),X(70),X(10)RowsToBatch200BrowseTitleLookup Profile UserViewerLinkedFieldsgsm_user.user_full_nameLinkedFieldDataTypescharacterLinkedFieldFormatsX(70)ViewerLinkedWidgetsfiProfileUserNameColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNamecreated_from_profile_user_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dynlookup ).
-       RUN repositionObject IN h_dynlookup ( 5.38 , 25.40 ) NO-ERROR.
+       RUN repositionObject IN h_dynlookup ( 5.14 , 24.60 ) NO-ERROR.
        RUN resizeObject IN h_dynlookup ( 1.00 , 30.00 ) NO-ERROR.
 
        RUN constructObject (
-             INPUT  'af/obj2/gsclgdcs2v.w':U ,
+             INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'FieldNamelanguage_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
-             OUTPUT h_gsclgdcs2v ).
-       RUN repositionObject IN h_gsclgdcs2v ( 17.71 , 12.60 ) NO-ERROR.
-       RUN resizeObject IN h_gsclgdcs2v ( 1.05 , 59.20 ) NO-ERROR.
+             INPUT  'DisplayedFieldgsc_language.language_code,gsc_language.language_nameKeyFieldgsc_language.language_objFieldLabelLanguageFieldTooltipSelect a language from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 (&2)ComboDelimiterListItemPairsInnerLines5ComboFlagNFlagValue0BuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNamelanguage_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT h_dyncombo-2 ).
+       RUN repositionObject IN h_dyncombo-2 ( 17.10 , 24.60 ) NO-ERROR.
+       RUN resizeObject IN h_dyncombo-2 ( 1.05 , 50.00 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsm_login_company.login_company_short_nameKeyFieldgsm_login_company.login_company_objFieldLabelLogin CompanyFieldTooltipKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(15)DisplayDatatypecharacterBaseQueryStringFOR EACH gsm_login_company NO-LOCKQueryTablesgsm_login_companyBrowseFieldsgsm_login_company.login_company_code,gsm_login_company.login_company_short_name,gsm_login_company.login_company_nameBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(35),X(15),X(70)RowsToBatch200BrowseTitleLogin Company LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsFieldNamedefault_login_company_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsm_login_company.login_company_short_nameKeyFieldgsm_login_company.login_company_objFieldLabelLogin CompanyFieldTooltipPress F4 For LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(15)DisplayDatatypecharacterBaseQueryStringFOR EACH gsm_login_company NO-LOCKQueryTablesgsm_login_companyBrowseFieldsgsm_login_company.login_company_code,gsm_login_company.login_company_short_name,gsm_login_company.login_company_nameBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(35),X(15),X(70)RowsToBatch200BrowseTitleLogin Company LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNamedefault_login_company_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dynlookup-2 ).
-       RUN repositionObject IN h_dynlookup-2 ( 18.86 , 25.40 ) NO-ERROR.
+       RUN repositionObject IN h_dynlookup-2 ( 18.14 , 24.60 ) NO-ERROR.
        RUN resizeObject IN h_dynlookup-2 ( 1.00 , 50.00 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */
-       RUN adjustTabOrder ( h_gsmucdcsfv ,
+       RUN adjustTabOrder ( h_dyncombo ,
              RowObject.user_full_name:HANDLE IN FRAME frMain , 'AFTER':U ).
        RUN adjustTabOrder ( h_dynlookup ,
              RowObject.maintain_system_data:HANDLE IN FRAME frMain , 'AFTER':U ).
-       RUN adjustTabOrder ( h_gsclgdcs2v ,
+       RUN adjustTabOrder ( h_dyncombo-2 ,
              RowObject.password_fail_count:HANDLE IN FRAME frMain , 'AFTER':U ).
        RUN adjustTabOrder ( h_dynlookup-2 ,
-             h_gsclgdcs2v , 'AFTER':U ).
+             h_dyncombo-2 , 'AFTER':U ).
     END. /* Page 0 */
 
   END CASE.

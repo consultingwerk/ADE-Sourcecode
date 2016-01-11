@@ -138,6 +138,9 @@ HiddenMenuBands,MenuMergeOrder
 &GLOBAL-DEFINE xpLinkTargetNames
   {src/adm2/panlprop.i}
   
+  
+IF NOT {&ADM-PROPS-DEFINED} THEN
+DO:
 &IF "{&ADMSuper}":U = "":U &THEN
   /* add new field takes 5 arguements - name,type,extent,format,default */
   ghADMProps:ADD-NEW-FIELD('Menu':U, 'LOGICAL':U, 0, ?, TRUE).
@@ -170,7 +173,6 @@ HiddenMenuBands,MenuMergeOrder
   ghADMProps:ADD-NEW-FIELD('ToolMarginPxl':U, 'INTEGER':U, 0, ?, 2 ).   
   ghADMProps:ADD-NEW-FIELD('ToolbarTarget':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('ToolbarTargetEvents':U, 'CHAR':U, 0, ?,'resetToolbar,linkState':U). 
-  ghADMProps:ADD-NEW-FIELD('SecuredTokens':U, 'CHAR':U, 0, ?,?). /*must defualt to unknown*/ 
   ghADMProps:ADD-NEW-FIELD('deactivateTargetOnHide':U, 'LOGICAL':U, 0, ?, FALSE).
   ghADMProps:ADD-NEW-FIELD('LinkTargetNames':U, 'CHAR':U, 0, ?, '':U).
 
@@ -179,6 +181,7 @@ HiddenMenuBands,MenuMergeOrder
   /*<<BEGIN-CUSTOM-PROPERTIES>>*/
   {src/adm2/custom/toolpropcustom.i}
   /*<<END-CUSTOM-PROPERTIES>>*/
+END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

@@ -92,7 +92,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       rycpaful2o.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -126,6 +126,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -133,19 +134,23 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 /* Definitions for QUERY Query-Main                                     */
 &Scoped-Define ENABLED-FIELDS  container_smartobject_obj layout_obj page_sequence page_label~
- security_token enable_on_create enable_on_modify enable_on_view
+ security_token enable_on_create enable_on_modify enable_on_view~
+ page_reference
 &Scoped-define ENABLED-FIELDS-IN-ryc_page container_smartobject_obj ~
 layout_obj page_sequence page_label security_token enable_on_create ~
-enable_on_modify enable_on_view 
+enable_on_modify enable_on_view page_reference 
 &Scoped-Define DATA-FIELDS  container_smartobject_obj page_obj layout_obj page_sequence page_label~
- security_token enable_on_create enable_on_modify enable_on_view
+ security_token enable_on_create enable_on_modify enable_on_view~
+ page_reference
 &Scoped-define DATA-FIELDS-IN-ryc_page container_smartobject_obj page_obj ~
 layout_obj page_sequence page_label security_token enable_on_create ~
-enable_on_modify enable_on_view 
+enable_on_modify enable_on_view page_reference 
 &Scoped-Define MANDATORY-FIELDS 
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "ry/obj/rycpaful2o.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH ryc_page NO-LOCK ~
+    BY ryc_page.page_sequence
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH ryc_page NO-LOCK ~
     BY ryc_page.page_sequence.
@@ -254,6 +259,8 @@ END.
 "enable_on_modify" "enable_on_modify" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
      _FldNameList[9]   > icfdb.ryc_page.enable_on_view
 "enable_on_view" "enable_on_view" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
+     _FldNameList[10]   > icfdb.ryc_page.page_reference
+"page_reference" "page_reference" ? ? "character" ? ? ? ? ? ? yes ? no 28 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME

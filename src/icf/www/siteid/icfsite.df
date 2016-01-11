@@ -205,6 +205,7 @@ ADD INDEX "allocated_site_code" ON "rsm_site_number"
 ADD INDEX "owning_site_code" ON "rsm_site_number" 
   AREA "Schema Area"
   INDEX-FIELD "owning_site_code" ASCENDING 
+  INDEX-FIELD "site_number" ASCENDING 
 
 ADD TABLE "rsm_control"
   AREA "Schema Area"
@@ -259,4 +260,4 @@ ADD INDEX "minimum_number" ON "rsm_control"
 PSC
 cpstream=ISO8859-1
 .
-0000006379
+0000006419

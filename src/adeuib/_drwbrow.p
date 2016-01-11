@@ -60,6 +60,7 @@ DEFINE VAR i            AS INTEGER                                    NO-UNDO.
 
 DEFINE BUFFER parent_U FOR _U.
 DEFINE BUFFER parent_L FOR _L.
+DEFINE BUFFER x_U      FOR _U.
 
 FIND _U WHERE _U._HANDLE = _h_win.
 cur-lo = _U._LAYOUT-NAME.
@@ -90,7 +91,7 @@ DO TRANSACTION ON STOP UNDO,LEAVE:
          _U._TYPE              = "BROWSE":U
          _C._BOX-SELECTABLE    = FALSE
          _C._DOWN              = TRUE
-         _C._EXPANDABLE        = TRUE
+         _C._FIT-LAST-COLUMN   = TRUE
          _U._LABEL             = "Browse " + STRING(_count[{&BRWSR}])
          _L._NO-BOX            = FALSE          /* Can't Simulate */
          _L._NO-LABELS         = FALSE          /* Default for Browsers */
@@ -144,6 +145,10 @@ DO TRANSACTION ON STOP UNDO,LEAVE:
     END.
   END.
   RUN adeuib/_callqry.p ("_U":U, RECID(_U), "CHECK-FIELDS":U).
+
+  /* Make a final check on the name */
+  IF CAN-FIND(FIRST x_U WHERE x_U._NAME = _U._NAME AND x_U._STATUS = "NORMAL":U)
+    THEN RUN adeshar/_bstname.p (_U._NAME, ?, ?, ?, _h_win, OUTPUT _U._NAME).
 
   /* Create the widget based on the Universal widget record. */
   RUN adeuib/_undbrow.p (RECID(_U)).

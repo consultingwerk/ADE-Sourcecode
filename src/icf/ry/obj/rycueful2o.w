@@ -131,6 +131,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -138,27 +139,29 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 /* Definitions for QUERY Query-Main                                     */
 &Scoped-Define ENABLED-FIELDS  object_type_obj container_smartobject_obj smartobject_obj~
- object_instance_obj event_name inheritted_value constant_value action_type~
- action_target event_action event_parameter event_disabled~
- primary_smartobject_obj
+ object_instance_obj event_name constant_value action_type action_target~
+ event_action event_parameter event_disabled primary_smartobject_obj
 &Scoped-define ENABLED-FIELDS-IN-ryc_ui_event object_type_obj ~
 container_smartobject_obj smartobject_obj object_instance_obj event_name ~
-inheritted_value constant_value action_type action_target event_action ~
-event_parameter event_disabled primary_smartobject_obj 
+constant_value action_type action_target event_action event_parameter ~
+event_disabled primary_smartobject_obj 
 &Scoped-Define DATA-FIELDS  ui_event_obj object_type_obj object_type_code container_smartobject_obj~
  smartobject_obj object_filename object_instance_obj event_name~
- inheritted_value constant_value action_type action_target event_action~
- event_parameter event_disabled primary_smartobject_obj
+ constant_value action_type action_target event_action event_parameter~
+ event_disabled primary_smartobject_obj
 &Scoped-define DATA-FIELDS-IN-ryc_ui_event ui_event_obj object_type_obj ~
 container_smartobject_obj smartobject_obj object_instance_obj event_name ~
-inheritted_value constant_value action_type action_target event_action ~
-event_parameter event_disabled primary_smartobject_obj 
+constant_value action_type action_target event_action event_parameter ~
+event_disabled primary_smartobject_obj 
 &Scoped-define DATA-FIELDS-IN-gsc_object_type object_type_code 
 &Scoped-define DATA-FIELDS-IN-ryc_smartobject object_filename 
 &Scoped-Define MANDATORY-FIELDS 
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "ry/obj/rycueful2o.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH ryc_ui_event NO-LOCK, ~
+      FIRST gsc_object_type WHERE gsc_object_type.object_type_obj = ryc_ui_event.object_type_obj NO-LOCK, ~
+      FIRST ryc_smartobject WHERE ryc_smartobject.smartobject_obj = ryc_ui_event.smartobject_obj NO-LOCK INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH ryc_ui_event NO-LOCK, ~
       FIRST gsc_object_type WHERE gsc_object_type.object_type_obj = ryc_ui_event.object_type_obj NO-LOCK, ~
@@ -177,6 +180,19 @@ ryc_smartobject
 /* _UIB-PREPROCESSOR-BLOCK-END */
 &ANALYZE-RESUME
 
+
+/* ************************  Function Prototypes ********************** */
+
+{&DB-REQUIRED-START}
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getSDOLevel dTables  _DB-REQUIRED
+FUNCTION getSDOLevel RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
 
 
 /* ***********************  Control Definitions  ********************** */
@@ -273,21 +289,19 @@ END.
 "object_instance_obj" "object_instance_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
      _FldNameList[8]   > icfdb.ryc_ui_event.event_name
 "event_name" "event_name" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[9]   > icfdb.ryc_ui_event.inheritted_value
-"inheritted_value" "inheritted_value" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[10]   > icfdb.ryc_ui_event.constant_value
+     _FldNameList[9]   > icfdb.ryc_ui_event.constant_value
 "constant_value" "constant_value" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[11]   > icfdb.ryc_ui_event.action_type
+     _FldNameList[10]   > icfdb.ryc_ui_event.action_type
 "action_type" "action_type" ? ? "character" ? ? ? ? ? ? yes ? no 6 yes
-     _FldNameList[12]   > icfdb.ryc_ui_event.action_target
+     _FldNameList[11]   > icfdb.ryc_ui_event.action_target
 "action_target" "action_target" ? ? "character" ? ? ? ? ? ? yes ? no 56 yes
-     _FldNameList[13]   > icfdb.ryc_ui_event.event_action
+     _FldNameList[12]   > icfdb.ryc_ui_event.event_action
 "event_action" "event_action" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[14]   > icfdb.ryc_ui_event.event_parameter
+     _FldNameList[13]   > icfdb.ryc_ui_event.event_parameter
 "event_parameter" "event_parameter" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
-     _FldNameList[15]   > icfdb.ryc_ui_event.event_disabled
+     _FldNameList[14]   > icfdb.ryc_ui_event.event_disabled
 "event_disabled" "event_disabled" ? ? "logical" ? ? ? ? ? ? yes ? no 1 yes
-     _FldNameList[16]   > icfdb.ryc_ui_event.primary_smartobject_obj
+     _FldNameList[15]   > icfdb.ryc_ui_event.primary_smartobject_obj
 "primary_smartobject_obj" "primary_smartobject_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
@@ -341,4 +355,25 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
+
+/* ************************  Function Implementations ***************** */
+
+{&DB-REQUIRED-START}
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getSDOLevel dTables  _DB-REQUIRED
+FUNCTION getSDOLevel RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN "ObjectInstance".   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
 

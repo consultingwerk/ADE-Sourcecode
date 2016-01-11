@@ -56,7 +56,7 @@ DISPLAY
   " F. Field Editor "          @ msg[2] HELP "Field Editor" SKIP
   " I. Index Editor "          @ msg[3] HELP "Index Editor" SKIP
   " S. Sequence Editor "       @ msg[4] HELP "Sequence Editor" SKIP  
-  " Q. SQL Properties "        @ msg[5] HELP "SQL Width Browser" SKIP
+  " Q. Adjust Field Width "    @ msg[5] HELP "Field Width Browser" SKIP
   "---------------------------" NO-ATTR-SPACE SKIP
   " A. Apply Changes "         @ msg[6] HELP "Apply Changes to Database" SKIP
   " U. Undo Changes "          @ msg[7] HELP "Undo Recent Changes" SKIP

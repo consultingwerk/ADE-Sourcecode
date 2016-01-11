@@ -145,7 +145,7 @@ RUN build-directory-list (INPUT lv_directory, INPUT lv_recurse, OUTPUT lv_file_l
 DO lv_loop = 1 TO NUM-ENTRIES(lv_file_list):
 
     ASSIGN lv_filename = ENTRY(lv_loop,lv_file_list)
-           lv_nopath_filename = LC(TRIM(REPLACE(lv_filename,"\":U,"/":U)))
+           lv_nopath_filename = LC(TRIM(REPLACE(lv_filename,"~\":U,"/":U)))
            lv_nopath_filename = SUBSTRING(lv_nopath_filename,R-INDEX(lv_nopath_filename,"/":U) + 1)
            lv_template = NO.
 
@@ -313,13 +313,13 @@ DISPLAY "Building file list..." SKIP(1) WITH FRAME fr_dir .
 ASSIGN
     lv_batchfile  = SESSION:TEMP-DIRECTORY + "dir.bat":U
     lv_outputfile = SESSION:TEMP-DIRECTORY + "dir.log":U
-    ip_directory = LC(TRIM(REPLACE(ip_directory,"/":U,"\":U)))
+    ip_directory = LC(TRIM(REPLACE(ip_directory,"/":U,"~\":U)))
     lv_recurse = (IF ip_recurse = YES THEN "/s ":U ELSE " ":U).
 
 OUTPUT TO VALUE(lv_batchfile).
-PUT UNFORMATTED "dir /b/l/on":U + lv_recurse + ip_directory + "\*.w > ":U + lv_outputfile SKIP.
-PUT UNFORMATTED "dir /b/l/on":U + lv_recurse + ip_directory + "\*.p >> ":U + lv_outputfile SKIP.
-PUT UNFORMATTED "dir /b/l/on":U + lv_recurse + ip_directory + "\*.i >> ":U + lv_outputfile SKIP.
+PUT UNFORMATTED "dir /b/l/on":U + lv_recurse + ip_directory + "~\*.w > ":U + lv_outputfile SKIP.
+PUT UNFORMATTED "dir /b/l/on":U + lv_recurse + ip_directory + "~\*.p >> ":U + lv_outputfile SKIP.
+PUT UNFORMATTED "dir /b/l/on":U + lv_recurse + ip_directory + "~\*.i >> ":U + lv_outputfile SKIP.
 OUTPUT CLOSE.
 
 /* Execute batch file */
@@ -331,7 +331,7 @@ IF SEARCH(lv_outputfile) <> ? THEN
     INPUT STREAM ls_output FROM VALUE(lv_outputfile) NO-ECHO.
     REPEAT:
         IMPORT STREAM ls_output UNFORMATTED lv_filename.
-        IF ip_recurse  = NO THEN ASSIGN lv_filename = ip_directory + "\":U + lv_filename.
+        IF ip_recurse  = NO THEN ASSIGN lv_filename = ip_directory + "~\":U + lv_filename.
         RUN find-text-in-file ( INPUT   lv_filename,
                                 INPUT   "&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS":U,
                                 OUTPUT  lv_line_numbers,

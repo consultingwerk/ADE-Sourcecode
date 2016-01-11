@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2002 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2002 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -187,11 +187,17 @@ ASSIGN
   p_txt        = get-field("txt0":U)
   p_postdata   = (IF p_txt NE "" THEN p_txt ELSE p_postdata)
   lIsIE        = (INDEX(get-cgi('HTTP_USER_AGENT':U), " MSIE ":U) > 0)
-  cNewLine     = (IF OPSYS = "UNIX" THEN "\\n" ELSE "\n")
+  cNewLine     = (IF OPSYS = "UNIX" THEN "~\~\n" ELSE "~\n")
   .
   
 /* Output the MIME header. */
 RUN outputContentType IN web-utilities-hdl ("text/html":U).  
+
+IF NOT WEB-CONTEXT:GET-CONFIG-VALUE("srvrAppMode":U) BEGINS "Dev":U THEN DO:
+  {&OUT} "ERROR: ":U SKIP
+    "webutil/_cpyfile.r is supported in Development Mode only." SKIP.
+	RETURN.
+END.
 
 ASSIGN
   lAnalyze      = CAN-DO(p_options,"analyze":U)
@@ -293,7 +299,7 @@ IF lSave OR (lCompile AND p_action BEGINS "okToCompile":U) THEN DO:
        {&OUT} 
          '<HTML>':U SKIP
          '<HEAD>':U SKIP
-         '<SCRIPT LANGUAGE="JavaScript1.2" SRC="' RootURL '/workshop/common.js"><!--':U SKIP
+         '<SCRIPT LANGUAGE="JavaScript1.2" SRC="' RootURL '/script/common.js"><!--':U SKIP
          '  document.write("Included common.js file not found.");':U SKIP
          '//--></SCRIPT>':U SKIP
          '<SCRIPT LANGUAGE="JavaScript1.2"><!--':U SKIP
@@ -578,7 +584,7 @@ PROCEDURE miscAction :
       {&OUT} 
         '<HTML>':U SKIP
         '<HEAD>':U SKIP
-        '<SCRIPT LANGUAGE="JavaScript1.2" SRC="' RootURL '/workshop/common.js"><!--':U SKIP
+        '<SCRIPT LANGUAGE="JavaScript1.2" SRC="' RootURL '/script/common.js"><!--':U SKIP
         '  document.write("Included common.js file not found.");':U SKIP
         '//--></SCRIPT>':U SKIP
         '<SCRIPT LANGUAGE="JavaScript1.2"><!--':U SKIP

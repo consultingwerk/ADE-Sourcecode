@@ -152,6 +152,8 @@
  * instance attribute dialogs */
 &GLOBAL-DEFINE VisualSmartObject_Attributes_Dlg_Box 106
 
+&GLOBAL-DEFINE BrowserSmartObject_Attributes_Dlg_Box 47026
+
 /* New for version 9.1A */                                                           
 &GLOBAL-DEFINE SmartSelect_Instance_Properties_Dialog_Box      189
 &GLOBAL-DEFINE SmartFilter_Instance_Properties_Dialog_Box      190
@@ -164,3 +166,7 @@
 &GLOBAL-DEFINE SmartProducer_Instance_Properties_Dialog_Box 198
 &GLOBAL-DEFINE SmartConsumer_Instance_Properties_Dialog_Box 199
 &GLOBAL-DEFINE SmartRouter_Instance_Properties_Dialog_Box 200
+
+/* New for 9.1D...*/
+/* Help for Dynamic SDB Instance Properties */
+&GLOBAL-DEFINE Dynamic_SmDataBrowser_Instance_Properties_Dialog_Box 47243

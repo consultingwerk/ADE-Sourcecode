@@ -377,7 +377,7 @@ IF (gshAstraAppserver = SESSION:HANDLE OR RETURN-VALUE = "ERROR":U) AND
    cASDivision = 'CLIENT':U AND NOT CONNECTED("ICFDB":U) THEN 
 DO:
   SESSION:SET-WAIT-STATE('':U).
-  MESSAGE "Could not connect to the ICF Appserver Partition and no" SKIP
+  MESSAGE "Could not connect to the Appserver Partition and no" SKIP
           "database connection for ICFDB was found locally."
           VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
   IF NOT plQuit THEN RETURN. ELSE QUIT.
@@ -670,7 +670,7 @@ PROCEDURE startupFailed :
     SESSION:SET-WAIT-STATE("":U).
 
     IF pcManagerName <> "":U THEN
-        MESSAGE "Unable to start the ICF " TRIM(pcManagerName) 
+        MESSAGE "Unable to start the " TRIM(pcManagerName) 
                 " Manager (" TRIM(pcManagerFileName) ")":U
                 VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
 

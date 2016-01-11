@@ -74,7 +74,7 @@ DO WHILE tmp_hdl NE ?:
         ASSIGN tmp_hdl:Y = tmp_hdl:Y + bar_move
                w_L._ROW  = ((tmp_hdl:ROW - 1) / _cur_row_mult) + 1
                w_L._COL  = ((tmp_hdl:COL - 1) / _cur_col_mult) + 1.        
-        IF CAN-DO("FILL-IN,COMBO-BOX",tmp_hdl:TYPE) THEN
+        IF CAN-DO("FILL-IN,COMBO-BOX,EDITOR,SELECTION-LIST,RADIO-SET,SLIDER",tmp_hdl:TYPE) THEN
           RUN adeuib/_showlbl.p (tmp_hdl).
       END.
     END. /* IF AVAILABLE w_U */

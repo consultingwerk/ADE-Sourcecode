@@ -280,13 +280,18 @@ PROCEDURE showAppCfg :
 ------------------------------------------------------------------------------*/
 
   DEFINE VARIABLE c1       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cPath    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cListed  AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE i1       AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iRecurse AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cChecked AS CHARACTER  NO-UNDO.
-
+  
+  ASSIGN iRecurse = INTEGER(cName) NO-ERROR.
+  IF iRecurse = ? THEN iRecurse = 0.  
+  
   DO i1 = 1 TO NUM-ENTRIES(cProPath):
     c1      = ENTRY(i1,cProPath).
-    cListed = cListed + fRecurse(c1,'',INTEGER(cName)).
+    cListed = cListed + fRecurse(c1,'',iRecurse).
   END.
 
   {&OUT} "Propath " cProPath.
@@ -299,7 +304,7 @@ PROCEDURE showAppCfg :
     fBeginTable("Recursing PROPATH|&nbsp;").
 
   ASSIGN 
-    cDir    = REPLACE(cDir,cDirCD,'')
+    cPath   = REPLACE(cDir,cDirCD,'')
     cListed = REPLACE(cListed,cDirCD,'')
     .
 
@@ -308,19 +313,19 @@ PROCEDURE showAppCfg :
     IF LOOKUP(c1,cListed) < i1 THEN NEXT.
     {&OUT} 
       fRow('<INPUT TYPE="checkbox" NAME="dir' + (IF c1 = '' THEN cDirCD ELSE c1) + 
-           (IF CAN-DO(cDir,c1) THEN '" CHECKED' ELSE '"') + '>' + (IF c1 = '' THEN cDirCD ELSE c1) + "|&nbsp;"
+           (IF CAN-DO(cPath,c1) THEN '" CHECKED' ELSE '"') + '>' + (IF c1 = '' THEN cDirCD ELSE c1) + "|&nbsp;"
      + (IF c1 = '' THEN " Current_Dir " ELSE '')).
   END.
   {&OUT} 
     fHRow("Unlisted codepaths &nbsp; &nbsp; &nbsp;"
     + fLink("AddDir","prompt('CodePath:')","Add unlisted|&nbsp;")).
 
-  DO i1 = 1 TO NUM-ENTRIES(cDir):
-    ASSIGN c1 = ENTRY(i1,cDir). 
+  DO i1 = 1 TO NUM-ENTRIES(cPath):
+    ASSIGN c1 = ENTRY(i1,cPath). 
     IF CAN-DO(cListed,c1) THEN NEXT.
     {&OUT} 
       fRow('<INPUT TYPE="checkbox" NAME="dir' + c1 + 
-           (IF CAN-DO(cDir,c1) THEN '" CHECKED' ELSE '"') + '>' + c1 + "|&nbsp;").
+           (IF CAN-DO(cPath,c1) THEN '" CHECKED' ELSE '"') + '>' + c1 + "|&nbsp;").
   END.
 
   {&OUT} 

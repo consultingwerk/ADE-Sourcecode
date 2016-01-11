@@ -104,6 +104,7 @@ DEFINE INPUT  PARAMETER pdLanguageObj               AS DECIMAL    NO-UNDO.
 DEFINE OUTPUT PARAMETER pcError                     AS CHARACTER  NO-UNDO.
 
 {af/sup2/afglobals.i}
+{adeuib/uibhlp.i}          /* Help File Preprocessor Directives         */
 
 /* MIP-GET-OBJECT-VERSION pre-processors
    The following pre-processors are maintained automatically when the object is
@@ -198,11 +199,11 @@ DEFINE IMAGE imLogo
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     fiLoginName AT ROW 1.1 COL 31.4 COLON-ALIGNED
+     fiLoginName AT ROW 1.14 COL 31.4 COLON-ALIGNED
      fiOldPassword AT ROW 2.67 COL 31.4 COLON-ALIGNED BLANK 
      fiNewPassword AT ROW 3.76 COL 31.4 COLON-ALIGNED BLANK 
      fiConfirmPassword AT ROW 4.91 COL 31.4 COLON-ALIGNED BLANK 
-     buOk AT ROW 1.1 COL 77.4
+     buOk AT ROW 1.14 COL 77.4
      buCancel AT ROW 2.33 COL 77.4
      imCompany AT ROW 1.19 COL 1.8
      imLogo AT ROW 5.1 COL 82.4
@@ -230,13 +231,13 @@ IF SESSION:DISPLAY-TYPE = "GUI":U THEN
   CREATE WINDOW wiMain ASSIGN
          HIDDEN             = YES
          TITLE              = "Change User Password"
-         COLUMN             = 40.2
-         ROW                = 9.33
+         COLUMN             = 50
+         ROW                = 25.67
          HEIGHT             = 5.86
          WIDTH              = 92.6
-         MAX-HEIGHT         = 6.29
+         MAX-HEIGHT         = 6.33
          MAX-WIDTH          = 92.6
-         VIRTUAL-HEIGHT     = 6.29
+         VIRTUAL-HEIGHT     = 6.33
          VIRTUAL-WIDTH      = 92.6
          MIN-BUTTON         = no
          MAX-BUTTON         = no
@@ -304,6 +305,19 @@ DO:
   ASSIGN cAction = "cancel":U.
   APPLY "GO":U TO FRAME {&FRAME-NAME}.
   RETURN NO-APPLY.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME frMain
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL frMain wiMain
+ON HELP OF FRAME frMain
+DO:
+   /* Help for this Frame */
+  RUN adecomm/_adehelp.p
+                ("ICAB", "CONTEXT", {&Change_User_Password_Dialog_Box}  , "").
 END.
 
 /* _UIB-CODE-BLOCK-END */

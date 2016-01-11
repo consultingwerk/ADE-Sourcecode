@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          afdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" vTableWin _INLINE
@@ -9,13 +9,6 @@
 /* This has to go above the definitions sections, as that is what it modifies.
    If its not, then the definitions section will have been saved before the
    XFTR code kicks in and changes it */
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Astra 2 Static SmartDataViewer Wizard" vTableWin _INLINE
-/* Actions: af/cod/aftemwizcw.w ? ? ? af/sup/afwizdeltp.p */
-/* Astra 2 Static SmartDataViewer Wizard
-Destroy on next read */
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -92,9 +85,9 @@ CREATE WIDGET-POOL.
    saved. They pull the object and version from Roundtable if possible so that it
    can be displayed in the about window of the container */
 
-&scop object-name       rysttviewv.w
+&scop object-name       gscpfviewv.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -132,11 +125,12 @@ RowObject.profile_type_description RowObject.client_profile_type ~
 RowObject.server_profile_type RowObject.profile_type_active 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-define DISPLAYED-TABLES RowObject
-&Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define DISPLAYED-FIELDS RowObject.profile_type_code ~
 RowObject.profile_type_description RowObject.client_profile_type ~
 RowObject.server_profile_type RowObject.profile_type_active 
+&Scoped-define DISPLAYED-TABLES RowObject
+&Scoped-define FIRST-DISPLAYED-TABLE RowObject
+
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -156,19 +150,19 @@ RowObject.server_profile_type RowObject.profile_type_active
 DEFINE FRAME frMain
      RowObject.profile_type_code AT ROW 1 COL 27.4 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 15.6 BY 1
-     RowObject.profile_type_description AT ROW 2 COL 27.4 COLON-ALIGNED
+          SIZE 24 BY 1
+     RowObject.profile_type_description AT ROW 2.05 COL 27.4 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 37 BY 1
-     RowObject.client_profile_type AT ROW 3 COL 29.4
+          SIZE 78.4 BY 1
+     RowObject.client_profile_type AT ROW 3.1 COL 29.4
           VIEW-AS TOGGLE-BOX
-          SIZE 22 BY .81
-     RowObject.server_profile_type AT ROW 3.81 COL 29.4
+          SIZE 22 BY 1
+     RowObject.server_profile_type AT ROW 4.15 COL 29.4
           VIEW-AS TOGGLE-BOX
-          SIZE 23 BY .81
-     RowObject.profile_type_active AT ROW 4.62 COL 29.4
+          SIZE 23 BY 1
+     RowObject.profile_type_active AT ROW 5.2 COL 29.4
           VIEW-AS TOGGLE-BOX
-          SIZE 22.8 BY .81
+          SIZE 22.8 BY 1
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -209,7 +203,7 @@ END.
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
          HEIGHT             = 5.19
-         WIDTH              = 71.8.
+         WIDTH              = 106.8.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -249,7 +243,7 @@ ASSIGN
 */  /* FRAME frMain */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK vTableWin 

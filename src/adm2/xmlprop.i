@@ -100,7 +100,8 @@
  &GLOBAL-DEFINE xpValidateOnLoad
 
  {src/adm2/msghprop.i}
-
+IF NOT {&ADM-PROPS-DEFINED} THEN
+DO:
 &IF "{&ADMSuper}":U = "":U &THEN
   ghADMProps:ADD-NEW-FIELD('DocumentHandle':U, 'HANDLE':U, 0). 
   ghADMProps:ADD-NEW-FIELD('DTDPublicId':U, 'CHARACTER':U,0,'x(60)','':U). 
@@ -109,6 +110,7 @@
 &ENDIF
 
   {src/adm2/custom/xmlpropcustom.i}
+END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

@@ -24,11 +24,6 @@
 
 TRIGGER PROCEDURE FOR WRITE OF gst_dataset_file OLD BUFFER o_gst_dataset_file.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "gst_dataset_file"
-                      &TRIGGER-TYPE = "WRITE"}
-
 /* Created automatically using ERwin ICF Trigger template db/af/erw/afercustrg.i
    Do not change manually. Customisations to triggers should be placed in separate
    include files pulled into the trigger. ICF auto generates write trigger custom
@@ -111,6 +106,8 @@ IF NOT NEW gst_dataset_file AND gst_dataset_file.{&TRIGGER_OBJ} <> o_gst_dataset
 
 /* Customisations to WRITE trigger */
 {icf/trg/gstdftrigw.i}
+
+
 
 /* Update Audit Log */
 IF CAN-FIND(FIRST gsc_entity_mnemonic

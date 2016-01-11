@@ -93,7 +93,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       rysttdilgd.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -103,6 +103,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &glob   astra2-staticSmartDialog yes
 
 {src/adm2/globals.i}
+{src/adm2/widgetprto.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -230,7 +231,7 @@ ASSIGN
 */  /* DIALOG-BOX diDialog */
 &ANALYZE-RESUME
 
-
+ 
 
 
 

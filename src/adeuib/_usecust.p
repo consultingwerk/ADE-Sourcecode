@@ -66,11 +66,14 @@ DEFINE INPUT PARAMETER prUrecid AS RECID NO-UNDO.
 /* Define a SKIP for alert-boxes that only exists under Motif */
 &Global-define SKP &IF "{&WINDOW-SYSTEM}" = "OSF/Motif" &THEN SKIP &ELSE &ENDIF
 
-
 /* Local Buffers */
 DEFINE BUFFER parent_U FOR _U.
 DEFINE BUFFER parent_C FOR _C.
 DEFINE BUFFER parent_P FOR _P.
+
+DEFINE VARIABLE  lParentIsDynview  AS LOGICAL NO-UNDO.
+DEFINE VARIABLE  isDynbrow         AS LOGICAL NO-UNDO.
+DEFINE VARIABLE  isDynview         AS LOGICAL NO-UNDO.
 
 /* Define a SKIP for alert-boxes that only exists under Motif */
 &Global-define SKP &IF "{&WINDOW-SYSTEM}" = "OSF/Motif" &THEN SKIP &ELSE &ENDIF
@@ -79,6 +82,8 @@ DEFINE BUFFER parent_P FOR _P.
 FIND _U WHERE RECID(_U) eq prUrecid.
 FIND _L WHERE RECID(_L) eq _U._lo-recid.
 FIND _F WHERE RECID(_F) eq _U._x-recid NO-ERROR.
+FIND _P WHERE _P._WINDOW-HANDLE eq _U._WINDOW-HANDLE NO-ERROR.
+
 /* If this is not a field level widget, then find the Container record. */
 IF NOT AVAILABLE _F THEN DO:
   FIND _C WHERE RECID(_C) eq _U._x-recid.
@@ -91,6 +96,12 @@ FIND parent_U WHERE RECID(parent_U) eq _U._parent-recid.
 FIND parent_C WHERE RECID(parent_C) eq parent_U._x-recid.
 FIND parent_P WHERE parent_P._WINDOW-HANDLE = parent_U._WINDOW-HANDLE NO-ERROR.
 
+/* save parent's object type */
+ASSIGN lParentIsDynview = ( PARENT_P.OBJECT_type_code = "dynview":U).
+/*Note that certain fields are not sensitized if not dynamic object*/
+    isDynbrow =  (AVAILABLE _P AND _P.OBJECT_type_code = "DynBrow":U).
+    isDynView =  (AVAILABLE _P AND _P.OBJECT_type_code = "DynView":U AND _U._type = "frame":U).
+   
 /* Get the customization record */
 FIND _custom WHERE _custom._name eq pcCustom 
                AND _custom._type eq _U._TYPE NO-ERROR.
@@ -279,6 +290,8 @@ PROCEDURE process-cst:
             ELSE lValue = (idummy <= 6).  /* on, yes, or true */
           END.
           WHEN "D":U THEN DO:
+            /* Before converting, make sure everthing is in American format */
+            cValue = REPLACE(cValue, ",":U, ".":U).
             SESSION:NUMERIC-FORMAT = "AMERICAN":U.
             ASSIGN dValue = DECIMAL (cValue) NO-ERROR.
             IF ERROR-STATUS:ERROR THEN err_text = "decimal".

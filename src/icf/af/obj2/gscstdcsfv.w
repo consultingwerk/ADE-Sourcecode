@@ -150,7 +150,7 @@ FUNCTION setDataValue RETURNS LOGICAL
 
 
 /* Definitions of the field level widgets                               */
-DEFINE VARIABLE coCombo AS DECIMAL FORMAT ">>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
+DEFINE VARIABLE coCombo AS DECIMAL FORMAT "->>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
      LABEL "Service Type" 
      VIEW-AS COMBO-BOX INNER-LINES 10
      LIST-ITEM-PAIRS "",0

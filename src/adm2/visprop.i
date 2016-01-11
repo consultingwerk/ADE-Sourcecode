@@ -38,6 +38,8 @@
                   Replaced properties for FrameMinHeightChars and FrameMinWidthChars with MinHeight and MinWidth
     Modified    : 11/14/2001          Mark Davies (MIP)
                   Renamed property 'DisplayFieldsSecurity' to 'FieldSecurity'
+    Modified    : 02/27/2003          Neil Bell (MIP)
+                  Added property 'SecuredTokens'                  
   ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
 /*----------------------------------------------------------------------*/
@@ -123,12 +125,23 @@ HideOnInit,DisableOnInit,ObjectLayout
   &GLOB xpDisableOnInit
   &GLOB xpEnabledObjFlds
   &GLOB xpEnabledObjHdls
+  &GLOB xpColorInfoBG
+  &GLOB xpColorInfoFG
+  &GLOB xpColorWarnBG
+  &GLOB xpColorWarnFG
+  &GLOB xpColorErrorBG
+  &GLOB xpColorErrorFG
   &GLOB xpFieldSecurity       /* This property contains the security for all objects found in the AllFieldHandles Property */
   &GLOB xpAllFieldHandles     /* quick access to all handles on object, e.g. viewer, whether enabled or not */
   &GLOB xpAllFieldNames       /* quick access to all fields on object, e.g. viewer, whether enabled or not */
+
+  &GLOB xpObjectSecured
+  &GLOB xpObjectTranslated
   
-  &GLOBAL-DEFINE xpResizeHorizontal
-  &GLOBAL-DEFINE xpResizeVertical
+  &GLOB xpResizeHorizontal
+  &GLOB xpResizeVertical
+  &GLOB xpPopupButtonsInFields    
+  &GLOB xpFieldPopupMapping
   
   /* Include the next property file up the chain (in this case, the top
      of the chain); it starts the property temp-table definition and we
@@ -141,6 +154,9 @@ HideOnInit,DisableOnInit,ObjectLayout
    {src/adm2/appsprop.i}
 &ENDIF
   
+  
+IF NOT {&ADM-PROPS-DEFINED} THEN
+DO:
 &IF "{&ADMSuper}":U = "":U &THEN
   ghADMProps:ADD-NEW-FIELD('ObjectLayout':U,     'CHARACTER':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('LayoutOptions':U,    'CHARACTER':U, 0, ?, '':U).
@@ -151,15 +167,27 @@ HideOnInit,DisableOnInit,ObjectLayout
   ghADMProps:ADD-NEW-FIELD('EnabledObjFlds':U,   'CHARACTER':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('EnabledObjHdls':U,   'CHARACTER':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('FieldSecurity':U,    'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('SecuredTokens':U,    'CHARACTER':U, 0, ?, ?). /* Initial must be unknown */
   ghADMProps:ADD-NEW-FIELD('AllFieldHandles':U,  'CHARACTER':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('AllFieldNames':U,    'CHARACTER':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('MinHeight':U,        'DECIMAL':U, 0, ?, 0).
   ghADMProps:ADD-NEW-FIELD('MinWidth':U,         'DECIMAL':U, 0, ?, 0).
   ghADMProps:ADD-NEW-FIELD('ResizeHorizontal':U, 'LOGICAL':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('ResizeVertical':U,   'LOGICAL':U, 0, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('ObjectSecured':U,    'LOGICAL':U, 0, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('ObjectTranslated':U, 'LOGICAL':U, 0, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('PopupButtonsInFields':U, 'LOGICAL':U, 0, ?, no). 
+  ghADMProps:ADD-NEW-FIELD('ColorInfoBG':U,      'INTEGER':U, 0, ?, 10).
+  ghADMProps:ADD-NEW-FIELD('ColorInfoFG':U,      'INTEGER':U, 0, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('ColorWarnBG':U,      'INTEGER':U, 0, ?, 3).
+  ghADMProps:ADD-NEW-FIELD('ColorWarnFG':U,      'INTEGER':U, 0, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('ColorErrorBG':U,     'INTEGER':U, 0, ?, 12).
+  ghADMProps:ADD-NEW-FIELD('ColorErrorFG':U,     'INTEGER':U, 0, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('FieldPopupMapping','CHARACTER', 0, ?, '':U).  
 &ENDIF
 
   {src/adm2/custom/vispropcustom.i}
+END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

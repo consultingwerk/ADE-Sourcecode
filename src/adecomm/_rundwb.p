@@ -49,9 +49,9 @@ IF locdwb <> ? THEN DO:
     OUTPUT TO dwb.bat.
       PUT UNFORMATTED "@echo off":U SKIP.
       PUT UNFORMATTED "set DLC=":U + DLCValue SKIP.
-      PUT UNFORMATTED "set PROMSGS=":U + DLCValue + "\promsgs":U SKIP.
-      PUT UNFORMATTED "set PROCFG=":U + DLCValue + "\progress.cfg":U SKIP.
-      PUT UNFORMATTED "path=":U + DLCValue + "\bin;":U + DLCValue + ";%path%":U SKIP.
+      PUT UNFORMATTED "set PROMSGS=":U + DLCValue + "~\promsgs":U SKIP.
+      PUT UNFORMATTED "set PROCFG=":U + DLCValue + "~\progress.cfg":U SKIP.
+      PUT UNFORMATTED "path=":U + DLCValue + "~\bin;":U + DLCValue + ";%path%":U SKIP.
       PUT UNFORMATTED FILE-INFO:FULL-PATHNAME SKIP.
     OUTPUT CLOSE.
 

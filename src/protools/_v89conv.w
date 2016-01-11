@@ -629,10 +629,10 @@ DO:
     END.
     {&BROWSE-NAME}:SET-REPOSITIONED-ROW(2,"CONDITIONAL").
     {&BROWSE-NAME}:SELECT-ROW(1).
-    OS-CREATE-DIR VALUE(Directory + "\V8-ADM").
+    OS-CREATE-DIR VALUE(Directory + "~\V8-ADM").
     
     /* old-path is the last directory created */
-    ASSIGN old-path   = Directory + "\V8-ADM"
+    ASSIGN old-path   = Directory + "~\V8-ADM"
            abort-conv = FALSE.
 
     CONVERSION-LOOP:
@@ -664,13 +664,13 @@ DO:
                tmpDir  = SUBSTRING(Procedure.Name,1 , i - 1, "CHARACTER":U)
                tmpFile = SUBSTRING(Procedure.Name,i + 1).
         /* Create V8-ADM subdirectory */
-        OS-CREATE-DIR VALUE(tmpDir + "\V8-ADM").
+        OS-CREATE-DIR VALUE(tmpDir + "~\V8-ADM").
       END.
       ELSE ASSIGN tmpDir  = directory
                   tmpFile = Procedure.Name.
 
       /* Look for a null (or trivially small) file */
-      FILE-INFO:FILE-NAME = SEARCH(tmpDir + "\" + tmpFile).
+      FILE-INFO:FILE-NAME = SEARCH(tmpDir + "~\" + tmpFile).
       IF FILE-INFO:FILE-SIZE < 10 THEN DO:
         PUT STREAM log-file UNFORMATTED SKIP(1)
            "Procedure " + procedure.name + " is an invalid SmartObject." + CHR(10) +
@@ -679,7 +679,7 @@ DO:
       END.
       
       ELSE DO: /* Have a procedure to convert - First check to see if it is a V8 .w */
-        INPUT FROM VALUE(SEARCH(tmpDir + "\" + tmpFile)) NO-ECHO.
+        INPUT FROM VALUE(SEARCH(tmpDir + "~\" + tmpFile)) NO-ECHO.
         IMPORT UNFORMATTED tst-line.
         INPUT CLOSE.
         IF INDEX(tst-line,"AB_v9") > 0 THEN DO:
@@ -700,21 +700,21 @@ DO:
       END.  /* If the procedure is already V9 */
  
       /* Have a procedure to convert - Copy it to sub-tree */
-      tmpflnm = tmpDir + "\V8-ADM\" +
-                IF INDEX(tmpFile,":\") = 2 THEN
+      tmpflnm = tmpDir + "~\V8-ADM~\" +
+                IF INDEX(tmpFile,":~\") = 2 THEN
                         ENTRY(1,tmpFile,":") + SUBSTRING(tmpFile,3)
                 ELSE tmpFile.
                 
-      IF INDEX(tmpFile,"\") > 0 THEN DO:  /* Need to create a Directory */
-        ASSIGN tmpfl-dirs = NUM-ENTRIES(tmpflnm,"\") - 1
+      IF INDEX(tmpFile,"~\") > 0 THEN DO:  /* Need to create a Directory */
+        ASSIGN tmpfl-dirs = NUM-ENTRIES(tmpflnm,"~\") - 1
                             /* (-1) because we don't count the filename */
-               dir-dirs   = NUM-ENTRIES(tmpDir,"\") + 1
+               dir-dirs   = NUM-ENTRIES(tmpDir,"~\") + 1
                             /* (+1) because we do count V8-ADM */
-               new-path   = SUBSTRING(tmpflnm,1,R-INDEX(tmpflnm,"\") - 1,"CHARACTER").
+               new-path   = SUBSTRING(tmpflnm,1,R-INDEX(tmpflnm,"~\") - 1,"CHARACTER").
         IF old-path NE new-path THEN DO:  /* Not the same as the last one created */
-          new-path = tmpDir + "\V8-ADM".  /* Initialize at V8-ADM and work out */
+          new-path = tmpDir + "~\V8-ADM".  /* Initialize at V8-ADM and work out */
           DO i = dir-dirs + 1 TO tmpfl-dirs:
-            new-path = new-path + "\" + ENTRY(i,tmpflnm,"\").
+            new-path = new-path + "~\" + ENTRY(i,tmpflnm,"~\").
             IF NOT old-path BEGINS new-path THEN DO:
                OS-CREATE-DIR VALUE(new-path).
                old-path = new-path.
@@ -727,7 +727,7 @@ DO:
            "Copying " + Procedure.Name + " to " tmpflnm + "."
            FORMAT "X(75)" SKIP.
 
-      RUN adecomm/_relname.p (tmpDir + "\" + tmpFile, "MUST-EXIST",
+      RUN adecomm/_relname.p (tmpDir + "~\" + tmpFile, "MUST-EXIST",
                               OUTPUT rel-name).
        
       OS-COPY VALUE(SEARCH(rel-name)) VALUE(tmpflnm).

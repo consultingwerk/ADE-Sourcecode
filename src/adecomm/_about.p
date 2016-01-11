@@ -172,8 +172,8 @@ DO ON ERROR   UNDO main-block, LEAVE main-block
   ASSIGN lICF = (DYNAMIC-FUNCTION("isICFRunning":U IN THIS-PROCEDURE) = YES) NO-ERROR.
   ERROR-STATUS:ERROR = NO.
   IF lICF THEN    /* Get the commercial version */
-    ASSIGN cTextFile = SEARCH("ICFVersion":U)
-           cTextFile = IF cTextFile = ? THEN SEARCH("ICFVersion.txt":U)
+    ASSIGN cTextFile = SEARCH("Version":U)
+           cTextFile = IF cTextFile = ? THEN SEARCH("Version.txt":U)
                                     ELSE cTextFile.
   /* Only get Posseversion if this is not a commercial version */
   IF cTextFile = "" OR ctextFile = ? THEN
@@ -181,7 +181,7 @@ DO ON ERROR   UNDO main-block, LEAVE main-block
       RUN adecomm/_readpossever.p (OUTPUT POSSEVersion).
   END.
   ELSE DO:
-     /* Read the commercial version from the "ICFVersion" text file */
+     /* Read the commercial version from the "Version" text file */
     ASSIGN cCommercialVer = "".
     INPUT FROM VALUE(cTextFile) NO-ECHO.
     REPEAT:
@@ -295,19 +295,14 @@ PROCEDURE GetPatchLevel:
       IMPORT UNFORMATTED inp. /* Get the first line */
     INPUT CLOSE.
     /* 
-     * There are three types of version files (e.g.)
-     *   PROGRESS version 9.1A as of Fri Apr 20 1999
-     *   PROGRESS PATCH version 9.1A01 as of Fri Apr 20 1999
-     *   PROGRESS UNOFFICIAL PATCH version 9.1A01 as of Fri Apr 20 1999
+     * As of version 9.1D just append everything from the version file
+     * after the version from PROVERSION property
      */
-    IF INDEX(inp,"PATCH":U) NE 0 THEN DO:
-      /* If it's a patch, then we want the number */
-      LEVEL:
-      DO i = 2 TO NUM-ENTRIES(inp," ":U):
-        IF ENTRY(i,inp," ") BEGINS PROVERSION THEN DO:
-          ASSIGN patchLevel = REPLACE(ENTRY(i,inp," "),PROVERSION,"").
-          LEAVE LEVEL.
-        END.
+    LEVEL:
+    DO i = 2 TO NUM-ENTRIES(inp," ":U):
+      IF ENTRY(i,inp," ") BEGINS PROVERSION THEN DO:
+        ASSIGN patchLevel = REPLACE(ENTRY(i,inp," "),PROVERSION,"").
+        LEAVE LEVEL.
       END.
     END.
   END.         

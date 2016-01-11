@@ -6,6 +6,7 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
 DEFINE VARIABLE h_Astra                    AS HANDLE          NO-UNDO.
+DEFINE VARIABLE h_Astra2                   AS HANDLE          NO-UNDO.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" dTables _INLINE
 /* Actions: ? ? ? ? af/sup/afverxftrp.p */
 /* This has to go above the definitions sections, as that is what it modifies.
@@ -31,6 +32,21 @@ adm2/support/_wizqry.w,adm2/support/_wizfld.w
 */
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
+
+
+/* Temp-Table and Buffer definitions                                    */
+/* Db-Required definitions. */
+&IF DEFINED(DB-REQUIRED) = 0 &THEN
+    &GLOBAL-DEFINE DB-REQUIRED TRUE
+&ENDIF
+&GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
+&GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
+
+
+{&DB-REQUIRED-START}
+ DEFINE BUFFER buff_gsm_node FOR gsm_node.
+{&DB-REQUIRED-END}
+
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS dTables 
 /*********************************************************************
@@ -119,17 +135,12 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &Scoped-define ADM-SUPPORTED-LINKS Data-Source,Data-Target,Navigation-Target,Update-Target,Commit-Target,Filter-Target
 
 
-/* Db-Required definitions. */
-&IF DEFINED(DB-REQUIRED) = 0 &THEN
-    &GLOBAL-DEFINE DB-REQUIRED TRUE
-&ENDIF
-&GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
-&GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
+/* Note that Db-Required is defined before the buffer definitions for this object. */
 
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
-&Scoped-define INTERNAL-TABLES gsm_node
+&Scoped-define INTERNAL-TABLES gsm_node buff_gsm_node
 
 /* Definitions for QUERY Query-Main                                     */
 &Scoped-Define ENABLED-FIELDS  node_code node_description parent_node_obj node_label node_checked~
@@ -145,23 +156,29 @@ image_file_name selected_image_file_name
 &Scoped-Define DATA-FIELDS  node_obj node_code node_description parent_node_obj node_label node_checked~
  data_source_type data_source primary_sdo logical_object run_attribute~
  fields_to_store node_text_label_expression label_text_substitution_fields~
- foreign_fields image_file_name selected_image_file_name parent_node_code~
- cMenuStructureCode cSDODataSource
+ foreign_fields image_file_name selected_image_file_name cMenuStructureCode~
+ parent_node_code cSDODataSource
 &Scoped-define DATA-FIELDS-IN-gsm_node node_obj node_code node_description ~
 parent_node_obj node_label node_checked data_source_type data_source ~
 primary_sdo logical_object run_attribute fields_to_store ~
 node_text_label_expression label_text_substitution_fields foreign_fields ~
 image_file_name selected_image_file_name 
+&Scoped-define DATA-FIELDS-IN-buff_gsm_node parent_node_code 
 &Scoped-Define MANDATORY-FIELDS 
 &Scoped-Define APPLICATION-SERVICE 
-&Scoped-Define ASSIGN-LIST 
+&Scoped-Define ASSIGN-LIST   rowObject.parent_node_code = buff_gsm_node.node_code
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gsmndfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsm_node NO-LOCK, ~
+      FIRST buff_gsm_node WHERE buff_gsm_node.node_obj = gsm_node.parent_node_obj OUTER-JOIN NO-LOCK ~
+    BY gsm_node.node_code INDEXED-REPOSITION
 {&DB-REQUIRED-START}
-&Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsm_node NO-LOCK ~
+&Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsm_node NO-LOCK, ~
+      FIRST buff_gsm_node WHERE buff_gsm_node.node_obj = gsm_node.parent_node_obj OUTER-JOIN NO-LOCK ~
     BY gsm_node.node_code INDEXED-REPOSITION.
 {&DB-REQUIRED-END}
-&Scoped-define TABLES-IN-QUERY-Query-Main gsm_node
+&Scoped-define TABLES-IN-QUERY-Query-Main gsm_node buff_gsm_node
 &Scoped-define FIRST-TABLE-IN-QUERY-Query-Main gsm_node
+&Scoped-define SECOND-TABLE-IN-QUERY-Query-Main buff_gsm_node
 
 
 /* Custom List Definitions                                              */
@@ -192,7 +209,8 @@ FUNCTION getParentNode RETURNS CHARACTER
 /* Query definitions                                                    */
 &ANALYZE-SUSPEND
 DEFINE QUERY Query-Main FOR 
-      gsm_node SCROLLING.
+      gsm_node, 
+      buff_gsm_node SCROLLING.
 &ANALYZE-RESUME
 {&DB-REQUIRED-END}
 
@@ -209,6 +227,9 @@ DEFINE QUERY Query-Main FOR
    Frames: 0
    Add Fields to: Neither
    Other Settings: PERSISTENT-ONLY COMPILE APPSERVER DB-AWARE
+   Temp-Tables and Buffers:
+      TABLE: buff_gsm_node B "?" ? ICFDB gsm_node
+   END-TABLES.
  */
 
 /* This procedure should always be RUN PERSISTENT.  Report the error,  */
@@ -256,9 +277,11 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "icfdb.gsm_node"
+     _TblList          = "ICFDB.gsm_node,buff_gsm_node WHERE ICFDB.gsm_node ..."
      _Options          = "NO-LOCK INDEXED-REPOSITION"
-     _OrdList          = "icfdb.gsm_node.node_code|yes"
+     _TblOptList       = ", FIRST OUTER"
+     _OrdList          = "ICFDB.gsm_node.node_code|yes"
+     _JoinCode[2]      = "buff_gsm_node.node_obj = gsm_node.parent_node_obj"
      _FldNameList[1]   > icfdb.gsm_node.node_obj
 "node_obj" "node_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
      _FldNameList[2]   > icfdb.gsm_node.node_code
@@ -294,9 +317,9 @@ END.
      _FldNameList[17]   > icfdb.gsm_node.selected_image_file_name
 "selected_image_file_name" "selected_image_file_name" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
      _FldNameList[18]   > "_<CALC>"
-"getParentNode()" "parent_node_code" "Parent Node" "x(10)" "character" ? ? ? ? ? ? no ? no 12 no
-     _FldNameList[19]   > "_<CALC>"
 "RowObject.data_source" "cMenuStructureCode" "Menu Structure" "x(35)" "character" ? ? ? ? ? ? yes ? no 35 no
+     _FldNameList[19]   > Temp-Tables.buff_gsm_node.node_code
+"node_code" "parent_node_code" "Parent Node Code" ? "character" ? ? ? ? ? ? no ? no 10.8 no
      _FldNameList[20]   > "_<CALC>"
 "RowObject.data_source" "cSDODataSource" "Data Source" "x(35)" "character" ? ? ? ? ? ? yes ? no 35 no
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
@@ -333,7 +356,6 @@ PROCEDURE DATA.CALCULATE :
       ASSIGN 
          rowObject.cMenuStructureCode = (RowObject.data_source)
          rowObject.cSDODataSource = (RowObject.data_source)
-         rowObject.parent_node_code = (getParentNode())
       .
 
 END PROCEDURE.

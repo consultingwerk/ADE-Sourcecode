@@ -125,7 +125,7 @@ DEFINE TEMP-TABLE ttGenerateADO NO-UNDO
 
 /* The following include contains the replaceCtrlChar function */
 {afxmlreplctrl.i}
-
+{af/app/afdatatypi.i}
 
 /* ttRequiredRecord contains the list of parameters that decide how the 
    XML file is written out. */
@@ -285,14 +285,6 @@ FOR EACH ttAttributeOptions
     
   RUN viewLogMessage (INPUT "Starting process for - " + ttAttributeOptions.cAttributeLabel + " @ ":U + STRING(TIME,"HH:MM:SS":U) + " ON ":U + STRING(TODAY,"99/99/9999":U)).
   
-  IF lCheckOutObject THEN DO:
-    RUN viewLogMessage (INPUT "Creating list of objects to be checked out for " + ttAttributeOptions.cAttributeLabel + " @ ":U + STRING(TIME,"HH:MM:SS":U) + " ON ":U + STRING(TODAY,"99/99/9999":U)).
-    RUN createCheckOutObjects (INPUT ttAttributeOptions.cAttributeLabel).
-    RUN viewLogMessage (INPUT "Checking out objects for SCM Tool for " + ttAttributeOptions.cAttributeLabel + " @ ":U + STRING(TIME,"HH:MM:SS":U) + " ON ":U + STRING(TODAY,"99/99/9999":U)).
-    RUN checkOutObjects.
-    RUN viewLogMessage (INPUT "Checking out complete for " + ttAttributeOptions.cAttributeLabel + " @ ":U + STRING(TIME,"HH:MM:SS":U) + " ON ":U + STRING(TODAY,"99/99/9999":U)).
-  END.
-  
   CASE ttAttributeOptions.cAction:
     WHEN "ASSIGN" THEN
       RUN assignAttributeValues (INPUT ttAttributeOptions.cAttributeLabel,
@@ -357,7 +349,6 @@ PROCEDURE assignAttributeValues :
   DEFINE INPUT  PARAMETER pcAttributeLabel       AS CHARACTER  NO-UNDO.
   DEFINE INPUT  PARAMETER pcAttributeValue       AS CHARACTER  NO-UNDO.
   DEFINE INPUT  PARAMETER pdObjectTypeObj        AS DECIMAL    NO-UNDO.
-  DEFINE INPUT  PARAMETER plSetInheritedNo       AS LOGICAL    NO-UNDO.
   DEFINE INPUT  PARAMETER plOverrideValues       AS LOGICAL    NO-UNDO.
   DEFINE INPUT  PARAMETER plUpdateTypes          AS LOGICAL    NO-UNDO.
   DEFINE INPUT  PARAMETER plUpdateObject         AS LOGICAL    NO-UNDO.
@@ -386,7 +377,6 @@ PROCEDURE assignAttributeValues :
              WHERE ryc_attribute_value.object_type_obj           = gsc_object_type.object_type_obj
              AND   ryc_attribute_value.container_smartobject_obj = 0
              AND   ryc_attribute_value.smartobject_obj           = 0
-             AND   ryc_attribute_value.attribute_group_obj       = bfryc_attribute.attribute_group_obj   
              AND   ryc_attribute_value.attribute_label           = bfryc_attribute.attribute_label
              EXCLUSIVE-LOCK NO-ERROR.
         IF NOT AVAILABLE ryc_attribute_value THEN DO:
@@ -400,10 +390,7 @@ PROCEDURE assignAttributeValues :
                  ryc_attribute_value.container_smartobject_obj   = 0                              
                  ryc_attribute_value.smartobject_obj             = 0                              
                  ryc_attribute_value.constant_value              = FALSE
-                 ryc_attribute_value.attribute_group_obj         = bfryc_attribute.attribute_group_obj
                  ryc_attribute_value.attribute_label             = bfryc_attribute.attribute_label
-                 ryc_attribute_value.attribute_type_tla          = bfryc_attribute.attribute_type_tla
-                 ryc_attribute_value.collect_attribute_value_obj = ryc_attribute_value.attribute_value_obj
                  NO-ERROR.
             {afcheckerr.i &no-return = YES}    
             pcError = cMessageList.
@@ -419,9 +406,17 @@ PROCEDURE assignAttributeValues :
         END.
         IF plOverrideValues OR 
            lNewRecord THEN DO:
-          ASSIGN ryc_attribute_value.attribute_value = FormatAttributeValue(INPUT ryc_attribute_value.attribute_type_tla,
-                                                                            INPUT pcAttributeValue) NO-ERROR.
-          IF ryc_attribute_value.attribute_value EQ ? THEN
+          CASE bfryc_attribute.data_type:
+            WHEN {&DECIMAL-DATA-TYPE}   THEN ryc_attribute_value.decimal_value   = DECIMAL(pcAttributeValue) NO-ERROR.
+            WHEN {&INTEGER-DATA-TYPE}   THEN ryc_attribute_value.integer_value   = INTEGER(pcAttributeValue) NO-ERROR.
+            WHEN {&DATE-DATA-TYPE}      THEN ryc_attribute_value.date_value      =    DATE(pcAttributeValue) NO-ERROR.
+            WHEN {&RAW-DATA-TYPE}       THEN.
+            WHEN {&LOGICAL-DATA-TYPE}   THEN ryc_attribute_value.logical_value   = (IF pcAttributeValue = "TRUE":U OR
+                                                                                       pcAttributeValue = "YES":U  THEN TRUE ELSE FALSE) NO-ERROR.
+            WHEN {&CHARACTER-DATA-TYPE} THEN ryc_attribute_value.character_value = pcAttributeValue NO-ERROR.
+          END CASE.
+
+          IF ERROR-STATUS:ERROR THEN
           DO:
               pcError = "Error assigning attribute value for " + ryc_attribute_value.attribute_label.
               UNDO tran-block, LEAVE tran-block.
@@ -432,14 +427,6 @@ PROCEDURE assignAttributeValues :
           pcError = cMessageList.
           IF pcError <> "":U THEN UNDO tran-block, LEAVE tran-block.
           RUN viewLogMessage (INPUT "Assigned New Attribute Value - " + ryc_attribute_value.attribute_label + " for Object Type - " + gsc_object_type.object_type_code + " to " + pcAttributeValue).
-        END.
-        IF plSetInheritedNo THEN DO:
-          ASSIGN ryc_attribute_value.inheritted_value = FALSE NO-ERROR.
-          VALIDATE ryc_attribute_value NO-ERROR.
-          {afcheckerr.i &no-return = YES}    
-          pcError = cMessageList.
-          IF pcError <> "":U THEN UNDO tran-block, LEAVE tran-block.
-          RUN viewLogMessage (INPUT "Assigned Attribute Value's Inherited Value flag for - " + ryc_attribute_value.attribute_label + " Object Type - " + gsc_object_type.object_type_code + " to " + pcAttributeValue + " to FALSE").
         END.
       END. /* gsc_object_type */
     END. /* plUpdateTypes */
@@ -453,7 +440,6 @@ PROCEDURE assignAttributeValues :
              WHERE ryc_attribute_value.object_type_obj           = ttObjects.dObjectTypeObj
              AND   ryc_attribute_value.container_smartobject_obj = 0
              AND   ryc_attribute_value.smartobject_obj           = ttObjects.dSmartObjectObj
-             AND   ryc_attribute_value.attribute_group_obj       = bfryc_attribute.attribute_group_obj   
              AND   ryc_attribute_value.attribute_label           = bfryc_attribute.attribute_label
              AND   ryc_attribute_value.primary_smartobject_obj   = ttObjects.dSmartObjectObj
              EXCLUSIVE-LOCK NO-ERROR.
@@ -470,10 +456,7 @@ PROCEDURE assignAttributeValues :
                  ryc_attribute_value.smartobject_obj             = ttObjects.dSmartObjectObj
                  ryc_attribute_value.primary_smartobject_obj     = ttObjects.dSmartObjectObj
                  ryc_attribute_value.constant_value              = FALSE
-                 ryc_attribute_value.attribute_group_obj         = bfryc_attribute.attribute_group_obj
                  ryc_attribute_value.attribute_label             = bfryc_attribute.attribute_label
-                 ryc_attribute_value.attribute_type_tla          = bfryc_attribute.attribute_type_tla
-                 ryc_attribute_value.collect_attribute_value_obj = ryc_attribute_value.attribute_value_obj
                  NO-ERROR.
             {afcheckerr.i &no-return = YES}    
             pcError = cMessageList.
@@ -489,9 +472,17 @@ PROCEDURE assignAttributeValues :
         END.
         IF plOverrideValues OR 
            lNewRecord THEN DO:
-            ASSIGN ryc_attribute_value.attribute_value = FormatAttributeValue(INPUT ryc_attribute_value.attribute_type_tla,
-                                                                              INPUT pcAttributeValue) NO-ERROR.
-            IF ryc_attribute_value.attribute_value EQ ? THEN
+          CASE bfryc_attribute.data_type:
+            WHEN {&DECIMAL-DATA-TYPE}   THEN ryc_attribute_value.decimal_value   = DECIMAL(pcAttributeValue) NO-ERROR.
+            WHEN {&INTEGER-DATA-TYPE}   THEN ryc_attribute_value.integer_value   = INTEGER(pcAttributeValue) NO-ERROR.
+            WHEN {&DATE-DATA-TYPE}      THEN ryc_attribute_value.date_value      =    DATE(pcAttributeValue) NO-ERROR.
+            WHEN {&RAW-DATA-TYPE}       THEN.
+            WHEN {&LOGICAL-DATA-TYPE}   THEN ryc_attribute_value.logical_value   = (IF pcAttributeValue = "TRUE":U OR
+                                                                                       pcAttributeValue = "YES":U  THEN TRUE ELSE FALSE) NO-ERROR.
+            WHEN {&CHARACTER-DATA-TYPE} THEN ryc_attribute_value.character_value = pcAttributeValue NO-ERROR.
+          END CASE.
+
+          IF ERROR-STATUS:ERROR THEN
             DO:
                 pcError = "Error assigning attribute value for " + ryc_attribute_value.attribute_label.
                 UNDO tran-block, LEAVE tran-block.
@@ -502,14 +493,6 @@ PROCEDURE assignAttributeValues :
           pcError = cMessageList.
           IF pcError <> "":U THEN UNDO tran-block, LEAVE tran-block.
           RUN viewLogMessage (INPUT "Assigned Attribute Value - " + ryc_attribute_value.attribute_label + " for Object Master - " + ttObjects.cObjectFileName).
-        END.
-        IF plSetInheritedNo THEN DO:
-          ASSIGN ryc_attribute_value.inheritted_value = FALSE NO-ERROR.
-          VALIDATE ryc_attribute_value NO-ERROR.
-          {afcheckerr.i &no-return = YES}    
-          pcError = cMessageList.
-          IF pcError <> "":U THEN UNDO tran-block, LEAVE tran-block.
-          RUN viewLogMessage (INPUT "Assigned Attribute Value's Inherited Value flag for - " + ryc_attribute_value.attribute_label + " Object Master - " + ttObjects.cObjectFileName + " to " + pcAttributeValue + " to FALSE").
         END.
       END. /* ttObjects */
     END. /* plUpdateObject */
@@ -536,7 +519,6 @@ PROCEDURE assignAttributeValues :
                WHERE ryc_attribute_value.object_type_obj           = ttObjects.dObjectTypeObj
                AND   ryc_attribute_value.container_smartobject_obj = ryc_object_instance.container_smartobject_obj
                AND   ryc_attribute_value.smartobject_obj           = ttObjects.dSmartObjectObj
-               AND   ryc_attribute_value.attribute_group_obj       = bfryc_attribute.attribute_group_obj   
                AND   ryc_attribute_value.attribute_label           = bfryc_attribute.attribute_label
                AND   ryc_attribute_value.primary_smartobject_obj   = ryc_object_instance.container_smartobject_obj
                EXCLUSIVE-LOCK NO-ERROR.
@@ -553,10 +535,7 @@ PROCEDURE assignAttributeValues :
                    ryc_attribute_value.smartobject_obj             = ttObjects.dSmartObjectObj
                    ryc_attribute_value.primary_smartobject_obj     = ryc_object_instance.container_smartobject_obj
                    ryc_attribute_value.constant_value              = FALSE
-                   ryc_attribute_value.attribute_group_obj         = bfryc_attribute.attribute_group_obj
                    ryc_attribute_value.attribute_label             = bfryc_attribute.attribute_label
-                   ryc_attribute_value.attribute_type_tla          = bfryc_attribute.attribute_type_tla
-                   ryc_attribute_value.collect_attribute_value_obj = ryc_attribute_value.attribute_value_obj
                    ryc_attribute_value.object_instance_obj         = ryc_object_instance.object_instance_obj
                    NO-ERROR.
               {afcheckerr.i &no-return = YES}    
@@ -573,9 +552,17 @@ PROCEDURE assignAttributeValues :
           END.
           IF plOverrideValues OR 
               lNewRecord THEN DO:
-              ASSIGN ryc_attribute_value.attribute_value = FormatAttributeValue(INPUT ryc_attribute_value.attribute_type_tla,
-                                                                                INPUT pcAttributeValue) NO-ERROR.
-              IF ryc_attribute_value.attribute_value EQ ? THEN
+              CASE bfryc_attribute.data_type:
+                WHEN {&DECIMAL-DATA-TYPE}   THEN ryc_attribute_value.decimal_value   = DECIMAL(pcAttributeValue) NO-ERROR.
+                WHEN {&INTEGER-DATA-TYPE}   THEN ryc_attribute_value.integer_value   = INTEGER(pcAttributeValue) NO-ERROR.
+                WHEN {&DATE-DATA-TYPE}      THEN ryc_attribute_value.date_value      =    DATE(pcAttributeValue) NO-ERROR.
+                WHEN {&RAW-DATA-TYPE}       THEN.
+                WHEN {&LOGICAL-DATA-TYPE}   THEN ryc_attribute_value.logical_value   = (IF pcAttributeValue = "TRUE":U OR
+                                                                                           pcAttributeValue = "YES":U  THEN TRUE ELSE FALSE) NO-ERROR.
+                WHEN {&CHARACTER-DATA-TYPE} THEN ryc_attribute_value.character_value = pcAttributeValue NO-ERROR.
+              END CASE.
+  
+              IF ERROR-STATUS:ERROR THEN
               DO:
                   pcError = "Error assigning attribute value for " + ryc_attribute_value.attribute_label.
                   UNDO tran-block, LEAVE tran-block.
@@ -587,41 +574,11 @@ PROCEDURE assignAttributeValues :
             IF pcError <> "":U THEN UNDO tran-block, LEAVE tran-block.
             RUN viewLogMessage (INPUT "Assigned Attribute Value - " + ryc_attribute_value.attribute_label + " for Object Instance of - " + ttObjects.cObjectFileName).
           END.
-          IF plSetInheritedNo THEN DO:
-            ASSIGN ryc_attribute_value.inheritted_value = FALSE NO-ERROR.
-            VALIDATE ryc_attribute_value NO-ERROR.
-            {afcheckerr.i &no-return = YES}    
-            pcError = cMessageList.
-            IF pcError <> "":U THEN UNDO tran-block, LEAVE tran-block.
-            RUN viewLogMessage (INPUT "Assigned Attribute Value's Inherited Value flag for - " + ryc_attribute_value.attribute_label + " for Object Instance of - " + ttObjects.cObjectFileName + " to " + pcAttributeValue + " to FALSE").
-          END.
         END. /* ryc_object_instance */
       END. /* ttObjects */
     END. /* plUpdateObject */
   
   END. /* TRANSACTION */
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-checkOutObjects) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE checkOutObjects Procedure 
-PROCEDURE checkOutObjects :
-/*------------------------------------------------------------------------------
-  Purpose:     This procedure will check out all the objects found in ttCheckOut
-               for the SCM tool (Currently only RTB is supported.
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-
-  IF NOT CONNECTED("RTB":U) THEN
-    RETURN.
-  
-  
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -649,36 +606,6 @@ PROCEDURE createADOObjects :
       CREATE ttGenerateADO.
       ASSIGN ttGenerateADO.dSmartObjectObj = ttObjects.dSmartObjectObj 
              ttGenerateADO.cObjectFileName = ttObjects.cObjectFileName.
-    END.
-  END.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-createCheckOutObjects) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createCheckOutObjects Procedure 
-PROCEDURE createCheckOutObjects :
-/*------------------------------------------------------------------------------
-  Purpose:     This procedure will create a temp-table with objects selected 
-               to be checked out using the SCM tool.
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE INPUT  PARAMETER pcAttributeLabel  AS CHARACTER  NO-UNDO.
-  
-  FOR EACH  ttObjects
-      WHERE ttObjects.cAttributeLabel = pcAttributeLabel
-      NO-LOCK:
-    IF NOT CAN-FIND(FIRST ttCheckOut
-                    WHERE ttCheckOut.dSmartObjectObj = ttObjects.dSmartObjectObj) THEN DO:
-      CREATE ttCheckOut.
-      ASSIGN ttCheckOut.dSmartObjectObj = ttObjects.dSmartObjectObj 
-             ttCheckOut.cObjectFileName = ttObjects.cObjectFileName.
     END.
   END.
 
@@ -884,8 +811,7 @@ PROCEDURE renameAttribute :
              AND   ryc_attribute_value.attribute_label           = pcAttributeLabel
              EXCLUSIVE-LOCK NO-ERROR.
         IF AVAILABLE ryc_attribute_value THEN DO:
-          ASSIGN ryc_attribute_value.attribute_group_obj = ryc_attribute.attribute_group_obj
-                 ryc_attribute_value.attribute_label     = ryc_attribute.attribute_label
+          ASSIGN ryc_attribute_value.attribute_label     = ryc_attribute.attribute_label
                  NO-ERROR.
             {afcheckerr.i &no-return = YES}    
             pcError = cMessageList.
@@ -913,8 +839,7 @@ PROCEDURE renameAttribute :
              AND   ryc_attribute_value.attribute_label           = pcAttributeLabel
              EXCLUSIVE-LOCK NO-ERROR.
         IF AVAILABLE ryc_attribute_value THEN DO:
-          ASSIGN ryc_attribute_value.attribute_group_obj = ryc_attribute.attribute_group_obj
-                 ryc_attribute_value.attribute_label     = ryc_attribute.attribute_label
+          ASSIGN ryc_attribute_value.attribute_label     = ryc_attribute.attribute_label
                  NO-ERROR.
           {afcheckerr.i &no-return = YES}    
           pcError = cMessageList.
@@ -942,8 +867,7 @@ PROCEDURE renameAttribute :
              AND   ryc_attribute_value.attribute_label            = pcAttributeLabel
              EXCLUSIVE-LOCK NO-ERROR.
         IF AVAILABLE ryc_attribute_value THEN DO:
-          ASSIGN ryc_attribute_value.attribute_group_obj = ryc_attribute.attribute_group_obj
-                 ryc_attribute_value.attribute_label     = ryc_attribute.attribute_label
+          ASSIGN ryc_attribute_value.attribute_label     = ryc_attribute.attribute_label
                  NO-ERROR.
           {afcheckerr.i &no-return = YES}    
           pcError = cMessageList.
@@ -1022,21 +946,8 @@ PROCEDURE validateData :
     CASE ttAttributeOptions.cAction:
       WHEN "ASSIGN":U THEN DO:
         /* Attribute Value */
-        CASE ryc_attribute.attribute_type_tla:
-          WHEN "CHR":U THEN DO:
-            /* Anything can go into a character - no check needed - it may also be BLANK */
-          END.
-          WHEN "INT":U THEN DO:
-            ASSIGN iInteger = INTEGER(ttAttributeOptions.cAttributeValue) NO-ERROR.
-            IF ERROR-STATUS:ERROR THEN
-              pcError = pcError + (IF NUM-ENTRIES(pcError,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                        {aferrortxt.i 'AF' '5' '' 'ttAttributeOptions.cAttributeValue' "'Attribute Value'" "'The value specified must be of type INTEGER.'"}.
-            ELSE
-              IF TRIM(ttAttributeOptions.cAttributeValue) = "":U THEN
-                pcError = pcError + (IF NUM-ENTRIES(pcError,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                          {aferrortxt.i 'AF' '1' '' 'ttAttributeOptions.cAttributeValue' "'Attribute Value'" "'You must specify a valid INTEGER value.'"}.
-          END.
-          WHEN "DEC":U THEN DO:
+        CASE ryc_attribute.data_type:
+          WHEN {&DECIMAL-DATA-TYPE}   THEN DO:
             ASSIGN dDecimal = DECIMAL(ttAttributeOptions.cAttributeValue) NO-ERROR.
             IF ERROR-STATUS:ERROR THEN
               pcError = pcError + (IF NUM-ENTRIES(pcError,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
@@ -1046,7 +957,29 @@ PROCEDURE validateData :
                 pcError = pcError + (IF NUM-ENTRIES(pcError,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
                           {aferrortxt.i 'AF' '1' '' 'ttAttributeOptions.cAttributeValue' "'Attribute Value'" "'You must specify a valid DECIMAL value.'"}.
           END.
-          WHEN "LOG":U THEN DO:
+          WHEN {&INTEGER-DATA-TYPE}   THEN DO:
+            ASSIGN iInteger = INTEGER(ttAttributeOptions.cAttributeValue) NO-ERROR.
+            IF ERROR-STATUS:ERROR THEN
+              pcError = pcError + (IF NUM-ENTRIES(pcError,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
+                        {aferrortxt.i 'AF' '5' '' 'ttAttributeOptions.cAttributeValue' "'Attribute Value'" "'The value specified must be of type INTEGER.'"}.
+            ELSE
+              IF TRIM(ttAttributeOptions.cAttributeValue) = "":U THEN
+                pcError = pcError + (IF NUM-ENTRIES(pcError,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
+                          {aferrortxt.i 'AF' '1' '' 'ttAttributeOptions.cAttributeValue' "'Attribute Value'" "'You must specify a valid INTEGER value.'"}.
+          END.
+          WHEN {&DATE-DATA-TYPE}      THEN DO:
+            cMessage = "The value specified must be of type DATE. " + "(":U + CAPS(SESSION:DATE-FORMAT) + ")":U.
+            ASSIGN dDate = DATE(ttAttributeOptions.cAttributeValue) NO-ERROR.
+            IF ERROR-STATUS:ERROR THEN
+              pcError = pcError + (IF NUM-ENTRIES(pcError,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
+                        {aferrortxt.i 'AF' '5' '' 'ttAttributeOptions.cAttributeValue' "'Attribute Value'" "cMessage"}.
+            ELSE
+              IF TRIM(ttAttributeOptions.cAttributeValue) = "":U THEN
+                pcError = pcError + (IF NUM-ENTRIES(pcError,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
+                          {aferrortxt.i 'AF' '1' '' 'ttAttributeOptions.cAttributeValue' "'Attribute Value'" "'You must specify a valid DATE value.'"}.
+          END.
+          WHEN {&RAW-DATA-TYPE}       THEN.
+          WHEN {&LOGICAL-DATA-TYPE}   THEN DO:
             IF ttAttributeOptions.cAttributeValue <> "TRUE":U  AND
                ttAttributeOptions.cAttributeValue <> "FALSE":U AND
                ttAttributeOptions.cAttributeValue <> "YES":U   AND
@@ -1059,18 +992,8 @@ PROCEDURE validateData :
                 pcError = pcError + (IF NUM-ENTRIES(pcError,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
                           {aferrortxt.i 'AF' '1' '' 'ttAttributeOptions.cAttributeValue' "'Attribute Value'" "'You must specify a valid LOGICAL value.'"}.
           END.
-          WHEN "DAT":U THEN DO:
-            cMessage = "The value specified must be of type DATE. " + "(":U + CAPS(SESSION:DATE-FORMAT) + ")":U.
-            ASSIGN dDate = DATE(ttAttributeOptions.cAttributeValue) NO-ERROR.
-            IF ERROR-STATUS:ERROR THEN
-              pcError = pcError + (IF NUM-ENTRIES(pcError,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                        {aferrortxt.i 'AF' '5' '' 'ttAttributeOptions.cAttributeValue' "'Attribute Value'" "cMessage"}.
-            ELSE
-              IF TRIM(ttAttributeOptions.cAttributeValue) = "":U THEN
-                pcError = pcError + (IF NUM-ENTRIES(pcError,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                          {aferrortxt.i 'AF' '1' '' 'ttAttributeOptions.cAttributeValue' "'Attribute Value'" "'You must specify a valid DATE value.'"}.
-          END. 
         END CASE.
+
       END. /* ASSIGN */
       /* Rename */
       WHEN "RENAME":U THEN DO:
@@ -1086,7 +1009,7 @@ PROCEDURE validateData :
                  pcError  = pcError + (IF NUM-ENTRIES(pcError,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
                                    {aferrortxt.i 'AF' '5' '' '' "'New Attribute Label'" "cMessage"}.
         
-        IF ryc_attribute.attribute_type_tla <> buryc_attribute.attribute_type_tla THEN
+        IF ryc_attribute.data_type <> buryc_attribute.data_type THEN
           pcError  = pcError + (IF NUM-ENTRIES(pcError,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
                      {aferrortxt.i 'AF' '5' '' '' "'New Attribute Label'" "'The new attribute must be of the same data type.'"}.
       END. /* RENAME */
@@ -1131,7 +1054,7 @@ PROCEDURE validateData :
      pcError  = pcError + (IF NUM-ENTRIES(pcError,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
                        {aferrortxt.i 'AF' '1' '' '' "'Log File'"}.
   ELSE DO:
-    ASSIGN cDir = REPLACE(pcLogFileName,"\":U,"/":U)
+    ASSIGN cDir = REPLACE(pcLogFileName,"~\":U,"/":U)
            cDir = SUBSTRING(cDir,1,R-INDEX(cDir,"/":U) - 1).
     ASSIGN FILE-INFO:FILE-NAME = cDir.
     IF FILE-INFO:FULL-PATHNAME = ? THEN
@@ -1270,15 +1193,12 @@ FUNCTION getPathedFile RETURNS CHARACTER
   FIND FIRST ryc_smartobject
        WHERE ryc_smartobject.smartobject_obj = pdSmartObjectObj
        NO-LOCK NO-ERROR.
+
   IF NOT AVAILABLE ryc_smartobject THEN
-    RETURN "** Could not find ryc_smartobject for object".
+    RETURN "** Could not find ryc_smartobject for object " + STRING(pdSmartObjectObj).
   
-  FIND FIRST gsc_object NO-LOCK
-       WHERE gsc_object.object_obj = ryc_smartobject.object_obj
-       NO-ERROR.
-  IF AVAILABLE gsc_object AND
-     gsc_object.object_path <> "":U THEN
-    cPath = gsc_object.object_path.
+  IF ryc_smartobject.object_path <> "":U THEN
+      cPath = ryc_smartobject.object_path.
   ELSE DO:
     FIND FIRST gsc_product_module NO-LOCK
          WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj
@@ -1299,7 +1219,7 @@ FUNCTION getPathedFile RETURNS CHARACTER
     cFileName = SUBSTRING(cFileName,1,R-INDEX(cFileName,".":U)) + "ado":U.
   ELSE
     cFileName = cFileName + ".ado":U.
-  ASSIGN pcADODir  = REPLACE(pcADODir,"\":U,"/":U)
+  ASSIGN pcADODir  = REPLACE(pcADODir,"~\":U,"/":U)
          pcADODir  = TRIM(pcADODir,"/":U)
          cFileName = LC(pcADODir + "/":U + cPath + "/":U + cFileName).
   

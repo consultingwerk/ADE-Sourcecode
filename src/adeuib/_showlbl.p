@@ -80,20 +80,29 @@ ASSIGN _h_frame      = frame_U._HANDLE
        f_iter_pos    = _C._ITERATION-POS
        f_side_labels = _C._SIDE-LABELS.
 
-/* Place object within frame boundary. */
-{adeuib/onframe.i
-   &_whFrameHandle = "_h_frame"
-   &_whObjHandle   = "h_self"
-   &_lvHidden      = yes}
 
 /* Find the Universal widget record of the target and the label   */
 FIND _U WHERE _U._HANDLE = h_self.
 FIND _L WHERE RECID(_L)  = _U._lo-recid.
 FIND _F WHERE RECID(_F) =  _U._x-recid.
-FIND label_U WHERE RECID(label_U) = _U._l-recid.
+FIND label_U WHERE RECID(label_U) = _U._l-recid NO-ERROR.
+
+IF NOT AVAILABLE LABEL_U THEN
+   RETURN.
+
 /* Get the label handle */
 h_lbl   = label_U._HANDLE.
 
+IF NOT VALID-HANDLE(h_lbl) THEN
+   RETURN.
+
+/* Place object within frame boundary. */
+{adeuib/onframe.i
+   &_whFrameHandle = "_h_frame"
+   &_whObjHandle   = "h_self"
+   &_lvHidden      = yes}
+   
+   
 /* Either we display the label at the proper spot, or we make it invisible */
 IF frame_L._NO-LABELS OR _L._NO-LABELS OR _L._REMOVE-FROM-LAYOUT THEN DO:
   ASSIGN h_lbl:HIDDEN        = TRUE
@@ -108,7 +117,7 @@ IF frame_L._NO-LABELS OR _L._NO-LABELS OR _L._REMOVE-FROM-LAYOUT THEN DO:
   END.
   /* Notify user that colon positioning is invalid for NO-LABEL column < 3 */
   IF _U._ALIGN eq "C" AND h_self:COL < 3 THEN DO:
-    MESSAGE IF _U._TYPE = "COMBO-BOX" THEN "Combo-box" ELSE "Fill-in" 
+    MESSAGE _U._TYPE " "
             _U._NAME "cannot be colon-positioned this" {&SKP}
             "close to the left edge of the frame. The" LC(_U._TYPE)
             "will be" {&SKP}
@@ -140,7 +149,6 @@ ELSE DO:  /* Must display the label */
     ASSIGN _F._STACK-LBL-HDL[i]:HIDDEN  = yes
            i                            = i + 1.
   END.
-
   /* The label offset = the label length + a colon + space (if side-labels). */
   /* Remove single &'s for windows labels: && goes to & and & is nil. */
   IF f_side_labels eq no
@@ -151,7 +159,7 @@ ELSE DO:  /* Must display the label */
             &ELSE lbl &ENDIF 
             + ": ", 
             fnt).
- 
+  
   /* Test Case that the label does not fit on the frame  with this label.  In
      which case we set the fill-in to no-label */
   IF f_side_labels AND (h_self:width-pixels + offset > _ivParentWidth) THEN DO:
@@ -180,6 +188,7 @@ ELSE DO:  /* Must display the label */
       h_lbl:WIDTH-PIXELS = offset - FONT-TABLE:GET-TEXT-WIDTH-P(" ",fnt).  
 
       /* Simulate the placement of SIDE-LABELS by the Progress 4GL */
+      IF lbl <> ? THEN
       ASSIGN h_lbl:Y            = h_self:Y
 	     h_lbl:FORMAT       = "X(" + STRING(INTEGER(LENGTH(lbl, "raw":U) + 1 )) + ")"
 	     h_lbl:SCREEN-VALUE = lbl + ":".

@@ -53,19 +53,25 @@ af/cod/aftemwizpw.w
 
   History:
   --------
-  (v:010000)    Task:           0   UserRef:    
+  (v:010000)    Task:           0   UserRef:
                 Date:   09/29/2001  Author:     Don Bulua
 
   Update Notes: Created from Template rysttdilgd.w
                 Created from Template afmenusearchd.w
 
+  (v:010001)    Task:         0    UserRef:
+                Date:   04/23/2002  Author:     Sunil Belgaonkar
+
+  Update Notes: Changed the Image paths from af/bmp to ry/img
+                Also Changed the images from .bmp to .gif formats.
+
 ---------------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
 
-/* Create an unnamed pool to store all the widgets created 
+/* Create an unnamed pool to store all the widgets created
      by this procedure. This is a good default which assures
-     that this procedure's triggers and internal procedures 
+     that this procedure's triggers and internal procedures
      will execute in this procedure's storage, and that proper
      cleanup will occur on deletion of the procedure. */
 
@@ -290,7 +296,7 @@ ASSIGN
 &Scoped-define SELF-NAME diDialog
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL diDialog diDialog
 ON WINDOW-CLOSE OF FRAME diDialog /* Search Nodes */
-DO:  
+DO:
   /* Add Trigger to equate WINDOW-CLOSE to END-ERROR. */
   APPLY "END-ERROR":U TO SELF.
 END.
@@ -307,7 +313,7 @@ DO:
      RUN repositionSPlitBar ("RIGHT":U).
   ELSE
      RUN repositionSPlitBar ("LEFT":U).
-  
+
   gdcol = SELF:COL.
 END.
 
@@ -323,7 +329,7 @@ DO:
      RUN repositionSPlitBar2 ("RIGHT":U).
   ELSE
      RUN repositionSPlitBar2 ("LEFT":U).
-  
+
   gdcol2 = SELF:COL.
 END.
 
@@ -377,7 +383,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'af/obj2/gsmit2fullo.wDB-AWARE':U ,
              INPUT  FRAME diDialog:HANDLE ,
-             INPUT  'AppServiceAstraASUsePromptASInfoForeignFieldsRowsToBatch200CheckCurrentChangedyesRebuildOnReposnoServerOperatingModeNONEDestroyStatelessnoDisconnectAppServernoObjectNamegsmit2fulloUpdateFromSourcenoToggleDataTargetsyes':U ,
+             INPUT  'AppServiceAstraASUsePromptASInfoForeignFieldsRowsToBatch200CheckCurrentChangedyesRebuildOnReposnoServerOperatingModeNONEDestroyStatelessnoDisconnectAppServernoObjectNamegsmit2fulloUpdateFromSourcenoToggleDataTargetsyesOpenOnInityes':U ,
              OUTPUT h_gsmit2fullo ).
        RUN repositionObject IN h_gsmit2fullo ( 1.00 , 58.00 ) NO-ERROR.
        /* Size in AB:  ( 1.86 , 14.00 ) */
@@ -385,7 +391,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynbrowser.w':U ,
              INPUT  FRAME diDialog:HANDLE ,
-             INPUT  'DisplayedFieldsmenu_structure_code,menu_structure_description,menu_structure_typeEnabledFieldsScrollRemotenoSearchFieldNumDown0CalcWidthnoMaxWidth90DataSourceNamesgsmit2fulloUpdateTargetNamesLogicalObjectNameHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldsmenu_structure_code,menu_structure_description,menu_structure_typeEnabledFieldsScrollRemotenoNumDown0CalcWidthnoMaxWidth90FetchOnReposToEndyesSearchFieldDataSourceNamesgsmit2fulloUpdateTargetNamesLogicalObjectNameHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dynbrowser ).
        RUN repositionObject IN h_dynbrowser ( 3.24 , 33.00 ) NO-ERROR.
        RUN resizeObject IN h_dynbrowser ( 7.29 , 87.00 ) NO-ERROR.
@@ -393,7 +399,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'af/obj2/gsmmsfullo.wDB-AWARE':U ,
              INPUT  FRAME diDialog:HANDLE ,
-             INPUT  'AppServiceASUsePromptASInfoForeignFieldsRowsToBatch200CheckCurrentChangedyesRebuildOnReposnoServerOperatingModeNONEDestroyStatelessnoDisconnectAppServernoObjectNamegsmmsfulloUpdateFromSourcenoToggleDataTargetsyes':U ,
+             INPUT  'AppServiceASUsePromptASInfoForeignFieldsRowsToBatch200CheckCurrentChangedyesRebuildOnReposnoServerOperatingModeNONEDestroyStatelessnoDisconnectAppServernoObjectNamegsmmsfulloUpdateFromSourcenoToggleDataTargetsyesOpenOnInityes':U ,
              OUTPUT h_gsmmsfullo ).
        RUN repositionObject IN h_gsmmsfullo ( 1.24 , 96.00 ) NO-ERROR.
        /* Size in AB:  ( 1.86 , 14.00 ) */
@@ -401,7 +407,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynbrowser.w':U ,
              INPUT  FRAME diDialog:HANDLE ,
-             INPUT  'DisplayedFieldsmenu_structure_code,menu_structure_description,menu_structure_typeEnabledFieldsScrollRemotenoSearchFieldNumDown0CalcWidthnoMaxWidth80DataSourceNamesgsmmsfulloUpdateTargetNamesLogicalObjectNameHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldsmenu_structure_code,menu_structure_description,menu_structure_typeEnabledFieldsScrollRemotenoNumDown0CalcWidthnoMaxWidth80FetchOnReposToEndyesSearchFieldDataSourceNamesgsmmsfulloUpdateTargetNamesLogicalObjectNameHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dynbrowser-2 ).
        RUN repositionObject IN h_dynbrowser-2 ( 11.48 , 33.00 ) NO-ERROR.
        RUN resizeObject IN h_dynbrowser-2 ( 5.48 , 86.00 ) NO-ERROR.
@@ -409,7 +415,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'af/obj2/gscicfullo.wDB-AWARE':U ,
              INPUT  FRAME diDialog:HANDLE ,
-             INPUT  'AppServiceAstraASUsePromptASInfoForeignFieldsRowsToBatch200CheckCurrentChangedyesRebuildOnReposnoServerOperatingModeNONEDestroyStatelessnoDisconnectAppServernoObjectNamegscicfulloUpdateFromSourcenoToggleDataTargetsyes':U ,
+             INPUT  'AppServiceAstraASUsePromptASInfoForeignFieldsRowsToBatch200CheckCurrentChangedyesRebuildOnReposnoServerOperatingModeNONEDestroyStatelessnoDisconnectAppServernoObjectNamegscicfulloUpdateFromSourcenoToggleDataTargetsyesOpenOnInityes':U ,
              OUTPUT h_gscicfullo ).
        RUN repositionObject IN h_gscicfullo ( 1.00 , 70.00 ) NO-ERROR.
        /* Size in AB:  ( 1.91 , 15.00 ) */
@@ -417,7 +423,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'af/obj2/gsmmifullo.wDB-AWARE':U ,
              INPUT  FRAME diDialog:HANDLE ,
-             INPUT  'AppServiceAstraASUsePromptASInfoForeignFieldsRowsToBatch200CheckCurrentChangedyesRebuildOnReposnoServerOperatingModeNONEDestroyStatelessnoDisconnectAppServernoObjectNamegsmmifulloUpdateFromSourcenoToggleDataTargetsyes':U ,
+             INPUT  'AppServiceAstraASUsePromptASInfoForeignFieldsRowsToBatch200CheckCurrentChangedyesRebuildOnReposnoServerOperatingModeNONEDestroyStatelessnoDisconnectAppServernoObjectNamegsmmifulloUpdateFromSourcenoToggleDataTargetsyesOpenOnInityes':U ,
              OUTPUT h_gsmmifullo ).
        RUN repositionObject IN h_gsmmifullo ( 1.00 , 83.00 ) NO-ERROR.
        /* Size in AB:  ( 1.86 , 17.00 ) */
@@ -442,7 +448,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'af/obj2/gsmtm2fullo.wDB-AWARE':U ,
              INPUT  FRAME diDialog:HANDLE ,
-             INPUT  'AppServiceAstraASUsePromptASInfoForeignFieldsRowsToBatch200CheckCurrentChangedyesRebuildOnReposnoServerOperatingModeNONEDestroyStatelessnoDisconnectAppServernoObjectNamegsmtm2fulloUpdateFromSourcenoToggleDataTargetsyes':U ,
+             INPUT  'AppServiceAstraASUsePromptASInfoForeignFieldsRowsToBatch200CheckCurrentChangedyesRebuildOnReposnoServerOperatingModeNONEDestroyStatelessnoDisconnectAppServernoObjectNamegsmtm2fulloUpdateFromSourcenoToggleDataTargetsyesOpenOnInityes':U ,
              OUTPUT h_gsmtm2fullo ).
        RUN repositionObject IN h_gsmtm2fullo ( 1.71 , 108.00 ) NO-ERROR.
        /* Size in AB:  ( 1.86 , 10.80 ) */
@@ -450,7 +456,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynbrowser.w':U ,
              INPUT  FRAME diDialog:HANDLE ,
-             INPUT  'DisplayedFieldsBandname,ToolbarNameEnabledFieldsScrollRemotenoSearchFieldNumDown0CalcWidthnoMaxWidth80DataSourceNamesgsmtm2fulloUpdateTargetNamesLogicalObjectNameHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldsBandname,ToolbarNameEnabledFieldsScrollRemotenoNumDown0CalcWidthnoMaxWidth80FetchOnReposToEndyesSearchFieldDataSourceNamesgsmtm2fulloUpdateTargetNamesLogicalObjectNameHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dynbrowser-3 ).
        RUN repositionObject IN h_dynbrowser-3 ( 3.38 , 47.00 ) NO-ERROR.
        RUN resizeObject IN h_dynbrowser-3 ( 5.95 , 72.00 ) NO-ERROR.
@@ -458,7 +464,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'af/obj2/gsmomfullo.wDB-AWARE':U ,
              INPUT  FRAME diDialog:HANDLE ,
-             INPUT  'AppServiceASUsePromptASInfoForeignFieldsRowsToBatch200CheckCurrentChangedyesRebuildOnReposnoServerOperatingModeNONEDestroyStatelessnoDisconnectAppServernoObjectNamegsmomfulloUpdateFromSourcenoToggleDataTargetsyes':U ,
+             INPUT  'AppServiceASUsePromptASInfoForeignFieldsRowsToBatch200CheckCurrentChangedyesRebuildOnReposnoServerOperatingModeNONEDestroyStatelessnoDisconnectAppServernoObjectNamegsmomfulloUpdateFromSourcenoToggleDataTargetsyesOpenOnInityes':U ,
              OUTPUT h_gsmomfullo ).
        RUN repositionObject IN h_gsmomfullo ( 2.19 , 95.00 ) NO-ERROR.
        /* Size in AB:  ( 1.86 , 10.80 ) */
@@ -466,7 +472,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynbrowser.w':U ,
              INPUT  FRAME diDialog:HANDLE ,
-             INPUT  'DisplayedFieldsmenu_structure_code,object_filename,object_descriptionEnabledFieldsScrollRemoteyesSearchFieldNumDown0CalcWidthnoMaxWidth80DataSourceNamesgsmomfulloUpdateTargetNamesLogicalObjectNameHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldsmenu_structure_code,object_filename,object_descriptionEnabledFieldsScrollRemoteyesNumDown0CalcWidthnoMaxWidth80FetchOnReposToEndyesSearchFieldDataSourceNamesgsmomfulloUpdateTargetNamesLogicalObjectNameHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dynbrowser-4 ).
        RUN repositionObject IN h_dynbrowser-4 ( 9.81 , 47.00 ) NO-ERROR.
        RUN resizeObject IN h_dynbrowser-4 ( 6.67 , 72.00 ) NO-ERROR.
@@ -502,8 +508,8 @@ END PROCEDURE.
 PROCEDURE createObjects :
 /*------------------------------------------------------------------------------
   Purpose:     Super Override
-  Parameters:  
-  Notes:       
+  Parameters:
+  Notes:
 ------------------------------------------------------------------------------*/
 DEFINE VARIABLE iPage AS INTEGER    NO-UNDO.
   /* Code placed here will execute PRIOR to standard behavior. */
@@ -560,9 +566,9 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE expandbands diDialog 
 PROCEDURE expandbands :
 /*------------------------------------------------------------------------------
-  Purpose:     
+  Purpose:
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 DEFINE INPUT  PARAMETER pckey AS CHARACTER  NO-UNDO.
 
@@ -601,7 +607,7 @@ ASSIGN hBuf            = hTable:DEFAULT-BUFFER-HANDLE
 
 ASSIGN cTag  = DYNAMIC-FUNC('getProperty':U IN h_dyntreeview-2,"TAG":U,pcKey).
 
-IF NOT cTag begins "@":U  THEN 
+IF NOT cTag begins "@":U  THEN
     RETURN.
 
   cChildKey = DYNAMIC-FUNCTION("GetProperty":U IN h_dyntreeview-2,"Child":U,pckey).
@@ -631,7 +637,7 @@ DO WHILE lBandAvailable:
          hParentKey:BUFFER-VALUE       = pcKey
          hInsert:BUFFER-VALUE          = 4
          hLabel:BUFFER-VALUE           = ENTRY(2,cCols,CHR(1))
-         hImage:BUFFER-VALUE           = getBandImage(ENTRY(3,cCols,CHR(1))) 
+         hImage:BUFFER-VALUE           = getBandImage(ENTRY(3,cCols,CHR(1)))
          hSelectedImage:BUFFER-VALUE   = hImage:BUFFER-VALUE
          hSort:BUFFER-VALUE            = TRUE
          hTag:BUFFER-VALUE             = "BAND|":U + ENTRY(4,cCols,CHR(1)) + "|" + ENTRY(3,cCols,CHR(1)) + "|" + ENTRY(5,cCols,CHR(1))
@@ -640,10 +646,10 @@ DO WHILE lBandAvailable:
    /* Ensure the Text is never blank */
    IF hLabel:BUFFER-VALUE = "" OR hLabel:BUFFER-VALUE = ? THEN
        hLabel:BUFFER-VALUE = "(None)".
- 
+
   lBandAvailable = DYNAMIC-FUNCTION('rowAvailable':U in h_gsmmsfullo,"NEXT":U).
   IF lbandAvailable THEN
-    RUN fetchNext IN h_gsmmsfullo.    
+    RUN fetchNext IN h_gsmmsfullo.
 END.
 
 RUN populateTree IN h_dyntreeview-2 (hTable,pcKey).
@@ -658,9 +664,9 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE expanditems diDialog 
 PROCEDURE expanditems :
 /*------------------------------------------------------------------------------
-  Purpose:   Called from tvNodeEvent when an item is expanded.  
+  Purpose:   Called from tvNodeEvent when an item is expanded.
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 DEFINE INPUT  PARAMETER pcKey AS CHARACTER  NO-UNDO.
 
@@ -685,7 +691,7 @@ DEFINE VARIABLE hInsert         AS HANDLE     NO-UNDO.
 
   ASSIGN cTag  = DYNAMIC-FUNC('getProperty':U IN h_dyntreeview,"TAG":U,pcKey).
 
-  IF NOT cTag begins "@":U  THEN 
+  IF NOT cTag begins "@":U  THEN
     RETURN.
 
   cChildKey = DYNAMIC-FUNCTION("GetProperty":U IN h_dyntreeview,"Child":U,pckey).
@@ -694,7 +700,7 @@ DEFINE VARIABLE hInsert         AS HANDLE     NO-UNDO.
   DYNAMIC-FUNCTION("SetProperty":U IN h_dyntreeview,"TAG":U,pckey,cTag).
 
   hTable = DYNAMIC-FUNC("getTreeDataTable":U IN h_dyntreeview).
-   
+
   ASSIGN hBuf            = hTable:DEFAULT-BUFFER-HANDLE
          hKey            = hBuf:BUFFER-FIELD('node_key':U)
          hlabel          = hBuf:BUFFER-FIELD('node_label':U)
@@ -722,10 +728,10 @@ DEFINE VARIABLE hInsert         AS HANDLE     NO-UNDO.
            hParentKey:BUFFER-VALUE       = pcKey
            hInsert:BUFFER-VALUE          = 4
            hLabel:BUFFER-VALUE           = cLabel
-           hImage:BUFFER-VALUE           = getItemImage(ENTRY(5,cCols,CHR(1))) 
+           hImage:BUFFER-VALUE           = getItemImage(ENTRY(5,cCols,CHR(1)))
            hSelectedImage:BUFFER-VALUE   = hImage:BUFFER-VALUE
            hSort:BUFFER-VALUE            = TRUE
-           hTag:BUFFER-VALUE             = "ITEM|":U + ENTRY(6,cCols,CHR(1)) 
+           hTag:BUFFER-VALUE             = "ITEM|":U + ENTRY(6,cCols,CHR(1))
            NO-ERROR.
      /* Ensure the Text is never blank */
    IF hLabel:BUFFER-VALUE = "" OR hLabel:BUFFER-VALUE = ? THEN
@@ -733,9 +739,9 @@ DEFINE VARIABLE hInsert         AS HANDLE     NO-UNDO.
 
     lRowAvailable = DYNAMIC-FUNCTION('rowAvailable':U in h_gsmmifullo,"NEXT":U).
     IF lRowAvailable THEN
-      RUN fetchNext IN h_gsmmifullo.    
+      RUN fetchNext IN h_gsmmifullo.
   END.
-  
+
   RUN populateTree IN h_dyntreeview (hTable,pcKey).
 END PROCEDURE.
 
@@ -745,11 +751,11 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initbands diDialog 
 PROCEDURE initbands :
 /*------------------------------------------------------------------------------
-  Purpose:     
+  Purpose:
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
-  
+
   /* BUFFER FIELD handles */
 DEFINE VARIABLE hBuf            AS HANDLE     NO-UNDO.
 DEFINE VARIABLE hLabel          AS HANDLE     NO-UNDO.
@@ -797,8 +803,8 @@ ASSIGN hKey:BUFFER-VALUE             = DYNAMIC-FUNC('getNextNodeKey':U IN h_dynt
        cBandLabelKey                 = hKey:BUFFER-VALUE
        hInsert:BUFFER-VALUE          = 4
        hLabel:BUFFER-VALUE           = "Bands"
-       hImage:BUFFER-VALUE           = "af/bmp/folderclosed.bmp":U
-       hSelectedImage:BUFFER-VALUE   = "af/bmp/folderopen.bmp":U
+       hImage:BUFFER-VALUE           = "ry/img/folderclosed.gif":U
+       hSelectedImage:BUFFER-VALUE   = "ry/img/folderopen.gif":U
        hExpanded:BUFFER-VALUE        = YES
        hTag:BUFFER-VALUE             = "BANDLABEL|":U
        NO-ERROR.
@@ -810,8 +816,8 @@ ASSIGN hKey:BUFFER-VALUE             = DYNAMIC-FUNC('getNextNodeKey':U IN h_dynt
        cParentKey                    = hKey:BUFFER-VALUE
        hInsert:BUFFER-VALUE          = 4
        hLabel:BUFFER-VALUE           = "MenuBar Bands"
-       hImage:BUFFER-VALUE           = "af/bmp/folderclosed.bmp":U
-       hSelectedImage:BUFFER-VALUE   = "af/bmp/folderopen.bmp":U
+       hImage:BUFFER-VALUE           = "ry/img/folderclosed.gif":U
+       hSelectedImage:BUFFER-VALUE   = "ry/img/folderopen.gif":U
        hExpanded:BUFFER-VALUE        = YES
        hTag:BUFFER-VALUE             = "@BANDLABEL|MenuBar":U
        NO-ERROR.
@@ -834,8 +840,8 @@ ASSIGN hKey:BUFFER-VALUE             = DYNAMIC-FUNC('getNextNodeKey':U IN h_dynt
        cParentKey                    = hKey:BUFFER-VALUE
        hInsert:BUFFER-VALUE          = 4
        hLabel:BUFFER-VALUE           = "Submenu Bands"
-       hImage:BUFFER-VALUE           = "af/bmp/folderclosed.bmp":U
-       hSelectedImage:BUFFER-VALUE   = "af/bmp/folderopen.bmp":U
+       hImage:BUFFER-VALUE           = "ry/img/folderclosed.gif":U
+       hSelectedImage:BUFFER-VALUE   = "ry/img/folderopen.gif":U
        hExpanded:BUFFER-VALUE        = NO
        hTag:BUFFER-VALUE             = "@BANDLABEL|SubMenu":U
        NO-ERROR.
@@ -858,8 +864,8 @@ ASSIGN hKey:BUFFER-VALUE             = DYNAMIC-FUNC('getNextNodeKey':U IN h_dynt
        cParentKey                    = hKey:BUFFER-VALUE
        hInsert:BUFFER-VALUE          = 4
        hLabel:BUFFER-VALUE           = "Toolbar Bands"
-       hImage:BUFFER-VALUE           = "af/bmp/folderclosed.bmp":U
-       hSelectedImage:BUFFER-VALUE   = "af/bmp/folderopen.bmp":U
+       hImage:BUFFER-VALUE           = "ry/img/folderclosed.gif":U
+       hSelectedImage:BUFFER-VALUE   = "ry/img/folderopen.gif":U
        hExpanded:BUFFER-VALUE        = NO
        hTag:BUFFER-VALUE             = "@BANDLABEL|Toolbar":U
        NO-ERROR.
@@ -883,8 +889,8 @@ ASSIGN hKey:BUFFER-VALUE             = DYNAMIC-FUNC('getNextNodeKey':U IN h_dynt
        cParentKey                    = hKey:BUFFER-VALUE
        hInsert:BUFFER-VALUE          = 4
        hLabel:BUFFER-VALUE           = "Menu & Toolbar Bands"
-       hImage:BUFFER-VALUE           = "af/bmp/folderclosed.bmp":U
-       hSelectedImage:BUFFER-VALUE   = "af/bmp/folderopen.bmp":U
+       hImage:BUFFER-VALUE           = "ry/img/folderclosed.gif":U
+       hSelectedImage:BUFFER-VALUE   = "ry/img/folderopen.gif":U
        hExpanded:BUFFER-VALUE        = NO
        hTag:BUFFER-VALUE             = "@BANDLABEL|Menu&Toolbar":U
        NO-ERROR.
@@ -913,11 +919,11 @@ END PROCEDURE.
 PROCEDURE initializeObject :
 /*------------------------------------------------------------------------------
   Purpose:     Super Override
-  Parameters:  
-  Notes:       
+  Parameters:
+  Notes:
 ------------------------------------------------------------------------------*/
  DEFINE VARIABLE hTable          AS HANDLE     NO-UNDO.
- 
+
    /* BUFFER FIELD handles */
  DEFINE VARIABLE hBuf            AS HANDLE     NO-UNDO.
  DEFINE VARIABLE hLabel          AS HANDLE     NO-UNDO.
@@ -939,7 +945,7 @@ PROCEDURE initializeObject :
 
   /* Code placed here will execute PRIOR to standard behavior. */
  SUBSCRIBE PROCEDURE THIS-PROCEDURE TO "tvNodeEvent":U IN h_dyntreeview.
- 
+
  {set HideOnInit YES}.
  {set openOnInit NO h_gsmit2fullo }.
  {set openOnInit NO h_gsmmsfullo }.
@@ -947,12 +953,12 @@ PROCEDURE initializeObject :
  /* Get the product module */
  IF VALID-HANDLE(ghCallingProc) THEN
     gcModuleObj = DYNAMIC-FUNC("getModuleObj":U IN ghCallingProc).
- 
+
  RUN SUPER.
- 
+
  /* Code placed here will execute AFTER standard behavior.    */
  hTable = DYNAMIC-FUNC("getTreeDataTable":U IN h_dyntreeview).
- 
+
  ASSIGN hBuf            = hTable:DEFAULT-BUFFER-HANDLE
         hKey            = hBuf:BUFFER-FIELD('node_key':U)
         hlabel          = hBuf:BUFFER-FIELD('node_label':U)
@@ -976,8 +982,8 @@ PROCEDURE initializeObject :
           cCatgKey                      = hKey:BUFFER-VALUE
           hInsert:BUFFER-VALUE          = 1
           hLabel:BUFFER-VALUE           = ENTRY(2,cCols,CHR(1))
-          hImage:BUFFER-VALUE           = "af/bmp/menucategory.bmp"
-          hSelectedImage:BUFFER-VALUE   = "af/bmp/menucategory.bmp"
+          hImage:BUFFER-VALUE           = "ry/img/menucategory.gif"
+          hSelectedImage:BUFFER-VALUE   = "ry/img/menucategory.gif"
           hSort:BUFFER-VALUE            = TRUE
           hTag:BUFFER-VALUE             = "@CATG|" + ENTRY(3,cCols,CHR(1))
           NO-ERROR.
@@ -987,15 +993,15 @@ PROCEDURE initializeObject :
    {fn OpenQuery h_gsmmifullo}.
    DYNAMIC-FUNC('removeQuerySelection':U IN h_gsmmifullo,'item_category_obj':U,'EQ':U).
    lItemAvailable = DYNAMIC-FUNCTION('rowAvailable':U in h_gsmmifullo,"CURRENT":U).
-   IF lItemAvailable  THEN 
+   IF lItemAvailable  THEN
    DO:
      hbuf:BUFFER-CREATE().
      ASSIGN hKey:BUFFER-VALUE             = DYNAMIC-FUNC('getNextNodeKey':U IN h_dynTreeview)
             hParentKey:BUFFER-VALUE       = cCatgKey
             hInsert:BUFFER-VALUE          = 4
             hLabel:BUFFER-VALUE           = "@DummyRecord"
-            hImage:BUFFER-VALUE           = "af/bmp/folderclosed.bmp"
-            hSelectedImage:BUFFER-VALUE   = "af/bmp/folderopen.bmp"
+            hImage:BUFFER-VALUE           = "ry/img/folderclosed.gif"
+            hSelectedImage:BUFFER-VALUE   = "ry/img/folderopen.gif"
             hTag:BUFFER-VALUE             = "@Dummy"
             NO-ERROR.
      RUN addNode IN h_dynTreeview (hTable:DEFAULT-BUFFER-HANDLE).
@@ -1003,7 +1009,7 @@ PROCEDURE initializeObject :
    END.
    lCatgAvailable = DYNAMIC-FUNCTION('rowAvailable':U in h_gscicfullo,"NEXT":U).
    IF lCatgAvailable THEN
-     RUN fetchNext IN h_gscicfullo.    
+     RUN fetchNext IN h_gscicfullo.
  END. /* End loop through gsc_item_category */
 
 
@@ -1014,8 +1020,8 @@ PROCEDURE initializeObject :
         cCatgKey                      = hKey:BUFFER-VALUE
         hInsert:BUFFER-VALUE          = 1
         hLabel:BUFFER-VALUE           = "(None)"
-        hImage:BUFFER-VALUE           = "af/bmp/menucategory.bmp"
-        hSelectedImage:BUFFER-VALUE   = "af/bmp/menucategory.bmp"
+        hImage:BUFFER-VALUE           = "ry/img/menucategory.gif"
+        hSelectedImage:BUFFER-VALUE   = "ry/img/menucategory.gif"
         hSort:BUFFER-VALUE            = TRUE
         hTag:BUFFER-VALUE             = "@CATG|0"
         NO-ERROR.
@@ -1044,11 +1050,11 @@ PROCEDURE initializeObject :
     hBuf:EMPTY-TEMP-TABLE().
 
  END.
- 
+
  ASSIGN btnSplitBar:WIDTH IN FRAME {&Frame-name}=  1.5
         btnSplitBar-2:WIDTH IN FRAME {&Frame-name}=  1.5
-        lOK   = btnSplitBar:LOAD-MOUSE-POINTER("af/bmp/splitbar.cur":U)
-        lOK   = btnSplitBar-2:LOAD-MOUSE-POINTER("af/bmp/splitbar.cur":U)
+        lOK   = btnSplitBar:LOAD-MOUSE-POINTER("ry/img/splitbar.cur":U)
+        lOK   = btnSplitBar-2:LOAD-MOUSE-POINTER("ry/img/splitbar.cur":U)
         btnSplitBar-2:HIDDEN = TRUE
         gdcol = btnSplitBar:COL
         gdcol2 = btnSplitBar-2:COL.
@@ -1063,9 +1069,9 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE repositionSplitBar diDialog 
 PROCEDURE repositionSplitBar :
 /*------------------------------------------------------------------------------
-  Purpose:     
+  Purpose:
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 DEFINE INPUT  PARAMETER cDir AS CHARACTER  NO-UNDO.
 
@@ -1073,7 +1079,7 @@ ASSIGN btnSplitBar:ROW IN FRAME {&FRAME-NAME}    = 1.0
        btnSplitBar:COL = MAX(btnSplitBar:COL  ,10)
        btnSplitBar:COL    = MIN(btnSplitBar:COL, 100)
        btnSplitBar:HEIGHT = FRAME {&FRAME-NAME}:HEIGHT - FRAME {&FRAME-NAME}:BORDER-BOTTOM-CHARS
-                              - FRAME {&FRAME-NAME}:BORDER-TOP-CHARS    
+                              - FRAME {&FRAME-NAME}:BORDER-TOP-CHARS
        fiBand:COL = MIN(btnSplitBar:COL + btnSplitBar:WIDTH + .5, FRAME {&FRAME-NAME}:WIDTH - fiBand:WIDTH - 1)
        fiRef:COL  = MIN(btnSplitBar:COL + btnSplitBar:WIDTH + .5, FRAME {&FRAME-NAME}:WIDTH - fiRef:WIDTH - 1)
        NO-ERROR.
@@ -1086,7 +1092,7 @@ DO:
   RUN resizeObject IN h_dynbrowser-2 (5.40, FRAME {&FRAME-NAME}:WIDTH - btnSplitBar:COL - btnSplitBar:WIDTH - 3).
   RUN repositionObject IN h_dynbrowser-2 (11.48,btnSplitBar:COL + btnSplitBar:WIDTH).
 END.
-ELSE 
+ELSE
 DO:
   RUN repositionObject IN h_dynbrowser (3.24,btnSplitBar:COL + btnSplitBar:WIDTH).
   RUN resizeObject IN h_dynbrowser (7.29, FRAME {&FRAME-NAME}:WIDTH - btnSplitBar:COL - btnSplitBar:WIDTH - 3).
@@ -1103,9 +1109,9 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE repositionSplitbar2 diDialog 
 PROCEDURE repositionSplitbar2 :
 /*------------------------------------------------------------------------------
-  Purpose:     
+  Purpose:
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 DEFINE INPUT  PARAMETER cDir AS CHARACTER  NO-UNDO.
 
@@ -1113,7 +1119,7 @@ ASSIGN btnSplitBar-2:ROW IN FRAME {&FRAME-NAME}    = 1.0
        btnSplitBar-2:COL = MAX(btnSplitBar-2:COL  ,10)
        btnSplitBar-2:COL    = MIN(btnSplitBar-2:COL, 100)
        btnSplitBar-2:HEIGHT = FRAME {&FRAME-NAME}:HEIGHT - FRAME {&FRAME-NAME}:BORDER-BOTTOM-CHARS
-                              - FRAME {&FRAME-NAME}:BORDER-TOP-CHARS    
+                              - FRAME {&FRAME-NAME}:BORDER-TOP-CHARS
        NO-ERROR.
 
 RUN resizeObject IN h_dyntreeview-2 (13.81, btnSplitBar-2:COL ).
@@ -1124,9 +1130,9 @@ DO:
   RUN resizeObject IN h_dynbrowser-4 (5.8, FRAME {&FRAME-NAME}:WIDTH - btnSplitBar-2:COL - btnSplitBar-2:WIDTH - 3).
   RUN repositionObject IN h_dynbrowser-4 (11.0,btnSplitBar-2:COL + btnSplitBar-2:WIDTH).
 
-  
+
 END.
-ELSE 
+ELSE
 DO:
   RUN repositionObject IN h_dynbrowser-3 (3.38,btnSplitBar-2:COL + btnSplitBar-2:WIDTH).
   RUN resizeObject IN h_dynbrowser-3 (7.00, FRAME {&FRAME-NAME}:WIDTH - btnSplitBar-2:COL - btnSplitBar-2:WIDTH - 3).
@@ -1145,8 +1151,8 @@ END PROCEDURE.
 PROCEDURE selectPage :
 /*------------------------------------------------------------------------------
   Purpose:     Super Override
-  Parameters:  
-  Notes:       
+  Parameters:
+  Notes:
 ------------------------------------------------------------------------------*/
 DEFINE INPUT PARAMETER piPageNum AS INTEGER NO-UNDO.
 
@@ -1154,10 +1160,10 @@ DEFINE VARIABLE cObjects AS CHARACTER  NO-UNDO.
 
   /* Code placed here will execute PRIOR to standard behavior. */
   cObjects = pageNTargets(TARGET-PROCEDURE, piPageNum).
-  
+
   RUN SUPER( INPUT piPageNum).
 
-  IF piPageNum = 2 THEN 
+  IF piPageNum = 2 THEN
     ASSIGN fiChar:HIDDEN IN FRAME {&FRAME-NAME} = TRUE
            fiBand:HIDDEN         = TRUE
            firef:HIDDEN          = TRUE
@@ -1171,7 +1177,7 @@ DEFINE VARIABLE cObjects AS CHARACTER  NO-UNDO.
            btnSplitBar:HIDDEN    = FALSE
            btnSplitBar-2:HIDDEN  = TRUE
            EdEditor:SCREEN-VALUE = "Expand a category and click on an item to view all bands that contain that item".
-           
+
 
   IF piPageNum = 2 AND cObjects = "" THEN
   DO:
@@ -1188,9 +1194,9 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE tvNodeEvent diDialog 
 PROCEDURE tvNodeEvent :
 /*------------------------------------------------------------------------------
-  Purpose:     
+  Purpose:
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 DEFINE INPUT  PARAMETER pcEvent  AS CHARACTER  NO-UNDO.
 DEFINE INPUT  PARAMETER pcKey    AS CHARACTER     NO-UNDO.
@@ -1226,7 +1232,7 @@ DO:
   ELSE IF SOURCE-PROCEDURE = h_dyntreeview-2 AND valid-handle(h_dyntreeview-2) THEN
     RUN expandBands(pcKey).
 END.
-ELSE IF pcEvent = "CLICK":U THEN 
+ELSE IF pcEvent = "CLICK":U THEN
 DO:
   IF SOURCE-PROCEDURE = h_dyntreeview THEN
   DO:
@@ -1240,20 +1246,20 @@ DO:
       DYNAMIC-FUNC('assignQuerySelection':U IN h_gsmit2fullo,'gsm_menu_structure_item.menu_item_obj':U,ENTRY(2,cTag,"|") ,'EQ':U).
       {fn OpenQuery h_gsmit2fullo}.
       DYNAMIC-FUNC('removeQuerySelection':U IN h_gsmit2fullo,'gsm_menu_structure_item.menu_item_obj':U,'EQ':U).
-      
+
       DYNAMIC-FUNC('assignQuerySelection':U IN h_gsmmsfullo,'gsm_menu_structure.menu_item_obj':U,ENTRY(2,cTag,"|") ,'EQ':U).
       {fn OpenQuery h_gsmmsfullo}.
       DYNAMIC-FUNC('removeQuerySelection':U IN h_gsmmsfullo,'gsm_menu_structure.menu_item_obj':U,'EQ':U).
 
     END.
   END.
-  ELSE 
+  ELSE
   DO:
     IF cTag BEGINS "BAND":U THEN
     DO:
       DYNAMIC-FUNC("setBand":U IN h_gsmtm2fullo, ENTRY(2,cTag,"|"), ENTRY(4,cTag,"|"), gcModuleObj).
       {fn OpenQuery h_gsmtm2fullo}.
-      IF gcModuleObj > "0":U THEN 
+      IF gcModuleObj > "0":U THEN
          DYNAMIC-FUNC('assignQuerySelection':U IN h_gsmomfullo,'product_module_obj':U,gcModuleObj,'EQ':U).
       DYNAMIC-FUNC('assignQuerySelection':U IN h_gsmomfullo,'menu_structure_obj':U,ENTRY(2,cTag,"|") ,'EQ':U).
      {fn OpenQuery h_gsmomfullo}.
@@ -1275,19 +1281,19 @@ FUNCTION getbandImage RETURNS CHARACTER
  ( pcBandType AS CHAR ) :
 /*------------------------------------------------------------------------------
   Purpose:  Returns the appropriate image of band, based on the band type
-    Notes:  
+    Notes:
 ------------------------------------------------------------------------------*/
 CASE pcBandType:
     WHEN "MenuBar":U THEN
-        RETURN "af/bmp/menumenubar.bmp":U.
+        RETURN "ry/img/menumenubar.gif":U.
     WHEN "Toolbar":U THEN
-        RETURN "af/bmp/menutoolbar.bmp":U.
+        RETURN "ry/img/menutoolbar.gif":U.
     WHEN "Submenu":U THEN
-        RETURN "af/bmp/menusubmenu.bmp":U.
+        RETURN "ry/img/menusubmenu.gif":U.
     WHEN "menu&Toolbar":U THEN
-        RETURN "af/bmp/menumenutoolbar.bmp":U.
+        RETURN "ry/img/menumenutoolbar.gif":U.
     OTHERWISE
-        RETURN "af/bmp/menusubmenu.bmp":U.
+        RETURN "ry/img/menusubmenu.gif":U.
 END CASE.
 
 END FUNCTION.
@@ -1300,23 +1306,23 @@ FUNCTION getItemImage RETURNS CHARACTER
   ( pcItemType AS CHAR) :
 /*------------------------------------------------------------------------------
   Purpose: Returns the required item image based on the item type
-    Notes:  
+    Notes:
 ------------------------------------------------------------------------------*/
 CASE pcItemType:
     WHEN "Action" THEN
-        RETURN "af/bmp/itemaction.bmp".
+        RETURN "ry/img/itemaction.gif".
     WHEN "Text" THEN
-        RETURN "af/bmp/itemtext.bmp".
+        RETURN "ry/img/itemtext.gif".
     WHEN "Separator" THEN
-        RETURN "af/bmp/itemseparator.bmp".
+        RETURN "ry/img/itemseparator.gif".
     WHEN "EditField" THEN
-        RETURN "af/bmp/itemedit.bmp".
+        RETURN "ry/img/itemedit.gif".
     WHEN "ComboBox" THEN
-        RETURN "af/bmp/itemcombo.bmp".
+        RETURN "ry/img/itemcombo.gif".
     WHEN "Dynamic" THEN
-        RETURN "af/bmp/itemdynamic.bmp".
+        RETURN "ry/img/itemdynamic.gif".
     OTHERWISE
-        RETURN "af/bmp/itemaction.bmp".
+        RETURN "ry/img/itemaction.gif".
 END CASE.
 END FUNCTION.
 
@@ -1344,9 +1350,9 @@ FUNCTION getItemLabel RETURNS CHARACTER
           cReturnLabel = REPLACE(cReturnLabel,"~~","&")
           cReturnLabel = IF (cReturnLabel = "" AND pcType = "Separator")  THEN "Separator" ELSE cReturnLabel
           lAddRef      = IF pcReference = cReturnLabel OR pcReference = "" OR pcReference = ? THEN NO ELSE lAddref
-          cReturnLabel = IF lAddref THEN cReturnLabel 
+          cReturnLabel = IF lAddref THEN cReturnLabel
                                       + (IF cReturnLabel = "" THEN "" ELSE "  (" )
-                                      + LC(pcReference) 
+                                      + LC(pcReference)
                                       + IF cReturnLabel = "" THEN "" ELSE ")" ELSE cReturnLabel
            NO-ERROR.
   RETURN cReturnLabel.   /* Function return value. */

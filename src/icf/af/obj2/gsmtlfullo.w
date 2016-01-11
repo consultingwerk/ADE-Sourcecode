@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          afdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
@@ -92,7 +92,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gsmtlfullo.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010001
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -124,31 +124,40 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
 &Scoped-define INTERNAL-TABLES gsm_translation gsc_language
 
 /* Definitions for QUERY Query-Main                                     */
-&Scoped-Define ENABLED-FIELDS  language_obj object_filename widget_type widget_name widget_entry~
- original_label translation_label original_tooltip translation_tooltip
-&Scoped-define ENABLED-FIELDS-IN-gsm_translation language_obj ~
-object_filename widget_type widget_name widget_entry original_label ~
-translation_label original_tooltip translation_tooltip 
-&Scoped-Define DATA-FIELDS  translation_obj language_obj language_code object_filename widget_type~
- widget_name widget_entry original_label translation_label original_tooltip~
+&Scoped-Define ENABLED-FIELDS  language_obj source_language_obj object_filename widget_type widget_name~
+ widget_entry original_label translation_label original_tooltip~
  translation_tooltip
+&Scoped-define ENABLED-FIELDS-IN-gsm_translation language_obj ~
+source_language_obj object_filename widget_type widget_name widget_entry ~
+original_label translation_label original_tooltip translation_tooltip 
+&Scoped-Define DATA-FIELDS  translation_obj language_obj source_language_obj language_code~
+ object_filename widget_type widget_name widget_entry original_label~
+ translation_label original_tooltip translation_tooltip
 &Scoped-define DATA-FIELDS-IN-gsm_translation translation_obj language_obj ~
-object_filename widget_type widget_name widget_entry original_label ~
-translation_label original_tooltip translation_tooltip 
+source_language_obj object_filename widget_type widget_name widget_entry ~
+original_label translation_label original_tooltip translation_tooltip 
 &Scoped-define DATA-FIELDS-IN-gsc_language language_code 
 &Scoped-Define MANDATORY-FIELDS 
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gsmtlfullo.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH gsm_translation NO-LOCK, ~
+      FIRST gsc_language WHERE afdb.gsc_language.language_obj = afdb.gsm_translation.language_obj NO-LOCK ~
+    BY gsm_translation.object_filename ~
+       BY gsm_translation.widget_type ~
+        BY gsm_translation.widget_name ~
+         BY gsm_translation.widget_entry ~
+          BY gsm_translation.language_obj INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsm_translation NO-LOCK, ~
-      FIRST gsc_language WHERE gsc_language.language_obj = gsm_translation.language_obj NO-LOCK ~
+      FIRST gsc_language WHERE afdb.gsc_language.language_obj = afdb.gsm_translation.language_obj NO-LOCK ~
     BY gsm_translation.object_filename ~
        BY gsm_translation.widget_type ~
         BY gsm_translation.widget_name ~
@@ -241,38 +250,40 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "afdb.gsm_translation,afdb.gsc_language WHERE afdb.gsm_translation ..."
+     _TblList          = "ICFDB.gsm_translation,ICFDB.gsc_language WHERE ICFDB.gsm_translation ..."
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _TblOptList       = ", FIRST USED"
      _OrdList          = "afdb.gsm_translation.object_filename|yes,afdb.gsm_translation.widget_type|yes,afdb.gsm_translation.widget_name|yes,afdb.gsm_translation.widget_entry|yes,afdb.gsm_translation.language_obj|yes"
      _JoinCode[2]      = "afdb.gsc_language.language_obj = afdb.gsm_translation.language_obj"
-     _FldNameList[1]   > afdb.gsm_translation.translation_obj
+     _FldNameList[1]   > ICFDB.gsm_translation.translation_obj
 "translation_obj" "translation_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 21 yes
-     _FldNameList[2]   > afdb.gsm_translation.language_obj
+     _FldNameList[2]   > ICFDB.gsm_translation.language_obj
 "language_obj" "language_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 21 yes
-     _FldNameList[3]   > afdb.gsc_language.language_code
+     _FldNameList[3]   > ICFDB.gsm_translation.source_language_obj
+"source_language_obj" "source_language_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 33.6 yes
+     _FldNameList[4]   > ICFDB.gsc_language.language_code
 "language_code" "language_code" ? ? "character" ? ? ? ? ? ? no ? no 20 yes
-     _FldNameList[4]   > afdb.gsm_translation.object_filename
+     _FldNameList[5]   > ICFDB.gsm_translation.object_filename
 "object_filename" "object_filename" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[5]   > afdb.gsm_translation.widget_type
+     _FldNameList[6]   > ICFDB.gsm_translation.widget_type
 "widget_type" "widget_type" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[6]   > afdb.gsm_translation.widget_name
+     _FldNameList[7]   > ICFDB.gsm_translation.widget_name
 "widget_name" "widget_name" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
-     _FldNameList[7]   > afdb.gsm_translation.widget_entry
+     _FldNameList[8]   > ICFDB.gsm_translation.widget_entry
 "widget_entry" "widget_entry" ? ? "integer" ? ? ? ? ? ? yes ? no 4 yes
-     _FldNameList[8]   > afdb.gsm_translation.original_label
+     _FldNameList[9]   > ICFDB.gsm_translation.original_label
 "original_label" "original_label" ? ? "character" ? ? ? ? ? ? yes ? no 56 yes
-     _FldNameList[9]   > afdb.gsm_translation.translation_label
+     _FldNameList[10]   > ICFDB.gsm_translation.translation_label
 "translation_label" "translation_label" ? ? "character" ? ? ? ? ? ? yes ? no 56 yes
-     _FldNameList[10]   > afdb.gsm_translation.original_tooltip
+     _FldNameList[11]   > ICFDB.gsm_translation.original_tooltip
 "original_tooltip" "original_tooltip" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
-     _FldNameList[11]   > afdb.gsm_translation.translation_tooltip
+     _FldNameList[12]   > ICFDB.gsm_translation.translation_tooltip
 "translation_tooltip" "translation_tooltip" ? ? "character" ? ? ? ? ? ? yes ? no 140 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK dTables 

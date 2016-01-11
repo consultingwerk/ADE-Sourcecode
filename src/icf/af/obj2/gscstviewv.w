@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          asdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" vTableWin _INLINE
@@ -87,7 +87,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gscstviewv.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010001
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -127,10 +127,12 @@ DEFINE VARIABLE gcUIBMode                  AS CHARACTER    NO-UNDO.
 RowObject.service_type_description 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
+&Scoped-Define ENABLED-OBJECTS fiShowRepositoryObjects 
+&Scoped-Define DISPLAYED-FIELDS RowObject.service_type_obj ~
+RowObject.service_type_code RowObject.service_type_description 
 &Scoped-define DISPLAYED-TABLES RowObject
 &Scoped-define FIRST-DISPLAYED-TABLE RowObject
-&Scoped-Define DISPLAYED-FIELDS RowObject.service_type_code ~
-RowObject.service_type_description 
+
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -144,22 +146,31 @@ RowObject.service_type_description
 
 
 /* Definitions of handles for SmartObjects                              */
+DEFINE VARIABLE h_dyncombo AS HANDLE NO-UNDO.
 DEFINE VARIABLE h_dynlookup AS HANDLE NO-UNDO.
 DEFINE VARIABLE h_dynlookup-2 AS HANDLE NO-UNDO.
-DEFINE VARIABLE h_gsclsdcsfv AS HANDLE NO-UNDO.
 
 /* Definitions of the field level widgets                               */
+DEFINE VARIABLE fiShowRepositoryObjects AS LOGICAL FORMAT "TRUE/FALSE":U INITIAL NO 
+     LABEL "" 
+     VIEW-AS FILL-IN 
+     SIZE .8 BY .19 NO-UNDO.
+
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
+     RowObject.service_type_obj AT ROW 1 COL 1 NO-LABEL
+          VIEW-AS FILL-IN 
+          SIZE .8 BY .19
+     fiShowRepositoryObjects AT ROW 1 COL 1
      RowObject.service_type_code AT ROW 1 COL 31.2 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 15.6 BY 1
-     RowObject.service_type_description AT ROW 2 COL 31.2 COLON-ALIGNED
+          SIZE 45.4 BY 1
+     RowObject.service_type_description AT ROW 2.05 COL 31.2 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 37 BY 1
-     SPACE(24.80) SKIP(3.05)
+          SIZE 78.4 BY 1
+     SPACE(0.00) SKIP(3.19)
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -199,8 +210,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 5.95
-         WIDTH              = 96.2.
+         HEIGHT             = 5.24
+         WIDTH              = 110.6.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -227,6 +238,21 @@ ASSIGN
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
 
+/* SETTINGS FOR FILL-IN fiShowRepositoryObjects IN FRAME frMain
+   NO-DISPLAY ALIGN-L                                                   */
+ASSIGN 
+       fiShowRepositoryObjects:HIDDEN IN FRAME frMain           = TRUE
+       fiShowRepositoryObjects:PRIVATE-DATA IN FRAME frMain     = 
+                "TRUE".
+
+/* SETTINGS FOR FILL-IN RowObject.service_type_obj IN FRAME frMain
+   NO-ENABLE ALIGN-L                                                    */
+ASSIGN 
+       RowObject.service_type_obj:HIDDEN IN FRAME frMain           = TRUE
+       RowObject.service_type_obj:READ-ONLY IN FRAME frMain        = TRUE
+       RowObject.service_type_obj:PRIVATE-DATA IN FRAME frMain     = 
+                "NOLOOKUPS".
+
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
@@ -240,7 +266,7 @@ ASSIGN
 */  /* FRAME frMain */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK vTableWin 
@@ -277,35 +303,41 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_object.object_filenameKeyFieldgsc_object.object_objFieldLabelManagement Object FilenameFieldTooltipEnter Object Filename or Press F4 for Object LookupKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object NO-LOCK
-                     BY gsc_object.object_filenameQueryTablesgsc_objectBrowseFieldsgsc_object.object_filename,gsc_object.object_descriptionBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(35),X(35)RowsToBatch200BrowseTitleLookup ObjectsViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsFieldNamemanagement_object_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.smartobject_objFieldLabelManagement Object FilenameFieldTooltipEnter Management Object Filename or Press F4 for Object LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_smartobject NO-LOCK, 
+                     FIRST gsc_object_type WHERE gsc_object_type.object_type_obj = ryc_smartobject.object_type_obj NO-LOCK,
+                     FIRST gsc_product_module WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj NO-LOCK, 
+                     FIRST gsc_product WHERE gsc_product.product_obj = gsc_product_module.product_obj 
+                     BY gsc_product_module.product_module_code By gsc_object_type.object_type_code BY ryc_smartobject.object_filenameQueryTablesryc_smartobject,gsc_object_type,gsc_product_module,gsc_productBrowseFieldsgsc_product_module.product_module_code,gsc_object_type.object_type_code,ryc_smartobject.object_filename,ryc_smartobject.object_descriptionBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(10),X(15),X(70),X(35)RowsToBatch200BrowseTitleLookup ObjectsViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldfiShowRepositoryObjectsParentFilterQuery(IF ~'&1~' = ~'no~' THEN NOT gsc_product.product_code BEGINS ~'090~' ELSE TRUE)MaintenanceObjectMaintenanceSDOCustomSuperProcFieldNamemanagement_object_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dynlookup ).
-       RUN repositionObject IN h_dynlookup ( 3.00 , 33.20 ) NO-ERROR.
+       RUN repositionObject IN h_dynlookup ( 3.10 , 33.20 ) NO-ERROR.
        RUN resizeObject IN h_dynlookup ( 1.00 , 61.00 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_object.object_filenameKeyFieldgsc_object.object_objFieldLabelMaintenance Object FilenameFieldTooltipEnter Object Filename or Press F4 for Object LookupKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object NO-LOCK
-                     BY gsc_object.object_filenameQueryTablesgsc_objectBrowseFieldsgsc_object.object_filename,gsc_object.object_descriptionBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(35),X(35)RowsToBatch200BrowseTitleLookup ObjectsViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsFieldNamemaintenance_object_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.smartobject_objFieldLabelMaintenance Object FilenameFieldTooltipEnter Maintenance Object Filename or Press F4 for Object LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_smartobject NO-LOCK, 
+                     FIRST gsc_object_type WHERE gsc_object_type.object_type_obj = ryc_smartobject.object_type_obj NO-LOCK,
+                     FIRST gsc_product_module WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj NO-LOCK, 
+                     FIRST gsc_product WHERE gsc_product.product_obj = gsc_product_module.product_obj 
+                     BY gsc_product_module.product_module_code By gsc_object_type.object_type_code BY ryc_smartobject.object_filenameQueryTablesryc_smartobject,gsc_object_type,gsc_product_module,gsc_productBrowseFieldsgsc_product_module.product_module_code,gsc_object_type.object_type_code,ryc_smartobject.object_filename,ryc_smartobject.object_descriptionBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(10),X(15),X(70),X(35)RowsToBatch200BrowseTitleLookup ObjectsViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldfiShowRepositoryObjectsParentFilterQuery(IF ~'&1~' = ~'no~' THEN NOT gsc_product.product_code BEGINS ~'090~' ELSE TRUE)MaintenanceObjectMaintenanceSDOCustomSuperProcFieldNamemaintenance_object_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dynlookup-2 ).
-       RUN repositionObject IN h_dynlookup-2 ( 4.00 , 33.20 ) NO-ERROR.
+       RUN repositionObject IN h_dynlookup-2 ( 4.14 , 33.20 ) NO-ERROR.
        RUN resizeObject IN h_dynlookup-2 ( 1.00 , 61.00 ) NO-ERROR.
 
        RUN constructObject (
-             INPUT  'af/obj2/gsclsdcsfv.w':U ,
+             INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'FieldNamedefault_logical_service_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
-             OUTPUT h_gsclsdcsfv ).
-       RUN repositionObject IN h_gsclsdcsfv ( 5.00 , 5.40 ) NO-ERROR.
-       RUN resizeObject IN h_gsclsdcsfv ( 1.05 , 89.60 ) NO-ERROR.
+             INPUT  'DisplayedFieldgsc_logical_service.logical_service_description,gsc_logical_service.logical_service_codeKeyFieldgsc_logical_service.logical_service_objFieldLabelDefault Logical ServiceFieldTooltipSelect a logical service from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_logical_service NO-LOCK BY gsc_logical_service.logical_service_codeQueryTablesgsc_logical_serviceSDFFileNameSDFTemplateParentFieldservice_type_obj,service_type_objParentFilterQuery(IF DECIMAL(~'&1~') > 0 THEN gsc_logical_service.service_type_obj = DECIMAL(~'&1~') ELSE TRUE)DescSubstitute&1 (&2)CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines5ComboFlagNFlagValue0BuildSequence1SecurednoCustomSuperProcFieldNamedefault_logical_service_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT h_dyncombo ).
+       RUN repositionObject IN h_dyncombo ( 5.19 , 33.20 ) NO-ERROR.
+       RUN resizeObject IN h_dyncombo ( 1.05 , 61.00 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */
        RUN adjustTabOrder ( h_dynlookup ,
              RowObject.service_type_description:HANDLE IN FRAME frMain , 'AFTER':U ).
        RUN adjustTabOrder ( h_dynlookup-2 ,
              h_dynlookup , 'AFTER':U ).
-       RUN adjustTabOrder ( h_gsclsdcsfv ,
+       RUN adjustTabOrder ( h_dyncombo ,
              h_dynlookup-2 , 'AFTER':U ).
     END. /* Page 0 */
 
@@ -380,6 +412,37 @@ DEFINE VARIABLE cNewRecord  AS CHARACTER    NO-UNDO.
     IF cNewRecord = 'No':U THEN RowObject.service_type_code:SENSITIVE = FALSE.
     ELSE RowObject.service_type_code:SENSITIVE = TRUE.
   END.  /* do with frame */
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initializeObject vTableWin 
+PROCEDURE initializeObject :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cShowRepositoryData          AS CHARACTER            NO-UNDO.
+  DEFINE VARIABLE rRowid                      AS ROWID                NO-UNDO.
+
+  /* Determine whether the user wants to display repository data. */
+  ASSIGN rRowid = ?.
+  RUN getProfileData IN gshProfileManager ( INPUT        "General":U,
+                                            INPUT        "DispRepos":U,
+                                            INPUT        "DispRepos":U,
+                                            INPUT        NO,
+                                            INPUT-OUTPUT rRowid,
+                                                  OUTPUT cShowRepositoryData).
+  ASSIGN fiShowRepositoryObjects:SCREEN-VALUE IN FRAME {&FRAME-NAME} = cShowRepositoryData.
+
+  /* Code placed here will execute PRIOR to standard behavior. */
+
+  RUN SUPER.
+
+  /* Code placed here will execute AFTER standard behavior.    */
 
 END PROCEDURE.
 

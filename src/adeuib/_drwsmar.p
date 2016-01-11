@@ -49,22 +49,31 @@ Modified by GFS on 03/13/95 - Added routine to construct new object name from
                               source object. Example: "dorder.SalesRep"
             JEP on 10/01/01 - IZ 1611 <Local> field support for SmartDataFields.
 ----------------------------------------------------------------------------*/
- 
+{src/adm2/globals.i}
 {adeuib/uniwidg.i}
 {adeuib/layout.i}
 {adeuib/sharvars.i}
+{adeuib/custwidg.i}
   
 { adeuib/advice.i }   /* Include File containing controls for the Advisor */
 { adeuib/uibhlp.i }   /* Include File containing HELP file Context ID's */
 
-DEFINE VAR cnt          AS INTEGER NO-UNDO.
-DEFINE VAR cur-lo       AS CHAR NO-UNDO.
-DEFINE VAR file-name    AS CHAR NO-UNDO.
-DEFINE VAR name         AS CHAR NO-UNDO.
-DEFINE VAR datafield    AS HANDLE  NO-UNDO.
-DEFINE VAR cSignature   AS CHAR NO-UNDO.
-DEFINE VAR cNotFoundMsg AS CHAR NO-UNDO.
-DEFINE VAR cFieldName   AS CHAR NO-UNDO.
+DEFINE VAR cnt               AS INTEGER    NO-UNDO.
+DEFINE VAR cur-lo            AS CHAR       NO-UNDO.
+DEFINE VAR FILE-NAME         AS CHAR       NO-UNDO.
+DEFINE VAR Name              AS CHAR       NO-UNDO.
+DEFINE VAR datafield         AS HANDLE     NO-UNDO.
+DEFINE VARIABLE cSavName     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cSavClass    AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cSignature   AS CHAR       NO-UNDO.
+DEFINE VARIABLE cNotFoundMsg AS CHAR       NO-UNDO.
+DEFINE VARIABLE cFieldName   AS CHAR       NO-UNDO.
+DEFINE VARIABLE lICFRunning  AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE cColumnTable AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE hDevManager  AS HANDLE     NO-UNDO.
+DEFINE VARIABLE pError       AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE hSDO         AS HANDLE     NO-UNDO.
+DEFINE VARIABLE lEditOnDrop  AS LOGICAL    NO-UNDO.
 
 /* Variables used for adm version */
 {adeuib/vsookver.i}
@@ -135,12 +144,11 @@ file-name = _object_draw.
            
 /* Get the current Procedure, and the layout of the current window. */
 FIND _P WHERE _P._WINDOW-HANDLE eq _h_win.
-
 RUN adecomm/_relfile.p (file-name,
                         VALID-HANDLE(_p._tv-proc), /* check remote if preferences is set */
                         "":U, /* no message here */ 
                         OUTPUT file-name).
-         
+
 IF file-name eq ? THEN 
 DO:
   file-name = _object_draw. 
@@ -171,7 +179,16 @@ END. /* file-name = ? (not found) */.
 /* Clean up file name to remove the current directory. */
 IF _object_draw BEGINS "./" OR _object_draw BEGINS ".~\" THEN 
   _object_draw = SUBSTRING(_object_draw, 3, -1, "CHARACTER").
-  
+
+
+/* Capture the name and other identifying characterists of the field being replaced */
+IF _h_cur_widg NE _h_frame THEN DO:  /* Only do this when dropping onto a Field */
+  FIND _U WHERE _U._HANDLE = _h_cur_widg NO-ERROR.
+  IF AVAILABLE _U THEN
+    ASSIGN cSavName   = _U._NAME
+           cSavClass  = _U._CLASS-NAME.
+END.
+
 FIND _U WHERE _U._HANDLE = _h_win.
 cur-lo = _U._LAYOUT-NAME.
 
@@ -196,7 +213,8 @@ RUN adeshar/_bstname.p (INPUT  name, name, ?, ?,  parent_U._WINDOW-HANDLE,
                         OUTPUT name).
 
 ASSIGN /* TYPE-specific settings */
-       _U._NAME          = name 
+       _U._NAME          = IF cSavClass = "DataField":U THEN cSavName ELSE name 
+       _U._CLASS-NAME    = cSavClass
        _U._TYPE          = "SmartObject"
        _U._SUBTYPE       = _next_draw
        _U._x-recid       = RECID(_S)
@@ -226,13 +244,14 @@ THEN ASSIGN _L._WIDTH  = ?  /* Use default */
    _h_cur_widg and will be changed in _undsmar.p                          */
 datafield = _h_cur_widg.
 
-/* Make sure the SmartDataField is drawn at the same row and column as 
-   the RowObject field was that it is replacing */
+/* Make sure the SmartDataField is drawn at the same row, column and
+   tab Order as the RowObject field was that it is replacing */
 IF _next_draw = "SmartDataField":U THEN DO:
   FIND x_U WHERE x_U._HANDLE = datafield.
   FIND x_L WHERE RECID(x_L) = x_U._lo-recid.
-  ASSIGN _L._COL = x_L._COL
-         _L._ROW = x_L._ROW.
+  ASSIGN _L._COL       = x_L._COL
+         _L._ROW       = x_L._ROW
+         _U._TAB-ORDER = x_U._TAB-ORDER.
 END.  /* if SmartDataField */
 
 /* Create the widget based on the contents of the Universal Widget record */
@@ -253,8 +272,32 @@ IF VALID-HANDLE(_S._HANDLE) THEN DO:
     DYNAMIC-FUNCTION("setFieldName" IN _S._HANDLE, cFieldName).
     DYNAMIC-FUNCTION("setDisplayField" IN _S._HANDLE, x_U._DISPLAY).
     DYNAMIC-FUNCTION("setEnableField" IN _S._HANDLE, x_U._ENABLE).
-    RUN adeuib/_delet_u.p (INPUT RECID(x_U), INPUT TRUE /* Trash _U */).
+    IF x_U._TABLE = ? THEN
+      DYNAMIC-FUNCTION("setLocalField" IN _S._HANDLE, TRUE).
+    ASSIGN lICFRunning = DYNAMIC-FUNCTION("IsICFRunning":U) NO-ERROR.
+    /* Mark this as a container of a SDF */
+    X_U._SUBTYPE = "CONTAINS SDF - " + _U._NAME.
+   
+    RUN adeuib/_delet_u.p (INPUT RECID(x_U), INPUT FALSE /* Don't Trash _U */).
   END.  /* SetFieldName is a valid function */
+
+  lEditOnDrop = FALSE.
+  IF _custom_draw NE ? THEN DO:
+    /* Find the _custom record and see if "EDIT-ON-DROP" is an attribute */
+    FIND FIRST _custom WHERE _custom._name = _custom_draw NO-ERROR.
+    IF AVAILABLE _custom THEN 
+      ASSIGN lEditOnDrop = (LOOKUP("EDIT-ON-DROP":U, _custom._attr, CHR(10)) > 0).
+  END. /* If _custom_draw ne ? */
+  ELSE IF _next_draw NE ? THEN DO:
+    /* Find the _palette_item record and see if "EDIT-ON-DROP" is an attribute */
+    FIND FIRST _palette_item WHERE _palette_item._name = _next_draw NO-ERROR.
+    IF AVAILABLE _palette_item THEN
+      ASSIGN lEditOnDrop = (LOOKUP("EDIT-ON-DROP":U, _palette_item._attr, CHR(10)) > 0).
+  END.  /* if _next_draw is not ? */
+
+  IF lEditOnDrop THEN 
+    RUN adeuib/_edtsmar.p (INTEGER(RECID(_U))).
+
 END. /* If the SO to be drawn is current running */
   
 /* Note that undsmar.p might have failed (for example, if the SmartObject
@@ -269,8 +312,15 @@ IF RETURN-VALUE ne "Error" AND AVAILABLE (_U) THEN DO:
     
   /* Now the fun part... Hook up the links between the objects 
      We currently skip it for the tree-view, mostly to avoid problems 
-     with a remote SDO */  
-  IF NOT VALID-HANDLE(_P._tv-proc) THEN
+     with a remote SDO
+     In Dynamics, the objects are also abstractly started and run out
+     of context. They are constructed on a window in af/cod2/afpropwin.p
+     which will set the PRIVATE-DATA of the window to the specified value
+     to indicate it is just for the GenericPropSheet. The window will
+     be hidden, which means the property will never be affected or changed
+     or cause any unforseen errors */
+  IF NOT VALID-HANDLE(_P._tv-proc) AND
+     _h_win:PRIVATE-DATA <> "DynamicsGenericPropSheet":U THEN
     RUN adeuib/_advslnk.p (RECID(_U)).
 END.
 
@@ -374,14 +424,6 @@ DO ON ERROR UNDO, LEAVE
        ASSIGN lSboObj = NO.
        FIND DataField_U WHERE DataField_U._HANDLE = phField NO-LOCK NO-ERROR.
        IF NOT AVAILABLE DataField_U THEN RETURN.
-
-       /* IZ 1611 Provide local field support for SmartDataFields. Local fields
-          have no table associated with them. */
-       IF (DataField_U._TABLE = ?) THEN
-       DO:
-         ASSIGN pName = "<Local>":U.
-         RETURN.
-       END.
 
        /* Determine if our object is a Data Field (e.g., an SDO RowObject field or
           SBO field). Since Data Field objects are managed using the _P object's temp

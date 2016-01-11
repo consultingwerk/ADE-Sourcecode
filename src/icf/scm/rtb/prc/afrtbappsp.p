@@ -198,7 +198,7 @@ THEN DO:
     IF pcObjectName <> "":U
     THEN
       ASSIGN
-        cObjectName = LC(TRIM(REPLACE(pcObjectName,"\":U,"/":U)))
+        cObjectName = LC(TRIM(REPLACE(pcObjectName,"~\":U,"/":U)))
         cObjectName = SUBSTRING(cObjectName,R-INDEX(cObjectName,"/":U) + 1)
         .
 

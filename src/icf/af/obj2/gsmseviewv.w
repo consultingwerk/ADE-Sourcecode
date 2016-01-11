@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          asdb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" vTableWin _INLINE
@@ -87,7 +87,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gsmseviewv.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -121,13 +121,14 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-FIELDS RowObject.session_type_code ~
-RowObject.session_type_description 
+RowObject.session_type_description RowObject.automatic_reconnect 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
+&Scoped-Define DISPLAYED-FIELDS RowObject.session_type_code ~
+RowObject.session_type_description RowObject.automatic_reconnect 
 &Scoped-define DISPLAYED-TABLES RowObject
 &Scoped-define FIRST-DISPLAYED-TABLE RowObject
-&Scoped-Define DISPLAYED-FIELDS RowObject.session_type_code ~
-RowObject.session_type_description 
+
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -141,21 +142,26 @@ RowObject.session_type_description
 
 
 /* Definitions of handles for SmartObjects                              */
+DEFINE VARIABLE h_dynlookup AS HANDLE NO-UNDO.
 DEFINE VARIABLE h_gsmsedtf1v AS HANDLE NO-UNDO.
 DEFINE VARIABLE h_gsmsedtf2v AS HANDLE NO-UNDO.
+DEFINE VARIABLE h_gsmsesdfv1 AS HANDLE NO-UNDO.
 
 /* Definitions of the field level widgets                               */
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     RowObject.session_type_code AT ROW 1.1 COL 33.4 COLON-ALIGNED
+     RowObject.session_type_code AT ROW 1 COL 33.4 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 15.6 BY 1
-     RowObject.session_type_description AT ROW 2.1 COL 33.4 COLON-ALIGNED
+          SIZE 45.2 BY 1
+     RowObject.session_type_description AT ROW 3.1 COL 33.4 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 48.4 BY 1
-     SPACE(8.00) SKIP(11.62)
+          SIZE 50 BY 1
+     RowObject.automatic_reconnect AT ROW 4.14 COL 35.4
+          VIEW-AS TOGGLE-BOX
+          SIZE 25.6 BY 1
+     SPACE(32.40) SKIP(14.81)
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -195,8 +201,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 14
-         WIDTH              = 93.8.
+         HEIGHT             = 19.29
+         WIDTH              = 96.4.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -218,7 +224,7 @@ END.
 /* SETTINGS FOR WINDOW vTableWin
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frMain
-   NOT-VISIBLE Size-to-Fit                                              */
+   NOT-VISIBLE Size-to-Fit Custom                                       */
 ASSIGN 
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
@@ -236,7 +242,7 @@ ASSIGN
 */  /* FRAME frMain */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK vTableWin 
@@ -271,26 +277,46 @@ PROCEDURE adm-create-objects :
 
     WHEN 0 THEN DO:
        RUN constructObject (
+             INPUT  'adm2/dynlookup.w':U ,
+             INPUT  FRAME frMain:HANDLE ,
+             INPUT  'DisplayedFieldgsm_session_type.session_type_codeKeyFieldgsm_session_type.session_type_objFieldLabelExtends Session TypeFieldTooltipPress F4 for LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(20)DisplayDatatypecharacterBaseQueryStringFOR EACH gsm_session_type BY gsm_session_type.session_type_codeQueryTablesgsm_session_typeBrowseFieldsgsm_session_type.session_type_code,gsm_session_type.session_type_descriptionBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(20),X(35)RowsToBatch200BrowseTitleLookup Session TypesViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNameextends_session_type_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT h_dynlookup ).
+       RUN repositionObject IN h_dynlookup ( 2.05 , 35.40 ) NO-ERROR.
+       RUN resizeObject IN h_dynlookup ( 1.00 , 50.00 ) NO-ERROR.
+
+       RUN constructObject (
              INPUT  'af/obj2/gsmsedtf2v.w':U ,
              INPUT  FRAME frMain:HANDLE ,
              INPUT  'FieldNamevalid_os_listDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_gsmsedtf2v ).
-       RUN repositionObject IN h_gsmsedtf2v ( 3.19 , 31.00 ) NO-ERROR.
+       RUN repositionObject IN h_gsmsedtf2v ( 5.38 , 4.60 ) NO-ERROR.
        RUN resizeObject IN h_gsmsedtf2v ( 3.57 , 45.80 ) NO-ERROR.
+
+       RUN constructObject (
+             INPUT  'af/obj2/gsmsesdfv1.w':U ,
+             INPUT  FRAME frMain:HANDLE ,
+             INPUT  'FieldNameinactivity_timeout_periodDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT h_gsmsesdfv1 ).
+       RUN repositionObject IN h_gsmsesdfv1 ( 5.19 , 52.20 ) NO-ERROR.
+       RUN resizeObject IN h_gsmsesdfv1 ( 5.81 , 30.40 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'af/obj2/gsmsedtf1v.w':U ,
              INPUT  FRAME frMain:HANDLE ,
              INPUT  'FieldNamephysical_session_listDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_gsmsedtf1v ).
-       RUN repositionObject IN h_gsmsedtf1v ( 6.62 , 4.60 ) NO-ERROR.
-       RUN resizeObject IN h_gsmsedtf1v ( 8.10 , 87.20 ) NO-ERROR.
+       RUN repositionObject IN h_gsmsedtf1v ( 11.38 , 5.40 ) NO-ERROR.
+       RUN resizeObject IN h_gsmsedtf1v ( 8.57 , 88.00 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */
+       RUN adjustTabOrder ( h_dynlookup ,
+             RowObject.session_type_code:HANDLE IN FRAME frMain , 'AFTER':U ).
        RUN adjustTabOrder ( h_gsmsedtf2v ,
-             RowObject.session_type_description:HANDLE IN FRAME frMain , 'AFTER':U ).
-       RUN adjustTabOrder ( h_gsmsedtf1v ,
+             RowObject.automatic_reconnect:HANDLE IN FRAME frMain , 'AFTER':U ).
+       RUN adjustTabOrder ( h_gsmsesdfv1 ,
              h_gsmsedtf2v , 'AFTER':U ).
+       RUN adjustTabOrder ( h_gsmsedtf1v ,
+             h_gsmsesdfv1 , 'AFTER':U ).
     END. /* Page 0 */
 
   END CASE.

@@ -116,6 +116,8 @@ ExternalRefList,InternalRefList
   &GLOBAL-DEFINE xpRouterSource
   {src/adm2/b2bprop.i}
 
+IF NOT {&ADM-PROPS-DEFINED} THEN
+DO:
 &IF "{&ADMSuper}":U = "":U &THEN
   /* Put your property field definitions here.
      Use the following syntax, e.g.,
@@ -127,6 +129,7 @@ ExternalRefList,InternalRefList
 &ENDIF
 
   {src/adm2/custom/routpropcustom.i}
+END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

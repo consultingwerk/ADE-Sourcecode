@@ -80,21 +80,31 @@ DEFINE VAR Type_WebObject   AS CHARACTER INIT "WebObject"       NO-UNDO.
 DEFINE VAR Type_All         AS CHARACTER INIT "All"             NO-UNDO.
 
 DEFINE VAR c_lbl_list   AS CHARACTER NO-UNDO. /* container label list       */
+DEFINE VAR c_lbl_listX  AS CHARACTER NO-UNDO. /* container label list without fix  */
+DEFINE VAR c_lbl_listD  AS CHARACTER NO-UNDO. /* container label list Dtnamic  */
 DEFINE VAR c_tmp_list   AS CHARACTER NO-UNDO. /* container template list    */
 DEFINE VAR ext_tmp_list AS CHARACTER NO-UNDO. /* external template file list */
 DEFINE VAR p_lbl_list   AS CHARACTER NO-UNDO. /* Procedure label list       */
+DEFINE VAR p_lbl_listX  AS CHARACTER NO-UNDO. /* Procedure label list without fix  */
+DEFINE VAR p_lbl_listD  AS CHARACTER NO-UNDO. /* Procedure label list Dynamic  */
 DEFINE VAR p_tmp_list   AS CHARACTER NO-UNDO. /* Procedure template list    */
 DEFINE VAR ret_value    AS LOGICAL   NO-UNDO. /* Function assign logical    */
 DEFINE VAR s_lbl_list   AS CHARACTER NO-UNDO. /* SO label list              */
+DEFINE VAR s_lbl_listX  AS CHARACTER NO-UNDO. /* SO label list without fix  */
 DEFINE VAR s_tmp_list   AS CHARACTER NO-UNDO. /* SO template list           */
+DEFINE VAR s_lbl_listD  AS CHARACTER NO-UNDO. /* SO label list Dynamic      */
 DEFINE VAR w_lbl_list   AS CHARACTER NO-UNDO. /* WebObject label list       */
+DEFINE VAR w_lbl_listX  AS CHARACTER NO-UNDO. /* WebObject label list without fix  */
 DEFINE VAR w_tmp_list   AS CHARACTER NO-UNDO. /* WebObject template list    */
+DEFINE VAR w_lbl_listD  AS CHARACTER NO-UNDO. /* WebObject label list Dynamic  */
 DEFINE VAR licnum       AS INTEGER   NO-UNDO. /* ablic return value         */
 DEFINE VAR licstr       AS CHARACTER NO-UNDO. /* ablic return string        */
 DEFINE VAR enable-icf   AS LOGICAL   NO-UNDO. /* icf enabled logical        */
 
 DEFINE TEMP-TABLE ttPM NO-UNDO
   FIELD PMCode          AS CHARACTER.
+
+DEFINE VARIABLE ghRepositoryDesignManager AS HANDLE     NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -112,7 +122,7 @@ DEFINE TEMP-TABLE ttPM NO-UNDO
 
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-OBJECTS s_objects e_descr2 e_descr1 b_Ok b_Cancel ~
-b_Template b_Help Objects-text descr-text RECT-3 RECT-4 RECT-5 
+b_Template b_Help Objects-text descr-text RECT-3 RECT-4 RECT-5 RECT-7 
 &Scoped-Define DISPLAYED-OBJECTS s_objects e_descr2 e_descr1 Objects-text ~
 descr-text Show-text 
 
@@ -122,6 +132,15 @@ descr-text Show-text
 /* _UIB-PREPROCESSOR-BLOCK-END */
 &ANALYZE-RESUME
 
+
+/* ************************  Function Prototypes ********************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getRDMHandle d_newobj 
+FUNCTION getRDMHandle RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
 
 /* ***********************  Control Definitions  ********************** */
@@ -171,7 +190,7 @@ DEFINE VARIABLE Objects-text AS CHARACTER FORMAT "X(256)":U INITIAL " Objects"
 
 DEFINE VARIABLE Show-text AS CHARACTER FORMAT "X(256)":U INITIAL " Show" 
       VIEW-AS TEXT 
-     SIZE 7 BY .62 NO-UNDO.
+     SIZE 6.4 BY .62 NO-UNDO.
 
 DEFINE RECTANGLE RECT-3
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
@@ -179,20 +198,24 @@ DEFINE RECTANGLE RECT-3
 
 DEFINE RECTANGLE RECT-4
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 19 BY 4.43.
+     SIZE 19 BY 6.38.
 
 DEFINE RECTANGLE RECT-5
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 51.4 BY 10.
+     SIZE 52 BY 12.19.
 
 DEFINE RECTANGLE RECT-6
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 51.4 BY 2.86.
+     SIZE 52 BY 2.86.
+
+DEFINE RECTANGLE RECT-7
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     SIZE 19 BY 2.1.
 
 DEFINE VARIABLE s_objects AS CHARACTER 
      VIEW-AS SELECTION-LIST SINGLE 
      SCROLLBAR-HORIZONTAL SCROLLBAR-VERTICAL 
-     SIZE 49.2 BY 9.19 NO-UNDO.
+     SIZE 50 BY 11.62 NO-UNDO.
 
 DEFINE VARIABLE productModule-Create AS LOGICAL INITIAL yes 
      LABEL "&Create in Product Module:" 
@@ -204,6 +227,11 @@ DEFINE VARIABLE togContainer AS LOGICAL INITIAL no
      VIEW-AS TOGGLE-BOX
      SIZE 16.6 BY .81 NO-UNDO.
 
+DEFINE VARIABLE togDynamic AS LOGICAL INITIAL no 
+     LABEL "Dynamic" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 13.4 BY .81 NO-UNDO.
+
 DEFINE VARIABLE togProc AS LOGICAL INITIAL no 
      LABEL "&Procedures" 
      VIEW-AS TOGGLE-BOX
@@ -214,38 +242,46 @@ DEFINE VARIABLE togSO AS LOGICAL INITIAL no
      VIEW-AS TOGGLE-BOX
      SIZE 16.6 BY .81 NO-UNDO.
 
+DEFINE VARIABLE togStatic AS LOGICAL INITIAL no 
+     LABEL "Static" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 13.4 BY .81 NO-UNDO.
+
 DEFINE VARIABLE togWO AS LOGICAL INITIAL no 
      LABEL "&WebObjects" 
      VIEW-AS TOGGLE-BOX
-     SIZE 17.2 BY .81 NO-UNDO.
+     SIZE 16.2 BY .81 NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME d_newobj
+     togDynamic AT ROW 11.71 COL 56.2
+     togStatic AT ROW 12.67 COL 56.2
      productModule-Create AT ROW 1.76 COL 3.2
      cb_productModule AT ROW 2.76 COL 3 NO-LABEL
      s_objects AT ROW 1.76 COL 3 NO-LABEL
-     e_descr2 AT ROW 12.14 COL 3 HELP
+     e_descr2 AT ROW 14.52 COL 3 HELP
           "Description of object" NO-LABEL
-     e_descr1 AT ROW 12.14 COL 3 HELP
+     e_descr1 AT ROW 14.52 COL 3 HELP
           "Description of object" NO-LABEL
-     togContainer AT ROW 7.43 COL 55.8
-     togSO AT ROW 8.38 COL 55.8
-     togProc AT ROW 9.33 COL 55.8
-     togWO AT ROW 10.29 COL 55.8
+     togContainer AT ROW 7.71 COL 56.2
+     togSO AT ROW 8.67 COL 56.2
+     togProc AT ROW 9.62 COL 56.2
+     togWO AT ROW 10.57 COL 56.2
      b_Ok AT ROW 1.48 COL 58.6
      b_Cancel AT ROW 2.76 COL 58.6
      b_Template AT ROW 4.05 COL 58.6
      b_Help AT ROW 5.33 COL 58.6
      Objects-text AT ROW 1 COL 1 COLON-ALIGNED NO-LABEL
-     descr-text AT ROW 11.48 COL 1 COLON-ALIGNED NO-LABEL
-     Show-text AT ROW 6.67 COL 54 COLON-ALIGNED NO-LABEL
+     descr-text AT ROW 13.86 COL 1 COLON-ALIGNED NO-LABEL
+     Show-text AT ROW 6.95 COL 54.4 COLON-ALIGNED NO-LABEL
      RECT-6 AT ROW 1.48 COL 2
-     RECT-3 AT ROW 11.76 COL 2
-     RECT-4 AT ROW 6.95 COL 55
+     RECT-3 AT ROW 14.14 COL 2
+     RECT-4 AT ROW 7.24 COL 55
      RECT-5 AT ROW 1.43 COL 2
-     SPACE(21.59) SKIP(5.85)
+     RECT-7 AT ROW 11.52 COL 55
+     SPACE(0.99) SKIP(5.81)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "New"
@@ -305,6 +341,11 @@ ASSIGN
 ASSIGN 
        togContainer:HIDDEN IN FRAME d_newobj           = TRUE.
 
+/* SETTINGS FOR TOGGLE-BOX togDynamic IN FRAME d_newobj
+   NO-DISPLAY NO-ENABLE                                                 */
+ASSIGN 
+       togDynamic:HIDDEN IN FRAME d_newobj           = TRUE.
+
 /* SETTINGS FOR TOGGLE-BOX togProc IN FRAME d_newobj
    NO-DISPLAY NO-ENABLE                                                 */
 ASSIGN 
@@ -314,6 +355,11 @@ ASSIGN
    NO-DISPLAY NO-ENABLE                                                 */
 ASSIGN 
        togSO:HIDDEN IN FRAME d_newobj           = TRUE.
+
+/* SETTINGS FOR TOGGLE-BOX togStatic IN FRAME d_newobj
+   NO-DISPLAY NO-ENABLE                                                 */
+ASSIGN 
+       togStatic:HIDDEN IN FRAME d_newobj           = TRUE.
 
 /* SETTINGS FOR TOGGLE-BOX togWO IN FRAME d_newobj
    NO-DISPLAY NO-ENABLE                                                 */
@@ -345,6 +391,8 @@ ON ENDKEY OF FRAME d_newobj /* New */
 OR END-ERROR OF FRAME d_newobj
 DO:
   ASSIGN selected = ?.
+  IF _file_new_config > 15 THEN 
+    ASSIGN _file_new_config = _file_new_config - 16.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -361,6 +409,7 @@ DO:
   DEFINE VARIABLE layoutID   AS DECIMAL   NO-UNDO.
   DEFINE VARIABLE OK_Pressed AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE cProductModuleCode AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cCustomName AS CHARACTER  NO-UNDO.
 
   FIND _palette_item WHERE _palette_item._name = s_objects:SCREEN-VALUE NO-ERROR.
   IF AVAILABLE (_palette_item) THEN DO:
@@ -428,8 +477,10 @@ DO:
               VIEW-AS ALERT-BOX INFORMATION.
             RETURN NO-APPLY. /* Don't leave the dialog. */
         END.
-        
-        FIND _custom WHERE _design_template_file = SELECTED NO-ERROR.
+        /* The private data stores a delimited list of the actual names stored in _Custom._name,
+          wheras the List-items have the &s removed */
+        ASSIGN cCustomName = ENTRY(s_objects:LOOKUP(s_objects:SCREEN-VALUE), s_objects:PRIVATE-DATA,CHR(10)) NO-ERROR.
+        FIND _custom WHERE _custom._name =  cCustomName NO-ERROR.
         IF AVAILABLE (_custom) THEN
         DO:
           /* IZ 3195 Determine ProductModule Code from string "pmCode // pmDescription". */
@@ -439,25 +490,28 @@ DO:
           FIND _RyObject WHERE _RyObject.object_filename = SELECTED NO-ERROR.
           IF NOT AVAILABLE _RyObject THEN
             CREATE _RyObject.
-          ASSIGN _RyObject.object_filename        = SELECTED
-                 _RyObject.object_type_code       = IF _custom._object_type_code = ""
+          ASSIGN _RyObject.object_type_code       = IF _custom._object_type_code = ""
                                                     THEN _custom._type ELSE _custom._object_type_code
+                 _RyObject.parent_classes         = DYNAMIC-FUNC("getClassParentsFromDB":U IN gshRepositoryManager, INPUT _RyObject.Object_type_code)
+                 _RyObject.object_filename        = SELECTED
                  _RyObject.product_module_code    = cProductModuleCode
-                 _RyObject.logical_object         = _custom._logical_object
+                 _RyObject.static_object          = _custom._static_object
                  _RyObject.container_object       = _custom._type = "Container":u
                  _RyObject.design_action          = "NEW":u
-                 _RyObject.design_ryobject        = YES
+                 _RyObject.design_ryobject        = IF _custom._static_object THEN NO ELSE YES
                  _RyObject.design_template_file   = SELECTED
                  _RyObject.design_propsheet_file  = _custom._design_propsheet_file
                  _RyObject.design_image_file      = _custom._design_image_file.
+
         END. /* If AVAIL(_custom) */
       END. /* IF create in PM */
     
       /* jep-icf: Can't allow creation of a dynamic object outside of repository PM. */
       IF (NOT productModule-Create:CHECKED) THEN
       DO:
-          FIND _custom WHERE _design_template_file = SELECTED NO-ERROR.
-          IF AVAILABLE (_custom) AND (_custom._logical_object) THEN
+          ASSIGN cCustomName = ENTRY(s_objects:LOOKUP(s_objects:SCREEN-VALUE), s_objects:PRIVATE-DATA,CHR(10)) NO-ERROR.
+          FIND _custom WHERE _custom._name = cCustomName NO-ERROR.
+          IF AVAILABLE (_custom) AND (NOT _custom._static_object) THEN
           DO:
               MESSAGE "Cannot create the new object:" s_objects:SCREEN-VALUE SKIP(1)
                       "A dynamic object can only be created in a product module."
@@ -468,7 +522,9 @@ DO:
       END.
         
       /* set current prod module */
-      DYNAMIC-FUNC("setCurrentProductModule":U, cb_productModule:SCREEN-VALUE) NO-ERROR.
+      getRDMHandle().
+      IF VALID-HANDLE(ghRepositoryDesignManager) THEN
+        DYNAMIC-FUNC("setCurrentProductModule":U IN ghRepositoryDesignManager, cb_productModule:SCREEN-VALUE) NO-ERROR.
 
   END. /* IF enable-icf  */
 
@@ -510,6 +566,8 @@ DO:
   IF pOK AND (pAbsoluteFileName <> "" AND pAbsoluteFileName <> ?) THEN DO:
      ASSIGN ext_tmp_list = LEFT-TRIM(ext_tmp_list + CHR(10) + "Template: ":U + pAbsoluteFileName, CHR(10)).
      l = s_objects:ADD-FIRST("Template: ":U + pAbsoluteFileName) IN FRAME {&FRAME-NAME}. 
+     ASSIGN s_objects:PRIVATE-DATA = pAbsoluteFileName + (IF s_objects:PRIVATE-DATA = "" THEN "" ELSE CHR(10))
+                                                       + s_objects:PRIVATE-DATA.
      ASSIGN s_objects:SCREEN-VALUE IN FRAME {&FRAME-NAME} = s_objects:ENTRY(1). 
      RUN Get_Descr.
   END.
@@ -557,7 +615,13 @@ ON VALUE-CHANGED OF togContainer IN FRAME d_newobj /* Containers */
 , togSO, togProc, togWO
 DO:
   DEFINE VARIABLE tmp-string AS CHARACTER                                 NO-UNDO.
-
+  DEFINE VARIABLE tmp-stringX AS CHARACTER                                NO-UNDO.
+  DEFINE VARIABLE tmp-clbl    AS CHARACTER                                NO-UNDO.
+  DEFINE VARIABLE tmp-clblX   AS CHARACTER                                NO-UNDO.
+  DEFINE VARIABLE tmp-slbl    AS CHARACTER                                NO-UNDO.
+  DEFINE VARIABLE tmp-slblX   AS CHARACTER                                NO-UNDO.
+  DEFINE VARIABLE i           AS INTEGER                                  NO-UNDO.
+  
   IF _AB_license = 2 THEN
     ASSIGN tmp-string =
            (IF ext_tmp_list NE "" THEN ext_tmp_list + CHR(10) ELSE "") +
@@ -565,29 +629,75 @@ DO:
            (IF s_lbl_list   NE "" THEN s_lbl_list   + CHR(10) ELSE "") + 
            (IF p_lbl_list   NE "" THEN p_lbl_list   + CHR(10) ELSE "") + 
            (IF w_lbl_list   NE "" THEN w_lbl_list             ELSE "")
-          s_objects:LIST-ITEMS = TRIM(tmp-string, CHR(10)).
-  ELSE DO:
-    IF togContainer:CHECKED AND togSO:CHECKED AND togProc:CHECKED AND 
-       togWO:HIDDEN = FALSE and togWO:CHECKED THEN /* ALL - show everything */
-      ASSIGN s_objects:LIST-ITEMS = 
+           tmp-stringX =
            (IF ext_tmp_list NE "" THEN ext_tmp_list + CHR(10) ELSE "") +
-           (IF c_lbl_list   NE "" THEN c_lbl_list   + CHR(10) ELSE "") + 
-           (IF s_lbl_list   NE "" THEN s_lbl_list   + CHR(10) ELSE "") + 
-           (IF p_lbl_list   NE "" THEN p_lbl_list   + CHR(10) ELSE "") + 
-           (IF w_lbl_list   NE "" THEN w_lbl_list             ELSE "").
-    ELSE DO:
-      ASSIGN tmp-string = RIGHT-TRIM((IF ext_tmp_list NE "" THEN ext_tmp_list + CHR(10) ELSE "") +
-                          (IF togContainer:CHECKED AND c_lbl_list NE "" THEN c_lbl_list + CHR(10) ELSE "") +
-                          (IF togSO:CHECKED AND s_lbl_list NE ""        THEN s_lbl_list + CHR(10) ELSE "") +
-                          (IF togProc:CHECKED AND p_lbl_list NE ""      THEN p_lbl_list + CHR(10) ELSE "") +
-                          (IF togWO:CHECKED AND w_lbl_list NE ""        THEN w_lbl_list ELSE ""), CHR(10))
-             s_objects:LIST-ITEMS = tmp-string.
-    END.
+           (IF c_lbl_listX   NE "" THEN c_lbl_listX   + CHR(10) ELSE "") + 
+           (IF s_lbl_listX   NE "" THEN s_lbl_listX   + CHR(10) ELSE "") + 
+           (IF p_lbl_listX   NE "" THEN p_lbl_listX   + CHR(10) ELSE "") + 
+           (IF w_lbl_listX   NE "" THEN w_lbl_listX             ELSE "")
+          s_objects:LIST-ITEMS = TRIM(tmp-string, CHR(10))
+          s_objects:PRIVATE-DATA = TRIM(tmp-stringX, CHR(10)).
+  ELSE DO:
+     IF enable-icf AND NOT togDynamic:CHECKED AND NOT togStatic:CHECKED THEN
+        assign tmp-String  = ""
+               tmp-StringX = "".
+     ELSE IF (enable-icf AND NOT togDynamic:CHECKED AND togStatic:CHECKED) 
+              OR (enable-icf AND togDynamic:CHECKED AND NOT togStatic:CHECKED) THEN
+     DO:
+        /* Rebuild container and smartObject string to include only dynamic/static objects based
+          on toglle settings */
+       DO i = 1 to NUM-ENTRIES(c_lbl_list,CHR(10)):
+         IF togStatic:CHECKED AND ENTRY(i,c_lbl_listD) = "S":U 
+            OR togDynamic:CHECKED AND ENTRY(i,c_lbl_listD) = "D":U  THEN
+            ASSIGN tmp-clbl  = tmp-clbl + (If tmp-clbl = "" then "" else CHR(10)) + ENTRY(i,c_lbl_list,CHR(10))
+                   tmp-clblX = tmp-clblX + (If tmp-clblX = "" then "" else CHR(10)) + ENTRY(i,c_lbl_listX,CHR(10)).
+       END.
+       DO i = 1 to NUM-ENTRIES(s_lbl_list,CHR(10)):
+         IF togStatic:CHECKED AND ENTRY(i,s_lbl_listD) = "S":U 
+            OR togDynamic:CHECKED AND ENTRY(i,s_lbl_listD) = "D":U  THEN
+            ASSIGN tmp-slbl = tmp-slbl + (If tmp-slbl = "" then "" else CHR(10)) + ENTRY(i,s_lbl_list,CHR(10))
+                   tmp-slblX = tmp-slblX + (If tmp-slblX = "" then "" else CHR(10)) + ENTRY(i,s_lbl_listX,CHR(10)).
+       END.
+       
+       ASSIGN tmp-string = RIGHT-TRIM((IF ext_tmp_list NE "" THEN ext_tmp_list + CHR(10) ELSE "") +
+                          (IF togContainer:CHECKED AND c_lbl_list NE "" THEN tmp-clbl + CHR(10) ELSE "") +
+                          (IF togSO:CHECKED AND s_lbl_list NE ""        THEN tmp-slbl + CHR(10) ELSE "") +
+                          (IF togProc:CHECKED AND p_lbl_list NE "" 
+                                              AND togStatic:CHECKED     THEN p_lbl_list + CHR(10) ELSE "") +
+                          (IF togWO:CHECKED AND w_lbl_list NE ""   
+                                            AND togStatic:CHECKED       THEN w_lbl_list ELSE ""), CHR(10))
+            tmp-stringX = RIGHT-TRIM((IF ext_tmp_list NE "" THEN ext_tmp_list + CHR(10) ELSE "") +
+                          (IF togContainer:CHECKED AND c_lbl_listX NE "" THEN tmp-clblX + CHR(10) ELSE "") +
+                          (IF togSO:CHECKED AND s_lbl_listX NE ""        THEN tmp-slblX + CHR(10) ELSE "") +
+                          (IF togProc:CHECKED AND p_lbl_listX NE ""
+                                              AND togStatic:CHECKED      THEN p_lbl_listX + CHR(10) ELSE "") +
+                          (IF togWO:CHECKED AND w_lbl_listX NE ""       
+                                            AND togStatic:CHECKED        THEN w_lbl_listX ELSE ""), CHR(10)).
+     END.
+
+     ELSE
+       ASSIGN tmp-string = RIGHT-TRIM((IF ext_tmp_list NE "" THEN ext_tmp_list + CHR(10) ELSE "") +
+                            (IF togContainer:CHECKED AND c_lbl_list NE "" THEN c_lbl_list + CHR(10) ELSE "") +
+                            (IF togSO:CHECKED AND s_lbl_list NE ""        THEN s_lbl_list + CHR(10) ELSE "") +
+                            (IF togProc:CHECKED AND p_lbl_list NE ""      THEN p_lbl_list + CHR(10) ELSE "") +
+                            (IF togWO:CHECKED AND w_lbl_list NE ""        THEN w_lbl_list ELSE ""), CHR(10))
+              tmp-stringX = RIGHT-TRIM((IF ext_tmp_list NE "" THEN ext_tmp_list + CHR(10) ELSE "") +
+                            (IF togContainer:CHECKED AND c_lbl_listX NE "" THEN c_lbl_listX + CHR(10) ELSE "") +
+                            (IF togSO:CHECKED AND s_lbl_listX NE ""        THEN s_lbl_listX + CHR(10) ELSE "") +
+                            (IF togProc:CHECKED AND p_lbl_listX NE ""      THEN p_lbl_listX + CHR(10) ELSE "") +
+                            (IF togWO:CHECKED AND w_lbl_listX NE ""        THEN w_lbl_listX ELSE ""), CHR(10)).
+
+   ASSIGN s_objects:LIST-ITEMS   = tmp-string
+          s_objects:PRIVATE-DATA = tmp-stringX.
+    
     ASSIGN _file_new_config = 16 + /* 16 means that it has been changed */
                               (IF togContainer:CHECKED THEN 1 ELSE 0) +
                               (IF togSO:CHECKED        THEN 2 ELSE 0) +
                               (IF togProc:CHECKED      THEN 4 ELSE 0) +
-                              (IF togWO:CHECKED        THEN 8 ELSE 0).
+                              (IF togWO:CHECKED        THEN 8 ELSE 0) +
+                              (IF togDynamic:CHECKED   THEN 16 ELSE 0) +
+                              (IF togStatic:CHECKED    THEN 32 ELSE 0) .
+
   END. /* If not WebSpeed only */            
 
   IF s_objects:LIST-ITEMS <> ? THEN  DO:
@@ -597,6 +707,29 @@ DO:
   ELSE
     ASSIGN e_descr1:SCREEN-VALUE = ""
            e_descr2:SCREEN-VALUE = "".
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME togDynamic
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL togDynamic d_newobj
+ON VALUE-CHANGED OF togDynamic IN FRAME d_newobj /* Dynamic */
+DO:
+  APPLY "VALUE-CHANGED":U TO togContainer.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME togStatic
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL togStatic d_newobj
+ON VALUE-CHANGED OF togStatic IN FRAME d_newobj /* Static */
+DO:
+   APPLY "VALUE-CHANGED":U TO togContainer.
+
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -634,10 +767,13 @@ DO ON STOP    UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
   /* If we are RUNNING the ICF, show the ICF product module */
   RUN adeshar/_ablic.p (INPUT NO, OUTPUT licnum, OUTPUT licstr).
   ASSIGN enable-icf = CAN-DO(licstr,"ENABLE-ICF":U).
-  IF enable-icf THEN  
+  
+  IF enable-icf THEN
       RUN showProductModule.  
   
   RUN enable_UI.
+  
+       
   RUN Init.
   
   RUN adecomm/_setcurs.p (INPUT "":U).
@@ -714,7 +850,7 @@ PROCEDURE enable_UI :
   DISPLAY s_objects e_descr2 e_descr1 Objects-text descr-text Show-text 
       WITH FRAME d_newobj.
   ENABLE s_objects e_descr2 e_descr1 b_Ok b_Cancel b_Template b_Help 
-         Objects-text descr-text RECT-3 RECT-4 RECT-5 
+         Objects-text descr-text RECT-3 RECT-4 RECT-5 RECT-7 
       WITH FRAME d_newobj.
   {&OPEN-BROWSERS-IN-QUERY-d_newobj}
 END PROCEDURE.
@@ -789,10 +925,15 @@ PROCEDURE Get_FileName :
   Parameters:  <none>
   Notes:       
 -------------------------------------------------------------*/
-  DEFINE VARIABLE pos      AS INTEGER   NO-UNDO. /* item's position in list */
-  DEFINE VARIABLE tmp_list AS CHARACTER NO-UNDO. /* temp list of templates */
+  DEFINE VARIABLE pos           AS INTEGER   NO-UNDO. /* item's position in list */
+  DEFINE VARIABLE tmp_list      AS CHARACTER NO-UNDO. /* temp list of templates */
+  DEFINE VARIABLE i             AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE c_tmp_listNew AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE s_tmp_listNew AS CHARACTER  NO-UNDO.
+  
   
   ASSIGN selected = s_objects:SCREEN-VALUE IN FRAME {&FRAME-NAME}.
+  
   IF selected = ? THEN RETURN.
   ELSE DO:  
     IF selected BEGINS "Template:":U THEN 
@@ -803,6 +944,44 @@ PROCEDURE Get_FileName :
         ASSIGN tmp_list = c_tmp_list + "," + s_tmp_list + "," +
                           p_tmp_list + "," + w_tmp_list
                tmp_list = TRIM(tmp_list,"~,").
+      ELSE IF (enable-icf AND NOT togDynamic:CHECKED AND togStatic:CHECKED) 
+              OR (enable-icf AND togDynamic:CHECKED AND NOT togStatic:CHECKED) THEN
+      DO:
+         /* Rebuild container and smartObject string to include only dynamic/static objects based
+           on toglle settings */
+        DO i = 1 to NUM-ENTRIES(c_lbl_list,CHR(10)):
+          IF togStatic:CHECKED AND ENTRY(i,c_lbl_listD) = "S":U 
+             OR  togDynamic:CHECKED AND ENTRY(i,c_lbl_listD) = "D":U  THEN
+             ASSIGN c_tmp_listNew = c_tmp_listNew + (IF c_tmp_listNew = "" THEN "" ELSE ",") + ENTRY(i,c_tmp_list).
+        END.
+        DO i = 1 to NUM-ENTRIES(s_lbl_list,CHR(10)):
+          IF togStatic:CHECKED AND ENTRY(i,s_lbl_listD) = "S":U 
+             OR togDynamic:CHECKED AND ENTRY(i,s_lbl_listD) = "D":U  THEN
+             ASSIGN s_tmp_listNew = s_tmp_listNew + (IF s_tmp_listNew = "" THEN "" ELSE ",") + ENTRY(i,s_tmp_list).
+        END.
+        IF togContainer:CHECKED AND c_tmp_listNew NE "" THEN 
+           tmp_list = c_tmp_listNew.
+
+        IF togSO:CHECKED AND s_tmp_listNew NE "" THEN 
+          IF tmp_list NE "" THEN 
+             tmp_list = tmp_list + ",":U + s_tmp_listNew. 
+          ELSE 
+             tmp_list = s_tmp_listNew.
+
+        IF togProc:CHECKED AND p_tmp_list NE "" THEN 
+          IF tmp_list NE "" THEN 
+             tmp_list = tmp_list + ",":U + p_tmp_list. 
+          ELSE 
+             tmp_list = p_tmp_list.
+
+        IF togWO:CHECKED AND w_tmp_list NE "" THEN 
+          IF tmp_list NE "" THEN 
+             tmp_list = tmp_list + ",":U + w_tmp_list. 
+          ELSE 
+             tmp_list = w_tmp_list.
+        
+      END.
+
       ELSE DO:
         IF togContainer:CHECKED AND c_tmp_list NE "" THEN tmp_list = c_tmp_list.
         IF togSO:CHECKED AND s_tmp_list NE "" THEN 
@@ -816,10 +995,12 @@ PROCEDURE Get_FileName :
           ELSE tmp_list = w_tmp_list.
       END.
 
+
       ASSIGN pos      = s_objects:LOOKUP(selected)
              selected = ENTRY((pos - NUM-ENTRIES(ext_tmp_list,CHR(10))),tmp_list).                          
     END.  
   END.
+  
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -844,16 +1025,23 @@ DO WITH FRAME {&FRAME-NAME}:
       ASSIGN tmp_attr = ENTRY(1,tmp_attr,CHR(10)).
     FILE-INFO:FILE-NAME = TRIM(SUBSTRING(TRIM(tmp_attr),13,-1,"CHARACTER")).
     IF FILE-INFO:FULL-PATHNAME NE ? THEN DO:
+      /* Build list of _custom._name without ampersands removed */
+      ASSIGN c_lbl_listX = c_lbl_listX + CHR(10) + _custom._name
+             c_lbl_listD = c_lbl_listD + (IF c_lbl_listD = "" then "" else ",") + IF _custom._static_object then "S" ELSE "D".
       RUN Fix_Custom_Name (INPUT _custom._name, OUTPUT custom_name).
+
       ASSIGN c_lbl_list = c_lbl_list + CHR(10) + custom_name
              c_tmp_list = c_tmp_list + "," + FILE-INFO:FULL-PATHNAME.
+             
     END.
   END.
+  
  
   /* Load up Procedures */
   FOR EACH _custom WHERE _custom._type = "Procedure" :
     FILE-INFO:FILE-NAME = TRIM(SUBSTRING(TRIM(_attr),13,-1,"CHARACTER")).
     IF FILE-INFO:FULL-PATHNAME NE ? THEN DO:
+      ASSIGN p_lbl_listX = p_lbl_listX + CHR(10) + _custom._name.
       RUN Fix_Custom_Name (INPUT _custom._name, OUTPUT custom_name).
       ASSIGN p_lbl_list = p_lbl_list + CHR(10) + custom_name
              p_tmp_list = p_tmp_list + "," + FILE-INFO:FULL-PATHNAME.
@@ -861,12 +1049,14 @@ DO WITH FRAME {&FRAME-NAME}:
   END.
 
   /* Load up 'NEW-SMARTOBJECTS' */
-  FOR EACH _custom WHERE _custom._type = "SmartObject" BY _custom._name:
+  FOR EACH _custom WHERE _custom._type = "SmartObject":  /* BY _custom._name  - removed for Issue 2493 */ 
     IF LOOKUP(_custom._name, s_lbl_list) > 0 THEN NEXT. /* already there */
     DO i = 1 TO NUM-ENTRIES(_custom._attr,CHR(10)):
       IF ENTRY(i,_custom._attr,CHR(10)) BEGINS "NEW-TEMPLATE" THEN DO:
         FILE-INFO:FILE-NAME = TRIM(SUBSTRING(TRIM(ENTRY(i,_custom._attr,CHR(10))),13,-1,"CHARACTER")).
         IF FILE-INFO:FULL-PATHNAME NE ? THEN DO:
+          ASSIGN s_lbl_listX = s_lbl_listX + CHR(10) + _custom._name.
+                 s_lbl_listD = s_lbl_listD + (IF s_lbl_listD = "" then "" else ",") + IF _custom._static_object then "S" ELSE "D".
           RUN Fix_Custom_Name (INPUT _custom._name, OUTPUT custom_name).
           ASSIGN s_lbl_list = s_lbl_list + CHR(10) + custom_name
                  s_tmp_list = s_tmp_list + "," + FILE-INFO:FULL-PATHNAME.
@@ -874,7 +1064,7 @@ DO WITH FRAME {&FRAME-NAME}:
       END.
     END.      
   END.
-
+  
   /* Load up 'NEW-WEBOBJECTS' */
   FOR EACH _custom WHERE _custom._type = "WebObject" BY _custom._name:
     IF LOOKUP(_custom._name, w_lbl_list) > 0 THEN NEXT. /* already there */
@@ -882,6 +1072,7 @@ DO WITH FRAME {&FRAME-NAME}:
       IF ENTRY(i,_custom._attr,CHR(10)) BEGINS "NEW-TEMPLATE" THEN DO:
         FILE-INFO:FILE-NAME = TRIM(SUBSTRING(TRIM(ENTRY(i,_custom._attr,CHR(10))),13,-1,"CHARACTER":U)).
         IF FILE-INFO:FULL-PATHNAME NE ? THEN DO:
+          ASSIGN w_lbl_listX = w_lbl_listX + CHR(10) + _custom._name .
           RUN Fix_Custom_Name (INPUT _custom._name, OUTPUT custom_name).
           ASSIGN w_lbl_list = w_lbl_list + CHR(10) + custom_name
                  w_tmp_list = w_tmp_list + ",":U + FILE-INFO:FULL-PATHNAME.
@@ -892,12 +1083,16 @@ DO WITH FRAME {&FRAME-NAME}:
 
   /* Remove leading delimiter from lists */
   ASSIGN c_lbl_list = LEFT-TRIM(c_lbl_list, CHR(10))
+         c_lbl_listX = LEFT-TRIM(c_lbl_listX, CHR(10))
          c_tmp_list = LEFT-TRIM(c_tmp_list, ",":U)
          s_lbl_list = LEFT-TRIM(s_lbl_list, CHR(10))
+         s_lbl_listX = LEFT-TRIM(s_lbl_listX, CHR(10))
          s_tmp_list = LEFT-TRIM(s_tmp_list, ",":U)
          p_lbl_list = LEFT-TRIM(p_lbl_list, CHR(10))
+         p_lbl_listX = LEFT-TRIM(p_lbl_listX, CHR(10))
          p_tmp_list = LEFT-TRIM(p_tmp_list, ",":U)
          w_lbl_list = LEFT-TRIM(w_lbl_list, CHR(10))
+         w_lbl_listX = LEFT-TRIM(w_lbl_listX, CHR(10))
          w_tmp_list = LEFT-TRIM(w_tmp_list, ",":U).
 
   /* Hide toggles and Show box if WebSpeed only is licensed */
@@ -907,7 +1102,9 @@ DO WITH FRAME {&FRAME-NAME}:
            togProc:VISIBLE      = FALSE
            togWO:VISIBLE        = FALSE
            rect-4:VISIBLE       = FALSE
-           show-text:VISIBLE    = FALSE.
+           show-text:VISIBLE    = FALSE
+           togDynamic:VISIBLE   = FALSE
+           togStatic:VISIBLE    = FALSE.
   ELSE DO:
     IF _AB_license EQ 1 THEN
       ASSIGN togContainer:ROW       = togContainer:ROW + .3
@@ -921,7 +1118,8 @@ DO WITH FRAME {&FRAME-NAME}:
              togProc:SENSITIVE      = TRUE
              togWO:VISIBLE          = FALSE
              rect-4:VISIBLE         = TRUE
-             show-text:VISIBLE      = TRUE.
+             show-text:VISIBLE      = TRUE
+             .
     ELSE
       ASSIGN togContainer:VISIBLE   = TRUE
              togContainer:SENSITIVE = TRUE
@@ -933,13 +1131,29 @@ DO WITH FRAME {&FRAME-NAME}:
              togWO:SENSITIVE        = TRUE
              rect-4:VISIBLE         = TRUE
              show-text:VISIBLE      = TRUE.
-    DISPLAY show-text.
+  /*  DISPLAY show-text.*/
 
+    IF NOT enable-icf THEN
+       ASSIGN togStatic:VISIBLE    = FALSE
+              togDynamic:VISIBLE   = FALSE
+              togStatic:SENSITIVE  = FALSE
+              togDynamic:SENSITIVE = FALSE.
+    ELSE
+      ASSIGN togStatic:VISIBLE    = TRUE
+             togDynamic:VISIBLE   = TRUE
+             togStatic:SENSITIVE  = TRUE
+             togDynamic:SENSITIVE = TRUE.
     /* Initialize the toggles */
     ASSIGN togContainer:CHECKED = _file_new_config MOD 2 = 1
            togSO:CHECKED        = _file_new_config MOD 4 > 1
            togProc:CHECKED      = _file_new_config MOD 8 > 3
-           togWO:CHECKED        = _file_new_config > 7.
+           togWO:CHECKED        = _file_new_config MOD 16 > 7
+           togDynamic:CHECKED   = _file_new_config MOD 32 > 15
+           togStatic:CHECKED    = _file_new_config MOD 64 > 31.
+    
+     IF  _file_new_config <= 15 THEN
+        ASSIGN togDynamic:CHECKED = TRUE
+               togStatic:CHECKED  = TRUE.
 
     /* Desensitize toggles that have null lists */
     ASSIGN togContainer:SENSITIVE = c_lbl_list NE ""
@@ -949,8 +1163,25 @@ DO WITH FRAME {&FRAME-NAME}:
       ASSIGN togWO:SENSITIVE      = w_lbl_list NE "".
          
   END. /* If the toggles are showing */
+  IF togDynamic:VISIBLE = FALSE THEN
+     ASSIGN rect-7:VISIBLE         = FALSE
+            togContainer:ROW       = togContainer:ROW + 1.9
+            togSO:ROW              = togSO:ROW + 1.9
+            togProc:ROW            = togProc:ROW + 1.9
+            togWO:ROW              = togWO:ROW + 1.9
+            togDynamic:ROW         = togDynamic:ROW + 1.9
+            togStatic:ROW          = togStatic:ROW + 1.9
+            rect-4:ROW             = rect-4:ROW + 1.9
+            rect-4:HEIGHT          = rect-4:HEIGHT - 1.9
+            show-text:ROW          = show-text:ROW + 1.9.
+
+  APPLY "ENTRY":U TO s_objects.
+
   /* Get the four values of the toggles from the registry here */  
+  
   APPLY "VALUE-CHANGED" TO togContainer.
+
+
 END.
 END PROCEDURE.
 
@@ -983,13 +1214,16 @@ PROCEDURE showProductModule :
     tmp-hdl = tmp-hdl:NEXT-SIBLING. /* get the next widget */
   END.
   
-  /* IZ 3195 POPULATE cb_productModule HERE...Calls function defined by Repository API
-     session super procedure started by adeuib/_abfuncs.w (ry/app/ryreposobp.p). */
-  ASSIGN pm-list = DYNAMIC-FUNCTION("productModuleList":U) NO-ERROR.
+  /* IZ 3195 POPULATE cb_productModule HERE...Calls function defined by Repository Manager */
+  getRDMHandle().
+  IF VALID-HANDLE(ghRepositoryDesignManager) THEN
+    ASSIGN pm-list = DYNAMIC-FUNCTION("productModuleList":U IN ghRepositoryDesignManager) NO-ERROR.
   ASSIGN pm-list = TRIM(pm-list, ",").
   
   ASSIGN cb_productModule:LIST-ITEMS = pm-list.
-  ASSIGN cb_productModule = DYNAMIC-FUNC("getCurrentProductModule":U) NO-ERROR. /* current prod module */
+  getRDMHandle().
+  IF VALID-HANDLE(ghRepositoryDesignManager) THEN
+    ASSIGN cb_productModule = DYNAMIC-FUNC("getCurrentProductModule":U IN ghRepositoryDesignManager) NO-ERROR. /* current prod module */
   /* If there isn't a current product module or the most recent one isn't among
      the existing valid ones, then just use the first entry. */
   IF (cb_productModule = "") OR (LOOKUP(cb_productModule, pm-list) = 0) THEN
@@ -1011,6 +1245,25 @@ PROCEDURE showProductModule :
   RUN changeProductModuleState (INPUT productModule-Create:CHECKED).
 
 END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+/* ************************  Function Implementations ***************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getRDMHandle d_newobj 
+FUNCTION getRDMHandle RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  
+  ASSIGN ghRepositoryDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U, INPUT "RepositoryDesignManager":U).
+
+  RETURN TRUE.   /* Function return value. */
+
+END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

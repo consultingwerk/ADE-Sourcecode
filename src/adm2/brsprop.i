@@ -139,9 +139,24 @@ NumDown,CalcWidth,MaxWidth,FetchOnReposToEnd
   &GLOB xpToolbarSource
   &GLOB xpToolbarSourceEvents
   &GLOB xpFetchOnReposToEnd
-  
+  &GLOB xpPopupActive
+  &GLOB xpMovableHandle
+  &GLOB xpSortableHandle
+  &GLOB xpSavedColumnData
+  &GLOB xpDefaultColumnData
+  &GLOB xpSeparators
+  &GLOB xpBrowseColumnBGColors
+  &GLOB xpBrowseColumnFGColors
+  &GLOB xpBrowseColumnLabelBGColors
+  &GLOB xpBrowseColumnLabelFGColors
+  &GLOB xpBrowseColumnLabelFonts
+  &GLOB xpBrowseColumnLabels
+  &GLOB xpBrowseColumnWidths
+   
   {src/adm2/dvisprop.i}
 
+IF NOT {&ADM-PROPS-DEFINED} THEN
+DO:
 &IF "{&ADMSuper}":U = "":U &THEN
   ghADMProps:ADD-NEW-FIELD('BrowseHandle':U, 'HANDLE':U). 
   ghADMProps:ADD-NEW-FIELD('BrowseInitted':U, 'LOGICAL':U, 0, ?, no).
@@ -164,9 +179,28 @@ NumDown,CalcWidth,MaxWidth,FetchOnReposToEnd
     'toolbar,okObject,cancelObject':U).
   ghADMProps:ADD-NEW-FIELD('PrintPreviewActive':U, 'LOGICAL':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('FetchOnReposToEnd':U, 'LOGICAL':U, 0, ?,YES).
+  ghADMProps:ADD-NEW-FIELD('PopupActive':U, 'LOGICAL':U, 0, ?, YES).
+  ghADMProps:ADD-NEW-FIELD('ColumnsMovable':U, 'LOGICAL':U ,0, ?, NO).
+  ghADMProps:ADD-NEW-FIELD('ColumnsSortable':U, 'LOGICAL':U, 0, ?, NO).
+  ghADMProps:ADD-NEW-FIELD('MovableHandle':U, 'HANDLE':U).
+  ghADMProps:ADD-NEW-FIELD('SortableHandle':U, 'HANDLE':U).
+  ghADMProps:ADD-NEW-FIELD('SavedColumnData':U, 'CHAR':U).
+  ghADMProps:ADD-NEW-FIELD('DefaultColumnData':U, 'CHAR':U).
+  ghADMProps:ADD-NEW-FIELD('Separators':U, 'LOGICAL':U, 0, ?, YES).
+  ghADMProps:ADD-NEW-FIELD('BrowseColumnBGColors':U,'CHAR':U).
+  ghADMProps:ADD-NEW-FIELD('BrowseColumnFGColors':U,'CHAR':U).
+  ghADMProps:ADD-NEW-FIELD('BrowseColumnLabelBGColors':U,'CHAR':U).
+  ghADMProps:ADD-NEW-FIELD('BrowseColumnLabelFGColors':U,'CHAR':U).
+  ghADMProps:ADD-NEW-FIELD('BrowseColumnLabelFonts':U,'CHAR':U).
+  ghADMProps:ADD-NEW-FIELD('BrowseColumnLabels':U,'CHAR':U).
+  ghADMProps:ADD-NEW-FIELD('BrowseColumnWidths':U,'CHAR':U).
+  ghADMProps:ADD-NEW-FIELD('BrowseColumnFormats':U,'CHARACTER':U).
+  ghADMProps:ADD-NEW-FIELD('BrowseColumnFonts':U,'CHARACTER':U).
+
 &ENDIF
 
   {src/adm2/custom/brspropcustom.i}
+END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

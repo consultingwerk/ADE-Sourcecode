@@ -130,6 +130,9 @@ MapTypeProducer,DTDPublicIdList,DTDSystemIdList
     
   {src/adm2/xmlprop.i}
  
+IF NOT {&ADM-PROPS-DEFINED} THEN
+DO:
+
 &IF "{&ADMSuper}":U = "":U &THEN
   ghADMProps:ADD-NEW-FIELD('DestinationList':U, 'CHAR':U, 0).
   ghADMProps:ADD-NEW-FIELD('DirectionList':U, 'CHAR':U, 0).
@@ -151,6 +154,7 @@ MapTypeProducer,DTDPublicIdList,DTDSystemIdList
 &ENDIF
 
   {src/adm2/custom/b2bpropcustom.i}
+END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

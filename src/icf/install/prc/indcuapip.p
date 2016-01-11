@@ -24,7 +24,7 @@
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
-  File: rydcuplipp.p
+  File:         indcuapip.p
 
   Description:  Dynamics Configuration Plip
 
@@ -57,10 +57,9 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /* Astra object identifying preprocessor */
 &glob   AstraPlip    yes
 
-{afglobals.i}
+{src/adm2/globals.i}
 
 DEFINE VARIABLE cObjectName         AS CHARACTER NO-UNDO.
-DEFINE VARIABLE ghUIUtil            AS HANDLE     NO-UNDO.
 
 ASSIGN cObjectName = "{&object-name}":U.
 
@@ -151,22 +150,11 @@ FUNCTION getSpecialFolder RETURNS CHARACTER
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-obtainDBVersionNo) = 0 &THEN
+&IF DEFINED(EXCLUDE-showStatus) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD obtainDBVersionNo Procedure 
-FUNCTION obtainDBVersionNo RETURNS CHARACTER
-  ( INPUT pclDBName AS CHARACTER )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setUIUtilHandle) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setUIUtilHandle Procedure 
-FUNCTION setUIUtilHandle RETURNS LOGICAL
-  ( INPUT phUIUtil AS HANDLE )  FORWARD.
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD showStatus Procedure 
+FUNCTION showStatus RETURNS LOGICAL
+  ( INPUT pcStatus AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -273,7 +261,7 @@ DEFINE BUFFER bbValue FOR ttValue.
                     + (IF cDBsToSetup = "":U THEN "":U ELSE ",":U)
                     + cDB.
       cValue = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
-                                "create":U + cDB).
+                                "load":U + cDB).
       IF cValue = "YES":U THEN
         ASSIGN
           cDBsToCreate = cDBsToCreate 
@@ -319,20 +307,31 @@ DEFINE BUFFER bbValue FOR ttValue.
     CREATE ALIAS "DICTDB":U FOR DATABASE VALUE(cDB).
     IF CAN-DO(cDBsToCreate,cDB) THEN
     DO:
+      cLogFile = "dcu.log".
+      OUTPUT STREAM sLogFile TO VALUE(cLogFile).
+      showStatus(SUBSTITUTE("Creating database &1",cDB)).
       RUN prodict/load_df.p (INPUT addPath(cPathDF,cDB + "full.df":U)) NO-ERROR.
       {install/inc/indcuerr.i &LOGFILE=YES}
+      showStatus(SUBSTITUTE("Loaded database definitions for &1",cDB)).
       RUN prodict/load_d.p (INPUT "ALL", INPUT cPathDump) NO-ERROR.
       {install/inc/indcuerr.i &LOGFILE=YES}
+      showStatus(SUBSTITUTE("Loaded table contents for &1",cDB)).
+
+      /* This doesn't work. 
       RUN setSeqValues(INPUT cDB, INPUT cPathSeq) NO-ERROR.
       {install/inc/indcuerr.i &LOGFILE=YES}
+         */
 
       /*Set Site number*/
       FOR EACH ttValue NO-LOCK
         WHERE ttValue.cGroup = cDB
           AND ttValue.cVariable = "SiteNo":U:
         RUN setSiteNumber(INPUT cDB, INPUT INTEGER(ttValue.cValue)) NO-ERROR.
-        {install/inc/indcuerr.i}
+        {install/inc/indcuerr.i &LOGFILE=YES}
+        showStatus(SUBSTITUTE("Set site number &2 for &1",cDB,ttValue.cValue)).
       END.
+      showStatus(SUBSTITUTE("Complete setup of database &1",cDB)).
+      OUTPUT STREAM sLogFile CLOSE.
     END.
     ELSE
     DO:
@@ -348,8 +347,7 @@ DEFINE BUFFER bbValue FOR ttValue.
             lCreate    = CAN-DO(cDBsToCreate,ttValue.cGroup)
           .    
           OUTPUT STREAM sLogFile TO VALUE(cLogFile).
-          PUT STREAM sLogFile UNFORMATTED
-            SUBSTITUTE("*** Processing patch &1. &2 &3",cListValue,STRING(TODAY,"99/99/9999"),STRING(TIME,"HH:mm:ss")) SKIP.
+          showStatus(SUBSTITUTE("Processing patch &1.",cListValue)).
       
           RUN readPatchFile (INPUT cDB = "ICFDB":U, 
                              INPUT cSrcPath, 
@@ -357,8 +355,7 @@ DEFINE BUFFER bbValue FOR ttValue.
                              INPUT lCreate) NO-ERROR.
       
           {install/inc/indcuerr.i &LOGFILE=YES}
-          PUT STREAM sLogFile UNFORMATTED
-            SUBSTITUTE("*** Completed patch &1. &2 &3",cListValue,STRING(TODAY,"99/99/9999"),STRING(TIME,"HH:mm:ss")) SKIP.
+          showStatus(SUBSTITUTE("Completed patch &1.",cListValue)).
           OUTPUT STREAM sLogFile CLOSE.
         END.
       END.
@@ -451,67 +448,67 @@ DEFINE VARIABLE cStatus        AS CHARACTER  NO-UNDO.
 
   ASSIGN
     cStartMenuPath = GetSpecialFolder(11)
-    cDynamicsPath  = addPath(cStartMenuPath,"Programs\Progress Dynamics")
-    cDynamicsParm  = " -p icfstart.p -pf icf.pf -ini " + pcIcfPath + "\bin\icf.ini"
+    cDynamicsPath  = addPath(cStartMenuPath,"Programs~\Progress Dynamics")
+    cDynamicsParm  = " -p icfstart.p -pf icf.pf -ini " + pcIcfPath + "~\bin~\icf.ini"
     .
 
   OS-COMMAND SILENT NO-CONSOLE VALUE('mkdir "' + cDynamicsPath + '"').
 
   RUN CreateShortCut(
-    cDynamicsPath + "\Dynamics Runtime.lnk",
-    pcDlcPath + "\bin\prowin32.exe ",
+    cDynamicsPath + "~\Dynamics Runtime.lnk",
+    pcDlcPath + "~\bin\prowin32.exe ",
     cDynamicsParm,
     pcWrkPath,
-    pcICFPath + "\gui\adeicon\icfrt.ico").
+    pcICFPath + "~\gui~\adeicon~\icfrt.ico").
 
   RUN CreateShortCut(
-    cDynamicsPath + "\Dynamics Runtime Appserver.lnk",
-    pcDlcPath + "\bin\prowin32.exe ",
+    cDynamicsPath + "~\Dynamics Runtime Appserver.lnk",
+    pcDlcPath + "~\bin~\prowin32.exe ",
     cDynamicsParm + "  -icfparam ICFSESSTYPE=ICFRuntime ",
     pcWrkPath,
-    pcICFPath + "\gui\adeicon\icfrt.ico").
+    pcICFPath + "~\gui~\adeicon~\icfrt.ico").
 
   RUN CreateShortCut(
-    cDynamicsPath + "\Dynamics Development.lnk",
-    pcDlcPath + "\bin\prowin32.exe ",
+    cDynamicsPath + "~\Dynamics Development.lnk",
+    pcDlcPath + "~\bin~\prowin32.exe ",
     cDynamicsParm + "  -icfparam ICFSESSTYPE=ICFDev ",
     pcWrkPath,
-    pcICFPath + "\gui\adeicon\icdev.ico").
+    pcICFPath + "~\gui~\adeicon~\icdev.ico").
 
   RUN CreateShortCut(
-    cDynamicsPath + "\Dynamics Development Appserver.lnk",
-    pcDlcPath + "\bin\prowin32.exe ",
+    cDynamicsPath + "~\Dynamics Development Appserver.lnk",
+    pcDlcPath + "~\bin~\prowin32.exe ",
     cDynamicsParm + "  -icfparam ICFSESSTYPE=ICFDevAS ",
     pcWrkPath,
-    pcICFPath + "\gui\adeicon\icfdevas.ico").
+    pcICFPath + "~\gui~\adeicon~\icfdevas.ico").
 
   RUN CreateShortCut(
-    cDynamicsPath + "\Dynamics Configuration Utility.lnk",
-    pcDlcPath + "\bin\prowin32.exe ",
-    " -ini " + pcICFPath + "\bin\icf.ini -p icfcfg.w -icfparam DCUSETUPTYPE=POSSESetup ",
+    cDynamicsPath + "~\Dynamics Configuration Utility.lnk",
+    pcDlcPath + "~\bin~\prowin32.exe ",
+    " -ini " + pcICFPath + "~\bin~\icf.ini -p icfcfg.w -icfparam DCUSETUPTYPE=POSSESetup ",
     pcWrkPath,
-    pcICFPath + "\gui\adeicon\icfrt.ico").
+    pcICFPath + "~\gui~\adeicon~\icfrt.ico").
 
   RUN CreateShortCut(
-    cDynamicsPath + "\Dynamics Database Startup.lnk",
-    pcICFPath + "\bin\startdbs.bat",
+    cDynamicsPath + "~\Dynamics Database Startup.lnk",
+    pcICFPath + "~\bin~\startdbs.bat",
     "",
     pcWrkPath,
-    pcICFPath + "\gui\adeicon\startdbs.ico").
+    pcICFPath + "~\gui~\adeicon~\startdbs.ico").
 
   RUN CreateShortCut(
-    cDynamicsPath + "\Dynamics Database Shutdown.lnk",
-    pcICFPath + "\bin\stopdbs.bat",
+    cDynamicsPath + "~\Dynamics Database Shutdown.lnk",
+    pcICFPath + "~\bin~\stopdbs.bat",
     "",
     pcWrkPath,
-    pcICFPath + "\gui\adeicon\stopdbs.ico").
+    pcICFPath + "~\gui~\adeicon~\stopdbs.ico").
 
   RUN CreateShortCut(
-    cDynamicsPath + "\Dynamics Config File.lnk",
-    pcICFPath + "\showcfg.exe",
+    cDynamicsPath + "~\Dynamics Config File.lnk",
+    pcICFPath + "~\showcfg.exe",
     "",
     pcWrkPath,
-    pcICFPath + "\gui\adeicon\progress.ico").
+    pcICFPath + "~\gui~\adeicon~\progress.ico").
 
   ASSIGN
     cStatus = SUBSTITUTE("Createded shortcuts in &1":U,cDynamicsPath).
@@ -617,103 +614,6 @@ END PROCEDURE.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getPatchFiles) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getPatchFiles Procedure 
-PROCEDURE getPatchFiles :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-DEFINE INPUT  PARAMETER pclDBName     AS CHARACTER  NO-UNDO.
-DEFINE INPUT  PARAMETER pcStartFolder AS CHARACTER  NO-UNDO.
-DEFINE OUTPUT PARAMETER pcFileList    AS CHARACTER  NO-UNDO.
-
-DEFINE VARIABLE iLoop AS INTEGER    NO-UNDO.
-DEFINE VARIABLE cEntry      AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cFullName   AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cType       AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cVersion    AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cFileVersion AS CHARACTER  NO-UNDO.
-
-/* First figure out what the current database version number is */
-  cVersion = obtainDBVersionNo(pclDBName).
-
-  INPUT STREAM sInput FROM OS-DIR(pcStartFolder).
-  REPEAT:
-      IMPORT STREAM sInput 
-          cEntry
-          cFullName
-          cType.
-      IF cType = "F" AND cEntry MATCHES "*.pfl" THEN
-      DO:
-        /* Shorten the file name to only contain the actual file */
-        cFileVersion = REPLACE(cFullName,pcStartFolder,"":U).
-        IF SUBSTRING(cFileVersion,1,1) = "/":U OR
-           SUBSTRING(cFileVersion,1,1) = "~\":U THEN
-          cFileVersion = SUBSTRING(cFileVersion,2).
-
-        /* Retrieve the version number of the patch file from the file name.
-           We're assuming a format of ldbname + version(6 characters) + whatever */ 
-        cFileVersion = SUBSTRING(cFileVersion,LENGTH(pclDBName) + 1,6).
-
-        /* If the version number of the file is less than the version number of 
-           the database, ignore it. */
-        IF INTEGER(cFileVersion) <= INTEGER(cVersion) THEN
-          NEXT.
-        
-        ASSIGN
-          pcFileList = pcFileList + CHR(3) WHEN pcFileList <> "":U
-          pcFileList = pcFileList + cFullName
-        .
-      END.
-  END.
-  INPUT STREAM sInput CLOSE.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-killManagers) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE killManagers Procedure 
-PROCEDURE killManagers :
-/*------------------------------------------------------------------------------
-  Purpose:     Shuts down the managers.
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  
-    /* Shutdown the ICF managers */
-  IF VALID-HANDLE(gshGenManager)          THEN 
-    APPLY "CLOSE":U TO gshGenManager.
-  IF VALID-HANDLE(gshTranslationManager)  THEN 
-    APPLY "CLOSE":U TO gshTranslationManager.
-  IF VALID-HANDLE(gshRepositoryManager)   THEN 
-    APPLY "CLOSE":U TO gshRepositoryManager.
-  IF VALID-HANDLE(gshProfileManager)      THEN 
-    APPLY "CLOSE":U TO gshProfileManager.
-  IF VALID-HANDLE(gshSecurityManager)     THEN 
-    APPLY "CLOSE":U TO gshSecurityManager.
-  IF VALID-HANDLE(gshSessionManager)      THEN 
-    APPLY "CLOSE":U TO gshSessionManager.
-
-  DELETE ALIAS AFDB.
-  DELETE ALIAS ASDB.
-  DELETE ALIAS RYDB.
-
-  ERROR-STATUS:ERROR = NO.
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-readPatchFile) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE readPatchFile Procedure 
@@ -723,7 +623,6 @@ PROCEDURE readPatchFile :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-DEFINE INPUT  PARAMETER plStartManagers AS LOGICAL    NO-UNDO.
 DEFINE INPUT  PARAMETER pcPatchPath AS CHARACTER  NO-UNDO.
 DEFINE INPUT  PARAMETER pcPatchFile AS CHARACTER  NO-UNDO.
 DEFINE INPUT  PARAMETER plCreate    AS LOGICAL    NO-UNDO.
@@ -731,7 +630,7 @@ DEFINE INPUT  PARAMETER plCreate    AS LOGICAL    NO-UNDO.
   IF SEARCH(pcPatchFile) = ? THEN
     RETURN ERROR SUBSTITUTE("ERROR: The patch file &1 could not be located",pcPatchFile).
   
-  EMPTY TEMP-TABLE ttPatchFile.
+  IF NOT TRANSACTION THEN EMPTY TEMP-TABLE ttPatchFile. ELSE FOR EACH ttPatchFile: DELETE ttPatchFile. END.
   
   INPUT STREAM sPatchFile FROM VALUE(pcPatchFile) NO-ECHO.
     REPEAT:
@@ -747,17 +646,11 @@ DEFINE INPUT  PARAMETER plCreate    AS LOGICAL    NO-UNDO.
         updateStatus(INPUT "Start",INPUT pcPatchFile,INPUT ttPatchFile.ttLine,INPUT ttPatchFile.ttDescription).
         CASE ttPatchFile.ttAction:
           WHEN "CLI" THEN DO:
-            IF plStartManagers THEN
-              RUN startManagers.
             RUN VALUE(addPath(pcPatchPath,ttPatchFile.ttFilename)) NO-ERROR.
-            RUN killManagers.
             {install/inc/indcuerr.i &LOGFILE=YES}
           END.
           WHEN "SRV" THEN DO:
-            IF plStartManagers THEN
-              RUN startManagers.
             RUN VALUE(addPath(pcPatchPath,ttPatchFile.ttFilename)) NO-ERROR.
-            RUN killManagers.
             {install/inc/indcuerr.i &LOGFILE=YES}
           END.
           WHEN "DFD" THEN DO:
@@ -767,12 +660,6 @@ DEFINE INPUT  PARAMETER plCreate    AS LOGICAL    NO-UNDO.
           WHEN "DAT" THEN DO:
             RUN prodict\load_d.p (INPUT "ALL", INPUT addPath(pcPatchPath,ttPatchFile.ttFilename)) NO-ERROR.
             {install/inc/indcuerr.i &LOGFILE=YES}
-          END.
-          WHEN "NEW" THEN DO:
-            IF plCreate THEN DO:
-              RUN prodict\load_d.p (INPUT "ALL", INPUT addPath(pcPatchPath,ttPatchFile.ttFilename)) NO-ERROR.
-              {install/inc/indcuerr.i &LOGFILE=YES}
-            END.
           END.
         END CASE.
         updateStatus(INPUT "Done ",INPUT pcPatchFile,INPUT ttPatchFile.ttLine,INPUT ttPatchFile.ttDescription).
@@ -832,13 +719,13 @@ PROCEDURE setSiteNumber :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-DEFINE INPUT  PARAMETER pcDbName     AS CHARACTER  NO-UNDO.
-DEFINE INPUT  PARAMETER piSiteNumber AS CHARACTER  NO-UNDO.
-
-DEFINE VARIABLE cCalReverseICF  AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cCalDivisionICF AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE iLoop           AS INTEGER    NO-UNDO.
-DEFINE VARIABLE cStatus         AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER pcDbName     AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER piSiteNumber AS CHARACTER  NO-UNDO.
+  
+  DEFINE VARIABLE cCalReverseICF  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cCalDivisionICF AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iLoop           AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cStatus         AS CHARACTER  NO-UNDO.
   
   DO iLoop = LENGTH(STRING(piSiteNumber)) TO 1 BY -1:
     cCalReverseICF = cCalReverseICF + SUBSTRING(STRING(piSiteNumber),iLoop,1).
@@ -851,39 +738,12 @@ DEFINE VARIABLE cStatus         AS CHARACTER  NO-UNDO.
   RUN VALUE("install/prc/in":U + pcDBName + "sitep.p":U)
       (INPUT cCalReverseICF,INPUT cCalDivisionICF) NO-ERROR. 
   
-/*  RUN install/prc/indcuseqp.p(INPUT pcDbName, INPUT cCalReverseICF,INPUT cCalDivisionICF) NO-ERROR. */
   {install/inc/indcuerr.i}
 
   ASSIGN
     cStatus = SUBSTITUTE("Updated Site Numbers in &1 to &2":U,pcDbName,STRING(piSiteNumber)).
   PUBLISH "updateStatus":U FROM THIS-PROCEDURE (INPUT cStatus).
 
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-startManagers) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE startManagers Procedure 
-PROCEDURE startManagers :
-/*------------------------------------------------------------------------------
-  Purpose:     Initializes the environment to start the managers.
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  CREATE ALIAS AFDB           FOR DATABASE VALUE("ICFDB":U).
-  CREATE ALIAS ASDB           FOR DATABASE VALUE("ICFDB":U).
-  CREATE ALIAS RYDB           FOR DATABASE VALUE("ICFDB":U).
-
-  RUN af/app/afsessrvrp.p PERSISTENT SET gshSessionManager.
-  RUN af/app/afgensrvrp.p PERSISTENT SET gshGenManager.
-  RUN af/app/afprosrvrp.p PERSISTENT SET gshProfileManager.
-  RUN ry/app/ryrepsrvrp.p PERSISTENT SET gshRepositoryManager. 
-  RUN af/app/afsecsrvrp.p PERSISTENT SET gshSecurityManager.
-  RUN af/app/aftrnsrvrp.p PERSISTENT SET gshTranslationManager.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -909,13 +769,13 @@ DEFINE VARIABLE cReturn AS CHARACTER  NO-UNDO.
         pcPath = TRIM(pcPath)
         pcFile = TRIM(pcFile).
 
-    IF NOT CAN-DO("\,/",SUBSTRING(pcPath,LENGTH(pcPath),1)) AND 
-       NOT CAN-DO("\,/",SUBSTRING(pcFile,1,1)) THEN
-       cReturn = TRIM(pcPath + "\":U + pcFile).
+    IF NOT CAN-DO("~\,/",SUBSTRING(pcPath,LENGTH(pcPath),1)) AND 
+       NOT CAN-DO("~\,/",SUBSTRING(pcFile,1,1)) THEN
+       cReturn = TRIM(pcPath + "~\":U + pcFile).
     ELSE
        cReturn = TRIM(pcPath + pcFile).
 
-    RETURN REPLACE(REPLACE(cReturn,"\\":U,"\":U),"//":U,"/":U).
+    RETURN REPLACE(REPLACE(cReturn,"~\~\":U,"~\":U),"//":U,"/":U).
 
 END FUNCTION.
 
@@ -975,67 +835,24 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-obtainDBVersionNo) = 0 &THEN
+&IF DEFINED(EXCLUDE-showStatus) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION obtainDBVersionNo Procedure 
-FUNCTION obtainDBVersionNo RETURNS CHARACTER
-  ( INPUT pclDBName AS CHARACTER ) :
-/*------------------------------------------------------------------------------
-  Purpose:  Determines the version number from the database sequences.
-    Notes:  
-------------------------------------------------------------------------------*/
-
-  DEFINE VARIABLE hQuery   AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hBuffer  AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hVersion AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cQuery   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cVersion AS CHARACTER  NO-UNDO.
-
-  CREATE BUFFER hBuffer FOR TABLE pclDBName + "._sequence":U.
-
-  hVersion = hBuffer:BUFFER-FIELD("_seq-max":U).
-
-  cQuery = "FOR EACH _Sequence WHERE _Sequence._Seq-name = 'seq_":U 
-         + pclDBName 
-         + "_DBVersion' NO-LOCK":U.
-
-  CREATE QUERY hQuery.
-
-  hQuery:ADD-BUFFER(hBuffer).
-  hQuery:QUERY-PREPARE(cQuery).
-  hQuery:QUERY-OPEN().
-  hQuery:GET-FIRST().
-
-  IF NOT hQuery:QUERY-OFF-END THEN
-    cVersion = STRING(hVersion:BUFFER-VALUE,"999999":U).
-  ELSE
-    cVersion = "000000":U.
-
-  hQuery:QUERY-CLOSE().
-  DELETE OBJECT hQuery.
-  DELETE OBJECT hBuffer.
- 
-  RETURN cVersion.   /* Function return value. */
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setUIUtilHandle) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setUIUtilHandle Procedure 
-FUNCTION setUIUtilHandle RETURNS LOGICAL
-  ( INPUT phUIUtil AS HANDLE ) :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION showStatus Procedure 
+FUNCTION showStatus RETURNS LOGICAL
+  ( INPUT pcStatus AS CHARACTER ) :
 /*------------------------------------------------------------------------------
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  ghUIUtil = phUIUtil.
 
-  RETURN TRUE.   /* Function return value. */
+  PUBLISH "DCU_SetStatus":U FROM THIS-PROCEDURE (INPUT pcStatus).
+
+  pcStatus = "[":U + STRING(TODAY,"99/99/9999":U) + " ":U + STRING(TIME,"HH:MM:SS":U) + "]  ":U
+          + pcStatus.
+  PUT STREAM sLogFile UNFORMATTED
+    pcStatus SKIP.
+  
+  RETURN FALSE.   /* Function return value. */
 
 END FUNCTION.
 
@@ -1056,8 +873,8 @@ FUNCTION updateStatus RETURNS LOGICAL
   Purpose:  Updates the processing status bar and information in the schema
     Notes:  
 ------------------------------------------------------------------------------*/
-DEFINE VARIABLE cLogFile AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cStatus  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cLogFile AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cStatus  AS CHARACTER  NO-UNDO.
 
   IF TRIM(pcLine) <> "":U THEN DO:
 
@@ -1065,11 +882,7 @@ DEFINE VARIABLE cStatus  AS CHARACTER  NO-UNDO.
       cLogFile = REPLACE(pcPatchFile,".pfl":U,".log:U")
       cStatus  = SUBSTITUTE("&1: Line &2 (&3) in &4",pcVerb,pcLine,pcDescription,pcPatchFile).
 
-    PUBLISH "updateStatus":U FROM THIS-PROCEDURE (INPUT cStatus).
-
-    PUT STREAM sLogFile UNFORMATTED
-      cStatus SKIP.
-
+    showStatus(cStatus).
   END.
 
   RETURN TRUE.   /* Function return value. */

@@ -184,6 +184,11 @@ do:
 	"Note: This file is frozen and cannot be modified.".
       s_Idx_ReadOnly = true.
    end.
+   ELSE IF _File._Db-lang > {&TBLTYP_SQL} THEN DO:
+      s_Status:screen-value in frame idxprops =
+   	 "Note: PROGRESS/SQL92 table cannot be modified.".
+      s_Idx_ReadOnly = true.
+   END.
 end.
 
 /* Setup field list and it's labels */

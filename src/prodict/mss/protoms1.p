@@ -85,7 +85,7 @@ IF batch_mode THEN DO:
        "Progress Schema Holder name:           " osh_dbname skip
        "MSS Username:                         " mss_username skip
        "Compatible structure:                  " pcompatible skip
-       "Use Sql Width for Size of field:       " sqlwidth skip
+       "Use Width field for Size of field:    " sqlwidth skip
        "Create objects in MSS:                " loadsql skip
        "Moved data to MSS:                    " movedata skip(2).
 END.

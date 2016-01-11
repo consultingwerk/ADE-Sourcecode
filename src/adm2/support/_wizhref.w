@@ -56,7 +56,7 @@
      */
      
 /* ***************************  Definitions  ************************** */
-{ adm2/support/admhlp.i } /* ADM Help File Defs */
+{ src/adm2/support/admhlp.i } /* ADM Help File Defs */
 
 /* Parameters Definitions ---                                           */
 DEFINE INPUT  PARAMETER hWizard      AS HANDLE  NO-UNDO. 
@@ -218,8 +218,8 @@ DEFINE FRAME DEFAULT-FRAME
      btnRemoveColumn AT ROW 10.05 COL 57
      fiLinkLabel AT ROW 1.24 COL 1 COLON-ALIGNED NO-LABEL
      fiParamLabel AT ROW 7.86 COL 1 COLON-ALIGNED NO-LABEL
-     recParam AT ROW 8.14 COL 2
      recLink AT ROW 1.52 COL 2
+     recParam AT ROW 8.14 COL 2
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1

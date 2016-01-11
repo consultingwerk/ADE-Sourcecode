@@ -24,11 +24,6 @@
 
 TRIGGER PROCEDURE FOR WRITE OF gsc_entity_display_field OLD BUFFER o_gsc_entity_display_field.
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "gsc_entity_display_field"
-                      &TRIGGER-TYPE = "WRITE"}
-
 /* Created automatically using ERwin ICF Trigger template db/af/erw/afercustrg.i
    Do not change manually. Customisations to triggers should be placed in separate
    include files pulled into the trigger. ICF auto generates write trigger custom
@@ -98,6 +93,8 @@ IF NOT NEW gsc_entity_display_field AND gsc_entity_display_field.{&TRIGGER_OBJ} 
 
 /* Customisations to WRITE trigger */
 {icf/trg/gscedtrigw.i}
+
+
 
 /* Update Audit Log */
 IF CAN-FIND(FIRST gsc_entity_mnemonic

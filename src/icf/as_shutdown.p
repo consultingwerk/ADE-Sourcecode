@@ -46,3 +46,21 @@ ASSIGN gshAgnManager         = ?
        gshAstraAppserver     = ?
        gscSessionId          = ?
        .
+
+DEFINE VARIABLE hLoopHandle AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hConfMan    AS HANDLE     NO-UNDO.
+
+hLoopHandle = SESSION:FIRST-PROCEDURE.
+DO WHILE VALID-HANDLE(hLoopHandle):
+  IF R-INDEX(hLoopHandle:FILE-NAME,"afxmlcfgp.p":U) > 0
+  OR R-INDEX(hLoopHandle:FILE-NAME,"afxmlcfgp.r":U) > 0 THEN 
+  DO:
+    hConfMan = hLoopHandle.
+    hLoopHandle = ?.
+  END.
+  ELSE
+    hLoopHandle = hLoopHandle:NEXT-SIBLING.
+END. /* VALID-HANDLE(hLoopHandle) */
+
+IF VALID-HANDLE(hConfMan) THEN
+  RUN killPlip IN hConfMan.

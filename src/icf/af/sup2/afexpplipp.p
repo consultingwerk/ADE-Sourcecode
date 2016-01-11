@@ -92,7 +92,7 @@ ASSIGN cObjectName = "{&object-name}":U.
 {af/sup2/afglobals.i}
 {af/sup2/afcheckerr.i &define-only = YES}
 
-DEFINE TEMP-TABLE tt_datasource
+DEFINE TEMP-TABLE tt_datasource NO-UNDO
 FIELD tt_tag   AS CHARACTER
 FIELD tt_value AS CHARACTER EXTENT {&max-crystal-fields}.
 
@@ -209,7 +209,7 @@ DEFINE VARIABLE cTableName  AS CHARACTER  NO-UNDO.
     cTableName  = "browsecrystal":U
     cDataObject = SEARCH(SESSION:TEMP-DIRECTORY + "/aftemfullb.mdb":U)
     cTemplate   = IF phBrowse:WIDTH-CHARS * 96 < 13000 THEN SEARCH("af/rep/afportrait.rpt":U) ELSE SEARCH("af/rep/aflandscap.rpt":U)
-    cNewReport  = SESSION:TEMP-DIRECTORY + IF NOT CAN-DO("/,\":U,SUBSTRING(SESSION:TEMP-DIRECTORY,LENGTH(SESSION:TEMP-DIRECTORY),1)) THEN "/":U ELSE "":U
+    cNewReport  = SESSION:TEMP-DIRECTORY + IF NOT CAN-DO("/,~\":U,SUBSTRING(SESSION:TEMP-DIRECTORY,LENGTH(SESSION:TEMP-DIRECTORY),1)) THEN "/":U ELSE "":U
     cNewReport  = cNewReport + cTableName + ".rpt":U.
   
   EMPTY TEMP-TABLE tt_datasource.
@@ -337,6 +337,8 @@ DEFINE VARIABLE hBrowserColumn        AS WIDGET-HANDLE     NO-UNDO.
 DEFINE VARIABLE iColumns    AS INTEGER           NO-UNDO.
 DEFINE VARIABLE iLoop                 AS INTEGER           NO-UNDO.
 DEFINE VARIABLE lFinished             AS LOGICAL           NO-UNDO INITIAL NO.
+DEFINE VARIABLE iTemp1                AS INTEGER           NO-UNDO.
+DEFINE VARIABLE iTemp2                AS INTEGER           NO-UNDO.
 
   IF SESSION:SET-WAIT-STATE("GENERAL") THEN PROCESS EVENTS.
 
@@ -347,18 +349,29 @@ DEFINE VARIABLE lFinished             AS LOGICAL           NO-UNDO INITIAL NO.
     hWorksheet = hExcel:Sheets:ITEM(1)  /* Get the active Worksheet                     */              
     hWorksheet:NAME = "Browser"         /* Set the worksheet name                       */              
     hBrowserColumn  = phBrowse:FIRST-COLUMN
-    iColumns        = MIN(phBrowse:NUM-COLUMNS,26).
+    iColumns        = phBrowse:NUM-COLUMNS.
+/*     iColumns        = MIN(phBrowse:NUM-COLUMNS,26). */
 
+DEFINE VARIABLE cRangeTest               AS CHARACTER         NO-UNDO.
   /* Load the headings */
   ASSIGN
     cRow = "A"
-    cRange1 = STRING((CHR(ASC(cRow)) + STRING(1)))
+    iTemp1  = IF iColumns MODULO 26 = 0 THEN 1 ELSE 0
+    iTemp2  = IF iColumns MODULO 26 = 0 THEN 26 ELSE 0
+    cRange1 = IF iColumns LE 26 
+              THEN STRING((CHR(ASC("A") + (iColumns - 1)) + STRING(1)))
+              ELSE CHR(64 + INTEGER(TRUNCATE(iColumns / 26, 0)) - iTemp1 ) + CHR(64 + (iColumns MODULO 26) + iTemp2) + STRING(1)
     hWorksheet:Range(cRange1):VALUE       = pcHeader
     hWorksheet:Range(cRange1):FONT:Bold   = TRUE.
     
   DO iLoop = 1 TO iColumns:    /* Send cHeadings */
+
     ASSIGN
-      cRange1  = STRING((CHR(ASC(cRow) + (iLoop - 1)) + STRING(2)))
+      iTemp1  = IF iLoop MODULO 26 = 0 THEN 1 ELSE 0
+      iTemp2  = IF iLoop MODULO 26 = 0 THEN 26 ELSE 0
+      cRange1 = IF iLoop LE 26 
+                THEN STRING((CHR(ASC("A") + (iLoop - 1)) + STRING(2)))
+                ELSE CHR(64 + INTEGER(TRUNCATE(iLoop / 26, 0)) - iTemp1 ) + CHR(64 + (iLoop MODULO 26) + iTemp2) + STRING(2)
       cHeading = hBrowserColumn:LABEL.
       iSplit   = INDEX(cHeading,"!").
       
@@ -366,16 +379,23 @@ DEFINE VARIABLE lFinished             AS LOGICAL           NO-UNDO INITIAL NO.
       ASSIGN
         hWorksheet:Range(cRange1):Value     = cHeading
         hWorksheet:Range(cRange1):Font:Bold = TRUE.
-    ELSE
+    ELSE DO:
       ASSIGN
-        cRange2                             = STRING((CHR(ASC(cRow) + (iLoop - 1)) + STRING(3)))
+        iTemp1  = IF iLoop MODULO 26 = 0 THEN 1 ELSE 0
+        iTemp2  = IF iLoop MODULO 26 = 0 THEN 26 ELSE 0
+        cRange2 = IF iLoop LE 26 
+                  THEN STRING((CHR(ASC(cRow) + (iLoop - 1)) + STRING(3)))
+                  ELSE CHR(64 + INTEGER(TRUNCATE(iLoop / 26, 0)) - iTemp1 ) + CHR(64 + (iLoop MODULO 26) + iTemp2) + STRING(3)
         hWorksheet:Range(cRange1):Value     = SUBSTRING(cHeading, 1, iSplit - 1)
         hWorksheet:Range(cRange1):Font:Bold = TRUE
         hWorksheet:Range(cRange2):Value     = SUBSTRING(cHeading, iSplit + 1)
         hWorksheet:Range(cRange2):Font:Bold = TRUE.
+    END.
 
     ASSIGN
-      cRange3                                  = SUBSTRING(cRange1, 1, 1)
+      cRange3 = IF iLoop LE 26 
+                THEN SUBSTRING(cRange1, 1, 1)
+                ELSE SUBSTRING(cRange1, 1, 2)
       hWorksheet:Columns(cRange3):ColumnWidth  = IF hBrowserColumn:DATA-TYPE = "DECIMAL":U THEN 12
                                                  ELSE IF hBrowserColumn:DATA-TYPE = "INTEGER":U THEN 6
                                                  ELSE IF hBrowserColumn:WIDTH-CHARS > 100 THEN 100
@@ -400,12 +420,17 @@ DEFINE VARIABLE lFinished             AS LOGICAL           NO-UNDO INITIAL NO.
     /*Send Data*/      
     DO iLoop = 1 TO iColumns:
       ASSIGN
-        cRange1                         = STRING((CHR(ASC(cRow) + (iLoop - 1)) + STRING(iRow)))
+        iTemp1  = IF iLoop MODULO 26 = 0 THEN 1 ELSE 0
+        iTemp2  = IF iLoop MODULO 26 = 0 THEN 26 ELSE 0
+        cRange1 = IF iLoop LE 26 
+                  THEN STRING((CHR(ASC(cRow) + (iLoop - 1)) + STRING(iRow)))
+                  ELSE CHR(64 + INTEGER(TRUNCATE(iLoop / 26, 0)) - iTemp1 ) + CHR(64 + (iLoop MODULO 26) + iTemp2) + STRING(iRow)
         hWorksheet:Range(cRange1):Value = IF hBrowserColumn:DATA-TYPE = "INTEGER":U THEN STRING(INTEGER(hBrowserColumn:SCREEN-VALUE))
                                           ELSE IF hBrowserColumn:DATA-TYPE = "DECIMAL":U THEN STRING(DECIMAL(hBrowserColumn:SCREEN-VALUE))
                                           ELSE IF hBrowserColumn:DATA-TYPE = "CHARACTER":U AND LENGTH( hBrowserColumn:SCREEN-VALUE ) > 319
                                           THEN SUBSTRING( hBrowserColumn:SCREEN-VALUE, 1, 319 )
-                                          ELSE hBrowserColumn:SCREEN-VALUE hBrowserColumn = hBrowserColumn:NEXT-COLUMN.
+                                          ELSE hBrowserColumn:SCREEN-VALUE 
+        hBrowserColumn = hBrowserColumn:NEXT-COLUMN.
     END.
     IF phBrowse:SELECT-NEXT-ROW() THEN
       PROCESS EVENTS.
@@ -429,7 +454,6 @@ DEFINE VARIABLE lFinished             AS LOGICAL           NO-UNDO INITIAL NO.
   RELEASE OBJECT hWorksheet.
   RELEASE OBJECT hWorkbook.
   RELEASE OBJECT hExcel.
-
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

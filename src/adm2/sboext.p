@@ -102,6 +102,17 @@ FUNCTION getBlockQueryPositiion RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getCalculatedColumns) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCalculatedColumns Procedure 
+FUNCTION getCalculatedColumns RETURNS CHARACTER
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getCascadeOnBrowse) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCascadeOnBrowse Procedure 
@@ -179,6 +190,28 @@ FUNCTION getDataIsFetched RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getDataLogicObject) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataLogicObject Procedure 
+FUNCTION getDataLogicObject RETURNS HANDLE
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDataLogicProcedure) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataLogicProcedure Procedure 
+FUNCTION getDataLogicProcedure RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getDataObjectNames) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataObjectNames Procedure 
@@ -217,6 +250,28 @@ FUNCTION getDataQueryBrowsed RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataTargetEvents Procedure 
 FUNCTION getDataTargetEvents RETURNS CHARACTER
   (   )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDynamicData) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDynamicData Procedure 
+FUNCTION getDynamicData RETURNS LOGICAL
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getFetchOnOpen) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFetchOnOpen Procedure 
+FUNCTION getFetchOnOpen RETURNS CHARACTER
+  (  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -272,6 +327,28 @@ FUNCTION getForeignFields RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getForeignValues Procedure 
 FUNCTION getForeignValues RETURNS CHARACTER
   (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getLastCommitErrorKeys) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getLastCommitErrorKeys Procedure 
+FUNCTION getLastCommitErrorKeys RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getLastCommitErrorType) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getLastCommitErrorType Procedure 
+FUNCTION getLastCommitErrorType RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -370,6 +447,17 @@ FUNCTION getRowsToBatch RETURNS INTEGER
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getUpdatableColumns Procedure 
 FUNCTION getUpdatableColumns RETURNS CHARACTER
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getUpdateTables) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getUpdateTables Procedure 
+FUNCTION getUpdateTables RETURNS CHARACTER
   (  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -476,6 +564,28 @@ FUNCTION setDataIsFetched RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setDataLogicObject) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDataLogicObject Procedure 
+FUNCTION setDataLogicObject RETURNS LOGICAL
+  ( phDataLogicObject AS HANDLE )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDataLogicProcedure) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDataLogicProcedure Procedure 
+FUNCTION setDataLogicProcedure RETURNS LOGICAL
+  ( pcDataLogicProcedure AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setDataObjectNames) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDataObjectNames Procedure 
@@ -492,6 +602,61 @@ FUNCTION setDataObjectNames RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDataQueryBrowsed Procedure 
 FUNCTION setDataQueryBrowsed RETURNS LOGICAL
   ( plBrowsed AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDynamicData) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDynamicData Procedure 
+FUNCTION setDynamicData RETURNS LOGICAL
+  ( plDynamic AS LOGICAL  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setFetchAutoComment) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFetchAutoComment Procedure 
+FUNCTION setFetchAutoComment RETURNS LOGICAL
+  ( plValue AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setFetchHasAudit) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFetchHasAudit Procedure 
+FUNCTION setFetchHasAudit RETURNS LOGICAL
+  ( plValue AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setFetchHasComment) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFetchHasComment Procedure 
+FUNCTION setFetchHasComment RETURNS LOGICAL
+  ( plValue AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setFetchOnOpen) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFetchOnOpen Procedure 
+FUNCTION setFetchOnOpen RETURNS LOGICAL
+  ( pcValue AS CHAR )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -553,6 +718,28 @@ FUNCTION setForeignValues RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setLastCommitErrorKeys) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setLastCommitErrorKeys Procedure 
+FUNCTION setLastCommitErrorKeys RETURNS LOGICAL
+  ( pcLastKeys AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setLastCommitErrorType) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setLastCommitErrorType Procedure 
+FUNCTION setLastCommitErrorType RETURNS LOGICAL
+  ( pcLastCommitErrorType AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setObjectMapping) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setObjectMapping Procedure 
@@ -586,6 +773,17 @@ FUNCTION setRowObjectState RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setUpdateTables) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setUpdateTables Procedure 
+FUNCTION setUpdateTables RETURNS LOGICAL
+  ( pcTables AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 
 /* *********************** Procedure Settings ************************ */
 
@@ -604,7 +802,7 @@ FUNCTION setRowObjectState RETURNS LOGICAL
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 12
+         HEIGHT             = 28.1
          WIDTH              = 53.2.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -692,6 +890,48 @@ FUNCTION getBlockQueryPositiion RETURNS LOGICAL
   {get BlockQueryPosition lBlockQueryPosition}.
   RETURN lBlockQueryPosition.
  
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getCalculatedColumns) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getCalculatedColumns Procedure 
+FUNCTION getCalculatedColumns RETURNS CHARACTER
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose:     Returns a comma-delimited, SDO-qualified list of the calculated 
+               columns for all contained SmartDataObjects. 
+  Parameters:  
+       Notes:  See 'getCalculatedColumns' in adm2/queryext.p
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cContained  AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cColumns    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iCount      AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iCount2     AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hDO         AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cNameList   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cCalcList   AS CHARACTER  NO-UNDO.
+
+  {get ContainedDataObjects cContained}.
+  {get DataObjectNames cNameList}.
+
+  DO iCount = 1 TO NUM-ENTRIES(cContained):
+    hDO = WIDGET-HANDLE(ENTRY(iCount, cContained)).
+    {get CalculatedColumns cCalcList hDO}.
+    IF cCalcList > '' THEN
+      DO iCount2 = 1 TO NUM-ENTRIES(cCalcList):
+        cColumns = cColumns + (IF cColumns = "" THEN "" ELSE ",":U) +
+                   ENTRY(iCount, cNameList) + "." + 
+                   ENTRY(iCount2, cCalcList).
+      END.
+  END.
+
+  RETURN cColumns. 
 
 END FUNCTION.
 
@@ -910,6 +1150,52 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getDataLogicObject) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataLogicObject Procedure 
+FUNCTION getDataLogicObject RETURNS HANDLE
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns the handle of the logic procedure that contains business
+           logic for the data object. 
+    Notes: initializeLogicObject starts the logical object using the 
+           DataLogicProcedure property and stores its handle in this property.
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hDataLogicObject AS HANDLE     NO-UNDO.
+  {get DataLogicObject hDataLogicObject}.
+  RETURN hDataLogicObject.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDataLogicProcedure) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataLogicProcedure Procedure 
+FUNCTION getDataLogicProcedure RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns the name of the logic procedure that contains  business
+           logic for the data object 
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cDataLogicProcedure AS CHARACTER  NO-UNDO.
+  &SCOPED-DEFINE xpDataLogicProcedure
+  {get DataLogicProcedure cDataLogicProcedure}.
+  &UNDEFINE xpDataLogicProcedure    
+   
+  RETURN cDataLogicProcedure.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getDataObjectNames) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataObjectNames Procedure 
@@ -1070,6 +1356,46 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getDynamicData) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDynamicData Procedure 
+FUNCTION getDynamicData RETURNS LOGICAL
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lDynamic AS LOGICAL    NO-UNDO.
+  {get DynamicData lDynamic}.
+
+  RETURN lDynamic.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getFetchOnOpen) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFetchOnOpen Procedure 
+FUNCTION getFetchOnOpen RETURNS CHARACTER
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Used only to provide a consistent interface for all Data Objects
+    Notes:  Not used for SBOs. See SDO implementation.
+------------------------------------------------------------------------------*/
+
+  RETURN ?.   /* Default value. Let SDO manage it. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getFilterActive) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFilterActive Procedure 
@@ -1218,6 +1544,56 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getLastCommitErrorKeys) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getLastCommitErrorKeys Procedure 
+FUNCTION getLastCommitErrorKeys RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns a list of key values separated by 'DataDelimiter' identifying
+           the records that fail to be committed on the last time data was committed.
+           Blank  - indicates that the last commit was successful, 
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cLastCommitErrorKeys AS CHARACTER  NO-UNDO.
+  
+  {get LastCommitErrorKeys cLastCommitErrorKeys}.
+
+  RETURN cLastCommitErrorKeys. 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getLastCommitErrorType) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getLastCommitErrorType Procedure 
+FUNCTION getLastCommitErrorType RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns the type of error encountered the last time data was committed.
+           Blank  - indicates that the last commit was successful, 
+           unknown - indicates that a commit never has been attempted after run
+           Conflict - Locking conflict
+           Error    - Unspecified 
+    Notes: Currently used to identify a Conflict error after having used the 
+           UpdateData API. More types may be added later.   
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cLastCommitErrorType AS CHARACTER  NO-UNDO.
+  
+  {get LastCommitErrorType cLastCommitErrorType}.
+
+  RETURN cLastCommitErrorType. 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getMasterDataObject) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getMasterDataObject Procedure 
@@ -1294,8 +1670,7 @@ FUNCTION getNewMode RETURNS LOGICAL
     ASSIGN
       cSource  = ENTRY(iObject,cSourceNames) 
       hSource  = {fnarg DataObjectHandle cSource}.
-    
-    {get NewMode lNew hSource}.
+    {get NewMode lNew hSource} NO-ERROR.
     IF lNew THEN 
       RETURN TRUE.
   END.
@@ -1581,6 +1956,26 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getUpdateTables) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getUpdateTables Procedure 
+FUNCTION getUpdateTables RETURNS CHARACTER
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cTables AS CHAR   NO-UNDO.
+  {get UpdateTables cTables}.
+  RETURN cTables.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getWordIndexedFields) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getWordIndexedFields Procedure 
@@ -1803,6 +2198,54 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setDataLogicObject) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDataLogicObject Procedure 
+FUNCTION setDataLogicObject RETURNS LOGICAL
+  ( phDataLogicObject AS HANDLE ) :
+/*------------------------------------------------------------------------------
+  Purpose: Set the handle of the logic procedure that contains business
+           logic for the data object. 
+    Notes: initializeLogicObject starts the logical object using the 
+           DataLogicProcedure properrty and stores its handle in this property.
+------------------------------------------------------------------------------*/
+  {set DataLogicObject phDataLogicObject}.
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDataLogicProcedure) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDataLogicProcedure Procedure 
+FUNCTION setDataLogicProcedure RETURNS LOGICAL
+  ( pcDataLogicProcedure AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose: Set the name of the logic procedure that contains business logic for 
+           the data object. 
+    Notes:  
+------------------------------------------------------------------------------*/  
+  IF pcDataLogicProcedure > '':U THEN     
+  DO:
+    &SCOPED-DEFINE xpDataLogicProcedure
+    {set DataLogicProcedure pcDataLogicProcedure}.
+    &UNDEFINE xpDataLogicProcedure    
+    /* Add the datalogic procedure as a super  */
+    RUN initializeLogicObject IN TARGET-PROCEDURE.
+  END.
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setDataObjectNames) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDataObjectNames Procedure 
@@ -1864,6 +2307,180 @@ FUNCTION setDataQueryBrowsed RETURNS LOGICAL
   END.          /* END DO IF Browser found in list. */
   
   RETURN FALSE.    
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDynamicData) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDynamicData Procedure 
+FUNCTION setDynamicData RETURNS LOGICAL
+  ( plDynamic AS LOGICAL  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  {set DynamicData plDynamic}.
+  
+  RETURN TRUE.   
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setFetchAutoComment) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setFetchAutoComment Procedure 
+FUNCTION setFetchAutoComment RETURNS LOGICAL
+  ( plValue AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose:  SBO version of setFetchAutoComment locates the contained SDO
+            which matches the calling Browser and sets the corresponding
+            property in it. 
+   Params:  plValue as LOGICAL
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cMapping    AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE iEntry      AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE lBrowsed    AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE hDataObject AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE hRequester  AS HANDLE    NO-UNDO.
+
+  /* First get the handle of the requesting Object. We need to ask the SOURCE
+     (which is a super procedure) for its Target-Procedure, using this fn. */
+  {get TargetProcedure hRequester SOURCE-PROCEDURE}.
+  IF hRequester = ? THEN
+    RETURN FALSE.
+
+  {get ObjectMapping cMapping}.
+  IF cMapping = ? THEN
+     RETURN FALSE.
+
+  iEntry = LOOKUP(STRING(hRequester), cMapping).
+  IF iEntry NE 0 THEN
+  DO:
+      hDataObject = 
+              WIDGET-HANDLE(ENTRY(iEntry + 1, cMapping)).
+      {set FetchAutoComment plValue hDataObject}.
+      RETURN TRUE.
+  END.          /* END DO IF Browser found in list. */
+  
+  RETURN FALSE.    
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setFetchHasAudit) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setFetchHasAudit Procedure 
+FUNCTION setFetchHasAudit RETURNS LOGICAL
+  ( plValue AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose:  SBO version of setFetchHasAudit locates the contained SDO
+            which matches the calling Browser and sets the corresponding
+            property in it. 
+   Params:  plValue as LOGICAL
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cMapping    AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE iEntry      AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE lBrowsed    AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE hDataObject AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE hRequester  AS HANDLE    NO-UNDO.
+
+  /* First get the handle of the requesting Object. We need to ask the SOURCE
+     (which is a super procedure) for its Target-Procedure, using this fn. */
+  {get TargetProcedure hRequester SOURCE-PROCEDURE}.
+  IF hRequester = ? THEN
+    RETURN FALSE.
+
+  {get ObjectMapping cMapping}.
+  IF cMapping = ? THEN
+     RETURN FALSE.
+
+  iEntry = LOOKUP(STRING(hRequester), cMapping).
+  IF iEntry NE 0 THEN
+  DO:
+      hDataObject = 
+              WIDGET-HANDLE(ENTRY(iEntry + 1, cMapping)).
+      {set FetchHasAudit plValue hDataObject}.
+      RETURN TRUE.
+  END.          /* END DO IF Browser found in list. */
+  
+  RETURN FALSE.    
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setFetchHasComment) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setFetchHasComment Procedure 
+FUNCTION setFetchHasComment RETURNS LOGICAL
+  ( plValue AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose:  SBO version of setFetchHasComment locates the contained SDO
+            which matches the calling Browser and sets the corresponding
+            property in it. 
+   Params:  plValue as LOGICAL
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cMapping    AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE iEntry      AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE lBrowsed    AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE hDataObject AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE hRequester  AS HANDLE    NO-UNDO.
+
+  /* First get the handle of the requesting Object. We need to ask the SOURCE
+     (which is a super procedure) for its Target-Procedure, using this fn. */
+  {get TargetProcedure hRequester SOURCE-PROCEDURE}.
+  IF hRequester = ? THEN
+    RETURN FALSE.
+
+  {get ObjectMapping cMapping}.
+  IF cMapping = ? THEN
+     RETURN FALSE.
+
+  iEntry = LOOKUP(STRING(hRequester), cMapping).
+  IF iEntry NE 0 THEN
+  DO:
+      hDataObject = 
+              WIDGET-HANDLE(ENTRY(iEntry + 1, cMapping)).
+      {set FetchHasComment plValue hDataObject}.
+      RETURN TRUE.
+  END.          /* END DO IF Browser found in list. */
+  
+  RETURN FALSE.    
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setFetchOnOpen) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setFetchOnOpen Procedure 
+FUNCTION setFetchOnOpen RETURNS LOGICAL
+  ( pcValue AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose:  To provide a consistent interface for SBO and SDO objects
+    Notes:  Not used for SBOs. See SDO implementation.
+------------------------------------------------------------------------------*/
+
+  RETURN TRUE.
 
 END FUNCTION.
 
@@ -2000,6 +2617,53 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setLastCommitErrorKeys) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setLastCommitErrorKeys Procedure 
+FUNCTION setLastCommitErrorKeys RETURNS LOGICAL
+  ( pcLastKeys AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose: Sets a list of key values separated by 'DataDelimiter' identifying
+           the records that fail to be committed on the last time data was committed.
+           Blank  - indicates that the last commit was successful, 
+------------------------------------------------------------------------------*/
+
+  {set LastCommitErrorKeys pcLastKeys}.
+
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setLastCommitErrorType) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setLastCommitErrorType Procedure 
+FUNCTION setLastCommitErrorType RETURNS LOGICAL
+  ( pcLastCommitErrorType AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose: Set the type of error encountered the last time data was committed.
+           Conflict - Locking conflict
+           Error    - Unspecified 
+    Notes: Currently used to identify a Conflict error after having used the 
+           UpdateData API. More types may be added later.   
+        -  This should only be set by data.p commit() 
+------------------------------------------------------------------------------*/  
+
+  {set LastCommitErrorType pcLastCommitErrorType}.
+  
+  RETURN TRUE.
+  
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setObjectMapping) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setObjectMapping Procedure 
@@ -2073,6 +2737,26 @@ FUNCTION setRowObjectState RETURNS LOGICAL
      throughout the update process will be re-enabled. */
   IF pcState = 'NoUpdates':U THEN
       PUBLISH 'updateState':U FROM TARGET-PROCEDURE ('UpdateComplete':U).
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setUpdateTables) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setUpdateTables Procedure 
+FUNCTION setUpdateTables RETURNS LOGICAL
+  ( pcTables AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  {set UpdateTables pcTables}.  
+
   RETURN TRUE.
 
 END FUNCTION.

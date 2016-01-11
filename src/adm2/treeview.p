@@ -8,6 +8,9 @@
     Syntax      : RUN start-super-proc("adm2/treeview.p":u).
 
     Modified    : 04/05/2001
+    Modified: 03/25/2002      Mark Davies (MIP)
+              Moved getTreeDataTable to dyntreeview.w to avoid the 
+              same table being used for all running TreeViews.
   ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
 /*----------------------------------------------------------------------*/
@@ -20,8 +23,6 @@
 /* Custom exclude file */
  
 {src/adm2/custom/treeviewexclcustom.i}
-
-DEFINE VARIABLE ghTreeData AS HANDLE NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -41,6 +42,18 @@ DEFINE VARIABLE ghTreeData AS HANDLE NO-UNDO.
 
 
 /* ************************  Function Prototypes ********************** */
+
+&IF DEFINED(EXCLUDE-ExpandNode) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD ExpandNode Procedure 
+FUNCTION ExpandNode RETURNS LOGICAL
+  ( INPUT pcNodeKey AS CHARACTER,
+    INPUT plExpand  AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-getAutoSort) = 0 &THEN
 
@@ -141,28 +154,6 @@ FUNCTION getLineStyle RETURNS INTEGER
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getMinHeight) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getMinHeight Procedure 
-FUNCTION getMinHeight RETURNS DECIMAL
-  (  )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getMinWidth) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getMinWidth Procedure 
-FUNCTION getMinWidth RETURNS DECIMAL
-  ( /* parameter-definitions */ )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-getOLEDrag) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getOLEDrag Procedure 
@@ -252,17 +243,6 @@ FUNCTION getSingleSel RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getTreeDataTable) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getTreeDataTable Procedure 
-FUNCTION getTreeDataTable RETURNS HANDLE
-  ( )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-getTreeStyle) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getTreeStyle Procedure 
@@ -285,17 +265,6 @@ FUNCTION getTVControllerSource RETURNS HANDLE
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getValidKey) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getValidKey Procedure 
-FUNCTION getValidKey RETURNS LOGICAL
-  ( pcKey AS CHARACTER )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-isNodeExpanded) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD isNodeExpanded Procedure 
@@ -312,6 +281,17 @@ FUNCTION isNodeExpanded RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD loadImage Procedure 
 FUNCTION loadImage RETURNS INTEGER PRIVATE
   ( INPUT pcImageFile AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-RefreshTree) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD RefreshTree Procedure 
+FUNCTION RefreshTree RETURNS LOGICAL
+( )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -428,40 +408,6 @@ FUNCTION setLineStyle RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-setMinHeight) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setMinHeight Procedure 
-FUNCTION setMinHeight RETURNS LOGICAL
-  ( pdHeight AS DECIMAL )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setMinWidth) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setMinWidth Procedure 
-FUNCTION setMinWidth RETURNS LOGICAL
- ( pdWidth AS DECIMAL )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setNodeExpanded) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setNodeExpanded Procedure 
-FUNCTION setNodeExpanded RETURNS LOGICAL
-  ( INPUT pcNodeKey AS CHARACTER,
-    INPUT plExpand  AS LOGICAL )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-setOLEDrag) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setOLEDrag Procedure 
@@ -491,17 +437,6 @@ FUNCTION setProperty RETURNS LOGICAL
 ( pcProperty AS CHAR ,
   pcKey      AS CHAR,
   pcValue    AS CHAR )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setRefresh) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setRefresh Procedure 
-FUNCTION setRefresh RETURNS LOGICAL
-( )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -568,6 +503,17 @@ FUNCTION setTreeStyle RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setTVControllerSource Procedure 
 FUNCTION setTVControllerSource RETURNS LOGICAL
   ( INPUT phSource AS HANDLE )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-ValidNodeKey) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD ValidNodeKey Procedure 
+FUNCTION ValidNodeKey RETURNS LOGICAL
+  ( pcKey AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -760,12 +706,12 @@ Note:           This procedure is called from populateTree, but can be called by
            NO-ERROR. 
   END.
     /* add the node using the add method of the treeview OCX */
-  chNode = chTreeview:Nodes:ADD(hParentKey:BUFFER-VALUE ,  /* Parent Key (optional) */
-                                iInsertAs                 ,  /* Insert relative to parent key  0-first 1-last 2-next 3-previous 4-child  */
-                                hNodeKey:BUFFER-VALUE     ,  /* Key - Must be unique */ 
-                                hNodeLabel:BUFFER-VALUE   ,  /* Label Text           */
-                                iImageIndex               ,  /* Normal Image         */
-                                iSelectedImageIndex     ). /* Selected Image       */  
+  chNode = chTreeview:Nodes:ADD(hParentKey:BUFFER-VALUE,  /* Parent Key (optional) */
+                                iInsertAs              ,  /* Insert relative to parent key  0-first 1-last 2-next 3-previous 4-child  */
+                                hNodeKey:BUFFER-VALUE  ,  /* Key - Must be unique */ 
+                                hNodeLabel:BUFFER-VALUE,  /* Label Text           */
+                                iImageIndex            ,  /* Normal Image         */
+                                iSelectedImageIndex    ). /* Selected Image       */  
   
   IF VALID-HANDLE(chNode) THEN 
     ASSIGN chNode:TAG = hPrivateData:BUFFER-VALUE.
@@ -799,8 +745,10 @@ PROCEDURE deleteNode :
 ------------------------------------------------------------------------------*/
  DEFINE INPUT PARAMETER pckey        AS CHARACTER NO-UNDO.
 
- DEFINE VARIABLE chTreeView  AS COM-HANDLE NO-UNDO.
- DEFINE VARIABLE Htreeview   AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE chTreeView     AS COM-HANDLE NO-UNDO.
+ DEFINE VARIABLE Htreeview      AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE hTreeDataTable AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE hBuf           AS HANDLE     NO-UNDO.
  
   /* Get the handle to the TreeView itself. */
   {get TVCtrlFrame hTreeview }.
@@ -821,6 +769,58 @@ PROCEDURE deleteNode :
   chTreeView:Nodes:Remove(pcKey) NO-ERROR.
  
  RELEASE OBJECT chtreeView NO-ERROR.
+
+  /* C&C - PEVP 2003/01/02 BEGIN:
+     Delete node and his subnodes from treeview temp-table 'hTreeDataTable'*/
+  {get TreeDataTable hTreeDataTable TARGET-PROCEDURE}.
+  hBuf = hTreeDataTable:DEFAULT-BUFFER-HANDLE.
+  hBuf:FIND-FIRST(SUBSTITUTE("WHERE &1.node_key = &2":u, hBuf:NAME, pckey),NO-LOCK) NO-ERROR.
+  IF hBuf:AVAILABLE THEN DO:
+    RUN deleteSubnodesInTDT (hBuf:BUFFER-FIELD("node_key":u):BUFFER-VALUE, hTreeDataTable).
+    hBuf:BUFFER-DELETE.
+  END.
+  /* C&C - PEVP 2003/01/02 */
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-deleteSubnodesInTDT) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE deleteSubnodesInTDT Procedure 
+PROCEDURE deleteSubnodesInTDT :
+/*------------------------------------------------------------------------------
+  Purpose:     Delete nodes in temp-table 'parent_node_key'
+  Parameters:  <none>
+  Notes:       C&C - PEVP 2002/01/02
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER pckey           AS CHARACTER NO-UNDO.
+  DEFINE INPUT  PARAMETER phTreeDataTable AS HANDLE     NO-UNDO.
+  
+  DEFINE VARIABLE hBuf     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hQry     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hNodeKey AS HANDLE     NO-UNDO.
+  
+  CREATE BUFFER hBuf FOR TABLE phTreeDataTable:DEFAULT-BUFFER-HANDLE.
+  hNodeKey = hBuf:BUFFER-FIELD("node_key":u).
+  CREATE QUERY hQry.
+  
+  hQry:SET-BUFFERS(hBuf).
+  hQry:QUERY-PREPARE(SUBSTITUTE("FOR EACH &1 WHERE &1.parent_node_key = '&2'":U, hBuf:NAME, pcKey)).
+  hQry:QUERY-OPEN().
+  hQry:GET-FIRST(NO-LOCK).
+  
+  DO WHILE hBuf:AVAILABLE:
+    RUN deleteSubnodesInTDT (hNodeKey:BUFFER-VALUE, phTreeDataTable).
+    hBuf:BUFFER-DELETE().
+    hQry:GET-NEXT(NO-LOCK).
+  END.
+  
+  DELETE OBJECT hQry.
+  DELETE OBJECT hBuf.
 
 END PROCEDURE.
 
@@ -1435,6 +1435,64 @@ END PROCEDURE.
 
 /* ************************  Function Implementations ***************** */
 
+&IF DEFINED(EXCLUDE-ExpandNode) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION ExpandNode Procedure 
+FUNCTION ExpandNode RETURNS LOGICAL
+  ( INPUT pcNodeKey AS CHARACTER,
+    INPUT plExpand  AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose:  This function will either expand or collapse a node 
+Parameters: pcNodeKey  Key of node to expand/collapse 
+            plNode     TRUE  - Expand
+                       FALSE - Collapse
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE chNodeKey   AS COM-HANDLE NO-UNDO.  
+  DEFINE VARIABLE chTreeview  AS COM-HANDLE NO-UNDO.
+  DEFINE VARIABLE hTreeview   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cNodeKey    AS CHARACTER  NO-UNDO.
+  
+   /* Get the handle to the TreeView itself. */
+  {get TVCtrlFrame hTreeview }.
+  ASSIGN chTreeview   = hTreeview:COM-HANDLE
+         chTreeview   = chTreeview:CONTROLS:ITEM(1)  
+         NO-ERROR. 
+
+  chNodeKey = ?.
+
+  IF pcNodeKey = "" OR pcNodeKey = ? THEN
+     pcNodeKey = chTreeview:SelectedItem:KEY NO-ERROR.
+
+  IF pcNodeKey <> "" AND pcNodeKey <> ? THEN DO:
+      chNodeKey = chTreeview:Nodes:ITEM(pcNodeKey) NO-ERROR.
+      IF NOT VALID-HANDLE(chNodeKey) THEN
+      DO:  /* Check whether key is an integer */
+         chNodeKey = chTreeview:Nodes:ITEM(INT(pcNodeKey)) NO-ERROR.
+         IF NOT VALID-HANDLE(chNodeKey) THEN
+         DO:
+            RUN showTVError (INPUT "The key you have specified does not exist.").
+            RELEASE OBJECT chTreeview NO-ERROR.
+            RETURN ?.
+         END.
+      END.
+  END.
+  
+  IF VALID-HANDLE(chNodeKey) THEN
+    ASSIGN chNodeKey:EXPANDED = plExpand
+           NO-ERROR.
+  RELEASE OBJECT chNodeKey NO-ERROR.
+  chNodeKey = ?.
+  RELEASE OBJECT chTreeview NO-ERROR.
+  
+  RETURN TRUE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getAutoSort) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getAutoSort Procedure 
@@ -1647,47 +1705,6 @@ DEFINE VARIABLE iProp         AS INTEGER NO-UNDO.
         iProp = ghProp:BUFFER-VALUE NO-ERROR.
  
   RETURN iProp.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getMinHeight) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getMinHeight Procedure 
-FUNCTION getMinHeight RETURNS DECIMAL
-  (  ) :
-/*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
-------------------------------------------------------------------------------*/
- DEFINE VARIABLE dMinHeight AS DECIMAL NO-UNDO.
-  {get MinHeight dMinHeight}.
-  RETURN dMinHeight.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getMinWidth) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getMinWidth Procedure 
-FUNCTION getMinWidth RETURNS DECIMAL
-  ( /* parameter-definitions */ ) :
-/*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
-------------------------------------------------------------------------------*/
- DEFINE VARIABLE dMinWidth AS DECIMAL NO-UNDO.
-  {get MinWidth dMinWidth}.
-  RETURN dMinWidth.
-
 
 END FUNCTION.
 
@@ -2051,62 +2068,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getTreeDataTable) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getTreeDataTable Procedure 
-FUNCTION getTreeDataTable RETURNS HANDLE
-  ( ) :
-/*------------------------------------------------------------------------------
-  Purpose:  Creates a dynamic temp table, if it doesn't already exist
-    Notes:  
-------------------------------------------------------------------------------*/
-IF VALID-HANDLE(ghTreeData) THEN
-   RETURN ghTreeData.
-
-CREATE TEMP-TABLE ghTreeData.
-ghTreeData:ADD-NEW-FIELD('node_key':U,        'CHARACTER':U).
-ghTreeData:ADD-NEW-FIELD('parent_node_key':U, 'CHARACTER':U).
-ghTreeData:ADD-NEW-FIELD('node_obj':U,        'DECIMAL':U).
-ghTreeData:ADD-NEW-FIELD('node_label':U,      'CHARACTER':U).
-ghTreeData:ADD-NEW-FIELD('private_data':U,    'CHARACTER':U).
-ghTreeData:ADD-NEW-FIELD('record_ref':U,      'CHARACTER':U).
-ghTreeData:ADD-NEW-FIELD('record_rowid':U,    'ROWID':U).
-ghTreeData:ADD-NEW-FIELD('node_checked':U,    'LOGICAL':U, 0, ?, FALSE).
-ghTreeData:ADD-NEW-FIELD('node_expanded':U,   'LOGICAL':U, 0, ?, FALSE).
-ghTreeData:ADD-NEW-FIELD('image':U,           'CHARACTER':U).
-ghTreeData:ADD-NEW-FIELD('selected_image':U,  'CHARACTER':U).
-ghTreeData:ADD-NEW-FIELD('node_insert':U,     'INTEGER':U).
-ghTreeData:ADD-NEW-FIELD('node_sort':U,       'LOGICAL':U,0,?,FALSE).
-
-/* Add Indices */
-/* Node Handle - Primary - Unique */
-ghTreeData:ADD-NEW-INDEX('puNodeKey':U, TRUE, TRUE).
-ghTreeData:ADD-INDEX-FIELD('puNodeKey':U, 'node_key':U).
-
-/* Parent Node Handle */
-ghTreeData:ADD-NEW-INDEX('ParentNodeKey':U, FALSE, FALSE).
-ghTreeData:ADD-INDEX-FIELD('ParentNodeKey':U, 'node_key':U).
-ghTreeData:ADD-INDEX-FIELD('ParentNodeKey':U, 'parent_node_key':U).
-
-/* Reference To Record's Data Loaded - Unique Identifier of the record (obj) */
-ghTreeData:ADD-NEW-INDEX('record_ref':U, FALSE, FALSE).
-ghTreeData:ADD-INDEX-FIELD('record_ref':U, 'record_ref':U).
-
-/* The RowId of the record's data loaded into this node */
-ghTreeData:ADD-NEW-INDEX('record_rowid':U, FALSE, FALSE).
-ghTreeData:ADD-INDEX-FIELD('record_rowid':U, 'record_rowid':U).
-
-ghTreeData:temp-table-prepare("tTreeData":U).
-
-RETURN ghTreeData.   /* Function return value. */
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-getTreeStyle) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getTreeStyle Procedure 
@@ -2150,55 +2111,6 @@ FUNCTION getTVControllerSource RETURNS HANDLE
 
   RETURN hSource.
 
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getValidKey) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getValidKey Procedure 
-FUNCTION getValidKey RETURNS LOGICAL
-  ( pcKey AS CHARACTER ) :
-/*------------------------------------------------------------------------------
-  Purpose:  Returns whether the specified key is valid
-Parameter:  pcKey  Name of key to verify.    
-    Notes:  
-------------------------------------------------------------------------------*/
- DEFINE VARIABLE chtreeview    AS COM-HANDLE NO-UNDO.
- DEFINE VARIABLE hTreeview     AS HANDLE     NO-UNDO.
- DEFINE VARIABLE chNodeKey     AS COM-HANDLE NO-UNDO.
- DEFINE VARIABLE lFound        AS LOGICAL    NO-UNDO.
- 
- /* Get the handle to the TreeView itself. */
-  {get TVCtrlFrame hTreeview }.
-  ASSIGN chTreeview   = hTreeview:COM-HANDLE
-         chTreeview   = chTreeview:CONTROLS:ITEM(1)  
-         NO-ERROR. 
- 
- IF pcKey = "" OR pcKey = ? THEN DO:
-   RUN showTVMessage (INPUT "You cannot search for a blank key value.").
-   RELEASE OBJECT chtreeview NO-ERROR.
-   RETURN FALSE.
- END.
-
- chNodeKey = chtreeview:Nodes:ITEM(pckey) NO-ERROR. 
- IF NOT VALID-HANDLE(chNodeKey) THEN 
-    chNodeKey = chtreeview:Nodes:ITEM(INT(pckey)) NO-ERROR.
- 
- IF VALID-HANDLE(chNodeKey) THEN 
-    lFound = TRUE.
- ELSE
-    lfound = FALSE.
-       
- RELEASE OBJECT chNodeKey NO-ERROR.
- RELEASE OBJECT chtreeview NO-ERROR.
-
- 
- RETURN lFound.
-  
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2288,6 +2200,7 @@ FUNCTION loadImage RETURNS INTEGER PRIVATE
   DEFINE VARIABLE iImageIndex  AS INTEGER    NO-UNDO.
   DEFINE VARIABLE chImageList  AS COM-HANDLE NO-UNDO.
   DEFINE VARIABLE hImageList   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cExtension   AS CHARACTER  NO-UNDO.
 
   FILE-INFO:FILE-NAME = pcImageFile.
 
@@ -2310,6 +2223,14 @@ FUNCTION loadImage RETURNS INTEGER PRIVATE
 
     IF NOT VALID-HANDLE(chImage) THEN
     DO:
+      /* Ensure that the image type is one that is supported by the LOAD-PICTURE statement */
+
+      ASSIGN cExtension = ENTRY(NUM-ENTRIES(pcImageFile, ".":U),pcImageFile, ".":U) NO-ERROR.
+
+      IF LOOKUP(cExtension,"BMP,WMF,EMF,ICO,CUR,DIB":U) = 0 
+      OR LOOKUP(cExtension,"BMP,WMF,EMF,ICO,CUR,DIB":U) = ? THEN
+          RETURN 0.
+
       chImage = LOAD-PICTURE(FILE-INFO:FULL-PATHNAME).
 
       IF VALID-HANDLE(chImage) THEN
@@ -2334,6 +2255,39 @@ FUNCTION loadImage RETURNS INTEGER PRIVATE
   END.
 
   RETURN 0.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-RefreshTree) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION RefreshTree Procedure 
+FUNCTION RefreshTree RETURNS LOGICAL
+( ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Refreshes the treeview
+------------------------------------------------------------------------------*/
+ DEFINE VARIABLE chTreeview  AS COM-HANDLE NO-UNDO.
+ DEFINE VARIABLE hTreeview   AS HANDLE     NO-UNDO.
+ 
+ DEFINE VARIABLE lok        AS LOGICAL NO-UNDO. 
+ 
+  /* Get the handle to the TreeView itself. */
+  {get TVCtrlFrame hTreeview }.
+  ASSIGN chTreeview   = hTreeview:COM-HANDLE
+         chTreeview   = chTreeview:CONTROLS:ITEM(1)  
+         NO-ERROR. 
+           
+ IF VALID-HANDLE(chTreeview) THEN
+    lok = chTreeview:REFRESH NO-ERROR.
+    
+ RELEASE OBJECT chTreeview NO-ERROR. 
+
+ RETURN TRUE.
 
 END FUNCTION.
 
@@ -2376,7 +2330,7 @@ Parameters: pcNodeKey  Key of node to select.
        chNodeKey = chTreeview:Nodes:ITEM(INT(pcNodeKey)) NO-ERROR.
        IF NOT VALID-HANDLE(chNodeKey) THEN
        DO:
-          RUN showTVError (INPUT "The key you have specified does not exist.").
+          RUN showTVError (INPUT "The key you have specified does not exist.(" + pcNodeKey + ")":U).
           RELEASE OBJECT chTreeview NO-ERROR.
           RETURN ?.
        END.
@@ -2452,14 +2406,8 @@ FUNCTION setExpandOnAdd RETURNS LOGICAL
 /*------------------------------------------------------------------------------
   Purpose:  Sets the ExpandedOnAdd property of the tree. If Yes, nodes will always
             be expanded when added to node
-------------------------------------------------------------------------------*/
-  
+------------------------------------------------------------------------------*/ 
   {set ExpandOnAdd plvar}.
-  
-  ASSIGN ghProp = WIDGET-HANDLE(ENTRY(1, TARGET-PROCEDURE:ADM-DATA, CHR(1)))
-         ghProp = ghProp:BUFFER-FIELD('ExpandOnAdd':U)
-         ghProp:BUFFER-VALUE = plvar.
-  
   RETURN TRUE.
 
 END FUNCTION.
@@ -2721,104 +2669,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-setMinHeight) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setMinHeight Procedure 
-FUNCTION setMinHeight RETURNS LOGICAL
-  ( pdHeight AS DECIMAL ) :
-/*------------------------------------------------------------------------------
-  Purpose:  Sets the minimum height
-    Notes:  
-------------------------------------------------------------------------------*/
- {set MinHeight pdHeight}.
-
-  RETURN TRUE.
-  
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setMinWidth) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setMinWidth Procedure 
-FUNCTION setMinWidth RETURNS LOGICAL
- ( pdWidth AS DECIMAL ) :
-/*------------------------------------------------------------------------------
-  Purpose:  Sets the minimum width.
-    Notes:  
-------------------------------------------------------------------------------*/
- {set MinWidth pdWidth}.
-
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setNodeExpanded) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setNodeExpanded Procedure 
-FUNCTION setNodeExpanded RETURNS LOGICAL
-  ( INPUT pcNodeKey AS CHARACTER,
-    INPUT plExpand  AS LOGICAL ) :
-/*------------------------------------------------------------------------------
-  Purpose:  This function will either expand or collapse a node 
-Parameters: pcNodeKey  Key of node to expand/collapse 
-            plNode     TRUE  - Expand
-                       FALSE - Collapse
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE chNodeKey   AS COM-HANDLE NO-UNDO.  
-  DEFINE VARIABLE chTreeview  AS COM-HANDLE NO-UNDO.
-  DEFINE VARIABLE hTreeview   AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cNodeKey    AS CHARACTER  NO-UNDO.
-  
-   /* Get the handle to the TreeView itself. */
-  {get TVCtrlFrame hTreeview }.
-  ASSIGN chTreeview   = hTreeview:COM-HANDLE
-         chTreeview   = chTreeview:CONTROLS:ITEM(1)  
-         NO-ERROR. 
-
-  chNodeKey = ?.
-
-  IF pcNodeKey = "" OR pcNodeKey = ? THEN
-     pcNodeKey = chTreeview:SelectedItem:KEY NO-ERROR.
-
-  IF pcNodeKey <> "" AND pcNodeKey <> ? THEN DO:
-      chNodeKey = chTreeview:Nodes:ITEM(pcNodeKey) NO-ERROR.
-      IF NOT VALID-HANDLE(chNodeKey) THEN
-      DO:  /* Check whether key is an integer */
-         chNodeKey = chTreeview:Nodes:ITEM(INT(pcNodeKey)) NO-ERROR.
-         IF NOT VALID-HANDLE(chNodeKey) THEN
-         DO:
-            RUN showTVError (INPUT "The key you have specified does not exist.").
-            RELEASE OBJECT chTreeview NO-ERROR.
-            RETURN ?.
-         END.
-      END.
-  END.
-  
-  IF VALID-HANDLE(chNodeKey) THEN
-    ASSIGN chNodeKey:EXPANDED = plExpand
-           NO-ERROR.
-  RELEASE OBJECT chNodeKey NO-ERROR.
-  chNodeKey = ?.
-  RELEASE OBJECT chTreeview NO-ERROR.
-  
-  RETURN TRUE.   /* Function return value. */
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-setOLEDrag) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setOLEDrag Procedure 
@@ -3047,39 +2897,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-setRefresh) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setRefresh Procedure 
-FUNCTION setRefresh RETURNS LOGICAL
-( ) :
-/*------------------------------------------------------------------------------
-  Purpose:  Refreshes the treeview
-------------------------------------------------------------------------------*/
- DEFINE VARIABLE chTreeview  AS COM-HANDLE NO-UNDO.
- DEFINE VARIABLE hTreeview   AS HANDLE     NO-UNDO.
- 
- DEFINE VARIABLE lok        AS LOGICAL NO-UNDO. 
- 
-  /* Get the handle to the TreeView itself. */
-  {get TVCtrlFrame hTreeview }.
-  ASSIGN chTreeview   = hTreeview:COM-HANDLE
-         chTreeview   = chTreeview:CONTROLS:ITEM(1)  
-         NO-ERROR. 
-           
- IF VALID-HANDLE(chTreeview) THEN
-    lok = chTreeview:REFRESH NO-ERROR.
-    
- RELEASE OBJECT chTreeview NO-ERROR. 
-
- RETURN TRUE.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-setScroll) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setScroll Procedure 
@@ -3281,6 +3098,55 @@ FUNCTION setTVControllerSource RETURNS LOGICAL
 
   RETURN TRUE.
 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-ValidNodeKey) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION ValidNodeKey Procedure 
+FUNCTION ValidNodeKey RETURNS LOGICAL
+  ( pcKey AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Returns whether the specified key is valid
+Parameter:  pcKey  Name of key to verify.    
+    Notes:  
+------------------------------------------------------------------------------*/
+ DEFINE VARIABLE chtreeview    AS COM-HANDLE NO-UNDO.
+ DEFINE VARIABLE hTreeview     AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE chNodeKey     AS COM-HANDLE NO-UNDO.
+ DEFINE VARIABLE lFound        AS LOGICAL    NO-UNDO.
+ 
+ /* Get the handle to the TreeView itself. */
+  {get TVCtrlFrame hTreeview }.
+  ASSIGN chTreeview   = hTreeview:COM-HANDLE
+         chTreeview   = chTreeview:CONTROLS:ITEM(1)  
+         NO-ERROR. 
+ 
+ IF pcKey = "" OR pcKey = ? THEN DO:
+   RUN showTVMessage (INPUT "You cannot search for a blank key value.").
+   RELEASE OBJECT chtreeview NO-ERROR.
+   RETURN FALSE.
+ END.
+
+ chNodeKey = chtreeview:Nodes:ITEM(pckey) NO-ERROR. 
+ IF NOT VALID-HANDLE(chNodeKey) THEN 
+    chNodeKey = chtreeview:Nodes:ITEM(INT(pckey)) NO-ERROR.
+ 
+ IF VALID-HANDLE(chNodeKey) THEN 
+    lFound = TRUE.
+ ELSE
+    lfound = FALSE.
+       
+ RELEASE OBJECT chNodeKey NO-ERROR.
+ RELEASE OBJECT chtreeview NO-ERROR.
+
+ 
+ RETURN lFound.
+  
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

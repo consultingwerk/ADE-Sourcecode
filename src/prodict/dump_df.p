@@ -36,6 +36,7 @@ Input-Parameters:
     code-page                : ?, "", "<code-page>"
     
 History
+    McMann    02/10/03  Added USER-INDEX _file-name for On-line schema add
     Mario B   99/03/15  Default user_env[26] to "y" for dump _Field._Field-rpos
     mcmann    98/07/13  Added _Owner to _file finds
     laurief     97/12   Removed RMS,CISAM code
@@ -195,7 +196,7 @@ for each DICTDB._DB
      then do:
       FOR EACH DICTDB._File of DICTDB._Db
         where DICTDB._File._File-name = ttb_dump.tbl
-        no-lock:
+        USE-INDEX _File-name no-lock:
         
         IF INTEGER(DBVERSION("DICTDB")) > 8
            AND DICTDB._File._Tbl-Type = "V"
@@ -222,7 +223,7 @@ for each DICTDB._DB
      then do:
       FOR EACH DICTDB._File of DICTDB._Db
         where DICTDB._File._File-name = ttb_dump.tbl
-        no-lock:
+        USE-INDEX _File-name no-lock:
         
         IF INTEGER(DBVERSION("DICTDB")) > 8
            AND DICTDB._File._Tbl-Type = "V"
@@ -252,6 +253,7 @@ for each DICTDB._DB
       WHERE DICTDB._File._File-number > 0
       AND   DICTDB._File._Db-recid = RECID(_Db)
       AND   NOT DICTDB._File._Hidden
+      USE-INDEX _File-name
       BY    DICTDB._File._File-name:
 
         IF INTEGER(DBVERSION("DICTDB")) > 8

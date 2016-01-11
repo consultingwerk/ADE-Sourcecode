@@ -176,6 +176,12 @@ DEFINE {1} SHARED VAR _directory       AS CHARACTER                 NO-UNDO
        /*                  save.  Including: icon directory, template    */
        /*                  directory, .wx file directory etc.            */
 
+DEFINE {1} SHARED VAR _dyn_cst_template AS CHARACTER                 NO-UNDO.
+       /* Contains a list of all dynamic template objects */
+
+DEFINE {1} SHARED VAR _dyn_cst_palette AS CHARACTER                 NO-UNDO.       
+       /* Contains a list of all dynamic palette objects */
+       
 DEFINE {1} SHARED VAR _err_msg         AS CHARACTER                 NO-UNDO.
        /* _err_msg         is the first error message from the last      */
        /*                  compile attempt                               */
@@ -491,6 +497,11 @@ DEFINE {1} SHARED VARIABLE   se_section  AS CHARACTER               NO-UNDO.
 
 DEFINE {1} SHARED VARIABLE   se_recid    AS RECID                   NO-UNDO.
        /* se_recid       is recid of the recid of the current _trg */
+
+DEFINE {1} SHARED VARIABLE _p_status     AS CHARACTER               NO-UNDO.
+       /* _p_status      same purpose as p_status in gen4gl      */
+       /*                so far only used for syntax check       */
+
 &IF DEFINED(SE_Name) = 0 &THEN
 /* This is defined as a shared object in _sewin.w. We must preprocess
    out the DEFINE SHARED or we get a duplicate var name error when

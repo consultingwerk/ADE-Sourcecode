@@ -1,7 +1,6 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r11 GUI
 &ANALYZE-RESUME
 /* Connected Databases 
-          sports2000       PROGRESS
 */
 &Scoped-define WINDOW-NAME properties_window
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS properties_window 
@@ -177,6 +176,7 @@ FUNCTION compile-userfields RETURNS CHARACTER
 &Scoped-define FIELDS-IN-QUERY-brws-attr tt.expanded NO-LABEL tt.attr-label tt.attr-value   
 &Scoped-define ENABLED-FIELDS-IN-QUERY-brws-attr   
 &Scoped-define SELF-NAME brws-attr
+&Scoped-define QUERY-STRING-brws-attr FOR EACH tt WHERE tt.in-use AND NOT tt.hidden. adjustSize()
 &Scoped-define OPEN-QUERY-brws-attr OPEN QUERY brws-attr FOR EACH tt WHERE tt.in-use AND NOT tt.hidden. adjustSize().
 &Scoped-define TABLES-IN-QUERY-brws-attr tt
 &Scoped-define FIRST-TABLE-IN-QUERY-brws-attr tt
@@ -301,6 +301,7 @@ DEFINE FRAME f
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
 /* Settings for THIS-PROCEDURE
    Type: WINDOW
+   Compile into: 
    Other Settings: COMPILE
  */
 &ANALYZE-RESUME _END-PROCEDURE-SETTINGS
@@ -1002,7 +1003,7 @@ PROCEDURE apply-geometry :
         END CASE. /* pAttr */
         
         /* Reset labels, if necessary. */
-        IF CAN-DO ("COMBO-BOX,FILL-IN,EDITOR,SELECTION-LIST", _U._TYPE)
+        IF CAN-DO ("COMBO-BOX,FILL-IN,,EDITOR,SELECTION-LIST,RADIO-SET,SLIDER", _U._TYPE)
            AND pAttr ne "WIDTH" AND _U._l-recid NE ? THEN
           RUN adeuib/_showlbl.p (_U._HANDLE).
             
@@ -1749,18 +1750,22 @@ PROCEDURE metamorph :
     
   /* Special Cases: */
   CASE _U._TYPE:
-    WHEN "RADIO-SET":U THEN DO:
-      /* Radio-Buttons are stored in the SCREEN-VALUE.  Set the Radio-Buttons 
+    WHEN "FILL-IN":U                 OR WHEN "COMBO-BOX":U  
+         OR WHEN "SELECTION-LIST":U  OR WHEN "EDITOR":U 
+         OR WHEN "RADIO-SET":U THEN 
+    DO:
+       /* Incorporate Radio-Buttons */
+       IF _U._TYPE = "RADIO-SET":U AND  _F._SCREEN-VALUE eq "":U THEN
+       DO:
+         /* Radio-Buttons are stored in the SCREEN-VALUE.  Set the Radio-Buttons 
          based on the DATA-TYPE of the variable */
-      IF _F._SCREEN-VALUE eq "":U THEN DO:
-        CASE _F._DATA-TYPE:
-          WHEN "CHARACTER":U THEN _F._SCREEN-VALUE = "~"Item 1~",~"1~"".
-          WHEN "LOGICAL":U   THEN _F._SCREEN-VALUE = "~"Yes~", yes, ~"No~", no".
-          OTHERWISE               _F._SCREEN-VALUE = "~"Item 1~",1".
-        END CASE.
-      END.
-    END.
-    WHEN "FILL-IN":U OR WHEN "COMBO-BOX":U THEN DO:
+         CASE _F._DATA-TYPE:
+           WHEN "CHARACTER":U THEN _F._SCREEN-VALUE = "~"Item 1~",~"1~"".
+           WHEN "LOGICAL":U   THEN _F._SCREEN-VALUE = "~"Yes~", yes, ~"No~", no".
+           OTHERWISE               _F._SCREEN-VALUE = "~"Item 1~",1".
+         END CASE.
+         
+       END.
       /* Make sure there is a label record */
       IF _U._l-recid eq ? THEN DO:
         CREATE lbl_U.
@@ -1789,13 +1794,20 @@ PROCEDURE metamorph :
       /* Make sure _U._SUBTYPE is not unknown for combo-boxes. */
       IF _U._TYPE = "COMBO-BOX":U THEN
         _U._SUBTYPE = "DROP-DOWN-LIST".
-    END.  
+      
+      /* Turn off labels by default for editors, selction-lists,radio-sets, */
+      IF CAN-DO("EDITOR,SELECTION-LIST,RADIO-SET":U,_U._TYPE) THEN
+         FOR EACH _L WHERE _L._u-recid = RECID(_U):
+           _L._NO-LABELS = YES.
+         END.
+    END. /* End When Fill-in, combo-box,radio-set,selection-list,editor */  
     WHEN "TEXT":U THEN DO:       
       /* If there is NO initial data, then use a label if available, or the name.
          (Note that all TEXT widgets must be character fields). */
       IF _F._INITIAL-DATA eq "":U 
       THEN _F._INITIAL-DATA = (IF _U._LABEL ne "" THEN _U._LABEL ELSE _U._NAME).
-    END.   
+    END. /* When TEXT */
+
   END CASE.
  
   /* Rebuild the object. */

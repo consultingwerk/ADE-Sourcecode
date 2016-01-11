@@ -57,7 +57,7 @@ CREATE WIDGET-POOL.
 /* Parameters Definitions ---                                           */
 DEFINE INPUT PARAMETER gcProductModule     LIKE icfdb.gsc_product_module.product_module_code. 
 DEFINE INPUT PARAMETER gcObjectType        LIKE icfdb.gsc_object_type.object_type_code.
-DEFINE INPUT-OUTPUT PARAMETER gcFileName   LIKE icfdb.gsc_object.object_filename. 
+DEFINE INPUT-OUTPUT PARAMETER gcFileName   LIKE icfdb.ryc_smartobject.object_filename. 
 
 /* Local Variable Definitions ---                                       */
 /* create a space to hold the SmartDataObject's original query string. */
@@ -118,18 +118,18 @@ DEFINE BUTTON Btn_OK AUTO-GO
      LABEL "OK" 
      SIZE 15 BY 1.14.
 
-DEFINE VARIABLE coObjectType AS DECIMAL FORMAT "->>>>>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
+DEFINE VARIABLE coObjectType AS DECIMAL FORMAT "->>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
      VIEW-AS COMBO-BOX INNER-LINES 10
      LIST-ITEM-PAIRS "x",0.00
      DROP-DOWN-LIST
      SIZE 16 BY 1 NO-UNDO.
 
-DEFINE VARIABLE coProductModule AS DECIMAL FORMAT "->>>>>>>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
+DEFINE VARIABLE coProductModule AS DECIMAL FORMAT "->>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
      LABEL "Product Module" 
      VIEW-AS COMBO-BOX INNER-LINES 10
-     LIST-ITEM-PAIRS "x",0.00
+     LIST-ITEM-PAIRS "x",0
      DROP-DOWN-LIST
-     SIZE 47 BY 1 NO-UNDO.
+     SIZE 47 BY 1.05 NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */
@@ -287,7 +287,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'ry/obj/dobjectlookup.wDB-AWARE':U ,
              INPUT  FRAME gDialog:HANDLE ,
-             INPUT  'AppServiceAstraASUsePromptASInfoForeignFieldsRowsToBatch200CheckCurrentChangedyesRebuildOnReposnoServerOperatingModeNONEDestroyStatelessnoDisconnectAppServernoObjectNamery/obj/dobjectlookupUpdateFromSourceno':U ,
+             INPUT  'AppServiceAstraASUsePromptASInfoForeignFieldsRowsToBatch200CheckCurrentChangedyesRebuildOnReposnoServerOperatingModeNONEDestroyStatelessnoDisconnectAppServernoObjectNamery/obj/dobjectlookupUpdateFromSourcenoToggleDataTargetsyesOpenOnInityes':U ,
              OUTPUT h_dobjectlookup ).
        RUN repositionObject IN h_dobjectlookup ( 10.05 , 36.00 ) NO-ERROR.
        /* Size in AB:  ( 1.67 , 12.00 ) */
@@ -295,7 +295,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'ry/obj/bobjectlookup.w':U ,
              INPUT  FRAME gDialog:HANDLE ,
-             INPUT  'ScrollRemotenoDataSourceNamesUpdateTargetNamesLogicalObjectNameHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'ScrollRemotenoNumDown0CalcWidthnoMaxWidth80FetchOnReposToEndyesDataSourceNamesUpdateTargetNamesLogicalObjectNameHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_bobjectlookup ).
        RUN repositionObject IN h_bobjectlookup ( 2.91 , 2.00 ) NO-ERROR.
        RUN resizeObject IN h_bobjectlookup ( 7.38 , 64.00 ) NO-ERROR.
@@ -545,11 +545,11 @@ IF gcOriginalWhere = "" THEN
 
 IF (coObjectType <> 0) THEN
       ASSIGN
-        cField = "gsc_object.object_type_obj":U 
+        cField = "ryc_smartobject.object_type_obj":U 
         cWhere = cField + " = ":U + STRING(coObjectType). 
  IF (coProductModule <> 0) THEN
       ASSIGN
-        cField = "gsc_object.product_module_obj":U 
+        cField = "ryc_smartobject.product_module_obj":U 
         cWhere = cWhere + (IF cWhere = "":U THEN "":U ELSE " AND ":U)
                  + cField + " = ":U + STRING(coProductModule). 
 
@@ -586,11 +586,11 @@ DO WITH FRAME {&FRAME-NAME}:
   
   IF (coObjectType <> 0) THEN
       ASSIGN
-      cField = "gsc_object.object_type_obj":U 
+      cField = "ryc_smartobject.object_type_obj":U 
         cWhere = cField + " = ":U + STRING(coObjectType). 
   IF (coProductModule <> 0) THEN
       ASSIGN
-        cField = "gsc_object.product_module_obj":U 
+        cField = "ryc_smartobject.product_module_obj":U 
         cWhere = cWhere + (IF cWhere = "":U THEN "":U ELSE " AND ":U)
                     + cField + " = ":U + STRING(coProductModule). 
         

@@ -54,6 +54,9 @@ n-1. db.
 "" symbolizes the default-behaviour (:= generate trailer).
 
 History:
+    D. McMann   10/03/02    Added USE-INDEX for On-line schema add
+    D. McMann   09/30/02    Added check for SQL92 tables.
+    D. McMann   02/09/12    Changed where check for owner is done 20020912-009
     Mario B     99/03/15    Added user_env[26] for dump _Field._Field-rpos
     hutegger    95/01/24    single-files in multiple schemas
     hutegger    94/06/09    batch-automatism
@@ -143,13 +146,10 @@ DO ON STOP UNDO, LEAVE:
               then CAN-DO(user_env[1],DICTDB._File._File-name)
               else RECID(DICTDB._File) = drec_file
            )
-      BREAK BY DICTDB._File._File-num:
-  
-      IF INTEGER(DBVERSION("DICTDB")) > 8         
-        AND (DICTDB._File._Owner <> "PUB" AND DICTDB._File._Owner <> "_FOREIGN")
-          THEN NEXT.
-      
-      if   FIRST(DICTDB._File._File-num) 
+        USE-INDEX _File-name
+      BREAK BY DICTDB._File._File-name:
+
+      if   FIRST(DICTDB._File._File-name) 
        then do:  /* first _file of this _db */
 
         if  user_filename = "ALL"
@@ -178,7 +178,16 @@ DO ON STOP UNDO, LEAVE:
         if TERMINAL <> "" then
           DISPLAY user_dbname @ Dbs
       	    WITH FRAME working.
-  
+
+     /* This check has to be done after the FIRST-OF statment if SQL92
+        tables are also in the database 20020912-009*/         
+      IF INTEGER(DBVERSION("DICTDB")) > 8         
+        AND (DICTDB._File._Owner <> "PUB" AND DICTDB._File._Owner <> "_FOREIGN")
+          THEN NEXT.
+
+      /* Do not dump SQL92 tables */
+      IF DICTDB._File._Db-lang > 1 THEN NEXT.
+
       if TERMINAL <> "" then 
         DISPLAY _File._File-name WITH FRAME working.
       RUN "prodict/dump/_dmpdefs.p" ("t",RECID(_File),user_env[26]).

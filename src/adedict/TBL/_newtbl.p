@@ -44,7 +44,9 @@ Modified on 12/07/94 by gfs - added support for ODBC
 Modified on 07/08/94 by gfs - Bug 94-06-14-177 (again)
 Modified on 07/07/94 by gfs - Bug 94-06-14-177
 Mario B 12/28/98 Add s_In_Schema_Area enabling one time notification.
- DLM     05/15/00    Removed warning message if only Schema Area in DB
+DLM      05/15/00 Removed warning message if only Schema Area in DB
+Donna M. 04/23/02 Added assignment of new table recid variable 
+10/01/02 DLM Changed check for SQL tables
 
 ----------------------------------------------------------------------------*/
 &GLOBAL-DEFINE WIN95-BTN YES
@@ -108,16 +110,16 @@ do:
             APPLY "VALUE-CHANGED" TO MENU-ITEM mi_Show_Hidden in MENU s_mnu_View.
       END.
 
-      assign
-	 b_File._DB-recid = s_DbRecId
-        input frame newtbl b_File._File-name 
-	 input frame newtbl b_File._Dump-Name
-	 input frame newtbl b_File._Hidden
-	 input frame newtbl b_File._For-Size
-      	 input frame newtbl b_File._File-label
-	 input frame newtbl b_File._Desc
-         input frame newtbl b_File._Fil-misc2[6].
-
+      ASSIGN b_File._DB-recid = s_DbRecId
+             input frame newtbl b_File._File-name 
+	         input frame newtbl b_File._Dump-Name
+	         input frame newtbl b_File._Hidden
+	         input frame newtbl b_File._For-Size
+      	     input frame newtbl b_File._File-label
+	         input frame newtbl b_File._Desc
+             input frame newtbl b_File._Fil-misc2[6]
+             n_tblrecid = RECID(b_File).
+      
       FIND _Area WHERE _Area._Area-name = input frame newtbl s_Tbl_Area NO-LOCK.
       ASSIGN b_File._ianum = _Area._Area-num
              s_Tbl_Area = input frame newtbl s_tbl_area.

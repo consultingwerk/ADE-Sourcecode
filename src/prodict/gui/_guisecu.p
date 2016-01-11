@@ -28,9 +28,8 @@
 
    Input: user_env[9] - ro (read only) or rw (read/write)
    
-   History:  03/25/02 Added display to be editor widget instead of fill-ins
-                      to allow more characters than 63 -ISSUE 4255
-                      SCC 20020225-049
+   History:  D. McMann changed length of text fields to x(500)
+   
 -------------------------------------------------------------------*/
 
 { prodict/dictvar.i }
@@ -81,13 +80,13 @@ DEFINE VARIABLE which AS CHAR NO-UNDO INITIAL "t"
    RADIO-BUTTONS "Permissions for Selected T&able", "t",
       	       	 "Permissions for Selected F&ield", "f".
 
-DEFINE VARIABLE can_lbl    AS CHAR INITIAL "" NO-UNDO.
-DEFINE VARIABLE can_read   AS CHAR INITIAL "" NO-UNDO.
-DEFINE VARIABLE can_write  AS CHAR INITIAL "" NO-UNDO.
-DEFINE VARIABLE can_create AS CHAR INITIAL "" NO-UNDO.
-DEFINE VARIABLE can_delete AS CHAR INITIAL "" NO-UNDO.
-DEFINE VARIABLE can_dump   AS CHAR INITIAL "" NO-UNDO.
-DEFINE VARIABLE can_load   AS CHAR INITIAL "" NO-UNDO.
+DEFINE VARIABLE can_lbl    AS CHAR NO-UNDO.
+DEFINE VARIABLE can_read   AS CHAR NO-UNDO.
+DEFINE VARIABLE can_write  AS CHAR NO-UNDO.
+DEFINE VARIABLE can_create AS CHAR NO-UNDO.
+DEFINE VARIABLE can_delete AS CHAR NO-UNDO.
+DEFINE VARIABLE can_dump   AS CHAR NO-UNDO.
+DEFINE VARIABLE can_load   AS CHAR NO-UNDO.
 
 /* Miscellaneous */
 DEFINE VARIABLE ans     AS LOGICAL               NO-UNDO.
@@ -115,22 +114,22 @@ FORM
    which      NO-LABEL	      	   AT 25        	  SKIP({&VM_WID})
    can_lbl    NO-LABEL	      	   AT 2     FORMAT "x(73)" 
       	       	     	      	       	    VIEW-AS TEXT SKIP({&VM_WID})
-   can_read   LABEL "Can-&Read"    {&STDPH_FILL} COLON 12 
-    VIEW-AS EDITOR INNER-LINES 1 INNER-CHARS 28 SKIP({&VM_WID})
-   can_write  LABEL "Can-&Write"   {&STDPH_FILL} COLON 12 
-    VIEW-AS EDITOR INNER-LINES 1 INNER-CHARS 28 SKIP({&VM_WID})
-   can_create LABEL "Can-&Create"  {&STDPH_FILL} COLON 12 
-   VIEW-AS EDITOR INNER-LINES 1 INNER-CHARS 28 SKIP({&VM_WID})
-   can_delete LABEL "Can-&Delete"  {&STDPH_FILL} COLON 12 
-   VIEW-AS EDITOR INNER-LINES 1 INNER-CHARS 28 SKIP({&VM_WID})
-   can_dump   LABEL "Can-Du&mp"    {&STDPH_FILL} COLON 12 
-   VIEW-AS EDITOR INNER-LINES 1 INNER-CHARS 28 SKIP({&VM_WID})
-   can_load   LABEL "Can-&Load"    {&STDPH_FILL} COLON 12 
-   VIEW-AS EDITOR INNER-LINES 1 INNER-CHARS 28
+   can_read   LABEL "Can-&Read"    {&STDPH_FILL} COLON 12 FORMAT "x(500)" 
+	VIEW-AS FILL-IN SIZE 29 BY 1 SKIP({&VM_WID})
+   can_write  LABEL "Can-&Write"   {&STDPH_FILL} COLON 12 FORMAT "x(500)" 
+	VIEW-AS FILL-IN SIZE 29 BY 1 SKIP({&VM_WID})
+   can_create LABEL "Can-&Create"  {&STDPH_FILL} COLON 12 FORMAT "x(500)" 
+	VIEW-AS FILL-IN SIZE 29 BY 1 SKIP({&VM_WID})
+   can_delete LABEL "Can-&Delete"  {&STDPH_FILL} COLON 12 FORMAT "x(500)" 
+	VIEW-AS FILL-IN SIZE 29 BY 1 SKIP({&VM_WID})
+   can_dump   LABEL "Can-Du&mp"    {&STDPH_FILL} COLON 12 FORMAT "x(500)" 
+	VIEW-AS FILL-IN SIZE 29 BY 1 SKIP({&VM_WID})
+   can_load   LABEL "Can-&Load"    {&STDPH_FILL} COLON 12 FORMAT "x(500)" 
+	VIEW-AS FILL-IN SIZE 29 BY 1
    {prodict/user/userbtns.i}
    msgSecu1 NO-LABEL AT COLUMN 45 ROW-OF can_read + .1
    msgSecu2 NO-LABEL AT COLUMN 45 ROW-OF can_read + .7
-   msgSecu3 NO-LABEL AT COLUMN 45 ROW-OF can_read + .7
+   msgSecu3 NO-LABEL AT COLUMN 53 ROW-OF can_read + .7
    msgSecu4 NO-LABEL AT COLUMN 45 ROW-OF can_dump
    WITH FRAME secu THREE-D 
    CENTERED ATTR-SPACE SIDE-LABELS
@@ -186,62 +185,53 @@ PROCEDURE Show_Secu:
    can_lbl = new_lang[11] + 
       	     (IF AVAILABLE (_File) THEN _File._File-name ELSE "").
    if which = "t" THEN DO:
-     IF AVAILABLE (_File) THEN DO:
-	   IF NOT r-o THEN DO:
-	     ASSIGN Can_Create:sensitive IN FRAME secu = yes
-	            Can_Delete:sensitive IN FRAME secu = yes
-	            Can_Dump:sensitive IN FRAME secu = yes
-	            Can_Load:sensitive IN FRAME secu = yes.
+      IF AVAILABLE (_File) THEN DO:
+	 IF NOT r-o THEN
+	    ASSIGN
+	       Can_Create:sensitive IN FRAME secu = yes
+	       Can_Delete:sensitive IN FRAME secu = yes
+	       Can_Dump:sensitive IN FRAME secu = yes
+	       Can_Load:sensitive IN FRAME secu = yes.
     
-         ASSIGN Can_read = _File._Can-Read 	 
-	            Can_Write = _File._Can-Write 
-		        Can_Create = _File._Can-Create	
-		        Can_Delete = _File._Can-Delete	
-		        Can_Dump = _File._Can-Dump 	  
-		        Can_Load = _File._Can-Load.	
-
-         DISPLAY Can_Read
-		         Can_Write
-		         Can_Create
-		         Can_Delete
-		         Can_Dump
-		         Can_Load
-		 WITH FRAME secu.
+	  DISPLAY _File._Can-Read 	 @ Can_Read
+		  _File._Can-Write	 @ Can_Write
+		  _File._Can-Create	 @ Can_Create
+		  _File._Can-Delete	 @ Can_Delete
+		  _File._Can-Dump 	 @ Can_Dump
+		  _File._Can-Load	 @ Can_Load
+		  WITH FRAME secu.
       END.
       ELSE
-	    DISPLAY Can_Read
-	            Can_Write
-                Can_Create
-		        Can_Delete
-		        Can_Dump
-		         Can_Load
-		WITH FRAME secu.
-     END.
+	 DISPLAY "" @ Can_Read
+		 "" @ Can_Write
+		 "" @ Can_Create
+		 "" @ Can_Delete
+		 "" @ Can_Dump
+		 "" @ Can_Load
+		 WITH FRAME secu.
    END.
    ELSE DO: /* which = "f" */
-     ASSIGN can_lbl = can_lbl + "." + 
+      ASSIGN
+      	 can_lbl = can_lbl + "." + 
       	       	   (IF AVAILABLE _FIELD THEN _Field._Field-name ELSE "")
-      	    Can_Create:sensitive IN FRAME secu = no
-      	    Can_Delete:sensitive IN FRAME secu = no
-      	    Can_Dump:sensitive IN FRAME secu = no
-      	    Can_Load:sensitive IN FRAME secu = no.
+      	 Can_Create:sensitive IN FRAME secu = no
+      	 Can_Delete:sensitive IN FRAME secu = no
+      	 Can_Dump:sensitive IN FRAME secu = no
+      	 Can_Load:sensitive IN FRAME secu = no.
 
-      DISPLAY Can_Create
-      	      Can_Delete
-      	      Can_Dump
-      	      Can_Load
+      DISPLAY "" @ Can_Create
+      	      "" @ Can_Delete
+      	      "" @ Can_Dump
+      	      "" @ Can_Load
       	      WITH FRAME secu.
 
-      IF AVAILABLE _Field THEN DO:
-        ASSIGN Can_read = _Field._Can-Read
-               Can_write =  _Field._Can-Write.
-      	DISPLAY Can_Read
-      	         Can_Write
+      IF AVAILABLE _Field THEN 
+      	 DISPLAY _Field._Can-Read   @ Can_Read
+      	         _Field._Can-Write  @ Can_Write
       	       	 WITH FRAME secu.
-      END.
       ELSE 
-      	 DISPLAY Can_Read
-      	         Can_Write
+      	 DISPLAY "" @ Can_Read
+      	         "" @ Can_Write
       	       	 WITH FRAME secu.
    END.
    can_lbl = can_lbl + ":".

@@ -51,12 +51,10 @@ FOR EACH gsc_object_type:
                     new_rycav.attribute_label = ryc_attribute_value.attribute_label
                     new_rycav.smartobject_obj = ryc_smartobject.smartobject_obj
                     new_rycav.OBJECT_instance_obj = 0
-                    new_rycav.container_smartobject_obj = 0                
-                    new_rycav.inheritted_value = TRUE
-                    new_rycav.collect_attribute_value_obj = new_rycav.attribute_value_obj.
+                    new_rycav.container_smartobject_obj = 0.
 
                 BUFFER-COPY ryc_attribute_value 
-                    EXCEPT attribute_value_obj attribute_label smartobject_obj object_instance_obj container_smartobject_obj inheritted_value collect_attribute_value_obj
+                    EXCEPT attribute_value_obj attribute_label smartobject_obj object_instance_obj container_smartobject_obj
                     TO new_rycav.                
             END.
 
@@ -78,12 +76,10 @@ FOR EACH gsc_object_type:
                         new_rycav.attribute_label = ryc_attribute_value.attribute_label
                         new_rycav.smartobject_obj = ryc_smartobject.smartobject_obj
                         new_rycav.OBJECT_instance_obj = ryc_object_instance.OBJECT_instance_obj
-                        new_rycav.container_smartobject_obj = ryc_object_instance.container_smartobject_obj                
-                        new_rycav.inheritted_value = TRUE
-                        new_rycav.collect_attribute_value_obj = new_rycav.attribute_value_obj.
+                        new_rycav.container_smartobject_obj = ryc_object_instance.container_smartobject_obj.
 
                     BUFFER-COPY ryc_attribute_value 
-                        EXCEPT attribute_value_obj attribute_label smartobject_obj object_instance_obj container_smartobject_obj inheritted_value collect_attribute_value_obj
+                        EXCEPT attribute_value_obj attribute_label smartobject_obj object_instance_obj container_smartobject_obj
                         TO new_rycav.                
                 END.
             END.               

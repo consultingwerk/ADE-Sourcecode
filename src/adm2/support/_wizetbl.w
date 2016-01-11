@@ -71,7 +71,7 @@
      that is created in this procedure will die as soon as this proecure dies */
      
 /* ***************************  Definitions  ************************** */
-{ adm2/support/admhlp.i } /* ADM Help File Defs */
+{ src/adm2/support/admhlp.i } /* ADM Help File Defs */
 
 /* CHR(3) creates a mess in HTML */ 
 &SCOP WSdlm  "|"

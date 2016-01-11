@@ -75,13 +75,21 @@ FORM
         DEFAULT-BUTTON s_btn_OK CANCEL-BUTTON s_btn_Cancel
         SIDE-LABELS.
 
-&IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
-ASSIGN msgRenam:SCREEN-VALUE =
-   "This renames a field throughout all tables. The new field name " +
-   "must not already be in use in any table in the database.".
-msgRenam:READ-ONLY = yes.
+&IF PROVERSION >= "9.1E" &THEN
+    IF SESSION:SCHEMA-CHANGE = "New Objects" THEN DO:
+      MESSAGE 'You can not rename fields when SESSION:SCHEMA-CHANGE = "New Objects".'
+        VIEW-AS ALERT-BOX ERROR.
+      RETURN.
+    END.
+&ENDIF
 
-ENABLE msgRenam WITH FRAME fld_rename.
+&IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
+  ASSIGN msgRenam:SCREEN-VALUE =
+    "This renames a field throughout all tables. The new field name " +
+    "must not already be in use in any table in the database.".
+    msgRenam:READ-ONLY = yes.
+
+  ENABLE msgRenam WITH FRAME fld_rename.
 &ENDIF
 
 /*-------------------------------Triggers------------------------------------*/
@@ -135,7 +143,7 @@ do:
       isview = can-find(FIRST _View-ref where
       	       	     	_View-ref._Ref-Table = _File._File-Name AND
       	       	     	_View-ref._Base-Col = _Field._Field-Name).
-      issql = (_File._Db-lang = {&TBLTYP_SQL}).
+      issql = (_File._Db-lang >= {&TBLTYP_SQL}).
       num = num + 1.      
    end.   
    run adecomm/_setcurs.p ("").
@@ -244,6 +252,8 @@ do:
       	    buttons OK.
    return.
 end.
+
+
 
 /* Run time layout for button area. */
 {adecomm/okrun.i  

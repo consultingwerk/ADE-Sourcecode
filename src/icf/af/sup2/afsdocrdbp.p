@@ -52,9 +52,9 @@ af/cod/aftemwizpw.w
 /*---------------------------------------------------------------------------------
   File: afsdocrdbp.p
 
-  Description:  Create SDO records in GSCOB and RYCS0
+  Description:  Create SDO records in RYCS0
 
-  Purpose:      Create SDO records in GSCOB (gsc_object) and RYCS0 (ryc_smartobject).
+  Purpose:      Create SDO records in RYCS0 (ryc_smartobject).
 
   Parameters:   input full object name including path
                 input procedure type if known, e.g. SmartDataObject
@@ -108,7 +108,13 @@ af/cod/aftemwizpw.w
                 may not always be stored in the same path as the product module. Also allow
                 a blank relative path. Don't know why that was considered invalid.
 
------------------------------------------------------------------------------*/
+  (v:020000)    Task:          31   UserRef:    
+                Date:   03/21/2003  Author:     Thomas Hansen
+
+  Update Notes: Issue 9598:
+                Incorrect call to getSessionProperty made. Changed to use getSessionParam.
+
+----------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
 
@@ -120,7 +126,7 @@ af/cod/aftemwizpw.w
 
 &scop object-name       afsdocrdbp.p
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    000000
+&scop object-version    020000
 
 
 /* Astra object identifying preprocessor */
@@ -128,22 +134,22 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 {af/sup2/afglobals.i}
 
-DEFINE INPUT  PARAMETER pcFullFileName  AS CHARACTER    NO-UNDO.
-DEFINE INPUT  PARAMETER pcObjectType    AS CHARACTER    NO-UNDO.
-DEFINE INPUT  PARAMETER pcModuleCode    AS CHARACTER    NO-UNDO.
-DEFINE INPUT  PARAMETER pcDescription   AS CHARACTER    NO-UNDO.
-DEFINE INPUT  PARAMETER plPromptUser    AS LOGICAL      NO-UNDO.
-DEFINE OUTPUT PARAMETER pcError         AS CHARACTER    NO-UNDO.
+DEFINE INPUT  PARAMETER pcFullFileName   AS CHARACTER    NO-UNDO.
+DEFINE INPUT  PARAMETER pcObjectType     AS CHARACTER    NO-UNDO.
+DEFINE INPUT  PARAMETER pcModuleCode     AS CHARACTER    NO-UNDO.
+DEFINE INPUT  PARAMETER pcDescription    AS CHARACTER    NO-UNDO.
+DEFINE INPUT  PARAMETER pcDeploymentType AS CHARACTER    NO-UNDO.
+DEFINE INPUT  PARAMETER plDesignOnly     AS LOGICAL    NO-UNDO.
+DEFINE INPUT  PARAMETER plPromptUser     AS LOGICAL      NO-UNDO.
+DEFINE OUTPUT PARAMETER pcError          AS CHARACTER    NO-UNDO.
 
 DEFINE VARIABLE cErrorMessage       AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE cButton             AS CHARACTER    NO-UNDO.
 
-/* &IF "{&scmTool}" = "RTB":U */
 /* Define required RTB global shared variables - used for RTB integration hooks (if installed) */
-DEFINE NEW GLOBAL SHARED VARIABLE grtb-wspace-id    AS CHARACTER    NO-UNDO.
+/* DEFINE NEW GLOBAL SHARED VARIABLE grtb-wspace-id    AS CHARACTER    NO-UNDO. */
 
-{af/sup2/afcheckerr.i
-    &define-only=YES
+{af/sup2/afcheckerr.i &define-only=YES
 }
 
 /* _UIB-CODE-BLOCK-END */
@@ -181,8 +187,8 @@ DEFINE NEW GLOBAL SHARED VARIABLE grtb-wspace-id    AS CHARACTER    NO-UNDO.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 7.95
-         WIDTH              = 46.
+         HEIGHT             = 17.14
+         WIDTH              = 59.6.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -205,14 +211,16 @@ DEFINE VARIABLE iLoop           AS INTEGER      NO-UNDO.
 DEFINE VARIABLE rRowid          AS ROWID        NO-UNDO.
 DEFINE VARIABLE cRelativePath   AS CHARACTER    NO-UNDO.
 
-DEFINE VARIABLE hScmTool        AS HANDLE       NO-UNDO.
+DEFINE VARIABLE cContainerClasses AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cWindowClasses    AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE hScmTool          AS HANDLE     NO-UNDO.
 
 /*  none layout must exist */
 FIND ryc_layout NO-LOCK
     WHERE ryc_layout.layout_name = "None":U NO-ERROR.
 IF  NOT AVAILABLE ryc_layout THEN
 DO:
-  ASSIGN pcError = "Not added to repository. Layout name 'None' does not exist".
+  ASSIGN pcError = "Not added to repository. Layout name 'None' does not exist, please add it.".
   RETURN.
 END.
 
@@ -227,26 +235,12 @@ END.
 /* see if object already exists in repository */
 /* strip off object path */
 ASSIGN
-    cObjectName = REPLACE(pcFullFileName, "\", "/")
+    cObjectName = REPLACE(pcFullFileName, "~\", "/")
     cObjectName = TRIM(ENTRY(NUM-ENTRIES(cObjectName, "/":U), cObjectName, "/")).
     IF R-INDEX(cObjectName,".") > 0 THEN DO:
        cObjectExt = ENTRY(NUM-ENTRIES(cObjectName,"."),cObjectName,".").
        cObjectFileName = REPLACE(cObjectName,("." + cObjectExt),"").
     END.
-/* First Assume that filename includes the extension for gsc_object */
-
-/* IZ 2381 : Why can't we save again? Description and path may have changed. Commenting out. jep-icf */
-/*
-IF CAN-FIND(FIRST gsc_object WHERE gsc_object.OBJECT_filename = cObjectName) AND
-   CAN-FIND(FIRST ryc_smartobject WHERE ryc_smartobject.OBJECT_filename = cObjectName) THEN
-  RETURN. /* already exists ok */
-/* Now check with the file extension as a separate field */
-IF cObjectExt <> "" THEN
-    IF CAN-FIND(FIRST gsc_object WHERE gsc_object.OBJECT_filename = cObjectFileName
-                AND gsc_object.OBJECT_Extension = cObjectExt) AND
-       CAN-FIND(FIRST ryc_smartobject WHERE ryc_smartobject.OBJECT_filename = cObjectName) THEN
-      RETURN. /* already exists ok */
-*/
 
 /* If object type not passed in, request the user for it. */
 IF (pcObjectType = "":U OR  
@@ -274,46 +268,38 @@ FIND FIRST gsc_object_type NO-LOCK
      NO-ERROR.
 IF NOT AVAILABLE gsc_object_type THEN
 DO:
-  ASSIGN pcError = "Not added to repository. Object type: " + pcObjectType + " does not exist".
+  ASSIGN pcError = "Object type: " + pcObjectType + " does not exist".
   RETURN.
 END.
 
 /* If we get here, then it is an object we are interested in and it does not exist */
 
-/* Run SCM API Procedure */
-
-IF NOT VALID-HANDLE(hScmTool)
-AND CONNECTED("rtb":U)
-AND (SEARCH("rtb/prc/afrtbprocp.p":U) <> ?
-  OR SEARCH("rtb/prc/afrtbprocp.p":U) <> ?)
-THEN
-  RUN rtb/prc/afrtbprocp.p PERSISTENT SET hScmTool.
+/* Get handle to SCM API Procedure */
+ASSIGN 
+  hScmTool = DYNAMIC-FUNCTION('getProcedureHandle':U IN THIS-PROCEDURE, INPUT 'PRIVATE-DATA:SCMTool':U) NO-ERROR
+  .
 
 /* work out product module */
-ASSIGN
-  cRelativePath = "":U.
+ASSIGN cRelativePath = "":U.
 
-IF pcModuleCode = "":U THEN
+IF pcModuleCode = "":U THEN 
 DO:
-
   IF VALID-HANDLE(hScmTool) THEN
-  DO:
-    RUN scmGetObjectModule IN hScmTool (INPUT grtb-wspace-id,
+    RUN scmGetObjectModule IN hScmTool (INPUT DYNAMIC-FUNCTION('getSessionParam':U IN THIS-PROCEDURE, '_scm_current_workspace':U),
                                         INPUT cObjectName,
                                         INPUT pcObjectType /* "PCODE":U */ ,
                                         OUTPUT pcModuleCode,
-                                        OUTPUT cRelativePath).  
-  END.
+                                        OUTPUT cRelativePath). 
 
   /* try and work out product module from path of object */
-  IF pcModuleCode = "":U THEN RUN getModule (INPUT pcFullFileName, OUTPUT pcModuleCode).
+  IF pcModuleCode = "":U THEN 
+    RUN getModule (INPUT pcFullFileName, OUTPUT pcModuleCode).
 END.
 
 /* check product module is valid and if not blank it so we will ask for it */
 IF pcModuleCode <> "":U AND  
    NOT CAN-FIND(FIRST gsc_product_module WHERE gsc_product_module.product_module_code = pcModuleCode) THEN
   ASSIGN pcModuleCode = "":U.
-
 
 IF VALID-HANDLE(hScmTool)
 AND pcModuleCode <> "":U
@@ -322,8 +308,7 @@ THEN
   RUN scmGetModuleDir IN hScmTool (INPUT pcModuleCode,
                                    OUTPUT cRelativePath).  
 
-ASSIGN
-  cButton = "":U.
+ASSIGN cButton = "":U.
 
 module-loop:
 DO WHILE pcModuleCode = "":U AND plPromptUser = YES:
@@ -344,20 +329,16 @@ DO WHILE pcModuleCode = "":U AND plPromptUser = YES:
     AND NOT CAN-FIND(FIRST gsc_product_module WHERE gsc_product_module.product_module_code = pcModuleCode
                                               AND gsc_product_module.relative_path <> "":U)
     THEN
-      ASSIGN
-        pcModuleCode = "":U.
+      ASSIGN pcModuleCode = "":U.
 
   IF VALID-HANDLE(hScmTool)
   AND pcModuleCode <> "":U
   AND NOT CAN-FIND(FIRST gsc_product_module WHERE gsc_product_module.product_module_code = pcModuleCode)
   THEN
-    ASSIGN
-      pcModuleCode = "":U.
-
+    ASSIGN pcModuleCode = "":U.
 END.
-IF cButton = "&Cancel" THEN 
-DO:
-  IF VALID-HANDLE(hScmTool) THEN RUN killPlip IN hScmTool.
+
+IF cButton = "&Cancel" THEN DO:
   ERROR-STATUS:ERROR = NO.
   RETURN.
 END.
@@ -365,24 +346,34 @@ END.
 /* now have a valid product module code */
 FIND FIRST gsc_product_module NO-LOCK
      WHERE gsc_product_module.product_module_code = pcModuleCode NO-ERROR.
-IF NOT AVAILABLE gsc_product_module THEN
-DO:
+IF NOT AVAILABLE gsc_product_module THEN DO:
   ASSIGN pcError = "Not added to repository. Product module does not exist".
-  IF VALID-HANDLE(hScmTool) THEN RUN killPlip IN hScmTool.
   ERROR-STATUS:ERROR = NO.
   RETURN.
 END.
+ELSE DO:
+  /* Since a valid product module was specified, the object better be there or
+     we don't register it */
+  IF cObjectExt NE "":U THEN DO:  /* It is a physical file we are registering */
+    IF SEARCH(gsc_product_module.relative_path 
+              + (IF gsc_product_module.relative_path > "" THEN "~/":U ELSE "") 
+              + cObjectFileName + ".":U + cObjectExt) = ? THEN 
+    DO:  /* File is not in the right directory */
+        ASSIGN pcError = cObjectFileName + ".":U + cObjectExt +
+                         " is not in the '" + gsc_product_module.relative_path +
+                         "' directory.":U.
+        RETURN.
+    END.  /* If not found */
+    cRelativePath = gsc_product_module.relative_path.
+  END. /* If there is an extension */
+END.  /* Else we have a valid product module */
 
 /* get correct object path */
-IF cRelativePath = "":U THEN
-DO:
+IF cRelativePath = "":U THEN DO:
   /* IZ 2381 : If the relative path hasn't been determined by now, 
      defer to the PROPATH relative path in case file is saved in path
      other than the product module's path. jep-icf */
   RUN getRelativePath (INPUT pcFullFileName, OUTPUT cRelativePath).
-
-  /* IZ 2381 : Propath is better judge of where the object is. Commetning out. jep-icf
-  ASSIGN cRelativePath = gsc_product_module.relative_path. */
 END.
 
 /* IZ 2381 : Why is a blank path not valid? Files don't have to be
@@ -414,19 +405,19 @@ DO:
 
   IF  cButton = "&NO" THEN
   DO:
-    IF VALID-HANDLE(hScmTool) THEN RUN killPlip IN hScmTool.
     ERROR-STATUS:ERROR = NO.
     RETURN.
   END.
 END.
 
-FIND FIRST gsc_object NO-LOCK
-     WHERE gsc_object.OBJECT_filename = cObjectName NO-ERROR.
-IF NOT AVAILABLE gsc_object THEN
-    FIND FIRST gsc_object NO-LOCK WHERE gsc_object.Object_filename = cObjectFileName
-                AND gsc_object.Object_Extension = cObjectExt NO-ERROR.
 FIND FIRST ryc_smartobject NO-LOCK
-     WHERE ryc_smartobject.object_filename = gsc_object.Object_filename NO-ERROR.
+     WHERE ryc_smartobject.object_filename = cObjectName NO-ERROR.
+
+IF NOT AVAILABLE ryc_smartobject THEN
+    FIND FIRST ryc_smartobject NO-LOCK
+         WHERE ryc_smartobject.object_filename  = cObjectFileName
+           AND ryc_smartobject.object_Extension = cObjectExt 
+         NO-ERROR.
 
 IF pcDescription = "":U THEN
   RUN getDescription (INPUT pcFullFileName, OUTPUT pcDescription). 
@@ -435,7 +426,7 @@ IF pcDescription = "":U THEN
 IF VALID-HANDLE(hScmTool)
 AND pcDescription <> "":U
 THEN DO:
-  RUN scmUpdateObjectDescription IN hScmTool (INPUT grtb-wspace-id,
+  RUN scmUpdateObjectDescription IN hScmTool (INPUT DYNAMIC-FUNCTION('getSessionParam':U IN THIS-PROCEDURE, '_scm_current_workspace':U),
                                               INPUT cObjectName,
                                               INPUT "PCODE":U,
                                               INPUT NO,
@@ -445,106 +436,85 @@ END.
 
 IF pcDescription = "":U THEN ASSIGN pcDescription = cObjectName.
 
-DEFINE BUFFER bugsc_object      FOR gsc_object.
 DEFINE BUFFER buryc_smartobject FOR ryc_smartobject.
 
 ASSIGN cMessageList = "":U.
 trn-block:
-DO FOR bugsc_object, buryc_smartobject TRANSACTION ON ERROR UNDO trn-block, LEAVE trn-block:
-    FIND bugsc_object EXCLUSIVE-LOCK
-        WHERE bugsc_object.object_filename = cObjectName NO-ERROR.
-    IF NOT AVAILABLE bugsc_object AND cObjectExt <> "" THEN
-        FIND bugsc_object EXCLUSIVE-LOCK
-            WHERE bugsc_object.OBJECT_filename = cObjectFileName AND
-                  bugsc_object.OBJECT_Extension = cObjectExt
-                  NO-ERROR.
-    IF  NOT AVAILABLE bugsc_object THEN
-    DO:
-      CREATE bugsc_object NO-ERROR.
-      {af/sup2/afcheckerr.i &no-return = YES}    
-      IF cMessageList <> "":U THEN UNDO trn-block, LEAVE trn-block.
-      
-      /* Only update name for new records, and now always use name without an extension */
-      ASSIGN
-        bugsc_object.object_filename         = (IF pcObjectType = "SDO":U OR pcObjectType = "StaticSDV" THEN
-                                                cObjectFileName ELSE cObjectName)
-        bugsc_object.Object_Extension        = (IF pcObjectType = "SDO":U OR pcObjectType = "StaticSDV" THEN
-                                                cObjectExt ELSE "")
-        .
-    END.
-
-    ASSIGN
-        bugsc_object.object_type_obj         = gsc_object_type.object_type_obj
-        bugsc_object.product_module_obj      = gsc_product_module.product_module_obj
-        bugsc_object.object_description      = pcDescription
-        bugsc_object.object_path             = cRelativePath
-        bugsc_object.toolbar_multi_media_obj = 0
-        bugsc_object.toolbar_image_filename  = "":U
-        bugsc_object.tooltip_text            = pcDescription
-        bugsc_object.runnable_from_menu      = NO
-        bugsc_object.disabled                = NO
-        bugsc_object.run_persistent          = YES
-        bugsc_object.run_when                = "ANY":U
-        bugsc_object.security_object_obj     = bugsc_object.object_obj
-        bugsc_object.container_object        = NO
-        bugsc_object.physical_object_obj     = 0
-        bugsc_object.logical_object          = NO
-        bugsc_object.generic_object          = NO
-        bugsc_object.required_db_list        = "":U NO-ERROR.
-
-    {af/sup2/afcheckerr.i &no-return = YES}    
-    IF cMessageList <> "":U THEN UNDO trn-block, LEAVE trn-block.
-
-    VALIDATE bugsc_object NO-ERROR.
-    {af/sup2/afcheckerr.i &no-return = YES}    
-    IF cMessageList <> "":U THEN UNDO trn-block, LEAVE trn-block.
+DO FOR buryc_smartobject TRANSACTION ON ERROR UNDO trn-block, LEAVE trn-block:
 
     FIND buryc_smartobject EXCLUSIVE-LOCK
-        WHERE buryc_smartobject.object_filename = bugsc_object.object_filename NO-ERROR.
-    IF  NOT AVAILABLE buryc_smartobject THEN
-    DO:
-      CREATE buryc_smartobject NO-ERROR.
-      {af/sup2/afcheckerr.i &no-return = YES}    
-      IF cMessageList <> "":U THEN UNDO trn-block, LEAVE trn-block.
+         WHERE buryc_smartobject.object_filename = cObjectName 
+         NO-ERROR.
+
+    IF NOT AVAILABLE buryc_smartobject AND cObjectExt <> "" THEN
+        FIND buryc_smartobject EXCLUSIVE-LOCK
+             WHERE buryc_smartobject.OBJECT_filename  = cObjectFileName 
+               AND buryc_smartobject.OBJECT_Extension = cObjectExt
+             NO-ERROR.
+
+    IF NOT AVAILABLE buryc_smartobject 
+    THEN DO:
+        CREATE buryc_smartobject NO-ERROR.
+        {af/sup2/afcheckerr.i &no-return = YES}    
+        IF cMessageList <> "":U THEN UNDO trn-block, LEAVE trn-block.
+      
+        /* Only update name for new records, and now always use name without an extension */
+        ASSIGN buryc_smartobject.object_filename  = cObjectFileName
+               buryc_smartobject.Object_Extension = cObjectExt.
     END.
 
+    ASSIGN cContainerClasses    = DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, INPUT "Container":U)
+           cWIndowClasses       = DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, INPUT "Window":U).
     ASSIGN
-        buryc_smartobject.layout_obj             = IF  AVAILABLE ryc_layout THEN ryc_layout.layout_obj ELSE 0
-        buryc_smartobject.object_type_obj        = bugsc_object.object_type_obj
-        buryc_smartobject.object_obj             = bugsc_object.object_obj
-        buryc_smartobject.object_filename        = bugsc_object.object_filename
-        buryc_smartobject.product_module_obj     = bugsc_object.product_module_obj
-        buryc_smartobject.static_object          = YES
-        buryc_smartobject.custom_super_procedure = "":U
-        buryc_smartobject.system_owned           = NO
-        buryc_smartobject.shutdown_message_text  = "":U
-        buryc_smartobject.sdo_smartobject_obj    = ?
-        buryc_smartobject.template_smartobject   = NO NO-ERROR.
+           buryc_smartobject.object_type_obj         = gsc_object_type.object_type_obj
+           buryc_smartobject.product_module_obj      = gsc_product_module.product_module_obj
+           buryc_smartobject.object_description      = pcDescription
+           buryc_smartobject.object_path             = cRelativePath
+           buryc_smartobject.runnable_from_menu      = NO
+           buryc_smartobject.disabled                = NO
+           buryc_smartobject.run_persistent          = YES
+           buryc_smartobject.run_when                = "ANY":U
+           buryc_smartobject.security_smartobject_obj = buryc_smartobject.smartobject_obj
+           buryc_smartobject.container_object        = LOOKUP(pcObjectType, cContainerClasses) > 0 OR
+                                                       LOOKUP(pcObjectType, cWindowClasses) > 0 /* Anything of class container considered a container */
+           buryc_smartobject.physical_smartobject_obj = 0
+           buryc_smartobject.static_object           = YES
+           buryc_smartobject.generic_object          = NO
+           buryc_smartobject.required_db_list        = "":U 
+           buryc_smartobject.layout_obj              = IF  AVAILABLE ryc_layout THEN ryc_layout.layout_obj ELSE 0
+           buryc_smartobject.custom_smartobject_obj  = 0
+           buryc_smartobject.system_owned            = NO
+           buryc_smartobject.shutdown_message_text   = "":U
+           buryc_smartobject.sdo_smartobject_obj     = 0
+           buryc_smartobject.template_smartobject    = NO
+           buryc_smartobject.deployment_type         = pcDeploymentType
+           buryc_smartobject.design_only             = plDesignOnly
+           NO-ERROR.
 
+   
     {af/sup2/afcheckerr.i &no-return = YES}    
     IF cMessageList <> "":U THEN UNDO trn-block, LEAVE trn-block.
 
     VALIDATE buryc_smartobject NO-ERROR.
     {af/sup2/afcheckerr.i &no-return = YES}    
     IF cMessageList <> "":U THEN UNDO trn-block, LEAVE trn-block.
-
 END. /* transaction block */
 
-IF cMessageList <> "":U THEN
-DO:
-  IF plPromptUser = NO THEN
-    ASSIGN pcError = "Object not added to repository. " + cMessageList.
-  ELSE
-    RUN showMessages IN gshSessionManager (INPUT  cMessageList,                             /* message to display */
-                                           INPUT  "ERR":U,                                  /* error type */
-                                           INPUT  "&OK":U,                                  /* button list */
-                                           INPUT  "&OK":U,                                  /* default button */ 
-                                           INPUT  "&OK":U,                                  /* cancel button */
-                                           INPUT  "Repository Update Failed":U,             /* error window title */
-                                           INPUT  YES,                                      /* display if empty */ 
-                                           INPUT  ?,                                        /* container handle */ 
-                                           OUTPUT cButton                                   /* button pressed */
-                                          ).
+IF cMessageList <> "":U 
+THEN DO:
+    IF plPromptUser = NO THEN
+        ASSIGN pcError = "Object not added to repository. " + cMessageList.
+    ELSE
+        RUN showMessages IN gshSessionManager (INPUT  cMessageList,                 /* message to display */
+                                               INPUT  "ERR":U,                      /* error type */
+                                               INPUT  "&OK":U,                      /* button list */
+                                               INPUT  "&OK":U,                      /* default button */ 
+                                               INPUT  "&OK":U,                      /* cancel button */
+                                               INPUT  "Repository Update Failed":U, /* error window title */
+                                               INPUT  YES,                          /* display if empty */ 
+                                               INPUT  ?,                            /* container handle */ 
+                                               OUTPUT cButton                       /* button pressed */
+                                              ).
 END.
 ELSE IF plPromptUser = YES THEN
 DO:
@@ -560,7 +530,6 @@ DO:
                                         ).
 END.
 
-IF VALID-HANDLE(hScmTool) THEN RUN killPlip IN hScmTool.
 ERROR-STATUS:ERROR = NO.
 RETURN.
 
@@ -641,7 +610,7 @@ DEFINE VARIABLE iPos3                             AS INTEGER      NO-UNDO.
 DEFINE VARIABLE iLen                              AS INTEGER      NO-UNDO.
 
 ASSIGN
-  pcFileName = REPLACE(pcFileName,"\":U,"/":U)
+  pcFileName = REPLACE(pcFileName,"~\":U,"/":U)
   iPos1 = INDEX(pcFileName,"/obj":U).
 
 IF iPos1 > 2 THEN
@@ -699,7 +668,6 @@ PROCEDURE getObjectType :
     END.
     IF cButton = "&Cancel" THEN 
     DO:
-      IF VALID-HANDLE(hScmTool) THEN RUN killPlip IN hScmTool.
     END.
     
     ERROR-STATUS:ERROR = NO.

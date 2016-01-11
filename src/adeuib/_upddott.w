@@ -43,6 +43,7 @@
 /* ***************************  Definitions  ************************** */
 {adeuib/sharvars.i}
 {adeuib/uniwidg.i}
+{src/adm2/globals.i}
 
 DEFINE INPUT PARAMETER pProcRecid AS INTEGER NO-UNDO.
 
@@ -102,7 +103,7 @@ DEFINE VARIABLE cDataObjectNames  AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cDataObjects      AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE iCount            AS INTEGER    NO-UNDO.
 DEFINE VARIABLE hSDO              AS HANDLE     NO-UNDO.
-
+DEFINE VARIABLE lIsICFRunning     AS LOGICAL    NO-UNDO.
 
 FIND _P WHERE RECID(_P) = pProcRecid.
 
@@ -120,6 +121,13 @@ DO:
     DO:
       IncludeName = DYNAMIC-FUNCTION("getDataFieldDefs":U IN hSDO).
       IncludeName = REPLACE(IncludeName,"~\","~/").
+      IF IncludeName = "":U THEN DO:
+        /* This must be a dynamic SDO, so ask the repository for it */
+        ASSIGN lIsICFRunning = DYNAMIC-FUNCTION("IsICFRunning":U) NO-ERROR.
+        IF lIsICFRunning THEN
+          IncludeName = DYNAMIC-FUNCTION("getSDOincludeFile" IN gshRepositoryManager, 
+                                         ENTRY(iCount,cDataObjectNames)) + ".i":U.
+      END.
       CREATE _TT.
       ASSIGN _TT._P-RECID           = RECID(_P) 
              _TT._TABLE-TYPE        = "D":u

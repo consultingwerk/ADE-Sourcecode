@@ -88,8 +88,8 @@ af/cod/aftemwizpw.w
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Include ASSIGN
-         HEIGHT             = 2
-         WIDTH              = 40.
+         HEIGHT             = 9.57
+         WIDTH              = 42.8.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -103,10 +103,27 @@ af/cod/aftemwizpw.w
 /* ***************************  Main Block  *************************** */
 &IF DEFINED(ttEntityMnemonic) = 0 &THEN
     DEFINE TEMP-TABLE ttEntityMnemonic NO-UNDO
-        LIKE gsc_entity_mnemonic
-        RCODE-INFORMATION
-        .    
+        LIKE gsc_entity_mnemonic   RCODE-INFORMATION
+        
+        FIELD hasAudit       AS LOGICAL
+        FIELD hasComment     AS LOGICAL
+        FIELD hasAutoComment AS LOGICAL
+        .
     &GLOBAL-DEFINE ttEntityMnemonic
+&ENDIF
+
+&IF DEFINED(ttEntityDisplayField) = 0 &THEN
+    DEFINE TEMP-TABLE ttEntityDisplayField NO-UNDO
+        LIKE gsc_entity_display_field   RCODE-INFORMATION
+        .    
+    &GLOBAL-DEFINE ttEntityDisplayField
+&ENDIF
+
+/* Used for retrieving the entity from the DB. */
+&IF DEFINED(ttEntityMap) = 0 &THEN
+    DEFINE TEMP-TABLE ttEntityMap NO-UNDO
+        LIKE ttEntityMnemonic.
+    &GLOBAL-DEFINE ttEntityMap
 &ENDIF
 
 /* _UIB-CODE-BLOCK-END */

@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2001 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2002 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -199,7 +199,7 @@ PROCEDURE process-web-request :
 
   IF NOT debugging-enabled THEN DO:
     DYNAMIC-FUNCTION ("logNote":U IN web-utilities-hdl, "WARNING":U,
-                              SUBSTITUTE ("ping.p was requested by &1 and debugging mode not set. (Ref: &2)",
+                              SUBSTITUTE ("ping.p was requested by &1 and debugging mode was not set. (Ref: &2)",
                                           REMOTE_ADDR, HTTP_REFERER)) NO-ERROR.
     DYNAMIC-FUNCTION ("ShowErrorScreen":U IN web-utilities-hdl,"Unable to find web object file 'ping.p'") NO-ERROR.  
     RETURN.
@@ -260,6 +260,11 @@ PROCEDURE process-web-request :
     {&OUT}
       '</UL>':U SKIP
       '<HR WIDTH="100%">':U SKIP
+      
+      '<H3>Checking WebTools Installation</H3>' SKIP
+      '<UL><LI>Click <A HREF="' AppURL '/workshop" TARGET="_top">here</A> to access WebSpeed WebTools</FONT></LI></UL>' SKIP
+      '<HR WIDTH="100%">':U SKIP
+      
       '<H3>Checking Image and Documentation Files</H3>' SKIP
       '<P>The list below should show image files if WebSpeed has been configured properly on your web server. If the images show as broken links, then there is some problem with your installation.</P>'
       '<CENTER>':U SKIP

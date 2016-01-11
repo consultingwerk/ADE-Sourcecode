@@ -68,6 +68,9 @@ CREATE IMAGE _U._HANDLE
 ASSIGN  {adeuib/std_uf.i &section = "HANDLES"} .
 
 IF _L._WIN-TYPE THEN DO:       
+  /* Set the stretch-to-fit and retain-shape attributes */
+  ASSIGN _U._HANDLE:STRETCH-TO-FIT = _F._STRETCH-TO-FIT
+         _U._HANDLE:RETAIN-SHAPE   = _F._RETAIN-SHAPE.
 
   /* Load the image before realizing to avoid errors */
   IF _F._IMAGE-FILE NE ? AND _F._IMAGE-FILE NE "" THEN

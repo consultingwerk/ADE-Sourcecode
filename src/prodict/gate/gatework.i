@@ -52,6 +52,7 @@ History:
     hutegger    96/02   added gate-obj# for ora-synonym support
     hutegger    95/03   addoption for new verify-routines
     mcmann     03/20/01 Added defaultname for descending index support
+    mcmann     05/21/02 Added new {&selVarType} variable.
 
 */
 
@@ -86,6 +87,7 @@ DEFINE {&selVarType}_owner      AS character no-undo {&options}.
 DEFINE {&selVarType}_qual       AS character no-undo {&options}.
 DEFINE {&selVarType}_type       AS character no-undo {&options}.
 DEFINE {&selVarType}_vrfy       AS logical   no-undo.
+DEFINE {&selVarType}_outf       AS logical   no-undo.
 DEFINE {&selVarType}_wildcard   AS logical   no-undo initial TRUE.
 
 /* NOTES:

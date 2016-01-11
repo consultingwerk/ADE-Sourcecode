@@ -24,11 +24,6 @@
 
 TRIGGER PROCEDURE FOR DELETE OF ryc_page .
 
-/* generic trigger override include file to disable trigger if required */
-{af/sup2/aftrigover.i &DB-NAME      = "ICFDB"
-                      &TABLE-NAME   = "ryc_page"
-                      &TRIGGER-TYPE = "DELETE"}
-
 /* Created automatically using ERwin ICF Trigger template db/af/erw/afercustrg.i
    Do not change manually. Customisations to triggers should be placed in separate
    include files pulled into the trigger. ICF auto generates write trigger custom
@@ -71,8 +66,7 @@ DEFINE BUFFER o_ryc_page FOR ryc_page.
   &GLOBAL-DEFINE lbe_page_object yes
 &ENDIF
 FOR EACH ryc_page_object NO-LOCK
-   WHERE ryc_page_object.container_smartobject_obj = ryc_page.container_smartobject_obj and
-         ryc_page_object.page_obj = ryc_page.page_obj
+   WHERE ryc_page_object.page_obj = ryc_page.page_obj
    ON STOP UNDO, RETURN ERROR "AF^104^rycpatrigd.p^delete ryc_page_object":U:
     FIND FIRST lbe_page_object EXCLUSIVE-LOCK
          WHERE ROWID(lbe_page_object) = ROWID(ryc_page_object)
@@ -137,6 +131,8 @@ IF CAN-FIND(FIRST lbx_gsm_multi_media
             {af/sup/afvalidtrg.i &action = "DELETE" &table = "lby_gsm_multi_media"}
           END.
     END.
+
+
 
 
 

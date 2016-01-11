@@ -125,54 +125,54 @@ txMultiWindow txExample1 txSingleWindow txExample2
 /* Definitions of the field level widgets                               */
 DEFINE VARIABLE txExample1 AS CHARACTER FORMAT "X(256)":U INITIAL "Example:" 
       VIEW-AS TEXT 
-     SIZE 15.6 BY .62 NO-UNDO.
+     SIZE 15.57 BY .62 NO-UNDO.
 
 DEFINE VARIABLE txExample2 AS CHARACTER FORMAT "X(256)":U INITIAL "Example:" 
       VIEW-AS TEXT 
-     SIZE 15.6 BY .62 NO-UNDO.
+     SIZE 15.57 BY .62 NO-UNDO.
 
 DEFINE VARIABLE txMultiWindow AS CHARACTER FORMAT "X(256)":U INITIAL "Browse records using a separa&te window for each record" 
       VIEW-AS TEXT 
-     SIZE 56.8 BY .62 NO-UNDO.
+     SIZE 56.86 BY .62 NO-UNDO.
 
 DEFINE VARIABLE txSingleWindow AS CHARACTER FORMAT "X(256)":U INITIAL "Browse records using a si&ngle window for each record" 
       VIEW-AS TEXT 
-     SIZE 56.8 BY .62 NO-UNDO.
+     SIZE 56.86 BY .62 NO-UNDO.
 
 DEFINE IMAGE imMulti
      FILENAME "ry/img/afmultwind.gif":U
-     SIZE 7.2 BY 1.91.
+     SIZE 7.14 BY 1.92.
 
 DEFINE IMAGE imSingle
      FILENAME "ry/img/afsingwind.gif":U
-     SIZE 6.8 BY 1.43.
+     SIZE 6.86 BY 1.42.
 
 DEFINE VARIABLE raSaveSetting AS CHARACTER 
      VIEW-AS RADIO-SET HORIZONTAL
      RADIO-BUTTONS 
           "Save per &Session", "SES",
 "Save &Permanently", "PER"
-     SIZE 53.2 BY .95 NO-UNDO.
+     SIZE 53.14 BY .96 NO-UNDO.
 
 DEFINE VARIABLE raViewingOptions AS CHARACTER 
      VIEW-AS RADIO-SET VERTICAL
      RADIO-BUTTONS 
           "&t":U, "NO":U,
 "&n", "YES":U
-     SIZE 3.2 BY 6.1 NO-UNDO.
+     SIZE 3.14 BY 6.12 NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     raSaveSetting AT ROW 1.38 COL 11.4 NO-LABEL
-     raViewingOptions AT ROW 2.43 COL 6.2 NO-LABEL
-     txMultiWindow AT ROW 3.57 COL 8.2 COLON-ALIGNED NO-LABEL
-     txExample1 AT ROW 5.1 COL 9.4 COLON-ALIGNED NO-LABEL
-     txSingleWindow AT ROW 6.62 COL 8.2 COLON-ALIGNED NO-LABEL
-     txExample2 AT ROW 7.86 COL 9.4 COLON-ALIGNED NO-LABEL
-     imMulti AT ROW 4.71 COL 29.4
-     imSingle AT ROW 7.48 COL 29.4
+     raSaveSetting AT ROW 1.38 COL 11.43 NO-LABEL
+     raViewingOptions AT ROW 2.42 COL 6.14 NO-LABEL
+     txMultiWindow AT ROW 3.58 COL 6.43 COLON-ALIGNED NO-LABEL
+     txExample1 AT ROW 5.12 COL 9.43 COLON-ALIGNED NO-LABEL
+     txSingleWindow AT ROW 6.65 COL 6.43 COLON-ALIGNED NO-LABEL
+     txExample2 AT ROW 7.85 COL 9.43 COLON-ALIGNED NO-LABEL
+     imMulti AT ROW 4.69 COL 29.43
+     imSingle AT ROW 7.46 COL 29.43
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -204,8 +204,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW sObject ASSIGN
-         HEIGHT             = 9.76
-         WIDTH              = 76.8.
+         HEIGHT             = 9.77
+         WIDTH              = 76.86.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME

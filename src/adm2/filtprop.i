@@ -144,7 +144,8 @@ FieldColumn
  &GLOB xpFieldHelpIds
  &GLOB xpVisualBlank
  {src/adm2/visprop.i}
-
+IF NOT {&ADM-PROPS-DEFINED} THEN
+DO:
 &IF "{&ADMSuper}":U = "":U &THEN  
   ghADMProps:ADD-NEW-FIELD('FilterTarget':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('FilterTargetEvents':U, 'CHAR':U, 0, ?, 'dataAvailable':U).
@@ -202,6 +203,7 @@ FieldColumn
   /*<<BEGIN-CUSTOM-PROPERTIES>>*/
   {src/adm2/custom/filtpropcustom.i}
   /*<<END-CUSTOM-PROPERTIES>>*/
+END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

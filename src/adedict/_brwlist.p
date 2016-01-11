@@ -35,6 +35,7 @@ Author: Laura Stern
 
 Date Created: 02/04/92 
     Modified: 07/10/98 D. McMann Added _Owner to _File find.
+              08/08/02 D. McMann Eliminated any sequences whose name begins "$" - Peer Direct
 
 ----------------------------------------------------------------------------*/
 &GLOBAL-DEFINE WIN95-BTN YES
@@ -120,7 +121,8 @@ case p_Obj:
       	    message s_NoPrivMsg "see any sequence information."
       	       view-as ALERT-BOX ERROR buttons OK.
       	 else
-	    for each _Sequence where _Sequence._Db-recid = s_DbRecId:
+	    for each _Sequence where _Sequence._Db-recid = s_DbRecId
+                             AND NOT _Sequence._Seq-name BEGINS "$":
 	       s_Res = s_lst_Seqs:add-last(_Sequence._Seq-name) in frame browse.
 	    end.
       end.

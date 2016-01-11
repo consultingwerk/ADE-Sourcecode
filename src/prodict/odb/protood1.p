@@ -55,6 +55,7 @@
                D. McMann  03/03/99 Removed On-line from Informix 
                D. McMann  03/16/98 Made sure sequences were not being created for
                                    Informix  
+               D. McMann  10/08/02 Added support for shadow column selection
                   
 */    
 
@@ -203,7 +204,7 @@ CASE odb_type:
            user_env[18] = "char"
            user_env[19] = "smallint"
            user_env[20] = "_"
-           user_env[21] = "n"  /* should shadow colunms be produced */
+           user_env[21] = (IF shadowcol THEN "y" ELSE "n")  /* should shadow colunms be produced */
            user_env[25] = "n" 
            user_env[28] = "18"
            user_env[29] = "18"           
@@ -222,7 +223,7 @@ CASE odb_type:
            user_env[18] = "long varchar"
            user_env[19] = "smallint"
            user_env[20] = "##"
-           user_env[21] = "n"  /* should shadow colunms be produced */           
+           user_env[21] = (IF shadowcol THEN "y" ELSE "n")  /* should shadow colunms be produced */           
            user_env[25] = "n"  
            user_env[28] = "18"
            user_env[29] = "18"
@@ -241,7 +242,7 @@ CASE odb_type:
            user_env[18] = "memo"
            user_env[19] = "logical"
            user_env[20] = "_"
-           user_env[21] = "n"  /* should shadow colunms be produced */           
+           user_env[21] = (IF shadowcol THEN "y" ELSE "n")  /* should shadow colunms be produced */           
            user_env[25] = "n" 
            user_env[28] = "33"
            user_env[29] = "33"            
@@ -260,7 +261,7 @@ CASE odb_type:
            user_env[18] = "text"
            user_env[19] = "tinyint"
            user_env[20] = "##"
-           user_env[21] = "n"  /* should shadow colunms be produced */           
+           user_env[21] = (IF shadowcol THEN "y" ELSE "n")  /* should shadow colunms be produced */           
            user_env[25] = "y" 
            user_env[28] = "30"
            user_env[29] = "24"            
@@ -279,7 +280,7 @@ CASE odb_type:
            user_env[18] = "text"
            user_env[19] = "tinyint"
            user_env[20] = "##"
-           user_env[21] = "y"  /* should shadow colunms be produced */           
+           user_env[21] = (IF shadowcol THEN "y" ELSE "n")  /* should shadow colunms be produced */           
            user_env[25] = "y"
            user_env[28] = "30"
            user_env[29] = "24"            

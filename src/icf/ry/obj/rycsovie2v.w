@@ -1,9 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
-          afdb             PROGRESS
-          asdb             PROGRESS
-          rydb             PROGRESS
+          icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" vTableWin _INLINE
@@ -26,7 +24,7 @@ af/cod/aftemwizpw.w
 
 /* Temp-Table and Buffer definitions                                    */
 DEFINE TEMP-TABLE RowObject
-       {"ry/obj/rycsofullo.i"}.
+       {"ry/obj/rycsoful2o.i"}.
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
@@ -97,7 +95,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       rycsovie2v.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010100
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -222,7 +220,7 @@ DEFINE VARIABLE gcRycsmUpdateState  AS CHARACTER    NO-UNDO.
 &Scoped-define ADM-SUPPORTED-LINKS Data-Target,Update-Source,TableIO-Target,GroupAssign-Source,GroupAssign-Target
 
 /* Include file with RowObject temp-table definition */
-&Scoped-define DATA-FIELD-DEFS "ry/obj/rycsofullo.i"
+&Scoped-define DATA-FIELD-DEFS "ry/obj/rycsoful2o.i"
 
 /* Name of first Frame and/or Browse and/or first Query                 */
 &Scoped-define FRAME-NAME frMain
@@ -390,9 +388,9 @@ DEFINE VARIABLE coAttributeGroup AS DECIMAL FORMAT "-99999999999999999999.999999
 DEFINE VARIABLE coLayout AS DECIMAL FORMAT "99999999999999999999.999999999":U INITIAL 0 
      LABEL "Layout" 
      VIEW-AS COMBO-BOX INNER-LINES 5
-     LIST-ITEM-PAIRS "0",0.00
+     LIST-ITEM-PAIRS "0",0
      DROP-DOWN-LIST
-     SIZE 29 BY 1 NO-UNDO.
+     SIZE 29 BY 1.05 NO-UNDO.
 
 DEFINE VARIABLE coLink AS DECIMAL FORMAT "-99999999999999999999.999999999":U INITIAL ? 
      VIEW-AS COMBO-BOX INNER-LINES 5
@@ -400,12 +398,12 @@ DEFINE VARIABLE coLink AS DECIMAL FORMAT "-99999999999999999999.999999999":U INI
      DROP-DOWN-LIST
      SIZE 20 BY 1 NO-UNDO.
 
-DEFINE VARIABLE coPage AS DECIMAL FORMAT ">>>>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
+DEFINE VARIABLE coPage AS DECIMAL FORMAT "->>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
      LABEL "Page" 
      VIEW-AS COMBO-BOX INNER-LINES 5
      LIST-ITEM-PAIRS "0",0
      DROP-DOWN-LIST
-     SIZE 23.6 BY 1.05 NO-UNDO.
+     SIZE 23.6 BY 1 NO-UNDO.
 
 DEFINE VARIABLE coSourceLink AS INTEGER FORMAT "9999999999":U INITIAL 0 
      VIEW-AS COMBO-BOX INNER-LINES 5
@@ -519,7 +517,7 @@ DEFINE FRAME frMain
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
 /* Settings for THIS-PROCEDURE
    Type: SmartDataViewer
-   Data Source: "ry/obj/rycsofullo.w"
+   Data Source: "ry/obj/rycsoful2o.w"
    Allow: Basic,DB-Fields,Smart
    Container Links: Data-Target,Update-Source,TableIO-Target,GroupAssign-Source,GroupAssign-Target
    Frames: 1
@@ -528,7 +526,7 @@ DEFINE FRAME frMain
    Temp-Tables and Buffers:
       TABLE: RowObject D "?" ?  
       ADDITIONAL-FIELDS:
-          {ry/obj/rycsofullo.i}
+          {ry/obj/rycsoful2o.i}
       END-FIELDS.
    END-TABLES.
  */
@@ -605,7 +603,7 @@ ASSIGN
 */  /* FRAME frMain */
 &ANALYZE-RESUME
 
-
+ 
 
 
 
@@ -1051,9 +1049,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.smartobject_objFieldLabelObject FilenameFieldTooltipPress F4 for LookupKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_smartobject NO-LOCK,
-                     FIRST gsc_object NO-LOCK
-                     WHERE gsc_object.object_obj = ryc_smartobject.object_obj,
+             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.smartobject_objFieldLabelObject FilenameFieldTooltipPress F4 for LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_smartobject NO-LOCK,
                      FIRST gsc_object_type NO-LOCK
                      WHERE gsc_object_type.object_type_obj = ryc_smartobject.object_type_obj,
                      FIRST gsc_product_module NO-LOCK
@@ -1061,7 +1057,7 @@ PROCEDURE adm-create-objects :
                      FIRST gsc_product NO-LOCK
                      WHERE gsc_product.product_obj = gsc_product_module.product_obj,
                      FIRST ryc_layout NO-LOCK
-                     WHERE ryc_layout.layout_obj = ryc_smartobject.layout_objQueryTablesryc_smartobject,gsc_object,gsc_object_type,gsc_product_module,gsc_product,ryc_layoutBrowseFieldsgsc_product.product_code,gsc_product_module.product_module_code,ryc_smartobject.object_filename,gsc_object.object_description,gsc_object_type.object_type_code,ryc_smartobject.static_object,ryc_smartobject.template_smartobject,ryc_smartobject.system_owned,ryc_layout.layout_codeBrowseFieldDataTypescharacter,character,character,character,character,logical,logical,logical,characterBrowseFieldFormatsX(10),X(10),X(70),X(35),X(15),YES/NO,YES/NO,YES/NO,X(10)RowsToBatch200BrowseTitleLookup Object InstanceViewerLinkedFieldsgsc_product.product_obj,gsc_product_module.product_module_obj,gsc_product.product_code,gsc_product_module.product_module_code,gsc_object.object_description,gsc_object_type.object_type_codeLinkedFieldDataTypesdecimal,decimal,character,character,character,characterLinkedFieldFormats>>>>>>>>>>>>>>>>>9.999999999,>>>>>>>>>>>>>>>>>9.999999999,X(10),X(10),X(35),X(15)ViewerLinkedWidgetsfiProductObj,fiProductModuleObj,fiProductCode,fiProductModuleCode,?,?FieldNamedObjectInstanceDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     WHERE ryc_layout.layout_obj = ryc_smartobject.layout_objQueryTablesryc_smartobject,gsc_object_type,gsc_product_module,gsc_product,ryc_layoutBrowseFieldsgsc_product.product_code,gsc_product_module.product_module_code,ryc_smartobject.object_filename,ryc_smartobject.object_description,gsc_object_type.object_type_code,ryc_smartobject.static_object,ryc_smartobject.template_smartobject,ryc_smartobject.system_owned,ryc_layout.layout_codeBrowseFieldDataTypescharacter,character,character,character,character,logical,logical,logical,characterBrowseFieldFormatsX(10),X(10),X(70),X(35),X(15),YES/NO,YES/NO,YES/NO,X(10)RowsToBatch200BrowseTitleLookup Object InstanceViewerLinkedFieldsgsc_product.product_obj,gsc_product_module.product_module_obj,gsc_product.product_code,gsc_product_module.product_module_code,ryc_smartobject.object_description,gsc_object_type.object_type_codeLinkedFieldDataTypesdecimal,decimal,character,character,character,characterLinkedFieldFormats->>>>>>>>>>>>>>>>>9.999999999,->>>>>>>>>>>>>>>>>9.999999999,X(10),X(10),X(35),X(15)ViewerLinkedWidgetsfiProductObj,fiProductModuleObj,fiProductCode,fiProductModuleCode,?,?ColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcFieldNamedObjectInstanceDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dynlookup ).
        RUN repositionObject IN h_dynlookup ( 9.86 , 19.00 ) NO-ERROR.
        RUN resizeObject IN h_dynlookup ( 1.00 , 40.40 ) NO-ERROR.
@@ -1565,7 +1561,7 @@ PROCEDURE buildRycsmBrowse :
                                                     "Target":u). /* Column Label */
 
 
-    hBufferField    = ghRycsmQuery1Buffer:BUFFER-FIELD("used_defined_link").    
+    hBufferField    = ghRycsmQuery1Buffer:BUFFER-FIELD("user_defined_link").    
     ghUserDef       = ghRycsmBrowse:ADD-LIKE-COLUMN(hBufferField).
     ghUserDef:LABEL = "User Def.":u.
 

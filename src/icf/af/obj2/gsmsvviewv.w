@@ -135,9 +135,9 @@ DEFINE VARIABLE ghForeignFieldLookup AS HANDLE NO-UNDO.
 &Scoped-Define ENABLED-FIELDS RowObject.workaround 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
+&Scoped-Define DISPLAYED-FIELDS RowObject.workaround 
 &Scoped-define DISPLAYED-TABLES RowObject
 &Scoped-define FIRST-DISPLAYED-TABLE RowObject
-&Scoped-Define DISPLAYED-FIELDS RowObject.workaround 
 &Scoped-Define DISPLAYED-OBJECTS fiLogicalServiceType fiPhysicalServiceType 
 
 /* Custom List Definitions                                              */
@@ -340,8 +340,8 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsm_session_type.session_type_codeKeyFieldgsm_session_type.session_type_objFieldLabelSession TypeFieldTooltipEnter Session Type or Press F4 for Session Type LookupKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(10)DisplayDatatypecharacterBaseQueryStringFOR EACH gsm_session_type NO-LOCK
-                     BY gsm_session_type.session_type_codeQueryTablesgsm_session_typeBrowseFieldsgsm_session_type.session_type_code,gsm_session_type.session_type_descriptionBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(10),X(35)RowsToBatch200BrowseTitleLookup Session TypesViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsFieldNamesession_type_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsm_session_type.session_type_codeKeyFieldgsm_session_type.session_type_objFieldLabelSession TypeFieldTooltipEnter Session Type or Press F4 for Session Type LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(20)DisplayDatatypecharacterBaseQueryStringFOR EACH gsm_session_type NO-LOCK
+                     BY gsm_session_type.session_type_codeQueryTablesgsm_session_typeBrowseFieldsgsm_session_type.session_type_code,gsm_session_type.session_type_descriptionBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(20),X(35)RowsToBatch200BrowseTitleLookup Session TypesViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcFieldNamesession_type_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_gsmsedynlookup ).
        RUN repositionObject IN h_gsmsedynlookup ( 1.00 , 25.40 ) NO-ERROR.
        RUN resizeObject IN h_gsmsedynlookup ( 1.00 , 64.40 ) NO-ERROR.
@@ -349,10 +349,10 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_logical_service.logical_service_codeKeyFieldgsc_logical_service.logical_service_objFieldLabelLogical Service CodeFieldTooltipEnter Logical Service or Press F4 for Logical Service LookupKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(10)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_logical_service NO-LOCK,
+             INPUT  'DisplayedFieldgsc_logical_service.logical_service_codeKeyFieldgsc_logical_service.logical_service_objFieldLabelLogical Service CodeFieldTooltipEnter Logical Service or Press F4 for Logical Service LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(20)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_logical_service NO-LOCK,
                      FIRST gsc_service_type
                      WHERE gsc_service_type.service_type_obj = gsc_logical_service.service_type_obj NO-LOCK
-                     BY gsc_logical_service.logical_service_codeQueryTablesgsc_logical_service,gsc_service_typeBrowseFieldsgsc_logical_service.logical_service_code,gsc_logical_service.logical_service_description,gsc_service_type.service_type_codeBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(10),X(35),X(10)RowsToBatch200BrowseTitleLookup Logical ServicesViewerLinkedFieldsgsc_service_type.service_type_codeLinkedFieldDataTypescharacterLinkedFieldFormatsX(10)ViewerLinkedWidgetsfiLogicalServiceTypeFieldNamelogical_service_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY gsc_logical_service.logical_service_codeQueryTablesgsc_logical_service,gsc_service_typeBrowseFieldsgsc_logical_service.logical_service_code,gsc_logical_service.logical_service_description,gsc_service_type.service_type_codeBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(20),X(35),X(20)RowsToBatch200BrowseTitleLookup Logical ServicesViewerLinkedFieldsgsc_service_type.service_type_codeLinkedFieldDataTypescharacterLinkedFieldFormatsX(20)ViewerLinkedWidgetsfiLogicalServiceTypeColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcFieldNamelogical_service_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_gsclsdynlookup ).
        RUN repositionObject IN h_gsclsdynlookup ( 2.00 , 25.40 ) NO-ERROR.
        RUN resizeObject IN h_gsclsdynlookup ( 1.00 , 64.40 ) NO-ERROR.
@@ -360,10 +360,10 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsm_physical_service.physical_service_codeKeyFieldgsm_physical_service.physical_service_objFieldLabelPhysical Service CodeFieldTooltipEnter Physical Service or Press F4 for Physical Service LookupKeyFormat>>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(10)DisplayDatatypecharacterBaseQueryStringFOR EACH gsm_physical_service NO-LOCK,
+             INPUT  'DisplayedFieldgsm_physical_service.physical_service_codeKeyFieldgsm_physical_service.physical_service_objFieldLabelPhysical Service CodeFieldTooltipEnter Physical Service or Press F4 for Physical Service LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(20)DisplayDatatypecharacterBaseQueryStringFOR EACH gsm_physical_service NO-LOCK,
                      FIRST gsc_service_type
                      WHERE gsc_service_type.service_type_obj = gsm_physical_service.service_type_obj
-                     BY gsm_physical_service.physical_service_codeQueryTablesgsm_physical_service,gsc_service_typeBrowseFieldsgsm_physical_service.physical_service_code,gsm_physical_service.physical_service_description,gsc_service_type.service_type_codeBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(10),X(35),X(10)RowsToBatch200BrowseTitleLookup Physical ServicesViewerLinkedFieldsgsc_service_type.service_type_codeLinkedFieldDataTypescharacterLinkedFieldFormatsX(10)ViewerLinkedWidgetsfiPhysicalServiceTypeFieldNamephysical_service_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY gsm_physical_service.physical_service_codeQueryTablesgsm_physical_service,gsc_service_typeBrowseFieldsgsm_physical_service.physical_service_code,gsm_physical_service.physical_service_description,gsc_service_type.service_type_codeBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(20),X(35),X(20)RowsToBatch200BrowseTitleLookup Physical ServicesViewerLinkedFieldsgsc_service_type.service_type_codeLinkedFieldDataTypescharacterLinkedFieldFormatsX(20)ViewerLinkedWidgetsfiPhysicalServiceTypeColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcFieldNamephysical_service_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_gsmpydynlookup ).
        RUN repositionObject IN h_gsmpydynlookup ( 3.00 , 25.40 ) NO-ERROR.
        RUN resizeObject IN h_gsmpydynlookup ( 1.00 , 64.40 ) NO-ERROR.

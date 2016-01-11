@@ -169,6 +169,11 @@ IF _U._HANDLE:LOOKUP(_F._INITIAL-DATA) = 0 THEN
 ELSE 
   _U._HANDLE:SCREEN-VALUE = _F._INITIAL-DATA.
 
+
+/* Explicitly set NO-LABELS for static Selection Lists */
+_L._NO-LABELS = YES.
+
+
 /* Avoid ugly message for unmapped webobjects when disconnected 
    BUG 98-060-02-018
 */

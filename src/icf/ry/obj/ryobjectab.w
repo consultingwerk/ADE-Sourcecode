@@ -9,13 +9,6 @@
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Static SmartWindow Wizard" wiWin _INLINE
-/* Actions: af/cod/aftemwizcw.w ? ? ? af/sup/afwizdeltp.p */
-/*Static SmartWindow Wizard
-Destroy on next read */
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Definition Comments Wizard" wiWin _INLINE
 /* Actions: ? af/cod/aftemwizcw.w ? ? ? */
 /* Program Definition Comment Block Wizard
@@ -92,12 +85,14 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 /* Local Variable Definitions ---                                       */
 
-DEFINE VARIABLE gcOriginalWhere            AS CHARACTER INITIAL "". 
-
 /* object identifying preprocessor */
 &glob   astra2-staticSmartWindow yes
 
 {af/sup2/afglobals.i}
+
+/* Shared _RyObject and _custom temp-tables. */
+{adeuib/ttobject.i}
+{adeuib/custwidg.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -118,7 +113,7 @@ DEFINE VARIABLE gcOriginalWhere            AS CHARACTER INITIAL "".
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS fiFileName buFind 
+&Scoped-Define ENABLED-OBJECTS buFind fiFileName 
 &Scoped-Define DISPLAYED-OBJECTS fiFileName 
 
 /* Custom List Definitions                                              */
@@ -144,6 +139,7 @@ DEFINE BUTTON buFind
      BGCOLOR 8 .
 
 DEFINE VARIABLE fiFileName AS CHARACTER FORMAT "X(256)":U 
+     LABEL "Object Filename" 
      VIEW-AS FILL-IN 
      SIZE 56 BY 1 NO-UNDO.
 
@@ -151,14 +147,12 @@ DEFINE VARIABLE fiFileName AS CHARACTER FORMAT "X(256)":U
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     fiFileName AT ROW 1.86 COL 29.8 COLON-ALIGNED NO-LABEL
-     buFind AT ROW 3.95 COL 32.2
-     "Object Filename:" VIEW-AS TEXT
-          SIZE 23 BY 1.43 AT ROW 1.57 COL 3.8
+     buFind AT ROW 1 COL 77.8
+     fiFileName AT ROW 1.05 COL 19 COLON-ALIGNED
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1
-         SIZE 111.6 BY 6.57.
+         SIZE 91.8 BY 2.91.
 
 
 /* *********************** Procedure Settings ************************ */
@@ -168,6 +162,7 @@ DEFINE FRAME frMain
    Type: SmartWindow
    Allow: Basic,Browse,DB-Fields,Query,Smart,Window
    Container Links: Data-Target,Data-Source,Page-Target,Update-Source,Update-Target,Filter-target,Filter-Source
+   Other Settings: COMPILE
  */
 &ANALYZE-RESUME _END-PROCEDURE-SETTINGS
 
@@ -178,8 +173,8 @@ IF SESSION:DISPLAY-TYPE = "GUI":U THEN
   CREATE WINDOW wiWin ASSIGN
          HIDDEN             = YES
          TITLE              = "RyObject Manager"
-         HEIGHT             = 6.57
-         WIDTH              = 111.6
+         HEIGHT             = 2.91
+         WIDTH              = 91.8
          MAX-HEIGHT         = 28.81
          MAX-WIDTH          = 146.2
          VIRTUAL-HEIGHT     = 28.81
@@ -196,13 +191,6 @@ IF SESSION:DISPLAY-TYPE = "GUI":U THEN
 ELSE {&WINDOW-NAME} = CURRENT-WINDOW.
 /* END WINDOW DEFINITION                                                */
 &ANALYZE-RESUME
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "SmartWindowCues" wiWin _INLINE
-/* Actions: adecomm/_so-cue.w ? adecomm/_so-cued.p ? adecomm/_so-cuew.p */
-/* SmartWindow,ab,49271
-Destroy on next read */
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB wiWin 
 /* ************************* Included-Libraries *********************** */
@@ -312,15 +300,93 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'ry/obj/dopendialog.wDB-AWARE':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'AppServiceASUsePromptASInfoForeignFieldsRowsToBatch20CheckCurrentChangedyesRebuildOnReposnoServerOperatingModeNONEDestroyStatelessnoDisconnectAppServernoObjectNamedopendialogUpdateFromSourceno':U ,
+             INPUT  'AppServiceAstraASUsePromptASInfoForeignFieldsRowsToBatch20CheckCurrentChangedyesRebuildOnReposnoServerOperatingModeNONEDestroyStatelessnoDisconnectAppServernoObjectNamedopendialogUpdateFromSourcenoToggleDataTargetsyesOpenOnInitnoPromptOnDeleteyesPromptColumns(ALL)':U ,
              OUTPUT h_dopendialog ).
-       RUN repositionObject IN h_dopendialog ( 1.38 , 99.40 ) NO-ERROR.
+       RUN repositionObject IN h_dopendialog ( 1.95 , 4.20 ) NO-ERROR.
        /* Size in AB:  ( 1.86 , 10.80 ) */
 
        /* Adjust the tab order of the smart objects. */
     END. /* Page 0 */
 
   END CASE.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createRYObject wiWin 
+PROCEDURE createRYObject :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+ DEFINE VARIABLE cQueryPosition AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cColumns       AS CHARACTER  NO-UNDO.
+ 
+ DEFINE BUFFER local_custom FOR _custom.
+
+  DO ON ERROR UNDO, LEAVE:
+    
+    cColumns = DYNAMIC-FUNC("colValues" IN h_dopendialog,"object_filename,smartobject_obj,object_type_obj,~
+object_type_code,product_module_obj,product_module_code,object_description,object_path,object_extension,~
+runnable_from_menu,disabled,run_persistent,run_when,security_smartobject_obj,container_object,~
+physical_smartobject_obj,static_object,generic_object,required_db_list,layout_obj,deployment_type,design_only").
+    
+    FIND _RyObject WHERE _RyObject.object_filename = ENTRY(2,cColumns,CHR(1)) NO-ERROR.
+    IF NOT AVAILABLE _RyObject THEN 
+      CREATE _RyObject.
+
+    ASSIGN _RyObject.Object_type_code          = ENTRY(5,cColumns,CHR(1))
+           _RyObject.parent_classes            = DYNAMIC-FUNCTION("getClassParentsFromDB":U IN gshRepositoryManager, INPUT _RyObject.Object_type_code)
+           _RyObject.Object_filename           = ENTRY(2,cColumns,CHR(1))
+           _RyObject.smartobject_obj           = DECIMAL(ENTRY(3,cColumns,CHR(1)))
+           _RyObject.Object_type_obj           = DECIMAL(ENTRY(4,cColumns,CHR(1)))           
+           _RyObject.product_module_obj        = DECIMAL(ENTRY(6,cColumns,CHR(1)))
+           _RyObject.product_module_code       = ENTRY(7,cColumns,CHR(1))
+           _RyObject.Object_description        = ENTRY(8,cColumns,CHR(1))
+           _RyObject.Object_path               = ENTRY(9,cColumns,CHR(1))
+           _RyObject.Object_extension          = ENTRY(10,cColumns,CHR(1))
+           _RyObject.runnable_from_menu        = (ENTRY(11,cColumns,CHR(1)) = "Yes":U OR ENTRY(11,cColumns,CHR(1)) = "true":U)
+           _RyObject.disabled                  = (ENTRY(12,cColumns,CHR(1)) = "Yes":U OR ENTRY(12,cColumns,CHR(1)) = "true":U)
+           _RyObject.Run_persistent            = (ENTRY(13,cColumns,CHR(1)) = "Yes":U OR ENTRY(13,cColumns,CHR(1)) = "true":U)
+           _RyObject.Run_when                  = ENTRY(14,cColumns,CHR(1))
+           _RyObject.security_smartObject_obj  = DECIMAL(ENTRY(15,cColumns,CHR(1)))
+           _RyObject.container_object          = (ENTRY(16,cColumns,CHR(1)) = "Yes":U OR ENTRY(16,cColumns,CHR(1)) = "true":U)
+           _RyObject.physical_smartObject_obj  = DECIMAL(ENTRY(17,cColumns,CHR(1)))
+           _RyObject.static_object             = (ENTRY(18,cColumns,CHR(1)) = "Yes":U OR ENTRY(18,cColumns,CHR(1)) = "true":U)
+           _RyObject.generic_object            = (ENTRY(19,cColumns,CHR(1)) = "Yes":U OR ENTRY(19,cColumns,CHR(1)) = "true":U)
+           _RyObject.Required_db_list          = ENTRY(20,cColumns,CHR(1))
+           _RyObject.Layout_obj                = DECIMAL(ENTRY(21,cColumns,CHR(1)))
+           _RyObject.design_action             = "OPEN":u
+           _RyObject.design_ryobject           = YES 
+           _RyObject.deployment_type           = ENTRY(21,cColumns,CHR(1))
+           _RyObject.design_only               = (ENTRY(22,cColumns,CHR(1)) = "Yes":U OR ENTRY(22,cColumns,CHR(1)) = "true":U)
+           NO-ERROR.
+                                                                           /* Object_type_code */
+    FIND FIRST local_custom WHERE local_custom._object_type_code = ENTRY(5,cColumns,CHR(1)) NO-ERROR.
+
+    IF NOT AVAILABLE local_custom 
+    THEN DO:
+        IF LOOKUP(_RyObject.object_type_code, DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, INPUT "DynView":U)) > 0 THEN
+            FIND FIRST local_custom WHERE local_custom._object_type_code = "SmartDataViewer":U NO-ERROR.
+        ELSE
+            IF LOOKUP(_RyObject.object_type_code, DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, INPUT "DynSDO":U)) > 0 THEN
+                FIND FIRST local_custom WHERE local_custom._object_type_code = "DynSDO":U NO-ERROR.
+            ELSE
+                IF LOOKUP(_RyObject.object_type_code, DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, INPUT "DynBrow":U)) > 0 THEN
+                    FIND FIRST local_custom WHERE local_custom._object_type_code = "DynBrow":U NO-ERROR.
+    END.
+    IF AVAILABLE local_custom THEN
+      ASSIGN
+           _RyObject.design_template_file   = local_custom._design_template_file
+           _RyObject.design_propsheet_file  = local_custom._design_propsheet_file
+           _RyObject.design_image_file      = local_custom._design_image_file.
+
+    RETURN.
+
+  END.  /* DO ON ERROR */
 
 END PROCEDURE.
 
@@ -359,7 +425,7 @@ PROCEDURE enable_UI :
 ------------------------------------------------------------------------------*/
   DISPLAY fiFileName 
       WITH FRAME frMain IN WINDOW wiWin.
-  ENABLE fiFileName buFind 
+  ENABLE buFind fiFileName 
       WITH FRAME frMain IN WINDOW wiWin.
   VIEW FRAME frMain IN WINDOW wiWin.
   {&OPEN-BROWSERS-IN-QUERY-frMain}
@@ -394,50 +460,70 @@ PROCEDURE getRyObject :
   Notes:       
 ------------------------------------------------------------------------------*/
 
-DEFINE INPUT-OUTPUT PARAMETER pObjectName       AS CHARACTER.
+DEFINE INPUT-OUTPUT PARAMETER pcObjectName       AS CHARACTER.
 DEFINE OUTPUT       PARAMETER pError            AS CHARACTER.
 
-DEFINE VARIABLE hSDO                        AS HANDLE     NO-UNDO.
-DEFINE VARIABLE cFileNameWhere              AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cFileNameField              AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE openObjectName              AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE objectPath                  AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cQueryPosition AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cObjectName    AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cRelativePath  AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cExtension     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE lStatic        AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE cFullPath      AS CHARACTER  NO-UNDO.
 
+ASSIGN pcObjectName = REPLACE(pcObjectName,"~\":U,"/":U)
+       cObjectName  = pcObjectName.
+ 
+
+DYNAMIC-FUNC('assignQuerySelection':U IN h_dopendialog, 'ryc_smartobject.object_filename':U, cObjectName, "EQ":U).
+/* do the new query and update the browser */
+{fn OpenQuery h_dopendialog} .
+{get QueryPosition cQueryPosition h_dopendialog}. /* any data? */
+
+IF cQueryPosition = "NoRecordAvailable":U THEN
 DO:
+   /* Check if the object is registered under the last entry */
+   IF NUM-ENTRIES(cObjectName,"/") > 1 THEN
+   DO:
+      ASSIGN cObjectName = ENTRY(NUM-ENTRIES(cObjectName,"/":U),cObjectName,"/":U).
+      DYNAMIC-FUNC('assignQuerySelection':U IN h_dopendialog, 'ryc_smartobject.object_filename':U, cObjectName, "EQ":U).
+      {fn OpenQuery h_dopendialog} .
+      {get QueryPosition cQueryPosition h_dopendialog}. /* any data? */
+   END. /* If we found a "/":U in the object name */
 
-    ASSIGN hsdo = h_dopendialog.           /* SmartDataObject widget-handle */
-    
-    IF gcOriginalWhere = "" THEN           /* get SDO original query */
-        ASSIGN gcOriginalWhere = DYNAMIC-FUNCTION('getOpenQuery':U IN hsdo).
-    
-    /* Use whatever object name is passed in. That could be a full pathname or
-       a file name with or without an extension. When being called from the MRU,
-       the name is a full pathname. The get won't find it in the gsc_object table
-       and that's fine. Since the MRU open is for an explicit, fully qualified
-       file, we can't assume that just because the base name matches an object
-       in the repository that they are the same object. The relative path's may be
-       different. */
-    ASSIGN
-        openObjectName  = pObjectName
-        cFileNameField  = "gsc_object.object_filename":U 
-        cFileNameWhere  = cFileNameField + " = '":U + openObjectName + "'":U.
-    
-    /* reset SDO to its original query. */
-    DYNAMIC-FUNCTION('setQueryWhere':U IN hsdo, INPUT gcOriginalWhere).
-    
-    /* append the additional searching criteria to the SDO's query */
-    DYNAMIC-FUNCTION('setQueryWhere':U IN hsdo, INPUT cFileNameWhere). 
+   IF cQueryPosition = "NoRecordAvailable":U THEN
+   DO:
+      IF NUM-ENTRIES(cObjectName,".") > 1 THEN
+      DO:
+         ASSIGN cObjectName = ENTRY(1,cObjectName,".":U).
+         DYNAMIC-FUNC('assignQuerySelection':U IN h_dopendialog, 'ryc_smartobject.object_filename':U, cObjectName, "EQ":U).
+         {fn OpenQuery h_dopendialog} .
+         {get QueryPosition cQueryPosition h_dopendialog}. /* any data? */
+      END.  /* If we found an extension in the object name */
+   END.  /* If we haven't found a match yet */
+END.  /* If we can't find it in the repository with the first query */
 
-    /* do the new query and update the browser */
-    DYNAMIC-FUNCTION('openQuery' IN hSDO).
-    
-    /* Create the _RyObject record to be later used by AppBuilder to copy data to _P. */
-    RUN createRyObject IN h_dopendialog.
-    ASSIGN pError = RETURN-VALUE.
-    
-    RUN exitObject.
-
+IF cQueryPosition <> "NoRecordAvailable":U THEN DO:
+  ASSIGN pcObjectName = cObjectName.
+  /* Check whether the object is static and exists */
+  ASSIGN lStatic = DYNAMIC-FUNC('columnValue' IN h_dopendialog, 'static_object':U)
+         cRelativePath = DYNAMIC-FUNC('columnValue' IN h_dopendialog, 'object_path':U)
+         cExtension    = DYNAMIC-FUNC('columnValue' IN h_dopendialog, 'object_extension':U)
+         cFullPath     = cRelativePath + (IF cRelativePath = "" THEN "" ELSE "/") + cObjectName + IF NUM-ENTRIES(cObjectName,".") > 1 THEN "" ELSE "." + cExtension 
+         NO-ERROR.
+         IF lStatic AND SEARCH(cFullPath) = ? THEN
+            perror = "Static Object not found":U.
+  /* Create the _RyObject record to be later used by AppBuilder to copy data to _P. */
+  
+  IF perror = "" THEN  DO:
+     RUN createRyObject IN THIS-PROCEDURE.
+     ASSIGN pError = RETURN-VALUE.
+  END.
 END.
+ELSE pError = "Object Not found".
+
+RUN exitObject.
+
+
 
 END PROCEDURE.
 

@@ -37,6 +37,7 @@ Author: Tony Lavinio, Laura Stern
 Date Created: 10/05/92
 
 Modified on 06/14/94 by Gerry Seidl. Added NO-LOCKs to file accesses.
+            08/08/02 D. McMann Eliminated any sequences whose name begins "$" - Peer Direct
 ----------------------------------------------------------------------------*/
 
 DEFINE INPUT PARAMETER p_DbId  AS RECID NO-UNDO.
@@ -53,7 +54,8 @@ FORM
   WITH FRAME shoseqs 
   DOWN USE-TEXT STREAM-IO.
 
-FOR EACH _Sequence NO-LOCK WHERE _Sequence._Db-recid = p_DbId:
+FOR EACH _Sequence NO-LOCK WHERE _Sequence._Db-recid = p_DbId
+                             AND NOT _Sequence._Seq-name BEGINS "$":
    max_min = (IF _Sequence._Seq-incr > 0 THEN _Sequence._Seq-max
       	       	     	      	       	 ELSE _Sequence._Seq-min).
    DISPLAY STREAM rpt

@@ -105,7 +105,12 @@ af/cod/aftemwizpw.w
   Update Notes: Attributes cannot be added to more than one Object Instance in Repository
                 Object Control
 
---------------------------------------------------------------------------------*/
+  (v:010003)    Task:           0   UserRef:    
+                Date:   12/12/2001  Author:     Mark Davies (MIP)
+
+  Update Notes: Added extra validation to check that the value corresponds to the data type
+
+-------------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
 
@@ -131,7 +136,7 @@ ASSIGN cObjectName = "{&object-name}":U.
 
 /* Data Preprocessor Definitions */
 &GLOB DATA-LOGIC-TABLE ryc_attribute_value
-&GLOB DATA-FIELD-DEFS  "ry\obj\rycavful4o.i"
+&GLOB DATA-FIELD-DEFS  "ry/obj/rycavful4o.i"
 
 /* Error handling definitions */
 {af/sup2/afcheckerr.i &define-only = YES}
@@ -154,6 +159,8 @@ ASSIGN cObjectName = "{&object-name}":U.
 &ENDIF
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
+
+
 
 
 
@@ -241,25 +248,12 @@ PROCEDURE createPreTransValidate :
                 AND ryc_attribute_value.smartobject_obj = b_ryc_attribute_value.smartobject_obj
                 AND ryc_attribute_value.object_instance_obj = b_ryc_attribute_value.object_instance_obj
                 AND ryc_attribute_value.attribute_label = b_ryc_attribute_value.attribute_label
-                AND ryc_attribute_value.collection_sequence = b_ryc_attribute_value.collection_sequence
                 AND ryc_attribute_value.container_smartobject_obj = b_ryc_attribute_value.container_smartobject_obj) THEN
   DO:
      ASSIGN
-        cValueList   = STRING(b_ryc_attribute_value.object_type_obj) + ', ' + STRING(b_ryc_attribute_value.smartobject_obj) + ', ' + STRING(b_ryc_attribute_value.object_instance_obj) + ', ' + STRING(b_ryc_attribute_value.attribute_label) + ', ' + STRING(b_ryc_attribute_value.collect_attribute_value_obj) + ', ' + STRING(b_ryc_attribute_value.collection_sequence) + ', ' + STRING(b_ryc_attribute_value.container_smartobject_obj)
+        cValueList   = STRING(b_ryc_attribute_value.object_type_obj) + ', ' + STRING(b_ryc_attribute_value.smartobject_obj) + ', ' + STRING(b_ryc_attribute_value.object_instance_obj) + ', ' + STRING(b_ryc_attribute_value.attribute_label) + ', ' + STRING(b_ryc_attribute_value.container_smartobject_obj)
         cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                      {af/sup2/aferrortxt.i 'AF' '8' 'ryc_attribute_value' '' "'object_type_obj, smartobject_obj, object_instance_obj, attribute_label, collect_attribute_value_obj, collection_sequence, container_smartobject_obj, '" cValueList }.
-  END.
-
-
-  IF CAN-FIND(FIRST ryc_attribute_value 
-              WHERE ryc_attribute_value.collect_attribute_value_obj = b_ryc_attribute_value.collect_attribute_value_obj
-                AND ryc_attribute_value.collection_sequence = b_ryc_attribute_value.collection_sequence
-                AND ryc_attribute_value.attribute_label = b_ryc_attribute_value.attribute_label) THEN
-  DO:
-     ASSIGN
-        cValueList   = STRING(b_ryc_attribute_value.collect_attribute_value_obj) + ', ' + STRING(b_ryc_attribute_value.collection_sequence) + ', ' + STRING(b_ryc_attribute_value.attribute_label)
-        cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                      {af/sup2/aferrortxt.i 'AF' '8' 'ryc_attribute_value' '' "'collect_attribute_value_obj, collection_sequence, attribute_label, '" cValueList }.
+                      {af/sup2/aferrortxt.i 'AF' '8' 'ryc_attribute_value' '' "'object_type_obj, smartobject_obj, object_instance_obj, attribute_label, container_smartobject_obj, '" cValueList }.
   END.
 
   ERROR-STATUS:ERROR = NO.
@@ -345,6 +339,11 @@ PROCEDURE rowObjectValidate :
 
   DEFINE VARIABLE cMessageList    AS CHARACTER    NO-UNDO.
   DEFINE VARIABLE cValueList      AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE dDecimal        AS DECIMAL      NO-UNDO.
+  DEFINE VARIABLE iInteger        AS INTEGER      NO-UNDO.
+  DEFINE VARIABLE hDesignManager  AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE cObjectTypeCode AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE lFoundAttr      AS LOGICAL      NO-UNDO.
 
   IF b_ryc_attribute_value.object_type_obj = 0 OR b_ryc_attribute_value.object_type_obj = ? THEN
     ASSIGN
@@ -371,20 +370,26 @@ PROCEDURE rowObjectValidate :
       cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
                     {af/sup2/aferrortxt.i 'AF' '1' 'ryc_attribute_value' 'container_smartobject_obj' "'Container SmartObject Obj'"}.
 
-  IF b_ryc_attribute_value.attribute_group_obj = 0 OR b_ryc_attribute_value.attribute_group_obj = ? THEN
-    ASSIGN
-      cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                    {af/sup2/aferrortxt.i 'AF' '1' 'ryc_attribute_value' 'attribute_group_obj' "'Attribute Group Obj'"}.
-
-  IF LENGTH(b_ryc_attribute_value.attribute_type_tla) = 0 OR LENGTH(b_ryc_attribute_value.attribute_type_tla) = ? THEN
-    ASSIGN
-      cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                    {af/sup2/aferrortxt.i 'AF' '1' 'ryc_attribute_value' 'attribute_type_tla' "'Attribute Type TLA'"}.
-
   IF b_ryc_attribute_value.primary_smartobject_obj = 0 OR b_ryc_attribute_value.primary_smartobject_obj = ? THEN
     ASSIGN
       cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
                     {af/sup2/aferrortxt.i 'AF' '1' 'ryc_attribute_value' 'primary_smartobject_obj' "'Primary SmartObject Obj'"}.
+
+  /* Check if Attribute is valid for this object type */
+  IF b_ryc_attribute_value.smartobject_obj <> 0 THEN DO:
+    hDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U, INPUT "RepositoryDesignManager":U).
+    cObjectTypeCode = DYNAMIC-FUNCTION("getObjectTypeCodeFromDB":U IN hDesignManager, b_ryc_attribute_value.object_type_obj).
+    lFoundAttr = DYNAMIC-FUNCTION("classHasAttribute" IN gshRepositoryManager, cObjectTypeCode,b_ryc_attribute_value.attribute_label,FALSE).
+    IF NOT lFoundAttr THEN DO:
+      RUN clearClientCache IN gshRepositoryManager.
+      lFoundAttr = DYNAMIC-FUNCTION("classHasAttribute" IN gshRepositoryManager, cObjectTypeCode,b_ryc_attribute_value.attribute_label,FALSE).
+    END.
+    IF NOT lFoundAttr THEN DO:
+      cObjectTypeCode = "The Attribute specified is not valid for the object's class. (" + cObjectTypeCode + ")":U.
+      cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
+                    {af/sup2/aferrortxt.i 'AF' '5' 'ryc_attribute_value' 'attribute_label' "'Attribute'" cObjectTypeCode}.
+    END.
+  END.
 
   ERROR-STATUS:ERROR = NO.
   RETURN cMessageList.
@@ -416,22 +421,9 @@ PROCEDURE writePreTransValidate :
                 AND ROWID(ryc_attribute_value) <> TO-ROWID(ENTRY(1,b_ryc_attribute_value.RowIDent))) THEN
   DO:
      ASSIGN
-        cValueList   = STRING(b_ryc_attribute_value.object_type_obj) + ', ' + STRING(b_ryc_attribute_value.smartobject_obj) + ', ' + STRING(b_ryc_attribute_value.object_instance_obj) + ', ' + STRING(b_ryc_attribute_value.attribute_label) + ', ' + STRING(b_ryc_attribute_value.collect_attribute_value_obj) + ', ' + STRING(b_ryc_attribute_value.collection_sequence) + ', ' + STRING(b_ryc_attribute_value.container_smartobject_obj)
+        cValueList   = STRING(b_ryc_attribute_value.object_type_obj) + ', ' + STRING(b_ryc_attribute_value.smartobject_obj) + ', ' + STRING(b_ryc_attribute_value.object_instance_obj) + ', ' + STRING(b_ryc_attribute_value.attribute_label) + ', ' + STRING(b_ryc_attribute_value.container_smartobject_obj)
         cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                      {af/sup2/aferrortxt.i 'AF' '8' 'ryc_attribute_value' '' "'object_type_obj, smartobject_obj, object_instance_obj, attribute_label, collect_attribute_value_obj, collection_sequence, container_smartobject_obj, '" cValueList }.
-  END.
-
-
-  IF NOT isCreate() AND CAN-FIND(FIRST ryc_attribute_value 
-              WHERE ryc_attribute_value.collect_attribute_value_obj = b_ryc_attribute_value.collect_attribute_value_obj
-                AND ryc_attribute_value.collection_sequence = b_ryc_attribute_value.collection_sequence
-                AND ryc_attribute_value.attribute_label = b_ryc_attribute_value.attribute_label
-                AND ROWID(ryc_attribute_value) <> TO-ROWID(ENTRY(1,b_ryc_attribute_value.RowIDent))) THEN
-  DO:
-     ASSIGN
-        cValueList   = STRING(b_ryc_attribute_value.collect_attribute_value_obj) + ', ' + STRING(b_ryc_attribute_value.collection_sequence) + ', ' + STRING(b_ryc_attribute_value.attribute_label)
-        cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                      {af/sup2/aferrortxt.i 'AF' '8' 'ryc_attribute_value' '' "'collect_attribute_value_obj, collection_sequence, attribute_label, '" cValueList }.
+                      {af/sup2/aferrortxt.i 'AF' '8' 'ryc_attribute_value' '' "'object_type_obj, smartobject_obj, object_instance_obj, attribute_label, collect_attribute_value_obj, container_smartobject_obj, '" cValueList }.
   END.
 
   ERROR-STATUS:ERROR = NO.

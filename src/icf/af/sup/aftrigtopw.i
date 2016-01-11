@@ -76,7 +76,7 @@ af/cod/aftemwizpw.w
    can be displayed in the about window of the container */
 
 &scop object-name       aftrigtopw.i
-&scop object-version    010010
+&scop object-version    000000
 
 
 
@@ -126,14 +126,21 @@ DEFINE VARIABLE lv-error                  AS LOGICAL    NO-UNDO.
                                                                         */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Include 
 
 
 /* ***************************  Main Block  *************************** */
-
+IF NEW({&TRIGGER_TABLE}) THEN
+DO:
+  RUN reuseObjectID IN gshRIManager
+    ("{&TRIGGER_FLA}",
+     INPUT BUFFER {&TRIGGER_TABLE}:HANDLE) NO-ERROR.
+  IF ERROR-STATUS:ERROR THEN
+    RETURN ERROR RETURN-VALUE.
+END.
 {af/sup/aftrigproc.i} /* ICF Trigger procedures */
 
 /* _UIB-CODE-BLOCK-END */

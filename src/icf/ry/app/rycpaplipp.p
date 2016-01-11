@@ -202,7 +202,7 @@ PROCEDURE objectDescription :
 
 DEFINE OUTPUT PARAMETER cDescription AS CHARACTER NO-UNDO.
 
-ASSIGN cDescription = "Dynamics gsc_object PLIP".
+ASSIGN cDescription = "Dynamics ryc_smartobject PLIP".
 
 END PROCEDURE.
 

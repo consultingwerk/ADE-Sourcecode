@@ -56,7 +56,7 @@
 CREATE WIDGET-POOL.
 
 /* ***************************  Definitions  ************************** */
-{ adm2/support/admhlp.i} /* ADM Help File Defs */
+{ src/adm2/support/admhlp.i} /* ADM Help File Defs */
 
 /* Parameters Definitions ---                                           */
 DEFINE INPUT PARAMETER hWizard AS WIDGET-HANDLE NO-UNDO.
@@ -76,13 +76,14 @@ DEFINE VARIABLE objtype        AS CHARACTER     NO-UNDO.
 /* ********************  Preprocessor Definitions  ******************** */
 
 &Scoped-define PROCEDURE-TYPE Window
+&Scoped-define DB-AWARE no
 
 /* Name of first Frame and/or Browse and/or first Query                 */
 &Scoped-define FRAME-NAME DEFAULT-FRAME
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS RECT-5 e_msg s_fields b_Addf b_Helpb 
-&Scoped-Define DISPLAYED-OBJECTS e_msg s_fields f_msg
+&Scoped-Define ENABLED-OBJECTS e_msg s_fields b_Addf b_Helpb RECT-5 
+&Scoped-Define DISPLAYED-OBJECTS e_msg s_fields f_msg 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -106,14 +107,14 @@ DEFINE BUTTON b_Helpb
      LABEL "&Help on Browse Object" 
      SIZE 26 BY 1.1.
 
-DEFINE VARIABLE f_msg AS CHARACTER VIEW-AS TEXT
-     SIZE 44 BY .62
-     BGCOLOR 8  NO-UNDO.
-
 DEFINE VARIABLE e_msg AS CHARACTER 
      VIEW-AS EDITOR
      SIZE 26 BY 4.91
      BGCOLOR 8  NO-UNDO.
+
+DEFINE VARIABLE f_msg AS CHARACTER FORMAT "x(256)" 
+      VIEW-AS TEXT 
+     SIZE 44 BY .62 NO-UNDO.
 
 DEFINE RECTANGLE RECT-5
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
@@ -123,22 +124,22 @@ DEFINE VARIABLE s_fields AS CHARACTER
      VIEW-AS SELECTION-LIST SINGLE SCROLLBAR-VERTICAL 
      SIZE 48 BY 7.48 NO-UNDO.
 
+
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME DEFAULT-FRAME
      e_msg AT ROW 1.61 COL 57 NO-LABEL
-     s_fields AT ROW 2.57 COL 5 NO-LABEL
+     s_fields AT ROW 2.56 COL 5 NO-LABEL
      b_Addf AT ROW 8.04 COL 57
-     b_Helpb AT ROW 9.52 COL 57
-     RECT-5 AT ROW 1.61 COL 3
+     b_Helpb AT ROW 9.51 COL 57
      f_msg AT ROW 1.85 COL 5 NO-LABEL
+     RECT-5 AT ROW 1.61 COL 3
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          THREE-D 
-         AT COL 1 ROW 1.04
-         SIZE 83.6 BY 10.27
+         AT COL 1 ROW 1.05
+         SIZE 84.4 BY 10.86
          FONT 4.
 
- 
 
 /* *********************** Procedure Settings ************************ */
 
@@ -157,8 +158,8 @@ IF SESSION:DISPLAY-TYPE = "GUI":U THEN
   CREATE WINDOW C-Win ASSIGN
          HIDDEN             = YES
          TITLE              = "<insert title>"
-         HEIGHT             = 10.52
-         WIDTH              = 84
+         HEIGHT             = 10.91
+         WIDTH              = 84.4
          MAX-HEIGHT         = 16
          MAX-WIDTH          = 95.2
          VIRTUAL-HEIGHT     = 16
@@ -174,38 +175,29 @@ IF SESSION:DISPLAY-TYPE = "GUI":U THEN
          SENSITIVE          = yes.
 ELSE {&WINDOW-NAME} = CURRENT-WINDOW.
                                                                         */
+/* END WINDOW DEFINITION                                                */
 &ANALYZE-RESUME
 ASSIGN C-Win = CURRENT-WINDOW.
 
 
 
-/* ***************  Runtime Attributes and UIB Settings  ************** */
+
+/* ***********  Runtime Attributes and AppBuilder Settings  *********** */
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR WINDOW C-Win
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME DEFAULT-FRAME
-   UNDERLINE Default                                                    */
+   UNDERLINE                                                            */
 ASSIGN 
        e_msg:READ-ONLY IN FRAME DEFAULT-FRAME        = TRUE.
 
+/* SETTINGS FOR FILL-IN f_msg IN FRAME DEFAULT-FRAME
+   NO-ENABLE ALIGN-L                                                    */
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
-
-/* Setting information for Queries and Browse Widgets fields            */
-
-&ANALYZE-SUSPEND _QUERY-BLOCK FRAME DEFAULT-FRAME
-/* Query rebuild information for FRAME DEFAULT-FRAME
-     _FldNameList[1]   = SPORTS.Customer.Cust-Num
-     _FldNameList[2]   = SPORTS.Customer.Name
-     _FldNameList[3]   = SPORTS.Customer.Sales-Rep
-     _Query            is NOT OPENED
-*/  /* FRAME DEFAULT-FRAME */
-&ANALYZE-RESUME
-
  
-
 
 
 
@@ -351,7 +343,7 @@ END.
 
 /* **********************  Internal Procedures  *********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI C-Win _DEFAULT-DISABLE
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI C-Win  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     DISABLE the User Interface
@@ -369,8 +361,7 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI C-Win _DEFAULT-ENABLE
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI C-Win  _DEFAULT-ENABLE
 PROCEDURE enable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     ENABLE the User Interface
@@ -381,9 +372,9 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  DISPLAY e_msg s_fields f_msg format "x(45)"
+  DISPLAY e_msg s_fields f_msg 
       WITH FRAME DEFAULT-FRAME.
-  ENABLE RECT-5 e_msg s_fields b_Addf b_Helpb 
+  ENABLE e_msg s_fields b_Addf b_Helpb RECT-5 
       WITH FRAME DEFAULT-FRAME.
   {&OPEN-BROWSERS-IN-QUERY-DEFAULT-FRAME}
   VIEW C-Win.
@@ -391,7 +382,6 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Get-Fields C-Win 
 PROCEDURE Get-Fields :
@@ -423,5 +413,4 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-
 

@@ -90,6 +90,17 @@ FUNCTION getBaseQuery RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getBufferHandles) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getBufferHandles Procedure 
+FUNCTION getBufferHandles RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getCalculatedColumns) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCalculatedColumns Procedure 
@@ -161,6 +172,50 @@ FUNCTION getDBNames RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getEnabledTables Procedure 
 FUNCTION getEnabledTables RETURNS CHARACTER
   (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getEntityFields) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getEntityFields Procedure 
+FUNCTION getEntityFields RETURNS CHARACTER
+  ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getFetchAutoComment) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFetchAutoComment Procedure 
+FUNCTION getFetchAutoComment RETURNS LOGICAL
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getFetchHasAudit) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFetchHasAudit Procedure 
+FUNCTION getFetchHasAudit RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getFetchHasComment) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFetchHasComment Procedure 
+FUNCTION getFetchHasComment RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -288,6 +343,17 @@ FUNCTION getOpenQuery RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getPositionForClient) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getPositionForClient Procedure 
+FUNCTION getPositionForClient RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getQueryColumns) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getQueryColumns Procedure 
@@ -365,6 +431,17 @@ FUNCTION getQueryWhere RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getRequiredProperties) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getRequiredProperties Procedure 
+FUNCTION getRequiredProperties RETURNS CHARACTER
+  ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getTables) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getTables Procedure 
@@ -376,11 +453,33 @@ FUNCTION getTables RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getTransferChildrenForAll) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getTransferChildrenForAll Procedure 
+FUNCTION getTransferChildrenForAll RETURNS LOGICAL
+  (   )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getUpdatableColumns) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getUpdatableColumns Procedure 
 FUNCTION getUpdatableColumns RETURNS CHARACTER
   (   )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getUpdatableColumnsByTable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getUpdatableColumnsByTable Procedure 
+FUNCTION getUpdatableColumnsByTable RETURNS CHARACTER
+  ( )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -409,6 +508,17 @@ FUNCTION getWordIndexedFields RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setAssignList) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setAssignList Procedure 
+FUNCTION setAssignList RETURNS LOGICAL
+  ( pcList AS CHAR   )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setAutoCommit) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setAutoCommit Procedure 
@@ -431,11 +541,44 @@ FUNCTION setBaseQuery RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setBufferHandles) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setBufferHandles Procedure 
+FUNCTION setBufferHandles RETURNS LOGICAL
+  ( pcBufferHandles AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setCheckLastOnOpen) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setCheckLastOnOpen Procedure 
 FUNCTION setCheckLastOnOpen RETURNS LOGICAL
  (pCheck AS LOGICAL)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDataColumns) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDataColumns Procedure 
+FUNCTION setDataColumns RETURNS LOGICAL
+  ( pcColumns AS CHAR)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDataColumnsByTable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDataColumnsByTable Procedure 
+FUNCTION setDataColumnsByTable RETURNS LOGICAL
+  ( pcColumns AS CHAR )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -458,6 +601,50 @@ FUNCTION setDataIsFetched RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDBNames Procedure 
 FUNCTION setDBNames RETURNS LOGICAL
   (pcDBNames AS CHAR)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setEntityFields) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setEntityFields Procedure 
+FUNCTION setEntityFields RETURNS LOGICAL
+  ( cEntityFields AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setFetchAutoComment) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFetchAutoComment Procedure 
+FUNCTION setFetchAutoComment RETURNS LOGICAL
+  ( plFetchAutoComment AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setFetchHasAudit) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFetchHasAudit Procedure 
+FUNCTION setFetchHasAudit RETURNS LOGICAL
+  ( plFetchHasAudit AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setFetchHasComment) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFetchHasComment Procedure 
+FUNCTION setFetchHasComment RETURNS LOGICAL
+  ( plFetchHasComment AS LOGICAL )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -563,6 +750,17 @@ FUNCTION setOpenQuery RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setPositionForClient) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setPositionForClient Procedure 
+FUNCTION setPositionForClient RETURNS LOGICAL
+  ( pcPositionForClient AS CHARACTER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setQueryColumns) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setQueryColumns Procedure 
@@ -618,11 +816,44 @@ FUNCTION setQueryWhere RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setRequiredProperties) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setRequiredProperties Procedure 
+FUNCTION setRequiredProperties RETURNS LOGICAL
+  ( pcProperties AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setTables) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setTables Procedure 
 FUNCTION setTables RETURNS LOGICAL
   ( pcTables AS CHAR)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setTransferChildrenForAll) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setTransferChildrenForAll Procedure 
+FUNCTION setTransferChildrenForAll RETURNS LOGICAL
+  (plTransferChildrenForAll AS LOGICAL)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setUpdatableColumnsByTable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setUpdatableColumnsByTable Procedure 
+FUNCTION setUpdatableColumnsByTable RETURNS LOGICAL
+  ( pcColumns AS CHAR )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -647,7 +878,7 @@ FUNCTION setTables RETURNS LOGICAL
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 16.38
+         HEIGHT             = 16.24
          WIDTH              = 51.4.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -695,8 +926,18 @@ FUNCTION getAssignList RETURNS CHARACTER
 
   DEFINE VARIABLE cList AS CHARACTER NO-UNDO.
   
+  &SCOPED-DEFINE xpAssignList 
   {get AssignList cList}.
+  &UNDEFINE xpAssignList 
   
+  IF cList = '':U THEN DO:
+    DEFINE VARIABLE cTables AS CHARACTER  NO-UNDO.
+    {get Tables cTables}.
+    cList = FILL(CHR(1), NUM-ENTRIES(cTables) - 1).
+  END.
+  ELSE 
+    cList = REPLACE(cList, ';':U, CHR(1)).
+
   RETURN cList.
 
 END FUNCTION.
@@ -729,6 +970,30 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getBufferHandles) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getBufferHandles Procedure 
+FUNCTION getBufferHandles RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cBufferHandles AS CHARACTER  NO-UNDO.
+                     
+  &SCOPED-DEFINE xpBufferHandles 
+  {get BufferHandles cBufferHandles}.
+  &UNDEFINE xpbufferHandles 
+  
+  RETURN cBufferHandles.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getCalculatedColumns) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getCalculatedColumns Procedure 
@@ -747,9 +1012,11 @@ FUNCTION getCalculatedColumns RETURNS CHARACTER
   
   {get DataColumnsByTable cColumns}.
   {get Tables cTables}.  
-
+  
   IF NUM-ENTRIES(cColumns,CHR(1)) > NUM-ENTRIES(cTables) THEN
-    cColumns = ENTRY(NUM-ENTRIES(cTables)+ 1,cColumns,CHR(1)).
+    cColumns = ENTRY(NUM-ENTRIES(cTables)+ 1,cColumns,CHR(1)).  
+  ELSE 
+    cColumns = "":U.
 
   RETURN cColumns. 
 
@@ -793,29 +1060,12 @@ FUNCTION getDataColumns RETURNS CHARACTER
   Purpose:     Returns a comma-delimited list of the columnNames for the 
                SmartDataObject. 
   Parameters:  
-       Notes:  Uses the DataColumsByTable property that stores in different 
-               tables delimited by CHR(1) instead of comma in order to identify 
-               which columns are from which table in the event of a join. 
-               For example, if the query is a join of customer and order and 
-               the Name field from customer and the OrderNum and OrderData field 
-               from Order are selected, then the property value will be equal to
-               "Name<CHR(1)>OrderNum,OrderDate".
-               This function replaces CHR(1) with "," to return just a 
-               comma-delimited list. 
+       Notes:   
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cColumns AS CHARACTER NO-UNDO.
-  {get DataColumnsByTable cColumns}.
-    
-  IF NUM-ENTRIES(cColumns,CHR(1)) > 1 THEN
-    cColumns = REPLACE(cColumns,CHR(1),",":U).
-
-  /* There might be empty entries */
-  DO WHILE INDEX(cColumns,",,":U) > 0:
-    cColumns = REPLACE(cColumns,",,":U,",":U).
-  END.
   
-  /* There's may also be commas at the ends */ 
-  RETURN TRIM(cColumns,",":U).
+  {get DataColumns cColumns}.
+  RETURN cColumns.
 
 END FUNCTION.
 
@@ -836,9 +1086,12 @@ FUNCTION getDataColumnsByTable RETURNS CHARACTER
        Notes:  Use DataColums to get a comma separated list        
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cColumns AS CHARACTER NO-UNDO.
+
+  &SCOPED-DEFINE xpDataColumnsByTable 
   {get DataColumnsByTable cColumns}.
-    
-  RETURN cColumns.
+  &UNDEFINE xpDataColumnsByTable 
+  
+  RETURN REPLACE(cColumns, ';':U, CHR(1)).
 
 END FUNCTION.
 
@@ -910,23 +1163,108 @@ FUNCTION getEnabledTables RETURNS CHARACTER
   DEFINE VARIABLE cTables        AS CHAR  NO-UNDO.
   DEFINE VARIABLE cEnabledTables AS CHAR  NO-UNDO.
   DEFINE VARIABLE cUpdColumns    AS CHAR  NO-UNDO.
-  DEFINE VARIABLE i              AS INT    NO-UNDO.
+  DEFINE VARIABLE iVar           AS INT    NO-UNDO.
   
   {get Tables cTables}.
   
   /* get the list of enabled fields that are separated per table and
      use it to check which tables have enabled tables */
   {get UpdatableColumnsByTable cUpdColumns}.
-  
-  DO i = 1 TO NUM-ENTRIES(cTables):
-    IF ENTRY(i,cUpdColumns,CHR(1)) <> "":U THEN
+
+  DO iVar = 1 TO NUM-ENTRIES(cTables):
+    IF ENTRY(iVar,cUpdColumns,CHR(1)) <> "":U THEN
       cEnabledTables = cEnabledTables 
                       + (IF cEnabledTables = "":U THEN "":U ELSE ",":U)
-                      + ENTRY(i, cTables).
+                      + ENTRY(iVar, cTables).
   END.
 
   RETURN cEnabledTables. 
   
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getEntityFields) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getEntityFields Procedure 
+FUNCTION getEntityFields RETURNS CHARACTER
+  ( ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cEntityFields AS CHARACTER  NO-UNDO.
+  {get EntityFields cEntityFields}.
+  RETURN cEntityFields.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getFetchAutoComment) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFetchAutoComment Procedure 
+FUNCTION getFetchAutoComment RETURNS LOGICAL
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose: Set to true if auto comments should be retrieved with the 
+           data. 
+    Notes: This is used in transferRows and transferDbRow.
+        -  These comments will be automatically displayed by visual objects and
+           will be set to true by the visual object's LinkStateHandler if the 
+           property value is unknown.
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lFetchAutoComment AS LOGICAL    NO-UNDO.
+  {get FetchAutoComment lFetchAutoComment}.
+  RETURN lFetchAutoComment.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getFetchHasAudit) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFetchHasAudit Procedure 
+FUNCTION getFetchHasAudit RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns true if Audit exists flag should be retrieved with the data 
+    Notes: This is used in transferRows and transferDbRow 
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lFetchHasAudit AS LOGICAL NO-UNDO.
+  {get FetchHasAudit lFetchHasAudit}.
+  RETURN lFetchHasAudit.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getFetchHasComment) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFetchHasComment Procedure 
+FUNCTION getFetchHasComment RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns true if 'comments exists' flag should be retrieved with the 
+           data. 
+    Notes: This is used in transferRows and transferDbRow 
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lFetchHasComment AS LOGICAL  NO-UNDO.
+  {get FetchHasComment lFetchHasComment}.
+  RETURN lFetchHasComment.
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1338,6 +1676,31 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getPositionForClient) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getPositionForClient Procedure 
+FUNCTION getPositionForClient RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: This property is set on the server and returned to the client so that
+           it is able to position correctly in the new batch of data. The client
+           need this information under certain cicumstances, for example when 
+           other settings decides that a full batch of data always is needed. 
+    Notes: set on server, used in clientSendRows only  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cPositionForClient AS CHARACTER  NO-UNDO.
+    
+  {get PositionForClient cPositionForClient}.
+
+  RETURN cPositionForClient.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getQueryColumns) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getQueryColumns Procedure 
@@ -1535,6 +1898,26 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getRequiredProperties) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getRequiredProperties Procedure 
+FUNCTION getRequiredProperties RETURNS CHARACTER
+  ( ) :
+/*------------------------------------------------------------------------------
+  Purpose: Gets the list of required properties   
+    Notes: Currently used to identify the properties required to start a 
+           dynamic data object             
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cRequiredProperties AS CHARACTER  NO-UNDO.
+  {get RequiredProperties cRequiredProperties}.
+  RETURN cRequiredProperties.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getTables) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getTables Procedure 
@@ -1564,6 +1947,28 @@ Parameters:  <none>
 
   RETURN ghProp:BUFFER-VALUE.
 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getTransferChildrenForAll) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getTransferChildrenForAll Procedure 
+FUNCTION getTransferChildrenForAll RETURNS LOGICAL
+  (   ) :
+/*------------------------------------------------------------------------------
+  Purpose: This flag decides whether children for all records (of the batch) is 
+           to be transferred from the database. 
+    Notes: Currently only supported for read event handlers during a fetch. 
+           The child SDO is only left with temp-table records for one parent 
+           when the fetch*batch is finished.   
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lTransferChildrenForAll AS LOGICAL    NO-UNDO.
+  {get TransferChildrenForAll lTransferChildrenForAll}.
+  RETURN lTransferChildrenForAll.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1601,8 +2006,32 @@ FUNCTION getUpdatableColumns RETURNS CHARACTER
     cColumns = REPLACE(cColumns,",,":U,",":U).
   END.
   
-  /* There's may also be commas at the ends  */ 
+  /* There's may also be commas at the ends */ 
   RETURN TRIM(cColumns,",":U).
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getUpdatableColumnsByTable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getUpdatableColumnsByTable Procedure 
+FUNCTION getUpdatableColumnsByTable RETURNS CHARACTER
+  ( ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+ DEFINE VARIABLE cColumns AS CHARACTER  NO-UNDO.
+
+  &SCOPED-DEFINE xpUpdatableColumnsByTable 
+  {get UpdatableColumnsByTable cColumns}.
+  &UNDEFINE xpUpdatableColumnsByTable 
+   
+  RETURN REPLACE(cColumns, ';':U, CHR(1)).
 
 END FUNCTION.
 
@@ -1665,6 +2094,40 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setAssignList) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setAssignList Procedure 
+FUNCTION setAssignList RETURNS LOGICAL
+  ( pcList AS CHAR   ) :
+/*------------------------------------------------------------------------------
+  Purpose:    Sets the list of updatable columns whose names have been 
+              modified in the SmartDataObject.
+
+  Parameters: <none>
+
+  Notes:      This string is of the form:
+              <RowObjectFieldName>,<DBFieldName>[,...][CHR(1)...]
+              with a comma separated list of pairs of fields for each db table,
+              and CHR(1) between the lists of pairs.
+------------------------------------------------------------------------------*/
+  IF pcList = '':U THEN 
+    RETURN FALSE.
+
+  pcList = REPLACE(pcList, ';', CHR(1)).
+
+  &SCOPED-DEFINE xpAssignList 
+  {set AssignList pcList}.
+  &UNDEFINE xpAssignList 
+  
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setAutoCommit) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setAutoCommit Procedure 
@@ -1707,12 +2170,38 @@ FUNCTION setBaseQuery RETURNS LOGICAL
 /*------------------------------------------------------------------------------
   Purpose: Set the base query property 
     Notes: This is used internally by openQuery, and directly on client context 
-           management. Because setOpenQuery also setQueryWhere and wipes out 
-           all other query data it cannot be used when setting this when
-           received from server.  
+           management. Because setOpenQuery calls setQueryWhere and wipes out 
+           all other query data, it cannot be used to set the context when 
+           received from server.      
 ------------------------------------------------------------------------------*/
+  IF pcBaseQuery = '':U THEN
+    RETURN FALSE.
+
   {set BaseQuery pcBaseQuery}.
   RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setBufferHandles) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setBufferHandles Procedure 
+FUNCTION setBufferHandles RETURNS LOGICAL
+  ( pcBufferHandles AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  &SCOPED-DEFINE xpBufferHandles
+  {set BufferHandles pcBufferHandles}.
+  &UNDEFINE xpBufferHandles
+  
+  RETURN TRUE.   /* Function return value. */
 
 END FUNCTION.
 
@@ -1737,6 +2226,56 @@ FUNCTION setCheckLastOnOpen RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
   
   {set CheckLastOnOpen pCheck}.
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDataColumns) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDataColumns Procedure 
+FUNCTION setDataColumns RETURNS LOGICAL
+  ( pcColumns AS CHAR) :
+/*------------------------------------------------------------------------------
+  Purpose:     Sets the comma-delimited list of the columnNames for the 
+               SmartDataObject. 
+  Parameters:  
+       Notes:   
+------------------------------------------------------------------------------*/
+  IF pcColumns = '':U THEN
+     RETURN FALSE.
+
+  {set DataColumns pcColumns}.
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDataColumnsByTable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDataColumnsByTable Procedure 
+FUNCTION setDataColumnsByTable RETURNS LOGICAL
+  ( pcColumns AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  IF pcColumns = '':u THEN
+     RETURN FALSE .
+
+  pcColumns = REPLACE(pcColumns, ';', CHR(1)).
+  &SCOPED-DEFINE xpDataColumnsByTable 
+  {set DataColumnsByTable pcColumns}.
+  &UNDEFINE xpDataColumnsByTable 
+
   RETURN TRUE.
 
 END FUNCTION.
@@ -1790,6 +2329,87 @@ Parameters:  pcDBNames - Comma delimited list of each buffer's DBNAME.
          ghProp = ghProp:BUFFER-FIELD('DBNames':U)
          ghProp:BUFFER-VALUE = pcDBNames.
 
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setEntityFields) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setEntityFields Procedure 
+FUNCTION setEntityFields RETURNS LOGICAL
+  ( cEntityFields AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  {set EntityFields cEntityFields}.
+  RETURN TRUE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setFetchAutoComment) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setFetchAutoComment Procedure 
+FUNCTION setFetchAutoComment RETURNS LOGICAL
+  ( plFetchAutoComment AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose: Set to true if auto comments should be retrieved with the 
+           data. 
+    Notes: This is used in transferRows and transferDbRow.
+           These comments will be automatically displayed by visual objects and
+           will be set to true by the visual object's LinkStateHandler if the 
+           property value is unknown
+------------------------------------------------------------------------------*/
+  {set FetchAutoComment plFetchAutoComment}.
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setFetchHasAudit) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setFetchHasAudit Procedure 
+FUNCTION setFetchHasAudit RETURNS LOGICAL
+  ( plFetchHasAudit AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose: Set to true if Audit exists flag should be retrieved with the data 
+    Notes: This is used in transferRows and transferDbRow 
+------------------------------------------------------------------------------*/
+  {set FetchHasAudit plFetchHasAudit}.
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setFetchHasComment) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setFetchHasComment Procedure 
+FUNCTION setFetchHasComment RETURNS LOGICAL
+  ( plFetchHasComment AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose: Set to true if 'comments exists' flag should be retrieved with the 
+           data. 
+    Notes: This is used in transferRows and transferDbRow 
+------------------------------------------------------------------------------*/
+  {set FetchHasComment plFetchHasComment}.
   RETURN TRUE.
 
 END FUNCTION.
@@ -2038,13 +2658,34 @@ FUNCTION setOpenQuery RETURNS LOGICAL
               be returned AFTER the query has been changed and wipe out all 
               query data because it calls setQueryWhere('').    
 ------------------------------------------------------------------------------*/
-  
   {set BaseQuery pcQuery}.
         
   /* Just use the setQueryWhere to blank to apply this property to the query.
      setQueryWhere has all the required logic to prepare and set other  
      query props to blank. */ 
   RETURN {fnarg setQueryWhere '':U}.   
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setPositionForClient) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setPositionForClient Procedure 
+FUNCTION setPositionForClient RETURNS LOGICAL
+  ( pcPositionForClient AS CHARACTER) :
+/*------------------------------------------------------------------------------
+  Purpose: This property is set on the server and returned to the client so that
+           it is able to position correctly in the new batch of data. The client
+           need this information under certain cicumstances, for example when 
+           other settings decides that a full batch of data always is needed. 
+    Notes: set on server, used in clientSendRows only  
+------------------------------------------------------------------------------*/
+  {set PositionForClient pcPositionForClient}.
+  RETURN TRUE.
 
 END FUNCTION.
 
@@ -2119,13 +2760,17 @@ FUNCTION setQuerySort RETURNS LOGICAL
              - addQuerywhere does not. 
 ------------------------------------------------------------------------------*/
  DEFINE VARIABLE cQueryText   AS CHARACTER NO-UNDO.
+ DEFINE VARIABLE cDbColumn  AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cNewSort   AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cToken     AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE iByPos       AS INTEGER   NO-UNDO.
  DEFINE VARIABLE hQuery       AS HANDLE    NO-UNDO.
  DEFINE VARIABLE iIdxPos      AS INTEGER   NO-UNDO.
  DEFINE VARIABLE iLength      AS INTEGER   NO-UNDO.
+ DEFINE VARIABLE iNumTokens AS INTEGER    NO-UNDO.
  DEFINE VARIABLE lOk          AS LOGICAL   NO-UNDO.
-
-  /* If a query is under work, use that. */  
+  
+ /* If a query is under work, use that. */  
   {get QueryString cQueryText}.
   
   IF cQueryText = "":U THEN 
@@ -2135,12 +2780,25 @@ FUNCTION setQuerySort RETURNS LOGICAL
   
   IF cQueryText <> '':U THEN
   DO:
-    
-    ASSIGN  /* Remove BY from parameter, we'll add it back */ 
+    /* If the sorting criteria contains fields qualified by RowObject, 
+       the field may be renamed in the SDO and columnDbColumn is used
+       to get the real field name.  */
+    IF INDEX(pcSort, "RowObject.":U) > 0 THEN
+    DO:
+      DO iNumTokens = 1 TO NUM-ENTRIES(pcSort, " ":U):
+        cToken = ENTRY(iNumTokens, pcSort, " ":U).
+        cNewSort = cNewSort + " ":U + 
+                   IF cToken BEGINS "RowObject":U THEN {fnarg columnDbColumn cToken}
+                   ELSE cToken.
+      END.
+      pcSort = TRIM(cNewSort).
+    END.  /* if RowObject qualification in sort */  
+
+    ASSIGN  /* Remove BY from parameter, we'll add it back */  
       pcSort  = IF pcSort BEGINS "BY ":U 
                 THEN TRIM(SUBSTRING(pcSort,3)) 
                 ELSE pcSort
-
+      
       /* check for indexed-reposition */
       iIdxPos = INDEX(RIGHT-TRIM(cQueryText,". ") + " ":U,
                       " INDEXED-REPOSITION ":U)          
@@ -2168,7 +2826,6 @@ FUNCTION setQuerySort RETURNS LOGICAL
       SUBSTR(cQueryText,iByPos,iLength - iByPos) = IF pcSort <> '':U 
                                                    THEN " BY ":U + pcSort
                                                    ELSE "":U.
-      
     {set QueryString cQueryText}.
 
   END. /* if cQuerytext = '' */
@@ -2241,12 +2898,32 @@ Parameters:
   DEFINE VARIABLE cQuery  AS  CHARACTER NO-UNDO.
   
   cQuery = {fnarg newQueryWhere pcWhere}.
+
   IF cQuery <> ? THEN
     /* prepares the query with the new string */ 
     RETURN {fnarg prepareQuery cQuery}. 
   ELSE 
     RETURN FALSE.
 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setRequiredProperties) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setRequiredProperties Procedure 
+FUNCTION setRequiredProperties RETURNS LOGICAL
+  ( pcProperties AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose: Sets the list of required properties   
+    Notes: Currently used to identify the manadatory properites for a dynamic data 
+           ojbect  
+------------------------------------------------------------------------------*/
+  {set RequiredProperties pcProperties}.
+  RETURN TRUE.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2261,12 +2938,150 @@ FUNCTION setTables RETURNS LOGICAL
   ( pcTables AS CHAR) :
 /*------------------------------------------------------------------------------
   Purpose: Set Tables property  
-    Notes: This cannot have an xp because WebSpeed must use getTables()    
+    Notes: We currently rely on the query handle being defined first in query.i
+          to distingiush between the setTables for the static SDO and a 
+          setTables called a second time for a dynamic sdo. 
+          (We officially do not support the latter, but we must of course 
+           support in code)
 ------------------------------------------------------------------------------*/
-  ASSIGN ghProp = WIDGET-HANDLE(ENTRY(1, TARGET-PROCEDURE:ADM-DATA, CHR(1)))
-         ghProp = ghProp:BUFFER-FIELD('Tables':U)
-         ghProp:BUFFER-VALUE = pcTables NO-ERROR.
-  
+  DEFINE VARIABLE iLoop          AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hBuffer        AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hQuery         AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cTable         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cBufferHandles AS CHAR       NO-UNDO.   
+  DEFINE VARIABLE cDBNames       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lStatic        AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lNoBuffer      AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cCurTables     AS CHARACTER  NO-UNDO.
+
+  IF pcTables = '':U THEN
+    RETURN FALSE.
+ 
+  {get QueryHandle hQuery}.  
+  IF VALID-HANDLE(hQuery) THEN 
+    lstatic = LOOKUP("STATIC":U, hQuery:ADM-DATA, CHR(1)) > 0.
+
+  IF NOT lStatic THEN 
+  DO:
+    DELETE OBJECT hQuery NO-ERROR.
+    CREATE QUERY hQuery.
+    {set QueryHandle hQuery}.
+
+    /* Cater for change of tables during the objects lifetime and 
+       delete old buffer handles */
+    {get BufferHandles cBufferHandles}.
+    DO iLoop = 1 TO NUM-ENTRIES(cBufferHandles):
+      hBuffer = WIDGET-HANDLE(ENTRY(iLoop,cBufferHandles)).
+      DELETE OBJECT hBuffer.
+    END.
+    DO iLoop = 1 TO NUM-ENTRIES(pcTables):
+      cTable = ENTRY(iLoop,pcTables). 
+      CREATE BUFFER hBuffer FOR TABLE cTable NO-ERROR.
+      IF iLoop = 1 THEN 
+      DO:
+        hQuery:SET-BUFFERS(hBuffer) NO-ERROR.
+        /* Static query */
+        IF ERROR-STATUS:GET-NUMBER(1) = 7317 THEN 
+        DO:
+          DELETE OBJECT hBuffer.     
+          LEAVE. /* Default current iterating  .. */
+        END.
+        ELSE IF ERROR-STATUS:GET-NUMBER(1) = 7319 THEN
+        DO:
+          /* for example when called from _cl initProps */ 
+          lNoBuffer = TRUE.
+          IF VALID-HANDLE(hBuffer) THEN
+            DELETE OBJECT hBuffer NO-ERROR.  
+
+          DELETE OBJECT hQuery NO-ERROR.
+          IF NOT VALID-HANDLE(hQuery) THEN
+             {set QueryHandle ?}.
+          LEAVE. /* Default current iterating  */
+        END.
+      END.
+      ELSE 
+        hQuery:ADD-BUFFER(hBuffer).
+    END.
+  END.
+
+  {set QueryString '':U}.
+  {set Querycolumns '':U}.
+
+  /* Set the handles if we have them (db connected or temp-table).  
+     A Dynamic sdo will set this to true if the buffer could not be defined */
+  IF lNoBuffer = FALSE THEN
+  DO:
+    cBufferHandles = ?.
+    DO iLoop = 1 TO hQuery:NUM-BUFFERS:
+      ASSIGN 
+        hBuffer        = hQuery:GET-BUFFER-HANDLE(iLoop)
+        cBufferHandles = (IF iLoop = 1 
+                          THEN "":U 
+                          ELSE cBufferHandles + ",":U)  
+                       + STRING(hBuffer)
+        cDBNames       = cDBNames 
+                       + (IF iLoop = 1 THEN "":U ELSE ",":U) 
+                       + IF hBuffer:DBNAME <> ? 
+                         THEN hBuffer:DBNAME
+                         ELSE '?'.
+
+    END. /* iTable = 1 to num-buffers */
+
+    {set DBNames cDBNames}.
+    {set BufferHandles cBufferHandles}.
+  END. 
+
+  &SCOPED-DEFINE xpTables
+  {set Tables pcTables}.
+  &UNDEFINE xpTables
+    
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setTransferChildrenForAll) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setTransferChildrenForAll Procedure 
+FUNCTION setTransferChildrenForAll RETURNS LOGICAL
+  (plTransferChildrenForAll AS LOGICAL) :
+/*------------------------------------------------------------------------------
+  Purpose: This flag decides whether children for all records (of the batch) is 
+           to be transferred from the database. 
+    Notes: Currently only supported for read event handlers during a fetch. 
+           The child SDO is only left with temp-table records for one parent 
+           when the fetch*batch is finished.   
+------------------------------------------------------------------------------*/
+  {set TransferChildrenForAll plTransferChildrenForAll}.
+  RETURN TRUE.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setUpdatableColumnsByTable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setUpdatableColumnsByTable Procedure 
+FUNCTION setUpdatableColumnsByTable RETURNS LOGICAL
+  ( pcColumns AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  IF pcColumns = '':u THEN
+     RETURN FALSE .
+
+  pcColumns = REPLACE(pcColumns, ';', CHR(1)).
+  &SCOPED-DEFINE xpUpdatableColumnsByTable 
+  {set UpdatableColumnsByTable pcColumns}.
+  &UNDEFINE xpUpdatableColumnsByTable 
+
   RETURN TRUE.
 
 END FUNCTION.

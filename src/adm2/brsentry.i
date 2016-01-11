@@ -37,18 +37,6 @@
   DEFINE VARIABLE iCnt            AS INTEGER   NO-UNDO.  
   DEFINE VARIABLE cNew            AS CHARACTER NO-UNDO.
   
-  /* This may happen after a trigger navigated the browse with select-next-row 
-     or select-prev-row. If a browse cell had focus at that point then 
-     dataAvailable had to postpone the display because the row-entry event, 
-     which this code is part of, was added to the que and the current 
-     record does not get focus until now.  */
-  IF LAST-EVENT:WIDGET-LEAVE = LAST-EVENT:WIDGET-ENTER THEN
-  DO:
-    {get NewRecord cNew}.
-    IF cNew = 'NO':U THEN
-      RUN displayRecord IN TARGET-PROCEDURE.
-  END.
-
   {get DataModified lModified}. 
   {get BrowseInitted lInitted}.
   IF {&BROWSE-NAME}:NEW-ROW AND (NOT lInitted) THEN

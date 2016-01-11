@@ -63,7 +63,27 @@ af/cod/aftemwizpw.w
 
   Update Notes: Remove RVDB dependency
 
------------------------------------------------------------------------------*/
+  (v:010001)    Task:          11   UserRef:    
+                Date:   02/10/2003  Author:     Thomas Hansen
+
+  Update Notes: Issue 7098: Error 129 using XML export tool
+                Added call to setFileDetails in the XML API to make sure the 
+                directories for the .ado files exists - before writing the .ado 
+                file.
+
+  (v:010002)    Task:          18   UserRef:    
+                Date:   02/16/2003  Author:     Thomas Hansen
+
+  Update Notes: Fix path issues with non -scm code
+
+  (v:020000)    Task:          30   UserRef:    
+                Date:   03/24/2003  Author:     Thomas Hansen
+
+  Update Notes: Issue 6121 : XML Export creates .w with XML contentent
+                
+                - Added check to see if file parts are missing - if they are, warn the user and cancel export of object.
+
+--------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
 
@@ -75,7 +95,7 @@ af/cod/aftemwizpw.w
 
 &scop object-name       ryxmlplipp.p
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010007
+&scop object-version    020000
 
 /* Astra object identifying preprocessor */
 &glob   AstraPlip    yes
@@ -91,14 +111,10 @@ ASSIGN cObjectName = "{&object-name}":U.
 {af/sup2/afrun2.i &Define-only = YES}
 
 /* Define RTB global shared variables - used for RTB integration hooks (if installed) */
-DEFINE NEW GLOBAL SHARED VARIABLE grtb-wsroot       AS CHARACTER    NO-UNDO.
-DEFINE NEW GLOBAL SHARED VARIABLE grtb-wspace-id    AS CHARACTER    NO-UNDO.
-DEFINE NEW GLOBAL SHARED VARIABLE grtb-task-num     AS INTEGER      NO-UNDO.
-DEFINE NEW GLOBAL SHARED VARIABLE grtb-propath      AS CHARACTER    NO-UNDO.
-DEFINE NEW GLOBAL SHARED VARIABLE grtb-userid       AS CHARACTER    NO-UNDO.
-DEFINE NEW GLOBAL SHARED VARIABLE grtb-access       AS CHARACTER    NO-UNDO.
+{rtb/inc/afrtbglobs.i}
 
 DEFINE VARIABLE ghScmTool                           AS HANDLE       NO-UNDO.
+DEFINE VARIABLE ghGscddXml                          AS HANDLE       NO-UNDO.
 
 DEFINE TEMP-TABLE ttObject    NO-UNDO
        FIELD cWorkspace       AS CHARACTER
@@ -116,9 +132,8 @@ DEFINE TEMP-TABLE ttError     NO-UNDO
        FIELD cObjectName      AS CHARACTER
        FIELD cError           AS CHARACTER
        INDEX idxMain          IS PRIMARY
-              cObjectName
-              cError
-       .
+             cObjectName
+             cError.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -155,8 +170,8 @@ DEFINE TEMP-TABLE ttError     NO-UNDO
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 12.62
-         WIDTH              = 46.8.
+         HEIGHT             = 23.91
+         WIDTH              = 64.6.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -197,81 +212,114 @@ PROCEDURE checkOutObjects :
                re-registered in the SCM tool.
 ------------------------------------------------------------------------------*/
 
-  DEFINE INPUT        PARAMETER TABLE     FOR ttObject.
-  DEFINE INPUT        PARAMETER piTask    AS INTEGER    NO-UNDO.
-  DEFINE INPUT-OUTPUT PARAMETER TABLE     FOR ttError.
-  DEFINE       OUTPUT PARAMETER pcError   AS CHARACTER  NO-UNDO.
+  DEFINE INPUT        PARAMETER TABLE         FOR ttObject.
+  DEFINE INPUT        PARAMETER piTask        AS INTEGER    NO-UNDO.
+  DEFINE INPUT        PARAMETER plCreateFile  AS LOGICAL    NO-UNDO.
+  DEFINE INPUT-OUTPUT PARAMETER TABLE         FOR ttError.
+  DEFINE       OUTPUT PARAMETER pcError       AS CHARACTER  NO-UNDO.
 
-  DEFINE VARIABLE cError                  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cSCMObjectName          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lExistsInRtb1           AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lExistsInWorkspace1     AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE iWorkspaceVersion1      AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE lWorkspaceCheckedOut1   AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE iVersionTaskNumber1     AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iLatestVersion1         AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iRecid                  AS RECID      NO-UNDO.
+  DEFINE VARIABLE cError                      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSCMObjectName              AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lExistsInRtb1               AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lExistsInWorkspace1         AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE iWorkspaceVersion1          AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE lWorkspaceCheckedOut1       AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE iVersionTaskNumber1         AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iLatestVersion1             AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iRecid                      AS RECID      NO-UNDO.
+
+  DEFINE VARIABLE cTempObjectName             AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTempObjectExt              AS CHARACTER  NO-UNDO.
 
   object-loop:
   FOR EACH ttObject:
 
+    /* Determine correct object filename */
     ASSIGN
-      cSCMObjectName = ttObject.cObjectName.
-    RUN scmADOExtAdd IN ghScmTool
-                    (INPUT-OUTPUT cSCMObjectName).
+      cTempObjectName  = ttObject.cObjectName
+      cTempObjectExt   = "":U.
 
-    FIND FIRST gsc_object NO-LOCK
-      WHERE gsc_object.object_filename = ttObject.cObjectName
+    IF NUM-ENTRIES(ttObject.cObjectName,".":U) > 1 THEN
+      ASSIGN
+        cTempObjectExt  = ENTRY(NUM-ENTRIES(ttObject.cObjectName,".":U),ttObject.cObjectName,".":U)
+        cTempObjectName = REPLACE(cTempObjectName,"." + cTempObjectExt,"":U).
+        
+    /* As we have the object_filename from the ryc_smartobject table when the */
+    /* ttObject temp-table was built, we should be able to find the object    */
+    /* directly with the cObjectName field                                    */       
+    FIND FIRST ryc_smartobject NO-LOCK
+      WHERE ryc_smartobject.object_filename = ttObject.cObjectName
       NO-ERROR.
-    IF AVAILABLE gsc_object
-    THEN DO:
+    IF NOT AVAILABLE ryc_smartobject THEN        
+    FIND FIRST ryc_smartobject NO-LOCK
+      WHERE ryc_smartobject.object_filename  = cTempObjectName
+      AND   ryc_smartobject.object_extension = cTempObjectExt
+      NO-ERROR.
+    IF NOT AVAILABLE ryc_smartobject THEN
+    FIND FIRST ryc_smartobject NO-LOCK
+      WHERE ryc_smartobject.object_filename
+          + (IF ryc_smartobject.object_extension <> "" THEN "." ELSE "")
+          + ryc_smartobject.object_extension
+          = ttObject.cObjectName
+      NO-ERROR.
+
+    IF AVAILABLE ryc_smartobject THEN 
+    DO:
+      ASSIGN
+        cSCMObjectName = ryc_smartobject.object_filename
+                       + (IF ryc_smartobject.object_extension <> "" THEN "." ELSE "")
+                       + ryc_smartobject.object_extension.
+
       FIND FIRST gsc_object_type NO-LOCK
-        WHERE gsc_object_type.object_type_obj = gsc_object.object_type_obj
+        WHERE gsc_object_type.object_type_obj = ryc_smartobject.object_type_obj
         NO-ERROR.
-      IF NOT AVAILABLE gsc_object_type
-      THEN DO:
+      IF NOT AVAILABLE gsc_object_type THEN 
+      DO:
         CREATE ttError.
         ASSIGN
           ttError.cObjectName = cSCMObjectName
-          ttError.cError      = cSCMObjectName +  "object type does not exist in ICFDB database"
+          ttError.cError      = cSCMObjectName +  " Object type does not exist in ICFDB database"
           pcError             = "ERROR".
         NEXT object-loop.
-      END.
-    END.
-    ELSE DO:
+      END. /*IF NOT AVAILABLE gsc_object_type ... */
+    END. /*IF AVAILABLE ryc_smartobject ... */
+    ELSE 
+    DO:
+      ASSIGN cSCMObjectName = ttObject.cObjectName.
       CREATE ttError.
       ASSIGN
         ttError.cObjectName = cSCMObjectName
-        ttError.cError      = cSCMObjectName +  "object does not exist in ICFDB database"
+        ttError.cError      = cSCMObjectName +  " does not exist in ICFDB database"
         pcError             = "ERROR".
       NEXT object-loop.
     END.
+
+    RUN scmADOExtAdd IN ghScmTool (INPUT-OUTPUT cSCMObjectName).
 
     RUN scmObjectExists IN ghScmTool
-                       (INPUT  cSCMObjectName
-                       ,INPUT  ttObject.cWorkspace
-                       ,OUTPUT lExistsInRtb1
-                       ,OUTPUT lExistsInWorkspace1
-                       ,OUTPUT iWorkspaceVersion1
-                       ,OUTPUT lWorkspaceCheckedOut1
-                       ,OUTPUT iVersionTaskNumber1
-                       ,OUTPUT iLatestVersion1
-                       ).
+                       (INPUT  cSCMObjectName,
+                        INPUT  ttObject.cWorkspace,
+                        OUTPUT lExistsInRtb1,
+                        OUTPUT lExistsInWorkspace1,
+                        OUTPUT iWorkspaceVersion1,
+                        OUTPUT lWorkspaceCheckedOut1,
+                        OUTPUT iVersionTaskNumber1,
+                        OUTPUT iLatestVersion1).
 
-    IF NOT lExistsInWorkspace1
-    AND lExistsinRtb1
-    THEN DO:
+    IF NOT lExistsInWorkspace1 AND 
+           lExistsinRtb1 THEN 
+    DO:
       CREATE ttError.
       ASSIGN
         ttError.cObjectName = cSCMObjectName
-        ttError.cError      = cSCMObjectName +  " Object exists in SCM Tool, but not in the selected workspace"
+        ttError.cError      = cSCMObjectName +  " exists in SCM Tool, but not in the selected workspace"
         pcError             = "ERROR".
       NEXT object-loop.
     END.
-    IF lExistsInWorkspace1
-    AND lWorkspaceCheckedOut1
-    AND piTask <> iVersionTaskNumber1
-    THEN DO:
+    IF lExistsInWorkspace1 AND 
+       lWorkspaceCheckedOut1 AND 
+       piTask <> iVersionTaskNumber1 THEN 
+    DO:
       CREATE ttError.
       ASSIGN
         ttError.cObjectName = cSCMObjectName
@@ -280,28 +328,26 @@ PROCEDURE checkOutObjects :
       NEXT object-loop.
     END.
 
-    IF NOT lExistsInWorkspace1
-    THEN DO:
+    IF NOT lExistsInWorkspace1 THEN 
+    DO:
       RUN scmCreateObjectControl IN ghScmTool
-                                (INPUT  cSCMObjectName
-                                ,INPUT  "PCODE":U
-                                ,INPUT  gsc_object_type.object_type_code
-                                ,INPUT  ttObject.cProductModule
-                                ,INPUT  gsc_object_type.object_type_code
-                                ,INPUT  "00000"
-                                ,INPUT  gsc_object.object_description
-                                ,INPUT  "":U           /* options */
-                                ,INPUT  piTask
-                                ,INPUT  NO             /* no UI */
-                                ,INPUT  "central":U    /* share status to use */
-                                ,INPUT  YES            /* create physical file on disk */
-                                ,INPUT  "":U           /* physical file template */
-                                ,OUTPUT iRecid
-                                ,OUTPUT cError
-                                ).
-
-      IF cError <> ""
-      THEN DO:
+                                (INPUT  cSCMObjectName,
+                                 INPUT  "PCODE":U,
+                                 INPUT  gsc_object_type.object_type_code,
+                                 INPUT  ttObject.cProductModule,
+                                 INPUT  gsc_object_type.object_type_code,
+                                 INPUT  "00000",
+                                 INPUT  ryc_smartobject.object_description,
+                                 INPUT  "":U,           /* options */
+                                 INPUT  piTask,
+                                 INPUT  NO,             /* no UI */
+                                 INPUT  "central":U,    /* share status to use */
+                                 INPUT  plCreateFile,   /* create physical file on disk */
+                                 INPUT  "":U,           /* physical file template */
+                                 OUTPUT iRecid,
+                                 OUTPUT cError).
+      IF cError <> "" THEN 
+      DO:
         CREATE ttError.
         ASSIGN
           ttError.cObjectName = cSCMObjectName
@@ -311,23 +357,21 @@ PROCEDURE checkOutObjects :
       END.
     END.
     ELSE
-    IF NOT lWorkspaceCheckedOut1
-    THEN DO:
+    IF NOT lWorkspaceCheckedOut1 THEN 
+    DO:
       RUN scmCheckoutObjectControl IN ghScmTool
-                                  (INPUT "patch":U
-                                  ,INPUT ttObject.cProductModule
-                                  ,INPUT "PCODE":U
-                                  ,INPUT cSCMObjectName
-                                  ,INPUT piTask
-                                  ,INPUT NO
-                                  ,INPUT NO
-                                  ,INPUT NO
-                                  ,OUTPUT iRecid
-                                  ,OUTPUT cError
-                                  ).
-
-      IF cError <> ""
-      THEN DO:
+                                  (INPUT "patch":U,
+                                   INPUT ttObject.cProductModule,
+                                   INPUT "PCODE":U,
+                                   INPUT cSCMObjectName,
+                                   INPUT piTask,
+                                   INPUT NO,
+                                   INPUT NO,
+                                   INPUT NO,
+                                   OUTPUT iRecid,
+                                   OUTPUT cError).
+      IF cError <> "":U THEN 
+      DO:
         CREATE ttError.
         ASSIGN
           ttError.cObjectName = cSCMObjectName
@@ -335,8 +379,7 @@ PROCEDURE checkOutObjects :
           pcError             = "ERROR".
         NEXT object-loop.
       END.
-    END.
-
+    END. /* IF NOT lWorkspaceCheckedOut1 ...  */
   END.  /* object-loop */
 
   ERROR-STATUS:ERROR = NO.
@@ -370,9 +413,19 @@ PROCEDURE dumpXMLforObjects :
   DEFINE VARIABLE cXMLFileName              AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cXMLRelativeName          AS CHARACTER  NO-UNDO.
 
+  DEFINE VARIABLE cScmObjectName            AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSmartObjectName          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTempObjectName           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTempObjectExt            AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cObjectSubType            AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lScmObjectMissing         AS LOGICAL    NO-UNDO.  
+
   DEFINE VARIABLE hTable01                  AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hTable02                  AS HANDLE     NO-UNDO.
 
+  IF NOT VALID-HANDLE(ghScmTool) THEN 
+    RETURN ERROR "SCM Tool handle not valid!".  
+  
   object-loop:
   FOR EACH ttObject:
 
@@ -383,73 +436,150 @@ PROCEDURE dumpXMLforObjects :
       cRelativePath = "":U
       .
 
-    ASSIGN
-      cDataSetCode = "RYCSO":U.
+    ASSIGN cDataSetCode = "RYCSO":U.
 
     FIND FIRST gsc_product_module NO-LOCK
       WHERE gsc_product_module.product_module_code = ttObject.cProductModule
       NO-ERROR.
 
-    IF VALID-HANDLE(ghScmTool)
-    THEN
-      RUN scmGetWorkspaceRoot IN ghScmTool
-                             (INPUT ttObject.cWorkspace
-                             ,OUTPUT cRootDir).
-    IF cRootDir <> "":U
-    THEN
-      ASSIGN
-        cRootDir = cRootDir + "/":U.
+    IF VALID-HANDLE(ghScmTool) THEN
+      RUN scmGetWorkspaceRoot IN ghScmTool 
+                             (INPUT ttObject.cWorkspace,
+                              OUTPUT cRootDir).
+    IF cRootDir <> "":U THEN
+      ASSIGN cRootDir = cRootDir + "/":U.
 
     IF VALID-HANDLE(ghScmTool)
-    AND AVAILABLE gsc_product_module
-    THEN
+    AND AVAILABLE gsc_product_module THEN
       RUN scmGetModuleDir IN ghScmTool
-                         (INPUT gsc_product_module.product_module_code
-                         ,OUTPUT cRelativePath).
+                         (INPUT gsc_product_module.product_module_code,
+                          OUTPUT cRelativePath).
+                          
     IF cRelativePath = "":U
-    AND AVAILABLE gsc_product_module
-    THEN
-      ASSIGN
-        cRelativePath = TRIM(REPLACE(gsc_product_module.relative_path,"~\":U,"/":U),"/":U).
-    IF cRelativePath <> "":U
-    THEN
-      ASSIGN
-        cRelativePath = cRelativePath + "/":U.
+    AND AVAILABLE gsc_product_module THEN
+      ASSIGN cRelativePath = TRIM(REPLACE(gsc_product_module.relative_path,"~\":U,"/":U),"/":U).
+    IF cRelativePath <> "":U THEN
+      ASSIGN cRelativePath = cRelativePath + "/":U.
+        
+    ASSIGN cXMLFileName = ttObject.cObjectName.
+    IF VALID-HANDLE(ghScmTool) THEN
+    RUN scmADOExtReplace IN ghScmTool (INPUT-OUTPUT cXMLFileName).
+    ASSIGN cXMLRelativeName = cRelativePath + cXMLFileName.
 
+    /* Determine correct object filename */
     ASSIGN
-      cXMLFileName = ttObject.cObjectName.
-    RUN scmADOExtReplace IN ghScmTool
-                        (INPUT-OUTPUT cXMLFileName).
-    ASSIGN
-      cXMLRelativeName = cRelativePath + cXMLFileName.
+      cTempObjectName  = ttObject.cObjectName
+      cTempObjectExt   = "":U.
 
-    {af/sup2/afrun2.i &PLIP = 'af/app/gscddxmlp.p'
-                      &IProc = 'writeDeploymentDataset'
-                      &PList = "( INPUT cDataSetCode,~
-                                  INPUT REPLACE(ttObject.cObjectName,'.ado':U,'':U),~
-                                  INPUT cXMLRelativeName,~
-                                  INPUT cRootDir,~
-                                  INPUT YES,~
-                                  INPUT YES,~
-                                  INPUT TABLE-HANDLE hTable01,~
-                                  INPUT TABLE-HANDLE hTable02,~
-                                  OUTPUT pcError)"
-                      &OnApp = 'no'
-                      &Autokill = YES}
+    IF NUM-ENTRIES(ttObject.cObjectName,".":U) > 1 THEN
+      ASSIGN
+        cTempObjectExt  = ENTRY(NUM-ENTRIES(ttObject.cObjectName,".":U),ttObject.cObjectName,".":U)
+        cTempObjectName = REPLACE(cTempObjectName,"." + cTempObjectExt,"":U).
 
-    IF pcError <> "":U
-    THEN DO:
+    FIND FIRST ryc_smartobject NO-LOCK
+      WHERE ryc_smartobject.object_filename  = cTempObjectName
+      AND   ryc_smartobject.object_extension = cTempObjectExt
+      NO-ERROR.
+    IF NOT AVAILABLE ryc_smartobject THEN
+    FIND FIRST ryc_smartobject NO-LOCK
+      WHERE ryc_smartobject.object_filename  = cTempObjectName
+      NO-ERROR.
+    IF NOT AVAILABLE ryc_smartobject THEN
+    FIND FIRST ryc_smartobject NO-LOCK
+      WHERE ryc_smartobject.object_filename
+          + (IF ryc_smartobject.object_extension <> "" THEN "." ELSE "")
+          + ryc_smartobject.object_extension
+          = ttObject.cObjectName
+      NO-ERROR.
+    IF NOT AVAILABLE ryc_smartobject THEN
+    FIND FIRST ryc_smartobject NO-LOCK
+      WHERE ryc_smartobject.object_filename = ttObject.cObjectName
+      NO-ERROR.
+
+    IF AVAILABLE ryc_smartobject THEN
+      ASSIGN
+        cScmObjectName   = ryc_smartobject.object_filename
+                         + (IF ryc_smartobject.object_extension <> "" THEN "." ELSE "")
+                         + ryc_smartobject.object_extension
+        cSmartObjectName = ryc_smartobject.object_filename.
+    ELSE
+      ASSIGN
+        cScmObjectName   = ttObject.cObjectName
+        cSmartObjectName = "":U.
+
+    RUN scmADOExtAdd IN ghScmTool
+                    (INPUT-OUTPUT cScmObjectName).
+    
+    RUN scmObjectSubType IN ghScmTool
+                        (INPUT  ttObject.cWorkspace,
+                         INPUT  cScmObjectName,
+                         OUTPUT cObjectSubType).
+
+    IF LOOKUP(cObjectSubType,"LSmartObject,DataDump":U) > 0
+    AND cSmartObjectName = "":U THEN 
+      RETURN.
+
+    IF cSmartObjectName = "":U THEN
+      ASSIGN cSmartObjectName = ttObject.cObjectName.
+
+    ASSIGN cSmartObjectName = REPLACE(cSmartObjectName,".ado":U,"":U).
+    /* Determine correct object filename */
+    
+    /* If the cXMLFileName and cScmObjectName are different, then we 
+       need to check if the object file exists on disk. If it doesn't
+       there is something wrong and we need to raise an error. */
+    IF cXMLFileName <> cScmObjectName THEN
+    DO:
+      FILE-INFO:FILE-NAME = cRelativePath + cScmObjectName.
+      IF FILE-INFO:FULL-PATHNAME = "":U OR
+         FILE-INFO:FULL-PATHNAME = ? THEN
+      ASSIGN
+        pcError = "The object file " + cRelativePath + cScmObjectName + " could not be found." + "~n":U + "~n":U +  
+                  "XML Export of object " + cSmartObjectName + " aborted!"
+        lScmObjectMissing = YES.
+    END.
+    
+    IF NOT lScmObjectMissing THEN
+    DO:
+      /* Make sure that the directory structure the .ado file is to be written to exists. */    
+      IF NOT VALID-HANDLE(ghGscddXml) THEN DO:
+        {launch.i &PLIP = 'af/app/gscddxmlp.p'
+                          &IProc = ''
+                          &OnApp = 'no'
+                          &Autokill = NO} 
+                          
+        ASSIGN ghGscddXml = hPlip.    
+      END.                       
+  
+      IF VALID-HANDLE(ghGscddXml) THEN 
+        cXMLRelativeName = DYNAMIC-FUNCTION('setFileDetails':U IN ghGscddXml, INPUT cXMLRelativeName, INPUT cRootDir, INPUT cRootDir, OUTPUT cRootDir).
+      
+      {launch.i &PLIP = 'af/app/gscddxmlp.p'
+                        &IProc = 'writeDeploymentDataset'
+                        &PList = "( INPUT cDataSetCode,~
+                                    INPUT cSmartObjectName,~
+                                    INPUT cXMLRelativeName,~
+                                    INPUT cRootDir,~
+                                    INPUT YES,~
+                                    INPUT YES,~
+                                    INPUT TABLE-HANDLE hTable01,~
+                                    INPUT TABLE-HANDLE hTable02,~
+                                    OUTPUT pcError)"
+                        &OnApp = 'no'
+                        &Autokill = NO}    
+    END.
+
+    IF pcError <> "":U THEN 
+    DO:
       CREATE ttError.
       ASSIGN
-        ttError.cObjectName = cXMLFileName
+        ttError.cObjectName = cXMLFileName 
         ttError.cError      = pcError
         pcError             = "ERROR"
         .
       LEAVE object-loop.
     END.
-
   END. /* object loop */
-
   ERROR-STATUS:ERROR = NO.
   RETURN.
 
@@ -503,6 +633,11 @@ PROCEDURE loadXMLForObjects :
   DEFINE VARIABLE cXMLFileName              AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cXMLRelativeName          AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cXMLFullName              AS CHARACTER  NO-UNDO.
+
+  DEFINE VARIABLE cSmartObjectName          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTempObjectName           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTempObjectExt            AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cObjectSubType            AS CHARACTER  NO-UNDO.
 
   DEFINE VARIABLE hTable01                  AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hTable02                  AS HANDLE     NO-UNDO.
@@ -574,7 +709,7 @@ PROCEDURE loadXMLForObjects :
                                       INPUT TABLE-HANDLE hTable02,~
                                       OUTPUT pcError)"
                           &OnApp = 'no'
-                          &Autokill = YES}
+                          &Autokill = NO}
         IF pcError <> "":U
         THEN DO:
           CREATE ttError.
@@ -635,16 +770,17 @@ PROCEDURE plipSetup :
 
   {ry/app/ryplipsetu.i}
 
-  /* Start SCM Integration PLIP */
-  IF CONNECTED("RTB":U)
-  THEN DO:
-    {af/sup2/afrun2.i &PLIP = 'rtb/prc/afrtbprocp.p'
-                      &IProc = ''
-                      &OnApp = 'no'
-                      &Autokill = NO}
-    ASSIGN ghScmTool = hPlip.  
-  END.
+  ASSIGN 
+    ghScmTool = DYNAMIC-FUNCTION('getProcedureHandle':U IN THIS-PROCEDURE, INPUT 'PRIVATE-DATA:SCMTool':U) NO-ERROR
+    .
   
+  {af/sup2/afrun2.i &PLIP = 'af/app/gscddxmlp.p'
+                    &IProc = ''
+                    &OnApp = 'no'
+                    &Autokill = NO}
+  ASSIGN
+    ghGscddXml = hPlip.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -662,9 +798,9 @@ PROCEDURE plipShutdown :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-
-  IF VALID-HANDLE(ghScmTool)
-  THEN RUN killPlip IN ghScmTool.
+  IF VALID-HANDLE(ghGscddXml)
+  THEN
+    RUN killPlip IN ghGscddXml.
 
   {ry/app/ryplipshut.i}
 
@@ -695,7 +831,7 @@ PROCEDURE synchRVData :
 
                /* OBJ-DEPENDENCY */
                PM 01/25/2002  Removed the repository object dependency
-                              Warning if ryc_smartobject and gsc_object does not exist.
+                              Warning if ryc_smartobject and ryc_smartobject does not exist.
                               Should either or exist ? Update of product module has been made optional as well.
 
 ------------------------------------------------------------------------------*/
@@ -753,7 +889,7 @@ PROCEDURE synchRVData :
 
     /* see if object in repository table ryc_smartobject and if not, we can not do anything */
     /* OBJ-DEPENDENCY */
-    /* Could this not just be gsc_object ? Does all SCM object have to exist as either ryc_smartobject or gsc_object
+    /* Could this not just be ryc_smartobject ? Does all SCM object have to exist as either ryc_smartobject or ryc_smartobject
     FIND FIRST ryc_smartobject NO-LOCK
       WHERE ryc_smartobject.object_filename = ttObject.cObjectName
       NO-ERROR.
@@ -766,11 +902,11 @@ PROCEDURE synchRVData :
       NO-ERROR.
     IF NOT AVAILABLE ryc_smartobject
     THEN
-    FIND FIRST gsc_object NO-LOCK
-      WHERE gsc_object.object_filename = ttObject.cObjectName
+    FIND FIRST ryc_smartobject NO-LOCK
+      WHERE ryc_smartobject.object_filename = ttObject.cObjectName
       NO-ERROR.
     /*
-    IF NOT AVAILABLE gsc_object
+    IF NOT AVAILABLE ryc_smartobject
     THEN DO:
       CREATE ttError.
       ASSIGN

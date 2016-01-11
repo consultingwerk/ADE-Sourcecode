@@ -92,7 +92,7 @@ af/cod/aftemwizpw.w
 
 &scop object-name       afomsloadp.p
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010001
+&scop object-version    000000
 
 
 /* MIP object identifying preprocessor */
@@ -142,7 +142,7 @@ DEFINE OUTPUT PARAMETER op_rejection_list                AS CHARACTER    NO-UNDO
                                                                         */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
@@ -163,6 +163,8 @@ INPUT CLOSE.
 
 
 /* **********************  Internal Procedures  *********************** */
+
+&IF DEFINED(EXCLUDE-object-menu-structure-load) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE object-menu-structure-load Procedure 
 PROCEDURE object-menu-structure-load :
@@ -197,10 +199,12 @@ PROCEDURE object-menu-structure-load :
             NEXT.
           END.
 
-        FIND FIRST gsc_object NO-LOCK
-             WHERE gsc_object.object_filename = lv_object_filename
+        FIND FIRST ryc_smartobject NO-LOCK
+             WHERE ryc_smartobject.object_filename          = lv_object_filename
+               AND ryc_smartobject.customization_result_obj = 0
              NO-ERROR.
-        IF NOT AVAILABLE gsc_object THEN
+
+        IF NOT AVAILABLE ryc_smartobject THEN
           DO:
             ASSIGN
                 op_rejection_list = op_rejection_list +
@@ -229,7 +233,7 @@ PROCEDURE object-menu-structure-load :
         IF lv_attribute_code <> "":U THEN
           DO:
             IF CAN-FIND(FIRST gsm_object_menu_structure 
-                        WHERE gsm_object_menu_structure.object_obj = gsc_object.object_obj
+                        WHERE gsm_object_menu_structure.object_obj = ryc_smartobject.smartobject_obj
                           AND gsm_object_menu_structure.menu_structure_obj = gsm_menu_structure.menu_structure_obj
                           AND gsm_object_menu_structure.instance_attribute_obj = gsc_instance_attribute.instance_attribute_obj)
                 THEN NEXT.
@@ -237,7 +241,7 @@ PROCEDURE object-menu-structure-load :
         ELSE
           DO:
             IF CAN-FIND(FIRST gsm_object_menu_structure 
-                        WHERE gsm_object_menu_structure.object_obj = gsc_object.object_obj
+                        WHERE gsm_object_menu_structure.object_obj = ryc_smartobject.smartobject_obj
                           AND gsm_object_menu_structure.menu_structure_obj = gsm_menu_structure.menu_structure_obj)
                 THEN NEXT.
           END.
@@ -246,7 +250,7 @@ PROCEDURE object-menu-structure-load :
         DO TRANSACTION ON ERROR UNDO, NEXT:
             CREATE gsm_object_menu_structure.
             ASSIGN
-                gsm_object_menu_structure.object_obj = gsc_object.object_obj
+                gsm_object_menu_structure.object_obj = ryc_smartobject.smartobject_obj
                 gsm_object_menu_structure.menu_structure_obj = gsm_menu_structure.menu_structure_obj
                 gsm_object_menu_structure.instance_attribute_obj = (IF lv_attribute_code <> "":U THEN gsc_instance_attribute.instance_attribute_obj ELSE 0)
                 NO-ERROR.            
@@ -258,4 +262,6 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
+
+&ENDIF
 

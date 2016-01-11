@@ -100,6 +100,7 @@ DEFINE VARIABLE db-name       AS CHARACTER  NO-UNDO INITIAL ?.
 DEFINE VARIABLE fld-name      AS CHARACTER  NO-UNDO INITIAL ?.
 DEFINE VARIABLE tbl-name      AS CHARACTER  NO-UNDO INITIAL ?.
 DEFINE VARIABLE l_proc-name   AS CHARACTER  FORMAT "x(40)":U.
+DEFINE VARIABLE lastCopied    AS INTEGER    NO-UNDO.
 DEFINE VARIABLE i             AS INTEGER    NO-UNDO.
 DEFINE VARIABLE ml_inclibs    AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE org-name      AS CHARACTER  NO-UNDO.
@@ -411,19 +412,30 @@ CASE _TRG._tSECTION:
          We write out the func as "FUNCTION name RETURNS <data-type> [PRIVATE]".
          The RETURNS <data-type> is actually part of the code block. */
       ASSIGN l_proc-name = TRIM(_inp_line[2]).
-      ASSIGN _TRG._tCODE = _inp_line[3].
+      ASSIGN _TRG._tCODE = _inp_line[3]
+             lastCopied  = 3.
     
       /* If input 3 is the RETURNS keyword, then input 4 is the data-type.
          So add it after the RETURNS keyword. Otherwise, input 3 should be
          the data-type, so we do not add input 4. */
       IF TRIM(_inp_line[3]) = "RETURNS":U THEN
-          ASSIGN _TRG._tCODE = _TRG._tCODE + " " + _inp_line[4].
+          ASSIGN _TRG._tCODE = _TRG._tCODE + " " + _inp_line[4]
+                 lastCopied  = 4.
       
       /* Check for PRIVATE keyword. Must come right after data-type. So that's
          either input 4 or 5, since RETURNS is actually optional.
          jep-code */
       ASSIGN _TRG._PRIVATE-BLOCK = (TRIM(_inp_line[4]) = "PRIVATE" OR
                                     TRIM(_inp_line[5]) = "PRIVATE").
+
+      /* Before adding the newline character, make sure we copy all tokens IZ 1947 */
+      Copy-Entire-Line:
+      DO i = lastCopied + 1 TO 100:
+        IF _inp_line[i] NE "":U THEN
+          _TRG._tCode = _TRG._tCode + " ":U + _inp_line[i].
+        ELSE LEAVE Copy-Entire-Line.
+      END.
+
       ASSIGN _TRG._tCODE = _TRG._tCODE + CHR(10).
 
       /* Make sure the name doesn't already exist */

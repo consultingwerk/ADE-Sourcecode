@@ -26,7 +26,7 @@
    by       Jurjen Dijkstra, 1997
    ==================================================================== */
 
-{af/sup/proExtra.i}
+{af/sup/proextra.i}
 
 &IF DEFINED(FILE-API_I)=0 &THEN
 &GLOB FILE-API_I

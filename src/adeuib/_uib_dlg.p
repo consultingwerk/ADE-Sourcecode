@@ -57,6 +57,10 @@ DEFINE INPUT         PARAMETER pi-context AS INTEGER   NO-UNDO.
 DEFINE INPUT         PARAMETER dname      AS CHARACTER NO-UNDO.
 DEFINE INPUT-OUTPUT  PARAMETER args       AS CHARACTER NO-UNDO.
 
+DEFINE VARIABLE i        AS INTEGER    NO-UNDO.
+DEFINE VARIABLE ctblname AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE tmp-name AS CHARACTER  NO-UNDO.
+
 CASE dname:
   WHEN "EXTERNAL-TABLES" THEN DO:
     FIND _P WHERE INT(RECID(_P)) = pi-context NO-ERROR.
@@ -72,14 +76,38 @@ CASE dname:
     IF AVAILABLE _U THEN DO:
       ASSIGN _query-u-rec = RECID(_U).
       /* send over a table list or a handle to a SmartData */
+      FIND _P WHERE _P._window-handle = _h_win.
+      IF AVAILABLE _P THEN DO:
+        DO i = 1 TO NUM-ENTRIES (args):
+          ASSIGN ENTRY(i,args) = ENTRY(1, ENTRY(i,args), " ":U)
+                 tmp-name            = ENTRY(i,args).
+          IF NUM-ENTRIES(tmp-name,".":U) = 1 THEN ctblname = tmp-name.  /* May be a buffer */
+          ELSE ctblname = ENTRY(2,tmp-name,".":U).
+          FIND FIRST _TT WHERE _TT._p-recid = RECID(_P)
+                           AND _TT._NAME = ctblname NO-ERROR.
+          IF AVAILABLE _TT THEN
+            ENTRY(i,args) = "Temp-Tables":U + "." + ctblname.
+        END.  /* do i to num-entries*/
+      END.  /* if avail _P */
       RUN adeuib/_coledit.p (INPUT args, INPUT ?).
     END.
   END.
   
   WHEN "QUERY BUILDER" THEN DO:
+      /* get procedure handle to determine if dynamic or static object */
+      /* if dynamic, omit the freeform query button from the query builder dlg*/
+  
     FIND _U WHERE RECID(_U) = pi-context NO-ERROR.
-    IF AVAILABLE _U THEN
+    IF AVAILABLE _U THEN DO:
+
+      /* iz 7535 Get rid of the freeform query button for dynamic sdos */
+      FIND _P WHERE _P._WINDOW-HANDLE eq _U._WINDOW-HANDLE NO-ERROR.
+        IF AVAILABLE _P AND (NOT _P.Static_object OR (_P.object_type_code EQ "DynSDO":U))
+            THEN ASSIGN args = IF args = "":U THEN "NO-FREEFORM-QUERY":U 
+                           ELSE  args + ",NO-FREEFORM-QUERY":U.
+            
       RUN adeuib/_callqry.p ("_U", RECID(_U), args ).
+    END.
     ELSE DO:
       RUN error-msg ( "Invalid context passed for call to Query Builder." ).
       RETURN "Error".

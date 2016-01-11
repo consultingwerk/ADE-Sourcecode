@@ -1967,9 +1967,13 @@ PROCEDURE CheckSyntax.
     Parameters:     None
   ---------------------------------------------------------------------------*/
   
-    DEFINE VAR code_ok AS LOGICAL NO-UNDO.
-  
+    DEFINE VAR code_ok 	   AS LOGICAL   NO-UNDO.
+    DEFINE VAR cPrevStatus AS CHARACTER NO-UNDO.
+
+    ASSIGN cPrevStatus = _p_status.
+           _p_status   = "CHECK-SYNTAX":U.
     RUN check_store_trg (TRUE, FALSE, OUTPUT code_ok).
+    ASSIGN _p_status = cPrevStatus.
     IF code_ok
     THEN MESSAGE "Syntax is correct."
             VIEW-AS ALERT-BOX INFORMATION BUTTONS OK
@@ -2524,7 +2528,7 @@ PROCEDURE RenameProc.
   DEFINE VARIABLE h_cwin AS WIDGET  NO-UNDO.
   
   DEFINE BUFFER b_U FOR _U.
-  
+
   DO ON STOP UNDO, LEAVE ON ERROR UNDO, LEAVE ON ENDKEY UNDO, LEAVE:
     /* Ask for a new procedure name - using the f_rename frame. */
     ASSIGN new_pname = ""
@@ -2532,6 +2536,7 @@ PROCEDURE RenameProc.
     UPDATE new_name btn_ok btn_cancel btn_help 
            WITH FRAME f_rename DEFAULT-BUTTON btn_ok
                       IN WINDOW h_sewin.
+
     ASSIGN new_pname   = new_name.
 
     /* We have a trigger ON GO which checks for renaming to a Procedure
@@ -2543,6 +2548,10 @@ PROCEDURE RenameProc.
     DO: 
       IF (NOT AVAILABLE _P) THEN
           FIND _P WHERE _P._u-recid = win_recid.
+      IF NOT AVAILABLE _SEW_TRG THEN
+        FIND _SEW_TRG WHERE _SEW_TRG._wRECID = win_recid AND
+                            _SEW_TRG._tEVENT = se_event NO-ERROR.
+
       IF VALID-HANDLE(_P._tv-proc) THEN
         RUN renameCode IN _P._tv-proc
             (INPUT se_event /* old */,
@@ -2764,9 +2773,9 @@ PROCEDURE check_store_trg.
          value to support undo. Temp_Code does this. This is done as close after the
          _qikcomp.p as possible so the original code is restored to the correct
          _SEW_TRG record. IZ 4098. */
-      IF Temp_Restore THEN
+      IF AVAILABLE _SEW_TRG AND Temp_Restore THEN
       DO:
-        ASSIGN _SEW_TRG._tCode = Temp_Code NO-ERROR.
+        ASSIGN _SEW_TRG._tCode = Temp_Code.
       END.
 
       IF NOT print_section THEN DO:

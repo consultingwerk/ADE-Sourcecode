@@ -247,63 +247,63 @@ NAME           fiChar
 *FILL-IN       &Character 3
 DESCRIPTION    3 Character Fill-in
 DATA-TYPE      Character
-WIDTH          8
+WIDTH          8.60
 FORMAT         X(3)
 NAME           fiChar
 
 *FILL-IN       &Character 5
 DESCRIPTION    5 Character Fill-in
 DATA-TYPE      Character
-WIDTH          14
+WIDTH          13.20
 FORMAT         X(5)
 NAME           fiChar
 
 *FILL-IN       &Character 10
 DESCRIPTION    10 Character Fill-in
 DATA-TYPE      Character
-WIDTH          20
+WIDTH          24
 FORMAT         X(10)
 NAME           fiChar
 
 *FILL-IN       &Character 12
 DESCRIPTION    12 Character Fill-in
 DATA-TYPE      Character
-WIDTH          22
+WIDTH          27.60
 FORMAT         X(12)
 NAME           fiChar
 
 *FILL-IN       &Character 15
 DESCRIPTION    15 Character Fill-in
 DATA-TYPE      Character
-WIDTH          24
+WIDTH          34.80
 FORMAT         X(15)
 NAME           fiChar
 
 *FILL-IN       &Character 20
 DESCRIPTION    20 Character Fill-in
 DATA-TYPE      Character
-WIDTH          30
+WIDTH          35.40
 FORMAT         X(20)
 NAME           fiChar
 
 *FILL-IN       &Character 28
 DESCRIPTION    28 Character Fill-in
 DATA-TYPE      Character
-WIDTH          40
+WIDTH          63.20
 FORMAT         X(28)
 NAME           fiChar
 
 *FILL-IN       &Character 35
 DESCRIPTION    35 Character Fill-in
 DATA-TYPE      Character
-WIDTH          48
+WIDTH          78.40
 FORMAT         X(35)
 NAME           fiChar
 
 *FILL-IN       &Character 70
 DESCRIPTION    70 Character Fill-in
 DATA-TYPE      Character
-WIDTH          65
+WIDTH          78.40
 FORMAT         X(70)
 NAME           fiChar
 

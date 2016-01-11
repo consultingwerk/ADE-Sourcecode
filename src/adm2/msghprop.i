@@ -109,6 +109,8 @@
   {src/adm2/smrtprop.i}
 
 
+IF NOT {&ADM-PROPS-DEFINED} THEN
+DO:
 &IF "{&ADMSuper}":U = "":U &THEN
   /* Put your property field definitions here.
      Use the following syntax, e.g.,
@@ -123,6 +125,7 @@
 &ENDIF
 
   {src/adm2/custom/msghpropcustom.i}
+END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

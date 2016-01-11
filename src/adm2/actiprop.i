@@ -95,11 +95,14 @@
 &ENDIF
  
 {src/adm2/visprop.i}
-  
+IF NOT {&ADM-PROPS-DEFINED} THEN
+DO:  
 &IF "{&ADMSuper}":U = "":U &THEN
 &ENDIF
 
   {src/adm2/custom/actipropcustom.i}
+
+END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

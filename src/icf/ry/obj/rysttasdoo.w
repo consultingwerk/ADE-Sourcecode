@@ -16,11 +16,20 @@ DEFINE VARIABLE h_Astra                    AS HANDLE          NO-UNDO.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Logic Procedure Wizard" dTables _INLINE
+/* Actions: ? af/cod/aftemwizcw.w ? ? af/cod/aftemwizls.p */
+/* Program Definition Comment Block Wizard
+Welcome to the Logic Procedure Block Wizard. Press Next to proceed.
+adm2/support/_wizlog.w
+*/
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Static SmartDataObject Wizard" dTables _INLINE
 /* Actions: af/cod/aftemwizcw.w ? ? ? af/sup/afwizdeltp.p */
 /* Static SmartDataObject Wizard
 Welcome to the Static SmartDataObject Wizard! During the next few steps, the wizard will lead you through all the stages necessary to create this type of object. If you cancel the wizard at any time, then all your changes will be lost. Once the wizard is completed, it is possible to recall parts of the wizard using the LIST option from the section editor. Press Next to proceed.
-af/cod/aftemwiziw.w,af/cod/aftemwizpw.w,adm2/support/_wizqry.w,adm2/support/_wizfld.w,af/cod/aftemwizew.w 
+af/cod/aftemwiziw.w,af/cod/aftemwizpw.w,adm2/support/_wizlog.w,adm2/support/_wizqry.w,adm2/support/_wizfld.w,af/cod/aftemwizew.w 
 */
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -136,6 +145,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &ENDIF
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
+
 
 &Scoped-define QUERY-NAME Query-Main
 

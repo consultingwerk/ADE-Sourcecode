@@ -97,7 +97,7 @@ IF OPSYS EQ "WIN32" THEN DO:
   
   IF PlatformId = {&VER_PLATFORM_WIN32_NT} THEN DO:
     IF MajorVersion > 4 THEN
-      ASSIGN OSstr = "Win2000 ":U.
+      ASSIGN OSstr = (IF MinorVersion = 0 THEN "Win2000 ":U ELSE "WinXP ":U).
     ELSE 
       ASSIGN OSstr = "WinNT ":U.
 

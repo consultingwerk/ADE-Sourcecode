@@ -43,6 +43,7 @@
                       04/12/00  Added long Progress Database path name
                       09/05/01  Added support for wrong version of SQL Server
                       11/16/01  Added logic to block moving data if running -rx
+                      10/08/02  Added logic to create shadow columns.
                     
 */            
 
@@ -102,7 +103,10 @@ FORM
   odb_collname FORMAT "x(32)"  view-as fill-in size 32 by 1
      LABEL "Collation name" colon 36 SKIP({&VM_WIDG}) SPACE(4)
   pcompatible view-as toggle-box LABEL "Progress 4GL Compatible Objects" 
-  loadsql view-as toggle-box label "Load SQL" SPACE(5)
+  shadowcol VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns" SKIP({&VM_WID})
+ SPACE(4) loadsql view-as toggle-box label "Load SQL" 
+ &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SPACE(24)
+ &ELSE SPACE(23) &ENDIF
   movedata view-as toggle-box label "Move Data" SKIP({&VM_WID})
              {prodict/user/userbtns.i}
   WITH FRAME x ROW 2 CENTERED SIDE-labels OVERLAY
@@ -157,7 +161,13 @@ END PROCEDURE.
    ELSE
      ASSIGN pcompatible:sensitive in frame x = YES
             pcompatible = TRUE
-            pcompatible:screen-value in frame x = "yes".           
+            pcompatible:screen-value in frame x = "yes".   
+   IF codb_type:SCREEN-VALUE BEGINS "Oth" THEN
+       ASSIGN shadowcol:SENSITIVE IN FRAME X = NO
+              shadowcol:SCREEN-VALUE IN FRAME X = "no".
+   ELSE
+       ASSIGN shadowcol:SENSITIVE IN FRAME X = YES
+              shadowcol:SCREEN-VALUE IN FRAME X = ?.
  END.
 &ENDIF  
 &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
@@ -174,6 +184,12 @@ END PROCEDURE.
      ASSIGN pcompatible:sensitive in frame x = YES
             pcompatible:screen-value in frame x = "yes"
             pcompatible = TRUE.  
+   IF odb_type:SCREEN-VALUE BEGINS "Oth" THEN
+       ASSIGN shadowcol:SENSITIVE IN FRAME X = NO
+              shadowcol:SCREEN-VALUE = "NO".
+   ELSE
+       ASSIGN shadowcol:SENSITIVE IN FRAME X = YES
+              shadowcol:SCREEN-VALUE = ?.
  END.
 &ENDIF  
 
@@ -264,6 +280,15 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
       IF tmp_str BEGINS "Y" then pcompatible = TRUE.
       ELSE pcompatible = FALSE.
    END. 
+
+  IF OS-GETENV("SHADOWCOL") <> ? THEN DO:
+    tmp_str      = OS-GETENV("SHADOWCOL").
+    IF tmp_str BEGINS "Y" then shadowcol = TRUE.
+    ELSE shadowcol = FALSE.
+  END. 
+  ELSE 
+    shadowcol = FALSE.
+
   IF OS-GETENV("LOADSQL") <> ? THEN DO:
     tmp_str      = OS-GETENV("LOADSQL").
     IF tmp_str BEGINS "Y" then loadsql = TRUE.
@@ -304,7 +329,8 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
         odb_conparms
         odb_codepage  
         odb_collname
-        pcompatible        
+        pcompatible     
+        shadowcol
         loadsql
         movedata WHEN mvdta
         btn_OK btn_Cancel 
@@ -324,6 +350,7 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
         odb_codepage
         odb_collname
         pcompatible
+        shadowcol
         loadsql
         movedata
         btn_OK btn_Cancel
@@ -338,7 +365,7 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
       ELSE
         ASSIGN odb_type = codb_type.              
     &ENDIF      
-    
+
     IF pro_conparms = "<current working database>" THEN
       ASSIGN pro_conparms = "".
 
