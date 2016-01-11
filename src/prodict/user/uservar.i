@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006,2009-2010 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -37,9 +37,6 @@ DEFINE BUTTON btn_Cancel LABEL "Cancel" {&STDPH_OKBTN} AUTO-ENDKEY.
 
 DEFINE {1} SHARED STREAM logfile.
 DEFINE {1} SHARED VARIABLE logfile_open AS LOGICAL NO-UNDO INITIAL false.
-
-/*Fernando  20020129-017*/
-DEFINE {1} SHARED VARIABLE user_msg_count AS INTEGER NO-UNDO INITIAL 0.
 
 /* kmcintos "Auditing support" */
 DEFINE {1} SHARED VARIABLE user_overwrite AS LOGICAL   NO-UNDO.

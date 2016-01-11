@@ -115,7 +115,7 @@ DEFINE VARIABLE lFileSave     AS LOGICAL   NO-UNDO.
 DEFINE STREAM instream. 
 DEFINE STREAM outstream.
 DEFINE STREAM teststream.
-
+ 
 {adecomm/pcmpcls.i}
 
 /* _UIB-CODE-BLOCK-END */
@@ -214,11 +214,18 @@ ASSIGN
   lSaveAs       = CAN-DO(p_options,"saveas":U)
   lSaveW        = CAN-DO(p_options,"savew":U)
   lSearch       = CAN-DO(p_options,"search":U)
-
+ 
+  /* 2009 - fixed checksyntax 
+   NOTE - investigation subject: 
+   cTarget is used only for editor, but it seems as 'fileSave' is changed to 'save' by web editor 
+   and thus not used here
+   Case sensitive  */ 
   cTarget       = (IF lFileClose THEN "fileClose":U ELSE 
                    IF lFileNew   THEN "fileNew":U   ELSE 
                    IF lFileOpen  THEN "fileOpen":U  ELSE
-                   IF lFileSave  THEN "fileSave":U  ELSE "").
+                   IF lFileSave  THEN "fileSave":U  ELSE 
+                   IF lCheckSyntax THEN "checkSyntax":U  ELSE 
+                   "").
   
 /* Return one or all CGI environment variables. */
 IF lCGI THEN DO:
@@ -240,17 +247,19 @@ IF lAnalyze OR lOpen OR lOffset OR lProcInfo OR lSearch THEN DO:
 END.
 
 /* Save a file to disk */
-IF lSave OR lSaveAs OR lCheckSection OR lCheckSyntax OR
-  (lCompile AND p_action BEGINS "okTo":U) THEN DO:
+IF lSave OR lSaveAs OR lCheckSection OR lCheckSyntax 
+OR (lCompile AND p_action BEGINS "okTo":U) THEN 
+DO:
   RUN savefile.
   IF RETURN-VALUE = "leave":U THEN RETURN.
 END.
 
-IF lRun OR (lCompile AND p_action eq "") OR
-  (p_action eq "last":U AND
-    (lCheckSection OR lCheckSyntax OR lCompile)) THEN DO:
-  RUN runFile.
-  IF RETURN-VALUE = "leave":U THEN RETURN.
+IF lRun 
+OR (lCompile AND p_action eq "") 
+OR (p_action eq "last":U AND (lCheckSection OR lCheckSyntax OR lCompile)) THEN 
+DO:
+    RUN runFile.
+    IF RETURN-VALUE = "leave":U THEN RETURN.
 END.
 
 IF lProcInfo THEN DO:
@@ -285,10 +294,10 @@ IF lDelete THEN
 IF lProcInfo THEN
   {&OUT} cValue SKIP.
 
-IF lSave OR (lCompile AND p_action BEGINS "okToCompile":U) THEN DO:
+IF lSave OR lCheckSyntax OR (lCompile AND p_action BEGINS "okToCompile":U) THEN DO:
   /* Prompt the Editor WebTool to send the next section. */
   IF lEditor THEN DO:
-    IF lSave THEN DO:
+    IF lSave OR lCheckSyntax THEN DO:
        {&OUT} 
          '<HTML>':U SKIP
          '<HEAD>':U SKIP
@@ -349,7 +358,7 @@ IF lSave OR (lCompile AND p_action BEGINS "okToCompile":U) THEN DO:
          '<BODY onLoad="init()">':U SKIP
          '</BODY>':U SKIP
          '</HTML>':U.
-    END.
+    END. /* lSave or lCheckSyntax */
     ELSE IF lCompile THEN DO:
       IF lNoCompile THEN
         RUN webAlert ('The META "no-compile" option was detected.' + cNewLine +
@@ -358,7 +367,11 @@ IF lSave OR (lCompile AND p_action BEGINS "okToCompile":U) THEN DO:
         RUN webConfirm ("", "compile").
     END.
   END. /* IF lEditor */
-  ELSE DO:
+      /* not checksyntax check added when fixing check syntax for web editor
+         This ensures no change of behavior for this case, it is, however, 
+	   fully possible that this check is unnecessary or even wrong  */    
+  ELSE If not lchecksyntax then 
+  DO:
     IF lNoCompile THEN
       {&OUT} "OPTION: No compile" SKIP.
     IF lDoCompile THEN

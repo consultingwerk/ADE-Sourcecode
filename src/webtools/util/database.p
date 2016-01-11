@@ -416,8 +416,10 @@ PROCEDURE dbReport :
     FOR EACH DICTDB._Sequence NO-LOCK 
       WHERE NOT _Seq-Name BEGINS "$" BY _Seq-Name :
       {&OUT} 
-        fRow(_Seq-Name + '|' + STRING(_Seq-Num) + '|' + STRING(_Seq-Min) + '|' + 
-             (IF _Seq-Max <> ? THEN STRING(_Seq-Max) ELSE "?")).
+        fRow(_Seq-Name + '|' + STRING(_Seq-Num) + '|' 
+            + (IF _Seq-Min <> ? THEN STRING(_Seq-Min) ELSE "?")
+            + '|' 
+            + (IF _Seq-Max <> ? THEN STRING(_Seq-Max) ELSE "?")).
     END.
     {&OUT} '</TABLE>' SKIP.
   END.

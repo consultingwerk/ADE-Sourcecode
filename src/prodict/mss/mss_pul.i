@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007-2009 by Progress Software Corporation. All      *
+* Copyright (C) 2007-2010 by Progress Software Corporation. All      *
 * rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -38,6 +38,7 @@ History:
    Nagaraju   02/23/09 to handle timestamp field properly
    fernando   04/06/09 Support for SYSDATETIME as datetime2's default value
    sgarg      05/22/09 ROWGUID support for MSS
+   knavneet   02/17/10 OE00131234 
 --------------------------------------------------------------------*/
 
 DEFINE VARIABLE my_typ_unicode AS LOGICAL.
@@ -179,6 +180,10 @@ IF l_init <> ? THEN DO:
       ASSIGN l_init = "TODAY".
   ELSE IF ntyp = "DATETIME" OR  ntyp = "DATETIME-TZ" THEN
       ASSIGN l_init = "NOW".
+  /* OE00131234 - If a CHARACTER column in MSS database has a default of 
+     NULL then l_init =  "'(NULL)'" */
+  ELSE IF ntyp = "CHARACTER" AND l_init EQ "'(NULL)'" THEN
+     ASSIGN l_init = ?.
   ELSE DO: 
 
       IF esc-idx1 = 0 THEN DO:

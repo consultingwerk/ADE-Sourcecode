@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Method-Library 
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005,2010 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -96,6 +96,9 @@
                       "ContainerSourceEvents":U,"getComboQuery":U).
     RUN modifyListProperty(THIS-PROCEDURE, "ADD":U, 
                       "ContainerSourceEvents":U,"displayCombo":U).
+    RUN modifyListProperty(THIS-PROCEDURE, "ADD":U, 
+                      "ContainerSourceEvents":U,"createObjects":U).
+                      
     RUN modifyListProperty(THIS-PROCEDURE, "ADD":U, 
                       "DataSourceEvents":U,"queryOpened":U).
 

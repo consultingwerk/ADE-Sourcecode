@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2008-2009 by Progress Software Corporation. All rights    *
+* Copyright (C) 2008-2010 by Progress Software Corporation. All rights    *
 * reserved.                                                          *
 *                                                                    *
 *********************************************************************/
@@ -89,6 +89,11 @@ DEFINE PRIVATE PROPERTY nextSeqNum AS INTEGER
          /* get next value if the instantiator is adding records to the temp-table */
          ASSIGN seq = seq + 1.
          RETURN seq.
+    END GET.
+
+DEFINE PUBLIC PROPERTY canMantainPolicies AS LOGICAL
+    GET():
+        RETURN myEPolicy:isKeyStoreAdmin.
     END GET.
 
 CONSTRUCTOR _sec-pol-util():
@@ -677,6 +682,10 @@ METHOD PUBLIC LOGICAL cacheSavePolicy(INPUT callerProc AS handle,
          ASSIGN invalidObjName = ttObjAttrs.obj-name.
          RETURN NO.
      END.
+
+     IF NOT canMantainPolicies THEN 
+         UNDO, THROW NEW Progress.Lang.AppError("You must be the Key Store Administrator" +
+                                                " to mantain encryption policies", 1).
 
      /* if not yet locked, get a lock on the schema so no one can make 
         changes to it while we are in this transaction.

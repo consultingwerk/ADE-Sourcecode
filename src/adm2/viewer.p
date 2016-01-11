@@ -816,7 +816,7 @@ PROCEDURE disableFields :
   {get ObjectInitialized lInitialized}
   .
   &UNDEFINE xp-assign
- 
+  
   /* Bail out if not initialized yet, as the Enabled* properties may not 
      be properly set yet. initializeObject calls this if necessary 
      (SDFs currently add themselves to the lists. There are logic to remove 
@@ -1513,7 +1513,7 @@ PROCEDURE enableFields :
     fields from the list for one-to-one SBOs in initializeObject) */
   IF NOT lInitialized THEN 
     RETURN.
-
+   
   /* Check the record state in the GA source to avoid timing problems
      when this method is called from queryPosition.
      The NewRecord value is not even propagated to GroupAssign-Target(s). */
@@ -1752,7 +1752,7 @@ PROCEDURE initializeObject :
  DEFINE VARIABLE iField             AS INTEGER   NO-UNDO.
  DEFINE VARIABLE cUIBMode           AS CHARACTER NO-UNDO.
  DEFINE VARIABLE cNewRecord         AS CHARACTER NO-UNDO.
- 
+ define variable cState             as character no-undo.
  RUN SUPER.   /* Invoke the standard behavior first. */
 
  IF RETURN-VALUE = "ADM-ERROR":U THEN 
@@ -1779,7 +1779,10 @@ PROCEDURE initializeObject :
    RETURN.
  END.
 
- {get GroupAssignSource hGASOurce}.
+ &scop xp-assign
+ {get GroupAssignSource hGASOurce}
+ {get RecordState cState}.
+ &undefine xp-assign
  
  RUN dataAvailable IN TARGET-PROCEDURE (?). /* See if there's a rec waiting. */
   
@@ -1805,20 +1808,21 @@ PROCEDURE initializeObject :
  END.
  ELSE
    {get SaveSource lSaveSource}.
-  
-  /* If we have NO tableio-source (?) or a Tableio-Source in Save mode 
-     OR if our groupAssign-source is not in view mode the target also should be,
+ 
+ /* enable fields if we have NO tableio-source (?) or a Tableio-Source in Save mode 
+    and record available 
+    OR if our groupAssign-source is not in view mode the target also should be,
     (that would have been the case if this GAtarget had been initialized) */  
  IF (cGaMode > '':U AND cGaMode <> "view":U)
- OR NOT (lSaveSource = FALSE) THEN
- do:
+ OR (NOT (lSaveSource = FALSE) AND cState = "RecordAvailable":U) THEN
+ DO:
    RUN enableFields IN TARGET-PROCEDURE.
     /* Disable EnabledWhenNew fields  */
    RUN disableCreateFields IN TARGET-PROCEDURE.
- end.
+ END.
  ELSE 
  DO:
-   {set FieldsEnabled YES}.
+   {set FieldsEnabled YES}.   
    RUN disableFields IN TARGET-PROCEDURE ('ALL':U).
  END.         /* END ELSE DO IF not enableFields */
   

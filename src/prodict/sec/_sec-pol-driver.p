@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2008-2009 by Progress Software Corporation. All rights    *
+* Copyright (C) 2008-2010 by Progress Software Corporation. All rights    *
 * reserved.                                                          *
 *                                                                    *
 *********************************************************************/
@@ -75,6 +75,9 @@ DO TRANSACTION ON ERROR UNDO, LEAVE
        RUN prodict/sec/_sec-pol-hist.p(INPUT myEPolicyCache).
    ELSE DO:
    
+       IF NOT myEPolicyCache:canMantainPolicies THEN
+          UNDO, THROW NEW Progress.Lang.AppError("Cannot run this utility if you are not the Key Store Administrator", 1).
+
        /* for the generate key tool, only want objects with encryption
           currently enabled (and not using the null_null_null cipher
        */

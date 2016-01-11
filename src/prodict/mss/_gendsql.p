@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005-2006,2008-2009 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2006,2008-2010 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -46,6 +46,7 @@
               07/15/09 nmanchal Trigger changes for MSS(OE00178470)
               07/15/09 nmanchal Trigger changes for MSS(OE00178470) to remove WITH NOWAIT
               09/23/09 Nagaraju Implementation of Computed columns for RECID (OE00186593)
+              02/11/10 fernando Fix issue with sql generated for old sequence generator
               
 If the user wants to have a DEFAULT value of blank for VARCHAR fields, 
 an environmental variable BLANKDEFAULT can be set to "YES" and the code will
@@ -149,6 +150,8 @@ DEFINE VARIABLE other-seq-proc       AS CHARACTER      NO-UNDO. /* OE00170189 */
 DEFINE VARIABLE isSQLNCLI     AS LOGICAL               NO-UNDO INITIAL FALSE. 
 DEFINE VARIABLE blankdefault  AS LOGICAL               NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE tmp_str       AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE maxValue      AS INTEGER               NO-UNDO.
+DEFINE VARIABLE useComputedColumn AS LOGICAL            NO-UNDO.
 
 DEFINE TEMP-TABLE df-info NO-UNDO
     FIELD df-seq  AS INTEGER
@@ -245,6 +248,8 @@ FORM
   &THEN VIEW-AS DIALOG-BOX THREE-D &ENDIF TITLE "Generate Scripts" .
 
     
+FUNCTION getMaxValue RETURNS INTEGER (INPUT pcInput AS CHARACTER) FORWARD.
+
 /* Internal Procedure */
 
 /* PROCEDURE: updateNewFields
@@ -402,8 +407,17 @@ PROCEDURE write-tbl-sql:
           CREATE df-info.
           ASSIGN df-info.df-seq = dfseq
                  dfseq = dfseq + 1
-                 df-tbl = tblname
-                 df-line = '  HIDDEN-FLDS "' + string(fldnum + 2) + ',"'.
+                 df-tbl = tblname.
+
+          IF useComputedColumn THEN DO:
+             /*  we put recid, recid_ident_ and recid_alt_ on the list */
+             df-line = '  HIDDEN-FLDS "' + string(fldnum + 1) + ','
+                       + string(fldnum + 2) + ',' 
+                       + string(fldnum + 3) + ',"'.
+          END.
+          ELSE
+             df-line = '  HIDDEN-FLDS "' + string(fldnum + 2) + ',"'.
+
           CREATE df-info.
           ASSIGN df-info.df-seq = dfseq
                  dfseq = dfseq + 1
@@ -451,7 +465,7 @@ PROCEDURE write-tbl-sql:
         END.
         ELSE 
           ASSIGN recidname = "progress_recid"
-                 recidident = "progress_recid_ident_".             
+                 recidident = "progress_recid_ident_".
         
         ASSIGN forpos = 1.
 
@@ -468,8 +482,10 @@ PROCEDURE write-tbl-sql:
                
         IF DICTDB._File._Fil-Misc1[1] > forpos THEN
             ASSIGN forpos = DICTDB._File._Fil-Misc1[1] + 1.
-        IF INTEGER(DICTDB._File._Fil-Misc2[2]) > forpos THEN
-            ASSIGN forpos = INTEGER(DICTDB._File._Fil-Misc2[2]).
+
+        maxValue = getMaxValue(DICTDB._File._Fil-Misc2[2]).
+        IF maxValue > forpos THEN
+            ASSIGN forpos = maxValue.
 
         /* update forpos and field-misc22 for new fields */
         RUN updateNewFields (INPUT sql-info.tblname, INPUT forpos).
@@ -551,7 +567,7 @@ PROCEDURE write-tbl-sql:
            trigname = "_TI_" + recididx
            /* OE00133695 - use #_# for recid index */
            p-r-index = p-r-index + "#_#progress_recid ON " + mss_username + "." + p-r-index.
-    IF ((NUM-ENTRIES(user_env[27]) < 2) OR entry(2,user_env[27]) EQ "1")  THEN DO:
+    IF NOT useComputedColumn  THEN DO:
       trigname = "_TI_" + recididx.
     
       PUT STREAM tosql UNFORMATTED   
@@ -659,11 +675,16 @@ PROCEDURE write-seq-sql:
 	
     IF seqt_prefix = "_SEQT_" THEN 
      PUT STREAM tosql UNFORMATTED 
-         "if (select seq_name from _SEQT_REV_SEQTMGR where seq_name = '" forname "') " skip
-	 " is not NULL" skip
-	 "    delete from _SEQT_REV_SEQTMGR where seq_name = '" forname "' " skip
-	 " if (select seq_name from _SEQT_REV_SEQTMGR) is NULL " skip
-	 "    drop table _SEQT_REV_SEQTMGR " skip. /* processing SEQTMGR table */
+        "if exists (select name from dbo.sysobjects where id = object_id(N'_SEQT_REV_SEQTMGR') " skip
+        "   and OBJECTPROPERTY(id, N'IsTable') = 1) " skip
+        "      if (select seq_name from _SEQT_REV_SEQTMGR where seq_name = '" forname "') " skip
+        "          is not NULL" skip
+        "             delete from _SEQT_REV_SEQTMGR where seq_name = '" forname "' " skip
+
+        "if exists (select name from dbo.sysobjects where id = object_id(N'_SEQT_REV_SEQTMGR') " skip
+        "   and OBJECTPROPERTY(id, N'IsTable') = 1) " skip
+        "     if (select seq_name from _SEQT_REV_SEQTMGR) is NULL " skip
+	    "         drop table _SEQT_REV_SEQTMGR " skip. /* processing SEQTMGR table */
 	     
      PUT STREAM tosql UNFORMATTED 
            "if (select name from sysobjects where name = '"other-seq-tab forname "' and" skip
@@ -1217,8 +1238,10 @@ PROCEDURE get-position:
 
     IF i < DICTDB._File._Fil-misc1[1] THEN
         ASSIGN i = DICTDB._File._Fil-misc1[1].
-    IF i < INTEGER(DICTDB._File._Fil-misc2[2]) THEN
-        ASSIGN i = INTEGER(DICTDB._File._Fil-misc2[2]).
+    
+    maxValue = getMaxValue(DICTDB._File._Fil-misc2[2]).
+    IF i < maxValue THEN
+        ASSIGN i = maxValue.
 
     FOR EACH new-obj WHERE new-obj.add-type = "F"
                        AND new-obj.tbl-name = tablename:                      
@@ -1243,6 +1266,7 @@ END PROCEDURE.
 PROCEDURE new-for-position:
   DEFINE VARIABLE recidname AS CHARACTER NO-UNDO.
   DEFINE VARIABLE forpos    AS INTEGER   NO-UNDO.
+
   FIND DICTDB._File WHERE DICTDB._File._File-name = tablename
                       AND DICTDB._File._Owner = "_FOREIGN"
                       NO-ERROR.          
@@ -1265,9 +1289,11 @@ PROCEDURE new-for-position:
          ASSIGN recidname = DICTDB._Field._Field-name
                 recidident = ?.
     END.
-    ELSE 
+    ELSE DO:
+    
       ASSIGN recidname = "progress_recid"
              recidident = "progress_recid_ident".
+    END.
 
     IF recidname <> ? AND recidname <> "" THEN DO:
       CREATE new-position.
@@ -1277,11 +1303,18 @@ PROCEDURE new-for-position:
              new-position.shadow   = 0
              new-position.extent#  = 0.
     END.
+
     IF recidident <> ? THEN DO:
+      /* This is actually for hidden fields now. 
+         It used to be that only the ident column was hidden, but now any 
+         non-updatable column goes in _fil-misc2[2]. So we put its name as
+         the ident column, but it could be any column, and we will make 
+         the pos be the highest position on the list.
+      */
       CREATE new-position.
       ASSIGN new-position.table-np = rntbl
              new-position.field-np = recidident
-             new-position.old-pos  = INTEGER(DICTDB._File._Fil-Misc2[2])
+             new-position.old-pos  = getMaxValue(DICTDB._File._Fil-Misc2[2])
              new-position.shadow   = 0
              new-position.extent#  = 0.
     END.
@@ -1503,8 +1536,10 @@ PROCEDURE create-idx-field:
               END.
               IF shw-col < DICTDB._File._Fil-Misc1[1] THEN
                 ASSIGN shw-col = DICTDB._File._Fil-misc1[1].
-              IF shw-col < INTEGER(DICTDB._File._Fil-Misc2[2]) THEN
-                ASSIGN shw-col = INTEGER(DICTDB._File._Fil-Misc2[2]).
+
+              maxValue = getMaxValue(DICTDB._File._Fil-Misc2[2]).
+              IF shw-col < maxValue THEN
+                ASSIGN shw-col = maxValue.
               FOR EACH new-Obj WHERE new-obj.add-type = "F"
                                  AND new-obj.tbl-name = tablename:
                 ASSIGN shw-col = shw-col + 1.
@@ -1604,8 +1639,10 @@ PROCEDURE create-idx-field:
                   END.
                   IF shw-col < DICTDB._File._Fil-Misc1[1] THEN
                     ASSIGN shw-col = DICTDB._File._Fil-Misc1[1].
-                  IF shw-col < INTEGER(DICTDB._File._Fil-Misc2[2]) THEN
-                    ASSIGN shw-col = INTEGER(DICTDB._File._Fil-Misc2[2]).
+
+                  maxValue = getMaxValue(DICTDB._File._Fil-Misc2[2]).
+                  IF shw-col < maxValue THEN
+                    ASSIGN shw-col = maxValue.
 
                   FOR EACH new-Obj WHERE new-obj.add-type = "F"
                                      AND new-obj.tbl-name = tablename:
@@ -1700,8 +1737,10 @@ PROCEDURE create-idx-field:
 
                 IF shw-col < DICTDB._File._Fil-Misc1[1] THEN
                   ASSIGN shw-col = DICTDB._File._Fil-misc1[1].
-                IF shw-col < INTEGER(DICTDB._File._Fil-Misc2[2]) THEN
-                  ASSIGN shw-col = INTEGER(DICTDB._File._Fil-Misc2[2]).
+
+                maxValue = getMaxValue(DICTDB._File._Fil-Misc2[2]).
+                IF shw-col < maxValue THEN
+                  ASSIGN shw-col = maxValue.
 
                 FOR EACH new-Obj WHERE new-obj.add-type = "F"
                                    AND new-obj.tbl-name = tablename:
@@ -1962,6 +2001,9 @@ ASSIGN ilin = ?
        varlngth = INTEGER(user_env[10]) + 1
        /* OE00167691 - the foreign type in the df for TEXT is not TEXT */
        dfLongType = (IF user_env[18] = "TEXT" THEN "LONGVARCHAR" ELSE "NLONGVARCHAR").  
+
+IF NUM-ENTRIES(user_env[27]) > 1 AND entry(2,user_env[27]) EQ "2" THEN
+    useComputedColumn = YES.
 
 /* for new sequence generator support. If it's set, it will be the
    second entry
@@ -2311,14 +2353,14 @@ DO ON STOP UNDO, LEAVE:
             DISPLAY tablename WITH FRAME working.   
 
           IF pcompatible THEN DO: 
-            IF ((NUM-ENTRIES(user_env[27]) < 2) OR entry(2,user_env[27]) EQ "1") THEN DO:
+            IF NOT useComputedColumn THEN DO:
               CREATE sql-info.
               ASSIGN line-num = 5000
                    line = "PROGRESS_RECID BIGINT NULL"  
                    tblname = ilin[3]
                    fldname = "PROGRESS_RECID".     
             END.          
-            ELSE IF entry(2,user_env[27]) EQ "2" THEN DO:
+            ELSE DO:
               CREATE sql-info.
               ASSIGN line-num = 5000
                    line = "PROGRESS_RECID AS CASE WHEN PROGRESS_RECID_ALT_ IS NULL THEN  PROGRESS_RECID_IDENT_ ELSE  PROGRESS_RECID_ALT_ END PERSISTED NOT NULL"  
@@ -2332,7 +2374,7 @@ DO ON STOP UNDO, LEAVE:
                  tblname = ilin[3]
                  fldname = "PROGRESS_RECID_INDENT".
 
-            IF ((NUM-ENTRIES(user_env[27]) >= 2) AND entry(2,user_env[27]) EQ "2") THEN DO:
+            IF useComputedColumn THEN DO:
               CREATE sql-info.
               ASSIGN line-num = 5002
                    line = "PROGRESS_RECID_ALT_ BIGINT NULL DEFAULT NULL"  
@@ -4709,3 +4751,24 @@ RUN adecomm/_setcurs.p ("").
  
 RETURN.
 
+
+/* Receives comma-separated list of numbers and returns the highest value */
+FUNCTION getMaxValue RETURNS INTEGER (INPUT pcInput AS CHARACTER):
+    DEFINE VARIABLE numEntries AS INTEGER NO-UNDO.
+    DEFINE VARIABLE this_j     AS INTEGER NO-UNDO.
+    DEFINE VARIABLE this_max   AS INTEGER NO-UNDO.
+
+    ASSIGN numEntries = NUM-ENTRIES(pcInput).
+
+    IF numEntries < 2 THEN 
+        RETURN INTEGER(pcInput).
+
+    REPEAT i = 1 TO numEntries:
+        this_j = INTEGER(ENTRY(i, pcInput)).
+        IF this_j > this_max THEN
+            this_max = this_j.
+    END.
+
+    RETURN this_max.
+    
+END FUNCTION.

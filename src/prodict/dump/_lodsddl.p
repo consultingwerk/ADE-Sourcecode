@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006-2009 by Progress Software Corporation. All rights *
+* Copyright (C) 2006-2010 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -2502,8 +2502,38 @@ IF cerror = ?
 
   END.     /* conversion not needed OR needed and possible */
 
-IF (xerror OR STOPPED OR NOT main_trans_success)
- THEN ASSIGN user_path = "9=h,4=error,_usrload":u.
+IF (xerror OR STOPPED OR NOT main_trans_success) THEN DO:
+
+
+   ASSIGN user_path = "9=h,4=error,_usrload":u.
+
+   /* OE00193991 - moved code below from _usrload.p */
+   /* Fernando: 20020129-017 if there was a message from the client after the load process started, 
+   search for error number 151 (defined as ERROR_ROLLBACK) and write to the error log file. The error
+   would be the first entry in message queue ( _msg(1) ). 
+   
+   OE00193991 - Also check fo error 15262 (online schema error). Both errors only occurred
+   if we stopped or main transaction failed 
+   */
+   IF  STOPPED OR NOT main_trans_success AND 
+       (_msg(1) = {&ERROR_ROLLBACK} OR _msg(1) = 15262) THEN
+   DO:
+       IF (user_env[6] = "f" OR user_env[6] = "b") THEN
+       DO:
+
+           OUTPUT TO VALUE (LDBNAME("DICTDB") + ".e") APPEND.
+           PUT UNFORMATTED TODAY " " STRING(TIME,"HH:MM") " : "
+              "Load of " user_env[2] " into database " 
+              LDBNAME("DICTDB") " was unsuccessful." SKIP " All the changes were backed out..." 
+              SKIP " {&PRO_DISPLAY_NAME} error numbers (" _msg(1) ") " .
+              IF _msg(1) NE 15262 AND _msg(2) > 0 THEN 
+                   PUT UNFORMATTED "and (" _msg(2) ")." SKIP(1).
+               ELSE PUT UNFORMATTED "."  SKIP(1) . 
+           OUTPUT CLOSE.
+       END.
+   END.
+
+END.
 ELSE IF (VALID-OBJECT(dictEPolicy) AND NOT dictObjAttrCache AND hasEncPol) OR 
         (VALID-OBJECT(dictObjAttrs) AND NOT dictObjAttrCache AND hasBufPool) THEN DO:
 

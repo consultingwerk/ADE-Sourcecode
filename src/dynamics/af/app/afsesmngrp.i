@@ -28,7 +28,7 @@ af/cod/aftemwizpw.w
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2005-2007 by Progress Software Corporation.          *
+* Copyright (C) 2005-2010 by Progress Software Corporation.          *
 * All rights reserved. Prior versions of this work may contain       *
 * portions contributed by participants of Possenet.                  *
 *                                                                    *
@@ -554,13 +554,11 @@ PROCEDURE adjustWidgets :
   DEFINE VARIABLE cSDFLabels                AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE dSDFRow                   AS DECIMAL    NO-UNDO.
   DEFINE VARIABLE hSDFFrame                 AS HANDLE     NO-UNDO.
-  define variable dColonPos                 as decimal    no-undo.
+  define variable dCol                      as decimal    no-undo.
   define variable cLabelText                as character  no-undo.
 
-    /* Separate the {get}s because each of them needs to be
-       called no-error.
-     */
-    {get AllFieldHandles cAllFieldHandles phObject} NO-ERROR.
+    {get AllFieldHandles cAllFieldHandles phObject}.
+    /* Separate the {get}s because only viewers have FieldPopupMapping */ 
     {get FieldPopupMapping cFieldPopupMapping phObject} NO-ERROR.
   
   field-loop:
@@ -573,32 +571,31 @@ PROCEDURE adjustWidgets :
     /* SDFs need to be resized individually */  
     IF hWidget:TYPE = "PROCEDURE":U 
     THEN DO:
-        dColonPos = {fn getColonPosition hWidget}.
+        {get Col dCol hWidget}.
         
         FIND FIRST ttViewerCol
-             WHERE ttViewerCol.dColumn = dColonPos
+             WHERE ttViewerCol.dColumn = dCol
              NO-LOCK NO-ERROR.
-        
         IF NOT AVAILABLE ttViewerCol THEN
-          FIND FIRST ttViewerCol
+          FIND FIRST ttViewerCol 
                NO-LOCK NO-ERROR.
         
-        ASSIGN hSDFFrame = ?.
-        {get ContainerHandle hSDFFrame hWidget} NO-ERROR.
-
+        {get ContainerHandle hSDFFrame hWidget}.
+        
         IF VALID-HANDLE(hSDFFrame) 
         THEN DO:
             RUN resizeSDFFrame IN TARGET-PROCEDURE
                                (INPUT hWidget,   /* The SDF procedure handle */
                                 INPUT hSDFFrame, /* The SDF frame */
-                                INPUT ttViewerCol.dNewCol - {fn getCol hWidget}). /* The amount it needs to move */            
+                                INPUT ttViewerCol.dNewCol - dCol). /* The amount it needs to move */
+            
             {get LabelHandle hSDFLabelHandle hWidget} NO-ERROR.
             IF hSDFLabelHandle <> ? THEN
                 ASSIGN hSDFLabelHandle:VISIBLE = YES
                        cSDFLabels = IF cSDFLabels = "":U THEN STRING(hSDFLabelHandle) ELSE (cSDFLabels + ",":U + STRING(hSDFLabelHandle)).
 
             /* Move the SDF */
-            {get ROW dSdfRow hWidget} NO-ERROR.
+            {get Row dSdfRow hWidget}.
             IF NOT ERROR-STATUS:ERROR THEN
                 RUN repositionObject IN hWidget (INPUT dSDFRow,
                                                  INPUT ttViewerCol.dNewCol) NO-ERROR.
@@ -619,15 +616,15 @@ PROCEDURE adjustWidgets :
     ASSIGN hSideLabel = ?
            hSideLabel = hWidget:SIDE-LABEL-HANDLE
            NO-ERROR.
-  
+
     FIND FIRST ttViewerCol
          WHERE ttViewerCol.dColumn = hWidget:COLUMN
          NO-LOCK NO-ERROR.
-
+    
     /* If we can't find a column record, don't move the widget */
     IF AVAILABLE ttViewerCol THEN
         ASSIGN hWidget:COLUMN = ttViewerCol.dNewCol NO-ERROR.
-  
+    
     /* If the label has been created as a separate widget (like the dynamic
      * viewer does), then ignore the moving of the label. This will be done
      * as if it were a normal text widget.
@@ -637,18 +634,8 @@ PROCEDURE adjustWidgets :
       have a widget type of LITERAL, as opposed to TEXT.                       */
     IF VALID-HANDLE(hSideLabel) AND
        ( LOOKUP(STRING(hSideLabel), cAllFieldHandles) EQ 0 OR
-         hSideLabel:TYPE                              EQ "LITERAL":U ) 
-    THEN DO:
-        /* Don't add a colon to the label text itself, since the 
-            4GL automatically adds one.
-         */
-        cLabelText = IF INDEX(hSideLabel:SCREEN-VALUE, ":":U) = 0
-                     THEN (hSideLabel:SCREEN-VALUE + ":":U)
-                     ELSE hSideLabel:SCREEN-VALUE.
-        /* X and WIDTH-PIXELS are the same units. WIDTH-CHARS and COLUMN are not. Use the former. */
-        hSideLabel:width-pixels = font-table:get-text-width-pixels(cLabelText, hSideLabel:Font) + 3 no-error.
-        hSideLabel:x = hWidget:x - hSideLabel:width-pixels no-error.
-    END.
+         hSideLabel:TYPE                              EQ "LITERAL":U ) THEN
+        ASSIGN hSideLabel:x = hWidget:x.
     
     /* And finally, check if the widget has a popup button (calendar or calculator). *
      * If it does, move the popup as well.                                           */
@@ -5708,7 +5695,7 @@ PROCEDURE resizeLookupFrame :
   DEFINE VARIABLE hViewer                   AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hWidget                   AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hSideLabel                AS HANDLE     NO-UNDO.
-  
+
   hViewer = DYNAMIC-FUNCTION("getcontainersource":U IN phObject) NO-ERROR.
   IF VALID-HANDLE(hViewer) AND 
      LOOKUP("resizeWindow":U, hViewer:INTERNAL-ENTRIES) = 0 THEN
@@ -5720,22 +5707,24 @@ PROCEDURE resizeLookupFrame :
     hParent = hParent:FIRST-CHILD.
   
   /* 1st make frame virtually big to avoid size issues */
-  hParent:SCROLLABLE = TRUE.
-  phFrame:SCROLLABLE = TRUE.
-  hWindow:VIRTUAL-WIDTH-CHARS  = 204.80.
-  hWindow:VIRTUAL-HEIGHT-CHARS = 35.67.
-  phFrame:VIRTUAL-WIDTH-CHARS  = 204.80.
-  phFrame:VIRTUAL-HEIGHT-CHARS = 35.67.
-  hParent:VIRTUAL-WIDTH-CHARS  = 204.80.
-  hParent:VIRTUAL-HEIGHT-CHARS = 35.67.
+  assign 
+  hParent:SCROLLABLE = TRUE
+  phFrame:SCROLLABLE = TRUE
   
+  hWindow:VIRTUAL-WIDTH-CHARS  = session:width-chars
+  hWindow:VIRTUAL-HEIGHT-CHARS = session:height-chars
+  phFrame:VIRTUAL-WIDTH-CHARS  = session:width-chars
+  phFrame:VIRTUAL-HEIGHT-CHARS = session:height-chars
+  hParent:VIRTUAL-WIDTH-CHARS  = session:width-chars
+  hParent:VIRTUAL-HEIGHT-CHARS = session:height-chars.
+
   /* move frame back if we can */
   IF phFrame:COLUMN - pdAddCol > 1 THEN
     ASSIGN phFrame:COLUMN = phFrame:COLUMN - pdAddCol.
   ELSE
     ASSIGN phFrame:COLUMN = 1.
   
-  /* resize window if too small to fit frame (plus a bit for margin) */
+  /* resize window if too small to fit frame (plus a bit for margin)  */
   IF (phFrame:COLUMN + phFrame:WIDTH-CHARS + pdAddCol) > (hWindow:WIDTH-CHARS - 10) THEN
   DO:
     hWindow:WIDTH-CHARS = phFrame:COLUMN + phFrame:WIDTH-CHARS + pdAddCol + 10.
@@ -5765,6 +5754,9 @@ PROCEDURE resizeLookupFrame :
   
   IF cAllFieldHandles = "":U OR cAllFieldHandles = ? THEN RETURN.
   
+  /* got a valid widget to move */
+  {get LabelHandle hSideLabel phObject} no-error.
+  
   field-loop:
   DO iLoop = 1 TO NUM-ENTRIES(cAllFieldHandles):
   
@@ -5774,22 +5766,23 @@ PROCEDURE resizeLookupFrame :
        LOOKUP(hWidget:TYPE, "text,button,fill-in,selection-list,editor,combo-box,radio-set,slider,toggle-box":U) = 0
        OR NOT CAN-QUERY(hWidget, "column":U) THEN NEXT field-loop.
   
-    /* got a valid widget to move */
-    {get LabelHandle hSideLabel phObject} no-error.
   
     hWidget:COLUMN = hWidget:COLUMN + pdAddCol.
   
     IF VALID-HANDLE(hSideLabel) THEN
+    do:
       hSideLabel:COLUMN = hWidget:COLUMN - hSideLabel:WIDTH.
+    end.
   END.
-  
-  hWindow:VIRTUAL-WIDTH-CHARS  = hWindow:WIDTH-CHARS.
-  hWindow:VIRTUAL-HEIGHT-CHARS = hWindow:HEIGHT-CHARS.
-  phFrame:VIRTUAL-WIDTH-CHARS  = phFrame:WIDTH-CHARS.
-  phFrame:VIRTUAL-HEIGHT-CHARS = phFrame:HEIGHT-CHARS.
-  phFrame:SCROLLABLE = FALSE.
-  hParent:VIRTUAL-WIDTH-CHARS  = hParent:WIDTH-CHARS.
-  hParent:VIRTUAL-HEIGHT-CHARS = hParent:HEIGHT-CHARS.
+
+  assign 
+  hWindow:VIRTUAL-WIDTH-CHARS  = hWindow:WIDTH-CHARS
+  hWindow:VIRTUAL-HEIGHT-CHARS = hWindow:HEIGHT-CHARS
+  phFrame:VIRTUAL-WIDTH-CHARS  = phFrame:WIDTH-CHARS
+  phFrame:VIRTUAL-HEIGHT-CHARS = phFrame:HEIGHT-CHARS
+  phFrame:SCROLLABLE = FALSE
+  hParent:VIRTUAL-WIDTH-CHARS  = hParent:WIDTH-CHARS
+  hParent:VIRTUAL-HEIGHT-CHARS = hParent:HEIGHT-CHARS
   hParent:SCROLLABLE = FALSE.
 
 END PROCEDURE.
@@ -5817,7 +5810,7 @@ PROCEDURE resizeNormalFrame :
   DEFINE VARIABLE hContainer                AS HANDLE     NO-UNDO.
   
   IF phFrame:TYPE = "DIALOG-BOX":U THEN
-      ASSIGN hContainer         = ?
+      ASSIGN hContainer = ?
              hParent    = ?.
   ELSE
   DO:

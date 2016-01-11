@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007-2009 by Progress Software Corporation. All rights *
+* Copyright (C) 2007-2010 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -40,6 +40,7 @@ History:
     fernando    07/21/08    Support for encryption
     fernando    03/20/09    Additional changes for encryption
     fernando    04/13/09    Changes for alternate buffer pool
+    fernando    03/05/10    Fix code that checks rollback error
 ----------------------------------------------------------------------------*/
 /*h-*/
 
@@ -56,12 +57,12 @@ DEFINE VARIABLE lvar        AS CHAR EXTENT 10 NO-UNDO.
 DEFINE VARIABLE lvar#       AS INT            NO-UNDO.
 DEFINE VARIABLE i           AS INT64          NO-UNDO.
 DEFINE VARIABLE old-session AS CHARACTER      NO-UNDO INITIAL ?.
-DEFINE VARIABLE counter     AS INTEGER        NO-UNDO INITIAL 1.
 DEFINE VARIABLE validObjs   AS LOGICAL        NO-UNDO.
 DEFINE VARIABLE cTmp        AS CHARACTER      NO-UNDO.
 DEFINE VARIABLE cMsg        AS CHARACTER      NO-UNDO.
 DEFINE VARIABLE stopped     AS LOGICAL        NO-UNDO.
 DEFINE VARIABLE xError      AS LOGICAL        NO-UNDO.
+DEFINE VARIABLE OK_trans    AS LOGICAL       /*UNDO*/.
 
 DEFINE STREAM loaderr.
 
@@ -117,16 +118,6 @@ ASSIGN user_env[10] = CODEPAGE
        SESSION:APPL-ALERT-BOXES = NO.
 
 
-
-/*Fernando: 20020129-017 check how many message the client issued before running the 
-  load process. Counter will be pointing to the next position in the message queue */
-REPEAT:
- IF _msg(counter) > 0 THEN
-      ASSIGN counter = counter + 1.
- ELSE
-     LEAVE.
-END.
-
 DO TRANSACTION ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE ON STOP UNDO, LEAVE:
 
   /* The reason we do this here is so that we cache the settings for encryption policies
@@ -140,31 +131,40 @@ DO TRANSACTION ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE ON STOP UNDO, LEAVE:
   ASSIGN dictObjAttrCache = YES.
 
   user_path = "*".
+
+  /* OE00193991 - this will get backed out if some error happens */
+  ASSIGN OK_trans = TRUE.
+
   RUN "prodict/dump/_lodv5df.p".
   IF user_path = "*" THEN RUN "prodict/dump/_lodsddl.p".
   
   IF user_path = "*R" then UNDO, LEAVE.
 
+  FINALLY: /*  OE00193991 - use a finally block to check for rollback */
+      IF OK_trans = FALSE THEN DO:
+          /* transaction was backed out */
+          /* Fernando: 20020129-017 if there was a message from the client after the load process started, 
+          search for error number 151 (defined as ERROR_ROLLBACK) and write to the error log file. The error
+          would be the first entry in message queue ( _msg(1) ).
+          */
+          IF _msg(1) = {&ERROR_ROLLBACK} THEN
+          DO:
+              OUTPUT TO VALUE (LDBNAME("DICTDB") + ".e") APPEND.
+              PUT UNFORMATTED TODAY " " STRING(TIME,"HH:MM") " : "
+              "Load of " user_env[2] " into database " 
+              LDBNAME("DICTDB") " was unsuccessful." SKIP " All the changes were backed out..." 
+              SKIP " {&PRO_DISPLAY_NAME} Recent Message(s): (" _msg(1) ") " .
+              IF _msg(2) > 0 THEN 
+                 PUT UNFORMATTED "(" _msg(2) ")." SKIP(1).
+              OUTPUT CLOSE.
+          END.
+      END.
+
+  END FINALLY.
+
 END.
              
-/*Fernando: 20020129-017 if there was a message from the client after the load process started, 
-search for error number 151 (defined as ERROR_ROLLBACK)  and write to the error log file. The error
-would be the first entry in message queue ( _msg(1) ).
-Variable counter will be pointing to the next to what would be the last message we captured
-If _msg(counter) is 0, it means that no new messages were issued */
-IF  _msg(counter) > 0 AND _msg(1) = {&ERROR_ROLLBACK} THEN
-DO:
-        OUTPUT TO VALUE (LDBNAME("DICTDB") + ".e") APPEND.
-        PUT UNFORMATTED TODAY " " STRING(TIME,"HH:MM") " : "
-           "Load of " user_env[2] " into database " 
-           LDBNAME("DICTDB") " was unsuccessful." SKIP " All the changes were backed out..." 
-           SKIP " {&PRO_DISPLAY_NAME} Recent Message(s): (" _msg(1) ") " .
-            IF _msg(2) > 0 THEN 
-                PUT UNFORMATTED "(" _msg(2) ")." SKIP(1).
-            
-        OUTPUT CLOSE.
-END.
-ELSE DO: 
+IF  OK_trans THEN DO:
 
     /* only process policies or buffer-pool settings if there wasn't an error in the first phase */
     IF INDEX(user_path,"4=error") = 0 AND 

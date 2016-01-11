@@ -4959,8 +4959,8 @@ PROCEDURE initPages :
   DEFINE VARIABLE cPageObjects AS CHARACTER NO-UNDO.
   DEFINE VARIABLE iCnt         AS INTEGER   NO-UNDO.
   define variable lInitialized as logical   no-undo. 
-   
   {get CurrentPage iCurrentPage}.
+ 
   DO iCnt = 1 TO NUM-ENTRIES(pcPageList): 
     iPage = INT(ENTRY(iCnt,pcPageList)).     
     IF iPage NE 0 THEN 
@@ -4986,12 +4986,12 @@ PROCEDURE initPages :
         {get ObjectInitialized lInitialized}
         {set PendingPage iCurrentPage}.
         &UNDEFINE xp-assign
-
+ 
         /*Sets widget-ids if the -usewidgetid session parameter is being used*/
         cPageObjects = pageNTargets(TARGET-PROCEDURE, iPage).
         IF DYNAMIC-FUNCTION("getUseWidgetID":U IN TARGET-PROCEDURE) THEN
         RUN assignWidgetIDs IN TARGET-PROCEDURE (cPageObjects, iPage).
-
+ 
         /* if not initialized then this is to soon - wait for publish ()
            We keep pendingPage so objects on not pending page remains hidden
            (getHideOnInit) */
@@ -5983,12 +5983,13 @@ PROCEDURE selectPage :
   DEFINE VARIABLE cPageList       AS CHARACTER NO-UNDO.
   DEFINE VARIABLE iStartPage      AS INTEGER   NO-UNDO.
   define variable iPendingPage    as integer   no-undo.
+  
   &SCOPED-DEFINE xp-assign
   {get PendingPage iPendingPage}
   {get StartPage iStartPage}
   {get CurrentPage iCurrentPage}.
   &UNDEFINE xp-assign
-
+  
   /* If this property has its initial value of unknown, then we are
      in the middle of createObjects and want to postpone this selectPage
      until that is done. */
@@ -5997,7 +5998,7 @@ PROCEDURE selectPage :
     {set StartPage piPageNum}.
     RETURN.
   END.   /* END DO IF iStartPage = ? */
-
+  
   IF iCurrentPage EQ piPageNum THEN 
   /* Don't reselect the same page unless the object(s) on that page
      have since been destroyed (a SmartWindow that was closed, e.g.). */
@@ -6007,7 +6008,14 @@ PROCEDURE selectPage :
         RETURN.
   END.
   
-  IF iCurrentPage NE 0 then
+  IF iCurrentPage = 0 then
+  do:
+     /* PendingPage may have been set by initPages when currentpage is 0,
+        but 0 is no longer pending if selectPage is called  */
+     if iPendingPage <> ? then
+        {set PendingPage piPageNum}.
+  end.
+  else 
   do:
     /* Objects use this to avoid disabling links during hideObject - linkState 
        if they are about to become active/visible */
@@ -6016,6 +6024,7 @@ PROCEDURE selectPage :
     if iPendingPage = ? then
       {set PendingPage ?}.
   end.
+  
   /* Save old page for TTY change-page */
   giPrevPage = iCurrentPage. 
   {set CurrentPage piPageNum}.
@@ -6530,7 +6539,7 @@ PROCEDURE viewPage :
   DEFINE VARIABLE iCurrentPage    AS INTEGER   NO-UNDO.
   DEFINE VARIABLE cPageList       AS CHARACTER NO-UNDO.
   DEFINE VARIABLE iPrevPage       AS INTEGER   NO-UNDO.
-  
+   
   {get CurrentPage iCurrentPage}. 
   IF iCurrentPage EQ piPageNum THEN 
   /* Don't reselect the same page unless the object(s) on that page

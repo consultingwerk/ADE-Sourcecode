@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006-2009 by Progress Software Corporation. All      *
+* Copyright (C) 2006-2010 by Progress Software Corporation. All      *
 * rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -61,6 +61,7 @@ History:
     05/22/09 sgarg     ROWGUID support for MSS
     09/23/09 Nagaraju  Computed column implementation for RECID support
     10/29/09 Nagaraju  To update new format for version string
+    02/23/10 Nagaraju  to avoid computed_column check if MSS vers 2000 or earlier
 */
 
 &SCOPED-DEFINE xxDS_DEBUG                   DEBUG /**/
@@ -198,6 +199,7 @@ DEFINE VARIABLE isFileStream     AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE change-dict-ver  AS LOGICAL   NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE ds_srvr_vers     AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE ds_clnt_vers     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE foreign_dbms_version    AS INTEGER   NO-UNDO.
 
 define TEMP-TABLE column-id
           FIELD col-name         as character case-sensitive
@@ -230,6 +232,9 @@ FORM
 /*------------------------------------------------------------------*/
 FUNCTION isComputed RETURNS LOGICAL (INPUT t1 AS CHAR, INPUT c1 AS CHAR):
 DEFINE VARIABLE isComputeCol     AS LOGICAL   NO-UNDO.
+
+    IF (foreign_dbms_version < 9) THEN
+        RETURN FALSE.
 
 assign sqlstate = "SELECT is_computed FROM sys.columns where name = '" + c1 +
                             "' and object_id = (OBJECT_ID('" + t1 + "'))".
@@ -402,7 +407,6 @@ RUN prodict/mss/_mss_typ.p
     ). /* fills user_env[11..17] with datatype-info */
 /* Get the name of the foreign dbms and set the foreign_dbms name */
     define variable foreign_dbms            as character no-undo.
-    DEFINE VARIABLE foreign_dbms_version    AS INTEGER   NO-UNDO.
 
     RUN STORED-PROC DICTDBG.GetInfo (0).
     for each DICTDBG.GetInfo_buffer:
@@ -705,7 +709,12 @@ for each gate-work
         END.
          ELSE IF SUBSTRING(DICTDBG.GetFieldIds_buffer.field-name,
               (LENGTH(DICTDBG.GetFieldIds_buffer.field-name) - 4)) = "_ALT_"
-           THEN assign i = i + 1. 
+           THEN do:
+             IF s_ttb_tbl.ds_msc22 = ? THEN 
+               ASSIGN s_ttb_tbl.ds_msc22 = "".
+             ASSIGN s_ttb_tbl.ds_msc22 = s_ttb_tbl.ds_msc22 + string(i) + ","
+                    i = i + 1.
+         END.
         NEXT _loop.
       END.  
       CREATE column-id.

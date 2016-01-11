@@ -216,7 +216,7 @@
         /* The &assignValuesBackFromTT preprocessor is built in launchParam.i, it builds the FINDs *
          * and ASSIGNs necessary to assign the values from the temp-table back to the parameters.  */
 
-        IF cRunReturnValue = "":U /* Only if no error */
+        IF NOT lRunErrorStatus /* Only if no error */
         THEN DO:
             {&assignValuesBackFromTT}
         END.

@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Method-Library 
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005, 2010 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -90,13 +90,16 @@
   IF NOT {&ADM-LOAD-FROM-REPOSITORY} THEN
   DO:
     RUN start-super-proc("adm2/lookup.p":U).
-    
+
     /* Subscribe to viewer events  */
     RUN modifyListProperty(THIS-PROCEDURE, "ADD":U, 
                       "ContainerSourceEvents":U,"getLookupQuery":U).
     RUN modifyListProperty(THIS-PROCEDURE, "ADD":U, 
                       "ContainerSourceEvents":U,"displayLookup":U).
 
+    RUN modifyListProperty(THIS-PROCEDURE, "ADD":U,        
+                           "ContainerSourceEvents":U,"createObjects":U).
+                           
     /* New API */
     RUN modifyListProperty(THIS-PROCEDURE, "ADD":U, 
                       "ContainerSourceEvents":U,"displayField":U).
@@ -109,7 +112,8 @@
 
   /* _ADM-CODE-BLOCK-END */
   
-&ENDIF
+&ENDIF 
+
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

@@ -1,4 +1,4 @@
-/* Copyright (C) 1984 -2006 by Progress Software Corporation.  All rights 
+/* Copyright (C) 1984 - 2010 by Progress Software Corporation.  All rights 
    reserved.  Prior versions of this work may contain portions 
    contributed by participants of Possenet.  */   
 /*---------------------------------------------------------------------------------
@@ -22,7 +22,7 @@
 
   Update Notes: Initial Implementation. Code moved here to avoid
    			    blowing up Section Editor limits.
----------------------------------------------------------------------------------*/      
+---------------------------------------------------------------------------------*/  
 DEFINE VARIABLE hRealContainer       AS HANDLE    NO-UNDO.
 DEFINE VARIABLE cContainerName       AS CHARACTER NO-UNDO.
 DEFINE VARIABLE cRunAttribute        AS CHARACTER NO-UNDO.
@@ -57,8 +57,6 @@ DEFINE VARIABLE cFieldPopupMapping   AS CHARACTER NO-UNDO.
 DEFINE VARIABLE cDelimiter           AS CHARACTER NO-UNDO.
 DEFINE VARIABLE cListItems           AS CHARACTER NO-UNDO.
 DEFINE VARIABLE iCnt                 AS INTEGER   NO-UNDO.
-DEFINE VARIABLE hSDFLabel            AS CHARACTER NO-UNDO.
-DEFINE VARIABLE cSDFFieldName        AS CHARACTER NO-UNDO.
 DEFINE VARIABLE lHasFieldLabel       AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE lHasFieldName        AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE hField               AS HANDLE    NO-UNDO.
@@ -78,7 +76,7 @@ IF NOT VALID-HANDLE(phContainer)
 OR NOT VALID-HANDLE(phObject) 
 OR NOT VALID-HANDLE(phFrame) THEN 
   RETURN.
- 
+
 ASSIGN cObjectType       = DYNAMIC-FUNCTION("getObjectType":U IN phObject)
        lObjectTranslated = DYNAMIC-FUNCTION("getObjectTranslated":U IN phObject ) NO-ERROR.
 
@@ -131,10 +129,8 @@ IF phFrame:TYPE = "window":U THEN phFrame = phFrame:FIRST-CHILD.
 /* FolderFrame is the name of the folder frame in afspfoldrw.w */
 IF VALID-HANDLE(phFrame) AND phFrame:NAME <> "FolderFrame":U THEN 
 DO:
-  cSDFFieldName = DYNAMIC-FUNCTION("getFieldName":U IN phObject) NO-ERROR.
-  IF NOT ERROR-STATUS:ERROR AND ERROR-STATUS:NUM-MESSAGES = 0 THEN
-    lHasFieldName = TRUE.
-  
+  lHasFieldName = {fnarg InstanceOf 'Field' phObject}.
+
   IF pcAction = "setup":U THEN 
   DO:
     /* get real container name and run attribute (if sdf container is viewer !) */    
@@ -170,7 +166,7 @@ DO:
           cObjectName = SUBSTRING(cObjectName,R-INDEX(cObjectName,"/":U) + 1).
 
       IF lHasFieldName THEN
-        cObjectName = cObjectName + ":":U + cSDFFieldName.
+        cObjectName = cObjectName + ":":U + dynamic-function('getFieldName':u in phObject).
     END.
     ELSE
     DO: /* otherwise use object name for translations */      
@@ -191,11 +187,11 @@ DO:
     hWidget = hwidgetGroup:FIRST-CHILD.
 
   /* deal with lookups and smartselects not initialized yet */
-  hSDFLabel = DYNAMIC-FUNCTION("getLabelHandle":U IN phObject) NO-ERROR.
-  IF NOT ERROR-STATUS:ERROR AND ERROR-STATUS:NUM-MESSAGES = 0 THEN
-    lHasFieldLabel = TRUE.
-
-  IF pcAction = "setup":U AND hWidget = ? 
+  lHasFieldLabel = {fnarg InstanceOf 'LookupField' phObject}.
+  if not lHasFieldLabel then
+    lHasFieldLabel = {fnarg InstanceOf 'Select' phObject}.
+    
+  IF pcAction = "setup":U 
   AND INDEX(cObjectName, ":":U) <> 0 
   AND lObjectTranslated NE YES AND lHasFieldLabel THEN
   DO:
@@ -215,8 +211,7 @@ DO:
       ttTranslate.cTranslatedTooltip = "":U
       .
     /* For Dynamic Combos we should set the Widget Type and Name correctly */
-    RUN dynamicCombo IN phObject NO-ERROR.
-    IF NOT ERROR-STATUS:ERROR AND ERROR-STATUS:NUM-MESSAGES = 0 THEN
+    if {fnarg instanceOf 'DynCombo' phObject} then
       ASSIGN ttTranslate.cWidgetType = "COMBO-BOX":U
              ttTranslate.cWidgetName = "fiCombo":U.
   END.
@@ -238,7 +233,7 @@ DO:
     {set ObjectSecured Yes phObject} no-error.                                         
   END.  
   
-  cAllFieldNames =  DYNAMIC-FUNCTION("getAllFieldNames":U IN phObject). 
+  cAllFieldNames =  DYNAMIC-FUNCTION("getAllFieldNames":U IN phObject).
     
     /* If this is a viewer, get the PopupFieldMapping property.
        If it is blank/empty, then no popups have yet been created;
@@ -247,7 +242,7 @@ DO:
        translations and the popups have been created; and in these
        cases the popups shouldn't be created again.              
      */
-    if {fnarg instanceOf 'DynView' phObject} then
+    if {fnarg InstanceOf 'DynView' phObject} then
         {get FieldPopupMapping cFieldPopupMapping phObject}.
         
   /* obtain right list of fields for recursive non-smart frame 
@@ -410,7 +405,7 @@ DO:
                    ttTranslate.cOriginalLabel      = ENTRY(iRadioLoop, cListItems, cDelimiter)
                    ttTranslate.cTranslatedLabel    = "":U
                    ttTranslate.cOriginalTooltip    = (IF CAN-QUERY(hWidget,"TOOLTIP":U) AND hWidget:TOOLTIP <> ? THEN hWidget:TOOLTIP ELSE "":U)
-                  ttTranslate.cTranslatedTooltip  = "":U.                
+                   ttTranslate.cTranslatedTooltip  = "":U.                
           END.
         END. /* combo or selection and can-query(list-item-pairs) */
 
@@ -598,7 +593,7 @@ DO:
            cFieldSecurity ne '' then
             {set FieldSecurity cFieldSecurity phObject} no-error.
     end.    /* Setup for the browser. */
-
+    
     /*-----------------------------------*
      * Put popup on fields if applicable *
      *-----------------------------------*/
@@ -697,7 +692,7 @@ DO:
                LABEL         = "...":U
                PRIVATE-DATA  = "POPUP":U 
                HIDDEN        = hWidget:Hidden
-        /* this is curretly called AFTER enableObjects, so ensure the popup has 
+        /* this is currently called AFTER enableObjects, so ensure the popup has 
            the right state */      
                SENSITIVE     = hWidget:SENSITIVE 
                                AND CAN-SET(hWidget,'READ-ONLY':U) 
@@ -753,12 +748,11 @@ IF lObjectTranslated NE YES AND pcAction = "setup":U AND CAN-FIND(FIRST ttTransl
 /* At this point, mark translations as done. Even if there were no 
    translations done, we performed the action of translation discovery,
    and that means we don't have to do it again. */
-{set ObjectTranslated Yes phObject} no-error.
+{set ObjectTranslated true phObject}.
 
   /* Now we need to set the Secured fields for objects that are not SmartDataBrowsers.  
    SmartDataBrowsers support field security for its browse columns only.  */
 IF lObjectSecured NE YES AND cFieldSecurity <> "":U AND cObjectType NE "SmartDataBrowser":U THEN
   DYNAMIC-FUNCTION("setFieldSecurity":U IN phObject, cFieldSecurity) NO-ERROR.
-
 
 /* *** EOF *** */

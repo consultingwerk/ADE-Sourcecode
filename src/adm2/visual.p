@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /***********************************************************************
-* Copyright (C) 2005,2007 by Progress Software Corporation. All rights *
+* Copyright (C) 2005,2010 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -975,6 +975,28 @@ FUNCTION setMinWidth RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setObjectLayout Procedure 
 FUNCTION setObjectLayout RETURNS LOGICAL
   ( pcLayout AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setObjectSecured) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setObjectSecured Procedure 
+FUNCTION setObjectSecured RETURNS LOGICAL
+  ( plSecured as logical )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setObjectTranslated) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setObjectTranslated Procedure 
+FUNCTION setObjectTranslated RETURNS LOGICAL
+  ( plValue as logical )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -4885,6 +4907,44 @@ FUNCTION setObjectLayout RETURNS LOGICAL
   {set ObjectLayout pcLayout}.
   RETURN TRUE.
 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setObjectSecured) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setObjectSecured Procedure 
+FUNCTION setObjectSecured RETURNS LOGICAL
+  ( plSecured as logical ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Sets the Layout of the object for Alternate Layout support.
+   Params:  <none>
+------------------------------------------------------------------------------*/
+  {set ObjectSecured plSecured}.
+  
+  RETURN TRUE.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setObjectTranslated) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setObjectTranslated Procedure 
+FUNCTION setObjectTranslated RETURNS LOGICAL
+  ( plValue as logical ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Sets the Layout of the object for Alternate Layout support.
+   Params:  <none>
+------------------------------------------------------------------------------*/
+  {set ObjectTranslated plValue}.
+  
+  RETURN TRUE.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

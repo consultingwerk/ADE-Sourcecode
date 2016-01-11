@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006-2009 by Progress Software Corporation. All      *
+* Copyright (C) 2006-2010 by Progress Software Corporation. All      *
 * rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -198,7 +198,8 @@ If working with an Oracle Database and the user wants to have a DEFAULT value of
   nmanchal 07/20/09   Trigger changes for MSS(OE00178470) to remove 'WITH NOWAIT'
   nmanchal 07/30/09   To fix MSS unicode migration issues for trigger creation (OE00188693)
   rkumar   08/25/09   Fix RECID implementation issues (OE00189366)
-  Nagaraju   09/22/09   Implement Computed column solution for MSS DS (OE00189563)
+  Nagaraju 09/22/09   Implement Computed column solution for MSS DS (OE00189563)
+  fernando 02/11/10   Fix issue with sql generated for old sequence generator
 */
 
 { prodict/dictvar.i }
@@ -1968,9 +1969,14 @@ IF doseq THEN DO:
 	
 	IF seqt_prefix = "_SEQT_" THEN
 	   PUT STREAM code UNFORMATTED 
-           "if (select seq_name from _SEQT_REV_SEQTMGR where seq_name = '" n1 "') " skip
-           " is not NULL delete from _SEQT_REV_SEQTMGR where seq_name = '" n1 "'" skip
-	   " if (select seq_name from _SEQT_REV_SEQTMGR) is NULL drop table _SEQT_REV_SEQTMGR " skip.
+            "if exists (select name from dbo.sysobjects where id = object_id(N'_SEQT_REV_SEQTMGR') " skip
+            "   and OBJECTPROPERTY(id, N'IsTable') = 1) " skip
+            "      if (select seq_name from _SEQT_REV_SEQTMGR where seq_name = '" n1 "') " skip
+            "         is not NULL delete from _SEQT_REV_SEQTMGR where seq_name = '" n1 "'" skip
+    
+            "if exists (select name from dbo.sysobjects where id = object_id(N'_SEQT_REV_SEQTMGR') " skip
+            "   and OBJECTPROPERTY(id, N'IsTable') = 1) " skip
+    	    "       if (select seq_name from _SEQT_REV_SEQTMGR) is NULL drop table _SEQT_REV_SEQTMGR " skip.
 
 	PUT STREAM code UNFORMATTED 
            "if (select name from sysobjects where name = '"other-seq-tab n1 "' and" skip
