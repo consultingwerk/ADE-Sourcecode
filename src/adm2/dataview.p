@@ -2,9 +2,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /**********************************************************************************/
-/* Copyright (C) 2005,2006 by Progress Software Corporation. All rights reserved. */
-/* Prior versions of this work may contain portions contributed by participants   */      
-/* of Possenet.                                                                   */               
+/* Copyright (C) 2005,2006,2012 by Progress Software Corporation. All rights      */
+/* reserved. Prior versions of this work may contain portions contributed by      */      
+/* participants of Possenet.                                                      */               
 /******************************************************************************/
 /*--------------------------------------------------------------------------
     File        : dataview.p
@@ -617,7 +617,7 @@ FUNCTION getDatasetName RETURNS CHARACTER
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDatasetOwner Procedure 
 FUNCTION getDatasetOwner RETURNS HANDLE
-  ( /* parameter-definitions */ )  FORWARD.
+  (   )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -626,9 +626,9 @@ FUNCTION getDatasetOwner RETURNS HANDLE
 
 &IF DEFINED(EXCLUDE-getDatasetRequestId) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDatasetRequestId Procedure  _DB-REQUIRED
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDatasetRequestId Procedure 
 FUNCTION getDatasetRequestId RETURNS CHARACTER
-  ( /* parameter-definitions */ )  FORWARD.
+  (   )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1958,6 +1958,10 @@ PROCEDURE commitTransaction :
   DEFINE VARIABLE lCancel       AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lOk           AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cKeyWhere     AS CHAR       NO-UNDO.
+  
+    /* reset return-value */
+  IF RETURN-VALUE > "" THEN
+    RUN returnNothing IN TARGET-PROCEDURE.  
 
   /* Record changes that haven't been saved must be saved before a commit.*/
   /* Visual dataTargets subscribes to this */
@@ -2873,9 +2877,7 @@ PROCEDURE initializeObject :
   
   IF NOT lHideOnInit THEN 
   DO:
-    /* The Objecthidden is set and used also for non-visual objects */
-    {set ObjectHidden NO}.
-    PUBLISH "LinkState":U FROM TARGET-PROCEDURE ('active':U).  
+    run viewObject in target-procedure.
   END.
   ELSE DO:
     /* The Objecthidden is set and used also for non-visual objects */
@@ -3154,7 +3156,7 @@ PROCEDURE processSubmitException :
 
       DO WHILE hChgBefore:AVAIL:
         
-        IF hChgBefore:DATA-SOURCE-MODIFIED THEN
+        IF hChgBefore:DATA-SOURCE-MODIFIED AND hChgBefore:ROW-STATE <> ROW-DELETED THEN
         DO:
           hBefore:FIND-BY-ROWID(hChgBefore:ORIGIN-ROWID).
           
@@ -5835,11 +5837,16 @@ FUNCTION deleteRow RETURNS LOGICAL
     /* This will result in a delete-current-row in the browser, which will
        make the prev or first record available.  */
     PUBLISH 'deleteComplete':U FROM TARGET-PROCEDURE. /* Tell Browser, e.g */
- 
+    
     /* If new deleted or not browsed then it will not become available 
        on the deletecomplete */      
     IF NOT hRowObject:AVAILABLE THEN
-       hDataQuery:GET-NEXT.
+    DO:
+       if cQueryPos = 'FirstRecord':U  THEN
+          hDataQuery:GET-FIRST.
+       else   
+          hDataQuery:GET-NEXT.
+    END.
     IF NOT hRowObject:AVAIL THEN
       hDataQuery:GET-PREV.
 
@@ -5847,8 +5854,11 @@ FUNCTION deleteRow RETURNS LOGICAL
     IF hRowObject:AVAIL THEN
     DO:
       IF cQueryPos = 'FirstRecord':U THEN
+      DO: 
+        lNextNeeded = FALSE.       
         {set FirstRowNum INT(hRowObject:RECID)}.        
        /* If we deleted the last then this must now be the last record */
+      END.
       IF cQueryPos = 'LastRecord':U THEN
         {set LastRowNum INT(hRowObject:RECID)}.              
     END.
@@ -8484,7 +8494,7 @@ FUNCTION refreshSort RETURNS LOGICAL
   ELSE DO: 
     /* refreshViewTables works on cureent record , so ensure it is avail */
     IF lMissingJoin THEN  
-      lQueryOk = hRowObject:FIND-UNIQUE('where ':U + cKeyWhereOld).
+      lQueryOk = hRowObject:FIND-UNIQUE('where ':U + cKeyWhereOld) no-error.
     IF lQueryOk THEN 
     DO:  
       lQueryOk = {fn refreshViewTables}.
