@@ -4,6 +4,13 @@
 {adecomm/appserv.i}
 DEFINE VARIABLE h_Astra                    AS HANDLE          NO-UNDO.
 
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /* Create an unnamed pool to store all the widgets created 
      by this procedure. This is a good default which assures
      that this procedure's triggers and internal procedures 
@@ -136,7 +143,6 @@ FUNCTION adm-assignObjectProperties returns logical:
     /* Assignable properties */
     &scoped-define xp-Assign
     {set LogicalObjectName '##[ObjectName]##'}
-    {set SchemaLocation 'ENT'}
     {set SuperProcedure ''}
     {set SuperProcedureMode ''}
     ##Loop:ObjectProperties-Assign##

@@ -6,6 +6,8 @@ Use this template to create a new  SmartDataViewer object in which to visualize 
 */
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
+{adecomm/appserv.i}
+DEFINE VARIABLE h_Astra                    AS HANDLE          NO-UNDO.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" vTableWin _INLINE
 /* Actions: ? ? ? ? af/sup/afverxftrp.p */
 /* This has to go above the definitions sections, as that is what it modifies.
@@ -18,7 +20,7 @@ Use this template to create a new  SmartDataViewer object in which to visualize 
 /* Actions: af/cod/aftemwizcw.w ? ? ? af/sup/afwizdeltp.p */
 /*  Static SmartDataViewer Wizard
 Welcome to the  Static SmartDataViewer Wizard! During the next few steps, the wizard will lead you through all the stages necessary to create this type of object. If you cancel the wizard at any time, then all your changes will be lost. Once the wizard is completed, it is possible to recall parts of the wizard using the LIST option from the section editor. Press Next to proceed.
-af/cod/aftemwiziw.w,af/cod/aftemwizpw.w,af/cod2/aftemwizow.w,adm2/support/_wizdfld.w,af/cod/aftemwizew.w 
+af/cod/aftemwiziw.w,af/cod/aftemwizpw.w,adm2/support/_wizdo.w,adm2/support/_wizdfld.w,af/cod/aftemwizew.w 
 */
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -34,25 +36,9 @@ af/cod/aftemwizpw.w
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -119,7 +105,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 &Scoped-define ADM-SUPPORTED-LINKS Data-Target,Update-Source,TableIO-Target,GroupAssign-Source,GroupAssign-Target
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME frMain
 
 /* Custom List Definitions                                              */
@@ -151,7 +137,7 @@ DEFINE FRAME frMain
    Container Links: Data-Target,Update-Source,TableIO-Target,GroupAssign-Source,GroupAssign-Target
    Frames: 1
    Add Fields to: Neither
-   Other Settings: PERSISTENT-ONLY COMPILE
+   Other Settings: PERSISTENT-ONLY COMPILE APPSERVER
  */
 
 /* This procedure should always be RUN PERSISTENT.  Report the error,  */
@@ -192,7 +178,7 @@ END.
 /* SETTINGS FOR WINDOW vTableWin
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frMain
-   NOT-VISIBLE Size-to-Fit                                              */
+   NOT-VISIBLE FRAME-NAME Size-to-Fit                                   */
 ASSIGN 
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.

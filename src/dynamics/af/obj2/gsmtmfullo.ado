@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <dataset Transactions="1"><dataset_header DisableRI="yes" DatasetObj="1004928896.09" DateFormat="mdy" FullHeader="no" SCMManaged="yes" YearOffset="1950" DatasetCode="RYCSO" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="91" NumericSeparator=","/>
-<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" version_date="10/08/2003" version_time="65727" version_user="admin" deletion_flag="no" entity_mnemonic="RYCSO" key_field_value="3000031538.09" record_version_obj="3000031539.09" version_number_seq="5.09" secondary_key_value="gsmtmfullo#CHR(1)#0" import_version_number_seq="5.09"><smartobject_obj>3000031538.09</smartobject_obj>
+<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" version_date="06/23/2005" version_time="57600" version_user="admin" deletion_flag="no" entity_mnemonic="rycso" key_field_value="3000031538.09" record_version_obj="3000031539.09" version_number_seq="8.48" secondary_key_value="gsmtmfullo#CHR(1)#0" import_version_number_seq="8.48"><smartobject_obj>3000031538.09</smartobject_obj>
 <object_filename>gsmtmfullo</object_filename>
 <customization_result_obj>0</customization_result_obj>
 <object_type_obj>1003183339</object_type_obj>

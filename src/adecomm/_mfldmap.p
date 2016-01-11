@@ -1,25 +1,10 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
+
 /*
  * _mfldmap.p - side-by-side field picker
  */
@@ -157,6 +142,7 @@ DEFINE VARIABLE cTargetObjType     AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE cSourceObjType     AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE dest_TblLst        AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE source_TblLst      AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE lDbAware           AS LOGICAL             NO-UNDO.
 
 Define button qbf-ok   label "OK"      {&STDPH_OKBTN} AUTO-GO.
 Define button qbf-cn   label "Cancel"  {&STDPH_OKBTN} AUTO-ENDKEY.
@@ -457,22 +443,35 @@ DO:
 END.
 ELSE
 DO:
-  ASSIGN
-     dest_TblLst = DYNAMIC-FUNCTION("getTables":U IN p_hDest) NO-ERROR.
+  /* This section retrieves database fields, so just skip for non-dbaware */  
+  IF cTargetObjType = "SmartDataObject":U THEN 
+    lDbAware = {fn getDbAware p_hDest}.
+  ELSE 
+    lDbAware = TRUE.
 
-  RUN adecomm/_mfldlst.p (
-     INPUT v_TargetLst:HANDLE,
-     INPUT dest_TblLst,
-     INPUT p_TT,
-     INPUT yes,
-     INPUT p_Items,
-     INPUT 2, /* expand EACH array element */
-     INPUT "",
-     OUTPUT t_log).
+  IF lDbAware THEN
+  DO:
+    ASSIGN
+       dest_TblLst = DYNAMIC-FUNCTION("getTables":U IN p_hDest) NO-ERROR.
+    
+    RUN adecomm/_mfldlst.p (
+       INPUT v_TargetLst:HANDLE,
+       INPUT dest_TblLst,
+       INPUT p_TT,
+       INPUT yes,
+       INPUT p_Items,
+       INPUT 2, /* expand EACH array element */
+       INPUT "",
+       OUTPUT t_log).
+  END.
+  ELSE  /* not really needed jsut to make it clearer */
+    t_log = FALSE. 
 END.
 
 IF NOT t_log AND cTargetObjType = "SmartDataObject":U THEN
 DO:
+   /* We have a DataView  */
+   /* OR   */ 
    /* We have an SDO but we did not succeed in building a field list.
     * Assume that this is an SDO built against a temp-table.
     * (NOTE: Although the above procedure should be able to handle 
@@ -482,6 +481,11 @@ DO:
     *  from a database table, which should not be necessary for an SDO
     *  that queries a temp-table). [1/12/2000 tomn]
     */
+
+    /* dbaware is set for SDO above. dest_TBlList is set for dbaware above. 
+       If not dbaware ensure that only DataTable columns can be picked.  */
+    IF NOT lDbAware THEN
+      dest_TblLst = {fn getDataTable p_hDest}.
 
     RUN adecomm/_getdlst.p (
        INPUT v_TargetLst:HANDLE,
@@ -498,13 +502,19 @@ END.
 
 IF cSourceObjType = "SmartDataObject":U THEN 
 DO:
+  lDbAware = {fn getDbAware p_hSource}.
+  IF NOT lDbAware THEN
+    source_TblLst = {fn getDataTable p_hSource}.
+
   RUN adecomm/_getdlst.p (
      INPUT v_SourceLst:HANDLE,
      INPUT p_hSource,
      INPUT no,
-     INPUT "1",
+     INPUT IF lDbAware THEN "1"  /* no qualifier for source */
+           ELSE "2|" + source_TblLst,
      INPUT ?,
      OUTPUT t_log).
+
 END. /* If SmartData */
 ELSE IF cSourceObjType = "SmartBusinessObject":U THEN 
 DO:

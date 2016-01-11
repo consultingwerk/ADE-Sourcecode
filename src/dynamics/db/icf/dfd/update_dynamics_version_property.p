@@ -1,3 +1,10 @@
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /*---------------------------------------------------------------------------------
   File: update_dynamics_version_property.p
 
@@ -23,7 +30,7 @@ define variable lError        as logical            no-undo.
 define buffer gscsp    for gsc_session_property.
 define buffer gsmsy    for gsm_session_type_property.
 
-&scoped-define DYNAMICS-VERSION 10.0B
+&scoped-define DYNAMICS-VERSION 10.1A
 
 publish 'DCU_WriteLog' ('Start update of DynamicsVersion session property ...').
 

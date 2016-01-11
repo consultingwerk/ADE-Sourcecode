@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 /* Procedure Description
 "Data Logic Procedure Template
  
@@ -35,25 +35,9 @@ af/cod/aftemwizpw.w
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS DataLogicProcedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -190,7 +174,7 @@ FUNCTION isFieldBlank RETURNS LOGICAL
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW DataLogicProcedure ASSIGN
          HEIGHT             = 12.29
-         WIDTH              = 55.6.
+         WIDTH              = 76.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -322,31 +306,24 @@ PROCEDURE preTransactionValidate :
   FOR EACH RowObjUpd WHERE LOOKUP(RowObjUpd.RowMod,"A,C,U":U) <> 0:
     /* Ensure that there is only one global control record for the whole system */
     IF  RowObjUpd.RowMod <> "U":U
-    AND CAN-FIND(FIRST gsc_security_control)
-    THEN DO:
+    AND CAN-FIND(FIRST gsc_security_control) THEN
         ASSIGN cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE "":U)
-                            + {af/sup2/aferrortxt.i 'AF' '40' 'gsc_security_control' 'gsc_security_control' "'A security control record already exists! Please update the existing record.'"}
-               ERROR-STATUS:ERROR = NO.
-        RETURN.
-    END.
+                            + {af/sup2/aferrortxt.i 'AF' '40' 'gsc_security_control' 'gsc_security_control' "'A security control record already exists! Please update the existing record.'"}.
 
    IF RowObjUpd.RowMod = "U":U
    AND CAN-FIND(FIRST gsc_security_control
                 WHERE gsc_security_control.full_access_by_default <> RowObjUpd.full_access_by_default) 
-   AND CAN-FIND(FIRST gsm_user_allocation) 
-   THEN DO:
+   AND CAN-FIND(FIRST gsm_user_allocation) THEN
        ASSIGN cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE "":U)
-                           + {af/sup2/aferrortxt.i 'AF' '45' 'gsc_security_control' 'full_access_by_default'}
-              ERROR-STATUS:ERROR = NO.
-       RETURN.          
-   END.
+                           + {af/sup2/aferrortxt.i 'AF' '45' 'gsc_security_control' 'full_access_by_default'}.
 
    /* If we're switching to a grant model, disable security. *
     * The user will need to grant all the access he requires,*
     * and then enable security.                              */
    IF  RowObjUpd.full_access_by_default = FALSE 
    AND RowObjUpd.security_enabled       = TRUE
-   AND NOT CAN-FIND(FIRST gsm_user_allocation NO-LOCK) THEN
+   AND NOT CAN-FIND(FIRST gsm_user_allocation NO-LOCK) 
+   AND cMessageList = "":U THEN
        ASSIGN RowObjUpd.security_enabled = FALSE.
   END.  /* for each RowObjUpd */
 

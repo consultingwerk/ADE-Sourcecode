@@ -36,6 +36,7 @@
             D. McMann 06/25/02 Added logic for function based indexes
             D. McMann 10/23/02 Changed BLANK to PASSWORD-FIELD
             D. McMann 11/26/02 Removed Oracle V7 as an option
+          K. McIntosh 09/08/05 Added support for Oracle 10 20050318-015
 */            
 
 
@@ -55,7 +56,10 @@ DEFINE VARIABLE old-dictdb    AS CHARACTER NO-UNDO.
 DEFINE VARIABLE i             AS INTEGER NO-UNDO.
 DEFINE VARIABLE redo          AS LOGICAL NO-UNDO.
 DEFINE VARIABLE mvdta         AS LOGICAL NO-UNDO.
-
+DEFINE VARIABLE cFormat       AS CHARACTER 
+                           INITIAL "For field widths use:"
+                           FORMAT "x(20)" NO-UNDO.
+DEFINE VARIABLE lExpand       AS LOGICAL NO-UNDO.
 
 DEFINE STREAM   strm.
 
@@ -72,8 +76,12 @@ FORM
     LABEL "Name of Schema holder Database" colon 38 SKIP({&VM_WID})
   ora_dbname   FORMAT "x(32)"  view-as fill-in size 32 by 1 
     LABEL "Logical name for ORACLE Database" colon 38 SKIP({&VM_WID})
-  ora_version  FORMAT ">9" validate(input ora_version = 8 OR INPUT ora_version = 9,
-    "Oracle Version must be 8 or 9") view-as fill-in size 23 by 1
+  ora_version  FORMAT ">9" 
+      validate(INPUT ora_version = 8 OR 
+               INPUT ora_version = 9 OR
+               INPUT ora_version = 10,
+               "Oracle Version must be 8, 9 or 10") 
+      view-as fill-in size 23 by 1
     LABEL "What version of ORACLE" colon 38 SKIP ({&VM_WID})  
   ora_username FORMAT "x(32)"  view-as fill-in size 32 by 1 
     LABEL "ORACLE Owner's Username" colon 38 SKIP({&VM_WID})
@@ -93,15 +101,22 @@ FORM
      LABEL "Indexes" colon 47 SKIP({&VM_WIDG})      
   SPACE(9) pcompatible view-as toggle-box LABEL "Create Progress Recid Field "  SPACE(7)
     crtdefault VIEW-AS TOGGLE-BOX LABEL "Include Default" SKIP({&VM_WID})  
-  SPACE(9) loadsql view-as toggle-box     label "Load SQL  "  &IF "{&WINDOW-SYSTEM}" = "TTY"
+  SPACE(9) loadsql view-as toggle-box     label "Load SQL  "  
+  &IF "{&WINDOW-SYSTEM}" = "TTY"
   &THEN SPACE(25) &ELSE SPACE(23) &ENDIF
-   sqlwidth VIEW-AS TOGGLE-BOX LABEL "Use Width Field"  SKIP({&VM_WID}) 
-  SPACE(9) movedata view-as toggle-box label "Move Data" &IF "{&WINDOW-SYSTEM}" = "TTY"
-  &THEN SPACE(26) &ELSE SPACE(23) &ENDIF 
-   SKIP({&VM_WID})
- 
-             {prodict/user/userbtns.i}
-  WITH FRAME x ROW &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 1 &ELSE 2 &ENDIF CENTERED SIDE-labels 
+  movedata view-as toggle-box label "Move Data" 
+  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SPACE(26) &ELSE SPACE(23) &ENDIF 
+  SKIP({&VM_WID})
+  SPACE(9) shadowcol VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns" SKIP({&VM_WID}) 
+  cFormat VIEW-AS TEXT NO-LABEL AT 10
+  iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
+                                             "4GL Format", 2
+                               HORIZONTAL NO-LABEL SKIP({&VM_WID})
+  lExpand VIEW-AS TOGGLE-BOX LABEL "Expand x(8) to 30" AT 46
+     {prodict/user/userbtns.i}
+  WITH FRAME x ROW 
+    &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 1 &ELSE 2 &ENDIF 
+    CENTERED SIDE-labels 
     DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel
     &IF "{&WINDOW-SYSTEM}" <> "TTY"
   &THEN VIEW-AS DIALOG-BOX &ENDIF
@@ -143,6 +158,16 @@ on HELP of frame x or CHOOSE of btn_Help in frame x
                              INPUT ?).
 &ENDIF  
    
+ON VALUE-CHANGED OF iFmtOption IN FRAME x DO:
+  IF SELF:SCREEN-VALUE = "1" THEN
+    ASSIGN lExpand:CHECKED   = FALSE
+           lExpand:SENSITIVE = FALSE
+           lFormat           = ?.
+  ELSE
+    ASSIGN lExpand:CHECKED   = TRUE
+           lExpand:SENSITIVE = TRUE
+           lFormat           = FALSE.
+END.   
 
 ON VALUE-CHANGED of loadsql IN FRAME x DO:
   IF SELF:screen-value = "yes" THEN 
@@ -166,6 +191,7 @@ IF NOT batch_mode THEN DO:
    }
    &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
    btn_Help:visible IN FRAME x = yes.
+   ASSIGN shadowcol:TOOLTIP = "Use shadow columns for case insensitive index support".
    &ENDIF
 END.
 
@@ -206,13 +232,14 @@ END.
 ELSE
   pcompatible = TRUE.
      
+/* Initialize field width choice */
 IF OS-GETENV("SQLWIDTH") <> ? THEN DO:
   tmp_str      = OS-GETENV("SQLWIDTH").
-  IF tmp_str BEGINS "Y" then sqlwidth = TRUE.
-  ELSE sqlwidth = FALSE.
+  IF tmp_str BEGINS "Y" THEN iFmtOption = 1.
+  ELSE iFmtOption = 2.
 END. 
 ELSE
-  sqlwidth = FALSE.
+  iFmtOption = 2.
 
 IF OS-GETENV("LOADSQL") <> ? THEN DO:
   tmp_str      = OS-GETENV("LOADSQL").
@@ -240,6 +267,27 @@ END.
 ELSE 
   ASSIGN crtdefault = FALSE.
 
+IF OS-GETENV("SHADOWCOL") <> ? THEN DO:
+  ASSIGN tmp_str  = OS-GETENV("SHADOWCOL").
+  IF tmp_str BEGINS "Y" then shadowcol = TRUE.
+  ELSE shadowcol = FALSE.
+END. 
+ELSE
+  ASSIGN shadowcol = FALSE.
+
+IF OS-GETENV("EXPANDX8") <> ? THEN DO:
+    ASSIGN tmp_str  = OS-GETENV("EXPANDX8").
+    IF tmp_str BEGINS "Y" THEN 
+      ASSIGN lExpand = TRUE
+             lFormat = FALSE.
+    ELSE 
+      ASSIGN lExpand = FALSE
+             lFormat = TRUE.
+END. 
+ELSE
+    ASSIGN lExpand = TRUE
+           lFormat = FALSE.
+
 IF PROGRESS EQ "COMPILE-ENCRYPT" THEN
   ASSIGN mvdta = FALSE.
 ELSE
@@ -263,6 +311,7 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
   IF NOT batch_mode THEN 
   _updtvar: 
    DO WHILE TRUE:
+    DISPLAY cFormat lExpand WITH FRAME x.
     UPDATE pro_dbname
       pro_conparms
       osh_dbname
@@ -276,16 +325,23 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
       ora_tspace
       ora_ispace
       pcompatible
+      crtdefault
       loadsql
       movedata WHEN mvdta 
-      crtdefault
-      sqlwidth
+      shadowcol
+      iFmtOption
+      lExpand WHEN iFmtOption = 2
       btn_OK btn_Cancel 
       &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
             btn_Help
       &ENDIF      
       WITH FRAME x.
     
+    IF iFmtOption = 1 THEN
+      lFormat = ?.
+    ELSE
+      lFormat = (NOT lExpand).
+
     IF LDBNAME ("DICTDB") <> pro_dbname THEN DO:
       ASSIGN old-dictdb = LDBNAME("DICTDB").
       IF NOT CONNECTED(pro_dbname) THEN
@@ -429,10 +485,4 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
   END.
 
 END.
- 
- 
-
-
-
-
 

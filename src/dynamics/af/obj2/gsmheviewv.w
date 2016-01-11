@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
           icfdb            PROGRESS
@@ -29,25 +29,9 @@ DEFINE TEMP-TABLE RowObject
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -117,7 +101,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /* Include file with RowObject temp-table definition */
 &Scoped-define DATA-FIELD-DEFS "af/obj2/gsmhefullo.i"
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
@@ -152,21 +136,21 @@ DEFINE VARIABLE h_dyncombo AS HANDLE NO-UNDO.
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     RowObject.help_container_filename AT ROW 2.04 COL 25.72 COLON-ALIGNED
+     RowObject.help_container_filename AT ROW 2.1 COL 25.8 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 78.43 BY 1
-     RowObject.help_object_filename AT ROW 3.12 COL 25.72 COLON-ALIGNED
+          SIZE 78.4 BY 1
+     RowObject.help_object_filename AT ROW 3.19 COL 25.8 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 78.43 BY 1
-     RowObject.help_fieldname AT ROW 4.15 COL 25.72 COLON-ALIGNED
+          SIZE 78.4 BY 1
+     RowObject.help_fieldname AT ROW 4.29 COL 25.8 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 78.43 BY 1
-     RowObject.help_filename AT ROW 5.19 COL 25.72 COLON-ALIGNED
+          SIZE 78.4 BY 1
+     RowObject.help_filename AT ROW 5.38 COL 25.8 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 78.43 BY 1
-     RowObject.help_context AT ROW 6.23 COL 25.72 COLON-ALIGNED
+          SIZE 78.4 BY 1
+     RowObject.help_context AT ROW 6.48 COL 25.8 COLON-ALIGNED
           VIEW-AS FILL-IN 
-          SIZE 78.43 BY 1
+          SIZE 78.4 BY 1
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -206,8 +190,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 6.65
-         WIDTH              = 106.29.
+         HEIGHT             = 6.67
+         WIDTH              = 106.2.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -229,7 +213,7 @@ END.
 /* SETTINGS FOR WINDOW vTableWin
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frMain
-   NOT-VISIBLE Size-to-Fit                                              */
+   NOT-VISIBLE FRAME-NAME Size-to-Fit                                   */
 ASSIGN 
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
@@ -284,10 +268,10 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_language.language_name,gsc_language.language_codeKeyFieldgsc_language.language_objFieldLabelLanguageFieldTooltipSelect a language from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 (&2)CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines5ComboFlagNFlagValue0BuildSequence1SecurednoCustomSuperProcFieldNamelanguage_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_language.language_name,gsc_language.language_codeKeyFieldgsc_language.language_objFieldLabelLanguageFieldTooltipSelect a language from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 (&2)ComboDelimiterListItemPairsInnerLines5SortnoComboFlagNFlagValue0BuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesSuperProcedureDataSourceNameFieldNamelanguage_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dyncombo ).
-       RUN repositionObject IN h_dyncombo ( 1.00 , 27.72 ) NO-ERROR.
-       RUN resizeObject IN h_dyncombo ( 1.04 , 78.43 ) NO-ERROR.
+       RUN repositionObject IN h_dyncombo ( 1.00 , 27.80 ) NO-ERROR.
+       RUN resizeObject IN h_dyncombo ( 1.05 , 78.40 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */
        RUN adjustTabOrder ( h_dyncombo ,

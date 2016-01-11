@@ -28,25 +28,9 @@ af/cod/aftemwizpw.w
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -150,9 +134,10 @@ DEFINE INPUT PARAMETER phOldBuffer                    AS HANDLE     NO-UNDO.
 
 
 /* ***************************  Main Block  *************************** */
-
 DEFINE VARIABLE iLoopNum              AS INTEGER    NO-UNDO.
 DEFINE VARIABLE iLoopFields           AS INTEGER    NO-UNDO.
+define variable iExtentLoop           as integer    no-undo.
+define variable iExtents              as integer    no-undo.
 DEFINE VARIABLE cBufferValues         AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cKeyFieldValue        AS CHARACTER  NO-UNDO.
 
@@ -175,128 +160,189 @@ ASSIGN
   .
 
 IF LOOKUP(pcAction,"CREATE,WRITE,DELETE":U) > 0
-AND VALID-HANDLE(phNewBuffer)
-AND VALID-HANDLE(phOldBuffer)
+AND VALID-HANDLE(phNewBuffer) AND VALID-HANDLE(phOldBuffer)
 THEN DO:
-
-  FIND FIRST b_gsc_entity_mnemonic NO-LOCK
+  FIND b_gsc_entity_mnemonic NO-LOCK
     WHERE b_gsc_entity_mnemonic.entity_mnemonic = pcEntityMnemonic
     NO-ERROR.
   IF NOT AVAILABLE b_gsc_entity_mnemonic
   THEN LEAVE.
-
-  /*put the appropriate identifying field name in cKeyFieldValue*/
+  
+  /* Put the appropriate identifying field name in cKeyFieldValue*/
   IF b_gsc_entity_mnemonic.table_has_object_field AND b_gsc_entity_mnemonic.entity_object_field <> "" THEN
-    ASSIGN
-      cKeyFieldValue = b_gsc_entity_mnemonic.entity_object_field.
+    assign cKeyFieldValue = b_gsc_entity_mnemonic.entity_object_field.
   ELSE IF b_gsc_entity_mnemonic.entity_key_field <> "" THEN
-    ASSIGN
-      cKeyFieldValue = b_gsc_entity_mnemonic.entity_key_field.
-
+    assign cKeyFieldValue = b_gsc_entity_mnemonic.entity_key_field.
+  
   cKeyFieldValue = REPLACE(cKeyFieldValue,'~,':U,CHR(2)).
-
-  IF iLoopFields = 0
-  AND phOldBuffer:AVAILABLE
-  THEN
-    ASSIGN iLoopFields = phOldBuffer:NUM-FIELDS.
-
-  IF iLoopFields = 0
-  AND phNewBuffer:AVAILABLE
-  THEN
-    ASSIGN iLoopFields = phNewBuffer:NUM-FIELDS.
-
-  IF iLoopFields <> 0
-  THEN DO iLoopNum = 1 TO iLoopFields:
-
-    ASSIGN
-      cBufferFieldName = "":U
-      .
-
+  
+  /* Determine number of fields to loop through.
+     Only attempt to audit if at least one buffer is 
+     available.
+   */
+  if phNewBuffer:available or phOldBuffer:available then
+      iLoopFields = phOldBuffer:NUM-FIELDS.
+  
+  IF iLoopFields <> 0 THEN 
+  FIELD-LOOP:
+  DO iLoopNum = 1 TO iLoopFields:
+    assign cBufferFieldName = "":U
+           iExtents = 0
+           hOldBufferField = ?.
+    
+    /* Get the names of the fields in the buffer.
+       We can get these names off either buffer, without
+       worrying about whether the record is available. 
+     */
+    hNewBufferField = phNewBuffer:BUFFER-FIELD(iLoopNum) NO-ERROR.
+    
+    iExtents = hNewBufferField:extent.
+    if iExtents gt 0 then
+    do iExtentLoop = 1 to iExtents:
+        cBufferFieldName = cBufferFieldName
+                         + (if iExtentLoop eq 1 then '':u else ';':u)
+                         /* Extent field names are consistent with their DataField representation */
+                         + hNewBufferField:name + string(iExtentLoop).
+    end.    /* extent loop */
+    else
+        cBufferFieldName = hNewBufferField:NAME.
+    
+    /* We can't/don't audit BLOB and CLOB fields. */
+    if can-do('Blob,Clob':u, hNewBufferField:Data-type) then
+        next FIELD-LOOP.
+    
+    /* We use this buffer handle later for other stuff. 
+       Clean it out now.
+     */
+    hNewBufferField = ?.
+    
+    /* New buffer typically available on CREATE, WRITE and DELETE.
+       
+       However, there is nothing stopping this procedure being called
+       with the new buffer not having an available record, and/or the
+       old buffer having (or not having) a record available. We need 
+       to ensure that this code works fine whether the new (and old)
+       buffers have available records or not.       
+     */
     IF phNewBuffer:AVAILABLE
     THEN DO:
-      ASSIGN
-        hNewBufferField = phNewBuffer:BUFFER-FIELD(iLoopNum)
-        NO-ERROR.
-      IF cBufferFieldName = "":U
-      THEN
-        ASSIGN
-          cBufferFieldName = hNewBufferField:NAME.
+      hNewBufferField = phNewBuffer:BUFFER-FIELD(iLoopNum) No-error.
+      /* if the fieldname is in cKeyFieldValue then replace the field name with the field value in cKeyFieldValue*/
+      IF LOOKUP(cBufferFieldName,cKeyFieldValue,CHR(2)) > 0 THEN
+        assign ENTRY(LOOKUP(cBufferFieldName,cKeyFieldValue,CHR(2)),cKeyFieldValue,CHR(2)) = STRING(hNewBufferField:BUFFER-VALUE).
+    END.    /* new buffer available */
+    
+    /* No ELSE here because WRITE actions have both new and old available */
+        /* Old buffer available on WRITE.
+       No old buffer available on CREATE and DELETE.
+     */
+    IF phOldBuffer:AVAILABLE
+    THEN DO:
+      hOldBufferField = phOldBuffer:BUFFER-FIELD(iLoopNum) NO-ERROR.
       
       /*if the fieldname is in cKeyFieldValue then replace the field name with the field value in cKeyFieldValue*/
       IF LOOKUP(cBufferFieldName,cKeyFieldValue,CHR(2)) > 0 THEN
-        ASSIGN
-          ENTRY(LOOKUP(cBufferFieldName,cKeyFieldValue,CHR(2)),cKeyFieldValue,CHR(2)) = STRING(hNewBufferField:BUFFER-VALUE).
-    END.
-    ELSE
-      ASSIGN
-        hNewBufferField = ?
-        NO-ERROR.
+        assign ENTRY(LOOKUP(cBufferFieldName,cKeyFieldValue,CHR(2)),cKeyFieldValue,CHR(2)) = STRING(hOldBufferField:BUFFER-VALUE).
+    END.    /* Old buffer available */
+    
+    IF LOOKUP(pcAction,"DELETE":U) > 0 THEN DO:
+       /* Be careful here: the Old variable gets the New buffer,
+          and vice-versa. 
+          
+          This is (probably) because only the New buffer is available
+          on deletes, and it may be more logical to think of the
+          new value being the missing (i.e. deleted) record, and so
+          we want to transpose the value from the New buffer into
+          the Old variable.
+           
+          [PJ] Not 100% sure that this is the reason, but I think 
+               this is why.
+        */
+       
+       /* Create an empty value for cases where the
+          buffer field isn't available/valid.
+        */
+       if iExtents eq 0 then 
+           assign cBufferFieldValueNew = (IF VALID-HANDLE(hOldBufferField) THEN hOldBufferField:BUFFER-VALUE ELSE "":U)
+                  cBufferFieldValueOld = (IF VALID-HANDLE(hNewBufferField) THEN hNewBufferField:BUFFER-VALUE ELSE "":U).
+       else
+       do:
+           if not phNewBuffer:available then
+               cBufferFieldValueOld = fill(chr(3), iExtents - 1).
+           else
+           do iExtentLoop = 1 to iExtents:
+               cBufferFieldValueOld = (if iExtentLoop eq 1 then '':u else (cBufferFieldValueOld + chr(3)))
+                                    + (if hNewBufferField:buffer-value(iExtentLoop) eq ? then '?':u else hNewBufferField:buffer-value(iExtentLoop)).
+           end.    /* extent loop */
+           
+           if not phOldBuffer:available then
+               cBufferFieldValueNew = fill(chr(3), iExtents - 1).           
+           else
+           do iExtentLoop = 1 to iExtents:
+               cBufferFieldValueNew = (if iExtentLoop eq 1 then '':u else (cBufferFieldValueNew + chr(3)))
+                                    + (if hOldBufferField:buffer-value(iExtentLoop) eq ? then '?':u else hOldBufferField:buffer-value(iExtentLoop)).
+           end.    /* extent loop */
+        end.    /* field has extents */
+    END.    /* Delete */
+    ELSE DO:
+       /* Create an empty value for cases where the
+          buffer field isn't available/valid.
+        */
+        if iExtents eq 0 then
+           assign cBufferFieldValueNew = (IF VALID-HANDLE(hNewBufferField) THEN hNewBufferField:BUFFER-VALUE ELSE "":U)
+                  cBufferFieldValueOld = (IF VALID-HANDLE(hOldBufferField) THEN hOldBufferField:BUFFER-VALUE ELSE "":U).
+        else
+        do:                                                    
+            if not phNewBuffer:available then
+                cBufferFieldValueNew = fill(chr(3), iExtents - 1).
+            else
+            do iExtentLoop = 1 to iExtents:
+                cBufferFieldValueNew = (if iExtentLoop eq 1 then '':u else (cBufferFieldValueNew + chr(3)))                     
+                                     + (if hNewBufferField:buffer-value(iExtentLoop) eq ? then '?':u else hNewBufferField:buffer-value(iExtentLoop)).
+            end.    /* extent loop */
 
-    IF phOldBuffer:AVAILABLE
-    THEN DO:
-      ASSIGN
-        hOldBufferField = phOldBuffer:BUFFER-FIELD(iLoopNum)
-        NO-ERROR.
-      IF cBufferFieldName = "":U
-      THEN
-        ASSIGN
-          cBufferFieldName = hOldBufferField:NAME.
-      /*if the fieldname is in cKeyFieldValue then replace the field name with the field value in cKeyFieldValue*/
-      IF LOOKUP(cBufferFieldName,cKeyFieldValue,CHR(2)) > 0 THEN
-        ASSIGN
-          ENTRY(LOOKUP(cBufferFieldName,cKeyFieldValue,CHR(2)),cKeyFieldValue,CHR(2)) = STRING(hOldBufferField:BUFFER-VALUE).
-    END.
-    ELSE
-      ASSIGN
-        hOldBufferField = ?
-        NO-ERROR.
-
-    /* cBufferFieldValueNew is set to unknown so the ASSIGN code below is skipped for BLOB/CLOB fields */
-    cBufferFieldValueNew = ?.
-    IF VALID-HANDLE(hNewBufferField) THEN
-      IF hNewBufferField:DATA-TYPE = "BLOB":U OR hNewBufferField:DATA-TYPE = "CLOB":U THEN
-         ASSIGN cBufferFieldValueOld = "":U cBufferFieldValueNew = "":U.
-
-    IF cBufferFieldValueNew = ? AND VALID-HANDLE(hOldBufferField) THEN
-      IF hOldBufferField:DATA-TYPE = "BLOB":U OR hOldBufferField:DATA-TYPE = "CLOB":U THEN
-         ASSIGN cBufferFieldValueOld = "":U cBufferFieldValueNew = "":U.     
-
-    IF cBufferFieldValueNew = ? THEN DO:
-       IF LOOKUP(pcAction,"DELETE":U) > 0 THEN DO:
-         ASSIGN
-           cBufferFieldValueOld = (IF VALID-HANDLE(hNewBufferField) THEN hNewBufferField:BUFFER-VALUE ELSE "":U)
-           cBufferFieldValueNew = (IF VALID-HANDLE(hOldBufferField) THEN hOldBufferField:BUFFER-VALUE ELSE "":U)
-         .
-       END.
-       ELSE DO:
-         ASSIGN
-           cBufferFieldValueNew = (IF VALID-HANDLE(hNewBufferField) THEN hNewBufferField:BUFFER-VALUE ELSE "":U)
-           cBufferFieldValueOld = (IF VALID-HANDLE(hOldBufferField) THEN hOldBufferField:BUFFER-VALUE ELSE "":U)
-         .
-       END.
-    END.
-
+            if not phOldBuffer:available then
+                cBufferFieldValueOld = fill(chr(3), iExtents - 1).
+            else
+            do iExtentLoop = 1 to iExtents:
+                cBufferFieldValueOld = (if iExtentLoop eq 1 then '':u else (cBufferFieldValueOld + chr(3)))
+                                     + (if hOldBufferField:buffer-value(iExtentLoop) eq ? then '?':u else hOldBufferField:buffer-value(iExtentLoop)).
+            end.    /* extent loop */
+        end.    /* field has extents */
+    END.    /* Create/Write */  
+    
     IF cBufferFieldName <> "":U
     AND ( ( LOOKUP(pcAction,"WRITE":U) > 0 AND cBufferFieldValueNew <> cBufferFieldValueOld )
       OR  ( LOOKUP(pcAction,"CREATE,DELETE":U) > 0 ) )
     THEN DO:
-      ASSIGN
-        cBufferValues = cBufferValues
-                      + (IF iLoopNum > 1 AND cBufferValues <> "":U THEN CHR(5) ELSE "":U)
-                      + cBufferFieldName
-                      + CHR(6)
-                      + (IF cBufferFieldValueNew = ? THEN "?":U ELSE cBufferFieldValueNew)
-                      + CHR(6)
-                      + (IF cBufferFieldValueOld  = ? THEN "?":U ELSE cBufferFieldValueOld)
-                      .
-    END.
-
-  END.
-
-  IF (b_gsc_entity_mnemonic.entity_object_field <> "":U OR b_gsc_entity_mnemonic.entity_key_field <> "":U) AND cKeyFieldValue <> "":U
-  THEN DO:
-
-    ASSIGN
+        if iExtents eq 0 then
+            assign cBufferValues = cBufferValues
+                                 + (IF iLoopNum > 1 AND cBufferValues <> "":U THEN CHR(5) ELSE "":U)
+                                 + cBufferFieldName
+                                 + CHR(6)
+                                 + (IF cBufferFieldValueNew = ? THEN "?":U ELSE cBufferFieldValueNew)
+                                 + CHR(6)
+                                 + (IF cBufferFieldValueOld  = ? THEN "?":U ELSE cBufferFieldValueOld).
+        else
+        do iExtentLoop = 1 to iExtents:
+            /* We've made sure above that there will always be
+               the right number of entries here.
+             */
+            if entry(iExtentLoop, cBufferFieldValueNew, chr(3)) ne entry(iExtentLoop, cBufferFieldValueOld, chr(3)) then
+                cBufferValues = cBufferValues
+                              + (if iLoopNum gt 1 and cBufferValues ne '':u then chr(5) else '':u)
+                              + entry(iExtentLoop, cBufferFieldName, ';':u)
+                              + chr(6)
+                              + entry(iExtentLoop, cBufferFieldValueNew, chr(3))
+                              + chr(6)
+                              + entry(iExtentLoop, cBufferFieldValueOld, chr(3)).
+        end.    /* extent loop */
+    END.    /* buffer fieldname exists */
+  END.    /* FIELD-LOOP: loop through fields */
+  
+  IF (b_gsc_entity_mnemonic.entity_object_field <> "":U OR b_gsc_entity_mnemonic.entity_key_field <> "":U) AND 
+      cKeyFieldValue <> "":U THEN 
+  DO:
       dCurrentUserObj = DECIMAL( DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager ,INPUT "CurrentUserObj" ,INPUT NO) ) NO-ERROR.
 
     CREATE gst_audit NO-ERROR. /* gst_audit.audit_obj = getNextObj() */
@@ -343,20 +389,17 @@ THEN DO:
       END.
     END.
 
-    IF gst_audit.program_procedure = "":U
-    THEN
+    IF gst_audit.program_procedure = "":U THEN
     DO:
-      ASSIGN
-        gst_audit.program_procedure = PROGRAM-NAME(3) NO-ERROR.
+      ASSIGN gst_audit.program_procedure = PROGRAM-NAME(3) NO-ERROR.
       IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR RETURN-VALUE.
     END.
 
     /* Catch errors from the write trigger */
     VALIDATE gst_audit NO-ERROR.
     IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR RETURN-VALUE.
-  END.
-
-END.
+  END.    /* ntity has a key field, and there's a vallue recorded for it */
+END.    /* there's a valid before and after image buffer, and this is an auditable action */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" sObject _INLINE
@@ -20,25 +20,9 @@ af/cod/aftemwizpw.w
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS sObject 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -130,7 +114,7 @@ DEFINE VARIABLE glObjectVisible             AS LOGICAL    NO-UNDO.
 &Scoped-define PROCEDURE-TYPE SmartObject
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
@@ -219,7 +203,7 @@ END.
 /* SETTINGS FOR WINDOW sObject
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frMain
-   NOT-VISIBLE                                                          */
+   NOT-VISIBLE FRAME-NAME                                               */
 ASSIGN 
        FRAME frMain:HIDDEN           = TRUE.
 
@@ -522,7 +506,7 @@ ASSIGN
   .
 
 /* Hide the browse while it is repopulated to avoid flashing */
-ghBrowse:VISIBLE = NO.
+ghBrowse:HIDDEN = YES.
 ghBrowse:SENSITIVE = NO.
 
 /* Add fields to browser */
@@ -578,10 +562,9 @@ ghBrowse:NUM-LOCKED-COLUMNS = 1.
 ghQuery:QUERY-OPEN().
 
 /* And show the browse to the user */
-FRAME {&FRAME-NAME}:VISIBLE = FALSE.
-ghBrowse:VISIBLE = YES.
+FRAME {&FRAME-NAME}:HIDDEN = YES.
+ghBrowse:HIDDEN = NO.
 ghBrowse:SENSITIVE = YES.
-FRAME {&FRAME-NAME}:VISIBLE = FALSE.
 
 /* /* Reposition to current record in browse - if in data set */ */
 /* IF ttLookCtrl.cRowIdent <> "":U AND                           */

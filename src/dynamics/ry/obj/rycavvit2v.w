@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
           icfdb            PROGRESS
@@ -29,25 +29,9 @@ DEFINE TEMP-TABLE RowObject
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -127,19 +111,18 @@ DEFINE VARIABLE glMaintain AS LOGICAL    NO-UNDO.
 RowObject.object_type_obj RowObject.primary_smartobject_obj ~
 RowObject.smartobject_obj RowObject.container_smartobject_obj ~
 RowObject.object_instance_obj RowObject.constant_value ~
-RowObject.applies_at_runtime RowObject.integer_value ~
-RowObject.character_value RowObject.decimal_value RowObject.date_value ~
-RowObject.logical_value 
+RowObject.applies_at_runtime RowObject.date_value RowObject.decimal_value ~
+RowObject.integer_value RowObject.character_value RowObject.logical_value 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-Define ENABLED-OBJECTS raLogicalValue fiAttrNarrative RECT-1 
+&Scoped-Define ENABLED-OBJECTS RECT-1 raLogicalValue fiAttrNarrative 
 &Scoped-Define DISPLAYED-FIELDS RowObject.dAttributeGroupObj ~
 RowObject.object_type_obj RowObject.primary_smartobject_obj ~
 RowObject.smartobject_obj RowObject.container_smartobject_obj ~
 RowObject.object_instance_obj RowObject.constant_value ~
-RowObject.applies_at_runtime RowObject.integer_value ~
-RowObject.character_value RowObject.decimal_value RowObject.date_value ~
-RowObject.logical_value RowObject.data_type 
+RowObject.applies_at_runtime RowObject.date_value RowObject.decimal_value ~
+RowObject.integer_value RowObject.character_value RowObject.logical_value ~
+RowObject.data_type 
 &Scoped-define DISPLAYED-TABLES RowObject
 &Scoped-define FIRST-DISPLAYED-TABLE RowObject
 &Scoped-Define DISPLAYED-OBJECTS toMaint toIncludeDesign fiDataTypeDesc ~
@@ -277,40 +260,40 @@ DEFINE FRAME frMain
           LABEL "Applies at runtime"
           VIEW-AS TOGGLE-BOX
           SIZE 21.6 BY .81
-     fiDataTypeDesc AT ROW 4.91 COL 18.6 COLON-ALIGNED
-     RowObject.integer_value AT ROW 6 COL 18.6 COLON-ALIGNED NO-LABEL
-          VIEW-AS FILL-IN 
-          SIZE 50 BY 1
-     RowObject.character_value AT ROW 6 COL 20.6 NO-LABEL
-          VIEW-AS EDITOR SCROLLBAR-VERTICAL
-          SIZE 50 BY 4
-     RowObject.decimal_value AT ROW 6 COL 18.6 COLON-ALIGNED NO-LABEL
-          VIEW-AS FILL-IN 
-          SIZE 50 BY 1
-     RowObject.date_value AT ROW 6 COL 18.6 COLON-ALIGNED NO-LABEL
+     fiDataTypeDesc AT ROW 4.95 COL 18.6 COLON-ALIGNED
+     RowObject.date_value AT ROW 6.05 COL 18.6 COLON-ALIGNED NO-LABEL
           VIEW-AS FILL-IN 
           SIZE 21.2 BY 1
-     RowObject.logical_value AT ROW 6.05 COL 19.4
+     RowObject.decimal_value AT ROW 6.05 COL 18.6 COLON-ALIGNED NO-LABEL
+          VIEW-AS FILL-IN 
+          SIZE 50 BY 1
+     RowObject.integer_value AT ROW 6.05 COL 18.6 COLON-ALIGNED NO-LABEL
+          VIEW-AS FILL-IN 
+          SIZE 50 BY 1
+     RowObject.character_value AT ROW 6.05 COL 20.6 NO-LABEL
+          VIEW-AS EDITOR SCROLLBAR-VERTICAL
+          SIZE 50 BY 4
+     RowObject.logical_value AT ROW 6.1 COL 19.4
           LABEL "" FORMAT "yes/no":U
           VIEW-AS FILL-IN 
           SIZE 7.2 BY .81
-     raLogicalValue AT ROW 6.05 COL 20.6 NO-LABEL
-     fiAttrNarrative AT ROW 10 COL 20.6 NO-LABEL
-     toDesignOnly AT ROW 10.05 COL 72.4
-     toRuntimeOnly AT ROW 11.05 COL 72.4
-     toIsPrivate AT ROW 11.95 COL 72.4
-     toSystemOwned AT ROW 12.91 COL 72.4
-     coConstantLevel AT ROW 13.05 COL 18.6 COLON-ALIGNED HELP
+     raLogicalValue AT ROW 6.1 COL 20.6 NO-LABEL
+     fiAttrNarrative AT ROW 10.1 COL 20.6 NO-LABEL
+     toDesignOnly AT ROW 10.14 COL 72.4
+     toRuntimeOnly AT ROW 11.14 COL 72.4
+     toIsPrivate AT ROW 12.05 COL 72.4
+     toSystemOwned AT ROW 13 COL 72.4
+     coConstantLevel AT ROW 13.19 COL 18.6 COLON-ALIGNED HELP
           "Constant level"
-     RowObject.data_type AT ROW 13.05 COL 61.4 COLON-ALIGNED
+     RowObject.data_type AT ROW 13.19 COL 61.4 COLON-ALIGNED
           LABEL "Data type"
           VIEW-AS FILL-IN 
           SIZE 7.6 BY 1
-     cOverride AT ROW 15.05 COL 21.8 NO-LABEL
-     fiLabel AT ROW 6.19 COL 3.4 COLON-ALIGNED NO-LABEL
-     fiNarrativeLabel AT ROW 9.05 COL 2.6 NO-LABEL
-     fiOverrideTypeLabel AT ROW 14.29 COL 20.6 COLON-ALIGNED NO-LABEL
-     RECT-1 AT ROW 14.52 COL 20.6
+     cOverride AT ROW 15.19 COL 21.8 NO-LABEL
+     fiLabel AT ROW 6.24 COL 3.4 COLON-ALIGNED NO-LABEL
+     fiNarrativeLabel AT ROW 9.1 COL 2.6 NO-LABEL
+     fiOverrideTypeLabel AT ROW 14.43 COL 20.6 COLON-ALIGNED NO-LABEL
+     RECT-1 AT ROW 14.67 COL 20.6
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -689,7 +672,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldryc_attribute_group.attribute_group_nameKeyFieldryc_attribute_group.attribute_group_objFieldLabelAttribute groupFieldTooltipSelect an attribute group from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH ryc_attribute_group NO-LOCK BY ryc_attribute_group.attribute_group_nameQueryTablesryc_attribute_groupSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1ComboDelimiterListItemPairsInnerLines5ComboFlagAFlagValue0BuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldName<Local>DisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldryc_attribute_group.attribute_group_nameKeyFieldryc_attribute_group.attribute_group_objFieldLabelAttribute groupFieldTooltipSelect an attribute group from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH ryc_attribute_group NO-LOCK BY ryc_attribute_group.attribute_group_nameQueryTablesryc_attribute_groupSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1ComboDelimiterListItemPairsInnerLines5SortnoComboFlagAFlagValue0BuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesSuperProcedureDataSourceNameFieldName<Local>DisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hAttributeGroupObj ).
        RUN repositionObject IN hAttributeGroupObj ( 1.00 , 20.60 ) NO-ERROR.
        RUN resizeObject IN hAttributeGroupObj ( 1.05 , 50.00 ) NO-ERROR.
@@ -697,7 +680,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldryc_attribute.attribute_labelKeyFieldryc_attribute.attribute_labelFieldLabelAttribute labelFieldTooltipPress F4 for lookupKeyFormatX(35)KeyDatatypecharacterDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_attribute NO-LOCK INDEXED-REPOSITIONQueryTablesryc_attributeBrowseFieldsryc_attribute.attribute_label,ryc_attribute.attribute_narrative,ryc_attribute.system_ownedBrowseFieldDataTypescharacter,character,logicalBrowseFieldFormatsX(35)|X(500)|YES/NORowsToBatch200BrowseTitleLookup AttributeViewerLinkedFieldsryc_attribute.runtime_only,ryc_attribute.override_type,ryc_attribute.constant_level,ryc_attribute.data_type,ryc_attribute.design_only,ryc_attribute.is_private,ryc_attribute.attribute_narrative,ryc_attribute.system_ownedLinkedFieldDataTypeslogical,character,character,integer,logical,logical,character,logicalLinkedFieldFormatsYES/NO,X(3000),X(10),->>9,YES/NO,YES/NO,X(500),YES/NOViewerLinkedWidgetstoRuntimeOnly,fiDummy,fiDummy,iDataType,toDesignOnly,toIsPrivate,fiAttrNarrative,toSystemOwnedColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFielddAttributeGroupObj,dAttributeGroupObj,toIncludeDesign,toMaintParentFilterQuery(IF DECIMAL(~'&1~') <> 0 THEN ryc_attribute.attribute_group_obj = DECIMAL(~'&1~') ELSE TRUE) AND (IF ~'&3~' = ~'yes~' OR ~'&4~' = ~'no~' THEN TRUE ELSE ryc_attribute.design_only = FALSE)MaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListNO-LOCK INDEXED-REPOSITIONQueryBuilderOrderListQueryBuilderTableOptionListNO-LOCKQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNameattribute_labelDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldryc_attribute.attribute_labelKeyFieldryc_attribute.attribute_labelFieldLabelAttribute labelFieldTooltipPress F4 for lookupKeyFormatX(35)KeyDatatypecharacterDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_attribute NO-LOCK INDEXED-REPOSITIONQueryTablesryc_attributeBrowseFieldsryc_attribute.attribute_label,ryc_attribute.attribute_narrative,ryc_attribute.system_ownedBrowseFieldDataTypescharacter,character,logicalBrowseFieldFormatsX(35)|X(500)|YES/NORowsToBatch200BrowseTitleLookup AttributeViewerLinkedFieldsryc_attribute.runtime_only,ryc_attribute.override_type,ryc_attribute.constant_level,ryc_attribute.data_type,ryc_attribute.design_only,ryc_attribute.is_private,ryc_attribute.attribute_narrative,ryc_attribute.system_ownedLinkedFieldDataTypeslogical,character,character,integer,logical,logical,character,logicalLinkedFieldFormatsYES/NO,X(3000),X(10),->>9,YES/NO,YES/NO,X(500),YES/NOViewerLinkedWidgetstoRuntimeOnly,fiDummy,fiDummy,iDataType,toDesignOnly,toIsPrivate,fiAttrNarrative,toSystemOwnedColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFielddAttributeGroupObj,dAttributeGroupObj,toIncludeDesign,toMaintParentFilterQuery(IF DECIMAL(~'&1~') <> 0 THEN ryc_attribute.attribute_group_obj = DECIMAL(~'&1~') ELSE TRUE) AND (IF ~'&3~' = ~'yes~' OR ~'&4~' = ~'no~' THEN TRUE ELSE ryc_attribute.design_only = FALSE)MaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListNO-LOCK INDEXED-REPOSITIONQueryBuilderOrderListQueryBuilderTableOptionListNO-LOCKQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureDataSourceNameFieldNameattribute_labelDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hAttributeLabel ).
        RUN repositionObject IN hAttributeLabel ( 3.00 , 20.60 ) NO-ERROR.
        RUN resizeObject IN hAttributeLabel ( 1.00 , 50.00 ) NO-ERROR.

@@ -1,5 +1,12 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /* Connected Databases 
           icfdb            PROGRESS
 */
@@ -9,13 +16,6 @@
 /* This has to go above the definitions sections, as that is what it modifies.
    If its not, then the definitions section will have been saved before the
    XFTR code kicks in and changes it */
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR " Static SmartDataViewer Wizard" vTableWin _INLINE
-/* Actions: af/cod/aftemwizcw.w ? ? ? af/sup/afwizdeltp.p */
-/*  Static SmartDataViewer Wizard
-Destroy on next read */
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -134,10 +134,10 @@ DEFINE FRAME frMain
      RowObject.customization_type_code AT ROW 1 COL 27 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 34.8 BY 1
-     RowObject.customization_type_desc AT ROW 2 COL 27 COLON-ALIGNED
+     RowObject.customization_type_desc AT ROW 2.1 COL 27 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 78.4 BY 1
-     RowObject.api_name AT ROW 3 COL 18.6
+     RowObject.api_name AT ROW 3.19 COL 19
           VIEW-AS FILL-IN 
           SIZE 78.4 BY 1
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
@@ -179,8 +179,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 3
-         WIDTH              = 106.4.
+         HEIGHT             = 3.95
+         WIDTH              = 110.2.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME

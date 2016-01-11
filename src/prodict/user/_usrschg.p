@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -66,7 +50,7 @@ History:
                         default value from trigger routine (gat_cpvl.i).
     tomn    08/31/95    Changed read-only mode so that user is able to view
                         details after alert-box is dismissed
-                        
+  kmcintos  09/08/05    Added support for Oracle 10 20050318-015                      
 
 ----------------------------------------------------------------------------*/
 /*h-*/
@@ -97,7 +81,7 @@ DEFINE VARIABLE dname    AS CHARACTER          NO-UNDO.
 DEFINE VARIABLE dsource  AS CHARACTER          NO-UNDO.
 DEFINE VARIABLE dstitle  AS CHARACTER FORMAT "x(24)"    NO-UNDO.
 DEFINE VARIABLE ovtitle  AS CHARACTER FORMAT "x(15)"    NO-UNDO.
-DEFINE VARIABLE oraver   AS INTEGER FORMAT "9" NO-UNDO.
+DEFINE VARIABLE oraver   AS INTEGER FORMAT ">9" NO-UNDO.
 DEFINE VARIABLE olddb    AS CHARACTER          NO-UNDO.
 DEFINE VARIABLE olddbtyp AS CHARACTER          NO-UNDO.
 
@@ -116,7 +100,7 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 14 NO-UNDO INITIAL [
   /*11*/ "Logical Database Name may not be left blank or unknown.",
   /*12*/ "Connect parameters are required.",
   /*13*/ "ODBC Data Source Name is required.",
-  /*14*/ "Oracle version must be either 8, or 9."
+  /*14*/ "Oracle version must be either 8, 9 or 10."
 ].
 
 FORM
@@ -202,7 +186,9 @@ ON LEAVE OF DICTDB._Db._Db-name IN FRAME userschg DO:
 
 /* -----LEAVE of Oracle Version on add oraver ------------- */
 ON LEAVE OF oraver IN FRAME userschg DO:
-  IF INPUT oraver <> 8 AND INPUT oraver <> 9 THEN DO:
+  IF INPUT oraver <> 8 AND 
+     INPUT oraver <> 9 AND
+     INPUT oraver <> 10 THEN DO:
     MESSAGE new_lang[14] 
        VIEW-AS ALERT-BOX ERROR BUTTONS OK.
     APPLY "ENTRY" TO oraver IN FRAME userschg.

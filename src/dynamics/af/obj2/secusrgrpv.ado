@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<dataset Transactions="1"><dataset_header DisableRI="yes" DatasetObj="1004928896.09" DateFormat="mdy" FullHeader="no" SCMManaged="yes" YearOffset="1950" DatasetCode="RYCSO" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="91" NumericSeparator=","/>
-<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" version_date="10/03/2003" version_time="48757" version_user="admin" deletion_flag="no" entity_mnemonic="RYCSO" key_field_value="23688.0766" record_version_obj="23689.0766" version_number_seq="2.09" secondary_key_value="secusrgrpv#CHR(1)#0" import_version_number_seq="2.09"><smartobject_obj>23688.0766</smartobject_obj>
+<dataset Transactions="1"><dataset_header DatasetCode="RYCSO" DatasetObj="1004928896.09" DateFormat="mdy" DisableRI="yes" FullHeader="no" NumericDecimal="." NumericFormat="AMERICAN" NumericSeparator="," OriginatingSite="92" SCMManaged="yes" YearOffset="1950"/>
+<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" deletion_flag="no" entity_mnemonic="RYCSO" import_version_number_seq="15.709" key_field_value="23688.0766" record_version_obj="23689.0766" secondary_key_value="secusrgrpv#CHR(1)#0" version_date="08/19/2005" version_number_seq="15.709" version_time="52842" version_user="admin"><smartobject_obj>23688.0766</smartobject_obj>
 <object_filename>secusrgrpv</object_filename>
 <customization_result_obj>0</customization_result_obj>
 <object_type_obj>1003498162</object_type_obj>
@@ -290,22 +290,6 @@
 <render_type_obj>0</render_type_obj>
 <applies_at_runtime>yes</applies_at_runtime>
 </contained_record>
-<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>23696.0766</attribute_value_obj>
-<object_type_obj>5568.409</object_type_obj>
-<container_smartobject_obj>23688.0766</container_smartobject_obj>
-<smartobject_obj>6308.409</smartobject_obj>
-<object_instance_obj>23693.0766</object_instance_obj>
-<constant_value>no</constant_value>
-<attribute_label>LABEL</attribute_label>
-<character_value></character_value>
-<integer_value>0</integer_value>
-<date_value>?</date_value>
-<decimal_value>0</decimal_value>
-<logical_value>no</logical_value>
-<primary_smartobject_obj>23688.0766</primary_smartobject_obj>
-<render_type_obj>0</render_type_obj>
-<applies_at_runtime>yes</applies_at_runtime>
-</contained_record>
 <contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>23715.0766</attribute_value_obj>
 <object_type_obj>473.99</object_type_obj>
 <container_smartobject_obj>23688.0766</container_smartobject_obj>
@@ -370,6 +354,22 @@
 <render_type_obj>0</render_type_obj>
 <applies_at_runtime>yes</applies_at_runtime>
 </contained_record>
+<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>31.709</attribute_value_obj>
+<object_type_obj>1005097658.101</object_type_obj>
+<container_smartobject_obj>23688.0766</container_smartobject_obj>
+<smartobject_obj>122173.9875</smartobject_obj>
+<object_instance_obj>23727.0766</object_instance_obj>
+<constant_value>no</constant_value>
+<attribute_label>MasterFile</attribute_label>
+<character_value>adm2/dynlookup.w</character_value>
+<integer_value>0</integer_value>
+<date_value>?</date_value>
+<decimal_value>0</decimal_value>
+<logical_value>no</logical_value>
+<primary_smartobject_obj>23688.0766</primary_smartobject_obj>
+<render_type_obj>0</render_type_obj>
+<applies_at_runtime>yes</applies_at_runtime>
+</contained_record>
 <contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>23690.0766</attribute_value_obj>
 <object_type_obj>1003498162</object_type_obj>
 <container_smartobject_obj>0</container_smartobject_obj>
@@ -380,7 +380,7 @@
 <character_value></character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
-<decimal_value>13.38</decimal_value>
+<decimal_value>12.47</decimal_value>
 <logical_value>no</logical_value>
 <primary_smartobject_obj>23688.0766</primary_smartobject_obj>
 <render_type_obj>0</render_type_obj>
@@ -396,7 +396,7 @@
 <character_value></character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
-<decimal_value>81.4</decimal_value>
+<decimal_value>80.4</decimal_value>
 <logical_value>no</logical_value>
 <primary_smartobject_obj>23688.0766</primary_smartobject_obj>
 <render_type_obj>0</render_type_obj>
@@ -524,7 +524,7 @@
 <character_value></character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
-<decimal_value>11.1</decimal_value>
+<decimal_value>11.24</decimal_value>
 <logical_value>no</logical_value>
 <primary_smartobject_obj>23688.0766</primary_smartobject_obj>
 <render_type_obj>0</render_type_obj>
@@ -540,7 +540,7 @@
 <character_value></character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
-<decimal_value>12.24</decimal_value>
+<decimal_value>12.33</decimal_value>
 <logical_value>no</logical_value>
 <primary_smartobject_obj>23688.0766</primary_smartobject_obj>
 <render_type_obj>0</render_type_obj>
@@ -556,7 +556,7 @@
 <character_value></character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
-<decimal_value>10.05</decimal_value>
+<decimal_value>10.1</decimal_value>
 <logical_value>no</logical_value>
 <primary_smartobject_obj>23688.0766</primary_smartobject_obj>
 <render_type_obj>0</render_type_obj>
@@ -684,7 +684,7 @@
 <character_value></character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
-<decimal_value>76.4</decimal_value>
+<decimal_value>76</decimal_value>
 <logical_value>no</logical_value>
 <primary_smartobject_obj>23688.0766</primary_smartobject_obj>
 <render_type_obj>0</render_type_obj>
@@ -700,7 +700,7 @@
 <character_value></character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
-<decimal_value>49.8</decimal_value>
+<decimal_value>50</decimal_value>
 <logical_value>no</logical_value>
 <primary_smartobject_obj>23688.0766</primary_smartobject_obj>
 <render_type_obj>0</render_type_obj>

@@ -4,25 +4,9 @@
 &Scoped-define FRAME-NAME gDialog
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS gDialog 
 /*********************************************************************
-* Copyright (C) 2001 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*--------------------------------------------------------------------------
@@ -733,6 +717,8 @@ PROCEDURE initializeObject :
     DEFINE VARIABLE hObjectBuffer   AS HANDLE     NO-UNDO.
     DEFINE VARIABLE cPathedFileName AS CHARACTER  NO-UNDO.
     DEFINE VARIABLE cClass          AS CHARACTER  NO-UNDO.
+    
+    define buffer lb_P    for _P.
        
     /* Get the handle to the SCM Tool and design manager */
     ASSIGN ghScmTool = DYNAMIC-FUNCTION('getProcedureHandle':U IN THIS-PROCEDURE, 'PRIVATE-DATA:SCMTool':U) 
@@ -741,9 +727,13 @@ PROCEDURE initializeObject :
       
 
     RUN SUPER.
- 
-
-    IF gcType = "SmartDataObject":U THEN
+    
+    /* Find the _P because we want to know if we're dealing with a Dataview or SDO.
+       Dataviews don't have a forced super procedure/DLProc.
+     */
+    FIND lb_P WHERE RECID(lb_P) = pRecid NO-ERROR.
+    
+    IF gcType = "SmartDataObject":U and lb_P._Db-Aware THEN
     DO WITH FRAME {&FRAME-NAME}:
        ASSIGN fiTitle:SCREEN-VALUE = "Create Data Logic Procedure"
               fiTitle:WIDTH     = FONT-TABLE:GET-TEXT-WIDTH(fiTitle:SCREEN-VALUE) + 1
@@ -825,7 +815,16 @@ CASE gcType:
    WHEN "SmartDataBrowser":U OR WHEN "SmartBrowser":U THEN
       gcObjectType = "DynBrow":U.
    WHEN "SmartDataObject":U  THEN
-      gcObjectType = "DynSDO".
+   do:           
+      /* Find the _P because we want to know if we're dealing with a Dataview or SDO.
+         Dataviews don't have a forced super procedure/DLProc.
+       */
+      FIND _P WHERE RECID(_P) = pRecid NO-ERROR.
+      if _P._Db-Aware then
+          gcObjectType = "DynSDO".
+      else
+          gcObjectType = 'DynDataView':u.
+   end.    /* SmartDataObject */
    WHEN "SmartBusinessObject":U  THEN
       gcObjectType = "DynSBO".
 END CASE.
@@ -957,7 +956,7 @@ PROCEDURE validate-save :
    FIND _P WHERE RECID(_P) = pRecid NO-ERROR.
    FIND _U WHERE RECID(_U) = _P._u-recid NO-ERROR.
    FIND _C WHERE RECID(_C) = _U._x-recid NO-ERROR.
-    
+     
    IF AVAILABLE _P THEN 
       ASSIGN _P._SAVE-AS-FILE = fiFilename:SCREEN-VALUE.
    IF toPrc:CHECKED AND AVAILABLE _C THEN
@@ -965,6 +964,7 @@ PROCEDURE validate-save :
      FIND gsc_product_module NO-LOCK
           WHERE gsc_product_module.product_module_code = _RyObject.product_module_code NO-ERROR.
      IF gcObjectType = "DynView":U OR gcObjectType = "DynBrow":U /* For DynViewers and DynBrowsers */
+        or gcObjectType eq 'DynDataView'
      THEN DO:
        IF AVAILABLE gsc_product_module THEN
           ASSIGN

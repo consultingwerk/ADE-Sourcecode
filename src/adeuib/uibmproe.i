@@ -1,32 +1,9 @@
 /*********************************************************************
-* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
-/********************************************************************/
-/* Encrypted code which is part of this file is subject to the      */
-/* Possenet End User Software License Agreement Version 1.0         */
-/* (the "License"); you may not use this file except in             */
-/* compliance with the License. You may obtain a copy of the        */
-/* License at http://www.possenet.org/license.html                  */
-/********************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -987,8 +964,13 @@ PROCEDURE mode-morph.
       IF ldummy ne YES or ERROR-STATUS:ERROR 
       THEN ASSIGN Mode_Button:LABEL = "Mode".
 
-      ASSIGN Mode_button:HIDDEN    = FALSE
-             Mode_button:SENSITIVE = YES.
+      IF OEIDEIsRunning THEN
+        ASSIGN Mode_button:HIDDEN    = FALSE
+               Mode_button:SENSITIVE = NO
+               _remote_file          = FALSE.
+      ELSE      
+        ASSIGN Mode_button:HIDDEN    = FALSE
+               Mode_button:SENSITIVE = YES.
     END.  /* If WebSpeed is licensed create the mode button */
   
     /* Create the visible menu-bar items */
@@ -1137,6 +1119,22 @@ PROCEDURE mode-morph.
     CREATE MENU-ITEM mi_import ASSIGN LABEL = "&Insert from File..."       PARENT = h_sm
        TRIGGERS: ON CHOOSE PERSISTENT RUN choose_import_file. END TRIGGERS.
 
+    IF OEIDEIsRunning THEN DO:
+      CREATE MENU-ITEM h_s ASSIGN SUBTYPE = "RULE"                         PARENT = h_sm.
+      CREATE SUB-MENU m_insert ASSIGN LABEL = "Insert"  SENSITIVE = FALSE
+               PARENT = h_sm.
+      CREATE MENU-ITEM mi_insert_trigger ASSIGN LABEL = "Trigger" SENSITIVE = FALSE
+               PARENT = m_insert
+         TRIGGERS: ON CHOOSE PERSISTENT RUN choose_insert_trigger. END TRIGGERS.      
+      CREATE MENU-ITEM mi_insert_procedure ASSIGN LABEL = "Procedure" SENSITIVE = FALSE
+               PARENT = m_insert
+         TRIGGERS: ON CHOOSE PERSISTENT RUN choose_insert_procedure. END TRIGGERS.      
+      CREATE MENU-ITEM mi_insert_function ASSIGN LABEL = "Function" SENSITIVE = FALSE
+               PARENT = m_insert
+         TRIGGERS: ON CHOOSE PERSISTENT RUN choose_insert_function. END TRIGGERS.               
+         
+    END.
+    
     IF _AB_License NE 2 THEN DO:
       CREATE MENU-ITEM h_s ASSIGN SUBTYPE = "RULE"                         PARENT = h_sm.
       CREATE MENU-ITEM mi_tab_edit ASSIGN LABEL = "T&ab Order..." SENSITIVE = FALSE
@@ -1146,6 +1144,11 @@ PROCEDURE mode-morph.
       CREATE MENU-ITEM mi_goto_page ASSIGN LABEL = "&Goto Page..."
                SENSITIVE = FALSE      PARENT = h_sm
          TRIGGERS: ON CHOOSE PERSISTENT RUN choose_goto_page. END TRIGGERS.
+      CREATE MENU-ITEM h_s ASSIGN SUBTYPE = "RULE"                         PARENT = h_sm. 
+      CREATE MENU-ITEM mi_assign_widgetid
+           ASSIGN LABEL = "Assign &Widget IDs"
+               SENSITIVE = FALSE      PARENT = h_sm
+          TRIGGERS: ON CHOOSE PERSISTENT RUN choose_assign_widgetid. END TRIGGERS.
     END.  /* IF UIB */
 
     /* Compile Menu */
@@ -1570,7 +1573,8 @@ PROCEDURE mru_menu:
 
   DEFINE VARIABLE cAbbrevName AS CHARACTER NO-UNDO.
   DEFINE VARIABLE i           AS INTEGER   NO-UNDO.
-  
+  DEFINE VARIABLE cName       AS CHAR      NO-UNDO.
+
   i = 1.
   DO WHILE i < 10:
     IF VALID-HANDLE(mi_mrulist[i]) THEN DELETE WIDGET mi_mrulist[i].
@@ -1581,8 +1585,15 @@ PROCEDURE mru_menu:
   
   FOR EACH _mru_files:
     /* Get abbreviated filename to display in menu */
+    IF _mru_files._broker NE ? AND _mru_files._broker NE "" THEN
+        /* web file may have fullpath name in string - just want the relative path
+           to be displayed */
+        cName = ws-get-relative-path (INPUT _mru_files._file).
+    ELSE
+        cName = _mru_files._file.
+
     RUN adecomm/_ossfnam.p 
-      (INPUT _mru_files._file, 
+      (INPUT cName, 
        INPUT 30,
        INPUT ?,
        OUTPUT cAbbrevName).
@@ -1675,31 +1686,29 @@ END PROCEDURE.
 PROCEDURE Open_Untitled:
   DEFINE INPUT PARAMETER file_to_open AS CHARACTER NO-UNDO.
 
-  DEFINE VARIABLE hWin AS HANDLE  NO-UNDO.
-  DEFINE VARIABLE lExtendsDynObject AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hWin             AS HANDLE  NO-UNDO.
+  DEFINE VARIABLE lNativeDynObject AS LOGICAL    NO-UNDO.
 
   RUN deselect_all (?, ?).
   /* Open the choice as an untitled window. */
   RUN setstatus ("WAIT":U, "Opening template...").
   RUN adeuib/_open-w.p (file_to_open, "", "UNTITLED":U).
-  IF RETURN-VALUE <> "_ABORT":U AND _DynamicsIsRunning AND AVAILABLE _P
-  THEN DO:
-     lExtendsDynObject  = DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, _P.object_type_code,"DynView":U)
-                         OR DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, _P.object_type_code,"DynSDO":U)
-                         OR DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, _P.object_type_code,"DynBrow":U).
-     IF lExtendsDynObject THEN
-        ASSIGN hWin        =  _P._WINDOW-HANDLE:WINDOW
-               hWin:TITLE  = IF NUM-ENTRIES(hWin:TITLE,"-") >= 2
-                             THEN ENTRY(1,hWin:TITLE,"-") + "(":U + _P.object_type_code + ")" + " - " + ENTRY(2,hWin:TITLE,"-") 
-                             ELSE hwin:TITLE + "(":U + _P.object_type_code + ")"
-               NO-ERROR.
+  
+  IF RETURN-VALUE <> "_ABORT":U AND _DynamicsIsRunning AND AVAILABLE _P THEN 
+  DO:
+     IF DYNAMIC-FUNCTION("isDynamicClassNative":U IN _h_func_lib,_P.object_type_code) THEN
+       ASSIGN hWin        =  _P._WINDOW-HANDLE:WINDOW
+              hWin:TITLE  = IF NUM-ENTRIES(hWin:TITLE,"-") >= 2
+                            THEN ENTRY(1,hWin:TITLE,"-") + "(":U + _P.object_type_code + ")" + " - " + ENTRY(2,hWin:TITLE,"-") 
+                            ELSE hwin:TITLE + "(":U + _P.object_type_code + ")"
+              NO-ERROR.
   END.
   /* Select the current name of the base widget. */
   APPLY "ENTRY":U TO cur_widg_name IN FRAME action_icons.
   
   RUN setstatus ("":U, "":U).
    /* Return to pointer mode. */
-   IF _next_draw NE ? THEN RUN choose-pointer.
+  IF _next_draw NE ? THEN RUN choose-pointer.
 
 END PROCEDURE.
 
@@ -1905,13 +1914,47 @@ PROCEDURE save_window:
   DEFINE VARIABLE cTables       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cValue        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hTempDBLib    AS HANDLE     NO-UNDO.
-
+  DEFINE VARIABLE cFileWeb      AS CHARACTER  NO-UNDO INIT ?.
 
 
   DEFINE BUFFER d_P FOR _P.
   DEFINE BUFFER x_U FOR _U.
 
   FIND _P WHERE _P._u-recid eq RECID(_U).    
+
+  DEFINE VARIABLE cProjectName AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lProjectFile AS LOGICAL    NO-UNDO INITIAL FALSE.
+  DEFINE VARIABLE cLinkedFile  AS CHARACTER   NO-UNDO.
+  DEFINE VARIABLE pFileName    AS CHARACTER  NO-UNDO.
+  
+  IF OEIDEIsRunning THEN
+  DO:
+      RUN getProjectOfFile IN hOEIDEService (_P._SAVE-AS-FILE, OUTPUT cProjectName).  
+      IF cProjectName > "" AND (cProjectName = getProjectName()) THEN
+          lProjectFile = TRUE.
+  END.
+
+  IF OEIDEIsRunning AND lProjectFile THEN
+  DO:        
+    IF AVAILABLE _P THEN
+    DO:        
+        DEFINE VAR context          AS CHARACTER  NO-UNDO.
+        DEFINE VARIABLE cFileName   AS CHARACTER  NO-UNDO.
+        DEFINE VARIABLE ok2continue AS LOGICAL    NO-UNDO.
+                
+        /* Give others a chance to abort the save */
+        context = STRING(_P._u-recid).
+        RUN adecomm/_adeevnt.p (INPUT  "UIB":U,
+                          INPUT  "BEFORE-SAVE":U,
+                          INPUT  context,
+                          INPUT  _save_file,
+                          OUTPUT ok2continue).
+        IF NOT ok2continue THEN RETURN "Error-Override":U.    
+        saveEditor(getProjectName(), _P._SAVE-AS-FILE, ask_file_name).
+        _P._FILE-SAVED         = TRUE. /* marks the file as saved - assumes a successful saveEditor call */
+        RETURN.
+    END.        
+  END.
   
   /* Is the file missing any links, or is it OK to Save */
   RUN adeuib/_advsrun.p (_h_win,"SAVE":U, OUTPUT lok2save).  
@@ -1923,6 +1966,18 @@ PROCEDURE save_window:
     user_cancel   = YES 
     lSaveUntitled = (_remote_file AND NOT ask_file_name AND _save_file = ?) 
    NO-ERROR.
+
+  IF _save_file NE ? AND _remote_file AND _P._broker-url NE "" THEN DO:
+      /* for remote files - webspeed - we have the path to construct the 
+         full path in _save-as-path, so qualify the file name now.
+      */
+      IF _P._save-as-path NE ? THEN
+         ASSIGN _save_file = _P._save-as-path + _P._save-as-file
+          /* let's construct the string as if we got it from _webfile.w,
+             so that we set all the info correctly when upddating the
+             _P record and the MRU list (down below in this function) */
+          cFileWeb = ws-set-path-info(_P._save-as-file, _save_file).
+  END.
 
   IF _P.design_ryobject AND _DynamicsIsRunning
   AND (NOT _P.static_object)
@@ -2233,6 +2288,13 @@ PROCEDURE save_window:
                              INPUT-OUTPUT _save_file, OUTPUT cTempFile, 
                              OUTPUT lOk).
       IF NOT lOk THEN RETURN.   /* the user cancelled */
+
+      /* need to handle case where _webfile.w returned the relative and full 
+         pathname */
+      IF ws-get-save-as-path (INPUT _save_file) NE ? THEN DO:
+          ASSIGN cFileWeb = _save_file
+                 _save_file = ws-get-absolute-path (INPUT _save_file).
+      END.
     END.
     ELSE DO:
        /* Check whether wizard previously saved the filename and module */
@@ -2349,11 +2411,29 @@ PROCEDURE save_window:
      * out. We check to see if there are 2 records with the same name.
      * If there are 0 or 1 the FIND NEXT will fail.
      */
-    FIND d_P WHERE d_P._SAVE-AS-FILE = _save_file  AND
-                   RECID(d_P) <> RECID(_P) NO-ERROR.
+    IF NOT _remote_file OR cFileWeb = ? OR cFileWeb = "" THEN
+        FIND d_P WHERE d_P._SAVE-AS-FILE = _save_file  AND
+                       RECID(d_P) <> RECID(_P) NO-ERROR.
+    ELSE DO:
+        DEF VAR sv AS CHAR NO-UNDO.
+        DEF VAR sa AS CHAR NO-UNDO.
+
+        ASSIGN sv = ws-get-relative-path (INPUT cFileWeb)
+               sa = ws-get-save-as-path (INPUT cFileWeb).
+
+        /* for remote files, we may have got a file name with the path
+           which we store in _save-path-as, so we need to check if it
+           matches the exact same file.
+        */
+        FIND d_P WHERE d_P._SAVE-AS-FILE = sv AND d_P._save-as-path = sa AND
+                       RECID(d_P) <> RECID(_P) NO-ERROR.
+    END.
+
     IF AVAILABLE d_P THEN DO:
       MESSAGE
-        "Another window uses" _save_file "to save into." SKIP
+        "Another window uses" 
+        (IF cFileWeb NE ? THEN ws-get-relative-path (INPUT cFileWeb) ELSE _save_file)
+        "to save into." SKIP
         "Either close that window or choose another filename" SKIP
         "for this window. The 'Save As...' operation has been cancelled."
         VIEW-AS ALERT-BOX WARNING BUTTONS OK.
@@ -2527,6 +2607,14 @@ PROCEDURE save_window:
                                   ELSE _U._HANDLE
         OldTitle               = h_title_win:TITLE.
 
+      /* for remote files, need to save path into _save-as-path, if path
+         was passed 
+      */
+      IF _remote_file AND (cFileWeb NE ?) THEN DO:
+         ASSIGN _P._save-as-file = ws-get-relative-path (INPUT cFileWeb)
+                _P._save-as-path = ws-get-save-as-path (INPUT cFileWeb).
+      END.
+
       IF ask_file_name OR lSaveUntitled THEN
         _P._BROKER-URL = IF _remote_file THEN _BrokerURL ELSE "".
         
@@ -2551,7 +2639,7 @@ PROCEDURE save_window:
           
       /* Update most recently used filelist */    
       IF lMRUSave AND _mru_filelist AND NOT lRegisterObj THEN 
-        RUN adeshar/_mrulist.p (_save_file, IF _remote_file THEN _BrokerURL ELSE "").
+        RUN adeshar/_mrulist.p ( (IF cFileWeb NE ? THEN cFileWeb ELSE _save_file), IF _remote_file THEN _BrokerURL ELSE "").
  
       /* lMRUSave is TRUE when this is a new object being saved for the first
          time or if it is an existing object being saved with a new name.  In
@@ -2632,6 +2720,35 @@ PROCEDURE save_window:
      _P.smartObject_obj <> ?            AND
      _P.smartObject_obj <> 0            THEN
     PUBLISH "MasterObjectModified":U FROM gshRepositoryManager (INPUT _P.smartObject_obj, INPUT _P.Object_FileName).
+
+/* This code executes only if the file was not in a project before saving. */
+/* This code is similar to the one in adeuib/_open-w.p */
+IF NOT AVAILABLE _P OR _save_file = ? THEN RETURN.
+pFileName = _P._SAVE-AS-FILE.
+
+/* If OEIDE is running, open file in the OEIDE Editor if the file exists in a project */
+/* TODO -- Fix case when file is in a different project ... */
+IF OEIDEIsRunning THEN
+DO:    
+    FILE-INFO:FILE-NAME = pFileName.
+    /* Ensure pFileName is a full path */
+    IF FILE-INFO:FULL-PATHNAME <> ? THEN
+        pFileName = FILE-INFO:FULL-PATHNAME.
+    RUN getProjectOfFile IN hOEIDEService (pFileName, OUTPUT cProjectName).
+    /* file is in the current IDE project */    
+    IF cProjectName > "" AND (cProjectName = getProjectName()) THEN
+    DO:
+        RUN getLinkedFileOfFile IN hOEIDEService (pFileName, OUTPUT cLinkedFile).
+        IF cLinkedFile = "" THEN /* File has not been registed */
+        DO:
+            cLinkedFile = createLinkedFile("lnk", ".tmp").
+            OS-COPY VALUE(pFileName) VALUE(cLinkedFile).
+        END.
+        openEditor(getProjectName(), pFileName, cLinkedFile, _h_win).
+        /* If file was already registed, its content is not modified */
+        RUN call_sew IN _h_UIB (INPUT "SE_OPEN":U ). /* Start Section Editor Window to allow file synchronization */
+    END.
+END.
 
 END PROCEDURE. /* save_window */
 
@@ -3055,6 +3172,7 @@ PROCEDURE sensitize_main_window :
       ASSIGN mi_goto_page:SENSITIVE    = NO WHEN VALID-HANDLE(mi_goto_page)
              mi_chlayout:SENSITIVE     = NO WHEN VALID-HANDLE(mi_chlayout)
              mi_chCustLayout:SENSITIVE = NO WHEN VALID-HANDLE(mi_chCustLayout)
+             mi_assign_widgetid:SENSITIVE = NO WHEN VALID-HANDLE(mi_assign_widgetid)
       .
     ELSE DO:
       IF _DynamicsIsRunning THEN
@@ -3070,7 +3188,12 @@ PROCEDURE sensitize_main_window :
                          That is, by anything that is a .w file. */
              mi_chlayout:SENSITIVE = lMulti WHEN VALID-HANDLE(mi_chlayout)
              mi_chCustLayout:SENSITIVE = lDynamic WHEN VALID-HANDLE(mi_chCustLayout)
-             
+             /* Assign Widget IDs should be senstive for GUI, static design windows
+                that allow drawing of basic objects */
+             mi_assign_widgetid:SENSITIVE = NOT lDynamic AND 
+                                            CAN-DO(_P._ALLOW, "BASIC":U) AND 
+                                            _cur_win_type
+                                            WHEN VALID-HANDLE(mi_assign_widgetid)
              /* Disable Debug for WebSpeed Web objects. */
              MENU-ITEM mi_debugger:SENSITIVE IN MENU m_compile = 
                (NOT _P._TYPE BEGINS "WEB":U AND
@@ -3079,6 +3202,7 @@ PROCEDURE sensitize_main_window :
                   AND _TRG._tSECTION eq "_PROCEDURE":U
                   AND _TRG._tEVENT   eq "process-web-request":U))
              .
+       
     END.  /* Else do */
                    
     /* Disable things if there is TTY window - the "key" widget here is the
@@ -3091,6 +3215,19 @@ PROCEDURE sensitize_main_window :
              mi_grid_snap:SENSITIVE    = l AND _visual-obj
              mi_color:SENSITIVE        = _h_button_bar[10]:SENSITIVE
                                              WHEN VALID-HANDLE(mi_color).
+                                             
+    /* OpenEdge IDE - Edit->Insert->Procedure,
+                      Edit->Insert->Function */
+    IF OEIDEIsRunning AND 
+       VALID-HANDLE(m_insert) AND 
+       VALID-HANDLE(mi_insert_procedure) AND
+       VALID-HANDLE(mi_insert_function) THEN DO:
+      l = VALID-HANDLE(_h_win).
+      ASSIGN m_insert:SENSITIVE            = l 
+             mi_insert_procedure:SENSITIVE = l
+             mi_insert_function:SENSITIVE  = l.  
+    END.    
+
   END.  /* IF window-check...*/
   
   /* Now do test for the current widgets. */
@@ -3163,6 +3300,24 @@ PROCEDURE sensitize_main_window :
     IF l NE MENU-ITEM mi_cut:SENSITIVE IN MENU m_edit 
     THEN MENU-ITEM mi_cut:SENSITIVE    IN MENU m_edit = l. 
 
+    /* OpenEdge IDE - Edit->Insert->Trigger */
+    IF OEIDEIsRunning AND 
+       VALID-HANDLE(m_insert) AND 
+       VALID-HANDLE(mi_insert_trigger) AND
+       VALID-HANDLE(mi_insert_procedure) AND
+       VALID-HANDLE(mi_insert_function) THEN DO:
+      l = FALSE.
+      IF VALID-HANDLE(_h_cur_widg) THEN DO:
+        FIND _U WHERE _U._HANDLE = _h_cur_widg NO-LOCK NO-ERROR.
+        IF AVAILABLE _U THEN
+          l = _h_cur_widg:TYPE <> "TEXT":U AND _U._TYPE <> "SmartObject":U.
+      END.    
+      ASSIGN m_insert:SENSITIVE          = l 
+                                         OR mi_insert_procedure:SENSITIVE
+                                         OR mi_insert_function:SENSITIVE
+             mi_insert_trigger:SENSITIVE = l.  
+    END.    
+
     /* Set Tab Edit menu item's sensitivity based upon whether    */
     /* a single frame is selected, or a dialog box is active, and */
     /* the master layout is active.                               */
@@ -3189,6 +3344,10 @@ PROCEDURE sensitize_main_window :
     IF VALID-HANDLE(mi_tab_edit) THEN ASSIGN mi_tab_edit:SENSITIVE = l. 
     
   END.  /* IF widget-check...*/
+  
+  /* Disable menu options when running in the OpenEdge IDE */
+  IF OEIDEIsRunning THEN
+    MENU-ITEM mi_debugger:SENSITIVE  IN MENU m_compile = FALSE.
   
   /* jep-icf: Sensitize icf menubar if there is one. The menubar procedure uses the
      already set enable/disable states of the AB's default static menubar to enable/disable
@@ -3220,36 +3379,41 @@ END PROCEDURE. /* setBrowseRow */
 PROCEDURE setDataFieldEnable.
 
   DEFINE INPUT PARAMETER p-rec AS RECID  NO-UNDO.
+  DEFINE VAR upd-fields       AS CHARACTER NO-UNDO.
+  DEFINE VAR hSDO             AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE lQualFields AS LOGICAL    NO-UNDO.
+  
   DEFINE BUFFER x_U            FOR _U.
   DEFINE BUFFER x_P            FOR _P.
 
-  DEFINE VAR upd-fields    AS CHARACTER NO-UNDO.
-  DEFINE VAR ret-msg       AS CHARACTER NO-UNDO.
-  DEFINE VAR hSDO          AS HANDLE    NO-UNDO.
   
   FIND x_P WHERE RECID(x_P) = p-rec.
   
   /* Get the handle of the SDO. */
-  hSDO       = DYNAMIC-FUNCTION("get-proc-hdl" IN _h_func_lib, INPUT x_P._data-object).
-  IF NOT VALID-HANDLE(hSDO) THEN RETURN.
+  hSDO  = DYNAMIC-FUNCTION("get-sdo-hdl" IN _h_func_lib,
+                                            x_P._data-object,THIS-PROCEDURE).
+  IF NOT VALID-HANDLE(hSDO) THEN 
+    RETURN.
 
   /* Get the comma-list of updatable colums from the data object. */
   upd-fields = DYNAMIC-FUNCTION("getUpdatableColumns":U IN hSDO).
+  lQualfields = INDEX(upd-fields,'.') > 0.
   /* Go through all SmartViewer fields that are not in the updatable list and set
      enable attribute to no. */
   FOR EACH x_U WHERE x_U._WINDOW-HANDLE = _h_win
-                 AND x_U._DBNAME = "Temp-Tables":U
-                 AND x_U._TABLE  = "RowObject":U:
-    IF NOT CAN-DO(upd-fields, x_U._NAME) THEN x_U._ENABLE = NO.
-    IF _DynamicsIsRunning = TRUE AND LOOKUP(x_P.OBJECT_type_code,
-                                DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager,
-                                                  INPUT "DynView":U)) <> 0 THEN DO:
-     IF NOT VALID-HANDLE(X_U._HANDLE:POPUP-MENU) THEN
+                 AND x_U._DBNAME = "Temp-Tables":U:
+    IF LOOKUP((IF lQualFields THEN x_U._TABLE + '.':U ELSE '') + x_U._NAME,upd-fields
+              ) = 0 THEN 
+       x_U._ENABLE = NO.
+    IF _DynamicsIsRunning = TRUE 
+    AND DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager,
+                         x_P.OBJECT_type_code,"DynView":U) THEN
+    DO:
+      IF NOT VALID-HANDLE(X_U._HANDLE:POPUP-MENU) THEN
         RUN createDataFieldPopup IN _h_uib (x_U._HANDLE).
     END.  /* If working with a dynamic viewer */
-
   END.
-  ret-msg = DYNAMIC-FUNCTION("shutdown-proc" IN _h_func_lib, INPUT x_P._data-object).
+  DYNAMIC-FUNCTION("shutdown-sdo" IN _h_func_lib, THIS-PROCEDURE).
 END.
 
 
@@ -4362,9 +4526,39 @@ procedure wind-close.
   DEFINE VAR askToSave  AS LOGICAL           NO-UNDO INITIAL FALSE.
   DEFINE VAR tmp_hSecEd AS HANDLE            NO-UNDO.
   DEFINE VAR hPropSheet AS HANDLE            NO-UNDO.
-  
+    
   FIND _U WHERE _U._HANDLE = h_self NO-ERROR.
   FIND _P WHERE _P._u-recid eq RECID(_U).
+
+  DEFINE VARIABLE cProjectName AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lProjectFile AS LOGICAL    NO-UNDO INITIAL FALSE.
+  DEFINE VARIABLE lOEIDEReload AS LOGICAL    NO-UNDO INITIAL FALSE.
+  
+  IF OEIDEIsRunning THEN
+  DO:
+      lOEIDEReload = IF h_self:PRIVATE-DATA = "_RELOAD" THEN TRUE ELSE FALSE.
+      RUN getProjectOfFile IN hOEIDEService (_P._SAVE-AS-FILE, OUTPUT cProjectName).  
+      IF cProjectName > "" AND (cProjectName = getProjectName()) THEN
+          lProjectFile = TRUE.
+  END.
+  /* If OEIDE is running, a wind-close action is passed to the OEIDE Editor 
+  	 Cases:
+  	 	- "_RELOAD" used from syncFromIDE, window is closed
+  	 	- "_OEIDE" used from closeABFile, window is closed
+  	 	- otherwise, close action is passed to the OEIDE Editor
+   */
+  IF OEIDEIsRunning AND lProjectFile AND NOT lOEIDEReload THEN
+  DO:
+    IF h_self:PRIVATE-DATA <> "_OEIDE" THEN
+	DO:
+        DEFINE VARIABLE cLinkedFile AS CHARACTER  NO-UNDO.
+        
+        RUN getLinkedFileName IN hOEIDEService (h_self, OUTPUT cLinkedFile).
+    	RUN syncFromAB IN OEIDE_ABSecEd (cLinkedFile) NO-ERROR.
+        closeEditor(getProjectName(), _P._SAVE-AS-FILE, TRUE).
+        RETURN.
+    END.
+  END.
 
   /* jep-icf: Change the file saved state of design window based on prop sheet. */
   IF VALID-HANDLE(_P.design_hpropsheet) THEN
@@ -4389,26 +4583,29 @@ procedure wind-close.
      RUN is_control_dirty(h_self, output askToSave).
   END.
  
-  IF askToSave = yes THEN DO: 
-    /* This save question should be similar to the one for dialogs and in closeup.p */
-    /* Set default responce to "YES - Save changes! "                  */
-    ASSIGN save_opt = yes
-           tmp-name = IF _U._SUBTYPE eq "Design-Window" THEN _U._LABEL
-                      ELSE _U._NAME.
+  IF NOT OEIDEIsRunning OR NOT lProjectFile THEN 
+  DO:
+    IF askToSave = yes THEN DO: 
+      /* This save question should be similar to the one for dialogs and in closeup.p */
+      /* Set default responce to "YES - Save changes! "                  */
+      ASSIGN save_opt = yes
+             tmp-name = IF _U._SUBTYPE eq "Design-Window" THEN _U._LABEL
+                        ELSE _U._NAME.
 
-    MESSAGE (IF _P._SAVE-AS-FILE <> ? 
-            THEN tmp-name + " (" + _P._SAVE-AS-FILE  + ") " 
-            ELSE tmp-name ) SKIP
-           "This window has changes which have not been saved." SKIP(1)
-           "Save changes before closing?"
-          VIEW-AS ALERT-BOX WARNING BUTTONS YES-NO-CANCEL UPDATE save_opt.
-    IF save_opt THEN RUN save_window (INPUT no, OUTPUT cancel).
-    ELSE IF save_opt = ? THEN cancel = yes.
-    IF cancel THEN DO: /* dma */
-      hSecEd = tmp_hSecEd.
-      RETURN.
+      MESSAGE (IF _P._SAVE-AS-FILE <> ? 
+              THEN tmp-name + " (" + _P._SAVE-AS-FILE  + ") " 
+              ELSE tmp-name ) SKIP
+             "This window has changes which have not been saved." SKIP(1)
+             "Save changes before closing?"
+            VIEW-AS ALERT-BOX WARNING BUTTONS YES-NO-CANCEL UPDATE save_opt.
+      IF save_opt THEN RUN save_window (INPUT no, OUTPUT cancel).
+      ELSE IF save_opt = ? THEN cancel = yes.
+      IF cancel THEN DO: /* dma */
+        hSecEd = tmp_hSecEd.
+        RETURN.
+      END.
     END.
-  END.
+  END. /* OEIDEIsRunning */
   
   /* IZ 839 Save_window calls sensitize_main_window, which can move the current
      record out of _U so it's no longer available. Refind it here just in case. */
@@ -4420,9 +4617,12 @@ procedure wind-close.
    ASSIGN context    = STRING(RECID(_U))
           file-name  = _P._SAVE-AS-FILE
           lib_parent = STRING(_U._WINDOW-HANDLE).
-  RUN adecomm/_adeevnt.p 
+  IF NOT lOEIDEReload THEN
+    RUN adecomm/_adeevnt.p 
          (INPUT "UIB", "Before-Close", context, file-name,
           OUTPUT save_opt).
+  ELSE
+    save_opt = TRUE.
   IF save_opt THEN DO:
     RUN PurgeActionRecords( _U._HANDLE ).
 
@@ -4470,8 +4670,11 @@ procedure wind-close.
     END.
 
     /* Note the CLOSE as being finished */
-    RUN adecomm/_adeevnt.p 
+    IF NOT lOEIDEReload THEN
+      RUN adecomm/_adeevnt.p 
          (INPUT "UIB", "Close", context, file-name, OUTPUT save_opt).
+    ELSE
+      save_opt = TRUE.
 
     /* Tell the ADE LIB-MGR Object that this UIB object is closing. */
     IF VALID-HANDLE( _h_mlmgr ) THEN
@@ -4779,3 +4982,15 @@ PROCEDURE restorePaletteCustom:
      DELETE _save_custom.
   END.
 END PROCEDURE. /* restore PaletteCustom */
+
+/* setAppBuilder_UBuffer -                                                  */
+/*      Sets the _U buffer used in adeuib/_uibmain.p.                       */
+/*      This is used by the integration code between the OpenEdge IDE code  */
+/*      to ensure that _U is correct after loading a .w file in a           */
+/*      syncFromIDE call.                                                   */
+PROCEDURE setAppBuilder_UBuffer:
+  DEFINE INPUT PARAMETER p_Recid      AS RECID          NO-UNDO.
+  FIND _U WHERE RECID(_U) = p_Recid.
+END.
+
+

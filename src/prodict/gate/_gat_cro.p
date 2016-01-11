@@ -78,6 +78,7 @@ History:
     mcmann      10/10/02 Added logic to see data type change.
     mcmann      06/02/03 Removed CLOB and CFILE as valid data type
     mcmann      11/06/03 Swap assignment of Primary index 20031105-020
+    slutz       08/10/05 Added s_ttb_fld.ds_msc26 20050531-001
 --------------------------------------------------------------------*/
 
 
@@ -908,6 +909,7 @@ for each gate-work
                                         then s_ttb_fld.ds_shdn
                                         else DICTDB._Field._Fld-misc2[5]
                                       )
+        DICTDB._Field._Fld-misc2[6] = s_ttb_fld.ds_msc26
         DICTDB._Field._Fld-stoff    = s_ttb_fld.ds_stoff
         DICTDB._Field._Fld-stdtype  = s_ttb_fld.ds_stdtype
         DICTDB._Field._For-Itype    = s_ttb_fld.ds_Itype

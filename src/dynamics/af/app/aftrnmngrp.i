@@ -28,25 +28,9 @@ af/cod/aftemwizpw.w
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -189,6 +173,9 @@ FUNCTION translatePhrase RETURNS CHARACTER
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
+
+ 
+
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
 
@@ -945,6 +932,305 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-translateToolbar) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE translateToolbar Procedure 
+PROCEDURE translateToolbar :
+/*------------------------------------------------------------------------------
+  Purpose:     Translates an entire menu or toolbar's worth of actions (menu items).
+  Parameters:  pcLanguageCode - this parameter is passed straight through to
+                                the translateAction() API, and all validation is done
+                                there. See the doc for that API for more details.      	
+  		       phBuffer - A buffer of a table that contains translations. Typically
+  		                  a temp-table, like the ttActionTranslation table defined
+  		                  for the toolbar in adm2/ttacion.i
+  Notes:       * This API acts as a wrapper for the translateAction() API, but
+  			     it also bundles together a whole bunch of menu items so as to 
+  			     avoid multiple AppServer calls and ensures that only one is made.
+  			   - The phBuffer parameter doesn't strictly need to be an input-output 
+  			     parameter, since a buffer simply refers to a place in memory, but
+  			     has been made so to indicate that the buffer has been operated on
+  			     and will be changeedd by this API.
+------------------------------------------------------------------------------*/
+    define input        parameter pcLanguageCode  as character             no-undo.
+    define input-output parameter phBuffer        as handle                no-undo.
+    
+    define variable cReturnValue         as character                     no-undo.
+    define variable lError               as logical                       no-undo.
+    define variable lTranslationEnabled  as logical                       no-undo.
+    
+    /* Only do anything if translation is enabled. */
+    lTranslationEnabled = logical(dynamic-function('getPropertyList' in gshSessionManager,
+                                                   'TranslationEnabled', no) ) no-error.
+    if lTranslationEnabled eq no then
+    do:
+        error-status:error = no.
+        return.
+    end.    /* translation not enabled */
+    
+    &if defined(server-side) = 0 &then
+    define variable hTable            as handle                         no-undo.
+    
+    hTable = phBuffer:table-handle.
+    run af/app/aftrntrmep.p on gshAstraAppserver (input        pcLanguageCode,
+                                                  input-output table-handle hTable) no-error.
+    if error-status:error or return-value ne '' then
+        return error (if return-value eq '' then error-status:get-message(1) else return-value).
+    &else
+    define variable hQuery               as handle                        no-undo.
+    define variable cItem                as character                     no-undo.
+    define variable cLabel               as character                     no-undo.
+    define variable cCaption             as character                     no-undo.
+    define variable cTooltip             as character                     no-undo.
+    define variable cAccelerator         as character                     no-undo.
+    define variable cImage               as character                     no-undo.
+    define variable cImageDown           as character                     no-undo.
+    define variable cImageInsensitive    as character                     no-undo.
+    define variable cImage2              as character                     no-undo.
+    define variable cImage2Down          as character                     no-undo.
+    define variable cImage2Insensitive   as character                     no-undo.
+    
+    create query hQuery.
+    hQuery:set-buffers(phBuffer).
+    hQuery:query-prepare('for each ' + phBuffer:name).
+    hQuery:query-open().
+    
+    hQuery:get-first().
+    do while phBuffer:available:
+        cItem = phBuffer:buffer-field('Action'):buffer-value.
+        
+        run translateAction in gshTranslationManager ( input  pcLanguageCode,
+                                                       input  cItem,
+                                                       output cLabel,
+                                                       output cCaption,
+                                                       output cTooltip,
+                                                       output cAccelerator,
+                                                       output cImage,
+                                                       output cImageDown,
+                                                       output cImageInsensitive,
+                                                       output cImage2,
+                                                       output cImage2Down,
+                                                       output cImage2Insensitive ) no-error.
+        if error-status:error or return-value ne '' then
+        do:
+            lError = error-status:error.
+            cReturnValue = return-value.            
+            leave.
+        end.    /* error */
+        
+        assign phBuffer:buffer-field('Name'):buffer-value = cLabel
+               phBuffer:buffer-field('Caption'):buffer-value = cCaption
+               phBuffer:buffer-field('Tooltip'):buffer-value = cTooltip
+               phBuffer:buffer-field('Accelerator'):buffer-value = cAccelerator
+               phBuffer:buffer-field('Image'):buffer-value = cImage
+               phBuffer:buffer-field('ImageDown'):buffer-value = cImageDown
+               phBuffer:buffer-field('ImageInsensitive'):buffer-value = cImageInsensitive
+               phBuffer:buffer-field('Image2'):buffer-value = cImage2
+               phBuffer:buffer-field('Image2Down'):buffer-value = cImage2Down
+               phBuffer:buffer-field('Image2Insensitive'):buffer-value = cImage2Insensitive.
+        
+        hQuery:get-next().
+    end.    /* available query */    
+    hQuery:query-close().
+    delete object hQuery no-error.
+    hQuery = ?.
+    &endif
+    
+    error-status:error = lError.
+    return cReturnValue.
+END PROCEDURE.    /* translateToolbar */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-translateAction) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE translateAction Procedure 
+PROCEDURE translateAction :
+/*------------------------------------------------------------------------------
+  Purpose:     Translates a single menu item (action)
+  Parameters:  input  pcLanguageCode
+               input  pcItem
+               output pcLabel
+               output pcCaption
+               output pcTooltip
+               output pcAccelerator
+               output pcImage
+               output pcImageDown
+               output pcImageInsensitive
+               output pcImage2
+               output pcImage2Down
+               output pcImage2Insensitive
+  Notes:       * The unknown value for the return parameters means that they haven't 
+                 been translated.
+               * The language code parameter can must be either a value corresponding 
+                 the the language_code field on the gsc_language table, or a string
+                 consisting of 'OBJ|' + a decimal corresponding to the language_obj 
+                 of the gsc_language table. 
+               * The latter use is so that this API can be called from a client session,
+                 which only stores the object ID of the current language in context.
+------------------------------------------------------------------------------*/   
+    define input  parameter pcLanguageCode       as character         no-undo.
+    define input  parameter pcItem               as character         no-undo.
+    define output parameter pcLabel              as character         no-undo.
+    define output parameter pcCaption            as character         no-undo.
+    define output parameter pcTooltip            as character         no-undo.
+    define output parameter pcAccelerator        as character         no-undo.
+    define output parameter pcImage              as character         no-undo.
+    define output parameter pcImageDown          as character         no-undo.
+    define output parameter pcImageInsensitive   as character         no-undo.
+    define output parameter pcImage2             as character         no-undo.
+    define output parameter pcImage2Down         as character         no-undo.
+    define output parameter pcImage2Insensitive  as character         no-undo.
+    
+    define variable lTranslationEnabled          as logical           no-undo.
+    
+    /* Initialize return parameters. The unknown value means that
+       there are no translations present.
+     */
+    assign pcLabel = ?
+           pcCaption = ?
+           pcTooltip = ?
+           pcAccelerator = ?
+           pcImage = ?
+           pcImageDown = ?
+           pcImageInsensitive = ?
+           pcImage2 = ?
+           pcImage2Down = ?
+           pcImage2Insensitive = ?.    
+    
+    /* Only do anything if translation is enabled. */
+    lTranslationEnabled = logical(dynamic-function('getPropertyList' in gshSessionManager,
+                                                   'TranslationEnabled', no) ) no-error.
+    if lTranslationEnabled eq no then
+    do:
+        error-status:error = no.
+        return.
+    end.    /* translation not enabled */
+    
+    &if defined(Server-Side) = 0 &then
+    run af/app/aftrntrmip.p on gshAstraAppServer ( input  pcLanguageCode,
+                                                   input  pcItem,
+                                                   output pcLabel,
+                                                   output pcCaption,
+                                                   output pcTooltip,
+                                                   output pcAccelerator,
+                                                   output pcImage,
+                                                   output pcImageDown,
+                                                   output pcImageInsensitive,
+                                                   output pcImage2,
+                                                   output pcImage2Down,
+                                                   output pcImage2Insensitive  ) no-error.
+    if error-status:error or return-value ne '' then
+        return error (if return-value eq '' then error-status:get-message(1) else return-value).
+    &else
+    define buffer gsclg        for gsc_language.
+    define buffer gsmti        for gsm_translated_menu_item.
+    define buffer gsmmi        for gsm_menu_item.
+    
+    /* Validate the input language code */
+    if pcLanguageCode eq ? or pcLanguageCode eq '' then
+        return error {aferrortxt.i 'AF' '1' 'gsclg' 'language_code' 'language'}.
+    
+    if pcLanguageCode begins 'OBJ|' then
+    do:
+        pcLanguageCode = replace(pcLanguageCode, 'OBJ|', '').
+        find first gsclg where
+                   gsclg.language_obj = decimal(pcLanguageCode)
+                   no-lock no-error.
+    end.    /* code begins 'OBJ' */
+    else
+        find first gsclg where
+                   gsclg.language_code = pcLanguageCode
+                   no-lock no-error.
+    if not available gsclg then
+        return error {aferrortxt.i 'AF' '5' 'gsclg' 'language_code' 'language' "'Language code: ' + pcLanguageCode"}.
+    
+    /* Validate the menu item */    
+    if pcItem eq ? or pcItem eq '' then
+        return error {aferrortxt.i 'AF' '1' 'gsmmi' 'menu_item_reference' '"menu item"'}.
+    
+    find first gsmmi where
+               gsmmi.menu_item_reference = pcItem
+               no-lock no-error.
+    if not available gsmmi then
+        return error {aferrortxt.i 'AF' '5' 'gsmmi' 'menu_item_reference' '"menu item"' "'Menu item: ' + pcItem"}.
+    
+    /* Check whether there are any translations for this language. */
+    find first gsmti where
+               gsmti.menu_item_obj = gsmmi.menu_item_obj and
+               gsmti.language_obj = gsclg.language_obj
+               no-lock no-error.
+    /* If there are no translations available, then return gracefully. */
+    if not available gsmti then
+    do:
+        error-status:error = no.
+        return.
+    end.    /* no translations */
+    
+    /* Now apply the translation(s). */
+    
+    /* If an image has been specified for the menu item, but not a picclip, we clear
+       the picclip image from the menu item to ensure the translation image gets used.
+       Picclip images always get preference, meaning the untranslated image would get
+       used if we didn't clear it.
+     */
+    if gsmti.image1_up_filename ne '' and gsmti.image1_down_filename eq '' then
+        pcImageDown = ''.
+    
+    if gsmti.image2_up_filename ne '' and gsmti.image2_down_filename eq '' then
+        pcImage2Down = "":U.
+            
+    if gsmti.item_toolbar_label ne '' then
+        pcLabel = gsmti.item_toolbar_label.
+    
+    if gsmti.menu_item_label ne '' then
+        pcCaption = gsmti.menu_item_label.
+
+    if gsmti.tooltip_text ne '' then
+        pcTooltip = gsmti.tooltip_text.
+            
+    if gsmti.alternate_shortcut_key ne '' then   
+        pcAccelerator = gsmti.alternate_shortcut_key.
+            
+    if gsmti.image1_up_filename ne '' then
+        pcImage = gsmti.image1_up_filename.
+            
+    if gsmti.image1_down_filename ne '' then
+        pcImageDown = gsmti.image1_down_filename.
+
+    if gsmti.image1_insensitive_filename ne '' then
+        pcImageInsensitive = gsmti.image1_insensitive_filename.
+            
+    if gsmti.image2_up_filename ne '' then
+        pcImage2 = gsmti.image2_up_filename.
+            
+    if gsmti.image2_down_filename ne '' then
+        pcImage2Down = gsmti.image2_down_filename.
+    
+    if gsmti.image2_insensitive_filename ne '' then
+        pcImage2Insensitive = gsmti.image2_insensitive_filename.
+    
+    /* Check if we really want an image */
+    assign pcImage = if pcImage eq 'NoImage' then '' else pcImage
+           pcImageDown = if pcImageDown eq 'NoImage' then '' else pcImageDown
+           pcImageInsensitive = if pcImageInsensitive eq 'NoImage' then '' else pcImageInsensitive
+           pcImage2 = if pcImage2 eq 'NoImage' then '' else pcImage2
+           pcImage2Down = if pcImage2Down eq 'NoImage' then '' else pcImage2Down
+           pcImage2Insensitive = if pcImage2Insensitive eq 'NoImage' then '' else pcImage2Insensitive.
+    &endif
+    
+    error-status:error = no.
+    return.
+END PROCEDURE.    /* translateAction */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-translateSingleObject) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE translateSingleObject Procedure 
@@ -1183,9 +1469,9 @@ PROCEDURE updateTranslations :
 
 DEFINE INPUT PARAMETER TABLE FOR ttTranslate.
 
-RUN afupdmtrnp IN TARGET-PROCEDURE (INPUT TABLE ttTranslate).
-
-{af/sup2/afcheckerr.i &display-error = YES}   /* check for errors and display if can */
+RUN afupdmtrnp IN TARGET-PROCEDURE (INPUT TABLE ttTranslate) NO-ERROR.
+IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN
+  RETURN ERROR (IF RETURN-VALUE EQ "":U THEN ERROR-STATUS:GET-MESSAGE(1) ELSE RETURN-VALUE).
 
 /* get login language */
 DEFINE VARIABLE dCurrentLanguageObj               AS DECIMAL    INITIAL 0 NO-UNDO.

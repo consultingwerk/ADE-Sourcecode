@@ -2,13 +2,24 @@
 <dataset Transactions="11"><dataset_header DisableRI="yes" DatasetObj="1007600166.08" DateFormat="mdy" FullHeader="no" SCMManaged="no" YearOffset="1950" DatasetCode="GSCPR" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="91" NumericSeparator=","/>
 <dataset_records><dataset_transaction TransactionNo="1" TransactionType="DELETION"><contained_record version_date="05/22/2002" version_time="55709" version_user="admin" deletion_flag="yes" entity_mnemonic="gscpr" key_field_value="1004874672.09" record_version_obj="3000000065.09" version_number_seq="1.09" secondary_key_value="090RV" import_version_number_seq="1.09"/>
 </dataset_transaction>
-<dataset_transaction TransactionNo="2" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_product" version_date="09/27/2002" version_time="49348" version_user="admin" deletion_flag="no" entity_mnemonic="GSCPR" key_field_value="1000000091.39" record_version_obj="1000000092.39" version_number_seq="1.09" secondary_key_value="090DCU" import_version_number_seq="1.09"><product_obj>1000000091.39</product_obj>
+<dataset_transaction TransactionNo="2" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_product" version_date="06/30/2005" version_time="55329" version_user="admin" deletion_flag="no" entity_mnemonic="GSCPR" key_field_value="1000000091.39" record_version_obj="1000000092.39" version_number_seq="4.19" secondary_key_value="090DCU" import_version_number_seq="1.09"><product_obj>1000000091.39</product_obj>
 <product_code>090DCU</product_code>
 <product_description>ICF Install (090DCU)</product_description>
 <product_installed>yes</product_installed>
 <number_of_users>0</number_of_users>
 <db_connection_pf_file></db_connection_pf_file>
 <supplier_organisation_obj>0</supplier_organisation_obj>
+<contained_record DB="icfdb" Table="gsc_product_module"><product_module_obj>37357.19</product_module_obj>
+<product_obj>1000000091.39</product_obj>
+<product_module_code>dcu-aaa</product_module_code>
+<product_module_description>DCU Installation Root Directory</product_module_description>
+<product_module_installed>yes</product_module_installed>
+<number_of_users>0</number_of_users>
+<db_connection_pf_file></db_connection_pf_file>
+<relative_path>install</relative_path>
+<deployment_type></deployment_type>
+<parent_product_module_obj>0</parent_product_module_obj>
+</contained_record>
 <contained_record DB="icfdb" Table="gsc_product_module"><product_module_obj>3000031145.09</product_module_obj>
 <product_obj>1000000091.39</product_obj>
 <product_module_code>dcu-cnt</product_module_code>
@@ -322,13 +333,24 @@
 <supplier_organisation_obj>0</supplier_organisation_obj>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="7" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_product" version_date="08/27/2003" version_time="49257" version_user="admin" deletion_flag="no" entity_mnemonic="GSCPR" key_field_value="1004874673.09" record_version_obj="3000005457.09" version_number_seq="8.3993" secondary_key_value="090RY" import_version_number_seq="8.3993"><product_obj>1004874673.09</product_obj>
+<dataset_transaction TransactionNo="7" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_product" version_date="06/30/2005" version_time="54136" version_user="admin" deletion_flag="no" entity_mnemonic="GSCPR" key_field_value="1004874673.09" record_version_obj="3000005457.09" version_number_seq="8.19" secondary_key_value="090RY" import_version_number_seq="8.3993"><product_obj>1004874673.09</product_obj>
 <product_code>090RY</product_code>
 <product_description>ICF Repository (090RY)</product_description>
 <product_installed>yes</product_installed>
 <number_of_users>0</number_of_users>
 <db_connection_pf_file></db_connection_pf_file>
 <supplier_organisation_obj>0</supplier_organisation_obj>
+<contained_record DB="icfdb" Table="gsc_product_module"><product_module_obj>37356.19</product_module_obj>
+<product_obj>1004874673.09</product_obj>
+<product_module_code>ry-aaa</product_module_code>
+<product_module_description>ICF Repository Root Directory</product_module_description>
+<product_module_installed>yes</product_module_installed>
+<number_of_users>0</number_of_users>
+<db_connection_pf_file></db_connection_pf_file>
+<relative_path>ry</relative_path>
+<deployment_type></deployment_type>
+<parent_product_module_obj>0</parent_product_module_obj>
+</contained_record>
 <contained_record DB="icfdb" Table="gsc_product_module"><product_module_obj>1004874702.09</product_module_obj>
 <product_obj>1004874673.09</product_obj>
 <product_module_code>ry-app</product_module_code>

@@ -767,7 +767,7 @@ FUNCTION validateMessage RETURNS CHARACTER
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
          HEIGHT             = 13.48
-         WIDTH              = 59.2.
+         WIDTH              = 63.2.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -854,34 +854,37 @@ PROCEDURE browseHandler :
   DEFINE INPUT PARAMETER phBrowseObject AS HANDLE NO-UNDO.
 
   DEFINE VARIABLE cBrowseFields    AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cDisplayedField  AS CHARACTER NO-UNDO.
   DEFINE VARIABLE lExitOnAction    AS LOG       NO-UNDO.
   DEFINE VARIABLE lCancelOnExit    AS LOG       NO-UNDO.
   DEFINE VARIABLE cSearchField     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cDbField         AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iNumRows         AS INTEGER    NO-UNDO.
   DEFINE VARIABLE hDataSource      AS HANDLE     NO-UNDO.
-  
-  /** Get the SmartSelect properties that need to be used by the browse */  
-  {get BrowseFields cBrowseFields}.
-  {get ExitBrowseOnAction lExitOnAction}.
-  {get CancelBrowseOnExit lCancelOnExit}.
-  {get NumRows iNumRows}.
-  {get DisplayedField cDisplayedField}.
+  DEFINE VARIABLE lDbAware         AS LOGICAL    NO-UNDO.
 
-  {get DataSource hDataSource}.  
+  /** Get the SmartSelect properties that need to be used by the browse */  
+  &SCOPED-DEFINE xp-assign
+  {get BrowseFields cBrowseFields}
+  {get ExitBrowseOnAction lExitOnAction}
+  {get CancelBrowseOnExit lCancelOnExit}
+  {get NumRows iNumRows}
+  {get DisplayedField cSearchField}
+  {get DataSource hDataSource}
+  .  
+  &UNDEFINE xp-assign
   
   IF VALID-HANDLE(hDataSource) THEN
   DO:
     /* Search/sort on calculated fields is currently not supported 
-       So if this is not a dbfield we must use the keyfield.  */
-    ASSIGN
-      cSearchField = cDisplayedField  
-      cDbField = {fnarg columnDbColumn cDisplayedField hDataSource}.
-    
-    IF cDbField = '':U THEN
+       So if this is a dbaware object but not a dbfield use the keyfield.  */
+    {get DBAware lDbAware hDataSource}.
+    IF lDbAware THEN 
     DO:
-      {get KeyField cSearchField}.
+      cDbField = {fnarg columnDbColumn cSearchField hDataSource}.      
+      IF cDbField = '':U THEN
+      DO:
+        {get KeyField cSearchField}.
+      END.
     END.
   END. /* valid-handle(hDataSource) */
 
@@ -902,6 +905,35 @@ PROCEDURE browseHandler :
   SUBSCRIBE PROCEDURE TARGET-PROCEDURE TO 'rowSelected':U IN phBrowseObject.
 
   RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-chooseButton) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE chooseButton Procedure 
+PROCEDURE chooseButton :
+/*------------------------------------------------------------------------------
+   Purpose:  Choose button event handler that sets focus if required before 
+             calling initalizeBrowse. 
+  Parameters:  <none>
+  Notes:     The lookup button is defined as no-focus. 'Entry' is applied
+             to the fill-in in order to make the lookup fill-in and button 
+             behave as a single widget and fire leave of other widgets also 
+             when the user clicks directly on the button. 
+------------------------------------------------------------------------------*/  
+  DEFINE VARIABLE hField AS HANDLE     NO-UNDO.
+  
+  {get FieldHandle hField}.
+
+  IF FOCUS <> hField THEN
+    APPLY 'ENTRY':U TO hField.
+
+  RUN initializeBrowse IN TARGET-PROCEDURE.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -951,7 +983,6 @@ PROCEDURE dataAvailable :
   {get DataSource hDataSource}.
   IF NOT VALID-HANDLE(hDataSource) THEN
     RETURN.
-
   /* The datasource can be navigated without actually selecting anything,
      so unless we are in modify mode (valuechanged, leave) or called from 
      rowSelected (pcMode = '') then just ignore this*/
@@ -959,9 +990,10 @@ PROCEDURE dataAvailable :
   IF pcMode > '':U AND NOT lModify THEN
     RETURN.
 
-  {set Modify FALSE}. /* Turn off modify mode */
-  
+  &SCOPED-DEFINE xp-assign
+  {set Modify FALSE} /* Turn off modify mode */
   {get SelectionHandle hSelection}.
+  &UNDEFINE xp-assign
   IF VALID-HANDLE(hSelection) AND hSelection:TYPE = "FILL-IN":U THEN
   DO:
     &SCOPED-DEFINE xp-assign
@@ -971,7 +1003,7 @@ PROCEDURE dataAvailable :
     {get DisplayValue cOldDisplayValue}
     .             
     &UNDEFINE xp-assign
-    
+
     ASSIGN      
       cDisplayValue           = {fnarg columnValue cDisplayedField hDataSource}
       cNewValue               = {fnarg columnValue cKeyField hDataSource}
@@ -996,9 +1028,12 @@ PROCEDURE dataAvailable :
       /* setDataValue does not call repositionDataSource when called internally
         (currently not at all for fill-in... ) */
       {set DataValue cNewValue}.
-      /* valuechanged does not call repositionDataSource when get = setDataValue
+      /* don't signal value changed if no record available */
+      IF NOT ({fn getQueryPosition hDataSource} BEGINS 'NoRecordAvail':U)  THEN
+       /* valuechanged does not call repositionDataSource when get = setDataValue
          (currently not at all for fill-in... ) */
-      RUN valueChanged IN TARGET-PROCEDURE.
+        RUN valueChanged IN TARGET-PROCEDURE.
+
       cColumnValues = {fnarg colValues cDataColumns hDataSource}.    
       PUBLISH "lookupComplete":U FROM hContainer 
          (cDataColumns,     /* CSV of all the columns in the SDO */
@@ -1339,6 +1374,8 @@ PROCEDURE initializeBrowse :
   DEFINE VARIABLE cRowident        AS CHAR      NO-UNDO.
   DEFINE VARIABLE dBrowseHeight    AS DECIMAL   NO-UNDO.
   DEFINE VARIABLE dBrowseWidth     AS DECIMAL   NO-UNDO.
+  DEFINE VARIABLE lOpen            AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE cValue           AS CHARACTER NO-UNDO.
 
   {get uibMODE cUIBmode}.
   
@@ -1350,19 +1387,25 @@ PROCEDURE initializeBrowse :
   {get BrowseContainer hBrowseContainer}.
   IF NOT VALID-HANDLE(hBrowseContainer) THEN 
   DO: 
-    {get ContainerSource hContainer}.
-    {get DataSource hDataSource}.
-    {get BrowseWindowProcedure cBrowseWinProc}.
+    &SCOPED-DEFINE xp-assign
+    {get ContainerSource hContainer}
+    {get DataSource hDataSource}
+    {get BrowseWindowProcedure cBrowseWinProc}
+    .
+    &UNDEFINE xp-assign
     
     RUN constructObject IN hContainer 
            (cBrowseWinProc,
             ?,
             "":U,
             OUTPUT hBrowseContainer).    
-    {set BrowseContainer hBrowseContainer}.
-
+    
+    &SCOPED-DEFINE xp-assign
+    {set BrowseContainer hBrowseContainer}
+    {get BrowseTitle cBrowseTitle}
+    .
+    &UNDEFINE xp-assign    
     {get ContainerHandle hBrowseWindow hBrowseContainer}.
-    {get BrowseTitle cBrowseTitle}.
     hBrowseWindow:TITLE = cBrowseTitle.
     
     RUN constructObject IN hBrowseContainer 
@@ -1387,9 +1430,7 @@ PROCEDURE initializeBrowse :
     
     RUN addLink IN hBrowseContainer ( hDataSource, 'Data':U , hBrowseObject).    
     RUN addLink IN hBrowseContainer ( hToolbar, 'navigation':U , hDataSource).
-  
-    {get Rowident cRowident hdatasource}.
-    
+     
     /* We set HideOnInit to TRUE in the browse container and view it explicitly 
       after resizing. Otherwise the browse gets visualized before the window
       is resized and we get flashing. */
@@ -1409,14 +1450,18 @@ PROCEDURE initializeBrowse :
     {get WIDTH  dBrowseWidth hBrowseObject}.
     RUN resizeObject IN hBrowseContainer (dBrowseHeight, dBrowseWidth).
     
-    IF cRowident <> ? THEN
-      DYNAMIC-FUNC("fetchrowident":U IN hDataSource,cRowident,"").
-    ELSE /* very unlikely after issue 4016; findRowWhere always reads a batch.
-           (is here to deal with openoninit false + invalid DataValue */
+    &SCOPED-DEFINE xp-assign
+    {get DataValue cValue}
+    {get FieldEnabled lEnabled}
+    .
+    &UNDEFINE xp-assign
+    
+    {fnarg repositionDataSource cValue}.
+     /* deal with openoninit false + invalid DataValue */
+    {get QueryOpen lOpen hDataSource}.
+    IF NOT lOpen THEN 
       {fn openQuery hDataSource}.
 
-    {get FieldEnabled lEnabled}.
-    
     IF NOT lEnabled THEN 
       RUN disableObject IN hBrowseObject.      
   END. /* if not valid-handle(hBrowseContainer)*/
@@ -1476,7 +1521,7 @@ END PROCEDURE.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initializeSelection Procedure 
 PROCEDURE initializeSelection :
-/*------------------------------------------------------------------------------
+/*-----------------------------------------------------------------------------
     Purpose: Create the selection-widget and populate with data unless the 
              view-as is specified as a browse. 
 Parameters:  <none>
@@ -1519,18 +1564,20 @@ Parameters:  <none>
     RETURN.
   
   {fn destroySelection}.
-
-  {get DisplayedField cDisplayedField}.
-  {get KeyField cKeyField}.
-  {get Label cLabel}.
-  {get ToolTip cToolTip}.
-  {get HelpId iHelpId}.
-  {get Format cKeyFormat}.
-  {get ViewAs cViewAs}.
-  {get Sort lSort}.
-  {get NumRows iNumRows}.
-  {get DataSource hDataSource}.  
-  {get UIBMode cUIBmode}. 
+  &SCOPED-DEFINE xp-assign
+  {get DisplayedField cDisplayedField}
+  {get KeyField cKeyField}
+  {get Label cLabel}
+  {get ToolTip cToolTip}
+  {get HelpId iHelpId}
+  {get Format cKeyFormat}
+  {get ViewAs cViewAs}
+  {get Sort lSort}
+  {get NumRows iNumRows}
+  {get DataSource hDataSource}  
+  {get UIBMode cUIBmode}
+   . 
+  &UNDEFINE xp-assign
   
   /* default to the fieldname if no keyfield 
      (This will give errors further down if the field does not exist) */
@@ -1548,11 +1595,10 @@ Parameters:  <none>
   END.
 
   cDataType = ?.
-
+  
   IF VALID-HANDLE(hDataSource) AND cDisplayedField <> "":U THEN    
   DO:
     cDataType = {fnarg columnDataType cDisplayedField hDataSource}.    
-    
     {get ObjectInitialized  lSDOInit hDataSource}.
     IF NOT (cUIBMode BEGINS "Design":U)  THEN
     DO:
@@ -1566,9 +1612,7 @@ Parameters:  <none>
                                   + cDisplayedField 
                                   + ",":U 
                                   + TARGET-PROCEDURE:FILE-NAME).
-
-        RETURN "ADM-ERROR":U.      
-        
+        RETURN "ADM-ERROR":U.           
       END. /* cDataType = ? */
     END. /* not uibmode begins design */     
     
@@ -1583,20 +1627,19 @@ Parameters:  <none>
                  THEN cDataType 
                  ELSE "CHARACTER":U  /* design - or buffer-field not found etc */
       
-   cKeyFormat  = IF cKeyFormat = '?':U OR cKeyFormat = ? OR cKeyFormat = '':U
-                 THEN "x(256)":U
-                 ELSE cKeyFormat 
+    cKeyFormat  = IF cKeyFormat = '?':U OR cKeyFormat = ? OR cKeyFormat = '':U
+                  THEN "x(256)":U
+                  ELSE cKeyFormat 
 
-   cViewAsType   = ENTRY(1,cViewas,":":U).
-   cViewAsOption = IF NUM-ENTRIES(cViewAs,":") > 1
-                   THEN ENTRY(2,cViewas,":":U)
-                   ELSE cViewAsOption.  
-  
+    cViewAsType   = ENTRY(1,cViewas,":":U).
+    cViewAsOption = IF NUM-ENTRIES(cViewAs,":") > 1
+                    THEN ENTRY(2,cViewas,":":U)
+                    ELSE cViewAsOption.  
+
   /* If this is not a browser we must get the keyfield datatype and 
      build the list for the widget */ 
   IF cViewAsType <> "Browser":U THEN     
   DO:
-    
     /* We don't allow different key and display in editable combo 
        because there's no key to save and no way to get the value with 
        list-item-pairs */    
@@ -1608,21 +1651,26 @@ Parameters:  <none>
     DO:
       cKeyDataType = {fnarg columnDataType cKeyField hDataSource}.    
 
-      IF NOT (cUIBMode BEGINS "Design":U) 
-      /* Unknown means that the field probably was not defined in the source */
-      AND cKeyDataType = ? THEN
+      IF cKeyDataType = ? THEN
       DO:
-        /* 7351 =  Buffer-field not found */
-        IF ERROR-STATUS:GET-NUMBER(1) = 7351 THEN
-          DYNAMIC-FUNC('showMessage' IN TARGET-PROCEDURE, 
-                       STRING(19) + ",":U 
-                                  + cKeyField 
-                                  + ",":U 
-                                  + TARGET-PROCEDURE:FILE-NAME).
-        RETURN "ADM-ERROR":U.      
-      END. /* cDataType = ? */    
+        /* Unknown means that the field probably was not defined in the source */
+        IF  NOT (cUIBMode BEGINS "Design":U) THEN
+        DO:
+          /* 7351 =  Buffer-field not found */
+          IF ERROR-STATUS:GET-NUMBER(1) = 7351 THEN
+            DYNAMIC-FUNC('showMessage' IN TARGET-PROCEDURE, 
+                         STRING(19) + ",":U 
+                                    + cKeyField 
+                                    + ",":U 
+                                    + TARGET-PROCEDURE:FILE-NAME).
+          RETURN "ADM-ERROR":U.      
+        END. /* cDataType = ? */ 
+        ELSE
+          cKeyDataType = cDataType.
+      END.
     END. /* keyfield <> displayedfield and valid data-source */ 
-    ELSE cKeyDataType = cDataType.
+    ELSE
+      cKeyDataType = cDataType.
     
     /* If the SDO is initialized we build the list now, otherwise  
        refreshObject will take care of this when the SDO openQuery
@@ -1632,6 +1680,7 @@ Parameters:  <none>
       ASSIGN     
          cList = {fn buildList}. 
   END. /* not browser */
+
 
   CASE cViewAsType:
     WHEN "Selection-List":U THEN
@@ -1653,12 +1702,13 @@ Parameters:  <none>
     END. /* when "selection-list" */
     WHEN "Radio-Set":U THEN
     DO:
+
       CREATE RADIO-SET hSelection
           ASSIGN DELIMITER        = {&selectionSeparator}
                  HORIZONTAL       = cViewAsOption BEGINS "H"
                  RADIO-BUTTONS    = (IF cList <> "":U 
-                                 THEN cList
-                                 ELSE "":U + {&selectionSeparator} + "":U)
+                                     THEN cList
+                                     ELSE "":U + {&selectionSeparator} + "":U)
                  FRAME            = hFrame
                  Y                = 0
                  WIDTH-PIXELS     = hFrame:WIDTH-PIXELS 
@@ -1678,7 +1728,9 @@ Parameters:  <none>
                                     THEN cKeyDataType
                                     ELSE hSelection:DATA-TYPE
                  SORT             = lSort
-                 FORMAT           = cKeyFormat
+                 FORMAT           = IF cUIBMode BEGINS 'design'
+                                    THEN hSelection:FORMAT
+                                    ELSE cKeyFormat 
                  WIDTH-PIXELS     = hFrame:WIDTH-PIXELS 
                                     - (IF hSelection:SUBTYPE = "SIMPLE":U 
                                        THEN 2 
@@ -1721,7 +1773,9 @@ Parameters:  <none>
                  X                = 0
                  Y                = 0
                  DATA-TYPE        = cDataType 
-                 FORMAT           = cDispFormat                 
+                 FORMAT           = IF cUIBMode BEGINS 'design'
+                                    THEN hSelection:FORMAT
+                                    ELSE cDispFormat 
                  WIDTH-PIXELS     = hFrame:WIDTH-PIXELS - 24
                  HIDDEN           = FALSE
                  SENSITIVE        = (cUIBMode BEGINS "DESIGN":U) = FALSE
@@ -1731,15 +1785,16 @@ Parameters:  <none>
         CREATE BUTTON hBtn
           ASSIGN NO-FOCUS         = TRUE
                  FRAME            = hFrame
-                 X                = hSelection:WIDTH-P + 4
-                 Y                = 1 
-                 WIDTH-PIXELS     = 19
-                 HEIGHT-P         = hSelection:HEIGHT-P - 1 
+                 X                = hSelection:WIDTH-P + (if SESSION:WINDOW-SYSTEM eq 'MS-WINXP' then 0 else 4)
+                 Y                = (if SESSION:WINDOW-SYSTEM eq 'MS-WINXP' then 0 else 1)
+                 WIDTH-PIXELS     = (if SESSION:WINDOW-SYSTEM eq 'MS-WINXP' then 22 else 19)
+                 HEIGHT-P         = hSelection:HEIGHT-P - (if SESSION:WINDOW-SYSTEM eq 'MS-WINXP' then 0 else 1)
+                     
                  HIDDEN           = FALSE
                  SENSITIVE        = FALSE
               TRIGGERS:
                 ON CHOOSE PERSISTENT 
-                  RUN initializeBrowse IN TARGET-PROCEDURE.
+                  RUN chooseButton IN TARGET-PROCEDURE.
               END.
        {get SelectionImage cSelectionImg}.
         hBtn:LOAD-IMAGE(cSelectionImg).      
@@ -1763,7 +1818,6 @@ Parameters:  <none>
   END CASE. /* cViewAsType */
   
   {set SelectionHandle hSelection}.
-
   IF VALID-HANDLE(hSelection) THEN
   DO:
     /* create a label if not blank */  
@@ -1830,15 +1884,22 @@ PROCEDURE leaveSelect :
   DEFINE VARIABLE iLookup               AS INTEGER    NO-UNDO.
   DEFINE VARIABLE lModified             AS LOGICAL    NO-UNDO.
   
-  {get DataModified lModified}.
-  IF lModified THEN
+  &SCOPED-DEFINE xp-assign
+  {get DataModified lModified}
+  {get SelectionHandle hSelection}
+  .
+  &UNDEFINE xp-assign
+  
+  IF lModified AND hSelection:TYPE = "Fill-In":U THEN
   DO:
-    {get KeyField cKeyField}.
-    {get DisplayedField cDisplayedField}.
-    {get DataSource hDataSource}.
-    {get DataValue cDataValue}.
-    {get SelectionHandle hSelection}.  
-    {get DisplayedField cDisplayedField}.
+    &SCOPED-DEFINE xp-assign
+    {get KeyField cKeyField}
+    {get DisplayedField cDisplayedField}
+    {get DataSource hDataSource}
+    {get DataValue cDataValue}
+    {get DisplayedField cDisplayedField}
+    .
+    &UNDEFINE xp-assign
 
     cScreenValue = hSelection:INPUT-VALUE. 
     
@@ -1853,12 +1914,16 @@ PROCEDURE leaveSelect :
       DO:
         /* Tell dataAvailable to take this seriously.. */
         {set Modify TRUE}.
+
         /* qualify with RowObject. as signal that this is the SDO ColumnName, 
            which may be different than the table's fieldname */     
+        IF NUM-ENTRIES(cDisplayedField,".":U) = 1 THEN
+           cDisplayedField = "RowObject.":U + cDisplayedField.
+
         lFound = DYNAMIC-FUNC("findRowWhere":U IN hDataSource, 
-                              "RowObject.":U + cDisplayedField,
-                               cScreenValue,
-                               '=/BEGINS':U).
+                              cDisplayedField,
+                              cScreenValue,
+                              '=/BEGINS':U).
         {set Modify FALSE}.
       END.
       IF NOT lFound THEN
@@ -1901,7 +1966,8 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE linkStateHandler Procedure 
 PROCEDURE linkStateHandler :
 /*------------------------------------------------------------------------------
-   Purpose: Override in order to set the Select filter 
+   Purpose: Override in order to set the Select filter and datasource 
+            batching props if not browsed 
 Parameters: See smart.p   
      Notes:       
 ------------------------------------------------------------------------------*/
@@ -1922,25 +1988,32 @@ Parameters: See smart.p
   DEFINE VARIABLE lQueryopen       AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cRowIdent        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lEnableField     AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lDbAware         AS LOGICAL    NO-UNDO.
 
   IF pcstate = 'add':U AND pcLink = 'DataSource':U  THEN
   DO:
     {get DataSourceFilter cFilter}.     
     IF cFilter NE "":U THEN
     DO:
-      DYNAMIC-FUNCTION("addQueryWhere":U IN phObject,cFilter,?,'':U). 
+      /* not supported for Dataview */
+      {get DbAware lDbAware phObject}.
+      IF lDbAware THEN
+        DYNAMIC-FUNCTION("addQueryWhere":U IN phObject,cFilter,?,'':U). 
     END.
 
     {get ViewAs cViewAs}.
 
-    /* If this is a Microsoft widget then rowValues will call sendRows to get 
-       remaining data, so set properties here to avoid this extra Appserver hit
-       in the case where the query is opened before buildList ->rowValues
-       (openoninit = true etc..) */
+    /* If this is a Microsoft widget we need all data and rowValues will do 
+       an extra call to get remaining data, so set properties here to avoid 
+       this extra Appserver hit in the case where the query is opened before 
+       buildList -> rowValues  (openoninit = true etc..) */
     IF cViewAs <> 'Browser':U THEN
     DO:
-      {set RebuildOnRepos FALSE phObject}.
-      {set RowsToBatch 0 phObject}.
+      &SCOPED-DEFINE xp-assign
+      {set RebuildOnRepos FALSE phObject}
+      {set RowsToBatch 0 phObject}
+      .
+      &UNDEFINE xp-assign
     END.
     ELSE DO: 
       /* Ensure that browse will be scrollable; set RowsTobatch at least 
@@ -1948,7 +2021,7 @@ Parameters: See smart.p
          browse in browseHandler  */
       {get NumRows iNumRows}.
       {get RowsToBatch iRowsToBatch phObject}. 
-      IF iNumRows GE iRowsToBatch THEN
+      IF iNumRows GE iRowsToBatch AND iRowsToBatch <> 0 THEN
       DO:
         iRowsToBatch = iNumRows + 1.
         {set RowsToBatch iRowsToBatch phObject}.
@@ -1961,7 +2034,9 @@ Parameters: See smart.p
       IF lEnableField THEN
       DO:   
         {get DisplayedField cDisplayedField}.
-        {fnarg resortQuery "'RowObject.':U + cDisplayedField" phObject}.
+        IF NUM-ENTRIES(cDisplayedField,'.':U) = 1 THEN
+          cDisplayedField = 'RowObject.':U + cDisplayedField.
+        {fnarg resortQuery cDisplayedField phObject}.
       END. /* Enablefield*/
     END.
   END.
@@ -1982,8 +2057,11 @@ Parameters: See smart.p
      link was inactive. */
   IF lDataInactive THEN
   DO:
-    {get KeyField cKeyField}.
-    {get DataValue cValue}.
+    &SCOPED-DEFINE xp-assign
+    {get KeyField cKeyField}
+    {get DataValue cValue}
+    .
+    &UNDEFINE xp-assign
 
     /* Only retrieve values from DataSource if it is in synch with the 
        current DataValue  */  
@@ -2643,7 +2721,8 @@ FUNCTION getDataSourceFilter RETURNS CHARACTER
   ( ) :
 /*--------------------------------------------------------------------------- 
 Purpose: Returns an optional filter expression for the data-source.
-Notes:  
+Notes:   Not supported against the Dataview where base filtering is expected
+         to be implemented in the data access layer.   
 -----------------------------------------------------------------------------*/
 
   DEFINE VARIABLE cDataSourceFilter AS CHARACTER NO-UNDO.
@@ -3306,17 +3385,23 @@ FUNCTION repositionDataSource RETURNS LOGICAL
   DEFINE VARIABLE hDataSource       AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lFound            AS LOGICAL    NO-UNDO.
   
-  {get KeyField cKeyField}.
-  {get DataSource hDataSource}.
-     
+  &SCOPED-DEFINE xp-assign
+  {get KeyField cKeyField}
+  {get DataSource hDataSource}
+  .
+  &UNDEFINE xp-assign
+  
   IF NOT VALID-HANDLE(hDataSource) THEN
     RETURN FALSE.
-  
+
   {set Modify TRUE}.     
   /* qualify with RowObject. as signal that this is the SDO ColumnName, 
      which may be different than the table's fieldname */   
+  IF NUM-ENTRIES(cKeyField,".":U) = 1 THEN
+    cKeyField = "RowObject.":U + cKeyField.
+  
   lFound = DYNAMIC-FUNC("findRowWhere":U IN hDataSource, 
-                        "RowObject.":U + cKeyField,
+                         cKeyField,
                          pcValue,
                         '':U).
   {set Modify FALSE}. 
@@ -3434,9 +3519,10 @@ END FUNCTION.
 FUNCTION setDataSourceFilter RETURNS LOGICAL
   ( picDataSourceFilter AS CHARACTER ) :
 /*--------------------------------------------------------------------------- 
-Purpose: Stores an optional filter expression for the data-source.
+   Purpose: Stores an optional filter expression for the data-source.
 Parameters: INPUT picdataSourcefilter - character - query expression 
-Notes:  
+     Notes: Not supported against the Dataview ( base filtering is expected
+            to be implemented in the data access layer ).   
 -----------------------------------------------------------------------------*/
   picDataSourceFilter = REPLACE(picDataSourceFilter,"'":U,"~"":U).
   {set DataSourceFilter picDataSourceFilter}.
@@ -3493,7 +3579,7 @@ Parameters: INPUT pcValue - Value that corresponds to the KeyField property
   {get ViewAs cViewAs}.
 
   /* The behavior is different when used as an External API 
-     The call is internal if caled from target or this (select.p) or
+     The call is internal if called from target or this (select.p) or
      a super-procedure that extends select.p (earlier in list of supers)  */   
   ASSIGN
     cSupers   = TARGET-PROCEDURE:SUPER-PROCEDURES
@@ -3520,6 +3606,7 @@ Parameters: INPUT pcValue - Value that corresponds to the KeyField property
     {get RepositionDataSource lRepositionSource}.
     IF cViewAs ='Browser':U OR lRepositionSource THEN
       lAvailable = {fnarg repositionDataSource pcValue}.
+
     IF cViewAs ='Browser':U THEN
     DO:
       IF NOT lAvailable THEN
@@ -4005,7 +4092,7 @@ FUNCTION validateField RETURNS LOGICAL
   DEFINE VARIABLE cDisplayedField AS CHARACTER  NO-UNDO.
 
    {get SelectionHandle hSelection}.
-  IF hSelection = FOCUS THEN
+  IF hSelection = FOCUS AND hSelection:TYPE = 'Fill-in':U THEN
     RUN leaveSelect IN TARGET-PROCEDURE. 
   
   {get KeyField cKeyField}.

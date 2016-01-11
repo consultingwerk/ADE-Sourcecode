@@ -3,28 +3,11 @@
 &Scoped-define WINDOW-NAME C-Win
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS C-Win 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
-
 /*------------------------------------------------------------------------
   File: _webcom.w
 
@@ -80,6 +63,7 @@ CREATE WIDGET-POOL.
 /* Local Variable Definitions ---                                       */
 { adeuib/sharvars.i } 
 { adeuib/uniwidg.i }
+{ adeweb/web_file.i }
 
 /* Parameters Definitions ---                                           */
 DEFINE INPUT        PARAMETER p_proc-id   AS RECID     NO-UNDO.
@@ -116,6 +100,7 @@ DEFINE VARIABLE lEndOfFile    AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE lCancel       AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE lFileClosed   AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE lScrap        AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE cClassType    AS CHARACTER INIT ? NO-UNDO.
 
 /* options */
 DEFINE VARIABLE lAnalyze      AS LOGICAL   NO-UNDO.
@@ -572,11 +557,22 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
   IF p_proc-id ne ? THEN DO:
     FIND _P WHERE RECID(_P) = p_proc-id.
     IF p_fileName = "" THEN 
-      p_fileName = _P._SAVE-AS-FILE.
+       p_fileName = _P._SAVE-AS-FILE.
+
     ASSIGN
       cHtmlFile  = _P._html-file
       lSmartData = (_P._TYPE eq "SmartDataObject":U).
   END.
+
+
+  /* check for filename(classtype) */
+  IF (INDEX(p_fileName,"|":U) > 0) THEN
+      ASSIGN 
+          ix = INDEX(p_fileName,"|":U)
+          cClassType = SUBSTRING(p_fileName,ix + 1)
+          p_fileName = SUBSTRING(p_fileName,1,ix - 1)
+          cClassType = (IF cClassType = ? THEN "" ELSE cClassType)
+      .
   
   DO ix = 1 TO NUM-ENTRIES(p_options):
     cValue = TRIM(ENTRY(ix,p_options)).
@@ -628,6 +624,21 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
         .  
   END.
   
+  /* if we have the save-as-path info, then we need to concatenate it when saving the file
+     so we save changes to correct file */
+  IF AVAILABLE (_P) AND lSave THEN DO:
+      IF _P._save-as-path NE ?  AND _P._SAVE-AS-FILE = p_fileName THEN
+          p_fileName = _P._save-as-path + _P._SAVE-AS-FILE.
+  END.
+  ELSE DO:
+      /* this should NOT happen, but just in case we find out way here
+         with the file info passed by _webfile.w. If we have the info to
+         construct the absolute file name */
+      IF (lOpen OR lSave OR lSaveas) AND 
+          ws-get-save-as-path (INPUT p_fileName) NE ? THEN
+         ASSIGN p_fileName = ws-get-absolute-path (INPUT p_fileName).
+  END.
+
   &if {&debug} &then
   message "[_webcom.w]" skip
     "p_proc-id"       p_proc-id     skip
@@ -919,6 +930,9 @@ PROCEDURE post_data :
       + "&tempFile=":U + url-encode(p_webTemp,"query":U)
       + "&fileName=":U + url-encode(p_fileName, "query":U)
       + "&section=":U + p_section
+      + (IF cClassType <> ? THEN
+          "&isClass=yes&classtype=":U + URL-ENCODE(cClassType,"query":U)
+          ELSE "":U)
     chCtrlFrame:CIHTTP:HTTPHeader = "Content-type: text/plain" + p_newline + 
                                     "Content-Length: " + 
                                     STRING(LENGTH(p_postdata,"RAW":U)) + 

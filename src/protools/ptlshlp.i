@@ -150,3 +150,7 @@
 
 /* Convert old Smart Objects to Dynamic Objects Utility */ 
 &GLOBAL-DEFINE Static_to_Dynamic_Conversion_Utility 72 
+
+/* New for 10.1A */
+&GLOBAL-DEFINE WidgetID_Assignment_Utility 200
+&GLOBAL-DEFINE Object_Attribute_Reference 201

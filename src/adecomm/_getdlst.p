@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -90,8 +74,10 @@ DEFINE VARIABLE cTable      AS CHARACTER      NO-UNDO.
 DEFINE VARIABLE cCurrField  AS CHARACTER      NO-UNDO.
 DEFINE VARIABLE cCurrTable  AS CHARACTER      NO-UNDO.
 
-
 DEFINE VARIABLE FldList AS CHARACTER NO-UNDO.
+define variable hColumn         as handle                no-undo.
+define variable lDbAware        as logical               no-undo.
+
 
 DEFINE TEMP-TABLE sdoData NO-UNDO
        FIELD seq       AS INTEGER
@@ -121,16 +107,13 @@ IF NOT VALID-HANDLE(p_hSmartData) THEN DO:
   RETURN.
 END.
 
-/* The SmartData may have a temp table fields but may not have any fields accessible 
- * to outsiders */
 FldList = dynamic-function("getDataColumns" IN p_hSmartData).
 IF FldList = "" OR FldList = ? THEN DO:
-  MESSAGE "You do not have permission to see any field information.":t
+  MESSAGE "The data object has no field information.":t
     VIEW-AS ALERT-BOX ERROR BUTTONS OK.
   p_Stat = FALSE.
   RETURN.
 END.
-
 
 /* Split out the (possible) multiple elements in p_Items and put them in
  * separate variables.
@@ -143,10 +126,6 @@ ASSIGN
  * but the temp table name is hardcoded to rowObject 
  */
 
-IF dynamic-function("getObjectType":U IN p_hSmartData) = "SmartBusinessObject":U THEN
-   cItems = "2":U.
-/* If we are dealing with an SBO we have to qualify the fields */
-  
 IF cItems = "" OR cItems = "3" THEN cItems = "1":U.
 
 /* Give me the parent of the selection list */
@@ -155,14 +134,43 @@ ASSIGN widg = p_List:parent       /* gives me the group */
 
 RUN adecomm/_setcurs.p ("WAIT":u).
 
+/* Determine whether this data obejct is a Dataview or SDO */
+{get DbAware lDbAware p_hSmartData}.
+
 DO i = 1 to NUM-ENTRIES(FldList):
    cCurrField = ENTRY(i,FldList).
-   cCurrTable = IF NUM-ENTRIES(cCurrField,".":U) >= 2 THEN 
-                   ENTRY(NUM-ENTRIES(cCurrField,".":U) - 1,cCurrField,".":U) ELSE "RowObject":U.
-   cCurrField = ENTRY(NUM-ENTRIES(cCurrField,".":U),cCurrField,".":U).
+   /* Use qualifer if the field list is qualified (SBOs and DataViews) */
+   IF i = 1 THEN 
+     cItems = STRING(NUM-ENTRIES(cCurrField,".":U)).
 
+   cCurrTable = IF NUM-ENTRIES(cCurrField,".":U) >= 2 THEN 
+                ENTRY(NUM-ENTRIES(cCurrField,".":U) - 1,cCurrField,".":U) 
+                ELSE "RowObject":U.
+   
+   cCurrField = ENTRY(NUM-ENTRIES(cCurrField,".":U),cCurrField,".":U).
+       
    IF cTable <> ? THEN 
-     cCurrTable = cTable.
+   do:
+       /* If this is a DataView, and a table has been passed to the API
+	      via p_Items, then only show the fields that belong to that table.
+	    */
+       if not lDbAware and cTable ne cCurrTable then
+           next.
+       else
+           cCurrTable = cTable.
+   end.    /* table specified */
+   
+   /* Array fields are not supported for DataViews. We may at some point
+      expand the use of the p_Dtype parameter to be able to generically 
+      exclude (rather than include) fields on data type, and may add support
+      for arrays there.
+    */
+   if not lDbAware then
+   do:
+       hColumn = {fnarg ColumnHandle "cCurrTable + '.':u + cCurrField" p_hSmartData}.
+       if valid-handle(hColumn) and hColumn:Extent gt 0 then
+           next.
+   end.    /* db aware */
    
    CREATE sdoData.
    ASSIGN seq               = seq + 1
@@ -215,5 +223,3 @@ p_Stat = TRUE.
 RETURN.
 
 /* _getdlst.p - end of file */
-
-

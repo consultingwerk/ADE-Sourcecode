@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 /* Procedure Description
 "Super Procedure for User Maintenance - Detail viewer"
 */
@@ -21,6 +21,13 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /*---------------------------------------------------------------------------------
   File: gsmussupr1.p
 
@@ -105,7 +112,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
          HEIGHT             = 17
-         WIDTH              = 101.6.
+         WIDTH              = 74.6.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -156,6 +163,9 @@ PROCEDURE addRecord :
   /* Code placed here will execute AFTER standard behavior.    */
 
   RUN valueChangedProfileUser IN TARGET-PROCEDURE.
+
+  /* Default save window pos and sizes to yes for new user */
+  assignWidgetValue('create_user_profile_data':U, 'yes':U).
 
 END PROCEDURE.
 
@@ -250,6 +260,7 @@ PROCEDURE copyRecord :
 
   RUN valueChangedProfileUser IN TARGET-PROCEDURE.
 
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -276,6 +287,7 @@ PROCEDURE dataAvailable :
   /* Code placed here will execute AFTER standard behavior.    */
 
   RUN valueChangedProfileUser IN TARGET-PROCEDURE.
+
 
 END PROCEDURE.
 

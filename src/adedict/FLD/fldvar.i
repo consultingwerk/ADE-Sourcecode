@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -56,25 +40,28 @@ Define {1} var s_lst_Fld_Dtype as char
    view-as SELECTION-LIST SINGLE  
    INNER-CHARS 32 INNER-LINES 9 SCROLLBAR-VERTICAL.
 
-DEFINE {1} VARIABLE s_Blob_Area AS CHARACTER FORMAT "x(32)" NO-UNDO.
-DEFINE {1} VARIABLE s_lst_Blob_Area AS CHARACTER
+DEFINE BUTTON s_btn_lob_Area IMAGE-UP FILE "btn-down-arrow".
+
+DEFINE {1} VARIABLE s_lob_Area AS CHARACTER FORMAT "x(32)" NO-UNDO.
+DEFINE {1} VARIABLE s_lst_lob_Area AS CHARACTER
       VIEW-AS SELECTION-LIST SINGLE
       INNER-CHARS 32 INNER-LINES 5 SCROLLBAR-VERTICAL.
 
-DEFINE {1} VARIABLE s_clob_Area AS CHARACTER FORMAT "x(32)" NO-UNDO.
-DEFINE {1} VARIABLE s_lst_clob_Area AS CHARACTER
-      VIEW-AS SELECTION-LIST SINGLE
-      INNER-CHARS 32 INNER-LINES 5 SCROLLBAR-VERTICAL.
+DEFINE BUTTON s_btn_clob_cp IMAGE-UP FILE "btn-down-arrow".
 
 DEFINE {1} VARIABLE s_clob_cp AS CHARACTER FORMAT "x(32)" NO-UNDO.
 DEFINE {1} VARIABLE s_lst_clob_cp AS CHARACTER
-     VIEW-AS SELECTION-LIST SINGLE
+     VIEW-AS SELECTION-LIST SINGLE SORT
      INNER-CHARS 32 INNER-LINES 5 SCROLLBAR-VERTICAL.
+
+DEFINE BUTTON s_btn_clob_col IMAGE-UP FILE "btn-down-arrow".
 
 DEFINE {1} VARIABLE s_clob_col AS CHARACTER FORMAT "x(32)" NO-UNDO.
 DEFINE {1} VARIABLE s_lst_clob_col AS CHARACTER
-     VIEW-AS SELECTION-LIST SINGLE
+     VIEW-AS SELECTION-LIST SINGLE SORT
      INNER-CHARS 32 INNER-LINES 5 SCROLLBAR-VERTICAL.
+
+DEFINE {1} VARIABLE s_lob_size AS CHARACTER FORMAT "x(10)" INITIAL "100M" NO-UNDO.
 
 Define button s_btn_Fld_Format LABEL "&Examples..." SIZE 15 by 1.125.
 
@@ -98,6 +85,8 @@ Define button btn_Cancel label "Cancel" {&STDPH_OKBTN} AUTO-ENDKEY.
 Define rectangle rect_Btns {&STDPH_OKBOX}.
 Define button    btn_Help label "&Help" {&STDPH_OKBTN}.
 
+/*Variable to hold size of LOB fields in bytes */
+DEFINE {1} VARIABLE s_lob_wdth       AS DECIMAL            NO-UNDO.
 
 /* This is the form for the field properties and new field windows.    
 */

@@ -5,25 +5,9 @@
 &Scoped-define WINDOW-NAME properties_window
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS properties_window 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*------------------------------------------------------------------------
@@ -115,7 +99,7 @@ DEFINE VARIABLE xdMinHeight     AS DEC  NO-UNDO INIT 3.
 /* MiunWidth, show some data in last col */
 DEFINE VARIABLE xdMinWidth      AS DEC  NO-UNDO INIT 28.
 
-
+{adecomm/oeideservice.i}
 /* Shared UIB Definitions ---                                           */
 {adeuib/uniwidg.i}              /* Universal widget definition              */
 {adeuib/layout.i}               /* Definitions of the layout records        */
@@ -706,22 +690,25 @@ END.
 brws-attr:NUM-LOCKED-COLUMNS = 2.
 
 /* Parent the window to the UIB's main window (and position it accordingly). */
-IF VALID-HANDLE(_h_menu_win) THEN DO:
-  {&WINDOW-NAME}:PARENT = _h_menu_win.
-  IF (_h_menu_win:X + _h_menu_win:WIDTH-P + {&WINDOW-NAME}:WIDTH-P + 10 ) < 
-     SESSION:WIDTH-P 
-  THEN ASSIGN /* Attribute window can fit beside the UIB Main window */
-            {&WINDOW-NAME}:X = (_h_menu_win:X + _h_menu_win:WIDTH-P + 10)
-            {&WINDOW-NAME}:Y = _h_menu_win:Y 
-            .
-  ELSE ASSIGN /* Attribute window below the UIB Main window.  Allow 2
-                 rows (about) is the height of the Menu bar and title of
-                 the UIB Main Window. */
-            {&WINDOW-NAME}:X = SESSION:WIDTH-P - {&WINDOW-NAME}:WIDTH-P - 10
-            {&WINDOW-NAME}:Y = _h_menu_win:Y + _h_menu_win:HEIGHT-P + 
-                               &IF "{&WINDOW-SYSTEM}" eq "OSF/Motif" &THEN 80
-                               &ELSE SESSION:PIXELS-PER-ROW * 2 &ENDIF
-            .
+IF NOT OEIDEIsRunning THEN
+DO:
+    IF VALID-HANDLE(_h_menu_win) THEN DO:
+      {&WINDOW-NAME}:PARENT = _h_menu_win.
+      IF (_h_menu_win:X + _h_menu_win:WIDTH-P + {&WINDOW-NAME}:WIDTH-P + 10 ) < 
+         SESSION:WIDTH-P 
+      THEN ASSIGN /* Attribute window can fit beside the UIB Main window */
+                {&WINDOW-NAME}:X = (_h_menu_win:X + _h_menu_win:WIDTH-P + 10)
+                {&WINDOW-NAME}:Y = _h_menu_win:Y 
+                .
+      ELSE ASSIGN /* Attribute window below the UIB Main window.  Allow 2
+	                 rows (about) is the height of the Menu bar and title of
+	                 the UIB Main Window. */
+                {&WINDOW-NAME}:X = SESSION:WIDTH-P - {&WINDOW-NAME}:WIDTH-P - 10
+                {&WINDOW-NAME}:Y = _h_menu_win:Y + _h_menu_win:HEIGHT-P + 
+                                   &IF "{&WINDOW-SYSTEM}" eq "OSF/Motif" &THEN 80
+                                   &ELSE SESSION:PIXELS-PER-ROW * 2 &ENDIF
+                .
+    END.
 END.
 
 /* jep-icf: Override titlebar icon for ICF. */
@@ -751,7 +738,76 @@ MAIN-BLOCK:
 DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
    ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
 
-  RUN enable_UI. 
+  /* OpenEdge IDE 
+   * This code is now using the IDE-WINDOW-TYPE and IDE-PARENT-HWND attributes,
+   * however, the embedded mode can only be specified at creation time, so we needed
+   * to create the window again because these parameters are not available to 
+   * the AppBuilder.
+   */
+  IF OEIDEIsRunning THEN
+  DO:
+    DEFINE VARIABLE cViewId      AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cSecondaryId AS CHARACTER  NO-UNDO.  
+    DEFINE VARIABLE cViewTitle   AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE iViewHwnd    AS INTEGER    NO-UNDO.
+  
+    DELETE OBJECT properties_window NO-ERROR.       
+    ASSIGN cViewId   = "com.openedge.pdt.text.views.OERuntimeView"
+        cSecondaryId = "PropertiesWindow_" + getProjectName()
+        cViewTitle   = "Properties Window".
+
+    /* Show view */
+    showView(cViewId, cSecondaryId, {&VIEW_ACTIVATE}).
+    setViewTitle(cViewId, cSecondaryId, cViewTitle).
+    RUN getViewHwnd IN hOEIDEService (cViewId, cSecondaryId, OUTPUT iViewHwnd) NO-ERROR.
+    
+    CREATE WINDOW properties_window ASSIGN
+           IDE-WINDOW-TYPE    = 0 /* embedded mode */
+           IDE-PARENT-HWND    = iViewHwnd  
+           HIDDEN             = YES
+           TITLE              = "Properties Window"
+           HEIGHT             = 10
+           WIDTH              = 42.4
+           MAX-HEIGHT         = 34.33
+           MAX-WIDTH          = 204.8
+           VIRTUAL-HEIGHT     = 34.33
+           VIRTUAL-WIDTH      = 204.8
+           RESIZE             = yes
+           SCROLL-BARS        = no
+           STATUS-AREA        = no
+           BGCOLOR            = ?
+           FGCOLOR            = ?
+           KEEP-FRAME-Z-ORDER = yes
+           THREE-D            = yes
+           MESSAGE-AREA       = no
+           SENSITIVE          = yes.
+
+    ON END-ERROR OF properties_window /* Properties Window */
+    OR ENDKEY OF {&WINDOW-NAME} ANYWHERE DO:
+      /* "Eat" the standard END- events. */   
+      RETURN NO-APPLY.
+    END.
+
+    ON HELP OF properties_window /* Properties Window */
+    ANYWHERE DO:
+      RUN adecomm/_adehelp.p ( "ab", "CONTEXT", {&Attributes_Window} , ? ).
+    END.
+
+    ON WINDOW-CLOSE OF properties_window /* Properties Window */
+    DO:
+      /* Close up this when the user closes */
+      APPLY "CLOSE":U TO THIS-PROCEDURE.
+    END.
+
+    ON WINDOW-RESIZED OF properties_window /* Properties Window */
+    DO:
+      RUN resizeObject(SELF:HEIGHT, SELF:WIDTH).
+    END.
+
+    properties_window:VISIBLE = yes.
+    setEmbeddedWindow(cViewId, cSecondaryId, properties_window).
+  END. 
+  RUN enable_UI.   
   
   IF NOT THIS-PROCEDURE:PERSISTENT THEN
     WAIT-FOR CLOSE OF THIS-PROCEDURE.
@@ -1998,38 +2054,74 @@ DEFINE VARIABLE iRow            AS INT  NO-UNDO.
  DO WITH FRAME f:
   /* Base the height of the widgets on the combo-box (which is
      resized based on its font by PROGRESS) */
-  ASSIGN
-    {&WINDOW-NAME}:WIDTH      = pdWidth 
-    {&WINDOW-NAME}:HEIGHT     = pdHeight
-    FRAME f:WIDTH             = {&WINDOW-NAME}:WIDTH
-    FRAME f:HEIGHT            = {&WINDOW-NAME}:HEIGHT
-    brws-attr:HEIGHT          = {&WINDOW-NAME}:HEIGHT - (brws-attr:ROW - 1) 
+  /**
+   * TODO EAG review when core support for 4GL windows is added
+   * Currently some assigns are omitted when OEIDEIsRunning to avoid issues
+   */        
+    IF OEIDEIsRunning THEN
+        ASSIGN    
+            FRAME f:WIDTH             = {&WINDOW-NAME}:WIDTH
+            FRAME f:HEIGHT            = {&WINDOW-NAME}:HEIGHT
+            brws-attr:HEIGHT          = {&WINDOW-NAME}:HEIGHT - (brws-attr:ROW - 1) 
+      /* Use no-error because this give error when 2 down because the browser 
+	     tries to grow a horizontal scollbar, which does not fit. 
+	     (down = 0 indicates first time)  */    
+        tt.attr-value:WIDTH IN BROWSE brws-attr 
+                             = {&WINDOW-NAME}:WIDTH - 2
+                               - (tt.attr-value:COL IN BROWSE brws-attr)
+                                   WHEN brws-attr:DOWN <> 0  
+      NO-ERROR.
+            
+    ELSE         
+        ASSIGN
+            {&WINDOW-NAME}:WIDTH      = pdWidth 
+            {&WINDOW-NAME}:HEIGHT     = pdHeight
+            FRAME f:WIDTH             = {&WINDOW-NAME}:WIDTH
+            FRAME f:HEIGHT            = {&WINDOW-NAME}:HEIGHT
+            brws-attr:HEIGHT          = {&WINDOW-NAME}:HEIGHT - (brws-attr:ROW - 1) 
   
-  /* Use no-error because this give error when 2 down because the browser 
-     tries to grow a horizontal scollbar, which does not fit. 
-     (down = 0 indicates first time)  */    
-    tt.attr-value:WIDTH IN BROWSE brws-attr 
-                         = {&WINDOW-NAME}:WIDTH - 2
-                           - (tt.attr-value:COL IN BROWSE brws-attr)
-                               WHEN brws-attr:DOWN <> 0  
-  NO-ERROR.
+      /* Use no-error because this give error when 2 down because the browser 
+	     tries to grow a horizontal scollbar, which does not fit. 
+	     (down = 0 indicates first time)  */    
+        tt.attr-value:WIDTH IN BROWSE brws-attr 
+                             = {&WINDOW-NAME}:WIDTH - 2
+                               - (tt.attr-value:COL IN BROWSE brws-attr)
+                                   WHEN brws-attr:DOWN <> 0  
+      NO-ERROR.
     
   brws-attr:WIDTH           = {&WINDOW-NAME}:WIDTH.
     
            /* we resize attr-value again in case the previous resize failed */
-  ASSIGN
-     tt.attr-value:WIDTH IN BROWSE brws-attr 
-                         = {&WINDOW-NAME}:WIDTH - 2
-                           - (tt.attr-value:COL IN BROWSE brws-attr)
-                               WHEN brws-attr:DOWN <> 0 
-    browse-shrinked           = brws-attr:HEIGHT 
-    /* Down is INT so this statement adjusts the browse to have no half lines */ 
-    brws-attr:DOWN            = MAX(2,brws-attr:DOWN) 
-    browse-shrinked           = browse-shrinked - brws-attr:HEIGHT 
-    FRAME f:HEIGHT            = {&WINDOW-NAME}:HEIGHT - browse-shrinked
-    {&WINDOW-NAME}:HEIGHT     = {&WINDOW-NAME}:HEIGHT - browse-shrinked 
-  NO-ERROR. 
-   
+  /**
+   * TODO EAG review when core support for 4GL windows is added
+   * Currently some assigns are omitted when OEIDEIsRunning to avoid issues
+   */                   
+  IF OEIDEIsRunning THEN
+      ASSIGN
+         tt.attr-value:WIDTH IN BROWSE brws-attr 
+                             = {&WINDOW-NAME}:WIDTH - 2
+                               - (tt.attr-value:COL IN BROWSE brws-attr)
+                                   WHEN brws-attr:DOWN <> 0 
+        browse-shrinked           = brws-attr:HEIGHT 
+        /* Down is INT so this statement adjusts the browse to have no half lines */ 
+        brws-attr:DOWN            = MAX(2,brws-attr:DOWN) 
+        browse-shrinked           = browse-shrinked - brws-attr:HEIGHT 
+        FRAME f:HEIGHT            = {&WINDOW-NAME}:HEIGHT - browse-shrinked
+      NO-ERROR. 
+  ELSE             
+      ASSIGN
+         tt.attr-value:WIDTH IN BROWSE brws-attr 
+                             = {&WINDOW-NAME}:WIDTH - 2
+                               - (tt.attr-value:COL IN BROWSE brws-attr)
+                                   WHEN brws-attr:DOWN <> 0 
+        browse-shrinked           = brws-attr:HEIGHT 
+        /* Down is INT so this statement adjusts the browse to have no half lines */ 
+        brws-attr:DOWN            = MAX(2,brws-attr:DOWN) 
+        browse-shrinked           = browse-shrinked - brws-attr:HEIGHT 
+        FRAME f:HEIGHT            = {&WINDOW-NAME}:HEIGHT - browse-shrinked
+        {&WINDOW-NAME}:HEIGHT     = {&WINDOW-NAME}:HEIGHT - browse-shrinked 
+      NO-ERROR. 
+  
   /* When resized to a size big enough to show all rows the browse 
      scrollbars disappear even if all rows are not in the viewport. 
      NOTE: It makes sense to show all rows even without the scrollbar problem */

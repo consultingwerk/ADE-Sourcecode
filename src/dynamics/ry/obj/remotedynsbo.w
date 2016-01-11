@@ -1,3 +1,10 @@
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /*--------------------------------------------------------------------
   File: ry/obj/remotedynsbo.w
 
@@ -8,7 +15,12 @@
                   
                 It has a logicalname parameter and defines itself as
                 adm-logicalname-callback for prepareInstance. 
-
+                
+       NOTE:    The SDOs that are created will call the container and 
+                thus use the same callback, so setCurrentLogicalName, which is 
+                called from createObjects to define which SDO to load is also 
+                overridden here.
+                
   Parameters:   pcLogicalObjectName - LogicalObjectName passed from client
 ----------------------------------------------------------------------*/
 DEFINE INPUT  PARAMETER pcLogicalObjectName AS CHARACTER  NO-UNDO.
@@ -29,6 +41,13 @@ FUNCTION getCurrentLogicalName RETURNS CHARACTER
   RETURN pcLogicalObjectName. 
 END FUNCTION.
 
+FUNCTION setCurrentLogicalName RETURNS CHARACTER
+  ( picCurrentLogicalName AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose: Called from createObjects to define object to load  
+------------------------------------------------------------------------------*/
+  pcLogicalObjectName = picCurrentLogicalName. 
+END FUNCTION.
 
 {ry/obj/dynsbo.w}
 

@@ -1,26 +1,9 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
-
 
 /*----------------------------------------------------------------------------
 
@@ -51,6 +34,8 @@ History:
     mcmann      04/23/02    Added ability to pass in three entries so that the
                             user can do on-line schema adds.
     mcmann      10/17/03    Add NO-LOCK statement to _Db find in support of on-line schema add
+    kmcintos    07/28/05    Added check for false alarm in read_bits 
+                            20050727-041.
 
 ----------------------------------------------------------------------------*/
 /*h-*/
@@ -200,8 +185,8 @@ PROCEDURE get_psc:
    * the beginning of the trailer ("PSC"). If we don't find it, we
    * will go and look for it.
    */
-   
   DEFINE VARIABLE rc AS LOGICAL INITIAL no.
+  
   _psc:
   DO ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
     SEEK INPUT TO i. /* skip to beginning of "PSC" in file */
@@ -242,6 +227,7 @@ PROCEDURE find_psc:
          IF LASTKEY <> ASC("C") THEN NEXT.
          ELSE DO: /* found "PSC"! */
            RUN read_bits (INPUT p - 1).
+           IF RETURN-VALUE EQ "False Alarm" THEN NEXT.
            LEAVE.
          END. /* IF "C" */
        END. /* IF "S" */    
@@ -254,12 +240,31 @@ PROCEDURE read_bits:
   /* reads trailer given a starting position 
    */ 
   DEFINE INPUT PARAMETER i as INTEGER. /* "SEEK TO" location */
+
+  DEFINE VARIABLE iStartAt   AS INTEGER     NO-UNDO.
+  DEFINE VARIABLE iLinesRead AS INTEGER     NO-UNDO INITIAL 1.
     
+  iStartAt = i.
+
   SEEK INPUT TO i.
   REPEAT:
     IMPORT lvar[lvar# + 1].
-    lvar# = lvar# + 1.
+    
+    /* The entire line must be equal to "PSC" which is a reserved 
+       keyword, but if it's part of a string we simply return to 
+       where we left off and continue searching for the trailer.
+       20050727-041 */
+    IF iLinesRead = 1 AND 
+       TRIM(lvar[lvar# + 1]) NE "PSC" THEN DO:
+      SEEK INPUT TO iStartAt + LENGTH(lvar[lvar# + 1]) + 1.
+      RETURN "False Alarm".
+    END.
+
+    ASSIGN lvar#      = lvar# + 1
+           iLinesRead = iLinesRead + 1.
+
   END.
+  RETURN "".
 END PROCEDURE. 
 
 /*========================== END OF load_df.p ==========================*/

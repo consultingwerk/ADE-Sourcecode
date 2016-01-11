@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
           icfdb            PROGRESS
@@ -29,25 +29,9 @@ DEFINE TEMP-TABLE RowObject
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -116,7 +100,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /* Include file with RowObject temp-table definition */
 &Scoped-define DATA-FIELD-DEFS "af/obj2/gsmstfullo.i"
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
@@ -153,25 +137,28 @@ DEFINE VARIABLE h_dyncombo AS HANDLE NO-UNDO.
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     RowObject.status_seq AT ROW 2.05 COL 26 COLON-ALIGNED
+     RowObject.status_seq AT ROW 2.1 COL 26 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 8.6 BY 1
-     RowObject.status_tla AT ROW 3.1 COL 26 COLON-ALIGNED
+     RowObject.status_tla AT ROW 3.19 COL 26 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 8.6 BY 1
-     RowObject.status_short_desc AT ROW 4.14 COL 26 COLON-ALIGNED
+     RowObject.status_short_desc AT ROW 4.29 COL 26 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 34.6 BY 1
-     RowObject.status_description AT ROW 5.19 COL 26 COLON-ALIGNED
+     RowObject.status_description AT ROW 5.38 COL 26 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 78.4 BY 1
-     RowObject.retain_status_history AT ROW 6.3 COL 28
+     RowObject.retain_status_history AT ROW 6.43 COL 28
+          LABEL "Retain status history"
           VIEW-AS TOGGLE-BOX
           SIZE 24.8 BY 1
-     RowObject.system_owned AT ROW 7.29 COL 28
+     RowObject.system_owned AT ROW 7.43 COL 28
+          LABEL "System owned"
           VIEW-AS TOGGLE-BOX
           SIZE 19.2 BY 1
-     RowObject.auto_display AT ROW 8.33 COL 28
+     RowObject.auto_display AT ROW 8.48 COL 28
+          LABEL "Auto display"
           VIEW-AS TOGGLE-BOX
           SIZE 16.8 BY 1
      SPACE(61.60) SKIP(0.00)
@@ -214,7 +201,7 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 8.33
+         HEIGHT             = 8.67
          WIDTH              = 105.4.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -237,11 +224,17 @@ END.
 /* SETTINGS FOR WINDOW vTableWin
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frMain
-   NOT-VISIBLE Size-to-Fit                                              */
+   NOT-VISIBLE FRAME-NAME Size-to-Fit                                   */
 ASSIGN 
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
 
+/* SETTINGS FOR TOGGLE-BOX RowObject.auto_display IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR TOGGLE-BOX RowObject.retain_status_history IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR TOGGLE-BOX RowObject.system_owned IN FRAME frMain
+   EXP-LABEL                                                            */
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
@@ -292,7 +285,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsm_category.category_type,gsm_category.category_subgroup,gsm_category.category_group,gsm_category.category_descriptionKeyFieldgsm_category.category_objFieldLabelCategoryFieldTooltipSelect a category from listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsm_category NO-LOCK WHERE related_entity_mnemonic = ~'GSMST~' BY gsm_category.category_typeQueryTablesgsm_categorySDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&4 (&1 &2 &3)CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcFieldNamecategory_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsm_category.category_type,gsm_category.category_subgroup,gsm_category.category_group,gsm_category.category_descriptionKeyFieldgsm_category.category_objFieldLabelCategoryFieldTooltipSelect a category from listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsm_category NO-LOCK WHERE related_entity_mnemonic = ~'GSMST~' BY gsm_category.category_typeQueryTablesgsm_categorySDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&4 (&1 &2 &3)ComboDelimiterListItemPairsInnerLines5SortnoComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesSuperProcedureDataSourceNameFieldNamecategory_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dyncombo ).
        RUN repositionObject IN h_dyncombo ( 1.00 , 28.00 ) NO-ERROR.
        RUN resizeObject IN h_dyncombo ( 1.05 , 78.40 ) NO-ERROR.

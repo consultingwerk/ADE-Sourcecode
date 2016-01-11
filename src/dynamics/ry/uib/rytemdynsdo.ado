@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <dataset Transactions="1"><dataset_header DisableRI="yes" DatasetObj="1004928896.09" DateFormat="mdy" FullHeader="no" SCMManaged="yes" YearOffset="1950" DatasetCode="RYCSO" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="91" NumericSeparator=","/>
-<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" version_date="09/30/2003" version_time="63282" version_user="admin" deletion_flag="no" entity_mnemonic="RYCSO" key_field_value="636.7692" record_version_obj="637.7692" version_number_seq="7.09" secondary_key_value="rytemdynsdo#CHR(1)#0" import_version_number_seq="7.09"><smartobject_obj>636.7692</smartobject_obj>
+<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" version_date="06/23/2005" version_time="57655" version_user="admin" deletion_flag="no" entity_mnemonic="rycso" key_field_value="636.7692" record_version_obj="637.7692" version_number_seq="9.48" secondary_key_value="rytemdynsdo#CHR(1)#0" import_version_number_seq="9.48"><smartobject_obj>636.7692</smartobject_obj>
 <object_filename>rytemdynsdo</object_filename>
 <customization_result_obj>0</customization_result_obj>
 <object_type_obj>18007.409</object_type_obj>
@@ -14,7 +14,7 @@
 <template_smartobject>yes</template_smartobject>
 <system_owned>no</system_owned>
 <deployment_type></deployment_type>
-<design_only>no</design_only>
+<design_only>yes</design_only>
 <runnable_from_menu>no</runnable_from_menu>
 <container_object>no</container_object>
 <disabled>no</disabled>

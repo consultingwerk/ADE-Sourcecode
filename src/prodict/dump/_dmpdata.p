@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -39,7 +23,12 @@ History:
     hutegger    95/01/24    single-files in multiple schemas
     hutegger    94/02/22    added code-page-stuff
     D. McMann   02/03/03    Added lob directory
-    
+    K. McIntosh Apr 25, 2005  Added Auditing Support.
+    K. McIntosh Jul 11, 2005  Changed logic to rule out just the 
+                              tables that begin with "_aud" 20050711-026. 
+    K. McIntosh Oct 19, 2005  Insert a slash between the directory and filename
+                              just in case there isn't one already 20050928-004.
+    fernando    Nov 03, 2005  Added code to audit dump operation                          
 */
 /*h-*/
 
@@ -65,6 +54,10 @@ DEFINE VARIABLE yy          AS INTEGER   NO-UNDO.
 DEFINE VARIABLE stopped     AS LOGICAL   NO-UNDO init true.
 DEFINE VARIABLE CodeOut     AS CHARACTER NO-UNDO.
 DEFINE VARIABLE lobdir      AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cTempList   AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE cSlash      AS CHARACTER   NO-UNDO.
+
+DEFINE VARIABLE phdbname    AS CHARACTER   NO-UNDO.
 
 FORM
   DICTDB._File._File-name FORMAT "x(32)" LABEL "Table"  
@@ -76,6 +69,29 @@ FORM
   WITH FRAME dumpdata NO-ATTR-SPACE USE-TEXT SCROLLABLE
   SCREEN-LINES - 8 DOWN ROW 2 CENTERED &IF "{&WINDOW-SYSTEM}" <> "TTY"
   &THEN THREE-D &ENDIF.
+
+cTempList = user_env[1].
+&IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
+  cSlash = "/".
+&ELSE 
+  cSlash = "~\".
+&ENDIF
+  
+/* The only Audit table that can be dumped through this program is the
+   _audit-event table, so we remove it from the templist and check for 
+   instances of the _aud string in the table list. */
+IF user_env[9] = "e" THEN
+  cTempList = REPLACE(cTempList,"_aud-event","").
+
+IF cTempList NE "" AND 
+   cTempList NE ? AND
+   INDEX(cTempList,",_aud") NE 0 AND
+   NOT cTempList BEGINS "_aud" THEN DO:
+  MESSAGE "Dump Failed!" SKIP(1)
+          "You cannot dump Audit Policies or Data through this utility!"
+      VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+  RETURN.
+END.
 
 PAUSE 0.
 SESSION:IMMEDIATE-DISPLAY = yes.
@@ -99,6 +115,7 @@ CodeOut = IF user_env[5] = "<internal defaults apply>" THEN
 RUN "prodict/_dctyear.p" (OUTPUT mdy,OUTPUT yy).
 
 ASSIGN
+  phDbName = PDBNAME("DICTDB") /* for logging audit event */
   cntr = 0
   lots = INDEX(user_env[1],",") > 0
   loop = TRUE. /* use this to mark initial entry into loop */
@@ -127,13 +144,17 @@ DO ON STOP UNDO, LEAVE:
       DOWN 1 WITH FRAME dumpdata.
   
     ASSIGN
-      fil  = user_env[2] 
-           + ( IF lots
-                 THEN ( IF DICTDB._File._Dump-name = ?
+      fil  = ( IF lots
+                      /* Don't count on a slash being at the end of the 
+                         directory.  Always trim it off and add one. */
+                 THEN (IF user_env[2] EQ "" OR 
+                          user_env[2] EQ "." THEN ""
+                       ELSE RIGHT-TRIM(user_env[2],cSlash) + cSlash) +
+                      ( IF DICTDB._File._Dump-name = ?
                           THEN DICTDB._File._File-name
                           ELSE DICTDB._File._Dump-name
                       ) + ".d"
-                 ELSE ""
+                 ELSE user_env[2]
              )
       loop = FALSE
       recs = 0.
@@ -265,6 +286,10 @@ DO ON STOP UNDO, LEAVE:
       WITH FRAME dumpdata.
     cntr = cntr + 1.
   
+    /* audit dump of tables */
+    AUDIT-CONTROL:LOG-AUDIT-EVENT(10213, 
+                                  phDbName + "." +  DICTDB._File._File-name /* db-name.table-name */, 
+                                  "" /* detail */).
   END. /* for each DICTDB._File */
 
   stopped = false.

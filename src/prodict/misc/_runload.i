@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -40,10 +24,15 @@ History:
    {4} - either table name or specific field names to load.
    {5} - expected # load records.  If {2} is either 0 or 100%, then
       	 this is ignored.
-         
+   {6} - NO-LOBS keyword, if passed.      
+
   D. McMann  11/19/02  Added check for num-messages after import to catch
                        warning messages.       
   D. McMann  03/06/03  Added support for NO-LOBS in import.
+  K McIntosh 04/25/05  Added check when loading _db-detail table to tie the 
+                       first record read to the _db record.
+  K McIntosh 05/26/05  Added ELSE when not first _db-detail record 20050525-038.
+  fernando   11/09/05  Added code for _db-option 20051109-033 
 */
    
 /* Will be "y" or "n" to indicate whether to disable triggers or not */
@@ -64,6 +53,9 @@ DEFINE        VARIABLE stopped AS LOGICAL NO-UNDO INIT FALSE.
 DEFINE        VARIABLE j       AS INTEGER NO-UNDO.
 
 DEFINE SHARED VARIABLE user_env    AS CHARACTER NO-UNDO EXTENT 35.
+DEFINE SHARED VARIABLE drec_db     AS RECID     NO-UNDO.
+
+DEFINE VARIABLE cDbDetail          AS CHARACTER NO-UNDO EXTENT 4.
 
 /* Need a little dialog instead of using PUT SCREEN for GUI because
    here, xpos and ypos will be based on fill-in height whereas frame is
@@ -90,7 +82,6 @@ IF p_Disable  = "y" THEN
 */
 top:
 DO WHILE TRUE TRANSACTION:
-
   nxtstop = recs + {3}.
 
   /* Go through set of {3} at a time */
@@ -124,13 +115,54 @@ DO WHILE TRUE TRANSACTION:
       NEXT.
     END.
 
-    CREATE {1}.
     ASSIGN
       errbyte = SEEK(INPUT)
       errline = errline + 1
       recs    = recs + 1.
 
-    IMPORT {4} {6} NO-ERROR.
+    &IF "{1}" = "_db-detail" &THEN
+      IF recs = 1 THEN DO:
+        /* the first record was the current one when the records were loaded */
+        /* the code below will make it the current one now */
+        FIND DICTDB2._db WHERE RECID(DICTDB2._db) = drec_db.
+        CREATE DICTDB2._db-detail.
+	  
+        IMPORT DICTDB2._db-detail NO-ERROR.
+        DICTDB2._db._db-guid = DICTDB2._db-detail._db-guid.
+      END.
+      ELSE DO:
+        CREATE DICTDB2._db-detail.
+        IMPORT DICTDB2._db-detail NO-ERROR.
+      END.
+    &ELSEIF "{1}" = "_db-option" &THEN
+        /* check if the record for this db option exists. If not, create the record,
+           otherwise just update the option.
+        */
+        cDbDetail = "".
+        IMPORT cDbDetail NO-ERROR.
+
+        IF NOT ERROR-STATUS:ERROR THEN DO:
+            /* if can't find the record for the db option imported, create it */
+            FIND FIRST DICTDB2._db-option 
+                 WHERE DICTDB2._db-option._Db-option-type = INTEGER(cDbDetail[1]) AND
+                 DICTDB2._db-option._Db-option-code = cDbDetail[2] NO-ERROR.
+            IF NOT AVAILABLE DICTDB2._db-option THEN DO:
+                CREATE {1}.
+                ASSIGN _Db-option._Db-option-type = INTEGER(cDbDetail[1])
+                       _Db-option._Db-option-code = cDbDetail[2]
+                       _Db-option._Db-option-description = cDbDetail[3]
+                       _Db-option._Db-option-value = cDbDetail[4] NO-ERROR.
+            END.
+            ELSE DO:
+                /* record is already in the db - just update the option value */
+                ASSIGN DICTDB2._db-option._Db-option-value = cDbDetail[4] NO-ERROR.
+            END.
+        END.
+    
+    &ELSE
+      CREATE {1}.
+      IMPORT {4} {6} NO-ERROR.
+    &ENDIF
 
     IF ERROR-STATUS:ERROR OR ERROR-STATUS:NUM-MESSAGES > 0 THEN DO:
       IF SUBSTRING(ERROR-STATUS:GET-MESSAGE(1), 1, 7) = "WARNING" THEN DO:
@@ -174,6 +206,8 @@ DO WHILE TRUE TRANSACTION:
       END.
       UNDO bottom, RETRY bottom.
     END.   /* ERROR raised */
+    
+/*     IF recs = {5} THEN LEAVE top. */
   END. /* end bottom repeat */
 END. /* top */
 

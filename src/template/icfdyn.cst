@@ -1,3 +1,10 @@
+/*************************************************************/
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /* icfdyn.cst - Dynamics customized dynamic objects file - 04/05/2002 */
 
 *NEW-CONTAINER	Independent Window (DynObjc)
@@ -25,7 +32,7 @@ IMAGE-FILE      adeicon/smartwindow.bmp
 PROPERTY-SHEET  ry/prc/rycblnchrp.p
 
 *NEW-CONTAINER	Dynamic SBO (DynSBO)
-NEW-TEMPLATE	ry/obj/rydynsbowiz.w
+NEW-TEMPLATE	ry/tem/rydynsbowiz.w
 TYPE		DynSBO
 IMAGE-FILE      adeicon/smartwindow.bmp
 PROPERTY-SHEET  ry/prc/rycblnchrp.p

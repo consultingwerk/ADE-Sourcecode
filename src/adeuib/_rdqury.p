@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*----------------------------------------------------------------------------
@@ -114,6 +98,7 @@ DEFINE         VARIABLE  cDataFieldName       AS  CHARACTER               NO-UND
 DEFINE         VARIABLE  hDesignManager       AS  HANDLE                  NO-UNDO. 
 DEFINE         VARIABLE  pcInheritClasses     AS  CHARACTER               NO-UNDO.
 
+DEFINE         VARIABLE  cFieldRef            AS CHARACTER  NO-UNDO.
 
 DEFINE BUFFER  p_U      FOR _U.
 DEFINE BUFFER  parent_U FOR _U.
@@ -440,42 +425,49 @@ REPEAT:
               /* Trap reading in a browser where the field is no longer in the
                * SDO 
                */
-              IF VALID-HANDLE(hSDO) AND NUM-ENTRIES(_inp_line[3], ".") > 2 AND
-                 NOT CAN-DO(sdoFlds,TRIM(ENTRY(3,_inp_line[3],".":U))) THEN
+              IF VALID-HANDLE(hSDO) AND NUM-ENTRIES(_inp_line[3], ".") > 2 then
               DO:
-                  RUN adeuib/_advisor.w (
-                  /* Text */        INPUT 
-                                CHR(10)
-                                + "The SmartDataObject include file changed." 
-                                + CHR(10) + CHR(10)
-                                + "Browse field:" + CHR(10)
-                                + "     " + ENTRY(3,_inp_line[3],".":U) + CHR(10) 
-                                + "is no longer in the SmartDataObject." + CHR(10)
-                                + CHR(10)
-                                + "SmartDataObject field(s) are:" + CHR(10)
-                                + "     " + sdoFlds, 
-                  /* Options */     INPUT 'Remove "'
-                                    + ENTRY(3,_inp_line[3],".":U) 
-                                    + '" from Browse.'
-                                    + ",Continue,Cancel file opening.,Cancel",
-                  /* Toggle Box */  INPUT FALSE,
-                  /* Help Tool */   INPUT "AB",
-                  /* Context */     INPUT ?,
-                  /* Choice */      INPUT-OUTPUT choice,
-                  /* Never Again */ OUTPUT never-again).
-
-                  CASE choice:
-                     WHEN "Continue":U THEN
-                     DO:
-                        ASSIGN _P._FILE-SAVED = NO.
-                        NEXT PROCESS-QUERY-BLK.
-                     END.
-                     OTHERWISE DO:
-                        RETURN "_ABORT".
-                     END.
-                  END CASE.
+                cFieldRef =  if index(sdoFlds,'.') > 0 
+                             then  (TRIM(ENTRY(2,_inp_line[3],'.':U)) 
+                                   + '.':U 
+                                   + TRIM(ENTRY(3,_inp_line[3],'.':U))
+                                   )
+                             else TRIM(ENTRY(3,_inp_line[3],".":U)).
+                if NOT CAN-DO(sdoFlds,cFieldRef) THEN
+                DO:
+                    RUN adeuib/_advisor.w (
+                    /* Text */        INPUT 
+                                  CHR(10)
+                                  + "The SmartDataObject include file changed." 
+                                  + CHR(10) + CHR(10)
+                                  + "Browse field:" + CHR(10)
+                                  + "     " + ENTRY(3,_inp_line[3],".":U) + CHR(10) 
+                                  + "is no longer in the SmartDataObject." + CHR(10)
+                                  + CHR(10)
+                                  + "SmartDataObject field(s) are:" + CHR(10)
+                                  + "     " + sdoFlds, 
+                    /* Options */     INPUT 'Remove "'
+                                      + ENTRY(3,_inp_line[3],".":U) 
+                                      + '" from Browse.'
+                                      + ",Continue,Cancel file opening.,Cancel",
+                    /* Toggle Box */  INPUT FALSE,
+                    /* Help Tool */   INPUT "AB",
+                    /* Context */     INPUT ?,
+                    /* Choice */      INPUT-OUTPUT choice,
+                    /* Never Again */ OUTPUT never-again).
+  
+                    CASE choice:
+                       WHEN "Continue":U THEN
+                       DO:
+                          ASSIGN _P._FILE-SAVED = NO.
+                          NEXT PROCESS-QUERY-BLK.
+                       END.
+                       OTHERWISE DO:
+                          RETURN "_ABORT".
+                       END.
+                    END CASE.
+                END.
               END.
-
               CREATE _BC.
               ASSIGN element        = SUBSTRING(_inp_line[1],14)
                      element        = SUBSTRING(element,1,LENGTH(element) - 1)
@@ -531,21 +523,24 @@ REPEAT:
                   ASSIGN _BC._TABLE = ?.
                 END.  /* If a calculated field */
                 ELSE DO: /* A SDO record for a SmartBrowse 
-                         NOTE: The assign of _BC from sdo is (sadly) duplicated in _crtsobj.w */
+                  NOTE: The assign of _BC from sdo is (sadly) duplicated in _crtsobj.w */
                   ASSIGN _BC._NAME         = ENTRY(3,_BC._DISP-NAME, ".":U)
                          _BC._DBNAME       = "_<SDO>"
-                         _BC._DATA-TYPE    = dynamic-function("columnDataType" IN hSDO,_BC._NAME)
-                         _BC._DEF-FORMAT   = dynamic-function("columnFormat" IN hSDO,_BC._NAME)
-                         _BC._DEF-HELP     = dynamic-function("columnHelp" IN hSDO,_BC._NAME)
-                         _BC._DEF-LABEL    = dynamic-function("columnColumnLabel" IN hSDO,_BC._NAME)
-                         _BC._DEF-WIDTH    = MAX(dynamic-function("columnWidth" IN hSDO,_BC._NAME),
-                                                    FONT-TABLE:GET-TEXT-WIDTH(ENTRY(1,_BC._DEF-LABEL,"!":U)))
-                         _BC._DISP-NAME    = _BC._NAME
+                         _BC._TABLE        = ENTRY(2,_BC._DISP-NAME, ".":U)
+                         _BC._DISP-NAME    = (if _BC._TABLE = 'RowObject' 
+                                              then _BC._NAME
+                                              else _BC._TABLE + '.':U + _BC._NAME)
+                         _BC._DATA-TYPE    = dynamic-function("columnDataType" IN hSDO,_BC._DISP-NAME)
+                         _BC._DEF-FORMAT   = dynamic-function("columnFormat" IN hSDO,_BC._DISP-NAME)
+                         _BC._DEF-HELP     = dynamic-function("columnHelp" IN hSDO,_BC._DISP-NAME)
+                         _BC._DEF-LABEL    = dynamic-function("columnColumnLabel" IN hSDO,_BC._DISP-NAME)
+                         _BC._DEF-WIDTH    = MAX(dynamic-function("columnWidth" IN hSDO,_BC._DISP-NAME),
+                                                     FONT-TABLE:GET-TEXT-WIDTH(ENTRY(1,_BC._DEF-LABEL,"!":U)))
                          _BC._FORMAT       = _BC._DEF-FORMAT
                          _BC._HELP         = _BC._DEF-HELP
                          _BC._LABEL        = _BC._DEF-LABEL
                          _BC._WIDTH        = _BC._DEF-WIDTH
-                         _BC._TABLE        = "rowObject".
+                        .
                          
                   IF NUM-ENTRIES(_BC._DEF-LABEL,"!":U) > 1 THEN DO:
                     DO iw = 2 TO NUM-ENTRIES(_BC._DEF-LABEL,"!":U):
@@ -694,9 +689,8 @@ REPEAT:
 
 END.  /* PROCESS-QUERY-BLK */
 
-/* The SDO is beeing shutdown by _qssuckr.p 
-IF AVAILABLE _P THEN ret-msg = shutdown-proc(_P._data-object).
-*/
+/* The SDO is beeing shutdown by _qssuckr.p      */
+/*IF AVAILABLE _P THEN ret-msg = shutdown-xxx.*/
 
 /* Hack for backward compatibility to 7.2 */
 IF _Q._OPTIONLIST = "" AND adj_joincode THEN _Q._OPTIONLIST = "NO-LOCK".

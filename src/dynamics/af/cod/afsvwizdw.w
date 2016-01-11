@@ -20,6 +20,13 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS diDialog 
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /*---------------------------------------------------------------------------------
   File: afsvwizdw.w
 
@@ -96,7 +103,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /* Local Variable Definitions ---                                       */
 
 /*  object identifying preprocessor */
-&glob   astra2-staticSmartDialog yes
+&glob   AstraProcedure    yes
 
 {src/adm2/globals.i}
 {adeuib/uniwidg.i}      /* AppBuilder temptable definitions */
@@ -143,11 +150,11 @@ DEFINE BUFFER BUFF_C FOR _C.
 
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-OBJECTS rect-s RECTprc RECTRepo fiFileName buFile ~
-coSaveIn fiSaveIn buSavein ToRelative fiObjectName fiObjectDesc buBrowse ~
+fiSaveIn coSaveIn buSavein ToRelative fiObjectName fiObjectDesc buBrowse ~
 fiRootDirectory coModule fiFullPath toWeb toDesign toClient toServer ToPrc ~
 coPrcModule fiPrcFilename fiprcFullPath TogUseNoUndo TogMan TogIndex ~
 buCancel fiRelativeLabel fiPrcLabel fiFlag 
-&Scoped-Define DISPLAYED-OBJECTS fiFileName coSaveIn fiSaveIn ToRelative ~
+&Scoped-Define DISPLAYED-OBJECTS fiFileName fiSaveIn coSaveIn ToRelative ~
 fiObjectName fiObjectDesc fiRootDirectory coModule fiRelDirectory ~
 fiFullPath toWeb toDesign toClient toServer ToPrc coPrcModule ~
 fiPrcRelDirectory fiPrcFilename fiprcFullPath TogUseNoUndo TogMan TogIndex ~
@@ -324,15 +331,15 @@ DEFINE VARIABLE fiSaveinRect AS CHARACTER FORMAT "X(20)":U
      BGCOLOR 7 FGCOLOR 7  NO-UNDO.
 
 DEFINE RECTANGLE rect-s
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 96 BY 3.
 
 DEFINE RECTANGLE RECTprc
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 61 BY .1.
 
 DEFINE RECTANGLE RECTRepo
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 96 BY 17.14.
 
 DEFINE VARIABLE toClient AS LOGICAL INITIAL no 
@@ -386,8 +393,8 @@ DEFINE VARIABLE toWeb AS LOGICAL INITIAL no
 DEFINE FRAME diDialog
      fiFileName AT ROW 1.71 COL 22 COLON-ALIGNED
      buFile AT ROW 1.71 COL 89.8
-     coSaveIn AT ROW 2.81 COL 22 COLON-ALIGNED
      fiSaveIn AT ROW 2.81 COL 22 COLON-ALIGNED NO-LABEL
+     coSaveIn AT ROW 2.81 COL 22 COLON-ALIGNED
      buSavein AT ROW 2.81 COL 89.8
      ToRelative AT ROW 4.67 COL 5
      fiObjectName AT ROW 5.62 COL 22 COLON-ALIGNED
@@ -451,7 +458,7 @@ DEFINE FRAME diDialog
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX diDialog
-   NOT-VISIBLE                                                          */
+   NOT-VISIBLE FRAME-NAME                                               */
 ASSIGN 
        FRAME diDialog:SCROLLABLE       = FALSE
        FRAME diDialog:HIDDEN           = TRUE.
@@ -502,7 +509,7 @@ ASSIGN
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL diDialog diDialog
 ON WINDOW-CLOSE OF FRAME diDialog /* Save As */
 DO:  
-  /* Add Trigger to equate WINDOW-CLOSE to END-ERROR. */
+/* Add Trigger to equate WINDOW-CLOSE to END-ERROR. */
   RUN setUserProfile IN THIS-PROCEDURE.
 
   APPLY "END-ERROR":U TO SELF.
@@ -557,7 +564,7 @@ DO:
  DEFINE VARIABLE cDirectory        AS CHARACTER  NO-UNDO.
 
 
- IF LOOKUP(gcObjectType,"DynView,DynBrow,DynSDO":U) > 0 THEN 
+ IF LOOKUP(gcObjectType,"DynView,DynBrow,DynSDO,DynDataView":U) > 0 THEN 
  DO:
 
     ASSIGN {&WINDOW-NAME}:PRIVATE-DATA = STRING(THIS-PROCEDURE).
@@ -763,7 +770,7 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL coSaveIn diDialog
 ON ENTRY OF coSaveIn IN FRAME diDialog /* Save in */
 DO:
-   IF LAST-EVENT:LABEL = "TAB":U OR LAST-EVENT:LABEL = "SHIFT-TAB":U THEN 
+IF LAST-EVENT:LABEL = "TAB":U OR LAST-EVENT:LABEL = "SHIFT-TAB":U THEN 
       RETURN NO-APPLY. 
    
 END.
@@ -794,8 +801,7 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL fiFileName diDialog
 ON ANY-PRINTABLE OF fiFileName IN FRAME diDialog /* File name */
 DO:
-  
-   IF LOOKUP(gcObjectType,"DynView,DynBrow,DynSDO":U) > 0 THEN 
+   IF LOOKUP(gcObjectType,"DynView,DynBrow,DynSDO,DynDataView":U) > 0 THEN 
    DO:
       IF CHR(LASTKEY) = "." THEN DO:
          BELL.
@@ -819,8 +825,7 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL fiFileName diDialog
 ON VALUE-CHANGED OF fiFileName IN FRAME diDialog /* File name */
 DO:
-  
-  IF ToRelative:CHECKED OR toRelative:HIDDEN THEN
+IF ToRelative:CHECKED OR toRelative:HIDDEN THEN
      ASSIGN fiObjectName:SCREEN-VALUE = SELF:SCREEN-VALUE.
   IF ToPrc:CHECKED THEN
      ASSIGN fiPrcFileName:SCREEN-VALUE = SELF:SCREEN-VALUE 
@@ -875,7 +880,7 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL fiRootDirectory diDialog
 ON ANY-PRINTABLE OF fiRootDirectory IN FRAME diDialog /* Root directory */
 DO:
- /* Do not allow a double slash except at the beginning to allow UNC pathnames */
+/* Do not allow a double slash except at the beginning to allow UNC pathnames */
   IF SELF:CURSOR-OFFSET > 2 THEN
   DO:
      IF SUBSTRING(SELF:SCREEN-VALUE,SELF:CURSOR-OFFSET - 1,1) = "/" 
@@ -927,7 +932,7 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL fiSaveIn diDialog
 ON ANY-PRINTABLE OF fiSaveIn IN FRAME diDialog
 DO:
-  /* Do not allow a double slash except at the beginning to allow UNC pathnames */
+/* Do not allow a double slash except at the beginning to allow UNC pathnames */
   IF SELF:CURSOR-OFFSET > 2 THEN
   DO:
      IF SUBSTRING(SELF:SCREEN-VALUE,SELF:CURSOR-OFFSET - 1,1) = "/" 
@@ -982,7 +987,7 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL fiSaveIn diDialog
 ON VALUE-CHANGED OF fiSaveIn IN FRAME diDialog
 DO:  
-  /* Check whether directory is valid */
+/* Check whether directory is valid */
   FILE-INFO:FILE-NAME = SELF:SCREEN-VALUE NO-ERROR.
   
   IF FILE-INFO:FULL-PATHNAME = ?  THEN
@@ -1099,15 +1104,17 @@ END.
   IF CAN-DO(cClassChildren,"DynView":U) THEN
      ASSIGN gcObjectType   = "DynView":U.
   ELSE 
-      IF CAN-DO(cClassChildren,"DynBrow":U) THEN 
-          ASSIGN gcObjectType   = "DynBrow":U.
-      ELSE 
-          IF CAN-DO(cClassChildren,"DynSDO":U) THEN 
-              ASSIGN gcObjectType   = "DynSDO":U.
-          ELSE
-              ASSIGN glStaticObject = YES.
+  IF CAN-DO(cClassChildren,"DynBrow":U) THEN 
+    ASSIGN gcObjectType   = "DynBrow":U.
+  ELSE 
+  IF CAN-DO(cClassChildren,"DynSDO":U) THEN 
+    ASSIGN gcObjectType   = "DynSDO":U.
+  ELSE 
+  IF CAN-DO(cClassChildren,"DynDataView":U) THEN 
+    ASSIGN gcObjectType   = "DynDataView":U.
+  ELSE
+    ASSIGN glStaticObject = YES.
               
-
 {src/adm2/dialogmn.i}
 
 PROCEDURE SendMessageA EXTERNAL "user32" :
@@ -1255,13 +1262,13 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  DISPLAY fiFileName coSaveIn fiSaveIn ToRelative fiObjectName fiObjectDesc 
+  DISPLAY fiFileName fiSaveIn coSaveIn ToRelative fiObjectName fiObjectDesc 
           fiRootDirectory coModule fiRelDirectory fiFullPath toWeb toDesign 
           toClient toServer ToPrc coPrcModule fiPrcRelDirectory fiPrcFilename 
           fiprcFullPath TogUseNoUndo TogMan TogIndex fiRelativeLabel fiPrcLabel 
           fiFlag 
       WITH FRAME diDialog.
-  ENABLE rect-s RECTprc RECTRepo fiFileName buFile coSaveIn fiSaveIn buSavein 
+  ENABLE rect-s RECTprc RECTRepo fiFileName buFile fiSaveIn coSaveIn buSavein 
          ToRelative fiObjectName fiObjectDesc buBrowse fiRootDirectory coModule 
          fiFullPath toWeb toDesign toClient toServer ToPrc coPrcModule 
          fiPrcFilename fiprcFullPath TogUseNoUndo TogMan TogIndex buCancel 
@@ -1627,7 +1634,7 @@ ASSIGN fiRootDirectory:SCREEN-VALUE IN FRAME {&FRAME-NAME} = cRootDirectory
 /* Set the data logic proc and custom super proc */
 IF AVAILABLE BUFF_C THEN
 DO:
-   IF LOOKUP(gcObjectType,"DynView,DynBrow":U) > 0 THEN  
+   IF LOOKUP(gcObjectType,"DynView,DynBrow,DynDataView":U) > 0 THEN  
    DO:
       /* Set the super procedure values */
      RUN extractRootDir (BUFF_C._CUSTOM-SUPER-PROC, BUFF_C._CUSTOM-SUPER-PROC-PATH, OUTPUT cRootDirectory, OUTPUT cFileSuper).
@@ -1713,16 +1720,31 @@ DO:
           NO-ERROR.
           
     /* Set the default filename and description for dynamic objects */
-   IF LOOKUP(gcObjectType,"DynView,DynBrow,DynSDO":U) > 0 AND NOT plSaveAs THEN  
+   IF LOOKUP(gcObjectType,"DynView,DynBrow,DynSDO,DynDataView":U) > 0 AND NOT plSaveAs THEN  
    DO:
-      ASSIGN cPreparedFile = getSDOFLA(OUTPUT cTableName) + cfile.
-      IF cNewObjectName = "" AND (cFile = gcDynViewPrefix AND gcObjectType = "DynView":U)
-                  OR (cFile = gcDynBrowPrefix AND gcObjectType = "DynBrow":U)
-                  OR (cFile = gcDynSDOPrefix AND gcObjectType = "DynSDO":U) THEN
-         /* get the FLA prefix from the entity tables */
-         ASSIGN fiFileName:SCREEN-VALUE  = cPreparedFile.
+      IF gcObjectType = 'DynDataView':U THEN
+      DO:
+        /* just remove the extension as it messes up the default 
+           super procedure name setting */
+        IF INDEX(cFile,'.') > 0 THEN
+        DO:
+          ENTRY(NUM-ENTRIES(cFile,'.'),cFile,'.') = ''.
+          ASSIGN fiFilename:SCREEN-VALUE = RIGHT-TRIM(cFile,'.').
+        END.
+      END.
+      ELSE 
+      DO:
+        ASSIGN cPreparedFile = getSDOFLA(OUTPUT cTableName) + cfile.
+        IF cNewObjectName = "" AND (cFile = gcDynViewPrefix AND gcObjectType = "DynView":U)
+        OR (cFile = gcDynBrowPrefix AND gcObjectType = "DynBrow":U)
+        OR (cFile = gcDynSDOPrefix AND gcObjectType = "DynSDO":U) THEN
+          /* get the FLA prefix from the entity tables */
+          ASSIGN fiFileName:SCREEN-VALUE  = cPreparedFile.
+      END.
+
       IF cTableName = ? OR cTableName = "" THEN 
          cTableName = fiFileName:SCREEN-VALUE.
+
       IF BUFF_P.object_description = "" OR BUFF_P.object_description = ?  THEN
          ASSIGN  fiObjectDesc:SCREEN-VALUE = IF gcObjectType = "DynView":U 
                                              THEN "Dynamic Viewer for " + cTableName
@@ -1777,7 +1799,7 @@ END.
 
 
 /* Get profile data for the Data Logic/Super proc checkbox */
-IF gcObjectType = "DynView":U OR gcObjectType = "DynBrow":U THEN
+IF gcObjectType = "DynView":U OR gcObjectType = "DynBrow":U OR gcObjectType = "DynDataView" THEN
 DO:
    ASSIGN rRowID = ?.
    RUN getProfileData IN gshProfileManager (INPUT        "General":U,
@@ -1852,7 +1874,7 @@ PROCEDURE setLayoutView :
  DEFINE VARIABLE hSide AS HANDLE     NO-UNDO.
 
  DO WITH FRAME {&FRAME-NAME}:
-  IF LOOKUP(gcObjectType,"DynView,DynBrow,DynSDO":U) > 0 THEN 
+  IF LOOKUP(gcObjectType,"DynView,DynBrow,DynSDO,DynDataView":U) > 0 THEN 
      ASSIGN toRelative:CHECKED           = TRUE
             toRelative:HIDDEN            = TRUE
             fiRelativeLabel:COL          = fiRelativeLabel:COL - 3
@@ -1860,7 +1882,7 @@ PROCEDURE setLayoutView :
             fiFileName:LABEL             = "Object name"
             NO-ERROR.
 
-  IF LOOKUP(gcObjectType,"DynView,DynBrow":U) > 0 THEN
+  IF LOOKUP(gcObjectType,"DynView,DynBrow,DynDataView":U) > 0 THEN
     ASSIGN fiPrcLabel:SCREEN-VALUE = "Create custom super procedure"
            fiPrcLabel:WIDTH        = FONT-TABLE:GET-TEXT-WIDTH(fiPrcLabel:SCREEN-VALUE)
            fiFlag:HIDDEN               = TRUE
@@ -2053,7 +2075,7 @@ cDir = RIGHT-TRIM(substring(fiFullPath:SCREEN-VALUE IN FRAME {&FRAME-NAME},1,R-I
 FILE-INFO:FILE-NAME = cDir NO-ERROR.
 /* Ensure the directory exists */
 IF FILE-INFO:FULL-PATHNAME = ? AND 
-  (LOOKUP(gcObjectType,"DynView,DynBrow,DynSDO":U) = 0 OR
+  (LOOKUP(gcObjectType,"DynView,DynBrow,DynSDO,DynDataView":U) = 0 OR
    fiPrcFileName:SCREEN-VALUE IN FRAME {&FRAME-NAME} NE "":U) THEN
 DO:
    /* Unless this a DynBrowse or DynView with no super procedure don't let them
@@ -2083,7 +2105,7 @@ END.
 
 
 /* Check whether the file exists for any static object, exclude check for dynamic objects */
- IF LOOKUP(gcObjectType,"DynView,DynBrow,DynSDO":U) = 0 THEN 
+ IF LOOKUP(gcObjectType,"DynView,DynBrow,DynSDO,DynDataView":U) = 0 THEN 
  DO:
     /* Append the default extension if no extension is provided */
     ASSIGN cFileName = fiFullPath:SCREEN-VALUE

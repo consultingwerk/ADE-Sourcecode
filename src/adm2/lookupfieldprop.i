@@ -2,25 +2,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*--------------------------------------------------------------------------
@@ -107,9 +91,6 @@ DataSourceName
 
   /* These preprocessors tell at compile time which properties can
      be retrieved directly from the temp-table */
-
-  &GLOBAL-DEFINE xpDisplayedField     /* Name of field to display from query (with table prefix) */
-  &GLOBAL-DEFINE xpKeyField           /* Name of key field to assign value from (with table prefix) */
   &GLOBAL-DEFINE xpFieldLabel         /* Label for displayed field */
   &GLOBAL-DEFINE xpFieldTooltip       /* Tooltip for displayed field */
   &GLOBAL-DEFINE xpKeyFormat          /* Format of key field */
@@ -128,16 +109,12 @@ DataSourceName
   
   &GLOBAL-DEFINE xpSDFFileName                 /* SmartDataField File Name */
   &GLOBAL-DEFINE xpSDFTemplate                 /* SmartDataField Template File Name */
-  &GLOBAL-DEFINE xpParentField                 /* The field/widget name of the parent object that this lookup is dependant on */
-  &GLOBAL-DEFINE xpParentFilterQuery           /* The filter query to be used to filter on parent information */
-  &GLOBAL-DEFINE xpTempTables                  /* comma delimited list of PLIP names where data for define temp-tables could be retrieved, corresponds with cBufferList */ 
   &GLOBAL-DEFINE xpQueryBuilderJoinCode        /* Used at design time for Query Builder */
   &GLOBAL-DEFINE xpQueryBuilderOptionList      /* Used at design time for Query Builder */
   &GLOBAL-DEFINE xpQueryBuilderOrderList       /* Used at design time for Query Builder */
   &GLOBAL-DEFINE xpQueryBuilderTableOptionList /* Used at design time for Query Builder */
   &GLOBAL-DEFINE xpQueryBuilderTuneOptions     /* Used at design time for Query Builder */
   &GLOBAL-DEFINE xpQueryBuilderWhereClauses    /* Used at design time for Query Builder */
-  &GLOBAL-DEFINE xpUseCache                    /* If set to TRUE we will attempt to find any cached information on the client before fetching data from the server */
   &GLOBAL-DEFINE xpDataSourceName              /* Name of data source (SDO) */
 
 

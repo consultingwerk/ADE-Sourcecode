@@ -53,7 +53,7 @@ History:
     hutegger    95/03   addoption for new verify-routines
     mcmann     03/20/01 Added defaultname for descending index support
     mcmann     05/21/02 Added new {&selVarType} variable.
-
+    slutz      08/10/05 Added s_ttb_fld.ds_msc26 20050531-001
 */
 
 DEFINE {&new} SHARED TEMP-TABLE gate-work NO-UNDO
@@ -224,6 +224,9 @@ DEFINE {&selVarType}_wildcard   AS logical   no-undo initial TRUE.
           field ds_msc24         as character initial ?
                                               /*    misc2[4]    */
                                               /* ODB: fld-properties */
+          field ds_msc26         as character initial ?
+                                              /*    misc2[6]    */
+                                              /* ODB: Extent char "_" or "#" */
           field ds_shdn          as character initial ?
                                               /*    shadow-column    */
                                               /* ODB: misc2[5]       */

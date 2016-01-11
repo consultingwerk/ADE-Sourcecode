@@ -1,6 +1,13 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Check Version Notes Wizard" Procedure _INLINE
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /* Actions: af/cod/aftemwizcw.w ? ? ? ? */
 /* MIP Update Version Notes Wizard
 Check object version notes.
@@ -614,10 +621,10 @@ FUNCTION launchClassObject RETURNS HANDLE
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD newInstance Procedure 
 FUNCTION newInstance RETURNS LOGICAL
-    ( INPUT pcInstance                              AS character,
-      input pcClassName                             as character,
+    ( INPUT pcInstance                  AS character,
+      input pcClassName                 as character,
       input pcSuperProcedure            as character,
-      input pcSuperProcedureMode            as character        )  FORWARD.
+      input pcSuperProcedureMode        as character        )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -5382,7 +5389,13 @@ ACCESS_LEVEL=PUBLIC
     DEFINE VARIABLE iAttributeEntry         AS INTEGER    NO-UNDO.
     DEFINE VARIABLE cThinRenderingProcedure AS CHARACTER  NO-UNDO.
     DEFINE VARIABLE cServerFileName         AS CHARACTER  NO-UNDO.
-    define variable lGeneratedObject        as logical    no-undo.
+    DEFINE VARIABLE lGeneratedObject        AS LOGICAL    NO-UNDO. 
+    /* the various types */
+    DEFINE VARIABLE lSDO                    AS LOGICAL    NO-UNDO.
+    DEFINE VARIABLE lSBO                    AS LOGICAL    NO-UNDO.
+    DEFINE VARIABLE lDynSDO                 AS LOGICAL    NO-UNDO.
+    DEFINE VARIABLE lDynSBO                 AS LOGICAL    NO-UNDO.
+    DEFINE VARIABLE lDataView               AS LOGICAL    NO-UNDO.
     
     DEFINE BUFFER bCache            FOR cacheObject.
     DEFINE BUFFER bClass            FOR ttClass.
@@ -5393,101 +5406,111 @@ ACCESS_LEVEL=PUBLIC
         
     if not lGeneratedObject then
     do:
-	    /* Explicitly set the RunAttribute session parameter to blank. */
-	    DYNAMIC-FUNCTION("setSessionParam":U IN TARGET-PROCEDURE, INPUT "RunAttribute":U, INPUT "":U).
-	    
-	    FIND bCache WHERE
-	         bCache.InstanceId = DECIMAL(pcDataObject)
-	         NO-ERROR.
-	    IF NOT AVAILABLE bCache THEN         
-	       FIND bCache WHERE
-	            bCache.ObjectName          = pcDataObject AND
-	            bCache.ContainerInstanceId = 0
-	            NO-ERROR.
-	    
-	    IF NOT AVAILABLE bCache THEN
-	    DO:
-	       RUN cacheRepositoryObject ( INPUT pcDataObject,
-	                                   INPUT "":U,
-	                                   INPUT ?,    /* run attribute */
-	                                   INPUT "{&DEFAULT-RESULT-CODE}":U ) NO-ERROR.
-	       IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN
-	           RETURN ERROR (IF RETURN-VALUE EQ "":U THEN ERROR-STATUS:GET-MESSAGE(1) ELSE RETURN-VALUE).
-	        
-	       FIND bCache WHERE
-	            bCache.ObjectName          = pcDataObject AND
-	            bCache.ContainerInstanceId = 0
-	            NO-ERROR.         
-	    END.    /* bCache */
-	    
-	    IF AVAILABLE bCache THEN
-	    DO:
-	        /* At this stage there should always be an available bCache record. */
-	        FIND FIRST bClass WHERE bClass.ClassName = bCache.ClassName NO-ERROR.
-	        IF NOT AVAILABLE bClass THEN
-	        DO:
-	            RUN createClassCache IN TARGET-PROCEDURE ( bCache.ClassName ) NO-ERROR.
-	            /* Show no messages. The calling procedure needs to cater for the fact that
-	               no class has been retrieved from the cache.                         */
-	            FIND FIRST bClass WHERE bClass.ClassName = bCache.ClassName NO-ERROR.
-	            IF NOT AVAILABLE bClass THEN
-	                RETURN ERROR {aferrortxt.i 'AF' '5' '?' '?' '"cached class"' "'Class name: ' + bCache.ClassName"}.
-	        END.      /* n/a cache class */
-	        
-	        ASSIGN 
-	          hBufferField = ?
-	          cThinRenderingProcedure = "":U.
-	        IF glUseThinRendering THEN
-	        DO:
-	          ASSIGN hBufferField = bClass.ClassBufferHandle:BUFFER-FIELD("ThinRenderingProcedure":U) NO-ERROR.          
-	          IF VALID-HANDLE(hBufferField) THEN
-	          DO:
-	            ASSIGN iAttributeEntry = LOOKUP(STRING(hBufferField:POSITION - 1), bCache.AttrOrdinals) NO-ERROR.
-	            IF iAttributeEntry EQ 0 THEN
-	              ASSIGN cThinRenderingProcedure = hBufferField:INITIAL.
-	            ELSE
-	              ASSIGN cThinRenderingProcedure = ENTRY(iAttributeEntry, bCache.AttrValues, {&Value-Delimiter}).
-	          END.  /* if valid buffer field */
-	        END.  /* if use thin rendering */
-	        /* If thin redering is not being used or it is being used and a thin rendering procedure
-	           has not been set then rendering procedure should be used. */
-	        IF NOT VALID-HANDLE(hBufferField) OR cThinRenderingProcedure = "":U THEN
-	          ASSIGN hBufferField = bClass.ClassBufferHandle:BUFFER-FIELD("RenderingProcedure":U) NO-ERROR.
-	
-	        IF NOT VALID-HANDLE(hBufferField) THEN
-	        DO:
-	            ASSIGN hBufferField = bClass.ClassBufferHandle:BUFFER-FIELD("PhysicalObjectName":U) NO-ERROR.
-	            
-	            /* We can do nothing without a rendering procedure. */
-	            IF NOT VALID-HANDLE(hBufferField) THEN
-	                RETURN ERROR {aferrortxt.i 'AF' '11' '?' '?' '"rendering procedure attribute"' "'data object ' + pcDataObject"}.
-	        END.    /* no rendering procedure at */
-	        
-	        ASSIGN iAttributeEntry = LOOKUP(STRING(hBufferField:POSITION - 1), bCache.AttrOrdinals) NO-ERROR.
-	        IF iAttributeEntry EQ 0 THEN
-	            ASSIGN cSDOFile = hBufferField:INITIAL.
-	        ELSE
-	            ASSIGN cSDOFile = ENTRY(iAttributeEntry, bCache.AttrValues, {&Value-Delimiter}).
-	        
-	        /* Ensure that there is a valid filename. */
-	        IF cSdoFile EQ "":U OR cSdoFile EQ ? THEN
-	            RETURN ERROR {aferrortxt.i 'AF' '11' '?' '?' '"rendering procedure"' "'data object ' + pcDataObject"}.
-
-		    /* This API is only valid for SDOs and SBOs. */
-		    IF NOT CAN-DO(bClass.InheritsFromClasses, "Data":U) AND NOT CAN-DO(bClass.InheritsFromClasses, "SBO":U) THEN
-		        RETURN ERROR {aferrortxt.i 'AF' '15' '?' '?' "' the data object specified (' + pcDataObject + ') does not inherit from the correct data object class.'"}.
-		    
-		    /* If this is not a dynamic SDO, and we are running client-side, 
-		     * then we need to run the _CL proxy. */
-		    &IF DEFINED(Server-Side) EQ 0 &THEN
-		    IF NOT (CAN-DO(bClass.InheritsFromClasses, "DynSdo":U) OR 
-		            CAN-DO(bClass.InheritsFromClasses, "DynSBO":U)) THEN
-		       ASSIGN cSDOFile = ENTRY(1, cSDOFile, ".":U) + "_cl.r":U.
-		    ELSE cServerFileName = bClass.ClassBufferHandle:BUFFER-FIELD("RenderingProcedure":U):INITIAL NO-ERROR.
-		    &ENDIF
+            /* Explicitly set the RunAttribute session parameter to blank. */
+            DYNAMIC-FUNCTION("setSessionParam":U IN TARGET-PROCEDURE, INPUT "RunAttribute":U, INPUT "":U).
+            
+            FIND bCache WHERE
+                 bCache.InstanceId = DECIMAL(pcDataObject)
+                 NO-ERROR.
+            IF NOT AVAILABLE bCache THEN         
+               FIND bCache WHERE
+                    bCache.ObjectName          = pcDataObject AND
+                    bCache.ContainerInstanceId = 0
+                    NO-ERROR.
+            
+            IF NOT AVAILABLE bCache THEN
+            DO:
+               RUN cacheRepositoryObject ( INPUT pcDataObject,
+                                           INPUT "":U,
+                                           INPUT ?,    /* run attribute */
+                                           INPUT "{&DEFAULT-RESULT-CODE}":U ) NO-ERROR.
+               IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN
+                   RETURN ERROR (IF RETURN-VALUE EQ "":U THEN ERROR-STATUS:GET-MESSAGE(1) ELSE RETURN-VALUE).
+                
+               FIND bCache WHERE
+                    bCache.ObjectName          = pcDataObject AND
+                    bCache.ContainerInstanceId = 0
+                    NO-ERROR.         
+            END.    /* bCache */
+            
+            IF AVAILABLE bCache THEN
+            DO:
+                /* At this stage there should always be an available bCache record. */
+                FIND FIRST bClass WHERE bClass.ClassName = bCache.ClassName NO-ERROR.
+                IF NOT AVAILABLE bClass THEN
+                DO:
+                    RUN createClassCache IN TARGET-PROCEDURE ( bCache.ClassName ) NO-ERROR.
+                    /* Show no messages. The calling procedure needs to cater for the fact that
+                       no class has been retrieved from the cache.                         */
+                    FIND FIRST bClass WHERE bClass.ClassName = bCache.ClassName NO-ERROR.
+                    IF NOT AVAILABLE bClass THEN
+                        RETURN ERROR {aferrortxt.i 'AF' '5' '?' '?' '"cached class"' "'Class name: ' + bCache.ClassName"}.
+                END.      /* n/a cache class */
+                
+                ASSIGN 
+                  hBufferField = ?
+                  cThinRenderingProcedure = "":U.
+                IF glUseThinRendering THEN
+                DO:
+                  ASSIGN hBufferField = bClass.ClassBufferHandle:BUFFER-FIELD("ThinRenderingProcedure":U) NO-ERROR.          
+                  IF VALID-HANDLE(hBufferField) THEN
+                  DO:
+                    ASSIGN iAttributeEntry = LOOKUP(STRING(hBufferField:POSITION - 1), bCache.AttrOrdinals) NO-ERROR.
+                    IF iAttributeEntry EQ 0 THEN
+                      ASSIGN cThinRenderingProcedure = hBufferField:INITIAL.
+                    ELSE
+                      ASSIGN cThinRenderingProcedure = ENTRY(iAttributeEntry, bCache.AttrValues, {&Value-Delimiter}).
+                  END.  /* if valid buffer field */
+                END.  /* if use thin rendering */
+                /* If thin redering is not being used or it is being used and a thin rendering procedure
+                   has not been set then rendering procedure should be used. */
+                IF NOT VALID-HANDLE(hBufferField) OR cThinRenderingProcedure = "":U THEN
+                    ASSIGN hBufferField = bClass.ClassBufferHandle:BUFFER-FIELD("RenderingProcedure":U) NO-ERROR.
+        
+                IF NOT VALID-HANDLE(hBufferField) THEN
+                DO:
+                    ASSIGN hBufferField = bClass.ClassBufferHandle:BUFFER-FIELD("PhysicalObjectName":U) NO-ERROR.
+                    
+                    /* We can do nothing without a rendering procedure. */
+                    IF NOT VALID-HANDLE(hBufferField) THEN
+                        RETURN ERROR {aferrortxt.i 'AF' '11' '?' '?' '"rendering procedure attribute"' "'data object ' + pcDataObject"}.
+                END.    /* no rendering procedure at */
+                
+                ASSIGN iAttributeEntry = LOOKUP(STRING(hBufferField:POSITION - 1), bCache.AttrOrdinals) NO-ERROR.
+                IF iAttributeEntry EQ 0 THEN
+                    ASSIGN cSDOFile = hBufferField:INITIAL.
+                ELSE
+                    ASSIGN cSDOFile = ENTRY(iAttributeEntry, bCache.AttrValues, {&Value-Delimiter}).
+                
+                /* Ensure that there is a valid filename. */
+                IF cSdoFile EQ "":U OR cSdoFile EQ ? THEN
+                    RETURN ERROR {aferrortxt.i 'AF' '11' '?' '?' '"rendering procedure"' "'data object ' + pcDataObject"}.
+                
+                /* identify type from bottom up  */
+                IF CAN-DO(bClass.InheritsFromClasses, "DynSDO":U)  THEN 
+                  lDynSDO = TRUE.
+                ELSE IF CAN-DO(bClass.InheritsFromClasses, "SDO":U)  THEN 
+                  lSDO = TRUE.
+                ELSE IF CAN-DO(bClass.InheritsFromClasses, "DataView":U)  THEN 
+                  lDataView = TRUE.
+                ELSE IF CAN-DO(bClass.InheritsFromClasses, "SBO":U)  THEN
+                  lSBO = TRUE.
+                ELSE IF  CAN-DO(bClass.InheritsFromClasses, "DynSBO":U)  THEN 
+                  lDynSBO = TRUE.
+                ELSE 
+                  RETURN ERROR {aferrortxt.i 'AF' '15' '?' '?' "' the data object specified (' + pcDataObject + ') does not inherit from the correct data object class.'"}.
+                    
+                /* If this is not a dynamic SDO, and we are running client-side, 
+                 * then we need to run the _CL proxy. */
+                   &IF DEFINED(Server-Side) EQ 0 &THEN
+                IF lSDO OR lSBO THEN
+                  ASSIGN cSDOFile = ENTRY(1, cSDOFile, ".":U) + "_cl.r":U.
+                ELSE IF NOT lDataView THEN
+                  cServerFileName = bClass.ClassBufferHandle:BUFFER-FIELD("RenderingProcedure":U):INITIAL NO-ERROR.
+                   &ENDIF
         end.    /* can find object in cache */
-	    ELSE
-	        RETURN ERROR {aferrortxt.i 'AF' '15' '?' '?' "'the cache entry for ' + pcDataObject + ' could not be found.'"}.
+        ELSE
+           RETURN ERROR {aferrortxt.i 'AF' '15' '?' '?' "'the cache entry for ' + pcDataObject + ' could not be found.'"}.
     end.    /* not a generated object */
     
     /* So that prepareInstance knows which logical object is being run. */
@@ -5506,15 +5529,15 @@ ACCESS_LEVEL=PUBLIC
      */
     if lGeneratedObject then
     do:
-	    if not {fnarg instanceOf 'Data' phSdo} and not {fnarg InstanceOf 'SBO' phSdo} then
-	    do:
-	        run destroyObject in phSdo no-error.
-	        if valid-handle(phSdo) then
-	            delete object phSdo no-error.
-	        
-	        phSdo = ?.
-	        return error {aferrortxt.i 'AF' '15' '?' '?' "' the data object specified (' + pcDataObject + ') does not inherit from the correct data object class.'"}.
-	    end.    /* not data object */
+            if not {fnarg instanceOf 'DataView' phSdo} and not {fnarg InstanceOf 'SBO' phSdo} then
+            do:
+                run destroyObject in phSdo no-error.
+                if valid-handle(phSdo) then
+                    delete object phSdo no-error.
+                
+                phSdo = ?.
+                return error {aferrortxt.i 'AF' '15' '?' '?' "' the data object specified (' + pcDataObject + ') does not inherit from the correct data object class.'"}.
+            end.    /* not data object */
      
         &if defined(Server-Side) eq 0 &then
         /* Even for a generated procedure, the RenderingProcedure attribute contains
@@ -7117,9 +7140,9 @@ FUNCTION getMappedFilename RETURNS CHARACTER
 ACCESS_LEVEL=PUBLIC
   Purpose: Returns the name of the generated file for a given logical object name.
     Notes: - Either a fully-pathed filename is returned or the unknown value is returned.
-    	   - Only the names of r-code files are returned
-    	   - The generated file must exist in the 'gen' subdirectory of the directory
-    	     specified by the client_cache_directory session property (if available).
+           - Only the names of r-code files are returned
+           - The generated file must exist in the 'gen' subdirectory of the directory
+             specified by the client_cache_directory session property (if available).
 ------------------------------------------------------------------------------*/
     define variable cFilename            as character                no-undo.
     define variable cCustomizedFilename  as character                no-undo.
@@ -7608,9 +7631,9 @@ Parameters: phPropTable - The admprops table UNPRPEPARED.
     /* The InstanceId needs a unique value. */
     assign ttClass.InstanceBufferHandle:buffer-field('InstanceId'):buffer-value = decimal(hInstance)
            ttClass.InstanceBufferHandle:buffer-field('Target'):buffer-value = hInstance
-	       /* This ADM object is now open for business! (well almost, need supers and properties) 
-	          The CHR(1) delimiters are for UserProperties and UserLinks.
-			*/
+               /* This ADM object is now open for business! (well almost, need supers and properties) 
+                  The CHR(1) delimiters are for UserProperties and UserLinks.
+                        */
            hInstance:ADM-DATA = STRING(ttClass.InstanceBufferHandle) + CHR(1) + CHR(1).
     
     /* Start the class super procedures. Start the class supers first
@@ -7663,8 +7686,8 @@ Parameters: phPropTable - The admprops table UNPRPEPARED.
                 IF NUM-ENTRIES(ttClass.SuperHandles) ge iSuper THEN
                     ENTRY(iSuper,ttClass.SuperHandles) = STRING(hClassProcedure).
                 ELSE 
-	                ttClass.SuperHandles = ttClass.SuperHandles + (IF iSuper eq 1 THEN '':U ELSE ',':U) 
-    	                                 + STRING(hClassProcedure).
+                        ttClass.SuperHandles = ttClass.SuperHandles + (IF iSuper eq 1 THEN '':U ELSE ',':U) 
+                                         + STRING(hClassProcedure).
             END.    /* store this super? */
         END. /* valid hClassProcedure */
     END. /* do i = 1 to ttCLass.superprocedures */

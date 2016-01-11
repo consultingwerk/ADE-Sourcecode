@@ -1,5 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /* Connected Databases 
           icfdb            PROGRESS
 */
@@ -25,6 +32,7 @@ af/cod/aftemwizpw.w
 /* Temp-Table and Buffer definitions                                    */
 DEFINE TEMP-TABLE RowObject
        {"ry/obj/ryemptysdo.i"}.
+
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
@@ -97,7 +105,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /*DEFINE VARIABLE gcClassesToRetrieve AS CHARACTER  NO-UNDO INITIAL "Data,SBO,Panel,Viewer,StaticSO,Browser,SmartFolder":U.*/
 
 DEFINE VARIABLE gcClassesToRetrieve AS CHARACTER  NO-UNDO EXTENT 3
-    INITIAL ["Data,SBO" /*{&VALID-NON-VISIBLE-OBJECT-TYPES}"*/ ,
+    INITIAL ["SBO,DataView" /*{&VALID-NON-VISIBLE-OBJECT-TYPES}"*/ ,
              "Toolbar,Viewer,Browser,StaticSO,DynFrame,SmartFrame" /*{&VALID-VISIBLE-OBJECT-TYPES}"*/ ,
              "SmartFolder":U].
 /*
@@ -222,8 +230,8 @@ DEFINE VARIABLE giGLColor           AS INTEGER    NO-UNDO INITIAL 0.
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS buNonLayoutObjects edSource edTarget ~
-buLayoutPreview fiObjectInstances fiQuickLink rctBackground 
+&Scoped-Define ENABLED-OBJECTS rctBackground buNonLayoutObjects edSource ~
+edTarget buLayoutPreview fiObjectInstances fiQuickLink 
 &Scoped-Define DISPLAYED-OBJECTS fiInstanceName fiObjectDescription ~
 edForeignFields coDataSources coUpdateTargets coNavTarget ~
 toResizeHorizontal toResizeVertical raLCR coLink edSource edTarget ~
@@ -706,36 +714,36 @@ DEFINE VARIABLE raLCR AS CHARACTER
      SIZE 36.4 BY .71 NO-UNDO.
 
 DEFINE RECTANGLE rctBackground
-     EDGE-PIXELS 0  
+     EDGE-PIXELS 0    
      SIZE 60.8 BY 10.19
      BGCOLOR 7 .
 
 DEFINE RECTANGLE rctGrid
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 63.2 BY 10.76.
 
 DEFINE RECTANGLE rctJustification
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 39.8 BY 1.38.
 
 DEFINE RECTANGLE rctProperties
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 63.2 BY 11.33.
 
 DEFINE RECTANGLE rctQuickLink
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 137.6 BY 1.81.
 
 DEFINE RECTANGLE rctSeperator1
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE .4 BY 1.14.
 
 DEFINE RECTANGLE rctSeperator2
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE .4 BY 1.14.
 
 DEFINE RECTANGLE rctToolbar
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 5.6 BY 1.33.
 
 DEFINE VARIABLE toResizeHorizontal AS LOGICAL INITIAL no 
@@ -1697,7 +1705,7 @@ PROCEDURE adm-create-objects :
                      FIRST gsc_product_module NO-LOCK
                      WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj
                      AND [&FilterSet=|&EntityList=GSCPM,RYCSO]
-                     BY ryc_smartobject.object_filename INDEXED-REPOSITIONQueryTablesgsc_object_type,ryc_smartobject,gsc_product_moduleBrowseFieldsryc_smartobject.object_filename,gsc_object_type.object_type_code,gsc_product_module.product_module_code,ryc_smartobject.object_description,ryc_smartobject.static_object,ryc_smartobject.template_smartobject,ryc_smartobject.container_objectBrowseFieldDataTypescharacter,character,character,character,logical,logical,logicalBrowseFieldFormatsX(70)|X(35)|X(35)|X(35)|YES/NO|YES/NO|YES/NORowsToBatch200BrowseTitleObject LookupViewerLinkedFieldsryc_smartobject.object_type_obj,ryc_smartobject.object_filename,ryc_smartobject.object_descriptionLinkedFieldDataTypesdecimal,character,characterLinkedFieldFormats->>>>>>>>>>>>>>>>>9.999999999,X(70),X(35)ViewerLinkedWidgetsdObjectTypeObj,?,?ColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureFieldName<Local>DisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY ryc_smartobject.object_filename INDEXED-REPOSITIONQueryTablesgsc_object_type,ryc_smartobject,gsc_product_moduleBrowseFieldsryc_smartobject.object_filename,gsc_object_type.object_type_code,gsc_product_module.product_module_code,ryc_smartobject.object_description,ryc_smartobject.static_object,ryc_smartobject.template_smartobject,ryc_smartobject.container_objectBrowseFieldDataTypescharacter,character,character,character,logical,logical,logicalBrowseFieldFormatsX(70)|X(35)|X(35)|X(35)|YES/NO|YES/NO|YES/NORowsToBatch200BrowseTitleObject LookupViewerLinkedFieldsryc_smartobject.object_type_obj,ryc_smartobject.object_filename,ryc_smartobject.object_descriptionLinkedFieldDataTypesdecimal,character,characterLinkedFieldFormats->>>>>>>>>>>>>>>>>9.999999999,X(70),X(35)ViewerLinkedWidgetsdObjectTypeObj,?,?ColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureDataSourceNameFieldName<Local>DisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hObjectFilename ).
        RUN repositionObject IN hObjectFilename ( 2.10 , 18.00 ) NO-ERROR.
        RUN resizeObject IN hObjectFilename ( 1.00 , 44.60 ) NO-ERROR.
@@ -1705,7 +1713,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_object_type.object_type_codeKeyFieldgsc_object_type.object_type_objFieldLabelTypeFieldTooltipSelect option from listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(15)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type NO-LOCKQueryTablesgsc_object_typeSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1ComboDelimiterListItemPairsInnerLines5ComboFlagNFlagValue0BuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesSuperProcedureFieldNamedObjectTypeObjDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_object_type.object_type_codeKeyFieldgsc_object_type.object_type_objFieldLabelTypeFieldTooltipSelect option from listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(15)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type NO-LOCKQueryTablesgsc_object_typeSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1ComboDelimiterListItemPairsInnerLines5SortnoComboFlagNFlagValue0BuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesSuperProcedureDataSourceNameFieldNamedObjectTypeObjDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hObjectType ).
        RUN repositionObject IN hObjectType ( 5.24 , 18.00 ) NO-ERROR.
        RUN resizeObject IN hObjectType ( 1.05 , 39.80 ) NO-ERROR.
@@ -4752,7 +4760,7 @@ PROCEDURE trgMenuDrop :
   DEFINE VARIABLE cContainerMode      AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hSelectedWidget     AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hDataObject         AS HANDLE     NO-UNDO.
-
+  DEFINE VARIABLE lDbAware            AS LOGICAL    NO-UNDO.
   DEFINE BUFFER ttWidget FOR ttWidget.
 
   ASSIGN
@@ -4780,10 +4788,13 @@ PROCEDURE trgMenuDrop :
       RUN startDataObject  IN gshRepositoryManager (INPUT  ghObjectInstance:BUFFER-FIELD('c_smartobject_filename':U):BUFFER-VALUE,
                                                     OUTPUT hDataObject) NO-ERROR.
 
-      /* Attempt to find the DataLogicProcedure and SuperProcedure from the DataObject if it could not be found in the Attributes */
+      /* Attempt to find the DataLogicProcedure and SuperProcedure from the DataObject 
+         if it could not be found in the Attributes */
       IF VALID-HANDLE(hDataObject) THEN
       DO:
-        IF cDataLogicProcedure = "":U THEN
+        /* only dbaware data objects uses DLPs (the DataView does not */
+        {get DBAware lDbAware hDataObject}.
+        IF lDbAware AND cDataLogicProcedure = "":U THEN
           {get DataLogicProcedure cDataLogicProcedure hDataObject}.
         
         IF cSuperProcedure = "":U THEN
@@ -5860,10 +5871,14 @@ FUNCTION evaluateLookupQuery RETURNS LOGICAL
   DEFINE VARIABLE cQueryString        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cObjectView         AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iCounter            AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iQueryCounter       AS INTEGER    NO-UNDO.
   DEFINE VARIABLE iExtent             AS INTEGER    NO-UNDO.
   DEFINE VARIABLE iIndex              AS INTEGER    NO-UNDO.
   DEFINE VARIABLE hSelectedWidget     AS HANDLE     NO-UNDO.
-
+  DEFINE VARIABLE cQueryClasses       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cQueryClass         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataClasses        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iNotValid           AS INTEGER    NO-UNDO.
   DEFINE BUFFER ttWidget FOR ttWidget.
 
   /* Check if the class information has already been retrieved */
@@ -5879,11 +5894,30 @@ FUNCTION evaluateLookupQuery RETURNS LOGICAL
         /* Get rid of the ADM classes themselves. */
         DO iIndex = 1 TO NUM-ENTRIES(cValidObjectTypes):
           CASE ENTRY(iIndex, cValidObjectTypes):
-            WHEN "Data":U    OR
-            WHEN "Toolbar":U OR
-            WHEN "Panel":U   OR
-            WHEN "Viewer"    OR
-            WHEN "Browser":U THEN ENTRY(iIndex, cValidObjectTypes) = "":U.
+            WHEN "Query" THEN
+            DO:
+              /* query is below dataview and above data, 
+                 remove all extended objects that not are part of the data class */
+              cQueryClasses = {fnarg getClassChildrenFromDB 'Query' gshRepositoryManager}.
+              cDataClasses  = {fnarg getClassChildrenFromDB 'Data' gshRepositoryManager}.
+              
+              DO iQueryCounter = 1 TO NUM-ENTRIES(cQueryClasses):
+                cQueryClass = ENTRY(iQueryCounter , cQueryClasses).
+                IF LOOKUP(cQueryClass,cDataClasses) = 0 THEN
+                DO:
+                  iNotValid = LOOKUP(cQueryClass,cValidObjectTypes).
+                  IF iNotValid > 0 THEN
+                    ENTRY(iNotValid, cValidObjectTypes) = "":U.
+                END.
+              END.
+            END.
+            WHEN "DataView":U OR
+            WHEN "Data":U     OR
+            WHEN "Toolbar":U  OR
+            WHEN "Panel":U    OR
+            WHEN "Viewer"     OR
+            WHEN "Browser":U THEN 
+              ENTRY(iIndex, cValidObjectTypes) = "":U.
           END CASE.   /* obejct type */
         END.    /* loop through valid object types */
 
@@ -6679,9 +6713,9 @@ FUNCTION setWidgetProperties RETURNS LOGICAL
     IF SEARCH(cImageName) = ? THEN
     DO:
       cImageName = gcPath + ttWidget.cObjectType + cSImg.
-
-      IF SEARCH(cImageName) = ? 
-      THEN then-blk: DO:
+      IF SEARCH(cImageName) = ? THEN 
+      then-blk: 
+      DO:
           /* We may be dealing with an extended class, go through it's parents, and see if we can find an image for them */
           ASSIGN cClassParents = DYNAMIC-FUNCTION("getClassParentsFromDB":U IN gshRepositoryManager, INPUT ttWidget.cObjectType).
           DO iCnt = 1 TO NUM-ENTRIES(cClassParents):
@@ -6717,7 +6751,6 @@ FUNCTION setWidgetProperties RETURNS LOGICAL
   END.
 
   ttWidget.hHandle:LOAD-IMAGE(cImageName).
-
   IF VALID-HANDLE(ttWidget.hAlignment) THEN
   DO:
     CASE ttWidget.cLCR:

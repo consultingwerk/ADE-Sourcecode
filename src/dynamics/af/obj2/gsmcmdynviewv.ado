@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<dataset Transactions="1"><dataset_header DisableRI="yes" DatasetObj="1004928896.09" DateFormat="mdy" FullHeader="no" SCMManaged="yes" YearOffset="1950" DatasetCode="RYCSO" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="91" NumericSeparator=","/>
-<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" version_date="08/04/2004" version_time="58873" version_user="admin" deletion_flag="no" entity_mnemonic="RYCSO" key_field_value="12345000012520.3993" record_version_obj="12345000012521.3993" version_number_seq="280.3993" secondary_key_value="gsmcmdynviewv#CHR(1)#0" import_version_number_seq="280.3993"><smartobject_obj>12345000012520.3993</smartobject_obj>
+<dataset Transactions="1"><dataset_header DatasetCode="RYCSO" DatasetObj="1004928896.09" DateFormat="mdy" DisableRI="yes" FullHeader="no" NumericDecimal="." NumericFormat="AMERICAN" NumericSeparator="," OriginatingSite="92" SCMManaged="yes" YearOffset="1950"/>
+<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" deletion_flag="no" entity_mnemonic="RYCSO" import_version_number_seq="19.709" key_field_value="12345000012520.3993" record_version_obj="12345000012521.3993" secondary_key_value="gsmcmdynviewv#CHR(1)#0" version_date="08/19/2005" version_number_seq="19.709" version_time="52805" version_user="admin"><smartobject_obj>12345000012520.3993</smartobject_obj>
 <object_filename>gsmcmdynviewv</object_filename>
 <customization_result_obj>0</customization_result_obj>
 <object_type_obj>1003498162</object_type_obj>
@@ -84,7 +84,7 @@
 <instance_name>expiry_date</instance_name>
 <instance_description>DataField of type FILL-IN</instance_description>
 <page_obj>0</page_obj>
-<object_sequence>7</object_sequence>
+<object_sequence>6</object_sequence>
 </contained_record>
 <contained_record DB="icfdb" Table="ryc_object_instance"><object_instance_obj>12345000012529.3993</object_instance_obj>
 <container_smartobject_obj>12345000012520.3993</container_smartobject_obj>
@@ -94,7 +94,7 @@
 <instance_name>last_updated_by_user</instance_name>
 <instance_description>DataField of type FILL-IN</instance_description>
 <page_obj>0</page_obj>
-<object_sequence>12</object_sequence>
+<object_sequence>11</object_sequence>
 </contained_record>
 <contained_record DB="icfdb" Table="ryc_object_instance"><object_instance_obj>12345000012530.3993</object_instance_obj>
 <container_smartobject_obj>12345000012520.3993</container_smartobject_obj>
@@ -104,7 +104,7 @@
 <instance_name>last_updated_date</instance_name>
 <instance_description>DataField of type FILL-IN</instance_description>
 <page_obj>0</page_obj>
-<object_sequence>11</object_sequence>
+<object_sequence>12</object_sequence>
 </contained_record>
 <contained_record DB="icfdb" Table="ryc_object_instance"><object_instance_obj>12345000012531.3993</object_instance_obj>
 <container_smartobject_obj>12345000012520.3993</container_smartobject_obj>
@@ -114,7 +114,7 @@
 <instance_name>owning_entity_mnemonic</instance_name>
 <instance_description>DataField of type FILL-IN</instance_description>
 <page_obj>0</page_obj>
-<object_sequence>6</object_sequence>
+<object_sequence>7</object_sequence>
 </contained_record>
 <contained_record DB="icfdb" Table="ryc_object_instance"><object_instance_obj>12345000012532.3993</object_instance_obj>
 <container_smartobject_obj>12345000012520.3993</container_smartobject_obj>
@@ -204,7 +204,7 @@
 <character_value></character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
-<decimal_value>25.4</decimal_value>
+<decimal_value>25</decimal_value>
 <logical_value>no</logical_value>
 <primary_smartobject_obj>12345000012520.3993</primary_smartobject_obj>
 <render_type_obj>0</render_type_obj>
@@ -402,38 +402,6 @@
 <render_type_obj>0</render_type_obj>
 <applies_at_runtime>yes</applies_at_runtime>
 </contained_record>
-<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>12345000012579.3993</attribute_value_obj>
-<object_type_obj>1005091923.09</object_type_obj>
-<container_smartobject_obj>12345000012520.3993</container_smartobject_obj>
-<smartobject_obj>3000009338.09</smartobject_obj>
-<object_instance_obj>12345000012531.3993</object_instance_obj>
-<constant_value>no</constant_value>
-<attribute_label>DATA-TYPE</attribute_label>
-<character_value>Character</character_value>
-<integer_value>0</integer_value>
-<date_value>?</date_value>
-<decimal_value>0</decimal_value>
-<logical_value>no</logical_value>
-<primary_smartobject_obj>12345000012520.3993</primary_smartobject_obj>
-<render_type_obj>0</render_type_obj>
-<applies_at_runtime>yes</applies_at_runtime>
-</contained_record>
-<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>12345000012598.3993</attribute_value_obj>
-<object_type_obj>1005091923.09</object_type_obj>
-<container_smartobject_obj>12345000012520.3993</container_smartobject_obj>
-<smartobject_obj>3000015164.09</smartobject_obj>
-<object_instance_obj>12345000012533.3993</object_instance_obj>
-<constant_value>no</constant_value>
-<attribute_label>DATA-TYPE</attribute_label>
-<character_value>Character</character_value>
-<integer_value>0</integer_value>
-<date_value>?</date_value>
-<decimal_value>0</decimal_value>
-<logical_value>no</logical_value>
-<primary_smartobject_obj>12345000012520.3993</primary_smartobject_obj>
-<render_type_obj>0</render_type_obj>
-<applies_at_runtime>yes</applies_at_runtime>
-</contained_record>
 <contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>12345000012550.3993</attribute_value_obj>
 <object_type_obj>473.99</object_type_obj>
 <container_smartobject_obj>12345000012520.3993</container_smartobject_obj>
@@ -620,7 +588,7 @@
 <character_value></character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
-<decimal_value>1.05</decimal_value>
+<decimal_value>1</decimal_value>
 <logical_value>no</logical_value>
 <primary_smartobject_obj>12345000012520.3993</primary_smartobject_obj>
 <render_type_obj>0</render_type_obj>
@@ -812,7 +780,7 @@
 <character_value></character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
-<decimal_value>95.4</decimal_value>
+<decimal_value>95</decimal_value>
 <logical_value>no</logical_value>
 <primary_smartobject_obj>12345000012520.3993</primary_smartobject_obj>
 <render_type_obj>0</render_type_obj>
@@ -874,7 +842,7 @@
 <constant_value>no</constant_value>
 <attribute_label>Order</attribute_label>
 <character_value></character_value>
-<integer_value>7</integer_value>
+<integer_value>6</integer_value>
 <date_value>?</date_value>
 <decimal_value>0</decimal_value>
 <logical_value>no</logical_value>
@@ -890,7 +858,7 @@
 <constant_value>no</constant_value>
 <attribute_label>Order</attribute_label>
 <character_value></character_value>
-<integer_value>12</integer_value>
+<integer_value>11</integer_value>
 <date_value>?</date_value>
 <decimal_value>0</decimal_value>
 <logical_value>no</logical_value>
@@ -906,7 +874,7 @@
 <constant_value>no</constant_value>
 <attribute_label>Order</attribute_label>
 <character_value></character_value>
-<integer_value>11</integer_value>
+<integer_value>12</integer_value>
 <date_value>?</date_value>
 <decimal_value>0</decimal_value>
 <logical_value>no</logical_value>
@@ -922,7 +890,7 @@
 <constant_value>no</constant_value>
 <attribute_label>Order</attribute_label>
 <character_value></character_value>
-<integer_value>6</integer_value>
+<integer_value>7</integer_value>
 <date_value>?</date_value>
 <decimal_value>0</decimal_value>
 <logical_value>no</logical_value>
@@ -1084,7 +1052,7 @@
 <character_value></character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
-<decimal_value>2.14</decimal_value>
+<decimal_value>2.1</decimal_value>
 <logical_value>no</logical_value>
 <primary_smartobject_obj>12345000012520.3993</primary_smartobject_obj>
 <render_type_obj>0</render_type_obj>
@@ -1100,7 +1068,7 @@
 <character_value></character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
-<decimal_value>8.62</decimal_value>
+<decimal_value>8.57</decimal_value>
 <logical_value>no</logical_value>
 <primary_smartobject_obj>12345000012520.3993</primary_smartobject_obj>
 <render_type_obj>0</render_type_obj>
@@ -1148,7 +1116,7 @@
 <character_value></character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
-<decimal_value>9.57</decimal_value>
+<decimal_value>9.67</decimal_value>
 <logical_value>no</logical_value>
 <primary_smartobject_obj>12345000012520.3993</primary_smartobject_obj>
 <render_type_obj>0</render_type_obj>
@@ -1164,7 +1132,7 @@
 <character_value></character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
-<decimal_value>6.24</decimal_value>
+<decimal_value>6.38</decimal_value>
 <logical_value>no</logical_value>
 <primary_smartobject_obj>12345000012520.3993</primary_smartobject_obj>
 <render_type_obj>0</render_type_obj>
@@ -1196,7 +1164,7 @@
 <character_value></character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
-<decimal_value>7.43</decimal_value>
+<decimal_value>7.48</decimal_value>
 <logical_value>no</logical_value>
 <primary_smartobject_obj>12345000012520.3993</primary_smartobject_obj>
 <render_type_obj>0</render_type_obj>

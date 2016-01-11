@@ -4,25 +4,9 @@
 &Scoped-define FRAME-NAME Attribute-Dlg
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Attribute-Dlg 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*------------------------------------------------------------------------
@@ -63,7 +47,7 @@ DEFINE INPUT PARAMETER phSmrtObj AS HANDLE NO-UNDO.
 &Scoped-define PROCEDURE-TYPE DIALOG-BOX
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME Attribute-Dlg
 
 /* Standard List Definitions                                            */
@@ -144,11 +128,11 @@ DEFINE VARIABLE flnIndent AS INTEGER FORMAT ">,>>>,>>9":U INITIAL 0
      SIZE 8 BY 1 NO-UNDO.
 
 DEFINE RECTANGLE RECT-1
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 88 BY 8.57.
 
 DEFINE RECTANGLE RECT-2
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 88 BY 4.48.
 
 DEFINE VARIABLE tgHideSelection AS LOGICAL INITIAL no 
@@ -245,7 +229,7 @@ DEFINE FRAME Attribute-Dlg
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX Attribute-Dlg
-   L-To-R                                                               */
+   FRAME-NAME L-To-R                                                    */
 ASSIGN 
        FRAME Attribute-Dlg:SCROLLABLE       = FALSE
        FRAME Attribute-Dlg:HIDDEN           = TRUE.
@@ -305,7 +289,7 @@ DO:
 
 /* Help for this Frame */
   RUN adecomm/_adehelp.p
-                ("ICAB":U, "CONTEXT":U, {&SmTreeView_Instance_Properties_Dialog_Box}  , "":U).
+                ("AB":U, "CONTEXT":U, {&SmTreeView_Instance_Properties_Dialog_Box}  , "":U).
 END.
 
 /* _UIB-CODE-BLOCK-END */

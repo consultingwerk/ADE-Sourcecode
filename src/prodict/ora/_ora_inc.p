@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -46,8 +30,9 @@ DEFINE VARIABLE schdbcon      AS LOGICAL INITIAL FALSE  NO-UNDO.
 DEFINE VARIABLE conparms      AS CHARACTER              NO-UNDO.
 DEFINE VARIABLE l_curr-db     AS INTEGER INITIAL 1      NO-UNDO.
 DEFINE VARIABLE l_dbnr        AS INTEGER                NO-UNDO.
-
-
+DEFINE VARIABLE cFormat       AS CHARACTER 
+                              INITIAL "For field widths use:"
+                              FORMAT "x(20)" NO-UNDO.
 
 FORM
   " "   SKIP 
@@ -67,11 +52,17 @@ FORM
   ora_ispace FORMAT "x(30)" view-as fill-in size 32  by 1
      LABEL "ORACLE tablespace for Indexes" colon 35 SKIP({&VM_WIDG})      
   SPACE(3) pcompatible view-as toggle-box LABEL "Create Progress RECID Field"  
-  sqlwidth VIEW-AS TOGGLE-BOX LABEL "Use Sql Width" SKIP({&VM_WID})
-  SPACE (3) crtdefault VIEW-AS TOGGLE-BOX LABEL "Include Default" &IF "{&WINDOW-SYSTEM}" = "TTY"
-  &THEN SPACE(13) &ELSE SPACE (14) &ENDIF
-  create_df view-as toggle-box LABEL "Create schema holder delta df"
-   SKIP({&VM_WIDG})
+  SPACE(3) crtdefault VIEW-AS TOGGLE-BOX LABEL "Include Default" 
+  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SPACE(13) &ELSE SPACE (14) &ENDIF
+  SPACE(3) create_df view-as toggle-box LABEL "Create schema holder delta df" COLON 2
+  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SPACE(1) &ELSE SPACE (2) &ENDIF
+  shadowcol VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns" 
+  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SPACE(13) &ELSE SPACE (14) &ENDIF
+  space(3) cFormat VIEW-AS TEXT NO-LABEL COLON 2
+  iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
+                                             "4GL Format", 2
+                               HORIZONTAL NO-LABEL SKIP({&VM_WID})
+  lFormat VIEW-AS TOGGLE-BOX LABEL "Expand x(8) to 30" AT 39
              {prodict/user/userbtns.i}
   WITH FRAME read-df ROW 2 CENTERED SIDE-labels 
     DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel
@@ -157,6 +148,16 @@ ON CHOOSE OF btn_File in frame read-df DO:
         INPUT "*.df"                 /*Filter*/,
         INPUT yes                /*Must exist*/).
 END.
+
+ON VALUE-CHANGED OF iFmtOption IN FRAME read-df DO:
+  IF SELF:SCREEN-VALUE = "1" THEN
+    ASSIGN lFormat:CHECKED   = FALSE
+           lFormat:SENSITIVE = FALSE.
+  ELSE
+    ASSIGN lFormat:CHECKED   = TRUE
+           lFormat:SENSITIVE = TRUE.
+END. 
+
 /*==========================Mainline code=============================*/        
 
 {adecomm/okrun.i  
@@ -181,8 +182,12 @@ IF LDBNAME("DICTDB") <> ? THEN DO:
   END.
 END.
 
-ASSIGN pcompatible = TRUE.
+ASSIGN pcompatible = TRUE
+             shadowcol = FALSE.
        
+ASSIGN shadowcol:TOOLTIP = "Use shadow columns for case insensitive index support".
+
+DISPLAY cFormat lFormat WITH FRAME read-df.
 
 UPDATE df-file 
        btn_file
@@ -193,9 +198,11 @@ UPDATE df-file
        ora_tspace
        ora_ispace
        pcompatible
-       sqlwidth
-       crtdefault         
+       crtdefault        
        create_df
+       shadowcol
+       iFmtOption
+       lFormat WHEN iFmtOption = 2
        btn_OK btn_Cancel
        &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
             btn_Help
@@ -230,7 +237,13 @@ ASSIGN user_env[1]  = df-file
        user_env[34] = ora_tspace
        user_env[35] = ora_ispace.
     
-
+IF iFmtOption = 1 THEN 
+  ASSIGN sqlwidth = TRUE. /* Use _Width field for size */
+ELSE IF (lFormat = FALSE) THEN
+  ASSIGN sqlwidth = ?. /* Use _Format field for size */
+ELSE
+  ASSIGN sqlwidth = FALSE. /* Calculate size */
+ 
 /* create df for schema holder */
 IF create_df THEN
   ASSIGN user_env[2] = "yes".

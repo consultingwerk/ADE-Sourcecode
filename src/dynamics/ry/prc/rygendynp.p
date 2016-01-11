@@ -1,6 +1,13 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Check Version Notes Wizard" Procedure _INLINE
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /* Actions: af/cod/aftemwizcw.w ? ? ? ? */
 /* MIP Update Version Notes Wizard
 Check object version notes.
@@ -143,6 +150,13 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
  FUNCTION dbtt-fld-name RETURNS CHARACTER
    (INPUT _BC-Recid AS RECID) IN _h_func_lib.
+ 
+ FUNCTION get-sdo-hdl RETURNS HANDLE 
+   (INPUT pcName AS CHARACTER,
+    INPUT phOwner AS HANDLE) IN _h_func_lib.
+ 
+ FUNCTION shutdown-sdo RETURNS LOGICAL  
+   (INPUT phOwner AS HANDLE) IN _h_func_lib.
 
  {afcheckerr.i &define-only = YES}
 
@@ -269,7 +283,7 @@ FUNCTION verifyObjectType RETURNS CHARACTER
    Allow: 
    Frames: 0
    Add Fields to: Neither
-   Other Settings: CODE-ONLY
+   Other Settings: CODE-ONLY COMPILE
  */
 &ANALYZE-RESUME _END-PROCEDURE-SETTINGS
 
@@ -278,7 +292,7 @@ FUNCTION verifyObjectType RETURNS CHARACTER
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 27
+         HEIGHT             = 27.19
          WIDTH              = 59.4.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -308,7 +322,7 @@ FUNCTION verifyObjectType RETURNS CHARACTER
 
  /* First set migration flag and fetch migration profile preferences */
  IF CAN-DO(_P.design_action, "MIGRATE":U) THEN 
-  DO:
+ DO:
       ASSIGN glMigration = YES
              grRowid     = ?.
       RUN getProfileData IN gshProfileManager (INPUT "General":U,         /* Profile type code     */
@@ -327,7 +341,6 @@ FUNCTION verifyObjectType RETURNS CHARACTER
   /* Note, we don't trim the left comma, because the Master Layout uses a blank RC */
 
  EMPTY TEMP-TABLE tResultCodes.
-
  /* Set list of attributes that should be compared with a RAW compare to 
     determine whether they are written to the repository */
  gcCompareAttributes = "LABEL,FORMAT,HELP,InitialValue,RADIO-BUTTONS,LIST-ITEMS,LIST-ITEM-PAIRS,PRIVATE-DATA,TOOLTIP,BrowseColumnLabels,BrowseColumnFormats":U.
@@ -336,13 +349,13 @@ FUNCTION verifyObjectType RETURNS CHARACTER
  DO TRANSACTION:
    /* Write the object (Viewer, Browser or SDO) */
    RUN writeObjectToRepository  NO-ERROR.           
-                                  /* The object was created in the repository, */
+
+   /* The object was created in the repository, */
    IF gpcError NE "" AND NOT gpcError BEGINS "Associated data" THEN 
    DO:
      UNDO TRANS-BLOCK, LEAVE TRANS-BLOCK.
      RETURN.
    END.
-
    
    /* Now write out the field level widgets */
    IF gcClassName = "DynView":U THEN
@@ -358,9 +371,12 @@ FUNCTION verifyObjectType RETURNS CHARACTER
  /* Write 4GL super procedure if a new viewer or browser */
  IF gpcError EQ "" OR gpcError BEGINS "Associated data":U THEN
     RUN writeSuperProc IN THIS-PROCEDURE NO-ERROR.
-
+    
  IF glNewCalcField THEN
    RUN destroyClassCache IN gshRepositoryManager.
+
+ /* shutdown sdo (getDataSource starts sdo with get-sdo-hdl)  */
+ shutdown-sdo(THIS-PROCEDURE).
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -368,10 +384,401 @@ FUNCTION verifyObjectType RETURNS CHARACTER
 
 /* **********************  Internal Procedures  *********************** */
 
-&IF DEFINED(EXCLUDE-AppendToPError) = 0 &THEN
+&IF DEFINED(EXCLUDE-addNewInstances) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE AppendToPError Procedure 
-PROCEDURE AppendToPError :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE addNewInstances Procedure 
+PROCEDURE addNewInstances :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+ DEFINE INPUT PARAMETER pcLayout AS CHARACTER      NO-UNDO.
+ DEFINE INPUT PARAMETER hDatasource AS HANDLE     NO-UNDO.
+ DEFINE INPUT PARAMETER cDatasourcetype AS CHARACTER  NO-UNDO.
+ DEFINE INPUT PARAMETER cTableList AS CHARACTER  NO-UNDO.
+ DEFINE INPUT PARAMETER cTableAssigns AS CHARACTER  NO-UNDO.
+ DEFINE INPUT PARAMETER cAssignList AS CHARACTER  NO-UNDO.
+ DEFINE INPUT PARAMETER cSDOList AS CHARACTER  NO-UNDO.
+ DEFINE INPUT PARAMETER dsmartviewer AS DECIMAL    NO-UNDO.
+
+ DEFINE VARIABLE cColumnTable   AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cNewInstances AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cObjectTypeCode AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE lCalculatedField AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE ddynobject_obj AS DECIMAL    NO-UNDO.
+ DEFINE VARIABLE ipos AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE cmasterobjectname  AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cinstancename  AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE iTableNum AS INTEGER    NO-UNDO.     
+ DEFINE VARIABLE cdescription AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cattrdiffs AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE lnewinstance AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE cNewInstanceEntry  AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cerror AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE lDbAware AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE hTmp AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE cCalculatedColumns AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE iNewInstance       AS INTEGER    NO-UNDO.
+
+ DEFINE BUFFER b_U             FOR _U.
+ DEFINE BUFFER m_L             FOR _L.
+
+   /* ADD INSTANCES  */
+ Child-Search:
+ FOR EACH b_U WHERE b_U._WINDOW-HANDLE = _U._WINDOW-HANDLE AND
+                    b_U._STATUS = "NORMAL":U AND
+                    NOT b_U._NAME BEGINS "_LBL-":U AND
+                    b_U._TYPE NE "WINDOW":U AND
+                    b_U._TYPE NE "FRAME":U
+                USE-INDEX _OUTPUT:
+   
+   FIND _F WHERE RECID(_F) = b_U._x-recid NO-ERROR.
+   FIND _L WHERE _L._LO-NAME = pcLayout AND _L._u-recid = RECID(b_U) NO-ERROR.
+   FIND m_L WHERE m_L._LO-NAME = "MASTER LAYOUT":U AND m_L._u-recid = RECID(b_U) NO-ERROR.
+   
+   IF NOT AVAILABLE _L AND pcLayout NE "MASTER LAYOUT":U THEN 
+   DO:
+     /* This _U is missing its _L, create one and populate it like the Master */
+     CREATE _L.
+     ASSIGN _L._LO-NAME = pcLayout
+            _L._u-recid = RECID(b_U).
+     IF AVAILABLE m_L THEN
+       BUFFER-COPY m_L EXCEPT _LO-NAME _u-recid TO _L.
+   END.
+    /* If this instance belongs for a custom layout only, do not
+         insert an instance for the master, only for the custom(s)   */
+    IF _L._REMOVE-FROM-LAYOUT AND pcLayout = "Master Layout":U 
+                              AND NUM-ENTRIES(gcResultCodes) > 1 THEN 
+      
+       NEXT Child-Search.
+   
+   IF (NOT AVAILABLE _F AND b_U._TYPE NE "SmartObject":U)
+       OR NOT AVAILABLE _L THEN NEXT Child-Search.
+
+   ASSIGN cColumnTable = "":U
+          gcObjectName  = "":U.
+   
+   IF VALID-HANDLE(hDataSource) THEN 
+   DO:
+
+     lDbaware = DYNAMIC-FUNCTION("getDbAware":U IN hDataSource).
+     /* Could be converting a V8 SDV */
+     IF lDbAware THEN
+       cCalculatedColumns = {fn getCalculatedColumns hDataSource}.
+     
+     IF NOT lDbAware THEN
+       ASSIGN
+         cColumnTable = b_U._TABLE
+         iTableNum = LOOKUP(cColumnTable, cTableList).
+
+     ELSE IF cDataSourceType = "SDO":U THEN 
+     DO:
+       ASSIGN cColumnTable = DYNAMIC-FUNCTION("columnPhysicalTable":U IN hDataSource, b_U._NAME).
+       IF NUM-ENTRIES(cColumnTable, ".":U) = 2 THEN
+         cColumnTable = ENTRY(2, cColumnTable, ".":U).
+       iTableNum = LOOKUP(cColumnTable, cTableList).
+     END. /* If it is an SDO of some kind */
+     ELSE /* It must be an SBO */
+       ASSIGN cColumnTable = b_U._TABLE  /* A lie, this is not a table but an SDO! */
+              iTableNum    = LOOKUP(cColumnTable, cSDOList).
+   END.  /* If we have a valid datasource handle */
+
+   /* Determine object Name and see if it is a datafield */
+   IF NOT lDbaware AND VALID-HANDLE(hDataSource) THEN 
+     gcObjectName  = cColumnTable + ".":U + b_U._NAME. 
+
+   ELSE IF (b_U._TABLE = "RowObject":U OR b_U._BUFFER = "RowObject":U) 
+        AND iTableNum > 0 AND VALID-HANDLE(hDataSource) THEN 
+   DO:
+     /* Determine the name of the datafield and see if it is in the AssignList */
+     ASSIGN cTableAssigns = ENTRY(iTableNum, cAssignList, {&adm-tabledelimiter})
+            iPos          = LOOKUP(b_U._NAME, cTableAssigns)
+            gcObjectName  = IF iPos > 0 AND NUM-ENTRIES(cTableAssigns) > iPos 
+                            THEN cColumnTable + ".":U + ENTRY(iPos + 1, cTableAssigns)
+                            ELSE cColumnTable + ".":U + b_U._NAME 
+                            NO-ERROR.
+   END.
+   ELSE IF cDataSourceType = "SBO":U AND b_U._object-Name > "" THEN
+   DO: 
+     IF NUM-ENTRIES(b_U._object-Name,".":U) > 1 THEN
+        gcObjectName = b_U._object-Name.
+     ELSE  
+        gcObjectName = b_U._TABLE + (IF b_U._TABLE > "":U THEN "." ELSE "") +   b_U._object-Name.
+   END.  
+   ELSE IF (NOT VALID-HANDLE(hDataSource) OR cDataSourceType = "SBO":U) 
+          AND b_U._TABLE NE "":U AND b_U._TABLE <> ? THEN  
+     /* Construct a datafield name from a V8 SV field or an SBO field */
+     ASSIGN gcObjectName = b_U._TABLE + ".":U + b_U._NAME.
+   ELSE 
+     ASSIGN gcObjectName =  b_U._NAME.  /* Not a data field */
+
+   IF VALID-HANDLE(hDataSource) THEN
+     lCalculatedField = LOOKUP(gcObjectName, cCalculatedColumns) > 0.
+
+   /* The class name is based on the palette repository and is assigned  when the object 
+      was dropped onto the design window. (adeuib/)drawobj.p)  Verify it.  */
+   ASSIGN cObjectTypeCode = b_U._CLASS-NAME
+          cObjectTypeCode = verifyObjectType(INPUT b_U._TYPE, INPUT cObjectTypeCode).
+   /* If user has changed the visualization, change the object type accordingly.
+      This requires removing the instance and recreating it. */
+   IF cObjectTypeCode NE b_U._CLASS-NAME AND b_U._CLASS-NAME NE "":U AND b_U._NAME <> "" THEN 
+   DO:    /* Do not remove instances if they are only contained on the custom layout */             
+     RUN removeObjectInstance IN ghRepDesignManager
+                     ( INPUT gcContainer,               /* Container name        */
+                       INPUT IF pcLayout = "Master Layout":U 
+                             THEN "" ELSE pcLayout, /* Container result code */
+                       INPUT "":U,                      /* pcInstanceObjectName  */
+                       INPUT b_U._NAME,                 /* pcInstanceName        */
+                       INPUT IF pcLayout = "Master Layout":U 
+                             THEN "" ELSE pcLayout)     /*  Instance resultCode   */
+                       NO-ERROR.
+     IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "" THEN 
+     DO:
+       RUN AppendToPError (RETURN-VALUE).
+       RETURN.
+     END.
+     ASSIGN b_U._Object-obj  = 0.0  /* Show that this instance doesn't exist and needs to be created */
+            b_U._CLASS-NAME  = cObjectTypeCode
+            b_U._OBJECT-NAME = "":U.
+   END.  /* If user has changed the object type */
+   
+   ASSIGN dDynObject_obj   = b_U._Object-OBJ.
+   
+   IF  b_U._TYPE = "SmartObject":U THEN 
+   DO:
+     FIND _S WHERE RECID(_S) = b_U._x-recid.
+     IF b_U._SUBTYPE = "SmartDataField":U OR b_U._SUBTYPE = "SmartLOBField":U THEN DO:
+       RUN setSmartDataFieldValues(INPUT RECID(b_U), 
+                                   INPUT dSmartViewer, 
+                                   INPUT pcLayout,
+                                   INPUT cDataSourceType ).
+       IF gpcError NE "" AND NOT gpcError BEGINS "Associated data" THEN RETURN.
+     END.
+     ELSE NEXT Child-Search.
+   END.
+
+   ELSE IF cObjectTypeCode > "" THEN
+   DO:
+     /* Before inserting the object instance run objectExists to make sure
+        that the master is valid */
+    cMasterObjectName = IF b_U._OBJECT-NAME > "" 
+                        THEN b_U._OBJECT-NAME
+                        ELSE IF gcObjectName > ""  AND NUM-ENTRIES(gcObjectName,".") > 1 
+                        THEN gcObjectName 
+                        ELSE IF NOT lCalculatedField THEN cObjectTypeCode
+                        ELSE b_U._NAME.
+    
+     /* Check whether the objectName is an extent field. Since brackets are not used in the object name
+        for the instances, remove the brackets. */
+     ASSIGN cMasterObjectName = REPLACE(cMasterObjectName,"[","")
+            cMasterObjectName = REPLACE(cMasterObjectName,"]","").
+
+     IF lCalculatedField AND NUM-ENTRIES(cMasterObjectName, ".":U) = 2 THEN
+       cMasterObjectName = ENTRY(2, cMasterObjectName, ".":U).
+   
+     IF NOT DYNAMIC-FUNCTION("ObjectExists":U IN ghRepDesignManager, INPUT cMasterObjectName) THEN
+     DO:
+       /* Cannot insert a DataField instance if there is no master */
+       cError = {af/sup2/aferrortxt.i 'RY' '14' '?' '?' "gcObjectName"}.
+       RUN AppendToPError (INPUT cError).
+       NEXT Child-Search.
+     END.  /* no master object */
+   
+     IF NUM-ENTRIES(gcObjectName,".") = 2 THEN
+     DO:
+       /* not dbaware (dataview) and sbo qualifes instance name for uniqueness*/
+       IF NOT lDbAware OR cDataSourceType EQ "SBO":U THEN
+         ASSIGN cInstanceName = b_U._TABLE  + "." + b_U._NAME.
+       ELSE  /* SDO Datafield instance names are just the field */
+         ASSIGN cInstanceName = b_U._NAME. 
+       cDescription  = "DataField of type ":U + b_U._TYPE.
+     END.
+     ELSE    
+       ASSIGN cInstanceName = b_U._NAME
+              cDescription  = "Dynamic ":U + b_U._TYPE.
+              
+     IF pcLayout NE "Master Layout":U THEN 
+     DO:
+       cAttrDiffs = CheckCustomChanges(RECID(_L), FALSE).    /* Don't do these customizations now */
+
+       /* Need to get the object_obj of the customization if it exists */
+       FIND ryc_object_instance WHERE
+            ryc_object_instance.container_smartobject_obj = dSmartViewer AND
+            ryc_object_instance.instance_name = cInstanceName
+            NO-LOCK NO-ERROR.
+       dDynObject_Obj = IF AVAILABLE ryc_object_instance 
+                        THEN ryc_object_instance.object_instance_obj 
+                        ELSE 0.
+     END.  /* If not the default layout */
+     
+     IF pcLayout NE "Master Layout":U AND cAttrDiffs = "":U THEN DO:
+      RUN removeObjectInstance IN ghRepDesignManager
+              ( INPUT gcContainer,                  /* Container name        */
+                INPUT pcLayout,                     /* Container result code */
+                INPUT "":U,                        /* pcInstanceObjectName  */
+                INPUT cInstanceName,               /* pcInstanceName        */
+                INPUT pcLayout   )                 /* Instance resultCode   */
+             NO-ERROR.
+
+       IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "" THEN
+          RUN AppendToPError (RETURN-VALUE).
+
+       NEXT Child-SEARCH.
+     END.  /* If customization is like the master */
+     
+     /* Create this object in the repository if it doesn't exist */
+     ASSIGN lnewInstance = NO.
+     
+     IF (pcLayout = "Master Layout":U AND b_U._Object-OBJ = 0) OR
+        (pcLayout NE "Master Layout":U AND dDynObject_Obj = 0) THEN 
+     DO:
+       IF pcLayout = "Master Layout":U OR cAttrDiffs NE "":U 
+            OR (m_L._REMOVE-FROM-LAYOUT AND pcLayout NE  "Master Layout":U) THEN DO:
+         RUN insertObjectInstance IN ghRepDesignManager
+           ( INPUT dSmartViewer,             /* Container Viewer                  */
+             INPUT cMasterObjectName,        /* Object Name                       */
+             INPUT IF pcLayout = "Master Layout":U
+                   THEN "":U ELSE pcLayout,   /* Result Code                       */
+             INPUT cInstanceName,            /* Instance Name                     */
+             INPUT cDescription,             /* Description                       */
+             INPUT "":U,                     /* Layout Position                   */
+             INPUT ?,                        /* Page number - not applicable */
+             INPUT b_U._TAB-ORDER,           /* Page sequence - not applicable */
+             INPUT YES,                      /* Force creation                    */
+             INPUT ?,                        /* Buffer handle for attribute table */
+             INPUT TABLE-HANDLE ghUnknown,    /* Table handle for attribute table  */
+             OUTPUT gdSmartObject_obj,        /* Master obj                        */
+             OUTPUT dDynObject_Obj ) NO-ERROR.        /* Instance Obj                      */
+
+          IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "" THEN DO:
+             RUN AppendToPError (RETURN-VALUE).
+             RETURN.
+          END.
+         ASSIGN lnewInstance = YES
+                cNewInstances = cNewInstances + (IF cNewInstances = "" THEN "" ELSE CHR(4))
+                                              + STRING(RECID(b_U))      + CHR(3) 
+                                              + cMasterObjectName       + CHR(3)
+                                              + STRING(dDynObject_Obj)  + CHR(3)
+                                              + pcLayout                + CHR(3)
+                                              + STRING((b_U._BUFFER = 'RowObject':U AND cColumnTable NE "":U) OR 
+                                                 NUM-ENTRIES(gcObjectName,".":U) = 2 ).
+                                                           .
+         IF pcLayout = "Master Layout":U THEN 
+           ASSIGN b_U._OBJECT-OBJ = dDynObject_obj.
+       END. /* if it is the Master or there are differences */
+     END. /* End If b_U._Object_obj = 0 it isn't already there */
+     ELSE IF pcLayout = "Master Layout":U OR cAttrDiffs NE "":U THEN 
+     DO:
+       RUN setObjectInstanceAttributes (INPUT RECID(b_U),        /* _U with current attributes */
+                                        INPUT cMasterObjectName, /* Master Object Name                    */
+                                        INPUT dDynObject_Obj,
+                                        INPUT pcLayout,
+                                        INPUT NO ) NO-ERROR.
+                              
+       IF gpcError NE "" AND NOT gpcError BEGINS "Associated data" THEN RETURN.
+
+       /* In case the name has changed, write it to the repository now */
+       IF NOT lNewInstance AND NUM-ENTRIES(cInstanceName,".":U) < 2 THEN 
+          RUN renameObjectInstance IN ghRepDesignManager 
+               (dDynObject_obj, cInstanceName) NO-ERROR.         
+               
+     END.
+
+     RUN setObjectEvents (INPUT RECID(b_U),   /* _U with current attributes */
+                          INPUT dDynObject_Obj,
+                          INPUT "INSTANCE":U,
+                          INPUT pcLayout) NO-ERROR.
+     IF gpcError NE "" AND NOT gpcError BEGINS "Associated data" THEN RETURN.
+
+   END.  /* End If cObjecTypeCode > "" When a simple field level object */
+
+  /* Before setting the attributes of a datafield, check them against the 
+      master attributes of the datafield.  Remove those which are the same */
+   IF NOT lNewInstance AND ((b_U._BUFFER = 'RowObject':U AND cColumnTable NE "":U) OR 
+       NUM-ENTRIES(gcObjectName,".":U) = 2) THEN 
+   DO:
+     RUN checkDataFieldMaster(cMasterObjectName, dDynObject_Obj).
+     IF gpcError NE "" AND NOT gpcError BEGINS "Associated data" THEN RETURN.
+   END.
+   /* Update the Attributes for this object */   
+   IF CAN-FIND(FIRST DeleteAttribute) THEN 
+   DO:
+     hTmp = TEMP-TABLE DeleteAttribute:DEFAULT-BUFFER-HANDLE.
+     RUN RemoveAttributeValues IN ghRepDesignManager
+        (INPUT hTmp,
+         INPUT TABLE-HANDLE ghUnknown) NO-ERROR.
+     
+     EMPTY TEMP-TABLE DeleteAttribute.
+   END. 
+   
+   IF CAN-FIND(FIRST ttStoreAttribute) THEN
+   DO:
+     hTmp = TEMP-TABLE ttStoreAttribute:DEFAULT-BUFFER-HANDLE.
+ 
+     RUN StoreAttributeValues IN gshRepositoryManager
+         (INPUT hTmp ,
+          INPUT TABLE-HANDLE ghUnknown) NO-ERROR.  /* Compiler requires a variable with unknown */
+     IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "" THEN DO:
+       RUN AppendToPError (RETURN-VALUE).
+       RETURN.
+     END.
+     EMPTY TEMP-TABLE ttStoreAttribute.
+   END.
+ END. /* End Child Loop */
+ /* Write out attributes for all new instances. */
+ /* This was moved outside the above loop  so that it wouldn't be necessary to run the retrieveDesignObject
+    API for each instance after it was added. The idea is now to add all instances, then set the attributes 
+    afterwards so that the API 'retrieveDesignObject' need only be called once to retrieve the master object 
+    with all instances and master objects */
+ DO iNewInstance = 1 TO NUM-ENTRIES(cNewInstances,CHR(4)):
+   ASSIGN cNewInstanceEntry = ENTRY(iNewInstance,cNewInstances,CHR(4)).
+   
+   RUN setObjectInstanceAttributes (INPUT INT(ENTRY(1,cNewInstanceEntry,CHR(3))), /* _U with current attributes */
+                                    INPUT ENTRY(2,cNewInstanceEntry,CHR(3)),      /* MasterObjectName                    */
+                                    INPUT DEC(ENTRY(3,cNewInstanceEntry,CHR(3))), /* Instance Obj */
+                                    INPUT ENTRY(4,cNewInstanceEntry,CHR(3)),      /* pcLayout */
+                                    INPUT IF iNewInstance = 1 THEN YES ELSE NO ). /* Retrieve the data object once */
+    
+   IF gpcError NE "" AND NOT gpcError BEGINS "Associated data" THEN RETURN.      
+
+  /* Before setting the attributes of a datafield, check them against the 
+      master attributes of the datafield.  Remove those which are the same */
+   IF LOGICAL(ENTRY(5,cNewInstanceEntry,CHR(3))) THEN 
+   DO:
+     RUN checkDataFieldMaster(INPUT ENTRY(2,cNewInstanceEntry,CHR(3)), /* cMasterObjectName */
+                              INPUT DEC(ENTRY(3,cNewInstanceEntry,CHR(3))) /* dDynObject_obj */
+                             ).
+     IF gpcError NE "" AND NOT gpcError BEGINS "Associated data" THEN RETURN.
+   END.
+    
+   IF CAN-FIND(FIRST ttStoreAttribute) THEN
+   DO:
+      hTmp = TEMP-TABLE ttStoreAttribute:DEFAULT-BUFFER-HANDLE.
+
+      RUN StoreAttributeValues IN gshRepositoryManager
+          (INPUT hTmp ,
+           INPUT TABLE-HANDLE ghUnknown) NO-ERROR.  /* Compiler requires a variable with unknown */
+      IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "" THEN DO:
+        RUN AppendToPError (RETURN-VALUE).
+        RETURN.
+      END.
+      EMPTY TEMP-TABLE ttStoreAttribute.
+   END.          
+ END.
+ 
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-appendToPError) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE appendToPError Procedure 
+PROCEDURE appendToPError :
 /*------------------------------------------------------------------------------
   Purpose:     When an error is found, either in the ERROR-STATUS handle or
                a RETURN-VALUE, this appends it to gpcError so that it can be
@@ -551,8 +958,14 @@ PROCEDURE assignMasterAttributes :
      IF gpcError NE "" AND NOT gpcError BEGINS "Associated data" THEN RETURN.
 
    END. /* If we need to generate a DLP */
- END.  /* If we are migrating an SBO */
-    
+ END.  /* If we are migrating an SBO */  
+ ELSE DO:
+   FIND _C WHERE RECID(_C)   = _U._x-recid.   /* _C of window */
+   RUN setObjectMasterAttributes (RECID(_U),
+                                  _U._OBJECT-OBJ,
+                                  "Master Layout":U) NO-ERROR.
+   IF gpcError NE "" AND NOT gpcError BEGINS "Associated data" THEN RETURN.
+ END.
    
 END PROCEDURE.
 
@@ -998,8 +1411,8 @@ PROCEDURE collectBrowseColumns :
   END.  /* DO WHILE VALID-HANDLE */
 
   FOR EACH _BC WHERE _BC._x-recid = bRecid_U:
-    ASSIGN fldList = fldList + "," + _BC._NAME
-           cEnabledFields = cEnabledFields + (IF _BC._ENABLED THEN ",":U + _BC._NAME ELSE "":U)
+    ASSIGN fldList = fldList + "," + _BC._disp-NAME
+           cEnabledFields = cEnabledFields + (IF _BC._ENABLED THEN ",":U + _BC._DISP-NAME ELSE "":U)
            cColBGCs       = cColBGCs    + CHR(5) + IF _BC._BGCOLOR = ? THEN "?":U
                                                    ELSE STRING(_BC._BGCOLOR)
            cColFGCs       = cColFGCs    + CHR(5) + IF _BC._FGCOLOR = ? THEN "?":U
@@ -1414,6 +1827,13 @@ PROCEDURE createDynSDO :
    cTableName = ENTRY(1, ENTRY(i , _Q._TblList), " ":U).
    IF NUM-ENTRIES(cTableName,".":U) = 2 THEN
        cTableName = ENTRY(2,cTableName,".":U).
+
+   FIND FIRST _TT WHERE _TT._p-recid = RECID(_P) AND
+       _TT._name = cTableName AND
+       _TT._table-type = "B":U NO-ERROR.
+   IF AVAILABLE _TT THEN
+     cTableName = _TT._like-table.
+
    cTablesInSDO = cTablesInSDO + "," + cTableName.
    IF cFirstEnabledTable = "" AND CAN-FIND(FIRST _BC
       WHERE _BC._x-recid = RECID(b_U) AND _BC._TABLE = cTableName AND _BC._ENABLED) THEN
@@ -2069,10 +2489,10 @@ END PROCEDURE.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-DeleteAttributeRow) = 0 &THEN
+&IF DEFINED(EXCLUDE-deleteAttributeRow) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE DeleteAttributeRow Procedure 
-PROCEDURE DeleteAttributeRow :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE deleteAttributeRow Procedure 
+PROCEDURE deleteAttributeRow :
 /*------------------------------------------------------------------------------
   Purpose:     Create a DeleteAttribute temp-table record for an attribute 
                value to be removed from the repository if it exists
@@ -2101,10 +2521,10 @@ END PROCEDURE.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-DetermineSize) = 0 &THEN
+&IF DEFINED(EXCLUDE-determineSize) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE DetermineSize Procedure 
-PROCEDURE DetermineSize :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE determineSize Procedure 
+PROCEDURE determineSize :
 /*------------------------------------------------------------------------------
   Purpose:    Given a window _U and a layout, return the minheight and width.
   Parameters:
@@ -2506,64 +2926,33 @@ PROCEDURE getDataSource :
 
  DEFINE VARIABLE cError         AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cDataSource    AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE cDSLogicalName AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE lIsSDO         AS LOGICAL    NO-UNDO.
- DEFINE VARIABLE dObjectObj     AS DECIMAL    NO-UNDO.
+ DEFINE VARIABLE lDbAware       AS LOGICAL    NO-UNDO.
+
+ phDataSource = get-sdo-hdl(_P._DATA-OBJECT,THIS-PROCEDURE).
+ IF NOT VALID-HANDLE(phDataSource) THEN
+ DO:  /* Give up */
+   cError = {af/sup2/aferrortxt.i 'RY' '16' '?' '?' "gcSDOName"}.
+   RUN AppendToPError (INPUT cError).
+   RETURN.
+ END.  /* If we can't find the file as is */
+  
+ pcDataSourceType = DYNAMIC-FUNCTION("getObjectType":U IN phDataSource).
+ lDbAware         = DYNAMIC-FUNCTION("getDbAware":U IN phDataSource).
+ pcDataSourceType = if not lDbAware then 'DataView':u 
+                    else IF pcDataSourceType = "SmartBusinessObject":U THEN "SBO":U 
+                    ELSE "SDO":U.
  
- cDataSource = _P._DATA-OBJECT.
- RUN StartDataObject IN gshRepositoryManager (INPUT cDataSource, OUTPUT phDataSource) NO-ERROR.
- IF phDataSource = ? AND NUM-ENTRIES(cDataSource, ".":U) > 1 
-             AND ENTRY(2, cDataSource, ".":U) = "w":U THEN /* Try again without the extension */
-   RUN StartDataObject IN gshRepositoryManager (INPUT ENTRY(1, cDataSource, ".":U), OUTPUT phDataSource) NO-ERROR.
+ /* If source is a dataview */
+ IF NOT lDbAware THEN
+   pcTableList  = DYNAMIC-FUNCTION("getViewTables":U IN phDataSource).
 
- /* It may be static and not registered */
- IF phDataSource = ? THEN 
- DO:
-   IF SEARCH(cDataSource) = ? THEN 
-   DO:
-     cDataSource = ryc_smartobject.object_path + (IF ryc_smartobject.object_path = "" THEN "" ELSE "/") 
-                                               + cDataSource.
-     IF SEARCH(cDataSource) = ? THEN
-     DO:  /* Give up */
-        cError = {af/sup2/aferrortxt.i 'RY' '16' '?' '?' "gcSDOName"}.
-        RUN AppendToPError (INPUT cError).
-        RETURN.
-     END.
-   END.  /* If we can't find the file as is */
-
-   /* Only get here if SEARCH is successful */
-   RUN VALUE(SEARCH(cDataSource)) PERSISTENT SET phDataSource NO-ERROR.
-   IF NOT VALID-HANDLE(phDataSource) THEN 
-   DO:
-     cError = {af/sup2/aferrortxt.i 'RY' '17' '?' '?' "gcSDOName"}.
-     RUN AppendToPError (INPUT cError).
-     RETURN.
-   END.
-   RUN CreateObjects IN phDataSource NO-ERROR.
- END. /* End If sdo handle isn't valid */
-
- /* Get the logical name of the datasource */
- cDSLogicalName = REPLACE(cDataSource, "~\":U, "~/":U).
- cDSLogicalName = ENTRY(1, ENTRY(NUM-ENTRIES(cDSLogicalName, "~/":U), cDSLogicalName, "~/":U), ".":U).
-
- /* Data Source is either some kind of SDO (extends class DATA) or SBO (extends class container) */
- dObjectObj = DYNAMIC-FUNCTION("getSmartObjectObj":U IN ghRepDesignManager, INPUT cDSLogicalName, INPUT 0) NO-ERROR.
- lIsSDO = DYNAMIC-FUNCTION("IsA":U IN gshRepositoryManager, dObjectObj, "Data":U).
- IF lIsSDO = ? THEN DO: /* This object isn't in the repository, ask it what it is */
-   pcDataSourceType = DYNAMIC-FUNCTION("getObjectType":U IN phDataSource).
-   pcDataSourceType = IF pcDataSourceType = "SmartBusinessObject":U THEN "SBO":U ELSE "SDO":U.
- END. /* When not found in the repository */
- ELSE
-   pcDataSourceType = IF lIsSDO THEN "SDO":U ELSE "SBO":U.
- 
- IF pcDataSourceType = "SDO":U THEN
+ ELSE IF pcDataSourceType = "SDO":U THEN
    ASSIGN gcDBName     = DYNAMIC-FUNCTION("getDBNames":U IN phDataSource)
           pcTableList  = DYNAMIC-FUNCTION("getPhysicalTables":U IN phDataSource)
           pcAssignList = DYNAMIC-FUNCTION("getAssignList":U IN phDataSource) NO-ERROR.
  ELSE DO:  /* SBOs work differently */
    ASSIGN gcDBName     = "TEMP-TABLES":U
           pcTableList  = "":U.
-
    /* Scan Datafields in the viewer to create a list of SDOs used by the viewer */
    FOR EACH  b_U WHERE b_U._WINDOW-HANDLE = _U._WINDOW-HANDLE AND
                        b_U._STATUS = "NORMAL":U AND
@@ -2607,6 +2996,7 @@ PROCEDURE processAttachedSDO :
  DEFINE VARIABLE cError           AS CHARACTER   NO-UNDO.
  DEFINE VARIABLE cLookupVal       AS CHARACTER   NO-UNDO.
 
+
  RUN adecomm/_osprefx.p (INPUT _P._data-object, OUTPUT cSavedPath, OUTPUT cSDOFileName) NO-ERROR.
  ASSIGN gcSDOName = ENTRY(1, cSDOFileName, ".":U).
  /* Look to see if the SDO is already registered */
@@ -2621,15 +3011,11 @@ PROCEDURE processAttachedSDO :
 
  IF gcSDORepos = "":U THEN 
  DO:
-   /* Is this an SDO or an SBO?  Since it isn't registered, we have to run it to find out */
-   RUN value(SEARCH(_P._data-object)) PERSISTENT SET hDO NO-ERROR.
+   /* Is this an SDO or an SBO?  */
+   hDO = get-sdo-hdl(_P._data-object,THIS-PROCEDURE).
    cDataObjectType = "":U.
    IF VALID-HANDLE(hDO) THEN 
-   DO:
      cDataObjectType = DYNAMIC-FUNCTION("getObjectType":U IN hDO).
-     RUN destroyObject IN hDO NO-ERROR.
-     IF VALID-HANDLE(hDO) THEN DELETE OBJECT hDO.
-   END.
 
    /* set-up real object type as defined in repository */
    IF cDataObjectType = "SmartDataObject":U  THEN
@@ -2698,20 +3084,18 @@ PROCEDURE processAttachedSDO :
        cError = {af/sup2/aferrortxt.i 'RY' '19' '?' '?' "_P._data-object"}.
        RUN AppendToPError (INPUT cError).
      END.  /* If an error regisitering the SDO */
-     ELSE DO:
-        ASSIGN gcSDORepos = REPLACE(_P._data-object, "~\":U, "~/":U)
-               gcSDORepos = ENTRY(NUM-ENTRIES(gcSDORepos, "~/":U), gcSDORepos, "~/":U).
-        FIND ryc_smartobject NO-LOCK
-           WHERE ryc_smartobject.OBJECT_filename = gcSDORepos NO-ERROR.
-        IF NOT AVAILABLE ryc_smartobject AND NUM-ENTRIES(gcSDORepos, ".":U) = 2 THEN
-          FIND ryc_smartobject NO-LOCK
-             WHERE ryc_smartobject.OBJECT_filename = ENTRY(1,gcSDORepos,".":U)
-               AND ryc_smartobject.object_extension = entry(2,gcSDORepos,".":U)  NO-ERROR.
-     END.  /* If no error */
+/*      ELSE DO:                                                                              */
+/*         ASSIGN gcSDORepos = REPLACE(_P._data-object, "~\":U, "~/":U)                       */
+/*                gcSDORepos = ENTRY(NUM-ENTRIES(gcSDORepos, "~/":U), gcSDORepos, "~/":U).    */
+/*         FIND ryc_smartobject NO-LOCK                                                       */
+/*            WHERE ryc_smartobject.OBJECT_filename = gcSDORepos NO-ERROR.                    */
+/*         IF NOT AVAILABLE ryc_smartobject AND NUM-ENTRIES(gcSDORepos, ".":U) = 2 THEN       */
+/*           FIND ryc_smartobject NO-LOCK                                                     */
+/*              WHERE ryc_smartobject.OBJECT_filename = ENTRY(1,gcSDORepos,".":U)             */
+/*                AND ryc_smartobject.object_extension = entry(2,gcSDORepos,".":U)  NO-ERROR. */
+/*      END.  /* If no error */                                                               */
    END.  /* If we registered the DataObject */
  END.  /* If need to register the SDO */
- 
- 
   
 END PROCEDURE.
 
@@ -2720,10 +3104,10 @@ END PROCEDURE.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-ProcessCustomAttributes) = 0 &THEN
+&IF DEFINED(EXCLUDE-processCustomAttributes) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE ProcessCustomAttributes Procedure 
-PROCEDURE ProcessCustomAttributes :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE processCustomAttributes Procedure 
+PROCEDURE processCustomAttributes :
 /*------------------------------------------------------------------------------
   Purpose:     Custom layouts should not specify their attributes if they are the 
                same a the their default layout counterpart.  
@@ -2825,6 +3209,11 @@ PROCEDURE ProcessCustomAttributes :
      ELSE IF _L._GRAPHIC-EDGE NE b_L._GRAPHIC-EDGE THEN
        RUN CreateAttributeRow (pcObjectLevel, pdInputObj, "GRAPHIC-EDGE":U, {&LOGICAL-DATA-TYPE},?,?,?,_L._GRAPHIC-EDGE,?,?).
 
+     IF _L._GROUP-BOX = b_L._GROUP-BOX AND NOT m_L._REMOVE-FROM-LAYOUT THEN 
+       RUN DeleteAttributeRow (pcObjectLevel, pdInputObj, "GROUP-BOX":U).
+     ELSE IF _L._GROUP-BOX NE b_L._GROUP-BOX THEN
+       RUN CreateAttributeRow (pcObjectLevel, pdInputObj, "GROUP-BOX":U, {&LOGICAL-DATA-TYPE},?,?,?,_L._GROUP-BOX,?,?).
+
      IF _L._LABEL = b_L._LABEL AND NOT m_L._REMOVE-FROM-LAYOUT THEN
        RUN DeleteAttributeRow (pcObjectLevel, pdInputObj, "LABEL":U).
      ELSE IF _L._LABEL NE b_L._LABEL THEN
@@ -2840,6 +3229,11 @@ PROCEDURE ProcessCustomAttributes :
      ELSE IF _L._NO-FOCUS NE b_L._NO-FOCUS THEN
        RUN CreateAttributeRow (pcObjectLevel, pdInputObj, "NO-FOCUS":U, {&LOGICAL-DATA-TYPE},?,?,?,_L._NO-FOCUS,?,?).
 
+     IF _L._ROUNDED = b_L._ROUNDED AND NOT m_L._REMOVE-FROM-LAYOUT THEN 
+       RUN DeleteAttributeRow (pcObjectLevel, pdInputObj, "ROUNDED":U).
+     ELSE IF _L._ROUNDED NE b_L._ROUNDED THEN
+       RUN CreateAttributeRow (pcObjectLevel, pdInputObj, "ROUNDED":U, {&LOGICAL-DATA-TYPE},?,?,?,_L._ROUNDED,?,?).
+     
      IF _L._ROW = b_L._ROW AND NOT m_L._REMOVE-FROM-LAYOUT THEN  /* ROW must be specified for custom only fields */
        RUN DeleteAttributeRow (pcObjectLevel, pdInputObj, "ROW":U).
      ELSE IF _L._ROW NE b_L._ROW OR b_L._REMOVE-FROM-LAYOUT THEN
@@ -3254,16 +3648,11 @@ PROCEDURE removeDeletedInstances :
 /*------------------------------------------------------------------------------
   Purpose:    Removes object instances that have been deleted 
   Parameters:  pcLayout     Layout to remove
-               phDataSource Handle of DataSource
-               pcCalculatedColumns  Calc fields list
-               pcColumnTable        Column Table list 
+               pcDataSourceType One of SDO,SBO, DataView
   Notes:      called from writeFieldLevelObjects 
 ------------------------------------------------------------------------------*/
  DEFINE INPUT  PARAMETER pcLayout            AS CHARACTER  NO-UNDO.
- DEFINE INPUT  PARAMETER phDataSource        AS HANDLE     NO-UNDO.
- DEFINE INPUT  PARAMETER pcDataSourceType    AS CHARACTER  NO-UNDO. /* SBO or SDO */
- DEFINE OUTPUT PARAMETER pcCalculatedColumns AS CHARACTER  NO-UNDO.
- DEFINE OUTPUT PARAMETER pcColumnTable       AS CHARACTER  NO-UNDO.
+ DEFINE INPUT  PARAMETER pcDataSourceType    AS CHARACTER  NO-UNDO.
  
  DEFINE VARIABLE lCalculatedField    AS LOGICAL    NO-UNDO.
  DEFINE VARIABLE cTmpCodes           AS CHARACTER  NO-UNDO.
@@ -3274,9 +3663,6 @@ PROCEDURE removeDeletedInstances :
  
  IF pcLayout = "Master Layout":U THEN 
  DO:
-   IF VALID-HANDLE(phDataSource) THEN  /* Could be converting a V8 SDV */
-      pcCalculatedColumns = DYNAMIC-FUNCTION("getCalculatedColumns":U in phDataSource).
-   
    /* Loop through the Child widgets and remove the ones that have been deleted */
    Child-DELETE:
    FOR EACH b_U WHERE b_U._STATUS = "DELETED":U AND
@@ -3297,13 +3683,28 @@ PROCEDURE removeDeletedInstances :
             instances, with the case of a SmartLobField, _U.TABLE is set to the 
             SDO name but the instance name is not qualified with the SDO name */
          IF b_U._TABLE NE ? AND b_U._TABLE NE "":U THEN
-           cInstanceName = IF LOOKUP( b_U._TABLE + ".":U + b_U._NAME, cContainedInstances) > 0 THEN
+           cInstanceName = IF LOOKUP( b_U._TABLE + ".":U + b_U._NAME, cContainedInstances) > 0 
+                           THEN
                              b_U._TABLE + ".":U + b_U._NAME
                            ELSE b_U._NAME.
          ELSE cInstanceName = b_U._NAME.
        END.
+       else
+       if pcDataSourceType eq 'DataView':u then
+       do:
+
+           /* If the instance name is already qualified, the don't
+              add the buffer name.
+            */
+           if b_U._Table ne ? and b_U._Table ne '':u and
+              num-entries(b_U._Name, '.':u) le 1 then
+               cInstanceName = b_U._Table + '.':u + b_U._Name.
+            else
+                cInstanceName = b_U._Name.
+   
+       end.    /* DataView */
        ELSE cInstanceName = b_U._NAME.
-       
+              
        cTmpCodes = IF gcResultCodes = "":U THEN "{&DEFAULT-RESULT-CODE}":U ELSE gcResultCodes.
 
        /* Loop through all ResultCodes */
@@ -4029,6 +4430,8 @@ PROCEDURE setObjectInstanceAttributes :
        END.
        WHEN "GRAPHIC-EDGE":U THEN
          setAttributeLog("INSTANCE":U,_L._Graphic-Edge,cLabel, cValue,pdObject_obj).
+       WHEN "GROUP-BOX":U THEN
+           setAttributeLog("INSTANCE":U,_L._GROUP-BOX,cLabel, cValue,pdObject_obj).
        WHEN "HEIGHT-CHARS":U THEN 
          setAttributeDec("INSTANCE":U,_L._HEIGHT,cLabel, cValue,pdObject_obj).
        WHEN "HELP":U THEN 
@@ -4116,6 +4519,8 @@ PROCEDURE setObjectInstanceAttributes :
          setAttributeLog("INSTANCE":U,_F._RETAIN-SHAPE,cLabel, cValue,pdObject_obj).
        WHEN "RETURN-INSERTED":U THEN
          setAttributeLog("INSTANCE":U,_F._RETURN-INSERTED,cLabel, cValue,pdObject_obj).
+       WHEN "ROUNDED":U THEN
+           setAttributeLog("INSTANCE":U,_L._ROUNDED,cLabel, cValue,pdObject_obj).
        WHEN "ROW":U THEN
          setAttributeDec("INSTANCE":U, _L._ROW,cLabel, cValue,pdObject_obj).
        WHEN "SCROLLBAR-HORIZONTAL":U THEN
@@ -4205,6 +4610,7 @@ PROCEDURE setObjectMasterAttributes :
  DEFINE VARIABLE hPropQuery            AS HANDLE     NO-UNDO.
  DEFINE VARIABLE cInheritClasses       AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cLabel                AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cDesignDataObject     AS CHARACTER  NO-UNDO.
 
  DEFINE BUFFER b_U  FOR _U.
  DEFINE BUFFER b2_U FOR _U.
@@ -4244,6 +4650,7 @@ PROCEDURE setObjectMasterAttributes :
                        OUTPUT TABLE ttSupportedLink    ) NO-ERROR.  
 
 
+
     IF gcClassName = "DynBrow":U THEN /* if a browser */
     DO:
        RUN collectBrowseColumns( INPUT prRecid,
@@ -4257,17 +4664,20 @@ PROCEDURE setObjectMasterAttributes :
        IF glMigration AND cEnabledFields EQ "":U THEN
            ASSIGN cEnabledFields = cBrowseFields.
     END.
-    
+
+    IF NUM-ENTRIES(_P._data-object) > 1 THEN
+      cDesignDataObject = _P._data-object.
+
     ASSIGN gcAttributeList = "".
     /* For each attribute check classvalue and compare to Temp table field values */
     FOR EACH ttClassAttribute:
+
         /* Skip attributes that can only be modified on the class level */
        IF ttClassAttribute.tWhereConstant = "CLASS":U  THEN
            NEXT.
-
+ 
        ASSIGN cValue = ttClassAttribute.tAttributeValue
               cLabel = ttClassAttribute.tAttributeLabel .
-       
        FIND ttObjectAttribute WHERE ttObjectAttribute.tSmartObjectObj    = ttObject.tSmartObjectObj
                                 AND ttObjectAttribute.tObjectInstanceObj = 0 
                                 AND ttObjectAttribute.tAttributeLabel    = cLabel NO-ERROR.
@@ -4315,9 +4725,11 @@ PROCEDURE setObjectMasterAttributes :
           WHEN "COLUMN-RESIZABLE":U THEN
              setAttributeLog("MASTER":U,_C._COLUMN-RESIZABLE,cLabel, cValue,pdObj).
           WHEN "COLUMN-SCROLLING":U THEN
-              setAttributeLog("MASTER":U,_C._COLUMN-SCROLLING,cLabel, cValue,pdObj).
+             setAttributeLog("MASTER":U,_C._COLUMN-SCROLLING,cLabel, cValue,pdObj).
           WHEN "CONTEXT-HELP-ID":U THEN
-              setAttributeInt("MASTER":U,_U._CONTEXT-HELP-ID,cLabel, cValue,pdObj).
+             setAttributeInt("MASTER":U,_U._CONTEXT-HELP-ID,cLabel, cValue,pdObj).
+          WHEN "DesignDataObject":U THEN
+             setAttributeChar("MASTER":U,cDesignDataObject,cLabel,cValue,pdObj).
           WHEN "DisplayedFields":U THEN
              setAttributeChar("MASTER":U,cBrowseFields,cLabel,cValue,pdObj).
           WHEN "DOWN":U THEN
@@ -4388,7 +4800,7 @@ PROCEDURE setObjectMasterAttributes :
           WHEN "SizeToFit" THEN
             setAttributeLog("MASTER":U,_C._SIZE-TO-FIT,cLabel,cValue,pdObj).
           WHEN "SuperProcedure":U THEN
-               setAttributeChar("MASTER":U, IF _C._CUSTOM-SUPER-PROC = ? THEN "" ELSE _C._CUSTOM-SUPER-PROC,cLabel,cValue,pdObj).
+            setAttributeChar("MASTER":U, IF _C._CUSTOM-SUPER-PROC = ? THEN "" ELSE _C._CUSTOM-SUPER-PROC,cLabel,cValue,pdObj).
           WHEN "TAB-STOP":U THEN
             setAttributeLog("MASTER":U,NOT b_U._NO-TAB-STOP,cLabel,cValue,pdObj).
           WHEN "THREE-D":U THEN
@@ -4474,8 +4886,8 @@ IF DYNAMIC-FUNCTION("classIsA":U IN gshRepositoryManager, pcClass, "LookupField"
                 OUTPUT TABLE ttLink,   OUTPUT TABLE ttUiEvent,
                 OUTPUT TABLE ttObjectAttribute ) NO-ERROR. 
  
- FIND FIRST ttObject WHERE ttObject.tLogicalObjectName        = pcObjFileName
-                       AND ttObject.tObjectInstanceObj        = pdObject_obj  NO-ERROR.
+ FIND FIRST ttObject WHERE ttObject.tLogicalObjectName = pcObjFileName
+                       AND ttObject.tObjectInstanceObj = pdObject_obj  NO-ERROR.
   
  ASSIGN gcAttributeList = "".
  FOR EACH ttClassAttribute:
@@ -4486,6 +4898,7 @@ IF DYNAMIC-FUNCTION("classIsA":U IN gshRepositoryManager, pcClass, "LookupField"
         
     ASSIGN clabel       = ttClassAttribute.tAttributeLabel
            cObjectValue = ttClassAttribute.tAttributeValue.
+
     /* Get the value stored on the instance  */
     FIND ttObjectAttribute WHERE ttObjectAttribute.tSmartObjectObj    = ttObject.tSmartObjectObj
                              AND ttObjectAttribute.tObjectInstanceObj = ttObject.tObjectInstanceObj 
@@ -4519,8 +4932,8 @@ IF DYNAMIC-FUNCTION("classIsA":U IN gshRepositoryManager, pcClass, "LookupField"
       WHEN "MaintenanceSDO":U  OR  WHEN "ObjectLayout":U         OR  WHEN "ParentField":U OR 
       WHEN "ParentFilterQuery":U OR WHEN "QueryTables":U         OR  WHEN "SDFTemplate":U OR 
       WHEN "ViewerLinkedFields":U OR WHEN "ViewerLinkedWidgets":U OR WHEN "MappedFields":U OR
-      WHEN "TempLocation":U
-      THEN DO:
+      WHEN "TempLocation":U THEN 
+      DO:
         cABValue = DYNAMIC-FUNCTION('get':U + cLabel IN _S._HANDLE) NO-ERROR.               
 
         IF lSDOCombo AND LOOKUP(cLabel, "KeyFormat,KeyDataType,DisplayFormat,DisplayDataType":U) > 0 THEN NEXT.
@@ -4717,7 +5130,7 @@ PROCEDURE setSmartDataFieldValues :
                              need to be loaded.
                dViewer_obj - Parent Viewer Object obj
                pcLayout 
-               pcDataSourceType - Type of data source (SBO or SDO)
+               pcDataSourceType - Type of data source (SBO, SDO or DataView)
   Notes:       This procedure is used to map SmartSelect SmartDataFields and 
                their associated SDOs to the Dynamics Dyanmic Lookup Combo-Box.
                called from writeFieldLevelObjects
@@ -4818,13 +5231,16 @@ PROCEDURE setSmartDataFieldValues :
  IF b_U._Object-Name = "":U AND cFldName NE b_U._Name THEN 
    ASSIGN b_U._NAME       = cFldName
           b_U._CLASS-NAME = cClass.
-
+ 
  /* If this is an SBO-based static viewer being saved as dynamic 
     b_U._TABLE is ? and b_U._NAME is already qualified with the SDO 
-    name so the instance name should be b_U._NAME */
- cInstanceName = IF pcDataSourceType = "SBO":U AND b_U._TABLE NE ? THEN
-                   b_U._TABLE + ".":U + b_U._NAME
-                 ELSE b_U._NAME.
+    name so the instance name should be b_U._NAME.
+    The else is for SBOs or DataViews.  */
+ cInstanceName = IF pcDataSourceType = 'SDO':U
+                 OR b_U._TABLE = ? 
+                 OR INDEX(b_U._NAME,'.':U) > 0  
+                 THEN b_U._NAME
+                 ELSE b_U._TABLE + ".":U + b_U._NAME.
 
  /* SmartLOBFields are not dropped onto fields like other SDFs.  
     FieldName does not get set for a SmartLOBField until a field is 
@@ -5033,6 +5449,39 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-testu) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE testu Procedure 
+PROCEDURE testu :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+ DEFINE INPUT  PARAMETER cc AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE c AS CHARACTER  NO-UNDO.
+ DEFINE BUFFER b_U FOR _U.
+
+/*  FOR EACH b_U WHERE b_U._WINDOW-HANDLE = _U._WINDOW-HANDLE AND */
+/*                     b_U._STATUS = "NORMAL":U AND               */
+/*                     NOT b_U._NAME BEGINS "_LBL-":U AND         */
+/*                     b_U._TYPE NE "WINDOW":U AND                */
+/*                     b_U._TYPE NE "FRAME":U:                    */
+/*                                                                */
+/*     MESSAGE                                                    */
+/*       cc SKIP                                                  */
+/*      'buf' b_U._buffer skip                                    */
+/*      'tbl' b_U._table SKIP                                     */
+/*       'name' b_U._name  SKIP                                   */
+/*       VIEW-AS ALERT-BOX INFO BUTTONS OK.                       */
+/*  END.                                                          */
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-writeFieldLevelObjects) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE writeFieldLevelObjects Procedure 
@@ -5046,22 +5495,13 @@ PROCEDURE writeFieldLevelObjects :
 ------------------------------------------------------------------------------*/
  DEFINE INPUT PARAMETER pcLayout AS CHARACTER      NO-UNDO.
  
- DEFINE BUFFER b_U             FOR _U.
- DEFINE BUFFER m_L             FOR _L.
-
  /* b_U is an extra buffer for field level objects */
  DEFINE VARIABLE cAssignList        AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE cAttrDiffs         AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cCalculatedColumns AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cCode              AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE iCode              AS INTEGER    NO-UNDO.
- DEFINE VARIABLE cColumnTable       AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cDataSourceType    AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE cDescription       AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cError             AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE cInstanceName      AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE cMasterObjectName  AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE cObjectTypeCode    AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cSDOList           AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cTableAssigns      AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cTableList         AS CHARACTER  NO-UNDO.
@@ -5069,12 +5509,6 @@ PROCEDURE writeFieldLevelObjects :
  DEFINE VARIABLE hDataSource        AS HANDLE     NO-UNDO.
  DEFINE VARIABLE hsboSDO            AS HANDLE     NO-UNDO.
  DEFINE VARIABLE hTmp               AS HANDLE     NO-UNDO.
- DEFINE VARIABLE iTableNum          AS INTEGER    NO-UNDO.
- DEFINE VARIABLE iPos               AS INTEGER    NO-UNDO.
- DEFINE VARIABLE lCalculatedField   AS LOGICAL    NO-UNDO.
- DEFINE VARIABLE dDynObject_obj     AS DECIMAL    NO-UNDO.
- DEFINE VARIABLE lNewInstance       AS LOGICAL    NO-UNDO.
- DEFINE VARIABLE cNewInstances      AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cNewInstanceEntry  AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE iNewInstance       AS INTEGER    NO-UNDO.
  /* Get the _P record of the dynamic viewer being written  */
@@ -5093,8 +5527,11 @@ PROCEDURE writeFieldLevelObjects :
 
  /* Get the associated SDO of the viewer */
  IF _P._DATA-OBJECT NE "" THEN DO:
-     RUN getDataSource (OUTPUT cDataSourceType, OUTPUT cTableList,OUTPUT cAssignList,
-                        OUTPUT hDataSource,OUTPUT cSDOList) NO-ERROR.
+     RUN getDataSource (OUTPUT cDataSourceType, 
+                        OUTPUT cTableList,
+                        OUTPUT cAssignList,
+                        OUTPUT hDataSource,
+                        OUTPUT cSDOList) NO-ERROR.
      IF gpcError NE "" AND NOT gpcError BEGINS "Associated data" THEN RETURN.                   
  END.                       
  ELSE DO:  /* This is a V8 SmartViewer, find the DB that it is associated with */
@@ -5113,335 +5550,19 @@ PROCEDURE writeFieldLevelObjects :
  END.
  /* DELETE INSTANCES  */
  IF pcLayout = "Master Layout":U THEN
-    RUN removeDeletedInstances IN THIS-PROCEDURE (INPUT pcLayout, INPUT hDataSource, INPUT cDataSourceType,
-                                                  OUTPUT cCalculatedColumns,OUTPUT cColumnTable).
-                                                  
- /* ADD INSTANCES  */
- Child-Search:
- FOR EACH b_U WHERE b_U._WINDOW-HANDLE = _U._WINDOW-HANDLE AND
-                    b_U._STATUS = "NORMAL":U AND
-                    NOT b_U._NAME BEGINS "_LBL-":U AND
-                    b_U._TYPE NE "WINDOW":U AND
-                    b_U._TYPE NE "FRAME":U
-                USE-INDEX _OUTPUT:
+    RUN removeDeletedInstances IN THIS-PROCEDURE (INPUT pcLayout, 
+                                                  INPUT cDataSourceType).
    
-   FIND _F WHERE RECID(_F) = b_U._x-recid NO-ERROR.
-   FIND _L WHERE _L._LO-NAME = pcLayout AND _L._u-recid = RECID(b_U) NO-ERROR.
-   FIND m_L WHERE m_L._LO-NAME = "MASTER LAYOUT":U AND m_L._u-recid = RECID(b_U) NO-ERROR.
-   
-   IF NOT AVAILABLE _L AND pcLayout NE "MASTER LAYOUT":U THEN 
-   DO:
-     /* This _U is missing its _L, create one and populate it like the Master */
-     CREATE _L.
-     ASSIGN _L._LO-NAME = pcLayout
-            _L._u-recid = RECID(b_U).
-     IF AVAILABLE m_L THEN
-       BUFFER-COPY m_L EXCEPT _LO-NAME _u-recid TO _L.
-   END.
-    /* If this instance belongs for a custom layout only, do not
-         insert an instance for the master, only for the custom(s)   */
-    IF _L._REMOVE-FROM-LAYOUT AND pcLayout = "Master Layout":U 
-                              AND NUM-ENTRIES(gcResultCodes) > 1 THEN 
-      
-       NEXT Child-Search.
-   
-   IF (NOT AVAILABLE _F AND b_U._TYPE NE "SmartObject":U)
-       OR NOT AVAILABLE _L THEN NEXT Child-Search.
-
-   ASSIGN cColumnTable = "":U
-          gcObjectName  = "":U.
-   
-   IF VALID-HANDLE(hDataSource) THEN DO:
-     IF cDataSourceType = "SDO":U THEN DO:
-       ASSIGN cColumnTable = DYNAMIC-FUNCTION("columnPhysicalTable":U IN hDataSource, b_U._NAME).
-       IF NUM-ENTRIES(cColumnTable, ".":U) = 2 THEN
-         cColumnTable = ENTRY(2, cColumnTable, ".":U).
-       iTableNum = LOOKUP(cColumnTable, cTableList).
-     END. /* If it is an SDO of some kind */
-     ELSE /* It must be an SBO */
-       ASSIGN cColumnTable = b_U._TABLE  /* A lie, this is not a table but an SDO! */
-              iTableNum    = LOOKUP(cColumnTable, cSDOList).
-   END.  /* If we have a valid datasource handle */
-
-   /* Determine object Name and see if it is a datafield */
-   IF (b_U._TABLE = "RowObject":U OR b_U._BUFFER = "RowObject":U) AND 
-       iTableNum > 0 AND VALID-HANDLE(hDataSource) THEN 
-   DO:
-     /* Determine the name of the datafield and see if it is in the AssignList */
-     ASSIGN cTableAssigns = ENTRY(iTableNum, cAssignList, {&adm-tabledelimiter})
-            iPos          = LOOKUP(b_U._NAME, cTableAssigns)
-            gcObjectName  = IF iPos > 0 AND NUM-ENTRIES(cTableAssigns) > iPos 
-                            THEN cColumnTable + ".":U + ENTRY(iPos + 1, cTableAssigns)
-                            ELSE cColumnTable + ".":U + b_U._NAME 
-                            NO-ERROR.
-   END.
-   ELSE IF cDataSourceType = "SBO":U AND b_U._object-Name > "" THEN
-   DO: 
-     IF NUM-ENTRIES(b_U._object-Name,".":U) > 1 THEN
-        gcObjectName = b_U._object-Name.
-     ELSE  
-        gcObjectName = b_U._TABLE + (IF b_U._TABLE > "":U THEN "." ELSE "") +   b_U._object-Name.
-   END.  
-   ELSE IF (NOT VALID-HANDLE(hDataSource) OR cDataSourceType = "SBO":U) 
-          AND b_U._TABLE NE "":U AND b_U._TABLE <> ? THEN  
-     /* Construct a datafield name from a V8 SV field or an SBO field */
-     ASSIGN gcObjectName = b_U._TABLE + ".":U + b_U._NAME.
-   ELSE 
-     ASSIGN gcObjectName =  b_U._NAME.  /* Not a data field */
-
-   IF VALID-HANDLE(hDataSource) THEN
-     lCalculatedField = LOOKUP(gcObjectName, cCalculatedColumns) > 0.
-
-   /* The class name is based on the palette repository and is assigned  when the object 
-      was dropped onto the design window. (adeuib/)drawobj.p)  Verify it.  */
-   ASSIGN cObjectTypeCode = b_U._CLASS-NAME
-          cObjectTypeCode = verifyObjectType(INPUT b_U._TYPE, INPUT cObjectTypeCode).
-   /* If user has changed the visualization, change the object type accordingly.
-      This requires removing the instance and recreating it. */
-   IF cObjectTypeCode NE b_U._CLASS-NAME AND b_U._CLASS-NAME NE "":U AND b_U._NAME <> "" THEN 
-   DO:    /* Do not remove instances if they are only contained on the custom layout */             
-     RUN removeObjectInstance IN ghRepDesignManager
-                     ( INPUT gcContainer,               /* Container name        */
-                       INPUT IF pcLayout = "Master Layout":U 
-                             THEN "" ELSE pcLayout, /* Container result code */
-                       INPUT "":U,                      /* pcInstanceObjectName  */
-                       INPUT b_U._NAME,                 /* pcInstanceName        */
-                       INPUT IF pcLayout = "Master Layout":U 
-                             THEN "" ELSE pcLayout)     /*  Instance resultCode   */
-                       NO-ERROR.
-     IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "" THEN 
-     DO:
-       RUN AppendToPError (RETURN-VALUE).
-       RETURN.
-     END.
-     ASSIGN b_U._Object-obj  = 0.0  /* Show that this instance doesn't exist and needs to be created */
-            b_U._CLASS-NAME  = cObjectTypeCode
-            b_U._OBJECT-NAME = "":U.
-   END.  /* If user has changed the object type */
-   
-   ASSIGN dDynObject_obj   = b_U._Object-OBJ.
-   
-   IF  b_U._TYPE = "SmartObject":U THEN 
-   DO:
-     FIND _S WHERE RECID(_S) = b_U._x-recid.
-     IF b_U._SUBTYPE = "SmartDataField":U OR b_U._SUBTYPE = "SmartLOBField":U THEN DO:
-       RUN setSmartDataFieldValues(INPUT RECID(b_U), 
-                                   INPUT dSmartViewer, 
-                                   INPUT pcLayout,
-                                   INPUT cDataSourceType ).
-       IF gpcError NE "" AND NOT gpcError BEGINS "Associated data" THEN RETURN.
-     END.
-     ELSE NEXT Child-Search.
-   END.
-
-   ELSE IF cObjectTypeCode > "" THEN
-   DO:
-     /* Before inserting the object instance run objectExists to make sure
-        that the master is valid */
-    cMasterObjectName = IF b_U._OBJECT-NAME > "" 
-                        THEN b_U._OBJECT-NAME
-                        ELSE IF gcObjectName > ""  AND NUM-ENTRIES(gcObjectName,".") > 1 
-                        THEN gcObjectName 
-                        ELSE IF NOT lCalculatedField THEN cObjectTypeCode
-                        ELSE b_U._NAME.
-    
-     /* Check whether the objectName is an extent field. Since brackets are not used in the object name
-        for the instances, remove the brackets. */
-     ASSIGN cMasterObjectName = REPLACE(cMasterObjectName,"[","")
-            cMasterObjectName = REPLACE(cMasterObjectName,"]","").
-
-     IF lCalculatedField AND NUM-ENTRIES(cMasterObjectName, ".":U) = 2 THEN
-       cMasterObjectName = ENTRY(2, cMasterObjectName, ".":U).
-   
-     IF NOT DYNAMIC-FUNCTION("ObjectExists":U IN ghRepDesignManager, INPUT cMasterObjectName) THEN
-     DO:
-       /* Cannot insert a DataField instance if there is no master */
-       cError = {af/sup2/aferrortxt.i 'RY' '14' '?' '?' "gcObjectName"}.
-       RUN AppendToPError (INPUT cError).
-       NEXT Child-Search.
-     END.  /* no master object */
-
-     IF NUM-ENTRIES(gcObjectName,".") = 2 AND cDataSourceType NE "SBO":U AND 
-        NOT lCalculatedField THEN
-       ASSIGN cInstanceName = b_U._NAME /* Datafield instance names are just the field */
-              cDescription  = "DataField of type ":U + b_U._TYPE.
-     /* For datafields of SBOs, append the sdo name (_Table) with the name to derive the instance name */         
-     ELSE IF NUM-ENTRIES(gcObjectName,".") = 2 AND cDataSourceType EQ "SBO":U THEN
-       ASSIGN cInstanceName = b_U._TABLE  + "." + b_U._NAME  
-              cDescription  = "Dynamic ":U + b_U._TYPE.
-     ELSE         
-       ASSIGN cInstanceName = b_U._NAME
-              cDescription  = "Dynamic ":U + b_U._TYPE.
-              
-     IF pcLayout NE "Master Layout":U THEN 
-     DO:
-       cAttrDiffs = CheckCustomChanges(RECID(_L), FALSE).    /* Don't do these customizations now */
-
-       /* Need to get the object_obj of the customization if it exists */
-       FIND ryc_object_instance WHERE
-            ryc_object_instance.container_smartobject_obj = dSmartViewer AND
-            ryc_object_instance.instance_name = cInstanceName
-            NO-LOCK NO-ERROR.
-       dDynObject_Obj = IF AVAILABLE ryc_object_instance 
-                        THEN ryc_object_instance.object_instance_obj 
-                        ELSE 0.
-     END.  /* If not the default layout */
-     
-     IF pcLayout NE "Master Layout":U AND cAttrDiffs = "":U THEN DO:
-      RUN removeObjectInstance IN ghRepDesignManager
-              ( INPUT gcContainer,                  /* Container name        */
-                INPUT pcLayout,                     /* Container result code */
-                INPUT "":U,                        /* pcInstanceObjectName  */
-                INPUT cInstanceName,               /* pcInstanceName        */
-                INPUT pcLayout   )                 /* Instance resultCode   */
-             NO-ERROR.
-
-       IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "" THEN
-          RUN AppendToPError (RETURN-VALUE).
-
-       NEXT Child-SEARCH.
-     END.  /* If customization is like the master */
-     
-     /* Create this object in the repository if it doesn't exist */
-     ASSIGN lnewInstance = NO.
-     
-     IF (pcLayout = "Master Layout":U AND b_U._Object-OBJ = 0) OR
-        (pcLayout NE "Master Layout":U AND dDynObject_Obj = 0) THEN 
-     DO:
-       IF pcLayout = "Master Layout":U OR cAttrDiffs NE "":U 
-            OR (m_L._REMOVE-FROM-LAYOUT AND pcLayout NE  "Master Layout":U) THEN DO:
-         RUN insertObjectInstance IN ghRepDesignManager
-           ( INPUT dSmartViewer,             /* Container Viewer                  */
-             INPUT cMasterObjectName,        /* Object Name                       */
-             INPUT IF pcLayout = "Master Layout":U
-                   THEN "":U ELSE pcLayout,   /* Result Code                       */
-             INPUT cInstanceName,            /* Instance Name                     */
-             INPUT cDescription,             /* Description                       */
-             INPUT "":U,                     /* Layout Position                   */
-             INPUT ?,                        /* Page number - not applicable */
-             INPUT b_U._TAB-ORDER,           /* Page sequence - not applicable */
-             INPUT YES,                      /* Force creation                    */
-             INPUT ?,                        /* Buffer handle for attribute table */
-             INPUT TABLE-HANDLE ghUnknown,    /* Table handle for attribute table  */
-             OUTPUT gdSmartObject_obj,        /* Master obj                        */
-             OUTPUT dDynObject_Obj ) NO-ERROR.        /* Instance Obj                      */
-
-          IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "" THEN DO:
-             RUN AppendToPError (RETURN-VALUE).
-             RETURN.
-          END.
-         ASSIGN lnewInstance = YES
-                cNewInstances = cNewInstances + (IF cNewInstances = "" THEN "" ELSE CHR(4))
-                                              + STRING(RECID(b_U))      + CHR(3) 
-                                              + cMasterObjectName       + CHR(3)
-                                              + STRING(dDynObject_Obj)  + CHR(3)
-                                              + pcLayout                + CHR(3)
-                                              + STRING((b_U._BUFFER = 'RowObject':U AND cColumnTable NE "":U) OR 
-                                                 NUM-ENTRIES(gcObjectName,".":U) = 2 ).
-                                                           .
-         IF pcLayout = "Master Layout":U THEN 
-           ASSIGN b_U._OBJECT-OBJ = dDynObject_obj.
-       END. /* if it is the Master or there are differences */
-     END. /* End If b_U._Object_obj = 0 it isn't already there */
-     ELSE IF pcLayout = "Master Layout":U OR cAttrDiffs NE "":U THEN 
-     DO:
-       RUN setObjectInstanceAttributes (INPUT RECID(b_U),        /* _U with current attributes */
-                                        INPUT cMasterObjectName, /* Master Object Name                    */
-                                        INPUT dDynObject_Obj,
-                                        INPUT pcLayout,
-                                        INPUT NO ) NO-ERROR.
-                              
-       IF gpcError NE "" AND NOT gpcError BEGINS "Associated data" THEN RETURN.
-
-       /* In case the name has changed, write it to the repository now */
-       IF NOT lNewInstance AND NUM-ENTRIES(cInstanceName,".":U) < 2 THEN 
-          RUN renameObjectInstance IN ghRepDesignManager 
-               (dDynObject_obj, cInstanceName) NO-ERROR.         
-               
-     END.
-
-     RUN setObjectEvents (INPUT RECID(b_U),   /* _U with current attributes */
-                          INPUT dDynObject_Obj,
-                          INPUT "INSTANCE":U,
-                          INPUT pcLayout) NO-ERROR.
-     IF gpcError NE "" AND NOT gpcError BEGINS "Associated data" THEN RETURN.
-
-   END.  /* End If cObjecTypeCode > "" When a simple field level object */
-
-  /* Before setting the attributes of a datafield, check them against the 
-      master attributes of the datafield.  Remove those which are the same */
-   IF NOT lNewInstance AND ((b_U._BUFFER = 'RowObject':U AND cColumnTable NE "":U) OR 
-       NUM-ENTRIES(gcObjectName,".":U) = 2) THEN 
-   DO:
-     RUN checkDataFieldMaster(cMasterObjectName, dDynObject_Obj).
-     IF gpcError NE "" AND NOT gpcError BEGINS "Associated data" THEN RETURN.
-   END.
-   /* Update the Attributes for this object */   
-   IF CAN-FIND(FIRST DeleteAttribute) THEN 
-   DO:
-     hTmp = TEMP-TABLE DeleteAttribute:DEFAULT-BUFFER-HANDLE.
-     RUN RemoveAttributeValues IN ghRepDesignManager
-        (INPUT hTmp,
-         INPUT TABLE-HANDLE ghUnknown) NO-ERROR.
-     
-     EMPTY TEMP-TABLE DeleteAttribute.
-   END. 
-   
-   IF CAN-FIND(FIRST ttStoreAttribute) THEN
-   DO:
-     hTmp = TEMP-TABLE ttStoreAttribute:DEFAULT-BUFFER-HANDLE.
+ run addNewInstances IN THIS-PROCEDURE 
+                     (pcLayout, 
+                      hDatasource,
+                      cDatasourcetype,
+                      cTableList,
+                      cTableAssigns,
+                      cAssignList,
+                      cSDOList, 
+                      dsmartviewer).
  
-     RUN StoreAttributeValues IN gshRepositoryManager
-         (INPUT hTmp ,
-          INPUT TABLE-HANDLE ghUnknown) NO-ERROR.  /* Compiler requires a variable with unknown */
-     IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "" THEN DO:
-       RUN AppendToPError (RETURN-VALUE).
-       RETURN.
-     END.
-     EMPTY TEMP-TABLE ttStoreAttribute.
-   END.
- END. /* End Child Loop */
-
- /* Write out attributes for all new instances. */
- /* This was moved outside the above loop  so that it wouldn't be necessary to run the retrieveDesignObject
-    API for each instance after it was added. The idea is now to add all instances, then set the attributes 
-    afterwards so that the API 'retrieveDesignObject' need only be called once to retrieve the master object 
-    with all instances and master objects */
- DO iNewInstance = 1 TO NUM-ENTRIES(cNewInstances,CHR(4)):
-   ASSIGN cNewInstanceEntry = ENTRY(iNewInstance,cNewInstances,CHR(4)).
-       
-   RUN setObjectInstanceAttributes (INPUT INT(ENTRY(1,cNewInstanceEntry,CHR(3))), /* _U with current attributes */
-                                    INPUT ENTRY(2,cNewInstanceEntry,CHR(3)),      /* MasterObjectName                    */
-                                    INPUT DEC(ENTRY(3,cNewInstanceEntry,CHR(3))), /* Instance Obj */
-                                    INPUT ENTRY(4,cNewInstanceEntry,CHR(3)),      /* pcLayout */
-                                    INPUT IF iNewInstance = 1 THEN YES ELSE NO ). /* Retrieve the data object once */
-    
-   IF gpcError NE "" AND NOT gpcError BEGINS "Associated data" THEN RETURN.      
-
-  /* Before setting the attributes of a datafield, check them against the 
-      master attributes of the datafield.  Remove those which are the same */
-   IF LOGICAL(ENTRY(5,cNewInstanceEntry,CHR(3))) THEN 
-   DO:
-     RUN checkDataFieldMaster(INPUT ENTRY(2,cNewInstanceEntry,CHR(3)), /* cMasterObjectName */
-                              INPUT DEC(ENTRY(3,cNewInstanceEntry,CHR(3))) /* dDynObject_obj */
-                             ).
-     IF gpcError NE "" AND NOT gpcError BEGINS "Associated data" THEN RETURN.
-   END.
-    
-   IF CAN-FIND(FIRST ttStoreAttribute) THEN
-   DO:
-      hTmp = TEMP-TABLE ttStoreAttribute:DEFAULT-BUFFER-HANDLE.
-
-      RUN StoreAttributeValues IN gshRepositoryManager
-          (INPUT hTmp ,
-           INPUT TABLE-HANDLE ghUnknown) NO-ERROR.  /* Compiler requires a variable with unknown */
-      IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "" THEN DO:
-        RUN AppendToPError (RETURN-VALUE).
-        RETURN.
-      END.
-      EMPTY TEMP-TABLE ttStoreAttribute.
-   END.          
- END.
  /* If user performed a Save As, then the private data will store
     the original object_obj. Need to copy over all events, not just modified events */
  IF VALID-HANDLE(_U._HANDLE) AND NUM-ENTRIES(_U._HANDLE:PRIVATE-DATA,CHR(4)) = 3 THEN
@@ -5450,8 +5571,8 @@ PROCEDURE writeFieldLevelObjects :
  
 /* Write out all attributes for all newly added SDFs */
  DO iNewInstance = 1 TO NUM-ENTRIES(gcNewSDFs,CHR(4)):
-   ASSIGN cNewInstanceEntry = ENTRY(iNewInstance,gcNewSDFs,CHR(4)).
 
+   ASSIGN cNewInstanceEntry = ENTRY(iNewInstance,gcNewSDFs,CHR(4)).
    RUN setSDFInstanceAttributes (INPUT INT(ENTRY(1,cNewInstanceEntry,CHR(3))), /* puRecid */
                                  INPUT ENTRY(2,cNewInstanceEntry,CHR(3)),      /* pcLayout */
                                  INPUT DEC(ENTRY(3,cNewInstanceEntry,CHR(3))), /* Instance Obj */ 
@@ -5510,16 +5631,8 @@ PROCEDURE writeFieldLevelObjects :
         RUN writeFieldLevelObjects (INPUT cCode ).
      END.
    END.  /* If there are customizations */
-
-   /* Now shutdown the SDOs */
-   IF VALID-HANDLE(hDataSource) THEN RUN destroyobject IN hDataSource NO-ERROR.
-   IF VALID-HANDLE(hDataSource) THEN DELETE OBJECT hDataSource.
-   
  END.  /* Only do this stuff if saving the Master */
- ELSE DO:  /* Shutdown SDO (or SBO) started for this layout */
-   IF VALID-HANDLE(hDataSource) THEN RUN destroyobject IN hDataSource NO-ERROR.
-   IF VALID-HANDLE(hDataSource) THEN DELETE OBJECT hDataSource.
- END.  /* Else not the master layout */
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -5556,11 +5669,17 @@ PROCEDURE writeObjectToRepository :
  DEFINE VARIABLE cTableType            AS CHARACTER               NO-UNDO.
  
  DEFINE BUFFER b_C     FOR _C.   /* For frames              */
-  
- /* The gcClassName is the base class name, gcObjClassType from the user profile for their
-    preferred subClass of gcClassName                                                    */
- ASSIGN gcClassName = DYNAMIC-FUNCTION("RepositoryDynamicClass" IN _h_func_lib, INPUT _P._TYPE)
+     
+ /* The gcClassName is the base class name, 
+    gcObjClassType from the user profile for their
+    preferred subClass of gcClassName             */
+
+ /*   
+ ASSIGN gcClassName = DYNAMIC-FUNCTION("repositoryDynamicClass" IN _h_func_lib, INPUT _P._TYPE)
         gcObjClassType = gcClassName.
+ */
+ 
+ gcClassName = _p.OBJECT_type_code.
 
  /* If migrating code, set global variables for superprocedure and Super options */
  IF glMigration THEN
@@ -5569,16 +5688,19 @@ PROCEDURE writeObjectToRepository :
  /* Set variables based on intial values in _P */
  ASSIGN gcOBJProductModule  = _P.product_module_code
         gcObjClassType      = IF NOT glMigration AND _P.Object_type_code > "" 
-                             THEN _P.Object_type_code ELSE gcObjClassType
+                              THEN _P.Object_type_code ELSE gcObjClassType
         gcContainer         = _P.object_filename
         cTemp              = REPLACE(_P._SAVE-AS-FILE,"~\":U,"/":U)
         gcObjectDescription = IF _P.object_description = ""
-                             THEN ( "Dynamic " +
-                                   (IF _P._TYPE MATCHES "*View*":U THEN "Viewer":U
-                                   ELSE IF _P._TYPE MATCHES "*BROW*":U THEN "Browser":U
-                                   ELSE "DataObject":U) +
-                                    " from ":U + 
-                                    ENTRY(NUM-ENTRIES(cTemp,"/":U), cTemp, "/":U))
+                              THEN ( "Dynamic " +
+                                   (IF _P._TYPE = 'SmartDataObject':U AND _p._db-aware = FALSE 
+                                    THEN "DataView" 
+                                    ELSE (IF _P._TYPE MATCHES "*View*":U THEN "Viewer":U
+                                          ELSE  IF _P._TYPE MATCHES "*BROW*":U THEN "Browser":U
+                                          ELSE "DataObject":U)
+                                          + " from ":U 
+                                          + ENTRY(NUM-ENTRIES(cTemp,"/":U), cTemp, "/":U))
+                                    )
                                ELSE _P.object_description
          _P._DESC          = IF _P._DESC = "":U THEN gcObjectDescription ELSE _P._DESC.
 
@@ -5594,13 +5716,18 @@ PROCEDURE writeObjectToRepository :
     RUN AppendToPError (cError).
     RETURN.
  END.
+ 
  ASSIGN cOBJRelativeDir = IF gcSCMRelativeDir <> "":U THEN gcSCMRelativeDir ELSE cOBJRelativeDir
         gcOBJFileName   = IF gcOBJFileName = "":U THEN  gcOutputObjectName ELSE  gcOBJFileName.
     
  IF gcOBJFileName = "":U THEN
       ASSIGN gcOBJFileName = gcOutputObjectName. 
-      
- IF _P._data-object NE "":U THEN DO:
+ 
+ /* Ensure the AppBuilder adds correct name to mru list window titles etc.. */
+ ASSIGN _P._save-as-file = gcOutputObjectName.
+
+ IF _P._data-object NE "":U AND NUM-ENTRIES(_P._data-object) = 1 THEN 
+ DO:
    RUN processAttachedSDO.
    IF gpcError NE "" AND NOT gpcError BEGINS "Associated data" THEN RETURN.
  END.
@@ -5867,13 +5994,24 @@ PROCEDURE writeSuperProc :
 
      /* Register this as the super procedure of the DynObject */
      IF dCustomSuper NE 0 THEN 
-     DO:  
+     DO: 
+        /* Custom super proc should be stored with a relative path.
+           In certain circumstances - like when converting from static
+           code to dynamic objects - the _C._CUSTOM-SUPER-PROC value
+           has a fully-pathed value. We need to change this to the 
+           relatively-pathed value.
+         */
+        _C._Custom-Super-Proc = (if cCSPRelativeDir eq ? or cCSPRelativeDir eq '':u then
+                                '':u
+                                else cCSPRelativeDir + '/':U)
+                             + cCSPFileName.
+        
         EMPTY TEMP-TABLE ttStoreAttribute.
         RUN CreateAttributeRow("MASTER":U,gdDynamicObj,"SuperProcedure":U ,{&CHARACTER-DATA-TYPE},_C._CUSTOM-SUPER-PROC,?,?,?,?,?).
         hTmp = TEMP-TABLE ttStoreAttribute:DEFAULT-BUFFER-HANDLE.
         RUN StoreAttributeValues IN gshRepositoryManager
             (INPUT hTmp ,
-             INPUT TABLE-HANDLE ghUnknown)  NO-ERROR.  /* Compiler requires a variable with unknown */             
+             INPUT TABLE-HANDLE ghUnknown)  NO-ERROR.  /* Compiler requires a variable with unknown */
      END.
     
      /* Register newly created events in repository */

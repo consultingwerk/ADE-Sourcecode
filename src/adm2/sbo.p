@@ -1,28 +1,13 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/*************************************************************/
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /*--------------------------------------------------------------------------
     File        : sbo.p
     Purpose     : Super procedure for sbo class.
@@ -157,6 +142,17 @@ FUNCTION canNavigate RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-canOpenOnInit) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD canOpenOnInit Procedure 
+FUNCTION canOpenOnInit RETURNS LOGICAL
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-columnColumnLabel) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD columnColumnLabel Procedure 
@@ -206,6 +202,17 @@ FUNCTION columnExtent RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD columnFormat Procedure 
 FUNCTION columnFormat RETURNS CHARACTER
   ( pcColumn AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-columnHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD columnHandle Procedure 
+FUNCTION columnHandle RETURNS HANDLE
+   ( pcColumn AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -712,7 +719,7 @@ FUNCTION submitRow RETURNS LOGICAL
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 19.91
+         HEIGHT             = 23.71
          WIDTH              = 57.2.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -758,7 +765,7 @@ PROCEDURE addDataTarget :
             is ALWAYS set here so that colValues, addRow, deleteRow and 
             updateRow etc. can identify the intended target or source without 
             looping through all the fields again and again.
-          - Objects buildt against RowObject must find ALL columns in ONE
+          - Objects built against RowObject must find ALL columns in ONE
             of the ContainedDataObjects in order to become mapped. 
           - Only this procedure is allowed to add datatargets to the 
             ObjectMapping property.  
@@ -768,8 +775,6 @@ PROCEDURE addDataTarget :
             requester, there's not much advantage of using the ObjectMapping. 
             We need a way to distinguish between UpdateTargets and DataSources. 
          -  Ideally (??) the SBO should be more transparent and have an API that
-
-
             makes it unnecessary for the SBO to have this mapping and instead 
             make the visual objects responsible of telling the SBO what to 
             update and for this reason the properties in the visual object seems
@@ -814,6 +819,12 @@ PROCEDURE addDataTarget :
   DEFINE VARIABLE cObjectType         AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hToolbarSource      AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lHasToolbarsource   AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lCreated            AS LOGICAL    NO-UNDO.
+
+    /* SDOs have to be started for this */
+    {get ObjectsCreated lCreated}.
+    IF NOT lCreated THEN
+      RUN createObjects IN TARGET-PROCEDURE.
 
     cTarget = STRING(phTarget).
     {get ObjectMapping cMapping}.
@@ -1045,9 +1056,11 @@ PROCEDURE addDataTarget :
               LEAVE ContainedObjectSearch. 
             END. /* DO iSource = 1 */
             IF NOT lSourceFound THEN
+            DO:
               DYNAMIC-FUNCTION('showMessage':U IN TARGET-PROCEDURE,
                SUBSTITUTE({fnarg messageNumber 76}, hTarget:FILE-NAME, IF lSBOTarget THEN '':U ELSE ' ONE of')).
-
+              RETURN 'ADM-error':U.
+            END.
           END. /* cObjectList = 'RowObject' */
           ELSE 
           DO iSource = 1 TO NUM-ENTRIES(cObjectList):
@@ -1104,12 +1117,14 @@ PROCEDURE addDataTarget :
               DYNAMIC-FUNCTION('showMessage':U IN TARGET-PROCEDURE,
                  SUBSTITUTE({fnarg messageNumber 77}, TARGET-PROCEDURE:FILE-NAME, REPLACE(cUpdateTargetNames,',':U,' and ':U))).
 
+
               &SCOPED-DEFINE xp-assign
               {set EnabledFields '':U hTarget}
               {set UpdateTargetNames '':U hTarget}
               {set UpdateTarget ? hTarget}.
               &UNDEFINE xp-assign
-              LEAVE.
+              
+              RETURN 'adm-error':U.
             END. /* not one to one */
           END. /* num-entries(update targets ) > 1 then loop */
           
@@ -2222,7 +2237,8 @@ PROCEDURE commitTransaction :
       IF lOneToOne THEN
         {set BlockDataAvailable TRUE}.
 
-      PUBLISH 'DataAvailable':U FROM hTopDO  ('RESET':U).  
+      PUBLISH 'DataAvailable':U FROM hTopDO  
+                        (IF lAutoCommit THEN 'SAME':U ELSE 'RESET':U).  
 
       /* Reset external data-targets if one-to-one */
       IF lOneToOne THEN
@@ -2317,6 +2333,7 @@ PROCEDURE commitTransaction :
     /* Unless one-to-one this will refresh external targets 
       'Different' here is historical, should investigate what really is 
        needed for this error case..  */
+
     PUBLISH 'dataAvailable':U FROM hTopDO('DIFFERENT':U).
     
     /* Reset external data-targets if one-to-one */
@@ -2406,20 +2423,28 @@ PROCEDURE createObjects :
    DEFINE VARIABLE lFetchDefs      AS LOGICAL    NO-UNDO.
    DEFINE VARIABLE lCheckDefs      AS LOGICAL    NO-UNDO.
    DEFINE VARIABLE hRowObjectTable AS HANDLE     NO-UNDO.
-   
+   DEFINE VARIABLE lOpenOnInit     AS LOGICAL    NO-UNDO.
+
    &SCOPED-DEFINE xp-assign
    {get ObjectInitialized lInitialized}
    {get ObjectsCreated lCreated}. 
    &UNDEFINE xp-assign
+   
    IF lCreated OR lInitialized THEN
      RETURN.
+
+   lOpenOnInit = {fn canOpenOnInit}.
 
    RUN SUPER.  
    
    {get AsDivision cAsDivision}.
-   IF cAsDivision <> 'SERVER':U THEN
+   /* Currently the SDO calls createObject itself when 'SERVER' 
+      if 'CLIENT' avoid this since it will be done on the server 
+      UNLESS there will be no server call (openoninit false) */   
+   IF (cAsDivision <> 'CLIENT':U AND NOT lOpenOnInit) 
+   OR cAsDivision = '' THEN
    DO:
-     /* In design mode where the SBO is running standalone we may need to 
+       /* In design mode where the SBO is running standalone we may need to 
         fetch definitions from server. This can only happen if we are not 
         running in a container. The check for BindScope <> 'data' avoids this 
         if running standalone, when initializeObject is called, except in the 
@@ -2430,12 +2455,13 @@ PROCEDURE createObjects :
      {get ContainerSource hContainer}
      {get ContainedDataObjects cSDOS}.
      &UNDEFINE xp-assign
+     
      IF cBindScope <> 'Data':U AND NOT VALID-HANDLE(hContainer) THEN 
      DO:
        IF cAsDivision = 'CLIENT':U THEN
          lCheckDefs = TRUE.
      END.
-  
+     
      DO iSDO = 1 TO NUM-ENTRIES(cSDOs): 
        hSDO = WIDGET-HANDLE(ENTRY(iSDO, cSDOs)).   
 
@@ -2444,7 +2470,7 @@ PROCEDURE createObjects :
          RETURN ERROR 'ADM-ERROR':U.
 
        /* An SDO that does not have a TT after createObjects is relying on 
-          the container to get the defintions. See logic to set CheckDefs above */
+          the container to get the definitions. See logic to set CheckDefs above */
        IF lCheckDefs THEN
        DO:
          {get RowObjectTable hRowObjectTable hSDO}.
@@ -2452,12 +2478,13 @@ PROCEDURE createObjects :
            lFetchDefs = TRUE.
        END.
      END.    
-  
+     
      /* See logic above, for setting of FetchDefs.   
         This will be handled in initializeObject or by the DataContainer
         in normal run time scenarios */
      IF lFetchDefs THEN
        RUN fetchContainedData IN TARGET-PROCEDURE('DEFINE':U).
+   
    END.
 
 END PROCEDURE.
@@ -3938,13 +3965,15 @@ PROCEDURE initializeObject :
   {set ObjectHidden no}.
   
   PUBLISH 'registerObject':u FROM TARGET-PROCEDURE.
-  
-  {get AsDivision cAsDivision}.
-  
+    
   &SCOPED-DEFINE xp-assign
+  {get AsDivision cAsDivision}
   {get ContainerSource hContainerSource}
-  {get OpenOnInit lOpenOnInit}.
+  .
   &UNDEFINE xp-assign
+  
+  lOpenOnInit = {fn canOpenOnInit}.
+
   /* we set openOninit false if fetchPending below since all the logic 
      after this is similar if OpenOnInit is false Or fetchIsPending */
   IF VALID-HANDLE(hContainerSource) AND cAsDivision = 'CLIENT':U THEN
@@ -7109,6 +7138,48 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-canOpenOnInit) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION canOpenOnInit Procedure 
+FUNCTION canOpenOnInit RETURNS LOGICAL
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose: Resolve openOninit thru data-link chain
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lOpenOnInit  AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hDataSource  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lQuerySource AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lQueryOpen   AS LOGICAL    NO-UNDO.
+
+  {get OpenOnInit lOpenOnInit} 
+  {get DataSource hDataSource}.
+
+  IF lOpenOnInit AND VALID-HANDLE(hDataSource) THEN
+  DO:
+    /* Set openoninit false if parent is closed and has openoninit false */ 
+    DO WHILE VALID-HANDLE(hDataSource) AND lOpenOnInit:
+      &SCOPED-DEFINE xp-assign
+      {get QueryObject lQuerySource hDataSource}
+      {get OpenOnInit lOpenOnInit hDataSource} 
+      {get QueryOpen lQueryOpen hDataSource}
+      {get DataSource hDataSource hDataSource}
+       .
+      &UNDEFINE xp-assign
+      IF lQuerySource THEN
+        lOpenOnInit = lOpenOnInit OR lQueryOpen.
+    END.
+  END.
+  
+  RETURN lOpenOnInit.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-columnColumnLabel) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION columnColumnLabel Procedure 
@@ -7216,6 +7287,29 @@ FUNCTION columnFormat RETURNS CHARACTER
 ------------------------------------------------------------------------------*/
   /* This fn does the work. */
   RETURN columnProperty (pcColumn, 'Format':U, TARGET-PROCEDURE).  
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-columnHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION columnHandle Procedure 
+FUNCTION columnHandle RETURNS HANDLE
+   ( pcColumn AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Takes a column name, either unqualified or qualified by
+            the SDO ObjectName, and returns its Format by passing the
+            request along to the appropriate Data Object.  
+   Params:  pcColumn AS CHARACTER -- RowObject column name, optionally
+            qualified by SDO ObjectName.
+    Notes:  The SDO columnDataType option of permitting a name qualified by
+            database table name is not supported.
+------------------------------------------------------------------------------*/
+  /* This fn does the work. */
+  RETURN WIDGET-HANDLE(columnProperty (pcColumn, 'HANDLE':U, TARGET-PROCEDURE)).  
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

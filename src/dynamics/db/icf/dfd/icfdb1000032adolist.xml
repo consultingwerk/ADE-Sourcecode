@@ -353,6 +353,15 @@
 				<ExistingDB>yes</ExistingDB>
 				<UpdateMandatory>yes</UpdateMandatory>
 			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>db/icf/dump/rycsopriordel.ado</FileName>
+				<Description>Loading ADO for db/icf/dump/rycsopriordel.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
 		</PatchStage>
 	</Patch>
 </SetupInclude>

@@ -1,26 +1,9 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
-
 /*----------------------------------------------------------------------------
 File: _brwgray.p
 
@@ -49,7 +32,11 @@ Date Created: 03/26/92
               05/19/99 Mario B.  Adjust Width Field browser integration.   
               03/22/00 D. McMann Added support for MS SQL Server 7 (MSS)   
               09/18/02 D. McMann Added verify data report 		 
+              07/19/05 kmcintos  Added Auditing Reports
+              07/27/05 kmcintos  Added check for db connection before creating
+                                 a buffer for _file 20050727-027.
 ----------------------------------------------------------------------------*/
+CREATE WIDGET-POOL.
 
 {adedict/dictvar.i shared}
 {adedict/menu.i shared}
@@ -60,6 +47,12 @@ Define INPUT PARAMETER p_Init as logical NO-UNDO.
 /* Indicates which items need to be grayed (no) or ungrayed (yes). */
 Define var ungray    as logical extent {&NUM_GRAY_ITEMS} NO-UNDO.
 Define var read_only as logical                          NO-UNDO.
+
+DEFINE VARIABLE lAuditing AS LOGICAL                     NO-UNDO.
+DEFINE VARIABLE lSecurity AS LOGICAL                     NO-UNDO.
+
+DEFINE VARIABLE hMenuItem AS HANDLE                      NO-UNDO.
+DEFINE VARIABLE hBuffer   AS HANDLE                      NO-UNDO.
 
 &Global-define    DETAILEDTBL      1 
 &Global-define    QUICKTBL         2 
@@ -315,6 +308,25 @@ do item = 1 to {&NUM_GRAY_ITEMS}:
       Gray_Items[item]:sensitive = ungray[item].     
 end.
 
+IF CONNECTED("DICTDB") THEN DO:
+  CREATE BUFFER hBuffer FOR TABLE "DICTDB._file".
+  hBuffer:FIND-FIRST("WHERE _tbl-type EQ ~'S~'" + 
+                     " AND _file-name BEGINS ~'_aud-~'",NO-LOCK) NO-ERROR.
+  lAuditing = hBuffer:AVAILABLE.
+  hBuffer:FIND-FIRST("WHERE _tbl-type EQ ~'S~'" + 
+                     " AND _file-name BEGINS ~'_sec-~'",NO-LOCK) NO-ERROR.
+  lSecurity = hBuffer:AVAILABLE.
 
+  DELETE OBJECT hBuffer.
+END.
 
+hMenuItem = SUB-MENU s_mnu_Aud_Rep:HANDLE:FIRST-CHILD.
 
+DO WHILE VALID-HANDLE(hMenuItem):
+  IF hMenuItem:NAME BEGINS "mi_ADRpt" THEN
+    hMenuItem:SENSITIVE = lAuditing.
+  ELSE IF hMenuItem:NAME BEGINS "mi_CSRpt" THEN
+    hMenuItem:SENSITIVE = lSecurity.
+
+  hMenuItem = hMenuItem:NEXT-SIBLING.
+END.

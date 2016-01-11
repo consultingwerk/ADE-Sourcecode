@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*----------------------------------------------------------------------------
@@ -134,6 +118,7 @@ DEF VAR define_type    AS CHARACTER                                   NO-UNDO.
 DEF VAR frame_layer    AS HANDLE                                      NO-UNDO.
 DEF VAR i              AS INTEGER                                     NO-UNDO.
 DEF VAR include-name   AS CHARACTER                                   NO-UNDO.
+DEF VAR repos-inc-name AS CHARACTER                                   NO-UNDO.
 DEF VAR isaSO          AS LOGICAL                                     NO-UNDO.
 DEF VAR l_dummy        AS LOGICAL                                     NO-UNDO.
 DEF VAR lDLProc        AS LOGICAL                                     NO-UNDO.
@@ -266,23 +251,8 @@ IF p_status NE "EXPORT" THEN RUN put_next_xftrs (INPUT {&TOPOFFILE}, INPUT no).
 IF CAN-FIND(FIRST _TT WHERE _TT._p-recid = RECID(_P)) AND 
   NOT CreatingSuper THEN DO:
   RUN gen-tt-def (OUTPUT def-line).
-  IF NOT def-line MATCHES '*~{""}*':U AND def-line NE ? THEN
-  DO:
-    /* If an include was created from the temp-db maintenance utility, encase in ANALYZE/SUPSEND */
-    IF cSourceList > ""  THEN
-       PUT STREAM P_4GL UNFORMATTED SKIP(1)
-        "&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _TEMP-TABLE " SKIP
-        "/* ***********Included Temp-Table & Buffer definitions **************** */" SKIP(1)
-        def-line SKIP 
-        "/* _UIB-CODE-BLOCK-END */" SKIP
-        "&ANALYZE-RESUME" SKIP(1).
-    ELSE
-       PUT STREAM P_4GL UNFORMATTED SKIP(1)
-       "/* Temp-Table and Buffer definitions                                    */" SKIP
-        def-line SKIP(1). 
-
- END.
-     
+  PUT STREAM P_4GL UNFORMATTED SKIP(1)
+    def-line SKIP(1). 
 END.
 
 /* Write out user fields */
@@ -464,40 +434,53 @@ END.  /* if data logic procedure */
 
 
 /* If a SmartBrowse or SmartViewer - define the temp-table include file */
-IF _P._data-object NE "" THEN DO:
+IF _P._data-object > "" THEN 
+DO:
+  /* Avoid this if _p._data-object IS an include  (identified by comma sep) */ 
+  IF NUM-ENTRIES(_P._data-object) = 1 THEN 
+  DO:
 
-  ASSIGN i            = R-INDEX(_P._data-object,".")
-         include-name = IF i > 0 THEN SUBSTRING(_P._data-object,1,i) + "i" 
-                                 ELSE _P._data-object + ".i".
-         
-  /* Remove X:/ (where X is the MS-DOS drive letter) if it can be found in
-     the propath - IZ 9617                                                 */
-  IF include-name MATCHES ".:*":U THEN DO:
-    IF SEARCH(SUBSTRING(include-name, 4, -1, "CHARACTER")) NE ? THEN
-       include-name = SUBSTRING(include-name, 4, -1, "CHARACTER").
-  END.
-
-  include-name = '"' + REPLACE(include-name,"~\","~/") + '"'.
-
-  IF SEARCH(TRIM(include-name,'"':U)) = ? THEN DO: 
-    /* Check whether specified proc-filename is a repository object if Dynamics is running*/
-    IF _DynamicsIsRunning AND VALID-HANDLE(gshRepositoryManager) THEN 
-      include-name = '"':U + DYNAMIC-FUNCTION("getSDOincludeFile" IN gshRepositoryManager, 
-                                      TRIM(include-name,'"':U)) + '"':U.
-  END.  /* If unable to locate include-file and ICF is running */
-
-  PUT STREAM P_4GL UNFORMATTED
-    "/* Include file with RowObject temp-table definition */" SKIP
-    "&Scoped-define DATA-FIELD-DEFS " + include-name SKIP(1).
+    ASSIGN i            = R-INDEX(_P._data-object,".")
+           include-name = IF i > 0 THEN SUBSTRING(_P._data-object,1,i) + "i" 
+                                   ELSE _P._data-object + ".i".
+           
+    /* Remove X:/ (where X is the MS-DOS drive letter) if it can be found in
+       the propath - IZ 9617                                                 */
+    IF include-name MATCHES ".:*":U THEN DO:
+      IF SEARCH(SUBSTRING(include-name, 4, -1, "CHARACTER")) NE ? THEN
+         include-name = SUBSTRING(include-name, 4, -1, "CHARACTER").
+    END.
+  
+    include-name = REPLACE(include-name,"~\","~/").
+  
+    /* find include from repos (if name is pathed we know it's a static source)
+       Repository has presedence if file should exist in propath with same name
+       as logical name. (get-sdo-hdl in _abfunc and wizards uses same rule) */
+    IF _DynamicsIsRunning AND INDEX("~/",include-name) = 0 THEN 
+    DO: 
+      /* Check whether specified proc-filename is a repository object */
+      IF VALID-HANDLE(gshRepositoryManager) THEN
+      DO:
+        repos-inc-name = DYNAMIC-FUNCTION("getSDOincludeFile" IN gshRepositoryManager, 
+                                        include-name).
+        IF repos-inc-name > '' THEN
+          include-name = repos-inc-name.
+      END.
+  
+    END.  /* If unable to locate include-file and ICF is running */
+    /* quote in case of spaces in name */
+    include-name = '"' + include-name + '"'.
+  
+    PUT STREAM P_4GL UNFORMATTED
+      "/* Include file with RowObject temp-table definition */" SKIP
+      "&Scoped-define DATA-FIELD-DEFS " + include-name SKIP(1).
+  END. /* num-entries(_P._data-object) = 1  */
 
   /* The following is used by the Query Builder for a SmartDataBrowser referencing
    * a SmartData. We generate the temp-table in order to do a CHECK-SYNTAX */
   IF skip_queries THEN
-  DO:
-     PUT STREAM P_4GL UNFORMATTED
-        "/* Temp-Table RowObject definition */" SKIP
-        "DEFINE TEMP-TABLE RowObject NO-UNDO ~{":U + include-name + "~}.":U SKIP(1).
-  END.
+    RUN put_tt_defs. 
+  
 END.
 
 /* List the designated Frame-Name and First Browse */
@@ -1028,7 +1011,9 @@ FOR EACH _U WHERE _U._WINDOW-HANDLE = _h_win AND
       PUT STREAM P_4GL UNFORMATTED
                SKIP "     EDGE-PIXELS " x_L._EDGE-PIXELS
                (IF x_L._GRAPHIC-EDGE THEN " GRAPHIC-EDGE " ELSE " ")
-               (IF NOT x_L._FILLED   THEN " NO-FILL " ELSE " ").
+               (IF NOT x_L._FILLED   THEN " NO-FILL " ELSE " ")
+               (IF x_L._GROUP-BOX    THEN " GROUP-BOX " ELSE " ")
+               (IF x_L._ROUNDED      THEN " ROUNDED " ELSE " ").
 
     /* Put context-help-id when variable is not defined like a db field */
     IF _F._DISPOSITION NE "LIKE":U AND x_U._CONTEXT-HELP-ID NE ? THEN
@@ -1133,13 +1118,10 @@ FOR EACH _U WHERE _U._WINDOW-HANDLE = _h_win
     
     /* Check to see if this is a SmartDataBrowser - if so write out the SDO temp-table def */
     RUN adeuib/_isa.p (INPUT INTEGER(RECID(_P)), INPUT "SmartObject", OUTPUT isaSO).
-    IF isaSO AND (_P._data-object NE "") AND (LOOKUP("BROWSE",_P._ALLOW) > 0) AND 
-       (LOOKUP("SMART",_P._ALLOW) = 0) THEN DO:
-      PUT STREAM P_4GL UNFORMATTED SKIP
-        "DEFINE TEMP-TABLE RowObject NO-UNDO" SKIP
-        "    ~{~{~&DATA-FIELD-DEFS~}~}" SKIP
-        "    ~{src/adm2/robjflds.i~}." SKIP (1).
-    END. /* If writing out the Query of a SmartDataBrowser */
+    IF isaSO AND (_P._data-object NE "") AND (LOOKUP("BROWSE",_P._ALLOW) > 0) 
+    AND (LOOKUP("SMART",_P._ALLOW) = 0) THEN 
+      RUN put_tt_defs.
+
     PUT STREAM P_4GL UNFORMATTED SKIP "DEFINE "
       (IF _U._SHARED AND _U._TYPE eq "BROWSE":U THEN "~{~&NEW} SHARED " ELSE "")
       "QUERY " _U._NAME " FOR " SKIP.
@@ -1533,6 +1515,10 @@ PROCEDURE put-frame-definitions-in :
                  PUT STREAM P_4GL UNFORMATTED
                    " CONTEXT-HELP-ID " x_U._CONTEXT-HELP-ID.
              
+               /* Put widget-id */
+               IF x_U._WIDGET-ID NE ? THEN
+                 PUT STREAM P_4GL UNFORMATTED
+                   " WIDGET-ID " x_U._WIDGET-ID.
                /* Special fill-in field attributes                                   */          
                IF x_U._TYPE EQ "FILL-IN"
                THEN PUT STREAM P_4GL UNFORMATTED
@@ -1594,6 +1580,10 @@ PROCEDURE put-frame-definitions-in :
                  /* Write out the tooltip definition */
                  RUN put_tooltip (INPUT x_U._TOOLTIP, INPUT x_U._TOOLTIP-ATTR).
                  RUN put_position (INPUT " ", INPUT "DEF":U).
+                 /* Put widget-id */
+                 IF x_U._WIDGET-ID NE ? THEN
+                   PUT STREAM P_4GL UNFORMATTED
+                     " WIDGET-ID " x_U._WIDGET-ID.
                  PUT STREAM P_4GL UNFORMATTED SKIP.
                  RUN put_color_font ("          "). 
                  IF NOT tty_win AND (x_L._FGCOLOR NE ? OR x_L._BGCOLOR NE ? OR
@@ -1610,6 +1600,11 @@ PROCEDURE put-frame-definitions-in :
     
             RUN put_help_msg.
             
+            /* Put widget-id */
+            IF x_U._WIDGET-ID NE ? THEN
+              PUT STREAM P_4GL UNFORMATTED
+                " WIDGET-ID " x_U._WIDGET-ID.
+
             PUT STREAM P_4GL UNFORMATTED SKIP.
             
           END.  /* Browser has a valid query */
@@ -1782,6 +1777,9 @@ PROCEDURE put-frame-with-clause.
   IF _U._DROP-TARGET THEN
     PUT STREAM P_4GL UNFORMATTED " DROP-TARGET".
           
+  /* Put out WIDGET-id if set for this frame/dialog */
+  IF _U._WIDGET-ID NE ? THEN
+      PUT STREAM P_4GL UNFORMATTED " WIDGET-ID " _U._WIDGET-ID.
   /* Put out Context Sensitive help if turned on for this dialog */  
   IF _U._TYPE = "DIALOG-BOX":U THEN DO:
     IF _C._CONTEXT-HELP THEN PUT STREAM P_4GL UNFORMATTED SKIP "         CONTEXT-HELP".
@@ -1790,7 +1788,6 @@ PROCEDURE put-frame-with-clause.
 
   PUT STREAM P_4GL UNFORMATTED "." SKIP (1).
 END PROCEDURE. /* put-frame-with-clause */
-
 
 PROCEDURE put_tooltip:
 /* Write out the tooltip definition if one exists */
@@ -1802,6 +1799,19 @@ PROCEDURE put_tooltip:
        REPLACE(tooltip_text,'"', '~~"') + """" + 
        (IF (tt_transattr NE "" AND tt_transattr NE ?) THEN (":":U + tt_transattr) ELSE "").
 END PROCEDURE.       
+
+PROCEDURE put_tt_defs:
+   /* write out tt defs */
+   /* use definition include (Dataview)*/
+   IF NUM-ENTRIES(_P._data-object) > 1 THEN
+     PUT STREAM P_4GL UNFORMATTED SKIP
+       "~{" ENTRY(1,_P._data-object) "~}" SKIP(1).
+   ELSE
+     PUT STREAM P_4GL UNFORMATTED SKIP
+       "DEFINE TEMP-TABLE RowObject NO-UNDO" SKIP
+       "    ~{~{~&DATA-FIELD-DEFS~}~}" SKIP
+       "    ~{src/adm2/robjflds.i~}." SKIP (1).
+END.
 
 PROCEDURE put-func-prototypes-in.
 
@@ -1923,89 +1933,16 @@ PROCEDURE gen-tt-def :
 ------------------------------------------------------------------------------*/
   DEFINE OUTPUT PARAMETER def-line AS CHARACTER                         NO-UNDO.
 
-  DEFINE VAR      addl_fields AS CHARACTER  NO-UNDO.
-  DEFINE VAR      cDefLine    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lBuffer     AS LOGICAL    NO-UNDO.
-  DEFINE VAR      cSourceFile AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lFound      AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lOK         AS LOGICAL    NO-UNDO.
-  
+  DEFINE VAR      cdbaware    AS CHARACTER  NO-UNDO.
 
-  FOR EACH _TT WHERE _TT._p-recid = RECID(_P):
-    lBuffer = false.
-    CASE _TT._TABLE-TYPE:
-      WHEN "T":U THEN DO:
-         lFound = FALSE.
-         IF CONNECTED ("TEMP-DB":U) THEN
-         DO:
-            RUN adeuib/_tempdbvalid.p (OUTPUT lok). /* Check that control file is present in TEMP-DB */
-            IF lOK THEN
-            DO:
-              RUN adeuib/_tempdbfind.p(INPUT "TABLE":U,
-                                       INPUT (IF _TT._LIKE-TABLE = ? THEN _TT._NAME ELSE  _TT._LIKE-TABLE ) ,
-                                       OUTPUT cSourceFile).
-              IF cSourceFile > "" AND LOOKUP(cSourceFile,cSourceList) > 0 THEN
-                 NEXT.
-              IF cSourceFile NE ""  THEN
-                 ASSIGN def-line    = def-line + "~{":U + cSourceFile + "}":U + CHR(10) 
-                        cSourceList = cSourceList + (If cSourceList = "" THEN "" ELSE ",") + cSourceFile
-                        lFound      = true.
-            END.            
-        END.
-        IF NOT lFound THEN
-        DO:
-           addl_fields = REPLACE(_TT._ADDITIONAL_FIELDS, CHR(10),
-                                CHR(10) + "       ":U).
-           def-line = def-line +
-                         "DEFINE ":U + (IF _TT._SHARE-TYPE NE "" THEN
-                      (_TT._SHARE-TYPE + " ":U) ELSE "") + "TEMP-TABLE " +
-                      (IF _TT._NAME = ? THEN _TT._LIKE-TABLE ELSE _TT._NAME) +
-                      (IF _TT._UNDO-TYPE = "NO-UNDO":U THEN " NO-UNDO":U ELSE "":U) +
-                      " LIKE ":U + (IF _suppress_dbname THEN "" ELSE _TT._LIKE-DB + ".":U) +
-                       _TT._LIKE-TABLE +
-                      (IF _TT._ADDITIONAL_FIELDS NE "":U THEN (CHR(10) + "       ":U +
-                       addl_fields + ".":U) ELSE ".") + CHR(10).
-        END.              
-      END.
-      
-      WHEN "B":U THEN DO:
-        lBuffer = TRUE.
-        def-line = def-line +
-                   (IF _P._db-aware THEN  
-                    "~{&DB-REQUIRED-START~}" + CHR(10) + " " ELSE "") 
-                   +
-                   "DEFINE ":U + (IF _TT._SHARE-TYPE NE "" THEN
-                   (_TT._SHARE-TYPE + " ":U) ELSE "") + "BUFFER " + _TT._NAME + 
-                   " FOR ":U + (IF _suppress_dbname THEN "" ELSE _TT._LIKE-DB + ".":U) +
-                   _TT._LIKE-TABLE + ".":U + CHR(10)
-                   + (IF _P._db-aware THEN  
-                       "~{&DB-REQUIRED-END~}" + CHR(10) ELSE "").
-      END.
-  
-      WHEN "D":U OR WHEN "W":U THEN DO:    
-        addl_fields = REPLACE(_TT._ADDITIONAL_FIELDS, CHR(10),
-                             CHR(10) + "       ":U).
-        IF _TT._NAME = "RowObject":U THEN
-        DO: /* In case dataobject include file path contains spaces, we enclose
-               its file reference in quotes. - jep */
-            addl_fields = REPLACE(addl_fields, '~{', '~{"').
-            addl_fields = REPLACE(addl_fields, '~}', '"~}').
-        END.
-        def-line = def-line + 
-                   "DEFINE TEMP-TABLE " + _TT._NAME 
-                   + (IF _TT._UNDO-TYPE = "NO-UNDO":U THEN " NO-UNDO":U ELSE "":U)
-                   + (IF _TT._ADDITIONAL_FIELDS NE "":U 
-                      THEN (CHR(10) + "       ":U + addl_fields + ".":U) 
-                      ELSE ".") 
-                   + CHR(10).
-      END.
-    END CASE.
-    /* If buffer then prepend the db-required preprocessor  */
-    IF lBuffer THEN
-    DO:
-      RUN gen-db-required(OUTPUT cDefLine).
-      def-line = cDefLine + def-line.
-    END.
+  RUN adeuib/_getttdefs.p (RECID(_P ), YES, OUTPUT def-line). 
+  /* If buffer then prepend the db-required preprocessor  */
+ 
+  IF CAN-FIND(FIRST _TT WHERE _TT._p-recid = RECID(_P )
+                        AND   _TT._TABLE-TYPE = "B")  THEN
+  DO:
+    RUN gen-db-required(OUTPUT cdbaware).
+    def-line = cdbaware + def-line.
   END.
     
 END PROCEDURE.

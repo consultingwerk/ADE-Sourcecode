@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -53,14 +37,16 @@
                D. McMann  02/08/99 Removed disconnect of original database 
                D. McMann  02/24/99 Added TTY check for all data sources 
                D. McMann  03/03/99 Removed On-line from Informix 
-               D. McMann  03/16/98 Made sure sequences were not being created for
-                                   Informix  
+               D. McMann  03/16/98 Made sure sequences were not being created 
+                                   for Informix  
                D. McMann  10/08/02 Added support for shadow column selection
                D. McMann  10/31/02 Changed Informix Char to VarChar
                D. McMann  09/17/03 Put CHAR back
-             K. McIntosh  04/13/04 Added support for DB2/400 libraries 
+               K. McIntosh  04/13/04 Added support for DB2/400 libraries 
                                    (user_library)  
-*/    
+               D. Slutz  08/10/05 Set dft ext char to __ for DB2 20050531-001
+               K. McIntosh  10/25/05 Fixed x8override functionality 20051018-006
+*/           
 
 { prodict/user/uservar.i }
 { prodict/odb/odbvar.i }
@@ -85,7 +71,8 @@ assign batch_mode    = SESSION:BATCH-MODE
        run_time      = TIME
        odb_library  = (IF odb_library EQ ? THEN "" ELSE odb_library)
        clctn_output  = (IF odb_library NE "" THEN
-                          "DB2/400 Library:                    " + odb_library + CHR(10)
+                          "DB2/400 Library:                    " + 
+                          odb_library + CHR(10)
                         ELSE "").
 
 IF batch_mode THEN DO:
@@ -99,6 +86,12 @@ IF batch_mode THEN DO:
        "Progress Schema Holder name:           " osh_dbname skip
        "ODBC Username:                         " odb_username SKIP
        clctn_output
+       "Field width calculation based on:      " (IF iFmtOption = 1 THEN
+                                                    "_Field._Width field"
+                                                  ELSE IF (lFormat = FALSE) THEN
+                                                    "Calculation"
+                                                  ELSE "_Field._Format field")
+                                                  SKIP
        "Compatible structure:          " pcompatible skip
        "Create objects in ODBC:                " loadsql skip
        "Moved data to ODBC:                    " movedata skip(2).
@@ -196,10 +189,15 @@ ASSIGN user_env[1]   = "ALL"
        user_env[24]  = "15"
        user_env[26]  = odb_username
        user_env[31]  = "-- ** "
-       user_env[33]  = "n"
        user_library = odb_library
        user_dbname   = odb_dbname
        odb_pdbname   = odb_dbname.
+
+IF iFmtOption = 1 THEN 
+  user_env[33]  = "y".
+ELSE IF (lFormat = FALSE) THEN 
+  user_env[33] = "no".
+ELSE user_env[33] = "?".
 
 CASE odb_type:
   WHEN "Informix" THEN
@@ -236,11 +234,11 @@ CASE odb_type:
            user_env[17] = "integer"
            user_env[18] = "long varchar"
            user_env[19] = "smallint"
-           user_env[20] = "##"
+           user_env[20] = "__"
            user_env[21] = (IF shadowcol THEN "y" ELSE "n")  /* should shadow colunms be produced */           
            user_env[25] = "n"  
-           user_env[28] = "18"
-           user_env[29] = "18"
+           user_env[28] = (IF odb_type = "DB2/400" THEN "30" ELSE "18")
+           user_env[29] = (IF odb_type = "DB2/400" THEN "30" ELSE "18")
            user_env[30] = "no"
            user_env[32] = "DB2".
            
@@ -473,14 +471,4 @@ ELSE IF batch_mode THEN DO:
 END.
 
 /*------------------------------------------------------------------*/
-
-
-
-
-
-
-
-
-
-
 

@@ -27,6 +27,13 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /*---------------------------------------------------------------------------------
   File: rytemcustomsuper.p
 
@@ -197,14 +204,14 @@ PROCEDURE dataAvailable :
      */
     {get DataSource hDataSource}.
     cKeyVal = {fn getEntityInfo hDataSource}.
-    
+        
     ASSIGN gcOwningEntityMnemonic = ENTRY(LOOKUP("OwningEntityMnemonic", cKeyVal, "|":U) + 1, cKeyVal, "|":U)
            glTableHasObjField = (ENTRY(LOOKUP("TableHasObjField", cKeyVal, "|":U) + 1, cKeyVal, "|":U) = "YES")
            gcOwningReference = ENTRY(LOOKUP("OwningReference", cKeyVal, "|":U) + 1, cKeyVal, "|":U)
            gcDisplayFieldLabel = ENTRY(LOOKUP("DisplayFieldLabel", cKeyVal, "|":U) + 1, cKeyVal, "|":U)
            gcDisplayFieldValue = ENTRY(LOOKUP("DisplayFieldValue", cKeyVal, "|":U) + 1, cKeyVal, "|":U)
            gcUserId            = ENTRY(LOOKUP("UserId", cKeyVal, "|":U) + 1, cKeyVal, "|":U).
-    
+        
     run super (pcRelative).
     
 END PROCEDURE.    /* dataAvailable */
@@ -240,20 +247,11 @@ PROCEDURE displayFields :
   gcDisplayFieldLabel = gcDisplayFieldLabel + ":":U.
   IF LENGTH(gcDisplayFieldLabel) < 23 THEN
     gcDisplayFieldLabel = FILL(" ", (23 - LENGTH(gcDisplayFieldLabel))) + gcDisplayFieldLabel.
-
-  CASE glTableHasObjField:
-      WHEN YES THEN
-      DO:
-        assignWidgetValue('owning_reference', '':U).
-        assignWidgetValue('owning_obj', gcOwningReference).
-      END.
-      WHEN NO THEN
-      DO:
-        assignWidgetValue('owning_reference', gcOwningReference).
-        assignWidgetValue('owning_obj', STRING(0)).
-      END.
-  END CASE.
-
+  
+  /* The owning_obj field is never used. */
+  assignWidgetValue('owning_reference', gcOwningReference).
+  assignWidgetValue('owning_obj', STRING(0)).
+  
   hHandle = WidgetHandle('cOwningEntityKeyField').
   hHandle:LABEL = gcDisplayFieldLabel.
   assignWidgetValue('cOwningEntityKeyField', gcDisplayFieldValue).

@@ -2,25 +2,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*------------------------------------------------------------------------
@@ -74,16 +58,18 @@ FUNCTION db-fld-name RETURNS CHARACTER
 &SCOPED-DEFINE FOCUS         7
 &SCOPED-DEFINE FONT          8
 &SCOPED-DEFINE GRAPHIC       9
-&SCOPED-DEFINE HEIGHT        10
-&SCOPED-DEFINE REMOVE        11
-&SCOPED-DEFINE ROW           12
-&SCOPED-DEFINE SEPS          13
-&SCOPED-DEFINE SFGC          14
-&SCOPED-DEFINE TTL-BGC       15
-&SCOPED-DEFINE TTL-FGC       16
-&SCOPED-DEFINE V-HGT         17
-&SCOPED-DEFINE V-WDT         18
-&SCOPED-DEFINE WIDTH         19
+&SCOPED-DEFINE GROUP-BOX     10
+&SCOPED-DEFINE HEIGHT        11
+&SCOPED-DEFINE REMOVE        12
+&SCOPED-DEFINE ROUNDED       13
+&SCOPED-DEFINE ROW           14
+&SCOPED-DEFINE SEPS          15
+&SCOPED-DEFINE SFGC          16
+&SCOPED-DEFINE TTL-BGC       17
+&SCOPED-DEFINE TTL-FGC       18
+&SCOPED-DEFINE V-HGT         19
+&SCOPED-DEFINE V-WDT         20
+&SCOPED-DEFINE WIDTH         21
 
 
 /* ************************ Local Definitions ************************* */
@@ -98,7 +84,7 @@ DEFINE VARIABLE l_set-size AS LOGICAL NO-UNDO.
 DEFINE VARIABLE tol        AS DECIMAL INITIAL .03 NO-UNDO.
 DEFINE VARIABLE w_NAME     AS CHARACTER NO-UNDO.
 DEFINE VARIABLE w_n_len    AS INTEGER NO-UNDO.
-DEFINE VARIABLE wrttn      AS LOGICAL  EXTENT 19 NO-UNDO.
+DEFINE VARIABLE wrttn      AS LOGICAL  EXTENT 21 NO-UNDO.
 
 /* Define a temp-table to store the recids of containers that we hid prior
    to changing their geometry. */
@@ -275,6 +261,7 @@ FOR EACH m_L WHERE m_L._LO-NAME = "Master Layout",
        _L._HEIGHT NE m_L._HEIGHT                                                  OR
        _L._REMOVE-FROM-LAYOUT NE m_L._REMOVE-FROM-LAYOUT                          OR
        _L._ROW NE m_L._ROW                   OR _L._SEPARATORS NE m_L._SEPARATORS OR
+       _L._GROUP-BOX NE m_L._GROUP-BOX       OR _L._ROUNDED NE m_L._ROUNDED OR
        _L._SEPARATOR-FGCOLOR NE m_L._SEPARATOR-FGCOLOR OR
        _L._TITLE-BGCOLOR NE m_L._TITLE-BGCOLOR OR
        _L._TITLE-FGCOLOR NE m_L._TITLE-FGCOLOR OR
@@ -387,6 +374,7 @@ FOR EACH _LAYOUT WHERE _LAYOUT._LO-NAME NE "Master Layout":
                     (NOT CAN-DO("WINDOW",_U._TYPE) OR _L._WIN-TYPE)         OR
          _L._REMOVE-FROM-LAYOUT NE m_L._REMOVE-FROM-LAYOUT OR
          _L._ROW NE m_L._ROW                     OR _L._SEPARATORS NE m_L._SEPARATORS OR
+         _L._GROUP-BOX NE m_L._GROUP-BOX         OR _L._ROUNDED NE m_L._ROUNDED OR
          (_L._SEPARATOR-FGCOLOR NE m_L._SEPARATOR-FGCOLOR AND _L._WIN-TYPE) OR
          (_L._TITLE-BGCOLOR NE m_L._TITLE-BGCOLOR AND _L._WIN-TYPE) OR
          (_L._TITLE-FGCOLOR NE m_L._TITLE-FGCOLOR AND _L._WIN-TYPE) OR
@@ -455,6 +443,7 @@ FOR EACH _LAYOUT WHERE _LAYOUT._LO-NAME NE "Master Layout":
                        (NOT CAN-DO("WINDOW",_U._TYPE) OR _L._WIN-TYPE)      OR
             _L._REMOVE-FROM-LAYOUT NE m_L._REMOVE-FROM-LAYOUT                         OR
             _L._ROW NE m_L._ROW                   OR _L._SEPARATORS NE m_L._SEPARATORS OR
+            _L._GROUP-BOX NE m_L._GROUP-BOX       OR _L._ROUNDED NE m_L._ROUNDED OR
            (_L._SEPARATOR-FGCOLOR NE m_L._SEPARATOR-FGCOLOR AND _L._WIN-TYPE)         OR
            (_L._TITLE-BGCOLOR NE m_L._TITLE-BGCOLOR AND _L._WIN-TYPE)                 OR
            (_L._TITLE-FGCOLOR NE m_L._TITLE-FGCOLOR AND _L._WIN-TYPE)                 OR
@@ -773,6 +762,16 @@ PROCEDURE put-differences :
   END.
 
 
+  /* --- GROUP-BOX ------------------------------------------------------------- */
+  IF (_L._GROUP-BOX NE m_L._GROUP-BOX) AND NOT wrttn[{&GROUP-BOX}] THEN DO:
+    PUT STREAM P_4GL UNFORMATTED SKIP
+         w_NAME + ":GROUP-BOX" + fram_exp +
+                  FILL(" ",49 - f_e_len - w_n_len) + "= "
+                  put_L._GROUP-BOX.
+    wrttn[{&GROUP-BOX}] = TRUE.
+  END.
+
+
   /* --- HEIGHT --------------------------------------------------------------- */
   IF _L._HEIGHT NE m_L._HEIGHT 
      AND  NOT wrttn[{&HEIGHT}] THEN DO:
@@ -817,6 +816,16 @@ PROCEDURE put-differences :
   /* --- REMOVE-FROM-LAYOUT --------------------------------------------------- */
   /* This is output LAST -- look at the bottom of the procedure                 */
  
+
+  /* --- ROUNDED -------------------------------------------------------------- */
+  IF (_L._ROUNDED NE m_L._ROUNDED) AND NOT wrttn[{&ROUNDED}] THEN DO:
+    PUT STREAM P_4GL UNFORMATTED SKIP
+         w_NAME + ":ROUNDED" + fram_exp +
+                  FILL(" ",51 - f_e_len - w_n_len) + "= "
+                  put_L._ROUNDED.
+    wrttn[{&ROUNDED}] = TRUE.
+  END.
+
 
   /* --- ROW ------------------------------------------------------------------ */
   IF _L._ROW NE m_L._ROW AND (put_L._WIN-TYPE OR _U._TYPE NE "WINDOW") 

@@ -2,25 +2,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -310,6 +294,8 @@ DEFINE VARIABLE iExtent AS INTEGER NO-UNDO.
 DEFINE VARIABLE cKeyDataType AS CHARACTER NO-UNDO.
 DEFINE VARIABLE cDBList AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cTranslatedOption AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cFlagValueVar AS CHARACTER  NO-UNDO.
+
 /* Read records in passed in temp-table and work out list-item pairs plus current default value */
 COMBO_LOOP:
 FOR EACH  ttDCombo
@@ -321,9 +307,6 @@ FOR EACH  ttDCombo
   ASSIGN ttDCombo.cForEach = REPLACE(ttDCombo.cForEach,CHR(10)," ":U)
          ttDCombo.cForEach = REPLACE(ttDCombo.cForEach,CHR(12)," ":U)
          ttDCombo.cForEach = REPLACE(ttDCombo.cForEach,CHR(13)," ":U).
-  /* remove decimals with commas for Europe */
-  IF VALID-HANDLE(gshSessionManager) THEN
-    ttDCombo.cForEach = DYNAMIC-FUNCTION("fixQueryString":U IN gshSessionManager, INPUT ttDCombo.cForEach).
 
   /* define empty value based on data type of combo */
   IF ttDCombo.cWidgetType = "":U THEN
@@ -649,6 +632,9 @@ FOR EACH  ttDCombo
       LEAVE query-loop.
   END.  /* query-loop */
   
+  cFlagValueVar = IF ttDCombo.cWidgetType = "Decimal" THEN
+                    REPLACE(ttDCombo.cFlagValue,".":U,SESSION:NUMERIC-DECIMAL-POINT)
+                  ELSE ttDCombo.cFlagValue.
   /* Now run through the flags and put put in the extra values */
   CASE ttDCombo.cFlag:
     WHEN "N" THEN /* blank is a none option */
@@ -658,7 +644,7 @@ FOR EACH  ttDCombo
         cTranslatedOption = DYNAMIC-FUNCTION("translatePhrase":U IN gshTranslationManager,
                                              INPUT cTranslatedOption,
                                              INPUT 0).
-      cEmptyValue = formattedValue(ttDCombo.cFlagValue,cKeyDataType,ttDCombo.cKeyFormat).
+      cEmptyValue = formattedValue(cFlagValueVar,cKeyDataType,ttDCombo.cKeyFormat).
       ASSIGN
         ttDCombo.cListItemPairs = cTranslatedOption 
         + ttDCombo.cListItemDelimiter
@@ -675,7 +661,7 @@ FOR EACH  ttDCombo
         cTranslatedOption = DYNAMIC-FUNCTION("translatePhrase":U IN gshTranslationManager,
                                              INPUT cTranslatedOption,
                                              INPUT 0).
-      cEmptyValue = formattedValue(ttDCombo.cFlagValue,cKeyDataType,ttDCombo.cKeyFormat).
+      cEmptyValue = formattedValue(cFlagValueVar,cKeyDataType,ttDCombo.cKeyFormat).
       ASSIGN
         ttDCombo.cListItemPairs = cTranslatedOption 
         + ttDCombo.cListItemDelimiter
@@ -899,11 +885,7 @@ PROCEDURE populateLookups :
                ttLookup.cForEach = REPLACE(ttLookup.cForEach,"[EXCLUDE_REPOSITORY_PRODUCT_MODULES]":U,"TRUE":U).
     END.
     /* Prepare the query */
-  
-    /* remove decimals with commas for Europe */
-    IF VALID-HANDLE(gshSessionManager) THEN
-      ttLookup.cForEach = DYNAMIC-FUNCTION("fixQueryString":U IN gshSessionManager, INPUT ttLookup.cForEach).
-    
+      
     RUN getDBList (INPUT ttLookup.cForEach, OUTPUT cDBList).
     RUN removeDBPrefix (INPUT-OUTPUT ttLookup.cForEach, cDBList).
   

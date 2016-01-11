@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*----------------------------------------------------------------------------
@@ -178,18 +162,22 @@ IF p_product eq ? THEN DO:
          
   IF lWebLicense AND p_Window:PRIVATE-DATA = "_ab.p":U THEN
     ASSIGN
-           Filter_NameString[ 1]  = "All Source(*.p~;*.w~;*.i;*.htm*;*.x*)"
-           Filter_FileSpec[ 1 ]   = "*.p~;*.w~;*.i;*.htm*;*.x*"
+           Filter_NameString[ 1]  = "All Source(*.p~;*.w~;*.i;*.htm*;*.x*~;*.cls)"
+           Filter_FileSpec[ 1 ]   = "*.p~;*.w~;*.i~;*.htm*~;*.x*~;*.cls"
            Filter_NameString[ 5 ] = "HTML(*.htm*)"
            Filter_FileSpec[ 5 ]   = "*.htm*"
-           Filter_NameString[ 6 ] = "All Files(*.*)"
-           Filter_FileSpec[ 6 ]   = "*.*".
+           Filter_NameString[ 6 ] = "Classes(*.cls)"
+           Filter_FileSpec[ 6 ]   = "*.cls"
+           Filter_NameString[ 7 ] = "All Files(*.*)"
+           Filter_FileSpec[ 7 ]   = "*.*".
   ELSE
     ASSIGN
-           Filter_NameString[ 1]  = "All Source(*.p~;*.w~;*.i)"
-           Filter_FileSpec[ 1 ]   = "*.p~;*.w~;*.i"
-           Filter_NameString[ 5 ] = "All Files(*.*)"
-           Filter_FileSpec[ 5 ]   = "*.*".
+           Filter_NameString[ 1]  = "All Source(*.p~;*.w~;*.i~;*.cls)"
+           Filter_FileSpec[ 1 ]   = "*.p~;*.w~;*.i~;*.cls"
+           Filter_NameString[ 5 ] = "Classes(*.cls)"
+           Filter_FileSpec[ 5 ]   = "*.cls"
+           Filter_NameString[ 6 ] = "All Files(*.*)"
+           Filter_FileSpec[ 6 ]   = "*.*".
 END.
          
 /* If not specified, display dialog in active-window. */
@@ -229,7 +217,8 @@ DO:
              Filter_NameString[ 2 ]  Filter_FileSpec[ 2 ],
              Filter_NameString[ 3 ]  Filter_FileSpec[ 3 ],
              Filter_NameString[ 4 ]  Filter_FileSpec[ 4 ],
-             Filter_NameString[ 5 ]  Filter_FileSpec[ 5 ]
+             Filter_NameString[ 5 ]  Filter_FileSpec[ 5 ],
+             Filter_NameString[ 6 ]  Filter_FileSpec[ 6 ]
      SAVE-AS USE-FILENAME ASK-OVERWRITE CREATE-TEST-FILE
              DEFAULT-EXTENSION File_Ext
      UPDATE  p_ok IN WINDOW p_Window.

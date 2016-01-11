@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
           icfdb            PROGRESS
@@ -29,25 +29,9 @@ DEFINE TEMP-TABLE RowObject
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -129,15 +113,15 @@ DEFINE VARIABLE gcSessionType   AS CHARACTER  NO-UNDO.
 /* Include file with RowObject temp-table definition */
 &Scoped-define DATA-FIELD-DEFS "af/obj2/gsmsvfullo.i"
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-FIELDS RowObject.workaround 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-Define ENABLED-OBJECTS toChangeServiceType fiLblPhysicalService ~
-fiLblLogicalService rctLogicalService rctPhysicalService 
+&Scoped-Define ENABLED-OBJECTS toChangeServiceType rctLogicalService ~
+rctPhysicalService fiLblPhysicalService fiLblLogicalService 
 &Scoped-Define DISPLAYED-FIELDS RowObject.workaround 
 &Scoped-define DISPLAYED-TABLES RowObject
 &Scoped-define FIRST-DISPLAYED-TABLE RowObject
@@ -209,13 +193,13 @@ DEFINE FRAME frMain
      RowObject.workaround AT ROW 2 COL 82.2 COLON-ALIGNED NO-LABEL
           VIEW-AS FILL-IN 
           SIZE 4.8 BY 1
-     fiPhysicalServiceType AT ROW 4.95 COL 29.2 COLON-ALIGNED
-     fiLogicalServiceType AT ROW 8.24 COL 29.2 COLON-ALIGNED
+     fiPhysicalServiceType AT ROW 5.05 COL 29.2 COLON-ALIGNED
+     fiLogicalServiceType AT ROW 8.33 COL 29.2 COLON-ALIGNED
      fiLblPhysicalService AT ROW 3.29 COL 4.8 COLON-ALIGNED NO-LABEL
      fiLblLogicalService AT ROW 6.57 COL 4.8 COLON-ALIGNED NO-LABEL
      rctLogicalService AT ROW 6.91 COL 5.4
      rctPhysicalService AT ROW 3.62 COL 5.4
-     SPACE(0.00) SKIP(1.95)
+     SPACE(0.00) SKIP(1.90)
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -278,7 +262,7 @@ END.
 /* SETTINGS FOR WINDOW vTableWin
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frMain
-   NOT-VISIBLE Size-to-Fit                                              */
+   NOT-VISIBLE FRAME-NAME Size-to-Fit                                   */
 ASSIGN 
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
@@ -380,7 +364,7 @@ PROCEDURE adm-create-objects :
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
              INPUT  'DisplayedFieldgsm_session_type.session_type_codeKeyFieldgsm_session_type.session_type_objFieldLabelSession typeFieldTooltipEnter Session Type or Press F4 for Session Type LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(20)DisplayDatatypecharacterBaseQueryStringFOR EACH gsm_session_type NO-LOCK
-                     BY gsm_session_type.session_type_codeQueryTablesgsm_session_typeBrowseFieldsgsm_session_type.session_type_code,gsm_session_type.session_type_descriptionBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(20)|X(35)RowsToBatch200BrowseTitleLookup Session TypesViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListNO-LOCKQueryBuilderOrderListgsm_session_type.session_type_code^yesQueryBuilderTableOptionListNO-LOCKQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureFieldNamesession_type_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY gsm_session_type.session_type_codeQueryTablesgsm_session_typeBrowseFieldsgsm_session_type.session_type_code,gsm_session_type.session_type_descriptionBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(20)|X(35)RowsToBatch200BrowseTitleLookup Session TypesViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListNO-LOCKQueryBuilderOrderListgsm_session_type.session_type_code^yesQueryBuilderTableOptionListNO-LOCKQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureDataSourceNameFieldNamesession_type_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_gsmsedynlookup ).
        RUN repositionObject IN h_gsmsedynlookup ( 2.00 , 31.20 ) NO-ERROR.
        RUN resizeObject IN h_gsmsedynlookup ( 1.00 , 54.80 ) NO-ERROR.
@@ -391,9 +375,9 @@ PROCEDURE adm-create-objects :
              INPUT  'DisplayedFieldgsm_physical_service.physical_service_codeKeyFieldgsm_physical_service.physical_service_objFieldLabelPhysical service codeFieldTooltipEnter Physical Service or Press F4 for Physical Service LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(20)DisplayDatatypecharacterBaseQueryStringFOR EACH gsm_physical_service NO-LOCK,
                      FIRST gsc_service_type
                      WHERE gsc_service_type.service_type_obj = gsm_physical_service.service_type_obj
-                     BY gsm_physical_service.physical_service_codeQueryTablesgsm_physical_service,gsc_service_typeBrowseFieldsgsm_physical_service.physical_service_code,gsm_physical_service.physical_service_description,gsc_service_type.service_type_codeBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(20)|X(35)|X(20)RowsToBatch200BrowseTitleLookup Physical ServicesViewerLinkedFieldsgsc_service_type.service_type_codeLinkedFieldDataTypescharacterLinkedFieldFormatsX(20)ViewerLinkedWidgetsfiPhysicalServiceTypeColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureFieldNamephysical_service_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY gsm_physical_service.physical_service_codeQueryTablesgsm_physical_service,gsc_service_typeBrowseFieldsgsm_physical_service.physical_service_code,gsm_physical_service.physical_service_description,gsc_service_type.service_type_codeBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(20)|X(35)|X(20)RowsToBatch200BrowseTitleLookup Physical ServicesViewerLinkedFieldsgsc_service_type.service_type_codeLinkedFieldDataTypescharacterLinkedFieldFormatsX(20)ViewerLinkedWidgetsfiPhysicalServiceTypeColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureDataSourceNameFieldNamephysical_service_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_gsmpydynlookup ).
-       RUN repositionObject IN h_gsmpydynlookup ( 3.95 , 31.20 ) NO-ERROR.
+       RUN repositionObject IN h_gsmpydynlookup ( 3.91 , 31.20 ) NO-ERROR.
        RUN resizeObject IN h_gsmpydynlookup ( 1.00 , 54.80 ) NO-ERROR.
 
        RUN constructObject (
@@ -402,9 +386,9 @@ PROCEDURE adm-create-objects :
              INPUT  'DisplayedFieldgsc_logical_service.logical_service_codeKeyFieldgsc_logical_service.logical_service_objFieldLabelLogical service codeFieldTooltipEnter Logical Service or Press F4 for Logical Service LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(20)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_logical_service NO-LOCK,
                      FIRST gsc_service_type
                      WHERE gsc_service_type.service_type_obj = gsc_logical_service.service_type_obj NO-LOCK
-                     BY gsc_logical_service.logical_service_codeQueryTablesgsc_logical_service,gsc_service_typeBrowseFieldsgsc_logical_service.logical_service_code,gsc_logical_service.logical_service_description,gsc_service_type.service_type_codeBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(20)|X(35)|X(20)RowsToBatch200BrowseTitleLookup Logical ServicesViewerLinkedFieldsgsc_service_type.service_type_codeLinkedFieldDataTypescharacterLinkedFieldFormatsX(20)ViewerLinkedWidgetsfiLogicalServiceTypeColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureFieldNamelogical_service_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY gsc_logical_service.logical_service_codeQueryTablesgsc_logical_service,gsc_service_typeBrowseFieldsgsc_logical_service.logical_service_code,gsc_logical_service.logical_service_description,gsc_service_type.service_type_codeBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(20)|X(35)|X(20)RowsToBatch200BrowseTitleLookup Logical ServicesViewerLinkedFieldsgsc_service_type.service_type_codeLinkedFieldDataTypescharacterLinkedFieldFormatsX(20)ViewerLinkedWidgetsfiLogicalServiceTypeColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureDataSourceNameFieldNamelogical_service_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_gsclsdynlookup ).
-       RUN repositionObject IN h_gsclsdynlookup ( 7.24 , 31.20 ) NO-ERROR.
+       RUN repositionObject IN h_gsclsdynlookup ( 7.19 , 31.20 ) NO-ERROR.
        RUN resizeObject IN h_gsclsdynlookup ( 1.00 , 54.80 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */

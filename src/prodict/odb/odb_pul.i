@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000 by Progrss Software Corporation ("PSC"),       *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -41,6 +41,9 @@ History:
     hutegger    95/03   abstracted from prodict/odb/odb_mak.i
     mcmann      05/15/01 Added check for differences between precision and
                          length
+    moloney     11/11/05 Modify the schema holder version number if
+                         the new array character feature is implemented.
+                         20050531-001
 
 --------------------------------------------------------------------*/
 
@@ -51,13 +54,90 @@ Comments from prodict/odb/odb_mak.i:
 History:
     hutegger    94/07/15    creation (reworked from previous version
                             basing on new version of ora_mak.i)
-    
+    slutz       08/10/05    Added s_ttb_fld.ds_msc26 20050531-001
+    moloney     11/11/05    Added version upgrades and schema holder
+                            tests against client version.
+
 --------------------------------------------------------------------*/
 
-/* this code gets executed only for the first element of array-field   */
-/* so extent-code of field is always ##1 (even with real extent >= 10) */
+/* this code gets executed only for the first element of array-field  */
+/* so extent-code of field is always ##1 or __1 or some other suffix  */
+/* character for array extent mapping (even with real extent >= 10).  */
+
+ASSIGN
+  pnam = TRIM(DICTDBG.SQLColumns_buffer.Column-name).
+ASSIGN
+  extent_char = ( if {&extent} > 0 AND LENGTH (pnam, "character") > 4 /* Extract the "#" */
+             then SUBSTRING (pnam, LENGTH (pnam, "character") - 2, 1, "character")
+             else ? ).
+
+  IF INDEX(UPPER(_Db._Db-misc2[8]), "DB2") <> 0 AND
+       extent_char <>  "#" AND extent_char <> ? THEN DO:
+
+    found = INDEX(DICTDB._Db._Db-misc2[7], " Schema Holder Ver#: ").
+    IF found <> 0 THEN DO:
+      found = found + LENGTH(" Schema Holder Ver#: ").
+      IF found <= LENGTH(DICTDB._Db._Db-misc2[7]) THEN DO:
+
+        sh_ver = INTEGER(SUBSTRING(DICTDB._Db._Db-misc2[7], found)).
+        IF sh_ver < {&ODBC_SCH_VER2} THEN DO:
+
+          DICTDB._Db._Db-misc2[7] = SUBSTRING(DICTDB._Db._Db-misc2[7], 1, found - 1, "character").
+          ASSIGN
+            DICTDB._Db._Db-misc2[7] = DICTDB._Db._Db-misc2[7] + STRING({&ODBC_SCH_VER2}).
+          RUN adecomm/_setcurs.p ("").
+          MESSAGE
+            "The schema holder version " + STRING(sh_ver) + 
+            " was automatically upgraded to version " + STRING({&ODBC_SCH_VER2}) + "." SKIP
+            "Version " + STRING({&ODBC_SCH_VER2}) + " schema holder features were located."
+            VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+          RUN adecomm/_setcurs.p ("WAIT").
+
+          /* Now just check that the schema holder level you've upgraded to hasn't
+           * exceeded the client (very unlikely but should be checked just in case)
+           */
+ 
+          /* If found, then the field is OpenEdge 10.1A client formatted */
+          found = INDEX(DICTDB._Db._Db-misc2[7], " Client Ver#: ").
+          IF found <> 0 THEN DO:
+
+            found = found + LENGTH(" Client Ver#: "). 
+            efound = INDEX(SUBSTRING(DICTDB._Db._Db-misc2[7], found), ",(sh_min=").
+            IF efound > 0 THEN
+              clnt_vers =  SUBSTRING(DICTDB._Db._Db-misc2[7], found, efound - 1).
+            found = INDEX(DICTDB._Db._Db-misc2[7], ",sh_max=").
+            IF found <> 0 THEN DO: 
+              found = found + LENGTH(",sh_max=").
+              efound = INDEX(SUBSTRING(DICTDB._Db._Db-misc2[7], found), ");").
+              IF efound > 0 THEN
+                sh_max_ver = INTEGER(SUBSTRING(DICTDB._Db._Db-misc2[7], found, efound - 1)).
+
+            END. 
+
+          END.
+ 
+          IF sh_ver > sh_max_ver THEN DO:
+            RUN adecomm/_setcurs.p ("").
+            MESSAGE
+              "The schema holder version " + STRING(sh_ver) + 
+              " is higher than the version capacity of this OpenEdge client." SKIP
+              "OpenEdge client version " + clnt_vers + 
+              " can only handle schema holder versions up to " + STRING(sh_max_ver) + "." SKIP 
+              "Please upgrade your OpenEdge client to one that is compatible with this" +
+              " schema holder."
+              VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+            RUN adecomm/_setcurs.p ("WAIT").
+            RETURN.
+          END.
+         
+        END.
+      END.
+    END.
+  END.
+ 
 assign
   pnam = TRIM(DICTDBG.SQLColumns_buffer.Column-name)
+
   pnam = ( if {&extent} > 0 AND LENGTH (pnam, "character") > 4 /* Drop the "##1" */
              then SUBSTRING (pnam, 1, LENGTH (pnam, "character") - 3, "character")
              else pnam )
@@ -106,6 +186,7 @@ assign
                              else ?
                           )
   s_ttb_fld.ds_msc24    = fld-properties
+  s_ttb_fld.ds_msc26    = extent_char
   s_ttb_fld.ds_stoff    = field-position
   s_ttb_fld.ds_name     = fnam
   s_ttb_fld.ds_type     = {&data-type}

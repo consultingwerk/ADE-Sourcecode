@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
           icfdb            PROGRESS
@@ -29,25 +29,9 @@ DEFINE TEMP-TABLE RowObject
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -177,19 +161,19 @@ DEFINE FRAME frMain
           LABEL "Message group"
           VIEW-AS FILL-IN 
           SIZE 20 BY 1
-     RowObject.error_number AT ROW 2.05 COL 32 COLON-ALIGNED
+     RowObject.error_number AT ROW 2.1 COL 32 COLON-ALIGNED
           LABEL "Message number"
           VIEW-AS FILL-IN 
           SIZE 14 BY 1
-     RowObject.source_language AT ROW 4.14 COL 34
+     RowObject.source_language AT ROW 4.24 COL 34
           LABEL "Source language"
           VIEW-AS TOGGLE-BOX
           SIZE 22 BY 1
-     RowObject.error_summary_description AT ROW 5.19 COL 32 COLON-ALIGNED
+     RowObject.error_summary_description AT ROW 5.29 COL 32 COLON-ALIGNED
           LABEL "Message summary description"
           VIEW-AS FILL-IN 
           SIZE 78.4 BY 1
-     RowObject.error_type AT ROW 6.24 COL 32 COLON-ALIGNED
+     RowObject.error_type AT ROW 6.38 COL 32 COLON-ALIGNED
           LABEL "Message type"
           VIEW-AS COMBO-BOX INNER-LINES 5
           LIST-ITEM-PAIRS "Message","MES",
@@ -199,11 +183,11 @@ DEFINE FRAME frMain
                      "Question","QUE"
           DROP-DOWN-LIST
           SIZE 16 BY 1
-     RowObject.update_error_log AT ROW 6.24 COL 60
+     RowObject.update_error_log AT ROW 6.38 COL 60
           LABEL "Update message log"
           VIEW-AS TOGGLE-BOX
           SIZE 29.4 BY 1
-     RowObject.error_full_description AT ROW 7.29 COL 34 NO-LABEL
+     RowObject.error_full_description AT ROW 7.52 COL 34 NO-LABEL
           VIEW-AS EDITOR MAX-CHARS 3000 SCROLLBAR-VERTICAL LARGE
           SIZE 78.4 BY 7
      fiMessageFullDescriptionLabel AT ROW 7.29 COL 8 COLON-ALIGNED NO-LABEL
@@ -247,7 +231,7 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 13.48
+         HEIGHT             = 13.81
          WIDTH              = 112.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -433,9 +417,9 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_language.language_name,gsc_language.language_codeKeyFieldgsc_language.language_objFieldLabelLanguageFieldTooltipSelect a Language from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 (&2)ComboDelimiterListItemPairsInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesFieldNamelanguage_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_language.language_name,gsc_language.language_codeKeyFieldgsc_language.language_objFieldLabelLanguageFieldTooltipSelect a Language from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 (&2)ComboDelimiterListItemPairsInnerLines5SortnoComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesSuperProcedureDataSourceNameFieldNamelanguage_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hLanguageObj ).
-       RUN repositionObject IN hLanguageObj ( 3.10 , 34.00 ) NO-ERROR.
+       RUN repositionObject IN hLanguageObj ( 3.19 , 34.00 ) NO-ERROR.
        RUN resizeObject IN hLanguageObj ( 1.05 , 48.00 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */

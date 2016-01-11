@@ -491,6 +491,8 @@
 17672.0766 17379.0766 17633.0766 no "" "procedure_name" "SmartDataField of type DynLookup" 0 2
 17872.5053 17868.5053 17870.5053 no "M21" "rycntprefv" "Container Builder Preferences Viewer" 0 0
 17873.5053 17868.5053 451.5053 no "M11" "ContainerBuilderToolbar" "Container Builder Toolbar" 0 0
+22054.5498 13488.81 22048.5498 no "41" "create_user_profile_data" "CalculatedField create_user_profile_data" 0 41
+22062.5498 124862.9875 22048.5498 no "" "create_user_profile_data" "Dynamic TOGGLE-BOX" 0 24
 23674.0766 23672.0766 23688.0766 no "M11" "secusrgrpv" "Create Security Group from User" 23677.0766 ?
 23675.0766 23672.0766 1000708996.09 no "M11" "SimpleToolbar" "SimpleToolbar" 0 0
 23676.0766 23672.0766 1003504456 no "M21" "afspfoldrww" "Tab Folder Object" 0 0
@@ -631,6 +633,11 @@
 50735.9875 50377.9875 1003504456 no "B91" "afspfoldrw.w" "Tab Folder Object" 0 0
 50746.9875 50102.9875 6306.409 no "" "coDlpType" "Dynamic COMBO-BOX" 0 8
 50780.9875 50102.9875 6304.409 no "" "buDefault" "Dynamic BUTTON" 0 0
+68872.66 638.7692 68864.66 no "Centre" "Static DataView" "Static DataView" 0 0
+68880.66 638.7692 68855.66 no "Centre" "Dynamic DataView" "Dynamic DataView" 0 0
+70368.66 70274.66 68864.66 no "M11" "StaticDataView Default" "Static DataView" 0 0
+70384.66 1137.7692 70274.66 no "Centre" "DataView" "Data View palette" 0 0
+70392.66 70274.66 68855.66 no "M11" "Dynamic DataView" "Dynamic DataView" 0 0
 90301.9875 90299.9875 1000708951.09 no "M11" "LookupToolbar" "LookupToolbar" 0 0
 90302.9875 90299.9875 90297.9875 no "M11" "rysdfchsev" "Choose Existing Dynamic SDF Object" 90305.9875 0
 90303.9875 90299.9875 90325.9875 no " 11" "rycsofullo" "DynSDO for ryc_smartobject" 0 0
@@ -643,7 +650,7 @@
 95842.48 95812.48 15387.81 no "M11" "gsmsxotfullb" "gsm_scm_xref Object Type Browser" 95819.48 0
 95893.48 95876.48 3000026633.09 no "" "data_type" "DataField of type COMBO-BOX" 0 3
 95907.48 95876.48 3000026657.09 no "" "attribute_narrative" "DataField of type EDITOR" 0 2
-95923.48 95914.48 15870.409 no "" "fiOverrideTypeLabel" "Dynamic FILL-IN" 0 912640
+95923.48 95914.48 15870.409 no "" "fiOverrideTypeLabel" "Dynamic FILL-IN" 0 912660
 96012.48 95914.48 6318.409 no "" "toOverrideGet" "Dynamic TOGGLE-BOX" 0 3
 96019.48 95914.48 6318.409 no "" "toOverrideSet" "Dynamic TOGGLE-BOX" 0 4
 96124.48 95876.48 15870.409 no "" "fiNarLabel" "Dynamic FILL-IN" 0 982200
@@ -712,7 +719,7 @@
 99841.48 13518.81 99838.48 no "17" "stringValue" "CalcField for StringValue" 0 17
 99855.48 99844.48 3000026806.09 no "" "lookup_type" "DataField of type COMBO-BOX" 0 1
 99867.48 99844.48 3000026830.09 no "" "lookup_value" "DataField of type EDITOR" 0 2
-99875.48 99844.48 15870.409 no "" "fiLookupText" "Dynamic FILL-IN" 0 1086680
+99875.48 99844.48 15870.409 no "" "fiLookupText" "Dynamic FILL-IN" 0 1084200
 99892.48 96175.48 99844.48 no "M11" "rycatcls3v" "Class Attribute (Lookup) Viewer" 99891.48 0
 99980.48 95914.48 99903.48 no "" "attribute_group_obj" "SmartDataField of type DynCombo" 0 2
 122241.9875 122237.9875 122173.9875 no "" "fiUserObj" "SmartDataField of type DynLookup" 0 3
@@ -2606,10 +2613,10 @@
 12345000012525.3993 12345000012520.3993 3000015239.09 no "" "comment_text" "DataField of type EDITOR" 0 4
 12345000012526.3993 12345000012520.3993 3000015338.09 no "" "comment_description" "DataField of type FILL-IN" 0 3
 12345000012527.3993 12345000012520.3993 15870.409 no "" "cOwningEntityKeyField" "Dynamic FILL-IN" 0 10
-12345000012528.3993 12345000012520.3993 3000015314.09 no "" "expiry_date" "DataField of type FILL-IN" 0 7
-12345000012529.3993 12345000012520.3993 3000015362.09 no "" "last_updated_by_user" "DataField of type FILL-IN" 0 12
-12345000012530.3993 12345000012520.3993 3000015386.09 no "" "last_updated_date" "DataField of type FILL-IN" 0 11
-12345000012531.3993 12345000012520.3993 3000009338.09 no "" "owning_entity_mnemonic" "DataField of type FILL-IN" 0 6
+12345000012528.3993 12345000012520.3993 3000015314.09 no "" "expiry_date" "DataField of type FILL-IN" 0 6
+12345000012529.3993 12345000012520.3993 3000015362.09 no "" "last_updated_by_user" "DataField of type FILL-IN" 0 11
+12345000012530.3993 12345000012520.3993 3000015386.09 no "" "last_updated_date" "DataField of type FILL-IN" 0 12
+12345000012531.3993 12345000012520.3993 3000009338.09 no "" "owning_entity_mnemonic" "DataField of type FILL-IN" 0 7
 12345000012532.3993 12345000012520.3993 3000015191.09 no "" "owning_obj" "DataField of type FILL-IN" 0 5
 12345000012533.3993 12345000012520.3993 3000015164.09 no "" "owning_reference" "DataField of type FILL-IN" 0 9
 12345000012536.3993 12345000012520.3993 6316.409 no "" "TEXT-2" "Dynamic TEXT" 0 1
@@ -2632,12 +2639,12 @@
 .
 PSC
 filename=ryc_object_instance
-records=0000000002631
+records=0000000002638
 ldbname=ICFDB
-timestamp=2005/04/06-13:05:07
+timestamp=2005/08/19-15:49:40
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
 cpstream=UTF-8
 .
-0000214561
+0000215171

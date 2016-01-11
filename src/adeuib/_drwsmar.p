@@ -2,25 +2,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*----------------------------------------------------------------------------
@@ -65,7 +49,6 @@ DEFINE VAR Name              AS CHAR       NO-UNDO.
 DEFINE VAR datafield         AS HANDLE     NO-UNDO.
 DEFINE VARIABLE cSavName     AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cSavClass    AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cSignature   AS CHAR       NO-UNDO.
 DEFINE VARIABLE cNotFoundMsg AS CHAR       NO-UNDO.
 DEFINE VARIABLE cFieldName   AS CHAR       NO-UNDO.
 DEFINE VARIABLE cColumnTable AS CHARACTER  NO-UNDO.
@@ -73,7 +56,6 @@ DEFINE VARIABLE hDevManager  AS HANDLE     NO-UNDO.
 DEFINE VARIABLE pError       AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE hSDO         AS HANDLE     NO-UNDO.
 DEFINE VARIABLE lEditOnDrop  AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE hDataSource  AS HANDLE     NO-UNDO.
 DEFINE VARIABLE cNewClass    AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cNewObject   AS CHARACTER  NO-UNDO.
 
@@ -274,18 +256,8 @@ ASSIGN /* TYPE-specific settings */
        _U._LAYOUT-NAME   = cur-lo
        /* Standard Settings for Universal and Field records */
        { adeuib/std_ul.i &SECTION = "DRAW-SETUP" }
-        .
+       .
 
- IF _DynamicsIsRunning THEN
- DO:
-    hDataSource = DYNAMIC-FUNCTION('get-proc-hdl':U IN _h_func_lib, INPUT _P._data-object) NO-ERROR.
-    /* _TABLE should only be set for SmartObjects (SDFs) that have been dropped onto DataFields. 
-       _TABLE needs to remain unknown for SDFs that have been dropped onto local widgets. */
-    IF VALID-HANDLE(hDataSource) AND 
-       DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, cSavClass,"DataField":U) THEN
-         _U._TABLE    =  DYNAMIC-FUNCTION('ColumnPhysicalTable':U IN hDataSource, _U._NAME) NO-ERROR.
- END.
- 
 /* Assign width and height based on area drawn by user.
   (NOTE: this won't normally be used by a SmartObject unless it supports
    a 'set-size' method.) */
@@ -316,33 +288,42 @@ END.  /* if SmartDataField */
 RUN adeuib/_undsmar.p (RECID(_U)).
 
 /* If dealing with a SmartDataField, store the field name in the property */
-IF VALID-HANDLE(_S._HANDLE) THEN DO:
-  cSignature = _S._HANDLE:GET-SIGNATURE("setFieldName":U).
-  IF cSignature NE "" AND _next_draw = "SmartDataField":U THEN DO:
+IF VALID-HANDLE(_S._HANDLE) THEN 
+DO:
+  /* SmartDatafield (currently keeping the old signature check) */
+  IF _next_draw eq 'SmartDataField':u and
+    ( {fn getObjectType _S._HANDLE} = 'SmartDataField':U 
+      OR _S._HANDLE:GET-SIGNATURE("setFieldName":U) > '' )THEN
+  DO:
     FIND x_U WHERE x_U._HANDLE = datafield.
     
-    /* IZ 1318 Make sure field name is set appropriately for a Data Field. */
-    /* For example, if field is an SBO data field, call to Get_Field_Name
-       adds object name prefix to the field name. Example: "dorder.SalesRep". */
-    ASSIGN cFieldName = x_U._NAME.
-    RUN Get_Field_Name (INPUT datafield, INPUT RECID(_P), INPUT-OUTPUT cFieldName).
-    
+    /* don't qualify if buffer = RowObject (SDO viewer) */
+    ASSIGN
+      cFieldName = IF x_U._BUFFER = "RowObject":U  OR x_U._TABLE = ?
+                   THEN x_U._NAME
+                   ELSE x_U._TABLE + "." + x_U._NAME.
+
+    /* _U._TABLE should only be set for an SDF of a dynamic viewer,
+       this determines whether the object name is enabled in the
+       AppBuilder main window.  It should not be enabled for SDFs on
+       datafields on dynamic viewers because the object name must
+       match the fieldName attribute value. */
+    IF _DynamicsIsRunning AND VALID-HANDLE(gshRepositoryManager) THEN
+      IF DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, _P.object_type_code, "DynView":U) THEN
+        _U._TABLE = x_U._TABLE.
+
     DYNAMIC-FUNCTION("setFieldName" IN _S._HANDLE, cFieldName).
     DYNAMIC-FUNCTION("setDisplayField" IN _S._HANDLE, x_U._DISPLAY).
     DYNAMIC-FUNCTION("setEnableField" IN _S._HANDLE, x_U._ENABLE).
+
     IF x_U._TABLE = ? THEN
       DYNAMIC-FUNCTION("setLocalField" IN _S._HANDLE, TRUE).
+    
     /* Mark this as a container of a SDF */
-    X_U._SUBTYPE = "CONTAINS SDF - " + _U._NAME.
-   
-    /* If the datasource is an SBO, set the table from the
-       table of the field being dropped on to.  This is the SDO name. */
-    IF _DynamicsIsRunning AND VALID-HANDLE(hDataSource) THEN
-      IF DYNAMIC-FUNCTION("getObjectType":U IN hDataSource) = "SmartBusinessObject":U THEN
-        _U._TABLE = x_U._TABLE.
-
+    X_U._SUBTYPE = "CONTAINS SDF - " + _U._NAME.     
     RUN adeuib/_delet_u.p (INPUT RECID(x_U), INPUT FALSE /* Don't Trash _U */).
   END.  /* SetFieldName is a valid function */
+
 
   lEditOnDrop = FALSE.
   IF _custom_draw NE ? THEN DO:

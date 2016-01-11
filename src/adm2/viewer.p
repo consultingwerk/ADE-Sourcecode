@@ -2,25 +2,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*--------------------------------------------------------------------------
@@ -78,6 +62,17 @@
 
 
 /* ************************  Function Prototypes ********************** */
+
+&IF DEFINED(EXCLUDE-firstVisibleInGroup) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD firstVisibleInGroup Procedure 
+FUNCTION firstVisibleInGroup RETURNS HANDLE
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-getDataFieldMapping) = 0 &THEN
 
@@ -256,30 +251,29 @@ PROCEDURE addRecord :
       RUN SUPER.
       IF RETURN-VALUE = "ADM-ERROR":U THEN RETURN "ADM-ERROR":U.
       
-      /* READ AND LEARN:
-      This apply is very important (used to be at end of this procedure.) 
-      - An addRow causes child viewers to disable. 
-      - If the child had focus the disabling forces focus somewhere else. 
-      - If somewhere else is a browser of the same SDO then it will do an 
-        implicit reposition during the add process.  
-      Although the viewer is protected against the SDO not pointing to the new 
-      row, other logic may fail. A known case was bug 00005931-000 where 
-      updateQueryPosition would publish wrong state due to availability 
-      and Add became enabled on child toolbars (These ADM events may have 
-      been improved when you read this, but not likely Progress focus mgmnt) */
-      RUN applyEntry IN TARGET-PROCEDURE (?).
-      /* applying here causes highlighting to be lost during the process,
-         so we deal with this at the end  */
-      hFocus = FOCUS.
-
-      /* Note: SUPER (datavis.p) verifies that UpdateTarget is present. */
+            /* Note: SUPER (datavis.p) verifies that UpdateTarget is present. */
       {get UpdateTarget cTarget}.
       hUpdateTarget = WIDGET-HANDLE(cTarget).
       /* If we're a GroupAssign-Target, then our Source has already done 
          the add; otherwise we invoke addRow in the UpdateTarget.*/           
-
       IF VALID-HANDLE(hUpdateTarget) THEN
       DO:
+        /* READ  (Progress' implicit focus setting and the browser's implicit 
+                  reposition is problematic ):
+        This apply is important (used to be at end of this procedure.) 
+        - An addRow causes child-sdo viewers to disable. 
+        - If the child had focus the disabling will force focus somewhere else. 
+        - If somewhere else is a browser of the same SDO then Progress will 
+          do an implicit reposition.. during the add process.  
+        Although the viewer is protected against the SDO not pointing to the new 
+        row, other logic may fail. A known case was bug 00005931-000 where 
+        updateQueryPosition would publish wrong state due to availability 
+        and Add became enabled on child toolbars */
+        RUN applyEntry IN TARGET-PROCEDURE (?).
+        /* applying here causes highlighting to be lost during the process,
+           so we deal with this at the end  */
+        hFocus = FOCUS.
+      
         /* 'getUpdateTargetNames' is overriden to include the UpdateTargetNames */
         /* of all GA-related components. Here we *only* want the value of */
         /* THIS (TARGET-PROCEDURE) object. This really should be implemented */
@@ -323,7 +317,7 @@ PROCEDURE addRecord :
         IF VALID-HANDLE(hGaSource) THEN
            RUN DisplayRecord IN TARGET-PROCEDURE. 
       END.
-
+      
       PUBLISH 'addRecord':U FROM TARGET-PROCEDURE.  /* In case of GroupAssign */
       
       /* For dynamic combos who are a parent to another dynamic combo
@@ -338,20 +332,128 @@ PROCEDURE addRecord :
       
       PUBLISH 'updateState':U FROM TARGET-PROCEDURE ('update').
   
-      /* We've moved the apply entry before the call to addrow. (see above) 
+      /* We've moved the apply entry before the call to addrow. 
+         (see above)          
          This causes the highlight to disappear, so use set-selection 
          to achieve old behavior. (another applyEntry call would cause 
-         entry triggers firing twice, which is not always appreciated) */  
-      IF VALID-HANDLE(FOCUS) 
+         entry triggers firing twice, which may not be appreciated..) 
+         NOTE: hFocus is only set if updatesource and points to a widget 
+         in first visible object in ga-link */  
+      IF VALID-HANDLE(hFocus) 
       AND FOCUS = hFocus  /* Only if same as applied above */ 
       AND FOCUS:SENSITIVE /* avoid non-sensitive read-only=false widgets..*/ 
       AND CAN-QUERY(hFocus,'SET-SELECTION':U) 
       AND CAN-QUERY(hFocus,'SCREEN-VALUE':U) 
-      AND LENGTH(hFocus:SCREEN-VALUE) > 1 THEN 
+      AND LENGTH(hFocus:SCREEN-VALUE) >= 1 THEN 
         hFocus:SET-SELECTION(1,LENGTH(hFocus:SCREEN-VALUE) + 1).
-      
+
       RETURN.
       
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-applyEntry) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE applyEntry Procedure 
+PROCEDURE applyEntry :
+/*------------------------------------------------------------------------------
+   Purpose:  Applies "ENTRY" to the first enabled and visible object 
+Parameters:  INPUT pcField AS CHARACTER -- optional fieldname; if specified,
+             (if this parameter is not blank or unknown), then
+             the frame field of that name will be positioned to. 
+     Notes:  Overridden to apply entry to first in groupAssignTarget if 
+             this object is hidden and top of GA link and fieldname = ? or ''. 
+------------------------------------------------------------------------------*/
+ DEFINE INPUT  PARAMETER pcField AS CHARACTER  NO-UNDO.
+
+ DEFINE VARIABLE hObject   AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE hGaSource AS HANDLE     NO-UNDO.
+
+ hObject = TARGET-PROCEDURE. 
+
+ IF pcField = ? OR pcField = '' THEN
+ DO:
+   {get GroupAssignSource hGaSource}.
+   IF NOT VALID-HANDLE(hGaSource) THEN
+     hObject = {fn firstVisibleInGroup}.
+ END.
+
+ IF hObject = TARGET-PROCEDURE THEN
+   RUN SUPER(pcField).
+
+ /* firstvisibleingroup above returns ? if all objects in group is hidden. 
+    In which case there is no need to go further since apply 'entry' is ignored
+    on hidden widgets. */
+ ELSE IF VALID-HANDLE(hObject) THEN
+   RUN applyEntry IN hObject (pcField).
+
+ RETURN.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-buildDataRequest) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE buildDataRequest Procedure 
+PROCEDURE buildDataRequest :
+/*------------------------------------------------------------------------------
+  Purpose:  Receives a request for data request info from a data source and
+            republishes it to contained top-only datavieews to collect 
+            DataView request info, specifically position info as these contained
+            DataViews are expected to be datasources for SDFs.
+          - This overrides the container's implementation in order to 
+            pass on the viewer entity. 
+  Parameters: 
+       phOwner        -  
+       pcDataSource   - Data source entity name in the case this request is from
+                        a data source. 
+                        This means that foreignfields need to be collected.
+       pcViewerSource - Viewer's data source entity name in the case 
+                        this request is passed through a viewer. 
+                        This means that this object probably has a link to an 
+                        SDF and position info need to be collected. The object
+                        may still be a child of another object on the viewer so 
+                        foreignfields are also collected. 
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER pcOwner         AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER pcDataSource    AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER pcViewerSource  AS CHARACTER  NO-UNDO.
+  
+  DEFINE INPUT-OUTPUT PARAMETER pcDatasetSources AS CHARACTER  NO-UNDO.
+  DEFINE INPUT-OUTPUT PARAMETER pcEntities       AS CHARACTER  NO-UNDO.
+  DEFINE INPUT-OUTPUT PARAMETER pcEntityNames    AS CHARACTER  NO-UNDO.
+  DEFINE INPUT-OUTPUT PARAMETER pcHandles        AS CHARACTER  NO-UNDO.
+  DEFINE INPUT-OUTPUT PARAMETER pcDataTables     AS CHARACTER  NO-UNDO.
+  DEFINE INPUT-OUTPUT PARAMETER pcQueries        AS CHARACTER  NO-UNDO.
+  DEFINE INPUT-OUTPUT PARAMETER pcRequests       AS CHARACTER  NO-UNDO.
+  DEFINE INPUT-OUTPUT PARAMETER pcBatchSizes     AS CHARACTER  NO-UNDO.
+  DEFINE INPUT-OUTPUT PARAMETER pcForeignFields  AS CHARACTER  NO-UNDO.
+  DEFINE INPUT-OUTPUT PARAMETER pcPositionFields AS CHARACTER  NO-UNDO.
+   
+  PUBLISH "buildDataRequest":U FROM TARGET-PROCEDURE
+                               (INPUT pcOwner,
+                                INPUT '',
+                                INPUT pcDataSource, /* viewer source */
+                                INPUT-OUTPUT pcDatasetSources,
+                                INPUT-OUTPUT pcEntities,
+                                INPUT-OUTPUT pcEntityNames,
+                                INPUT-OUTPUT pcHandles,
+                                INPUT-OUTPUT pcDataTables,
+                                INPUT-OUTPUT pcQueries,
+                                INPUT-OUTPUT pcRequests,                               
+                                INPUT-OUTPUT pcBatchSizes,
+                                INPUT-OUTPUT pcForeignFields,
+                                INPUT-OUTPUT pcPositionFields).
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -370,11 +472,18 @@ PROCEDURE cancelRecord :
                cancels the update and for an add or copy, deletes the temp-table 
                record.   
 ------------------------------------------------------------------------------*/
-  RUN SUPER.
+  DEFINE VARIABLE hGaSource AS HANDLE  NO-UNDO.
 
+  RUN SUPER.  
   IF RETURN-VALUE EQ "ADM-ERROR":U THEN RETURN "ADM-ERROR":U. 
   
-  PUBLISH 'cancelRecord':U FROM TARGET-PROCEDURE.   /* In case GroupAssign */
+  PUBLISH 'cancelRecord':U FROM TARGET-PROCEDURE. /* Intended for GroupAssign */
+  
+  /* apply entry ? will reach first visible Ga target if this is hidden,
+     so only call in top gasource */ 
+  {get GroupAssignSource hGaSource}.
+  IF NOT VALID-HANDLE(hGaSource) THEN
+    RUN applyEntry IN TARGET-PROCEDURE (?).  
 
   RETURN.
 END PROCEDURE.
@@ -410,12 +519,6 @@ PROCEDURE copyRecord :
       RUN SUPER.
       IF RETURN-VALUE = "ADM-ERROR":U THEN RETURN "ADM-ERROR":U.
      
-      /* See long comment in addRow about this */
-      RUN applyEntry IN TARGET-PROCEDURE (?).
-      /* applying here causes highlighting to be lost during the process,
-         so we deal with this at the end  */
-      hFocus = FOCUS.
-      
       /* Note: SUPER (datavis.p) verifies that UpdateTarget is present. */
       {get UpdateTarget cTarget}.
       hUpdateTarget = WIDGET-HANDLE(cTarget).
@@ -423,6 +526,12 @@ PROCEDURE copyRecord :
          the add; otherwise we invoke addRow in the UpdateTarget.*/           
       IF VALID-HANDLE(hUpdateTarget) THEN
       DO:
+        /* See comment in the similar addRow about this */      
+        RUN applyEntry IN TARGET-PROCEDURE (?).
+        /* applying here causes highlighting to be lost during the process,
+           so we deal with this at the end  */
+        hFocus = FOCUS.
+
         &SCOPED-DEFINE xpUpdateTargetNames
         {get UpdateTargetNames cUpdateNames}.
         &UNDEFINE xpUpdateTargetNames
@@ -456,7 +565,7 @@ PROCEDURE copyRecord :
         ghTargetProcedure = TARGET-PROCEDURE.
         cColValues = DYNAMIC-FUNCTION("copyRow":U IN hUpdateTarget, cFields). 
         IF cColValues = ? THEN
-        do:
+        DO:
           {set NewRecord "NO"}.
           {fn showDataMessages}.
           RETURN "ADM-ERROR":U.
@@ -470,24 +579,26 @@ PROCEDURE copyRecord :
         IF VALID-HANDLE(hGaSource) THEN
            RUN DisplayRecord IN TARGET-PROCEDURE. 
       END.
-
+      
       PUBLISH 'copyRecord':U FROM TARGET-PROCEDURE.  /* In case of GroupAssign */
       
       PUBLISH 'updateState':U FROM TARGET-PROCEDURE ('update').
       
-      /* We've moved the apply entry before the call to copyRow. (see above) 
+      /* We've moved the apply entry before the call to addrow. 
+         (see above)          
          This causes the highlight to disappear, so use set-selection 
          to achieve old behavior. (another applyEntry call would cause 
-         entry triggers firing twice, which is not always appreciated) */  
-      IF VALID-HANDLE(FOCUS) 
+         entry triggers firing twice, which may not be appreciated..) 
+         NOTE: hFocus is only set if updatesource and points to a widget 
+         in first visible object in ga-link */  
+      IF VALID-HANDLE(hFocus) 
       AND FOCUS = hFocus  /* Only if same as applied above */ 
       AND FOCUS:SENSITIVE /* avoid non-sensitive read-only=false widgets..*/ 
       AND CAN-QUERY(hFocus,'SET-SELECTION':U) 
       AND CAN-QUERY(hFocus,'SCREEN-VALUE':U) 
-      AND LENGTH(hFocus:SCREEN-VALUE) > 1 THEN 
+      AND LENGTH(hFocus:SCREEN-VALUE) >= 1 THEN 
         hFocus:SET-SELECTION(1,LENGTH(hFocus:SCREEN-VALUE) + 1).
       
-  
     RETURN.
       
 END PROCEDURE.
@@ -504,7 +615,7 @@ PROCEDURE createObjects :
 /*------------------------------------------------------------------------------
   Purpose:     Build list properties for contained objects/widgets
   Parameters:  <none>
-  Notes:       
+  Notes:       Calls createDataSource in SDFs if necessary.
 ------------------------------------------------------------------------------*/   
   DEFINE VARIABLE hFrame             AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hField             AS HANDLE     NO-UNDO.
@@ -530,8 +641,9 @@ PROCEDURE createObjects :
   DEFINE VARIABLE cDataSourceNames   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lUpdateTargetSet   AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE hDataSource        AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE lSBONamesSet       AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE hObject            AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hSDFDataSource     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cSDFDataSourceName AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lDisplay           AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lEnable            AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lLocal             AS LOGICAL    NO-UNDO.
@@ -541,6 +653,9 @@ PROCEDURE createObjects :
   DEFINE VARIABLE hChildFrame        AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cDataFieldMapping  AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iMap               AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cSourceType        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lSBO               AS LOGICAL    NO-UNDO.
+
   RUN SUPER.
                                           
   {get AllFieldHandles cAllFieldhandles}.
@@ -550,8 +665,6 @@ PROCEDURE createObjects :
     &SCOPED-DEFINE xp-assign
     {get DataSource hDataSource}
     {get ContainerTarget cTargets}
-    {get DataSourceNames cDataSourceNames}
-    {get UpdateTargetNames cUpdateTargetNames}
     {get DisplayedFields cDisplayedFields}
     {get EnabledObjFlds cEnabledObjFlds}
     {get EnabledFields cEnabledFields}
@@ -559,7 +672,27 @@ PROCEDURE createObjects :
     {get DataFieldMapping cDataFieldMapping}
      .
     &UNDEFINE xp-assign
+    IF VALID-HANDLE(hDataSource) THEN
+    DO:
+      {get ObjectType cSourceType hDataSource}.
+      lSBO = (cSourceType = 'SmartBusinessObject':U).
 
+      /*  If SBO call addTarget 
+          (it will set the mapping between the objects and most importantly 
+           set UpdateTargetNames and DataSourcenames if not defined) */
+      IF lSBO THEN
+      DO:
+        RUN addDataTarget IN hDataSource (TARGET-PROCEDURE). 
+        IF RETURN-VALUE = 'adm-error':U THEN
+          RETURN.
+        &SCOPED-DEFINE xp-assign
+        {get DataSourceNames cDataSourceNames}
+        {get UpdateTargetNames cUpdateTargetNames}
+        .
+        &UNDEFINE xp-assign     
+      END. /* lSBO */
+    END. /* valid(datasource) */
+   
     /* Build list of frames and fieldnames for identification in widgetloop */
     DO iTarget = 1 TO NUM-ENTRIES(cTargets):  
       hTarget    = WIDGET-HANDLE(ENTRY(iTarget,cTargets)).
@@ -568,10 +701,10 @@ PROCEDURE createObjects :
       {get ObjectType cObjectType hTarget}
       .
       &UNDEFINE xp-assign 
-      IF cObjectType = 'SmartDataField':U THEN
-        cTargetFrames = cTargetFrames + ',' + STRING(hChildFrame). 
+      IF cObjectType = 'SmartDataField':U OR cObjectType = 'SmartLOBField':U THEN
+        cTargetFrames = cTargetFrames + ',':U + STRING(hChildFrame). 
       ELSE /* keep list in synch with cTargets
-         (blank is not used as list is trimmed after loop) */
+         (blank is avoided as list is trimmed after loop) */
         cTargetFrames = cTargetFrames + ',' + '?'.
   
     END. /* containerTarget loop */
@@ -579,7 +712,6 @@ PROCEDURE createObjects :
     ASSIGN
       cTargetFrames    = LEFT-TRIM(cTargetFrames,',':U)
       cTargetNames     = LEFT-TRIM(cTargetNames,',':U)
-      lSBONamesSet     = cDataSourceNames <> ? 
       hField           = hFrame:FIRST-CHILD:FIRST-CHILD
       /* The order of the lists of handles must match the order of the 
          DisplayedField and EnabledField properties, so initialise with the 
@@ -588,11 +720,7 @@ PROCEDURE createObjects :
       cFieldHandles    = FILL(",":U, NUM-ENTRIES(cDisplayedFields) - 1)
       cEnabledObjHdls  = FILL(",":U, NUM-ENTRIES(cEnabledObjFlds) - 1)
       .
-    IF NOT lSBONamesSet THEN
-      ASSIGN 
-        cDataSourceNames   = ''
-        cUpdateTargetNames = ''.
-  
+
     /* widgetloop */
     DO WHILE VALID-HANDLE(hField): 
       ASSIGN 
@@ -613,20 +741,36 @@ PROCEDURE createObjects :
           {get DisplayField lDisplay hTarget}
           {get EnableField lEnable hTarget}
           {get LocalField  lLocal hTarget}
-          .
+          {get DataSource hSDFDataSource hTarget}
+           .
           &UNDEFINE xp-assign
+          IF NOT VALID-HANDLE(hSDFDataSource) THEN
+          DO:
+            /*  no-error as Datasourcename is currently not implemented 
+                in all SDF classes */         
+            cSDFDataSourceName = ''.
+            {get DataSourceName cSDFDataSourceName hTarget} NO-ERROR.
+            /* if sourcename and no valid source then createdatasource here 
+               so that it can be included in the initial datarequest*/
+            IF cSDFDataSourceName > '' THEN
+              {fn createDataSource hTarget} NO-ERROR.
+          END.   /* not valid  hSDFDataSource*/
+
+          IF NUM-ENTRIES(cFieldName,'.') > 1 THEN
+            cTable = ENTRY(1,cFieldName,'.').
+
           IF lLocal then
           do:
             /* Only add the SDF to the list of enabled objects if it is,
-               in fact, meant to be enabled. 
-             */            if lEnable then
-                    ASSIGN 
-                      cEnabledObjFlds = cEnabledObjFlds 
-                                      + (IF cEnabledObjFlds = '' THEN '' ELSE ',':U) 
-                                      + cFieldName 
-                      cEnabledObjHdls = cEnabledObjHdls 
-                                      + (IF cEnabledObjHdls = '' THEN '' ELSE ',':U) 
-                                      + STRING(hTarget). 
+               in fact, meant to be enabled. */           
+            if lEnable then
+              ASSIGN 
+                cEnabledObjFlds = cEnabledObjFlds 
+                                + (IF cEnabledObjFlds = '' THEN '' ELSE ',':U) 
+                                + cFieldName 
+                cEnabledObjHdls = cEnabledObjHdls 
+                                + (IF cEnabledObjHdls = '' THEN '' ELSE ',':U) 
+                                + STRING(hTarget). 
           end.    /* local sdf */
           ELSE DO:
             IF lDisplay THEN
@@ -639,7 +783,8 @@ PROCEDURE createObjects :
                                  + STRING(hTarget). 
             IF lEnable THEN
             DO:
-              IF cTable = '' OR lSBONamesSet = FALSE OR LOOKUP(cTable,cUpdateTargetNames) > 0 THEN        
+              /* add to list (unless SBO and not in updateTargetNames) */          
+              IF NOT lSBO OR LOOKUP(cTable,cUpdateTargetNames) > 0 THEN        
                 ASSIGN 
                   cEnabledFields  = cEnabledFields 
                                   + (IF cEnabledFields = '' THEN '' ELSE ',':U) 
@@ -647,10 +792,8 @@ PROCEDURE createObjects :
                   cEnabledHandles = cEnabledHandles 
                                   + (IF cEnabledHandles = '' THEN '' ELSE ',':U) 
                                   + STRING(hTarget). 
-            END.
+            END. /* lenable */
           END.
-          IF NUM-ENTRIES(cFieldName,'.') > 1 THEN
-            cTable     = ENTRY(1,cFieldName,'.').
         END.
       END.    /* FRAME widget (ie SDF) */
       ELSE
@@ -659,6 +802,7 @@ PROCEDURE createObjects :
           ASSIGN
             hField:SENSITIVE = TRUE
             hField:READ-ONLY = TRUE. 
+        
         /* Check if widget is mapped to a datafield 
           (currently used for static longchar - datasource clob mapping) */ 
         iMap = LOOKUP(hField:NAME,cDataFieldMapping).
@@ -678,6 +822,7 @@ PROCEDURE createObjects :
             cFieldName = IF cTable > ''  
                          THEN cTable + "." + hField:NAME 
                          ELSE hField:NAME. 
+     
         ASSIGN
           iDisplay   = LOOKUP(cFieldName, cDisplayedFields)
           iEnable    = LOOKUP(cFieldName, cEnabledFields)
@@ -688,7 +833,10 @@ PROCEDURE createObjects :
         IF iEnable > 0 THEN
         DO:
           ENTRY(iEnable, cEnabledHandles) = STRING(hField).
-          IF cTable > '' AND lSBONamesSet AND LOOKUP(cTable,cUpdateTargetNames) = 0 THEN        
+          
+          /* Remove from enabled lists if table qualified and SBO target,
+             but not in updateTargetNames */
+          IF lSBO AND cTable > '' AND LOOKUP(cTable,cUpdateTargetNames) = 0 THEN        
             ASSIGN
               cEnabledFields =  DYNAMIC-FUNCTION('deleteEntry' IN TARGET-PROCEDURE,
                                                  iEnable,cEnabledFields,',')
@@ -708,13 +856,7 @@ PROCEDURE createObjects :
         END.
         hTarget = hField.
       END.
-      IF cTable > '' AND NOT lSBONamesSet AND VALID-HANDLE(hDataSource) THEN
-      DO:
-        IF LOOKUP(cTable,cDataSourceNames) = 0 THEN
-          cDataSourceNames = cDataSourceNames + "," + cTable.
-        IF LOOKUP(cTable,cUpdateTargetNames) = 0 THEN
-          cUpdateTargetNames = cUpdateTargetNames + "," + cTable.
-      END.
+
       /* Anonymous widgets are not allowed (labels) */
       IF cFieldName > '' THEN
         ASSIGN
@@ -730,7 +872,7 @@ PROCEDURE createObjects :
       cAllFieldHandles   = TRIM(cAllFieldHandles,",")
       cUpdateTargetNames = TRIM(cUpdateTargetNames,",")
       cDataSourceNames   = TRIM(cDataSourceNames,",").
-  
+   
   /* Store the properties */
     &SCOPED-DEFINE xp-assign
     {set DisplayedFields cDisplayedFields}
@@ -943,6 +1085,7 @@ PROCEDURE displayFields :
   /* Used for Dynamic Combos */
   DEFINE VARIABLE cWidgetNames  AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cWidgetValues AS CHARACTER  NO-UNDO.
+
     /* Field Security Check */
   DEFINE VARIABLE cAllFieldHandles AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cSecuredFields   AS CHARACTER NO-UNDO.
@@ -999,8 +1142,8 @@ PROCEDURE displayFields :
     /* Qualify field name if necessary */
     IF INDEX(cDisplayFromSource,".") > 0 AND INDEX(cFieldName,".") = 0 THEN
     DO:
-        {get DataSourceNames cDataSource}.
-        cFieldName = cDataSource + "." + cFieldName.
+      {get DataSourceNames cDataSource}.
+      cFieldName = cDataSource + "." + cFieldName.
     END.
 
     /* Check Security for hidden fields */
@@ -1013,13 +1156,13 @@ PROCEDURE displayFields :
       /* some data was passed ...(record available)  */
       IF pcColValues NE ? THEN
       DO: 
-        /* LargeColumns in SDFs handles its data on the QueryPosition event */
+        /* LargeColumns in SDFs handles its data on the displayfield event */
         IF hField:TYPE = 'PROCEDURE':U AND CAN-DO(cLargeColumns,cFieldName) THEN
           NEXT.
 
         /**** BEGIN: get value ***/
         /* If not DisplayFromSource get the value from the parameter 
-          (This is intentonally done before checks for LargeColumns or longchar
+          (This is intentionally done before checks for LargeColumns or longchar
            since we currently support passing data in parameter also to 
            large columns by specifying a list of fields or '(none)' 
            in the DisplayFromSource property... ) */         
@@ -1027,7 +1170,7 @@ PROCEDURE displayFields :
           cValue = RIGHT-TRIM(ENTRY(iValue + 1, pcColValues, CHR(1))).
         
         /** else get the value from the SDO... unless this is a longchar widget
-            in whihc case it is assigned directly below.. 
+            in which case it is assigned directly below.. 
             Note: cDisplayFromSource is set to blank above if no valid-handle
                   so no sanity check is needed here  */        
         ELSE IF hField:TYPE = 'PROCEDURE':U OR hField:DATA-TYPE <> 'LONGCHAR':U THEN
@@ -1133,7 +1276,7 @@ PROCEDURE displayFields :
       RUN hideObject IN hField NO-ERROR.
     END.
     
-    /* For Combos and Selection lists. Avoid LargeColumns. 
+    /* For Combos and Selection lists (old lookupapi). Avoid LargeColumns. 
        Note that cValue is not set for LONGCHAR, but the assumption is that 
        LONGCHAR always is one of the LargeColumns */ 
     IF NOT CAN-DO(cLargeColumns,cFieldName) AND NOT glUseNewAPI THEN
@@ -1553,6 +1696,30 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-fetchChildFieldData) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE fetchChildFieldData Procedure 
+PROCEDURE fetchChildFieldData :
+/*------------------------------------------------------------------------------
+  Purpose:  Retrieve and refresh data for child SDF's of specified parent
+Parameters: pcParent - Parent name 
+                     - blank = fields with no parent
+                     - ?     = all
+  Notes:    Handles only combos  
+------------------------------------------------------------------------------*/
+  DEFINE INPUT PARAMETER pcParent AS CHARACTER  NO-UNDO.
+              
+  RUN notifyFields IN ghSDFCacheManager ('Fetch':U,
+                                         TARGET-PROCEDURE,
+                                         pcParent).  
+              
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-initializeObject) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initializeObject Procedure 
@@ -1711,15 +1878,18 @@ PROCEDURE linkStateHandler :
   DEFINE INPUT PARAMETER phObject  AS HANDLE     NO-UNDO.
   DEFINE INPUT PARAMETER pcLink    AS CHARACTER  NO-UNDO.
  
-  DEFINE VARIABLE cTargets      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hTarget       AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE iTarget       AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE lGaTargetInit AS LOGICAL    NO-UNDO INIT ?.
+  DEFINE VARIABLE cTargets          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hTarget           AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iTarget           AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE lGaTargetInit     AS LOGICAL    NO-UNDO INIT ?.
+  DEFINE VARIABLE cInactiveLinks    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataSourceEvents AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lInitialized      AS LOGICAL    NO-UNDO.
 
   /* An uninitialized GroupAssignTarget starts up with deactive 
      groupAssign-source link in order to not receive events like enableFields 
      and disableFields before initialized. (customer overrides with SDF handle
-     refereces) The link is activated in initializeObject     
+     references) The link is activated in initializeObject     
     (Performance is EXTREMELY crucial here so only retrieve ObjectInitialized 
      if required, lGaTargetInit is defined init ?.. 
      the code further below has the normal if.. else.. structure) */   
@@ -1734,19 +1904,57 @@ PROCEDURE linkStateHandler :
   
   ELSE DO: /*(all cases except Non-initialized GaTarget)*/
     
-    IF pcLink = 'DataSource':U AND pcState ='Add':U THEN
-       /* Use NO-ERROR as SBO do not yet support this 
-         (could also be passThru link to container). */
-      {set FetchAutoComment TRUE phObject} NO-ERROR.
-    
-    RUN SUPER(pcState,phObject,pcLink).
-  
-    IF CAN-DO('ACTIVE,INACTIVE':U,pcState) AND pcLink = 'DataSource':U THEN
+     /* data links are deactive on add an activated on init..... 
+        but we subscribed to buildDataRequest (see below after super)
+        so we make sure to unsubscribe when the link is activated 
+        (could alternatively have removed the event from DataSourceEvents
+         while super is called ) */      
+    IF pcLink = 'DataSource':U AND pcState = 'ACTIVE':U THEN
     DO:
-      {get GroupAssignTarget cTargets}.
-      DO iTarget = 1 TO NUM-ENTRIES(cTargets):
-        hTarget = WIDGET-HANDLE(ENTRY(iTarget,cTargets)).
-        RUN LinkStateHandler IN hTarget(pcState,phObject,pcLink).
+      &SCOPED-DEFINE xp-assign
+      {get DataSourceEvents cDataSourceEvents}
+      {get ObjectInitialized lInitialized}
+      .
+      &UNDEFINE xp-assign
+      
+      IF NOT lInitialized 
+      AND LOOKUP('buildDataRequest':U,cDataSourceEvents) > 0 THEN 
+        UNSUBSCRIBE PROCEDURE TARGET-PROCEDURE TO 'buildDataRequest':U IN phObject.
+    END.
+
+    RUN SUPER(pcState,phObject,pcLink).
+    
+    IF pcLink = 'DataSource':U THEN
+    DO:
+      IF pcState = 'ADD':U THEN
+      DO:
+        /* Use NO-ERROR as SBO do not yet support this 
+          (could also be passThru link to container). */
+        {set FetchAutoComment TRUE phObject} NO-ERROR.
+
+        /* data links are deactive on add an activated on init..... 
+           The viewer do, however, need to subscribe to buildDataRequest
+           before initialization in order to include SDF SDOs in the request 
+           We unsubscribe on active (see before super)*/ 
+        &SCOPED-DEFINE xp-assign
+        {get DataSourceEvents cDataSourceEvents}
+        {get ObjectInitialized lInitialized}
+        .
+        &UNDEFINE xp-assign
+        IF NOT lInitialized 
+        AND LOOKUP('buildDataRequest':U,cDataSourceEvents) > 0
+        AND DYNAMIC-FUNCTION("isLinkInactive":U IN TARGET-PROCEDURE,
+                                  'DataSource':U,phObject) THEN
+          SUBSCRIBE PROCEDURE TARGET-PROCEDURE TO 'buildDataRequest':U IN phObject.
+      END.
+
+      IF CAN-DO('ACTIVE,INACTIVE':U,pcState) THEN
+      DO:
+        {get GroupAssignTarget cTargets}.
+        DO iTarget = 1 TO NUM-ENTRIES(cTargets):
+          hTarget = WIDGET-HANDLE(ENTRY(iTarget,cTargets)).
+          RUN LinkStateHandler IN hTarget(pcState,phObject,pcLink).
+        END.
       END.
     END.
   END. /* else (all cases except Non-initialized GaTarget) */
@@ -1844,9 +2052,14 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE retrieveFieldData Procedure 
 PROCEDURE retrieveFieldData :
 /*------------------------------------------------------------------------------
-  Purpose:     
+  Purpose:    Retrieve data for all instances of class lookupfield that need 
+              new data.    
   Parameters:  <none>
-  Notes:       
+  Notes:      The prepare will mark SDFs that have query changes to 
+              be refreshed by retrievedata. 
+           -  The data is not displayed, the caller (f.ex. displayFields)
+              will publish 'displayField' to which the SDF subscribes after 
+              this call. 
 ------------------------------------------------------------------------------*/
   PUBLISH "prepareField":U FROM TARGET-PROCEDURE.
   RUN retrieveData IN ghSDFCacheManager (TARGET-PROCEDURE).
@@ -2168,6 +2381,47 @@ END PROCEDURE.
 &ENDIF
 
 /* ************************  Function Implementations ***************** */
+
+&IF DEFINED(EXCLUDE-firstVisibleInGroup) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION firstVisibleInGroup Procedure 
+FUNCTION firstVisibleInGroup RETURNS HANDLE
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose: Return the first visible object of all GA-linked objects, starting 
+           from the object that this is called in.
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cTargets AS CHAR       NO-UNDO.
+  DEFINE VARIABLE iTarget  AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hTarget  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lhidden  AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hObject  AS HANDLE     NO-UNDO.
+
+  &SCOPED-DEFINE xp-assign
+  {get ObjectHidden lHidden}
+  {get GroupAssignTarget cTargets}
+  .
+  &UNDEFINE xp-assign
+  
+  IF NOT lHidden THEN
+    RETURN TARGET-PROCEDURE.
+
+  /* Check if any GA sibling before us is visible */
+  DO iTarget = 1 TO NUM-ENTRIES(cTargets):
+    hTarget = WIDGET-HANDLE(ENTRY(iTarget,cTargets)).      
+    hObject = {fn firstVisibleInGroup hTarget}.
+    IF VALID-HANDLE(hObject) THEN
+      RETURN hObject.
+  END.
+  
+  RETURN ?. 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-getDataFieldMapping) = 0 &THEN
 

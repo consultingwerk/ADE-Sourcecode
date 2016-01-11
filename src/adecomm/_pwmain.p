@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -91,6 +75,7 @@ Modified: 06/09/98 adams added support for 9.0A remote file managment
 *****************************************************************************/
 
 /*-----------------------------  DEFINE VARS  -------------------------------*/
+{adecomm/oeideservice.i}
 
 /* ADE Standards Include. */
 { adecomm/adestds.i }
@@ -127,6 +112,8 @@ DEFINE VARIABLE Temp_File    AS CHARACTER NO-UNDO.
 DEFINE VARIABLE Temp_Name    AS CHARACTER NO-UNDO.
 DEFINE VARIABLE List_Item    AS INTEGER   NO-UNDO.
 DEFINE VARIABLE Web_File     AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE RelPath      AS CHARACTER NO-UNDO INIT ?.
+
 
 /* --- Begin SCM changes --- */
 DEFINE VARIABLE scm_ok       AS LOGICAL   NO-UNDO.
@@ -151,130 +138,177 @@ DO ON STOP UNDO, LEAVE:
     /* If File List is empty, get an Untitled procedure name. Otherwise,
        process the file list.
     */
-    ASSIGN Web_File = FALSE.
-    
-    IF NUM-ENTRIES( p_File_List ) = 0 OR p_Edit_Command = "UNTITLED":U
-      THEN RUN adecomm/_pwgetun.p ( OUTPUT Proc_Name ).
-    ELSE DO:
-      ASSIGN Proc_Name = ENTRY( List_Item , p_File_List ).
-      IF NUM-ENTRIES(Proc_Name, CHR(3)) = 3 THEN
-        ASSIGN Web_File   = TRUE
-               Temp_File  = ENTRY( 2, Proc_Name, CHR(3))
-               Broker_URL = ENTRY( 3, Proc_Name, CHR(3))
-               Proc_Name  = ENTRY( 1, Proc_Name, CHR(3)).
-    END.
-    
-    /** ******
-     ** Step 1: Create the MENU-BAR so we can add it to the window.
-     ** ******
-     **/
-    RUN adecomm/_pwmbar.p ( INPUT NO /* p_Popup */,
-                            INPUT IF p_Edit_Command MATCHES "*READ-ONLY*":U THEN "READ-ONLY":U
-                                  ELSE "":U,
-                            OUTPUT h_menu /* PW Menubar Handle */ ).
-
- 
-    /** ******
-     ** Step 2: Create the Procedure Window (including frame and editor widget)
-     ** ******  as well as the additional PW Attributes for persistent data. 
-     **         This also attaches default triggers for WINDOW-CLOSE,
-     **         WINDOW-RESIZE, and HELP.  Override them if you wish.
-     **/
-    RUN adecomm/_pwcreat.p ( INPUT  p_Parent_ID /* Parent ID   */ ,
-                             INPUT  {&PW_Name}  /* Window Name */ ,
-                             INPUT  {&PW_Title_Leader} + Proc_Name /* Title */ +
-                                    (IF NOT Web_File THEN "" ELSE (CHR(3) + 
-                                        Temp_File + CHR(3) + Broker_URL)),
-                             INPUT  h_menu      /* Menubar     */ ,
-                             OUTPUT h_win       /* Window H    */ ).
-    
-    /* Get widget handles of Procedure Window and its editor widget. */
-    RUN adecomm/_pwgeteh.p ( INPUT h_win , OUTPUT h_ed ).
-    ASSIGN h_frame   = h_ed:FRAME.
-    ASSIGN h_ed:NAME = Proc_Name.
-    
-    /* Load up cute icon file */
-    IF h_win:LOAD-ICON("adeicon/editor") THEN.
-    
-    /* Attach popup menu. */
-    RUN adecomm/_pwmbar.p ( INPUT  YES    /* p_Popup */,
-                            INPUT  "":U,
-                            OUTPUT h_menu /* PW Menubar Handle */ ).
-    ASSIGN h_ed:POPUP-MENU = h_menu.
-     
-    /** ******
-     ** Step 3: If the current Proc_Name is not Untitled, try to read the file.
-     ** ******
-     **/
-    /* If p_Edit_Command is "UNTITLED" set Proc_Name to (and h_ed:NAME) to
-     proper name */
-    IF p_Edit_Command = "UNTITLED" AND 
-      List_Item > 0 AND List_Item <= NUM-ENTRIES(p_File_List) 
-    THEN DO:
-      ASSIGN Temp_name = Proc_Name
-             Proc_Name = ENTRY( List_Item , p_File_List ).
-      IF NUM-ENTRIES(Proc_Name, CHR(3)) = 3 THEN
-        ASSIGN Temp_File  = ENTRY( 2, Proc_Name, CHR(3))
-               Broker_URL = ENTRY( 3, Proc_Name, CHR(3))
-               Proc_Name  = ENTRY( 1, Proc_Name, CHR(3)).
-    END.
-    
-    /* If not Untitled, try to read specified file. */
-    IF NOT h_ed:NAME BEGINS {&PW_Untitled} OR p_Edit_Command = "UNTITLED":U THEN
-    DO ON STOP UNDO, LEAVE:
-        /*  Try to read specified file into editor widget. If successful,
-            pw_Editor:NAME and pw_Window:TITLE are updated to reflect file
-            name read.  If not successful, delete the PW opened. 
-        */
-        RUN adecomm/_pwrdfl.p (INPUT  h_ed,
-                               INPUT  (Proc_Name + 
-                                      (IF NOT Web_File THEN ""
-                                       ELSE CHR(3) + Temp_File)),
-                               OUTPUT Read_OK).
-        /* If read unsuccessful, delete the PW. */
-        IF NOT Read_OK THEN 
-          RUN adecomm/_pwdelpw.p ( INPUT h_win ).
-    END.
-    /* If read successful or Untitled, enter the window for editing. */
-    IF VALID-HANDLE( h_ed ) THEN DO:
-      IF p_Edit_Command = "UNTITLED":U THEN 
-      ASSIGN Proc_Name = Temp_name
-             h_ed:NAME = Temp_name
-             h_win:TITLE = {&PW_Title_Leader} + Proc_name.
+    IF OEIDEIsRunning AND p_Edit_Command = "UNTITLED":U AND NUM-ENTRIES(p_File_List) > 0 THEN
+    DO:
+        /* Open file in IDE Editor */
+        openEditor(?, ENTRY( List_Item, p_File_List ), "UNTITLED":U, ?).
+        PW_Opened = TRUE.
         
-      /* --- Begin SCM changes --- */
-      /* Do custom setup -- this is generally a no-op, but it can
-         be used to initialize custom modifications. */
-      RUN adecomm/_adeevnt.p (INPUT  {&PW_NAME},
-                              INPUT  "STARTUP", 
-                              INPUT  STRING( h_win ), 
-                              INPUT  STRING( h_win:PRIVATE-DATA ),
-                              OUTPUT scm_ok ).
-              
-      IF h_ed:NAME BEGINS {&PW_Untitled} THEN
-        ASSIGN scm_event = "NEW"
-               scm_file  = ? .
-      ELSE
-        ASSIGN scm_event = "OPEN"
-               scm_file  = h_ed:NAME .
-
-      IF p_Edit_Command MATCHES "*READ-ONLY*":U THEN h_ed:READ-ONLY = TRUE.
-                 
-      RUN adecomm/_adeevnt.p (INPUT  {&PW_NAME},
-                              INPUT  scm_event, 
-                              INPUT  STRING( h_ed ), 
-                              INPUT  scm_file,
-                              OUTPUT scm_ok).
-  
-      /* --- End SCM changes ----- */
-  
-      ASSIGN PW_Opened = TRUE.
-        /* If wait cursor is on, the APPLY "ENTRY" won't take. So
-           be sure its "off".
-        */
-        RUN adecomm/_setcurs.p ( INPUT "" ).
-        APPLY "ENTRY" TO h_ed.
+          /* --- Begin SCM changes --- */
+          /* Do custom setup -- this is generally a no-op, but it can
+             be used to initialize custom modifications. */
+          RUN adecomm/_adeevnt.p (INPUT  {&PW_NAME},
+                                  INPUT  "STARTUP", 
+                                  INPUT  ?, 
+                                  INPUT  ?,
+                                  OUTPUT scm_ok ).
+                  
+          ASSIGN scm_event = "NEW"
+                 scm_file  = ? .
+                     
+          RUN adecomm/_adeevnt.p (INPUT  {&PW_NAME},
+                                  INPUT  scm_event, 
+                                  INPUT  ?, 
+                                  INPUT  scm_file,
+                                  OUTPUT scm_ok).
+      
+          /* --- End SCM changes ----- */
+        
     END.
+    ELSE DO:
+        ASSIGN Web_File = FALSE.
+        
+        IF NUM-ENTRIES( p_File_List ) = 0 OR p_Edit_Command = "UNTITLED":U
+          THEN RUN adecomm/_pwgetun.p ( OUTPUT Proc_Name ).
+        ELSE DO:
+          ASSIGN Proc_Name = ENTRY( List_Item , p_File_List ).
+          IF NUM-ENTRIES(Proc_Name, CHR(3)) = 4 THEN
+            ASSIGN Web_File   = TRUE
+                   Temp_File  = ENTRY( 2, Proc_Name, CHR(3))
+                   Broker_URL = ENTRY( 3, Proc_Name, CHR(3))
+                   RelPath    = ENTRY( 4, Proc_Name, CHR(3))
+                   Proc_Name  = ENTRY( 1, Proc_Name, CHR(3))
+                   RelPath    = (IF RelPath = ? OR RelPath = "" THEN Proc_Name ELSE RelPath).
+        END.
+        
+        /** ******
+         ** Step 1: Create the MENU-BAR so we can add it to the window.
+         ** ******
+         **/
+        RUN adecomm/_pwmbar.p ( INPUT NO /* p_Popup */,
+                                INPUT IF p_Edit_Command MATCHES "*READ-ONLY*":U THEN "READ-ONLY":U
+                                      ELSE "":U,
+                                OUTPUT h_menu /* PW Menubar Handle */ ).
+    
+     
+        /** ******
+         ** Step 2: Create the Procedure Window (including frame and editor widget)
+         ** ******  as well as the additional PW Attributes for persistent data. 
+         **         This also attaches default triggers for WINDOW-CLOSE,
+         **         WINDOW-RESIZE, and HELP.  Override them if you wish.
+         **/
+        RUN adecomm/_pwcreat.p ( INPUT  p_Parent_ID /* Parent ID   */ ,
+                                 INPUT  {&PW_Name}  /* Window Name */ ,
+                                 INPUT  {&PW_Title_Leader} + 
+                                        (IF Web_File THEN RelPath ELSE Proc_Name) /* Title */ +
+                                        (IF NOT Web_File THEN "" ELSE (CHR(3) + 
+                                            Temp_File + CHR(3) + Broker_URL + CHR(3) +
+                                            (IF RelPath NE Proc_Name THEN Proc_Name ELSE "")) ),
+                                 INPUT  h_menu      /* Menubar     */ ,
+                                 OUTPUT h_win       /* Window H    */ ).
+        
+        /* Get widget handles of Procedure Window and its editor widget. */
+        RUN adecomm/_pwgeteh.p ( INPUT h_win , OUTPUT h_ed ).
+        ASSIGN h_frame   = h_ed:FRAME.
+        ASSIGN h_ed:NAME = (IF Web_File THEN RelPath ELSE Proc_Name).
+        
+        /* Load up cute icon file */
+        IF h_win:LOAD-ICON("adeicon/editor") THEN.
+        
+        /* Attach popup menu. */
+        RUN adecomm/_pwmbar.p ( INPUT  YES    /* p_Popup */,
+                                INPUT  "":U,
+                                OUTPUT h_menu /* PW Menubar Handle */ ).
+        ASSIGN h_ed:POPUP-MENU = h_menu.
+         
+        /** ******
+         ** Step 3: If the current Proc_Name is not Untitled, try to read the file.
+         ** ******
+         **/
+        /* If p_Edit_Command is "UNTITLED" set Proc_Name to (and h_ed:NAME) to
+         proper name */
+        IF p_Edit_Command = "UNTITLED" AND 
+          List_Item > 0 AND List_Item <= NUM-ENTRIES(p_File_List) 
+        THEN DO:
+          ASSIGN Temp_name = Proc_Name
+                 Proc_Name = ENTRY( List_Item , p_File_List ).
+          IF NUM-ENTRIES(Proc_Name, CHR(3)) = 3 THEN
+            ASSIGN Temp_File  = ENTRY( 2, Proc_Name, CHR(3))
+                   Broker_URL = ENTRY( 3, Proc_Name, CHR(3))
+                   Proc_Name  = ENTRY( 1, Proc_Name, CHR(3)).
+        END.
+        
+        /* If not Untitled, try to read specified file. */
+        IF NOT h_ed:NAME BEGINS {&PW_Untitled} OR p_Edit_Command = "UNTITLED":U THEN
+        DO ON STOP UNDO, LEAVE:
+            /*  Try to read specified file into editor widget. If successful,
+                pw_Editor:NAME and pw_Window:TITLE are updated to reflect file
+                name read.  If not successful, delete the PW opened. 
+            */
+            RUN adecomm/_pwrdfl.p (INPUT  h_ed,
+                                   INPUT  ((IF Web_File THEN RelPath ELSE Proc_Name) + 
+                                          (IF NOT Web_File THEN ""
+                                           ELSE CHR(3) + Temp_File + CHR(3) + 
+                                               (IF RelPath NE Proc_Name THEN Proc_Name ELSE "") )),
+                                   OUTPUT Read_OK).
+            /* If read unsuccessful, delete the PW. */
+            IF NOT Read_OK THEN 
+              RUN adecomm/_pwdelpw.p ( INPUT h_win ).
+            ELSE
+              /* Running peditor.i here to set source type of the editor.
+               * Rather than change the editor to handle .cls files like 
+               * .p files, SetEdBufType now tells the editor to pretend 
+               * a .cls is a .p.
+               * After an editor reads or saves a file, internally it changes 
+               * the source type based on the extension, so we will
+               * lose the 4GL syntax highlighting for a .cls file. 
+               * Running SetEdBufType here resets the 4GL syntax highlighting.
+               */
+              /* adecomm/peditor.i */
+              RUN SetEdBufType(INPUT h_ed,INPUT Proc_Name).
+        
+        END.
+        /* If read successful or Untitled, enter the window for editing. */
+        IF VALID-HANDLE( h_ed ) THEN DO:
+          IF p_Edit_Command = "UNTITLED":U THEN 
+          ASSIGN Proc_Name = Temp_name
+                 h_ed:NAME = Temp_name
+                 h_win:TITLE = {&PW_Title_Leader} + Proc_name.
+            
+          /* --- Begin SCM changes --- */
+          /* Do custom setup -- this is generally a no-op, but it can
+             be used to initialize custom modifications. */
+          RUN adecomm/_adeevnt.p (INPUT  {&PW_NAME},
+                                  INPUT  "STARTUP", 
+                                  INPUT  STRING( h_win ), 
+                                  INPUT  STRING( h_win:PRIVATE-DATA ),
+                                  OUTPUT scm_ok ).
+                  
+          IF h_ed:NAME BEGINS {&PW_Untitled} THEN
+            ASSIGN scm_event = "NEW"
+                   scm_file  = ? .
+          ELSE
+            ASSIGN scm_event = "OPEN"
+                   scm_file  = h_ed:NAME .
+    
+          IF p_Edit_Command MATCHES "*READ-ONLY*":U THEN h_ed:READ-ONLY = TRUE.
+                     
+          RUN adecomm/_adeevnt.p (INPUT  {&PW_NAME},
+                                  INPUT  scm_event, 
+                                  INPUT  STRING( h_ed ), 
+                                  INPUT  scm_file,
+                                  OUTPUT scm_ok).
+      
+          /* --- End SCM changes ----- */
+      
+          ASSIGN PW_Opened = TRUE.
+            /* If wait cursor is on, the APPLY "ENTRY" won't take. So
+               be sure its "off".
+            */
+            RUN adecomm/_setcurs.p ( INPUT "" ).
+            APPLY "ENTRY" TO h_ed.
+        END.
+    END.    
   END. /* DO List_Items */
   
   /** ******
@@ -287,5 +321,7 @@ DO ON STOP UNDO, LEAVE:
                            INPUT ""          /* PW Command    */ ).
   RETURN.
 END. /* proc-main */
+
+{ adecomm/peditor.i }   /* Editor procedures. */
 
 /* _pwmain.p - end of file */

@@ -11,25 +11,9 @@ af/cod/aftemwizpw.w
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2002-2003 by Progress Software Corporation ("PSC"),  *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*----------------------------------------------------------------------------
@@ -3475,6 +3459,7 @@ PROCEDURE getSdoInfo PRIVATE :
   DEFINE VARIABLE cDSLookupList       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cLookupParam        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lIsLOB              AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cDataDelimiter      AS CHARACTER  NO-UNDO.
 
   ASSIGN
     lFirst          = TRUE
@@ -3482,8 +3467,9 @@ PROCEDURE getSdoInfo PRIVATE :
     cUpdateableCols = getSDODataColumns(pcLogicalObjectName, phSDO, YES, YES)
     cAllColProps    = DYNAMIC-FUNCTION('columnProps':U IN phSDO, cCols, 'DataType,Initial,Label':U)
     cFilterKey      = pcLogicalObjectName + ".":U + pcSDOName + ".filter":U
-    cSavedFilters   = TRIM(DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager, cFilterKey, NO),"|":U).
-
+    cSavedFilters   = TRIM(DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager, cFilterKey, NO),"|":U)
+    cDataDelimiter  = getSavedDSDataDelimiter(pcLogicalObjectName,pcSDOName).
+  
   /* message 'SDO=' + pcSDOName + '/' + pcLogicalObjectName. */
   /* {log "'SDO=' + pcSDOName + '/' + pcLogicalObjectName + '->' + string(valid-handle(phSDO))"} */
   /* {log "'Cols=' + cCols"}           */
@@ -3527,8 +3513,8 @@ PROCEDURE getSdoInfo PRIVATE :
       pcEnabled     = pcEnabled + (IF lFirst THEN "":U ELSE "|":U) +
                        (IF LOOKUP(cFieldName, cUpdateableCols) <> 0 THEN 'y':U ELSE 'n':U)
       pcDataTypes   = pcDataTypes + (IF lFirst THEN "":U ELSE "|":U) + cDataType
-      pcInitVals    = pcInitVals + (IF lFirst THEN "":U ELSE "|":U) +
-                       RIGHT-TRIM(ENTRY(3, cColProps, CHR(4)))
+      pcInitVals    = pcInitVals + (IF lFirst THEN "":U ELSE cDataDelimiter)
+                                 + RIGHT-TRIM(ENTRY(3, cColProps, CHR(4)))
       pcFromVals    = pcFromVals + (IF lFirst THEN "":U ELSE "|":U) + cFromVal
       pcToVals      = pcToVals + (IF lFirst THEN "":U ELSE "|":U) + cToVal
       pcFormat      = pcFormat + "|":U
@@ -3543,7 +3529,7 @@ PROCEDURE getSdoInfo PRIVATE :
    pcFieldNames  = pcFieldNames + (IF lFirst THEN "":U ELSE "|":U) + "_hascomments"
    pcEnabled     = pcEnabled + (IF lFirst THEN "":U ELSE "|":U) + "n":U
    pcDataTypes   = pcDataTypes + (IF lFirst THEN "":U ELSE "|":U) + "log"
-   pcInitVals    = pcInitVals + (IF lFirst THEN "":U ELSE "|":U) + "no"
+   pcInitVals    = pcInitVals + (IF lFirst THEN "":U ELSE cDataDelimiter) + "no"
    pcFromVals    = pcFromVals + (IF lFirst THEN "":U ELSE "|":U) + "|"
    pcToVals      = pcToVals + (IF lFirst THEN "":U ELSE "|":U) + "|"
    pcFormat      = pcFormat + "|":U

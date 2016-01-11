@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
           icfdb            PROGRESS
@@ -29,25 +29,9 @@ DEFINE TEMP-TABLE RowObject
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -117,7 +101,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /* Include file with RowObject temp-table definition */
 &Scoped-define DATA-FIELD-DEFS "af/obj2/gsmmmfullo.i"
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
@@ -125,7 +109,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 RowObject.physical_file_name 
 &Scoped-define ENABLED-TABLES RowObject
 &Scoped-define FIRST-ENABLED-TABLE RowObject
-&Scoped-Define ENABLED-OBJECTS buImage iImage 
+&Scoped-Define ENABLED-OBJECTS iImage buImage 
 &Scoped-Define DISPLAYED-FIELDS RowObject.multi_media_description ~
 RowObject.physical_file_name 
 &Scoped-define DISPLAYED-TABLES RowObject
@@ -161,16 +145,16 @@ DEFINE IMAGE iImage
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     RowObject.multi_media_description AT ROW 3.14 COL 23 COLON-ALIGNED
+     RowObject.multi_media_description AT ROW 3.19 COL 23 COLON-ALIGNED
           LABEL "Multi media description"
           VIEW-AS FILL-IN 
           SIZE 78.4 BY 1
-     RowObject.physical_file_name AT ROW 4.14 COL 23 COLON-ALIGNED
+     RowObject.physical_file_name AT ROW 4.29 COL 23 COLON-ALIGNED
           LABEL "Physical file name"
           VIEW-AS FILL-IN 
           SIZE 78.4 BY 1
-     buImage AT ROW 4 COL 103.8
-     iImage AT ROW 5.29 COL 25.2
+     buImage AT ROW 4.19 COL 103.8
+     iImage AT ROW 5.38 COL 25.2
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -233,7 +217,7 @@ END.
 /* SETTINGS FOR WINDOW vTableWin
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frMain
-   NOT-VISIBLE Size-to-Fit L-To-R,COLUMNS                               */
+   NOT-VISIBLE FRAME-NAME Size-to-Fit L-To-R,COLUMNS                    */
 ASSIGN 
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
@@ -397,7 +381,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_multi_media_type.multi_media_type_code,gsc_multi_media_type.multi_media_type_descriptionKeyFieldgsc_multi_media_type.multi_media_type_objFieldLabelMulti media typeFieldTooltipSelect a multi media typeKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(10)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_multi_media_typeQueryTablesgsc_multi_media_typeSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 / &2ComboDelimiterListItemPairsInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNamemulti_media_type_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_multi_media_type.multi_media_type_code,gsc_multi_media_type.multi_media_type_descriptionKeyFieldgsc_multi_media_type.multi_media_type_objFieldLabelMulti media typeFieldTooltipSelect a multi media typeKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(10)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_multi_media_typeQueryTablesgsc_multi_media_typeSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 / &2ComboDelimiterListItemPairsInnerLines5SortnoComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesSuperProcedureDataSourceNameFieldNamemulti_media_type_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hMultiMediaType ).
        RUN repositionObject IN hMultiMediaType ( 1.00 , 25.00 ) NO-ERROR.
        RUN resizeObject IN hMultiMediaType ( 1.05 , 78.40 ) NO-ERROR.
@@ -406,9 +390,9 @@ PROCEDURE adm-create-objects :
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
              INPUT  'DisplayedFieldgsm_category.category_description,gsm_category.category_type,gsm_category.category_group,gsm_category.category_subgroupKeyFieldgsm_category.category_objFieldLabelCategoryFieldTooltipSelect a categoryKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsm_category
-                     WHERE gsm_category.related_entity_mnemonic = "GSMMM":UQueryTablesgsm_categorySDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 (&2,&3,&4)ComboDelimiterListItemPairsInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNamecategory_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     WHERE gsm_category.related_entity_mnemonic = "GSMMM":UQueryTablesgsm_categorySDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 (&2,&3,&4)ComboDelimiterListItemPairsInnerLines5SortnoComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesSuperProcedureDataSourceNameFieldNamecategory_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hCategory ).
-       RUN repositionObject IN hCategory ( 2.05 , 25.00 ) NO-ERROR.
+       RUN repositionObject IN hCategory ( 2.10 , 25.00 ) NO-ERROR.
        RUN resizeObject IN hCategory ( 0.91 , 78.40 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */

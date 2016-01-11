@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" sObject _INLINE
@@ -19,6 +19,13 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS sObject 
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /*---------------------------------------------------------------------------------
   File: afgenbrowv.w
 
@@ -81,7 +88,7 @@ DEFINE VARIABLE ghContainerSource                       AS HANDLE           NO-U
 &Scoped-define PROCEDURE-TYPE SmartObject
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
@@ -146,12 +153,12 @@ DEFINE VARIABLE toUseSDOFieldOrder AS LOGICAL INITIAL no
 
 DEFINE FRAME frMain
      coProductModule AT ROW 1.14 COL 29.8 COLON-ALIGNED
-     coObjectType AT ROW 2.14 COL 29.8 COLON-ALIGNED
-     fiBrowseSuffix AT ROW 3.14 COL 29.8 COLON-ALIGNED
-     fiNumFields AT ROW 4.19 COL 29.8 COLON-ALIGNED
-     toDeleteInstance AT ROW 5.24 COL 31.8
-     toUseSDO AT ROW 6.1 COL 31.8
-     toUseSDOFieldOrder AT ROW 7 COL 31.8
+     coObjectType AT ROW 2.24 COL 29.8 COLON-ALIGNED
+     fiBrowseSuffix AT ROW 3.33 COL 29.8 COLON-ALIGNED
+     fiNumFields AT ROW 4.43 COL 29.8 COLON-ALIGNED
+     toDeleteInstance AT ROW 5.48 COL 31.8
+     toUseSDO AT ROW 6.29 COL 31.8
+     toUseSDOFieldOrder AT ROW 7.19 COL 31.8
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -206,7 +213,7 @@ END.
 /* SETTINGS FOR WINDOW sObject
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frMain
-   NOT-VISIBLE Size-to-Fit                                              */
+   NOT-VISIBLE FRAME-NAME Size-to-Fit                                   */
 ASSIGN 
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE

@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -98,7 +82,8 @@ Change Log:
 &GLOB WTOOL_IDX  12
 &GLOB DWB_IDX    13
 &GLOB ARD_IDX    14
-&GLOB TOOL_COUNT 14
+&GLOB APMT_IDX   15
+&GLOB TOOL_COUNT 15
 
 &GLOB NOT_AVAIL    0
 &GLOB LICENSED     1
@@ -147,6 +132,19 @@ DEFINE SUB-MENU mnu_Tools
       ON CHOOSE PERSISTENT RUN run-protool.
     END TRIGGERS.
 &ENDIF
+/* APMT only available on GUI - data admin, data dict, Proc Editor and UIB only */
+&IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
+    &if DEFINED(EXCLUDE_UIB) = 0 AND (DEFINED(EXCLUDE_ADMIN) <> 0 OR
+                                      DEFINED(EXCLUDE_EDIT) <> 0 OR
+                                      DEFINED(EXCLUDE_DICT) <> 0) &THEN
+        MENU-ITEM mnu_apmt    LABEL "Audit Policy &Maintenance"  
+        &IF DEFINED(DEF_TRIGGERS) &THEN
+        TRIGGERS:
+          ON CHOOSE {&PERSISTENT} RUN auditing/_apmt.p.
+        END.
+        &ENDIF
+    &ENDIF
+&ENDIF
 .
 
 /* Define this procedure once and call it from the persistent procedure
@@ -160,3 +158,6 @@ PROCEDURE run-dblist:
   RUN "protools/_dblist.w" PERSISTENT.
 END.  /* PROCEDURE run-dblist */
 
+PROCEDURE run-apmt:
+    RUN auditing/_apmt.p.
+END.

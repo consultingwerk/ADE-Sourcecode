@@ -1,24 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
+* Copyright (C) 2005 by Progress Software Corporation.  All rights   *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *********************************************************************/
 /*----------------------------------------------------------------------------
 
@@ -43,7 +26,7 @@ Date Modified: 02/09/94 by RPR (added 3-D support)
                06/04/99 by TSM Added Context-sensitive help for dialogs
                07/02/99 by TSM Added support NO-AUTO-VALIDATE
 ---------------------------------------------------------------------------- */
-
+{adecomm/oeideservice.i}
 {adeuib/uniwidg.i}      /* Universal Widget TEMP-TABLE definition            */
 {adeuib/layout.i}       /* Layout temp-table definitions                     */
 {adeuib/triggers.i}     /* Trigger TEMP-TABLE definition                     */
@@ -182,7 +165,7 @@ ASSIGN _U._NAME                = v_name
        _NAME-REC._wFRAME       = _U._NAME     /* Point to the "new" frame name */
        _C._DATAFIELD-MAPPING   = cDataFieldMapping
        .
-   
+
 /* Establish new _count[{&FRAME}] */
 IF _U._NAME BEGINS "FRAME-" AND LENGTH(_U._NAME, "CHARACTER":U) = 7 AND
    ASC(SUBSTRING(_U._NAME,7,-1,"CHARACTER":U)) > 64 THEN
@@ -265,6 +248,7 @@ ASSIGN n_down                      = INTEGER(_inp_line[4])
        _C._CONTEXT-HELP            = _inp_line[47] = "y"
        _C._CONTEXT-HELP-FILE       = _inp_line[48] 
        _C._NO-AUTO-VALIDATE        = _inp_line[49] = "y"
+       _U._WIDGET-ID               = INTEGER(_inp_line[50])
        _L._BGCOLOR                 = IF _inp_line[15] = "7" THEN INTEGER(_inp_line[17])
                                      ELSE IF _inp_line[15] = "6" THEN -1 ELSE ?
        _L._COL-MULT                = _cur_col_mult
@@ -282,6 +266,29 @@ ASSIGN n_down                      = INTEGER(_inp_line[4])
        _L._VIRTUAL-HEIGHT          = _L._HEIGHT
        _L._VIRTUAL-WIDTH           = _L._WIDTH
        _L._WIN-TYPE                = _cur_win_type.
+
+/* Assign widget id for default frame of new windows */
+IF _widgetid_assign AND import_mode = "WINDOW UNTITLED":U AND _cur_win_type THEN
+  IF _U._WIDGET-ID = ? THEN
+    _U._WIDGET-ID = _widgetid_start.
+
+/* Check for conflicts for frames being pasted/imported */
+IF IMPORT_mode = "IMPORT":U THEN 
+DO:
+  IF _U._WIDGET-ID NE ? THEN
+  DO:
+    IF DYNAMIC-FUNCTION("widgetIDFrameConflict":U IN _h_func_lib,
+                        INPUT _h_win,
+                        INPUT _U._WIDGET-ID,
+                        INPUT RECID(_U)) THEN
+      _U._WIDGET-ID = IF _widgetid_assign THEN DYNAMIC-FUNCTION("nextFrameWidgetID":U IN _h_func_lib,
+                                                                INPUT _h_win)
+                      ELSE ?.
+  END.
+  ELSE IF _widgetid_assign THEN 
+    _U._WIDGET-ID = DYNAMIC-FUNCTION("nextFrameWidgetID":U IN _h_func_lib,
+                                     INPUT _h_win).
+END.  /* if import */
 
 IF _U._LAYOUT-UNIT AND _L._HEIGHT = 0 THEN 
     ASSIGN _L._HEIGHT         = 1.3 + header_ht + iteration_ht *

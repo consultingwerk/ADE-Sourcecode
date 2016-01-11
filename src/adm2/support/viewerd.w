@@ -1,28 +1,12 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME Attribute-Dlg
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Attribute-Dlg 
 /*********************************************************************
-* Copyright (C) 2001 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*------------------------------------------------------------------------
@@ -46,6 +30,10 @@
 /* ***************************  Definitions  ************************** */
 
 &GLOBAL-DEFINE WIN95-BTN YES
+
+/* use of widget-pool is ok, since this does not create any widgets in 
+   the actual viewer */
+CREATE WIDGET-POOL.
 
 /* Parameters Definitions ---                                           */
 DEFINE INPUT PARAMETER p_hSMO AS HANDLE NO-UNDO.
@@ -90,12 +78,12 @@ DEFINE VARIABLE xcModifyChoices             AS CHARACTER  NO-UNDO
 &Scoped-define PROCEDURE-TYPE DIALOG-BOX
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME Attribute-Dlg
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS l_Enable l_View cDisableObjects ~
-cModifyObjects BUTTON-2 BUTTON-3 fiChar fiChar-2 RECT-2 RECT-3 RECT-6 
+&Scoped-Define ENABLED-OBJECTS RECT-2 RECT-3 RECT-6 l_Enable l_View ~
+cDisableObjects cModifyObjects BUTTON-2 BUTTON-3 fiChar fiChar-2 
 &Scoped-Define DISPLAYED-OBJECTS c_Logical_Object_Name l_Enable c_Layout ~
 l_View cDisableObjects cModifyObjects fiChar fiChar-2 
 
@@ -255,15 +243,15 @@ DEFINE VARIABLE cModifyObjects AS CHARACTER
      SIZE 14.8 BY 3.95 TOOLTIP "Select some, all, fields from data source, updatable in data source or none" NO-UNDO.
 
 DEFINE RECTANGLE RECT-2
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 65 BY .1.
 
 DEFINE RECTANGLE RECT-3
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 65 BY .1.
 
 DEFINE RECTANGLE RECT-6
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 65 BY .1.
 
 DEFINE VARIABLE l_Enable AS LOGICAL INITIAL no 
@@ -290,28 +278,28 @@ DEFINE FRAME Attribute-Dlg
      BUTTON-3 AT ROW 16.81 COL 51.8
      fiChar AT ROW 6.14 COL 2.4 COLON-ALIGNED NO-LABEL
      fiChar-2 AT ROW 11.33 COL 4.4 NO-LABEL
+     "Behavior during 'Initialize'" VIEW-AS TEXT
+          SIZE 24.8 BY .62 AT ROW 3.1 COL 4.4
      RECT-2 AT ROW 11.62 COL 1.8
      RECT-3 AT ROW 3.43 COL 1.8
      RECT-6 AT ROW 6.48 COL 1.8
-     "Behavior during 'Initialize'" VIEW-AS TEXT
-          SIZE 24.8 BY .62 AT ROW 3.1 COL 4.4
-     SPACE(38.39) SKIP(14.37)
+     SPACE(0.79) SKIP(11.51)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "Viewer Instance Properties":L
          DEFAULT-BUTTON BUTTON-2.
-
-DEFINE FRAME frDisabledObjects
-    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
-         SIDE-LABELS NO-UNDERLINE THREE-D 
-         AT COL 19.4 ROW 7.14
-         SIZE 46.6 BY 3.67.
 
 DEFINE FRAME frModifyObjects
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 19.4 ROW 12.38
          SIZE 46.6 BY 3.76.
+
+DEFINE FRAME frDisabledObjects
+    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
+         SIDE-LABELS NO-UNDERLINE THREE-D 
+         AT COL 19.4 ROW 7.14
+         SIZE 46.6 BY 3.67.
 
 
 /* *********************** Procedure Settings ************************ */
@@ -333,7 +321,7 @@ ASSIGN FRAME frDisabledObjects:FRAME = FRAME Attribute-Dlg:HANDLE
        FRAME frModifyObjects:FRAME = FRAME Attribute-Dlg:HANDLE.
 
 /* SETTINGS FOR DIALOG-BOX Attribute-Dlg
-   L-To-R                                                               */
+   FRAME-NAME L-To-R                                                    */
 ASSIGN 
        FRAME Attribute-Dlg:SCROLLABLE       = FALSE
        FRAME Attribute-Dlg:HIDDEN           = TRUE.
@@ -412,9 +400,9 @@ DO:
   IF gcDisableObjects = '':U THEN
   DO:
     MESSAGE 
-      "You have specified that 'Some' objects should be disabled, but no objects are selected." SKIP(1)
-      "Confirm that 'None' of the enabled objects should be disabled." 
-      VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO UPDATE lAsk. 
+      "You have specified that 'Some' objects should be disabled, but no objects are selected." SKIP
+      "'None' of the enabled objects will be disabled with data fields." 
+      VIEW-AS ALERT-BOX INFORMATION BUTTONS OK-CANCEL UPDATE lAsk. 
     IF lAsk THEN 
       gcDisableObjects = '(None)':U.
     ELSE DO:
@@ -442,9 +430,9 @@ DO:
   IF gcModifyFields = '':U THEN
   DO:
     MESSAGE 
-      "You have specifed that 'Some' fields should set DataModified, but no fields is selected." SKIP(1)
-      "Confirm that 'None' of the fields should set DataModified." 
-      VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO UPDATE lAsk. 
+      "You have specifed that 'Some' fields should set DataModified, but no fields are selected." SKIP
+      "'None' of the fields will set DataModified on change." 
+      VIEW-AS ALERT-BOX INFORMATION BUTTONS OK-CANCEL UPDATE lAsk. 
     IF lAsk THEN 
       gcModifyFields = '(None)':U.
     ELSE DO:
@@ -644,8 +632,8 @@ PROCEDURE enable_UI :
   DISPLAY c_Logical_Object_Name l_Enable c_Layout l_View cDisableObjects 
           cModifyObjects fiChar fiChar-2 
       WITH FRAME Attribute-Dlg.
-  ENABLE l_Enable l_View cDisableObjects cModifyObjects BUTTON-2 BUTTON-3 
-         fiChar fiChar-2 RECT-2 RECT-3 RECT-6 
+  ENABLE RECT-2 RECT-3 RECT-6 l_Enable l_View cDisableObjects cModifyObjects 
+         BUTTON-2 BUTTON-3 fiChar fiChar-2 
       WITH FRAME Attribute-Dlg.
   VIEW FRAME Attribute-Dlg.
   {&OPEN-BROWSERS-IN-QUERY-Attribute-Dlg}
@@ -1102,7 +1090,6 @@ FUNCTION initModifyFields RETURNS LOGICAL
   ELSE  
     cUpdatable = pcEnabledFields.
 
- 
   /* Walk the widget tree to add a toggle for enabled objects that can be modified  */ 
   {get ContainerHandle hObject p_hSMO}.
   IF VALID-HANDLE(hObject) THEN 
@@ -1111,13 +1098,24 @@ FUNCTION initModifyFields RETURNS LOGICAL
     hObject = hObject:FIRST-CHILD.
     hObject = hObject:FIRST-CHILD.
     DO WHILE VALID-HANDLE(hObject):
-      iSDF = LOOKUP(STRING(hObject),cSDFFrameList).
-      cObjectName = IF iSDF > 0 
-                    THEN ENTRY(iSDF,cSDFNameList)
-                    ELSE hObject:NAME.
-      IF iSDF > 0 
-      OR (LOOKUP('modified':U,LIST-SET-ATTRS(hObject)) > 0 
-          AND LOOKUP(cObjectName,cEnabled) > 0) THEN
+      cObjectname = ''.
+      IF hObject:TYPE = 'FRAME' THEN
+      DO:
+        ASSIGN 
+          iSDF = LOOKUP(STRING(hObject),cSDFFrameList).
+      
+        IF iSDF > 0  THEN 
+          cObjectName = ENTRY(iSDF,cSDFNameList).
+      END.
+      ELSE IF CAN-QUERY(hObject,'TABLE':U) THEN 
+        cObjectName = (IF hObject:TABLE <> 'RowObject':U AND hObject:TABLE <> ?
+                       THEN hObject:TABLE + '.':U 
+                       ELSE '')
+                    +  hObject:NAME.
+   
+      IF cObjectName > '' 
+      AND (iSDF > 0 OR (LOOKUP('MODIFIED':U,LIST-SET-ATTRS(hObject)) > 0) 
+      AND LOOKUP(cObjectName,cEnabled) > 0) THEN
       DO:
         i = i + 1.
         CREATE ttModifyField.

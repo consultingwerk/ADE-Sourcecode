@@ -2,25 +2,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2001 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -217,7 +201,6 @@ DEFINE VARIABLE cTableName    AS CHARACTER NO-UNDO.
 DEFINE VARIABLE cInheritClasses AS CHARACTER NO-UNDO.
 DEFINE VARIABLE ghDesignManager AS HANDLE    NO-UNDO.
 
-
 AB-BLOCK:
 DO TRANSACTION ON ERROR UNDO, LEAVE:
     RUN adecomm/_setcurs.p ("WAIT":U).
@@ -228,22 +211,25 @@ DO TRANSACTION ON ERROR UNDO, LEAVE:
     _ryObject.design_precid = RECID(_P).
     /* Determine whether the object is based on a SBO data source. If yes, set the 
        object-name and class-name so that the object is saved without error.       */
-    phDataObject = DYNAMIC-FUNC("get-proc-hdl" IN _h_func_lib, INPUT _P._DATA-OBJECT).
+    phDataObject = DYNAMIC-FUNC("get-sdo-hdl" IN _h_func_lib, 
+                                INPUT _P._DATA-OBJECT,
+                                INPUT TARGET-PROCEDURE).
     IF VALID-HANDLE(phDataObject) AND
        DYNAMIC-FUNCTION("getObjectType":U IN phDataObject) = "SmartBusinessObject":U THEN 
     DO:
       FOR EACH _U WHERE _U._WINDOW-HANDLE = _P._WINDOW-HANDLE
-	   	    AND _U._BUFFER        > "":
+                    AND _U._BUFFER        > "":
 
           ASSIGN cTableName      = DYNAMIC-FUNCTION("columnTable":U IN phDataObject, _U._BUFFER + "." + ENTRY(1,_U._NAME,"."))
-	         _U._CLASS-NAME  = "DataField":U
+                 _U._CLASS-NAME  = "DataField":U
                  _U._Object-NAME = cTableName + "." +  _U._NAME.
-	
+        
       END.
     END.
-    
+    DYNAMIC-FUNC("shutdown-sdo" IN _h_func_lib,INPUT TARGET-PROCEDURE).
+
  /* When saving a static as dynamic SDO, ensure partition is set as class default */
-    IF _P._TYPE = "SmartDataObject":U AND _P._PARTITION = "" THEN
+    IF _P._TYPE = "SmartDataObject":U and _P._Db-Aware AND _P._PARTITION = "" THEN
     DO:
         ASSIGN ghDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U, "RepositoryDesignManager":U) NO-ERROR.
         RUN retrieveDesignClass IN ghDesignManager

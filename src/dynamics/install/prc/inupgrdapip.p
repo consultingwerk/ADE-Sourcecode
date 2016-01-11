@@ -1,6 +1,13 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Check Version Notes Wizard" Procedure _INLINE
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /* Actions: af/cod/aftemwizcw.w ? ? ? ? */
 /* MIP Update Version Notes Wizard
 Check object version notes.
@@ -244,7 +251,12 @@ DEFINE VARIABLE cConnParm   AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cPathDelim  AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cOtherDelim AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cOutDir     AS CHARACTER  NO-UNDO.
+define variable cMigrationSourceBranch as character no-undo.
 
+    /* Get the migration source branch, for migrations */
+    cMigrationSourceBranch = {fnarg getSessionParam 'Migration_Source_Branch'}.
+    if cMigrationSourceBranch eq ? then cMigrationSourceBranch = "".
+    
   /* Now we need to loop through all the databases and apply the updates
      for each of the databases. We need to deal with them in the order
      in which they were listed in the setup.xml file which will be the 
@@ -323,17 +335,16 @@ DEFINE VARIABLE cOutDir     AS CHARACTER  NO-UNDO.
             AND ttPatchProgram.lNewDB     = bttDatabase.lDBBuild
           BY ttPatchProgram.dParentObj
           BY ttPatchProgram.dPatchProgramObj: 
-  
+          
           CREATE bttPatchList.
           ASSIGN
             giSeq                             = giSeq + 1
-            bttPatchList.iSeq                 = giSeq  
+            bttPatchList.iSeq                 = giSeq
             bttPatchList.cPatchDB             = bttDatabase.cDBName
             bttPatchList.cPatchLevel          = STRING(ttPatchLevel.iPatchLevel,"999999")
             bttPatchList.cStage               = ttPatchStage.cPatchStage
             bttPatchList.iUpdateWhen          = ttPatchStage.iPatchStage
             bttPatchList.cFileType            = ttPatchProgram.cFileType
-            bttPatchList.cFileName            = ttPatchProgram.cFileName
             bttPatchList.cDescription         = ttPatchProgram.cFileDesc
             bttPatchList.lRerunnable          = ttPatchProgram.lRerun
             bttPatchList.lNewDB               = ttPatchProgram.lNewDB
@@ -341,6 +352,13 @@ DEFINE VARIABLE cOutDir     AS CHARACTER  NO-UNDO.
             bttPatchList.lUpdateMandatory     = ttPatchProgram.lMandatory
             bttPatchList.lApplied             = NO
           .
+          
+          /* Replace #migration_source# token for migration */
+          if cMigrationSourceBranch ne "" and index(ttPatchProgram.cFileName, "#":U) gt 0 then
+              bttPatchList.cFileName = replace(ttPatchProgram.cFileName,
+                                               '#migration_source#', cMigrationSourceBranch ).
+          else
+              bttPatchList.cFileName = ttPatchProgram.cFileName.
         END. /* FOR EACH ttPatchProgram */
       END. /* FOR EACH ttPatchStage */
     END.  /* FOR EACH ttPatchLevel */

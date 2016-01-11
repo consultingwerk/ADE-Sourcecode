@@ -1,3 +1,10 @@
+/*************************************************************/
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
   FIELD tDesc LIKE ttCalcField.tDesc FORMAT "x(35)"~
   FIELD tEntity LIKE ttCalcField.tEntity FORMAT "x(70)"~
   FIELD tName LIKE ttCalcField.tName FORMAT "x(70)"~

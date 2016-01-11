@@ -1,32 +1,9 @@
 /*********************************************************************
-* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
-/********************************************************************/
-/* Encrypted code which is part of this file is subject to the      */
-/* Possenet End User Software License Agreement Version 1.0         */
-/* (the "License"); you may not use this file except in             */
-/* compliance with the License. You may obtain a copy of the        */
-/* License at http://www.possenet.org/license.html                  */
-/********************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -68,6 +45,7 @@ Modified    :
     6/15/94  tullmann Added profiler checkpoints and init
     12/7/93  RPR      Added combo box
 ----------------------------------------------------------------------------*/
+DEFINE NEW GLOBAL SHARED VARIABLE OEIDE_ABSecEd   AS HANDLE NO-UNDO.
 /* ===================================================================== */
 /*                      PREPROCESSOR DEFINITIONS                         */
 /* ===================================================================== */
@@ -94,6 +72,7 @@ Modified    :
 /*                            INCLUDE FILES                              */
 /* ===================================================================== */
 
+{adecomm/oeideservice.i}
 {adeuib/pre_proc.i}             
 {adecomm/adestds.i}        /* Standared ADE Preprocessor Directives */
 {adeuib/uibhlp.i}          /* UIB Help File Preprocessor Directives */
@@ -106,6 +85,7 @@ Modified    :
 {adeuib/vsookver.i}        /* adm versioning                        */
 {adeshar/mrudefs.i}        /* MRU Filelist temp table defs          */
 {adeuib/peditor.i}         /* Editor support procedures             */
+{adeweb/web_file.i}
 
 /* ===================================================================== */
 /*                    SHARED VARIABLES Definitions                       */
@@ -174,9 +154,22 @@ RUN adeshar/_ablic.p (INPUT NO /* ShowMsgs */ , OUTPUT _AB_license, OUTPUT _AB_T
 /* jep-icf: Moved uibmdefs.i to here from earlier in this code. It's
    creating dynamic widgets that should be in the correct AB widget pool. */
 
+DEFINE NEW GLOBAL SHARED VARIABLE OEIDE_Parameters AS CHARACTER NO-UNDO.
+
 SETUP_BLOCK:
 DO ON STOP   UNDO SETUP_BLOCK, LEAVE SETUP_BLOCK
    ON ERROR  UNDO SETUP_BLOCK, LEAVE SETUP_BLOCK:
+  
+  IF OEIDEisRunning THEN
+  DO:
+      IF p_File_List = "" THEN  
+          ASSIGN p_File_List      = OEIDE_Parameters
+                 OEIDE_Parameters = "".
+      
+      /* Start Section Editor proxy */
+      IF NOT VALID-HANDLE(OEIDE_ABSecEd) THEN
+          RUN adeuib/_oeidesync.w PERSISTENT SET hSecEd.
+  END.
   
   /* First Thing -- remember the handle of the UIB's main procedure so
      that we can RUN...IN it */
@@ -324,7 +317,9 @@ DO:
        /* Close the window.  This should delete the widget.  If the widget
           ever comes back not deleted, then the user cancelled, so we
           cancel the exit */
-       h = _U._HANDLE.
+       ASSIGN 
+         h      = _U._HANDLE
+         _h_win = _U._HANDLE.
        RUN wind-close (h).   
        IF VALID-HANDLE(h) THEN RETURN NO-APPLY.
     END.

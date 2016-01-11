@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /* -------------------------------------------------------------------
@@ -29,7 +13,7 @@ Description:
 
 Author: D. Ross Hunter 
 
-Date Generated: 04/07/04
+Date Generated: 07/05/05
 
 Note: This procedure is generated via the Property Sheet Generator and 
       the abAttribute table of the ab database. 
@@ -446,6 +430,21 @@ Note: This procedure is generated via the Property Sheet Generator and
                SENSITIVE     = TRUE
         TRIGGERS:
           ON VALUE-CHANGED PERSISTENT RUN GRAPHIC-EDGE_proc.
+        END TRIGGERS.
+  END.
+
+  WHEN "GROUP-BOX" THEN DO:
+    CREATE TOGGLE-BOX h_GROUP-BOX
+        ASSIGN FRAME         = FRAME prop_sht:HANDLE
+               ROW           = cur-row + ((togcnt - 1) MOD tog-rows) * tog-spc
+               COLUMN        = IF togcnt <= tog-rows THEN 4.5
+                               ELSE IF togcnt <= tog-rows * 2 THEN tog-col-2
+                               ELSE tog-col-3
+               LABEL         = "Group-Box"
+               CHECKED       = _L._GROUP-BOX
+               SENSITIVE     = TRUE
+        TRIGGERS:
+          ON VALUE-CHANGED PERSISTENT RUN GROUP-BOX_proc.
         END TRIGGERS.
   END.
 
@@ -941,6 +940,21 @@ Note: This procedure is generated via the Property Sheet Generator and
                SENSITIVE     = TRUE
         TRIGGERS:
           ON VALUE-CHANGED PERSISTENT RUN RETURN-INSERTED_proc.
+        END TRIGGERS.
+  END.
+
+  WHEN "ROUNDED" THEN DO:
+    CREATE TOGGLE-BOX h_ROUNDED
+        ASSIGN FRAME         = FRAME prop_sht:HANDLE
+               ROW           = cur-row + ((togcnt - 1) MOD tog-rows) * tog-spc
+               COLUMN        = IF togcnt <= tog-rows THEN 4.5
+                               ELSE IF togcnt <= tog-rows * 2 THEN tog-col-2
+                               ELSE tog-col-3
+               LABEL         = "Rounded"
+               CHECKED       = _L._ROUNDED
+               SENSITIVE     = TRUE
+        TRIGGERS:
+          ON VALUE-CHANGED PERSISTENT RUN ROUNDED_proc.
         END TRIGGERS.
   END.
 

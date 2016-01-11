@@ -29,25 +29,9 @@ DEFINE TEMP-TABLE RowObject
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -136,7 +120,7 @@ DEFINE VARIABLE ghDesignManager             AS HANDLE                 NO-UNDO.
 /* Include file with RowObject temp-table definition */
 &Scoped-define DATA-FIELD-DEFS "af/obj2/gscemfullo.i"
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
@@ -146,7 +130,7 @@ RowObject.entity_mnemonic_description RowObject.entity_dbname ~
 RowObject.table_prefix_length RowObject.entity_mnemonic_label_prefix ~
 RowObject.field_name_separator RowObject.table_has_object_field ~
 RowObject.auto_properform_strings RowObject.entity_object_field ~
-RowObject.auditing_enabled RowObject.deploy_data RowObject.entity_key_field ~
+RowObject.auditing_enabled RowObject.entity_key_field RowObject.deploy_data ~
 RowObject.version_data RowObject.reuse_deleted_keys ~
 RowObject.entity_description_field RowObject.entity_description_procedure ~
 RowObject.replicate_key RowObject.scm_field_name ~
@@ -159,7 +143,7 @@ RowObject.entity_mnemonic_description RowObject.entity_dbname ~
 RowObject.table_prefix_length RowObject.entity_mnemonic_label_prefix ~
 RowObject.field_name_separator RowObject.table_has_object_field ~
 RowObject.auto_properform_strings RowObject.entity_object_field ~
-RowObject.auditing_enabled RowObject.deploy_data RowObject.entity_key_field ~
+RowObject.auditing_enabled RowObject.entity_key_field RowObject.deploy_data ~
 RowObject.version_data RowObject.reuse_deleted_keys ~
 RowObject.entity_description_field RowObject.entity_description_procedure ~
 RowObject.replicate_key RowObject.scm_field_name ~
@@ -236,7 +220,7 @@ DEFINE FRAME frMain
           LABEL "Field name separator"
           VIEW-AS FILL-IN 
           SIZE 24 BY 1 TOOLTIP "The basis of identifying what is used to break up field names into words"
-     RowObject.table_has_object_field AT ROW 6.24 COL 29.4
+     RowObject.table_has_object_field AT ROW 6.19 COL 29.4
           LABEL "Table has object field"
           VIEW-AS TOGGLE-BOX
           SIZE 26.6 BY 1 TOOLTIP "Set to NO if this table does not have a unique object id field"
@@ -244,7 +228,7 @@ DEFINE FRAME frMain
           LABEL "Auto properform strings"
           VIEW-AS TOGGLE-BOX
           SIZE 27.2 BY 1 TOOLTIP "Tidy up case of character fields automatically yes/no"
-     RowObject.entity_object_field AT ROW 7.33 COL 27.4 COLON-ALIGNED
+     RowObject.entity_object_field AT ROW 7.24 COL 27.4 COLON-ALIGNED
           LABEL "Entity object field"
           VIEW-AS FILL-IN 
           SIZE 70 BY 1 TOOLTIP "Optional name of object id field for the entity, if blank assumes ICF standard"
@@ -252,13 +236,13 @@ DEFINE FRAME frMain
           LABEL "Auditing enabled"
           VIEW-AS TOGGLE-BOX
           SIZE 21 BY 1 TOOLTIP "Set to YES to enable auditing of records in this entity"
+     RowObject.entity_key_field AT ROW 8.29 COL 29.4 NO-LABEL
+          VIEW-AS EDITOR MAX-CHARS 500 SCROLLBAR-VERTICAL
+          SIZE 70 BY 2.67
      RowObject.deploy_data AT ROW 8.33 COL 119.8
           LABEL "Deploy data"
           VIEW-AS TOGGLE-BOX
           SIZE 16.8 BY 1 TOOLTIP "Set to YES if data in this table needs to be deployed"
-     RowObject.entity_key_field AT ROW 8.43 COL 29.4 NO-LABEL
-          VIEW-AS EDITOR MAX-CHARS 500 SCROLLBAR-VERTICAL
-          SIZE 70 BY 2.67
      RowObject.version_data AT ROW 9.38 COL 119.8
           LABEL "Version data"
           VIEW-AS TOGGLE-BOX
@@ -274,29 +258,29 @@ DEFINE FRAME frMain
 
 /* DEFINE FRAME statement is approaching 4K Bytes.  Breaking it up   */
 DEFINE FRAME frMain
-     RowObject.entity_description_field AT ROW 11.24 COL 27.4 COLON-ALIGNED
+     RowObject.entity_description_field AT ROW 11 COL 27.4 COLON-ALIGNED
           LABEL "Entity description field"
           VIEW-AS FILL-IN 
           SIZE 70 BY 1 TOOLTIP "Fieldname for field to use as description field for the entity"
-     RowObject.entity_description_procedure AT ROW 12.29 COL 27.4 COLON-ALIGNED
+     RowObject.entity_description_procedure AT ROW 12.05 COL 27.4 COLON-ALIGNED
           LABEL "Entity description procedure"
           VIEW-AS FILL-IN 
           SIZE 70 BY 1 TOOLTIP "Optional procedure to use to derive the description field"
-     RowObject.replicate_key AT ROW 14.43 COL 27.4 COLON-ALIGNED
+     RowObject.replicate_key AT ROW 14.14 COL 27.4 COLON-ALIGNED
           LABEL "Replicate key"
           VIEW-AS FILL-IN 
           SIZE 70 BY 1 TOOLTIP "The join field to the primary replication table being versioned"
-     RowObject.scm_field_name AT ROW 15.48 COL 27.4 COLON-ALIGNED
+     RowObject.scm_field_name AT ROW 15.19 COL 27.4 COLON-ALIGNED
           LABEL "SCM field name"
           VIEW-AS FILL-IN 
           SIZE 70 BY 1 TOOLTIP "The unique field for the data that is also used as the object name for SCM"
-     RowObject.EntityObjectClass AT ROW 17.62 COL 27 COLON-ALIGNED
+     RowObject.EntityObjectClass AT ROW 17.33 COL 27.4 COLON-ALIGNED
           LABEL "Class"
           VIEW-AS COMBO-BOX INNER-LINES 5
           LIST-ITEMS "Item 1" 
           DROP-DOWN-LIST
           SIZE 50 BY 1
-     RowObject.AssociateDataFields AT ROW 18.67 COL 29
+     RowObject.AssociateDataFields AT ROW 18.43 COL 29.4
           LABEL "Associate data fields"
           VIEW-AS TOGGLE-BOX
           SIZE 40.4 BY .81
@@ -365,7 +349,7 @@ END.
 /* SETTINGS FOR WINDOW vTableWin
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frMain
-   NOT-VISIBLE                                                          */
+   NOT-VISIBLE FRAME-NAME                                               */
 ASSIGN 
        FRAME frMain:HIDDEN           = TRUE.
 
@@ -502,18 +486,18 @@ PROCEDURE adm-create-objects :
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
              INPUT  'DisplayedFieldgsc_entity_mnemonic.entity_mnemonicKeyFieldgsc_entity_mnemonic.entity_mnemonicFieldLabelReplicate entityFieldTooltipThe entity code of the primary replication table for data versioning, e.g. RYCSOKeyFormatX(8)KeyDatatypecharacterDisplayFormatX(8)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_entity_mnemonic NO-LOCK
-                     BY gsc_entity_mnemonic.entity_mnemonicQueryTablesgsc_entity_mnemonicBrowseFieldsgsc_entity_mnemonic.entity_mnemonic,gsc_entity_mnemonic.entity_mnemonic_short_desc,gsc_entity_mnemonic.entity_mnemonic_descriptionBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(8)|X(35)|X(35)RowsToBatch200BrowseTitleLookup Entity MnemonicsViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListNO-LOCKQueryBuilderOrderListgsc_entity_mnemonic.entity_mnemonic^yesQueryBuilderTableOptionListNO-LOCKQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureFieldNamereplicate_entity_mnemonicDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY gsc_entity_mnemonic.entity_mnemonicQueryTablesgsc_entity_mnemonicBrowseFieldsgsc_entity_mnemonic.entity_mnemonic,gsc_entity_mnemonic.entity_mnemonic_short_desc,gsc_entity_mnemonic.entity_mnemonic_descriptionBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(8)|X(35)|X(35)RowsToBatch200BrowseTitleLookup Entity MnemonicsViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListNO-LOCKQueryBuilderOrderListgsc_entity_mnemonic.entity_mnemonic^yesQueryBuilderTableOptionListNO-LOCKQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureDataSourceNameFieldNamereplicate_entity_mnemonicDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dynlookup ).
-       RUN repositionObject IN h_dynlookup ( 13.38 , 29.40 ) NO-ERROR.
+       RUN repositionObject IN h_dynlookup ( 13.10 , 29.40 ) NO-ERROR.
        RUN resizeObject IN h_dynlookup ( 1.00 , 50.00 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
              INPUT  'DisplayedFieldgsc_product_module.product_module_code,gsc_product_module.product_module_descriptionKeyFieldgsc_product_module.product_module_codeFieldLabelProduct moduleFieldTooltipSelect the preferred Product Module for Entity ObjectsKeyFormatX(35)KeyDatatypecharacterDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_product_module
-                     WHERE [&FilterSet=|&EntityList=GSCPM] NO-LOCK BY gsc_product_module.product_module_code INDEXED-REPOSITIONQueryTablesgsc_product_moduleSDFFileNamedcSDOProdModSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 / &2ComboDelimiterListItemPairsInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesSuperProcedureFieldNameEntityObjectProductModuleDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     WHERE [&FilterSet=|&EntityList=GSCPM] NO-LOCK BY gsc_product_module.product_module_code INDEXED-REPOSITIONQueryTablesgsc_product_moduleSDFFileNamedcSDOProdModSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 / &2ComboDelimiterListItemPairsInnerLines5SortnoComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesSuperProcedureDataSourceNameFieldNameEntityObjectProductModuleDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dyncombo ).
-       RUN repositionObject IN h_dyncombo ( 16.52 , 29.00 ) NO-ERROR.
+       RUN repositionObject IN h_dyncombo ( 16.24 , 29.40 ) NO-ERROR.
        RUN resizeObject IN h_dyncombo ( 1.00 , 50.00 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */

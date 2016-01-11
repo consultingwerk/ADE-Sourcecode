@@ -2,25 +2,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*--------------------------------------------------------------------------
@@ -136,7 +120,8 @@ INDEX hTarget hTarget Band
 INDEX menubarhdl MenuBarHdl ObjectName Band 
 INDEX menuname  MenuName hTarget
 INDEX menukey   MenuKey  hTarget
-INDEX placeholder hTarget PlaceHolder PlaceholderSeq.
+INDEX placeholder PlaceHolder PlaceholderSeq
+INDEX targetplaceholder hTarget PlaceHolder.
 
 DEFINE TEMP-TABLE tMenu NO-UNDO
  FIELD hTarget       AS HANDLE
@@ -7824,7 +7809,7 @@ FUNCTION buildMenuBand RETURNS LOGICAL
    phParent - Parent handle to add menus to 
             - unknown - add menus to target's parent          
     Notes: Called from constructMenuband with unknown parent to add menus 
-           to the recently creatred parent 
+           to the recently created parent 
            Called from removeMenuBand to move menus to the menu that took 
            over the removed menu's position.
 -----------------------------------------------------------------------------*/
@@ -7897,14 +7882,14 @@ FUNCTION buildMenuBand RETURNS LOGICAL
            BY btMenu.Pageno 
            BY btMenu.hTarget
            BY btMenu.seq:
+
     IF NOT VALID-HANDLE(btMenu.Hdl) THEN
     DO:
       
       IF {fnarg actionControlType btMenu.NAME} = 'Placeholder' THEN
       DO:
         FOR EACH btInsertInstance 
-                 WHERE btInsertInstance.hTarget     = TARGET-PROCEDURE
-                 AND   btInsertInstance.PlaceHolder = btMenu.Name 
+                 WHERE btInsertInstance.PlaceHolder = btMenu.Name 
                  BY btInsertInstance.PlaceHolderSeq:
           DYNAMIC-FUNCTION('buildMenuBand':U IN TARGET-PROCEDURE,
                             hUseParent,
@@ -8129,8 +8114,10 @@ FUNCTION buildMenuBand RETURNS LOGICAL
     END.
   END.
 
-  /** Keep this for debugging... (it's also educational, demonstrates sorting) 
-
+  /** Keep this for debugging... 
+  (it's also educational, demonstrates sorting as long as the BY matches the 
+   real one above that is) 
+  
   DEFINE VARIABLE cList AS CHARACTER  NO-UNDO.
   IF hparent = hMenubar  THEN
   DO:
@@ -8163,7 +8150,7 @@ FUNCTION buildMenuBand RETURNS LOGICAL
     'MENUBAR' STRING(hMenubar) SKIP
     cList VIEW-AS ALERT-BOX.
   END.
-    **/
+  **/
     
   
 
@@ -12998,12 +12985,14 @@ FUNCTION retrieveBandsAndActions RETURNS LOGICAL
   DEFINE BUFFER bttObjectBand FOR ttObjectBand.
 
   define variable hContainer        as handle     no-undo.
+  define variable hBuffer           as handle     no-undo.
   define variable cProperties       as character  no-undo.
-  define variable cActions          as character  no-undo.
-  define variable cBands            as character  no-undo.
+  define variable cActions          as character  no-undo    extent 64.
+  define variable cBands            as character  no-undo    extent 64.
   define variable cHiddenActions    as character  no-undo.
   define variable cDisabledActions  as character  no-undo.
   define variable cHiddenStructures as character  no-undo.
+  define variable cLanguageCode     as character  no-undo.
   define variable iLoop             as integer    no-undo.
   define variable dUserObj          as decimal    no-undo.
   define variable dOrganisationObj  as decimal    no-undo.
@@ -13011,11 +13000,14 @@ FUNCTION retrieveBandsAndActions RETURNS LOGICAL
   define variable lHidden           as logical    no-undo.
   define variable lDisabled         as logical    no-undo.
   define variable lApplySecurity    as logical    no-undo.
-  
+  define variable lApplyTranslation as logical    no-undo.
   DEFINE VARIABLE lDelete           AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE iObject           AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cObject           AS CHARACTER  NO-UNDO.
-
+  define variable iActionExtent     as integer    no-undo.
+  define variable iBandExtent       as integer    no-undo.
+  define variable iExtentLoop       as integer    no-undo.
+  
   if pcToolbarList eq ? then pcToolbarList = ''.
   if pcObjectList eq ? then pcObjectList = ''.
   if pcBandList eq ? then pcBandList = ''.
@@ -13042,6 +13034,7 @@ FUNCTION retrieveBandsAndActions RETURNS LOGICAL
       assign pcToolbarList = ''
              lApplySecurity = yes.
       
+            
       /* Get the toolbar information */
       run adm-loadToolbar in target-procedure (output table ttToolbarBand append,
                                                output table ttObjectBand append,
@@ -13049,7 +13042,26 @@ FUNCTION retrieveBandsAndActions RETURNS LOGICAL
                                                output table ttBandAction append,
                                                output table ttAction append,
                                                output table ttCategory append ) no-error.
-  end.    /* this is a generated toolbar. */    
+      /* Check whether translations have been generated into the toolbar.
+         If not, we need to apply translations here.
+       */
+      {get ObjectTranslated lApplyTranslation}.
+      lApplyTranslation = not lApplyTranslation.
+      
+      /* At this stage, the only actions that are not yet normalised are
+         those that have just been retrieved from the toolbar object.
+         We can operate on these without fear.
+       */
+      if lApplyTranslation then
+      for each ttAction where ttAction.ProcedureHandle = ?:
+          if not can-find(ttActionTranslation where
+                          ttActionTranslation.Action = ttAction.Action) then
+          do:
+              create ttActionTranslation.
+              ttActionTranslation.Action = ttAction.Action.
+          end.    /* no action translation available */
+      end.    /* each action */
+  end.    /* this is a generated toolbar. */
   
   /* Get the object menu information.
   
@@ -13077,6 +13089,34 @@ FUNCTION retrieveBandsAndActions RETURNS LOGICAL
                                          output table ttBandAction append,
                                          output table ttAction append,
                                          output table ttCategory append ) no-error.
+      
+      /* Only check whether we need to do translations here if
+         no translations have been generated.
+       */
+      {get ObjectTranslated lApplyTranslation hContainer}.
+      lApplyTranslation = not lApplyTranslation.
+      
+      /* We only want to worry about the actions that were retrieved
+         from the container in the call above. We don't care here about
+         those actions retrieved from the toolbar object; those are
+         catered for by their own code. The query below gets just those
+         actions that were retrieved by the call above.
+       */
+      if lApplyTranslation then
+      for each ttObjectBand,
+          each ttBand where ttBand.Band = ttObjectBand.Band,
+          each ttBandAction where ttBandAction.Band = ttBand.Band,
+          each ttAction where 
+               ttAction.Action = ttBandAction.Action and
+               ttAction.ProcedureHandle = ?:
+                            
+          if not can-find(ttActionTranslation where
+                          ttActionTranslation.Action = ttAction.Action) then
+          do:
+              create ttActionTranslation.
+              ttActionTranslation.Action = ttAction.Action.
+          end.    /* no action translation available */
+      end.    /* each action */
   end.    /* the container has generated menu items. */
   
   /* Apply security (for objects loaded with adm-loadToolbar above).     
@@ -13104,82 +13144,141 @@ FUNCTION retrieveBandsAndActions RETURNS LOGICAL
                  actions will have a ProcedureHandle of ? (this is set in
                  normalizeActionData).
                */
+              iActionExtent = 1.
               for each ttAction where ttAction.ProcedureHandle = ?:
-                  cActions = cActions + ',' + ttAction.Action.
+                  /* Don't blow up with REPACE/CONCAT error. */
+                  if length(cActions[iActionExtent]) + length(ttAction.Action) > 31000 then
+                      assign cActions[iActionExtent] =  left-trim(cActions[iActionExtent], ',')
+                             iActionExtent           = iActionExtent + 1.
+                  
+                  cActions[iActionExtent] = cActions[iActionExtent] + ',' + ttAction.Action.
               end.    /* build action list */
-               
+              
+              iBandExtent = 1.
               for each ttBand where ttBand.ProcedureHandle = ?:
-                  cBands = cBands + ',' + ttBand.Band.
+                  /* Don't blow up with REPACE/CONCAT error. */
+                  if length(cBands[iBandExtent]) + length(ttBand.Band) > 31000  then
+                      assign cBands[iBandExtent] =  left-trim(cBands[iBandExtent], ',')
+                             iBandExtent           = iBandExtent + 1.
+                  
+                  cBands[iBandExtent] = cBands[iBandExtent] + ',' + ttBand.Band.
               end.    /* build band list */
               
-              assign cActions = left-trim(cActions, ',')
-                     cBands = left-trim(cBands, ',').
+              assign cActions[iActionExtent] = left-trim(cActions[iActionExtent], ',')
+                     cBands[iBandExtent] = left-trim(cBands[iBandExtent], ',').
               
-              run menuItemStructureSecurityCheck in gshSecurityManager (input  cActions,
-                                                                        input  cBands,
-                                                                        output cHiddenActions,
-                                                                        output cDisabledActions,
-                                                                        output cHiddenStructures ) no-error.
-              
-              /* Secure hidden actions */
-              do iLoop = 1 to num-entries(cHiddenActions):
-                  find ttAction where
-                       ttAction.Action = entry(iLoop, cHiddenActions)
-                       no-error.
-                  if available ttAction then
-                  do:
-                      for each ttBandAction where
-                               ttBandAction.Action = ttAction.Action:
-                          delete ttBandAction.
-                      end.    /* remove the band actions */
-                      
-                      delete ttAction.                        
-                  end.    /* action hidden */
-              end.    /* loop through hidden actions */
-              
-              /* Secure disabled actions */
-              do iLoop = 1 to num-entries(cDisabledActions):
-                  find ttAction where
-                       ttAction.Action = entry(iLoop, cDisabledActions)
-                       no-error.
-                  if available ttAction then
-                      ttAction.Disabled = yes.
-              end.    /* loop through disabled actions */
-              
-              /* Secure hidden bands */
-              do iLoop = 1 to num-entries(cHiddenStructures):
-                  find ttBand where
-                       ttBand.Band = entry(iLoop, cHiddenStructures)
-                       no-error.
-                  if available ttBand then
-                  do:
-                      for each ttBandAction where
-                               ttBandAction.Band = ttBand.Band:                            
-                          /* Keep any actions that appear on on the band actions, 
-                             since they may be used by other bands. The action security
-                             above will make sure that actions are cleaned up OK if
-                             the actions are secured.
-                           */
-                          delete ttBandAction.
-                      end.    /* each band action */
-                      
-                      for each ttObjectBand where
-                               ttObjectBand.Band = ttBand.Band:
-                          delete ttObjectBand.
-                      end.    /* object band */
-                      
-                      for each ttToolbarBand where
-                               ttToolbarBand.Band = ttband.Band:
-                          delete ttToolbarBand.
-                      end.    /* toolbar band */
-                      
-                      /* now delete the band */
-                      delete ttBand.                    
-                  end.    /* band to secure */                             
-              end.    /* loop through hidden bands */
-          end.    /* security enabled*/               
+              /* Loop through extents */
+              do iExtentLoop = 1 to max(iActionExtent, iBandExtent):
+                  run menuItemStructureSecurityCheck in gshSecurityManager (input  cActions[iExtentLoop],
+                                                                            input  cBands[iExtentLoop],
+                                                                            output cHiddenActions,
+                                                                            output cDisabledActions,
+                                                                            output cHiddenStructures ) no-error.
+                  
+                  /* Secure hidden actions */
+                  do iLoop = 1 to num-entries(cHiddenActions):
+                      find ttAction where
+                           ttAction.Action = entry(iLoop, cHiddenActions)
+                           no-error.
+                      if available ttAction then
+                      do:
+                          for each ttBandAction where
+                                   ttBandAction.Action = ttAction.Action:
+                              delete ttBandAction.
+                          end.    /* remove the band actions */
+                          
+                          delete ttAction.                        
+                      end.    /* action hidden */
+                  end.    /* loop through hidden actions */
+                  
+                  /* Secure disabled actions */
+                  do iLoop = 1 to num-entries(cDisabledActions):
+                      find ttAction where
+                           ttAction.Action = entry(iLoop, cDisabledActions)
+                           no-error.
+                      if available ttAction then
+                          ttAction.Disabled = yes.
+                  end.    /* loop through disabled actions */
+                  
+                  /* Secure hidden bands */
+                  do iLoop = 1 to num-entries(cHiddenStructures):
+                      find ttBand where
+                           ttBand.Band = entry(iLoop, cHiddenStructures)
+                           no-error.
+                      if available ttBand then
+                      do:
+                          for each ttBandAction where
+                                   ttBandAction.Band = ttBand.Band:                            
+                              /* Keep any actions that appear on on the band actions, 
+	                             since they may be used by other bands. The action security
+	                             above will make sure that actions are cleaned up OK if
+	                             the actions are secured.
+	                           */
+                              delete ttBandAction.
+                          end.    /* each band action */
+                          
+                          for each ttObjectBand where
+                                   ttObjectBand.Band = ttBand.Band:
+                              delete ttObjectBand.
+                          end.    /* object band */
+                          
+                          for each ttToolbarBand where
+                                   ttToolbarBand.Band = ttband.Band:
+                              delete ttToolbarBand.
+                          end.    /* toolbar band */
+                          
+                          /* now delete the band */
+                          delete ttBand.                    
+                      end.    /* band to secure */                             
+                  end.    /* loop through hidden bands */
+              end.    /* loop through action extents */
+          end.    /* security enabled*/
       end.    /* valid security and session managers */
   end.    /* apply security */
+  
+    /* Apply Translations.
+       We have no way of knowing whether the actions were translated
+       for the container or the toolbar, so we attempt to translate 
+       them all.
+	 */
+    if can-find(first ttActionTranslation) then
+    do:
+        hBuffer = buffer ttActionTranslation:handle.
+        
+        /* Get login language */
+        cLanguageCode = dynamic-function('getPropertyList' in gshSessionManager,
+                                         'CurrentLanguageObj', no).
+        cLanguageCode = 'OBJ|' + cLanguageCode.
+        
+        /* Do the translations in one hit. */
+        run translateToolbar in gshTranslationManager ( input        cLanguageCode,
+                                                        input-output hBuffer        ) no-error.
+        /* No error handling. If the translation
+           fails for some reason, fall back to the design language.
+         */
+        
+        /* Now apply the translations */
+        for each ttActionTranslation,
+            each ttAction where
+                 ttAction.Action = ttActionTranslation.Action and
+                 ttAction.ProcedureHandle = ?:
+            
+            /* The unknown value signifies that there is no translation for the field. */
+            if ttActionTranslation.Name ne ? then ttAction.Name = ttActionTranslation.Name.
+            if ttActionTranslation.Caption ne ? then ttAction.Caption = ttActionTranslation.Caption.
+            if ttActionTranslation.Tooltip ne ? then ttAction.Tooltip = ttActionTranslation.Tooltip.
+            if ttActionTranslation.Accelerator ne ? then ttAction.Accelerator = ttActionTranslation.Accelerator.
+            if ttActionTranslation.Image ne ? then ttAction.Image = ttActionTranslation.Image.
+            if ttActionTranslation.ImageDown ne ? then ttAction.ImageDown = ttActionTranslation.ImageDown.
+            if ttActionTranslation.ImageInsensitive ne ? then ttAction.ImageInsensitive = ttActionTranslation.ImageInsensitive.
+            if ttActionTranslation.Image2 ne ? then ttAction.Image2 = ttActionTranslation.Image2.
+            if ttActionTranslation.Image2Down ne ? then ttAction.Image2Down = ttActionTranslation.Image2Down.
+            if ttActionTranslation.Image2Insensitive ne ? then ttAction.Image2Insensitive = ttActionTranslation.Image2Insensitive.
+        end.    /* each translation */
+        
+        /* We don't need these records anymore. Get rid of them, they're taking up space. */
+        empty temp-table ttActionTranslation.
+    end.    /* apply translation */
   
   if pcObjectList ne '' or pcToolbarList ne '' or pcBandList ne '' then
   do:
@@ -13518,7 +13617,6 @@ FUNCTION setBuffer RETURNS LOGICAL PRIVATE
   DEFINE VARIABLE iOrder         AS INTEGER   NO-UNDO.
   DEFINE VARIABLE i              AS INTEGER   NO-UNDO.
   DEFINE VARIABLE cLink          AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cControlType   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lUseRepository AS LOGICAL    NO-UNDO.
 
   /* Tell findAction to use phTarget (this is undefined in findaction) */
@@ -13589,6 +13687,7 @@ FUNCTION setBuffer RETURNS LOGICAL PRIVATE
       iOrder = IF AVAIL bttAction 
                THEN bttAction.Order + 1 
                ELSE 1      
+      /* This could be changed to static now: ttAction.Order = iorder */ 
       hColumn = hBuffer:BUFFER-FIELD("ORDER":U)
       hColumn:BUFFER-VALUE = iOrder.           
   END. 
@@ -13597,31 +13696,31 @@ FUNCTION setBuffer RETURNS LOGICAL PRIVATE
   DO:      
     FIND bttAction WHERE bttAction.Action = ttAction.Parent NO-ERROR.
     IF AVAIL bttAction THEN
+      /* This could be changed to static now: ttAction.Link = bttAction.Link */ 
       ASSIGN 
         hColumn = hBuffer:BUFFER-FIELD("Link":U)
         hColumn:BUFFER-VALUE = bttAction.Link.           
   END. 
 
-
-  /* Set ControlType for non-repository objects, this used to be resolved 
-     in the retrieval, but was moved at creation for performance reasons     
-   Non repository calls defineAction without target from initAction,
-   so we use the direct check if super is target as getUseRepository will
-   not be found */
+  /* Non repository calls defineAction without target from initAction,
+     so we use the direct check if super is target as getUseRepository will
+     not be found */
   IF phTarget = THIS-PROCEDURE THEN 
     lUseRepository = DYNAMIC-FUNCTION('isICFRunning':U IN THIS-PROCEDURE) NO-ERROR.
   ELSE /* minimize risk of the above and use the normal call in other cases */ 
     lUseRepository = DYNAMIC-FUNCTION("getUseRepository":U IN phTarget).
 
-  /* Ensure that Unknown is handled as FALSE (if isICFRunning will be unknown
+  /* Set controlType for non-repository actions to 'Action' if onChoose is 
+     defined, UNLESS a createEvent is defined, in which case the OnChoose is 
+     defined to be inherited by the items being added in that event. 
+     The ControlType is used in createMenuAction to decide whether to create 
+     a menu-item or submenu.  
+   - Ensure that Unknown is handled as FALSE (if isICFRunning will be unknown
      if the function is not there)  */
   IF NOT (lUseRepository = TRUE) THEN
-  DO:
-    hColumn = hBuffer:BUFFER-FIELD("OnChoose":U).
-    cControlType = IF hColumn:BUFFER-VALUE <> '':U THEN 'Action':U ELSE 'Label':U.
-    hColumn = hBuffer:BUFFER-FIELD("ControlType":U).
-    hColumn:BUFFER-VALUE = cControlType.
-  END.  
+    ttAction.ControlType = IF ttAction.OnChoose <> '' AND ttAction.createEvent = '' 
+                           THEN 'Action':U
+                           ELSE 'Label':U.
 
   RETURN hBuffer:AVAILABLE. 
 

@@ -2,25 +2,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*--------------------------------------------------------------------------
@@ -76,11 +60,17 @@ DEFINE VARIABLE gcFields        AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcEnableObjects AS CHARACTER  NO-UNDO.
 
 /* Function prototypes */
-FUNCTION get-proc-hdl RETURNS HANDLE
-    (INPUT proc-file-name AS CHARACTER) IN _h_func_lib.
+FUNCTION get-sdo-hdl RETURNS HANDLE
+    (INPUT proc-file-name AS CHARACTER,
+     INPUT phOwner AS HANDLE) IN _h_func_lib.
 
-FUNCTION shutdown-proc RETURNS CHARACTER
-    (INPUT proc-file-name AS CHARACTER ) IN _h_func_lib.
+FUNCTION shutdown-sdo RETURNS CHARACTER
+    (INPUT phOwner AS HANDLE ) IN _h_func_lib.
+
+FUNCTION isDynamicClassNative RETURNS LOGICAL
+    (INPUT pcClass AS CHARACTER) IN _h_func_lib.
+
+/* @TODO  pass sdo in as param?  */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -139,11 +129,7 @@ ASSIGN
   gcFields        = ENTRY(1,pcFields,";":U).
 
   FIND _P WHERE _P._WINDOW-HANDLE = _h_win. 
-  IF _DynamicsIsRunning AND 
-        (   DYNAMIC-FUNCTION("ClassIsA" IN gshRepositoryManager, _P.object_type_code, "DynView":U) 
-         OR DYNAMIC-FUNCTION("ClassIsA" IN gshRepositoryManager, _P.object_type_code, "DynBrow":U) 
-         OR DYNAMIC-FUNCTION("ClassIsA" IN gshRepositoryManager, _P.object_type_code, "DynSDO":U)
-        )  THEN
+  IF _DynamicsIsRunning AND isDynamicClassNative(_P.object_type_code) THEN
     RUN assignClassAttributes IN THIS-PROCEDURE.
 
 CASE pcType:
@@ -354,13 +340,15 @@ PROCEDURE create_a_SmartBrowser :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE ret-msg   AS CHARACTER                 NO-UNDO.
-  DEFINE VARIABLE iw        AS INTEGER                   NO-UNDO.
-  DEFINE VARIABLE hSDO      AS HANDLE                    NO-UNDO.
-  DEFINE VARIABLE i         AS INTEGER                   NO-UNDO.
-  DEFINE VARIABLE cName     AS CHARACTER                 NO-UNDO.
-  DEFINE VARIABLE cDataType AS CHARACTER  NO-UNDO.
-  
+  DEFINE VARIABLE iw         AS INTEGER                   NO-UNDO.
+  DEFINE VARIABLE hSDO       AS HANDLE                    NO-UNDO.
+  DEFINE VARIABLE i          AS INTEGER                   NO-UNDO.
+  DEFINE VARIABLE cName      AS CHARACTER                 NO-UNDO.
+  DEFINE VARIABLE cDataType  AS CHARACTER                 NO-UNDO.
+  DEFINE VARIABLE hRowObject AS HANDLE                    NO-UNDO.
+  DEFINE VARIABLE iTable     AS INTEGER                   NO-UNDO.
+  DEFINE VARIABLE lDbAware   AS LOGICAL                   NO-UNDO.
+
   /* Find the dummy browser created by the template */
   FIND _U WHERE _U._WINDOW-HANDLE = _h_win AND
                 _U._TYPE = "BROWSE".
@@ -370,16 +358,22 @@ PROCEDURE create_a_SmartBrowser :
   /* Set up _Q record - two cases use the query built against the database
      if that is the case, or define the query if going against the SDO     */
   FIND _Q WHERE RECID(_Q) = _C._q-recid.
-  IF _Q._4GLQury = "" THEN DO: /* This is the SDO case */
-    ASSIGN _Q._tblList    = "rowObject"
-           _Q._4GLQury    = "EACH rowObject"
-           _Q._OptionList = RIGHT-TRIM(REPLACE(_Q._OptionList, "KEY-PHRASE", ""))
-           _Q._OptionList = RIGHT-TRIM(REPLACE(_Q._OptionList, "SORTBY-PHRASE", "")).
-           /* KeyPhrase and SortBy options are not needed for SDB's defined
-              w/ SDO */
-
+  
+  /* This is the SDO case */
+  IF _Q._4GLQury = "" THEN 
+  DO:      
     /* Get the handle of the SDO */
-    hSDO = get-proc-hdl(_P._data-object).
+    hSDO = get-sdo-hdl(_P._data-object,TARGET-PROCEDURE).
+    lDbAware = DYNAMIC-FUNCTION('getDbAware':U IN hSDO).
+    IF lDbAware THEN
+      ASSIGN 
+        _Q._tblList    = "rowObject"
+        _Q._4GLQury    = "EACH rowObject"
+        _Q._OptionList = RIGHT-TRIM(REPLACE(_Q._OptionList, "KEY-PHRASE", ""))
+        _Q._OptionList = RIGHT-TRIM(REPLACE(_Q._OptionList, "SORTBY-PHRASE", "")).
+        /* KeyPhrase and SortBy options are not needed for SDB's defined
+           w/ SDO */
+
     AddFieldLoop:
     DO i = 1 TO NUM-ENTRIES(gcFields):
       ASSIGN 
@@ -396,13 +390,13 @@ PROCEDURE create_a_SmartBrowser :
       /* Need separate ASSIGN for key */
       ASSIGN _BC._x-recid      = RECID(_U).
       ASSIGN
-             _BC._NAME         = cName
+             _BC._NAME         = ENTRY(NUM-ENTRIES(cName,'.'),cName,'.')
              _BC._DATA-TYPE    = cDataType
              _BC._DBNAME       = "_<SDO>"
-             _BC._DEF-FORMAT   = dynamic-function("columnFormat" IN hSDO,_BC._NAME)
-             _BC._DEF-HELP     = dynamic-function("columnHelp" IN hSDO,_BC._NAME)
-             _BC._DEF-LABEL    = dynamic-function("columnColumnLabel" IN hSDO,_BC._NAME)
-             _BC._DEF-WIDTH    = MAX(dynamic-function("columnWidth" IN hSDO,_BC._NAME),
+             _BC._DEF-FORMAT   = dynamic-function("columnFormat" IN hSDO,cName)
+             _BC._DEF-HELP     = dynamic-function("columnHelp" IN hSDO,cName)
+             _BC._DEF-LABEL    = dynamic-function("columnColumnLabel" IN hSDO,cName)
+             _BC._DEF-WIDTH    = MAX(dynamic-function("columnWidth" IN hSDO,cName),
                                               FONT-TABLE:GET-TEXT-WIDTH(ENTRY(1,_BC._DEF-LABEL,"!":U)))
              _BC._DISP-NAME    = _BC._NAME
              _BC._FORMAT       = _BC._DEF-FORMAT
@@ -410,7 +404,21 @@ PROCEDURE create_a_SmartBrowser :
              _BC._LABEL        = _BC._DEF-LABEL
              _BC._WIDTH        = _BC._DEF-WIDTH
              _BC._SEQUENCE     = i
-             _BC._TABLE        = "rowObject".
+             _BC._TABLE        = IF NUM-ENTRIES(cName,'.') = 2 
+                                 THEN ENTRY(1,cName,'.')
+                                 ELSE _Q._tbllist
+             _BC._DISP-NAME    = IF NUM-ENTRIES(cName,'.') = 2  
+                                 THEN _BC._TABLE + '.':U + _BC._NAME
+                                 ELSE _BC._NAME.
+
+      /* If this is a DataView based browser, the table list and query should only
+         include tables for fields that were selected.  The table list and query 
+         are reset in the column editor as fields are updated for the 
+         browser (_coledit.p). */  
+      IF NOT lDbAware AND LOOKUP(_BC._TABLE, _Q._tblList) = 0 THEN
+        _Q._tblList = _Q._tblList + (IF NUM-ENTRIES(_Q._tblList) > 0 THEN ',':U ELSE '':U) +
+                      _BC._TABLE.
+
       IF NUM-ENTRIES(_BC._DEF-LABEL,"!":U) > 1 THEN DO:
         DO iw = 2 TO NUM-ENTRIES(_BC._DEF-LABEL,"!":U):
           ASSIGN _BC._DEF-WIDTH = MAX(_BC._DEF-WIDTH, 
@@ -420,9 +428,34 @@ PROCEDURE create_a_SmartBrowser :
       END.  /* IF Stacked Columns */
     END.  /* Loop through the fields */
 
+    IF NOT lDbAware THEN
+    DO:
+      DO iTable = 1 TO NUM-ENTRIES(_Q._tblList):
+        _Q._4GLQury  = _Q._4GLQury
+                     + (IF iTable = 1 THEN "EACH " ELSE ",EACH ")
+                     + ENTRY(iTable,_Q._tblList).
+      END.
+
+      ASSIGN _Q._OptionList = RIGHT-TRIM(REPLACE(_Q._OptionList, "KEY-PHRASE", ""))
+             _Q._OptionList = RIGHT-TRIM(REPLACE(_Q._OptionList, "SORTBY-PHRASE", "")).
+             /* KeyPhrase and SortBy options are not needed for SDB's defined
+                w/ SDO */
+    END.  /* if db aware */
+
     IF VALID-HANDLE(_U._PROC-HANDLE) THEN RUN destroyOBJECT IN _U._PROC-HANDLE.
-    ret-msg = shutdown-proc(_P._data-object).
+    shutdown-sdo(TARGET-PROCEDURE).
   END.  /* SDO CASE */
+
+  /* If this is a static browse then assign widget id */
+  IF _widgetid_assign THEN 
+  DO: 
+    IF (_DynamicsIsRunning AND 
+        NOT DYNAMIC-FUNCTION("ClassIsA" IN gshRepositoryManager, _P.object_type_code, "DynBrow":U)) OR 
+       (NOT _DynamicsIsRunning) THEN
+       
+      _U._WIDGET-ID = DYNAMIC-FUNCTION("nextFrameWidgetID":U IN _h_func_lib,
+                                       INPUT _h_win).
+  END.  /* if widget id assign */
 
   IF VALID-HANDLE(_U._HANDLE) THEN DELETE WIDGET _U._HANDLE.
   RUN adeuib\_undbrow.p (RECID(_U)).
@@ -447,10 +480,11 @@ PROCEDURE create_a_SmartViewer :
     DEFINE VAR drawn         AS LOGICAL   NO-UNDO.
     DEFINE VAR upd-fields    AS CHARACTER NO-UNDO.
     DEFINE VAR iField        AS INTEGER   NO-UNDO.
-    
+    DEFINE VARIABLE hSDO    AS HANDLE     NO-UNDO.
     DEFINE VARIABLE cField  AS CHARACTER  NO-UNDO.
     DEFINE VARIABLE cName   AS CHARACTER  NO-UNDO.
     DEFINE VARIABLE cBuffer AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE hRowObject AS HANDLE     NO-UNDO.
 
     DEFINE BUFFER X_U FOR _U. 
 
@@ -478,14 +512,22 @@ PROCEDURE create_a_SmartViewer :
       FIND _C WHERE RECID(_C)  = _U._x-recid.
       RUN adeuib/_drwdfld.p (INPUT gcFields).
       drawn = YES.
+
     END.  /* if icfrunning and dynamic viewer */
     ELSE DO:
       /* If the field names are not qualified with a table */
       IF NUM-ENTRIES(ENTRY(1,gcFields),".") LE 1 THEN
-        /* Before drawing, must add in RowObject table name. */
-        ASSIGN gcFields = "RowObject.":U + gcFields
-               gcFields = REPLACE(gcFields, ",", ",RowObject.":u).
-           
+      DO:
+        /* Get the handle of the SDO 
+        @TODO use DataTable for buffer name instead of rowobject */
+        ASSIGN 
+          hSDO = get-sdo-hdl(_P._data-object,TARGET-PROCEDURE)
+          hRowObject = DYNAMIC-FUNCTION('getRowObject' IN hSDO)
+          cBuffer = hRowObject:NAME
+          /* Before drawing, must add in RowObject table name. */
+          gcFields = cBuffer + ".":U + gcFields
+          gcFields = REPLACE(gcFields,",","," + cBuffer + ".":U).
+      END.
       /* Generate the file to import and draw the fields with by calling _drwflds.p and
          then using _qssuckr.p to import that file. */
       RUN adeuib/_drwflds.p (INPUT gcFields, INPUT-OUTPUT drawn, OUTPUT ctmp).
@@ -496,22 +538,26 @@ PROCEDURE create_a_SmartViewer :
                              INPUT hframe). /* Handle of new frame to be adjusted         */
         RUN adeuib/_qssuckr.p (ctmp, "", "IMPORT":U, TRUE).
         SESSION:SET-NUMERIC-FORMAT(_numeric_separator,_numeric_decimal).
-
+     
         /* When drawing a data field for an object that is using a SmartData
           object, set the data field's Enable property based on the data object
           getUpdatableColumns. Must do this here since its not picked up automatically
           in the temp-table definition like format and label.  jep-code 4/29/98 */
-        IF gcEnableObjects = ? THEN
-        DO:
-          RUN setDataFieldEnable IN _h_uib (INPUT RECID(_P)).
-        END.
-        ELSE DO iField = 1 TO NUM-ENTRIES(gcFields):
+
+        /* This logic turns off enable if field is not updatable  */
+        RUN setDataFieldEnable IN _h_uib (INPUT RECID(_P)).
+        
+        /* For SBOs we pass in the SDO name that are enabled and we do a pass here 
+           to also turn off the ones whose table are not enabled in this viewer  */
+        IF gcEnableObjects > '' THEN
+        DO iField = 1 TO NUM-ENTRIES(gcFields):
           ASSIGN
             cField  = ENTRY(iField,gcFields)
             cBuffer = IF NUM-ENTRIES(cField,".":U) > 1
                       THEN ENTRY(1,cField,".":U)
-                      ELSE "RowObject":U.
+                      ELSE cBuffer.
           /* if not enabled then disable */
+
           IF LOOKUP(cBuffer,gcEnableObjects) = 0 THEN
           DO:
             cName   = ENTRY(NUM-ENTRIES(cField,".":U),cField,".":U).
@@ -524,12 +570,12 @@ PROCEDURE create_a_SmartViewer :
          
           END. /* IF LOOKUP(cField,gcEnableFields) = 0 THEN */
         END.
-
+        
         /* Delete the temporary file */
         OS-DELETE VALUE(ctmp) NO-ERROR.
       END.  /* if drawn */
     END.  /* else do - static viewer */
-
+    shutdown-sdo(TARGET-PROCEDURE).
     /* set the file-saved state to false */
     IF drawn THEN 
       RUN adeuib/_winsave.p (_h_win, FALSE).

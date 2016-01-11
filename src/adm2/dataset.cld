@@ -1,0 +1,26 @@
+/*************************************************************/
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
+/* Class Definition for dataset - src\adm2\dataset.cld - 08/07/2005 
+   Class Type: User-Defined	
+   Class Name: dataset
+   Class DeriveFrom: src/adm2/smart.cld
+   Class SourcePath: adm2
+   Class RcodePath: adm2
+   Class TemplatePath: src/adm2/template   
+   Class Method: dataset.i
+   Class Property: datasetprop.i
+   Class Super: dataset.p
+   Class Prototype: datasetprto.i
+   Class Template: dataset.w
+   Custom Method: datasetcustom.i
+   Custom Property: datasetpropcustom.i
+   Custom Super: datasetcustom.p
+   Custom Prototype: datasetprtocustom.i
+   Custom Exclude: datasetexclcustom.i
+   Custom Instance: datasetdefscustom.i
+ */

@@ -137,7 +137,7 @@ PROCEDURE data-type_change :
   /* new DATA-TYPE and get the default value for the format again.  Formats is */
   /* a CHR(10) delimited list of formats to use for each data-type.            */
   ASSIGN formats       =
-            REPLACE ("X(8)|99/99/99|->>,>>9.99|yes/no|->,>>>,>>9|>>>>>>9":U,
+            REPLACE ("X(8)|99/99/99|99/99/9999 HH:MM:SS.SSS|99/99/9999 HH:MM:SS.SSS+HH:MM|->>,>>9.99|yes/no|->,>>>,>>9|>>>>>>9":U,
                      "|":U,CHR(10))
          i             = LOOKUP(_F._DATA-TYPE, "{&datatypes}")
          ENTRY(i,formats,CHR(10)) = _F._FORMAT

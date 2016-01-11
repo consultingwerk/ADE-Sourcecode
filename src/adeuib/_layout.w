@@ -4,25 +4,9 @@
 &Scoped-define FRAME-NAME cust-layout
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS cust-layout 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*------------------------------------------------------------------------
@@ -93,7 +77,7 @@ DEFINE BUFFER p_L FOR _L.
 &Scoped-define PROCEDURE-TYPE DIALOG-BOX
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME cust-layout
 
 /* Standard List Definitions                                            */
@@ -126,7 +110,7 @@ DEFINE BUTTON btn_new
 DEFINE VARIABLE cb-layout AS CHARACTER FORMAT "X(35)" 
      LABEL "&Layout" 
      VIEW-AS COMBO-BOX INNER-LINES 6
-     LIST-ITEMS "","" 
+     DROP-DOWN-LIST
      SIZE 42.6 BY 1 NO-UNDO.
 
 DEFINE VARIABLE c_comment AS CHARACTER 
@@ -204,7 +188,7 @@ DEFINE FRAME cust-layout
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX cust-layout
-   L-To-R                                                               */
+   FRAME-NAME L-To-R                                                    */
 ASSIGN 
        FRAME cust-layout:SCROLLABLE       = FALSE
        FRAME cust-layout:HIDDEN           = TRUE.
@@ -434,7 +418,9 @@ DO:
         IF x_U._TYPE = "RECTANGLE" THEN
           ASSIGN _L._EDGE-PIXELS      = x_L._EDGE-PIXELS
                  _L._FILLED           = x_L._FILLED
-                 _L._GRAPHIC-EDGE     = x_L._GRAPHIC-EDGE.
+                 _L._GRAPHIC-EDGE     = x_L._GRAPHIC-EDGE
+                 _L._GROUP-BOX        = x_L._GROUP-BOX
+                 _L._ROUNDED          = x_L._ROUNDED.
         ELSE
           ASSIGN _L._3-D               = x_L._3-D
                  _L._NO-BOX            = x_L._NO-BOX

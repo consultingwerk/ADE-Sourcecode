@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -64,6 +48,8 @@ History:
     D. McMann 04/23/03 Added logic to check sequence names - support on-line schema
     K. McIntosh 03/04/05 Changed error handling to reject loading a table if one of its 
                          fields are of an unsupported data-type 20050215-011
+    D. Slutz 08/10/05 Added extent_char 20050531-001
+    D. Moloney 11/11/05 Added schema holder version processing variables 20050531-001
 */
 
 /*
@@ -165,6 +151,7 @@ define variable ntyp  	         as character no-undo.
 define variable numeric-type	 as logical   no-undo. 
 define variable oldf  	         as logical   no-undo. /* old file definition */
 define variable pnam             as character no-undo.
+define variable extent_char      as character no-undo.
 define variable prev-prior       as integer   no-undo.
 define variable progvar   	 as character no-undo.
 define variable quote            as character no-undo.
@@ -196,7 +183,12 @@ define variable user_len	 as integer   no-undo.
 define variable table_len	 as integer   no-undo.
 define variable dq_index         as integer   no-undo.
 DEFINE VARIABLE s                AS CHARACTER NO-UNDO.
-DEFINE VARIABLE tdbtype         AS CHARACTER NO-UNDO.
+DEFINE VARIABLE tdbtype          AS CHARACTER NO-UNDO.  
+DEFINE VARIABLE found            AS INTEGER   NO-UNDO.
+DEFINE VARIABLE efound           AS INTEGER   NO-UNDO.
+DEFINE VARIABLE sh_ver           AS INTEGER   NO-UNDO.
+DEFINE VARIABLE sh_max_ver       AS INTEGER   NO-UNDO.
+DEFINE VARIABLE clnt_vers        AS CHARACTER NO-UNDO.
 
 define TEMP-TABLE column-id
           FIELD col-name         as character case-sensitive

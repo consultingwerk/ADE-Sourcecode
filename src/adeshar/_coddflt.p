@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*----------------------------------------------------------------------------
@@ -365,13 +349,14 @@ CASE p_template:
     FOR EACH _BC WHERE _BC._x-recid = RECID(_U):
       IF NOT CAN-DO("_<CALC>,_<SDO>", _BC._DBNAME) THEN
         tmp_string = db-fld-name("_BC":U, RECID(_BC)).
+      ELSE IF _BC._table > '' AND _BC._table <> 'RowObject':U THEN
+        tmp_string = _BC._table + '.':U + _bc._name.  
       ELSE tmp_string = _BC._DISP-NAME.
       IF _U._SHARED  AND _BC._DBNAME NE "_<CALC>" THEN DO:
         IF NUM-ENTRIES(tmp_string,".") = 3 THEN
         OVERLAY(tmp_string,INDEX(tmp_string,"."),1,"CHARACTER":U) = "_".
         ELSE tmp_string = REPLACE(tmp_string,".","_.").
       END.
-      
       /* If user specifically cleared the label text, then write it out as
          well. (dma) */
       IF /* _BC._LABEL NE "":U AND */ _BC._LABEL <> ? AND

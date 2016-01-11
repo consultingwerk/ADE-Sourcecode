@@ -1,6 +1,13 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Check Version Notes Wizard" Procedure _INLINE
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /* Actions: af/cod/aftemwizcw.w ? ? ? ? */
 /* MIP Update Version Notes Wizard
 Check object version notes.
@@ -336,8 +343,6 @@ FUNCTION setWindowName RETURNS LOGICAL
 
 
 /* ***************************  Main Block  *************************** */
-ASSIGN ghLayoutManager = DYNAMIC-FUNCTION("getLayoutManagerHandle":U IN TARGET-PROCEDURE).
-
 ASSIGN glUseThinRendering = DYNAMIC-FUNCTION("getSessionParam":U IN TARGET-PROCEDURE,
                                              INPUT "UseThinRendering":U ).
 
@@ -855,10 +860,13 @@ PROCEDURE createObjects :
             RETURN.
         END.    /* addAllLinks failed */
     end.    /* not a generated object */
-     
+    /* Deep create.
+       Create the contained objects for certain classes of objects: dynamic containers,
+       both object and widget containers. This excludes data objects. */
+    PUBLISH "createObjects":U FROM TARGET-PROCEDURE.        
+
     /* Set up the ForeignFields for all SDOs that have been
-       started already.
-     */
+       started already.                                     */
     &SCOPED-DEFINE xp-assign     
     {get DataTarget cDataTargets}
     {get SdoForeignFields cSdoForeignFields}.
@@ -1864,14 +1872,7 @@ ACCESS_LEVEL=PRIVATE
         END.    /* loop through instances on this page. */
     END.    /* loop through pages requested */
     
-    /* Deep create.
-       Create the contained objects for certain classes of objects: dynamic containers,
-       both object and widget containers. This excludes data objects.
-        */
-    PUBLISH "createObjects":U FROM TARGET-PROCEDURE.
-            
-    /* Set the CurrentPage to the 'proper' current page.
-     */
+     /* Set the CurrentPage to the 'proper' current page.*/
     {set CurrentPage iCurrentPage}.
     
     RETURN TRUE.

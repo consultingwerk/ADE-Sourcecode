@@ -30,25 +30,9 @@ af/cod/aftemwizpw.w
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS DataLogicProcedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -553,8 +537,7 @@ PROCEDURE rowObjectValidate :
       cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
                     {af/sup2/aferrortxt.i 'AF' '1' 'gsm_comment' 'category_obj' "'Category Obj'"}.
 
-  IF (LENGTH(b_gsm_comment.owning_reference) = 0 OR LENGTH(b_gsm_comment.owning_reference) = ?) 
-  AND (b_gsm_comment.owning_obj = 0 OR b_gsm_comment.owning_obj = ?) THEN
+  IF (LENGTH(b_gsm_comment.owning_reference) = 0 OR LENGTH(b_gsm_comment.owning_reference) = ?) then
     ASSIGN
       cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
                     {af/sup2/aferrortxt.i 'AF' '1' 'gsm_comment' 'owning_reference' "'Owning Reference/Owning Obj'"}.
@@ -581,9 +564,25 @@ PROCEDURE rowObjectValidate :
       cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
                     {af/sup2/aferrortxt.i 'AF' '33' 'gsm_comment' 'auto_display' "'Expiry date'" "STRING(TODAY)" }.
 
+    /* The owning_reference is always used. There should be no
+       owning_obj values.
+       
+       In addition, the values saved need to be saved in American
+       format. Always do this (even when the current session is 
+       in American format) because we also want to make sure that
+       we don't save the numeric separator.      
+     */
+    if glHasObjectField and cMessageList eq '' then
+    do:
+        b_gsm_comment.owning_reference = replace(b_gsm_comment.owning_reference, session:numeric-separator, '').
+        b_gsm_comment.owning_reference = replace(b_gsm_comment.owning_reference, session:numeric-decimal-point, '.').
+            
+        /* The owning_obj field is never used */
+        b_gsm_comment.owning_obj = 0.
+    end.    /* no errors */
+    
   ERROR-STATUS:ERROR = NO.
   RETURN cMessageList.
-
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -850,17 +849,10 @@ FUNCTION getEntityInfo RETURNS CHARACTER
     cUserId            =  DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
                                   INPUT "CurrentUserLogin":U,
                                   INPUT NO).
-
-  DO iKey = 1 TO NUM-ENTRIES(cKeyFields):
-    ASSIGN
-      cField = ENTRY(iKey,cKeyFields)
-      cDisplayFieldValue = cDisplayFieldValue 
-                         + (IF iKey = 1 THEN '' ELSE ' ')
-                         + {fnarg ColumnValue cField ghDataSource}
-      cDisplayFieldLabel = cDisplayFieldLabel
-                         + (IF iKey = 1 THEN '' ELSE '+')
-                         + {fnarg ColumnLabel cField ghDataSource}.
-  END.
+  
+  ASSIGN
+    cDisplayFieldValue = {fnarg ColumnValue ENTRY(1,gcDisplayField) ghDataSource}
+    cDisplayFieldLabel = {fnarg ColumnLabel ENTRY(1,gcDisplayField) ghDataSource}.
 
   cReturn =  "OwningEntityMnemonic" + "|":U + cOwningEntityMnemonic + "|":U + 
              "TableHasObjField" + "|":U + STRING(glHasObjectField) + "|":U +
@@ -949,19 +941,19 @@ FUNCTION joinEntity RETURNS LOGICAL
          cKeyValue        = DYNAMIC-FUNCTION("colValues":U IN ghDataSource, cKeyfields)
                             /* Strip out the RowIdent part */
          cKeyValue        = SUBSTRING(cKeyValue,INDEX(cKeyValue,CHR(1)) + 1).
-
-  IF glHasObjectField 
-  THEN DO:
-      ASSIGN cKeyValue = STRING(DECIMAL(cKeyValue))
-             cWhere = "gsm_comment.owning_entity_mnemonic = '":U + cOwningEntityMnemonic + "' AND ":U + 
-                      "gsm_comment.owning_obj = '":U + cKeyValue + "'":U.
-  END.
-  ELSE DO:
+  
+  /* If an object field is used, the values are stored in American format
+     and we need to convert the key value to American format so that we can find
+     the comments for this record.
+   */
+  if glHasObjectField then
+      assign cKeyValue = replace(cKeyValue, session:numeric-separator, '':u)
+             cKeyValue = replace(cKeyValue, session:numeric-decimal-point, '.':u).
+  else
       ASSIGN cKeyValue = REPLACE(cKeyValue,CHR(1),CHR(2)).
-      ASSIGN
-         cWhere = "gsm_comment.owning_entity_mnemonic = '":U + cOwningEntityMnemonic + "' AND ":U + 
-                  "gsm_comment.owning_reference = '":U + TRIM(cKeyValue) + "'  ".
-  END.
+  
+  assign cWhere = "gsm_comment.owning_entity_mnemonic = ":U + quoter(cOwningEntityMnemonic) + " AND ":U + 
+                  "gsm_comment.owning_reference = ":U + quoter(TRIM(cKeyValue)).
   
   DYNAMIC-FUNCTION("setUserProperty":U IN TARGET-PROCEDURE, "OwningEntityMnemonic":U, cOwningEntityMnemonic).
   DYNAMIC-FUNCTION("setUserProperty":U IN TARGET-PROCEDURE, "OwningReference":U, cKeyValue).

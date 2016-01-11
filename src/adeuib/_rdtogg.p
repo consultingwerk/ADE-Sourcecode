@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*----------------------------------------------------------------------------
@@ -68,7 +52,9 @@ ASSIGN _F._DATA-TYPE    = "Logical":U
        _U._DROP-TARGET  = {&ATB_drop-target} = "y"
        _U._NO-TAB-STOP  = {&ATB_no-tab-stop} = "y"
        _F._INITIAL-DATA = IF {&AC_initial} begins "y" THEN "yes" ELSE "no"
-       _U._CONTEXT-HELP-ID = INTEGER({&ATB_context-help-id}).
+       _U._CONTEXT-HELP-ID = INTEGER({&ATB_context-help-id})
+       _U._WIDGET-ID    = INTEGER({&ATB_widget-id})    
+       .
 IF from_schema THEN _F._DICT-VIEW-AS = _suppress_dict_view-as.
 
 CREATE VALUE(IF parent_U._WIN-TYPE THEN "TOGGLE-BOX" ELSE "TEXT") _U._HANDLE

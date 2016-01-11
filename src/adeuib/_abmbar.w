@@ -3,25 +3,9 @@
 &Scoped-define WINDOW-NAME C-Win
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS C-Win 
 /*********************************************************************
-* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*------------------------------------------------------------------------
@@ -157,7 +141,7 @@ FUNCTION validate-format RETURNS LOGICAL
 &Scoped-define PROCEDURE-TYPE Window
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME DEFAULT-FRAME
 
 /* Custom List Definitions                                              */
@@ -386,7 +370,7 @@ ASSIGN {&WINDOW-NAME}:MENUBAR    = MENU AB-Menubar:HANDLE.
 /* SETTINGS FOR WINDOW C-Win
   NOT-VISIBLE,,RUN-PERSISTENT                                           */
 /* SETTINGS FOR FRAME DEFAULT-FRAME
-   NOT-VISIBLE                                                          */
+   NOT-VISIBLE FRAME-NAME                                               */
 ASSIGN 
        FRAME DEFAULT-FRAME:HIDDEN           = TRUE.
 
@@ -1460,16 +1444,27 @@ DEFINE BUFFER b_P FOR _P.
 
   FIND b_P WHERE RECID(b_P) = prPRecid NO-ERROR.
 
-  hSDO = DYNAMIC-FUNCTION('get-proc-hdl':U IN _h_func_lib, INPUT pcSDOToRun).
+  hSDO = DYNAMIC-FUNCTION('get-sdo-hdl':U IN _h_func_lib, 
+                                         INPUT pcSDOToRun,TARGET-PROCEDURE).
   IF VALID-HANDLE(hSDO) THEN
   DO:
-    cEnabledTables  = DYNAMIC-FUNCTION('getEnabledTables':U IN hSDO). 
-    cTables         = DYNAMIC-FUNCTION('getTables':U IN hSDO).
-    cPhysicalTables = DYNAMIC-FUNCTION('getPhysicalTables':U IN hSDO).
+    /* Is this an SDO?
+       instanceOf cannot be used in static object (yet), but DBAware 
+       reflects the principal difference between an sdo and a dataview
+       (appserver aware also..) */
+    IF {fn getDBAware hSDO} THEN
+    DO:
+      cEnabledTables  = DYNAMIC-FUNCTION('getEnabledTables':U IN hSDO). 
+      cTables         = DYNAMIC-FUNCTION('getTables':U IN hSDO).
+    
+      cPhysicalTables = DYNAMIC-FUNCTION('getPhysicalTables':U IN hSDO).
+          ASSIGN iPosition = LOOKUP(ENTRY(1,cEnabledTables),cTables) NO-ERROR.
+      IF iPosition > 0 THEN 
+        cFirstTable = ENTRY(iPosition,cPhysicalTables) NO-ERROR.
+    END.
+    ELSE /* not dbaware (DataView) */
+      cFirstTable = DYNAMIC-FUNCTION('getDataTable':U IN hSDO).
 
-    ASSIGN iPosition = LOOKUP(ENTRY(1,cEnabledTables),cTables) NO-ERROR.
-    IF iPosition > 0 THEN 
-      cFirstTable = ENTRY(iPosition,cPhysicalTables) NO-ERROR.
     IF cFirstTable > "":U THEN
     DO:
       RUN getEntityDetail IN gshGenManager
@@ -1498,7 +1493,7 @@ DEFINE BUFFER b_P FOR _P.
          
     phAttributeBuffer = TEMP-TABLE ttStoreAttribute:DEFAULT-BUFFER-HANDLE.
 
-    DYNAMIC-FUNCTION('shutdown-proc':U IN _h_func_lib, INPUT pcSDOToRun).
+    DYNAMIC-FUNCTION('shutdown-sdo':U IN _h_func_lib, INPUT TARGET-PROCEDURE ).
   END.  /* valid SDO */
 
 END PROCEDURE.
@@ -1760,11 +1755,11 @@ PROCEDURE display_PropSheet :
   IF NOT AVAILABLE local_P  THEN
      RETURN.
   /* Determine whether the object type extends a dynamic viewer */
-  ASSIGN
-  lExtendsDynView  = DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, local_P.object_type_code,"DynView":U)
-  lExtendsDynOther = DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, local_P.object_type_code,"DynSDO":U)
-                     OR DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, local_P.object_type_code,"DynBrow":U).
-
+  lExtendsDynView  = DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager,
+                                         local_P.object_type_code,"DynView":U).
+  IF NOT lExtendsDynView THEN
+    lExtendsDynOther = DYNAMIC-FUNCTION("isDynamicClassNative":U IN _h_func_lib,
+                                         local_P.object_type_code).
   FIND local_U WHERE local_U._HANDLE = _h_cur_widg NO-ERROR.
   IF NOT AVAILABLE local_U  THEN
   DO:
@@ -2255,6 +2250,9 @@ ELSE DO:
       END.
       WHEN "GRAPHIC-EDGE":U     THEN ASSIGN f_L._GRAPHIC-EDGE = lValue
                                             f_U._HANDLE:GRAPHIC-EDGE = lVAlue.
+
+      WHEN "GROUP-BOX":U        THEN ASSIGN f_L._GROUP-BOX    = lValue
+                                            f_U._HANDLE:GROUP-BOX = lValue.
       WHEN "HELP":U             THEN f_U._HELP            = pcValue.
       WHEN "HIDDEN":U           THEN ASSIGN f_U._HIDDEN          = lValue
                                             f_U._VISIBLE         = NOT f_U._HIDDEN.
@@ -2333,6 +2331,8 @@ ELSE DO:
       WHEN "RETAIN-SHAPE":U     THEN     ASSIGN f_F._RETAIN-SHAPE        = lValue
                                                 f_U._HANDLE:RETAIN-SHAPE = lValue.
       WHEN "RETURN-INSERTED":U  THEN     f_F._RETURN-INSERTED = lValue.
+      WHEN "ROUNDED":U          THEN     ASSIGN f_L._ROUNDED        = lValue
+                                                f_U._HANDLE:ROUNDED = lValue.
       WHEN "ROW-HEIGHT-CHARS":U THEN     ASSIGN f_C._ROW-HEIGHT      = DEC(pcValue)
                                                 f_U._HANDLE:ROW-HEIGHT = DEC(pcValue).
       WHEN "SCROLLBAR-HORIZONTAL":U THEN f_F._SCROLLBAR-H     = lValue.
@@ -3675,6 +3675,9 @@ DO WHILE hBuffer:AVAILABLE:
      WHEN "GRAPHIC-EDGE":U     THEN 
          IF AVAILABLE f_L AND isValueLogical(hBuffer) <>  f_L._GRAPHIC-EDGE  AND f_L._GRAPHIC-EDGE <> ?  THEN
             cAttribute = cAttribute + CHR(3) + cLabel + CHR(3) + cResultCode + CHR(3) + string(f_L._GRAPHIC-EDGE,"yes/no":U).  
+     WHEN "GROUP-BOX":U        THEN 
+         IF AVAILABLE f_L AND isValueLogical(hBuffer) <> f_L._GROUP-BOX AND f_L._GROUP-BOX <> ? THEN
+            cAttribute = cAttribute + CHR(3) + cLabel + CHR(3) + cResultCode + CHR(3) + string(f_L._GROUP-BOX,"yes/no":U).  
      WHEN "HEIGHT-CHARS":U THEN
          IF AVAILABLE f_L AND hBuffer:BUFFER-FIELD("setValue":U):BUFFER-VALUE <> STRING(f_L._HEIGHT)  AND f_L._HEIGHT <> ?  THEN
             cAttribute = cAttribute + CHR(3) + cLabel + CHR(3) + cResultCode + CHR(3) + string(f_L._HEIGHT).  
@@ -3690,6 +3693,9 @@ DO WHILE hBuffer:AVAILABLE:
      WHEN "ROW":U               THEN
          IF AVAILABLE f_L AND hBuffer:BUFFER-FIELD("setValue":U):BUFFER-VALUE <> STRING(f_L._ROW) AND f_L._ROW <> ? THEN
             cAttribute = cAttribute + CHR(3) + cLabel + CHR(3) + cResultCode + CHR(3) + STRING(f_L._ROW).  
+     WHEN "ROUNDED":U        THEN 
+         IF AVAILABLE f_L AND isValueLogical(hBuffer) <> f_L._ROUNDED AND f_L._ROUNDED <> ? THEN
+            cAttribute = cAttribute + CHR(3) + cLabel + CHR(3) + cResultCode + CHR(3) + string(f_L._ROUNDED,"yes/no":U).  
      WHEN "SEPARATOR-FGCOLOR":U THEN
          IF AVAILABLE f_L AND hBuffer:BUFFER-FIELD("setValue":U):BUFFER-VALUE <> STRING(f_L._SEPARATOR-FGCOLOR) AND f_L._SEPARATOR-FGCOLOR <> ? THEN
             cAttribute = cAttribute + CHR(3) + cLabel + CHR(3) + cResultCode + CHR(3) + STRING(f_L._SEPARATOR-FGCOLOR).  

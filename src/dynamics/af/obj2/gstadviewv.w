@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
           icfdb            PROGRESS
@@ -29,25 +29,9 @@ DEFINE TEMP-TABLE RowObject
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -139,7 +123,7 @@ DEFINE VARIABLE ghNewValCol     AS HANDLE     NO-UNDO.
 /* Include file with RowObject temp-table definition */
 &Scoped-define DATA-FIELD-DEFS "af/obj2/gstadfullo.i"
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
@@ -210,21 +194,21 @@ DEFINE FRAME frMain
      RowObject.old_detail AT ROW 8.48 COL 13 NO-LABEL
           VIEW-AS EDITOR MAX-CHARS 10000 SCROLLBAR-VERTICAL LARGE
           SIZE 81.2 BY 8
-     RowObject.entity_object_field AT ROW 16.52 COL 40.4 COLON-ALIGNED
+     RowObject.entity_object_field AT ROW 16.57 COL 40.4 COLON-ALIGNED
           LABEL "Entity Object Field"
           VIEW-AS FILL-IN 
           SIZE 38 BY 1
-     RowObject.entity_key_field AT ROW 17.48 COL 40.4 COLON-ALIGNED
+     RowObject.entity_key_field AT ROW 17.62 COL 40.4 COLON-ALIGNED
           LABEL "Entity Key Field"
           VIEW-AS FILL-IN 
           SIZE 38 BY 1
-     RowObject.owning_reference AT ROW 18.52 COL 42.4 NO-LABEL
+     RowObject.owning_reference AT ROW 18.71 COL 42.4 NO-LABEL
           VIEW-AS EDITOR MAX-CHARS 3000
           SIZE 38 BY 1
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1
-         SIZE 93.2 BY 18.71.
+         SIZE 93.2 BY 18.95.
 
 
 /* *********************** Procedure Settings ************************ */
@@ -261,7 +245,7 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 18.71
+         HEIGHT             = 18.95
          WIDTH              = 93.2.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -284,7 +268,7 @@ END.
 /* SETTINGS FOR WINDOW vTableWin
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frMain
-   NOT-VISIBLE                                                          */
+   NOT-VISIBLE FRAME-NAME                                               */
 ASSIGN 
        FRAME frMain:HIDDEN           = TRUE.
 

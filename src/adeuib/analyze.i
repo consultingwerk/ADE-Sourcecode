@@ -117,6 +117,7 @@
 &Global ABW_context-help-id _inp_line[46]
 &Global ABW_no-auto-validate _inp_line[47]
 &Global ABW_no-empty_space  _inp_line[48]
+&GLOBAL ABW_widget-id       _inp_line[49]
 
 &ELSEIF "{&TYPE}" eq "BUTTON" &THEN
 
@@ -135,6 +136,7 @@
 &Global ABU_no-tab-stop     _inp_line[45]
 &Global ABU_flat            _inp_line[46]
 &Global ABU_context-help-id _inp_line[47]
+&GLOBAL ABU_widget-id       _inp_line[48]
 
 
 &ELSEIF "{&TYPE}" eq "COMBO-BOX" &THEN
@@ -164,6 +166,7 @@
 &Global ACB_auto-completion _inp_line[38]
 &Global ACB_unique-match    _inp_line[39]
 &Global ACB_max-chars       _inp_line[40]
+&GLOBAL ACB_widget-id       _inp_line[41]
 
 &ELSEIF "{&TYPE}" eq "EDITOR" &THEN
 
@@ -189,6 +192,7 @@
 &Global AED_no-tab-stop   _inp_line[35]
 &Global AED_context-help-id _inp_line[36]
 &Global AED_data-type     _inp_line[37]
+&GLOBAL AED_widget-id     _inp_line[38]
 
 &ELSEIF "{&TYPE}" eq "FILL-IN" &THEN
 
@@ -218,6 +222,7 @@
 &Global AFF_disable-auto-zap _inp_line[39]
 &Global AFF_context-help-id _inp_line[40]
 &Global AFF_password-field  _inp_line[41]
+&GLOBAL AFF_widget-id       _inp_line[42]
 
 &ELSEIF "{&TYPE}" eq "IMAGE" &THEN
 
@@ -229,6 +234,7 @@
 &Global AIM_stretch-to-fit _inp_line[23]
 &Global AIM_retain-shape   _inp_line[24]
 &Global AIM_transparent    _inp_line[25]
+&GLOBAL AIM_widget-id      _inp_line[26]
 
 &ELSEIF "{&TYPE}" eq "RADIO-SET" &THEN
 
@@ -247,6 +253,7 @@
 &Global ARS_drop-target   _inp_line[28]
 &Global ARS_no-tab-stop   _inp_line[29]
 &Global ARS_context-help-id _inp_line[30]
+&GLOBAL ARS_widget-id       _inp_line[31]
 
 &ELSEIF "{&TYPE}" eq "RECTANGLE" &THEN
 
@@ -255,6 +262,9 @@
 &Global ARC_no-fill       _inp_line[18]
 &Global ARC_tooltip       _inp_line[19]
 &Global ARC_tooltip-attr  _inp_line[20]
+&Global ARC_group-box     _inp_line[21]
+&Global ARC_rounded       _inp_line[22]
+&GLOBAL ARC_widget-id     _inp_line[23]
 
 &ELSEIF "{&TYPE}" eq "SELECTION-LIST" &THEN
 
@@ -279,6 +289,7 @@
 &Global ASE_no-tab-stop   _inp_line[34]
 &Global ASE_list-item-pairs _inp_line[35]
 &Global ASE_context-help-id _inp_line[36]
+&GLOBAL ASE_widget-id       _inp_line[37]
 
 &ELSEIF "{&TYPE}" eq "SLIDER" &THEN
 
@@ -301,6 +312,7 @@
 &Global ASL_drop-target      _inp_line[32]
 &Global ASL_no-tab-stop      _inp_line[33]
 &Global ASL_context-help-id  _inp_line[34]
+&GLOBAL ASL_widget-id        _inp_line[35]
 
 &ELSEIF "{&TYPE}" eq "TOGGLE-BOX" &THEN
 
@@ -312,13 +324,17 @@
 &Global ATB_drop-target     _inp_line[23]
 &Global ATB_no-tab-stop     _inp_line[24]
 &Global ATB_context-help-id _inp_line[25]
+&GLOBAL ATB_widget-id       _inp_line[26]
 
 &ELSEIF "{&TYPE}" eq "LITERAL" &THEN
 
 /* ANALYZER Literal Text (ALI) Data   */
 &Global ALI_literal       _inp_line[17]
 &Global ALI_tooltip       _inp_line[19]
-&Global ALI_tooltip-attr  _inp_line[20]
+&Global ALI_tooltip-attr  _inp_line[20]   
+/* 21 is context-help-id which doesn't make sense for literals but
+   somehow ended up in the analyzer output anyway */
+&GLOBAL ALI_widget-id     _inp_line[22]
 
 &ENDIF
 

@@ -2,25 +2,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*--------------------------------------------------------------------------
@@ -912,7 +896,7 @@ DEFINE VARIABLE hDataSource             AS HANDLE     NO-UNDO.
                        AND ttDcombo.cForEach > ''
                      BY    ttDCombo.iBuildSequence
                      BY    ttDCombo.hWidget:
-
+     
     /* default to decimal if not set-up */
     IF ttDCombo.cWidgetType = "":U THEN
       ttDCombo.cWidgetType = "Decimal":U. 
@@ -1305,29 +1289,66 @@ DEFINE INPUT  PARAMETER pcEvent AS CHARACTER  NO-UNDO.
 
 DEFINE VARIABLE hContainer  AS HANDLE     NO-UNDO.
 DEFINE VARIABLE cField      AS CHARACTER  NO-UNDO.
-
+  
   &SCOPED-DEFINE xp-assign
   {get FieldName cField}
   {get ContainerSource hContainer}  
   .
   &UNDEFINE xp-assign
+  /* manager api, don't use target-procedure...*/ 
+  RUN notifyFields (pcEvent, hContainer, cField).  
 
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-notifyFields) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE notifyFields Procedure 
+PROCEDURE notifyFields :
+/*------------------------------------------------------------------------------
+  Purpose:  Notify data events to a set of fields.    
+  Parameters: pcEvent      
+               Prepare    = prepareField
+               Retrieve   = prepareField,retrieveData
+               Fetch      = preparefield,retrieveData and displayField 
+               Reset      = reset/reopen/rebuild children onlyphViewer    - viewer handle
+              pcParent    - Parent name 
+                            - blank = fields with no parent
+                            - ?     = all
+             
+  Notes: -    
+         - Works only for combos 
+-------------------------------------------------------------------------------*/  
+  DEFINE INPUT  PARAMETER pcEvent     AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER phViewer    AS HANDLE     NO-UNDO.
+  DEFINE INPUT  PARAMETER pcParent    AS CHARACTER  NO-UNDO.
+  
   DEFINE BUFFER bttDComboChild FOR ttDCombo.
 
   IF LOOKUP(pcEvent,'Fetch,Prepare,Retrieve':U) > 0 THEN
-  FOR EACH bttDComboChild WHERE bttDComboChild.hViewer = hContainer
-                          AND LOOKUP(cField,bttDComboChild.cParentField) > 0:
+  FOR EACH bttDComboChild WHERE bttDComboChild.hViewer = phViewer
+                          AND (pcParent = ? 
+                               OR (pcParent = '' AND bttDComboChild.cParentField = '')
+                               OR LOOKUP(pcParent,bttDComboChild.cParentField) > 0):
     RUN prepareField IN bttDComboChild.hWidget.
   END.
 
   IF LOOKUP(pcEvent, 'Fetch,Retrieve':U) > 0 THEN
-    RUN retrieveData (hContainer).
+    RUN retrieveData (phViewer).
   
   IF LOOKUP(pcEvent,'Fetch,Reset':U) > 0 THEN
-  FOR EACH bttDComboChild WHERE bttDComboChild.hViewer = hContainer
-                          AND LOOKUP(cField,bttDComboChild.cParentField) > 0:
+  FOR EACH bttDComboChild WHERE bttDComboChild.hViewer = phViewer
+                          AND (pcParent = ? 
+                               OR (pcParent = '' AND bttDComboChild.cParentField = '')
+                               OR LOOKUP(pcParent,bttDComboChild.cParentField) > 0):
     {fnarg buildCombo 'RESET' bttDComboChild.hWidget}.
   END.
+
+  RETURN.
 
 END PROCEDURE.
 
@@ -1606,7 +1627,7 @@ DEFINE VARIABLE hContainer         AS HANDLE     NO-UNDO.
 DEFINE VARIABLE lUseDataSource     AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE hVar               AS HANDLE     NO-UNDO.
 DEFINE VARIABLE cDSN               AS CHARACTER    NO-UNDO.
-
+  
   /* if the caller is using the old API redirect the call */
   IF NOT glUseNewAPI THEN
   DO:
@@ -1638,6 +1659,7 @@ DEFINE VARIABLE cDSN               AS CHARACTER    NO-UNDO.
       lUseDataSource = FALSE
       iDWidget = LOOKUP(cField, cDisplayedFields).
 
+    
     IF iDWidget > 0 THEN
       hWidget = WIDGET-HANDLE(ENTRY(iDWidget, cFieldHandles)).
     ELSE DO:
@@ -1645,7 +1667,7 @@ DEFINE VARIABLE cDSN               AS CHARACTER    NO-UNDO.
       IF iWidget > 0 THEN
         hWidget = WIDGET-HANDLE(ENTRY(iWidget, cAllFieldHandles)).
     END.
-
+     
     IF VALID-HANDLE(hWidget) THEN
     DO:
       /* Use viewer data-source unless modified if possible to enable this 
@@ -1681,7 +1703,6 @@ DEFINE VARIABLE cDSN               AS CHARACTER    NO-UNDO.
         cValue = {fn getDataValue hWidget}. 
       ELSE 
         cValue = hWidget:INPUT-VALUE.     
-      
       IF cValue = ? OR cValue = "?":U THEN
         cValue = "".
     END.
@@ -2047,7 +2068,11 @@ FUNCTION getDisplayedField RETURNS CHARACTER
     Notes:   
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cDisplayedField AS CHARACTER NO-UNDO.
+  
+  &scoped-define xpDisplayedField
   {get DisplayedField cDisplayedField}.
+  &undefine xpDisplayedField
+  
   RETURN cDisplayedField.
 
 END FUNCTION.
@@ -2147,7 +2172,10 @@ FUNCTION getKeyField RETURNS CHARACTER
     Notes:   
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cKeyField AS CHARACTER NO-UNDO.
+  &scoped-define xpKeyField
   {get KeyField cKeyField}.
+  &undefine xpKeyField
+  
   RETURN cKeyField.
 
 END FUNCTION.
@@ -2259,7 +2287,11 @@ FUNCTION getParentField RETURNS CHARACTER
     Notes:   
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cValue AS CHARACTER NO-UNDO.
+  
+  &scoped-define xpParentField
   {get ParentField cValue}.
+  &undefine xpParentField
+  
   RETURN cValue.
 
 END FUNCTION.
@@ -2279,7 +2311,11 @@ FUNCTION getParentFilterQuery RETURNS CHARACTER
     Notes:   
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cValue AS CHARACTER NO-UNDO.
+  
+  &scoped-define xpParentFilterQuery  
   {get ParentFilterQuery cValue}.
+  &undefine xpParentFilterQuery
+  
   RETURN cValue.
 
 END FUNCTION.
@@ -2539,7 +2575,11 @@ FUNCTION getTempTables RETURNS CHARACTER
     Notes:   
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cValue AS CHARACTER NO-UNDO.
+  
+  &scoped-define xpTempTables
   {get TempTables cValue}.
+  &undefine xpTempTables
+  
   RETURN cValue.
 
 END FUNCTION.
@@ -2559,7 +2599,11 @@ FUNCTION getUseCache RETURNS LOGICAL
     Notes:   
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE lValue AS LOGICAL NO-UNDO.
+  
+  &scoped-define xpUseCache
   {get UseCache lValue}.
+  &undefine xpUseCache
+  
   RETURN lValue.
 
 END FUNCTION.
@@ -2877,11 +2921,6 @@ FUNCTION newWhereClause RETURNS CHARACTER
  DEFINE VARIABLE cNextWhere  AS CHAR   NO-UNDO.
  DEFINE VARIABLE hQuery      AS HANDLE NO-UNDO.
 
-  /* Astra2  - fix European decimal format issues with Astra object numbers in query string
-     FYI: fixQueryString is a function in smartcustom.p
-  */
- IF THIS-PROCEDURE <> TARGET-PROCEDURE THEN
-   pcWhere = DYNAMIC-FUNCTION("fixQueryString":U IN TARGET-PROCEDURE, INPUT pcWhere). /* Astra2 */
 
  ASSIGN
    cString = pcWhere

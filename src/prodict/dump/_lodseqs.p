@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -35,10 +19,19 @@ DEFINE VARIABLE i         AS INTEGER             NO-UNDO.
 DEFINE VARIABLE lvar      AS CHARACTER EXTENT 10 NO-UNDO.
 DEFINE VARIABLE lvar#     AS INTEGER             NO-UNDO.
 DEFINE VARIABLE tmpfile   AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE newAppCtx AS LOGICAL   INIT NO   NO-UNDO.
  
 RUN adecomm/_setcurs.p ("WAIT").
 RUN "adecomm/_tmpfile.p" (INPUT "", INPUT ".adm", OUTPUT tmpfile).
 OUTPUT TO VALUE(tmpfile) NO-MAP NO-ECHO NO-MAP.
+
+/* auditing - start a new application context so that one can report
+all the records that are loaded as a group.
+*/
+IF AUDIT-CONTROL:APPL-CONTEXT-ID = ? THEN DO:
+ ASSIGN newAppCtx = YES.
+ AUDIT-CONTROL:SET-APPL-CONTEXT("Data Administration", "Load Sequence Current Values", "").
+END.
 
 PUT UNFORMATTED
   'DEFINE VARIABLE seqname   AS CHARACTER NO-UNDO.' SKIP
@@ -106,9 +99,18 @@ IF cerror = ?
   OS-DELETE VALUE(tmpfile).
   run adecomm/_setcurs.p ("").
 
+  /* auditing of application data */
+  AUDIT-CONTROL:LOG-AUDIT-EVENT(10214, 
+                                PDBNAME("dictdb") + "._sequence" /* db-name.table-name */, 
+                                "" /* detail */).
+
   MESSAGE "Load of sequence values completed."
           VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
 
   END.     /* conversion not needed OR needed and possible */
+
+  /* for auditing - clear the application context, if we have set one */
+  IF newAppCtx THEN
+     AUDIT-CONTROL:CLEAR-APPL-CONTEXT.
 
 RETURN.

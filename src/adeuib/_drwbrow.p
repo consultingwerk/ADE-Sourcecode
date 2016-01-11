@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*----------------------------------------------------------------------------
@@ -64,7 +48,6 @@ DEFINE BUFFER x_U      FOR _U.
 
 FIND _U WHERE _U._HANDLE = _h_win.
 cur-lo = _U._LAYOUT-NAME.
-
 
 /* Define the minimum size of a widget of this type.                   */
 
@@ -145,6 +128,11 @@ DO TRANSACTION ON STOP UNDO,LEAVE:
     END.
   END.
   RUN adeuib/_callqry.p ("_U":U, RECID(_U), "CHECK-FIELDS":U).
+
+  /* Browse widgets are treated like frames to default their widget id */
+  IF _widgetid_assign THEN
+    _U._WIDGET-ID = DYNAMIC-FUNCTION("nextFrameWidgetID":U IN _h_func_lib,
+                                     INPUT _h_win).
 
   /* Make a final check on the name */
   IF CAN-FIND(FIRST x_U WHERE x_U._NAME = _U._NAME AND x_U._STATUS = "NORMAL":U)

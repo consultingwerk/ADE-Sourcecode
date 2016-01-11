@@ -1,4 +1,11 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /* Procedure Description
 " SmartFrame Object Template
 
@@ -6,6 +13,8 @@ Use this template to create a new  frame which supports SmartObjects. Draw your 
 */
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
+{adecomm/appserv.i}
+DEFINE VARIABLE h_Astra                    AS HANDLE          NO-UNDO.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" fFrameWin _INLINE
 /* Actions: ? ? ? ? af/sup/afverxftrp.p */
 /* This has to go above the definitions sections, as that is what it modifies.
@@ -68,7 +77,7 @@ CREATE WIDGET-POOL.
    saved. They pull the object and version from Roundtable if possible so that it
    can be displayed in the about window of the container */
 
-&scop object-name       rysttbfrmw.w
+&scop object-name       rytemsmartframe.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
 &scop object-version    000000
 
@@ -97,7 +106,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 &Scoped-define ADM-SUPPORTED-LINKS Data-Target,Data-Source,Page-Target,Update-Source,Update-Target
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME fMain
 
 /* Custom List Definitions                                              */
@@ -127,7 +136,7 @@ DEFINE FRAME fMain
    Type: SmartFrame Template
    Allow: Basic,Browse,DB-Fields,Query,Smart
    Container Links: Data-Target,Data-Source,Page-Target,Update-Source,Update-Target
-   Other Settings: PERSISTENT-ONLY
+   Other Settings: PERSISTENT-ONLY APPSERVER
  */
 
 /* This procedure should always be RUN PERSISTENT.  Report the error,  */
@@ -191,7 +200,7 @@ Note: During assembly, the PROGRESS Advisor suggests links and creates them for 
 /* SETTINGS FOR WINDOW fFrameWin
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME fMain
-   NOT-VISIBLE                                                          */
+   NOT-VISIBLE FRAME-NAME                                               */
 ASSIGN 
        FRAME fMain:HIDDEN           = TRUE.
 
@@ -275,5 +284,4 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-
 

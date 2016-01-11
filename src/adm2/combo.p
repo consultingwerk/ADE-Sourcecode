@@ -2,25 +2,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*--------------------------------------------------------------------------
@@ -1636,6 +1620,12 @@ PROCEDURE refreshChildDependancies :
   {get ComboHandle hCombo}.
   &UNDEFINE xp-assign
   
+  IF glUseNewAPI THEN
+  DO:
+    RUN fetchChildFieldData IN hContainer (pcFieldName).  
+    RETURN.
+  END.
+
   /* Create a list of Dynamic Combos to be refreshed
      due to the parent changing */
   cLoopList = pcFieldName.
@@ -1666,7 +1656,7 @@ PROCEDURE refreshChildDependancies :
   IF cRefreshList = "":U OR
      cRefreshList = ? THEN
     RETURN.
-
+ 
   DO iLoop = 1 TO NUM-ENTRIES(cRefreshList):
     cCombo = ENTRY(iLoop,cRefreshList).
     
@@ -1748,16 +1738,12 @@ PROCEDURE refreshChildDependancies :
   EMPTY TEMP-TABLE ttLookupEmpty.
 
   /* Resolve query */
-  IF glUseNewAPI THEN
-    RUN retrieveData IN TARGET-PROCEDURE (hContainer).
-  ELSE DO:
-    IF VALID-HANDLE(gshAstraAppserver) AND VALID-HANDLE(ghSDFCacheManager) THEN
-        RUN adm2/lookupqp.p ON gshAstraAppserver (INPUT-OUTPUT TABLE ttLookupEmpty,
-                                                  INPUT-OUTPUT TABLE ttDComboCopy,
-                                                  INPUT "ComboAutoRefresh":U,
-                                                  INPUT "":U,
-                                                  INPUT hContainer).
-  END.
+  IF VALID-HANDLE(gshAstraAppserver) AND VALID-HANDLE(ghSDFCacheManager) THEN
+    RUN adm2/lookupqp.p ON gshAstraAppserver (INPUT-OUTPUT TABLE ttLookupEmpty,
+                                              INPUT-OUTPUT TABLE ttDComboCopy,
+                                              INPUT "ComboAutoRefresh":U,
+                                              INPUT "":U,
+                                              INPUT hContainer).
   
   /* After the query has been repopulated - assign all the values back
      to the original temp-table - since all the other procedures
@@ -1776,8 +1762,7 @@ PROCEDURE refreshChildDependancies :
 
   /* The table is duplicated in the viewer class, so assign the values back 
      to that also */
-  IF NOT glUseNewAPI THEN
-    RUN updateDynComboTable IN hContainer(TEMP-TABLE ttDComboCopy:DEFAULT-BUFFER-HANDLE).
+  RUN updateDynComboTable IN hContainer(TEMP-TABLE ttDComboCopy:DEFAULT-BUFFER-HANDLE).
 
   EMPTY TEMP-TABLE ttDComboCopy.
   
@@ -2222,16 +2207,20 @@ FUNCTION createDataSource RETURNS HANDLE
   Purpose: Create and initialize a DataSource from the DataSourceName property  
     Notes:  
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hDataSource     AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cDataSourceName AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hRequestSDO     AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE lUseCache       AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE hContainer      AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cRenderingProc  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lUseProxy       AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lDynamic        AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cProps          AS CHARACTER  NO-UNDO.
-
+  DEFINE VARIABLE hDataSource       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cDataSourceName   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hViewerDataSource AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRequestSDO       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lUseCache         AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hContainer        AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cRenderingProc    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lUseProxy         AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lDynamic          AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lDbAware          AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cProps            AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cBusinessEntity   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDatasetName      AS CHARACTER  NO-UNDO.
+  
   &SCOPED-DEFINE xp-assign
   {get ContainerSource hContainer}  
   {get DataSource hDataSource}  
@@ -2243,56 +2232,89 @@ FUNCTION createDataSource RETURNS HANDLE
   AND cDataSourceName > '' 
   AND VALID-HANDLE(hcontainer) THEN 
   DO:
-    IF VALID-HANDLE(gshAstraAppServer) THEN 
-    DO:
-      lUseProxy  = SESSION <> gshAstraAppServer.
-      IF lUseProxy THEN
-        ASSIGN
-          cRenderingProc = 'adm2/thindataview.w':U
-          cProps         = 'AsDivision':U  + CHR(4) + 'CLIENT'.
-      ELSE DO:
-        ASSIGN
-          cRenderingProc = 'adm2/thinsdo.w':U
-          cProps         = 'LaunchLogicalName':U + CHR(4) + cDataSourceName.
-     /* CurrentLogicalname is set for dynamic containers that has set/get
-        while the static container still need to use the LaunchLogicalName 
-        trick above as containr.p does not yet have a set and get */.   
-       {set CurrentLogicalName cDataSourceName hContainer}.  
-      END.
-    END.
-    ELSE  /* non-dynamcis not really supported... */
-      cRenderingProc = cDataSourceName.
+    {get DataSource hViewerDataSource hContainer}.
+    IF VALID-HANDLE(hViewerDataSource) THEN
+      {get DbAware lDbAware hViewerDataSource}.
 
-    /* No batching */
+   /* A viewer with no data source may exist... (not recommended, but..)
+      Currently assume that it always exists for DataView cases.. since the 
+      combo is assigned to one of the viewer's tables at design time*/ 
+    ELSE  
+      lDbAware = YES. 
+
+    IF lDbAware THEN
+    DO:
+      IF VALID-HANDLE(gshAstraAppServer) THEN 
+      DO:
+        lUseProxy  = SESSION <> gshAstraAppServer.
+        IF lUseProxy THEN
+          ASSIGN
+            cRenderingProc = 'adm2/thindata.w':U
+            cProps         = 'AsDivision':U  + CHR(4) + 'CLIENT'.
+        ELSE DO:
+          ASSIGN
+            cRenderingProc = 'adm2/thinsdo.w':U
+            cProps         = 'LaunchLogicalName':U + CHR(4) + cDataSourceName.
+       /* CurrentLogicalname is set for dynamic containers that has set/get
+          while the static container still need to use the LaunchLogicalName 
+          trick above as containr.p does not yet have a set and get */.   
+         {set CurrentLogicalName cDataSourceName hContainer}.  
+        END.
+      END.
+      ELSE  /* non-dynamcis not really supported... */
+        cRenderingProc = cDataSourceName.
+  
+    END.
+    ELSE DO:
+      &SCOPED-DEFINE xp-assign
+      {get BusinessEntity cBusinessEntity hViewerDataSource}
+      {get DatasetName cDatasetName hViewerDataSource}
+       .
+      &UNDEFINE xp-assign
+      ASSIGN
+        cRenderingProc = 'adm2/thindataview.w'
+        cProps =  'BusinessEntity':U + CHR(4) + cBusinessEntity
+               +  CHR(3)
+               +  'DatasetName':U + CHR(4) + cDatasetName
+               +  CHR(3)
+               +  'DataTable':U + CHR(4) + cDataSourceName.
+
+    END.
+       
+     /* No batching */
     cProps = cProps 
-             + (IF cProps = '' THEN '' ELSE CHR(3))
-             +  'RowsToBatch':U + CHR(4) + '0'.
-      
+           + (IF cProps = '' THEN '' ELSE CHR(3))
+           +  'RowsToBatch':U + CHR(4) + '0'.
+
     RUN constructObject IN hContainer 
           (cRenderingProc,
            '',
            cProps, 
            OUTPUT hRequestSDO).
 
-    {set currentLogicalName ? hContainer}.
+    IF lDbAware THEN
+    DO:
+      /* The proxy is created from the class and need a logical name */  
+      IF lUseProxy THEN
+        {set LogicalObjectName cDataSourceName hRequestSDO}.         
+       
+      /* else clear the prepareinstance callback prop after use */
+      ELSE 
+        {set currentLogicalName ? hContainer}.
 
-    /* The proxy is created from the class and need a logical name */  
-    IF lUseProxy THEN
-      {set LogicalObjectName cDataSourceName hRequestSDO}.         
-
-    /* Only share if dynamic (always true in dynamic as renderer is set above) */
-    {get DynamicData lDynamic hRequestSDO}.
-    IF lDynamic THEN
-      {set ShareData TRUE hRequestSDO}. 
-
-    /* inherit cache from combo props */
-    {get UseCache lUseCache}.
-    IF lUseCache THEN
-      {set CacheDuration ? hRequestSDO}.
+      /* Only share if dynamic (always true in dynamic as renderer is set above) */
+      {get DynamicData lDynamic hRequestSDO}.
+      IF lDynamic THEN
+        {set ShareData TRUE hRequestSDO}. 
+  
+      /* inherit cache from combo props */
+      {get UseCache lUseCache}.
+      IF lUseCache THEN
+        {set CacheDuration ? hRequestSDO}.
+    END.
         
     RUN addlink IN TARGET-PROCEDURE (hRequestSDO,'Data':U,TARGET-PROCEDURE).
-
-    RUN initializeObject IN hRequestSDO.
+ 
   END.
 
   RETURN hRequestSDO. 

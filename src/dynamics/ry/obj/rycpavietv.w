@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
           icfdb            PROGRESS
@@ -29,25 +29,9 @@ DEFINE TEMP-TABLE RowObject
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -162,22 +146,25 @@ DEFINE FRAME frMain
      RowObject.container_smartobject_obj AT ROW 1 COL 76.6 COLON-ALIGNED NO-LABEL
           VIEW-AS FILL-IN 
           SIZE 2.6 BY 1
-     RowObject.page_label AT ROW 2.05 COL 16.2 COLON-ALIGNED
+     RowObject.page_label AT ROW 2.1 COL 16.2 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 63.2 BY 1
-     RowObject.security_token AT ROW 3.1 COL 16.2 COLON-ALIGNED
+     RowObject.security_token AT ROW 3.19 COL 16.2 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 63.2 BY 1
-     RowObject.page_reference AT ROW 4.14 COL 16.2 COLON-ALIGNED
+     RowObject.page_reference AT ROW 4.29 COL 16.2 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 63.2 BY 1
-     RowObject.enable_on_create AT ROW 6.33 COL 18.2
+     RowObject.enable_on_create AT ROW 6.43 COL 18.2
+          LABEL "Enable on create"
           VIEW-AS TOGGLE-BOX
           SIZE 21.8 BY 1
-     RowObject.enable_on_modify AT ROW 7.38 COL 18.2
+     RowObject.enable_on_modify AT ROW 7.48 COL 18.2
+          LABEL "Enable on modify"
           VIEW-AS TOGGLE-BOX
           SIZE 21.8 BY 1
-     RowObject.enable_on_view AT ROW 8.43 COL 18.2
+     RowObject.enable_on_view AT ROW 8.52 COL 18.2
+          LABEL "Enable on view"
           VIEW-AS TOGGLE-BOX
           SIZE 20.2 BY 1
      SPACE(43.00) SKIP(0.00)
@@ -220,7 +207,7 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 8.43
+         HEIGHT             = 8.81
          WIDTH              = 80.4.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -253,6 +240,12 @@ ASSIGN
        RowObject.container_smartobject_obj:PRIVATE-DATA IN FRAME frMain     = 
                 "NOLOOKUPS".
 
+/* SETTINGS FOR TOGGLE-BOX RowObject.enable_on_create IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR TOGGLE-BOX RowObject.enable_on_modify IN FRAME frMain
+   EXP-LABEL                                                            */
+/* SETTINGS FOR TOGGLE-BOX RowObject.enable_on_view IN FRAME frMain
+   EXP-LABEL                                                            */
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
@@ -274,7 +267,7 @@ ASSIGN
 
 &Scoped-define SELF-NAME RowObject.security_token
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL RowObject.security_token vTableWin
-ON ENTRY OF RowObject.security_token IN FRAME frMain /* Security Token */
+ON ENTRY OF RowObject.security_token IN FRAME frMain /* Security token */
 DO:
   IF SELF:SCREEN-VALUE = "":U THEN
     SELF:SCREEN-VALUE = RowObject.page_label:SCREEN-VALUE.
@@ -320,9 +313,9 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldryc_layout.layout_code,ryc_layout.layout_nameKeyFieldryc_layout.layout_objFieldLabelLayoutFieldTooltipSelect the default layout for this pageKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH ryc_layout NO-LOCK BY ryc_layout.layout_code INDEXED-REPOSITIONQueryTablesryc_layoutSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 / &2CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcFieldNamelayout_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldryc_layout.layout_code,ryc_layout.layout_nameKeyFieldryc_layout.layout_objFieldLabelLayoutFieldTooltipSelect the default layout for this pageKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH ryc_layout NO-LOCK BY ryc_layout.layout_code INDEXED-REPOSITIONQueryTablesryc_layoutSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 / &2ComboDelimiterListItemPairsInnerLines5SortnoComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesSuperProcedureDataSourceNameFieldNamelayout_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dyncombo ).
-       RUN repositionObject IN h_dyncombo ( 5.19 , 18.20 ) NO-ERROR.
+       RUN repositionObject IN h_dyncombo ( 5.38 , 18.20 ) NO-ERROR.
        RUN resizeObject IN h_dyncombo ( 1.05 , 63.20 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */

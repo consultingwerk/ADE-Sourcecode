@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /********************************************************************/
@@ -71,6 +55,7 @@ DEFINE VARIABLE cBrokerURL   AS CHARACTER NO-UNDO.
 DEFINE VARIABLE cPrivateData AS CHARACTER NO-UNDO.
 DEFINE VARIABLE cValue       AS CHARACTER NO-UNDO.
 DEFINE VARIABLE lWebFile     AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE cFullPathWeb AS CHARACTER NO-UNDO INIT ?.
 
 /* ADE Standards Include. */
 { adecomm/adestds.i }
@@ -87,13 +72,14 @@ IF NOT initialized_adestds THEN
 DEFINE VARIABLE h_frame   AS WIDGET NO-UNDO.  /*... Frame in the  window */
 DEFINE VARIABLE h_ed      AS WIDGET NO-UNDO.  /*... the editor itself    */
 
-IF NUM-ENTRIES(p_Title, CHR(3)) eq 3 THEN
+IF NUM-ENTRIES(p_Title, CHR(3)) eq 4 THEN
   ASSIGN cValue     = SUBSTRING(p_Title, 
                         LENGTH({&PW_Title_Leader},"CHARACTER":U) + 1, -1,
                         "CHARACTER":U)
          lWebFile   = TRUE
          cTempFile  = ENTRY( 2, cValue,  CHR(3))
          cBrokerURL = ENTRY( 3, cValue,  CHR(3))
+         cFullPathWeb = ENTRY( 4, cValue,  CHR(3))
          p_Title    = ENTRY( 1, p_Title, CHR(3)).
 
 /** ******
@@ -212,6 +198,7 @@ IF lWebFile THEN
   ASSIGN cPrivateData                                    = h_ed:PRIVATE-DATA
          ENTRY( {&PW_Temp_Web_File_Pos} , cPrivateData ) = cTempFile
          ENTRY( {&PW_Broker_URL_Pos}    , cPrivateData ) = cBrokerURL
+         ENTRY ( {&PW_Web_File_Name_Pos}, cPrivateData ) = cFullPathWeb
          h_ed:PRIVATE-DATA                               = cPrivateData.
 
 { adecomm/peditor.i }   /* Editor procedures. */

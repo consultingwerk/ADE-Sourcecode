@@ -1,33 +1,20 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*
 
   History: D. McMann 07/09/98 Added AND (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN")
                               to FOR EACH _File.
-                              
+           K. McIntosh 04/25/05 Added code to avoid adding _aud tables to 
+                                list, when p_hidden.
+           K. McIntosh 04/28/05 Refined logic to allow tables to show when
+                                called from options other than "Dump Contents" 
+                                and "Edit Security". 20050427-022
 */
 
-                              
 { prodict/dictvar.i }
 { prodict/user/uservar.i }
 { prodict/user/userhue.i }
@@ -39,16 +26,15 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 1 NO-UNDO INITIAL [
 ].
 /* LANGUAGE DEPENDENCIES END */ /*-----------------------------------------*/
 
-/* Include hidden tables in list? */
+/* Include hidden tables in list? */                                  
 DEFINE INPUT PARAMETER p_hidden AS LOGICAL NO-UNDO.
 
 DEFINE VARIABLE c AS CHARACTER NO-UNDO.
 
-ASSIGN
-  cache_dirty = FALSE
-  cache_file# = 0
-  cache_file  = ""
-  c           = user_hdr.  /* save it */
+ASSIGN cache_dirty = FALSE
+       cache_file# = 0
+       cache_file  = ""
+       c           = user_hdr.  /* save it */
 
 PAUSE 0 BEFORE-HIDE.  /* Added BEFORE-HIDE to prevent prior messages from 
                          being cleared (e.g., from _usrsget.p) in tty mode
@@ -65,6 +51,17 @@ IF p_hidden
     WHERE DICTDB._File._Db-recid = drec_db
       AND (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN")
     BY DICTDB._File._File-name:
+  
+    /* If this is an Audit table, show only if this was called by a 
+       "Schema" menu-item. */
+    IF DICTDB._File._File-Name BEGINS "_aud" AND
+       (user_env[9] = "f"  OR
+        user_env[9] = "rw") THEN NEXT.
+       
+    /* Set the cache to dirty to force it to rebuild the list next time.
+       This prevents an unauthorized tool from seeing these tables. */
+    cache_dirty = TRUE.
+    
     ASSIGN
       cache_file# = cache_file# + 1
       cache_file[cache_file#] = DICTDB._File._File-name.

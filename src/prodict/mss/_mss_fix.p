@@ -1,26 +1,9 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
-
 
 
 /*
@@ -60,9 +43,18 @@ DEFINE VARIABLE l_files          AS CHARACTER NO-UNDO.
 DEFINE VARIABLE l_seqs           AS CHARACTER NO-UNDO.
 DEFINE VARIABLE l_views          AS CHARACTER NO-UNDO.
 DEFINE VARIABLE maxorder         AS INTEGER   NO-UNDO.
+DEFINE VARIABLE a                AS INTEGER   NO-UNDO.
 
 DEFINE BUFFER   a_DICTDB         FOR DICTDB._Field.
 DEFINE BUFFER   i_DICTDB        FOR DICTDB._Index.
+
+DEFINE TEMP-TABLE verify-fname NO-UNDO
+  FIELD new-name LIKE _Field._Field-name
+  INDEX trun-name IS UNIQUE new-name.
+
+DEFINE TEMP-TABLE verify-table NO-UNDO
+  FIELD tnew-name LIKE _File._File-name
+  INDEX trun-name IS UNIQUE tnew-name.
 
 { prodict/dictvar.i }
 { prodict/mss/mssvar.i } /* temp */
@@ -224,6 +216,28 @@ FOR EACH DICTDB2._File WHERE DICTDB2._File._Owner = "PUB"
 
   RUN prodict/misc/_resxlat.p (INPUT-OUTPUT sfiln).
 
+  _verify-table:
+  DO WHILE TRUE:
+    FIND verify-table WHERE verify-table.tnew-name = sfiln NO-ERROR.
+    IF NOT AVAILABLE verify-table THEN DO:
+      CREATE verify-table.
+      ASSIGN verify-table.tnew-name = sfiln.
+      LEAVE _verify-table.
+    END.
+    ELSE DO:
+      DO a = 1 TO 999:
+        ASSIGN sfiln = SUBSTRING(sfiln, 1, LENGTH(sfiln) - LENGTH(STRING(a))) + STRING(a).
+
+        IF CAN-FIND(verify-table WHERE verify-table.tnew-name = sfiln) THEN NEXT.
+        ELSE DO:
+          CREATE verify-table.
+          ASSIGN verify-table.tnew-name = sfiln.
+          LEAVE _verify-table.
+        END.
+      END.
+    END.    
+  END.
+
   FIND DICTDB._File WHERE DICTDB._File._File-name = sfiln 
                       and DICTDB._File._DB-recid = drec_db 
                       and DICTDB._File._Owner = "_FOREIGN" NO-ERROR.
@@ -265,6 +279,10 @@ FOR EACH DICTDB2._File WHERE DICTDB2._File._Owner = "PUB"
 
   END. /* each DICTDB2._File-Trig OF DICTDB2._File */
 
+  /* Clear temp table for new file */
+  FOR EACH verify-fname:
+     DELETE verify-fname.
+  END.
 
   FOR EACH DICTDB2._Field OF DICTDB2._File:
     ASSIGN sfldn = DICTDB2._Field._Field-name.
@@ -283,6 +301,29 @@ FOR EACH DICTDB2._File WHERE DICTDB2._File._Owner = "PUB"
 
     ASSIGN sfldn = sfldn + "," + p_edbtype + "," + string (max_id_length).
     RUN prodict/misc/_resxlat.p (INPUT-OUTPUT sfldn).
+
+    /* We have to do the same thing we do when running protoora.
+       We need to keep track of the names we come up with, and
+       find unique names if the one we just got now is duplicate.*/
+    FIND FIRST verify-fname WHERE new-name = sfldn NO-ERROR.
+
+    IF NOT AVAILABLE verify-fname THEN DO:
+      CREATE verify-fname.
+      ASSIGN verify-fname.new-name = sfldn.
+    END.
+    ELSE DO:
+        DO a = 1 TO 999:
+          ASSIGN sfldn = SUBSTRING(sfldn, 1, LENGTH(sfldn) - LENGTH(STRING(a))) + STRING(a).
+
+          IF CAN-FIND(verify-fname WHERE verify-fname.new-name = sfldn) THEN 
+              NEXT.
+          ELSE DO:
+            CREATE verify-fname.
+            ASSIGN verify-fname.new-name = sfldn.
+            LEAVE. /* get out of the a =1 to 999 loop */
+          END.
+        END.
+    END.
 
     IF TERMINAL <> "" and NOT SESSION:BATCH-MODE THEN
       DISPLAY  DICTDB2._File._File-name @ msg[1]

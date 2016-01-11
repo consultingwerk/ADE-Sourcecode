@@ -1,40 +1,16 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/******************************************************************************/
+/* Copyright (C) 2005 by Progress Software Corporation. All rights reserved.  */
+/* Prior versions of this work may contain portions contributed by            */
+/* participants of Possenet.                                                  */             
+/******************************************************************************/
 /*--------------------------------------------------------------------------
     File        : query.p
     Purpose     : Super procedure for ADM objects which retrieve data from
                   database tables.
-
     Syntax      : adm2/query.p
-
-    Modified    : IZ 1569 : Foreign fields requires field to exist in target
-                  SDO RowObject.
-                  Fix : Renamed function columnHandle to dbColumnHandle and
-                  updated all references to it here.
-    Modified    : IZ 4050 Gikas A. Gikas
   ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
 /*----------------------------------------------------------------------*/
@@ -43,7 +19,10 @@
   /* Tell qryprop.i that this is the query super procedure. */
 &SCOP ADMSuper query.p
 
-&SCOPED-DEFINE MaxTables 18
+/* Query core limitations used to define extents in logic */                                                    
+&SCOPED-DEFINE MaxTables 18  /* core limit on number of joins */
+&SCOPED-DEFINE MaxBreaks 16  /* core limit on number of BY  */
+
 &SCOPED-DEFINE ReposRowNum 2000000
 
 {src/adm2/custom/queryexclcustom.i}
@@ -113,19 +92,6 @@ FUNCTION addQueryWhere RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-assignQuerySelection) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD assignQuerySelection Procedure 
-FUNCTION assignQuerySelection RETURNS LOGICAL
-  (pcColumns   AS CHARACTER,   
-   pcValues    AS CHARACTER,    
-   pcOperators AS CHARACTER) FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-bufferCompareDBToRO) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD bufferCompareDBToRO Procedure 
@@ -148,18 +114,6 @@ FUNCTION bufferCompareFields RETURNS CHARACTER
     INPUT phBuffer2 AS HANDLE,
     INPUT pcExclude AS CHAR,
     INPUT pcOption  AS CHAR )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-bufferWhereClause) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD bufferWhereClause Procedure 
-FUNCTION bufferWhereClause RETURNS CHARACTER
-  (pcBuffer AS CHAR,
-   pcWhere  AS CHAR)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -382,32 +336,6 @@ FUNCTION getTargetProcedure RETURNS HANDLE
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-indexInformation) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD indexInformation Procedure 
-FUNCTION indexInformation RETURNS CHARACTER
-   (pcQuery       AS CHAR,
-    plUseTableSep AS LOG,
-    pcIndexInfo   AS CHAR) FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-insertExpression) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD insertExpression Procedure 
-FUNCTION insertExpression RETURNS CHARACTER
-  (pcWhere      AS CHAR,   
-   pcExpression AS CHAR,     
-   pcAndOr      AS CHAR) FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-newQuerySort) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD newQuerySort Procedure 
@@ -415,21 +343,6 @@ FUNCTION newQuerySort RETURNS CHARACTER
   ( pcQuery       AS CHAR,
     pcSort        AS CHAR,
     plDBColumns   AS LOG)  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-newQueryString) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD newQueryString Procedure 
-FUNCTION newQueryString RETURNS CHARACTER
-  (pcColumns     AS CHARACTER,   
-   pcValues      AS CHARACTER,    
-   pcOperators   AS CHARACTER,
-   pcQueryString AS CHARACTER,
-   pcAndOr       AS CHARACTER) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -455,20 +368,6 @@ FUNCTION newQueryValidate RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD newQueryWhere Procedure 
 FUNCTION newQueryWhere RETURNS CHARACTER
   ( pcWhere AS CHAR)  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-newWhereClause) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD newWhereClause Procedure 
-FUNCTION newWhereClause RETURNS CHARACTER
-  (pcBuffer     AS CHAR,   
-   pcExpression AS char,  
-   pcWhere      AS CHAR,
-   pcAndOr      AS CHAR) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -519,18 +418,6 @@ FUNCTION removeForeignKey RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-removeQuerySelection) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD removeQuerySelection Procedure 
-FUNCTION removeQuerySelection RETURNS LOGICAL
-  (pcColumns   AS CHARACTER,
-   pcOperators AS CHARACTER) FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-resolveBuffer) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD resolveBuffer Procedure 
@@ -566,48 +453,12 @@ FUNCTION rowidWhereCols RETURNS CHARACTER
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-sortExpression) = 0 &THEN
+&IF DEFINED(EXCLUDE-XremoveQuerySelection) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD sortExpression Procedure 
-FUNCTION sortExpression RETURNS CHARACTER
-  ( pcQueryString AS CHARACTER )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-whereClauseBuffer) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-EXTERNAL whereClauseBuffer Procedure 
-FUNCTION whereClauseBuffer RETURNS CHARACTER
-  (pcWhere AS CHAR):
-/*------------------------------------------------------------------------------
-  Purpose:     Returns the buffername of a where clause expression. 
-               This function avoids problems with leading or double blanks in 
-               where clauses.
-  Parameters:
-    pcWhere - Complete where clause for ONE table with or without the FOR 
-              keyword. The buffername must be the second token in the
-              where clause as in "EACH order OF Customer" or if "FOR" is
-              specified, the third token as in "FOR EACH order".
-  
-  Notes:      Used internally in query.p.
-------------------------------------------------------------------------------*/
-  pcWhere = LEFT-TRIM(pcWhere).
-  
-  /* Remove double blanks */
-  DO WHILE INDEX(pcWhere,"  ":U) > 0:
-    pcWhere = REPLACE(pcWhere,"  ":U," ":U).
-  END.
-  /* Get rid of potential line break characters */   
-  pcWhere = REPLACE(pcWhere,CHR(10),'':U). 
-
-  RETURN (IF NUM-ENTRIES(pcWhere," ":U) > 1 
-          THEN ENTRY(IF pcWhere BEGINS "FOR ":U THEN 3 ELSE 2,pcWhere," ":U)
-          ELSE "":U).
-  
-END.
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD XremoveQuerySelection Procedure 
+FUNCTION XremoveQuerySelection RETURNS LOGICAL
+  (pcColumns   AS CHARACTER,
+   pcOperators AS CHARACTER) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -632,7 +483,7 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 18.24
+         HEIGHT             = 18.43
          WIDTH              = 58.8.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -2100,97 +1951,6 @@ END PROCEDURE.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-confirmCommit) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE confirmCommit Procedure 
-PROCEDURE confirmCommit :
-/*------------------------------------------------------------------------------
-  Purpose: Checks the state of all data-targets too se if it's ok to commit.
-           It's not OK to commit if a data-target is Modified or the 
-           in these case the I-O parameter should return cancel = TRUE. 
-           The visual objects (visual.p) will, however, offer the user the 
-           opportunity to save/cancelRecord in order to be able to commit.   
-                  
-Parameters: INPUT-OUTPUT  pioCancel (logical) 
-                 Will return true if it's NOT ok to commit.  
-  Notes:   
-------------------------------------------------------------------------------*/
-   DEFINE INPUT-OUTPUT PARAMETER pioCancel AS LOGICAL NO-UNDO.  
-   
-   /* don't ask data-targets if already cancelled */  
-   IF NOT pioCancel THEN
-     PUBLISH "confirmCommit":U FROM TARGET-PROCEDURE (INPUT-OUTPUT pioCancel).
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-confirmContinue) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE confirmContinue Procedure 
-PROCEDURE confirmContinue :
-/*------------------------------------------------------------------------------
-  Purpose: Checks the state of all data-targets too se if it's ok to continue.
-           It's not OK to continue if a data-target is Modified or the 
-           RowUpdateState equals 'rowUpdated', in these case the I-O parameter 
-           should return cancel = TRUE. The visual objects (visual.p) 
-           will, however, offer the user the opportunity to save/cancelRecord or 
-           commit/undo in order to be able to continue.   
-                  
-Parameters: INPUT-OUTPUT  pioCancel (logical) 
-                 Will return true if it's NOT ok to continue.  
-  Notes:   This method should be called from any method that may change the 
-           result set somewhere in the data-source chain like openQuery or 
-           navigation actions.
-           Currently called from the filter-source to see if new criteria can 
-           be applied.        
-           (Currently the Navigation actions are disabled whenever a state
-            that may disallow continuation is set to true, but if a less modal 
-            dialog could be achieved by calling this from fetch* methods.)
-------------------------------------------------------------------------------*/
-   DEFINE INPUT-OUTPUT PARAMETER pioCancel AS LOGICAL NO-UNDO.  
-   
-   /* don't ask data-targets if already cancelled */  
-   IF NOT pioCancel THEN
-     PUBLISH "confirmContinue":U FROM TARGET-PROCEDURE (INPUT-OUTPUT pioCancel).
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-confirmUndo) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE confirmUndo Procedure 
-PROCEDURE confirmUndo :
-/*------------------------------------------------------------------------------
-  Purpose: Checks the state of all data-targets too se if it's ok to Undo.
-           It's not OK to undo if a data-target is Modified or in AddMode.  
-           In these case the I-O parameter should return cancel = TRUE. 
-           The visual objects (visual.p) will, however, warn the user 
-           that unsaved changes will be cancelled.   
-                  
-Parameters: INPUT-OUTPUT  pioCancel (logical) 
-                 Will return true if it's NOT ok to commit.  
-  Notes:   
-------------------------------------------------------------------------------*/
-   DEFINE INPUT-OUTPUT PARAMETER pioCancel AS LOGICAL NO-UNDO.  
-   
-   /* don't ask data-targets if already cancelled */  
-   IF NOT pioCancel THEN
-     PUBLISH "confirmUndo":U FROM TARGET-PROCEDURE (INPUT-OUTPUT pioCancel).
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-createObjects) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createObjects Procedure 
@@ -3188,30 +2948,6 @@ END PROCEDURE.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-filterContainerHandler) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE filterContainerHandler Procedure 
-PROCEDURE filterContainerHandler :
-/*------------------------------------------------------------------------------
-  Purpose:     Adds the Filter link between itself and a Filter container.  
-               Called from startFilter after the Filter container is 
-               contructed.  
-  Parameters:  phFilterContainer AS HANDLE - handle of the Filter container
-  Notes:       The code to add the Filter link has been separated from 
-               startFilter so that filterContainerHandler can be overridden
-               to add other links between this object and the Filter container.
-------------------------------------------------------------------------------*/
-DEFINE INPUT PARAMETER phFilterContainer AS HANDLE NO-UNDO.
-
-  RUN addLink IN TARGET-PROCEDURE ( phFilterContainer , 'Filter':U , TARGET-PROCEDURE  ).
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-initializeEntityDetails) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initializeEntityDetails Procedure 
@@ -3734,72 +3470,6 @@ END PROCEDURE.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-startFilter) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE startFilter Procedure 
-PROCEDURE startFilter :
-/*------------------------------------------------------------------------------
-  Purpose:     View/Start the filter-source
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-   DEFINE VARIABLE hFilterSource    AS HANDLE    NO-UNDO.
-   DEFINE VARIABLE hWindow          AS HANDLE    NO-UNDO.
-   DEFINE VARIABLE lHide            AS LOGICAL   NO-UNDO.
-   DEFINE VARIABLE hFilterContainer AS HANDLE    NO-UNDO.
-   DEFINE VARIABLE hMyContainer     AS HANDLE    NO-UNDO.
-   DEFINE VARIABLE cFilterWindow    AS CHARACTER NO-UNDO.
-      
-   {get FilterSource hFilterSource}.
-   
-   IF VALID-HANDLE(hFilterSource) THEN 
-   DO:
-     {get ContainerSource hFilterContainer hFilterSource}.
-     {get ContainerSource hMyContainer}.    
-     IF hMyContainer <> hFilterContainer THEN
-     DO:
-       {set FilterWindow hFilterContainer:FILE-NAME}.
-       {get HideOnInit lHide hFilterContainer}. 
-     
-       /* Workaround to make it visible if it's hideoninit */
-       IF lHide THEN 
-        RUN destroyObject in hFilterContainer.
-     END.
-   END.
-   
-   IF NOT VALID-HANDLE(hFilterContainer) THEN 
-   DO:
-     {get FilterWindow cFilterWindow}.     
-     IF cFilterWindow <> '':U THEN
-     DO:
-       {get ContainerSource hMyContainer}.    
-       {get ContainerHandle hWindow}.
-      
-       RUN constructObject IN hMyContainer (
-             INPUT  cFilterWindow,
-             INPUT  hWindow,
-             INPUT  'HideOnInit' + CHR(4) + 'no' + CHR(3) 
-                    + 
-                    'DisableOnInit' + CHR(4) + 'no' + CHR(3) 
-                    + 
-                    'ObjectLayout' + CHR(4),
-             OUTPUT hFilterContainer).
-      /* filterContainerHandler adds the Filter link between this object
-         and the Filter container */
-       RUN filterContainerHandler IN TARGET-PROCEDURE ( hFilterContainer ).
-       RUN initializeObject IN hFilterContainer.  
-     END.
-   END.    
-   
-   RUN viewObject IN hFilterContainer.
-   
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-transferDBRow) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE transferDBRow Procedure 
@@ -3966,7 +3636,7 @@ PROCEDURE transferRows :
   Purpose:     
   Parameters:  
    plAppend   - True indicates that we are appending to a resultset. 
-                This flag ensures that we only changes the batch property 
+                This flag ensures that we only change the batch property 
                 in the end we are appending. Note that we may append to our 
                 own local RowObject TT or to a resultset on the client
               - This is NOT the direct opposite of RebuildOnRepos. Prev and 
@@ -3992,7 +3662,7 @@ PROCEDURE transferRows :
                  - RowNum;Rowident for pcPosition "REFRESH"
                  - Rowident or a Query String for "REPOSITION"                                  
    plFillBatch  - TRUE indicates that the batch should be filled with records
-                  tot he number specified in piRowstoReturn.  
+                  to the number specified in piRowstoReturn.  
                   This applies to 'prev', 'next' or 'reposition' request when 
                   plAppend is false. A 'prev' will behave almost as a 'first' 
                   while the others almost as a 'last', the position will 
@@ -4652,6 +4322,9 @@ PROCEDURE transferRowsFromDB PRIVATE :
            iRowNum        = iRowNum - 1
            iRowPos        = iRowNum.
          hRowObject:FIND-FIRST('WHERE RowNum = ':U +  STRING(iRowNum)) NO-ERROR.
+         /* keep in synch..  the logic below that repositions forward to 
+           identify last is not called when cLastResult = ?, but..   */
+         hQuery:GET-PREV. 
          LEAVE. /* avoid run readHandler logic below */
        END.
        ELSE IF pcPosition = 'AFTER':U THEN
@@ -4750,12 +4423,10 @@ PROCEDURE transferRowsFromDB PRIVATE :
      hQuery:GET-PREV. /* get back to the last ( probably not needed ...)  */
    END.
    /* else check if we are at the end unless we are appending data to the 
-      beginning of existing data (cLastRow is set above depending on old
-      value) */
-   ELSE DO: 
-     /*  set lastResultRoe unless we are appending data to the beginning of 
-         existing data (cLastRow is set above depending on old value) */
-     IF cLastResult = ? THEN 
+      beginning of existing data 
+      (cLastResult is not set to ? above if value is to be kept) */
+   ELSE IF cLastResult = ? THEN 
+   DO: 
        {set LastResultRow cNewLastResult}.      
      /* Did we get-last on open? */
      {get LastDbRowIdent cLastDbRowIdent}.
@@ -4767,9 +4438,10 @@ PROCEDURE transferRowsFromDB PRIVATE :
          {set LastRowNum iRowNum}.
        hQuery:GET-PREV.  /* get back to the current ( probably not needed)   */
      END. /* LastDbrowIdent = ''  */
+
      ELSE IF cLastDbRowident = ENTRY(2,cNewLastResult,';':U) THEN
        {set LastRowNum iRowNum}.
-   END. /* lastrowNum ? (try to find last) */
+   END. /* lastResult = ? (try to find last) */
  END.
  
  IF iRowPos > 0 THEN
@@ -4794,6 +4466,7 @@ PROCEDURE transferRowsFromDB PRIVATE :
        PUBLISH 'DataAvailable':U FROM TARGET-PROCEDURE ('TRANSFER':U).     
    END.
  END.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -4865,8 +4538,8 @@ FUNCTION addForeignKey RETURNS LOGICAL
   /* set all values to unknown if not avail parent if more than one field... 
     (should rather set the query to where false..)  */
   ELSE IF NUM-ENTRIES(cForeignFields) > 2 THEN
-    cForeignValues = RIGHT-TRIM(FILL('?,',INT(NUM-ENTRIES(cForeignFields) / 2)),',').
-
+    cForeignValues = RIGHT-TRIM(FILL('?' + CHR(1),INT(NUM-ENTRIES(cForeignFields) / 2)),',').
+  
   {set ForeignValues cForeignValues}. 
 
   RETURN DYNAMIC-FUNCTION("assignQuerySelection":U IN hTarget, 
@@ -4969,13 +4642,8 @@ FUNCTION addQueryWhere RETURNS LOGICAL
   {get QueryString cQueryString}.      
   /* If no QueryString find the current query */ 
   IF cQueryString = "":U OR cQueryString = ? THEN
-  DO:
-    {get QueryWhere cQueryString}.    
-     /* If no current Query find the defined base query */ 
-     IF cQueryString = "":U OR cQueryString = ? THEN
-       {get OpenQuery cQueryString}.       
-  END. /* cQueryString = "":U */
-  
+    {get QueryStringDefault cQueryString}.   
+
   cQueryString = DYNAMIC-FUNCTION ('newQueryValidate':U IN TARGET-PROCEDURE,
                                    cQueryString,pcWhere,pcBuffer,pcAndOr).
  
@@ -4984,302 +4652,6 @@ FUNCTION addQueryWhere RETURNS LOGICAL
 
   RETURN cQueryString <> ?.
    
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-assignQuerySelection) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION assignQuerySelection Procedure 
-FUNCTION assignQuerySelection RETURNS LOGICAL
-  (pcColumns   AS CHARACTER,   
-   pcValues    AS CHARACTER,    
-   pcOperators AS CHARACTER):
-/*------------------------------------------------------------------------------   
-   Purpose: Assigns selection criteria to the query and distributes the 
-            column/value pairs to the corresponding buffer's where-clause. 
-            Each buffer's expression will always be embedded in parenthesis.
-   Parameters: 
-     pcColumns   - Column names (Comma separated) 
-                   
-                   Fieldname of a table in the query in the form of 
-                   TBL.FLDNM or DB.TBL.FLDNM (only if qualified with db is specified),
-                   (RowObject.FLDNM should be used for SDO's)  
-                   If the fieldname isn't qualified it checks the tables in 
-                   the TABLES property and assumes the first with a match.
-                   
-     pcValues    - corresponding Values (CHR(1) separated)
-     pcOperators - Operator - one for all columns
-                              - blank - defaults to (EQ)  
-                              - Use slash to define alternative string operator
-                                EQ/BEGINS etc..
-                            - comma separated for each column/value       
-   Notes:   This procedure is designed to run on the client and to be 
-            called several times to build up the the query's where clause 
-            (storing intermediate results in the QueryString property) before 
-            it is finally used in a Query-Prepare method. 
-            openQuery takes care of the preparation of the QueryString property.
-            The QueryColumns property is used to ensure that each column and 
-            operator only will be added once to the QueryString. The property is 
-            also used to store the offset and length of the corresponding values.
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cQueryString   AS CHARACTER NO-UNDO.
-    
-  DEFINE VARIABLE cBufferList    AS CHAR      NO-UNDO.
-  DEFINE VARIABLE cBuffer        AS CHARACTER NO-UNDO.
-  
-  /* We need the columns name and the parts */  
-  DEFINE VARIABLE cColumn        AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cColumnName    AS CHARACTER NO-UNDO.
-    
-  DEFINE VARIABLE iBuffer        AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE iColumn        AS INTEGER   NO-UNDO.
-  
-  DEFINE VARIABLE cUsedNums      AS CHAR      NO-UNDO.
-  
-  /* Used to builds the column/value string expression */
-  DEFINE VARIABLE cBufWhere      AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cValue         AS CHAR      NO-UNDO.  
-  DEFINE VARIABLE cOperator      AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cAndOr         AS CHAR      NO-UNDO.
-       
-  /* Used to store and maintain offset and length */    
-  DEFINE VARIABLE iValLength     AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE iValPos        AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE iExpPos        AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE iPos           AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE iDiff          AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE cQueryColumns  AS CHAR      NO-UNDO.
-  DEFINE VARIABLE cQueryBufCols  AS CHAR      NO-UNDO.
-  DEFINE VARIABLE cQueryColOp    AS CHAR      NO-UNDO.
-  DEFINE VARIABLE cChangedValues AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cChangedList   AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE iOldEntries    AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE iLowestChanged AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE iBufPos        AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE iColPos        AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE iWhereBufPos   AS INTEGER   NO-UNDO.
-          
-  &SCOPED-DEFINE xp-assign
-  {get Tables cBufferList}    
-  /* The QueryString contains data if the query is being currently worked on 
-     by this method or addQuerywhere over many calls. */
-  {get QueryString cQueryString}.      
-  &UNDEFINE xp-assign
-  /* If no QueryString find the current query */ 
-  IF cQueryString = "":U OR cQueryString = ? THEN
-  DO:
-    {get QueryWhere cQueryString}.    
-     /* If no current Query find the defined base query */ 
-     IF cQueryString = "":U OR cQueryString = ? THEN
-       {get OpenQuery cQueryString}.       
-  END. /* cQueryString = "":U */
-  IF cQueryString = "":U OR cQueryString = ? THEN
-    RETURN FALSE.
-
-  {get QueryColumns cQueryColumns}.
-  /* cQueryColumns has the form of:
-        BufName1:columns_of_buf1:BufName2:columns_of_buf2...
-      
-        Each columns_of_buf has the form of:
-        ColumnName.Operator,ValuePosition,ValueLength
-        
-        The Operator is one of: ">=", "<=","<", ">", "=", "BEGINS", etc.
-        The ValuePosition refers to the character position of the value
-        in an expression: ColumnName Opr Value
-        (The quote is considered part of the value)
-        The length of the value is the number of characters in the string
-        that represents the value (including quotes) */
-  
-  ASSIGN
-    /* We only support and in this function */
-    cAndOr       = "AND":U. 
-    /* remove bad white space to ensure search for buffer name is ok */   
-    cQueryString = REPLACE(cQueryString,CHR(10),' ':U).
-
-  DO iBuffer = 1 TO NUM-ENTRIES(cBufferList):  
-    ASSIGN
-      cBufWhere      = "":U
-      cBuffer        = ENTRY(iBuffer,cBufferList)
-      iBufPos        = LOOKUP(cBuffer,cQueryColumns,":":U)
-      cQueryBufCols  = IF iBufPos > 0 
-                       THEN ENTRY(iBufPos + 1,cQueryColumns,":":U) 
-                       ELSE "":U
-      iOldEntries    = NUM-ENTRIES(cQueryBufCols) / 3    
-      cChangedValues = FILL(CHR(1),iOldEntries - 1)
-      cChangedList   = "":U
-      iLowestChanged = 0.
-      
-    ColumnLoop:    
-    DO iColumn = 1 TO NUM-ENTRIES(pcColumns):
-             
-      IF CAN-DO(cUsedNums,STRING(iColumn)) THEN 
-        NEXT ColumnLoop.      
-        
-      RUN obtainExpressionEntries IN TARGET-PROCEDURE
-                         (cBuffer,
-                          iColumn,
-                          pcColumns,
-                          pcValues,
-                          pcOperators,
-                          OUTPUT cColumn, 
-                          OUTPUT cOperator,
-                          OUTPUT cValue).
-      IF cColumn = '':U THEN
-        NEXT.
-
-      ASSIGN
-        cUsedNums  = cUsedNums
-                   + (IF cUsedNums = "":U THEN "":U ELSE ",":U)
-                   + STRING(iColumn) 
-        /* The Column and operator are unique entries so we must mak sure that  
-           that blank or different styles doesn't get misinterpreted  */
-        cQueryColOp = cOperator
-        cQueryColOp = TRIM(     IF cQueryColOp = "GE":U THEN ">=":U
-                           ELSE IF cQueryColOp = "LE":U THEN "<=":U
-                           ELSE IF cQueryColOp = "LT":U THEN "<":U
-                           ELSE IF cQueryColOp = "GT":U THEN ">":U
-                           ELSE IF cQueryColOp = "EQ":U THEN "=":U
-                           ELSE    cQueryColOp)
-        cColumnName = ENTRY(NUM-ENTRIES(cColumn,'.':U),cColumn,'.':U)  
-
-        /* Have the column and operator been added to the querystring
-           (by this function) */  
-        iPos        = LOOKUP(cColumnName + ".":U + cQueryColOp,cQueryBufCols).
-          
-      /* If the column + operator was found in the list
-         we build a list of the new values to use when we insert the data
-         into the QueryString further down.
-         We also build a list of the changed numbers, to check if any change 
-         has occured. (The list of new values cannot be checked because any 
-         data may be new data and we don't know the old value) */         
-      IF iPos > 0 THEN
-        ASSIGN
-          ENTRY(INT((iPos - 1) / 3 + 1),cChangedValues,CHR(1)) = cValue    
-          iLowestChanged = MIN(iPos,IF iLowestChanged = 0 
-                                    THEN iPos 
-                                    ELSE iLowestChanged)
-          cChangedList  = cChangedList 
-                        + (IF cChangedList = "":U THEN "":U ELSE ",":U)
-                        + STRING(INT((iPos - 1) / 3 + 1)).     
-      ELSE DO: /* This is a new column + operator so we build the new 
-                  expression and add the column and offset info to the list 
-                  that will be stored as a part of QueryColumns */   
-        ASSIGN          
-          cBufWhere  = cBufWhere 
-                     + (If cBufWhere = "":U 
-                        THEN "":U 
-                        ELSE " ":U + cAndOr + " ":U)
-                     + cColumn 
-                     + " ":U
-                     + cOperator
-                     + " ":U
-                     + cValue
-                                             
-         /* Calculate the temporary offset of this columns value. 
-            We (Who are we?) will justify it after the expression has been 
-            added to the whereclause, because even if we know the buffer's 
-            position, the expression may or may not need and/where */
-         iValPos   = LENGTH(cBufWhere) - LENGTH(cValue)         
-                    
-           /* Store the ColumName and operator with period as delimiter and 
-              add the position and length as separate entries*/
-         cQueryBufCols = cQueryBufCols 
-                       + (IF cQueryBufCols <> "":U THEN ",":U ELSE "":U)
-                       + cColumnName 
-                       + ".":U 
-                       + cQueryColOp 
-                       + ",":U
-                       + STRING(iValPos)  
-                       + ",":U
-                       + STRING(LENGTH(cValue))
-           
-           /* Ensure that the list used to log changes have correct number of
-              entries (Probably only necessary if the SAME column and operator
-                       appears a second time in the same call, which is unlikely)
-                       */                
-         cChangedValues = cChangedValues + CHR(1).                
-      END. /* else do =(ipos = 0) */
-    END. /* do iColumn = 1 to num-entries(pColumns) */  
-    
-    /* Get the buffers position in the where clause (always the
-       first entry in a dynamic query because there's no 'of <external>')*/ 
-    ASSIGN
-      iWhereBufPos = INDEX(cQueryString + " "," ":U + cBuffer + " ":U)
-      iPos         = INDEX(cQueryString,      " ":U + cBuffer + ",":U)
-      iWhereBufPos = (IF iWhereBufPos > 0 AND iPos > 0
-                      THEN MIN(iPos,iWhereBufPos) 
-                      ELSE MAX(iPos,iWhereBufPos))
-                      + 1
-      iDiff        = 0.                          
-
-    /* We have a new expression */                               
-    IF cBufWhere <> "":U THEN
-    DO: 
-      
-      ASSIGN 
-        cQueryString = DYNAMIC-FUNCTION('newWhereClause':U IN TARGET-PROCEDURE,
-                                         cBuffer,
-                                         cBufWhere,
-                                         cQueryString,
-                                         'AND':U) 
-        /* get the offset of the new expression */
-        iExpPos      = INDEX(cQuerystring,cBufwhere,iWhereBufPos).
-      
-      /* Store the offset from the buffer's offset */  
-      DO iColumn =((iOldEntries + 1) * 3) - 2 TO NUM-ENTRIES(cQueryBufCols) BY 3:
-        ENTRY(iColumn + 1,cQueryBufCols) = 
-                            STRING(INT(ENTRY(iColumn + 1,cQueryBufCols)) 
-                                   + (iExpPos - iWhereBufPos)
-                                   ).                 
-      END. /* do icolumn = 1 to num-entries */        
-    END. /* if cbufwhere <> '' do */  
-    
-    IF iLowestChanged > 0 THEN 
-    DO iColumn = iLowestChanged TO NUM-ENTRIES(cQueryBufCols) BY 3:       
-      ASSIGN
-        iValPos    = INT(ENTRY(iColumn + 1,cQueryBufCols))
-        iValLength = INT(ENTRY(iColumn + 2,cQueryBufCols))
-        iValPos    = iValPos + iDiff.                    
-                     
-      IF CAN-DO(cChangedList,STRING(INT((iColumn - 1) / 3 + 1))) THEN       
-      DO:
-        ASSIGN
-          cValue     = ENTRY(INT((iColumn - 1) / 3 + 1),cChangedValues,CHR(1)) 
-          SUBSTR(cQueryString,iValPos + iWhereBufPos,iValLength) = cValue
-          idiff      = iDiff + (LENGTH(cValue) - iValLength)
-          iValLength = LENGTH(cValue).   
-      END. /* can-do(changelist,string(..) */          
-      ASSIGN      
-        ENTRY(iColumn + 1,cQueryBufCols) = STRING(iValPos)
-        ENTRY(iColumn + 2,cQueryBufCols) = STRING(iVallength).      
-    END. /* else if ilowestchanged do icolumn = ilowestChanged to num-entries */  
-    
-    /* If the buffer has no entry in QueryColumns we append the new entry 
-       The order in Querycolumns is NOT dependent of the order in the query */              
-    IF cQueryBufCols <> "":U THEN
-    DO:    
-      IF iBufPos = 0 THEN   
-         cQueryColumns = cQueryColumns 
-                         + (IF cQueryColumns = "":U THEN "":U ELSE ":":U)
-                         + cBuffer + ":" + cQueryBufCols.
-      
-      ELSE /* There is already a entry for this buffer */
-        ENTRY(iBufPos + 1,cQueryColumns,":":U) = cQueryBufCols.        
-    END. /* cQueryBufCols <> '' */
-
-  END. /* do iBuffer = 1 to hQuery:num-buffers */
-  
-  &SCOPED-DEFINE xp-assign
-  {set QueryColumns cQueryColumns}
-  {set QueryString cQueryString}.
-  &UNDEFINE xp-assign
-  
-  RETURN TRUE. 
-
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -5478,135 +4850,6 @@ DEFINE VARIABLE cDataType      AS CHARACTER  NO-UNDO.
                       + cName.
    END.
    RETURN cChangedFlds.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-bufferWhereClause) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION bufferWhereClause Procedure 
-FUNCTION bufferWhereClause RETURNS CHARACTER
-  (pcBuffer AS CHAR,
-   pcWhere  AS CHAR) :
-/*------------------------------------------------------------------------------
-  Purpose:     Returns the complete query where clause for a specified buffer
-               INCLUDING leading and trailing blanks.
-               EXCLUDING commas and period.                            
-  Parameters:  pcBuffer     - Buffer. See notes
-               pcWhere      - A complete query:prepare-string.
-                            - ? use the current query 
-                              1. QueryString, 2 QueryWhere 3 OpenQuery.    
-  Notes:       This is supported as a 'utility function' that doesn't use any 
-               properties. 
-               if target-procedure = super the passed buffer's qualification 
-               MUST match the query's. 
-               If target-procedure <> super the buffer will be corrected 
-               IF it exists in the object's query.  
-            -  RETURNs the expression immediately when found. 
-               RETURNs '' at bottom if nothing is found. 
-------------------------------------------------------------------------------*/
- DEFINE VARIABLE iComma      AS INT        NO-UNDO. 
- DEFINE VARIABLE iCount      AS INT        NO-UNDO.
- DEFINE VARIABLE iStart      AS INT        NO-UNDO.
- DEFINE VARIABLE cString     AS CHAR       NO-UNDO.
- DEFINE VARIABLE cFoundWhere AS CHAR       NO-UNDO.
- DEFINE VARIABLE cNextWhere  AS CHAR       NO-UNDO.
- DEFINE VARIABLE cTargetType AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE cBuffer     AS CHARACTER  NO-UNDO.
-
- /* If unkown value is passed used the existing query string */
- IF pcWhere = ? THEN
- DO:
-   /* The QueryString contains data if the query is being currently worked on 
-      by this method or addQuerywhere over many calls. */
-   {get QueryString pcWhere}.      
-   /* If no QueryString find the current query */ 
-   IF pcWhere = "":U OR pcWhere = ? THEN
-   DO:
-     {get QueryWhere pcWhere}.    
-      /* If no current Query find the defined base query */ 
-     IF pcWhere = "":U OR pcWhere = ? THEN
-        {get OpenQuery pcWhere}.       
-    END. /* cQueryString = "":U */
- END. /* pcWhere = ? */
-
- ASSIGN
-   cString = RIGHT-TRIM(pcWhere," ":U)  
-   iStart  = 1.
-
- /* Keep our promises and ensure that trailing blanks BEFORE the period are 
-    returned, but remove the period and trailing blanks AFTER it. 
-    If the length of right-trim with blank and blank + period is the same 
-    then there is no period, so just use the passed pcWhere as is. 
-    (Otherwise the remaining period is right-trimmed with comma further down)*/  
- IF LENGTH(cString) = LENGTH(RIGHT-TRIM(pcWhere,". ":U)) THEN
-   cString = pcWhere.
-
- /* This is the guts of what used to be in newQueryWhere, which used to be 
-    called without IN TARGET-PROCEDURE... so if target is a super we just keep 
-    the old requirement of correct qual, otherwise we try to resolve it,
-    but we continue the search also if it is not found in the current query 
-    in order to support this and newQueryWhere as utilities for any buffer and 
-    query.  */ 
- cTargetType = DYNAMIC-FUNCTION('getObjectType':U IN TARGET-PROCEDURE).
- 
- IF cTargetType <> 'SUPER':U THEN
- DO:
-   cBuffer = {fnarg resolveBuffer pcBuffer}. 
- 
-   IF cBuffer <> '':U AND cBuffer <> ? THEN
-     pcBuffer = cBuffer.
- END. /* TARGET = SUPER */
-
- DO WHILE TRUE:
-   iComma  = INDEX(cString,",":U). 
-   
-   /* If a comma was found we split the string into cFoundWhere and cNextwhere */  
-   IF iComma <> 0 THEN 
-     ASSIGN
-       cFoundWhere = cFoundWhere + SUBSTR(cString,1,iComma)
-       cNextWhere  = SUBSTR(cString,iComma + 1)     
-       iCount      = iCount + iComma.       
-   ELSE      
-     /* cFoundWhere is blank if this is the first time or if we have moved on 
-        to the next buffer's where clause
-        If cFoundwhere is not blank the last comma that was used to split 
-        the string into cFoundwhere and cNextwhere was not a join, so we set 
-        them together again.  */     
-     cFoundWhere = IF cFoundWhere = "":U 
-                   THEN cString
-                   ELSE cFoundWhere + cNextwhere.
-          
-   /* We have a complete table whereclause if there are no more commas
-      or the next whereclause starts with each,first or last */    
-   IF iComma = 0 
-   OR CAN-DO("EACH,FIRST,LAST":U,ENTRY(1,TRIM(cNextWhere)," ":U)) THEN
-   DO:
-     /* Remove comma or period before inserting the new expression */
-     ASSIGN
-       cFoundWhere = RIGHT-TRIM(cFoundWhere,",.":U). 
-     
-     IF {fnarg whereClauseBuffer cFoundWhere} = pcBuffer THEN
-       RETURN cFoundWhere.
-     
-     ELSE
-       /* We're moving on to the next whereclause so reset cFoundwhere */ 
-       ASSIGN      
-         cFoundWhere = "":U                     
-         iStart      = iCount + 1.      
-     
-     /* No table found and we are at the end so we need to get out of here */  
-     IF iComma = 0 THEN 
-       LEAVE.    
-   END. /* if iComma = 0 or can-do(EACH,FIRST,LAST */
-   cString = cNextWhere.  
- END. /* do while true. */
-
- RETURN '':U.
 
 END FUNCTION.
 
@@ -6739,7 +5982,6 @@ Parameters:
                   + STRING(hBuffer). 
   END.  /* do i = 1 to */
 
-  pcQueryString = {fnarg fixQueryString pcQueryString}.
   lOK = hRowQuery:QUERY-PREPARE(pcQueryString) NO-ERROR.
       
   IF lOK THEN lOK = hRowQuery:QUERY-OPEN().
@@ -6788,307 +6030,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-indexInformation) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION indexInformation Procedure 
-FUNCTION indexInformation RETURNS CHARACTER
-   (pcQuery       AS CHAR,
-    plUseTableSep AS LOG,
-    pcIndexInfo   AS CHAR):
-/*------------------------------------------------------------------------------
-   Purpose: Return index Information for all buffers in the query.
-            Each index is separated with chr(1).
-            Field information is either qualifed with db and table 
-            or the chr(2) is used as table separator.
-            
-Parameters: pcQuery - What information? 
-                - 'All'             All indexed fields 
-                - 'Standard' or ''  All indexed fields excluding word indexes    
-                - 'Word'            Word Indexed 
-                - 'Unique'          Unique indexes 
-                - 'NonUnique'       Non Unique indexes 
-                - 'Primary'         Primary index
-                - 'Info'            All info (meaningless if pcIndexInfo <> ?)               
-           
-           plUseTableSep - Use table separator.  
-           
-                - Yes   Use table separator 
-                - No    Don't use table separator 
-                       (if pcIndexinfo = ? fieldnames will be qualifed
-                        otherwise they will remain as in pcInddexInfo)
-          
-          pcIndexInfo - Query or previously retrieved info. Enables the 
-                         function to be used with no database connection.    
-                - ? use query - if plUseTableSep = yes the field will be 
-                                returned qualified.     
-                -  Index info in EXACT SAME FORMAT as returned from this 
-                   function earlier with indexInformation('info',yes,?).
-                   
-                   See Notes below for delimiters. 
-     Notes: Returned delimiters
-            - qualifed      - semicolon is index separator 
-            - non-qualifed  - chr(1) as index separator 
-                              chr(2) as table separator        
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hQuery       AS HANDLE NO-UNDO.
-  DEFINE VARIABLE hBuff        AS HANDLE NO-UNDO.
-  DEFINE VARIABLE iBuff        AS INT    NO-UNDO.
-  DEFINE VARIABLE iIdx         AS INT    NO-UNDO.
-  DEFINE VARIABLE iField       AS INT    NO-UNDO.
-  DEFINE VARIABLE cInfo        AS CHAR   NO-UNDO.
-  DEFINE VARIABLE cFieldInfo   AS CHAR   NO-UNDO.
-  DEFINE VARIABLE cIndexInfo   AS CHAR   NO-UNDO.
-  DEFINE VARIABLE cIndexString AS CHAR   NO-UNDO.
-  DEFINE VARIABLE lFound       AS LOG    NO-UNDO.
-  DEFINE VARIABLE lFirstIdx    AS LOG    NO-UNDO.
-  DEFINE VARIABLE cTblDlm      AS CHAR   NO-UNDO.
-  DEFINE VARIABLE cIdxDlm      AS CHAR   NO-UNDO.
-  DEFINE VARIABLE cField       AS CHAR   NO-UNDO.
-  DEFINE VARIABLE cFieldList   AS CHAR   NO-UNDO.
-  DEFINE VARIABLE iNumBuffers  AS INT    NO-UNDO.
-  DEFINE VARIABLE lUseDBQual   AS LOGICAL    NO-UNDO.
-   
-  /* We only use query if no previouisly processed info is passed */
-  IF pcIndexInfo = ? THEN
-  DO:
-    {get QueryHandle hQuery}.
-
-    IF NOT VALID-HANDLE(hQuery) THEN
-      RETURN ?.
-  END.
-
-  ASSIGN
-    cTblDlm     = CHR(2) 
-    cIdxDlm     = CHR(1)
-    iNumBuffers = IF VALID-HANDLE(hQuery)
-                  THEN hQuery:NUM-BUFFERS
-                  ELSE NUM-ENTRIES(pcIndexInfo,cTblDlm).
-
-  /* If no table separator find qualifier rule */   
-  IF NOT plUseTableSep THEN
-     {get UseDBQualifier lUseDBQual}.
- 
-  DO iBuff = 1 TO iNumBuffers:
-    IF pcIndexInfo <> ? THEN
-      cIndexString = ENTRY(iBuff,pcIndexInfo,cTblDlm).         
-    ELSE
-      hBuff  = hQuery:GET-BUFFER-HANDLE(iBuff).
-    
-    ASSIGN
-      iIdx      = 0
-      lFirstIdx = TRUE.
- 
-    IndexBlock:
-    DO WHILE TRUE:
-      ASSIGN
-        iIdx         = iIdx + 1
-        cIndexInfo   = IF pcIndexInfo = ? 
-                       THEN hBuff:INDEX-INFORMATION(iIdx)
-                          /* set to unknown when all entries 
-                             have been parsed */
-                       ELSE IF NUM-ENTRIES(cIndexString,cIdxDlm) >= iIdx  
-                            THEN ENTRY(iIdx,cIndexString,cIdxDlm)        
-                            ELSE ?.
-      IF cIndexInfo = ? THEN 
-         LEAVE IndexBlock. /* No trick .. this is DEFAULT leave 
-                             (Explicit for the Progress illiterate) */      
-      CASE pcQuery:
-        WHEN 'Standard':U OR WHEN '':U THEN
-          lFound = ENTRY(4,cIndexInfo) = "0":U.
-          
-        WHEN "Info":U OR WHEN "All" THEN
-          lFound = TRUE.
-          
-        WHEN "Word":U THEN
-          lFound = ENTRY(4,cIndexInfo) = "1":U.
-          
-        WHEN "Unique":U THEN
-          lFound = ENTRY(2,cIndexInfo) = "1":U.
-          
-        WHEN "NonUnique":U THEN
-          lFound = ENTRY(2,cIndexInfo) = "0":U AND 
-                   ENTRY(4,cIndexInfo) = "0":U.
-          
-        WHEN "Primary" THEN
-          lFound = ENTRY(3,cIndexInfo) = "1":U.
-          
-        OTHERWISE
-        DO:
-          /* Design time error */
-          MESSAGE "ADM Error:"
-                  "Function indexInformation() does not understand"
-                  "parameter '" + pcQuery "'"
-                    
-          VIEW-AS ALERT-BOX ERROR.
-          RETURN ?.
-        END.
-      END CASE. /* pcQuery */
-        
-      /* If pcQuery includes this index then .... */ 
-      IF lFound THEN
-      DO:
-        cFieldList = "":U.
-        /* if 'info' and use table separator we have all we need.
-           Otherwise we loop through each field and refine the data */ 
-        IF pcQuery <> "info":U OR NOT plUseTableSep THEN
-        DO iField = 5 TO NUM-ENTRIES(cIndexInfo) BY 2:
-
-          /* If no table separator and the buffer is valid 
-             we qualify the field */ 
-          cField = (IF NOT plUseTableSep AND VALID-HANDLE(hBuff)
-                    THEN ((IF lUseDBQual THEN hBuff:DBNAME + ".":U
-                                        ELSE "":U)
-                          + hBuff:NAME + ".":U)
-                    ELSE "":U)
-                  + ENTRY(iField,cIndexInfo). 
-          /* if 'info' just replace the field with the qualifed one */
-          IF pcQuery = "Info":U THEN
-            ENTRY(iField,cIndexInfo) = cField.
-
-          ELSE 
-            cFieldList = cFieldList 
-                         + (IF cFieldList = "":U THEN "":U ELSE ",":U)
-                         + cField.
-        END.
-        ASSIGN
-          cInfo = cInfo 
-                   /* don't add index delimiter for first index after 
-                      the table separator or when empty */ 
-                + (IF (plUseTableSep AND lFirstIdx) 
-                   OR  cInfo = '':U 
-                   THEN '':U 
-                   ELSE cIdxDlm)
-                   /* if 'info' just apppend all index info  */ 
-                + (IF pcQuery = "Info":U 
-                   THEN cIndexInfo
-                   ELSE cFieldList)
-          lFirstIdx = FALSE.
-      END. /* if lFound */
-    END. /* do while true */
-
-    /* If no field qualifier add table delimiter unless this is the last buffer */
-    IF plUseTableSep AND iBuff LT iNumBuffers THEN 
-      cInfo = cInfo + cTblDlm.
-
-  END. /* do ibuff = 1 to num-buffers */  
-  RETURN TRIM(cInfo,cTblDlm).
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-insertExpression) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION insertExpression Procedure 
-FUNCTION insertExpression RETURNS CHARACTER
-  (pcWhere      AS CHAR,   
-   pcExpression AS CHAR,     
-   pcAndOr      AS CHAR):                         
-/*------------------------------------------------------------------------------
- Purpose:     Inserts an expression into ONE buffer's where-clause.
- Parameters:  
-      pcWhere      - Complete where clause with or without the FOR keyword,
-                     but without any comma before or after.
-      pcExpression - New expression OR OF phrase (Existing OF phrase is replaced)
-      pcAndOr      - Specifies what operator is used to add the new expression 
-                     to existing ones.
-                     - AND (default) 
-                     - OR         
- Notes:     - The new expression is embedded in parenthesis, but no parentheses
-              are placed around the existing one.  
-            - Lock keywords must be unabbreviated or without -lock (i.e. SHARE
-              or EXCLUSIVE.)   
-            - Any keyword in comments may cause problems.              
-------------------------------------------------------------------------------*/  
-  DEFINE VARIABLE cTable        AS CHAR NO-UNDO.  
-  DEFINE VARIABLE cRelTable     AS CHAR NO-UNDO.  
-  DEFINE VARIABLE cJoinTable    AS CHAR NO-UNDO.  
-  DEFINE VARIABLE cWhereOrAnd   AS CHAR NO-UNDO.  
-  DEFINE VARIABLE iTblPos       AS INT  NO-UNDO.
-  DEFINE VARIABLE iWherePos     AS INT  NO-UNDO.
-  DEFINE VARIABLE lWhere        AS LOG  NO-UNDO.
-  DEFINE VARIABLE iOfPos        AS INT  NO-UNDO.
-  DEFINE VARIABLE iRelTblPos    AS INT  NO-UNDO.  
-  DEFINE VARIABLE iInsertPos    AS INT  NO-UNDO.    
-  
-  DEFINE VARIABLE iUseIdxPos    AS INT  NO-UNDO.        
-  DEFINE VARIABLE iOuterPos     AS INT  NO-UNDO.        
-  DEFINE VARIABLE iLockPos      AS INT  NO-UNDO.      
-  
-  DEFINE VARIABLE iByPos        AS INT  NO-UNDO.        
-  DEFINE VARIABLE iIdxRePos     AS INT  NO-UNDO.        
-           
-  ASSIGN 
-    /* Get rid of potential line break characters (query builder -> repository)*/   
-    pcWhere       = REPLACE(pcWhere,CHR(10),' ':U)
-    cTable        = {fnarg whereClauseBuffer pcWhere}
-    iTblPos       = INDEX(pcWhere,cTable) + LENGTH(cTable,"CHARACTER":U)
-    
-    iWherePos     = INDEX(pcWhere," WHERE ":U) + 6    
-    iByPos        = INDEX(pcWhere," BY ":U)    
-    iUseIdxPos    = INDEX(pcWhere," USE-INDEX ":U)    
-    iIdxRePos     = INDEX(pcWhere + " ":U," INDEXED-REPOSITION ":U)    
-    iOuterPos     = INDEX(pcWhere + " ":U," OUTER-JOIN ":U)     
-    iLockPos      = MAX(INDEX(pcWhere + " ":U," NO-LOCK ":U),
-                        INDEX(pcWhere + " ":U," SHARE-LOCK ":U),
-                        INDEX(pcWhere + " ":U," EXCLUSIVE-LOCK ":U),
-                        INDEX(pcWhere + " ":U," SHARE ":U),
-                        INDEX(pcWhere + " ":U," EXCLUSIVE ":U)
-                        )    
-    iInsertPos    = LENGTH(pcWhere) + 1 
-                    /* We must insert before the leftmoust keyword,
-                       unless the keyword is Before the WHERE keyword */ 
-    iInsertPos    = MIN(
-                      (IF iLockPos   > iWherePos THEN iLockPos   ELSE iInsertPos),
-                      (IF iOuterPos  > iWherePos THEN iOuterPos  ELSE iInsertPos),
-                      (IF iUseIdxPos > iWherePos THEN iUseIdxPos ELSE iInsertPos),
-                      (IF iIdxRePos  > iWherePos THEN iIdxRePos  ELSE iInsertPos),
-                      (IF iByPos     > iWherePos THEN iByPos     ELSE iInsertPos)
-                       )                                                        
-    lWhere        = INDEX(pcWhere," WHERE ":U) > 0 
-    cWhereOrAnd   = (IF NOT lWhere          THEN " WHERE ":U 
-                     ELSE IF pcAndOr = "":U OR pcAndOr = ? THEN " AND ":U 
-                     ELSE " ":U + pcAndOr + " ":U) 
-    iOfPos        = INDEX(pcWhere," OF ":U).
-  
-  IF LEFT-TRIM(pcExpression) BEGINS "OF ":U THEN 
-  DO:   
-    /* If there is an OF in both the join and existing query we replace the 
-       table unless they are the same */      
-    IF iOfPos > 0 THEN 
-    DO:
-      ASSIGN
-        /* Find the table in the old join */               
-        cRelTable  = ENTRY(1,LEFT-TRIM(SUBSTRING(pcWhere,iOfPos + 4))," ":U)      
-        /* Find the table in the new join */       
-        cJoinTable = SUBSTRING(LEFT-TRIM(pcExpression),3).
-      
-      IF cJoinTable <> cRelTable THEN
-        ASSIGN 
-         iRelTblPos = INDEX(pcWhere + " ":U," ":U + cRelTable + " ":U) 
-                      + 1                            
-         SUBSTRING(pcWhere,iRelTblPos,LENGTH(cRelTable)) = cJointable. 
-    END. /* if iOfPos > 0 */ 
-    ELSE 
-      SUBSTRING(pcWhere,iTblPos,0) = " ":U + pcExpression.                                                                
-  END. /* if left-trim(pcExpression) BEGINS "OF ":U */
-  ELSE             
-    SUBSTRING(pcWhere,iInsertPos,0) = cWhereOrAnd 
-                                      + "(":U 
-                                      + pcExpression 
-                                      + ")":U. 
-                                            
-  RETURN RIGHT-TRIM(pcWhere).
-  
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-newQuerySort) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION newQuerySort Procedure 
@@ -7113,140 +6054,242 @@ FUNCTION newQuerySort RETURNS CHARACTER
                   NO  - columns not qualifed with 'RowObject.' will be renamed 
                         to the mapped RowObject column.  
                                       
-       Notes: Unqualified columns are always resolved as db fields (searching 
-              in query order) also when plDBColumns is false.                                                                    
+ Notes: Unqualified columns are always resolved as db fields (searching 
+        in query order) also when plDBColumns is false.
+     -  We check each entry in the new sort criteria for several reasons: 
+       - Avoid appserver hit if the specified sort already is set 
+         (The browser bombards the SDO with sort options at start up..) 
+       - Support of 'RowObject.' qualifications, so we need to rename 
+         accordingly
+       - The TOGGLE option requires check for current sort option and          
+         that all columns are in same order   
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cSortEntries   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cSortEntry     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cSortColumn    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cSortOption    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cOldSort       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cOldSortColumn AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cOldSortEntry  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cNewSort       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iByPos         AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iIdxPos        AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iLength        AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iColumn        AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE lOk            AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lToggled       AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lSameColumns   AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lOldDescending AS LOGICAL    NO-UNDO.
-   
-  IF pcQuery = '':U THEN
-    RETURN '':U.
+ DEFINE VARIABLE cNewColumn AS CHARACTER EXTENT {&MaxBreaks} NO-UNDO.
+ DEFINE VARIABLE cOldColumn AS CHARACTER EXTENT {&MaxBreaks} NO-UNDO.
+ DEFINE VARIABLE cNewOption AS CHARACTER EXTENT {&MaxBreaks} NO-UNDO.
+ DEFINE VARIABLE cOldOption AS CHARACTER EXTENT {&MaxBreaks} NO-UNDO.
 
-  ASSIGN           /* remove first BY if passed */
-    pcSort       = IF LEFT-TRIM(pcSort) BEGINS "BY ":U 
-                   THEN TRIM(SUBSTRING(LEFT-TRIM(pcSort),3)) 
-                   ELSE TRIM(pcSort)
-                   /* change 'BY' to comma for looping purpose */   
-    cSortEntries = REPLACE(pcSort,' BY ':U,',':U)
-    cOldSort     = {fnarg sortExpression pcQuery}
-                   /* change 'BY' to comma and remove first BY 
-                      for looping purpose */   
-    cOldSort     = IF cOldSort <> '':U 
-                   THEN REPLACE(SUBSTR(cOldSort,3),' BY ':U,',':U)
-                   ELSE '':U 
-                  /* set to FALSE immediately if new sort is blank and
-                     old sort is not or the num-entries are different.  
-                     otherwise the check below will decide whether old sort 
-                     is different from the new */
-    lSameColumns = (NOT (pcSort = '':U AND cOldSort <> '':U)) 
-                    AND 
-                   (NUM-ENTRIES(cOldSort) = NUM-ENTRIES(cSortEntries))
-    .
-     /* We check each entry in the new sort criteria for several reasons: 
-        - Avoid appserver hit if the specified sort already is set 
-          (The browser bombards the SDO with sort options at start up..) 
-        - Support of 'RowObject.' qualifications, so we need to rename 
-          accordingly
-        - The TOGGLE option requires check for current sort option and          
-          also need to ensure that the columns are in same order */  
+ DEFINE VARIABLE cColumn           AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cOption           AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cSort             AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE iNum              AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE iByPos            AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE iIdxPos           AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE iLength           AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE iCase             AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE iNumWords         AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE cSortEntry        AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cLastentry        AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE lCommaIsSep       AS LOGICAL    NO-UNDO.
 
-  DO iColumn= 1 TO NUM-ENTRIES(cSortEntries):
-    ASSIGN
-      cSortEntry  = ENTRY(iColumn,cSortEntries)
-      cSortColumn = TRIM(ENTRY(1,cSortEntry,' ':U))
-      cSortOption = TRIM(SUBSTR(cSortEntry,LENGTH(cSortColumn) + 1))
-      cSortColumn = IF cSortColumn BEGINS 'RowObject.':U 
-                    THEN IF plDbColumns 
-                         THEN {fnarg columnDbColumn cSortColumn}
-                         ELSE ENTRY(2,cSortColumn,'.':U)  
-                    ELSE IF NOT plDbColumns 
-                         THEN {fnarg dbColumnDataName cSortColumn}
-                         ELSE cSortColumn.  
+ DEFINE VARIABLE iNewEntries       AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE iOldEntries       AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE cOldSort          AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cNewSort          AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE lDiffColumns      AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE lToggled          AS LOGICAL    NO-UNDO.
 
-    /* Calculated if plDbColumns or unmapped if not plDbcolumns */
-    IF cSortColumn = '':U THEN
-      RETURN ?.  
+ IF pcQuery = '':U THEN
+   RETURN '':U.
 
-    /* Keep track of whether the old sort criteria is the same as the new.
-       This is a requirement for 'toggle' and is also used to avoid 
-       server hit if the same sort criteria. (the query stays unchanged also 
-       if qualifcations does not match and stops resortQuery from resorting)
-       We do not need to check this any more if an option already is toggled.*/  
-    IF lSameColumns AND NOT lToggled THEN
-    DO:
-      ASSIGN
-        cOldSortEntry  = (IF NUM-ENTRIES(cOldSort) >= iColumn
-                          THEN TRIM(ENTRY(iColumn,cOldSort))
-                          ELSE '':U)
-        cOldSortColumn = ENTRY(1,cOldSortEntry,' ':U)
-        lOldDescending = IF NUM-ENTRIES(cOldSortEntry, ' ':U) > 1 AND
-                           ENTRY(2, cOldSortEntry, ' ':U) BEGINS 'DESC':U THEN TRUE
-                         ELSE FALSE.      
-      
-      IF cOldSortColumn = '':U THEN
-        lSameColumns = FALSE.
-      ELSE IF cSortColumn = cOldSortColumn THEN
-        lSameColumns = TRUE.
-      /* if different qualifications compare the DataColumn names.. 
+ ASSIGN           /* remove first BY if passed */
+   pcSort       = IF LEFT-TRIM(pcSort) BEGINS "BY ":U 
+                  THEN TRIM(SUBSTRING(LEFT-TRIM(pcSort),3)) 
+                  ELSE TRIM(pcSort)
+   cOldSort     = {fnarg sortExpression pcQuery}
+   cOldSort     = IF cOldSort BEGINS "BY ":U 
+                  THEN SUBSTRING(cOldSort,4) 
+                  ELSE cOldSort.
+ /* Backwards support for the accidental support of comma separated list.  
+     In 10.0A the logic used to replace ' BY ' with commas to simplify 
+     the processing. This accidentally allowed "support" for direct pass of a 
+     comma separated list of sort entries... The use of comma did however mess 
+     up when sort was specified with SUBSTR(field,1,199) to prevent index limit
+     blowup. 
+     NOTE: - spaces in comma separated list is only allowed for sortoption
+           - db columns not in SDO currently not supported.  */ 
+
+ IF NUM-ENTRIES(pcSort) > 1 AND INDEX(pcSort,' BY ':U) = 0 THEN
+ DO:
+   lCommaIsSep = TRUE.
+   DO iNum = 1 TO NUM-ENTRIES(pcSort):
+     ASSIGN
+       cSortEntry  = ENTRY(iNum,pcSort)
+       cColumn     = ENTRY(1,cSortEntry,' ').
+
+     IF cColumn BEGINS 'RowObject.':U THEN
+       NEXT.
+
+     IF NOT plDBColumns THEN
+       cColumn = {fnarg dbColumnDataName cColumn}.
+     ELSE 
+       cColumn = {fnarg columnDbColumn cColumn}.
+     
+     IF cColumn = '' THEN
+     DO:
+       lCommaIsSep = FALSE. 
+       LEAVE.
+     END.
+   END.
+
+   IF lCommaIsSep THEN
+     pcSort = REPLACE(pcSort,",":U," BY ":U).
+ END.
+
+ IF pcSort = '' AND cOldSort <> '' THEN
+   lDiffColumns = TRUE.
+ ELSE 
+ DO iCase = 1 TO 2:
+
+   CASE iCase:
+     WHEN 1 THEN
+       cSort = pcSort.
+     WHEN 2 THEN
+       cSort = cOldsort.
+   END CASE.
+   iNum = 0.
+
+   DO WHILE cSort > '' :
+     ASSIGN
+       iNum    = iNum + 1
+       cColumn = ''
+       iByPos  = INDEX(cSort,' BY ').
+     
+     IF iCase = 2 AND iNum > iNewEntries THEN
+     DO:
+       lDiffColumns = TRUE.
+       LEAVE.
+     END.
+
+     IF iByPos > 0 THEN
+       ASSIGN
+         cSortEntry = TRIM(SUBSTR(cSort,1,iByPos))
+         cSort      = SUBSTR(cSort,iByPos + 4).
+     ELSE 
+       ASSIGN
+         cSortEntry = cSort
+         cSort      = ''.
+     
+     ASSIGN
+       iNumWords     = NUM-ENTRIES(cSortEntry,' ':U)
+       cLastEntry    = ENTRY(iNumWords,cSortEntry,' ':U)
+       cOption       = (IF cLastEntry = SUBSTR('DESCENDING':U,1,MAX(4,LENGTH(cLastEntry))) 
+                        THEN 'DESCENDING':U
+                        ELSE IF cLastEntry = 'TOGGLE':U 
+                             THEN cLastEntry
+                             ELSE '')
+       .
+
+     IF cOption > '' THEN
+       ASSIGN
+         ENTRY(iNumWords,cSortEntry,' ') = ''
+         cSortEntry = RIGHT-TRIM(cSortEntry).
+    
+     IF cSortEntry BEGINS 'RowObject.':U THEN
+     DO:
+       IF plDbColumns THEN 
+       DO:
+         /* Calculated field not supported on server.
+            It might have been better to just apply it and let progress give 
+            the error, but for backwards compatibility (browse sort)
+            we fail if a calc field is specifically referenced  */
+         cColumn = {fnarg columnDbColumn cSortEntry}.
+         IF cColumn = '' THEN 
+           RETURN ?.
+       END.
+       ELSE 
+         cColumn = ENTRY(2,cSortEntry,'.':U).
+     END.
+     ELSE IF NOT plDbColumns THEN 
+       cColumn = {fnarg dbColumnDataName cSortEntry}.
+     
+     /* if plDbcolumns or mapping not found use sort as-is 
+        This could be a valid expression f.ex substr used to avoid max index 
+        size errors from sort 
+        (note that rowobject.<calcfield> is RETURNED above)  */
+     IF cColumn = '' THEN
+       cColumn = cSortEntry.
+     
+     /* loop 1 is for new sort loop 2 for old sort */
+     CASE iCase:
+       WHEN 1 THEN
+         ASSIGN 
+           cNewColumn[iNum] = cColumn
+           cNewOption[iNum] = cOption
+           iNewEntries      = iNum.
+       WHEN 2 THEN
+       DO:
+         ASSIGN 
+           cOldColumn[iNum] = cColumn
+           cOldOption[iNum] = cOption
+           iOldEntries      = iNum.
+       END.
+     END CASE.
+   END. /* do while cSort > '' */   
+ END. /* do icase = 1 to 2 */
+ 
+ IF iOldEntries <> iNewEntries THEN
+   lDiffColumns = TRUE.
+
+ DO iNum = 1 TO iNewEntries:
+   /* Keep track of whether the old sort criteria is the same as the new.
+      This is a requirement for 'toggle' and is also used to avoid 
+      server hit if the same sort criteria. (the query stays unchanged also 
+      if qualifications does not match and stops resortQuery from resorting)
+      We do not need to check this any more if an option already is toggled.*/ 
+   IF NOT lDiffColumns AND NOT lToggled THEN
+   DO:
+     IF cOldColumn[iNum] = '':U THEN
+       lDiffColumns = TRUE.
+     ELSE IF cNewColumn[iNum] <> cOldColumn[iNum] THEN
+     DO:
+       /* if different qualifications compare the DataColumn names.. 
          (we only check if this is the case for db queries. If a rowobject 
           qualifier is used in old or new sort the new sort is used)  */
-      ELSE IF plDbColumns 
-           AND ENTRY(NUM-ENTRIES(cSortColumn,'.':U),cSortcolumn,'.':U)
-               <> ENTRY(NUM-ENTRIES(cOldSortColumn,'.':U),cOldSortcolumn,'.':U)
-           AND {fnarg dbColumnDataName cOldSortColumn}
-                = {fnarg dbColumnDataName cSortColumn} THEN
-        lSameColumns = TRUE.
-      ELSE 
-        lSameColumns = FALSE.
-    END. /* same (still) and not toggled (yet) */
-
-    /* If sort option is toggle then swap descending/blank */
-    IF cSortOption = 'Toggle':U THEN
-    DO:
-      /* if already toggled or not lSameColumns (See above) ignore toggle */
-      IF lToggled OR NOT lSameColumns THEN
-         cSortOption = '':U.
-      ELSE
-      DO:
-        IF lOldDescending THEN
-          cSortOption = '':U.
-        ELSE 
-          cSortOption = 'DESCENDING':U.
-             /* We only support one toggling. */
-        lToggled = TRUE.
-      END.
-    END. /* sortoption = toggle */
+       IF plDbColumns 
+       AND ENTRY(NUM-ENTRIES(cNewColumn[iNum],'.':U),cNewColumn[iNum],'.':U)
+       <> ENTRY(NUM-ENTRIES(cOldColumn[iNum],'.':U),cOldcolumn[iNum],'.':U) THEN
+       DO:
+         IF {fnarg dbColumnDataName cNewColumn[iNum]} <> {fnarg dbColumnDataName cOldColumn[iNum]} THEN
+           lDiffColumns = TRUE.
+       END.
+       ELSE 
+         lDiffColumns = TRUE.
+     END. 
+   END. /* NOT diff and NOT toggled */
+   
+   /* If sort option is toggle then swap descending/blank */
+   IF cNewOption[iNum] = 'TOGGLE':U THEN
+   DO:
+     /* if already toggled or lDiffColumns (See above) ignore toggle  */
+     IF lToggled OR lDiffColumns THEN
+        cNewOption[iNum] = '':U.
+     ELSE
+     DO:
+       IF cOldOption[iNum] = 'DESCENDING':U THEN
+         cNewOption[iNum] = '':U.
+       ELSE 
+         cNewOption[iNum] = 'DESCENDING':U.
+            /* We only support one toggling. */
+       lToggled = TRUE.
+     END.
+   END. /* newoption[iNew] = toggle */
         
-    /* if not toggled we must also include the sort option in the check
-       of same (if same and not toggled we don't apply any sort at all) */
-    IF NOT lToggled AND lOldDescending <> (cSortOption BEGINS 'DESC':U) THEN
-      lSameColumns = FALSE.
+   /* if not toggled we must also include the sort option in the check
+      of different sort (if same and not toggled we don't apply any sort at all) */
+   IF NOT lToggled AND cOldOption[iNum] <> cNewOption[iNum] THEN
+     lDiffColumns = TRUE.
 
-    cNewSort = TRIM(cNewSort 
+   cNewSort = TRIM(cNewSort 
                     + " BY ":U 
-                    + cSortColumn
+                    + cNewColumn[iNum]
                     + ' ':U
-                    + cSortOption).
-  END. /* loop through BY clauses */
-  
-  /* Skip sort if Same as old unless a sort option was toggled */ 
-  IF NOT lSameColumns OR lToggled THEN
-  DO:
-    ASSIGN          /* check for  indexed-reposition  */
+                    + cNewOption[iNum]).
+ END. /* iNum = 1 TO iNewEntries*/
+ 
+ /* Skip sort if Same as old unless a sort option was toggled */ 
+ IF lDiffColumns OR lToggled THEN
+   ASSIGN          /* check for  indexed-reposition  */
       iIdxPos = INDEX(RIGHT-TRIM(pcQuery,". ") + " ":U,
                       " INDEXED-REPOSITION ":U)          
     
@@ -7270,137 +6313,9 @@ FUNCTION newQuerySort RETURNS CHARACTER
       SUBSTR(pcQuery,iByPos,iLength - iByPos) = IF cNewSort <> '':U 
                                                 THEN " ":U + cNewSort
                                                 ELSE "":U.  
-  END.
     
-  RETURN pcQuery.
-    
-END FUNCTION.
+ RETURN pcQuery. 
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-newQueryString) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION newQueryString Procedure 
-FUNCTION newQueryString RETURNS CHARACTER
-  (pcColumns     AS CHARACTER,   
-   pcValues      AS CHARACTER,    
-   pcOperators   AS CHARACTER,
-   pcQueryString AS CHARACTER,
-   pcAndOr       AS CHARACTER):
-/*------------------------------------------------------------------------------   
-   Purpose: Returns a new query string to the passed query. 
-            The tables in the passed query must match getTables().  
-            Adds column/value pairs to the corresponding buffer's where-clause. 
-            Each buffer's expression will always be embedded in parenthesis.
-   Parameters: 
-     pcColumns   - Column names (Comma separated)                    
-                   Fieldname of a table in the query in the form of 
-                   TBL.FLDNM or DB.TBL.FLDNM),
-                   (RowObject.FLDNM should be used for SDO's)  
-                   If the fieldname isn't qualified it checks the tables in 
-                   the TABLES property and assumes the first with a match.
-                   
-     pcValues    - corresponding Values (CHR(1) separated)
-     pcOperators - Operator - one for all columns
-                              - blank - defaults to (EQ)  
-                              - Use slash to define alternative string operator
-                                EQ/BEGINS etc..
-                            - comma separated for each column/value
-     pcQueryString - A complete querystring matching the queries tables.
-                     MUST be qualifed correctly.
-                     ? - use the existing query  
-     pcAndOr       - AND or OR decides how the new expression is appended to 
-                     the passed query (for each buffer!).                                               
-   Notes:  This is basically the same logic as assignQuerySelection, but 
-           without the replace functionality ... 
-           (It should not have been duplicated, but... )     
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cBufferList    AS CHAR       NO-UNDO.
-  DEFINE VARIABLE cBuffer        AS CHARACTER  NO-UNDO.
-  
-  /* We need the columns name and the parts */  
-  DEFINE VARIABLE cColumn        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cOperator      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cValue         AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iColumn        AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iBuffer        AS INTEGER    NO-UNDO.
-  
-  DEFINE VARIABLE cUsedNums      AS CHAR       NO-UNDO.
-  
-  /* Used to builds the column/value string expression */
-  DEFINE VARIABLE cBufWhere      AS CHARACTER  NO-UNDO.
-                    
-  {get Tables cBufferList}.    
-   
-  /* If unkown value is passed used the existing query string */
-  IF pcQueryString = ? THEN
-  DO:
-    /* The QueryString contains data if the query is being currently worked on 
-       by this method or addQuerywhere over many calls. */
-    {get QueryString pcQueryString}.      
-    /* If no QueryString find the current query */ 
-    IF pcQueryString = "":U OR pcQueryString = ? THEN
-    DO:
-      {get QueryWhere pcQueryString}.    
-      /* If no current Query find the defined base query */ 
-       IF pcQueryString = "":U OR pcQueryString = ? THEN
-         {get OpenQuery pcQueryString}.       
-    END. /* cQueryString = "":U */
-  END. /* pcQueryString = ? */
-
-  IF pcAndOr = "":U OR pcAndOr = ? THEN pcAndOr = "AND":U.   
-  
-  DO iBuffer = 1 TO NUM-ENTRIES(cBufferList):  
-    ASSIGN
-      cBufWhere      = "":U
-      cBuffer        = ENTRY(iBuffer,cBufferList).
-      
-    ColumnLoop:    
-    DO iColumn = 1 TO NUM-ENTRIES(pcColumns):             
-      
-      IF CAN-DO(cUsedNums,STRING(iColumn)) THEN 
-        NEXT ColumnLoop.      
-      /* get the column, operator and correctly quoted value from the lists 
-         if it maps to this buffer. */  
-      RUN obtainExpressionEntries IN TARGET-PROCEDURE
-                         (cBuffer,
-                          iColumn,
-                          pcColumns,
-                          pcValues,
-                          pcOperators,
-                          OUTPUT cColumn, 
-                          OUTPUT cOperator,
-                          OUTPUT cValue).
-      IF cColumn = '':U THEN
-        NEXT.
-      ASSIGN
-        cUsedNums  = cUsedNums
-                   + (IF cUsedNums = "":U THEN "":U ELSE ",":U)
-                   + STRING(iColumn).
-        cBufWhere  = cBufWhere 
-                   + (If cBufWhere = "":U 
-                      THEN "":U 
-                      ELSE " ":U + "AND":U + " ":U)
-                   + cColumn 
-                   + " ":U
-                   + cOperator
-                   + " ":U
-                   + cValue.
-    END. /* do iColumn = 1 to num-entries(pColumns) */    
-    /* We have a new expression */                               
-    IF cBufWhere <> "":U THEN
-      ASSIGN 
-        pcQueryString = DYNAMIC-FUNCTION('newWhereClause':U IN TARGET-PROCEDURE,
-                                          cBuffer,
-                                          cBufWhere,
-                                          pcQueryString,
-                                          pcAndOr).  
-
-  END. /* do iBuffer = 1 to hQuery:num-buffers */
-  RETURN pcQueryString.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -7557,59 +6472,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-newWhereClause) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION newWhereClause Procedure 
-FUNCTION newWhereClause RETURNS CHARACTER
-  (pcBuffer     AS CHAR,   
-   pcExpression AS char,  
-   pcWhere      AS CHAR,
-   pcAndOr      AS CHAR):
-/*------------------------------------------------------------------------------
-  Purpose:     Inserts a new expression to query's prepare string for a 
-               specified buffer.
-  Parameters:  pcBuffer     - Buffer.  
-               pcExpression - The new expression. 
-               pcWhere      - The current query prepare string.
-               pcAndOr      - Specifies what operator is used to add the new
-                              expression to existing expression(s)
-                              - AND (default) 
-                              - OR                                                
-  Notes:       This is supported as a 'utility function' that doesn't use any 
-               properties. However, if target-procedure = super the passed 
-               buffer's qualification MUST match the query's. 
-               If target-procedure <> super the buffer will be corrected IF 
-               it exists in the object's query, otherwise it needs to match 
-------------------------------------------------------------------------------*/
- DEFINE VARIABLE iStart      AS INT    NO-UNDO.
- DEFINE VARIABLE iLength     AS INT    NO-UNDO.
- DEFINE VARIABLE cBufferWhere AS CHAR   NO-UNDO.
- 
-  /* fix European decimal format issues with in query string */
- pcWhere = {fnarg fixQueryString pcWhere}.
- /* Find the buffer's 'expression-entry' in the query */
- cBufferWhere = DYNAMIC-FUNCTION('bufferWhereClause':U IN TARGET-PROCEDURE,
-                                 pcBuffer,
-                                 pcWhere).
- 
- /* if we found it, replace it with itself with the new expression inserted */
- IF cBufferWhere <> '':U THEN
-   ASSIGN
-     iStart  = INDEX(pcWhere,cBufferWhere)
-     iLength = LENGTH(cBufferWhere)
-     SUBSTR(pcWhere,iStart,iLength) = 
-               DYNAMIC-FUNCTION('insertExpression':U IN TARGET-PROCEDURE,
-                                 cBufferWhere,
-                                 pcExpression,
-                                 pcAndOr).           
- RETURN pcWhere.
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-openQuery) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION openQuery Procedure 
@@ -7758,8 +6620,6 @@ FUNCTION prepareQuery RETURNS LOGICAL
   IF pcQuery = '':U OR pcQuery = ? THEN
     {get OpenQuery pcQuery}.
 
-  /* Fix European decimal format issues with in query string */
-  pcQuery = {fnarg fixQueryString pcQuery}.
   RETURN hQuery:QUERY-PREPARE(pcQuery).
 
 END FUNCTION.
@@ -7935,10 +6795,174 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-removeQuerySelection) = 0 &THEN
+&IF DEFINED(EXCLUDE-resolveBuffer) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION removeQuerySelection Procedure 
-FUNCTION removeQuerySelection RETURNS LOGICAL
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION resolveBuffer Procedure 
+FUNCTION resolveBuffer RETURNS CHARACTER
+  ( pcBuffer AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose: Resolves the correct qualified buffer name of the passed buffer 
+           reference.  
+Parameter: Buffer name, qualifed or unqualified.          
+    Notes: Returns blank if the buffer cannot be resolved in the SDO. 
+           Returns unknown if the table reference is ambiguous, (More than 
+           one table in the SDO matches the unqualifed input parameter).
+         - Used internally (columnTable and others) to resolve cases where the 
+           passed column name's qualification is different from the object's.
+         - There's no reference to the query handle in order to resolve this
+           on the client.     
+------------------------------------------------------------------------------*/
+   DEFINE VARIABLE cTableList      AS CHARACTER  NO-UNDO.
+   DEFINE VARIABLE lUseDBQualifier AS LOGICAL    NO-UNDO.
+   DEFINE VARIABLE cDBTable        AS CHARACTER  NO-UNDO.
+   DEFINE VARIABLE cDBNames        AS CHARACTER  NO-UNDO.
+   DEFINE VARIABLE iTable          AS INTEGER    NO-UNDO.
+   DEFINE VARIABLE iEntry          AS INTEGER    NO-UNDO.
+
+   {get Tables cTableList}.
+    
+   /* if the table part matches Tables, just return it */  
+   IF CAN-DO(cTableList,pcBuffer) THEN
+     RETURN pcBuffer.
+
+   &SCOPED-DEFINE xp-assign
+   {get UseDBQualifier lUseDBQualifier}
+   {get DBNames cDBNames}.
+   &UNDEFINE xp-assign
+
+   /* If DB Qualifier in parameter, but not in object */
+   IF NUM-ENTRIES(pcBuffer,".":U) = 2 AND NOT lUseDBQualifier THEN
+   DO iTable = 1 TO NUM-ENTRIES(cTableList):
+     cDBTable = ENTRY(iTable,cDBNames) + ".":U + ENTRY(iTable,cTableList).
+      /* We found a Match, set cTable and leave the loop  */
+     IF pcBuffer = cDBTable THEN
+       RETURN ENTRY(iTable,cTableList).
+   END. /* do iTable if .. DBQualified parameter, but not in object */
+   ELSE IF NUM-ENTRIES(pcBuffer,".":U) = 1 AND lUseDBQualifier THEN
+   DO:
+     /* We check all entries to ensure that this is unambiguos.*/  
+     DO iTable = 1 TO NUM-ENTRIES(cTableList):
+       cDBTable = ENTRY(iTable,cDBNames) + ".":U + pcBuffer.
+       IF cDBTable = ENTRY(iTable,cTableList) THEN
+       DO: 
+         /* We already found an entry so return ? to signal amibiguity. */
+         IF iEntry <> 0 THEN
+           RETURN ?. 
+         ELSE 
+           iEntry = iTable. 
+       END. /* iTable,dbname + pcBuffer = iTable,cTableList */
+     END. /* Do iTable = 1 to num-entries(cTables) */
+     
+     IF iEntry <> 0 THEN 
+       RETURN ENTRY(iEntry,cTableList).
+   END. /* else if .. no DBQual parameter, but DBqual in object  */
+   
+   /* We only get here if we're not able to resolve the table */ 
+   RETURN "":U. 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-rowidWhere) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION rowidWhere Procedure 
+FUNCTION rowidWhere RETURNS CHARACTER
+  (pcWhere AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:    Returns the ROWID (converted to a character string) of the first 
+              database query row satisfying the where clause.  In the case of a 
+              join, only the rowid of the first table in the join will be 
+              returned and the expression in pcWhere can only reference that 
+              table.
+ 
+  Parameters:
+    pcWhere - The where clause to apply to the database query to fetch the
+              first record whose ROWID will be returned.
+            -   
+  
+  Notes:      The ROWID is returned as a string both in anticipation of it
+              being used as an argument to fetchRowIdent, and also to allow
+              this function to be invoked from outside Progress.
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cTables     AS CHAR   NO-UNDO.
+  DEFINE VARIABLE cQueryWhere AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cBuffer     AS CHARACTER NO-UNDO.
+  
+  &SCOPED-DEFINE xp-assign
+  {get Tables cTables}
+  {get QueryWhere cQueryWhere}.
+  &UNDEFINE xp-assign
+
+  ASSIGN
+    cBuffer     = ENTRY(1,cTables)     
+    cQueryWhere = DYNAMIC-FUNCTION('newWhereClause':U IN TARGET-PROCEDURE,
+                                    cBuffer,pcWhere,cQueryWhere,"":U).
+    
+  RETURN ENTRY(1,DYNAMIC-FUNCTION('firstRowIds':U IN TARGET-PROCEDURE,
+                                    cQueryWhere)
+               ).
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-rowidWhereCols) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION rowidWhereCols Procedure 
+FUNCTION rowidWhereCols RETURNS CHARACTER
+  (pcColumns     AS CHARACTER,   
+   pcValues      AS CHARACTER,    
+   pcOperators   AS CHARACTER):
+/*------------------------------------------------------------------------------   
+     Purpose: Returns a list of rowids    
+              Adds column/value pairs to the corresponding buffer's where-clause. 
+              Each buffer's expression will always be embedded in parenthesis.
+     Parameters: 
+       pcColumns   - Column names (Comma separated)                    
+                     Fieldname of a table in the query in the form of 
+                     TBL.FLDNM or DB.TBL.FLDNM (only if qualified with db is specified),
+                     (RowObject.FLDNM should be used for SDO's)  
+                     If the fieldname isn't qualified it checks the tables in 
+                     the TABLES property and assumes the first with a match.
+
+       pcValues    - corresponding Values (CHR(1) separated)
+       pcOperators - Operator - one for all columns
+                                - blank - defaults to (EQ)  
+                                - Use slash to define alternative string operator
+                                  EQ/BEGINS etc..
+                              - comma separated for each column/value
+---------------------------------------------------------------------------*/
+  DEFINE VARIABLE cQueryString AS CHAR NO-UNDO.
+  DEFINE VARIABLE cRowids      AS CHAR NO-UNDO.
+
+  cQueryString = DYNAMIC-FUNCTION('newQueryString':U IN TARGET-PROCEDURE,
+                                  pcColumns,
+                                  pcValues,
+                                  pcOperators,
+                                  ?,
+                                  ?).
+  
+  cRowids = DYNAMIC-FUNCTION('firstRowIds':U IN TARGET-PROCEDURE,
+                              cQueryString).
+  
+  RETURN cRowids.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-XremoveQuerySelection) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION XremoveQuerySelection Procedure 
+FUNCTION XremoveQuerySelection RETURNS LOGICAL
   (pcColumns   AS CHARACTER,
    pcOperators AS CHARACTER):
 /*------------------------------------------------------------------------------
@@ -8243,208 +7267,6 @@ FUNCTION removeQuerySelection RETURNS LOGICAL
   &UNDEFINE xp-assign
   
   RETURN TRUE.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-resolveBuffer) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION resolveBuffer Procedure 
-FUNCTION resolveBuffer RETURNS CHARACTER
-  ( pcBuffer AS CHAR ) :
-/*------------------------------------------------------------------------------
-  Purpose: Resolves the correct qualified buffer name of the passed buffer 
-           reference.  
-Parameter: Buffer name, qualifed or unqualified.          
-    Notes: Returns blank if the buffer cannot be resolved in the SDO. 
-           Returns unknown if the table reference is ambiguous, (More than 
-           one table in the SDO matches the unqualifed input parameter).
-         - Used internally (columnTable and others) to resolve cases where the 
-           passed column name's qualification is different from the object's.
-         - There's no reference to the query handle in order to resolve this
-           on the client.     
-------------------------------------------------------------------------------*/
-   DEFINE VARIABLE cTableList      AS CHARACTER  NO-UNDO.
-   DEFINE VARIABLE lUseDBQualifier AS LOGICAL    NO-UNDO.
-   DEFINE VARIABLE cDBTable        AS CHARACTER  NO-UNDO.
-   DEFINE VARIABLE cDBNames        AS CHARACTER  NO-UNDO.
-   DEFINE VARIABLE iTable          AS INTEGER    NO-UNDO.
-   DEFINE VARIABLE iEntry          AS INTEGER    NO-UNDO.
-
-   {get Tables cTableList}.
-    
-   /* if the table part matches Tables, just return it */  
-   IF CAN-DO(cTableList,pcBuffer) THEN
-     RETURN pcBuffer.
-
-   &SCOPED-DEFINE xp-assign
-   {get UseDBQualifier lUseDBQualifier}
-   {get DBNames cDBNames}.
-   &UNDEFINE xp-assign
-
-   /* If DB Qualifier in parameter, but not in object */
-   IF NUM-ENTRIES(pcBuffer,".":U) = 2 AND NOT lUseDBQualifier THEN
-   DO iTable = 1 TO NUM-ENTRIES(cTableList):
-     cDBTable = ENTRY(iTable,cDBNames) + ".":U + ENTRY(iTable,cTableList).
-      /* We found a Match, set cTable and leave the loop  */
-     IF pcBuffer = cDBTable THEN
-       RETURN ENTRY(iTable,cTableList).
-   END. /* do iTable if .. DBQualified parameter, but not in object */
-   ELSE IF NUM-ENTRIES(pcBuffer,".":U) = 1 AND lUseDBQualifier THEN
-   DO:
-     /* We check all entries to ensure that this is unambiguos.*/  
-     DO iTable = 1 TO NUM-ENTRIES(cTableList):
-       cDBTable = ENTRY(iTable,cDBNames) + ".":U + pcBuffer.
-       IF cDBTable = ENTRY(iTable,cTableList) THEN
-       DO: 
-         /* We already found an entry so return ? to signal amibiguity. */
-         IF iEntry <> 0 THEN
-           RETURN ?. 
-         ELSE 
-           iEntry = iTable. 
-       END. /* iTable,dbname + pcBuffer = iTable,cTableList */
-     END. /* Do iTable = 1 to num-entries(cTables) */
-     
-     IF iEntry <> 0 THEN 
-       RETURN ENTRY(iEntry,cTableList).
-   END. /* else if .. no DBQual parameter, but DBqual in object  */
-   
-   /* We only get here if we're not able to resolve the table */ 
-   RETURN "":U. 
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-rowidWhere) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION rowidWhere Procedure 
-FUNCTION rowidWhere RETURNS CHARACTER
-  (pcWhere AS CHARACTER ) :
-/*------------------------------------------------------------------------------
-  Purpose:    Returns the ROWID (converted to a character string) of the first 
-              database query row satisfying the where clause.  In the case of a 
-              join, only the rowid of the first table in the join will be 
-              returned and the expression in pcWhere can only reference that 
-              table.
- 
-  Parameters:
-    pcWhere - The where clause to apply to the database query to fetch the
-              first record whose ROWID will be returned.
-            -   
-  
-  Notes:      The ROWID is returned as a string both in anticipation of it
-              being used as an argument to fetchRowIdent, and also to allow
-              this function to be invoked from outside Progress.
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cTables     AS CHAR   NO-UNDO.
-  DEFINE VARIABLE cQueryWhere AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cBuffer     AS CHARACTER NO-UNDO.
-  
-  &SCOPED-DEFINE xp-assign
-  {get Tables cTables}
-  {get QueryWhere cQueryWhere}.
-  &UNDEFINE xp-assign
-
-  ASSIGN
-    cBuffer     = ENTRY(1,cTables)     
-    cQueryWhere = DYNAMIC-FUNCTION('newWhereClause':U IN TARGET-PROCEDURE,
-                                    cBuffer,pcWhere,cQueryWhere,"":U).
-    
-  RETURN ENTRY(1,DYNAMIC-FUNCTION('firstRowIds':U IN TARGET-PROCEDURE,
-                                    cQueryWhere)
-               ).
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-rowidWhereCols) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION rowidWhereCols Procedure 
-FUNCTION rowidWhereCols RETURNS CHARACTER
-  (pcColumns     AS CHARACTER,   
-   pcValues      AS CHARACTER,    
-   pcOperators   AS CHARACTER):
-/*------------------------------------------------------------------------------   
-     Purpose: Returns a list of rowids    
-              Adds column/value pairs to the corresponding buffer's where-clause. 
-              Each buffer's expression will always be embedded in parenthesis.
-     Parameters: 
-       pcColumns   - Column names (Comma separated)                    
-                     Fieldname of a table in the query in the form of 
-                     TBL.FLDNM or DB.TBL.FLDNM (only if qualified with db is specified),
-                     (RowObject.FLDNM should be used for SDO's)  
-                     If the fieldname isn't qualified it checks the tables in 
-                     the TABLES property and assumes the first with a match.
-
-       pcValues    - corresponding Values (CHR(1) separated)
-       pcOperators - Operator - one for all columns
-                                - blank - defaults to (EQ)  
-                                - Use slash to define alternative string operator
-                                  EQ/BEGINS etc..
-                              - comma separated for each column/value
----------------------------------------------------------------------------*/
-  DEFINE VARIABLE cQueryString AS CHAR NO-UNDO.
-  DEFINE VARIABLE cRowids      AS CHAR NO-UNDO.
-
-  cQueryString = DYNAMIC-FUNCTION('newQueryString':U IN TARGET-PROCEDURE,
-                                  pcColumns,
-                                  pcValues,
-                                  pcOperators,
-                                  ?,
-                                  ?).
-  
-  cRowids = DYNAMIC-FUNCTION('firstRowIds':U IN TARGET-PROCEDURE,
-                              cQueryString).
-  
-  RETURN cRowids.
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-sortExpression) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION sortExpression Procedure 
-FUNCTION sortExpression RETURNS CHARACTER
-  ( pcQueryString AS CHARACTER ) :
-/*------------------------------------------------------------------------------
-  Purpose: Returns the sort expression of the passed querystring 
-    Notes: Includes the first BY also (getQuerySort does not) and 
-           removes extra spaces.
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE iByPos      AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cExpression AS CHARACTER  NO-UNDO.
-  
-  /* Any BY ? */ 
-  iByPos = INDEX(pcQueryString + " ":U," BY ":U).
-
-  IF iByPos > 0 THEN
-  DO:
-    /* Trim away blanks and period and remove indexed-reposition */
-    cExpression = REPLACE(TRIM(SUBSTR(pcQueryString,iByPos)," .":U),
-                          ' INDEXED-REPOSITION':U,
-                          '':U).
-    /* Remove extra blanks (this may be used to compare new and old 
-       sort expression so it need to be consistent)*/
-    DO WHILE INDEX(cExpression,'  ':U) > 0:
-      cExpression = REPLACE(cExpression,'  ':U,' ':U).
-    END.
-  END.
-
-  RETURN cExpression.
 
 END FUNCTION.
 

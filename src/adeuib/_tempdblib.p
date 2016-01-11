@@ -2,25 +2,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*------------------------------------------------------------------------
@@ -1759,102 +1743,27 @@ PROCEDURE ParseFile :
   Parameters: pcFileName   Name of file to parse
       OUTPUT  pcTables    Comma delimited list of tables extracted
   
-  Notes:     The code will search for the key word TEMP-TABLE not contained within comments.
-  The name following that key word (excluding NEW, GLOBAL and SHARED) will be extracted.
-  Since the temp-table following the TEMP-TABLE statement can be defined on another 
-  line, this will also be considered.
+  Notes:     The code will search for the key word TEMP-TABLE not contained
+             within comments. The name following that key word (excluding NEW,
+             GLOBAL and SHARED) will be extracted. Since the temp-table following
+             the TEMP-TABLE statement can be defined on another line, this will 
+             also be considered.
 ------------------------------------------------------------------------------*/
 DEFINE INPUT  PARAMETER pcFileName  AS CHARACTER  NO-UNDO.
 DEFINE OUTPUT PARAMETER pcTables    AS CHARACTER  NO-UNDO.
 
-DEFINE VARIABLE cLine         AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cTempFile     AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE i             AS INTEGER    NO-UNDO.
-DEFINE VARIABLE iWords        AS INTEGER    NO-UNDO.
-DEFINE VARIABLE cWord         AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE lTTPending    AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE iComment      AS INTEGER    NO-UNDO.
-DEFINE VARIABLE cComStart     AS CHARACTER  NO-UNDO INIT "/*":U.
-DEFINE VARIABLE cComEnd       AS CHARACTER  NO-UNDO INIT "*/":U.
+&SCOPED-DEFINE sourcefile pcFilename
+&SCOPED-DEFINE streamname tempdbStream
+&SCOPED-DEFINE tables pcTables
+&SCOPED-DEFINE returnerror 'ERROR':U
 
- /* Check file is valid */
-FILE-INFO:FILE-NAME = pcFileName NO-ERROR.
-IF FILE-INFO:FULL-PATHNAME EQ ? THEN 
-   RETURN "ERROR":U.
+{adeuib/parsedefs.i}
 
-/* Generate temporary file */
-RUN adecomm/_tmpfile.p
-      (INPUT "", INPUT ".ab", OUTPUT cTempFile).
-
-/* Compile file using PREPROCESS param to get a flat file with all inserted includes.
-   This precludes the requirement to recurse nested include files */
-COMPILEBLOCK:  
-DO ON ERROR UNDO, LEAVE COMPILEBLOCK
-   ON STOP  UNDO, LEAVE COMPILEBLOCK
-   ON QUIT  UNDO, LEAVE COMPILEBLOCK:
- COMPILE VALUE(pcFileName) PREPROCESS VALUE(cTempFile) NO-ERROR.
-END.
-IF COMPILER:ERROR THEN RETURN "ERROR":U.
-
-INPUT STREAM tempdbStream FROM VALUE (cTempFile) NO-ECHO.
-
-READ_LINE:
-REPEAT ON ERROR UNDO, LEAVE
-       ON STOP  UNDO, RETURN "CANCEL":U:
-  IMPORT STREAM tempdbStream UNFORMATTED cLine.
-  ASSIGN cLine  = TRIM(cLine)
-         iWords = NUM-ENTRIES(cLine, " ":U).
-  /* Skip blank lines */
-  IF cLine = "" THEN   
-    NEXT READ_LINE. 
-
-  WORD_LOOP:
-  DO i = 1 TO iWords:
-    ASSIGN cWord = TRIM(ENTRY(i,cLine," ":U)).
-    
-    /* Skip blank lines */
-    IF cWord = "" THEN
-        NEXT WORD_LOOP.
-    /* Skip inline comments in one word i.e. /*onewordinline*/  */
-    ELSE IF cWord BEGINS cComStart AND SUBSTRING(cWord,LENGTH(cWord) - 1, -1) = cComEnd THEN 
-        NEXT WORD_LOOP.
-    /* Increment counter if start comment found */
-    ELSE IF cWord BEGINS cComStart THEN
-       iComment = iComment + 1.
-    /* Decrease counter if end comment found */
-    ELSE IF LENGTH(cWord) GE 2 AND SUBSTRING(cWord,LENGTH(cWord) - 1, -1) = cComEnd THEN
-      iComment = iComment - 1.
-    
-    /* Skip Word if contained within comment */
-    IF iComment > 0 THEN
-       NEXT WORD_LOOP.
-      
-    IF cWord = "TEMP-TABLE":U  THEN
-    DO:
-      ASSIGN lTTPending = YES.
-      NEXT WORD_LOOP.
-    END.
-    /* Test for the temp-table name on another line */
-    ELSE IF lTTPending THEN 
-    DO:
-      IF cWord = "NEW":U OR cWord = "SHARED":U 
-                         OR cWord = "GLOBAL":U  OR cWord = "" THEN
-         NEXT WORD_LOOP.
-      ASSIGN pcTables   =  IF LOOKUP(cWord,pcTables) > 0 THEN pcTables
-                           ELSE pcTables + (IF pcTables = "" THEN "" ELSE ",")
-                                         + cWord
-             lTTPending = NO.
-    END. /* End if Word = TEMP-TABLE */
-  END. /* Word loop */
-
-END. /* Main repeat import loop  */
-
-INPUT STREAM tempdbStream CLOSE.
-
-OS-DELETE VALUE(cTempFile).
-
-
-
+&UNDEFINE sourcefile 
+&UNDEFINE streamname 
+&UNDEFINE tables 
+&UNDEFINE returnerror  
+ 
 
 END PROCEDURE.
 
@@ -2301,7 +2210,6 @@ PROCEDURE SaveProcess :
 
  {set LogFile FALSE}.                                
 
- 
  /* Set messaging on */
  glNoMessage = FALSE.
  /* Syntax Check */

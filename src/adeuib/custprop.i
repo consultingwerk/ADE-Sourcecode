@@ -1,26 +1,10 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
-/* ***************************************************************************
+/****************************************************************************
 
    File: custprop.i
    Description:
@@ -47,7 +31,7 @@
 
    Author: Bill Wodd 
 
-   Date Generated: 04/21/04
+   Date Generated: 07/14/05
 
    Note: This procedure is generated via the Property Sheet Generator and 
          the abAttribute table of the ab database. 
@@ -110,6 +94,7 @@
   WHEN "FORMAT":U THEN              _F._FORMAT = cValue.
   WHEN "FREQUENCY":U THEN           _F._FREQUENCY = iValue.
   WHEN "GRAPHIC-EDGE":U THEN        _L._GRAPHIC-EDGE = lValue.
+  WHEN "GROUP-BOX":U THEN           _L._GROUP-BOX = lValue.
   WHEN "HEIGHT":U THEN              _L._HEIGHT = dValue.
 
   WHEN "HEIGHT-P":U THEN            _L._HEIGHT = DECIMAL(iValue / SESSION:PIXELS-PER-ROW /
@@ -201,6 +186,7 @@
   WHEN "RETAIN":U THEN              _C._RETAIN = iValue.
   WHEN "RETAIN-SHAPE":U THEN        _F._RETAIN-SHAPE = lValue.
   WHEN "RETURN-INSERTED":U THEN     _F._RETURN-INSERTED = lValue.
+  WHEN "ROUNDED":U THEN             _L._ROUNDED = lValue.
   WHEN "ROW-HEIGHT":U THEN          _C._ROW-HEIGHT = dValue.
   WHEN "ROW-HEIGHT-P":U THEN        _C._ROW-HEIGHT = DECIMAL(iValue / SESSION:PIXELS-PER-ROW /
                     _cur_row_mult).
@@ -251,6 +237,7 @@
   WHEN "VIRTUAL-WIDTH-P":U THEN     _L._VIRTUAL-WIDTH = DECIMAL(iValue / SESSION:PIXELS-PER-COLUMN /
                     _L._COL-MULT).
   WHEN "VISIBLE":U THEN             _U._DISPLAY = lValue.
+  WHEN "WIDGET-ID":U THEN           _U._WIDGET-ID = iValue.
   WHEN "WIDTH":U THEN               _L._WIDTH = dValue.
   WHEN "WIDTH-P":U THEN             _L._WIDTH = DECIMAL(iValue / SESSION:PIXELS-PER-COLUMN /
                     _L._COL-MULT).

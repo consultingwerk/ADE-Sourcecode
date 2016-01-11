@@ -40,7 +40,9 @@
 DEFINE VARIABLE driver-prefix	 AS CHARACTER NO-UNDO.
 DEFINE VARIABLE escape_char      AS CHARACTER NO-UNDO.
 DEFINE VARIABLE quote_char       AS CHARACTER NO-UNDO.
-DEFINE VARIABLE i	             AS INTEGER   NO-UNDO.
+DEFINE VARIABLE i	         AS INTEGER   NO-UNDO.
+DEFINE VARIABLE found	         AS INTEGER   NO-UNDO.
+DEFINE VARIABLE clnt_vers           AS CHARACTER NO-UNDO.
 
 FIND DICTDB._Db WHERE RECID(DICTDB._Db) = drec_db.  
 RUN STORED-PROC DICTDBG.GetInfo (0).
@@ -64,10 +66,11 @@ FOR EACH DICTDBG.GetInfo_buffer:
   			        + DICTDBG.GetInfo_buffer.dbms_version 
           DICTDB._Db._Db-misc2[6] = DICTDBG.GetInfo_buffer.odbc_version
           DICTDB._Db._Db-misc2[7] = "Dictionary Ver#: " +  odbc-dict-ver
-  		                          + " Client Ver#: "
+  		                          + "; Client Ver#: "
   		                          + DICTDBG.GetInfo_buffer.prgrs_clnt
-  		                          + " Server Ver# "
+  		                          + " Server Ver#: "
   		                          + DICTDBG.GetInfo_buffer.prgrs_srvr
+                                          + ";"
           DICTDB._Db._Db-misc2[8] = DICTDBG.GetInfo_buffer.dbms_name
           driver-prefix    = ( IF DICTDB._Db._Db-misc2[1] BEGINS "QE"
                               THEN SUBSTRING(DICTDB._Db._Db-misc2[1]
@@ -77,7 +80,13 @@ FOR EACH DICTDBG.GetInfo_buffer:
                                       ,"character")
   		                       ELSE DICTDB._Db._Db-misc2[1] )
           DICTDB._Db._Db-misc2[4] = "".
-        
+ 
+   /* If client version is formatted w/"sh_min", the client is OpenEdge 10.1A or greater
+    * which knows about the dictionary version number
+    */
+      IF INDEX(DICTDBG.GetInfo_buffer.prgrs_clnt, ",(sh_min=") <> 0 THEN
+        DICTDB._Db._Db-misc2[7] = DICTDB._Db._Db-misc2[7] + " Schema Holder Ver#: ".
+       
   REPEAT i = 1 TO 80:
     IF ( CAN-DO(odbc-bug-list[i], driver-prefix) OR
          CAN-DO(odbc-bug-list[i], "ALL") ) AND

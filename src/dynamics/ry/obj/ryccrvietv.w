@@ -1,5 +1,12 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /* Connected Databases 
           icfdb            PROGRESS
 */
@@ -127,11 +134,11 @@ DEFINE VARIABLE hCustomizationType AS HANDLE NO-UNDO.
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     RowObject.customization_result_code AT ROW 2.05 COL 4.6
+     RowObject.customization_result_code AT ROW 2.1 COL 4.6
           LABEL "Customization result code"
           VIEW-AS FILL-IN 
           SIZE 78.4 BY 1
-     RowObject.customization_result_desc AT ROW 3.05 COL 4.8
+     RowObject.customization_result_desc AT ROW 3.19 COL 4.8
           LABEL "Customization result desc"
           VIEW-AS FILL-IN 
           SIZE 78.4 BY 1
@@ -174,7 +181,7 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 3.05
+         HEIGHT             = 3.33
          WIDTH              = 107.2.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -287,7 +294,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldryc_customization_type.customization_type_codeKeyFieldryc_customization_type.customization_type_objFieldLabelCustomization typeFieldTooltipPress F4 for LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(15)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_customization_type NO-LOCKQueryTablesryc_customization_typeBrowseFieldsryc_customization_type.customization_type_code,ryc_customization_type.customization_type_descBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(15)|X(35)RowsToBatch200BrowseTitleLookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListNO-LOCKQueryBuilderOrderListQueryBuilderTableOptionListNO-LOCKQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNamecustomization_type_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldryc_customization_type.customization_type_codeKeyFieldryc_customization_type.customization_type_objFieldLabelCustomization typeFieldTooltipPress F4 for LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(15)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_customization_type NO-LOCKQueryTablesryc_customization_typeBrowseFieldsryc_customization_type.customization_type_code,ryc_customization_type.customization_type_descBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(15)|X(35)RowsToBatch200BrowseTitleLookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListNO-LOCKQueryBuilderOrderListQueryBuilderTableOptionListNO-LOCKQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureDataSourceNameFieldNamecustomization_type_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hCustomizationType ).
        RUN repositionObject IN hCustomizationType ( 1.00 , 29.80 ) NO-ERROR.
        RUN resizeObject IN hCustomizationType ( 1.00 , 50.00 ) NO-ERROR.

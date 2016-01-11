@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -199,7 +183,7 @@ DEFINE VARIABLE col-num         AS INTEGER                NO-UNDO.
 DEFINE VARIABLE dsname          AS CHARACTER              NO-UNDO.
 DEFINE VARIABLE isasc           AS LOGICAL                NO-UNDO.
 DEFINE VARIABLE upperfld        AS LOGICAL                NO-UNDO.
-DEFINE VARIABLE col-property    AS INTEGER                NO-UNDO.
+DEFINE VARIABLE col-property	AS INTEGER                NO-UNDO.
 /*------------------------------------------------------------------*/
 
 /* LANGUAGE DEPENDENCIES START */ /*--------------------------------*/
@@ -993,6 +977,23 @@ for each gate-work
 
         end.   /* for each ds_idx-cols */
     
+        /* 20050203-022 - if we got here and the index has no fields, this could be the
+           progress_recid index. If the table name is longer than 14 characters, upon
+           migration, we define the table name as the index name (we don't add the
+           ##progress_recid suffix). Therefore, if the index name matches the table name,
+           delete it now just in case the user defined an index named the table name,
+           so we don't screw up when running the adjust schema, by assigning the wrong
+           foreign index name.
+        */
+        FIND FIRST s_ttb_idf WHERE s_ttb_idf.ttb_idx = RECID(s_ttb_idx) NO-ERROR.
+        IF NOT AVAILABLE s_ttb_idf THEN DO:
+            /* if the table name matches the index, and the index had no real fields,
+               just delete it now
+            */
+            IF s_ttb_idx.ds_name = s_ttb_tbl.ds_name THEN DO:
+                DELETE s_ttb_idx.
+            END.
+        END.    
       &ENDIF
   
     end. /* for ech ds_objects-2*/

@@ -3,6 +3,8 @@
 13899.81 1004874673.09 "ry-tem" "Repository Templates Module" yes 0 "" "ry/tem" "" 0
 14253.81 3000040718.09 "db-icfdb" "Database ICFDB" yes 0 "" "" "" 0
 36140.3993 1004874673.09 "ry-clc" "Client Cache" yes 0 "" "ry/clc" "" 0
+37356.19 1004874673.09 "ry-aaa" "ICF Repository Root Directory" yes 0 "" "ry" "" 0
+37357.19 1000000091.39 "dcu-aaa" "DCU Installation Root Directory" yes 0 "" "install" "" 0
 1000000119.39 1000000091.39 "dcu-obj" "DCU Install Objects" yes 0 "" "install/obj" "" 0
 1000000121.39 1000000091.39 "dcu-uib" "DCU Install Containers" yes 0 "" "install/uib" "" 0
 1000000123.39 1000000091.39 "dcu-prc" "DCU Install Procedures" yes 0 "" "install/prc" "" 0
@@ -66,12 +68,12 @@
 .
 PSC
 filename=gsc_product_module
-records=0000000000065
+records=0000000000067
 ldbname=ICFDB
-timestamp=2005/04/06-13:05:00
+timestamp=2005/06/30-15:33:25
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
 cpstream=UTF-8
 .
-0000005722
+0000005898

@@ -16,7 +16,7 @@ PSC
 filename=gsm_security_structure
 records=0000000000013
 ldbname=ICFDB
-timestamp=2005/04/06-13:05:02
+timestamp=2005/06/30-15:33:27
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP

@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /* Created:  D. McMann 06/22/98 PROTOODBC Utiity to migrate a Progress
@@ -48,6 +32,8 @@
                       06/17/03  Removed unsupported data sources
                       10/16/03  Created two OTHER catigories and removed MS Access
           K. McIntosh 04/13/04  Added Library field for DB2/400 ODBC support
+          K. McIntosh 02/28/05  Added ability to override default x(8) character field
+                                handling when deciding field width
 */            
 
 
@@ -72,6 +58,9 @@ DEFINE VARIABLE wrg-ver       AS LOGICAL INITIAL FALSE    NO-UNDO.
 DEFINE VARIABLE mvdta         AS LOGICAL                  NO-UNDO.
 DEFINE VARIABLE odbctypes     AS CHARACTER 
   INITIAL "Sybase,DB2/400,DB2(Other),Informix,Other(MS Access),Other(Generic),DB2,Other(MSAcce~ ss)" NO-UNDO.
+DEFINE VARIABLE cFormat       AS CHARACTER INITIAL "For field widths use:"
+                                           FORMAT "x(21)" NO-UNDO.
+DEFINE VARIABLE lExpand       AS LOGICAL                  NO-UNDO.
 
 DEFINE STREAM   strm.
 
@@ -106,13 +95,25 @@ FORM
   odb_collname FORMAT "x(32)"  view-as fill-in size 32 by 1
      LABEL "Collation name" colon 36 SKIP({&VM_WID})
   odb_library FORMAT "x(32)"  VIEW-AS FILL-IN SIZE 32 BY 1
-     LABEL "Library" COLON 36 SKIP({&VM_WIDG}) SPACE(4)
-  pcompatible view-as toggle-box LABEL "Progress 4GL Compatible Objects" 
+     LABEL "Library" COLON 36 
+  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SKIP({&VM_WID})
+  &ELSE SKIP({&VM_WIDG}) &ENDIF
+
+
+  SPACE(2) pcompatible view-as toggle-box 
+                       LABEL "Progress 4GL Compatible Objects" 
   shadowcol VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns" SKIP({&VM_WID})
- SPACE(4) loadsql view-as toggle-box label "Load SQL" 
+ SPACE(2) loadsql view-as toggle-box label "Load SQL" 
  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SPACE(24)
  &ELSE SPACE(23) &ENDIF
   movedata view-as toggle-box label "Move Data" SKIP({&VM_WID})
+  SPACE(2) cFormat VIEW-AS TEXT NO-LABEL 
+  iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
+                                             "4GL Format", 2
+                               HORIZONTAL NO-LABEL SKIP({&VM_WID})
+  lExpand VIEW-AS TOGGLE-BOX LABEL "Expand x(8) to 30" AT 40
+  &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN SKIP({&VM_WIDG})
+  &ELSE SKIP({&VM_WID}) &ENDIF
              {prodict/user/userbtns.i}
   WITH FRAME x  CENTERED SIDE-labels OVERLAY
     DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel
@@ -191,8 +192,8 @@ END PROCEDURE.
             odb_library:SENSITIVE IN FRAME X = TRUE.
    ELSE
      ASSIGN odb_library:HIDDEN       IN FRAME X = TRUE
-	        odb_library:SENSITIVE    IN FRAME X = FALSE
-	        odb_library:SCREEN-VALUE IN FRAME X = ""
+            odb_library:SENSITIVE    IN FRAME X = FALSE
+            odb_library:SCREEN-VALUE IN FRAME X = ""
             odb_library                         = "".
  END.
  ON ENTRY OF pro_dbname IN FRAME X DO:
@@ -201,8 +202,8 @@ END PROCEDURE.
             odb_library:SENSITIVE IN FRAME X = TRUE.
    ELSE
      ASSIGN odb_library:HIDDEN       IN FRAME X = TRUE
-	        odb_library:SENSITIVE    IN FRAME X = FALSE
-	        odb_library:SCREEN-VALUE IN FRAME X = ""
+            odb_library:SENSITIVE    IN FRAME X = FALSE
+            odb_library:SCREEN-VALUE IN FRAME X = ""
             odb_library                         = "".
  END.
 &ENDIF  
@@ -233,8 +234,8 @@ END PROCEDURE.
             odb_library:SENSITIVE IN FRAME X = TRUE.
    ELSE
      ASSIGN odb_library:HIDDEN       IN FRAME X = TRUE
-	        odb_library:SENSITIVE    IN FRAME X = FALSE
-	        odb_library:SCREEN-VALUE IN FRAME X = ""
+            odb_library:SENSITIVE    IN FRAME X = FALSE
+            odb_library:SCREEN-VALUE IN FRAME X = ""
             odb_library                         = "".
  END.
  ON ENTRY OF pro_dbname IN FRAME X DO:
@@ -243,8 +244,8 @@ END PROCEDURE.
             odb_library:SENSITIVE IN FRAME X = TRUE.
    ELSE
      ASSIGN odb_library:HIDDEN       IN FRAME X = TRUE
-	        odb_library:SENSITIVE    IN FRAME X = FALSE
-	        odb_library:SCREEN-VALUE IN FRAME X = ""
+            odb_library:SENSITIVE    IN FRAME X = FALSE
+            odb_library:SCREEN-VALUE IN FRAME X = ""
             odb_library                         = "".
  END.
 &ENDIF  
@@ -255,6 +256,16 @@ ON LEAVE OF odb_library IN FRAME X
 ON WINDOW-CLOSE of FRAME x
    APPLY "END-ERROR" to FRAME x.
    
+ON VALUE-CHANGED OF iFmtOption IN FRAME x DO:
+  IF SELF:SCREEN-VALUE = "1" THEN
+    ASSIGN lExpand:CHECKED   = FALSE
+           lExpand:SENSITIVE = FALSE
+           lFormat           = ?.
+  ELSE 
+    ASSIGN lExpand:CHECKED   = TRUE
+           lExpand:SENSITIVE = TRUE
+           lFormat           = FALSE.
+END.
 ON VALUE-CHANGED of loadsql IN FRAME x DO:
   IF SELF:screen-value = "yes" THEN 
      movedata:sensitive in frame x = YES.
@@ -348,6 +359,30 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
   ELSE 
     shadowcol = FALSE.
 
+  /* Initialize field width choice */
+  IF OS-GETENV("SQLWIDTH") <> ? THEN DO:
+    tmp_str      = OS-GETENV("SQLWIDTH").
+    IF tmp_str BEGINS "Y" THEN 
+      iFmtOption = 1.
+    ELSE 
+      iFmtOption = 2.
+  END. 
+  ELSE
+    iFmtOption = 2.
+
+  IF OS-GETENV("EXPANDX8") <> ? THEN DO:
+    ASSIGN tmp_str  = OS-GETENV("EXPANDX8").
+    IF tmp_str BEGINS "Y" THEN 
+      ASSIGN lExpand = TRUE
+             lFormat = FALSE.
+    ELSE 
+      ASSIGN lExpand = FALSE
+             lFormat = TRUE.
+  END. 
+  ELSE
+    ASSIGN lExpand = TRUE
+           lFormat = FALSE.
+
   IF OS-GETENV("LOADSQL") <> ? THEN DO:
     tmp_str      = OS-GETENV("LOADSQL").
     IF tmp_str BEGINS "Y" then loadsql = TRUE.
@@ -366,7 +401,8 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
    then assign pro_conparms = "<current working database>".
 
   IF redoblk THEN DO:
-      MESSAGE "You have received error messages from the client stating why" SKIP
+      MESSAGE "You have received error messages from the client stating why" 
+              SKIP
               "the process was stopped.  Correct the errors and try again." SKIP
           VIEW-AS ALERT-BOX ERROR BUTTONS OK.
   END.
@@ -379,6 +415,7 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
   _updtvar: 
   DO WHILE TRUE:
     &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
+      DISPLAY cFormat lExpand WITH FRAME x.
       UPDATE pro_dbname
         pro_conparms
         osh_dbname
@@ -394,12 +431,15 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
         shadowcol
         loadsql
         movedata WHEN mvdta
+        iFmtOption
+        lExpand WHEN iFmtOption = 2
         btn_OK btn_Cancel 
         &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
             btn_Help
         &ENDIF
         WITH FRAME x.
-    &ELSE 
+    &ELSE
+      DISPLAY cFormat lExpand WITH FRAME x.
       UPDATE pro_dbname
         pro_conparms
         osh_dbname
@@ -415,6 +455,8 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
         shadowcol
         loadsql
         movedata
+        iFmtOption
+        lExpand WHEN iFmtOption = 2
         btn_OK btn_Cancel
         WITH FRAME x.
         
@@ -428,6 +470,11 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
         ASSIGN odb_type = codb_type.              
     &ENDIF      
 
+    IF iFmtOption = 1 THEN
+        lFormat = ?.
+      ELSE
+        lFormat = (NOT lExpand).
+      
     IF pro_conparms = "<current working database>" THEN
       ASSIGN pro_conparms = "".
 
@@ -479,6 +526,7 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
     END.      
     LEAVE _updtvar.
   END.
+  ELSE old-dictdb = LDBNAME("DICTDB").
  
   IF osh_dbname <> "" AND osh_dbname <> ? THEN
       output_file = osh_dbname + ".log".

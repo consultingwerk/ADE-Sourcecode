@@ -1,6 +1,13 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Check Version Notes Wizard" Procedure _INLINE
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /* Actions: af/cod/aftemwizcw.w ? ? ? ? */
 /* MIP Update Version Notes Wizard
 Check object version notes.
@@ -488,7 +495,7 @@ PROCEDURE getObjectDetail :
   ASSIGN dSmartObjectObj       = ttObject.tSmartObjectObj
          cObjectType           = ttObject.tClassName
          cCustomSuperProcedure = ttObject.tCustomSuperProcedure
-         cCustomSuperProcedure = REPLACE(cCustomSuperProcedure,"\":U,"/":U).
+         cCustomSuperProcedure = REPLACE(cCustomSuperProcedure,"~\":U,"/":U).
   /* Remove any relative path information - this will allow the lookup to
      find the record for the super procedure */
   IF INDEX(cCustomSuperProcedure,"/":U) > 0 THEN

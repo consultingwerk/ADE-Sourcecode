@@ -1,0 +1,572 @@
+ADD TABLE "ttAuditEvent"
+  AREA "Schema Area"
+  DUMP-NAME "ttAuditE"
+
+ADD FIELD "_Event-id" OF "ttAuditEvent" AS integer 
+  FORMAT "->>>>>9"
+  INITIAL "0"
+  LABEL "Event id"
+  POSITION 2
+  MAX-WIDTH 4
+  COLUMN-LABEL "Event id"
+  ORDER 10
+
+ADD FIELD "_Event-type" OF "ttAuditEvent" AS character 
+  FORMAT "X(15)"
+  INITIAL ""
+  LABEL "Event type"
+  POSITION 3
+  MAX-WIDTH 30
+  COLUMN-LABEL "Event type"
+  ORDER 20
+
+ADD FIELD "_Event-name" OF "ttAuditEvent" AS character 
+  FORMAT "X(35)"
+  INITIAL ""
+  LABEL "Event name"
+  POSITION 4
+  MAX-WIDTH 70
+  COLUMN-LABEL "Event name"
+  ORDER 30
+
+ADD FIELD "_Event-description" OF "ttAuditEvent" AS character 
+  FORMAT "X(500)"
+  INITIAL ""
+  LABEL "Event description"
+  POSITION 5
+  MAX-WIDTH 1000
+  COLUMN-LABEL "Event description"
+  ORDER 40
+
+ADD INDEX "idxEventId" ON "ttAuditEvent" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "_Event-id" ASCENDING 
+
+ADD INDEX "idxEventDesc" ON "ttAuditEvent" 
+  AREA "Schema Area"
+  INDEX-FIELD "_Event-description" ASCENDING 
+
+ADD INDEX "idxEventName" ON "ttAuditEvent" 
+  AREA "Schema Area"
+  INDEX-FIELD "_Event-type" ASCENDING 
+  INDEX-FIELD "_Event-name" ASCENDING 
+
+ADD TABLE "ttAuditEventPolicy"
+  AREA "Schema Area"
+  DUMP-NAME "ttAudit2"
+
+ADD FIELD "_Audit-policy-guid" OF "ttAuditEventPolicy" AS character 
+  FORMAT "X(28)"
+  INITIAL ""
+  LABEL "Policy GUID"
+  POSITION 2
+  MAX-WIDTH 56
+  COLUMN-LABEL "Policy GUID"
+  ORDER 10
+
+ADD FIELD "_Event-id" OF "ttAuditEventPolicy" AS integer 
+  FORMAT "->>>>>9"
+  INITIAL "0"
+  LABEL "Event id"
+  POSITION 3
+  MAX-WIDTH 4
+  COLUMN-LABEL "Event id"
+  ORDER 20
+
+ADD FIELD "_Event-type" OF "ttAuditEventPolicy" AS character 
+  FORMAT "X(15)"
+  INITIAL ""
+  LABEL "Event type"
+  POSITION 4
+  MAX-WIDTH 30
+  COLUMN-LABEL "Event type"
+  ORDER 30
+
+ADD FIELD "_Event-name" OF "ttAuditEventPolicy" AS character 
+  FORMAT "X(35)"
+  INITIAL ""
+  LABEL "Event name"
+  POSITION 5
+  MAX-WIDTH 70
+  COLUMN-LABEL "Event name"
+  ORDER 40
+
+ADD FIELD "_Event-description" OF "ttAuditEventPolicy" AS character 
+  FORMAT "X(50)"
+  INITIAL ""
+  LABEL "Event description"
+  POSITION 6
+  MAX-WIDTH 100
+  COLUMN-LABEL "Event description"
+  ORDER 50
+
+ADD FIELD "_Event-level" OF "ttAuditEventPolicy" AS integer 
+  FORMAT "->9"
+  INITIAL "0"
+  LABEL "Event level"
+  POSITION 7
+  MAX-WIDTH 4
+  COLUMN-LABEL "Event level"
+  ORDER 60
+
+ADD FIELD "_Event-criteria" OF "ttAuditEventPolicy" AS character 
+  FORMAT "X(3000)"
+  INITIAL ""
+  LABEL "Event criteria"
+  POSITION 8
+  MAX-WIDTH 6000
+  COLUMN-LABEL "Event criteria"
+  ORDER 70
+
+ADD INDEX "idxEventGuid" ON "ttAuditEventPolicy" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "_Audit-policy-guid" ASCENDING 
+  INDEX-FIELD "_Event-id" ASCENDING 
+
+ADD INDEX "idxEventId" ON "ttAuditEventPolicy" 
+  AREA "Schema Area"
+  INDEX-FIELD "_Event-id" ASCENDING 
+
+ADD TABLE "ttAuditFieldPolicy"
+  AREA "Schema Area"
+  DUMP-NAME "ttAudit1"
+
+ADD FIELD "_Audit-policy-guid" OF "ttAuditFieldPolicy" AS character 
+  FORMAT "X(28)"
+  INITIAL ""
+  LABEL "Policy GUID"
+  POSITION 2
+  MAX-WIDTH 56
+  COLUMN-LABEL "Policy GUID"
+  ORDER 10
+
+ADD FIELD "_File-name" OF "ttAuditFieldPolicy" AS character 
+  FORMAT "X(32)"
+  INITIAL ""
+  LABEL "File name"
+  POSITION 3
+  MAX-WIDTH 64
+  COLUMN-LABEL "File name"
+  ORDER 20
+
+ADD FIELD "_Owner" OF "ttAuditFieldPolicy" AS character 
+  FORMAT "X(32)"
+  INITIAL ""
+  LABEL "SQL Owner"
+  POSITION 4
+  MAX-WIDTH 64
+  COLUMN-LABEL "SQL Owner"
+  ORDER 30
+
+ADD FIELD "_Field-name" OF "ttAuditFieldPolicy" AS character 
+  FORMAT "X(32)"
+  INITIAL ""
+  LABEL "Field name"
+  POSITION 5
+  MAX-WIDTH 64
+  COLUMN-LABEL "Field name"
+  ORDER 40
+
+ADD FIELD "_Audit-create-level" OF "ttAuditFieldPolicy" AS integer 
+  FORMAT "->9"
+  INITIAL "0"
+  LABEL "Audit create level"
+  POSITION 6
+  MAX-WIDTH 4
+  COLUMN-LABEL "Audit create level"
+  ORDER 50
+
+ADD FIELD "_Audit-update-level" OF "ttAuditFieldPolicy" AS integer 
+  FORMAT "->9"
+  INITIAL "0"
+  LABEL "Audit update level"
+  POSITION 7
+  MAX-WIDTH 4
+  COLUMN-LABEL "Audit update level"
+  ORDER 60
+
+ADD FIELD "_Audit-delete-level" OF "ttAuditFieldPolicy" AS integer 
+  FORMAT "->9"
+  INITIAL "0"
+  LABEL "Audit delete level"
+  POSITION 8
+  MAX-WIDTH 4
+  COLUMN-LABEL "Audit delete level"
+  ORDER 70
+
+ADD FIELD "_Audit-read-level" OF "ttAuditFieldPolicy" AS integer 
+  FORMAT "->9"
+  INITIAL "0"
+  LABEL "Audit read level"
+  POSITION 9
+  MAX-WIDTH 4
+  COLUMN-LABEL "Audit read level"
+  ORDER 80
+
+ADD FIELD "_Audit-identifying-field" OF "ttAuditFieldPolicy" AS integer 
+  FORMAT "->9"
+  INITIAL "0"
+  LABEL "Audit identifying field"
+  POSITION 10
+  MAX-WIDTH 4
+  COLUMN-LABEL "Audit identifying field"
+  ORDER 90
+
+ADD INDEX "idxGuidFileOwner" ON "ttAuditFieldPolicy" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "_Audit-policy-guid" ASCENDING 
+  INDEX-FIELD "_File-name" ASCENDING 
+  INDEX-FIELD "_Owner" ASCENDING 
+  INDEX-FIELD "_Field-name" ASCENDING 
+
+ADD INDEX "idxFileOwner" ON "ttAuditFieldPolicy" 
+  AREA "Schema Area"
+  INDEX-FIELD "_File-name" ASCENDING 
+  INDEX-FIELD "_Field-name" ASCENDING 
+  INDEX-FIELD "_Owner" ASCENDING 
+
+ADD TABLE "ttAuditFilePolicy"
+  AREA "Schema Area"
+  DUMP-NAME "ttAuditF"
+
+ADD FIELD "_Audit-policy-guid" OF "ttAuditFilePolicy" AS character 
+  FORMAT "X(28)"
+  INITIAL ""
+  LABEL "Policy GUID"
+  POSITION 2
+  MAX-WIDTH 56
+  COLUMN-LABEL "Policy GUID"
+  ORDER 10
+
+ADD FIELD "_File-name" OF "ttAuditFilePolicy" AS character 
+  FORMAT "X(32)"
+  INITIAL ""
+  LABEL "File name"
+  POSITION 3
+  MAX-WIDTH 64
+  COLUMN-LABEL "File name"
+  ORDER 20
+
+ADD FIELD "_Owner" OF "ttAuditFilePolicy" AS character 
+  FORMAT "X(32)"
+  INITIAL ""
+  LABEL "SQL Owner"
+  POSITION 4
+  MAX-WIDTH 64
+  COLUMN-LABEL "SQL Owner"
+  ORDER 30
+
+ADD FIELD "_Audit-create-level" OF "ttAuditFilePolicy" AS integer 
+  FORMAT "->9"
+  INITIAL "0"
+  LABEL "Audit create level"
+  POSITION 5
+  MAX-WIDTH 4
+  COLUMN-LABEL "Audit create level"
+  ORDER 40
+
+ADD FIELD "_Create-event-id" OF "ttAuditFilePolicy" AS integer 
+  FORMAT "->>>>>9"
+  INITIAL "0"
+  LABEL "Create event id"
+  POSITION 6
+  MAX-WIDTH 4
+  COLUMN-LABEL "Create event id"
+  ORDER 50
+
+ADD FIELD "_Audit-create-criteria" OF "ttAuditFilePolicy" AS character 
+  FORMAT "X(3000)"
+  INITIAL ""
+  LABEL "Audit create criteria"
+  POSITION 7
+  MAX-WIDTH 6000
+  COLUMN-LABEL "Audit create criteria"
+  ORDER 60
+
+ADD FIELD "_Audit-update-level" OF "ttAuditFilePolicy" AS integer 
+  FORMAT "->9"
+  INITIAL "0"
+  LABEL "Audit update level"
+  POSITION 8
+  MAX-WIDTH 4
+  COLUMN-LABEL "Audit update level"
+  ORDER 70
+
+ADD FIELD "_Update-event-id" OF "ttAuditFilePolicy" AS integer 
+  FORMAT "->>>>>9"
+  INITIAL "0"
+  LABEL "Update event id"
+  POSITION 9
+  MAX-WIDTH 4
+  COLUMN-LABEL "Update event id"
+  ORDER 80
+
+ADD FIELD "_Audit-update-criteria" OF "ttAuditFilePolicy" AS character 
+  FORMAT "X(3000)"
+  INITIAL ""
+  LABEL "Audit update criteria"
+  POSITION 10
+  MAX-WIDTH 6000
+  COLUMN-LABEL "Audit update criteria"
+  ORDER 90
+
+ADD FIELD "_Audit-delete-level" OF "ttAuditFilePolicy" AS integer 
+  FORMAT "->9"
+  INITIAL "0"
+  LABEL "Audit delete level"
+  POSITION 11
+  MAX-WIDTH 4
+  COLUMN-LABEL "Audit delete level"
+  ORDER 100
+
+ADD FIELD "_Delete-event-id" OF "ttAuditFilePolicy" AS integer 
+  FORMAT "->>>>>9"
+  INITIAL "0"
+  LABEL "Delete event id"
+  POSITION 12
+  MAX-WIDTH 4
+  COLUMN-LABEL "Delete event id"
+  ORDER 110
+
+ADD FIELD "_Audit-delete-criteria" OF "ttAuditFilePolicy" AS character 
+  FORMAT "X(3000)"
+  INITIAL ""
+  LABEL "Audit delete criteria"
+  POSITION 13
+  MAX-WIDTH 6000
+  COLUMN-LABEL "Audit delete criteria"
+  ORDER 120
+
+ADD FIELD "_Audit-read-level" OF "ttAuditFilePolicy" AS integer 
+  FORMAT "->9"
+  INITIAL "0"
+  LABEL "Audit read level"
+  POSITION 14
+  MAX-WIDTH 4
+  COLUMN-LABEL "Audit read level"
+  ORDER 130
+
+ADD FIELD "_Read-event-id" OF "ttAuditFilePolicy" AS integer 
+  FORMAT "->>>>>9"
+  INITIAL "5103"
+  LABEL "Read event id"
+  POSITION 15
+  MAX-WIDTH 4
+  COLUMN-LABEL "Read event id"
+  ORDER 140
+
+ADD FIELD "_Audit-read-criteria" OF "ttAuditFilePolicy" AS character 
+  FORMAT "X(3000)"
+  INITIAL ""
+  LABEL "Audit read criteria"
+  POSITION 16
+  MAX-WIDTH 6000
+  COLUMN-LABEL "Audit read criteria"
+  ORDER 150
+
+ADD INDEX "idxGuidFileOwner" ON "ttAuditFilePolicy" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "_Audit-policy-guid" ASCENDING 
+  INDEX-FIELD "_File-name" ASCENDING 
+  INDEX-FIELD "_Owner" ASCENDING 
+
+ADD INDEX "idxFileOwner" ON "ttAuditFilePolicy" 
+  AREA "Schema Area"
+  INDEX-FIELD "_File-name" ASCENDING 
+  INDEX-FIELD "_Owner" ASCENDING 
+
+ADD TABLE "ttAuditPolicy"
+  AREA "Schema Area"
+  DUMP-NAME "ttAuditP"
+
+ADD FIELD "_Audit-policy-guid" OF "ttAuditPolicy" AS character 
+  FORMAT "X(28)"
+  INITIAL ""
+  LABEL "Policy GUID"
+  POSITION 2
+  MAX-WIDTH 56
+  COLUMN-LABEL "Policy GUID"
+  ORDER 10
+
+ADD FIELD "_Audit-policy-name" OF "ttAuditPolicy" AS character 
+  FORMAT "X(35)"
+  INITIAL ""
+  LABEL "Audit policy name"
+  POSITION 3
+  MAX-WIDTH 70
+  COLUMN-LABEL "Audit policy name"
+  ORDER 20
+
+ADD FIELD "_Audit-policy-description" OF "ttAuditPolicy" AS character 
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Audit policy description"
+  POSITION 4
+  MAX-WIDTH 140
+  COLUMN-LABEL "Audit policy description"
+  ORDER 30
+
+ADD FIELD "_Audit-data-security-level" OF "ttAuditPolicy" AS integer 
+  FORMAT "->9"
+  INITIAL "0"
+  LABEL "Data security level"
+  POSITION 5
+  MAX-WIDTH 4
+  COLUMN-LABEL "Data security level"
+  ORDER 40
+
+ADD FIELD "_Audit-custom-detail-level" OF "ttAuditPolicy" AS integer 
+  FORMAT "->9"
+  INITIAL "0"
+  LABEL "Audit custom detail level"
+  POSITION 6
+  MAX-WIDTH 4
+  COLUMN-LABEL "Audit custom detail level"
+  ORDER 50
+
+ADD FIELD "_Audit-policy-active" OF "ttAuditPolicy" AS logical 
+  FORMAT "YES/NO"
+  INITIAL "NO"
+  LABEL "Audit policy active"
+  POSITION 7
+  MAX-WIDTH 1
+  COLUMN-LABEL "Audit policy active"
+  ORDER 60
+
+ADD FIELD "_imported" OF "ttAuditPolicy" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  LABEL "_imported"
+  POSITION 8
+  MAX-WIDTH 1
+  COLUMN-LABEL "_imported"
+  ORDER 70
+
+ADD INDEX "idxPolicyGuid" ON "ttAuditPolicy" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "_Audit-policy-guid" ASCENDING 
+
+ADD INDEX "idxPolicyActive" ON "ttAuditPolicy" 
+  AREA "Schema Area"
+  INDEX-FIELD "_Audit-policy-active" ASCENDING 
+
+ADD INDEX "idxPolicyDesc" ON "ttAuditPolicy" 
+  AREA "Schema Area"
+  INDEX-FIELD "_Audit-policy-description" ASCENDING 
+
+ADD INDEX "idxPolicyName" ON "ttAuditPolicy" 
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "_Audit-policy-name" ASCENDING 
+
+ADD TABLE "ttField"
+  AREA "Schema Area"
+  DUMP-NAME "ttField"
+
+ADD FIELD "_File-name" OF "ttField" AS character 
+  FORMAT "X(32)"
+  INITIAL ""
+  LABEL "Table name"
+  POSITION 2
+  MAX-WIDTH 64
+  COLUMN-LABEL "Table name"
+  ORDER 10
+
+ADD FIELD "_Owner" OF "ttField" AS character 
+  FORMAT "X(20)"
+  INITIAL ""
+  LABEL "SQL Owner"
+  POSITION 3
+  MAX-WIDTH 40
+  COLUMN-LABEL "SQL Owner"
+  ORDER 20
+
+ADD FIELD "_Field-name" OF "ttField" AS character 
+  FORMAT "X(32)"
+  INITIAL ""
+  LABEL "Field name"
+  POSITION 4
+  MAX-WIDTH 64
+  COLUMN-LABEL "Field name"
+  ORDER 30
+
+ADD FIELD "_Desc" OF "ttField" AS character 
+  FORMAT "x(72)"
+  INITIAL ""
+  LABEL "Description"
+  POSITION 5
+  MAX-WIDTH 144
+  COLUMN-LABEL "Description"
+  ORDER 40
+
+ADD INDEX "idxField" ON "ttField" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "_File-name" ASCENDING 
+  INDEX-FIELD "_Owner" ASCENDING 
+  INDEX-FIELD "_Field-name" ASCENDING 
+
+ADD TABLE "ttFile"
+  AREA "Schema Area"
+  DUMP-NAME "ttFile"
+
+ADD FIELD "_db-name" OF "ttFile" AS character 
+  FORMAT "X(72)"
+  INITIAL ""
+  LABEL "Database"
+  POSITION 2
+  MAX-WIDTH 144
+  COLUMN-LABEL "Database"
+  ORDER 10
+
+ADD FIELD "_File-name" OF "ttFile" AS character 
+  FORMAT "X(32)"
+  INITIAL ""
+  LABEL "Table name"
+  POSITION 3
+  MAX-WIDTH 64
+  COLUMN-LABEL "Table name"
+  ORDER 20
+
+ADD FIELD "_Owner" OF "ttFile" AS character 
+  FORMAT "X(32)"
+  INITIAL ""
+  LABEL "Owner"
+  POSITION 4
+  MAX-WIDTH 64
+  COLUMN-LABEL "Owner"
+  ORDER 30
+
+ADD FIELD "_hidden" OF "ttFile" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  LABEL "_hidden"
+  POSITION 5
+  MAX-WIDTH 1
+  COLUMN-LABEL "_hidden"
+  ORDER 40
+
+ADD INDEX "idxDatabaseTable" ON "ttFile" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "_db-name" ASCENDING 
+  INDEX-FIELD "_File-name" ASCENDING 
+  INDEX-FIELD "_Owner" ASCENDING 
+
+.
+PSC
+cpstream=ibm850
+.
+0000012843

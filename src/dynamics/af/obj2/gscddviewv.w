@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
           icfdb            PROGRESS
@@ -29,25 +29,9 @@ DEFINE TEMP-TABLE RowObject
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -116,7 +100,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /* Include file with RowObject temp-table definition */
 &Scoped-define DATA-FIELD-DEFS "af/obj2/gscddfullo.i"
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
@@ -162,18 +146,18 @@ DEFINE FRAME frMain
           LABEL "Dataset code"
           VIEW-AS FILL-IN 
           SIZE 24 BY 1
-     RowObject.dataset_description AT ROW 2.05 COL 29.8 NO-LABEL
+     RowObject.dataset_description AT ROW 2.1 COL 29.8 NO-LABEL
           VIEW-AS EDITOR MAX-CHARS 500 SCROLLBAR-VERTICAL LARGE
           SIZE 78.4 BY 4
-     RowObject.default_ado_filename AT ROW 6.14 COL 27.8 COLON-ALIGNED
+     RowObject.default_ado_filename AT ROW 6.19 COL 27.8 COLON-ALIGNED
           LABEL "Default ado filename"
           VIEW-AS FILL-IN 
           SIZE 78.4 BY 1
-     RowObject.xml_generation_procedure AT ROW 7.14 COL 27.8 COLON-ALIGNED
+     RowObject.xml_generation_procedure AT ROW 7.29 COL 27.8 COLON-ALIGNED
           LABEL "Xml generation procedure"
           VIEW-AS FILL-IN 
           SIZE 78.4 BY 1
-     RowObject.disable_ri AT ROW 8.19 COL 29.8
+     RowObject.disable_ri AT ROW 8.33 COL 29.8
           LABEL "Disable ri"
           VIEW-AS TOGGLE-BOX
           SIZE 14.6 BY 1
@@ -260,7 +244,7 @@ END.
 /* SETTINGS FOR WINDOW vTableWin
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frMain
-   NOT-VISIBLE Size-to-Fit                                              */
+   NOT-VISIBLE FRAME-NAME Size-to-Fit                                   */
 ASSIGN 
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.

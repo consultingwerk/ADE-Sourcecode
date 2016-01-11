@@ -1,0 +1,26 @@
+/*************************************************************/
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
+/* Class Definition for dataview - src\adm2\dataview.cld - 07/30/2005 
+   Class Type: User-Defined	
+   Class Name: dataview
+   Class DeriveFrom: src/adm2/smart.cld
+   Class SourcePath: adm2
+   Class RcodePath: adm2
+   Class TemplatePath: src/adm2/template   
+   Class Method: dataview.i
+   Class Property: dataviewprop.i
+   Class Super: dataview.p
+   Class Prototype: dataviewprto.i
+   Class Template: dataview.w
+   Custom Method: dataviewcustom.i
+   Custom Property: dataviewpropcustom.i
+   Custom Super: dataviewcustom.p
+   Custom Prototype: dataviewprtocustom.i
+   Custom Exclude: dataviewexclcustom.i
+   Custom Instance: dataviewdefscustom.i
+ */

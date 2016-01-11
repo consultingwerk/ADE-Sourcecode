@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /* Procedure: prodict/mss/_gendsql.p
@@ -35,6 +19,8 @@
                            field with same name
               20031007-008 10/10/03 Added logic for multiple extents at end of file for foreign position
               Added CAPS for case insensitive search for _file _index for name
+              02/08/05    Added support for turning on/off x(8) override to x(30) - depending on
+                          value stored in sqlwidth 
               
      
 */              
@@ -2397,7 +2383,8 @@ DO ON STOP UNDO, LEAVE:
                          right_paren = INDEX(ilin[2], ")")
                          lngth = right_paren - (left_paren + 1)        
                          j = INTEGER(SUBSTRING(ilin[2], left_paren + 1, lngth)).  
-                  IF j = 8 THEN j = minwidth.
+                  /* user can turn off the x(8) override */
+                  IF j = 8 AND sqlwidth = FALSE THEN j = minwidth.
                 END.  
                 ELSE DO:           
                   DO z = 1 to lngth:        
@@ -2412,7 +2399,8 @@ DO ON STOP UNDO, LEAVE:
                     ASSIGN j = nbrchar.
                   ELSE
                     ASSIGN j = lngth.   
-                  IF j = 8 THEN j = minwidth.
+                  /* user can turn off the x(8) override */
+                  IF j = 8 AND sqlwidth = FALSE THEN j = minwidth.
                 END.       
                 IF j < varlngth THEN DO:              
                   IF AVAILABLE new-obj THEN
@@ -3593,11 +3581,17 @@ DO ON STOP UNDO, LEAVE:
             IF AVAILABLE rename-obj THEN
               FIND FIRST DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Index-name = old-name NO-ERROR.
             IF NOT AVAILABLE DICTDB._Index THEN DO:
-              MESSAGE "The Delta DF File contains UPDATE PRIMARY INDEX" ilin[4] "for table" ilin[6] SKIP
-                      "and index does not exist in the schema holder." SKIP
-                      "This process is being aborted."  SKIP (1)
-                  VIEW-AS ALERT-BOX ERROR.
-              RETURN.
+              /* check if the index is being created as well */
+              FIND FIRST new-obj WHERE new-obj.tbl-name = ilin[6] AND 
+                                       new-obj.add-type = "I" AND
+                                       new-obj.prg-name = ilin[4] NO-ERROR.
+              IF NOT AVAILABLE new-obj THEN DO:
+                  MESSAGE "The Delta DF File contains UPDATE PRIMARY INDEX" ilin[4] "for table" ilin[6] SKIP
+                          "and index does not exist in the schema holder." SKIP
+                          "This process is being aborted."  SKIP (1)
+                      VIEW-AS ALERT-BOX ERROR.
+                  RETURN.
+              END.
             END.
           END.
           CREATE df-info.

@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*----------------------------------------------------------------------------
@@ -85,9 +69,7 @@ DEFINE VARIABLE cLocalName     AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cMappedName    AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cTable         AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE hDataSource    AS HANDLE     NO-UNDO.
-DEFINE VARIABLE lClob          AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE lSBOSource     AS LOGICAL    NO-UNDO.
-    
+DEFINE VARIABLE lClob          AS LOGICAL    NO-UNDO.    
 
 DEFINE BUFFER   parent_U      FOR  _U.
 DEFINE BUFFER   parent_L      FOR  _L.
@@ -149,12 +131,12 @@ ELSE
 FIND _P WHERE _P._WINDOW-HANDLE = _h_win.
 IF AVAILABLE _P AND _P._DATA-OBJECT NE "":U THEN 
 DO:
-  hDataSource = DYNAMIC-FUNC("get-proc-hdl" IN _h_func_lib, INPUT _P._DATA-OBJECT).
+  hDataSource = DYNAMIC-FUNC("get-sdo-hdl" IN _h_func_lib, 
+                                          INPUT _P._DATA-OBJECT,
+                                          INPUT SOURCE-PROCEDURE).
+
   IF VALID-HANDLE(hDataSource) THEN
   DO:
-    IF DYNAMIC-FUNCTION("getObjectType":U IN hDataSource) = "SmartBusinessObject":U THEN
-      lSBOSource = TRUE.
-    cClobCols = DYNAMIC-FUNCTION("getClobColumns":U IN hDataSource).
     IF LOOKUP(v_name, parent_C._DATAFIELD-MAPPING) > 0 THEN
     DO:
       ASSIGN 
@@ -164,22 +146,30 @@ DO:
                                       INPUT parent_C._DATAFIELD-MAPPING,
                                       INPUT TRUE,
                                       INPUT ",":U).
-      IF cMappedName BEGINS "RowObject.":U THEN
-        cMappedName = REPLACE(cMappedName, "RowObject.":U, "":U).
-      IF cMappedName NE "":U AND LOOKUP(cMappedName, cClobCols) > 0 THEN
+      IF cMappedName NE "":U THEN 
       DO:
-        ASSIGN 
-          lClob      = TRUE
-          cBuffer    = IF lSBOSource THEN ENTRY(1, cMappedName, ".":U)
-                       ELSE "RowObject":U
-          cTable     = cBuffer
-          cHelp      = DYNAMIC-FUNCTION("columnHelp":U IN hDataSource, INPUT cMappedName)
-          v_name     = IF lSBOSource THEN ENTRY(2, cMappedName, ".":U) 
-                       ELSE cMappedName.
-      END.  /* if clob */
+        cClobCols = DYNAMIC-FUNCTION("getClobColumns":U IN hDataSource).
+        
+        /* Currently the _C._DATAFIELD-MAPPING in an SDO has unqualifed names 
+           when the field is added and qualified on file open ..., 
+           so make sure the field is in synch before looking up the list  */
+        IF cMappedname BEGINS 'RowObject.' AND INDEX(cClobcols,'.':U) = 0 THEN
+          cMappedName = ENTRY(2,cMappedName,'.').
+
+        IF LOOKUP(cMappedName, cClobCols) > 0 THEN
+          ASSIGN 
+            lClob      = TRUE
+            cBuffer    = (IF NUM-ENTRIES(cMappedName, ".":U) > 1
+                          THEN ENTRY(1, cMappedName, ".":U)
+                          ELSE 'RowObject':U)
+            cTable     = cBuffer
+            cHelp      = DYNAMIC-FUNCTION("columnHelp":U IN hDataSource, INPUT cMappedName)
+            v_name     = (IF NUM-ENTRIES(cMappedName, ".":U) > 1
+                          THEN ENTRY(2, cMappedName, ".":U)
+                          ELSE cMappedName).
+      END.
     END.  /* if name in mapping */
     ELSE cLocalName = "":U.
-    DYNAMIC-FUNCTION("shutdown-proc" IN _h_func_lib, INPUT _P._data-object).
   END.  /* if valid data source */
 END.  /* if avail _P */
 
@@ -340,6 +330,7 @@ ASSIGN _NAME-REC._wNAME   = v_name
        _NAME-REC._wTABLE  = IF cBuffer NE ? THEN cBuffer ELSE cTable
        _NAME-REC._wTYPE   = "{&p_type}"
        _NAME-REC._wFRAME  = frm-name.
+
 /* Adjust for temp-tables */
 IF _NAME-REC._wDBNAME = "" AND _NAME-REC._wTABLE NE ? THEN
    _NAME-REC._wDBNAME = "Temp-Tables":U.
@@ -551,62 +542,61 @@ IF NOT CAN-DO("BROWSE,BUTTON,RECTANGLE,IMAGE",_U._TYPE) THEN DO:
                            _TT._NAME    = _U._TABLE NO-ERROR.
       IF NOT AVAILABLE _TT THEN
         FIND FIRST _TT WHERE _TT._p-recid = RECID(_P) AND
-                             _TT._LIKE-TABLE = _U._TABLE.
+                             _TT._LIKE-TABLE = _U._TABLE NO-ERROR.
+
       /* If Data-Object temp-table field, query the data-object for initial value and
          enabled state. jep-code */
-      IF (_TT._TABLE-TYPE = "D":u) AND (_P._DATA-OBJECT <> "") THEN DO:
-        IF _P._DATA-OBJECT = "<_CONVERTED_>" THEN DO:
-          RUN adeuib/_get-sdo.w (INPUT _U._NAME, INPUT 'SmartViewer':U, OUTPUT _P._DATA-OBJECT).
-          /* If it is not a valid SDO, set it back to converted flag for future consideration */
-          IF _P._DATA-OBJECT = "" THEN DO:
-            _P._DATA-OBJECT = "<_CONVERTED_>".
-            DELETE _U.
-            DELETE _L.
-            IF p_index NE {&BRWSR} THEN DELETE _F.
-            ELSE DO:
-              DELETE _C.
-              DELETE _Q.
-            END.
-            FOR EACH _TT WHERE _TT._p-recid = RECID(_P):
-              DELETE _TT.
-            END.
-            DELETE _P.
-            FIND _U WHERE _U._HANDLE = _h_win.
-            RUN adeuib/_delet_u.p (RECID(_U), TRUE).
-            RETURN "_ABORT":U.
-          END.  /* If _get-sdo was canceled */
-        END.
-      
-        /* Start the sdo or a sdo pretender for remote sdo's 
-           on behalf of the source, in order to avoid restarting it each time.            
-           The source _qssuckr.p must run shutdown  */
-           
-        tmp_handle = 
-          DYNAMIC-FUNC("get-sdo-hdl" IN _h_func_lib, 
-                                     INPUT _P._DATA-OBJECT,
-                                     INPUT SOURCE-PROCEDURE).
+      IF AVAILABLE _TT 
+      AND (_TT._TABLE-TYPE = "D":u)
+      AND (_P._DATA-OBJECT = "<_CONVERTED_>") THEN 
+      DO:
+        RUN adeuib/_get-sdo.w (INPUT _U._NAME, INPUT 'SmartViewer':U, OUTPUT _P._DATA-OBJECT).
+        /* If it is not a valid SDO, set it back to converted flag for future consideration */
+        IF _P._DATA-OBJECT = "" THEN DO:
+          _P._DATA-OBJECT = "<_CONVERTED_>".
+          DELETE _U.
+          DELETE _L.
+          IF p_index NE {&BRWSR} THEN DELETE _F.
+          ELSE DO:
+            DELETE _C.
+            DELETE _Q.
+          END.
+          FOR EACH _TT WHERE _TT._p-recid = RECID(_P):
+            DELETE _TT.
+          END.
+          DELETE _P.
+          FIND _U WHERE _U._HANDLE = _h_win.
+          RUN adeuib/_delet_u.p (RECID(_U), TRUE).
+          RETURN "_ABORT":U.
+        END.  /* If _get-sdo was canceled */
       END.
-      IF VALID-HANDLE(tmp_handle) THEN DO:
-        /* tmp_handle is either an SDO or and SBO.  If it is an SBO, then _U._TABLE is the
-           SDO name */
-        IF DYNAMIC-FUNCTION("getObjectType":U IN tmp_handle) = "SmartBusinessObject":U THEN
-          tmp_handle = DYNAMIC-FUNCTION("DataObjectHandle" IN tmp_handle, INPUT _U._TABLE).
 
-        IF VALID-HANDLE(tmp_handle) THEN DO:
-          /* In case the initial value is a DATE, we must ensure the string comes back as
-             a "mdy" date string for internal use by the AppBuilder. Then we must set the
-             session date format back to original -d value. Fixes 98-08-14-002 (jep). */
-          SESSION:DATE-FORMAT = "mdy":U.
-          _F._INITIAL-DATA = DYNAMIC-FUNC("columnInitial" IN tmp_handle, INPUT _U._NAME) NO-ERROR.
-          SESSION:DATE-FORMAT = _orig_dte_fmt.
-          _U._SENSITIVE    = NOT DYNAMIC-FUNC("columnReadOnly" IN tmp_handle, INPUT _U._NAME) NO-ERROR.
-          ASSIGN _U._LABEL-SOURCE = "E"     /* Toggle-boxes cannot have the read-only attribute set to true */
-                 _F._READ-ONLY    = IF _U._TYPE = "TOGGLE-BOX":U THEN FALSE ELSE NOT _U._SENSITIVE.
-          ASSIGN NO-ERROR. /* Clear the ERROR-STATUS handle just in case. */
-        END.  /* If valid handle */
+      IF _P._DATA-OBJECT <> '':U THEN
+        /* Start the sdo or a sdo pretender for remote sdos on behalf of the 
+           source, in order to avoid restarting it each time.            
+           The source _qssuckr.p must run shutdown  */           
+        tmp_handle = DYNAMIC-FUNC("get-sdo-hdl" IN _h_func_lib, 
+                                  INPUT _P._DATA-OBJECT,
+                                  INPUT SOURCE-PROCEDURE).
+      
+      IF VALID-HANDLE(tmp_handle) THEN 
+      DO:
+        /* In case the initial value is a DATE, we must ensure the string comes back as
+           a "mdy" date string for internal use by the AppBuilder. Then we must set the
+           session date format back to original -d value. Fixes 98-08-14-002 (jep). */
+        SESSION:DATE-FORMAT = "mdy":U.
+        _F._INITIAL-DATA = DYNAMIC-FUNC("columnInitial" IN tmp_handle, 
+                                        _U._TABLE + '.' + _U._NAME) NO-ERROR.
+
+        SESSION:DATE-FORMAT = _orig_dte_fmt.
+        _U._SENSITIVE    = NOT DYNAMIC-FUNC("columnReadOnly" IN tmp_handle, 
+                                            _U._TABLE + '.' + _U._NAME) NO-ERROR.
+        _U._LABEL-SOURCE = "E".   
+        ASSIGN NO-ERROR. /* Clear the ERROR-STATUS handle just in case. */
       END.  /* If valid handle */
+
       /* Don't do this for Webspeed unmapped fields, because we may not be connected*/      
-      ELSE IF _TT._TABLE-TYPE <> "W":U THEN 
+      ELSE IF AVAIL _TT AND _TT._TABLE-TYPE <> "W":U THEN 
         RUN adecomm/_s-schem.p (_TT._LIKE-DB,
                                 _TT._LIKE-TABLE,
                                 _U._NAME,
@@ -616,5 +606,7 @@ IF NOT CAN-DO("BROWSE,BUTTON,RECTANGLE,IMAGE",_U._TYPE) THEN DO:
   END. /* A database field */
 END.  /* A widget that can contain a db field */
 
-/* Make sure all started sdo's are shut down */
+/* DO NOT shutdown here as it will stop and start the sdo for each field 
+   the caller shuts down the SDO  
 DYNAMIC-FUNCTION("shutdown-sdo":U  IN _h_func_lib, SOURCE-PROCEDURE).
+*/

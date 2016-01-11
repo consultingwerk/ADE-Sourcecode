@@ -2,43 +2,20 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*--------------------------------------------------------------------------
     File        : queryext.p
-   Purpose     : Support procedure for Query Object.  This is an extension
-                 of query.p.  The extension is necessary to avoid an overflow
-                 of the action segment on AS400. This extension file contains
-                 all of the get and set property functions. These functions 
-                 will be rolled back into query.p when segment size increases.
+    Purpose     : Support procedure for Query Object.  This is an extension
+                  of query.p.  The extension was done to avoid an overflow
+                  of the action segment on AS400. This extension file contains
+                  all of the get and set property functions. These functions 
+                  may be rolled back into query.p .
 
-    Syntax      : adm2/query.p
-
-    Modified    : Jan 22, 2001 Version 9.1C
-    Modified    : 10/24/2001          Mark Davied (MIP)
-                  Added new property FilterAvailable and it's get and set
-                  functions.
-    Modified    : 02/27/2002          Gikas A. Gikas
-                  Incidental bug fixed while working on IZ 4050
+    Syntax      : adm2/queryext.p
   ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
 /*----------------------------------------------------------------------*/
@@ -101,28 +78,6 @@ FUNCTION getBaseQuery RETURNS CHARACTER
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getBLOBColumns) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getBLOBColumns Procedure 
-FUNCTION getBLOBColumns RETURNS CHARACTER
-  ( )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getBufferHandles) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getBufferHandles Procedure 
-FUNCTION getBufferHandles RETURNS CHARACTER
-  ( /* parameter-definitions */ )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-getCalcFieldList) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCalcFieldList Procedure 
@@ -150,28 +105,6 @@ FUNCTION getCalculatedColumns RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCheckLastOnOpen Procedure 
 FUNCTION getCheckLastOnOpen RETURNS LOGICAL
  (  )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getCLOBColumns) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCLOBColumns Procedure 
-FUNCTION getCLOBColumns RETURNS CHARACTER
-  ( )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getDataColumns) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataColumns Procedure 
-FUNCTION getDataColumns RETURNS CHARACTER
-  ( )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -277,65 +210,10 @@ FUNCTION getFetchOnOpen RETURNS CHARACTER
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getFilterActive) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFilterActive Procedure 
-FUNCTION getFilterActive RETURNS LOGICAL
-  ( /* parameter-definitions */ )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getFilterAvailable) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFilterAvailable Procedure 
-FUNCTION getFilterAvailable RETURNS LOGICAL
-  ( /* parameter-definitions */ )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getFirstResultRow) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFirstResultRow Procedure 
-FUNCTION getFirstResultRow RETURNS CHARACTER
-  (  )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getFirstRowNum) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFirstRowNum Procedure 
-FUNCTION getFirstRowNum RETURNS INTEGER
-  (  )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-getForeignFields) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getForeignFields Procedure 
 FUNCTION getForeignFields RETURNS CHARACTER
-  (  )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getForeignValues) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getForeignValues Procedure 
-FUNCTION getForeignValues RETURNS CHARACTER
   (  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -376,76 +254,10 @@ FUNCTION getLabel RETURNS CHARACTER
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getLargeColumns) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getLargeColumns Procedure 
-FUNCTION getLargeColumns RETURNS CHARACTER
-  ( )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getLastResultRow) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getLastResultRow Procedure 
-FUNCTION getLastResultRow RETURNS CHARACTER
-  (  )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getLastRowNum) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getLastRowNum Procedure 
-FUNCTION getLastRowNum RETURNS INTEGER
-  (  )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getNavigationSource) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getNavigationSource Procedure 
-FUNCTION getNavigationSource RETURNS CHAR
-  (  )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getNavigationSourceEvents) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getNavigationSourceEvents Procedure 
-FUNCTION getNavigationSourceEvents RETURNS CHARACTER
-  (  )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-getNewBatchInfo) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getNewBatchInfo Procedure 
 FUNCTION getNewBatchInfo RETURNS CHARACTER
-  (  )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getOpenOnInit) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getOpenOnInit Procedure 
-FUNCTION getOpenOnInit RETURNS LOGICAL
   (  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -486,17 +298,6 @@ FUNCTION getPositionForClient RETURNS CHARACTER
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getQueryColumns) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getQueryColumns Procedure 
-FUNCTION getQueryColumns RETURNS CHARACTER
-  ( /* parameter-definitions */ )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-getQueryHandle) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getQueryHandle Procedure 
@@ -519,17 +320,6 @@ FUNCTION getQueryOpen RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getQueryPosition) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getQueryPosition Procedure 
-FUNCTION getQueryPosition RETURNS CHARACTER
-  (   )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-getQuerySort) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getQuerySort Procedure 
@@ -541,11 +331,22 @@ FUNCTION getQuerySort RETURNS CHARACTER
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getQueryString) = 0 &THEN
+&IF DEFINED(EXCLUDE-getQueryStringDefault) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getQueryString Procedure 
-FUNCTION getQueryString RETURNS CHARACTER
-  ( )  FORWARD.
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getQueryStringDefault Procedure 
+FUNCTION getQueryStringDefault RETURNS CHARACTER
+  (   )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getQueryTables) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getQueryTables Procedure 
+FUNCTION getQueryTables RETURNS CHARACTER
+  (   )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -574,33 +375,11 @@ FUNCTION getRequiredProperties RETURNS CHARACTER
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getTables) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getTables Procedure 
-FUNCTION getTables RETURNS CHARACTER
-  (  )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-getTempTables) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getTempTables Procedure 
 FUNCTION getTempTables RETURNS CHARACTER
   (  )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getTransferChildrenForAll) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getTransferChildrenForAll Procedure 
-FUNCTION getTransferChildrenForAll RETURNS LOGICAL
-  (   )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -684,33 +463,11 @@ FUNCTION setAuditEnabled RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-setAutoCommit) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setAutoCommit Procedure 
-FUNCTION setAutoCommit RETURNS LOGICAL
-  ( plCommit AS LOGICAL )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-setBaseQuery) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setBaseQuery Procedure 
 FUNCTION setBaseQuery RETURNS LOGICAL
   ( pcBaseQuery AS CHARACTER)  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setBufferHandles) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setBufferHandles Procedure 
-FUNCTION setBufferHandles RETURNS LOGICAL
-  ( pcBufferHandles AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -733,17 +490,6 @@ FUNCTION setCalcFieldList RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setCheckLastOnOpen Procedure 
 FUNCTION setCheckLastOnOpen RETURNS LOGICAL
  (pCheck AS LOGICAL)  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setDataColumns) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDataColumns Procedure 
-FUNCTION setDataColumns RETURNS LOGICAL
-  ( pcColumns AS CHAR)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -827,72 +573,6 @@ FUNCTION setFetchHasComment RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-setFetchOnOpen) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFetchOnOpen Procedure 
-FUNCTION setFetchOnOpen RETURNS LOGICAL
-  ( pcFetchOnOpen AS CHAR )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setFilterActive) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFilterActive Procedure 
-FUNCTION setFilterActive RETURNS LOGICAL
-  ( plFilterActive AS LOGICAL )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setFilterAvailable) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFilterAvailable Procedure 
-FUNCTION setFilterAvailable RETURNS LOGICAL
-  ( plFilterAvailable AS LOGICAL )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setFirstResultRow) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFirstResultRow Procedure 
-FUNCTION setFirstResultRow RETURNS LOGICAL
-  ( pcFirstResultRow AS CHARACTER )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setFirstRowNum) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFirstRowNum Procedure 
-FUNCTION setFirstRowNum RETURNS LOGICAL
-  ( piRowNum AS INTEGER )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setForeignFields) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setForeignFields Procedure 
-FUNCTION setForeignFields RETURNS LOGICAL
-  ( pcFields AS CHARACTER )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-setKeyFields) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setKeyFields Procedure 
@@ -915,66 +595,11 @@ FUNCTION setKeyTableId RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-setLargeColumns) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setLargeColumns Procedure 
-FUNCTION setLargeColumns RETURNS LOGICAL
-  ( pcLargeColumns AS CHAR)  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setLastResultRow) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setLastResultRow Procedure 
-FUNCTION setLastResultRow RETURNS LOGICAL
-  ( pcLastResultRow AS CHARACTER )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setLastRowNum) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setLastRowNum Procedure 
-FUNCTION setLastRowNum RETURNS LOGICAL
-  ( piLastRowNum AS INTEGER )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setNavigationSource) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setNavigationSource Procedure 
-FUNCTION setNavigationSource RETURNS LOGICAL
-  ( pcObject AS CHARACTER )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-setNewBatchInfo) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setNewBatchInfo Procedure 
 FUNCTION setNewBatchInfo RETURNS LOGICAL
   ( pcNewBatchInfo AS CHAR )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setOpenOnInit) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setOpenOnInit Procedure 
-FUNCTION setOpenOnInit RETURNS LOGICAL
-  ( plOpen AS LOGICAL )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1014,44 +639,11 @@ FUNCTION setPositionForClient RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-setQueryColumns) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setQueryColumns Procedure 
-FUNCTION setQueryColumns RETURNS LOGICAL
-  ( cQueryColumns AS CHARACTER )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setQueryPosition) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setQueryPosition Procedure 
-FUNCTION setQueryPosition RETURNS LOGICAL
-  ( pcPosition AS CHARACTER )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-setQuerySort) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setQuerySort Procedure 
 FUNCTION setQuerySort RETURNS LOGICAL
   ( pcSort AS CHARACTER )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setQueryString) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setQueryString Procedure 
-FUNCTION setQueryString RETURNS LOGICAL
-  (pcQueryString AS CHAR)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1080,33 +672,11 @@ FUNCTION setRequiredProperties RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-setTables) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setTables Procedure 
-FUNCTION setTables RETURNS LOGICAL
-  ( pcTables AS CHAR)  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-setTempTables) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setTempTables Procedure 
 FUNCTION setTempTables RETURNS LOGICAL
   ( pcTempTables AS CHAR )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setTransferChildrenForAll) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setTransferChildrenForAll Procedure 
-FUNCTION setTransferChildrenForAll RETURNS LOGICAL
-  (plTransferChildrenForAll AS LOGICAL)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1129,17 +699,6 @@ FUNCTION setUpdatableColumnsByTable RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setUpdateFromSource Procedure 
 FUNCTION setUpdateFromSource RETURNS LOGICAL
   ( plUpdateFromSource AS LOGICAL )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-updateLargeColumns) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD updateLargeColumns Procedure 
-FUNCTION updateLargeColumns RETURNS LOGICAL PRIVATE
-  (  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1263,72 +822,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getBLOBColumns) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getBLOBColumns Procedure 
-FUNCTION getBLOBColumns RETURNS CHARACTER
-  ( ) :
-/*------------------------------------------------------------------------------
-    Purpose:  Returns a comma-delimited list of the BLOB data-type 
-              columnNames for the SmartDataObject. 
-  Parameters:  
-       Notes: This is a runtime property that on the first call will
-              be resolved from DataColumns and RowObject definition. 
-           -  Very expensive if requested before the first data request as
-              it then may resolve each column's data-type on the server.
-             (This should not be necessary though)   
-           -  read-only  (no SET is implemented)    
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cBLOBColumns AS CHARACTER  NO-UNDO.
-
-  &SCOPED-DEFINE xpBLOBColumns
-  {get BLOBColumns cBLOBColumns}.
-  &UNDEFINE xpBLOBColumns
-  
-  /* if unknown then resolve this from rowobject and datacolumn data-types */
-  IF cBLOBColumns = ? THEN
-  DO:
-    {fn updateLargeColumns}.
-    
-    &SCOPED-DEFINE xpBLOBColumns
-    {get BLOBColumns cBLOBColumns}.
-    &UNDEFINE xpBLOBColumns
-    
-  END.
-
-  RETURN cBLOBColumns.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getBufferHandles) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getBufferHandles Procedure 
-FUNCTION getBufferHandles RETURNS CHARACTER
-  ( /* parameter-definitions */ ) :
-/*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cBufferHandles AS CHARACTER  NO-UNDO.
-                     
-  &SCOPED-DEFINE xpBufferHandles 
-  {get BufferHandles cBufferHandles}.
-  &UNDEFINE xpbufferHandles 
-  
-  RETURN cBufferHandles.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-getCalcFieldList) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getCalcFieldList Procedure 
@@ -1412,71 +905,6 @@ FUNCTION getCheckLastOnOpen RETURNS LOGICAL
   DEFINE VARIABLE lCheck AS LOGICAL NO-UNDO.
   {get CheckLastOnOpen lCheck}.
   RETURN lCheck.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getCLOBColumns) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getCLOBColumns Procedure 
-FUNCTION getCLOBColumns RETURNS CHARACTER
-  ( ) :
-/*------------------------------------------------------------------------------
-    Purpose:  Returns a comma-delimited list of the CLOB data-type 
-              columnNames for the SmartDataObject. 
-  Parameters:  
-       Notes: This is a runtime property that on the first call will
-              be resolved from DataColumns and RowObject definition. 
-           -  Very expensive if requested before the first data request as
-              it then may resolve each column's data-type on the server.
-             (This should not be necessary though)     
-          -  read-only  (no SET is implemented)    
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cCLOBColumns AS CHARACTER  NO-UNDO.
-
-  &SCOPED-DEFINE xpCLOBColumns
-  {get CLOBColumns cCLOBColumns}.
-  &UNDEFINE xpCLOBColumns
-  
-  /* if unknown then resolve this from rowobject and datacolumn data-types */
-  IF cCLOBColumns = ? THEN
-  DO:
-    {fn updateLargeColumns}.
-    
-    &SCOPED-DEFINE xpCLOBColumns
-    {get CLOBColumns cCLOBColumns}.
-    &UNDEFINE xpCLOBColumns
-    
-  END.
-
-  RETURN cCLOBColumns.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getDataColumns) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataColumns Procedure 
-FUNCTION getDataColumns RETURNS CHARACTER
-  ( ) :
-/*------------------------------------------------------------------------------
-  Purpose:     Returns a comma-delimited list of the columnNames for the 
-               SmartDataObject. 
-  Parameters:  
-       Notes:   
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cColumns AS CHARACTER NO-UNDO.
-  
-  {get DataColumns cColumns}.
-  RETURN cColumns.
 
 END FUNCTION.
 
@@ -1734,99 +1162,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getFilterActive) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFilterActive Procedure 
-FUNCTION getFilterActive RETURNS LOGICAL
-  ( /* parameter-definitions */ ) :
-/*------------------------------------------------------------------------------
-  Purpose: Return whether a filter is active.  
-    Notes: It may be set to true explicitly or use the Querycolumns   
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE lFilterActive  AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cQueryColumns  AS CHARACTER  NO-UNDO.
-  
-  &SCOPED-DEFINE xpFilterActive 
-  {get FilterActive lFilterActive}.
-  &UNDEFINE xpFilterActive 
-  {get QueryColumns cQueryColumns}.
- 
-  RETURN lfilterActive AND cQuerycolumns <> '':U.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getFilterAvailable) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFilterAvailable Procedure 
-FUNCTION getFilterAvailable RETURNS LOGICAL
-  ( /* parameter-definitions */ ) :
-/*------------------------------------------------------------------------------
-  Purpose: Return whether a filter is available. 
-    Notes: 
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE lFilterAvailable  AS LOGICAL    NO-UNDO.
-  
-  &SCOPED-DEFINE xpFilterAvailable 
-  {get FilterAvailable lFilterAvailable}.
-  &UNDEFINE xpFilterAvailable 
-  
-  RETURN lFilterAvailable.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getFirstResultRow) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFirstResultRow Procedure 
-FUNCTION getFirstResultRow RETURNS CHARACTER
-  (  ) :
-/*------------------------------------------------------------------------------
-  Purpose:  Returns the FirstResultRow (unknown if first row hasn't been
-            fetched, 1 concatinated with the rowid if it has.)
-    Notes:  
-------------------------------------------------------------------------------*/
-
-  DEFINE VARIABLE cFirstResultRow AS CHARACTER NO-UNDO.
-  {get FirstResultRow cFirstResultRow}.
-  RETURN cFirstResultRow.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getFirstRowNum) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFirstRowNum Procedure 
-FUNCTION getFirstRowNum RETURNS INTEGER
-  (  ) :
-/*------------------------------------------------------------------------------
-  Purpose:  Returns the temp-table row number of the first row.
-   Params:  <none>
-------------------------------------------------------------------------------*/
-
-  DEFINE VARIABLE iRow AS INTEGER NO-UNDO.
-  {get FirstRowNum iRow}.
-  RETURN iRow.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-getForeignFields) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getForeignFields Procedure 
@@ -1843,6 +1178,7 @@ FUNCTION getForeignFields RETURNS CHARACTER
                first local db fieldname, followed by the matching source 
                temp-table field name, followed by more pairs if there is more 
                than one field to match.
+             - Overrides dataview as it always is stored as prop 
 ------------------------------------------------------------------------------*/
 DEFINE VARIABLE cFields AS CHARACTER  NO-UNDO.
 
@@ -1851,33 +1187,6 @@ DEFINE VARIABLE cFields AS CHARACTER  NO-UNDO.
   &UNDEFINE xpForeignFields
   
   RETURN cFields.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getForeignValues) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getForeignValues Procedure 
-FUNCTION getForeignValues RETURNS CHARACTER
-  (  ) :
-/*------------------------------------------------------------------------------
-  Purpose:     Retrieves the values of the most recently received ForeignField
-               values received by dataAvailable.  The values are character
-               strings formatted according to the field format specification and
-               they are separated by the {&adm-tabledelimiter} character.
-
-  Parameters:  <none>
-  
-  Notes:
-------------------------------------------------------------------------------*/
-
-  DEFINE VARIABLE cValues AS CHARACTER NO-UNDO.
-  {get ForeignValues cValues}.
-  RETURN cValues.
 
 END FUNCTION.
 
@@ -2074,133 +1383,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getLargeColumns) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getLargeColumns Procedure 
-FUNCTION getLargeColumns RETURNS CHARACTER
-  ( ) :
-/*------------------------------------------------------------------------------
-    Purpose:  Returns a comma-delimited list of the large data-type 
-              columnNames for the SmartDataObject. 
-  Parameters:  
-       Notes: This is a runtime property that on the first call will
-              be resolved from DataColumns and RowObject definition. 
-           -  Very expensive if requested before the first data request as
-              it then may resolve each column's data-type on the server.
-             (This should not be necessary though)     
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cLargeColumns AS CHARACTER  NO-UNDO.
-
-  &SCOPED-DEFINE xpLargeColumns
-  {get LargeColumns cLargeColumns}.
-  &UNDEFINE xpLargeColumns
-  
-  /* if unknown then resolve this from rowobject and datacolumn data-types */
-  IF cLargeColumns = ? THEN
-  DO:
-    {fn updateLargeColumns}.
-    
-    &SCOPED-DEFINE xpLargeColumns
-    {get LargeColumns cLargeColumns}.
-    &UNDEFINE xpLargeColumns
-    
-  END.
-
-  RETURN cLargeColumns.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getLastResultRow) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getLastResultRow Procedure 
-FUNCTION getLastResultRow RETURNS CHARACTER
-  (  ) :
-/*------------------------------------------------------------------------------
-  Purpose:  Returns the LastResultRow (unknown if last row hasn't been
-            fetched, RowNum concatinated with the rowid if it has.)
-    Notes:  
-------------------------------------------------------------------------------*/
-
-  DEFINE VARIABLE cLastResultRow AS CHARACTER NO-UNDO.
-  {get LastResultRow cLastResultRow}.
-  RETURN cLastResultRow.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getLastRowNum) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getLastRowNum Procedure 
-FUNCTION getLastRowNum RETURNS INTEGER
-  (  ) :
-/*------------------------------------------------------------------------------
-  Purpose:  Returns the temp-table row number of the last row.
-   Params:  <none>
-------------------------------------------------------------------------------*/
-
-  DEFINE VARIABLE iRow AS INTEGER NO-UNDO.
-  {get LastRowNum iRow}.
-  RETURN iRow.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getNavigationSource) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getNavigationSource Procedure 
-FUNCTION getNavigationSource RETURNS CHAR
-  (  ) :
-/*------------------------------------------------------------------------------
-  Purpose:     Returns the handle of the query object's Navigation source.
-  
-  Parameters:  <none>
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cSource AS CHARACTER NO-UNDO.
-  {get NavigationSource cSource}.
-  RETURN cSource. 
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getNavigationSourceEvents) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getNavigationSourceEvents Procedure 
-FUNCTION getNavigationSourceEvents RETURNS CHARACTER
-  (  ) :
-/*------------------------------------------------------------------------------
-  Purpose:     Returns a comma-separated list of the events this object 
-               needs to subscribe to in its NavigationSource.
-  Parameters:  <none>
-------------------------------------------------------------------------------*/
-
-  DEFINE VARIABLE cEvents AS CHARACTER NO-UNDO.
-  {get NavigationSourceEvents cEvents}.
-  RETURN cEvents.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-getNewBatchInfo) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getNewBatchInfo Procedure 
@@ -2215,28 +1397,6 @@ FUNCTION getNewBatchInfo RETURNS CHARACTER
   DEFINE VARIABLE cValue AS CHARACTER NO-UNDO.
   {get NewBatchInfo cValue}.
   RETURN cValue.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getOpenOnInit) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getOpenOnInit Procedure 
-FUNCTION getOpenOnInit RETURNS LOGICAL
-  (  ) :
-/*------------------------------------------------------------------------------
-  Purpose:    Returns TRUE if the query should be opened automatically when 
-              the object is initialized.
-
-  Parameters: <none>
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE lOpen AS LOGICAL NO-UNDO.
-  {get OpenOnInit lOpen}.
-  RETURN lOpen.
 
 END FUNCTION.
 
@@ -2326,26 +1486,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getQueryColumns) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getQueryColumns Procedure 
-FUNCTION getQueryColumns RETURNS CHARACTER
-  ( /* parameter-definitions */ ) :
-/*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
-------------------------------------------------------------------------------*/
-    DEFINE VARIABLE cQueryColumns AS CHARACTER NO-UNDO.
-    {get QueryColumns cQueryColumns}.
-    RETURN cQueryColumns.
-    
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-getQueryHandle) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getQueryHandle Procedure 
@@ -2385,39 +1525,6 @@ FUNCTION getQueryOpen RETURNS LOGICAL
   {get QueryHandle hQuery}.
   RETURN IF NOT VALID-HANDLE(hQuery) THEN
       NO ELSE hQuery:IS-OPEN.   
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getQueryPosition) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getQueryPosition Procedure 
-FUNCTION getQueryPosition RETURNS CHARACTER
-  (   ) :
-/*------------------------------------------------------------------------------
-  Purpose:     Returns the QueryPosition property.
-
-  Parameters:  <none>
-  
-  Notes:       Valid return values are:
-                 FirstRecord, LastRecord, NotFirstOrLast or NoRecordAvailable
-------------------------------------------------------------------------------*/
-
-  /* The property does not have a field preprocessor to prevent it from being
-     "set" directly, because it must also publish an event. So the code below
-     must not use the {get} syntax. */
-
-  DEFINE VARIABLE cPosition AS CHARACTER NO-UNDO.
-
-  &SCOPED-DEFINE xpQueryPosition
-  {get QueryPosition cPosition}.
-  &UNDEFINE xpQueryPosition
-  
-  RETURN cPosition.
 
 END FUNCTION.
 
@@ -2470,25 +1577,56 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getQueryString) = 0 &THEN
+&IF DEFINED(EXCLUDE-getQueryStringDefault) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getQueryString Procedure 
-FUNCTION getQueryString RETURNS CHARACTER
-  ( ) :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getQueryStringDefault Procedure 
+FUNCTION getQueryStringDefault RETURNS CHARACTER
+  (   ) :
 /*------------------------------------------------------------------------------
-  Purpose:     Returns the QueryString attribute used as working storage for 
-               all query manipulation methods.
-  Parameters:  <none>
-  Notes:     - The method will always return a whereclause 
-               If the QueryString property has not been set it will use 
-               the current where clause - QueryWhere.
-               If there's no current use the design where clause - OpenQuery. 
-             - The openQuery will call prepareQuery with this property.     
+  Purpose: Separates the logic to default the QueryString out of various
+           query manipulation methods.    
+    Notes: This was created mainly to allow the Dataview class to implement 
+           query manipulation that can be used by the data class.
+          
+         - It is possible that encapsulating this in the getQueryString and 
+           make it into a forced get would be a better design, but this would 
+           require a revisit of all code that deals or manages a blank 
+           queryString in the data and query classes.
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cQueryString AS CHARACTER NO-UNDO.
-  {get QueryString cQueryString}.
-  RETURN cQueryString. 
-  
+ DEFINE VARIABLE cQuery AS CHARACTER  NO-UNDO.
+
+ {get QueryWhere cQuery}.
+ /* If no current Query find the base query  */ 
+ IF cQuery = "":U OR cQuery = ? THEN
+   {get BaseQuery cQuery}.
+
+ RETURN cQuery.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getQueryTables) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getQueryTables Procedure 
+FUNCTION getQueryTables RETURNS CHARACTER
+  (   ) :
+/*------------------------------------------------------------------------------
+  Purpose: DataView interface for query manipulation methods.    
+    Notes: This was created mainly to allow the Dataview class to implement 
+           query manipulation that can be used by the data class.
+          (The DataView getTables may include tables not in query and 
+           is not mandatory)
+------------------------------------------------------------------------------*/
+ DEFINE VARIABLE cTables AS CHARACTER  NO-UNDO.
+
+ {get Tables cTables}.
+ 
+ RETURN cTables.
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2541,40 +1679,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getTables) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getTables Procedure 
-FUNCTION getTables RETURNS CHARACTER
-  (  ) :
-/*------------------------------------------------------------------------------
-   Purpose:  Returns a comma delimited list of tables in the Query Objects
-Parameters:  <none>
-     Notes: The names in the list references to the tables as defined in the
-            dataobject and referenced in the query, so each entry must be unique. 
-            This means that the names may be buffer names that differ from the 
-            actual physical names.
-            The physical names is defined in the corresponding PhysicalTables 
-            property.  
-          - Qualified with database name if the query is defined with dbname.
-          - From 9.1B this property is a design time property while it earlier 
-            was resolved from the actual query. This was very expensive as the 
-            function then always needed to be resolved on the server and it is 
-            rather extensively used. 
-          - Several other properties have table delimiters and are depending of 
-            the design time order of this property.              
-          - The web2/webprop.i UNDEFINEs xpTables since it need to override 
-            getTables()    
-------------------------------------------------------------------------------*/
- DEFINE VARIABLE cTables AS CHARACTER  NO-UNDO.
- {get Tables cTables}.
- RETURN cTables.
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-getTempTables) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getTempTables Procedure 
@@ -2589,28 +1693,6 @@ Parameters:  <none>
  DEFINE VARIABLE cTempTables AS CHARACTER  NO-UNDO.
  {get TempTables cTempTables}.
  RETURN cTempTables.
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getTransferChildrenForAll) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getTransferChildrenForAll Procedure 
-FUNCTION getTransferChildrenForAll RETURNS LOGICAL
-  (   ) :
-/*------------------------------------------------------------------------------
-  Purpose: This flag decides whether children for all records (of the batch) is 
-           to be transferred from the database. 
-    Notes: Currently only supported for read event handlers during a fetch. 
-           The child SDO is only left with temp-table records for one parent 
-           when the fetch*batch is finished.   
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE lTransferChildrenForAll AS LOGICAL    NO-UNDO.
-  {get TransferChildrenForAll lTransferChildrenForAll}.
-  RETURN lTransferChildrenForAll.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2796,40 +1878,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-setAutoCommit) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setAutoCommit Procedure 
-FUNCTION setAutoCommit RETURNS LOGICAL
-  ( plCommit AS LOGICAL ) :
-/*------------------------------------------------------------------------------
-  Purpose:     Passes along a "set AutoCommit" to the object's Update-Target.
-  
-  Parameters:
-    plCommit - True or False to be set in the Update-Target procedure.
-
-  Notes:       There is no AutoCommit property in a query object, but the 
-               AutoCommit setting may be passed from a SmartDataObject to its 
-               Data-Targets. If one of those targets is a query object that 
-               isn't also a SmartDataObject (e.g., a SmartDataBrowser that has 
-               its own db query), then the setting must be passed to the 
-               Update-Target, which is the actual DataObject. 
-               In a SmartDataObject the version of setAutoCommit in data.p
-               will be found in preference to this one and will set the 
-               actual property.
-------------------------------------------------------------------------------*/
-
-  dynamic-function("assignLinkProperty":U IN TARGET-PROCEDURE,
-    'Update-Target':U, 'AutoCommit':U, IF plCommit THEN 'yes':U ELSE 'No':U).
-
-  RETURN TRUE.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-setBaseQuery) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setBaseQuery Procedure 
@@ -2847,29 +1895,6 @@ FUNCTION setBaseQuery RETURNS LOGICAL
 
   {set BaseQuery pcBaseQuery}.
   RETURN TRUE.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setBufferHandles) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setBufferHandles Procedure 
-FUNCTION setBufferHandles RETURNS LOGICAL
-  ( pcBufferHandles AS CHARACTER ) :
-/*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
-------------------------------------------------------------------------------*/
-
-  &SCOPED-DEFINE xpBufferHandles
-  {set BufferHandles pcBufferHandles}.
-  &UNDEFINE xpBufferHandles
-  
-  RETURN TRUE.   /* Function return value. */
 
 END FUNCTION.
 
@@ -2922,30 +1947,6 @@ FUNCTION setCheckLastOnOpen RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
   
   {set CheckLastOnOpen pCheck}.
-  RETURN TRUE.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setDataColumns) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDataColumns Procedure 
-FUNCTION setDataColumns RETURNS LOGICAL
-  ( pcColumns AS CHAR) :
-/*------------------------------------------------------------------------------
-  Purpose:     Sets the comma-delimited list of the columnNames for the 
-               SmartDataObject. 
-  Parameters:  
-       Notes:   
-------------------------------------------------------------------------------*/
-  IF pcColumns = '':U THEN
-     RETURN FALSE.
-
-  {set DataColumns pcColumns}.
   RETURN TRUE.
 
 END FUNCTION.
@@ -3108,172 +2109,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-setFetchOnOpen) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setFetchOnOpen Procedure 
-FUNCTION setFetchOnOpen RETURNS LOGICAL
-  ( pcFetchOnOpen AS CHAR ) :
-/*------------------------------------------------------------------------------
-  Purpose: Set whether a fetch should occur when the db query is opened.                
-Parameter: pcFetchOnOpen  -  
-            Blank - don't do any fetch  
-            First - run fetchFirst
-            Last  - run FethcLast 
-                    (not directly supported in the framework).       
-            ?     - default         
-    Notes: A stored value of undefined means use default (see getFetchOnOpen) 
-------------------------------------------------------------------------------*/
-  &SCOPED-DEFINE xpFetchOnOpen 
-  {set FetchOnOpen pcFetchOnOpen}.
-  &UNDEFINE xpFetchOnOpen 
-  
-  RETURN TRUE.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setFilterActive) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setFilterActive Procedure 
-FUNCTION setFilterActive RETURNS LOGICAL
-  ( plFilterActive AS LOGICAL ) :
-/*------------------------------------------------------------------------------
-  Purpose: Set a flag to indicate that filter is active.  
-    Notes: the getFfilerActive also checks QueryColumns   
-------------------------------------------------------------------------------*/  
-  &SCOPED-DEFINE xpFilterActive 
-  {set FilterActive plFilterActive}.
-  &UNDEFINE xpFilterActive 
-     
-  RETURN TRUE.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setFilterAvailable) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setFilterAvailable Procedure 
-FUNCTION setFilterAvailable RETURNS LOGICAL
-  ( plFilterAvailable AS LOGICAL ) :
-/*------------------------------------------------------------------------------
-  Purpose: Set a flag to indicate that filter is available.
-    Notes: ALso update the FilterWindow property for StartFilter. 
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hFilterSource     AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cFilterWindow     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hFilterContainer  AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hMyContainer      AS HANDLE     NO-UNDO.
-  
-  &SCOPED-DEFINE xpFilterAvailable 
-  {set FilterAvailable plFilterAvailable}.
-  &UNDEFINE xpFilterAvailable 
-
-  /* This info is used by startFilter */
-  {get FilterWindow cFilterWindow}.
-  IF cFilterWindow = '':U  OR cFilterWindow = ? THEN
-  DO:
-    {get FilterSource hFilterSource}.
-    IF VALID-HANDLE(hFilterSource) THEN
-    DO:
-      {get ContainerSource hFilterContainer hFilterSource}.
-      {get ContainerSource hMyContainer}.    
-      IF hMyContainer <> hFilterContainer AND VALID-HANDLE(hFilterContainer) THEN
-        {set FilterWindow hFilterContainer:FILE-NAME}.
-    END.
-  END.
-
-  /* The toolbar is subscribing to filteravailble from the navigation link*/
-  IF plFilterAvailable THEN 
-     PUBLISH "FilterState":U FROM TARGET-PROCEDURE ("FilterAvailable":U).
-   
-  RETURN TRUE.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setFirstResultRow) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setFirstResultRow Procedure 
-FUNCTION setFirstResultRow RETURNS LOGICAL
-  ( pcFirstResultRow AS CHARACTER ) :
-/*------------------------------------------------------------------------------
-  Purpose:  Sets the FirstResultRow property which is unknow if the first
-            row has not been fetched, otherwise 1 concatinated with the
-            rowid if it has
-   Params:  pcFirstResultRow -- Row-num:RowId of the first row
-    Notes:  
-------------------------------------------------------------------------------*/
-  {set FirstResultRow pcFirstResultRow}.
-  RETURN TRUE.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setFirstRowNum) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setFirstRowNum Procedure 
-FUNCTION setFirstRowNum RETURNS LOGICAL
-  ( piRowNum AS INTEGER ) :
-/*------------------------------------------------------------------------------
-  Purpose:  sets the FirstRowNum property of the SDO.
-   Params:  piRowNum AS INTEGER
-    Notes:  
-------------------------------------------------------------------------------*/
-
-  {set FirstRowNum piRowNum}.
-  RETURN TRUE.   
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setForeignFields) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setForeignFields Procedure 
-FUNCTION setForeignFields RETURNS LOGICAL
-  ( pcFields AS CHARACTER ) :
-/*------------------------------------------------------------------------------
-  Purpose:     Sets the Foreign Fields property of the object.
-  
-  Parameters: pcFields - comma-separated paired list of this objects db fields 
-                         and the RowObject fields they map to in the parent.
-      Notes:   In the case where the current ForeignFields already have been 
-               used to add the key to the query, the fieldnames and the values 
-               will be removed from the QueryString by this call.
-------------------------------------------------------------------------------*/
-  {fn removeForeignKey}.
-  
-  &SCOPED-DEFINE xpForeignFields
-  {set ForeignFields pcFields}.
-  &UNDEFINE xpForeignFields
-  
-  RETURN TRUE.
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-setKeyFields) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setKeyFields Procedure 
@@ -3325,95 +2160,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-setLargeColumns) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setLargeColumns Procedure 
-FUNCTION setLargeColumns RETURNS LOGICAL
-  ( pcLargeColumns AS CHAR) :
-/*------------------------------------------------------------------------------
-  Purpose:    Sets the comma-delimited list of columns of large data-types
-  Parameters: pcLargeColumns - comma-delimited list of column names
-       Notes: Normally set from the first request to getLargeColumns   
-------------------------------------------------------------------------------*/
-  &SCOPED-DEFINE xpLargeColumns
-  {set LargeColumns pcLargeColumns}.
-  &UNDEFINE xpLargeColumns
-  
-  RETURN TRUE.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setLastResultRow) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setLastResultRow Procedure 
-FUNCTION setLastResultRow RETURNS LOGICAL
-  ( pcLastResultRow AS CHARACTER ) :
-/*------------------------------------------------------------------------------
-  Purpose:  Sets the LastResultRow property which is unknown if the last
-            row has not been fetched, otherwise its rownum concatinated
-            with the rowid if it has
-   Params:  pcLastResultRow -- Row-num:RowId of the last row
-    Notes:  
-------------------------------------------------------------------------------*/
-  {set LastResultRow pcLastResultRow}.
-  RETURN TRUE.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setLastRowNum) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setLastRowNum Procedure 
-FUNCTION setLastRowNum RETURNS LOGICAL
-  ( piLastRowNum AS INTEGER ) :
-/*------------------------------------------------------------------------------
-  Purpose: Sets the LastRowNum property in an SDO
-   Params: piLastRowNum -- Rownum of the last row
-    Notes:
-------------------------------------------------------------------------------*/
-  
-  {set LastRowNum piLastRowNum}.
-                              
-  RETURN TRUE.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setNavigationSource) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setNavigationSource Procedure 
-FUNCTION setNavigationSource RETURNS LOGICAL
-  ( pcObject AS CHARACTER ) :
-/*------------------------------------------------------------------------------
-  Purpose:     Sets the NavigationSource link value.
-  
-  Parameters:  
-    pcObject - comma delimited string of the objects which should be made this 
-               object's Navigation-Source.
-------------------------------------------------------------------------------*/
-
-  {set NavigationSource pcObject}.
-  RETURN TRUE.
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-setNewBatchInfo) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setNewBatchInfo Procedure 
@@ -3425,30 +2171,6 @@ FUNCTION setNewBatchInfo RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
 
   {set NewBatchInfo pcNewBatchInfo}.
-  RETURN TRUE.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setOpenOnInit) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setOpenOnInit Procedure 
-FUNCTION setOpenOnInit RETURNS LOGICAL
-  ( plOpen AS LOGICAL ) :
-/*------------------------------------------------------------------------------
-  Purpose:     Sets the flag indicating whether the object's database query 
-               should be opened automatically when the object is initialized -
-               yes by default.
-  
-  Parameters:
-    plOpen - True if the database query should be opened at initialization.
-------------------------------------------------------------------------------*/
-
-  {set OpenOnInit plOpen}.
   RETURN TRUE.
 
 END FUNCTION.
@@ -3534,58 +2256,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-setQueryColumns) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setQueryColumns Procedure 
-FUNCTION setQueryColumns RETURNS LOGICAL
-  ( cQueryColumns AS CHARACTER ) :
-/*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
-------------------------------------------------------------------------------*/
-  {set QueryColumns cQueryColumns}.
-  RETURN TRUE.   /* Function return value. */
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setQueryPosition) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setQueryPosition Procedure 
-FUNCTION setQueryPosition RETURNS LOGICAL
-  ( pcPosition AS CHARACTER ) :
-/*------------------------------------------------------------------------------
-  Purpose:     Sets the Query Position property, and publishes an event to 
-               tell others.
-  
-  Parameters:
-    pcPosition - query position possible values are:
-                 'FirstRecord', 'LastRecord', 'NotFirstOrLast' and 
-                 'NoRecordAvailable'
-------------------------------------------------------------------------------*/
-
-    /* The property name does not have a property preprocessor
-       to prevent it from being "set" directly, so that the event will 
-       always be published, so the {set} syntax is not used. */
-
-  &SCOPED-DEFINE xpQueryPosition
-  {set QueryPosition pcPosition}.
-  &UNDEFINE xpQueryPosition
-  
-  PUBLISH 'queryPosition':U FROM TARGET-PROCEDURE (pcPosition).
-  RETURN TRUE.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-setQuerySort) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setQuerySort Procedure 
@@ -3640,29 +2310,6 @@ FUNCTION setQuerySort RETURNS LOGICAL
     
  RETURN FALSE.
     
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setQueryString) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setQueryString Procedure 
-FUNCTION setQueryString RETURNS LOGICAL
-  (pcQueryString AS CHAR) :
-/*------------------------------------------------------------------------------
-  Purpose:     Sets the QueryString property used as working storage for the
-               addQueryString, assignQuerySelection, removeQuerySelection, 
-               setQueryWhere, setQuerySort etc.   
-  Parameters:  pcQueryString - The string to store
-        Note:  NEVER set this directly. It should only be maintained by other
-               query manipulation methods.  
-------------------------------------------------------------------------------*/
-  {set QueryString pcQueryString}.
-  RETURN TRUE. 
-  
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -3759,39 +2406,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-setTables) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setTables Procedure 
-FUNCTION setTables RETURNS LOGICAL
-  ( pcTables AS CHAR) :
-/*------------------------------------------------------------------------------
-   Purpose: Set the Tables that is used to build the BaseQuery.  
-     Notes: The names in the list references to the tables as defined in the
-            dataobject and referenced in the query, so each entry must be unique. 
-            This means that the names may be buffer names that differ from the 
-            actual physical names.
-            The physical names is defined in the corresponding PhysicalTables 
-            property.  
-          - Qualified with database name if the query is defined with dbname.
-          - From 9.1B this property is a design time property while it earlier 
-            was resolved from the actual query. This was very expensive as the 
-            function then always needed to be resolved on the server and it is 
-            rather extensively used. 
-          - Several other properties have table delimiters and are depending of 
-            the design time order of this property.              
-          - The web2/webprop.i UNDEFINEs xpTables since it need to override 
-            getTables()    
-------------------------------------------------------------------------------*/
-  {set Tables pcTables}.
-  RETURN TRUE.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-setTempTables) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setTempTables Procedure 
@@ -3806,27 +2420,6 @@ FUNCTION setTempTables RETURNS LOGICAL
   {set TempTables pcTempTables}.
   RETURN TRUE.
 
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setTransferChildrenForAll) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setTransferChildrenForAll Procedure 
-FUNCTION setTransferChildrenForAll RETURNS LOGICAL
-  (plTransferChildrenForAll AS LOGICAL) :
-/*------------------------------------------------------------------------------
-  Purpose: This flag decides whether children for all records (of the batch) is 
-           to be transferred from the database. 
-    Notes: Currently only supported for read event handlers during a fetch. 
-           The child SDO is only left with temp-table records for one parent 
-           when the fetch*batch is finished.   
-------------------------------------------------------------------------------*/
-  {set TransferChildrenForAll plTransferChildrenForAll}.
-  RETURN TRUE.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -3865,94 +2458,6 @@ FUNCTION setUpdateFromSource RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
   {set UpdateFromSource plUpdateFromSource}.
   RETURN TRUE.
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-updateLargeColumns) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION updateLargeColumns Procedure 
-FUNCTION updateLargeColumns RETURNS LOGICAL PRIVATE
-  (  ) :
-/*------------------------------------------------------------------------------
-  Purpose: Update properties that returns information about LOB columns
-Parameter: pcLargeColumns - List of columns to set in LargeColumns  
-    Notes: Called from whatever id called first of getCLOB- -BLOB- or 
-           -LargeColumns-  (lazy).      
-           LargeDataColumns is not the sum of the other because:
-          -  These properties returns the values in DataColumns order.                      
-          -  LargeColumns could theoretically be set to also include other large
-             columns independent of data type. 
-          - PRIVATE   
-------------------------------------------------------------------------------*/
-    DEFINE VARIABLE cLargeColumns AS CHARACTER   NO-UNDO.
-    DEFINE VARIABLE cCLOBColumns  AS CHARACTER   NO-UNDO.
-    DEFINE VARIABLE cBLOBColumns  AS CHARACTER   NO-UNDO.
-    
-    DEFINE VARIABLE cDataColumns  AS CHARACTER   NO-UNDO.
-
-    DEFINE VARIABLE hRowObject    AS HANDLE      NO-UNDO.
-    DEFINE VARIABLE iColumn       AS INTEGER     NO-UNDO.
-    DEFINE VARIABLE cColumn       AS CHARACTER   NO-UNDO.
-    DEFINE VARIABLE cDataType     AS CHARACTER   NO-UNDO.
-
-    &SCOPED-DEFINE xp-assign
-    {get DataColumns cDataColumns}
-    {get RowObject hRowObject}
-    .
-    &UNDEFINE xp-assign
-    
-    /* Set to blank for storage and return when no large columns */
-    DO iColumn = 1 TO NUM-ENTRIES(cDataColumns):
-      cColumn = ENTRY(iColumn,cDataColumns).
-      IF VALID-HANDLE(hRowObject) THEN
-        cDataType = hRowobject:BUFFER-FIELD(cColumn):DATA-TYPE. 
-
-      /* We avoid calling the function for performance, unless the rowobject 
-         is not valid (called before the first data request...)
-         The function will do an appserver call if not able to resolve 
-         the request on the client!  */ 
-      ELSE 
-        cDataType = {fnarg columnDataType cColumn}.
-
-      IF CAN-DO('CLOB,BLOB':U,cDataType) THEN
-      DO:
-        cLargeColumns = cLargeColumns + ',' + cColumn.
-        CASE cDataType:
-          WHEN 'CLOB':U THEN
-            cCLOBColumns  = cCLOBColumns + ',' + cColumn.
-          WHEN 'BLOB':U THEN
-            cBLOBColumns  = cBLOBColumns + ',' + cColumn.
-        END CASE.
-      END.
-    END.
-    
-    ASSIGN
-      cLargeColumns = LEFT-TRIM(cLargeColumns,',':U)
-      cCLOBColumns  = LEFT-TRIM(cCLOBColumns,',':U)
-      cBLOBColumns  = LEFT-TRIM(cBLOBColumns,',':U).
-
-    /* Store the result (also blank), for future requests */  
-    {set LargeColumns cLargeColumns}.
-
-    /* This is normally not allowed outside of the setfunction,    
-       R&D Mode... 
-       These are considered READ-ONLY, so there is no set functions, but for 
-       performance reasons we do want to store them. (By not defining the xp 
-       in the prop file they are safe from being changed by the set include. */ 
-       
-    &SCOPED-DEFINE xpCLOBColumns
-    {set CLOBColumns  cCLOBColumns}.
-    &UNDEFINE xpCLOBColumns
-    &SCOPED-DEFINE xpBLOBColumns
-    {set BLOBColumns  cBLOBColumns}.
-    &UNDEFINE xpBLOBColumns
- 
-   RETURN TRUE.
-
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

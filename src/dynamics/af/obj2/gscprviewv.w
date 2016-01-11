@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
           icfdb            PROGRESS
@@ -29,25 +29,9 @@ DEFINE TEMP-TABLE RowObject
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -155,7 +139,7 @@ DEFINE FRAME frMain
           LABEL "Product code"
           VIEW-AS FILL-IN 
           SIZE 24 BY 1
-     RowObject.product_description AT ROW 2.05 COL 24.2 COLON-ALIGNED
+     RowObject.product_description AT ROW 2.1 COL 24.2 COLON-ALIGNED
           LABEL "Product description"
           VIEW-AS FILL-IN 
           SIZE 78.4 BY 1
@@ -167,7 +151,7 @@ DEFINE FRAME frMain
           LABEL "Number of users"
           VIEW-AS FILL-IN 
           SIZE 11.8 BY 1
-     SPACE(38.20) SKIP(1.10)
+     SPACE(38.20) SKIP(1.15)
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -293,9 +277,9 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsm_login_company.login_company_code,gsm_login_company.login_company_short_nameKeyFieldgsm_login_company.login_company_objFieldLabelLogin companyFieldTooltipSelect a login company from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsm_login_company NO-LOCK BY gsm_login_company.login_company_codeQueryTablesgsm_login_companySDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 / &2ComboDelimiterListItemPairsInnerLines5ComboFlagNFlagValue0BuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNamesupplier_organisation_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsm_login_company.login_company_code,gsm_login_company.login_company_short_nameKeyFieldgsm_login_company.login_company_objFieldLabelLogin companyFieldTooltipSelect a login company from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsm_login_company NO-LOCK BY gsm_login_company.login_company_codeQueryTablesgsm_login_companySDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 / &2ComboDelimiterListItemPairsInnerLines5SortnoComboFlagNFlagValue0BuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesSuperProcedureDataSourceNameFieldNamesupplier_organisation_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dyncombo ).
-       RUN repositionObject IN h_dyncombo ( 5.19 , 26.20 ) NO-ERROR.
+       RUN repositionObject IN h_dyncombo ( 5.24 , 26.20 ) NO-ERROR.
        RUN resizeObject IN h_dyncombo ( 1.05 , 50.00 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */

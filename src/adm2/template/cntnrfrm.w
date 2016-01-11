@@ -6,6 +6,8 @@ Use this template to create a new frame which supports SmartObjects. Draw your S
 */
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
+{adecomm/appserv.i}
+DEFINE VARIABLE h_Astra                    AS HANDLE          NO-UNDO.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS fFrameWin 
 /*------------------------------------------------------------------------
 
@@ -55,7 +57,7 @@ CREATE WIDGET-POOL.
 
 &Scoped-define ADM-SUPPORTED-LINKS Data-Target,Data-Source,Page-Target,Update-Source,Update-Target
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME fMain
 
 /* Custom List Definitions                                              */
@@ -85,7 +87,7 @@ DEFINE FRAME fMain
    Type: SmartFrame Template
    Allow: Basic,Browse,DB-Fields,Query,Smart
    Container Links: Data-Target,Data-Source,Page-Target,Update-Source,Update-Target
-   Other Settings: PERSISTENT-ONLY
+   Other Settings: PERSISTENT-ONLY APPSERVER
  */
 
 /* This procedure should always be RUN PERSISTENT.  Report the error,  */
@@ -149,7 +151,7 @@ Note: During assembly, the PROGRESS Advisor suggests links and creates them for 
 /* SETTINGS FOR WINDOW fFrameWin
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME fMain
-   NOT-VISIBLE                                                          */
+   NOT-VISIBLE FRAME-NAME                                               */
 ASSIGN 
        FRAME fMain:HIDDEN           = TRUE.
 

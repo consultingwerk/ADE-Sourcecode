@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<dataset Transactions="1"><dataset_header DisableRI="yes" DatasetObj="1004928896.09" DateFormat="mdy" FullHeader="no" SCMManaged="yes" YearOffset="1950" DatasetCode="RYCSO" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="91" NumericSeparator=","/>
-<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" version_date="09/30/2002" version_time="23745" version_user="admin" deletion_flag="no" entity_mnemonic="rycso" key_field_value="1004886739.09" record_version_obj="3000033102.09" version_number_seq="2.09" secondary_key_value="gsciaviewv.w#CHR(1)#0" import_version_number_seq="2.09"><smartobject_obj>1004886739.09</smartobject_obj>
+<dataset Transactions="1"><dataset_header DatasetCode="RYCSO" DatasetObj="1004928896.09" DateFormat="mdy" DisableRI="yes" FullHeader="no" NumericDecimal="." NumericFormat="AMERICAN" NumericSeparator="," OriginatingSite="92" SCMManaged="yes" YearOffset="1950"/>
+<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" deletion_flag="no" entity_mnemonic="rycso" import_version_number_seq="6.48" key_field_value="1004886739.09" record_version_obj="3000033102.09" secondary_key_value="gsciaviewv.w#CHR(1)#0" version_date="07/14/2005" version_number_seq="6.48" version_time="49559" version_user="admin"><smartobject_obj>1004886739.09</smartobject_obj>
 <object_filename>gsciaviewv.w</object_filename>
 <customization_result_obj>0</customization_result_obj>
 <object_type_obj>1003498165</object_type_obj>

@@ -6,6 +6,8 @@ Use this template to create a new window which supports SmartObjects. Draw your 
 */
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME wWin
+{adecomm/appserv.i}
+DEFINE VARIABLE h_Astra                    AS HANDLE          NO-UNDO.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS wWin 
 /*------------------------------------------------------------------------
 
@@ -56,7 +58,7 @@ CREATE WIDGET-POOL.
 
 &Scoped-define ADM-SUPPORTED-LINKS Data-Target,Data-Source,Page-Target,Update-Source,Update-Target,Filter-target,Filter-Source
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME fMain
 
 /* Custom List Definitions                                              */
@@ -88,6 +90,7 @@ DEFINE FRAME fMain
    Type: SmartWindow Template
    Allow: Basic,Browse,DB-Fields,Query,Smart,Window
    Container Links: Data-Target,Data-Source,Page-Target,Update-Source,Update-Target,Filter-target,Filter-Source
+   Other Settings: APPSERVER
  */
 &ANALYZE-RESUME _END-PROCEDURE-SETTINGS
 
@@ -156,7 +159,7 @@ During assembly, the PROGRESS Advisor suggests links and creates them for you. H
 /* SETTINGS FOR WINDOW wWin
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME fMain
-                                                                        */
+   FRAME-NAME                                                           */
 IF SESSION:DISPLAY-TYPE = "GUI":U AND VALID-HANDLE(wWin)
 THEN wWin:HIDDEN = yes.
 

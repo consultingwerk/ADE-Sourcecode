@@ -2,25 +2,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*--------------------------------------------------------------------------
@@ -45,9 +29,9 @@
 {adeuib/uniwidg.i}
 {src/adm2/globals.i}
 
-DEFINE INPUT PARAMETER pProcRecid AS INTEGER NO-UNDO.
-
 &SCOP temptablename 'RowObject':U
+
+DEFINE INPUT PARAMETER pProcRecid AS INTEGER NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -103,10 +87,13 @@ DEFINE VARIABLE cDataObjectNames  AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cDataObjects      AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE iCount            AS INTEGER    NO-UNDO.
 DEFINE VARIABLE hSDO              AS HANDLE     NO-UNDO.
+DEFINE VARIABLE cTableName        AS CHARACTER  NO-UNDO.
 
 FIND _P WHERE RECID(_P) = pProcRecid.
 
-hDataObject = DYNAMIC-FUNC("get-proc-hdl" IN _h_func_lib, INPUT _P._DATA-OBJECT).
+hDataObject = DYNAMIC-FUNC("get-sdo-hdl" IN _h_func_lib, 
+                                            _P._DATA-OBJECT,
+                                            THIS-PROCEDURE).
 IF VALID-HANDLE(hDataObject) AND
    DYNAMIC-FUNCTION("getObjectType":U IN hDataObject) = "SmartBusinessObject":U THEN 
 DO:
@@ -125,6 +112,7 @@ DO:
         IF _DynamicsIsRunning THEN
           IncludeName = DYNAMIC-FUNCTION("getSDOincludeFile" IN gshRepositoryManager, 
                                          ENTRY(iCount,cDataObjectNames)) + ".i":U.
+
       END.
 
       /* Remove X:/ (where X is the MS-DOS drive letter) if it can be found in
@@ -148,52 +136,62 @@ DO:
 END.
 ELSE
 DO:
-  /* If there is an _TT for the DataObject RowObject table but the _P
-     record shows the DataObject is blank, then remove the _TT
-     record--its not needed anymore. This can occur for WebObjects
-     when changing their data source from a DataObject to a database.
-     jep 03 April 1998 */
-  FIND _TT WHERE _TT._P-RECID = RECID(_P) 
-           AND   _TT._NAME    = {&temptablename} NO-ERROR. 
-  IF (_P._Data-Object = "":U) THEN
-  DO:
-    IF (AVAIL _TT) THEN DELETE _TT.
-  END.  
-  ELSE
-  DO: 
-    IF NOT AVAIL _TT THEN 
-    DO:  
-      /* Create the DataObject temp-table record. */  
-      CREATE _TT.
-      ASSIGN _TT._P-RECID           = RECID(_P) 
-             _TT._TABLE-TYPE        = "D":u
-             _TT._SHARE-TYPE        = "":U
-             _TT._UNDO-TYPE         = "NO-UNDO":U
-             _TT._LIKE-DB           = "":U
-             _TT._LIKE-TABLE        = "":U.
-    END.
-    
+    /* Gets the names of the tables in the data object,
+       and loop through them. SDOs will only have one
+     */
+    IF VALID-HANDLE(hDataobject) THEN
+      {get ViewTables cDataObjects hDataObject}.
+    ELSE /* webspeed may need this without a valid SDO */
+      cDataObjects = {&temptablename}.
+
+    do iCount = 1 to num-entries(cDataObjects):            
+        cTableName = entry(iCount, cDataObjects).
+        
+      /* If there is an _TT for the DataObject RowObject table but the _P
+             record shows the DataObject is blank, then remove the _TT
+             record--its not needed anymore. This can occur for WebObjects
+             when changing their data source from a DataObject to a database.
+             jep 03 April 1998 */
+      FIND _TT WHERE _TT._P-RECID = RECID(_P) 
+               AND   _TT._NAME    = cTableName NO-ERROR. 
+      IF (_P._Data-Object = "":U) THEN
+      DO:
+        IF (AVAIL _TT) THEN DELETE _TT.
+      END.  
+      ELSE
+      DO: 
+        IF NOT AVAIL _TT THEN 
+        DO:  
+          /* Create the DataObject temp-table record. */  
+          CREATE _TT.
+          ASSIGN _TT._P-RECID           = RECID(_P) 
+                 _TT._TABLE-TYPE        = "D":u
+                 _TT._SHARE-TYPE        = "":U
+                 _TT._UNDO-TYPE         = "NO-UNDO":U
+                 _TT._LIKE-DB           = "":U
+                 _TT._LIKE-TABLE        = "":U.
+        END.
+        
         /* Get the data object include filename. */
-    RUN adeuib/_uibinfo.p (INPUT ?, 
-                           INPUT "PROCEDURE ?", 
-                           INPUT "DATAOBJECT-INCLUDE", 
-                           OUTPUT IncludeName).
-    
-    /* Remove X:/ (where X is the MS-DOS drive letter) if it can be found in
-       the propath - IZ 9617                                                 */
-    IF IncludeName MATCHES ".:*":U THEN DO:
-      IF SEARCH(SUBSTRING(IncludeName, 4, -1, "CHARACTER")) NE ? THEN
-         IncludeName = SUBSTRING(IncludeName, 4, -1, "CHARACTER").
-    END.
+        RUN adeuib/_uibinfo.p (INPUT ?, 
+                               INPUT "PROCEDURE ?", 
+                               INPUT "DATAOBJECT-INCLUDE", 
+                               OUTPUT IncludeName).
+        /* Remove X:/ (where X is the MS-DOS drive letter) if it can be found in
+               the propath - IZ 9617                                                 */
+        IF IncludeName MATCHES ".:*":U THEN DO:
+          IF SEARCH(SUBSTRING(IncludeName, 4, -1, "CHARACTER")) NE ? THEN
+             IncludeName = SUBSTRING(IncludeName, 4, -1, "CHARACTER").
+        END.
+        ASSIGN 
+          _TT._NAME                = cTableName 
+          _TT._ADDITIONAL_FIELDS   = "~{" + IncludeName + "~}".
+      
+      END.
+  end.    /* look through tables */
+END.    /* non-SBO */
 
-    ASSIGN 
-      _TT._NAME                = {&temptablename} 
-      _TT._ADDITIONAL_FIELDS   = "~{" + IncludeName + "~}".
-  
-  END.
-END.
-
-DYNAMIC-FUNC("shutdown-proc" IN _h_func_lib, INPUT _P._DATA-OBJECT).
+DYNAMIC-FUNC("shutdown-sdo" IN _h_func_lib, THIS-PROCEDURE).
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

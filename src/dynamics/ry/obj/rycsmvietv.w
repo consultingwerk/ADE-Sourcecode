@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
           icfdb            PROGRESS
@@ -29,25 +29,9 @@ DEFINE TEMP-TABLE RowObject
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -182,11 +166,11 @@ DEFINE FRAME frMain
           VIEW-AS FILL-IN 
           SIZE 1.6 BY 1
      toSourceThisProc AT ROW 1.19 COL 17.8
-     RowObject.link_name AT ROW 4.29 COL 15.8 COLON-ALIGNED
+     RowObject.link_name AT ROW 4.24 COL 15.8 COLON-ALIGNED
           LABEL "Link name"
           VIEW-AS FILL-IN 
           SIZE 30 BY 1
-     toTargetThisProc AT ROW 6.52 COL 17.8
+     toTargetThisProc AT ROW 6.38 COL 17.8
      SPACE(48.00) SKIP(0.00)
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
@@ -227,7 +211,7 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 6.33
+         HEIGHT             = 6.81
          WIDTH              = 97.6.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -347,17 +331,17 @@ PROCEDURE adm-create-objects :
              INPUT  FRAME frMain:HANDLE ,
              INPUT  'DisplayedFieldryc_object_instance.instance_nameKeyFieldryc_object_instance.object_instance_objFieldLabelSourceFieldTooltipPress F4 For LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_object_instance NO-LOCK,
                      FIRST ryc_smartobject WHERE ryc_smartobject.smartobject_obj = ryc_object_instance.smartobject_obj NO-LOCK
-                     BY ryc_smartobject.object_filenameQueryTablesryc_object_instance,ryc_smartobjectBrowseFieldsryc_object_instance.instance_name,ryc_object_instance.instance_description,ryc_smartobject.object_filename,ryc_smartobject.object_descriptionBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(35)|X(70)|X(70)|X(35)RowsToBatch200BrowseTitleLookup Source InstanceViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldcContainerObjsParentFilterQueryLOOKUP(STRING(ryc_object_instance.container_smartobject_obj),~'&1~') > 0MaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureFieldNamesource_object_instance_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY ryc_smartobject.object_filenameQueryTablesryc_object_instance,ryc_smartobjectBrowseFieldsryc_object_instance.instance_name,ryc_object_instance.instance_description,ryc_smartobject.object_filename,ryc_smartobject.object_descriptionBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(35)|X(70)|X(70)|X(35)RowsToBatch200BrowseTitleLookup Source InstanceViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldcContainerObjsParentFilterQueryLOOKUP(STRING(ryc_object_instance.container_smartobject_obj),~'&1~') > 0MaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureDataSourceNameFieldNamesource_object_instance_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hSource ).
-       RUN repositionObject IN hSource ( 2.14 , 17.80 ) NO-ERROR.
+       RUN repositionObject IN hSource ( 2.05 , 17.80 ) NO-ERROR.
        RUN resizeObject IN hSource ( 1.00 , 80.80 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldryc_smartlink_type.link_nameKeyFieldryc_smartlink_type.smartlink_type_objFieldLabelLink typeFieldTooltipPress F4 to lookup a smartlinkKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(28)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_smartlink_type NO-LOCK BY ryc_smartlink_type.link_name INDEXED-REPOSITIONQueryTablesryc_smartlink_typeBrowseFieldsryc_smartlink_type.link_name,ryc_smartlink_type.system_owned,ryc_smartlink_type.user_defined_linkBrowseFieldDataTypescharacter,logical,logicalBrowseFieldFormatsX(28)|YES/NO|YES/NORowsToBatch200BrowseTitleLookup SmartLinksViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListNO-LOCK INDEXED-REPOSITIONQueryBuilderOrderListryc_smartlink_type.link_name^yesQueryBuilderTableOptionListNO-LOCKQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureFieldNamesmartlink_type_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldryc_smartlink_type.link_nameKeyFieldryc_smartlink_type.smartlink_type_objFieldLabelLink typeFieldTooltipPress F4 to lookup a smartlinkKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(28)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_smartlink_type NO-LOCK BY ryc_smartlink_type.link_name INDEXED-REPOSITIONQueryTablesryc_smartlink_typeBrowseFieldsryc_smartlink_type.link_name,ryc_smartlink_type.system_owned,ryc_smartlink_type.user_defined_linkBrowseFieldDataTypescharacter,logical,logicalBrowseFieldFormatsX(28)|YES/NO|YES/NORowsToBatch200BrowseTitleLookup SmartLinksViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListNO-LOCK INDEXED-REPOSITIONQueryBuilderOrderListryc_smartlink_type.link_name^yesQueryBuilderTableOptionListNO-LOCKQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureDataSourceNameFieldNamesmartlink_type_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dynlookup ).
-       RUN repositionObject IN h_dynlookup ( 3.24 , 17.80 ) NO-ERROR.
+       RUN repositionObject IN h_dynlookup ( 3.14 , 17.80 ) NO-ERROR.
        RUN resizeObject IN h_dynlookup ( 1.00 , 80.80 ) NO-ERROR.
 
        RUN constructObject (
@@ -365,9 +349,9 @@ PROCEDURE adm-create-objects :
              INPUT  FRAME frMain:HANDLE ,
              INPUT  'DisplayedFieldryc_object_instance.instance_nameKeyFieldryc_object_instance.object_instance_objFieldLabelTargetFieldTooltipPress F4 For LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_object_instance NO-LOCK,
                      FIRST ryc_smartobject WHERE ryc_smartobject.smartobject_obj = ryc_object_instance.smartobject_obj NO-LOCK
-                     BY ryc_smartobject.object_filenameQueryTablesryc_object_instance,ryc_smartobjectBrowseFieldsryc_object_instance.instance_name,ryc_object_instance.instance_description,ryc_smartobject.object_filename,ryc_smartobject.object_descriptionBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(35)|X(70)|X(70)|X(35)RowsToBatch200BrowseTitleLookup Target InstanceViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldcContainerObjsParentFilterQueryLOOKUP(STRING(ryc_object_instance.container_smartobject_obj),~'&1~') > 0MaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureFieldNametarget_object_instance_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY ryc_smartobject.object_filenameQueryTablesryc_object_instance,ryc_smartobjectBrowseFieldsryc_object_instance.instance_name,ryc_object_instance.instance_description,ryc_smartobject.object_filename,ryc_smartobject.object_descriptionBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(35)|X(70)|X(70)|X(35)RowsToBatch200BrowseTitleLookup Target InstanceViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldcContainerObjsParentFilterQueryLOOKUP(STRING(ryc_object_instance.container_smartobject_obj),~'&1~') > 0MaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureDataSourceNameFieldNametarget_object_instance_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hTarget ).
-       RUN repositionObject IN hTarget ( 5.38 , 17.80 ) NO-ERROR.
+       RUN repositionObject IN hTarget ( 5.33 , 17.80 ) NO-ERROR.
        RUN resizeObject IN hTarget ( 1.00 , 80.40 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */

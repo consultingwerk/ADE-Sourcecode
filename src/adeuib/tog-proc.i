@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /* -------------------------------------------------------------------
@@ -30,7 +14,7 @@ Description:
 
 Author: Tammy St.Pierre Hall 
 
-Date Generated: 04/27/04
+Date Generated: 07/05/05
 
 Note: This procedure is generated via the Property Sheet Generator and 
       the abAttribute table of the ab database. 
@@ -237,6 +221,13 @@ PROCEDURE GRAPHIC-EDGE_proc:
     h_EDGE-PIXELS:SCREEN-VALUE = STRING(_L._EDGE-PIXELS).
 END.
 
+PROCEDURE GROUP-BOX_proc:
+  {adeuib/syncloch.i &Master_L   = "_L"
+                     &FLD1       = "GROUP-BOX"
+                     &NEW-VALUE1 = "SELF:CHECKED"}
+  _L._GROUP-BOX = SELF:CHECKED.
+END.
+
 PROCEDURE HIDDEN_proc:
   _U._HIDDEN = SELF:CHECKED.
 END.
@@ -405,6 +396,13 @@ END.
 
 PROCEDURE RETURN-INSERTED_proc:
   _F._RETURN-INSERTED = SELF:CHECKED.
+END.
+
+PROCEDURE ROUNDED_proc:
+  {adeuib/syncloch.i &Master_L   = "_L"
+                     &FLD1       = "ROUNDED"
+                     &NEW-VALUE1 = "SELF:CHECKED"}
+  _L._ROUNDED = SELF:CHECKED.
 END.
 
 PROCEDURE SCROLL-BARS_proc:

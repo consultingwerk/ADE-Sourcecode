@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<dataset Transactions="1"><dataset_header DisableRI="yes" DatasetObj="1004928896.09" DateFormat="mdy" FullHeader="no" SCMManaged="yes" YearOffset="1950" DatasetCode="RYCSO" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="91" NumericSeparator=","/>
-<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" version_date="10/03/2003" version_time="48757" version_user="admin" deletion_flag="no" entity_mnemonic="RYCSO" key_field_value="725000005973.5566" record_version_obj="725000005974.5566" version_number_seq="2.09" secondary_key_value="gsmfdviewv#CHR(1)#0" import_version_number_seq="2.09"><smartobject_obj>725000005973.5566</smartobject_obj>
+<dataset Transactions="1"><dataset_header DatasetCode="RYCSO" DatasetObj="1004928896.09" DateFormat="mdy" DisableRI="yes" FullHeader="no" NumericDecimal="." NumericFormat="AMERICAN" NumericSeparator="," OriginatingSite="92" SCMManaged="yes" YearOffset="1950"/>
+<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" deletion_flag="no" entity_mnemonic="RYCSO" import_version_number_seq="8.709" key_field_value="725000005973.5566" record_version_obj="725000005974.5566" secondary_key_value="gsmfdviewv#CHR(1)#0" version_date="08/19/2005" version_number_seq="8.709" version_time="52814" version_user="admin"><smartobject_obj>725000005973.5566</smartobject_obj>
 <object_filename>gsmfdviewv</object_filename>
 <customization_result_obj>0</customization_result_obj>
 <object_type_obj>1003498162</object_type_obj>
@@ -910,22 +910,6 @@ BY gsc_entity_mnemonic.entity_mnemonic_description INDEXED-REPOSITION</character
 <render_type_obj>0</render_type_obj>
 <applies_at_runtime>yes</applies_at_runtime>
 </contained_record>
-<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>725000019579.5566</attribute_value_obj>
-<object_type_obj>473.99</object_type_obj>
-<container_smartobject_obj>725000005973.5566</container_smartobject_obj>
-<smartobject_obj>15870.409</smartobject_obj>
-<object_instance_obj>725000019567.5566</object_instance_obj>
-<constant_value>no</constant_value>
-<attribute_label>HIDDEN</attribute_label>
-<character_value></character_value>
-<integer_value>0</integer_value>
-<date_value>?</date_value>
-<decimal_value>0</decimal_value>
-<logical_value>yes</logical_value>
-<primary_smartobject_obj>725000005973.5566</primary_smartobject_obj>
-<render_type_obj>0</render_type_obj>
-<applies_at_runtime>yes</applies_at_runtime>
-</contained_record>
 <contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>725000006326.5566</attribute_value_obj>
 <object_type_obj>5600.409</object_type_obj>
 <container_smartobject_obj>725000005973.5566</container_smartobject_obj>
@@ -1126,6 +1110,38 @@ BY gsc_entity_mnemonic.entity_mnemonic_description INDEXED-REPOSITION</character
 <constant_value>no</constant_value>
 <attribute_label>LIST-ITEM-PAIRS</attribute_label>
 <character_value> ,,=,=,&lt;&gt;,&lt;&gt;,&lt;,&lt;,&gt;,&gt;,&lt;=,&lt;=,&gt;=,&gt;=,BEGINS,BEGINS,MATCHES,MATCHES,LOOKUP,LOOKUP</character_value>
+<integer_value>0</integer_value>
+<date_value>?</date_value>
+<decimal_value>0</decimal_value>
+<logical_value>no</logical_value>
+<primary_smartobject_obj>725000005973.5566</primary_smartobject_obj>
+<render_type_obj>0</render_type_obj>
+<applies_at_runtime>yes</applies_at_runtime>
+</contained_record>
+<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>53.709</attribute_value_obj>
+<object_type_obj>1005097658.101</object_type_obj>
+<container_smartobject_obj>725000005973.5566</container_smartobject_obj>
+<smartobject_obj>725000006251.5566</smartobject_obj>
+<object_instance_obj>725000006301.5566</object_instance_obj>
+<constant_value>no</constant_value>
+<attribute_label>MasterFile</attribute_label>
+<character_value>adm2/dynlookup.w</character_value>
+<integer_value>0</integer_value>
+<date_value>?</date_value>
+<decimal_value>0</decimal_value>
+<logical_value>no</logical_value>
+<primary_smartobject_obj>725000005973.5566</primary_smartobject_obj>
+<render_type_obj>0</render_type_obj>
+<applies_at_runtime>yes</applies_at_runtime>
+</contained_record>
+<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>54.709</attribute_value_obj>
+<object_type_obj>1005097658.101</object_type_obj>
+<container_smartobject_obj>725000005973.5566</container_smartobject_obj>
+<smartobject_obj>725000006271.5566</smartobject_obj>
+<object_instance_obj>725000019560.5566</object_instance_obj>
+<constant_value>no</constant_value>
+<attribute_label>MasterFile</attribute_label>
+<character_value>adm2/dynlookup.w</character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
 <decimal_value>0</decimal_value>
@@ -1592,7 +1608,7 @@ BY gsc_entity_mnemonic.entity_mnemonic_description INDEXED-REPOSITION</character
 <character_value></character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
-<decimal_value>2.05</decimal_value>
+<decimal_value>2.1</decimal_value>
 <logical_value>no</logical_value>
 <primary_smartobject_obj>725000005973.5566</primary_smartobject_obj>
 <render_type_obj>0</render_type_obj>
@@ -1852,22 +1868,6 @@ resultant data will be excluded.</character_value>
 <date_value>?</date_value>
 <decimal_value>0</decimal_value>
 <logical_value>no</logical_value>
-<primary_smartobject_obj>725000005973.5566</primary_smartobject_obj>
-<render_type_obj>0</render_type_obj>
-<applies_at_runtime>yes</applies_at_runtime>
-</contained_record>
-<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>725000019814.5566</attribute_value_obj>
-<object_type_obj>473.99</object_type_obj>
-<container_smartobject_obj>725000005973.5566</container_smartobject_obj>
-<smartobject_obj>15870.409</smartobject_obj>
-<object_instance_obj>725000019567.5566</object_instance_obj>
-<constant_value>no</constant_value>
-<attribute_label>VISIBLE</attribute_label>
-<character_value></character_value>
-<integer_value>0</integer_value>
-<date_value>?</date_value>
-<decimal_value>0</decimal_value>
-<logical_value>yes</logical_value>
 <primary_smartobject_obj>725000005973.5566</primary_smartobject_obj>
 <render_type_obj>0</render_type_obj>
 <applies_at_runtime>yes</applies_at_runtime>

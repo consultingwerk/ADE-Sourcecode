@@ -28,25 +28,9 @@ af/cod/aftemwizpw.w
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -880,8 +864,7 @@ DEFINE OUTPUT PARAMETER pcError                       AS CHARACTER  NO-UNDO.
     END.
     
     /* check max. retries allowed for password */
-    IF LENGTH(gsm_user.USER_password) > 0 THEN
-        FIND FIRST gsc_security_control NO-LOCK NO-ERROR.
+    FIND FIRST gsc_security_control NO-LOCK NO-ERROR.
     IF AVAILABLE gsc_security_control THEN
         ASSIGN iPasswordMaxRetries      = gsc_security_control.password_max_retries
                iPasswordHistoryLifeTime = gsc_security_control.password_history_life_time.
@@ -1151,8 +1134,7 @@ DEFINE OUTPUT PARAMETER pcError                       AS CHARACTER  NO-UNDO.
     END.
     
     /* Check max. retries allowed for password */
-    IF LENGTH(gsm_user.USER_password) > 0 THEN
-        FIND FIRST gsc_security_control NO-LOCK NO-ERROR.
+    FIND FIRST gsc_security_control NO-LOCK NO-ERROR.
     
     IF AVAILABLE gsc_security_control THEN
         ASSIGN iPasswordMaxRetries = gsc_security_control.password_max_retries.
@@ -1161,7 +1143,7 @@ DEFINE OUTPUT PARAMETER pcError                       AS CHARACTER  NO-UNDO.
     
     ASSIGN pcError = "":U.
     
-    IF LENGTH(gsm_user.USER_password) > 0 AND pcPassword <> gsm_user.user_password THEN
+    IF pcPassword <> gsm_user.user_password THEN
     trn-block:
     DO FOR bgsm_user TRANSACTION ON ERROR UNDO trn-block, LEAVE trn-block:
     
@@ -2683,7 +2665,7 @@ ACCESS_LEVEL=PUBLIC
               pcItemDisabled        - CSV list of disabled menu items
               pcStructureHidden - CSV list of hidden menu structures
        Notes: Menu security information is cached on:
-              	- the client session in an AppServer/GUI environment
+                - the client session in an AppServer/GUI environment
                 - the client session in a DB-aware/GUI environment.
               It is not cached:
                 - on the Webspeed client
@@ -3208,7 +3190,7 @@ PROCEDURE rangeSecurityCheck :
   DEFINE INPUT  PARAMETER pcAttributeCode AS CHARACTER NO-UNDO.
   DEFINE OUTPUT PARAMETER pcRangeFrom     AS CHARACTER NO-UNDO.
   DEFINE OUTPUT PARAMETER pcRangeTo       AS CHARACTER NO-UNDO.
-
+ 
   ASSIGN pcRangeFrom = "":U
          pcRangeTo   = "":U.
 
@@ -3321,7 +3303,10 @@ PROCEDURE rangeSecurityCheck :
                         AND gsm_security_structure.owning_obj             = gsm_range.range_obj
                         AND gsm_security_structure.disabled               = NO) THEN
           RETURN.
-        
+      
+      /* Default security to NO */
+      lSecurityRestricted = no.
+      
       /* Check for specific object instance */
       IF dAttributeObj <> 0 THEN /* This test only makes sense if we're running with an attribute.  Otherwise, we're just duplicating the check below */
           fe-blk:
@@ -3341,20 +3326,12 @@ PROCEDURE rangeSecurityCheck :
                                                          OUTPUT lSecurityRestricted,           /* Restricted yes/no ? */
                                                          OUTPUT pcRangeFrom,                   /* clearance value 1 */
                                                          OUTPUT pcRangeTo).                    /* clearance value 2 */
-              IF lSecurityRestricted
-              THEN DO:
-                  /* Update client cache */
-                  CREATE ttRangeSecurityCheck.
-                  ASSIGN ttRangeSecurityCheck.cRangeCode     = pcRangeCode
-                         ttRangeSecurityCheck.cObjectName    = pcObjectName
-                         ttRangeSecurityCheck.cAttributeCode = pcAttributeCode
-                         ttRangeSecurityCheck.cRangeFrom     = pcRangeFrom
-                         ttRangeSecurityCheck.cRangeTo       = pcRangeTo.
-                  RETURN.
-              END.
-          END.
+              IF lSecurityRestricted THEN
+                  leave FE-BLK.
+          END.    /* fe-blk: specific object instance */
         
       /* Check for specific object, no attribute. */
+      if not lSecurityRestricted then      
       fe-blk:
       FOR EACH gsm_security_structure NO-LOCK
          WHERE gsm_security_structure.owning_entity_mnemonic  = "GSMRA":U            
@@ -3372,20 +3349,12 @@ PROCEDURE rangeSecurityCheck :
                                                      OUTPUT lSecurityRestricted,           /* Restricted yes/no ? */
                                                      OUTPUT pcRangeFrom,                   /* clearance value 1 */
                                                      OUTPUT pcRangeTo).              /* clearance value 2 */
-          IF lSecurityRestricted
-          THEN DO:
-              /* Update client cache */
-              CREATE ttRangeSecurityCheck.
-              ASSIGN ttRangeSecurityCheck.cRangeCode     = pcRangeCode
-                     ttRangeSecurityCheck.cObjectName    = pcObjectName
-                     ttRangeSecurityCheck.cAttributeCode = pcAttributeCode
-                     ttRangeSecurityCheck.cRangeFrom     = pcRangeFrom
-                     ttRangeSecurityCheck.cRangeTo       = pcRangeTo.
-              RETURN.
-          END.
-      END.
+          IF lSecurityRestricted then
+              leave FE-BLK.
+      END.    /* fe-blk: specific object, no attribute */
         
       /* Check for product module */
+      if not lSecurityRestricted then
       fe-blk:
       FOR EACH ttGlobalSecurityStructure
          WHERE ttGlobalSecurityStructure.product_module_obj     = dProductModuleObj
@@ -3406,20 +3375,12 @@ PROCEDURE rangeSecurityCheck :
                                                          OUTPUT lSecurityRestricted,           /* Restricted yes/no ? */
                                                          OUTPUT pcRangeFrom,                   /* clearance value 1 */
                                                          OUTPUT pcRangeTo).                    /* clearance value 2 */
-          IF lSecurityRestricted 
-          THEN DO:
-              /* Update client cache */
-              CREATE ttRangeSecurityCheck.
-              ASSIGN ttRangeSecurityCheck.cRangeCode     = pcRangeCode
-                     ttRangeSecurityCheck.cObjectName    = pcObjectName
-                     ttRangeSecurityCheck.cAttributeCode = pcAttributeCode
-                     ttRangeSecurityCheck.cRangeFrom     = pcRangeFrom
-                     ttRangeSecurityCheck.cRangeTo       = pcRangeTo.
-              RETURN.
-          END.
-      END.
+          IF lSecurityRestricted then
+              leave FE-BLK.
+      END.    /* fe-blk: product module */
         
       /* Check for all */
+      if not lSecurityRestricted then
       fe-blk:
       FOR EACH ttGlobalSecurityStructure
          WHERE ttGlobalSecurityStructure.product_module_obj     = 0
@@ -3440,20 +3401,11 @@ PROCEDURE rangeSecurityCheck :
                                                          OUTPUT lSecurityRestricted,           /* Restricted yes/no ? */
                                                          OUTPUT pcRangeFrom,                   /* clearance value 1 */
                                                          OUTPUT pcRangeTo).                    /* clearance value 2 */
-          IF lSecurityRestricted 
-          THEN DO:
-              /* Update client cache */
-              CREATE ttRangeSecurityCheck.
-              ASSIGN ttRangeSecurityCheck.cRangeCode     = pcRangeCode
-                     ttRangeSecurityCheck.cObjectName    = pcObjectName
-                     ttRangeSecurityCheck.cAttributeCode = pcAttributeCode
-                     ttRangeSecurityCheck.cRangeFrom     = pcRangeFrom
-                     ttRangeSecurityCheck.cRangeTo       = pcRangeTo.
-              RETURN.
-          END.
-      END.        
+          IF lSecurityRestricted then
+              leave FE-BLK.
+      END.    /* fe-blk: all */
   &ENDIF
-
+  
   /* Update client cache */
   IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) 
   THEN DO:
@@ -3466,8 +3418,7 @@ PROCEDURE rangeSecurityCheck :
   END.
   ASSIGN ERROR-STATUS:ERROR = NO.
   RETURN "":U.
-
-END PROCEDURE.
+END PROCEDURE.    /* rangeSecurityCheck */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

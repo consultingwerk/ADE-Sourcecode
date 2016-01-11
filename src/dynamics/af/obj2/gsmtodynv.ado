@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<dataset Transactions="1"><dataset_header DisableRI="yes" DatasetObj="1004928896.09" DateFormat="mdy" FullHeader="no" SCMManaged="yes" YearOffset="1950" DatasetCode="RYCSO" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="91" NumericSeparator=","/>
-<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" version_date="10/03/2003" version_time="48758" version_user="admin" deletion_flag="no" entity_mnemonic="RYCSO" key_field_value="123860.9875" record_version_obj="123861.9875" version_number_seq="3.09" secondary_key_value="gsmtodynv#CHR(1)#0" import_version_number_seq="3.09"><smartobject_obj>123860.9875</smartobject_obj>
+<dataset Transactions="1"><dataset_header DatasetCode="RYCSO" DatasetObj="1004928896.09" DateFormat="mdy" DisableRI="yes" FullHeader="no" NumericDecimal="." NumericFormat="AMERICAN" NumericSeparator="," OriginatingSite="92" SCMManaged="yes" YearOffset="1950"/>
+<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" deletion_flag="no" entity_mnemonic="RYCSO" import_version_number_seq="7.709" key_field_value="123860.9875" record_version_obj="123861.9875" secondary_key_value="gsmtodynv#CHR(1)#0" version_date="08/19/2005" version_number_seq="7.709" version_time="52823" version_user="admin"><smartobject_obj>123860.9875</smartobject_obj>
 <object_filename>gsmtodynv</object_filename>
 <customization_result_obj>0</customization_result_obj>
 <object_type_obj>1003498162</object_type_obj>
@@ -220,7 +220,7 @@
 <character_value></character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
-<decimal_value>5.1</decimal_value>
+<decimal_value>4.1</decimal_value>
 <logical_value>no</logical_value>
 <primary_smartobject_obj>123860.9875</primary_smartobject_obj>
 <render_type_obj>0</render_type_obj>
@@ -236,7 +236,7 @@
 <character_value></character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
-<decimal_value>105.6</decimal_value>
+<decimal_value>104.6</decimal_value>
 <logical_value>no</logical_value>
 <primary_smartobject_obj>123860.9875</primary_smartobject_obj>
 <render_type_obj>0</render_type_obj>
@@ -364,7 +364,7 @@
 <character_value></character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
-<decimal_value>2.05</decimal_value>
+<decimal_value>2.1</decimal_value>
 <logical_value>no</logical_value>
 <primary_smartobject_obj>123860.9875</primary_smartobject_obj>
 <render_type_obj>0</render_type_obj>

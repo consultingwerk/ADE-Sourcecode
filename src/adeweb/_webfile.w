@@ -4,28 +4,11 @@
 &Scoped-define FRAME-NAME Dialog-Frame
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Dialog-Frame 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
-
 /*------------------------------------------------------------------------
   File: _webfile.w
 
@@ -48,6 +31,7 @@ Input-Output Parameters:
 
 Output Parameters:
     p_tempFile : The temporary filename containing the file to open, save, etc.
+    p_fullName : The filename with full path.
     p_ok       : TRUE if user successfully choose a file name
     
 Author:  D.M.Adams
@@ -93,6 +77,7 @@ Changed: July 20 1998, HD
 
 /* ***************************  Definitions  ************************** */
 { adeuib/sharvars.i } 
+{adeweb/web_file.i}
 
 &SCOPED-DEFINE debug FALSE
 
@@ -203,7 +188,7 @@ DEFINE VARIABLE dir-list AS CHARACTER FORMAT "X(256)":U
 DEFINE VARIABLE fileFilter AS CHARACTER FORMAT "X(256)":U 
      LABEL "Files of &type" 
      VIEW-AS COMBO-BOX INNER-LINES 5
-     LIST-ITEMS "All Source(*.w;*.p;*.i;*.htm*)","Web Objects(*.w)","Procedures(*.p)","Includes(*.i)","HTML(*.html;*.htm)","All Files(*.*)" 
+     LIST-ITEMS "All Source(*.w;*.p;*.i;*.htm*;*.cls)","Web Objects(*.w)","Procedures(*.p)","Includes(*.i)","HTML(*.html;*.htm)","Classes(*.cls)","All Files(*.*)" 
      SIZE 33 BY 1 NO-UNDO.
 
 DEFINE VARIABLE cur-dir AS CHARACTER FORMAT "X(256)":U 
@@ -1153,8 +1138,19 @@ PROCEDURE ProcessFile :
     &endif
   
     IF cRelName ne "" AND cRelName ne ? THEN
-      p_fileName = cRelName.
-    
+    DO:
+      IF p_mode = "saveAs" OR p_mode = "open" THEN DO:
+          /* if cRelName is not the same as p_fileName then it must be a relative
+             path - we will save the path to the relative path so that we can
+             reconstruct the full pathname when saving the file or opening it from
+             the MRU list.
+          */
+          ASSIGN p_fileName = ws-set-path-info (INPUT cRelName, INPUT p_fileName).
+      END.
+      ELSE
+          ASSIGN p_fileName = cRelName.
+    END.
+
     IF p_mode = "search":U THEN 
       OS-DELETE VALUE(p_tempFile).   
   END.

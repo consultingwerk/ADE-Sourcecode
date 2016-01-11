@@ -2,25 +2,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*--------------------------------------------------------------------------
@@ -157,6 +141,7 @@
  &GLOBAL-DEFINE xpDataContainer
  &GLOBAL-DEFINE xpContainedDataObjects
  &GLOBAL-DEFINE xpContainedAppServices
+ &GLOBAL-DEFINE xpHasDbAwareObjects
  &GLOBAL-DEFINE xpHasDynamicProxy
  &GLOBAL-DEFINE xpHideOnClose
  &GLOBAL-DEFINE xpHideChildContainersOnClose
@@ -238,6 +223,7 @@ DO:
   ghADMProps:ADD-NEW-FIELD('ContainedDataObjects':U, 'CHARACTER':U, 0, ?,'':U).
   ghADMProps:ADD-NEW-FIELD('ContainedAppServices':U, 'CHARACTER':U, 0, ?,'':U).
   ghADMProps:ADD-NEW-FIELD('DataContainer':U, 'LOGICAL':U, 0, ?,NO).
+  ghADMProps:ADD-NEW-FIELD('HasDbAwareObjects':U, 'LOGICAL':U, 0, ?,?).
   ghADMProps:ADD-NEW-FIELD('HasDynamicProxy':U, 'LOGICAL':U, 0, ?,NO).
   ghADMProps:ADD-NEW-FIELD('HideOnClose':U, 'LOGICAL':U, 0, ?,NO).
   ghADMProps:ADD-NEW-FIELD('HideChildContainersOnClose':U, 'LOGICAL':U, 0, ?,?).

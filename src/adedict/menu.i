@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -37,6 +21,7 @@ Date Created: 02/17/92
               05/19/99 Mario B.  Adjust Width Field browser integration.   
               09/18/02 D. McMann Added verify data report  
               10/01/02 D. McMann Change menu name for Adjust Schema
+              07/19/05 kmcintos  Added Auditing Reports
 ----------------------------------------------------------------------------*/
 
 {adecomm/toolmenu.i &EXCLUDE_DICT = yes}
@@ -54,6 +39,23 @@ Define sub-menu s_mnu_TblRel
    menu-item mi_r_CurrTbl   label "&Selected Table"
    menu-item mi_r_AllTbls   label "&All Tables".
 
+DEFINE SUB-MENU s_mnu_Aud_Rep
+   MENU-ITEM mi_ADRpt_AudPol    LABEL "Track Audit &Policy Changes"
+   MENU-ITEM mi_ADRpt_DbSchma   LABEL "Track Database &Schema Changes"
+   MENU-ITEM mi_ADRpt_AudAdmn   LABEL "Track &Audit Data Administration (Dump/Load)"
+   MENU-ITEM mi_ADRpt_TblAdmn   LABEL "Track Application &Data Administration (Dump/Load)"
+   RULE
+   MENU-ITEM mi_ADRpt_UsrAct    LABEL "Track &User Account Changes"
+   MENU-ITEM mi_ADRpt_SecPerm   LABEL "Track Security Per&missions Changes"
+   MENU-ITEM mi_ADRpt_Dba       LABEL "Track SQL Permissions Changes"
+   MENU-ITEM mi_ADRpt_AuthSys   LABEL "Track Authe&ntication System Changes"
+   RULE
+   MENU-ITEM mi_CSRpt_CltSess   LABEL "&Client Session Authentication Report"
+   MENU-ITEM mi_ADRpt_DbAdmin   LABEL "Database Administ&ration Report (Utilities)"
+   MENU-ITEM mi_ADRpt_AppLogin  LABEL "Database Access Report (Lo&gin/Logout/etc...)"
+   RULE
+   MENU-ITEM mi_ADRpt_Cust      LABEL "Custom Audit Data &Filter Report".
+
 Define sub-menu s_mnu_Reports	
    menu-item mi_DetailedTbl   	 label "&Detailed Table..."
    menu-item mi_QuickTbl         label "Quick &Table"
@@ -65,7 +67,9 @@ Define sub-menu s_mnu_Reports
    menu-item mi_QuickUsr         label "&User"
    sub-menu  s_mnu_TblRel        label "Table &Relations"
    menu-item mi_QuickArea        label "Storage &Areas"
-   MENU-ITEM mi_Width            label "Verify Data &Width".
+   MENU-ITEM mi_Width            label "Verify Data &Width"
+   RULE
+   SUB-MENU  s_mnu_Aud_Rep       LABEL "Auditing R&eports".
 
 Define sub-menu s_mnu_Database
    menu-item mi_Crt_Database	 label "&Create..."   ACCELERATOR "SHIFT-F3"
@@ -124,8 +128,4 @@ Define {1} menu s_mnu_Dict
    sub-menu s_mnu_Options	 label "&Options"
    sub-menu mnu_Tools            label "&Tools"
    sub-menu s_mnu_Help	      	 label "&Help".
-
-
-
-
 

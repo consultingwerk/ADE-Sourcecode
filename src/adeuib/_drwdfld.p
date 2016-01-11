@@ -1,6 +1,13 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
+/*************************************************************/
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /*---------------------------------------------------------------------------------
   File: _drwdfld.p
 
@@ -87,7 +94,7 @@ DEFINE VARIABLE cLabel            AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE iPrevColumnsWidth AS INTEGER    NO-UNDO.
 DEFINE VARIABLE lFromWizard       AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE dNewWinWidth      AS DECIMAL     NO-UNDO.
-
+DEFINE VARIABLE lDbAware          AS LOGICAL    NO-UNDO.
 
 DEFINE BUFFER parent_U FOR _U.
 DEFINE BUFFER parent_L FOR _L.
@@ -152,14 +159,22 @@ FIND parent_U WHERE parent_U._HANDLE = _h_frame.
 FIND parent_L WHERE parent_L._u-recid = RECID(parent_U) AND
                     parent_L._lo-name = "Master Layout".
 
-hDataSource = DYNAMIC-FUNCTION('get-proc-hdl':U IN _h_func_lib, INPUT _P._data-object).
+hDataSource = DYNAMIC-FUNCTION('get-sdo-hdl':U IN _h_func_lib, 
+                                             INPUT _P._data-object,
+                                             INPUT TARGET-PROCEDURE).
 hRepDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U, INPUT "RepositoryDesignManager":U).
 
 ASSIGN 
    cUpdColumns     = DYNAMIC-FUNCTION('getUpdatableColumns':U IN hDataSource)
    cDataSourceType = DYNAMIC-FUNCTION('getObjectType':U IN hDataSource)
-   cCalculatedCols = DYNAMIC-FUNCTION('getCalculatedColumns':U IN hDataSource)
-   cCalcFieldList  = DYNAMIC-FUNCTION('getCalcFieldList':U IN hDataSource).
+   lDbAware        = DYNAMIC-FUNCTION('getDbAware':U IN hDataSource).
+
+/* non dbaware (DataView) does not havecalculated columns */
+IF lDbAware THEN
+  ASSIGN
+    cCalculatedCols = DYNAMIC-FUNCTION('getCalculatedColumns':U IN hDataSource)
+    cCalcFieldList  = DYNAMIC-FUNCTION('getCalcFieldList':U IN hDataSource)
+    NO-ERROR.
 
 /* selectFields invokes the multi-field selector if the fields parameter is
    blank */
@@ -189,29 +204,37 @@ DO iFieldNum = 1 TO NUM-ENTRIES(cFields):
   cListField = ENTRY(iFieldNum, cFields).
   IF LOOKUP(cListField, cErrorFields) > 0 THEN 
     NEXT FieldLoop.        
-  
-  ASSIGN
-    lCalculatedCol = LOOKUP(cListField, cCalculatedCols) > 0
-    cTable         = DYNAMIC-FUNCTION('ColumnPhysicalTable':U IN hDataSource, cListField) 
-    cObjectName    = IF LOOKUP(cListField, cCalculatedCols) > 0 
-                     THEN cListField
-                     ELSE DYNAMIC-FUNCTION('ColumnPhysicalColumn':U IN hDataSource, cListField)
-    cObjectName    = REPLACE(cObjectName,"[","")
-    cObjectName    = REPLACE(cObjectName,"]","") NO-ERROR.
-
-  IF lCalculatedCol AND cCalcFieldList NE '':U THEN
-    cObjectName = DYNAMIC-FUNCTION("mappedEntry":U IN _h_func_lib,
-                                    INPUT cObjectName,             
-                                    INPUT cCalcFieldList,         
-                                    INPUT TRUE,                   
-                                    INPUT ",":U).
-
-  IF cDataSourceType = 'SmartBusinessObject':U AND NUM-ENTRIES(cListField, '.':U) > 1 THEN
+  IF lDbAware THEN
   DO:
-     ASSIGN cSDOName    = ENTRY(1, cListField, '.':U).
-     IF lCalculatedCol THEN 
-         cObjectName = ENTRY(2,cObjectName,".":U).
-  END.  /* if data source SBO */
+    ASSIGN
+      lCalculatedCol = LOOKUP(cListField, cCalculatedCols) > 0
+      cTable         = DYNAMIC-FUNCTION('ColumnPhysicalTable':U IN hDataSource, 
+                                        cListField) 
+      cObjectName    = IF lCalculatedCol THEN cListField
+                       ELSE DYNAMIC-FUNCTION('ColumnPhysicalColumn':U IN hDataSource, cListField)
+      cObjectName    = REPLACE(cObjectName,"[","")
+      cObjectName    = REPLACE(cObjectName,"]","") NO-ERROR.
+  
+    IF lCalculatedCol AND cCalcFieldList > '':U THEN
+      cObjectName = DYNAMIC-FUNCTION("mappedEntry":U IN _h_func_lib,
+                                      INPUT cObjectName,             
+                                      INPUT cCalcFieldList,         
+                                      INPUT TRUE,                   
+                                      INPUT ",":U).
+  
+    IF cDataSourceType = 'SmartBusinessObject':U AND NUM-ENTRIES(cListField, '.':U) > 1 THEN
+    DO:
+       ASSIGN cSDOName    = ENTRY(1, cListField, '.':U).
+       IF lCalculatedCol THEN 
+           cObjectName = ENTRY(2,cObjectName,".":U).
+    END.  /* if data source SBO */
+  END.
+  /* non dbaware */
+  ELSE DO:
+    ASSIGN
+      cTable      = ENTRY(1, cListField, '.':U)
+      cObjectName = cListfield.
+  END.
   
   /* Retrieve the master datafield from the repository */
   RUN retrieveDesignObject IN hRepDesignManager ( INPUT  cObjectName,
@@ -291,15 +314,20 @@ DO iFieldNum = 1 TO NUM-ENTRIES(cFields):
      IF cDataType = 'CLOB':U THEN
        ASSIGN cVisType = 'EDITOR':U.
      
+
      ASSIGN
        iTabNumber        = iTabNumber + 1
-       _U._NAME          = IF cDataSourceType = 'SmartBusinessObject':U AND NUM-ENTRIES(cListField, '.':U) > 1
-                           THEN ENTRY(2,cListField,".") ELSE cListField /* If from SBO, remove SDO qualifier */
+       _U._NAME          = IF NUM-ENTRIES(cListField, '.':U) > 1
+                           THEN ENTRY(2,cListField,".") 
+                           ELSE cListField /* remove qualifier */
        _U._DBNAME        = 'Temp-Tables':U
-       _U._TABLE         = IF cDataSourceType = 'SmartDataObject':U THEN cTable
-                           ELSE cSDOName
-       _U._BUFFER        = IF cDataSourceType = 'SmartDataObject':U THEN 'RowObject':U
+       _U._TABLE         = IF cDataSourceType = 'SmartBusinessObject':U 
+                           THEN cSDOName 
                            ELSE cTable
+       _U._BUFFER        = IF cDataSourceType = 'SmartBusinessObject':U 
+                              OR NOT lDbAware 
+                           THEN cTable
+                           ELSE 'RowObject':U
        _L._ROW           = dRow
        _L._COL           = dColumn
        _L._COL-MULT      = parent_L._COL-MULT
@@ -398,9 +426,7 @@ DO iFieldNum = 1 TO NUM-ENTRIES(cFields):
      {adeuib/crt_mult.i}
 
      dRow = dRow + _L._HEIGHT.
-
-   END.  /* if ttObject avail */
-      
+   END.  /* if ttObject avail */      
 END.  /* do iFieldNum to number fields picked */
 
 IF cMessageList NE '':U THEN 
@@ -454,7 +480,7 @@ FOR EACH _U WHERE _U._PARENT = parent_U._HANDLE:
 END.
 
 RUN adeuib/_tabordr.p (INPUT 'NORMAL':U, INPUT RECID(parent_U)).
-DYNAMIC-FUNCTION('shutdown-proc':U IN _h_func_lib, INPUT _P._data-object).
+DYNAMIC-FUNCTION('shutdown-sdo':U IN _h_func_lib, INPUT TARGET-PROCEDURE).
 
 SESSION:SET-WAIT-STATE('':U).
 
@@ -473,7 +499,7 @@ PROCEDURE selectFields :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-DEFINE VARIABLE cDataFieldName   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cFieldName       AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cExcludeFields   AS CHARACTER  NO-UNDO.
 
 DEFINE BUFFER fld_U FOR _U.
@@ -481,23 +507,24 @@ DEFINE BUFFER x_S FOR _S.
 
 FOR EACH fld_U WHERE fld_U._PARENT-Recid = RECID(parent_U) AND 
                      fld_U._STATUS <> "DELETED":U NO-LOCK:
-  IF fld_U._TABLE = "RowObject":U OR fld_U._BUFFER = "RowObject":U OR 
-     fld_U._CLASS-NAME = "DataField":U THEN 
-  DO:
-    IF cDataSourceType = 'SmartBusinessObject':U THEN
-      ASSIGN cExcludeFields = cExcludeFields + fld_U._TABLE + ".":U + fld_U._NAME + ",":U.
-    ELSE ASSIGN cExcludeFields = cExcludeFields + fld_U._NAME + ",":U.
-  END.  /* if datafield */
-  /* special case is when the table is ? but the subtype is a smart
-   * data field. We need to go and get the actual field name so we exclude
-   * it from the list too.
-   */
-  ELSE IF fld_U._subtype = 'SmartDataField':U THEN 
-  DO:
-    FIND x_S WHERE RECID(x_S) = fld_U._x-recid. 
-    cDataFieldName = DYNAMIC-FUNCTION('getFieldName':U IN X_S._HANDLE).
-    ASSIGN cExcludeFields = cExcludeFields + cDataFieldName + ',':U NO-ERROR.
-  END. /* end else if subtype*/
+
+    IF fld_U._TABLE > '' THEN
+    DO:
+      IF fld_U._BUFFER = "RowObject":U OR fld_U._TABLE = "RowObject":U THEN
+        ASSIGN cExcludeFields = cExcludeFields + fld_U._NAME + ",":U.
+      ELSE
+        ASSIGN cExcludeFields = cExcludeFields + fld_U._TABLE + ".":U +
+                                                 fld_U._NAME + ",":U.
+    END.
+    /* special case is when the table is ? but the subtype is a smart
+     * data field. We need to go and get the actual field name so we exclude
+     * it from the list too.
+     */
+    ELSE IF fld_U._subtype = "SmartDataField":U THEN DO:
+      FIND x_S WHERE RECID(x_S) = fld_U._x-recid. 
+      cFieldName = dynamic-function('getFieldName' IN X_S._HANDLE).
+      ASSIGN cExcludeFields = cExcludeFields + cFieldName + ',' NO-ERROR.
+    END. /* end else if subtype*/
 END. /* end for each */
 ASSIGN cExcludeFields = TRIM(cExcludeFields, ',') NO-ERROR.   
 
@@ -544,7 +571,8 @@ PROCEDURE setAttributes :
          IF pcValue = 'CLOB':U THEN
            ASSIGN
              _F._DATA-TYPE        = 'LONGCHAR':U
-             _F._SOURCE-DATA-TYPE = 'CLOB':U.
+             _F._SOURCE-DATA-TYPE = 'CLOB':U
+             _U._TYPE             = 'EDITOR':U.
          ELSE _F._DATA-TYPE = pcValue.
      END.  /* if data type */
      WHEN 'DEBLANK':U              THEN _F._DEBLANK          = LOGICAL(pcValue).
@@ -652,26 +680,31 @@ DO iFieldNum = 1 TO NUM-ENTRIES(cFields):
                           cListField.
     NEXT FieldLoop.
   END.  /* if another_U available */
+  IF lDbAware THEN
+  DO:
+    lCalculatedCol = LOOKUP(cListField, cCalculatedCols) > 0. 
+    cObjectName = IF lCalculatedCol 
+                  THEN cListField 
+                  ELSE DYNAMIC-FUNCTION('columnPhysicalColumn':U IN hDataSource, cListField).
 
-  lCalculatedCol = LOOKUP(cListField, cCalculatedCols) > 0. 
-  cObjectName = IF lCalculatedCol THEN cListField 
-                ELSE DYNAMIC-FUNCTION('columnPhysicalColumn':U IN hDataSource, cListField).
+    ASSIGN cObjectName = REPLACE(cObjectName,"[","")
+           cObjectName = REPLACE(cObjectName,"]","").
 
-  ASSIGN cObjectName = REPLACE(cObjectName,"[","")
-         cObjectName = REPLACE(cObjectName,"]","").
+    IF lCalculatedCol AND cCalcFieldList NE '':U THEN
+      cObjectName = DYNAMIC-FUNCTION("mappedEntry":U IN _h_func_lib,
+                                      INPUT cObjectName,             
+                                      INPUT cCalcFieldList,         
+                                      INPUT TRUE,                   
+                                      INPUT ",":U).
 
-  IF lCalculatedCol AND cCalcFieldList NE '':U THEN
-    cObjectName = DYNAMIC-FUNCTION("mappedEntry":U IN _h_func_lib,
-                                    INPUT cObjectName,             
-                                    INPUT cCalcFieldList,         
-                                    INPUT TRUE,                   
-                                    INPUT ",":U).
+    /*   If calculated field and data source is an SBO, the name will have the 
+          SDO as a prefix as in <sdoName>.<FieldName>.  */
+    IF lCalculatedCol AND cDataSourceType = 'SmartBusinessObject':U AND NUM-ENTRIES(cObjectName, '.':U) > 1 THEN
+      ASSIGN cObjectName = ENTRY(2,cObjectName,".":U) NO-ERROR.
+  END.
+  ElSE
+    cObjectname = cListField.
 
-/*   If calculated field and data source is an SBO, the name will have the SDO as a prefix
-     as in <sdoName>.<FieldName>.  */
-  IF lCalculatedCol AND cDataSourceType = 'SmartBusinessObject':U AND NUM-ENTRIES(cObjectName, '.':U) > 1 THEN
-     ASSIGN cObjectName = ENTRY(2,cObjectName,".":U) NO-ERROR.
-  
   lObjectExists = DYNAMIC-FUNCTION('ObjectExists':U IN hRepDesignManager, INPUT cObjectName).
   
   IF NOT lObjectExists THEN
@@ -681,8 +714,9 @@ DO iFieldNum = 1 TO NUM-ENTRIES(cFields):
                    THEN 'The calculated field "':U + cObjectName + '" has no master object in the repository. ':U + CHR(10) + 
                         'Please add a calculated field master object called "':U + cObjectName + '" to an entity of the data source using the Entity Control. ':U
                    ELSE 'The datafield "':U + cObjectName + '" has no master object in the repository. ':U + CHR(10) + 
-                        'Please use Entity Import to import it or add it using the Entity Control.':U.
-
+                        'Please use ' + (IF NOT lDbAware THEN 'TEMP-DB Maintenenace ' ELSE '') +
+                        'Entity Import to import it or add it using the Entity Control.':U.
+                            
     ASSIGN cErrorFields = cErrorFields + (IF NUM-ENTRIES(cErrorFields) > 0 THEN ',':U ELSE '':U) +
                           cListField.
     NEXT FieldLoop.

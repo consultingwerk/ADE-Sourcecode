@@ -1,9 +1,13 @@
+# This AWK script file is being deprecated. It was previously called from
+# pbuildfxprg, but the functionality here has been replaced by fxprg[1-3].awk
+#
+
 /<MinimumVersion>/ {
-  ver=020001
+  ver=101000
   minVer=0+substr($1,17,6)
   while (ver<minVer) {
     if(length(ver)==5)ver="0" ver
-    print ver " delta"
+    print ver " delta" "mv"
     ver++
   }
 }

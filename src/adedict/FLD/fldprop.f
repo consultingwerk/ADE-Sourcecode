@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -58,18 +42,27 @@ form
 
    s_Optional           no-label                at    2 
    SKIP(.2) 
-
+   
+   /* we will show either the Format or the area name (for lobs), so keep them at the same location */
    b_Field._Format      label "&Format"         colon 18 {&STDPH_FILL} 
                         format "x(48)"                                 SPACE(.3)
    s_btn_Fld_Format 
+   
+   s_lob_Area           LABEL "&Area"      AT col 18 ROW-OF b_Field._Format COLON-ALIGNED {&STDPH_FILL}
+   s_btn_lob_Area
    SKIP({&VM_WID}) 
 
+   /* we will show either the label or the code page (for clob), so keep them at the same location */
    b_Field._Label 	label "La&bel"          colon 18 {&STDPH_FILL}
                         format "x(48)"
+                        
+   s_clob_cp         LABEL "&Code Page"      AT col 18 ROW-OF b_Field._Label COLON-ALIGNED {&STDPH_FILL} s_btn_clob_cp
    SKIP({&VM_WID}) 
    
+   /* we will show either the column-label or the collation (for clob), so keep them at the same location */
    b_Field._Col-label   label "Col&umn Label"   colon 18 {&STDPH_FILL}
                         format "x(48)"
+   s_clob_col           LABEL "Colla&tion"   AT col 18 ROW-OF b_Field._Col-label COLON-ALIGNED {&STDPH_FILL} s_btn_clob_col                        
    SKIP({&VM_WID}) 
 
    b_Field._Initial     label "&Initial Value"  colon 18 {&STDPH_FILL}
@@ -80,7 +73,11 @@ form
                         format ">>>>9"          SPACE({&HM_WIDG})
    /* R10 is so if we change label to "Bit offset" it will work */
    b_Field._Decimals    label "Decimal&s":R10            {&STDPH_FILL}
-   b_Field._Field-rpos  label "Position" {&STDPH_FILL}
+   b_Field._Field-rpos  label "Position" colon 65 {&STDPH_FILL}
+   
+   /* we will show either the Decimals or the Max Size (for lobs), so keep them at the same location */
+   s_lob_size             LABEL "&Max Size" AT COLUMN-OF b_Field._Decimals ROW-OF b_Field._Decimals {&STDPH_FILL}  
+   
    SKIP({&VM_WID})
 
    b_Field._Desc        label "Descri&ption"    colon 18 {&STDPH_EDITOR}
@@ -126,7 +123,10 @@ form
 
    /* Will be repositioned at run time */   
    s_lst_Fld_DType      NO-LABEL                at col 1 row 1
-
+   s_lst_lob_Area       NO-LABEL                at col 1 row 1
+   s_lst_clob_cp        NO-LABEL                at col 1 row 1
+   s_lst_clob_col       NO-LABEL                at col 1 row 1
+   
    with {&frame_phrase} SIDE-LABELS SCROLLABLE.
 
 

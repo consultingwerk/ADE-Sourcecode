@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
           icfdb            PROGRESS
@@ -22,32 +22,18 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 
+
 /* Temp-Table and Buffer definitions                                    */
 DEFINE TEMP-TABLE RowObject
        {"af/obj2/gsmndfullo.i"}.
 
 
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -130,7 +116,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /* Include file with RowObject temp-table definition */
 &Scoped-define DATA-FIELD-DEFS "af/obj2/gsmndfullo.i"
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
@@ -235,17 +221,17 @@ DEFINE FRAME frMain
           LABEL "Node checked"
           VIEW-AS TOGGLE-BOX
           SIZE 19.4 BY 1
+     coDataSourceType AT ROW 6.24 COL 28.2 COLON-ALIGNED
      RowObject.data_source_type AT ROW 6.24 COL 28.2 COLON-ALIGNED
           LABEL "Data source type"
           VIEW-AS FILL-IN 
           SIZE 8.6 BY 1
-     coDataSourceType AT ROW 6.24 COL 28.2 COLON-ALIGNED
+     cPlainText AT ROW 7.29 COL 28.2 COLON-ALIGNED
+     cExtractProgram AT ROW 7.29 COL 28.2 COLON-ALIGNED
      RowObject.data_source AT ROW 7.29 COL 28.2 COLON-ALIGNED
           LABEL "Data source"
           VIEW-AS FILL-IN 
           SIZE 78.4 BY 1
-     cExtractProgram AT ROW 7.29 COL 28.2 COLON-ALIGNED
-     cPlainText AT ROW 7.29 COL 28.2 COLON-ALIGNED
      buFindPhysical AT ROW 7.33 COL 104.2
      fiSDOChildren AT ROW 8.81 COL 103 COLON-ALIGNED NO-LABEL
      fiChar AT ROW 9.76 COL 80.2 NO-LABEL
@@ -328,7 +314,7 @@ END.
 /* SETTINGS FOR WINDOW vTableWin
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frMain
-   NOT-VISIBLE Size-to-Fit                                              */
+   NOT-VISIBLE FRAME-NAME Size-to-Fit                                   */
 ASSIGN 
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
@@ -579,22 +565,10 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsm_node.node_codeKeyFieldgsm_node.node_objFieldLabelParent node codeFieldTooltipSelect the parent for this nodeKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsm_node NO-LOCK BY gsm_node.node_codeQueryTablesgsm_nodeBrowseFieldsgsm_node.node_code,gsm_node.node_description,gsm_node.node_labelBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(35)|X(35)|X(28)RowsToBatch200BrowseTitleParent Node LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListNO-LOCKQueryBuilderOrderListgsm_node.node_code^yesQueryBuilderTableOptionListNO-LOCKQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureFieldNameparent_node_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsm_node.node_codeKeyFieldgsm_node.node_objFieldLabelParent node codeFieldTooltipSelect the parent for this nodeKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsm_node NO-LOCK BY gsm_node.node_codeQueryTablesgsm_nodeBrowseFieldsgsm_node.node_code,gsm_node.node_description,gsm_node.node_labelBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(35)|X(35)|X(28)RowsToBatch200BrowseTitleParent Node LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListNO-LOCKQueryBuilderOrderListgsm_node.node_code^yesQueryBuilderTableOptionListNO-LOCKQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureDataSourceNameFieldNameparent_node_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_ParentNodeCode ).
        RUN repositionObject IN h_ParentNodeCode ( 3.10 , 30.20 ) NO-ERROR.
        RUN resizeObject IN h_ParentNodeCode ( 1.00 , 50.00 ) NO-ERROR.
-
-       RUN constructObject (
-             INPUT  'adm2/dynlookup.w':U ,
-             INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsm_menu_structure.menu_structure_codeKeyFieldgsm_menu_structure.menu_structure_codeFieldLabelMenu structure codeFieldTooltipSelect the menu structure to be used for this node.KeyFormatX(28)KeyDatatypecharacterDisplayFormatX(28)DisplayDatatypecharacterBaseQueryStringFOR EACH gsm_menu_structure NO-LOCK
-                     WHERE gsm_menu_structure.menu_structure_type = "SubMenu",
-                     FIRST gsc_product_module NO-LOCK
-                     WHERE gsc_product_module.product_module_obj = gsm_menu_structure.product_module_obj
-                     AND [&FilterSet=|&EntityList=GSCPM] OUTER-JOIN INDEXED-REPOSITIONQueryTablesgsm_menu_structure,gsc_product_moduleBrowseFieldsgsm_menu_structure.menu_structure_code,gsm_menu_structure.menu_structure_description,gsm_menu_structure.menu_structure_hidden,gsm_menu_structure.menu_structure_type,gsm_menu_structure.disabledBrowseFieldDataTypescharacter,character,logical,character,logicalBrowseFieldFormatsX(28)|X(35)|YES/NO|X(15)|YES/NORowsToBatch200BrowseTitleLookup Menu StructureViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureFieldNamecMenuStructureCodeDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
-             OUTPUT h_MenuCode ).
-       RUN repositionObject IN h_MenuCode ( 7.29 , 30.20 ) NO-ERROR.
-       RUN resizeObject IN h_MenuCode ( 1.00 , 50.00 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
@@ -608,10 +582,22 @@ PROCEDURE adm-create-objects :
                      FIRST gsc_product_module NO-LOCK
                      WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj
                      AND [&FilterSet=|&EntityList=GSCPM,RYCSO]
-                     BY ryc_smartobject.object_filenameQueryTablesgsc_object_type,ryc_smartobject,gsc_product_moduleBrowseFieldsgsc_product_module.product_module_code,ryc_smartobject.object_filename,ryc_smartobject.object_description,ryc_smartobject.object_pathBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(35)|X(70)|X(35)|X(70)RowsToBatch200BrowseTitleData Source LookupViewerLinkedFieldsryc_smartobject.object_pathLinkedFieldDataTypescharacterLinkedFieldFormatsX(70)ViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureFieldNamecSDODataSourceDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY ryc_smartobject.object_filenameQueryTablesgsc_object_type,ryc_smartobject,gsc_product_moduleBrowseFieldsgsc_product_module.product_module_code,ryc_smartobject.object_filename,ryc_smartobject.object_description,ryc_smartobject.object_pathBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(35)|X(70)|X(35)|X(70)RowsToBatch200BrowseTitleData Source LookupViewerLinkedFieldsryc_smartobject.object_pathLinkedFieldDataTypescharacterLinkedFieldFormatsX(70)ViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureDataSourceNameFieldNamecSDODataSourceDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_DataSource ).
        RUN repositionObject IN h_DataSource ( 7.29 , 30.20 ) NO-ERROR.
        RUN resizeObject IN h_DataSource ( 1.00 , 50.00 ) NO-ERROR.
+
+       RUN constructObject (
+             INPUT  'adm2/dynlookup.w':U ,
+             INPUT  FRAME frMain:HANDLE ,
+             INPUT  'DisplayedFieldgsm_menu_structure.menu_structure_codeKeyFieldgsm_menu_structure.menu_structure_codeFieldLabelMenu structure codeFieldTooltipSelect the menu structure to be used for this node.KeyFormatX(28)KeyDatatypecharacterDisplayFormatX(28)DisplayDatatypecharacterBaseQueryStringFOR EACH gsm_menu_structure NO-LOCK
+                     WHERE gsm_menu_structure.menu_structure_type = "SubMenu",
+                     FIRST gsc_product_module NO-LOCK
+                     WHERE gsc_product_module.product_module_obj = gsm_menu_structure.product_module_obj
+                     AND [&FilterSet=|&EntityList=GSCPM] OUTER-JOIN INDEXED-REPOSITIONQueryTablesgsm_menu_structure,gsc_product_moduleBrowseFieldsgsm_menu_structure.menu_structure_code,gsm_menu_structure.menu_structure_description,gsm_menu_structure.menu_structure_hidden,gsm_menu_structure.menu_structure_type,gsm_menu_structure.disabledBrowseFieldDataTypescharacter,character,logical,character,logicalBrowseFieldFormatsX(28)|X(35)|YES/NO|X(15)|YES/NORowsToBatch200BrowseTitleLookup Menu StructureViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureDataSourceNameFieldNamecMenuStructureCodeDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT h_MenuCode ).
+       RUN repositionObject IN h_MenuCode ( 7.29 , 30.20 ) NO-ERROR.
+       RUN resizeObject IN h_MenuCode ( 1.00 , 50.00 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
@@ -622,7 +608,7 @@ PROCEDURE adm-create-objects :
                      FIRST gsc_product_module NO-LOCK
                      WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj
                      AND [&FilterSet=|&EntityList=GSCPM,RYCSO]
-                     BY ryc_smartobject.object_filename INDEXED-REPOSITIONQueryTablesgsc_object_type,ryc_smartobject,gsc_product_moduleBrowseFieldsgsc_product_module.product_module_code,ryc_smartobject.object_filename,ryc_smartobject.object_description,ryc_smartobject.object_pathBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(35)|X(70)|X(35)|X(70)RowsToBatch200BrowseTitlePrimary SDO LookupViewerLinkedFieldsryc_smartobject.object_pathLinkedFieldDataTypescharacterLinkedFieldFormatsX(70)ViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldfiSDOChildrenParentFilterQueryLOOKUP(gsc_object_type.object_type_code, "&1") > 0MaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureFieldNameprimary_sdoDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY ryc_smartobject.object_filename INDEXED-REPOSITIONQueryTablesgsc_object_type,ryc_smartobject,gsc_product_moduleBrowseFieldsgsc_product_module.product_module_code,ryc_smartobject.object_filename,ryc_smartobject.object_description,ryc_smartobject.object_pathBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(35)|X(70)|X(35)|X(70)RowsToBatch200BrowseTitlePrimary SDO LookupViewerLinkedFieldsryc_smartobject.object_pathLinkedFieldDataTypescharacterLinkedFieldFormatsX(70)ViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldfiSDOChildrenParentFilterQueryLOOKUP(gsc_object_type.object_type_code, "&1") > 0MaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureDataSourceNameFieldNameprimary_sdoDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_primarySDO ).
        RUN repositionObject IN h_primarySDO ( 8.33 , 30.20 ) NO-ERROR.
        RUN resizeObject IN h_primarySDO ( 1.00 , 50.00 ) NO-ERROR.
@@ -637,7 +623,7 @@ PROCEDURE adm-create-objects :
                      FIRST gsc_product_module NO-LOCK
                      WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj
                      AND [&FilterSet=|&EntityList=GSCPM,RYCSO]
-                     BY ryc_smartobject.OBJECT_filename INDEXED-REPOSITIONQueryTablesryc_smartobject,gsc_object_type,gsc_product_moduleBrowseFieldsgsc_product_module.product_module_code,ryc_smartobject.object_filename,gsc_object_type.object_type_code,ryc_smartobject.object_description,ryc_smartobject.static_objectBrowseFieldDataTypescharacter,character,character,character,logicalBrowseFieldFormatsX(35)|X(70)|X(35)|X(35)|YES/NORowsToBatch200BrowseTitleLogical Object LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureFieldNamelogical_objectDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY ryc_smartobject.OBJECT_filename INDEXED-REPOSITIONQueryTablesryc_smartobject,gsc_object_type,gsc_product_moduleBrowseFieldsgsc_product_module.product_module_code,ryc_smartobject.object_filename,gsc_object_type.object_type_code,ryc_smartobject.object_description,ryc_smartobject.static_objectBrowseFieldDataTypescharacter,character,character,character,logicalBrowseFieldFormatsX(35)|X(70)|X(35)|X(35)|YES/NORowsToBatch200BrowseTitleLogical Object LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureDataSourceNameFieldNamelogical_objectDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_LogicalObject ).
        RUN repositionObject IN h_LogicalObject ( 9.38 , 30.20 ) NO-ERROR.
        RUN resizeObject IN h_LogicalObject ( 1.00 , 50.00 ) NO-ERROR.
@@ -655,7 +641,7 @@ PROCEDURE adm-create-objects :
                      AND gsm_category.category_type = ~'IMG~':U
                      AND gsm_category.category_group = ~'TRE~':U
                      AND gsm_category.category_subgroup = ~'ANY~':U
-                     AND gsm_category.category_active = TRUEQueryTablesgsm_multi_media,gsc_multi_media_type,gsm_categoryBrowseFieldsgsm_multi_media.multi_media_description,gsm_multi_media.physical_file_nameBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(35)|X(70)RowsToBatch200BrowseTitleImage File Name LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureFieldNameimage_file_nameDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     AND gsm_category.category_active = TRUEQueryTablesgsm_multi_media,gsc_multi_media_type,gsm_categoryBrowseFieldsgsm_multi_media.multi_media_description,gsm_multi_media.physical_file_nameBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(35)|X(70)RowsToBatch200BrowseTitleImage File Name LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureDataSourceNameFieldNameimage_file_nameDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_ImageFileName ).
        RUN repositionObject IN h_ImageFileName ( 18.62 , 30.20 ) NO-ERROR.
        RUN resizeObject IN h_ImageFileName ( 1.00 , 78.40 ) NO-ERROR.
@@ -673,7 +659,7 @@ PROCEDURE adm-create-objects :
                      AND gsm_category.category_type = ~'IMG~':U
                      AND gsm_category.category_group = ~'TRE~':U
                      AND gsm_category.category_subgroup = ~'ANY~':U
-                     AND gsm_category.category_active = TRUEQueryTablesgsm_multi_media,gsc_multi_media_type,gsm_categoryBrowseFieldsgsm_multi_media.multi_media_description,gsm_multi_media.physical_file_nameBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(35)|X(70)RowsToBatch200BrowseTitleImage File Name LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureFieldNameselected_image_file_nameDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     AND gsm_category.category_active = TRUEQueryTablesgsm_multi_media,gsc_multi_media_type,gsm_categoryBrowseFieldsgsm_multi_media.multi_media_description,gsm_multi_media.physical_file_nameBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(35)|X(70)RowsToBatch200BrowseTitleImage File Name LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureDataSourceNameFieldNameselected_image_file_nameDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_SelectedImageFileName ).
        RUN repositionObject IN h_SelectedImageFileName ( 19.67 , 30.20 ) NO-ERROR.
        RUN resizeObject IN h_SelectedImageFileName ( 1.00 , 78.40 ) NO-ERROR.
@@ -681,10 +667,10 @@ PROCEDURE adm-create-objects :
        /* Adjust the tab order of the smart objects. */
        RUN adjustTabOrder ( h_ParentNodeCode ,
              RowObject.node_description:HANDLE IN FRAME frMain , 'AFTER':U ).
-       RUN adjustTabOrder ( h_MenuCode ,
-             coDataSourceType:HANDLE IN FRAME frMain , 'AFTER':U ).
        RUN adjustTabOrder ( h_DataSource ,
-             cPlainText:HANDLE IN FRAME frMain , 'AFTER':U ).
+             cExtractProgram:HANDLE IN FRAME frMain , 'AFTER':U ).
+       RUN adjustTabOrder ( h_MenuCode ,
+             h_DataSource , 'AFTER':U ).
        RUN adjustTabOrder ( h_primarySDO ,
              buFindPhysical:HANDLE IN FRAME frMain , 'AFTER':U ).
        RUN adjustTabOrder ( h_LogicalObject ,
@@ -709,6 +695,7 @@ PROCEDURE changeFieldStates :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+
   DO WITH FRAME {&FRAME-NAME}:
     ASSIGN coDataSourceType.
     ASSIGN RowObject.data_source_type:SCREEN-VALUE = coDataSourceType.
@@ -731,11 +718,10 @@ PROCEDURE changeFieldStates :
         RUN enableField IN h_DataSource.
         RUN enableField IN h_primarySDO.
         RUN enableField IN h_LogicalObject.
-        ENABLE RowObject.run_attribute 
-                RowObject.node_text_label_expression
-                RowObject.label_text_substitution
-                RowObject.foreign_fields
-                WITH FRAME {&FRAME-NAME}.
+        assign RowObject.run_attribute:sensitive = yes
+               RowObject.node_text_label_expression:sensitive = yes
+               RowObject.label_text_substitution_fields:sensitive = yes
+               RowObject.foreign_fields:sensitive = yes.                
       END.
       ASSIGN cExtractProgram:HIDDEN    = FALSE
              cExtractProgram:SENSITIVE = RowObject.node_code:SENSITIVE
@@ -747,14 +733,13 @@ PROCEDURE changeFieldStates :
         RUN disableField IN h_LogicalObject.
         RUN disableField IN h_primarySDO.
         RUN disableField IN h_DataSource.
-        DISABLE RowObject.run_attribute 
-                RowObject.node_text_label_expression
-                RowObject.label_text_substitution
-                RowObject.foreign_fields
-                WITH FRAME {&FRAME-NAME}.
+        assign RowObject.run_attribute:sensitive = no
+               RowObject.node_text_label_expression:sensitive = no
+               RowObject.label_text_substitution_fields:sensitive = no
+               RowObject.foreign_fields:sensitive = no.                
       END.
       {set FieldHidden FALSE h_MenuCode}.
-        
+      
       RUN assignNewValue IN h_LogicalObject ("":U,"":U,FALSE).
     END.
     WHEN "TXT":U THEN DO:
@@ -763,10 +748,10 @@ PROCEDURE changeFieldStates :
       IF RowObject.node_code:SENSITIVE THEN DO:
         RUN enableField IN h_primarySDO.
         RUN enableField IN h_LogicalObject.
-        DISABLE RowObject.node_text_label_expression
-                RowObject.label_text_substitution
-                RowObject.foreign_fields
-                WITH FRAME {&FRAME-NAME}.
+        assign RowObject.node_text_label_expression:sensitive = no
+               RowObject.label_text_substitution_fields:sensitive = no
+               RowObject.foreign_fields:sensitive = no.
+                
       END.
     END.
     WHEN "SDO":U THEN DO:
@@ -775,11 +760,10 @@ PROCEDURE changeFieldStates :
         RUN enableField IN h_DataSource.
         RUN enableField IN h_primarySDO.
         RUN enableField IN h_LogicalObject.
-        ENABLE RowObject.run_attribute 
-                RowObject.node_text_label_expression
-                RowObject.label_text_substitution
-                RowObject.foreign_fields
-                WITH FRAME {&FRAME-NAME}.
+        assign RowObject.run_attribute:sensitive = yes
+               RowObject.node_text_label_expression:sensitive = yes
+               RowObject.label_text_substitution_fields:sensitive = yes
+               RowObject.foreign_fields:sensitive = yes.
       END.
     END.
   END CASE.
@@ -1050,4 +1034,3 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-

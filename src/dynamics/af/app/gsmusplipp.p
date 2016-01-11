@@ -35,25 +35,9 @@ af/cod/aftemwizpw.w
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS DataLogicProcedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -135,7 +119,7 @@ ASSIGN cObjectName = "{&object-name}":U.
 {af/sup2/afcheckerr.i &define-only = YES}
 
 &GLOBAL-DEFINE DATA-LOGIC-TABLE gsm_user
-&GLOBAL-DEFINE DATA-FIELD-DEFS "af/obj2/gsmusfullo.i"
+&GLOBAL-DEFINE DATA-FIELD-DEFS "af/obj2/gsmusdyno.i"
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -193,6 +177,17 @@ FUNCTION addSecurityTypes RETURNS HANDLE
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD calculateconfirm_password DataLogicProcedure  _DB-REQUIRED
 FUNCTION calculateconfirm_password RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
+
+{&DB-REQUIRED-START}
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD calculatecreate_user_profile_data DataLogicProcedure  _DB-REQUIRED
+FUNCTION calculatecreate_user_profile_data RETURNS CHARACTER
   ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -813,6 +808,7 @@ PROCEDURE createEndTransValidate :
   Notes:       
 ------------------------------------------------------------------------------*/
 
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1203,6 +1199,14 @@ PROCEDURE writeBeginTransValidate :
   Notes:       
 ------------------------------------------------------------------------------*/
 
+  /* We must store the create_user_profile_data value here.  It is 
+     needed in writeEndTransValidate to determine whether to create
+     the profile data record but the calculated field has been 
+     re-calcualted by then losing the value the user entered.  */
+  DYNAMIC-FUNCTION('setUserProperty':U IN TARGET-PROCEDURE,
+                   INPUT 'CreateProfileData':U,
+                   INPUT b_gsm_user.create_user_profile_data).
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1221,6 +1225,41 @@ PROCEDURE writeEndTransValidate :
 ------------------------------------------------------------------------------*/
 
    DEFINE VARIABLE cMessageList              AS CHARACTER    NO-UNDO.
+   DEFINE VARIABLE cCreateProfileData        AS CHARACTER    NO-UNDO.
+   
+   /* Set SaveSizePos Profile data value */
+   cCreateProfileData = DYNAMIC-FUNCTION('getUserProperty':U IN TARGET-PROCEDURE,
+                                          INPUT 'CreateProfileData':U).
+   FIND gsc_profile_type WHERE
+     gsc_profile_type.profile_type_code = "Window":U NO-LOCK NO-ERROR.
+   IF AVAILABLE gsc_profile_type THEN
+   DO:
+     FIND gsc_profile_code WHERE 
+       gsc_profile_code.profile_type_obj = gsc_profile_type.profile_type_obj AND
+       gsc_profile_code.profile_code     = "SaveSizPos":U NO-LOCK NO-ERROR.
+     IF AVAILABLE gsc_profile_code THEN
+     DO:
+    
+       FIND gsm_profile_data WHERE
+           gsm_profile_data.profile_type_obj = gsc_profile_type.profile_type_obj AND
+           gsm_profile_data.profile_code_obj = gsc_profile_code.profile_code_obj AND
+           gsm_profile_data.profile_data_key = "SaveSizPos":U AND
+           gsm_profile_data.context_id       = "":U AND
+           gsm_profile_data.user_obj         = b_gsm_user.user_obj NO-ERROR.
+       IF NOT AVAILABLE gsm_profile_data THEN
+       DO:
+         CREATE gsm_profile_data.
+         ASSIGN
+           gsm_profile_data.profile_type_obj = gsc_profile_type.profile_type_obj
+           gsm_profile_data.profile_code_obj = gsc_profile_code.profile_code_obj
+           gsm_profile_data.profile_data_key = "SaveSizPos":U
+           gsm_profile_data.context_id       = "":U 
+           gsm_profile_data.user_obj         = b_gsm_user.user_obj.
+       END.  /* not avail profile data */
+       ASSIGN 
+         gsm_profile_data.profile_data_value = cCreateProfileData.
+     END.  /* if avail profile code */
+   END.  /* if avail profile type */
 
    /* Check if the password has been modified */
    IF isCreate() OR b_gsm_user.user_password NE old_gsm_user.user_password THEN
@@ -1573,6 +1612,58 @@ FUNCTION calculateconfirm_password RETURNS CHARACTER
   hPassword  = hRowObject:BUFFER-FIELD("user_password":U).
 
   RETURN STRING(hPassword:BUFFER-VALUE).
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
+
+{&DB-REQUIRED-START}
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION calculatecreate_user_profile_data DataLogicProcedure  _DB-REQUIRED
+FUNCTION calculatecreate_user_profile_data RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  create_user_profile_data calculated field function 
+    Notes:  This calculated field is used to determine whether a profile data
+            record is written for the user that determines whether window
+            positions and sizes are saved for the user.
+            
+            The value is set to the value of the SaveSizPos profile data record 
+            for this user.  If there is no record, it defaults to no.
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE cReturnValue AS CHARACTER INITIAL "no":U NO-UNDO.
+DEFINE VARIABLE hRowObject   AS HANDLE                   NO-UNDO.
+DEFINE VARIABLE hUserObj     AS HANDLE                   NO-UNDO.
+
+  hRowObject = DYNAMIC-FUNCTION("getRowObject":U IN TARGET-PROCEDURE).
+  hUserObj   = hRowObject:BUFFER-FIELD("user_obj":U).
+
+  FIND gsc_profile_type WHERE
+    gsc_profile_type.profile_type_code = "Window":U NO-LOCK NO-ERROR.
+  IF AVAILABLE gsc_profile_type THEN
+  DO:
+    FIND gsc_profile_code WHERE 
+      gsc_profile_code.profile_type_obj = gsc_profile_type.profile_type_obj AND
+      gsc_profile_code.profile_code     = "SaveSizPos":U NO-LOCK NO-ERROR.
+    IF AVAILABLE gsc_profile_code THEN
+    DO:
+
+      FIND gsm_profile_data WHERE
+          gsm_profile_data.profile_type_obj = gsc_profile_type.profile_type_obj AND
+          gsm_profile_data.profile_code_obj = gsc_profile_code.profile_code_obj AND
+          gsm_profile_data.profile_data_key = "SaveSizPos":U AND
+          gsm_profile_data.context_id       = "":U AND
+          gsm_profile_data.user_obj         = hUserObj:BUFFER-VALUE NO-LOCK NO-ERROR.
+      IF AVAILABLE gsm_profile_data THEN
+        cReturnValue = gsm_profile_data.profile_data_value.
+      
+    END.  /* if avail profile code */
+  END.  /* if avail profile type */
+  
+  RETURN cReturnValue.
 
 END FUNCTION.
 

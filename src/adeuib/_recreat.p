@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*----------------------------------------------------------------------------
@@ -49,6 +33,7 @@ Last modified on 12/19/96 by GFS - ported code for use with OCXs
 ----------------------------------------------------------------------------*/
 DEFINE INPUT PARAMETER p_recid AS RECID NO-UNDO.
 
+{adecomm/oeideservice.i}
 {adeuib/uniwidg.i}      /* Universal Widget TEMP-TABLE definition   */
 {adeuib/layout.i}
 {adeuib/triggers.i}     /* Code BLock TEMP-TABLE definition         */
@@ -74,6 +59,7 @@ DEFINE VARIABLE endSequenceNumber   AS INTEGER       NO-UNDO.
 DEFINE VARIABLE tcode               AS CHARACTER     NO-UNDO.
 DEFINE VARIABLE tempBinaryFile      AS CHARACTER     NO-UNDO INITIAL ?.
 DEFINE VARIABLE h_tmpwin            AS WIDGET-HANDLE NO-UNDO.
+DEFINE VARIABLE cLinkedFile         AS CHARACTER     NO-UNDO.
 
 DEFINE BUFFER f_U FOR _U.
 
@@ -235,6 +221,16 @@ IF _U._TYPE = "WINDOW" THEN DO:
         TRIGGERS:
           {adeuib/windtrig.i}
         END TRIGGERS.
+
+   IF OEIDEIsRunning THEN
+   DO:
+     RUN displayWindow IN hOEIDEService ("com.openedge.pdt.oestudio.views.OEAppBuilderView", "DesignView_" + getProjectName(), _h_win).
+     IF AVAILABLE _P AND _P._SAVE-AS-FILE <> ? THEN
+     DO:
+       RUN getLinkedFileOfFile IN hOEIDEService (_P._SAVE-AS-FILE, OUTPUT cLinkedFile).
+       RUN setWindowOfFile IN hOEIDEService (cLinkedFile, _h_win).
+     END.  
+   END.
         
    IF _C._menu-recid NE ? THEN DO:
      RUN adeuib/_updmenu.p (NO, _C._menu-recid, OUTPUT h_menu-bar).
@@ -331,6 +327,16 @@ IF _U._TYPE = "DIALOG-BOX" THEN DO:
                  {adeuib/dialtrig.i &SECTION = FRAME}
             END TRIGGERS.
 
+    IF OEIDEIsRunning THEN
+    DO:    
+      RUN displayWindow IN hOEIDEService ("com.openedge.pdt.oestudio.views.OEAppBuilderView", "DesignView_" + getProjectName(), h_dlg_win).
+      IF AVAILABLE _P AND _P._SAVE-AS-FILE <> ? THEN
+      DO:
+        RUN getLinkedFileOfFile IN hOEIDEService (_P._SAVE-AS-FILE, OUTPUT cLinkedFile).
+        RUN setWindowOfFile IN hOEIDEService (cLinkedFile, h_self).
+      END.  
+    END.
+        
     ASSIGN _U._HANDLE            = h_self
            _U._PARENT            = h_self:PARENT
            _C._CURRENT-ITERATION = h_self:CURRENT-ITERATION

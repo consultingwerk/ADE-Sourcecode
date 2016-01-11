@@ -2,30 +2,14 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/  
+*********************************************************************/
 /*--------------------------------------------------------------------------
     File        : browser.p
-    Purpose     : Super procedure for PDO SmartBrowser objects
+    Purpose     : Super procedure for SmartDataBrowser objects
 
     Syntax      : adm2/browser.p
 
@@ -100,6 +84,17 @@ FUNCTION colValues RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-destroyBrowse) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD destroyBrowse Procedure 
+FUNCTION destroyBrowse RETURNS LOGICAL
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getActionEvent) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getActionEvent Procedure 
@@ -137,6 +132,94 @@ FUNCTION getApplyExitOnAction RETURNS LOGICAL
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getBGColor Procedure 
 FUNCTION getBGColor RETURNS INTEGER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getBrowseColumnBGColors) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getBrowseColumnBGColors Procedure 
+FUNCTION getBrowseColumnBGColors RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getBrowseColumnFGColors) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getBrowseColumnFGColors Procedure 
+FUNCTION getBrowseColumnFGColors RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getBrowseColumnFonts) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getBrowseColumnFonts Procedure 
+FUNCTION getBrowseColumnFonts RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getBrowseColumnLabelBGColors) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getBrowseColumnLabelBGColors Procedure 
+FUNCTION getBrowseColumnLabelBGColors RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getBrowseColumnLabelFGColors) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getBrowseColumnLabelFGColors Procedure 
+FUNCTION getBrowseColumnLabelFGColors RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getBrowseColumnLabelFonts) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getBrowseColumnLabelFonts Procedure 
+FUNCTION getBrowseColumnLabelFonts RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getBrowseColumnLabels) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getBrowseColumnLabels Procedure 
+FUNCTION getBrowseColumnLabels RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getBrowseColumnWidths) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getBrowseColumnWidths Procedure 
+FUNCTION getBrowseColumnWidths RETURNS CHARACTER
   ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -237,6 +320,17 @@ FUNCTION getFGColor RETURNS INTEGER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFolderWindowToLaunch Procedure 
 FUNCTION getFolderWindowToLaunch RETURNS CHARACTER
   ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getFont) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFont Procedure 
+FUNCTION getFont RETURNS INTEGER
+(  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -475,6 +569,94 @@ FUNCTION setBGColor RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setBrowseColumnBGColors) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setBrowseColumnBGColors Procedure 
+FUNCTION setBrowseColumnBGColors RETURNS LOGICAL
+  ( INPUT pcBrowseColumnBGColors AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setBrowseColumnFGColors) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setBrowseColumnFGColors Procedure 
+FUNCTION setBrowseColumnFGColors RETURNS LOGICAL
+  ( INPUT pcBrowseColumnFGColors AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setBrowseColumnFonts) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setBrowseColumnFonts Procedure 
+FUNCTION setBrowseColumnFonts RETURNS LOGICAL
+  ( INPUT pcBrowseColumnFonts AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setBrowseColumnLabelBGColors) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setBrowseColumnLabelBGColors Procedure 
+FUNCTION setBrowseColumnLabelBGColors RETURNS LOGICAL
+  ( INPUT pcBrowseColumnLabelBGColors AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setBrowseColumnLabelFGColors) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setBrowseColumnLabelFGColors Procedure 
+FUNCTION setBrowseColumnLabelFGColors RETURNS LOGICAL
+  ( INPUT pcBrowseColumnLabelFGColors AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setBrowseColumnLabelFonts) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setBrowseColumnLabelFonts Procedure 
+FUNCTION setBrowseColumnLabelFonts RETURNS LOGICAL
+  (  INPUT pcBrowseColumnLabelFonts AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setBrowseColumnLabels) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setBrowseColumnLabels Procedure 
+FUNCTION setBrowseColumnLabels RETURNS LOGICAL
+  ( INPUT pcBrowseColumnLabels AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setBrowseColumnWidths) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setBrowseColumnWidths Procedure 
+FUNCTION setBrowseColumnWidths RETURNS LOGICAL
+  ( INPUT pcBrowseColumnWidths AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setCalcWidth) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setCalcWidth Procedure 
@@ -557,6 +739,17 @@ FUNCTION setFGColor RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFolderWindowToLaunch Procedure 
 FUNCTION setFolderWindowToLaunch RETURNS LOGICAL
   ( pcTemp AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setFont) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFont Procedure 
+FUNCTION setFont RETURNS LOGICAL
+( piFont AS INTEGER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -745,7 +938,6 @@ FUNCTION stripCalcs RETURNS CHARACTER
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
 /* Settings for THIS-PROCEDURE
    Type: Procedure
-   Compile into: adm2
    Allow: 
    Frames: 0
    Add Fields to: Neither
@@ -758,7 +950,7 @@ FUNCTION stripCalcs RETURNS CHARACTER
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 19.48
+         HEIGHT             = 18.19
          WIDTH              = 59.8.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -882,10 +1074,9 @@ DEFINE VARIABLE iLoop            AS INTEGER    NO-UNDO.
     hDataSource = {fnarg dataObjectHandle cDataSource hDataSource}.
   END.
      
-  {get RebuildOnRepos lRebuild hDataSource}.
-
   IF VALID-HANDLE(hBrowse) AND VALID-HANDLE(hDataSource) THEN
   DO:
+   {get RebuildOnRepos lRebuild hDataSource}.
     ghTargetProcedure = TARGET-PROCEDURE.
     {get DataHandle hDataQuery hDataSource}.
     ghTargetProcedure = ?. 
@@ -1153,6 +1344,7 @@ PROCEDURE cancelRecord :
 
   RUN SUPER.
   IF RETURN-VALUE = "ADM-ERROR":U THEN RETURN "ADM-ERROR":U.    
+  
   {get QueryObject lSelfQuery}.
   
   IF lSelfQuery THEN
@@ -1165,7 +1357,10 @@ PROCEDURE cancelRecord :
       RUN displayFields IN TARGET-PROCEDURE (?).                
   END.
 
+  RUN applyEntry IN TARGET-PROCEDURE(?).
+
   RETURN.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1248,24 +1443,24 @@ DEFINE OUTPUT PARAMETER phMenuItem  AS HANDLE     NO-UNDO.
   IF lSubMenu THEN
     CREATE SUB-MENU phMenuItem
       ASSIGN
-        PARENT = phPopupMenu
         LABEL  = pcLabel
-        NAME   = pcName.
+        NAME   = pcName
+        PARENT = phPopupMenu.
   ELSE DO:
     IF plToggle THEN
       CREATE MENU-ITEM phMenuItem
         ASSIGN
-          PARENT     = phPopupMenu
           LABEL      = pcLabel
           NAME       = pcName
           TOGGLE-BOX = plToggle
-          CHECKED    = plChecked.
+          CHECKED    = plChecked
+          PARENT     = phPopupMenu.
     ELSE
       CREATE MENU-ITEM phMenuItem
         ASSIGN
-          PARENT = phPopupMenu
           LABEL  = pcLabel
-          NAME   = pcName.
+          NAME   = pcName
+          PARENT = phPopupMenu.
   END.  /* else not submenu */
 
 END PROCEDURE.
@@ -1311,10 +1506,19 @@ DEFINE VARIABLE lUseRepos        AS LOGICAL    NO-UNDO.
   {get UseRepository lUseRepos}.
   &UNDEFINE xp-assign
   
-  CREATE MENU hPopupMenu
-    ASSIGN 
-      POPUP-ONLY = TRUE
-      TITLE      = 'Browser Menu'.
+  IF VALID-HANDLE(hBrowse:POPUP-MENU) THEN
+  DO:
+    hPopupMenu = hBrowse:POPUP-MENU.
+    CREATE MENU-ITEM hRuleItem
+       ASSIGN
+          SUBTYPE = 'RULE':U
+          PARENT  = hPopupMenu.
+  END.
+  ELSE 
+    CREATE MENU hPopupMenu
+      ASSIGN 
+        POPUP-ONLY = TRUE
+        TITLE      = 'Browser Menu'.
 
   RUN createPopupItem IN TARGET-PROCEDURE
       (INPUT hPopupMenu,
@@ -1369,8 +1573,8 @@ DEFINE VARIABLE lUseRepos        AS LOGICAL    NO-UNDO.
 
   CREATE MENU-ITEM hRuleItem
     ASSIGN 
-      PARENT  = hResetSubMenu
-      SUBTYPE = 'RULE':U.
+      SUBTYPE = 'RULE':U
+      PARENT  = hResetSubMenu.
 
   RUN createPopupItem IN TARGET-PROCEDURE
       (INPUT hResetSubMenu,
@@ -1397,8 +1601,8 @@ DEFINE VARIABLE lUseRepos        AS LOGICAL    NO-UNDO.
   DO:
     CREATE MENU-ITEM hRuleItem
       ASSIGN 
-        PARENT  = hPopupMenu
-        SUBTYPE = 'RULE':U.
+        SUBTYPE = 'RULE':U
+        PARENT  = hPopupMenu.
 
     RUN createPopupItem IN TARGET-PROCEDURE
         (INPUT hPopupMenu,
@@ -1439,8 +1643,8 @@ DEFINE VARIABLE lUseRepos        AS LOGICAL    NO-UNDO.
 
   CREATE MENU-ITEM hRuleItem
     ASSIGN 
-      PARENT  = hPopupMenu
-      SUBTYPE = 'RULE':U.
+      SUBTYPE = 'RULE':U
+      PARENT  = hPopupMenu.
 
   RUN createPopupItem IN TARGET-PROCEDURE
       (INPUT hPopupMenu,
@@ -1518,6 +1722,7 @@ DEFINE VARIABLE hFrame       AS HANDLE     NO-UNDO.
 DEFINE VARIABLE hSearchField AS HANDLE     NO-UNDO.
 DEFINE VARIABLE hSearchLabel AS HANDLE     NO-UNDO.
 DEFINE VARIABLE lHideOnInit  AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE lDbAware     AS LOGICAL    NO-UNDO.
 
   &SCOPED-DEFINE xp-assign
   {get DataSource hDataSource}    /* Proc. handle of our SDO. */
@@ -1530,9 +1735,10 @@ DEFINE VARIABLE lHideOnInit  AS LOGICAL    NO-UNDO.
   IF cSearchField NE "":U AND cSearchField NE ? THEN
   DO:
     {get ContainerHandle hFrame}.    /* Frame handle to put the widgets in. */
-    
-    /* Currently we only support dbfields as search/sort field */  
-    IF {fnarg columnDbColumn cSearchField hDataSource} > "":U THEN
+    {get DBAware lDbAware hDataSource}.
+
+     /*  we only support dbfields as search/sort field in dbaware datasource*/  
+    IF NOT lDbAware OR {fnarg columnDbColumn cSearchField hDataSource} > "":U THEN
     DO:
       ASSIGN hBrowse:HEIGHT = hBrowse:HEIGHT - 1  /* Shorten the browse */
              hBrowse:ROW = 2                     /* and place at row 2 */ 
@@ -1549,6 +1755,7 @@ DEFINE VARIABLE lHideOnInit  AS LOGICAL    NO-UNDO.
           FRAME   = hFrame
           SCREEN-VALUE = cSearchLabel
           HIDDEN       = FALSE.
+
       CREATE FILL-IN hSearchField
         ASSIGN 
           DATA-TYPE = dynamic-function('columnDataType':U IN hDataSource, 
@@ -1566,10 +1773,21 @@ DEFINE VARIABLE lHideOnInit  AS LOGICAL    NO-UNDO.
             PERSISTENT RUN searchTrigger IN TARGET-PROCEDURE. 
         END TRIGGERS.
 
+      IF NUM-ENTRIES(cSearchField,'.') = 1 THEN
+        cSearchField = 'RowObject.':U + cSearchField.
+      
       /* reopens only if different from before, sets QuerySort if query is not 
          opened yet */
-      {fnarg resortQuery "'RowObject.':U + cSearchField" hDataSource}.
+      {fnarg resortQuery cSearchField hDataSource}.
 
+      /* We want to reposition to the first row after the resort,
+         regardless of what was previouisly selected.
+       */
+      DYNAMIC-FUNCTION('findRowWhere':U IN hDataSource,
+                       cSearchField, 
+                       '':u,
+                       '>=':U).
+      
       &SCOPED-DEFINE xp-assign
       {get HideOnInit lHideOnInit}
       {set SearchHandle hSearchField}
@@ -1952,31 +2170,10 @@ PROCEDURE destroyObject :
                SmartDataObject query at a time.
 ------------------------------------------------------------------------------*/
 
-  DEFINE VARIABLE lQueryObject AS LOGICAL  NO-UNDO.
-  DEFINE VARIABLE hDataSource  AS HANDLE   NO-UNDO.
   DEFINE VARIABLE lAction      AS LOG      NO-UNDO.
-  DEFINE VARIABLE hSearchField AS HANDLE   NO-UNDO.
-  DEFINE VARIABLE hSearchLabel AS HANDLE   NO-UNDO.
-  DEFINE VARIABLE hPopupMenu   AS HANDLE   NO-UNDO.
-  DEFINE VARIABLE hBrowse      AS HANDLE   NO-UNDO.
-
-  ghTargetProcedure = TARGET-PROCEDURE. /* 9.1B: Stash this so DQB can get it.*/
   
-  &SCOPED-DEFINE xp-assign
-  {get QueryObject lQueryObject}
-  {get ApplyActionOnExit lAction}
-  {get SearchHandle hSearchField}
-  {get BrowseHandle hBrowse}.
-  &UNDEFINE xp-assign
+  {get ApplyActionOnExit lAction}.
   
-  hPopupMenu = hBrowse:POPUP-MENU NO-ERROR.
-  /* Do this only if the object does not have its own database query. */
-  IF NOT lQueryObject THEN
-  DO:
-    {get DataSource hDataSource}.
-    {set DataQueryBrowsed no hDataSource} NO-ERROR.
-  END.
-
   /* Is the exit supposed to behave as a double-click or return?
     (publish the ActionEvent) */
   IF lAction THEN 
@@ -1986,21 +2183,10 @@ PROCEDURE destroyObject :
     {set ApplyExitOnAction FALSE}.
     RUN defaultAction IN TARGET-PROCEDURE.
   END. /* if lAction */
-
-  IF VALID-HANDLE(hSearchField) THEN
-  DO:
-    hSearchLabel = hSearchField:SIDE-LABEL-HANDLE.
-    DELETE OBJECT hSearchField.
-    DELETE OBJECT hSearchLabel.
-  END.
-
-  /* Destroy the browser's Popup Menu */
-  IF VALID-HANDLE(hPopupMenu) THEN
-    DELETE OBJECT hPopupMenu.
   
-  RUN SUPER.
+  {fn destroyBrowse}.
 
-  ghTargetProcedure = ?.         /* 9.1B: reset local TargetProcedure var. */
+  RUN SUPER.
 
   RETURN.
 END PROCEDURE.
@@ -2231,9 +2417,10 @@ PROCEDURE enableFields :
     {get FieldSecurity cFieldSecurity}.
     &UNDEFINE xp-assign
     
-    IF cFields NE "":U AND (NOT lEnabled) /* There are fields to enable */
-         AND cTarget NE "":U              /* and an Update-Target */
-    THEN DO:
+    IF cFields NE "":U 
+    AND (NOT lEnabled) /* There are fields to enable */
+    AND cTarget NE "":U THEN  /* and an Update-Target */
+    DO:
       lSelected = hBrowse:NUM-SELECTED-ROWS = 1.  /* Was a row selected? */
       {get ContainerHandle hFrame}.
       
@@ -2253,25 +2440,15 @@ PROCEDURE enableFields :
           hColumn:READ-ONLY = FALSE.
         hColumn = hColumn:NEXT-COLUMN.
       END.
-      hBrowse:READ-ONLY = no.
-      IF lSelected THEN hBrowse:SELECT-FOCUSED-ROW() NO-ERROR.
+      hBrowse:READ-ONLY = NO.
+      IF lSelected THEN 
+        hBrowse:SELECT-FOCUSED-ROW() NO-ERROR.
 
-      /* "APPLY ENTRY" on a hidden, updatable browse will make the
-         browse respond to cursor key navigation, which is wrong */
-      IF NOT {fn getObjectHidden} AND
-
-      /* Apply ENTRY to browse widget only if not in add/copy mode,
-         only if there is a row selected and only if the focus is not
-         already on the browse. This is to prevent event triggers to be
-         fired unnecessarily such as ROW-ENTRY, ROW-LEAVE and OFF-END */
-         NOT CAN-DO("Add,Copy":U,{fn getNewRecord}) AND 
-         lSelected AND 
-         FOCUS <> hBrowse THEN
-        APPLY "ENTRY":U TO hBrowse.
       {set FieldsEnabled yes}.
     END.
     
-    IF cState = 'NoRecordAvailable':U THEN DO:
+    IF cState = 'NoRecordAvailable':U THEN 
+    DO:
       {get ContainerHandle hFrame}.
       APPLY "ENTRY":U TO hFrame.
     END.  /* if no record available */    
@@ -2335,15 +2512,20 @@ PROCEDURE fetchDataSet :
       hBrowse:REFRESHABLE = NO.
     WHEN 'LastEnd':U THEN 
     DO:
+      /* if a get-last was used while the browse was sleeping, the browse will 
+         wake up completetely empty, so reposition it to current before the 
+         wake up call. */
+      hBrowse:QUERY:REPOSITION-BACKWARDS(1). 
       hBrowse:REFRESHABLE = YES. 
 
       /* This is/was a workaround to "wake-up" an updatable browse when running 
-         on an Appserver. If the cell had focus before fetchLast it did not 
-         detect that anything had changed and all rows became invisible. 
-         This particular condition can be detected as hBrowse:num-entries 
-         returned 0, (the browse must have a split personality), but by doing 
-         this in all cases we get an additional benefit as an updatable browse 
-         will keep focus in the current cell */ 
+         on an Appserver. Probably not necessary after the reposition-backwards
+         was added just before the refresh. (If the cell had focus before 
+         fetchLast it did not detect that anything had changed and all rows 
+         became invisible. This particular condition can be detected as 
+         hBrowse:num-entries returned 0), 
+         but by doing this in all cases we get an additional benefit as an 
+         updatable browse will keep focus in the current cell */ 
       IF FOCUS = hBrowse THEN
         APPLY "ENTRY":U TO hBrowse. 
     END.
@@ -2434,6 +2616,8 @@ DEFINE VARIABLE hLastColumn          AS HANDLE     NO-UNDO.
 DEFINE VARIABLE iColDataEntry        AS INTEGER    NO-UNDO.
 DEFINE VARIABLE iFieldPos            AS INTEGER    NO-UNDO.
 DEFINE VARIABLE lUseRepository       AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE lQualFields          AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE cColumnRef           AS CHARACTER  NO-UNDO.
 
   &SCOPED-DEFINE xp-assign
   {get BrowseHandle hBrowse}
@@ -2446,15 +2630,6 @@ DEFINE VARIABLE lUseRepository       AS LOGICAL    NO-UNDO.
   
   IF lUseRepository THEN
   DO:
-    &SCOPED-DEFINE xpBrowseColumnBGColors
-    &SCOPED-DEFINE xpBrowseColumnFGColors
-    &SCOPED-DEFINE xpBrowseColumnLabelBGColors
-    &SCOPED-DEFINE xpBrowseColumnLabelFGColors
-    &SCOPED-DEFINE xpBrowseColumnLabelFonts
-    &SCOPED-DEFINE xpBrowseColumnLabels
-    &SCOPED-DEFINE xpBrowseColumnWidths
-    &SCOPED-DEFINE xpBrowseColumnFonts
-    
     &SCOPED-DEFINE xp-assign
     {get BrowseColumnBGColors cColumnBGColors}
     {get BrowseColumnFGColors cColumnFGColors}
@@ -2464,30 +2639,25 @@ DEFINE VARIABLE lUseRepository       AS LOGICAL    NO-UNDO.
     {get BrowseColumnLabels cColumnLabels}
     {get BrowseColumnWidths cColumnWidths}
     {get BrowseColumnFonts cColumnFonts}.
-    &UNDEFINE xp-assign
-
-    &UNDEFINE xpBrowseColumnBGColors
-    &UNDEFINE xpBrowseColumnFGColors
-    &UNDEFINE xpBrowseColumnLabelBGColors
-    &UNDEFINE xpBrowseColumnLabelFGColors
-    &UNDEFINE xpBrowseColumnLabelFonts
-    &UNDEFINE xpBrowseColumnLabels
-    &UNDEFINE xpBrowseColumnWidths    
-    &UNDEFINE xpBrowseColumnFonts       
-     
+    &UNDEFINE xp-assign     
   END.  /* if using repository and dynamic */
   IF VALID-HANDLE(hBrowse) THEN
     ASSIGN hColumn   = hBrowse:FIRST-COLUMN  NO-ERROR.
   ASSIGN dTotalWidth = 0
-         dAllWidth   = 0.
+         dAllWidth   = 0
+         lQualfields = INDEX(cEnabledFields,'.':U) > 0.
   
   DO WHILE VALID-HANDLE(hColumn):
     ASSIGN
       iFieldPos     = iFieldPos + 1 
       cFieldHandles = cFieldHandles 
                     + (IF cFieldHandles NE "":U THEN "," ELSE "":U) 
-                    + STRING(hColumn).
-    IF LOOKUP(hColumn:NAME, cEnabledFields) NE 0 THEN
+                    + STRING(hColumn)
+      cColumnRef    = IF lQualfields 
+                      THEN hColumn:TABLE + '.':U + hColumn:NAME
+                      ELSE hColumn:NAME.
+
+    IF LOOKUP(cColumnRef, cEnabledFields) NE 0 THEN
       cEnabledHandles = cEnabledHandles 
                       +  (IF cEnabledHandles NE "":U THEN ",":U ELSE "":U)
                       + STRING(hColumn).
@@ -2531,12 +2701,14 @@ DEFINE VARIABLE lUseRepository       AS LOGICAL    NO-UNDO.
     cDefaultColumnData = cDefaultColumnData
                        + (IF NUM-ENTRIES(cDefaultColumnData, CHR(3)) > 0 
                           THEN CHR(3) ELSE '':U)
-                       + hColumn:NAME + CHR(4) + STRING(hColumn:WIDTH-PIXELS).
+                       + cColumnRef + CHR(4) + STRING(hColumn:WIDTH-PIXELS).
+
     DO iColDataEntry = 1 TO NUM-ENTRIES(cSavedColumnData, CHR(3)):
       cColDataEntry = ENTRY(iColDataEntry, cSavedColumnData, CHR(3)).
-      IF ENTRY(1, cColDataEntry, CHR(4)) = hColumn:NAME THEN
+      IF ENTRY(1, cColDataEntry, CHR(4)) = cColumnRef THEN
         hColumn:WIDTH-PIXELS = INTEGER(ENTRY(2, cColDataEntry, CHR(4))) NO-ERROR. 
     END.  /* do iNumCol to entries in saved column data */
+
     dAllWidth = dAllWidth + hColumn:WIDTH-PIXELS.
     /* Hide/Disable Secured columns */
     IF NUM-ENTRIES(cFieldSecurity) >= iFieldPos 
@@ -2591,8 +2763,6 @@ PROCEDURE initializeObject :
   DEFINE VARIABLE hBrowse           AS HANDLE NO-UNDO.
   DEFINE VARIABLE iMaxGuess         AS INTEGER   NO-UNDO.
   DEFINE VARIABLE cEnabledFields    AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cCreateHandles    AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cRowIdent         AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cUIBMode          AS CHARACTER NO-UNDO.
   DEFINE VARIABLE lSaveSource       AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE lQueryObject      AS LOGICAL   NO-UNDO.
@@ -2601,18 +2771,14 @@ PROCEDURE initializeObject :
   DEFINE VARIABLE cFields           AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cBrowseFields     AS CHARACTER NO-UNDO.
   DEFINE VARIABLE hDataQuery        AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE hDataBuffer       AS HANDLE    NO-UNDO.
   DEFINE VARIABLE hTableio          AS HANDLE    NO-UNDO.
   DEFINE VARIABLE iField            AS INTEGER   NO-UNDO.
   DEFINE VARIABLE cField            AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE lResult           AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE hField            AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE iEntry            AS INTEGER   NO-UNDO.
   DEFINE VARIABLE lDynamic          AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE cValidation       AS CHARACTER NO-UNDO.
   DEFINE VARIABLE lCalcWidth        AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE iNumDown          AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE cContained        AS CHARACTER NO-UNDO.
   DEFINE VARIABLE hQueryRowObject   AS HANDLE    NO-UNDO.
   DEFINE VARIABLE hQueryHandle      AS HANDLE    NO-UNDO.
   DEFINE VARIABLE hTarget           AS HANDLE     NO-UNDO.
@@ -2631,11 +2797,14 @@ PROCEDURE initializeObject :
   DEFINE VARIABLE cTooltip          AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lSourceNewMode    AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE hSearchField      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cDefaultTable     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSourceType       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lSBO              AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cSourceFieldName  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lQual             AS LOGICAL    NO-UNDO.
 
-  /* NEW FOR 9.1B: stash the TARGET-PROCEDURE handle away so the
-     Data-Source can identify it if it's an SBO */
+  /* store TARGET-PROCEDURE so the source can identify it if it's an SBO */
   ghTargetProcedure = TARGET-PROCEDURE.
-
   &SCOPED-DEFINE xp-assign
   {get UIBMode cUIBMode}
   /* First determine whether this is a "dynamic" browser (actually an
@@ -2643,149 +2812,191 @@ PROCEDURE initializeObject :
   {get DataSource hDataSource}    /* Proc. handle of our SDO. */
   {get BrowseHandle hBrowse}.     /* Handle of the browse widget. */
   &UNDEFINE xp-assign
-  
+ 
   /* Retrieves column positions and sizes, if they exist, from the profile 
      manager for this browser instance */
   IF VALID-HANDLE(gshProfileManager) THEN 
     RUN readSavedSettings IN TARGET-PROCEDURE.
 
-  IF VALID-HANDLE(hDataSource) AND NOT (cUIBMode BEGINS "Design":U) THEN
+  IF VALID-HANDLE(hDataSource) THEN
   DO:
+    &SCOPED-DEFINE xp-assign
     /* If SDO is in new mode the record is not in the query yet, 
        so we avoid reposition and also do a find-by-rowid at end */
-    {get NewMode lSourceNewMode hDataSource}.
+    {get NewMode lSourceNewMode hDataSource}
     /* Reassign the Browse to use the Data Object's query. */
-    {get DataHandle hDataQuery hDataSource}.   
-    /* keep track of the SDOs position */
-    IF VALID-HANDLE(hDataQuery) THEN
-      ASSIGN
-        hQueryRowObject = hDataQuery:GET-BUFFER-HANDLE(1)
-        rRowid = hQueryRowObject:ROWID.  
+    {get DataHandle hDataQuery hDataSource}   
+    {get ObjectType cSourceType hDataSource}
+    .
+    &UNDEFINE xp-assign
+    lSBO = cSourceType = 'SmartBusinessObject':U.
+    IF VALID-HANDLE(hDataQuery) then
+    DO:
+      /* keep track of the SDOs position */
+      IF hDataQuery:IS-OPEN THEN
+        rRowid = hDataQuery:GET-BUFFER-HANDLE(1):ROWID. 
+    END.
+    /* The sort column used to be set here.  It is now set from the SDO initialization */
+    hBrowse:ALLOW-COLUMN-SEARCHING = TRUE.
+    IF hBrowse:NUM-COLUMNS = 0 THEN
+    DO:
+      lDynamic = yes.            /* Signal to code below. */
+      /* Get Displayed and Enabled fields at runtime. */  
+      IF VALID-HANDLE(hDataQuery) THEN         
+      DO:
+        ASSIGN hBrowse:QUERY = hDataQuery NO-ERROR.     /* Attach this to the Browse.*/      
+        ERROR-STATUS:ERROR = NO.
+        /* Synch the browse with the data source unless it has 
+           a new unsaved record */
+        IF NOT lSourceNewMode AND rRowid <> ? THEN 
+          hDataQuery:REPOSITION-TO-ROWID(rRowid).
+  
+        /* If the browse became visible when the QUERY was attached above then 
+           turn off fit-last-column since the first column will expand to the
+           full length when using add-like below
+           (the reason that this is down here was that there was a run 
+           dataAvailable after the repos, which theoretically may change
+           visibility.. it can probably be move up closer if needed..  )   */
+        IF hBrowse:VISIBLE THEN
+          ASSIGN
+            lFitLastColumn = hBrowse:FIT-LAST-COLUMN
+            hBrowse:FIT-LAST-COLUMN = FALSE.
+      END.
+        
+      &SCOPED-DEFINE xp-assign
+      {get EnabledFields cEnabledFields}
+      {get DisplayedFields cFields}.
+      &UNDEFINE xp-assign
+      /* If DisplayedFields is blank, this means take all fields from the SDO.
+         If EnabledFields is blank, this means take all updatable fields
+         from the SDO, IF there is a Tableio-Source. */
+      cBrowseFields = ?.
+
+      IF lSBO THEN 
+        {get DataSourceNames cDefaultTable}.
+      /* If no fields are specified figure out default */
+      IF cFields = "":U THEN
+      DO:
+
+        {get DataColumns cFields hDataSource}.
+        IF NOT lSBO THEN 
+          {get DataTable cDefaultTable hDataSource}. 
+        cBrowseFields = "":U.
+      END.    /* END DO IF cFields "" */
+      IF VALID-HANDLE(hBrowse:QUERY) THEN
+      DO iField = 1 TO NUM-ENTRIES(cFields):
+        cField = ENTRY(iField, cFields) .
+        /* Sourcefieldname is used to lookup in the source and need to be 
+           qualified if the source is an sbo. The column list is qualified 
+           if it was retrieved from the sbo above if DisplayedFields 
+           is blank, but should be stored unqualified in the object as this is 
+           how they are stored and visualized in tools etc.
+           Dataview and SDO targets uses the list as is, but the qualifier
+           is used to filter dataview columns for the default case. 
+           (The dataview can also be accessed with no qualifiers, which 
+            implies columns from the DataTable)  */ 
+           
+        IF lSBO THEN
+        DO:
+          IF INDEX(cField,'.':U) = 0 THEN
+            cSourceFieldName = cDefaultTable + '.':U + cField.
+          ELSE 
+            ASSIGN
+              cSourceFieldName = cField
+              cField           = ENTRY(2,cField,'.':U).
+        END.
+        ELSE 
+          cSourceFieldName = cField.
+        
+        /* Default table is set above if no columns are specified in which case
+           only columns belonging to the default table (or sdo) is added */
+        IF cDefaultTable = '' OR INDEX(cSourceFieldName,'.':U) = 0 
+        OR ENTRY(1,cSourceFieldName,'.':U) = cDefaultTable THEN
+        DO:  
+          hField = {fnarg columnHandle cSourceFieldName hDataSource}.
+          
+          /* Add the requested columns to the browse. */
+          IF VALID-HANDLE(hField) AND (cBrowseFields = ? OR NOT CAN-DO("BLOB,CLOB":U,hField:DATA-TYPE)) THEN
+          DO:
+             IF hField:VALIDATE-EXPRESSION NE ? THEN 
+             DO: 
+               cValidation = hField:VALIDATE-EXPRESSION.
+               hField:VALIDATE-EXPRESSION = "":U.
+               hBrowse:ADD-LIKE-COLUMN(hField).
+               hField:VALIDATE-EXPRESSION = cValidation.
+             END.  /* if vaildate-expression ne ? */
+             ELSE hBrowse:ADD-LIKE-COLUMN(hField).
+             IF cBrowseFields NE ? THEN /* blank fields list, must set it */
+                 cBrowseFields = cBrowseFields 
+                               + (IF cBrowseFields = "":U THEN "":U ELSE ",":U) 
+                               + cField.
+          END. /* END DO IF valid-handle */
+        END. /* if default table = '' or matching  */
+      END.  /* END DO iField */
+      /* blank fields list, must set it */
+      IF cBrowseFields NE ? THEN 
+      DO:           
+        {set DisplayedFields cBrowseFields}.
+        cFields = cBrowseFields.
+      END.
+  
+      /* set fit-last-column (expandable) back if turned off temporarily above*/
+      IF lFitLastColumn THEN
+        hBrowse:FIT-LAST-COLUMN = TRUE.
+    
+      {get UseRepository lUseRepository}.
+      IF cEnabledFields = "":U AND NOT lUseRepository THEN
+      DO:
+        {get TableIOSource hTableIO}.
+        IF VALID-HANDLE(hTableIO) AND VALID-HANDLE (hDataSource) THEN
+        DO:
+          {get UpdatableColumns cEnabledFields hDataSource}.
+          
+          /* If the Display list was specified, but the Enabled list wasn't,
+             make sure we remove any fields from the Enable list which
+             weren't in the Display list. */
+          DO iField = 1 TO NUM-ENTRIES(cEnabledFields):
+            cField = ENTRY(iField, cEnabledFields).
+            IF LOOKUP(cField, cFields) = 0 THEN
+              ASSIGN cEnabledFields = REPLACE(',':U + cEnabledFields + ',':U, 
+                       ',':U + cField + ',':U, ',':U)
+                     cEnabledFields = 
+                       SUBSTR(cEnabledFields, 2, LENGTH(cEnabledFields) - 2,
+                       "CHARACTER":U).
+          END. /* END DO iField */
+          {set EnabledFields cEnabledFields}.
+        END.   /* END DO IF TableIOSource */
+      END.     /* END DO IF cEnabledFields "" */
+       
+      /* If there are any enabled fields, set the enabled prop to yes,
+         because they will be explitly disabled by initializeObject if needed. */
+      IF cEnabledFields NE "":U THEN
+      DO:
+        lQual = INDEX(cEnabledFields,'.':U) > 0.
+        /* Now enable the appropriate columns. 
+           The Browse must be made updatable first. */
+        hBrowse:READ-ONLY = no.    
+        hField = hBrowse:FIRST-COLUMN.
+        DO WHILE VALID-HANDLE(hField):
+          IF LOOKUP((IF lQual THEN hField:TABLE + '.':U ELSE '':U)
+                     + hField:NAME,cEnabledFields) NE 0 THEN 
+            hField:READ-ONLY = NO.
+          hField = hField:NEXT-COLUMN.
+        END. /* END DO WHILE hField */
+        {set FieldsEnabled yes}.
+      END. /* END DO IF cEnabledFields */   
+      {get TOOLTIP cTooltip}.
+      hBrowse:TOOLTIP = cTooltip.
+    END.   /* END DO IF NUM-COLUMNS = 0 -- "dynamic" browser */
   END.
 
-  /* The sort column used to be set here.  It is now set from the SDO initialization */
-  hBrowse:ALLOW-COLUMN-SEARCHING = TRUE.
-  IF hBrowse:NUM-COLUMNS = 0 THEN
-  DO:
-    lDynamic = yes.            /* Signal to code below. */
-    /* Get Displayed and Enabled fields at runtime. */
-    IF NOT VALID-HANDLE(hDataSource) THEN
-      RETURN ERROR.  /* Can't do anything without it. */
-    
-    IF VALID-HANDLE(hDataQuery) THEN         
-    DO:
-      ASSIGN hBrowse:QUERY = hDataQuery NO-ERROR.     /* Attach this to the Browse.*/      
-      ERROR-STATUS:ERROR = NO.
-      hDataBuffer = hDataQuery:GET-BUFFER-HANDLE(1).  /* SDO Buffer handle.  */
-      
-      /* Synch the browse with the data source unless it has 
-         a new unsaved record */
-      IF NOT lSourceNewMode AND rRowid <> ? THEN 
-        hDataQuery:REPOSITION-TO-ROWID(rRowid).
-
-      /* If the browse became visible when the QUERY was attached above then 
-         turn off fit-last-column since the first column will expand to the
-         full length when using add-like below
-         (the reason that this is down here was that there was a run 
-         dataAvailable after the repos, which theoretically may change
-         visibility.. it can probably be move up closer if needed..  )   */
-      IF hBrowse:VISIBLE THEN
-        ASSIGN
-          lFitLastColumn = hBrowse:FIT-LAST-COLUMN
-          hBrowse:FIT-LAST-COLUMN = FALSE.
-    END.
-      
-    &SCOPED-DEFINE xp-assign
-    {get EnabledFields cEnabledFields}
-    {get DisplayedFields cFields}.
-    &UNDEFINE xp-assign
-    /* If DisplayedFields is blank, this means take all fields from the SDO.
-       If EnabledFields is blank, this means take all updatable fields
-       from the SDO, IF there is a Tableio-Source. */
-    cBrowseFields = ?.
-    IF cFields = "":U AND VALID-HANDLE (hDataSource) THEN
-    DO:
-        /* If the DataSource is in fact an SBO, this function is not
-           available, which means effectively that a dynamic SDB built
-           against an SBO *must* have a column list (otherwise the SBO
-           has no idea which SDO to attach the SDB to). */
-      {get DataColumns cFields hDataSource} NO-ERROR.
-      cBrowseFields = "":U.
-    END.    /* END DO IF cFields "" */
-    DO iField = 1 TO NUM-ENTRIES(cFields):
-      /* Add the requested columns to the browse. */
-        hField = hDataBuffer:BUFFER-FIELD(ENTRY(iField, cFields)) NO-ERROR.
-        IF VALID-HANDLE(hField) AND (cBrowseFields = ? OR NOT CAN-DO("BLOB,CLOB":U,hField:DATA-TYPE)) THEN
-        DO:
-           IF hField:VALIDATE-EXPRESSION NE ? THEN 
-           DO: 
-             cValidation = hField:VALIDATE-EXPRESSION.
-             hField:VALIDATE-EXPRESSION = "":U.
-             hBrowse:ADD-LIKE-COLUMN(hField).
-             hField:VALIDATE-EXPRESSION = cValidation.
-           END.  /* if vaildate-expression ne ? */
-           ELSE hBrowse:ADD-LIKE-COLUMN(hField).
-           IF cBrowseFields NE ? THEN /* blank fields list, must set it */
-               cBrowseFields = cBrowseFields + (IF cBrowseFields = "":U THEN "":U ELSE ",":U) + hField:NAME.
-        END. /* END DO IF valid-handle */
-    END.  /* END DO iField */
-    IF cBrowseFields NE ? THEN DO: /* blank fields list, must set it */
-        {set DisplayedFields cBrowseFields}.         /* Set the property. */
-        cFields = cBrowseFields.
-    END.
-
-    /* set fit-last-column (expandable) back if turned off temporarily above*/
-    IF lFitLastColumn THEN
-      hBrowse:FIT-LAST-COLUMN = TRUE.
-
-    {get UseRepository lUseRepository}.
-    IF cEnabledFields = "":U AND NOT lUseRepository THEN
-    DO:
-      {get TableIOSource hTableIO}.
-      IF VALID-HANDLE(hTableIO) AND VALID-HANDLE (hDataSource) THEN
-      DO:
-        {get UpdatableColumns cEnabledFields hDataSource}.
-        
-        /* If the Display list was specified, but the Enabled list wasn't,
-           make sure we remove any fields from the Enable list which
-           weren't in the Display list. */
-        DO iField = 1 TO NUM-ENTRIES(cEnabledFields):
-          cField = ENTRY(iField, cEnabledFields).
-          IF LOOKUP(cField, cFields) = 0 THEN
-            ASSIGN cEnabledFields = REPLACE(',':U + cEnabledFields + ',':U, 
-                     ',':U + cField + ',':U, ',':U)
-                   cEnabledFields = 
-                     SUBSTR(cEnabledFields, 2, LENGTH(cEnabledFields) - 2,
-                     "CHARACTER":U).
-        END. /* END DO iField */
-        {set EnabledFields cEnabledFields}.
-      END.   /* END DO IF TableIOSource */
-    END.     /* END DO IF cEnabledFields "" */
-     
-    /* If there are any enabled fields, set the enabled prop to yes,
-       because they will be explitly disabled by initializeObject if needed. */
-    IF cEnabledFields NE "":U THEN
-    DO:
-      /* Now enable the appropriate columns. 
-         The Browse must be made updatable first. */
-      hBrowse:READ-ONLY = no.    
-      hField = hBrowse:FIRST-COLUMN.
-      DO WHILE VALID-HANDLE(hField):
-        IF LOOKUP(hField:NAME,cEnabledFields) NE 0 THEN
-          hField:READ-ONLY = no.
-        hField = hField:NEXT-COLUMN.
-      END. /* END DO WHILE hField */
-      {set FieldsEnabled yes}.
-    END. /* END DO IF cEnabledFields */   
-    {get TOOLTIP cTooltip}.
-    hBrowse:TOOLTIP = cTooltip.
-  END.   /* END DO IF NUM-COLUMNS = 0 -- "dynamic" browser */
 
   /* We need to set expandable to TRUE here when CalcWidth is TRUE before
      the browse is viewed so that calcWidth can calculate column widths
      correctly. */
   {get CalcWidth lCalcWidth}.
-  IF NOT (cUIBMode BEGINS "Design":U) AND lCalcWidth THEN hBrowse:EXPANDABLE = FALSE.
+  IF NOT (cUIBMode BEGINS "Design":U) AND lCalcWidth THEN 
+    hBrowse:EXPANDABLE = FALSE.
 
   {get QueryObject lQueryObject}.
   /* We need to set CheckLastOnOpen to TRUE so that LastDBRowIdent is set
@@ -2854,7 +3065,10 @@ PROCEDURE initializeObject :
      or if there's no Update-Target, then the Browse should be disabled. */
   &SCOPED-DEFINE xp-assign
   {get SaveSource lSaveSource}
-  {get UpdateTarget cTarget}.
+  {get UpdateTarget cTarget}
+  {get DataSource hDataSource}
+  {get BrowseHandle hBrowse}
+  {get QueryObject lQueryObject}.
   &UNDEFINE xp-assign
   IF (NOT lSaveSource) OR (cTarget = "":U) THEN 
   DO:
@@ -2863,12 +3077,6 @@ PROCEDURE initializeObject :
     PUBLISH 'resetTableio':U FROM TARGET-PROCEDURE.
   END.  
   ELSE {set ObjectMode 'Modify':U}.
-
-  &SCOPED-DEFINE xp-assign
-  {get DataSource hDataSource}
-  {get BrowseHandle hBrowse}
-  {get QueryObject lQueryObject}.
-  &UNDEFINE xp-assign
   hBrowse:CREATE-ON-ADD = TRUE.
   
   IF lQueryObject THEN
@@ -2892,8 +3100,8 @@ PROCEDURE initializeObject :
     /* Else go ahead and attach the query and set the source's property.*/
     IF NOT lDynamic THEN       /* If dynamic, this has been done above. */
     DO:
-      ASSIGN hBrowse:QUERY = hDataQuery NO-ERROR. 
-      ERROR-STATUS:ERROR = NO.
+      ASSIGN hBrowse:QUERY = hDataQuery NO-ERROR.
+      ERROR-STATUS:ERROR = NO. 
     END.
   END.   /* VALID */
   
@@ -2910,14 +3118,12 @@ PROCEDURE initializeObject :
        set QueryRowObject from it */
     hQueryHandle = hBrowse:QUERY.
     IF VALID-HANDLE(hQueryHandle) THEN
-        hQueryRowObject = hQueryHandle:GET-BUFFER-HANDLE(1).
+      hQueryRowObject = hQueryHandle:GET-BUFFER-HANDLE(1).
 
     {set QueryRowObject hQueryRowObject}.
 
     /* set column data (such as label, width, etc.) */
     RUN initializeColumnSettings IN TARGET-PROCEDURE no-error.
-
-    {set CreateHandles cCreateHandles}.
     
     RUN createSearchField IN TARGET-PROCEDURE.
 
@@ -2974,7 +3180,6 @@ PROCEDURE initializeObject :
 
   END.        /* END IF VALID-HANDLE(hBrowse) */
   
-
   ghTargetProcedure = ?.         /* 9.1B: reset local storage of this. */
 
   RUN adjustReposition IN TARGET-PROCEDURE.
@@ -3296,9 +3501,9 @@ PROCEDURE offEnd :
     iLastRowNum = DYNAMIC-FUNCTION('linkProperty':U IN TARGET-PROCEDURE,
                                    INPUT 'DATA-SOURCE':U,
                                    INPUT 'LastRowNum':U).
-    IF iLastRowNum NE ? THEN RETURN. /* If we have already fetched the last row then return */
     
-
+    IF iLastRowNum NE ? THEN 
+      RETURN. /* If we have already fetched the last row then return */
     IF lModified THEN 
     DO:                   
       cMsg = (IF cNewRecord = 'no':U 
@@ -4479,8 +4684,11 @@ PROCEDURE searchTrigger :
   {get SearchField cSearchField}.
   &UNDEFINE xp-assign
   
+  IF NUM-ENTRIES(cSearchField,'.') = 1 THEN
+    cSearchField = 'RowObject.':U + cSearchField.
+
   DYNAMIC-FUNCTION('findRowWhere':U IN hSource,
-                    'RowObject.':U + cSearchField, 
+                    cSearchField, 
                     SELF:SCREEN-VALUE,
                     '>=':U).
   
@@ -4576,10 +4784,12 @@ PROCEDURE startSearch :
   DEFINE INPUT PARAMETER phBrowse AS HANDLE  NO-UNDO.
   
   DEFINE VARIABLE hColumn AS HANDLE  NO-UNDO.
-  
+  DEFINE VARIABLE cSort   AS CHARACTER  NO-UNDO.
   hColumn = phBrowse:CURRENT-COLUMN.
-
-  {set SORT hColumn:NAME}.  
+  
+  cSort = hColumn:TABLE + ".":U + hColumn:NAME.
+  
+  {set SORT cSort}.  
   
   APPLY 'END-SEARCH':U TO phBrowse.
 
@@ -5009,7 +5219,6 @@ PROCEDURE updateTitle :
   DEFINE VARIABLE hSource               AS HANDLE       NO-UNDO.
   DEFINE VARIABLE cDisplayed            AS CHARACTER    NO-UNDO.
   DEFINE VARIABLE cColumns              AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE lDataLinksEnabled     AS LOGICAL      NO-UNDO.
   DEFINE VARIABLE cWindowTitleField     AS CHARACTER    NO-UNDO.
   DEFINE VARIABLE cWindowTitleColumn    AS CHARACTER    NO-UNDO.
   DEFINE VARIABLE cWindowTitleValue     AS CHARACTER    NO-UNDO.
@@ -5111,8 +5320,11 @@ PROCEDURE viewObject :
     IF (lNewMode AND hDataSource <> hUpdateTarget) 
     OR NOT CAN-DO(cInactiveLinks,'DataSource':U) THEN
       ASSIGN 
+        /* nothing really works if there is no rowobject here, but it could 
+           happen if links are missing or datasource fails etc and an
+           error message just makes it worse, so suppress it */
         hRowObject = hBrowse:QUERY:GET-BUFFER-HANDLE(1)
-        rRowid     = hRowObject:ROWID. 
+        rRowid     = hRowObject:ROWID NO-ERROR. 
   END. /* valid datasource */
   
   RUN SUPER.
@@ -5267,6 +5479,66 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-destroyBrowse) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION destroyBrowse Procedure 
+FUNCTION destroyBrowse RETURNS LOGICAL
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose: destroy browse (remove all columns in design mode)
+    Notes: Separated out of destroyobject to be called from inst prop dialog 
+           at design time 
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hDataSource  AS HANDLE   NO-UNDO.
+  DEFINE VARIABLE lAction      AS LOG      NO-UNDO.
+  DEFINE VARIABLE hSearchField AS HANDLE   NO-UNDO.
+  DEFINE VARIABLE hSearchLabel AS HANDLE   NO-UNDO.
+  DEFINE VARIABLE hPopupMenu   AS HANDLE   NO-UNDO.
+  DEFINE VARIABLE hBrowse      AS HANDLE   NO-UNDO.
+  DEFINE VARIABLE cUIBmode     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hNext        AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hDel         AS HANDLE     NO-UNDO.
+
+  &SCOPED-DEFINE xp-assign
+  {get SearchHandle hSearchField}
+  {get BrowseHandle hBrowse}
+  {get UIBMode cUIBMode}
+   .
+  &UNDEFINE xp-assign
+  
+  hPopupMenu = hBrowse:POPUP-MENU NO-ERROR.
+  /* Do this only if the object does not have its own database query. */
+  {get DataSource hDataSource}.
+  
+  ghTargetProcedure = TARGET-PROCEDURE. /* 9.1B: Stash this so DQB can get it.*/
+  {set DataQueryBrowsed no hDataSource} NO-ERROR.
+  ghTargetProcedure = ?.         /* 9.1B: reset local TargetProcedure var. */
+  
+  IF VALID-HANDLE(hSearchField) THEN
+  DO:
+    hSearchLabel = hSearchField:SIDE-LABEL-HANDLE.
+    DELETE OBJECT hSearchField.
+    DELETE OBJECT hSearchLabel.
+  END.
+
+  /* Destroy the browser's Popup Menu when it is dynaamic, a static popup
+     menu could be defined for static browsers  */
+  IF VALID-HANDLE(hPopupMenu) AND hPopupMenu:DYNAMIC THEN
+    DELETE OBJECT hPopupMenu.
+  
+  /* removes columns 
+    (no-error is used as this actually may give a don't fit in frame error ) */
+  hBrowse:QUERY = ? NO-ERROR.
+  
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getActionEvent) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getActionEvent Procedure 
@@ -5353,6 +5625,174 @@ FUNCTION getBGColor RETURNS INTEGER
       
   RETURN iBGColor.
  
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getBrowseColumnBGColors) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getBrowseColumnBGColors Procedure 
+FUNCTION getBrowseColumnBGColors RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    define variable cBrowseColumnBGColors    as character                no-undo.
+    
+    {get BrowseColumnBGColors cBrowseColumnBGColors}.
+    
+    return cBrowseColumnBGColors.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getBrowseColumnFGColors) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getBrowseColumnFGColors Procedure 
+FUNCTION getBrowseColumnFGColors RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    define variable cBrowseColumnFGColors        as character        no-undo.
+    
+    {get BrowseColumnFGColors cBrowseColumnFGColors}.
+    
+    return cBrowseColumnFGColors.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getBrowseColumnFonts) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getBrowseColumnFonts Procedure 
+FUNCTION getBrowseColumnFonts RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    define variable cBrowseColumnFonts        as character            no-undo.
+    
+    {get BrowseColumnFonts cBrowseColumnFonts}.
+    
+    return cBrowseColumnFonts.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getBrowseColumnLabelBGColors) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getBrowseColumnLabelBGColors Procedure 
+FUNCTION getBrowseColumnLabelBGColors RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    define variable cBrowseColumnLabelBGColors        as character        no-undo.
+    
+    {get BrowseColumnLabelBGColors cBrowseColumnLabelBGColors}.
+    
+    return cBrowseColumnLabelBGColors.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getBrowseColumnLabelFGColors) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getBrowseColumnLabelFGColors Procedure 
+FUNCTION getBrowseColumnLabelFGColors RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    define variable cBrowseColumnLabelFGColors        as character        no-undo.
+    
+    {get BrowseColumnLabelFGColors cBrowseColumnLabelFGColors}.
+    
+    return cBrowseColumnLabelFGColors.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getBrowseColumnLabelFonts) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getBrowseColumnLabelFonts Procedure 
+FUNCTION getBrowseColumnLabelFonts RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    define variable cBrowseColumnLabelFonts        as character        no-undo.
+    
+    {get BrowseColumnLabelFonts cBrowseColumnLabelFonts}.
+    
+    return cBrowseColumnLabelFonts.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getBrowseColumnLabels) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getBrowseColumnLabels Procedure 
+FUNCTION getBrowseColumnLabels RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    define variable cBrowseColumnLabels        as character            no-undo.
+    
+    {get BrowseColumnLabels cBrowseColumnLabels}.
+    
+    return cBrowseColumnLabels.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getBrowseColumnWidths) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getBrowseColumnWidths Procedure 
+FUNCTION getBrowseColumnWidths RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    define variable cBrowseColumnWidths        as character            no-undo.
+    
+    {get BrowseColumnWidths cBrowseColumnWidths}.
+    
+    return cBrowseColumnWidths.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -5596,6 +6036,28 @@ DEF VAR cTemp AS CHARACTER.
 
     {get FolderWindowToLaunch cTemp}.
   RETURN cTemp.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getFont) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFont Procedure 
+FUNCTION getFont RETURNS INTEGER
+(  ) :
+/*------------------------------------------------------------------------------
+  Purpose: get the font of the browse
+    Notes:  
+------------------------------------------------------------------------------*/
+ DEFINE VARIABLE hBrowse AS HANDLE     NO-UNDO.
+
+ {get BrowseHandle hBrowse}.
+ IF VALID-HANDLE(hBrowse) THEN
+   RETURN hBrowse:FONT.
 
 END FUNCTION.
 
@@ -6202,6 +6664,158 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setBrowseColumnBGColors) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setBrowseColumnBGColors Procedure 
+FUNCTION setBrowseColumnBGColors RETURNS LOGICAL
+  ( INPUT pcBrowseColumnBGColors AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    {set BrowseColumnBGColors pcBrowseColumnBGColors}.
+    
+    return true.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setBrowseColumnFGColors) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setBrowseColumnFGColors Procedure 
+FUNCTION setBrowseColumnFGColors RETURNS LOGICAL
+  ( INPUT pcBrowseColumnFGColors AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    {set BrowseColumnFGColors pcBrowseColumnFGColors}.
+    
+    return true.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setBrowseColumnFonts) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setBrowseColumnFonts Procedure 
+FUNCTION setBrowseColumnFonts RETURNS LOGICAL
+  ( INPUT pcBrowseColumnFonts AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    {set BrowseColumnFonts pcBrowseColumnFonts}.
+    
+    return true.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setBrowseColumnLabelBGColors) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setBrowseColumnLabelBGColors Procedure 
+FUNCTION setBrowseColumnLabelBGColors RETURNS LOGICAL
+  ( INPUT pcBrowseColumnLabelBGColors AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    {set BrowseColumnLabelBGColors pcBrowseColumnLabelBGColors}.
+    
+    return true.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setBrowseColumnLabelFGColors) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setBrowseColumnLabelFGColors Procedure 
+FUNCTION setBrowseColumnLabelFGColors RETURNS LOGICAL
+  ( INPUT pcBrowseColumnLabelFGColors AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    {set BrowseColumnLabelFGColors pcBrowseColumnLabelFGColors}.
+    
+    return true.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setBrowseColumnLabelFonts) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setBrowseColumnLabelFonts Procedure 
+FUNCTION setBrowseColumnLabelFonts RETURNS LOGICAL
+  (  INPUT pcBrowseColumnLabelFonts AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    {set BrowseColumnLabelFonts pcBrowseColumnLabelFonts}.
+    
+    return true.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setBrowseColumnLabels) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setBrowseColumnLabels Procedure 
+FUNCTION setBrowseColumnLabels RETURNS LOGICAL
+  ( INPUT pcBrowseColumnLabels AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    {set BrowseColumnLabels pcBrowseColumnLabels}.
+    
+    return true.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setBrowseColumnWidths) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setBrowseColumnWidths Procedure 
+FUNCTION setBrowseColumnWidths RETURNS LOGICAL
+  ( INPUT pcBrowseColumnWidths AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    {set BrowseColumnWidths pcBrowseColumnWidths}.
+    
+    return true.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setCalcWidth) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setCalcWidth Procedure 
@@ -6407,6 +7021,31 @@ FUNCTION setFolderWindowToLaunch RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
   {set FolderWindowToLaunch pcTemp}.
   RETURN TRUE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setFont) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setFont Procedure 
+FUNCTION setFont RETURNS LOGICAL
+( piFont AS INTEGER ) :
+/*------------------------------------------------------------------------------
+  Purpose: Sets the font of the browse 
+   Params: piFont AS INTEGER 
+    Notes:  
+------------------------------------------------------------------------------*/
+ DEFINE VARIABLE hBrowse AS HANDLE     NO-UNDO.
+
+ {get BrowseHandle hBrowse}.
+ IF VALID-HANDLE(hBrowse) THEN
+   hBrowse:FONT = piFont.
+
+ RETURN TRUE.
 
 END FUNCTION.
 
@@ -6667,7 +7306,13 @@ FUNCTION setSort RETURNS LOGICAL
     RUN changeCursor IN TARGET-PROCEDURE ('WAIT':U).
 
     /* Qualify with RowObject name and specify to toggle current sort */
-    pcColumnName = 'RowObject.':U + pcColumnName + ' TOGGLE':U.
+
+    IF NUM-ENTRIES(pcColumnName,'.') = 1 THEN
+       pcColumnName = 'RowObject.':U + pcColumnName.
+
+    /* The datasource supports 'toggle' sort option */           
+    pcColumnName = pcColumnName + ' TOGGLE':U. 
+ 
     lSort = {fnarg resortQuery pcColumnName hSource}.
     RUN changeCursor IN TARGET-PROCEDURE ('':U).
   END. /* valid-handle(hSource)*/

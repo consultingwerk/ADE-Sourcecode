@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
           icfdb            PROGRESS
@@ -29,25 +29,9 @@ DEFINE TEMP-TABLE RowObject
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -116,7 +100,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /* Include file with RowObject temp-table definition */
 &Scoped-define DATA-FIELD-DEFS "af/obj2/gscmtfullo.i"
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
@@ -160,11 +144,11 @@ DEFINE FRAME frMain
           LABEL "Manager type code"
           VIEW-AS FILL-IN 
           SIZE 63.2 BY 1
-     RowObject.manager_type_name AT ROW 2.05 COL 26.2 COLON-ALIGNED
+     RowObject.manager_type_name AT ROW 2.1 COL 26.2 COLON-ALIGNED
           LABEL "Manager type name"
           VIEW-AS FILL-IN 
           SIZE 78.4 BY 1
-     RowObject.static_handle AT ROW 3.1 COL 26.2 COLON-ALIGNED
+     RowObject.static_handle AT ROW 3.24 COL 26.2 COLON-ALIGNED
           LABEL "Static handle"
           VIEW-AS COMBO-BOX INNER-LINES 5
           LIST-ITEM-PAIRS "No static handle","NON",
@@ -182,18 +166,18 @@ DEFINE FRAME frMain
                      "appSrvUtils","AU"
           DROP-DOWN-LIST
           SIZE 64 BY 1
-     RowObject.system_owned AT ROW 4.14 COL 28.2
+     RowObject.system_owned AT ROW 4.29 COL 28.2
           LABEL "System owned"
           VIEW-AS TOGGLE-BOX
           SIZE 19.2 BY 1
-     RowObject.write_to_config AT ROW 5.19 COL 28.2
+     RowObject.write_to_config AT ROW 5.33 COL 28.2
           LABEL "Write to config"
           VIEW-AS TOGGLE-BOX
           SIZE 19 BY 1
-     RowObject.manager_narration AT ROW 8.33 COL 28.2 NO-LABEL
+     RowObject.manager_narration AT ROW 8.62 COL 28.2 NO-LABEL
           VIEW-AS EDITOR MAX-CHARS 500 SCROLLBAR-VERTICAL
           SIZE 78.4 BY 5.91
-     fiManagerNarrationLabel AT ROW 8.38 COL 7.6 COLON-ALIGNED NO-LABEL
+     fiManagerNarrationLabel AT ROW 8.76 COL 7.6 COLON-ALIGNED NO-LABEL
      SPACE(50.40) SKIP(0.00)
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
@@ -234,7 +218,7 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 13.24
+         HEIGHT             = 18.62
          WIDTH              = 105.6.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -257,7 +241,7 @@ END.
 /* SETTINGS FOR WINDOW vTableWin
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frMain
-   NOT-VISIBLE Size-to-Fit                                              */
+   NOT-VISIBLE FRAME-NAME Size-to-Fit                                   */
 ASSIGN 
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
@@ -330,29 +314,29 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.smartobject_objFieldLabelDB Bound ManagerFieldTooltipPress F4 for LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_smartobject NO-LOCK 
-                      WHERE ryc_smartobject.customization_result_obj = 0 , 
-                      FIRST gsc_object_type NO-LOCK 
-                      WHERE gsc_object_type.object_type_obj = ryc_smartobject.object_type_obj , 
-                      FIRST gsc_product_module NO-LOCK 
-                      WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj 
-                      BY ryc_smartobject.object_filenameQueryTablesryc_smartobject,gsc_object_type,gsc_product_moduleBrowseFieldsryc_smartobject.object_filename,ryc_smartobject.object_description,gsc_product_module.product_module_code,gsc_object_type.object_type_codeBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(70)|X(35)|X(35)|X(35)RowsToBatch200BrowseTitleLookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNamelkSmartobjectsSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNamedb_bound_smartobject_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.smartobject_objFieldLabelDB Bound ManagerFieldTooltipPress F4 for LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_smartobject NO-LOCK
+                     WHERE ryc_smartobject.customization_result_obj = 0 ,
+                     FIRST gsc_object_type NO-LOCK
+                     WHERE gsc_object_type.object_type_obj = ryc_smartobject.object_type_obj ,
+                     FIRST gsc_product_module NO-LOCK
+                     WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj
+                     BY ryc_smartobject.object_filenameQueryTablesryc_smartobject,gsc_object_type,gsc_product_moduleBrowseFieldsryc_smartobject.object_filename,ryc_smartobject.object_description,gsc_product_module.product_module_code,gsc_object_type.object_type_codeBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(70)|X(35)|X(35)|X(35)RowsToBatch200BrowseTitleLookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNamelkSmartobjectsSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureDataSourceNameFieldNamedb_bound_smartobject_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dynlookup ).
-       RUN repositionObject IN h_dynlookup ( 6.14 , 28.20 ) NO-ERROR.
+       RUN repositionObject IN h_dynlookup ( 6.38 , 28.20 ) NO-ERROR.
        RUN resizeObject IN h_dynlookup ( 1.00 , 50.00 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.smartobject_objFieldLabelDB Unbound ManagerFieldTooltipPress F4 for LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_smartobject NO-LOCK 
-                      WHERE ryc_smartobject.customization_result_obj = 0 , 
-                      FIRST gsc_object_type NO-LOCK 
-                      WHERE gsc_object_type.object_type_obj = ryc_smartobject.object_type_obj , 
-                      FIRST gsc_product_module NO-LOCK 
-                      WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj 
-                      BY ryc_smartobject.object_filenameQueryTablesryc_smartobject,gsc_object_type,gsc_product_moduleBrowseFieldsryc_smartobject.object_filename,ryc_smartobject.object_description,gsc_product_module.product_module_code,gsc_object_type.object_type_codeBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(70)|X(35)|X(35)|X(35)RowsToBatch200BrowseTitleLookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNamelkSmartobjectsSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNamedb_unbound_smartobject_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.smartobject_objFieldLabelDB Unbound ManagerFieldTooltipPress F4 for LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_smartobject NO-LOCK
+                     WHERE ryc_smartobject.customization_result_obj = 0 ,
+                     FIRST gsc_object_type NO-LOCK
+                     WHERE gsc_object_type.object_type_obj = ryc_smartobject.object_type_obj ,
+                     FIRST gsc_product_module NO-LOCK
+                     WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj
+                     BY ryc_smartobject.object_filenameQueryTablesryc_smartobject,gsc_object_type,gsc_product_moduleBrowseFieldsryc_smartobject.object_filename,ryc_smartobject.object_description,gsc_product_module.product_module_code,gsc_object_type.object_type_codeBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(70)|X(35)|X(35)|X(35)RowsToBatch200BrowseTitleLookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNamelkSmartobjectsSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureDataSourceNameFieldNamedb_unbound_smartobject_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dynlookup-2 ).
-       RUN repositionObject IN h_dynlookup-2 ( 7.19 , 28.20 ) NO-ERROR.
+       RUN repositionObject IN h_dynlookup-2 ( 7.48 , 28.20 ) NO-ERROR.
        RUN resizeObject IN h_dynlookup-2 ( 1.00 , 50.00 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */

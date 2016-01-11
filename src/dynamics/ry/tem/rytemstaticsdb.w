@@ -1,4 +1,11 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /* Procedure Description
 " Static SmartDataBrowser Object Template with Wizard.
 
@@ -18,7 +25,7 @@ Use this template to create a new  SmartDataBrowser object with the assistance o
 /* Actions: af/cod/aftemwizcw.w ? ? ? af/sup/afwizdeltp.p */
 /*  Static SmartDataBrowser Wizard
 Welcome to the  Static SmartDataBrowser Wizard! During the next few steps, the wizard will lead you through all the stages necessary to create this type of object. If you cancel the wizard at any time, then all your changes will be lost. Once the wizard is completed, it is possible to recall parts of the wizard using the LIST option from the section editor. Press Next to proceed.
-af/cod/aftemwiziw.w,af/cod/aftemwizpw.w,af/cod2/aftemwizow.w,adm2/support/_wizdfld.w,af/cod/aftemwizew.w 
+af/cod/aftemwiziw.w,af/cod/aftemwizpw.w,adm2/support/_wizdo.w,adm2/support/_wizdfld.w,af/cod/aftemwizew.w 
 */
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -34,7 +41,7 @@ af/cod/aftemwizpw.w
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS bTableWin 
 /*---------------------------------------------------------------------------------
-  File: rysttbrowb.w
+  File: rytemstaticsdb.w
 
   Description:  Template  SmartDataBrowser Template
 

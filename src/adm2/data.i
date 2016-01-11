@@ -5,25 +5,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Method-Library 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*--------------------------------------------------------------------------
@@ -138,10 +122,9 @@ DO:
   RUN start-super-proc("adm2/data.p":U).
   RUN start-super-proc("adm2/dataext.p":U).
   /* dataext.p is merely a simple "extension" of data.p.  This was necessary
-     because functions don't have there own action segment and data.p got
-     too big and had to be broken up.  All of the functions in dataext.p
-     are get and set property functions. It also contains the do* procedures
-     for client TT management */
+     because data.p got too big and had to be broken up. 
+     dataext.p have all get and set property functions and contains the 
+     do* procedures for client TT management */
   RUN start-super-proc("adm2/dataextcols.p":U).
   /* dataextcols.p is also a simple "extension" of data.p.  This was necessary
      because the action segment became too big on A400 also after the split in 
@@ -152,9 +135,6 @@ DO:
  /* dataextapi.p is also a simple "extension" of data.p separated because the 
     ecode segment became too big. dataextapi.p contains the open client api */
   
-  /* Overrides query object setting */
-  {set DataSourceEvents 'dataAvailable,confirmContinue,isUpdatePending':U}.
-
   {set QueryObject YES}.  /* All DataObjects are query objects.*/
 
   &IF DEFINED(DATA-FIELD-DEFS) = 0 &THEN
@@ -206,12 +186,11 @@ END.  /* if not adm-load-from-repos */
   hDataQuery = QUERY qDataQuery:HANDLE.  /* Temp-Table query */
   {set DataHandle hDataQuery}.
   /* Set up the RowObject query to be opened dynamically. */
-  {get DataQueryString cQueryString}.
-  cQueryString = {fnarg fixQueryString cQueryString}.
-  hDataQuery:QUERY-PREPARE(cQueryString).  
-
   hRowObject = BUFFER RowObject:HANDLE.
   {set RowObject hRowObject}.  /* Handle of RowObject buffer.*/
+  cQueryString = "FOR EACH " + hRowObject:NAME.
+  {set DataQueryString cQueryString}.
+  hDataQuery:QUERY-PREPARE(cQueryString).  
   hRowObject = BUFFER RowObjUpd:HANDLE.
   {set RowObjUpd hRowObject}. /* Row Update buffer handle. */
   hRowObject = TEMP-TABLE RowObject:HANDLE.

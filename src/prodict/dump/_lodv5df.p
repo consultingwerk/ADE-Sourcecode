@@ -35,7 +35,7 @@ DEFINE NEW SHARED VARIABLE xpos   AS INTEGER NO-UNDO.
 DEFINE NEW SHARED VARIABLE ypos   AS INTEGER NO-UNDO.
 
 DEFINE BUFFER   idx-fld   FOR _Index-field.
-DEFINE VARIABLE datatype LIKE _Data-type               NO-UNDO.
+DEFINE VARIABLE datatype LIKE _Field._Data-type               NO-UNDO.
 DEFINE VARIABLE flag       AS CHARACTER FORMAT "x(25)" NO-UNDO.
 DEFINE VARIABLE fname      AS CHARACTER                NO-UNDO.
 DEFINE VARIABLE i          AS INTEGER                  NO-UNDO.

@@ -4,25 +4,9 @@
 &Scoped-define FRAME-NAME QueryTablefrmAttributes
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS QueryTablefrmAttributes 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*------------------------------------------------------------------------
@@ -165,7 +149,7 @@ FUNCTION isOnLocalField RETURNS LOGICAL
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME QueryTablefrmAttributes
-     SPACE(35.41) SKIP(1.30)
+     SPACE(35.42) SKIP(1.31)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "Dynamic Combo Properties":L.
@@ -245,6 +229,8 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
   RUN adecomm/_setcurs.p ("":U).  
   WAIT-FOR CLOSE OF THIS-PROCEDURE. 
 END.
+
+
 glClosing = TRUE.
 RUN setModal (SESSION,NO).
 
@@ -252,6 +238,8 @@ IF VALID-HANDLE(ghChooseWindow) THEN DO:
   RUN destroyObject IN ghChooseWindow.
   ghChooseWindow = ?.
 END.
+
+DYNAMIC-FUNCTION('shutdown-sdo':U IN _h_func_lib,THIS-PROCEDURE).
 
 /*
 IF VALID-HANDLE(ghAppBuilder) THEN
@@ -422,6 +410,31 @@ PROCEDURE populateSDFData :
   
   IF phDataTable:BUFFER-FIELD("cSDFFileName":U):BUFFER-VALUE = "Static_DynCombo":U THEN
     phDataTable:BUFFER-FIELD("cSDFFileName":U):BUFFER-VALUE = "":U.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE returnDataSourceHandle QueryTablefrmAttributes 
+PROCEDURE returnDataSourceHandle :
+/*------------------------------------------------------------------------------
+  Purpose:     This procedure will return the data source handle of the current
+               viewer that this lookup is being added to.
+  Parameters:  phDataSource - The handle of the data source of the current
+                              viewer
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE OUTPUT PARAMETER phDataSource AS HANDLE     NO-UNDO.
+  
+  DEFINE BUFFER B_P FOR _P.
+
+  FIND FIRST B_P 
+       WHERE B_P._WINDOW-HANDLE = _h_win
+       NO-LOCK NO-ERROR.
+  IF AVAILABLE B_P THEN
+    phDataSource = DYNAMIC-FUNCTION('get-sdo-hdl':U IN _h_func_lib, 
+                                     B_P._data-object,THIS-PROCEDURE).
 
 END PROCEDURE.
 

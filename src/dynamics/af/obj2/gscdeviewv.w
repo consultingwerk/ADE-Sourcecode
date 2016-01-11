@@ -29,25 +29,9 @@ DEFINE TEMP-TABLE RowObject
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -161,7 +145,7 @@ DEFINE BUTTON buValidate
 
 DEFINE VARIABLE fiEntityDesc AS CHARACTER FORMAT "X(256)":U 
      VIEW-AS FILL-IN 
-     SIZE 70.4 BY 1.14 NO-UNDO.
+     SIZE 70.4 BY 1 NO-UNDO.
 
 DEFINE VARIABLE fiExclFldList AS CHARACTER FORMAT "X(50)":U INITIAL "Exclude Field List:" 
      CONTEXT-HELP-ID 0
@@ -181,7 +165,7 @@ DEFINE VARIABLE fiJoinFieldListLabel AS CHARACTER FORMAT "X(35)":U INITIAL "Join
 
 DEFINE FRAME frMain
      fiEntityDesc AT ROW 1 COL 50.8 COLON-ALIGNED NO-LABEL
-     RowObject.entity_sequence AT ROW 2.05 COL 25.6 COLON-ALIGNED
+     RowObject.entity_sequence AT ROW 2.1 COL 25.6 COLON-ALIGNED
           LABEL "Entity sequence"
           VIEW-AS FILL-IN 
           SIZE 7.6 BY 1
@@ -208,7 +192,7 @@ DEFINE FRAME frMain
           VIEW-AS EDITOR MAX-CHARS 500 SCROLLBAR-VERTICAL
           SIZE 95.2 BY 4.62
      buValidate AT ROW 16.52 COL 27.6
-     RowObject.exclude_field_list AT ROW 17.86 COL 28.2 NO-LABEL CONTEXT-HELP-ID 0
+     RowObject.exclude_field_list AT ROW 17.86 COL 28 NO-LABEL CONTEXT-HELP-ID 0
           VIEW-AS EDITOR MAX-CHARS 500 SCROLLBAR-VERTICAL LARGE
           SIZE 94.8 BY 2.29 TOOLTIP "List of fields (comma-separated) to exclude from the dataset"
      fiJoinFieldListLabel AT ROW 6.48 COL 13 COLON-ALIGNED NO-LABEL
@@ -412,7 +396,7 @@ PROCEDURE adm-create-objects :
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
              INPUT  'DisplayedFieldgsc_entity_mnemonic.entity_mnemonicKeyFieldgsc_entity_mnemonic.entity_mnemonicFieldLabelEntityFieldTooltipEnter Entity Mnemonic or Press F4 for Entity Mnemonic LookupKeyFormatX(8)KeyDatatypecharacterDisplayFormatX(8)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_entity_mnemonic NO-LOCK
-                     BY gsc_entity_mnemonic.entity_mnemonicQueryTablesgsc_entity_mnemonicBrowseFieldsgsc_entity_mnemonic.entity_mnemonic,gsc_entity_mnemonic.entity_mnemonic_short_desc,gsc_entity_mnemonic.entity_mnemonic_descriptionBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(8),X(35),X(35)RowsToBatch200BrowseTitleLookup Entity MnemonicsViewerLinkedFieldsgsc_entity_mnemonic.entity_mnemonic_descriptionLinkedFieldDataTypescharacterLinkedFieldFormatsX(35)ViewerLinkedWidgetsfiEntityDescColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureFieldNameentity_mnemonicDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY gsc_entity_mnemonic.entity_mnemonicQueryTablesgsc_entity_mnemonicBrowseFieldsgsc_entity_mnemonic.entity_mnemonic,gsc_entity_mnemonic.entity_mnemonic_short_desc,gsc_entity_mnemonic.entity_mnemonic_descriptionBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(8),X(35),X(35)RowsToBatch200BrowseTitleLookup Entity MnemonicsViewerLinkedFieldsgsc_entity_mnemonic.entity_mnemonic_descriptionLinkedFieldDataTypescharacterLinkedFieldFormatsX(35)ViewerLinkedWidgetsfiEntityDescColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureDataSourceNameFieldNameentity_mnemonicDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dynlookup ).
        RUN repositionObject IN h_dynlookup ( 1.00 , 27.40 ) NO-ERROR.
        RUN resizeObject IN h_dynlookup ( 1.00 , 24.80 ) NO-ERROR.
@@ -420,9 +404,9 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_entity_mnemonic.entity_mnemonic,gsc_entity_mnemonic.entity_mnemonic_descriptionKeyFieldgsc_dataset_entity.entity_mnemonicFieldLabelJoin entity mnemonicFieldTooltipSelect option from listKeyFormatX(8)KeyDatatypecharacterDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_dataset_entity NO-LOCK, FIRST gsc_entity_mnemonic WHERE gsc_entity_mnemonic.entity_mnemonic = gsc_dataset_entity.entity_mnemonic BY gsc_dataset_entity.entity_sequenceQueryTablesgsc_dataset_entity,gsc_entity_mnemonicSDFFileNameSDFTemplateParentFielddeploy_dataset_objParentFilterQuerygsc_dataset_entity.deploy_dataset_obj = DECIMAL(~'&1~')DescSubstitute&1 / &2ComboDelimiterListItemPairsInnerLines5ComboFlagNFlagValue.BuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesSuperProcedureFieldNamejoin_entity_mnemonicDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_entity_mnemonic.entity_mnemonic,gsc_entity_mnemonic.entity_mnemonic_descriptionKeyFieldgsc_dataset_entity.entity_mnemonicFieldLabelJoin entity mnemonicFieldTooltipSelect option from listKeyFormatX(8)KeyDatatypecharacterDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_dataset_entity NO-LOCK, FIRST gsc_entity_mnemonic WHERE gsc_entity_mnemonic.entity_mnemonic = gsc_dataset_entity.entity_mnemonic BY gsc_dataset_entity.entity_sequenceQueryTablesgsc_dataset_entity,gsc_entity_mnemonicSDFFileNameSDFTemplateParentFielddeploy_dataset_objParentFilterQuerygsc_dataset_entity.deploy_dataset_obj = DECIMAL(~'&1~')DescSubstitute&1 / &2ComboDelimiterListItemPairsInnerLines5SortnoComboFlagNFlagValue.BuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesSuperProcedureDataSourceNameFieldNamejoin_entity_mnemonicDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hJoinEntityMnemonic ).
-       RUN repositionObject IN hJoinEntityMnemonic ( 5.33 , 27.80 ) NO-ERROR.
+       RUN repositionObject IN hJoinEntityMnemonic ( 5.29 , 27.80 ) NO-ERROR.
        RUN resizeObject IN hJoinEntityMnemonic ( 1.00 , 95.20 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */

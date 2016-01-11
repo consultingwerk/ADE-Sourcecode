@@ -2,25 +2,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*--------------------------------------------------------------------------
@@ -472,6 +456,17 @@ FUNCTION getFieldSecurity RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getFont) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFont Procedure 
+FUNCTION getFont RETURNS INTEGER 
+(  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getHeight) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getHeight Procedure 
@@ -877,6 +872,17 @@ FUNCTION setFieldPopupMapping RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFieldSecurity Procedure 
 FUNCTION setFieldSecurity RETURNS LOGICAL
   ( pcSecurityType AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setFont) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFont Procedure 
+FUNCTION setFont RETURNS LOGICAL
+( piFont AS INTEGER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1566,7 +1572,7 @@ PROCEDURE initializeObject :
      they need their visualisation deferred, until it's time, according
      to the containr class.
      
-	 We check the ObjectType of the object, since checking the container
+         We check the ObjectType of the object, since checking the container
      handle's type is not guaranteed: we only need to do this for window-like
      containers, like windows, dialogs and contained smartframes. We don't 
      want to do it for dynamic viewers etc, which have FRAMEs as their
@@ -3433,6 +3439,28 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getFont) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFont Procedure 
+FUNCTION getFont RETURNS INTEGER 
+(  ) :
+/*------------------------------------------------------------------------------
+  Purpose: get the font of the frame 
+    Notes:  
+------------------------------------------------------------------------------*/
+ DEFINE VARIABLE hFrame AS HANDLE     NO-UNDO.
+
+ {get ContainerHandle hFrame}.
+ IF VALID-HANDLE(hFrame) THEN
+   RETURN hFrame:FONT.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getHeight) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getHeight Procedure 
@@ -4530,6 +4558,31 @@ FUNCTION setFieldSecurity RETURNS LOGICAL
   
   {set FieldSecurity pcSecurityType}.
   RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setFont) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setFont Procedure 
+FUNCTION setFont RETURNS LOGICAL
+( piFont AS INTEGER ) :
+/*------------------------------------------------------------------------------
+  Purpose: Sets the font of the frame 
+   Params: piFont AS INTEGER 
+    Notes:  
+------------------------------------------------------------------------------*/
+ DEFINE VARIABLE hFrame AS HANDLE     NO-UNDO.
+
+ {get ContainerHandle hFrame}.
+ IF VALID-HANDLE(hFrame) THEN
+    hFrame:FONT = piFont.
+ 
+ RETURN TRUE.
 
 END FUNCTION.
 

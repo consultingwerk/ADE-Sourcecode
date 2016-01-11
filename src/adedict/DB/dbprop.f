@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -41,23 +25,30 @@ History:
 form
    SKIP({&TFM_WID})
 
-   s_CurrDb    	 LABEL "Logical Name" 	 colon 16 
+   s_CurrDb    	 LABEL "Logical Name" 	 colon 17 
                  FORMAT "x(32)" view-as TEXT       SKIP
-   s_Db_Pname 	 LABEL "Physical Name"	 colon 16  
+   s_Db_Pname 	 LABEL "Physical Name"	 colon 17  
                  FORMAT "x(50)" view-as TEXT       SKIP
-   s_Db_Holder	 LABEL "Schema Holder"	 colon 16  
+   s_Db_Holder	 LABEL "Schema Holder"	 colon 17  
                  FORMAT "x(32)" view-as TEXT       SKIP
-   s_Db_Type 	 LABEL "Type"	      	 colon 16
+   s_Db_Type 	 LABEL "Type"	      	 colon 17
                  FORMAT "x(12)" view-as TEXT        SKIP
-   s_Db_Cp       LABEL "Codepage"        colon 16
+   s_Db_Cp       LABEL "Codepage"        colon 17
                  FORMAT "x(32)" view-as TEXT       
+   s_Db_Description  LABEL "Description" colon 17
+                FORMAT "X(70)" view-as FILL-IN size 30 BY 1
+   s_Db_Add_Details LABEL "Additional Details" colon 17
+                FORMAT "X(3000)" view-as EDITOR INNER-CHARS 50 INNER-LINES 3 
+                SCROLLBAR-VERTICAL
+               
 
    {adecomm/okform.i
       &BOX    = s_rect_btns
       &STATUS = no
       &OK     = s_btn_OK
+      &CANCEL = s_btn_Cancel
       &HELP   = s_btn_Help}
 
-   with frame dbprops SIDE-LABELS NO-BOX DEFAULT-BUTTON s_btn_OK.
+   with frame dbprops SIDE-LABELS NO-BOX DEFAULT-BUTTON s_btn_OK CANCEL-BUTTON s_btn_Cancel.
 
 

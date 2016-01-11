@@ -1,32 +1,9 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
-/********************************************************************/
-/* Encrypted code which is part of this file is subject to the      */
-/* Possenet End User Software License Agreement Version 1.0         */
-/* (the "License"); you may not use this file except in             */
-/* compliance with the License. You may obtain a copy of the        */
-/* License at http://www.possenet.org/license.html                  */
-/********************************************************************/
 
 /*---------------------------------------------------------------------------
   pbuffers.i
@@ -245,6 +222,8 @@ PROCEDURE AssignBuffer .
   DEFINE INPUT PARAMETER p_Buffer AS WIDGET-HANDLE NO-UNDO.
   DEFINE INPUT PARAMETER p_File_Name AS CHAR NO-UNDO.
 
+  DEFINE VARIABLE File_Ext AS CHARACTER   NO-UNDO.
+
   /* We don't need p_Window because buffer handles are unique system-wide. */
   FIND FIRST Edit_Buffer WHERE Edit_Buffer.hBuffer = p_Buffer.
  
@@ -268,6 +247,13 @@ PROCEDURE AssignBuffer .
 
   RUN adecomm/_uniqfil.p (p_File_Name, ".ped", OUTPUT Edit_Buffer.Compile_Name).
 
+  /* If this is a .cls file, set the CLASS_TYPE to "" to indicate this.
+   * As long as it is not ?, we know it is a .cls, and can set it 
+   * with the correct class namespace later. */
+  RUN adecomm/_osfext.p(INPUT  p_File_Name, OUTPUT File_Ext).
+  IF (File_Ext = ".cls") THEN
+    Edit_Buffer.Class_Type = "".
+
 END PROCEDURE.  /* AssignBuffer */
 
 
@@ -278,6 +264,8 @@ PROCEDURE BufReName .
   
   DEFINE INPUT PARAMETER p_Buffer AS WIDGET-HANDLE NO-UNDO.
   DEFINE INPUT PARAMETER p_File_Name AS CHAR NO-UNDO.
+
+  DEFINE VARIABLE File_Ext AS CHARACTER   NO-UNDO.
 
   /* We don't need p_Window because buffer handles are unique system-wide. */
   FIND FIRST Edit_Buffer WHERE Edit_Buffer.hBuffer = p_Buffer.
@@ -295,6 +283,18 @@ PROCEDURE BufReName .
   RUN SetEdBufType (INPUT p_Buffer, INPUT p_File_Name).
 
   RUN adecomm/_uniqfil.p (p_File_Name, ".ped", OUTPUT Edit_Buffer.Compile_Name).
+      
+  /* check for .cls extension */
+  DO ON STOP UNDO, LEAVE ON ERROR UNDO, LEAVE :
+      RUN adecomm/_osfext.p (INPUT  p_File_Name,OUTPUT File_Ext).
+  END. /* DO ON STOP */
+  /* If this is a class file, reset the Class_Type.
+   * We will only be able to get the namespace name from the COMPILER handle. 
+   * But set this to something that is not ?, so we know it is a class. 
+   * The later compilation (RunFile()) will set it correctly.
+   * For non-.cls files, this should be ?.
+   */
+  Edit_Buffer.Class_Type = (IF FILE_Ext = ".cls" THEN "" ELSE ?).
 
 END PROCEDURE.  /* BufRename */
 
@@ -678,6 +678,10 @@ PROCEDURE DeleteBuffer .
 
   FIND FIRST Edit_Buffer WHERE Edit_Buffer.hBuffer = p_Buffer.
   p_Buffer:VISIBLE = FALSE.
+  /* if this file has a Class_TmpDir, remove this directory */
+  /* TO DO: CHECK IF THIS COULD ACCIDENTALLY DELETE A VALID DIR */
+  IF (Edit_Buffer.Class_TmpDir <> ?) THEN
+      OS-DELETE VALUE(Edit_Buffer.Class_TmpDir) RECURSIVE.
   DELETE Edit_Buffer.
   DELETE WIDGET p_Buffer.
   

@@ -2,25 +2,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*--------------------------------------------------------------------------
@@ -984,15 +968,17 @@ PROCEDURE cancelRecord :
 
   hUpdateTarget = WIDGET-HANDLE(cTarget).
   
-  /* Ensure the rowobject record in the SDO is pointing at the correct one, 
-     before we start cancelling */
-  IF VALID-HANDLE(hUpdateTarget) THEN
-  DO:
-    {get RowIdent cRowIdent}. 
-    lFound = {fnarg repositionRowObject cRowIdent hUpdateTarget}.
-    IF NOT (lFound = TRUE) THEN
-      RETURN ERROR RETURN-VALUE.
-  END.
+/*   /* Ensure the rowobject record in the SDO is pointing at the correct one, */
+/*      before we start cancelling */                                          */
+/*   IF VALID-HANDLE(hUpdateTarget) THEN                                       */
+/*   DO:                                                                       */
+/*     {get RowIdent cRowIdent}.                                               */
+/*     lFound = {fnarg repositionRowObject cRowIdent hUpdateTarget}.           */
+/*     IF NOT (lFound = TRUE) THEN                                             */
+/*       RETURN. /* Returning error just makes things worse..                  */
+/*                 (a caller/override is likely to be better off continuing    */
+/*                  processing or at least not worse off) */                   */
+/*   END.                                                                      */
   
   /* Note that for a GroupAssign-Target the UpdateTarget will not be
      present, so we will skip this step; it's done only in the Source. */
@@ -1046,10 +1032,7 @@ PROCEDURE cancelRecord :
 
   IF cState = "NoRecordAvailable":U AND cNew NE "No":U THEN  /* Could be Add or Copy or No */
     RUN disableFields IN TARGET-PROCEDURE ("All":U).
-  
-  IF VALID-HANDLE(hUpdateTarget) THEN
-    RUN applyEntry IN TARGET-PROCEDURE (?).  
-
+   
   /* NOTE: Disabling only create fields is not yet supported
      RUN disableFields IN TARGET-PROCEDURE ("Create":U).
    */
@@ -1173,11 +1156,9 @@ PROCEDURE collectChanges :
     IF hFrameField:TYPE = "PROCEDURE":U THEN
     DO:
       lMod = DYNAMIC-FUNCTION('getDataModified':U IN hFrameField) NO-ERROR.
-
-      /* if in an add/copy then set modified flag if field is enabled */
-      IF lMod = NO AND cNew <> "no":U THEN  
-        lMod = DYNAMIC-FUNCTION('getFieldEnabled':U IN hFrameField) NO-ERROR.
-      IF lMod THEN
+      IF lMod 
+      OR /* Always if in add/copy */
+         (cNew <> "no":U AND CAN-DO(cEnabledFields,cField)) THEN
       DO:
         /* largecolumns need to be passed by reference */
         IF LOOKUP(cField,cLargeColumns) > 0 THEN
@@ -1197,7 +1178,7 @@ PROCEDURE collectChanges :
     ELSE 
     IF hFrameField:MODIFIED 
     OR /* Always if in add/copy */
-      (cNew <> "no":U AND CAN-DO(cEnabledFields,hFrameField:NAME)) THEN
+      (cNew <> "no":U AND CAN-DO(cEnabledFields,cField)) THEN
     DO:
       IF LOOKUP(cField,cLargeColumns) > 0 THEN
       DO:
@@ -1380,6 +1361,7 @@ PROCEDURE confirmDelete :
   DEFINE VARIABLE cValue                        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cLabel                        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cLargeColumns                 AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lSBO                          AS LOGICAL    NO-UNDO.
 
   ASSIGN
     plAnswer = NO
@@ -1401,6 +1383,7 @@ PROCEDURE confirmDelete :
 
   IF {fn getObjectType hUpdateTarget} = 'SmartBusinessObject':U THEN
   DO:
+    lSBO = TRUE.
     {get UpdateTargetNames cUpdateTargetNames}.
     hSDO = {fnarg dataObjectHandle ENTRY(1,cUpdateTargetNames) hUpdateTarget}.
     cOneToOneList = {fnarg getUpdateSiblings hSDO hUpdateTarget}.
@@ -1451,7 +1434,7 @@ PROCEDURE confirmDelete :
     /* only show non-LargeColumns */
     IF NOT CAN-DO(cLargeColumns,cFieldName) THEN
     DO:
-      IF NUM-ENTRIES(cFieldName, '.':U) = 2 THEN 
+      IF lSBO THEN 
         ASSIGN
           hSDO = {fnarg dataObjectHandle ENTRY(1,cFieldName,'.':U) hUpdateTarget}
           cFieldName = ENTRY(2, cFieldName, '.':U).
@@ -1462,6 +1445,10 @@ PROCEDURE confirmDelete :
        /* Skip _obj for the all option */
       AND (NOT lAll OR NOT (cFieldName MATCHES '*_obj':U) ) THEN 
       DO:
+        /* ensure only datatable columns for all option */
+        IF lAll AND INDEX(cFieldName,'.':U) > 0 THEN
+           cFieldName = ENTRY(2, cFieldName, '.':U).
+
         ASSIGN cValue = DYNAMIC-FUNCTION("columnStringValue":U IN hSDO,
                                          INPUT cFieldName)
                cLabel = DYNAMIC-FUNCTION("columnLabel":U IN hSDO,
@@ -1887,7 +1874,8 @@ PROCEDURE displayRecord :
       cDisplayed = cSourceNames + '.':U + cDisplayed. 
    
    cColumns = DYNAMIC-FUNCTION ("colValues":U IN hSource, cDisplayed) NO-ERROR.
-          /* error 7351 indicates that a buffer-field is missing */
+
+   /* error 7351 indicates that a buffer-field is missing */
    IF cColumns = ? AND ERROR-STATUS:GET-NUMBER(1) = 7351 THEN 
      DYNAMIC-FUNC('showMessage' IN TARGET-PROCEDURE, 
               SUBSTITUTE(DYNAMIC-FUNC("messageNumber":U IN TARGET-PROCEDURE,19), 
@@ -1962,6 +1950,7 @@ PROCEDURE fieldModified :
   DEFINE VARIABLE hGASource        AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hUpdateSource    AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cUpdateTargetNames AS CHARACTER  NO-UNDO.
+
   IF NOT VALID-HANDLE(phField) THEN 
     RETURN.
   
@@ -2107,7 +2096,8 @@ PROCEDURE initializeObject :
   IF RETURN-VALUE = "ADM-ERROR":U
     THEN RETURN "ADM-ERROR":U. 
 
-  /* The sbo subscribes to this event in order to update ObjectMapping.*/
+  /* The sbo subscribes to this event in order to update ObjectMapping.
+    (Note that the viewer calls addDataTarget from createObjects and does not relie on this) */
   PUBLISH 'registerObject':U FROM TARGET-PROCEDURE.
   {get TableIOSource hSource}.  
     /* If there's a TableIO-Source but no Update-Target, this is invalid,
@@ -2283,7 +2273,14 @@ PROCEDURE linkStateHandler :
   DEFINE VARIABLE hUpdateSource   AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hDataSource     AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hToolbarSource  AS HANDLE     NO-UNDO.
-  
+  DEFINE VARIABLE cKeyFields      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iKey            AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cKey            AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hKey            AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cMyKeyValue     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cKeyValue       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataTable      AS CHARACTER  NO-UNDO.
+
   {get ObjectInitialized lInitialized}.  
   IF pcLink = 'ToolbarSource':U AND pcState = 'Add':U THEN
   DO:
@@ -2298,10 +2295,14 @@ PROCEDURE linkStateHandler :
       {get QueryObject lQueryObject hDataSource}.
       IF lQueryObject THEN
       DO:
+              /* No-error in expectation of datasources without auditing and 
+                 comment props (all or none) 
+                 The all or none (one assign) is chosen as startup performance
+                 is considered crucial  */
               &SCOPED-DEFINE xp-assign
               {set FetchHasAudit    TRUE hDataSource}
               {set FetchHasComment  TRUE hDataSource}
-              {set FetchAutoComment TRUE hDataSource}.
+              {set FetchAutoComment TRUE hDataSource} NO-ERROR.
               &UNDEFINE xp-assign
       END.    /* query object */              
     END.
@@ -2319,10 +2320,14 @@ PROCEDURE linkStateHandler :
       {get QueryObject lQueryObject phObject}.
       IF lQueryObject THEN
       DO:
+              /* No-error in expectation of datasources without auditing and 
+                 comment props (all or none) 
+                 The all or none (one assign) is chosen as startup performance
+                 is considered crucial  */
               &SCOPED-DEFINE xp-assign
               {set FetchHasAudit    TRUE phObject}
               {set FetchHasComment  TRUE phObject}
-              {set FetchAutoComment TRUE phObject}.
+              {set FetchAutoComment TRUE phObject} NO-ERROR.
               &UNDEFINE xp-assign
       END.    /* query object */              
     END.
@@ -2360,34 +2365,78 @@ PROCEDURE linkStateHandler :
   IF lDataInactive THEN
   DO:
     /* (note that we only get here when 'active' 'DataSource' )
-       We want to avoid redisplay if we are on the same record, but we are a 
-       bit paranoid so we ensure that we're the updateSource, so that it is 
-       very unlikely that anything have changed in the source while we were 
-       unconscious.. (to find the updatetarget we must find the top in the 
-       GA link) */ 
+       We want to avoid redisplay if we are on the same record, but only  
+       if we're the updateSource, so that it is very unlikely that anything 
+       have changed in the source while we were unconscious.. 
+       (to find the updatetarget we must find the top in the GA link) */ 
     
     hGaSource = TARGET-PROCEDURE.
     DO WHILE VALID-HANDLE(hGaSource):
       hUpdateSource = hGaSource. 
       {get GroupAssignSource hGaSource hUpdateSource}.
     END.
+
     {get UpdateTarget hUpdateTarget hUpdateSource}.    
     
     IF hUpdateTarget = phObject THEN
     DO:
+      /* We check the rowident first and check keys after if rowident indicates
+         that the record is the same */ 
       {get Rowident cMyRowident}.
       ASSIGN /* check if we are on the same record (? is not avail or new 
                 on ANY parent... so make sure that is not seen as the same ) */
         cSourceRowident = ENTRY(1,{fnarg colValues '':U phObject},CHR(1))
-        lSameRecord     = (cMyRowident <> ?) AND (cMyRowident = cSourceRowident)  .
-    END.
+        lSameRecord     = (cMyRowident <> ?) AND (cMyRowident = cSourceRowident).
+
+      /* RowIdent is unreliable, since rowids are reused, for example if the 
+         parent query was reopened in the meantime.  */ 
+      IF lSameRecord THEN
+      DO:
+        &SCOPED-DEFINE xp-assign
+        {get KeyFields cKeyFields hUpdateTarget}
+        {get DataTable cDataTable hUpdateTarget}
+         .
+        &UNDEFINE xp-assign
+        
+        IF cKeyFields > '' THEN 
+        DO:
+          DO iKey = 1 TO NUM-ENTRIES(cKeyFields) WHILE lSameRecord:
+            ASSIGN 
+              cKey = (IF cDataTable <> 'RowObject':U 
+                      THEN cDataTable + '.' 
+                      ELSE '') 
+                   + ENTRY(iKey,cKeyFields)
+              hKey = DYNAMIC-FUNCTION('internalWidgetHandle':U IN TARGET-PROCEDURE,
+                                      cKey,'DATA':U).
+            IF VALID-HANDLE(hKey) THEN
+            DO:
+              cMyKeyValue = ?. 
+              IF CAN-QUERY(hKey,"INPUT-VALUE":U) THEN
+                /* no-error in case of format error */
+                cMyKeyValue = hKey:INPUT-VALUE NO-ERROR.
+              ELSE IF hKey:TYPE = 'PROCEDURE':U THEN
+                /* no-error .. in case not SDF.. (very unlikely).  */
+                cMyKeyValue = {fn getDataValue hKey} NO-ERROR.
+
+              IF cMyKeyValue = ? 
+              OR cMyKeyValue <> {fnarg columnValue cKey hUpdateTarget} THEN
+                lSameRecord = FALSE.
+            END. /* valid-handle(key)*/
+            ELSE 
+              lSameRecord = FALSE. 
+          END. /* iKey loop keyfields */
+        END. /* keyfields > ''  */
+        ELSE 
+          lSameRecord = FALSE.
+      END. /* if same record */
+    END.  /* updatetarget = datasource */
    
     IF NOT lSameRecord THEN
     DO:
       {get QueryPosition cQueryPosition phObject}.
       RUN queryPosition IN TARGET-PROCEDURE(cQueryPosition).
       RUN dataAvailable IN TARGET-PROCEDURE('different':U).
-    END.
+    END. /* not samerecord */
   END.
 
 END PROCEDURE.
@@ -2824,10 +2873,14 @@ PROCEDURE resetRecord :
   {set DataModified ?}.
   
   RUN displayRecord IN TARGET-PROCEDURE.
-   
-  RUN applyEntry IN TARGET-PROCEDURE (?).
+  
+  /* apply entry ? will reach first visible Ga target if this is hidden,
+     so only call in updateSource (= top gasource) */ 
+  IF VALID-HANDLE(hUpdateTarget) THEN
+    RUN applyEntry IN TARGET-PROCEDURE (?).
   
   RETURN.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -3199,13 +3252,8 @@ PROCEDURE updateMode :
                                   button.                    
                Modify           - Signals that the user has pressed the modify
                                   button. This is less modal than Update and
-                                  and is not included in canNavigate                     
-  Notes:       'updateBegin' signals that the Update button has been pressed 
-               in an Update SmartPanel in Update mode. Enable fields for data 
-               entry. 'updateEnd' signals that Save has completed; disable 
-               fields. 'update-begin' was a state msg in V8. updateEnd 
-               corresponds to the save button dispatching disable-fields in V8.
-            -   
+                                  is not included in canNavigate                     
+  Notes:       
 ------------------------------------------------------------------------------*/
   DEFINE INPUT PARAMETER pcMode AS CHARACTER NO-UNDO.
 
@@ -3218,6 +3266,8 @@ PROCEDURE updateMode :
   DEFINE VARIABLE hGASource          AS HANDLE     NO-UNDO. 
   DEFINE VARIABLE cTableioType       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hContainer         AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lFieldsEnabled     AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lBrowsing          AS LOGICAL    NO-UNDO.
 
   &SCOPED-DEFINE xp-assign
   {get TableIOSource hTableIOSource}
@@ -3266,13 +3316,30 @@ PROCEDURE updateMode :
         END.
     END.
   END.
-
+ 
   /* Set the mode */
   CASE pcMode:
     WHEN 'enable':U OR WHEN 'modify':U THEN  
     DO:
       {set ObjectMode 'Modify':U}.
-      RUN enableFields IN TARGET-PROCEDURE.
+      RUN enableFields IN TARGET-PROCEDURE. 
+      /* we avoid applying entry if the user is browsing 
+        (alternatives : 
+          more selective -  apply entry if last-event is 'choose'
+          even more restrictive - if source-procedure = tableio-source) 
+         NO-ERROR is lazy valid-handle and can-query type? check */
+      lBrowsing = FOCUS:TYPE = 'browse':U 
+                  AND LAST-EVENT:FUNCTION = 'VALUE-CHANGED' NO-ERROR. 
+      /* browsers that does not have enabledfields or update-target
+         may still end up here as part of queryposition logic, so  
+         make sure to not set focus in that case.. this may possibly be 
+         fixed in Queryposition in the future, but this is still a good check  */      
+      IF NOT (lBrowsing = TRUE) THEN
+      DO:
+        {get FieldsEnabled lFieldsEnabled}.
+        IF lFieldsEnabled THEN
+          RUN applyEntry IN TARGET-PROCEDURE (?). 
+      END.
       PUBLISH 'resetTableio':U FROM TARGET-PROCEDURE.
     END.
     WHEN 'view':U THEN    
@@ -3285,6 +3352,16 @@ PROCEDURE updateMode :
     DO:
       RUN enableFields IN TARGET-PROCEDURE.
       {set ObjectMode 'Update':U}.
+      
+      /* browsers that does not have enabledfields or update-target
+         may still end up here as part of queryposition logic, so  
+         make sure to not set focus in that case.. this may possibly be 
+        fixed in Queryposition in the future, but this is still a good check  */      
+      {get FieldsEnabled lFieldsEnabled}.
+
+      IF lFieldsEnabled THEN
+        RUN applyEntry IN TARGET-PROCEDURE (?). 
+
       PUBLISH 'updateState':U FROM TARGET-PROCEDURE ('update':U).
     END.
     WHEN 'updateEnd':U THEN
@@ -3656,7 +3733,6 @@ PROCEDURE updateTitle :
 ------------------------------------------------------------------------------*/
 
   DEFINE VARIABLE hSource             AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE lDataLinksEnabled   AS LOGICAL      NO-UNDO.
   DEFINE VARIABLE cWindowTitleField   AS CHARACTER    NO-UNDO.
   DEFINE VARIABLE cWindowTitleColumn  AS CHARACTER    NO-UNDO.
   DEFINE VARIABLE cWindowTitleValue   AS CHARACTER    NO-UNDO.
@@ -3935,8 +4011,8 @@ FUNCTION canNavigate RETURNS LOGICAL
   DEFINE VARIABLE lPending      AS LOGICAL    NO-UNDO.
 
   /* we call our own isUpdatePending first. 
-    (It will be reached from our UpdateTarget also as part of the check of 
-     all targets in canNavigate) */ 
+    (This is a short cut as it would have been reached from our UpdateSource
+     also as part of the check of all targets in canNavigate) */ 
   RUN IsUpdatePending IN TARGET-PROCEDURE (INPUT-OUTPUT lPending).
  
   IF lPending THEN
@@ -4591,27 +4667,23 @@ FUNCTION getLabel RETURNS CHARACTER
   
   IF cLabel = ? THEN 
   DO:
-    &SCOPED-DEFINE xp-assign
-    {get DataSource hDataSource}
-    {get DataSourceNames cSourceNames}
-     .
-    &UNDEFINE xp-assign
-    
+    {get DataSource hDataSource}.
     IF VALID-HANDLE(hDataSource) THEN
     DO:
-      /* The SBO Label is really useless, so if SourceNames is defined we need 
-         to get the handle of the actual Source */
-      IF cSourceNames > '':U THEN
+      /* The SBO Label is really useless, so if we're linked to an SBO 
+         and SourceNames is defined we need to get the handle of the actual 
+         SDO source */
+      IF {fn getObjectType hDataSource} = 'SmartBusinessObject':U THEN
       DO:
+        {get DataSourceNames cSourceNames}.
+        /* if multiple sources then just use the first */
         IF NUM-ENTRIES(cSourceNames) > 1 THEN
           cSourceNames = ENTRY(1,cSourceNames).
-        ELSE 
-          {get ObjectName cDataSourceName hDataSource}.
-        
-        IF (cSourceNames <> cDataSourceName)  THEN
-          hDataSource = {fnarg DataObjectHandle cSourceNames hDataSource}. 
-      END.
-      {get LABEL cLabel hDataSource}.
+
+        hDataSource = {fnarg DataObjectHandle cSourceNames hDataSource}. 
+      END. /* if SBO */
+      IF VALID-HANDLE(hDataSource) THEN
+        {get LABEL cLabel hDataSource}.
     END. 
     IF cLabel = ? OR cLabel = '' THEN
       cLabel = SUPER().

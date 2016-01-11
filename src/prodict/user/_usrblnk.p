@@ -26,6 +26,7 @@
 /* userblnk - prevent blank user from accessing data 
 
    Modified: DLM 07/13/98 Added _Owner to _File Find
+             KSM 10/19/05 Skip over _aud tables - 20051019-019
 
 */
 
@@ -79,6 +80,12 @@ FOR EACH _File
     AND (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN" )
     AND (CAN-DO(_Can-read,"")   OR CAN-DO(_Can-write,"")
       OR CAN-DO(_Can-create,"") OR CAN-DO(_Can-delete,"")):
+  /* If this is an auditing table, skip it. */
+  IF _File-Name BEGINS "_aud" THEN DO:
+    cont = TRUE.
+    NEXT.
+  END.
+
   IF CAN-DO(_Can-read,"")   THEN _Can-read   = "!," + _Can-read.
   IF CAN-DO(_Can-write,"")  THEN _Can-write  = "!," + _Can-write.
   IF CAN-DO(_Can-create,"") THEN _Can-create = "!," + _Can-create.

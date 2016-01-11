@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <dataset Transactions="1"><dataset_header DisableRI="yes" DatasetObj="1004928896.09" DateFormat="mdy" FullHeader="no" SCMManaged="yes" YearOffset="1950" DatasetCode="RYCSO" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="91" NumericSeparator=","/>
-<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" version_date="12/05/2004" version_time="71194" version_user="admin" deletion_flag="no" entity_mnemonic="rycso" key_field_value="67070.48" record_version_obj="67071.48" version_number_seq="1.09" secondary_key_value="rygetclassp#CHR(1)#0" import_version_number_seq="1.09"><smartobject_obj>67070.48</smartobject_obj>
+<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" version_date="06/23/2005" version_time="57618" version_user="admin" deletion_flag="no" entity_mnemonic="rycso" key_field_value="67070.48" record_version_obj="67071.48" version_number_seq="4.48" secondary_key_value="rygetclassp#CHR(1)#0" import_version_number_seq="4.48"><smartobject_obj>67070.48</smartobject_obj>
 <object_filename>rygetclassp</object_filename>
 <customization_result_obj>0</customization_result_obj>
 <object_type_obj>493</object_type_obj>
@@ -9,11 +9,11 @@
 <object_description>AppServer pass-through for Class caching</object_description>
 <object_path>ry/app</object_path>
 <object_extension>p</object_extension>
-<static_object>no</static_object>
+<static_object>yes</static_object>
 <generic_object>no</generic_object>
 <template_smartobject>no</template_smartobject>
 <system_owned>no</system_owned>
-<deployment_type>SRV,WEB</deployment_type>
+<deployment_type>SRV</deployment_type>
 <design_only>no</design_only>
 <runnable_from_menu>no</runnable_from_menu>
 <container_object>no</container_object>

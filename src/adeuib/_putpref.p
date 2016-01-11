@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*----------------------------------------------------------------------------
@@ -61,6 +45,8 @@ Modified:
   jep  11/14/01 - jep-icf: Added web.cst to ICF custom files default list. IZ 2845.
 ----------------------------------------------------------------------------*/
 DEFINE INPUT PARAMETER p_save_settings     AS LOGICAL                NO-UNDO.
+
+DEFINE NEW GLOBAL SHARED VAR OEIDEIsRunning AS LOGICAL    NO-UNDO.
 
 DEFINE VARIABLE PropEdPos AS INTEGER EXTENT 4 NO-UNDO.
 
@@ -193,7 +179,7 @@ DO ON STOP  UNDO PUTPREFS-BLOCK, LEAVE PUTPREFS-BLOCK
 
     GET-KEY-VALUE SECTION sctn KEY "MultipleSectionEd" VALUE v.
       l_v = (v NE ?) AND CAN-DO ("true,yes,on",v).
-      IF l_v <> _multiple_section_ed 
+      IF NOT OEIDEIsRunning AND l_v <> _multiple_section_ed 
       THEN PUT-KEY-VALUE SECTION sctn KEY "MultipleSectionEd" 
 			 VALUE (if _multiple_section_ed THEN "yes" ELSE ?).
 
@@ -239,6 +225,12 @@ DO ON STOP  UNDO PUTPREFS-BLOCK, LEAVE PUTPREFS-BLOCK
       THEN PUT-KEY-VALUE SECTION sctn KEY "PrintDialog"
                       VALUE (if _print_dialog THEN "yes" ELSE "no").
                                         
+    GET-KEY-VALUE SECTION sctn KEY "AssignWidgetID" VALUE v.
+      l_v = ((v NE ?) AND CAN-DO ("true,yes,on",v)) OR v = ?.
+      IF l_v <> _widgetid_assign
+      THEN PUT-KEY-VALUE SECTION sctn KEY "AssignWidgetID"
+                      VALUE (if _widgetid_assign THEN "yes" ELSE "no").
+
     /* Always export Numeric Values (or ? for defaults) */
   
     /* Compute the default grid height */
@@ -271,6 +263,12 @@ DO ON STOP  UNDO PUTPREFS-BLOCK, LEAVE PUTPREFS-BLOCK
     PUT-KEY-VALUE SECTION sctn KEY "PrintFont"
       VALUE (IF _print_font = 2 THEN ? ELSE STRING(_print_font)).
       
+    PUT-KEY-VALUE SECTION sctn KEY "WidgetIDStart"
+      VALUE (IF _widgetid_start = 100 THEN ? ELSE STRING(_widgetid_start)).
+
+    PUT-KEY-VALUE SECTION sctn KEY "WidgetIDIncrement"
+      VALUE (IF _widgetid_increment = 100 THEN ? ELSE STRING(_widgetid_increment)).
+
     /* Write in the Character Values.  
      * Saved Directories:   Icon Directories, Template Directories, 
      *                      WidgetListDirectories and CodeListDirectories  
@@ -372,9 +370,11 @@ DO ON STOP  UNDO PUTPREFS-BLOCK, LEAVE PUTPREFS-BLOCK
 
     /* Default File Open/Save As/Compile behavior */
     GET-KEY-VALUE SECTION sctn KEY "RemoteFileManagement" VALUE v.
+      IF OEIDEIsRunning THEN
+         _remote_file = NOT ((v EQ ?) OR CAN-DO ("false,no,off",v)).
       l_v = (_remote_file eq TRUE).
-    PUT-KEY-VALUE SECTION sctn KEY "RemoteFileManagement" 
-      VALUE (if l_v THEN "yes":U ELSE "no":U).
+      PUT-KEY-VALUE SECTION sctn KEY "RemoteFileManagement" 
+        VALUE (if l_v THEN "yes":U ELSE "no":U).
 
     /* OCX Property Editor Window Position */
     IF VALID-HANDLE(_h_Controls) THEN DO:

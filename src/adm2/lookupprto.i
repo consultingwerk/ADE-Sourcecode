@@ -1,3 +1,9 @@
+/*********************************************************************
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
+*                                                                    *
+*********************************************************************/
 /*
  * Prototype include file: src/adm2/lookupprto.i
  * Created from procedure: adm2/lookup.p at 16:35 on 09/07/04

@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -58,12 +42,15 @@ DEFINE VARIABLE pw_Window    AS WIDGET    NO-UNDO.
 DEFINE VARIABLE Temp_File    AS CHARACTER NO-UNDO.
 DEFINE VARIABLE URL_Host     AS CHARACTER NO-UNDO.
 DEFINE VARIABLE Web_File     AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE File_Ext     AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cFullPathWeb AS CHARACTER NO-UNDO.
 
 &SCOPED-DEFINE debug FALSE
 
-IF NUM-ENTRIES(p_File_Name, CHR(3)) eq 2 THEN
+IF NUM-ENTRIES(p_File_Name, CHR(3)) eq 3 THEN
   ASSIGN Web_File    = TRUE
          Temp_File   = ENTRY( 2, p_File_Name, CHR(3))
+         cFullPathWeb = ENTRY( 3, p_File_Name, CHR(3))
          p_File_Name = ENTRY( 1, p_File_Name, CHR(3)).
 
 DO ON STOP UNDO, LEAVE:
@@ -116,16 +103,23 @@ DO ON STOP UNDO, LEAVE:
     RUN adeuib/_uibinfo.p (?, "SESSION":U, "URLhost":U, 
                            OUTPUT URL_Host) NO-ERROR.
 
+    /* get the file extension to check for .cls */
+    RUN adecomm/_osfext.p ( p_File_Name, OUTPUT File_Ext).
+
     /* Update information. */
     /* Clear the compile filename, in case this buffer previously contained
     ** a compiled file.  We will generate a new compile file name when the
     ** new buffer is run.
+    ** Also clear any Class_Type we have saved, and any Class_TmpDir we have created
     */
     ASSIGN p_Editor:NAME   = p_File_Name
            pw_Window:TITLE = {&PW_Title_Leader} + p_File_Name +
                              (IF Web_File THEN URL_Host ELSE "")
            Private_Data = p_Editor:PRIVATE-DATA 
            ENTRY( {&PW_Compile_File_Pos}, Private_Data ) = ""
+           ENTRY( {&PW_Class_Type_Pos}, Private_Data ) = 
+                             (IF File_Ext = ".cls":U THEN "?" ELSE "")
+           ENTRY( {&PW_Class_TmpDir_Pos}, Private_Data ) = ""
            p_Editor:PRIVATE-DATA = Private_Data.
            
     
@@ -136,6 +130,7 @@ DO ON STOP UNDO, LEAVE:
       IF Broker_URL ne "" THEN
         ASSIGN Private_Data          = p_Editor:PRIVATE-DATA 
                ENTRY ( {&PW_Broker_URL_Pos}, Private_Data ) = Broker_URL 
+               ENTRY ( {&PW_Web_File_Name_Pos}, Private_Data ) = cFullPathWeb
                p_Editor:PRIVATE-DATA = Private_Data.
     END.
 END.

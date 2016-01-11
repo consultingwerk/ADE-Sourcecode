@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*------------------------------------------------------------------------
@@ -171,8 +155,10 @@ DEFINE VARIABLE icon-hp       AS INTEGER                          NO-UNDO.
 DEFINE VARIABLE icon-wp       AS INTEGER                          NO-UNDO.
 DEFINE VARIABLE imode         AS CHARACTER                        NO-UNDO.
 DEFINE VARIABLE isCalcFld     AS LOGICAL                          NO-UNDO.
+DEFINE VARIABLE iTable        AS INTEGER                          NO-UNDO.
 DEFINE VARIABLE iw            AS INTEGER                          NO-UNDO.
 DEFINE VARIABLE last-rec      AS RECID                            NO-UNDO.
+DEFINE VARIABLE lDbAware      AS LOGICAL                          NO-UNDO.
 DEFINE VARIABLE lError        AS LOGICAL                          NO-UNDO.
 DEFINE VARIABLE lNewCalc      AS LOGICAL                          NO-UNDO.
 DEFINE VARIABLE ret-msg       AS CHARACTER                        NO-UNDO.
@@ -196,11 +182,12 @@ DEFINE BUFFER xx_U FOR _U.
 DEFINE BUFFER x_C FOR _C.
 
 /* Function prototype */
-FUNCTION get-proc-hdl RETURNS HANDLE
-    (INPUT proc-file-name AS CHARACTER) IN _h_func_lib.
+FUNCTION get-sdo-hdl RETURNS HANDLE
+    (INPUT proc-file-name AS CHARACTER,
+     INPUT pOwnerHdl AS HANDLE ) IN _h_func_lib.
 
-FUNCTION shutdown-proc RETURNS CHARACTER
-    (INPUT proc-file-name AS CHARACTER) IN _h_func_lib.
+FUNCTION shutdown-sdo RETURNS CHARACTER
+    (INPUT pOwnerHdl AS HANDLE) IN _h_func_lib.
 
 FIND _U WHERE RECID(_U)         = _query-u-rec.
 FIND _P WHERE _P._WINDOW-HANDLE = _U._WINDOW-HANDLE.
@@ -210,7 +197,7 @@ IF AVAILABLE _C THEN
 
 /* The 4 cases are: 
 A regular browse or SmartBrowse with query ---------------------------| 
-A SmartBrowse (SmartData is Source)--------------------------------|  |
+A SmartBrowse (SmartData, DataSet is Source)-----------------------|  |
 An SDO ---------------------------------------------------------|  |  |
 A WebReport -------------------------------------------------|  |  |  |
                    
@@ -218,10 +205,10 @@ The behavior variables are:
 isQuery      - Not a browse,(different layout and widgets)   Y  Y  N  N      
 isReport     - No update widgets visible                     Y  N  N  N 
 isSmartData  - Regulates how to store computed fields:       N  Y  N  N
-srcSmartData - Show only column name (not field and table)   N  N  Y  N
+srcSmartData - src is sdo                                    N  N  Y  N
 */
 
-ASSIGN srcSmartData = AVAILABLE(_Q) AND _Q._TblList = "rowObject":U
+ASSIGN srcSmartData = _P._data-object > '' 
        isQuery      = _U._type = "QUERY":U
        isSmartData  = _U._subtype = "SmartDataObject":U
        isReport     = isQuery AND NOT isSmartData. 
@@ -238,8 +225,8 @@ IF isSmartData AND _DynamicsIsRunning THEN DO:
                                  INPUT "DynSDO":U)) <> 0 .
 END.
 
-/* If srcSmartData make sure we have am valid procedure handle */
-IF srcSmartData THEN p_hSmartData = get-proc-hdl(_P._data-object).
+/* If srcSmartData make sure we have a valid procedure handle */
+IF srcSmartData THEN p_hSmartData = get-sdo-hdl(_P._data-object,THIS-PROCEDURE).
 
 /* ********************  Preprocessor Definitions  ******************** */
 
@@ -358,7 +345,10 @@ DEFINE VAR nonAmerican AS LOGICAL                                      NO-UNDO.
 
 /* Query definitions                                                    */
 DEFINE QUERY brw-flds FOR _BC SCROLLING.
-DEFINE QUERY qDb      FOR DICTDB._db FIELDS(DICTDB._db._db-name).
+define variable ghQuery            as handle                no-undo.
+define variable ghBuffer           as handle                no-undo.
+define variable ghField            as handle                no-undo.
+
 
 /* Browse definitions                                                   */
 DEFINE BROWSE brw-flds 
@@ -917,6 +907,8 @@ ON CHOOSE OF b_calc-fld DO:
   DEFINE VARIABLE pDB-RECID         AS RECID            NO-UNDO.
   DEFINE VARIABLE pErrorStatus      AS LOGICAL          NO-UNDO.
   DEFINE VARIABLE EditFlag          AS LOGICAL          NO-UNDO.
+  DEFINE VARIABLE iNumTable         AS INTEGER          NO-UNDO.
+  DEFINE VARIABLE cTableList        AS CHARACTER        NO-UNDO.
 
   IF AVAILABLE _BC THEN  
     ASSIGN pCurrentDB        = IF isSmartData THEN STRING(_query-u-rec)
@@ -951,8 +943,25 @@ ON CHOOSE OF b_calc-fld DO:
   IF isDynSDO THEN
   DO:
     lNewCalc = FALSE.
+    DO iNumTable = 1 TO NUM-ENTRIES(Tbl-List):
+      IF ENTRY(1, ENTRY(iNumTable, Tbl-List), ".":U) = "Temp-Tables":U THEN
+      DO:
+        FIND FIRST _TT WHERE _TT._p-recid = RECID(_P) AND
+            _TT._name = ENTRY(2, ENTRY(iNumTable, Tbl-List), ".":U) AND
+            _TT._table-type = "B":U NO-ERROR.
+        IF AVAILABLE _TT THEN
+          cTableList = cTableList + (IF NUM-ENTRIES(cTableList) > 0 THEN ",":U ELSE '':U) + 
+                       "Temp-Tables":U + ".":U + _TT._like-table.
+        ELSE 
+          cTableList = cTableList + (IF NUM-ENTRIES(cTableList) > 0 THEN ",":U ELSE '':U) + 
+                       ENTRY(iNumTable, Tbl-List).  
+      END.
+      ELSE 
+        cTableList = cTableList + (IF NUM-ENTRIES(cTableList) > 0 THEN ",":U ELSE '':U) + 
+                     ENTRY(iNumTable, Tbl-List).
+    END.
     RUN adeuib/_calcselg.w 
-        (INPUT Tbl-List,
+        (INPUT  cTableList,
          OUTPUT pOutputExpression,
          OUTPUT UniqueName,
          OUTPUT cCalcDataType,
@@ -1404,8 +1413,11 @@ ASSIGN b_lbl-clr:HEIGHT-P     = icon-hp
            b_lbl-clr:X     = b_clr:X
            b_lbl-fnt:X     = b_fnt:X.
        
-/* Are we dealing with db.table.field format or just field in SmartData's case */
-IF srcSmartData THEN imode = "1".
+/* Are we dealing with db.table.field format or a SmartData's case */
+IF srcSmartData THEN
+   ASSIGN 
+     lDbAware = {fn getDBAware p_hSmartData}
+     imode    = IF lDbAware THEN "1" ELSE "2".
 ELSE DO:
   /* Determine if it is necessary to specify the DB and (or) the Table
      name in the list of fields to select from.  The Rules are:
@@ -1638,8 +1650,38 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
     END.  /* each _BC */
   END.  /* if static SDO */                  
 
+
+ /* If this is a DataView based browser, the table list and query should only
+    include tables for fields that were selected.  */
+  IF srcSmartData AND NOT lDbAware THEN
+  DO:
+    IF AVAILABLE _Q THEN
+    DO:
+      ASSIGN
+        _Q._TblList    = '':U
+        _Q._4GLQury    = '':U
+        _Q._OptionList = '':U.
+      FOR EACH _BC WHERE _BC._x-recid = _query-u-rec:
+        IF LOOKUP(_BC._TABLE, _Q._tblList) = 0 THEN
+          _Q._tblList = _Q._tblList + (IF NUM-ENTRIES(_Q._tblList) > 0 THEN ',':U ELSE '':U) +
+                        _BC._TABLE.
+      END.  /* for each _BC */
+
+      DO iTable = 1 TO NUM-ENTRIES(_Q._tblList):
+        _Q._4GLQury  = _Q._4GLQury
+                     + (IF iTable = 1 THEN "EACH " ELSE ",EACH ")
+                     + ENTRY(iTable,_Q._tblList).
+      END.
+
+      ASSIGN _Q._OptionList = RIGHT-TRIM(REPLACE(_Q._OptionList, "KEY-PHRASE", ""))
+             _Q._OptionList = RIGHT-TRIM(REPLACE(_Q._OptionList, "SORTBY-PHRASE", "")).
+             /* KeyPhrase and SortBy options are not needed for SDB's defined
+                w/ SDO */ 
+    END.  /* if avail _Q */
+  END.  /* if SDB based on DataView */
+
   IF AVAILABLE _P THEN
-    ret-msg = shutdown-proc(_P._data-object).
+    ret-msg = shutdown-sdo(THIS-PROCEDURE).
 END. /* Main-BLOCK */
 RUN disable_UI.
 
@@ -2020,6 +2062,7 @@ PROCEDURE add-fields.ip:
   DEFINE VARIABLE hDesignManager     AS HANDLE     NO-UNDO.
   DEFINE VARIABLE pcInheritClasses   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cSchemaColLabel    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cColumnName        AS CHARACTER  NO-UNDO.
 
   DEFINE BUFFER x_BC FOR _BC.
 
@@ -2106,16 +2149,24 @@ PROCEDURE add-fields.ip:
       END.  /* Found buffer */
     END. /* BUFFER-SEARCH-BLOCK REPEAT */
 
-    ASSIGN tmp-db   = IF srcSmartData THEN "_<SDO>"
+    ASSIGN
+           tmp-db   = IF srcSmartData THEN "_<SDO>"
                       ELSE IF tmp-name BEGINS "Temp-Tables.":U THEN "Temp-Tables":U
                       ELSE IF imode = "3" THEN ENTRY(1,tmp-name,".")
                       ELSE cur-db-name
-           tmp-tbl  = IF srcSmartData THEN "rowObject"
+           tmp-tbl  = IF srcSmartData  
+                      THEN (IF imode = "2" THEN ENTRY(1,tmp-name,".")
+                            ELSE "rowObject")
                       ELSE IF tmp-name BEGINS "Temp-Tables.":U THEN ENTRY(2,tmp-name,".")
                       ELSE IF imode = "3" THEN ENTRY(2,tmp-name,".")
                       ELSE IF imode = "2" THEN ENTRY(1,tmp-name,".")
                       ELSE cur-tbl-name
-           tmp-name = ENTRY(NUM-ENTRIES(tmp-name,"."),tmp-name,".").
+           tmp-name = ENTRY(NUM-ENTRIES(tmp-name,"."),tmp-name,".")
+          /* The cColumnName is currently only used for SDO attribute retrieval
+             which need to be qualified if the field list is qualified */
+           cColumnName = IF iMode = "2":U 
+                         THEN tmp-tbl + '.':U + tmp-name 
+                         ELSE tmp-name.
     FIND _BC WHERE _BC._x-recid = _query-u-rec AND
                    _BC._DBNAME  = tmp-db AND
                    _BC._TABLE   = tmp-tbl AND
@@ -2323,11 +2374,11 @@ PROCEDURE add-fields.ip:
         /* Valid data to be retrieved:
                 DataType,DBName,Help,Label,
                    Modified,ScreenValue,ReadOnly,PrivateData,Width */
-        ASSIGN _BC._DEF-LABEL  = dynamic-function("columnLabel" IN p_hSmartData,tmp-name) 
-               _BC._DATA-TYPE  = dynamic-function("columnDataType" IN p_hSmartData,tmp-name) 
-               _BC._DEF-FORMAT = dynamic-function("columnFormat" IN p_hSmartData,tmp-name) 
-               _BC._DEF-HELP   = dynamic-function("columnHelp" IN p_hSmartData,tmp-name) 
-               _BC._DEF-WIDTH  = MAX(dynamic-function("columnWidth" IN p_hSmartData,tmp-name),
+        ASSIGN _BC._DEF-LABEL  = dynamic-function("columnLabel" IN p_hSmartData,cColumnName) 
+               _BC._DATA-TYPE  = dynamic-function("columnDataType" IN p_hSmartData,cColumnName) 
+               _BC._DEF-FORMAT = dynamic-function("columnFormat" IN p_hSmartData,cColumnName) 
+               _BC._DEF-HELP   = dynamic-function("columnHelp" IN p_hSmartData,cColumnName) 
+               _BC._DEF-WIDTH  = MAX(dynamic-function("columnWidth" IN p_hSmartData,cColumnName),
                                      FONT-TABLE:GET-TEXT-WIDTH(ENTRY(1,_BC._DEF-LABEL,"!":U)))
                _BC._WIDTH      = _BC._DEF-WIDTH
                _BC._LABEL      = _BC._DEF-LABEL
@@ -2666,24 +2717,74 @@ PROCEDURE setDICTDBalias.ip:
    ELSE  /* A regular db field */
           ASSIGN tmp-db  = _BC._DBNAME
                  tmp-tbl = _BC._TABLE.
-       
-   /* Set the alias correctly, so we can call _fldinfo */        
-   IF NOT AVAIL DICTDB._db OR DICTDB._db._db-name <>
-             (IF tmp-db = ldbname("DICTDB":U) THEN ? ELSE tmp-db) THEN
-           OPEN QUERY qDB FOR EACH DICTDB._db
-               WHERE DICTDB._db._db-name =
-                  (IF tmp-db = ldbname("DICTDB":U) THEN ? ELSE tmp-db)
-             NO-LOCK.                
-   GET FIRST qDB.        
-   IF NOT AVAILABLE DICTDB._db THEN DO:
-          IF NOT CAN-FIND(FIRST s_ttb_db) THEN RUN adecomm/_getdbs.p.
-          FIND FIRST s_ttb_db WHERE s_ttb_db.ldbnm = tmp-db NO-ERROR.
-          IF AVAILABLE s_ttb_db THEN
-            CREATE ALIAS DICTDB FOR DATABASE VALUE(s_ttb_db.sdbnm).
-   END.
-   ELSE IF DICTDB._db._db-name NE ? THEN
-          CREATE ALIAS DICTDB FOR DATABASE VALUE(sdbname(DICTDB._db._db-name)).
-
-END PROCEDURE.
+    
+    /* Set the alias correctly, so we can call _fldinfo */
+    /* There must be at least one DB connected. */
+    if num-dbs ge 1 then
+    do:
+        if not valid-handle(ghBuffer) then
+        do:
+            create buffer ghBuffer for table 'DICTDB._Db' no-error.
+            ghField = ghBuffer:buffer-field('_Db-name':u).
+        end.    /* create buffer object */
+        
+        /* Refind the _Db record if not available, or if the
+           available record isn't the DB we want as DICTDB.
+           
+           Note that there may be a bug in this code when
+           a table name is shared between DBs.           
+         */
+        if not ghBuffer:available or
+           ghField:buffer-value ne (if tmp-db eq ldbname('DICTDB':u) then ? else tmp-db) then
+        do:
+            /* If the buffer has changed, then create a new
+               buffer for the new table. Get rid of the old one.
+             */
+            if valid-handle(ghBuffer) then
+            do:
+                /* Clean up old handles */
+                delete object ghField no-error.
+                ghField = ?.
+                delete object ghBuffer no-error.
+                ghBuffer = ?.
+                
+                /* Create new buffer */
+                create buffer ghBuffer for table 'DICTDB._Db' no-error.
+                ghField = ghBuffer:buffer-field('_Db-name':u).                
+            end.
+            
+            if not valid-handle(ghQuery) then
+                create query ghQuery.                            
+            else
+                ghQuery:query-close().
+            
+            /* The buffers may have changed. */
+            ghQuery:set-buffers(ghBuffer).
+            
+            /* Note the fields() phrase. This is for performance reasons when running
+               connected -N to a DB.
+             */
+            ghQuery:query-prepare('for each DICTDB._Db fields (_Db-name) where ':u
+                                 + ' DICTDB._Db._db-name = ':u
+                                 + quoter(if tmp-db eq ldbname('DICTDB':u) then ? else tmp-db) 
+                                 + ' no-lock ':u).
+            ghQuery:query-open().
+            ghQuery:get-first().
+        end.    /* set up the query */
+        
+        if not ghBuffer:available then
+        do:
+            if not can-find(first s_ttb_db) then
+                run adecomm/_getdbs.p.
+            
+            find first s_ttb_db where s_ttb_db.ldbnm = tmp-db no-error.
+            if available s_ttb_db then
+                create alias DICTDB for database value(sdbname(s_ttb_db.sdbnm)).                    
+        end.    /* record not available */
+        else
+        if ghField:buffer-value ne ? then
+            create alias DICTDB for database value(sdbname(ghField:buffer-value)).
+    end.    /* connected to some DB */
+END PROCEDURE.    /* setDICTDBalias.ip */
 
 

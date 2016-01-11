@@ -21,6 +21,13 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS sObject 
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /*---------------------------------------------------------------------------------
   File: gscemimptv.w
 
@@ -274,22 +281,22 @@ DEFINE FRAME frDetails
      buSelectOne AT ROW 1.1 COL 22.6
      buDeSelectOne AT ROW 1.1 COL 44.6
      buDeselectAll AT ROW 1.1 COL 65.6
-     fiPrefixLength AT ROW 2.95 COL 21 COLON-ALIGNED
-     raAuditing AT ROW 2.95 COL 66.2 NO-LABEL
-     fiSeparator AT ROW 4 COL 21 COLON-ALIGNED
-     ToAuto AT ROW 5.05 COL 23
-     toGenerateDataFields AT ROW 5.81 COL 23
-     toAssociateDF AT ROW 6.67 COL 26.6
-     coEntityProductModule AT ROW 7.57 COL 20.6 COLON-ALIGNED
-     coEntityClass AT ROW 8.62 COL 20.6 COLON-ALIGNED
+     fiPrefixLength AT ROW 2.76 COL 21 COLON-ALIGNED
+     raAuditing AT ROW 2.76 COL 66.2 NO-LABEL
+     fiSeparator AT ROW 3.86 COL 21 COLON-ALIGNED
+     ToAuto AT ROW 4.91 COL 23
+     toGenerateDataFields AT ROW 5.67 COL 23
+     toAssociateDF AT ROW 6.52 COL 26.6
+     coEntityProductModule AT ROW 7.43 COL 20.6 COLON-ALIGNED
+     coEntityClass AT ROW 8.52 COL 20.6 COLON-ALIGNED
      coProductModule AT ROW 10.24 COL 21 COLON-ALIGNED
-     coObjectType AT ROW 11.29 COL 21 COLON-ALIGNED
+     coObjectType AT ROW 11.33 COL 21 COLON-ALIGNED
      toOverrideWithSchema AT ROW 12.43 COL 23.4
      buImport AT ROW 13.57 COL 72.2
-     "Auditing enabled:" VIEW-AS TEXT
-          SIZE 17.6 BY .76 AT ROW 2.95 COL 48.2
      "  DataFields" VIEW-AS TEXT
           SIZE 12 BY .62 AT ROW 9.67 COL 7.4
+     "Auditing enabled:" VIEW-AS TEXT
+          SIZE 17.6 BY .76 AT ROW 2.76 COL 48.2
      RECT-1 AT ROW 9.86 COL 3
     WITH 1 DOWN KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 

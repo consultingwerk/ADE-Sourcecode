@@ -3,6 +3,13 @@
 {adecomm/appserv.i}
 DEFINE VARIABLE h_Astra                    AS HANDLE          NO-UNDO.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Check Version Notes Wizard" DataLogicProcedure _INLINE
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /* Actions: af/cod/aftemwizcw.w ? ? ? ? */
 /* MIP Update Version Notes Wizard
 Check object version notes.
@@ -586,9 +593,17 @@ DEFINE VARIABLE hStoreAttributeBuffer AS HANDLE     NO-UNDO.
 DEFINE VARIABLE hUnknown              AS HANDLE     NO-UNDO.
 DEFINE VARIABLE iNum                  AS INTEGER    NO-UNDO.
 DEFINE VARIABLE lIncludeListView      AS LOGICAL    NO-UNDO.
+define variable lCalculatedField      as logical    no-undo.
 
   EMPTY TEMP-TABLE ttStoreAttribute.
   EMPTY TEMP-TABLE DeleteAttribute.
+    
+    /* Figure out if this is a calc field or not. This is used when deciding
+       whether to write the TableName attribute or not.
+     */
+    lCalculatedField = dynamic-function('ClassIsA' in gshRepositoryManager,
+                                        b_ryttDataField.tClassName, 'CalculatedField').                       
+
 
   hRepDesignManager = DYNAMIC-FUNCTION('getManagerHandle':U, INPUT 'RepositoryDesignManager':U) NO-ERROR.
   /* Only edit master if edit master is chosen */
@@ -600,7 +615,7 @@ DEFINE VARIABLE lIncludeListView      AS LOGICAL    NO-UNDO.
                         OUTPUT TABLE ttClassAttribute ,
                         OUTPUT TABLE ttUiEvent,
                         OUTPUT TABLE ttSupportedLink    ) NO-ERROR.  
-
+                        
     IF b_ryttDataField.RowMod = 'A':U OR b_ryttDataField.RowMod = 'C':U THEN
     DO:
       hNewBuffer = BUFFER b_ryttDataField:HANDLE.
@@ -785,6 +800,37 @@ DEFINE VARIABLE lIncludeListView      AS LOGICAL    NO-UNDO.
           DeleteAttribute.tConstantValue   = NO.
       END.  /* else do */
     END.  /* for each dps attribute */
+    
+    /* Make sure there's a TableName attribute for the DataFields.
+       If there's already a value, then leave it alone. If not, then
+       create a default value based on the entity name.
+       
+       Don't create this attribute for calculated fields.
+     */
+    if not lCalculatedField then
+    do:
+        if not can-find(ttStoreAttribute where ttStoreAttribute.tAttributeLabel = 'TableName') then
+        do:
+            /* We don't want to dispose of the TableName attribute */
+            find DeleteAttribute where
+                 DeleteAttribute.tAttributeLabel = 'TableName' and
+                 DeleteAttribute.tAttributeParent = 'Master'
+                 no-error.
+            if available DeleteAttribute then
+                delete DeleteAttribute.
+            
+            create ttStoreAttribute.
+            assign ttStoreAttribute.tAttributeParent = 'Master'
+                   ttStoreAttribute.tAttributeLabel  = 'TableName'
+                   ttStoreAttribute.tCharacterValue  = entry(1, b_ryttDataField.tFieldName, '.').
+            if b_ryttDataField.RowMod eq 'U' then
+                assign cUpdatedAttributes = cUpdatedAttributes + ',':U
+                                          + substring(hNewField:name, 2)
+                       cUpdatedAttrValues = cUpdatedAttrValues + chr(3)
+                                          + if hNewField:buffer-value eq ? then '?':U
+                                            else hNewField:buffer-value.            
+        end.    /* no TableName attribute available */
+    end.    /* not a calc field. */
 
     ASSIGN hStoreAttributeBuffer = TEMP-TABLE ttStoreAttribute:HANDLE.
 

@@ -7,6 +7,8 @@ Use this template to create a new dialog box which supports SmartObjects. Draw y
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME gDialog
+{adecomm/appserv.i}
+DEFINE VARIABLE h_Astra                    AS HANDLE          NO-UNDO.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS gDialog 
 /*------------------------------------------------------------------------
 
@@ -58,7 +60,7 @@ CREATE WIDGET-POOL.
 
 &Scoped-define ADM-SUPPORTED-LINKS Data-Target,Data-Source,Page-Target,Update-Source,Update-Target
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME gDialog
 
 /* Standard List Definitions                                            */
@@ -133,6 +135,7 @@ DEFINE FRAME gDialog
    Type: SmartDialog Template
    Allow: Basic,Browse,DB-Fields,Query,Smart
    Container Links: Data-Target,Data-Source,Page-Target,Update-Source,Update-Target
+   Other Settings: APPSERVER
  */
 &ANALYZE-RESUME _END-PROCEDURE-SETTINGS
 
@@ -151,7 +154,7 @@ DEFINE FRAME gDialog
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX gDialog
-                                                                        */
+   FRAME-NAME                                                           */
 ASSIGN 
        FRAME gDialog:SCROLLABLE       = FALSE
        FRAME gDialog:HIDDEN           = TRUE.

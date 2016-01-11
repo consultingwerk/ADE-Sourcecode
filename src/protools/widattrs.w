@@ -42,6 +42,8 @@ CREATE WIDGET-POOL.
 
 /* Local Variable Definitions ---                                       */
 
+{protools/ptlshlp.i}  /* help definitions        */
+
 def var dLastWindowHeight as decimal no-undo.
 def var dLastWindowWidth  as decimal no-undo.
 def var hList as widget-handle extent 3 no-undo.
@@ -70,7 +72,7 @@ def stream sOut.
 &Scoped-define PROCEDURE-TYPE Window
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME fMain
 
 /* Standard List Definitions                                            */
@@ -191,7 +193,7 @@ ELSE {&WINDOW-NAME} = CURRENT-WINDOW.
 /* SETTINGS FOR WINDOW C-Win
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME fMain
-                                                                        */
+   FRAME-NAME                                                           */
 /* SETTINGS FOR FILL-IN vEventLabel IN FRAME fMain
    ALIGN-L                                                              */
 /* SETTINGS FOR FILL-IN vROLabel IN FRAME fMain
@@ -218,6 +220,16 @@ OR ENDKEY OF {&WINDOW-NAME} ANYWHERE DO:
      In a persistently run window, just ignore this.  If we did not, the
      application would exit. */
   IF THIS-PROCEDURE:PERSISTENT THEN RETURN NO-APPLY.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL C-Win C-Win
+ON HELP OF C-Win /* Object Attribute Reference */
+DO:
+  RUN adecomm/_adehelp.p ( "ptls", "CONTEXT":U, {&Object_Attribute_Reference},?).  
 END.
 
 /* _UIB-CODE-BLOCK-END */

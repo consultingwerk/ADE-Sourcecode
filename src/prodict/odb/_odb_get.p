@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -46,6 +30,7 @@ History:  DLM 01/28/98 Added call for stored procedures.
                        blank.                                        
           KSM 03/04/05 Added conditions to prevent loading SYS* tables 20050214-028
           KSM 03/21/05 Added more conditions to prevent loading system tables 20041220-005
+          DJM 11/11/05 Added schema holder version control linked to the client
 
 */
 
@@ -57,36 +42,43 @@ History:  DLM 01/28/98 Added call for stored procedures.
 { prodict/odb/odbvar.i }
 &UNDEFINE DATASERVER
 
-DEFINE VARIABLE bug1             AS LOGICAL   NO-UNDO.
-DEFINE VARIABLE escp             AS CHARACTER NO-UNDO.
-DEFINE VARIABLE c	         AS CHARACTER NO-UNDO.
-DEFINE VARIABLE edbtyp           AS CHARACTER NO-UNDO. /* db-type external format */
-DEFINE VARIABLE hint	         AS CHARACTER NO-UNDO INITIAL "".
-DEFINE VARIABLE i	         AS INTEGER   NO-UNDO.
-DEFINE VARIABLE j	         AS INTEGER   NO-UNDO.
-DEFINE VARIABLE l	         AS LOGICAL   NO-UNDO.
-DEFINE VARIABLE lim	         AS INTEGER   NO-UNDO INITIAL 0.
-DEFINE VARIABLE odbtyp           AS CHARACTER NO-UNDO. /* list of ODBC-types */
-DEFINE VARIABLE redraw	         AS LOGICAL   NO-UNDO INITIAL TRUE.
-DEFINE VARIABLE rpos1	         AS CHARACTER NO-UNDO.
-DEFINE VARIABLE rpos2	         AS CHARACTER NO-UNDO.
-DEFINE VARIABLE rpos3	         AS CHARACTER NO-UNDO.
-DEFINE VARIABLE xld	         AS INTEGER   NO-UNDO INITIAL 0.
-DEFINE VARIABLE canned	         AS LOGICAL   NO-UNDO.
-DEFINE VARIABLE inc_qual         AS LOGICAL   NO-UNDO.
-DEFINE VARIABLE driver-prefix	 AS CHARACTER NO-UNDO.
-DEFINE VARIABLE sqltables-type	 AS CHARACTER NO-UNDO.
-DEFINE VARIABLE sqltables-name	 AS CHARACTER NO-UNDO case-sensitive.
-DEFINE VARIABLE SQLProcedures-name AS CHARACTER NO-UNDO.
-DEFINE VARIABLE object-type	 AS CHARACTER NO-UNDO.
-DEFINE VARIABLE l_client-qual    AS LOGICAL   NO-UNDO.
-DEFINE VARIABLE l_name_f	 AS CHARACTER NO-UNDO.
-DEFINE VARIABLE l_owner_f	 AS CHARACTER NO-UNDO.
-DEFINE VARIABLE l_qual_f	 AS CHARACTER NO-UNDO.
-DEFINE VARIABLE l_rep-presel     AS logical   NO-UNDO.
-DEFINE VARIABLE escape_char      AS CHARACTER NO-UNDO.
-DEFINE VARIABLE quote_char       AS CHARACTER NO-UNDO.
-DEFINE VARIABLE fromproto        AS LOGICAL NO-UNDO.
+DEFINE VARIABLE bug1                AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE escp                AS CHARACTER NO-UNDO.
+DEFINE VARIABLE c	            AS CHARACTER NO-UNDO.
+DEFINE VARIABLE edbtyp              AS CHARACTER NO-UNDO. /* db-type external format */
+DEFINE VARIABLE hint	            AS CHARACTER NO-UNDO INITIAL "".
+DEFINE VARIABLE i	            AS INTEGER   NO-UNDO.
+DEFINE VARIABLE j	            AS INTEGER   NO-UNDO.
+DEFINE VARIABLE found	            AS INTEGER   NO-UNDO.
+DEFINE VARIABLE efound	            AS INTEGER   NO-UNDO.
+DEFINE VARIABLE l	            AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE lim	            AS INTEGER   NO-UNDO INITIAL 0.
+DEFINE VARIABLE odbtyp              AS CHARACTER NO-UNDO. /* list of ODBC-types */
+DEFINE VARIABLE redraw	            AS LOGICAL   NO-UNDO INITIAL TRUE.
+DEFINE VARIABLE rpos1	            AS CHARACTER NO-UNDO.
+DEFINE VARIABLE rpos2	            AS CHARACTER NO-UNDO.
+DEFINE VARIABLE rpos3	            AS CHARACTER NO-UNDO.
+DEFINE VARIABLE xld	            AS INTEGER   NO-UNDO INITIAL 0.
+DEFINE VARIABLE canned	            AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE inc_qual            AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE driver-prefix	    AS CHARACTER NO-UNDO.
+DEFINE VARIABLE sqltables-type	    AS CHARACTER NO-UNDO.
+DEFINE VARIABLE sqltables-name	    AS CHARACTER NO-UNDO case-sensitive.
+DEFINE VARIABLE SQLProcedures-name  AS CHARACTER NO-UNDO.
+DEFINE VARIABLE object-type	    AS CHARACTER NO-UNDO.
+DEFINE VARIABLE l_client-qual       AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE l_name_f	    AS CHARACTER NO-UNDO.
+DEFINE VARIABLE l_owner_f	    AS CHARACTER NO-UNDO.
+DEFINE VARIABLE l_qual_f	    AS CHARACTER NO-UNDO.
+DEFINE VARIABLE l_rep-presel        AS logical   NO-UNDO.
+DEFINE VARIABLE escape_char         AS CHARACTER NO-UNDO.
+DEFINE VARIABLE quote_char          AS CHARACTER NO-UNDO.
+DEFINE VARIABLE fromproto           AS LOGICAL NO-UNDO.
+
+DEFINE VARIABLE sh_parsbuf          AS CHARACTER NO-UNDO.
+DEFINE VARIABLE sh_ver              AS INTEGER NO-UNDO.
+DEFINE VARIABLE sh_min_ver          AS INTEGER NO-UNDO.
+DEFINE VARIABLE sh_max_ver          AS INTEGER NO-UNDO.
 
 /*
 &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
@@ -301,6 +293,7 @@ repeat while l_rep-presel:   /* end for this repeat is in nogatwrk.i */
 /* if either no qualifier-support from the server (BUG24), or no    */
 /* wildcard-support from the server (BUG23) but wildcards contained */
 /* in the variables we have to do the selection on the client-side  */
+
 FIND DICTDB._Db WHERE RECID(DICTDB._Db) = drec_db.
 
 IF NOT SESSION:BATCH-MODE THEN DO:
@@ -314,6 +307,7 @@ RUN adecomm/_setcurs.p ("WAIT").
 DO TRANSACTION on error undo, leave on stop undo, leave:
 
   RUN STORED-PROC DICTDBG.CloseAllProcs.
+
   FIND DICTDB._Db WHERE RECID(DICTDB._Db) = drec_db.
 
   RUN STORED-PROC DICTDBG.GetInfo (0).
@@ -347,10 +341,11 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
   			        + DICTDBG.GetInfo_buffer.dbms_version 
         DICTDB._Db._Db-misc2[6] = DICTDBG.GetInfo_buffer.odbc_version
         DICTDB._Db._Db-misc2[7] = "Dictionary Ver#: " +  odbc-dict-ver
-  		                          + " Client Ver#: "
+  		                          + "; Client Ver#: "
   		                          + DICTDBG.GetInfo_buffer.prgrs_clnt
-  		                          + " Server Ver# "
+  		                          + " Server Ver#: "
   		                          + DICTDBG.GetInfo_buffer.prgrs_srvr
+                                          + ";"
         DICTDB._Db._Db-misc2[8] = DICTDBG.GetInfo_buffer.dbms_name
         driver-prefix    = ( IF DICTDB._Db._Db-misc2[1] BEGINS "QE"
                               THEN SUBSTRING(DICTDB._Db._Db-misc2[1]
@@ -361,7 +356,18 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
   		              ELSE DICTDB._Db._Db-misc2[1]
   		           )
         DICTDB._Db._Db-misc2[4] = "".
-        
+
+      /* If client version is formatted w/"sh_min", the client is OpenEdge 10.1A or greater 
+       * which knows about the dictionary version number.  The current format of _DB-misc2[7]
+       * conforms to the following sample:
+       *
+       * "Dictionary Ver#: 1.000.000; Client Ver#: 101.00,(sh_min=1,sh_max=2); Server Ver#: 101.00; Schema Holder Ver#: 1"
+       *
+       */
+
+      IF INDEX(DICTDBG.GetInfo_buffer.prgrs_clnt, ",(sh_min=") <> 0 THEN
+        DICTDB._Db._Db-misc2[7] = DICTDB._Db._Db-misc2[7] + " Schema Holder Ver#: ".
+
       REPEAT i = 1 TO 80:
         IF   ( CAN-DO(odbc-bug-list[i], driver-prefix)
          OR    CAN-DO(odbc-bug-list[i], "ALL") )
@@ -390,6 +396,87 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
       RUN adecomm/_setcurs.p ("WAIT").
       END.
 
+    /** Perform a schema holder version check and assignment if needed **/      
+
+    found = INDEX(DICTDBG.GetInfo_buffer.prgrs_clnt, ",(sh_min="). 
+    IF found <> 0 THEN DO:
+         
+      sh_parsbuf = SUBSTRING(DICTDBG.GetInfo_buffer.prgrs_clnt, found + 1).
+      found = INDEX(sh_parsbuf, "sh_min=").
+
+      found = found + LENGTH("sh_min=").
+      efound = INDEX(sh_parsbuf, ",").
+      IF efound > 0 AND efound > found THEN
+        sh_min_ver = INTEGER(SUBSTRING(sh_parsbuf, found, efound - found)).
+
+      sh_parsbuf = SUBSTRING(sh_parsbuf, efound + 1).
+      found = INDEX(sh_parsbuf, "sh_max=").
+
+      IF found <> 0 THEN DO:
+        found = found + LENGTH("sh_max=").
+        efound = INDEX(sh_parsbuf, ");").
+        IF efound > 0 AND efound > found THEN
+          sh_max_ver = INTEGER(SUBSTRING(sh_parsbuf, found, efound  - found)).
+      END.
+    END.
+
+    /* This code won't (and shouldn't) set the schema holder version on 
+     * schema holders create prior to the "version 101A" client set for
+     * 10.0B04 and 10.1A.
+     */
+
+    found = INDEX(DICTDB._Db._Db-misc2[7], " Schema Holder Ver#: ").
+    IF found <> 0 THEN DO:
+      found = found + LENGTH(" Schema Holder Ver#: ") - 1.
+
+      /* There is no specified schema holder version number yet */
+      IF found = LENGTH(DICTDB._Db._Db-misc2[7]) THEN
+        ASSIGN
+          DICTDB._Db._Db-misc2[7] = DICTDB._Db._Db-misc2[7] + STRING(sh_min_ver).
+
+      ELSE DO: /* Analyze schema holder value */
+
+        sh_ver = INTEGER(SUBSTRING(DICTDB._Db._Db-misc2[7], found)).
+
+        /* Catch old dictionaries, built by old clients, that are incompatible with 
+         * this client.
+         */
+
+        IF sh_ver < sh_min_ver THEN DO:
+ 
+          RUN adecomm/_setcurs.p ("").
+          MESSAGE
+            "The Schema Holder was created with an older version" SKIP
+            "of OpenEdge than is supported by this client." SKIP
+            "Please recreate your Schema Holder with this newer client."
+            VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+          RUN adecomm/_setcurs.p ("WAIT").
+          CLOSE STORED-PROC DICTDBG.GetInfo.
+          RETURN.
+          END.
+
+        /* Catch new dictionaries, built by new client, that are incompatible with 
+         * this older client.
+         */ 
+
+        IF sh_ver > sh_max_ver THEN DO:
+ 
+          RUN adecomm/_setcurs.p ("").
+          MESSAGE
+            "The Schema Holder was created with a newer version" SKIP
+            "of OpenEdge than is supported by this client." SKIP
+            "Please recreate your Schema Holder with this back revision" SKIP
+            "client or use a newer OpenEdge client with this schema holder." SKIP
+            "NOTE: Recreation with a back revision client may cause newer" SKIP
+            "features to be dropped.  Please refer to release notes"
+            VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+          RUN adecomm/_setcurs.p ("WAIT").
+          CLOSE STORED-PROC DICTDBG.GetInfo.
+          RETURN.
+          END.
+
+        END. /* else of if found = LENGTH(DICTDB._Db._Db-misc2[7]) */
+      END. /* if found <> 0 */
     
     END.  /* FOR EACH DICTDBG.GetInfo_buffer */
     
@@ -478,6 +565,7 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
             TRIM(DICTDBG.SQLTables_buffer.name) = "SYSPACKAGE" OR
             TRIM(DICTDBG.SQLTables_buffer.name) = "SYSREFCST" OR
             TRIM(DICTDBG.SQLTables_buffer.name) = "SYSTABLES" OR
+            TRIM(DICTDBG.SQLTables_buffer.name) = "SYSTABLEDEP" OR
             TRIM(DICTDBG.SQLTables_buffer.name) = "SYSTRIGCOL" OR
             TRIM(DICTDBG.SQLTables_buffer.name) = "SYSTRIGDEP" OR
             TRIM(DICTDBG.SQLTables_buffer.name) = "SYSTRIGGERS" OR

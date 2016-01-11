@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -47,7 +31,11 @@ form.
      DLM       09/18/03 Changed DESC field to be an editor widget 20030610-041
      DLM       10/21/03 Removed "WHEN COPIED" from display of inindex.
      DLM       10/21/03 Remove UCS2 from code page selection list
-     
+     KSM       03/02/05 Removed extra commas in arealist 20050223-091
+     KSM       03/04/05 Added (- 1) to Gigabyte calculation for 
+                        Max-Size 20050223-001 
+     KSM       03/07/05 Added validation to Max-Size field for LOBs
+                        20050223-002
 */     
 
 DEFINE INPUT  PARAMETER ronly   AS CHARACTER             NO-UNDO.
@@ -81,6 +69,7 @@ DEFINE VARIABLE hldcp     AS CHARACTER                 NO-UNDO.
 { prodict/user/uservar.i }
 { prodict/user/userhue.i }
 { prodict/user/userpik.i NEW }
+{ prodict/pro/fldfuncs.i }
 
 /* LANGUAGE DEPENDENCIES START */ /*----------------------------------------*/
 DEFINE VARIABLE new_lang AS CHARACTER EXTENT 9 NO-UNDO INITIAL [
@@ -130,27 +119,37 @@ FORM
   ROW (SCREEN-LINES - 19) COLUMN 1 SCROLLABLE.
 
 FORM
+    dfields._Field-name LABEL "Field Name" COLON 12 FORMAT "x(32)"
+      VALIDATE(KEYWORD(dfields._Field-name) = ?,
+        "This name conflicts with a PROGRESS reserved keyword.") SPACE
     areaname VIEW-AS SELECTION-LIST INNER-CHARS 32 INNER-LINES 1 
-             LABEL "Area" COLON 10 SKIP
-    lob-size LABEL "Max Size" COLON 10 SKIP
-    dfields._Order LABEL "Order" COLON 10 SKIP
+             LABEL "Area" COLON 12 SKIP
+    lob-size LABEL "Max Size" COLON 12 SKIP
+    dfields._Order LABEL "Order" COLON 12 SKIP
+    dfields._Desc  LABEL "Desc" COLON 12  VIEW-AS EDITOR
+                                             INNER-CHARS 58 INNER-LINES 3
+                                             BUFFER-LINES 6 SKIP 
     WITH FRAME pro-blob VIEW-AS DIALOG-BOX
-    SIDE-LABELS ROW 4 COLUMN 10 
+    SIDE-LABELS ROW 2 COLUMN 5 
     TITLE "Blob Field Attributes".
 
 FORM
-    dfields._Field-name LABEL "Field Name" FORMAT "x(32)"
+    dfields._Field-name LABEL "Field Name" COLON 11 FORMAT "x(32)"
     VALIDATE(KEYWORD(dfields._Field-name) = ?,
       "This name conflicts with a PROGRESS reserved keyword.") SKIP
     areaname VIEW-AS SELECTION-LIST INNER-CHARS 32 INNER-LINES 1 
              LABEL "Area" COLON 11 SKIP
     lob-size LABEL "Max Size" COLON 11 SKIP
     dfields._Order LABEL "  Order" COLON 11 SKIP
+    dfields._Desc  LABEL "Desc" COLON 11  VIEW-AS EDITOR
+                                             INNER-CHARS 58 INNER-LINES 3
+                                             BUFFER-LINES 6 SKIP 
     WITH FRAME mod-blob VIEW-AS DIALOG-BOX
-    SIDE-LABELS ROW 4 COLUMN 10 
+    SIDE-LABELS ROW 2 COLUMN 5 
     TITLE "Blob Field Attributes".
 
 FORM
+    dfields._Field-name LABEL "Field Name" COLON 15 FORMAT "x(32)"
     areaname VIEW-AS SELECTION-LIST INNER-CHARS 32 INNER-LINES 1 
              LABEL "Area" COLON 15 SKIP
     lob-size LABEL "Max Size" COLON 15 SKIP
@@ -160,12 +159,15 @@ FORM
              LABEL "Code Page" COLON 15 SKIP
     colname VIEW-AS SELECTION-LIST INNER-CHARS 32 INNER-LINES 1 SORT
              LABEL "Collation" COLON 15 SKIP
+    dfields._Desc LABEL "Desc" COLON 15  VIEW-AS EDITOR
+                                             INNER-CHARS 56 INNER-LINES 3
+                                             BUFFER-LINES 6 SKIP 
     WITH FRAME pro-clob VIEW-AS DIALOG-BOX
-    SIDE-LABELS ROW 4 COLUMN 10 
+    SIDE-LABELS ROW 2 COLUMN 5 
     TITLE "Clob Field Attributes".
 
 FORM
-    dfields._Field-name LABEL "    Field name" FORMAT "x(32)"
+    dfields._Field-name LABEL "Field name" COLON 15 FORMAT "x(32)"
     VALIDATE(KEYWORD(dfields._Field-name) = ?,
       "This name conflicts with a PROGRESS reserved keyword.") SKIP
     areaname VIEW-AS SELECTION-LIST INNER-CHARS 32 INNER-LINES 1 
@@ -177,8 +179,11 @@ FORM
              LABEL "Code Page" COLON 15 SKIP
     colname VIEW-AS SELECTION-LIST INNER-CHARS 32 INNER-LINES 1
              LABEL "Collation" COLON 15 SKIP
+    dfields._Desc LABEL "Desc" COLON 15 VIEW-AS EDITOR
+                                             INNER-CHARS 56 INNER-LINES 3
+                                             BUFFER-LINES 6 SKIP 
     WITH FRAME mod-clob VIEW-AS DIALOG-BOX
-    SIDE-LABELS ROW 4 COLUMN 10 
+    SIDE-LABELS ROW 2 COLUMN 5 
     TITLE "Clob Field Attributes".
 
 /* LANGUAGE DEPENDENCIES END */ /*------------------------------------------*/
@@ -224,7 +229,8 @@ ON GO OF FRAME pro-blob DO:
            dfields._Width = wdth
            dfields._Initial = ?
            dfields._Order = INTEGER(dfields._Order:SCREEN-VALUE)        
-           dfields._Field-name = dfields._Field-name:SCREEN-VALUE IN FRAME pro_fld
+           dfields._Field-name = dfields._Field-name:SCREEN-VALUE IN FRAME /*pro_fld*/ pro-blob
+           dfields._Desc = dfields._Desc:SCREEN-VALUE
            areaname = ?
            wdth = ?.
 
@@ -238,6 +244,7 @@ ON GO OF FRAME mod-blob DO:
   ASSIGN dfields._Fld-Misc2[1] = CAPS(lob-size)
          dfields._Width = wdth
          dfields._Order = INTEGER(dfields._Order:SCREEN-VALUE)        
+         dfields._Desc = dfields._Desc:SCREEN-VALUE
          dfields._Field-name = dfields._Field-name:SCREEN-VALUE.
     ASSIGN changed = TRUE.
 END.
@@ -281,7 +288,8 @@ ON GO OF FRAME pro-clob DO:
            dfields._Initial = ?
            dfields._Order = INTEGER(dfields._Order:SCREEN-VALUE IN FRAME pro-clob) 
            dfields._Fld-case = LOGICAL(dfields._Fld-case:SCREEN-VALUE IN FRAME pro-clob)
-           dfields._Field-name = dfields._Field-name:SCREEN-VALUE IN FRAME pro_fld
+           dfields._Desc = dfields._Desc:SCREEN-VALUE
+           dfields._Field-name = dfields._Field-name:SCREEN-VALUE IN FRAME pro-clob /*pro_fld*/
            areaname = ?
            wdth = ?
            cpname = ?
@@ -307,6 +315,7 @@ ON GO OF FRAME mod-clob DO:
          dfields._Width = wdth
          INPUT FRAME mod-clob dfields._Order    
          INPUT FRAME mod-clob dfields._Fld-case
+         INPUT FRAME mod-clob dfields._Desc
          INPUT FRAME mod-clob dfields._Field-name.
     ASSIGN changed = TRUE.
 END.
@@ -328,6 +337,36 @@ ON LEAVE OF lob-size IN FRAME pro-blob,
   ELSE
     ASSIGN lob-size = CAPS(lob-size:SCREEN-VALUE IN FRAME mod-blob).
 
+  /* If the first character is not numeric then return an error
+     and reset to the original, or default, value. */
+  IF NOT isNumeric(SUBSTRING(lob-size,1,1)) THEN DO:
+    MESSAGE "Blob field size must begin with a numeric character!"
+        VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    IF NEW dfields THEN
+      lob-size:SCREEN-VALUE IN FRAME pro-blob = "100M".
+    ELSE
+      lob-size:SCREEN-VALUE IN FRAME mod-blob = dfields._Fld-Misc2[1].
+    RETURN NO-APPLY.
+  END.
+  /* Check to see if the user specified an invalid format to the input.
+     For instance, they can't begin with an alpha char, they can't
+     use invalid alpha chars and, once they've specified a valid char,
+     no other values are valid. */
+  ELSE IF badFormat("BLOB","lob-size",lob-size) THEN DO:
+    MESSAGE "Blob field size contains invalid characters!" SKIP(1)
+            "Please enter a numeric value followed by one of" SKIP
+            "the following alphabetic values:" SKIP(1) 
+            "      B = Bytes    " SKIP
+            "K or KB = Kilobytes" SKIP
+            "M or MB = Megabytes" SKIP
+            "G or GB = Gigabytes" SKIP
+       VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    IF NEW dfields THEN
+      lob-size:SCREEN-VALUE IN FRAME pro-blob = "100M".
+    ELSE
+      lob-size:SCREEN-VALUE IN FRAME mod-blob = dfields._Fld-Misc2[1].
+    RETURN NO-APPLY.
+  END.
   IF INDEX(lob-size, "K") <> 0 THEN
     ASSIGN size-type = "K".
   ELSE IF INDEX(lob-size, "M") <> 0 THEN
@@ -336,7 +375,9 @@ ON LEAVE OF lob-size IN FRAME pro-blob,
     ASSIGN size-type = "G".
   ELSE IF INDEX(lob-size, "B") <> 0 THEN
     ASSIGN size-type = "B".
-  ELSE IF INDEX("ACDEFHIJLNOPQRSTUVWXYZ", SUBSTRING(lob-size, LENGTH(lob-size), 1)) <> 0 THEN DO:
+  ELSE IF 
+      INDEX("ACDEFHIJLNOPQRSTUVWXYZ", 
+            SUBSTRING(lob-size, LENGTH(lob-size), 1)) <> 0 THEN DO:
     MESSAGE "Size of blob must be expressed as #B, #K, #M, or #G"
         VIEW-AS ALERT-BOX ERROR BUTTONS OK.
     IF NEW dfields THEN
@@ -356,18 +397,22 @@ ON LEAVE OF lob-size IN FRAME pro-blob,
 
   CASE size-type:
     WHEN "K" THEN DO:
-        ASSIGN wdth = INTEGER(TRIM(SUBSTRING(lob-size, 1, (INDEX(lob-size, "K") - 1)))).
+        ASSIGN wdth = 
+            INTEGER(TRIM(SUBSTRING(lob-size, 1, (INDEX(lob-size, "K") - 1)))).
         ASSIGN wdth = (wdth * 1024).
     END.
     WHEN "M" THEN DO:
-        ASSIGN wdth = INTEGER(TRIM(SUBSTRING(lob-size, 1, (INDEX(lob-size, "M") - 1)))).
+        ASSIGN wdth = 
+            INTEGER(TRIM(SUBSTRING(lob-size, 1, (INDEX(lob-size, "M") - 1)))).
         ASSIGN wdth = (wdth * (1024 * 1024)).
     END.
     WHEN "G" THEN
-        ASSIGN wdth = INTEGER(TRIM(SUBSTRING(lob-size, 1, (INDEX(lob-size, "G") - 1))))
-               wdth = (wdth * (1024 * 1024 * 1024)- 1 ).
+        ASSIGN wdth = 
+            INTEGER(TRIM(SUBSTRING(lob-size, 1, (INDEX(lob-size, "G") - 1))))
+               wdth = (wdth * (1024 * 1024 * 1024) - 1 ).
     OTHERWISE
-        ASSIGN wdth = INTEGER(TRIM(SUBSTRING(lob-size, 1, (INDEX(lob-size, "B") - 1)))). 
+        ASSIGN wdth = 
+            INTEGER(TRIM(SUBSTRING(lob-size, 1, (INDEX(lob-size, "B") - 1)))). 
   END CASE.
 
   IF wdth < 1 OR wdth > 1073741823 THEN DO:
@@ -416,6 +461,36 @@ DO:
   ELSE
     ASSIGN lob-size = CAPS(lob-size:SCREEN-VALUE IN FRAME mod-clob).
 
+  /* If the first character is not numeric then return an error
+     and reset to the original, or default, value. */
+  IF NOT isNumeric(SUBSTRING(lob-size,1,1)) THEN DO:
+    MESSAGE "Blob field size must begin with a numeric character!"
+        VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    IF NEW dfields THEN
+      lob-size:SCREEN-VALUE IN FRAME pro-clob = "100M".
+    ELSE
+      lob-size:SCREEN-VALUE IN FRAME mod-blob = dfields._Fld-Misc2[1].
+    RETURN NO-APPLY.
+  END.
+  /* Check to see if the user specified an invalid format to the input.
+     For instance, they can't begin with an alpha char, they can't
+     use invalid alpha chars and, once they've specified a valid char,
+     no other values are valid. */
+  IF badFormat("CLOB","lob-size",lob-size) THEN DO:
+    MESSAGE "Clob field size contains invalid characters!" SKIP(1)
+            "Please enter a numeric value followed by one of" SKIP
+            "the following alphabetic values:" SKIP(1)
+            "      B = Bytes    " SKIP
+            "K or KB = Kilobytes" SKIP
+            "M or MB = Megabytes" SKIP
+            "G or GB = Gigabytes" SKIP
+        VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    IF NEW dfields THEN
+      lob-size:SCREEN-VALUE IN FRAME pro-clob = "100M".
+    ELSE
+      lob-size:SCREEN-VALUE IN FRAME mod-blob = dfields._Fld-Misc2[1].
+    RETURN NO-APPLY.
+  END.
   IF INDEX(lob-size, "K") <> 0 THEN
     ASSIGN size-type = "K".
   ELSE IF INDEX(lob-size, "M") <> 0 THEN
@@ -424,7 +499,8 @@ DO:
     ASSIGN size-type = "G".
   ELSE IF INDEX(lob-size, "B") <> 0 THEN
     ASSIGN size-type = "B".
-  ELSE IF INDEX("ACDEFHIJLNOPQRSTUVWXYZ", SUBSTRING(lob-size, LENGTH(lob-size), 1)) <> 0 THEN DO:
+  ELSE IF INDEX("ACDEFHIJLNOPQRSTUVWXYZ", 
+                SUBSTRING(lob-size, LENGTH(lob-size), 1)) <> 0 THEN DO:
     MESSAGE "Size of blob must be expressed as #B, #K, #M, or #G"
         VIEW-AS ALERT-BOX ERROR BUTTONS OK.
     IF NEW dfields THEN
@@ -444,18 +520,22 @@ DO:
 
   CASE size-type:
     WHEN "K" THEN DO:
-        ASSIGN wdth = INTEGER(TRIM(SUBSTRING(lob-size, 1, (INDEX(lob-size, "K") - 1)))).
+        ASSIGN wdth = INTEGER(TRIM(SUBSTRING(lob-size, 1, 
+                                             (INDEX(lob-size, "K") - 1)))).
         ASSIGN wdth = (wdth * 1024).
     END.
     WHEN "M" THEN DO:
-        ASSIGN wdth = INTEGER(TRIM(SUBSTRING(lob-size, 1, (INDEX(lob-size, "M") - 1)))).
+        ASSIGN wdth = INTEGER(TRIM(SUBSTRING(lob-size, 1, 
+                                             (INDEX(lob-size, "M") - 1)))).
         ASSIGN wdth = (wdth * (1024 * 1024)).
     END.
     WHEN "G" THEN
-        ASSIGN wdth = INTEGER(TRIM(SUBSTRING(lob-size, 1, (INDEX(lob-size, "G") - 1))))
-               wdth = (wdth * (1024 * 1024 * 1024)).
+        ASSIGN wdth = INTEGER(TRIM(SUBSTRING(lob-size, 1, 
+                                             (INDEX(lob-size, "G") - 1))))
+               wdth = (wdth * (1024 * 1024 * 1024) - 1).
     OTHERWISE
-        ASSIGN wdth = INTEGER(TRIM(SUBSTRING(lob-size, 1, (INDEX(lob-size, "B") - 1)))). 
+        ASSIGN wdth = INTEGER(TRIM(SUBSTRING(lob-size, 1, 
+                                             (INDEX(lob-size, "B") - 1)))). 
   END CASE.
 
   IF wdth < 1 OR wdth > 1073741823 THEN DO:
@@ -666,7 +746,7 @@ IF ronly = "r/o" THEN DO:
 
     ASSIGN areaname:LIST-ITEMS IN FRAME pro-blob = _Area._Area-name
            lob-size = dfields._Fld-Misc2[1].
-    DISPLAY areaname lob-size dfields._Order WITH FRAME pro-blob. 
+    DISPLAY areaname lob-size dfields._Order dfields._Desc dfields._Field-name  WITH FRAME pro-blob. 
   END.
   IF dfields._Data-type = "CLOB" THEN DO:
     IF dfields._Field-rpos <> ? THEN DO:
@@ -685,7 +765,7 @@ IF ronly = "r/o" THEN DO:
            lob-size = dfields._Fld-Misc2[1].
   
     DISPLAY areaname lob-size dfields._Order dfields._Fld-case
-            cpname colname WITH FRAME pro-clob. 
+            cpname colname dfields._Desc dfields._Field-name WITH FRAME pro-clob. 
   END.
   { prodict/user/userpaus.i }
   HIDE FRAME pro_fld NO-PAUSE.
@@ -704,11 +784,11 @@ IF dfields._Data-type = "BLOB" THEN DO:
       IF arealist = ? THEN
         ASSIGN arealist = DICTDB._Area._Area-name.            
       ELSE
-        ASSIGN arealist = arealist + "," + DICTDB._Area._Area-name + ",".
+        ASSIGN arealist = arealist + "," + DICTDB._Area._Area-name.
     END.
   
     IF NUM-ENTRIES(arealist) = 1 THEN
-      ASSIGN arealist = arealist + ",".
+      ASSIGN arealist = arealist.
     
     FIND DICTDB._Area WHERE DICTDB._Area._Area-number = 6 NO-LOCK.
     
@@ -718,13 +798,13 @@ IF dfields._Data-type = "BLOB" THEN DO:
     IF arealist = ? THEN 
       ASSIGN arealist = DICTDB._Area._Area-name.           
     ELSE
-      ASSIGN arealist = arealist + DICTDB._Area._Area-name.
+      ASSIGN arealist = arealist + "," + DICTDB._Area._Area-name.
 
     ASSIGN areaname:LIST-ITEMS IN FRAME pro-blob = arealist.
                   
-    DISPLAY areaname lob-size neworder @ dfields._Order WITH FRAME pro-blob.
+    DISPLAY areaname lob-size neworder @ dfields._Order dfields._Desc dfields._Field-name WITH FRAME pro-blob.
     ASSIGN areaname:SCREEN-VALUE = lobarea.
-    SET areaname lob-size dfields._Order WITH FRAME pro-blob.    
+    SET areaname lob-size dfields._Order dfields._Desc  dfields._Field-name WITH FRAME pro-blob.    
   END.
   ELSE DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
     IF dfields._Field-rpos <> ? THEN DO:
@@ -740,8 +820,8 @@ IF dfields._Data-type = "BLOB" THEN DO:
     ASSIGN areaname:LIST-ITEMS IN FRAME mod-blob = DICTDB._Area._Area-name
            lob-size = dfields._Fld-Misc2[1]. 
     
-    DISPLAY  dfields._Field-name areaname lob-size dfields._Order WITH FRAME mod-blob.
-    UPDATE lob-size dfields._Order dfields._Field-name WITH FRAME mod-blob. 
+    DISPLAY  dfields._Field-name areaname lob-size dfields._Order dfields._Desc WITH FRAME mod-blob.
+    UPDATE lob-size dfields._Order dfields._Desc dfields._Field-name WITH FRAME mod-blob. 
   END.   
 END.
 ELSE IF dfields._Data-type = "CLOB" THEN DO:
@@ -758,11 +838,11 @@ ELSE IF dfields._Data-type = "CLOB" THEN DO:
       IF arealist = ? THEN
         ASSIGN arealist = DICTDB._Area._Area-name.            
       ELSE
-        ASSIGN arealist = arealist + "," + DICTDB._Area._Area-name + ",".
+        ASSIGN arealist = arealist + "," + DICTDB._Area._Area-name.
     END.
   
     IF NUM-ENTRIES(arealist) = 1 THEN
-      ASSIGN arealist = arealist + ",".
+      ASSIGN arealist = arealist.
     
     FIND DICTDB._Area WHERE DICTDB._Area._Area-number = 6 NO-LOCK.
     
@@ -772,7 +852,7 @@ ELSE IF dfields._Data-type = "CLOB" THEN DO:
     IF arealist = ? THEN 
       ASSIGN arealist = DICTDB._Area._Area-name.           
     ELSE
-      ASSIGN arealist = arealist + DICTDB._Area._Area-name.
+      ASSIGN arealist = arealist + "," + DICTDB._Area._Area-name.
 
     ASSIGN areaname:LIST-ITEMS IN FRAME pro-clob = arealist.
     RUN set-code-page.
@@ -781,15 +861,15 @@ ELSE IF dfields._Data-type = "CLOB" THEN DO:
            cpname:LIST-ITEMS IN FRAME pro-clob = cplist
            colname:LIST-ITEMS IN FRAME pro-clob = collist.           
                 
-    DISPLAY areaname lob-size neworder @ dfields._Order
-            dfields._Fld-case cpname colname WITH FRAME pro-clob.
+    DISPLAY dfields._Field-name areaname lob-size neworder @ dfields._Order
+            dfields._Fld-case cpname colname dfields._Desc WITH FRAME pro-clob.
 
     ASSIGN areaname:SCREEN-VALUE IN FRAME pro-clob = lobarea
            cpname:SCREEN-VALUE IN FRAME pro-clob = "*Use DB Code page"
            colname:SCREEN-VALUE IN FRAME pro-clob = "*Use DB Collation".
 
     SET areaname lob-size dfields._Order 
-        dfields._Fld-case cpname colname WITH FRAME pro-clob.
+        dfields._Fld-case cpname colname dfields._Desc dfields._Field-name WITH FRAME pro-clob.
   END.
   ELSE DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
  
@@ -811,10 +891,10 @@ ELSE IF dfields._Data-type = "CLOB" THEN DO:
            colname:LIST-ITEMS IN FRAME mod-clob = dfields._Collation.
 
     DISPLAY dfields._Field-name areaname lob-size dfields._Order dfields._Fld-case
-            cpname colname WITH FRAME mod-clob.
+            cpname colname dfields._Desc WITH FRAME mod-clob.
 
     UPDATE lob-size dfields._Order 
-        dfields._Fld-case WHEN NOT inindex dfields._Field-name
+        dfields._Fld-case WHEN NOT inindex dfields._Desc dfields._Field-name
         WITH FRAME mod-clob. 
   END.   
 END.

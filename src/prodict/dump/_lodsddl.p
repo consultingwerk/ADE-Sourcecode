@@ -30,7 +30,9 @@
    S. Watt &
    K. McIntosh 05/13/04 Added support for loading collation tables for UTF-8
    F. Souza    07/09/04 Added data type abbreviations 20040430-023
-
+   K. McIntosh 09/17/04 Increased number of elements of the error_text array to 60 
+			      and moved Max Sequences message to 51. 20030619-003
+   K. McIntosh 09/17/04 Backed out fix for bug number 20040910-010
 */
 
 { prodict/dump/loaddefs.i NEW }
@@ -48,7 +50,7 @@ DEFINE NEW SHARED TEMP-TABLE s_ttb_fake-cp
     FIELD   db-name     AS CHARACTER
     FIELD   db-recid    AS RECID.
     
-DEFINE VARIABLE error_text AS CHARACTER EXTENT 50 NO-UNDO.
+DEFINE VARIABLE error_text AS CHARACTER EXTENT 60 NO-UNDO.
 ASSIGN
   error_text[ 1] = "Unknown action":t72
   error_text[ 2] = "Unknown object":t72
@@ -85,7 +87,6 @@ ASSIGN
   error_text[32] = "CODEPAGE-NAME in the .df file is different from the db's current":t72
   error_text[33] = "codepage. To change the latter use the AdminTool for DataServers":t72
   error_text[34] = "or PROUTIL for PROGRESS. This .df file can't be loaded.":t72
-  error_text[35] = "Maximum number of sequences has been reached.":t72
   error_text[40] = "Errors occurred loading collation rules. Verify that definition":t72
   error_text[41] = "file is not corrupted.":t72
   error_text[43] = "Field-position and file-size don't match. File-size is too small.":t72
@@ -94,16 +95,28 @@ ASSIGN
   error_text[46] = "CLOB data type must have CODEPAGE and COLLATION DEFINEd.":t72
   error_text[47] = "Unknown data type in field definition. ":t72
   error_text[50] = "" /* DO NOT USE.  If ierror is 50, then it's a warning */
+  error_text[51] = "Maximum number of sequences has been reached.":t72
 .
+
+&SCOPED-DEFINE WARN_MSG_SQLW 48
 
 DEFINE VARIABLE warn_text AS CHARACTER EXTENT 50 NO-UNDO.
 ASSIGN
   warn_text[23] = "Can't change Can-read or write, Mandatory, or Decimals of field in SQL table." 
   warn_text[24] = "Can't change case-sensitivity of ""&1""  because it is part of an index.":t72
-  warn_text[25] = "SQL client cannot access fields having widths greater than 31995.  ":t72
-  warn_text[26] = "The width of the field ""&1"" in the .df file is &2.  ":t72
-  warn_text[27] = "Use the data dictionary Adjust Width Utility to correct width.":t72
+  warn_text[25] = "Can't change Decimals of field ""&1"". Field type is not DECIMAL.":t72
+  
+  /* these three lines need to go together, so if you need to add new warnings, add them here, 
+     and adjust the numbers below. Then change WARN_MSG_SQLW to point to the next warning ID */
+  warn_text[48] = "SQL client cannot access fields having widths greater than 31995.  ":t72
+  warn_text[49] = "The width of the field ""&1"" in the .df file is &2.  ":t72
+  warn_text[50] = "Use the data dictionary Adjust Width Utility to correct width.":t72
+  /* DON'T ADD MESSAGES HERE. See comment below */
 .
+
+/* This is going to be used to store the warning message after calling substitute so we don't
+   change the warn_text variable */
+DEFINE VARIABLE warn_message AS CHARACTER.
 
 DEFINE NEW SHARED STREAM loaderr.
 
@@ -407,47 +420,47 @@ PROCEDURE Show_Warning:
     END.
 
     IF user_env[6] = "f" THEN DO:  /* output only to file */
-      IF  iwarn <= 24 THEN DO:
+      IF  iwarn < {&WARN_MSG_SQLW} THEN DO:
         IF msg = "" THEN
           PUT STREAM loaderr UNFORMATTED
              SKIP(1) "** " scrap " caused a warning **" SKIP(1)
-             SUBSTITUTE(warn_text[iwarn],
+             SUBSTITUTE(warn_message,
              ENTRY(1,scrap," ":u),ENTRY(2,scrap," ":u),ENTRY(3,scrap," ":u)) SKIP(1).
         ELSE
           PUT STREAM loaderr UNFORMATTED
              SKIP(1) "** " scrap " caused a warning **" SKIP(1)
              msg SKIP(1)
-             SUBSTITUTE(warn_text[iwarn],
+             SUBSTITUTE(warn_message,
              ENTRY(1,scrap," ":u),ENTRY(2,scrap," ":u),ENTRY(3,scrap," ":u)) SKIP(1).
       END.  
-      ELSE /* IF iwarn >= 25 THEN */ 
+      ELSE /* IF iwarn >= {&WARN_MSG_SQLW} THEN */ 
         PUT STREAM loaderr UNFORMATTED
              SKIP(1) "** " scrap " caused a warning **"           SKIP(1)
              warn_text[iwarn]                     {&SKP}
-             warn_text[iwarn + 1]                 {&SKP} 
+             warn_message                         {&SKP} 
              warn_text[iwarn + 2].
     END.     /* output only to file */
   END.
   ELSE IF user_env[6] = "s" THEN DO: /* output only with alert-boxes */
-    IF  iwarn <= 24  THEN
+    IF  iwarn < {&WARN_MSG_SQLW}  THEN
       IF msg = "" THEN 
          MESSAGE 
           "**" scrap "caused a warning **" SKIP(1)
-          SUBSTITUTE(warn_text[iwarn],
+          SUBSTITUTE(warn_message,
           ENTRY(1,scrap," ":u),ENTRY(2,scrap," ":u),ENTRY(3,scrap," ":u)) 
           VIEW-AS ALERT-BOX WARNING BUTTONS OK.
       ELSE 
         MESSAGE 
           "**" scrap "caused a warning **" SKIP(1)
           msg SKIP(1) 
-          SUBSTITUTE(warn_text[iwarn],
+          SUBSTITUTE(warn_message,
           ENTRY(1,scrap," ":u),ENTRY(2,scrap," ":u),ENTRY(3,scrap," ":u)) 
           VIEW-AS ALERT-BOX WARNING BUTTONS OK.
-      ELSE /* IF iwarn >= 25 THEN */ 
+      ELSE /* IF iwarn >= {&WARN_MSG_SQLW} THEN */ 
         MESSAGE
           "**" scrap "caused a warning **"           SKIP(1)
           warn_text[iwarn]                     {&SKP}
-          warn_text[iwarn + 1]                 {&SKP} 
+          warn_message                         {&SKP} 
           warn_text[iwarn + 2] 
           VIEW-AS ALERT-BOX WARNING BUTTONS OK.
 
@@ -455,46 +468,46 @@ PROCEDURE Show_Warning:
   ELSE IF user_env[6] = "b" THEN DO:  /* output to both file and alert-boxes */
     OUTPUT STREAM loaderr TO VALUE(dbload-e) APPEND.
 
-    IF  iwarn <= 24 THEN DO:
+    IF  iwarn < {&WARN_MSG_SQLW} THEN DO:
       IF msg = "" THEN DO: 
         MESSAGE
           "**" scrap "caused a warning **" SKIP(1)
-          SUBSTITUTE(warn_text[iwarn],
+          SUBSTITUTE(warn_message,
           ENTRY(1,scrap," ":u),ENTRY(2,scrap," ":u),ENTRY(3,scrap," ":u))
           VIEW-AS ALERT-BOX WARNING BUTTONS OK.
 
           PUT STREAM loaderr UNFORMATTED
           SKIP(1) "** " scrap " caused a warning **" SKIP(1)
-          SUBSTITUTE(warn_text[iwarn],
+          SUBSTITUTE(warn_message,
           ENTRY(1,scrap," ":u),ENTRY(2,scrap," ":u),ENTRY(3,scrap," ":u)) SKIP(1).
       END.
       ELSE DO: 
         MESSAGE
           "**" scrap "caused a warning **" SKIP(1)
           msg SKIP(1)
-          SUBSTITUTE(warn_text[iwarn],
+          SUBSTITUTE(warn_message,
           ENTRY(1,scrap," ":u),ENTRY(2,scrap," ":u),ENTRY(3,scrap," ":u))
           VIEW-AS ALERT-BOX WARNING BUTTONS OK.
 
         PUT STREAM loaderr UNFORMATTED
               SKIP(1) "** " scrap " caused a warning **" SKIP(1)
               msg SKIP(1)
-              SUBSTITUTE(warn_text[iwarn],
+              SUBSTITUTE(warn_message,
               ENTRY(1,scrap," ":u),ENTRY(2,scrap," ":u),ENTRY(3,scrap," ":u)) SKIP(1).
       END.
     END.
-    ELSE /* IF iwarn >= 25 THEN */ DO:
+    ELSE /* IF iwarn >= {&WARN_MSG_SQLW} THEN */ DO:
       MESSAGE
         "**" scrap "caused a warning **"           SKIP(1)
         warn_text[iwarn]                     {&SKP}
-        warn_text[iwarn + 1]                 {&SKP}
+        warn_message                         {&SKP}
         warn_text[iwarn + 2]
         VIEW-AS ALERT-BOX WARNING BUTTONS OK.
 
       PUT STREAM loaderr UNFORMATTED
         SKIP(1) "** " scrap " caused a warning **"           SKIP(1)
         warn_text[iwarn]                     {&SKP}
-        warn_text[iwarn + 1]                 {&SKP}
+        warn_message                         {&SKP}
         warn_text[iwarn + 2] SKIP(1).
     END.
 
@@ -503,6 +516,8 @@ PROCEDURE Show_Warning:
   ASSIGN xwarn = true.
   
   OUTPUT STREAM loaderr CLOSE.
+
+  ASSIGN warn_message = "".
 
 END PROCEDURE. /* Show_Warnings */
 
@@ -934,6 +949,7 @@ IF cerror = ?
            ASSIGN iwarn = INTEGER(ENTRY(w, iwarnlst)).           
            IF iwarn = 23 THEN warn_text[23] = SUBSTITUTE(warn_text[23],wfld._Field-name,iarg).
            ELSE IF iwarn = 24 THEN warn_text[24] = SUBSTITUTE(warn_text[24],wfld._Field-name,iarg).
+           ELSE IF iwarn = 25 THEN warn_text[25] = SUBSTITUTE(warn_text[25],wfld._Field-name,iarg).
            ELSE LEAVE.
            RUN Show_error ("prev").
          END.
@@ -1282,18 +1298,18 @@ IF cerror = ?
     */
       IF inum <> 3 THEN
         ASSIGN
-          ikwd = ilin[1]
-          iarg = ilin[2]
-          inot = FALSE
-          inum = 2
-          inot = (ikwd BEGINS "NOT-")
-          ikwd = SUBSTRING(ikwd, IF inot THEN 5 ELSE 1, -1, "CHARACTER")
-          inum = (IF ikwd = "NO-ERROR"
-               OR (iobj = "t" AND CAN-DO("FROZEN,HIDDEN",ikwd))
-               OR (iobj = "f" AND CAN-DO("MAND*,NULL,NULL-A*,CASE-SENS*",ikwd))
-               OR (iobj = "i" AND CAN-DO("UNIQUE,INACTIVE,PRIMARY,WORD",ikwd))
-               THEN 1 ELSE 2)
-          iarg = (IF inum = 2 THEN iarg ELSE (IF inot THEN "no" ELSE "yes")).
+          ikwd   = ilin[1]
+          iarg   = ilin[2]
+          inot   = FALSE
+          inum   = 2
+          inot   = (ikwd BEGINS "NOT-")
+          ikwd   = SUBSTRING(ikwd, IF inot THEN 5 ELSE 1, -1, "CHARACTER")
+          inum   = (IF ikwd = "NO-ERROR"
+                 OR (iobj = "t" AND CAN-DO("FROZEN,HIDDEN",ikwd))
+                 OR (iobj = "f" AND CAN-DO("MAND*,NULL,NULL-A*,CASE-SENS*",ikwd))
+                 OR (iobj = "i" AND CAN-DO("UNIQUE,INACTIVE,PRIMARY,WORD",ikwd))
+                 THEN 1 ELSE 2)
+          iarg   = (IF inum = 2 THEN iarg ELSE (IF inot THEN "no" ELSE "yes")).
   
     /* Load the value from the .df file into the appropriate field
        of the object we're working on.
@@ -1538,8 +1554,8 @@ IF cerror = ?
              wfld._Extent > 0 THEN
                 IF INTEGER(iarg) > 31995 THEN
                    ASSIGN ierror = 50
-		                  iwarn  = 25
-		                  warn_text[26] = SUBSTITUTE(warn_text[26],wfld._Field-name,iarg).
+		                  iwarn  = {&WARN_MSG_SQLW}
+		                  warn_message = SUBSTITUTE(warn_text[{&WARN_MSG_SQLW} + 1],wfld._Field-name,iarg).
           END.
           WHEN "LOB-AREA" THEN DO:
             /* Area names can have space*/
@@ -1580,10 +1596,24 @@ IF cerror = ?
           WHEN    "HELP"                   THEN wfld._Help = iarg.
           WHEN    "HELP-SA"                THEN wfld._Help-SA = iarg.
           WHEN    "EXTENT"                 THEN wfld._Extent = INTEGER(iarg).
-          WHEN    "DECIMALS" 
-          OR WHEN "LENGTH" 
-          OR WHEN "SCALE" 
-          OR WHEN "FOREIGN-BITS"           THEN wfld._Decimals      = INTEGER(iarg).
+          WHEN    "DECIMALS"               THEN DO:
+              wfld._Decimals      = INTEGER(iarg).
+
+              /*  20041202-001  allow .df to contain DECIMALS ? for any data type 
+                 which is the default value for non-decimal fields anyway
+              */
+              IF wfld._Decimals <> ? AND wfld._Data-type <> "decimal" AND wfld._Data-type <> "dec" THEN
+                  ASSIGN ierror = 50
+                         iwarn  = 25
+                         warn_message = SUBSTITUTE(warn_text[25],wfld._Field-name)
+                         wfld._Decimals = ?.
+          END.
+          WHEN "LENGTH" 
+          OR WHEN "SCALE"           THEN
+          DO:
+                  wfld._Decimals      = INTEGER(iarg).
+          END.
+          WHEN    "FOREIGN-BITS"           THEN wfld._Decimals      = INTEGER(iarg).
           WHEN    "ORDER"                  THEN wfld._Order         = INTEGER(iarg).
           WHEN    "MANDATORY"              THEN wfld._Mandatory     = (iarg = "yes").
           WHEN    "CASE-SENSITIVE"         THEN wfld._Fld-case      = (iarg = "yes").
@@ -1840,7 +1870,14 @@ IF cerror = ?
       END.
       ELSE
       DO:
-         MESSAGE msg2.
+          /* 20041202-001
+             don't display this if only warnings occurred 
+          */
+         IF xerror OR STOPPED THEN
+            MESSAGE msg2.
+
+         MESSAGE msg3 dbload-e msg4.
+
          PAUSE.
       END.
       

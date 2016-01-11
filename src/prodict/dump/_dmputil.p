@@ -40,7 +40,8 @@ Date Created: 10/04/99
               08/16/00 D. McMann Added _Db-recid to _storageObject find 
                                  20000815029
               01/29/02 vap       Added batch-mode support (IZ# 1525)
-
+              09/16/05 kmcintos  Fixed problems with determining if fields 
+                                 are members of an index 20040402-004.
 -----------------------------------------------------------------------------*/
 
 /*------------------------ D E C L A R A T I O N S --------------------------*/
@@ -151,44 +152,28 @@ END FUNCTION.
 FUNCTION inprimary RETURNS LOGICAL (INPUT p_db1PrimeIndex AS RECID,
                                     INPUT p_db1RecId      AS RECID).
    
-    /* Determines whether a field is part of an primary index */
-    /* Function changed to verify if in any index so drop and add
-       are done in the proper order 20020828-012 */
+  /* Determines whether a field is part of a primary index */
+  /* Function changed to verify if in any index so drop and add
+     are done in the proper order 20020828-012 */
 
- DEFINE BUFFER _Field-Pri FOR DICTDB2._Field.   
-  
-   FIND DICTDB2._Index WHERE
-      RECID(DICTDB2._Index) = p_db1PrimeIndex NO-ERROR.
-   IF AVAIL DICTDB2._Index THEN
-   FOR EACH DICTDB2._Index-Field OF DICTDB2._Index:
-   
-      FIND DICTDB2._Field-Pri WHERE
-      RECID(DICTDB2._Field-Pri) = DICTDB2._Index-Field._Field-Recid NO-ERROR.
-
-     IF AVAIL DICTDB2._Field-Pri /*AND
-      RECID(DICTDB2._Field-Pri) = p_db1Recid*/ THEN
-         RETURN TRUE.
-   END.
-
-   RETURN FALSE.
+  FIND DICTDB2._index-field 
+      WHERE DICTDB2._index-field._index-recid = p_db1PrimeIndex AND
+            DICTDB2._index-field._field-recid = p_db1RecId NO-ERROR.
+  RETURN AVAILABLE DICTDB2._index-field.
    
 END FUNCTION.
 
 FUNCTION inindex RETURNS LOGICAL (INPUT p_db1File  AS RECID,
                                   INPUT p_db1Field AS RECID).
    
-   /* Function added to verify if in any index so drop and add
-       are done in the proper order 20020828-012 */
+  /* Function added to verify if in any index so drop and add
+     are done in the proper order 20020828-012 */
 
- DEFINE BUFFER _Field-Pri FOR DICTDB2._Field.   
-  
   FOR EACH DICTDB2._Index WHERE DICTDB2._Index._File-recid = p_db1File:
-    FOR EACH DICTDB2._Index-Field OF DICTDB2._Index:
-      FIND DICTDB2._Field-Pri WHERE RECID(DICTDB2._Field-Pri) = p_db1Field NO-ERROR.
-
-     IF AVAIL DICTDB2._Field-Pri THEN
-         RETURN TRUE.
-    END.
+    FIND DICTDB2._index-field OF DICTDB2._index 
+        WHERE DICTDB2._index-field._field-recid = p_db1Field NO-ERROR.
+    IF AVAILABLE DICTDB2._index-field THEN
+      RETURN TRUE.
   END.
 
   RETURN FALSE.

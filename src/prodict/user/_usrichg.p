@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -51,7 +35,10 @@ History:
     05/15/00   D. McMann    Removed message when only Schema Area in DB    
     06/14/00   D. McMann    Added selection list for areas.  
     08/16/00   D. McMann    Added _db-recid to StorageObject find 20000815029   
-    07/29/03   D. McMann    Adjusted screen for new data types with long names                 
+    07/29/03   D. McMann    Adjusted screen for new data types with long names 
+    03/26/05   K. McIntosh  Added warning when attempting to add an active
+                            index on-line
+
 ----------------------------------------------------------------------------*/
 
 { prodict/dictvar.i }
@@ -89,6 +76,7 @@ DEFINE VARIABLE l_ifldcnt      AS INT                     NO-UNDO.
 DEFINE VARIABLE areaname       AS CHARACTER               NO-UNDO.
 DEFINE VARIABLE arealist       AS CHARACTER INITIAL ?     NO-UNDO.
 DEFINE VARIABLE indexarea      AS CHARACTER               NO-UNDO.
+DEFINE VARIABLE lOk            AS LOGICAL                 NO-UNDO.
 
 DEFINE BUFFER bfr_Index FOR DICTDB._Index.
 
@@ -706,6 +694,8 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
           FALSE            @ word_index
           areaname
           WITH FRAME idx_top.
+        PF-BLK:
+        DO WHILE TRUE:
         PROMPT-FOR
           _Index._Index-name
           _Index._Unique    WHEN (qbf_idx_uniq AND qbf_idx_nonu)
@@ -714,6 +704,25 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
           word_index             WHEN qbf_idx_word
           areaname          WHEN user_dbtype = "PROGRESS"
           WITH FRAME idx_top.
+
+        /* IF On-Line and index Active */
+        IF SESSION:SCHEMA-CHANGE <> "" AND
+           SESSION:SCHEMA-CHANGE <> ?  AND
+          INPUT FRAME idx_top _Index._Active THEN DO:
+          MESSAGE 
+            "The Data Dictionary has detected that you are attempting to" SKIP
+            "add an ACTIVE index while ON-LINE.  If some other user is"   SKIP
+            "locking the table you are attempting to update, when you"    SKIP
+            "commit, your changes may be lost."                        SKIP(1)
+            "Do you wish to continue?"
+	      VIEW-AS ALERT-BOX WARNING BUTTONS YES-NO-CANCEL 
+                                TITLE "ON-LINE Index Add" UPDATE lOk.
+          IF (lOk = FALSE) THEN NEXT PF-BLK.
+          ELSE IF (lOk = TRUE) THEN LEAVE PF-BLK.
+          ELSE RETURN. 
+        END.
+        ELSE LEAVE PF-BLK.
+        END.
          ASSIGN indexarea = areaname:SCREEN-VALUE IN FRAME idx_top.
          IF indexarea = ? THEN
              ASSIGN indexarea =  areaname:ENTRY(1) IN FRAME idx_top.

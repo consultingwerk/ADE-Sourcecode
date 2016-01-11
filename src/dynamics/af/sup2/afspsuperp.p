@@ -2,25 +2,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /************************************************************************
@@ -134,6 +118,57 @@ RUN setColourTable.
 
 
 /* **********************  Internal Procedures  *********************** */
+
+&IF DEFINED(EXCLUDE-addColour) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE addColour Procedure 
+PROCEDURE addColour :
+/*------------------------------------------------------------------------------
+  Purpose:     Add a user-defined colour to the color-table and the private-data
+  			   string.
+  Parameters:  pcColourName : the unique name of the colour to be added
+  		       pcRGBString  : can be either a single integer value, as returned
+  		                      by the getSysColor() Windows API, or a space-delimited
+  		                      string of RGB values, like "255 255 255".
+			   piColour     : integer value of the colour in the color-table  		                      
+  Notes:       * if the colour added already exists in the list of colours, then
+    			 replace the RGB values with those passed in.
+------------------------------------------------------------------------------*/
+    DEFINE INPUT  PARAMETER pcColourName        as character          NO-UNDO.
+    DEFINE INPUT  PARAMETER pcRGBString         as character          NO-UNDO.
+    DEFINE OUTPUT PARAMETER piColour            as integer            NO-UNDO.
+    
+    /* setColourTable runs from the main block of this procedure, so we know that
+       the colours have already been set up.
+     */
+    piColour = LOOKUP(pcColourName, THIS-PROCEDURE:private-data) no-error.
+    
+    /* Color doesn't exist private-data string. */
+    if piColour eq 0 or piColour eq ? THEN    do:
+        COLOR-TABLE:NUM-ENTRIES = COLOR-TABLE:NUM-ENTRIES + 1.
+        /* The color-table is zero-based, so the first colour is 0.
+           The nth colour is n - 1.
+         */
+        piColour = COLOR-TABLE:NUM-ENTRIES - 1.
+        THIS-PROCEDURE:PRIVATE-DATA = THIS-PROCEDURE:PRIVATE-DATA + ',' + pcColourName.
+    END.    /* no color set */
+    
+    COLOR-TABLE:SET-DYNAMIC(piColour, TRUE).
+    if NUM-ENTRIES(pcRGBString, ' ') gt 1 THEN    do:
+        COLOR-TABLE:SET-RED-VALUE(piColour, INTEGER(ENTRY(1, pcRGBString, ' '))).
+        COLOR-TABLE:SET-GREEN-VALUE(piColour, INTEGER(ENTRY(2, pcRGBString, ' '))).
+        COLOR-TABLE:SET-BLUE-VALUE(piColour, INTEGER(ENTRY(3, pcRGBString, ' '))).
+    END.    /* string = 255 255 255 format */
+    ELSE
+        COLOR-TABLE:SET-RGB-VALUE(piColour, INTEGER(pcRGBString)).
+        ERROR-STATUS:ERROR = no.
+    return.
+END PROCEDURE.  /* addColour */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-disable_UI) = 0 &THEN
 
@@ -368,7 +403,7 @@ DEFINE VARIABLE iColourMapBase AS INTEGER    NO-UNDO.
 
 ASSIGN colour-table-key-list = "ButtonHilight,ButtonFace,ButtonShadow,GrayText,ButtonText,Hilight"
        colour-table-rgb-vals = "255 255 255,192 192 192,128 128 128,128 128 128,0 0 0,0 0 128".
-
+       
 /* LOAD and USE the Windows registry Control Panel environment. */
 LOAD "HKEY_CURRENT_USER\Control Panel" NO-ERROR.
 
@@ -395,7 +430,7 @@ DO iEntry = 1 TO NUM-ENTRIES(key-list):
            colour-table-key-list = IF iEntry = 1 THEN ENTRY(iEntry,key-list)
                                    ELSE colour-table-key-list + "," + ENTRY(iEntry,key-list).
 END.
-
+ 
 /* Revert back to the default environment settings */
 UNLOAD "HKEY_CURRENT_USER\Control Panel" NO-ERROR.
 

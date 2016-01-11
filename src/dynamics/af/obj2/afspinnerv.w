@@ -3,25 +3,9 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS sObject 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*------------------------------------------------------------------------
@@ -443,10 +427,11 @@ PROCEDURE initializeObject :
   ELSE DO:
       IF cMouseCursor <> "":U 
       THEN  
-          ASSIGN lResult = FRAME {&FRAME-NAME}:LOAD-MOUSE-POINTER(cMouseCursor)
-                 lResult = hBtn-Inc:LOAD-MOUSE-POINTER(cMouseCursor)
-                 lResult = hBtn-Dec:LOAD-MOUSE-POINTER(cMouseCursor).
-
+          /* Loading the mouse pointer for a frame results in all child 
+             widgets having same pointer.
+           */
+          lResult = FRAME {&FRAME-NAME}:LOAD-MOUSE-POINTER(cMouseCursor).
+      
       SUBSCRIBE TO "SyncSpinState" IN hContainer RUN-PROCEDURE "_syncSpinState".
   END.
 
@@ -780,14 +765,18 @@ IF VALID-HANDLE(hBtn-Inc) THEN
     DELETE WIDGET hBtn-Inc.
 
 ASSIGN FRAME {&FRAME-NAME}:WIDTH-PIXELS = 100 /* make some space for the larger buttons */
-       FRAME {&FRAME-NAME}:HEIGHT-PIXELS = 100.
-
-CREATE BUTTON hBtn-Dec
+       FRAME {&FRAME-NAME}:HEIGHT-PIXELS = 100
+       .           
+/* We use images here instead of buttons, because
+   they're more consistent between XP+manifest and non-manifest
+   UI. For the purposes of this SmartObject, the functionality
+   of buttons and images is the same, so we use images.
+ */
+CREATE image hBtn-Dec
     ASSIGN HEIGHT-PIXELS = iImgHeight 
            WIDTH-PIXELS = iImgWidth
            X = iImgOffset
            Y = IF lSpinHoriz THEN 0 ELSE iImgHeight - 1
-           NO-FOCUS = TRUE
            MOVABLE = TRUE
            FRAME = FRAME {&FRAME-NAME}:HANDLE
            SENSITIVE = FALSE
@@ -796,12 +785,11 @@ CREATE BUTTON hBtn-Dec
         ON LEFT-MOUSE-UP,START-MOVE PERSISTENT RUN _ButtonUp IN THIS-PROCEDURE.
     END TRIGGERS.
 
-CREATE BUTTON hBtn-Inc
+CREATE image hBtn-Inc
     ASSIGN HEIGHT-PIXELS = iImgHeight 
            WIDTH-PIXELS = iImgWidth
            X = IF lSpinHoriz THEN iImgWidth - IF iImgOffset = 1 THEN 0 ELSE 1 ELSE iImgOffset
-           Y = 0
-           NO-FOCUS = TRUE
+           Y = 0           
            MOVABLE = TRUE
            FRAME = FRAME {&FRAME-NAME}:HANDLE
            SENSITIVE = FALSE 
@@ -817,14 +805,21 @@ ELSE
     ASSIGN FRAME {&FRAME-NAME}:WIDTH-PIXELS = iImgWidth + iImgOffset
            FRAME {&FRAME-NAME}:HEIGHT-PIXELS = (iImgHeight * 2) - 1. 
 
-ASSIGN lResult = hBtn-Inc:LOAD-IMAGE-UP("{&SPIN-BITMAP}":U,iIncX,iIncY,iImgWidth,iImgHeight)
-       lResult = hBtn-Inc:LOAD-IMAGE-DOWN("{&SPIN-BITMAP}":U,iIncX,iIncY,iImgWidth,iImgHeight)
-       lResult = hBtn-Inc:LOAD-IMAGE-INSENSITIVE("{&SPIN-BITMAP}":U,iIncX,iIncY + (iImgHeight * 2),iImgWidth,iImgHeight)
-       lResult = hBtn-Dec:LOAD-IMAGE-UP("{&SPIN-BITMAP}":U,iDecX,iDecY,iImgWidth,iImgHeight)
-       lResult = hBtn-Dec:LOAD-IMAGE-DOWN("{&SPIN-BITMAP}":U,iDecX,iDecY,iImgWidth,iImgHeight)
-       lResult = hBtn-Dec:LOAD-IMAGE-INSENSITIVE("{&SPIN-BITMAP}":U,iDecX,iDecY + (iImgHeight * 2),iImgWidth,iImgHeight)
+/* [PJ] I'm not entirely sure why we need to load the sensitive and insensitive images
+   here. However, this is what was previously done and it resulted in the spin buttons 
+   being initially disabled, until clicked. I suspect this is a bug, but can't confirm it
+   either way.
+ */
+ASSIGN /* Sensitive */
+       lResult = hBtn-Inc:LOAD-IMAGE("{&SPIN-BITMAP}":U,iIncX,iIncY,iImgWidth,iImgHeight)
+       /* Insensitive */
+       lResult = hBtn-Inc:LOAD-IMAGE("{&SPIN-BITMAP}":U,iIncX,iIncY + (iImgHeight * 2),iImgWidth,iImgHeight)       
+       /* Sensitive */
+       lResult = hBtn-Dec:LOAD-IMAGE("{&SPIN-BITMAP}":U,iDecX,iDecY,iImgWidth,iImgHeight)                  
+       /* Insensitive */
+       lResult = hBtn-Dec:LOAD-IMAGE("{&SPIN-BITMAP}":U,iDecX,iDecY + (iImgHeight * 2),iImgWidth,iImgHeight)                     
        NO-ERROR.
-
+    
 /* Go look for a field of the specified name in the frame/field-group */
 IF NOT UIBMode() AND cFieldName <> "":U 
 THEN 

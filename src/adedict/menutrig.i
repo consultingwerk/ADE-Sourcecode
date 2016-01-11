@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -37,6 +21,7 @@ Date Created: 02/17/92
               04/13/00 DLM     Added long path name support    
               09/18/02 D. McMann Added verify data report 
               10/01/02 D. McMann Changed menu name for Adjust Schema
+              07/19/05 kmcintos  Added Auditing Reports
 ----------------------------------------------------------------------------*/
 
 
@@ -397,6 +382,77 @@ ON CHOOSE OF MENU-ITEM mi_Width IN MENU s_mnu_Reports DO:
      INPUT s_TblRecId).
 END.
 
+/*------    Track Audit Policy Changes Report            -------*/
+ON CHOOSE OF MENU-ITEM mi_ADRpt_AudPol   IN MENU s_mnu_Aud_Rep DO:
+  user_env[9] = "1".
+  RUN prodict/misc/_rptaud.p. /* AUD_POL_MNT */
+END.
+
+/*------    Track Database Schema Changes Report         -------*/
+ON CHOOSE OF MENU-ITEM mi_ADRpt_DbSchma  IN MENU s_mnu_Aud_Rep DO:
+  user_env[9] = "2".
+  RUN prodict/misc/_rptaud.p. /* SCH_CHGS */
+END.
+
+/*------    Track Audit Data Administration Report       -------*/
+ON CHOOSE OF MENU-ITEM mi_ADRpt_AudAdmn  IN MENU s_mnu_Aud_Rep DO:
+  user_env[9] = "3".
+  RUN prodict/misc/_rptaud.p. /* AUD_DATA_ADMIN */
+END.
+
+/*------    Track Application Data Administration Report-------*/
+ON CHOOSE OF MENU-ITEM mi_ADRpt_TblAdmn  IN MENU s_mnu_Aud_Rep DO:
+  user_env[9] = "4".
+  RUN prodict/misc/_rptaud.p. /* DATA_ADMIN */
+END.
+  
+/*------    Track User Account Changes Report            -------*/
+ON CHOOSE OF MENU-ITEM mi_ADRpt_UsrAct   IN MENU s_mnu_Aud_Rep DO:
+  user_env[9] = "5".
+  RUN prodict/misc/_rptaud.p. /* USER_MAINT */
+END.
+
+/*------    Track Security Permissions Changes Report       -------*/
+ON CHOOSE OF MENU-ITEM mi_ADRpt_SecPerm  IN MENU s_mnu_Aud_Rep DO:
+  user_env[9] = "6".
+  RUN prodict/misc/_rptaud.p. /* SEC_PERM_MNT */
+END.
+
+/*------    Track Database Administrator Changes Report -------*/
+ON CHOOSE OF MENU-ITEM mi_ADRpt_Dba      IN MENU s_mnu_Aud_Rep DO:
+  user_env[9] = "7".
+  RUN prodict/misc/_rptaud.p. /* DBA_MAINT */
+END.
+
+/*------    Track Authentication System Changes Report   -------*/
+ON CHOOSE OF MENU-ITEM mi_ADRpt_AuthSys  IN MENU s_mnu_Aud_Rep DO:
+  user_env[9] = "8".
+  RUN prodict/misc/_rptaud.p. /* AUTH_SYS */
+END.
+
+/*------    Client Session Authentication Report         -------*/
+ON CHOOSE OF MENU-ITEM mi_CSRpt_CltSess IN MENU s_mnu_Aud_Rep DO:
+  user_env[9] = "9".
+  RUN prodict/misc/_rptaud.p. /* CLT_SESS */
+END.
+
+/*------    Database Administration Report               -------*/
+ON CHOOSE OF MENU-ITEM mi_ADRpt_DbAdmin IN MENU s_mnu_Aud_Rep DO:
+  user_env[9] = "10".
+  RUN prodict/misc/_rptaud.p. /* DB_ADMIN */
+END.
+
+/*------    Database Access Report                       -------*/
+ON CHOOSE OF MENU-ITEM mi_ADRpt_AppLogin IN MENU s_mnu_Aud_Rep DO:
+  user_env[9] = "11".
+  RUN prodict/misc/_rptaud.p. /* DB_ACCESS */
+END.
+
+/*------    Custom Audit Data Filter Report              -------*/
+ON CHOOSE OF MENU-ITEM mi_ADRpt_Cust IN MENU s_mnu_Aud_Rep DO:
+  user_env[9] = "12".
+  RUN prodict/misc/_rptaud.p. /* CUST_RPT */
+END.
 
 /*=============================Edit menu=================================*/
 

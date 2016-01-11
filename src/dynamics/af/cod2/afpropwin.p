@@ -5,6 +5,7 @@ FUNCTION getRequiredPropertyValues RETURNS CHARACTER (pcProperties AS CHARACTER,
   DEFINE INPUT  PARAMETER pcInstanceName        AS CHARACTER  NO-UNDO.
   DEFINE INPUT  PARAMETER pcSdoname             AS CHARACTER  NO-UNDO.
   DEFINE INPUT  PARAMETER plReturnedChangesOnly AS LOGICAL    NO-UNDO.
+  DEFINE INPUT  PARAMETER pcSdoInstanceName     AS CHARACTER  NO-UNDO.
   DEFINE OUTPUT PARAMETER pcAttributeLabels     AS CHARACTER  NO-UNDO.
   DEFINE OUTPUT PARAMETER pcAttributeValues     AS CHARACTER  NO-UNDO.
   
@@ -25,12 +26,17 @@ FUNCTION getRequiredPropertyValues RETURNS CHARACTER (pcProperties AS CHARACTER,
   DEFINE VARIABLE cProc            AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cFile            AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cWin             AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAttributeValue  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSDOProperty     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSdoPropertyList AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iLoop            AS INTEGER    NO-UNDO.
   DEFINE VARIABLE hSmart           AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hObj             AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hSdo             AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lSourceDBAware   AS LOGICAL    NO-UNDO.
 
   {src/adm2/globals.i}
+
 
   cWindow = SEARCH("af/cod2/afprpwind.w":U).
 
@@ -51,6 +57,40 @@ FUNCTION getRequiredPropertyValues RETURNS CHARACTER (pcProperties AS CHARACTER,
       RETURN ERROR "No SDO/SBO object exists for ":U + pcSdoName.
 
     DYNAMIC-FUNCTION("setObjectName":U IN hSDO, DYNAMIC-FUNCTION("getLogicalObjectName":U IN hSDO)).
+
+    /* If this is a DataView (DbAware is false) then we need to set the
+       BusinessEntity and DataTable attributes for its instance in order to 
+       maintain instance attributes for objects linked to it.  */
+    {get DbAware lSourceDbAware hSDO}.
+    IF NOT lSourceDbAware THEN
+    DO:
+
+      /* Destroy the DataView, so that we can set the pertinent information. */
+      {fn destroyView hSDO}.
+          
+      RUN getAttributeList IN phContainerBuilder (INPUT pcSdoInstanceName, OUTPUT cSdoPropertyList).
+
+      DO iLoop = 1 TO NUM-ENTRIES(cSdoPropertyList, CHR(3)):
+        cSDOProperty     = ENTRY(iLoop, cSdoPropertyList, CHR(3)).
+        
+        IF ENTRY(1, cSDOProperty, CHR(4)) = "BusinessEntity":U THEN
+        DO:
+          cAttributeValue = ENTRY(2, cSDOProperty, CHR(4)).
+          {set BusinessEntity cAttributeValue hSDO}.
+        END.
+
+        IF ENTRY(1, cSDOProperty, CHR(4)) = "DataTable":U THEN
+        DO:
+          cAttributeValue = ENTRY(2, cSDOProperty, CHR(4)).
+          {set DataTable cAttributeValue hSDO}.
+        END.
+
+      END.  /* do iLoop */
+
+      /* Now construct the DataView again. */
+      run createObjects in hSDO.
+    END.  /* if dataview */
+
   END.
 
   IF SEARCH(cPhysicalName) = ? AND SEARCH(REPLACE(cPhysicalName, ".w":U, ".r":U)) = ? THEN 
@@ -60,6 +100,7 @@ FUNCTION getRequiredPropertyValues RETURNS CHARACTER (pcProperties AS CHARACTER,
     RETURN ERROR "No repository records exist for ":U + pcObject.
 
   RUN getAttributeList IN phContainerBuilder (INPUT pcInstanceName, OUTPUT cOldPropertyList).
+
 
   RUN adeuib/_open-w.p (INPUT cWindow,
                         INPUT "":U,
@@ -122,6 +163,7 @@ FUNCTION getRequiredPropertyValues RETURNS CHARACTER (pcProperties AS CHARACTER,
     IF {fnarg getUserProperty '"dataContainer"' phContainerBuilder} = "YES":U THEN 
       {fnarg setUserProperty "'ContainerObject', 'SmartBusinessObject'" hSmart}.
       
+
   IF VALID-HANDLE(hSmart) THEN
   DO:
     IF VALID-HANDLE(hSDO) THEN

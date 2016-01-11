@@ -2,25 +2,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*------------------------------------------------------------------------
@@ -138,7 +122,7 @@ FUNCTION setCurrent RETURNS LOGICAL
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 15
+         HEIGHT             = 14.86
          WIDTH              = 60.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -396,8 +380,8 @@ PROCEDURE createVisualization PRIVATE :
      This visualization is a frame with an image to represent the non-visual 
      object (eg. a SmartQuery).
 -------------------------------------------------------------*/ 
-  DEFINE VAR hFrame AS WIDGET NO-UNDO.
-  DEFINE VAR hdl    AS WIDGET NO-UNDO.
+  DEFINE VAR hFrame   AS WIDGET           NO-UNDO.
+  DEFINE VAR hdl      AS WIDGET           NO-UNDO.
 
 
   /* Font used for the visualization */
@@ -447,7 +431,7 @@ PROCEDURE createVisualization PRIVATE :
            _U._HANDLE:MOVABLE    = glMovable 
            _U._HANDLE:RESIZABLE  = glResizable
            . 
-  
+
     /* Create an "visualization" image on the object followed by two rows of
        text. (Hide the text for now). */
     CREATE TEXT hdl ASSIGN
@@ -476,13 +460,19 @@ PROCEDURE createVisualization PRIVATE :
         CONVERT-3D-COLORS = TRUE
         PRIVATE-DATA      = "Image"
         .
+
     /* The image name is stored in _palette_item for many known types.
        Otherwise, just use a default icon for valid objects and the "no run"
        icon for bad objects. */
     IF _U._SUBTYPE NE "SmartDataObject" THEN
       FIND _palette_item WHERE _palette_item._name eq _U._SUBTYPE NO-ERROR. 
-    ELSE 
-      FIND _palette_item WHERE _palette_item._name eq "SmartDataObject" NO-ERROR.
+    ELSE DO:
+      IF _S._valid-object AND VALID-HANDLE(_S._handle) AND 
+        NOT ({fn getDBAware _S._handle}) THEN
+        FIND _palette_item WHERE _palette_item._name EQ "Dataview":U NO-ERROR.
+      ELSE 
+        FIND _palette_item WHERE _palette_item._name eq "SmartDataObject" NO-ERROR.
+    END.  /* else do */
     
     /* Objects that are SmartContainers have no explicit palette icon.
        (for example, SmartWindows and SmartFrames should be SmartContainers).
@@ -544,8 +534,10 @@ PROCEDURE initializeSMO :
    {adeuib/admver.i _S._HANDLE admVersion}.
  END.
   
- IF VALID-HANDLE(_S._HANDLE) AND 
-    (_S._visual OR _U._SubType = "SmartBusinessObject":U) THEN 
+ IF VALID-HANDLE(_S._HANDLE)
+ AND (_S._visual 
+      OR _U._SubType = "SmartBusinessObject":U  
+      OR _U._SubType = "SmartDataObject":U) THEN 
  DO:
     INITIALIZE-BLOCK:
     DO ON STOP  UNDO INITIALIZE-BLOCK, LEAVE INITIALIZE-BLOCK
@@ -591,8 +583,8 @@ PROCEDURE initializeSMO :
             _S._affordance-handle <> ? AND 
             VALID-HANDLE(_S._affordance-handle) THEN
              _S._affordance-handle:SENSITIVE = TRUE NO-ERROR.   
-
-         RUN initializeObject IN _S._HANDLE.
+         IF _S._visual THEN
+           RUN initializeObject IN _S._HANDLE.
          /* Hide it, if it needs to be hidden in the UIB.   We could have
             set HIDE-ON-INIT (a standard ADM attribute), but this would have
             been added to the permanent attribute list.  As it stands now, a

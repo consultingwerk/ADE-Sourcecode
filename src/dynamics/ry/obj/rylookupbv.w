@@ -20,25 +20,9 @@ af/cod/aftemwizpw.w
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS sObject 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -177,6 +161,8 @@ DEFINE VARIABLE ghViewerHandle      AS HANDLE    NO-UNDO.
 DEFINE VARIABLE gcNonCalcColumns    AS CHARACTER NO-UNDO.
 DEFINE VARIABLE ghMaintObject       AS HANDLE    NO-UNDO.
 
+DEFINE VARIABLE glUseNewAPI       AS LOGICAL     NO-UNDO.
+
 {af/sup2/afttlkctrl.i}
 {af/sup2/afttlkfilt.i}
 
@@ -191,7 +177,7 @@ DEFINE VARIABLE ghMaintObject       AS HANDLE    NO-UNDO.
 &Scoped-define PROCEDURE-TYPE SmartObject
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
@@ -297,7 +283,7 @@ END.
 /* SETTINGS FOR WINDOW sObject
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frMain
-   NOT-VISIBLE                                                          */
+   NOT-VISIBLE FRAME-NAME                                               */
 ASSIGN 
        FRAME frMain:HIDDEN           = TRUE.
 
@@ -345,6 +331,8 @@ END.
 
 
 /* ***************************  Main Block  *************************** */
+glUseNewAPI = NOT (DYNAMIC-FUNCTION('getSessionParam':U IN TARGET-PROCEDURE,
+                                    'keep_old_field_api':U) = 'YES':U).
 
 /* If testing in the UIB, initialize the SmartObject. */  
 &IF DEFINED(UIB_IS_RUNNING) <> 0 &THEN          
@@ -702,67 +690,77 @@ ASSIGN
   ttLookCtrl.cPhysicalTableNames = DYNAMIC-FUNCTION('getPhysicalTableNames':U IN hSDF)
   ttLookCtrl.cTempTableNames = DYNAMIC-FUNCTION('getTempTables':U IN hSDF)
   .
-/* Set filter on entered value */
-IF cFilterValue <> "":U AND
-   cFilterValue <> ? THEN DO:
-  CASE ttLookCtrl.cDisplayDataType:
-    WHEN "CHARACTER":U THEN
-      /* Set up where clause for key field equal to current value of key field */
-      ttLookCtrl.cBaseQueryString = DYNAMIC-FUNCTION('newQueryString':U IN hSDF,
-                                                     ttLookCtrl.cDisplayedField,
-                                                     cFilterValue,
-                                                     ttLookCtrl.cDisplayDataType,
-                                                     "BEGINS":U,
-                                                     ?,
-                                                     ?).
-    WHEN "LOGICAL":U THEN /* Don't think there will be one like this - just incase */
-      /* Set up where clause for key field equal to current value of key field */
-      ttLookCtrl.cBaseQueryString = DYNAMIC-FUNCTION('newQueryString':U IN hSDF,
-                                   ttLookCtrl.cDisplayedField,
-                                   cFilterValue,
-                                   cDisplayDataType,
-                                   "=":U,
-                                   ?,
-                                   ?).
-    OTHERWISE DO:
-      /* Set up where clause for key field equal to current value of key field */
-      ttLookCtrl.cBaseQueryString = DYNAMIC-FUNCTION('newQueryString':U IN hSDF,
-                                   ttLookCtrl.cDisplayedField,
-                                   cFilterValue,
-                                   cDisplayDataType,
-                                   ">=":U,
-                                   ?,
-                                   ?).
-      ttLookCtrl.cBaseQueryString = DYNAMIC-FUNCTION("newWhereClause" IN hSDF,
-                                   (IF LOOKUP(ENTRY(1,ttLookCtrl.cDisplayedField,".":U),cQueryTables) > 0 THEN ENTRY(LOOKUP(ENTRY(1,ttLookCtrl.cDisplayedField,".":U),cQueryTables),cQueryTables) ELSE ENTRY(NUM-ENTRIES(cQueryTables),cQueryTables)),
-                                   (ttLookCtrl.cDisplayedField + " <= '" + cFilterValue + "'"),
-                                   ttLookCtrl.cBaseQueryString,
-                                   "AND":U).
-    END.
-  END CASE.
-END.
 
-/* Set Parent-Child filter */
-RUN returnParentFieldValues IN hSDF (OUTPUT cParentFilterQuery).
-IF cParentFilterQuery <> "":U THEN DO:
-  IF NUM-ENTRIES(cParentFilterQuery,"|":U) > 1 AND 
-     NUM-ENTRIES(ttLookCtrl.cQueryTables) > 1 THEN DO:
-    DO iLoop = 1 TO NUM-ENTRIES(cParentFilterQuery,"|":U):
-      IF TRIM(ENTRY(iLoop,cParentFilterQuery,"|":U)) <> "":U THEN
+/* Set filter on entered value */
+IF glUseNewAPI THEN
+DO:
+  IF cFilterValue > "":U THEN
+     ttLookCtrl.cBaseQueryString = {fnarg buildSearchQuery cFilterValue hSDF}.
+  ELSE 
+     ttLookCtrl.cBaseQueryString = {fn buildQuery hSDF}.
+END.
+ELSE DO:
+  IF cFilterValue > "":U THEN
+  DO:
+    CASE ttLookCtrl.cDisplayDataType:
+      WHEN "CHARACTER":U THEN
+        /* Set up where clause for key field equal to current value of key field */
+        ttLookCtrl.cBaseQueryString = DYNAMIC-FUNCTION('newQueryString':U IN hSDF,
+                                                       ttLookCtrl.cDisplayedField,
+                                                       cFilterValue,
+                                                       ttLookCtrl.cDisplayDataType,
+                                                       "BEGINS":U,
+                                                       ?,
+                                                       ?).
+      WHEN "LOGICAL":U THEN /* Don't think there will be one like this - just incase */
+        /* Set up where clause for key field equal to current value of key field */
+        ttLookCtrl.cBaseQueryString = DYNAMIC-FUNCTION('newQueryString':U IN hSDF,
+                                     ttLookCtrl.cDisplayedField,
+                                     cFilterValue,
+                                     cDisplayDataType,
+                                     "=":U,
+                                     ?,
+                                     ?).
+      OTHERWISE DO:
+        /* Set up where clause for key field equal to current value of key field */
+        ttLookCtrl.cBaseQueryString = DYNAMIC-FUNCTION('newQueryString':U IN hSDF,
+                                     ttLookCtrl.cDisplayedField,
+                                     cFilterValue,
+                                     cDisplayDataType,
+                                     ">=":U,
+                                     ?,
+                                     ?).
         ttLookCtrl.cBaseQueryString = DYNAMIC-FUNCTION("newWhereClause" IN hSDF,
-                                     ENTRY(iLoop,ttLookCtrl.cQueryTables),
-                                     ENTRY(iLoop,cParentFilterQuery,"|":U),
+                                     (IF LOOKUP(ENTRY(1,ttLookCtrl.cDisplayedField,".":U),cQueryTables) > 0 THEN ENTRY(LOOKUP(ENTRY(1,ttLookCtrl.cDisplayedField,".":U),cQueryTables),cQueryTables) ELSE ENTRY(NUM-ENTRIES(cQueryTables),cQueryTables)),
+                                     (ttLookCtrl.cDisplayedField + " <= '" + cFilterValue + "'"),
                                      ttLookCtrl.cBaseQueryString,
                                      "AND":U).
-    END.
+      END.
+    END CASE.
   END.
-  ELSE
-      ttLookCtrl.cBaseQueryString = DYNAMIC-FUNCTION("newWhereClause" IN hSDF,
-                                   ENTRY(NUM-ENTRIES(ttLookCtrl.cQueryTables),ttLookCtrl.cQueryTables),
-                                   cParentFilterQuery,
-                                   ttLookCtrl.cBaseQueryString,
-                                   "AND":U).
-END.
+  
+  /* Set Parent-Child filter */
+  RUN returnParentFieldValues IN hSDF (OUTPUT cParentFilterQuery).
+  IF cParentFilterQuery <> "":U THEN DO:
+    IF NUM-ENTRIES(cParentFilterQuery,"|":U) > 1 AND 
+       NUM-ENTRIES(ttLookCtrl.cQueryTables) > 1 THEN DO:
+      DO iLoop = 1 TO NUM-ENTRIES(cParentFilterQuery,"|":U):
+        IF TRIM(ENTRY(iLoop,cParentFilterQuery,"|":U)) <> "":U THEN
+          ttLookCtrl.cBaseQueryString = DYNAMIC-FUNCTION("newWhereClause" IN hSDF,
+                                       ENTRY(iLoop,ttLookCtrl.cQueryTables),
+                                       ENTRY(iLoop,cParentFilterQuery,"|":U),
+                                       ttLookCtrl.cBaseQueryString,
+                                       "AND":U).
+      END.
+    END.
+    ELSE
+        ttLookCtrl.cBaseQueryString = DYNAMIC-FUNCTION("newWhereClause" IN hSDF,
+                                     ENTRY(NUM-ENTRIES(ttLookCtrl.cQueryTables),ttLookCtrl.cQueryTables),
+                                     cParentFilterQuery,
+                                     ttLookCtrl.cBaseQueryString,
+                                     "AND":U).
+  END. /* filtervalue > '' */
+END. /*else (NOT glUseNewAPI ) */
 
 /* build list of all fields */
 ASSIGN
@@ -897,7 +895,7 @@ CREATE BROWSE ghBrowse IN WIDGET-POOL cFieldName + STRING(hSDF)
         END TRIGGERS.
 
 /* Hide the browse while it is repopulated to avoid flashing */
-ghBrowse:VISIBLE = NO.
+ghBrowse:HIDDEN = YES.
 ghBrowse:SENSITIVE = NO.
 
 /* Add field to browser */
@@ -939,7 +937,7 @@ PUBLISH "getBrowseCalcColumns":U FROM ghViewerHandle (INPUT ghBrowse, INPUT ghSD
 ghQuery:QUERY-OPEN().
 
 /* And show the browse to the user */
-ghBrowse:VISIBLE = YES.
+ghBrowse:HIDDEN = NO.
 ghBrowse:SENSITIVE = YES.
 
 /* /* Reposition to current record in browse - if in data set */ */

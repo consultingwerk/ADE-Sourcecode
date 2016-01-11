@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <dataset Transactions="1"><dataset_header DisableRI="yes" DatasetObj="1004928896.09" DateFormat="mdy" FullHeader="no" SCMManaged="yes" YearOffset="1950" DatasetCode="RYCSO" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="91" NumericSeparator=","/>
-<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" version_date="05/20/2004" version_time="64047" version_user="admin" deletion_flag="no" entity_mnemonic="RYCSO" key_field_value="13488.81" record_version_obj="3000044332.09" version_number_seq="198.19" secondary_key_value="gsm_user#CHR(1)#0" import_version_number_seq="198.19"><smartobject_obj>13488.81</smartobject_obj>
+<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" version_date="05/23/2005" version_time="61144" version_user="admin" deletion_flag="no" entity_mnemonic="RYCSO" key_field_value="13488.81" record_version_obj="3000044332.09" version_number_seq="200.5498" secondary_key_value="gsm_user#CHR(1)#0" import_version_number_seq="200.5498"><smartobject_obj>13488.81</smartobject_obj>
 <object_filename>gsm_user</object_filename>
 <customization_result_obj>0</customization_result_obj>
 <object_type_obj>36339.48</object_type_obj>
@@ -55,6 +55,16 @@
 <instance_description></instance_description>
 <page_obj>0</page_obj>
 <object_sequence>8</object_sequence>
+</contained_record>
+<contained_record DB="icfdb" Table="ryc_object_instance"><object_instance_obj>22054.5498</object_instance_obj>
+<container_smartobject_obj>13488.81</container_smartobject_obj>
+<smartobject_obj>22048.5498</smartobject_obj>
+<system_owned>no</system_owned>
+<layout_position>41</layout_position>
+<instance_name>create_user_profile_data</instance_name>
+<instance_description>CalculatedField create_user_profile_data</instance_description>
+<page_obj>0</page_obj>
+<object_sequence>41</object_sequence>
 </contained_record>
 <contained_record DB="icfdb" Table="ryc_object_instance"><object_instance_obj>12103.19</object_instance_obj>
 <container_smartobject_obj>13488.81</container_smartobject_obj>

@@ -1,6 +1,13 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Check Version Notes Wizard" Procedure _INLINE
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /* Actions: af/cod/aftemwizcw.w ? ? ? ? */
 /* MIP Update Version Notes Wizard
 Check object version notes.
@@ -27,6 +34,10 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
+/* Copyright (C) 2005 by Progress Software Corporation.  All rights 
+   reserved.  Prior versions of this work may contain portions 
+   contributed by participants of Possenet
+*/
 /*---------------------------------------------------------------------------------
   File: ryctpshtsp.p
 
@@ -2919,6 +2930,7 @@ PROCEDURE getLinkDetails :
   DEFINE OUTPUT PARAMETER pcLinkedObjectName    AS CHARACTER  NO-UNDO.
   DEFINE OUTPUT PARAMETER pcLinkedObjectObj     AS DECIMAL    NO-UNDO.
   DEFINE OUTPUT PARAMETER pcLinkedObjectType    AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER pcLinkedObjectInstanceName AS CHARACTER NO-UNDO.
 
   DEFINE VARIABLE lFinished         AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE httObjectInstance AS HANDLE     NO-UNDO.
@@ -2962,9 +2974,10 @@ PROCEDURE getLinkDetails :
     IF NOT hQuery:QUERY-OFF-END THEN
     DO:
       ASSIGN
-          pcLinkedObjectName   = httObjectInstance:BUFFER-FIELD("c_smartobject_filename":U):BUFFER-VALUE
-          pcLinkedObjectObj    = httObjectInstance:BUFFER-FIELD("d_smartobject_obj":U):BUFFER-VALUE
-          pcLinkedObjectType   = httObjectType:BUFFER-FIELD("c_object_type_code":U):BUFFER-VALUE
+          pcLinkedObjectName         = httObjectInstance:BUFFER-FIELD("c_smartobject_filename":U):BUFFER-VALUE
+          pcLinkedObjectObj          = httObjectInstance:BUFFER-FIELD("d_smartobject_obj":U):BUFFER-VALUE
+          pcLinkedObjectType         = httObjectType:BUFFER-FIELD("c_object_type_code":U):BUFFER-VALUE
+          pcLinkedObjectInstanceName = httObjectInstance:BUFFER-FIELD("c_instance_name":U):BUFFER-VALUE
           lFinished            = TRUE.
       
       hQuery:GET-NEXT().
@@ -3288,7 +3301,8 @@ PROCEDURE initializeObject :
   DYNAMIC-FUNCTION("setUserProperty":U IN TARGET-PROCEDURE, "ttSmartLinkType":U, STRING(TEMP-TABLE ttSmartLinkType:DEFAULT-BUFFER-HANDLE)).
   DYNAMIC-FUNCTION("setUserProperty":U IN TARGET-PROCEDURE, "ttSupportedLink":U, STRING(TEMP-TABLE ttSupportedLink:DEFAULT-BUFFER-HANDLE)).
   DYNAMIC-FUNCTION("setUserProperty":U IN TARGET-PROCEDURE, "ttObjectType":U,    STRING(TEMP-TABLE ttObjectType:DEFAULT-BUFFER-HANDLE)).
-
+  DYNAMIC-FUNCTION("setUserProperty":U IN TARGET-PROCEDURE, "ttAttributeValue":U, STRING(TEMP-TABLE ttAttributeValue:DEFAULT-BUFFER-HANDLE)).
+  
   /* Launch the PropertySheet procedure library */  
   IF NOT VALID-HANDLE(ghProcLib) THEN
   DO:
@@ -3943,6 +3957,7 @@ PROCEDURE oldPropertySheets :
   DEFINE VARIABLE cDataClasses            AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE dCustomizationResultObj AS DECIMAL    NO-UNDO.
   DEFINE VARIABLE cLinkedObjectId         AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE cLinkedObjectInstanceName AS CHARACTER  NO-UNDO.
 
   DEFINE BUFFER ttObjectInstance FOR ttObjectInstance.
   DEFINE BUFFER ttSmartObject    FOR ttSmartObject.
@@ -3981,7 +3996,8 @@ PROCEDURE oldPropertySheets :
                                             INPUT  TRUE,
                                             OUTPUT cLinkedObjectName,
                                             OUTPUT cLinkedObjectId,
-                                            OUTPUT cLinkedObjectType).
+                                            OUTPUT cLinkedObjectType,
+                                            OUTPUT cLinkedObjectInstanceName).
 
     IF cLinkedObjectName = "":U THEN
       RUN getLinkDetails IN TARGET-PROCEDURE (INPUT  ttObjectInstance.c_instance_name,
@@ -3989,10 +4005,11 @@ PROCEDURE oldPropertySheets :
                                               INPUT  FALSE,
                                               OUTPUT cLinkedObjectName,
                                               OUTPUT cLinkedObjectId,
-                                              OUTPUT cLinkedObjectType).
+                                              OUTPUT cLinkedObjectType,
+                                              OUTPUT cLinkedObjectInstanceName).
 
     ASSIGN
-        cDataClasses      = REPLACE(DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, "Data,SBO":U), CHR(3), ",":U)
+        cDataClasses      = REPLACE(DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, "Dataview,SBO":U), CHR(3), ",":U)
         cLinkedObjectName = (IF LOOKUP(cLinkedObjectType, cDataClasses) <> 0 THEN cLinkedObjectName ELSE "":U).    
 
     RUN af/cod2/afpropwin.p (INPUT  TARGET-PROCEDURE,
@@ -4000,6 +4017,7 @@ PROCEDURE oldPropertySheets :
                              INPUT  (IF pdObjectInstanceObj = 0 THEN ttSmartObject.c_object_filename ELSE ttObjectInstance.c_instance_name),
                              INPUT  cLinkedObjectName,    /* SDO Name */
                              INPUT  TRUE,                /* return only changes? */
+                             INPUT  cLinkedObjectInstanceName,
                              OUTPUT cAttributeLabels,
                              OUTPUT cAttributeValues) NO-ERROR.
 

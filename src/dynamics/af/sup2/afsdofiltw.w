@@ -5,25 +5,9 @@
 &Scoped-define WINDOW-NAME wWin
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS wWin 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*------------------------------------------------------------------------
@@ -73,6 +57,10 @@ DEFINE VARIABLE lInitialized AS LOGICAL INITIAL FALSE.
 DEFINE VARIABLE gcFilterOrFind      AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE glFilterModified    AS LOGICAL      NO-UNDO.
 DEFINE VARIABLE gcDataObjectType    AS CHARACTER    NO-UNDO.
+/* This variable used to determine if there have been any actual
+   changes to the contents of the manual editor.
+ */
+define variable glManualQuery       as logical      no-undo.
 
 /* the high character is appended to character > operations */
 
@@ -93,6 +81,7 @@ DEFINE TEMP-TABLE ttDataObject      NO-UNDO
     FIELD tFilterSettings   AS CHARACTER    /* as stored per profile */
     FIELD tSboHandle        AS HANDLE
     FIELD tMasterObject     AS LOGICAL      INITIAL NO
+    field tDbAware          as logical
     INDEX idxOrder
         tSdoOrder
     .
@@ -117,7 +106,7 @@ DEFINE VARIABLE ghBrowser               AS HANDLE NO-UNDO.
 
 &Scoped-define ADM-SUPPORTED-LINKS Data-Target,Data-Source,Page-Target,Update-Source,Update-Target,Filter-target,Filter-Source
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME fMain
 &Scoped-define BROWSE-NAME brFilter
 
@@ -146,7 +135,7 @@ DEFINE VARIABLE ghBrowser               AS HANDLE NO-UNDO.
 &Scoped-Define ENABLED-OBJECTS rsPermanent brFilter fiRowsToBatch ToRebuild ~
 EdManualQuery 
 &Scoped-Define DISPLAYED-OBJECTS rsPermanent fiRowsToBatch ToRebuild ~
-EdManualQuery fiManualQuery fiFindLabel fiFilterLabel 
+EdManualQuery fiManualQuery fiFilterLabel fiFindLabel 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -231,7 +220,7 @@ DEFINE VARIABLE rsPermanent AS CHARACTER
      RADIO-BUTTONS 
           "Session", "SES",
 "Permanent", "PER"
-     SIZE 29 BY .95 TOOLTIP "Session filters will be lost when session ends, permanent filters not.~nTo clear the permanent filter, press clear and apply" NO-UNDO.
+     SIZE 29 BY .95 TOOLTIP "Session filters will be lost when session ends, permanent filters not.To clear the permanent filter, press clear and apply" NO-UNDO.
 
 DEFINE VARIABLE ToRebuild AS LOGICAL INITIAL no 
      LABEL "Rebuild on Reposition" 
@@ -335,7 +324,7 @@ ELSE {&WINDOW-NAME} = CURRENT-WINDOW.
 /* SETTINGS FOR WINDOW wWin
   NOT-VISIBLE,,RUN-PERSISTENT                                           */
 /* SETTINGS FOR FRAME fMain
-                                                                        */
+   FRAME-NAME                                                           */
 /* BROWSE-TAB brFilter rsPermanent fMain */
 ASSIGN 
        EdManualQuery:RETURN-INSERTED IN FRAME fMain  = TRUE.
@@ -520,7 +509,7 @@ DO:
         ELSE hColumn:READ-ONLY = TRUE.
 
     hColumn = BROWSE {&BROWSE-NAME}:GET-BROWSE-COLUMN(6).
-    IF ttSchema.COLUMN_datatype = "character" 
+    IF ttSchema.COLUMN_datatype = "character"
         THEN hColumn:READ-ONLY = FALSE.
         ELSE hColumn:READ-ONLY = TRUE.
 
@@ -606,7 +595,8 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL EdManualQuery wWin
 ON VALUE-CHANGED OF EdManualQuery IN FRAME fMain
 DO:
-  ASSIGN glFilterModified = YES.
+  ASSIGN glFilterModified = YES
+         glManualQuery = yes.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -735,7 +725,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyntoolbar.w':U ,
              INPUT  FRAME fMain:HANDLE ,
-             INPUT  'FlatButtonsyesMenuyesShowBorderyesToolbaryesActionGroupsTableio,NavigationSubModulesTableIOTypeSaveSupportedLinksNavigation-Source,TableIo-SourceToolbarBandsAstraFilterToolbarParentMenuToolbarAutoSizeyesToolbarDrawDirectionHorizontalToolbarInitialStateLogicalObjectNameFilterToolbarAutoResizeDisabledActionsHiddenActionsUpdateHiddenToolbarBandsHiddenMenuBandsMenuMergeOrder0RemoveMenuOnHidenoCreateSubMenuOnConflictyesEdgePixels2PanelTypeToolbarDeactivateTargetOnHidenoDisabledActionsNavigationTargetNameHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'EdgePixels2DeactivateTargetOnHidenoDisabledActionsFlatButtonsyesMenuyesShowBorderyesToolbaryesActionGroupsTableio,NavigationTableIOTypeSaveSupportedLinksNavigation-Source,TableIo-SourceToolbarBandsAstraFilterToolbarAutoSizeyesToolbarDrawDirectionHorizontalLogicalObjectNameFilterToolbarAutoResizeDisabledActionsHiddenActionsUpdateHiddenToolbarBandsHiddenMenuBandsMenuMergeOrder0RemoveMenuOnHidenoCreateSubMenuOnConflictyesNavigationTargetNameHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dyntoolbar ).
        RUN repositionObject IN h_dyntoolbar ( 1.00 , 1.00 ) NO-ERROR.
        RUN resizeObject IN h_dyntoolbar ( 1.57 , 80.00 ) NO-ERROR.
@@ -787,6 +777,7 @@ PROCEDURE applyFilter :
     DEFINE VARIABLE lContinue       AS LOGICAL      NO-UNDO.    
     DEFINE VARIABLE lCancel         AS LOGICAL      NO-UNDO.
     DEFINE VARIABLE cHighChar       AS CHARACTER    NO-UNDO.
+    DEFINE VARIABLE cQueryString    AS CHARACTER    NO-UNDO.
 
     cHighChar = DYNAMIC-FUNCTION("getHighKey":U IN gshGenManager, SESSION:CPCOLL).
 
@@ -801,7 +792,7 @@ PROCEDURE applyFilter :
       RUN confirmContinue IN ttDataObject.tSdoHandle (INPUT-OUTPUT lCancel).
       IF lCancel THEN RETURN.
     END.
-
+     
     DEFINE BUFFER bttSchema FOR ttSchema.
 
     FOR EACH ttDataObject:
@@ -823,7 +814,7 @@ PROCEDURE applyFilter :
                 APPLY "entry":U TO brFilter IN FRAME {&FRAME-NAME}.
                 RETURN "DoNotExit":U.
             END.
-    
+             
             IF bttSchema.SEARCH_from <> "" THEN
             DO:
                 cnt = cnt + 1.
@@ -854,12 +845,24 @@ PROCEDURE applyFilter :
                 cFieldOperators = cFieldOperators + (IF cnt = 1 THEN "" ELSE ",") + "MATCHES".            
             END.
         END.
+        /* Remove current setting snd set ttDataObject values */
 
-        /* Update ttDataObject */
+        DYNAMIC-FUNCTION("removeQuerySelection":U IN ttDataObject.tSdoHandle, 
+                         ttDataObject.tFieldNames,
+                         ttDataObject.tFieldOperators).
+
         ASSIGN ttDataObject.tFieldNames     = cFieldNames
                ttDataObject.tFieldValues    = cFieldValues
                ttDataObject.tFieldOperators = cFieldOperators
                .
+        /* Synch the editor if the manual editor has not bee
+           changed.
+         */
+        if not glManualQuery then
+        do:
+            {get QueryString cQueryString ttDataObject.tSdoHandle}. 
+            ASSIGN EdManualQuery:SCREEN-VALUE = cQueryString.
+        end.
     END.    /* each dataobject */
 
     IF gcFilterOrFind <> "Find":U THEN 
@@ -883,7 +886,7 @@ PROCEDURE assignFilter :
     DEFINE INPUT PARAMETER plSaveSettings           AS LOGICAL          NO-UNDO.
     
     DEFINE VARIABLE lSuccess AS LOGICAL NO-UNDO.         
-    DEFINE VARIABLE cEmptyString AS CHARACTER.                                                 
+    DEFINE VARIABLE cEmptyString AS CHARACTER.
     DEFINE VARIABLE cFilterSettings AS CHARACTER NO-UNDO. 
     
     DEFINE VARIABLE cManualAddQueryWhere          AS CHARACTER  NO-UNDO. 
@@ -895,24 +898,21 @@ PROCEDURE assignFilter :
     DEFINE VARIABLE cQueryString                  AS CHARACTER  NO-UNDO.
     DEFINE VARIABLE cQueryWhere                   AS CHARACTER  NO-UNDO.
     DEFINE VARIABLE cSaveQueryWhere               AS CHARACTER  NO-UNDO.
-    DEFINE VARIABLE lManual                       AS LOGICAL    NO-UNDO.
     DEFINE VARIABLE lSboOpened                    AS LOGICAL    NO-UNDO.
-
-    ASSIGN lManual = NO.
 
     DO WITH FRAME {&FRAME-NAME}:
         /* There should be only one of these. */
         FIND FIRST ttDataObject NO-ERROR.
-        {fn removeForeignKey ttDataObject.tSdoHandle}.
         {get QueryString cSaveQueryWhere ttDataObject.tSdoHandle}.
-
-        /* manual query entered */
-        IF EdManualQuery:SCREEN-VALUE <> cSaveQueryWhere THEN
+        
+        /* Manual query entered.
+           glManualQuery tells us that there have been changes to the
+           editor.
+         */
+        IF glManualQuery and EdManualQuery:SCREEN-VALUE <> cSaveQueryWhere THEN
         DO:
             {set QueryWhere EdManualQuery:SCREEN-VALUE ttDataObject.tSdoHandle}.
-            ASSIGN lManual  = YES
-                   lSuccess = YES
-                   .
+            ASSIGN lSuccess = YES.
         END.
         ASSIGN fiRowsToBatch
                toRebuild
@@ -920,11 +920,10 @@ PROCEDURE assignFilter :
         {set rowsToBatch fiRowsToBatch ttDataObject.tSdoHandle}.
         {set rebuildOnRepos toRebuild ttDataObject.tSdoHandle}.
     END.    /* not SBO */
-
-    IF NOT lManual THEN
+                                    
+    IF NOT glManualQuery THEN
     DO:
         FOR EACH ttDataObject BY ttDataObject.tSdoOrder DESCENDING:
-            {set QueryWhere   cEmptyString ttDataObject.tSdoHandle}.           
             ASSIGN lSuccess = DYNAMIC-FUNCTION("assignQuerySelection":U IN ttDataObject.tSdoHandle,
                                                ttDataObject.tFieldNames,
                                                ttDataObject.tFieldValues,
@@ -934,46 +933,6 @@ PROCEDURE assignFilter :
         END.    /* each data object */
     END.    /* not manual */
   
-    /* See if any manual query settings available and re-apply these as 
-     * appropriate                                                       */
-    IF lSuccess AND NOT lManual THEN
-    DO:
-        FOR EACH ttDataObject BY ttDataObject.tSdoOrder DESCENDING:
-            {get ManualAssignQuerySelection cManualAssignQuerySelection ttDataObject.tSdoHandle}.
-            {get ManualAddQueryWhere        cManualAddQueryWhere        ttDataObject.tSdoHandle}.
-            {get ManualSetQuerySort         cManualSetQuerySort         ttDataObject.tSdoHandle}.
-            
-            loop-1:
-            DO iLoop = 1 TO NUM-ENTRIES(cManualAssignQuerySelection, CHR(4)):
-                ASSIGN cEntry = ENTRY(iLoop, cManualAssignQuerySelection, CHR(4)).      
-                IF NUM-ENTRIES(cEntry, CHR(3)) <> 3 THEN NEXT loop-1.
-                DYNAMIC-FUNCTION("assignQuerySelection" IN ttDataObject.tSdoHandle,
-                                 ENTRY(1,cEntry,CHR(3)),
-                                 ENTRY(2,cEntry,CHR(3)),
-                                 ENTRY(3,cEntry,CHR(3))). 
-            END.    /* loop-21*/
-
-            loop-2:
-            DO iLoop = 1 TO NUM-ENTRIES(cManualAddQueryWhere, CHR(4)):
-                ASSIGN cEntry = ENTRY(iLoop, cManualAddQueryWhere, CHR(4)).      
-                IF NUM-ENTRIES(cEntry, CHR(3)) <> 3 THEN NEXT loop-2.
-                ASSIGN cBuffer = ENTRY(2,cEntry,CHR(3)).
-                IF cBuffer = "?":U THEN ASSIGN cBuffer = "":U.
-                DYNAMIC-FUNCTION("addQueryWhere" IN ttDataObject.tSdoHandle,
-                                 ENTRY(1,cEntry,CHR(3)),
-                                 cBuffer,
-                                 ENTRY(3,cEntry,CHR(3))). 
-            END.    /* loop-2 */
-
-            loop-3:
-            DO iLoop = 1 TO NUM-ENTRIES(cManualSetQuerySort, CHR(4)):
-                ASSIGN cEntry = ENTRY(iLoop, cManualSetQuerySort, CHR(4)).
-                IF NUM-ENTRIES(cEntry, CHR(3)) <> 1 THEN NEXT loop-3.
-                DYNAMIC-FUNCTION("SetQuerySort" IN ttDataObject.tSdoHandle,ENTRY(1,cEntry,CHR(3))). 
-            END.    /* loop-3 */        
-        END.    /* each data object descending */
-    END.    /* not manual, success */
-
     /* Evaluate OUTER-JOINs in the query */
     IF lSuccess THEN
     DO:
@@ -1006,7 +965,7 @@ PROCEDURE assignFilter :
                NOT ttDataObject.tMasterObject        AND
                VALID-HANDLE(ttDataObject.tSboHandle) THEN
                 DYNAMIC-FUNCTION("openQuery":U IN ttDataObject.tSboHandle).
-
+          
             ASSIGN lSuccess = DYNAMIC-FUNC('openQuery' IN ttDataObject.tSdoHandle).
 
             IF NOT lSuccess THEN
@@ -1016,14 +975,15 @@ PROCEDURE assignFilter :
         
     IF lSuccess THEN 
     DO:
-        ASSIGN glFilterModified = FALSE.
+        ASSIGN glFilterModified = FALSE
+               glManualQuery    = no.
         FOR EACH ttDataObject BY ttDataObject.tSdoOrder DESCENDING:
             /* save these settings, since they apparently work */
             ASSIGN ttDataObject.tFilterSettings = ttDataObject.tFieldNames  + CHR(3)
                                                 + ttDataObject.tFieldValues + CHR(3)
                                                 + ttDataObject.tFieldOperators.
         END.
-        IF plSaveSettings THEN            
+        IF plSaveSettings THEN
             RUN saveFilter.
     END.    /* success opeing. */
     ELSE
@@ -1040,41 +1000,6 @@ PROCEDURE assignFilter :
 
         /* reopen the query with no filter in place */
         FOR EACH ttDataObject BY ttdataObject.tSdoOrder DESCENDING:        
-            {set QueryWhere   cEmptyString ttDataObject.tSdoHandle}.
-    
-            {get ManualAssignQuerySelection cManualAssignQuerySelection ttDataObject.tSdoHandle}.
-            {get ManualAddQueryWhere        cManualAddQueryWhere        ttDataObject.tSdoHandle}.
-            {get ManualSetQuerySort         cManualSetQuerySort         ttDataObject.tSdoHandle}.
-    
-            loop-4:
-            DO iLoop = 1 TO NUM-ENTRIES(cManualAssignQuerySelection, CHR(4)):
-              ASSIGN cEntry = ENTRY(iLoop, cManualAssignQuerySelection, CHR(4)).      
-              IF NUM-ENTRIES(cEntry, CHR(3)) <> 3 THEN NEXT loop-4.
-              DYNAMIC-FUNCTION("assignQuerySelection" IN ttDataObject.tSdoHandle,ENTRY(1,cEntry,CHR(3)),
-                                                                      ENTRY(2,cEntry,CHR(3)),
-                                                                      ENTRY(3,cEntry,CHR(3))). 
-            END.
-    
-            loop-5:
-            DO iLoop = 1 TO NUM-ENTRIES(cManualAddQueryWhere, CHR(4)):
-              ASSIGN cEntry = ENTRY(iLoop, cManualAddQueryWhere, CHR(4)).      
-              IF NUM-ENTRIES(cEntry, CHR(3)) <> 3 THEN NEXT loop-5.
-              ASSIGN cBuffer = ENTRY(2,cEntry,CHR(3)).
-              IF cBuffer = "?":U THEN ASSIGN cBuffer = "":U.
-              DYNAMIC-FUNCTION("addQueryWhere" IN ttDataObject.tSdoHandle,ENTRY(1,cEntry,CHR(3)),
-                                                               cBuffer,
-                                                               ENTRY(3,cEntry,CHR(3))). 
-            END.
-    
-            loop-6:
-            DO iLoop = 1 TO NUM-ENTRIES(cManualSetQuerySort, CHR(4)):
-              ASSIGN cEntry = ENTRY(iLoop, cManualSetQuerySort, CHR(4)).      
-              IF NUM-ENTRIES(cEntry, CHR(3)) <> 1 THEN NEXT loop-6.
-              DYNAMIC-FUNCTION("SetQuerySort" IN ttDataObject.tSdoHandle,ENTRY(1,cEntry,CHR(3))). 
-            END.
-    
-            /* Evaluate OUTER-JOINs in the query */
-            DYNAMIC-FUNCTION("evaluateQueryString":U, INPUT ttDataObject.tSdoHandle, INPUT ttDataObject.tFieldNames).
             {set FilterActive "ttDataObject.tFieldNames <> ''" ttDataObject.tSdoHandle}.
 
             /* Ensure that the SBO query has been re-opened (if this is an SBO)
@@ -1092,15 +1017,13 @@ PROCEDURE assignFilter :
             DYNAMIC-FUNC('openQuery' IN ttDataObject.tSdoHandle).
 
             ASSIGN ttDataObject.tFilterSettings = cFilterSettings.
-        END.
-        
+        END.        
         /* even if told not to save, save these blank settings */
         RUN saveFilter.
     END.    /* no success setting filtered queries. */
 
     DO WITH FRAME {&FRAME-NAME}:
         FIND FIRST ttDataObject.
-        {fn removeForeignKey ttDataObject.tSdoHandle}.
         {get QueryString cQueryString ttDataObject.tSdoHandle}.
         ASSIGN  EdManualQuery:SCREEN-VALUE = cQueryString.
     END.
@@ -1158,8 +1081,7 @@ PROCEDURE clearFilter :
 
     DEFINE VARIABLE dRowsToBatch    AS DECIMAL    NO-UNDO.
     DEFINE VARIABLE lRebuildOnRepos AS LOGICAL    NO-UNDO.
-
-    DEFINE VARIABLE cEmptyString AS CHARACTER.
+    DEFINE VARIABLE cQueryString    AS CHARACTER  NO-UNDO.
 
     RUN selectPage (INPUT 1).
 
@@ -1172,28 +1094,20 @@ PROCEDURE clearFilter :
     END.
 
     /* Clear the advanced info. */
-
     DO ON ERROR UNDO, LEAVE:
         RUN getSDODefaults (OUTPUT dRowsToBatch,
                             OUTPUT lRebuildOnRepos).
         ASSIGN fiRowsToBatch:SCREEN-VALUE IN FRAME {&FRAME-NAME} = STRING(dRowsToBatch)
                toRebuild:CHECKED = lRebuildOnRepos
-               EdManualQuery:SCREEN-VALUE = '':U
                NO-ERROR.
     END.
 
     /* Reopen the filter query */
     ASSIGN glFilterModified = YES.
     {&OPEN-QUERY-brFilter}
-
-    /* Clear the QueryString in order to have it in sync with
-       EdManualQuery:STRING-VALUE.
-       Procedure assignFilter resets the query properly.
-     */
-    FIND FIRST ttDataObject NO-ERROR.
-    {set QueryWhere   cEmptyString ttDataObject.tSdoHandle}.           
-
+    
     RETURN.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1230,7 +1144,7 @@ PROCEDURE enable_UI :
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
   DISPLAY rsPermanent fiRowsToBatch ToRebuild EdManualQuery fiManualQuery 
-          fiFindLabel fiFilterLabel 
+          fiFilterLabel fiFindLabel 
       WITH FRAME fMain IN WINDOW wWin.
   ENABLE rsPermanent brFilter fiRowsToBatch ToRebuild EdManualQuery 
       WITH FRAME fMain IN WINDOW wWin.
@@ -1292,8 +1206,8 @@ THEN then-blk: DO:
                                                      INPUT NO,
                                                      INPUT YES,
                                                      OUTPUT lExists).
-    IF lExists = YES 
-    THEN DO:
+    IF lExists = YES THEN 
+    DO:
         ASSIGN rRowid = ?.
         RUN getProfileData IN gshProfileManager (INPUT "SDO":U,
                                                  INPUT "Attributes":U,
@@ -1308,13 +1222,14 @@ THEN then-blk: DO:
     END.
 
     /* Now check if we have been able to determine what the attributes are.  If not, get them from the SDO. */
-    IF iRowsToBatch = ? 
+    IF (iRowsToBatch = ? OR NOT lExists) 
     AND VALID-HANDLE(ttDataObject.tSDOHandle) THEN
         {get rowsToBatch iRowsToBatch ttDataObject.tSDOHandle}.
 
-    IF lRebuildOnRepos = ? 
+    IF (lRebuildOnRepos = ? OR NOT lExists) 
     AND VALID-HANDLE(ttDataObject.tSDOHandle) THEN
         {get rebuildOnRepos lRebuildOnRepos ttDataObject.tSDOHandle}.
+
 END.
 
 ASSIGN ERROR-STATUS:ERROR = NO.
@@ -1473,14 +1388,24 @@ PROCEDURE resetFilter :
     cHighChar = DYNAMIC-FUNCTION("getHighKey":U IN gshGenManager, SESSION:CPCOLL).
 
     RUN retrieveFilter.
-
-    FOR EACH ttDataObject WHERE
-             NUM-ENTRIES(ttDataObject.tFilterSettings,CHR(3)) EQ 3 :
+    
+    FOR EACH ttDataObject :
+      FOR EACH ttSchema WHERE
+               ttSchema.sdo_handle = ttDataObject.tSdoHandle:         
+        /* Delete filter field if field is in query and not in saved filter */
+        IF LOOKUP(ttSchema.COLUMN_name,ttDataObject.tFieldNames) = 0
+        AND DYNAMIC-FUNCTION("columnQuerySelection":U IN ttDataObject.tSdoHandle,
+                             ttSchema.COLUMN_name) > '' THEN
+           DELETE ttSchema.
+      END.
+      IF NUM-ENTRIES(ttDataObject.tFilterSettings,CHR(3)) EQ 3 THEN
+      DO:
         DO iField = 1 TO NUM-ENTRIES(ttDataObject.tFieldNames):
             FIND FIRST ttSchema WHERE
                        ttSchema.sdo_handle = ttDataObject.tSdoHandle  AND
-                       ttSchema.FIELD_name = ENTRY(iField, ttDataObject.tFieldNames) 
+                       ttSchema.COLUMN_name = ENTRY(iField, ttDataObject.tFieldNames) 
                        NO-ERROR.
+
             IF AVAILABLE ttSchema THEN
             DO:
                 ASSIGN cOperator = ENTRY(iField,ttDataObject.tFieldOperators)
@@ -1494,10 +1419,12 @@ PROCEDURE resetFilter :
                 END CASE.
             END.    /* avail ttcschema */
         END.    /* field loop */
+      END.  /* if filtersettings */
     END.    /* each data object */
-
-    ASSIGN glFilterModified = FALSE.
-
+    
+    ASSIGN glFilterModified = FALSE
+           glManualQuery    = no.
+    
     RETURN.
 END PROCEDURE.
 
@@ -1610,8 +1537,8 @@ PROCEDURE retrieveFilter :
                                                          INPUT NO,
                                                          INPUT YES,
                                                          OUTPUT lExists).
-        IF lExists 
-        THEN DO:
+        IF lExists THEN 
+        DO:
             ASSIGN rRowid = ?.
             RUN getProfileData IN gshProfileManager ( INPUT "BrwFilters":U,
                                                       INPUT "FilterSet":U,
@@ -1620,13 +1547,20 @@ PROCEDURE retrieveFilter :
                                                       INPUT-OUTPUT rRowid,
                                                       OUTPUT ttDataObject.tFilterSettings).
             ASSIGN grFieldProfileRecord = rRowid.
-    
+            
             /* Assign our values */    
             IF NUM-ENTRIES(ttDataObject.tFilterSettings, CHR(3)) EQ 3 THEN
+            DO:
                 ASSIGN ttDataObject.tFieldNames     = ENTRY(1,ttDataObject.tFilterSettings,CHR(3))
                        ttDataObject.tFieldValues    = ENTRY(2,ttDataObject.tFilterSettings,CHR(3))
                        ttDataObject.tFieldOperators = ENTRY(3,ttDataObject.tFilterSettings,CHR(3))
                        .
+                /* profiles used to be stored with names only */
+                IF INDEX(ttDataObject.tFieldNames,'.':U) = 0 THEN
+                  ttDataObject.tFieldNames 
+                    = LEFT-TRIM(REPLACE(',' + ttDataObject.tFieldNames,',',',RowObject.'),',').
+            END.
+
         END.
         ELSE
             ASSIGN grFieldProfileRecord = ?.
@@ -1806,8 +1740,6 @@ PROCEDURE setDataSourceHandle :
     DEFINE VARIABLE cFilterSignature            AS CHARACTER                NO-UNDO.
     DEFINE VARIABLE cWindowTitle                AS CHARACTER                NO-UNDO.
     DEFINE VARIABLE hColumn                     AS HANDLE                   NO-UNDO.
-    DEFINE VARIABLE cTables                     AS CHARACTER                NO-UNDO.
-    DEFINE VARIABLE cFirstTable                 AS CHARACTER                NO-UNDO.
     DEFINE VARIABLE hBrowser                    AS HANDLE                   NO-UNDO.
     DEFINE VARIABLE cDataHandle                 AS CHARACTER                NO-UNDO.
     DEFINE VARIABLE cFieldHandles               AS CHARACTER                NO-UNDO.
@@ -1884,8 +1816,6 @@ PROCEDURE setDataSourceHandle :
             IF LOOKUP(ENTRY(iSdoLoop, cDataObjectNames), cDataSourceNames) EQ 0 THEN
                 NEXT.
 
-            ASSIGN cTables = cTables + (IF NUM-ENTRIES(cTables) EQ 0 THEN "":U ELSE ",":U)
-                           + DYNAMIC-FUNCTION("getTables" IN hDataObject).
             RUN describeSchema IN hDataObject ( INPUT  cFieldNames, OUTPUT TABLE ttCacheSchema ).
 
             /* Ensures that BLOB and CLOB fields are not included in Filter/Find browser */
@@ -1901,7 +1831,9 @@ PROCEDURE setDataSourceHandle :
 
             {get LogicalObjectName cSdoName hDataObject}.
             IF cSdoName EQ "":U OR cSdoName EQ ? THEN
-                ASSIGN cSdoName = hDataObject:FILE-NAME.
+              {get ObjectName cSDOName hDataObject}.
+            IF cSdoName EQ "":U OR cSdoName EQ ? THEN
+              cSdoName = hDataObject:FILE-NAME.
 
             CREATE ttDataObject.
             ASSIGN ttDataObject.tSdoHandle    = hDataObject
@@ -1909,14 +1841,13 @@ PROCEDURE setDataSourceHandle :
                    ttDataObject.tSdoSignature = cSdoName + ",":U + cDataContainerName + "," + cLogicalObjectName + ",":U + cRunAttribute
                    ttDataObject.tSboHandle    = phDataSource
                    ttDataObject.tMasterObject = (hMasterDataObject EQ hDataObject)
+                   ttDataObject.tDbAware      = yes
                    .
         END.    /* data objects */
     END.    /* SBO */
     ELSE
     DO:    
-        ASSIGN cDataContainerName = "":U
-               cTables            = DYNAMIC-FUNCTION("getTables" IN phDataSource)
-               .
+        ASSIGN cDataContainerName = "":U.
         RUN describeSchema IN phDataSource ( INPUT  cFieldNames, OUTPUT TABLE ttSchema ).
 
         /* Ensures that BLOB and CLOB fields are not included in Filter/Find browser */
@@ -1924,19 +1855,24 @@ PROCEDURE setDataSourceHandle :
                              OR ttSchema.column_datatype = "CLOB":U:
             DELETE ttSchema.
         END. 
-
-        ASSIGN cFirstTable = ENTRY(1,cTables).
-
-        {get LogicalObjectName cSdoName phDataSource}.
-        IF cSdoName EQ "":U OR cSdoName EQ ? THEN
-            ASSIGN cSdoName = phDataSource:FILE-NAME.
-
+        
         CREATE ttDataObject.
+        {get DbAware ttDataObject.tDbAware phDataSource}.
+        
+        /* cannot use logical name for Dataview */ 
+        IF ttDataObject.tDbAware THEN
+          {get LogicalObjectName cSdoName phDataSource}.
+        
+        IF cSdoName EQ "":U OR cSdoName EQ ? THEN
+          {get ObjectName cSDOName phDataSource}.
+        
+        IF cSdoName EQ "":U OR cSdoName EQ ? THEN
+           cSdoName = phDataSource:FILE-NAME.
         ASSIGN ttDataObject.tSdoHandle    = phDataSource
                ttDataObject.tSdoOrder     = 1
                ttDataObject.tSdoSignature = cSdoName + ",":U + cDataContainerName + ",":U + cLogicalObjectName + ",":U + cRunAttribute
                ttDataObject.tSboHandle    = ?
-               .
+               .        
     END.    /* SDO */
 
     {get ObjectParent hParentWindow}.
@@ -1959,11 +1895,11 @@ PROCEDURE setDataSourceHandle :
             hColumn = hColumn:NEXT-COLUMN.
     END.
 
+     
     /* Display Advanced data for the SDO. */    
     FIND FIRST ttDataObject NO-ERROR.
     IF AVAILABLE ttDataObject THEN
     DO WITH FRAME {&FRAME-NAME}:       
-        {fn removeForeignKey ttDataObject.tSdoHandle}.
         {get QueryString cQueryWhere ttDataObject.tSdoHandle}.
         ASSIGN EdManualQuery:SCREEN-VALUE = cQueryWhere.
 
@@ -1977,8 +1913,9 @@ PROCEDURE setDataSourceHandle :
     END.
     ELSE
         RUN disableFolderPage IN h_afspfoldrw (2).
-
+   
     {&OPEN-QUERY-brFilter}
+
     APPLY "ITERATION-CHANGED":U TO brFilter IN FRAME {&FRAME-NAME}.
 
     {&WINDOW-NAME}:WIDTH = 92.
@@ -2001,7 +1938,8 @@ PROCEDURE toolbar :
 ------------------------------------------------------------------------------*/
 DEFINE INPUT PARAMETER pcAction AS CHARACTER.
 
-    APPLY "ROW-LEAVE" TO BROWSE {&BROWSE-NAME}.
+/*Commented to workaround bug# 20051111-057.
+    APPLY "ROW-LEAVE" TO BROWSE {&BROWSE-NAME}.*/
 
     ASSIGN BROWSE {&BROWSE-NAME}
         ttSchema.SEARCH_from 
@@ -2286,7 +2224,6 @@ PROCEDURE viewObject :
   Parameters:  
   Notes:       
 ------------------------------------------------------------------------------*/
-
   /* Code placed here will execute PRIOR to standard behavior. */
   DO WITH FRAME {&FRAME-NAME}:
     ASSIGN
@@ -2300,6 +2237,10 @@ PROCEDURE viewObject :
         fiManualQuery:ROW = fiRowsToBatch:ROW + 1.33
         edManualQuery:ROW = fiManualQuery:ROW + 0.86.
   END.
+  
+  FIND FIRST ttDataObject.
+  IF NOT ttDataObject.tDbAware THEN 
+    EdManualQuery:READ-ONLY = TRUE.
 
   RUN SUPER.
 

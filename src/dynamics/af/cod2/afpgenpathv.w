@@ -2,6 +2,13 @@
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS sObject 
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /*------------------------------------------------------------------------
 
   File:        ryclcstatusv.w
@@ -62,9 +69,9 @@ DEFINE VARIABLE cUserLogin AS CHARACTER  NO-UNDO.
 &Scoped-Define ENABLED-OBJECTS RECT-1 RECT-5 btnBrowseLogFilename ~
 fiLogFileName btnViewLogFile btnBrowseTargetLocation fiTargetLocation ~
 btnBrowseHookProcedure fiHookProcedure toCompile btnBrowseRcodeLocation ~
-fiRcodeLocation 
+fiRcodeLocation toGenMD5 toMinSize 
 &Scoped-Define DISPLAYED-OBJECTS fiLogFileName fiTargetLocation ~
-fiHookProcedure toCompile fiRcodeLocation 
+fiHookProcedure toCompile fiRcodeLocation toGenMD5 toMinSize 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -132,18 +139,30 @@ DEFINE VARIABLE fiTargetLocation AS CHARACTER FORMAT "X(255)":U
      SIZE 58 BY 1 TOOLTIP "The path to the directory where the static objects are to be written" NO-UNDO.
 
 DEFINE RECTANGLE RECT-1
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 108 BY 1.86.
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
+     SIZE 108 BY 2.57.
 
 DEFINE RECTANGLE RECT-5
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 108 BY 3.81.
 
 DEFINE VARIABLE toCompile AS LOGICAL INITIAL no 
      LABEL "Compile" 
      CONTEXT-HELP-ID 0
      VIEW-AS TOGGLE-BOX
-     SIZE 11.75 BY .81 TOOLTIP "Compile objects while generating" NO-UNDO.
+     SIZE 11.8 BY .81 TOOLTIP "Compile objects while generating" NO-UNDO.
+
+DEFINE VARIABLE toGenMD5 AS LOGICAL INITIAL yes 
+     LABEL "GENERATE-MD5" 
+     CONTEXT-HELP-ID 0
+     VIEW-AS TOGGLE-BOX
+     SIZE 23 BY .81 NO-UNDO.
+
+DEFINE VARIABLE toMinSize AS LOGICAL INITIAL yes 
+     LABEL "MIN-SIZE" 
+     CONTEXT-HELP-ID 0
+     VIEW-AS TOGGLE-BOX
+     SIZE 13.6 BY .81 NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */
@@ -157,8 +176,10 @@ DEFINE FRAME F-Main
      btnBrowseHookProcedure AT ROW 3.62 COL 78.2
      fiHookProcedure AT ROW 3.71 COL 18 COLON-ALIGNED
      toCompile AT ROW 5.1 COL 3.6
-     btnBrowseRcodeLocation AT ROW 5.67 COL 78.2
-     fiRcodeLocation AT ROW 5.76 COL 18 COLON-ALIGNED
+     btnBrowseRcodeLocation AT ROW 5.71 COL 78.2
+     fiRcodeLocation AT ROW 5.81 COL 18 COLON-ALIGNED
+     toGenMD5 AT ROW 6.95 COL 20 WIDGET-ID 2
+     toMinSize AT ROW 6.95 COL 47.4 WIDGET-ID 4
      RECT-1 AT ROW 5.33 COL 2
      RECT-5 AT ROW 1.24 COL 2
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
@@ -395,10 +416,16 @@ PROCEDURE getCompileOption :
 ------------------------------------------------------------------------------*/
   DEFINE OUTPUT PARAMETER plCompile       AS LOGICAL    NO-UNDO.
   DEFINE OUTPUT PARAMETER pcRcodeLocation AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER pcOptions       AS CHARACTER  NO-UNDO.
 
   DO WITH FRAME {&FRAME-NAME}:
       plCompile = toCompile:CHECKED.
       pcRcodeLocation = fiRcodeLocation:SCREEN-VALUE.
+      IF toGenMD5:CHECKED THEN
+        pcOptions = 'GENERATE-MD5'.
+      IF toMinSize:CHECKED THEN
+        pcOptions = IF pcOptions NE '':U THEN pcOptions + ',':U + 'MIN-SIZE':U
+                    ELSE 'MIN-SIZE':U.
   END.
 
 END PROCEDURE.
@@ -591,7 +618,9 @@ PROCEDURE initializeData :
              fiHookProcedure:SCREEN-VALUE          = "ry/app/rygen4glhp.p"
              fiRcodeLocation:SCREEN-VALUE          = REPLACE(cCompileDirectory, "~/":U, "\":U).
 
-      ASSIGN toCompile:CHECKED = FALSE.
+      ASSIGN toCompile:CHECKED = FALSE
+             toGenMD5:CHECKED  = TRUE
+             toMinSize:CHECKED = TRUE .
   END.
 
 END PROCEDURE.
@@ -691,10 +720,14 @@ PROCEDURE setRcodeLocationSensitive :
   DO WITH FRAME {&FRAME-NAME}:
       IF toCompile:CHECKED THEN
           ASSIGN fiRcodeLocation:SENSITIVE = TRUE
-                 btnBrowseRcodeLocation:SENSITIVE = TRUE.
+                 btnBrowseRcodeLocation:SENSITIVE = TRUE
+                 toGenMD5:SENSITIVE = TRUE
+                 toMinSize:SENSITIVE = TRUE.
       ELSE
           ASSIGN fiRcodeLocation:SENSITIVE = FALSE
-                 btnBrowseRcodeLocation:SENSITIVE = FALSE.
+                 btnBrowseRcodeLocation:SENSITIVE = FALSE
+                 toGenMD5:SENSITIVE = FALSE
+                 toMinSize:SENSITIVE = FALSE.
   END.
 
 END PROCEDURE.

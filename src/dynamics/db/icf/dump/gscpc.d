@@ -24,7 +24,7 @@ PSC
 filename=gsc_profile_code
 records=0000000000021
 ldbname=ICFDB
-timestamp=2005/04/06-13:05:00
+timestamp=2005/06/30-15:33:25
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP

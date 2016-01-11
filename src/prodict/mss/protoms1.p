@@ -1,32 +1,12 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
 /* Procedure prodict/mss/protoms1.p
 
-    Created: 03/31/00 Used prodict/odb/protood1.p as model D. McMann
-   History: 08/18/00 Incresed size of identifier max length
-             08/29/00 Changed to alert-box for tty end message DLM
-    
        user_env[5] = statement terminator
        user_env[10] = Maximum length of varchar
        user_env[11..18] = a string of how to convert PROGRESS datatypes:
@@ -50,7 +30,11 @@
        * = When the datatype is decimals and no decimals are present
       ** = Name of character field when max for regular char is exceeded
      *** = Logical fields which are key componets
-   
+
+   Created: 03/31/00 Used prodict/odb/protood1.p as model D. McMann
+   History: 08/18/00 Incresed size of identifier max length
+            08/29/00 Changed to alert-box for tty end message DLM
+            10/25/05 Fixed X8OVERRIDE functionality 20051018-006. 
 */    
 
 { prodict/user/uservar.i }
@@ -85,7 +69,12 @@ IF batch_mode THEN DO:
        "Progress Schema Holder name:           " osh_dbname skip
        "MSS Username:                         " mss_username skip
        "Compatible structure:                  " pcompatible skip
-       "Use Width field for Size of field:    " sqlwidth skip
+       "Field width calculation based on:      " (IF iFmtOption = 1 THEN
+                                                    "_Field._Width field"
+                                                  ELSE IF (lFormat = FALSE) THEN
+                                                    "Calculation"
+                                                  ELSE "_Field._Format field")
+                                                  SKIP
        "Create objects in MSS:                " loadsql skip
        "Moved data to MSS:                    " movedata skip(2).
 END.
@@ -209,10 +198,12 @@ IF pcompatible THEN
 ELSE
    ASSIGN user_env[27] = "no".
 
-IF sqlwidth THEN 
-   ASSIGN user_env[33] = "y".
+IF (iFmtOption = 1) THEN 
+  ASSIGN user_env[33] = "y".
+ELSE IF (lFormat = FALSE) THEN
+  ASSIGN user_env[33] = "n".
 ELSE
-   ASSIGN user_env[33] = "n".
+  ASSIGN user_env[33] = "?".
 
 IF descidx THEN 
    ASSIGN user_env[34] = "y".
@@ -362,14 +353,4 @@ ELSE IF batch_mode THEN DO:
 END.
 
 /*------------------------------------------------------------------*/
-
-
-
-
-
-
-
-
-
-
 

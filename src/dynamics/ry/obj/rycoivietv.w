@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
           icfdb            PROGRESS
@@ -29,25 +29,9 @@ DEFINE TEMP-TABLE RowObject
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -172,19 +156,19 @@ DEFINE VARIABLE fiObjectTypeCode AS CHARACTER FORMAT "X(15)":U
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     RowObject.instance_name AT ROW 4.14 COL 21.4 COLON-ALIGNED
+     RowObject.instance_name AT ROW 4.29 COL 21.4 COLON-ALIGNED
           LABEL "Instance name"
           VIEW-AS FILL-IN 
           SIZE 78.4 BY 1
-     RowObject.instance_description AT ROW 5.19 COL 3.2
+     RowObject.instance_description AT ROW 5.38 COL 3.2
           LABEL "Instance description"
           VIEW-AS FILL-IN 
           SIZE 78.4 BY 1
-     RowObject.layout_position AT ROW 6.24 COL 21.4 COLON-ALIGNED
+     RowObject.layout_position AT ROW 6.48 COL 21.4 COLON-ALIGNED
           LABEL "Layout position"
           VIEW-AS FILL-IN 
           SIZE 34.8 BY 1
-     RowObject.object_sequence AT ROW 7.29 COL 21.4 COLON-ALIGNED
+     RowObject.object_sequence AT ROW 7.57 COL 21.4 COLON-ALIGNED
           LABEL "Create sequence"
           VIEW-AS FILL-IN 
           SIZE 11.6 BY 1
@@ -195,7 +179,7 @@ DEFINE FRAME frMain
      RowObject.dObjectInstanceObj AT ROW 1 COL 97 COLON-ALIGNED NO-LABEL
           VIEW-AS FILL-IN 
           SIZE 2.4 BY 1
-     SPACE(0.00) SKIP(2.15)
+     SPACE(0.00) SKIP(2.24)
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -236,7 +220,7 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 7.29
+         HEIGHT             = 7.95
          WIDTH              = 100.8.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -363,7 +347,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_object_type.object_type_codeKeyFieldgsc_object_type.object_type_objFieldLabelObject typeFieldTooltipPress F4 For LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(30)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type NO-LOCK, FIRST ryc_smartobject WHERE ryc_smartobject.smartobject_obj = gsc_object_type.class_smartobject_obj OUTER-JOIN BY gsc_object_type.object_type_code INDEXED-REPOSITIONQueryTablesgsc_object_type,ryc_smartobjectBrowseFieldsgsc_object_type.object_type_code,gsc_object_type.object_type_description,ryc_smartobject.object_filename,ryc_smartobject.object_descriptionBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(35)|X(35)|X(70)|X(35)RowsToBatch200BrowseTitleLookup Object TypeViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatX(30)SDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNamedObjectTypeObjDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_object_type.object_type_codeKeyFieldgsc_object_type.object_type_objFieldLabelObject typeFieldTooltipPress F4 For LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(30)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type NO-LOCK, FIRST ryc_smartobject WHERE ryc_smartobject.smartobject_obj = gsc_object_type.class_smartobject_obj OUTER-JOIN BY gsc_object_type.object_type_code INDEXED-REPOSITIONQueryTablesgsc_object_type,ryc_smartobjectBrowseFieldsgsc_object_type.object_type_code,gsc_object_type.object_type_description,ryc_smartobject.object_filename,ryc_smartobject.object_descriptionBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(35)|X(35)|X(70)|X(35)RowsToBatch200BrowseTitleLookup Object TypeViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatX(30)SDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureDataSourceNameFieldNamedObjectTypeObjDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_ObjectTypeObj ).
        RUN repositionObject IN h_ObjectTypeObj ( 1.00 , 23.40 ) NO-ERROR.
        RUN resizeObject IN h_ObjectTypeObj ( 1.00 , 52.40 ) NO-ERROR.
@@ -375,17 +359,17 @@ PROCEDURE adm-create-objects :
                      FIRST gsc_object_type WHERE gsc_object_type.object_type_obj = ryc_smartobject.object_type_obj NO-LOCK,
                      FIRST gsc_product_module WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj AND [&FilterSet=|&EntityList=GSCPM,RYCSO,GSCOT] NO-LOCK,
                      FIRST gsc_product WHERE gsc_product.product_obj = gsc_product_module.product_obj
-                     BY gsc_product_module.product_module_code By gsc_object_type.object_type_code BY ryc_smartobject.object_filenameQueryTablesryc_smartobject,gsc_object_type,gsc_product_module,gsc_productBrowseFieldsgsc_product_module.product_module_code,gsc_object_type.object_type_code,ryc_smartobject.object_filename,ryc_smartobject.object_descriptionBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(35)|X(35)|X(70)|X(35)RowsToBatch200BrowseTitleLookup Instance ObjectViewerLinkedFieldsgsc_object_type.object_type_codeLinkedFieldDataTypescharacterLinkedFieldFormatsX(35)ViewerLinkedWidgetsfiObjectTypeCodeColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFielddObjectTypeObj,dObjectTypeObjParentFilterQuery(IF DECIMAL(~'&1~') <> 0 THEN ryc_smartobject.object_type_obj = DECIMAL(~'&1~') ELSE TRUE)MaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNamesmartobject_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY gsc_product_module.product_module_code By gsc_object_type.object_type_code BY ryc_smartobject.object_filenameQueryTablesryc_smartobject,gsc_object_type,gsc_product_module,gsc_productBrowseFieldsgsc_product_module.product_module_code,gsc_object_type.object_type_code,ryc_smartobject.object_filename,ryc_smartobject.object_descriptionBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(35)|X(35)|X(70)|X(35)RowsToBatch200BrowseTitleLookup Instance ObjectViewerLinkedFieldsgsc_object_type.object_type_codeLinkedFieldDataTypescharacterLinkedFieldFormatsX(35)ViewerLinkedWidgetsfiObjectTypeCodeColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFielddObjectTypeObj,dObjectTypeObjParentFilterQuery(IF DECIMAL(~'&1~') <> 0 THEN ryc_smartobject.object_type_obj = DECIMAL(~'&1~') ELSE TRUE)MaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureDataSourceNameFieldNamesmartobject_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_InstanceObj ).
-       RUN repositionObject IN h_InstanceObj ( 2.05 , 23.40 ) NO-ERROR.
+       RUN repositionObject IN h_InstanceObj ( 2.10 , 23.40 ) NO-ERROR.
        RUN resizeObject IN h_InstanceObj ( 1.00 , 52.40 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldryc_page.page_labelKeyFieldryc_page.page_objFieldLabelPageFieldTooltipSelect option from listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(28)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_page NO-LOCK BY ryc_page.page_sequenceQueryTablesryc_pageSDFFileNameSDFTemplateParentFieldcontainer_smartobject_objParentFilterQueryryc_page.container_smartobject_obj = DECIMAL(~'&1~')DescSubstitute&1ComboDelimiterListItemPairsInnerLines5ComboFlagNFlagValue0BuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNamepage_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldryc_page.page_labelKeyFieldryc_page.page_objFieldLabelPageFieldTooltipSelect option from listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(28)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_page NO-LOCK BY ryc_page.page_sequenceQueryTablesryc_pageSDFFileNameSDFTemplateParentFieldcontainer_smartobject_objParentFilterQueryryc_page.container_smartobject_obj = DECIMAL(~'&1~')DescSubstitute&1ComboDelimiterListItemPairsInnerLines5SortnoComboFlagNFlagValue0BuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesSuperProcedureDataSourceNameFieldNamepage_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_PageObj ).
-       RUN repositionObject IN h_PageObj ( 3.10 , 23.40 ) NO-ERROR.
+       RUN repositionObject IN h_PageObj ( 3.19 , 23.40 ) NO-ERROR.
        RUN resizeObject IN h_PageObj ( 1.05 , 52.40 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */

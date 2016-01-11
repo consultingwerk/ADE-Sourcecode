@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
           icfdb            PROGRESS
@@ -29,25 +29,9 @@ DEFINE TEMP-TABLE RowObject
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -116,7 +100,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /* Include file with RowObject temp-table definition */
 &Scoped-define DATA-FIELD-DEFS "af/obj2/gsmitfullo.i"
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
@@ -193,14 +177,14 @@ DEFINE RECTANGLE RECT-1
 DEFINE FRAME frMain
      fiBand AT ROW 1.71 COL 20.4 COLON-ALIGNED
      fibanddesc AT ROW 1.71 COL 43.4 COLON-ALIGNED NO-LABEL
-     fiItemLabel AT ROW 2.76 COL 68.8 COLON-ALIGNED
-     fiItemDesc AT ROW 3.81 COL 20.4 COLON-ALIGNED
-     fitype AT ROW 3.81 COL 68.8 COLON-ALIGNED
-     RowObject.menu_item_sequence AT ROW 4.91 COL 20.4 COLON-ALIGNED
+     fiItemLabel AT ROW 2.81 COL 68.8 COLON-ALIGNED
+     fiItemDesc AT ROW 3.91 COL 20.4 COLON-ALIGNED
+     fitype AT ROW 3.91 COL 68.8 COLON-ALIGNED
+     RowObject.menu_item_sequence AT ROW 5 COL 20.4 COLON-ALIGNED
           LABEL "Item sequence"
           VIEW-AS FILL-IN 
           SIZE 8 BY 1
-     fisubBand AT ROW 6.95 COL 20.4 COLON-ALIGNED NO-LABEL
+     fisubBand AT ROW 7.24 COL 20.4 COLON-ALIGNED NO-LABEL
      fiBandItemsLabel AT ROW 1.1 COL 3.6 NO-LABEL
      RowObject.menu_structure_item_obj AT ROW 4.57 COL 89 COLON-ALIGNED NO-LABEL
            VIEW-AS TEXT 
@@ -272,7 +256,7 @@ END.
 /* SETTINGS FOR WINDOW vTableWin
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frMain
-   NOT-VISIBLE Size-to-Fit                                              */
+   NOT-VISIBLE FRAME-NAME Size-to-Fit                                   */
 ASSIGN 
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
@@ -402,9 +386,9 @@ PROCEDURE adm-create-objects :
              INPUT  FRAME frMain:HANDLE ,
              INPUT  'DisplayedFieldgsm_menu_item.menu_item_referenceKeyFieldgsm_menu_item.menu_item_objFieldLabelItem referenceFieldTooltipPress F4 for LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(15)DisplayDatatypecharacterBaseQueryStringfor each gsm_menu_item NO-LOCK,
                      each gsc_product_module of gsm_menu_item OUTER-JOIN
-                     by menu_item_referenceQueryTablesgsm_menu_item,gsc_product_moduleBrowseFieldsgsm_menu_item.menu_item_reference,gsm_menu_item.menu_item_label,gsm_menu_item.item_control_type,gsm_menu_item.menu_item_description,gsc_product_module.product_module_codeBrowseFieldDataTypescharacter,character,character,character,characterBrowseFieldFormatsX(15)|X(28)|X(15)|X(35)|X(35)RowsToBatch200BrowseTitleLookupViewerLinkedFieldsgsm_menu_item.menu_item_label,gsm_menu_item.item_control_type,gsm_menu_item.menu_item_descriptionLinkedFieldDataTypescharacter,character,characterLinkedFieldFormatsX(28),X(15),X(35)ViewerLinkedWidgetsfiItemLabel,fitype,fiitemDescColumnLabels,,,,Product moduleColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNamemenu_item_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     by menu_item_referenceQueryTablesgsm_menu_item,gsc_product_moduleBrowseFieldsgsm_menu_item.menu_item_reference,gsm_menu_item.menu_item_label,gsm_menu_item.item_control_type,gsm_menu_item.menu_item_description,gsc_product_module.product_module_codeBrowseFieldDataTypescharacter,character,character,character,characterBrowseFieldFormatsX(15)|X(28)|X(15)|X(35)|X(35)RowsToBatch200BrowseTitleLookupViewerLinkedFieldsgsm_menu_item.menu_item_label,gsm_menu_item.item_control_type,gsm_menu_item.menu_item_descriptionLinkedFieldDataTypescharacter,character,characterLinkedFieldFormatsX(28),X(15),X(35)ViewerLinkedWidgetsfiItemLabel,fitype,fiitemDescColumnLabels,,,,Product moduleColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureDataSourceNameFieldNamemenu_item_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dynlookup-2 ).
-       RUN repositionObject IN h_dynlookup-2 ( 2.76 , 22.40 ) NO-ERROR.
+       RUN repositionObject IN h_dynlookup-2 ( 2.81 , 22.40 ) NO-ERROR.
        RUN resizeObject IN h_dynlookup-2 ( 1.00 , 38.60 ) NO-ERROR.
 
        RUN constructObject (
@@ -413,9 +397,9 @@ PROCEDURE adm-create-objects :
              INPUT  'DisplayedFieldgsm_menu_structure.menu_structure_codeKeyFieldgsm_menu_structure.menu_structure_objFieldLabelSubmenu/subbandFieldTooltipPress F4 for LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(28)DisplayDatatypecharacterBaseQueryStringFOR each gsm_menu_structure ,
                      FIRST gsc_product_module OUTER-JOIN
                      where gsm_menu_structure.product_module_obj = gsc_product_module .product_module_obj
-                     by menu_structure_codeQueryTablesgsm_menu_structure,gsc_product_moduleBrowseFieldsgsm_menu_structure.menu_structure_code,gsm_menu_structure.menu_structure_description,gsc_product_module.product_module_codeBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(28)|X(35)|X(35)RowsToBatch200BrowseTitleSubmenu LookupViewerLinkedFieldsgsm_menu_structure.menu_structure_descriptionLinkedFieldDataTypescharacterLinkedFieldFormatsX(35)ViewerLinkedWidgetsfiSubBandColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNamechild_menu_structure_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     by menu_structure_codeQueryTablesgsm_menu_structure,gsc_product_moduleBrowseFieldsgsm_menu_structure.menu_structure_code,gsm_menu_structure.menu_structure_description,gsc_product_module.product_module_codeBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(28)|X(35)|X(35)RowsToBatch200BrowseTitleSubmenu LookupViewerLinkedFieldsgsm_menu_structure.menu_structure_descriptionLinkedFieldDataTypescharacterLinkedFieldFormatsX(35)ViewerLinkedWidgetsfiSubBandColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureDataSourceNameFieldNamechild_menu_structure_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dynlookup-3 ).
-       RUN repositionObject IN h_dynlookup-3 ( 6.00 , 22.40 ) NO-ERROR.
+       RUN repositionObject IN h_dynlookup-3 ( 6.10 , 22.40 ) NO-ERROR.
        RUN resizeObject IN h_dynlookup-3 ( 1.00 , 39.00 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */

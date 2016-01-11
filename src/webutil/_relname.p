@@ -1,26 +1,10 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-**********************************************************************
-
+*********************************************************************/
+/*
    _relname.p -- Returns the PROPATH relative filename for a file.
                  
        p_file          SEARCH for
@@ -36,6 +20,8 @@
                        MUST-EXIST -- file must exist  
                        MUST-BE-REL -- return ? if it is not in the propath even
                                       if it exists.
+                       OPEN-SAVE -- when opening or saving a file (including rcode)
+                                      do not search path in PROPATH 
                    
    Output Parameters:
       p_Relname   (OUTPUT CHAR) The relative pathname. If the file is not
@@ -68,6 +54,59 @@ DEFINE INPUT  PARAMETER p_file    AS CHARACTER NO-UNDO.
 DEFINE INPUT  PARAMETER p_options AS CHARACTER NO-UNDO.
 DEFINE OUTPUT PARAMETER p_relname AS CHARACTER NO-UNDO INITIAL ?.    
 
-RUN adecomm/_relname.p (p_file, p_options, OUTPUT p_relname).
+/* IZ1852 */
+/* Included code to test if we need to check PROPATH or not */
+/* Taken from adecomm/_relname.p */
+
+DEF VAR filename        AS CHAR    NO-UNDO.   
+DEF VAR l_must-exist    AS LOGICAL NO-UNDO.   
+DEF VAR l_must-be-rel   AS LOGICAL NO-UNDO.   
+DEF VAR cur-dir         AS CHAR    NO-UNDO.
+
+DEF VAR l_save          AS LOGICAL NO-UNDO.
+
+/* IZ1852: */
+/* If we find 'open-save' in p_options, then we won't pass the call to       */
+/* adecomm/_relname.p . When opening or saving a file, the file might end up */
+/* in the working directory if the directory is in the PROPATH               */
+
+IF (LOOKUP ("OPEN-SAVE":U,  p_options) > 0 ) THEN DO:
+
+    /*finds out the working directory */
+    ASSIGN FILE-INFO:FILE-NAME = ".":U.
+    
+    ASSIGN cur-dir = FILE-INFO:FULL-PATHNAME.
+    
+    ASSIGN cur-dir = REPLACE (cur-dir, "~\":U, "~/":U) + "~/":U.
+
+    /* If the file does not exist, just return. */
+    ASSIGN filename             = p_file
+         FILE-INFO:FILE-NAME  = filename
+         l_must-exist         = (LOOKUP ("MUST-EXIST":U,  p_options) > 0)    
+         l_must-be-rel        = (LOOKUP ("MUST-BE-REL":U,  p_options) > 0)    
+         .
+
+    /*Check for file not found. */   
+    IF FILE-INFO:FULL-PATHNAME ne ?
+         THEN filename = FILE-INFO:FULL-PATHNAME.
+    ELSE DO:
+         IF l_must-exist THEN RETURN.
+    END.
+
+    /* Make sure the file name uses portable BACK-SLASHES. */
+    ASSIGN FILENAME = REPLACE (FILENAME, "~\":U, "~/":U).
+
+    /*test to see if directory is under the working directory */
+   
+    IF (FILENAME BEGINS cur-dir) THEN 
+        /* Strip the working dir out of the filename. */
+        p_relname = SUBSTRING (FILENAME, LENGTH(cur-dir, "CHARACTER":U) + 1, -1, "CHARACTER":U).
+    ELSE 
+        ASSIGN p_relname = p_file.
+
+END.
+ELSE
+      /*If we need to check PROPATH for directory, pass parameters to adecomm/_relname.p */
+      RUN adecomm/_relname.p (p_file, p_options, OUTPUT p_relname).
 
 /* _relname.p - end of file */

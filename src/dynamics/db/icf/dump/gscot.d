@@ -2,7 +2,7 @@
 4.7692 "FieldWidget" "Common widget attrs for field entry" no no "SRV" no 0 13464.409 yes 0
 237.7063 "Visual" "Visual SmartObject base class" no no "" yes 0 746.7063 no 0
 239.7063 "DataVisual" "DataVisual SmartObject base class" no no "" yes 0 243155 no 0
-305.7063 "Query" "Smart Query base class" no no "" yes 0 746.7063 no 0
+305.7063 "Query" "Smart Query base class" no no "" yes 0 68808.66 no 0
 473.99 "DynFillin" "Dynamic Fill-In Field" no no "" no 0 4.7692 yes 0
 489 "SmartDialog" "SmartDialog" no no "" yes 0 243155 yes 0
 490 "SmartFolder" "SmartPak Folder Object" no no "" yes 0 3334.66 yes 0
@@ -73,6 +73,11 @@
 47340.66 "Toolbar" "Toolbar base class" no no "" no 0 237.7063 yes 0
 54726.66 "LOBField" "LOB Field Class" no no "" no 0 733.7063 no 0
 54840.66 "SmartLOBField" "Smart LOBField" no no "" yes 0 54726.66 no 0
+68808.66 "DataView" "DataView on a prodataset" no no "Srv,Cli,Web" no 0 746.7063 no 0
+68832.66 "DynDataView" "Dynamic DataView on a prodataset" no no "Srv,Cli,Web" no 0 68808.66 no 0
+68834.66 "StaticDataView" "Static DataView on a prodataset" no no "Srv,Cli,Web" no 0 68808.66 no 0
+70401.66 "StaticLookup" "Static Lookup (use with lookup.i)" no no "" yes 0 821.7063 yes 0
+70422.66 "Dataset" "Dataset class" no no "" no 0 2822.66 no 0
 243155 "Container" "Container base class" no no "" yes 0 237.7063 no 0
 243156 "SmartBrowser" "SmartBrowser" no no "" yes 0 758.7063 yes 0
 243157 "SmartFrame" "SmartFrame" no no "" yes 0 243155 yes 0
@@ -117,12 +122,12 @@
 .
 PSC
 filename=gsc_object_type
-records=0000000000116
+records=0000000000121
 ldbname=ICFDB
-timestamp=2005/04/06-13:05:00
+timestamp=2005/08/19-15:49:31
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
 cpstream=UTF-8
 .
-0000008668
+0000009107

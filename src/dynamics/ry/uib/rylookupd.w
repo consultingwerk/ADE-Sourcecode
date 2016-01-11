@@ -1,28 +1,12 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME QueryTablefrmAttributes
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS QueryTablefrmAttributes 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*------------------------------------------------------------------------
@@ -103,7 +87,7 @@ DEFINE VARIABLE gcWindowState   AS CHARACTER  NO-UNDO.
 &Scoped-define PROCEDURE-TYPE DIALOG-BOX
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME QueryTablefrmAttributes
 
 /* Custom List Definitions                                              */
@@ -158,7 +142,7 @@ FUNCTION isOnLocalField RETURNS LOGICAL
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME QueryTablefrmAttributes
-     SPACE(35.67) SKIP(1.75)
+     SPACE(35.69) SKIP(1.77)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "Dynamic Lookup Properties":L.
@@ -179,7 +163,7 @@ DEFINE FRAME QueryTablefrmAttributes
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX QueryTablefrmAttributes
-   Custom                                                               */
+   FRAME-NAME Custom                                                    */
 ASSIGN 
        FRAME QueryTablefrmAttributes:SCROLLABLE       = FALSE
        FRAME QueryTablefrmAttributes:HIDDEN           = TRUE.
@@ -238,6 +222,7 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
 END.
 glClosing = TRUE.
 RUN setModal (SESSION,NO).
+DYNAMIC-FUNCTION('shutdown-sdo':U IN _h_func_lib,THIS-PROCEDURE).
 
 IF VALID-HANDLE(ghChooseWindow) THEN DO:
   RUN destroyObject IN ghChooseWindow.
@@ -429,7 +414,8 @@ PROCEDURE returnDataSourceHandle :
        WHERE B_P._WINDOW-HANDLE = _h_win
        NO-LOCK NO-ERROR.
   IF AVAILABLE B_P THEN
-    phDataSource = DYNAMIC-FUNCTION('get-proc-hdl':U IN _h_func_lib, INPUT B_P._data-object).
+    phDataSource = DYNAMIC-FUNCTION('get-sdo-hdl':U IN _h_func_lib, 
+                                     B_P._data-object,THIS-PROCEDURE).
 
 END PROCEDURE.
 

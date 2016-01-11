@@ -1,3 +1,10 @@
+/*************************************************************/
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
@@ -9,11 +16,11 @@ DEFINE VARIABLE h_Astra                    AS HANDLE          NO-UNDO.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _TEMP-TABLE 
 /* ***********Included Temp-Table & Buffer definitions **************** */
-
 {adeuib/calctt.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
+
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS dTables 
 /*---------------------------------------------------------------------------------
@@ -442,9 +449,12 @@ DEFINE VARIABLE iNumTable         AS INTEGER    NO-UNDO.
     RUN getTableInfo IN gshGenManager
         (INPUT cTable,
          OUTPUT cReturnValue).
-    cEntityName = ENTRY(2, cReturnValue, CHR(4)).
+    cEntityName = IF NUM-ENTRIES(cReturnValue, CHR(4)) > 1 THEN 
+                    ENTRY(2, cReturnValue, CHR(4))
+                  ELSE '':U.
 
-    RUN createttRecs (INPUT cEntityName).
+    IF cEntityName NE '':U THEN
+      RUN createttRecs (INPUT cEntityName).
         
   END.  /* do iNumTable to number tables */
   gcShowCalc = 'SDO':U.

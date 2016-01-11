@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <dataset Transactions="1"><dataset_header DisableRI="yes" DatasetObj="1004928896.09" DateFormat="mdy" FullHeader="no" SCMManaged="yes" YearOffset="1950" DatasetCode="RYCSO" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="91" NumericSeparator=","/>
-<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" version_date="10/08/2003" version_time="65370" version_user="admin" deletion_flag="no" entity_mnemonic="RYCSO" key_field_value="124807.9875" record_version_obj="124808.9875" version_number_seq="4.09" secondary_key_value="gsmusdyno#CHR(1)#0" import_version_number_seq="4.09"><smartobject_obj>124807.9875</smartobject_obj>
+<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" version_date="05/23/2005" version_time="61143" version_user="admin" deletion_flag="no" entity_mnemonic="RYCSO" key_field_value="124807.9875" record_version_obj="124808.9875" version_number_seq="13.5498" secondary_key_value="gsmusdyno#CHR(1)#0" import_version_number_seq="13.5498"><smartobject_obj>124807.9875</smartobject_obj>
 <object_filename>gsmusdyno</object_filename>
 <customization_result_obj>0</customization_result_obj>
 <object_type_obj>18007.409</object_type_obj>
@@ -61,6 +61,22 @@
 <render_type_obj>0</render_type_obj>
 <applies_at_runtime>yes</applies_at_runtime>
 </contained_record>
+<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>22059.5498</attribute_value_obj>
+<object_type_obj>18007.409</object_type_obj>
+<container_smartobject_obj>0</container_smartobject_obj>
+<smartobject_obj>124807.9875</smartobject_obj>
+<object_instance_obj>0</object_instance_obj>
+<constant_value>no</constant_value>
+<attribute_label>CalcFieldList</attribute_label>
+<character_value>confirm_password,confirm_password,c_profile_user,c_profile_user,fmt_user_create_time,fmt_user_create_time,fmt_user_login_time,fmt_user_login_time,fmt_password_fail_time,fmt_password_fail_time,fmt_password_create_time,fmt_password_create_time,fmt_password_expire_time,fmt_password_expire_time,oldPasswordExpiryDate,oldPasswordExpiryDate,create_user_profile_data,create_user_profile_data</character_value>
+<integer_value>0</integer_value>
+<date_value>?</date_value>
+<decimal_value>0</decimal_value>
+<logical_value>no</logical_value>
+<primary_smartobject_obj>124807.9875</primary_smartobject_obj>
+<render_type_obj>0</render_type_obj>
+<applies_at_runtime>yes</applies_at_runtime>
+</contained_record>
 <contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>124821.9875</attribute_value_obj>
 <object_type_obj>18007.409</object_type_obj>
 <container_smartobject_obj>0</container_smartobject_obj>
@@ -68,7 +84,7 @@
 <object_instance_obj>0</object_instance_obj>
 <constant_value>no</constant_value>
 <attribute_label>DataColumns</attribute_label>
-<character_value>user_obj,confirm_password,c_profile_user,fmt_user_create_time,fmt_user_login_time,fmt_password_fail_time,fmt_password_create_time,fmt_password_expire_time,user_category_obj,user_category_code,user_full_name,user_login_name,user_creation_date,user_creation_time,profile_user,created_from_profile_user_obj,external_userid,user_password,password_minimum_length,password_preexpired,password_fail_count,password_fail_date,password_fail_time,password_creation_date,password_creation_time,password_expiry_date,password_expiry_time,update_password_history,check_password_history,last_login_date,last_login_time,language_obj,language_code,disabled,password_expiry_days,maintain_system_data,default_login_company_obj,user_email_address,development_user,oldPasswordExpiryDate</character_value>
+<character_value>user_obj,confirm_password,c_profile_user,fmt_user_create_time,fmt_user_login_time,fmt_password_fail_time,fmt_password_create_time,fmt_password_expire_time,user_category_obj,user_category_code,user_full_name,user_login_name,user_creation_date,user_creation_time,profile_user,created_from_profile_user_obj,external_userid,user_password,password_minimum_length,password_preexpired,password_fail_count,password_fail_date,password_fail_time,password_creation_date,password_creation_time,password_expiry_date,password_expiry_time,update_password_history,check_password_history,last_login_date,last_login_time,language_obj,language_code,disabled,password_expiry_days,maintain_system_data,default_login_company_obj,user_email_address,development_user,oldPasswordExpiryDate,create_user_profile_data</character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
 <decimal_value>0</decimal_value>
@@ -84,7 +100,7 @@
 <object_instance_obj>0</object_instance_obj>
 <constant_value>no</constant_value>
 <attribute_label>DataColumnsByTable</attribute_label>
-<character_value>user_obj,user_category_obj,user_full_name,user_login_name,user_creation_date,user_creation_time,profile_user,created_from_profile_user_obj,external_userid,user_password,password_minimum_length,password_preexpired,password_fail_count,password_fail_date,password_fail_time,password_creation_date,password_creation_time,password_expiry_date,password_expiry_time,update_password_history,check_password_history,last_login_date,last_login_time,language_obj,disabled,password_expiry_days,maintain_system_data,default_login_company_obj,user_email_address,development_user;user_category_code;language_code;confirm_password,c_profile_user,fmt_user_create_time,fmt_user_login_time,fmt_password_fail_time,fmt_password_create_time,fmt_password_expire_time,oldPasswordExpiryDate</character_value>
+<character_value>user_obj,user_category_obj,user_full_name,user_login_name,user_creation_date,user_creation_time,profile_user,created_from_profile_user_obj,external_userid,user_password,password_minimum_length,password_preexpired,password_fail_count,password_fail_date,password_fail_time,password_creation_date,password_creation_time,password_expiry_date,password_expiry_time,update_password_history,check_password_history,last_login_date,last_login_time,language_obj,disabled,password_expiry_days,maintain_system_data,default_login_company_obj,user_email_address,development_user;user_category_code;language_code;confirm_password,c_profile_user,fmt_user_create_time,fmt_user_login_time,fmt_password_fail_time,fmt_password_create_time,fmt_password_expire_time,oldPasswordExpiryDate,create_user_profile_data</character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
 <decimal_value>0</decimal_value>
@@ -148,7 +164,7 @@
 <object_instance_obj>0</object_instance_obj>
 <constant_value>no</constant_value>
 <attribute_label>QueryBuilderDBNames</attribute_label>
-<character_value>ICFDB,_&lt;CALC&gt;,_&lt;CALC&gt;,_&lt;CALC&gt;,_&lt;CALC&gt;,_&lt;CALC&gt;,_&lt;CALC&gt;,_&lt;CALC&gt;,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,_&lt;CALC&gt;</character_value>
+<character_value>ICFDB,_&lt;CALC&gt;,_&lt;CALC&gt;,_&lt;CALC&gt;,_&lt;CALC&gt;,_&lt;CALC&gt;,_&lt;CALC&gt;,_&lt;CALC&gt;,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,ICFDB,_&lt;CALC&gt;,_&lt;CALC&gt;</character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
 <decimal_value>0</decimal_value>
@@ -164,7 +180,7 @@
 <object_instance_obj>0</object_instance_obj>
 <constant_value>no</constant_value>
 <attribute_label>QueryBuilderFieldDataTypes</attribute_label>
-<character_value>decimal,character,character,character,character,character,character,character,decimal,character,character,character,date,integer,logical,decimal,integer,character,integer,logical,integer,date,integer,date,integer,date,integer,logical,logical,date,integer,decimal,character,logical,integer,logical,decimal,character,logical,Date</character_value>
+<character_value>decimal,character,character,character,character,character,character,character,decimal,character,character,character,date,integer,logical,decimal,integer,character,integer,logical,integer,date,integer,date,integer,date,integer,logical,logical,date,integer,decimal,character,logical,integer,logical,decimal,character,logical,Date,Logical</character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
 <decimal_value>0</decimal_value>
@@ -180,7 +196,7 @@
 <object_instance_obj>0</object_instance_obj>
 <constant_value>no</constant_value>
 <attribute_label>QueryBuilderFieldWidths</attribute_label>
-<character_value>24,35,15,8,8,8,8,8,24,20,140,30,4,4,1,24,4,70,4,1,?,4,4,4,4,4,4,1,1,4,4,24,20,1,?,1,24,70,1,3</character_value>
+<character_value>24,35,15,8,8,8,8,8,24,20,140,30,4,4,1,24,4,70,4,1,?,4,4,4,4,4,4,1,1,4,4,24,20,1,?,1,24,70,1,3,0</character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
 <decimal_value>0</decimal_value>
@@ -196,7 +212,7 @@
 <object_instance_obj>0</object_instance_obj>
 <constant_value>no</constant_value>
 <attribute_label>QueryBuilderInheritValidations</attribute_label>
-<character_value>Yes,No,No,No,No,No,No,No,Yes,Yes,No,No,No,No,No,Yes,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Yes,Yes,No,No,No,Yes,No,No,No</character_value>
+<character_value>Yes,No,No,No,No,No,No,No,Yes,Yes,No,No,No,No,No,Yes,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Yes,Yes,No,No,No,Yes,No,No,No,No</character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
 <decimal_value>0</decimal_value>
@@ -308,7 +324,7 @@
 <object_instance_obj>0</object_instance_obj>
 <constant_value>no</constant_value>
 <attribute_label>UpdatableColumnsByTable</attribute_label>
-<character_value>user_category_obj,user_full_name,user_login_name,user_creation_date,user_creation_time,profile_user,created_from_profile_user_obj,external_userid,user_password,password_minimum_length,password_preexpired,password_fail_count,password_fail_date,password_fail_time,password_creation_date,password_creation_time,password_expiry_date,password_expiry_time,update_password_history,check_password_history,last_login_date,last_login_time,language_obj,disabled,password_expiry_days,maintain_system_data,default_login_company_obj,user_email_address,development_user;;;confirm_password</character_value>
+<character_value>user_category_obj,user_full_name,user_login_name,user_creation_date,user_creation_time,profile_user,created_from_profile_user_obj,external_userid,user_password,password_minimum_length,password_preexpired,password_fail_count,password_fail_date,password_fail_time,password_creation_date,password_creation_time,password_expiry_date,password_expiry_time,update_password_history,check_password_history,last_login_date,last_login_time,language_obj,disabled,password_expiry_days,maintain_system_data,default_login_company_obj,user_email_address,development_user;;;confirm_password,create_user_profile_data</character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
 <decimal_value>0</decimal_value>

@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -48,6 +32,8 @@ History:
     DLM     01/30/03    Changed which procedure is called for builiding field
                         list so that a data type can be excluded from the list
                         This needed to be done for LOB support
+    KSM	02/26/05    Added warning message for adding "Active" index while 
+                        on-line
 ----------------------------------------------------------------------------*/
 
 
@@ -306,7 +292,22 @@ do:
    Define var is_data   as logical NO-UNDO.
    Define var tmpfile   as char    NO-UNDO.
    Define var xnum_proc as char    NO-UNDO.
+   DEFINE VARIABLE lOk  AS LOGICAL NO-UNDO.
 
+   /* If On-Line and index is active */
+   IF SESSION:SCHEMA-CHANGE <> "" AND
+      SESSION:SCHEMA-CHANGE <> ?  AND
+     INPUT FRAME newidx b_Index._Active THEN DO:
+     MESSAGE "The Data Dictionary has detected that you are attempting to" SKIP
+             "add an ACTIVE index while ON-LINE.  If some other user is"   SKIP
+		 "locking the table you are attempting to update, when you"    SKIP
+             "commit, your changes may be lost."                           SKIP(1)
+             "Do you wish to continue?"
+	   VIEW-AS ALERT-BOX WARNING BUTTONS YES-NO-CANCEL 
+                           TITLE "ON-LINE Index Add" UPDATE lOk.
+     IF (lOk = FALSE) THEN RETURN NO-APPLY.
+     ELSE IF (lOk = ?) THEN APPLY "WINDOW-CLOSE" TO FRAME newidx.
+   END.
    run adedict/_blnknam.p
       (INPUT b_Index._Index-name:HANDLE in frame newidx,
        INPUT "index", OUTPUT no_name).

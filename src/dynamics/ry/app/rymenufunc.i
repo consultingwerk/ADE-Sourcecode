@@ -1,6 +1,13 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v9r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /*------------------------------------------------------------------------
     File        : rymenufunc.i
     Purpose     : Extract bands and actions from the icf database.
@@ -1062,6 +1069,17 @@ FUNCTION createAction RETURNS CHARACTER
 
  DEFINE VARIABLE dTransLanguageObj AS DECIMAL    NO-UNDO.
  DEFINE VARIABLE dLoginLanguageObj AS DECIMAL    NO-UNDO.
+    define variable cItem                as character                     no-undo.
+    define variable cLabel               as character                     no-undo.
+    define variable cCaption             as character                     no-undo.
+    define variable cTooltip             as character                     no-undo.
+    define variable cAccelerator         as character                     no-undo.
+    define variable cImage               as character                     no-undo.
+    define variable cImageDown           as character                     no-undo.
+    define variable cImageInsensitive    as character                     no-undo.
+    define variable cImage2              as character                     no-undo.
+    define variable cImage2Down          as character                     no-undo.
+    define variable cImage2Insensitive   as character                     no-undo.
 
  FIND bMenuItem NO-LOCK
    WHERE bMenuItem.menu_item_obj = pdObj NO-ERROR.
@@ -1111,42 +1129,47 @@ DO:
     dTransLanguageObj = canFindTranslation(bMenuItem.menu_item_obj,dLoginLanguageObj).
     IF dTransLanguageObj <> 0 AND
        dTransLanguageObj <> ? THEN DO:
-      FIND FIRST gsm_translated_menu_item
-           WHERE gsm_translated_menu_item.menu_item_obj = bMenuItem.menu_item_obj
-           AND   gsm_translated_menu_item.language_obj  = dTransLanguageObj
-           NO-LOCK NO-ERROR.
-      IF AVAILABLE gsm_translated_menu_item THEN DO:
-
-        /* If an image has been specified for the menu item, but not a picclip, we clear   *
-         * the picclip image from the menu item to ensure the translation image gets used. *
-         * Picclip images always get preference, meaning the untranslated image would get  *
-         * used if we didn't clear it.                                                     */
-        IF  gsm_translated_menu_item.image1_up_filename <> "":U
-        AND gsm_translated_menu_item.image1_down_filename = "":U THEN
-            ASSIGN ttAction.ImageDown = "":U.
-
-        IF  gsm_translated_menu_item.image2_up_filename <> "":U
-        AND gsm_translated_menu_item.image2_down_filename = "":U THEN
-            ASSIGN ttAction.Image2Down = "":U.
-
-        ASSIGN ttAction.Name              = IF gsm_translated_menu_item.item_toolbar_label          <> "":U THEN gsm_translated_menu_item.item_toolbar_label          ELSE ttAction.Name 
-               ttAction.Caption           = IF gsm_translated_menu_item.menu_item_label             <> "":U THEN gsm_translated_menu_item.menu_item_label             ELSE ttAction.Caption 
-               ttAction.Tooltip           = IF gsm_translated_menu_item.tooltip_text                <> "":U THEN gsm_translated_menu_item.tooltip_text                ELSE ttAction.Tooltip 
-               ttAction.Accelerator       = IF gsm_translated_menu_item.alternate_shortcut_key      <> "":U THEN gsm_translated_menu_item.alternate_shortcut_key      ELSE ttAction.Accelerator
-               ttAction.Image             = IF gsm_translated_menu_item.image1_up_filename          <> "":U THEN gsm_translated_menu_item.image1_up_filename          ELSE ttAction.Image
-               ttAction.ImageDown         = IF gsm_translated_menu_item.image1_down_filename        <> "":U THEN gsm_translated_menu_item.image1_down_filename        ELSE ttAction.ImageDown
-               ttAction.ImageInsensitive  = IF gsm_translated_menu_item.image1_insensitive_filename <> "":U THEN gsm_translated_menu_item.image1_insensitive_filename ELSE ttAction.ImageInsensitive
-               ttAction.Image2            = IF gsm_translated_menu_item.image2_up_filename          <> "":U THEN gsm_translated_menu_item.image2_up_filename          ELSE ttAction.Image2
-               ttAction.Image2Down        = IF gsm_translated_menu_item.image2_down_filename        <> "":U THEN gsm_translated_menu_item.image2_down_filename        ELSE ttAction.Image2Down
-               ttAction.Image2Insensitive = IF gsm_translated_menu_item.image2_insensitive_filename <> "":U THEN gsm_translated_menu_item.image2_insensitive_filename ELSE ttAction.Image2Insensitive
-               /* Check if we really want an image */
-               ttAction.Image             = IF ttAction.Image             = "NOIMAGE":U THEN "":U ELSE ttAction.Image
-               ttAction.ImageDown         = IF ttAction.ImageDown         = "NOIMAGE":U THEN "":U ELSE ttAction.ImageDown
-               ttAction.ImageInsensitive  = IF ttAction.ImageInsensitive  = "NOIMAGE":U THEN "":U ELSE ttAction.ImageInsensitive
-               ttAction.Image2            = IF ttAction.Image2            = "NOIMAGE":U THEN "":U ELSE ttAction.Image2
-               ttAction.Image2Down        = IF ttAction.Image2Down        = "NOIMAGE":U THEN "":U ELSE ttAction.Image2Down
-               ttAction.Image2Insensitive = IF ttAction.Image2Insensitive = "NOIMAGE":U THEN "":U ELSE ttAction.Image2Insensitive.
-      END.
+           
+        /* Initialize return parameters. The unknown value means that
+	       there are no translations present.
+	     */
+        assign cLabel = ?
+               cCaption = ?
+               cTooltip = ?
+               cAccelerator = ?
+               cImage = ?
+               cImageDown = ?
+               cImageInsensitive = ?
+               cImage2 = ?
+               cImage2Down = ?
+               cImage2Insensitive = ?.    
+        
+        run translateAction in gshTranslationManager ( input  'OBJ|' + string(dTransLanguageObj),
+                                                       input  cItem,
+                                                       output cLabel,
+                                                       output cCaption,
+                                                       output cTooltip,
+                                                       output cAccelerator,
+                                                       output cImage,
+                                                       output cImageDown,
+                                                       output cImageInsensitive,
+                                                       output cImage2,
+                                                       output cImage2Down,
+                                                       output cImage2Insensitive ) no-error.
+        
+        /* Ignore any errors and revert back to using the design language values. */
+        
+        /* The unknown value signifies that there is no translation for the field. */
+        if cItem ne ? then ttAction.Name = cItem.
+        if cCaption ne ? then ttAction.Caption = cCaption.
+        if cTooltip ne ? then ttAction.Tooltip = cTooltip.
+        if cAccelerator ne ? then ttAction.Accelerator = cAccelerator.
+        if cImage ne ? then ttAction.Image = cImage.
+        if cImageDown ne ? then ttAction.ImageDown = cImageDown.
+        if cImageInsensitive ne ? then ttAction.ImageInsensitive = cImageInsensitive.
+        if cImage2 ne ? then ttAction.Image2 = cImage2.
+        if cImage2Down ne ? then ttAction.Image2Down = cImage2Down.
+        if cImage2Insensitive ne ? then ttAction.Image2Insensitive = cImage2Insensitive.
     END.
     
   END.

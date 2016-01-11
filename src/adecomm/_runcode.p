@@ -1,26 +1,10 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -67,6 +51,9 @@
         _KEEP-WIDGETS
             If not present, create a widget-pool before running
             code and delete that widget-pool after running code.
+
+        _TOFRONT
+            Tells routine to bring the run window to front.
 
       p_Stop_Widget
             Handle of widget to WAIT-FOR CHOOSE when running code
@@ -146,9 +133,14 @@ DEFINE TEMP-TABLE AServSocket     NO-UNDO
     FIELD hSocket   AS HANDLE
     INDEX ObjHandle IS PRIMARY hSocket.
 
+DEFINE TEMP-TABLE AClass NO-UNDO
+    FIELD rClass AS Progress.Lang.Object
+    INDEX ObjHandle IS PRIMARY rClass.
+
 DEFINE VARIABLE v_RunPersist  AS LOGICAL     NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE v_Pause       AS LOGICAL     NO-UNDO INITIAL TRUE.
 DEFINE VARIABLE v_KeepWidgets AS LOGICAL     NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE v_MoveToFront AS LOGICAL     NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE hCurWin       AS HANDLE      NO-UNDO.
 DEFINE VARIABLE hWindow       AS HANDLE      NO-UNDO.  
 DEFINE VARIABLE Delete_Proc   AS HANDLE      NO-UNDO.
@@ -207,6 +199,7 @@ DEFINE VARIABLE v_Logical     AS LOGICAL     NO-UNDO.
 ASSIGN v_RunPersist   = CAN-DO(p_RunFlags, "_PERSISTENT":U)
        v_Pause        = CAN-DO(p_RunFlags, "_PAUSE":U)
        v_KeepWidgets  = CAN-DO(p_RunFlags, "_KEEP-WIDGETS":U)
+       v_MoveToFront  = CAN-DO(p_RunFlags, "_TOFRONT":U)
        NO-ERROR. /* END ASSIGN */
          
 REPEAT ON QUIT       , LEAVE
@@ -223,6 +216,9 @@ REPEAT ON QUIT       , LEAVE
   /* Build table of existing Socket connections. Delete ones not in
      table after user's code completes. */
   RUN BuildSocket.
+  /* Build table of existing Class instances. Delete ones not in 
+     table after user's code completes. */
+  RUN BuildClass.
 
   /* Reset Progress Session defaults for execute window. */
   RUN SessionDefaults ( INPUT DEFAULT-WINDOW ) .
@@ -231,6 +227,16 @@ REPEAT ON QUIT       , LEAVE
          hCurWin                    = CURRENT-WINDOW
          CURRENT-WINDOW             = DEFAULT-WINDOW
          . /* END ASSIGN */
+
+  IF v_MoveToFront THEN
+  DO:
+      DEFINE VARIABLE lAlwaysOnTop AS LOGICAL    NO-UNDO.
+      
+      hWindow = IF VALID-HANDLE(DEFAULT-WINDOW) THEN DEFAULT-WINDOW ELSE hCurWin.
+      lAlwaysOnTop          = hWindow:ALWAYS-ON-TOP.
+      hWindow:ALWAYS-ON-TOP = TRUE.
+      hWindow:ALWAYS-ON-TOP = lAlwaysOnTop.
+  END.
 
   /* Ensure the Tool does not have focus when running user's code by
      "killing" FOCUS - that is, making it null.
@@ -308,9 +314,11 @@ IF v_RunPersist = FALSE OR
 /* Delete AppServer and Socket connections created by running user code
    (done after DeletePersistProc call above to allow PPs to use the
     AppServer and/or Socket if needed during their cleanup).
+   Also delete any class instances created by running the user code. 
 */
 RUN DeleteAppServer.
 RUN DeleteSocket.
+RUN DeleteClass.
 
 /* Find the ADM-BROKER and ask it to clean itself up. */
 RUN cleanup-ADM-broker.
@@ -351,6 +359,33 @@ PROCEDURE BuildAppServer :
     CREATE AppServer.
     ASSIGN AppServer.hServer = hAppServer
            hAppServer        = hAppServer:NEXT-SIBLING.
+  END.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-BuildClass) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE BuildClass Procedure 
+PROCEDURE BuildClass :
+/*------------------------------------------------------------------------------
+  Purpose:    Build a table of existing class instances. After user's
+              code runs, any ones in addition to these are user created and
+              will be deleted before ending.     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE rObj AS Progress.Lang.Object NO-UNDO.
+
+  ASSIGN rObj = SESSION:FIRST-OBJECT.
+  DO WHILE VALID-OBJECT(rObj):
+      CREATE AClass.
+      ASSIGN 
+        AClass.rClass = rObj
+        rObj = rObj:NEXT-SIBLING.
   END.
 END PROCEDURE.
 
@@ -579,6 +614,36 @@ PROCEDURE DeleteAppServer :
     END.
   END.
 
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-DeleteClass) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE DeleteClass Procedure 
+PROCEDURE DeleteClass :
+/*------------------------------------------------------------------------------
+  Purpose:  Delete user-created class instances by deleting the ones not
+            in the table (ie, not present before running user's code). 
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE rObj AS Progress.Lang.Object NO-UNDO.
+    DEFINE VARIABLE rDel AS Progress.Lang.Object NO-UNDO.
+
+    ASSIGN rObj = SESSION:FIRST-OBJECT.
+    
+    DO WHILE VALID-OBJECT(rObj):
+        ASSIGN
+            rDel = rObj
+            rObj = rObj:NEXT-SIBLING.
+        FIND FIRST AClass WHERE AClass.rClass = rDel NO-ERROR.
+        IF NOT AVAILABLE AClass THEN
+            DELETE OBJECT rDel NO-ERROR.
+    END.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
           icfdb            PROGRESS
@@ -29,25 +29,9 @@ DEFINE TEMP-TABLE RowObject
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -181,28 +165,28 @@ DEFINE FRAME frMain
           LABEL "Event name"
           VIEW-AS FILL-IN 
           SIZE 37 BY 1
-     RowObject.action_type AT ROW 2.24 COL 18.6 COLON-ALIGNED
+     RowObject.action_type AT ROW 2.33 COL 18.6 COLON-ALIGNED
           LABEL "Action type" FORMAT "X(15)"
           VIEW-AS FILL-IN 
           SIZE 30 BY 1
-     RowObject.action_target AT ROW 3.24 COL 18.6 COLON-ALIGNED
+     RowObject.action_target AT ROW 3.43 COL 18.6 COLON-ALIGNED
           LABEL "Action target"
           VIEW-AS FILL-IN 
           SIZE 30 BY 1
-     RowObject.event_action AT ROW 4.24 COL 18.6 COLON-ALIGNED
+     RowObject.event_action AT ROW 4.52 COL 18.6 COLON-ALIGNED
           LABEL "Event action"
           VIEW-AS FILL-IN 
           SIZE 37 BY 1
-     RowObject.event_parameter AT ROW 5.29 COL 18.6 COLON-ALIGNED
+     RowObject.event_parameter AT ROW 5.62 COL 18.6 COLON-ALIGNED
           LABEL "Event parameter"
           VIEW-AS FILL-IN 
           SIZE 72 BY 1
-     RowObject.event_disabled AT ROW 6.43 COL 20.6
+     RowObject.event_disabled AT ROW 6.67 COL 20.6
           LABEL "Event disabled"
           VIEW-AS TOGGLE-BOX
           SIZE 19.4 BY .81
-     fiClassList AT ROW 7 COL 82.6 COLON-ALIGNED NO-LABEL
-     RowObject.constant_value AT ROW 7.19 COL 20.6
+     fiClassList AT ROW 6.71 COL 82.6 COLON-ALIGNED NO-LABEL
+     RowObject.constant_value AT ROW 7.43 COL 20.6
           LABEL "Constant value"
           VIEW-AS TOGGLE-BOX
           SIZE 19.4 BY .81
@@ -246,7 +230,7 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 7
+         HEIGHT             = 8.1
          WIDTH              = 91.6.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -464,7 +448,7 @@ PROCEDURE adm-create-objects :
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
              INPUT  'DisplayedFieldryc_ui_event.event_nameKeyFieldryc_ui_event.event_nameFieldLabelEvent nameFieldTooltipPress F4 For LookupKeyFormatX(35)KeyDatatypecharacterDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_ui_event WHERE ryc_ui_event.smartobject_obj = 0 NO-LOCK,
-                     FIRST gsc_object_type WHERE gsc_object_type.object_type_obj = ryc_ui_event.object_type_obj BY gsc_object_type.object_type_code BY ryc_ui_event.event_nameQueryTablesryc_ui_event,gsc_object_typeBrowseFieldsryc_ui_event.event_name,gsc_object_type.object_type_code,ryc_ui_event.action_type,ryc_ui_event.action_target,ryc_ui_event.event_action,ryc_ui_event.event_disabledBrowseFieldDataTypescharacter,character,character,character,character,logicalBrowseFieldFormatsX(35)|X(35)|X(3)|X(28)|X(35)|YES/NORowsToBatch200BrowseTitleLookup EventsViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldfiClassList,fiClassListParentFilterQueryIF ~'&1~' <> ~'~' THEN (LOOKUP(gsc_object_type.object_type_code,~'&1~') > 0) ELSE TRUEMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldName<Local>DisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     FIRST gsc_object_type WHERE gsc_object_type.object_type_obj = ryc_ui_event.object_type_obj BY gsc_object_type.object_type_code BY ryc_ui_event.event_nameQueryTablesryc_ui_event,gsc_object_typeBrowseFieldsryc_ui_event.event_name,gsc_object_type.object_type_code,ryc_ui_event.action_type,ryc_ui_event.action_target,ryc_ui_event.event_action,ryc_ui_event.event_disabledBrowseFieldDataTypescharacter,character,character,character,character,logicalBrowseFieldFormatsX(35)|X(35)|X(3)|X(28)|X(35)|YES/NORowsToBatch200BrowseTitleLookup EventsViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldfiClassList,fiClassListParentFilterQueryIF ~'&1~' <> ~'~' THEN (LOOKUP(gsc_object_type.object_type_code,~'&1~') > 0) ELSE TRUEMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureDataSourceNameFieldName<Local>DisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hEvent ).
        RUN repositionObject IN hEvent ( 1.19 , 20.60 ) NO-ERROR.
        RUN resizeObject IN hEvent ( 1.00 , 50.00 ) NO-ERROR.

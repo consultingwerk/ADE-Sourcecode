@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <dataset Transactions="1"><dataset_header DisableRI="yes" DatasetObj="1004928896.09" DateFormat="mdy" FullHeader="no" SCMManaged="yes" YearOffset="1950" DatasetCode="RYCSO" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="91" NumericSeparator=","/>
-<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" version_date="08/04/2004" version_time="59035" version_user="admin" deletion_flag="no" entity_mnemonic="rycso" key_field_value="12943.5053" record_version_obj="12944.5053" version_number_seq="4.19" secondary_key_value="rycblnchrp.p#CHR(1)#0" import_version_number_seq="4.19"><smartobject_obj>12943.5053</smartobject_obj>
+<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" version_date="06/23/2005" version_time="57642" version_user="admin" deletion_flag="no" entity_mnemonic="rycso" key_field_value="12943.5053" record_version_obj="12944.5053" version_number_seq="6.48" secondary_key_value="rycblnchrp.p#CHR(1)#0" import_version_number_seq="6.48"><smartobject_obj>12943.5053</smartobject_obj>
 <object_filename>rycblnchrp.p</object_filename>
 <customization_result_obj>0</customization_result_obj>
 <object_type_obj>493</object_type_obj>
@@ -14,7 +14,7 @@
 <template_smartobject>no</template_smartobject>
 <system_owned>no</system_owned>
 <deployment_type>CLN</deployment_type>
-<design_only>no</design_only>
+<design_only>yes</design_only>
 <runnable_from_menu>no</runnable_from_menu>
 <container_object>no</container_object>
 <disabled>no</disabled>

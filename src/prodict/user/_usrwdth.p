@@ -1,24 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2002 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:  David Lund Original procedure that this one is      *
-*                based on                                            *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -26,8 +9,11 @@
 
 File: _usrwdth.p
 
-History:  09/18/02 D. McMann Created
-
+History:  
+   09/18/02   D. McMann    Created
+   09/16/05   K. McIntosh  Prevented deletion of valid report data, also found
+                           & fixed problem with usage of BUFFER-VALUE in LENGTH
+                           function for INTEGER elements of arrays 20031121-042.
 
 ----------------------------------------------------------------------------*/
 
@@ -163,6 +149,7 @@ ELSE
   OPEN QUERY qFileSchema FOR EACH DICTDB._File WHERE DICTDB._File._Tbl-Type = "T" 
                                                AND   DICTDB._File._Owner = "PUB" 
                                                AND   DICTDB._File._File-name = p_Tbl NO-LOCK.
+
   File-loop: 
   REPEAT:
     GET NEXT qFileSchema.
@@ -201,23 +188,27 @@ ELSE
         Extent-loop: 
         REPEAT:
           IF lFieldHndl:EXTENT > 0 THEN DO:
-            IF lFieldHndl:DATA-TYPE = "character" OR lFieldHndl:DATA-TYPE = "raw" THEN
-              ASSIGN lLength = LENGTH(lFieldHndl:BUFFER-VALUE[iIdx], "CHARACTER"). 
+            IF CAN-DO("XLOB,CLOB,BLOB,CHARACTER,RAW",lFieldHndl:DATA-TYPE) THEN
+              lLength = LENGTH(lFieldHndl:BUFFER-VALUE(iIdx), 
+                               "CHARACTER") NO-ERROR. 
             ELSE IF lFieldHndl:DATA-TYPE = "decimal" THEN /* Type is decimal */
-              ASSIGN lLength = LengthDecimal(DECIMAL(lFieldHndl:BUFFER-VALUE[iIdx])).
+              lLength = LengthDecimal(DECIMAL(lFieldHndl:BUFFER-VALUE(iIdx))).
             ELSE 
-              ASSIGN lLength = LENGTH(lFieldHndl:BUFFER-VALUE[iIdx], "CHARACTER").
+              lLength = LENGTH(STRING(lFieldHndl:BUFFER-VALUE(iIdx)),
+                               "CHARACTER") NO-ERROR.
           END.
           ELSE DO:
-            IF lFieldHndl:DATA-TYPE = "character" OR lFieldHndl:DATA-TYPE = "raw" THEN
-                  lLength = LENGTH(lFieldHndl:BUFFER-VALUE, "CHARACTER"). 
-            ELSE /* Type is decimal */
-                  lLength = LengthDecimal(DECIMAL(lFieldHndl:BUFFER-VALUE)). 
+            IF CAN-DO("XLOB,CLOB,BLOB,CHARACTER,RAW",lFieldHndl:DATA-TYPE) THEN
+              lLength = LENGTH(lFieldHndl:BUFFER-VALUE, 
+                               "CHARACTER") NO-ERROR. 
+            ELSE IF lFieldHndl:DATA-TYPE = "decimal" THEN /* Type is decimal */
+              lLength = LengthDecimal(DECIMAL(lFieldHndl:BUFFER-VALUE)).
+            ELSE lLength = LENGTH(STRING(lFieldHndl:BUFFER-VALUE),
+                                  "CHARACTER") NO-ERROR.
           END.
           /* If the data exceeds the size of the format then process the data ... */
           /*    The buffer-field object handle value WIDTH-CHARS is derived from the field format */ 
           
-         
           ASSIGN  lPrint   = FALSE
                   lDecOnly = FALSE. 
 
@@ -241,14 +232,20 @@ ELSE
 
                     
           IF lFieldHndl:DATA-TYPE = "decimal" THEN DO: 
-              /* Get the number of significant decimal places for this decimal value. */ 
+            /* Get the number of significant decimal places for this decimal value. */ 
             IF lFieldHndl:EXTENT > 0 THEN  
-               ASSIGN lNumDecimals = LENGTH(STRING(DECIMAL(lFieldHndl:BUFFER-VALUE[iIdx]) - TRUNCATE(DECIMAL(lFieldHndl:BUFFER-VALUE[iIdx]),0))).
+              lNumDecimals = 
+                LENGTH(STRING(DECIMAL(lFieldHndl:BUFFER-VALUE(iIdx)) - 
+                              TRUNCATE(DECIMAL(lFieldHndl:BUFFER-VALUE(iIdx)),
+                                       0))) NO-ERROR.
             ELSE
-              ASSIGN lNumDecimals = LENGTH(STRING(DECIMAL(lFieldHndl:BUFFER-VALUE) - TRUNCATE(DECIMAL(lFieldHndl:BUFFER-VALUE),0))).                      
+              lNumDecimals = 
+                LENGTH(STRING(DECIMAL(lFieldHndl:BUFFER-VALUE) - 
+                              TRUNCATE(DECIMAL(lFieldHndl:BUFFER-VALUE),
+                                       0))) NO-ERROR.
 
             /* Subtract 1 to remove the counting of the decimal place. */ 
-            ASSIGN lNumDecimals = lNumDecimals - 1. 
+            lNumDecimals = lNumDecimals - 1. 
 
               /* If the number of decimal places is greater than the schema definition ...  */ 
             IF lNumDecimals > ttField.tDecimals THEN  
@@ -382,9 +379,9 @@ IF AVAILABLE ttExceed THEN DO:
     ASSIGN rpt-id = scr-count
            rpt-line = ttExceed.tFile-Name  + " Table"
            scr-count = scr-count + 1.
-END.
 
-ASSIGN numrec = scr-count.
+    numrec = scr-count.
+END.
 
 _crt-rpt:
 FOR EACH ttExceed WHERE ttExceed.tFile = pFile: 

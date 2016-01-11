@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
           icfdb            PROGRESS
@@ -28,6 +28,13 @@ DEFINE TEMP-TABLE RowObject
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /*---------------------------------------------------------------------------------
   File: gsmtiviewv.w
 
@@ -150,7 +157,7 @@ DEFINE TEMP-TABLE ttTranslatedMenuItem RCODE-INFORMATION /* Defined same as Rowo
 /* Include file with RowObject temp-table definition */
 &Scoped-define DATA-FIELD-DEFS "af/obj2/gsmtifullo.i"
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
@@ -342,7 +349,7 @@ END.
 /* SETTINGS FOR WINDOW vTableWin
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frMain
-   NOT-VISIBLE Size-to-Fit                                              */
+   NOT-VISIBLE FRAME-NAME Size-to-Fit                                   */
 ASSIGN 
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
@@ -537,7 +544,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_language.language_nameKeyFieldgsc_language.language_objFieldLabelFromFieldTooltipSelect a language to translate from, from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldfiLanguageStringParentFilterQueryLOOKUP(STRING(gsc_language.language_obj),~'&1~') > 0DescSubstitute&1ComboDelimiterListItemPairsInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldName<Local_1>DisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_language.language_nameKeyFieldgsc_language.language_objFieldLabelFromFieldTooltipSelect a language to translate from, from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldfiLanguageStringParentFilterQueryLOOKUP(STRING(gsc_language.language_obj),~'&1~') > 0DescSubstitute&1ComboDelimiterListItemPairsInnerLines5SortnoComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesSuperProcedureDataSourceNameFieldName<Local_1>DisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hFromLanguage ).
        RUN repositionObject IN hFromLanguage ( 3.76 , 8.20 ) NO-ERROR.
        RUN resizeObject IN hFromLanguage ( 1.00 , 37.60 ) NO-ERROR.
@@ -545,7 +552,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_language.language_nameKeyFieldgsc_language.language_objFieldLabelToFieldTooltipSelect a language to translate to, from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldfiSourceLanguageObjParentFilterQuerygsc_language.language_obj <> DECIMAL(~'&1~')DescSubstitute&1ComboDelimiterListItemPairsInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldName<Local_2>DisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_language.language_nameKeyFieldgsc_language.language_objFieldLabelToFieldTooltipSelect a language to translate to, from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldfiSourceLanguageObjParentFilterQuerygsc_language.language_obj <> DECIMAL(~'&1~')DescSubstitute&1ComboDelimiterListItemPairsInnerLines5SortnoComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesSuperProcedureDataSourceNameFieldName<Local_2>DisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hToLanguage ).
        RUN repositionObject IN hToLanguage ( 3.76 , 52.60 ) NO-ERROR.
        RUN resizeObject IN hToLanguage ( 1.00 , 37.60 ) NO-ERROR.
@@ -1189,6 +1196,7 @@ PROCEDURE NewMenuItemSelected :
   DEFINE VARIABLE cExtraMessage   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cMessageList    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cButton         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cLanguageObj    AS CHARACTER  NO-UNDO.
 
   IF glDoNotRun THEN
     RETURN.
@@ -1266,12 +1274,13 @@ PROCEDURE NewMenuItemSelected :
      to it in the From Language Combo */
   fiLanguageString = "":U.
   FOR EACH ttAvailTrans:
+    cLanguageObj = REPLACE(STRING(ttAvailTrans.dLanguageObj),SESSION:NUMERIC-DECIMAL-POINT, ".":U).
     IF LOOKUP(STRING(ttAvailTrans.dLanguageObj),fiLanguageString) = 0 THEN
       fiLanguageString = IF fiLanguageString = "":U 
-                         THEN STRING(ttAvailTrans.dLanguageObj)
-                         ELSE fiLanguageString + ",":U + STRING(ttAvailTrans.dLanguageObj).
+                         THEN cLanguageObj
+                         ELSE fiLanguageString + ",":U + cLanguageObj.
   END.
-
+  
   ASSIGN fiLanguageString:SCREEN-VALUE IN FRAME {&FRAME-NAME}    = fiLanguageString
          fiSourceLanguageObj:SCREEN-VALUE IN FRAME {&FRAME-NAME} = STRING(gdSourceLanguage).
 

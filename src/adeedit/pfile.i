@@ -1,32 +1,9 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
-/********************************************************************/
-/* Encrypted code which is part of this file is subject to the      */
-/* Possenet End User Software License Agreement Version 1.0         */
-/* (the "License"); you may not use this file except in             */
-/* compliance with the License. You may obtain a copy of the        */
-/* License at http://www.possenet.org/license.html                  */
-/********************************************************************/
 
 /*--------------------------------------------------------------------------
   pfile.i 
@@ -664,11 +641,19 @@ Date Created: 08.05.92
       . /* END ASSIGN */
     END.
 
-    /* --- Begin SCM changes --- */
-    ELSE RUN adecomm/_adeevnt.p 
-          (INPUT  "Editor", "Open", STRING(p_Current_Buffer), File_to_Open, 
-           OUTPUT scm_ok).
-    /* --- End SCM changes ----- */
+    ELSE 
+    DO:
+      /* Set the editor source type to get 4GL syntax highlighting.
+       * Refer to comment in adecomm/_pwmain.p */
+      /* adecomm/peditor.i */
+      RUN SetEdBufType (INPUT p_Current_Buffer, INPUT Edit_Buffer.Buffer_Name).
+
+      /* --- Begin SCM changes --- */
+      RUN adecomm/_adeevnt.p 
+        (INPUT  "Editor", "Open", STRING(p_Current_Buffer), File_to_Open, 
+         OUTPUT scm_ok).
+      /* --- End SCM changes ----- */
+    END.
 
   END. /* DO List_Item */
 

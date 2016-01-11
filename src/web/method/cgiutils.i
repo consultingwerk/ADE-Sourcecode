@@ -2,25 +2,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _CODE-BLOCK _CUSTOM Definitions 
 /*********************************************************************
-* Copyright (C) 2001 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*--------------------------------------------------------------------------
@@ -253,6 +237,23 @@ References:
   RETURN p_rfcdate.
 
 END FUNCTION. /* format-datetime */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-get-binary-data) = 0 &THEN
+
+&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION get-binary-data 
+FUNCTION get-binary-data RETURNS MEMPTR
+  (INPUT p_name AS CHARACTER) :
+/****************************************************************************
+Description: Retrieves a MEMPTR with the contents of a file posted with a
+             multipart/form-data form
+Input Parameter: Name of variable (a field of type 'file' from the form)
+Returns: MEMPTR or ? (which means the file was too big).  
+****************************************************************************/
+    RETURN WEB-CONTEXT:GET-BINARY-DATA(p_name).
+END FUNCTION. /* get-binary-data */
 &ANALYZE-RESUME
 
 &ENDIF

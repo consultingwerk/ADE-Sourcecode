@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Method-Library 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000,2005 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -39,6 +39,11 @@
 /*----------------------------------------------------------------------*/
 
 /* ***************************  Definitions  ************************** */
+
+/* DATA-FIELD-DEFS is needed for query.i in HTML-Mapping objects */
+&IF DEFINED(DATA-FIELD-DEFS) = 0 &THEN
+   &SCOP DATA-FIELD-DEFS
+&ENDIF
 
 &IF "{&ADMClass}":U = "":U &THEN
   &GLOBAL-DEFINE ADMClass webrep

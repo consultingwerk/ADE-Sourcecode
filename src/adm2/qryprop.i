@@ -2,25 +2,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*--------------------------------------------------------------------------
@@ -108,106 +92,61 @@ DEF VAR xiRocketIndexLimit AS INTEGER INIT 188 NO-UNDO.
 
  /* Preprocessors to define properties that can be retrieved
     directly from the property temp-table. */
- &GLOB xpBaseQuery                               
- &GLOB xpDataColumns 
- &GLOB xpDataColumnsByTable 
- &GLOB xpUpdatableColumnsByTable 
  &GLOB xpAssignList 
- &GLOB xpFirstRowNum
- &GLOB xpFirstResultRow
- &GLOB xpLastResultRow            
- &GLOB xpLastRowNum                               
- &GLOB xpNavigationSource       
- &GLOB xpNavigationSourceEvents          
- &GLOB xpBufferHandles          
- &GLOB xpFilterSource           
- &GLOB xpFilterWindow           
- &GLOB xpQueryHandle            
- &GLOB xpQueryRowIdent
- &GLOB xpOpenOnInit
- &GLOB xpForeignValues
+ &GLOB xpAuditEnabled
+ &GLOB xpBaseQuery                               
+ &GLOB xpCalcFieldList
  &GLOB xpCheckLastOnOpen
- &GLOB xpQueryString
- &GLOB xpQueryColumns
- &GLOB xpLastDBRowIdent
- &GLOB xpDataIsFetched
- &GLOB xpSkipTransferDbRow
+ &GLOB xpDataColumnsByTable 
+ &GLOB xpEntityFields
+ &GLOB xpFetchAutoComment
  &GLOB xpFetchHasAudit
  &GLOB xpFetchHasComment
- &GLOB xpFetchAutoComment
- &GLOB xpEntityFields
- &GLOB xpRequiredProperties
- &GLOB xpTransferChildrenForAll 
- &GLOB xpPositionForClient 
- &GLOB xpAuditEnabled
+ &GLOB xpLastDBRowIdent
  &GLOB xpNewBatchInfo
  &GLOB xpPhysicalTables
- &GLOB xpTables 
+ &GLOB xpPositionForClient 
+ &GLOB xpQueryHandle            
+ &GLOB xpQueryRowIdent
+ &GLOB xpRequiredProperties
+ &GLOB xpSkipTransferDbRow
  &GLOB xpTempTables 
- &GLOB xpCalcFieldList
+ &GLOB xpUpdatableColumnsByTable 
  &GLOB xpUpdateFromSource
-  
-   /* if appserver aware add appserver properties */ 
- &IF DEFINED(APP-SERVER-VARS) <> 0 &THEN
-  {src/adm2/appsprop.i}
- &ELSE
-  {src/adm2/smrtprop.i}
- &ENDIF   
+                    
+ {src/adm2/dataviewprop.i}
+ /* the data class derives this from UpdatableColumnsByTable */  
+ &UNDEFINE xpUpdatableColumns  
  
 &IF DEFINED(ADM-EXCLUDE-STATIC) = 0 &THEN
 IF NOT {&ADM-PROPS-DEFINED} THEN
 DO:
+
 &IF "{&ADMSuper}":U = "":U &THEN
-  ghADMProps:ADD-NEW-FIELD('BaseQuery':U, 'CHAR':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('DataColumns':U, 'CHAR':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('LargeColumns':U, 'CHAR':U, 0, ?, ?).
-  ghADMProps:ADD-NEW-FIELD('CLOBColumns':U, 'CHAR':U, 0, ?, ?).
-  ghADMProps:ADD-NEW-FIELD('BLOBColumns':U, 'CHAR':U, 0, ?, ?).
-  ghADMProps:ADD-NEW-FIELD('FirstRowNum':U, 'INT':U, 0, ?, ?).
-  ghADMProps:ADD-NEW-FIELD('LastRowNum':U, 'INT':U, 0, ?, ?).
-  ghADMProps:ADD-NEW-FIELD('FirstResultRow':U, 'CHAR':U, 0, ?, ?).
-  ghADMProps:ADD-NEW-FIELD('LastResultRow':U, 'CHAR':U, 0, ?, ?).
-  ghADMProps:ADD-NEW-FIELD('DataColumnsByTable':U, 'CHAR':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('NavigationSource':U, 'CHAR':U).
-  ghADMProps:ADD-NEW-FIELD('NavigationSourceEvents':U, 'CHAR':U, 0, ?, 
-    'fetchFirst,fetchNext,fetchPrev,fetchLast,startFilter':U).
-  ghADMProps:ADD-NEW-FIELD('FilterWindow':U, 'CHAR':U).
-  ghADMProps:ADD-NEW-FIELD('FilterSource':U, 'HANDLE':U).
-  ghADMProps:ADD-NEW-FIELD('ForeignFields':U, 'CHAR':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('QueryPosition':U, 'CHAR':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('BufferHandles':U, 'CHAR':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('QueryHandle':U, 'HANDLE':U).
-  ghADMProps:ADD-NEW-FIELD('QueryRowIdent':U, 'CHAR':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('OpenOnInit':U, 'LOGICAL':U, 0, ?, yes).
-  ghADMProps:ADD-NEW-FIELD('ForeignValues':U, 'CHAR':U, 0, ?, ?).
-  ghADMProps:ADD-NEW-FIELD('CheckLastOnOpen':U, 'LOGICAL':U, 0, ?, no).
-  ghADMProps:ADD-NEW-FIELD('QueryString':U, 'CHAR':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('QueryColumns':U, 'CHAR':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('LastDBRowIdent':U, 'CHAR':U, 0, ?, '':U).
+  /* Keep these in alphabetical order */
   ghADMProps:ADD-NEW-FIELD('AssignList':U, 'CHAR':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('UpdatableColumns':U, 'CHAR':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('UpdatableColumnsByTable':U, 'CHAR':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('Tables':U, 'CHAR':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('PhysicalTables':U, 'CHAR':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('TempTables':U, 'CHAR':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('AuditEnabled':U, 'LOGICAL':U, 0, ?, NO).
+  ghADMProps:ADD-NEW-FIELD('BaseQuery':U, 'CHAR':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('CalcFieldList':U, 'CHAR':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('CheckLastOnOpen':U, 'LOGICAL':U, 0, ?, no).
+  ghADMProps:ADD-NEW-FIELD('DataColumnsByTable':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('DBNames':U, 'CHAR':U, 0, ?, ?).
-  ghADMProps:ADD-NEW-FIELD('KeyFields':U, 'CHARACTER':U, 0, ?, '{&KEY-FIELDS}':U). 
-  ghADMProps:ADD-NEW-FIELD('KeyTableId':U, 'CHARACTER':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('FetchOnOpen':U, 'CHAR':U, 0, ?, ?).
-  ghADMProps:ADD-NEW-FIELD('DataIsFetched':U, 'LOGICAL':U, 0, ?, no).
-  ghADMProps:ADD-NEW-FIELD('FilterActive':U, 'LOGICAL':U, 0, ?, no).
-  ghADMProps:ADD-NEW-FIELD('FilterAvailable':U, 'LOGICAL':U, 0, ?, no).
-  ghADMProps:ADD-NEW-FIELD('SkipTransferDBRow':U, 'LOGICAL':U, 0, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('EntityFields':U, 'CHAR':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('FetchHasAudit':U, 'LOGICAL':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('FetchHasComment':U, 'LOGICAL':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('FetchAutoComment':U, 'LOGICAL':U, 0, ?, ?).
-  ghADMProps:ADD-NEW-FIELD('EntityFields':U, 'CHAR':U, 0, ?, ?).
-  ghADMProps:ADD-NEW-FIELD('RequiredProperties':U, 'CHAR':U, 0, ?, ?).
-  ghADMProps:ADD-NEW-FIELD('TransferChildrenForAll':U, 'LOGICAL':U, 0, ?, NO).
-  ghADMProps:ADD-NEW-FIELD('PositionForClient':U, 'CHARACTER':U, 0, ?, ?).
-  ghADMProps:ADD-NEW-FIELD('AuditEnabled':U, 'LOGICAL':U, 0, ?, NO).
+  ghADMProps:ADD-NEW-FIELD('KeyFields':U, 'CHARACTER':U, 0, ?, '{&KEY-FIELDS}':U). 
+  ghADMProps:ADD-NEW-FIELD('KeyTableId':U, 'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('LastDBRowIdent':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('NewBatchInfo':U, 'CHAR':U, 0, ?, ?).
-  ghADMProps:ADD-NEW-FIELD('CalcFieldList':U, 'CHAR':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('PhysicalTables':U, 'CHAR':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('PositionForClient':U, 'CHARACTER':U, 0, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('QueryHandle':U, 'HANDLE':U).
+  ghADMProps:ADD-NEW-FIELD('QueryRowIdent':U, 'CHAR':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('RequiredProperties':U, 'CHAR':U, 0, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('SkipTransferDBRow':U, 'LOGICAL':U, 0, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('TempTables':U, 'CHAR':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('UpdatableColumnsByTable':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('UpdateFromSource':U, 'LOGICAL':U, 0, ?, NO).
 &ENDIF
 

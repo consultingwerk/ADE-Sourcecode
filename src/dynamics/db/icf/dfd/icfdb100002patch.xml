@@ -1,56 +1,56 @@
-<?xml version="1.0" encoding="utf-8"?>
-<SetupInclude>
-   <Patch PatchLevel="100002">
-      <PatchStage Stage="PreADOLoad">
-         <Program>
-            <FileType>p</FileType>
-            <FileName>db/icf/dfd/addcalctoentity.p</FileName>
-            <Description>Adding calculated field instances to entities</Description>
-            <Rerunnable>no</Rerunnable>
-            <NewDB>no</NewDB>
-            <ExistingDB>yes</ExistingDB>
-            <UpdateMandatory>yes</UpdateMandatory>
-         </Program>
-         <Program>
-            <FileType>p</FileType>
-            <FileName>db/icf/dfd/fixSBODataObjectNames.p</FileName>
-            <Description>Fixing SBO Data Object Names</Description>
-            <Rerunnable>yes</Rerunnable>
-            <NewDB>no</NewDB>
-            <ExistingDB>yes</ExistingDB>
-            <UpdateMandatory>yes</UpdateMandatory>
-         </Program>
-      </PatchStage>
-    <PatchStage Stage="Delta">
-       <Program>
-	  <FileType>df</FileType>
-	  <FileName>db/icf/dfd/icfdb100002delta.df</FileName>
-	  <Description>Applying 100002 Delta</Description>
-	  <Rerunnable>no</Rerunnable>
-	  <NewDB>no</NewDB>
-	  <ExistingDB>yes</ExistingDB>
-	  <UpdateMandatory>yes</UpdateMandatory>
-       </Program>
-    </PatchStage>
-    <PatchStage Stage="PostADOLoad">
-       <Program>
-	  <FileType>p</FileType>
-	  <FileName>db/icf/dfd/fix_audit_records.p</FileName>
-	  <Description>Correcting owning reference in gsm_scm_xref</Description>
-	  <Rerunnable>yes</Rerunnable>
-	  <NewDB>no</NewDB>
-	  <ExistingDB>yes</ExistingDB>
-	  <UpdateMandatory>no</UpdateMandatory>
-       </Program>
-       <Program>
-	  <FileType>p</FileType>
-	  <FileName>db/icf/dfd/fixprintpreviewstylesheetprop.p</FileName>
-	  <Description>Removes src from print_preview_stylesheet session property (path) value</Description>
-	  <Rerunnable>yes</Rerunnable>
-	  <NewDB>no</NewDB>
-	  <ExistingDB>yes</ExistingDB>
-	  <UpdateMandatory>no</UpdateMandatory>
-       </Program>
-    </PatchStage>
-    </Patch>   
+<?xml version="1.0" encoding="utf-8"?>
+<SetupInclude>
+   <Patch PatchLevel="100002">
+      <PatchStage Stage="PreADOLoad">
+         <Program>
+            <FileType>p</FileType>
+            <FileName>db/icf/dfd/addcalctoentity.p</FileName>
+            <Description>Adding calculated field instances to entities</Description>
+            <Rerunnable>no</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>yes</UpdateMandatory>
+         </Program>
+         <Program>
+            <FileType>p</FileType>
+            <FileName>db/icf/dfd/fixSBODataObjectNames.p</FileName>
+            <Description>Fixing SBO Data Object Names</Description>
+            <Rerunnable>yes</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>yes</UpdateMandatory>
+         </Program>
+      </PatchStage>
+    <PatchStage Stage="Delta"><Program>
+	  <FileType>df</FileType>
+	  <FileName>db/icf/dfd/icfdb100002delta.df</FileName>
+	  <Description>Applying 100002 Delta</Description>
+	  <Rerunnable>no</Rerunnable>
+	  <NewDB>no</NewDB>
+	  <ExistingDB>yes</ExistingDB>
+	  <UpdateMandatory>yes</UpdateMandatory>
+       </Program>
+    </PatchStage>
+    <PatchStage Stage="PostADOLoad">
+       
+       <Program>
+	  <FileType>p</FileType>
+	  <FileName>db/icf/dfd/fix_audit_records.p</FileName>
+	  <Description>Correcting owning reference in gsm_scm_xref</Description>
+	  <Rerunnable>yes</Rerunnable>
+	  <NewDB>no</NewDB>
+	  <ExistingDB>yes</ExistingDB>
+	  <UpdateMandatory>no</UpdateMandatory>
+       </Program>
+       <Program>
+	  <FileType>p</FileType>
+	  <FileName>db/icf/dfd/fixprintpreviewstylesheetprop.p</FileName>
+	  <Description>Removes src from print_preview_stylesheet session property (path) value</Description>
+	  <Rerunnable>yes</Rerunnable>
+	  <NewDB>no</NewDB>
+	  <ExistingDB>yes</ExistingDB>
+	  <UpdateMandatory>no</UpdateMandatory>
+       </Program>
+    </PatchStage>
+    </Patch>   
 </SetupInclude>

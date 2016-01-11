@@ -1,6 +1,13 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Check Version Notes Wizard" Procedure _INLINE
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /* Actions: af/cod/aftemwizcw.w ? ? ? ? */
 /* MIP Update Version Notes Wizard
 Check object version notes.
@@ -63,6 +70,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 DEFINE INPUT PARAMETER open_file    AS CHARACTER NO-UNDO .   /* File to open    */
 DEFINE INPUT PARAMETER import_mode  AS CHARACTER NO-UNDO. /* "WINDOW"  */
 
+{adecomm/oeideservice.i}
 {src/adm2/globals.i}
 {adeuib/timectrl.i}      /* Controls inclusion of profiling code */
 {adecomm/adefext.i}
@@ -115,6 +123,7 @@ DEFINE VARIABLE pressed-ok            AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE temp_file             AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE web_file              AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE web_temp_file         AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cRelPathWeb           AS CHARACTER  NO-UNDO INIT ?.
 
 DEFINE VARIABLE gcAssignList              AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcBrowseFields            AS CHARACTER  NO-UNDO.
@@ -173,6 +182,13 @@ DEFINE BUFFER b_ttObject      FOR ttObject.
 
 DEFINE TEMP-TABLE SDFttObject           LIKE ttObject .
 DEFINE TEMP-TABLE SDFttObjectAttribute  LIKE ttObjectAttribute .
+
+FUNCTION get-sdo-hdl RETURNS HANDLE 
+   (INPUT pcName AS CHARACTER,
+    INPUT phOwner AS HANDLE) IN _h_func_lib.
+ 
+ FUNCTION shutdown-sdo RETURNS LOGICAL  
+   (INPUT phOwner AS HANDLE) IN _h_func_lib.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -317,7 +333,7 @@ FUNCTION windowAlreadyOpened RETURNS LOGICAL
  ASSIGN _save_file = dot-w-file
         dot-w-file = gcDynTempFile.
  
- /* Analyse and Verify the file we are looking at. If there is a problem then exit */
+  /* Analyse and Verify the file we are looking at. If there is a problem then exit */
   AbortImport = no.
  {adeuib/vrfyimp.i} /* This Runs ANALYSE ... NO-ERROR. */
 
@@ -370,6 +386,7 @@ ASSIGN AbortImport = no.
         _P.design_ryobject      = YES
         _P._ALLOW               = IF gcDynClass = "DynBrow":U THEN  "":U ELSE _P._ALLOW 
         _h_win:TITLE            = _P._type + "(" + _P.OBJECT_type_code + ") - " + _P.OBJECT_filename.
+
 
  /* Assign the repository design manager handle */
  ASSIGN ghDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U, 
@@ -651,6 +668,7 @@ PROCEDURE assignInstanceCase :
      WHEN "FONT":U             THEN f_L._FONT            = INTEGER(pcValue).
      WHEN "FORMAT":U           THEN setAttributeValue("FORMAT":U,pclevel,pcValue).
      WHEN "GRAPHIC-EDGE":U     THEN f_L._GRAPHIC-EDGE    = LOGICAL(pcValue).
+     WHEN "GROUP-BOX":U        THEN f_L._GROUP-BOX       = LOGICAL(pcValue).
      WHEN "HEIGHT-CHARS":U     THEN f_L._HEIGHT          = DECIMAL(pcValue).
      WHEN "HELP":U             THEN setAttributeValue("HELP":U,pclevel,pcValue).
      WHEN "HIDDEN":U           THEN ASSIGN f_U._HIDDEN   = LOGICAL(pcValue)
@@ -698,6 +716,7 @@ PROCEDURE assignInstanceCase :
      WHEN "RESIZABLE":U        THEN f_U._RESIZABLE       = LOGICAL(pcValue).
      WHEN "RETAIN-SHAPE":U     THEN f_F._RETAIN-SHAPE    = LOGICAL(pcValue).
      WHEN "RETURN-INSERTED":U  THEN f_F._RETURN-INSERTED = LOGICAL(pcValue).
+     WHEN "ROUNDED":U          THEN f_L._ROUNDED         = LOGICAL(pcValue).
      WHEN "ROW":U              THEN f_L._ROW             = DECIMAL(pcValue).
      WHEN "SCROLLBAR-HORIZONTAL":U THEN f_F._SCROLLBAR-H = LOGICAL(pcValue).
      WHEN "SCROLLBAR-VERTICAL":U   THEN f_U._SCROLLBAR-V   = LOGICAL(pcValue).
@@ -770,6 +789,7 @@ PROCEDURE assignInstanceCase :
        WHEN "FILLED":U           THEN f_L._FILLED      = LOGICAL(pcValue).
        WHEN "FONT":U             THEN f_L._FONT        = INTEGER(pcValue).
        WHEN "GRAPHIC-EDGE":U     THEN f_L._GRAPHIC-EDGE = LOGICAL(pcValue).
+       WHEN "GROUP-BOX":U        THEN f_L._GROUP-BOX   = LOGICAL(pcValue).
        WHEN "HEIGHT-CHARS":U     THEN f_L._HEIGHT      = DECIMAL(pcValue).
        WHEN "HideOnInit":U       THEN IF LOOKUP(f_U._TYPE,"SmartObject,SmartDataField":U) > 0 THEN
                                       f_L._REMOVE-FROM-LAYOUT = LOGICAL(pcValue).
@@ -777,6 +797,7 @@ PROCEDURE assignInstanceCase :
        WHEN "FieldLabel":U       THEN f_L._LABEL        = pcValue.
        WHEN "LABELS":U           THEN f_L._NO-LABEL     = NOT LOGICAL(pcValue).
        WHEN "NO-FOCUS":U         THEN f_L._NO-FOCUS     = LOGICAL(pcValue).
+       WHEN "ROUNDED":U          THEN f_L._ROUNDED      = LOGICAL(pcValue).
        WHEN "ROW":U              THEN f_L._ROW          = DECIMAL(pcValue).
        WHEN "THREE-D":U          THEN f_L._3-D   = LOGICAL(pcValue).
        WHEN "VISIBLE":U          THEN f_L._REMOVE-FROM-LAYOUT = NOT LOGICAL(pcValue).
@@ -1119,28 +1140,37 @@ PROCEDURE createBrowseBC :
   Parameters:  <none>
   Notes:      Called from processMasterObject 
 ------------------------------------------------------------------------------*/
- DEFINE VARIABLE inumCol AS INTEGER    NO-UNDO.
- DO inumCol = 1 TO NUM-ENTRIES(gcBrowseFields):
+ DEFINE VARIABLE inumCol    AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE cField     AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE iTable     AS INTEGER    NO-UNDO.
 
+ DO inumCol = 1 TO NUM-ENTRIES(gcBrowseFields):
+   cField = ENTRY(inumCol,gcBrowseFields).
    IF VALID-HANDLE(ghSDO) 
-       AND DYNAMIC-FUNCTION("ColumnHandle":U IN ghSDO, ENTRY(inumCol,gcBrowseFields)) = ? THEN
+       AND DYNAMIC-FUNCTION("ColumnHandle":U IN ghSDO, cField) = ? THEN
       NEXT.
    CREATE _BC.
    ASSIGN _BC._x-recid   = RECID(_U)
-          _BC._NAME      = ENTRY(inumCol,gcBrowseFields)
+          _BC._NAME      = ENTRY(NUM-ENTRIES(cField,'.':U),cField,'.':U)
+          _BC._TABLE     = IF NUM-ENTRIES(cField,'.':U) = 2 
+                           THEN ENTRY(1,cField,'.':U)
+                           ELSE "RowObject":U
+          _BC._DISP-NAME = IF NUM-ENTRIES(cField,'.':U) = 2 
+                           THEN _BC._TABLE + '.':U + _BC._NAME
+                           ELSE _BC._NAME
           _BC._BGCOLOR   = IF gcBrwsColBGColors = "" THEN ?
                            ELSE INTEGER(ENTRY(inumCol, gcBrwsColBGColors, CHR(5))).
+
    IF VALID-HANDLE(ghSDO) THEN
-     ASSIGN _BC._DATA-TYPE  = DYNAMIC-FUNCTION("ColumnDataType":U IN ghSDO, _BC._NAME)
+     ASSIGN _BC._DATA-TYPE  = DYNAMIC-FUNCTION("ColumnDataType":U IN ghSDO, _BC._DISP-NAME)
             _BC._DBNAME     = "_<SDO>":U
-            _BC._DEF-FORMAT = DYNAMIC-FUNCTION("ColumnFormat":U IN ghSDO, _BC._NAME)
-            _BC._DEF-HELP   = DYNAMIC-FUNCTION("ColumnHelp":U IN ghSDO, _BC._NAME)
-            _BC._DEF-LABEL  = DYNAMIC-FUNCTION("ColumnColumnLabel":U IN ghSDO, _BC._NAME)
-            _BC._DEF-WIDTH  = MIN(120,MAX(DYNAMIC-FUNCTION("columnWidth" IN ghSDO,_BC._NAME),
+            _BC._DEF-FORMAT = DYNAMIC-FUNCTION("ColumnFormat":U IN ghSDO, _BC._DISP-NAME)
+            _BC._DEF-HELP   = DYNAMIC-FUNCTION("ColumnHelp":U IN ghSDO, _BC._DISP-NAME)
+            _BC._DEF-LABEL  = DYNAMIC-FUNCTION("ColumnColumnLabel":U IN ghSDO, _BC._DISP-NAME)
+            _BC._DEF-WIDTH  = MIN(120,MAX(DYNAMIC-FUNCTION("columnWidth" IN ghSDO,_BC._DISP-NAME),
                                   FONT-TABLE:GET-TEXT-WIDTH(ENTRY(1,_BC._DEF-LABEL,"!":U)))).
 
-   ASSIGN _BC._DISP-NAME  = _BC._NAME
-          _BC._ENABLED    = LOOKUP(_BC._DISP-NAME, gcEnabledFields) > 0
+   ASSIGN _BC._ENABLED    = LOOKUP(_BC._DISP-NAME, gcEnabledFields) > 0
           _BC._FGCOLOR    = IF gcBrwsColFGColors = "" THEN ?
                             ELSE INTEGER(ENTRY(inumCol, gcBrwsColFGColors, CHR(5)))
           _BC._FONT       = IF gcBrwsColFonts = "" THEN ?
@@ -1159,7 +1189,6 @@ PROCEDURE createBrowseBC :
           _BC._LABEL-FONT = IF gcBrwsColLabelFonts = "" THEN ?
                             ELSE INTEGER(ENTRY(inumCol, gcBrwsColLabelFonts, CHR(5)))
           _BC._SEQUENCE   = inumCol
-          _BC._TABLE      = "RowObject":U
           _BC._WIDTH      = IF gcBrwsColWidths = "" THEN _BC._DEF-WIDTH
                             ELSE IF ENTRY(inumCol, gcBrwsColWidths, CHR(5)) EQ "?" THEN _BC._DEF-WIDTH
                             ELSE INTEGER(ENTRY(inumCol, gcBrwsColWidths, CHR(5))). 
@@ -1168,8 +1197,13 @@ PROCEDURE createBrowseBC :
  RUN adeuib/_undbrow.p (RECID(_U)).
  CREATE _Q.
  ASSIGN _C._q-RECID = RECID(_Q)
-        _Q._4GLQury =  "EACH rowObject":U
-        _Q._TblList = "rowObject":U.
+        _Q._tblList = dynamic-function("getViewTables":U IN GhSDO).
+
+ DO iTable = 1 TO NUM-ENTRIES(_Q._tblList):
+   _Q._4GLQury  = _Q._4GLQury
+                + (IF iTable = 1 THEN "EACH " ELSE ",FIRST ")
+                + ENTRY(iTable,_Q._tblList).
+ END.     
 
 END PROCEDURE.
 
@@ -1442,12 +1476,8 @@ PROCEDURE dynsucker_cleanup :
   END.
       
   /* The _rd* procedures may have started an sdo */
-  IF AVAILABLE _P THEN
-    DYNAMIC-FUNCTION("shutdown-sdo" IN _h_func_lib, THIS-PROCEDURE).
-
-  IF VALID-HANDLE(ghSDO) THEN RUN destroyObject IN ghSDO.
-  IF VALID-HANDLE(ghSDO) THEN DELETE OBJECT ghSDO.
-    
+  shutdown-sdo(THIS-PROCEDURE).
+  ghSDO = ?.  
   CURRENT-WINDOW = _h_menu_win.       /* Make sure we reset current-window */
   RUN adecomm/_setcurs.p ("").        /* Restore cursor pointers           */
 END PROCEDURE.
@@ -1499,36 +1529,28 @@ PROCEDURE launchSDO :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-DEFINE VARIABLE cSDOObjectName  AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cInheritClasses AS CHARACTER  NO-UNDO.
-
+  DEFINE VARIABLE cDesignDataObject AS CHARACTER  NO-UNDO.
   FIND ttObject WHERE ttObject.tLogicalObjectName = _ryObject.object_filename 
                   AND ttObject.tResultCode        = "{&DEFAULT-RESULT-CODE}":U NO-ERROR.
-  IF AVAIL ttObject AND ttObject.tSDOObjectName > "" THEN
-  DO:
-      ASSIGN cSDOObjectName = ttObject.tSDOObjectName.
-      /* Run design time API to fetch the ttObject and ttObjectAttribute temp tables */
-     RUN fetchRepositoryObject IN THIS-PROCEDURE(INPUT cSDOObjectName, /* Object Name TO retrieve */
-                                                 INPUT "":U ).   
-     IF RETURN-VALUE > "" THEN RETURN RETURN-VALUE.                                            
-     FIND ttObject WHERE ttObject.tLogicalObjectName = cSDOObjectName 
-                  AND ttObject.tResultCode        = "{&DEFAULT-RESULT-CODE}":U NO-ERROR.
-     /* Check if data source is an SBO */
-     IF AVAIL ttObject THEN
-     glSBODataSource = DYNAMIC-FUNCTION("ClassIsA" IN gshRepositoryManager,
-                                            ttObject.tClassName ,  "SBO":U).
-                             /* Start SDO or SBO */
-          
-     RUN StartDataObject IN gshRepositoryManager
-                 (INPUT cSDOObjectName, OUTPUT ghSDO) NO-ERROR.
-     IF NOT VALID-HANDLE(ghSDO) THEN
-        RETURN "ERROR":U.
-
-     /* Assign the _P data_object field */
-     ASSIGN _P._DATA-OBJECT =  cSDOObjectName.
-  END.
   
+  IF ttObject.tSDOObjectName > '' THEN
+    cDesignDataObject = ttObject.tSDOObjectName.
+  ELSE 
+    cDesignDataObject  = findAttributeValue('DesignDataObject':U,'master':U).
 
+  IF cDesignDataObject > '' THEN
+  DO:
+    /* Let the appbuilder start the sdo */
+    ghSDO = get-sdo-hdl(cDesignDataObject,THIS-PROCEDURE).
+    IF NOT VALID-HANDLE(ghSDO) THEN
+       RETURN "ERROR":U.
+  
+    glSBODataSource = IF {fn getObjectType ghSDO} = 'SmartBusinessObject':U
+                      THEN TRUE
+                      ELSE FALSE.  
+    
+    _P._DATA-OBJECT = cDesignDataObject.
+  END.
   RETURN "".
 END PROCEDURE.
 
@@ -1557,6 +1579,7 @@ PROCEDURE processInstances :
  DEFINE VARIABLE iCnt            AS INTEGER    NO-UNDO.
  DEFINE VARIABLE ctmp            AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cSDFFileName    AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cColumnName     AS CHARACTER  NO-UNDO.
  
  /* Loop through all retrieved object instances for the current ttObject */
  CHILD-LOOP:
@@ -1618,9 +1641,17 @@ PROCEDURE processInstances :
              NO-ERROR.   
        
        IF VALID-HANDLE(ghSDO) THEN
-         IF DYNAMIC-FUNCTION("columnDataType":U IN ghSDO, INPUT f_U._NAME) = "CLOB":U THEN
+       DO:
+         /* If the data source is a DataView (DbAware is false) then the column names must be qualified.  
+            f_U._TABLE cannot be used to qualify the column name because the processing of attributes 
+            has not happened at this point.  f_U._OBJECT-NAME was set from the logical object name for 
+            the instance which is the correct qualified column name. */
+         cColumnName = IF {fn getDbAware ghSDO} THEN f_U._NAME
+                       ELSE f_U._OBJECT-NAME.
+         IF DYNAMIC-FUNCTION("columnDataType":U IN ghSDO, INPUT cColumnName) = "CLOB":U THEN
            ASSIGN f_F._SOURCE-DATA-TYPE = "CLOB":U.
-         
+       END.
+
        /* Check whether the format, label and help are defined on the instance */
        FIND FIRST ttObjectAttribute WHERE ttObjectAttribute.tSmartObjectObj    = b_ttObject.tSmartObjectObj
                                       AND ttObjectAttribute.tObjectInstanceObj = b_ttObject.tObjectInstanceObj
@@ -1711,13 +1742,13 @@ PROCEDURE processInstances :
       FOR EACH ttClassAttribute WHERE ttClassAttribute.tClassname = b_ttObject.tClassname:
          RUN assignInstanceCase(ttClassAttribute.tAttributeLabel,ttClassAttribute.tAttributeValue,"CLASS":U). 
       END. 
-
       /* Process the object attributes of the instances' master object  */
       FOR EACH ttObjectAttribute WHERE ttObjectAttribute.tSmartObjectObj    = b_ttObject.tSmartObjectObj
                                    AND ttObjectAttribute.tObjectInstanceObj = 0:
           RUN assignInstanceCase(ttObjectAttribute.tAttributeLabel,ttObjectAttribute.tAttributeValue,"OBJECT":U). 
       END.  /* End For each ttobjectAttribute */
     END.  
+
    /* Retrieve the master object for SDF fields with auto-attach */
    ASSIGN cSDFFileName = findAttributeValue("SDFFileName":U,"INSTANCE":U).  
    IF glMasterLayout AND cSDFFileName > "" THEN
@@ -1885,9 +1916,7 @@ PROCEDURE processMasterObject :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
- DEFINE VARIABLE hDesignManager  AS HANDLE     NO-UNDO.
  DEFINE VARIABLE cInheritClasses AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE cIncludeFile    AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE added_fields    AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE h               AS HANDLE     NO-UNDO.
  DEFINE VARIABLE hfgp            AS HANDLE     NO-UNDO.
@@ -1985,25 +2014,11 @@ PROCEDURE processMasterObject :
        /* Process the instances for the current object for dynamic viewers*/
        RUN processInstances IN THIS-PROCEDURE.
 
-     /* Create a _TT for each SDO in the SBO */
-    IF glSBODataSource THEN
-      RUN adeuib/_upddott.w (RECID(_P)).
-    /* This should only apply for viewers and browsers where there is a valid _Data-Object */
-    ELSE IF _P._DATA-OBJECT > "" THEN
-    DO:    /* Create a _TT for the SDO RowObject DataSource */
-       cIncludeFile = DYNAMIC-FUNCTION('getSDOincludeFile' IN gshRepositoryManager,
-                                       _P._DATA-OBJECT).
-      IF NUM-ENTRIES(cIncludeFile, ".":U) = 1 THEN
-          ASSIGN cIncludeFile = cIncludeFile + ".i":U.
-      IF cIncludeFile BEGINS "~/":U THEN 
-          ASSIGN cIncludeFile = ".":U + cIncludeFile.
-      CREATE _TT.
-      ASSIGN _TT._NAME              = "RowObject":U
-             _TT._p-recid           = RECID(_P)
-             _TT._Table-Type        = "D":U
-             _TT._ADDITIONAL_FIELDS = "~{":U + cIncludeFile + "~}":U.
-    END.
-
+    /* Create a _TT for each SDO, each SDO in the SBO, and for each data source table 
+       in the DataView.  _TT records are not needed for dynamic browsers.
+     */
+    if _P._Data-Object gt '':U AND gcDynClass NE "DynBrow":U then     
+        RUN adeuib/_upddott.w (RECID(_P)).
     
     IF _h_frame = ? and _h_win = ? THEN 
     DO:
@@ -2143,6 +2158,7 @@ PROCEDURE processMasterObject :
            _L._LO-NAME = ttObject.tResultCode.
     BUFFER-COPY m_L EXCEPT _u-recid _LO-NAME TO _L.                
     /* Assign temp table fields specific to browsers and viewers */
+    
     IF gcDynClass EQ "DynView":U OR gcDynClass = "DynBrow":U THEN 
         RUN assignViewerAndBrowser IN THIS-PROCEDURE.
       
@@ -2572,12 +2588,9 @@ PROCEDURE validateRepositoryObject :
 
      /* Check that the class of the dynamic object is a child of either a DynView, DynBrow or DynSDO class.
         These are the only supported dynamic objects in the appBuilder */
-     lIsValidClass = DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, gcDynExtClass,"DynView":U) OR
-                     DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, gcDynExtClass,"DynBrow":U) OR
-                     DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, gcDynExtClass,"DynSDO":U). 
-
-     IF NOT lIsValidClass OR SEARCH(_Ryobject.design_template_file) = ?                         
-     THEN DO:    
+     lIsValidClass = DYNAMIC-FUNCTION("isDynamicClassNative":U IN _h_func_lib, gcDynExtClass).
+     IF NOT lIsValidClass OR SEARCH(_Ryobject.design_template_file) = ? THEN 
+     DO:    
      
        /* Reset the cursor for user input.*/
        RUN adecomm/_setcurs.p ("").
@@ -2700,7 +2713,18 @@ FUNCTION setAttributeValue RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
   DEFINE BUFFER B_ttObjectAttribute FOR ttObjectAttribute.
   DEFINE VARIABLE cColumnTable AS CHARACTER  NO-UNDO. 
+  DEFINE VARIABLE cColumnName  AS CHARACTER  NO-UNDO.
   
+  /* Set column name variable to use in column calls in the data source.  If the data 
+     source is a DataView (DbAware is false) then the column names must be qualified.  
+     f_U._TABLE cannot be used to qualify the column name because it may not be set before
+     the processing of the attributes that need it since they are set in alphbetical order.
+     f_U._OBJECT-NAME was set from the logical object name for the instance which is
+     the correct qualified column name. */
+  IF VALID-HANDLE(ghSDO) THEN
+    cColumnName = IF {fn getDbAware ghSDO} THEN f_U._NAME
+                  ELSE f_U._OBJECT-NAME.
+
   CASE pcAttribute:
     WHEN "DataBaseName" THEN
     DO:
@@ -2715,17 +2739,19 @@ FUNCTION setAttributeValue RETURNS LOGICAL
       ASSIGN f_U._BUFFER          = pcvalue
              f_U._TABLE           = pcValue.
       IF LOOKUP("DataField":U,gcInheritClasses) > 0 
-            AND VALID-HANDLE(ghSDO) THEN   
+      AND VALID-HANDLE(ghSDO) THEN   
       DO:
-         IF glSBODataSource THEN  /* Viewer was built against an SBO */
-            ASSIGN f_U._TABLE = gcSDOName.
-         ELSE     
-            ASSIGN cColumnTable = DYNAMIC-FUNCTION("columnPhysicalTable":U IN ghSDO, f_U._NAME)
-                   f_U._TABLE  = IF NUM-ENTRIES(cColumnTable, ".":U) = 2 
-                                 THEN  ENTRY(2, cColumnTable, ".":U) ELSE cColumnTable
-                   f_U._BUFFER = "RowObject":U.
-      END.             
-         
+         IF {fn getDbAware ghSDO} THEN
+         DO:
+           IF glSBODataSource THEN  /* Viewer was built against an SBO */
+              ASSIGN f_U._TABLE = gcSDOName.
+           ELSE     
+              ASSIGN cColumnTable = DYNAMIC-FUNCTION("columnPhysicalTable":U IN ghSDO, f_U._NAME)
+                     f_U._TABLE  = IF NUM-ENTRIES(cColumnTable, ".":U) = 2 
+                                   THEN  ENTRY(2, cColumnTable, ".":U) ELSE cColumnTable
+                     f_U._BUFFER = "RowObject":U.
+         END.
+      END.                      
     END.
     WHEN "VisualizationType":U THEN
     DO:
@@ -2735,32 +2761,31 @@ FUNCTION setAttributeValue RETURNS LOGICAL
                      THEN "L":U ELSE "C":U.
         IF f_U._TYPE = "TEXT":U AND 
                (LOOKUP("DataField":U,gcInheritClasses) > 0 OR
-               LOOKUP("DynFillin":U,gcInheritClasses) > 0 )
-        THEN DO: 
-              ASSIGN f_U._TYPE    = "FILL-IN":U
-                     f_U._SUBTYPE = "TEXT":U.
-              IF LOOKUP("DataField":U,gcInheritClasses) > 0 THEN
-                 f_F._DATA-TYPE = IF VALID-HANDLE(ghSDO) 
-                                  THEN  DYNAMIC-FUNCTION("ColumnDataType":U IN ghSDO, f_U._NAME)
-                                  ELSE "Character":U.
-         END.  /* If a view-as fill-in */
+               LOOKUP("DynFillin":U,gcInheritClasses) > 0 ) THEN 
+        DO: 
+          ASSIGN f_U._TYPE    = "FILL-IN":U
+                 f_U._SUBTYPE = "TEXT":U.
+          IF LOOKUP("DataField":U,gcInheritClasses) > 0 THEN
+            f_F._DATA-TYPE = IF VALID-HANDLE(ghSDO) 
+                             THEN  DYNAMIC-FUNCTION("ColumnDataType":U IN ghSDO, cColumnName)
+                             ELSE "Character":U.
+        END.  /* If a view-as fill-in */
        END.
     END. /* Visualization Type */
     WHEN "FORMAT":U THEN
     DO:
       IF pclevel = "CLASS":U AND  LOOKUP("DataField":U,gcInheritClasses) > 0 
                              AND VALID-HANDLE(ghSDO) THEN
-         ASSIGN f_F._FORMAT = DYNAMIC-FUNCTION("columnFormat":U IN ghSDO, f_U._NAME).
+         ASSIGN f_F._FORMAT = DYNAMIC-FUNCTION("columnFormat":U IN ghSDO, cColumnName).
       ELSE 
          ASSIGN f_F._FORMAT  = pcValue.
     
     END.
     WHEN "LABEL":U THEN
-    DO:
-    
+    DO:    
       IF pclevel = "CLASS":U AND LOOKUP("DataField":U,gcInheritClasses) > 0 
                              AND VALID-HANDLE(ghSDO) THEN
-         ASSIGN f_U._LABEL = DYNAMIC-FUNCTION("columnLabel":U IN ghSDO, f_U._NAME).
+         ASSIGN f_U._LABEL = DYNAMIC-FUNCTION("columnLabel":U IN ghSDO, cColumnName).
       ELSE 
          ASSIGN f_U._LABEL = pcValue. 
       
@@ -2786,7 +2811,7 @@ FUNCTION setAttributeValue RETURNS LOGICAL
     DO:
       IF pclevel = "CLASS":U AND LOOKUP("DataField":U,gcInheritClasses) > 0 
                              AND VALID-HANDLE(ghSDO) THEN
-         ASSIGN f_U._HELP = DYNAMIC-FUNCTION("columnHelp":U IN ghSDO, f_U._NAME).
+         ASSIGN f_U._HELP = DYNAMIC-FUNCTION("columnHelp":U IN ghSDO, cColumnName).
       ELSE 
          ASSIGN f_U._HELP = pcValue.
 

@@ -11,25 +11,9 @@ af/cod/aftemwizpw.w
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -2261,7 +2245,7 @@ PROCEDURE getRecordUserProp :
     DEFINE VARIABLE lRowCommentExist  AS LOGICAL   NO-UNDO.
     DEFINE VARIABLE cRowCommentAuto   AS CHARACTER NO-UNDO.
     DEFINE VARIABLE lTableHasObjField AS LOGICAL   NO-UNDO.
-
+    
     DEFINE BUFFER gsc_entity_mnemonic FOR gsc_entity_mnemonic.
 
     IF  LOOKUP('HasComment':U,pcEntityFields)  = 0 
@@ -2277,7 +2261,7 @@ PROCEDURE getRecordUserProp :
     FIND gsc_entity_mnemonic NO-LOCK
          WHERE gsc_entity_mnemonic.entity_mnemonic = pcEntityMnemonic
          NO-ERROR.
-
+         
     ASSIGN lTableHasObjField = AVAILABLE gsc_entity_mnemonic
                                AND gsc_entity_mnemonic.table_has_object_field.
     
@@ -2296,12 +2280,23 @@ PROCEDURE getRecordUserProp :
     IF LOOKUP('HasComment':U,pcEntityFields) > 0 
     OR LOOKUP('AutoComment':U,pcEntityFields) > 0  
     THEN DO:
-        IF lTableHasObjField THEN
-            ASSIGN lRowCommentExist = CAN-FIND(FIRST gsm_comment
-                                               WHERE gsm_comment.owning_entity_mnemonic = pcEntityMnemonic
-                                                 AND gsm_comment.owning_obj = DECIMAL(pcEntityObjValue))
-                   NO-ERROR.
-        ELSE
+        
+        /* If an entity has an object field, the value
+           will be decimal (by definition of an object field).
+           This value is stored in the owning_reference field,
+           in American format. The value that we receive here 
+           is not necessarily American format, and so we need
+           to convert to American format.
+           
+           Also remove the nmumeric separator since the value is 
+           not stored with a numeric separator.
+         */
+        if lTableHasObjField then
+        do:
+            pcEntityObjValue = replace(pcEntityObjValue, session:numeric-separator, '').
+            pcEntityObjValue = replace(pcEntityObjValue, session:numeric-decimal-point, '.').                
+        end.    /* table has object ID field */               
+            
             ASSIGN lRowCommentExist = CAN-FIND(FIRST gsm_comment
                                                WHERE gsm_comment.owning_entity_mnemonic = pcEntityMnemonic
                                                  AND gsm_comment.owning_reference = pcEntityObjValue)
@@ -2315,30 +2310,17 @@ PROCEDURE getRecordUserProp :
     /* Now build the list of auto comments */
     IF lRowCommentExist AND LOOKUP('AutoComment':U,pcEntityFields) > 0 
     THEN DO:
-        IF lTableHasObjField THEN
-            FOR EACH gsm_comment NO-LOCK
-               WHERE gsm_comment.owning_entity_mnemonic  = pcEntityMnemonic
-                 AND gsm_comment.owning_obj              = DECIMAL(pcEntityObjValue)
-                 AND gsm_comment.auto_display            = YES
-                 AND (gsm_comment.expiry_date           >= TODAY
-                   OR gsm_comment.expiry_date = ?):
-
-                ASSIGN cRowCommentAuto = cRowCommentAuto
-                                       + (IF cRowCommentAuto = '':U THEN '':U ELSE CHR(10))  
-                                       + gsm_comment.comment_description.
-            END.
-        ELSE
-            FOR EACH gsm_comment NO-LOCK
-               WHERE gsm_comment.owning_entity_mnemonic  = pcEntityMnemonic
-                 AND gsm_comment.owning_reference        = pcEntityObjValue
-                 AND gsm_comment.auto_display            = YES
-                 AND (gsm_comment.expiry_date           >= TODAY
-                   OR gsm_comment.expiry_date = ?):
-        
-                ASSIGN cRowCommentAuto = cRowCommentAuto 
-                                       + (IF cRowCommentAuto = '':U THEN '':U ELSE CHR(10))  
-                                       + gsm_comment.comment_description.
-            END.
+        FOR EACH gsm_comment NO-LOCK
+           WHERE gsm_comment.owning_entity_mnemonic  = pcEntityMnemonic
+             AND gsm_comment.owning_reference        = pcEntityObjValue
+             AND gsm_comment.auto_display            = YES
+             AND (gsm_comment.expiry_date           >= TODAY
+               OR gsm_comment.expiry_date = ?):
+    
+            ASSIGN cRowCommentAuto = cRowCommentAuto 
+                                   + (IF cRowCommentAuto = '':U THEN '':U ELSE CHR(10))  
+                                   + gsm_comment.comment_description.
+        END.
     END.
 
     ASSIGN pcRowUserProp 
@@ -2352,75 +2334,7 @@ PROCEDURE getRecordUserProp :
 
   RETURN.
 
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getRecordUserPropx Include 
-PROCEDURE getRecordUserPropx :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-
-  DEFINE INPUT  PARAMETER pcEntityMnemonic  AS CHARACTER NO-UNDO.
-  DEFINE INPUT  PARAMETER pcEntityObjField  AS CHARACTER NO-UNDO.
-  DEFINE INPUT  PARAMETER pcEntityObjValue  AS CHARACTER NO-UNDO.
-  DEFINE OUTPUT PARAMETER pcRowUserProp     AS CHARACTER NO-UNDO.
-
-  &IF DEFINED(server-side) = 0 &THEN
-        RUN af/app/afgengtrecusrprpxp.p ON gshAstraAppServer
-               (INPUT pcEntityMnemonic,
-                INPUT pcEntityObjField,
-                INPUT pcEntityObjValue,
-                OUTPUT pcRowUserProp) NO-ERROR.
-        IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN 
-                  RETURN ERROR (IF RETURN-VALUE = "" OR RETURN-VALUE = ? AND ERROR-STATUS:NUM-MESSAGES > 0 THEN 
-                                ERROR-STATUS:GET-MESSAGE(1) ELSE RETURN-VALUE).
-  IF RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
-  &ELSE
-
-    DEFINE VARIABLE lRowAuditExist            AS LOGICAL   NO-UNDO.
-    DEFINE VARIABLE lRowCommentExist          AS LOGICAL   NO-UNDO.
-    DEFINE VARIABLE cRowCommentAuto           AS CHARACTER NO-UNDO.
-
-    ASSIGN 
-      lRowAuditExist   = NO
-      lRowCommentExist = NO
-      cRowCommentAuto  = "":U.
-
-    RUN getRecordCheckAudit IN TARGET-PROCEDURE  (INPUT  pcEntityMnemonic
-                                                 ,INPUT  pcEntityObjField
-                                                 ,INPUT  pcEntityObjValue
-                                                 ,OUTPUT lRowAuditExist
-                                                 ).
-
-    IF pcRowUserProp <> "":U THEN ASSIGN pcRowUserProp = pcRowUserProp + CHR(4).
-    ASSIGN pcRowUserProp = pcRowUserProp + "gstad" + CHR(3) + (IF lRowAuditExist THEN "YES":U ELSE "NO":U).
-
-    RUN getRecordCheckComment IN TARGET-PROCEDURE (INPUT  pcEntityMnemonic
-                                                  ,INPUT  pcEntityObjField
-                                                  ,INPUT  pcEntityObjValue
-                                                  ,OUTPUT lRowCommentExist
-                                                  ,OUTPUT cRowCommentAuto
-                                                  ).
-
-    IF pcRowUserProp <> "":U THEN ASSIGN pcRowUserProp = pcRowUserProp + CHR(4).
-    ASSIGN pcRowUserProp = pcRowUserProp + "gsmcm" + CHR(3) + (IF lRowCommentExist THEN "YES":U ELSE "NO":U).
-
-    IF cRowCommentAuto <> "":U
-    THEN DO:
-      IF pcRowUserProp <> "":U THEN ASSIGN pcRowUserProp = pcRowUserProp + CHR(4).
-      ASSIGN pcRowUserProp = pcRowUserProp + "gsmcmauto" + CHR(3) + cRowCommentAuto.
-    END.
-
-  &ENDIF
-
-  RETURN.
-
-END PROCEDURE.
+END PROCEDURE.    /* getRecordUserProp */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -2689,6 +2603,10 @@ DEFINE OUTPUT PARAMETER pcNextSequenceValue     AS CHARACTER            NO-UNDO.
             END.
             ELSE
               pcNextSequenceValue = gsc_sequence.sequence_format.
+
+            IF gsc_sequence.auto_generate AND
+               gsc_sequence.NEXT_value < gsc_sequence.MIN_value THEN
+               ASSIGN gsc_sequence.NEXT_value = gsc_sequence.MIN_value.
 
             /* Assign the sequence */
             ASSIGN pcNextSequenceValue = SUBSTITUTE(pcNextSequenceValue,
@@ -3378,7 +3296,21 @@ PROCEDURE updateTableViaSDO :
         RETURN.
 
     /* Start up SDO */
-    RUN VALUE(pcSdoName) ON gshAstraAppServer PERSISTENT SET hSDO NO-ERROR.
+    ASSIGN pcSdoName = REPLACE(pcSdoName,"~\":U,"/":U).
+
+    IF INDEX(pcSdoName,"/":U) > 0 THEN
+      ASSIGN pcSdoName = SUBSTRING(pcSdoName,R-INDEX(pcSdoName,"/":U) + 1).
+
+    RUN startDataObject IN gshRepositoryManager (INPUT  pcSdoName,
+                                                 OUTPUT hSDO) NO-ERROR.
+    IF NOT VALID-HANDLE(hSDO) THEN
+    DO:
+      pcSdoName = pcSdoName + ".w":U.
+      RUN startDataObject IN gshRepositoryManager (INPUT  pcSdoName,
+                                                   OUTPUT hSDO) NO-ERROR.
+    END.
+    IF NOT VALID-HANDLE(hSDO) THEN
+      RETURN ERROR {aferrortxt.i 'AF' '40' '?' '?' "'error running ' + pcSdoDescription + ' SDO'" }.
 
     IF VALID-HANDLE(hSDO) THEN
     DO:

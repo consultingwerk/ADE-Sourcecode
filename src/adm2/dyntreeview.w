@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 /* Procedure Description
 "SmartTreeView
 
@@ -7,6 +7,12 @@ This is the SmartTreeView component."
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS sObject 
+/*********************************************************************
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
+*                                                                    *
+*********************************************************************/
 /*------------------------------------------------------------------------
 
   File: treeview.w
@@ -59,7 +65,7 @@ DEFINE VARIABLE ghTreeData AS HANDLE NO-UNDO.
 
 &Scoped-define ADM-SUPPORTED-LINKS TVController-Target
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME frTreeView
 
 /* Custom List Definitions                                              */
@@ -154,7 +160,7 @@ END.
 /* SETTINGS FOR WINDOW sObject
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frTreeView
-   Size-to-Fit                                                          */
+   FRAME-NAME Size-to-Fit                                               */
 ASSIGN 
        FRAME frTreeView:SCROLLABLE       = FALSE.
 

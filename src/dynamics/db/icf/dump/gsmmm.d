@@ -29,7 +29,7 @@ PSC
 filename=gsm_multi_media
 records=0000000000026
 ldbname=ICFDB
-timestamp=2005/04/06-13:05:01
+timestamp=2005/06/30-15:33:26
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP

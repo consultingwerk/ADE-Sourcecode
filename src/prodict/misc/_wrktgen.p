@@ -68,6 +68,11 @@ run on another database to define those tables.
   user_env[30] = write exit at end of SQL.
   user_env[32] = Underlying DBMS Type
   user_env[31] = string to comment out a line of SQL. 
+  user_env[33] = Field width... 
+                   Values:
+                      "y" = Use SQL WIDTH
+                      "n" = Use VARCHAR(30) for "x(8)" fields
+                      "?" = Use field format
   user_env[34] = name of tablespace for tables for Oracle only.
   user_env[35] = name of tablespace for indexes for Oracle only.
 */
@@ -173,9 +178,10 @@ prevent future-bugs resulting out of default behaviour <hutegger>
   kmcintos  04/13/04   Added support for DB2/400 Libraries.  Prepending library names 
                        to CREATE (TABLE & INDEX) statements
   
-If working with an Oracle Database and the user wants to have a DEFAULT value of blank for
-VARCHAR2 fields, an environmental variable BLANKDEFAULT can be set to "YES" and the code will
-put the DEFAULT ' ' syntax on the definition. D. McMann 11/27/02    
+  kmcintos 02/15/05   Added "DB2" to case statement.  Fixed bug # 20050214-020.
+  kmcintos 02/28/05   Added cases for user_env[33] (Field width/x8override)
+
+If working with an Oracle Database and the user wants to have a DEFAULT value of blank for VARCHAR2 fields, an environment variable BLANKDEFAULT can be set to "YES" and the code will put the DEFAULT ' ' syntax on the definition. D. McMann 11/27/02    
     
 */
 
@@ -246,6 +252,7 @@ DEFINE VARIABLE nbrchar             AS INTEGER    NO-UNDO.
 DEFINE VARIABLE slash               AS INTEGER    NO-UNDO.
 DEFINE VARIABLE unsprtdt            AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE dot                 AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cTmpFmt             AS CHARACTER  NO-UNDO.
 
 DEFINE NEW SHARED VARIABLE crnt-vals AS INTEGER EXTENT 2000 init 0 NO-UNDO.
 
@@ -301,9 +308,13 @@ ASSIGN
   shadow = (user_env[21] BEGINS "y") /* Create shadow columns for case-insens key fields */
   doseq  = (user_env[22] = "ORACLE" and user_env[25] BEGINS "y") OR
            (user_env[32] <> ?   and user_env[25] BEGINS "y")
-  doseq  = doseq and user_env[1] = "ALL"
-  sqlwidth = (user_env[33] BEGINS "y") /* Use _Width field for size */
-  .
+  doseq  = doseq and user_env[1] = "ALL".
+
+IF user_env[33] = "y" THEN
+  sqlwidth = TRUE. /* Use _Width field for size */
+ELSE IF user_env[33] = "?" THEN
+  sqlwidth = ?. /* Use _Format field for size */
+ELSE sqlwidth = FALSE. /* Calculate size */
 
 IF user_env[30] = ? OR user_env[30] = "" 
  THEN ASSIGN user_env[30] = "y".
@@ -363,7 +374,7 @@ CASE dbtyp:
     ASSIGN longwid = 2000
            prowid_col = "PROGRESS_RECID".
            
-  WHEN "DB2/400" OR WHEN "DB2(Other)" THEN
+  WHEN "DB2/400" OR WHEN "DB2(Other)" OR WHEN "DB2" THEN
     ASSIGN longwid = 4000
            prowid_col = "PROGRESS_RECID".
                  
@@ -499,10 +510,10 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
                z = 0.
            
         IF INDEX(DICTDB._Field._Format, "(") > 1 THEN DO:
-          left_paren = INDEX(DICTDB._Field._Format, "(").
-          right_paren = INDEX(DICTDB._Field._Format, ")").
-          lngth = right_paren - (left_paren + 1).
-          assign z = INTEGER(SUBSTRING(DICTDB._Field._Format, left_paren + 1, lngth)).  
+           left_paren = INDEX(DICTDB._Field._Format, "(").
+           right_paren = INDEX(DICTDB._Field._Format, ")").
+           lngth = right_paren - (left_paren + 1).
+           assign z = INTEGER(SUBSTRING(DICTDB._Field._Format, left_paren + 1, lngth)).  
         END. 
         ELSE DO:         
           DO j = 1 to lngth:        
@@ -647,10 +658,8 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
     END.
     ELSE DO:
       DO a = 1 TO 999:
-        IF a = 1 THEN
-          ASSIGN n1 = n1 + STRING(a).
-        ELSE
-          ASSIGN n1 = SUBSTRING(n1, 1, LENGTH(n1) - LENGTH(STRING(a))) + STRING(a).
+        ASSIGN n1 = SUBSTRING(n1, 1, LENGTH(n1) - LENGTH(STRING(a))) + STRING(a).
+
         IF CAN-FIND(verify-table WHERE verify-table.new-name = n1) THEN NEXT.
         ELSE DO:
           CREATE verify-table.
@@ -787,10 +796,8 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
       END.
       ELSE DO:
         DO a = 1 TO 999:
-          IF a = 1 THEN
-            ASSIGN n2 = n2 + STRING(a).
-          ELSE
-            ASSIGN n2 = SUBSTRING(n2, 1, LENGTH(n2) - LENGTH(STRING(a))) + STRING(a).
+          ASSIGN n2 = SUBSTRING(n2, 1, LENGTH(n2) - LENGTH(STRING(a))) + STRING(a).
+
           IF CAN-FIND(verify-name WHERE verify-name.new-name = n2) THEN NEXT.
           ELSE DO:
             CREATE verify-name.
@@ -851,10 +858,10 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
 
           IF DICTDB._Field._Decimals > 0 
             AND can-find(first DICTDB._Db where RECID(DICTDB._Db) = drec_db
-                                            and DICTDB._Db._Db-type <> "PROGRESS" ) THEN 
+                         and DICTDB._Db._Db-type <> "PROGRESS" ) THEN 
             ASSIGN j = DICTDB._Field._Decimals.
           
-          IF j = 8 THEN j = minwdth.
+          IF j = 8 AND sqlwidth = FALSE THEN j = minwdth.
         END.
 
         IF j > longwid THEN
@@ -1899,7 +1906,7 @@ IF doseq THEN DO:
     END.
   END. /* for each DICTDB._Sequence */
 END. /* if doseq */
-IF ( dbtyp <> "PROGRESS" ) and ( user_env[30] begins "y")THEN 
+IF ( dbtyp <> "PROGRESS" ) and ( user_env[30] begins "y") THEN 
     PUT STREAM code UNFORMATTED "exit" SKIP.
 
 OUTPUT STREAM code CLOSE.

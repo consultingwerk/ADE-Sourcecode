@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -43,7 +27,15 @@ Input:
                 "4" = AS/400 definitions
                 "4t" = AS/400 trigger definitions
                 "s" = load sequence def's
-
+                "t" = load audit policies as text
+                "x" = load audit policies as xml
+                "y" = load audit data
+                "e" = load application audit events
+                "z" = load security authentication records
+                "m" = load security permissions
+                "i" = load Database Identification Properties
+                "o" = load Database Options
+                
 Output:
   user_env[1] = same as IN
   user_env[2] = physical file or directry name for some input
@@ -81,7 +73,13 @@ History:
 
     hutegger    95/05   changed "h" behaviour to message "Load aborted"
                         in case an error occured
-
+    kmcintos 04/04/05   Added frames and additional logic for auditing
+                        support
+    kmcintos 06/07/05   Added context sensitive help for auditing options
+    kmcintos 08/18/05   Added user_commit toggle to audit policy load
+                        dialog 20050629-018.
+    kmcintos 08/31/05   Added special case for audit policies as text
+                        20050629-018.
 */
 /*h-*/
 
@@ -140,15 +138,76 @@ DEFINE VARIABLE oldsession    AS CHARACTER NO-UNDO.
 
 {prodict/misc/filesbtn.i}
 
-
-
 /* standard form */
 FORM SKIP({&TFM_WID})
-  user_env[2] {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" AT 2 VIEW-AS FILL-IN SIZE 40 BY 1
-         LABEL "&Input File"
+  user_env[2] {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" 
+              AT 2 VIEW-AS FILL-IN SIZE 40 BY 1
+              LABEL "&Input File"
   btn_File SKIP ({&VM_WIDG})
   {prodict/user/userbtns.i}
   WITH FRAME read-input
+  SIDE-LABELS NO-ATTR-SPACE CENTERED 
+  DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel
+  VIEW-AS DIALOG-BOX TITLE " " + io-title + " ".
+
+/* standard form */
+FORM SKIP({&TFM_WID})
+  user_env[2] {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" AT 2 
+              VIEW-AS FILL-IN SIZE 40 BY 1
+              LABEL "&Input Directory"
+  &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
+    btn_dir LABEL "Dir..." 
+  &ENDIF
+  "(If different from current directory)" VIEW-AS TEXT 
+      AT &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 19 &ELSE 17 &ENDIF
+  {prodict/user/userbtns.i}
+  WITH FRAME read-input-dir
+  SIDE-LABELS NO-ATTR-SPACE CENTERED 
+  DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel
+  VIEW-AS DIALOG-BOX TITLE " " + io-title + " ".
+
+FORM SKIP({&TFM_WID})
+  user_env[2] {&STDPH_FILL} 
+              FORMAT "x({&PATH_WIDG})" AT 2
+              VIEW-AS FILL-IN 
+                      SIZE 40 BY 1
+              LABEL "&Input Directory"
+  &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
+    btn_dir LABEL "Dir..."
+  &ENDIF
+  "(If different from current directory)" VIEW-AS TEXT
+                                          AT 
+                                           &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
+                                             19 &ELSE 17 &ENDIF
+  user_commit VIEW-AS TOGGLE-BOX
+              LABEL "&Refresh DB Policy Cache" AT 2
+              
+  {prodict/user/userbtns.i}
+  
+  WITH FRAME read-dir-text
+             SIDE-LABELS NO-ATTR-SPACE CENTERED
+             DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel
+             VIEW-AS DIALOG-BOX TITLE " " + io-title + " ".
+
+/* standard form */
+FORM SKIP({&TFM_WID})
+  user_env[2] {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" AT 2 
+              VIEW-AS FILL-IN SIZE 40 BY 1
+              LABEL "&Input Directory"
+  &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
+    btn_dir LABEL "Dir..." 
+  &ENDIF
+  "(If different from current directory)" VIEW-AS TEXT 
+     AT &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+          19 &ELSE 17 &ENDIF SKIP({&VM_WIDG})
+  {&DFILE-SPEECH}
+  i {&STDPH_FILL} FORMAT ">>9" LABEL "&Acceptable Error Percentage" AT 2                   
+     VALIDATE(i >= 0 AND i <= 100,
+     "Percentage must be between 0 and 100 inclusive.") SKIP({&VM_WIDG})
+  do-screen VIEW-AS TOGGLE-BOX LABEL " Display Errors to &Screen"
+  AT 2  SKIP({&VM_WIDG})
+  {prodict/user/userbtns.i}
+  WITH FRAME read-dir-nobl
   SIDE-LABELS NO-ATTR-SPACE CENTERED 
   DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel
   VIEW-AS DIALOG-BOX TITLE " " + io-title + " ".
@@ -246,6 +305,52 @@ FORM SKIP({&TFM_WID})
   DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel
   VIEW-AS DIALOG-BOX TITLE " " + io-title + " ".
 
+FORM SKIP({&TFM_WID})
+  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+    user_env[2] {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" AT 3 VIEW-AS FILL-IN SIZE 45 BY 1
+         LABEL " &Input File" btn_File  SKIP ({&VM_WIDG})
+  &ELSE 
+    user_env[2] {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" AT 6 VIEW-AS FILL-IN SIZE 45 BY 1
+         LABEL "&Input File" btn_File  SKIP ({&VM_WIDG})
+   &ENDIF
+  {&DFILE-SPEECH}
+  i {&STDPH_FILL} FORMAT ">>9" LABEL "&Acceptable Error Percentage" AT 2                   
+     VALIDATE(i >= 0 AND i <= 100,
+     "Percentage must be between 0 and 100 inclusive.") SKIP({&VM_WIDG})
+  do-screen VIEW-AS TOGGLE-BOX LABEL " Display Errors to &Screen"
+  AT 2  SKIP({&VM_WIDG})
+  {prodict/user/userbtns.i}
+  WITH FRAME read-d-file-nobl
+  SIDE-LABELS NO-ATTR-SPACE CENTERED 
+  DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel
+  VIEW-AS DIALOG-BOX TITLE " " + io-title + " ".
+
+FORM SKIP({&TFM_WID})
+  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+    user_env[2] {&STDPH_FILL} 
+                FORMAT "x({&PATH_WIDG})" AT 3
+                VIEW-AS FILL-IN SIZE 45 BY 1
+                LABEL " &Input File" 
+    btn_File                                                  SKIP({&VM_WIDG})
+    user_overwrite VIEW-AS TOGGLE-BOX 
+                   LABEL "&Overwrite Duplicate Policies" AT 6 SKIP({&VM_WIDG})
+    user_commit    VIEW-AS TOGGLE-BOX
+                   LABEL "&Refresh DB Policy Cache"      AT 6
+  &ELSE 
+    user_env[2] {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" 
+                AT 4 VIEW-AS FILL-IN SIZE 45 BY 1
+                LABEL "&Input File" 
+    btn_File                                                  SKIP({&VM_WIDG})
+    user_overwrite VIEW-AS TOGGLE-BOX 
+                   LABEL "&Overwrite Duplicate Policies" AT 4
+    user_commit    VIEW-AS TOGGLE-BOX
+                   LABEL "&Refresh DB Policy Cache"      
+  &ENDIF
+  {prodict/user/userbtns.i}
+  WITH FRAME read-xml-file
+  SIDE-LABELS NO-ATTR-SPACE CENTERED 
+  DEFAULT-BUTTON btn_OK
+  VIEW-AS DIALOG-BOX TITLE " " + io-title + " ".
 
 FORM SKIP({&TFM_WID})
   &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
@@ -274,6 +379,32 @@ FORM SKIP({&TFM_WID})
       AT 2 SKIP({&VM_WIDG})
   {prodict/user/userbtns.i}
   WITH FRAME read-d-dir
+  SIDE-LABELS NO-ATTR-SPACE CENTERED 
+  DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel
+  VIEW-AS DIALOG-BOX TITLE " " + io-title + " ".  
+
+FORM SKIP({&TFM_WID})
+  &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
+    idir_lbl NO-LABEL VIEW-AS TEXT AT 2
+    user_env[2] {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" AT 2 VIEW-AS FILL-IN 
+          SIZE 45 BY 1 NO-LABEL  btn_dir LABEL "Dir.." SKIP ({&VM_WIDG})
+  &ELSE
+     user_env[2] {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" AT 2 VIEW-AS FILL-IN SIZE 45 BY 1
+                LABEL "Input Directory"  SKIP 
+    "(Leave blank for current directory)" VIEW-AS TEXT AT 19  SKIP({&VM_WIDG})   
+    "    Include LOB:" VIEW-AS TEXT AT 2 inclob LABEL "yes/no" view-as toggle-box SKIP ({&VM_WID})
+    user_env[30] {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" AT 2 VIEW-AS FILL-IN 
+      SIZE 45 BY 1 LABEL "  Lob Directory"  SKIP 
+     "(Leave blank for current directory)" VIEW-AS TEXT AT 19 SKIP({&VM_WIDG})
+  &ENDIF  
+  {&DFILE-SPEECH}
+  i {&STDPH_FILL} FORMAT ">>9" AT 2 LABEL "&Acceptable Error Percentage"                     
+     VALIDATE(i >= 0 AND i <= 100,
+     "Percentage must be between 0 and 100 inclusive.") SKIP({&VM_WIDG})
+  do-screen VIEW-AS TOGGLE-BOX LABEL "Output Errors to &Screen"
+      AT 2 SKIP({&VM_WIDG})
+  {prodict/user/userbtns.i}
+  WITH FRAME read-dir
   SIDE-LABELS NO-ATTR-SPACE CENTERED 
   DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel
   VIEW-AS DIALOG-BOX TITLE " " + io-title + " ".  
@@ -311,11 +442,61 @@ on HELP of frame read-df or CHOOSE of btn_Help in frame read-df
                              INPUT {&Load_Data_Definitions_Dlg_Box},
                              INPUT ?).
 
-on HELP of frame read-d-file
-   or CHOOSE of btn_Help in frame read-d-file
-   RUN "adecomm/_adehelp.p" (INPUT "admn", INPUT "CONTEXT", 
+ON HELP OF FRAME read-d-file OR 
+   CHOOSE OF btn_Help IN FRAME read-d-file
+  RUN "adecomm/_adehelp.p" ( INPUT "admn", 
+                             INPUT "CONTEXT", 
                              INPUT {&Load_Data_Contents_Dlg_Box},
-                             INPUT ?).
+                             INPUT ? ).
+
+ON HELP   OF FRAME read-d-file-nobl OR 
+   CHOOSE OF btn_Help IN FRAME read-d-file-nobl DO:
+  DEFINE VARIABLE iContextId AS INTEGER     NO-UNDO.
+
+  CASE user_env[9]:
+    WHEN "o" THEN
+      iContextId = {&Load_Database_Options_Dialog_Box}.
+    WHEN "i" THEN
+      iContextId = {&Load_Database_Identification_Properties_Dialog_Box}.
+    WHEN "e" THEN
+      iContextId = {&Load_Application_Audit_Events_Dialog_Box}.
+  END CASE.
+  RUN "adecomm/_adehelp.p" ( INPUT "admn", 
+                             INPUT "CONTEXT", 
+                             INPUT iContextId,
+                             INPUT ? ).
+END.
+
+ON HELP OF FRAME read-xml-file OR 
+   CHOOSE OF btn_Help IN FRAME read-xml-file
+  RUN "adecomm/_adehelp.p" ( INPUT "admn", 
+                             INPUT "CONTEXT",
+                             /* Temporary until context help is developed */
+                             INPUT {&Load_Data_Contents_Dlg_Box},
+                             INPUT ? ).
+
+ON HELP OF FRAME read-input-dir OR 
+   CHOOSE OF btn_Help IN FRAME read-input-dir
+  RUN "adecomm/_adehelp.p" ( INPUT "admn",
+                             INPUT "CONTEXT",
+                             INPUT {&Load_Data_Contents_Dlg_Box},
+                             INPUT ? ).
+
+ON HELP OF FRAME read-dir-text OR
+   CHOOSE OF btn_Help IN FRAME read-dir-text
+  RUN "adecomm/_adehelp.p" ( INPUT "admn",
+                             INPUT "CONTEXT",
+                             INPUT {&Load_Data_Contents_Dlg_Box},
+                             INPUT ? ).
+                             
+ON HELP OF FRAME read-dir-nobl
+   OR CHOOSE OF btn_Help IN FRAME read-dir-nobl
+  RUN "adecomm/_adehelp.p" ( INPUT "admn",
+                             INPUT "CONTEXT",
+                             /* Temporary until context help is developed */
+                             INPUT {&Load_Data_Contents_Dlg_Box},
+                             INPUT ? ).
+
 on HELP of frame read-d-dir
    or CHOOSE of btn_Help in frame read-d-dir
    RUN "adecomm/_adehelp.p" (INPUT "admn", INPUT "CONTEXT", 
@@ -362,6 +543,72 @@ DO:
   run verify-cp.
 END.
 
+ON GO OF FRAME read-d-file-nobl
+DO:
+  IF io-file AND SEARCH(user_env[2]:SCREEN-VALUE IN FRAME read-d-file-nobl) = ? 
+  THEN DO:
+    MESSAGE msg VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    APPLY "ENTRY" TO user_env[2] IN FRAME read-d-file-nobl.
+    RETURN NO-APPLY.
+  END.
+  user_env[2] = user_env[2]:SCREEN-VALUE IN FRAME read-d-file-nobl.
+
+  run verify-cp.
+END.
+
+ON GO OF FRAME read-xml-file
+DO:
+  IF SEARCH(user_env[2]:SCREEN-VALUE IN FRAME read-xml-file) = ? 
+  THEN DO:
+    MESSAGE msg VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    APPLY "ENTRY" TO user_env[2] IN FRAME read-xml-file.
+    RETURN NO-APPLY.
+  END.
+  user_env[2]  = user_env[2]:SCREEN-VALUE IN FRAME read-xml-file.
+END.
+
+ON GO OF FRAME read-input-dir DO:
+  DEFINE VARIABLE cDir AS CHARACTER   NO-UNDO.
+
+  cDir = (IF user_env[2]:SCREEN-VALUE IN FRAME read-input-dir = "" THEN
+            "./" ELSE user_env[2]:SCREEN-VALUE IN FRAME read-input-dir).
+  FILE-INFO:FILE-NAME = cDir.
+  IF FILE-INFO:FILE-NAME = ? OR
+     INDEX(FILE-INFO:FILE-TYPE,"D") = 0 THEN DO:
+    MESSAGE cDir "is not a directory or cannot be found!"
+        VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    RETURN NO-APPLY.
+  END.
+END.
+
+ON GO OF FRAME read-dir-text DO:
+  DEFINE VARIABLE cDir AS CHARACTER   NO-UNDO.
+  
+  cDir = (IF user_env[2]:SCREEN-VALUE IN FRAME read-dir-text = "" THEN
+            "./" ELSE user_env[2]:SCREEN-VALUE IN FRAME read-dir-text).
+  FILE-INFO:FILE-NAME = cDir.
+  IF FILE-INFO:FILE-NAME = ? OR
+     INDEX(FILE-INFO:FILE-TYPE,"D") = 0 THEN DO:
+    MESSAGE cDir "is not a directory or cannot be found!"
+        VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    RETURN NO-APPLY.
+  END.
+END.
+
+ON GO OF FRAME read-dir-nobl DO:
+  DEFINE VARIABLE cDir AS CHARACTER   NO-UNDO.
+
+  cDir = (IF user_env[2]:SCREEN-VALUE IN FRAME read-dir-nobl = "" THEN
+            "./" ELSE user_env[2]:SCREEN-VALUE IN FRAME read-dir-nobl).
+  FILE-INFO:FILE-NAME = cDir.
+  IF FILE-INFO:FILE-NAME = ? OR
+     INDEX(FILE-INFO:FILE-TYPE,"D") = 0 THEN DO:
+    MESSAGE cDir "is not a directory or cannot be found!"
+        VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    RETURN NO-APPLY.
+  END.
+END.
+
 ON GO OF FRAME read-d-dir
 DO:
   IF io-file AND SEARCH(user_env[2]:SCREEN-VALUE IN FRAME read-d-dir) = ? 
@@ -386,13 +633,44 @@ DO:
   ASSIGN user_env[2] = user_env[2]:SCREEN-VALUE IN FRAME read-input.
   run verify-cp.
 END.
+
+ON CHOOSE OF btn_Cancel IN FRAME read-xml-file
+  APPLY "WINDOW-CLOSE" TO FRAME read-xml-file.
+
+IF user_env[9] = "y" THEN DO:
+  ON CHOOSE OF btn_Cancel IN FRAME read-input-dir
+    APPLY "WINDOW-CLOSE" TO FRAME read-input-dir.
+END.
+
+
+IF user_env[9] = "t" THEN DO:
+  ON CHOOSE OF btn_Cancel IN FRAME read-dir-text
+    APPLY "WINDOW-CLOSE" TO FRAME read-dir-text.
+END.
+      
 /*----- ON WINDOW-CLOSE -----*/
 on WINDOW-CLOSE of frame read-input
    apply "END-ERROR" to frame read-input.
+ON WINDOW-CLOSE OF FRAME read-input-dir
+   APPLY "END-ERROR" TO FRAME read-input-dir.
+ON WINDOW-CLOSE OF FRAME read-dir-text
+   APPLY "END-ERROR" TO FRAME read-dir-text.
+ON END-ERROR OF FRAME read-input-dir
+  user_env[2] = ?.
+ON END-ERROR OF FRAME read-dir-text
+  user_env[2] = ?.
+ON WINDOW-CLOSE OF FRAME read-dir-nobl
+   APPLY "END-ERROR" TO FRAME read-dir-nobl.
 on WINDOW-CLOSE of frame read-df
    apply "END-ERROR" to frame read-df.
 on WINDOW-CLOSE of frame read-d-file
    apply "END-ERROR" to frame read-d-file.
+on WINDOW-CLOSE of frame read-d-file-nobl
+   apply "END-ERROR" to frame read-d-file-nobl.
+on WINDOW-CLOSE of frame read-xml-file
+   apply "END-ERROR" to frame read-xml-file.
+on END-ERROR of frame read-xml-file
+  user_env[2] = ?.
 on WINDOW-CLOSE of frame read-d-dir
    apply "END-ERROR" to frame read-d-dir.
 
@@ -400,13 +678,27 @@ on WINDOW-CLOSE of frame read-d-dir
 ON LEAVE OF user_env[2] in frame read-input
    user_env[2]:screen-value in frame read-input = 
         TRIM(user_env[2]:screen-value in frame read-input).
+ON LEAVE OF user_env[2] IN FRAME read-input-dir
+   user_env[2]:SCREEN-VALUE IN FRAME read-input-dir = 
+        TRIM(user_env[2]:SCREEN-VALUE IN FRAME read-input-dir).
+ON LEAVE OF user_env[2] IN FRAME read-dir-text
+   user_env[2]:SCREEN-VALUE IN FRAME read-dir-text =
+        TRIM(user_env[2]:SCREEN-VALUE IN FRAME read-dir-text).
+ON LEAVE OF user_env[2] IN FRAME read-dir-nobl
+   user_env[2]:SCREEN-VALUE IN FRAME read-dir-nobl = 
+        TRIM(user_env[2]:SCREEN-VALUE IN FRAME read-dir-nobl).
 ON LEAVE OF user_env[2] in frame read-df
    user_env[2]:screen-value in frame read-df = 
         TRIM(user_env[2]:screen-value in frame read-df).
 ON LEAVE OF user_env[2] in frame read-d-file
    user_env[2]:screen-value in frame read-d-file = 
         TRIM(user_env[2]:screen-value in frame read-d-file).
-
+ON LEAVE OF user_env[2] in frame read-d-file-nobl
+   user_env[2]:screen-value in frame read-d-file-nobl = 
+        TRIM(user_env[2]:screen-value in frame read-d-file-nobl).
+ON LEAVE OF user_env[2] in frame read-xml-file
+   user_env[2]:screen-value in frame read-xml-file = 
+        TRIM(user_env[2]:screen-value in frame read-xml-file).
 ON LEAVE OF user_env[2] in frame read-d-dir DO:
   user_env[2]:screen-value in frame read-d-dir = 
         TRIM(user_env[2]:screen-value in frame read-d-dir).
@@ -511,11 +803,43 @@ ON CHOOSE OF btn_File in frame read-d-file DO:
         INPUT ""                 /*Filter*/,
         INPUT yes                /*Must exist*/).
 END.
+ON CHOOSE OF btn_File in frame read-d-file-nobl DO:
+   RUN "prodict/misc/_filebtn.p"
+       (INPUT user_env[2]:handle in frame read-d-file-nobl /*Fillin*/,
+        INPUT "Find Input File"  /*Title*/,
+        INPUT ""                 /*Filter*/,
+        INPUT yes                /*Must exist*/).
+END.
+ON CHOOSE OF btn_File in frame read-xml-file DO:
+   RUN "prodict/misc/_filebtn.p"
+       (INPUT user_env[2]:handle in frame read-xml-file /*Fillin*/,
+        INPUT "Find Input File"  /*Title*/,
+        INPUT ""                 /*Filter*/,
+        INPUT yes                /*Must exist*/).
+END.
 &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN 
   ON CHOOSE OF btn_dir in frame read-d-file DO:
    RUN "prodict/misc/_dirbtn.p"
        (INPUT user_env[30]:handle in frame read-d-file /*Fillin*/,
         INPUT "Find Lob Directory"  /*Title*/,
+        INPUT ""                 /*Filter*/).
+  END.
+  ON CHOOSE OF btn_dir in frame read-input-dir DO:
+    RUN "prodict/misc/_dirbtn.p"
+       (INPUT user_env[2]:handle in frame read-input-dir /*Fillin*/,
+        INPUT "Choose Directory"  /*Title*/,
+        INPUT ""                 /*Filter*/).
+  END.
+  ON CHOOSE OF btn_dir in frame read-dir-text DO:
+    RUN "prodict/misc/_dirbtn.p"
+       (INPUT user_env[2]:handle in frame read-dir-text /*Fillin*/,
+        INPUT "Choose Directory"  /*Title*/,
+        INPUT ""                 /*Filter*/).
+  END.
+  ON CHOOSE OF btn_dir in frame read-dir-nobl DO:
+   RUN "prodict/misc/_dirbtn.p"
+       (INPUT user_env[2]:handle in frame read-dir-nobl /*Fillin*/,
+        INPUT "Choose Directory"  /*Title*/,
         INPUT ""                 /*Filter*/).
   END.
   ON CHOOSE OF btn_dir in frame read-d-dir DO:
@@ -533,7 +857,7 @@ END.
 &ENDIF
 /*=======================Internal Procedures==========================*/
 
-PROCEDURE verify-cp.
+PROCEDURE verify-cp:
   /* Is there a defined codepage? Try to read it in the trailer, if
    * not, ask for it
    */
@@ -1005,7 +1329,7 @@ IF io-frame = "df" THEN DO:
 END.
 
 ELSE IF io-frame = "d" THEN DO:
- IF NOT io-file THEN DO:
+  IF NOT io-file THEN DO:
     {adecomm/okrun.i  
      &FRAME  = "FRAME read-d-dir" 
      &BOX    = "rect_Btns"
@@ -1016,10 +1340,27 @@ ELSE IF io-frame = "d" THEN DO:
 
     DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE WITH FRAME read-d-dir:
       &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN 
-        ENABLE user_env[2] btn_dir inclob user_env[30] btn_dir2 i do-screen btn_OK btn_Cancel.
+        ENABLE user_env[2] 
+               btn_dir 
+               inclob 
+               user_env[30] 
+               btn_dir2 
+               i 
+               do-screen 
+               btn_OK 
+               btn_Cancel.
         ASSIGN i = INTEGER(user_env[4]).
 
-        UPDATE user_env[2] btn_dir inclob user_env[30] btn_dir2 i do-screen btn_OK btn_Cancel  {&HLP_BTN_NAME}.
+        UPDATE user_env[2] 
+               btn_dir 
+               inclob 
+               user_env[30] 
+               btn_dir2 
+               i 
+               do-screen 
+               btn_OK 
+               btn_Cancel  
+               {&HLP_BTN_NAME}.
         ASSIGN user_env[6] = (IF do-screen THEN "s" ELSE "f").
 
         RUN "prodict/misc/ostodir.p" (INPUT-OUTPUT user_env[2]).
@@ -1033,7 +1374,14 @@ ELSE IF io-frame = "d" THEN DO:
         ENABLE user_env[2] inclob user_env[30] i do-screen btn_OK btn_Cancel.
         ASSIGN i = INTEGER(user_env[4]).
 
-        UPDATE user_env[2] inclob user_env[30] i do-screen btn_OK btn_Cancel  {&HLP_BTN_NAME}.
+        UPDATE user_env[2] 
+               inclob 
+               user_env[30] 
+               i 
+               do-screen 
+               btn_OK 
+               btn_Cancel  
+               {&HLP_BTN_NAME}.
         ASSIGN user_env[6] = (IF do-screen THEN "s" ELSE "f").
 
         RUN "prodict/misc/ostodir.p" (INPUT-OUTPUT user_env[2]).
@@ -1061,7 +1409,16 @@ ELSE IF io-frame = "d" THEN DO:
         ENABLE user_env[2]  btn_File inclob user_env[30] btn_dir i do-screen btn_OK btn_Cancel.
         ASSIGN i = INTEGER(user_env[4]).
 
-        UPDATE user_env[2]  btn_File inclob user_env[30] btn_dir i do-screen btn_OK btn_Cancel  {&HLP_BTN_NAME}.
+        UPDATE user_env[2] 
+               btn_File 
+               inclob 
+               user_env[30] 
+               btn_dir 
+               i 
+               do-screen 
+               btn_OK 
+               btn_Cancel  
+               {&HLP_BTN_NAME}.
 
         DISPLAY user_env[2].
         ASSIGN user_env[4] = STRING(i)
@@ -1070,10 +1427,25 @@ ELSE IF io-frame = "d" THEN DO:
         { prodict/dictnext.i trash }
         canned = FALSE.
       &ELSE
-       ENABLE user_env[2]  btn_File inclob user_env[30] i do-screen btn_OK btn_Cancel.
+       ENABLE user_env[2]  
+              btn_File 
+              inclob 
+              user_env[30] 
+              i 
+              do-screen 
+              btn_OK 
+              btn_Cancel.
         ASSIGN i = INTEGER(user_env[4]).
 
-        UPDATE user_env[2]  btn_File inclob user_env[30] i do-screen btn_OK btn_Cancel  {&HLP_BTN_NAME}.
+        UPDATE user_env[2]  
+               btn_File 
+               inclob 
+               user_env[30] 
+               i 
+               do-screen 
+               btn_OK 
+               btn_Cancel  
+               {&HLP_BTN_NAME}.
 
         DISPLAY user_env[2].
         ASSIGN user_env[4] = STRING(i)
@@ -1087,27 +1459,147 @@ ELSE IF io-frame = "d" THEN DO:
 END.
 
 ELSE DO:
- {adecomm/okrun.i  
-   &FRAME  = "FRAME read-input" 
-   &BOX    = "rect_Btns"
-   &OK     = "btn_OK" 
-   {&CAN_BTN}
-   {&HLP_BTN}
-  }
+  IF class = "t" THEN DO:
+    {adecomm/okrun.i
+      &FRAME  = "FRAME read-dir-text"
+      &BOX    = "rect_Btns"
+      &OK     = "btn_OK"
+      {&CAN_BTN}
+      {&HLP_BTN}
+    }
+    DO ON ERROR UNDO, RETRY ON ENDKEY UNDO, LEAVE WITH FRAME read-dir-text:
+      io-title = "Load Audit Policies - Text".
+                        
+      UPDATE user_env[2]
+             &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
+               btn_dir
+             &ENDIF
+             user_commit
+             btn_OK
+             btn_Cancel
+             {&HLP_BTN_NAME}.
+    
+      RUN "prodict/misc/ostodir.p" (INPUT-OUTPUT user_env[2]).
+      {prodict/dictnext.i trash}
+      canned = FALSE.
+    END.
+  END.
+  ELSE IF class = "x" THEN DO:
+    {adecomm/okrun.i  
+      &FRAME  = "FRAME read-xml-file" 
+      &BOX    = "rect_Btns"
+      &OK     = "btn_OK" 
+      {&CAN_BTN}
+      {&HLP_BTN}
+    }
+    DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE WITH FRAME read-xml-file:
 
-  DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE WITH FRAME read-input:
+      io-title = "Load Audit Policies - XML".
 
-    UPDATE user_env[2] btn_File btn_OK btn_Cancel {&HLP_BTN_NAME}.
+      UPDATE user_env[2] 
+             btn_File 
+             user_overwrite 
+             user_commit
+             btn_OK 
+             btn_Cancel 
+             {&HLP_BTN_NAME}.
 
-    { prodict/dictnext.i trash }
-    canned = FALSE.
+      { prodict/dictnext.i trash }
+      canned = FALSE.
+    END.
+  END.
+  ELSE IF CAN-DO("i,o,e",class) THEN DO:
+    {adecomm/okrun.i  
+      &FRAME  = "FRAME read-d-file-nobl" 
+      &BOX    = "rect_Btns"
+      &OK     = "btn_OK" 
+      {&CAN_BTN}
+      {&HLP_BTN}
+    }
+    DO ON ERROR UNDO, RETRY ON ENDKEY UNDO, LEAVE WITH FRAME read-d-file-nobl:
+      CASE class:
+        WHEN "i" THEN
+          io-title = "Load Database Identification Properties".
+        WHEN "o" THEN
+          io-title = "Load Database Options".
+        WHEN "e" THEN
+          io-title = "Load Application Audit Events".
+      END CASE.
+      
+      UPDATE user_env[2]
+             btn_file
+             i 
+             do-screen
+             btn_OK
+             btn_Cancel
+             {&HLP_BTN_NAME}.
+      
+      RUN "prodict/misc/ostodir.p" (INPUT-OUTPUT user_env[2]).
+
+      {prodict/dictnext.i trash}
+      canned = FALSE.
+    END.
+  END.
+  ELSE IF CAN-DO("z,m,y",class) THEN DO:
+    {adecomm/okrun.i  
+      &FRAME  = "FRAME read-input-dir" 
+      &BOX    = "rect_Btns"
+      &OK     = "btn_OK" 
+      {&CAN_BTN}
+      {&HLP_BTN}
+    }
+    DO ON ERROR UNDO, RETRY ON ENDKEY UNDO, LEAVE WITH FRAME read-input-dir:
+      CASE class:
+        WHEN "z" THEN
+          io-title = "Load Security Authentication Records".        
+        WHEN "m" THEN
+          io-title = "Load Security Permissions".
+        WHEN "y" THEN
+          io-title = "Load Audit Data".
+      END CASE.
+
+      UPDATE user_env[2]
+             &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
+               btn_dir 
+             &ENDIF
+             btn_OK
+             btn_Cancel
+             {&HLP_BTN_NAME}.
+ 
+      RUN "prodict/misc/ostodir.p" (INPUT-OUTPUT user_env[2]).
+      {prodict/dictnext.i trash}
+      canned = FALSE.
+    END.
+  END.
+  ELSE DO:
+    {adecomm/okrun.i  
+      &FRAME  = "FRAME read-input" 
+      &BOX    = "rect_Btns"
+      &OK     = "btn_OK" 
+      {&CAN_BTN}
+      {&HLP_BTN}
+    }
+
+    DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE WITH FRAME read-input:
+
+      UPDATE user_env[2] btn_File btn_OK btn_Cancel {&HLP_BTN_NAME}.
+
+      { prodict/dictnext.i trash }
+      canned = FALSE.
+    END.
   END.
 END.
 
 HIDE FRAME read-input NO-PAUSE.
 HIDE FRAME read-df    NO-PAUSE.
 HIDE FRAME read-d-file NO-PAUSE.
+HIDE FRAME read-d-file-nobl NO-PAUSE.
+HIDE FRAME read-xml-file NO-PAUSE.
 HIDE FRAME read-d-dir NO-PAUSE.
+HIDE FRAME read-input-dir NO-PAUSE.
+HIDE FRAME read-dir-text NO-PAUSE.
+HIDE FRAME read-dir-nobl NO-PAUSE.
+HIDE FRAME get-cp NO-PAUSE.
 IF canned THEN DO:
   user_path = "".
   IF no-schema-lock THEN

@@ -12,6 +12,7 @@
 9043.24 "startup_procedure20" "Used if more than 1 startup procedure needs to be specified." no "" no
 60026.7063 "keep_old_field_API" "When YES, the old DynCombo/DynLookup API will be used" no "YES" no
 60028.7063 "field_cache_options" "Client-side Field cache: NONE | ALL | <FieldClass>[,<FieldClass>]" no "ALL" no
+113316.48 "migration_source_branch" "Source branch used for DCU migration to current release" no "" no
 149994.9875 "MaxHiddenContainers" "Maximum number of hidden containers per session" yes "10" no
 902291.24 "bound_icfdb" "Indicates whether a session is bound to the repository" yes "YES" no
 902293.24 "StartupCacheClasses" "Comma-separated list of classes to cache at session startup" yes "" no
@@ -23,7 +24,7 @@
 910776.24 "auto_dump_entity_cache" "Indicates whether the entity cache should automatically be created" no "" no
 910858.24 "expand_list" "List of properties that should be run through the property expander" yes "" no
 910860.24 "registry_keys" "List of properties that should be read as registry keys" no "reg_install_path,reg_work_path" no
-910862.24 "DynamicsVersion" "Dynamics Version No" yes "10.0B" yes
+910862.24 "DynamicsVersion" "Dynamics Version No" yes "10.1A" yes
 910864.24 "reg_install_path" "Registry Install Path" no "HKEY_LOCAL_MACHINE:SOFTWARE\PSC\Progress Dynamics:#DynamicsVersion#:DLC" no
 910866.24 "reg_work_path" "Working path in registry" no "HKEY_LOCAL_MACHINE:SOFTWARE\PSC\Progress Dynamics:#DynamicsVersion#:workingPath" no
 910871.24 "enable_save_into" "Used to automatically save compiled code to more than one target area" no "" no
@@ -81,12 +82,12 @@
 .
 PSC
 filename=gsc_session_property
-records=0000000000079
+records=0000000000080
 ldbname=ICFDB
-timestamp=2005/04/06-13:05:00
+timestamp=2005/08/09-15:43:39
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
 cpstream=UTF-8
 .
-0000007611
+0000007715

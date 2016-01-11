@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -58,6 +42,10 @@ history
                             (bug 94-04-28-032)
     hutegger    94/02/24    code-page support
                             new error-message, new input-statments
+    kmcintos    Apr 25, 2005  Added Auditing Support
+    kmcintos    May 10, 2005  Changed logic to rule out tables beginning 
+                              with "_aud".  Bug # 20050510-001
+    fernando    Nov 03, 2005  Added code to audit dump operation                              
 */
 
 { prodict/dictvar.i }
@@ -97,6 +85,9 @@ DEFINE VARIABLE yy         AS INTEGER             NO-UNDO.
 DEFINE VARIABLE stopped    AS LOGICAL   INIT TRUE NO-UNDO.
 DEFINE VARIABLE NumProcRun AS LOGICAL             NO-UNDO.
 DEFINE VARIABLE lobdir     AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE cTempList  AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE phDbName   AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE newAppCtx  AS LOGICAL   INIT NO   NO-UNDO.
 
 DEFINE STREAM dsfile.
 
@@ -117,6 +108,21 @@ DEFINE FRAME loaddata
   &IF "{&WINDOW-SYSTEM}" <> "TTY"
   &THEN VIEW-AS DIALOG-BOX THREE-D SCROLLABLE WIDTH 84 TITLE "Load Table Contents"
   &ENDIF.  /* Move this here to scope above the internal procedure */
+
+cTempList = user_env[1].
+/* The only Audit table that can be loaded through this program is the
+   _audit-event table, so we remove it from the templist and check for 
+   instances of the _aud string in the table list. */
+cTempList = REPLACE(cTempList,"_aud-event","").
+IF cTempList NE "" AND 
+   cTempList NE ? AND
+   (INDEX(cTempList,",_aud") NE 0 OR
+    cTempList BEGINS "_aud") THEN DO:
+  MESSAGE "Load Failed!" SKIP(1)
+          "You cannot load Audit Policies or Data through this utility!"
+      VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+  RETURN.
+END.
 
 /* LANGUAGE DEPENDENCIES START */ /*---------------------------------------*/
 DEFINE VARIABLE new_lang AS CHARACTER EXTENT 14 NO-UNDO INITIAL [
@@ -245,6 +251,17 @@ IF index(dsname,".db") > 0
 
 IF use_ds THEN OUTPUT STREAM dsfile TO VALUE(dsname + ".ds") NO-ECHO.
 
+/* auditing - start a new application context so that one can report
+   all the records that are loaded as a group, if one wasn't set by the
+   caller.
+*/
+IF AUDIT-CONTROL:APPL-CONTEXT-ID = ? THEN DO:
+   ASSIGN newAppCtx = YES.
+   AUDIT-CONTROL:SET-APPL-CONTEXT("Data Administration", "Load Table Contents", "").
+END.
+
+ASSIGN phDbName = PDBNAME("DICTDB"). /* get the physical db name - for auditing */
+
 stoploop:
 DO ON STOP UNDO, LEAVE:
   DO WHILE ENTRY(1,user_env[1]) <> "":
@@ -284,7 +301,7 @@ DO ON STOP UNDO, LEAVE:
                  ELSE lpath + (IF DICTDB._File._Dump-name = ?
                  OR SEARCH(lpath + DICTDB._File._Dump-name + ".d") = ?
                  THEN DICTDB._File._File-name ELSE DICTDB._File._Dump-name)
-               + ".d").
+               + (IF DICTDB._File._File-name BEGINS "_aud" THEN ".ad" ELSE ".d")).
     IF SEARCH(fil-d) <> ? THEN fil-d = SEARCH(fil-d).
   
     fil-e = SUBSTRING(fil-d,1,LENGTH(fil-d,"character") - 1,"character") + "e".
@@ -570,6 +587,13 @@ DO ON STOP UNDO, LEAVE:
     END.
     terrors = terrors + errs.
   
+    IF recs > 0 THEN DO:
+        /* audit the data loaded, even if an error happended, if at least one record was loaded */
+        AUDIT-CONTROL:LOG-AUDIT-EVENT(10214, 
+                                      phDbName + "." +  DICTDB._File._File-name /* db-name.table-name */, 
+                                      "" /* detail */).
+    END.
+
   END. /* for each _file */
 
   stopped = false. 
@@ -587,6 +611,10 @@ DO WHILE FRAME-LINE(loaddata) < FRAME-DOWN(loaddata):
 END.
 &ENDIF
 run adecomm/_setcurs.p ("").
+
+/* for auditing - clear the application context, if we have set one */
+IF newAppCtx THEN
+   AUDIT-CONTROL:CLEAR-APPL-CONTEXT.
 
 IF stopped THEN
    MESSAGE "Load terminated."

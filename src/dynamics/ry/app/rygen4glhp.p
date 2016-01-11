@@ -1,6 +1,13 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Check Version Notes Wizard" Procedure _INLINE
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /* Actions: af/cod/aftemwizcw.w ? ? ? ? */
 /* Update Version Notes Wizard
 Check object version notes.
@@ -63,16 +70,34 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /* Defines the NO-RESULT-CODE and DEFAULT-RESULT-CODE result codes. */
 {ry/app/rydefrescd.i}
 
-&scoped-define exclude-from-prop-list Height-Chars,Width-Chars,Row,Column,Order,Name,ObjectName,Height,Width,VisualizationType
+&scoped-define deprecated-attributes MasterFile
+&scoped-define exclude-from-prop-list Height-Chars,Width-Chars,Row,Column,Order,Name,ObjectName,Height,Width,VisualizationType,(&deprecated-attributes}
 &scoped-define dynamic-web-attributes JavaScriptFile,JavaSCriptObject,HtmlClass,HtmlStyle
 
+/* Toolbar and menu item definitions */
 {src/adm2/ttaction.i}
-/* Keep translated action separate from other actions to prevent
-   contamination of the source-language actions. if we don't do this,
-   then translated actions are written into the adm-loadToolbar procedure,
-   which should only have untranslated actions.
+
+/* This TT is LIKE ttActionTranslation as defined in ttaction.i.
+   However, we can't use LIKE because this temp-table will inherit
+   the indexes from that temp-table, which include a unique index
+   that this code violates when translating more than one language.
  */
-define temp-table ttTranslatedAction no-undo like ttAction.
+define temp-table ttTranslatedAction no-undo
+    field LanguageCode      as character
+    field Action            as character
+    field Name              as character    initial ?
+    field Caption           as character    initial ?
+    field Tooltip           as character    initial ?
+    field Accelerator       as character    initial ?
+    field Image             as character    initial ?
+    field ImageDown         as character    initial ?
+    field ImageInsensitive  as character    initial ?
+    field Image2            as character    initial ?
+    field Image2Down        as character    initial ?
+    field Image2Insensitive as character    initial ?
+    index idxLanguageAction as unique  
+        LanguageCode
+        Action.
 
 {src/adm2/tttoolbar.i}
 
@@ -100,10 +125,12 @@ define temp-table ttProperty         no-undo
         ForceSet.
         
 define temp-table ttEvent        no-undo
-    field EventName         as character
+    field EventName         as character    /* ie VALUE-CHANGED */
     field InstanceName      as character
-    field EventLocation     as character
-    field EventAction       as character
+    field ActionType        as character    /* RUN or PUBLISH */
+    field ActionTarget      as character    /* Procedure in which event runs. */
+    field EventParameter    as character
+    field EventAction       as character    /* procedure to run or event to publish */
     index idxName as unique
         EventName
         InstanceName.
@@ -180,12 +207,11 @@ define temp-table ttWidgetHandle no-undo
 
 
 /* ************************  Function Prototypes ********************** */
+&IF DEFINED(EXCLUDE-buildMenuTranslations) = 0 &THEN
 
-&IF DEFINED(EXCLUDE-buildEventString) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD buildEventString Procedure 
-FUNCTION buildEventString RETURNS CHARACTER PRIVATE
-        ( buffer rycue    for ryc_ui_event ) FORWARD.
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD buildMenuTranslations Procedure 
+FUNCTION buildMenuTranslations RETURNS LOGICAL private
+    ( /*no parameters */     ) forward.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -851,93 +877,79 @@ FUNCTION widgetIsImage RETURNS LOGICAL
 
 /* ************************  Function Implementations ***************** */
 
-&IF DEFINED(EXCLUDE-buildEventString) = 0 &THEN
+&IF DEFINED(EXCLUDE-buildMenuTranslations) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION buildEventString Procedure 
-FUNCTION buildEventString RETURNS CHARACTER PRIVATE
-        ( buffer rycue    for ryc_ui_event ):
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION buildMenuTranslations Procedure 
+FUNCTION buildMenuTranslations RETURNS LOGICAL private    ( /*no parameters */ ):
 /*------------------------------------------------------------------------------
 ACCESS_LEVEL=PRIVATE
-  Purpose: Builds a string for viewer widget ui events.  
-    Notes:
+  Purpose: Builds menu item translation tables for a given object.
+    Notes: - Translations are built here because we need to know if there are 
+             any translated menu items when determining the initial 
+             ObjectTranslated state.
 ------------------------------------------------------------------------------*/
-    define variable cWhereString         as character                no-undo.
-    define variable cBuildString         as character                no-undo.
-                    
-    cWhereString = ''.
+    define variable cGenerateLanguages            as character            no-undo.
+    define variable cLabel                        as character            no-undo.
+    define variable cCaption                      as character            no-undo.
+    define variable cTooltip                      as character            no-undo.
+    define variable cAccelerator                  as character            no-undo.
+    define variable cImage                        as character            no-undo.
+    define variable cImageDown                    as character            no-undo.
+    define variable cImageInsensitive             as character            no-undo.
+    define variable cImage2                       as character            no-undo.
+    define variable cImage2Down                   as character            no-undo.
+    define variable cImage2Insensitive            as character            no-undo.
     
-    CASE rycue.action_target:
-        WHEN "SELF":U      THEN cWhereString = 'TARGET-PROCEDURE'.
-        WHEN "CONTAINER":U THEN cWhereString = '~{fn getContainerSource~}'.
-        /* Run anywhere. This is only valid for an action type of PUB. */
-        WHEN "ANYWHERE":U  THEN cWhereString = ?.
-        /* Run on the AppServer. This is only valid for an action type of RUN. */
-        WHEN "AS":U        THEN cWhereString = 'gshAstraAppServer'.
-        /* Managers: of the manager handle is used, we use the hard-coded,
-         * predefined handle variables. Any managers which are referred
-         * to by their manager name (i.e. CustomizationManager) will be
-         * handled by the getManagerHandle API call performed elsewhere in
-         * the case statement.
-         * 
-         * The manager handles are provided purely for backwards compatibility 
-         * and should NOT be used at all.                                       */
-        WHEN "GM":U THEN cWhereString = 'gshGenManager'.
-        WHEN "SM":U THEN cWhereString = 'gshSessionManager'.
-        WHEN "SEM":U THEN cWhereString = 'gshSecurityManager'.
-        WHEN "PM":U THEN cWhereString = 'gshProfileManager'.
-        WHEN "RM":U THEN cWhereString = 'gshRepositoryManager'.
-        WHEN "TM":U THEN cWhereString = 'gshTranslationManager'.
-        OTHERWISE
-            cWhereString = '~{fnarg getManagerHandle ~''
-                         + dynamic-function('transmogrifyPropertyValue' in target-procedure,
-                                            'Character', rycue.action_target)                         
-                         + '~'~}'.
-    END CASE.   /* action target */
+    define buffer gsclg        for gsc_language.
+    define buffer gsmti        for gsm_translated_menu_item.    
     
-    IF rycue.action_type eq "RUN":U THEN 
-    DO:
-        IF rycue.event_parameter EQ "":U THEN
-        DO:
-           IF rycue.action_target EQ "AS":U THEN
-               cBuildString = 'RUN ' + rycue.event_action 
-                            + ' ON ' + cWhereString.
-           ELSE
-               cBuildString = 'RUN ' + rycue.event_action + ' IN ' 
-                            + cWhereString.
-        END.    /* no parameter */
-        ELSE
-        DO:
-            IF rycue.action_target EQ "AS":U THEN
-               cBuildString = 'RUN ' + rycue.event_action + ' ON ' + cWhereString 
-                            + ' ( INPUT ' + quoter(rycue.event_parameter) + ')'.
-           ELSE
-               cBuildString = 'RUN ' + rycue.event_action + ' IN ' + cWhereString 
-                            + ' ( INPUT ' + quoter(rycue.event_parameter) + ')'.
-        END.    /* a parameter exists */        
-    END.    /* run */
-    ELSE
-    DO:
-        IF rycue.action_target EQ "ANYWHERE":U THEN
-        DO:
-            IF rycue.event_parameter eq "":U THEN
-                cBuildString = 'PUBLISH ' + rycue.event_action.
-            ELSE
-                cBuildString = 'PUBLISH ' + rycue.event_action 
-                             + '( INPUT ' + quoter(rycue.event_parameter) + ' ). ' .
-        END.    /* anywhere */
-        else
-        DO:
-            IF rycue.event_parameter EQ "":U THEN
-                cBuildString = 'PUBLISH ' + rycue.event_action + ' FROM ' + cWhereString.
-            ELSE
-                cBuildString = 'PUBLISH ' + rycue.event_action + ' FROM ' + cWhereString
-                             + '( INPUT ' + quoter(rycue.event_parameter) + ' ). ' .
-        END.    /* not anywhere */
-    END.    /* publish */
+    empty temp-table ttTranslatedAction.
     
-    return cBuildString.
-END FUNCTION.    /* buildEventString */
-
+    cGenerateLanguages = dynamic-function('getTokenValue' in target-procedure, 'GenerateLanguages').
+    
+    for each gsclg no-lock,
+       first gsmti where
+             gsmti.language_obj = gsclg.language_obj
+             no-lock:
+        
+        if not can-do(cGenerateLanguages, gsclg.language_code) then
+            next.
+        
+        for each ttAction:
+            create ttTranslatedAction.
+            buffer-copy ttAction to ttTranslatedAction                    
+                assign ttTranslatedAction.LanguageCode = gsclg.language_code.
+            
+            run translateAction in gshTranslationManager ( input  gsclg.language_code,
+                                                           input  ttAction.Action,
+                                                           output cLabel,
+                                                           output cCaption,
+                                                           output cTooltip,
+                                                           output cAccelerator,
+                                                           output cImage,
+                                                           output cImageDown,
+                                                           output cImageInsensitive,
+                                                           output cImage2,
+                                                           output cImage2Down,
+                                                           output cImage2Insensitive ) no-error.
+            
+            /* The unknown value signifies that there is no translation for the field. */
+            if cLabel ne ? then ttTranslatedAction.Name = cLabel.
+            if cCaption ne ? then ttTranslatedAction.Caption = cCaption.
+            if cTooltip ne ? then ttTranslatedAction.Tooltip = cTooltip.
+            if cAccelerator ne ? then ttTranslatedAction.Accelerator = cAccelerator.
+            if cImage ne ? then ttTranslatedAction.Image = cImage.
+            if cImageDown ne ? then ttTranslatedAction.ImageDown = cImageDown.
+            if cImageInsensitive ne ? then ttTranslatedAction.ImageInsensitive = cImageInsensitive.
+            if cImage2 ne ? then ttTranslatedAction.Image2 = cImage2.
+            if cImage2Down ne ? then ttTranslatedAction.Image2Down = cImage2Down.
+            if cImage2Insensitive ne ? then ttTranslatedAction.Image2Insensitive = cImage2Insensitive.
+        end.    /* each action */
+    end.    /* each language */
+    
+    error-status:error = no.
+    return true.    
+end function.    /* buildMenuTranslations */
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -1531,7 +1543,7 @@ FUNCTION findAttributeValue RETURNS CHARACTER
       input pcObjectName         as character   ):
 /*------------------------------------------------------------------------------
 ACCESS_LEVEL=PRIVATE
-  Purpose:  Returns an attribute value from either the master object or class.
+  Purpose: Returns an attribute value from either the master object or class.
     Notes:
 ------------------------------------------------------------------------------*/
     define variable cAttributeValue            as character            no-undo.
@@ -2416,14 +2428,15 @@ ACCESS_LEVEL=PUBLIC
               and we don't need to do any more, and if there is a translate-<Language> 
               call, the translation will be done by that call. Either way, we know that
               this file contains all of the translation work to be done.
+            - Check for both widget and menu translations.	                 
 ------------------------------------------------------------------------------*/
     define variable lTranslated                as logical                no-undo.
     define variable cLanguages                 as character              no-undo.
     define variable lGenerateTranslation       as logical                no-undo.
-    define variable iLoop                      as integer                no-undo.
     
     define buffer gsclg        for gsc_language.
     define buffer gsmtr        for gsm_translation.
+    define buffer gsmti        for gsm_translated_menu_item.
     
     lTranslated = no.
     lGenerateTranslation = logical(dynamic-function('getTokenValue' in target-procedure,
@@ -2439,6 +2452,10 @@ ACCESS_LEVEL=PUBLIC
     do:
         lTranslated = yes.
         cLanguages = dynamic-function('getTokenValue' in target-procedure, 'GenerateLanguages').
+        /* If all languages are selected, then we know that we can set ObjectTranslated to yes
+           since complete information about the translations will be contained in the generated
+           file.
+         */
         if cLanguages ne '*' then
         do:
             for each gsmtr where
@@ -2457,7 +2474,29 @@ ACCESS_LEVEL=PUBLIC
                     end.    /* found translation not for this language */
                 end.    /* first-of language */
             end.    /* translations for an object */
-        end.    /* not all languages generated */
+            
+            /* Look for menu item translations. There will only be
+               translated action temp-table records if any translations
+               exist.
+             */
+            if lTranslated then
+            for each gsmti where
+                     gsmti.language_obj = gsclg.language_obj
+                     no-lock,
+               first gsclg where
+                     gsclg.language_obj = gsmti.language_obj
+                     no-lock
+                     break by gsmti.language_obj:
+                if first-of(gsmti.language_ob) then
+                do:
+                    if not can-do(cLanguages, gsclg.language_code) then
+                    do:
+                        lTranslated = no.
+                        leave.
+                    end.    /* found translation not for this language */
+                end.    /* first-of language */
+            end.    /* each language */
+        end.    /* not all languages */
     end.    /* generate translations */
     
     error-status:error = no.
@@ -2565,6 +2604,7 @@ ACCESS_LEVEL=PRIVATE
     define variable iResultCodeLoop            as integer                 no-undo.
     define variable lObjectIsViewer            as logical                 no-undo.
     define variable lCustomizationsExist       as logical                 no-undo.
+    define variable lGenerateTranslations      as logical                 no-undo.
     
     define buffer ryccr            for ryc_customization_result.
     define buffer rycso            for ryc_smartobject.
@@ -2702,27 +2742,29 @@ ACCESS_LEVEL=PRIVATE
                                ttProperty.DataType = 'Character'.
                     end.    /* Has ObjectName attribute */
                 end.    /* no instance record */
-                                
+                
                 /* Instance Properties */
                 for each rycav where
                          rycav.object_type_obj = rycso_instance.object_type_obj and
                          rycav.smartobject_obj = rycso_instance.smartobject_obj and
-                         rycav.object_instance_obj = rycoi.object_instance_obj
+                         rycav.object_instance_obj = rycoi.object_instance_obj  and
+                         rycav.applies_at_runtime = yes
                          no-lock,
                    first rycat where
-                         rycat.attribute_label = rycav.attribute_label
+                         rycat.attribute_label = rycav.attribute_label and
+                         rycat.design_only = no and
+                         rycat.derived_value = no
                          no-lock:
                     
-                    if rycat.runtime_only or
-                       rycat.derived or
-                       rycat.design_only then
+                    /* Skip certain deprecated attributes */
+                    if can-do('{&deprecated-attributes}', rycat.attribute_label) then                        
                         next.
-                    
+                        
                     if can-find(ttProperty where
                                 ttProperty.PropertyName = rycat.attribute_label and
                                 ttProperty.PropertyOwner = rycoi.instance_name) then
                         next.
-                                            
+                    
                     create ttProperty.
                     assign ttProperty.PropertyName = rycat.attribute_label
                            ttProperty.PropertyOwner = rycoi.instance_name
@@ -2747,9 +2789,10 @@ ACCESS_LEVEL=PRIVATE
                             assign ttProperty.PropertyValue = string(rycav.logical_value)
                                    ttProperty.DataType = 'Logical'.
                         otherwise
-                            assign ttProperty.PropertyValue = replace(rycav.character_value, '~n', '')
+                            /* replace carriage returns with spaces */
+                            assign ttProperty.PropertyValue = replace(rycav.character_value, '~n', ' ')                            
                                    ttProperty.DataType = 'Character'.
-                    end case.   /* data type */   
+                    end case.   /* data type */
                 end.    /* each instance attribute value */
                 
                 /* Instance Events */
@@ -2761,17 +2804,18 @@ ACCESS_LEVEL=PRIVATE
                          rycue.container_smartobject_obj = rycoi.container_smartobject_obj and
                          rycue.event_action       <> "":U
                          no-lock:
-                             
+                    
                     if not can-find(ttEvent where
                                     ttEvent.EventName = rycue.event_name and
                                     ttEvent.InstanceName = ttInstance.InstanceName) then
                     do:
                         create ttEvent.
                         assign ttEvent.EventName = rycue.event_name
-                               ttEVent.InstanceName = ttInstance.InstanceName.
-                        if lObjectIsViewer then
-                            ttEvent.EventLocation = 'in frame ~{&Frame-Name~}'.
-                        ttEvent.EventAction = dynamic-function('buildEventString', buffer rycue).
+                               ttEvent.InstanceName = ttInstance.InstanceName
+                               ttEvent.ActionType = rycue.action_type
+                               ttEvent.ActionTarget = rycue.action_target
+                               ttEvent.EventParameter = rycue.event_parameter
+                               ttEvent.EventAction = rycue.event_action.
                     end.    /* no event */
                 end.    /* ui events */
             end.    /* page 0 */
@@ -2868,15 +2912,17 @@ ACCESS_LEVEL=PRIVATE
                     for each rycav where
                              rycav.object_type_obj = rycso_instance.object_type_obj and
                              rycav.smartobject_obj = rycso_instance.smartobject_obj and
-                             rycav.object_instance_obj = rycoi.object_instance_obj
+                             rycav.object_instance_obj = rycoi.object_instance_obj  and
+                             rycav.applies_at_runtime = yes
                              no-lock,
                        first rycat where
-                             rycat.attribute_label = rycav.attribute_label
+                             rycat.attribute_label = rycav.attribute_label and
+                             rycat.design_only = no and
+                             rycat.derived_value = no
                              no-lock:
                         
-                        if rycat.runtime_only or
-                           rycat.derived or
-                           rycat.design_only then
+                        /* Skip certain deprecated attributes */
+                        if can-do('{&deprecated-attributes}', rycat.attribute_label) then                        
                             next.
                         
                         if can-find(ttProperty where
@@ -2908,7 +2954,8 @@ ACCESS_LEVEL=PRIVATE
                                 assign ttProperty.PropertyValue = string(rycav.logical_value)
                                        ttProperty.DataType = 'Logical'.
                             otherwise
-                                assign ttProperty.PropertyValue = replace(rycav.character_value, '~n', '')
+                                /* replace carriage returns with spaces */                            
+                                assign ttProperty.PropertyValue = replace(rycav.character_value, '~n', ' ')
                                        ttProperty.DataType = 'Character'.
                         end case.   /* data type */
                     end.    /* each instance attribute value */
@@ -2929,10 +2976,11 @@ ACCESS_LEVEL=PRIVATE
                         do:
                             create ttEvent.
                             assign ttEvent.EventName = rycue.event_name
-                                   ttEvent.InstanceName = rycoi.instance_name.
-                            if lObjectIsViewer then
-                                ttEvent.EventLocation = 'in frame ~{&Frame-Name~}'.
-                            ttEvent.EventAction = dynamic-function('buildEventString', buffer rycue).
+                                   ttEvent.InstanceName = ttInstance.InstanceName
+                                   ttEvent.ActionType = rycue.action_type
+                                   ttEvent.ActionTarget = rycue.action_target
+                                   ttEvent.EventParameter = rycue.event_parameter
+                                   ttEvent.EventAction = rycue.event_action.
                         end.    /* no event */
                     end.    /* ui events */
                 end.    /* each instance */
@@ -2977,15 +3025,17 @@ ACCESS_LEVEL=PRIVATE
             for each rycav where
                      rycav.object_type_obj = rycso.object_type_obj and
                      rycav.smartobject_obj = rycso.smartobject_obj and
-                     rycav.object_instance_obj = 0
+                     rycav.object_instance_obj = 0                 and
+                     rycav.applies_at_runtime = yes
                      no-lock,
                first rycat where
-                     rycat.attribute_label = rycav.attribute_label
+                     rycat.attribute_label = rycav.attribute_label and
+                     rycat.design_only = no and
+                     rycat.derived_value = no
                      no-lock:
-                
-                if rycat.runtime_only or
-                   rycat.derived or
-                   rycat.design_only then
+                         
+                /* Skip certain deprecated attributes */
+                if can-do('{&deprecated-attributes}', rycat.attribute_label) then                        
                     next.
                 
                 if can-find(ttProperty where
@@ -3016,8 +3066,9 @@ ACCESS_LEVEL=PRIVATE
                         assign ttProperty.PropertyValue = string(rycav.logical_value)
                                ttProperty.DataType = 'Logical'.
                     otherwise
-                    assign ttProperty.DataType = 'Character'
-                           ttProperty.PropertyValue = replace(rycav.character_value, '~n', '').
+                        /* replace carriage returns with spaces */
+                        assign ttProperty.DataType = 'Character'
+                               ttProperty.PropertyValue = replace(rycav.character_value, '~n', ' ').
                 end case.   /* data type */
             end.    /* each master attribute value */
             
@@ -3032,6 +3083,12 @@ ACCESS_LEVEL=PRIVATE
                              rycso.smartobject_obj, cResultCode).
         end.    /* available rycso */
     end.    /* result code loop, master object, instances, links, master properties  */
+
+    lGenerateTranslations = logical(dynamic-function('getTokenValue' in target-procedure,
+                                                     'GenerateTranslations')) no-error.
+    
+    if can-find(first ttAction) and lGenerateTranslations then
+        dynamic-function('buildMenuTranslations' in target-procedure).
     
     if lObjectIsViewer then
         assign cResultCodeObj = left-trim(cResultCodeObj, '|')
@@ -3060,12 +3117,13 @@ FUNCTION populateViewerInstances RETURNS LOGICAL PRIVATE
 /*------------------------------------------------------------------------------
 ACCESS_LEVEL=PRIVATE
   Purpose: Get master and class properties/events for viewer widgets only.
-        Notes: - We need to get master & class propertyies for widgets because they
-                         are not procedure-based (like all other ADM2 objects) and thus they 
-                         don't have an ADMProps temp-table which has the master and class 
-                         properties populated from the newInstance() API.
+    Notes: - We need to get master & class propertyies for widgets because they
+             are not procedure-based (like all other ADM2 objects) and thus they 
+             don't have an ADMProps temp-table which has the master and class 
+             properties populated from the newInstance() API.
 ------------------------------------------------------------------------------*/
     define variable lInstanceIsSdf            as logical                no-undo.
+    define variable lObjectHasListItemProp    as logical                no-undo.
     define variable iInstanceResultCodeLoop   as integer                no-undo.
     define variable iPropertyLoop             as integer                no-undo.
     define variable cPropertyNames            as character              no-undo.
@@ -3091,13 +3149,24 @@ ACCESS_LEVEL=PRIVATE
             ttInstance.InstanceType = 'Sdf'.
         else
             ttInstance.InstanceType = 'Widget'.
-         
+        
         /* Viewer widgets only. Since viewer widgets are not procedure-based,
            we need to get all the relevant property values and write them into 
            the viewer's adm-create-objects code.
          */
         if ttInstance.InstanceType ne 'Sdf' then
         do:
+            /* Determine whether there is a LIST-ITEMS or LIST-ITEM-PAIRS
+               property stored against instance of the object. We use this 
+               information to determine whether to use the LIST-ITEM*
+               property from the class. If either of the properties exists 
+               on either the instance or master, then we don't care about
+               the class property.
+             */
+            lObjectHasListItemProp = (can-find (first ttProperty where
+                                                      ttProperty.PropertyName begins 'List-Item':u and 
+                                                      ttProperty.PropertyOwner = ttInstance.InstanceName)).
+            
             /* loop through all the result codes for the contained */
             do iInstanceResultCodeLoop = 1 to num-entries(pcResultCodeObj, '|'):
                 dResultCodeObj = decimal(entry(iInstanceResultCodeLoop, pcResultCodeObj, '|')) no-error.
@@ -3106,10 +3175,10 @@ ACCESS_LEVEL=PRIVATE
                      rycso.object_filename = ttInstance.ObjectName and
                      rycso.customization_result_obj = dResultCodeObj
                      no-lock no-error.
-            
+                
                 if not available rycso then
                     next.
-              
+                
                 if dResultCodeObj ne 0 then
                     plCustomizationsExist = yes.
                 
@@ -3117,17 +3186,21 @@ ACCESS_LEVEL=PRIVATE
                 for each rycav where
                          rycav.object_type_obj = rycso.object_type_obj and
                          rycav.smartobject_obj = rycso.smartobject_obj and
-                         rycav.object_instance_obj = 0
+                         rycav.object_instance_obj = 0 
                          no-lock,
                    first rycat where
-                         rycat.attribute_label = rycav.attribute_label
+                         rycat.attribute_label = rycav.attribute_label and
+                         rycat.design_only = no and
+                         rycat.derived_value = no
                          no-lock:
-                
-                    if rycat.runtime_only or
-                       rycat.derived or
-                       rycat.design_only then
+                             
+                    /* Skip certain deprecated attributes */
+                    if can-do('{&deprecated-attributes}', rycat.attribute_label) then                        
                         next.
-                        
+                                                                                
+                    if rycat.runtime_only then
+                        next.
+                    
                     if can-find(ttProperty where
                                 ttProperty.PropertyName = rycat.attribute_label and
                                 ttProperty.PropertyOwner = ttInstance.InstanceName) then
@@ -3157,9 +3230,14 @@ ACCESS_LEVEL=PRIVATE
                             assign ttProperty.PropertyValue = string(rycav.logical_value)
                                    ttProperty.DataType = 'Logical'.
                         otherwise
-                            assign ttProperty.PropertyValue = replace(rycav.character_value, '~n', '')
+                            /* replace carriage returns with spaces */                        
+                            assign ttProperty.PropertyValue = replace(rycav.character_value, '~n', ' ')
                                    ttProperty.DataType = 'Character'.
                     end case.   /* data type */   
+                    
+                    if ttProperty.PropertyName begins 'List-Item':u and
+                       not lObjectHasListItemProp then
+                        lObjectHasListItemProp = yes.
                 end.    /* each master attribute value */
                 
                 /* Master Events */
@@ -3178,9 +3256,11 @@ ACCESS_LEVEL=PRIVATE
                     do:
                         create ttEvent.
                         assign ttEvent.EventName = rycue.event_name
-                               ttEVent.InstanceName = ttInstance.InstanceName
-                               ttEvent.EventLocation = 'in frame ~{&Frame-Name~}'.
-                        ttEvent.EventAction = dynamic-function('buildEventString', buffer rycue).
+                               ttEvent.InstanceName = ttInstance.InstanceName
+                               ttEvent.ActionType = rycue.action_type
+                               ttEvent.ActionTarget = rycue.action_target
+                               ttEvent.EventParameter = rycue.event_parameter
+                               ttEvent.EventAction = rycue.event_action.
                     end.    /* no event */
                 end.    /* ui events */                         
             end.    /* result code loop, instance properties */
@@ -3204,6 +3284,13 @@ ACCESS_LEVEL=PRIVATE
                 if can-find(ttProperty where
                             ttProperty.PropertyName = entry(iPropertyLoop, cPropertyNames) and
                             ttProperty.PropertyOwner = ttInstance.InstanceName) then
+                    next.
+                
+                /* If either a LIST-ITEMS or LIST-ITEM-PAIRS property already exists on the 
+                   master or instance, then don't use either of these properties from the class.                
+                 */
+                if entry(iPropertyLoop, cPropertyNames) begins 'List-Item':u and
+                   lObjectHasListItemProp then
                     next.
                 
                 hBufferField = hClassBuffer:buffer-field(entry(iPropertyLoop, cPropertyNames)) no-error.
@@ -3261,7 +3348,7 @@ ACCESS_LEVEL=PUBLIC
     /* for all links, except Update links, create the
        links that have their Targets on this page. For
        Update links, create links that have their source
-       on this page.    
+       on this page.
      */
     for each ttLink where
              ttLink.LinkName <> 'Update' and
@@ -4088,9 +4175,12 @@ ACCESS_LEVEL=PUBLIC
              no-error.
         if ttProperty.PropertyValue eq '' or ttProperty.PropertyValue eq ? then
             next.            
+        
+        /* Escape single quotes in the initial value. */
+        cValue = replace(ttProperty.PropertyValue, "'", "~~'").
 
         dynamic-function('setTokenValue' in target-procedure,
-                         'InstanceInitialValue', ttProperty.PropertyValue).
+                         'InstanceInitialValue', cValue).
         
         dynamic-function('setTokenValue' in target-procedure,
                          'InstanceName', ttInstance.InstanceName).
@@ -4156,20 +4246,57 @@ FUNCTION processLoop-createViewerObjects RETURNS LOGICAL
         (  ):
 /*------------------------------------------------------------------------------
 ACCESS_LEVEL=PUBLIC
-  Purpose:  Manages the creation of objects on a viewer (SDFs and widgets)
-    Notes:
+  Purpose: Manages the creation of objects on a viewer (SDFs and widgets)
+    Notes: * Basically writes the adm-create-objects procedure, which is
+    		 a set of "RUN adm-create-<InstanceName> ... " calls. These
+    		 are build in createViewerWidgets
 ------------------------------------------------------------------------------*/        
+    /* The instances must be created in order, which determines the tab order. */
+    for each ttInstance by ttInstance.Order:
+        
+        dynamic-function('setTokenValue' in target-procedure,
+                         'InstanceName', ttInstance.InstanceName).
+        
+        /* Write the code */
+        dynamic-function('processLoopIteration' in target-procedure).          
+    end.    /* instance */
+    
+    error-status:error = no.
+    return true.
+END FUNCTION.    /* processLoop-createViewerObjects */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-processLoop-createViewerWidgets) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION processLoop-createViewerWidgets Procedure 
+FUNCTION processLoop-createViewerWidgets RETURNS LOGICAL
+        (  ):
+/*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
+  Purpose:  Creates the widgets on a viewer
+    Notes:
+------------------------------------------------------------------------------*/
+    /*define variable cWidgetType            as character                no-undo.*/
+    define variable cValue                 as character                no-undo.
+    define variable cDataType              as character                no-undo.
+    define variable hWidget                as handle                   no-undo.
+    define variable lLocalField            as logical                  no-undo.
+    define variable lEnableField           as logical                  no-undo.
+    define variable lHasLabel              as logical                  no-undo.
+    define variable lSideLabel             as logical                  no-undo.
+    define variable lDisplayField          as logical                  no-undo.
+    define variable iFont                  as integer                  no-undo.
+
     define variable cDataSourceNames      as character                no-undo.
     define variable cObjectName           as character                no-undo.
     define variable cExcludeProperties    as character                no-undo.
-    define variable cValue                as character                no-undo.    
     define variable cInstanceType         as character                no-undo.
     define variable lThinRendering        as logical                  no-undo.
-    define variable lLocalField           as logical                  no-undo.
-    define variable lDisplayField         as logical                  no-undo.
-    define variable lEnableField          as logical                  no-undo.
     define variable lVisible              as logical                  no-undo.
-    define variable iFont                 as integer                  no-undo.
     define variable dWidth                as decimal                  no-undo.
     
     cExcludeProperties = 'Name,Label,Order,Visible,Hidden,JavaScriptFile,JavaScriptObject,'
@@ -4178,7 +4305,7 @@ ACCESS_LEVEL=PUBLIC
                      'InstanceExcludeProperties', cExcludeProperties).
     
     cObjectName = dynamic-function('getTokenValue' in target-procedure, 'ObjectName').
-    
+        
     find ttProperty where
          ttProperty.PropertyName = 'DataSourceNames' and
          ttProperty.PropertyOwner = cObjectName
@@ -4194,15 +4321,13 @@ ACCESS_LEVEL=PUBLIC
     
     cDataSourceNames = ttProperty.PropertyValue.
     
-    /* The instance smust be created in order, which determines the tab order. */
-    for each ttInstance by ttInstance.Order:
-        
+    for each ttInstance:
         dynamic-function('setTokenValue' in target-procedure,
                          'InstanceName', ttInstance.InstanceName).
         
         dynamic-function('setTokenValue' in target-procedure,
                          'InstanceOrder', string(ttInstance.Order)).
- 
+        
         dynamic-function('setTokenValue' in target-procedure,
                          'InstanceClass', ttInstance.ClassName).
         
@@ -4220,8 +4345,11 @@ ACCESS_LEVEL=PUBLIC
                    ttProperty.DataType = 'Character'.
         end.    /* no init value */
         
+        /* Escape single quotes in the initial value. */
+        cValue = replace(ttProperty.PropertyValue, "'", "~~'").
+        
         dynamic-function('setTokenValue' in target-procedure,
-                         'InstanceInitialValue', ttProperty.PropertyValue).
+                         'InstanceInitialValue', cValue).
         
         /* Visible? */
         find ttProperty where
@@ -4314,34 +4442,13 @@ ACCESS_LEVEL=PUBLIC
                    ttProperty.PropertyName = 'DisplayField'
                    ttProperty.DataType = 'Logical'.
             ttProperty.PropertyValue = dynamic-function('findAttributeValue' in target-procedure,
-                                                        'DisplayField', ttInstance.ObjectName).                   
+                                                        'DisplayField', ttInstance.ObjectName).
         end.    /* no DisplayField  */
         
         lDisplayField = logical(ttProperty.PropertyValue) no-error.
         if lDisplayField eq ? then
             assign lDisplayField = no
                    ttProperty.PropertyValue = string(lDisplayField).
-        
-        dynamic-function('setTokenValue' in target-procedure,
-                         'InstanceDisplayAndNotLocal',
-                         string(lDisplayField and not lLocalField)).
-        
-        /* cEnabledObjFlds or cEnabledFields */
-        if lLocalField then
-            cValue = 'cEnabledObjFlds'.
-        else
-            cValue = 'cEnabledFields'.            
-        dynamic-function('setTokenValue' in target-procedure,
-                         'EnabledNameList', cValue).
-        
-        /* cEnabledObjHdls or cEnabledHandles */
-        if lLocalField then
-            cValue = 'cEnabledObjHdls'.
-        else
-            cValue = 'cEnabledHandles'.
-        
-        dynamic-function('setTokenValue' in target-procedure,
-                         'EnabledHandleList', cValue).
         
         /* What kind of viewer instance is this? */
         dynamic-function('setTokenValue' in target-procedure,
@@ -4493,34 +4600,35 @@ ACCESS_LEVEL=PUBLIC
                because there is no procedure for datafields.
              */
              
-                /* Visualization Type */
-                find ttProperty where
-                     ttProperty.PropertyName = 'VisualizationType' and
-                     ttProperty.PropertyOwner = ttInstance.InstanceName
-                     no-error.
-                if not available ttProperty then
-                do:
-                    create ttProperty.
-                    assign ttProperty.PropertyOwner = ttInstance.InstanceName
-                           ttProperty.PropertyName = 'VisualizationType'
-                           ttProperty.PropertyValue = 'Fill-In'
-                           ttProperty.DataType = 'Character'.
-                end.    /* no VisualizationType */
-            cInstanceType = ttProperty.PropertyValue.
+            /* Visualization Type */
+            find ttProperty where
+                 ttProperty.PropertyName = 'VisualizationType' and
+                 ttProperty.PropertyOwner = ttInstance.InstanceName
+                 no-error.
+            if not available ttProperty then
+            do:
+                create ttProperty.
+                assign ttProperty.PropertyOwner = ttInstance.InstanceName
+                       ttProperty.PropertyName = 'VisualizationType'
+                       ttProperty.PropertyValue = 'Fill-In'
+                       ttProperty.DataType = 'Character'.
+            end.    /* no VisualizationType */
+            assign cInstanceType = ttProperty.PropertyValue
+                   ttInstance.InstanceType = cInstanceType.
             
             /* Enabled? */
             find ttProperty where
                  ttProperty.PropertyName = 'Enabled' and
                  ttProperty.PropertyOwner = ttInstance.InstanceName
                  no-error.
-                if not available ttProperty then
-                do:
-                    create ttProperty.
-                    assign ttProperty.PropertyOwner = ttInstance.InstanceName
-                           ttProperty.PropertyName = 'Enabled'
-                           ttProperty.PropertyValue = string(Yes)
-                           ttProperty.DataType = 'Logical'.
-                end.    /* no Enabled */
+            if not available ttProperty then
+            do:
+                create ttProperty.
+                assign ttProperty.PropertyOwner = ttInstance.InstanceName
+                       ttProperty.PropertyName = 'Enabled'
+                       ttProperty.PropertyValue = string(Yes)
+                       ttProperty.DataType = 'Logical'.
+            end.    /* no Enabled */
             
             lEnableField = logical(ttProperty.PropertyValue) no-error.
             if lEnableField eq ? then
@@ -4536,8 +4644,18 @@ ACCESS_LEVEL=PUBLIC
                 create ttProperty.
                 assign ttProperty.PropertyOwner = ttInstance.InstanceName
                        ttProperty.PropertyName = 'TableName'
-                       ttProperty.PropertyValue = ''
                        ttProperty.DataType = 'Character'.
+                
+                /* If the instance's class doesn't have the TableName attribute,
+                   then this instance can never be provided with dats from an
+                   SDO. Set the value of the property to ? to indicate to the
+                   subsequent code that this field is, indeed, local.
+                 */
+                if dynamic-function('ClassHasAttribute' in gshRepositoryManager,
+                                    ttInstance.ClassName, 'TableName', no) then
+                    ttProperty.PropertyValue = ''.
+                else
+                    ttProperty.PropertyValue = ?.
             end.    /* no property */
             
             if ttProperty.PropertyValue eq ? then
@@ -4598,15 +4716,302 @@ ACCESS_LEVEL=PUBLIC
             if dWidth eq 0 or dWidth eq ? then
                 assign dWidth = 1
                        ttProperty.PropertyValue = string(dWidth).
+            
+            /* Data type */
+            find ttProperty where
+                 ttProperty.PropertyOwner = ttInstance.InstanceName and
+                 ttProperty.PropertyName = 'Data-Type'
+                 no-error.
+            if not available ttProperty then
+            do:
+                create ttProperty.
+                assign ttProperty.PropertyOwner = ttInstance.InstanceName
+                       ttProperty.PropertyName = 'Data-Type'
+                       ttProperty.PropertyValue = 'Character'
+                       ttProperty.DataType = 'Character'.
+            end.    /* no data type */
+            
+            cDataType = ttProperty.PropertyValue.
+            if cDataType eq 'Clob' then
+                assign cDataType = 'Longchar'
+                       ttProperty.PropertyValue = cDataType.
+            
+            dynamic-function('setTokenValue' in target-procedure,
+                             'InstanceDataType', cDataType).
+            
+            if cDataType eq 'Longchar' then
+            do:
+                dynamic-function('setTokenValue' in target-procedure,
+                                 'InstanceIsLongChar', 'Yes').
+                
+                find ttProperty where
+                     ttProperty.PropertyOwner = ttInstance.InstanceName and
+                     ttProperty.PropertyName = 'Large'
+                     no-error.
+                if not available ttProperty then
+                do:
+                    create ttProperty.
+                    assign ttProperty.PropertyOwner = ttInstance.InstanceName
+                           ttProperty.PropertyName = 'Large'
+                           ttProperty.DataType = 'Logical'.
+                end.    /* n/a large */
+                ttProperty.PropertyValue = 'Yes'.
+            end.    /* LongChar */
+            else
+                dynamic-function('setTokenValue' in target-procedure,
+                                 'InstanceIsLongChar', 'No').
+            
+            /* Font 
+	           processLoop-createViewerObjects ensures that this record exists.
+	         */
+            find ttProperty where
+                 ttProperty.PropertyName = 'Font' and
+                 ttProperty.PropertyOwner = ttInstance.InstanceName
+                 no-error.
+            dynamic-function('setTokenValue' in target-procedure,
+                             'InstanceFont', ttProperty.PropertyValue).
+            
+            /* Width 
+	        processLoop-createViewerObjects ensures that this record exists.
+	        */
+            find ttProperty where
+                 ttProperty.PropertyName = 'Width-Chars' and
+                 ttProperty.PropertyOwner = ttInstance.InstanceName
+                 no-error.
+            dynamic-function('setTokenValue' in target-procedure,
+                             'InstanceWidth', ttProperty.PropertyValue).
+            
+            /* Show Popups? */                    
+            if cInstanceType eq 'Fill-In' and 
+               can-do('Date,Decimal,Integer', cDataType) then
+            do:
+                find ttProperty where
+                     ttProperty.PropertyName = 'ShowPopup' and
+                     ttProperty.PropertyOwner = ttInstance.InstanceName
+                     no-error.
+                if available ttProperty then
+                    cValue =  ttProperty.PropertyValue.
+                else
+                    cValue = 'Yes'.
+            end.    /* fill-ins of date,deci,int type */
+            else
+                cValue = 'No'.
+            
+            dynamic-function('setTokenValue' in target-procedure,
+                             'ShowWidgetPopup', cValue).
+                          
+            /* Labels */
+            hWidget = dynamic-function('getWidgetHandle' in target-procedure, cInstanceType).
+            lHasLabel = can-set(hWidget, 'Side-Label-Handle') or
+                        can-set(hWidget, 'Label').
+            if lHasLabel then
+            do:
+                find ttProperty where
+                     ttProperty.PropertyName = 'Labels' and
+                     ttProperty.PropertyOwner = ttInstance.InstanceName
+                     no-error.
+                if available ttProperty then
+                    cValue =  ttProperty.PropertyValue.
+                else
+                    cValue = 'Yes'.
+                lHasLabel = logical(cValue) no-error.
+                if lHasLabel eq ? then
+                    lHasLabel = yes.
+            end.    /* widget has a label */
+            
+            /* Even if the LABELS property is set to true,
+	           there may be no actual label for the widget.
+	           Check this.
+	         */            
+            if lHasLabel then            
+            do:
+                find ttProperty where
+                     ttProperty.PropertyName = 'Label' and
+                     ttProperty.PropertyOwner = ttInstance.InstanceName
+                     no-error.
+                if available ttProperty then
+                    cValue =  ttProperty.PropertyValue.
+                
+                lHasLabel = available ttProperty.            
+            end.    /* has label */
+            
+            dynamic-function('setTokenValue' in target-procedure,
+                             'WidgetHasLabel', string(lhasLabel)).
+            
+            if lHasLabel then
+            do:                
+                /* determine what kind of label to use */
+                dynamic-function('setTokenValue' in target-procedure,
+                                 'WidgetLabelSide',
+                                 can-set(hWidget, 'Side-Label-Handle')).
+                dynamic-function('setTokenValue' in target-procedure,
+                                 'WidgetLabelNotSide',
+                                 not can-set(hWidget, 'Side-Label-Handle')).            
+                
+                /* Escape single quotes in the label. */
+                cValue = replace(cValue, "'", "~~'").
+                
+                /* some stuff only valid for side-label-handle */
+                if can-set(hWidget, 'Side-Label-Handle') then
+                do:
+                    dynamic-function('setTokenValue' in target-procedure,
+                                     'InstanceLabel', cValue + ':').
+                    
+                    find ttProperty where
+                         ttProperty.PropertyName = 'LabelFont' and
+                         ttProperty.PropertyOwner = ttInstance.InstanceName
+                         no-error.
+                    if available ttProperty then
+                        iFont = integer(ttProperty.PropertyValue) no-error.
+                    else
+                        iFont = ?.
+                    
+                    dynamic-function('setTokenValue' in target-procedure,
+                                     'InstanceLabelFont', string(iFont)).
+                                                  
+                    find ttProperty where
+                         ttProperty.PropertyName = 'LabelFgColor' and
+                         ttProperty.PropertyOwner = ttInstance.InstanceName
+                         no-error.
+                    if available ttProperty then
+                        cValue = ttProperty.PropertyValue.
+                    else
+                        cValue= '?'.
+                    
+                    dynamic-function('setTokenValue' in target-procedure,
+                                     'InstanceLabelFgColor', cValue).
+                         
+                    find ttProperty where
+                         ttProperty.PropertyName = 'LabelBgColor' and
+                         ttProperty.PropertyOwner = ttInstance.InstanceName
+                         no-error.
+                        if available ttProperty then
+                            cValue = ttProperty.PropertyValue.
+                        else
+                            cvalue= '?'.
+    
+                    dynamic-function('setTokenValue' in target-procedure,
+                                     'InstanceLabelBgColor', cValue).
+                end.    /* side label only */
+                else
+                do:
+                    dynamic-function('setTokenValue' in target-procedure,
+                                     'InstanceLabel', cValue).
+                    
+                    if cInstanceType eq 'Button' then
+                        cValue = dynamic-function('getInstanceHandleName' in target-procedure,
+                                                  ttInstance.InstanceName) + ':Width-Chars'.
+                    else
+                        cValue = substitute('MAX(&1:WIDTH-CHARS,FONT-TABLE:GET-TEXT-WIDTH-CHARS('
+                                            + '&1:LABEL, &1:FONT) + 4)',
+                                            dynamic-function('getInstanceHandleName' in target-procedure,
+                                                             ttInstance.InstanceName) ).
+        
+                    dynamic-function('setTokenValue' in target-procedure,
+                                     'InstanceLabelWidth', cValue).                
+                end.    /* non-side labels (eg button) */
+            end.    /* LABEL-BLOCK: has a label */            
+            
+            /* Modified is set to true by the 4GL after setting visible to true up above.  Modified is set
+	           to false for datafields when they are displayed.  When certain widgets that are not 
+	           dataobject-based are enabled, modified is set to false by the 4GL, for others it is not
+	           so we need to set it to false here. */            
+            dynamic-function('setTokenValue' in target-procedure,
+                             'InstanceLocalCanModify',
+                             string(lLocalField and can-set(hWidget, 'Modified'))).
+        
+            dynamic-function('setTokenValue' in target-procedure,
+                             'InstanceTextAndNotDisplay',
+                             string(not lDisplayField and cInstanceType eq 'Text')).
+            
+            /* Find the Format */
+            find ttProperty where
+                 ttProperty.PropertyName = 'Format' and
+                 ttProperty.PropertyOwner = ttInstance.InstanceName
+                 no-error.
+            if available ttProperty then
+                cValue = ttProperty.PropertyValue.
+            else
+                cValue = ?.
+            
+            cValue = quoter(cValue).        
+            dynamic-function('setTokenValue' in target-procedure,
+                             'InstanceFormat', cValue).
+            
+            /* Does  the instance have an image? */
+            case ttInstance.InstanceType:
+                when 'Image' or when 'Button' then
+                    find ttProperty where
+                         ttProperty.PropertyName = 'Image-File' and
+                         ttProperty.PropertyOwner = ttInstance.InstanceName
+                         no-error.
+                otherwise 
+                    /* Force the find to fail (i.e. make sure the
+	                   record buffer is empty).
+	                 */
+                    find ttProperty where
+                         rowid(ttProperty) = ?
+                         no-error.
+            end case.    /* instance type */
+            
+            dynamic-function('setTokenValue' in target-procedure,
+                             'WidgetHasImage',
+                             available(ttProperty)).
+            
+            if available ttProperty then
+                dynamic-function('setTokenValue' in target-procedure,
+                                 'InstanceImageFile',
+                                 quoter(ttProperty.PropertyValue)).
+            
+            /* Set the intial value, in certain cases. */
+            if not lDisplayField and cInstanceType eq 'Text' then
+            do:
+                find ttProperty where
+                     ttProperty.PropertyName = 'InitialValue' and
+                     ttProperty.PropertyOwner = ttInstance.InstanceName
+                     no-error.
+                
+                /* Escape single quotes in the initial value. */
+                cValue = replace(ttProperty.PropertyValue, "'", "~~'").
+                
+                dynamic-function('setTokenValue' in target-procedure,
+                                 'InstanceInitialValue', cValue).
+            end.    /* Text widget and not display */
+                       
         end.    /* widget */
 
+        /* Common set of the name of the property to store the list of
+           enabled field names. This is either cEnabledObjFlds (local
+           fields) or cEnabledFields (Data-bound fields). Similarly
+           the handles are stored in either cEnabledObjHdls or cEnabledHandles,
+           depending on databound status.
+         */
+        if lLocalField then
+            cValue = 'pcEnabledObjFlds'.
+        else
+            cValue = 'pcEnabledFields'.
+        dynamic-function('setTokenValue' in target-procedure,
+                         'EnabledNameList', cValue).
+        
+        if lLocalField then
+            cValue = 'pcEnabledObjHdls'.
+        else
+            cValue = 'pcEnabledHandles'.
+        
+        dynamic-function('setTokenValue' in target-procedure,
+                         'EnabledHandleList', cValue).
+        
+        /* Common set for InstanceDisplayAndNotLocal */
+        dynamic-function('setTokenValue' in target-procedure,
+                         'InstanceDisplayAndNotLocal',
+                         string(lDisplayField and not lLocalField)).
         
         /* Common set of the InstanceEnabled token. The variable value
            has been determined above, in different ways depending on
            the InstanceType.
          */
         dynamic-function('setTokenValue' in target-procedure,
-                         'InstanceEnabled', lEnableField).
+                         'InstanceEnabled', string(lEnableField)).
         
         /* Common set of the InstanceWidth token. The variable value
            has been determined above, in different ways depending on
@@ -4619,328 +5024,6 @@ ACCESS_LEVEL=PUBLIC
         dynamic-function('setTokenValue' in target-procedure,
                          'InstanceType', cInstanceType).
         
-        /* Write the code */
-        dynamic-function('processLoopIteration' in target-procedure).          
-    end.    /* instance */
-    
-    error-status:error = no.
-    return true.
-END FUNCTION.    /* processLoop-createViewerObjects */
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-processLoop-createViewerWidgets) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION processLoop-createViewerWidgets Procedure 
-FUNCTION processLoop-createViewerWidgets RETURNS LOGICAL
-        (  ):
-/*------------------------------------------------------------------------------
-ACCESS_LEVEL=PUBLIC
-  Purpose:  Creates the widgets on a viewer
-    Notes:
-------------------------------------------------------------------------------*/
-    define variable cWidgetType            as character                no-undo.
-    define variable cValue                 as character                no-undo.
-    define variable cDataType              as character                no-undo.
-    define variable hWidget                as handle                   no-undo.
-    define variable lLocalField            as logical                  no-undo.
-    define variable lEnableField           as logical                  no-undo.
-    define variable lHasLabel              as logical                  no-undo.
-    define variable lSideLabel             as logical                  no-undo.
-    define variable lDisplayField          as logical                  no-undo.
-    define variable iFont                  as integer                  no-undo.
-    
-    /* This is only for widgets. */
-    for each ttInstance where
-             ttInstance.InstanceType eq 'Widget':
-        
-        /* What's in a name .... */
-        dynamic-function('setTokenValue' in target-procedure,
-                         'InstanceName', ttInstance.InstanceName).
-        
-        /* Visualization Type
-           processLoop-createViewerObjects ensures that this record exists.
-         */
-        find ttProperty where
-             ttProperty.PropertyName = 'VisualizationType' and
-             ttProperty.PropertyOwner = ttInstance.InstanceName
-             no-error.
-        
-        assign cWidgetType = ttProperty.PropertyValue
-               ttInstance.InstanceType = cWidgetType.
-        
-        dynamic-function('setTokenValue' in target-procedure,
-                         'InstanceType', cWidgetType).
-        
-        /* Enabled? 
-           processLoop-createViewerObjects ensures that this record exists.
-         */
-        find ttProperty where
-             ttProperty.PropertyName = 'Enabled' and
-             ttProperty.PropertyOwner = ttInstance.InstanceName
-             no-error.
-        lEnableField = logical(ttProperty.PropertyValue).
-            
-        /* LocalField? 
-           processLoop-createViewerObjects ensures that this record exists.
-        */
-        find ttProperty where
-             ttProperty.PropertyName = 'TableName' and
-             ttProperty.PropertyOwner = ttInstance.InstanceName
-             no-error.
-                     
-        dynamic-function('setTokenValue' in target-procedure,
-                         'InstanceTableName', ttProperty.PropertyValue).
-        
-        lLocalField = (ttProperty.PropertyValue eq '').
-        if lLocalField eq ? then
-            lLocalField = no.
-        
-        /* Data type */
-        find ttProperty where
-             ttProperty.PropertyOwner = ttInstance.InstanceName and
-             ttProperty.PropertyName = 'Data-Type'
-             no-error.
-        if not available ttProperty then
-        do:
-            create ttProperty.
-            assign ttProperty.PropertyOwner = ttInstance.InstanceName
-                   ttProperty.PropertyName = 'Data-Type'
-                   ttProperty.PropertyValue = 'Character'
-                   ttProperty.DataType = 'Character'.
-        end.    /* no data type */
-        
-        cDataType = ttProperty.PropertyValue.
-        if cDataType eq 'Clob' then
-            assign cDataType = 'Longchar'
-                   ttProperty.PropertyValue = cDataType.
-        
-        dynamic-function('setTokenValue' in target-procedure,
-                         'InstanceDataType', cDataType).
-        
-        if cDataType eq 'Longchar' then
-        do:
-            dynamic-function('setTokenValue' in target-procedure,
-                             'InstanceIsLongChar', 'Yes').
-            
-            find ttProperty where
-                 ttProperty.PropertyOwner = ttInstance.InstanceName and
-                 ttProperty.PropertyName = 'Large'
-                 no-error.
-            if not available ttProperty then
-            do:
-                create ttProperty.
-                assign ttProperty.PropertyOwner = ttInstance.InstanceName
-                       ttProperty.PropertyName = 'Large'
-                       ttProperty.DataType = 'Logical'.
-            end.    /* n/a large */
-            ttProperty.PropertyValue = 'Yes'.
-        end.    /* LongChar */
-        else
-            dynamic-function('setTokenValue' in target-procedure,
-                             'InstanceIsLongChar', 'No').
-        
-        /* Font 
-           processLoop-createViewerObjects ensures that this record exists.
-         */
-        find ttProperty where
-             ttProperty.PropertyName = 'Font' and
-             ttProperty.PropertyOwner = ttInstance.InstanceName
-             no-error.
-        dynamic-function('setTokenValue' in target-procedure,
-                         'InstanceFont', ttProperty.PropertyValue).
-        
-        /* Width 
-        processLoop-createViewerObjects ensures that this record exists.
-        */
-        find ttProperty where
-             ttProperty.PropertyName = 'Width-Chars' and
-             ttProperty.PropertyOwner = ttInstance.InstanceName
-             no-error.
-        dynamic-function('setTokenValue' in target-procedure,
-                         'InstanceWidth', ttProperty.PropertyValue).
-        
-        /* Show Popups? */                    
-        if cWidgetType eq 'Fill-In' and 
-           can-do('Date,Decimal,Integer', cDataType) then
-        do:
-            find ttProperty where
-                 ttProperty.PropertyName = 'ShowPopups' and
-                 ttProperty.PropertyOwner = ttInstance.InstanceName
-                 no-error.
-            if available ttProperty then
-                cValue =  ttProperty.PropertyValue.
-            else
-                cValue = 'Yes'.
-        end.    /* fill-ins of date,deci,int type */
-        else
-            cValue = 'No'.
-        
-        dynamic-function('setTokenValue' in target-procedure,
-                         'ShowWidgetPopup', cValue).
-                      
-        /* Labels */
-        hWidget = dynamic-function('getWidgetHandle' in target-procedure, cWidgetType).
-        lHasLabel = can-set(hWidget, 'Side-Label-Handle') or
-                    can-set(hWidget, 'Label').
-        if lHasLabel then
-        do:
-            find ttProperty where
-                 ttProperty.PropertyName = 'Labels' and
-                 ttProperty.PropertyOwner = ttInstance.InstanceName
-                 no-error.
-            if available ttProperty then
-                cValue =  ttProperty.PropertyValue.
-            else
-                cValue = 'Yes'.
-            lHasLabel = logical(cValue) no-error.
-            if lHasLabel eq ? then
-                lHasLabel = yes.
-        end.    /* widget has a label */
-        
-        /* Even if the LABELS property is set to true,
-           there may be no actual label for the widget.
-           Check this.
-         */            
-        if lHasLabel then            
-        do:
-            find ttProperty where
-                 ttProperty.PropertyName = 'Label' and
-                 ttProperty.PropertyOwner = ttInstance.InstanceName
-                 no-error.
-            if available ttProperty then
-                cValue =  ttProperty.PropertyValue.
-            
-            lHasLabel = available ttProperty.
-        end.    /* has label */
-        
-        dynamic-function('setTokenValue' in target-procedure,
-                         'WidgetHasLabel', string(lhasLabel)).
-        
-        if lHasLabel then
-        do:                
-            /* determine what kind of label to use */
-            dynamic-function('setTokenValue' in target-procedure,
-                             'WidgetLabelSide',
-                             can-set(hWidget, 'Side-Label-Handle')).
-            dynamic-function('setTokenValue' in target-procedure,
-                             'WidgetLabelNotSide',
-                             not can-set(hWidget, 'Side-Label-Handle')).            
-        
-            /* some stuff only valiud for side-label-handle */
-            if can-set(hWidget, 'Side-Label-Handle') then
-            do:
-                dynamic-function('setTokenValue' in target-procedure,
-                                 'InstanceLabel', cValue + ':').
-                
-                find ttProperty where
-                     ttProperty.PropertyName = 'LabelFont' and
-                     ttProperty.PropertyOwner = ttInstance.InstanceName
-                     no-error.
-                if available ttProperty then
-                    iFont = integer(ttProperty.PropertyValue) no-error.
-                else
-                    iFont = ?.
-                
-                dynamic-function('setTokenValue' in target-procedure,
-                                 'InstanceLabelFont', string(iFont)).
-                                              
-                find ttProperty where
-                     ttProperty.PropertyName = 'LabelFgColor' and
-                     ttProperty.PropertyOwner = ttInstance.InstanceName
-                     no-error.
-                if available ttProperty then
-                    cValue = ttProperty.PropertyValue.
-                else
-                    cValue= '?'.
-                
-                dynamic-function('setTokenValue' in target-procedure,
-                                 'InstanceLabelFgColor', cValue).
-                     
-                find ttProperty where
-                     ttProperty.PropertyName = 'LabelBgColor' and
-                     ttProperty.PropertyOwner = ttInstance.InstanceName
-                     no-error.
-                    if available ttProperty then
-                        cValue = ttProperty.PropertyValue.
-                    else
-                        cvalue= '?'.
-
-                dynamic-function('setTokenValue' in target-procedure,
-                                 'InstanceLabelBgColor', cValue).
-            end.    /* side label only */
-            else
-            do:
-                dynamic-function('setTokenValue' in target-procedure,
-                                 'InstanceLabel', cValue).
-                
-                if cWidgetType eq 'Button' then
-                    cValue = dynamic-function('getInstanceHandleName' in target-procedure,
-                                              ttInstance.InstanceName) + ':Width-Chars'.
-                else
-                    cValue = substitute('MAX(&1:WIDTH-CHARS,FONT-TABLE:GET-TEXT-WIDTH-CHARS('
-                                        + '&1:LABEL, &1:FONT) + 4)',
-                                        dynamic-function('getInstanceHandleName' in target-procedure,
-                                                         ttInstance.InstanceName) ).
-    
-                dynamic-function('setTokenValue' in target-procedure,
-                                 'InstanceLabelWidth', cValue).                
-            end.    /* non-side labels (eg button) */
-        end.    /* LABEL-BLOCK: has a label */            
-        
-        /* Modified is set to true by the 4GL after setting visible to true up above.  Modified is set
-           to false for datafields when they are displayed.  When certain widgets that are not 
-           dataobject-based are enabled, modified is set to false by the 4GL, for others it is not
-           so we need to set it to false here. */            
-        dynamic-function('setTokenValue' in target-procedure,
-                         'InstanceLocalCanModify',
-                         string(lLocalField and can-set(hWidget, 'Modified'))).
-    
-        dynamic-function('setTokenValue' in target-procedure,
-                         'InstanceTextAndNotDisplay',
-                         string(not lDisplayField and cWidgetType eq 'Text')).
-        
-        /* Find the Format */
-        find ttProperty where
-             ttProperty.PropertyName = 'Format' and
-             ttProperty.PropertyOwner = ttInstance.InstanceName
-             no-error.
-        if available ttProperty then
-            cValue = ttProperty.PropertyValue.
-        else
-            cValue = 'x(8)'.
-        dynamic-function('setTokenValue' in target-procedure,
-                         'InstanceFormat', cValue).
-                         
-        /* Is this an image? */
-        case ttInstance.InstanceType:
-            when 'Image' then
-            do:
-                find ttProperty where
-                     ttProperty.PropertyName = 'Image-File' and
-                     ttProperty.PropertyOwner = ttInstance.InstanceName
-                     no-error.
-                if available ttProperty then               
-                     dynamic-function('setTokenValue' in target-procedure,
-                                      'InstanceImageFile',
-                                      quoter(ttProperty.PropertyValue)).
-            end.    /* Image */
-        end case.    /* instance type */
-        
-        /* Set the intial value, in certain cases. */
-        if not lDisplayField and cWidgetType eq 'Text' then
-        do:
-            find ttProperty where
-                 ttProperty.PropertyName = 'InitialValue' and
-                 ttProperty.PropertyOwner = ttInstance.InstanceName
-                 no-error.
-            dynamic-function('setTokenValue' in target-procedure,
-                             'InstanceInitialValue', ttProperty.PropertyValue).
-        end.    /* Text widget and not display */
-                
         /* .. and write ... */
         dynamic-function('processLoopIteration' in target-procedure).                
     end.    /* widget instances */
@@ -4969,6 +5052,7 @@ ACCESS_LEVEL=PUBLIC
     define variable cExcludeProperties     as character                no-undo.
     define variable cPropertyValue         as character                no-undo.
     define variable hWidgetHandle          as handle                   no-undo.
+    define variable dPropertyValue         as decimal                  no-undo.
     
     define buffer lbProperty        for ttProperty.
     
@@ -4999,7 +5083,7 @@ ACCESS_LEVEL=PUBLIC
                  */
                 if (ttProperty.PropertyValue eq '' or ttProperty.PropertyValue eq ?) and
                    ttProperty.PropertyName eq 'List-Item-Pairs' then
-                do:                   
+                do:
                     /* this property is useless, get rid of it */
                     delete ttProperty.
                     next.
@@ -5012,6 +5096,7 @@ ACCESS_LEVEL=PUBLIC
                      */
                     find lbProperty where
                          lbProperty.PropertyName begins 'List-Item' and
+                         lbProperty.PropertyOwner = cInstanceName and
                          rowid(lbProperty) ne rowid(ttProperty)
                          no-error.
                     
@@ -5036,6 +5121,24 @@ ACCESS_LEVEL=PUBLIC
                 end.    /* there is a List-Item* value*/
             end.    /* list item property */
             
+            /* The Inner-Lines property of an editor widget should
+               not be written out if it is 0 or the unknown value.
+             */
+            if cWidgetType eq 'Editor' then
+            do:
+                /* Remove a zero-value Inner-Lines property. */
+                if ttProperty.PropertyName eq 'Inner-Lines' then
+                do:
+                    dPropertyValue = decimal(ttProperty.PropertyValue) no-error.
+                    
+                    if dPropertyValue eq 0 or dPropertyValue eq ? then
+                    do:
+                        delete ttProperty.
+                        next.
+                    end.    /* delete inner lines */
+                end.    /* Inner-Lines property is zero or ? */
+            end.    /* editor widget */
+            
             cPropertyValue = ttProperty.PropertyValue.
             
             if ttProperty.DataType eq 'Character' then
@@ -5046,7 +5149,7 @@ ACCESS_LEVEL=PUBLIC
                                  'InstanceAttributeValue', cPropertyValue).
             
             dynamic-function('processLoopIteration' in target-procedure).
-        end.    /* attribute is settable */                 
+        end.    /* attribute is settable */
     end.    /* each property */
     
     /* Widget handles are cleaned up by destroyGenerator */
@@ -5326,104 +5429,34 @@ FUNCTION processLoop-translateMenuItem RETURNS LOGICAL
         (  ):
 /*------------------------------------------------------------------------------
 ACCESS_LEVEL=PUBLIC
-  Purpose:  Translation of menu items
+  Purpose: Translation of menu items
     Notes:
 ------------------------------------------------------------------------------*/    
     define variable cLanguageCode        as character                no-undo.
     define variable cChangedFields       as character                no-undo.
     
-    define buffer gsmti                for gsm_translated_menu_item.
-    define buffer gsclg                for gsc_language.
     define buffer ttTranslatedAction   for ttTranslatedAction.
-    
-    empty temp-table ttTranslatedAction.
-    
+        
     /* Menu translations only take place against the ttTranslatedAction temp-table,
        so set this value once only for the translations.
      */
     dynamic-function('setTokenValue' in target-procedure,
-                     'MenuTableName', 'TranslatedAction').    
-    
+                     'MenuTableName', 'TranslatedAction').
     cLanguageCode = dynamic-function('getTokenValue' in target-procedure, 'LanguageCode').
     
-    find gsclg where gsclg.language_code = cLanguageCode no-lock no-error.
-    
-    if can-find(first gsmti where
-                      gsmti.language_obj = gsclg.language_obj) then
-    for each ttAction,
-       first gsmti where
-             gsmti.menu_item_obj = ttAction.menu_item_obj and
-             gsmti.language_obj = gsclg.language_obj
-             no-lock:
-        
-        cChangedFields = ''.
-        
-        /* Create the before-image */
-        create ttTranslatedAction.
-        buffer-copy ttAction to ttTranslatedAction.
-        
-        /* If an image has been specified for the menu item, but not a picclip, we clear
-           the picclip image from the menu item to ensure the translation image gets used.
-           Picclip images always get preference, meaning the untranslated image would get
-           used if we didn't clear it.
-         */
-        if gsmti.image1_up_filename ne '' and gsmti.image1_down_filename eq '' then
-            ttTranslatedAction.ImageDown = ''.
-        
-        if gsmti.image2_up_filename ne '' and gsmti.image2_down_filename eq '' then
-            ttTranslatedAction.Image2Down = "":U.
-                
-        if gsmti.item_toolbar_label ne '' then
-            ttTranslatedAction.Name = gsmti.item_toolbar_label.
-                
-        if gsmti.menu_item_label ne '' then
-            ttTranslatedAction.Caption = gsmti.menu_item_label.
-
-        if gsmti.tooltip_text ne '' then
-            ttTranslatedAction.Tooltip = gsmti.tooltip_text.
-                
-        if gsmti.alternate_shortcut_key ne '' then
-            ttTranslatedAction.Accelerator = gsmti.alternate_shortcut_key.
-                
-        if gsmti.image1_up_filename ne '' then
-            ttTranslatedAction.Image = gsmti.image1_up_filename.
-                
-        if gsmti.image1_down_filename ne '' then
-            ttTranslatedAction.ImageDown = gsmti.image1_down_filename.
-
-        if gsmti.image1_insensitive_filename ne '' then
-            ttTranslatedAction.ImageInsensitive = gsmti.image1_insensitive_filename.
-                
-        if gsmti.image2_up_filename ne '' then
-            ttTranslatedAction.Image2 = gsmti.image2_up_filename.
-                
-        if gsmti.image2_down_filename ne '' then
-            ttTranslatedAction.Image2Down = gsmti.image2_down_filename.
-        
-        if gsmti.image2_insensitive_filename ne '' then
-            ttTranslatedAction.Image2Insensitive = gsmti.image2_insensitive_filename.
-                
-        /* Check if we really want an image */
-        assign ttTranslatedAction.Image = if ttAction.Image eq 'NoImage' then ''
-                                          else ttAction.Image
-               ttTranslatedAction.ImageDown = if ttAction.ImageDown eq 'NoImage' then ''
-                                              else ttAction.ImageDown
-               ttTranslatedAction.ImageInsensitive = if ttAction.ImageInsensitive eq 'NoImage' then ''
-                                                     else ttAction.ImageInsensitive
-               ttTranslatedAction.Image2 = if ttAction.Image2 eq 'NoImage' then ''
-                                           else ttAction.Image2
-               ttTranslatedAction.Image2Down = if ttAction.Image2Down eq 'NoImage' then ''
-                                               else ttAction.Image2Down
-               ttTranslatedAction.Image2Insensitive = if ttAction.Image2Insensitive eq 'NoImage' then ''
-                                                      else ttAction.Image2Insensitive.        
+    for each ttTranslatedAction where
+             ttTranslatedAction.LanguageCode = cLanguageCode,
+       first ttAction where
+             ttAction.Action = ttTranslatedAction.Action:
+        cChangedFields = ''. 
         
         buffer-compare ttAction to ttTranslatedAction save result in cChangedFields.
-                    
+        
         if cChangedFields ne '' then
         do:
             dynamic-function('setTokenValue' in target-procedure,
                              'MenuChangedFields', cChangedFields).
-                      
+            
             dynamic-function('setTokenValue' in target-procedure,
                              'MenuAction', ttTranslatedAction.Action).
             
@@ -5431,8 +5464,8 @@ ACCESS_LEVEL=PUBLIC
                              'MenuTableRowid', string(rowid(ttTranslatedAction))).
             
             dynamic-function('processLoopIteration' in target-procedure).
-        end.    /* there are translations */
-    end.    /* each action */
+        end.    /* there are translations */                      
+    end.    /* each translation */
     
     error-status:error = no.
     return true.
@@ -5634,27 +5667,20 @@ ACCESS_LEVEL=PUBLIC
     Notes:
 ------------------------------------------------------------------------------*/
     define variable cGenerateLanguages        as character            no-undo.
-    define variable cObjectName               as character            no-undo.
-    define variable cLabels                   as character            no-undo.
-    define variable cTooltips                 as character            no-undo.
-    define variable cPageLabels               as character            no-undo.
-    define variable iNumberOfPages            as integer              no-undo.
-    define variable iLoop                     as integer              no-undo.
-    define variable lTranslated               as logical              no-undo.
     
     define buffer gsclg        for gsc_language.
-    define buffer gsmti        for gsm_translated_menu_item.
+        
+    cGenerateLanguages = dynamic-function('getTokenValue' in target-procedure, 'GenerateLanguages').    
     
-    cGenerateLanguages = dynamic-function('getTokenValue' in target-procedure, 'GenerateLanguages').
-    cObjectName = dynamic-function('getTokenValue' in target-procedure, 'ObjectName').
-    
+    /* Always write the adm-translate-* procedure even if there are no actual 
+       translations. This is so that we can set the ObjectTranslated property
+       to YES and indicate to the renderer that there's no need to even attempt
+       to translate the actions.
+     */
     for each gsclg no-lock:
         if not can-do(cGenerateLanguages, gsclg.language_code) then
             next.
         
-        if not can-find(first gsmti where gsmti.language_obj = gsclg.language_obj) then
-            next.
-                        
         dynamic-function('setTokenValue' in target-procedure,
                          'LanguageCode', gsclg.language_code).
         
@@ -5893,6 +5919,13 @@ ACCESS_LEVEL=PUBLIC
                              'InstanceIsWidget', string(ttInstance.InstanceType ne 'Sdf')).
             dynamic-function('setTokenValue' in target-procedure,
                              'InstanceIsSdf', string(ttInstance.InstanceType eq 'Sdf')).
+                             
+            /* Escape any single quotes for translated labels and tooltips,
+               except for SDFs (these are dealt with separately).
+             */
+            if ttInstance.InstanceType ne 'Sdf' then
+                assign cLabel = replace(cLabel, "'", "~~'")
+                       cTooltip = replace(cTooltip, "'", "~~'").
             
             case ttInstance.InstanceType:              
                 when 'Radio-Set' then
@@ -5929,32 +5962,27 @@ ACCESS_LEVEL=PUBLIC
                     end.    /* data translated */
                     
                     /* Tooltip translations allowed. */
+                    /* The value of the tooltip will be blank when
+                       there is not translation.
+					   
+                       When translating radio-sets, only take the first available
+                       translation tooltip.
+                     */
+                    /* trim all separator characters, since
+                       we trying to find the first available 
+                       tooltip.
+                     */
+                    assign cTooltip = trim(cTooltip, chr(3))
+                           cTooltip = entry(1, cTooltip, chr(3)).
                     lTooltipTranslated = (cTooltip ne '' and cTooltip ne ?).
+                    
                     if lTooltipTranslated then
                     do:
-                        lTooltipTranslated = no.
-                        if cOriginalTooltip eq '' then
-                            cOriginalTooltip = fill(cDelimiter, 2 * iWidgetEntries - 1).
+                        dynamic-function('setTokenValue' in target-procedure,
+                                         'TooltipAttribute', 'Tooltip').
                         
-                        /* Loop through the translated string, and apply as needed. */
-                        do iLoop  = 1 to num-entries(cTooltip, chr(3)):
-                            cEntry = entry(iLoop, cTooltip, chr(3)).
-                            /* if not translated then skip */
-                            if cEntry eq '' then
-                                next.
-                            
-                            entry(iLoop * 2 - 1, cOriginalTooltip, cDelimiter) = cEntry.
-                            lTooltipTranslated = yes.
-                        end.    /* loop through tooltips */
-                        
-                        if lTooltipTranslated then
-                        do:
-                            dynamic-function('setTokenValue' in target-procedure,
-                                             'TooltipAttribute', 'Tooltip').
-                            
-                            dynamic-function('setTokenValue' in target-procedure,
-                                             'TranslatedTooltip', cOriginalTooltip).
-                        end.    /* has translations */
+                        dynamic-function('setTokenValue' in target-procedure,
+                                         'TranslatedTooltip',  cTooltip).
                     end.    /* tooltip translated */
                 end.    /* radio set */
                 when 'Text' then
@@ -5968,7 +5996,7 @@ ACCESS_LEVEL=PUBLIC
                     do:
                         dynamic-function('setTokenValue' in target-procedure,
                                          'TranslatedDataAttribute', 'Screen-Value').
-                    
+                        
                         dynamic-function('setTokenValue' in target-procedure,
                                          'TranslatedData', cLabel).
                     end.    /* data translated */
@@ -6058,8 +6086,8 @@ ACCESS_LEVEL=PUBLIC
                         dynamic-function('setTokenValue' in target-procedure,
                                          'TranslatedLabel',
                                          dynamic-function('transmogrifyPropertyValue' in target-procedure,
-                                         'Character',
-                                         cLabel)).
+                                                          'Character',
+                                                           cLabel)).
                     end.    /* label translated */
                                         
                     lTooltipTranslated = cTooltip ne '' and cTooltip ne ?.
@@ -6095,7 +6123,7 @@ ACCESS_LEVEL=PUBLIC
                                          'LabelAttribute', 'Label').
                     
                         dynamic-function('setTokenValue' in target-procedure,
-                                         'TranslatedLabel', cLabel).
+                                         'TranslatedLabel', cLabel).                                                                            
                     end.    /* label translated */
                     
                     lTooltipTranslated = cTooltip ne '' and cTooltip ne ?.
@@ -6144,7 +6172,6 @@ ACCESS_LEVEL=PUBLIC
                     if lLabelTranslated then
                         dynamic-function('setTokenValue' in target-procedure,
                                          'TranslatedLabel', cLabel).
-                    
                     /* Leave the tooltip as is. */
                 end.    /* instance is a datafield. */
             end.    /* label not yet translated */
@@ -6165,7 +6192,7 @@ ACCESS_LEVEL=PUBLIC
             end.    /* something's been translated */
         end.    /* need to perform translations */
     end.    /* each instance */
-    
+        
     error-status:error = no.
     return true.
 END FUNCTION.     /* processLoop-translateViewerItem */
@@ -6309,8 +6336,17 @@ ACCESS_LEVEL=PUBLIC
                          'EventName', ttEvent.EventName).
         
         dynamic-function('setTokenValue' in target-procedure,
-                         'EventAction', ttEvent.EventAction).
+                         'EventActionType', quoter(ttEvent.ActionType)).
+        
+        dynamic-function('setTokenValue' in target-procedure,
+                         'EventEventAction', quoter(ttEvent.EventAction)).
+        
+        dynamic-function('setTokenValue' in target-procedure,
+                         'EventActionTarget', quoter(ttEvent.ActionTarget)).
                          
+        dynamic-function('setTokenValue' in target-procedure,
+                         'EventEventParameter', quoter(ttEvent.EventParameter)).
+        
         dynamic-function('processLoopIteration' in target-procedure).                                 
     end.    /* each event */
     

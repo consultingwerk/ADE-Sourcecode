@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -28,6 +12,11 @@
 
    The aim is to produce a database like DICTDB.  So this .df file will be
    run against a database like DICTDB2 to create a database like DICTDB.
+   
+   History:
+     kmcintos   Sept 16, 2005  Fixed problems with renaming indexed and non
+                               indexed fields (Supporting changes in 
+                               dump/_dmputil.p) 20040402-004.
 */
 
 /*
@@ -665,11 +654,23 @@ DO ON STOP UNDO, LEAVE:
     /* handle renamed fields */
     ans = FALSE.
     FOR EACH field-list
-      WHERE field-list.f1-name <> field-list.f2-name
+      WHERE field-list.f1-name <> field-list.f2-name 
         AND field-list.f2-name <> ?:
+      FIND FIRST DICTDB._Field OF DICTDB._File
+        WHERE DICTDB._Field._Field-name = field-list.f1-name.
+      FIND FIRST DICTDB2._Field OF DICTDB2._File
+        WHERE DICTDB2._Field._Field-name = field-list.f2-name NO-ERROR.
+
       ans = TRUE.
       IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
         DISPLAY field-list.f1-name @ fld2 WITH FRAME seeking.
+
+      /* If the field is in an index and a critical aspect of it changed,
+         such as data-type or extent, it will be handled later */
+      IF AVAILABLE DICTDB2._Field                               AND
+         (DICTDB._Field._Data-type <> DICTDB2._Field._Data-type OR
+          DICTDB._Field._Extent    <> DICTDB2._Field._Extent)   THEN NEXT.
+
       PUT STREAM ddl UNFORMATTED
         'RENAME FIELD "' field-list.f2-name
         '" OF "' DICTDB._File._File-name
@@ -688,17 +689,17 @@ DO ON STOP UNDO, LEAVE:
       l = AVAILABLE DICTDB2._Field.
       IF l AND (DICTDB._Field._Data-type <> DICTDB2._Field._Data-type
            OR   DICTDB._Field._Extent    <> DICTDB2._Field._Extent) THEN DO:
-         
+
         /* If DICTDB2 field is part of a primary index, we cannot simply drop it.
          * instead, we will rename it to something else, and delete it
          * later, after the indexes are processed.
          */
-
         IF inprimary(INPUT DICTDB2._File._Prime-Index,
-                         INPUT RECID(DICTDB2._Field)) THEN DO:
+                     INPUT RECID(DICTDB2._Field)) THEN DO:
+          
           /* field is part of primary index, don't DROP*/
           RUN tmp-name IN h_dmputil (INPUT DICTDB2._Field._Field-name,
-                                         OUTPUT tmp_Field-name).
+                                     OUTPUT tmp_Field-name).
           PUT STREAM ddl UNFORMATTED
             'RENAME FIELD "' DICTDB2._Field._Field-name
             '" OF "' DICTDB2._File._File-name
@@ -709,9 +710,9 @@ DO ON STOP UNDO, LEAVE:
         END.
         ELSE IF inindex(INPUT RECID(DICTDB2._File),
                         INPUT RECID(DICTDB2._Field)) THEN  DO:
-
+        
           RUN tmp-name IN h_dmputil (INPUT DICTDB2._Field._Field-name,
-                                         OUTPUT tmp_Field-name).
+                                     OUTPUT tmp_Field-name).
           PUT STREAM ddl UNFORMATTED
             'RENAME FIELD "' DICTDB2._Field._Field-name
             '" OF "' DICTDB2._File._File-name
@@ -722,23 +723,22 @@ DO ON STOP UNDO, LEAVE:
         END.
         ELSE DO: /* is not in a primary index, we can DROP it now */
         
-           /* We need to know it has been dropped in case it is a component *
-            * of an index.  In that case, we don't want to drop the index   *
-            * because dropping the field accomplished that.                 *
-            * 19981112-011                                             */
+          /* We need to know it has been dropped in case it is a component *
+           * of an index.  In that case, we don't want to drop the index   *
+           * because dropping the field accomplished that.                 *
+           * 19981112-011                                             */
 
-              CREATE drop-list.
-              ASSIGN drop-list.file-name  = DICTDB._File._File-Name
+          CREATE drop-list.
+          ASSIGN drop-list.file-name  = DICTDB._File._File-Name
                  drop-list.f1-name    = field-list.f1-name
-                         drop-list.f2-name    = field-list.f2-name.
+                 drop-list.f2-name    = field-list.f2-name.
           PUT STREAM ddl UNFORMATTED
             'DROP FIELD "' DICTDB._Field._Field-name
             '" OF "' DICTDB._File._File-name '"' SKIP.
           RELEASE DICTDB2._Field.
           l = FALSE.
-            END.
+        END.
       END.
-
       /* If l is true we're updateing otherwise we're adding */
       ASSIGN ddl    = ""
              ddl[1] = (IF l THEN "UPDATE" ELSE "ADD")

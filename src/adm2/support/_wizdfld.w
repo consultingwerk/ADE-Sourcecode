@@ -6,25 +6,9 @@
 &Scoped-define WINDOW-NAME C-Win
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS C-Win 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*------------------------------------------------------------------------
@@ -103,11 +87,11 @@ FUNCTION getDataSourceNames   RETURNS CHARACTER IN hWizProc.
 &Scoped-define PROCEDURE-TYPE Window
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME DEFAULT-FRAME
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS e_msg s_fields b_Addf b_Helpb RECT-5 
+&Scoped-Define ENABLED-OBJECTS RECT-5 e_msg s_fields b_Addf b_Helpb 
 &Scoped-Define DISPLAYED-OBJECTS e_msg s_fields 
 
 /* Custom List Definitions                                              */
@@ -138,7 +122,7 @@ DEFINE VARIABLE e_msg AS CHARACTER
      BGCOLOR 8  NO-UNDO.
 
 DEFINE RECTANGLE RECT-5
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 54 BY 9.05.
 
 DEFINE VARIABLE s_fields AS CHARACTER 
@@ -153,9 +137,9 @@ DEFINE FRAME DEFAULT-FRAME
      s_fields AT ROW 2.52 COL 3 NO-LABEL
      b_Addf AT ROW 8.04 COL 57
      b_Helpb AT ROW 9.52 COL 57
-     RECT-5 AT ROW 1.52 COL 2
      "Fields to display:" VIEW-AS TEXT
           SIZE 17 BY .62 AT ROW 1.85 COL 3
+     RECT-5 AT ROW 1.52 COL 2
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          THREE-D 
          AT COL 1 ROW 1
@@ -211,7 +195,7 @@ ASSIGN C-Win = CURRENT-WINDOW.
 /* SETTINGS FOR WINDOW C-Win
   NOT-VISIBLE,,RUN-PERSISTENT                                           */
 /* SETTINGS FOR FRAME DEFAULT-FRAME
-   UNDERLINE                                                            */
+   FRAME-NAME UNDERLINE                                                 */
 ASSIGN 
        e_msg:READ-ONLY IN FRAME DEFAULT-FRAME        = TRUE.
 
@@ -383,7 +367,6 @@ ASSIGN lWeb =(ObjType BEGINS "WEB":U).
 /* Get the name of the associated DataObject */
 RUN adeuib/_uibinfo.p (INT(proc-recid), "":U, "DataObject":U, OUTPUT Data_Object).
 
-
 /* Get the handle of the data object */
 IF Data_object ne "" and Data_object ne ? THEN
 DO:
@@ -396,8 +379,8 @@ DO:
     valid-msg = "Cannot add fields. Handle to object is invalid. The file may not be compiling correctly.".
   ELSE IF NOT is-sdo(h_do) THEN
     valid-msg = "Cannot add fields. The file is not a SmartDataObject.".
-  ELSE IF is-sdo-proxy(h_do) THEN 
-    valid-msg = "Cannot add fields. The file is a SmartDataObject Proxy.".
+/*   ELSE IF is-sdo-proxy(h_do) THEN                                           */
+/*      valid-msg = "Cannot add fields. The file is a SmartDataObject Proxy.". */
   ELSE IF objtype = "SmartDataBrowser":U AND DYNAMIC-FUNCTION("getObjectType":U IN h_DO) = "SmartBusinessObject":U THEN
     valid-msg = "Cannot add fields. A SmartDataBrowser may not be based on a SmartBusinessObject.".
   ASSIGN valid-sdo = (valid-msg = "").
@@ -406,7 +389,6 @@ DO:
     valid-msg = Data_Object + CHR(10) + CHR(10) + valid-msg.
     MESSAGE valid-msg VIEW-AS ALERT-BOX WARNING BUTTONS OK.
   END.
-    
 END.
 ELSE DO:
   /* Assume that we are using a db and not sdo for the data source */
@@ -511,7 +493,7 @@ PROCEDURE enable_UI :
 ------------------------------------------------------------------------------*/
   DISPLAY e_msg s_fields 
       WITH FRAME DEFAULT-FRAME.
-  ENABLE e_msg s_fields b_Addf b_Helpb RECT-5 
+  ENABLE RECT-5 e_msg s_fields b_Addf b_Helpb 
       WITH FRAME DEFAULT-FRAME.
   {&OPEN-BROWSERS-IN-QUERY-DEFAULT-FRAME}
 END PROCEDURE.

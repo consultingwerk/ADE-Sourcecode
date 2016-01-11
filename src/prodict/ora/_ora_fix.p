@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -97,10 +81,15 @@ DEFINE VARIABLE del-cycle        AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE max_name_size    AS CHARACTER INITIAL "26" NO-UNDO.
 DEFINE VARIABLE temp_dbtype-1    AS CHARACTER NO-UNDO.
 DEFINE VARIABLE temp_size        AS INTEGER   NO-UNDO.
+DEFINE VARIABLE cid              AS CHARACTER NO-UNDO.
 
 DEFINE TEMP-TABLE verify-fname NO-UNDO
   FIELD new-name LIKE _Field._Field-name
   INDEX trun-name IS UNIQUE new-name.
+
+DEFINE TEMP-TABLE verify-table NO-UNDO
+  FIELD tnew-name LIKE _File._File-name
+  INDEX trun-name IS UNIQUE tnew-name.
 
 DEFINE BUFFER   a_DICTDB        FOR DICTDB._Field.
 DEFINE BUFFER   i_DICTDB        FOR DICTDB._Index.
@@ -294,6 +283,28 @@ FOR EACH DICTDB2._File WHERE ( l_files = "**all**" or
     RUN prodict/misc/_resxlat.p (INPUT-OUTPUT ofiln).
   END.
 
+  _verify-table:
+  DO WHILE TRUE:
+    FIND verify-table WHERE verify-table.tnew-name = ofiln NO-ERROR.
+    IF NOT AVAILABLE verify-table THEN DO:
+      CREATE verify-table.
+      ASSIGN verify-table.tnew-name = ofiln.
+      LEAVE _verify-table.
+    END.
+    ELSE DO:
+      DO a = 1 TO 999:
+        ASSIGN ofiln = SUBSTRING(ofiln, 1, LENGTH(ofiln) - LENGTH(STRING(a))) + STRING(a).
+
+        IF CAN-FIND(verify-table WHERE verify-table.tnew-name = ofiln) THEN NEXT.
+        ELSE DO:
+          CREATE verify-table.
+          ASSIGN verify-table.tnew-name = ofiln.
+          LEAVE _verify-table.
+        END.
+      END.
+    END.    
+  END.
+
   FIND DICTDB._File WHERE DICTDB._File._Db-Recid  = drec_db
                       AND DICTDB._File._File-name = ofiln
                       AND DICTDB._File._Owner = "_FOREIGN" NO-ERROR.
@@ -401,10 +412,7 @@ FOR EACH DICTDB2._File WHERE ( l_files = "**all**" or
     END.
     ELSE DO:
         DO a = 1 TO 999:
-          IF a = 1 THEN
-            ASSIGN ofldn = ofldn + STRING(a).
-          ELSE
-            ASSIGN ofldn = SUBSTRING(ofldn, 1, LENGTH(ofldn) - LENGTH(STRING(a))) + STRING(a).
+          ASSIGN ofldn = SUBSTRING(ofldn, 1, LENGTH(ofldn) - LENGTH(STRING(a))) + STRING(a).
 
           IF CAN-FIND(verify-fname WHERE verify-fname.new-name = ofldn) THEN 
               NEXT.
@@ -414,7 +422,7 @@ FOR EACH DICTDB2._File WHERE ( l_files = "**all**" or
             LEAVE. /* get out of the a =1 to 999 loop */
           END.
         END.
-   END.
+    END.
 
     IF TERMINAL <> "" and not batch_mode THEN
       DISPLAY  DICTDB2._File._File-name @ msg[1]
@@ -622,15 +630,67 @@ end.
      THEN put stream logfile unformatted 
        "Index" at 10 DICTDB2._Index._Index-name at 25 skip.
 
+
 /*---------------------  Adjust Index itself  ----------------------*/
 
     FIND DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Index-Name = oidxn
       NO-ERROR.
     IF NOT AVAILABLE DICTDB._Index THEN
-      FIND DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._For-Name = oidxn
+      FIND DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._For-Name = CAPS(oidxn)
       NO-ERROR.
     IF NOT AVAILABLE DICTDB._Index THEN
       FIND DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Index-name = DICTDB2._index._Index-name NO-ERROR.
+
+&SCOPED-DEFINE  MAX_IDX_LEN 30
+&SCOPED-DEFINE  UNIK  "##"       /* adjust LEN_UNIK if this changes */
+&SCOPED-DEFINE  LEN_UNIK      2
+
+    IF NOT AVAILABLE DICTDB._Index THEN DO:
+        /* upon migration, we may have trimmed some characters off of the index name if the index name was too big
+           or if it conflicted with another index name generated (in case table and index name were trimmed to the same
+           string). Therefore, we are going to try to do the same thing here to emulate what was done upon migration: try to generate
+           the name of the foreign index with the info we have and try to find the index in the schema holder.
+           This still may not find it if we had to again trim characters off of the generated foreign name to resolve duplicate names, so
+           we will trim one character at a time and check if we can find the index that way.
+        */
+        IF LENGTH(ofiln) + LENGTH(oidxn) +  {&LEN_UNIK} > {&MAX_IDX_LEN} THEN DO:
+            IF LENGTH(oidxn) + 2 <  {&MAX_IDX_LEN} THEN  /* easy way */
+                ASSIGN oidxn = SUBSTRING(ofiln,1,  {&MAX_IDX_LEN} - LENGTH(oidxn) -  {&LEN_UNIK}) + {&UNIK} + oidxn.
+            ELSE DO:  /* Then, we have to knock some chars off of oidxn as well */
+              
+                REPEAT:
+                  oidxn =  SUBSTRING (oidxn,1, LENGTH(oidxn) - 1).       
+                  IF LENGTH(oidxn) +  {&LEN_UNIK} <  {&MAX_IDX_LEN} THEN
+                  LEAVE.   /* This is what we want */
+                END.  
+
+                ASSIGN oidxn = SUBSTRING(ofiln,1, {&MAX_IDX_LEN} - LENGTH(oidxn) - {&LEN_UNIK}) +  {&UNIK} + oidxn.
+            END.
+        END.  
+        ELSE  /*string is okay */
+              ASSIGN oidxn = ofiln +  {&UNIK} + oidxn. 
+        
+        /* _Index._For-name is case-sensitive, so get characters in uppercase */
+        ASSIGN oidxn = CAPS(oidxn)
+                     cid = oidxn.
+        
+        /* we will start with the name we have now, and then trim 1 character at a time and see if we can find it */
+        REPEAT temp_size = (LENGTH(oidxn) - 1) TO 0 BY -1:
+
+             FIND DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._For-Name = cid NO-ERROR.
+             
+             IF AVAILABLE DICTDB._Index THEN  DO:
+                 ASSIGN oidxn = cid.
+                 LEAVE.
+             END. 
+             /* trim one character */
+             IF temp_size = 0 THEN
+                 LEAVE.
+
+             ASSIGN cid = SUBSTRING(oidxn, 1, temp_size).
+       END.
+    
+    END.   /* not available _Index */
 
     IF NOT AVAILABLE DICTDB._Index THEN DO:  /* NOT AVAILABLE DICTDB._Index and not a word index */     
       CREATE DICTDB._Index.
@@ -639,7 +699,7 @@ end.
         DICTDB._Index._File-recid   = RECID (DICTDB._File)
         DICTDB._Index._Wordidx      = DICTDB2._Index._Wordidx
         DICTDB._Index._Desc         = DICTDB2._Index._Desc
-        DICTDB._Index._For-Name     = oidxn
+        DICTDB._Index._For-Name     = CAPS(oidxn)
         DICTDB._Index._For-type     = DICTDB2._Index._For-type
         DICTDB._Index._Index-name   = DICTDB2._Index._Index-Name
         DICTDB._Index._Active       = DICTDB2._Index._Active

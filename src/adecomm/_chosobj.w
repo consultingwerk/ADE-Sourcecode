@@ -1,28 +1,12 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME d_openso
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS d_openso 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*------------------------------------------------------------------------
@@ -152,7 +136,7 @@
 &Scoped-define PROCEDURE-TYPE DIALOG-BOX
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME d_openso
 
 /* Standard List Definitions                                            */
@@ -165,6 +149,22 @@
 /* _UIB-PREPROCESSOR-BLOCK-END */
 &ANALYZE-RESUME
 
+
+/* ************************  Function Prototypes ********************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCurrentPMDir d_openso 
+FUNCTION getCurrentPMDir RETURNS CHARACTER
+  (   )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDesignManager d_openso 
+FUNCTION getDesignManager RETURNS HANDLE
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
 
 /* ***********************  Control Definitions  ********************** */
@@ -251,7 +251,7 @@ DEFINE FRAME d_openso
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX d_openso
-   NOT-VISIBLE L-To-R,COLUMNS                                           */
+   NOT-VISIBLE FRAME-NAME L-To-R,COLUMNS                                */
 ASSIGN 
        FRAME d_openso:SCROLLABLE       = FALSE
        FRAME d_openso:HIDDEN           = TRUE.
@@ -934,7 +934,7 @@ PROCEDURE Check_Dirs :
 -------------------------------------------------------------*/
   DEFINE VARIABLE i     AS INTEGER   NO-UNDO.
   DEFINE VARIABLE dirs2 AS CHARACTER NO-UNDO.
-  
+
   DO i = 1 TO NUM-ENTRIES(gDirs):
       ASSIGN FILE-INFO:FILE-NAME = ENTRY(i,gDirs).
       IF INDEX(FILE-INFO:FILE-TYPE,"D") > 0 THEN /* must be a directory */
@@ -1556,6 +1556,8 @@ PROCEDURE Setup :
 -------------------------------------------------------------*/
 DEFINE OUTPUT PARAMETER rc AS LOGICAL INITIAL yes.
 DEFINE VARIABLE         i  AS INTEGER NO-UNDO.
+DEFINE VARIABLE cPMDir     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cStart     AS CHARACTER  NO-UNDO.
 
 DO WITH FRAME {&FRAME-NAME}:
   IF p_cst-attr <> "" THEN DO:
@@ -1575,16 +1577,25 @@ DO WITH FRAME {&FRAME-NAME}:
       IF p_mode = "{&WT-CONTROL}" THEN gTitle = "Choose {&WL-CONTROL}".
                                 ELSE gTitle = "Choose Object".
     END.
-    
+                
+    /* add current product module to list if dynamics is running */
+    cPMDir = getCurrentPmDir().
+    IF cPmDir > '' AND LOOKUP(cPmDir,gDirs) = 0 THEN
+    DO:
+      /* since this in theory is user defined data ensure that the first 
+         specified directory still is the first (as for now also for current) */ 
+      cStart = ENTRY(1,gDirs).
+      gDirs = cPmDir + ',' + gDirs.
+    END.
+
     /* 
     Don't do this for remote. We could perhaps check directories 
     after running BuildFielList, but it would cost too much if multi leveldirectories
     are used, so we leave the error messages until someone tries to use them. 
     That's also more in line with good UI standards */
-            
+    
     IF NOT gRemoteFile THEN  
       RUN Check_Dirs.
-    
     ASSIGN cb_filters:LIST-ITEMS     = gFilters
            cb_dirs:LIST-ITEMS        = gDirs
            FRAME {&FRAME-NAME}:TITLE = gTitle
@@ -1595,7 +1606,8 @@ DO WITH FRAME {&FRAME-NAME}:
            filename                  = ""
            p_otherThing              = ""
         .
-   
+     IF cStart > '' THEN
+       cb_dirs:SCREEN-VALUE = cStart.   
     IF p_mode = "{&WT-CONTROL}" THEN listlbl = "{&WL-CONTROL}" + ":".
   END.
   ELSE rc = no.
@@ -1637,6 +1649,67 @@ PROCEDURE Set_Sensitivity :
     b_Preview:SENSITIVE = (filename:SCREEN-VALUE ne "").
   END.
 END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+/* ************************  Function Implementations ***************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getCurrentPMDir d_openso 
+FUNCTION getCurrentPMDir RETURNS CHARACTER
+  (   ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hManager    AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cModule     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cModulelist AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iModule     AS INTEGER    NO-UNDO.
+  hManager = getDesignManager().
+ 
+  IF VALID-HANDLE(hManager) THEN
+  DO:
+    cModuleList = DYNAMIC-FUNCTION("getproductModuleList":U IN hManager,
+                  "product_module_Code":U,
+                  "relative_path":U,
+                  /* './' to avoid lookup of path below if module has same name */
+                  "./&1":U, 
+                  CHR(1)).
+    cModule = DYNAMIC-FUNC("getCurrentProductModule":U IN hManager).
+    cModule = IF INDEX(cModule,"//":U) > 0 
+              THEN RIGHT-TRIM(SUBSTRING(cModule,1,INDEX(cModule,"//":U) - 1))
+              ELSE cModule.
+
+    iModule = LOOKUP(cModule,cModuleList,CHR(1)).
+    IF iModule > 0 THEN
+      RETURN SUBSTR(ENTRY(iModule - 1,cModuleList,CHR(1)),3).
+  END.
+  RETURN "".   
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDesignManager d_openso 
+FUNCTION getDesignManager RETURNS HANDLE
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hManager AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cNum AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cLicense AS CHARACTER  NO-UNDO.
+  RUN adeshar/_ablic.p (INPUT NO, OUTPUT cNum, OUTPUT cLicense).
+  
+  IF LOOKUP('enable-icf':U,cLicense) > 0 THEN
+    ASSIGN hManager = DYNAMIC-FUNCTION("getManagerHandle":U, INPUT "RepositoryDesignManager":U).
+
+  RETURN hManager.
+
+END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

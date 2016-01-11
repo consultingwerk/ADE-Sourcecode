@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -41,56 +25,52 @@ Author: Bryan Mau
 
 Date Created: 05/13/93
 
+              04/03/05  kmcintos Optimized and beautified
 ----------------------------------------------------------------------------*/
 
-DEFINE INPUT parameter p_Fillin AS WIDGET-HANDLE NO-UNDO.
-DEFINE INPUT parameter p_Title  AS CHAR NO-UNDO.
-DEFINE INPUT parameter p_Filter  AS CHAR NO-UNDO.
-DEFINE INPUT parameter p_Mustexist  AS LOGICAL NO-UNDO.
+DEFINE INPUT PARAMETER p_Fillin    AS HANDLE    NO-UNDO.
+DEFINE INPUT PARAMETER p_Title     AS CHARACTER NO-UNDO.
+DEFINE INPUT PARAMETER p_Filter    AS CHARACTER NO-UNDO.
+DEFINE INPUT PARAMETER p_Mustexist AS LOGICAL   NO-UNDO.
+                       
+DEFINE VARIABLE pickedOne      AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE fname          AS CHARACTER NO-UNDO.
+DEFINE VARIABLE filt           AS CHARACTER NO-UNDO.
+DEFINE VARIABLE Get_Must_Exist AS CHARACTER NO-UNDO.
 
-DEFINE VAR pickedOne  AS LOGICAL NO-UNDO.
-DEFINE VAR fname      AS CHARACTER NO-UNDO.
-DEFINE VAR filt       AS CHAR    NO-UNDO.
-DEFINE VAR rindex     AS INTEGER NO-UNDO.
-DEFINE VAR Get_Must_Exist AS CHAR NO-UNDO.
+fname     = TRIM(p_Fillin:SCREEN-VALUE).
 
-fname = TRIM(p_Fillin:screen-value).
 IF (p_Filter = "") OR (p_Filter = ?) THEN DO:
-   rindex = R-INDEX(fname, ".").
-   IF (rindex = 0) THEN filt = "*".
-   ELSE filt = "*" + SUBSTRING(fname, rindex).
+   IF (NUM-ENTRIES(fname,".") < 2) THEN filt = "*".
+   ELSE filt = "*" + ENTRY(NUM-ENTRIES(fname,"."),fname,".").
 END.
 ELSE filt = p_Filter.
 
 
 &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
-IF p_Mustexist THEN
-     SYSTEM-DIALOG GET-FILE
-                    fname 
-                    filters filt filt 
-                    title                p_Title 
-                    must-exist
-                    update             pickedOne.
-ELSE
-     SYSTEM-DIALOG GET-FILE
-                    fname 
-                    filters filt filt 
-                    title                p_Title 
-                    update             pickedOne.
+  IF p_Mustexist THEN
+    SYSTEM-DIALOG GET-FILE    fname 
+                  FILTERS    filt filt 
+                  TITLE      p_Title 
+                  MUST-EXIST 
+                  UPDATE     pickedOne.
+  ELSE
+    SYSTEM-DIALOG GET-FILE fname 
+                  FILTERS filt filt 
+                  TITLE   p_Title 
+                  UPDATE  pickedOne.
 
 &ELSE
-      ASSIGN Get_Must_Exist = IF p_Mustexist THEN "MUST-EXIST"
-                                             ELSE "".
-      RUN adecomm/_filecom.p
-          ( INPUT filt /* p_Filter */, 
-            INPUT "" /* p_Dir */ , 
-            INPUT "" /* p_Drive */ ,
-            INPUT NO , /* p_Save_As */
-            INPUT p_Title ,
-            INPUT Get_Must_Exist ,
-            INPUT-OUTPUT fname,
-               OUTPUT pickedOne ). 
+  ASSIGN Get_Must_Exist = IF p_Mustexist THEN "MUST-EXIST" ELSE "".
+  RUN adecomm/_filecom.p ( INPUT filt, /* p_Filter */
+                           INPUT "", /* p_Dir */
+                           INPUT "", /* p_Drive */
+                           INPUT NO, /* p_Save_As */
+                           INPUT p_Title,
+                           INPUT Get_Must_Exist,
+                           INPUT-OUTPUT fname,
+                           OUTPUT pickedOne ). 
 &ENDIF
 
 IF pickedOne THEN
-   p_Fillin:screen-value = fname.
+  p_Fillin:SCREEN-VALUE = fname.

@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI
 /* Procedure Description
 "SDO Wizard"
 */
@@ -6,25 +6,9 @@
 &Scoped-define WINDOW-NAME C-Win
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS C-Win 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*------------------------------------------------------------------------
@@ -44,7 +28,17 @@
   Created: 4/4/95 
   Modified: 03/25/98 SLK Changed d-*.* to d*.*
   Modified: 04/08/98 HD   Validate Filename when NEXT
-
+  
+  Notes:  The three types are treated as follows. 
+          SmartBusinessObject
+              - use a homemade toggle box object to allow 
+                the user to specify enabled and disabled fields.
+              - Use the main wizard DataSourcenames and UpdataSourcenames
+                as storage of the selected values.
+          DataView - include file 
+              - use a selection list to select the dataTable.      
+              - STARTS another object if table is changed (storedataObjectList)
+              - The object's DataTable then also stores the selected values.
 ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
 /*----------------------------------------------------------------------*/
@@ -58,8 +52,9 @@
 CREATE WIDGET-POOL.
 
 /* ***************************  Definitions  ************************** */
-{ src/adm2/support/admhlp.i } /* ADM Help File Defs */
-
+{src/adm2/support/admhlp.i} /* ADM Help File Defs */
+{destdefi.i} /*  Contains definitions for dynamics design-time temp-tables. */
+{src/adm2/globals.i}
 /* Parameters Definitions ---                                           */
 DEFINE INPUT        PARAMETER hWizard   AS WIDGET-HANDLE NO-UNDO.
 
@@ -72,8 +67,10 @@ DEFINE VARIABLE obj-recid  AS CHARACTER NO-UNDO.
 DEFINE VARIABLE proc-recid AS CHARACTER NO-UNDO.
 DEFINE VARIABLE l-status   AS LOGICAL   NO-UNDO.
 
-DEFINE Variable gWizardHdl AS HANDLE  NO-UNDO.
-DEFINE VARIABLE gDOHdl     AS HANDLE  NO-UNDO.
+DEFINE VARIABLE gWizardHdl          AS HANDLE  NO-UNDO.
+DEFINE VARIABLE gDOHdl              AS HANDLE  NO-UNDO.
+DEFINE VARIABLE ghSDOSelect         AS HANDLE  NO-UNDO.
+DEFINE VARIABLE glDynamicsIsRunning AS LOGICAL NO-UNDO.
 
 DEFINE VARIABLE xiHorMargin   AS INTEGER NO-UNDO INIT 4.
 DEFINE VARIABLE xiToggleSpace AS INTEGER NO-UNDO INIT 10.
@@ -101,11 +98,11 @@ FUNCTION setUpdateTargetNames RETURNS LOGICAL (pcNames AS CHAR) IN gWizardHdl.
 &Scoped-define PROCEDURE-TYPE WINDOW
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME DEFAULT-FRAME
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS e_msg cObjectType Data_Object b_brws b_Helpq 
+&Scoped-Define ENABLED-OBJECTS e_msg cObjectType Data_Object b_Helpq 
 &Scoped-Define DISPLAYED-OBJECTS e_msg cObjectType Data_Object 
 
 /* Custom List Definitions                                              */
@@ -117,9 +114,16 @@ FUNCTION setUpdateTargetNames RETURNS LOGICAL (pcNames AS CHAR) IN gWizardHdl.
 
 /* ************************  Function Prototypes ********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD destroyDataObjectList C-Win 
-FUNCTION destroyDataObjectList RETURNS LOGICAL
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getInitialFileName C-Win 
+FUNCTION getInitialFileName RETURNS CHARACTER
   (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getOpenObjectFilter C-Win 
+FUNCTION getOpenObjectFilter RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -131,8 +135,22 @@ FUNCTION initDataObject RETURNS LOGICAL
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD initSDO C-Win 
-FUNCTION initSDO RETURNS LOGICAL
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD initDataObjectList C-Win 
+FUNCTION initDataObjectList RETURNS HANDLE
+  (   )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD isRepositoryObject C-Win 
+FUNCTION isRepositoryObject RETURNS LOGICAL
+  ( pcObject AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD removeDataObjectList C-Win 
+FUNCTION removeDataObjectList RETURNS LOGICAL
   ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -147,7 +165,21 @@ FUNCTION removeObjectsFromList RETURNS LOGICAL
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD resetDataSource C-Win 
 FUNCTION resetDataSource RETURNS LOGICAL
-  ( /* parameter-definitions */ )  FORWARD.
+  ( pcDataObject AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD resetFromRepository C-Win 
+FUNCTION resetFromRepository RETURNS LOGICAL
+  ( plFromRepository AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD resetObjectType C-Win 
+FUNCTION resetObjectType RETURNS LOGICAL
+  ( pcObjectType AS CHAR )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -159,13 +191,6 @@ FUNCTION storeDataObjectList RETURNS LOGICAL
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD viewDataObjectList C-Win 
-FUNCTION viewDataObjectList RETURNS LOGICAL
-  ( /* parameter-definitions */ )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
 
 /* ***********************  Control Definitions  ********************** */
 
@@ -173,80 +198,85 @@ FUNCTION viewDataObjectList RETURNS LOGICAL
 DEFINE VAR C-Win AS WIDGET-HANDLE NO-UNDO.
 
 /* Definitions of the field level widgets                               */
-DEFINE BUTTON b_brws 
-     LABEL "&Browse..." 
+DEFINE BUTTON btnbrws 
+     LABEL "Brow&se..." 
      SIZE 15 BY 1.14.
 
+DEFINE BUTTON btnRepos 
+     IMAGE-UP FILE "adeicon/browse-u.bmp":U NO-FOCUS
+     LABEL "" 
+     SIZE 4.6 BY 1.05
+     BGCOLOR 8 .
+
 DEFINE BUTTON b_Helpq 
-     LABEL "&Help on DataObject" 
+     LABEL "&Help on definition source" 
      SIZE 26 BY 1.14.
 
 DEFINE VARIABLE e_msg AS CHARACTER 
      VIEW-AS EDITOR
-     SIZE 26 BY 5
+     SIZE 26 BY 4.81
      BGCOLOR 8  NO-UNDO.
 
-DEFINE VARIABLE cDisplayLabel AS CHARACTER FORMAT "X(256)":U INITIAL "Disp." 
+DEFINE VARIABLE cIncludeLabel AS CHARACTER FORMAT "X(50)":U INITIAL "DataTables:" 
+     CONTEXT-HELP-ID 0
       VIEW-AS TEXT 
-     SIZE 6 BY .62 NO-UNDO.
+     SIZE 14 BY .62 NO-UNDO.
 
-DEFINE VARIABLE cDisplayLabel-2 AS CHARACTER FORMAT "X(256)":U INITIAL "Disp." 
+DEFINE VARIABLE cSBOLabel AS CHARACTER FORMAT "X(50)":U INITIAL "DataObjects:" 
+     CONTEXT-HELP-ID 0
       VIEW-AS TEXT 
-     SIZE 6 BY .62 NO-UNDO.
-
-DEFINE VARIABLE cEnableLabel AS CHARACTER FORMAT "X(256)":U INITIAL "Enbl." 
-      VIEW-AS TEXT 
-     SIZE 5.4 BY .62 NO-UNDO.
-
-DEFINE VARIABLE cEnableLabel-2 AS CHARACTER FORMAT "X(256)":U INITIAL "Enbl." 
-      VIEW-AS TEXT 
-     SIZE 5.4 BY .62 NO-UNDO.
-
-DEFINE VARIABLE cSDOlabel AS CHARACTER FORMAT "X(256)":U INITIAL "ObjectName" 
-      VIEW-AS TEXT 
-     SIZE 12 BY .62 NO-UNDO.
-
-DEFINE VARIABLE cSDOlabel-2 AS CHARACTER FORMAT "X(256)":U INITIAL "ObjectName" 
-      VIEW-AS TEXT 
-     SIZE 12 BY .62 NO-UNDO.
+     SIZE 14 BY .62 NO-UNDO.
 
 DEFINE VARIABLE Data_Object AS CHARACTER FORMAT "X(256)":U 
      VIEW-AS FILL-IN 
      SIZE 36 BY 1 NO-UNDO.
 
 DEFINE VARIABLE cObjectType AS CHARACTER 
-     VIEW-AS RADIO-SET HORIZONTAL
+     VIEW-AS RADIO-SET VERTICAL
      RADIO-BUTTONS 
           "SmartDataObject", "SmartDataObject",
-"SmartBusinessObject", "SmartBusinessObject"
-     SIZE 50.6 BY .95 NO-UNDO.
+"SmartBusinessObject", "SmartBusinessObject",
+"Include file", "DataView"
+     SIZE 26.4 BY 2.71 NO-UNDO.
+
+DEFINE VARIABLE lFromRepos AS LOGICAL 
+     CONTEXT-HELP-ID 0
+     VIEW-AS RADIO-SET VERTICAL
+     RADIO-BUTTONS 
+          "From Repository", yes,
+"Static", no
+     SIZE 21.6 BY 1.81 NO-UNDO.
 
 DEFINE RECTANGLE rRect
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 54 BY 2.81.
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
+     SIZE 54 BY 4.81.
+
+DEFINE VARIABLE cDataTable AS CHARACTER 
+     CONTEXT-HELP-ID 0
+     VIEW-AS SELECTION-LIST SINGLE SCROLLBAR-VERTICAL 
+     SIZE 54 BY 5.29 NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME DEFAULT-FRAME
+     btnRepos AT ROW 4.91 COL 50.2 WIDGET-ID 8 NO-TAB-STOP 
      e_msg AT ROW 1.52 COL 57 NO-LABEL
-     cObjectType AT ROW 1.91 COL 3 NO-LABEL
-     Data_Object AT ROW 2.91 COL 3 NO-LABEL
-     b_brws AT ROW 2.91 COL 40
-     b_Helpq AT ROW 9.81 COL 57
-     cSDOlabel AT ROW 4.19 COL 1 COLON-ALIGNED NO-LABEL
-     cDisplayLabel AT ROW 4.19 COL 15 COLON-ALIGNED NO-LABEL
-     cEnableLabel AT ROW 4.19 COL 20.8 COLON-ALIGNED NO-LABEL
-     cSDOlabel-2 AT ROW 4.19 COL 27.8 COLON-ALIGNED NO-LABEL
-     cDisplayLabel-2 AT ROW 4.19 COL 41.2 COLON-ALIGNED NO-LABEL
-     cEnableLabel-2 AT ROW 4.19 COL 47.2 COLON-ALIGNED NO-LABEL
+     cObjectType AT ROW 1.95 COL 3 NO-LABEL
+     lFromRepos AT ROW 1.95 COL 33.4 NO-LABEL WIDGET-ID 10
+     Data_Object AT ROW 4.91 COL 3 NO-LABEL
+     btnbrws AT ROW 4.91 COL 40
+     cDataTable AT ROW 7.14 COL 2 NO-LABEL WIDGET-ID 2
+     b_Helpq AT ROW 11.33 COL 57
+     cIncludeLabel AT ROW 6.48 COL 2 NO-LABEL WIDGET-ID 4
+     cSBOLabel AT ROW 6.48 COL 2 NO-LABEL WIDGET-ID 6
+     "Data definition source" VIEW-AS TEXT
+          SIZE 21.6 BY .62 AT ROW 1.19 COL 3.4
      rRect AT ROW 1.52 COL 2
-     "Data Source" VIEW-AS TEXT
-          SIZE 13 BY .62 AT ROW 1.24 COL 3
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS THREE-D 
          AT COL 1 ROW 1
-         SIZE 83.6 BY 11.67
+         SIZE 83.6 BY 11.86
          FONT 4.
 
 
@@ -296,42 +326,33 @@ ASSIGN C-Win = CURRENT-WINDOW.
 /* SETTINGS FOR WINDOW C-Win
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME DEFAULT-FRAME
-   UNDERLINE                                                            */
-/* SETTINGS FOR FILL-IN cDisplayLabel IN FRAME DEFAULT-FRAME
+   FRAME-NAME UNDERLINE                                                 */
+/* SETTINGS FOR BUTTON btnbrws IN FRAME DEFAULT-FRAME
+   NO-ENABLE                                                            */
+/* SETTINGS FOR BUTTON btnRepos IN FRAME DEFAULT-FRAME
+   NO-ENABLE                                                            */
+/* SETTINGS FOR SELECTION-LIST cDataTable IN FRAME DEFAULT-FRAME
    NO-DISPLAY NO-ENABLE                                                 */
 ASSIGN 
-       cDisplayLabel:HIDDEN IN FRAME DEFAULT-FRAME           = TRUE.
+       cDataTable:HIDDEN IN FRAME DEFAULT-FRAME           = TRUE.
 
-/* SETTINGS FOR FILL-IN cDisplayLabel-2 IN FRAME DEFAULT-FRAME
-   NO-DISPLAY NO-ENABLE                                                 */
+/* SETTINGS FOR FILL-IN cIncludeLabel IN FRAME DEFAULT-FRAME
+   NO-DISPLAY NO-ENABLE ALIGN-L                                         */
 ASSIGN 
-       cDisplayLabel-2:HIDDEN IN FRAME DEFAULT-FRAME           = TRUE.
+       cIncludeLabel:HIDDEN IN FRAME DEFAULT-FRAME           = TRUE.
 
-/* SETTINGS FOR FILL-IN cEnableLabel IN FRAME DEFAULT-FRAME
-   NO-DISPLAY NO-ENABLE                                                 */
+/* SETTINGS FOR FILL-IN cSBOLabel IN FRAME DEFAULT-FRAME
+   NO-DISPLAY NO-ENABLE ALIGN-L                                         */
 ASSIGN 
-       cEnableLabel:HIDDEN IN FRAME DEFAULT-FRAME           = TRUE.
-
-/* SETTINGS FOR FILL-IN cEnableLabel-2 IN FRAME DEFAULT-FRAME
-   NO-DISPLAY NO-ENABLE                                                 */
-ASSIGN 
-       cEnableLabel-2:HIDDEN IN FRAME DEFAULT-FRAME           = TRUE.
-
-/* SETTINGS FOR FILL-IN cSDOlabel IN FRAME DEFAULT-FRAME
-   NO-DISPLAY NO-ENABLE                                                 */
-ASSIGN 
-       cSDOlabel:HIDDEN IN FRAME DEFAULT-FRAME           = TRUE.
-
-/* SETTINGS FOR FILL-IN cSDOlabel-2 IN FRAME DEFAULT-FRAME
-   NO-DISPLAY NO-ENABLE                                                 */
-ASSIGN 
-       cSDOlabel-2:HIDDEN IN FRAME DEFAULT-FRAME           = TRUE.
+       cSBOLabel:HIDDEN IN FRAME DEFAULT-FRAME           = TRUE.
 
 /* SETTINGS FOR FILL-IN Data_Object IN FRAME DEFAULT-FRAME
    ALIGN-L                                                              */
 ASSIGN 
        e_msg:READ-ONLY IN FRAME DEFAULT-FRAME        = TRUE.
 
+/* SETTINGS FOR RADIO-SET lFromRepos IN FRAME DEFAULT-FRAME
+   NO-DISPLAY NO-ENABLE                                                 */
 /* SETTINGS FOR RECTANGLE rRect IN FRAME DEFAULT-FRAME
    NO-ENABLE                                                            */
 /* _RUN-TIME-ATTRIBUTES-END */
@@ -379,53 +400,106 @@ END.
 &ANALYZE-RESUME
 
 
-&Scoped-define SELF-NAME b_brws
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_brws C-Win
-ON CHOOSE OF b_brws IN FRAME DEFAULT-FRAME /* Browse... */
+&Scoped-define SELF-NAME btnbrws
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL btnbrws C-Win
+ON CHOOSE OF btnbrws IN FRAME DEFAULT-FRAME /* Browse... */
 DO:
-  DEFINE VARIABLE cancelled  AS LOGICAL              NO-UNDO.
+  DEFINE VARIABLE lcancelled  AS LOGICAL              NO-UNDO.
   DEFINE VARIABLE otherthing AS CHARACTER            NO-UNDO.
   DEFINE VARIABLE Attributes AS CHARACTER            NO-UNDO.  
   DEFINE VARIABLE Template   AS CHARACTER            NO-UNDO.  
-  DEFINE VARIABLE ObjLabel   AS CHARACTER            NO-UNDO.  
+  DEFINE VARIABLE ObjLabel      AS CHARACTER            NO-UNDO.  
   DEFINE VARIABLE oldData_Object AS CHARACTER        NO-UNDO.  
- 
-  RUN adeuib/_uibinfo.p (
-      INPUT ?,
-      INPUT "PALETTE-ITEM ":U + cObjectType:SCREEN-VALUE IN FRAME {&FRAME-NAME},
-      INPUT "ATTRIBUTES":U,
-      OUTPUT Attributes).
-  /*
-  Cannot use template if the template starts a wizard  
-  
-  RUN adeuib/_uibinfo.p (
-      INPUT ?,
-      INPUT "PALETTE-ITEM ":U + xSmartDataObject,
-      INPUT "TEMPLATE":U,
-      OUTPUT Template).
-  */
-  
-  IF Attributes <> "" THEN
-  DO WITH FRAME {&FRAME-NAME}:
-    ASSIGN oldData_Object = Data_Object:SCREEN-VALUE.
-    RUN adecomm/_chosobj.w (
-        INPUT "smartObject",
-        INPUT Attributes,
-        INPUT Template,
-        INPUT "BROWSE,PREVIEW":U,
-        OUTPUT Data_Object,
-        OUTPUT OtherThing,
-        OUTPUT cancelled).
-   
-    IF NOT cancelled THEN 
-    DO:
-      DISPLAY Data_Object WITH FRAME {&FRAME-NAME}.
-      IF oldData_Object <> Data_Object:SCREEN-VALUE THEN
-      DO:
-        resetDataSource().
-      END.
+  DEFINE VARIABLE cFilterlist    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cObject        AS CHARACTER  NO-UNDO.
+  IF cObjectType = 'DataView':U THEN
+  DO:
+    IF index(data_object,'.') > 0 OR index(data_object,'*') > 0 THEN
+      cObject = data_object.
+    ELSE IF data_object > '' THEN
+      cFilterList = data_object.
+          
+    RUN adecomm/_getfiledialog.p ( "Select data definition include",
+                                   (IF cfilterlist > '' 
+                                    THEN "Filtered include files (" + cFilterList + "*.i),"
+                                    ELSE "")
+                                    + "Include files (*.i),All files(*.*)",
+                                    INPUT-OUTPUT cobject).
+    lcancelled = cobject = ''. 
+    IF NOT lcancelled THEN
+      data_object = cObject.
+  END.
+  ELSE DO:
+    RUN adeuib/_uibinfo.p (
+        INPUT ?,
+        INPUT "PALETTE-ITEM ":U + cObjectType:SCREEN-VALUE IN FRAME {&FRAME-NAME},
+        INPUT "ATTRIBUTES":U,
+        OUTPUT Attributes).
+    /*
+    Cannot use template if the template starts a wizard  
+    
+    RUN adeuib/_uibinfo.p (
+        INPUT ?,
+        INPUT "PALETTE-ITEM ":U + xSmartDataObject,
+        INPUT "TEMPLATE":U,
+        OUTPUT Template).
+    */
+    
+    IF Attributes <> "" THEN
+    DO WITH FRAME {&FRAME-NAME}:
+      ASSIGN oldData_Object = Data_Object:SCREEN-VALUE.
+      RUN adecomm/_chosobj.w (
+          INPUT "smartObject",
+          INPUT Attributes,
+          INPUT Template,
+          INPUT "BROWSE,PREVIEW":U,
+          OUTPUT Data_Object,
+          OUTPUT OtherThing,
+          OUTPUT lcancelled).
     END.
-  END. 
+  END.
+  IF NOT lcancelled THEN 
+  DO:
+
+    IF Data_Object BEGINS('.~\':U) THEN
+      Data_Object = SUBSTR(Data_Object,3).
+    IF oldData_Object <> Data_Object THEN
+    DO:
+      IF NOT resetDataSource(Data_Object) THEN 
+        Data_Object = oldData_Object.
+      DISPLAY Data_Object WITH FRAME {&FRAME-NAME}.
+    END.
+  END.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME btnRepos
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL btnRepos C-Win
+ON CHOOSE OF btnRepos IN FRAME DEFAULT-FRAME
+DO:
+ DEFINE VARIABLE cObject AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE lOK AS LOGICAL    NO-UNDO.
+
+ ASSIGN {&WINDOW-NAME}:PRIVATE-DATA = STRING(THIS-PROCEDURE).
+ 
+ RUN ry/obj/gopendialog.w (INPUT {&WINDOW-NAME},
+                           INPUT "",
+                           INPUT No,
+                           INPUT "Get Object",
+                           OUTPUT cObject,
+                           OUTPUT lok).
+ IF lOK THEN
+ DO:
+   IF Data_Object <> cObject THEN
+   DO:
+     IF resetDataSource(cObject) THEN 
+       Data_Object = cObject.
+      DISPLAY Data_Object WITH FRAME {&FRAME-NAME}.
+   END.
+ END.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -434,9 +508,41 @@ END.
 
 &Scoped-define SELF-NAME b_Helpq
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_Helpq C-Win
-ON CHOOSE OF b_Helpq IN FRAME DEFAULT-FRAME /* Help on DataObject */
+ON CHOOSE OF b_Helpq IN FRAME DEFAULT-FRAME /* Help on definition source */
 DO:
   RUN adecomm/_adehelp.p ("AB":U, "CONTEXT":U, {&Help_on_Data_Object}, ?).  
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME cDataTable
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL cDataTable C-Win
+ON VALUE-CHANGED OF cDataTable IN FRAME DEFAULT-FRAME
+DO:
+  ASSIGN cDataTable.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME cObjectType
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL cObjectType C-Win
+ON VALUE-CHANGED OF cObjectType IN FRAME DEFAULT-FRAME
+DO:
+  DEFINE VARIABLE cOldType AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lOk      AS LOGICAL    NO-UNDO.
+  ASSIGN 
+    cOldType = cObjectType
+    cObjectType.
+  RUN objectTypechanged(SELF:SCREEN-VALUE, OUTPUT lok).
+  IF NOT lok THEN 
+  DO:
+    cObjectType = cOldType.
+    DISPLAY cObjectType WITH FRAME {&FRAME-NAME}.
+  END.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -447,9 +553,26 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Data_Object C-Win
 ON VALUE-CHANGED OF Data_Object IN FRAME DEFAULT-FRAME
 DO: 
-  /* nullify all data */
-  ASSIGN data_object.
-  resetDataSource().
+  /* nullify all data 
+   (NOTE that data_object is used as stored property for comparison in logic ) */
+  resetDataSource(data_object:SCREEN-VALUE). 
+  DISPLAY data_object WITH FRAME {&FRAME-NAME}.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME lFromRepos
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL lFromRepos C-Win
+ON VALUE-CHANGED OF lFromRepos IN FRAME DEFAULT-FRAME
+DO:
+  IF resetDataSource('') THEN
+  DO:
+    ASSIGN lFromRepos.
+    resetFromRepository(lFromRepos).
+  END.
+  DISPLAY lFromRepos WITH FRAME {&FRAME-NAME}.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -468,6 +591,10 @@ ASSIGN FRAME {&FRAME-NAME}:FRAME    = hwizard
        FRAME {&FRAME-NAME}:WIDTH-P  = FRAME {&FRAME-NAME}:VIRTUAL-WIDTH-P
        gWizardHdl                   = SOURCE-PROCEDURE.      
               
+glDynamicsIsRunning = DYNAMIC-FUNCTION('isICFRunning':U IN THIS-PROCEDURE) NO-ERROR.
+IF glDynamicsIsRunning = ? THEN
+   glDynamicsIsRunning = NO.
+
 /* Get context id of procedure */
 RUN adeuib/_uibinfo.p (?, "PROCEDURE ?":U, "PROCEDURE":U, OUTPUT proc-recid).
 
@@ -478,10 +605,36 @@ RUN adeuib/_uibinfo.p (?, "PROCEDURE ?":U, "TYPE":U, OUTPUT objtype).
 /* then preset Data_Object.                                              */
 RUN adeuib/_uibinfo.p (INTEGER(proc-recid)," ","DataObject", OUTPUT Data_Object).
 
+lFromRepos = glDynamicsIsrunning.
+IF NUM-ENTRIES(Data_object) > 1 THEN
+DO:
+  resetObjectType('DataView':U).
+  cDataTable = ENTRY(2,Data_object).
+  Data_object = ENTRY(1,Data_object).
+  lFromRepos = FALSE.
+END.
+ELSE IF glDynamicsIsrunning AND Data_Object <> '' THEN
+DO:
+  lFromRepos = isRepositoryObject(Data_Object).
+END.
+ELSE lFromRepos = glDynamicsIsrunning.
+
+DO WITH FRAME {&FRAME-NAME}:
+  /* SBO was selected from this page previously */
+  IF getDataSourceNames() = '' THEN
+  DO:
+    cObjectType = 'SmartbusinessObject':U.
+    DISPLAY cObjectType.
+  END.
+  IF NOT glDynamicsIsrunning THEN
+    lFromRepos:HIDDEN = TRUE.
+END.
+
+resetFromRepository(lFromRepos).
 initDataObject(Data_object).
 
 ASSIGN e_msg = 
-      "You need to specify the DataObject that will be the data source for this " +
+      "You need to specify the DataObject or include file that will provide data definitions for this " +
       objtype + ".".
 
 /* Set CURRENT-WINDOW: this will parent dialog-boxes and frames.        */
@@ -519,119 +672,6 @@ END.
 
 /* **********************  Internal Procedures  *********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE changeDataSource C-Win 
-PROCEDURE changeDataSource :
-/*------------------------------------------------------------------------------
-  Purpose:   Value changed trigger for display of dataobject  
-  Parameters:  <none>
-  Notes:     if unchecked then we uncheck enable and make the update insensitive
-             unless thr unchecked object has child objects that are dependant
-------------------------------------------------------------------------------*/
-   DEFINE INPUT PARAMETER pcName AS CHARACTER  NO-UNDO.
-
-   DEFINE VARIABLE hSDO                  AS HANDLE   NO-UNDO.
-   DEFINE VARIABLE hCurrentSDO           AS HANDLE   NO-UNDO.
-   DEFINE VARIABLE lonetoone             AS LOGICAL  NO-UNDO.
-   DEFINE VARIABLE lHasOneToOneChild     AS LOGICAL  NO-UNDO.
-   DEFINE VARIABLE lOneToOneChildChecked AS LOGICAL  NO-UNDO.
-   DEFINE VARIABLE hSource              AS HANDLE    NO-UNDO.
-
-   DEFINE BUFFER bttDataObject FOR ttDataObject.  
-
-   FIND ttDataObject WHERE ttDataObject.DOName = pcName NO-ERROR.
-   
-   hCurrentSDO = {fnarg DataObjectHandle pcName gDOHdl} NO-ERROR.
-   {get UpdateFromSource lOneToOne hCurrentSDO} NO-ERROR.
-   
-   IF NOT lOneTOONe AND AVAIL ttDataObject THEN
-   DO:
-     IF ttDataObject.hDataSource:CHECKED THEN
-     DO:
-       ttDataObject.hUpdateTarget:SENSITIVE = TRUE.
-
-     END.
-     ELSE DO:       
-       
-       FOR EACH bttDataObject WHERE bttDataObject.DOName <> pcName:
-         hSDO = {fnarg DataObjectHandle bttDataObject.DOName gDOHdl}.
-         {get DataSource hSource hSDO}.         
-         IF hSource = hCurrentSDO THEN
-         DO:
-           {get UpdateFromSource lOneToOne hSDO} NO-ERROR.
-           IF NOT lhasOneToOneChild THEN 
-             lhasOneToOneChild =  lOneToOne.
-          /* Not yet, cause then we willneed to figure out when the last 
-             of the one-to-one objects were unchecked and uncheck all updates 
-           IF lOneToOne AND NOT lOnetoOneChildChecked THEN 
-             lOnetoOneChildChecked = bttDataObject.hdataSource:CHECKED.
-          */
-         
-         END.
-       END.
-       ASSIGN
-         ttDataObject.hUpdateTarget:SENSITIVE = lhasOneToOneChild
-         ttDataObject.hUpdateTarget:CHECKED   = FALSE.
-       
-       RUN changeUpdateTarget (pcName).  
-     END.
-   END.
-  
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE changeUpdateTarget C-Win 
-PROCEDURE changeUpdateTarget :
-/*------------------------------------------------------------------------------
-  Purpose:   uncheck/check other dataobjects enabling when one is changed
-  Parameters:  <none>
-  Notes:     Triggers when enable is changed or run from changedataSource    
-             make sure that all other are unchekked or for all 
-             objects that are child object defined as updatefrom source 
-             we make sure they are in synch.
-------------------------------------------------------------------------------*/
-   DEFINE INPUT PARAMETER pcName AS CHARACTER  NO-UNDO.
-   
-   DEFINE VARIABLE lOneTOOne   AS LOGICAL    NO-UNDO.
-   DEFINE VARIABLE hSource     AS HANDLE     NO-UNDO.
-   DEFINE VARIABLE hCurrentSDO AS HANDLE     NO-UNDO.
-   DEFINE VARIABLE hSDO        AS HANDLE     NO-UNDO.
-
-   DEFINE BUFFER bttDataObject FOR ttDataObject.  
-   
-   FIND ttDataObject WHERE ttDataObject.DOName = pcName NO-ERROR.
-   hCurrentSDO = {fnarg DataObjectHandle pcName gDOHdl}.
-
-   IF AVAIL ttDataObject THEN
-   DO:
-     IF ttDataObject.hUpdateTarget:CHECKED THEN
-     DO:
-       FOR EACH bttDataObject WHERE bttDataObject.DOName <> pcName:
-         hSDO = {fnarg DataObjectHandle bttDataObject.DOName gDOHdl}.
-
-         {get DataSource hSource hSDO}.
-         
-         IF hSource = hCurrentSDO THEN
-            {get UpdateFromSource  lOneToOne hSDO} NO-ERROR.
-         ELSE lOneToOne = FALSE.
-
-         bttDataObject.hUpdateTarget:CHECKED = lOneToOne.
-       END.
-     END.
-     ELSE 
-     DO:
-       FOR EACH bttDataObject WHERE bttDataObject.DOName <> pcName:
-         bttDataObject.hUpdateTarget:CHECKED = FALSE.
-       END.
-     END.
-   END.
-  
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI C-Win  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
@@ -663,11 +703,49 @@ PROCEDURE enable_UI :
 ------------------------------------------------------------------------------*/
   DISPLAY e_msg cObjectType Data_Object 
       WITH FRAME DEFAULT-FRAME.
-  ENABLE e_msg cObjectType Data_Object b_brws b_Helpq 
+  ENABLE e_msg cObjectType Data_Object b_Helpq 
       WITH FRAME DEFAULT-FRAME.
   {&OPEN-BROWSERS-IN-QUERY-DEFAULT-FRAME}
   VIEW C-Win.
 END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE ObjectTypeChanged C-Win 
+PROCEDURE ObjectTypeChanged :
+/*------------------------------------------------------------------------------
+  Purpose: Object type change called from trigger 
+    Notes: Must be a procedure, since it calls db connect which has input
+           blocking statements. 
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER pcObjectType AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER plOk         AS LOGICAL    NO-UNDO INIT TRUE.
+
+  DEFINE VARIABLE lReset AS LOGICAL      NO-UNDO.
+
+  IF NUM-DBS = 0 
+  AND pcObjectType <> 'DataView':U THEN
+  DO:
+    lReset = TRUE.
+    RUN adecomm/_dbcnnct.p (
+      INPUT "You must have at least one connected database to be able to use a " 
+            + pcObjectType + " as data definition source. ~n",
+      OUTPUT lReset).
+    IF lReset EQ NO THEN
+      plOk = FALSE.
+  END.
+  IF plOk THEN
+     plOk = resetDataSource('').
+  
+  IF plOk THEN
+  DO WITH FRAME {&FRAME-NAME}:
+    resetObjectType(pcObjectType).
+    Data_object = ''.
+    DISPLAY data_object.
+  END.
+
+END PROCEDURE .
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -680,51 +758,128 @@ PROCEDURE ProcessPage :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-   DEFINE VARIABLE ok          AS LOG    NO-UNDO.
-   DEFINE VARIABLE cRelName    AS CHAR   NO-UNDO.  
-   
-   DEFINE VARIABLE LastButton AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE lok          AS LOG       NO-UNDO.
+  DEFINE VARIABLE cSDOType    AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE LastButton AS CHARACTER NO-UNDO.
   
-   LastButton = DYNAMIC-FUNCTION ("GetLastButton" IN gWizardHdl).
+  LastButton = DYNAMIC-FUNCTION ("GetLastButton" IN gWizardHdl).
    
-   IF LastButton = "CANCEL" THEN RETURN.
+  IF LastButton = "CANCEL" THEN RETURN.
    
-   RUN adecomm/_setcurs.p("WAIT":U).
+  RUN adecomm/_setcurs.p("WAIT":U).
  
-   ASSIGN FRAME {&FRAME-NAME} Data_Object.   
+  ASSIGN FRAME {&FRAME-NAME} Data_Object.   
  
-   IF LastButton = "NEXT":U THEN 
-   DO: 
-     IF Data_Object = "":U THEN
-     DO:  
-       MESSAGE 'You need to supply the name of a SmartDataObject.':U 
-          VIEW-AS ALERT-BOX.
-      
-       RETURN ERROR.    
-     END.
-         
-     RUN adecomm/_relfile.p (Data_Object,
-                             NO, /* Never check remote */
-                            "Verbose":U, 
-                             OUTPUT cRelName).
-     
-     IF cRelname = ? THEN RETURN ERROR.
+  IF LastButton = "NEXT":U THEN 
+  DO:
 
-     ASSIGN 
-        Data_Object = cRelname.                       
-     DISPLAY Data_Object WITH FRAME {&FRAME-NAME}.   
-   
+    IF Data_Object = "":U THEN
+    DO:  
+      MESSAGE 'You need to supply the name of a data definition source.':U 
+         view-as alert-box information. 
+      
+      RETURN ERROR.    
+    END.
+ 
+    IF NOT VALID-HANDLE(gDOhdl) THEN
+    DO:
+      IF cObjectType = 'DataView':U AND Data_Object <> "":U THEN
+      DO:  
+        IF SEARCH(Data_Object) <> ? THEN
+        DO:
+          COMPILE VALUE(Data_Object) NO-ERROR. 
+          IF COMPILER:ERROR THEN
+          DO:
+            MESSAGE 
+/*               Data_object "include cannot be used as data definition source" */
+/*               "as it has a syntax error:"                                    */
+/*                 SKIP(1)                                                      */
+              ERROR-STATUS:GET-MESSAGE(1) SKIP
+              ERROR-STATUS:GET-MESSAGE(2)
+              VIEW-AS ALERT-BOX 
+                ERROR. 
+
+             RETURN ERROR.    
+          END.
+        END.
+      END.
+
+      MESSAGE 
+        Data_object "is not a valid data definition source." SKIP
+        "Select a DataObject or an include file with TEMP-TABLE and PRODATASET definitions."  
+         view-as alert-box information. 
+       RETURN ERROR.
+    END.
+    ELSE DO:
+      IF cObjectType = 'DataView':U 
+      AND cDataTable = "":U OR cDataTable = ? THEN
+      DO:  
+
+        MESSAGE 'You need to select a DataTable.':U 
+            view-as alert-box information. 
+      
+        RETURN ERROR.    
+      END.
+
+      {get ObjectType cSDOType gDOHdl}.
+      IF LOOKUP(cSDOType,'SmartDataObject,SmartBusinessObject') = 0 THEN
+      DO:
+        MESSAGE 
+          Data_object "is a " cObjectType "and cannot be used as definition source." skip
+         "Select a DataObject or an include file with TEMP-TABLE and/or PRODATASET definitions."  
+          view-as alert-box information. 
+        RETURN ERROR.
+      END.
+    END.
+  
+     /* Repository has presedence in get-sdo-hdl and the data object has already 
+       been launched from there if it exists, so check if the data object 
+       is in in repository and inform the user. */ 
+    IF NOT lFromRepos AND glDynamicsIsRunning AND cObjectType <> 'Dataview' THEN
+    DO:
+      IF isRepositoryObject(Data_object) THEN 
+      DO:
+        /* the prev logic in the message is not used since we are inside
+          'if next' .. because PREV cannot be interupted */
+        lok = TRUE.
+        MESSAGE 
+            Data_object "exists in Repository and will be started from there"
+            + (IF LastButton = "NEXT":U
+               THEN " on subsequent pages as well as in the AppBuilder."
+               ELSE " when returning to this page.")
+            SKIP 
+            "Confirm ok to continue."
+            VIEW-AS ALERT-BOX BUTTONS OK-CANCEL UPDATE lok.
+        IF NOT lok THEN 
+           RETURN ERROR.
+        ELSE DO:
+          resetFromRepository(TRUE).
+          /* restart so storeDataObjectList can store data */
+          IF LastButton = "NEXT":U THEN
+            IF NOT resetDataSource(Data_object) THEN
+              RETURN ERROR.
+        END.
+      END.   
+    END.
   END. /* if lastbutton = next */
 
-            /* store and check */
+  /* store and check */
   IF storeDataObjectList(LastButton = 'NEXT':U) = FALSE THEN
-      RETURN ERROR .
-  destroyDataObjectList().
+    RETURN ERROR .
+  IF VALID-HANDLE(ghSDOSelect)  THEN
+    RUN destroyObject IN ghSDOSelect.
   /* 
   Store even if we are going back in order to have what we entered
   if we come back to this page
-  */    
-  RUN adeuib/_setwatr.w(INTEGER(proc-recid), "DataObject", Data_Object, OUTPUT ok).
+  */   
+
+  RUN adeuib/_setwatr.w(INTEGER(proc-recid), 
+                        "DataObject", 
+                        Data_Object
+                        + (IF cObjectType = 'DataView' THEN
+                           ',' + cDataTable
+                           ELSE ''), 
+                        OUTPUT lok).
   
   RUN adecomm/_setcurs.p("":U). 
 END PROCEDURE.
@@ -734,21 +889,51 @@ END PROCEDURE.
 
 /* ************************  Function Implementations ***************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION destroyDataObjectList C-Win 
-FUNCTION destroyDataObjectList RETURNS LOGICAL
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getInitialFileName C-Win 
+FUNCTION getInitialFileName RETURNS CHARACTER
   (  ) :
 /*------------------------------------------------------------------------------
-  Purpose: Destroy the tt and widgets used to update dataobject links 
+  Purpose: call back for the object browse for initial filtering  
     Notes:  
 ------------------------------------------------------------------------------*/
-  FOR EACH ttDataObject:
-    DELETE OBJECT ttDataObject.hName NO-ERROR.
-    DELETE OBJECT ttDataObject.hDataSource NO-ERROR.
-    DELETE OBJECT ttDataObject.hUpdateTarget NO-ERROR.
-    DELETE ttDataObject.
+  RETURN Data_object:SCREEN-VALUE  IN FRAME {&FRAME-NAME}.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getOpenObjectFilter C-Win 
+FUNCTION getOpenObjectFilter RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Call back to filter object type in the repository browse 
+    Notes: This is not automatic, but relies on the window handle's  
+           private-data being marked with this-procedure handle before being 
+           passed to the gopendialog.   
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cList  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cList2 AS CHARACTER  NO-UNDO.
+
+  IF cObjectType = 'SmartDataObject' THEN
+  DO:
+     /* don't include the base Data class */
+    ASSIGN
+      cList = DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, 
+                              "SDO":U)
+      cList2 = DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, 
+                              "DynSDO":U)
+      cList = cList
+            + (IF cList <> '' AND cList2 <> '' THEN ',' ELSE '')
+            +  cList2.
+  END.
+  
+  ELSE DO: /* The SBO is parent class of dynSBO,  */
+    cList = DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, 
+                             "SBO":U).
   END.
 
-  RETURN TRUE.   /* Function return value. */
+  RETURN cList.
 
 END FUNCTION.
 
@@ -765,129 +950,133 @@ FUNCTION initDataObject RETURNS LOGICAL
            check boxes so the user can select whether to display or update
            the objects from this visual object.    
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cSDOList AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE i        AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE hFill    AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE iX       AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iY       AS INT        NO-UNDO.
-  DEFINE VARIABLE iStartY  AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cUpd     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDisp    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iHeight  AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iDynArea AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE hSDO     AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE lOneTOOne AS LOGICAL   NO-UNDO.
-
-  destroyDataObjectList().
-
+  DEFINE VARIABLE cSDOList   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE i          AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cUpd       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDisp      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hSDO       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lOneTOOne  AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE cSDO       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hSDOSelect AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hMaster    AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lSingle    AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hDataset   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cTableList AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTable     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cRun       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lExists    AS LOGICAL    NO-UNDO.
+  
   DO WITH FRAME {&FRAME-NAME}:
-    RUN getSDOhandle IN gWizardHdl (pcName, OUTPUT gDOHdl).
-    /* Set radioset to the objectType */
-    ASSIGN
-      cObjectType:SCREEN-VALUE = {fn getObjectType gDOHdl} 
-      cObjectType   NO-ERROR.
+    
+    IF lFromRepos AND cObjectType <> 'DataView':U THEN
+      lExists = isRepositoryObject(pcName). 
+    ELSE 
+      lExists = SEARCH(pcName) <> ?.
+    
+    /* All sdos are shut down at end by main wizard, so we just make the handle 
+       invalid without any clean up here */    
+    IF NOT lExists THEN
+       gDOHdl = ?.
+
+    ELSE DO:
+      cRun = pcName.
+      
+      IF cObjectType = 'DataView':U  THEN
+        cRun = cRun + ',' + cDataTable.
+
+      RUN getSDOhandle IN gWizardHdl (cRun, OUTPUT gDOHdl).
+    END.
+
     /* Only viewers supports SBOs, so disable otherwise */ 
     IF NOT (objType MATCHES "*viewer*":U) THEN
        cObjectType:DISABLE('SmartBusinessObject':U). 
- 
-    IF VALID-HANDLE(gDOHdl) AND cObjectType = 'SmartBusinessObject':U THEN
+    
+
+    /* check and set dataobject Object type  
+       Dataview (include file) is handled from stored dataobject 
+       format in main block and is not set from running object  */
+    IF cObjectType <> 'DataView':U  THEN
     DO:
-      ASSIGN
-        cDisp    = getDataSourceNames()
-        cUpd     = getUpdateTargetNames()
-        cSDOlist = {fn getDataObjectNames gDOHdl}
-        iX       = Data_Object:X
-        iStartY  = cSDOLabel:Y + cSDOLabel:HEIGHT-P + 1
-        iY       = iStartY.
-      IF NUM-ENTRIES(cSDOList) > 0 THEN
+      /* Set radioset to the objectType */
+      IF NUM-DBS = 0 THEN
+        ASSIGN
+          cObjectType:SCREEN-VALUE = 'DataView':U
+          cObjectType.
+      /* This handles pick of SDO when SBO selected
+         and vice versa and also ensures the otype is kept 
+         when paging back and forth. 
+         */
+      ELSE 
+        ASSIGN
+          cObjectType:SCREEN-VALUE = {fn getObjectType gDOHdl} 
+          cObjectType   NO-ERROR.
+    END.
+
+    /* If SBO prpeare the 'toogle list'  */
+    IF cObjectType = 'SmartBusinessObject':U THEN
+    DO:
+      hSDOSelect = initDataObjectList().
+      IF VALID-HANDLE(gDOHdl) THEN
       DO:
-        DISPLAY cSDOlabel
-                cDisplaylabel
-                cEnablelabel.
-        ASSIGN 
-          iHeight  = Data_Object:HEIGHT-P - 1
-          iDynArea = FRAME {&FRAME-NAME}:HEIGHT-P - iY - xiHorMargin.
-        /* Shrink field height to fit in two columns if necessary
-           This ain't pretty, but decent with 20, which is the current 
-           max number of SDOs in an SBO, and will 'work' even if that increases
-        
-        */
-        IF INT(NUM-ENTRIES(cSDOList) / 2) * iHeight > iDynArea THEN
-        DO:
-          iHeight = INT (iDynArea / INT(NUM-ENTRIES(cSDOList) / 2) - 0.4999).
-        END.
-
-      END.
-      DO i  = 1 TO NUM-ENTRIES(cSDOLIST):
-        
-        /* Not enough room for the field start on 2nd column 
-           Substract 1 pixels for starting point */
-        IF iY + iHeight + xiHorMargin - 1 > FRAME {&FRAME-NAME}:HEIGHT-P THEN
-        DO:
-          ASSIGN iX   = iX + ttDataObject.hUpdateTarget:X + 20
-                 iY  = iStartY.
-          DISPLAY cSDOlabel-2
-                  cDisplaylabel-2
-                  cEnablelabel-2.
-        END.
-
-        CREATE ttDataObject.
+        {get MasterDataObject hMaster gDOHdl}.
+        /* 2nd toggle can only have one checked object if not one-to-one*/ 
+        lSingle = NOT {fn hasOneToOneTarget hMaster}.
+        {fnarg setSecondSingleOnly lSingle hSDOSelect}.
 
         ASSIGN
-          ttDataObject.DoName = ENTRY(i,cSDOLIST).
-        
-        CREATE FILL-IN ttDataObject.hName 
-          ASSIGN 
-            FRAME = FRAME {&FRAME-NAME}:HANDLE
-            Y  = iY  
-            X   = iX
-            HEIGHT-P = iHeight
-            SENSITIVE = TRUE
-            READ-ONLY = TRUE
-            HIDDEN   = TRUE
-            SCREEN-VALUE = ttDataObject.DoName.
-        
-        CREATE TOGGLE-BOX ttDataObject.hDataSource 
-          ASSIGN 
-            FRAME = FRAME {&FRAME-NAME}:HANDLE
-            Y   = ttDataObject.hName:Y
-            X   = ttDataObject.hName:X + ttDataObject.hName:WIDTH-P + xiToggleSpace
-            HEIGHT-P = iHeight
-            SENSITIVE = TRUE
-            HIDDEN   = TRUE
-                       /* cDisp = ? if first time */
-            CHECKED  = IF cDisp = ? THEN TRUE
-                       ELSE CAN-DO(cDisp,ttDataObject.DoName)
-           TRIGGERS: 
-             ON VALUE-CHANGED PERSISTENT 
-               RUN changeDataSource IN THIS-PROCEDURE (ttDataObject.DoName).
-           END.
-
-           hSDO = {fnarg DataObjectHandle ttdataObject.DOName gDOHdl} NO-ERROR.
-          {get UpdateFromSource lOneToOne hSDO} NO-ERROR.
-
-         CREATE toggle-box ttDataObject.hUpdateTarget 
-          ASSIGN 
-            FRAME = FRAME {&FRAME-NAME}:HANDLE
-            Y   = ttDataObject.hName:Y
-            X   = ttDataObject.hDataSource:X + ttDataObject.hDataSource:WIDTH-P
-            HEIGHT-P  = iHeight
-            SENSITIVE = NOT (lOneTOOne = TRUE)
-            HIDDEN   = TRUE                       
-            CHECKED  = IF cUpd = ? THEN FALSE
-                       ELSE CAN-DO(cUpd,ttDataObject.DoName)  
-            TRIGGERS: 
-               ON VALUE-CHANGED PERSISTENT 
-                  RUN changeUpdateTarget IN THIS-PROCEDURE (ttDataObject.DoName).
-            END.
-            
-        iY  = iY + iHeight.
-
+          cDisp    = getDataSourceNames()
+          cUpd     = getUpdateTargetNames()
+          cSDOlist = {fn getDataObjectNames gDOHdl}.
+        IF cDisp = ? THEN
+          cDisp = ''.
+        IF cUpd = ? THEN
+          cUpd = ''.
+        DO i = 1 TO NUM-ENTRIES(cSDOlist):
+          cSDO = ENTRY(i,cSDOlist).
+          DYNAMIC-FUNCTION('addItem':U IN hSDOSelect,
+                                          cSDO,
+                                          LOOKUP(cSDO,cDisp),
+                                          LOOKUP(cSDO,cUpd)).
+        END.
+        {fn viewItems hSDOSelect}.
       END.
-      viewDataObjectList().
     END.
-    ELSE initSDO().
+    ELSE /* not SBO..  */ 
+      removeDataObjectList().
 
+    IF cObjectType = 'DataView':U THEN
+    DO:
+      cDataTable:SENSITIVE = TRUE.
+      cDataTable:HIDDEN = FALSE.
+      /* this views and displays the label */ 
+      DISPLAY cIncludeLabel WITH FRAME {&FRAME-NAME}.        
+      IF VALID-HANDLE(gDOHdl) THEN
+      DO:
+        {get DatasetSource hDataset gDOHdl}.
+        {get DataTable cTable gDOHdl}.
+        IF VALID-HANDLE(hDataSet) THEN
+        DO:
+          {get DataTables cTableList hDataSet}.
+           cDataTable:LIST-ITEMS = cTableList.
+        END.
+        ELSE DO:
+          cDataTable:LIST-ITEMS = cTable.
+        END.
+        IF cTable > '' THEN
+          ASSIGN 
+            cDataTable:SCREEN-VALUE  = cTable
+            cDataTable.
+      END.
+      ELSE 
+        ASSIGN
+          cDataTable = ''
+          cDataTable:LIST-ITEMS = ''.
+    END.
+    ELSE 
+      ASSIGN
+        cDataTable = ''
+        cDataTable:HIDDEN = TRUE
+        cIncludeLabel:HIDDEN = TRUE.
   END.
   RETURN TRUE. 
 
@@ -896,26 +1085,77 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION initSDO C-Win 
-FUNCTION initSDO RETURNS LOGICAL
-  ( /* parameter-definitions */ ) :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION initDataObjectList C-Win 
+FUNCTION initDataObjectList RETURNS HANDLE
+  (   ) :
 /*------------------------------------------------------------------------------
-  Purpose:  init the screen for an SDO, (no dataobjectlist or labels) 
+  Purpose: View and/or clear the widgets used to update dataobjects for an sbo 
+   Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hFrame AS HANDLE NO-UNDO.
+  DEFINE VARIABLE deHeight AS DECIMAL    NO-UNDO.
+
+  DISPLAY cSBOLabel WITH FRAME {&FRAME-NAME}.
+  IF NOT VALID-HANDLE(ghSDOSelect)  THEN
+  DO:
+    RUN adm2/support/toggleframe.w PERSISTENT SET ghSDOSelect.
+    {fnarg setRow 7.14 ghSDOSelect}.
+    {fnarg setCol 2 ghSDOSelect}.
+     hFrame = FRAME {&FRAME-NAME}:HANDLE.
+     {fnarg setFrame hframe ghSDOSelect}.
+     deHeight = b_Helpq:ROW + b_Helpq:HEIGHT - 7.14.
+     {fnarg setHeight deHeight ghSDOSelect}.
+     {fnarg setWidth 54 ghSDOSelect}.
+     {fnarg setTextWidth 24 ghSDOSelect}.
+     {fnarg set3D TRUE  ghSDOSelect}.
+     {fnarg setFirstLabel 'Display':U ghSDOSelect}.
+     {fnarg setSecondLabel 'Enable':U ghSDOSelect}.
+     RUN initializeObject IN ghSDOSelect.  
+  END.
+  ELSE 
+    {fn deleteItems ghSDOSelect}. 
+  
+  RETURN ghSDOSelect.   
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION isRepositoryObject C-Win 
+FUNCTION isRepositoryObject RETURNS LOGICAL
+  ( pcObject AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  DO WITH FRAME {&FRAME-NAME}:
-    ASSIGN 
-      cSDOlabel:HIDDEN = TRUE
-      cDisplaylabel:HIDDEN = TRUE
-      cEnablelabel:HIDDEN = TRUE
-      cSDOlabel-2:HIDDEN = TRUE
-      cDisplaylabel-2:HIDDEN = TRUE
-      cEnablelabel-2:HIDDEN = TRUE
-      rRect:HEIGHT-P = b_brws:Y + b_brws:HEIGHT-P
-                     + xiHorMargin
-                     - rRect:Y.
+  DEFINE VARIABLE hRepDesignManager AS HANDLE NO-UNDO.
+  /* objectexists resolves pathed names, but we are working with logical
+     names  */
+  IF INDEX(REPLACE(pcObject,'~\','~/'),'~/') = 0 THEN
+  DO:
+    hRepDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U, INPUT "RepositoryDesignManager":U) NO-ERROR.
+    IF VALID-HANDLE(hRepDesignManager) THEN
+      RETURN DYNAMIC-FUNCTION("ObjectExists":U IN hRepDesignManager, pcObject).
   END.
-  RETURN TRUE.   
+
+  RETURN FALSE.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION removeDataObjectList C-Win 
+FUNCTION removeDataObjectList RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  IF VALID-HANDLE(ghSDOSelect)  THEN
+    RUN destroyObject IN ghSDOSelect.
+  cSBOLabel:HIDDEN IN FRAME {&FRAME-NAME} = TRUE.
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -957,18 +1197,132 @@ END FUNCTION.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION resetDataSource C-Win 
 FUNCTION resetDataSource RETURNS LOGICAL
-  ( /* parameter-definitions */ ) :
+  ( pcDataObject AS CHAR ) :
 /*------------------------------------------------------------------------------
   Purpose: Called from value-changed or choose to reset data when the datasource
-          has changed 
+           has changed 
     Notes:  
 ------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lAnswer AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cExt    AS CHARACTER  NO-UNDO.
+
+  IF FLd-list <> '' THEN
+  DO:  
+     lAnswer = YES.
+     MESSAGE 
+      'Confirm removal of all fields selected from current data source from the list.'
+       VIEW-AS ALERT-BOX INFORMATION BUTTONS OK-CANCEL UPDATE lAnswer.
+     IF NOT lAnswer THEN
+       RETURN FALSE.
+  END.
+  
+  IF INDEX(pcDataobject,'.') > 0 THEN
+    cExt = ENTRY(NUM-ENTRIES(pcDataObject,'.':U),pcDataObject,'.':U) NO-ERROR.
+  IF cExt > '' THEN
+  DO:
+    IF cObjectType = 'DataView':U THEN 
+    DO:
+      IF LOOKUP(cExt ,'p,w':U) > 0 THEN
+      DO:
+        lanswer = yes.
+        MESSAGE 
+         "Do you want to run"  pcDataObject 
+         " or do you want to parse it as an include file?"  SKIP(1)
+         "Yes, this object is to be run." skip
+         "No, this file is to be parsed"
+         VIEW-AS ALERT-BOX question BUTTONS yes-no update lanswer.
+        IF lanswer THEN
+          resetObjectType('SmartDataObject').
+      END.
+      IF LOOKUP(cExt ,'r':U) > 0 THEN
+        /* will be fixed to sbo after run if necessary */
+        resetObjectType('SmartDataObject').
+    END.
+    ELSE DO:
+      IF LOOKUP(cExt ,'i':U) > 0 THEN
+      DO:
+        lanswer = yes.
+        MESSAGE 
+         "Do you want to parse" pcDataObject "as an include file"
+         "or do you want run it?" SKIP(1)
+         "Yes, this file is to be parsed." SKIP
+         "No, this object is to be run." skip  
+        VIEW-AS ALERT-BOX question BUTTONS yes-no update lanswer.
+        IF lanswer THEN
+          resetObjectType('DataView':U).
+      END.
+    END.
+  END.
+  Data_object = pcDataObject.
+  DISPLAY Data_object WITH FRAME {&FRAME-NAME}.
   Fld-list = '':U.
   setDataSourceNames(?).
   setUpdateTargetNames(?).
-  initDataObject(Data_Object).
+  initDataObject(pcDataObject).
   APPLY "U2":U TO hWizard. /* not ok to finish */
+  RETURN TRUE.  
 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION resetFromRepository C-Win 
+FUNCTION resetFromRepository RETURNS LOGICAL
+  ( plFromRepository AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+ DO WITH FRAME {&FRAME-NAME}:
+   lFromRepos = plFromRepository.
+   lFromRepos:SENSITIVE = TRUE.
+   lFromRepos:SCREEN-VALUE = STRING(lFromRepos).
+   /* prepare screen with dynamics repos lookup */
+   IF plFromRepository THEN
+   DO:
+     btnRepos:SENSITIVE = TRUE.
+     btnRepos:HIDDEN = FALSE.    
+     btnBrws:HIDDEN = TRUE.    
+     Data_Object:WIDTH-P = btnRepos:X - Data_Object:X - xiHormargin. 
+   END.
+    /* else prepare screen with browse button */
+   ELSE DO:
+     btnBrws:SENSITIVE = TRUE.
+     btnBrws:HIDDEN = FALSE.    
+     btnRepos:HIDDEN = TRUE.    
+     Data_Object:WIDTH-P = btnBrws:X - Data_Object:X - xiHormargin. 
+   END.
+ END.
+
+ RETURN TRUE.    
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION resetObjectType C-Win 
+FUNCTION resetObjectType RETURNS LOGICAL
+  ( pcObjectType AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cTrueLabel AS CHARACTER  NO-UNDO.
+  DO WITH FRAME {&FRAME-NAME}:
+    
+    cTrueLabel = ENTRY(LOOKUP('yes':U,lFromRepos:RADIO-BUTTONS) - 1,lFromRepos:RADIO-BUTTONS).
+    ASSIGN cObjectType = pcObjectType.
+    DISPLAY cObjectType.
+    IF pcObjectType = 'DataView':U THEN
+    DO:
+      lFromRepos:DISABLE(cTrueLabel).
+      resetFromRepository(FALSE).
+    END.
+    ELSE
+      lFromRepos:ENABLE(cTrueLabel).
+  END.
   RETURN TRUE.   /* Function return value. */
 
 END FUNCTION.
@@ -984,40 +1338,70 @@ FUNCTION storeDataObjectList RETURNS LOGICAL
     Notes:  
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cDisp    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cOldDisp AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cRemoved AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cUpd     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lSBO     AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cUpd     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSDO     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lAnswer  AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE i        AS INTEGER    NO-UNDO.
   
-  FOR EACH ttDataObject:
-    lSBO = TRUE.
-    IF ttDataObject.hDataSource:CHECKED THEN
-        cDisp = cDisp 
-                + (IF cDisp = '':U THEN '':U ELSE ',':U)     
-                + ttDataObject.DOName.
-    /* Check if objects in fields list have become unchecked */
-    ELSE IF INDEX(fld-list,ttDataObject.DOName + '.':U) > 0 THEN
+  CASE cObjectType:
+    WHEN 'SmartDataObject':U THEN
+      ASSIGN 
+        cOldDisp = Data_Object
+        cDisp    = Data_Object.
+
+    WHEN 'SmartBusinessObject':U THEN
     DO:
-      cRemoved = cRemoved 
-              + (IF cRemoved = '':U THEN '':U ELSE ',':U)     
-              + ttDataObject.DOName.
-    END.
+      ASSIGN 
+        cOldDisp = getDataSourceNames()
+        cUpd     = {fn getSecondItems ghSDOSelect}
+        cDisp    = {fn getFirstItems ghSDOSelect}
+        lSBO     = TRUE.
+      IF plCheck THEN 
+      DO:
+        IF cDisp = '':U  THEN
+        DO:
+          MESSAGE "At least one DataObject must be checked as the Display Data Source."
+          VIEW-AS ALERT-BOX  INFORMATION.
+          RETURN FALSE.
+        END.
+      END.
+    END. /* WHEN 'SmartBusinessObject':U */    
+    WHEN 'DataView':U THEN
+    DO: 
+      IF plCheck AND cDataTable = '':U THEN
+      DO:
+        MESSAGE 
+          "A DataTable must be selected from the list. "
+        VIEW-AS ALERT-BOX  INFORMATION.
+        RETURN FALSE.
+      END.
+      
+      IF VALID-HANDLE(gDOHdl) THEN
+      DO:
+        IF cDataTable <> {fn getDataTable gDOHdl} THEN
+        DO:
+          cOldDisp = {fn getViewTables gDOHdl}.
+          RUN getSDOhandle IN gWizardHdl (Data_object + ',' + cDataTable, 
+                                          OUTPUT gDOHdl).
+          cDisp = {fn getViewTables gDOHdl}.
+        END.
+      END.
 
-    IF ttDataObject.hUpdateTarget:CHECKED THEN
-                cUpd = cUpd 
-                + (IF cUpd = '':U THEN '':U ELSE ',':U)     
-                + ttDataObject.DOName.
-    
-  END.
+    END. /* WHEN 'DataView':U */
+  END CASE. /* cObjectType */
 
-  IF plCheck AND lSBO THEN 
+  IF cOldDisp <> cDisp THEN
   DO:
-    IF cDisp = '':U  THEN
-    DO:
-      MESSAGE "At least one Data Object must be checked as the Display Data Source."
-         VIEW-AS ALERT-BOX  INFORMATION.
-    
-      RETURN FALSE.
+    DO i = 1 TO NUM-ENTRIES(cOldDisp):
+      cSDO = ENTRY(i,cOlddisp).
+      IF LOOKUP(cSDO,cdisp) = 0 
+      AND INDEX("," + fld-list,"," + cSDo + '.':U) > 0 THEN
+        cRemoved = cRemoved 
+                 + (IF cRemoved = "" THEN "" ELSE ",") 
+                 + cSDO.
     END.
     IF cRemoved <> '':U THEN
     DO:
@@ -1028,39 +1412,16 @@ FUNCTION storeDataObjectList RETURNS LOGICAL
              + REPLACE(cRemoved,",":U,' and ') 
              + " in the list of selected fields." SKIP(1) 
              'Confirm removal of these fields from the list.' 
-             VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO UPDATE lAnswer.
-      IF lAnswer THEN removeObjectsFromList(cRemoved).
-      ELSE RETURN FALSE.
+             VIEW-AS ALERT-BOX INFORMATION BUTTONS OK-CANCEL UPDATE lAnswer.
+      IF lAnswer THEN
+         removeObjectsFromList(cRemoved).
+      ELSE
+       RETURN FALSE.
     END.
   END.
+
   setUpdateTargetNames(IF lSBO THEN cUpd ELSE ?).
   setDataSourceNames(IF lSBO THEN cDisp ELSE ?).
-
-  RETURN TRUE.   /* Function return value. */
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION viewDataObjectList C-Win 
-FUNCTION viewDataObjectList RETURNS LOGICAL
-  ( /* parameter-definitions */ ) :
-/*------------------------------------------------------------------------------
-  Purpose: View the widgets used to update dataobject links and adjust the 
-           rectangle height.  
-    Notes:  
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE iMaxY AS INT    NO-UNDO.
-  FOR EACH ttDataObject:
-    ttDataObject.hName:HIDDEN = FALSE NO-ERROR.
-    ttDataObject.hDataSource :HIDDEN = FALSE NO-ERROR.
-    ttDataObject.hUpdateTarget:HIDDEN = FALSE NO-ERROR.
-    iMaxY = MAX(ttDataObject.hName:Y + ttDataObject.hName:HEIGHT-P,iMaxY).
-  END.
-  DO WITH FRAME {&FRAME-NAME}:
-    rRect:HEIGHT-P = iMaxY + xiHorMargin - rRect:Y NO-ERROR. 
-  END.
 
   RETURN TRUE.   /* Function return value. */
 

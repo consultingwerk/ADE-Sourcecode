@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /* Created:  D. McMann 03/28/00 PROTOMSSQL Utiity to migrate a Progress
@@ -54,6 +38,9 @@ DEFINE VARIABLE wrg-ver       AS LOGICAL INITIAL FALSE    NO-UNDO.
 DEFINE VARIABLE s_res         AS LOGICAL                  NO-UNDO.
 DEFINE VARIABLE redoblk       AS LOGICAL INITIAL FALSE    NO-UNDO.
 DEFINE VARIABLE mvdta         AS LOGICAL                  NO-UNDO.
+DEFINE VARIABLE cFormat       AS CHARACTER INITIAL "For field widths use:"
+                                           FORMAT "x(21)" NO-UNDO.
+DEFINE VARIABLE lExpand       AS LOGICAL                  NO-UNDO.
 
 DEFINE STREAM   strm.
 
@@ -81,14 +68,21 @@ FORM
   SPACE (2) mss_codepage FORMAT "x(32)"  view-as fill-in size 15 by 1
      LABEL "Codepage" SPACE(2)  SPACE(2)
   mss_collname FORMAT "x(32)"  view-as fill-in size 15 by 1
-     LABEL "Collation"   SPACE(2) mss_incasesen  LABEL "Insensitive"  SKIP({&VM_WIDG}) 
+     LABEL "Collation"   SPACE(2) mss_incasesen  LABEL "Insensitive"  
+    SKIP({&VM_WIDG}) 
   SPACE(2) pcompatible view-as toggle-box LABEL "Create RECID Field"   
   loadsql   view-as toggle-box label "Load SQL" AT 32
-  movedata  view-as toggle-box label "Move Data" AT 56 SKIP({&VM_WID}) SPACE(2)
-  shadowcol VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns" 
-  dflt      VIEW-AS TOGGLE-BOX LABEL "Include Defaults"  AT 32 
-  sqlwidth  VIEW-AS TOGGLE-BOX LABEL "Use Width Column"  AT 56 SKIP({&VM_WID})
-             {prodict/user/userbtns.i}
+  movedata  view-as toggle-box label "Move Data" AT 56 SKIP({&VM_WID})
+  SPACE(2) shadowcol VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns"
+  dflt VIEW-AS TOGGLE-BOX LABEL "Include Defaults" AT 32 
+  cFormat VIEW-AS TEXT NO-LABEL AT 10
+  iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
+                                             "4GL Format", 2
+                             HORIZONTAL NO-LABEL SKIP({&VM_WID})
+  lExpand VIEW-AS TOGGLE-BOX LABEL "Expand x(8) to 30" AT 46 
+    &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN SKIP({&VM_WIDG}) 
+    &ELSE SKIP({&VM_WID}) &ENDIF
+        {prodict/user/userbtns.i}
   WITH FRAME x ROW 1 CENTERED SIDE-labels OVERLAY
     DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel
     &IF "{&WINDOW-SYSTEM}" <> "TTY"
@@ -129,6 +123,16 @@ ON VALUE-CHANGED of loadsql IN FRAME x DO:
      movedata:sensitive in frame x = NO.
   END.   
 END. 
+
+ON VALUE-CHANGED OF iFmtOption IN FRAME x DO:
+  IF SELF:SCREEN-VALUE = "2" THEN
+    ASSIGN lExpand:SENSITIVE = TRUE
+           lExpand:CHECKED   = TRUE
+           lFormat           = FALSE.
+  ELSE ASSIGN lExpand:SENSITIVE = FALSE
+              lExpand:CHECKED   = FALSE
+              lFormat           = TRUE. 
+END.
 
 ON VALUE-CHANGED of mss_incasesen IN FRAME x DO:
   IF SELF:screen-value = "no" THEN
@@ -175,6 +179,7 @@ ASSIGN pcompatible = YES
          run_time = TIME.
 IF OS-GETENV("PRODBNAME")   <> ? THEN
   pro_dbname   = OS-GETENV("PRODBNAME").
+ 
 IF OS-GETENV("PROCONPARMS")   <> ? THEN
   pro_conparms = OS-GETENV("PROCONPARMS").
 IF OS-GETENV("SHDBNAME")    <> ? THEN
@@ -234,13 +239,29 @@ END.
 ELSE 
   loadsql = TRUE.
 
+/* Initialize width choice */
 IF OS-GETENV("SQLWIDTH") <> ? THEN DO:
-  tmp_str      = OS-GETENV("SQLWIDTH").
-  IF tmp_str BEGINS "Y" then sqlwidth = TRUE.
-  ELSE sqlwidth = FALSE.
+  tmp_str = OS-GETENV("SQLWIDTH").
+  IF tmp_str BEGINS "Y" THEN 
+    iFmtOption = 1. 
+  ELSE 
+    iFmtOption = 2.
 END. 
 ELSE 
-  sqlwidth = FALSE.
+  iFmtOption = 2.
+
+IF OS-GETENV("EXPANDX8") <> ? THEN DO:
+  ASSIGN tmp_str  = OS-GETENV("EXPANDX8").
+  IF tmp_str BEGINS "Y" THEN 
+    ASSIGN lExpand = TRUE
+           lFormat = FALSE.
+  ELSE 
+    ASSIGN lExpand = FALSE
+           lFormat = TRUE.
+END. 
+ELSE
+  ASSIGN lExpand = TRUE
+         lFormat = FALSE.
 
 ASSIGN  descidx = TRUE.
 
@@ -279,6 +300,7 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
 IF NOT batch_mode THEN 
   _updtvar: 
   DO WHILE TRUE:
+     DISPLAY cFormat lExpand WITH FRAME X.
      UPDATE pro_dbname
         pro_conparms
         osh_dbname
@@ -296,13 +318,18 @@ IF NOT batch_mode THEN
         movedata WHEN mvdta = TRUE
         shadowcol WHEN mss_incasesen = FALSE      
         dflt
-        sqlwidth
+        iFmtOption
+        lExpand WHEN iFmtOption = 2
         btn_OK btn_Cancel 
         &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
             btn_Help
         &ENDIF
         WITH FRAME x.     
-        
+
+    IF iFmtOption = 1 THEN
+      lFormat = ?.
+    ELSE 
+      lFormat = (NOT lExpand).
 
     IF pro_conparms = "<current working database>" THEN
       ASSIGN pro_conparms = "".
@@ -336,7 +363,6 @@ IF NOT batch_mode THEN
         UNDO, RETURN error.
       END.
       ELSE DO:
-    
         CREATE ALIAS DICTDB FOR DATABASE VALUE(pro_dbname).
       end.  
     END.
@@ -362,7 +388,8 @@ IF NOT batch_mode THEN
     END.      
     LEAVE _updtvar.
   END.
- 
+  ELSE old-dictdb = LDBNAME("DICTDB").
+
   IF osh_dbname <> "" AND osh_dbname <> ? THEN
       output_file = osh_dbname + ".log".
   ELSE
@@ -416,18 +443,4 @@ IF NOT batch_mode THEN
     CREATE ALIAS DICTDB FOR DATABASE VALUE(old-dictdb).   
   END.
 END.
-
-
- 
- 
-
-
-
-
-
-
-
-
-
-
 

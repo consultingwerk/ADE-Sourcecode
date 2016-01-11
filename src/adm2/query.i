@@ -1,29 +1,13 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 /* Procedure Description
 "Method Library for db query objects."
 */
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Method-Library 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*--------------------------------------------------------------------------
@@ -115,14 +99,8 @@ FUNCTION deleteRecordStatic RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB Method-Library 
 /* ************************* Included-Libraries *********************** */
  
-/* Include smart or appserver (which includes smart). 
-   Appserver aware objects includes adecomm/appserv.i and defines this 
-   preprocessor */ 
-&IF DEFINED(APP-SERVER-VARS) = 0 &THEN  
-  {src/adm2/smart.i}
-&ELSE
-  {src/adm2/appserver.i}
-&ENDIF
+/* Include dataview  */ 
+{src/adm2/dataview.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -262,6 +240,7 @@ PROCEDURE initProps :
   END. /* iTable = 1 to num-buffers */
 
   &SCOPED-DEFINE xp-assign
+  {set DataIsFetched no} /* override inherited default */
   {set BufferHandles cBuffers}
   {set DBNames cDBNames}  
   {set QueryHandle hQuery}
@@ -376,9 +355,13 @@ PROCEDURE initProps :
  &UNDEFINE enabledcount   
  
  cColumns =  REPLACE('{&DATA-FIELDS}':U,' ':U,',':U).
- {set DataColumns cColumns}.
- {set UpdatableColumnsByTable cUpdCols}.
- {set DataColumnsByTable cDataCols}.
+
+ &SCOPED-DEFINE xp-assign
+ {set DataColumns cColumns}
+ {set UpdatableColumnsByTable cUpdCols}
+ {set DataColumnsByTable cDataCols}
+ .
+ &UNDEFINE xp-assign
  
 /* Is there any calculated fields? */
 DO iCount = 1 TO NUM-ENTRIES(cColumns) 
@@ -412,8 +395,11 @@ ASSIGN
   cDataCols = cDataCols + {&adm-tabledelimiter} + cCalcData
   cUpdCols  = cUpdCols + {&adm-tabledelimiter}  + cCalcUpd.
 
-{set UpdatableColumnsByTable cUpdCols}.
-{set DataColumnsByTable cDataCols}.
+&SCOPED-DEFINE xp-assign
+{set UpdatableColumnsByTable cUpdCols}
+{set DataColumnsByTable cDataCols}
+.
+&UNDEFINE xp-assign
 
 &ENDIF /* DATA-FIELDS NE "" */
 

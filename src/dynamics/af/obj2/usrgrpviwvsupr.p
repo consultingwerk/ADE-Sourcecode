@@ -4,6 +4,13 @@
 */
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /*------------------------------------------------------------------------
 
   File: usrgrpviwvsupr.p
@@ -349,10 +356,12 @@ PROCEDURE dataAvailable :
 ------------------------------------------------------------------------------*/
   DEFINE INPUT  PARAMETER pcState AS CHARACTER  NO-UNDO.
 
-  DEFINE VARIABLE hDataSource AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hCombo      AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cQuestion   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cButton     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hDataSource     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hCombo          AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cQuestion       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cButton         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iStack          AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE lInitialization AS LOGICAL    NO-UNDO.
 
   {get DataSource hDataSource}.
 
@@ -374,13 +383,22 @@ PROCEDURE dataAvailable :
   END.
 
   glChangesMade = FALSE.
-  hCombo = DYNAMIC-FUNCTION("internalWidgetHandle":U IN TARGET-PROCEDURE, "fiLoginCompanyObj":U, "ALL":U).
   gdUserObj = DECIMAL(ENTRY(2,DYNAMIC-FUNCTION("colValues":U IN hDataSource, "user_obj":U),CHR(1))).
-  {get ComboHandle hCombo hCombo}.
   IF gdUserObj = ? THEN
     gdUserObj = 0.
-  
-  IF NOT CAN-QUERY(hCombo,"LIST-ITEM-PAIRS":U) THEN
+
+  iStack = 2.
+  REPEAT WHILE PROGRAM-NAME(iStack) <> ?:
+    IF PROGRAM-NAME(iStack) = 'initializeObject adm2/viewer.p':U THEN
+    DO:
+      lInitialization = TRUE.
+      LEAVE.
+    END.
+    iStack = iStack + 1.
+  END.
+
+  /* Only run displayFields when the viewer is being initialized */
+  IF lInitialization THEN
     RUN displayFields IN TARGET-PROCEDURE ("?":U).
 
   assignWidgetValue("fiLoginCompanyObj":U, "0":U).

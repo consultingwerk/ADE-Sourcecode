@@ -1,4 +1,11 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /* Procedure Description
 "Dynamic Viewer for rycntbffmv"
 */
@@ -24,6 +31,10 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
+/* Copyright (C) 2005 by Progress Software Corporation.  All rights 
+   reserved.  Prior versions of this work may contain portions 
+   contributed by participants of Possenet
+*/
 /*---------------------------------------------------------------------------------
   File: ry/prc/rycntbffmp.p rycntbffmv
 
@@ -100,6 +111,7 @@ DEFINE VARIABLE ghParentContainer   AS HANDLE     NO-UNDO.
 DEFINE VARIABLE ghEdForeignFields   AS HANDLE     NO-UNDO.
 DEFINE VARIABLE ghObjectInstance    AS HANDLE     NO-UNDO.
 DEFINE VARIABLE ghSmartLink         AS HANDLE     NO-UNDO.
+define variable ghAttributeValue    as handle     no-undo.
 DEFINE VARIABLE ghFrame             AS HANDLE     NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
@@ -202,6 +214,7 @@ PROCEDURE destroyObject :
 
   IF VALID-HANDLE(ghObjectInstance) THEN DELETE OBJECT ghObjectInstance.
   IF VALID-HANDLE(ghSmartLink)      THEN DELETE OBJECT ghSmartLink.
+  IF VALID-HANDLE(ghAttributeValue) THEN DELETE OBJECT ghAttributeValue.
 
   RETURN.
 
@@ -224,7 +237,7 @@ PROCEDURE initializeObject :
   DEFINE VARIABLE cFieldHandles AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cFieldNames   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hGridV        AS HANDLE     NO-UNDO.
-
+  
   {get ContainerSource ghContainerSource}.
   {get ContainerSource ghParentContainer ghContainerSource}.
 
@@ -243,6 +256,7 @@ PROCEDURE initializeObject :
 
       ghObjectInstance   = WIDGET-HANDLE({fnarg getUserProperty 'ttObjectInstance' ghParentContainer})
       ghSmartLink        = WIDGET-HANDLE({fnarg getUserProperty 'ttSmartLink'      ghParentContainer})
+      ghAttributeValue   = WIDGET-HANDLE({fnarg getUserProperty 'ttAttributeValue' ghParentContainer})
 
       ghSourceFieldLabel = WIDGET-HANDLE(ENTRY(LOOKUP("TEXT-1":U,         cFieldNames), cFieldHandles))
       ghTargetFieldLabel = WIDGET-HANDLE(ENTRY(LOOKUP("TEXT-2":U,         cFieldNames), cFieldHandles))
@@ -266,6 +280,7 @@ PROCEDURE initializeObject :
   /* Localize the buffers to this procedure */
   CREATE BUFFER ghObjectInstance FOR TABLE ghObjectInstance.
   CREATE BUFFER ghSmartLink      FOR TABLE ghSmartLink.
+  CREATE BUFFER ghAttributeValue FOR TABLE ghAttributeValue.
 
   RUN resizeObject    IN TARGET-PROCEDURE (INPUT gdInitialHeight, INPUT gdInitialWidth).
   RUN trgValueChanged IN TARGET-PROCEDURE (INPUT "seSourceFields":U).
@@ -307,7 +322,10 @@ PROCEDURE instanceSelected :
   DEFINE VARIABLE hSourceObject         AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hTargetObject         AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cTables               AS CHARACTER  NO-UNDO.
-
+  define variable cAttributeValue       as character  no-undo.
+  define variable lSourceDbAware        as logical    no-undo.
+  define variable lTargetDbAware        as logical    no-undo.
+  
   ghSmartLink:FIND-FIRST("WHERE d_target_object_instance_obj  = ":U + QUOTER(pdObjectInstanceObj)
                         + " AND d_source_object_instance_obj <> 0":U
                         + " AND c_action                     <> 'D'":U
@@ -334,31 +352,124 @@ PROCEDURE instanceSelected :
       ghTargetFieldLabel:FORMAT       = "x(256)":U
       ghSourceFieldLabel:SCREEN-VALUE = gcSourceLabel + " ":U + cSourceInstanceName
       ghTargetFieldLabel:SCREEN-VALUE = gcTargetLabel + " ":U + cTargetInstanceName.
-
+  
   IF (pdObjectInstanceObj <> gdObjectInstanceObj OR
       dSmartObjectObj     <> gdSmartObjectObj)   OR glRefresh THEN
   DO:
     ASSIGN
         ghSeSourceFields:LIST-ITEMS = "":U
         ghSeTargetFields:LIST-ITEMS = "":U.
-    
+            
+    /* Start the source data object */
     IF cSourceObjectFilename <> "":U AND cSourceObjectFilename <> ? THEN
-      RUN startDataObject IN gshRepositoryManager (INPUT cSourceObjectFilename, OUTPUT hSourceObject).
+    do:
+      RUN startDataObject IN gshRepositoryManager (INPUT cSourceObjectFilename, OUTPUT hSourceObject) no-error.
+      /* no error handling, since we may pass in a non-data object, and that will
+         throw an expected error.
+       */
+      if valid-handle(hSourceObject) then
+      do:
+          {get DbAware lSourceDbAware hSourceObject}.
+          /* We need to push the BusinessEntity and DataTable into the 
+	         (empty) master DataView.
+	       */
+          if not lSourceDbAware then
+          do:
+              /* Destroy the DataView, so that we can set the pertinent information. */
+              {fn destroyView hSourceObject}.
+              
+              ghAttributeValue:find-first(' where ':U
+                  + 'ttAttributeValue.d_object_instance_obj = ':u
+                  + quoter(ghSmartLink:buffer-field('d_source_object_instance_obj':u):buffer-value)
+                  + ' and ':u
+                  + 'ttAttributeValue.c_attribute_label = "BusinessEntity" ' ) no-error.
+              if ghAttributeValue:available then
+                  cAttributeValue = ghAttributeValue:buffer-field('c_character_value':u):buffer-value.
+              else
+                  cAttributeValue = '':u.
+              {set BusinessEntity cAttributeValue hSourceObject}.
+              
+              ghAttributeValue:find-first(' where ':U
+                  + 'ttAttributeValue.d_object_instance_obj = ':u
+                  + quoter(ghSmartLink:buffer-field('d_source_object_instance_obj':u):buffer-value)
+                  + ' and ':u
+                  + 'ttAttributeValue.c_attribute_label = "DataTable" ' ) no-error.
+              if ghAttributeValue:available then
+                  cAttributeValue = ghAttributeValue:buffer-field('c_character_value':u):buffer-value.                   
+              else
+                  cAttributeValue = '':u.
+              {set DataTable cAttributeValue hSourceObject}.
+              
+              /* Now construct the DataView again. */
+              run createObjects in hSourceObject.
+          end.    /* dataview */
+      end.    /* valid source object */          
+    end.    /* source object */
     ELSE
-      gcSourceListItems = "":U.
-
+      assign lSourceDbAware = yes
+             gcSourceListItems = "":U.
+    
+    /* Start the target data object */
     IF cTargetObjectFilename <> "":U AND cTargetObjectFilename <> ? THEN
-      RUN startDataObject IN gshRepositoryManager (INPUT cTargetObjectFilename, OUTPUT hTargetObject).
+    do:
+      RUN startDataObject IN gshRepositoryManager (INPUT cTargetObjectFilename, OUTPUT hTargetObject) no-error.
+      /* no error handling, since we may pass in a non-data object, and that will
+         throw an expected error.
+       */
+      if valid-handle(hTargetObject) then
+      do:          
+          {get DbAware lTargetDbAware hTargetObject}.
+          /* We need to push the BusinessEntity and DataTable into the 
+	         (empty) master DataView.
+	       */
+          if not lTargetDbAware then
+          do:
+              /* Destroy the DataView, so that we can set the pertinent information. */
+              {fn destroyView hTargetObject}.
+              
+              ghAttributeValue:find-first(' where ':U
+                  + 'ttAttributeValue.d_object_instance_obj = ':u
+                  + quoter(ghSmartLink:buffer-field('d_target_object_instance_obj':u):buffer-value)
+                  + ' and ':u
+                  + 'ttAttributeValue.c_attribute_label = "BusinessEntity" ' ) no-error.
+              if ghAttributeValue:available then
+                  cAttributeValue = ghAttributeValue:buffer-field('c_character_value':u):buffer-value.                   
+              else
+                  cAttributeValue = '':u.          
+              {set BusinessEntity cAttributeValue hTargetObject}.
+    
+              ghAttributeValue:find-first(' where ':U
+                  + 'ttAttributeValue.d_object_instance_obj = ':u
+                  + quoter(ghSmartLink:buffer-field('d_target_object_instance_obj':u):buffer-value)
+                  + ' and ':u
+                  + 'ttAttributeValue.c_attribute_label = "DataTable" ' ) no-error.
+              if ghAttributeValue:available then
+                  cAttributeValue = ghAttributeValue:buffer-field('c_character_value':u):buffer-value.                   
+              else
+                  cAttributeValue = '':u.          
+              {set DataTable cAttributeValue hTargetObject}.
+              
+              /* Now construct the DataView again. */
+              run createObjects in hTargetObject.
+          end.    /* dataview */
+      end.    /* valid target obejct */
+    end.    /* target object */
     ELSE
-      gcTargetListItems = "":U.
+      assign lTargetDbAware = yes
+             gcTargetListItems = "":U.
    
     IF VALID-HANDLE(hTargetObject) THEN
-    DO:
-      cTargetObjType = {fn getObjectType hTargetObject}.
-      
+    DO:        
+      cTargetObjType = {fn getObjectType hTargetObject}.      
       cTables  = {fn getTables hTargetObject} NO-ERROR.
-
-      /* -------- Some of the following section of code has been borrowed from the AppBuilder's Foreign Field Mapping dialog -------- */
+      
+      /* The code below is taken from adecomm/_mfldmap.p (which is the AB's 
+         ForeignField mapper). 
+       */
+             
+      /* Populates the Target selection list 
+	   * Target will most likely be a SmartDataObject
+	   */
       IF cTargetObjType = "SmartBusinessObject":U THEN
         RUN adecomm/_getdlst.p (INPUT ghSeTargetFields:HANDLE,
                                 INPUT hTargetObject,
@@ -367,78 +478,105 @@ PROCEDURE instanceSelected :
                                 INPUT ?,
                                 OUTPUT lSuccess).
       ELSE
-        RUN adecomm/_mfldlst.p (INPUT  ghSeTargetFields:HANDLE,
-                                INPUT  cTables,
-                                INPUT  "":U,
-                                INPUT  TRUE,
-                                       /* if db qualifier then ensure that fields 
-                                          of target includes this else qualify 
-                                          with table */
-                                INPUT  IF INDEX(".":U,cTables) > 0 
-                                       THEN "3":U
-                                       ELSE "2":U,
-                                INPUT  2, /* expand EACH array element */
-                                INPUT  "":U,
-                                OUTPUT lSuccess).
+      DO:
+        IF lTargetDbAware THEN
+            RUN adecomm/_mfldlst.p (INPUT  ghSeTargetFields:HANDLE,
+                                    INPUT  cTables,
+                                    INPUT  "":U,
+                                    INPUT  TRUE,
+                                           /* if db qualifier then ensure that fields 
+	                                          of target includes this else qualify 
+	                                          with table */
+                                    INPUT  IF INDEX(".":U,cTables) > 0 
+                                           THEN "3":U
+                                           ELSE "2":U,
+                                    INPUT  2, /* expand EACH array element */
+                                    INPUT  "":U,
+                                    OUTPUT lSuccess).
+        ELSE  /* not really needed just to make it clearer */
+            lSuccess = no.
+      END.    /* not SmartBusinessObject */
 
       IF NOT lSuccess AND cTargetObjType = "SmartDataObject":U THEN
+      DO:
+         /* We have a DataView  */
+         /* OR   */ 
          /* We have an SDO but we did not succeed in building a field list.
-            Assume that this is an SDO built against a temp-table.
-            (NOTE: Although the above procedure should be able to handle 
-             this case, there currently does not appear to be a way to get
-             the information needed for the p_TT parameter here.  Note also that
-             the above function always tries to get the field information 
-             from a database table, which should not be necessary for an SDO
-             that queries a temp-table). [1/12/2000 tomn] */
+          * Assume that this is an SDO built against a temp-table.
+	      * (NOTE: Although the above procedure should be able to handle 
+	      *  this case, there currently does not appear to be a way to get
+          *  the information needed for the p_TT parameter here.  Note also that
+          *  the above function always tries to get the field information 
+          *  from a database table, which should not be necessary for an SDO
+          *  that queries a temp-table). [1/12/2000 tomn]
+          */
+              
+          /* dbaware is set for SDO above. dest_TBlList is set for dbaware above. 
+	         If not dbaware ensure that only DataTable columns can be picked.  */
+          IF NOT lTargetDbAware THEN
+            cTables = {fn getDataTable hTargetObject}.
+          
           RUN adecomm/_getdlst.p (INPUT ghSeTargetFields:HANDLE,
                                   INPUT hTargetObject,
                                   INPUT FALSE,
-                                  INPUT "2|" + {fn getTables hTargetObject},
+                                  INPUT "2|" + cTables,
                                   INPUT ?,
                                   OUTPUT lSuccess).
+      END.    /* no success for SmartDataObject */
 
       RUN destroyObject IN hTargetObject.
-
       gcTargetListItems = ghSeTargetFields:LIST-ITEMS.
-    END.
+    END.    /* Valid target object handle */
   
     IF VALID-HANDLE(hSourceObject) THEN
     DO:
       cSourceObjType = {fn getObjectType hSourceObject}.
+      cTables  = {fn getTables hSourceObject} NO-ERROR.
       
-      /* Populates the Source selection list 
-         Source can be in the format DB selection list or tt selection list */
-    
-      IF cSourceObjType = "SmartDataObject":U THEN 
-        RUN adecomm/_getdlst.p (INPUT ghSeSourceFields:HANDLE,
-                                INPUT hSourceObject,
-                                INPUT FALSE,
-                                INPUT "1",
-                                INPUT ?,
-                                OUTPUT lSuccess).
-      ELSE /* If SmartData */
-        IF cSourceObjType = "SmartBusinessObject":U THEN 
+      /* The code below is taken from adecomm/_mfldmap.p (which is the AB's 
+         ForeignField mapper).
+       */             
+      IF cSourceObjType eq "SmartDataObject":U THEN
+      DO:
+          /* dbaware is set for SDO above. CTables is set for dbaware above. 
+	         If not dbaware ensure that only DataTable columns can be picked.  */
+          IF NOT lSourceDbAware THEN
+            cTables = {fn getDataTable hSourceObject}.
+          
           RUN adecomm/_getdlst.p (INPUT ghSeSourceFields:HANDLE,
                                   INPUT hSourceObject,
-                                  INPUT FALSE,
-                                  INPUT "2",
+                                  INPUT FALSE,                                  
+                                  INPUT IF lSourceDbAware THEN "1"  /* no qualifier for source */
+                                        ELSE "2|" + cTables,                                  
                                   INPUT ?,
                                   OUTPUT lSuccess).
-        ELSE /* If other = SmartDataBrowser referencing a Database */
+      END.    /* no success for SmartDataObject */
+      ELSE
+      IF cSourceObjType eq "SmartBusinessObject":U THEN
+        RUN adecomm/_getdlst.p (INPUT ghSeSourceFields:HANDLE,
+                                INPUT hSourceObject,
+                                INPUT no,
+                                INPUT "2":u,
+                                INPUT ?,
+                                OUTPUT lSuccess).
+      ELSE
+      DO:
+          cTables = {fn getTables hSourceObject} no-error.
+          
           RUN adecomm/_mfldlst.p (INPUT ghSeSourceFields:HANDLE,
-                                  INPUT {fn getTables hSourceObject},
-                                  INPUT "":U,
-                                  INPUT TRUE,
-                                  INPUT "1",
-                                  INPUT 2, /* expand arrays */
+                                  INPUT cTables,
+                                  INPUT '':u,
+                                  INPUT yes,
+                                  INPUT '1':u,
+                                  INPUT 2, /* expand EACH array element */
                                   INPUT "",
                                   OUTPUT lSuccess).
-
-      RUN destroyObject IN hSourceObject.
+      END.    /* none of the above */
       
+      RUN destroyObject IN hSourceObject.      
       gcSourceListItems = ghSeSourceFields:LIST-ITEMS.
-    END.
-  END.
+    END.    /* valid source object */
+  END. /* (pdObjectInstanceObj <> gdObjectInstanceObj OR dSmartObjectObj <> gdSmartObjectObj) OR glRefresh  */
   
   /* --------------------------------------------------- End of borrowed code --------------------------------------------------- */
   ASSIGN

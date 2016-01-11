@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -99,15 +83,24 @@ do ON ERROR UNDO, LEAVE  ON STOP UNDO, LEAVE:
    assign
       b_Field._Field-name = newname
       input frame fldprops b_Field._Format
-      input frame fldprops b_Field._Initial
-      input frame fldprops b_Field._Label
-      input frame fldprops b_Field._Col-label
-      input frame fldprops b_Field._Mandatory
-      input frame fldprops b_Field._Decimals
-        when b_field._decimals:screen-value ne "?":u
       input frame fldprops b_Field._Order
-      input frame fldprops b_Field._Help
       input frame fldprops b_Field._Desc.
+
+   /* For a Progress db, most fields are not valid for CLOB/BLOB fields */
+   IF {adedict/ispro.i} AND (b_field._dtype = {&DTYPE_BLOB} OR  b_field._dtype = {&DTYPE_CLOB}) THEN DO:
+      ASSIGN b_Field._Fld-Misc2[1] = input frame fldprops s_lob_size.
+             b_Field._Width = s_lob_wdth.
+   END.
+   ELSE DO:
+       ASSIGN
+           input frame fldprops b_Field._Help
+           input frame fldprops b_Field._Initial
+           input frame fldprops b_Field._Label
+           input frame fldprops b_Field._Col-label
+           input frame fldprops b_Field._Mandatory
+           input frame fldprops b_Field._Decimals
+             when b_field._decimals:screen-value ne "?":u.
+   END.
 
    if b_Field._Extent:visible in frame fldprops AND
       b_Field._Extent:sensitive in frame fldprops then

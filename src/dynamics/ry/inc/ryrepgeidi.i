@@ -1,3 +1,10 @@
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /*---------------------------------------------------------------------------------
   FILE: ryrepgeidi.i
   
@@ -701,8 +708,7 @@
   
                         IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN
                             RETURN ERROR (IF RETURN-VALUE EQ "":U THEN ERROR-STATUS:GET-MESSAGE(1) ELSE RETURN-VALUE).
-                            
-                                                                                                            
+                        
                         IF cLabels NE "":U AND cLabelAttributeName NE "":U THEN
                         apply-translation-blk:
                         DO:
@@ -800,7 +806,18 @@
     
                             /* The value of the tooltip will be blank when
                                there is not translation.
+							   
+                               When translating radio-sets, only take the first available
+                               translation tooltip.
                              */
+                            if cWidgetType eq 'Radio-Set' then
+                                /* trim all separator characters, since
+                                   we trying to find the first available 
+                                   tooltip.
+                                 */
+                                assign cAttributeValue = trim(cTooltips, chr(3))
+                                       cAttributeValue = entry(1, cAttributeValue, chr(3)).
+                            else
                             IF iWidgetEntries EQ 0 THEN
                                 ASSIGN cAttributeValue = cTooltips.
                             ELSE

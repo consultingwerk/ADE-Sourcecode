@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" sObject _INLINE
@@ -19,6 +19,13 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS sObject 
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /*---------------------------------------------------------------------------------
   File: afgenviewv.w
 
@@ -151,14 +158,14 @@ DEFINE VARIABLE toUseSDOFieldOrder AS LOGICAL INITIAL no
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     coProductModule AT ROW 1.1 COL 30 COLON-ALIGNED
-     coObjectType AT ROW 2.19 COL 30 COLON-ALIGNED
-     fiViewerSuffix AT ROW 3.29 COL 29.8 COLON-ALIGNED
-     fiNumFields AT ROW 4.33 COL 29.8 COLON-ALIGNED
-     fiFieldsPerColumn AT ROW 5.38 COL 29.8 COLON-ALIGNED
-     toDeleteInstance AT ROW 6.33 COL 31.8
-     toUseSDO AT ROW 7.14 COL 31.8
-     toUseSDOFieldOrder AT ROW 7.95 COL 31.8
+     coProductModule AT ROW 1.14 COL 30 COLON-ALIGNED
+     coObjectType AT ROW 2.24 COL 30 COLON-ALIGNED
+     fiViewerSuffix AT ROW 3.33 COL 29.8 COLON-ALIGNED
+     fiNumFields AT ROW 4.43 COL 29.8 COLON-ALIGNED
+     fiFieldsPerColumn AT ROW 5.52 COL 29.8 COLON-ALIGNED
+     toDeleteInstance AT ROW 6.57 COL 31.8
+     toUseSDO AT ROW 7.38 COL 31.8
+     toUseSDOFieldOrder AT ROW 8.19 COL 31.8
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -191,7 +198,7 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW sObject ASSIGN
-         HEIGHT             = 7.76
+         HEIGHT             = 8.43
          WIDTH              = 79.
 /* END WINDOW DEFINITION */
                                                                         */

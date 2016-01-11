@@ -4,6 +4,13 @@
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS sObject 
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /*------------------------------------------------------------------------
 
   File:        ryclcentityv.w
@@ -214,7 +221,7 @@ DEFINE VARIABLE fiObjectName AS CHARACTER FORMAT "X(50)":U INITIAL "*"
      SIZE 50 BY 1 TOOLTIP "A 4GL match expression to filter objects by object name" NO-UNDO.
 
 DEFINE RECTANGLE RECT-4
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 141 BY 5.
 
 DEFINE VARIABLE toIncludeInstances AS LOGICAL INITIAL no 
@@ -773,6 +780,7 @@ PROCEDURE generate4GLPrograms :
   DEFINE VARIABLE cCompileDirectory       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iOS-ERROR               AS INTEGER    NO-UNDO.
   DEFINE VARIABLE dElapsedTime            AS DECIMAL    NO-UNDO DECIMALS 4.
+  DEFINE VARIABLE cCompileOptions         AS CHARACTER  NO-UNDO.
 
   PUBLISH "getHookProcedure":U          FROM ghContainerSource (OUTPUT cHookfilename).
   PUBLISH "getResultCodes":U            FROM ghContainerSource (OUTPUT cResultCodes).
@@ -780,7 +788,7 @@ PROCEDURE generate4GLPrograms :
   PUBLISH "getGeneratedFileRoot":U      FROM ghContainerSource (OUTPUT cGeneratedFileRoot).
   PUBLISH "getOptions":U                FROM ghContainerSource (OUTPUT cOptions).
   PUBLISH "getLanguages":U              FROM ghContainerSource (OUTPUT cLanguages).
-  PUBLISH "getCompileOption":U          FROM ghContainerSource (OUTPUT lCompile, OUTPUT cCompileDirectory).
+  PUBLISH "getCompileOption":U          FROM ghContainerSource (OUTPUT lCompile, OUTPUT cCompileDirectory, OUTPUT cCompileOptions).
 
   hEntityBrowse = BROWSE {&BROWSE-NAME}:HANDLE.
 
@@ -815,6 +823,7 @@ PROCEDURE generate4GLPrograms :
             ELSE
                 "") + 
            (IF lCompile THEN "~nRcode location          : " + cCompileDirectory ELSE "") + 
+           (IF lCompile THEN "~nCompile options         : " + cCompileOptions ELSE "") +
            "~n~n"
            ) NO-ERROR.
 
@@ -925,7 +934,9 @@ PROCEDURE generate4GLPrograms :
           IF lCompile THEN /* Compile */
           DO:
               putLog("Compiling " + cOutputFilename) NO-ERROR.
-              COMPILE VALUE(cOutputFilename) SAVE INTO VALUE(cCompileDirectory) NO-ERROR.
+              COMPILE VALUE(cOutputFilename) SAVE INTO VALUE(cCompileDirectory) 
+                  GENERATE-MD5 = LOOKUP("GENERATE-MD5":U, cCompileOptions) > 0
+                  MIN-SIZE = LOOKUP("MIN-SIZE":U, cCompileOptions) > 0 NO-ERROR.
               writeLog(".").
               IF COMPILER:ERROR OR COMPILER:WARNING THEN
               DO:

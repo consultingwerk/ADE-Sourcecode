@@ -3,7 +3,7 @@
 Repository toolbar uses categories while non-repository objects
 uses parent actions" "" no no "" no "" "" no yes 1003498429
 "AddFunction" 438.7063 1 "" "SET" yes no "" no "" "" no yes 684.7063
-"AllFieldHandles" 7.7063 1 "Containes the handles of all objects and widgets on the visual objects. The list corresponds to AllFieldNames. The list has the procedure-handle of containerTargets and widget-handle of widgets." "" yes no "" no "" "" no yes 88.7063
+"AllFieldHandles" 7.7063 1 "Contains the handles of all objects and widgets on the visual objects. The list corresponds to AllFieldNames. The list has the procedure-handles of SDF containerTargets and widget-handles of widgets." "" yes no "" no "" "" no yes 88.7063
 "AllFieldNames" 7.7063 1 "Contains a comma-separated list of names of all objects and widgets on the visual objects. The corresponding handles are stored in AllFieldHandles. The list stores the FieldName of SmartDataFields and the NAME attribute of widgets." "" yes no "" no "" "" no yes 90.7063
 "ALLOW-COLUMN-SEARCHING" 1005078412.09 3 "Browser columns are searchable if true" "" no no "" no "" "" no no 14629.409
 "AltValueOnAdd" 432.7063 1 "Specifies the alternate value to display in the case the viewer data source initial value does not exist in the list of values. 
@@ -22,7 +22,7 @@ The logic is not performed in the trigger, but in the defaultAction
 procedure that gets defined as a persitent DEFAULT-ACTION event when setActionEvent is defined. 
 Local DEFAULT-ACTION events could be set up to run defaultAction." "" no no "" no "" "" no yes 490.7063
 "AppService" 1003183341 1 "Stores the AppService name to use when connecting to the AppServer. The get is mandatory to resolve '(none)' value as blank. This may have been stored from the Instance Property Dialog in older versions." "GET" no no "" no "" "" no yes 1003183455
-"ASDivision" 11.7063 1 "Property indicating which side of the AppServer this Object is running on; 'Client', 'Server', or none.
+"ASDivision" 11.7063 1 "Property indicating which side of the AppServer this object is running on; 'Client', 'Server', or none.
 This is the main condition used in code to separate/trigger client or server specific logic.  It's immediately set to 'server' at start up if session:remote. On the client, we traditionally connected in initializeObject and immediately set this property there, but as we now postpone the connection, this value may be unknown. Get is enforced to ensure that unknown never is exposed." "GET" yes no "" no "" "" no yes 130.7063
 "ASHandle" 11.7063 10 "The handle to this object's companion procedure (the copy of itself) running on the AppServer. This binds the server and should be avoided alltogether to utilize the one-hit appserver data requests.  If it is used then use unbindServer to unbind the server again." "get" yes no "" no "" "" no yes 135.7063
 "ASHasConnected" 11.7063 3 "Indicates whether the object has done a connection to the defined AppService. This is mainly used to avoid calling the connect method APIs  in the standard Appserver utility or Dynamics Connection Manager unnecessarily." "" yes no "" no "" "" no yes 55423.66
@@ -100,6 +100,7 @@ The actions that are selected will be saved as ActionGroups." "" yes no "" no ""
 "BUFFER-LINES" 1005078412.09 4 "" "" no no "" no "" "" no no 1005099298.101
 "BufferHandles" 154.7063 1 "Comma-separated list of the handles of the query buffers." "" yes no "" no "" "" no yes 511.7063
 "BuildSequence" 1005095447.101 4 "The sequence number in which the Dynamic Combo's data should be build." "SET" no no "" no "" "" no yes 1005115831.101
+"BusinessEntity" 152.7063 1 "Defines the logical name of the Business Entity that the DataView operates on. The realization of the Business Entity is the responsibility of the data request service accessed through the Service Adapter. The ADM expects the service to return and accept Business Entity data as dataset references and has no requirement to how or where the Business Entity is realized." "" no no "" no "" "" no yes 68842.66
 "ButtonCount" 438.7063 4 "The number of buttons in a SmartPanel, for resizeObject." "" yes no "" no "" "" no yes 658.7063
 "ButtonHandle" 434.7063 10 "" "" yes no "" no "" "" no yes 592.7063
 "CacheDuration" 152.7063 4 "Specifies the number of seconds the cache is valid. Any value gt than 0 is a directive to use caching while 0 means don't cache. A value of ? or -1 indicates that the data is valid throughout the session. The duration is applied when no instances are using the cached data. New instances that has ShareData set to true will disregard this property if another instance still is running. The property applies to a client proxy running against a stateless appserver or when ForceClientProxy = yes." "" no no "" no "" "" no yes 55429.66
@@ -232,7 +233,7 @@ Must be run to retrieve the value so that it can check whether the value is stil
 "DataObjectOrdering" 428.7063 1 "Mapping of the order of Update Tables as generated by the AppBuilder to the developer-defined update order." "" no no "" no "" "" no yes 454.7063
 "DataQueryBrowsed" 152.7063 3 "TRUE if this SmartDataObject's Query is being browsed by a SmartDataBrowser.
 This is used to prevent two SmartDataBrowsers from attempting to browse the same query, which is not allowed because conflicts would occur." "set" yes no "" no "" "" no yes 190.7063
-"DataQueryString" 152.7063 1 "The string used to prepare the RowObject query (see notes in 'setDataQueryString')" "" no no "" no "" "" no yes 172.7063
+"DataQueryString" 152.7063 1 "The string used to prepare the RowObject query." "" no no "" no "" "" no yes 172.7063
 "DataReadBuffer" 152.7063 10 "Specifies a buffer for the receive event. This buffer will only have one record and be used as a transport buffer for data from the data object to the ReadEventHandler's receiveBuffer event procedure" "" yes no "" no "" "" no yes 116
 "DataReadColumns" 152.7063 1 "A comma-separated list of columns to pass to the registered DataReadHandler when traversing the query." "" no no "" no "" "" no yes 200000003008.66
 "DataReadFormat" 152.7063 1 "Specifies the format for read event and updateData and createData APIs. 
@@ -243,6 +244,8 @@ This is used to prevent two SmartDataBrowsers from attempting to browse the same
                             justified numeric data" "" no no "" no "" "" no yes 114
 "DataReadHandler" 152.7063 10 "The handle of a procedure that has been registered to receive 
 output from the object." "" yes no "" no "" "" no yes 200000003006.66
+"DataSetName" 152.7063 1 "Defines an instance name in the container for the DataSet that manages the prodataset the DataView operates on. Defaults to the BusinessEntity. Can be set to allow multiple instances of a DataSet for the same Business Entity." "" no no "" no "" "" no yes 68844.66
+"DataSetSource" 152.7063 10 "The handle of the DataSet object that manages the prodataset for this object." "" yes no "" no "" "" no yes 68847.66
 "DataSource" 5.7063 10 "WidgetAttributes DataSource" "" yes no "" no "" "" no yes 1005109051.101
 "DataSourceEvents" 5.7063 1 "A comma-separated list of the events this object needs to subscribe to in its DataSource.
 Because this is a comma-separated list, it should normally be
@@ -251,6 +254,7 @@ invoked indirectly, through 'modifyListProperty'" "" no no "Class" no "" "" no y
 "DataSourceName" 3000002003.09 1 "Specifies the DataSource by name. The specified object will be started and linked as the DataSource of this object at runtime. The property will  be ignored if a data-source link to a DataObject instance is specified." "" no no "" no "" "" no yes 1005104898.101
 "DataSourceNames" 5.7063 1 "Stores the ObjectName of the Data Object that sends data to this object. This would be set if the data-Source is an SBO or other Container with DataObjects.
 See the SBOs addDataTarget for more details on how this is set." "" no no "" no "" "" no yes 1004945563.09
+"DataTable" 152.7063 1 "The physical name of the temp-table that is being navigated, viewed and/or updated.  Can also define a view to other temp-tables when a prodataset defines the temp-table." "" no no "" no "" "" no yes 68810.66
 "DataTarget" 5.7063 1 "The DataTarget object handle, normally for pass-through support.
 Because this can be a list, it should normally be changed using
 'modifyListProperty'." "" yes no "" no "" "" no yes 55.7063
@@ -264,8 +268,7 @@ the validation expression." "" no no "" no "" "" no yes 32994.66
 "DBAware" 5.7063 3 "Flag indicating whether this object is dependent on being connected to a database or not, to allow some code to execute two different ways (for DataObjects, e.g.)" "" no no "" no "" "" no yes 50.7063
 "DBNames" 154.7063 1 "Comma-separated list of the database names associated with the query buffers. Used actively in all column functions to be able to resolve calls that are qualified differently than the design time setting. The mandatory use of the get function is to ensure that the client side data object calls the server if the value is not present, which only will be the case if the get function is called before initialization as this is one of the 'first-time' attributes.  Qualify properly before init !" "get" yes no "" no "" "" no yes 513.7063
 "DCOLOR" 1005078412.09 4 "" "" no no "" no "" "" no no 1005099287.101
-"DeactivateTargetOnHide" 438.7063 3 "FALSE indicates that the hidden targets are deactivated on view of another target.
-TRUE should be used to disable a toolbar when the object is hidden also when the object has only one target or to disable the toolbar when the current page is a page that does not have any target. FALSE (default) ensures that the targets always are active if only one link even if they are hidden and avoids the disabling in a paged container when switching pages." "" no no "" no "" "" no yes 1779.66
+"DeactivateTargetOnHide" 438.7063 3 "The string used to prepare the RowObject query" "" no no "" no "" "" no yes 1779.66
 "DEBLANK" 1005078412.09 3 "" "" no no "" no "" "" no no 1005099317.101
 "DEFAULT" 1005078412.09 3 "" "" no no "" no "" "" no no 1005099324.101
 "DefaultCharWidth" 608.7063 5 "Defalt width for character fields." "" no no "" no "" "" no yes 632.7063
@@ -460,7 +463,7 @@ Use columnFilterTarget for a column." "" yes no "" no "" "" no yes 610.7063
 "FolderTabWidth" 3000002003.09 5 "Optional width for tabs" "" no no "" no "" "" no no 3484.66
 "FolderType" 1003183341 1 "" "" no no "" no "" "" no no 528.1713
 "FolderWindowToLaunch" 436.7063 1 "If Dynamics is running, this property specifies a window to launch upon the occurence of toolbar events ""View"", ""Copy"", ""Modify"" or ""Add""." "" no no "" no "" "" no yes 1003466958
-"FONT" 1005078412.09 4 "WidgetAttributes Font" "" no no "" no "" "" no no 1005099311.101
+"FONT" 1005078412.09 4 "WidgetAttributes Font" "GET,SET" no no "" no "" "" no yes 1005099311.101
 "ForeignFields" 154.7063 1 "A comma-separated list, consisting of thefirst local db fieldname, followed by the matching source temp-table field name, followed by more pairs if there is more than one field to match." "" no no "" no "" "" no yes 1003183462
 "ForeignValues" 154.7063 1 "The values are character strings formatted according to the field format specification and they are separated by the CHR(1) character." "" yes no "" no "" "" no yes 519.7063
 "FORMAT" 1005078412.09 1 "WidgetAttributes Format" "" no no "" no "" "" no no 1005078460.09
@@ -470,10 +473,12 @@ Use columnFilterTarget for a column." "" yes no "" no "" "" no yes 610.7063
 "FullRowSelect" 1005097792.101 3 "If yes, the entire row of the node is selected. If no, only the text is selected." "SET" no no "" no "" "" no yes 3508.66
 "GenerationTemplate" 5.7063 1 "The template file used generate static objects." "" no no "Class" no "" "" yes yes 30000000030001.53733
 "GRAPHIC-EDGE" 1005078412.09 3 "" "" no no "" no "" "" no no 1005099328.101
+"GROUP-BOX" 1005078412.09 3 "Whether a rectangle acts as a group-box or not." "" no no "" no "" "" no no 23002.5498
 "GroupAssignSource" 9.7063 10 "" "" yes no "" no "" "" no yes 118.7063
 "GroupAssignSourceEvents" 9.7063 1 "" "" no no "Class" no "" "" no yes 122.7063
 "GroupAssignTarget" 9.7063 1 "" "" yes no "" no "" "" no yes 120.7063
 "GroupAssignTargetEvents" 9.7063 1 "" "" no no "Class" no "" "" no yes 124.7063
+"HasDBAwareObjects" 347.7063 3 "Tells whether the container has DBAware data objects or not. The value reflects the DBAware property of the contained data objects and is used to decide how and whether multi data object data requests should be managed." "" no no "" no "" "" no yes 70459.66
 "HasDynamicProxy" 347.7063 3 "Indicates whether or not this container has a dynamic client proxy. Maintained from constructObject." "" yes no "" no "" "" no yes 426.7063
 "HasObjectMenu" 347.7063 3 "Indicates that an object has menus to extract.  If set to NO, no menus (apart from the default menus) will be rendered for the object.  The attribute is populated by the repository APIs." "" yes no "Master" no "" "" no no 6005.6893
 "Height" 3000002003.09 1 "A widget's height. The unit of measurement is determined by another 
@@ -857,6 +862,7 @@ able to run it." "" no no "" no "" "" no yes 121
 "ReuseDeletedKeys" 36427.48 3 "This flag is only relevant for entities that have record versioning enabled and the table has obj field is true - i.e. this is a table that has an object id field and some other unique key field(s). If this flag is set to YES, then if a record is created with a key value that has been previously deleted, then the new record will be created with the deleted records object id and key value, ensuring the link between a key value and an object id are never broken." "" yes no "" no "" "" no no 36470.48
 "RightToLeft" 438.7063 1 "" "" no no "" no "" "" no yes 678.7063
 "RootNodeCode" 1005097792.101 1 "The Root Node Code to be used when populating a SmartTreeView object on a Dynamic TreeView object." "SET" no no "" no "" "" no no 1005081437.28
+"ROUNDED" 1005078412.09 3 "Whether the corners of a rectangle are rounded or not." "" no no "" no "" "" no no 23004.5498
 "RouterSource" 513.49 1 "Stores a list of handles for router-source objects." "" yes no "" no "" "" no yes 940.7063
 "RouterTarget" 505.49 10 "The handle of the RouterTarget" "" yes no "" no "" "" no yes 886.7063
 "ROW" 1005078412.09 5 "Row position." "" no no "" no "" "" no no 1005078420.09
@@ -1079,8 +1085,8 @@ Because this is a comma-separated list, it should normally be
 document producers" "" no no "" no "" "" no yes 872.7063
 "UIBMode" 5.7063 1 "" "" yes no "" no "" "" no yes 35.7063
 "UNIQUE-MATCH" 1005078412.09 1 "" "" no no "" no "" "" no no 1005099333.101
-"UpdatableColumns" 154.7063 1 "A combined, comma-separated list of updatable columns in all tables of the query. It is derived from 'UpdatableColumnsByTable'." "" no no "" yes "" "" no yes 533.7063
-"UpdatableColumnsByTable" 154.7063 1 "A comma-separated list of updatable columns grouped by table and delimited by CHR(1)." "" no no "" no "" "" no yes 531.7063
+"UpdatableColumns" 154.7063 1 "A comma-separated list of updatable columns in all tables of the query. Note that the data class does not store this, but derrives it from  'UpdatableColumnsByTable'." "" no no "" no "" "" no yes 533.7063
+"UpdatableColumnsByTable" 154.7063 1 "A comma-separated list of updatable columns grouped by table and delimited by {&adm-datadelimiter} (defined in the globals include)." "" no no "" no "" "" no yes 531.7063
 "UpdateActive" 347.7063 3 "TRUE if ANY of the contained object's have active updates.
 - Updating objects publishes 'updateActive' (true or false) to their  container targets. (from setDataModified, setNewRecord or setRowObjectState).
 - If the value is FALSE updateActive turns around and publishes 
@@ -1088,7 +1094,7 @@ document producers" "" no no "" no "" "" no yes 872.7063
 "UpdateFromSource" 154.7063 3 "'TRUE' if this object should be updated as one-to-one with the datasource updates (one-to-one)" "" no no "" no "" "" no yes 215.7063
 "UpdateOrder" 3000002003.09 1 "" "" no no "" no "" "" no no 64529.7063
 "UpdateSource" 152.7063 1 "The handle of the object's Update-Source.
-This is used for pass-through links, to connect an object inside the container with an object outside the container. It is CHARACTER because at least one type of container (SBO)
+This can be defined with pass-through links, to connect an object inside the container with an object outside the container. It is CHARACTER because at least one type of container (SBO)
 supports multiple update sources" "" yes no "" no "" "" no yes 176.7063
 "UpdateStateInProcess" 428.7063 3 "" "" yes no "" no "" "" no yes 456.7063
 "UpdateTables" 428.7063 1 "List of RowObjUpd table handles for contained SDOs" "" yes no "" no "" "" no yes 30044.7063
@@ -1142,12 +1148,12 @@ stores the frame handle also for a SmartContainer.
 .
 PSC
 filename=ryc_attribute
-records=0000000000821
+records=0000000000828
 ldbname=ICFDB
-timestamp=2005/04/06-13:05:04
+timestamp=2005/10/03-14:01:37
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
 cpstream=UTF-8
 .
-0000138525
+0000139834

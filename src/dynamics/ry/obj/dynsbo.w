@@ -4,6 +4,13 @@
 {adecomm/appserv.i}
 DEFINE VARIABLE h_Astra                    AS HANDLE          NO-UNDO.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" sbo _INLINE
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /* Actions: ? ? ? ? af/sup/afverxftrp.p */
 /* This has to go above the definitions sections, as that is what it modifies.
    If its not, then the definitions section will have been saved before the
@@ -228,6 +235,21 @@ PROCEDURE initializeObject :
 
   /* Code placed here will execute PRIOR to standard behavior. */
   DEFINE VARIABLE cLogicalObjectName  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAppService         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hContainerSource    AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hAppservice         AS HANDLE     NO-UNDO.
+
+  {get AppService cAppService}. 
+  /* AsDivision must be set before createObjects is called, so we do 
+     the connection here before the call to super */ 
+  IF cAppService NE "":U THEN
+  DO:
+    RUN connectServer IN TARGET-PROCEDURE (OUTPUT hAppService). 
+    IF hAppService = ? THEN
+      RETURN ERROR 'ADM-ERROR':U.    
+    {get ContainerSource hContainerSource}.                       
+    {fnarg registerAppService cAppservice hContainerSource}. 
+  END.  /* IF AppService NE "":U */
 
   cLogicalObjectName = {fn getLogicalObjectName}.
   /* If we do not have the LogicalObjectName, there is no point in even trying to

@@ -1,6 +1,13 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Check Version Notes Wizard" Procedure _INLINE
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /* Actions: af/cod/aftemwizcw.w ? ? ? ? */
 /* MIP Update Version Notes Wizard
 Check object version notes.
@@ -330,13 +337,15 @@ PROCEDURE initializeObject :
     /* If the obejcts are not yet initialised, initializeObject in the
      * super - rydynframp.p - will create them.                         */
     RUN SUPER.
-
+    
     {get ContainerHandle hWindow} NO-ERROR.
     
+    &if '{&OPSYS}' = 'Win32' &then
     /* This causes the window to be REALIZED, and therefor prevents the setting of the STATUS-AREA property. It
      * was subsequently moved from MAIN BLOCK to after RUN SUPER to allow the setting of the attributes first. */
     {aficonload.i &WINDOW-NAME=hWindow}
-
+    &endif
+    
     /* Check forced exit of the dynamic container. This is checked after the RUN SUPER in case the instantiation of the
        objects on the frame fail.
      */
@@ -815,7 +824,9 @@ FUNCTION prepareInitialWindowSize RETURNS LOGICAL
     DEFINE VARIABLE dMaximumWindowHeight        AS DECIMAL              NO-UNDO.
     DEFINE VARIABLE dFrameMinHeight             AS DECIMAL              NO-UNDO.
     DEFINE VARIABLE dFrameMinWidth              AS DECIMAL              NO-UNDO.
-    
+    DEFINE VARIABLE hContainerSource            AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE cObjectName                 AS CHARACTER            NO-UNDO.
+
     ASSIGN lMenuController = {fnarg InstanceOf 'DynMenc'}.
     
     &SCOPED-DEFINE xp-assign
@@ -891,9 +902,6 @@ FUNCTION prepareInitialWindowSize RETURNS LOGICAL
                                                   INPUT-OUTPUT rProfileRid,             /* Rowid of profile data                        */
                                                         OUTPUT cProfileData       ).    /* Found profile data. Positions as follows:    */
                                                                                         /* 1 = col,         2 = row,                    */
-                                                                                        /* 3 = width chars, 4 = height chars            */
-                                                                                        /* Could also be: WINDOW-MAXIMISED              */
-        
         IF NUM-ENTRIES(cProfileData, CHR(3)) EQ 4 THEN
             ASSIGN lFoundSavedSize = YES
 
@@ -932,40 +940,59 @@ FUNCTION prepareInitialWindowSize RETURNS LOGICAL
     END.    /* Saved sizes? */
     
     IF lFoundSavedSize THEN
+    DO:
         ASSIGN hWindow:WIDTH-CHARS         = MIN(MAX(dSavedWidth, hWindow:MIN-WIDTH-CHARS),
                                                  dSessionMaxAvailWidth)
                hWindow:HEIGHT-CHARS        = MIN(MAX(dSavedHeight, (hWindow:MIN-HEIGHT-CHARS)),
                                                  (hWindow:MAX-HEIGHT-CHARS), dSessionMaxAvailHeight)
-               hWindow:COLUMN              = IF (dSavedColumn + hWindow:WIDTH-CHARS) GE SESSION:WIDTH-CHARS THEN
+               dSavedColumn                = IF (dSavedColumn + hWindow:WIDTH-CHARS) GE SESSION:WIDTH-CHARS THEN
                                                 MAX(SESSION:WIDTH-CHARS - hWindow:WIDTH-CHARS, 1)
                                              ELSE
                                              IF dSavedColumn LT 0 THEN
                                                  1
                                              ELSE
                                                  dSavedColumn
-               hWindow:ROW                 = IF (dSavedRow + hWindow:HEIGHT-CHARS) GE SESSION:HEIGHT-CHARS THEN
+               dSavedRow                   = IF (dSavedRow + hWindow:HEIGHT-CHARS) GE SESSION:HEIGHT-CHARS THEN
                                                 MAX(SESSION:HEIGHT-CHARS - hWindow:HEIGHT-CHARS - 1.5, 1)
                                              ELSE
                                              IF dSavedRow LT 0 THEN
                                                  1
                                              ELSE
-                                                 dSavedRow
-               dSavedColumn                 = hWindow:COLUMN
-               dSavedRow                    = hWindow:ROW.
+                                                 dSavedRow.
+    END.
+
     ELSE
     IF lMenuController THEN
-        ASSIGN hWindow:ROW                  = 1
-               hWindow:COL                  = 1
+        ASSIGN dSavedColumn                 = 1
+               dSavedRow                    = 1
                hWindow:MIN-WIDTH-CHARS      = dMinimumWindowWidth
                hWindow:MAX-WIDTH-CHARS      = dMaximumWindowWidth
                hWindow:MIN-HEIGHT-CHARS     = dMinimumWindowHeight
                hWindow:MAX-HEIGHT-CHARS     = dMaximumWindowHeight.
-
+ 
+    /* Check if container source has cascade rules that requires new position*/
+    &SCOPED-DEFINE xp-assign
+    {get ContainerSource hContainerSource}
+    {get ObjectName cObjectName}
+    .
+    &UNDEFINE xp-assign
+    
+    IF VALID-HANDLE(hContainerSource) THEN
+      RUN cascadeChildPosition IN hContainerSource 
+              (cLogicalObjectName,
+               cObjectName,
+               hWindow:HEIGHT,
+               hWindow:WIDTH,
+               INPUT-OUTPUT dSavedRow,
+               INPUT-OUTPUT dSavedColumn).
+    
+     ASSIGN     
+      hWindow:ROW    = dSavedRow    WHEN dSavedRow >= 1 
+      hWindow:COLUMN = dSavedColumn WHEN dSavedColumn >= 1.  
     /* Although the window has been sized to a maximum, make it truly
-       maximised.
-     */
+       maximised.*/
     IF cProfileData EQ "WINDOW-MAXIMIZED":U THEN
-        ASSIGN hWindow:WINDOW-STATE = WINDOW-MAXIMIZED.
+      ASSIGN hWindow:WINDOW-STATE = WINDOW-MAXIMIZED.
     
     RETURN TRUE.
 END FUNCTION.    /* prepareInitialWindowSize */

@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -40,6 +24,7 @@ Date Created: 02/04/92
 	      09/02/99 Mario B. 199909092-025 Long dumpname error on create.  
           01/10/00 D. McMann 19990511008 Added forceval.i on GO trigger in
                              table properties.
+          05/24/2005 Added GO trigger and changed choose trigger to s_btn_cancel in dbprops
 	      
 ----------------------------------------------------------------------------*/
 
@@ -53,7 +38,7 @@ on HELP anywhere
 /*====================Triggers for Database Properties=======================*/
 
 /*----- END-ERROR or OK BUTTON in DBPROPS FRAME -----*/
-on END-ERROR of frame dbprops OR choose of s_btn_OK in frame dbprops
+on END-ERROR of frame dbprops OR choose of s_btn_cancel in frame dbprops
 do:
    {adedict/delwin.i &Win = s_win_Db &Obj = {&OBJ_DB}}
    return NO-APPLY.  /* don't really do end-key processing */
@@ -64,6 +49,23 @@ on HELP of frame dbprops OR choose of s_btn_Help in frame dbprops
    RUN "adecomm/_adehelp.p" ("dict", "CONTEXT", 
       	       	     	     {&Database_Properties_Window}, ?).
 
+/*----- HIT of OK BUTTON or GO -----*/
+on GO of frame dbprops
+do:
+    
+   /* if the fields are not sensitive for input, user can't update anything, so we can skip the call
+      to _savdbprop.p (it has a reference to _db-detail, and the table may not exist, so avoid calling
+      it if we know there is nothing to be updated).
+   */
+   IF s_Db_Description:sensitive in frame dbprops THEN DO:
+       run adedict/DB/_savdbprop.p.
+       if RETURN-VALUE = "error" then
+          return NO-APPLY.
+   END.
+
+  {adedict/delwin.i &Win = s_win_Db &Obj = {&OBJ_DB}}
+   RUN adedict/_brwgray.p (INPUT NO).  /* For Adjust Width Browser graying */   
+end.
 
 /*======================Triggers for Table Properties=======================*/
 

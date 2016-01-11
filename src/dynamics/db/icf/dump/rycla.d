@@ -14,7 +14,7 @@ PSC
 filename=ryc_layout
 records=0000000000007
 ldbname=ICFDB
-timestamp=2005/04/06-13:05:07
+timestamp=2005/06/30-15:33:34
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP

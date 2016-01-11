@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -294,12 +278,28 @@ PROCEDURE BrowseFiles .
   
   DEFINE VAR v_GotFile         AS CHAR NO-UNDO.
 
-  RUN SysGetFile
-        ( INPUT "Files" /* p_Title */ ,
-          INPUT NO /* p_Save_As */ ,
-          INPUT 1 /* p_Initial_Filter */ ,
-          INPUT-OUTPUT v_GotFile ,
-          OUTPUT p_Return_Status ) .
+  /* 20050812-040 For GUI, call adecomm/_getfile.p to 
+   * display the File Open dialog, so that we get *.cls
+   * in the filter list. */
+  IF ( SESSION:WINDOW-SYSTEM <> "TTY":U ) THEN
+  DO:
+      RUN adecomm/_getfile.p
+            (INPUT ACTIVE-WINDOW , INPUT ?,
+             INPUT "Open"       /* Action : "Save As" or "Open" */,
+             INPUT "Files"      /* Title */,
+             INPUT "Open"        /* Mode   : "SAVE" or "OPEN" */,
+             INPUT-OUTPUT v_GotFile,
+             OUTPUT p_Return_Status).
+  END.
+  ELSE
+  DO:
+      RUN SysGetFile
+            ( INPUT "Files" /* p_Title */ ,
+              INPUT NO /* p_Save_As */ ,
+              INPUT 1 /* p_Initial_Filter */ ,
+              INPUT-OUTPUT v_GotFile ,
+              OUTPUT p_Return_Status ) .
+  END.
 
   IF ( p_Return_Status = NO ) THEN RETURN .
 

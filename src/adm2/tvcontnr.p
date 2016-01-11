@@ -2,25 +2,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*--------------------------------------------------------------------------
@@ -245,7 +229,7 @@ FUNCTION getParentDataNodeBuffer RETURNS HANDLE
 
 &IF DEFINED(EXCLUDE-getRowsToBatch) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getRowsToBatch Procedure  _DB-REQUIRED
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getRowsToBatch Procedure 
 FUNCTION getRowsToBatch RETURNS INTEGER
   ( /* parameter-definitions */ )  FORWARD.
 
@@ -577,7 +561,6 @@ PROCEDURE applyFilter :
     DYNAMIC-FUNCTION("addQueryWhere":U IN phSDOHandle, 
                      bThisNode.parent_node_filter, "":U, "AND":U).
     cWhere = bThisNode.parent_node_filter + CHR(3) + CHR(3) + "AND":U.
-    cWhere = DYNAMIC-FUNCTION("fixQueryString":U IN gshSessionManager, cWhere).
     {set manualAddQueryWhere cWhere phSDOHandle}.
   END. /* First Level Structured Node */
 END PROCEDURE.
@@ -838,9 +821,10 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE calcNewTreeSize Procedure 
 PROCEDURE calcNewTreeSize :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   Purpose:    Calculates the Min sizes of the TreeView to see if the object will fit
   Parameters:  <none>
-  Notes:       
+  Notes:       *** THIS API HAS BEEN DEPRECATED ***
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hResizeBar           AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hTitleBar            AS HANDLE     NO-UNDO.
@@ -848,7 +832,6 @@ PROCEDURE calcNewTreeSize :
   DEFINE VARIABLE dFrameMinWidth       AS DECIMAL    NO-UNDO.
   DEFINE VARIABLE dFrameMinHeight      AS DECIMAL    NO-UNDO.
   
-
   DEFINE BUFFER ttPropNewSize FOR ttProp.
   
   {get ResizeBar hResizeBar}.
@@ -1101,9 +1084,10 @@ PROCEDURE createRepositoryObjects :
     END.
     hObjectHandle = ttFrame.hFrameHandle.
     
-    RUN calcNewTreeSize IN TARGET-PROCEDURE.    
-    RUN resizeWindow IN TARGET-PROCEDURE.    
-    
+    /* pjudge: Removed calculation/resize code from here.
+       At this point the window should be correctly sized.
+       No further resizing is required.
+     */    
     RUN updateFrameTitle IN TARGET-PROCEDURE (INPUT hObjectHandle).
     RUN viewObject IN hObjectHandle.
   END.
@@ -1281,7 +1265,13 @@ PROCEDURE createRepositoryObjects :
      */
     RUN initializeObject IN hObjectHandle.
     
-  END.
+    find ttFrame where
+         ttFrame.hTargetProcedure = target-procedure and
+         ttFrame.hFrameHandle     = hObjectHandle.
+         
+    {get MinHeight ttFrame.dFrameMinHeight hObjectHandle}.
+    {get MinWidth ttFrame.dFrameMinWidth hObjectHandle}.    
+  END.    /* launch new window */
   
 END PROCEDURE.
 
@@ -2122,12 +2112,13 @@ PROCEDURE loadSDOSBOData :
                                bParentNode.data_source_type <> "PRG":U 
                             THEN bParentNode.data_source ELSE bParentNode.primary_sdo.
            
+  
   IF bThisNode.data_source = "":U OR bThisNode.data_source = ? THEN
     RETURN.
 
   IF NOT VALID-HANDLE(hSDOHandle) THEN 
   DO:
-      RUN manageSDOs IN TARGET-PROCEDURE 
+    RUN manageSDOs IN TARGET-PROCEDURE 
                      (INPUT  bThisNode.data_source,
                       INPUT  bThisNode.foreign_fields,
                       INPUT  cParentNodeSDO,
@@ -2152,6 +2143,7 @@ PROCEDURE loadSDOSBOData :
 
     DYNAMIC-FUNCTION("OpenQuery":U IN hSDOHandle).
   END.
+
 
   cValueList = DYNAMIC-FUNCTION("getEntityName":U IN TARGET-PROCEDURE, hSDOHandle).
   IF cValueList = ? THEN DO:
@@ -3568,7 +3560,7 @@ DEFINE VARIABLE iLoop             AS INTEGER    NO-UNDO.
           lRepositionParent = TRUE.
       END.
     END.
-
+    
     IF lRepositionParent THEN
       RUN repositionPath IN TARGET-PROCEDURE 
                   (hTreeNodeBuf:BUFFER-FIELD('node_key':U):BUFFER-VALUE, 
@@ -3993,11 +3985,12 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE treePackDone Procedure 
 PROCEDURE treePackDone :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   Purpose:     This procedure is called from the TreeView rendering procedure
                to notify us that the TreeView Packing is done. This will allow
                us to save the min sizes of the Dynamic TreeView container
   Parameters:  <none>
-  Notes:       
+  Notes:       *** THIS API HAS BEEN DEPRECATED ***
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hWindow AS HANDLE     NO-UNDO.
 
@@ -4038,6 +4031,8 @@ PROCEDURE treeResized :
   DEFINE VARIABLE dTreeMinWidth AS DECIMAL    NO-UNDO.
   DEFINE VARIABLE dTreeWidth    AS DECIMAL    NO-UNDO.
   DEFINE VARIABLE dAdjustment   AS DECIMAL    NO-UNDO.
+  define variable hFrameMinWidth        as decimal                        no-undo.
+  define variable dMaxWindowWidth       as decimal                        no-undo.
   
   &SCOPED-DEFINE xp-assign
   {get TreeViewOCX hTreeViewOCX}
@@ -4052,12 +4047,32 @@ PROCEDURE treeResized :
   
   IF VALID-HANDLE(hTreeViewOCX) THEN
   DO:
+    {get ContainerHandle hWindow}.      
     dTreeMinWidth = DYNAMIC-FUNCTION("getMinWidth":U IN hTreeViewOCX) + 1.
     /* Since the TreeView OCX can never be narrower than it's min width we need 
        to leave some space for the Resize Bar and we'd rather check that the COL
        being moved to is at least the min width plus 1 */
     IF hResizeBar:COL < dTreeMinWidth THEN
       hResizeBar:COL = dTreeMinWidth.
+    else
+    do:
+        /* Get the Min Sizes of all launched frames */
+        for each ttFrame where ttFrame.hTargetProcedure = target-procedure:
+            hFrameMinWidth = max(hFrameMinWidth, ttFrame.dFrameMinWidth).
+        end.
+        
+        /* Prevent resize bar from making the window larger than it should be.
+           If the window is maximised, then the session defines the boundaries 
+           of the windows. If not, then the 4GL limit of 320 characters applies.
+         */
+        if hWindow:window-state eq window-maximized then
+            dMaxWindowWidth = session:width-chars.
+        else
+            dMaxWindowWidth = 320.
+        
+        if hResizeBar:col + hFrameMinWidth >= dMaxWindowWidth then
+            hResizeBar:col =  dMaxWindowWidth - hFrameMinWidth - 1 no-error.
+    end.    /* sizing bigger */
     
     /* We will not be adjusting the height, this would be done by the resize
        procedures */
@@ -4065,40 +4080,31 @@ PROCEDURE treeResized :
     {get Height dTreeHeight hTreeViewOCX}
     {get Width  dTreeWidth  hTreeViewOCX}.
     &UNDEFINE xp-assign
-    
     RUN resizeObject IN hTreeViewOCX (INPUT dTreeHeight, INPUT hResizeBar:COL - 0.5).
-            
-    /* Adjust the size of the window by the amount that the resize bar moves. Be careful
-       though, not to make the window smaller that it's minimum size.
-       
-       Also make sure that this shift of the resize bar leaves enough 'untouchable' space
-       on the right so that we are not able to resize the treeview smaller than the 
-       folder window.
-    */
-    {get ContainerHandle hWindow}.
-    ASSIGN dAdjustment   = (hResizeBar:COL - 0.5 - dTreeWidth)
-           hWindow:WIDTH = MAX(hWindow:WIDTH + dAdjustment, hWindow:MIN-WIDTH) 
-           NO-ERROR.           
+        
+    /* pjudge: Removed code that sizes the window after the splitter moves.
+       The window width adjustment happens when the window is packed below.       
+     */
   END.    /* valid treeview */
-  
-  /* First adjust the size of the treeview component, since this is used for packing. */
-  RUN calcNewTreeSize IN TARGET-PROCEDURE.
   
   /* Repack, since the minimum window size may have changed. If the resize bar was moved to 
      the left (ie smaller tree) then the min size may need to be made smaller. However, the 
      layout manager doesn't cater for making the min-width of a window smaller, so we need 
      to set it to a small value. It will be reset to the correct minimum size by the call
      to packWindow().
+     
+     The minimum packed size changes with the movement of the resize bar. The minimum
+     packed size of a treeview window is defined by the width of the treeview object,
+     plus the frames etc. See pack05 in ry/prc/rylayoutsp.p for details. The important
+     thing here is that moving the rezie bar changes the packed size of the window.
    */
   ASSIGN hWindow:MIN-WIDTH = 10.
-  RUN packWindow IN TARGET-PROCEDURE (INPUT ?, INPUT NO) NO-ERROR.  
+  RUN packWindow IN TARGET-PROCEDURE (INPUT ?, INPUT yes) NO-ERROR.
   RUN resizeWindow IN TARGET-PROCEDURE.
- 
-  ASSIGN ttProp.dResizeBarCol = hResizeBar:COL.
   
   {fnarg lockWindow FALSE}.
 
-END PROCEDURE.
+END PROCEDURE.    /* treeviewResized */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -4223,6 +4229,7 @@ PROCEDURE tvNodeEvent :
             AND   bttNode.data_source_type <> "TXT":U
             NO-LOCK
             BY    bttNode.node_obj:
+
           RUN loadNodeData IN TARGET-PROCEDURE (INPUT pcNodeKey, 
                                                 INPUT bttNode.node_obj).
         END.
@@ -4318,7 +4325,12 @@ PROCEDURE tvNodeSelected :
   Purpose:     This procedure is called when a node is selected in the TreeView
                object.
   Parameters:  pcNodeKey - The node key of the selected node.
-  Notes:       
+  Notes:       All data links between SDOs are removed before calling 
+               repositionSDO, which adds data links temorarily for optimal data 
+               retrieval. After the data is positioned correctly all data SOUIRCE
+               links are added back before the visual objects are initialized or refreshed
+               with a publish of dataAvailable. SDO child nodes below current 
+               is not linked.  
 ------------------------------------------------------------------------------*/
   DEFINE INPUT  PARAMETER pcNodeKey AS CHARACTER  NO-UNDO.
 
@@ -4340,6 +4352,8 @@ PROCEDURE tvNodeSelected :
   DEFINE VARIABLE hParentDataBuf AS HANDLE      NO-UNDO.
   DEFINE VARIABLE cPrimarySDO    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iNodeLevel     AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE lNewRun        AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hParentSDO     AS HANDLE     NO-UNDO.
 
   DEFINE BUFFER bRunningSDO      FOR ttRunningSDOs.
 
@@ -4367,8 +4381,10 @@ PROCEDURE tvNodeSelected :
            cBeforeMoreNode         = DYNAMIC-FUNCTION("getProperty":U IN hTreeViewOCX, "PREVIOUS":U, pcNodeKey).
     RUN setDataLinks IN TARGET-PROCEDURE (INPUT "INACTIVE":U).
     DYNAMIC-FUNCTION("lockWindow":U IN TARGET-PROCEDURE, INPUT TRUE).
-    /* Reposition SDO */
+    
+    /* Reposition SDO */    
     RUN repositionSDO IN TARGET-PROCEDURE (INPUT pcNodeKey).
+
     RUN loadSDOSBOData IN TARGET-PROCEDURE (INPUT "MORE":U, INPUT 0).
     ASSIGN
       pcNodeKey = cOldNodeKey
@@ -4463,40 +4479,44 @@ PROCEDURE tvNodeSelected :
         ASSIGN ttProp.hCurrentFrame = ?.
       END.
 
-      /* Reposition SDO */
+      /* Reposition SDO, including parents */
       RUN repositionSDO IN TARGET-PROCEDURE (INPUT pcNodeKey).      
-      RUN createRepositoryObjects IN TARGET-PROCEDURE (INPUT cLogicalObject,
-                                                       INPUT cPrimarySDO,
-                                                       INPUT cRunAttribute, 
-                                                       INPUT iNodeLevel,
-                                                       INPUT ttNode.node_obj) NO-ERROR.
+      lNewRun = TRUE.
   END.
   ELSE DO:
-      /* Reposition SDO */                                               
+      /* Reposition SDO, including parents */
       RUN setDataLinks IN TARGET-PROCEDURE (INPUT "INACTIVE":U).
       RUN repositionSDO IN TARGET-PROCEDURE (INPUT pcNodeKey).
       RUN setDataLinks IN TARGET-PROCEDURE (INPUT "ACTIVE":U).
-
-      /* Refresh visual objects */
-      IF VALID-HANDLE(hNodeSDO) THEN
-      DO:
-        {get QueryPosition cQueryPosition hNodeSDO}.
-        PUBLISH "queryPosition":U FROM hNodeSDO (INPUT cQueryPosition).
-        PUBLISH "dataAvailable":U FROM hNodeSDO (INPUT "DIFFERENT":U).
-      END.
   END.
   
-  /* Establish data-link chain for current node. */
+  /* Establish data-source chain for current node. */
   FIND FIRST bRunningSDO WHERE bRunningSDO.hTargetProcedure = TARGET-PROCEDURE
                            AND bRunningSDO.hSDOHandle = hNodeSDO
                          NO-ERROR.
-  REPEAT WHILE AVAILABLE bRunningSDO
-           AND VALID-HANDLE(bRunningSDO.hParentSDO)
-           AND bRunningSDO.hParentSDO NE hNodeSDO:
-    RUN addLink IN TARGET-PROCEDURE(bRunningSDO.hParentSDO, 'Data':U, hNodeSDO).
-    hNodeSDO = bRunningSDO.hParentSDO.
-    FIND FIRST bRunningSDO WHERE bRunningSDO.hTargetProcedure = TARGET-PROCEDURE
-                             AND bRunningSDO.hSDOHandle = hNodeSDO.
+  REPEAT WHILE AVAILABLE bRunningSDO 
+         AND VALID-HANDLE(bRunningSDO.hParentSDO)     
+         AND bRunningSDO.hParentSDO <> bRunningSDO.hSDOHandle:
+      RUN addLink IN TARGET-PROCEDURE(bRunningSDO.hParentSDO, 'Data':U, bRunningSDO.hSDOHandle).
+      hParentSDO = bRunningSDO.hParentSDO.
+      FIND FIRST bRunningSDO WHERE bRunningSDO.hTargetProcedure = TARGET-PROCEDURE
+                             AND bRunningSDO.hSDOHandle = hParentSDO.
+  END.
+
+  IF lNewRun THEN
+    RUN createRepositoryObjects IN TARGET-PROCEDURE (INPUT cLogicalObject,
+                                                     INPUT cPrimarySDO,
+                                                     INPUT cRunAttribute, 
+                                                     INPUT iNodeLevel,
+                                                     INPUT ttNode.node_obj) NO-ERROR.
+  ELSE DO:
+    /* Refresh visual objects */
+    IF VALID-HANDLE(hNodeSDO) THEN
+    DO:
+      {get QueryPosition cQueryPosition hNodeSDO}.
+      PUBLISH "queryPosition":U FROM hNodeSDO (INPUT cQueryPosition).
+      PUBLISH "dataAvailable":U FROM hNodeSDO (INPUT "RESET":U).
+    END.
   END.
 
   DELETE OBJECT hDataTableBuf NO-ERROR.
@@ -4517,7 +4537,7 @@ PROCEDURE tvNodeSelected :
 
   /* If More node is selected, scroll treeview to display new batch of retrieved nodes */
   IF cPageDownNode > "" THEN
-         DYNAMIC-FUNCTION("setProperty":U IN hTreeViewOCX, "ENSUREVISIBLE":U, cPageDownNode,"":U).
+     DYNAMIC-FUNCTION("setProperty":U IN hTreeViewOCX, "ENSUREVISIBLE":U, cPageDownNode,"":U).
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -4793,12 +4813,13 @@ END FUNCTION.
 FUNCTION getCurrentTreeFrame RETURNS HANDLE
   ( /* parameter-definitions */ ) :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   Purpose:  This function is called from the TreeView rendering procedure to 
             establish which resize and packing procedure to run. If the handle 
             is valid, we will run the pack and resize for the launched frame if
             it is not valid we run the standard pack and resize procedures for
             the Dynamic TreeView
-    Notes:  
+    Notes:  *** THIS API HAS BEEN DEPRECATED ***
 ------------------------------------------------------------------------------*/
   FIND FIRST ttProp WHERE ttProp.hTargetProcedure = TARGET-PROCEDURE NO-LOCK NO-ERROR.
   

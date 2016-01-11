@@ -2,25 +2,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*--------------------------------------------------------------------------
@@ -94,7 +78,7 @@ DEFINE TEMP-TABLE ttDComboCopy LIKE ttDCombo.
 &IF DEFINED(EXCLUDE-buildFieldQuery) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD buildFieldQuery Procedure 
-FUNCTION buildFieldQuery RETURNS CHARACTER PRIVATE
+FUNCTION buildFieldQuery RETURNS CHARACTER 
   ( pcValue AS CHAR )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -888,6 +872,7 @@ PROCEDURE assignNewValue :
   DEFINE VARIABLE cNewQuery               AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cKeyField               AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cDisplayedField         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cScreenValue            AS CHARACTER  NO-UNDO.
 
   &SCOPED-DEFINE xp-assign
   {get containerSource hContainer}
@@ -913,17 +898,18 @@ PROCEDURE assignNewValue :
     IF cKeyField = cDisplayedField THEN
       {set DataValue pcKeyFieldValue}.
 
+    cScreenValue = hLookup:INPUT-VALUE.
     hDynLookupBuf = {fn returnLookupBuffer}.
+    
     ASSIGN
       hDynLookupBuf:BUFFER-FIELD('cScreenValue':U):BUFFER-VALUE = cScreenValue
-      hDynLookupBuf:BUFFER-FIELD('cFoundDataValues':U):BUFFER-VALUE = "":U
-      hDynLookupBuf:BUFFER-FIELD('cRowIdent':U):BUFFER-VALUE = "":U
       hDynLookupBuf:BUFFER-FIELD('lMoreFound':U):BUFFER-VALUE = FALSE.
 
     IF pcKeyFieldValue = "":U AND pcDisplayFieldValue <> "":U THEN 
       cNewQuery = {fnarg buildSearchQuery pcDisplayFieldValue}.
     ELSE  
       cNewQuery = {fnarg buildFieldQuery pcKeyFieldValue}.
+    
     {set QueryString cNewQuery}.  
     RUN retrieveData IN TARGET-PROCEDURE (hContainer).
     RUN displayField IN TARGET-PROCEDURE.
@@ -948,6 +934,35 @@ PROCEDURE assignNewValue :
              ). 
   
   RETURN.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-chooseButton) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE chooseButton Procedure 
+PROCEDURE chooseButton :
+/*------------------------------------------------------------------------------
+  Purpose:   Choose button event handler that sets focus if required before 
+             calling initalizeBrowse. 
+  Parameters:  <none>
+  Notes:     The lookup button is defined as no-focus. 'Entry' is applied
+             to the fill-in in order to make the lookup fill-in and button 
+             behave as a single widget and fire leave of other widgets also 
+             when the user clicks directly on the button.       
+------------------------------------------------------------------------------*/  
+  DEFINE VARIABLE hField AS HANDLE     NO-UNDO.
+  
+  {get LookupHandle hField}.
+
+  IF FOCUS <> hField THEN
+    APPLY 'ENTRY':U TO hField.
+
+  RUN initializeBrowse IN TARGET-PROCEDURE.
 
 END PROCEDURE.
 
@@ -1659,9 +1674,9 @@ PROCEDURE initializeBrowse :
   {get BrowseObject hBrowseObject}
   {get BrowseContainer hBrowseContainer}.
   &UNDEFINE xp-assign
-
+  
   IF NOT VALID-HANDLE(hBrowseContainer) THEN 
-  DO: 
+  DO:   
     {get ContainerSource hContainer}.
     {get ContainerSource hRealContainer hContainer}.
     {get ContainerHandle hWindowHandle hRealContainer}.        
@@ -1675,17 +1690,21 @@ PROCEDURE initializeBrowse :
           INPUT "rydynlookw":U,     /* pcObjectFileName       */
           INPUT "":U,               /* pcPhysicalName         */
           INPUT "":U,               /* pcLogicalName          */
-          INPUT FALSE,             /* plOnceOnly             */
-          INPUT "":U,               /* pcInstanceAttributes   */
+          INPUT FALSE,              /* plOnceOnly             */
+          INPUT "HideOnInit":U + CHR(4) + 'YES':U
+                + CHR(3)
+                + "StartPage":U + CHR(4) + '1':U,    
+                                     /* pcInstanceAttributes   */ 
           INPUT "":U,               /* pcChildDataKey         */
-          INPUT "":U,             /* pcRunAttribute         */
+          INPUT "":U,               /* pcRunAttribute         */
           INPUT "":U,               /* container mode         */
-          INPUT hWindowHandle,    /* phParentWindow         */
-          INPUT hRealContainer,   /* phParentProcedure      */
-          INPUT hRealContainer,   /* phObjectProcedure      */
-          OUTPUT hBrowseContainer, /* phProcedureHandle      */
-          OUTPUT cProcedureType   /* pcProcedureType        */       
+          INPUT hWindowHandle,      /* phParentWindow         */
+          INPUT hRealContainer,     /* phParentProcedure      */
+          INPUT hRealContainer,     /* phObjectProcedure      */
+          OUTPUT hBrowseContainer,  /* phProcedureHandle      */
+          OUTPUT cProcedureType     /* pcProcedureType        */       
       ).       
+    
     /*
     RUN constructObject IN hContainer (
          INPUT  'ry/uib/rydyncontw.w':U,
@@ -1704,7 +1723,6 @@ PROCEDURE initializeBrowse :
     */
     {get ContainerHandle hBrowseWindow hBrowseContainer}.
     {get BrowseTitle cBrowseTitle}.
-
     /* Set window title */
     hBrowseWindow:TITLE = cBrowseTitle.
     
@@ -1717,8 +1735,8 @@ PROCEDURE initializeBrowse :
     &UNDEFINE xp-assign
     
     /* Only set the Auto Filter if the value in the field has changed */
-    IF DYNAMIC-FUNCTION("getDataModified":U IN TARGET-PROCEDURE) = TRUE AND 
-       cDisplayedValue <> hLookup:INPUT-VALUE THEN
+    IF DYNAMIC-FUNCTION("getDataModified":U IN TARGET-PROCEDURE) = TRUE 
+    AND cDisplayedValue <> hLookup:INPUT-VALUE THEN
       {set LookupFilterValue hLookup:INPUT-VALUE}.
     ELSE
       {set LookupFilterValue "":U}.
@@ -1726,19 +1744,19 @@ PROCEDURE initializeBrowse :
     /* construct browser and filter settings */
     PUBLISH "buildBrowser":U FROM hBrowseContainer (INPUT TARGET-PROCEDURE).
     PUBLISH "buildFilters":U FROM hBrowseContainer (INPUT TARGET-PROCEDURE).
+
     &SCOPED-DEFINE xp-assign
     /* set by BuildBrowser */
     {get BrowseObject hBrowseObject}
     {set LookupFilterValue ''}
-    /* Store running window handle */
+    /* Store container handle */
     {set BrowseContainer hBrowseContainer}
     .
     &UNDEFINE xp-assign
-
-    APPLY "window-resized":u TO hBrowseWindow.
-    RUN selectPage IN hBrowseContainer(1).
+    
+    RUN viewObject IN hBrowseContainer.  
   END.  /* not valid handle browse container */
-
+  
   /* View and focus the browser */
   RUN applyEntry IN hBrowseObject (INPUT ?).
 
@@ -1909,24 +1927,24 @@ PROCEDURE initializeLookup :
   CREATE BUTTON hBtn
     ASSIGN NO-FOCUS         = TRUE
            FRAME            = hFrame
-           X                = hLookup:WIDTH-P + 4
-           Y                = 1 
-           WIDTH-PIXELS     = 19
-           HEIGHT-P         = hLookup:HEIGHT-P - 1 
+           X                = hLookup:WIDTH-P + (if SESSION:WINDOW-SYSTEM eq 'MS-WINXP' then 0 else 4)
+           Y                = (if SESSION:WINDOW-SYSTEM eq 'MS-WINXP' then 0 else 1)
+           WIDTH-PIXELS     = (if SESSION:WINDOW-SYSTEM eq 'MS-WINXP' then 22 else 19)
+           HEIGHT-P         = hLookup:HEIGHT-P - ( if SESSION:WINDOW-SYSTEM eq 'MS-WINXP' then 0 else 1)
            HIDDEN           = FALSE
            SENSITIVE        = hLookup:SENSITIVE
         TRIGGERS:
           ON CHOOSE PERSISTENT 
-            RUN initializeBrowse IN TARGET-PROCEDURE.
+            RUN chooseButton IN TARGET-PROCEDURE.
         END.
-
+  
   &SCOPED-DEFINE xp-assign
   {set LookupHandle hLookup}
   {set ButtonHandle hBtn}       
   {get LookupImage cLookupImg}.
   &UNDEFINE xp-assign
      
-  hBtn:LOAD-IMAGE(cLookupImg).      
+  hBtn:LOAD-IMAGE(cLookupImg).
   hFrame:HEIGHT = hLookup:HEIGHT.
 
   /* create an entry/leave trigger always, code is defined */
@@ -2684,7 +2702,7 @@ PROCEDURE resizeObject :
   IF VALID-HANDLE(hLookup) THEN
     ASSIGN
         hLookup:WIDTH-PIXELS = hFrame:WIDTH-PIXELS - 24
-        hButton:X            = hLookup:X + hLookup:WIDTH-PIXELS + 4
+        hButton:X            = hLookup:X + hLookup:WIDTH-PIXELS + (if SESSION:WINDOW-SYSTEM eq 'MS-WINXP' then 0 else 4)
         .
 
   RETURN.
@@ -2981,7 +2999,7 @@ END PROCEDURE.
 &IF DEFINED(EXCLUDE-buildFieldQuery) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION buildFieldQuery Procedure 
-FUNCTION buildFieldQuery RETURNS CHARACTER PRIVATE
+FUNCTION buildFieldQuery RETURNS CHARACTER 
   ( pcValue AS CHAR ) :
 /*------------------------------------------------------------------------------
   Purpose:     Returns the query with search criteria on the DisplayedField.                
@@ -3050,7 +3068,6 @@ DEFINE VARIABLE hField                  AS HANDLE     NO-UNDO.
  {get LookupHandle hField}
  {get QueryTables cQueryTables}.
  &UNDEFINE xp-assign
-  
   /* Set up where clause for displayfield and value */
   CASE cDataType:
      WHEN 'CHARACTER':U THEN   
@@ -3655,7 +3672,11 @@ FUNCTION getPopupOnAmbiguous RETURNS LOGICAL
     Notes:   
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE lValue AS LOGICAL NO-UNDO.
+  
+  &scoped-define xpPopupOnAmbiguous
   {get PopupOnAmbiguous lValue}.
+  &undefine xpPopupOnAmbiguous
+  
   RETURN lValue.
 
 END FUNCTION.
@@ -3695,7 +3716,11 @@ FUNCTION getPopupOnUniqueAmbiguous RETURNS LOGICAL
     Notes:   
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE lValue AS LOGICAL NO-UNDO.
+  
+  &scoped-define xpPopupOnUniqueAmbiguous
   {get PopupOnUniqueAmbiguous lValue}.
+  &undefine xpPopupOnUniqueAmbiguous
+  
   RETURN lValue.
 
 END FUNCTION.
@@ -3775,7 +3800,11 @@ FUNCTION getViewerLinkedWidgets RETURNS CHARACTER
     Notes:   
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cValue AS CHARACTER NO-UNDO.
+  
+  &scoped-define xpViewerLinkedWidgets
   {get ViewerLinkedWidgets cValue}.
+  &undefine xpViewerLinkedWidgets
+  
   RETURN cValue.
 
 END FUNCTION.
@@ -4059,7 +4088,7 @@ Parameters: INPUT pcValue - Value that corresponds to the KeyField property
     IF VALID-HANDLE(hLookup) THEN
     DO:
       IF cKeyField = cDisplayedField AND lDisplayField 
-                     AND (pcValue <> "":U 
+                     AND (pcValue > "":U 
                           OR (pcValue = "":U AND NOT lInvalidValue)
                           ) THEN  
         ASSIGN hLookup:SCREEN-VALUE = pcValue.
@@ -4481,7 +4510,6 @@ Parameters:
   &UNDEFINE xpPopupOnUniqueAmbiguous
   
   RETURN TRUE.
-
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -4638,7 +4666,10 @@ FUNCTION setViewerLinkedWidgets RETURNS LOGICAL
 Parameters:     
     Notes:   
 ------------------------------------------------------------------------------*/
+  &scoped-define xpViewerLinkedWidgets
   {set ViewerLinkedWidgets pcValue}.
+  &undefine xpViewerLinkedWidgets
+  
   RETURN TRUE.
 
 END FUNCTION.

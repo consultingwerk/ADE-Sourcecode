@@ -1,5 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /* Connected Databases 
           icfdb            PROGRESS
 */
@@ -25,6 +32,7 @@ af/cod/aftemwizpw.w
 /* Temp-Table and Buffer definitions                                    */
 DEFINE TEMP-TABLE RowObject
        {"ry/obj/rycsoful2o.i"}.
+
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
@@ -408,6 +416,18 @@ DEFINE FRAME frMain
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
 
+DEFINE FRAME frPage2
+     raFlag AT ROW 1.14 COL 22.6 NO-LABEL
+     fiDefaultValue AT ROW 2.14 COL 20.6 COLON-ALIGNED
+     fiParentField AT ROW 3.19 COL 20.6 COLON-ALIGNED
+     EdParentFilterQuery AT ROW 4.24 COL 22.6 NO-LABEL
+     fiParentFilterQueryLabel AT ROW 4.19 COL 2.8 COLON-ALIGNED NO-LABEL
+     fiComboTypeLabel AT ROW 1.1 COL 7.4 COLON-ALIGNED NO-LABEL
+    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
+         SIDE-LABELS NO-UNDERLINE THREE-D 
+         AT COL 1.8 ROW 11.81
+         SIZE 145.2 BY 5.48.
+
 DEFINE FRAME frPage1
      coKeyField AT ROW 1.1 COL 22.2 COLON-ALIGNED
      fiDescSubstitute AT ROW 2.14 COL 22.2 COLON-ALIGNED
@@ -426,18 +446,6 @@ DEFINE FRAME frPage1
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1.8 ROW 11.86
          SIZE 145.2 BY 5.43.
-
-DEFINE FRAME frPage2
-     raFlag AT ROW 1.14 COL 22.6 NO-LABEL
-     fiDefaultValue AT ROW 2.14 COL 20.6 COLON-ALIGNED
-     fiParentField AT ROW 3.19 COL 20.6 COLON-ALIGNED
-     EdParentFilterQuery AT ROW 4.24 COL 22.6 NO-LABEL
-     fiParentFilterQueryLabel AT ROW 4.19 COL 2.8 COLON-ALIGNED NO-LABEL
-     fiComboTypeLabel AT ROW 1.1 COL 7.4 COLON-ALIGNED NO-LABEL
-    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
-         SIDE-LABELS NO-UNDERLINE THREE-D 
-         AT COL 1.8 ROW 11.81
-         SIZE 145.2 BY 5.48.
 
 
 /* *********************** Procedure Settings ************************ */
@@ -1383,7 +1391,9 @@ PROCEDURE assignValues :
       ghDataTable:BUFFER-FIELD('cFieldTooltip':U):BUFFER-VALUE       = fiFieldTooltip
       ghDataTable:BUFFER-FIELD('dFieldWidth':U):BUFFER-VALUE         = fiFieldWidth
       ghDataTable:BUFFER-FIELD('cComboFlag':U):BUFFER-VALUE          = raFlag
-      ghDataTable:BUFFER-FIELD('cFlagValue':U):BUFFER-VALUE          = fiDefaultValue
+      ghDataTable:BUFFER-FIELD('cFlagValue':U):BUFFER-VALUE          = IF fiFieldDataType = "DECIMAL":U THEN
+                                                                         REPLACE(STRING(DECIMAL(fiDefaultValue)),SESSION:NUMERIC-DECIMAL-POINT,".":U)
+                                                                       ELSE fiDefaultValue
       ghDataTable:BUFFER-FIELD('iInnerLines':U):BUFFER-VALUE         = fiInnerLines
       ghDataTable:BUFFER-FIELD('iBuildSequence':U):BUFFER-VALUE      = fiBuildSeq
       ghDataTable:BUFFER-FIELD('cParentFilterQuery':U):BUFFER-VALUE  = edParentFilterQuery
@@ -1953,7 +1963,24 @@ DEFINE VARIABLE hSDO              AS HANDLE     NO-UNDO.
 DEFINE VARIABLE iBrowseEntry      AS INTEGER    NO-UNDO.
 DEFINE VARIABLE iField            AS INTEGER    NO-UNDO.
 DEFINE VARIABLE iLoop             AS INTEGER    NO-UNDO.
-  
+DEFINE VARIABLE hMainViewer       AS HANDLE     NO-UNDO.
+DEFINE VARIABLE lDataView         AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE cField            AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cDataColumns      AS CHARACTER  NO-UNDO.
+
+    hMainViewer = WIDGET-HANDLE(DYNAMIC-FUNCTION("linkHandles":U,"DynCombo-Source":U)).
+    
+    hSDO = DYNAMIC-FUNCTION('getDataViewSource':U IN hMainviewer). 
+    IF VALID-HANDLE(hSDO) THEN
+      lDataView = TRUE.
+    else
+      RUN startDataObject IN gshRepositoryManager (INPUT gcDataSourceName, OUTPUT hSDO).
+      
+  /* This API is used for both SDO and DatView data sources. SDOs must not have
+     the qualification, while DataViews shuld have the field names qualified by
+     the table/entity name.
+   */    
+  if not lDataView then     
   DO WITH FRAME frPage1:
     /* If this combo was based on a query the key field was qualified with the table name
        and should be removed from the key field */
@@ -1966,7 +1993,7 @@ DEFINE VARIABLE iLoop             AS INTEGER    NO-UNDO.
 
   /* If this combo was based on a query, its display fields were qualified with table names
      and should be removed from the browse field list */
-  IF NUM-ENTRIES(ENTRY(1, gcBrowseFields),".":U) > 1 THEN
+  IF not lDataView and NUM-ENTRIES(ENTRY(1, gcBrowseFields),".":U) > 1 THEN
   DO:
     DO iField = 1 TO NUM-ENTRIES(gcBrowseFields):
       cTempBrowseFields = cTempBrowseFields + 
@@ -2003,64 +2030,74 @@ DEFINE VARIABLE iLoop             AS INTEGER    NO-UNDO.
       BrBrowse.
     ENABLE coKeyField WITH FRAME frPage1.
     
-    RUN startDataObject IN gshRepositoryManager (INPUT gcDataSourceName, OUTPUT hSDO).
-
     ASSIGN
       gcTypeList   = "":U
       gcFormatList = "":U
-      gcLabelList  = "":U.
+      gcLabelList  = "":U
+      gcNameList   = "":U.
 
-    {get DataColumns gcNameList hSDO}.
-    DO iLoop = 1 TO NUM-ENTRIES(gcNameList):
+    {get DataColumns cDataColumns hSDO}.
+    DO iLoop = 1 TO NUM-ENTRIES(cDataColumns):
+      cField = ENTRY(iLoop, cDataColumns).
+      /* As of current we just filter the fields from the viewer's source 
+        (starting a separate dataview with the selected table, may be a 
+         cleaner solution)*/
+      IF lDataview AND ENTRY(1,cField,'.') <> gcDataSourceName  THEN
+        NEXT.
+
       CREATE ttFields.
       ASSIGN
-        ttFields.cFieldName     = ENTRY(iLoop, gcNameList).
+        ttFields.cFieldName     = cField.
+
       ASSIGN
+        gcNameList              = gcNameList 
+                                + (IF gcNameList = "":U THEN "":U ELSE ',':u) 
+                                + cField
         ttFields.cOrigLabel     = DYNAMIC-FUNCTION('columnLabel':U IN hSDO, INPUT ttFields.cFieldName)
         ttFields.cFieldDataType = DYNAMIC-FUNCTION('columnDataType':U IN hSDO, INPUT ttFields.cFieldName)
         ttFields.cFieldFormat   = DYNAMIC-FUNCTION('columnFormat':U IN hSDO, INPUT ttFields.cFieldName)
-        iBrowseEntry = LOOKUP(ttFields.cFieldName,gcBrowseFields)               
-        ttFields.iDisplaySeq = iBrowseEntry                      
+        iBrowseEntry            = LOOKUP(ttFields.cFieldName,gcBrowseFields)               
+        ttFields.iDisplaySeq    = iBrowseEntry                      
+        cValuePairs             = cValuePairs 
+                                + (IF cValuePairs = "":U THEN "":U ELSE ",":U)
+                                + ttFields.cFieldName + ",":U + ttFields.cFieldName
+        gcTypeList              = gcTypeList
+                                + (IF gcTypeList = "":U THEN "":U ELSE ",":U) 
+                                + ttFields.cFieldDataType
+        gcFormatList            = gcFormatList 
+                                + (IF gcFormatList = "":U THEN "":U ELSE CHR(1)) 
+                                + ttFields.cFieldFormat
+        gcLabelList             = gcLabelList 
+                                + (IF gcLabelList = "":U THEN "":U ELSE CHR(1)) 
+                                + ttFields.cOrigLabel
         .
-
-      ASSIGN 
-        cValuePairs  = cValuePairs + 
-                       (IF cValuePairs = "":U THEN "":U ELSE ",":U) +         
-                        ttFields.cFieldName + ",":U + ttFields.cFieldName
-        gcTypeList   = gcTypeList +
-                       (IF gcTypeList = "":U THEN "":U ELSE ",":U) +
-                        ttFields.cFieldDataType
-        gcFormatList = gcFormatList +
-                       (IF gcFormatList = "":U THEN "":U ELSE CHR(1)) +
-                        ttFields.cFieldFormat
-        gcLabelList  = gcLabelList +
-                       (IF gcLabelList = "":U THEN "":U ELSE CHR(1)) +
-                        ttFields.cOrigLabel
-        .
-    END.
+    END. /* DO iLoop = 1 TO NUM-ENTRIES(cDataColumns) */
     
-    IF VALID-HANDLE(hSdo) THEN
-        RUN destroyObject IN hSdo NO-ERROR.
-    IF VALID-HANDLE(hSdo) THEN
-        DELETE OBJECT hSdo.
-
+    IF VALID-HANDLE(hSdo) AND NOT lDataView THEN
+      RUN destroyObject IN hSdo NO-ERROR.
+    
     {&OPEN-QUERY-{&BROWSE-NAME}}
     DO WITH FRAME frPage1:
-      coKeyField:LIST-ITEM-PAIRS = cValuePairs.
+      IF gcNameList <> '' THEN
+      DO:
+        coKeyField:LIST-ITEM-PAIRS = cValuePairs.
+  
+        IF cOldKeyField <> "":U THEN
+          coKeyField:SCREEN-VALUE = cOldKeyField NO-ERROR.
+        ELSE
+          coKeyField:SCREEN-VALUE = ENTRY(1,cValuePairs) NO-ERROR.
+  
+        IF ERROR-STATUS:ERROR THEN
+          coKeyField:SCREEN-VALUE = ENTRY(1,cValuePairs) NO-ERROR.
+        IF ERROR-STATUS:ERROR THEN
+          coKeyField:SCREEN-VALUE = coKeyField:ENTRY(1) NO-ERROR.
+      END.
+      ELSE 
+        coKeyField:LIST-ITEM-PAIRS = ?.
 
-      IF cOldKeyField <> "":U THEN
-        coKeyField:SCREEN-VALUE = cOldKeyField NO-ERROR.
-      ELSE
-        coKeyField:SCREEN-VALUE = ENTRY(1,cValuePairs) NO-ERROR.
-
-      IF ERROR-STATUS:ERROR THEN
-        coKeyField:SCREEN-VALUE = ENTRY(1,cValuePairs) NO-ERROR.
-      IF ERROR-STATUS:ERROR THEN
-        coKeyField:SCREEN-VALUE = coKeyField:ENTRY(1) NO-ERROR.
-      
-      ASSIGN fiFieldWidth:SCREEN-VALUE = IF DECIMAL(fiFieldWidth:SCREEN-VALUE) <= 0 THEN "50":U ELSE fiFieldWidth:SCREEN-VALUE
-             fiInnerLines:SCREEN-VALUE = IF INTEGER(fiInnerLines:SCREEN-VALUE) <= 0 THEN "5":U ELSE fiInnerLines:SCREEN-VALUE
-             fiBuildSeq:SCREEN-VALUE   = IF INTEGER(fiBuildSeq:SCREEN-VALUE) <= 0 THEN "1":U ELSE fiBuildSeq:SCREEN-VALUE.
+       ASSIGN fiFieldWidth:SCREEN-VALUE = IF DECIMAL(fiFieldWidth:SCREEN-VALUE) <= 0 THEN "50":U ELSE fiFieldWidth:SCREEN-VALUE
+              fiInnerLines:SCREEN-VALUE = IF INTEGER(fiInnerLines:SCREEN-VALUE) <= 0 THEN "5":U ELSE fiInnerLines:SCREEN-VALUE
+              fiBuildSeq:SCREEN-VALUE   = IF INTEGER(fiBuildSeq:SCREEN-VALUE) <= 0 THEN "1":U ELSE fiBuildSeq:SCREEN-VALUE.
     END.
 
     DISPLAY
@@ -2451,7 +2488,7 @@ PROCEDURE setInfo :
   
   DEFINE VARIABLE cSortString     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hSource         AS HANDLE     NO-UNDO.
-
+ 
   phDataTable:FIND-FIRST().
   IF NOT phDataTable:AVAILABLE THEN
     RETURN.
@@ -2541,7 +2578,9 @@ PROCEDURE setInfo :
       DO WITH FRAME frPage2:
         ASSIGN raFlag:SCREEN-VALUE = phDataTable:BUFFER-FIELD('cComboFlag':U):BUFFER-VALUE.
         APPLY "VALUE-CHANGED":U TO raFlag.
-        ASSIGN fiDefaultValue:SCREEN-VALUE      = phDataTable:BUFFER-FIELD('cFlagValue':U):BUFFER-VALUE
+        ASSIGN fiDefaultValue:SCREEN-VALUE      = IF phDataTable:BUFFER-FIELD('cKeyDataType':U):BUFFER-VALUE = "DECIMAL":U THEN
+                                                    REPLACE(phDataTable:BUFFER-FIELD('cFlagValue':U):BUFFER-VALUE,".":U,SESSION:NUMERIC-DECIMAL-POINT)
+                                                  ELSE phDataTable:BUFFER-FIELD('cFlagValue':U):BUFFER-VALUE
                edParentFilterQuery:SCREEN-VALUE = phDataTable:BUFFER-FIELD('cParentFilterQuery':U):BUFFER-VALUE
                fiParentField:SCREEN-VALUE       = phDataTable:BUFFER-FIELD('cParentField':U):BUFFER-VALUE.
       END.
@@ -2881,6 +2920,7 @@ FUNCTION setDataSourceName RETURNS LOGICAL
   Purpose:  Sets viewer global data source name
     Notes:  
 ------------------------------------------------------------------------------*/
+  
   ASSIGN gcDataSourceName = pcDataSourceName.
 
   RETURN TRUE.   /* Function return value. */

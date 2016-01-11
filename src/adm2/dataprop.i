@@ -2,25 +2,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*--------------------------------------------------------------------------
@@ -40,11 +24,12 @@
 
 &IF DEFINED(ADM-EXCLUDE-STATIC) = 0 &THEN
   {src/adm2/custom/datadefscustom.i}
+  
+ &IF "{&xcInstanceProperties}":U NE "":U &THEN       
+    &GLOB xcInstanceProperties {&xcInstanceProperties}, 
+ &ENDIF                                           
 
-  &IF "{&xcInstanceProperties}":U NE "":U &THEN
-    &GLOB xcInstanceProperties {&xcInstanceProperties},
-  &ENDIF
-  &GLOB xcInstanceProperties {&xcInstanceProperties}~
+&GLOB xcInstanceProperties ~
 AppService,ASUsePrompt,ASInfo,ForeignFields,RowsToBatch,CheckCurrentChanged,~
 RebuildOnRepos,ServerOperatingMode,DestroyStateless,DisconnectAppServer,~
 ObjectName,UpdateFromSource,ToggleDataTargets,OpenOnInit,PromptOnDelete,~
@@ -117,29 +102,20 @@ PromptColumns,CacheDuration,ShareData
  
  /* Preprocessor definitions which tell at compile time which
     properties can be retrieved directly from the property temp-table. */
- &GLOB xpRowObject
+ 
  &GLOB xpRowObjUpd
- &GLOB xpDataHandle
- &GLOB xpDataQueryString
- &GLOB xpCurrentRowid                                                         
- &GLOB xpUpdateSource           
- &GLOB xpCurrentUpdateSource         
- &GLOB xpCommitSource           
- &GLOB xpCommitSourceEvents     
- &GLOB xpCommitTarget           
- &GLOB xpCommitTargetEvents     
- &GLOB xpRowsToBatch
+        
+ 
+ 
  &GLOB xpCheckCurrentChanged
- &GLOB xpRebuildOnRepos
+
  &GLOB xpStatelessSavedProperties
  &GLOB xpDestroyStateless
  &GLOB xpDisconnectAppserver
  &GLOB xpDataFieldDefs
  &GLOB xpQueryContainer
  &GLOB xpQueryContext
- &GLOB xpFillBatchOnRepos
  &GLOB xpAsynchronousSDO
- &GLOB xpToggleDataTargets
  &GLOB xpDataLogicObject
  &GLOB xpDataDelimiter                    
  &GLOB xpDataReadHandler 
@@ -149,14 +125,12 @@ PromptColumns,CacheDuration,ShareData
  &GLOB xpManualAddQueryWhere        
  &GLOB xpManualAssignQuerySelection 
  &GLOB xpManualSetQuerySort         
- &GLOB xpPromptOnDelete
  &GLOB xpIsRowObjectExternal
  &GLOB xpIsRowObjUpdExternal
  &GLOB xpDynamicData
  &GLOB xpLastCommitErrorType  
  &GLOB xpLastCommitErrorKeys  
  &GLOB xpRunDataLogicProxy
- &GLOB xpPrimarySDOSource
  &GLOB xpSchemaLocation
  &GLOB xpCacheDuration
  &GLOB xpShareData
@@ -168,28 +142,11 @@ PromptColumns,CacheDuration,ShareData
 IF NOT {&ADM-PROPS-DEFINED} THEN
 DO:
 &IF "{&ADMSuper}":U = "":U &THEN
-  ghADMProps:ADD-NEW-FIELD('RowObject':U, 'HANDLE':U, 0, ?, ?).
+ 
   ghADMProps:ADD-NEW-FIELD('RowObjUpd':U, 'HANDLE':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('RowObjectTable':U, 'HANDLE':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('RowObjUpdTable':U, 'HANDLE':U, 0, ?, ?).
-  ghADMProps:ADD-NEW-FIELD('AutoCommit':U, 'LOGICAL':U, 0, ?, yes).
-  ghADMProps:ADD-NEW-FIELD('DataHandle':U, 'HANDLE':U).   
-  ghADMProps:ADD-NEW-FIELD('DataQueryString':U, 'CHAR':U, 0, ?, 
-    'FOR EACH RowObject':U).
-  ghADMProps:ADD-NEW-FIELD('CurrentRowid':U, 'ROWID':U).
-  ghADMProps:ADD-NEW-FIELD('UpdateSource':U, 'CHARACTER':U).
-  ghADMProps:ADD-NEW-FIELD('CurrentUpdateSource':U, 'HANDLE':U).
-  ghADMProps:ADD-NEW-FIELD('CommitSource':U, 'HANDLE':U).
-  ghADMProps:ADD-NEW-FIELD('CommitSourceEvents':U, 'CHAR':U, 0, ?, 
-    'commitTransaction,undoTransaction':U).
-  ghADMProps:ADD-NEW-FIELD('CommitTarget':U, 'CHAR':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('CommitTargetEvents':U, 'CHAR':U, 0, ?, 'rowObjectState':U).
-  ghADMProps:ADD-NEW-FIELD('DataModified':U, 'LOGICAL':U, 0, ?, no).
-  ghADMProps:ADD-NEW-FIELD('RowsToBatch':U, 'INT':U, 0, ?, 200).  /* Rows per AppServer xfer */
   ghADMProps:ADD-NEW-FIELD('CheckCurrentChanged':U, 'LOGICAL':U, 0, ?, yes).
-  ghADMProps:ADD-NEW-FIELD('DataQueryBrowsed':U, 'LOGICAL':U, 0, ?, no).
-  ghADMProps:ADD-NEW-FIELD('RebuildOnRepos':U, 'LOGICAL':U, 0, ?, no).
-  ghADMProps:ADD-NEW-FIELD('RowObjectState':U, 'CHAR':U, 0, ?, 'NoUpdates':U).
   ghADMProps:ADD-NEW-FIELD('StatelessSavedProperties':U, 'CHAR':U, 0, ?, 
     'CheckCurrentChanged,RowObjectState,LastResultRow,FirstResultRow,QueryRowIdent':U).
   ghADMProps:ADD-NEW-FIELD('DestroyStateless':U, 'LOGICAL':U, 0, ?, YES).
@@ -198,11 +155,8 @@ DO:
   ghADMProps:ADD-NEW-FIELD('DataFieldDefs':U, 'CHARACTER':U, 0, ?, 
       '{&DATA-FIELD-DEFS}':U).
   ghADMProps:ADD-NEW-FIELD('QueryContainer':U, 'LOGICAL':U, 0, ?, no).
-  ghADMProps:ADD-NEW-FIELD('IndexInformation':U, 'CHARACTER':U, 0, ?,?). 
   ghADMProps:ADD-NEW-FIELD('QueryContext':U, 'CHARACTER':U, 0, ?,?). 
-  ghADMProps:ADD-NEW-FIELD('FillBatchOnRepos':U, 'LOGICAL':U, 0, ?, YES).
   ghADMProps:ADD-NEW-FIELD('AsynchronousSDO':U, 'LOGICAL':U, ?, ?, TRUE).   
-  ghADMProps:ADD-NEW-FIELD('ToggleDataTargets':U, 'LOGICAL':U, ?, ?, TRUE).
   ghADMProps:ADD-NEW-FIELD('DataLogicProcedure':U, 'CHARACTER':U, ?, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('DataLogicObject':U, 'HANDLE':U, ?, ?, ?).
   ghADMProps:ADD-NEW-FIELD('DataReadHandler':U, 'HANDLE':U, ?, ?, ?).
@@ -232,13 +186,10 @@ DO:
   /* pccolumns + chr(3) + pcvalues + chr(3) + pcoperators */
   ghADMProps:ADD-NEW-FIELD('ManualAssignQuerySelection':U, 'CHARACTER':U).
   ghADMProps:ADD-NEW-FIELD('ManualSetQuerySort':U, 'CHARACTER':U).
-  ghADMProps:ADD-NEW-FIELD('PromptOnDelete':U, 'LOGICAL':U, 0, ?, YES).
-  ghADMProps:ADD-NEW-FIELD('PromptColumns':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('DynamicData':U, 'LOGICAL':U, 0, ?, no).
   ghADMProps:ADD-NEW-FIELD('LastCommitErrorType':U, 'CHAR':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('LastCommitErrorKeys':U, 'CHAR':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('RunDataLogicProxy':U, 'LOGICAL':U, 0, ?, ?).
-  ghADMProps:ADD-NEW-FIELD('PrimarySDOSource':U, 'HANDLE':U).
   ghADMProps:ADD-NEW-FIELD('SchemaLocation':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('CacheDuration':U, 'INTEGER':U, 0, ?, 0).
   ghADMProps:ADD-NEW-FIELD('ShareData':U, 'LOGICAL':U, 0, ?, NO).

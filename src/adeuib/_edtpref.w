@@ -1,28 +1,12 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME dPreferences
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS dPreferences 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*------------------------------------------------------------------------
@@ -77,7 +61,7 @@ CREATE WIDGET-POOL.
 
 &Scoped-define ADM-SUPPORTED-LINKS Data-Target,Data-Source,Page-Target,Update-Source,Update-Target
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME dPreferences
 
 /* Standard List Definitions                                            */
@@ -117,6 +101,7 @@ DEFINE VARIABLE h_vgenrl AS HANDLE NO-UNDO.
 DEFINE VARIABLE h_vgrid AS HANDLE NO-UNDO.
 DEFINE VARIABLE h_vprint AS HANDLE NO-UNDO.
 DEFINE VARIABLE h_vwebcon AS HANDLE NO-UNDO.
+DEFINE VARIABLE h_vwidgetid AS HANDLE NO-UNDO.
 
 /* Definitions of the field level widgets                               */
 DEFINE BUTTON Btn_Cancel AUTO-END-KEY 
@@ -160,7 +145,7 @@ DEFINE FRAME dPreferences
    Type: SmartDialog
    Allow: Basic,Browse,DB-Fields,Query,Smart
    Container Links: Data-Target,Data-Source,Page-Target,Update-Source,Update-Target
-   Design Page: 3
+   Design Page: 5
    Other Settings: COMPILE
  */
 &ANALYZE-RESUME _END-PROCEDURE-SETTINGS
@@ -180,7 +165,7 @@ DEFINE FRAME dPreferences
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX dPreferences
-                                                                        */
+   FRAME-NAME                                                           */
 ASSIGN 
        FRAME dPreferences:SCROLLABLE       = FALSE
        FRAME dPreferences:HIDDEN           = TRUE.
@@ -209,6 +194,16 @@ ASSIGN
 ON ALT-G OF FRAME dPreferences /* Preferences */
 DO:
   changeToPage(1).
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL dPreferences dPreferences
+ON ALT-I OF FRAME dPreferences /* Preferences */
+DO:
+  changeToPage(5).
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -283,6 +278,11 @@ DO:
     RUN assign-new-values IN h_vgrid.
   IF VALID-HANDLE(h_vprint) THEN
     RUN assign-new-values IN h_vprint.
+  IF VALID-HANDLE(h_vwidgetid) THEN DO:
+    RUN assign-new-values IN h_vwidgetid.
+    IF RETURN-VALUE EQ "Error":U THEN
+      RETURN NO-APPLY.
+  END.
     
 END.
 
@@ -302,6 +302,8 @@ DO:
     RUN assign-new-values IN h_vgrid.
   IF VALID-HANDLE(h_vprint) THEN
     RUN assign-new-values IN h_vprint.
+  IF VALID-HANDLE(h_vwidgetid) THEN
+    RUN assign-new-values IN h_vwidgetid.
     
   RUN adeuib/_putpref.p (INPUT TRUE).
 END.
@@ -342,7 +344,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/folder.w':U ,
              INPUT  FRAME dPreferences:HANDLE ,
-             INPUT  'FolderLabels':U + '&General|&WebSpeed|Grid &Units|&Print' + 'FolderTabWidth0FolderFont-1HideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'FolderLabels':U + '&General|&WebSpeed|Grid &Units|&Print|Widget &ID' + 'FolderTabWidth0FolderFont-1HideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_folder ).
        RUN repositionObject IN h_folder ( 1.24 , 2.00 ) NO-ERROR.
        RUN resizeObject IN h_folder ( 18.33 , 88.00 ) NO-ERROR.
@@ -350,52 +352,85 @@ PROCEDURE adm-create-objects :
        /* Links to SmartFolder h_folder. */
        RUN addLink ( h_folder , 'Page':U , THIS-PROCEDURE ).
 
+       /* Adjust the tab order of the smart objects. */
+       RUN adjustTabOrder ( h_folder ,
+             Btn_OK:HANDLE , 'BEFORE':U ).
     END. /* Page 0 */
-
     WHEN 1 THEN DO:
        RUN constructObject (
              INPUT  'adeuib/_vgenrl.w':U ,
              INPUT  FRAME dPreferences:HANDLE ,
-             INPUT  'HideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'EnabledObjFldsToDisableModifyFields(All)DataSourceNamesUpdateTargetNamesLogicalObjectNameHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_vgenrl ).
        RUN repositionObject IN h_vgenrl ( 3.10 , 6.00 ) NO-ERROR.
        /* Size in AB:  ( 15.71 , 63.00 ) */
 
+       /* Adjust the tab order of the smart objects. */
+       RUN adjustTabOrder ( h_folder ,
+             Btn_OK:HANDLE , 'BEFORE':U ).
+       RUN adjustTabOrder ( h_vgenrl ,
+             h_folder , 'AFTER':U ).
     END. /* Page 1 */
-
     WHEN 2 THEN DO:
        RUN constructObject (
              INPUT  'adeuib/_vwebcon.w':U ,
              INPUT  FRAME dPreferences:HANDLE ,
-             INPUT  'HideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'EnabledObjFldsToDisableModifyFields(All)DataSourceNamesUpdateTargetNamesLogicalObjectNameHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_vwebcon ).
        RUN repositionObject IN h_vwebcon ( 3.38 , 3.00 ) NO-ERROR.
        /* Size in AB:  ( 4.62 , 69.00 ) */
 
+       /* Adjust the tab order of the smart objects. */
+       RUN adjustTabOrder ( h_folder ,
+             Btn_OK:HANDLE , 'BEFORE':U ).
+       RUN adjustTabOrder ( h_vwebcon ,
+             h_folder , 'AFTER':U ).
     END. /* Page 2 */
-
     WHEN 3 THEN DO:
        RUN constructObject (
              INPUT  'adeuib/_vgrid.w':U ,
              INPUT  FRAME dPreferences:HANDLE ,
-             INPUT  'HideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'EnabledObjFldsToDisableModifyFields(All)DataSourceNamesUpdateTargetNamesLogicalObjectNameHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_vgrid ).
        RUN repositionObject IN h_vgrid ( 4.67 , 7.00 ) NO-ERROR.
        /* Size in AB:  ( 9.24 , 74.80 ) */
 
+       /* Adjust the tab order of the smart objects. */
+       RUN adjustTabOrder ( h_folder ,
+             Btn_OK:HANDLE , 'BEFORE':U ).
+       RUN adjustTabOrder ( h_vgrid ,
+             h_folder , 'AFTER':U ).
     END. /* Page 3 */
-
     WHEN 4 THEN DO:
        RUN constructObject (
              INPUT  'adeuib/_vprint.w':U ,
              INPUT  FRAME dPreferences:HANDLE ,
-             INPUT  'HideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'EnabledObjFldsToDisableModifyFields(All)DataSourceNamesUpdateTargetNamesLogicalObjectNameHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_vprint ).
        RUN repositionObject IN h_vprint ( 4.10 , 6.00 ) NO-ERROR.
        /* Size in AB:  ( 3.86 , 64.00 ) */
 
        /* Adjust the tab order of the smart objects. */
+       RUN adjustTabOrder ( h_folder ,
+             Btn_OK:HANDLE , 'BEFORE':U ).
+       RUN adjustTabOrder ( h_vprint ,
+             h_folder , 'AFTER':U ).
     END. /* Page 4 */
+    WHEN 5 THEN DO:
+       RUN constructObject (
+             INPUT  'adeuib/_vwidgetid.w':U ,
+             INPUT  FRAME dPreferences:HANDLE ,
+             INPUT  'EnabledObjFldsToDisableModifyFields(All)DataSourceNamesUpdateTargetNamesLogicalObjectNameHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT h_vwidgetid ).
+       RUN repositionObject IN h_vwidgetid ( 3.62 , 6.00 ) NO-ERROR.
+       /* Size in AB:  ( 3.76 , 50.00 ) */
+
+       /* Adjust the tab order of the smart objects. */
+       RUN adjustTabOrder ( h_folder ,
+             Btn_OK:HANDLE , 'BEFORE':U ).
+       RUN adjustTabOrder ( h_vwidgetid ,
+             h_folder , 'AFTER':U ).
+    END. /* Page 5 */
 
   END CASE.
   /* Select a Startup page. */
@@ -423,6 +458,7 @@ PROCEDURE createObjects :
     WHEN 2 THEN RUN set-init IN h_vwebcon.
     WHEN 3 THEN RUN set-init IN h_vgrid.
     WHEN 4 THEN RUN set-init IN h_vprint.
+    WHEN 5 THEN RUN set-init IN h_vwidgetid.
   END.
 END PROCEDURE.
 

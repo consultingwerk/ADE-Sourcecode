@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" sObject _INLINE
@@ -19,6 +19,13 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS sObject 
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /*---------------------------------------------------------------------------------
   File: afgendatfv.w
 
@@ -123,8 +130,8 @@ DEFINE VARIABLE toUseSDO AS LOGICAL INITIAL no
 
 DEFINE FRAME frMain
      coProductModule AT ROW 1.14 COL 23.4 COLON-ALIGNED
-     coObjectType AT ROW 2.1 COL 23.4 COLON-ALIGNED
-     toUseSDO AT ROW 3.14 COL 25.4
+     coObjectType AT ROW 2.24 COL 23.4 COLON-ALIGNED
+     toUseSDO AT ROW 3.29 COL 25.4
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -156,7 +163,7 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW sObject ASSIGN
-         HEIGHT             = 2.95
+         HEIGHT             = 3.19
          WIDTH              = 72.4.
 /* END WINDOW DEFINITION */
                                                                         */

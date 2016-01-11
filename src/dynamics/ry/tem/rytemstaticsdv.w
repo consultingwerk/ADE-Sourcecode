@@ -1,4 +1,11 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /* Procedure Description
 "Static SmartDataViewer Object Template.
 
@@ -6,6 +13,8 @@ Use this template to create a new  SmartDataViewer object in which to visualize 
 */
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
+{adecomm/appserv.i}
+DEFINE VARIABLE h_Astra                    AS HANDLE          NO-UNDO.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" vTableWin _INLINE
 /* Actions: ? ? ? ? af/sup/afverxftrp.p */
 /* This has to go above the definitions sections, as that is what it modifies.
@@ -18,7 +27,7 @@ Use this template to create a new  SmartDataViewer object in which to visualize 
 /* Actions: af/cod/aftemwizcw.w ? ? ? af/sup/afwizdeltp.p */
 /*  Static SmartDataViewer Wizard
 Welcome to the  Static SmartDataViewer Wizard! During the next few steps, the wizard will lead you through all the stages necessary to create this type of object. If you cancel the wizard at any time, then all your changes will be lost. Once the wizard is completed, it is possible to recall parts of the wizard using the LIST option from the section editor. Press Next to proceed.
-af/cod/aftemwiziw.w,af/cod/aftemwizpw.w,af/cod2/aftemwizow.w,adm2/support/_wizdfld.w,af/cod/aftemwizew.w 
+af/cod/aftemwiziw.w,af/cod/aftemwizpw.w,adm2/support/_wizdo.w,adm2/support/_wizdfld.w,af/cod/aftemwizew.w 
 */
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -34,7 +43,7 @@ af/cod/aftemwizpw.w
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
 /*---------------------------------------------------------------------------------
-  File: rysttviewv.w
+  File: rytemstaticsdv.w
 
   Description:  Template  SmartDataViewer Templat
 
@@ -75,10 +84,6 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /* Parameters Definitions ---                                           */
 
 /* Local Variable Definitions ---                                       */
-
-/*  object identifying preprocessor */
-&glob   astra2-staticSmartDataViewer yes
-
 {src/adm2/globals.i}
 {src/adm2/widgetprto.i}
 
@@ -97,7 +102,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 &Scoped-define ADM-SUPPORTED-LINKS Data-Target,Update-Source,TableIO-Target,GroupAssign-Source,GroupAssign-Target
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME frMain
 
 /* Custom List Definitions                                              */
@@ -129,7 +134,7 @@ DEFINE FRAME frMain
    Container Links: Data-Target,Update-Source,TableIO-Target,GroupAssign-Source,GroupAssign-Target
    Frames: 1
    Add Fields to: Neither
-   Other Settings: PERSISTENT-ONLY COMPILE
+   Other Settings: PERSISTENT-ONLY COMPILE APPSERVER
  */
 
 /* This procedure should always be RUN PERSISTENT.  Report the error,  */
@@ -170,7 +175,7 @@ END.
 /* SETTINGS FOR WINDOW vTableWin
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frMain
-   NOT-VISIBLE Size-to-Fit                                              */
+   NOT-VISIBLE FRAME-NAME Size-to-Fit                                   */
 ASSIGN 
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
@@ -225,5 +230,4 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-
 

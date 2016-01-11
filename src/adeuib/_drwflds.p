@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*----------------------------------------------------------------------------
@@ -89,7 +73,6 @@ DEFINE VAR cClobMapping AS CHARACTER                     NO-UNDO.
 DEFINE VAR cLocalFld    AS CHARACTER                     NO-UNDO.
 DEFINE VAR cSDOClobCols AS CHARACTER                     NO-UNDO.
 DEFINE VAR iNumFld      AS INTEGER                       NO-UNDO.
-DEFINE VAR lSBOSource   AS LOGICAL                       NO-UNDO.
 DEFINE BUFFER x_U FOR _U.
 DEFINE BUFFER x_L FOR _L.
 
@@ -162,7 +145,7 @@ ELSE IF pressed_ok THEN DO:
       DO:
         /* Rename the local field if there is already a field on the viewer 
            with the same name. */
-        cLocalFld = IF lSBOSource AND NUM-ENTRIES(fld_name, ".":U) > 1 
+        cLocalFld = IF NUM-ENTRIES(fld_name, ".":U) > 1 
                     THEN ENTRY(2, fld_name, ".":U)
                     ELSE fld_name.
         i = 0.
@@ -197,11 +180,11 @@ ELSE IF pressed_ok THEN DO:
           END.  /* if avail x_U */
           ELSE LEAVE LocalNameCheck.
         END.  /* do while true */
-        /* If the data source is an SBO there could be a name clash with
-           with other fields in the SBO (same field in multiple SDOs) being 
-           added at the same time.  If it clashes with another field already 
-           in the mapping, create a unique name for the local field. */ 
-        IF lSBOSource THEN 
+        /* If the data source has qualified fields there could be a name clash 
+           with other fields in the source being added at the same time.  
+           If it clashes with another field already in the mapping, create a 
+           unique name for the local field. */ 
+        IF NUM-ENTRIES(fld_name, ".":U) > 1 THEN
         DO:
           DO WHILE LOOKUP(cLocalFld, cClobMapping) > 0:
             IF i > 0 THEN
@@ -215,9 +198,8 @@ ELSE IF pressed_ok THEN DO:
         cClobMapping = cClobMapping + 
                        (IF cClobMapping NE "":U THEN ",":U ELSE "":U) +
                        cLocalFld + ",":U + fld_name.
-        fld_name = cLocalFld.
         PUT STREAM temp_file UNFORMATTED 
-          "DEFINE VARIABLE " fld_name " AS LONGCHAR" SKIP
+          "DEFINE VARIABLE " cLocalFld " AS LONGCHAR" SKIP
           "    VIEW-AS EDITOR LARGE SIZE 30 BY 1." SKIP(1).
       END.  /* if clob */
     END.  /* do iNumFld */
@@ -257,15 +239,18 @@ ELSE IF pressed_ok THEN DO:
     fld_name = fld_leader + ENTRY(i, _fld_names).
     IF fld_name BEGINS "Temp-Tables":U THEN
       fld_name = REPLACE(fld_name, "Temp-Tables.":U, "":U).
+    
     /* Check the mapping for the field name to get the local field
        name for the frame. */
     cLocalFld = REPLACE(fld_name, "RowObject.":U, "":U).
+    
     IF LOOKUP(cLocalFld, cClobMapping) > 0 THEN
       fld_name = DYNAMIC-FUNCTION("mappedEntry":U IN _h_func_lib,
                                   INPUT cLocalFld,
                                   INPUT cClobMapping,
                                   INPUT FALSE,
                                   INPUT ",":U).
+
     PUT STREAM temp_file UNFORMATTED SKIP "    ":U fld_name.
     IF (i - 1) MOD numrows ne 0 THEN DO: /* same column */
       PUT STREAM temp_file UNFORMATTED " COLON " (IF c > 0 THEN c ELSE f-col).
@@ -307,58 +292,8 @@ PROCEDURE gen-tt-def :
   Parameters:  def-line
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE OUTPUT PARAMETER def-line AS CHARACTER                         NO-UNDO.
-  
-  DEFINE VAR addl_fields AS CHARACTER NO-UNDO.
-
-  FOR EACH _TT WHERE _TT._p-recid = RECID(_P):
-    CASE _TT._TABLE-TYPE:
-  
-      WHEN "T":U THEN
-      DO:
-        addl_fields = REPLACE(_TT._ADDITIONAL_FIELDS, CHR(10),
-                             CHR(10) + "       ":U).
-        def-line = def-line +
-                   "DEFINE ":U + (IF _TT._SHARE-TYPE NE "" THEN
-                   (_TT._SHARE-TYPE + " ":U) ELSE "") + "TEMP-TABLE " +
-                   (IF _TT._NAME = ? THEN _TT._LIKE-TABLE ELSE _TT._NAME) +
-                   (IF _TT._UNDO-TYPE = "NO-UNDO":U THEN " NO-UNDO":U ELSE "":U) +
-                   " LIKE ":U + _TT._LIKE-DB + ".":U + _TT._LIKE-TABLE +
-                   (IF _TT._ADDITIONAL_FIELDS NE "":U THEN (CHR(10) + "       ":U +
-                    addl_fields + ".":U) ELSE ".") + CHR(10).
-      END.
-      
-      WHEN "B":U THEN
-      DO:
-        def-line = def-line +
-                   "DEFINE ":U + (IF _TT._SHARE-TYPE NE "" THEN
-                   (_TT._SHARE-TYPE + " ":U) ELSE "") + "BUFFER " + _TT._NAME + 
-                   " FOR ":U + _TT._LIKE-DB + ".":U + _TT._LIKE-TABLE + ".":U +
-                   CHR(10).
-      END.
-  
-      WHEN "D":U THEN
-      DO:    
-        addl_fields = REPLACE(_TT._ADDITIONAL_FIELDS, CHR(10),
-                             CHR(10) + "       ":U).
-        IF _TT._NAME = "RowObject":U THEN
-        DO: /* In case dataobject include file path contains spaces, we enclose
-               its file reference in quotes. - jep */
-            addl_fields = REPLACE(addl_fields, '~{', '~{"').
-            addl_fields = REPLACE(addl_fields, '~}', '"~}').
-        END.
-        def-line = def-line + 
-                   "DEFINE TEMP-TABLE " + _TT._NAME 
-                   + (IF _TT._UNDO-TYPE = "NO-UNDO":U THEN " NO-UNDO":U ELSE "":U) 
-                   +  (IF _TT._ADDITIONAL_FIELDS NE "":U 
-                       THEN (CHR(10) + "       ":U + addl_fields + ".":U) 
-                       ELSE ".") 
-                   + CHR(10).
-      END.
-    
-    END CASE.
-  END.
-    
+  DEFINE OUTPUT PARAMETER def-line AS CHARACTER                         NO-UNDO.  
+  RUN adeuib/_getttdefs.p(RECID(_P), NO, OUTPUT def-line).  
 END PROCEDURE.
 
 PROCEDURE GetDBFields.
@@ -440,7 +375,8 @@ PROCEDURE GetDataObjectFields.
   DEFINE BUFFER fld_U FOR _U.
   DEFINE BUFFER X_S   FOR _S.
 
-  p_hDataObject = DYNAMIC-FUNC("get-proc-hdl" IN _h_func_lib, INPUT _P._DATA-OBJECT).
+  p_hDataObject = DYNAMIC-FUNC("get-sdo-hdl" IN _h_func_lib, INPUT _P._DATA-OBJECT,
+                                                             INPUT TARGET-PROCEDURE).
   IF NOT VALID-HANDLE(p_hDataObject) THEN
   DO:
     MESSAGE "Unable to start data object " _P._DATA-OBJECT "."
@@ -456,14 +392,14 @@ PROCEDURE GetDataObjectFields.
          _db_name to be "Temp-Tables". */
       ASSIGN _db_name = "Temp-Tables":U.
       cSDOClobCols = DYNAMIC-FUNCTION("getCLOBColumns":U IN p_hDataObject).
-      lSBOSource = IF DYNAMIC-FUNCTION("getObjectType":U IN p_hDataObject) = "SmartBusinessObject":U
-                   THEN TRUE 
-                   ELSE FALSE. 
       IF (flds_list <> "") THEN
       DO:
           ASSIGN  _fld_names   = flds_list
                   num_ent     = NUM-ENTRIES(_fld_names)
                   pressed_ok  = TRUE.
+          
+          /* Clean up the running SDO */
+          {fnarg shutdown-sdo target-procedure _h_func_lib}.
           RETURN.
       END.
   END.
@@ -512,14 +448,13 @@ PROCEDURE GetDataObjectFields.
     DO:
         FOR EACH fld_U WHERE fld_U._PARENT-Recid = RECID(_U)
                             AND fld_U._STATUS <> "DELETED":U NO-LOCK:
-            IF fld_U._TABLE = "RowObject":U OR fld_U._BUFFER = "RowObject":U OR 
-               fld_U._CLASS-NAME = "DataField":U THEN DO:
-              IF VALID-HANDLE(p_hDataObject) AND lSBOSource
-              THEN
+            IF fld_U._TABLE > '' THEN
+            DO:
+              IF fld_U._BUFFER = "RowObject":U OR fld_U._TABLE = "RowObject":U THEN
+                ASSIGN exclude-fields = exclude-fields + fld_U._NAME + ",":U.
+              ELSE
                 ASSIGN exclude-fields = exclude-fields + fld_U._TABLE + ".":U +
                                                          fld_U._NAME + ",":U.
-              ELSE
-                ASSIGN exclude-fields = exclude-fields + fld_U._NAME + ",":U.
             END.
             /* special case is when the table is ? but the subtype is a smart
              * data field. We need to go and get the actual field name so we exclude
@@ -530,12 +465,11 @@ PROCEDURE GetDataObjectFields.
               cFieldName = dynamic-function('getFieldName' IN X_S._HANDLE).
               ASSIGN exclude-fields = exclude-fields + cFieldName + ',' NO-ERROR.
             END. /* end else if subtype*/
-            ELSE IF fld_U._TABLE <> "" AND fld_U._TABLE <> ? THEN
-                ASSIGN exclude-fields = exclude-fields + fld_U._TABLE + ".":U + fld_U._NAME + ",".
         END. /* end for each */
+
      ASSIGN exclude-fields = TRIM(exclude-fields, ',') NO-ERROR.   
     END. /* end if avail */
-   
+
     RUN adecomm/_mfldsel.p
         (INPUT tbl_list, INPUT p_hDataObject , INPUT tt-info, show_items, ",", 
          INPUT exclude-fields, INPUT-OUTPUT _fld_names).
@@ -543,7 +477,7 @@ PROCEDURE GetDataObjectFields.
     num_ent = NUM-ENTRIES(_fld_names).
   END.
   IF AVAILABLE _P THEN
-    ret-msg = DYNAMIC-FUNCTION("shutdown-proc" IN _h_func_lib, INPUT _P._data-object).
+    ret-msg = DYNAMIC-FUNCTION("shutdown-sdo" IN _h_func_lib, INPUT TARGET-PROCEDURE).
 END PROCEDURE.
 
 

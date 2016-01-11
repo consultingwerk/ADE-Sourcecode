@@ -3,25 +3,9 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS s-object 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /************************************************************************
@@ -205,6 +189,7 @@ DEFINE VARIABLE COLOR-ButtonFace    AS INTEGER NO-UNDO INITIAL 8.
 DEFINE VARIABLE COLOR-ButtonShadow  AS INTEGER NO-UNDO INITIAL 7.
 DEFINE VARIABLE COLOR-GrayText      AS INTEGER NO-UNDO INITIAL 7.
 DEFINE VARIABLE COLOR-ButtonText    AS INTEGER NO-UNDO INITIAL 0.
+DEFINE VARIABLE COLOR-XPButtonShadowDark  as INTEGER NO-UNDO.
 
 /* Non-Array Constants/Properties */
 DEFINE VARIABLE iVisibleRows   AS INTEGER NO-UNDO.
@@ -252,6 +237,7 @@ DEFINE VARIABLE glDontUpdateCurrentTab  AS LOGICAL        NO-UNDO.
 
 DEFINE VARIABLE glPropertyValuesFetched AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE glInitializing          AS LOGICAL    NO-UNDO INITIAL YES.
+
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -376,7 +362,7 @@ FUNCTION setNoWarnings RETURNS LOGICAL
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME FolderFrame
-    WITH 1 DOWN NO-BOX OVERLAY NO-HELP 
+    WITH 1 DOWN NO-BOX OVERLAY NO-HELP
          NO-LABELS NO-UNDERLINE NO-VALIDATE THREE-D 
          AT X 0 Y 0
          SIZE-PIXELS 260 BY 152.
@@ -1206,7 +1192,7 @@ PROCEDURE initializeObject :
   DEFINE VARIABLE iCurrentPage  AS INTEGER    NO-UNDO INITIAL ?.
 
   RUN SUPER.
-  
+     
   /* Code placed here will execute AFTER standard behavior.    */
   ASSIGN hContainer  = WIDGET-HANDLE(DYNAMIC-FUNCTION('linkHandles':U, 'Container-Source':U))
 
@@ -1337,6 +1323,7 @@ PROCEDURE resizeObject :
   /* The ADM calls Set-Size before "Initialize" so we need to disable the
      re-initialize during UIB resizing until the object has been properly
      instantiated. */
+       
   IF getObjectInitialized() THEN RUN _initializeObject.  
 
   IF UIBMode() THEN
@@ -1674,20 +1661,41 @@ PROCEDURE _createFolderLabel PRIVATE :
           iThisTabSize                 = MIN(iPanelFrameWidth - 12, ghDisplayWidget:WIDTH-PIXELS) NO-ERROR.
    END CASE.
 
-  /* Create the widgets that make up the tab */    
+  /* Create the widgets that make up the tab.
+     There are 6 rectangles that make up the tab border:
+      2 left edges (|)
+      1 'dot', top left (+)
+      1 top edge (_______)
+      1 'dot', top right (+)
+      2 right edges (|)
+     The text is a text widget. There's an optional
+     image which overlays the text.
+     
+     The rectangles are 1 pixel wide or 1 pixel high,
+     depending on where they're used.
+     
+      ____________
+     +            +
+    ||  T E X T   ||
+    ||            ||
+  
+   */
   IF NOT glResize THEN
   DO:
+    /* Top Edge */
     CREATE RECTANGLE hTabMain[iTabCount] {&IN-WIDGET-POOL}
     ASSIGN HIDDEN         = laTabHidden[iTabCount]
            HEIGHT-PIXELS  = 1
            EDGE-PIXELS    = 1
            GRAPHIC-EDGE   = FALSE
-           FILLED         = TRUE
-           FGCOLOR        = IF lUpperTabs THEN COLOR-ButtonHilight ELSE COLOR-ButtonText
+           FILLED         = true
+           FGCOLOR        = IF lUpperTabs THEN 
+                            (if session:window-system eq 'MS-WINXP' THEN COLOR-XPButtonShadowDark ELSE COLOR-ButtonHilight)
+                            ELSE COLOR-ButtonText
            Y              = IF lUpperTabs THEN 0 ELSE hTabFrame[iPanelCount]:HEIGHT-PIXELS - 1
            FRAME          = hTabFrame[iPanelCount]
            SENSITIVE      = FALSE.
-
+    /* Leftmost edge */
     CREATE RECTANGLE hTabLWht[iTabCount] {&IN-WIDGET-POOL}
     ASSIGN HIDDEN         = laTabHidden[iTabCount]
            WIDTH-PIXELS   = 1
@@ -1695,10 +1703,11 @@ PROCEDURE _createFolderLabel PRIVATE :
            GRAPHIC-EDGE   = FALSE
            FILLED         = TRUE
            Y              = IF lUpperTabs THEN 2 ELSE 0
-           FGCOLOR        = COLOR-ButtonHilight
+           FGCOLOR        = (if session:window-system eq 'MS-WINXP' THEN COLOR-XPButtonShadowDark ELSE COLOR-ButtonHilight)
            FRAME          = hTabFrame[iPanelCount]
            SENSITIVE      = FALSE.
-
+           
+    /* Second left edge */
     CREATE RECTANGLE hTabLGry[iTabCount] {&IN-WIDGET-POOL}
     ASSIGN HIDDEN         = laTabHidden[iTabCount]
            WIDTH-PIXELS   = 1
@@ -1709,46 +1718,52 @@ PROCEDURE _createFolderLabel PRIVATE :
            Y              = IF lUpperTabs THEN 2 ELSE 0
            FRAME          = hTabFrame[iPanelCount]
            SENSITIVE      = FALSE.
-
+    
+    /* Single pixel, top left for corner */
     CREATE TEXT hTabLDot[iTabCount] {&IN-WIDGET-POOL}
     ASSIGN HIDDEN         = laTabHidden[iTabCount]
            HEIGHT-PIXELS  = 1
-           BGCOLOR        = IF lUpperTabs THEN COLOR-ButtonHilight ELSE COLOR-ButtonShadow
+           BGCOLOR        = IF lUpperTabs THEN 
+                            ((if session:window-system eq 'MS-WINXP' THEN COLOR-XPButtonShadowDark ELSE COLOR-ButtonHilight))
+                            ELSE COLOR-ButtonShadow
            Y              = IF lUpperTabs THEN 1 ELSE hTabFrame[iPanelCount]:HEIGHT-PIXELS - 2
            FRAME          = hTabFrame[iPanelCount]
            SENSITIVE      = FALSE.
-
+    
+    /* Single pixel, top right for corner */
     CREATE TEXT hTabRDot[iTabCount] {&IN-WIDGET-POOL}
     ASSIGN HIDDEN         = laTabHidden[iTabCount]
            HEIGHT-PIXELS  = 1
            WIDTH-PIXELS   = 1
-           BGCOLOR        = COLOR-ButtonText
+           BGCOLOR        = (if session:window-system eq 'MS-WINXP' THEN COLOR-XPButtonShadowDark ELSE COLOR-ButtonText)
            Y              = IF lUpperTabs THEN 1 ELSE hTabLDot[iTabCount]:Y
            FRAME          = hTabFrame[iPanelCount]
            SENSITIVE      = FALSE.
-
+           
+    /* First right edge */
     CREATE RECTANGLE hTabRGry[iTabCount] {&IN-WIDGET-POOL}
     ASSIGN HIDDEN         = laTabHidden[iTabCount]
            WIDTH-PIXELS   = 1
            EDGE-PIXELS    = 1
            GRAPHIC-EDGE   = FALSE
            FILLED         = TRUE
-           FGCOLOR        = COLOR-ButtonShadow
+           FGCOLOR        = (if session:window-system eq 'MS-WINXP' THEN COLOR-XPButtonShadowDark ELSE COLOR-ButtonShadow)
            Y              = IF lUpperTabs THEN 2 ELSE 0
            FRAME          = hTabFrame[iPanelCount]
            SENSITIVE      = FALSE.
-
+    
+    /* Second right edge (rightmost) */
     CREATE RECTANGLE hTabRBla[iTabCount] {&IN-WIDGET-POOL}
     ASSIGN HIDDEN         = laTabHidden[iTabCount]
            WIDTH-PIXELS   = 1
            EDGE-PIXELS    = 1
            GRAPHIC-EDGE   = FALSE
            FILLED         = TRUE
-           FGCOLOR        = COLOR-ButtonText
+           FGCOLOR        = (if session:window-system eq 'MS-WINXP' THEN COLOR-XPButtonShadowDark ELSE COLOR-ButtonText)
            Y              = IF lUpperTabs THEN 2 ELSE 0
            FRAME          = hTabFrame[iPanelCount]
            SENSITIVE      = FALSE.
-
+    
     IF iImageHeight > 0 AND iImageWidth > 0 AND caTabImage[iTabCount] <> "":U THEN 
     DO:
       IF NOT glResize THEN
@@ -1767,7 +1782,8 @@ PROCEDURE _createFolderLabel PRIVATE :
           hTabIcon[iTabCount]:WIDTH-PIXELS  = iImageWidth
           hTabIcon[iTabCount]:X             = iCurrentXPos + 2 + iImageXOffset.
     END.
-
+    
+    /* Tab text */
     CREATE TEXT hTempHandle {&IN-WIDGET-POOL}
     ASSIGN HIDDEN         = laTabHidden[iTabCount]
            FONT           = iTabFont
@@ -1963,7 +1979,9 @@ PROCEDURE _createFolderPage PRIVATE :
 /*------------------------------------------------------------------------------
   Purpose:     Creates a new raised graphic panel
   Parameters:  <none>
-  Notes:       
+  Notes:       * When runnig MS-WINXP, buttons have a 2 pixel border. Overwrite
+                 one of these pixesl in both dimensions so as to show only a single 
+                 pixel border.
 ------------------------------------------------------------------------------*/
     DEFINE VARIABLE hTempHandle AS HANDLE     NO-UNDO.
 
@@ -1987,12 +2005,11 @@ PROCEDURE _createFolderPage PRIVATE :
              PRIVATE-DATA   = STRING(iPanelCount)
              FRAME          = FRAME {&FRAME-NAME}:HANDLE
              SENSITIVE      = FALSE.
-    
     ASSIGN
         hPanelFrame[iPanelCount]:HEIGHT-PIXELS = iPanelFrameHeight
         hPanelFrame[iPanelCount]:WIDTH-PIXELS  = iPanelFrameWidth
         hPanelFrame[iPanelCount]:X             = iPanelOffset * (iRowCount - 1)
-        hPanelFrame[iPanelCount]:SCROLLABLE    = FALSE NO-ERROR. 
+        hPanelFrame[iPanelCount]:SCROLLABLE    = FALSE NO-ERROR.     
   END.
   ELSE 
     hPanelFrame[iPanelCount] = hPanelFrame[iPanelCount - 1].
@@ -2031,24 +2048,24 @@ PROCEDURE _createFolderPage PRIVATE :
       hTabFrame[iPanelCount]:WIDTH-PIXELS  = iPanelFrameWidth
       hTabFrame[iPanelCount]:X             = iPanelOffset * (iRowCOunt - 1)
       hTabFrame[iPanelCount]:SCROLLABLE    = FALSE NO-ERROR.
-
+  
   IF iPanelCount = 1 THEN
   DO:
     IF NOT glResize THEN
     DO:
       CREATE TEXT hPanelOverlay[iPanelCount] {&IN-WIDGET-POOL} 
-      ASSIGN Y              = hPanelFrame[iPanelCount]:Y + 1
+      ASSIGN Y              = hPanelFrame[iPanelCount]:Y + (if session:window-system eq 'MS-WINXP' then 2 else 1)
              BGCOLOR        = COLOR-ButtonFace
              FGCOLOR        = COLOR-ButtonFace
              FRAME          = FRAME {&FRAME-NAME}:HANDLE
              SENSITIVE      = FALSE.
     END.
-
+    
     ASSIGN
         hPanelOverlay[iPanelCount]:HEIGHT-PIXELS = iPanelFrameHeight - 4
-        hPanelOverlay[iPanelCount]:WIDTH-PIXELS  = iPanelFrameWidth  - 4
-        hPanelOverlay[iPanelCount]:X             = hPanelFrame[iPanelCount]:X + 1
-        hPanelOverlay[iPanelCount]:SCROLLABLE    = FALSE NO-ERROR.
+        hPanelOverlay[iPanelCount]:WIDTH-PIXELS  = iPanelFrameWidth - 4
+        hPanelOverlay[iPanelCount]:X             = hPanelFrame[iPanelCount]:X + (if session:window-system eq 'MS-WINXP' then 2 else 1)
+        hPanelOverlay[iPanelCount]:SCROLLABLE    = FALSE NO-ERROR.                
   END.
 
   IF iPanelCount > iVisibleRows THEN
@@ -2057,7 +2074,6 @@ PROCEDURE _createFolderPage PRIVATE :
   ASSIGN
       lResult = hTabFrame[iPanelCount]:MOVE-TO-BOTTOM()
       lResult = hPanelFrame[iPanelCount]:MOVE-TO-BOTTOM().
-
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2126,11 +2142,33 @@ PROCEDURE _createSelectorTab PRIVATE :
    created and resized to match the selected tab except it is made slightly 
    higher and wider to give the appearance of selection. Procedure _selectTab 
    performs the resizing.
-
+   
 ------------------------------------------------------------------------------*/
-
+  /* Create the widgets that make up the tab.
+     There are 7 rectangles that make up the tab border:
+      1 left edges (|)
+      1 'dot', top left (+)
+      1 top edge (_______)
+      1 'dot', top right (+)
+      2 right edges (|)
+      1 bottom rectangle, overlays button border
+     The text is a text widget. There's an optional
+     image which overlays the text.
+     
+     The rectangles are 1 pixel wide or 1 pixel high,
+     depending on where they're used.
+     
+      ____________
+     +            +
+     |  T E X T   ||
+     |            ||
+      _____________
+        
+   */
+   
   IF NOT glResize THEN
   DO:
+    /* This is the frame on which the selected tab will be painted */
     CREATE FRAME hSelFrame {&IN-WIDGET-POOL}
     ASSIGN HIDDEN         = TRUE
            BOX            = FALSE
@@ -2138,10 +2176,13 @@ PROCEDURE _createSelectorTab PRIVATE :
            THREE-D        = TRUE
            OVERLAY        = TRUE
            PRIVATE-DATA   = "Selector":U
-           HEIGHT-PIXELS  = iTabFrameHeight + {&SELECTED-EXT-PIXEL-HEIGHT} + IF lUpperTabs THEN 1 ELSE 2
-           X              = 0 
-           Y              = IF lUpperTabs THEN hTabFrame[1]:Y - {&SELECTED-EXT-PIXEL-HEIGHT} 
-                                          ELSE hTabFrame[1]:Y - 2
+           HEIGHT-PIXELS  = iTabFrameHeight + {&SELECTED-EXT-PIXEL-HEIGHT}
+                          + (IF lUpperTabs THEN 
+                             (1 + (if session:window-system eq 'MS-WINXP' then 1 else 0))
+                             ELSE 2 )
+           X              = 0
+           Y              = IF lUpperTabs THEN hTabFrame[1]:Y - {&SELECTED-EXT-PIXEL-HEIGHT}
+                            ELSE hTabFrame[1]:Y - 2
            BGCOLOR        = FRAME {&FRAME-NAME}:BGCOLOR
            FGCOLOR        = FRAME {&FRAME-NAME}:FGCOLOR
            FRAME          = FRAME {&FRAME-NAME}:HANDLE
@@ -2150,19 +2191,22 @@ PROCEDURE _createSelectorTab PRIVATE :
     TRIGGERS:
       ON MOUSE-MENU-DOWN PERSISTENT RUN _trgPopupMenu IN THIS-PROCEDURE (hSelFrame).
     END TRIGGERS.
-
+    
+    /* leftmost border */
     CREATE RECTANGLE hSelLWht {&IN-WIDGET-POOL}
     ASSIGN WIDTH-PIXELS   = 1
            HEIGHT-PIXELS  = MAX(1,hSelFrame:HEIGHT-PIXELS - 2)
            EDGE-PIXELS    = 1
            GRAPHIC-EDGE   = FALSE
            FILLED         = TRUE
-           FGCOLOR        = COLOR-ButtonHilight
+           FGCOLOR        = hTabLWht[1]:fgcolor
            X              = 0
            Y              = hTabLWht[1]:Y
            FRAME          = hSelFrame
+           NAME           = "SelLWht"
            SENSITIVE      = FALSE.
-
+    
+    /* rectangle at the bottom, below text, overlaying panel button border */
     CREATE RECTANGLE hSelLGry {&IN-WIDGET-POOL}
     ASSIGN WIDTH-PIXELS   = 1
            HEIGHT-PIXELS  = MAX(1,hSelFrame:HEIGHT-PIXELS - 2)
@@ -2174,17 +2218,21 @@ PROCEDURE _createSelectorTab PRIVATE :
            X              = 1
            Y              = hTabLWht[1]:Y
            FRAME          = hSelFrame
+           NAME           = "SelLGry"
            SENSITIVE      = FALSE.
-
+    
+    /* single pixel in top left, to form corner */
     CREATE TEXT hSelLDot {&IN-WIDGET-POOL}
     ASSIGN WIDTH-PIXELS   = 1
            HEIGHT-PIXELS  = 1
            BGCOLOR        = hTabLDot[1]:BGCOLOR
-           
            Y              = IF lUpperTabs THEN 1 ELSE hSelFrame:HEIGHT-PIXELS - 2
            FRAME          = hSelFrame
+           NAME           = "SelLDot"
            SENSITIVE      = FALSE.
-
+           
+           
+    /* Top edge of selected tab */
     CREATE RECTANGLE hSelMain {&IN-WIDGET-POOL}
     ASSIGN HEIGHT-PIXELS  = 1
            WIDTH-PIXELS   = 1
@@ -2194,40 +2242,46 @@ PROCEDURE _createSelectorTab PRIVATE :
            FGCOLOR        = hTabMain[1]:FGCOLOR
            Y              = IF lUpperTabs THEN 0 ELSE hSelFrame:HEIGHT-PIXELS - 1
            FRAME          = hSelFrame
+           name           = "SelMain"
            SENSITIVE      = FALSE.
-
+    
+    /* Single pixel on top right, to form corner */
     CREATE TEXT hSelRDot {&IN-WIDGET-POOL}
     ASSIGN WIDTH-PIXELS   = 1
            HEIGHT-PIXELS  = 1
-           BGCOLOR        = COLOR-ButtonText
-           Y              = IF lUpperTabs THEN 1 ELSE hSelFrame:HEIGHT-PIXELS - 2  
+           BGCOLOR        = hTabRDot[1]:bgcolor
+           Y              = IF lUpperTabs THEN 1 ELSE hSelFrame:HEIGHT-PIXELS - 2
            FRAME          = hSelFrame
+           NAME           = "SelRDot"
            SENSITIVE      = FALSE.
-
+               
+    /* First of 2 right edges */
     CREATE RECTANGLE hSelRGry {&IN-WIDGET-POOL}
     ASSIGN WIDTH-PIXELS   = IF lUpperTabs THEN 1 ELSE 2
-           HEIGHT-PIXELS  = hSelLWht:HEIGHT-PIXELS 
+           HEIGHT-PIXELS  = hSelLWht:HEIGHT-PIXELS
            EDGE-PIXELS    = 1
            GRAPHIC-EDGE   = FALSE
            FILLED         = TRUE
-           FGCOLOR        = COLOR-ButtonShadow
-           
+           FGCOLOR        = ( if session:window-system eq 'MS-WINXP' THEN COLOR-ButtonShadow ELSE hTabRGry[1]:fgcolor)
            Y              = IF lUpperTabs THEN 2 ELSE 0
            FRAME          = hSelFrame
+           name           = "SelRGry"
            SENSITIVE      = FALSE.
-
+           
+    /* Second of 2 right edges */
     CREATE RECTANGLE hSelRBla {&IN-WIDGET-POOL}
     ASSIGN WIDTH-PIXELS   = 1
-           HEIGHT-PIXELS  = hSelLWht:HEIGHT-PIXELS  
+           HEIGHT-PIXELS  = hSelLWht:HEIGHT-PIXELS
            EDGE-PIXELS    = 1
            GRAPHIC-EDGE   = FALSE
            FILLED         = TRUE
-           FGCOLOR        = COLOR-ButtonText
-           
+           FGCOLOR        = hTabRBla[1]:fgcolor
            Y              = IF lUpperTabs THEN 2 ELSE 0
            FRAME          = hSelFrame
+           NAME           = "SelRBla"
            SENSITIVE      = FALSE.
-
+                      
+    /* Selected tab label text */
     CREATE TEXT hSelLabel {&IN-WIDGET-POOL}
     ASSIGN WIDTH-PIXELS   = 1
            HEIGHT-PIXELS  = iTabLabelHeight + 1
@@ -2235,17 +2289,18 @@ PROCEDURE _createSelectorTab PRIVATE :
            FONT           = iSelectorFont
            FGCOLOR        = IF iSelectorFGColor = ? THEN COLOR-ButtonText ELSE iSelectorFGColor
            BGCOLOR        = IF iSelectorBGColor = ? THEN COLOR-ButtonFace ELSE iSelectorBGColor
-           Y              = IF lUpperTabs THEN 1 + iLabelOffset
-                                          ELSE hSelFrame:HEIGHT-PIXELS - 2 - iTabLabelHeight - iLabelOffset - {&SELECTED-EXT-PIXEL-HEIGHT}
+           Y              = IF lUpperTabs THEN 1
+                            ELSE hSelFrame:HEIGHT-PIXELS - 2 - iTabLabelHeight - iLabelOffset - {&SELECTED-EXT-PIXEL-HEIGHT}
            FRAME          = hSelFrame
+           name           = "SelLabel"
            SENSITIVE      = FALSE.
-
+    
     CREATE IMAGE hSelIcon {&IN-WIDGET-POOL}
     ASSIGN WIDTH-PIXELS       = MAX(1,iImageWidth)
            HEIGHT-PIXELS      = MAX(1,iImageHeight)
            Y                  = iTabImageYPos + IF lUpperTabs THEN 0 ELSE {&SELECTED-EXT-PIXEL-HEIGHT} 
            FRAME              = hSelFrame
-           CONVERT-3D-COLORS  = TRUE
+           CONVERT-3D-COLORS  = TRUE           
            SENSITIVE          = FALSE.
 
     IF gcVisualization <> "TABS":U THEN
@@ -2259,11 +2314,11 @@ PROCEDURE _createSelectorTab PRIVATE :
           hSelFrame:SENSITIVE       = TRUE.
     END.
   END.
-
+      
   ASSIGN
       hSelFrame:WIDTH-PIXELS  = iPanelFrameWidth
       hSelFrame:SCROLLABLE    = FALSE
-      hSelFrame:ROW           = hSelFrame:ROW + gdYDifference
+      hSelFrame:ROW           = hSelFrame:ROW + (if gdYDifference eq ? THEN 0 ELSE gdYDifference)
       hSelLDot:X              = hSelLWht:X + 1
       hSelMain:X              = hSelLWht:X + 2
       hSelRDot:X              = hSelMain:WIDTH-PIXELS + 2 
@@ -2271,7 +2326,6 @@ PROCEDURE _createSelectorTab PRIVATE :
       hSelRBla:X              = hSelMain:WIDTH-PIXELS + 3
       hSelLabel:X             = 2 + iTabImageTotal
       hSelIcon:X              = 2 + iImageXOffset NO-ERROR.
-  
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2291,18 +2345,27 @@ PROCEDURE _getColours PRIVATE :
  COLOR-ButtonText 
 
 ------------------------------------------------------------------------------*/
-
 IF VALID-HANDLE({&SUPER-HDL})
 THEN
-    ASSIGN COLOR-ButtonHilight = COLOR-OF("ButtonHilight")
+do:
+    ASSIGN 
+           COLOR-ButtonHilight = COLOR-OF("ButtonHilight")
            COLOR-ButtonFace    = COLOR-OF("ButtonFace")
            COLOR-ButtonShadow  = COLOR-OF("ButtonShadow")
            COLOR-GrayText      = COLOR-OF("GrayText")
-           COLOR-ButtonText    = COLOR-OF("ButtonText")
+           COLOR-ButtonText    = COLOR-OF("ButtonText")           
            NO-ERROR.
-
-
-
+    if session:window-system eq 'MS-WINXP' THEN
+    do:
+        COLOR-XPButtonShadowDark = COLOR-OF("XPButtonShadowDark") NO-ERROR.
+        
+        /* make sure the color's are available */
+        if COLOR-XPButtonShadowDark eq ? THEN
+            RUN addColour in {&SUPER-HDL} (INPUT  'XPButtonShadowDark',
+                                           INPUT  '198 195 189',
+                                           OUTPUT COLOR-XPButtonShadowDark).
+    END.    /* windows XP */
+END.    /* valid handle */
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2512,7 +2575,6 @@ PROCEDURE _initializeObject PRIVATE :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-
   DEFINE VARIABLE iVirtualHeightPixels  AS INTEGER    NO-UNDO.
   DEFINE VARIABLE iVirtualWidthPixels   AS INTEGER    NO-UNDO.
 
@@ -2727,7 +2789,6 @@ PROCEDURE _selectTab PRIVATE :
      get an error of an invalid handle and PRIVATE-DATA etc.
      Added this line to get rid of this error.
      Mark Davies (MIP) 09/11/2002 */
-
   DEFINE VARIABLE lSessionImmediateDisplay  AS LOGICAL  NO-UNDO.
   DEFINE VARIABLE iCounter                  AS INTEGER  NO-UNDO.
   
@@ -2769,7 +2830,7 @@ PROCEDURE _selectTab PRIVATE :
           hTabFrame[iSelectedRow]:HIDDEN            = FALSE
           iCurrentRow                               = iSelectedRow.
   END.
-    
+  
   /* Hide and then resize the selector tab to provide visualisation of the selection. 
      The frame width of the selector frame is the width of the selected tab plus the
      value of {&TAB-PIXEL-OFFSET}. Also, If the tab isn't the last tab on a full row 
@@ -2778,11 +2839,12 @@ PROCEDURE _selectTab PRIVATE :
      of overlay is held in iSelectorWidth. */
   ASSIGN
       hSelFrame:SCROLLABLE            = TRUE
+      /* not sure the following actually does anything */
       hSelFrame:X                     = IF gcVisualization = "TABS":U THEN 0 ELSE 2
       lResult                         = ipTabNo MODULO iTabsPerRow = 0 
       x                               = hTabMain[ipTabNo]:WIDTH-PIXELS + {&TAB-PIXEL-OFFSET} + (IF lResult THEN 1 ELSE iSelectorWidth)
       x                               = IF gcVisualization = "TABS":U THEN x ELSE iThisTabSize + 5
-      hSelFrame:WIDTH-PIXELS          = x + 3 
+      hSelFrame:WIDTH-PIXELS          = x + 3
       hSelMain:WIDTH-PIXELS           = MAX(1,x - 1)
       hSelLDot:WIDTH-PIXELS           = IF lUpperTabs THEN 1 ELSE hSelMain:WIDTH-PIXELS + 1
       hSelLabel:WIDTH-PIXELS          = hSelFrame:WIDTH-PIXELS - hSelLabel:X - 2
@@ -2790,7 +2852,9 @@ PROCEDURE _selectTab PRIVATE :
       hSelRDot:X                      = hSelFrame:WIDTH-PIXELS - 2 
       hSelRBla:X                      = hSelFrame:WIDTH-PIXELS - 1
       hSelRGry:X                      = hSelFrame:WIDTH-PIXELS - 2
-      hSelFrame:X                     = IF gcVisualization = "TABS":U THEN hTabLWht[ipTabNo]:X - {&TAB-PIXEL-OFFSET} ELSE 2
+      hSelFrame:X                     = IF gcVisualization = "TABS":U THEN 
+                                        (hTabLWht[ipTabNo]:X - {&TAB-PIXEL-OFFSET} + (if session:window-system eq 'MS-WINXP' then 1 else 0))
+                                        ELSE 2
       hSelRBla:Y                      = IF lUpperTabs THEN hSelRBla:Y
                                                       ELSE IF NOT lResult THEN 1
                                                                           ELSE 0
@@ -2801,8 +2865,7 @@ PROCEDURE _selectTab PRIVATE :
 
       hSelLabel:SCREEN-VALUE          = IF gcVisualization = "TABS":U THEN hTabLabel[ipTabNo]:SCREEN-VALUE ELSE "":U
 
-      hSelFrame:VIRTUAL-WIDTH-PIXELS  = hSelFrame:WIDTH-PIXELS 
-
+      hSelFrame:VIRTUAL-WIDTH-PIXELS  = hSelFrame:WIDTH-PIXELS
       hSelLabel:FGCOLOR               = IF iaTabFGColor[ipTabNo] = ? THEN (IF iSelectorFGColor = ? THEN COLOR-ButtonText
                                                                                                    ELSE iSelectorFGColor)
                                                                      ELSE IF hTabLabel[ipTabNo]:SENSITIVE THEN iaTabFGColor[ipTabNo]
@@ -2811,13 +2874,12 @@ PROCEDURE _selectTab PRIVATE :
       hSelLabel:BGCOLOR               = IF iaTabBGColor[ipTabNo] = ? THEN (IF iSelectorBGColor = ? THEN COLOR-ButtonFace
                                                                                                    ELSE iSelectorBGColor)
                                                                      ELSE iaTabBGColor[ipTabNo]
-
       lResult                          = IF VALID-HANDLE(hTabIcon[ipTabNo]) THEN hSelIcon:LOAD-IMAGE(caTabImage[ipTabNo],iaTabXOffset[ipTabNo],iaTabYOffset[ipTabNo],iImageWidth,iImageHeight)
                                                                             ELSE FALSE
       hSelIcon:HIDDEN                  = NOT lResult
       hSelFrame:SCROLLABLE             = FALSE
       hSelFrame:HIDDEN                 = FALSE NO-ERROR.
-
+  
   CASE gcVisualization:
     WHEN "COMBO-BOX":U THEN
       IF VALID-HANDLE(ghDisplayWidget) THEN
@@ -2838,7 +2900,7 @@ PROCEDURE _selectTab PRIVATE :
     IF NOT glDontUpdateCurrentTab THEN
       ghDisplayWidget:SCREEN-VALUE = STRING(ipTabNo) NO-ERROR.
   END.
-
+  
   IF NOT glDontUpdateCurrentTab THEN
     iCurrentTab = ipTabNo.
 

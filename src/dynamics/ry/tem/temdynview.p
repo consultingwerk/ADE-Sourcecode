@@ -47,6 +47,7 @@ CREATE WIDGET-POOL.
 
 &Scoped-define FRAME-NAME frMain
 &Scoped-define ADM-CONTAINER-HANDLE frame {&Frame-Name}:handle
+&scoped-define ADM-CONTAINER Frame
 
 ##Loop:ListContainerObjects##
 define variable ##getInstanceHandleName([InstanceName])## as handle no-undo.
@@ -58,7 +59,7 @@ DEFINE FRAME frMain
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1
-         SIZE 58.2 BY 1.67.
+         SIZE ##[ObjectWidth]## BY ##[ObjectHeight]##.
 
 
 /* *********************** Procedure Settings ************************ */
@@ -77,7 +78,7 @@ END.
 {src/adm2/viewer.i}
 
 &scoped-define xp-Assign
-{set ContainerType 'Frame'}
+{set ContainerType '{&ADM-CONTAINER}'}
 {set ObjectType 'SmartDataViewer'}.
 &undefine xp-Assign
 
@@ -126,27 +127,25 @@ procedure adm-create-objects :
     ##If:[GenerateTranslations]##
     define variable cCurrentLanguage as character no-undo.
     define variable lTranslationEnabled as logical no-undo.
-    define variable dFrameHeight as decimal no-undo.    
     define variable lViewerTranslated as logical no-undo initial no.
-    define variable dFrameMinHeight as decimal no-undo.
-    define variable dFrameMinWidth as decimal no-undo.
     ##If:End##    
     ##If:[GenerateSecurity]##
     define variable lSecurityEnabled as logical no-undo. 
-    define variable lFieldSecurityExists as logical no-undo.
-    define variable lTokenSecurityExists as logical no-undo.
     define variable hContainer as handle no-undo.
     define variable cContainerName as character no-undo.
     define variable cRunAttribute as character no-undo.
+    ##If:End##
+    define variable hWidgetBuffer as handle no-undo.
     define variable cSecuredFields as character no-undo.
     define variable cSecuredTokens as character no-undo.
-    ##If:End##
+    define variable dFrameHeight as decimal no-undo.
     define variable dFrameWidth as decimal no-undo.            
+    define variable dFrameMinHeight as decimal no-undo.
+    define variable dFrameMinWidth as decimal no-undo.
     define variable lShowPopup as logical no-undo.
     define variable lPopupButtonInField as logical no-undo.
     define variable cFieldPopupMapping as character no-undo.    
-    define variable iCurrentPage as integer no-undo.
-    define variable iPos as integer no-undo.
+    define variable iCurrentPage as integer no-undo.    
     define variable cAllFieldNames as character no-undo.
     define variable cAllFieldHandles as character no-undo.
     define variable cEnabledFields as character no-undo.
@@ -156,37 +155,28 @@ procedure adm-create-objects :
     define variable cDisplayedFields as character no-undo.
     define variable cFieldHandles as character no-undo.
     define variable cFieldSecurity as character no-undo.
-    define variable lVisible as logical no-undo.
     define variable lKeepChildPositions as logical no-undo.
-    define variable iFont as integer no-undo.
     define variable lHideOnInit as logical no-undo.
-    define variable hWidgetBuffer as handle no-undo.
-    define variable cSecurityAction as character no-undo.
     
     {get CurrentPage iCurrentPage}.
     case iCurrentPage:
         when 0 then
         do:
             cProperties = dynamic-function('getPropertyList':U IN gshSessionManager,
-                                           'TranslationEnabled,CurrentLanguageCode,SecurityEnabled,GSMFFSecurityExists,GSMTOSecurityExists',
+                                           'TranslationEnabled,CurrentLanguageCode,SecurityEnabled',
                                            No).
             ##If:[GenerateTranslations]##
             assign cCurrentLanguage = entry(2, cProperties, chr(3))
                    lTranslationEnabled = logical(entry(1, cProperties, chr(3)))
                    no-error.
             if lTranslationEnabled eq ? then lTranslationEnabled = yes.
-            hWidgetBuffer = {fn getWidgetTableBuffer}.
             ##If:End##    /* gen translations */
             ##If:[GenerateSecurity]##
             lSecurityEnabled = logical(entry(3, cProperties, chr(3))) no-error.
             if lSecurityEnabled eq ? then lSecurityEnabled = yes.
             
             if lSecurityEnabled then
-            do:            
-                lFieldSecurityExists = logical(entry(4, cProperties, chr(3))) no-error.
-                if lFieldSecurityExists eq ? then lFieldSecurityExists = yes.
-                lTokenSecurityExists = logical(entry(5, cProperties, chr(3))) no-error.
-                if lTokenSecurityExists eq ? then lTokenSecurityExists = yes.
+            do:
                 {get ContainerSource hContainer}.
                 &scoped-define xp-Assign
                 {get LogicalObjectName cContainerName hContainer}
@@ -195,15 +185,15 @@ procedure adm-create-objects :
                 &undefine xp-Assign
                 run fieldAndTokenSecurityCheck in gshSecurityManager (input  cContainerName,
                                                                       input  cRunAttribute,
-                                                                      input  lFieldSecurityExists,
-                                                                      input  lTokenSecurityExists,
+                                                                      input  YES,
+                                                                      input  YES,
                                                                       output cSecuredFields,
                                                                       output cSecuredTokens  ).                 
             end.    /* security enabled */
             ##If:End##    /* generate security */
             
-            assign frame {&Frame-Name}:height-chars = ##[ObjectHeight]##
-                   frame {&Frame-Name}:width-chars = ##[ObjectWidth]##.
+            hWidgetBuffer = {fn getWidgetTableBuffer}.                
+
             &scoped-define xp-Assign
             {get ShowPopup lShowPopup}
             {get KeepChildPositions lKeepChildPositions}
@@ -211,119 +201,31 @@ procedure adm-create-objects :
             {get HideOnInit lHideOnInit}
             .
             &undefine xp-Assign
-                                    
-        ##Loop:CreateViewerObjects##
-            assign cSecurityAction = ''
-                   /* All widgets default to being visible */            
-                   lVisible = ##[InstanceVisible]##.
             
-            if lVisible eq ? then lVisible = yes.
-            
-        ##If:[InstanceIsSDF]##
-            {fnarg setCurrentLogicalName '##[InstanceObjectName]##'}.
-            RUN constructObject IN TARGET-PROCEDURE (INPUT  '##[InstanceRenderingProcedure]##',
-                                                     INPUT  frame {&Frame-Name}:HANDLE,
-                                                     INPUT  ##[InstanceInstanceProperties]##,
-                                                     OUTPUT ##getInstanceHandleName([InstanceName])##).
-            
-            RUN repositionObject IN ##getInstanceHandleName([InstanceName])## (##[InstanceRow]##, ##[InstanceColumn]##) NO-ERROR.
-            RUN resizeObject     IN ##getInstanceHandleName([InstanceName])## (##[InstanceHeight]##, ##[InstanceWidth]##) NO-ERROR.
-            {fnarg setCurrentLogicalName ''}.
-            
-            ##If:instanceIsVisual([InstanceClass])##
-            /* If this is not a generated object, then make sure it will be secured and translated.
-               the retrieval will have set the ObjectTranslated and ObjectSecured flags correctly,
-               but the translations will not have been applied correctly in all cases.
-             */
-            if not can-do(##getInstanceHandleName([InstanceName])##:internal-entries, 'adm-assignObjectProperties') then
-            do:
-                &scoped-define xp-Assign
-                {set ObjectTranslated no ##getInstanceHandleName([InstanceName])##}
-                {set ObjectSecured no ##getInstanceHandleName([InstanceName])##}.
-                &undefine xp-Assign
-            end.    /* not a generated object */            
-            ##If:End##    /* instance is Visual */
-            
-            ##If:[GenerateSecurity]##
-            /* Apply security */                
-            iPos = lookup('##[InstanceName]##', cSecuredFields).
-            if iPos gt 0 then
-            do:
-                cSecurityAction = entry(iPos + 1, cSecuredFields).
-                if cSecurityAction eq 'Hidden' then
-                    lVisible = no.
-            end.    /* field security found */
-            ##If:End##    /* generate security */
-        ##If:End##     /* instance is sdf */
-            
-        ##If:[InstanceIsWidget]##
-            ##If:[GenerateSecurity]##
-            /* Apply security */
-            iPos = lookup('##[InstanceName]##', cSecuredFields).
-            /* there is field security */
-            if iPos ne 0 then
-            do:
-                cSecurityAction = entry(iPos + 1, cSecuredFields).
-                if cSecurityAction eq 'Hidden' then
-                    lVisible = no.
-            end.    /* field security found */
-            else
-            /* if no field security, check for token security. */
-            do:
-                iPos = lookup('##[InstanceName]##', cSecuredTokens).
-	            if iPos ne 0 then
-	                cSecurityAction = 'ReadOnly'.
-            end.    /* token security */
-            ##If:End##    /* generate security */
-            
-            /* create the widget in a separate call to avoide a-code segment limits */
+            ##Loop:CreateViewerObjects##
+            /* Create the instance in a separate call to avoide a-code segment limits */
             run adm-create-##[InstanceName]##
-                    ( input        lVisible,
-                      input        lShowPopup,
+                    ( input        lShowPopup,
                       input        lHideOnInit,
                       input        lKeepChildPositions,
                       input        lPopupButtonInField,
+                      input        cSecuredFields,
+                      input        cSecuredTokens,
+                      input        hWidgetBuffer,
                       input-output dFrameWidth,
-                      input-output cFieldPopupMapping ).                                                                       
-        ##If:End## /* instance is widget */
+                      input-output dFrameHeight,
+                      input-output cFieldPopupMapping,
+                      input-output cAllFieldHandles,
+                      input-output cAllFieldNames,
+                      input-output cFieldSecurity,
+                      input-output cDisplayedFields,
+                      input-output cEnabledFields,
+                      input-output cEnabledHandles,
+                      input-output cEnabledObjFlds,
+                      input-output cEnabledObjHdls,
+                      input-output cFieldHandles    ).
             
-            /* Build lists of the fields to display and enable */
-            assign cFieldSecurity = cFieldSecurity + ',' + cSecurityAction
-            ##If:[InstanceDisplayAndNotLocal]##
-                   cDisplayedFields = cDisplayedFields + ',##[InstanceName]##'
-                   cFieldHandles = cFieldHandles + ',' + string(##getInstanceHandleName([InstanceName])##)
-            ##If:End##    /* display and non-local */            
-            ##If:[InstanceEnabled]##
-                   ##[EnabledNameList]## = ##[EnabledNameList]## + ',##[InstanceName]##'
-                   ##[EnabledHandleList]## = ##[EnabledHandleList]## + ',' + string(##getInstanceHandleName([InstanceName])##)
-            ##If:End##    /* instance enabled */                
-                   cAllFieldHandles = cAllFieldHandles + ',' + string(##getInstanceHandleName([InstanceName])##).
-                   cAllFieldNames = cAllFieldNames + ',##[InstanceName]##'.
-            
-            ##If:[GenerateTranslations]##    /* only translations can change the size of the frame. */
-            assign dFrameWidth = max(dFrameWidth, ##[InstanceColumn]## + ##[InstanceWidth]## - 1)
-                   dFrameHeight = max(dFrameHeight, ##[InstanceRow]## + ##[InstanceHeight]## - 1).
-            
-            /* Create ttWidget records for repositioning after translation. */            
-            hWidgetBuffer:buffer-create().
-            assign 
-                hWidgetBuffer:buffer-field('tWidgetHandle'):buffer-value = ##getInstanceHandleName([InstanceName])##
-                hWidgetBuffer:buffer-field('tTargetProcedure'):buffer-value = target-procedure
-                hWidgetBuffer:buffer-field('tWidth'):buffer-value = ##[InstanceWidth]##
-                hWidgetBuffer:buffer-field('tRow'):buffer-value = ##[InstanceRow]##
-                hWidgetBuffer:buffer-field('tEndRow'):buffer-value = ##[InstanceRow]## + ##[InstanceHeight]##
-                hWidgetBuffer:buffer-field('tColumn'):buffer-value = ##[InstanceColumn]##
-                hWidgetBuffer:buffer-field('tRow'):buffer-value = ##[InstanceRow]##
-                hWidgetBuffer:buffer-field('tWidgetType'):buffer-value = '##[InstanceType]##'
-                hWidgetBuffer:buffer-field('tTabOrder'):buffer-value = ##[InstanceOrder]##
-                hWidgetBuffer:buffer-field('tVisible'):buffer-value = lVisible
-                hWidgetBuffer:buffer-field('tFont'):buffer-value = ##[InstanceFont]##
-                hWidgetBuffer:buffer-field('tTableName'):buffer-value = '##[InstanceTableName]##'
-                hWidgetBuffer:buffer-field('tInitialValue'):buffer-value = '##[InstanceInitialValue]##'.
-            hWidgetBuffer:buffer-release().
-            ##If:End##    /* generate translation */
-        ##Loop:End##    /* createviewerobjects */
-            
+            ##Loop:End##    /* createviewerobjects */            
             ##If:[GenerateTranslations]##
             if lTranslationEnabled and
                can-do(this-procedure:internal-entries, 'translate-' + cCurrentLanguage) then
@@ -378,7 +280,7 @@ procedure adm-create-objects :
                  * opposed to when the viewer is RUN, we need to explicitly set the
                  * Editable property to true.                                      */
                 {set Editable YES}.
-            
+                
             ##If:[GenerateTranslations]##
             /* If translation was done - then we need to check if we need to adjust any 
                columns for larger labels. However, only do this if allowed to by the KeepChildPositions
@@ -386,6 +288,7 @@ procedure adm-create-objects :
              */
             if not lKeepChildPositions and lViewerTranslated then
                 run repositionWidgetForTranslation in target-procedure (input-output dFrameWidth).
+            ##If:End##   /* gen translations */
 
             /* get the MinWidth and MinHeight attributes. */
             &SCOPED-DEFINE xp-assign
@@ -439,7 +342,6 @@ procedure adm-create-objects :
                             
                 frame {&Frame-Name}:scrollable = no no-error.
             end.    /* frame is smaller than min size. */            
-            ##If:End##   /* gen translations */
         end.    /* page 0 */
     end case.    /* current page */
     
@@ -448,23 +350,93 @@ procedure adm-create-objects :
 end procedure.    /* adm-create-objects */
 
 ##Loop:createViewerWidgets##
-    
+        
 procedure adm-create-##[InstanceName]## :
-    /* Create widget ##[InstanceName]## */
-    define input        parameter plVisible              as logical      no-undo.
+    /* Creates instance ##[InstanceName]## */
     define input        parameter plShowPopup            as logical      no-undo.
     define input        parameter plHideOnInit           as logical      no-undo.
     define input        parameter plKeepChildPositions   as logical      no-undo.
     define input        parameter plPopupButtonInField   as logical      no-undo.
-    define input-output parameter pdFrameWidth           as decimal      no-undo.
+    define input        parameter pcSecuredFields        as character    no-undo.
+    define input        parameter pcSecuredTokens        as character    no-undo.
+    define input        parameter phWidgetBuffer         as handle       no-undo.
+    define input-output parameter pdFrameWidth           as decimal      no-undo.    
+    define input-output parameter pdFrameHeight          as decimal      no-undo.
     define input-output parameter pcFieldPopupMapping    as character    no-undo.
+    define input-output parameter pcAllFieldHandles      as character    no-undo.    
+    define input-output parameter pcAllFieldNames        as character    no-undo.
+    define input-output parameter pcFieldSecurity        as character    no-undo.
+    define input-output parameter pcDisplayedFields      as character    no-undo.
+    define input-output parameter pcEnabledFields        as character    no-undo.
+    define input-output parameter pcEnabledHandles       as character    no-undo.
+    define input-output parameter pcEnabledObjFlds       as character    no-undo.
+    define input-output parameter pcEnabledObjHdls       as character    no-undo.
+    define input-output parameter pcFieldHandles         as character    no-undo.
     
+    ##If:[InstanceIsWidget]##
     define variable iFont                as integer                      no-undo.
     define variable iLabelWidthPixels    as integer                      no-undo.
     define variable dLabelMinHeight      as decimal                      no-undo.
     define variable hLabel               as handle                       no-undo.
     define variable hPopup               as handle                       no-undo.
+    ##If:End##    /* instance is widget */
+    ##If:[GenerateSecurity]##
+    define variable iPos as integer no-undo.
+    ##If:End##    
+    define variable lVisible as logical no-undo.
+    define variable cSecurityAction as character no-undo.
     
+    lVisible = ##[InstanceVisible]##.
+    /* All widgets default to being visible */
+    if lVisible eq ? then lVisible = yes.
+    
+    ##If:[InstanceIsSDF]##
+    {fnarg setCurrentLogicalName '##[InstanceObjectName]##'}.
+    RUN constructObject IN TARGET-PROCEDURE (INPUT  '##[InstanceRenderingProcedure]##',
+                                             INPUT  frame {&Frame-Name}:handle,
+                                             INPUT  ##[InstanceInstanceProperties]##,
+                                             OUTPUT ##getInstanceHandleName([InstanceName])##).
+            
+    RUN repositionObject IN ##getInstanceHandleName([InstanceName])## (##[InstanceRow]##, ##[InstanceColumn]##) NO-ERROR.
+    RUN resizeObject     IN ##getInstanceHandleName([InstanceName])## (##[InstanceHeight]##, ##[InstanceWidth]##) NO-ERROR.
+    {fnarg setCurrentLogicalName ''}.
+    
+    ##If:instanceIsVisual([InstanceClass])##
+    /* If this is not a generated object, then make sure it will be secured and translated.
+       the retrieval will have set the ObjectTranslated and ObjectSecured flags correctly,
+       but the translations will not have been applied correctly in all cases.
+     */
+    if not can-do(##getInstanceHandleName([InstanceName])##:internal-entries, 'adm-assignObjectProperties') then
+    do:
+        &scoped-define xp-Assign
+        {set ObjectTranslated no ##getInstanceHandleName([InstanceName])##}
+        {set ObjectSecured no ##getInstanceHandleName([InstanceName])##}.
+        &undefine xp-Assign
+    end.    /* not a generated object */            
+    ##If:End##    /* instance is Visual */            
+    ##If:End##     /* instance is sdf */
+    
+    ##If:[GenerateSecurity]##
+    /* Apply security */
+    iPos = lookup('##[InstanceName]##', pcSecuredFields).
+    if iPos gt 0 then
+    do:
+        cSecurityAction = entry(iPos + 1, pcSecuredFields).
+        if cSecurityAction eq 'Hidden' then
+            lVisible = no.
+    end.    /* field security found */
+    ##If:[InstanceIsWidget]##
+    else
+    /* if no field security, check for token security. */
+    do:
+        iPos = lookup('##[InstanceName]##', pcSecuredTokens).
+	    if iPos ne 0 then
+	        cSecurityAction = 'ReadOnly'.
+    end.    /* token security */
+    ##If:End##    /* instance is widget */    
+    ##If:End##    /* generate security */
+    
+    ##If:[InstanceIsWidget]##
     create ##[InstanceType]## ##getInstanceHandleName([InstanceName])##
         assign frame = frame {&Frame-Name}:handle
                name = '##[InstanceName]##'
@@ -478,18 +450,24 @@ procedure adm-create-##[InstanceName]## :
                ##If:widgetCanSetDataType([InstanceType])##
                data-type = '##[InstanceDataType]##'
                ##If:End##    /* can-set data type */
-               ##If:widgetCanSetFormat([InstanceType])##
-               format = '##[InstanceFormat]##'
-               ##If:End##    /* can-set data type */                   
         triggers:
         ##Loop:ViewerInstanceEvents##
-            on ##[EventName]## persistent ##[EventAction]##.
+            on ##[EventName]## persistent run processEventProcedure in target-procedure ( input ##[EventActionType]##,
+                                                                                          input ##[EventEventAction]##,
+                                                                                          input ##[EventActionTarget]##,
+                                                                                          input ##[EventEventParameter]## ).
         ##Loop:End##    /* ViewerInstanceEvents */
         end triggers.
     /* CAN-SET() is performed by the generation, so
        all the attributes here can be set.
+       
+       Format is explicitly set in this ASSIGN so as to use 
+       the NO-ERROR on the end.
      */
-    assign          
+    assign
+    ##If:widgetCanSetFormat([InstanceType])##
+    ##getInstanceHandleName([InstanceName])##:format = ##[InstanceFormat]##
+    ##If:End##    /* can-set data type */
     ##Loop:createWidgetAttributes##
     ##getInstanceHandleName([InstanceName])##:##[InstanceAttributeName]## = ##[InstanceAttributeValue]##
     ##Loop:End##
@@ -515,24 +493,8 @@ procedure adm-create-##[InstanceName]## :
         if ##getInstanceHandleName([InstanceName])##:x - hLabel:width-pixels gt 0 then
             hLabel:x = ##getInstanceHandleName([InstanceName])##:x - hLabel:width-pixels.
         else
-        do:
-            /* Make sure the label doesn't start off the viewer. */
             hLabel:x = 1.
             
-            /* If this viewer has the KeepChildPositions set to yes,
-               make sure that the label doesn't overwrite the widget.
-               This is a danger primarily for translated wigets; if the KeepChildPositions
-               attribute is false, then this viewer will later take care of sorting 
-               itself out.
-               
-               The tooltip of the label is set to the whole label's value 
-               so that we can see what the correct label is.
-             */
-             if plKeepChildPositions then
-                 assign hLabel:width-pixels = ##getInstanceHandleName([InstanceName])##:x - hLabel:x - 2
-                        hLabel:tooltip = hLabel:screen-value.
-        end.    /* Label won't fit as things stand */
-        
         assign hLabel:font = ##[InstanceLabelFont]## WHEN '##[InstanceLabelFont]##' NE '?'
                hLabel:fgcolor = ##[InstanceLabelFgColor]## WHEN '##[InstanceLabelFgColor]##' NE '?'
                hLabel:bgcolor = ##[InstanceLabelBgColor]## WHEN '##[InstanceLabelbgColor]##' NE '?'
@@ -547,7 +509,7 @@ procedure adm-create-##[InstanceName]## :
                             
     ##If:[ShowWidgetPopup]##
     /* Create a popup button for pop-up calendar or calculator */
-    if plShowPopup and plVisible then
+    if plShowPopup and lVisible then
     do:
         create button hPopup
             assign frame = frame {&Frame-Name}:handle
@@ -566,10 +528,8 @@ procedure adm-create-##[InstanceName]## :
         if not plPopupButtonInField then
             assign hPopup:x = ##getInstanceHandleName([InstanceName])##:x + ##getInstanceHandleName([InstanceName])##:width-pixels - 2
                    ##getInstanceHandleName([InstanceName])##:width-pixels = ##getInstanceHandleName([InstanceName])##:width-pixels + 15
-                   ##If:[GenerateTranslations]##
                     /* Make sure the calced frame width is correct */
                    pdFrameWidth = max(pdFrameWidth, ##[InstanceColumn]## + ##[InstanceWidth]## + hPopup:WIDTH-CHARS)
-                   ##If:End##
                    no-error.
         else
             assign hPopup:x = (##getInstanceHandleName([InstanceName])##:x + ##getInstanceHandleName([InstanceName])##:width-pixels) - 17
@@ -597,8 +557,7 @@ procedure adm-create-##[InstanceName]## :
 	   The code below is only for those text widgets that are not going to display data from a data source (ie things like the 
        labels on rectangles)
      */
-    assign ##getInstanceHandleName([InstanceName])##:format = '##[InstanceFormat]##'
-           ##getInstanceHandleName([InstanceName])##:screen-value = '##[InstanceInitialValue]##'.
+    ##getInstanceHandleName([InstanceName])##:screen-value = '##[InstanceInitialValue]##'.
     ##If:End##
     
     if ##getInstanceHandleName([InstanceName])##:type eq 'Editor' then
@@ -611,14 +570,14 @@ procedure adm-create-##[InstanceName]## :
        to false for datafields when they are displayed.  When certain widgets that are not 
        dataobject-based are enabled, modified is set to false by the 4GL, for others it is not
        so we need to set it to false here. */
-    if plVisible then
+    if lVisible then
         ##getInstanceHandleName([InstanceName])##:modified = no.
     ##If:End##
     
+    ##If:[WidgetHasImage])##
     /* Special handling for images. Load the image so that we can see it. */
-    ##If:widgetIsImage([InstanceType])##
     ##getInstanceHandleName([InstanceName])##:load-image(##[InstanceImageFile]##) no-error.
-    ##If:End##    /* image */
+    ##If:End##    /* widget has image */
     
     /* If the field is to be made visible, then the label should be, too. However, we cannot set the
        VISIBLE attribute to YES without the viewer's frame's VISIBLE attribute also being set to YES
@@ -627,16 +586,50 @@ procedure adm-create-##[InstanceName]## :
        their VISIBLE property to NO.                                                                 
      */
     if can-set(##getInstanceHandleName([InstanceName])##, 'Hidden') and
-         (not plHideOnInit or plVisible eq no) then
-        assign ##getInstanceHandleName([InstanceName])##:hidden = not plVisible
+         (not plHideOnInit or lVisible eq no) then
+        assign ##getInstanceHandleName([InstanceName])##:hidden = not lVisible
                ##getInstanceHandleName([InstanceName])##:side-label-handle:hidden = ##getInstanceHandleName([InstanceName])##:hidden
                no-error.
+            
+    ##If:End## /* instance is widget */
+            
+    /* Build lists of the fields to display and enable */
+    assign pcFieldSecurity = pcFieldSecurity + ',' + cSecurityAction
+    ##If:[InstanceDisplayAndNotLocal]##
+           pcDisplayedFields = pcDisplayedFields + ',##[InstanceName]##'
+           pcFieldHandles = pcFieldHandles + ',' + string(##getInstanceHandleName([InstanceName])##)
+    ##If:End##    /* display and non-local */            
+    ##If:[InstanceEnabled]##
+           ##[EnabledNameList]## = ##[EnabledNameList]## + ',##[InstanceName]##'
+           ##[EnabledHandleList]## = ##[EnabledHandleList]## + ',' + string(##getInstanceHandleName([InstanceName])##)
+    ##If:End##    /* instance enabled */                
+           pcAllFieldHandles = pcAllFieldHandles + ',' + string(##getInstanceHandleName([InstanceName])##).
+           pcAllFieldNames = pcAllFieldNames + ',##[InstanceName]##'.
+    
+    assign pdFrameWidth = max(pdFrameWidth, ##[InstanceColumn]## + ##[InstanceWidth]## - 1)
+           pdFrameHeight = max(pdFrameHeight, ##[InstanceRow]## + ##[InstanceHeight]## - 1).
+            
+    /* Create ttWidget records for repositioning after translation. */            
+    phWidgetBuffer:buffer-create().
+    assign phWidgetBuffer:buffer-field('tWidgetHandle'):buffer-value = ##getInstanceHandleName([InstanceName])##
+           phWidgetBuffer:buffer-field('tTargetProcedure'):buffer-value = target-procedure
+           phWidgetBuffer:buffer-field('tWidth'):buffer-value = ##[InstanceWidth]##
+           phWidgetBuffer:buffer-field('tRow'):buffer-value = ##[InstanceRow]##
+           phWidgetBuffer:buffer-field('tEndRow'):buffer-value = ##[InstanceRow]## + ##[InstanceHeight]##
+           phWidgetBuffer:buffer-field('tColumn'):buffer-value = ##[InstanceColumn]##
+           phWidgetBuffer:buffer-field('tRow'):buffer-value = ##[InstanceRow]##
+           phWidgetBuffer:buffer-field('tWidgetType'):buffer-value = '##[InstanceType]##'
+           phWidgetBuffer:buffer-field('tTabOrder'):buffer-value = ##[InstanceOrder]##
+           phWidgetBuffer:buffer-field('tVisible'):buffer-value = lVisible
+           phWidgetBuffer:buffer-field('tFont'):buffer-value = ##[InstanceFont]##
+           phWidgetBuffer:buffer-field('tTableName'):buffer-value = '##[InstanceTableName]##'
+           phWidgetBuffer:buffer-field('tInitialValue'):buffer-value = '##[InstanceInitialValue]##'.
+    phWidgetBuffer:buffer-release().
     
     error-status:error = no.
     return.
 end procedure.    /* adm-create-##getInstanceHandleName([InstanceName])## */
 ##Loop:End##    /* create viewer widgets */
-
     
 ##If:[GenerateTranslations]##
 ##Loop:translateViewer##
@@ -647,8 +640,10 @@ procedure translate-##[LanguageCode]##:
     define variable iLabelWidthPixels as integer no-undo.
     define variable dLabelMinHeight as decimal no-undo.
     define variable cLabel as character no-undo.
+    define variable lKeepChildPositions as logical no-undo.
     
     hWidgetBuffer = {fn getWidgetTableBuffer}.
+    {get KeepChildPositions lKeepChildPositions}.
     
     ##Loop:translateViewerItem##
     /* Translation for ##[InstanceName]## */
@@ -668,6 +663,7 @@ procedure translate-##[LanguageCode]##:
     assign cLabel= '##[TranslatedLabel]##:'
            iFont = ##getInstanceHandleName([InstanceName])##:Font.
     if can-set(##getInstanceHandleName([InstanceName])##, 'Side-Label-Handle') then
+    do:
         assign hLabel = ##getInstanceHandleName([InstanceName])##:Side-Label-Handle               
                iLabelWidthPixels = font-table:get-text-width-pixels(cLabel, iFont) + 3
                dLabelMinHeight = if ##getInstanceHandleName([InstanceName])##:height-chars ge 1 then 1 else font-table:get-text-height(iFont)
@@ -675,6 +671,16 @@ procedure translate-##[LanguageCode]##:
                hLabel:height-chars = min(##getInstanceHandleName([InstanceName])##:height-chars, dLabelMinHeight)
                hLabel:width-pixels = iLabelWidthPixels
                hLabel:screen-value = cLabel.
+        
+        /* If this viewer has the KeepChildPositions set to yes,
+           make sure that the label doesn't overwrite the widget.           
+           The tooltip of the label is set to the whole label's value 
+           so that we can see what the correct label is.
+		 */
+        if lKeepChildPositions then
+            assign hLabel:width-pixels = ##getInstanceHandleName([InstanceName])##:x - hLabel:x - 2
+                   hLabel:tooltip = cLabel.
+    end.    /* side-label-handle */
     else
     if ##getInstanceHandleName([InstanceName])##:type eq 'Button' then
         ##getInstanceHandleName([InstanceName])##:Label = '##[TranslatedLabel]##'.

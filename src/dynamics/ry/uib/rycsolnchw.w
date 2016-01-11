@@ -2,6 +2,13 @@
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME wWin
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS wWin 
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /*------------------------------------------------------------------------
 
   File: 
@@ -931,7 +938,7 @@ PROCEDURE refreshADM :
  
  cOpenProc = checkADM('').
  
- IF cOpenProc <> '':U AND cOpenProc <> ghRycSmartObject:FILE-NAME THEN
+ IF cOpenProc <> '':U  THEN
  DO WITH FRAME {&FRAME-NAME}:
   MESSAGE 'The ADM Super Procedures are currently being used by' cOpenProc '.'
           SKIP
@@ -1281,27 +1288,39 @@ FUNCTION checkADM RETURNS CHARACTER
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
- DEFINE VARIABLE h        AS HANDLE     NO-UNDO.
  DEFINE VARIABLE hObj     AS HANDLE     NO-UNDO.
  DEFINE VARIABLE cSupers  AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE hSuper   AS HANDLE     NO-UNDO.
  DEFINE VARIABLE i        AS INTEGER    NO-UNDO.
  DEFINE VARIABLE cList    AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cObjType AS CHARACTER  NO-UNDO.
 
  ASSIGN hObj = SESSION:FIRST-PROCEDURE.
  ProcLoop:
  DO WHILE VALID-HANDLE(hObj):
-   cSupers = hObj:SUPER-PROCEDURES.
-   DO i = 1 TO NUM-ENTRIES(cSupers):
-     hSuper= WIDGET-HANDLE(ENTRY(i,cSupers)).
-     IF (pccheck = '':u 
-         OR ENTRY(NUM-ENTRIES(hObj:FILE-NAME,'.':U),hObj:FILE-NAME,'.':U) = pcCheck)
-     AND CAN-DO(xcADMdestroy,hSuper:FILE-NAME) THEN 
-     DO:
-        cList = cList + (IF clist = '' THEN '' ELSE ', ') + hObj:FILE-NAME. 
-        LEAVE. 
+   ASSIGN 
+     cSupers  = hObj:SUPER-PROCEDURES.
+     cObjType = ''.
+
+   IF hObj <> ghRycSmartObject THEN
+   DO:
+     IF CAN-DO(xcADMdestroy,hObj:FILE-NAME) THEN 
+       cObjType = {fn getObjectType hObj} NO-ERROR.
+  
+     IF cObjType <> 'SUPER' THEN
+     DO i = 1 TO NUM-ENTRIES(cSupers):
+       hSuper= WIDGET-HANDLE(ENTRY(i,cSupers)).
+       
+       IF (pccheck = '':u 
+           OR ENTRY(NUM-ENTRIES(hObj:FILE-NAME,'.':U),hObj:FILE-NAME,'.':U) = pcCheck)
+       AND CAN-DO(xcADMdestroy,hSuper:FILE-NAME) THEN
+       DO:
+         cList = cList + (IF clist = '' THEN '' ELSE ', ') + hObj:FILE-NAME. 
+         LEAVE. 
+       END.
      END.
    END.
+
    hObj = hObj:NEXT-SIBLING.
  END. 
  

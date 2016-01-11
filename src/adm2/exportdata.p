@@ -2,25 +2,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*----------------------------------------------------------------------------
@@ -1089,7 +1073,7 @@ END.
 ELSE
   ASSIGN lConvertToOSNumeric = NO 
          cOSDateTimeFormat   = "@":U.
-
+        
 /* We've got data, now get it into Excel.     *
  * First, determine how many columns we have. */
 FIND LAST ttTable WHERE ttTable.iCol = 1 NO-ERROR.
@@ -1112,7 +1096,7 @@ END.
 FOR EACH ttTable WHERE ttTable.irow = 4:
     ASSIGN ENTRY(ttTable.iCol, cFormatList,chr(1)) = ttTable.cCell.
 END.
-
+ 
 /* Now dump all the data to disk, we'll load in into Excel from there. */
 ASSIGN cLabel          = STRING(TIME, "HH:MM:SS")
        cLabel          = REPLACE(cLabel, ":":U, "":U)
@@ -1326,14 +1310,17 @@ FOR EACH ttTable
               cNumFormat = REPLACE(cNumFormat,'<':u, '#':u)
               cNumFormat = REPLACE(cNumFormat,'9':u, '0':u). 
 
-      /* Make sure the decimal point and numeric separators in our file correspond to what Excel is going to use. */ 
-       IF lConvertToOSNumeric = YES THEN
-          ASSIGN cNumFormat = REPLACE(cNumFormat, SESSION:NUMERIC-DECIMAL-POINT, CHR(1))
-                 cNumFormat = REPLACE(cNumFormat, SESSION:NUMERIC-SEPARATOR, CHR(2))
-                 cNumFormat = REPLACE(cNumFormat, CHR(1), cOSNumericPoint)
-                 cNumFormat = REPLACE(cNumFormat, CHR(2), cOSThousandSeparator)
-                 NO-ERROR.
-
+       /* Make sure the decimal point and numeric separators in our file correspond 
+          to what Excel is going to use. 
+          Progress always stores the formats in American format. We need to convert
+          these formats to the OS-Locale's values.
+        */       
+       ASSIGN cNumFormat = REPLACE(cNumFormat, '.':u, CHR(1))
+              cNumFormat = REPLACE(cNumFormat, ',':u, CHR(2))
+              cNumFormat = REPLACE(cNumFormat, CHR(1), cOSNumericPoint)
+              cNumFormat = REPLACE(cNumFormat, CHR(2), cOSThousandSeparator)
+              NO-ERROR.
+       
        /* Check for negative formating */
        IF (INDEX(cNumFormat,"(":U) > 0 AND INDEX(cNumFormat,"(":U) > 0) THEN
          ASSIGN cNumFormat = REPLACE(cNumFormat,"(":U,"")
@@ -1727,8 +1714,11 @@ PROCEDURE exportToXML :
   FOR EACH ttTable WHERE ttTable.irow = 0:
     ASSIGN
       cFieldLabelList = cFieldLabelList +
-                       (IF cFieldLabelList <> "":U THEN ",":U ELSE "":U) +
-                       ttTable.cCell
+                       (IF cFieldLabelList <> "":U OR iCol > 1 THEN 
+                           ",":U 
+                        ELSE 
+                           "":U)
+                       + ttTable.cCell
       .     
   END.  
   /* build list of field names */

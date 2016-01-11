@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -35,6 +19,8 @@ Modified Date:  11/27/96    kkelley  Removed labels under icons in dictionary fo
                                      Code commented out has WIN95 at the beginning
                 05/19/99 Mario B.  Adjust Width Field browser integration.
                 D. McMann 02/21/03 Replaced GATEWAYS with DATASERVERS
+                10/10/04 K. McIntosh Added code to reset SESSION:SUPPRESS-WARNINGS when
+                                     user cancels.  Bug # 20041108-002
 ----------------------------------------------------------------------------*/
 
 &SCOPED-DEFINE DICTG dictg
@@ -625,10 +611,12 @@ do ON STOP UNDO, LEAVE:
       do:
          delete widget s_win_Logo.
          delete widget s_win_Browse.
+         session:suppress-warnings = supw_sav.
          return.
       end.
    
       display "Loading..." @ loading with frame logo.
+      
       run adecomm/_setcurs.p ("WAIT"). 
    end.
    

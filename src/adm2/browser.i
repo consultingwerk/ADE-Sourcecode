@@ -2,25 +2,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Method-Library 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*--------------------------------------------------------------------------
@@ -171,9 +155,15 @@ ON 'U10':U OF THIS-PROCEDURE
    (expression) @ localvar.
    Use a static display for these as the expression is difficult to evaluate 
    dynamically. Even a browse:refresh does not work until row-leave has fired, 
-   so save in an updatable browse would not refresh */
+   so a save without a leave in an updatable browse would not refresh 
+   calculations */
     &IF INDEX("{&FIELDS-IN-QUERY-{&BROWSE-NAME}}":U,"@":U) = 0 &THEN
  &SCOPED-DEFINE EXCLUDE-DisplayFieldsStatic   
+    &ENDIF  
+     /* this function is not in use, but is kept for backwards compatibility
+        in sdb that defines the rowobject include (Dataview SDBs don't )*/
+    &IF DEFINED(DATA-FIELD-DEFS) = 0 &THEN
+ &SCOPED-DEFINE EXCLUDE-getRowObject   
     &ENDIF  
 
 /* Compile this only is for a static browse */
@@ -182,16 +172,24 @@ ON 'U10':U OF THIS-PROCEDURE
   cStripDisp = DYNAMIC-FUNCTION("stripCalcs":U, "{&FIELDS-IN-QUERY-{&BROWSE-NAME}}":U).
   iEntries = NUM-ENTRIES(cStripDisp, " ":U).
   DO iCol = 1 TO iEntries:
-    cEntry = ENTRY(iCol, cStripDisp, " ":U).
-    cViewCols = cViewCols + (IF cViewCols NE "":U THEN ",":U ELSE "":U) +
-      SUBSTR(cEntry, R-INDEX(cEntry, ".":U) + 1).  /* Remove table (and db) */
+    ASSIGN
+      cEntry    = ENTRY(iCol, cStripDisp, " ":U)
+      cViewCols = cViewCols
+                + (IF cViewCols NE "":U THEN ",":U ELSE "":U) 
+                + (IF cEntry BEGINS 'RowObject.':U
+                   THEN ENTRY(2,cEntry,'.':U)
+                   ELSE cEntry ).  
   END.
   cStripEnable = DYNAMIC-FUNCTION("stripCalcs":U, "{&ENABLED-FIELDS-IN-QUERY-{&BROWSE-NAME}}":U).
   iEntries = NUM-ENTRIES(cStripEnable, " ":U).
   DO iCol = 1 TO iEntries:
-    cEntry = ENTRY(iCol, cStripEnable, " ":U).
-    cEnabled = cEnabled + (IF cEnabled NE "":U THEN ",":U ELSE "":U) +
-      SUBSTR(cEntry, R-INDEX(cEntry, ".":U) + 1).  /* Remove table (and db) */
+    ASSIGN 
+      cEntry   = ENTRY(iCol, cStripEnable, " ":U)
+      cEnabled = cEnabled 
+               + (IF cEnabled NE "":U THEN ",":U ELSE "":U) 
+               + (IF cEntry BEGINS 'RowObject.':U
+                  THEN ENTRY(2,cEntry,'.':U)
+                  ELSE cEntry).  
   END.
   
   {set DisplayedFields cViewCols}.
@@ -228,44 +226,151 @@ PROCEDURE displayFieldsStatic :
   Parameters:  <none>
   Notes:   This is conditionally compiled ONLY if there is a local calculated 
            field in the field list.
-         - It creates a temporary rowobject and assigns all values to be able
-           to display them using the generated static {&fields-in-} list, which
-           also has the (<calc expression>) @ <some variable> .     
+         - It creates a temporary rowobject/temp-table record and assigns all 
+           values to be able to display them using the generated static 
+           {&fields-in-} list, which also has the 
+             (<calc expression>) @ <some variable>.     
          - It is called from browser.p DisplayFields if a '<calc>' entry is 
            found in DisplayedFields.      
 ------------------------------------------------------------------------------*/
    DEFINE INPUT  PARAMETER pcColValues AS CHARACTER  NO-UNDO.
    
-   DEFINE VARIABLE rRowid        AS ROWID      NO-UNDO.
    DEFINE VARIABLE iValue        AS INTEGER    NO-UNDO.
-   DEFINE VARIABLE hBuffer       AS HANDLE     NO-UNDO.
    DEFINE VARIABLE hField        AS HANDLE     NO-UNDO.
    DEFINE VARIABLE hFrameField   AS HANDLE     NO-UNDO.
    DEFINE VARIABLE cFields       AS CHARACTER  NO-UNDO.
    DEFINE VARIABLE cFieldHandles AS CHARACTER  NO-UNDO.
    DEFINE VARIABLE cField        AS CHARACTER  NO-UNDO.
+   DEFINE VARIABLE hDataTable    AS HANDLE     NO-UNDO.
+   DEFINE VARIABLE hDataSource   AS HANDLE     NO-UNDO.
+   DEFINE VARIABLE cTable        AS CHARACTER  NO-UNDO.
+   DEFINE VARIABLE hBuffer       AS HANDLE     NO-UNDO EXTENT 18.
+   DEFINE VARIABLE rRowid        AS ROWID      NO-UNDO EXTENT 18.
+   DEFINE VARIABLE iTable        AS INTEGER    NO-UNDO.
+   DEFINE VARIABLE cTableList    AS CHARACTER  NO-UNDO.
+   DEFINE VARIABLE hUseBuffer    AS HANDLE     NO-UNDO.
+   DEFINE VARIABLE iNumTables    AS INTEGER    NO-UNDO.
 
    /* No need if no record (pcColvalues = ?) or no focus (will give error) */ 
    IF pcColValues <> ? AND BROWSE {&BROWSE-NAME}:FOCUSED-ROW <> ? THEN
    DO:
      {get FieldHandles cFieldHandles}.
      {get DisplayedFields cFields}.
-     /* there should never be a RowObject record here, but just in case...
-        lets keep track of it and reposition to it after */ 
-     IF AVAIL RowObject THEN
-       rRowid = ROWID(RowObject).
-  
-     CREATE RowObject.
-     
-     hBuffer = BUFFER RowObject:HANDLE.
-     
+     ASSIGN
+     &IF DEFINED(FIRST-table-in-query-{&Browse-name}) <> 0 &THEN
+        hBuffer[1] = BUFFER {&FIRST-table-in-query-{&Browse-name}}:HANDLE
+        iNumTables = iNumTables + 1
+     &ENDIF
+     &IF DEFINED(SECOND-table-in-query-{&Browse-name}) <> 0 &THEN
+        hBuffer[2] = BUFFER {&SECOND-table-in-query-{&Browse-name}}:HANDLE
+        iNumTables = iNumTables + 1
+     &ENDIF
+     &IF DEFINED(THIRD-table-in-query-{&Browse-name}) <> 0 &THEN
+        hBuffer[3] = BUFFER {&THIRD-table-in-query-{&Browse-name}}:HANDLE
+        iNumTables = iNumTables + 1
+     &ENDIF
+     &IF DEFINED(FOURTH-table-in-query-{&Browse-name}) <> 0 &THEN
+        hBuffer[4] = BUFFER {&FOURTH-table-in-query-{&Browse-name}}:HANDLE
+        iNumTables = iNumTables + 1
+     &ENDIF
+     &IF DEFINED(FIFTH-table-in-query-{&Browse-name}) <> 0 &THEN
+        hBuffer[5] = BUFFER {&FIFTH-table-in-query-{&Browse-name}}:HANDLE
+        iNumTables = iNumTables + 1
+     &ENDIF
+     &IF DEFINED(SIXTH-table-in-query-{&Browse-name}) <> 0 &THEN
+        hBuffer[6] = BUFFER {&SIXTH-table-in-query-{&Browse-name}}:HANDLE
+        iNumTables = iNumTables + 1
+     &ENDIF
+     &IF DEFINED(SEVENTH-table-in-query-{&Browse-name}) <> 0 &THEN
+        hBuffer[7] = BUFFER {&SEVENTH-table-in-query-{&Browse-name}}:HANDLE
+        iNumTables = iNumTables + 1
+     &ENDIF
+     &IF DEFINED(EIGHT-table-in-query-{&Browse-name}) <> 0 &THEN
+        hBuffer[8] = BUFFER {&EIGHT-table-in-query-{&Browse-name}}:HANDLE
+        iNumTables = iNumTables + 1
+     &ENDIF
+     &IF DEFINED(NINTH-table-in-query-{&Browse-name}) <> 0 &THEN
+        hBuffer[9] = BUFFER {&NINTH-table-in-query-{&Browse-name}}:HANDLE
+        iNumTables = iNumTables + 1
+     &ENDIF
+     &IF DEFINED(TENTH-table-in-query-{&Browse-name}) <> 0 &THEN
+        hBuffer[10] = BUFFER {&TENTH-table-in-query-{&Browse-name}}:HANDLE
+        iNumTables = iNumTables + 1
+     &ENDIF
+     &IF DEFINED(ELEVENTH-table-in-query-{&Browse-name}) <> 0 &THEN
+        hBuffer[11] = BUFFER {&ELEVENTH-table-in-query-{&Browse-name}}:HANDLE
+        iNumTables = iNumTables + 1
+     &ENDIF
+     &IF DEFINED(TWELFTH-table-in-query-{&Browse-name}) <> 0 &THEN
+        hBuffer[12] = BUFFER {&TWELFTH-table-in-query-{&Browse-name}}:HANDLE
+        iNumTables = iNumTables + 1
+     &ENDIF
+     &IF DEFINED(THIRTEENTH-table-in-query-{&Browse-name}) <> 0 &THEN
+        hBuffer[13] = BUFFER {&THIRTEENTH-table-in-query-{&Browse-name}}:HANDLE
+        iNumTables = iNumTables + 1
+     &ENDIF
+     &IF DEFINED(FOURTEENTH-table-in-query-{&Browse-name}) <> 0 &THEN
+        hBuffer[14] = BUFFER {&FOURTEENTH-table-in-query-{&Browse-name}}:HANDLE
+        iNumTables = iNumTables + 1
+     &ENDIF
+     &IF DEFINED(FIFTEENTH-table-in-query-{&Browse-name}) <> 0 &THEN
+        hBuffer[15] = BUFFER {&FIFTEENTH-table-in-query-{&Browse-name}}:HANDLE
+        iNumTables = iNumTables + 1
+     &ENDIF
+     &IF DEFINED(SIXTEENTH-table-in-query-{&Browse-name}) <> 0 &THEN
+        hBuffer[16] = BUFFER {&SIXTEENTH-table-in-query-{&Browse-name}}:HANDLE
+        iNumTables = iNumTables + 1
+     &ENDIF
+     &IF DEFINED(SEVENTEENTH-table-in-query-{&Browse-name}) <> 0 &THEN
+        hBuffer[17] = BUFFER {&SEVENTEENTH-table-in-query-{&Browse-name}}:HANDLE
+        iNumTables = iNumTables + 1
+     &ENDIF
+     &IF DEFINED(EIGHTEENTH-table-in-query-{&Browse-name}) <> 0 &THEN
+        hBuffer[18] = BUFFER {&EIGHTEENTH-table-in-query-{&Browse-name}}:HANDLE
+        iNumTables = iNumTables + 1
+     &ENDIF
+     .
+
+     /* initiate create a temporary tt record for each potential table */
+     DO iTable = 1 TO iNumTables:
+       IF VALID-HANDLE(hBuffer[iTable]) THEN
+       DO:
+         /* only create if in list of fields (always create the first
+            used for unqualifed lists) */
+         IF iTable = 1 
+         OR INDEX("," + cFields,"," + hBuffer[iTable]:NAME + '.') > 0 THEN
+         DO:
+           /* There should never be a RowObject record here, but just in case...
+              lets keep track of it and reposition to it after */ 
+           IF hBuffer[iTable]:AVAIL THEN
+             rRowid[iTable] = hBuffer[iTable]:ROWID.
+         
+           hBuffer[iTable]:BUFFER-CREATE.
+         END.
+         /* ordinal list used to find array number from name */
+         cTableList = cTableList 
+                    + (IF iTable = 1 THEN '' ELSE ',')
+                    + hBuffer[iTable]:NAME.
+       END.
+     END.  /* do itable = 1 to iNumTables */
+
      DO iValue = 2 TO NUM-ENTRIES(pcColValues,CHR(1)):
        cField = ENTRY(iValue - 1,cFields).
+       IF NUM-ENTRIES(cField,'.') > 1 THEN
+       DO:
+         ASSIGN
+           cTable     = ENTRY(1,cField,'.':U) 
+           cField     = ENTRY(2,cField,'.':U) 
+           hUSEBuffer = hBuffer[LOOKUP(cTable,cTableList)].
+       END.
+       ELSE 
+         hUseBuffer = hBuffer[1].
+
        IF cField <> '<Calc>':U THEN
        DO:
          ASSIGN 
            hFrameField = WIDGET-HANDLE(ENTRY(iValue - 1,cFieldHandles))
-           hField = hBuffer:BUFFER-FIELD(cField)
+           hField = hUseBuffer:BUFFER-FIELD(cField)
            hField:BUFFER-VALUE = IF pcColValues NE ? 
                                  THEN RIGHT-TRIM(ENTRY(iValue, pcColValues, CHR(1)))
                                  ELSE IF hField:DATA-TYPE NE "LOGICAL":U 
@@ -275,12 +380,16 @@ PROCEDURE displayFieldsStatic :
      END.
      DISPLAY {&FIELDS-IN-QUERY-{&BROWSE-NAME}} WITH BROWSE {&BROWSE-NAME}.
      
-     DELETE RowObject.
-     
-     IF rRowid <> ? THEN
-       FIND rowObject WHERE ROWID(RowObject) = rRowid NO-ERROR.
+     /* deelte temporary tt records and repos if necessary */
+     DO iTable = 1 TO iNumTables:
+       IF VALID-HANDLE(hBuffer[iTable]) THEN
+       DO:
+         hBuffer[iTable]:BUFFER-DELETE.
+         IF rRowid[iTable] <> ? THEN
+           hBuffer[iTable]:FIND-BY-ROWID(rRowid[iTable]) NO-ERROR.
+       END.
+     END.  /* do itable = 1 to inumtables */
    END. /* pcColValues <> ? */
-
 
 END PROCEDURE.
 

@@ -1,3 +1,10 @@
+/*************************************************************/
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /* smart.cst - custom SmartObject file - Version 9 - 10/07/1999
  ************************************************************************/
 
@@ -12,6 +19,22 @@ NEW-TEMPLATE    src/adm2/template/cntnrdlg.w
 
 *NEW-CONTAINER  Simple Smart&Container
 NEW-TEMPLATE    src/adm2/template/cntnrsimpl.w
+
+*NEW-SMARTOBJECT DataView
+TYPE		 SmartDataObject
+NEW-TEMPLATE     src/adm2/template/dataview.w
+
+#DataView &Default
+UP-IMAGE-FILE    adeicon/wp_up 24,480
+DOWN-IMAGE-FILE  adeicon/wp_down 24,480
+LABEL            DataView
+NEW-TEMPLATE     src/adm2/template/dataview.w
+DIRECTORY-LIST   .,adm2
+FILTER           dv*.w,dv*.r,dv*.*,*.*
+TITLE            Choose DataView
+
+*DataView &Dynamic DataView
+USE             adm2/dyndataview.w
 
 #SmartObject.   &Default
 UP-IMAGE-FILE   adeicon/wp_up 24,336

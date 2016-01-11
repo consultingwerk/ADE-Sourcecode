@@ -3,6 +3,13 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME Dialog-Frame
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Dialog-Frame 
+/*************************************************************/
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /*------------------------------------------------------------------------
 
   File:              adeuib/_prpdlp.p
@@ -49,7 +56,7 @@ DEFINE VARIABLE glUpdateDefs AS LOGICAL  NO-UNDO.
 &Scoped-define PROCEDURE-TYPE Dialog-Box
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME Dialog-Frame
 
 /* Standard List Definitions                                            */
@@ -166,7 +173,7 @@ DEFINE FRAME Dialog-Frame
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX Dialog-Frame
-                                                                        */
+   FRAME-NAME                                                           */
 ASSIGN 
        FRAME Dialog-Frame:SCROLLABLE       = FALSE
        FRAME Dialog-Frame:HIDDEN           = TRUE.
@@ -321,7 +328,8 @@ DEFINE VARIABLE hSDO           AS HANDLE     NO-UNDO.
 DEFINE VARIABLE lDynamic       AS LOGICAL    NO-UNDO.
 
   DO WITH FRAME {&FRAME-NAME}:
-    hSDO = DYNAMIC-FUNCTION('get-proc-hdl':U IN _h_func_lib, INPUT cSDO:SCREEN-VALUE).
+    hSDO = DYNAMIC-FUNCTION('get-sdo-hdl':U IN _h_func_lib, 
+                             cSDO:SCREEN-VALUE,TARGET-PROCEDURE).
     IF VALID-HANDLE(hSDO) THEN
     DO:
       cPhysicalTable = ENTRY(1,DYNAMIC-FUNCTION('getPhysicalTables':U IN hSDO)).
@@ -361,7 +369,7 @@ DEFINE VARIABLE lDynamic       AS LOGICAL    NO-UNDO.
         ELSE cInclude:SCREEN-VALUE = TRIM(DYNAMIC-FUNCTION('getDataFieldDefs':U IN hSDO), '"':U).
       END.  /* if Dynamics is running */
       ELSE cInclude:SCREEN-VALUE = TRIM(DYNAMIC-FUNCTION('getDataFieldDefs':U IN hSDO), '"':U).
-      DYNAMIC-FUNCTION('shutdown-proc':U IN _h_func_lib, INPUT cSDO:SCREEN-VALUE).
+      DYNAMIC-FUNCTION('shutdown-sdo':U IN _h_func_lib, TARGET-PROCEDURE).
         
     END.  /* if valid SDO */
     ELSE DO:

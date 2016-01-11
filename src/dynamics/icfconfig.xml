@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <sessions><session SessionType="ASICFDev"><properties><auto_dump_entity_cache>YES</auto_dump_entity_cache>
 <bound_icfdb>yes</bound_icfdb>
-<DynamicsVersion>10.0B</DynamicsVersion>
+<DynamicsVersion>10.1A</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
@@ -94,7 +94,7 @@
 </session>
 <session SessionType="ASICFRuntime"><properties><auto_dump_entity_cache>YES</auto_dump_entity_cache>
 <bound_icfdb>yes</bound_icfdb>
-<DynamicsVersion>10.0B</DynamicsVersion>
+<DynamicsVersion>10.1A</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
@@ -183,7 +183,7 @@
 </session>
 <session SessionType="Default"><properties><auto_dump_entity_cache>YES</auto_dump_entity_cache>
 <bound_icfdb>yes</bound_icfdb>
-<DynamicsVersion>10.0B</DynamicsVersion>
+<DynamicsVersion>10.1A</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
@@ -277,7 +277,7 @@
 </session>
 <session SessionType="ICFDev"><properties><auto_dump_entity_cache>NO</auto_dump_entity_cache>
 <bound_icfdb>yes</bound_icfdb>
-<DynamicsVersion>10.0B</DynamicsVersion>
+<DynamicsVersion>10.1A</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
@@ -379,7 +379,7 @@
 </session>
 <session SessionType="ICFDevAS"><properties><auto_dump_entity_cache>NO</auto_dump_entity_cache>
 <bound_icfdb>yes</bound_icfdb>
-<DynamicsVersion>10.0B</DynamicsVersion>
+<DynamicsVersion>10.1A</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
@@ -481,7 +481,7 @@
 </session>
 <session SessionType="ICFRuntime"><properties><auto_dump_entity_cache>YES</auto_dump_entity_cache>
 <bound_icfdb>no</bound_icfdb>
-<DynamicsVersion>10.0B</DynamicsVersion>
+<DynamicsVersion>10.1A</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
@@ -567,7 +567,7 @@
 <auto_dump_entity_cache>YES</auto_dump_entity_cache>
 <bound_icfdb>yes</bound_icfdb>
 <display_login_screen>Yes</display_login_screen>
-<DynamicsVersion>10.0B</DynamicsVersion>
+<DynamicsVersion>10.1A</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
@@ -667,7 +667,7 @@
 </session>
 <session SessionType="rtb_090dyndep"><properties><auto_dump_entity_cache>NO</auto_dump_entity_cache>
 <bound_icfdb>yes</bound_icfdb>
-<DynamicsVersion>10.0B</DynamicsVersion>
+<DynamicsVersion>10.1A</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
@@ -758,7 +758,7 @@
 </session>
 <session SessionType="rtb_091dyndep"><properties><auto_dump_entity_cache>NO</auto_dump_entity_cache>
 <bound_icfdb>yes</bound_icfdb>
-<DynamicsVersion>10.0B</DynamicsVersion>
+<DynamicsVersion>10.1A</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
@@ -849,7 +849,7 @@
 </session>
 <session SessionType="rtb_091dyndev"><properties><auto_dump_entity_cache>NO</auto_dump_entity_cache>
 <bound_icfdb>yes</bound_icfdb>
-<DynamicsVersion>10.0B</DynamicsVersion>
+<DynamicsVersion>10.1A</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
@@ -940,7 +940,7 @@
 </session>
 <session SessionType="rtb_091dyntst"><properties><auto_dump_entity_cache>NO</auto_dump_entity_cache>
 <bound_icfdb>yes</bound_icfdb>
-<DynamicsVersion>10.0B</DynamicsVersion>
+<DynamicsVersion>10.1A</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>

@@ -194,7 +194,6 @@ END.
 
 
 /* ***************************  Main Block  *************************** */
-   {set QueryObject yes}.             /* All DataObjects are query objects.*/
   &IF DEFINED(UIB_IS_RUNNING) <> 0 &THEN          
     RUN initializeObject.
   &ENDIF

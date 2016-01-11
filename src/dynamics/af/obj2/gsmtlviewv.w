@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
           icfdb            PROGRESS
@@ -29,25 +29,9 @@ DEFINE TEMP-TABLE RowObject
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -121,7 +105,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /* Include file with RowObject temp-table definition */
 &Scoped-define DATA-FIELD-DEFS "af/obj2/gsmtlfullo.i"
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
@@ -165,7 +149,7 @@ DEFINE VARIABLE fiShowRepositoryObjects AS LOGICAL FORMAT "TRUE/FALSE":U INITIAL
 
 DEFINE FRAME frMain
      fiShowRepositoryObjects AT ROW 1 COL 1
-     RowObject.widget_type AT ROW 4.14 COL 23.4 COLON-ALIGNED
+     RowObject.widget_type AT ROW 4.29 COL 23.4 COLON-ALIGNED
           LABEL "Widget type"
           VIEW-AS COMBO-BOX SORT INNER-LINES 5
           LIST-ITEM-PAIRS "Window Title","TITLE",
@@ -183,27 +167,27 @@ DEFINE FRAME frMain
                      "DataField","DATAFIELD"
           DROP-DOWN-LIST
           SIZE 51.2 BY 1
-     RowObject.widget_name AT ROW 5.14 COL 23.4 COLON-ALIGNED
+     RowObject.widget_name AT ROW 5.38 COL 23.4 COLON-ALIGNED
           LABEL "Widget name"
           VIEW-AS FILL-IN 
           SIZE 51.2 BY 1
-     RowObject.widget_entry AT ROW 5.14 COL 95 COLON-ALIGNED
+     RowObject.widget_entry AT ROW 5.38 COL 95 COLON-ALIGNED
           LABEL "Widget entry"
           VIEW-AS FILL-IN 
           SIZE 6.2 BY 1
-     RowObject.original_label AT ROW 6.14 COL 23.4 COLON-ALIGNED
+     RowObject.original_label AT ROW 6.48 COL 23.4 COLON-ALIGNED
           LABEL "Original label" FORMAT "X(60)"
           VIEW-AS FILL-IN 
           SIZE 78 BY 1
-     RowObject.translation_label AT ROW 7.14 COL 23.4 COLON-ALIGNED
+     RowObject.translation_label AT ROW 7.57 COL 23.4 COLON-ALIGNED
           LABEL "Translation label" FORMAT "X(60)"
           VIEW-AS FILL-IN 
           SIZE 78 BY 1
-     RowObject.original_tooltip AT ROW 8.14 COL 23.4 COLON-ALIGNED
+     RowObject.original_tooltip AT ROW 8.67 COL 23.4 COLON-ALIGNED
           LABEL "Original tooltip"
           VIEW-AS FILL-IN 
           SIZE 78 BY 1
-     RowObject.translation_tooltip AT ROW 9.14 COL 23.4 COLON-ALIGNED
+     RowObject.translation_tooltip AT ROW 9.76 COL 23.4 COLON-ALIGNED
           LABEL "Translation tooltip"
           VIEW-AS FILL-IN 
           SIZE 78 BY 1
@@ -246,7 +230,7 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 9.14
+         HEIGHT             = 11.14
          WIDTH              = 102.4.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -269,7 +253,7 @@ END.
 /* SETTINGS FOR WINDOW vTableWin
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frMain
-   NOT-VISIBLE Size-to-Fit                                              */
+   NOT-VISIBLE FRAME-NAME Size-to-Fit                                   */
 ASSIGN 
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
@@ -374,7 +358,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_language.language_code,gsc_language.language_nameKeyFieldgsc_language.language_objFieldLabelLanguageFieldTooltipSelect the language to translate to from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 (&2)ComboDelimiterListItemPairsInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNamelanguage_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_language.language_code,gsc_language.language_nameKeyFieldgsc_language.language_objFieldLabelLanguageFieldTooltipSelect the language to translate to from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 (&2)ComboDelimiterListItemPairsInnerLines5SortnoComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesSuperProcedureDataSourceNameFieldNamelanguage_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hLanguage ).
        RUN repositionObject IN hLanguage ( 1.00 , 25.40 ) NO-ERROR.
        RUN resizeObject IN hLanguage ( 1.05 , 51.20 ) NO-ERROR.
@@ -382,9 +366,9 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_language.language_code,gsc_language.language_nameKeyFieldgsc_language.language_objFieldLabelSource languageFieldTooltipSelect a source language from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(10)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 (&2)ComboDelimiterListItemPairsInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNamesource_language_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_language.language_code,gsc_language.language_nameKeyFieldgsc_language.language_objFieldLabelSource languageFieldTooltipSelect a source language from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(10)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 (&2)ComboDelimiterListItemPairsInnerLines5SortnoComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesSuperProcedureDataSourceNameFieldNamesource_language_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hSourceLanguage ).
-       RUN repositionObject IN hSourceLanguage ( 2.05 , 25.40 ) NO-ERROR.
+       RUN repositionObject IN hSourceLanguage ( 2.10 , 25.40 ) NO-ERROR.
        RUN resizeObject IN hSourceLanguage ( 1.05 , 51.20 ) NO-ERROR.
 
        RUN constructObject (
@@ -401,9 +385,9 @@ PROCEDURE adm-create-objects :
                      WHERE gsc_product.product_obj = gsc_product_module.product_obj
                      BY gsc_product_module.product_module_code
                      BY gsc_object_type.object_type_code
-                     BY ryc_smartobject.object_filenameQueryTablesryc_smartobject,gsc_object_type,gsc_product_module,gsc_productBrowseFieldsgsc_product_module.product_module_code,gsc_object_type.object_type_code,ryc_smartobject.object_filename,ryc_smartobject.object_descriptionBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(35)|X(35)|X(70)|X(35)RowsToBatch200BrowseTitleLookup Smart ObjectsViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNameobject_filenameDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY ryc_smartobject.object_filenameQueryTablesryc_smartobject,gsc_object_type,gsc_product_module,gsc_productBrowseFieldsgsc_product_module.product_module_code,gsc_object_type.object_type_code,ryc_smartobject.object_filename,ryc_smartobject.object_descriptionBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(35)|X(35)|X(70)|X(35)RowsToBatch200BrowseTitleLookup Smart ObjectsViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureDataSourceNameFieldNameobject_filenameDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dynlookup ).
-       RUN repositionObject IN h_dynlookup ( 3.10 , 25.40 ) NO-ERROR.
+       RUN repositionObject IN h_dynlookup ( 3.19 , 25.40 ) NO-ERROR.
        RUN resizeObject IN h_dynlookup ( 1.00 , 51.20 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */

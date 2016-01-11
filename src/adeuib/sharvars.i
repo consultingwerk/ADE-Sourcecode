@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*----------------------------------------------------------------------------
@@ -454,6 +438,16 @@ MENU,SUB-MENU,MENU-ITEM,QUERY,RADIO-SET,RECTANGLE,SELECTION-LIST,SLIDER,~
 SmartObject,TOGGLE-BOX,TEXT,{&WT-CONTROL},WINDOW".
        /* _wid-list        is the list of widget types to be displayed   */
        /*                  in the widget browser                         */
+
+DEFINE {1} SHARED VAR _widgetid_assign  AS LOGICAL                   NO-UNDO.
+       /* _widgetid_assign   determines whether to assign widget IDs     */
+       /*                    automatially                                */ 
+
+DEFINE {1} SHARED VAR _widgetid_start   AS INTEGER                   NO-UNDO.
+       /* _widgetid_start    starting widget ID value                    */
+
+DEFINE {1} SHARED VAR _widgetid_increment AS INTEGER                 NO-UNDO.
+       /* _widgetid_increment  widget ID increment value                 */
 
 DEFINE {1} SHARED VAR _UIB_VERSION    AS CHAR   INITIAL "AB_v10r12"  NO-UNDO.  
        /*  _UIB_VERSION      UIB Verson Number                           */

@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*----------------------------------------------------------------------------
@@ -29,6 +13,7 @@ Description:
 
 Input Parameters:
    open_file - File name (should be a .w file) to suck in.
+               For web files, this contains both the relative and absolute path
    web_temp_file - Web temp file (should be a .w file) to suck in.
    import_mode - Mode for operation.
                   "WINDOW" - open a .w file (Window or Dialog Box)
@@ -86,6 +71,7 @@ History:
                      SELECTION-LISTS and COMBO-BOXes.  (IZ 8044)
 ---------------------------------------------------------------------------- */
 
+{adecomm/oeideservice.i}
 {adeuib/timectrl.i}  /* Controls inclusion of profiling code */
 {adecomm/adefext.i}
 
@@ -108,6 +94,7 @@ DEFINE INPUT PARAMETER from_schema  AS LOGICAL NO-UNDO.
 {adecomm/adeintl.i}
 {adeshar/mrudefs.i}      /* MRU FileList shared vars and temp table definition */
 {src/adm2/globals.i}     /* Dynamics global variable */
+{adeweb/web_file.i}
 
 /* Standard End-of-line character */
 &Scoped-define EOL &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN "~r" + &ENDIF CHR(10)
@@ -194,10 +181,15 @@ DEFINE VAR AbortImport         AS LOGICAL INITIAL FALSE NO-UNDO.
 DEFINE VAR tCode               AS CHAR NO-UNDO.
 DEFINE VAR Selected_Frames     AS INT  NO-UNDO.
 
+DEFINE VAR cRelPathWeb         AS CHAR NO-UNDO INIT ?.
+DEFINE VAR cSavePath           AS CHAR NO-UNDO INIT ?.
+
 /* jep-icf: Process repository object requests. */
 IF _DynamicsIsRunning THEN
-   RUN processRepositoryObject.
-IF RETURN-VALUE = "_ABORT":U THEN RETURN "_ABORT":U.
+DO:
+  RUN processRepositoryObject.
+  IF RETURN-VALUE = "_ABORT":U THEN RETURN "_ABORT":U.
+END.
   
 ASSIGN
   SESSION:NUMERIC-FORMAT = "AMERICAN":U
@@ -231,8 +223,22 @@ IF open_file = "" THEN DO:
                                OUTPUT pressed-ok).
   dot-w-file = TRIM(dot-w-file).  
 END. 
-ELSE ASSIGN dot-w-file = open_file
-            pressed-ok = TRUE.
+ELSE DO:
+    IF NOT web_file THEN
+        ASSIGN dot-w-file = open_file.
+    ELSE DO:   
+        /* for web-files, if we got the save-as-path, need to process it differently */
+        IF ws-get-save-as-path ( INPUT open_file) EQ ? THEN /* doesn't contain a path */
+           ASSIGN dot-w-file = open_file.
+        ELSE DO:
+           ASSIGN cRelPathWeb = ws-get-relative-path (INPUT open_file)
+                  /* dot-w-file needs to be the full pathname */
+                  dot-w-file = ws-get-absolute-path (INPUT open_file)
+                  cSavePath = ws-get-save-as-path (INPUT open_file).
+        END.
+    END.
+    ASSIGN pressed-ok = TRUE.
+END.
               
 /* Make sure we have the full pathname, so that we don't open the same
    file twice. Don't do this for web or dynamic repository objects. jep-icf */
@@ -256,10 +262,16 @@ IF NOT pressed-ok THEN RETURN "_ABORT":U.
  */
 IF import_mode eq "WINDOW":U THEN DO:
   /* Search the universal records for a window with the same file name and,
-     if on a remote WebSpeed file, the same broker URL. */
-  FIND x_P WHERE x_P._SAVE-AS-FILE EQ dot-w-file AND
-    (IF NOT web_file THEN TRUE /* dma */
-     ELSE x_P._BROKER-URL EQ _BrokerURL) NO-ERROR.
+     if on a remote WebSpeed file, the same broker URL and same save-as-path.
+     For web files we will need to look at cRelPathWeb - we store the relative
+     path returned by the WebSpeed agent
+  */
+  IF web_file THEN
+     FIND x_P WHERE x_P._SAVE-AS-FILE EQ cRelPathWeb AND
+          x_P._BROKER-URL EQ _BrokerURL AND
+          x_P._save-as-path EQ cSavePath NO-ERROR.
+  ELSE
+      FIND x_P WHERE x_P._SAVE-AS-FILE EQ dot-w-file NO-ERROR.
 
   IF AVAILABLE x_P THEN DO:
     h = x_P._WINDOW-HANDLE.
@@ -1003,10 +1015,57 @@ IF import_mode eq "IMPORT":U THEN DO:
      frame. */
   FOR EACH _NAME-REC:
     FIND _U WHERE RECID(_U) eq _NAME-REC._wRECID.
-    IF NOT CAN-FIND(parent_NAME-REC WHERE
-                             parent_NAME-REC._wRECID eq _U._parent-recid)
-    THEN ASSIGN _U._HANDLE:SELECTED = YES
-                _U._SELECTEDib      = YES.
+    IF NOT CAN-FIND(parent_NAME-REC WHERE 
+                    parent_NAME-REC._wRECID eq _U._parent-recid) THEN
+    DO:
+      ASSIGN _U._HANDLE:SELECTED = YES
+             _U._SELECTEDib      = YES.
+
+      /* Check for widget id conflicts and reassign widget ids if there
+         are conflicts. */
+      IF LOOKUP(_U._TYPE, "FRAME,DIALOG-BOX":U) = 0 THEN
+      DO:
+        /* If widget id is already set check for conflicts and reassign it
+           if there is a conflict and _widgetid_assign is true */
+        IF _U._WIDGET-ID NE ? THEN
+        DO:
+          /* Browse widgets are treated like frame widgets for assignment
+             of widget ids */
+          IF _U._TYPE = "BROWSE":U THEN
+          DO:
+            IF DYNAMIC-FUNCTION("widgetIDFrameConflict":U IN _h_func_lib,
+                                INPUT _h_win,
+                                INPUT _U._WIDGET-ID,
+                                INPUT RECID(_U)) THEN
+              _U._WIDGET-ID = IF _widgetid_assign THEN DYNAMIC-FUNCTION("nextFrameWidgetID":U IN _h_func_lib,
+                                                                        INPUT _h_win)
+                                ELSE ?.
+          END.  /* browse */
+          ELSE DO:
+            IF DYNAMIC-FUNCTION("widgetIDConflict":U IN _h_func_lib,
+                                INPUT _U._parent-recid,
+                                INPUT _U._WIDGET-ID,
+                                INPUT RECID(_U)) THEN
+              _U._WIDGET-ID = IF _widgetid_assign THEN DYNAMIC-FUNCTION("nextWidgetID":U IN _h_func_lib,
+                                                                        INPUT _U._parent-recid,
+                                                                        INPUT RECID(_U))
+                              ELSE ?.
+          END.  /* not browse */
+        END.  /* widget id already set */
+        /* If the widget id is not already set then set it if _widgetid_assign
+           is true */
+        ELSE IF _widgetid_assign THEN 
+        DO:
+          _U._WIDGET-ID = IF _U._TYPE = "BROWSE":U THEN 
+                            DYNAMIC-FUNCTION("nextFrameWidgetID":U IN _h_func_lib,
+                                             INPUT _h_win)
+                          ELSE DYNAMIC-FUNCTION("nextWidgetID":U IN _h_func_lib,
+                                                 INPUT _U._parent-recid,
+                                                 INPUT RECID(_U)).
+        END.  /* else if */
+      END.  /* if not frame or dialog box */
+      
+    END.
   END.
 
   /* Add any pasted fields to the frame query, if appropriate. */
@@ -1084,8 +1143,19 @@ IF import_mode ne "IMPORT" THEN DO:
 
   /* Make sure we know where to save the file we've just opened. If the file was opened 
     from the MRU file list, store that brokerurl rather than the current brokerurl */
-  IF web_file THEN 
+  IF web_file THEN DO:
     _P._broker-url = IF _mru_broker_url NE "" THEN _mru_broker_url ELSE _BrokerURL.
+    IF cRelPathWeb NE ? THEN DO:
+        _P._SAVE-AS-file = cRelPathWeb.
+        IF cSavePath NE ? AND cSavePath NE "" THEN DO:
+           /* if the full name matches the relative, then it is not a relative path
+              to the PROPATH on the server - so leave _save-as-path alone.
+              Otherwise, store just the path part of the full name into _save-as-path
+           */
+           _P._save-as-path = cSavePath.
+        END.
+    END.
+  END.
 
   FOR EACH _XFTR WHERE _XFTR._wRECID = _P._u-RECID:
     FIND _TRG WHERE _TRG._xRecid = RECID(_XFTR) NO-ERROR.
@@ -1125,9 +1195,13 @@ IF import_mode ne "IMPORT" THEN DO:
      Note that opening a window UNTITLED counts as a NEW event.  */
   CASE import_mode:
     WHEN "WINDOW":U THEN
-      RUN adecomm/_adeevnt.p 
-          (INPUT  "UIB":U, "OPEN":U, STRING(_P._u-recid), _P._SAVE-AS-FILE,
-           OUTPUT ldummy).
+      /* File is being reload from the OEIDE */
+      IF PROGRAM-NAME(2) BEGINS "syncFromIDE" THEN 
+        ldummy = TRUE.
+      ELSE
+        RUN adecomm/_adeevnt.p 
+            (INPUT  "UIB":U, "OPEN":U, STRING(_P._u-recid), _P._SAVE-AS-FILE,
+             OUTPUT ldummy).
     WHEN "WINDOW UNTITLED":U THEN
       RUN adecomm/_adeevnt.p
           (INPUT  "UIB":U, "NEW":U, STRING(_P._u-recid), ?,
@@ -1139,6 +1213,9 @@ IF import_mode ne "IMPORT" THEN DO:
        filelist. */
   IF import_mode NE "WINDOW UNTITLED" AND _mru_filelist THEN DO:
     ASSIGN cBrokerURL = IF _mru_broker_url NE "" THEN _mru_broker_url ELSE _BrokerURL.
+    /*  Remember that for web files, open_file may contain the file name plus the path, 
+       if provided 
+    */
     RUN adeshar/_mrulist.p (open_file, IF web_file THEN cBrokerURL ELSE "":U).  
   END.  /* if import_mode and _mru_filelist */
   
@@ -1479,6 +1556,8 @@ PROCEDURE layout_reader:
                  _L._EDGE-PIXELS        = m_L._EDGE-PIXELS
                  _L._FILLED             = m_L._FILLED
                  _L._GRAPHIC-EDGE       = m_L._GRAPHIC-EDGE
+                 _L._GROUP-BOX          = m_L._GROUP-BOX
+                 _L._ROUNDED            = m_L._ROUNDED
                  _L._3-D                = m_L._3-D
                  _L._NO-BOX             = m_L._NO-BOX
                  _L._NO-UNDERLINE       = m_L._NO-UNDERLINE
@@ -1568,10 +1647,11 @@ PROCEDURE layout_reader:
         WHEN "FILLED"              THEN _L._FILLED             = (val BEGINS "y").
         WHEN "FONT"                THEN _L._FONT               = INTEGER(val).
         WHEN "GRAPHIC-EDGE"        THEN _L._GRAPHIC-EDGE       = (val BEGINS "y").
-                                         
+        WHEN "GROUP-BOX"           THEN _L._GROUP-BOX          = (val BEGINS "y").
         WHEN "HIDDEN"              THEN _L._REMOVE-FROM-LAYOUT = (val BEGINS "y").
         WHEN "NO-BOX"              THEN _L._NO-BOX             = (val BEGINS "y").    
-        WHEN "NO-FOCUS"            THEN _L._NO-FOCUS           = (val BEGINS "y").    
+        WHEN "NO-FOCUS"            THEN _L._NO-FOCUS           = (val BEGINS "y").
+        WHEN "ROUNDED"             THEN _L._ROUNDED            = (val BEGINS "y").
         WHEN "ROW"                 THEN _L._ROW                = DECIMAL(val).
         /* Special case: need to convert pixels to character units */
         WHEN "Y"                   THEN _L._ROW                = 
@@ -2666,6 +2746,7 @@ PROCEDURE processRepositoryObject:
                       DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, _RyObject.object_type_code,"DynSDO":U)  OR
                       DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, _RyObject.object_type_code,"DynSBO":U)  OR
                       DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, _RyObject.object_type_code,"DynContainer":U)  OR
+                      DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, _RyObject.object_type_code,"DynDataView":U)  OR
                       DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, _RyObject.object_type_code,"DynTree":U).
 
       IF NOT lIsValidClass OR SEARCH(_Ryobject.design_template_file) = ?  
@@ -2680,7 +2761,7 @@ PROCEDURE processRepositoryObject:
           MESSAGE "Cannot open or create the dynamic object" 
                    + (IF _RyObject.object_filename > "" THEN " '" + _RyObject.object_filename + "'." ELSE "."  )  + CHR(10) + CHR(10)
                    + "The object is specified as a dynamic object, but the object type is '" + _RyObject.object_type_code + "'." + CHR(10) 
-                   + "The only supported dynamic objects are 'DynView, DynBrow, DynSDO, DynSBO, DynContainer and their extensions." + CHR(10) 
+                   + "The only supported dynamic objects are 'DynView, DynBrow, DynDataView, DynSDO, DynSBO, DynContainer and their extensions." + CHR(10) 
                    + "Check in the Repository Maintenance tool whether the object is defined as a static or dynamic object."
              VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
         ELSE IF _Ryobject.design_template_file = "" THEN

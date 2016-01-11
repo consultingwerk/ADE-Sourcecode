@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*------------------------------------------------------------------------
@@ -57,6 +41,7 @@ DEFINE INPUT PARAMETER pTempFile AS CHARACTER NO-UNDO.
 DEFINE INPUT PARAMETER pMode     AS CHARACTER NO-UNDO.
 
 /* UIB Shared Variables and Common Definitions */
+{adecomm/oeideservice.i}
 {adeuib/sharvars.i}
 {adeuib/uniwidg.i}
 
@@ -83,19 +68,15 @@ END.
 /* Save the handle of the current window and it's visualization. */
 ASSIGN hActiveWin = _h_win.
 
-/* Check to see if we are attempting to open a Dynamic Viewer for Dynamics */
+/* Check to see if we are attempting to open a dynamic object for Dynamics */
 IF _DynamicsIsRunning  THEN
 DO:
    FIND FIRST _RyObject WHERE _RyObject.OBJECT_filename = pFileName NO-ERROR.
    IF AVAILABLE _RyObject 
-       AND (LOOKUP("DynBrow":U, _RyObject.parent_classes) > 0
-         OR LOOKUP("DynView":U, _RyObject.parent_classes) > 0
-         OR LOOKUP("DynSDO":U, _RyObject.parent_classes)  > 0
-         OR _RyObject.object_type_code = "DynBrow":U
-         OR _RyObject.object_type_code = "DynView":U
-         OR _RyObject.object_type_code = "DynSDO":U)
-       AND pMode = "WINDOW":U AND pTempFile = "":U 
-   THEN DO:
+   AND pMode = "WINDOW":U 
+   AND pTempFile = "":U 
+   AND DYNAMIC-FUNCTION("isDynamicClassNative":U IN _h_func_lib,_RyObject.object_type_code) THEN
+   DO:
       RUN ry/prc/rydynsckrp.p (pFileName, pMode).   
       returnValue = RETURN-VALUE.
       IF RETURN-VALUE > "" THEN 
@@ -172,6 +153,45 @@ IF returnValue = "_ABORT":U THEN DO:
 END. /* If return value is abort */
 
 FIND _P WHERE _P._WINDOW-HANDLE = _h_win NO-ERROR.
+
+DEFINE VARIABLE cLinkedFile  AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cProjectName AS CHARACTER  NO-UNDO.
+
+/* If OEIDE is running, open file in the OEIDE Editor if the file exists in a project */
+IF OEIDEIsRunning THEN
+DO:    
+    FILE-INFO:FILE-NAME = pFileName.
+    /* Ensure pFileName is a full path */
+    IF FILE-INFO:FULL-PATHNAME <> ? THEN
+        pFileName = FILE-INFO:FULL-PATHNAME.
+    RUN getProjectOfFile IN hOEIDEService (pFileName, OUTPUT cProjectName).
+    /* file is in the current IDE project */
+    IF cProjectName > "" AND (cProjectName = getProjectName()) THEN
+    DO:
+        RUN getLinkedFileOfFile IN hOEIDEService (pFileName, OUTPUT cLinkedFile).
+        IF cLinkedFile = "" THEN /* File has not been registed */
+        DO:
+            cLinkedFile = createLinkedFile("lnk":U, ".tmp":U).
+            IF pTempFile > "" THEN
+                OS-COPY VALUE(pTempFile) VALUE(cLinkedFile).
+            ELSE
+                OS-COPY VALUE(pFileName) VALUE(cLinkedFile).
+        END.
+        
+        IF returnValue BEGINS "_REOPEN,":U THEN
+        DO:
+            DEFINE VARIABLE hWindow AS HANDLE NO-UNDO.
+            hWindow = WIDGET-HANDLE(ENTRY(2, returnValue)).
+            IF _P._TYPE = "Dialog-Box":U AND hWindow:TYPE = "WINDOW":U THEN        
+                hWindow = hWindow:FIRST-CHILD.
+            openEditor(getProjectName(), pFileName, cLinkedFile, hWindow).
+        END.
+        ELSE    
+            openEditor(getProjectName(), pFileName, cLinkedFile, _h_win).
+        /* If file was already registed, its content is not modified */
+        RUN call_sew IN _h_UIB (INPUT "SE_OPEN":U ). /* Start Section Editor Window to allow file synchronization */
+    END.
+END.
 
 /* Save the broker URL that was used to open the file for existing files
    only, not for new files. If the file was opened from the MRU file list, 

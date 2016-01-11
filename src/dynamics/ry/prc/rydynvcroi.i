@@ -1,3 +1,10 @@
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /*---------------------------------------------------------------------------------
   File: rydynvcroi.i
 
@@ -73,6 +80,7 @@ DEFINE VARIABLE iLabelFont        AS INTEGER    NO-UNDO.
 DEFINE VARIABLE iLabelBGColor     AS INTEGER    NO-UNDO.
 DEFINE VARIABLE iLabelFgColor     AS INTEGER    NO-UNDO.
 DEFINE VARIABLE lUseThinRendering AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE cSDFDataSource    AS CHARACTER  NO-UNDO.
 
 /* Is this viewer a generated object? If so, then we don't need
    to create the widgets dynamically, since they are created in the
@@ -283,6 +291,8 @@ do:
             RUN repositionObject IN hDataFieldProcedure (ttWidget.tRow, ttWidget.tColumn) NO-ERROR.
             RUN resizeObject     IN hDataFieldProcedure (dHeight, ttWidget.tWidth) NO-ERROR.
             
+
+
             &SCOPED-DEFINE xp-assign
             {get Width dWidgetWidth hDataFieldProcedure}
             {get Height dWidgetHeight hDataFieldProcedure}
@@ -313,6 +323,11 @@ do:
                                       + STRING(hDataFieldProcedure) + ",":U
                 .
             
+            cSDFDataSource = ''.  
+            {get DataSourceName cSDFDataSource hDataFieldProcedure} NO-ERROR.
+            IF cSDFDataSource > '' THEN
+              {fn createDataSource hDataFieldProcedure} NO-ERROR.
+
             ASSIGN dRowPosition           = ttWidget.tRow
                    dColumnPosition        = ttWidget.tColumn
                    ttWidget.tWidgetHandle = hDataFieldProcedure

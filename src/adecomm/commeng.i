@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -269,3 +253,13 @@
 
 /* ON HELP in the Numeric Format DateTime dialog box */
 &Global-define Numeric_Format_DateTimeTz_Dlg_Box 64
+
+/* New for 10.1A */   
+/* Custom Audit Data Filter Report Dialog box */
+&GLOBAL-DEFINE Custom_Audit_Data_Filter_Report_Dialog_Box 35
+
+/* OpenEdge Auditing Reports Dialog Box */
+&GLOBAL-DEFINE Date_Range_Auditing_Reports_Dialog_Box 36
+
+/* OpenEdge Auditing Report Options Dialog Box */
+&GLOBAL-DEFINE OpenEdge_Auditing_Report_Options_dialog_box  65

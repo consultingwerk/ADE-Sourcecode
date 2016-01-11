@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -52,6 +36,8 @@
 /* MRU Filelist Temp Table Definition */
 {adeshar/mrudefs.i}
 
+{adeweb/web_file.i}
+
 DEFINE INPUT  PARAMETER pw_Editor   AS WIDGET-HANDLE NO-UNDO.
 
 DEFINE VARIABLE pw_Window AS WIDGET-HANDLE NO-UNDO.
@@ -73,6 +59,7 @@ DEFINE VARIABLE Web_File       AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE Web_License    AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE Web_Untitled   AS LOGICAL   NO-UNDO. 
 DEFINE VARIABLE cReturnValue   AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cFileWeb       AS CHARACTER NO-UNDO INIT ?.
 
 DO ON STOP UNDO, LEAVE:
     /* Need widget handle of Procedure Window for this editor widget. */
@@ -114,10 +101,20 @@ DO ON STOP UNDO, LEAVE:
       File_Name = New_Name.
     END.
 
-    IF Web_License AND Web_File THEN
+    IF Web_License AND Web_File THEN DO:
+
       RUN adeweb/_webfile.w ("uib":U, "saveas":U, "Save As":U, "":U,
                              INPUT-OUTPUT File_Name, OUTPUT Temp_File, 
                              OUTPUT Dlg_Answer) NO-ERROR.
+
+      IF ws-get-save-as-path (INPUT File_Name) NE ? THEN
+          /* file name passed by _webfile.w may have the path to construct
+             the full name.
+          */
+          ASSIGN cFileWeb = File_Name
+                 File_Name = ws-get-absolute-path (INPUT File_Name).
+
+    END.
     ELSE
       RUN adecomm/_getfile.p ( pw_Window , INPUT "Procedure" ,
                               "Save As" , "Save As" , "SAVE", 
@@ -140,18 +137,33 @@ DO ON STOP UNDO, LEAVE:
                                OUTPUT URL_Host) NO-ERROR.
       /* If Save_OK is true, the ed:SAVE-FILE was successful and the ed:NAME 
          field has the saved file name. So update the Window title. */
-      IF Save_OK THEN
+      IF Save_OK THEN DO:
+      
+        IF Web_License AND Web_File AND (cFileWeb NE ?) THEN DO:
+            /* need to make sure we display only the relative path part of 
+               the file name
+            */
+            ASSIGN pw_Editor:NAME = ws-get-relative-path (INPUT cFileWeb).
+        END.
+
         ASSIGN pw_Window:TITLE = {&PW_Title_Leader} + pw_Editor:NAME +
                                  (IF Web_File THEN URL_Host ELSE "").
+      END.
+
       ELSE RETURN.
    
-      IF pw_Window:PRIVATE-DATA = "_ab.p":U AND Web_Untitled THEN 
-        RUN adeshar/_mrulist.p (pw_Editor:NAME, Broker_URL).
+      IF pw_Window:PRIVATE-DATA = "_ab.p":U AND Web_File /*Web_Untitled */ THEN 
+        RUN adeshar/_mrulist.p ((IF cFileWeb NE ? THEN cFileWeb ELSE pw_Editor:NAME), 
+                                Broker_URL).
 
       ASSIGN 
         Private_Data           = pw_Editor:PRIVATE-DATA 
         ENTRY ( {&PW_Broker_URL_Pos}, Private_Data ) = 
           (IF Web_File THEN Broker_URL ELSE "")
+        /* save the full file name for Web Files */
+        ENTRY ( {&PW_Web_File_Name_Pos}, Private_Data ) = 
+           (IF Web_File THEN File_Name ELSE "")
+          
         pw_Editor:PRIVATE-DATA = Private_Data.
     END.
 END.

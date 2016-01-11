@@ -4,25 +4,9 @@
 &Scoped-define FRAME-NAME Attribute-Dlg
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Attribute-Dlg 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*------------------------------------------------------------------------
@@ -72,7 +56,7 @@
 &Scoped-define PROCEDURE-TYPE DIALOG-BOX
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME Attribute-Dlg
 
 /* Standard List Definitions                                            */
@@ -222,7 +206,7 @@ DEFINE FRAME Attribute-Dlg
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX Attribute-Dlg
-   Custom                                                               */
+   FRAME-NAME Custom                                                    */
 ASSIGN 
        FRAME Attribute-Dlg:SCROLLABLE       = FALSE
        FRAME Attribute-Dlg:HIDDEN           = TRUE.
@@ -263,7 +247,10 @@ ASSIGN
 ON GO OF FRAME Attribute-Dlg /* Dynamic SmartDataBrowser Properties */
 DO:     
   DEFINE VARIABLE cObjectName      AS CHARACTER  NO-UNDO.
-     
+  DEFINE VARIABLE cOlddisp         AS CHARACTER  NO-UNDO.
+
+  cOldDisp = DYNAMIC-FUNC("getDisplayedFields":U IN p_hSMO) NO-ERROR.
+
    /* Reassign the attribute values back in the SmartObject. */
   ASSIGN l_Enable l_View c_SearchField l_ScrollRemote l_FetchOnReposToEnd
          c_Layout = c_Layout:SCREEN-VALUE WHEN c_Layout:SENSITIVE
@@ -298,6 +285,13 @@ DO:
   DYNAMIC-FUNC("setNumDown":U IN p_hSMO, INPUT i_NumDown) NO-ERROR.
   DYNAMIC-FUNC("setCalcWidth":U IN p_hSMO, INPUT l_CalcWidth) NO-ERROR.
   DYNAMIC-FUNC("setMaxWidth":U IN p_hSMO, INPUT i_MaxWidth) NO-ERROR.
+  
+  /* repaint */
+  IF colddisp <> gcDisplayedFields THEN
+  DO:
+    DYNAMIC-FUNC("destroyBrowse":U IN p_hSMO).
+    RUN initializeobject IN p_hsmo.
+  END.
 
 END.
 
@@ -338,16 +332,30 @@ ON CHOOSE OF Displayed-Btn IN FRAME Attribute-Dlg /* Edit Displayed field list *
 DO:
   DEFINE VARIABLE iEntry       AS INTEGER   NO-UNDO.
   DEFINE VARIABLE cField       AS CHARACTER NO-UNDO.
-  
+  DEFINE VARIABLE cDataColumns AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSortTables  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cExclude     AS CHARACTER  NO-UNDO.
+
   IF VALID-HANDLE(ghSDO) THEN    
   DO:
+    {get DataColumns cDataColumns ghSDO}.
+    {get QueryTables cSortTables ghSDO}.
+    IF INDEX(cDataColumns,'.':U) > 0 THEN
+    DO iEntry = 1 TO NUM-ENTRIES(cDataColumns):
+      cField = ENTRY(iEntry, cDataColumns).
+      IF LOOKUP(ENTRY(1,cField,'.':U),cSortTables) = 0 THEN
+        cExclude = cExclude
+                 + (IF cExclude = '' THEN '' ELSE ',')
+                 + cField.
+    END.   /* END DO iEntry */
+
     RUN adecomm/_mfldsel.p
      (INPUT "":U,     /* Use an SDO, not db tables */
       INPUT ghSDO,     /* handle of the SDO */
       INPUT ?,        /* No additional temp-tables */
       INPUT "1":U,    /* No db or table name qualification of fields */
       INPUT ",":U,    /* list delimiter */
-      INPUT "":U,     /* exclude field list */
+      INPUT cExclude,     /* exclude field list */
       INPUT-OUTPUT gcDisplayedFields).
   
     RUN removeLargeObjects(INPUT-OUTPUT gcDisplayedFields).
@@ -786,9 +794,12 @@ FUNCTION populateSearchField RETURNS LOGICAL
     Notes:  
 ------------------------------------------------------------------------------*/
     
-    DEFINE VARIABLE lResult AS LOGICAL NO-UNDO.
-    DEFINE VARIABLE cFields AS CHARACTER NO-UNDO.
-    
+    DEFINE VARIABLE lResult    AS LOGICAL    NO-UNDO.
+    DEFINE VARIABLE cFields    AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cDatatable AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE iField     AS INTEGER    NO-UNDO.
+    DEFINE VARIABLE cField     AS CHARACTER  NO-UNDO. 
+    DEFINE VARIABLE cNewFields AS CHARACTER  NO-UNDO.
     /* Populate the search field only if our data source is an SDO, not an SBO.*/
     IF ghSDO = ghDataSource THEN
     DO:
@@ -796,8 +807,25 @@ FUNCTION populateSearchField RETURNS LOGICAL
         /* This means no explicit field list has been selected, so the fieldlist
            is in fact *all* SDO fields; so make these available as search fields. */
         cFields = dynamic-function('getDataColumns':U IN ghSDO) NO-ERROR.
-      ELSE cFields = gcDisplayedFields.
-    
+      ELSE 
+        cFields = gcDisplayedFields.
+      
+      /* If qualified fields of a dataview use only Datatable columns */
+      IF INDEX(cFields,'.':U) > 0 THEN
+      DO:
+        {get DataTable cDataTable ghSDO} NO-ERROR.
+        DO iField = 1 TO NUM-ENTRIES(cFields):
+          cField = ENTRY(iField,cFields).
+          IF ENTRY(1,cField,'.':U) = cDataTable THEN
+          DO:
+             cNewFields = cNewFields
+                        + (IF cnewFields = '' THEN '' ELSE ',')
+                        + cField.
+          END.
+        END.
+        cFields = cNewFields.
+      END.
+
       ASSIGN c_SearchField:LIST-ITEMS In FRAME {&FRAME-NAME} = cFields
              lResult = c_SearchField:ADD-FIRST ("<none>":U)
              c_SearchField:INNER-LINES = MAX(20,NUM-ENTRIES(cFields))

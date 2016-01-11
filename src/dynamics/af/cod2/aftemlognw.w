@@ -29,25 +29,9 @@ af/cod/aftemwizpw.w
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS wiMain 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -193,7 +177,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &Scoped-define PROCEDURE-TYPE Window
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
@@ -278,11 +262,11 @@ DEFINE IMAGE imLogo
 
 DEFINE FRAME frMain
      fiLoginName AT ROW 1.14 COL 31.4 COLON-ALIGNED
-     fiPassword AT ROW 2.14 COL 31.4 COLON-ALIGNED PASSWORD-FIELD 
-     coLanguage AT ROW 3.19 COL 31.4 COLON-ALIGNED
-     coCompany AT ROW 4.24 COL 31.4 COLON-ALIGNED
-     fiDate AT ROW 5.33 COL 31.4 COLON-ALIGNED
-     buCalc AT ROW 5.43 COL 49
+     fiPassword AT ROW 2.24 COL 31.4 COLON-ALIGNED PASSWORD-FIELD 
+     coLanguage AT ROW 3.33 COL 31.4 COLON-ALIGNED
+     coCompany AT ROW 4.43 COL 31.4 COLON-ALIGNED
+     fiDate AT ROW 5.52 COL 31.4 COLON-ALIGNED
+     buCalc AT ROW 5.62 COL 49
      buOk AT ROW 1.14 COL 77.4
      buCancel AT ROW 2.38 COL 77.4
      buPassword AT ROW 3.62 COL 77.4
@@ -345,7 +329,7 @@ ELSE {&WINDOW-NAME} = CURRENT-WINDOW.
 /* SETTINGS FOR WINDOW wiMain
   NOT-VISIBLE,,RUN-PERSISTENT                                           */
 /* SETTINGS FOR FRAME frMain
-   NOT-VISIBLE L-To-R,COLUMNS                                           */
+   NOT-VISIBLE FRAME-NAME L-To-R,COLUMNS                                */
 /* SETTINGS FOR BUTTON buPassword IN FRAME frMain
    NO-ENABLE                                                            */
 IF SESSION:DISPLAY-TYPE = "GUI":U AND VALID-HANDLE(wiMain)

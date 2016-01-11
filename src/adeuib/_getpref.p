@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*----------------------------------------------------------------------------
@@ -69,6 +53,8 @@ Last modifed on 9/29/94  by GFS - Added XFTR file support
                                   Done via IZ 2845.
 ----------------------------------------------------------------------------*/
 DEFINE OUTPUT PARAMETER p_save_settings    AS LOGICAL                NO-UNDO.
+
+DEFINE NEW GLOBAL SHARED VAR OEIDEIsRunning AS LOGICAL    NO-UNDO.
 
 {adeuib/tool.i}       /* Include this 1st - Defines &TOOL */
 {adeuib/sharvars.i}   /* Shared variables                 */
@@ -169,7 +155,11 @@ GET-KEY-VALUE SECTION sctn KEY "PrintDialog" VALUE v.
   IF v = ? THEN _print_dialog = TRUE.
   ELSE IF CAN-DO ("true,yes,on",v) THEN _print_dialog = TRUE. 
     ELSE _print_dialog = FALSE.
-     
+GET-KEY-VALUE SECTION sctn KEY "AssignWidgetID" VALUE v.
+  IF v = ? THEN _widgetid_assign = TRUE.
+  ELSE IF CAN-DO ("true,yes,on",v) THEN _widgetid_assign = TRUE. 
+    ELSE _widgetid_assign = FALSE.
+
 /* Read in Numeric Values  */
 GET-KEY-VALUE SECTION sctn KEY "GridUnitHeight" VALUE v.
   IF v NE ? THEN DO:
@@ -228,6 +218,18 @@ GET-KEY-VALUE SECTION sctn KEY "PrintFont" VALUE v.
     IF ERROR-STATUS:ERROR THEN V = ?.
   END.
   ELSE ASSIGN _print_font = 2.
+GET-KEY-VALUE SECTION sctn KEY "WidgetIDStart" VALUE v.
+  IF v NE ? THEN DO:
+    ASSIGN _widgetid_start = INTEGER(v) NO-ERROR.
+    IF ERROR-STATUS:ERROR THEN V = ?.
+  END.
+  ELSE ASSIGN _widgetid_start = 100.
+GET-KEY-VALUE SECTION sctn KEY "WidgetIDIncrement" VALUE v.
+  IF v NE ? THEN DO:
+    ASSIGN _widgetid_increment = INTEGER(v) NO-ERROR.
+    IF ERROR-STATUS:ERROR THEN V = ?.
+  END.
+  ELSE ASSIGN _widgetid_increment = 100.
 
 /* Read in the Character Values.  
  * Saved Directories:   Icon Directories, Template Directories, 
@@ -387,6 +389,13 @@ END.  /* if _mru_filelist then do while */
 
 SESSION:SET-NUMERIC-FORMAT(_numeric_separator,_numeric_decimal).
 
+/* Ensure setting of certain preferences when running inside the OpenEdge IDE 
+ */
+IF OEIDEIsRunning THEN
+DO:
+  ASSIGN _multiple_section_ed = no
+         _remote_file         = no.
+END.
 /* _getpref.p - end of file */
 
 

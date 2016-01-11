@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*
@@ -206,12 +190,12 @@ ON "GO" OF FRAME FldPicker DO:
     DO i = 1 TO NUM-ENTRIES(p_Result, p_Dlmtr):
       tmp-entry = ENTRY(i, p_Result, p_Dlmtr).
       IF NUM-ENTRIES(tmp-entry,".":U) = 2 AND
-         LOOKUP("Temp-Tables.":U + ENTRY(1, tmp-entry, ".":U), p_TblLst) > 0
-      THEN ENTRY(i, p_Result, p_Dlmtr) = "Temp-Tables.":U + tmp-entry.
+         LOOKUP("Temp-Tables.":U + ENTRY(1, tmp-entry, ".":U), p_TblLst) > 0 THEN
+           ENTRY(i, p_Result, p_Dlmtr) = "Temp-Tables.":U + tmp-entry.
       ELSE IF (useDataObject OR p_TT = ?) AND
            NUM-ENTRIES(tmp-entry,".":U) = 1 THEN
         /* Assume DataObject RowObject table. jep-code */
-        ENTRY(i, p_Result, p_Dlmtr) = "Temp-Tables.RowObject.":U + tmp-entry.
+        ENTRY(i, p_Result, p_Dlmtr) = p_TblLst + ".":U + tmp-entry.
     END.  /* Do i = 1 to Num-Entries */
   END.  /* If  there are temp-tables in the initial table list */
 
@@ -425,17 +409,22 @@ useDataObject = IF VALID-HANDLE(p_hDataObject) THEN TRUE ELSE FALSE.
 
 /* JEP-UNFINISHED - _getdlst.p: should this support temp-tables? */
 IF useDataObject THEN
-    RUN adecomm/_getdlst.p
+DO:
+   RUN adecomm/_getdlst.p
         (INPUT v_SrcLst:HANDLE,
          INPUT p_hDataObject,
          INPUT no,
          INPUT p_Items,
          INPUT ?,
          OUTPUT t_log).
+   IF NOT t_log THEN
+     RETURN.        
+END.
 /* Add temp-tables fields to the available list.
   This used to be an ELSE. I changed it to the IF check instead.
   jep-code */
 IF (NOT useDataObject) OR (p_TT <> ?) THEN
+DO:
     RUN adecomm/_mfldlst.p
         (INPUT v_SrcLst:HANDLE,
          INPUT p_TblLst,
@@ -445,7 +434,10 @@ IF (NOT useDataObject) OR (p_TT <> ?) THEN
          INPUT 1,
          INPUT "",
          OUTPUT t_log).
-  
+    IF NOT useDataObject AND NOT t_log THEN
+      RETURN.        
+END.
+
 /* Remove array elements from v_SrcLst that might already be there */
 IF p_Result NE "" THEN DO:  /* If first time, no need to check for elements */
   DO t_int = 1 TO v_SrcLst:NUM-ITEMS:
@@ -546,4 +538,3 @@ ELSE RETURN.
 PROCEDURE frame-select-up.
   RETURN.
 END.
-

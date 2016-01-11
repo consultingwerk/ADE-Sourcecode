@@ -1,6 +1,13 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /*---------------------------------------------------------------------------------
   File: rysetattrv.i
 
@@ -362,7 +369,9 @@ CASE {&widgetBeingProcessed}:TYPE:
         ASSIGN {&widgetBeingProcessed}:PARENT = WIDGET-HANDLE(ENTRY(LOOKUP("Parent":U, {&PropertyNames}), {&PropertyValues}, {&Value-Delimiter})) NO-ERROR.
         ASSIGN {&widgetBeingProcessed}:RESIZABLE = LOGICAL(ENTRY(LOOKUP("Resizable":U, {&PropertyNames}), {&PropertyValues}, {&Value-Delimiter})) NO-ERROR.
         ASSIGN {&widgetBeingProcessed}:SELECTABLE = LOGICAL(ENTRY(LOOKUP("Selectable":U, {&PropertyNames}), {&PropertyValues}, {&Value-Delimiter})) NO-ERROR.
-        ASSIGN {&widgetBeingProcessed}:SELECTED = LOGICAL(ENTRY(LOOKUP("Selected":U, {&PropertyNames}), {&PropertyValues}, {&Value-Delimiter})) NO-ERROR.
+        ASSIGN {&widgetBeingProcessed}:SELECTED = LOGICAL(ENTRY(LOOKUP("Selected":U, {&PropertyNames}), {&PropertyValues}, {&Value-Delimiter})) NO-ERROR.            
+        {&widgetBeingProcessed}:group-box = LOGICAL(ENTRY(LOOKUP("Group-Box":U, {&PropertyNames}), {&PropertyValues}, {&Value-Delimiter})) NO-ERROR.
+        {&widgetBeingProcessed}:rounded = LOGICAL(ENTRY(LOOKUP("Rounded":U, {&PropertyNames}), {&PropertyValues}, {&Value-Delimiter})) NO-ERROR.
     END.	/* rectangle */
     WHEN "IMAGE":U 
     THEN DO:

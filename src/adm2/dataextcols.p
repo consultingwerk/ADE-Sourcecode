@@ -2,25 +2,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*--------------------------------------------------------------------------
@@ -30,8 +14,6 @@
                   of the action segment. This extension file contains
                   all column related functions (assignColumn* and column*)
                   as well as the col*values* functions
-                  These functions will be rolled back into data.p when segment 
-                  size increases.
                   
     Syntax      : adm2/dataextcols.p
 
@@ -232,6 +214,17 @@ FUNCTION columnDBName RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-columnDefaultValue) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD columnDefaultValue Procedure 
+FUNCTION columnDefaultValue RETURNS CHARACTER
+  ( pcColumn AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-columnExtent) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD columnExtent Procedure 
@@ -314,6 +307,17 @@ FUNCTION columnLongCharValue RETURNS LONGCHAR
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD columnModified Procedure 
 FUNCTION columnModified RETURNS LOGICAL
   ( pcColumn AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-columnName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD columnName Procedure 
+FUNCTION columnName RETURNS CHARACTER
+  ( phHandle AS HANDLE)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -523,7 +527,6 @@ PROCEDURE copyColumns :
   
   DEFINE VARIABLE hRowObject   AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hFromBuffer  AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cDataColumns AS CHARACTER  NO-UNDO.
 
   hRowObject = phDataQuery:GET-BUFFER-HANDLE(1).
 
@@ -1202,6 +1205,64 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-columnDefaultValue) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION columnDefaultValue Procedure 
+FUNCTION columnDefaultValue RETURNS CHARACTER
+  ( pcColumn AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:     Returns the initial value for a specified field as a character
+               string with the field FORMAT applied.
+  
+  Parameters:
+    INPUT pcColumn - column name of the RowObject field being queried.
+  
+  Notes:       Example: If the value of a numeric field is 123456789 and the
+                        format is "999-99-9999", columnInitial would return
+                        a character string containing "123-45-6789".
+-----------------------------------------------------------------------------*/
+
+  DEFINE VARIABLE hCol       AS HANDLE NO-UNDO.
+  DEFINE VARIABLE hRowObject AS HANDLE NO-UNDO.
+  DEFINE VARIABLE cValue     AS CHARACTER  NO-UNDO.
+
+  {get RowObject hRowObject}.
+  
+  hCol = hRowObject:BUFFER-FIELD(pcColumn) NO-ERROR.
+/* The code would certainly look more elegant if we skipped the code above
+   and resolved all cases by a call to columnHandle, as below, but column 
+   functions are used extensively and we don't want to let the normal call 
+   with just a column name have to pay the performance overhead of an 
+   additional function call, in order to support the odd case with qualifiers. */  
+  IF hCol = ? AND NUM-ENTRIES(pcColumn,".":U) > 1 THEN
+    hCol = {fnarg columnHandle pcColumn}. 
+
+  IF VALID-HANDLE(hCol) THEN
+  DO:
+    cValue = hCol:DEFAULT-STRING.
+    /* The default-string returns literals for now and today, 
+       We treat this as the anticipated default-value (datatype =run-type) */  
+    IF hCol:DATA-TYPE BEGINS 'DATE':U THEN
+    DO:
+      CASE cValue: 
+        WHEN 'TODAY':U THEN
+          cValue = STRING(TODAY).
+        WHEN 'NOW' THEN
+          cValue = STRING(NOW).
+      END CASE.
+    END.
+    RETURN cValue.
+  END.  
+  
+  RETURN ?.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-columnExtent) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION columnExtent Procedure 
@@ -1365,14 +1426,22 @@ FUNCTION columnInitial RETURNS CHARACTER
                         a character string containing "123-45-6789".
 -----------------------------------------------------------------------------*/
 
-  DEFINE VARIABLE hColumn    AS HANDLE NO-UNDO.
+  DEFINE VARIABLE hCol       AS HANDLE NO-UNDO.
   DEFINE VARIABLE hRowObject AS HANDLE NO-UNDO.
   
     {get RowObject hRowObject}.
-    hColumn = hRowObject:BUFFER-FIELD(pcColumn) NO-ERROR.
     
-    IF VALID-HANDLE(hColumn) THEN
-      RETURN hColumn:INITIAL.   
+    hCol = hRowObject:BUFFER-FIELD(pcColumn) NO-ERROR.
+  /* The code would certainly look more elegant if we skipped the code above
+     and resolved all cases by a call to columnHandle, as below, but column 
+     functions are used extensively and we don't want to let the normal call 
+     with just a column name have to pay the performance overhead of an 
+     additional function call, in order to support the odd case with qualifiers. */  
+    IF hCol = ? AND NUM-ENTRIES(pcColumn,".":U) > 1 THEN
+      hCol = {fnarg columnHandle pcColumn}. 
+ 
+    IF VALID-HANDLE(hCol) THEN
+      RETURN hCol:INITIAL.   
     
     RETURN ?.
 
@@ -1546,6 +1615,44 @@ FUNCTION columnModified RETURNS LOGICAL
   END. /* if hColumn:BUFFER-VALUE = "U" */
   
   RETURN lColModified.    
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-columnName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION columnName Procedure 
+FUNCTION columnName RETURNS CHARACTER
+  ( phHandle AS HANDLE) :
+
+/*------------------------------------------------------------------------------
+  Purpose: Resolves the external unique name of the column from the passed 
+           field handle.  
+    Notes: This is the name a visual data-target would use as its identifier, 
+           so the sdoname is added a squalier whern running inside an SBO.
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lQueryContainer   AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cObjectName       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hColumn           AS HANDLE     NO-UNDO.
+
+  &SCOPED-DEFINE xp-assign
+  {get QueryContainer lQueryContainer}
+  {get ObjectName cObjectname}   
+  .
+  &UNDEFINE xp-assign
+  
+  /* Ensure the reference is valid. ('rowobject,' needed to avoid db resolution)*/
+  hColumn = {fnarg columnHandle "'RowObject.':U + phHandle:NAME"}.
+  IF VALID-HANDLE(hColumn) AND phHandle = hColumn THEN
+    /* if managed by SBO then SDO name is needed as qualifier externally.*/ 
+    RETURN (IF lQueryContainer THEN cObjectName + '.':U ELSE '':U)
+            + phHandle:NAME.
+
+  RETURN '':U.
+  
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

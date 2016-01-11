@@ -17,6 +17,8 @@
 	If IsEmpty(Session("ExampleAgent")) Then
 		'-- Create our WebSpeed Agent 
 		Set SalesReport = Server.CreateObject("WSASP.WSAgent")
+		'-- Set the WService to connect 
+		SalesReport.ServiceName = "wsbroker1"
 		'-- Don't overload user with data
 		SalesReport.QueryString = "ResultRows=25"
 	Else

@@ -1,46 +1,32 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
-/*----------------------------------------------------------------------------
-
-File: _proprty.p
-
-Description:
-    Procedure to manage all of the property sheets.  This does not display
-    any property sheet itself.  Instead it just looks at the type and 
-    goes to the correct property sheet.
-
-Input Parameters:
-   h_self : The handle of the object we are editing
-
-Output Parameters:
-   <None>
-
-Author: Wm.T.Wood
-
-Date Created: 1995 
-Modified: 1/98 SLK Added SmartData
-
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
+&ANALYZE-RESUME
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
+/*************************************************************/
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
+/*------------------------------------------------------------------------
+    File        : adeuib/_proprty.p 
+    Purpose     :
+    Description :  Procedure to manage all of the property sheets. 
+                   This does not display any property sheet itself.  
+                   Instead it just looks at the type and goes to the correct 
+                   property sheet.
+                   
+    Author(s)   : Wm.T.Wood
+    Created     : 1995 
+    
+    Modified    : 1/98 SLK Added SmartData  
+    
+    Parameters  : h_self : The handle of the object we are editing
+    Notes       :
 ----------------------------------------------------------------------------*/
+
+
+/* ***************************  Definitions  ************************** */
 DEFINE INPUT PARAMETER h_self   AS WIDGET                            NO-UNDO.
 
 {adeuib/sharvars.i}             /* Shared Appbuilder definitions            */
@@ -56,6 +42,55 @@ DEFINE VARIABLE ldummy       AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE cIncludeList AS CHARACTER  NO-UNDO.
 
 DEFINE BUFFER      x_U FOR _U.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
+
+/* ********************  Preprocessor Definitions  ******************** */
+
+&Scoped-define PROCEDURE-TYPE Procedure
+&Scoped-define DB-AWARE no
+
+
+
+/* _UIB-PREPROCESSOR-BLOCK-END */
+&ANALYZE-RESUME
+
+
+
+/* *********************** Procedure Settings ************************ */
+
+&ANALYZE-SUSPEND _PROCEDURE-SETTINGS
+/* Settings for THIS-PROCEDURE
+   Type: Procedure
+   Allow: 
+   Frames: 0
+   Add Fields to: Neither
+   Other Settings: CODE-ONLY COMPILE
+ */
+&ANALYZE-RESUME _END-PROCEDURE-SETTINGS
+
+/* *************************  Create Window  ************************** */
+
+&ANALYZE-SUSPEND _CREATE-WINDOW
+/* DESIGN Window definition (used by the UIB) 
+  CREATE WINDOW Procedure ASSIGN
+         HEIGHT             = 15
+         WIDTH              = 60.
+/* END WINDOW DEFINITION */
+                                                                        */
+&ANALYZE-RESUME
+
+ 
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
+
+
+/* ***************************  Main Block  *************************** */
 
 /* Now fork depending on the type of the widget, h_self. */
 FIND _U WHERE _U._HANDLE = h_self.
@@ -77,13 +112,12 @@ DO:
   END.
 
   /* Must be a repository object and dynamic. */
-  IF _P.design_ryobject AND (NOT _P.static_object) AND 
-    LOOKUP(_P._TYPE,"SmartDataBrowser,SmartDataObject,SmartDataViewer":U) = 0 THEN
+  IF _P.design_ryobject AND (NOT _P.static_object)
+  AND LOOKUP(_P._TYPE,"SmartDataBrowser,SmartDataObject,SmartDataViewer":U) = 0 THEN
   DO:
     RUN showRepositoryObjectPropSheet.
     RETURN.
   END.
-  
 END.  /* IF Enable-ICF */
   
 /* Check whether this is a SmartBusinessObject */
@@ -113,7 +147,8 @@ END.
 
 /* In a DESIGN-WINDOW, bypass the Window property sheet 
    and go to the first child of the "window", if available. */
-IF _U._TYPE eq "WINDOW" AND _U._SUBTYPE eq "Design-Window":U THEN DO:
+IF _U._TYPE eq "WINDOW" AND _U._SUBTYPE eq "Design-Window":U THEN 
+DO:
   /* First look for a frame in the window. */
   FIND FIRST x_U WHERE x_U._parent-recid eq RECID(_U) 
                    AND x_U._TYPE eq "FRAME"
@@ -125,22 +160,32 @@ IF _U._TYPE eq "WINDOW" AND _U._SUBTYPE eq "Design-Window":U THEN DO:
                    AND x_U._STATUS eq "NORMAL"
                    NO-ERROR.
              
-  IF NOT AVAILABLE x_U   
-  THEN MESSAGE "Property sheet cannot be displayed. There are no objects in this design window."
+  IF NOT AVAILABLE x_U THEN
+  DO:
+    /* This is intended for DynDataView, but it seems right that any dynamic
+       object without frame or query can set custom super.
+       Note that showRepositoryObjectPropSheet is called above if dynamic and
+       not browser, viewer or sdo.  */ 
+    IF _P.design_ryobject AND (NOT _P.static_object) THEN 
+      RUN  adeuib/_prpdynsmart.w (_U._HANDLE).
+    ELSE
+      MESSAGE "Property sheet cannot be displayed. There are no objects in this design window."
              VIEW-AS ALERT-BOX INFORMATION.
+
+  END.
   ELSE 
     /* Show this object instead. */
     RUN adeuib/_proprty.p (x_U._HANDLE).
 END.
 
 /* MENUS - Go to the menu editor. */
-ELSE IF CAN-DO("MENU,MENU-ITEM,SUB-MENU",_U._TYPE) THEN DO:
+ELSE IF CAN-DO("MENU,MENU-ITEM,SUB-MENU",_U._TYPE) THEN 
   RUN adeuib/_prpmenu.p (_U._HANDLE).
-END.
+
 
 /* QUERY's use  'adeuib/_callqry.p' as their property sheet. */
-ELSE IF (_U._TYPE eq "QUERY":U AND _U._SUBTYPE <> "SmartDataObject")
-THEN DO:
+ELSE IF (_U._TYPE eq "QUERY":U AND _U._SUBTYPE <> "SmartDataObject") THEN 
+DO:
   IF CAN-FIND (_TRG WHERE _TRG._wRecid = RECID(_U) AND _TRG._tEvent = "OPEN_QUERY") THEN
   DO:
     MESSAGE "A freeform query can only be modified via the Section Editor."
@@ -161,10 +206,11 @@ END.
 /* SmartObjects have their own property sheet 
  * This is the property sheet with the link and info buttons
  */
-ELSE IF (_U._TYPE eq "SmartObject":U) THEN RUN adeuib/_prpsmar.p (_U._HANDLE).
+ELSE IF (_U._TYPE eq "SmartObject":U) THEN 
+  RUN adeuib/_prpsmar.p (_U._HANDLE).
 /* SmartData This is the property sheet with query/field buttons */
-ELSE IF (_U._TYPE eq "QUERY":U AND _U._SUBTYPE = "SmartDataObject":U)
-THEN RUN adeuib/_prpsdo.p (_U._HANDLE).
+ELSE IF (_U._TYPE eq "QUERY":U AND _U._SUBTYPE = "SmartDataObject":U) THEN 
+  RUN adeuib/_prpsdo.p (_U._HANDLE).
 ELSE
 DO:
   /* If this is a tree-view we just run the list-items/radio-set 
@@ -178,15 +224,23 @@ DO:
     RUN adeuib/_prpobj.p (INPUT _U._HANDLE).
 END.
 
-/*************** Internal Procedures  **********************/
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
+
+/* **********************  Internal Procedures  *********************** */
+
+&IF DEFINED(EXCLUDE-showRepositoryObjectPropSheet) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE showRepositoryObjectPropSheet Procedure 
 PROCEDURE showRepositoryObjectPropSheet :
-/*  jep-icf: Display a dynamic repository object's special property sheet. Each     */
-/*  object type defines a property sheet procedure that is started persistent here  */
-/*  or viewed if it's already been started.                                         */
-
+/*------------------------------------------------------------------------------
+  Purpose:  Display a dynamic repository object's special property sheet. 
+            Each object type defines a property sheet procedure that is started 
+            persistent here or viewed if it's already been started.   
+  Notes:       
+------------------------------------------------------------------------------*/
   DO ON ERROR UNDO, LEAVE:
-  
     /*  jep-icf: Start Property Sheet if not already running. Otherwise just view it. */
     IF NOT VALID-HANDLE(_P.design_hpropsheet) THEN
     DO:
@@ -210,3 +264,9 @@ PROCEDURE showRepositoryObjectPropSheet :
   END. /* DO ON ERROR */
 
 END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+

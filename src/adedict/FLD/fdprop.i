@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -51,7 +35,6 @@ Date Created: 02/05/92
 
 {adedict/capab.i}
 
-
 /* Reminder: Here's what's in user_env:
 
       user_env[11] - the long form of the gateway type (string), i.e., the
@@ -65,7 +48,6 @@ Date Created: 02/05/92
       	       	     can be modified to what other data types.
       user_env[17] - the default-format per foreign data-type.
 */
-
 
 /*----------------------------Mainline code----------------------------------*/
 
@@ -122,6 +104,17 @@ assign
    b_Field._Order:hidden in {&Frame} = item_hidden
    s_btn_Fld_Gateway:sensitive in {&Frame} = NOT ispro.
 
+ASSIGN s_lob_size:HIDDEN IN {&FRAME} = YES
+       s_lob_Area:HIDDEN IN {&FRAME} = YES
+       s_btn_lob_Area:HIDDEN IN {&FRAME} = YES
+       s_clob_cp:HIDDEN IN {&FRAME} = YES
+       s_clob_col:HIDDEN IN {&FRAME} = YES
+       s_btn_clob_cp:HIDDEN IN {&FRAME} = YES
+       s_btn_clob_col:HIDDEN IN {&FRAME} = YES
+       s_lst_lob_Area:HIDDEN IN {&FRAME} = YES
+       s_lst_clob_cp :HIDDEN IN {&FRAME} = YES
+       s_lst_clob_col:HIDDEN IN {&FRAME} = YES.
+
 /* Get general field gateway capabilities */
 run adedict/_capab.p (INPUT {&CAPAB_FLD}, OUTPUT s_Fld_Capab).
 
@@ -155,10 +148,41 @@ assign
    s_Fld_Typecode = b_Field._dtype 
    change_type = no.
 
+
 /* Make sensitivity/label adjustments to fld-case and _Decimals based
    on data type chosen. */
 run adedict/FLD/_dtcust.p (INPUT b_Field._Fld-case:HANDLE in {&Frame},
       	       	     	   INPUT b_Field._Decimals:HANDLE in {&Frame}).
+
+/* for clob/blob fields, we hide the format and decimals and show some other specific
+   fields.  For clob fields only, we hide label and col-label to show codepage and collation
+   information
+*/
+IF ispro AND (b_field._dtype = {&DTYPE_BLOB} OR b_field._dtype = {&DTYPE_CLOB}) THEN DO:
+   ASSIGN s_lob_size:HIDDEN IN {&FRAME} = NO
+          s_lob_Area:HIDDEN IN {&FRAME} = NO
+          b_Field._Decimals:HIDDEN IN {&FRAME} = YES
+          b_Field._Format:HIDDEN IN {&FRAME} = YES
+          s_btn_Fld_Format:HIDDEN IN {&FRAME} = YES.
+
+  IF b_field._dtype = {&DTYPE_CLOB} THEN
+     ASSIGN s_clob_cp:HIDDEN IN {&FRAME} = NO
+            s_clob_col:HIDDEN IN {&FRAME} = NO
+            b_Field._Label:HIDDEN IN {&FRAME} = YES
+            b_Field._Col-label:HIDDEN IN {&FRAME} = YES.
+  ELSE
+     ASSIGN s_clob_cp:HIDDEN IN {&FRAME} = YES
+            s_clob_col:HIDDEN IN {&FRAME} = YES
+            b_Field._Label:HIDDEN IN {&FRAME} = NO
+            b_Field._Col-label:HIDDEN IN {&FRAME} = NO.
+END.
+ELSE
+   ASSIGN s_lob_size:HIDDEN IN {&FRAME} = YES
+          s_lob_Area:HIDDEN IN {&FRAME} = YES
+          b_Field._Decimals:HIDDEN IN {&FRAME} = NO
+          b_Field._Format:HIDDEN IN {&FRAME} = NO
+          s_btn_Fld_Format:HIDDEN IN {&FRAME} = NO.
+   
 
 /* The CHANGE_DATA_TYPE capability indicates if any types are changeable
    from any other.  Even then, certain types cannot be changed.  We can only
@@ -277,9 +301,42 @@ do:
    {adedict/FLD/dtwidth.i &Frame = "{&Frame}" &Only1 = "TRUE"}
 end.
 
+/* get some specific info for LOBs */
+IF ispro AND (b_field._dtype = {&DTYPE_BLOB} OR  b_field._dtype = {&DTYPE_CLOB}) THEN DO:
+
+    /* Find the storage object so that we can see which area the lob is stored
+       in and then find the area to display the name to the user if record has
+       been committed.  Else find area using number in _fld-stlen 
+       _Fld-stlen holds the object number once the field is created by the Progress client 
+    */
+    IF b_field._Field-rpos <> ? THEN DO: /* if the field was commited */
+        FIND _storageobject WHERE _Storageobject._Db-recid = s_DbRecId
+                             AND _Storageobject._Object-type = 3
+                             AND _Storageobject._Object-number = b_Field._Fld-stlen
+                             NO-LOCK.
+        FIND _Area WHERE _Area._Area-number = _StorageObject._Area-number NO-LOCK.
+   END.
+   ELSE
+       FIND _Area WHERE _Area._Area-number =  b_Field._Fld-stlen NO-LOCK.
+
+  ASSIGN s_lob_size = b_Field._Fld-Misc2[1]
+         s_lob_wdth = b_Field._Width
+         s_lob_Area  = _Area._Area-name.
+  
+  RELEASE _Area.
+  RELEASE _storageobject.
+
+  /* specific codepage/collation information for CLOBs */
+  IF b_field._dtype = {&DTYPE_CLOB} THEN
+     ASSIGN s_clob_cp = b_Field._Charset
+            s_clob_col = b_Field._Collation.
+END.
+
 display  b_Field._Field-Name  b_Field._Mandatory
-      	 b_Field._Format      b_Field._Label       
-         b_Field._Col-label   s_Fld_Array
+      	 b_Field._Format      
+         b_Field._Label       WHEN b_field._dtype <> {&DTYPE_CLOB}
+         b_Field._Col-label   WHEN b_field._dtype <> {&DTYPE_CLOB}
+         s_Fld_Array
       	 b_Field._Initial     b_Field._Desc        
       	 b_Field._Help        s_Optional
       	 b_Field._Extent
@@ -294,17 +351,21 @@ display  b_Field._Field-Name  b_Field._Mandatory
 IF b_Field._Dtype = {&DTYPE_BLOB} AND NOT ispro  THEN
     DISPLAY b_field._Fld-case WITH {&Frame}.
 
+IF ispro AND (b_field._dtype = {&DTYPE_BLOB} OR  b_field._dtype = {&DTYPE_CLOB}) THEN DO:
+    DISPLAY s_lob_area s_lob_size WITH {&Frame}.
+    
+    ASSIGN b_Field._Format:HIDDEN IN {&Frame} = TRUE
+           s_btn_Fld_Format:HIDDEN IN {&FRAME} = YES .
+    
+    IF b_field._dtype = {&DTYPE_CLOB} THEN
+       DISPLAY s_clob_cp s_clob_col WITH {&Frame}.
+END.
+
+
 if {&ReadOnly} then
 do:
-   IF b_Field._Dtype = {&DTYPE_BLOB} AND ispro THEN DO:
+   IF (b_Field._Dtype = {&DTYPE_BLOB} OR b_Field._Dtype = {&DTYPE_CLOB}) AND ispro THEN DO:
        DISABLE ALL WITH {&Frame}.
-       RUN adedict/FLD/_bfdprop.p ( INPUT {&ReadOnly}).     
-       ENABLE s_btn_close s_btn_Prev s_btn_Next WITH {&Frame} .
-       APPLY "entry" TO s_btn_close IN {&Frame}.     
-   END.
-   ELSE IF b_Field._Dtype = {&DTYPE_CLOB} AND ispro THEN DO:
-       DISABLE ALL WITH {&Frame}.
-       RUN adedict/FLD/_cfdprop.p ( INPUT {&ReadOnly}).     
        ENABLE s_btn_close s_btn_Prev s_btn_Next WITH {&Frame} .
        APPLY "entry" TO s_btn_close IN {&Frame}.     
    END.
@@ -353,27 +414,39 @@ else do:
       	 s_Fld_Array:sensitive in {&Frame} = no
       	 b_Field._Extent:sensitive in {&Frame} = no.
 
-   IF b_Field._Dtype = {&DTYPE_BLOB} AND ispro THEN DO:
-       DISABLE ALL WITH {&Frame}.
-       RUN adedict/FLD/_bfdprop.p ( INPUT {&ReadOnly}).  
-       IF b_field._Field-name:SCREEN-VALUE IN {&Frame} <> b_Field._Field-name THEN
-         ASSIGN b_field._Field-name:SCREEN-VALUE IN {&Frame} = b_Field._Field-name.
-       IF b_field._Order:SCREEN-VALUE IN {&Frame} <> STRING(b_Field._Order) THEN
-         ASSIGN b_field._Order:SCREEN-VALUE IN {&Frame} = STRING(b_Field._Order).
-       ENABLE s_btn_close s_btn_Prev s_btn_Next WITH {&Frame} .
-       APPLY "entry" TO s_btn_close IN {&Frame}.     
-   END.
-   ELSE IF b_Field._Dtype = {&DTYPE_CLOB} AND ispro THEN DO:
-       DISABLE ALL WITH {&Frame}.
-       RUN adedict/FLD/_cfdprop.p ( INPUT {&ReadOnly}).  
-       IF b_field._Field-name:SCREEN-VALUE IN {&Frame} <> b_Field._Field-name THEN
-         ASSIGN b_field._Field-name:SCREEN-VALUE IN {&Frame} = b_Field._Field-name.
-       IF b_field._Order:SCREEN-VALUE IN {&Frame} <> STRING(b_Field._Order) THEN
-         ASSIGN b_field._Order:SCREEN-VALUE IN {&Frame} = STRING(b_Field._Order).
-       IF b_field._Fld-case:SCREEN-VALUE IN {&Frame} <> STRING(b_Field._Fld-case) THEN
-         ASSIGN b_field._Fld-case:SCREEN-VALUE IN {&Frame} = STRING(b_Field._Fld-case).
-       ENABLE s_btn_close s_btn_Prev s_btn_Next WITH {&Frame} .
-       APPLY "entry" TO s_btn_close IN {&Frame}.     
+   IF (b_Field._Dtype = {&DTYPE_BLOB} OR b_Field._Dtype = {&DTYPE_CLOB}) AND ispro THEN DO:
+       
+       DISABLE ALL EXCEPT 
+              b_Field._Field-Name 
+              b_Field._Order
+              s_lob_size
+              b_Field._Desc
+       WITH {&Frame}.
+
+       ENABLE b_Field._Field-Name 
+              b_Field._Order     when s_CurrObj = {&OBJ_FLD} 
+              b_Field._Desc
+              s_lob_size
+              b_field._Fld-case WHEN b_Field._Dtype = {&DTYPE_CLOB}
+              s_btn_OK
+              s_btn_Save
+              s_btn_Close
+              s_btn_Prev
+              s_btn_Next
+              s_btn_Help
+              with {&Frame}.
+
+       /* adjust s_lob_size tab order */
+       ASSIGN s_Res = s_lob_size:move-after-tab-item
+              (b_Field._Order:handle in {&Frame}) in {&Frame}.
+
+       IF b_Field._Dtype = {&DTYPE_CLOB} THEN DO:
+          IF b_field._Fld-case:SCREEN-VALUE IN {&Frame} <> STRING(b_Field._Fld-case) THEN
+             ASSIGN b_field._Fld-case:SCREEN-VALUE IN {&Frame} = STRING(b_Field._Fld-case).
+       END.
+
+       APPLY "entry" to b_Field._Field-Name in {&Frame}.
+
    END.
    ELSE IF b_field._Dtype = {&DTYPE_BLOB} THEN DO:
      DISABLE all except
@@ -398,11 +471,12 @@ else do:
    END.
    ELSE DO:
     
+    IF b_field._dtype <> {&DTYPE_BLOB} AND b_field._dtype <> {&DTYPE_CLOB} THEN DO:
    /* ENABLE effects the TAB order */
      enable b_Field._Field-Name 
             s_Fld_DType	     when change_type 
       	  s_btn_Fld_DType    when change_type
-      	  b_Field._Format
+      	  b_Field._Format 
       	  s_btn_Fld_Format
       	  b_Field._Label
       	  b_Field._Col-label
@@ -426,6 +500,23 @@ else do:
       	  s_btn_Next
       	  s_btn_Help
       	  with {&Frame}.
+
+    END.
+    ELSE DO:
+        enable b_Field._Field-Name 
+               s_Fld_DType	     when change_type 
+             b_Field._Order     when s_CurrObj = {&OBJ_FLD} 
+             s_lob_size
+             b_Field._Desc
+             s_btn_OK
+             s_btn_Save
+             s_btn_Close
+             s_btn_Prev
+             s_btn_Next
+             s_btn_Help
+             with {&Frame}.
+
+    END.
 
    /* Now readjust tab orders for stuff not in the ENABLE list but
       which may in fact be sensitive.

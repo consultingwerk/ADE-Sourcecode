@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2004 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -30,9 +14,11 @@ Note 'ODBALLOWED':
 Note 'SOBJECTS' 'POBJECTS':
   sobjects contains a list of Odbc objects as they described in the
   SQLTables API call. pobjects is their PROGRESS name.
-  
+ 
 This file has been moved from odb to gate because it will be used by both
 the ODBC DataServer and the MSS DataServer  DLM  6/19/00
+
+Schema holder version number introduced  DJM  10/27/05
   
 */
 
@@ -40,7 +26,77 @@ DEFINE VARIABLE datetime             AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE odballowed           AS CHARACTER NO-UNDO.
 DEFINE VARIABLE pobjects             AS CHARACTER NO-UNDO.
 DEFINE VARIABLE sobjects             AS CHARACTER NO-UNDO.
-DEFINE VARIABLE odbc-dict-ver         AS CHARACTER NO-UNDO INIT "1.000.000".
+DEFINE VARIABLE odbc-dict-ver        AS CHARACTER NO-UNDO INIT "1.000.000".
+
+
+/**********************************************************************************************
+
+  The value of "prgrs_clnt" input to _Db._Db-misc2[7] changes from 
+    "<vers>" 
+     to 
+    "<vers>:sh_min=<minvers>,sh_max=<maxvers>."
+      where <vers> is the Progress Client Version number
+        and <minvers> is the minimum schema holder version compatible with this Progress client
+        and <maxvers> is the maximum schema holder version compatible with this Progress client
+        <minvers> and <maxvers> are maintained by the Progress client connected to the schema
+        holder.
+
+   Db._Db-misc2[6] changes to 
+     "Dictionary Ver#: <dict-vers>" + "Client Ver#: <clnt-vers>" + "Server Ver# <srvr-vers>" +
+       "Schema Holder Ver# <sch-hldr-vers>" 
+      where <sch-hldr-vers> is the current version of the schema holder
+      <sch-hldr-vers> is set initially to <minvers> but is maintained by the Dictionary as
+        version features are added to the schema holder.
+
+   ** NOTE: There are change requirements in _odb_get.p if these formats are further changed. **
+
+   The schema holder version number is being introduced in Progress client
+   and dictionaries in  versions 9.1E03, 10.0B04, and 10.1A.  The progress 
+   client version for all these versions will be set to "101".  But the maximum
+   compatible schema holder version will only be set to "2" for 10.1A and 10.0B04.
+   9.1E03 will have a maximum schema holder version number of "1" meaning 
+   incompatibilities with Version 2 schema holder features will exist.
+
+   Since the Progress client and Dictionary are mutually responsible for the content 
+   in the schema holder, they should apply the schema holder version in coordinated
+   fashion.  The Progress Client passes the schema holder minumum version number to 
+   the Dictionary through the GetInfo_buffer.  The minimum value is applied to a newly
+   built schema holder unless the Dictionary has a valid reason to override or update 
+   that value.  The Dictionary may upgrade the schema holder version number either 
+   automatically, because of features inherent in this version of the Dictionary, or 
+   conditionally, because of features associated with a newer schema holder version 
+   that are enacted in this schema holder through the use of dictionary utilities.  
+   NOTE:  It is possible, but unlikely, that a schema holder version number will be
+   applied by the dictionary that is  greater than the schema holder version range 
+   declared by the client to be supported.  Since the client and dictionary are shipped 
+   together, it is not likely that a version of the Dictionary that is incompatible with 
+   the current version of the client will be used to maintain the schema holder.
+   But the dictionary should test for this possibility just in case the utilities 
+   used to build or upgrade a schema holder happen to be incompatible with the current
+   client version that uses it.
+
+   Ultimately, the schema holder version number should reflect the level of features 
+   implemented in the schema holder through the dictionary and/or Progress client.
+
+   With these changes, Progress clients that are incompatible with new dictionary features,
+   or old dictionaries that are incompatible with newer clients can be identified and 
+   conveyed to customer.
+
+   Schema Holder Version Change Log:
+    --------------------------------
+    1 - Is the baseline for everything before OpenEdge Version 10.1A, 10.0B04
+        and 9.1E03.
+    2 - Introduces an "_" suffix identifier, instead of "#" for array field suffixes
+         used against a DB2 database.  The presence of these entries are determined 
+         by the dictionary which will conditionally and automatically upgrade the 
+         version number in the schema holder's _Db record.
+
+    # - Introduces .... 
+    # - Introduces .... 
+*/
+
+&GLOBAL-DEFINE ODBC_SCH_VER1 1
+&GLOBAL-DEFINE ODBC_SCH_VER2 2
 
 /* List of certified drivers. Warning is issued for non certified drivers. */
 DEFINE VARIABLE odbc-certify-list AS CHARACTER NO-UNDO.
@@ -200,7 +256,7 @@ odbc-bug-list[6] = "PODBC_Sybase_Driver,PODBC_M/S_SQL_Server_Driver"
 odbc-bug-list[7] = "QEGUP,DB2CLIW.DLL,PODBC_M/S_SQL_Server_Driver,"
                     + "DB2CLI.DLL,IVOR709.DLL,IVOR714.DLL,IVOR814.DLL,IVDB214.DLL,P1DB214.DLL,"
                     + "IVUDB16.DLL,P1UDB16.DLL,P1DB218.DLL,IVDB218.DLL,P1DB219.DLL,IVDB219.DLL,"
-                    + "P1DB220.DLL,IVDB220.DLL"
+                    + "P1DB220.DLL,IVDB220.DLL,P1DB221.DLL,IVDB221.DLL"
 odbc-bug-list[8] = "SIMBA.DLL,QEDBF,QEPDX,IVDBF"
 odbc-bug-list[9] = "QEGUP"
 odbc-bug-list[10] = "PODBC_Sybase_Driver,QEINF,QEINF5,PODBC_Allbase_Driver,"
@@ -219,17 +275,17 @@ odbc-bug-list[13] = "PODBC_Sybase_Driver,PODBC_Allbase_Driver,DB2CLIW.DLL,"
                     + "IVDB214.DLL,P1DB214.DLL,IVSS614.DLL,P1SS614.DLL,P1DB218.DLL,IVDB218.DLL,"
                     + "P1SS616.DLL,P1INF16.DLL,IVINF14.DLL,P1INF14.DLL,IVMSSS14.DLL,P1MSSS14.DLL,"
                     + "P1MSSS18.DLL,IVMSSS18.DLL,P1SS618.DLL,IVSS618.DLL,IVINF18.DLL,P1INF18.DLL,"
-                    + "IVINF19.DLL,P1INF19.DLL,P1MSSS19.DLL,IVMSSS19.DLL,P1SS619.DLL,IVSS619.DLL,"
-                    + "P1IFCL19.DLL,IVIFCL19.DLL,P1DB219.DLL,IVDB219.DLL,P1DB220.DLL,IVDB220.DLL"
+                    + "IVINF19.DLL,P1INF19.DLL,P1MSSS19.DLL,IVMSSS19.DLL,P1SS619.DLL,IVSS619.DLL,P1MSSS21.DLL,IVMSSS21.DLL,"
+                    + "P1IFCL19.DLL,IVIFCL19.DLL,P1DB219.DLL,IVDB219.DLL,P1DB220.DLL,IVDB220.DLL,P1DB221.DLL,IVDB221.DLL"
 odbc-bug-list[14] = "PODBC_DB2_Driver,DB2CLIW.DLL,SQLSRV32.DLL,IVMSSS16.DLL,IVSS616.DLL,"
                     + "P1MSSS16.DLL,P1SS616.DLL,DB2CLI.DLL,IVOR709.DLL,IVOR714.DLL,IVOR814.DLL,"
                     + "IVUDB16.DLL,P1UDB16.DLL,IVMSSS14.DLL,ODBCJT32.DLL,P1DB218.DLL,IVDB218.DLL,"
                     + "P1MSSS14.DLL,IVDB214.DLL,P1DB214.DLL,IVSS614.DLL,P1SS614.DLL,P1SS618.DLL,"
                     + "IVSS618.DLL,P1MSSS18.DLL,IVMSSS18.DLL,P1DB219.DLL,IVDB219.DLL,P1SS619.DLL,"
-                    + "IVSS619.DLL,P1MSSS19.DLL,IVMSSS19.DLL,P1DB220.DLL,IVDB220.DLL"
+                    + "IVSS619.DLL,P1MSSS19.DLL,IVMSSS19.DLL,P1DB220.DLL,IVDB220.DLL,P1DB221.DLL,IVDB221.DLL,P1MSSS21.DLL,IVMSSS21.DLL"
 odbc-bug-list[15] = "PODBC_Sybase_Driver,PODBC_M/S_SQL_Server_Driver"
 odbc-bug-list[16] = "PODBC_Sybase_Driver,ODBCJT16.DLL,ODBCJT32.DLL,IVUDB16.DLL,P1UDB16.DLL,"
-                    + "P1DB218.DLL,IVDB218.DLL,P1DB219.DLL,IVDB219.DLL,P1DB220.DLL,IVDB220.DLL"	
+                    + "P1DB218.DLL,IVDB218.DLL,P1DB219.DLL,IVDB219.DLL,P1DB220.DLL,IVDB220.DLL,P1DB221.DLL,IVDB221.DLL"
 odbc-bug-list[17] = "PODBC_Allbase_Driver,QEINF,QEINF5,IVINF508.DLL,"
                     + "IVINF709.DLL,IVINF16.DLL,P1INF16.DLL,IVINF14.DLL,P1INF14.DLL,"
                     + "IVUDB16.DLL,P1UDB16.DLL,IVDB214.DLL,P1DB214.DLL,ODBCJT32.DLL,"
@@ -237,9 +293,9 @@ odbc-bug-list[17] = "PODBC_Allbase_Driver,QEINF,QEINF5,IVINF508.DLL,"
                     + "P1SS614.DLL,IVSS616.DLL,P1SS616.DLL,SQLSRV32.DLL,DB2CLI.DLL,"
                     + "P1IFCL18.DLL,IVIFCL18.DLL,P1DB218.DLL,IVDB218.DLL,P1MSSS18.DLL,"
                     + "IVMSSS18.DLL,P1SS618.DLL,IVSS618.DLL,IVINF18.DLL,P1INF18.DLL,"
-                    + "P1IFCL19.DLL,IVIFCL19.DLL,P1DB219.DLL,IVDB219.DLL,P1MSSS19.DLL,"
+                    + "P1IFCL19.DLL,IVIFCL19.DLL,P1DB219.DLL,IVDB219.DLL,P1MSSS19.DLL,P1MSSS21.DLL,IVMSSS21.DLL,"
                     + "IVMSSS19.DLL,P1SS619.DLL,IVSS619.DLL,IVINF19.DLL,P1INF19.DLL,"
-                    + "P1DB220.DLL,IVDB220.DLL"
+                    + "P1DB220.DLL,IVDB220.DLL,P1DB221.DLL,IVDB221.DLL"
 odbc-bug-list[18] = "PODBC_Allbase_Driver"
 odbc-bug-list[19] = "".
 
@@ -248,7 +304,7 @@ odbc-bug-list[20] = "QEINF,QEINF5,IVINF508.DLL,IVINF709.DLL,IVINF16.DLL,P1SS616.
                     + "P1INF16.DLL,SQLSRV32.DLL,IVMSSS16.DLL,IVSS616.DLL,P1MSSS16.DLL,"
                     + "IVINF14.DLL,P1INF14.DLL,IVMSSS14.DLL,P1MSSS14.DLL,IVSS614.DLL,P1SS614.DLL," 
                     + "P1IFCL18.DLL,IVIFCL18.DLL,P1MSSS18.DLL,IVMSSS18.DLL,P1SS618.DLL,IVSS618.DLL,"
-                    + "IVINF18.DLL,P1INF18.DLL,P1IFCL19.DLL,IVIFCL19.DLL,P1MSSS19.DLL,IVMSSS19.DLL,"
+                    + "IVINF18.DLL,P1INF18.DLL,P1IFCL19.DLL,IVIFCL19.DLL,P1MSSS19.DLL,IVMSSS19.DLL,P1MSSS21.DLL,IVMSSS21.DLL,"
                     + "P1SS619.DLL,IVSS619.DLL,IVINF19.DLL,P1INF19.DLL"
 odbc-bug-list[21] = ""
 odbc-bug-list[22] = ""
@@ -260,11 +316,11 @@ odbc-bug-list[26] = "QEINF,QEINF5,ODBCJT16.DLL,ODBCJT32.DLL,DB2CLIW.DLL,"
                     + "IVUDB16.DLL,P1UDB16.DLL,P1IFCL18.DLL,IVIFCL18.DLL,P1DB218.DLL,"
                     + "IVINF14.DLL,P1INF14.DLL,IVDB214.DLL,P1DB214.DLL,IVDB218.DLL,"
                     + "IVINF18.DLL,P1INF18.DLL,P1IFCL19.DLL,IVIFCL19.DLL,P1DB219.DLL,"
-                    + "IVDB219.DLL,IVINF19.DLL,P1INF19.DLL,P1DB220.DLL,IVDB220.DLL"
+                    + "IVDB219.DLL,IVINF19.DLL,P1INF19.DLL,P1DB220.DLL,IVDB220.DLL,P1DB221.DLL,IVDB221.DLL"
 odbc-bug-list[27] = "ODBCJT16.DLL,ODBCJT32.DLL"
 odbc-bug-list[28] = ""
 odbc-bug-list[29] = "DB2CLIW.DLL,DB2CLI.DLL,IVUDB16.DLL,P1UDB16.DLL,P1DB218.DLL,IVDB218.DLL,"
-                    + "IVDB214.DLL,P1DB214.DLL,P1DB219.DLL,IVDB219.DLL,P1DB220.DLL,IVDB220.DLL"
+                    + "IVDB214.DLL,P1DB214.DLL,P1DB219.DLL,IVDB219.DLL,P1DB220.DLL,IVDB220.DLL,P1DB221.DLL,IVDB221.DLL"
 odbc-bug-list[30] = "PODBC_M/S_SQL_Server_Driver,PODBC_Sybase_Driver"
 odbc-bug-list[31] = "PODBC_M/S_SQL_Server_Driver"
 odbc-bug-list[32] = "ODBCJT16.DLL,ODBCJT32.DLL,IVDBF08.DLL"
@@ -274,16 +330,16 @@ odbc-bug-list[33] = "SQLSRV32.DLL,IVMSSS16.DLL,IVMSSS15.DLL,P1MSSS16.DLL,DB2CLIW
                     + "IVDB214.DLL,P1DB214.DLL,IVUDB16.DLL,P1UDB16.DLL,IVASE16.DLL,P1ASE16.DLL,"
                     + "P1DB218.DLL,IVDB218.DLL,P1MSSS18.DLL,IVMSSS18.DLL,P1SS618.DLL,IVSS618.DLL,"
                     + "P1DB219.DLL,IVDB219.DLL,P1MSSS19.DLL,IVMSSS19.DLL,P1SS619.DLL,IVSS619.DLL,"
-                    + "P1ASE18.DLL,IVASE18.DLL,P1ASE19.DLL,IVASE19.DLL"
+                    + "P1ASE18.DLL,IVASE18.DLL,P1ASE19.DLL,IVASE19.DLL,P1MSSS21.DLL,IVMSSS21.DLL,P1ASE21.DLL,IVASE21.DLL"
 odbc-bug-list[34] = "IVINF508.DLL,IVINF709.DLL,IVINF16.DLL,P1INF16.DLL,"
                     + "IVINF14.DLL,P1INF14.DLL,P1IFCL18.DLL,IVIFCL18.DLL,IVINF18.DLL,P1INF18.DLL," 
                     + "P1IFCL19.DLL,IVIFCL19.DLL,IVINF19.DLL,P1INF19.DLL"
 odbc-bug-list[35] = "SQLSRV32.DLL,IVMSSS16.DLL,IVSS616.DLL,P1SS616.DLL,P1MSSS16.DLL,P1MSSS18.DLL,"
                     + "IVMSSS14.DLL,P1MSSS14.DLL,IVSS614.DLL,P1SS614.DLL,IVMSSS18.DLL,P1SS618.DLL,"
-                    + "IVSS618.DLL,P1MSSS19.DLL,IVMSSS19.DLL,P1SS619.DLL,IVSS619.DLL"
+                    + "IVSS618.DLL,P1MSSS19.DLL,IVMSSS19.DLL,P1SS619.DLL,IVSS619.DLL,P1MSSS21.DLL,IVMSSS21.DLL"
 odbc-bug-list[36] = "SQLSRV32.DLL,IVMSSS16.DLL,IVSS616.DLL,P1SS616.DLL,P1MSSS16.DLL,P1MSSS18.DLL,"
                     + "IVMSSS14.DLL,P1MSSS14.DLL,IVSS614.DLL,P1SS614.DLL,IVMSSS18.DLL,P1SS618.DLL,"
-                    + "IVSS618.DLL,P1MSSS19.DLL,IVMSSS19.DLL,P1SS619.DLL,IVSS619.DLL"
+                    + "IVSS618.DLL,P1MSSS19.DLL,IVMSSS19.DLL,P1SS619.DLL,IVSS619.DLL,P1MSSS21.DLL,IVMSSS21.DLL"
 odbc-bug-list[37] = "".
 ASSIGN
 odbc-bug-excld[1] = "" 

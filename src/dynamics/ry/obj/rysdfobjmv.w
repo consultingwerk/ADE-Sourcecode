@@ -1,5 +1,12 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /* Connected Databases 
           icfdb            PROGRESS
 */
@@ -25,6 +32,7 @@ af/cod/aftemwizpw.w
 /* Temp-Table and Buffer definitions                                    */
 DEFINE TEMP-TABLE RowObject
        {"ry/obj/ryemptysdo.i"}.
+
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
@@ -139,6 +147,13 @@ ToSave fiObjectDescription
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD clearDetails vTableWin 
 FUNCTION clearDetails RETURNS LOGICAL
   ( plClearAll AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataViewSource vTableWin 
+FUNCTION getDataViewSource RETURNS HANDLE
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -423,7 +438,13 @@ DO:
             IF VALID-HANDLE(ghDynCombo) THEN
               RUN setInfo IN ghDynCombo (INPUT ghDataTable).
         END.
-    ASSIGN toUseCache:CHECKED IN FRAME {&FRAME-NAME} = ghDataTable:BUFFER-FIELD("lUseCache":U):BUFFER-VALUE.
+    
+    /* Update this viewer. Only update the instance attributes,
+       and not the master values (like the obejct_filename).
+     */
+    toUseCache:CHECKED = ghDataTable:BUFFER-FIELD("lUseCache":U):BUFFER-VALUE.
+    setDataObjectName(ghDataTable:BUFFER-FIELD("cDataSourceName":U):BUFFER-VALUE).  
+    
     RUN changesMade.
     ASSIGN buSynch:SENSITIVE = FALSE
            buSynch:HIDDEN    = TRUE.
@@ -541,7 +562,7 @@ DO:
     RUN enableField IN hDataObject.
   ELSE DO: 
     RUN disableField IN hDataObject.
-    RUN assignNewValue IN hDataObject(INPUT '':U, INPUT '':U, INPUT TRUE).
+    RUN clearField IN hDataObject.
     DYNAMIC-FUNCTION('setDataSourceName':U IN ghDynCombo,
                      INPUT '':U).
   END.
@@ -637,7 +658,7 @@ PROCEDURE adm-create-objects :
 
     WHEN 0 THEN DO:
        RUN constructObject (
-             INPUT  'adm2/dynlookup.w':U ,
+             INPUT  'ry/obj/rysdfdatasource.w':U ,
              INPUT  FRAME frMain:HANDLE ,
              INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.object_filenameFieldLabelDataObject nameFieldTooltipPress F4 for LookupKeyFormatX(70)KeyDatatypecharacterDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type NO-LOCK, EACH ryc_smartobject NO-LOCK
                      WHERE ryc_smartobject.object_type_obj = gsc_object_type.object_type_obj,
@@ -749,9 +770,8 @@ PROCEDURE assignSDFValues :
     ASSIGN fiObjectDescription:SCREEN-VALUE = ghDataTable:BUFFER-FIELD("cObjectDescription":U):BUFFER-VALUE
            fiFieldName:SCREEN-VALUE         = ghDataTable:BUFFER-FIELD("cActualField":U):BUFFER-VALUE
            toUseCache:CHECKED               = ghDataTable:BUFFER-FIELD("lUseCache":U):BUFFER-VALUE.
-
     setDataObjectName(ghDataTable:BUFFER-FIELD("cDataSourceName":U):BUFFER-VALUE).
-    RUN assignNewValue IN hCustomSuperProcedure (INPUT ghDataTable:BUFFER-FIELD("cCustomSuperProc":U):BUFFER-VALUE, INPUT ghDataTable:BUFFER-FIELD("cCustomSuperProc":U):BUFFER-VALUE, TRUE).
+    RUN assignNewValue IN hCustomSuperProcedure (INPUT ghDataTable:BUFFER-FIELD("cCustomSuperProc":U):BUFFER-VALUE, INPUT ghDataTable:BUFFER-FIELD("cCustomSuperProc":U):BUFFER-VALUE, TRUE).        
   END.
 END PROCEDURE.
 
@@ -810,7 +830,7 @@ PROCEDURE checkForStaticSDF :
 
   {get RunAttribute cRunAttribute ghContainerSource}.
   {get ContainerHandle hContainer ghContainerSource}.
-
+  
   IF cRunAttribute <> "":U THEN
     ASSIGN ghSDFObject = WIDGET-HANDLE(ENTRY(1,cRunAttribute,CHR(3))) NO-ERROR.
   IF cRunAttribute = "":U OR 
@@ -827,11 +847,11 @@ PROCEDURE checkForStaticSDF :
     RUN returnViewerFields     IN ghSDFObject (OUTPUT cViewerFields) NO-ERROR.
     IF NOT ERROR-STATUS:ERROR THEN
       PUBLISH "viewerFields":U     FROM ghContainerSource (cViewerFields).
-    
+
     RUN returnDataSourceHandle IN ghSDFObject (OUTPUT hDataSourceHandle) NO-ERROR.
     IF NOT ERROR-STATUS:ERROR THEN
       PUBLISH "dataSourceHandle":U FROM ghContainerSource (hDataSourceHandle).
-    
+
   END.
 
   /* When user used 'Edit Master' option on popup menu */
@@ -1226,6 +1246,7 @@ PROCEDURE initializeObject :
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cAppBuilder   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hObjectLookup AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cRunAttribute AS CHARACTER  NO-UNDO.
 
   ASSIGN gcComboClasses  = DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, INPUT "dynLookup,dynCombo")
          gcLookupClasses = ENTRY(1, gcComboClasses, CHR(3))
@@ -1234,8 +1255,12 @@ PROCEDURE initializeObject :
   ASSIGN fiDataObjectTypes:SCREEN-VALUE IN FRAME {&FRAME-NAME} = DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, INPUT "Data":U).
   
   /* Code placed here will execute PRIOR to standard behavior. */
-  {get ContainerSource ghContainerSource}.
-  
+  {get ContainerSource ghContainerSource}.  
+  {get RunAttribute cRunAttribute ghContainerSource}.
+   
+  IF cRunAttribute <> "":U THEN 
+    ghSDFObject = WIDGET-HANDLE(ENTRY(1,cRunAttribute,CHR(3))) NO-ERROR.
+
   SUBSCRIBE PROCEDURE THIS-PROCEDURE TO "lookupDisplayComplete":U  IN THIS-PROCEDURE.
   SUBSCRIBE PROCEDURE THIS-PROCEDURE TO "enableSearchLookups":U    IN ghContainerSource.
   SUBSCRIBE PROCEDURE THIS-PROCEDURE TO "enableViewerObjects":U    IN ghContainerSource.
@@ -1243,6 +1268,7 @@ PROCEDURE initializeObject :
   SUBSCRIBE PROCEDURE THIS-PROCEDURE TO "lookupComplete":U         IN THIS-PROCEDURE.
   
   RUN SUPER.
+  
   {set FieldHidden TRUE hResultCode}.
   /* Code placed here will execute AFTER standard behavior.    */
   DO WITH FRAME {&FRAME-NAME}:
@@ -1774,8 +1800,8 @@ PROCEDURE resizeViewerObjects :
         dNewColumn    = fiObjectDescription:COLUMN + hLabelHandle:WIDTH-CHARS + dNewWidth + .5
         hHandle       = fiFieldName:SIDE-LABEL-HANDLE
         
-        fiObjectDescription:WIDTH-CHARS  = dNewWidth - 4.80
-        coObjType:WIDTH-CHARS            = dNewWidth - 4.80
+        fiObjectDescription:WIDTH-CHARS  = dNewWidth
+        coObjType:WIDTH-CHARS            = dNewWidth
         buWhereUsed:COLUMN               = dNewColumn + 5
         buSynchInstances:COLUMN          = dNewColumn + 5
         toSave:COLUMN                    = dNewColumn + 5
@@ -2596,6 +2622,36 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataViewSource vTableWin 
+FUNCTION getDataViewSource RETURNS HANDLE
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: get the Viewer's DataView object 
+    Notes: DataSourcename Lookup and combo viewer needs this (early)   
+           (There is a mechanism in checkForstaticSDF that actively publishes 
+            the datasource, but that is too late for this)
+         - This ONLY returns a handle if it is actuially DataView source.   
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hDataSourceHandle AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lDBAware          AS LOGICAL    NO-UNDO.
+
+  IF VALID-HANDLE(ghSDFObject) THEN
+    RUN returnDataSourceHandle IN ghSDFObject (OUTPUT hDataSourceHandle) NO-ERROR.
+  
+  IF VALID-HANDLE(hDataSourceHandle) THEN
+  DO:
+    /* if the DataSource is not DBAware then it is a DataView */
+    {get DBAware lDBAware hDataSourceHandle}.
+    IF NOT lDBAware THEN
+      RETURN hDataSourceHandle.
+  END.
+  RETURN ?.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getSDFProc vTableWin 
 FUNCTION getSDFProc RETURNS HANDLE
   ( /* parameter-definitions */ ) :
@@ -2633,7 +2689,10 @@ DEFINE VARIABLE hLookup AS HANDLE     NO-UNDO.
   raSource:SCREEN-VALUE IN FRAME {&FRAME-NAME} = IF pcName = "":U THEN "DB":U
                                                  ELSE "SDO":U.
   IF pcName = "":U THEN 
+  do:
     RUN disableField IN hDataObject.
+    run clearField in hDataObject.
+  end.    /* not SDO-based */
 
   RETURN TRUE.   /* Function return value. */
 

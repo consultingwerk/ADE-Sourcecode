@@ -62,6 +62,7 @@ CREATE WIDGET-POOL.
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Scoped-define QUERY-NAME Query-Main
 
 /* Custom List Definitions                                              */
@@ -92,7 +93,7 @@ CREATE WIDGET-POOL.
 /* This procedure should always be RUN PERSISTENT.  Report the error,  */
 /* then cleanup and return.                                            */
 IF NOT THIS-PROCEDURE:PERSISTENT THEN DO:
-  MESSAGE "{&FILE-NAME} should only be RUN PERSISTENT."
+  MESSAGE "{&FILE-NAME} should only be RUN PERSISTENT.":U
           VIEW-AS ALERT-BOX ERROR BUTTONS OK.
   RETURN.
 END.

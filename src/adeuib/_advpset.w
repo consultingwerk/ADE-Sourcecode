@@ -4,25 +4,9 @@
 &Scoped-define FRAME-NAME d_advprocset
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS d_advprocset 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*------------------------------------------------------------------------
@@ -76,7 +60,7 @@ FIND _P WHERE RECID(_P) eq p_Precid.
 &Scoped-define PROCEDURE-TYPE Dialog-Box
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME d_advprocset
 
 /* Standard List Definitions                                            */
@@ -115,12 +99,13 @@ DEFINE VARIABLE cb_filetype AS CHARACTER FORMAT "X(2)":U
      LABEL "File Type" 
      VIEW-AS COMBO-BOX INNER-LINES 3
      LIST-ITEMS "w","p","i" 
+     DROP-DOWN-LIST
      SIZE 9 BY 1 NO-UNDO.
 
 DEFINE VARIABLE cb_proctype AS CHARACTER FORMAT "X(256)":U 
      LABEL "Procedure T&ype" 
      VIEW-AS COMBO-BOX INNER-LINES 5
-     LIST-ITEMS "","" 
+     DROP-DOWN-LIST
      SIZE 34 BY 1 NO-UNDO.
 
 DEFINE VARIABLE rs_addfields AS INTEGER 
@@ -139,15 +124,15 @@ DEFINE VARIABLE rs_frames AS INTEGER
      SIZE 26 BY .86 NO-UNDO.
 
 DEFINE RECTANGLE RECT-3
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 44.6 BY 7.14.
 
 DEFINE RECTANGLE RECT-4
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 44.6 BY 4.33.
 
 DEFINE RECTANGLE RECT-5
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 35 BY 7.14.
 
 DEFINE VARIABLE s_Links AS CHARACTER 
@@ -220,18 +205,18 @@ DEFINE FRAME d_advprocset
      cb_filetype AT ROW 11.38 COL 58 COLON-ALIGNED
      tg_template AT ROW 11.38 COL 70
      tg_persist AT ROW 12.67 COL 60
-     " Allow Drawing of:" VIEW-AS TEXT
-          SIZE 19.6 BY .62 AT ROW 2.67 COL 3.6
-     RECT-3 AT ROW 2.91 COL 2
-     RECT-5 AT ROW 2.91 COL 47.6
-     " Add fields to:" VIEW-AS TEXT
-          SIZE 16 BY .62 AT ROW 10.52 COL 3.6
-     RECT-4 AT ROW 10.71 COL 2
      "Run Option:" VIEW-AS TEXT
           SIZE 11.6 BY .86 AT ROW 12.67 COL 48
+     " Allow Drawing of:" VIEW-AS TEXT
+          SIZE 19.6 BY .62 AT ROW 2.67 COL 3.6
      " Supported SmartLinks" VIEW-AS TEXT
           SIZE 22 BY .62 AT ROW 2.67 COL 49.6
-     SPACE(11.99) SKIP(11.80)
+     " Add fields to:" VIEW-AS TEXT
+          SIZE 16 BY .62 AT ROW 10.52 COL 3.6
+     RECT-3 AT ROW 2.91 COL 2
+     RECT-5 AT ROW 2.91 COL 47.6
+     RECT-4 AT ROW 10.71 COL 2
+     SPACE(36.99) SKIP(0.05)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "Advanced Procedure Settings".
@@ -252,7 +237,7 @@ DEFINE FRAME d_advprocset
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX d_advprocset
-                                                                        */
+   FRAME-NAME                                                           */
 ASSIGN 
        FRAME d_advprocset:SCROLLABLE       = FALSE.
 
@@ -734,11 +719,13 @@ PROCEDURE Init :
       /* Add the new type to the list. */
       l = cb_proctype:ADD-LAST(c_type) IN FRAME {&FRAME-NAME}.
     END.
+    /* DataView is type SmartDataObject and is not added to list */                          
     FOR EACH _palette_item WHERE _palette_item._type > {&P-BASIC}
                              AND _palette_item._New_Template <> ""  
                              AND _palette_item._New_Template <> ? 
-                             AND _palette_item._name <> "Folder":
-      l = cb_proctype:ADD-LAST(_palette_item._label2) IN FRAME {&FRAME-NAME}.
+                             AND _palette_item._name <> 'DataView'
+                             AND _palette_item._name <> "Folder":U:
+      cb_proctype:ADD-LAST(_palette_item._label2) IN FRAME {&FRAME-NAME}.
     END.
   END. /* Initialize Combo-box... */
 

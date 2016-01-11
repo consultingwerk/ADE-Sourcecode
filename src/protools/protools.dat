@@ -24,3 +24,4 @@
 "WebClient Deployment Packager" "protools/_prowcappdp.p" "adeicon/prowcappdp" no yes 240 no
 "XML Schema Mapping" "adexml/_xmlview.w" "adexml/images/xmlmap" yes yes 250 no
 "Widget Attr Help" "protools/widattrs.w" "adeicon/w-widattrs-sm" yes yes 260 no
+"Widget ID Assignment" "protools/_widgetidassign.p" "adeicon/widgidassign" no yes 270 no

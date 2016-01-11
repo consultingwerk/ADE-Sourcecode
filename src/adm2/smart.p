@@ -2,25 +2,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*--------------------------------------------------------------------------
@@ -80,6 +64,18 @@ DEFINE VARIABLE glIcfIsRunning AS LOGICAL INITIAL ? NO-UNDO.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD anyMessage Procedure 
 FUNCTION anyMessage RETURNS LOGICAL
   (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-assignBufferValueFromReference) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD assignBufferValueFromReference Procedure 
+FUNCTION assignBufferValueFromReference RETURNS CHARACTER
+  (phBufferField AS HANDLE, 
+   pcReference   AS CHAR)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -589,6 +585,17 @@ FUNCTION getRenderingProcedure RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getRunAttribute Procedure 
 FUNCTION getRunAttribute RETURNS CHARACTER
   ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getServiceAdapterName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getServiceAdapterName Procedure 
+FUNCTION getServiceAdapterName RETURNS CHARACTER
+  (  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -2905,7 +2912,7 @@ PROCEDURE showMessageProcedure :
                 INPUT "Yes,No",         /* pcButtonList      */
                 INPUT "YES",            /* pcDefaultButton   */
                 INPUT "NO",             /* pcCancelButton    */
-                INPUT "ADM2 Message",   /* pcMessageTitle    */
+                INPUT "Question",       /* pcMessageTitle    */
                 INPUT "",               /* pcDataType        */
                 INPUT "",               /* pcFormat          */
                 INPUT-OUTPUT cAnswer,   /* pcAnswer          */
@@ -2936,7 +2943,7 @@ PROCEDURE showMessageProcedure :
                   INPUT "Ok,Cancel",      /* pcButtonList      */
                   INPUT "YES",            /* pcDefaultButton   */
                   INPUT "NO",             /* pcCancelButton    */
-                  INPUT "ADM2 Message",   /* pcMessageTitle    */
+                  INPUT "Question",       /* pcMessageTitle    */
                   INPUT "",               /* pcDataType        */
                   INPUT "",               /* pcFormat          */
                   INPUT-OUTPUT cAnswer,   /* pcAnswer          */
@@ -2967,7 +2974,7 @@ PROCEDURE showMessageProcedure :
                 INPUT "Yes,No,Cancel",                      /* pcButtonList      */
                 INPUT "CANCEL",                             /* pcDefaultButton   */
                 INPUT "Cancel",                             /* pcCancelButton    */
-                INPUT "ADM2 Message",                       /* pcMessageTitle    */
+                INPUT "Question",                           /* pcMessageTitle    */
                 INPUT "",                                   /* pcDataType        */
                 INPUT "",                                   /* pcFormat          */
                 INPUT-OUTPUT cAnswer,                       /* pcAnswer          */
@@ -3002,7 +3009,7 @@ PROCEDURE showMessageProcedure :
                 INPUT "OK",             /* pcButtonList    */
                 INPUT "OK",             /* pcDefaultButton */
                 INPUT "",               /* pcCancelButton  */
-                INPUT "ADM2 Message",   /* pcMessageTitle  */
+                INPUT "Information",    /* pcMessageTitle  */
                 INPUT TRUE,             /* plDisplayEmpty  */
                 INPUT hContainerSource, /* phContainer     */
                 OUTPUT cButtonPressed   /* pcButtonPressed */               
@@ -3121,6 +3128,189 @@ FUNCTION anyMessage RETURNS LOGICAL
 
   RETURN gcDataMessages NE "":U.
 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-assignBufferValueFromReference) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION assignBufferValueFromReference Procedure 
+FUNCTION assignBufferValueFromReference RETURNS CHARACTER
+  (phBufferField AS HANDLE, 
+   pcReference   AS CHAR) :
+/*------------------------------------------------------------------------------
+  Purpose: Assigns a large buffer-column from the passed reference.
+           Returns the error message if it fails.  
+Paramters: phbufferField - buffer-field handle of large data-type
+           pcReference   - Reference to where the value can be retrieved
+                         - File,<filename>
+                         - File,<function-name>,<procedure-handle> 
+                         - Data,<function-name>,<procedure-handle> 
+                         - Data,<function-name>,<procedure-handle> 
+                         - Data,<function-name>,<procedure-handle> 
+                                    
+    Notes: Could not find or open file problems are considered potential 
+           runtime errors and are using the adm messageNumber.  
+           Errors that are considered design time errors are either returned 
+           from progress error-status or hardcoded.    
+         - This is implemented in smart since it is needed by both the data 
+           class and dataset class (and has no property dependencies)  
+------------------------------------------------------------------------------*/  
+  DEFINE VARIABLE cRefType          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataType         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE mLargeValue       AS MEMPTR     NO-UNDO. 
+  DEFINE VARIABLE clLargeValue      AS LONGCHAR   NO-UNDO. 
+  DEFINE VARIABLE hLargeSource      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cLargeFile        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cLargeFunction    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cLargeFilePathed  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSignature        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cErrorReason      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lQueryContainer   AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cObjectName       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cColumnName       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lUseParam         AS LOGICAL    NO-UNDO.
+
+  IF pcReference = '' 
+  OR pcReference = '?' 
+  OR pcReference = ?   
+  OR pcReference = 'File,':U
+  OR pcReference = 'File,?':U THEN
+    phBufferField:BUFFER-VALUE = ?.
+
+  ELSE DO:   
+    ASSIGN
+      cRefType       = ENTRY(1,pcReference)
+      cLargeFunction = ENTRY(2,pcReference)
+      cColumnName    = {fnarg columnName phBufferField}.
+     
+    IF NUM-ENTRIES(pcReference) > 2 THEN
+    DO:    
+      hLargeSource  = WIDGET-HANDLE(ENTRY(3,pcReference)).
+      IF NOT VALID-HANDLE(hLargeSource) THEN
+        RETURN "The procedure handle in the large object update reference is not valid.".
+
+    END.
+   
+    IF VALID-HANDLE(hLargeSource) THEN
+    DO:
+      IF CAN-DO(hLargeSource:INTERNAL-ENTRIES,cLargefunction) THEN
+        cSignature = hLargeSource:GET-SIGNATURE(cLargefunction). 
+      ELSE /* adm2 super stack */
+        cSignature = {fnarg signature cLargefunction hLargeSource}.  
+      
+      IF cSignature <> '' THEN
+      DO:
+        lUseParam = ENTRY(3,cSignature) <> '':U.
+        IF cRefType = 'Data' THEN 
+          cDataType = ENTRY(2,cSignature).
+        ELSE 
+          cDataType = 'CHARACTER':U. 
+      END.
+    END.
+
+    CASE cRefType:
+      WHEN 'Data':U THEN
+      DO:
+        CASE cDataType:
+          WHEN 'Memptr':U THEN
+          DO:
+            IF lUseParam THEN 
+              mLargeValue = DYNAMIC-FUNCTION(cLargeFunction IN hLargeSource,
+                                             cColumnName) NO-ERROR.
+            ELSE 
+              mLargeValue = DYNAMIC-FUNCTION(cLargeFunction IN hLargeSource)
+                                                                   NO-ERROR.
+    
+            COPY-LOB FROM mLargeValue TO phBufferField:BUFFER-VALUE NO-ERROR. 
+            
+            IF ERROR-STATUS:ERROR THEN
+              RETURN ERROR-STATUS:GET-MESSAGE(1).
+          END.
+          WHEN 'Longchar':U THEN
+          DO:
+            IF lUseParam THEN 
+              clLargeValue = DYNAMIC-FUNCTION(cLargeFunction IN hLargeSource,
+                                              cColumnName) NO-ERROR.
+            ELSE
+              clLargeValue = DYNAMIC-FUNCTION(cLargeFunction IN hLargeSource)
+                                                                     NO-ERROR.                
+
+            IF LENGTH(clLargeValue) > 0 THEN
+              COPY-LOB FROM clLargeValue TO phBufferField:BUFFER-VALUE NO-ERROR. 
+            ELSE 
+              phBufferField:BUFFER-VALUE = ?.
+    
+            IF ERROR-STATUS:ERROR THEN
+               RETURN ERROR-STATUS:GET-MESSAGE(1).
+          END.
+          OTHERWISE 
+          DO:
+            IF lUseParam THEN 
+              phBufferField:BUFFER-VALUE = DYNAMIC-FUNCTION(cLargeFunction IN hLargeSource,
+                                                            cColumnName) NO-ERROR.
+            ELSE
+              phBufferField:BUFFER-VALUE = DYNAMIC-FUNCTION(cLargeFunction IN hLargeSource)
+                                           NO-ERROR. 
+
+            IF ERROR-STATUS:ERROR THEN
+               RETURN ERROR-STATUS:GET-MESSAGE(1).
+          END.
+        END CASE. /* cDataType */
+      END. /* when 'data' */
+      WHEN 'File':U THEN
+      DO:
+        /* if file and function get the filename from the call back */
+        IF VALID-HANDLE(hLargeSource) THEN
+        DO:
+          IF lUseParam THEN
+            cLargeFile = DYNAMIC-FUNCTION(cLargeFunction IN hLargeSource,
+                                          cColumnName) NO-ERROR.
+           ELSE
+             cLargeFile = DYNAMIC-FUNCTION(cLargeFunction IN hLargeSource)
+                          NO-ERROR.
+           IF ERROR-STATUS:ERROR THEN
+             RETURN ERROR-STATUS:GET-MESSAGE(1).
+        END.
+
+        /* if no procedure to call in the filename is passed as reference */
+        ELSE 
+          cLargeFile = cLargeFunction.
+
+        IF cLargeFile <> '':U THEN
+        DO:
+          ASSIGN
+            FILE-INFO:FILE-NAME = cLargefile
+            cLargeFilePathed = FILE-INFO:FULL-PATHNAME.
+        
+          IF cLargeFilePathed <> ? THEN 
+            COPY-LOB FROM FILE cLargeFilePathed TO phBufferField:BUFFER-VALUE NO-ERROR.              
+             
+          /* If pathed name is unknown or progress 43 (could not find or open) 
+             then use ADM error 92 (could not find or open.. ) as the reason 
+             to pass to the caller  */
+          IF (ERROR-STATUS:ERROR AND ERROR-STATUS:GET-NUMBER(1) = 43) 
+          OR cLargeFilePathed = ? THEN
+            cErrorReason = SUBSTITUTE({fnarg messageNumber 92}, 
+                                         (IF cLargeFilePathed = ? 
+                                          THEN cLargeFile
+                                          ELSE cLargeFilePathed)).
+        END.
+        ELSE
+          phBufferField:BUFFER-VALUE = ?.
+      END.
+
+      OTHERWISE 
+        cErrorReason = "The reference type " + cRefType + " is not valid in update reference.". 
+  
+    END CASE.          
+    
+  END.
+
+  RETURN cErrorReason.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -3573,7 +3763,7 @@ FUNCTION getDataLinksEnabled RETURNS LOGICAL
   (  ) :
 /*------------------------------------------------------------------------------
   Purpose:  
-    Notes:  
+    Notes: DEPRECATED 
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE lDataLinksEnabled AS LOGICAL NO-UNDO.
   {get DataLinksEnabled lDataLinksEnabled}.
@@ -3974,23 +4164,30 @@ FUNCTION getManagerHandle RETURNS HANDLE
   IF NOT VALID-HANDLE(hManager) THEN
   DO:
     CASE pcManager:
+      WHEN 'DataContainer' THEN
+        ASSIGN cDefault = 'adm2/datacontainer.p':U. 
       WHEN 'SDFCacheManager':U THEN
-        ASSIGN cDefault = 'adm2/lookupfield':U. 
+        ASSIGN cDefault = 'adm2/lookupfield.p':U. 
       WHEN 'CacheManager':U THEN
-        ASSIGN cDefault = 'adm2/data':U. 
+        ASSIGN cDefault = 'adm2/data.p':U. 
       WHEN 'ToolbarManager':U THEN
-        ASSIGN cDefault = 'adm2/toolbar':U. 
+        ASSIGN cDefault = 'adm2/toolbar.p':U. 
+      WHEN 'ServiceAdapter':U THEN
+        ASSIGN cDefault = {fn getServiceAdapterName}. 
     END.
 
     IF cDefault > '' THEN
     DO:
       hManager = SESSION:FIRST-PROCEDURE.
       DO WHILE VALID-HANDLE(hManager):
-        IF ENTRY(1,REPLACE(hManager:FILE-NAME,'~\':U,'/':U),'.':U) = cDefault THEN
+        IF REPLACE(hManager:FILE-NAME,'~\':U,'/':U) 
+           = RIGHT-TRIM(REPLACE(cDefault + ' ','.r ','.p ')) THEN
           RETURN hManager.
         hManager = hManager:NEXT-SIBLING.
       END.
-      RUN VALUE(cDefault + '.p':U) PERSISTENT SET hManager. 
+      DO ON STOP UNDO,LEAVE:
+        RUN VALUE(cDefault) PERSISTENT SET hManager. 
+      END.
     END.
   END.
 
@@ -4334,6 +4531,26 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getServiceAdapterName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getServiceAdapterName Procedure 
+FUNCTION getServiceAdapterName RETURNS CHARACTER
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns the procedure name of the Service Adapter  
+    Notes: Used by getManagerHandle('ServiceAdapter'). 
+           Override to use a separate/different service adapter
+------------------------------------------------------------------------------*/
+
+  RETURN "adm2/serviceadapter.p":U.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getSuperProcedure) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getSuperProcedure Procedure 
@@ -4478,7 +4695,7 @@ FUNCTION getUIBMode RETURNS CHARACTER
             (such as a SmartFrame). It will return ? if the object is not
             a SmartObject (does not have a valid handle in ADM-DATA).
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cMode AS CHARACTER NO-UNDO INIT ?.  
+  DEFINE VARIABLE cMode AS CHARACTER NO-UNDO INIT ?.
   {get UIBMode cMode}.
   RETURN cMode.
 
@@ -4500,7 +4717,7 @@ FUNCTION getUseRepository RETURNS LOGICAL
 ------------------------------------------------------------------------------*/    
   /* The Icf session manager will have this in a super procedure of the session */
   IF glIcfIsRunning EQ ? THEN
-	glIcfIsRunning = DYNAMIC-FUNCTION('isICFRunning':U IN THIS-PROCEDURE) NO-ERROR.
+        glIcfIsRunning = DYNAMIC-FUNCTION('isICFRunning':U IN THIS-PROCEDURE) NO-ERROR.
   
   /* Return no if unknown !*/ 
   RETURN glIcfIsRunning = TRUE.
@@ -5491,7 +5708,7 @@ FUNCTION setDataLinksEnabled RETURNS LOGICAL
   ( lDataLinksEnabled AS LOGICAL ) :
 /*------------------------------------------------------------------------------
   Purpose:  
-    Notes:  
+    Notes:  DEPRECATED 
 ------------------------------------------------------------------------------*/
  {set DataLinksEnabled lDataLinksEnabled}.
   RETURN TRUE.

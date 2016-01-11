@@ -1,4 +1,11 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
+/*************************************************************/  
+/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /* Procedure Description
 "Static SmartWindow Template
 
@@ -6,6 +13,8 @@ Use this template to create a new basic window which supports SmartObjects. Draw
 */
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME wiWin
+{adecomm/appserv.i}
+DEFINE VARIABLE h_Astra                    AS HANDLE          NO-UNDO.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" wiWin _INLINE
 /* Actions: ? ? ? ? af/sup/afverxftrp.p */
 /* This has to go above the definitions sections, as that is what it modifies.
@@ -68,7 +77,7 @@ CREATE WIDGET-POOL.
    saved. They pull the object and version from Roundtable if possible so that it
    can be displayed in the about window of the container */
 
-&scop object-name       rysttbconw.w
+&scop object-name       rytemsmartwindow.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
 &scop object-version    000000
 
@@ -97,7 +106,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 &Scoped-define ADM-SUPPORTED-LINKS Data-Target,Data-Source,Page-Target,Update-Source,Update-Target,Filter-target,Filter-Source
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME frMain
 
 /* Custom List Definitions                                              */
@@ -129,6 +138,7 @@ DEFINE FRAME frMain
    Type: SmartWindow Template
    Allow: Basic,Browse,DB-Fields,Query,Smart,Window
    Container Links: Data-Target,Data-Source,Page-Target,Update-Source,Update-Target,Filter-target,Filter-Source
+   Other Settings: APPSERVER
  */
 &ANALYZE-RESUME _END-PROCEDURE-SETTINGS
 
@@ -197,7 +207,7 @@ During assembly, the PROGRESS Advisor suggests links and creates them for you. H
 /* SETTINGS FOR WINDOW wiWin
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frMain
-                                                                        */
+   FRAME-NAME                                                           */
 IF SESSION:DISPLAY-TYPE = "GUI":U AND VALID-HANDLE(wiWin)
 THEN wiWin:HIDDEN = yes.
 
@@ -319,5 +329,4 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-
 

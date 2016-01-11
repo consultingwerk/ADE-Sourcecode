@@ -4,25 +4,9 @@
 &Scoped-define FRAME-NAME frmAttributes
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS frmAttributes 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*------------------------------------------------------------------------
@@ -99,19 +83,17 @@ DEFINE VARIABLE xcNoListViewAs AS CHARACTER  NO-UNDO
 &Scoped-define PROCEDURE-TYPE DIALOG-BOX
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME frmAttributes
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS cDataSourceFilter cChangedEvent lEnable ~
-lDisplay lSort cViewAs cDataObject iNumRows cLabel cBrowseTitle cToolTip ~
-iHelpId cField dWidth dColumn cDatatype dHeight dRow cFormat cBrowseKeys ~
-RECT-15 RECT-16 RECT-18 
-&Scoped-Define DISPLAYED-OBJECTS cDataSourceFilter cKeyField ~
-cDisplayedField cChangedEvent lEnable lDisplay lSort lExitBrowse ~
-lCancelBrowse lOptional cOptionalString cViewAs cDataObject iNumRows cLabel ~
-lLabelDataSource cBrowseTitle cToolTip iHelpId cField dWidth dColumn ~
-cDatatype dHeight dRow lAnyKey 
+&Scoped-Define ENABLED-OBJECTS cChangedEvent lEnable lDisplay lSort cViewAs ~
+cDataObject iNumRows cLabel cBrowseTitle cToolTip iHelpId cField dWidth ~
+dColumn cDatatype dHeight dRow cFormat cBrowseKeys RECT-15 RECT-16 RECT-18 
+&Scoped-Define DISPLAYED-OBJECTS cKeyField cDisplayedField cChangedEvent ~
+lEnable lDisplay lSort lExitBrowse lCancelBrowse lOptional cOptionalString ~
+cViewAs cDataObject iNumRows cLabel lLabelDataSource cBrowseTitle cToolTip ~
+iHelpId cField dWidth dColumn cDatatype dHeight dRow lAnyKey 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -236,7 +218,7 @@ DEFINE VARIABLE cChangedEvent AS CHARACTER FORMAT "X(256)":U
 DEFINE VARIABLE cDataObject AS CHARACTER FORMAT "X(256)":U 
      LABEL "SmartDataObject" 
      VIEW-AS FILL-IN 
-     SIZE 21 BY 1 NO-UNDO.
+     SIZE 34 BY 1 NO-UNDO.
 
 DEFINE VARIABLE cDataSourceFilter AS CHARACTER FORMAT "X(256)":U 
      LABEL "&Filter" 
@@ -310,35 +292,35 @@ DEFINE VARIABLE cViewAsOption AS CHARACTER
      SIZE 23 BY 2.38 NO-UNDO.
 
 DEFINE RECTANGLE RECT-12
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 56 BY 4.29.
 
 DEFINE RECTANGLE RECT-13
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 70 BY 3.05.
 
 DEFINE RECTANGLE RECT-15
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 70 BY 7.81.
 
 DEFINE RECTANGLE RECT-16
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 56 BY 3.05.
 
 DEFINE RECTANGLE RECT-18
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 56 BY 6.67.
 
 DEFINE RECTANGLE rectOptional
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 56 BY 2.14.
 
 DEFINE RECTANGLE rectOptional-2
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 70 BY 2.1.
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
+     SIZE 70 BY 2.14.
 
 DEFINE RECTANGLE rView
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 70 BY 3.1.
 
 DEFINE VARIABLE lAnyKey AS LOGICAL INITIAL no 
@@ -449,7 +431,7 @@ DEFINE FRAME frmAttributes
      RECT-15 AT ROW 5.1 COL 60
      RECT-16 AT ROW 13.43 COL 2
      RECT-18 AT ROW 6.24 COL 2
-     SPACE(72.39) SKIP(6.22)
+     SPACE(72.39) SKIP(6.89)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "SmartSelect Properties":L.
@@ -470,7 +452,7 @@ DEFINE FRAME frmAttributes
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX frmAttributes
-   Custom                                                               */
+   FRAME-NAME Custom                                                    */
 ASSIGN 
        FRAME frmAttributes:SCROLLABLE       = FALSE
        FRAME frmAttributes:HIDDEN           = TRUE.
@@ -486,6 +468,8 @@ ASSIGN
 ASSIGN 
        cDataObject:READ-ONLY IN FRAME frmAttributes        = TRUE.
 
+/* SETTINGS FOR FILL-IN cDataSourceFilter IN FRAME frmAttributes
+   NO-DISPLAY NO-ENABLE                                                 */
 ASSIGN 
        cDatatype:READ-ONLY IN FRAME frmAttributes        = TRUE.
 
@@ -554,8 +538,10 @@ ASSIGN
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL frmAttributes frmAttributes
 ON GO OF FRAME frmAttributes /* SmartSelect Properties */
 DO:     
-   DEFINE VARIABLE hFrame AS HANDLE NO-UNDO.
+   DEFINE VARIABLE hFrame       AS HANDLE NO-UNDO.
    DEFINE VARIABLE cDataColumns AS CHAR NO-UNDO.
+   DEFINE VARIABLE lDbaware     AS LOGICAL    NO-UNDO.
+
    /* The SDO was valid when the user entered this dialog so ..??.  */
    ASSIGN 
       cDataObject
@@ -631,7 +617,9 @@ DO:
       APPLY "ENTRY":U TO cKeyField.
       RETURN NO-APPLY.
     END. /* not valid keyfield */
-    IF DYNAMIC-FUNCTION('columnDbColumn' IN ghSDO,cKeyField) = "":U THEN
+    
+    IF {fn getDBAware ghSDO} 
+    AND LOOKUP(cKeyField,{fn getCalculatedColumns ghSDO}) > 0 THEN
     DO:    
       MESSAGE 
         "The Key Field must be a field that are mapped to a database field." SKIP
@@ -668,6 +656,7 @@ DO:
     cViewAs = cViewAS + IF cViewAsOption <> "" 
                         THEN ":":U + cViewAsOption
                         ELSE "":U.
+
   DYNAMIC-FUNCTION("setDataSourceFilter":U  IN p_hSMO, cDataSourceFilter).
   DYNAMIC-FUNCTION("setDisplayedField":U    IN p_hSMO, cDisplayedField).
   DYNAMIC-FUNCTION("setKeyField":U          IN p_hSMO, cKeyField).
@@ -1064,15 +1053,14 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  DISPLAY cDataSourceFilter cKeyField cDisplayedField cChangedEvent lEnable 
-          lDisplay lSort lExitBrowse lCancelBrowse lOptional cOptionalString 
-          cViewAs cDataObject iNumRows cLabel lLabelDataSource cBrowseTitle 
-          cToolTip iHelpId cField dWidth dColumn cDatatype dHeight dRow lAnyKey 
+  DISPLAY cKeyField cDisplayedField cChangedEvent lEnable lDisplay lSort 
+          lExitBrowse lCancelBrowse lOptional cOptionalString cViewAs 
+          cDataObject iNumRows cLabel lLabelDataSource cBrowseTitle cToolTip 
+          iHelpId cField dWidth dColumn cDatatype dHeight dRow lAnyKey 
       WITH FRAME frmAttributes.
-  ENABLE cDataSourceFilter cChangedEvent lEnable lDisplay lSort cViewAs 
-         cDataObject iNumRows cLabel cBrowseTitle cToolTip iHelpId cField 
-         dWidth dColumn cDatatype dHeight dRow cFormat cBrowseKeys RECT-15 
-         RECT-16 RECT-18 
+  ENABLE cChangedEvent lEnable lDisplay lSort cViewAs cDataObject iNumRows 
+         cLabel cBrowseTitle cToolTip iHelpId cField dWidth dColumn cDatatype 
+         dHeight dRow cFormat cBrowseKeys RECT-15 RECT-16 RECT-18 
       WITH FRAME frmAttributes.
   VIEW FRAME frmAttributes.
   {&OPEN-BROWSERS-IN-QUERY-frmAttributes}
@@ -1092,7 +1080,9 @@ PROCEDURE get-SmO-attributes :
   DEFINE VARIABLE hFRAME AS HANDLE NO-UNDO.
   
   IF VALID-HANDLE(p_hSMO) THEN
-    ASSIGN      
+    ASSIGN                /* initSDO deals with enable and display 
+                            (and the fact that this is not supported for 
+                             the DataView */     
       cDataSourceFilter  = DYNAMIC-FUNC("getDataSourceFilter":U IN p_hSMO) 
       
       cField             = DYNAMIC-FUNC("getFieldName":U IN p_hSMO)     
@@ -1363,28 +1353,39 @@ FUNCTION initSDO RETURNS LOGICAL
   DEFINE VARIABLE iLines AS INT NO-UNDO.
   IF VALID-HANDLE(ghSDO) THEN
   DO WITH FRAME {&FRAME-NAME}:
-     ASSIGN
+    ASSIGN
        cKeyField:LIST-ITEMS = DYNAMIC-FUNCTION("getDataColumns" IN ghSDO)
        iLines = NUM-ENTRIES(cKeyField:LIST-ITEMS)
+
        cDisplayedField:LIST-ITEMS = cKeyField:LIST-ITEMS
-       cKeyField:INNER-LINES = MAX(iLines,15)
+       cKeyField:INNER-LINES = IF iLines <> ? THEN MAX(iLines,15) ELSE 1 /*whatever*/
        cDisplayedField:INNER-LINES = cKeyField:INNER-LINES
        cKeyField:SENSITIVE        = TRUE
        cDisplayedField:SENSITIVE  = TRUE
        lLabelDataSource:SENSITIVE = TRUE
        btnInst:SENSITIVE          = TRUE 
        /* Not that this is also set in initViewAs() */       
-       btnBrowse:SENSITIVE       = cViewAs =  "Browser":U. 
-   
+       btnBrowse:SENSITIVE        = cViewAs =  "Browser":U 
+       cDataSourcefilter:SENSITIVE  = DYNAMIC-FUNCTION("getDBAware" IN ghSDO)
+     .
      /* Try to match with SDV field */  
-     
      cKeyField:SCREEN-VALUE       = IF cKeyField = "":U THEN cField 
                                     ELSE cKeyField NO-ERROR .
      cDisplayedField:SCREEN-VALUE = IF cDisplayedField = "":U THEN cField
                                     ELSE cDisplayedField NO-ERROR .
-     ASSIGN 
-       cDisplayedfield
-       cKeyField.
+
+     /* not supported against dataview (non dbaware) */
+    IF NOT cDataSourcefilter:SENSITIVE THEN 
+       ASSIGN
+         cDataSourcefilter:SCREEN-VALUE = ''
+         cDataSourceFilter.
+    ELSE 
+      ASSIGN
+        cDataSourcefilter:SCREEN-VALUE = cDataSourceFilter.
+
+    ASSIGN 
+      cDisplayedfield
+      cKeyField.
   END. /* valid ghSDO */
   ELSE DO WITH FRAME {&FRAME-NAME}:
     ASSIGN

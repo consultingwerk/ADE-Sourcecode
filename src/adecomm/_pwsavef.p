@@ -1,25 +1,10 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
+
 /********************************************************************/
 /* Encrypted code which is part of this file is subject to the      */
 /* Possenet End User Software License Agreement Version 1.0         */
@@ -104,6 +89,7 @@ DEFINE VARIABLE cValue         AS CHARACTER NO-UNDO.
 DEFINE VARIABLE hTempDBLib     AS HANDLE    NO-UNDO.  
 DEFINE VARIABLE cRelName       AS CHARACTER NO-UNDO.
 DEFINE VARIABLE cTables        AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cFileWeb       AS CHARACTER NO-UNDO INIT ?.
 
 /* --- Begin SCM changes --- */
 DEFINE VARIABLE scm_ok    AS LOGICAL       NO-UNDO.
@@ -139,6 +125,16 @@ DO ON STOP UNDO, LEAVE:
       Old_Broker_URL  = ENTRY({&PW_Broker_URL_Pos}, p_Editor:PRIVATE-DATA)
       Web_License     = AB_License > "1":U.
     
+    /* for web files, we store the full path name for the file in the private-date,
+       so get it if it's there. Don't do this for save-as since we already get the
+       full path name in that case.
+    */
+    IF NOT p_Save_As THEN
+       cFileWeb = ENTRY ( {&PW_Web_File_Name_Pos}, p_Editor:PRIVATE-DATA) NO-ERROR.
+    
+    IF cFileWeb = ? OR cFileWeb = "" THEN
+       cFileWeb =  p_File_Selected.
+
     /* Get temp file name to use for saving to a remote WebSpeed agent. Either
        we're attempting a SaveAs (in which case the value of Remote_File is
        important) on a new or existing file or we want to Save an existing 
@@ -193,10 +189,10 @@ DO ON STOP UNDO, LEAVE:
         /* Check to see if the file already exists or is writeable for Save.  For
            SaveAs, we already checked in adecomm/_pwsavas.p (adeweb/_webfile.w), 
            so there is no need to do it again. */
-           
         IF NOT p_Save_As THEN DO:
-          RUN adeweb/_webcom.w ( ?, Broker_URL, p_File_Selected, "saveas:okToSave":U,
+          RUN adeweb/_webcom.w ( ?, Broker_URL, cFileWeb, "saveas:okToSave":U,
                                  OUTPUT Rel_Name, INPUT-OUTPUT Scrap_File ) NO-ERROR.
+
           /* We're only interested in 'writeable' case, not 'file exists'. */
           IF INDEX(RETURN-VALUE, "Not writeable":U) ne 0 THEN
             RUN returnValue ( RETURN-VALUE, p_File_Selected, "saved", 
@@ -208,7 +204,7 @@ DO ON STOP UNDO, LEAVE:
         /* Check for special flags indicating whether we should compile. */
         IF Ok_To_Save THEN DO:
           IF Web_File THEN DO: /* remote */
-            RUN adeweb/_webcom.w ( ?, Broker_URL, p_File_Selected, "save":U,
+            RUN adeweb/_webcom.w ( ?, Broker_URL, cFileWeb, "save":U,
                                   OUTPUT Rel_Name, INPUT-OUTPUT Temp_File ) NO-ERROR.
             IF INDEX(RETURN-VALUE, "No compile":U) ne 0 THEN
               No_Compile = TRUE.
@@ -259,8 +255,8 @@ DO ON STOP UNDO, LEAVE:
 
       /* Compile the HTML file to SpeedScript rcode. */
       IF Html_File AND Compile_File AND p_Saved_File AND NOT Web_Error THEN DO:
-        Web_Object = SUBSTRING(p_File_Selected, 1,
-                               R-INDEX(p_File_Selected, ".":U),
+        Web_Object = SUBSTRING(cFileWeb, 1,
+                               R-INDEX(cFileWeb, ".":U),
                                "CHARACTER":U) + "w":U.
       
         /* Check remotely to see if the .w file exists or is writeable. */
@@ -280,7 +276,7 @@ DO ON STOP UNDO, LEAVE:
         IF Ok_To_Save THEN DO:
           IF Web_File THEN DO: /* remote */
             /* Create the Web object (.w) and compile it (.r). */
-            RUN adeweb/_webcom.w (?, Broker_URL, p_File_Selected, "COMPILE":U,
+            RUN adeweb/_webcom.w (?, Broker_URL, cFileWeb, "COMPILE":U,
                                 OUTPUT Rel_Name, INPUT-OUTPUT Temp_File) NO-ERROR.
             IF RETURN-VALUE BEGINS "ERROR:":U THEN
               RUN returnValue (RETURN-VALUE, p_File_Selected, "compiled", 

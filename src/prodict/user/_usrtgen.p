@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -90,7 +74,6 @@ DEFINE VARIABLE l_cmptbl  AS LOGICAL   INITIAL FALSE NO-UNDO.
 DEFINE VARIABLE shadowcol AS LOGICAL   INITIAL FALSE NO-UNDO.
 DEFINE VARIABLE crtdef    AS LOGICAL   INITIAL FALSE NO-UNDO.
 DEFINE VARIABLE l_dbtyp   AS CHARACTER               NO-UNDO.
-DEFINE VARIABLE sqlwidth  AS LOGICAL                 NO-UNDO.
 DEFINE VARIABLE l_i       AS INTEGER                 NO-UNDO.
 DEFINE VARIABLE l_ue-4    AS CHARACTER               NO-UNDO.
 DEFINE VARIABLE l_ue-5    AS CHARACTER               NO-UNDO.
@@ -119,8 +102,14 @@ DEFINE VARIABLE uidtag    AS CHARACTER   	     NO-UNDO.
 DEFINE VARIABLE alltables AS LOGICAL                 NO-UNDO.
 DEFINE VARIABLE optlab    AS CHARACTER INITIAL "Output Option:"
 			             FORMAT "X(15)"  NO-UNDO.
-DEFINE VARIABLE usrlab AS CHARACTER INITIAL "Which Users:"
+DEFINE VARIABLE cFormat   AS CHARACTER INITIAL "For field widths use:"
+                                           FORMAT "x(21)"  NO-UNDO.
+
+DEFINE VARIABLE usrlab    AS CHARACTER INITIAL "Which Users:"
 			             FORMAT "X(15)"  NO-UNDO.
+DEFINE VARIABLE iFmtOption AS INTEGER  INITIAL 2     NO-UNDO.
+DEFINE VARIABLE lFormat    AS LOGICAL  INITIAL TRUE  NO-UNDO.
+
 {prodict/misc/filesbtn.i &NAME="btn_File_t"}
 {prodict/misc/filesbtn.i &NAME="btn_File_i" &NOACC=yes}
 
@@ -148,43 +137,48 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 7 NO-UNDO INITIAL [
 
 FORM 
   SKIP({&TFM_WID})
-  "Output File for CREATE TABLE:"  VIEW-AS TEXT       	               AT 2
+  "Output File for CREATE TABLE:"  VIEW-AS TEXT AT 2
   SKIP({&VM_WID})
-
-  fot {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" VIEW-AS FILL-IN SIZE {&FILLCH} BY 1 AT 2
+  fot {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" 
+      VIEW-AS FILL-IN SIZE {&FILLCH} BY 1 AT 2
   btn_File_t 
-  SKIP ({&VM_WIDG})
+  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SKIP({&VM_WID}) 
+  &ELSE SKIP({&VM_WIDG}) &ENDIF
 
-  "Output File for CREATE INDEX:" VIEW-AS TEXT 	      	               AT 2
+  "Output File for CREATE INDEX:" VIEW-AS TEXT AT 2
   SKIP({&VM_WID})
 
-  foi {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" VIEW-AS FILL-IN SIZE {&FILLCH} BY 1 AT 2
+  foi {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" 
+      VIEW-AS FILL-IN SIZE {&FILLCH} BY 1 AT 2
   btn_File_i 
-  SKIP ({&VM_WIDG})
-
-  "SQL-Flavor:" VIEW-AS TEXT                                           AT 2
-  SKIP({&VM_WID})
-
-  ft AT 2 VIEW-AS RADIO-SET horizontal
-	  RADIO-BUTTONS "PROGRESS",      "pro",
-	                "ORACLE",        "ora",
-	                "MS SQL Server", "mss"
-  SKIP({&VM_WIDG}) 
-
+  SKIP({&VM_WIDG})
+    
+  "SQL-Flavor:" VIEW-AS TEXT AT 2
+  ft VIEW-AS RADIO-SET horizontal
+             RADIO-BUTTONS "PROGRESS",      "pro",
+                           "ORACLE",        "ora",
+                           "MS SQL Server", "mss"
+  SKIP({&VM_WIDG})
+      
   l_cmptbl AT 2 label  "Create Progress Recid Field "
           VIEW-AS toggle-box
           HELP "Create PROGRESS_RECID Column/Index...?"
   shadowcol AT 34 VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns" 
           HELP "Create shadow columns for case insensitivity...?"
   SKIP({&VM_WID})
-   sqlwidth AT 2 label "Use Width Definition        "
-            VIEW-AS toggle-box
-            HELP "Use the fields Width Value instead of format."
-    crtdef AT 34 LABEL "Include Defaults" VIEW-AS toggle-box
-            HELP "Include initial value as field default."
-
+  crtdef AT 2 LABEL "Include Defaults" VIEW-AS toggle-box
+              HELP "Include initial value as field default."
     SKIP({&VM_WID})
-
+    cFormat VIEW-AS TEXT NO-LABEL AT 2
+    iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
+                                               "4GL Format", 2
+                                 HORIZONTAL NO-LABEL
+               HELP "Make choice to determine field width in output."
+    SKIP({&VM_WID})
+    lFormat VIEW-AS TOGGLE-BOX LABEL "Expand x(8) to 30"
+            HELP "Choose to output field width of 30 for x(8) fields."
+            AT 38
+    SKIP({&VM_WID}) 
   {prodict/user/userbtns.i}
   WITH FRAME createtable
   NO-LABELS CENTERED 
@@ -193,47 +187,61 @@ FORM
 
 FORM 
   SKIP({&TFM_WID})
-  "Output File for CREATE TABLE:" VIEW-AS TEXT                         AT 2 
+  "Output File for CREATE TABLE:" VIEW-AS TEXT AT 2 
   SKIP({&VM_WID})
 
-  fot {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" VIEW-AS FILL-IN SIZE {&FILLCH} BY 1 AT 2
+  fot {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" 
+      VIEW-AS FILL-IN SIZE {&FILLCH} BY 1 AT 2
   btn_File_t 
-  SKIP ({&VM_WIDG})
-
-  "Output File for CREATE INDEX:" VIEW-AS TEXT                         AT 2 
+  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SKIP({&VM_WID})
+  &ELSE SKIP({&VM_WIDG}) &ENDIF
+    
+  "Output File for CREATE INDEX:" VIEW-AS TEXT AT 2 
   SKIP({&VM_WID})
 
-  foi {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" VIEW-AS FILL-IN SIZE {&FILLCH} BY 1 AT 2
+  foi {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" 
+      VIEW-AS FILL-IN SIZE {&FILLCH} BY 1 AT 2
   btn_File_i 
-  SKIP ({&VM_WIDG})
-   
-  usrlab VIEW-AS TEXT                                                  AT 2
-  SKIP({&VM_WID})
+  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SKIP({&VM_WID})
+  &ELSE SKIP({&VM_WIDG}) &ENDIF
+       
+  usrlab VIEW-AS TEXT AT 2
+  SKIP({&VM_WIDG})
+
   allusers AT 2 VIEW-AS RADIO-SET HORIZONTAL 
 	RADIO-BUTTONS "All Users",yes,"Single User",no SPACE(0)
   usrnm {&STDPH_FILL} 
-  SKIP({&VM_WIDG}) 
-
+  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SKIP({&VM_WID})
+  &ELSE SKIP({&VM_WIDG}) &ENDIF 
+  
   "SQL-Flavor:" VIEW-AS TEXT AT 2 
-  SKIP({&VM_WID})
-  ft AT 2 VIEW-AS RADIO-SET HORIZONTAL
-	  RADIO-BUTTONS "PROGRESS",      "pro",
-	                "ORACLE",        "ora",
-	                "MS SQL Server", "mss"
-  SKIP({&VM_WIDG}) 
-
+  ft VIEW-AS RADIO-SET HORIZONTAL
+             RADIO-BUTTONS "PROGRESS",      "pro",
+                           "ORACLE",        "ora",
+                           "MS SQL Server", "mss"
+  &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN SKIP({&VM_WIDG})
+    &ELSE SKIP({&VM_WID}) &ENDIF
   l_cmptbl AT 2 label "Create Progress Recid Field "
           VIEW-AS toggle-box
           HELP "Create PROGRESS_RECID Column/Index?"
   shadowcol AT 34 VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns" 
           HELP "Create shadow columns for case insensitivity...?"
   SKIP({&VM_WID})
-  sqlwidth AT 2 label "Use Width Definition        "
-            VIEW-AS toggle-box
-            HELP "Use the fields Width Value instead of format."
-    crtdef AT 34 LABEL "Include Defaults" VIEW-AS toggle-box
+    crtdef AT 2 LABEL "Include Defaults" VIEW-AS toggle-box
             HELP "Include initial value as field default."
+    &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN SKIP({&VM_WIDG})
+    &ELSE SKIP({&VM_WID}) &ENDIF
+    cFormat VIEW-AS TEXT NO-LABEL AT 2
+    iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
+                                               "4GL Format", 2
+                                 HORIZONTAL NO-LABEL
+               HELP "Make choice to determine field width in output."
     SKIP({&VM_WID})
+    lFormat VIEW-AS TOGGLE-BOX LABEL "Expand x(8) to 30"
+            HELP "Choose to output field width of 30 for x(8) fields."
+            AT 38
+    &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN SKIP({&VM_WIDG})
+    &ELSE SKIP({&VM_WID}) &ENDIF
   {prodict/user/userbtns.i}
 
   WITH FRAME createalltables
@@ -248,43 +256,57 @@ FORM
 
 FORM 
   SKIP({&TFM_WID})
-  fot {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" VIEW-AS FILL-IN SIZE {&FILLCH} BY 1 
-	LABEL "Output File for CREATE TABLE" COLON {&LINEUP}
-  btn_File_t SKIP ({&VM_WIDG})
-  foi {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" VIEW-AS FILL-IN SIZE {&FILLCH} BY 1 
-	LABEL "Output File for CREATE INDEX" COLON {&LINEUP}
-  btn_File_i SKIP ({&VM_WIDG})
+  fot {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" 
+      VIEW-AS FILL-IN SIZE {&FILLCH} BY 1 
+        LABEL "Output File for CREATE TABLE" COLON {&LINEUP}
+  btn_File_t
+  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SKIP({&VM_WID})
+  &ELSE SKIP({&VM_WIDG}) &ENDIF
+    
+  foi {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" 
+      VIEW-AS FILL-IN SIZE {&FILLCH} BY 1 
+        LABEL "Output File for CREATE INDEX" COLON {&LINEUP}
+  btn_File_i
+  SKIP({&VM_WIDG})
 
   "SQL-Flavor:" VIEW-AS TEXT AT 2 
-  SKIP({&VM_WID})
-  ft NO-LABEL AT 5 VIEW-AS RADIO-SET HORIZONTAL 
-	  RADIO-BUTTONS "PROGRESS",      "pro",
-	                "ORACLE",        "ora",
-	                "MS SQL Server", "mss"
-  SKIP({&VM_WIDG}) 
-
+  ft NO-LABEL VIEW-AS RADIO-SET HORIZONTAL 
+                      RADIO-BUTTONS "PROGRESS",      "pro",
+                                    "ORACLE",        "ora",
+                                   "MS SQL Server", "mss"
+  &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN SKIP({&VM_WIDG})
+  &ELSE SKIP({&VM_WID}) &ENDIF
   l_cmptbl AT 2 label "Create Progress Recid Field "
           VIEW-AS toggle-box
           HELP "Create PROGRESS_RECID Column/Index?"
   shadowcol AT 34 VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns" 
           HELP "Create shadow columns for case insensitivity...?"
   SKIP({&VM_WID})
-  sqlwidth AT 2 label "Use Width Definition        "
-            VIEW-AS toggle-box
-            HELP "Use the fields Width Value instead of format."
-    crtdef AT 34 LABEL "Include Defaults" VIEW-AS toggle-box
+    crtdef AT 2 LABEL "Include Defaults" VIEW-AS toggle-box
             HELP "Include initial value as field default."
-    SKIP({&VM_WIDG})
+    &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN SKIP({&VM_WIDG})
+    &ELSE SKIP({&VM_WID}) &ENDIF
+    cFormat VIEW-AS TEXT NO-LABEL AT 2
+    iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
+                                               "4GL Format", 2
+                                 HORIZONTAL NO-LABEL 
+               HELP "Make choice to determine field width in output."
+    SKIP({&VM_WID})
+    lFormat VIEW-AS TOGGLE-BOX LABEL "Expand x(8) to 30"
+            HELP "Choose to output field width of 30 for x(8) fields."
+            AT 38
+    &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN SKIP({&VM_WIDG})
+    &ELSE SKIP({&VM_WID}) &ENDIF
   "This program generates a SQL DDL program containing CREATE TABLE statements" 
-     	       	     	      	    VIEW-AS TEXT   AT    2     SKIP
+               VIEW-AS TEXT   AT    2     SKIP
   "equivalent to those originally used to define the table.  It does NOT" 
-      	       	     	      	    VIEW-AS TEXT   AT    2     SKIP
+               VIEW-AS TEXT   AT    2     SKIP
   "generate any GRANT or REVOKE statements to set permissions on the tables." 
-      	       	     	      	    VIEW-AS TEXT   AT    2     SKIP
+               VIEW-AS TEXT   AT    2     SKIP
   "It also generates CREATE INDEX statements in a separate file (these will"
-				     VIEW-AS TEXT   AT    2    SKIP
+               VIEW-AS TEXT   AT    2    SKIP
   "be omitted if no file is specified for them above)."
-				     VIEW-AS TEXT   AT 2
+               VIEW-AS TEXT   AT 2
   {prodict/user/userbtns.i}
 
   WITH FRAME createtable
@@ -294,43 +316,63 @@ FORM
 
 FORM 
   SKIP({&TFM_WID})
-  fot {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" VIEW-AS FILL-IN SIZE {&FILLCH} BY 1 
-	LABEL "Output File for CREATE TABLE" COLON {&LINEUP}
-  btn_File_t SKIP ({&VM_WIDG})
-  foi {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" VIEW-AS FILL-IN SIZE {&FILLCH} BY 1 
-	LABEL "Output File for CREATE INDEX" COLON {&LINEUP}
-  btn_File_i SKIP ({&VM_WIDG})
+  fot {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" 
+      VIEW-AS FILL-IN SIZE {&FILLCH} BY 1 
+        LABEL "Output File for CREATE TABLE" COLON {&LINEUP}
+  btn_File_t 
+  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SKIP({&VM_WID})
+  &ELSE SKIP({&VM_WIDG}) &ENDIF
+    
+  foi {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" 
+      VIEW-AS FILL-IN SIZE {&FILLCH} BY 1 
+        LABEL "Output File for CREATE INDEX" COLON {&LINEUP}
+  btn_File_i 
+  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SKIP({&VM_WID})
+  &ELSE SKIP({&VM_WIDG}) &ENDIF
+
   usrnm  LABEL "Which Users"                COLON {&LINEUP}
-  uidtag FORMAT "x(25)" NO-LABEL 	     AT 53    
-  "SQL-Flavor:" VIEW-AS TEXT AT 2 
-  SKIP({&VM_WID})
-  ft NO-LABEL AT 5 VIEW-AS RADIO-SET HORIZONTAL 
-	  RADIO-BUTTONS "PROGRESS",      "pro",
-	                "ORACLE",        "ora",
-                    "MS SQL Server", "mss"
+  uidtag FORMAT "x(25)" NO-LABEL              AT 53    
   SKIP({&VM_WIDG})
+  
+  "SQL-Flavor:" VIEW-AS TEXT AT 2 
+  ft NO-LABEL VIEW-AS RADIO-SET HORIZONTAL 
+                      RADIO-BUTTONS "PROGRESS",      "pro",
+                                    "ORACLE",        "ora",
+                                    "MS SQL Server", "mss"
+  &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN SKIP({&VM_WIDG})
+  &ELSE SKIP({&VM_WID}) &ENDIF
   l_cmptbl AT 2 label "Create Progress Recid Field "
           VIEW-AS toggle-box
           HELP "Create PROGRESS_RECID Column/Index?"
   shadowcol AT 34 VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns" 
           HELP "Create shadow columns for case insensitivity...?"
   SKIP({&VM_WID})
-  sqlwidth AT 2 label "Use Width Definition  "
-            VIEW-AS toggle-box
-            HELP "Use the fields Width Value instead of format."
-  crtdef AT 34 LABEL "Include Defaults" VIEW-AS toggle-box
+  crtdef AT 2 LABEL "Include Defaults" VIEW-AS toggle-box
             HELP "Include initial value as field default."
-  SKIP({&VM_WIDG})
+  &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN SKIP({&VM_WIDG})
+  &ELSE SKIP({&VM_WID}) &ENDIF
+  cFormat VIEW-AS TEXT NO-LABEL AT 2
+  iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
+                                             "4GL Format", 2
+                               HORIZONTAL NO-LABEL 
+             HELP "Make choice to determine field width in output."
+  SKIP({&VM_WID})
+  lFormat VIEW-AS TOGGLE-BOX LABEL "Expand x(8) to 30"
+          HELP "Choose to output field width of 30 for x(8) fields."
+          AT 38
+  &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN SKIP({&VM_WIDG})
+  &ELSE SKIP({&VM_WID}) &ENDIF
+
   "This program generates a SQL DDL program containing CREATE TABLE statements" 
-     	       	     	      	    VIEW-AS TEXT   AT    2     SKIP
+             VIEW-AS TEXT   AT    2     SKIP
   "equivalent to those originally used to define the table.  It does NOT" 
-      	       	     	      	    VIEW-AS TEXT   AT    2     SKIP
+             VIEW-AS TEXT   AT    2     SKIP
   "generate any GRANT or REVOKE statements to set permissions on the tables." 
-      	       	     	      	    VIEW-AS TEXT   AT    2     SKIP
+             VIEW-AS TEXT   AT    2     SKIP
   "It also generates CREATE INDEX statements in a separate file (these will"
-				     VIEW-AS TEXT   AT    2    SKIP
+             VIEW-AS TEXT   AT    2    SKIP
   "be omitted if no file is specified for them above)."
-				     VIEW-AS TEXT   AT 2
+             VIEW-AS TEXT   AT 2
   {prodict/user/userbtns.i}
 
   WITH FRAME createalltables
@@ -461,29 +503,51 @@ ON LEAVE OF foi in frame createtable
    foi:screen-value in frame createtable = 
         TRIM(foi:screen-value in frame createtable).
 
+ON VALUE-CHANGED OF iFmtOption IN FRAME createalltables DO:
+  IF SELF:SCREEN-VALUE = "1" THEN
+    ASSIGN lFormat:CHECKED IN FRAME createalltables   = FALSE
+           lFormat:SENSITIVE IN FRAME createalltables = FALSE.
+  ELSE
+    ASSIGN lFormat:CHECKED  IN FRAME createalltables  = TRUE
+           lFormat:SENSITIVE IN FRAME createalltables = TRUE.
+END.
+
+ON VALUE-CHANGED OF iFmtOption IN FRAME createtable DO:
+  IF SELF:SCREEN-VALUE = "1" THEN
+    ASSIGN lFormat:CHECKED IN FRAME createtable   = FALSE
+           lFormat:SENSITIVE IN FRAME createtable = FALSE.
+  ELSE
+    ASSIGN lFormat:CHECKED IN FRAME createtable   = TRUE
+           lFormat:SENSITIVE IN FRAME createtable = TRUE.
+END.
+
 ON VALUE-CHANGED OF ft IN FRAME createtable DO:
    CASE SELF:SCREEN-VALUE:
-      WHEN "pro" THEN
-      ASSIGN sqlwidth:SENSITIVE = FALSE
-             sqlwidth:SCREEN-VALUE = "no"
-             l_cmptbl:SENSITIVE = FALSE
-	         l_cmptbl:SCREEN-VALUE = "no"
-             shadowcol:SENSITIVE = FALSE
-             shadowcol:SCREEN-VALUE = "no"
-             crtdef:SENSITIVE = FALSE
-             crtdef:SCREEN-VALUE = "no".
-       WHEN "ora" THEN
-            ASSIGN l_cmptbl:SENSITIVE = TRUE
-                   sqlwidth:SENSITIVE = TRUE
-                   shadowcol:SENSITIVE = FALSE
-                   crtdef:SENSITIVE = TRUE.
-      OTHERWISE
-         DO:
-            ASSIGN l_cmptbl:SENSITIVE = TRUE
-                   shadowcol:SENSITIVE = TRUE
-                   sqlwidth:SENSITIVE = TRUE
-                   crtdef:SENSITIVE = TRUE.
-	 END.
+     WHEN "pro" THEN DO:
+       ASSIGN iFmtOption:SCREEN-VALUE IN FRAME createtable = "2" 
+              l_cmptbl:SENSITIVE = FALSE
+              l_cmptbl:SCREEN-VALUE = "no"
+              shadowcol:SENSITIVE = FALSE
+              shadowcol:SCREEN-VALUE = "no"
+              crtdef:SENSITIVE = FALSE
+              crtdef:SCREEN-VALUE = "no".
+       iFmtOption:DISABLE("Width") IN FRAME createtable.
+       APPLY "VALUE-CHANGED" TO iFmtOption IN FRAME createtable.
+     END.  
+     WHEN "ora" THEN DO:       
+       ASSIGN l_cmptbl:SENSITIVE = TRUE
+              shadowcol:SENSITIVE = TRUE
+              crtdef:SENSITIVE = TRUE.
+       iFmtOption:ENABLE("Width") IN FRAME createtable.
+       APPLY "VALUE-CHANGED" TO iFmtOption IN FRAME createtable.
+     END.
+     OTHERWISE DO:
+       ASSIGN l_cmptbl:SENSITIVE = TRUE
+              shadowcol:SENSITIVE = TRUE
+              crtdef:SENSITIVE = TRUE.
+       iFmtOption:ENABLE("Width") IN FRAME createtable.
+       APPLY "VALUE-CHANGED" TO iFmtOption IN FRAME createtable.
+     END.
    END CASE.
 END.
 
@@ -523,27 +587,31 @@ ON LEAVE OF foi in frame createalltables
 
 ON VALUE-CHANGED OF ft IN FRAME createalltables DO:
    CASE SELF:SCREEN-VALUE:
-      WHEN "pro" THEN
-      ASSIGN sqlwidth:SENSITIVE = FALSE
-             sqlwidth:SCREEN-VALUE = "no"
-             l_cmptbl:SENSITIVE = FALSE
-	         l_cmptbl:SCREEN-VALUE = "no"
-             shadowcol:SENSITIVE = FALSE
-             shadowcol:SCREEN-VALUE = "no"
-             crtdef:SENSITIVE = FALSE
-             crtdef:SCREEN-VALUE = "no".
-       WHEN "ora" THEN
-           ASSIGN sqlwidth:SENSITIVE = TRUE
-                  shadowcol:SENSITIVE = FALSE
-                  l_cmptbl:SENSITIVE = TRUE
-                  crtdef:SENSITIVE = TRUE.
-      OTHERWISE
-         DO:
-           ASSIGN sqlwidth:SENSITIVE = TRUE
-                  shadowcol:SENSITIVE = TRUE
-                  l_cmptbl:SENSITIVE = TRUE
-                  crtdef:SENSITIVE = TRUE.
-	 END.
+     WHEN "pro" THEN DO:
+       ASSIGN iFmtOption:SCREEN-VALUE IN FRAME createalltables = "2" 
+              l_cmptbl:SENSITIVE = FALSE
+              l_cmptbl:SCREEN-VALUE = "no"
+              shadowcol:SENSITIVE = FALSE
+              shadowcol:SCREEN-VALUE = "no"
+              crtdef:SENSITIVE = FALSE
+              crtdef:SCREEN-VALUE = "no".
+       iFmtOption:DISABLE("Width") IN FRAME createalltables.
+       APPLY "VALUE-CHANGED" TO iFmtOption IN FRAME createalltables.
+     END.
+     WHEN "ora" THEN DO:
+       ASSIGN l_cmptbl:SENSITIVE = TRUE
+              crtdef:SENSITIVE = TRUE
+              shadowcol:SENSITIVE = TRUE.
+       iFmtOption:ENABLE("Width") IN FRAME createalltables.
+       APPLY "VALUE-CHANGED" TO iFmtOption IN FRAME createalltables.
+     END.
+     OTHERWISE DO:
+       ASSIGN shadowcol:SENSITIVE = TRUE
+              l_cmptbl:SENSITIVE = TRUE
+              crtdef:SENSITIVE = TRUE.
+       iFmtOption:ENABLE("Width") IN FRAME createalltables.
+       APPLY "VALUE-CHANGED" TO iFmtOption IN FRAME createalltables.
+     END.
    END CASE.
 END.
 
@@ -665,7 +733,7 @@ IF alltables THEN
  DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
   &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN  
     uidtag = new_lang[7].
-    DISPLAY uidtag WITH FRAME createalltables.
+    DISPLAY uidtag cFormat lFormat WITH FRAME createalltables.
     usrnm = "ALL".
   
     UPDATE
@@ -675,14 +743,15 @@ IF alltables THEN
       ft
       l_cmptbl
       shadowcol
-      sqlwidth
       crtdef
+      iFmtOption
+      lFormat WHEN iFmtOption = 2 
       btn_OK 
       btn_Cancel
       {&HLP_BTN_NAME}
       WITH FRAME createalltables.
   &ELSE
-    DISPLAY usrlab WITH FRAME createalltables.
+    DISPLAY usrlab cFormat lFormat WITH FRAME createalltables.
     UPDATE
       fot btn_File_t
       foi btn_File_i
@@ -690,8 +759,9 @@ IF alltables THEN
       ft
       l_cmptbl
       shadowcol      
-      sqlwidth
       crtdef
+      iFmtOption
+      lFormat WHEN iFmtOption = 2
       btn_OK 
       btn_Cancel
       {&HLP_BTN_NAME}
@@ -745,9 +815,11 @@ IF alltables THEN
       ASSIGN user_env[7]  = "y" 
              user_env[21] = "n".
    
-  IF sqlwidth THEN
-      ASSIGN user_env[33] = "y".
-
+  IF iFmtOption = 1 THEN
+    ASSIGN user_env[33] = "y".
+  ELSE IF (lFormat = TRUE) THEN
+    ASSIGN user_env[33] = "n".
+  ELSE ASSIGN user_env[33] = "?".
 
   RUN "prodict/misc/_wrktgen.p".
   canned = FALSE.
@@ -756,28 +828,31 @@ END.
 ELSE /*Single table*/
  DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
    &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN  
+   DISPLAY cFormat lFormat WITH FRAME createtable.
    UPDATE
     fot btn_File_t
     foi btn_File_i
     ft
     l_cmptbl
     shadowcol
-    sqlwidth
     crtdef
+    iFmtOption
+    lFormat WHEN iFmtOption = 2
     btn_OK 
     btn_Cancel
     {&HLP_BTN_NAME}
     WITH FRAME createtable.
   &ELSE
-/*   DISPLAY optlab with frame createtable.*/
+   DISPLAY cFormat lFormat WITH FRAME createtable.
    UPDATE
     fot btn_File_t
     foi btn_File_i
     ft
     l_cmptbl
     shadowcol
-    sqlwidth
     crtdef
+    iFmtOption
+    lFormat WHEN iFmtOption = 2
     btn_OK 
     btn_Cancel
     {&HLP_BTN_NAME}
@@ -830,8 +905,11 @@ ELSE /*Single table*/
       ASSIGN user_env[ 7] = "y"
              user_env[21] = "n".
 
-  IF sqlwidth THEN
-      ASSIGN user_env[33] = "y".
+  IF iFmtOption = 1 THEN
+    ASSIGN user_env[33] = "y".
+  ELSE IF (lFormat = TRUE) THEN
+    ASSIGN user_env[33] = "n".   
+  ELSE ASSIGN user_env[33] = "?".
 
   RUN "prodict/misc/_wrktgen.p".
   canned = FALSE.

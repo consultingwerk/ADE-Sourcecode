@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -143,6 +127,7 @@ Change Log:
 &SCOP TRAN_ENTRYPT  "adetran/pm/_pmmain.p"
 &SCOP VTRAN_ENTRYPT "adetran/vt/_main.p"
 &SCOP COMP_ENTRYPT  "adecomp/_procomp.p"
+&SCOP APMT_ENTRYPT  "auditing/_apmt.p"
 
 &IF DEFINED(EXCLUDE_UIB) = 0 AND DEFINED(TOOL_RUN) = 0 &THEN
   DEFINE VARIABLE tool_pgm_list AS CHARACTER                          NO-UNDO.
@@ -225,6 +210,41 @@ IF tool_bomb THEN RETURN.
   mnu_protools:SENSITIVE = (ade_licensed[{&PTOOL_IDX}] = {&INSTALLED}).
 
 &ENDIF
+
+/*--------------------- APMT MENU PROCESSING --------------------------*/
+
+/* only available on GUI - data admin, data dict, proc editor and UIB only */
+
+&IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
+&IF (DEFINED(EXCLUDE_DICT) <> 0 OR DEFINED(EXCLUDE_ADMIN) <> 0 OR 
+    DEFINED(EXCLUDE_EDIT) <> 0) AND DEFINED(EXCLUDE_UIB) = 0 &THEN
+
+  IF ade_licensed[{&APMT_IDX}] <> {&INSTALLED} OR 
+     CAN-DO(tool_pgm_list, {&APMT_ENTRYPT}) THEN 
+     MENU-ITEM mnu_apmt:SENSITIVE IN MENU mnu_Tools = No.
+  ELSE DO:
+      ON CHOOSE OF MENU-ITEM mnu_apmt IN MENU mnu_Tools
+                    {&PERSISTENT} RUN "auditing/_apmt.p".
+  END.
+
+&ELSEIF DEFINED(EXCLUDE_UIB) <> 0 &THEN
+
+  &IF DEFINED(TOOL_RUN) = 0 &THEN
+  DEFINE VARIABLE mnu_apmt_wh AS WIDGET-HANDLE.
+  &ENDIF
+  CREATE MENU-ITEM mnu_apmt_wh ASSIGN LABEL = "Audit Policy &Maintenance" PARENT = h_sm
+         TRIGGERS: 
+            ON CHOOSE PERSISTENT RUN run-apmt.
+         END TRIGGERS.
+
+  IF ade_licensed[{&APMT_IDX}] <> {&INSTALLED} OR 
+     CAN-DO(tool_pgm_list, {&APMT_ENTRYPT}) 
+  THEN
+     mnu_apmt_wh:SENSITIVE = No.
+
+&ENDIF
+&ENDIF
+
 
 /*--------------------- Tool Menu Internal Procecdures ------------------*/
 

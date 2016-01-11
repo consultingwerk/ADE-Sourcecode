@@ -2827,7 +2827,7 @@ PSC
 filename=gst_dataset_file
 records=0000000002824
 ldbname=ICFDB
-timestamp=2005/04/06-13:05:02
+timestamp=2005/06/30-15:33:27
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP

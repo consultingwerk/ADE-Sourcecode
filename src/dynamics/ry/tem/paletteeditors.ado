@@ -104,6 +104,22 @@
 <render_type_obj>0</render_type_obj>
 <applies_at_runtime>yes</applies_at_runtime>
 </contained_record>
+<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>1348.7692</attribute_value_obj>
+<object_type_obj>5568.409</object_type_obj>
+<container_smartobject_obj>1332.7692</container_smartobject_obj>
+<smartobject_obj>6308.409</smartobject_obj>
+<object_instance_obj>1344.7692</object_instance_obj>
+<constant_value>no</constant_value>
+<attribute_label>NAME</attribute_label>
+<character_value></character_value>
+<integer_value>0</integer_value>
+<date_value>?</date_value>
+<decimal_value>0</decimal_value>
+<logical_value>no</logical_value>
+<primary_smartobject_obj>1332.7692</primary_smartobject_obj>
+<render_type_obj>0</render_type_obj>
+<applies_at_runtime>no</applies_at_runtime>
+</contained_record>
 <contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>35.2214</attribute_value_obj>
 <object_type_obj>5568.409</object_type_obj>
 <container_smartobject_obj>1332.7692</container_smartobject_obj>
@@ -136,13 +152,13 @@
 <render_type_obj>0</render_type_obj>
 <applies_at_runtime>no</applies_at_runtime>
 </contained_record>
-<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>1348.7692</attribute_value_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>1345.7692</attribute_value_obj>
 <object_type_obj>5568.409</object_type_obj>
 <container_smartobject_obj>1332.7692</container_smartobject_obj>
 <smartobject_obj>6308.409</smartobject_obj>
 <object_instance_obj>1344.7692</object_instance_obj>
 <constant_value>no</constant_value>
-<attribute_label>NAME</attribute_label>
+<attribute_label>PaletteIsDefault</attribute_label>
 <character_value></character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
@@ -168,14 +184,14 @@
 <render_type_obj>0</render_type_obj>
 <applies_at_runtime>no</applies_at_runtime>
 </contained_record>
-<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>1345.7692</attribute_value_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>1349.7692</attribute_value_obj>
 <object_type_obj>5568.409</object_type_obj>
 <container_smartobject_obj>1332.7692</container_smartobject_obj>
 <smartobject_obj>6308.409</smartobject_obj>
 <object_instance_obj>1344.7692</object_instance_obj>
 <constant_value>no</constant_value>
-<attribute_label>PaletteIsDefault</attribute_label>
-<character_value></character_value>
+<attribute_label>PaletteLabel</attribute_label>
+<character_value>Read-Only Editor</character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
 <decimal_value>0</decimal_value>
@@ -200,14 +216,14 @@
 <render_type_obj>0</render_type_obj>
 <applies_at_runtime>yes</applies_at_runtime>
 </contained_record>
-<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>1349.7692</attribute_value_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>1346.7692</attribute_value_obj>
 <object_type_obj>5568.409</object_type_obj>
 <container_smartobject_obj>1332.7692</container_smartobject_obj>
 <smartobject_obj>6308.409</smartobject_obj>
 <object_instance_obj>1344.7692</object_instance_obj>
 <constant_value>no</constant_value>
-<attribute_label>PaletteLabel</attribute_label>
-<character_value>Read-Only Editor</character_value>
+<attribute_label>PaletteType</attribute_label>
+<character_value>Editor</character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
 <decimal_value>0</decimal_value>
@@ -237,22 +253,6 @@
 <container_smartobject_obj>1332.7692</container_smartobject_obj>
 <smartobject_obj>6308.409</smartobject_obj>
 <object_instance_obj>1334.7692</object_instance_obj>
-<constant_value>no</constant_value>
-<attribute_label>PaletteType</attribute_label>
-<character_value>Editor</character_value>
-<integer_value>0</integer_value>
-<date_value>?</date_value>
-<decimal_value>0</decimal_value>
-<logical_value>no</logical_value>
-<primary_smartobject_obj>1332.7692</primary_smartobject_obj>
-<render_type_obj>0</render_type_obj>
-<applies_at_runtime>no</applies_at_runtime>
-</contained_record>
-<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>1346.7692</attribute_value_obj>
-<object_type_obj>5568.409</object_type_obj>
-<container_smartobject_obj>1332.7692</container_smartobject_obj>
-<smartobject_obj>6308.409</smartobject_obj>
-<object_instance_obj>1344.7692</object_instance_obj>
 <constant_value>no</constant_value>
 <attribute_label>PaletteType</attribute_label>
 <character_value>Editor</character_value>

@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*----------------------------------------------------------------------------
@@ -162,6 +146,7 @@ DEFINE NEW SHARED VARIABLE v-wdth AS DECIMAL                 NO-UNDO.
 
 DEFINE VARIABLE  isDynbrow         AS LOGICAL NO-UNDO.
 DEFINE VARIABLE  isDynview         AS LOGICAL NO-UNDO.
+DEFINE VARIABLE  lDbAware          AS LOGICAL NO-UNDO.
 DEFINE VARIABLE  adjust AS        DECIMAL           DECIMALS 2 NO-UNDO.
 DEFINE VARIABLE  col-lbl-adj AS   DECIMAL INITIAL 0 DECIMALS 2 NO-UNDO.
 DEFINE VARIABLE  name AS          CHAR LABEL "Object":U FORMAT "X(80)" VIEW-AS FILL-IN
@@ -285,6 +270,8 @@ DEFINE VARIABLE h_v-wdth              AS WIDGET-HANDLE           NO-UNDO.
 DEFINE VARIABLE h_v-wdth_lbl          AS WIDGET-HANDLE           NO-UNDO.   
 DEFINE VARIABLE h_wdth                AS WIDGET-HANDLE           NO-UNDO.   
 DEFINE VARIABLE h_wdth_lbl            AS WIDGET-HANDLE           NO-UNDO.  
+DEFINE VARIABLE h_widget-id           AS WIDGET-HANDLE           NO-UNDO.
+DEFINE VARIABLE h_widget-id_lbl       AS WIDGET-HANDLE           NO-UNDO.
 DEFINE VARIABLE txt_down              AS WIDGET-HANDLE           NO-UNDO.   
 DEFINE VARIABLE txt_image             AS WIDGET-HANDLE           NO-UNDO.   
 DEFINE VARIABLE txt_insen             AS WIDGET-HANDLE           NO-UNDO.   
@@ -409,7 +396,6 @@ IF NOT AVAILABLE _F THEN DO:
 END.
 
 
-
 /* Text widgets are not changeable in an alternative layout */
 IF _U._TYPE = "TEXT" AND _U._LAYOUT-NAME NE "Master Layout" THEN DO:
   /* Text widgets are not changeable in an alternative layout */
@@ -428,13 +414,15 @@ IF AVAILABLE parent_U THEN DO:
 END.
 
 /*Note that certain fields are not sensitized if not dynamic object*/
-IF _DynamicsIsRunning AND AVAILABLE _P THEN DO:
-    ASSIGN isDynbrow =  LOOKUP(_P.OBJECT_type_code, 
-                               DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager,
-                                                 INPUT "DynBrow":U)) <> 0.
-           isDynView =  LOOKUP(_P.OBJECT_type_code, 
-                               DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager,
-                                                 INPUT "DynView":U)) <> 0.
+IF _DynamicsIsRunning AND AVAILABLE _P THEN 
+DO:
+  IF DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager,
+                      _P.OBJECT_type_code,"DynBrow":U) THEN 
+    isDynBrow = TRUE.
+  ELSE IF DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager,
+                       _P.OBJECT_type_code,"DynView":U) THEN 
+
+    isDynView = TRUE.
 END.
 ELSE ASSIGN isDynBrow = FALSE
             isDynView = FALSE.
@@ -443,7 +431,13 @@ ELSE ASSIGN isDynBrow = FALSE
 /* If object is connected to a data object, be sure its running. jep-code */
 ASSIGN UsesDataObject = (_P._DATA-OBJECT <> "").
 IF UsesDataObject THEN
-    hDataObject = DYNAMIC-FUNC("get-proc-hdl" IN _h_func_lib, INPUT _P._DATA-OBJECT).
+    hDataObject = DYNAMIC-FUNC("get-sdo-hdl" IN _h_func_lib, 
+                               _P._DATA-OBJECT,TARGET-PROCEDURE).
+
+
+/* Determine if the Data source is a DataView or SDO/SBO. DataView objects are not DbAware. */
+if valid-handle(hDataObject) then
+  {get DbAware lDbAware hDataObject}.
 
 IF NOT RETRY THEN DO:
   DEFINE FRAME prop_sht
@@ -500,7 +494,7 @@ ON WINDOW-CLOSE OF FRAME prop_sht APPLY "END-ERROR":U TO SELF.
 ON ENDKEY,END-ERROR OF FRAME prop_sht 
 DO:
    IF VALID-HANDLE(hDataObject) THEN
-      DYNAMIC-FUNCTION("shutdown-proc":U IN _h_func_lib, _P._Data-Object).        
+      DYNAMIC-FUNCTION("shutdown-sdo":U IN _h_func_lib, TARGET-PROCEDURE ).        
 END.
 
 ON CHOOSE OF btn_help IN FRAME prop_sht OR HELP OF FRAME prop_sht DO:
@@ -667,6 +661,15 @@ ON GO OF FRAME prop_sht DO:
    l_error_on_go = TRUE.
   END.  /*  _COL & _ROW ckeck */
 
+  /* Validate widget id */
+  IF _U._WIDGET-ID NE ? AND 
+    ((_U._WIDGET-ID MODULO 2 NE 0) OR (_U._WIDGET-ID < 2) OR (_U._WIDGET-ID > 65534)) THEN
+  DO:
+    MESSAGE "The widget ID entered is invalid.  It must be an even value between 2 and 65534."
+      VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    l_error_on_go = TRUE.
+  END.
+
   IF CAN-DO("SELECTION-LIST,COMBO-BOX",_U._TYPE) THEN RUN process-sellist-and-combo.
 
 
@@ -693,7 +696,8 @@ ON GO OF FRAME prop_sht DO:
       ASSIGN cListItems    = _F._LIST-ITEMS.
             _F._LIST-ITEMS = REPLACE(_F._LIST-ITEMS,_F._DELIMITER,",").
     
-    l_error_on_go = NOT (validate-radio-buttons(_U._HANDLE)).
+    IF NOT (validate-radio-buttons(_U._HANDLE)) THEN
+      l_error_on_go = TRUE.
     
     IF cListItems > "" THEN
       ASSIGN _F._LIST-ITEMS = cListItems.
@@ -826,7 +830,7 @@ IF h_format NE ? THEN DO: /* Redisplay incase format, initial-data or data-type 
                                    LENGTH(TRIM(h_self:SCREEN-VALUE),"CHARACTER":U)). 
 END.
 IF AVAILABLE _P THEN
-  ret-msg = DYNAMIC-FUNCTION("shutdown-proc" IN _h_func_lib, _P._data-object).        
+  ret-msg = DYNAMIC-FUNCTION("shutdown-sdo" IN _h_func_lib, TARGET-PROCEDURE).        
 END.  /* BIG-TRANS-BLK */
 
 HIDE FRAME prop_sht.
@@ -1328,7 +1332,9 @@ PROCEDURE complete_the_transaction:
     
     IF _U._TYPE = "RECTANGLE" THEN
       ASSIGN h_self:EDGE-PIXELS = _L._EDGE-PIXELS
-             h_self:FILLED      = _L._FILLED.
+             h_self:FILLED      = _L._FILLED
+             h_self:GROUP-BOX   = _L._GROUP-BOX
+             h_self:ROUNDED     = _L._ROUNDED.
       
     IF _U._TYPE = "WINDOW" AND sav-iu NE _C._ICON THEN
       stupid = h_self:LOAD-ICON(_C._ICON).
@@ -1517,6 +1523,10 @@ PROCEDURE context_help_btn_choose.
   END.  /* if lOK */
 END.
 
+PROCEDURE widget_id_change.
+  _U._WIDGET-ID = INTEGER(SELF:SCREEN-VALUE).
+END PROCEDURE.  /* widget_id_change */
+
 PROCEDURE db_field_selection.
   DEFINE VAR ans           AS LOGICAL              NO-UNDO.
   DEFINE VAR a-line        AS CHARACTER EXTENT 100 NO-UNDO.
@@ -1569,7 +1579,8 @@ PROCEDURE db_field_selection.
   DEFINE VAR cLikeButton     AS CHARACTER          NO-UNDO.
   DEFINE VAR iNum            AS INTEGER            NO-UNDO.
   DEFINE VAR cLocalField     AS CHARACTER          NO-UNDO.
-  
+  DEFINE VAR cObjectType     AS CHARACTER  NO-UNDO.
+       
   DEFINE BUFFER ip_U FOR _U.
   DEFINE BUFFER f_U  FOR _U.
 
@@ -1579,7 +1590,8 @@ PROCEDURE db_field_selection.
                    ELSE def_var
          old-dt  = _F._DATA-TYPE
          old-nm  = _U._NAME
-         must-be-like = FALSE.
+         must-be-like = FALSE
+         cObjectType = _U._class-name.
 
   IF _U._DBNAME = ? THEN DO: /* Select a DB field for this varaible */
     IF UsesDataObject = NO THEN DO:      
@@ -1616,6 +1628,7 @@ PROCEDURE db_field_selection.
     END.  /* IF UsesDataObject = NO */
 
     ELSE DO:  /* UsesDataObject */
+        
       ASSIGN db_name = "Temp-Tables":U.
       /* Build the temp-table info to pass to the field picker. */
       tbl_name = "".
@@ -1631,11 +1644,11 @@ PROCEDURE db_field_selection.
       ELSE tt-info = ?.
     
       IF tbl_name = "" OR tbl_name = ? THEN DO:
-        MESSAGE "Unable to determine data souce information."
+        MESSAGE "Unable to determine data source information."
                VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
         RETURN.
       END.
-        
+      
       ASSIGN num_ent  = NUM-ENTRIES(tbl_name)
              tbl_list = tbl_name.
       IF num_ent > 0 THEN DO:
@@ -1651,10 +1664,15 @@ PROCEDURE db_field_selection.
         FOR EACH f_U WHERE f_U._PARENT-RECID = RECID(PARENT_U) AND
                            f_U._STATUS = "NORMAL":U:
           /* Add field name to fld_name */
-          fld_name = fld_name + ",":U + f_U._NAME.
+          fld_name = fld_name + ",":U
+                     /* Don't qualify for SDOs, SBOs or local fields. */
+                   + (if lDbAware or f_U._Table eq ? or f_U._Table eq '':u then
+                         '':u
+                      else f_U._Table + '.':u )
+                   + f_U._NAME.
         END.
         fld_name = LEFT-TRIM(fld_name,",":U).
-
+        
         RUN adecomm/_fldseld.p
             (INPUT tbl_list, 
              INPUT hDataObject , 
@@ -1782,16 +1800,23 @@ PROCEDURE db_field_selection.
           hRepDesignMgr = DYNAMIC-FUNCTION("getManagerHandle":U, INPUT "RepositoryDesignManager":U).
           IF VALID-HANDLE(hDataObject) THEN
           DO:
-            cDataSourceType = DYNAMIC-FUNCTION('getObjectType':U IN hDataObject).
-            cCalculatedCols = DYNAMIC-FUNCTION('getCalculatedColumns':U IN hDataObject).
-            IF cDataSourceType = 'SmartBusinessObject':U AND NUM-ENTRIES(fld_name, '.':U) > 1 THEN
-               ASSIGN cTable = ENTRY(1, fld_name, '.':U).    
-            ELSE 
-               ASSIGN cTable = DYNAMIC-FUNCTION('ColumnPhysicalTable':U IN hDataObject,  fld_name) NO-ERROR.
-
-            cObjectName = IF LOOKUP(fld_name, cCalculatedCols) > 0 
-                          THEN fld_name
-                          ELSE DYNAMIC-FUNCTION('ColumnPhysicalColumn':U IN hDataObject, fld_name).
+              if not lDbAware then
+                  assign cObjectName = tbl_name + '.':u + fld_name
+                         cTable = tbl_name
+                         cDataSourceType = 'DataView':u.
+              else
+              do:
+                  cDataSourceType = DYNAMIC-FUNCTION('getObjectType':U IN hDataObject).
+                  cCalculatedCols = DYNAMIC-FUNCTION('getCalculatedColumns':U IN hDataObject).
+                  IF cDataSourceType = 'SmartBusinessObject':U AND NUM-ENTRIES(fld_name, '.':U) > 1 THEN
+                      ASSIGN cTable = ENTRY(1, fld_name, '.':U).    
+                  ELSE 
+                      ASSIGN cTable = DYNAMIC-FUNCTION('ColumnPhysicalTable':U IN hDataObject,  fld_name) NO-ERROR.
+        
+                  cObjectName = IF LOOKUP(fld_name, cCalculatedCols) > 0 
+                                THEN fld_name
+                                ELSE DYNAMIC-FUNCTION('ColumnPhysicalColumn':U IN hDataObject, fld_name).
+              end.    /* DbAware data source */
           END.
           ELSE ASSIGN cObjectName     = tbl_Name + "." + fld_name
                       cDataSourceType = 'SmartDataObject'.
@@ -1840,7 +1865,12 @@ PROCEDURE db_field_selection.
                    VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
             RETURN.
           END.
-         
+          
+          /* Qualify the fieldname for DataViews */
+          if valid-handle(hDataObject) and not lDbAware then 
+              fld_save = (if tbl_name ne '':u and tbl_name ne ? then tbl_name + '.' else '':U)
+                       + fld_save.
+          
           fld_label   = DYNAMIC-FUNC("columnLabel" IN hDataObject, fld_save ) NO-ERROR.
           fld_format  = DYNAMIC-FUNC("columnFormat" IN hDataObject, fld_save ) NO-ERROR.
           fld_help    = DYNAMIC-FUNC("columnHelp" IN hDataObject, fld_save ) NO-ERROR.
@@ -1942,7 +1972,7 @@ PROCEDURE db_field_selection.
         {adecomm/okform.i}
       WITH VIEW-AS DIALOG-BOX TITLE "Data Field Defaults" DEFAULT-BUTTON btn_OK
            THREE-D.
-
+           
     ASSIGN FRAME db-defaults:PARENT = ACTIVE-WINDOW.
     IF _U._DBNAME NE ? THEN
       RUN adecomm/_s-schem.p(_U._DBNAME, _U._TABLE,
@@ -1960,7 +1990,8 @@ PROCEDURE db_field_selection.
            db-var:RADIO-BUTTONS IN FRAME db-defaults =
                   (IF _U._DBNAME NE "Temp-Tables" THEN "&Database Field"
                                                   ELSE "&Data Source Field") +
-                   ",FIELD,Local &Variable,Local,L&ike " + _U._TABLE + "." + 
+                   ",FIELD,Local &Variable,Local,L&ike " +
+                   (if _U._Table ne ? and _U._Table ne ? then _U._TABLE + "." else '':u) + 
                    (IF _F._DISPOSITION = "LIKE":U AND _F._LIKE-FIELD NE ""
                     THEN _F._LIKE-FIELD ELSE _U._NAME) + ",Like"
            db-var:SCREEN-VALUE = IF _F._DISPOSITION = "LIKE" OR must-be-like
@@ -2225,6 +2256,12 @@ PROCEDURE db_field_selection.
             RETURN.
         END.  /* If we think we are using a SDO but don't have a valid handle */
         IF tmp-name = "" THEN tmp-name = _U._NAME.
+        
+        /* Qualify the column name for DataViews */
+        if valid-handle(hDataObject) and not lDbAware then
+            tmp-name = (if tbl_name ne '':u and tbl_name ne ? then tbl_name + '.' else '':U)
+                     + tmp-name.
+        
         fld_label   = DYNAMIC-FUNC("columnLabel" IN hDataObject, tmp-name ) NO-ERROR.
         fld_format  = DYNAMIC-FUNC("columnFormat" IN hDataObject, tmp-name ) NO-ERROR.
         fld_help    = DYNAMIC-FUNC("columnHelp" IN hDataObject, tmp-name ) NO-ERROR.
@@ -2232,8 +2269,9 @@ PROCEDURE db_field_selection.
         fld_initial = DYNAMIC-FUNC("columnIntial" IN hDataObject, tmp-name ) NO-ERROR.
         /* If this object is already in the repository we have to delete it and recreate it
            because the object type is being changed.  Here we delete it, we will recreate it
-           in rygendynp.p  from the _U.  */
-        IF _U._object-obj NE 0 THEN DO:
+           in rygendynp.p  from the _U.  
+           See 20050816-044 for open issues with this functionality.  */
+        IF _U._object-obj NE 0 AND _U._class-name NE cObjectType THEN DO:
           /* Note the fact that _U._object-obj is non zero means the Dynamics is running */
           IF NOT VALID-HANDLE(hDevManager) THEN
             ASSIGN hDevManager = DYNAMIC-FUNCTION("getManagerHandle":U, 
@@ -2331,6 +2369,13 @@ PROCEDURE field_edit.
   END.
   /* Send the table list or a handle to the SmartData */
   RUN adeuib/_coledit.p (INPUT table-list, INPUT ?).
+  
+  /* If this is a static SmartDataBrowser based on a dataview (not db aware)
+     then redisplay the 4GL query, it may have changed based on columns
+     selected in the column editor. */
+  IF usesDataObject AND NOT lDbAware AND NOT isDynBrow THEN
+    h_query:SCREEN-VALUE = TRIM (_Q._4GLQury).
+  
 END.
 
 PROCEDURE font_edit.
@@ -3425,7 +3470,8 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                   INNER-LINES          = IF SESSION:HEIGHT-PIXELS > 500 THEN 4
                                                                         ELSE 2
                   SCREEN-VALUE         = IF _PROP._NAME = "QUERY" 
-                                           THEN _Q._4GLQURY 
+                                           THEN IF NOT lDbAware AND isDynBrow THEN "":U
+                                                ELSE _Q._4GLQURY 
                                            ELSE IF _U._TYPE = "RADIO-SET" THEN
                                            _F._LIST-ITEMS ELSE ""
                   SIDE-LABEL-HANDLE    = h_qry_lbl
@@ -4329,7 +4375,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                TRIGGERS:
                  ON CHOOSE PERSISTENT RUN CUSTOM-SUPER-PROC_change.
                END TRIGGERS.
-       h_CUSTOM-SUPER-PROC_btn:LOAD-IMAGE("ry/img/afbinos.gif":U).
+       h_CUSTOM-SUPER-PROC_btn:LOAD-IMAGE({&ADEICON-DIR} + "select":U).
 
        ASSIGN stupid                               = h_CUSTOM-SUPER-PROC_btn:MOVE-AFTER(last-tab)
               last-tab                             = h_CUSTOM-SUPER-PROC_btn.
@@ -4346,7 +4392,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                TRIGGERS:
                  ON CHOOSE PERSISTENT RUN CUSTOM-SUPER-PROC_clear.
                END TRIGGERS.
-        h_CUSTOM-SUPER-PROC_btnd:LOAD-IMAGE("ry/img/objectcancel.bmp":U).
+        h_CUSTOM-SUPER-PROC_btnd:LOAD-IMAGE({&ADEICON-DIR} + "cancel":U).
 
         ASSIGN stupid                               = h_CUSTOM-SUPER-PROC_btnd:MOVE-AFTER(last-tab)
                last-tab                             = h_CUSTOM-SUPER-PROC_btnd
@@ -4619,6 +4665,37 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
              h_row_lbl:COLUMN  = h_row:COLUMN - h_row_lbl:WIDTH
              h_row:SENSITIVE   = NOT _U._size-to-parent.
     END.  /* Has column and ROW */
+
+    WHEN "WIDGET-ID" THEN DO:
+      IF _L._WIN-TYPE AND NOT(isDynBrow) AND NOT(isDynView) THEN DO:
+        CREATE TEXT h_widget-id_lbl ASSIGN FRAME = FRAME prop_sht:HANDLE FORMAT = "X(15)".
+        CREATE FILL-IN h_widget-id
+          ASSIGN FRAME             = FRAME prop_sht:HANDLE
+                 ROW               = cur-row
+                 COLUMN            = name:COLUMN
+                 HEIGHT            = 1
+                 WIDTH             = 18
+                 FONT              = 0
+                 DATA-TYPE         = "INTEGER"
+                 FORMAT            = ">>>>9"
+                 SIDE-LABEL-HANDLE = h_widget-id_lbl 
+                 LABEL             = "Widget ID:"
+                 SCREEN-VALUE      = STRING(_U._WIDGET-ID)
+                 SENSITIVE         = TRUE
+            TRIGGERS:
+              ON VALUE-CHANGED PERSISTENT RUN widget_id_change.
+            END TRIGGERS.
+        
+        ASSIGN stupid                 = h_widget-id:MOVE-AFTER(last-tab)
+               last-tab               = h_widget-id
+               h_widget-id_lbl:HEIGHT = 1
+               h_widget-id_lbl:WIDTH  = FONT-TABLE:GET-TEXT-WIDTH-CHARS(h_widget-id:LABEL + " ")
+               h_widget-id_lbl:ROW    = h_widget-id:ROW
+               h_widget-id_lbl:COLUMN = h_widget-id:COLUMN - h_widget-id_lbl:WIDTH
+               cur-row                = cur-row + 1.1.
+
+      END.  /* if _L._WIN-TYPE - GUI */
+    END.  /* WIDGET-ID */
 
     WHEN "WIDTH" THEN DO:
       CREATE TEXT h_wdth_lbl ASSIGN FRAME = FRAME prop_sht:HANDLE. 
@@ -4980,12 +5057,12 @@ PROCEDURE sensitize.
     IF h_btn_mdfy           NE ? THEN ASSIGN h_btn_mdfy:SENSITIVE = 
                               NOT CAN-FIND(_TRG WHERE _TRG._wRECID = RECID(_U) AND
                                            _TRG._tEVENT = "OPEN_QUERY":U) AND
-                              _Q._TblList NE "rowObject":U.
+                              UsesDataObject = FALSE.
     IF h_btn_flds           NE ? THEN ASSIGN h_btn_flds:SENSITIVE =
                                       (_Q._TblList NE "" AND h_btn_mdfy:SENSITIVE)
-                                    OR _Q._TblList eq "rowObject":U.
+                                    OR UsesDataObject.
     IF h_btn_mdfy NE ? AND h_btn_mdfy:SENSITIVE = FALSE AND
-       _Q._TblList ne "rowObject":U THEN RUN freeform_setup.
+       usesDataobject = FALSE THEN RUN freeform_setup.
     IF h_inner-lines        NE ? THEN ASSIGN h_inner-lines:SENSITIVE        = TRUE.
     IF h_data-type          NE ? THEN ASSIGN h_data-type:SENSITIVE =
                                             IF _U._TABLE NE ? OR (_U._TYPE = "COMBO-BOX" AND
@@ -5154,6 +5231,7 @@ PROCEDURE sensitize.
     IF h_context-help-file  NE ? THEN ASSIGN h_context-help-file:SENSITIVE  = FALSE.
     IF h_context-help-btn   NE ? THEN ASSIGN h_context-help-btn:SENSITIVE   = FALSE.
     IF h_context-help-id    NE ? THEN ASSIGN h_context-help-id:SENSITIVE    = FALSE.
+    IF h_widget-id          NE ? THEN ASSIGN h_widget-id:SENSITIVE          = FALSE.
     IF h_subtype            NE ? THEN ASSIGN h_subtype:SENSITIVE            = FALSE.
     IF h_tooltip            NE ? THEN ASSIGN h_tooltip:SENSITIVE            = FALSE.
     IF h_show-popup         NE ? THEN ASSIGN h_show-popup:SENSITIVE         = FALSE.  
@@ -5176,7 +5254,8 @@ PROCEDURE sensitize.
       IF h:TYPE eq "TOGGLE-BOX":U AND h:Y > start-y THEN DO:
         IF (h ne h_SEPARATORS)        AND (h ne h_REMOVE-FROM-LAYOUT) AND
            (h ne h_FILLED)            AND (h ne h_GRAPHIC-EDGE) AND
-           (h ne h_convert-3d-colors) AND (h ne h_no-focus)
+           (h ne h_convert-3d-colors) AND (h ne h_no-focus) AND
+           (h NE h_GROUP-BOX)         AND (h NE h_ROUNDED)
         THEN h:SENSITIVE = FALSE.       
       END. /* IF ... toggle-box... */
       /* Get the next widget */
@@ -5484,13 +5563,15 @@ PROCEDURE process-sellist-and-combo:
       IF valid-handle(h_listType) AND h_listType:SCREEN-VALUE = "I":U THEN DO:
         ASSIGN _F._LIST-ITEM-PAIRS = ?
                _F._LIST-ITEMS = REPLACE(RIGHT-TRIM(h_query:SCREEN-VALUE),CHR(13),"").
-        ASSIGN l_error_on_go = NOT validate-list-items(_U._HANDLE).
+        IF NOT validate-list-items(_U._HANDLE) THEN
+          l_error_on_go = TRUE.
         IF l_error_on_go THEN new_btns  = FALSE.
       END.      
       ELSE IF valid-handle(h_query) THEN DO:
        ASSIGN _F._LIST-ITEM-PAIRS = REPLACE(RIGHT-TRIM(h_query:SCREEN-VALUE),CHR(13),"")
               _F._LIST-ITEMS = ?.   
-       ASSIGN l_error_on_go = NOT validate-list-item-pairs(_U._HANDLE).   
+       IF NOT validate-list-item-pairs(_U._HANDLE) THEN
+         l_error_on_go = TRUE.   
        IF l_error_on_go THEN new_btns  = FALSE.
       END.
     END.  /* IF COMBO-BOX */

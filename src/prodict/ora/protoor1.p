@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -39,7 +23,7 @@
              10/12/01 DLM Added logic to handle dumping DEFAULTs     
              06/04/02 DLM Added logic to handle error on creating hidden files 
              06/25/02 DLM Added logic for function based indexes
-                   
+             10/17/05 KSM Fixed X8OVERRIDE funcionality.      
 */    
 
 { prodict/user/uservar.i }
@@ -76,7 +60,13 @@ IF batch_mode THEN DO:
        "Oracle Tablespace for tables:  " ora_tspace skip
        "Oracle Tablespace for indexes: " ora_ispace skip
        "Compatible structure:          " pcompatible skip
-       "Using Width field:             " sqlwidth SKIP
+       "Create shadow columns      " shadowcol skip
+       "Field width calculation based on:      " (IF iFmtOption = 1 THEN
+                                                    "_Field._Width field"
+                                                  ELSE IF (lFormat = FALSE) THEN
+                                                    "Calculation"
+                                                  ELSE "_Field._Format field")
+                                                  SKIP
        "Create objects in Oracle:      " loadsql skip
        "Moved data to Oracle:          " movedata skip(2).
 END.
@@ -180,7 +170,6 @@ ASSIGN user_env[1]  = "ALL"
        user_env[17] = "number"
        user_env[19] = "number"
        user_env[20] = "##"
-       user_env[21] = "n"
        user_env[22] = "ORACLE"
        user_env[23] = "30"
        user_env[24] = "15"
@@ -197,10 +186,18 @@ IF pcompatible THEN
 ELSE
    ASSIGN user_env[27] = "no".
 
-IF sqlwidth THEN 
-   ASSIGN user_env[33] = "y".
+IF iFmtOption = 1 THEN 
+  ASSIGN user_env[33] = "y".
+ELSE IF (lFormat = FALSE) THEN
+  ASSIGN user_env[33] = "no".
 ELSE
-   ASSIGN user_env[33] = "no".
+  ASSIGN user_env[33] = "?".
+
+/* Create shadow columns */
+IF shadowcol THEN
+  ASSIGN user_env[21] = "y".
+ELSE
+  ASSIGN user_env[21] = "n".
 
     /* md0: creates SQL and .d-files */
 RUN "prodict/ora/_ora_md0.p".

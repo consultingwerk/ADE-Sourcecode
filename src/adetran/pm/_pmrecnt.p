@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*
@@ -30,6 +14,14 @@ Updated:      9/95
 Purpose:      Translation Manager Recounting facility
 Background:   Used as a fail/safe to recalculate PM statistics
 Called By:    pm/_pmmain.p
+
+History:
+   kmcintos  June 6, 2005  Fixed indexing problem with WordCount temp-table and 
+                           added PhraseCount table, and logic to correctly 
+                           ascertain number of words and unique phrases 
+                           20050523-003.
+   kmcintos  July 26, 2005 Changed EMPTY TEMP-TABLE statements to 
+                           FOR EACH DELETEs 20050523-003.
 */
 
 DEFINE INPUT PARAMETER CurWindow AS WIDGET-HANDLE        NO-UNDO.
@@ -51,11 +43,18 @@ DEFINE VARIABLE temp-string       AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE temp-string2      AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE working-string    AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE word-string       AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE iCount            AS INTEGER             NO-UNDO.
 
 DEFINE TEMP-TABLE WordCount
-  FIELD Word AS CHARACTER FORMAT "X(80)"
-INDEX Word IS PRIMARY Word.
-.
+  FIELD KeyOfWord AS CHARACTER
+  FIELD Word      AS CHARACTER FORMAT "X(80)"
+INDEX KeyOfWord IS PRIMARY KeyOfWord CASE-SENSITIVE.
+
+
+DEFINE TEMP-TABLE PhraseCount
+  FIELD KeyOfPhrase AS CHARACTER
+  FIELD Phrase      AS CHARACTER
+  INDEX KeyOfPhrase IS PRIMARY KeyOfPhrase CASE-SENSITIVE.
 
 /* *** 11/99 tomn: We do this test in _pmstats.p before calling this routine...
 /* Find out if statistics need to be updated */
@@ -74,39 +73,41 @@ APPLY "entry" TO FRAME UpdMsg.
 run adecomm/_setcurs.p ("wait").
 
 FOR EACH WordCount:
-   DELETE WordCount.
+  DELETE WordCount.
+END.
+FOR EACH PhraseCount:
+  DELETE PhraseCount.
 END.
 
-ASSIGN
-   temp-string    = "":U
-   working-string = "":U
-   word-string    = "":U.
+ASSIGN working-string = "":U
+       word-string    = "":U.
+
 FOR EACH xlatedb.xl_string_info NO-LOCK BY xlatedb.xl_string_info.KeyOfString:
-  ASSIGN working-string = TRIM(xlatedb.XL_String_Info.Original_string)
-         num_unique_phrase = num_unique_phrase + 
-           (IF COMPARE(temp-string, "=":U, xlatedb.XL_String_Info.Original_string, "CAPS":U)
-            THEN 0 ELSE 1)
-         temp-string = xlatedb.XL_String_Info.Original_string.
+  CREATE PhraseCount.
+  ASSIGN PhraseCount.KeyOfPhrase = 
+                ENCODE(CAPS(xlatedb.XL_String_Info.Original_string))
+         PhraseCount.Phrase      = xlatedb.XL_String_Info.Original_string.
+END. /* For Each xl_string_info */
 
-  DO WHILE TRUE:
-    ASSIGN
-        iLoc = INDEX(working-string," ")
-        word-string = IF iLoc = 0 THEN
-                         working-string
-                      ELSE
-                         SUBSTRING(working-string,1,iLoc - 1)
-        num_words = num_words + 1.
+FOR EACH PhraseCount NO-LOCK BREAK BY KeyOfPhrase:
+  IF FIRST-OF(PhraseCount.KeyOfPhrase) THEN DO:
+    ASSIGN num_unique_phrase = num_unique_phrase + 1
+           working-string    = TRIM(PhraseCount.Phrase).
+         
+    DO iLoc = 1 TO NUM-ENTRIES(working-string," "):
+      ASSIGN word-string = ENTRY(iLoc,working-string," ")
+             num_words   = num_words + 1.
 
-    CREATE WordCount.
-    ASSIGN WordCount.Word = word-string.
-    IF iLoc = 0 THEN LEAVE.
-    ASSIGN working-string = TRIM(SUBSTRING(working-string,iLoc + 1)).
-  END.
+      CREATE WordCount.
+      ASSIGN WordCount.KeyOfWord = ENCODE(CAPS(word-string))
+             WordCount.Word      = word-string.
+    END.
+  END. /* If First-Of */
 END.
 
-FOR EACH WordCount BREAK BY WordCount.Word:
-  IF FIRST-OF(WordCount.Word) THEN 
-  num_unique_word = num_unique_word + 1.
+FOR EACH WordCount BREAK BY KeyOfWord:
+  IF FIRST-OF(WordCount.KeyOfWord) THEN
+    num_unique_word = num_unique_word + 1.
 END.
 
 FOR EACH xlatedb.XL_Glossary EXCLUSIVE-LOCK:

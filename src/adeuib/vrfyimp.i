@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /* Check if the file is not a UIB file.
@@ -45,87 +29,105 @@ IF AbortImport NE yes THEN DO:
      - jpalazzo 3/3/98 */
   adm_version = _inp_line[5].
   
+  RUN adecomm/_osfext.p ((IF web_file THEN web_temp_file ELSE dot-w-file), 
+                         OUTPUT file_ext ).
+
+  /* If doesn't contain correct procedure header, or it is a .cls file */
   IF NOT (_inp_line[1] = "&ANALYZE-SUSPEND":U AND 
     (_inp_line[3] BEGINS "UIB_v":U OR _inp_line[3] BEGINS "WDT_v":U OR
-     _inp_line[3] BEGINS "AB_v":U)) THEN
+     _inp_line[3] BEGINS "AB_v":U)) OR File_Ext = ".cls" THEN
   DO ON STOP UNDO, LEAVE:
-    /* If the file's extension is .w, call advisor and give user some
-       open options. Otherwise, open the file in a Procedure Window,
-       no questions asked.
-    */
-    RUN adecomm/_osfext.p ((IF web_file THEN web_temp_file ELSE dot-w-file), 
-                           OUTPUT file_ext ).
+    /* if not Visual just abort without opening file in another tool */
+    IF notVisual THEN 
+      ASSIGN AbortImport = YES
+             err_msgs = "File is not in {&UIB_NAME} file format.":U.
+    ELSE DO:
+      /* If the file's extension is .w, call advisor and give user some
+         open options. Otherwise, open the file in a Procedure Window,
+         no questions asked.
+      */
+      IF file_ext = ".w":U THEN DO:
+        /* Reset the cursor for user input.*/
+        RUN adecomm/_setcurs.p ("").
+        /* Initialize the choice */
+        adv_choice = "_PWIN":U.
       
-    IF file_ext = ".w":U THEN DO:
-      /* Reset the cursor for user input.*/
-      RUN adecomm/_setcurs.p ("").
-      /* Initialize the choice */
-      adv_choice = "_PWIN":U.
+        IF ASC(SUBSTRING(_inp_line[1],1,1)) = 17 THEN 
+          /* likely to be an xcoded file - will not get the option to
+           * "load-it-anyway" (gfs)
+           */
+          RUN adeuib/_advisor.w (
+            INPUT  dot-w-file + CHR(10) + CHR(10)
+                   + "This file is not in {&UIB_NAME} file format. "
+                   + "What do you want the {&UIB_NAME} to do?" ,
+            INPUT
+  "&Edit. Edit the file in a Procedure Window.,_PWIN,
+  &Cancel. Do not open the file.,_CANCEL" ,
+            INPUT FALSE,
+            INPUT "AB":U,
+            INPUT 0,
+            INPUT-OUTPUT adv_choice ,
+            OUTPUT adv_never ).
+        ELSE
+          RUN adeuib/_advisor.w (
+            INPUT  dot-w-file + CHR(10) + CHR(10)
+                   + "This file is not in {&UIB_NAME} file format. "
+                   + "What do you want the {&UIB_NAME} to do?" ,
+            INPUT
+  "&Open. Try to open the file anyway as an {&UIB_NAME} file.,_OPEN,
+  &Edit. Edit the file in a Procedure Window.,_PWIN,
+  &Cancel. Do not open the file.,_CANCEL" ,
+            INPUT FALSE,
+            INPUT "AB":U,
+            INPUT 0,
+            INPUT-OUTPUT adv_choice ,
+            OUTPUT adv_never ).
+      END. /* if .w */
+      ELSE IF CAN-DO(".xmc,.xml,.xmp,.xsd":U, file_ext) THEN
+        ASSIGN adv_choice = "_XML":U.
+      ELSE ASSIGN adv_choice = "_PWIN":U.
       
-      IF ASC(SUBSTRING(_inp_line[1],1,1)) = 17 THEN 
-        /* likely to be an xcoded file - will not get the option to
-         * "load-it-anyway" (gfs)
-         */
-        RUN adeuib/_advisor.w (
-          INPUT  dot-w-file + CHR(10) + CHR(10)
-                 + "This file is not in {&UIB_NAME} file format. "
-                 + "What do you want the {&UIB_NAME} to do?" ,
-          INPUT
-"&Edit. Edit the file in a Procedure Window.,_PWIN,
-&Cancel. Do not open the file.,_CANCEL" ,
-          INPUT FALSE,
-          INPUT "AB":U,
-          INPUT 0,
-          INPUT-OUTPUT adv_choice ,
-          OUTPUT adv_never ).
-      ELSE
-        RUN adeuib/_advisor.w (
-          INPUT  dot-w-file + CHR(10) + CHR(10)
-                 + "This file is not in {&UIB_NAME} file format. "
-                 + "What do you want the {&UIB_NAME} to do?" ,
-          INPUT
-"&Open. Try to open the file anyway as an {&UIB_NAME} file.,_OPEN,
-&Edit. Edit the file in a Procedure Window.,_PWIN,
-&Cancel. Do not open the file.,_CANCEL" ,
-          INPUT FALSE,
-          INPUT "AB":U,
-          INPUT 0,
-          INPUT-OUTPUT adv_choice ,
-          OUTPUT adv_never ).
-    END. /* if .w */
-    ELSE IF CAN-DO(".xmc,.xml,.xmp,.xsd":U, file_ext) THEN
-      ASSIGN adv_choice = "_XML":U.
-    ELSE ASSIGN adv_choice = "_PWIN":U.
-      
-    CASE adv_choice:
-      WHEN "_PWIN":U THEN DO:
-        ASSIGN AbortImport = Yes.
-        RUN adecomm/_pwmain.p (INPUT "_ab.p":U  /* PW Parent ID */,
-                               INPUT (dot-w-file + /* Files to open */
-                                     (IF NOT web_file THEN "" ELSE CHR(3) + 
-                                        web_temp_file + CHR(3) + _BrokerURL)),
-                               INPUT IF import_mode = "WINDOW UNTITLED":U
-                                     THEN "UNTITLED":U 
-                                     ELSE ""   /* PW Command      */).
-        /* Update MRU FileList */
-        IF _mru_filelist AND import_mode NE "WINDOW UNTITLED":U THEN
-          RUN adeshar/_mrulist.p (INPUT dot-w-file, INPUT IF web_file THEN _BrokerURL ELSE "").
-      END.
-      WHEN "_XML":U THEN DO:
-        ASSIGN AbortImport = Yes.
+      CASE adv_choice:
+        WHEN "_PWIN":U THEN DO:
+            ASSIGN AbortImport = Yes.
+            IF OEIDEisRunning THEN
+            DO:
+              /* Open Files in OEIDE Editor */
+              openEditor(getProjectName(), dot-w-file, 
+                  IF import_mode = "UNTITLED":U OR
+                     import_mode = "WINDOW UNTITLED":U
+                  THEN "UNTITLED":U ELSE "", ?).
+            END.            
+            ELSE
+              RUN adecomm/_pwmain.p (INPUT "_ab.p":U  /* PW Parent ID */,
+                                 INPUT (dot-w-file + /* Files to open */
+                                       (IF NOT web_file THEN "" ELSE CHR(3) + 
+                                          web_temp_file + CHR(3) + _BrokerURL +
+                                        CHR(3) + cRelPathWeb)),
+                                 INPUT IF import_mode = "WINDOW UNTITLED":U
+                                       THEN "UNTITLED":U 
+                                       ELSE ""   /* PW Command      */).
+          /* Update MRU FileList */
+          IF _mru_filelist AND import_mode NE "WINDOW UNTITLED":U THEN
+            RUN adeshar/_mrulist.p (INPUT (IF web_file THEN open_file ELSE dot-w-file),
+                                    INPUT IF web_file THEN _BrokerURL ELSE "").
+        END.
+        WHEN "_XML":U THEN DO:
+          ASSIGN AbortImport = Yes.
         
-        RUN adexml/_xmlview.w PERSISTENT SET h_xml.
-        RUN initializeObject IN h_xml.
-        RUN openFile IN h_xml (dot-w-file + (IF NOT web_file THEN "" ELSE CHR(3) + 
-                               web_temp_file + CHR(3) + _BrokerURL)).
+          RUN adexml/_xmlview.w PERSISTENT SET h_xml.
+          RUN initializeObject IN h_xml.
+          RUN openFile IN h_xml (dot-w-file + (IF NOT web_file THEN "" ELSE CHR(3) + 
+                                 web_temp_file + CHR(3) + _BrokerURL)).
         
-        /* Update MRU FileList */
-        IF _mru_filelist AND import_mode NE "WINDOW UNTITLED":U THEN
-          RUN adeshar/_mrulist.p (dot-w-file, IF web_file THEN _BrokerURL ELSE "").
-      END.
-      WHEN "_CANCEL":U THEN
-        ASSIGN AbortImport = Yes.
-    END CASE.  /* Case on adv_choice */
+          /* Update MRU FileList */
+          IF _mru_filelist AND import_mode NE "WINDOW UNTITLED":U THEN
+            RUN adeshar/_mrulist.p (dot-w-file, IF web_file THEN _BrokerURL ELSE "").
+        END.
+        WHEN "_CANCEL":U THEN
+          ASSIGN AbortImport = Yes.
+      END CASE.  /* Case on adv_choice */
+    END.  /* else do - visual */
   END.  /* IF NOT ("&ANALYZE-SUSPEND":U AND BEGINS "UIB_v", "WDT_v" or "AB_v") */
 END.  /* If AbortImport NE Yes */
 

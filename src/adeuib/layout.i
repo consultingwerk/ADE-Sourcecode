@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /* -------------------------------------------------------------------
@@ -34,7 +18,7 @@ INPUT Parameters:
 
 Author: D. Ross Hunter 
 
-Date Generated: 04/12/04
+Date Generated: 07/05/05
 
 Note: This procedure is generated via the Property Sheet Generator and 
       the abAttribute table of the ab database. 
@@ -79,6 +63,7 @@ DEFINE {1} SHARED TEMP-TABLE _L
   FIELD _FILLED             AS LOG  LABEL "Filled"                 INITIAL NO
   FIELD _FONT               AS INT  LABEL "Font"                   INITIAL ?
   FIELD _GRAPHIC-EDGE       AS LOG  LABEL "Graphic-Edge"           INITIAL NO
+  FIELD _GROUP-BOX          AS LOG  LABEL "Group-Box"              INITIAL NO
   FIELD _HEIGHT             AS DEC  LABEL "Height-Characters"      INITIAL ?
                                     DECIMALS 2
   FIELD _NO-BOX             AS LOG  LABEL "No-Box"                 INITIAL NO
@@ -86,6 +71,7 @@ DEFINE {1} SHARED TEMP-TABLE _L
   FIELD _NO-LABELS          AS LOG  LABEL "No-Labels"              INITIAL NO
   FIELD _NO-UNDERLINE       AS LOG  LABEL "No-Underline"           INITIAL NO
   FIELD _REMOVE-FROM-LAYOUT AS LOG  LABEL "Remove from Layout"     INITIAL NO
+  FIELD _ROUNDED            AS LOG  LABEL "Rounded"                INITIAL NO
   FIELD _ROW                AS DEC  LABEL "Row"                    INITIAL ?
                                     DECIMALS 2
   FIELD _ROW-MULT           AS DEC  LABEL ""                       INITIAL ?

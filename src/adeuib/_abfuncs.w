@@ -2,26 +2,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
+* Copyright (C) 2005 by Progress Software Corporation.  All rights   *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *********************************************************************/
 /*--------------------------------------------------------------------------
     File        : adeuib/_abfuncs.w
@@ -285,7 +268,7 @@ FUNCTION get-proc-hdl RETURNS HANDLE
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD get-sdo-hdl Procedure 
 FUNCTION get-sdo-hdl RETURNS HANDLE
-  (pName     AS CHAR,     /* SmartDataObjectname */
+  (pName     AS CHAR,    
    pOwnerHdl AS HANDLE   /* The procedure handle to the pocedure that owns 
                             the SDO. 
                             The owner has the right and responsibility 
@@ -316,6 +299,17 @@ FUNCTION get-url-host RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getBufferHandle Procedure 
 FUNCTION getBufferHandle RETURNS HANDLE
   ( pcTable AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getNativeDynamicClasses) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getNativeDynamicClasses Procedure 
+FUNCTION getNativeDynamicClasses RETURNS CHARACTER
+  (  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -355,6 +349,17 @@ FUNCTION is-sdo-proxy RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-isDynamicClassNative) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD isDynamicClassNative Procedure 
+FUNCTION isDynamicClassNative RETURNS LOGICAL
+  ( pcClass AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-mappedEntry) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD mappedEntry Procedure 
@@ -369,11 +374,45 @@ FUNCTION mappedEntry RETURNS CHARACTER
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-RepositoryDynamicClass) = 0 &THEN
+&IF DEFINED(EXCLUDE-nextFrameWidgetID) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD RepositoryDynamicClass Procedure 
-FUNCTION RepositoryDynamicClass RETURNS CHARACTER
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD nextFrameWidgetID Procedure 
+FUNCTION nextFrameWidgetID RETURNS INTEGER
+  ( phWin AS HANDLE )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-nextWidgetID) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD nextWidgetID Procedure 
+FUNCTION nextWidgetID RETURNS INTEGER
+  ( prParent AS RECID,
+    prWidget AS RECID )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-repositoryDynamicClass) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD repositoryDynamicClass Procedure 
+FUNCTION repositoryDynamicClass RETURNS CHARACTER
   ( pType AS CHARACTER  /* Procedure Type */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-run-datasource) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD run-datasource Procedure 
+FUNCTION run-datasource RETURNS HANDLE PRIVATE
+  ( pcName AS CHAR )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -463,6 +502,32 @@ FUNCTION validate-radio-buttons RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-widgetIDConflict) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD widgetIDConflict Procedure 
+FUNCTION widgetIDConflict RETURNS LOGICAL
+  ( prParent   AS RECID,
+    piWidgetID AS INTEGER,
+    prWidget   AS RECID )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-widgetIDFrameConflict) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD widgetIDFrameConflict Procedure 
+FUNCTION widgetIDFrameConflict RETURNS LOGICAL
+  ( phWin      AS HANDLE,
+    piWidgetID AS INTEGER,
+    prFrame    AS RECID )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-WSAError) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD WSAError Procedure 
@@ -505,7 +570,7 @@ FUNCTION x-2-c RETURNS CHARACTER
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
          HEIGHT             = 21.71
-         WIDTH              = 55.8.
+         WIDTH              = 54.6.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -1101,6 +1166,11 @@ FUNCTION get-proc-hdl RETURNS HANDLE
 
     Notes:  Currently we only start persistent procedures that have no
             parameters
+          - primarily for static objects, but will call startdataobject in the 
+            repository manger (run-datasource) if no static object exists and 
+            the object is in repository.  
+          - although this also works for SDOs one should rather use 
+            get-sdo-hdl for SDO start up           
 ------------------------------------------------------------------------------*/
   DEF VAR Hdl           AS HANDLE     NO-UNDO.
   DEF VAR search-file   AS CHAR       NO-UNDO.  
@@ -1109,7 +1179,6 @@ FUNCTION get-proc-hdl RETURNS HANDLE
   DEF VAR lIsInRepos    AS LOG        NO-UNDO.
   DEF VAR hReposSDO     AS HANDLE     NO-UNDO.
   DEF VAR hRepDesignManager AS HANDLE NO-UNDO.
-  
 
   /* See if the procedure source or .r file is in the PROPATH somewhere. */
   RUN adecomm/_rsearch.p (INPUT proc-file-name , OUTPUT search-file).
@@ -1117,30 +1186,37 @@ FUNCTION get-proc-hdl RETURNS HANDLE
   /* Check whether specified proc-filename is a repository object if Dynamics is running*/
   IF _DynamicsIsRunning AND search-file = ? THEN 
   DO:
-     ASSIGN hRepDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U, INPUT "RepositoryDesignManager":U) NO-ERROR.
-     lIsInrepos = DYNAMIC-FUNCTION("ObjectExists":U IN hRepDesignManager, INPUT proc-file-name ) .
+    ASSIGN hRepDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U, INPUT "RepositoryDesignManager":U) NO-ERROR.
+    lIsInrepos = DYNAMIC-FUNCTION("ObjectExists":U IN hRepDesignManager, INPUT proc-file-name ) .
+    IF NOT lIsInrepos THEN 
+      RETURN ?.
   END.
-  IF search-file = ? AND NOT lIsInrepos  THEN RETURN ?.  /* Can't find static object return ? */
 
   /* The file exists, so look up its name in the table */
   FIND FIRST _PDP WHERE _PDP._procFileName = proc-file-name NO-ERROR.
-  
-  IF NOT AVAILABLE _PDP THEN DO ON STOP UNDO, LEAVE: /* Not there, start it up */
-    /* Don't create if it's a repository object */
-    IF NOT lIsInrepos  THEN
-       RUN VALUE(proc-file-name) PERSISTENT SET Hdl NO-ERROR.
-    ELSE 
-       RUN StartDataObject IN gshRepositoryManager
-              (INPUT proc-file-name, OUTPUT hReposSDO).
+  /* Not there, start it up */
+  IF NOT AVAILABLE _PDP THEN 
+  DO:   
+    /* start the object*/
+    IF NOT search-file = ? THEN
+    DO:
+      DO ON STOP UNDO, LEAVE:
+        RUN VALUE(proc-file-name) PERSISTENT SET Hdl.
+      END.
+      cType = DYNAMIC-FUNCTION('getObjectType':U IN Hdl) NO-ERROR.
+      IF cType <> 'SUPER':U AND NOT VALID-HANDLE(hreposSDO) THEN
+        RUN createObjects IN Hdl NO-ERROR.
+    END.
+    ELSE IF lIsInrepos THEN
+      hdl = run-datasource(proc-file-name).
+
     /** Don't create _PDP until we know its started (_PDP is UNDO ) */
-    IF VALID-HANDLE(Hdl) OR VALID-HANDLE(hReposSDO) THEN 
+    IF VALID-HANDLE(Hdl) THEN 
     DO:
       CREATE _PDP.
       ASSIGN _PDP._procFileName = proc-file-name
              _PDP._hInstance    = IF VALID-HANDLE(hReposSDO) THEN hReposSDO ELSE Hdl.
-      cType = DYNAMIC-FUNCTION('getObjectType':U IN Hdl) NO-ERROR.
-      IF cType <> 'SUPER':U AND NOT VALID-HANDLE(hreposSDO) THEN
-        RUN createObjects IN Hdl NO-ERROR.
+
     END.
   END.  /* If not avail _PDP */
 
@@ -1157,35 +1233,41 @@ END FUNCTION.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION get-sdo-hdl Procedure 
 FUNCTION get-sdo-hdl RETURNS HANDLE
-  (pName     AS CHAR,     /* SmartDataObjectname */
+  (pName     AS CHAR,    
    pOwnerHdl AS HANDLE   /* The procedure handle to the pocedure that owns 
                             the SDO. 
                             The owner has the right and responsibility 
                             to delete it.  */
    ): 
 /*------------------------------------------------------------------------------
-  Purpose: Start a SmartDataObject or a SmartDataObject "pretender" or 
+   Purpose: Start a SmartDataObject or a SmartDataObject "pretender" or 
            get the handle if it is already started in this contect.
-             
-    Notes: Objects that require column info from SmartDataObject should
-           call this.
+Parameters: pName - data definition source name
+                    SDO name or include name,table (_P._data-object )
+            pOwnerHdl - requestor. other objects uses this to share it 
+                        requestor is responsible of calling shutdown-sdo  
+                        with the same handle to clean up.
+                              
+     Notes: Objects that require column info from SmartDataObject should
+            call this .
                
-           Objects that need to share a SDO must get the handle 
-           from the one they share it with and use that as an input parameter.
+            Objects that need to share a SDO must get the handle 
+            from the one they share it with and use that as an input parameter.
                          
-           Make sure that that handle also is used as input to shutdown-sdo.
-                 
-           WHY NOT _PDP 
-           ---------------------------- 
-           The _PDP is based on name recognition. 
+            Make sure that that handle also is used as input to shutdown-sdo.
+                  
+            Difference from get-proc-hdl 
+            ---------------------------- 
+            call to startDataObject has presedence when running in dynamics.
            
-           If several persistent objects should share the same SDO, none of them 
-           could delete it, because they would not know if any other was using it. 
-           If the SDO never got deleted it would hang around forever and making
-           it impossible to restart when changes was done.
+            Supports include 
+            The _PDP in get-proc-hdl is based on name recognition. 
            
-           It is also important to not have this as a shared.
-                 
+            If several persistent objects should share the same SDO, none of them 
+            could delete it, because they would not know if any other was using it. 
+            If the SDO never got deleted it would hang around forever making it 
+            impossible to restart when changes was done.
+                  
 ------------------------------------------------------------------------------*/
   DEF VAR Hdl             AS HANDLE NO-UNDO.
   DEF VAR Ok              AS LOG    NO-UNDO.
@@ -1214,7 +1296,7 @@ FUNCTION get-sdo-hdl RETURNS HANDLE
       This procedure can read the remote SDO info. 
       Because it have the same signature (for columns) as of a regular SDO,
       whoever needs an SDO's columns properties can use the same functions
-     */ 
+      */ 
            
       RUN web2/support/_rmtsdo.p PERSISTENT SET HDL.
       
@@ -1228,26 +1310,8 @@ FUNCTION get-sdo-hdl RETURNS HANDLE
       DYNAMIC-FUNCTION ("setSDOName":U in Hdl, pName).
      
     END. /* if web object and remote development */ 
-    ELSE DO:
-       /* See if the procedure source or .r file is in the PROPATH somewhere. */
-       RUN adecomm/_rsearch.p (INPUT pName , OUTPUT search-file).
-       IF _DynamicsIsRunning AND search-File = ? THEN 
-       DO:
-          RUN StartDataObject IN gshRepositoryManager
-              (INPUT pName, OUTPUT hReposSDO).
-          ASSIGN Hdl = hReposSDO.
-          DYNAMIC-FUNCTION("setUIBMode":U IN hdl, 'Design':U).
-       END.
-
-       IF NOT VALID-HANDLE(Hdl) THEN
-       DO ON STOP UNDO, LEAVE:
-      /* pName may have been deleted. Account for the situation */
-         IF search-file <> ? THEN 
-           RUN VALUE(pName) PERSISTENT SET Hdl NO-ERROR.
-       END. /* else (not web) */
-    END.
-    IF VALID-HANDLE(Hdl) AND NOT VALID-HANDLE(hReposSDO) THEN
-       RUN createObjects IN Hdl NO-ERROR.
+    ELSE 
+      hdl = run-datasource(pName).
     
     IF VALID-HANDLE(hdl) THEN 
     DO:
@@ -1367,6 +1431,25 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getNativeDynamicClasses) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getNativeDynamicClasses Procedure 
+FUNCTION getNativeDynamicClasses RETURNS CHARACTER
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose: Return the list of natively supported dynamic classes 
+    Notes:     
+------------------------------------------------------------------------------*/
+
+  RETURN "DynView,DynBrow,DynDataView,DynSDO":U.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getSuppressDbname) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getSuppressDbname Procedure 
@@ -1427,6 +1510,33 @@ FUNCTION is-sdo-proxy RETURNS LOGICAL
 
     RETURN proxy-sdo.
     
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-isDynamicClassNative) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION isDynamicClassNative Procedure 
+FUNCTION isDynamicClassNative RETURNS LOGICAL
+  ( pcClass AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns true if the class is dynamic and natively supported in the 
+           AppBuilder. 
+    Notes: Natively supported means the object can be built and opened in 
+           the AppBuilder similar to a static object.   
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cClasses AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iClass AS INTEGER    NO-UNDO.
+  cClasses = getNativeDynamicClasses().  
+  DO iClass = 1 TO NUM-ENTRIES(cClasses):
+    IF DYNAMIC-FUNC("ClassIsA":U IN gshRepositoryManager, pcClass, ENTRY(iClass,cClasses)) THEN
+      RETURN TRUE. 
+  END.
+  RETURN FALSE.
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1496,21 +1606,126 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-RepositoryDynamicClass) = 0 &THEN
+&IF DEFINED(EXCLUDE-nextFrameWidgetID) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION RepositoryDynamicClass Procedure 
-FUNCTION RepositoryDynamicClass RETURNS CHARACTER
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION nextFrameWidgetID Procedure 
+FUNCTION nextFrameWidgetID RETURNS INTEGER
+  ( phWin AS HANDLE ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Returns the next widget id for a design window
+            phWin AS HANDLE - handle of the design window
+    Notes:  - Browse widgets are treated like frames by the 4GL syntax
+            even though widget ids are not yet supported for browse columns
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE iWidgetID AS INTEGER    NO-UNDO.
+
+DEFINE BUFFER f_U FOR _U.
+  
+  /* TTY Window */
+  IF NOT _cur_win_type THEN RETURN ?.
+
+  FOR EACH f_U WHERE f_U._window-handle = phWin AND
+    LOOKUP(f_U._TYPE,'FRAME,DIALOG-BOX,BROWSE':U) > 0:  
+
+    IF f_U._WIDGET-ID > iWidgetID THEN                          
+      iWidgetID = f_U._WIDGET-ID.     
+  END.  /* for each frame or browse of window */
+
+  iWidgetID = IF iWidgetID = 0 THEN _widgetid_start          
+              ELSE iWidgetID + _widgetid_increment.          
+  
+  /* Return next frame widget ID */
+  RETURN iWidgetID.   
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-nextWidgetID) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION nextWidgetID Procedure 
+FUNCTION nextWidgetID RETURNS INTEGER
+  ( prParent AS RECID,
+    prWidget AS RECID ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Returns the next widget ID for a frame
+            prParent AS RECID - _U recid of a frame
+            prWidget AS RECID - _U recid of widget being added to frame
+    Notes:  - The function finds the largest widget id of the frame and
+            returns it plus 2 for the next widget id for the frame
+            - The widget being added to a frame should not looked at to 
+            determine what the next widget id should be for copy/import
+            cases when the widget id is already set and has been found
+            to conflict with another widget on the frame.
+            - Browse widgets are treated like frames by the 4GL syntax
+            even though widget ids are not yet supported for browse columns
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE iNumButtons AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iWidgetID   AS INTEGER    NO-UNDO.
+
+DEFINE BUFFER PARENT_U FOR _U.
+DEFINE BUFFER WIDGET_U FOR _U.
+DEFINE BUFFER WIDGET_F FOR _F.
+
+  /* TTY Window */
+  IF NOT _cur_win_type THEN RETURN ?.
+
+  FIND PARENT_U WHERE RECID(PARENT_U) = prParent NO-ERROR.
+  IF AVAILABLE PARENT_U THEN
+  DO:
+    FOR EACH WIDGET_U WHERE WIDGET_U._parent-recid = prParent AND 
+      LOOKUP(WIDGET_U._TYPE,'FRAME,DIALOG-BOX,BROWSE':U) = 0 AND 
+      RECID(WIDGET_U) NE prWidget AND 
+      WIDGET_U._WIDGET-ID NE ? BY WIDGET_U._WIDGET-ID:
+
+      /* Each radio set button has its own widget id so the next
+         widget id must take into account the number of buttons */
+      IF WIDGET_U._TYPE = 'RADIO-SET':U THEN
+      DO:
+        FIND WIDGET_F WHERE RECID(WIDGET_F) = WIDGET_U._x-recid NO-ERROR.
+        IF AVAILABLE WIDGET_F THEN
+          iNumButtons = NUM-ENTRIES(WIDGET_F._LIST-ITEMS,WIDGET_F._DELIMITER) / 2.
+
+        iWidgetID = IF iNumButtons MODULO 2 NE 0 THEN
+                      WIDGET_U._WIDGET-ID + iNumButtons - 1
+                    ELSE 
+                      WIDGET_U._WIDGET-ID + iNumButtons.
+      END.  /* radio set */
+      ELSE IF WIDGET_U._WIDGET-ID > iWidgetID THEN
+        iWidgetID = WIDGET_U._WIDGET-ID.
+
+    END.  /* for each _U of frame */
+  END.  /* if avail frame _U */
+
+  /* Return largest widget id of frame plus 2 */
+  RETURN iWidgetID + 2.   
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-repositoryDynamicClass) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION repositoryDynamicClass Procedure 
+FUNCTION repositoryDynamicClass RETURNS CHARACTER
   ( pType AS CHARACTER  /* Procedure Type */ ) :
 
 /*------------------------------------------------------------------------------
   Purpose: To return the dynamic class (Currently DynView, DynBrow, DynSDO or 
            DynSBO) that the input type extends.
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cDynClass    AS CHARACTER                            NO-UNDO.
-
-  ASSIGN cDynClass     = "":U.
-
-  IF _DynamicsIsRunning THEN DO:
+  DEFINE VARIABLE cDynClass      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cNativeClasses AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iClass         AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cClass         AS CHARACTER  NO-UNDO.
+  IF _DynamicsIsRunning THEN 
+  DO:
     CASE pType:
         WHEN "SmartDataViewer":U     THEN cDynClass = "DynView":U.
         WHEN "SmartViewer":U         THEN cDynClass = "DynView":U.  /* V8 */
@@ -1519,21 +1734,81 @@ FUNCTION RepositoryDynamicClass RETURNS CHARACTER
         WHEN "SmartDataObject":U     THEN cDynClass = "DynSDO":U.
         WHEN "SmartBusinessObject":U THEN cDynClass = "DynSBO":U.
         OTHERWISE DO:
-           cDynClass = 
-                IF LOOKUP(pType, DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, 
-                                 INPUT "DynView":U)) <> 0  THEN "DynView":U
-                ELSE IF LOOKUP(pType, DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, 
-                                 INPUT "DynBrow":U)) <> 0 THEN "DynBrow":U
-                ELSE IF LOOKUP(pType, DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, 
-                                 INPUT "DynSDO":U)) <> 0 THEN "DynSDO":U
-                ELSE IF LOOKUP(pType, DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager,
-                                 INPUT "DynSBO":U)) <> 0 THEN "DynSBO":U
-                ELSE "":U.
+
+          cNativeClasses = getNativeDynamicClasses().
+          DO iClass = 1 TO NUM-ENTRIES(cNativeClasses):
+            cClass = ENTRY(iClass,cNativeClasses).
+            IF DYNAMIC-FUNC("ClassIsA":U IN gshRepositoryManager,pType,cClass) THEN
+              RETURN cClass.
+          END.
         END.
     END CASE.
   END.
 
   RETURN cDynClass.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-run-datasource) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION run-datasource Procedure 
+FUNCTION run-datasource RETURNS HANDLE PRIVATE
+  ( pcName AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose: Starts a datasource  
+  Parameters: pName - data definition source name
+                    SDO name or include name,table (_P._data-object )
+    Notes: private. 
+           called from get-sdo-hdl and from get-proc-hdl if in not on disk
+           and found in repository.
+        -  will run from file if not found in repos for backwards compatibility
+           of visual objects that have been built with static datasources.
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hDataSource AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cSearch     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTable      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lInclude    AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hDesignMngr AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lInRepos    AS LOGICAL    NO-UNDO.
+
+  IF NUM-ENTRIES(pcName) > 1 THEN
+  DO:
+    ASSIGN
+      lInclude = TRUE
+      cTable   = ENTRY(2,pcname)
+      pcName   = ENTRY(1,pcname).
+  END.
+  IF lInclude THEN
+    RUN adeuib/_rundsinclude.p (INPUT pcName, INPUT cTable, OUTPUT hDataSource).
+
+  ELSE DO:
+    /* See if the source or .r file is in the PROPATH somewhere. */
+    IF _DynamicsIsRunning THEN 
+    DO ON ERROR UNDO,LEAVE: /*startdataobject throws ERROR if not exists */
+      /* Repository has presedence */ 
+      RUN startDataObject IN gshRepositoryManager (pcName, OUTPUT hDataSource). 
+      lInRepos = TRUE.
+      DYNAMIC-FUNCTION("setUIBMode":U IN hDataSource, 'Design':U) NO-ERROR.
+    END. /* dynamics */
+
+    RUN adecomm/_rsearch.p (INPUT pcName , OUTPUT cSearch).
+
+    /* if found and not in repository then run it */
+    IF cSearch <> ? AND NOT lInRepos THEN
+    DO ON STOP UNDO, LEAVE :
+      RUN VALUE(pcName) PERSISTENT SET hDataSource NO-ERROR. 
+      /* this is called from get-proc-hld, check objecttype */
+      IF VALID-HANDLE(hDataSource) AND {fn getObjectType hDataSource} <> 'SUPER' THEN
+        RUN createObjects IN hDataSource NO-ERROR.
+    END.
+  END.
+  
+  RETURN hDataSource.
 
 END FUNCTION.
 
@@ -1906,6 +2181,142 @@ FUNCTION validate-radio-buttons RETURNS LOGICAL
   END.
    
   RETURN NOT lError. 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-widgetIDConflict) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION widgetIDConflict Procedure 
+FUNCTION widgetIDConflict RETURNS LOGICAL
+  ( prParent   AS RECID,
+    piWidgetID AS INTEGER,
+    prWidget   AS RECID ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Checks a widget's widget id for a conflict with other widgets of a 
+            frame
+            prParent   AS RECID   - _U recid of a frame
+            piWidgetID AS INTEGER - widget id to check
+            prWidget   AS RECID   - _U for widget being checked
+    Notes:  - As soon as a conflict is found, checking is stopped and  
+            TRUE is returned
+            - Browse widgets are treated like frames by the 4GL syntax
+            even though widget ids are not yet supported for browse columns
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE iButtonID         AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iNumButtons       AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iWidgetNumButtons AS INTEGER    NO-UNDO.
+DEFINE VARIABLE lConflict         AS LOGICAL    NO-UNDO.
+
+DEFINE BUFFER PARENT_U FOR _U.
+DEFINE BUFFER WIDGET_F FOR _F.
+DEFINE BUFFER WIDGET_U FOR _U.
+DEFINE BUFFER other_U  FOR _U.
+DEFINE BUFFER other_F  FOR _F.
+
+  FIND PARENT_U WHERE RECID(PARENT_U) = prParent NO-ERROR.
+  IF AVAILABLE PARENT_U THEN
+  DO:
+    /* Find _U for widget being checked to determine whether it is a 
+       radio set */
+    FIND WIDGET_U WHERE RECID(WIDGET_U) = prWidget NO-ERROR.
+    IF AVAILABLE WIDGET_U THEN
+    DO:
+      IF WIDGET_U._TYPE = 'RADIO-SET':U THEN
+      DO:
+        /* If widget being checked is a radio set determine its number of
+           buttons */
+        FIND WIDGET_F WHERE RECID(WIDGET_F) = WIDGET_U._x-recid NO-ERROR.
+        IF AVAILABLE WIDGET_F THEN
+          iWidgetNumButtons = NUM-ENTRIES(WIDGET_F._LIST-ITEMS,WIDGET_F._DELIMITER) / 2.
+
+        /* Check other widgets on the frame to determine whether there
+           is a conflict with the widget being checked or its number of buttons */
+        FOR EACH other_U WHERE other_U._parent-recid = prParent AND
+          LOOKUP(other_U._TYPE,'FRAME,DIALOG-BOX,BROWSE':U) = 0 AND
+          RECID(other_U) NE prWidget:
+
+          /* Also need to check for buttons of existing radio sets on the frame */
+          IF other_U._TYPE = 'RADIO-SET':U THEN
+          DO:
+            FIND other_F WHERE RECID(other_F) = other_U._x-recid NO-ERROR.
+            IF AVAILABLE other_F THEN
+              iNumButtons = NUM-ENTRIES(other_F._LIST-ITEMS,other_F._DELIMITER) / 2.
+
+            DO iButtonID = piWidgetID TO piWidgetID + iWidgetNumButtons:
+              IF iButtonID >= other_U._WIDGET-ID AND 
+                 iButtonID <= (other_U._WIDGET-ID + iNumButtons) THEN RETURN TRUE.
+            END.
+          END.  /* if widget on frame is radio set */
+          ELSE DO: 
+            IF other_U._WIDGET-ID >= piWidgetID AND
+               other_U._WIDGET-ID <= (piWidgetID + iWidgetNumButtons) THEN 
+              RETURN TRUE.
+          END.  /* else do - not radio set */
+        END.  /* for each _U - other widgets on frame */
+      END.  /* widget being checked is radio set */
+      ELSE DO:  /* widget being checked is not a radio set */
+        FOR EACH other_U WHERE other_U._parent-recid = prParent AND
+          LOOKUP(other_U._TYPE,'FRAME,DIALOG-BOX,BROWSE':U) = 0 AND
+          RECID(other_U) NE prWidget:
+
+          /* Need to check for buttons of existing radio sets on the frame */
+          IF other_U._TYPE = 'RADIO-SET':U THEN
+          DO:
+            FIND other_F WHERE RECID(other_F) = other_U._x-recid NO-ERROR.
+            IF AVAILABLE other_F THEN
+              iNumButtons = NUM-ENTRIES(other_F._LIST-ITEMS,other_F._DELIMITER) / 2.
+
+            IF piWidgetID >= other_U._WIDGET-ID AND 
+               piWidgetID <= (other_U._WIDGET-ID + iNumButtons) THEN 
+              RETURN TRUE.
+          END.  /* if widget on frame is radio set */
+          ELSE DO: 
+            IF piWidgetID = other_U._WIDGET-ID THEN 
+              RETURN TRUE.
+          END.  /* else do - not radio set */                         
+        END.  /* for each _U - other widgets on frame */
+      END.  /* else do - widget being checked not radio set */
+    END.  /* if available widget_U */
+  END.  /* if available parent_U */
+  
+  RETURN FALSE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-widgetIDFrameConflict) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION widgetIDFrameConflict Procedure 
+FUNCTION widgetIDFrameConflict RETURNS LOGICAL
+  ( phWin      AS HANDLE,
+    piWidgetID AS INTEGER,
+    prFrame    AS RECID ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Checks a frame's or browse's widget id for a conflict with other 
+            frames and browse widgets of a design window
+            phWin      AS HANDLE  - handle of the design window
+            piWidgetID AS INTEGER - widget id to check
+            prFrame    AS RECID   - _U for frame/browse being checked
+    Notes:  - Browse widgets are treated like frames by the 4GL syntax
+            even though widget ids are not yet supported for browse columns
+------------------------------------------------------------------------------*/
+DEFINE BUFFER f_U FOR _U.
+
+  FIND FIRST f_U WHERE f_U._window-handle = phWin AND
+      f_U._WIDGET-ID = piWidgetID AND
+      LOOKUP(f_U._TYPE,'FRAME,DIALOG-BOX,BROWSE':U) > 0 AND 
+      RECID(f_U) NE prFrame NO-ERROR.
+  IF AVAILABLE f_U THEN RETURN TRUE.
+  ELSE RETURN FALSE.
 
 END FUNCTION.
 

@@ -1445,7 +1445,12 @@ PROCEDURE importLog :
                   cInput BEGINS 'SUBS' OR
                   cInput BEGINS 'EXEC' OR
                   cInput BEGINS 'MARK' OR
-                  cInput BEGINS 'TRIGGER') AND 
+                  cInput BEGINS 'TRIGGER' OR
+                  cInput BEGINS 'NEW' OR
+                  cInput BEGINS 'SUPER' OR
+                  cInput BEGINS 'INVOKE' OR
+                  cinput BEGINS 'DELETE' OR
+                  cinput BEGINS 'PERSTRIG') AND 
                  NUM-ENTRIES(cInput,'|') GE 7 ).
 
     iPercent = ABS((iBytesRead / iLogSize) * 100).
@@ -2536,7 +2541,7 @@ Parameters:  INPUT pcInput AS CHARACTER
 
   /* Whittle down the value of pcInput one entry at a time from left to right
      until we get to the parameters section. */
-  ASSIGN cType     = TRIM(ENTRY(1,pcInput,'|'))
+  ASSIGN cType     = UPPER(TRIM(ENTRY(1,pcInput,'|')))
          cSource   = TRIM(ENTRY(2,pcInput,'|'))
          cSrcProc  = TRIM(ENTRY(3,pcInput,'|'))
          cLevel    = TRIM(ENTRY(6,pcInput,'|'))
@@ -2550,10 +2555,14 @@ Parameters:  INPUT pcInput AS CHARACTER
   ASSIGN cType       = ENTRY(1,cType)
          giLastBatch = giCurrentBatch.
 
+  IF cType EQ 'PERSTRIG' THEN
+     ASSIGN cType = 'PERSISTENT TRIGGER'.
+
   IF cSrcProc EQ 'USER-INTERFACE-TRIGGER' AND TRIM(cProcName,"~"") EQ '' THEN
       ASSIGN cProcName = cParms
              cParms    = ''
              cType     = 'TRIGGER'.
+
 
   DO TRANSACTION:
     CREATE tSpyInfo.
@@ -2573,7 +2582,7 @@ Parameters:  INPUT pcInput AS CHARACTER
                                  ELSE cProcName) + 
                                       (IF cType EQ 'PUBLISH' THEN ' FROM ' 
                                        ELSE ' IN ') + tSpyInfo.tTarget.
-    
+
     FIND LAST bSpyInfo WHERE /* Criteria group 1 -- covers SUPER */
                             (((bSpyInfo.tProcName EQ tSpyInfo.tSrcProc) OR
                               (tSpyInfo.tProcName EQ 'SUPER' AND
@@ -2590,7 +2599,10 @@ Parameters:  INPUT pcInput AS CHARACTER
                              bSpyInfo.tLevel = tSpyInfo.tLevel - 1) OR
                             (tSpyInfo.tType NE 'TRIGGER' AND 
                              bSpyInfo.tType EQ 'PUBLISH' AND
-                             bSpyInfo.tLevel EQ tSpyInfo.tLevel - 1)
+                             bSpyInfo.tLevel EQ tSpyInfo.tLevel - 1) OR
+                            /* if not covered by anything above, just link it to 
+                               the level above this one*/
+                            ( bSpyInfo.tLevel EQ tSpyInfo.tLevel - 1)
                             USE-INDEX tLvlParIdx NO-LOCK NO-ERROR.
 
     IF AVAILABLE bSpyInfo THEN

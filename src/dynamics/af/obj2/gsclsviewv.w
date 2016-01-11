@@ -29,25 +29,9 @@ DEFINE TEMP-TABLE RowObject
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -157,23 +141,24 @@ DEFINE FRAME frMain
           LABEL "Logical service code"
           VIEW-AS FILL-IN 
           SIZE 45.4 BY 1
-     RowObject.logical_service_description AT ROW 2.05 COL 32.2 COLON-ALIGNED
+     RowObject.logical_service_description AT ROW 2.1 COL 32.2 COLON-ALIGNED
           LABEL "Logical service description"
           VIEW-AS FILL-IN 
           SIZE 78.4 BY 1
-     RowObject.can_run_locally AT ROW 4.14 COL 34
+     RowObject.can_run_locally AT ROW 4.24 COL 34
           LABEL "Can run locally"
           VIEW-AS TOGGLE-BOX
           SIZE 20.6 BY 1
-     RowObject.system_owned AT ROW 5.19 COL 34
+     RowObject.system_owned AT ROW 5.29 COL 34
           LABEL "System owned"
           VIEW-AS TOGGLE-BOX
           SIZE 19.2 BY 1
-     RowObject.write_to_config AT ROW 6.24 COL 34
+     RowObject.write_to_config AT ROW 6.33 COL 34
           LABEL "Write to config"
           VIEW-AS TOGGLE-BOX
           SIZE 19 BY 1
-     RowObject.connect_at_startup AT ROW 7.43 COL 34 CONTEXT-HELP-ID 0
+     RowObject.connect_at_startup AT ROW 7.52 COL 34 CONTEXT-HELP-ID 0
+          LABEL "Connect at startup"
           VIEW-AS TOGGLE-BOX
           SIZE 24 BY .81
      SPACE(26.20) SKIP(0.00)
@@ -246,6 +231,8 @@ ASSIGN
 
 /* SETTINGS FOR TOGGLE-BOX RowObject.can_run_locally IN FRAME frMain
    EXP-LABEL                                                            */
+/* SETTINGS FOR TOGGLE-BOX RowObject.connect_at_startup IN FRAME frMain
+   EXP-LABEL                                                            */
 /* SETTINGS FOR FILL-IN RowObject.logical_service_code IN FRAME frMain
    EXP-LABEL                                                            */
 /* SETTINGS FOR FILL-IN RowObject.logical_service_description IN FRAME frMain
@@ -304,9 +291,9 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_service_type.service_type_description,gsc_service_type.service_type_codeKeyFieldgsc_service_type.service_type_objFieldLabelService typeFieldTooltipSelect a service typefrom the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_service_type NO-LOCK BY gsc_service_type.service_type_codeQueryTablesgsc_service_typeSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 (&2)ComboDelimiterListItemPairsInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesSuperProcedureFieldNameservice_type_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_service_type.service_type_description,gsc_service_type.service_type_codeKeyFieldgsc_service_type.service_type_objFieldLabelService typeFieldTooltipSelect a service typefrom the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_service_type NO-LOCK BY gsc_service_type.service_type_codeQueryTablesgsc_service_typeSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 (&2)ComboDelimiterListItemPairsInnerLines5SortnoComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesSuperProcedureDataSourceNameFieldNameservice_type_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dyncombo ).
-       RUN repositionObject IN h_dyncombo ( 3.10 , 34.20 ) NO-ERROR.
+       RUN repositionObject IN h_dyncombo ( 3.19 , 34.20 ) NO-ERROR.
        RUN resizeObject IN h_dyncombo ( 1.05 , 50.00 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */

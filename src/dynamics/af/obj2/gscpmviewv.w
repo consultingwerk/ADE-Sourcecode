@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
           icfdb            PROGRESS
@@ -29,25 +29,9 @@ DEFINE TEMP-TABLE RowObject
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -88,7 +72,7 @@ CREATE WIDGET-POOL.
 
 &scop object-name       gscpmviewv.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
-&scop object-version    010000
+&scop object-version    000000
 
 /* Parameters Definitions ---                                           */
 
@@ -117,7 +101,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /* Include file with RowObject temp-table definition */
 &Scoped-define DATA-FIELD-DEFS "af/obj2/gscpmfullo.i"
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
@@ -152,16 +136,17 @@ DEFINE FRAME frMain
      RowObject.product_module_code AT ROW 1 COL 30 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 35 BY 1
-     RowObject.product_module_description AT ROW 2.05 COL 30 COLON-ALIGNED
+     RowObject.product_module_description AT ROW 2.1 COL 30 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 78.4 BY 1
      RowObject.product_module_installed AT ROW 3.1 COL 32
+          LABEL "Product module installed"
           VIEW-AS TOGGLE-BOX
           SIZE 28.4 BY 1
      RowObject.number_of_users AT ROW 4.14 COL 30 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 11.8 BY 1
-     RowObject.relative_path AT ROW 5.19 COL 30 COLON-ALIGNED
+     RowObject.relative_path AT ROW 5.24 COL 30 COLON-ALIGNED
           VIEW-AS FILL-IN 
           SIZE 78.4 BY 1
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
@@ -226,11 +211,13 @@ END.
 /* SETTINGS FOR WINDOW vTableWin
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frMain
-   NOT-VISIBLE Size-to-Fit                                              */
+   NOT-VISIBLE FRAME-NAME Size-to-Fit                                   */
 ASSIGN 
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
 
+/* SETTINGS FOR TOGGLE-BOX RowObject.product_module_installed IN FRAME frMain
+   EXP-LABEL                                                            */
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
