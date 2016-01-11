@@ -56,6 +56,8 @@ DEFINE INPUT-OUTPUT PARAMETER TABLE-HANDLE phRowObjUpd.
 DEFINE OUTPUT PARAMETER pocMessages AS CHARACTER NO-UNDO.
 DEFINE OUTPUT PARAMETER pocUndoIds  AS CHARACTER NO-UNDO.
 
+DEFINE VARIABLE gcCurrentLogicalName AS CHAR NO-UNDO.
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -72,6 +74,19 @@ DEFINE OUTPUT PARAMETER pocUndoIds  AS CHARACTER NO-UNDO.
 /* _UIB-PREPROCESSOR-BLOCK-END */
 &ANALYZE-RESUME
 
+
+/* ************************  Function Prototypes ********************** */
+
+&IF DEFINED(EXCLUDE-getCurrentLogicalName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCurrentLogicalName Procedure 
+FUNCTION getCurrentLogicalName RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 
 /* *********************** Procedure Settings ************************ */
@@ -111,14 +126,16 @@ DEFINE VARIABLE iEntry        AS INTEGER    NO-UNDO.
 DEFINE VARIABLE cLogicalName  AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cLocalContext AS CHARACTER  NO-UNDO.
 
-ASSIGN
-  cLocalContext = REPLACE(piocContext, CHR(3), CHR(4))
-  iEntry = LOOKUP('LogicalObjectName':U, cLocalContext, CHR(4)).
-IF iEntry > 0 THEN
-  cLogicalName = ENTRY(iEntry + 1, cLocalContext, CHR(4)).
+cLocalContext = REPLACE(piocContext, CHR(3), CHR(4)).
+
+IF NUM-ENTRIES(pcObject,':') > 1 THEN
+  ASSIGN
+    cLogicalName = ENTRY(2,pcObject,':':U)
+    pcObject     = ENTRY(1,pcObject,':':U).
 
 IF cLogicalName > '':U THEN
 DO:                                     /* look for running object */
+  gcCurrentLogicalName = cLogicalName.
   PUBLISH "searchCache" + cLogicalName (OUTPUT hObject).
   /* if found, use it */
   IF VALID-HANDLE(hObject) THEN
@@ -137,9 +154,11 @@ DO:
 END.
 
 {get DynamicData lDynamicData hObject}.
+{set ASDivision 'SERVER':U hObject}.
+
 IF lDynamicData THEN
 DO:
-  {set RowObjUpdTable phRowObjUpd hObject}.
+  {set RowObjUpdTable phRowObjUpd hObject}. 
   RUN setContextAndInitialize IN hObject (piocContext).
   RUN bufferCommit IN hObject (OUTPUT pocMessages, 
                                OUTPUT pocUndoIds).
@@ -158,4 +177,25 @@ DELETE OBJECT phRowObjUpd NO-ERROR.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+
+/* ************************  Function Implementations ***************** */
+
+&IF DEFINED(EXCLUDE-getCurrentLogicalName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getCurrentLogicalName Procedure 
+FUNCTION getCurrentLogicalName RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN gcCurrentLogicalName. 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 

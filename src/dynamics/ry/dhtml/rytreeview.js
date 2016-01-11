@@ -723,7 +723,8 @@ Dyntree.prototype.setFX=function(TR,hdata,prop,level,curr){
     this.sortnode=parent.rowIndex;
   }
   if(data && prop[7]){ // Parent-child
-    var fx=prop[7].split(',');  
+    var fx=prop[7].split(','); 
+    fx[0]=fx[0].split('.').pop();   // remove wdo part from id
     if(data[11]=='prg'){
       var idx=data[14].split(',');
       var pval=data[15+pdata.index[fx[1].split('.').pop()]];

@@ -5,6 +5,7 @@ function Logic(e){}
 
 Logic.prototype.setWidgetPrefix=function(fld){
   // Determine if 'widget' or 'tool' needs to be prefixed to field name. For internal use only.   var f=fld.split('.');
+  fld=fld.toLowerCase();
   var f=fld.split('.');
   if(f.length==1) return 'tool.'+fld;
   if(f[0]=='browse'||f[0]=='tool'||f[0]=='viewer'||f[0]=='widget') return fld;

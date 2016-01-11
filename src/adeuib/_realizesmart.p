@@ -578,6 +578,20 @@ PROCEDURE initializeSMO :
             DYNAMIC-FUNCTION('setDesignTimeHideMenu':U IN _s._handle,
                               {&hideobject}) NO-ERROR.
          
+         /* Grandchildren objects require UIBMode set to 'Design-Child' 
+            before initialization, so we call createObjects to create the 
+            objects and links. setUIBMode('Design') will set the value to 
+            'Design-Child' in all Container-Target.
+          */
+         RUN createObjects IN _S._HANDLE NO-ERROR.
+         DYNAMIC-FUNCTION("setUIBMode":U IN _S._HANDLE,"Design":U).
+
+         /* Ensure that the affordance button is enabled */
+         IF AVAILABLE _S AND 
+            _S._affordance-handle <> ? AND 
+            VALID-HANDLE(_S._affordance-handle) THEN
+             _S._affordance-handle:SENSITIVE = TRUE NO-ERROR.   
+
          RUN initializeObject IN _S._HANDLE.
          /* Hide it, if it needs to be hidden in the UIB.   We could have
             set HIDE-ON-INIT (a standard ADM attribute), but this would have
@@ -586,6 +600,12 @@ PROCEDURE initializeSMO :
             another page or layout. */         
          IF {&hideobject} THEN
            RUN hideObject IN _S._HANDLE.
+
+         /* Ensure the affordance button is on top */
+         IF AVAILABLE _S AND 
+            _S._affordance-handle <> ? AND 
+            VALID-HANDLE(_S._affordance-handle) THEN
+             _S._affordance-handle:MOVE-TO-TOP().  
          
          /* Turn it off so it works when swithing pages.  */
          IF _U._subtype MATCHES "*Toolbar*":U THEN 
@@ -753,8 +773,10 @@ PROCEDURE realizeSMO :
      END. /* ADM1 */
      ELSE DO:
        /* Set the UIB mode for the object.  Do this FIRST thing, in case the
-          SmartObject does anything based on this. */
-       DYNAMIC-FUNCTION("setUIBMode":U IN _S._HANDLE,"Design":U).
+          SmartObject does anything based on this. Note that this is done
+          again from initializeSMO after objects are created, in order to get
+          'Design-Child' propagated to children. */     
+        DYNAMIC-FUNCTION("setUIBMode":U IN _S._HANDLE,"Design":U).
     
        /* If the SmartObject supports the current layout, then set it as the
           "Default-Layout" attribute. */

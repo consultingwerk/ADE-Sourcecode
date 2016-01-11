@@ -533,7 +533,6 @@ PROCEDURE serverCreateDataObjects :
  DEFINE VARIABLE cObjectType           AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cSBOcontained         AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE iSBOSDONum            AS INTEGER    NO-UNDO.
- DEFINE VARIABLE cClientNames          AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE hDataSource           AS HANDLE     NO-UNDO.
  DEFINE VARIABLE cQueryString          AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE lQueryContainer       AS LOGICAL    NO-UNDO.
@@ -547,69 +546,74 @@ PROCEDURE serverCreateDataObjects :
  DEFINE VARIABLE cTargets              AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cQueryFields          AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cFetchOnOpen          AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE lDestroyStateless     AS LOGICAL  NO-UNDO.
+ DEFINE VARIABLE lDestroyStateless     AS LOGICAL    NO-UNDO.
  DEFINE VARIABLE cStartProps           AS CHARACTER  NO-UNDO.
-
+ DEFINE VARIABLE hChildSDO             AS HANDLE     NO-UNDO.
+ 
  DO iProc = 1 TO NUM-ENTRIES(pcObjects):
    ASSIGN 
      cPhysicalObject = ENTRY(iProc,pcObjects)
+     cLogicalName    = IF NUM-ENTRIES(cPhysicalObject,':') > 1 THEN
+                       ENTRY(2,cPhysicalObject,':')
+                       ELSE ''
+     cPhysicalObject = ENTRY(1,cPhysicalObject,':')
      cClientName     = ENTRY(iProc,pcClientNames)
-     cStartProps     = '':U
-     cLogicalName    = cClientName.   /* desperate default value */
+     hParent         = ? 
+     hChildSDO       = ?
+     cStartProps     = '':U.   /* desperate default value */
 
    IF cPhysicalObject <> '':U THEN
    DO:
-     /* If the object is an SDO, we need to know what the LogicalObjectName */
-     /* is *before* running constructObject. At this point we asume that */
-     /* the object is in fact an SDO (no way to tell for sure) and we attempt */
-     /* to retrieve the object's LogicalName. If the assumption is wrong */
-     /* (ie the object is not an SDO but a SBO), no harm is done as the SBO */
-     /* will accurately recover its LogicalObjectName later. Using this  */
-     /* 'assumption-correction' method allows us to correctly handle both */
-     /* Dynamic and Static data objects without hardcoding of physical names */
-     cObjectType = "SmartDataObject":U.
-     cLogicalName = DYNAMIC-FUNCT('obtainPropertyFromContext':U IN TARGET-PROCEDURE,
-                                  cObjectType,           /* object type   */
-                                  cClientName,           /* instance ID */
-                                  'LogicalObjectName':U, /* property name */
-                                  pcContext).            /* context data  */
-
-     /* We need to pass the LogicalObjectName as "LaunchLogicalName" for DynSBOs */
-     /* so that the callback function 'getCurrentLogicalName' returns the correct */
-     /* repository LogicalObjectName to 'prepareInstance'. Unfortunately, the only */
-     /* way to determine if a DynSBO is involved is to check the Physical Object name */
-     IF INDEX(cPhysicalObject, 'dynsbo.w':U) > 0
-     AND SUBSTRING(cPhysicalObject, LENGTH(cPhysicalObject) - 7) = 'dynsbo.w':U THEN
-       cStartProps = "LaunchLogicalName":U + CHR(4) + cLogicalName.
-     ELSE
-       cStartProps = "LogicalObjectName":U + CHR(4) + cLogicalName.
-
-     RUN constructObject (cPhysicalObject,
+     IF cLogicalName > '' THEN
+        cStartProps = "LaunchLogicalName":U + CHR(4) + cLogicalName.  
+     RUN constructObject (cPhysicalObject /*cPhysicalObject*/,
                           ?,
                           cStartProps,
-                          OUTPUT hObject). 
+                          OUTPUT hObject).     
+    
      ASSIGN
-       cClientNames = cClientNames 
-                    + (IF cClientNames = '':U THEN '':U ELSE ',':U)
-                    + cClientName
        cQueryFields    = ENTRY(iProc,pcQueryFields,CHR(1))
        cForeignFields  = ENTRY(1,cQueryFields,CHR(2))
        cPositionFields = IF NUM-ENTRIES(cQueryFields,CHR(2)) > 1 
                          THEN ENTRY(2,cQueryFields,CHR(2))
                          ELSE '':U.
+
      {get ContainerTarget cTargets}.
+
      IF cForeignFields <> '':U THEN
      DO:
        ASSIGN 
          cParent         = ENTRY(1,cForeignFields)  
          ENTRY(1,cForeignFields) = '':U            
          cForeignFields  = LEFT-TRIM(cForeignFields,',':U)
-         iParentInstance = LOOKUP(cParent,cClientNames)
-         hParent         = WIDGET-HANDLE(ENTRY(iParentInstance,cTargets)) NO-ERROR.
+         iParentInstance = LOOKUP(cParent,pcClientNames).
        
-       IF VALID-HANDLE(hParent) THEN
-          RUN addLink IN TARGET-PROCEDURE(hParent,'Data':u,hObject).
+       IF iParentInstance > 0 THEN
+         hParent = WIDGET-HANDLE(ENTRY(iParentInstance,cContainedDataObjects)) 
+         NO-ERROR.
+       /* Parent reference may be indirect to container (SBO), but colon is a 
+          valid direct ID reference ALSO, so we check after first lookup. 
+          (could have checked the weird format: handle:<container>  above, 
+           but SDO child (not contained) of SBO in same request is also rare) */ 
+       ELSE 
+       IF NUM-ENTRIES(cParent,':':U) = 2 
+       AND ENTRY(2,cParent,':':U) = '<Container>':U THEN 
+       DO:
+         ASSIGN
+           cParent = ENTRY(1,cParent,':') 
+           iParentInstance = LOOKUP(cParent,pcClientNames)
+           hChildSDO = WIDGET-HANDLE(ENTRY(iParentInstance,cContainedDataObjects))
+           NO-ERROR.
+         /* find the SBO of this SDO to use as parent */ 
+         IF VALID-HANDLE(hChildSDO) THEN
+           {get ContainerSource hParent hChildSDO}.
+       END.
 
+       IF VALID-HANDLE(hParent) THEN
+       DO:
+         RUN addLink IN TARGET-PROCEDURE(hParent,'Data':u,hObject).
+         hParent = ?.
+       END.
        {set ForeignFields cForeignFields hObject}.
      END.
 
@@ -618,8 +622,9 @@ PROCEDURE serverCreateDataObjects :
      DO:
        ASSIGN 
          cParent         = ENTRY(1,cPositionFields)  
-         iParentInstance = LOOKUP(cParent,cClientNames)
-         hParent         = WIDGET-HANDLE(ENTRY(iParentInstance,cTargets)) NO-ERROR.       
+         iParentInstance = LOOKUP(cParent,pcClientNames)
+         hParent         = WIDGET-HANDLE(ENTRY(iParentInstance,cContainedDataObjects)) NO-ERROR.
+
        IF VALID-HANDLE(hParent) THEN
        DO:
          cFetchOnOpen = 'findRowFromObject':U    + CHR(2)
@@ -635,16 +640,6 @@ PROCEDURE serverCreateDataObjects :
        ASSIGN
          hSBO       = hObject  
          iSBOSDONum = 1.
-
-       /* We need to get the LogicalObjectName from the Context to start a DynSBO */
-       /* This is a temporary solution until a proper ConstructInstance API is */
-       /* implemented */
-       cLogicalName = DYNAMIC-FUNCT('obtainPropertyFromContext':U IN TARGET-PROCEDURE,
-                                    cObjectType,           /* object type   */
-                                    cClientName,           /* instance ID */
-                                    'LogicalObjectName':U, /* property name */
-                                    pcContext).            /* context data  */
-       {set LogicalObjectName cLogicalName hSBO}.
        RUN createObjects IN hSBO. 
        
        {set AsDivision 'Server':U hSBO}.
@@ -662,7 +657,10 @@ PROCEDURE serverCreateDataObjects :
    ELSE iSBOSDONum = iSBOSDONum + 1.
    
    IF iSBOSDONum > 0 THEN
+   DO:
      hObject = WIDGET-HANDLE(ENTRY(iSBOSDONum,cSBOcontained)).
+     {get ObjectType cObjectType hObject}.
+   END.
 
    cContainedDataObjects = cContainedDataObjects 
                          + (IF iProc = 1 THEN '':U ELSE ',':U)
@@ -678,12 +676,15 @@ PROCEDURE serverCreateDataObjects :
                                             pcContext),
                               "YES,TRUE":U) > 0.
 
+   IF lDestroyStateless = ? THEN
+     lDestroyStateless = YES.
+
    /* set fetch on open from above ('first' or findRowFromObject) */
    IF cObjectType = "SmartDataObject":U THEN
      {set FetchOnOpen cFetchOnOpen hObject}.
 
    IF NOT ({fn getObjectInitialized hObject} OR lDestroyStateless = FALSE) THEN
-   DO:
+   DO: 
      /* The AsDivision defaults to 'server' on a server, but in this context
         the objects are server objects even if this is run on a client...
         so just force it  */
@@ -697,13 +698,15 @@ PROCEDURE serverCreateDataObjects :
  END.
   /* just as a precaution...  */
  RUN createObjects IN TARGET-PROCEDURE.  
-
- {set ContainedDataObjects cContainedDataObjects}. 
- {set ClientNames cClientNames}.
  
- DYNAMIC-FUNCTION('assignContainedProperties':U IN TARGET-PROCEDURE,
-                   pcContext,
-                   '':U). 
+ &SCOPED-DEFINE xp-assign
+ {set ContainedDataObjects cContainedDataObjects} 
+ {set ClientNames pcClientNames}
+  .
+ &UNDEFINE xp-assign
+ 
+ DYNAMIC-FUNCTION('applyContextFromClient':U IN TARGET-PROCEDURE,
+                   pcContext). 
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

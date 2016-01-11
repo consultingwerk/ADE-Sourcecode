@@ -41,6 +41,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 DEFINE VARIABLE ghContainerSource           AS HANDLE NO-UNDO.
 DEFINE VARIABLE ghRepositoryDesignManager   AS HANDLE NO-UNDO.
+DEFINE VARIABLE glCancelProcess             AS LOGICAL NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -208,6 +209,17 @@ ASSIGN
 
 /* ************************  Control Triggers  ************************ */
 
+&Scoped-define SELF-NAME buCancel
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buCancel sObject
+ON CHOOSE OF buCancel IN FRAME F-Main /* Cancel */
+DO:
+    glCancelProcess = TRUE.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
 &Scoped-define SELF-NAME buGenerate
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buGenerate sObject
 ON CHOOSE OF buGenerate IN FRAME F-Main /* Generate */
@@ -326,7 +338,8 @@ PROCEDURE generateCache :
   DEFINE VARIABLE hStatus       AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cButton       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cClassList    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cEntityList   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cLanguageList AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cEntity       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hEntityBrowse AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cStatus       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hQuery        AS HANDLE     NO-UNDO.
@@ -335,6 +348,7 @@ PROCEDURE generateCache :
 
   PUBLISH "getClassList":U FROM ghContainerSource (OUTPUT cClassList).
   PUBLISH "getEntityBrowse":U FROM ghContainerSource (OUTPUT hEntityBrowse).
+  PUBLISH "getLanguageList":U FROM ghContainerSource (OUTPUT cLanguageList).
   
   /* First get the list of classes from the Browse selection */
   ASSIGN
@@ -381,46 +395,37 @@ PROCEDURE generateCache :
     toEntity:CHECKED IN FRAME {&FRAME-NAME} THEN 
   DO:
     /* let us output the class list to the log file */
-    updateStatus(hStatus, "Generating entity cache for the following entities: " + cEntityList).
+    updateStatus(hStatus, "Started generation of entity cache.").
 
     /* Now let us get the class information from the repository and Output the class 
        information to the cache */
     ASSIGN ERROR-STATUS:ERROR = FALSE
            cStatus = "".
 
-    /* Browse handle is used to avoid the 32K limit */
+    glCancelProcess = FALSE.
     DO iBrowseLoop = 1 TO hEntityBrowse:NUM-SELECTED-ROWS:
-      hEntityBrowse:FETCH-SELECTED-ROW(iBrowseLoop).
-      cEntityList = cEntityList + "," + hBuffer:BUFFER-FIELD('ttEntityName'):BUFFER-VALUE.
-      IF LENGTH(cEntityList)  > 16000 THEN
-      DO:
-         cEntityList = TRIM(cEntityList, ",":U).
-         RUN saveEntitiesToClientCache IN gshRepositoryManager (INPUT cEntityList, OUTPUT cStatus) NO-ERROR.
-         /* If error then display error message and return */
-         IF ERROR-STATUS:ERROR OR RETURN-VALUE > '':U THEN
-         DO:
-           updateStatus(hStatus, RETURN-VALUE) NO-ERROR.
-           RETURN.
-         END.
-         /* let us output the output directory to the log file */
-         updateStatus(hStatus, cStatus) NO-ERROR.
-         ASSIGN cEntityList = ""
-                cStatus = "".
-      END.
-    END.
-    IF cEntityList > "":U  THEN
-    DO:
-      RUN saveEntitiesToClientCache IN gshRepositoryManager (INPUT cEntityList, OUTPUT cStatus) NO-ERROR.
-      /* If error then display error message and return */
-      IF ERROR-STATUS:ERROR OR RETURN-VALUE > '':U THEN
-      DO:
-        updateStatus(hStatus, RETURN-VALUE) NO-ERROR.
-        RETURN.
-      END.
-    END.
+       PROCESS EVENTS.
+       IF glCancelProcess THEN
+       DO:
+          updateStatus(hStatus, "~n~nGeneration of client cache was aborted. ") NO-ERROR.
+          RETURN.
+       END.
+       hEntityBrowse:FETCH-SELECTED-ROW(iBrowseLoop).
+       cEntity = hBuffer:BUFFER-FIELD('ttEntityName'):BUFFER-VALUE.
 
-    /* let us output the output directory to the log file */
-    updateStatus(hStatus, cStatus) NO-ERROR.
+       /* Invoke saveEntitiesToClient cache for each entity, to avoid exceeding limits */
+       RUN saveEntitiesToClientCache IN gshRepositoryManager (INPUT cEntity, INPUT cLanguageList, OUTPUT cStatus) NO-ERROR.
+         
+       /* If error then display error message and return */
+       IF ERROR-STATUS:ERROR OR RETURN-VALUE > '':U THEN
+       DO:
+         updateStatus(hStatus, RETURN-VALUE) NO-ERROR.
+         RETURN.
+       END.
+       /* let us output the output directory to the log file */
+       updateStatus(hStatus, cStatus) NO-ERROR.
+    END.
+    updateStatus(hStatus, "~nGeneration of entity cache completed.").
   END.
 END PROCEDURE.
 
@@ -485,17 +490,22 @@ FUNCTION updateStatus RETURNS LOGICAL
     Notes:  Input - phStatus - The handle to the status Editor widget
                   - pcLine - the contents to be displayed.
 ------------------------------------------------------------------------------*/
-  /* We don't want the editor blowing any limits */
+  DEFINE VARIABLE lStatus AS LOGICAL     NO-UNDO.
+
   IF NOT VALID-HANDLE(phStatus) THEN
     RETURN FALSE.
 
-  IF LENGTH(phStatus:SCREEN-VALUE) > 30000 THEN
-    ASSIGN phStatus:SCREEN-VALUE = "":U.
+  phStatus:INSERT-STRING(pcLine).
+  lStatus = phStatus:INSERT-STRING("~n").
 
-  IF phStatus:SCREEN-VALUE = "":U THEN
-    ASSIGN phStatus:SCREEN-VALUE = pcLine.
-  ELSE
-    ASSIGN phStatus:SCREEN-VALUE = phStatus:SCREEN-VALUE + CHR(10) + pcLine.
+  /* If editor limit has been reached,
+        clear editor and continue adding content */
+  IF NOT lStatus THEN
+  DO:
+      phStatus:SCREEN-VALUE = "":U.
+      phStatus:INSERT-STRING(pcLine).
+      phStatus:INSERT-STRING("~n").
+  END.
 
   phStatus:MOVE-TO-EOF().
 

@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 /* Procedure Description
 "Super Procedure for Security Header Viewer"
 */
@@ -263,8 +263,8 @@ PROCEDURE chooseRefresh :
   THEN DO:
       ASSIGN cUserOrGroups     = widgetValue("raUsersGroups":U)
              cAllUsers         = formattedWidgetValue("toAllUsers":U)
-             cUserObj          = formattedWidgetValue("fiUserObj":U)
-             cCompanyObj       = formattedWidgetValue("fiLoginCompanyObj":U)
+             cUserObj          = REPLACE(formattedWidgetValue("fiUserObj":U), SESSION:NUMERIC-DECIMAL-POINT, ".":U)
+             cCompanyObj       = REPLACE(formattedWidgetValue("fiLoginCompanyObj":U), SESSION:NUMERIC-DECIMAL-POINT, ".":U)
              cRowsToBatch      = formattedWidgetValue("fiRowsToBatch":U)
              cProfileDataValue = cUserOrGroups + CHR(4)
                                + cAllUsers     + CHR(4)
@@ -556,8 +556,8 @@ PROCEDURE initializeObject :
       THEN DO:
           ASSIGN cUserOrGroups = ENTRY(1, cHeadingValues, CHR(4))
                  cAllUsers     = ENTRY(2, cHeadingValues, CHR(4))
-                 cUserObj      = ENTRY(3, cHeadingValues, CHR(4))
-                 cCompanyObj   = ENTRY(4, cHeadingValues, CHR(4))
+                 cUserObj      = REPLACE(ENTRY(3, cHeadingValues, CHR(4)), ".":U, SESSION:NUMERIC-DECIMAL-POINT)
+                 cCompanyObj   = REPLACE(ENTRY(4, cHeadingValues, CHR(4)), ".":U, SESSION:NUMERIC-DECIMAL-POINT)
                  cRowsToBatch  = ENTRY(5, cHeadingValues, CHR(4)).
     
           assignWidgetValue("raUsersGroups":U, cUserOrGroups).

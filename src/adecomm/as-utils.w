@@ -130,6 +130,17 @@ FUNCTION getPartitionsByType RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getServiceHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getServiceHandle Procedure 
+FUNCTION getServiceHandle RETURNS HANDLE
+  ( pcService AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 
 /* *********************** Procedure Settings ************************ */
 
@@ -637,6 +648,30 @@ FUNCTION getPartitionsByType RETURNS CHARACTER
   END.
             
   RETURN cPartitionList.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getServiceHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getServiceHandle Procedure 
+FUNCTION getServiceHandle RETURNS HANDLE
+  ( pcService AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose: Retrieve the current server connection
+    Notes: Implemented to be able to get the handle without calling 
+           appServerConnect and adding to the count that is used by 
+           appServerDisconnect to check wheter it can disconnect.........            
+------------------------------------------------------------------------------*/
+  FIND FIRST AppSrv-TT WHERE AppSrv-TT.Partition = pcService NO-ERROR.
+  IF AVAIL AppSrv-TT THEN
+    RETURN AppSrv-TT.AS-HANDLE.  
+  ELSE 
+    RETURN ?.
 
 END FUNCTION.
 

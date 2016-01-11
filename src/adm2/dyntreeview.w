@@ -779,6 +779,7 @@ ghTreeData:ADD-NEW-FIELD('sdo_handle':U,      'HANDLE':U).
 ghTreeData:ADD-NEW-FIELD('foreign_fields':U,  'CHARACTER':U).
 ghTreeData:ADD-NEW-FIELD('foreign_values':U,  'CHARACTER':U).
 ghTreeData:ADD-NEW-FIELD('node_type':U,       'CHARACTER':U).
+ghTreeData:ADD-NEW-FIELD('rowident':U,       'CHARACTER':U).
 
 /* Add Indices */
 /* Node Handle - Primary - Unique */

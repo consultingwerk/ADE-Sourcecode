@@ -467,9 +467,13 @@ PROCEDURE extractBandsAndActions :
                    extracting for this runattribute. */
                 IF gsm_object_menu_structure.instance_attribute_obj <> 0 THEN
                 DO:
+                  /* no runattribute */
                   IF pcRunAttribute = "" 
+                  /* invalid runattribute */
+                  OR (NOT AVAILABLE bInstanceAttribute AND pcRunAttribute <> '') 
+                  /* another runattribute */
                   OR (AVAILABLE bInstanceAttribute AND bInstanceAttribute.instance_attribute_obj <> gsm_object_menu_structure.instance_attribute_obj) THEN
-                     NEXT object-band-block.
+                    NEXT object-band-block. /* ---- NEXT -----------------> */
                 END.
 
                 /* We need to extract the band */
@@ -483,11 +487,17 @@ PROCEDURE extractBandsAndActions :
                                 ttBandToExtract.extract_sequence = iSequence.
                 END.
 
-                /* Link the band to the object */
+                /* Link the band to the object  
+                   Runattribute is part of unique index so set it to unknown 
+                   if requesting an invalid runattribute. This avoids clash 
+                   with clients (adm2/toolbar.p) that appends this to existing 
+                   objectbands, which already may include this with a blank 
+                   runattribute. (NOTE: The client need to deal with this) */
                 CREATE ttObjectBand.
                 ASSIGN ttObjectBand.ObjectName    = ryc_smartobject.object_filename
                        ttObjectBand.RunAttribute  = (IF AVAIL bInstanceAttribute 
                                                      THEN bInstanceAttribute.attribute_code
+                                                     ELSE IF pcrunattribute <> '' THEN ?
                                                      ELSE '')
                        ttObjectBand.Band          = gsm_menu_structure.menu_structure_code
                        ttObjectBand.Sequence      = gsm_object_menu_structure.menu_structure_sequence
@@ -794,13 +804,13 @@ FUNCTION buildAction RETURNS CHARACTER
                WHERE blogObject.smartobject_obj = bMenuItem.object_obj
                NO-ERROR.
           
-          IF AVAILABLE blogObject THEN                  
+          IF AVAILABLE blogObject THEN 
           DO:
                 ASSIGN cLogicalObject  = blogObject.object_filename
                    cRequiredDbList = blogObject.required_db_list.
             
             /* if menu item has an instance attribute - read it and save it */      
-            IF bMenuItem.instance_attribute_obj > 0 THEN
+            IF bMenuItem.instance_attribute_obj > 0 THEN 
             DO:
               FIND FIRST gsc_instance_attribute NO-LOCK
                  WHERE gsc_instance_attribute.instance_attribute_obj = bMenuItem.instance_attribute_obj

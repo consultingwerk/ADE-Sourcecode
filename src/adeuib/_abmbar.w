@@ -1219,7 +1219,7 @@ IF NOT VALID-HANDLE(ghPropertySheet) THEN
    RUN Load_propertySheet NO-ERROR.
 
 RUN launchPropertyWindow IN ghPropertySheet. 
-RUN Display_PropSheet IN THIS-PROCEDURE.
+RUN Display_PropSheet IN THIS-PROCEDURE (YES).
 
 END PROCEDURE.
 
@@ -1726,9 +1726,12 @@ PROCEDURE display_PropSheet :
 /*------------------------------------------------------------------------------
   Purpose:     Called when the property sheet window has been launched and the 
                user selects a widget from the appBuilder.
-  Parameters:  <none>
+  Parameters:  plCheckDPS  YES  Check whether DPS window is open before continuing
+                            NO  Don't check
   Notes:       
 ------------------------------------------------------------------------------*/
+  DEFINE INPUT PARAMETER plCheckDPS AS LOGICAL NO-UNDO.
+
   DEFINE BUFFER     local_P     FOR _P.
   DEFINE BUFFER     local_U     FOR _U.
   DEFINE BUFFER     local2_U    FOR _U.
@@ -1748,7 +1751,8 @@ PROCEDURE display_PropSheet :
   /* If property sheet window is closed or prop library isn't valid, return */
   IF NOT VALID-HANDLE(ghPropertySheet) THEN RETURN.
   hPropWindow = DYNAMIC-FUNC("getPropSheet":U IN ghPropertySheet).
-  IF NOT VALID-HANDLE(hPropWindow) THEN RETURN.
+
+  IF plCheckDPS AND NOT VALID-HANDLE(hPropWindow) THEN RETURN.
 
   FIND local_P WHERE local_P._WINDOW-HANDLE = _h_win NO-ERROR.
 

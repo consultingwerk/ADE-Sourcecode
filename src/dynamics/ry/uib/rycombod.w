@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME QueryTablefrmAttributes
@@ -110,7 +110,7 @@ DEFINE VARIABLE gcWindowState   AS CHARACTER  NO-UNDO.
 &Scoped-define PROCEDURE-TYPE DIALOG-BOX
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME QueryTablefrmAttributes
 
 /* Custom List Definitions                                              */
@@ -165,7 +165,7 @@ FUNCTION isOnLocalField RETURNS LOGICAL
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME QueryTablefrmAttributes
-     SPACE(35.28) SKIP(1.28)
+     SPACE(35.41) SKIP(1.30)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "Dynamic Combo Properties":L.
@@ -186,7 +186,7 @@ DEFINE FRAME QueryTablefrmAttributes
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX QueryTablefrmAttributes
-   Custom                                                               */
+   FRAME-NAME Custom                                                    */
 ASSIGN 
        FRAME QueryTablefrmAttributes:SCROLLABLE       = FALSE
        FRAME QueryTablefrmAttributes:HIDDEN           = TRUE.
@@ -235,7 +235,8 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
          gdHeight = ?
          gdWidth  = ?.
 
-  IF DYNAMIC-FUNCTION('getBaseQueryString':U IN p_hSMO) = "":U THEN
+  IF DYNAMIC-FUNCTION('getBaseQueryString':U IN p_hSMO) = "":U AND
+     DYNAMIC-FUNCTION('getDataSourceName':U IN p_hSMO) = "":U THEN
     RUN chooseExisting.
   ELSE
     RUN sdfMaintWindow (INPUT ?).
@@ -409,9 +410,11 @@ PROCEDURE populateSDFData :
          phDataTable:BUFFER-FIELD('cQueryBuilderWhereClauses':U):BUFFER-VALUE    = DYNAMIC-FUNCTION('getQueryBuilderWhereClauses':U    IN p_hSMO)
          phDataTable:BUFFER-FIELD('lEnableField':U):BUFFER-VALUE                 = DYNAMIC-FUNCTION('getEnableField':U                 IN p_hSMO)
          phDataTable:BUFFER-FIELD('lDisplayField':U):BUFFER-VALUE                = DYNAMIC-FUNCTION('getDisplayField':U                IN p_hSMO)
+         phDataTable:BUFFER-FIELD('lSort':U):BUFFER-VALUE                        = DYNAMIC-FUNCTION('getSort':U                        IN p_hSMO)
          phDataTable:BUFFER-FIELD('dFieldWidth':U):BUFFER-VALUE                  = hFrame:WIDTH
          phDataTable:BUFFER-FIELD('lLocalField':U):BUFFER-VALUE                  = DYNAMIC-FUNCTION('getLocalField':U                  IN p_hSMO)
          phDataTable:BUFFER-FIELD('lUseCache':U):BUFFER-VALUE                    = DYNAMIC-FUNCTION('getUseCache':U                    IN p_hSMO)
+         phDataTable:BUFFER-FIELD('cDataSourceName':U):BUFFER-VALUE              = DYNAMIC-FUNCTION('getDataSourceName':U              IN p_hSMO)
          .
   
   IF phDataTable:BUFFER-FIELD("cCustomSuperProc":U):BUFFER-VALUE = "":U THEN
@@ -463,12 +466,6 @@ PROCEDURE saveSDFDetails :
   DYNAMIC-FUNCTION('setKeyField':U                    IN p_hSMO, phDataTable:BUFFER-FIELD("cKeyField":U):BUFFER-VALUE). 
   DYNAMIC-FUNCTION('setFieldLabel':U                  IN p_hSMO, cFieldLabel). 
   DYNAMIC-FUNCTION('setFieldTooltip':U                IN p_hSMO, phDataTable:BUFFER-FIELD("cFieldTooltip":U):BUFFER-VALUE). 
-  DYNAMIC-FUNCTION('setKeyFormat':U                   IN p_hSMO, phDataTable:BUFFER-FIELD("cKeyFormat":U):BUFFER-VALUE). 
-  DYNAMIC-FUNCTION('setKeyDataType':U                 IN p_hSMO, phDataTable:BUFFER-FIELD("cKeyDataType":U):BUFFER-VALUE). 
-  DYNAMIC-FUNCTION('setDisplayFormat':U               IN p_hSMO, phDataTable:BUFFER-FIELD("cDisplayFormat":U):BUFFER-VALUE). 
-  DYNAMIC-FUNCTION('setDisplayDataType':U             IN p_hSMO, phDataTable:BUFFER-FIELD("cDisplayDataType":U):BUFFER-VALUE). 
-  DYNAMIC-FUNCTION('setBaseQueryString':U             IN p_hSMO, phDataTable:BUFFER-FIELD("cBaseQueryString":U):BUFFER-VALUE). 
-  DYNAMIC-FUNCTION('setQueryTables':U                 IN p_hSMO, phDataTable:BUFFER-FIELD("cQueryTables":U):BUFFER-VALUE). 
   DYNAMIC-FUNCTION('setSDFFileName':U                 IN p_hSMO, phDataTable:BUFFER-FIELD("cSDFFileName":U):BUFFER-VALUE).
   DYNAMIC-FUNCTION('setSDFTemplate':U                 IN p_hSMO, phDataTable:BUFFER-FIELD("cSDFTemplate":U):BUFFER-VALUE).
   DYNAMIC-FUNCTION('setParentField':U                 IN p_hSMO, phDataTable:BUFFER-FIELD("cParentField":U):BUFFER-VALUE).
@@ -489,8 +486,20 @@ PROCEDURE saveSDFDetails :
   DYNAMIC-FUNCTION('setQueryBuilderWhereClauses':U    IN p_hSMO, phDataTable:BUFFER-FIELD('cQueryBuilderWhereClauses':U):BUFFER-VALUE).
   DYNAMIC-FUNCTION('setEnableField':U                 IN p_hSMO, phDataTable:BUFFER-FIELD('lEnableField':U):BUFFER-VALUE).
   DYNAMIC-FUNCTION('setDisplayField':U                IN p_hSMO, phDataTable:BUFFER-FIELD('lDisplayField':U):BUFFER-VALUE).
+  DYNAMIC-FUNCTION('setSort':U                        IN p_hSMO, phDataTable:BUFFER-FIELD('lSort':U):BUFFER-VALUE).
   DYNAMIC-FUNCTION('setUseCache':U                    IN p_hSMO, phDataTable:BUFFER-FIELD('lUseCache':U):BUFFER-VALUE).
-
+  DYNAMIC-FUNCTION('setDataSourceName':U              IN p_hSMO, phDataTable:BUFFER-FIELD('cDataSourceName':U):BUFFER-VALUE).
+  
+  IF phDataTable:BUFFER-FIELD("cDataSourceName":U):BUFFER-VALUE = "":U THEN
+  DO:
+    DYNAMIC-FUNCTION('setKeyFormat':U                   IN p_hSMO, phDataTable:BUFFER-FIELD("cKeyFormat":U):BUFFER-VALUE).
+    DYNAMIC-FUNCTION('setKeyDataType':U                 IN p_hSMO, phDataTable:BUFFER-FIELD("cKeyDataType":U):BUFFER-VALUE).
+    DYNAMIC-FUNCTION('setDisplayFormat':U               IN p_hSMO, phDataTable:BUFFER-FIELD("cDisplayFormat":U):BUFFER-VALUE).
+    DYNAMIC-FUNCTION('setDisplayDataType':U             IN p_hSMO, phDataTable:BUFFER-FIELD("cDisplayDataType":U):BUFFER-VALUE).
+    DYNAMIC-FUNCTION('setBaseQueryString':U             IN p_hSMO, phDataTable:BUFFER-FIELD("cBaseQueryString":U):BUFFER-VALUE).
+    DYNAMIC-FUNCTION('setQueryTables':U                 IN p_hSMO, phDataTable:BUFFER-FIELD("cQueryTables":U):BUFFER-VALUE).
+  END.
+  
   IF phDataTable:BUFFER-FIELD('lLocalField':U):BUFFER-VALUE THEN
     DYNAMIC-FUNCTION('setFieldName':U IN p_hSMO, phDataTable:BUFFER-FIELD('cActualField':U):BUFFER-VALUE).
   

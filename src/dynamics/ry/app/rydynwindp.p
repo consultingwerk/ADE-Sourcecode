@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Check Version Notes Wizard" Procedure _INLINE
 /* Actions: af/cod/aftemwizcw.w ? ? ? ? */
@@ -90,28 +90,6 @@ DEFINE NEW GLOBAL SHARED VARIABLE gshLayoutManagerID    AS INTEGER.
 
 
 /* ************************  Function Prototypes ********************** */
-&IF DEFINED(EXCLUDE-updateMenuWidth) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD updateMenuWidth Procedure
-FUNCTION updateMenuWidth RETURNS LOGICAL 
-    (  ) FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-prepareInitialWindowSize) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD prepareInitialWindowSize Procedure
-FUNCTION prepareInitialWindowSize RETURNS LOGICAL 
-    (  ) FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 
 &IF DEFINED(EXCLUDE-childWindowsOpen) = 0 &THEN
 
@@ -178,6 +156,28 @@ FUNCTION lockContainingWindow RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-prepareInitialWindowSize) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD prepareInitialWindowSize Procedure 
+FUNCTION prepareInitialWindowSize RETURNS LOGICAL
+    (  ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-updateMenuWidth) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD updateMenuWidth Procedure 
+FUNCTION updateMenuWidth RETURNS LOGICAL
+    (  ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 
 /* *********************** Procedure Settings ************************ */
 
@@ -225,9 +225,10 @@ ASSIGN ghLayoutManager = DYNAMIC-FUNCTION("getLayoutManagerHandle":U IN TARGET-P
 
 
 /* **********************  Internal Procedures  *********************** */
+
 &IF DEFINED(EXCLUDE-createObjects) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createObjects Procedure
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createObjects Procedure 
 PROCEDURE createObjects :
 /*------------------------------------------------------------------------------
   Purpose:     
@@ -261,7 +262,6 @@ END PROCEDURE.    /* createObjects */
 
 &ENDIF
 
-
 &IF DEFINED(EXCLUDE-destroyObject) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE destroyObject Procedure 
@@ -271,18 +271,22 @@ PROCEDURE destroyObject :
   Parameters:  
   Notes:        
 ------------------------------------------------------------------------------*/
-    DEFINE VARIABLE cButton                 AS CHARACTER                NO-UNDO.
-            
-    /* HCK: If close window - give chance to abort this if windows open. If a property
-            has been set not to prompt, then don't. This can be used in cases (like the 
-            container builder) where windows are hidden instead of closed to improve 
-            performance. All child windows will still be closed, but the prompt will 
-            not be made. The code has been moved from the WINDOW-CLOSE trigger to here
-            to ensure it fires reliably - when the container is closed using the toolbar,
-            or the 'X' at the top-right of a window
-     */
-    IF {fnarg getUserProperty '"promptForChildWindows"'} NE "NO":U AND
-       {fn childWindowsOpen}                                       THEN
+    DEFINE VARIABLE cButton           AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE hContainerSource AS HANDLE     NO-UNDO.
+
+    /* If close window - give chance to abort this if windows open. If a property
+       has been set not to prompt, then don't. This can be used in cases (like the 
+       container builder) where windows are hidden instead of closed to improve 
+       performance. All child windows will still be closed, but the prompt will 
+       not be made. 
+       
+     - It is too late to ask this question if this is published from the 
+       container as destroyObject cannot be stopped from subscriber. 
+       The question should also already have been asked and answered yes. */  
+    {get ContainerSource hContainerSource}.
+    IF SOURCE-PROCEDURE <> hContainerSource 
+    AND {fnarg getUserProperty '"promptForChildWindows"'} NE "NO":U 
+    AND {fn childWindowsOpen}                                       THEN
     DO:
         RUN showMessages IN gshSessionManager (INPUT  {aferrortxt.i 'RY' '20'},
                                                INPUT  "QUE":U,
@@ -557,265 +561,6 @@ END PROCEDURE.  /* windowMinimized */
 &ENDIF
 
 /* ************************  Function Implementations ***************** */
-&IF DEFINED(EXCLUDE-updateMenuWidth) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION updateMenuWidth Procedure
-FUNCTION updateMenuWidth RETURNS LOGICAL 
-    (  ):
-/*------------------------------------------------------------------------------
-  Purpose:  Makes sure that there is enough horizontal space for all the menus 
-              of a container.
-    Notes:
-------------------------------------------------------------------------------*/
-    DEFINE VARIABLE hWindow                 AS HANDLE                     NO-UNDO.
-    DEFINE VARIABLE hMenuBar                AS HANDLE                     NO-UNDO.
-    DEFINE VARIABLE hSubMenu                AS HANDLE                     NO-UNDO.
-    DEFINE VARIABLE hDefaultFrame           AS HANDLE                     NO-UNDO.
-    DEFINE VARIABLE iMenus                  AS INTEGER                    NO-UNDO.
-    DEFINE VARIABLE dMenuControllerWidth    AS DECIMAL                    NO-UNDO.
-    DEFINE VARIABLE dTextWidth              AS DECIMAL                    NO-UNDO.
-    DEFINE VARIABLE dTotalTextWidth         AS DECIMAL                    NO-UNDO.
-    
-    &SCOPED-DEFINE xp-assign    
-    {get WindowFrameHandle hDefaultFrame}
-    {get ContainerHandle hWindow}.
-    &UNDEFINE xp-assign
-    
-    /* Calculate window width and the menu width. */
-    ASSIGN /*hWindow:VISIBLE = TRUE*/
-           hMenuBar = hWindow:MENU-BAR
-           NO-ERROR.
-    
-    IF VALID-HANDLE(hMenuBar) THEN
-    DO:
-        ASSIGN hSubMenu = hMenuBar:FIRST-CHILD.
-
-        REPEAT WHILE VALID-HANDLE(hSubMenu):
-            ASSIGN dTextWidth      = FONT-TABLE:GET-TEXT-WIDTH(REPLACE(hSubMenu:LABEL,"&":U, "":U), hSubMenu:FONT)
-                   dTotalTextWidth = dTotalTextWidth + dTextWidth
-                   iMenus          = iMenus + 1.            
-            ASSIGN hSubMenu = hSubMenu:NEXT-SIBLING.
-        END.    /* Valid sub menu handle */
-
-        ASSIGN dMenuControllerWidth = MAX(dTotalTextWidth + (iMenus * 2.6) + 1, 1).
-               dMenuControllerWidth = MAX(hWindow:MIN-WIDTH,MIN(dMenuControllerWidth, SESSION:WIDTH - 1)).
-               
-        IF hWindow:WIDTH LT dMenuControllerWidth THEN
-            ASSIGN hDefaultFrame:SCROLLABLE    = TRUE
-                   hWindow:MIN-WIDTH           = dMenuControllerWidth
-                   hWindow:WIDTH               = dMenuControllerWidth
-                   hDefaultFrame:VIRTUAL-WIDTH = dMenuControllerWidth
-                   hDefaultFrame:WIDTH         = dMenuControllerWidth
-                   hDefaultFrame:SCROLLABLE    = FALSE.
-        
-        IF hWindow:MIN-WIDTH LT dMenuControllerWidth THEN    
-            ASSIGN hWindow:MIN-WIDTH = dMenuControllerWidth.        
-    END.    /* valid menu bar */
-
-    RETURN TRUE.
-END FUNCTION.    /* updateMenuWidth */
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-prepareInitialWindowSize) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION prepareInitialWindowSize Procedure
-FUNCTION prepareInitialWindowSize RETURNS LOGICAL 
-    (  ):
-/*------------------------------------------------------------------------------
-  Purpose:  Sets the initial window size. This should only be called once, when
-               the window is being launched.
-    Notes:
-------------------------------------------------------------------------------*/
-    DEFINE VARIABLE cWidth                      AS CHARACTER            NO-UNDO.
-    DEFINE VARIABLE cHeight                     AS CHARACTER            NO-UNDO.
-    DEFINE VARIABLE cColumn                     AS CHARACTER            NO-UNDO.
-    DEFINE VARIABLE cRow                        AS CHARACTER            NO-UNDO.
-    DEFINE VARIABLE cProfileData                AS CHARACTER            NO-UNDO.
-    DEFINE VARIABLE cLogicalObjectName          AS CHARACTER            NO-UNDO.
-    DEFINE VARIABLE rProfileRid                 AS ROWID                NO-UNDO.
-    DEFINE VARIABLE lMenuController             AS LOGICAL              NO-UNDO.
-    DEFINE VARIABLE hWindow                     AS HANDLE               NO-UNDO.
-    DEFINE VARIABLE hDefaultFrame               AS HANDLE               NO-UNDO.
-    DEFINE VARIABLE lSaveWindowPos              AS LOGICAL              NO-UNDO.
-    DEFINE VARIABLE lFoundSavedSize             AS LOGICAL              NO-UNDO.
-    DEFINE VARIABLE dSessionWindowMinHeight     AS DECIMAL              NO-UNDO.
-    DEFINE VARIABLE dSessionWindowMinWidth      AS DECIMAL              NO-UNDO.
-    DEFINE VARIABLE dSavedWidth                 AS DECIMAL              NO-UNDO.
-    DEFINE VARIABLE dSavedHeight                AS DECIMAL              NO-UNDO.
-    DEFINE VARIABLE dSavedColumn                AS DECIMAL              NO-UNDO.
-    DEFINE VARIABLE dSavedRow                   AS DECIMAL              NO-UNDO.
-    DEFINE VARIABLE dSessionMaxAvailHeight      AS DECIMAL              NO-UNDO.
-    DEFINE VARIABLE dSessionMaxAvailWidth       AS DECIMAL              NO-UNDO.
-    DEFINE VARIABLE dMinimumWindowWidth         AS DECIMAL              NO-UNDO.
-    DEFINE VARIABLE dMinimumWindowHeight        AS DECIMAL              NO-UNDO.
-    DEFINE VARIABLE dMaximumWindowWidth         AS DECIMAL              NO-UNDO.
-    DEFINE VARIABLE dMaximumWindowHeight        AS DECIMAL              NO-UNDO.
-    DEFINE VARIABLE dFrameMinHeight             AS DECIMAL              NO-UNDO.
-    DEFINE VARIABLE dFrameMinWidth              AS DECIMAL              NO-UNDO.
-    
-    ASSIGN lMenuController = {fnarg InstanceOf 'DynMenc'}.
-    
-    &SCOPED-DEFINE xp-assign
-    {get ContainerHandle hWindow}
-    {get LogicalObjectName cLogicalObjectName}
-    {get WindowFrameHandle hDefaultFrame}.
-    &UNDEFINE xp-assign
-    
-    /* Convert window pixel sizes into characters. Oly use the available portion of the screen
-       that is not hidden by taskbars.
-     */
-    ASSIGN dSessionMaxAvailWidth  = SESSION:WORK-AREA-WIDTH-PIXELS  / SESSION:PIXELS-PER-COLUMN
-           dSessionMaxAvailHeight = SESSION:WORK-AREA-HEIGHT-PIXELS / SESSION:PIXELS-PER-ROW.
-
-    /* Set the frame's virtual dimensions to huge. */
-    ASSIGN hDefaultFrame:SCROLLABLE     = TRUE
-           hDefaultFrame:VIRTUAL-WIDTH  = SESSION:WIDTH-CHARS
-           hDefaultFrame:VIRTUAL-HEIGHT = SESSION:HEIGHT-CHARS
-           hDefaultFrame:WIDTH          = SESSION:WIDTH-CHARS
-           hDefaultFrame:HEIGHT         = SESSION:HEIGHT-CHARS
-           hDefaultFrame:SCROLLABLE     = FALSE.
-    
-    /* Check if there are any saved window sizes & positions. If so, then apply these.
-     */
-    RUN getProfileData IN gshProfileManager ( INPUT        "Window":U,
-                                              INPUT        "SaveSizPos":U,
-                                              INPUT        "SaveSizPos":U,
-                                              INPUT        NO,
-                                              INPUT-OUTPUT rProfileRid,
-                                                    OUTPUT cProfileData).
-    ASSIGN lSaveWindowPos = (cProfileData EQ "YES":U).
-    
-    /* Set this user property so that the container code knows to save these window
-       sizes on shutdown.
-     */
-    DYNAMIC-FUNCTION("setUserProperty":U IN TARGET-PROCEDURE, INPUT "SaveWindowPos":U, INPUT STRING(lSaveWindowPos)).
-    
-    /* Allow overrides to be set for the minimum window sizes. */
-    ASSIGN dSessionWindowMinHeight = {fnarg getSessionMinWindowHeight lMenuController}
-           dSessionWindowMinWidth  = {fnarg getSessionMinWindowWidth lMenuController}
-           
-           dMinimumWindowWidth     = dSessionWindowMinWidth
-           dMinimumWindowHeight    = dSessionWindowMinHeight.
-    
-    IF lMenuController THEN
-        ASSIGN dMaximumWindowWidth  = dSessionMaxAvailWidth /* SESSION:WIDTH-CHARS - 1 */
-               dMaximumWindowHeight = dMinimumWindowHeight.
-    ELSE
-        ASSIGN dMaximumWindowWidth  = dSessionMaxAvailWidth   /* SESSION:WIDTH-CHARS - 1 */
-               dMaximumWindowHeight = dSessionMaxAvailHeight. /* SESSION:HEIGHT-CHARS - 1 */
-    
-    /* Set the window minimum sizes and initial sizes to the default 
-       values.
-     */
-    ASSIGN hWindow:MIN-WIDTH-CHARS  = dMinimumWindowWidth
-           hWindow:MIN-HEIGHT-CHARS = dMinimumWindowHeight
-           
-           hWindow:MAX-HEIGHT-CHARS = hWindow:MIN-HEIGHT-CHARS  WHEN lMenuController
-           
-           hWindow:WIDTH-CHARS      = dMinimumWindowWidth
-           hWindow:HEIGHT-CHARS     = dMinimumWindowHeight.
-           
-    /* Only get the saved sizes when necessary. */
-    IF lSaveWindowPos THEN
-    DO:
-        ASSIGN cProfileData = "":U
-               rProfileRid  = ?.
-
-        RUN getProfileData IN gshProfileManager ( INPUT        "Window":U,              /* Profile type code                            */
-                                                  INPUT        "SizePos":U,             /* Profile code                                 */
-                                                  INPUT        cLogicalObjectName,      /* Profile data key                             */
-                                                  INPUT        "NO":U,                  /* Get next record flag                         */
-                                                  INPUT-OUTPUT rProfileRid,             /* Rowid of profile data                        */
-                                                        OUTPUT cProfileData       ).    /* Found profile data. Positions as follows:    */
-                                                                                        /* 1 = col,         2 = row,                    */
-                                                                                        /* 3 = width chars, 4 = height chars            */
-                                                                                        /* Could also be: WINDOW-MAXIMISED              */
-        
-        IF NUM-ENTRIES(cProfileData, CHR(3)) EQ 4 THEN
-            ASSIGN lFoundSavedSize = YES
-
-                   /* Ensure that the values have the correct decimal points. 
-                    * These values are always stored using the American numeric format
-                    * ie. using a "." as decimal point.                               */
-                   cColumn = ENTRY(1, cProfileData, CHR(3))
-                   cColumn = REPLACE(cColumn, ".":U, SESSION:NUMERIC-DECIMAL-POINT)
-
-                   cRow = ENTRY(2, cProfileData, CHR(3))
-                   cRow = REPLACE(cRow, ".":U, SESSION:NUMERIC-DECIMAL-POINT)
-
-                   cWidth = ENTRY(3, cProfileData, CHR(3))
-                   cWidth = REPLACE(cWidth, ".":U, SESSION:NUMERIC-DECIMAL-POINT)
-
-                   cHeight = ENTRY(4, cProfileData, CHR(3))
-                   cHeight = REPLACE(cHeight, ".":U, SESSION:NUMERIC-DECIMAL-POINT)
-
-                   dSavedWidth  = DECIMAL(cWidth)
-                   dSavedHeight = DECIMAL(cHeight)
-                   dSavedColumn = DECIMAL(cColumn)
-                   dSavedRow    = DECIMAL(cRow)                              
-                   NO-ERROR.
-        ELSE
-        IF cProfileData EQ "WINDOW-MAXIMIZED":U THEN
-            ASSIGN lFoundSavedSize = YES
-                   dSavedWidth     = dSessionMaxAvailWidth
-                   dSavedHeight    = dSessionMaxAvailHeight
-                   dSavedColumn    = 1.0
-                   dSavedRow       = 1.0.                       
-        ELSE
-            ASSIGN dSavedWidth  = ?
-                   dSavedHeight = ?
-                   dSavedColumn = ?
-                   dSavedRow    = ?.
-    END.    /* Saved sizes? */
-    
-    IF lFoundSavedSize THEN
-        ASSIGN hWindow:WIDTH-CHARS         = MIN(MAX(dSavedWidth, hWindow:MIN-WIDTH-CHARS),
-                                                 dSessionMaxAvailWidth)
-               hWindow:HEIGHT-CHARS        = MIN(MAX(dSavedHeight, (hWindow:MIN-HEIGHT-CHARS)),
-                                                 (hWindow:MAX-HEIGHT-CHARS), dSessionMaxAvailHeight)
-               hWindow:COLUMN              = IF (dSavedColumn + hWindow:WIDTH-CHARS) GE SESSION:WIDTH-CHARS THEN
-                                                MAX(SESSION:WIDTH-CHARS - hWindow:WIDTH-CHARS, 1)
-                                             ELSE
-                                             IF dSavedColumn LT 0 THEN
-                                                 1
-                                             ELSE
-                                                 dSavedColumn
-               hWindow:ROW                 = IF (dSavedRow + hWindow:HEIGHT-CHARS) GE SESSION:HEIGHT-CHARS THEN
-                                                MAX(SESSION:HEIGHT-CHARS - hWindow:HEIGHT-CHARS - 1.5, 1)
-                                             ELSE
-                                             IF dSavedRow LT 0 THEN
-                                                 1
-                                             ELSE
-                                                 dSavedRow
-               dSavedColumn                 = hWindow:COLUMN
-               dSavedRow                    = hWindow:ROW.
-    ELSE
-    IF lMenuController THEN
-        ASSIGN hWindow:ROW                  = 1
-               hWindow:COL                  = 1
-               hWindow:MIN-WIDTH-CHARS      = dMinimumWindowWidth
-               hWindow:MAX-WIDTH-CHARS      = dMaximumWindowWidth
-               hWindow:MIN-HEIGHT-CHARS     = dMinimumWindowHeight
-               hWindow:MAX-HEIGHT-CHARS     = dMaximumWindowHeight.
-
-    /* Although the window has been sized to a maximum, make it truly
-       maximised.
-     */
-    IF cProfileData EQ "WINDOW-MAXIMIZED":U THEN
-        ASSIGN hWindow:WINDOW-STATE = WINDOW-MAXIMIZED.
-    
-    RETURN TRUE.
-END FUNCTION.    /* prepareInitialWindowSize */
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 
 &IF DEFINED(EXCLUDE-childWindowsOpen) = 0 &THEN
 
@@ -1028,6 +773,265 @@ FUNCTION lockContainingWindow RETURNS LOGICAL
 
     RETURN TRUE.
 END FUNCTION.   /* lockContainingWindow */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-prepareInitialWindowSize) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION prepareInitialWindowSize Procedure 
+FUNCTION prepareInitialWindowSize RETURNS LOGICAL
+    (  ):
+/*------------------------------------------------------------------------------
+  Purpose:  Sets the initial window size. This should only be called once, when
+               the window is being launched.
+    Notes:
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE cWidth                      AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE cHeight                     AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE cColumn                     AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE cRow                        AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE cProfileData                AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE cLogicalObjectName          AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE rProfileRid                 AS ROWID                NO-UNDO.
+    DEFINE VARIABLE lMenuController             AS LOGICAL              NO-UNDO.
+    DEFINE VARIABLE hWindow                     AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE hDefaultFrame               AS HANDLE               NO-UNDO.
+    DEFINE VARIABLE lSaveWindowPos              AS LOGICAL              NO-UNDO.
+    DEFINE VARIABLE lFoundSavedSize             AS LOGICAL              NO-UNDO.
+    DEFINE VARIABLE dSessionWindowMinHeight     AS DECIMAL              NO-UNDO.
+    DEFINE VARIABLE dSessionWindowMinWidth      AS DECIMAL              NO-UNDO.
+    DEFINE VARIABLE dSavedWidth                 AS DECIMAL              NO-UNDO.
+    DEFINE VARIABLE dSavedHeight                AS DECIMAL              NO-UNDO.
+    DEFINE VARIABLE dSavedColumn                AS DECIMAL              NO-UNDO.
+    DEFINE VARIABLE dSavedRow                   AS DECIMAL              NO-UNDO.
+    DEFINE VARIABLE dSessionMaxAvailHeight      AS DECIMAL              NO-UNDO.
+    DEFINE VARIABLE dSessionMaxAvailWidth       AS DECIMAL              NO-UNDO.
+    DEFINE VARIABLE dMinimumWindowWidth         AS DECIMAL              NO-UNDO.
+    DEFINE VARIABLE dMinimumWindowHeight        AS DECIMAL              NO-UNDO.
+    DEFINE VARIABLE dMaximumWindowWidth         AS DECIMAL              NO-UNDO.
+    DEFINE VARIABLE dMaximumWindowHeight        AS DECIMAL              NO-UNDO.
+    DEFINE VARIABLE dFrameMinHeight             AS DECIMAL              NO-UNDO.
+    DEFINE VARIABLE dFrameMinWidth              AS DECIMAL              NO-UNDO.
+    
+    ASSIGN lMenuController = {fnarg InstanceOf 'DynMenc'}.
+    
+    &SCOPED-DEFINE xp-assign
+    {get ContainerHandle hWindow}
+    {get LogicalObjectName cLogicalObjectName}
+    {get WindowFrameHandle hDefaultFrame}.
+    &UNDEFINE xp-assign
+    
+    /* Convert window pixel sizes into characters. Oly use the available portion of the screen
+       that is not hidden by taskbars.
+     */
+    ASSIGN dSessionMaxAvailWidth  = SESSION:WORK-AREA-WIDTH-PIXELS  / SESSION:PIXELS-PER-COLUMN
+           dSessionMaxAvailHeight = SESSION:WORK-AREA-HEIGHT-PIXELS / SESSION:PIXELS-PER-ROW.
+
+    /* Set the frame's virtual dimensions to huge. */
+    ASSIGN hDefaultFrame:SCROLLABLE     = TRUE
+           hDefaultFrame:VIRTUAL-WIDTH  = SESSION:WIDTH-CHARS
+           hDefaultFrame:VIRTUAL-HEIGHT = SESSION:HEIGHT-CHARS
+           hDefaultFrame:WIDTH          = SESSION:WIDTH-CHARS
+           hDefaultFrame:HEIGHT         = SESSION:HEIGHT-CHARS
+           hDefaultFrame:SCROLLABLE     = FALSE.
+    
+    /* Check if there are any saved window sizes & positions. If so, then apply these.
+     */
+    RUN getProfileData IN gshProfileManager ( INPUT        "Window":U,
+                                              INPUT        "SaveSizPos":U,
+                                              INPUT        "SaveSizPos":U,
+                                              INPUT        NO,
+                                              INPUT-OUTPUT rProfileRid,
+                                                    OUTPUT cProfileData).
+    ASSIGN lSaveWindowPos = (cProfileData EQ "YES":U).
+    
+    /* Set this user property so that the container code knows to save these window
+       sizes on shutdown.
+     */
+    DYNAMIC-FUNCTION("setUserProperty":U IN TARGET-PROCEDURE, INPUT "SaveWindowPos":U, INPUT STRING(lSaveWindowPos)).
+    
+    /* Allow overrides to be set for the minimum window sizes. */
+    ASSIGN dSessionWindowMinHeight = {fnarg getSessionMinWindowHeight lMenuController}
+           dSessionWindowMinWidth  = {fnarg getSessionMinWindowWidth lMenuController}
+           
+           dMinimumWindowWidth     = dSessionWindowMinWidth
+           dMinimumWindowHeight    = dSessionWindowMinHeight.
+    
+    IF lMenuController THEN
+        ASSIGN dMaximumWindowWidth  = dSessionMaxAvailWidth /* SESSION:WIDTH-CHARS - 1 */
+               dMaximumWindowHeight = dMinimumWindowHeight.
+    ELSE
+        ASSIGN dMaximumWindowWidth  = dSessionMaxAvailWidth   /* SESSION:WIDTH-CHARS - 1 */
+               dMaximumWindowHeight = dSessionMaxAvailHeight. /* SESSION:HEIGHT-CHARS - 1 */
+    
+    /* Set the window minimum sizes and initial sizes to the default 
+       values.
+     */
+    ASSIGN hWindow:MIN-WIDTH-CHARS  = dMinimumWindowWidth
+           hWindow:MIN-HEIGHT-CHARS = dMinimumWindowHeight
+           
+           hWindow:MAX-HEIGHT-CHARS = hWindow:MIN-HEIGHT-CHARS  WHEN lMenuController
+           
+           hWindow:WIDTH-CHARS      = dMinimumWindowWidth
+           hWindow:HEIGHT-CHARS     = dMinimumWindowHeight.
+           
+    /* Only get the saved sizes when necessary. */
+    IF lSaveWindowPos THEN
+    DO:
+        ASSIGN cProfileData = "":U
+               rProfileRid  = ?.
+
+        RUN getProfileData IN gshProfileManager ( INPUT        "Window":U,              /* Profile type code                            */
+                                                  INPUT        "SizePos":U,             /* Profile code                                 */
+                                                  INPUT        cLogicalObjectName,      /* Profile data key                             */
+                                                  INPUT        "NO":U,                  /* Get next record flag                         */
+                                                  INPUT-OUTPUT rProfileRid,             /* Rowid of profile data                        */
+                                                        OUTPUT cProfileData       ).    /* Found profile data. Positions as follows:    */
+                                                                                        /* 1 = col,         2 = row,                    */
+                                                                                        /* 3 = width chars, 4 = height chars            */
+                                                                                        /* Could also be: WINDOW-MAXIMISED              */
+        
+        IF NUM-ENTRIES(cProfileData, CHR(3)) EQ 4 THEN
+            ASSIGN lFoundSavedSize = YES
+
+                   /* Ensure that the values have the correct decimal points. 
+                    * These values are always stored using the American numeric format
+                    * ie. using a "." as decimal point.                               */
+                   cColumn = ENTRY(1, cProfileData, CHR(3))
+                   cColumn = REPLACE(cColumn, ".":U, SESSION:NUMERIC-DECIMAL-POINT)
+
+                   cRow = ENTRY(2, cProfileData, CHR(3))
+                   cRow = REPLACE(cRow, ".":U, SESSION:NUMERIC-DECIMAL-POINT)
+
+                   cWidth = ENTRY(3, cProfileData, CHR(3))
+                   cWidth = REPLACE(cWidth, ".":U, SESSION:NUMERIC-DECIMAL-POINT)
+
+                   cHeight = ENTRY(4, cProfileData, CHR(3))
+                   cHeight = REPLACE(cHeight, ".":U, SESSION:NUMERIC-DECIMAL-POINT)
+
+                   dSavedWidth  = DECIMAL(cWidth)
+                   dSavedHeight = DECIMAL(cHeight)
+                   dSavedColumn = DECIMAL(cColumn)
+                   dSavedRow    = DECIMAL(cRow)                              
+                   NO-ERROR.
+        ELSE
+        IF cProfileData EQ "WINDOW-MAXIMIZED":U THEN
+            ASSIGN lFoundSavedSize = YES
+                   dSavedWidth     = dSessionMaxAvailWidth
+                   dSavedHeight    = dSessionMaxAvailHeight
+                   dSavedColumn    = 1.0
+                   dSavedRow       = 1.0.                       
+        ELSE
+            ASSIGN dSavedWidth  = ?
+                   dSavedHeight = ?
+                   dSavedColumn = ?
+                   dSavedRow    = ?.
+    END.    /* Saved sizes? */
+    
+    IF lFoundSavedSize THEN
+        ASSIGN hWindow:WIDTH-CHARS         = MIN(MAX(dSavedWidth, hWindow:MIN-WIDTH-CHARS),
+                                                 dSessionMaxAvailWidth)
+               hWindow:HEIGHT-CHARS        = MIN(MAX(dSavedHeight, (hWindow:MIN-HEIGHT-CHARS)),
+                                                 (hWindow:MAX-HEIGHT-CHARS), dSessionMaxAvailHeight)
+               hWindow:COLUMN              = IF (dSavedColumn + hWindow:WIDTH-CHARS) GE SESSION:WIDTH-CHARS THEN
+                                                MAX(SESSION:WIDTH-CHARS - hWindow:WIDTH-CHARS, 1)
+                                             ELSE
+                                             IF dSavedColumn LT 0 THEN
+                                                 1
+                                             ELSE
+                                                 dSavedColumn
+               hWindow:ROW                 = IF (dSavedRow + hWindow:HEIGHT-CHARS) GE SESSION:HEIGHT-CHARS THEN
+                                                MAX(SESSION:HEIGHT-CHARS - hWindow:HEIGHT-CHARS - 1.5, 1)
+                                             ELSE
+                                             IF dSavedRow LT 0 THEN
+                                                 1
+                                             ELSE
+                                                 dSavedRow
+               dSavedColumn                 = hWindow:COLUMN
+               dSavedRow                    = hWindow:ROW.
+    ELSE
+    IF lMenuController THEN
+        ASSIGN hWindow:ROW                  = 1
+               hWindow:COL                  = 1
+               hWindow:MIN-WIDTH-CHARS      = dMinimumWindowWidth
+               hWindow:MAX-WIDTH-CHARS      = dMaximumWindowWidth
+               hWindow:MIN-HEIGHT-CHARS     = dMinimumWindowHeight
+               hWindow:MAX-HEIGHT-CHARS     = dMaximumWindowHeight.
+
+    /* Although the window has been sized to a maximum, make it truly
+       maximised.
+     */
+    IF cProfileData EQ "WINDOW-MAXIMIZED":U THEN
+        ASSIGN hWindow:WINDOW-STATE = WINDOW-MAXIMIZED.
+    
+    RETURN TRUE.
+END FUNCTION.    /* prepareInitialWindowSize */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-updateMenuWidth) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION updateMenuWidth Procedure 
+FUNCTION updateMenuWidth RETURNS LOGICAL
+    (  ):
+/*------------------------------------------------------------------------------
+  Purpose:  Makes sure that there is enough horizontal space for all the menus 
+              of a container.
+    Notes:
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE hWindow                 AS HANDLE                     NO-UNDO.
+    DEFINE VARIABLE hMenuBar                AS HANDLE                     NO-UNDO.
+    DEFINE VARIABLE hSubMenu                AS HANDLE                     NO-UNDO.
+    DEFINE VARIABLE hDefaultFrame           AS HANDLE                     NO-UNDO.
+    DEFINE VARIABLE iMenus                  AS INTEGER                    NO-UNDO.
+    DEFINE VARIABLE dMenuControllerWidth    AS DECIMAL                    NO-UNDO.
+    DEFINE VARIABLE dTextWidth              AS DECIMAL                    NO-UNDO.
+    DEFINE VARIABLE dTotalTextWidth         AS DECIMAL                    NO-UNDO.
+    
+    &SCOPED-DEFINE xp-assign    
+    {get WindowFrameHandle hDefaultFrame}
+    {get ContainerHandle hWindow}.
+    &UNDEFINE xp-assign
+    
+    /* Calculate window width and the menu width. */
+    ASSIGN /*hWindow:VISIBLE = TRUE*/
+           hMenuBar = hWindow:MENU-BAR
+           NO-ERROR.
+    
+    IF VALID-HANDLE(hMenuBar) THEN
+    DO:
+        ASSIGN hSubMenu = hMenuBar:FIRST-CHILD.
+
+        REPEAT WHILE VALID-HANDLE(hSubMenu):
+            ASSIGN dTextWidth      = FONT-TABLE:GET-TEXT-WIDTH(REPLACE(hSubMenu:LABEL,"&":U, "":U), hSubMenu:FONT)
+                   dTotalTextWidth = dTotalTextWidth + dTextWidth
+                   iMenus          = iMenus + 1.            
+            ASSIGN hSubMenu = hSubMenu:NEXT-SIBLING.
+        END.    /* Valid sub menu handle */
+
+        ASSIGN dMenuControllerWidth = MAX(dTotalTextWidth + (iMenus * 2.6) + 1, 1).
+               dMenuControllerWidth = MAX(hWindow:MIN-WIDTH,MIN(dMenuControllerWidth, SESSION:WIDTH - 1)).
+               
+        IF hWindow:WIDTH LT dMenuControllerWidth THEN
+            ASSIGN hDefaultFrame:SCROLLABLE    = TRUE
+                   hWindow:MIN-WIDTH           = dMenuControllerWidth
+                   hWindow:WIDTH               = dMenuControllerWidth
+                   hDefaultFrame:VIRTUAL-WIDTH = dMenuControllerWidth
+                   hDefaultFrame:WIDTH         = dMenuControllerWidth
+                   hDefaultFrame:SCROLLABLE    = FALSE.
+        
+        IF hWindow:MIN-WIDTH LT dMenuControllerWidth THEN    
+            ASSIGN hWindow:MIN-WIDTH = dMenuControllerWidth.        
+    END.    /* valid menu bar */
+
+    RETURN TRUE.
+END FUNCTION.    /* updateMenuWidth */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

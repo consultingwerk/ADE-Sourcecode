@@ -74,6 +74,7 @@
  
  DEFINE OUTPUT PARAMETER pocMessages AS CHARACTER  NO-UNDO.                                                                       
                                                                            
+ DEFINE VARIABLE gcCurrentLogicalName AS CHAR NO-UNDO. 
 
 /* MIP-GET-OBJECT-VERSION pre-processors
    The following pre-processors are maintained automatically when the object is
@@ -99,6 +100,19 @@
 /* _UIB-PREPROCESSOR-BLOCK-END */
 &ANALYZE-RESUME
 
+
+/* ************************  Function Prototypes ********************** */
+
+&IF DEFINED(EXCLUDE-getCurrentLogicalName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCurrentLogicalName Procedure 
+FUNCTION getCurrentLogicalName RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 
 /* *********************** Procedure Settings ************************ */
@@ -142,16 +156,20 @@ DEFINE VARIABLE lDestroyStateless AS LOGICAL    NO-UNDO.
 
 ASSIGN
   cLocalContext = REPLACE(piocContext, CHR(3), CHR(4))
-  iEntry = LOOKUP('LogicalObjectName':U, cLocalContext, CHR(4))
   iEntry2 = LOOKUP('DestroyStateless':U, cLocalContext, CHR(4)).
-IF iEntry > 0 THEN
-  cLogicalName = ENTRY(iEntry + 1, cLocalContext, CHR(4)).
+
 IF iEntry2 > 0 THEN
   lDestroyStateless = LOOKUP(ENTRY(iEntry2 + 1, cLocalContext, CHR(4)), 
                              'YES,TRUE':U) > 0.
 
+IF NUM-ENTRIES(pcObject,':') > 1 THEN
+  ASSIGN
+    cLogicalName = ENTRY(2,pcObject,':':U)
+    pcObject     = ENTRY(1,pcObject,':':U).
+
 IF cLogicalName > '':U THEN
 DO:                                     /* look for running object */
+  gcCurrentLogicalName = cLogicalName.
   PUBLISH "searchCache" + cLogicalName (OUTPUT hObject).
   /* if found, use it */
   IF VALID-HANDLE(hObject) THEN
@@ -205,10 +223,31 @@ ELSE DO:
   RUN getContextAndDestroy IN hObject (OUTPUT piocContext).
 END.
 
-IF NOT lStatic AND VALID-HANDLE(phRowObject) AND lDestroyStateless THEN
+IF VALID-HANDLE(phRowObject) AND lDestroyStateless THEN
   DELETE OBJECT phRowObject.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+
+/* ************************  Function Implementations ***************** */
+
+&IF DEFINED(EXCLUDE-getCurrentLogicalName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getCurrentLogicalName Procedure 
+FUNCTION getCurrentLogicalName RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN gcCurrentLogicalName. 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 

@@ -1034,6 +1034,11 @@ DEFINE VARIABLE iReturnValue         AS INTEGER    NO-UNDO.
 DEFINE VARIABLE lConvertToOSNumeric  AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE cOSDateTimeFormat    AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cTmpFormat           AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cFormatList          AS CHARACTER  NO-UNDO.      
+DEFINE VARIABLE cNumFormat           AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cNumFormatQuoted     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE iInteger             AS INTEGER    NO-UNDO.
+DEFINE VARIABLE dDecimal             AS DECIMAL    NO-UNDO.
 
 /*  Windows but now running on another OS */
 IF OPSYS = "win32":U THEN 
@@ -1082,7 +1087,8 @@ DO:
          cOSDateTimeFormat = cOSDateTimeFormat + " ":U + cTmpFormat.
 END.
 ELSE
-  ASSIGN lConvertToOSNumeric = NO cOSDateTimeFormat = "@":U.
+  ASSIGN lConvertToOSNumeric = NO 
+         cOSDateTimeFormat   = "@":U.
 
 /* We've got data, now get it into Excel.     *
  * First, determine how many columns we have. */
@@ -1094,11 +1100,17 @@ FIND LAST ttTable WHERE ttTable.iRow = 1 NO-ERROR.
 
 IF AVAILABLE ttTable THEN
   ASSIGN cDataTypeList = FILL(",":U, ttTable.iCol - 1)
-         cRow          = "A".
+         cRow          = "A"
+         cFormatList   = FILL(chr(1), ttTable.iCol - 1).
 
 /* build list of field datatypes */
 FOR EACH ttTable WHERE ttTable.irow = 2:
     ASSIGN ENTRY(ttTable.iCol, cDataTypeList) = ttTable.cCell.
+END.
+
+/* build list of field formats */
+FOR EACH ttTable WHERE ttTable.irow = 4:
+    ASSIGN ENTRY(ttTable.iCol, cFormatList,chr(1)) = ttTable.cCell.
 END.
 
 /* Now dump all the data to disk, we'll load in into Excel from there. */
@@ -1141,6 +1153,7 @@ FOR EACH ttTable
   CASE cDataType:
     WHEN "DECIMAL":U OR WHEN "INTEGER":U THEN 
     DO:
+
       /* Remove any percentage symbols, and plus signs ... */
       ASSIGN cNumericCellString = REPLACE(ttTable.cCell, "%":U, "":U)
              cNumericCellString = REPLACE(cNumericCellString, "+":U, "":U).
@@ -1154,19 +1167,6 @@ FOR EACH ttTable
              cNumericCellString = REPLACE(cNumericCellString, "CR":U, "-":U)
              cNumericCellString = REPLACE(cNumericCellString, "DB":U, "-":U).
 
-      /* ... then make sure that the negative sign is leading (by now we should have a regular decimal/integer) */
-      IF cDataType = "DECIMAL":U THEN 
-      DO:
-          IF NOT cNumericCellString BEGINS "-":U
-          AND DECIMAL(cNumericCellString) < 0 THEN
-            ASSIGN cNumericCellString = "-":U + STRING(ABSOLUTE(DECIMAL(cNumericCellString))) NO-ERROR.
-      END.
-      ELSE DO:
-          IF NOT cNumericCellString BEGINS "-":U
-          AND INTEGER(cNumericCellString) < 0 THEN
-              ASSIGN cNumericCellString = "-":U + STRING(ABSOLUTE(INTEGER(cNumericCellString))) NO-ERROR.
-      END.
-
       /* Make sure the decimal point and numeric separators in our file correspond to what Excel is going to use. */ 
       IF lConvertToOSNumeric = YES THEN
           ASSIGN cNumericCellString = REPLACE(cNumericCellString, SESSION:NUMERIC-DECIMAL-POINT, CHR(1))
@@ -1175,15 +1175,39 @@ FOR EACH ttTable
                  cNumericCellString = REPLACE(cNumericCellString, CHR(2), cOSThousandSeparator)
                  NO-ERROR.
 
-      /* Just in case there's something wrong */
-      IF ERROR-STATUS:ERROR THEN
-          ASSIGN cNumericCellString = ttTable.cCell.
+      /* Remove strings */
+       ASSIGN cNumFormatQuoted = "".
+       DO iColumns = 1 to LENGTH(cNumericCellString):
+          IF LOOKUP(SUBSTRING(cNumericCellString,icolumns,1),"0,1,2,3,4,5,6,7,8,9,-":U) > 0 
+                OR SUBSTRING(cNumericCellString,icolumns,1) = cOSNumericPoint 
+                OR SUBSTRING(cNumericCellString,icolumns,1) = cOSThousandSeparator  THEN
+             ASSIGN cNumFormatQuoted = cNumFormatQuoted + SUBSTRING(cNumericCellString,icolumns,1).
+       END.
+       ASSIGN cNumericCellString = cNumFormatQuoted.
+
+      /* ... then make sure that the negative sign is leading (by now we should have a regular decimal/integer) */
+      IF cDataType = "DECIMAL":U THEN 
+      DO:
+          ASSIGN dDecimal = DECIMAL(cNumericCellString) NO-ERROR.
+          IF ERROR-STATUS:ERROR THEN
+              ASSIGN cNumericCellString = ttTable.cCell.          
+          ELSE IF NOT cNumericCellString BEGINS "-":U AND dDecimal < 0 THEN
+            ASSIGN cNumericCellString = "-":U + STRING(ABSOLUTE(dDecimal)) NO-ERROR.
+      END.
+      ELSE DO:
+          ASSIGN iInteger = INTEGER(cNumericCellString) NO-ERROR.
+          IF ERROR-STATUS:ERROR THEN
+                ASSIGN cNumericCellString = ttTable.cCell.          
+          ELSE IF NOT cNumericCellString BEGINS "-":U AND iInteger < 0 THEN
+              ASSIGN cNumericCellString = "-":U + STRING(ABSOLUTE(iInteger)) NO-ERROR.
+      END.
 
       ASSIGN ttTable.cCell = cNumericCellString.
     END.
 
     WHEN "CHARACTER":U THEN
-      ASSIGN ttTable.cCell = '"':U + ttTable.cCell + '"':U /* csv file wants quotes around characters */
+      ASSIGN ttTable.cCell = REPLACE(ttTable.cCell,'"':U, "'":U)
+             ttTable.cCell = '"':U + ttTable.cCell + '"':U /* csv file wants quotes around characters */
              ttTable.cCell = SUBSTRING(ttTable.cCell, 1, 319) WHEN LENGTH(ttTable.cCell) > 319 
              NO-ERROR.
 
@@ -1288,24 +1312,74 @@ FOR EACH ttTable
                        THEN cRange1
                        ELSE CHR(64 + INTEGER(TRUNCATE(iNumberOfColumns / 26, 0)) - iTemp1) 
                           + CHR(64 + (iNumberOfColumns MODULO 26) + iTemp2) + STRING(1)
-           cDataType = ENTRY(iNumberOfColumns, cDataTypeList).
+           cDataType  = ENTRY(iNumberOfColumns, cDataTypeList).
+
+    /* Re-assign Progress supported format codes with Excel format codes.
+       Progress supports:  (), string, +, -, >, <, 9, Z, *, DR,CR,DB 
+       Excel supports   # and 0 for digits, and uses a semi-colon to separate positive from negative formats */
+    IF (cDataType = "DECIMAL":U or cDataType = "INTEGER":U)  THEN
+    DO:
+       ASSIGN cNumFormat = TRIM(ENTRY(iNumberOfColumns, cFormatList,chr(1)))
+              cNumFormat = REPLACE(cNumFormat,'>':u, '#':u)
+              cNumFormat = REPLACE(cNumFormat,'Z':u, '#':u)
+              cNumFormat = REPLACE(cNumFormat,'+':u, '':u)
+              cNumFormat = REPLACE(cNumFormat,'<':u, '#':u)
+              cNumFormat = REPLACE(cNumFormat,'9':u, '0':u). 
+
+      /* Make sure the decimal point and numeric separators in our file correspond to what Excel is going to use. */ 
+       IF lConvertToOSNumeric = YES THEN
+          ASSIGN cNumFormat = REPLACE(cNumFormat, SESSION:NUMERIC-DECIMAL-POINT, CHR(1))
+                 cNumFormat = REPLACE(cNumFormat, SESSION:NUMERIC-SEPARATOR, CHR(2))
+                 cNumFormat = REPLACE(cNumFormat, CHR(1), cOSNumericPoint)
+                 cNumFormat = REPLACE(cNumFormat, CHR(2), cOSThousandSeparator)
+                 NO-ERROR.
+
+       /* Check for negative formating */
+       IF (INDEX(cNumFormat,"(":U) > 0 AND INDEX(cNumFormat,"(":U) > 0) THEN
+         ASSIGN cNumFormat = REPLACE(cNumFormat,"(":U,"")
+                cNumFormat = REPLACE(cNumFormat,")":U,"")
+                cNumFormat = cNumFormat + ";" + "(" + cNumFormat + ")":U.
+       ELSE IF  INDEX(cNumFormat,"-":U) > 0  THEN
+         ASSIGN cNumFormat = REPLACE(cNumFormat,"-":U,"") + ";" + cNumFormat.
+         
+       ELSE IF cNumFormat BEGINS "DB":U OR (LENGTH(cNumFormat)  > 2 AND SUBSTRING(cNumFormat,LENGTH(cNumFormat) - 2,2) = "DB":U) THEN
+         ASSIGN cNumFormat = REPLACE(cNumFormat,"DB":U,"") + ";" + REPLACE(cNumFormat,"DB",'"DB"':U).
+
+       ELSE IF cNumFormat BEGINS "CR":U OR (LENGTH(cNumFormat)  > 2 AND SUBSTRING(cNumFormat,LENGTH(cNumFormat) - 2,2) = "CR":U) THEN
+         ASSIGN cNumFormat = REPLACE(cNumFormat,"CR":U,"") + ";" + REPLACE(cNumFormat,"CR",'"CR"':U).
+
+       ELSE IF cNumFormat BEGINS "DR":U OR (LENGTH(cNumFormat)  > 2 AND SUBSTRING(cNumFormat,LENGTH(cNumFormat) - 2,2) = "DR":U) THEN
+         ASSIGN cNumFormat = REPLACE(cNumFormat,"DR":U,"") + ";" + REPLACE(cNumFormat,"DR",'"DR"':U).
+
+
+       /* Check for strings in format and precede it with a backslash  */
+       ASSIGN cNumFormatQuoted = "".
+       DO iColumns = 1 to LENGTH(cNumFormat):
+          IF LOOKUP(SUBSTRING(cNumFormat,icolumns,1),"#,0,;,-,*":U) > 0 
+               OR SUBSTRING(cNumFormat,icolumns,1) = cOSNumericPoint 
+               OR SUBSTRING(cNumFormat,icolumns,1) = cOSThousandSeparator  THEN
+             cNumFormatQuoted = cNumFormatQuoted + SUBSTRING(cNumFormat,icolumns,1).
+          ELSE
+             cNumFormatQuoted = cNumFormatQuoted + "~\":U + SUBSTRING(cNumFormat,icolumns,1).
+       END.
+       ASSIGN cNumFormat = cNumFormatQuoted.
 
     /* Set the numeric format on the columns */
-    ASSIGN cRange3 = SUBSTRING(cRange1, 1, 1)
-           cRange3 = IF iNumberOfColumns LE 26 
-                     THEN cRange3
-                     ELSE SUBSTRING(cRange1, 1, 2).
-    
-    CASE cDataType:
-        WHEN "DECIMAL":U THEN chWorkSheet:Columns(cRange3):NumberFormat = 
-          (IF lConvertToOSNumeric = YES THEN "###" + cOSThousandSeparator + "###" + cOSThousandSeparator + "##0" + cOSNumericPoint + "00":U
-                                        ELSE "###" + SESSION:NUMERIC-SEPARATOR + "###" + SESSION:NUMERIC-SEPARATOR + "##0" + SESSION:NUMERIC-DECIMAL-POINT + "00":U).
-        WHEN "INTEGER":U THEN chWorkSheet:Columns(cRange3):NumberFormat = "#####0":U.
-        WHEN "DATETIME":U THEN chWorkSheet:Columns(cRange3):NumberFormat = cOSDateTimeFormat.
-      OTHERWISE
-          chWorkSheet:Columns(cRange3):NumberFormat = "@":U.
-    END CASE.
-    
+       ASSIGN cRange3 = SUBSTRING(cRange1, 1, 1)
+              cRange3 = IF iNumberOfColumns LE 26 
+                        THEN cRange3
+                        ELSE SUBSTRING(cRange1, 1, 2)
+             chWorkSheet:Columns(cRange3):NumberFormat = cNumFormat
+             NO-ERROR.
+
+    END.
+    ELSE IF cDataType = "DATETIME":U THEN 
+       ASSIGN cRange3 = SUBSTRING(cRange1, 1, 1)
+              cRange3 = IF iNumberOfColumns LE 26 
+                        THEN cRange3
+                        ELSE SUBSTRING(cRange1, 1, 2)
+             chWorkSheet:Columns(cRange3):NumberFormat = cOSDateTimeFormat.
+        
     /* Set the cell to bold */
     ASSIGN chWorkSheet:Range(cRange1):Font:Bold = TRUE.
 END. /* heading-loop */

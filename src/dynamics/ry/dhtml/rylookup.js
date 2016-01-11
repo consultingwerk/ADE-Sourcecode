@@ -23,14 +23,16 @@ Lookup.prototype.load=function(data,dlm,batch){
 }
 
 Lookup.prototype.launch=function(){
+  app.document.form['do'].value='';
   if(this.lookupdata.length!=1)
     if(this.lookupval>'' || returnfield.value=='') appcontrol.markField(returnfield,'');
   if(this.lookupdata.length==0) return appcontrol.markField(returnfield,'error');
-  if(this.lookupdata.length>1) return action('util.../dhtml/rylookup.htm|resize');
-  this.setFields(this.lookupdata[0].split('|'));
+  if(this.lookupdata.length>1) return userAction('util.../dhtml/rylookup.htm|resize');
+  this.setFields();
 }
 
-Lookup.prototype.setFields=function(cur){
+Lookup.prototype.setFields=function(){
+  var cur=this.lookupdata[0].split(this.lookupdlm);
   app=appcontrol.activeframe.win;
   var names=('rowident|_key|'+this.lookupcols).split('|');
   var dfield=returnfield.getAttribute('dfield').split(',');
@@ -55,11 +57,11 @@ Lookup.prototype.setFields=function(cur){
       }
     }
   }
-  returnfield.value=disp;   // Setting Displayedfield and remember last selected 
+  appcontrol.setField(returnfield,disp);
+  // Setting Displayedfield and remember last selected 
   returnfield.setAttribute('select',disp);
   app.wbo.custom(returnfield.getAttribute('lookup').split('.')[0]+"_lookup");
   if(wdo) wdo.action('modify');
-
 }
 
 function Lookup(){}

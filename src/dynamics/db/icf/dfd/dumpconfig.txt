@@ -1,0 +1,12 @@
+"O" 1 "db/icf/dfd/gsmitout.p"
+"I" 1 "db/icf/dfd/gsmitin.p"
+"D" 1 "gsmitout.d"
+"O" 2 "db/icf/dfd/gsmomout.p"
+"I" 2 "db/icf/dfd/gsmomin.p"
+"D" 2 "gsmomout.d"
+"O" 3 "db/icf/dfd/gsmtmout.p"
+"I" 3 "db/icf/dfd/gsmtmin.p"
+"D" 3 "gsmtmout.d"
+"S" 0 "&S"
+
+

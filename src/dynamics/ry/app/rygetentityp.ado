@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<dataset Transactions="1"><dataset_header DisableRI="yes" DatasetObj="1004928896.09" DateFormat="mdy" FullHeader="no" SCMManaged="yes" YearOffset="1950" DatasetCode="RYCSO" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="90" NumericSeparator=","/>
-<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" version_date="09/12/2003" version_time="34372" version_user="admin" deletion_flag="no" entity_mnemonic="rycso" key_field_value="67068.48" record_version_obj="67069.48" version_number_seq="2.48" secondary_key_value="rygetentityp#CHR(1)#0" import_version_number_seq="2.48"><smartobject_obj>67068.48</smartobject_obj>
+<dataset Transactions="1"><dataset_header DisableRI="yes" DatasetObj="1004928896.09" DateFormat="mdy" FullHeader="no" SCMManaged="yes" YearOffset="1950" DatasetCode="RYCSO" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="91" NumericSeparator=","/>
+<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" version_date="12/05/2004" version_time="71194" version_user="admin" deletion_flag="no" entity_mnemonic="rycso" key_field_value="67068.48" record_version_obj="67069.48" version_number_seq="1.09" secondary_key_value="rygetentityp#CHR(1)#0" import_version_number_seq="1.09"><smartobject_obj>67068.48</smartobject_obj>
 <object_filename>rygetentityp</object_filename>
 <customization_result_obj>0</customization_result_obj>
 <object_type_obj>493</object_type_obj>
@@ -13,7 +13,7 @@
 <generic_object>no</generic_object>
 <template_smartobject>no</template_smartobject>
 <system_owned>no</system_owned>
-<deployment_type></deployment_type>
+<deployment_type>SRV,WEB</deployment_type>
 <design_only>no</design_only>
 <runnable_from_menu>no</runnable_from_menu>
 <container_object>no</container_object>

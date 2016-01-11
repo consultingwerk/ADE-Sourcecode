@@ -169,6 +169,7 @@ DEFINE TEMP-TABLE ttControl NO-UNDO RCODE-INFORMATION
   FIELD lDefault        AS LOGICAL      LABEL "Default":U
   FIELD cDefaultValue   AS CHARACTER    LABEL "DefaultValue":U
   FIELD cTableVariable  AS CHARACTER    LABEL "TableVariable":U
+  FIELD lSiteData       AS LOGICAL      LABEL "SiteData":U
   FIELD cStoreTo        AS CHARACTER    LABEL "StoreTo":U
   FIELD cFieldValue     AS CHARACTER    LABEL "FieldValue":U
   FIELD lExpandTokens    AS LOGICAL     LABEL "ExpandTokens":U
@@ -348,8 +349,8 @@ FUNCTION setImageFiles RETURNS LOGICAL
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 26.33
-         WIDTH              = 54.2.
+         HEIGHT             = 34
+         WIDTH              = 68.2.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -1742,7 +1743,10 @@ PROCEDURE processParams :
         bttValue.cVariable = bttControl.cTableVariable 
       .
     END.
-    bttValue.cValue = bttControl.cFieldValue.
+    ASSIGN
+      bttValue.cValue = bttControl.cFieldValue
+      bttValue.lSiteData = bttControl.lSiteData
+    .
   END.
 
   /* Make sure that all the things we set as properties are now written into the 
@@ -1932,6 +1936,33 @@ PROCEDURE startUpgradeProcess :
   DEFINE INPUT  PARAMETER pcEditor  AS CHARACTER  NO-UNDO.
 
   DEFINE VARIABLE hUpgradeAPI       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cDCUScriptFile    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDCUSiteDataFile  AS CHARACTER  NO-UNDO.
+
+  /* First lets see if we need to do the actual upgrade, or if we only
+     have to write out the XML files */
+  cDCUScriptFile = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
+                                    "DCUSCRIPTFILE":U).
+  cDCUSiteDataFile = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
+                                    "DCUSITEDATAFILE":U).
+
+  IF cDCUScriptFile <> ? AND
+     cDCUScriptFile <> "":U THEN
+  DO:
+    RUN writeXMLFiles(cDCUScriptFile, cDCUSiteDataFile) NO-ERROR.
+    IF ERROR-STATUS:ERROR THEN
+    DO:
+      messageBox(RETURN-VALUE,
+                 "":U,
+                 "MB_OK,MB_ICONERROR,MB_TASKMODAL":U).
+      DYNAMIC-FUNCTION("setSessionParam":U IN THIS-PROCEDURE,
+                       "ErrorCondition":U,
+                       "YES":U).
+    END.
+    RETURN.
+  END.
+
+
 
   /* If the upgrade API is not started, start it. */
   RUN startProcedure IN TARGET-PROCEDURE
@@ -2088,6 +2119,194 @@ PROCEDURE verifyDBVersion :
                "MB_OK,MB_ICONSTOP,MB_TASKMODAL":U).
     RETURN ERROR.
   END.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-writeXMLFiles) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE writeXMLFiles Procedure 
+PROCEDURE writeXMLFiles :
+/*------------------------------------------------------------------------------
+  Purpose:     Writes the contents of the appropriate tables to the XML files
+               for use by the upgrade process.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER pcDCUScriptFile   AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER pcDCUSiteDataFile AS CHARACTER  NO-UNDO.
+
+  DEFINE VARIABLE hXMLHlpr                  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hBuff                     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lAns                      AS LOGICAL    NO-UNDO.
+
+  /* Handles for the script file root node and X-Doc */
+  DEFINE VARIABLE hSFDoc                    AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hSFRoot                   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hSFNode                   AS HANDLE     NO-UNDO.
+  
+  /* Handles for the site data root node and X-Doc */
+  DEFINE VARIABLE hSDDoc                    AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hSDRoot                   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hSDNode                   AS HANDLE     NO-UNDO.
+
+  /* Start the XML helper API */
+  RUN startProcedure IN THIS-PROCEDURE ("ONCE|af/app/afxmlhlprp.p":U, 
+                                        OUTPUT hXMLHlpr).
+
+  /* If we have to create a script file document, we'll do that here */
+  IF pcDCUScriptFile <> "" AND
+     pcDCUScriptFile <> ? THEN
+  DO:
+    CREATE X-DOCUMENT hSFDoc.
+
+    hSFDoc:ENCODING = "utf-8":U.
+
+    /* Create a table_def node */
+    hSFRoot = DYNAMIC-FUNCTION("createElementNode":U IN hXMLHlpr,
+                                hSFDoc, 
+                                "ScriptData":U).
+  END.
+
+  /* If we have to create a site data document, lets do that now */
+  IF pcDCUSiteDataFile <> "" AND
+     pcDCUSiteDataFile <> ? THEN
+  DO:
+    CREATE X-DOCUMENT hSDDoc.
+
+    hSDDoc:ENCODING = "utf-8":U.
+
+    /* Create a table_def node */
+    hSDRoot = DYNAMIC-FUNCTION("createElementNode":U IN hXMLHlpr,
+                                hSDDoc, 
+                                "SiteData":U).
+    
+  END.
+
+  /* Now that we have the documents created that we need, let's make sure that there really
+     is something to do. If the handles are invalid for the X-Docs, we're not going to 
+     do anything right now. */
+  IF NOT VALID-HANDLE(hSFDoc) AND
+     NOT VALID-HANDLE(hSDDoc) THEN
+    RETURN. /* Nothing to do */
+
+  /* Now make sure we have afxmlhlprp.p running so we can dump the xml easily */
+
+  /* Now we need to loop through the ttValue table and dump its contents. Only ttValue records
+     marked as site specific are dumped into the site data file. */
+  hBuff = BUFFER ttValue:HANDLE. 
+  FOR EACH ttValue:
+    IF VALID-HANDLE(hSFDoc) THEN
+    DO:
+      hSFNode = DYNAMIC-FUNCTION("createElementNode":U IN hXMLHlpr,
+                                 hSFRoot, 
+                                 "TableVariable":U).
+      /* Create a Node Element for each field in the input buffer */
+      DYNAMIC-FUNCTION("buildElemsFromBuffWithOpts":U IN hXMLHlpr,
+                       hSFNode, 
+                       INPUT hBuff, 
+                       "ColumnTag=ColLabel":U,
+                       "*":U).
+
+      DELETE OBJECT hSFNode.
+    END.
+
+  
+
+    IF VALID-HANDLE(hSDDoc) AND
+       ttValue.lSiteData THEN
+    DO:
+      hSDNode = DYNAMIC-FUNCTION("createElementNode":U IN hXMLHlpr,
+                                 hSDRoot, 
+                                 "TableVariable":U).
+      
+      /* Create a Node Element for each field in the input buffer */
+      DYNAMIC-FUNCTION("buildElemsFromBuffWithOpts":U IN hXMLHlpr,
+                       hSDNode, 
+                       INPUT hBuff, 
+                       "ColumnTag=ColLabel":U,
+                       "*,!lSiteData":U).
+
+      DELETE OBJECT hSDNode.
+    END.
+  END.
+  
+  /* We can now dump out the contents of ttDatabase. All records in ttDatabase are dumped for 
+     both kinds of files, but we only dump out connection specific information into the site data
+     file */
+  hBuff = BUFFER ttDatabase:HANDLE. 
+  FOR EACH ttDatabase:
+    IF VALID-HANDLE(hSFDoc) THEN
+    DO:
+      hSFNode = DYNAMIC-FUNCTION("createElementNode":U IN hXMLHlpr,
+                                 hSFRoot, 
+                                 "Database":U).
+      /* Create a Node Element for each field in the input buffer */
+      DYNAMIC-FUNCTION("buildElemsFromBuffWithOpts":U IN hXMLHlpr,
+                       hSFNode, 
+                       INPUT hBuff, 
+                       "ColumnTag=ColLabel":U,
+                       "*":U).
+
+      DELETE OBJECT hSFNode.
+    END.
+
+    IF VALID-HANDLE(hSDDoc) THEN
+    DO:
+      hSDNode = DYNAMIC-FUNCTION("createElementNode":U IN hXMLHlpr,
+                                 hSDRoot, 
+                                 "Database":U).
+      
+      /* Create a Node Element for each field in the input buffer */
+      DYNAMIC-FUNCTION("buildElemsFromBuffWithOpts":U IN hXMLHlpr,
+                       hSDNode, 
+                       INPUT hBuff, 
+                       "ColumnTag=ColLabel":U,
+                       "cDBName,cDBDir,cConnectParams":U).
+
+      DELETE OBJECT hSDNode.
+    END.
+  END.
+
+  /* Patch information only gets dumped to the script file. */
+  IF VALID-HANDLE(hSFDoc) THEN
+  DO:
+    hBuff = BUFFER ttPatch:HANDLE. 
+    FOR EACH ttPatch:
+      hSFNode = DYNAMIC-FUNCTION("createElementNode":U IN hXMLHlpr,
+                                 hSFRoot, 
+                                 "Patch":U).
+      /* Create a Node Element for each field in the input buffer */
+      DYNAMIC-FUNCTION("buildElemsFromBuffWithOpts":U IN hXMLHlpr,
+                       hSFNode, 
+                       INPUT hBuff, 
+                       "ColumnTag=ColLabel":U,
+                       "*":U).
+
+      DELETE OBJECT hSFNode.
+    END.
+  END.
+
+  /* Now its time to finish the files off an write them to disk */
+  IF VALID-HANDLE(hSDDoc) THEN
+  DO:
+    lAns = hSDDoc:SAVE("FILE",pcDCUSiteDataFile) NO-ERROR.
+    DELETE OBJECT hSDRoot.
+    DELETE OBJECT hSDDoc.
+  END.
+  
+  IF VALID-HANDLE(hSFDoc) THEN
+  DO:
+    lAns = hSFDoc:SAVE("FILE",pcDCUScriptFile) NO-ERROR.
+    DELETE OBJECT hSFRoot.
+    DELETE OBJECT hSFDoc.
+  END.
+
+
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

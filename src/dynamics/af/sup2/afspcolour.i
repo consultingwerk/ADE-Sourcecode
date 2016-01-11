@@ -104,7 +104,7 @@ FUNCTION COLOR-OF RETURNS INTEGER
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Method-Library ASSIGN
-         HEIGHT             = 8.43
+         HEIGHT             = 8.62
          WIDTH              = 61.4.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -117,7 +117,7 @@ FUNCTION COLOR-OF RETURNS INTEGER
 &ANALYZE-RESUME
 
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Method-Library 
@@ -154,12 +154,17 @@ FUNCTION COLOR-OF RETURNS INTEGER
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE iEntry AS INTEGER NO-UNDO.
 
-  ASSIGN ip-text = REPLACE(ip-text,"DarkYellow","Brown")
-         ip-text = REPLACE(ip-text,"Grey","Gray")
-         ip-text = REPLACE(ip-text,"LightGray","Gray")
-         iEntry  = LOOKUP(ip-text,{&SUPER-HDL}:PRIVATE-DATA) - 1.
+  IF ip-text > "":U THEN
+  DO:
+      ASSIGN ip-text = REPLACE(ip-text,"DarkYellow","Brown")
+             ip-text = REPLACE(ip-text,"Grey","Gray")
+             ip-text = REPLACE(ip-text,"LightGray","Gray")
+             iEntry  = LOOKUP(ip-text,{&SUPER-HDL}:PRIVATE-DATA) - 1.
 
-  RETURN IF iEntry < 1 THEN ? ELSE iEntry.
+      RETURN IF iEntry < 0 THEN ? ELSE iEntry.
+  END.
+  ELSE 
+      RETURN ?.
 
 END FUNCTION.
 

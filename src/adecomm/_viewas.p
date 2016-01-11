@@ -47,7 +47,8 @@ Date Created: 08/04/92
      Mario B. 12/4/98 Added syntax for LIST-ITEM-PAIRS to COMBO-BOX and
                       SELECTION-LIST.  Modified LIST-ITEMS for consistency.
      D McMann 03/16/99 Changed number of buffer-line for tty editor
-     
+  K. McIntosh 09/09/04 Ensure that nothing displays in dialog for field of
+                       foreign data-type    
 ----------------------------------------------------------------------------*/
 &GLOBAL-DEFINE WIN95-BTN YES
 {adecomm/adestds.i}
@@ -382,18 +383,20 @@ ix_DTypes = (if p_DType = {&DTYPE_CHARACTER} then 1 else
              if p_DType = {&DTYPE_RECID}     then 6 else
              if p_DType = {&DTYPE_DATETM}    then 7 else
              if p_DType = {&DTYPE_DATETMTZ}  then 8 ELSE
-                   0). /* the 0 case should never happen */
+                   0). /* the 0 case should never happen, 
+                          unless it's a foreign data-type */
 
-ViewAs_Choices:LIST-ITEMS in frame fld_viewas= ViewAs_Relevant[ix_DTypes].
+IF ix_DTypes NE 0 THEN DO:
+  ViewAs_Choices:LIST-ITEMS in frame fld_viewas= ViewAs_Relevant[ix_DTypes].
 
-/* If there is already a value, select the widget choice which matches
-   the view-as syntax (if any). 
-*/
-if p_Viewas = "" OR p_Viewas = ? then
-   Viewas_Choices = ENTRY(1, Viewas_Relevant[ix_DTypes]).
-else do:
-   find_match:
-   do ix_types = 1 to NUM-ENTRIES(ViewAs_Relevant[ix_DTypes]):
+  /* If there is already a value, select the widget choice which matches
+     the view-as syntax (if any). 
+  */
+  if p_Viewas = "" OR p_Viewas = ? then
+    Viewas_Choices = ENTRY(1, Viewas_Relevant[ix_DTypes]).
+  else do:
+    find_match:
+    do ix_types = 1 to NUM-ENTRIES(ViewAs_Relevant[ix_DTypes]):
       widgtype = ENTRY(ix_types, ViewAs_Relevant[ix_DTypes]).
 
       /* All syntax strings should start with the 8 characters:
@@ -406,8 +409,9 @@ else do:
                ViewAs_Choices = widgtype.
                leave find_match. 
       end.         
-   end.
-end.
+    end.
+  end.
+END.
 
 /* Run time layout for button area. */
 &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN

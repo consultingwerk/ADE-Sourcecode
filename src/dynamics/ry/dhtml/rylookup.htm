@@ -57,12 +57,6 @@ document.write('<title>'+win.lookup.lookuptitle+'</title>');
 
 <script language="javascript"><!--
 
-function _close(){
-  win.app=window.isPopup;
-  win.appframes.popup.active=null;
-  close();
-}
-
 function _load(){
   win=document.all?window.dialogArguments:window.opener;
   window.isPopup=win.app;
@@ -78,6 +72,9 @@ function _load(){
   window.onresize=function(e){ win.resizeObjects(window);};  
 }
 
+function _close(){
+  win.dialogClose(window);
+}
 
 function run(app){
   refresh(app);
@@ -162,7 +159,8 @@ function fOK(){
 function returnval(){
   win.document.title=oldtitle;
   var hdata=window._lookup.hdata;
-  win.lookup.setFields(hdata.data[hdata.row-1].split(hdata.dlm));
+  win.lookup.lookupdata=[hdata.data[hdata.row-1]]; // Make it one selection
+  win.lookup.setFields();
   window._close();   
 }
 

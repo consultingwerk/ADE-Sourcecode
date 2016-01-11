@@ -8,7 +8,7 @@ DEFINE TEMP-TABLE ttCalcField
     FIELD tLabel         AS CHARACTER
     FIELD tFormat        AS CHARACTER
     FIELD tHelp          AS CHARACTER
+    FIELD tColumnLabel   AS CHARACTER
     INDEX idxEntity
       tEntity
       tName.
- 

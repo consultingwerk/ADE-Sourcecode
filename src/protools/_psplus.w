@@ -252,7 +252,7 @@ DEFINE VARIABLE chCtrlFrame AS COMPONENT-HANDLE NO-UNDO.
 
 /* Definitions of the field level widgets                               */
 DEFINE BUTTON btnFilter 
-     IMAGE-UP FILE "adm2/image/filter.bmp":U
+     IMAGE-UP FILE "adeicon/filter.bmp":U
      LABEL "btnfilter" 
      SIZE 6 BY 1.19 TOOLTIP "Filter".
 
@@ -1428,6 +1428,7 @@ PROCEDURE importLog :
 
   SESSION:SET-WAIT-STATE('GENERAL').
   gchTreeView:VISIBLE = FALSE.
+  statusRect:VISIBLE  = FALSE.
 
   IF NOT glModified THEN
     giCurrentBatch = 0.
@@ -1489,6 +1490,7 @@ PROCEDURE importLog :
   END. /* REPEAT: */
   INPUT CLOSE.
   gchTreeView:VISIBLE = TRUE.
+  statusRect:VISIBLE  = TRUE.
   SESSION:SET-WAIT-STATE('').
   
   fiStatus:FONT = ?.

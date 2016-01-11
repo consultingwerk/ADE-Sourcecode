@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
           icfdb            PROGRESS
@@ -87,7 +87,7 @@ END PROCEDURE.
 /* Include file with RowObject temp-table definition */
 &Scoped-define DATA-FIELD-DEFS "ry/obj/dopendialog.i"
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME F-Main
 &Scoped-define BROWSE-NAME br_table
 
@@ -95,12 +95,10 @@ END PROCEDURE.
 &Scoped-define INTERNAL-TABLES rowObject
 
 /* Definitions for BROWSE br_table                                      */
-&Scoped-define FIELDS-IN-QUERY-br_table rowObject.object_filename ~
-rowObject.object_type_code rowObject.product_module_code ~
-rowObject.object_description rowObject.object_path ~
-rowObject.object_extension rowObject.runnable_from_menu rowObject.disabled ~
-rowObject.run_persistent rowObject.run_when rowObject.container_object ~
-rowObject.static_object rowObject.generic_object rowObject.smartobject_obj 
+&Scoped-define FIELDS-IN-QUERY-br_table object_filename object_type_code ~
+product_module_code object_description object_path object_extension ~
+runnable_from_menu disabled run_persistent run_when container_object ~
+static_object generic_object smartobject_obj 
 &Scoped-define ENABLED-FIELDS-IN-QUERY-br_table 
 &Scoped-define QUERY-STRING-br_table FOR EACH rowObject NO-LOCK INDEXED-REPOSITION
 &Scoped-define OPEN-QUERY-br_table OPEN QUERY br_table FOR EACH rowObject NO-LOCK INDEXED-REPOSITION.
@@ -111,7 +109,7 @@ rowObject.static_object rowObject.generic_object rowObject.smartobject_obj
 /* Definitions for FRAME F-Main                                         */
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS buButton br_table 
+&Scoped-Define ENABLED-OBJECTS br_table buButton 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -148,7 +146,7 @@ DEFINE BUTTON buButton
 
 /* Query definitions                                                    */
 &ANALYZE-SUSPEND
-DEFINE TEMP-TABLE RowObject
+DEFINE TEMP-TABLE RowObject NO-UNDO
     {{&DATA-FIELD-DEFS}}
     {src/adm2/robjflds.i}.
 
@@ -160,20 +158,20 @@ DEFINE QUERY br_table FOR
 DEFINE BROWSE br_table
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _DISPLAY-FIELDS br_table bTableWin _STRUCTURED
   QUERY br_table NO-LOCK DISPLAY
-      rowObject.object_filename FORMAT "X(70)":U WIDTH 30
-      rowObject.object_type_code FORMAT "X(35)":U
-      rowObject.product_module_code FORMAT "X(35)":U
-      rowObject.object_description FORMAT "X(35)":U
-      rowObject.object_path FORMAT "X(70)":U
-      rowObject.object_extension FORMAT "X(35)":U
-      rowObject.runnable_from_menu FORMAT "YES/NO":U
-      rowObject.disabled FORMAT "YES/NO":U
-      rowObject.run_persistent FORMAT "YES/NO":U
-      rowObject.run_when FORMAT "X(3)":U
-      rowObject.container_object FORMAT "YES/NO":U
-      rowObject.static_object FORMAT "YES/NO":U
-      rowObject.generic_object FORMAT "YES/NO":U
-      rowObject.smartobject_obj FORMAT "->>>>>>>>>>>>>>>>>9.999999999":U
+      object_filename FORMAT "X(70)":U WIDTH 30
+      object_type_code FORMAT "X(35)":U
+      product_module_code FORMAT "X(35)":U
+      object_description FORMAT "X(35)":U
+      object_path FORMAT "X(70)":U
+      object_extension FORMAT "X(35)":U
+      runnable_from_menu FORMAT "YES/NO":U
+      disabled FORMAT "YES/NO":U
+      run_persistent FORMAT "YES/NO":U
+      run_when FORMAT "X(3)":U
+      container_object FORMAT "YES/NO":U
+      static_object FORMAT "YES/NO":U
+      generic_object FORMAT "YES/NO":U
+      smartobject_obj FORMAT "->>>>>>>>>>>>>>>>>9.999999999":U
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
     WITH NO-ASSIGN NO-AUTO-VALIDATE NO-ROW-MARKERS SEPARATORS SIZE 80 BY 8.1 ROW-HEIGHT-CHARS .62 FIT-LAST-COLUMN.
@@ -182,8 +180,8 @@ DEFINE BROWSE br_table
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME F-Main
-     buButton AT ROW 1 COL 1
      br_table AT ROW 1 COL 1
+     buButton AT ROW 1 COL 1
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -239,8 +237,8 @@ END.
 /* SETTINGS FOR WINDOW bTableWin
   NOT-VISIBLE,,RUN-PERSISTENT                                           */
 /* SETTINGS FOR FRAME F-Main
-   NOT-VISIBLE Size-to-Fit                                              */
-/* BROWSE-TAB br_table buButton F-Main */
+   NOT-VISIBLE FRAME-NAME Size-to-Fit                                   */
+/* BROWSE-TAB br_table 1 F-Main */
 ASSIGN 
        FRAME F-Main:SCROLLABLE       = FALSE
        FRAME F-Main:HIDDEN           = TRUE.
@@ -263,7 +261,7 @@ ASSIGN
      _TblList          = "rowObject"
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _FldNameList[1]   > _<SDO>.rowObject.object_filename
-"rowObject.object_filename" ? ? "character" ? ? ? ? ? ? no ? no no "30" yes no no "U" "" ""
+"object_filename" ? ? "character" ? ? ? ? ? ? no ? no no "30" yes no no "U" "" ""
      _FldNameList[2]   = _<SDO>.rowObject.object_type_code
      _FldNameList[3]   = _<SDO>.rowObject.product_module_code
      _FldNameList[4]   = _<SDO>.rowObject.object_description

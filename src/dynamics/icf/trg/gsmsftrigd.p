@@ -61,57 +61,6 @@ DEFINE BUFFER o_gsm_startup_flow FOR gsm_startup_flow.
 
 
 
-/* Generic comments deletion */
-DEFINE BUFFER lbx_gsm_comment FOR gsm_comment.
-DEFINE BUFFER lby_gsm_comment FOR gsm_comment.
-IF CAN-FIND(FIRST lbx_gsm_comment 
-            WHERE lbx_gsm_comment.owning_obj = gsm_startup_flow.{&TRIGGER_OBJ}) THEN
-    FOR EACH lbx_gsm_comment NO-LOCK
-       WHERE lbx_gsm_comment.owning_obj = gsm_startup_flow.{&TRIGGER_OBJ}
-       ON STOP UNDO, RETURN ERROR "AF^104^gsmsftrigd.p^delete gsm_comment":U:
-        FIND FIRST lby_gsm_comment EXCLUSIVE-LOCK
-             WHERE ROWID(lby_gsm_comment) = ROWID(lbx_gsm_comment)
-             NO-ERROR.
-        IF AVAILABLE lby_gsm_comment THEN
-          DO:
-            {af/sup/afvalidtrg.i &action = "DELETE" &table = "lby_gsm_comment"}
-          END.
-    END.
-/* Generic security allocation deletion */
-DEFINE BUFFER lbx_gsm_user_allocation FOR gsm_user_allocation.
-DEFINE BUFFER lby_gsm_user_allocation FOR gsm_user_allocation.
-IF CAN-FIND(FIRST lbx_gsm_user_allocation 
-            WHERE lbx_gsm_user_allocation.owning_obj = gsm_startup_flow.{&TRIGGER_OBJ}) THEN
-    FOR EACH lbx_gsm_user_allocation NO-LOCK
-       WHERE lbx_gsm_user_allocation.owning_obj = gsm_startup_flow.{&TRIGGER_OBJ}
-       ON STOP UNDO, RETURN ERROR "AF^104^gsmsftrigd.p^delete gsm_user_allocation":U:
-        FIND FIRST lby_gsm_user_allocation EXCLUSIVE-LOCK
-             WHERE ROWID(lby_gsm_user_allocation) = ROWID(lbx_gsm_user_allocation)
-             NO-ERROR.
-        IF AVAILABLE lby_gsm_user_allocation THEN
-          DO:
-            {af/sup/afvalidtrg.i &action = "DELETE" &table = "lby_gsm_user_allocation"}
-          END.
-    END.
-/* Generic multi-media deletion */
-DEFINE BUFFER lbx_gsm_multi_media FOR gsm_multi_media.
-DEFINE BUFFER lby_gsm_multi_media FOR gsm_multi_media.
-IF CAN-FIND(FIRST lbx_gsm_multi_media 
-            WHERE lbx_gsm_multi_media.owning_obj = gsm_startup_flow.{&TRIGGER_OBJ}) THEN
-    FOR EACH lbx_gsm_multi_media NO-LOCK
-       WHERE lbx_gsm_multi_media.owning_obj = gsm_startup_flow.{&TRIGGER_OBJ}
-       ON STOP UNDO, RETURN ERROR "AF^104^gsmsftrigd.p^delete gsm_multi_media":U:
-        FIND FIRST lby_gsm_multi_media EXCLUSIVE-LOCK
-             WHERE ROWID(lby_gsm_multi_media) = ROWID(lbx_gsm_multi_media)
-             NO-ERROR.
-        IF AVAILABLE lby_gsm_multi_media THEN
-          DO:
-            {af/sup/afvalidtrg.i &action = "DELETE" &table = "lby_gsm_multi_media"}
-          END.
-    END.
-
-
-
 
 
 

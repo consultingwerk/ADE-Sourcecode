@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS sObject 
@@ -271,6 +271,55 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE resizeObject sObject 
+PROCEDURE resizeObject :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  DEFINE INPUT PARAMETER pdHeight             AS DECIMAL          NO-UNDO.
+  DEFINE INPUT PARAMETER pdWidth              AS DECIMAL          NO-UNDO.
+
+  DEFINE VARIABLE iCurrentPage                AS INTEGER          NO-UNDO.
+  DEFINE VARIABLE lHidden                     AS LOGICAL          NO-UNDO.  
+
+  DEFINE VARIABLE hLabelHandle                AS HANDLE           NO-UNDO.
+
+  ASSIGN
+    lHidden                                   = FRAME {&FRAME-NAME}:HIDDEN
+    FRAME {&FRAME-NAME}:HIDDEN                = YES
+    FRAME {&FRAME-NAME}:SCROLLABLE            = YES
+    FRAME {&FRAME-NAME}:VIRTUAL-HEIGHT-CHARS  = SESSION:HEIGHT-CHARS
+    FRAME {&FRAME-NAME}:VIRTUAL-WIDTH-CHARS   = SESSION:WIDTH-CHARS
+    FRAME {&FRAME-NAME}:HEIGHT-CHARS          = pdHeight
+    FRAME {&FRAME-NAME}:WIDTH-CHARS           = pdWidth
+    .
+
+  DO WITH FRAME {&FRAME-NAME}:
+
+    ASSIGN
+      edStatus:ROW           = 2
+      edStatus:COLUMN        = 2
+      edstatus:HEIGHT-CHARS  = FRAME {&FRAME-NAME}:HEIGHT-CHARS - 2
+      edStatus:WIDTH-CHARS   = FRAME {&FRAME-NAME}:WIDTH-CHARS - 2
+      .
+
+  END.    /* with frame ... */
+
+  ASSIGN
+    FRAME {&FRAME-NAME}:VIRTUAL-HEIGHT-CHARS = FRAME {&FRAME-NAME}:HEIGHT-CHARS
+    FRAME {&FRAME-NAME}:VIRTUAL-WIDTH-CHARS  = FRAME {&FRAME-NAME}:WIDTH-CHARS
+    FRAME {&FRAME-NAME}:SCROLLABLE           = NO
+    FRAME {&FRAME-NAME}:HIDDEN               = lHidden
+    .
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 /* ************************  Function Implementations ***************** */
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION updateLog sObject 
@@ -280,15 +329,22 @@ FUNCTION updateLog RETURNS LOGICAL
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  DO WITH FRAME {&FRAME-NAME}:
-      /* We don't want the editor blowing any limits */
-      IF LENGTH(edStatus:SCREEN-VALUE) > 30000 THEN
-          ASSIGN edStatus:SCREEN-VALUE = "":U.
+  DEFINE VARIABLE lStatus AS LOGICAL     NO-UNDO.
 
-      IF edStatus:SCREEN-VALUE = "":U THEN
-          ASSIGN edStatus:SCREEN-VALUE = pcLine.
-      ELSE
-          ASSIGN edStatus:SCREEN-VALUE = edStatus:SCREEN-VALUE + CHR(10) + pcLine.
+  DO WITH FRAME {&FRAME-NAME}:
+
+      edStatus:INSERT-STRING(pcLine).
+      lStatus = edStatus:INSERT-STRING("~n").
+   
+      /* If editor limit has been reached,
+            clear editor and continue adding content */
+      IF NOT lStatus THEN
+      DO:
+          edStatus:SCREEN-VALUE = "":U.
+          edStatus:INSERT-STRING(pcLine).
+          edStatus:INSERT-STRING("~n").
+      END.
+      
       edStatus:MOVE-TO-EOF().
   END.
 

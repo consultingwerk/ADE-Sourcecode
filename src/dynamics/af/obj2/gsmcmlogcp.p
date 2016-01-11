@@ -116,8 +116,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /* Astra object identifying preprocessor */
 &glob   AstraPlip    yes
 
-DEFINE VARIABLE cObjectName         AS CHARACTER NO-UNDO.
-
+DEFINE VARIABLE cObjectName     AS CHARACTER  NO-UNDO.
 ASSIGN cObjectName = "{&object-name}":U.
 
 &scop   mip-notify-user-on-plip-close   NO
@@ -139,7 +138,9 @@ DEFINE VARIABLE gcStoreWhereClause AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcEntityMnemonic   AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE glAutoDisplay      AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE gcDescription      AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcDisplayField     AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE ghSDO              AS HANDLE     NO-UNDO.
+DEFINE VARIABLE ghUIM              AS HANDLE     NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -173,6 +174,13 @@ DEFINE VARIABLE ghSDO              AS HANDLE     NO-UNDO.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD deleteRow DataLogicProcedure 
 FUNCTION deleteRow RETURNS LOGICAL
   ( INPUT pcRowIdent AS CHARACTER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getEntityInfo DataLogicProcedure 
+FUNCTION getEntityInfo RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -228,7 +236,7 @@ FUNCTION setPropertyinCommaList RETURNS CHARACTER
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW DataLogicProcedure ASSIGN
          HEIGHT             = 25.48
-         WIDTH              = 45.8.
+         WIDTH              = 59.2.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -360,16 +368,32 @@ PROCEDURE getPriDataSource :
 
   DEFINE VARIABLE cAttrValue            AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hContainerSource      AS HANDLE     NO-UNDO.
-  {get DataSource ghDataSource}.
-  IF NOT VALID-HANDLE(ghDataSource) THEN 
+  DEFINE VARIABLE cContainerName        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSDOName              AS CHARACTER  NO-UNDO.
+  IF SESSION:CLIENT-TYPE <> "webspeed" THEN
   DO:
-    {get ContainerSource hContainerSource}.
-    {get runAttribute cAttrValue hContainerSource}.
-    ghDataSource = WIDGET-HANDLE(cAttrValue).
+      {get DataSource ghDataSource}.
+      IF NOT VALID-HANDLE(ghDataSource) THEN 
+      DO:
+        {get ContainerSource hContainerSource}.
+        {get runAttribute cAttrValue hContainerSource}.
+        ghDataSource = WIDGET-HANDLE(cAttrValue).
+      END.
   END.
-  IF NOT VALID-HANDLE(ghDataSource) THEN
-    RETURN.
+  ELSE 
+  DO:
+    /* Get the request Manager Handle */
+    IF NOT VALID-HANDLE(ghUIM) THEN
+      ghUIM = DYNAMIC-FUNCTION("getManagerHandle":U IN THIS-PROCEDURE,
+                                    "UserInterfaceManager":U).
 
+    IF NOT VALID-HANDLE(ghUIM) THEN
+      RETURN.
+
+    /* Get the SDO Handle */
+    ghDataSource = DYNAMIC-FUNCTION("getSDOForComments" IN ghUIM, YES).
+  END.
+  RETURN.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -396,8 +420,8 @@ PROCEDURE initializeObject :
   ASSIGN ghSDO = TARGET-PROCEDURE.
   {get AsDivision cAsDivision}.
 
-  IF cAsDivision <> 'SERVER':U 
-  THEN DO:
+  IF cAsDivision <> 'SERVER':U THEN 
+  DO:
       /*Problem with PrimarySDO link, so this uses the DataSource which is retrieved
         as a RunAttribute, as a DataSource, if getDataSource returns invalid value */
       RUN getPriDataSource IN TARGET-PROCEDURE.
@@ -405,31 +429,36 @@ PROCEDURE initializeObject :
       /* Set a Property in the DataSource conaining the handle of this procedure
          to  say that the Comments is running for this datasource so we don't launch
          it, if it is already running */
-      {get ContainerSource hContainerSource}.
+      IF SESSION:CLIENT-TYPE <> "Webspeed" THEN
+      DO:
+        {get ContainerSource hContainerSource}.
       
-      {get ContainerToolbarSource hToolbar hContainerSource}.
+        {get ContainerToolbarSource hToolbar hContainerSource}.
       
-      RUN addLink IN TARGET-PROCEDURE ( hToolbar , 'Navigation':U , ghDataSource ).
+        RUN addLink IN TARGET-PROCEDURE ( hToolbar , 'Navigation':U , ghDataSource ).
       
-      DYNAMIC-FUNCTION("setUserProperty":U IN ghDatasource, "CommentsContainer":U, STRING(hContainerSource)).
-      
-      SUBSCRIBE TO "DataAvailable":U IN ghDatasource.
+        DYNAMIC-FUNCTION("setUserProperty":U IN ghDatasource, "CommentsContainer":U, STRING(hContainerSource)).
+        
+        SUBSCRIBE PROCEDURE TARGET-PROCEDURE TO "DataAvailable":U IN ghDatasource.
+      END.
       
       {set ServerSubmitValidation YES}.
-      
+
       ASSIGN cUpdatableTable = ENTRY(1,{fn getEnabledTables ghDataSource}) NO-ERROR.
       RUN getEntityDetail IN gshGenMAnager (INPUT cUpdatableTable, OUTPUT cEntityFields, OUTPUT cEntityValues).
       
-      ASSIGN glHasObjectField = (ENTRY(LOOKUP("table_has_object_field",cEntityFields,CHR(1)),cEntityValues,CHR(1)) = "YES":U) NO-ERROR.        
-      
+      ASSIGN glHasObjectField = (ENTRY(LOOKUP("table_has_object_field",cEntityFields,CHR(1)),cEntityValues,CHR(1)) = "YES":U) 
+             gcDisplayField   = ENTRY(LOOKUP("entity_description_field",cEntityFields,CHR(1)),cEntityValues,CHR(1)) NO-ERROR.
+      IF gcDisplayField = ? OR gcDisplayField = "" THEN
+        gcDisplayField = ENTRY(LOOKUP("entity_key_field",cEntityFields,CHR(1)),cEntityValues,CHR(1)) NO-ERROR.
+    
       {fn joinEntity}.
   END.
 
   RUN SUPER.
 
   /* Running a manual openQuery as there is no foreignFields to be set as their is no one-to-one match */
-  IF cAsDivision <> 'SERVER':U 
-  THEN 
+  IF cAsDivision <> 'SERVER':U THEN 
   DO:
       {fn openQuery}.
   END.
@@ -718,7 +747,8 @@ PROCEDURE updateProperties :
 
     {set entityFields cEntityFields ghDataSource} NO-ERROR.
     
-    RUN dataAvailable IN ghDataSource (INPUT "VALUE-CHANGED":U).
+    IF SESSION:CLIENT-TYPE <> "Webspeed" THEN
+      RUN dataAvailable IN ghDataSource (INPUT "VALUE-CHANGED":U).
 
   END.
 
@@ -787,6 +817,60 @@ FUNCTION deleteRow RETURNS LOGICAL
   END.
 
   RETURN lCommentOK.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getEntityInfo DataLogicProcedure 
+FUNCTION getEntityInfo RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  This function returns the Entity Information
+  Note   : 
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cDisplayFieldLabel    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDisplayFieldValue    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cKeyFields            AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cOwningReference      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cReturn               AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cUserId               AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cOwningEntityMnemonic AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iKey                  AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cField                AS CHARACTER  NO-UNDO.
+
+  {get KeyTableId cOwningEntityMnemonic ghDataSource}.
+  ASSIGN
+    cKeyFields         = {fn getKeyFields ghDataSource}
+    cOwningReference   = {fnarg colValues cKeyfields ghDataSource}
+
+    ENTRY(1,cOwningReference,CHR(1)) = ''
+    cOwningReference = REPLACE(SUBSTR(cOwningReference,2),CHR(1),CHR(2))
+    cUserId            =  DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
+                                  INPUT "CurrentUserLogin":U,
+                                  INPUT NO).
+
+  DO iKey = 1 TO NUM-ENTRIES(cKeyFields):
+    ASSIGN
+      cField = ENTRY(iKey,cKeyFields)
+      cDisplayFieldValue = cDisplayFieldValue 
+                         + (IF iKey = 1 THEN '' ELSE ' ')
+                         + {fnarg ColumnValue cField ghDataSource}
+      cDisplayFieldLabel = cDisplayFieldLabel
+                         + (IF iKey = 1 THEN '' ELSE '+')
+                         + {fnarg ColumnLabel cField ghDataSource}.
+  END.
+
+  cReturn =  "OwningEntityMnemonic" + "|":U + cOwningEntityMnemonic + "|":U + 
+             "TableHasObjField" + "|":U + STRING(glHasObjectField) + "|":U +
+             "KeyFields" + "|":U + cKeyFields + "|":U +
+             "OwningReference" + "|":U + cOwningReference + "|":U +
+             "DisplayFieldLabel" + "|":U + cDisplayFieldLabel + "|":U + 
+             "DisplayFieldValue" + "|":U + cDisplayFieldValue + "|":U +
+             "UserId" + "|":U + cUserId.
+ 
+  RETURN cReturn.
 
 END FUNCTION.
 

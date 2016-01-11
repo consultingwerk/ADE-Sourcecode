@@ -336,10 +336,11 @@ ACCESS_LEVEL=PRIVATE
         {set MinWidth  pdPackedWidth  phObjectInstance}.
     END.    /* SmartFolder */
     ELSE
-    IF {fnarg InstanceOf 'DynFrame' phObjectInstance}     OR
-       /* This is to cater for instances where a container is forcibly run using the dynamic frame */       
-       phObjectInstance:FILENAME MATCHES "*rydynframw*":U THEN
-    DO:
+    /* Cater for DynFrames and other contained window containers, 
+       such as those run by the treeview window.
+     */
+    IF {fnarg instanceOf 'DynContainer' phObjectInstance} then
+    DO:    
         ASSIGN pdPackedWidth  = 0
                pdPackedHeight = 0.
 
@@ -366,7 +367,7 @@ ACCESS_LEVEL=PRIVATE
                                             INPUT  iFrameCurrentPage,   /* piPageNumber */
                                             OUTPUT pdPackedWidth,
                                             OUTPUT pdPackedHeight   ).
-
+        
         /* Set these minimum (packed) heights/widths */
         {set MinHeight pdPackedHeight phObjectInstance}.
         {set MinWidth  pdPackedWidth  phObjectInstance}.
@@ -908,7 +909,7 @@ ACCESS_LEVEL=PRIVATE
     DEFINE VARIABLE dChildWindowHeight      AS DECIMAL   NO-UNDO.    
     DEFINE VARIABLE cObjectTypeCode         AS CHARACTER NO-UNDO.
     DEFINE VARIABLE cContainerTargets       AS CHARACTER NO-UNDO.
-    DEFINE VARIABLE iLoop                   AS INTEGER   NO-UNDO.
+    DEFINE VARIABLE iLoop                   AS INTEGER   NO-UNDO.    
     
     /* Get the things we know about. These are the hard-coded (non Repository-based)
        components used by the treeview.
@@ -977,6 +978,10 @@ ACCESS_LEVEL=PRIVATE
            hObjectInstanceHandle EQ hTopToolbar   OR           
            hObjectInstanceHandle EQ hFilterViewer THEN
             NEXT.
+            
+        /* Skip DataObjects */
+        if {fn getQueryObject hObjectInstanceHandle} then
+            next.
         
         /* The stuff that's left will typically be the child information folder window(s). */
         {get ClassName cObjectTypeCode hObjectInstanceHandle}.
@@ -1636,21 +1641,21 @@ ACCESS_LEVEL=PRIVATE
         /* This procedure doesn't care which page an obejct is on, just whether it
          * is on a page at all. */
         ASSIGN cAllPageTargets = REPLACE(cAllPageTargets, "|":U, ",":U).
-        END.    /* page 0 */
-        ELSE
-                ASSIGN cPageNTargets = DYNAMIC-FUNCTION("PageNTargets":U IN ghSourceProcedure,
-                                                                                    INPUT ghSourceProcedure,
-                                                                                    INPUT piPageNumber          ).
-        /* TOP components */
-        DO iLoop = 1 TO NUM-ENTRIES(cPageNTargets):
+    END.    /* page 0 */
+    ELSE
+        ASSIGN cPageNTargets = DYNAMIC-FUNCTION("PageNTargets":U IN ghSourceProcedure,
+                                                INPUT ghSourceProcedure,
+                                                INPUT piPageNumber          ).
+    /* TOP components */
+    DO iLoop = 1 TO NUM-ENTRIES(cPageNTargets):
         ASSIGN hObjectInstanceHandle = WIDGET-HANDLE(ENTRY(iLoop, cPageNTargets)) NO-ERROR.                
         IF NOT VALID-HANDLE(hObjectInstanceHandle) THEN NEXT.
         
         /* If we are looking for page zero objects, and the object exists on another page,
          * ignore it and move right on.
          */
-                IF piPageNumber EQ 0 AND CAN-DO(cAllPageTargets, STRING(hObjectInstanceHandle)) THEN
-                        NEXT.
+        IF piPageNumber EQ 0 AND CAN-DO(cAllPageTargets, STRING(hObjectInstanceHandle)) THEN
+	        NEXT.
         
         &SCOPED-DEFINE xp-assign   
         {get ClassName cObjectTypeCode hObjectInstanceHandle}
@@ -1661,54 +1666,53 @@ ACCESS_LEVEL=PRIVATE
                 NEXT.
                 
         /* Tell the others that there is at least one TOP component */  
-                ASSIGN lTopObjects = YES.
-                
-                {get Height dObjectHeight hObjectInstanceHandle} NO-ERROR.
-                {get Width  dObjectWidth  hObjectInstanceHandle} NO-ERROR.
+        ASSIGN lTopObjects = YES.
         
-              
-                IF hObjectInstanceHandle:FILE-NAME = "ry/obj/rydyntoolt.w" THEN 
-                        ASSIGN dNewObjectRow    = 0
-                                   dNewObjectColumn = 0
-                                   dNewObjectWidth  = dDesiredWidth + 2.
-                ELSE
-                        ASSIGN dNewObjectColumn = 1
-                                   dNewObjectWidth  = dDesiredWidth
-                                   dNewObjectRow    = 0.48.
-                                   
-                ASSIGN dNewObjectHeight = dObjectHeight
-                           iCenterTopRow    = MAX(iCenterTopRow, dNewObjectRow + dObjectHeight).        
+        {get Height dObjectHeight hObjectInstanceHandle} NO-ERROR.
+        {get Width  dObjectWidth  hObjectInstanceHandle} NO-ERROR.
+      
+        IF {fnarg instanceOf 'SmartToolbar' hObjectInstanceHandle} then
+            ASSIGN dNewObjectRow    = 0
+                   dNewObjectColumn = 0
+                   dNewObjectWidth  = dDesiredWidth + 2.
+        ELSE
+            ASSIGN dNewObjectColumn = 1
+                   dNewObjectWidth  = dDesiredWidth
+                   dNewObjectRow    = 0.48.
                            
-                RUN resizeAndMoveSomething ( INPUT  piPageNumber,
-                                                                     INPUT  cObjectTypeCode,
-                                                                     INPUT  hObjectInstanceHandle,
-                                                                     INPUT  pdTopLeftColumn,
-                                                                     INPUT  pdTopLeftRow,
-                                                                     INPUT  dNewObjectColumn,
-                                                                     INPUT  dNewObjectRow,
-                                                                     INPUT dNewObjectWidth,
-                                                                     INPUT  dNewObjectHeight            ).      
-        END.    /* all TOP objects */
-                
-        /* BOTTOM components */
-        DO iLoop = 1 TO NUM-ENTRIES(cPageNTargets):
+        ASSIGN dNewObjectHeight = dObjectHeight
+               iCenterTopRow    = MAX(iCenterTopRow, dNewObjectRow + dObjectHeight).        
+                   
+        RUN resizeAndMoveSomething ( INPUT  piPageNumber,
+                                     INPUT  cObjectTypeCode,
+                                     INPUT  hObjectInstanceHandle,
+                                     INPUT  pdTopLeftColumn,
+                                     INPUT  pdTopLeftRow,
+                                     INPUT  dNewObjectColumn,
+                                     INPUT  dNewObjectRow,
+                                     INPUT  dNewObjectWidth,
+                                     INPUT  dNewObjectHeight            ).      
+    END.    /* all TOP objects */
+                    
+    /* BOTTOM components */
+    DO iLoop = 1 TO NUM-ENTRIES(cPageNTargets):
         ASSIGN hObjectInstanceHandle = WIDGET-HANDLE(ENTRY(iLoop, cPageNTargets)) NO-ERROR.                
         IF NOT VALID-HANDLE(hObjectInstanceHandle) THEN NEXT.
         
         /* If we are looking for page zero objects, and the object exists on another page,
          * ignore it and move right on.
          */
-                IF piPageNumber EQ 0 AND CAN-DO(cAllPageTargets, STRING(hObjectInstanceHandle)) THEN
-                        NEXT.
+        IF piPageNumber EQ 0 AND CAN-DO(cAllPageTargets, STRING(hObjectInstanceHandle)) THEN
+            NEXT.
         
         {get LayoutPosition cLayoutPosition hObjectInstanceHandle}.
         IF NOT cLayoutPosition BEGINS "BOT":U THEN
-                NEXT.
+            NEXT.
+        
+        ASSIGN lBottomObjects = YES.                                    
                 
-                ASSIGN lBottomObjects = YES.                                    
-                
-                {get Height dObjectHeight hObjectInstanceHandle} NO-ERROR.
-                {get Width  dObjectWidth  hObjectInstanceHandle} NO-ERROR.
+        {get Height dObjectHeight hObjectInstanceHandle} NO-ERROR.
+        {get Width  dObjectWidth  hObjectInstanceHandle} NO-ERROR.
         {get ClassName cObjectTypeCode hObjectInstanceHandle}.
                                 
         ASSIGN dNewObjectColumn = 1
@@ -1716,59 +1720,61 @@ ACCESS_LEVEL=PRIVATE
                    dNewObjectHeight = dObjectHeight
                    dNewObjectWidth  = dDesiredWidth
                    iCenterBottomRow = MIN(iCenterBottomRow, dNewObjectRow).
+        
+        IF {fnarg instanceOf 'SmartToolbar' hObjectInstanceHandle} then
+            /* all toolbars positioned in bottom are drawn one pixel 
+               higher up the screen, and one pixel deeper
+             */
+            dNewObjectRow = dNewObjectRow - (1 * dCharsPerRowPixel).
+            
+        RUN resizeAndMoveSomething ( INPUT  piPageNumber,  
+                                     INPUT  cObjectTypeCode,
+                                     INPUT  hObjectInstanceHandle,
+                                     INPUT  pdTopLeftColumn,
+                                     INPUT  pdTopLeftRow,
+                                     INPUT  dNewObjectColumn, 
+                                     INPUT  dNewObjectRow,
+                                     INPUT  dNewObjectWidth,
+                                     INPUT  dNewObjectHeight         ).
+    END.    /* all BOTTOM objects */
 
-                IF hObjectInstanceHandle:FILE-NAME EQ "ry/obj/rydyntoolt.w" THEN
-                        /* all toolbars positioned in bottom are drawn one pixel higher up the screen, and one pixel deeper */            
-                        ASSIGN dNewObjectRow = dNewObjectRow - (1 * dCharsPerRowPixel).
-                        
-                RUN resizeAndMoveSomething ( INPUT  piPageNumber,  
-                                                                     INPUT  cObjectTypeCode,
-                                                                     INPUT  hObjectInstanceHandle,
-                                                                     INPUT  pdTopLeftColumn,
-                                                                     INPUT  pdTopLeftRow,
-                                                                     INPUT  dNewObjectColumn, 
-                                                                     INPUT  dNewObjectRow,
-                                                                     INPUT  dNewObjectWidth,
-                                                                     INPUT  dNewObjectHeight         ).
-        END.    /* all BOTTOM objects */
-
-        /* CENTRE components */
-        DO iLoop = 1 TO NUM-ENTRIES(cPageNTargets):
+    /* CENTRE components */
+    DO iLoop = 1 TO NUM-ENTRIES(cPageNTargets):
         ASSIGN hObjectInstanceHandle = WIDGET-HANDLE(ENTRY(iLoop, cPageNTargets)) NO-ERROR.                
         IF NOT VALID-HANDLE(hObjectInstanceHandle) THEN NEXT.
 
         /* If we are looking for page zero objects, and the object exists on another page,
          * ignore it and move right on.
          */
-                IF piPageNumber EQ 0 AND CAN-DO(cAllPageTargets, STRING(hObjectInstanceHandle)) THEN
-                        NEXT.
+        IF piPageNumber EQ 0 AND CAN-DO(cAllPageTargets, STRING(hObjectInstanceHandle)) THEN
+            NEXT.
         
         {get LayoutPosition cLayoutPosition hObjectInstanceHandle}.
         IF NOT cLayoutPosition BEGINS "CENT":U THEN
-                NEXT.
+            NEXT.
         
-                {get Height dObjectHeight hObjectInstanceHandle} NO-ERROR.
-                {get Width  dObjectWidth  hObjectInstanceHandle} NO-ERROR.  
+        {get Height dObjectHeight hObjectInstanceHandle} NO-ERROR.
+        {get Width  dObjectWidth  hObjectInstanceHandle} NO-ERROR.  
         {get ClassName cObjectTypeCode hObjectInstanceHandle}.
                 
-                ASSIGN dNewObjectColumn = 1
-                           dNewObjectRow    = (IF lTopObjects THEN 0.24 ELSE 0) + iCenterTopRow
-                           dNewObjectHeight = iCenterBottomRow - iCenterTopRow - 0.24 - (IF lBottomObjects AND piPageNumber = 0 THEN 0.24 ELSE 0)
-                           dNewObjectWidth  = dDesiredWidth.
+        ASSIGN dNewObjectColumn = 1
+               dNewObjectRow    = (IF lTopObjects THEN 0.24 ELSE 0) + iCenterTopRow
+               dNewObjectHeight = iCenterBottomRow - iCenterTopRow - 0.24 - (IF lBottomObjects AND piPageNumber = 0 THEN 0.24 ELSE 0)
+               dNewObjectWidth  = dDesiredWidth.
                            
-                RUN resizeAndMoveSomething ( INPUT  piPageNumber,  
-                                                                     INPUT  cObjectTypeCode,
-                                                                     INPUT  hObjectInstanceHandle,
-                                                                     INPUT  pdTopLeftColumn,
-                                                                     INPUT  pdTopLeftRow,
-                                                                     INPUT  dNewObjectColumn, 
-                                                                     INPUT  dNewObjectRow,
-                                                                     INPUT  dNewObjectWidth,
-                                                                     INPUT  dNewObjectHeight            ).                                                                   
-        END.    /* all CENTRE objects */
+        RUN resizeAndMoveSomething ( INPUT  piPageNumber,  
+                                     INPUT  cObjectTypeCode,
+                                     INPUT  hObjectInstanceHandle,
+                                     INPUT  pdTopLeftColumn,
+                                     INPUT  pdTopLeftRow,
+                                     INPUT  dNewObjectColumn, 
+                                     INPUT  dNewObjectRow,
+                                     INPUT  dNewObjectWidth,
+                                     INPUT  dNewObjectHeight            ).                                                                   
+    END.    /* all CENTRE objects */
                 
-        ASSIGN ERROR-STATUS:ERROR = NO.
-        RETURN.         
+    ERROR-STATUS:ERROR = NO.
+    RETURN.         
 END PROCEDURE.  /* resize02 */
 
 /* _UIB-CODE-BLOCK-END */
@@ -1996,9 +2002,9 @@ DEFINE VARIABLE dHeightLeft                 AS DECIMAL      NO-UNDO.
                dNewObjectWidth  = dDesiredWidth
                iCenterBottomRow = MIN(iCenterBottomRow, dNewObjectRow).
 
-        IF hObjectInstanceHandle:FILE-NAME = "ry/obj/rydyntoolt.w" THEN
-        /* all toolbars positioned in bottom are drawn one pixel higher up the screen, and one pixel deeper */            
-        ASSIGN dNewObjectRow = dNewObjectRow - (1 * dCharsPerRowPixel).
+        IF {fnarg instanceOf 'SmartToolbar' hObjectInstanceHandle} then
+            /* all toolbars positioned in bottom are drawn one pixel higher up the screen, and one pixel deeper */            
+            ASSIGN dNewObjectRow = dNewObjectRow - (1 * dCharsPerRowPixel).
         
         RUN resizeAndMoveSomething ( INPUT  piPageNumber,  
                                      INPUT  cObjectTypeCode,
@@ -2150,12 +2156,12 @@ DEFINE VARIABLE dNewObjectWidth             AS DECIMAL      NO-UNDO.
 DEFINE VARIABLE dNewObjectHeight            AS DECIMAL      NO-UNDO.
 DEFINE VARIABLE dNewObjectColumn            AS DECIMAL      NO-UNDO.
 DEFINE VARIABLE dNewObjectRow               AS DECIMAL      NO-UNDO.
-  DEFINE VARIABLE iLoop                                         AS INTEGER                              NO-UNDO.
-  DEFINE VARIABLE cPageNTargets                         AS CHARACTER                    NO-UNDO.
-  DEFINE VARIABLE cLayoutPosition                       AS CHARACTER                    NO-UNDO.
-  DEFINE VARIABLE cAllPageTargets                               AS CHARACTER            NO-UNDO.
+  DEFINE VARIABLE iLoop                     AS INTEGER      NO-UNDO.
+  DEFINE VARIABLE cPageNTargets             AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cLayoutPosition           AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cAllPageTargets           AS CHARACTER    NO-UNDO.
   
-        ASSIGN dDesiredWidth  = (pdContainerWidth / 2) - 8
+    ASSIGN dDesiredWidth  = (pdContainerWidth / 2) - 8
            dDesiredHeight = pdContainerHeight - 3
            iCenterLeftCol =  1.
           
@@ -2175,21 +2181,21 @@ DEFINE VARIABLE dNewObjectRow               AS DECIMAL      NO-UNDO.
         /* This procedure doesn't care which page an obejct is on, just whether it
          * is on a page at all. */
         ASSIGN cAllPageTargets = REPLACE(cAllPageTargets, "|":U, ",":U).
-        END.    /* page 0 */
-        ELSE
-                ASSIGN cPageNTargets = DYNAMIC-FUNCTION("PageNTargets":U IN ghSourceProcedure,
-                                                                                    INPUT ghSourceProcedure,
-                                                                                    INPUT piPageNumber          ).
-        /* LEFT components */
-        DO iLoop = 1 TO NUM-ENTRIES(cPageNTargets):
+    END.    /* page 0 */
+    ELSE
+        ASSIGN cPageNTargets = DYNAMIC-FUNCTION("PageNTargets":U IN ghSourceProcedure,
+                                                INPUT ghSourceProcedure,
+                                                INPUT piPageNumber          ).
+    /* LEFT components */
+    DO iLoop = 1 TO NUM-ENTRIES(cPageNTargets):
         ASSIGN hObjectInstanceHandle = WIDGET-HANDLE(ENTRY(iLoop, cPageNTargets)) NO-ERROR.                
         IF NOT VALID-HANDLE(hObjectInstanceHandle) THEN NEXT.
 
         /* If we are looking for page zero objects, and the object exists on another page,
          * ignore it and move right on.
          */
-                IF piPageNumber EQ 0 AND CAN-DO(cAllPageTargets, STRING(hObjectInstanceHandle)) THEN
-                        NEXT.
+        IF piPageNumber EQ 0 AND CAN-DO(cAllPageTargets, STRING(hObjectInstanceHandle)) THEN
+            NEXT.
         
         &SCOPED-DEFINE xp-assign
         {get LayoutPosition cLayoutPosition hObjectInstanceHandle}
@@ -2197,94 +2203,94 @@ DEFINE VARIABLE dNewObjectRow               AS DECIMAL      NO-UNDO.
         &UNDEFINE xp-assign
         
         IF NOT cLayoutPosition BEGINS "LEFT":U THEN
-                NEXT.
+            NEXT.
                 
-                {get Height dObjectHeight hObjectInstanceHandle} NO-ERROR.
-                {get Width  dObjectWidth  hObjectInstanceHandle} NO-ERROR.
+        {get Height dObjectHeight hObjectInstanceHandle} NO-ERROR.
+        {get Width  dObjectWidth  hObjectInstanceHandle} NO-ERROR.
                                                                                                   
-        IF hObjectInstanceHandle:FILE-NAME = "ry/obj/rydyntoolt.w" THEN
-                ASSIGN dNewObjectColumn = 1
-                           dNewObjectWidth  = 0.
+        IF {fnarg instanceOf 'SmartToolbar' hObjectInstanceHandle} then
+            ASSIGN dNewObjectColumn = 1
+                   dNewObjectWidth  = 0.
         ELSE
-                ASSIGN dNewObjectRow    = 0
-                           dNewObjectHeight = dDesiredHeight.
+            ASSIGN dNewObjectRow    = 0
+                   dNewObjectHeight = dDesiredHeight.
                            
-                ASSIGN dNewObjectWidth = dDesiredWidth
-                           iCenterLeftCol = MAX(iCenterLeftCol, dNewObjectColumn + dObjectWidth).
+        ASSIGN dNewObjectWidth = dDesiredWidth
+               iCenterLeftCol = MAX(iCenterLeftCol, dNewObjectColumn + dObjectWidth).
                            
         RUN resizeAndMoveSomething ( INPUT  piPageNumber,  
-                                                 INPUT  cObjectTypeCode,
-                                                 INPUT  hObjectInstanceHandle,        
-                                                 INPUT  pdTopLeftColumn,
-                                                 INPUT  pdTopLeftRow,
-                                                 INPUT  dNewObjectColumn, 
-                                                 INPUT  dNewObjectRow,
-                                                 INPUT  dNewObjectWidth,
-                                                 INPUT  dNewObjectHeight         ).
-        END.    /* LEFT */
+                                     INPUT  cObjectTypeCode,
+                                     INPUT  hObjectInstanceHandle,        
+                                     INPUT  pdTopLeftColumn,
+                                     INPUT  pdTopLeftRow,
+                                     INPUT  dNewObjectColumn, 
+                                     INPUT  dNewObjectRow,
+                                     INPUT  dNewObjectWidth,
+                                     INPUT  dNewObjectHeight         ).
+    END.    /* LEFT */
         
-        /* RIGHT components */
-        DO iLoop = 1 TO NUM-ENTRIES(cPageNTargets):
+    /* RIGHT components */
+    DO iLoop = 1 TO NUM-ENTRIES(cPageNTargets):
         ASSIGN hObjectInstanceHandle = WIDGET-HANDLE(ENTRY(iLoop, cPageNTargets)) NO-ERROR.                
         IF NOT VALID-HANDLE(hObjectInstanceHandle) THEN NEXT.
 
         /* If we are looking for page zero objects, and the object exists on another page,
          * ignore it and move right on.
          */
-                IF piPageNumber EQ 0 AND CAN-DO(cAllPageTargets, STRING(hObjectInstanceHandle)) THEN
-                        NEXT.
+        IF piPageNumber EQ 0 AND CAN-DO(cAllPageTargets, STRING(hObjectInstanceHandle)) THEN
+            NEXT.
         
         &SCOPED-DEFINE xp-assign
-                {get LayoutPosition cLayoutPosition hObjectInstanceHandle}
+        {get LayoutPosition cLayoutPosition hObjectInstanceHandle}
         {get ClassName cObjectTypeCode hObjectInstanceHandle}.
         &UNDEFINE xp-assign
         
         IF NOT cLayoutPosition BEGINS "RIGHT":U THEN
-                NEXT.
+            NEXT.
                 
-                {get Height dObjectHeight hObjectInstanceHandle} NO-ERROR.
-                {get Width  dObjectWidth  hObjectInstanceHandle} NO-ERROR.
-                                                                                                  
+        {get Height dObjectHeight hObjectInstanceHandle} NO-ERROR.
+        {get Width  dObjectWidth  hObjectInstanceHandle} NO-ERROR.
+        
         ASSIGN dNewObjectColumn = pdContainerWidth - dDesiredWidth - 1
-                   dNewObjectRow    = 0
-                   dNewObjectHeight = dDesiredHeight
-                   dNewObjectWidth  = dDesiredWidth
-                   iCenterBottomRow = MIN(iCenterBottomRow, dNewObjectRow). 
-        IF hObjectInstanceHandle:FILE-NAME = "ry/obj/rydyntoolt.w" THEN
-                /* all toolbars positioned in bottom are drawn one pixel higher up the screen, and one pixel deeper */
-                ASSIGN dNewObjectRow = dNewObjectRow - (1 * dCharsPerRowPixel).
+               dNewObjectRow    = 0
+               dNewObjectHeight = dDesiredHeight
+               dNewObjectWidth  = dDesiredWidth
+               iCenterBottomRow = MIN(iCenterBottomRow, dNewObjectRow). 
+        IF {fnarg instanceOf 'SmartToolbar' hObjectInstanceHandle} then
+            /* all toolbars positioned in bottom are drawn one pixel higher up the screen, and one pixel deeper */
+            ASSIGN dNewObjectRow = dNewObjectRow - (1 * dCharsPerRowPixel).
                 
         RUN resizeAndMoveSomething ( INPUT  piPageNumber,  
-                                                 INPUT  cObjectTypeCode,
-                                                 INPUT  hObjectInstanceHandle,        
-                                                 INPUT  pdTopLeftColumn,
-                                                 INPUT  pdTopLeftRow,
-                                                 INPUT  dNewObjectColumn, 
-                                                 INPUT  dNewObjectRow,
-                                                 INPUT  dNewObjectWidth,
-                                                 INPUT  dNewObjectHeight         ).
-        END.    /* RIGHT  */
+                                     INPUT  cObjectTypeCode,
+                                     INPUT  hObjectInstanceHandle,        
+                                     INPUT  pdTopLeftColumn,
+                                     INPUT  pdTopLeftRow,
+                                     INPUT  dNewObjectColumn, 
+                                     INPUT  dNewObjectRow,
+                                     INPUT  dNewObjectWidth,
+                                     INPUT  dNewObjectHeight         ).
+    END.    /* RIGHT  */
         
-        /* CENTRE components */
-        DO iLoop = 1 TO NUM-ENTRIES(cPageNTargets):
+    /* CENTRE components */
+    DO iLoop = 1 TO NUM-ENTRIES(cPageNTargets):
         ASSIGN hObjectInstanceHandle = WIDGET-HANDLE(ENTRY(iLoop, cPageNTargets)) NO-ERROR.                
         IF NOT VALID-HANDLE(hObjectInstanceHandle) THEN NEXT.
 
         /* If we are looking for page zero objects, and the object exists on another page,
          * ignore it and move right on.
          */
-                IF piPageNumber EQ 0 AND CAN-DO(cAllPageTargets, STRING(hObjectInstanceHandle)) THEN
-                        NEXT.
+        IF piPageNumber EQ 0 AND CAN-DO(cAllPageTargets, STRING(hObjectInstanceHandle)) THEN
+            NEXT.
         
         &SCOPED-DEFINE xp-assign
-                {get LayoutPosition cLayoutPosition hObjectInstanceHandle}
+        {get LayoutPosition cLayoutPosition hObjectInstanceHandle}
         {get ClassName cObjectTypeCode hObjectInstanceHandle}.
         &UNDEFINE xp-assign
         
         IF NOT cLayoutPosition BEGINS "CENT":U THEN
-                NEXT.
+            NEXT.
                 
-        IF hObjectInstanceHandle:FILE-NAME = "ry/obj/rydyntoolt.w" THEN
+        IF {fnarg instanceOf 'SmartToolbar' hObjectInstanceHandle} then
             ASSIGN dNewObjectColumn = pdContainerWidth / 2
                    dNewObjectWidth  = 5.
         ELSE
@@ -2302,9 +2308,9 @@ DEFINE VARIABLE dNewObjectRow               AS DECIMAL      NO-UNDO.
                                      INPUT  dNewObjectRow,
                                      INPUT  dNewObjectWidth,
                                      INPUT  dNewObjectHeight         ).
-        END.    /* CENTRE */
+    END.    /* CENTRE */
         
-        ASSIGN ERROR-STATUS:ERROR = NO.
+    ERROR-STATUS:ERROR = NO.
     RETURN.
 END PROCEDURE.
 
@@ -2808,9 +2814,10 @@ ACCESS_LEVEL=PRIVATE
         END.    /* we are not requesting page 0 */
     END.    /* SmartFolder */
     ELSE
-    IF {fnarg InstanceOf 'DynFrame' phObjectInstance}     OR
-       /* This is to cater for instances where a container is forcibly run using the dynamic frame */
-       phObjectInstance:FILENAME MATCHES "*rydynframw*":U THEN
+    /* Cater for DynFrames and other contained window containers, 
+       such as those run by the treeview window.
+     */    
+    IF {fnarg InstanceOf 'DynContainer' phObjectInstance} then
     DO:
         /* Get the layout code */
         {get Page0LayoutManager cLayoutCode phObjectInstance}.
@@ -3003,13 +3010,13 @@ ACCESS_LEVEL=PUBLIC
     DEFINE INPUT PARAMETER phObjectBuffer       AS HANDLE                   NO-UNDO.
     DEFINE INPUT PARAMETER phPageBuffer         AS HANDLE                   NO-UNDO.
     DEFINE INPUT PARAMETER phSourceProcedure    AS HANDLE                   NO-UNDO.
-    
+            
     /* Set the value of the source procedure handle */
     ASSIGN ghSourceProcedure = phSourceProcedure.
     
     IF NOT VALID-HANDLE(ghSourceProcedure) THEN
         ASSIGN ghSourceProcedure = SOURCE-PROCEDURE.
-
+    
     RUN resizeWindow ( INPUT pcLayoutCode,
                        INPUT phWindow, 
                        INPUT phFrame,
@@ -3231,9 +3238,10 @@ ACCESS_LEVEL=PRIVATE
                    bttInstance.MinHeight = dMinHeight.
         END.    /* F-O-L: SmartFolder */
         ELSE
-        IF {fnarg InstanceOf 'DynFrame' hObjectInstanceHandle}      OR
-           /* This is to cater for instances where a container is forcibly run using the dynamic frame */
-           hObjectInstanceHandle:FILENAME MATCHES "*rydynframw*":U  THEN
+	    /* Cater for DynFrames and other contained window containers, 
+	       such as those run by the treeview window.
+	     */
+        IF {fnarg InstanceOf 'DynContainer' hObjectInstanceHandle} then
         DO:
             &SCOPED-DEFINE xp-assign
             {get Page0LayoutManager cLayoutCode hObjectInstanceHandle}

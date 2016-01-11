@@ -54,8 +54,10 @@ DEFINE {1} SHARED TEMP-TABLE _BC
    FIELD _x-recid        AS RECID                    /* RECID of _U of browse    */
    FIELD _NAME           AS CHARACTER                /* Like _U._NAME            */
    FIELD _BGCOLOR        AS INTEGER   INITIAL ?      /* Like _L._BGCOLOR         */
+   FIELD _COL-LABEL      AS CHARACTER CASE-SENSITIVE /* SDO column label         */
    FIELD _DATA-TYPE      AS CHARACTER INITIAL ?      /* ? if calc field          */
    FIELD _DBNAME         AS CHARACTER                /* Like _U._DBNAME          */
+   FIELD _DEF-COLLABEL   AS CHARACTER CASE-SENSITIVE /* SDO default column label */
    FIELD _DEF-FORMAT     AS CHARACTER CASE-SENSITIVE /* Like _U._FORMAT          */
    FIELD _DEF-HELP       AS CHARACTER CASE-SENSITIVE /* Like _U._HELP            */
    FIELD _DEF-LABEL      AS CHARACTER CASE-SENSITIVE /* Like _U._LABEL           */

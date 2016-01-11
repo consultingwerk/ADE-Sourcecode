@@ -59,6 +59,7 @@ Author: Laura Stern
 Date Created: 11/16/92 
 
 History
+   McIntosh K.  02/15/05    Added "Show Hidden" toggle on TTY - 20050104-024.
    McMann D.    09/18/03    Added TTY to GUI and removed usrtget since it failed on large
                             number of files.
    McMann D.    04/21/00    Made sure ALL was not the only one in list
@@ -145,6 +146,8 @@ FORM
    tfill       	  at row 3 col 3 FORMAT "x(32)"    SKIP({&VM_WID})
    tlist       	  at 3 view-as SELECTION-LIST SINGLE 
       	       	  SIZE 32 by 12 SCROLLBAR-V  	    SKIP({&VM_WID})
+   thidden        at 2 view-as TOGGLE-BOX
+                       LABEL "&Show Hidden"
    {prodict/user/userbtns.i}
    with frame tbl_get 
       	view-as DIALOG-BOX CENTERED NO-LABELS.
@@ -345,8 +348,6 @@ do:
    end.
 end.
 
-&IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
-
 /*----- ON VALUE-CHANGED of SHOW-HIDDEN TOGGLE -----*/
 ON value-changed of thidden IN frame tbl_get
 DO:
@@ -370,7 +371,6 @@ DO:
          tfill:SCREEN-VALUE in frame tbl_get = tlist:ENTRY(1) in frame tbl_get.
    END.
 END.
-&ENDIF
 
 /*----- WINDOW-CLOSE of dialog -----*/
 on window-close of frame tbl_get
@@ -505,11 +505,12 @@ do:
 	  {&HLP_BTN_NAME}
       	  with frame tbl_get.
   &ELSE
-   display tprompt with frame tbl_get. 
+   display tprompt thidden with frame tbl_get. 
    enable btn_select 	when p_some
       	  btn_deselect 	when p_some
       	  tfill	     	when NOT p_some
       	  tlist 
+          thidden
           btn_OK
           btn_Cancel
       	  with frame tbl_get.
@@ -540,10 +541,8 @@ SESSION:IMMEDIATE-DISPLAY = no.
 hide frame tbl_get NO-PAUSE.
 if user_filename = "" THEN user_path = "".
 
- &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
   ASSIGN thidden
          fhidden = thidden.
- &ENDIF
 return.
 
 

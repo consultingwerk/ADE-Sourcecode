@@ -126,7 +126,9 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
  DEFINE VARIABLE grFrameRecid         AS RECID      NO-UNDO.
  DEFINE VARIABLE grQueryRecid         AS RECID      NO-UNDO.
  DEFINE VARIABLE grRowid              AS ROWID      NO-UNDO.
+ DEFINE VARIABLE gcNewSDFs            AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE gcCompareAttributes  AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE gcModifiedEvents     AS CHARACTER  NO-UNDO.
 
  DEFINE TEMP-TABLE tResultCodes NO-UNDO
     FIELD cRC           AS CHARACTER
@@ -267,7 +269,7 @@ FUNCTION verifyObjectType RETURNS CHARACTER
    Allow: 
    Frames: 0
    Add Fields to: Neither
-   Other Settings: CODE-ONLY COMPILE
+   Other Settings: CODE-ONLY
  */
 &ANALYZE-RESUME _END-PROCEDURE-SETTINGS
 
@@ -291,10 +293,18 @@ FUNCTION verifyObjectType RETURNS CHARACTER
 /* ***************************  Main Block  *************************** */
  ASSIGN ghRepDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U IN THIS-PROCEDURE,
                                          INPUT "RepositoryDesignManager":U).
+
+
+/* Synchronize the current values from the static property sheet to the DPS */
+    IF VALID-HANDLE(_h_menubar_proc) THEN
+       RUN Display_PropSheet IN _h_menubar_proc (NO) NO-ERROR.
   
  /* Get the _P record to write */
  FIND _P WHERE RECID(_P) = gprPrecid.
  FIND _U WHERE RECID(_U) = _P._u-recid.
+
+ /* Clear the client cache up front */ 
+ RUN clearClientCache IN gshRepositoryManager.
 
  /* First set migration flag and fetch migration profile preferences */
  IF CAN-DO(_P.design_action, "MIGRATE":U) THEN 
@@ -351,6 +361,7 @@ FUNCTION verifyObjectType RETURNS CHARACTER
 
  IF glNewCalcField THEN
    RUN destroyClassCache IN gshRepositoryManager.
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -1300,6 +1311,11 @@ PROCEDURE createDPSAttribute :
                  cValue    = hPropBuffer:BUFFER-FIELD("setValue":U):BUFFER-VALUE
                  cLabel     = hPropBuffer:BUFFER-FIELD("attrLabel":U):BUFFER-VALUE.
 
+         /* Set the column value to equal 2 chars more than the stored amount due to the 
+            adjustment the appBuilder makes to this property*/
+          IF cLabel = "COLUMN":U THEN
+                 cValue = STRING(DECIMAL(cValue) + 2).
+
           /* check whether the attribute was modified and if it's override flag is set */
           IF hPropBuffer:BUFFER-FIELD("RowOverride":U):BUFFER-VALUE = TRUE THEN
           DO:          
@@ -1381,6 +1397,9 @@ PROCEDURE createDynSDO :
  DEFINE VARIABLE lOK                   AS LOGICAL    NO-UNDO.
  DEFINE VARIABLE cSourceFile           AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cSourceFileList       AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE hSCMTool              AS HANDLE     NO-UNDO.
+
+ hSCMTool = DYNAMIC-FUNCTION('getProcedureHandle':U IN THIS-PROCEDURE, INPUT 'PRIVATE-DATA:SCMTool':U) NO-ERROR.
 
 /* Default DLP is ValOnly */
  IF NOT glMigration THEN gcSuperPref = "ValOnly":U.
@@ -1404,10 +1423,11 @@ PROCEDURE createDynSDO :
                 ELSE ENTRY(1,TRIM(cTablesInSDO, ',':U)).
 
  cTablesInSDO = LEFT-TRIM(cTablesInSDO, ",":U).
+
 /* get the include file info */
  RUN calculateObjectPaths IN gshRepositoryManager 
             (INPUT  "":U,                  INPUT  _U._OBJECT-OBJ,           /* Object Name , Object _obj value  */
-             INPUT  "":U,                  INPUT  _C._DATA-LOGIC-PROC-PMOD, /* Object Type ,Product Module      */
+             INPUT  "":U,                  INPUT  gcOBJProductModule,       /* Object Type ,Product Module      */
              INPUT  "Include":U,           INPUT  "":U,                     /* Object Parameter, Name space n.a */
              OUTPUT cOBJRootDir,           OUTPUT cOBJRelativeDir,          /* Root Dir, Relative dir           */
              OUTPUT gcSCMRelativeDir,      OUTPUT gcFullPathName,           /* SCM Relative dir, Full path Name */
@@ -1420,10 +1440,15 @@ PROCEDURE createDynSDO :
   
  IF glNewObject THEN  /* New SDO */
  DO:
-   /* Check to see if a different root directory has been specified */
-   RUN adecomm/_osprefx.p (INPUT _C._DATA-LOGIC-PROC,
-                           OUTPUT cOBJRootDir,
-                           OUTPUT cBaseName) NO-ERROR.
+   /* Check to see if a different root directory has been specified 
+      - but only if SCM tool is not being used, as this does not support changing the root directory. 
+      We already have the cObjRootDir from befeore, and the code below gets full path of the 
+      DLproc - which may be different from the path to the SDO files
+   */
+   IF NOT VALID-HANDLE(hSCMTool) THEN
+     RUN adecomm/_osprefx.p (INPUT _P._SAVE-AS-FILE,
+                             OUTPUT cOBJRootDir,
+                             OUTPUT cBaseName) NO-ERROR.
 
    ASSIGN cOBJRootDir     = TRIM(cOBJRootDir, "~/":U)
           cOBJRelativeDir = IF gcSCMRelativeDir > "" THEN gcSCMRelativeDir ELSE cOBJRelativeDir.
@@ -1466,6 +1491,10 @@ PROCEDURE createDynSDO :
       _BC._LABEL NE "":U AND
       _BC._LABEL NE _BC._DEF-LABEL THEN
       cTemp = cTemp + ' LABEL "':U + TRIM(_BC._LABEL) + '"':U.
+   IF _BC._COL-LABEL NE ? AND 
+      _BC._COL-LABEL NE "":U AND
+      _BC._COL-LABEL NE _BC._DEF-COLLABEL THEN
+      cTemp = cTemp + ' COLUMN-LABEL "':U + TRIM(_BC._COL-LABEL) + '"':U.
    IF _BC._HELP NE ? AND 
       _BC._HELP NE "":U AND
       _BC._HELP NE _BC._DEF-HELP THEN 
@@ -1485,7 +1514,7 @@ PROCEDURE createDynSDO :
             (INPUT  _C._DATA-LOGIC-PROC,   INPUT  0.0,               /* Object Name , Object _obj value  */
              INPUT  "":U,                  INPUT  cDLPProductModule, /* Object Type ,Product Module      */
              INPUT  "":U,                  INPUT  "":U,              /* Object Parameter, Name space n.a */
-             OUTPUT cDLPRootDir,           OUTPUT cOBJRelativeDir,   /* Root Dir, Relative dir           */
+             OUTPUT cDLPRootDir,           OUTPUT cDLPRelativeDir,   /* Root Dir, Relative dir           */
              OUTPUT gcSCMRelativeDir,      OUTPUT gcFullPathName,     /* SCM Relative dir, Full path Name */
              OUTPUT gcOutputObjectName,    OUTPUT gcDLPFileName,     /* Output Object Name, calculated file */
              OUTPUT cError) NO-ERROR.
@@ -1493,8 +1522,9 @@ PROCEDURE createDynSDO :
    RUN AppendToPError (cError).
    RETURN.
  END.
+
  ASSIGN cDLPRelativeDir =  IF gcSCMRelativeDir <> "":U 
-                           THEN gcSCMRelativeDir ELSE cOBJRelativeDir
+                           THEN gcSCMRelativeDir ELSE cDLPRelativeDir
         cDLPFullName    = REPLACE(_C._DATA-LOGIC-PROC,"~\":U,"~/":U)
         cDLPRootDir     =  IF cDLPRootDir = ? OR cDLPRootDir = "?":U OR cDLPRootDir = "":U 
                            THEN DYNAMIC-FUNCTION('getSessionParam' IN THIS-PROCEDURE, 'AB_source_code_directory') ELSE cDLPRootDir
@@ -2889,8 +2919,8 @@ PROCEDURE processMigratedSBO :
 
    /* Set dObject_obj to 0 so the attributes get set during the insertObjectInstance */
    dObject_obj = 0.
-
-   RUN retrieveDesignClass IN ghRepDesignManager
+   IF NOT CAN-FIND(FIRST ttClassAttribute WHERE ttClassAttribute.tClassName = "Data":U) THEN
+      RUN retrieveDesignClass IN ghRepDesignManager
                      ( INPUT  "Data",
                        OUTPUT cInheritClasses,
                        OUTPUT TABLE ttClassAttribute ,
@@ -3235,11 +3265,12 @@ PROCEDURE removeDeletedInstances :
  DEFINE OUTPUT PARAMETER pcCalculatedColumns AS CHARACTER  NO-UNDO.
  DEFINE OUTPUT PARAMETER pcColumnTable       AS CHARACTER  NO-UNDO.
  
- DEFINE VARIABLE lCalculatedField AS LOGICAL    NO-UNDO.
- DEFINE VARIABLE cTmpCodes        AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE iCode            AS INTEGER    NO-UNDO.
- DEFINE VARIABLE cCode            AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE cInstanceName    AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE lCalculatedField    AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE cTmpCodes           AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE iCode               AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE cCode               AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cInstanceName       AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cContainedInstances AS CHARACTER   NO-UNDO.
  
  IF pcLayout = "Master Layout":U THEN 
  DO:
@@ -3256,12 +3287,26 @@ PROCEDURE removeDeletedInstances :
 
      IF b_U._NAME  NE "":U THEN 
      DO:
-       ASSIGN cTmpCodes     = IF gcResultCodes = "":U THEN "{&DEFAULT-RESULT-CODE}":U ELSE gcResultCodes
-              cInstanceName = IF pcDataSourceType = "SBO":U AND DYNAMIC-FUNCTION("classIsA":U IN gshRepositoryManager, b_U._CLASS-NAME, "DataField":U) 
-                              THEN b_U._TABLE + "." + b_U._NAME
-                              ELSE b_U._NAME.
-       /* Loop through all ResultCodes */
+       /* If the data source is an SBO the instance name of datafields and 
+          SDFs on datafields are qualified with the SDO name (_TABLE) */
+       IF pcDataSourceType = "SBO":U THEN
+       DO:
+         RUN getContainedInstanceNames IN gshRepositoryManager (INPUT gcContainer,
+                                                                OUTPUT cContainedInstances).
+         /* First check whether the qualified name is in the contained 
+            instances, with the case of a SmartLobField, _U.TABLE is set to the 
+            SDO name but the instance name is not qualified with the SDO name */
+         IF b_U._TABLE NE ? AND b_U._TABLE NE "":U THEN
+           cInstanceName = IF LOOKUP( b_U._TABLE + ".":U + b_U._NAME, cContainedInstances) > 0 THEN
+                             b_U._TABLE + ".":U + b_U._NAME
+                           ELSE b_U._NAME.
+         ELSE cInstanceName = b_U._NAME.
+       END.
+       ELSE cInstanceName = b_U._NAME.
+       
+       cTmpCodes = IF gcResultCodes = "":U THEN "{&DEFAULT-RESULT-CODE}":U ELSE gcResultCodes.
 
+       /* Loop through all ResultCodes */
        DO iCode = 1 TO NUM-ENTRIES(cTmpCodes):
          cCode = ENTRY(iCode, cTmpCodes).
          /* Delete the instance  */
@@ -3380,10 +3425,14 @@ PROCEDURE setDataObjectAttributes :
            RETURN.
     END.
    
-   ASSIGN cDLProcName = IF TRIM(gcSCMRelativeDir) <> "":U THEN 
-                           RIGHT-TRIM(gcSCMRelativeDir,"/") + (IF gcSCMRelativeDir > "" THEN "/":U ELSE "") + cDLProcBaseName 
-                        ELSE 
-                           RIGHT-TRIM(cDLProcRelPath,"/") + (IF cDLProcRelPath > "" THEN "/":U ELSE "") + cDLProcBaseName .
+   /* Here it is not necessary to use the SCM relative path for the DataLogicProcedure attribute. 
+      We are only interested in using the SCM relative path when trying to either write or read 
+      the physical DLProc. For all other places where the relative path to the DLProc is needed, 
+      we should be using the settings in ICFDB, which will contain the shortest relative path
+      if this is set up correctly.
+   */
+   ASSIGN cDLProcName = RIGHT-TRIM(cDLProcRelPath,"/") + (IF cDLProcRelPath > "" THEN "/":U ELSE "") + cDLProcBaseName.
+
  END.  /* If the data logic procedure has been specified */
 
  /* Now get _U, _C and _Q of the query */
@@ -3683,6 +3732,8 @@ PROCEDURE setObjectEvents :
                    tEventParameter = hPropBuffer:BUFFER-FIELD("EventParameter":U):BUFFER-VALUE 
                    tEventDisabled  = hPropBuffer:BUFFER-FIELD("EventDisabled":U):BUFFER-VALUE
                    NO-ERROR.
+            IF LOOKUP(cEventName,gcModifiedEvents) = 0 THEN
+                  gcModifiedEvents = gcModifiedEvents + (IF gcModifiedEvents = "" THEN "" ELSE ",") + STRING(b_U._HANDLE) + "," + cEventName.
            
          END.
          ELSE
@@ -3741,6 +3792,82 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setObjectEventsAll) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setObjectEventsAll Procedure 
+PROCEDURE setObjectEventsAll :
+/*------------------------------------------------------------------------------
+  Purpose:     Copies all events.
+  Parameters:  <none>
+  Notes:       pcObject    Name of original object being copied from
+               pClayout    Current layout
+------------------------------------------------------------------------------*/
+ DEFINE INPUT  PARAMETER pcObject    AS CHARACTER  NO-UNDO.
+ DEFINE INPUT  PARAMETER pclayout    AS CHARACTER  NO-UNDO.
+
+DEFINE VARIABLE cName      AS CHARACTER NO-UNDO.
+DEFINE VARIABLE dObjectObj AS DECIMAL NO-UNDO.
+DEFINE VARIABLE iEvent     AS INTEGER NO-UNDO.
+
+DEFINE BUFFER Event_U FOR _U.
+
+/* get the master Object of the original object and determine all the events */
+ RUN retrieveDesignObject IN ghRepDesignManager 
+       ( INPUT   pcObject,
+         INPUT  IF pcLayout ="Master Layout":U 
+                THEN "{&DEFAULT-RESULT-CODE}":U 
+                ELSE pcLayout,  /* Get  result Codes */
+         OUTPUT TABLE ttObject,
+         OUTPUT TABLE ttPage,
+         OUTPUT TABLE ttLink,
+         OUTPUT TABLE ttUiEvent,
+         OUTPUT TABLE ttObjectAttribute ) NO-ERROR. 
+
+Event-Loop:
+FOR EACH ttUIEvent:
+  FIND FIRST ttObject WHERE  ttObject.tSmartObjectObj  = ttUIEvent.tSmartObjectObj
+                       AND ttObject.tObjectInstanceObj = ttUIEvent.tObjectInstanceObj NO-ERROR.
+  IF NOT AVAIL ttObject THEN NEXT.
+
+  ASSIGN cName = IF NUM-ENTRIES(ttObject.tObjectInstanceName,".") >= 2 
+                   THEN ENTRY(2,ttObject.tObjectInstanceName,".")
+                   ELSE ttObject.tObjectInstanceName.
+
+  FIND Event_U WHERE Event_U._NAME = cName NO-ERROR. 
+  IF NOT AVAIL Event_U AND cName > "" THEN NEXT.
+
+  IF AVAIL Event_U THEN
+      dObjectObj = Event_U._OBJECT-OBJ.
+  ELSE
+    ASSIGN dObjectObj = _U._OBJECT-OBJ.
+
+ /* Exclude any events that had been modified. */
+ ASSIGN iEvent = IF AVAIL Event_U 
+                 THEN LOOKUP(STRING(Event_U._HANDLE),gcModifiedEvents)
+                 ELSE LOOKUP(STRING(_U._HANDLE),gcModifiedEvents).
+ IF iEvent > 0  AND Entry(iEvent + 1,gcModifiedEvents) = ttUIEvent.tEventName  THEN
+    NEXT Event-Loop.
+
+  CREATE ttStoreUIEvent. 
+  ASSIGN ttStoreUIEvent.tEventParent    = IF ttObject.tObjectInstanceObj = 0 THEN "MASTER":U ELSE "INSTANCE":U 
+         ttStoreUIEvent.tEventParentObj = dObjectobj
+         ttStoreUIEvent.tEventName      = ttUIEvent.tEventName
+         ttStoreUIEvent.tEventAction    = ttUIEvent.tEventAction
+         ttStoreUIEvent.tActionType     = ttUIEvent.tActionType
+         ttStoreUIEvent.tActionTarget   = ttUIEvent.tActionTarget
+         ttStoreUIEvent.tEventParameter = ttUIEvent.tEventParameter
+         ttStoreUIEvent.tEventDisabled  = ttUIEvent.tEventDisabled
+         NO-ERROR.
+
+END.
+ 
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setObjectInstanceAttributes) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setObjectInstanceAttributes Procedure 
@@ -3751,11 +3878,11 @@ PROCEDURE setObjectInstanceAttributes :
                          need to be loaded.
   Notes:       called from writeFieldLevelObjects
 ------------------------------------------------------------------------------*/
- DEFINE INPUT  PARAMETER puRecid           AS RECID          NO-UNDO.
- DEFINE INPUT  PARAMETER cMasterObjectName AS CHARACTER      NO-UNDO.
- DEFINE INPUT  PARAMETER dObject_obj       AS DECIMAL        NO-UNDO.
- DEFINE INPUT  PARAMETER cLayout           AS CHARACTER      NO-UNDO.
- DEFINE INPUT  PARAMETER lnewInstance      AS LOGICAL        NO-UNDO.
+ DEFINE INPUT  PARAMETER puRecid            AS RECID          NO-UNDO.
+ DEFINE INPUT  PARAMETER pcMasterObjectName AS CHARACTER      NO-UNDO.
+ DEFINE INPUT  PARAMETER pdObject_obj       AS DECIMAL        NO-UNDO.
+ DEFINE INPUT  PARAMETER pcLayout           AS CHARACTER      NO-UNDO.
+ DEFINE INPUT  PARAMETER plRefreshObject    AS LOGICAL        NO-UNDO.
 
  DEFINE BUFFER b_U FOR _U.
 
@@ -3774,23 +3901,23 @@ PROCEDURE setObjectInstanceAttributes :
 
  FIND b_U WHERE RECID(b_U) = puRecid.
  FIND _F WHERE RECID(_F) = b_U._x-recid NO-ERROR.
- FIND _L WHERE _L._LO-NAME = cLayout AND _L._u-recid = RECID(b_U) NO-ERROR.
+ FIND _L WHERE _L._LO-NAME = pcLayout AND _L._u-recid = RECID(b_U) NO-ERROR.
 
  /* get the instance Object (if it exists) and determine the attributes that are defined on the instance */
-  IF lNewInstance OR NOT CAN-FIND(FIRST ttObject WHERE ttObject.tLogicalObjectName = _P.object_filename) THEN
+  IF plRefreshObject OR NOT CAN-FIND(FIRST ttObject WHERE ttObject.tLogicalObjectName = _P.object_filename) THEN
      RUN retrieveDesignObject IN ghRepDesignManager 
                      ( INPUT   _P.object_filename,
-                       INPUT  IF cLayout ="Master Layout":U 
+                       INPUT  IF pcLayout ="Master Layout":U 
                               THEN "{&DEFAULT-RESULT-CODE}":U 
-                              ELSE cLayout,  /* Get  result Codes */
+                              ELSE pcLayout,  /* Get  result Codes */
                        OUTPUT TABLE ttObject,
                        OUTPUT TABLE ttPage,
                        OUTPUT TABLE ttLink,
                        OUTPUT TABLE ttUiEvent,
                        OUTPUT TABLE ttObjectAttribute ) NO-ERROR. 
 
- FIND FIRST ttObject WHERE ttObject.tLogicalObjectName =  cMasterObjectName AND
-            ttObject.tObjectInstanceObj                =  dObject_obj NO-ERROR.
+ FIND FIRST ttObject WHERE ttObject.tLogicalObjectName =  pcMasterObjectName AND
+            ttObject.tObjectInstanceObj                =  pdObject_obj NO-ERROR.
  
  IF NOT CAN-FIND(FIRST ttClassAttribute WHERE ttClassAttribute.tClassname = ttObject.tClassName) THEN
     RUN retrieveDesignClass IN ghRepDesignManager
@@ -3800,8 +3927,8 @@ PROCEDURE setObjectInstanceAttributes :
                        OUTPUT TABLE ttUiEvent,
                        OUTPUT TABLE ttSupportedLink    ) NO-ERROR.
 
- IF cLayout NE "Master Layout":U THEN 
-     RUN ProcessCustomAttributes(INPUT "INSTANCE":U, INPUT dObject_obj, INPUT RECID(_L)).
+ IF pcLayout NE "Master Layout":U THEN 
+     RUN ProcessCustomAttributes(INPUT "INSTANCE":U, INPUT pdObject_obj, INPUT RECID(_L)).
  ELSE DO:
    ASSIGN gcAttributeList = "".
    FOR EACH ttClassAttribute:
@@ -3838,92 +3965,92 @@ PROCEDURE setObjectInstanceAttributes :
                               AND ttObjectAttribute.tAttributeLabel     = cLabel NO-ERROR.
      CASE cLabel:
       WHEN "AUTO-COMPLETION":U THEN
-          setAttributeLog("INSTANCE":U,_F._AUTO-COMPLETION,cLabel, cValue,dObject_obj).
+          setAttributeLog("INSTANCE":U,_F._AUTO-COMPLETION,cLabel, cValue,pdObject_obj).
        WHEN "AUTO-END-KEY":U THEN
-          setAttributeLog("INSTANCE":U,_F._AUTO-ENDKEY,cLabel, cValue,dObject_obj).
+          setAttributeLog("INSTANCE":U,_F._AUTO-ENDKEY,cLabel, cValue,pdObject_obj).
        WHEN "AUTO-GO":U THEN
-          setAttributeLog("INSTANCE":U,_F._AUTO-GO,cLabel, cValue,dObject_obj).
+          setAttributeLog("INSTANCE":U,_F._AUTO-GO,cLabel, cValue,pdObject_obj).
        WHEN "AUTO-INDENT":U THEN
-          setAttributeLog("INSTANCE":U,_F._AUTO-INDENT,cLabel, cValue,dObject_obj).
+          setAttributeLog("INSTANCE":U,_F._AUTO-INDENT,cLabel, cValue,pdObject_obj).
        WHEN "AUTO-RESIZE":U THEN
-          setAttributeLog("INSTANCE":U,_F._AUTO-RESIZE,cLabel, cValue,dObject_obj).
+          setAttributeLog("INSTANCE":U,_F._AUTO-RESIZE,cLabel, cValue,pdObject_obj).
        WHEN "AUTO-RETURN":U THEN
-           setAttributeLog("INSTANCE":U,_F._AUTO-RETURN,cLabel, cValue,dObject_obj).
+           setAttributeLog("INSTANCE":U,_F._AUTO-RETURN,cLabel, cValue,pdObject_obj).
        WHEN "BGCOLOR":U THEN 
-         setAttributeInt("INSTANCE":U,_L._BGCOLOR,cLabel, cValue,dObject_obj).
+         setAttributeInt("INSTANCE":U,_L._BGCOLOR,cLabel, cValue,pdObject_obj).
        WHEN "BLANK":U THEN
-         setAttributeLog("INSTANCE":U,_F._BLANK,cLabel, cValue,dObject_obj).
+         setAttributeLog("INSTANCE":U,_F._BLANK,cLabel, cValue,pdObject_obj).
        WHEN "BOX":U THEN
-          setAttributeLog("INSTANCE":U,NOT _L._NO-BOX,cLabel, cValue,dObject_obj).
+          setAttributeLog("INSTANCE":U,NOT _L._NO-BOX,cLabel, cValue,pdObject_obj).
        WHEN "CHECKED":U THEN DO:
           lTmp = (_F._INITIAL-DATA BEGINS "Y":U OR _F._INITIAL-DATA BEGINS "T":U).
-          setAttributeLog("INSTANCE":U,lTmp,cLabel, cValue,dObject_obj).
+          setAttributeLog("INSTANCE":U,lTmp,cLabel, cValue,pdObject_obj).
        END. /* Checked */
        WHEN "COLUMN":U THEN
-         setAttributeDec("INSTANCE":U,_L._COL,cLabel, cValue,dObject_obj).
+         setAttributeDec("INSTANCE":U,_L._COL,cLabel, cValue,pdObject_obj).
        WHEN "CONTEXT-HELP-ID":U THEN
-          setAttributeInt("INSTANCE":U,b_U._CONTEXT-HELP-ID, cLabel, cValue,dObject_obj).
+          setAttributeInt("INSTANCE":U,b_U._CONTEXT-HELP-ID, cLabel, cValue,pdObject_obj).
        WHEN "CONVERT-3D-COLORS":U THEN
-         setAttributeLog("INSTANCE":U, _L._CONVERT-3D-COLORS,cLabel, cValue,dObject_obj).
+         setAttributeLog("INSTANCE":U, _L._CONVERT-3D-COLORS,cLabel, cValue,pdObject_obj).
        WHEN "DATA-TYPE":U THEN
-         setAttributeChar("INSTANCE":U,_F._DATA-TYPE,cLabel, cValue,dObject_obj).
+          setAttributeChar("INSTANCE":U,_F._DATA-TYPE,cLabel, cValue,pdObject_obj).
        WHEN "DEBLANK":U THEN
-          setAttributeLog("INSTANCE":U,_F._DEBLANK,cLabel, cValue,dObject_obj).
+          setAttributeLog("INSTANCE":U,_F._DEBLANK,cLabel, cValue,pdObject_obj).
        WHEN "DEFAULT":U THEN
-          setAttributeLog("INSTANCE":U,_F._DEFAULT,cLabel, cValue,dObject_obj).
+          setAttributeLog("INSTANCE":U,_F._DEFAULT,cLabel, cValue,pdObject_obj).
        WHEN "DELIMITER":U THEN
-          setAttributeChar("INSTANCE":U,_F._DELIMITER,cLabel, cValue,dObject_obj).
+          setAttributeChar("INSTANCE":U,_F._DELIMITER,cLabel, cValue,pdObject_obj).
        WHEN "DisplayField":U THEN
-         setAttributeLog("INSTANCE":U,b_U._DISPLAY,cLabel, cValue,dObject_obj).
+         setAttributeLog("INSTANCE":U,b_U._DISPLAY,cLabel, cValue,pdObject_obj).
        WHEN "DISABLE-AUTO-ZAP":U THEN
-         setAttributeLog("INSTANCE":U,_F._DISABLE-AUTO-ZAP,cLabel, cValue,dObject_obj).
+         setAttributeLog("INSTANCE":U,_F._DISABLE-AUTO-ZAP,cLabel, cValue,pdObject_obj).
        WHEN "DRAG-ENABLED":U THEN
-         setAttributeLog("INSTANCE":U,_F._DRAG-ENABLED,cLabel, cValue,dObject_obj).
+         setAttributeLog("INSTANCE":U,_F._DRAG-ENABLED,cLabel, cValue,pdObject_obj).
        WHEN "DROP-TARGET":U THEN
-         setAttributeLog("INSTANCE":U,b_U._DROP-TARGET,cLabel, cValue,dObject_obj).
+         setAttributeLog("INSTANCE":U,b_U._DROP-TARGET,cLabel, cValue,pdObject_obj).
        WHEN "EDGE-PIXELS":U THEN
-         setAttributeInt("INSTANCE":U,_L._EDGE-PIXELS,cLabel, cValue,dObject_obj).
+         setAttributeInt("INSTANCE":U,_L._EDGE-PIXELS,cLabel, cValue,pdObject_obj).
        WHEN "ENABLED":U THEN
-         setAttributeLog("INSTANCE":U,b_U._ENABLE,cLabel, cValue,dObject_obj).
+         setAttributeLog("INSTANCE":U,b_U._ENABLE,cLabel, cValue,pdObject_obj).
        WHEN "EXPAND":U THEN
-         setAttributeLog("INSTANCE":U,_F._EXPAND,cLabel, cValue,dObject_obj).
+         setAttributeLog("INSTANCE":U,_F._EXPAND,cLabel, cValue,pdObject_obj).
        WHEN "FGCOLOR":U THEN
-          setAttributeInt("INSTANCE":U,_L._FGColor,cLabel, cValue,dObject_obj).
+          setAttributeInt("INSTANCE":U,_L._FGColor,cLabel, cValue,pdObject_obj).
        WHEN "FILLED":U THEN
-         setAttributeLog("INSTANCE":U,_L._Filled,cLabel, cValue,dObject_obj).
+         setAttributeLog("INSTANCE":U,_L._Filled,cLabel, cValue,pdObject_obj).
        WHEN "FLAT-BUTTON":U THEN
-         setAttributeLog("INSTANCE":U,_F._FLAT,cLabel, cValue,dObject_obj).
+         setAttributeLog("INSTANCE":U,_F._FLAT,cLabel, cValue,pdObject_obj).
        WHEN "FONT":U THEN
-         setAttributeInt("INSTANCE":U,_L._FONT,cLabel, cValue,dObject_obj).
+         setAttributeInt("INSTANCE":U,_L._FONT,cLabel, cValue,pdObject_obj).
        WHEN "FORMAT":U THEN DO:
          cTmp =  IF _F._FORMAT = ? OR _F._FORMAT = "":U 
                  THEN  "X(":U + STRING(MAX(2,LENGTH(_F._INITIAL-DATA))) + ")":U ELSE _F._FORMAT.
-         setAttributeChar("INSTANCE":U,cTmp,cLabel, cValue,dObject_obj).
+         setAttributeChar("INSTANCE":U,cTmp,cLabel, cValue,pdObject_obj).
        END.
        WHEN "GRAPHIC-EDGE":U THEN
-         setAttributeLog("INSTANCE":U,_L._Graphic-Edge,cLabel, cValue,dObject_obj).
+         setAttributeLog("INSTANCE":U,_L._Graphic-Edge,cLabel, cValue,pdObject_obj).
        WHEN "HEIGHT-CHARS":U THEN 
-         setAttributeDec("INSTANCE":U,_L._HEIGHT,cLabel, cValue,dObject_obj).
+         setAttributeDec("INSTANCE":U,_L._HEIGHT,cLabel, cValue,pdObject_obj).
        WHEN "HELP":U THEN 
-         setAttributeChar("INSTANCE":U, b_U._HELP,cLabel, cValue,dObject_obj).
+         setAttributeChar("INSTANCE":U, b_U._HELP,cLabel, cValue,pdObject_obj).
        WHEN "HIDDEN":U THEN
-         setAttributeLog("INSTANCE":U, b_U._HIDDEN,cLabel, cValue,dObject_obj).
+         setAttributeLog("INSTANCE":U, b_U._HIDDEN,cLabel, cValue,pdObject_obj).
        WHEN "HORIZONTAL":U THEN
-         setAttributeLog("INSTANCE":U,_F._HORIZONTAL,cLabel, cValue,dObject_obj).
+         setAttributeLog("INSTANCE":U,_F._HORIZONTAL,cLabel, cValue,pdObject_obj).
        WHEN "IMAGE-FILE":U THEN
-          setAttributeChar("INSTANCE":U,_F._IMAGE-FILE,cLabel, cValue,dObject_obj).
+          setAttributeChar("INSTANCE":U,_F._IMAGE-FILE,cLabel, cValue,pdObject_obj).
        WHEN "InitialValue":U THEN DO:
          cTmp = IF _F._INITIAL-DATA = ? THEN "?":U ELSE _F._INITIAL-DATA.
-         setAttributeChar("INSTANCE":U,cTmp,cLabel, cValue,dObject_obj).
+         setAttributeChar("INSTANCE":U,cTmp,cLabel, cValue,pdObject_obj).
        END.
        WHEN "INNER-LINES":U THEN
-         setAttributeInt("INSTANCE":U,_F._INNER-LINES,cLabel, cValue,dObject_obj).
+         setAttributeInt("INSTANCE":U,_F._INNER-LINES,cLabel, cValue,pdObject_obj).
        WHEN "LABEL":U THEN 
-           setAttributeChar("INSTANCE":U,_L._LABEL,cLabel, cValue,dObject_obj).
+           setAttributeChar("INSTANCE":U,_L._LABEL,cLabel, cValue,pdObject_obj).
        WHEN "LABELS":U THEN  /* Careful! Switching NO-LABELS to LABELS */
-           setAttributeLog("INSTANCE":U,NOT _L._NO-LABELS,cLabel, cValue,dObject_obj).
+           setAttributeLog("INSTANCE":U,NOT _L._NO-LABELS,cLabel, cValue,pdObject_obj).
        WHEN "LARGE":U THEN
-         setAttributeLog("INSTANCE":U, _F._LARGE,cLabel, cValue,dObject_obj).
+         setAttributeLog("INSTANCE":U, _F._LARGE,cLabel, cValue,pdObject_obj).
        WHEN "LIST-ITEMS":U OR
        WHEN "RADIO-BUTTONS" THEN 
        DO:
@@ -3939,7 +4066,7 @@ PROCEDURE setObjectInstanceAttributes :
                      TRIM(TRIM(ENTRY(iEntry, cTmp, _F._DELIMITER)), '"').
                END.
             END.
-            setAttributeChar("INSTANCE":U,cTmp,cLabel, cValue,dObject_obj).
+            setAttributeChar("INSTANCE":U,cTmp,cLabel, cValue,pdObject_obj).
          END.  /* Right Attribute for right object */
        END.
        WHEN "LIST-ITEM-PAIRS":U THEN DO:
@@ -3951,18 +4078,18 @@ PROCEDURE setObjectInstanceAttributes :
                  LENGTH(ENTRY(iEntry,_F._LIST-ITEM-PAIRS,CHR(10))),1,"CHARACTER":U) <> _F._DELIMITER 
                  THEN _F._DELIMITER ELSE "").
          END.  /* do i = 1 to num */
-         setAttributeChar("INSTANCE":U,cTmp,cLabel, cValue,dObject_obj).
+         setAttributeChar("INSTANCE":U,cTmp,cLabel, cValue,pdObject_obj).
        END.
        WHEN "MANUAL-HIGHLIGHT":U THEN
-         setAttributeLog("INSTANCE":U, b_U._MANUAL-HIGHLIGHT,cLabel, cValue,dObject_obj).
+         setAttributeLog("INSTANCE":U, b_U._MANUAL-HIGHLIGHT,cLabel, cValue,pdObject_obj).
        WHEN "MAX-CHARS":U THEN
-         setAttributeInt("INSTANCE":U, _F._MAX-CHARS,cLabel, cValue,dObject_obj).
+         setAttributeInt("INSTANCE":U, _F._MAX-CHARS,cLabel, cValue,pdObject_obj).
        WHEN "MOVABLE":U THEN
-         setAttributeLog("INSTANCE":U,b_U._MOVABLE,cLabel, cValue,dObject_obj).
+         setAttributeLog("INSTANCE":U,b_U._MOVABLE,cLabel, cValue,pdObject_obj).
        WHEN "MULTIPLE":U THEN
-          setAttributeLog("INSTANCE":U, _F._MULTIPLE,cLabel, cValue,dObject_obj).
+          setAttributeLog("INSTANCE":U, _F._MULTIPLE,cLabel, cValue,pdObject_obj).
        WHEN "NO-FOCUS":U THEN
-         setAttributeLog("INSTANCE":U,_L._NO-FOCUS,cLabel, cValue,dObject_obj).
+         setAttributeLog("INSTANCE":U,_L._NO-FOCUS,cLabel, cValue,pdObject_obj).
        WHEN "Order":U THEN DO:
          IF b_U._TAB-ORDER > 0 THEN 
          DO:
@@ -3971,72 +4098,70 @@ PROCEDURE setObjectInstanceAttributes :
                  object sequence for tab order but the order attribute is still maintained
                  and kept in sync with _U._TAB-ORDER by the AppBuilder. */
               FIND ryc_object_instance WHERE 
-                  ryc_object_instance.object_instance_obj = dObject_obj EXCLUSIVE-LOCK NO-ERROR.
+                  ryc_object_instance.object_instance_obj = pdObject_obj EXCLUSIVE-LOCK NO-ERROR.
               IF AVAILABLE ryc_object_instance THEN
                 ryc_object_instance.object_sequence = b_U._TAB-ORDER.
               RELEASE ryc_object_instance.
             END.
-            setAttributeInt("INSTANCE":U,b_U._TAB-ORDER,cLabel, cValue,dObject_obj).
+            setAttributeInt("INSTANCE":U,b_U._TAB-ORDER,cLabel, cValue,pdObject_obj).
          END.
        END. /* When Order */
-       WHEN "PASSWORD-FIELD":U THEN
-         setAttributeLog("INSTANCE":U,_F._PASSWORD-FIELD,cLabel, cValue,dObject_obj).
        WHEN "PRIVATE-DATA":U THEN
-         setAttributeChar("INSTANCE":U,b_U._PRIVATE-DATA,cLabel, cValue,dObject_obj).
+         setAttributeChar("INSTANCE":U,b_U._PRIVATE-DATA,cLabel, cValue,pdObject_obj).
        WHEN "READ-ONLY":U THEN
-         setAttributeLog("INSTANCE":U, _F._READ-ONLY,cLabel, cValue,dObject_obj).
+         setAttributeLog("INSTANCE":U, _F._READ-ONLY,cLabel, cValue,pdObject_obj).
        WHEN "RESIZABLE":U THEN
-         setAttributeLog("INSTANCE":U,b_U._RESIZABLE,cLabel, cValue,dObject_obj).
+         setAttributeLog("INSTANCE":U,b_U._RESIZABLE,cLabel, cValue,pdObject_obj).
        WHEN "RETAIN-SHAPE":U THEN
-         setAttributeLog("INSTANCE":U,_F._RETAIN-SHAPE,cLabel, cValue,dObject_obj).
+         setAttributeLog("INSTANCE":U,_F._RETAIN-SHAPE,cLabel, cValue,pdObject_obj).
        WHEN "RETURN-INSERTED":U THEN
-         setAttributeLog("INSTANCE":U,_F._RETURN-INSERTED,cLabel, cValue,dObject_obj).
+         setAttributeLog("INSTANCE":U,_F._RETURN-INSERTED,cLabel, cValue,pdObject_obj).
        WHEN "ROW":U THEN
-         setAttributeDec("INSTANCE":U, _L._ROW,cLabel, cValue,dObject_obj).
+         setAttributeDec("INSTANCE":U, _L._ROW,cLabel, cValue,pdObject_obj).
        WHEN "SCROLLBAR-HORIZONTAL":U THEN
-         setAttributeLog("INSTANCE":U,_F._SCROLLBAR-H,cLabel, cValue,dObject_obj).
+         setAttributeLog("INSTANCE":U,_F._SCROLLBAR-H,cLabel, cValue,pdObject_obj).
        WHEN "SCROLLBAR-VERTICAL":U THEN
-         setAttributeLog("INSTANCE":U, b_U._SCROLLBAR-V,cLabel, cValue,dObject_obj).
+         setAttributeLog("INSTANCE":U, b_U._SCROLLBAR-V,cLabel, cValue,pdObject_obj).
        WHEN "SELECTABLE":U THEN
-          setAttributeLog("INSTANCE":U,b_U._SELECTABLE,cLabel, cValue,dObject_obj).
+          setAttributeLog("INSTANCE":U,b_U._SELECTABLE,cLabel, cValue,pdObject_obj).
        WHEN "SENSITIVE":U THEN
-         setAttributeLog("INSTANCE":U,b_U._SENSITIVE,cLabel, cValue,dObject_obj).
+         setAttributeLog("INSTANCE":U,b_U._SENSITIVE,cLabel, cValue,pdObject_obj).
       WHEN "SHOWPOPUP":U THEN
-         setAttributeLog("INSTANCE":U,b_U._SHOW-POPUP,cLabel, cValue,dObject_obj).
+         setAttributeLog("INSTANCE":U,b_U._SHOW-POPUP,cLabel, cValue,pdObject_obj).
        WHEN "SORT":U THEN
-         setAttributeLog("INSTANCE":U, _F._SORT,cLabel, cValue,dObject_obj).
+         setAttributeLog("INSTANCE":U, _F._SORT,cLabel, cValue,pdObject_obj).
        WHEN "STRETCH-TO-FIT":U THEN
-           setAttributeLog("INSTANCE":U,_F._STRETCH-TO-FIT,cLabel, cValue,dObject_obj).
+           setAttributeLog("INSTANCE":U,_F._STRETCH-TO-FIT,cLabel, cValue,pdObject_obj).
        WHEN "SUBTYPE":U THEN
          IF b_U._TYPE EQ "COMBO-BOX":U  THEN 
-            setAttributeChar("INSTANCE":U,b_U._SUBTYPE,cLabel, cValue,dObject_obj).
+            setAttributeChar("INSTANCE":U,b_U._SUBTYPE,cLabel, cValue,pdObject_obj).
        WHEN "TAB-STOP":U THEN  /* Careful! Switching NO-TAB-STOP to TAB-STOP */
-          setAttributeLog("INSTANCE":U,NOT b_U._NO-TAB-STOP,cLabel, cValue,dObject_obj).
+          setAttributeLog("INSTANCE":U,NOT b_U._NO-TAB-STOP,cLabel, cValue,pdObject_obj).
        WHEN "TOOLTIP":U THEN
-         setAttributeChar("INSTANCE":U,b_U._TOOLTIP,cLabel, cValue,dObject_obj).
+         setAttributeChar("INSTANCE":U,b_U._TOOLTIP,cLabel, cValue,pdObject_obj).
        WHEN "THREE-D":U THEN
-         setAttributeLog("INSTANCE":U,_L._3-D,cLabel, cValue,dObject_obj).
+         setAttributeLog("INSTANCE":U,_L._3-D,cLabel, cValue,pdObject_obj).
        WHEN "TRANSPARENT":U THEN
-         setAttributeLog("INSTANCE":U,_F._TRANSPARENT,cLabel, cValue,dObject_obj).
+         setAttributeLog("INSTANCE":U,_F._TRANSPARENT,cLabel, cValue,pdObject_obj).
        WHEN "VISIBLE":U THEN
-          setAttributeLog("INSTANCE":U,NOT b_U._HIDDEN,cLabel, cValue,dObject_obj).
+          setAttributeLog("INSTANCE":U,NOT b_U._HIDDEN,cLabel, cValue,pdObject_obj).
        WHEN "VisualizationType":U THEN DO:
          IF b_U._TYPE = "FILL-IN":U AND b_U._SUBTYPE = "TEXT":U THEN
-            setAttributeChar("INSTANCE":U,b_U._SUBTYPE,cLabel, cValue,dObject_obj).
+            setAttributeChar("INSTANCE":U,b_U._SUBTYPE,cLabel, cValue,pdObject_obj).
          ELSE  /* Normal action */
-            setAttributeChar("INSTANCE":U,b_U._TYPE,cLabel, cValue,dObject_obj).
+            setAttributeChar("INSTANCE":U,b_U._TYPE,cLabel, cValue,pdObject_obj).
        END.  /* Visualization Type */
        WHEN "WidgetName":U THEN  /* Not used any more - NAME */
-         setAttributeChar("INSTANCE":U,b_U._NAME,cLabel, cValue,dObject_obj).
+         setAttributeChar("INSTANCE":U,b_U._NAME,cLabel, cValue,pdObject_obj).
        WHEN "WIDTH-CHARS":U THEN 
-          setAttributeDec("INSTANCE":U,_L._WIDTH,cLabel, cValue,dObject_obj).
+          setAttributeDec("INSTANCE":U,_L._WIDTH,cLabel, cValue,pdObject_obj).
        WHEN "WORD-WRAP":U THEN
-          setAttributeLog("INSTANCE":U,_F._WORD-WRAP,cLabel, cValue,dObject_obj).
+          setAttributeLog("INSTANCE":U,_F._WORD-WRAP,cLabel, cValue,pdObject_obj).
      END CASE.
    END.
  END.
  /* If the dynamic propertysheet is active, retrieve those attribtues that have been modified and assign */
- RUN createDPSAttribute IN THIS-PROCEDURE (cLayout, "INSTANCE":U,dObject_obj,b_U._Window-handle,b_U._HANDLE).
+ RUN createDPSAttribute IN THIS-PROCEDURE (pcLayout, "INSTANCE":U,pdObject_obj,b_U._Window-handle,b_U._HANDLE).
  
  
 
@@ -4110,8 +4235,8 @@ PROCEDURE setObjectMasterAttributes :
                     OUTPUT TABLE ttObjectAttribute ) NO-ERROR. 
     FIND FIRST ttObject WHERE ttObject.tLogicalObjectName = _P.object_filename AND
                ttObject.tContainerSmartObjectObj          = 0 NO-ERROR.
-   
-    RUN retrieveDesignClass IN ghRepDesignManager
+    IF NOT CAN-FIND(FIRST ttClassAttribute WHERE ttClassAttribute.tClassName = gcObjClassType) THEN
+       RUN retrieveDesignClass IN ghRepDesignManager
                      ( INPUT  gcObjClassType,
                        OUTPUT cInheritClasses,
                        OUTPUT TABLE ttClassAttribute ,
@@ -4299,12 +4424,13 @@ PROCEDURE setSDFInstanceAttributes :
   Parameters:  <none>
   Notes:      Called from setSmartDataFieldvalues 
 ------------------------------------------------------------------------------*/
- DEFINE INPUT  PARAMETER puRecid       AS RECID      NO-UNDO.
- DEFINE INPUT  PARAMETER pcLayout      AS CHARACTER  NO-UNDO.
- DEFINE INPUT  PARAMETER dObject_obj   AS DECIMAL    NO-UNDO.
- DEFINE INPUT  PARAMETER pcClass       AS CHARACTER  NO-UNDO.
- DEFINE INPUT  PARAMETER pcObjFileName AS CHARACTER  NO-UNDO.
- DEFINE INPUT  PARAMETER pcFldname     AS CHARACTER  NO-UNDO.
+ DEFINE INPUT  PARAMETER puRecid         AS RECID      NO-UNDO.
+ DEFINE INPUT  PARAMETER pcLayout        AS CHARACTER  NO-UNDO.
+ DEFINE INPUT  PARAMETER pdObject_obj    AS DECIMAL    NO-UNDO.
+ DEFINE INPUT  PARAMETER pcClass         AS CHARACTER  NO-UNDO.
+ DEFINE INPUT  PARAMETER pcObjFileName   AS CHARACTER  NO-UNDO.
+ DEFINE INPUT  PARAMETER pcFldname       AS CHARACTER  NO-UNDO.
+ DEFINE INPUT  PARAMETER plRefreshObject AS LOGICAL    NO-UNDO.
 
  DEFINE VARIABLE cInherit     AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cLabel       AS CHARACTER  NO-UNDO.
@@ -4312,6 +4438,7 @@ PROCEDURE setSDFInstanceAttributes :
  DEFINE VARIABLE cABValue     AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE iABVALUE     AS INTEGER    NO-UNDO.
  DEFINE VARIABLE lABValue     AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE lSDOCombo    AS LOGICAL    NO-UNDO.
  DEFINE VARIABLE hTmp         AS HANDLE     NO-UNDO.
 
  DEFINE BUFFER b_U       FOR _U.
@@ -4323,6 +4450,12 @@ PROCEDURE setSDFInstanceAttributes :
  IF pcLayout NE "Master Layout":U THEN
     FIND mstr_L WHERE mstr_L._LO-NAME = "Master Layout":U AND mstr_L._u-recid = RECID(b_U).
 
+
+IF DYNAMIC-FUNCTION("classIsA":U IN gshRepositoryManager, pcClass, "LookupField":U) THEN
+  lSDOCombo = IF DYNAMIC-FUNCTION('getDataSourceName':U IN _S._HANDLE) NE "":U THEN TRUE
+              ELSE FALSE.
+
+               
  IF NOT CAN-FIND(FIRST ttClassAttribute WHERE ttClassAttribute.tClassName = pcClass) THEN
     RUN retrieveDesignClass IN ghRepDesignManager
                    ( INPUT  pcClass,
@@ -4332,7 +4465,8 @@ PROCEDURE setSDFInstanceAttributes :
                      OUTPUT TABLE ttSupportedLink    ) NO-ERROR. 
 
  /* Retrieve SDF instance to calculate it's attributes defined on the instance level */
- RUN retrieveDesignObject IN ghRepDesignManager 
+ IF plRefreshObject OR NOT CAN-FIND(FIRST ttObject WHERE ttObject.tLogicalObjectName = gcContainer) THEN
+    RUN retrieveDesignObject IN ghRepDesignManager 
                (INPUT gcContainer,     INPUT  IF pcLayout ="Master Layout":U OR pcLayout = ""
                                               THEN "":U 
                                               ELSE pcLayout,  /* Get  result Codes */
@@ -4341,7 +4475,7 @@ PROCEDURE setSDFInstanceAttributes :
                 OUTPUT TABLE ttObjectAttribute ) NO-ERROR. 
  
  FIND FIRST ttObject WHERE ttObject.tLogicalObjectName        = pcObjFileName
-                       AND ttObject.tObjectInstanceObj        = dObject_obj  NO-ERROR.
+                       AND ttObject.tObjectInstanceObj        = pdObject_obj  NO-ERROR.
   
  ASSIGN gcAttributeList = "".
  FOR EACH ttClassAttribute:
@@ -4376,28 +4510,31 @@ PROCEDURE setSDFInstanceAttributes :
     CASE cLabel:
       WHEN "BaseQueryString":U OR  WHEN "BrowseFieldDataTypes":U OR WHEN "BrowseFieldFormats":U OR
       WHEN "BrowseFields":U    OR  WHEN "BrowseTitle":U          OR WHEN "ColumnFormat":U OR
-      WHEN "ColumnLabels":U    OR  WHEN "ComboFlag":U            OR WHEN "DescSubstitute":U OR
-      WHEN "DisplayDataType":U OR  WHEN "DisplayedField":U       OR WHEN "DisplayFormat":U OR
-      WHEN "FieldLabel":U      OR  WHEN "FieldName":U            OR WHEN "FieldToolTip":U OR
-      WHEN "FlagValue":U       OR  WHEN "KeyDataType"            OR WHEN "KeyField":U OR
-      WHEN "KeyFormat":U       OR  WHEN "LinkedFieldDataTypes":U OR WHEN "LinkedFieldFormats":U OR
-      WHEN "LookupImage":U     OR  WHEN "MaintenanceObject":U    OR WHEN "MaintenanceSDO":U OR
-      WHEN "ObjectLayout":U    OR  WHEN "ParentField":U          OR WHEN "ParentFilterQuery":U OR 
-      WHEN "QueryTables":U     OR  WHEN "SDFTemplate":U          OR WHEN "TempLocation":U OR 
-      WHEN "ViewerLinkedFields":U OR 
-      WHEN "ViewerLinkedWidgets":U OR WHEN "MappedFields":U      OR  WHEN "UseCache":U
+      WHEN "ColumnLabels":U    OR  WHEN "ComboFlag":U            OR WHEN "DataSourceName":U OR
+      WHEN "DescSubstitute":U  OR  WHEN "DisplayDataType":U      OR  WHEN "DisplayedField":U OR 
+      WHEN "DisplayFormat":U   OR  WHEN "FieldLabel":U           OR  WHEN "FieldName":U OR 
+      WHEN "FieldToolTip":U    OR  WHEN "FlagValue":U            OR  WHEN "KeyDataType" OR 
+      WHEN "KeyField":U        OR  WHEN "KeyFormat":U            OR  WHEN "LinkedFieldDataTypes":U OR 
+      WHEN "LinkedFieldFormats":U OR WHEN "LookupImage":U        OR  WHEN "MaintenanceObject":U OR 
+      WHEN "MaintenanceSDO":U  OR  WHEN "ObjectLayout":U         OR  WHEN "ParentField":U OR 
+      WHEN "ParentFilterQuery":U OR WHEN "QueryTables":U         OR  WHEN "SDFTemplate":U OR 
+      WHEN "ViewerLinkedFields":U OR WHEN "ViewerLinkedWidgets":U OR WHEN "MappedFields":U OR
+      WHEN "TempLocation":U
       THEN DO:
         cABValue = DYNAMIC-FUNCTION('get':U + cLabel IN _S._HANDLE) NO-ERROR.               
+
+        IF lSDOCombo AND LOOKUP(cLabel, "KeyFormat,KeyDataType,DisplayFormat,DisplayDataType":U) > 0 THEN NEXT.
+          
         IF LOOKUP(clabel,gcAttributeList) > 0 THEN 
         DO:
            IF (AVAIL ttObjectAttribute AND cABValue EQ ttObjectAttribute.tAttributeValue)
            OR (NOT AVAIL ttObjectAttribute  AND cABValue EQ ttClassAttribute.tAttributeValue) THEN
-              RUN DeleteAttributeRow (INPUT "INSTANCE":U, INPUT dObject_obj, INPUT cLabel).       
+              RUN DeleteAttributeRow (INPUT "INSTANCE":U, INPUT pdObject_obj, INPUT cLabel).       
            ELSE IF cABValue <> cObjectValue AND pcLayout EQ "Master Layout":U THEN
-              RUN CreateAttributeRow("INSTANCE":U,dObject_obj,cLabel,{&CHARACTER-DATA-TYPE},cABValue,?,?,?,?,?).
+              RUN CreateAttributeRow("INSTANCE":U,pdObject_obj,cLabel,{&CHARACTER-DATA-TYPE},cABValue,?,?,?,?,?).
         END.   
         ELSE IF cABValue NE cObjectValue AND pcLayout EQ "Master Layout":U THEN
-            RUN CreateAttributeRow("INSTANCE":U,dObject_obj,cLabel,{&CHARACTER-DATA-TYPE},cABValue,?,?,?,?,?). 
+            RUN CreateAttributeRow("INSTANCE":U,pdObject_obj,cLabel,{&CHARACTER-DATA-TYPE},cABValue,?,?,?,?,?). 
       END.
       
       WHEN "SDFFileName":U THEN DO:
@@ -4406,25 +4543,26 @@ PROCEDURE setSDFInstanceAttributes :
         DO:
            IF (AVAIL ttObjectAttribute AND cABValue EQ ttObjectAttribute.tAttributeValue)
            OR (NOT AVAIL ttObjectAttribute  AND cABValue EQ ttClassAttribute.tAttributeValue) THEN
-              RUN DeleteAttributeRow (INPUT "INSTANCE":U, INPUT dObject_obj, INPUT cLabel).       
+              RUN DeleteAttributeRow (INPUT "INSTANCE":U, INPUT pdObject_obj, INPUT cLabel).       
            ELSE IF cABValue <> cObjectValue AND cABValue NE "":U THEN
-              RUN CreateAttributeRow("INSTANCE":U,dObject_obj,cLabel,{&CHARACTER-DATA-TYPE},cABValue,?,?,?,?,?).
+              RUN CreateAttributeRow("INSTANCE":U,pdObject_obj,cLabel,{&CHARACTER-DATA-TYPE},cABValue,?,?,?,?,?).
         END.   
         ELSE IF cABValue NE cObjectValue AND cABValue NE "":U THEN
-            RUN CreateAttributeRow("INSTANCE":U,dObject_obj,cLabel,{&CHARACTER-DATA-TYPE},cABValue,?,?,?,?,?). 
+            RUN CreateAttributeRow("INSTANCE":U,pdObject_obj,cLabel,{&CHARACTER-DATA-TYPE},cABValue,?,?,?,?,?). 
       END.
       
       WHEN "BuildSequence":U  OR  WHEN "InnerLines":U OR WHEN "RowsToBatch":U
       THEN DO:
         iABValue = DYNAMIC-FUNCTION('get' + cLabel IN _S._HANDLE) NO-ERROR.
-        setAttributeInt("INSTANCE":U,iABValue,cLabel, cObjectValue,dObject_obj).
+        setAttributeInt("INSTANCE":U,iABValue,cLabel, cObjectValue,pdObject_obj).
       END.
+
       WHEN "AutoFill":U        OR WHEN "DisplayField":U    OR WHEN "DisableOnInit":U    OR WHEN "EnableField":U OR
       WHEN "LocalField":U      OR WHEN "BlankOnNotAvail":U  OR WHEN "PopupOnAmbiguous":U OR
-      WHEN "PopupOnNotAvail":U OR WHEN "PopupOnUniqueAmbiguous":U
+      WHEN "PopupOnNotAvail":U OR WHEN "PopupOnUniqueAmbiguous":U OR WHEN 'Sort':U OR WHEN "UseCache":U
       THEN DO:
         lABValue = DYNAMIC-FUNCTION('get':U + cLabel IN _S._HANDLE) NO-ERROR.
-        setAttributeLog("INSTANCE":U,lABValue,cLabel, cObjectValue,dObject_obj).
+        setAttributeLog("INSTANCE":U,lABValue,cLabel, cObjectValue,pdObject_obj).
       END.
       
       WHEN "COLUMN":U THEN
@@ -4432,86 +4570,86 @@ PROCEDURE setSDFInstanceAttributes :
       DO:
          IF (AVAIL ttObjectAttribute AND _L._COL EQ DECIMAL(ttObjectAttribute.tAttributeValue))
          OR (NOT AVAIL ttObjectAttribute  AND _L._COL EQ DECIMAL(ttClassAttribute.tAttributeValue)) THEN
-            RUN DeleteAttributeRow (INPUT "INSTANCE":U, INPUT dObject_obj, INPUT cLabel).       
+            RUN DeleteAttributeRow (INPUT "INSTANCE":U, INPUT pdObject_obj, INPUT cLabel).       
          ELSE IF _L._COL <> DEC(cObjectValue) AND (pcLayout EQ "Master Layout":U OR _L._COL NE mstr_L._COL)THEN
-           RUN CreateAttributeRow("INSTANCE":U,dObject_obj,cLabel,{&DECIMAL-DATA-TYPE},?,_L._COL,?,?,?,?).
+           RUN CreateAttributeRow("INSTANCE":U,pdObject_obj,cLabel,{&DECIMAL-DATA-TYPE},?,_L._COL,?,?,?,?).
       END.   
       ELSE IF _L._COL NE DEC(cObjectValue) AND (pcLayout EQ "Master Layout":U OR _L._COL NE mstr_L._COL) THEN
-        RUN CreateAttributeRow("INSTANCE":U,dObject_obj,cLabel,{&DECIMAL-DATA-TYPE},?,_L._COL,?,?,?,?). 
+        RUN CreateAttributeRow("INSTANCE":U,pdObject_obj,cLabel,{&DECIMAL-DATA-TYPE},?,_L._COL,?,?,?,?). 
       
       WHEN "FieldName":U THEN
       IF LOOKUP(clabel,gcAttributeList) > 0 THEN 
       DO:
          IF (AVAIL ttObjectAttribute AND pcFldname EQ ttObjectAttribute.tAttributeValue)
          OR (NOT AVAIL ttObjectAttribute  AND pcFldname EQ ttClassAttribute.tAttributeValue) THEN
-            RUN DeleteAttributeRow (INPUT "INSTANCE":U, INPUT dObject_obj, INPUT cLabel).       
+            RUN DeleteAttributeRow (INPUT "INSTANCE":U, INPUT pdObject_obj, INPUT cLabel).       
          ELSE IF pcFldname <> cObjectValue AND pcLayout EQ "Master Layout":U THEN
-            RUN CreateAttributeRow("INSTANCE":U,dObject_obj,cLabel,{&CHARACTER-DATA-TYPE},pcFldname,?,?,?,?,?).
+            RUN CreateAttributeRow("INSTANCE":U,pdObject_obj,cLabel,{&CHARACTER-DATA-TYPE},pcFldname,?,?,?,?,?).
       END.   
       ELSE IF pcFldname NE cObjectValue AND pcFldname NE "":U THEN
-         RUN CreateAttributeRow("INSTANCE":U,dObject_obj,cLabel,{&CHARACTER-DATA-TYPE},pcFldname,?,?,?,?,?). 
+         RUN CreateAttributeRow("INSTANCE":U,pdObject_obj,cLabel,{&CHARACTER-DATA-TYPE},pcFldname,?,?,?,?,?). 
       
       WHEN "HEIGHT-CHARS":U THEN
       IF LOOKUP(clabel,gcAttributeList) > 0 THEN 
       DO:
          IF (AVAIL ttObjectAttribute AND _L._HEIGHT EQ DECIMAL(ttObjectAttribute.tAttributeValue))
          OR (NOT AVAIL ttObjectAttribute  AND _L._HEIGHT EQ DECIMAL(ttClassAttribute.tAttributeValue)) THEN
-            RUN DeleteAttributeRow (INPUT "INSTANCE":U, INPUT dObject_obj, INPUT cLabel).       
+            RUN DeleteAttributeRow (INPUT "INSTANCE":U, INPUT pdObject_obj, INPUT cLabel).       
          ELSE IF _L._HEIGHT <> DEC(cObjectValue) AND (pcLayout EQ "Master Layout":U OR _L._HEIGHT NE mstr_L._HEIGHT)THEN
-           RUN CreateAttributeRow("INSTANCE":U,dObject_obj,cLabel,{&DECIMAL-DATA-TYPE},?,_L._HEIGHT,?,?,?,?).
+           RUN CreateAttributeRow("INSTANCE":U,pdObject_obj,cLabel,{&DECIMAL-DATA-TYPE},?,_L._HEIGHT,?,?,?,?).
       END.   
       ELSE IF _L._HEIGHT NE DEC(cObjectValue) AND (pcLayout EQ "Master Layout":U OR _L._HEIGHT NE mstr_L._HEIGHT) THEN
-        RUN CreateAttributeRow("INSTANCE":U,dObject_obj,cLabel,{&DECIMAL-DATA-TYPE},?,_L._HEIGHT,?,?,?,?).       
+        RUN CreateAttributeRow("INSTANCE":U,pdObject_obj,cLabel,{&DECIMAL-DATA-TYPE},?,_L._HEIGHT,?,?,?,?).       
       
       WHEN "HideOnInit":U THEN 
       IF LOOKUP(clabel,gcAttributeList) > 0 THEN 
       DO:
          IF (AVAIL ttObjectAttribute AND _L._REMOVE-FROM-LAYOUT EQ LOGICAL(ttObjectAttribute.tAttributeValue))
          OR (NOT AVAIL ttObjectAttribute  AND _L._REMOVE-FROM-LAYOUT EQ LOGICAL(ttClassAttribute.tAttributeValue)) THEN
-            RUN DeleteAttributeRow (INPUT "INSTANCE":U, INPUT dObject_obj, INPUT cLabel).       
+            RUN DeleteAttributeRow (INPUT "INSTANCE":U, INPUT pdObject_obj, INPUT cLabel).       
          ELSE IF _L._REMOVE-FROM-LAYOUT <> LOGICAL(cObjectValue) 
               AND (pcLayout EQ "Master Layout":U OR _L._REMOVE-FROM-LAYOUT NE mstr_L._REMOVE-FROM-LAYOUT) THEN
-            RUN CreateAttributeRow("INSTANCE":U,dObject_obj,cLabel,{&LOGICAL-DATA-TYPE},?,?,?,_L._REMOVE-FROM-LAYOUT,?,?).
+            RUN CreateAttributeRow("INSTANCE":U,pdObject_obj,cLabel,{&LOGICAL-DATA-TYPE},?,?,?,_L._REMOVE-FROM-LAYOUT,?,?).
       END.   
       ELSE IF _L._REMOVE-FROM-LAYOUT NE LOGICAL(cObjectValue) 
            AND (pcLayout EQ "Master Layout":U OR _L._REMOVE-FROM-LAYOUT NE mstr_L._REMOVE-FROM-LAYOUT) THEN
-         RUN CreateAttributeRow("INSTANCE":U,dObject_obj,cLabel,{&LOGICAL-DATA-TYPE},?,?,?,_L._REMOVE-FROM-LAYOUT,?,?).
+         RUN CreateAttributeRow("INSTANCE":U,pdObject_obj,cLabel,{&LOGICAL-DATA-TYPE},?,?,?,_L._REMOVE-FROM-LAYOUT,?,?).
             
       WHEN "MasterFile":U THEN
       IF LOOKUP(clabel,gcAttributeList) > 0 THEN 
       DO:
          IF (AVAIL ttObjectAttribute AND _S._FILE-NAME EQ ttObjectAttribute.tAttributeValue)
          OR (NOT AVAIL ttObjectAttribute  AND _S._FILE-NAME EQ ttClassAttribute.tAttributeValue) THEN
-            RUN DeleteAttributeRow (INPUT "INSTANCE":U, INPUT dObject_obj, INPUT cLabel).       
+            RUN DeleteAttributeRow (INPUT "INSTANCE":U, INPUT pdObject_obj, INPUT cLabel).       
          ELSE IF _S._FILE-NAME <> cObjectValue AND pcLayout EQ "Master Layout":U THEN
-            RUN CreateAttributeRow("INSTANCE":U,dObject_obj,cLabel,{&CHARACTER-DATA-TYPE},_S._FILE-NAME,?,?,?,?,?).
+            RUN CreateAttributeRow("INSTANCE":U,pdObject_obj,cLabel,{&CHARACTER-DATA-TYPE},_S._FILE-NAME,?,?,?,?,?).
       END.   
       ELSE IF _S._FILE-NAME NE cObjectValue AND pcLayout EQ "Master Layout":U THEN
-         RUN CreateAttributeRow("INSTANCE":U,dObject_obj,cLabel,{&CHARACTER-DATA-TYPE},_S._FILE-NAME,?,?,?,?,?). 
+         RUN CreateAttributeRow("INSTANCE":U,pdObject_obj,cLabel,{&CHARACTER-DATA-TYPE},_S._FILE-NAME,?,?,?,?,?). 
          
       WHEN "ROW":U THEN
       IF LOOKUP(clabel,gcAttributeList) > 0 THEN 
       DO:
          IF (AVAIL ttObjectAttribute AND _L._ROW EQ DECIMAL(ttObjectAttribute.tAttributeValue))
          OR (NOT AVAIL ttObjectAttribute  AND  _L._ROW EQ DECIMAL(ttClassAttribute.tAttributeValue)) THEN
-            RUN DeleteAttributeRow (INPUT "INSTANCE":U, INPUT dObject_obj, INPUT cLabel).       
+            RUN DeleteAttributeRow (INPUT "INSTANCE":U, INPUT pdObject_obj, INPUT cLabel).       
          ELSE IF _L._ROW <> DEC(cObjectValue) AND (pcLayout EQ "Master Layout":U OR _L._ROW NE mstr_L._ROW)THEN
-           RUN CreateAttributeRow("INSTANCE":U,dObject_obj,cLabel,{&DECIMAL-DATA-TYPE},?,_L._ROW,?,?,?,?).
+           RUN CreateAttributeRow("INSTANCE":U,pdObject_obj,cLabel,{&DECIMAL-DATA-TYPE},?,_L._ROW,?,?,?,?).
       END.   
       ELSE IF _L._ROW NE DEC(cObjectValue) AND (pcLayout EQ "Master Layout":U OR _L._ROW NE mstr_L._ROW) THEN
-        RUN CreateAttributeRow("INSTANCE":U,dObject_obj,cLabel,{&DECIMAL-DATA-TYPE},?,_L._ROW,?,?,?,?). 
+        RUN CreateAttributeRow("INSTANCE":U,pdObject_obj,cLabel,{&DECIMAL-DATA-TYPE},?,_L._ROW,?,?,?,?). 
         
       WHEN "WIDTH-CHARS":U THEN
       IF LOOKUP(clabel,gcAttributeList) > 0 THEN 
       DO:
          IF (AVAIL ttObjectAttribute AND _L._WIDTH EQ DECIMAL(ttObjectAttribute.tAttributeValue))
          OR (NOT AVAIL ttObjectAttribute  AND  _L._WIDTH EQ DECIMAL(ttClassAttribute.tAttributeValue)) THEN
-            RUN DeleteAttributeRow (INPUT "INSTANCE":U, INPUT dObject_obj, INPUT cLabel).       
+            RUN DeleteAttributeRow (INPUT "INSTANCE":U, INPUT pdObject_obj, INPUT cLabel).       
          ELSE IF _L._WIDTH <> DEC(cObjectValue) AND (pcLayout EQ "Master Layout":U OR _L._WIDTH NE mstr_L._WIDTH)THEN
-           RUN CreateAttributeRow("INSTANCE":U,dObject_obj,cLabel,{&DECIMAL-DATA-TYPE},?,_L._WIDTH,?,?,?,?).
+           RUN CreateAttributeRow("INSTANCE":U,pdObject_obj,cLabel,{&DECIMAL-DATA-TYPE},?,_L._WIDTH,?,?,?,?).
       END.   
       ELSE IF _L._WIDTH NE DEC(cObjectValue) AND (pcLayout EQ "Master Layout":U OR _L._WIDTH NE mstr_L._WIDTH) THEN
-        RUN CreateAttributeRow("INSTANCE":U,dObject_obj,cLabel,{&DECIMAL-DATA-TYPE},?,_L._WIDTH,?,?,?,?). 
+        RUN CreateAttributeRow("INSTANCE":U,pdObject_obj,cLabel,{&DECIMAL-DATA-TYPE},?,_L._WIDTH,?,?,?,?). 
         
       WHEN "Order":U THEN
       DO:
@@ -4521,7 +4659,7 @@ PROCEDURE setSDFInstanceAttributes :
              object sequence for tab order but the order attribute is still maintained
              and kept in sync with _U._TAB-ORDER by the AppBuilder. */
           FIND ryc_object_instance WHERE 
-            ryc_object_instance.object_instance_obj = dObject_obj EXCLUSIVE-LOCK NO-ERROR.
+            ryc_object_instance.object_instance_obj = pdObject_obj EXCLUSIVE-LOCK NO-ERROR.
           IF AVAILABLE ryc_object_instance THEN
             ryc_object_instance.object_sequence = b_U._TAB-ORDER.
           RELEASE ryc_object_instance.
@@ -4530,17 +4668,17 @@ PROCEDURE setSDFInstanceAttributes :
         DO:
            IF (AVAIL ttObjectAttribute AND b_U._TAB-ORDER EQ INTEGER(ttObjectAttribute.tAttributeValue))
            OR (NOT AVAIL ttObjectAttribute  AND  b_U._TAB-ORDER EQ INTEGER(ttClassAttribute.tAttributeValue)) THEN
-              RUN DeleteAttributeRow (INPUT "INSTANCE":U, INPUT dObject_obj, INPUT cLabel).       
+              RUN DeleteAttributeRow (INPUT "INSTANCE":U, INPUT pdObject_obj, INPUT cLabel).       
            ELSE IF b_U._TAB-ORDER <> INTEGER(cObjectValue) AND pcLayout EQ "Master Layout":U THEN
-              RUN CreateAttributeRow("INSTANCE":U,dObject_obj,cLabel,{&INTEGER-DATA-TYPE},?,?,b_U._TAB-ORDER,?,?,?).
+              RUN CreateAttributeRow("INSTANCE":U,pdObject_obj,cLabel,{&INTEGER-DATA-TYPE},?,?,b_U._TAB-ORDER,?,?,?).
         END.   
         ELSE IF b_U._TAB-ORDER NE INTEGER(cObjectValue) AND pcLayout EQ "Master Layout":U  THEN
-          RUN CreateAttributeRow("INSTANCE":U,dObject_obj,cLabel,{&INTEGER-DATA-TYPE},?,?,b_U._TAB-ORDER,?,?,?). 
+          RUN CreateAttributeRow("INSTANCE":U,pdObject_obj,cLabel,{&INTEGER-DATA-TYPE},?,?,b_U._TAB-ORDER,?,?,?). 
       END.  /* when order */
     END CASE.
  END. /* End for each ttClassAttrtibute */
 
- RUN createDPSAttribute IN THIS-PROCEDURE (pcLayout, "INSTANCE":U,dObject_obj,b_U._Window-handle,b_U._HANDLE).
+ RUN createDPSAttribute IN THIS-PROCEDURE (pcLayout, "INSTANCE":U,pdObject_obj,b_U._Window-handle,b_U._HANDLE).
 
  hTmp = TEMP-TABLE ttStoreAttribute:DEFAULT-BUFFER-HANDLE.
  RUN StoreAttributeValues IN gshRepositoryManager
@@ -4578,13 +4716,16 @@ PROCEDURE setSmartDataFieldValues :
   Parameters:  puRecid     - RECID of the _U record of the widget whose attributes
                              need to be loaded.
                dViewer_obj - Parent Viewer Object obj
+               pcLayout 
+               pcDataSourceType - Type of data source (SBO or SDO)
   Notes:       This procedure is used to map SmartSelect SmartDataFields and 
                their associated SDOs to the Dynamics Dyanmic Lookup Combo-Box.
                called from writeFieldLevelObjects
 ------------------------------------------------------------------------------*/
- DEFINE INPUT  PARAMETER puRecid     AS RECID      NO-UNDO.
- DEFINE INPUT  PARAMETER dViewer_obj AS DECIMAL    NO-UNDO.
- DEFINE INPUT  PARAMETER pcLayout    AS CHARACTER  NO-UNDO.
+ DEFINE INPUT  PARAMETER puRecid          AS RECID       NO-UNDO.
+ DEFINE INPUT  PARAMETER dViewer_obj      AS DECIMAL     NO-UNDO.
+ DEFINE INPUT  PARAMETER pcLayout         AS CHARACTER   NO-UNDO.
+ DEFINE INPUT  PARAMETER pcDataSourceType AS CHARACTER   NO-UNDO.
  
  DEFINE VARIABLE cAttrDiffs      AS CHARACTER NO-UNDO.
  DEFINE VARIABLE cError          AS CHARACTER NO-UNDO.
@@ -4594,6 +4735,7 @@ PROCEDURE setSmartDataFieldValues :
  DEFINE VARIABLE dObject_obj     AS DECIMAL   NO-UNDO.
  DEFINE VARIABLE cFileNameNoPath AS CHARACTER NO-UNDO.
  DEFINE VARIABLE cFldName        AS CHARACTER NO-UNDO.
+ DEFINE VARIABLE cInstanceName   AS CHARACTER   NO-UNDO.
  
  DEFINE BUFFER b_U  FOR _U.
  
@@ -4617,78 +4759,85 @@ PROCEDURE setSmartDataFieldValues :
    END.
    OTHERWISE DO:
      cFileNameNoPath = ENTRY(NUM-ENTRIES(_S._FILE-NAME,"~/":U), _S._FILE-NAME, "~/":U).
-     /* We have found the SDF, get some info */
-     RUN retrieveDesignObject IN ghRepDesignManager 
-            (INPUT  cFileNameNoPath,  INPUT  IF pcLayout ="Master Layout":U OR pcLayout = ""
-                                             THEN "{&DEFAULT-RESULT-CODE}":U 
-                                             ELSE pcLayout,  /* Get  result Codes */
-             OUTPUT TABLE ttObject,   OUTPUT TABLE ttPage,
-             OUTPUT TABLE ttLink,     OUTPUT TABLE ttUiEvent,
-             OUTPUT TABLE ttObjectAttribute ) NO-ERROR.
-
-     IF RETURN-VALUE > "":U THEN
+     IF NOT DYNAMIC-FUNCTION("ObjectExists":U IN ghRepDesignManager, INPUT cFileNameNoPath)  THEN
      DO:
-       /* Due to bug in retrieveDesignObject, need to refind object without extension */
-        cFileNameNoPath = ENTRY(1,cFileNameNoPath,".":U).  
-        RUN retrieveDesignObject IN ghRepDesignManager 
-                  (INPUT  cFileNameNoPath,  INPUT  IF pcLayout ="Master Layout":U OR pcLayout = ""
-                                                   THEN "{&DEFAULT-RESULT-CODE}":U 
-                                                   ELSE pcLayout,  /* Get  result Codes */
-                   OUTPUT TABLE ttObject,   OUTPUT TABLE ttPage,
-                   OUTPUT TABLE ttLink,     OUTPUT TABLE ttUiEvent,
-                   OUTPUT TABLE ttObjectAttribute ) NO-ERROR.
-        IF RETURN-VALUE > "":U THEN
-        DO:
-           cError = {aferrortxt.i 'RY' '15' '?' '?' "_S._FILE-NAME"}.
-           RUN AppendToPError (INPUT cError).
-           RETURN.
-        END.
+        cError = {aferrortxt.i 'RY' '15' '?' '?' "_S._FILE-NAME"}.
+        RUN AppendToPError (INPUT cError).
+        RETURN.
+     END.
+     /* Determine whether the object is registered with or without the extension */
+     IF CAN-FIND(FIRST ryc_SmartObject WHERE ryc_SmartObject.object_Filename = cFileNameNoPath) THEN
+        cOBJFilename = cFileNameNoPath.
+     ELSE IF NUM-ENTRIES(cFileNameNoPath,".") > 1 
+             AND CAN-FIND(FIRST ryc_SmartObject WHERE ryc_SmartObject.object_Filename = ENTRY(1,cFileNameNoPath,".":U)) THEN
+        cOBJFilename = ENTRY(1,cFileNameNoPath,".":U).
+
+     IF b_U._CLASS-NAME > "" THEN
+        ASSIGN cClass        = b_U._CLASS-NAME. 
+     ELSE DO:   .
+       /* We have found the SDF, get the class in case .cst is not set properly */
+       RUN retrieveDesignObject IN ghRepDesignManager 
+              (INPUT  cOBJFilename,  INPUT  IF pcLayout ="Master Layout":U OR pcLayout = ""
+                                               THEN "{&DEFAULT-RESULT-CODE}":U 
+                                               ELSE pcLayout,  /* Get  result Codes */
+               OUTPUT TABLE ttObject,   OUTPUT TABLE ttPage,
+               OUTPUT TABLE ttLink,     OUTPUT TABLE ttUiEvent,
+               OUTPUT TABLE ttObjectAttribute ) NO-ERROR.
+
+
+       FIND FIRST ttObject WHERE ttObject.tLogicalObjectName       = cOBJFilename 
+                             AND ttObject.tContainerSmartObjectObj = 0 NO-ERROR. 
+       IF AVAIL ttObject THEN
+         ASSIGN cClass            = ttObject.tClassName
+                b_U._CLASS-NAME   = ttObject.tClassName.
      END.         
-     
-     FIND FIRST ttObject WHERE ttObject.tLogicalObjectName = cFileNameNoPath 
-                           AND ttObject.tContainerSmartObjectObj = 0 NO-ERROR. 
-     IF AVAIL ttObject THEN
-       ASSIGN cClass            = ttObject.tClassName
-              b_U._CLASS-NAME   = ttObject.tClassName
-              cOBJFilename      = ttObject.tLogicalObjectName.            
    END. /* Otherwise */
  END CASE.
 
  /* If the getSDFFileName procedure is in the SDF, call it to return the master SDF file name that is
     stored in the repository. This procedure is in the Dynamics provided dyncombo and dynlookup supers */
  IF VALID-HANDLE(_S._HANDLE) AND LOOKUP("getSDFFileName":U,_S._HANDLE:INTERNAL-ENTRIES) > 0 THEN  
+ DO:
     cOBJFileName = DYNAMIC-FUNCTION('getSDFFileName' IN _S._HANDLE) NO-ERROR. 
     
- /* Ensure the master object exists */
- IF NOT DYNAMIC-FUNCTION("ObjectExists":U IN ghRepDesignManager,INPUT cOBJFileName) THEN
- DO:
+   /* Ensure the master object exists */
+   IF NOT DYNAMIC-FUNCTION("ObjectExists":U IN ghRepDesignManager,INPUT cOBJFileName) THEN
+   DO:
      cError = {aferrortxt.i 'RY' '15' '?' '?' "cOBJFileName"}.
      RUN AppendToPError (INPUT cError).
      RETURN.
+   END.
  END.
- 
+
  IF VALID-HANDLE(_S._HANDLE) THEN
     cFldName = DYNAMIC-FUNCTION('getFieldName' IN _S._HANDLE) NO-ERROR.
     
- /* User may have changed the name */
- IF cFldName NE b_U._Name THEN 
+ /* If this was a static viewer saved as a dynamic viewer and
+    the name (instance name) is different from the SDF fieldname,
+    set the name equal to the SDF fieldname. */
+ IF b_U._Object-Name = "":U AND cFldName NE b_U._Name THEN 
+   ASSIGN b_U._NAME       = cFldName
+          b_U._CLASS-NAME = cClass.
+
+ /* If this is an SBO-based static viewer being saved as dynamic 
+    b_U._TABLE is ? and b_U._NAME is already qualified with the SDO 
+    name so the instance name should be b_U._NAME */
+ cInstanceName = IF pcDataSourceType = "SBO":U AND b_U._TABLE NE ? THEN
+                   b_U._TABLE + ".":U + b_U._NAME
+                 ELSE b_U._NAME.
+
+ /* SmartLOBFields are not dropped onto fields like other SDFs.  
+    FieldName does not get set for a SmartLOBField until a field is 
+    selected in the SmartLOB's instance properties dialog.  FieldName may
+    not be set when the instance is created but later when the instance
+    is modified so the instance would need to be renamed to be set 
+    to the FieldName. */
+ IF DYNAMIC-FUNCTION('classIsA':U IN gshRepositoryManager, b_U._CLASS-NAME, "SmartLobField":U) THEN
  DO:
-   /* If this was a static viewer saved as a dynamic viewer,
-      set the name (instance name) equal to the SDF fieldname */
-   IF b_U._Object-Name = "" THEN
-     ASSIGN b_U._NAME       = cFldName
-            b_U._CLASS-NAME = cClass.
-   ELSE DO:
-      IF DYNAMIC-FUNCTION("classIsA":U IN gshRepositoryManager, b_U._CLASS-NAME, "SmartLobField":U) THEN
-        ASSIGN b_U._name = cFldName.
-      ELSE  
-        ASSIGN cFldName = b_U._name.
-      DYNAMIC-FUNCTION('setFieldName' IN _S._HANDLE, cFldName).
-      IF dObject_obj > 0 THEN /* The instance already exists */
-        RUN renameObjectInstance IN ghRepDesignManager 
-                (dObject_obj, b_U._NAME)  NO-ERROR.
-   END.              
- END. /* If the name has changed */
+   IF dObject_obj > 0 THEN /* The instance already exists */
+     RUN renameObjectInstance IN ghRepDesignManager 
+            (dObject_obj, cInstanceName)  NO-ERROR.
+ END.
 
  /* CUSTOM LAYOUTS */
  IF pcLayout NE "Master Layout":U THEN 
@@ -4728,7 +4877,7 @@ PROCEDURE setSmartDataFieldValues :
          cOBJFileName,                 /* Object Name        */                  
          IF pcLayout = "Master Layout":U
          THEN "":U ELSE pcLayout,       /* Result Code       */
-         b_U._NAME,                    /* Instance Name      */
+         cInstanceName,                 /* Instance Name      */
          b_U._SUBTYPE + " of type ":U + cClass, /* Descr.     */
          "":U,                         /* Layout Position    */
          ?,                            /* Page number - NA   */
@@ -4739,15 +4888,25 @@ PROCEDURE setSmartDataFieldValues :
         OUTPUT dSDFObj,                     /* Master obj    */
         OUTPUT dObject_Obj )                /* Instance Obj  */
         NO-ERROR.
-    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "" THEN DO:
+    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "" THEN 
+    DO:
        RUN AppendToPError ( RETURN-VALUE).
        RETURN.
     END.
-
+    ASSIGN gcNewSDFs =  gcNewSDFs + (IF gcNewSDFs = "" THEN "" ELSE CHR(4))
+                                  + STRING(puRecid)     + CHR(3) 
+                                  + pcLayout            + CHR(3)
+                                  + STRING(dObject_Obj) + CHR(3)
+                                  + cClass              + CHR(3)
+                                  + cObjFilename        + CHR(3)
+                                  + cFldName.
+                                              
  END.  /* Creating a new instance in the viewer */
  
- /* Set the SDF attributes */
- RUN setSDFInstanceAttributes (puRecid, pclayout,dObject_Obj,cClass,cObjFilename,cFldname).
+ /* Set the SDF attributes only for existing instances. New instance attribtues will be 
+    added after all new instances have been added to viewer */
+ ELSE RUN setSDFInstanceAttributes (puRecid, pclayout,dObject_Obj,cClass,cObjFilename,cFldname, NO).
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -4915,7 +5074,9 @@ PROCEDURE writeFieldLevelObjects :
  DEFINE VARIABLE lCalculatedField   AS LOGICAL    NO-UNDO.
  DEFINE VARIABLE dDynObject_obj     AS DECIMAL    NO-UNDO.
  DEFINE VARIABLE lNewInstance       AS LOGICAL    NO-UNDO.
-
+ DEFINE VARIABLE cNewInstances      AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cNewInstanceEntry  AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE iNewInstance       AS INTEGER    NO-UNDO.
  /* Get the _P record of the dynamic viewer being written  */
  FIND _P WHERE RECID(_P) = gprPrecid.
  FIND _U WHERE RECID(_U) = _P._u-recid.
@@ -4961,7 +5122,8 @@ PROCEDURE writeFieldLevelObjects :
                     b_U._STATUS = "NORMAL":U AND
                     NOT b_U._NAME BEGINS "_LBL-":U AND
                     b_U._TYPE NE "WINDOW":U AND
-                    b_U._TYPE NE "FRAME":U:
+                    b_U._TYPE NE "FRAME":U
+                USE-INDEX _OUTPUT:
    
    FIND _F WHERE RECID(_F) = b_U._x-recid NO-ERROR.
    FIND _L WHERE _L._LO-NAME = pcLayout AND _L._u-recid = RECID(b_U) NO-ERROR.
@@ -5065,7 +5227,8 @@ PROCEDURE writeFieldLevelObjects :
      IF b_U._SUBTYPE = "SmartDataField":U OR b_U._SUBTYPE = "SmartLOBField":U THEN DO:
        RUN setSmartDataFieldValues(INPUT RECID(b_U), 
                                    INPUT dSmartViewer, 
-                                   INPUT pcLayout ).
+                                   INPUT pcLayout,
+                                   INPUT cDataSourceType ).
        IF gpcError NE "" AND NOT gpcError BEGINS "Associated data" THEN RETURN.
      END.
      ELSE NEXT Child-Search.
@@ -5089,7 +5252,7 @@ PROCEDURE writeFieldLevelObjects :
 
      IF lCalculatedField AND NUM-ENTRIES(cMasterObjectName, ".":U) = 2 THEN
        cMasterObjectName = ENTRY(2, cMasterObjectName, ".":U).
-
+   
      IF NOT DYNAMIC-FUNCTION("ObjectExists":U IN ghRepDesignManager, INPUT cMasterObjectName) THEN
      DO:
        /* Cannot insert a DataField instance if there is no master */
@@ -5167,18 +5330,26 @@ PROCEDURE writeFieldLevelObjects :
              RUN AppendToPError (RETURN-VALUE).
              RETURN.
           END.
-         ASSIGN lnewInstance = YES. 
+         ASSIGN lnewInstance = YES
+                cNewInstances = cNewInstances + (IF cNewInstances = "" THEN "" ELSE CHR(4))
+                                              + STRING(RECID(b_U))      + CHR(3) 
+                                              + cMasterObjectName       + CHR(3)
+                                              + STRING(dDynObject_Obj)  + CHR(3)
+                                              + pcLayout                + CHR(3)
+                                              + STRING((b_U._BUFFER = 'RowObject':U AND cColumnTable NE "":U) OR 
+                                                 NUM-ENTRIES(gcObjectName,".":U) = 2 ).
+                                                           .
          IF pcLayout = "Master Layout":U THEN 
            ASSIGN b_U._OBJECT-OBJ = dDynObject_obj.
        END. /* if it is the Master or there are differences */
      END. /* End If b_U._Object_obj = 0 it isn't already there */
-     IF pcLayout = "Master Layout":U OR cAttrDiffs NE "":U THEN 
+     ELSE IF pcLayout = "Master Layout":U OR cAttrDiffs NE "":U THEN 
      DO:
        RUN setObjectInstanceAttributes (INPUT RECID(b_U),        /* _U with current attributes */
-                                        INPUT cMasterObjectName, /* Object Type                    */
+                                        INPUT cMasterObjectName, /* Master Object Name                    */
                                         INPUT dDynObject_Obj,
                                         INPUT pcLayout,
-                                        INPUT lnewInstance) NO-ERROR.
+                                        INPUT NO ) NO-ERROR.
                               
        IF gpcError NE "" AND NOT gpcError BEGINS "Associated data" THEN RETURN.
 
@@ -5188,6 +5359,7 @@ PROCEDURE writeFieldLevelObjects :
                (dDynObject_obj, cInstanceName) NO-ERROR.         
                
      END.
+
      RUN setObjectEvents (INPUT RECID(b_U),   /* _U with current attributes */
                           INPUT dDynObject_Obj,
                           INPUT "INSTANCE":U,
@@ -5198,8 +5370,9 @@ PROCEDURE writeFieldLevelObjects :
 
   /* Before setting the attributes of a datafield, check them against the 
       master attributes of the datafield.  Remove those which are the same */
-   IF (b_U._BUFFER = 'RowObject':U AND cColumnTable NE "":U) OR 
-       NUM-ENTRIES(gcObjectName,".":U) = 2 THEN DO:
+   IF NOT lNewInstance AND ((b_U._BUFFER = 'RowObject':U AND cColumnTable NE "":U) OR 
+       NUM-ENTRIES(gcObjectName,".":U) = 2) THEN 
+   DO:
      RUN checkDataFieldMaster(cMasterObjectName, dDynObject_Obj).
      IF gpcError NE "" AND NOT gpcError BEGINS "Associated data" THEN RETURN.
    END.
@@ -5210,13 +5383,7 @@ PROCEDURE writeFieldLevelObjects :
      RUN RemoveAttributeValues IN ghRepDesignManager
         (INPUT hTmp,
          INPUT TABLE-HANDLE ghUnknown) NO-ERROR.
-   /*  IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "" THEN DO:
-        RUN AppendToPError (IF ERROR-STATUS:ERROR  
-                            THEN RETURN-VALUE + "(writeFieldlevelObejcts->RemoveAttributeValues:failed)"  ELSE RETURN-VALUE).
-        RETURN.
-     END.
-     */
-   
+     
      EMPTY TEMP-TABLE DeleteAttribute.
    END. 
    
@@ -5234,6 +5401,78 @@ PROCEDURE writeFieldLevelObjects :
      EMPTY TEMP-TABLE ttStoreAttribute.
    END.
  END. /* End Child Loop */
+
+ /* Write out attributes for all new instances. */
+ /* This was moved outside the above loop  so that it wouldn't be necessary to run the retrieveDesignObject
+    API for each instance after it was added. The idea is now to add all instances, then set the attributes 
+    afterwards so that the API 'retrieveDesignObject' need only be called once to retrieve the master object 
+    with all instances and master objects */
+ DO iNewInstance = 1 TO NUM-ENTRIES(cNewInstances,CHR(4)):
+   ASSIGN cNewInstanceEntry = ENTRY(iNewInstance,cNewInstances,CHR(4)).
+       
+   RUN setObjectInstanceAttributes (INPUT INT(ENTRY(1,cNewInstanceEntry,CHR(3))), /* _U with current attributes */
+                                    INPUT ENTRY(2,cNewInstanceEntry,CHR(3)),      /* MasterObjectName                    */
+                                    INPUT DEC(ENTRY(3,cNewInstanceEntry,CHR(3))), /* Instance Obj */
+                                    INPUT ENTRY(4,cNewInstanceEntry,CHR(3)),      /* pcLayout */
+                                    INPUT IF iNewInstance = 1 THEN YES ELSE NO ). /* Retrieve the data object once */
+    
+   IF gpcError NE "" AND NOT gpcError BEGINS "Associated data" THEN RETURN.      
+
+  /* Before setting the attributes of a datafield, check them against the 
+      master attributes of the datafield.  Remove those which are the same */
+   IF LOGICAL(ENTRY(5,cNewInstanceEntry,CHR(3))) THEN 
+   DO:
+     RUN checkDataFieldMaster(INPUT ENTRY(2,cNewInstanceEntry,CHR(3)), /* cMasterObjectName */
+                              INPUT DEC(ENTRY(3,cNewInstanceEntry,CHR(3))) /* dDynObject_obj */
+                             ).
+     IF gpcError NE "" AND NOT gpcError BEGINS "Associated data" THEN RETURN.
+   END.
+    
+   IF CAN-FIND(FIRST ttStoreAttribute) THEN
+   DO:
+      hTmp = TEMP-TABLE ttStoreAttribute:DEFAULT-BUFFER-HANDLE.
+
+      RUN StoreAttributeValues IN gshRepositoryManager
+          (INPUT hTmp ,
+           INPUT TABLE-HANDLE ghUnknown) NO-ERROR.  /* Compiler requires a variable with unknown */
+      IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "" THEN DO:
+        RUN AppendToPError (RETURN-VALUE).
+        RETURN.
+      END.
+      EMPTY TEMP-TABLE ttStoreAttribute.
+   END.          
+ END.
+ /* If user performed a Save As, then the private data will store
+    the original object_obj. Need to copy over all events, not just modified events */
+ IF VALID-HANDLE(_U._HANDLE) AND NUM-ENTRIES(_U._HANDLE:PRIVATE-DATA,CHR(4)) = 3 THEN
+     RUN setObjectEventsAll (INPUT ENTRY(2,_U._HANDLE:PRIVATE-DATA,CHR(4)) , /* Original object name */
+                             INPUT pcLayout) NO-ERROR.
+ 
+/* Write out all attributes for all newly added SDFs */
+ DO iNewInstance = 1 TO NUM-ENTRIES(gcNewSDFs,CHR(4)):
+   ASSIGN cNewInstanceEntry = ENTRY(iNewInstance,gcNewSDFs,CHR(4)).
+
+   RUN setSDFInstanceAttributes (INPUT INT(ENTRY(1,cNewInstanceEntry,CHR(3))), /* puRecid */
+                                 INPUT ENTRY(2,cNewInstanceEntry,CHR(3)),      /* pcLayout */
+                                 INPUT DEC(ENTRY(3,cNewInstanceEntry,CHR(3))), /* Instance Obj */ 
+                                 INPUT ENTRY(4,cNewInstanceEntry,CHR(3)),      /* Class  */
+                                 INPUT ENTRY(5,cNewInstanceEntry,CHR(3)),      /*cObjFilename */
+                                 INPUT ENTRY(6,cNewInstanceEntry,CHR(3)),      /* cFldname).*/
+                                 INPUT IF iNewInstance = 1 THEN YES ELSE NO ). /* Retrieve the data object once */.  
+   IF CAN-FIND(FIRST ttStoreAttribute) THEN
+   DO:
+      hTmp = TEMP-TABLE ttStoreAttribute:DEFAULT-BUFFER-HANDLE.
+
+      RUN StoreAttributeValues IN gshRepositoryManager
+          (INPUT hTmp ,
+           INPUT TABLE-HANDLE ghUnknown) NO-ERROR.  /* Compiler requires a variable with unknown */
+      IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "" THEN DO:
+        RUN AppendToPError (RETURN-VALUE).
+        RETURN.
+      END.
+      EMPTY TEMP-TABLE ttStoreAttribute.
+   END.          
+ END.
 
 /* Update the Events for this object */
  IF CAN-FIND(FIRST ttStoreUIEvent) THEN

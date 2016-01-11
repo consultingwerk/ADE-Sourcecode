@@ -67,7 +67,7 @@ DEFINE VARIABLE cQuitOnEnd   AS CHARACTER  NO-UNDO.
 &Scoped-define PROCEDURE-TYPE Window
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME DEFAULT-FRAME
 
 /* Standard List Definitions                                            */
@@ -170,7 +170,7 @@ ELSE {&WINDOW-NAME} = CURRENT-WINDOW.
 /* SETTINGS FOR WINDOW C-Win
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME DEFAULT-FRAME
-                                                                        */
+   FRAME-NAME                                                           */
 ASSIGN 
        FRAME DEFAULT-FRAME:HEIGHT           = 17.38
        FRAME DEFAULT-FRAME:WIDTH            = 108.8.
@@ -267,6 +267,8 @@ PAUSE 0 BEFORE-HIDE.
 /* This starts the configuration file manager and deals with getting
    all the managers running and set the session parameters. */
 RUN initializeEnvironment. 
+
+
 IF RETURN-VALUE = "":U THEN
 DO:
   PUBLISH "DCU_SetStatus":U ("Initializing Installation Library...").
@@ -503,6 +505,7 @@ PROCEDURE initializeEnvironment :
         cSessType = ENTRY(2,cSessType,"=":U).
         cICFParam = cICFParam + (IF cICFParam <> "":U THEN ",":U ELSE "":U)
                   + "ICFSESSTYPE=":U + cSessType .
+        NEXT.
       END.
       IF NUM-ENTRIES(cSessType,"=":U) > 1 AND
         (ENTRY(1,cSessType,"=":U) = "ICFCONFIG":U OR
@@ -513,7 +516,10 @@ PROCEDURE initializeEnvironment :
         cICFParam = cICFParam + (IF cICFParam <> "":U THEN ",":U ELSE "":U)
                   + "ICFCONFIG=":U + cSessType .
         lConfFileSet = YES.
+        NEXT.
       END.
+      cICFParam = cICFParam + (IF cICFParam <> "":U THEN ",":U ELSE "":U)
+                + ENTRY(iCount, SESSION:ICFPARAM) .
     END.
 
     IF NOT lConfFileSet THEN

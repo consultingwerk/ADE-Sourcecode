@@ -158,6 +158,7 @@ DEFINE VARIABLE multi-layout  AS LOGICAL                               NO-UNDO.
 DEFINE VARIABLE n_down        AS INTEGER                               NO-UNDO.
 DEFINE VARIABLE never-again   AS LOGICAL                               NO-UNDO.
 DEFINE VARIABLE ok2continue   AS LOGICAL                               NO-UNDO.
+DEFINE VARIABLE output-colLabel AS CHARACTER                           NO-UNDO.
 DEFINE VARIABLE output-format AS CHARACTER                             NO-UNDO.
 DEFINE VARIABLE output-help   AS CHARACTER                             NO-UNDO.
 DEFINE VARIABLE output-label  AS CHARACTER                             NO-UNDO.
@@ -916,19 +917,22 @@ IF NOT CreatingSuper OR _P._TYPE = "SmartDataObject":U THEN DO:
               ASSIGN _BC._WIDTH = _BC._COL-HANDLE:WIDTH WHEN _BC._COL-HANDLE:WIDTH > 0.1.           
 
             /* Determine the label, format and help string to output */    
-            ASSIGN output-label  = IF _BC._LABEL NE _BC._DEF-LABEL
-                                   THEN _BC._LABEL ELSE ?
-                   output-format = IF _BC._FORMAT NE _BC._DEF-FORMAT
-                                   THEN _BC._FORMAT ELSE ?
-                   output-help   = IF _BC._HELP NE _BC._DEF-HELP
-                                   THEN _BC._HELP ELSE ?
-                   output-width  = IF _BC._WIDTH NE _BC._DEF-WIDTH
-                                   THEN STRING(_BC._WIDTH) ELSE ?.
+            ASSIGN output-label    = IF _BC._LABEL NE _BC._DEF-LABEL
+                                     THEN _BC._LABEL ELSE ?
+                   output-colLabel = IF _BC._COL-LABEL NE _BC._DEF-COLLABEL
+                                     THEN _BC._COL-LABEL ELSE ?
+                   output-format   = IF _BC._FORMAT NE _BC._DEF-FORMAT
+                                     THEN _BC._FORMAT ELSE ?
+                   output-help     = IF _BC._HELP NE _BC._DEF-HELP
+                                     THEN _BC._HELP ELSE ?
+                   output-width    = IF _BC._WIDTH NE _BC._DEF-WIDTH
+                                     THEN STRING(_BC._WIDTH) ELSE ?.
 
             /* Determine if all defaults */
             ASSIGN def-values = IF _U._TYPE = "QUERY":U AND
                                    _U._SUBTYPE = "SmartDataObject":U THEN
                                   (output-label            = ? AND
+                                   output-collabel         = ? AND
                                    output-format           = ? AND
                                    output-help             = ? AND
                                    output-valexp           = ? AND
@@ -970,7 +974,7 @@ IF NOT CreatingSuper OR _P._TYPE = "SmartDataObject":U THEN DO:
                   _BC._NAME _BC._DISP-NAME output-label output-format _BC._DATA-TYPE _BC._BGCOLOR
                   _BC._FGCOLOR _BC._FONT _BC._LABEL-BGCOLOR _BC._LABEL-FGCOLOR 
                   _BC._LABEL-FONT _BC._ENABLED output-help
-                  _BC._MANDATORY _BC._WIDTH _BC._INHERIT-VALIDATION
+                  _BC._MANDATORY _BC._WIDTH _BC._INHERIT-VALIDATION output-colLabel
                   .
               ELSE
                 EXPORT STREAM P_4GL

@@ -160,6 +160,17 @@ FUNCTION blankFillIn RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-blankNumericFormat) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD blankNumericFormat Procedure 
+FUNCTION blankNumericFormat RETURNS LOGICAL
+  ( phField AS HANDLE )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-columnDataType) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD columnDataType Procedure 
@@ -947,7 +958,7 @@ FUNCTION unBlankFillin RETURNS LOGICAL
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 13.67
+         HEIGHT             = 13.33
          WIDTH              = 58.4.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -1934,7 +1945,10 @@ Parameters: INPUT phField - the handle of a field
     Notes: The blankFields changes the format of fill-ins in order to make it 
            appear blank. 
            This procedure is defined  
-            ON ANY-PRINTABLE PERSISTENT trigger when the field is blanked
+            ON ANY-PRINTABLE, 'shift-ins', 'ctrl-v' PERSISTENT trigger when 
+            the field is blanked. 
+           It is also called from unblankFillin, in case the user used the 
+           paste from the popup menu, an event which progress cannot trap.  
 ------------------------------------------------------------------------------*/
   DEFINE INPUT PARAMETER phField AS HANDLE.
    
@@ -1942,23 +1956,42 @@ Parameters: INPUT phField - the handle of a field
   DEFINE VARIABLE cFalse  AS CHAR NO-UNDO.
   DEFINE VARIABLE cTrue   AS CHAR NO-UNDO.
   DEFINE VARIABLE cKey    AS CHAR NO-UNDO.
-      
-  ASSIGN    
-    cFormat = {fnarg columnFormat phField:name}
-    cFalse  = ENTRY(2,cFormat,"/":U)
-    cTrue   = ENTRY(1,cFormat,"/":U)
-    cKey    = KEY-FUNCTION(LASTKEY).  
+  DEFINE VARIABLE lPaste  AS LOGICAL    NO-UNDO. 
   
-  IF (cFalse BEGINS cKey OR 
-      cTrue  BEGINS cKey) 
-  AND phField:FORMAT <> cFormat THEN 
-    phField:FORMAT = cFormat.
-  
-  IF cKey <> "":U THEN 
-    APPLY LASTKEY TO phField.          
-  
-  RETURN NO-APPLY.  
+  cFormat = {fnarg columnFormat phField:NAME}.
+  IF phField:FORMAT <> cFormat THEN 
+  DO:
+    ASSIGN
+      lPaste  = LENGTH(KEY-FUNCTION(LASTKEY)) <> 1
+      cFalse  = ENTRY(2,cFormat,"/":U)
+      cTrue   = ENTRY(1,cFormat,"/":U)
+      cKey    = IF NOT lPaste THEN KEY-FUNCTION(LASTKEY) 
+                ELSE IF phField:EDIT-CAN-PASTE 
+                     THEN RIGHT-TRIM(CLIPBOARD:VALUE)
+                     ELSE ?.  
 
+    /* If paste apply before format is set if value is yes. (setting format 
+       makes screen-value 'no'. Apply lastkey with 'yes' in clipboard has 
+       no effect after this) */
+    IF lPaste AND cTrue BEGINS cKey THEN     
+      APPLY LASTKEY TO phField.
+
+    /* Format is only applied if correct value as otherwise the screen 
+       would show NO. */
+    IF cFalse BEGINS cKey OR cTrue BEGINS cKey THEN
+    DO:
+      phField:FORMAT = cFormat.
+      /* if paste set cursor at end as default behavior and return no apply 
+         since the 'paste' is either applied above if TRUE or set implicit 
+         from format if FALSE */
+      IF lPaste THEN 
+      DO:
+        APPLY 'END':U TO phField.
+        RETURN NO-APPLY.  
+      END.
+    END.
+  END.
+    
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2235,33 +2268,123 @@ FUNCTION blankFillIn RETURNS LOGICAL
   Purpose: Makes all types of fill-in appear as blank by changing their format.  
 Parameters: INPUT phFillIn - The handle of an actual fill-in 
     Notes:  Called internally from blankFields - blankField() 
+          - The new format is of same size as original, so that paste 
+            operations will work. 
+          - Logicals will not accept NO in the new format, but 'shift-ins' and
+            'ctrl-v' triggers will capture this. 
+            This does NOT capture the a paste from the popup menu, but for some 
+            reason the value-changed trigger still fires, so we can detect this 
+            situation in umblankFillin. The only negative effect is that this 
+            is too late to prevent the beep caused by the paste of a value that 
+            does not match the format.
 ------------------------------------------------------------------------------*/ 
-                                        
-  phFillIn:SCREEN-VALUE = IF phFillIn:DATA-TYPE = "LOGICAL":U THEN 'no'
-                          /* date* should actually handle '' as ? , this is 
-                             a temp workaround for a temp bug in core and
-                             can be removed if necessary.. */      
-                          ELSE IF phFillIn:DATA-TYPE BEGINS "DATE":U THEN ?
-                          ELSE "".
-   
+  DEFINE VARIABLE cFormat     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cOldFormat  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFormatMask AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iChar       AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iDecimal    AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cChar       AS CHARACTER  NO-UNDO.
+
+  ASSIGN
+    phFillIn:SCREEN-VALUE = IF phFillIn:DATA-TYPE = "LOGICAL":U THEN 'no'
+                            /* date* should actually handle '' as ? , this is 
+                               a temp workaround for a temp bug in core and
+                               can be removed if necessary.. */      
+                            ELSE IF phFillIn:DATA-TYPE BEGINS "DATE":U THEN ?
+                            ELSE "".
   CASE phFillIn:DATA-TYPE:
-    WHEN "character":U THEN 
-      phFillIn:FORMAT = "x":U. 
-    WHEN "DECIMAL":U THEN 
-      phFillIn:FORMAT = "ZZZ":U. 
-    WHEN "INTEGER":U THEN 
-      phFillIn:FORMAT = "Z":U.             
+    /* Remove masking from format for character fields */
+    WHEN "CHARACTER":U THEN 
+    DO:
+      ASSIGN
+        cFormatMask = phFillin:SCREEN-VALUE
+        cFormat = phFillin:FORMAT.
+      /* replace any mask characters in the format with space. 
+         This ensures that cursor is correctly placed on typing or paste 
+         into this field with this format and makes it easy to reset cursor 
+         after format is set back in unblabkfillin() */
+      DO iChar = 1 TO LENGTH(cFormatMask):
+        cChar = SUBSTR(cFormatMask,iChar,1).
+        IF cChar > '' THEN
+          OVERLAY(cFormat,iChar,1) = ''.
+      END.
+      phFillIn:FORMAT = cFormat.
+    END.
+
+    /* Change digits to use 'Z' as format and remove decimal part for 
+       numerics */ 
+    WHEN "DECIMAL":U OR WHEN 'INTEGER':U THEN 
+      {fnarg blankNumericFormat phFillin}.
+
+    /* logical needs to have the NO part of the format blank */ 
     WHEN "LOGICAL":U THEN 
     DO:
-      phFillIn:FORMAT =  entry(1,phFillIn:FORMAT,"/":U) + "/":U.             
-      ON ANY-PRINTABLE OF phFillIn PERSISTENT 
-        RUN unBlankLogical IN TARGET-PROCEDURE (phFillIn).
+      phFillIn:FORMAT =  ENTRY(1,phFillIn:FORMAT,"/":U) + "/":U.
+      /* The format need to be reset BEFORE key or paste is applied, so define
+         pre-event triggers  */
+      ON ANY-PRINTABLE, 'SHIFT-INS':U, 'CTRL-V':U OF phFillIn PERSISTENT 
+        RUN unBlankLogical IN TARGET-PROCEDURE (phFillIn).        
     END.
-  END CASE.    
-  
+  END.
   phFillIn:MODIFIED = FALSE.
-  
   RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-blankNumericFormat) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION blankNumericFormat Procedure 
+FUNCTION blankNumericFormat RETURNS LOGICAL
+  ( phField AS HANDLE ) :
+/*------------------------------------------------------------------------------
+  Purpose: Assign a format that will display as blank when the field
+           is 0, but still are able to receive a 'paste' of any value that 
+           the original format supports.   
+    Notes: Used for both integer and decimal. 
+           The function simply omits the decimal part of the format. 
+           The premiss for this is that it is not possible to paste a decimal
+           value with the numeric-point into a decimal field in the first place, 
+           i.e. if the field shows '0.0' it does not accept a paste of value with
+           a decimal point in it, unless the existing value is highlighted for 
+           replace. The latter is not applicable when the field is blank, so   
+           omitting the decimal part does not limit the paste-ability of the 
+           field.
+------------------------------------------------------------------------------*/
+   DEFINE VARIABLE hField  AS HANDLE   NO-UNDO.
+   DEFINE VARIABLE cFormat AS CHAR     NO-UNDO INIT 'Z'.
+
+   CREATE FILL-IN hField
+     ASSIGN 
+       DATA-TYPE    = phField:DATA-TYPE
+       /* must set format AFTER datatype*/ 
+       FORMAT       = phField:FORMAT
+       SCREEN-VALUE = '1'.
+
+   /* Prepend digits untill screen-value is not within format limits */  
+   DO WHILE TRUE:
+     ASSIGN
+       hField:SCREEN-VALUE = '1' + hField:SCREEN-VALUE 
+       cFormat             = cFormat + 'Z' 
+       NO-ERROR.     
+     IF ERROR-STATUS:GET-MESSAGE(1) <> '' THEN
+       LEAVE.
+   END.
+   
+   /* Add '-' if current format accepts a negative value */
+   hField:SCREEN-VALUE = '-':U + hField:SCREEN-VALUE NO-ERROR.
+   IF ERROR-STATUS:GET-MESSAGE(1) = '' THEN
+     cFormat = cFormat + '-':U.
+
+   phField:FORMAT = cFormat.
+
+   DELETE OBJECT hField. 
+
+   RETURN TRUE .
 
 END FUNCTION.
 
@@ -2349,10 +2472,8 @@ Parameters: INPUT pcColumn - The name of the column in the filter-target.
   DEFINE VARIABLE cFieldFormats    AS CHAR    NO-UNDO.
   DEFINE VARIABLE hFilterTarget    AS HANDLE  NO-UNDO.
   DEFINE VARIABLE cFormat          AS CHAR    NO-UNDO.
-  DEFINE VARIABLE cOperatorStyle   AS CHAR    NO-UNDO.
 
   {get FieldFormats cFieldFormats}.
-  {get OperatorStyle coperatorStyle}.
                      
   cFormat = fieldProperty(cFieldFormats,pcColumn).
   
@@ -4097,19 +4218,19 @@ END FUNCTION.
 FUNCTION unBlankFillin RETURNS LOGICAL
   ( phField AS HANDLE) :
 /*------------------------------------------------------------------------------
-  Purpose: Reset the format of a blank fill-in
+  Purpose: Reset the format of a blank fill-in 
 Parameters: INPUT phField - the handle of a field      
-    Notes: The blankFields changes the format of fill-ins in order to make it 
+    Notes: blankFields changes the format of fill-ins in order to make it 
            appear blank. 
-           This function is called as soon as the user starts editing the field 
+         - Logical fill-ins are unblanked in unblankLogical.  
+         - This function is called as soon as the user starts editing the field 
            VALUE-CHANGED -> "U10" triggers in filter.i makes this happen.         
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cFormat   AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cDataType AS CHARACTER NO-UNDO.
   DEFINE VARIABLE iPeriod   AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE cPeriod   AS INTEGER   NO-UNDO.
   DEFINE VARIABLE cDecPoint AS CHAR      NO-UNDO.
-  
+  DEFINE VARIABLE iCursor   AS INTEGER   NO-UNDO.
   /* We need to avoid setting format for datetime fields as the datasource
      format is always 'mdy', while the widget format is adjusted when
      widget is created, but not when assigned. The format for date fields 
@@ -4118,62 +4239,53 @@ Parameters: INPUT phField - the handle of a field
   DO:
     ASSIGN
       cDataType = {fnarg columnDataType phField:NAME}
-
+       
       /* The objects data-type may be different than the field's real data-type 
         (OperatorStyle = "inline") */  
-     cFormat   = IF  cDataType <> phField:DATA-TYPE 
-                 AND phField:DATA-TYPE = "CHARACTER":U 
-                 THEN {&charformat}
-                 ELSE {fnarg columnFormat phField:NAME}.
+      cFormat   = IF  cDataType <> phField:DATA-TYPE 
+                  AND phField:DATA-TYPE = "CHARACTER":U 
+                  THEN {&charformat}
+                  ELSE {fnarg columnFormat phField:NAME}.
     
     IF phField:FORMAT <> cFormat THEN 
     DO:
-      phField:FORMAT = cFormat NO-ERROR.
-      /* If format does not match the typed character just give a BELL, which is
-         how it would behave if the format was there alreafy BEFORE the typing */ 
-      IF ERROR-STATUS:GET-MESSAGE(1) <> '':U THEN
-      DO:
-        BELL.
-      END.
-      ELSE IF phField:DATA-TYPE = "CHARACTER":U THEN
-      DO:
-        IF phField:SCREEN-VALUE <> "":U THEN
+      /* logical format is reapplied in the persistent any-printable, ctrl-v
+         shift-ins unblankLogical trigger. If we get here with mismatched format 
+         the user must have pasted a value from the fill-ins default popup menu.
+         This event in not triggered in progress and thus bypasses unblankLogical,
+         so we call unblankLogical, which will use the clipboard:value if 
+         lastkey is not printable */ 
+      IF phField:DATA-TYPE = 'LOGICAL':U  THEN
+        RUN unblankLogical IN TARGET-PROCEDURE(phField).      
+      ELSE DO:
+        iCursor = phField:CURSOR-OFFSET.
+        phField:FORMAT = cFormat NO-ERROR.
+        /* If format does not match the typed character just give a BELL, which is
+           how it would behave if the format was there BEFORE the typing */ 
+        IF ERROR-STATUS:GET-MESSAGE(1) <> '':U THEN
         DO:
-          IF LENGTH(phField:SCREEN-VALUE) = 1 THEN
-            APPLY "END":U TO phField.
-          ELSE /* if format has mask then move cursor past first editable char */
-             phField:CURSOR-OFFSET = 
-                 MIN(IF INDEX(cFormat,'9':U) > 0 THEN INDEX(cFormat,'9') 
-                                               ELSE LENGTH(phField:SCREEN-VALUE),
-                     IF INDEX(cFormat,'A':U) > 0 THEN INDEX(cFormat,'A') 
-                                               ELSE LENGTH(phField:SCREEN-VALUE),
-                     IF INDEX(cFormat,'X':U) > 0 THEN INDEX(cFormat,'X') 
-                                               ELSE LENGTH(phField:SCREEN-VALUE),
-                     IF INDEX(cFormat,'!':U) > 0 THEN INDEX(cFormat,'!') 
-                                               ELSE LENGTH(phField:SCREEN-VALUE))
-                     + 1.
-  
-        END. 
-        ELSE /* apply 'END' will not work if screen-value = '' 
-                So we apply lastkey which is in this case is spacebar */   
-          APPLY LASTKEY.       
-      END. /* IF DATA-TYPE EQ CHARACTER */
-      ELSE IF phField:DATA-TYPE = "DECIMAL":U THEN 
-      DO:     
-        /* In decimal fields the cursor should be before the decimal point */ 
-        ASSIGN
-          cDecPoint = IF SESSION:NUMERIC-FORMAT = "AMERICAN":U 
-                      THEN ".":U
-                      ELSE ",":U
-          iPeriod   = INDEX(phField:SCREEN-VALUE,cDecPoint).
-        
-        IF iPeriod > 0 THEN
-          phField:CURSOR-OFFSET = iPeriod.
-        ELSE
-          APPLY "END":U TO phField.          
-      END. /* IF DATA-TYPE EQ DECIMAL */
-      ELSE 
+          BELL.
+        END.
+        /* Character fields had correct position before format was applied
+          (blankfillin replaces mask with blank-mask, so there is no change 
+           in position of input-value data) */
+        ELSE IF phField:DATA-TYPE = "CHARACTER":U THEN
+          phField:CURSOR-OFFSET = iCursor.        
+        ELSE IF phField:DATA-TYPE = "DECIMAL":U THEN
+        DO:     
+          /* In decimal fields the cursor should be before the decimal point */ 
+          ASSIGN
+            cDecPoint = SESSION:NUMERIC-DECIMAL-POINT
+            iPeriod   = INDEX(phField:SCREEN-VALUE,cDecPoint).
+          
+          IF iPeriod > 0 THEN
+            phField:CURSOR-OFFSET = iPeriod.
+          ELSE
+            APPLY "END":U TO phField.          
+        END. /* IF DATA-TYPE EQ DECIMAL */
+        ELSE 
           APPLY "END":U TO phField.
+      END.
     END.      
   END.
 

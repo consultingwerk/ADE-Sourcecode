@@ -1030,7 +1030,7 @@ PROCEDURE fetchTemplateData :
 
       ASSIGN
           cMessage = "You have selected '" + cObject
-                   + "' as the template for this cotnainer." + CHR(10) + CHR(10)
+                   + "' as the template for this container." + CHR(10) + CHR(10)
                    + "To replace the entire contents of your container with the contents of the template, select 'Yes'. "
                    + "Remember to save the container in order to commit the changes." + CHR(10) + CHR(10).
 
@@ -1040,7 +1040,7 @@ PROCEDURE fetchTemplateData :
                  + "against it will be lost if you choose to regenerate it." + CHR(10) + CHR(10).
 
       cMessage = cMessage
-               + "Do you want to use '" + cObject + "' as the template to regenerate your container from?".
+               + "Do you want to use '" + cObject + "' as the template to regenerate your container?".
 
       RUN showMessages IN gshSessionManager (INPUT  cMessage,                     /* message to display */
                                              INPUT  "INF":U,                      /* error type         */

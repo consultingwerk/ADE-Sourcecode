@@ -125,7 +125,7 @@ DEFINE VARIABLE ghBrowser               AS HANDLE NO-UNDO.
 &Scoped-define INTERNAL-TABLES ttSchema
 
 /* Definitions for BROWSE brFilter                                      */
-&Scoped-define FIELDS-IN-QUERY-brFilter ttSchema.INDEX_position ttSchema.COLUMN_label ttSchema.search_from ttSchema.search_to ttSchema.search_contains ttSchema.search_matches (IF ttSchema.TABLE_label <> ? THEN ttSchema.TABLE_label ELSE ttSchema.TABLE_name)   
+&Scoped-define FIELDS-IN-QUERY-brFilter ttSchema.INDEX_position ttSchema.COLUMN_label ttSchema.search_from ttSchema.search_to ttSchema.search_contains ttSchema.search_matches (IF ttSchema.TABLE_label <> ? THEN ttSchema.TABLE_label ELSE ttSchema.TABLE_name) @ ttSchema.TABLE_label   
 &Scoped-define ENABLED-FIELDS-IN-QUERY-brFilter ttSchema.search_from ttSchema.search_to ttSchema.search_contains ttSchema.search_matches   
 &Scoped-define ENABLED-TABLES-IN-QUERY-brFilter ttSchema
 &Scoped-define FIRST-ENABLED-TABLE-IN-QUERY-brFilter ttSchema
@@ -146,7 +146,7 @@ DEFINE VARIABLE ghBrowser               AS HANDLE NO-UNDO.
 &Scoped-Define ENABLED-OBJECTS rsPermanent brFilter fiRowsToBatch ToRebuild ~
 EdManualQuery 
 &Scoped-Define DISPLAYED-OBJECTS rsPermanent fiRowsToBatch ToRebuild ~
-EdManualQuery fiManualQuery 
+EdManualQuery fiManualQuery fiFindLabel fiFilterLabel 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -209,6 +209,14 @@ DEFINE VARIABLE EdManualQuery AS CHARACTER
      VIEW-AS EDITOR MAX-CHARS 3000 SCROLLBAR-VERTICAL LARGE
      SIZE 71.6 BY 10.57 NO-UNDO.
 
+DEFINE VARIABLE fiFilterLabel AS CHARACTER FORMAT "X(256)":U INITIAL "Filter" 
+      VIEW-AS TEXT 
+     SIZE 50 BY .62 NO-UNDO.
+
+DEFINE VARIABLE fiFindLabel AS CHARACTER FORMAT "X(256)":U INITIAL "Find" 
+      VIEW-AS TEXT 
+     SIZE 50 BY .62 NO-UNDO.
+
 DEFINE VARIABLE fiManualQuery AS CHARACTER FORMAT "X(256)":U INITIAL "Manual Query (not saved):" 
       VIEW-AS TEXT 
      SIZE 50 BY .62 TOOLTIP "If modify query here, this will override filters for now, but is not saved" NO-UNDO.
@@ -223,12 +231,12 @@ DEFINE VARIABLE rsPermanent AS CHARACTER
      RADIO-BUTTONS 
           "Session", "SES",
 "Permanent", "PER"
-     SIZE 29 BY .95 NO-UNDO.
+     SIZE 29 BY .95 TOOLTIP "Session filters will be lost when session ends, permanent filters not.~nTo clear the permanent filter, press clear and apply" NO-UNDO.
 
 DEFINE VARIABLE ToRebuild AS LOGICAL INITIAL no 
      LABEL "Rebuild on Reposition" 
      VIEW-AS TOGGLE-BOX
-     SIZE 25 BY .81 TOOLTIP "Rebuild dataset on reposition (set to YES for large datasets)" NO-UNDO.
+     SIZE 35 BY .81 TOOLTIP "Rebuild dataset on reposition (set to YES for large datasets)" NO-UNDO.
 
 /* Query definitions                                                    */
 &ANALYZE-SUSPEND
@@ -246,7 +254,7 @@ DEFINE BROWSE brFilter
     ttSchema.search_to COLUMN-LABEL "To" FORMAT "X(256)" WIDTH 20
     ttSchema.search_contains COLUMN-LABEL "Contains" FORMAT "X(256)" WIDTH 20
     ttSchema.search_matches COLUMN-LABEL "Matches" FORMAT "X(256)" WIDTH 20
-    (IF ttSchema.TABLE_label <> ? THEN  ttSchema.TABLE_label ELSE ttSchema.TABLE_name) FORMAT "x(25)" COLUMN-LABEL "Table"
+    (IF ttSchema.TABLE_label <> ? THEN  ttSchema.TABLE_label ELSE ttSchema.TABLE_name) @ ttSchema.TABLE_label FORMAT "x(25)" COLUMN-LABEL "Table"
 ENABLE ttSchema.search_from
 ttSchema.search_to
 ttSchema.search_contains
@@ -265,6 +273,8 @@ DEFINE FRAME fMain
      ToRebuild AT ROW 4.33 COL 35.8
      EdManualQuery AT ROW 6.43 COL 5 NO-LABEL
      fiManualQuery AT ROW 5.57 COL 3.2 COLON-ALIGNED NO-LABEL
+     fiFilterLabel AT ROW 17 COL 3.2 COLON-ALIGNED NO-LABEL
+     fiFindLabel AT ROW 17 COL 3.2 COLON-ALIGNED NO-LABEL
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1
@@ -329,6 +339,16 @@ ELSE {&WINDOW-NAME} = CURRENT-WINDOW.
 /* BROWSE-TAB brFilter rsPermanent fMain */
 ASSIGN 
        EdManualQuery:RETURN-INSERTED IN FRAME fMain  = TRUE.
+
+/* SETTINGS FOR FILL-IN fiFilterLabel IN FRAME fMain
+   NO-ENABLE                                                            */
+ASSIGN 
+       fiFilterLabel:HIDDEN IN FRAME fMain           = TRUE.
+
+/* SETTINGS FOR FILL-IN fiFindLabel IN FRAME fMain
+   NO-ENABLE                                                            */
+ASSIGN 
+       fiFindLabel:HIDDEN IN FRAME fMain           = TRUE.
 
 /* SETTINGS FOR FILL-IN fiManualQuery IN FRAME fMain
    NO-ENABLE                                                            */
@@ -612,19 +632,16 @@ DO:
   DEFINE VARIABLE cErrorMessage AS CHARACTER  NO-UNDO.
 
   /* If this is the case, the user has to clear the permanent filter first */
-  IF SELF:TOOLTIP = "To clear the permanent filter, press clear and apply" 
+  IF SELF:PRIVATE-DATA = "PER":U
   THEN DO:
-      ASSIGN cErrorMessage = "You currently have a permanent filter set.":U + CHR(10) + CHR(10)
-                           + "To update the current permanent filter, enter your values and press the OK or Apply button." + CHR(10) + CHR(10)
-                           + "If you wish to save your filter for this session only, you have to remove the permanent filter first." + CHR(10)
-                           + "Do this by pressing the Clear button, and then pressing the OK or Apply button.".
+      ASSIGN cErrorMessage = {aferrortxt.i 'AF' '149'}.
 
       RUN showMessages IN gshSessionManager (INPUT  cErrorMessage,    /* messages */
-                                             INPUT  "INF":U,          /* type */
+                                             INPUT  "WAR":U,          /* type */
                                              INPUT  "&OK":U,       /* button list */
                                              INPUT  "&OK":U,          /* default */
                                              INPUT  "&OK":U,           /* cancel */
-                                             INPUT  "Cannot save session filter":U,             /* title */
+                                             INPUT  "":U,             /* title */
                                              INPUT  YES,              /* disp. empty */
                                              INPUT  ?,                /* container handle */
                                              OUTPUT cButton           /* button pressed */
@@ -1213,6 +1230,7 @@ PROCEDURE enable_UI :
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
   DISPLAY rsPermanent fiRowsToBatch ToRebuild EdManualQuery fiManualQuery 
+          fiFindLabel fiFilterLabel 
       WITH FRAME fMain IN WINDOW wWin.
   ENABLE rsPermanent brFilter fiRowsToBatch ToRebuild EdManualQuery 
       WITH FRAME fMain IN WINDOW wWin.
@@ -1327,34 +1345,13 @@ PROCEDURE initializeObject :
     {set HideOnInit TRUE}.
 
     RUN SUPER.
-
-    /* Get toolbar source */
-
-    set-clear-button-tooltip:
-    DO ON ERROR UNDO, LEAVE:
-        {get containertoolbarSource hToolbar}.
-        IF NOT VALID-HANDLE(hToolbar) THEN
-            LEAVE set-clear-button-tooltip.
-
-        {get containerHandle hWidget hToolbar}.
-        IF NOT VALID-HANDLE(hToolbar) THEN
-            LEAVE set-clear-button-tooltip.
-
-        ASSIGN hWidget = hWidget:FIRST-CHILD /* Field group */
-               hWidget = hWidget:FIRST-CHILD
-               NO-ERROR.
-
-        do-blk:
-        DO WHILE VALID-HANDLE(hWidget):
-            IF CAN-QUERY(hWidget, "LABEL":U)
-            AND hWidget:LABEL = "C&lear":U 
-            THEN DO:
-                ASSIGN hWidget:TOOLTIP = "Resets filter fields to default values".
-                LEAVE do-blk.
-            END.
-
-            ASSIGN hWidget = hWidget:NEXT-SIBLING NO-ERROR.
-        END.
+    DO WITH FRAME {&FRAME-NAME}:
+        IF fiManualQuery:PRIVATE-DATA <> ? THEN
+            ASSIGN fiManualQuery = fiManualQuery:PRIVATE-DATA fiManualQuery:SCREEN-VALUE = fiManualQuery:PRIVATE-DATA.
+        IF fiFindLabel:PRIVATE-DATA <> ? THEN
+            ASSIGN fiFindLabel = fiFindLabel:PRIVATE-DATA fiFindLabel:SCREEN-VALUE = fiFindLabel:PRIVATE-DATA.
+        IF fiFilterLabel:PRIVATE-DATA <> ? THEN
+            ASSIGN fiFilterLabel = fiFilterLabel:PRIVATE-DATA fiFilterLabel:SCREEN-VALUE = fiFilterLabel:PRIVATE-DATA.
     END.
 
     /* View page 1 */
@@ -1558,9 +1555,9 @@ DO WITH FRAME {&FRAME-NAME}:
     ASSIGN rsPermanent:SCREEN-VALUE = cSaveFlag.
 
     IF cSaveFlag = "PER":U THEN
-        ASSIGN rsPermanent:TOOLTIP   = "To clear the permanent filter, press clear and apply":U.
+        ASSIGN rsPermanent:PRIVATE-DATA = "PER":U.
     ELSE
-        ASSIGN rsPermanent:TOOLTIP   = "Session filters will be lost when session ends, permanent filters not.":U.
+        ASSIGN rsPermanent:PRIVATE-DATA = "SES":U.
 END.
 
 END PROCEDURE.
@@ -1767,6 +1764,8 @@ RUN SUPER(piPageNumber).
 
 DO WITH FRAME {&FRAME-NAME}:
 
+  fiFindLabel:HIDDEN = TRUE.
+  fiFilterLabel:HIDDEN = TRUE.
   brFilter:HIDDEN = (piPageNumber <> 1).
   EdManualQuery:HIDDEN = (piPageNumber <> 2).
   fiManualQuery:HIDDEN = (piPageNumber <> 2).
@@ -1943,8 +1942,9 @@ PROCEDURE setDataSourceHandle :
     {get ObjectParent hParentWindow}.
 
     ASSIGN cWindowTitle   = (IF VALID-HANDLE(hParentWindow) AND hParentWindow:TITLE <> "" THEN " - " + hParentWindow:TITLE ELSE "":U)
-           {&WINDOW-NAME}:TITLE = CAPS(SUBSTRING(gcFilterOrFind, 1, 1)) + LC(SUBSTRING(gcFilterOrFind, 2)) + cWindowTitle
-           .
+           {&WINDOW-NAME}:TITLE = (IF gcFilterOrFind = "Find":U THEN fiFindLabel:SCREEN-VALUE ELSE fiFilterLabel:SCREEN-VALUE)
+                                + cWindowTitle.
+
     IF gcFilterOrFind <> "Find":U THEN
         RUN resetFilter.
 
@@ -1970,12 +1970,10 @@ PROCEDURE setDataSourceHandle :
         {get rowsToBatch iRowsToBatch ttDataObject.tSdoHandle}.
         {get rebuildOnRepos lRebuild ttDataObject.tSdoHandle}.
 
-        ASSIGN fiRowsToBatch = iRowsToBatch
-               ToRebuild     = lRebuild.
-        DISPLAY
-            fiRowsToBatch
-            ToRebuild
-            .
+        ASSIGN fiRowsToBatch              = iRowsToBatch
+               ToRebuild                  = lRebuild
+               fiRowsToBatch:SCREEN-VALUE = STRING(iRowsToBatch)
+               toRebuild:SCREEN-VALUE     = STRING(toRebuild).
     END.
     ELSE
         RUN disableFolderPage IN h_afspfoldrw (2).

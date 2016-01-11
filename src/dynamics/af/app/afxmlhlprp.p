@@ -126,6 +126,20 @@ FUNCTION buildElementsFromBuffer RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-buildElemsFromBuffWithOpts) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD buildElemsFromBuffWithOpts Procedure 
+FUNCTION buildElemsFromBuffWithOpts RETURNS LOGICAL
+  (INPUT phNode AS HANDLE,
+   INPUT phBuff AS HANDLE,
+   INPUT pcOptions AS CHARACTER,
+   INPUT pcCanDoList AS CHARACTER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-buildErrList) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD buildErrList Procedure 
@@ -386,17 +400,74 @@ FUNCTION buildElementsFromBuffer RETURNS LOGICAL
    INPUT phBuff AS HANDLE,
    INPUT pcCanDoList AS CHARACTER) :
 /*------------------------------------------------------------------------------
+  Purpose:  Deprecated. Use buildElemsFromBuffWithOpts.
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  buildElemsFromBuffWithOpts(INPUT phNode, INPUT phBuff, INPUT "":U, INPUT pcCanDoList).
+
+  RETURN TRUE.   /* Function return value. */
+
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-buildElemsFromBuffWithOpts) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION buildElemsFromBuffWithOpts Procedure 
+FUNCTION buildElemsFromBuffWithOpts RETURNS LOGICAL
+  (INPUT phNode AS HANDLE,
+   INPUT phBuff AS HANDLE,
+   INPUT pcOptions AS CHARACTER,
+   INPUT pcCanDoList AS CHARACTER) :
+  /*------------------------------------------------------------------------------
   Purpose:  This function creates an element for each field in the table that 
             is in the pcCanDoList. 
 
-    Notes:  
+    Notes:  pcOptions is a comma separated list of field=value pairs. Valid options 
+            are:
+            
+            ColumnTag=ColName/ColLabel/ColColumnLabel/ColNo
+            Specifies what to use for the XML tag. Values may be one of:
+              ColName - use the name of the column (field) in the metaschema 
+                        (hfield:NAME) - DEFAULT
+              ColLabel - use the label of the column (field) in the metaschema
+                         (hField:LABEL)
+              ColColumnLabel - use the column-label of the column (field) in the 
+                               metaschema (hField:COLUMN-LABEL)
+              ColNo - use the position of the column (field) in the metaschema
+                      (iCount in hBuff:NUM-FIELDS)
+    
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE iCount    AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iCount2   AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE hField    AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cString   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hNode     AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hText     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iCount          AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iCount2         AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hField          AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cString         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hNode           AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hText           AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cColumnTag      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cColumnTagToken AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cEntry          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cField          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cValue          AS CHARACTER  NO-UNDO.
+
+  /* Parse out the options */
+  DO iCount = 1 TO NUM-ENTRIES(pcOptions):
+    cEntry = ENTRY(iCount,pcOptions).
+    IF NUM-ENTRIES(cEntry,"=":U) > 1 THEN
+    DO:
+      cField = ENTRY(1,cEntry,"=":U).
+      cValue = ENTRY(2,cEntry,"=":U).
+      CASE cField:
+        WHEN "ColumnTag":U THEN
+          cColumnTagToken = cValue.
+      END CASE.
+    END.
+  END.
 
   /* Loop through all the fields in the buffer */
   DO-BLK:
@@ -421,6 +492,17 @@ FUNCTION buildElementsFromBuffer RETURNS LOGICAL
        NOT CAN-DO(pcCanDoList,hField:NAME) THEN
       NEXT DO-BLK.
 
+    CASE cColumnTagToken:
+      WHEN "ColLabel":U THEN
+        cColumnTag = hField:LABEL.
+      WHEN "ColColumnLabel":U THEN
+        cColumnTag = hField:COLUMN-LABEL.
+      WHEN "ColNo":U THEN
+        cColumnTag = STRING(iCount).
+      OTHERWISE
+        cColumnTag = hField:NAME.
+    END CASE.
+    
     IF hField:EXTENT > 0 THEN
     DO:
       DO iCount2 = 1 TO hField:EXTENT:
@@ -436,7 +518,7 @@ FUNCTION buildElementsFromBuffer RETURNS LOGICAL
         END.
 
         /* Create a node reference for the attribute */
-        hNode = createElementNode(phNode, hField:NAME).
+        hNode = createElementNode(phNode, cColumnTag).
 
         hNode:SET-ATTRIBUTE("ExtentIndex":U, STRING(iCount2)).
 
@@ -471,7 +553,7 @@ FUNCTION buildElementsFromBuffer RETURNS LOGICAL
 
 
       /* Call setNodeElementValue to create the appropriate nodes in the XML */
-      setNodeElementValue(phNode, hField:NAME, cString ).
+      setNodeElementValue(phNode, cColumnTag, cString ).
     END.
   END.
 

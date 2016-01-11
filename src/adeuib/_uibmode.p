@@ -38,6 +38,9 @@ Author: William T. Wood
 Date Created: 20 February 1995
 Updated:      02/13/98 SLK Handle ADM2
 
+Note: _uibmode.p disables the widgets while walking the widget tree.
+      There is code in _realizesmart.p that ensures that the
+      affordance button (_S._affordance-handle) is enabled.
 ----------------------------------------------------------------------------*/
 DEFINE INPUT PARAMETER p_object AS HANDLE NO-UNDO.
 

@@ -629,6 +629,17 @@ FUNCTION getUpdatableColumnsByTable RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getUpdateFromSource) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getUpdateFromSource Procedure 
+FUNCTION getUpdateFromSource RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getUseDBQualifier) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getUseDBQualifier Procedure 
@@ -1107,6 +1118,17 @@ FUNCTION setTransferChildrenForAll RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setUpdatableColumnsByTable Procedure 
 FUNCTION setUpdatableColumnsByTable RETURNS LOGICAL
   ( pcColumns AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setUpdateFromSource) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setUpdateFromSource Procedure 
+FUNCTION setUpdateFromSource RETURNS LOGICAL
+  ( plUpdateFromSource AS LOGICAL )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1890,12 +1912,7 @@ FUNCTION getKeyFields RETURNS CHARACTER
   DEFINE VARIABLE cUniqueList    AS CHAR  NO-UNDO.
   DEFINE VARIABLE cPrimaryList   AS CHAR  NO-UNDO.
   DEFINE VARIABLE cColumnList    AS CHAR  NO-UNDO.
-  DEFINE VARIABLE cColumn        AS CHAR  NO-UNDO.
-  DEFINE VARIABLE cIndex         AS CHAR  NO-UNDO.
   DEFINE VARIABLE iIDx           AS INT   NO-UNDO.
-  DEFINE VARIABLE iFld           AS INT   NO-UNDO.
-  DEFINE VARIABLE lPrimaryFound  AS LOG   NO-UNDO.
-  DEFINE VARIABLE iOkIndex       AS INT   NO-UNDO.
   
   /* temorary define the xp so we can go directly to the property buffer */
   &SCOPED-DEFINE xpKeyFields 
@@ -1904,81 +1921,64 @@ FUNCTION getKeyFields RETURNS CHARACTER
 
   IF cKeyFields = "":U THEN
   DO:
-    {get EnabledTables cEnabledTables}.
+    &SCOPED-DEFINE xp-assign
+    {get EnabledTables cEnabledTables}
     {get Tables cTables}.
+    &UNDEFINE xp-assign
     
-    /* Currently we only create a default KeyFields when 
-       ONE enabled table and it's the FIRST table */
-    IF NUM-ENTRIES(cEnabledTables) = 1 
-    AND cEnabledTables = ENTRY(1,cTables) THEN
+    /* Currently we only create a default KeyFields when omly one table
+       or ONE enabled table and it's the FIRST table  */
+    IF NUM-ENTRIES(cTables) = 1 
+    OR NUM-ENTRIES(cEnabledTables) = 1 AND cEnabledTables = ENTRY(1,cTables) THEN
     DO:
       {get IndexInformation cIndexInfo}.
       
-      /* check again.. it may have been passed from the server together 
-         with IndexInformation  */
+      /* check again.... it may have been passed from the server together 
+         with IndexInformation...  */
       &SCOPED-DEFINE xpKeyFields 
       {get KeyFields cKeyFields}.
       &UNDEFINE xpKeyFields 
 
       IF cIndexInfo <> ? AND cKeyFields = '':U THEN
       DO:
+        ASSIGN
+          /* Get the unique indexes from the IndexInformation function */
+          cUniqueList  = DYNAMIC-FUNCTION('indexInformation' IN TARGET-PROCEDURE,
+                                          'unique':U, /* query  */
+                                          'yes':U,     /* table delimiter */
+                                          cIndexInfo)
+          /* only the first table's indexes*/ 
+          cUniqueList = ENTRY(1,cUniqueList,CHR(2))
       
-        /* Get the unique indexes from the IndexInformation function */
-        cUniqueList  = DYNAMIC-FUNCTION('indexInformation' IN TARGET-PROCEDURE,
-                                        'unique':U, /* query  */
-                                        'yes':U,     /* table delimiter */
-                                        cIndexInfo).
-        /* only the first table's indexes*/ 
-        cUniqueList = ENTRY(1,cUniqueList,CHR(2)).
+          /* Get the primary index(es) from the IndexInformation function */
+          cPrimaryList = DYNAMIC-FUNCTION('indexInformation' IN TARGET-PROCEDURE,
+                                          'primary':U, /* query  */
+                                          'yes':U,     /* table delimiter */
+                                          cIndexInfo)
         
-        /* Get the primary index(es) from the IndexInformation function */
-        cPrimaryList = DYNAMIC-FUNCTION('indexInformation' IN TARGET-PROCEDURE,
-                                        'primary':U, /* query  */
-                                        'yes':U,     /* table delimiter */
-                                        cIndexInfo).
-                                  
-        /* only the first table's indexes*/ 
-        cPrimaryList = ENTRY(1,cPrimaryList,CHR(2)).
-        
-        IndexLoop:
-        DO iIdx = 1 TO NUM-ENTRIES(cUniqueList,CHR(1)):
-          
-          cColumnList = ENTRY(iIdx,cUniquelist,CHR(1)). 
-          /* This is the entry we use if it's ok */
-          iOkIndex = IF iOkindex = 0 
-                     THEN iIdx
-                     ELSE iOkIndex.
-          
-          /* We never set primaryFound to false, because we want to bail out 
-             on the first acceptable index AFTER the primary if the primary 
-             could not be used.*/
-          IF NOT lPrimaryFound THEN
-             lPrimaryFound = cColumnList = cPrimaryList.
-          /* check if all columns is in the SDO */
-          DO iFld = 1 TO NUM-ENTRIES(cColumnList):
-            cColumn = ENTRY(iFld,cColumnList).
-            
-            /* If the field is qualifed it's not used in the SDO,
-               so we don't use this index */
-            IF INDEX(cColumn,".":U) <> 0 THEN 
-              iOkIndex = 0.
+          /* only the first table's indexes*/ 
+          cPrimaryList = ENTRY(1,cPrimaryList,CHR(2))
+          .
 
+        /* if the primary index is unique and all fields in SDO 
+          (fields not in the SDO is qualifed ) */
+        IF LOOKUP(cPrimaryList,cUniqueList,CHR(1)) > 0 
+        AND INDEX(cPrimaryList,'.':U) = 0 THEN
+          cKeyFields = cPrimaryList.
+        ELSE /* find the first unique index with all fields in SDO */  
+        DO iIdx = 1 TO NUM-ENTRIES(cUniqueList,CHR(1)):
+          cColumnList = ENTRY(iIdx,cUniquelist,CHR(1)).
+          IF INDEX(cColumnList,'.':U) = 0 THEN
+          DO:
+            cKeyFields = cColumnList.
+            LEAVE.
           END.
-          /* if this index is ok and the primary has been found now or earlier,
-             don't search anymore */
-          IF iOkIndex <> 0 AND lPrimaryFound THEN
-            LEAVE IndexLoop.
-        END. /* do i = 1 to num-entries cFieldList */
-        /* Did we find an index? */
-        IF iOkIndex <> 0 THEN
-        DO:
-          cKeyFields = ENTRY(iokindex,cUniqueList,CHR(1)).
-          /* store it for the future */
+        END. /* do i = 1 to num-entries cUniqueList */
+        IF cKeyFields > '' THEN
           {set KeyFields cKeyFields}.
-        END.
       END. /* if indexinfo <> */
-     END. /* cinfo <> ? */
-  END.
+    END. /* cinfo <> ? */
+  END. /* KeyFields = '' */
 
   RETURN cKeyFields.
 
@@ -2459,7 +2459,7 @@ FUNCTION getQuerySort RETURNS CHARACTER
   cSort = {fnarg sortExpression cQueryText}.
   IF cSort > '':U THEN
     /* remove the first BY keyword */
-    RETURN SUBSTR(cSort,3).
+    RETURN LEFT-TRIM(SUBSTR(cSort,3)).
   ELSE 
     RETURN "":U. 
 
@@ -2670,6 +2670,26 @@ FUNCTION getUpdatableColumnsByTable RETURNS CHARACTER
  
  RETURN cColumns.
 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getUpdateFromSource) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getUpdateFromSource Procedure 
+FUNCTION getUpdateFromSource RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns true if this object should be updated as one-to-one 
+           of the datasource updates (one-to-one) 
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lUpdate AS LOGICAL    NO-UNDO.
+  {get UpdateFromSource lUpdate}.
+  RETURN lUpdate.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -3826,6 +3846,25 @@ FUNCTION setUpdatableColumnsByTable RETURNS LOGICAL
   {set UpdatableColumnsByTable pcColumns}.
   RETURN TRUE.
 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setUpdateFromSource) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setUpdateFromSource Procedure 
+FUNCTION setUpdateFromSource RETURNS LOGICAL
+  ( plUpdateFromSource AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose: Set to true if this object should be updated as one-to-one 
+           of the datasource updates (one-to-one) 
+    Notes:  
+------------------------------------------------------------------------------*/
+  {set UpdateFromSource plUpdateFromSource}.
+  RETURN TRUE.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

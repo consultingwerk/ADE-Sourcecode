@@ -1901,10 +1901,12 @@ PROCEDURE save_window:
   DEFINE VARIABLE lRegisterObj  AS LOGICAL    NO-UNDO.  
   DEFINE VARIABLE lNew          AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE rRecid        AS RECID      NO-UNDO.
+  DEFINE VARIABLE rURecid       AS RECID      NO-UNDO.
   DEFINE VARIABLE cTables       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cValue        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hTempDBLib    AS HANDLE     NO-UNDO.
-  
+
+
 
   DEFINE BUFFER d_P FOR _P.
   DEFINE BUFFER x_U FOR _U.
@@ -2008,6 +2010,7 @@ PROCEDURE save_window:
              RETURN.
           END.
        END.
+
        /* If we are saving an existing dynamic object as another dynamic object, we must */
        /* set the object_obj to zero for all instances */
        IF NOT lNew AND ask_file_name THEN
@@ -2019,7 +2022,7 @@ PROCEDURE save_window:
           DO:
            /* Save the object-obj values in private data in case save fails and it needs to be reset */
              IF VALID-HANDLE(_U._HANDLE) AND _U._OBJECT-OBJ <> ? THEN
-               ASSIGN _U._HANDLE:PRIVATE-DATA = STRING(_U._OBJECT-OBJ) + CHR(4) 
+               ASSIGN _U._HANDLE:PRIVATE-DATA = STRING(_U._OBJECT-OBJ) + CHR(4) + _save_file + CHR(4)
                                                  + IF _U._HANDLE:PRIVATE-DATA = ? THEN "" ELSE _U._HANDLE:PRIVATE-DATA.
 
            
@@ -2043,10 +2046,14 @@ PROCEDURE save_window:
 
        RUN setstatus ("WAIT":U,"Saving object...":U).
 
+       ASSIGN rURecid = RECID(_U).
        /* Here's where we save the dynamic object */
        RUN ry/prc/rygendynp.p (INPUT RECID(_P), 
                                OUTPUT cError,             /* Error saving object */
                                OUTPUT cAssocError).       /* Error saving associated object - if there is one */
+       /* 20031118-003  - causes _U to be unavailable */
+       IF rURecid <> RECID(_U) THEN
+         FIND _U WHERE RECID(_U) = rURecid.
        
        RUN setstatus ("":U, "":U).
 
@@ -2078,7 +2085,7 @@ PROCEDURE save_window:
              /* Save the object-obj values in private data in case user cancels and it needs to be rest */
                 IF VALID-HANDLE(_U._HANDLE) AND NUM-ENTRIES(_U._HANDLE:PRIVATE-DATA, CHR(4)) = 2 THEN
                    ASSIGN _U._OBJECT-OBJ = DECIMAL(ENTRY(1,_U._HANDLE:PRIVATE-DATA, CHR(4))) 
-                          _U._HANDLE:PRIVATE-DATA = ENTRY(2,_U._HANDLE:PRIVATE-DATA, CHR(4))
+                          _U._HANDLE:PRIVATE-DATA = ENTRY(3,_U._HANDLE:PRIVATE-DATA, CHR(4))
                           NO-ERROR.
                 FOR EACH x_U WHERE x_U._WINDOW-HANDLE = _U._WINDOW-HANDLE AND
                                    x_U._STATUS = "NORMAL":U AND
@@ -3373,7 +3380,7 @@ PROCEDURE setselect.
 
            /* Show the current values in the dynamic attribute window */
           IF VALID-HANDLE(_h_menubar_proc) THEN
-             RUN Display_PropSheet IN _h_menubar_proc NO-ERROR.
+             RUN Display_PropSheet IN _h_menubar_proc (YES) NO-ERROR.
 
           RUN show_control_properties (INPUT 0).
         END.

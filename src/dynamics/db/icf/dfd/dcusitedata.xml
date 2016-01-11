@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SetupInclude>
+   <Patch PatchLevel="100004">
+      <PatchStage Stage="PreADOLoad">
+        <Program>
+          <FileType>p</FileType>
+          <FileName>db/icf/dfd/dcusitedatadump.p</FileName>
+          <Description>Dumping site specific data</Description>
+          <Rerunnable>yes</Rerunnable>
+          <NewDB>no</NewDB>
+          <ExistingDB>yes</ExistingDB>
+          <UpdateMandatory>yes</UpdateMandatory>
+        </Program>
+      </PatchStage>
+    	<PatchStage Stage="PostADOLoad">
+    		<Program>
+    			<FileType>p</FileType>
+    			<FileName>db/icf/dfd/dcusitedataload.p</FileName>
+    			<Description>Loading site specific data</Description>
+    			<Rerunnable>yes</Rerunnable>
+    			<NewDB>no</NewDB>
+    			<ExistingDB>yes</ExistingDB>
+    			<UpdateMandatory>yes</UpdateMandatory>
+    		</Program>
+    	</PatchStage>
+    </Patch>   
+</SetupInclude>

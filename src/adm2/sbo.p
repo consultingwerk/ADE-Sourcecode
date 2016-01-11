@@ -626,17 +626,6 @@ FUNCTION newDataObjectRow RETURNS CHARACTER
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-obtainContextForClient) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD obtainContextForClient Procedure 
-FUNCTION obtainContextForClient RETURNS CHARACTER
-  (  )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-openQuery) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD openQuery Procedure 
@@ -1445,7 +1434,10 @@ PROCEDURE bufferCommitTransaction :
                                             + hSaveTable:NAME
                                             + ' WHERE ':U
                                             + hSaveTable:NAME
-                                            + '.RowMod = "A"':U).
+                                            + '.RowMod = "A"':U
+                                            + ' OR ':U
+                                            + hSaveTable:NAME
+                                            + '.RowMod = "C"':U).
                      hSaveQry:QUERY-OPEN().
                      hSaveQry:GET-FIRST().
                      /* Now we have the buffer the the parent record. 
@@ -1458,7 +1450,10 @@ PROCEDURE bufferCommitTransaction :
                                         + hTable:NAME 
                                         + ' WHERE ':U
                                         + hTable:NAME
-                                        + '.RowMod = "A"':U).
+                                        + '.RowMod = "A"':U
+                                        + ' OR ':U
+                                        + hTable:NAME
+                                        + '.RowMod = "C"':U).
                      hQry:QUERY-OPEN().
                      hQry:GET-FIRST().
                      DO WHILE hBuf:AVAILABLE:
@@ -1537,7 +1532,10 @@ PROCEDURE bufferCommitTransaction :
                                 + hTable:NAME 
                                 + ' WHERE ':U
                                 + hTable:NAME
-                                + '.RowMod = "A"':U).
+                                + '.RowMod = "A"':U
+                                + ' OR ':U
+                                + hTable:NAME
+                                + '.RowMod = "C"':U).
             hQry:QUERY-OPEN().
             hQry:GET-FIRST().
             ASSIGN
@@ -1567,6 +1565,19 @@ PROCEDURE bufferCommitTransaction :
           UNDO, RETURN.
         END.     /* END DO IF error return */
   
+        /* refresh buffers for each SDO */
+        DO iDO = 1 TO NUM-ENTRIES(cContained):
+            ASSIGN
+              hDO = WIDGET-HANDLE(ENTRY(iDO, cContained))
+              iEntry = LOOKUP(STRING(iDO), cOrdering)
+              hTable = ?.
+
+            hTable = WIDGET-HANDLE(ENTRY(iEntry, cUpdateTables)) NO-ERROR.
+
+            IF VALID-HANDLE(hTable) AND hTable:HAS-RECORDS THEN
+                RUN refreshBuffer IN hDO (OUTPUT pcMessages, OUTPUT cUndoIds).
+        END.
+
     END.            /* END TRANSACTION */
     
     DO iDO = 1 TO NUM-ENTRIES(cContained):
@@ -1901,6 +1912,7 @@ PROCEDURE commitTransaction :
   DEFINE VARIABLE lASBound        AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cOperatingMode  AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cServerFileName AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cLogicalName    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cBindScope      AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cContext        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cContained      AS CHARACTER  NO-UNDO.
@@ -2040,9 +2052,15 @@ PROCEDURE commitTransaction :
   
   IF VALID-HANDLE(hAppService)  THEN
   DO:
-    {get ServerFileName cServerFileName}.
+    &SCOPED-DEFINE xp-assign
+    {get ServerFileName cServerFileName}
+    {get LogicalObjectName cLogicalName}
+     .
+    &UNDEFINE xp-assign
+
     RUN adm2/committransaction ON hAppService
-        (cServerFileName,
+        (cServerFileName
+         + (IF cLogicalName > '' THEN ':':U + cLogicalname ELSE ''),
          INPUT-OUTPUT cContext,
          INPUT-OUTPUT TABLE-HANDLE hTable1, 
          INPUT-OUTPUT TABLE-HANDLE hTable2,
@@ -2419,7 +2437,8 @@ PROCEDURE createObjects :
      END.
   
      DO iSDO = 1 TO NUM-ENTRIES(cSDOs): 
-       hSDO = WIDGET-HANDLE(ENTRY(iSDO, cSDOs)).     
+       hSDO = WIDGET-HANDLE(ENTRY(iSDO, cSDOs)).   
+
        RUN createObjects IN hSDO NO-ERROR.
        IF ERROR-STATUS:ERROR OR RETURN-VALUE <> '':U THEN
          RETURN ERROR 'ADM-ERROR':U.
@@ -2865,11 +2884,11 @@ PROCEDURE fetchContainedData :
 ------------------------------------------------------------------------------*/
   DEFINE INPUT PARAMETER pcObject AS CHARACTER  NO-UNDO.
  
-  
   DEFINE VARIABLE cASDivision     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cAllQueries     AS CHARACTER  NO-UNDO INIT "":U.
+  DEFINE VARIABLE cAllQueries     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cContext        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cServerFileName AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cLogicalName    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hAsHandle       AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hAppServer      AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hRowObject1     AS HANDLE     NO-UNDO.
@@ -2979,12 +2998,20 @@ PROCEDURE fetchContainedData :
     {get ForeignValues cForeignValues hFirstSDO}.    
     /* Check AppServer properties to see if the object has no current or future 
        server bindings and is using a stateless operating mode.*/    
+
     IF {fn hasNoServerBinding} THEN
     DO:
       RUN connectServer IN TARGET-PROCEDURE (OUTPUT hAppServer).
-      {get ServerFileName cServerFileName}.
+      &SCOPED-DEFINE xp-assign
+      {get ServerFileName cServerFileName}
+      {get LogicalObjectName cLogicalname}
+      .
+      &UNDEFINE xp-assign
+      
       RUN adm2/fetchcontaineddata.p ON hAppServer
-          (cServerFileName,
+          (cServerFileName + (IF cLogicalName <> '' 
+                              THEN ':' + cLogicalName 
+                              ELSE ''),
            INPUT-OUTPUT cContext,
            cAllQueries, 
            '':U, 
@@ -3042,14 +3069,12 @@ PROCEDURE fetchContainedData :
       /* Unbind  from AppServer if bound here or bindScope =data  */
       RUN endClientDataRequest IN TARGET-PROCEDURE.
     END. /* StateAware or already bound */
-      /* Reset client values for upper table */
+    
+    /* Reset client values for upper table */
     {set ForeignValues cForeignValues hFirstSDO}.
-
     {get ContainedDataObjects cSDOS}.
-    DO iSDO = iSDONum TO NUM-ENTRIES(cSDOs):
+    DO iSDO = 1 TO NUM-ENTRIES(cSDOs):
       hSDO = WIDGET-HANDLE(ENTRY(iSDO, cSDOs)).
-      {set AsHasStarted YES hSDO}.
-      /* A dynamic dataobject may have gotten its table def here */          
       IF ENTRY(iSDO,cTTList) = '?':U THEN
       DO:
         CASE iSDO:
@@ -3074,14 +3099,18 @@ PROCEDURE fetchContainedData :
           WHEN 19 THEN hRowObjectTT = hRowObject19.
           WHEN 20 THEN hRowObjectTT = hRowObject20.
         END CASE.
-        /* A dynamic dataobject may have gotten its table def here */          
-        IF ENTRY(iSDO,cTTList) = '?':U THEN
-          {set RowObjectTable hRowObjectTT hSDO}.
-      END.
 
+        IF iSDO LT iSDONum THEN
+          DELETE OBJECT hROwObjectTT NO-ERROR.
+        ELSE DO:
+          {set AsHasStarted YES hSDO}.
+          {set RowObjectTable hRowObjectTT hSDO}.
+        END.
+      END.
+      /* A dynamic dataobject may have gotten its table def here */          
       /* Now reopen the RowObject query for each SDO, unless this was empty 
          definitions. */      
-      IF ENTRY(iSDO,cAllQueries,CHR(1)) <> 'SKIP':U THEN
+      IF iSDO GE iSDONum AND ENTRY(iSDO,cAllQueries,CHR(1)) <> 'SKIP':U THEN
         {fnarg openDataQuery 'FIRST':U hSDO}.    
     END.  /* END DO iSDO */
 
@@ -3172,13 +3201,14 @@ PROCEDURE fetchContainedRows :
   DEFINE INPUT  PARAMETER plNext         AS LOGICAL   NO-UNDO.
   DEFINE INPUT  PARAMETER piRowsToReturn AS INTEGER   NO-UNDO.
   DEFINE OUTPUT PARAMETER piRowsReturned AS INTEGER   NO-UNDO.
-  
+ 
   DEFINE VARIABLE cASDivision     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cAllQueries     AS CHARACTER  NO-UNDO INIT "":U.
   DEFINE VARIABLE hAsHandle       AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hAppServer      AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cContext        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cServerFileName AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cLogicalName    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hRowObject      AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hRowObject1     AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hRowObject2     AS HANDLE     NO-UNDO.
@@ -3213,6 +3243,7 @@ PROCEDURE fetchContainedRows :
   DEFINE VARIABLE cObjectName    AS CHARACTER  NO-UNDO.
 
   {get ASDivision cASDivision}.  
+  
   IF cAsDivision <> 'client':U THEN
   DO:
     DYNAMIC-FUNCTION ('showMessage' IN TARGET-PROCEDURE,
@@ -3288,14 +3319,22 @@ PROCEDURE fetchContainedRows :
   hMaster = {fnarg DataObjectHandle ENTRY(iSDONum,cSDONames)}.
   {get ForeignValues cForeignValues hMaster}.    
   cContext = {fn obtainContextForServer}.  
+
    /* Check AppServer properties to see if the object has no current or future 
       server bindings and is using a stateless operating mode.*/    
   IF {fn hasNoServerBinding} THEN   
   DO:
     RUN connectServer IN TARGET-PROCEDURE (OUTPUT hAppServer).
-    {get ServerFileName cServerFileName}.
+
+    &SCOPED-DEFINE xp-assign
+    {get ServerFileName cServerFileName}
+    {get LogicalObjectName cLogicalname}
+    .
+    &UNDEFINE xp-assign
     RUN adm2/fetchcontainedrows.p ON hAppServer
-          (cServerFileName,
+          (cServerFileName + (IF cLogicalName <> '' 
+                              THEN ':' + cLogicalName 
+                              ELSE ''),
            INPUT-OUTPUT cContext,
            cAllQueries,
            piStartRow, 
@@ -3462,6 +3501,7 @@ PROCEDURE fetchFirst :
     DEFINE VARIABLE iObject     AS INTEGER     NO-UNDO.
     DEFINE VARIABLE hRequester  AS HANDLE      NO-UNDO.
     DEFINE VARIABLE cNavSource  AS CHARACTER   NO-UNDO.
+    DEFINE VARIABLE lOneToOne   AS LOGICAL    NO-UNDO.
     
     {get NavigationSource cNavSource}.    
     /* A browser target may run fetchFirst and have to set the Target to
@@ -3481,8 +3521,21 @@ PROCEDURE fetchFirst :
         hObject = WIDGET-HANDLE(ENTRY(iObject + 1, cMapping)).
     IF NOT VALID-HANDLE(hObject) THEN
         {get MasterDataObject hObject}.
+
+    lOneToOne   = {fn hasOneToOneTarget hObject}
+                    OR 
+                  {fn getUpdateFromSource hObject}.
+    IF lOneToOne THEN
+      {set BlockDataAvailable TRUE}.
+    
     RUN fetchFirst IN hObject.
 
+    IF lOneToOne THEN
+    DO:
+      {set BlockDataAvailable FALSE}.
+      PUBLISH 'dataAvailable':U FROM TARGET-PROCEDURE('FIRST':U). 
+    END.
+    
     RETURN.
 END PROCEDURE.
 
@@ -3508,6 +3561,7 @@ PROCEDURE fetchLast :
     DEFINE VARIABLE iObject     AS INTEGER     NO-UNDO.
     DEFINE VARIABLE hRequester  AS HANDLE      NO-UNDO.
     DEFINE VARIABLE cNavSource  AS CHARACTER   NO-UNDO.
+    DEFINE VARIABLE lOneToOne   AS LOGICAL    NO-UNDO.
 
     {get NavigationSource cNavSource}.    
     /* A browser target may run fetchLast and have to set the Target to
@@ -3527,7 +3581,20 @@ PROCEDURE fetchLast :
         hObject = WIDGET-HANDLE(ENTRY(iObject + 1, cMapping)).
     IF NOT VALID-HANDLE(hObject) THEN
         {get MasterDataObject hObject}.
+
+    lOneToOne   = {fn hasOneToOneTarget hObject}
+                    OR 
+                  {fn getUpdateFromSource hObject}.
+    IF lOneToOne THEN
+      {set BlockDataAvailable TRUE}.
+    
     RUN fetchLast IN hObject.
+
+    IF lOneToOne THEN
+    DO:
+      {set BlockDataAvailable FALSE}.
+      PUBLISH 'dataAvailable':U FROM TARGET-PROCEDURE('LAST':U). 
+    END.
 
     RETURN.
 END PROCEDURE.
@@ -3553,6 +3620,7 @@ PROCEDURE fetchNext :
     DEFINE VARIABLE hObject     AS HANDLE      NO-UNDO.
     DEFINE VARIABLE cMapping    AS CHARACTER   NO-UNDO.
     DEFINE VARIABLE iObject     AS INTEGER     NO-UNDO.
+    DEFINE VARIABLE lOneToOne   AS LOGICAL    NO-UNDO.
 
     {get ObjectMapping cMapping}.
     iObject = LOOKUP(STRING(SOURCE-PROCEDURE), cMapping).
@@ -3561,8 +3629,20 @@ PROCEDURE fetchNext :
     IF NOT VALID-HANDLE(hObject) THEN
         {get MasterDataObject hObject}.
 
+    lOneToOne   = {fn hasOneToOneTarget hObject}
+                    OR 
+                  {fn getUpdateFromSource hObject}.
+    IF lOneToOne THEN
+      {set BlockDataAvailable TRUE}.
+    
     RUN fetchNext IN hObject.
 
+    IF lOneToOne THEN
+    DO:
+      {set BlockDataAvailable FALSE}.
+      PUBLISH 'dataAvailable':U FROM TARGET-PROCEDURE('NEXT':U). 
+    END.
+  
     RETURN.
 END PROCEDURE.
 
@@ -3587,6 +3667,7 @@ PROCEDURE fetchPrev :
     DEFINE VARIABLE hObject     AS HANDLE      NO-UNDO.
     DEFINE VARIABLE cMapping    AS CHARACTER   NO-UNDO.
     DEFINE VARIABLE iObject     AS INTEGER     NO-UNDO.
+    DEFINE VARIABLE lOneToOne   AS LOGICAL    NO-UNDO.
 
     {get ObjectMapping cMapping}.
     iObject = LOOKUP(STRING(SOURCE-PROCEDURE), cMapping).
@@ -3594,8 +3675,21 @@ PROCEDURE fetchPrev :
         hObject = WIDGET-HANDLE(ENTRY(iObject + 1, cMapping)).
     IF NOT VALID-HANDLE(hObject) THEN
         {get MasterDataObject hObject}.
+    
+    lOneToOne   = {fn hasOneToOneTarget hObject}
+                    OR 
+                  {fn getUpdateFromSource hObject}.
+    IF lOneToOne THEN
+      {set BlockDataAvailable TRUE}.
+    
     RUN fetchPrev IN hObject.
 
+    IF lOneToOne THEN
+    DO:
+      {set BlockDataAvailable FALSE}.
+      PUBLISH 'dataAvailable':U FROM TARGET-PROCEDURE('PREV':U). 
+    END.
+  
     RETURN.
 END PROCEDURE.
 
@@ -3795,11 +3889,16 @@ PROCEDURE initializeObject :
   DEFINE VARIABLE lFetchDefs       AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lObjectsCreated  AS LOGICAL    NO-UNDO.
 
-   /* Skip all this if we're in design mode. */
-  {get UIBMode cUIBMode}.
-
-  /* If the object has a Partition name, then connect */
-  IF cUIBMode = "":U THEN
+  
+  /* Skip connection if division already set or in design mode. 
+     (AsDivision returns ? when undefined and ObjectInitialized is false) */
+  &SCOPED-DEFINE xp-assign
+  {get UIBMode cUIBMode}
+  {get AsDivision cAsDivision}
+  .
+  &UNDEFINE xp-assign
+  
+  IF cUIBMode = "":U AND cAsDivision = ? THEN
   DO:
     /* Ensure that initialization only happens once */
     {get ObjectInitialized lInitialized}.
@@ -3831,7 +3930,7 @@ PROCEDURE initializeObject :
         RETURN "ADM-ERROR":U.
       END.        /* END DO IF proxy (_cl) */
     END.          /* END ELSE DO IF AppService = "" */
-  END.            /* END DO IF UIBMode ne "" */
+  END. /* END DO IF UIBMode ne "" and AsDivision = ? */
   
   /* SDOs publishes queryPosition to the toolbar as soon as they are 
      initialized and the toolbars activeTarget check requires a non-hidden 
@@ -3839,15 +3938,16 @@ PROCEDURE initializeObject :
   {set ObjectHidden no}.
   
   PUBLISH 'registerObject':u FROM TARGET-PROCEDURE.
-
+  
+  {get AsDivision cAsDivision}.
+  
   &SCOPED-DEFINE xp-assign
   {get ContainerSource hContainerSource}
   {get OpenOnInit lOpenOnInit}.
   &UNDEFINE xp-assign
   /* we set openOninit false if fetchPending below since all the logic 
      after this is similar if OpenOnInit is false Or fetchIsPending */
-  IF VALID-HANDLE(hContainerSource) 
-  AND VALID-HANDLE(hAppService) AND hAppService <> SESSION THEN
+  IF VALID-HANDLE(hContainerSource) AND cAsDivision = 'CLIENT':U THEN
   DO:
     /* Check AppServer properties to see if the object has no current or future 
        server bindings and is using a stateless operating mode. */   
@@ -3868,6 +3968,7 @@ PROCEDURE initializeObject :
     IF ERROR-STATUS:ERROR OR RETURN-VALUE BEGINS 'ADM-ERROR':U THEN
       RETURN 'ADM-ERROR':U.
   END.   /* This will run adm-create-objects*/
+  
   RUN registerLinkedObjects IN TARGET-PROCEDURE.
  
   /* Continue with std container initialization. This will start-up the 
@@ -3880,7 +3981,6 @@ PROCEDURE initializeObject :
   OR {fn fetchMessages} > "":U THEN 
     RETURN "ADM-ERROR":U.
 
-  {get AsDivision cAsDivision}.
   
   IF cUIBmode = '':U THEN
   DO:
@@ -4574,7 +4674,12 @@ i-o pcTempTables   Temp-table handles. comma-separated
  DEFINE VARIABLE hRowObject       AS HANDLE     NO-UNDO.
  DEFINE VARIABLE iLoop            AS INTEGER    NO-UNDO.
  DEFINE VARIABLE lSkip            AS LOGICAL    NO-UNDO.
-
+ DEFINE VARIABLE hMaster          AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE lMasterOpen      AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE lBatch           AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE cLogicalName     AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cOption          AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE hDataSource      AS HANDLE     NO-UNDO.
  {get AppService cAppService}.
 
  IF pcAppservice <> ? AND cAppService <> pcAppservice THEN
@@ -4586,8 +4691,9 @@ i-o pcTempTables   Temp-table handles. comma-separated
    RETURN.
 
  ASSIGN
-   lInit         = LOOKUP('INIT':U,pcOptions) > 0  
-   lVisualTargets = LOOKUP('VISUALTARGETS':U,pcOptions) > 0.
+   lBatch         = CAN-DO(pcOptions,'BATCH':U)  
+   lInit          = CAN-DO(pcOptions,'INIT':U)  
+   lVisualTargets = CAN-DO(pcOptions,'VISUALTARGETS':U).
 
  /* Return or set Skip flag if this is initialization and OpenOnInit is false 
     (the skip falg is set if we need to get the rowObject defintion from server)*/  
@@ -4640,16 +4746,41 @@ i-o pcTempTables   Temp-table handles. comma-separated
  cQualName = cQualName + cObjectName.  
  IF NOT lVisualTargets THEN
  DO:
+   {get MasterDataObject hMaster}.
+   /* request came from datasource  */
+   IF pcSourceName > '':U THEN
+   DO:
+     /* if the source is part of the request then master is child */
+     IF CAN-DO(pcQualNames,pcSourceName) THEN
+       cOption = 'ParentIsChild':U. 
+     ELSE 
+       cOption = 'ClientChild':U. 
+   END.
+   ELSE IF lBatch THEN
+     cOption = 'EmptyChildren':U.  
+   ELSE DO:
+     {get QueryOpen lMasterOpen hMaster}.
+     IF lMasterOpen THEN
+        cOption = 'MasterOnClient':U.
+   END.
+   
    RUN prepareQueriesForFetch IN TARGET-PROCEDURE
                (INPUT ?,                
-                INPUT IF pcSourceName > '':U 
-                      THEN 'ParentIsChild':U 
-                      ELSE IF LOOKUP('BATCH':U,pcOptions) > 0
-                      THEN 'EmptyChildren':U
-                      ELSE '':U,
+                INPUT cOption,
                 OUTPUT cAllQueries,
                 OUTPUT cTTList).
+   
+   IF RETURN-VALUE BEGINS 'ADM-ERROR':U THEN
+      RETURN RETURN-VALUE.
 
+   &SCOPED-DEFINE xp-assign
+   {get ContainedDataObjects cContained}
+   /* Will use LogicalObjectName for repository objectws in the future */ 
+   {get LogicalObjectName cLogicalName}
+   {get ServerFileName cPhysicalName}
+   .
+   &UNDEFINE xp-assign
+   
    /* Set query entries to 'skip' if openoninit false, but undefined dynsdo
       found */
    IF lSkip THEN
@@ -4657,19 +4788,29 @@ i-o pcTempTables   Temp-table handles. comma-separated
      ENTRY(iLoop,cAllQueries,CHR(1)) = 'SKIP':U.
    END.
 
-   IF RETURN-VALUE BEGINS 'ADM-ERROR':U THEN
-      RETURN RETURN-VALUE.
+   /* The entry in the TTList is set to blank to ensure that the server fetch 
+      output parameter is unknown, NOT disturbing this table while avoiding 
+      that the empty TT returned is passed to setROwObjectTable. (fetchContainedData containr.p does that
+      if the entry is '?') */
 
-   {get ContainedDataObjects cContained}.
+   ELSE IF NOT lBatch AND lMasterOpen THEN
+     ASSIGN
+       ENTRY(1,cAllQueries,CHR(1)) = 'SKIP':U
+       ENTRY(1,cTTList) = '':U.
 
    IF pcSourceName <> ? AND pcSourceName <> '':U THEN
    DO:
-     {get ForeignFields cForeignFields}.
-      cForeignFields = pcSourceName + ',':U + cForeignFields. 
+     /* add foreign field info if parent is part of this request */
+     IF CAN-DO(pcQualNames,pcSourceName) THEN
+     DO:  
+       &SCOPED-DEFINE xp-assign
+       {get ForeignFields cForeignFields}
+       {get DataSource hDataSource}
+       .
+       &UNDEFINE xp-assign
+       cForeignFields = STRING(hDataSource) + ',':U + cForeignFields. 
+     END.
    END.
- 
-   /* Will use LogicalObjectName for repository objectws in the future */ 
-   {get ServerFileName cPhysicalName}.
  
    ASSIGN
      lFirst          = pcHandles = '':U  
@@ -4687,7 +4828,7 @@ i-o pcTempTables   Temp-table handles. comma-separated
                      + cQualName  + FILL(',':U,NUM-ENTRIES(cContained) - 1) 
      pcPhysicalNames = pcPhysicalNames
                      + (IF lFirst THEN '':U ELSE ',':U)
-                     + cPhysicalName  + FILL(',':U,NUM-ENTRIES(cContained) - 1)
+                     + cPhysicalName + ':' + cLogicalName + FILL(',':U,NUM-ENTRIES(cContained) - 1)
      pcForeignFields = pcForeignfields
                      + (IF lFirst THEN '':U ELSE CHR(1))
                      + cForeignFields + FILL(CHR(1),NUM-ENTRIES(cContained) - 1).   
@@ -4777,10 +4918,17 @@ Parameters:
     INPUT pcOptions char 
           Option. 
           - 'EmptyChildren' - empty temp-tables for chidren.
-          -  Note that the default behavior has been changed to empty temp-tables
-             for all SDOs. (as this is more efficient than the implicit delete
-             that happens in output table-handle).   
-             So the 'EmptyChildren' now really means keep the parent temp-table.                                
+                              Really means keep parent temp-table. The 
+                              the default behavior is to empty temp-tables 
+                              for all SDOs. (this is more efficient than an 
+                              implicit delete of output table-handle).           
+          - 'ParentIsChild'  - remove FF key from master also 
+                              (master is child would have been a better name...) 
+          - 'ClientChild'    - DataSource is on client already 
+                              (add FF to master)
+          - 'MasterOnClient' - Master is on client already 
+                              (add FF to children of master)
+                             
     OUTPUT pocQueries 
             A CHR(1) delimited list that corrsponds to ContainedDataObjects with
             the Query expressions to pass to the server in the call to fetch new 
@@ -4788,30 +4936,34 @@ Parameters:
             not part of this request, while a blank entry indicates that the 
             server should use the base query. 
     OUTPUT pocTempTables 
-            A comma separatedf list The temp-table handle. '?' for objects that are not part 
-            of the fetch we are preparing for.  
+            A comma separated list of tt handles 
+            - '?' means . 
     Notes:  This procedure exists in order to have common logic for 
-            fetchContainedData and fetchContainedRows. This logic is a bit 
-            complex and are also very likely to change. 
+            fetchContainedData and fetchContainedRows.              
          -  A manually changed setQueryWhere is always used. This may have 
             very weird results if done for a new batch ..... It is considered 
             to be a user error to setQueryWhere without an immediate openQuery 
             if the object is batched. 
-Note date: 2002/02/14            
+Note date: 2005/01/21            
 ------------------------------------------------------------------------------*/
   DEFINE INPUT  PARAMETER pcObjectName  AS CHARACTER  NO-UNDO.
   DEFINE INPUT  PARAMETER pcOptions     AS CHARACTER  NO-UNDO.
   DEFINE OUTPUT PARAMETER pocQueries    AS CHARACTER  NO-UNDO.
   DEFINE OUTPUT PARAMETER poctempTables AS CHARACTER  NO-UNDO.
 
-  DEFINE VARIABLE cDataObjectHandles AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE iStartOnSDO        AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE cDataObjectHandles AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iStartOnSDO        AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cSDONames          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iSDO               AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE hSDO               AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE cQuery             AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE hTempTable         AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE iSDO               AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hSDO               AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cQuery             AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hTempTable         AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRowObject         AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cMode              AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iCacheDuration     AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE lShareData         AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hDataSource        AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hMaster            AS HANDLE     NO-UNDO.
 
   IF pcObjectName NE "":U AND pcObjectName NE ? THEN
   DO:
@@ -4825,44 +4977,76 @@ Note date: 2002/02/14
     END.
   END.     /* END DO IF pcObject specified. */
   ELSE iStartOnSDO = 1.  /* Signal to start at the top. */
-
-  /* Get the handles of the dynamic temp-tables from the SDOs. */
+  
+  &SCOPED-DEFINE xp-assign
   {get ContainedDataObjects cDataObjectHandles}.
+  {get MasterDataObject hMaster}
+  .
+  &UNDEFINE xp-assign
 
+  /* Get the requested info from the SDOs. */
   DO iSDO = 1 TO NUM-ENTRIES(cDataObjectHandles):
     /* If the caller requested to start at a specific SDO, then set
        all prior handles to ? and signal not to use them. */
-    IF iStartOnSDO > iSDO THEN
+    IF iStartOnSDO > iSDO 
+    OR (iStartOnSDO = 1 AND iSDO = 1 AND CAN-DO(pcOptions,'MasterOnClient':U)) THEN
       ASSIGN
-        hTempTable = ?
+        hTempTable = ? 
         cQuery     = "SKIP":U.
 
-    ELSE DO:      
-      hSDO = WIDGET-HANDLE(ENTRY(iSDO, cDataObjectHandles)).      
-      
-      /* If 'EmptyChildren' and we're not yet at a child then pass 'Batch' 
-        (keep TT and batch properties) */ 
+    ELSE DO: 
+      ASSIGN
+        hSDO        = WIDGET-HANDLE(ENTRY(iSDO, cDataObjectHandles))     
+        hDataSource = ?.
+
+      /* If 'EmptyChildren' and this is the top requested object then 
+         pass 'Batch' (keep TT and batch properties) */ 
       IF CAN-DO(pcOptions,'EmptyChildren':U) AND iSDO = iStartOnSDO THEN
         cMode = 'Batch':U. 
+      /* If master is on client (cached) then add FF to child of master */
+      ELSE IF CAN-DO(pcOptions,'MasterOnClient':U) THEN 
+      DO:
+        {get DataSource hDataSource hSDO}.
+        IF hDataSource = hMaster THEN
+          cMode = 'ClientChild':U.
+        ELSE 
+          cMode = ''.
+      END.
+      /* Remove FF key if this is 'child' of an object that is also requested 
+         (ParentIschild = master is child )*/
       ELSE IF CAN-DO(pcOptions,'ParentIsChild':U) OR iSDO > iStartOnSDO THEN 
-        cMode = 'Child':U.      
+        cMode = 'Child':U.
+      /* If initiating object is parent and on client (cached) then add FF to 
+         master */ 
+      ELSE IF CAN-DO(pcOptions,'ClientChild':U) AND hSDO = hMaster THEN
+        cMode = 'ClientChild':U.
       ELSE 
         cMode = '':U.     
-      
-      cQuery = {fnarg prepareForFetch cMode hSDO}.        
-      {get RowObjectTable hTempTable hSDO}.
+     
+      cQuery = {fnarg prepareForFetch cMode hSDO}.  
+      &SCOPED-DEFINE xp-assign
+      {get CacheDuration iCacheDuration hSDO}
+      {get ShareData lShareData hSDO}
+      .
+      &UNDEFINE xp-assign
+      /* Only obtain handle if no caching or sharing, we return '?' in 
+         TTlist to signal caching */
+      IF iCacheDuration = 0 AND NOT lShareData THEN
+        {get RowObjectTable hTempTable hSDO}.            
     END.  /* if this isn't a "SKIP" query */
+
     ASSIGN
       pocQueries    = pocQueries 
                       + (IF iSDO > 1 THEN CHR(1) ELSE "":U) 
                       + cQuery
       pocTempTables = pocTempTables 
                       + (IF iSDO > 1 THEN ",":U ELSE "":U) 
-                      + (IF VALID-HANDLE(hTempTable)
+                      + (IF VALID-HANDLE(hTempTable) 
                          THEN STRING(hTempTable)
+
                          ELSE '?':U).
   END. /* do iSDO = 1 to  */
-
+  
   RETURN. 
 
 END PROCEDURE.
@@ -6034,9 +6218,7 @@ PROCEDURE setContextAndInitialize :
     RUN createObjects IN TARGET-PROCEDURE.
   END.
  
-  DYNAMIC-FUNCTION('assignContainedProperties':U IN TARGET-PROCEDURE,
-                    pcContext,
-                    '':U). 
+  DYNAMIC-FUNCTION('applyContextFromClient':U IN TARGET-PROCEDURE,pcContext). 
  
   {set OpenOnInit FALSE}. 
 
@@ -6637,11 +6819,8 @@ FUNCTION applyContextFromServer RETURNS LOGICAL
     END. /* QueryString = '' */
   END. /* Do iObject = 1 to num-entries(cContainedObjects) */      
   
-  DYNAMIC-FUNC('assignContainedProperties':U IN TARGET-PROCEDURE,
-                                pcContext,
-                               /* Replace */
-                               'QueryWhere,QueryContext,OpenQuery,BaseQuery':U ).
-  
+  SUPER(pcContext).
+
   /* If queryStyring was not set from QueryWhere before the context was applied
      then we must set it from the baeQuery that was returned from server */  
   {get ContainedDataObjects cContainedObjects}.
@@ -6822,6 +7001,7 @@ FUNCTION cancelRow RETURNS CHARACTER
   DEFINE VARIABLE cTargetName  AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lAutoCommit  AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cHandleList  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lOneToOne AS LOGICAL    NO-UNDO.
   
   {get TargetProcedure hRequester SOURCE-PROCEDURE}.
   
@@ -6863,8 +7043,17 @@ FUNCTION cancelRow RETURNS CHARACTER
   /* cancelRow has been run for all UpdateTargets to support 1-to-1 SBOs. */
   DO iEntry = 1 TO NUM-ENTRIES(cHandleList):
     hTarget = WIDGET-HANDLE(ENTRY(iEntry, cHandleList)).
+    lOneToOne   = {fn hasOneToOneTarget hTarget}
+                    OR
+                  {fn getUpdateFromSource hTarget}.
+    IF lOneToOne THEN
+      {set BlockDataAvailable TRUE}.
+
     PUBLISH "dataAvailable":U FROM hTarget ("DIFFERENT":U).
   END.
+  
+  IF lOneToOne THEN
+    {set BlockDataAvailable FALSE}.
 
 END FUNCTION.
 
@@ -8769,61 +8958,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-obtainContextForClient) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION obtainContextForClient Procedure 
-FUNCTION obtainContextForClient RETURNS CHARACTER
-  (  ) :
-/*------------------------------------------------------------------------------
-  Purpose: Obtain context properties to return to the client after or as part 
-           of a server request.   
-    Notes: See containr.p 
-         - Overridden because:
-           - a data request also can be save/commit which is identified with 
-             RowObjUpdTable:has-records.
-           - Does not currently use Deep in containedProperties 
-             (this does not really matter since an SBO does not have other
-              containers.) 
-Note date: 2002/02/12                
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE lFirst          AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cPropRequest    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hSDO            AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE iSDO            AS INTEGER    NO-UNDO.
-    
-  /* This is passed from the client to identify the first call */
-  {get ServerFirstCall lFirst}. 
-  IF lFirst THEN
-  DO:
-    /* ServerFirstCall need to be false if state-aware 
-       (We also return it to the client as a handshake that the first call has 
-        completed) */
-    {set ServerFirstCall FALSE}. 
-    /* Property from this SBO instance */
-    cPropRequest = 'THIS;ServerOperatingMode,ServerFirstCall':U 
-                 + ';':U 
-                 + /* Properties from SDOs */
-                    'SmartDataObject;OpenQuery,DBNames,IndexInformation,KeyFields,KeyTableID,EntityFields':U.
-    
-  END. /* First */
-  
-  cPropRequest = 
-     (IF lFirst THEN cPropRequest + ',':U ELSE '':U)
-      + 'FirstResultRow,LastResultRow,FirstRowNum,LastRowNum,QueryWhere,QueryRowident,ForeignValues,PositionForClient':U.
-  IF SESSION:CLIENT-TYPE = "WEBSPEED":U THEN
-      cPropRequest = cPropRequest + ",QueryColumns".
-
-  RETURN DYNAMIC-FUNCTION('containedProperties':U IN TARGET-PROCEDURE,
-         cPropRequest, 
-         NO). 
-  
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-openQuery) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION openQuery Procedure 
@@ -8836,6 +8970,7 @@ FUNCTION openQuery RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
  DEFINE VARIABLE hDataContainer AS HANDLE     NO-UNDO.
  DEFINE VARIABLE cObjectName    AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE hMaster        AS HANDLE     NO-UNDO.
  DEFINE VARIABLE lok            AS LOGICAL    NO-UNDO.
  
  /* can we use a data container */ 
@@ -8843,7 +8978,15 @@ FUNCTION openQuery RETURNS LOGICAL
  
  IF VALID-HANDLE(hDataContainer) THEN
  DO:
-   {get ObjectName cObjectName}.
+   &SCOPED-DEFINE xp-assign
+   {get MasterDataObject hMaster}
+   {get ObjectName cObjectName}
+   .
+   &UNDEFINE xp-assign
+   
+   {fn closeQuery hMaster}.
+   {fn initializeFromCache hMaster}.
+
    RUN fetchContainedData IN hDataContainer (cObjectName).
    lok = RETURN-VALUE <> 'adm-error':U.
  END.
@@ -9116,6 +9259,7 @@ FUNCTION submitRow RETURNS LOGICAL
   DEFINE VARIABLE lNewMode           AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cNewObjects        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lError             AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lOneToOne          AS LOGICAL    NO-UNDO.
 
   {get DataObjectNames cObjectNames}.
   /* If trim(';') removes all then we have only ONE rowid */ 
@@ -9201,6 +9345,17 @@ FUNCTION submitRow RETURNS LOGICAL
           IF lAutoCommit THEN
             {get NewMode lNewMode hSDO}.
 
+          IF NOT lAutoCommit THEN
+          DO:
+            lOneToOne  = {fn hasOneToOneTarget hSDO}
+                           OR 
+                         {fn getUpdateFromSource hSDO}.
+
+            /* don't send message from one-to-one SDOs to outside while refreshing */
+            IF lOneToOne THEN
+              {set BlockDataAvailable TRUE}.
+          END.
+
           lSuccess  = DYNAMIC-FUNCTION('submitRow':U IN hSDO,
                                         cRowIdent,
                                         cValueList[iSDO]).              
@@ -9246,6 +9401,12 @@ FUNCTION submitRow RETURNS LOGICAL
 
   IF NOT lSuccess THEN
     RETURN FALSE.
+
+  IF lOneToOne AND NOT lAutoCommit THEN
+  DO:
+    {set BlockDataAvailable FALSE}.
+    PUBLISH 'DataAvailable':U FROM TARGET-PROCEDURE ('SAME':U).
+  END.
 
   IF lAutoCommit = YES THEN
   /* if there's no Commit-Source the changes will be committed now. */

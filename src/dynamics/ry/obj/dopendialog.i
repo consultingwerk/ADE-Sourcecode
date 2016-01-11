@@ -28,4 +28,5 @@
   FIELD design_only LIKE ryc_smartobject.design_only VALIDATE ~
   FIELD extends_smartobject_obj LIKE ryc_smartobject.extends_smartobject_obj VALIDATE ~
   FIELD object_type_code LIKE gsc_object_type.object_type_code VALIDATE ~
-  FIELD relative_path LIKE gsc_product_module.relative_path
+  FIELD relative_path LIKE gsc_product_module.relative_path~
+  FIELD object_is_runnable LIKE ryc_smartobject.object_is_runnable

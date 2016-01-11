@@ -196,6 +196,8 @@ FUNCTION statusText RETURNS LOGICAL
                                                                         */
 &ANALYZE-RESUME
 
+ 
+
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
 
@@ -1122,6 +1124,8 @@ PROCEDURE saveTreeInfo :
   DEFINE VARIABLE cFieldDataType          AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cFieldName              AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cInheritsFromClasses    AS CHARACTER  NO-UNDO.
+  
+    define buffer lbStoreAttribute        for ttStoreAttribute.  
 
   IF NOT VALID-HANDLE(ghDesignManager) THEN
     ASSIGN ghDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U, INPUT "RepositoryDesignManager":U) NO-ERROR.
@@ -1187,6 +1191,7 @@ PROCEDURE saveTreeInfo :
         WHERE ttObjectAttribute.tSmartObjectObj    = dMasterObjectObj
         AND   ttObjectAttribute.tObjectInstanceObj = 0
         NO-LOCK:
+                  
       CREATE ttStoreAttribute.
       ASSIGN ttStoreAttribute.tAttributeParent    = "MASTER":U
              ttStoreAttribute.tAttributeParentObj = dMasterObjectObj
@@ -1201,7 +1206,7 @@ PROCEDURE saveTreeInfo :
         OTHERWISE ttStoreAttribute.tCharacterValue = ttObjectAttribute.tAttributeValue.
       END CASE.
     END.
-  END.
+  END.    /* existing object */
   ELSE DO:
     phDataTable:FIND-FIRST() NO-ERROR.
     IF phDataTable:AVAILABLE THEN DO:
@@ -1235,7 +1240,7 @@ PROCEDURE saveTreeInfo :
         END CASE.
       END. /* iField */
     END. /* Available */
-  END.
+  END.    /* new object */
   
   /* First remove all the older attribute values */
   IF dMasterObjectObj <> 0 THEN DO:
@@ -1250,6 +1255,7 @@ PROCEDURE saveTreeInfo :
     FIND FIRST ttClassAttribute
          WHERE ttClassAttribute.tAttributeLabel = ttStoreAttribute.tAttributeLabel
          NO-LOCK NO-ERROR.
+
     IF NOT AVAILABLE ttClassAttribute THEN
       NEXT.
     lAttrValueSame = FALSE.
@@ -1272,8 +1278,41 @@ PROCEDURE saveTreeInfo :
     END CASE.
     IF lAttrValueSame THEN
       DELETE ttStoreAttribute.
-  END.
-
+    else
+    /* Special cases */
+    case ttStoreAttribute.tAttributeLabel:
+        /* The SuperProcedure attribute and the pcCustomSuperProc
+           parameter must match each other.
+         */
+        when 'SuperProcedure' then
+        do:
+          /* Handle super procedure is if it blank, otherwise, insertObjectMaster
+             should be used to set it */
+          IF pcCustomSuperProc = '':U THEN
+          DO:
+            ttStoreAttribute.tCharacterValue = pcCustomSuperProc.
+            
+            /* When removing the super procedure by blanking it
+               out, make sure the SuperProcedureMode attribute is 
+               also blanked.
+             */
+            if ttStoreAttribute.tCharacterValue eq '' or
+               ttStoreAttribute.tCharacterValue eq ? then
+            do:
+                find first lbStoreAttribute where
+                           lbStoreAttribute.tAttributeLabel = 'SuperProcedureMode'
+                           no-error.
+                /* Do nothing if there's no SuperProcedureMode attribute.
+                   There's no point in creating it just to have it blanked out.
+                 */
+                if available lbStoreAttribute then
+                   lbStoreAttribute.tCharacterValue = ''.
+            end.    /* blank super procedure */
+          END.  /* if pccustomsuper is blank */
+        end.    /* super procedure */
+    end case.    /* attribute label */
+  END.    /* each attribute */
+  
   ASSIGN hAttributeValueBuffer = TEMP-TABLE ttStoreAttribute:DEFAULT-BUFFER-HANDLE
          hAttributeValueTable  = ?.
   RUN insertObjectMaster IN ghDesignManager (INPUT pcObjectName,

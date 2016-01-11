@@ -597,7 +597,7 @@ PROCEDURE setComboValue :
      gcObjectTypeObj = "?":U THEN
     cKeyFieldValue = "0".
   
-  hComboHandle:SCREEN-VALUE = cKeyFieldValue.
+  {set DataValue cKeyFieldValue h_PageObj}.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

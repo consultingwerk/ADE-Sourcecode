@@ -499,6 +499,65 @@ FUNCTION copyLargeColumnToMemptr RETURNS LOGICAL
 &ANALYZE-RESUME
 
 
+/* **********************  Internal Procedures  *********************** */
+
+&IF DEFINED(EXCLUDE-copyColumns) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE copyColumns Procedure 
+PROCEDURE copyColumns :
+/*------------------------------------------------------------------------------
+  Purpose:     Called from copyRow to move column values to the new row.  
+  Parameters:
+    INPUT pcViewColList - Comma delimited list of column names
+                          NOT-IN-USE. The copy is a complete record copy.                           
+    INPUT phDataQuery   - Handle to the RowObject query....  
+    
+  Notes:  copyColumns exists for historical reasons only. 
+          (Reduced size of the r-code action segment) 
+        -  moved here to dataextcols to reduce ecode action segment in 2.1 
+           where this was big.
+           (very small here in 10, so done just to keep versions similar...)
+------------------------------------------------------------------------------*/
+  DEFINE INPUT PARAMETER pcViewColList   AS CHARACTER NO-UNDO.
+  DEFINE INPUT PARAMETER phDataQuery     AS HANDLE    NO-UNDO.
+  
+  DEFINE VARIABLE hRowObject   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hFromBuffer  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cDataColumns AS CHARACTER  NO-UNDO.
+
+  hRowObject = phDataQuery:GET-BUFFER-HANDLE(1).
+
+  IF hRowObject:AVAILABLE THEN
+  DO:
+    CREATE BUFFER hFrombuffer FOR TABLE hRowObject.
+  
+    hFromBuffer:FIND-FIRST('WHERE ROWID(':U + hFromBuffer:NAME + ')'  
+                          + ' = TO-ROWID("':U + STRING(hRowObject:ROWID) + '")':U)
+                NO-ERROR.
+  END.
+
+  hRowObject:BUFFER-CREATE().
+    
+  IF VALID-HANDLE(hFromBuffer) THEN 
+  DO:
+
+    IF hFromBuffer:AVAILABLE THEN 
+      hRowObject:BUFFER-COPY(hFrombuffer).
+  
+    DELETE OBJECT hFromBuffer . 
+  END.
+
+  /* set RowNum, RowIdent and navigation Properties etc*/  
+  {fnarg newRowObject 'Copy':U}.
+ 
+  RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 /* ************************  Function Implementations ***************** */
 
 &IF DEFINED(EXCLUDE-assignColumnColumnLabel) = 0 &THEN

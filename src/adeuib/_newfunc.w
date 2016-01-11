@@ -121,8 +121,6 @@ DEFINE VARIABLE Type_Local    AS CHARACTER    NO-UNDO INIT "_LOCAL":U .
 DEFINE VARIABLE Invalid_Entry AS CHARACTER    NO-UNDO INIT "_INVALID-ENTRY":U .
 DEFINE VARIABLE Indent        AS CHARACTER    NO-UNDO INIT "   ":U.
 
-DEFINE SHARED VARIABLE _DynamicsIsRunning AS LOGICAL    NO-UNDO.
-
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -286,7 +284,7 @@ DO:
   END.
   
   /* Don't allow the user to enter a duplicate name. */
-  IF _DynamicsIsRunning AND CAN-DO ( p_Invalid_List , Name ) THEN
+  IF CAN-DO ( p_Invalid_List , Name ) THEN
   DO:
      MESSAGE Name    SKIP(1)
              "This name is reserved or already defined in an included Method Library." + CHR(10) +
@@ -300,17 +298,7 @@ DO:
        RUN set-state ( INPUT Type_Func  + Invalid_Entry ).
        RETURN NO-APPLY.
     END.
-  END.  
-  ELSE  
-  IF CAN-DO ( p_Invalid_List , Name ) THEN
-  DO:
-      MESSAGE Name  SKIP(1)
-              "This name is reserved, or already defined in an included Method Library."
-              VIEW-AS ALERT-BOX INFORMATION IN WINDOW ACTIVE-WINDOW .
-      RUN set-state ( INPUT Type_Func + Invalid_Entry ).
-      RETURN NO-APPLY.
-  END.
-  
+  END.   
 
   /* Function Implementation. */
   ASSIGN Returns-Type

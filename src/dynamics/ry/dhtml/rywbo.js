@@ -32,7 +32,9 @@ Wbo.prototype.status=
      ,next  :true
      ,last  :true
      ,find  :true
-     ,filter:true
+     ,comments :true
+     ,filter   :true
+     ,lookup   :true
     };
 
 function Wbo(app){
@@ -94,16 +96,17 @@ function Wbo(app){
 
 Wbo.prototype.init=function(){   // First time, after all screen elements are finished drawing
   with(this){
+    this._complete=false;
     this.buttons=[]; // Array of associated toolbar buttons
     setMenues();     // Load menu arrays
-
+    this._mustsubmit=false;
     this.page=new Object();
     for(var e in app.wdo){
       app.wdo[e].fieldRegister();    // Initialize registering fields in WDOs
       var p=app.wdo[e].page;         // Configure which WDO goes to which tab page
       if(!p[null]) for(var i in p) this.page[i]=e;
     }
-
+	
     app.open('','irun','',false);  // Prepare for requests
     app.document.form['do'].value='';
     if(appcontrol.dyn=='static'){
@@ -111,6 +114,8 @@ Wbo.prototype.init=function(){   // First time, after all screen elements are fi
       app.document.form.method='get';
     }
 
+	runRemaining();
+	    
     // Execute the embedded RUN
     lognote('Execute RUN');
     custom('run',app);
@@ -122,6 +127,7 @@ Wbo.prototype.init=function(){   // First time, after all screen elements are fi
        (app.isFrame.parentNode.getAttribute('page') || app.frameObject.parent.tag.className=='hide'))
       app.frameObject.tag.className='hide';
 
+	runRemaining();
     this._complete=true;     // for sequencing;
   }
 
@@ -240,6 +246,7 @@ Wbo.prototype.refresh=function(){   // When coming back into view
     refreshTab();
     resizeObjects(app);
     this.datasync();
+    runRemaining();
     action('initfocus');
   }
 }
@@ -267,6 +274,7 @@ Wbo.prototype.process=function(){    // When being run from hidden frame
   this.app.document.form['do'].value='';
   for(var e in app.wdo) if(app.wdo[e].hdata && app.wdo[e].hdata.mustinitdata) app.wdo[e].hdata.initdata(); // Initialize screen data
   this.datasync();
+  runRemaining();
 }
 
 Wbo.prototype.datasync=function(){    // After data has been readjusted
@@ -302,10 +310,14 @@ Wbo.prototype.refreshTab=function(){
            if(f) appcontrol.setFrame(appframes[f],a[i].getAttribute('page')==app.page?'frame':'hide');
          }
       if(page[app.page] && app.toolbar[page[app.page]]) app.firstwdo=page[app.page];
+      var newbrowsenav=null;  // Figuring out navigation target for cursor keys
       for(var wdoname in app.wdo){             // Setting which WDO are visible
         var wdoref=app.wdo[wdoname];
-        wdoref.visible=(wdoref.page[null] || wdoref.page[app.page])
+        wdoref.visible=(wdoref.page[null] || wdoref.page[app.page]);
+		if(wdoref.visible && wdoref.browse) newbrowsenav=wdoref.id;
+		if(!wdoref.visible && hotkey.browsenav==wdoref.id) hotkey.browsenav=null;
       }
+	  if(!hotkey.browsenav) hotkey.browsenav=newbrowsenav;
       changePage(app.page,app);
       app.pagecontroller.fRun(app.page);
       custom('pagechange',app.page);
@@ -366,11 +378,13 @@ Wbo.prototype.action=function(c,prm){
       for(var e in app.wdo) app.wdo[e].initFocus();
       return;
     case 'undo':                   // Undo all changes
+      this.app.document.form['do'].value='';  // Making sure this happens even when alert-box
       for(var e in app.wdo){
         app.wdo[e].action('cancel');
         app.wdo[e].action('undodata');
       }
       saveok();
+      window.latercmd=[window.latercmd.pop()];   // Avoid finishing stuff after an undo
       return window.runlater();  // Finish queued commands
     case 'lookup':
       return window.lookup.launch();
@@ -402,9 +416,8 @@ Wbo.prototype.click=function(e){
   if(c!='over' && c!='enable') return true;
 
   if(src.nodeName=='SPAN'&&src.previousSibling.getAttribute('util')){
-    if(appcontrol.busy) return window.status='Please wait, BUSY processing request.';
     window.returnfield=src.previousSibling;
-    window.action(src.previousSibling.getAttribute('util'))
+    userAction(src.previousSibling.getAttribute('util'))
   }
 }
 

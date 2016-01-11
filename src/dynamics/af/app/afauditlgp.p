@@ -137,8 +137,8 @@ DEFINE INPUT PARAMETER phOldBuffer                    AS HANDLE     NO-UNDO.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 7.05
-         WIDTH              = 40.
+         HEIGHT             = 12.91
+         WIDTH              = 63.6.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -297,9 +297,12 @@ THEN DO:
   THEN DO:
 
     ASSIGN
-      dCurrentUserObj = DECIMAL( DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager ,INPUT "CurrentUserObj" ,INPUT NO) ).
+      dCurrentUserObj = DECIMAL( DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager ,INPUT "CurrentUserObj" ,INPUT NO) ) NO-ERROR.
 
-    CREATE gst_audit. /* gst_audit.audit_obj = getNextObj() */
+    CREATE gst_audit NO-ERROR. /* gst_audit.audit_obj = getNextObj() */
+    /* Catch errors from the create trigger */
+    IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR RETURN-VALUE.
+
     ASSIGN
       gst_audit.audit_date              = TODAY
       gst_audit.audit_time              = TIME
@@ -313,7 +316,9 @@ THEN DO:
       gst_audit.old_detail              = cBufferValues
       gst_audit.program_name            = PROGRAM-NAME(2)
       gst_audit.program_procedure       = "":U
-      .
+      NO-ERROR.
+    /* Catch errors from field assignment, like unique index errors */
+    IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR RETURN-VALUE.
 
     /* Find the originating calling routine */
     prgBlock:
@@ -332,16 +337,23 @@ THEN DO:
       AND INDEX(PROGRAM-NAME(iLoopNum),"adm2~\":U) = 0
       OR (PROGRAM-NAME(iLoopNum + 1) = ? OR PROGRAM-NAME(iLoopNum + 1) = "":U)
       THEN DO:
-        ASSIGN gst_audit.program_procedure = PROGRAM-NAME(iLoopNum).
+        ASSIGN gst_audit.program_procedure = PROGRAM-NAME(iLoopNum) NO-ERROR.
+        IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR RETURN-VALUE.
         LEAVE prgBlock.
       END.
     END.
 
     IF gst_audit.program_procedure = "":U
     THEN
+    DO:
       ASSIGN
-        gst_audit.program_procedure = PROGRAM-NAME(3).
+        gst_audit.program_procedure = PROGRAM-NAME(3) NO-ERROR.
+      IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR RETURN-VALUE.
+    END.
 
+    /* Catch errors from the write trigger */
+    VALIDATE gst_audit NO-ERROR.
+    IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR RETURN-VALUE.
   END.
 
 END.

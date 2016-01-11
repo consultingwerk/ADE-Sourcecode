@@ -8,6 +8,7 @@
                   on the server, and returns its results in the form of temp-tables.
 
   Parameters:   pcEntityName
+                pcLanguageCode
                 table-handle phEntityTable01-32
                 
   History:
@@ -19,6 +20,7 @@
   
  -------------------------------------------------------------------------------------*/
     DEFINE INPUT  PARAMETER pcEntityName                 AS CHARACTER    NO-UNDO.
+    DEFINE INPUT PARAMETER pcLanguageCode                AS CHARACTER    NO-UNDO.    
     DEFINE OUTPUT PARAMETER TABLE-HANDLE phEntityTable01.
     DEFINE OUTPUT PARAMETER TABLE-HANDLE phEntityTable02.
     DEFINE OUTPUT PARAMETER TABLE-HANDLE phEntityTable03.
@@ -67,7 +69,9 @@
        We still need to call the getCacheEntityObject() API to return the buffer
        handle we need to construct our query.
      */
-    RUN createEntityCache IN gshRepositoryManager ( INPUT pcEntityName) NO-ERROR.
+    IF pcLanguageCode = ? OR pcLanguageCode = "":U THEN
+       RETURN ERROR "Value for language code parameter is unknown".
+    RUN createEntityCache IN gshRepositoryManager ( INPUT pcEntityName, pcLanguageCode) NO-ERROR.
     IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN
         RETURN ERROR (IF RETURN-VALUE EQ "":U THEN ERROR-STATUS:GET-MESSAGE(1) ELSE RETURN-VALUE).
     
@@ -81,12 +85,15 @@
      */
     IF NUM-ENTRIES(pcEntityName) NE 1 THEN
     DO:
+        cWhereClause = " WHERE ":U + hEntityBuffer:NAME + ".LanguageCode = ":U + QUOTER(pcLanguageCode)
+                     + " AND ( ":U.
         DO iLoopCount = 1 TO NUM-ENTRIES(pcEntityName):
             ASSIGN cWhereClause = cWhereClause
-                                + (IF iLoopCount EQ 1 THEN " WHERE ":U ELSE " OR ":U) 
+                                + (IF iLoopCount EQ 1 THEN "":U ELSE " OR ":U) 
                                 +  hEntityBuffer:NAME + ".EntityName = ":U
                                 + QUOTER(ENTRY(iLoopCount, pcEntityName)).
         END.    /* build the query clause. */
+        cWhereClause = cWhereClause + " ) ":U.
                        
         CREATE QUERY hQuery.
         hQuery:SET-BUFFERS(hEntityBuffer).
@@ -98,7 +105,9 @@
     END.    /* more than one entry. */
     ELSE
         hEntityBuffer:FIND-FIRST(" WHERE ":U + hEntityBuffer:NAME 
-                                + ".EntityName = ":U + QUOTER(pcEntityName)) NO-ERROR.
+                                + ".EntityName = ":U + QUOTER(pcEntityName)
+                                + " AND ":U 
+                                + hEntityBuffer:NAME + ".LanguageCode = ":U + QUOTER(pcLanguageCode)) NO-ERROR.
     
     BUILD-RETURN-TABLES:
     DO WHILE hEntityBuffer:AVAILABLE:

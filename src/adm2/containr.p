@@ -96,6 +96,29 @@ FUNCTION addPageNRequiredPages RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-applyContext) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD applyContext Procedure 
+FUNCTION applyContext RETURNS LOGICAL
+  ( pcMode    AS CHAR,
+    pcContext AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-applyContextFromClient) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD applyContextFromClient Procedure 
+FUNCTION applyContextFromClient RETURNS LOGICAL
+  ( pcContext AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-applyContextFromServer) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD applyContextFromServer Procedure 
@@ -1049,6 +1072,17 @@ FUNCTION setContainerToolbarSourceEvents RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setCurrentLogicalName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setCurrentLogicalName Procedure 
+FUNCTION setCurrentLogicalName RETURNS LOGICAL
+        ( input pcObjectName as character ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setCurrentPage) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setCurrentPage Procedure 
@@ -1562,7 +1596,7 @@ FUNCTION targetPage RETURNS INTEGER
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 22.05
+         HEIGHT             = 23.19
          WIDTH              = 55.8.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -1668,11 +1702,14 @@ PROCEDURE bufferFetchContainedData :
   DEFINE VARIABLE lQuery           AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE hSource          AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cSkipList        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hSkip            AS HANDLE     NO-UNDO.
-
+  DEFINE VARIABLE hMaster          AS HANDLE     NO-UNDO.
+    
   &SCOPED-DEFINE xp-assign
-  {get ContainedDataObjects cObjects}
-  {get ContainerTarget cTargets}.
+  /* all SDOs in container including those inside an SBO */
+  {get ContainedDataObjects cObjects}                      
+  /* ContainerTarget has SBOs  */ 
+  {get ContainerTarget cTargets}
+  .
   &UNDEFINE xp-assign
 
   DO iObject = 1 TO NUM-ENTRIES(cObjects):
@@ -1680,8 +1717,11 @@ PROCEDURE bufferFetchContainedData :
       hObject = WIDGET-HANDLE(ENTRY(iObject,cObjects))
       cQueryString = ENTRY(iObject,pcQueries,CHR(1)).
 
-    /* We pass SKIP in order to get the RowObject definition for dynamic SDOs 
-       that has OpenOnInit false  */ 
+    /* SKIP is used:
+       1. Dynamic SDO with OpenOnInit false need the RowObject definition
+       2. A master SDO in an SBO got data from the client cache and is not 
+          part of the request */ 
+
     IF cQueryString <> 'SKIP':U THEN
     DO:
       /* Blank means use base query */ 
@@ -1690,35 +1730,42 @@ PROCEDURE bufferFetchContainedData :
 
       {set QueryString cQueryString hObject}.
     END.
-    ELSE
+    ELSE 
       cSkipList = cSkipList 
                 + (IF cSkipList = '':U THEN '':U ELSE ',':U)
-                + STRING(hObject).
-  END.
-  
+                + STRING(hObject).    
+  END. /* do iObject = 1 to num-entries(cObjects) */
+
   DO iTarget = 1 TO NUM-ENTRIES(cTargets):
     hTarget = WIDGET-HANDLE(ENTRY(iTarget,cTargets)).
-     
-    /* As of now all contained should be query objects, but.. */
     {get QueryObject lQuery hTarget}.
+    /* As of now all contained should be query objects, but.. */    
     IF lQuery THEN
     DO:
-      hSkip = ?.
-      /* If this is an SBO the 'skip' was registered against the master 
-         SDO above */      
-      {get MasterDataObject hSkip hTarget} NO-ERROR.      
-      IF NOT VALID-HANDLE(hSkip) THEN
-        hSkip = hTarget.
-
-      IF LOOKUP(STRING(hSkip),cSkipList) = 0 THEN
+      hMaster = ?.
+      /* If this is an SBO the 'skip' was registered against the master SDO above */      
+      {get MasterDataObject hMaster hTarget} NO-ERROR.  
+      
+      /* if SKIP of master then open the child of the SKIPed SDO inside the SBO instead */
+      IF VALID-HANDLE(hMaster) AND CAN-DO(cSkipList,STRING(hMaster)) THEN
+      DO:          
+        {get ContainedDataObjects cObjects hTarget}.         
+        DO iObject = 1 TO NUM-ENTRIES(cObjects):        
+          hObject = WIDGET-HANDLE(ENTRY(iObject,cObjects)).
+          {get DataSource hSource hObject}.
+          IF CAN-DO(cSkipList,STRING(hSource)) THEN
+             {fn openQuery hObject}.   
+        END.
+      END.
+      ELSE IF NOT CAN-DO(cSkipList,STRING(hTarget)) THEN
       DO:
         {get DataSource hSource hTarget}.
         IF NOT VALID-HANDLE(hSource) THEN
-          {fn openQuery hTarget}.       
+          {fn openQuery hTarget}.   
       END.
-    END.
-  END.
-
+    END. /* if queryobject */
+  END. /* do iTarget = 1 to NUM-ENTRIES(cTargets) */
+       
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1776,6 +1823,7 @@ PROCEDURE bufferFetchContainedRows :
   DEFINE VARIABLE cSDOs      AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hMaster    AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cPosition  AS CHARACTER  NO-UNDO.
+
   hFirstSDO = {fnarg assignQueries pcQueries}.
   
   RUN sendRows IN hFirstSDO
@@ -2192,7 +2240,7 @@ PROCEDURE constructObject :
   cFirstEntry = ENTRY(1,pcPropList,CHR(3)).  
   IF cFirstEntry <> '':U AND ENTRY(1,cFirstEntry,CHR(4)) = 'LaunchLogicalName':U THEN
   DO:
-     gcCurrentObjectName = ENTRY(2,cFirstEntry,CHR(4)) + CHR(1) NO-ERROR.
+     gcCurrentObjectName = ENTRY(2,cFirstEntry,CHR(4)) NO-ERROR.
      ENTRY(1,pcPropList,CHR(4))  = 'LogicalObjectName':U.
   END.
 
@@ -2209,11 +2257,44 @@ PROCEDURE constructObject :
       LEAVE.
     END.
   END.
-
+    /* Look for generated filename. Generated files are run
+       subject to the following criteria:
+       - a Dynamics session is running 
+       - the launched object has a valid logical object name
+       - the calling container (the one that's doing the launching)
+         is a generated container itself, except if it
+         is a treeview container.
+       - if the calling container is a treeview container,
+         only the detail frame/node-related objects may
+         be generated objects. Other objects contained by
+         a treeview (such as a filter viewer) may not
+         be generated objects.       
+     */    
+    if valid-handle(gshRepositoryManager) and 
+       cLogicalName ne ? and cLogicalName ne '' then
+    do:
+        if can-do(target-procedure:internal-entries, 'adm-assignObjectProperties') or
+           ( pcProcName eq 'ry/uib/rydynframw.w' and
+             {fnarg instanceOf 'DynTree'}               ) then
+        do:
+            cRenderingProcedure = {fnarg getMappedFilename cLogicalName gshRepositoryManager}.
+            if cRenderingProcedure ne ? then
+            do:
+               /* Make sure that Dbaware procedure remain so. */
+               if num-entries(pcProcName, chr(3)) eq 1 then
+                   pcProcName = cRenderingProcedure.
+               else
+                   pcProcName = cRenderingProcedure + chr(3) + 'DbAware'.
+            end.        /* found a mapped file */
+            
+            cRenderingProcedure = ''.
+        end.    /* allowed to find the generated object */
+    end.    /* logical name exists */    
+    
   {get ASDivision cDivision} NO-ERROR.
   IF (cDivision = "SERVER":U OR SESSION:CLIENT-TYPE = "WEBSPEED":U) AND 
      cLogicalName > '':U AND cLogicalName <> '?':U THEN
-  DO:                                     /* look for running object */
+  DO:
     PUBLISH "searchCache" + cLogicalName (OUTPUT phObject).
     /* if found, use it */
     IF VALID-HANDLE(phObject) THEN
@@ -2654,50 +2735,21 @@ Parameters: pcObject AS CHARACTER
             a container that not is a descendant of this container.                 
 -----------------------------------------------------------------------------*/
 DEFINE INPUT PARAMETER pcObject AS CHARACTER  NO-UNDO.
- 
+
 DEFINE VARIABLE cContext        AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cError          AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE hObject         AS HANDLE     NO-UNDO.
 DEFINE VARIABLE hRowObjectTT    AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject1     AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject2     AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject3     AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject4     AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject5     AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject6     AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject7     AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject8     AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject9     AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject10    AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject11    AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject12    AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject13    AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject14    AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject15    AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject16    AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject17    AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject18    AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject19    AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject20    AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject21    AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject22    AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject23    AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject24    AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject25    AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject26    AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject27    AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject28    AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject29    AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject30    AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject31    AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hRowObject32   AS HANDLE     NO-UNDO.
+
+DEFINE VARIABLE hTT      AS HANDLE     NO-UNDO EXTENT 64.
 
 DEFINE VARIABLE iObject AS INTEGER    NO-UNDO.
 
 DEFINE VARIABLE pcPhysicalNames         AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE pcQualnames             AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE pcQueryFields         AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE pcQueryFields           AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE pcQueries               AS CHARACTER  NO-UNDO.
+
 DEFINE VARIABLE cTTList                 AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE pcHandles               AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cServerFileName         AS CHARACTER  NO-UNDO.
@@ -2717,6 +2769,14 @@ DEFINE VARIABLE cTargets                AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE hMasterObject           AS HANDLE     NO-UNDO.
 DEFINE VARIABLE lAsHasStarted           AS LOGICAL    NO-UNDO.
 
+/* set table before retrieval unless 'cache' , if 'cache' we do not set 
+   the handle in case the object is static. instead we retrieve the 
+   table and then pushes it to the static object. (could have done the 
+   opposite; set the table and pushed it to the cache, but this way the 
+   operations for shared and non-shared are more similar)  */
+&SCOP assigntable ~{&ttvar~}[~{&num~}] = WIDGET-H(ENTRY(~{&num~},~{&Tables~})) ~
+                  WHEN NUM-ENTRIES(~{&Tables~}) >= ~{&num~}  
+
 RUN changeCursor IN TARGET-PROCEDURE('WAIT':U).
 
 IF pcObject = ? THEN
@@ -2725,79 +2785,181 @@ IF pcObject = ? THEN
 DO iService = 1 TO IF pcObject = ? 
                    THEN NUM-ENTRIES(cContainedAppServices)
                    ELSE 1:
-  /* If we loop through all services, check connection and that it is remote */
-  IF pcObject = ? OR pcObject = '':u THEN
-  DO:
-    cAppService = ENTRY(iService,cContainedAppServices).
-    {get AsBound lAsbound}.    
-    IF NOT lAsBound THEN
-    DO:
-      {set Appservice cAppService}.
-      RUN connectServer IN TARGET-PROCEDURE (OUTPUT hAppServer).   
-      /* if session the object have opened them selves  */
-     
-      IF happserver = SESSION THEN
+ /* If we loop through all services, check connection and that it is remote */
+ IF pcObject = ? OR pcObject = '':u THEN
+ DO:
+   cAppService = ENTRY(iService,cContainedAppServices).
+   {get AsBound lAsbound}.    
+   IF NOT lAsBound THEN
+   DO:
+     {set Appservice cAppService}.
+     RUN connectServer IN TARGET-PROCEDURE (OUTPUT hAppServer).   
+     /* if session the object have opened them selves  */
+     IF happserver = SESSION THEN
         NEXT.
-      
-      IF hAppServer  = ? THEN
-      DO:
-        RUN changeCursor IN TARGET-PROCEDURE('':U).
-        RETURN 'ADM-ERROR':U.
-      END.
-    END.
-  END.
-  ELSE /* We connect for object requests further down  */
-    cAppservice = ?.
+
+     IF hAppServer  = ? THEN
+     DO:
+       RUN changeCursor IN TARGET-PROCEDURE('':U).
+       RETURN 'ADM-ERROR':U.
+     END.
+   END.
+ END.
+ ELSE /* We connect for object requests further down  */
+   cAppservice = ?.
   
-  {get ObjectInitialized lInitialized}.
-  RUN prepareDataForFetch IN TARGET-PROCEDURE
+ {get ObjectInitialized lInitialized}.
+ RUN prepareDataForFetch IN TARGET-PROCEDURE
     (INPUT TARGET-PROCEDURE,
      INPUT cAppService,
      INPUT pcObject,
      INPUT IF NOT lInitialized AND pcObject = ? THEN 'INIT':U ELSE '':U, 
      INPUT-OUTPUT pcHandles, 
-     INPUT-OUTPUT pcPhysicalNames /* CHARACTER */,
-     INPUT-OUTPUT pcQualNames /* CHARACTER */,
-     INPUT-OUTPUT pcQueryFields /* CHARACTER */,
-     INPUT-OUTPUT pcQueries /* CHARACTER */,
-     INPUT-OUTPUT cTTlist  ).
-  
- IF pcPhysicalNames <> '':U THEN
- DO: 
+     INPUT-OUTPUT pcPhysicalNames,
+     INPUT-OUTPUT pcQualNames,
+     INPUT-OUTPUT pcQueryFields,
+     INPUT-OUTPUT pcQueries,
+     INPUT-OUTPUT cTTlist).
+
+ IF pcPhysicalNames > '':U THEN
+ DO:
+   &SCOPED-DEFINE Tables cTTList
+   &SCOPED-DEFINE ttVar hTT
    ASSIGN 
-    hRowObject1  = WIDGET-H(ENTRY(1,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 1 
-    hRowObject2  = WIDGET-H(ENTRY(2,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 2
-    hRowObject3  = WIDGET-H(ENTRY(3,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 3
-    hRowObject4  = WIDGET-H(ENTRY(4,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 4
-    hRowObject5  = WIDGET-H(ENTRY(5,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 5
-    hRowObject6  = WIDGET-H(ENTRY(6,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 6
-    hRowObject7  = WIDGET-H(ENTRY(7,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 7
-    hRowObject8  = WIDGET-H(ENTRY(8,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 8
-    hRowObject9  = WIDGET-H(ENTRY(9,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 9
-    hRowObject10 = WIDGET-H(ENTRY(10,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 10
-    hRowObject11 = WIDGET-H(ENTRY(11,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 11
-    hRowObject12 = WIDGET-H(ENTRY(12,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 12
-    hRowObject13 = WIDGET-H(ENTRY(13,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 13
-    hRowObject14 = WIDGET-H(ENTRY(14,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 14
-    hRowObject15 = WIDGET-H(ENTRY(15,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 15
-    hRowObject16 = WIDGET-H(ENTRY(16,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 16
-    hRowObject17 = WIDGET-H(ENTRY(17,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 17
-    hRowObject18 = WIDGET-H(ENTRY(18,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 18
-    hRowObject19 = WIDGET-H(ENTRY(19,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 19
-    hRowObject20 = WIDGET-H(ENTRY(20,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 20
-    hRowObject21 = WIDGET-H(ENTRY(21,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 21
-    hRowObject22 = WIDGET-H(ENTRY(22,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 22
-    hRowObject23 = WIDGET-H(ENTRY(23,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 23
-    hRowObject24 = WIDGET-H(ENTRY(24,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 24
-    hRowObject25 = WIDGET-H(ENTRY(25,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 25
-    hRowObject26 = WIDGET-H(ENTRY(26,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 26
-    hRowObject27 = WIDGET-H(ENTRY(27,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 27
-    hRowObject28 = WIDGET-H(ENTRY(28,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 28
-    hRowObject29 = WIDGET-H(ENTRY(29,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 29
-    hRowObject30 = WIDGET-H(ENTRY(30,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 30
-    hRowObject31 = WIDGET-H(ENTRY(31,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 31
-    hRowObject32 = WIDGET-H(ENTRY(32,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 32.
-    
+    &SCOPED-DEFINE num 1 
+    {&assigntable} 
+    &SCOPED-DEFINE num 2
+    {&assigntable} 
+    &SCOPED-DEFINE num 3 
+    {&assigntable} 
+    &SCOPED-DEFINE num 4
+    {&assigntable} 
+    &SCOPED-DEFINE num 5 
+    {&assigntable} 
+    &SCOPED-DEFINE num 6
+    {&assigntable} 
+    &SCOPED-DEFINE num 7 
+    {&assigntable} 
+    &SCOPED-DEFINE num 8
+    {&assigntable} 
+    &SCOPED-DEFINE num 9 
+    {&assigntable} 
+    &SCOPED-DEFINE num 10
+    {&assigntable} 
+    &SCOPED-DEFINE num 11
+    {&assigntable} 
+    &SCOPED-DEFINE num 12
+    {&assigntable} 
+    &SCOPED-DEFINE num 13 
+    {&assigntable} 
+    &SCOPED-DEFINE num 14
+    {&assigntable} 
+    &SCOPED-DEFINE num 15 
+    {&assigntable} 
+    &SCOPED-DEFINE num 16
+    {&assigntable} 
+    &SCOPED-DEFINE num 17 
+    {&assigntable} 
+    &SCOPED-DEFINE num 18
+    {&assigntable} 
+    &SCOPED-DEFINE num 19 
+    {&assigntable} 
+    &SCOPED-DEFINE num 20
+    {&assigntable} 
+    &SCOPED-DEFINE num 21
+    {&assigntable} 
+    &SCOPED-DEFINE num 22
+    {&assigntable} 
+    &SCOPED-DEFINE num 23 
+    {&assigntable} 
+    &SCOPED-DEFINE num 24
+    {&assigntable} 
+    &SCOPED-DEFINE num 25 
+    {&assigntable} 
+    &SCOPED-DEFINE num 26
+    {&assigntable} 
+    &SCOPED-DEFINE num 27 
+    {&assigntable} 
+    &SCOPED-DEFINE num 28
+    {&assigntable} 
+    &SCOPED-DEFINE num 29 
+    {&assigntable} 
+    &SCOPED-DEFINE num 30
+    {&assigntable} 
+    &SCOPED-DEFINE num 31
+    {&assigntable} 
+    &SCOPED-DEFINE num 32
+    .
+   IF NUM-ENTRIES(pcHandles) > 32 THEN
+    ASSIGN
+    {&assigntable} 
+    &SCOPED-DEFINE num 33 
+    {&assigntable} 
+    &SCOPED-DEFINE num 34
+    {&assigntable} 
+    &SCOPED-DEFINE num 35 
+    {&assigntable} 
+    &SCOPED-DEFINE num 36
+    {&assigntable} 
+    &SCOPED-DEFINE num 37 
+    {&assigntable} 
+    &SCOPED-DEFINE num 38
+    {&assigntable} 
+    &SCOPED-DEFINE num 39 
+    {&assigntable} 
+    &SCOPED-DEFINE num 40
+    {&assigntable} 
+    &SCOPED-DEFINE num 41
+    {&assigntable} 
+    &SCOPED-DEFINE num 42
+    {&assigntable} 
+    &SCOPED-DEFINE num 43 
+    {&assigntable} 
+    &SCOPED-DEFINE num 44
+    {&assigntable} 
+    &SCOPED-DEFINE num 45 
+    {&assigntable} 
+    &SCOPED-DEFINE num 46
+    {&assigntable} 
+    &SCOPED-DEFINE num 47 
+    {&assigntable} 
+    &SCOPED-DEFINE num 48
+    {&assigntable} 
+    &SCOPED-DEFINE num 49 
+    {&assigntable} 
+    &SCOPED-DEFINE num 50
+    {&assigntable} 
+    &SCOPED-DEFINE num 51
+    {&assigntable} 
+    &SCOPED-DEFINE num 52
+    {&assigntable} 
+    &SCOPED-DEFINE num 53 
+    {&assigntable} 
+    &SCOPED-DEFINE num 54
+    {&assigntable} 
+    &SCOPED-DEFINE num 55 
+    {&assigntable} 
+    &SCOPED-DEFINE num 56
+    {&assigntable} 
+    &SCOPED-DEFINE num 57 
+    {&assigntable} 
+    &SCOPED-DEFINE num 58
+    {&assigntable} 
+    &SCOPED-DEFINE num 59 
+    {&assigntable} 
+    &SCOPED-DEFINE num 60
+    {&assigntable} 
+    &SCOPED-DEFINE num 61
+    {&assigntable} 
+    &SCOPED-DEFINE num 62
+    {&assigntable} 
+    &SCOPED-DEFINE num 63 
+    {&assigntable} 
+    &SCOPED-DEFINE num 64
+    .
+    &UNDEFINE num
+    &UNDEFINE ttVar
+    &UNDEFINE Tables
   IF pcObject <> ? AND pcObject <> '':U THEN
   DO:
     /* we cannot lookup the returned pcHandles in case pcobject is an SBO */ 
@@ -2818,62 +2980,62 @@ DO iService = 1 TO IF pcObject = ?
     
     {set AppService cAppService}.
     RUN connectServer IN TARGET-PROCEDURE (OUTPUT hAppServer). 
+
     IF hAppServer  = ? THEN
       RETURN 'ADM-ERROR':U.
-
+    
     /* if not asHasstarted we must ensure that obtainContextForServer sets
        the 'first-time' context   */
     IF NOT lAsHasStarted THEN
       {set AsHasStarted NO}.
   END.
   
-  {set ProcessList pcQualNames}.
-  cContext = {fn obtainContextForServer}.  
-  {set ProcessList '':U}.
-  
+  {set ProcessList pcHandles}.
+  cContext = {fn obtainContextForServer}.
+
   IF VALID-HANDLE(hAppserver) THEN
   DO:
     {get ServerfileName cServerFileName}.
-    RUN adm2/fetchdata.p ON hAppserver 
+    RUN adm2/fetchdata64.p ON hAppserver 
      (INPUT cServerFileName,
       INPUT-OUTPUT cContext,
       INPUT pcPhysicalNames,
-      INPUT pcQualNames,
+      INPUT pcHandles /* pcQualNames*/,
       INPUT pcQueryFields,
       INPUT pcQueries,
       INPUT '':U, /* future */
-      OUTPUT TABLE-HANDLE hRowObject1, 
-      OUTPUT TABLE-HANDLE hRowObject2,
-      OUTPUT TABLE-HANDLE hRowObject3,
-      OUTPUT TABLE-HANDLE hRowObject4,
-      OUTPUT TABLE-HANDLE hRowObject5,
-      OUTPUT TABLE-HANDLE hRowObject6,
-      OUTPUT TABLE-HANDLE hRowObject7,
-      OUTPUT TABLE-HANDLE hRowObject8,
-      OUTPUT TABLE-HANDLE hRowObject9,
-      OUTPUT TABLE-HANDLE hRowObject10,
-      OUTPUT TABLE-HANDLE hRowObject11,
-      OUTPUT TABLE-HANDLE hRowObject12,
-      OUTPUT TABLE-HANDLE hRowObject13,
-      OUTPUT TABLE-HANDLE hRowObject14,
-      OUTPUT TABLE-HANDLE hRowObject15,
-      OUTPUT TABLE-HANDLE hRowObject16,
-      OUTPUT TABLE-HANDLE hRowObject17,
-      OUTPUT TABLE-HANDLE hRowObject18,
-      OUTPUT TABLE-HANDLE hRowObject19,
-      OUTPUT TABLE-HANDLE hRowObject20,
-      OUTPUT TABLE-HANDLE hRowObject21,
-      OUTPUT TABLE-HANDLE hRowObject22,
-      OUTPUT TABLE-HANDLE hRowObject23,
-      OUTPUT TABLE-HANDLE hRowObject24,
-      OUTPUT TABLE-HANDLE hRowObject25,
-      OUTPUT TABLE-HANDLE hRowObject26,
-      OUTPUT TABLE-HANDLE hRowObject27,
-      OUTPUT TABLE-HANDLE hRowObject28,
-      OUTPUT TABLE-HANDLE hRowObject29,
-      OUTPUT TABLE-HANDLE hRowObject30,
-      OUTPUT TABLE-HANDLE hRowObject31,
-      OUTPUT TABLE-HANDLE hRowObject32,
+      OUTPUT TABLE-HANDLE hTT[1],OUTPUT TABLE-HANDLE hTT[2],
+      OUTPUT TABLE-HANDLE hTT[3],OUTPUT TABLE-HANDLE hTT[4],
+      OUTPUT TABLE-HANDLE hTT[5],OUTPUT TABLE-HANDLE hTT[6],
+      OUTPUT TABLE-HANDLE hTT[7],OUTPUT TABLE-HANDLE hTT[8],
+      OUTPUT TABLE-HANDLE hTT[9],OUTPUT TABLE-HANDLE hTT[10],
+      OUTPUT TABLE-HANDLE hTT[11],OUTPUT TABLE-HANDLE hTT[12],
+      OUTPUT TABLE-HANDLE hTT[13],OUTPUT TABLE-HANDLE hTT[14],
+      OUTPUT TABLE-HANDLE hTT[15],OUTPUT TABLE-HANDLE hTT[16],
+      OUTPUT TABLE-HANDLE hTT[17],OUTPUT TABLE-HANDLE hTT[18],
+      OUTPUT TABLE-HANDLE hTT[19],OUTPUT TABLE-HANDLE hTT[20],
+      OUTPUT TABLE-HANDLE hTT[21],OUTPUT TABLE-HANDLE hTT[22],
+      OUTPUT TABLE-HANDLE hTT[23],OUTPUT TABLE-HANDLE hTT[24],
+      OUTPUT TABLE-HANDLE hTT[25],OUTPUT TABLE-HANDLE hTT[26],
+      OUTPUT TABLE-HANDLE hTT[27],OUTPUT TABLE-HANDLE hTT[28],
+      OUTPUT TABLE-HANDLE hTT[29],OUTPUT TABLE-HANDLE hTT[30],
+      OUTPUT TABLE-HANDLE hTT[31],OUTPUT TABLE-HANDLE hTT[32],
+      OUTPUT TABLE-HANDLE hTT[33],OUTPUT TABLE-HANDLE hTT[34],
+      OUTPUT TABLE-HANDLE hTT[35],OUTPUT TABLE-HANDLE hTT[36],
+      OUTPUT TABLE-HANDLE hTT[37],OUTPUT TABLE-HANDLE hTT[38],
+      OUTPUT TABLE-HANDLE hTT[39],OUTPUT TABLE-HANDLE hTT[40],
+      OUTPUT TABLE-HANDLE hTT[41],OUTPUT TABLE-HANDLE hTT[42],
+      OUTPUT TABLE-HANDLE hTT[43],OUTPUT TABLE-HANDLE hTT[44],
+      OUTPUT TABLE-HANDLE hTT[45],OUTPUT TABLE-HANDLE hTT[46],
+      OUTPUT TABLE-HANDLE hTT[47],OUTPUT TABLE-HANDLE hTT[48],
+      OUTPUT TABLE-HANDLE hTT[49],OUTPUT TABLE-HANDLE hTT[50],
+      OUTPUT TABLE-HANDLE hTT[51],OUTPUT TABLE-HANDLE hTT[52],
+      OUTPUT TABLE-HANDLE hTT[53],OUTPUT TABLE-HANDLE hTT[54],
+      OUTPUT TABLE-HANDLE hTT[55],OUTPUT TABLE-HANDLE hTT[56],
+      OUTPUT TABLE-HANDLE hTT[57],OUTPUT TABLE-HANDLE hTT[58],
+      OUTPUT TABLE-HANDLE hTT[59],OUTPUT TABLE-HANDLE hTT[60],
+      OUTPUT TABLE-HANDLE hTT[61],OUTPUT TABLE-HANDLE hTT[62],
+      OUTPUT TABLE-HANDLE hTT[63],OUTPUT TABLE-HANDLE hTT[64],
       OUTPUT cError). /* not used yet */
   END.
   ELSE DO:  /* we cannot get here */ 
@@ -2882,42 +3044,26 @@ DO iService = 1 TO IF pcObject = ?
       RUN remoteFetchData IN hAsHandle
       (INPUT-OUTPUT ccontext,
        INPUT pcPhysicalNames,
-       INPUT pcQualNames,
+       INPUT pcHandles,
        INPUT pcQueryFields,
        INPUT pcQueries,
        INPUT '':U, /* future */
-       OUTPUT TABLE-HANDLE hRowObject1, 
-       OUTPUT TABLE-HANDLE hRowObject2,
-       OUTPUT TABLE-HANDLE hRowObject3,
-       OUTPUT TABLE-HANDLE hRowObject4,
-       OUTPUT TABLE-HANDLE hRowObject5,
-       OUTPUT TABLE-HANDLE hRowObject6,
-       OUTPUT TABLE-HANDLE hRowObject7,
-       OUTPUT TABLE-HANDLE hRowObject8,
-       OUTPUT TABLE-HANDLE hRowObject9,
-       OUTPUT TABLE-HANDLE hRowObject10,
-       OUTPUT TABLE-HANDLE hRowObject11,
-       OUTPUT TABLE-HANDLE hRowObject12,
-       OUTPUT TABLE-HANDLE hRowObject13,
-       OUTPUT TABLE-HANDLE hRowObject14,
-       OUTPUT TABLE-HANDLE hRowObject15,
-       OUTPUT TABLE-HANDLE hRowObject16,
-       OUTPUT TABLE-HANDLE hRowObject17,
-       OUTPUT TABLE-HANDLE hRowObject18,
-       OUTPUT TABLE-HANDLE hRowObject19,
-       OUTPUT TABLE-HANDLE hRowObject20,
-       OUTPUT TABLE-HANDLE hRowObject21,
-       OUTPUT TABLE-HANDLE hRowObject22,
-       OUTPUT TABLE-HANDLE hRowObject23,
-       OUTPUT TABLE-HANDLE hRowObject24,
-       OUTPUT TABLE-HANDLE hRowObject25,
-       OUTPUT TABLE-HANDLE hRowObject26,
-       OUTPUT TABLE-HANDLE hRowObject27,
-       OUTPUT TABLE-HANDLE hRowObject28,
-       OUTPUT TABLE-HANDLE hRowObject29,
-       OUTPUT TABLE-HANDLE hRowObject30,
-       OUTPUT TABLE-HANDLE hRowObject31,
-       OUTPUT TABLE-HANDLE hRowObject32,
+       OUTPUT TABLE-HANDLE hTT[1],OUTPUT TABLE-HANDLE hTT[2],
+       OUTPUT TABLE-HANDLE hTT[3],OUTPUT TABLE-HANDLE hTT[4],
+       OUTPUT TABLE-HANDLE hTT[5],OUTPUT TABLE-HANDLE hTT[6],
+       OUTPUT TABLE-HANDLE hTT[7],OUTPUT TABLE-HANDLE hTT[8],
+       OUTPUT TABLE-HANDLE hTT[9],OUTPUT TABLE-HANDLE hTT[10],
+       OUTPUT TABLE-HANDLE hTT[11],OUTPUT TABLE-HANDLE hTT[12],
+       OUTPUT TABLE-HANDLE hTT[13],OUTPUT TABLE-HANDLE hTT[14],
+       OUTPUT TABLE-HANDLE hTT[15],OUTPUT TABLE-HANDLE hTT[16],
+       OUTPUT TABLE-HANDLE hTT[17],OUTPUT TABLE-HANDLE hTT[18],
+       OUTPUT TABLE-HANDLE hTT[19],OUTPUT TABLE-HANDLE hTT[20],
+       OUTPUT TABLE-HANDLE hTT[21],OUTPUT TABLE-HANDLE hTT[22],
+       OUTPUT TABLE-HANDLE hTT[23],OUTPUT TABLE-HANDLE hTT[24],
+       OUTPUT TABLE-HANDLE hTT[25],OUTPUT TABLE-HANDLE hTT[26],
+       OUTPUT TABLE-HANDLE hTT[27],OUTPUT TABLE-HANDLE hTT[28],
+       OUTPUT TABLE-HANDLE hTT[29],OUTPUT TABLE-HANDLE hTT[30],
+       OUTPUT TABLE-HANDLE hTT[31],OUTPUT TABLE-HANDLE hTT[32],
        OUTPUT cError). /* not used yet */       
     RUN endClientDataRequest  IN TARGET-PROCEDURE.
   END.
@@ -2945,55 +3091,51 @@ DO iService = 1 TO IF pcObject = ?
   END. /* Do iObject = 1 to num-entries(cContainedObjects) */      
   
   {fnarg applyContextFromServer cContext}.
+  {set ProcessList ''}.  
   {get ServerOperatingMode cServerOperatingMode}.
-  
+ 
   DO iObject = 1 TO NUM-ENTRIES(pcHandles):
     hObject = WIDGET-HANDLE(ENTRY(iObject,pcHandles)).
-    {set AsHasStarted YES hobject}.
-    {set ServerOperatingMode cServerOperatingMode hobject}.
-    /* A dynamic dataobject may have gotten its table def here */          
-    IF ENTRY(iObject,cTTList) = '?':U THEN
-    DO:
-      CASE iObject:
-        WHEN  1 THEN hRowObjectTT = hRowObject1.
-        WHEN  2 THEN hRowObjectTT = hRowObject2.
-        WHEN  3 THEN hRowObjectTT = hRowObject3.
-        WHEN  4 THEN hRowObjectTT = hRowObject4.
-        WHEN  5 THEN hRowObjectTT = hRowObject5.
-        WHEN  6 THEN hRowObjectTT = hRowObject6.
-        WHEN  7 THEN hRowObjectTT = hRowObject7.
-        WHEN  8 THEN hRowObjectTT = hRowObject8.
-        WHEN  9 THEN hRowObjectTT = hRowObject9.
-        WHEN 10 THEN hRowObjectTT = hRowObject10.
-        WHEN 11 THEN hRowObjectTT = hRowObject11.
-        WHEN 12 THEN hRowObjectTT = hRowObject12.
-        WHEN 13 THEN hRowObjectTT = hRowObject13.
-        WHEN 14 THEN hRowObjectTT = hRowObject14.
-        WHEN 15 THEN hRowObjectTT = hRowObject15.
-        WHEN 16 THEN hRowObjectTT = hRowObject16.
-        WHEN 17 THEN hRowObjectTT = hRowObject17.
-        WHEN 18 THEN hRowObjectTT = hRowObject18.
-        WHEN 19 THEN hRowObjectTT = hRowObject19.
-        WHEN 20 THEN hRowObjectTT = hRowObject20.
-        WHEN 21 THEN hRowObjectTT = hRowObject21.
-        WHEN 22 THEN hRowObjectTT = hRowObject22.
-        WHEN 23 THEN hRowObjectTT = hRowObject23.
-        WHEN 24 THEN hRowObjectTT = hRowObject24.
-        WHEN 25 THEN hRowObjectTT = hRowObject25.
-        WHEN 26 THEN hRowObjectTT = hRowObject26.
-        WHEN 27 THEN hRowObjectTT = hRowObject27.
-        WHEN 28 THEN hRowObjectTT = hRowObject28.
-        WHEN 29 THEN hRowObjectTT = hRowObject29.
-        WHEN 30 THEN hRowObjectTT = hRowObject30.
-        WHEN 31 THEN hRowObjectTT = hRowObject31.
-        WHEN 32 THEN hRowObjectTT = hRowObject32.
-      END CASE.
-      
-      {set RowObjectTable hRowObjectTT hObject}.
-    END.
 
+    &SCOPED-DEFINE xp-assign
+    {set AsHasStarted YES hObject}
+    {set ServerOperatingMode cServerOperatingMode hObject}
+    .
+    &UNDEFINE xp-assign
     IF ENTRY(iObject,pcQueries,CHR(1)) <> 'SKIP':U THEN
-      {fnarg openDataQuery 'FIRST':U hObject}.
+    DO:
+      /* A dynamic dataobject may have gotten its table def here
+        and/or an object has been set to cache data */    
+      IF ENTRY(iObject,cTTList) = '?':U THEN
+        {fnarg receiveData hTT[iObject] hObject}.      
+      ELSE
+        {fnarg openDataQuery 'FIRST':U hObject}.
+    END.
+    ELSE IF ENTRY(iObject,cTTList) = '?':U THEN
+      {set RowObjectTable hTT[iObject] hObject}.
+
+    /* NOTE: When 'SKIP' is used to ignore an SBO's master SDO that got data 
+             from cache, the entry in the TTList is set to blank. 
+             This ensures that the fetch output parameter above is unknown 
+             and NOT mapped to the SDO AND avoids that the empty TT returned 
+             is passed to the SDO as when the entry is '?', but instead is 
+             deleted immediately.  (This may change in the future as ideally we 
+             should not have gotten a TT back from the server in this case, but 
+             the current SBO data retrieval is a bit inflexible. ) */
+    ELSE IF ENTRY(iObject,cTTList) = '':U THEN
+      DELETE OBJECT htt[iObject].
+
+    /* set ASHasStarted for SBO */
+    IF ENTRY(iObject,pcPhysicalNames) <> '':U THEN 
+    DO:
+        {get ContainerSource hContainerSource hObject}.
+        {get QueryObject lSBO hContainerSource}.
+        IF lSBO THEN
+        DO:
+          {set ServerOperatingMode cServerOperatingMode hContainerSource}.
+          {set ASHasStarted YES hContainerSource}.
+        END.
+    END.
 
     /* foreign fields in query from server may not be registered on client
        so set QueryString from BaseQuery if it was not set above  */ 
@@ -3007,7 +3149,7 @@ DO iService = 1 TO IF pcObject = ?
          the SBO will receive a dataAvailable so we need to set the 
          DataIsFetched to avoid a reopen (SBOs does not currently get 
          Foreign values from the server, so we can't rely on 
-         dataAvailble('reset') */
+         dataAvailable('reset') */
       IF lSBO AND ENTRY(iObject,pcPhysicalNames) <> '':U THEN
          {set DataIsFetched TRUE hContainerSource}.
 
@@ -3017,7 +3159,6 @@ DO iService = 1 TO IF pcObject = ?
         {get BaseQuery cQueryString hObject}.
         {set QueryString cQueryString hObject}.
       END. /* QueryString = '' */
-
     END.
   END. /* Do iObject = 1 to num-entries(cContainedObjects) */      
    
@@ -3035,9 +3176,9 @@ DO iService = 1 TO IF pcObject = ?
         DO:
           {get MasterDataObject hMasterObject hContainerSource}.
           IF hObject = hMasterObject THEN
-            PUBLISH 'DataAvailable':U FROM hMasterObject ('VALUE-CHANGED':U).
-
-          PUBLISH 'DataAvailable':U FROM hContainerSource ('RESET':U).
+            PUBLISH 'DataAvailable':U FROM hMasterObject ('RESET':U).
+          ELSE
+            PUBLISH 'DataAvailable':U FROM hContainerSource ('RESET':U).
         END.
         ELSE  
           PUBLISH 'DataAvailable':U FROM hObject ('RESET':U).
@@ -3201,9 +3342,8 @@ DO iService = 1 TO IF pcObject = ?
     hRowObject31 = WIDGET-H(ENTRY(31,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 31
     hRowObject32 = WIDGET-H(ENTRY(32,cTTList)) WHEN NUM-ENTRIES(cTTList) >= 32.
     
-  {set ProcessList pcQualNames}.
+  {set ProcessList pcHandles}.
   cContext = {fn obtainContextForServer}.
-  {set ProcessList '':U}.
 
   IF pcObject <> ? AND pcObject <> '':U THEN
   DO:
@@ -3229,12 +3369,12 @@ DO iService = 1 TO IF pcObject = ?
     
     IF hAppServer  = ? THEN
       RETURN ERROR 'ADM-ERROR':U.
-       
+
     RUN adm2/fetchrows.p ON hAppserver
      (INPUT cServerFileName,
       INPUT-OUTPUT cContext,
       pcPhysicalNames,
-      pcQualNames,
+      pcHandles,
       pcQueryFields,
       pcQueries,
       piStartRow, 
@@ -3281,7 +3421,7 @@ DO iService = 1 TO IF pcObject = ?
     RUN remoteFetchRows IN hAsHandle
       (INPUT-OUTPUT cContext,
        pcPhysicalNames,
-       pcQualNames,
+       pcHandles,
        pcQueryFields,
        pcQueries,
        piStartRow, 
@@ -3349,6 +3489,7 @@ DO iService = 1 TO IF pcObject = ?
   END. /* Do iObject = 1 to num-entries(cContainedObjects) */      
   
   {fnarg applyContextFromServer cContext}.
+  {set ProcessList '':U}.
   {get ServerOperatingMode cServerOperatingMode}.
   
   /* foreign fields in query from server may not be registered on client
@@ -3356,16 +3497,25 @@ DO iService = 1 TO IF pcObject = ?
   DO iObject = 1 TO NUM-ENTRIES(pcHandles):
     
     hObject = WIDGET-HANDLE(ENTRY(iObject,pcHandles)).
-    {set AsHasStarted YES hobject}.
+    {set AsHasStarted YES hObject}.
     {set ServerOperatingMode cServerOperatingMode hObject}.
-
+    
     /* The caller opens the batched dataset */
     IF iObject > 1 THEN
     DO:
-      {fnarg openDataQuery 'FIRST':U hObject}. 
+      {fnarg openDataQuery 'FIRST':U hObject}.
       {set DataIsFetched TRUE hObject}.
     END.
-    
+
+    /* set ASHasStarted for SBO */
+    IF ENTRY(iObject,pcPhysicalNames) <> '':U THEN 
+    DO:
+        {get ContainerSource hContainerSource hObject}.
+        {get QueryObject lSBO hContainerSource}.
+        IF lSBO THEN
+            {set ASHasStarted YES hContainerSource}.
+    END.
+
     IF ENTRY(1,ENTRY(iObject,pcQueryFields,CHR(1)),CHR(2)) <> '':U 
      /* no physicalname means child sdo inside sbo */
     OR ENTRY(iObject,pcPhysicalNames) = '':U THEN
@@ -3500,13 +3650,16 @@ PROCEDURE initializeDataObjects :
 
   DEFINE VARIABLE cTargets         AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lQuery           AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE hSDO             AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hObject             AS HANDLE     NO-UNDO.
   DEFINE VARIABLE iTarget          AS INTEGER    NO-UNDO.
   DEFINE VARIABLE lQueryObject     AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lDataContainer   AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE hContainersource AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lFetchPending    AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lObjectsCreated  AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cObjectType      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hDataSource      AS HANDLE     NO-UNDO.
+ 
 
   /* This is only called in itself by non query containers, but SBOs will 
      receive this from its container, but the publishing container will manage
@@ -3532,14 +3685,30 @@ PROCEDURE initializeDataObjects :
          
   {get ContainerTarget cTargets}.
   DO iTarget = 1 TO NUM-ENTRIES(cTargets): 
-    hSdo = WIDGET-HANDLE(ENTRY(iTarget,cTargets)).
-    {get QueryObject lQuery hSDO}.
+    hObject = WIDGET-HANDLE(ENTRY(iTarget,cTargets)).
+    {get QueryObject lQuery hObject}.
+
     IF lQuery THEN
     DO:
-      RUN initializeObject IN hSDO.    
-      UNSUBSCRIBE PROCEDURE hSDO TO 'initializeObject':U IN TARGET-PROCEDURE.
+      RUN initializeObject IN hObject.    
+      UNSUBSCRIBE PROCEDURE hObject TO 'initializeObject':U IN TARGET-PROCEDURE.
+    END.
+    ELSE DO:
+      {get ObjectType cObjectType hObject}.
+      
+      IF cObjectType = 'SmartDataField':U THEN
+      DO:
+        {get DataSource hDataSource hObject}.
+        IF NOT VALID-HANDLE(hDataSource) THEN
+        DO:
+          hDataSource = {fn createDataSource hObject} NO-ERROR.
+          IF VALID-HANDLE(hdataSource) THEN
+            UNSUBSCRIBE PROCEDURE hDataSource TO 'initializeObject':U IN TARGET-PROCEDURE.
+        END.
+      END.
     END.
   END.
+
   /* The sbo initializeObject has its own fetch logic, so only do this if 
      not a query object */
   IF NOT lQueryobject THEN
@@ -3573,6 +3742,7 @@ PROCEDURE initializeObject :
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE lHideOnInit      AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE lDisableOnInit   AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE lInitialized     AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cType            AS CHARACTER NO-UNDO.
   DEFINE VARIABLE iStartPage       AS INTEGER   NO-UNDO.
   DEFINE VARIABLE iResizeOnPage    AS INTEGER   NO-UNDO.
@@ -3587,12 +3757,17 @@ PROCEDURE initializeObject :
   
   DEFINE VARIABLE hContainingWindow             AS HANDLE                 NO-UNDO.
   DEFINE VARIABLE lParentInitted                AS LOGICAL                NO-UNDO.
+  define variable cObjectType                   as character              no-undo.
   
   &SCOPED-DEFINE xp-assign
   {get ContainerType cType}
+  {get ObjectInitialized lInitialized}
   {get StartPage iStartPage}.
   &UNDEFINE xp-assign
-  
+
+  IF lInitialized THEN
+    RETURN.
+
   IF cType = "FRAME":U OR cType = "VIRTUAL":U THEN
   DO:
     /* A non-visual container (Simple SmartContainer) needs to run 
@@ -3669,7 +3844,7 @@ PROCEDURE initializeObject :
   /* For some reason the SBO propery gets unknown here   */ 
   {get ObjectMapping cObjectMapping} NO-ERROR.     
   {get QueryObject lQueryObject}.
-  IF NOT lQueryobject THEN
+  IF NOT lQueryObject THEN
   DO:
     {get DataContainer lDataContainer}.
     IF lDataContainer THEN
@@ -3698,12 +3873,20 @@ PROCEDURE initializeObject :
   
   /* The visual class skips this to avoid becoming visible too early if 
      container is window. 
-     We could probably used the cType from above, but in order to be 100% 
-     sure... we use the same check that visual uses to skip enable and view */
+     
+     We check the ObjectType of the object, since checking the container
+     handle's type is not guaranteed: we only need to do this for window-like
+     containers, like windows, dialogs and contained smartframes. We don't 
+     want to do it for dynamic viewers etc, which have FRAMEs as their
+     container handles (just like Dialogues or SmartFrames).
+   */
+  &scoped-define xp-Assign     
+  {get ObjectType cObjectType}
   {get ContainerHandle hWidget}.
+  &undefine xp-Assign
   
   /* Pack and layout this container. */
-  IF VALID-HANDLE(hWidget) AND CAN-DO("WINDOW,FRAME":U, hWidget:TYPE) THEN
+  if valid-handle(hWidget) and can-do('SmartWindow,SmartFrame,SmartDialog', cObjectType) then
   DO:
     /* If this is a Repository object, then make sure everything fits nicely.
      */
@@ -3759,7 +3942,8 @@ PROCEDURE initializeObject :
     END.    /* Repository is around. */
   END.    /* window & frame packing and layout. */
   
-  IF VALID-HANDLE(hWidget) AND hWidget:TYPE  = 'WINDOW':U THEN
+  /* Only view if this is a window-like container. See comments above for more. */
+  if valid-handle(hWidget) and can-do('SmartWindow,SmartFrame,SmartDialog', cObjectType) then
   DO:
     &SCOPED-DEFINE xp-assign
     {get DisableOnInit lDisableOnInit}
@@ -3777,7 +3961,7 @@ PROCEDURE initializeObject :
 
   IF RETURN-VALUE = "ADM-ERROR":U THEN 
     RETURN "ADM-ERROR":U.
- 
+  
   RETURN.
 END PROCEDURE.    /* initializeObject */
 
@@ -3926,13 +4110,9 @@ PROCEDURE initializeVisualContainer :
           AND ttTranslate.cTranslatedTooltip = "":U THEN 
              NEXT translate-loop.
     
-          IF CAN-SET(hContainer,'TITLE':U)  
-          AND ttTranslate.cWidgetType = "title":U 
+          IF ttTranslate.cWidgetType = "title":U 
           AND ttTranslate.cTranslatedLabel <> "":U THEN
-          DO:
-            hContainer:TITLE = ttTranslate.cTranslatedLabel.
-            {set windowName hContainer:TITLE} NO-ERROR.      
-          END.
+            {set WindowName ttTranslate.cTranslatedLabel} NO-ERROR.
           
           IF ttTranslate.cWidgetType = "tab":U THEN
           DO:
@@ -4232,6 +4412,161 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-obtainContext) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE obtainContext Procedure 
+PROCEDURE obtainContext :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    DEFINE INPUT        PARAMETER pcMode       AS CHARACTER  NO-UNDO.
+    DEFINE INPUT        PARAMETER pcParent     AS CHARACTER  NO-UNDO.
+    DEFINE INPUT-OUTPUT PARAMETER pcPropList   AS CHARACTER  NO-UNDO.
+    DEFINE INPUT-OUTPUT PARAMETER pcValueList  AS CHARACTER  NO-UNDO.
+    
+  DEFINE VARIABLE iProp            AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cProp            AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iObject          AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hObject          AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cObjectType      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cObjectName      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cPropList        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lMultiTypes      AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cValue           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cGrandChildren   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cGrandChildProps AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iGrandChild      AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cTargets         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTargetNames     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cProcessList     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cASDivision      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lDataContainer   AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cContext         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iNumProps        AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iLoop            AS INTEGER    NO-UNDO.
+
+/* 
+&SCOPED-DEFINE buildproplist ~
+ cProp = ENTRY((~{&num~} * 2) - 1,cContext,CHR(4)) WHEN iNumProps >= ~{&num~} ~
+ iProp = LOOKUP(cProp,pcPropList) WHEN iNumProps >= ~{&num~}. ~
+ IF iNumProps >= ~{&num~} AND iProp = 0 THEN ASSIGN ~
+     pcPropList = pcPropList + (IF pcPropList = '' THEN '' ELSE ',') + cProp ~
+     iProp      = NUM-ENTRIES(pcPropList). ~
+ ASSIGN ~
+  ENTRY((~{&num~} * 2) - 1,cContext,CHR(4)) = STRING(iProp) WHEN iNumProps >= ~{&num~}
+
+&SCOPED-DEFINE xbuildproplist ~
+       cProp = ENTRY((~{&num~} * 2) - 1,cContext,CHR(4)) ~
+       iProp = LOOKUP(cProp,pcPropList) ~
+       pcPropList = (pcPropList + (IF iProp = 0 THEN (IF pcPropList = '' THEN '' ELSE ',') + cProp ELSE '')) ~
+       iProp  = IF iProp = 0 THEN NUM-ENTRIES(pcPropList) ELSE iProp  ~
+       ENTRY((~{&num~} * 2) - 1,cContext,CHR(4)) = STRING(iProp).  ~
+    IF iNumProps >= ~{&num~} + 1 THEN ASSIGN 
+
+&SCOPED-DEFINE xbuildproplist ~
+ cProp = ENTRY((~{&num~} * 2) - 1,cContext,CHR(4)) WHEN iNumProps >= ~{&num~} ~
+ iProp = LOOKUP(cProp,pcPropList) WHEN iNumProps >= ~{&num~} ~
+ pcPropList = (pcPropList + (IF iProp = 0 THEN (IF pcPropList = '' THEN '' ELSE ',') + cProp ELSE '')) WHEN iNumProps >= ~{&num~} ~
+ iProp  = IF iProp = 0 THEN NUM-ENTRIES(pcPropList) ELSE iProp WHEN iNumProps >= ~{&num~} ~
+ ENTRY((~{&num~} * 2) - 1,cContext,CHR(4)) = STRING(iProp) WHEN iNumProps >= ~{&num~}
+  
+&SCOPED-DEFINE buildproplist ~
+    cProp = ENTRY((~{&num~} * 2) - 1,cContext,CHR(4)) ~
+    iProp = LOOKUP(cProp,pcPropList). ~
+    IF iProp = 0 THEN ASSIGN ~
+      pcPropList = pcPropList + (IF pcPropList = '' THEN '' ELSE ',') + cProp ~
+      iProp      = NUM-ENTRIES(pcPropList).  ~
+    ENTRY((~{&num~} * 2) - 1,cContext,CHR(4)) = STRING(iProp).  ~
+    IF iNumProps >= ~{&num~} + 1 THEN ASSIGN 
+**/
+
+                    
+  /* The optional ProcessList overrides all (on client) name and handle lists */
+  IF pcMode = 'ForServer' THEN
+  DO:
+    {get DataContainer lDataContainer}.
+    IF lDataContainer THEN
+    DO:
+      {get ASDivision cASDivision}.
+      IF cASDivision <> 'SERVER':U THEN
+      DO:
+        {get ProcessList cProcessList}.
+        IF cProcessList > '' THEN
+          ASSIGN
+            cTargets     = cProcessList
+            cTargetNames = cProcessList.
+      END.
+    END. 
+  END.
+
+  IF cTargets = '' THEN
+  DO:
+    /* If clientnames is passed from client use ContainedDataObjects to find 
+       the handles */
+    {get ClientNames cTargetNames}.
+    IF cTargetNames > '':U THEN
+      {get ContainedDataObjects cTargets}.
+    ELSE DO:
+      /* old default -- */
+      &SCOPED-DEFINE xp-assign
+      {get InstanceNames cTargetNames}
+      {get ContainerTarget cTargets}
+      .
+      &UNDEFINE xp-assign
+    END.
+  END.
+
+  DO iObject = 1 TO NUM-ENTRIES(cTargets):
+    ASSIGN 
+      cObjectName = (IF pcParent <> '' THEN pcParent + ':' ELSE '')
+                  + ENTRY(iObject,cTargetNames).
+      hObject = WIDGET-HANDLE(ENTRY(iObject,cTargets)).
+
+    {get ObjectType cObjectType hObject}.    
+    IF cObjectType = 'SmartDataObject':U THEN
+    DO:
+      IF pcMode = 'ForServer':U THEN
+        cContext = REPLACE({fn obtainContextForServer hObject},CHR(3),CHR(4)).
+      ELSE 
+        cContext = REPLACE({fn obtainContextForClient hObject},CHR(3),CHR(4)).
+      /* Replace the propertyname with the property's entry number in proplist
+         (and add new props to proplist) */ 
+      DO iLoop = 1 TO NUM-ENTRIES(cContext,CHR(4)) BY 2:
+        ASSIGN
+           cProp = ENTRY(iLoop,cContext,CHR(4)) 
+           iProp = LOOKUP(cProp,pcPropList).
+        IF iProp = 0 THEN
+           ASSIGN
+             pcPropList = pcPropList + (IF pcPropList = '' THEN '' ELSE ',') + cProp 
+             iProp      = NUM-ENTRIES(pcPropList).  
+        ENTRY(iLoop,cContext,CHR(4)) = STRING(iProp). 
+      END.
+      pcValueList = pcValueList 
+                  + (IF pcValueList = '' THEN '' ELSE CHR(3))
+                  + cObjectName + CHR(3) + cContext.
+    END.
+    ELSE DO:
+      cGrandChildren = '':U.
+      {get ContainerTarget cGrandChildren hObject} NO-ERROR.
+      IF cGrandChildren > '':U  THEN 
+      DO:
+        RUN obtainContext IN hObject (pcMode,
+                                      cObjectName,
+                                      INPUT-OUTPUT pcPropList,
+                                      INPUT-OUTPUT pcValueList).
+      END.
+    END.
+  END. /* do iObject = 1 to num-entries(cTargets) */
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-okObject) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE okObject Procedure 
@@ -4355,6 +4690,10 @@ DEFINE VARIABLE cKeyField               AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE iPrepare                AS INTEGER    NO-UNDO.
 DEFINE VARIABLE cInactiveLinks          AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE lInit                   AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE cObjectType             AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE lInitialized            AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE hViewerDataSource       AS HANDLE     NO-UNDO.
+DEFINE VARIABLE cSDOName                AS CHARACTER  NO-UNDO.
 
 {get ContainerTarget cTargets}.
 
@@ -4363,20 +4702,30 @@ ASSIGN
   lInit     = LOOKUP('INIT':U,pcOptions) > 0.
 
 /* Skip this container if the DataSource link is inactive 
-   and this is a position request*/ 
-IF lPosition THEN
+   and this is a position request, unless init where data link are disabled 
+   at start .. */ 
+IF lPosition AND NOT lInit THEN
 DO:
-  {get Inactivelinks cInactiveLinks}.
-  IF LOOKUP('DataSource':U,cInactiveLinks) > 0 THEN
-    RETURN.
+  /* Only check inactivelinks if this container is initialized, it may not be 
+     even if this is not an init request */  
+  {get ObjectInitialized lInitialized}.
+  IF lInitialized THEN
+  DO:
+    {get Inactivelinks cInactiveLinks}.
+    IF LOOKUP('DataSource':U,cInactiveLinks) > 0 THEN
+      RETURN.
+  END.
 END.
 
 IF pcObject > '':U AND NOT lPosition THEN
 DO:
   {get InstanceNames cInstanceNames}.
   hTarget = WIDGET-HANDLE(ENTRY(LOOKUP(pcObject,cInstanceNames),cTargets)).
-  IF VALID-HANDLE(hTarget) THEN
-  DO:
+END.
+
+/* Request for a specific SDO on this container */
+IF VALID-HANDLE(hTarget) THEN
+DO: 
     RUN prepareDataForFetch IN hTarget
          (phTopContainer,
           pcAppService,  
@@ -4401,12 +4750,11 @@ DO:
           INPUT-OUTPUT pcForeignFields,
           INPUT-OUTPUT pcQueries,
           INPUT-OUTPUT pcTables).     
-  END.
 END.
 ELSE DO:
   DO iTarget = 1 TO NUM-ENTRIES(cTargets):
-    hTarget        = WIDGET-HANDLE(ENTRY(iTarget,cTargets)).
-  
+    hTarget = WIDGET-HANDLE(ENTRY(iTarget,cTargets)).
+
     IF NOT lPosition THEN
     DO:
       ASSIGN
@@ -4415,24 +4763,27 @@ ELSE DO:
 
       &SCOPED-DEFINE xp-assign
       {get QueryObject lQuery hTarget}
-      {get ContainerType cContainerType hTarget}.  
+      {get ContainerType cContainerType hTarget}  
+      {get ObjectType cObjectType hTarget}
+       .
       &UNDEFINE xp-assign
-      
+
       IF IsRequestTreeRoot(phTopContainer, hTarget)
-      OR (NOT lQuery AND cContainerType <> '':U AND cContainerType <> ?) THEN
+      OR (NOT lQuery AND cContainerType <> '':U AND cContainerType <> ?) THEN     
         RUN prepareDataForFetch IN hTarget
             (phTopContainer,
              pcAppService,
              ?,
-             pcOptions,
+             IF lInit THEN 'INIT':U ELSE '':U,
              INPUT-OUTPUT pcHandles,
              INPUT-OUTPUT pcPhysicalNames,
              INPUT-OUTPUT pcQualNames,
              INPUT-OUTPUT pcForeignFields,
              INPUT-OUTPUT pcQueries,
-             INPUT-OUTPUT pcTables).     
-    END. /* not position */
-    ELSE
+             INPUT-OUTPUT pcTables).  
+    END. /* not position or object > '' () */
+    
+    IF lPosition THEN
     DO:
       cFieldName  = '':U.
       {get FieldName cFieldName hTarget} NO-ERROR. 
@@ -4443,24 +4794,44 @@ ELSE DO:
         {get DataSource hDataSource hTarget}.        
         IF VALID-HANDLE(hDataSource) THEN
         DO:
-          {get KeyField cKeyField hTarget}.
+          /* Need field mapping to figure out if local field is in viewer datasource 
+          */
+          IF NOT {fn getLocalField hTarget} THEN
+          DO:
+            {get KeyField cKeyField hTarget}.            
+            /* the handles are used as object identifiers in the server request*/              
+            {get DataSource hViewerDataSource}.
 
-          RUN prepareDataForFetch IN hDataSource
-            (phTopContainer,
-             pcAppService,
-             pcObject + ",":U + cKeyField + ",":U + cFieldName,
-             pcOptions,
-             INPUT-OUTPUT pcHandles,
-             INPUT-OUTPUT pcPhysicalNames,
-             INPUT-OUTPUT pcQualNames,
-             INPUT-OUTPUT pcForeignFields,
-             INPUT-OUTPUT pcQueries,
-             INPUT-OUTPUT pcTables).
+            {get ObjectType cObjectType hViewerDataSource}.
+
+            IF cObjectType = 'SmartBusinessObject':U THEN
+            DO:
+              /* if viewer displays more than one SDO the field is qualified*/ 
+              IF NUM-ENTRIES(cFieldName,'.') > 1 THEN
+                 cSDOName = ENTRY(1,cFieldName,'.').
+              ELSE /* else only one entry here */  
+                {get DataSourceNames cSDOName}.
+
+              hViewerDataSource = {fnarg dataObjectHandle cSDOName hViewerDataSource}.
+            END. /* SBO */
+
+            RUN prepareDataForFetch IN hDataSource
+              (phTopContainer,
+               pcAppService,
+               STRING(hViewerDataSource) + ",":U + cKeyField + ",":U + cFieldName,
+               pcOptions,
+               INPUT-OUTPUT pcHandles,
+               INPUT-OUTPUT pcPhysicalNames,
+               INPUT-OUTPUT pcQualNames,
+               INPUT-OUTPUT pcForeignFields,
+               INPUT-OUTPUT pcQueries,
+               INPUT-OUTPUT pcTables).
+          END.
         END.
       END. /* fieldname <> '' (SDF) */
     END.
   END.
-  
+ 
   /* Second pass  - pass position option to visual targets */  
   IF NOT lPosition THEN 
   DO iTarget = 1 TO NUM-ENTRIES(cTargets):
@@ -5129,6 +5500,224 @@ END FUNCTION.    /* addPageNRequiredPages */
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-applyContext) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION applyContext Procedure 
+FUNCTION applyContext RETURNS LOGICAL
+  ( pcMode    AS CHAR,
+    pcContext AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose: Apply context returned from server after a server call
+Parameters: pcMode 
+            - 'FromClient' 
+            - 'FromServer' 
+            pccontext - Propertylist<chr(3)>object<chr(3)>propnum<chr(4)>propvalue
+    Notes: 
+       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE iProp        AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cProp        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cValue       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTargets     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTargetNames AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cProcessList AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cProperties  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cObjectName  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cObjectType  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iObject      AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cValueList   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cGrandChild  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hObject      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iTarget      AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iNumEntries  AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iPropNum     AS INTEGER    NO-UNDO.
+
+  &SCOPED-DEFINE addpropertyname ~
+   iProp = INT(ENTRY((2 * ~{&Num~}) - 1,cValueList,CHR(4))) WHEN iNumEntries >= ~{&Num~} ~
+   cProp = ENTRY(iProp,cProperties) WHEN iNumEntries >= ~{&Num~} ~
+   ENTRY((2 * ~{&Num~}) - 1,cValueList,CHR(4)) = cProp WHEN iNumEntries >= ~{&Num~}
+
+  /* InstanceNames and ContainerTarget are synchronized while 
+     ClientNames is passed from client and matches containedDataObjects 
+     ProcessList is for handles and doesn't need names.. */ 
+  &SCOPED-DEFINE xp-assign
+  {get ProcessList cProcessList}
+  {get ClientNames cTargetNames}
+   .
+  &UNDEFINE xp-assign
+  
+  IF cProcessList = '':U THEN
+  DO:
+    IF cTargetNames = '' THEN
+    DO:
+      &SCOPED-DEFINE xp-assign
+      {get InstanceNames cTargetNames}
+      {get ContainerTarget cTargets}
+      .
+      &UNDEFINE xp-assign
+    END.
+    ELSE 
+      {get ContainedDataObjects cTargets}.
+  END.
+  
+  /* The property list is the first entry while the objects info starts on 
+     the 2 entry */  
+  cProperties = ENTRY(1,pcContext,CHR(3)).
+  IF cProperties <> "" THEN
+  DO iObject = 2 TO NUM-ENTRIES(pcContext,CHR(3)) BY 2:        
+    ASSIGN
+      cObjectName = ENTRY(iObject,pcContext,CHR(3))
+      cValueList  = ENTRY(iObject + 1,pcContext,CHR(3))
+      cGrandChild = ''
+      hObject     = ?
+      iTarget     = 0.      
+    /* Blank object is for this procedure */
+    IF cObjectName = '':U THEN
+      hObject = TARGET-PROCEDURE.
+    ELSE DO:
+      /* if processlist is defined then the context has handles in the name */ 
+      IF cProcessList > '' THEN
+        hObject = WIDGET-HANDLE(cObjectName).
+      ELSE DO:
+        iTarget = LOOKUP(cObjectName,cTargetNames).      
+        /* Are these properties for an object inside a child? */
+        IF iTarget = 0 AND NUM-ENTRIES(cObjectName,':':U) > 1  THEN
+          ASSIGN
+            cGrandChild = cObjectName 
+            cObjectName = ENTRY(1,cObjectName,':':U)
+            ENTRY(1,cGrandChild,':':U) = ''
+            cGrandChild = SUBSTR(cGrandChild,2)
+            iTarget = LOOKUP(cObjectName,cTargetNames).
+            
+        IF iTarget > 0 THEN 
+          hObject = WIDGET-HANDLE(ENTRY(iTarget,cTargets)). 
+      END.
+    END.
+    
+    IF VALID-HANDLE(hObject) THEN
+    DO:
+      /* If these are grand [grand ] child properties then pass them to 
+         their parent (this object's child) */  
+      IF cGrandChild > ''  THEN
+        DYNAMIC-FUNCTION('applyContext':U IN hObject,
+                          pcMode, 
+                          cProperties
+                          + CHR(3)
+                          + cGrandChild
+                          + CHR(3)
+                          + cValueList) NO-ERROR.
+
+      ELSE DO:
+        {get ObjectType cObjectType hObject}.
+        IF cObjectType = 'SmartDataObject':U THEN
+        DO:
+          iNumEntries = NUM-ENTRIES(cValueList,CHR(4)) / 2.
+          ASSIGN
+            &SCOPED-DEFINE num 1
+            {&addpropertyname}
+            &SCOPED-DEFINE num 2
+            {&addpropertyname} 
+            &SCOPED-DEFINE num 3
+            {&addpropertyname} 
+            &SCOPED-DEFINE num 4
+            {&addpropertyname} 
+            &SCOPED-DEFINE num 5
+            {&addpropertyname} 
+            &SCOPED-DEFINE num 6
+            {&addpropertyname}
+            &SCOPED-DEFINE num 7
+            {&addpropertyname}
+            &SCOPED-DEFINE num 8
+            {&addpropertyname}
+            &SCOPED-DEFINE num 9
+            {&addpropertyname}
+            &SCOPED-DEFINE num 10
+            {&addpropertyname}
+            &SCOPED-DEFINE num 11
+            {&addpropertyname}
+            &SCOPED-DEFINE num 12
+            {&addpropertyname}
+            &SCOPED-DEFINE num 13
+            {&addpropertyname}
+            &SCOPED-DEFINE num 14
+            {&addpropertyname}
+            &SCOPED-DEFINE num 15
+            {&addpropertyname}
+            &SCOPED-DEFINE num 16
+            {&addpropertyname}
+            &SCOPED-DEFINE num 17
+            {&addpropertyname}
+            &SCOPED-DEFINE num 18
+            {&addpropertyname}
+            &SCOPED-DEFINE num 19
+            {&addpropertyname}
+            &SCOPED-DEFINE num 20
+            {&addpropertyname}.
+          
+          DO iProp = 21 TO iNumEntries:
+            &SCOPED-DEFINE num iProp
+            ASSIGN {&addpropertyname}.
+          END.
+
+          DYNAMIC-FUNCTION('applyContext':U + pcMode IN hObject,
+                            cValueList).
+
+        END.
+        ELSE DO iProp = 1 TO NUM-ENTRIES(cValueList,CHR(4)) BY 2:
+
+          ASSIGN
+            iPropNum = INT(ENTRY(iProp,cValueList,CHR(4)))
+            cProp    = ENTRY(iPropNum,cProperties)
+            cValue = ENTRY(iProp + 1,cValueList,CHR(4)).
+ 
+          CASE cProp:
+            WHEN 'AsHasStarted':U THEN
+              {set AsHasStarted cValue hObject}.
+            WHEN 'ServerOperatingMode':U THEN
+              {set ServerOperatingMode cValue hObject}.
+            WHEN 'HasDynamicProxy':U THEN
+              {set HasDynamicProxy cValue hObject}.
+            OTHERWISE 
+              DYNAMIC-FUNCTION('set':U + cProp IN TARGET-PROCEDURE,cValue) NO-ERROR. 
+          END CASE.
+        END.
+      END. /* else (an object in this container)  */
+    END. /* if valid-handle(hObject) */
+  END. /* do iObject = 2 to num-entries(pcPropValues) */
+
+  {set AsHasStarted TRUE}.
+
+  RETURN TRUE. 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-applyContextFromClient) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION applyContextFromClient Procedure 
+FUNCTION applyContextFromClient RETURNS LOGICAL
+  ( pcContext AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose: Apply context from client
+    Notes: 
+------------------------------------------------------------------------------*/
+ 
+  DYNAMIC-FUNCTION('applyContext':U IN TARGET-PROCEDURE,
+                   'FromClient',
+                    pcContext).
+  RETURN TRUE. 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-applyContextFromServer) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION applyContextFromServer Procedure 
@@ -5144,11 +5733,10 @@ FUNCTION applyContextFromServer RETURNS LOGICAL
            applyContextFromServer(cContext)               
 ------------------------------------------------------------------------------*/
  
-  DYNAMIC-FUNC('assignContainedProperties':U IN TARGET-PROCEDURE,
-                                pcContext,
-                               /* Replace */
-                               'QueryWhere,QueryContext,OpenQuery,BaseQuery':U ).
-  
+  DYNAMIC-FUNCTION('applyContext':U IN TARGET-PROCEDURE,
+                   'FromServer',
+                    pcContext).
+
   {set AsHasStarted TRUE}.
 
   RETURN TRUE. 
@@ -5313,8 +5901,9 @@ Parameters:
                                             cObjectType, 
                                             cPropHeader, 
                                             TRUE,  /* return entry *after* */ 
-                                            ";":U).     
-        DO iProp = 1 TO NUM-ENTRIES(cPropList):
+                                            ";":U).  
+        /* allow for fewer values.. */ 
+        DO iProp = 1 TO NUM-ENTRIES(cValueList,CHR(4)):
           ASSIGN
             cProp      = ENTRY(iProp,cPropList)
             cValue     = ENTRY(iProp,cValueList,CHR(4)).
@@ -5421,8 +6010,6 @@ Parameters: pcProperties
             assignContainedProperties.   
          -  The format and delimiters may change completely in the 
             future.     
-         -  When we implement support for plDeep and enforce unique objectnames
-            this may be moved up to the container class.  
          -  If the ClientNames property is defined, the ObjectName entry in the 
             retunred list will be replaced with the corresponding entry in 
             the ClientNames list. This is used to enable communcation with 
@@ -5455,6 +6042,7 @@ Note date: 2002/02/16
   DEFINE VARIABLE cChildList       AS CHARACTER   NO-UNDO.
   DEFINE VARIABLE cASDivision      AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iCount           AS INTEGER     NO-UNDO.
+  DEFINE VARIABLE lDataContainer   AS LOGICAL    NO-UNDO.
 
   ASSIGN
     lMultiTypes = NUM-ENTRIES(pcQueryProps,';':U) > 1
@@ -5480,15 +6068,19 @@ Note date: 2002/02/16
   /* ContainerTarget, InstanceNames and the optional ClientNames are 
      synhronized lists */ 
   &SCOPED-DEFINE xp-assign
-  {get ASDivision cASDivision}
+  {get DataContainer lDataContainer}
   {get ContainerTarget cTargets}
   {get ClientNames cTargetNames}.
   &UNDEFINE xp-assign
   IF cTargetNames = '':U THEN
     {get InstanceNames cTargetNames}.
     
-  IF cASDivision <> 'SERVER':U THEN
-    {get ProcessList cProcessList}.
+  IF lDataContainer THEN
+  DO:
+    {get ASDivision cASDivision}.
+    IF cASDivision <> 'SERVER':U THEN
+      {get ProcessList cProcessList}.
+  END.  
 
   /* Start on 0 if multiTypes and use the 0 to handle 'this' instance */  
   OBJECT-LOOP:
@@ -5509,7 +6101,7 @@ Note date: 2002/02/16
           END.
     
           /* If we have a definite list of objects then use only these objects */
-            IF NOT LOOKUP(cObjectName, cProcessList) > 0 AND cChildList = "" THEN
+          IF NOT LOOKUP(cObjectName, cProcessList) > 0 AND cChildList = "" THEN
               NEXT OBJECT-LOOP.
       END.
       
@@ -6174,7 +6766,6 @@ FUNCTION getCurrentLogicalName RETURNS CHARACTER
     Notes:  
 ------------------------------------------------------------------------------*/  
   RETURN gcCurrentObjectName.
-
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -6579,13 +7170,11 @@ FUNCTION getPage0LayoutManager RETURNS CHARACTER
   Purpose:  
         Notes:
 ------------------------------------------------------------------------------*/
-        DEFINE VARIABLE cPage0LayoutManager                     AS CHARACTER                    NO-UNDO.
+    DEFINE VARIABLE cPage0LayoutManager       AS CHARACTER        NO-UNDO.
         
-        &SCOPED-DEFINE xpPage0LayoutManager
-        {get Page0LayoutManager cPage0LayoutManager}.
-        &UNDEFINE xpPage0LayoutManager
-        
-        RETURN cPage0LayoutManager.
+    {get Page0LayoutManager cPage0LayoutManager}.
+   
+    RETURN cPage0LayoutManager.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -6602,11 +7191,10 @@ FUNCTION getPageLayoutInfo RETURNS CHARACTER
   Purpose:  
         Notes:
 ------------------------------------------------------------------------------*/
-    DEFINE VARIABLE cPageLayoutInfo                 AS CHARACTER                    NO-UNDO.
-    &SCOPED-DEFINE xpPageLayoutInfo
-    {get PageLayoutInfo cPageLayoutInfo}.
-    &UNDEFINE xpPageLayoutInfo
+    DEFINE VARIABLE cPageLayoutInfo         AS CHARACTER            NO-UNDO.
     
+    {get PageLayoutInfo cPageLayoutInfo}.
+        
     RETURN cPageLayoutInfo.
 END FUNCTION.   /* getPageLayoutInfo */
 
@@ -7382,59 +7970,39 @@ Note date: 2002/02/12
   DEFINE VARIABLE iSDO            AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cContained      AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hMaster         AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE lHasDynamicProxy AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cOperatingMode  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cProperties     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cContext        AS CHARACTER  NO-UNDO.
+
   /* This is passed from the client to identify the first call */
   {get ServerFirstCall lFirst}. 
+
   IF lFirst THEN
-  DO:
-    /*  serverFirstCall need to be false if state-aware 
-       (We also return it to the client as a handshake that the first call has 
-        completed) */
+  DO:    
+    /* serverFirstCall need to be false if state-aware 
+       (We return it to the client as a handshake that the first call has 
+        completed ..  ) */
     &SCOPED-DEFINE xp-assign
     {set ServerFirstCall FALSE}
-    {get HasDynamicProxy lHasDynamicProxy}.
+    {get ServerOperatingMode cOperatingMode}
+    .
     &UNDEFINE xp-assign
-    /* Property from this SBO instance */
-    cPropRequest = 'THIS;ServerOperatingMode,ServerFirstCall' 
-                 + ';':U 
-                 + /* Properties from SDOs */
-                    'SmartDataObject;OpenQuery,DBNames,PhysicalTables,IndexInformation,KeyFields,KeyTableID,EntityFields,AuditEnabled':U 
-                 /* Props for the dynamic SDO */ 
-                 + IF lHasDynamicProxy 
-                   THEN ',UpdatableColumns,Tables,DataColumnsByTable':U
-                   ELSE '':U .
     
-    /* In the case where this is called from the client DURING initialization, 
-       we don't want to return data properties (Don't really know if it would
-       cause any problems, but we better be careful... ) */
-    /* Check if the SDO's quires is open or if RowObjUpd has records 
-       if a commit has taken place */
-
-    {get ContainerTarget cContained}.
-    DO iSDO = 1 TO NUM-ENTRIES(cContained):      
-      hSDO = WIDGET-HANDLE(ENTRY(iSDO,cContained)).
-      {get QueryOpen lData hSDO} NO-ERROR.      
-      IF lData THEN
-        LEAVE.     
-      /* if this is an SBO check the master's query open */
-      {get MasterDataObject hMaster hSDO} NO-ERROR.
-      IF VALID-HANDLE(hMaster) THEN
-      DO:
-        {get QueryOpen lData hMaster}.
-        IF lData THEN
-          LEAVE.
-      END.
-    END. /* do iSDO = 1 TO num-entries(cContained) */
+    ASSIGN
+      cProperties = 'ServerFirstCall,ServerOperatingMode':U 
+      cContext    = '' + CHR(3) /* Blank entry for name of container */
+                  + '1':U + CHR(4) + 'NO':U
+                  + CHR(4) 
+                  + '2':U + CHR(4) 
+                  + IF cOperatingMode = ? THEN '?':U ELSE cOperatingMode.
   END. /* First */
-  
-  IF NOT lFirst OR lData THEN
-    cPropRequest = 
-      (IF lData THEN cPropRequest + ',':U ELSE '':U)
-      + 'FirstResultRow,LastResultRow,FirstRowNum,LastRowNum,QueryWhere,QueryRowident,ForeignValues,PositionForClient':U.
-           
-  RETURN DYNAMIC-FUNCTION('containedProperties':U IN TARGET-PROCEDURE,
-         cPropRequest, 
-         YES). /* deep (all children and grand childrent etc..) */
+
+  RUN obtainContext IN TARGET-PROCEDURE ('ForClient':U,
+                                         '',
+                                         INPUT-OUTPUT cProperties,
+                                         INPUT-OUTPUT cContext). 
+
+  RETURN cProperties + CHR(3) + cContext.
   
 END FUNCTION.
 
@@ -7467,32 +8035,34 @@ FUNCTION obtainContextForServer RETURNS CHARACTER
 Note date: 2002/02/12           
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cContext       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cRequest       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cProperties    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lStarted       AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cObjectType    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lUseRepository AS LOGICAL    NO-UNDO.
-
-  &SCOPED-DEFINE xp-assign
-  {get UseRepository lUseRepository}
+  DEFINE VARIABLE lHasProxy      AS LOGICAL    NO-UNDO.
   {get AsHasStarted lStarted}.
-  &UNDEFINE xp-assign
   
+  /*
+
   /* SDO property list 
      WARNING!!  
      Make sure there are commas between all entries in this list !!!!!! 
        
-    */
-  cRequest = 'LogicalObjectName,DestroyStateless,CheckCurrentChanged,FirstResultRow,LastResultRow,':U
-           /* Sendrows has logic that depends on this... */
-           + 'RebuildOnRepos,RowsToBatch,':U      
+    NOTE: keep matching props in same order as SmartDataView   */
+  cRequest = 'LogicalObjectName,DestroyStateless,'
+             /* Sendrows has logic that depends on this... */
+           + 'RowsToBatch,RebuildOnRepos,':U      
+           + 'CheckCurrentChanged,'
+           + 'FirstResultRow,LastResultRow,':U
            /* These are also used on the server */
            + 'ServerSubmitValidation,UpdateFromSource,':U      
            /* Currently we pass these, otherwise they will be returned 
               as unknown from objects that don't set them  */
            + 'FirstRowNum,LastRowNum,ForeignValues,':U
+           /*
            + 'Tables,PhysicalTables,BaseQuery,DataColumns,':U
            + 'DataColumnsByTable,AssignList,UpdatableColumnsByTable,':U
            + 'DataLogicProcedure,SchemaLocation,':U
+           */
            + 'QueryWhere'
            + IF lUseRepository 
              THEN ',FetchHasAudit,FetchHasComment,FetchAutoComment':U
@@ -7500,29 +8070,47 @@ Note date: 2002/02/12
 
   IF NOT lStarted THEN 
   DO:
+
+
     /* Add request for SBO property with semi colon separator and 
        add in SmartDataObject as the type for the propert list already added*/
-    cRequest = 'THIS;LogicalObjectName,UpdateOrder,ServerFirstCall,HasDynamicProxy;':U
-             + 'SmartBusinessObject;LogicalObjectName,UpdateOrder;':U
-             + 'SmartDataObject;':U
-             + cRequest.
+    cRequest = 'THIS;LogicalObjectName,ServerFirstCall,HasDynamicProxy;':U
+    /* currently read by SDO on server so the order must match vith sdo */
+             + 'SmartDataView;LogicalObjectName,DestroyStateless,RowsToBatch;':U
+             + 'SmartBusinessObject;LogicalObjectName;':U
+             + 'SmartDataObject;':U + cRequest.
     {set ServerFirstCall YES}. /* Set this so it is passed to the client */ 
   END.
   ELSE IF lUseRepository THEN 
-    cRequest = 'THIS;LogicalObjectName,UpdateOrder;':U +
-               'SmartBusinessObject;LogicalObjectName,UpdateOrder;':U +
+    cRequest = 'THIS;LogicalObjectName;':U +
+               'SmartDataView;LogicalObjectName,RowsToBatch;':U  +
+               'SmartBusinessObject;LogicalObjectName;':U +
                'SmartDataObject;':U + cRequest + ',EntityFields':U.
 
   {get ObjectType cObjectType}.
-  RETURN DYNAMIC-FUNCTION('containedProperties':U IN TARGET-PROCEDURE,
-                          cRequest,
-                          /* Regular containers need to properties also 
-                             for all child containers (the sbo does not
-                             have any children, so it probably does not
-                             matter but... ) */                          
-                          IF cObjectType = 'SmartBusinessObject':U 
-                          THEN NO
-                          ELSE YES).
+  */
+  /* Send some extra info the first time */
+  IF NOT lStarted THEN
+  DO:
+    ASSIGN
+      cProperties = 'ServerFirstCall':U 
+      cContext    = '' + CHR(3) + '1':U + CHR(4) + 'YES':U.
+
+    {get HasDynamicProxy lHasProxy}.
+    IF lHasProxy THEN
+      ASSIGN
+        cProperties = cProperties + ',':U + 'HasDynamicProxy':U 
+        cContext    = cContext + CHR(4) + '2':U + CHR(4) + 'YES':U.
+
+  END.
+
+  RUN obtainContext IN TARGET-PROCEDURE ('ForServer':U,
+                                         '',
+                                         INPUT-OUTPUT cProperties,
+                                         INPUT-OUTPUT cContext). 
+
+  RETURN cProperties + CHR(3) + cContext.
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -7540,29 +8128,39 @@ FUNCTION obtainPropertyFromContext RETURNS CHARACTER
     INPUT pcContext    AS CHAR):
 /*------------------------------------------------------------------------------
   Purpose:  Returns the value of a specific property from a context string
-    Notes:  This function works for multi-instance lists *only*
+    Notes:  This function works for container lists *only*
 ------------------------------------------------------------------------------*/
-DEFINE VARIABLE cPropList AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE iTypePos  AS INTEGER    NO-UNDO.
-DEFINE VARIABLE iInstPos  AS INTEGER    NO-UNDO.
-DEFINE VARIABLE iPropPos  AS INTEGER    NO-UNDO.
-
+DEFINE VARIABLE cPropList    AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cValueList   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE iPropPos     AS INTEGER    NO-UNDO.
+DEFINE VARIABLE cValue       AS CHARACTER  NO-UNDO.
+ 
  ASSIGN
    cPropList = ENTRY(1, pcContext, CHR(3))
-   iTypePos = LOOKUP(pcObjectType, cPropList, ';').
-
- IF iTypePos > 0 THEN 
+   iPropPos  = LOOKUP(pcProperty,cPropList)
+   cValue    = ?.
+ 
+ IF iPropPos > 0 THEN 
  DO:
-   ASSIGN
-     iInstPos = LOOKUP(pcInstance, pcContext, CHR(3))
-     iPropPos = LOOKUP(pcProperty, ENTRY(iTypePos + 1, cPropList, ';':U)).
-
-   IF iPropPos > 0 AND iInstPos > 0 THEN
-       RETURN ENTRY(iPropPos, ENTRY(iInstPos + 1, pcContext, CHR(3)), CHR(4)).
+   ENTRY(1,pcContext,CHR(3)) = ''.
+   pcContext = SUBSTR(pccontext,2).
+   cValueList = DYNAMIC-FUNCTION('mappedEntry':U IN TARGET-PROCEDURE,
+                                  pcInstance,
+                                  pcContext,
+                                  TRUE, /* find second in pair */
+                                  CHR(3)).
+   IF cValueList > '' THEN
+     cValue = DYNAMIC-FUNCTION('mappedEntry':U IN TARGET-PROCEDURE,
+                                STRING(iPropPos), /* The prop name is a number at this stage */ 
+                                cValueList,
+                                TRUE, /* find second in pair */
+                                CHR(4)).
  END.
 
- /* coould not locate the instance and/or property */
- RETURN ?.
+ /* cValue is ? if we could not locate the instance and/or property 
+    (mappedentry returns ? if not found)*/
+
+ RETURN cValue.
 
 END FUNCTION.
 
@@ -7984,6 +8582,24 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setCurrentLogicalName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setCurrentLogicalName Procedure 
+FUNCTION setCurrentLogicalName RETURNS LOGICAL
+        ( input pcObjectName as character ):
+/*------------------------------------------------------------------------------
+  Purpose:  Used by the repository bootstrapping mechanism.
+        Notes:
+------------------------------------------------------------------------------*/
+    gcCurrentObjectName = pcObjectName.
+    return true.
+END FUNCTION.    /* setCurrentLogicalName */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setCurrentPage) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setCurrentPage Procedure 
@@ -8379,12 +8995,10 @@ FUNCTION setPage0LayoutManager RETURNS LOGICAL
 /*------------------------------------------------------------------------------
   Purpose:  
         Notes:
-------------------------------------------------------------------------------*/
-        &SCOPED-DEFINE xpPage0LayoutManager
-        {set Page0LayoutManager pcPage0LayoutManager}.
-        &UNDEFINE xpPage0LayoutManager
-        
-        RETURN TRUE.
+------------------------------------------------------------------------------*/    
+    {set Page0LayoutManager pcPage0LayoutManager}.
+    
+    RETURN TRUE.
 END FUNCTION.   /* setPage0LayoutManager */
 
 /* _UIB-CODE-BLOCK-END */

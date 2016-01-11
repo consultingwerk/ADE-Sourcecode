@@ -185,6 +185,15 @@ INDEX key1 AS UNIQUE PRIMARY cObjectName
 INDEX key2 dObjectObj
 .
 
+DEFINE TEMP-TABLE ttMenuSecurity NO-UNDO
+    FIELD cName             as CHARACTER
+    FIELD cMenuType         as character    /* 'Item' or 'Structure' / corresponds to Actions and Bands resp. */
+    FIELD cSecurityOptions  as CHARACTER
+    index idxNameType
+        cName
+        cMenuType.               
+        
+
 DEFINE TEMP-TABLE ttUser               NO-UNDO
 FIELD userObj                         AS DECIMAL.
 
@@ -281,6 +290,8 @@ FUNCTION areTokensCached RETURNS LOGICAL
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
+
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
@@ -417,6 +428,231 @@ ASSIGN ERROR-STATUS:ERROR = NO.
 RETURN "":U.
 
 END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-cacheContainerSecurity) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE cacheContainerSecurity Procedure 
+PROCEDURE cacheContainerSecurity :
+/*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
+     Purpose: Caches all the security for a given container in one call.
+  Parameters: pcContainerName - the name of the container to secure. Mandatory.
+              pcRunAttribute  - the run attribute for the running instance of the container.
+              pcMenuStructure - CSV of menu structures to secure
+              pcMenuItem      - CSV of menu items to secure                           
+       Notes: * This API caches the security information for a container on the client.
+                it does not 
+              * Generally used by generated objects. Dynamic objects perform
+                their security on the server, so there's no need to cache the
+                security for each object on the client.
+------------------------------------------------------------------------------*/
+    define input parameter pcContainerName        as character            no-undo.
+    define input parameter pcRunAttribute         as character            no-undo.
+    define input parameter pcMenuStructure        as character            no-undo.
+    define input parameter pcMenuItem             as character            no-undo.
+    
+    define variable cCheckType            as character               no-undo.
+    define variable cItemList             as character               no-undo.
+    define variable cStructureList        as character               no-undo.
+    define variable cEntry                as character               no-undo.
+    define variable cSecuredFields        as character               no-undo.
+    define variable cSecuredTokens        as character               no-undo.
+    define variable cItemHidden           as character               no-undo.
+    define variable cItemDisabled         as character               no-undo.
+    define variable cStructureHidden      as character               no-undo.           
+    define variable iLoop                 as integer                 no-undo.
+    define variable dObjectObj            as decimal                 no-undo.
+    define variable lObjectSecured        as logical                 no-undo.
+    
+    /* Security is cached if:
+        - client session in an AppServer/GUI environment
+        - client session in DB-aware/GUI environment.
+           don't cache:
+           - on webspeed client
+           - on AppServer.
+          
+          This code should only execute if the security information needs
+          to be cached. There's no point in executing it if the current 
+          session doesn't support caching.        
+     */
+    if not (session:remote or session:client-type eq 'Webspeed') then
+    do:
+        /* Validate container name */
+        if pcContainerName eq ? or pcContainerName eq '' then
+            return error {aferrortxt.i 'AF' '5' '?' '?' '"container being secured"'}.
+        
+            /* Check what's already cached. Only retrieve across the A/S            
+               that which is not cached. Build the secured lists for
+               those cached data.
+               ============================================================
+             */
+        
+        /* Find out what needs caching */
+        if not can-find(ttObjectSecurityCheck where
+                        ttObjectSecurityCheck.cObjectName = pcContainerName) then
+            cCheckType = 'Object'.
+        
+        if not can-find(first ttFieldSecurityCheck where
+                              ttFieldSecurityCheck.cObjectName = pcContainerName and
+                              ttFieldSecurityCheck.cAttributeCode = pcRunAttribute ) then
+            cCheckType = cCheckType + ',Field'.
+        
+        if not can-find(first ttTokenSecurityCheck where
+                              ttTokenSecurityCheck.cObjectName = pcContainerName and
+                              ttTokenSecurityCheck.cAttributeCode = pcRunAttribute ) then
+            cCheckType = cCheckType + ',Token'.
+        
+        do iLoop = 1 to num-entries(pcMenuItem):
+            cEntry = entry(iLoop, pcMenuItem).
+            
+            if not can-find(first ttMenuSecurity where
+                                  ttMenuSecurity.cName     = cEntry and
+                                  ttMenuSecurity.cMenuType = 'Item' ) then
+                cItemList = cItemList + ',' + cEntry.
+        end.    /* item loop */
+        if cItemList ne '' then
+            cCheckType = cCheckType + ',MenuItem'.
+        
+        /* Determine which structures are secured */
+        do iLoop = 1 to num-entries(pcMenuStructure):
+            cEntry = entry(iLoop, pcMenuStructure).
+            
+            if not can-find(first ttMenuSecurity where
+                                  ttMenuSecurity.cName     = cEntry and
+                                  ttMenuSecurity.cMenuType = 'Structure' ) then
+                cStructureList = cStructureList + ',' + cEntry.
+        end.    /* structure loop */
+        if cStructureList ne '' then
+            cCheckType = cCheckType + ',MenuStructure'.
+        
+        /* Cleanup lists */
+        assign cCheckType = left-trim(cCheckType, ',')
+               cItemList = left-trim(cItemList, ',')
+               cStructureList = left-trim(cStructureList, ',').        
+    
+            &if defined(server-side) eq 0 &then
+            /* Only go and get something if needed. */
+        if cCheckType ne '' then
+        do:
+            run af/app/afsecccsep.p on gshAstraAppServer (input  pcContainerName,
+                                                          input  pcRunAttribute,
+                                                          input  cStructureList,
+                                                          input  cItemList,
+                                                          input  cCheckType,
+                                                          output lObjectSecured,
+                                                          output dObjectObj,
+                                                          output cSecuredFields,
+                                                          output cSecuredTokens,
+                                                          output cItemHidden,
+                                                          output cItemDisabled,
+                                                          output cStructureHidden        ) no-error.
+            if error-status:error or return-value ne '' then return error return-value.
+            
+            /* Only cache stuff if this is a client-side session. The individual API calls will
+               decide whether to cache stuff or not.
+             */
+                    
+            /* Cache object security */
+            if can-do(cCheckType, 'Object') then
+            do:
+                create ttObjectSecurityCheck.
+                assign ttObjectSecurityCheck.cObjectName = pcContainerName
+                       ttObjectSecurityCheck.dObjectObj  = dObjectObj
+                       ttObjectSecurityCheck.lRestricted = lObjectSecured.        
+            end.    /* cache object security */
+                    
+            /* Cache field security */
+            if can-do(cCheckType, 'Field') then
+            do:
+                create ttFieldSecurityCheck.
+                assign ttFieldSecurityCheck.cObjectName      = pcContainerName
+                       ttFieldSecurityCheck.cAttributeCode   = pcRunAttribute
+                       ttFieldSecurityCheck.cSecurityOptions = cSecuredFields.
+            end.    /* cache field security */
+                    
+            /* Cache token/action security */
+            if can-do(cCheckType, 'Token') then
+            do:
+                create ttTokenSecurityCheck.
+                assign ttTokenSecurityCheck.cObjectName      = pcContainerName
+                       ttTokenSecurityCheck.cAttributeCode   = pcRunAttribute
+                       ttTokenSecurityCheck.cSecurityOptions = cSecuredTokens.
+            end.    /* cache token security */
+            
+            if can-do(cCheckType, 'MenuStructure') then
+            do:
+                do iLoop = 1 to num-entries(cStructureList):
+                    cEntry = entry(iLoop, cStructureList).
+                            
+                    create ttMenuSecurity.
+                    assign ttMenuSecurity.cName           = cEntry
+                           ttMenuSecurity.cMenuType       = "Structure"
+                           ttMenuSecurity.cSecurityOption = "Hidden" when can-do(cStructureHidden, cEntry).
+                end.    /* structure loop */        
+            end.    /* cache menu structure security */
+                                            
+            if can-do(cCheckType, 'MenuItem') then
+            do:
+                do iLoop = 1 to num-entries(cItemList):
+                    cEntry = entry(iLoop, cItemList).
+                    
+                    create ttMenuSecurity.
+                    assign ttMenuSecurity.cName           = cEntry
+                           ttMenuSecurity.cMenuType       = "Item"
+                           ttMenuSecurity.cSecurityOption = "Hidden" when can-do(cItemHidden, cEntry)
+                           ttMenuSecurity.cSecurityOption = ttMenuSecurity.cSecurityOption
+                                                          + ",Disabled" when can-do(cItemDisabled, cEntry)
+                           ttMenuSecurity.cSecurityOption = left-trim(ttMenuSecurity.cSecurityOption, ',').
+                end.    /* item loop */
+            end.    /* cache menu item security */    
+        end.    /* check type is non-blank (get something) */
+        &else
+        /* Since we're in a DB-bound session, each of these security check calls
+           will do its own caching, so we don't need to do that in this API.
+         */
+        if can-do(cCheckType, 'Object') then
+        do:
+            run objectSecurityCheck (input-output pcContainerName,
+                                     input-output dObjectObj,
+                                           output lObjectSecured ) no-error.
+            if error-status:error or return-value ne '' then return error return-value.
+        end.    /* secure object */
+        
+        /* Bundle Field and Token/Action security into one call */
+        if can-do(cCheckType, 'Field') or can-do(cCheckType, 'Token') then    
+        do:
+            run fieldAndTokenSecurityCheck (input  pcContainerName,
+                                            input  pcRunAttribute,
+                                            input  can-do(cCheckType, 'Field'),  /* check field sec? */
+                                            input  can-do(cCheckType, 'Token'),  /* check token sec? */
+                                            output cSecuredFields,
+                                            output cSecuredTokens  ) no-error.
+            if error-status:error or return-value ne '' then return error return-value.
+        end.    /* field and token security */
+            
+        /* Bundle menu item and structure security into one call */
+        if can-do(cCheckType, 'MenuStructure') or can-do(cCheckType, 'MenuItem') then
+        do:
+            run menuItemStructureSecurityCheck (input  pcMenuItem,
+                                                input  pcMenuStructure,
+                                                output cItemHidden,
+                                                output cItemDisabled,
+                                                output cStructureHidden ) no-error.
+            if error-status:error or return-value ne '' then return error return-value.
+        end.    /* item or structure security */
+    &endif
+    end.    /* caching client session */
+    
+    /* Go home happy that all is now cached .... */
+    
+    error-status:error = no.
+    return.
+END PROCEDURE.    /* cacheContainerSecurity */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -762,8 +998,8 @@ DEFINE OUTPUT PARAMETER pcError                       AS CHARACTER  NO-UNDO.
     
       IF plExpired THEN
           ASSIGN bgsm_user.password_preexpired  = NO
-                 bgsm_user.password_expiry_date = bgsm_user.password_expiry_date + 
-                                                  (IF bgsm_user.password_expiry_days > 0 THEN bgsm_user.password_expiry_days ELSE 30).
+                 bgsm_user.password_expiry_date = TODAY
+                                                + (IF bgsm_user.password_expiry_days > 0 THEN bgsm_user.password_expiry_days ELSE 30).
       VALIDATE bgsm_user NO-ERROR.
       IF ERROR-STATUS:ERROR 
       THEN DO:
@@ -1094,6 +1330,7 @@ THEN DO:
     EMPTY TEMP-TABLE ttRangeSecurityCheck.
     EMPTY TEMP-TABLE ttTableSecurityCheck.
     EMPTY TEMP-TABLE ttSecurityControl.
+    EMPTY TEMP-TABLE ttMenuSecurity.
 
     ASSIGN gcCacheSystemIcon      = "":U
            gcCacheSmallSystemIcon = "":U.
@@ -2234,6 +2471,539 @@ ASSIGN ERROR-STATUS:ERROR = NO.
 RETURN "":U.
 &ENDIF
 END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-menuItemSecurityCheck) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE menuItemSecurityCheck Procedure 
+PROCEDURE menuItemSecurityCheck :
+/*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
+  Purpose:     Secures Menu items (actions)
+  Parameters:  pcItem         - the menu item (action) to secure
+               plItemHidden   - whether the item is hidden as a result of security
+               plItemDisabled - whether the item is disabled, either as a result of
+                                security or because of user or menu item settings.
+  Notes:       
+------------------------------------------------------------------------------*/
+    DEFINE INPUT  PARAMETER pcItem          as CHARACTER            NO-UNDO.
+    DEFINE OUTPUT PARAMETER plItemHidden    as logical              NO-UNDO.
+    DEFINE OUTPUT PARAMETER plItemDisabled  as logical              NO-UNDO.
+            
+    /* If client side, check local cache to see 
+       if already checked and if so use cached value
+     */
+    IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE eq "WEBSPEED":U) THEN
+    DO:
+        FIND FIRST ttMenuSecurity WHERE
+                   ttMenuSecurity.cName     = pcItem AND
+                   ttMenuSecurity.cMenuType = "Item"
+                   NO-ERROR.
+        if AVAILABLE ttMenuSecurity THEN
+        do:
+            ASSIGN plItemHidden   = CAN-DO(ttMenuSecurity.cSecurityOptions, "Hidden")
+                   plItemDisabled = CAN-DO(ttMenuSecurity.cSecurityOptions, "Disabled")
+                   ERROR-STATUS:ERROR = no.
+            RETURN.
+        END.    /* available cached security */
+    END.    /* not remote or webspeed session */
+
+    &IF DEFINED(Server-Side) eq 0 &THEN
+    run af/app/afsecmiscp.p on gshAstraAppServer (input pcItem, output plItemHidden, output plItemDisabled) no-error.
+    if error-status:error or return-value ne '' then
+        return error return-value.
+    &ELSE
+    DEFINE VARIABLE cProperties                 as character        NO-UNDO.
+    DEFINE VARIABLE cSecurityModel              as character        NO-UNDO.
+    DEFINE VARIABLE cSecurityDummyValue         as character        NO-UNDO.
+    DEFINE VARIABLE cContainerName              as character        NO-UNDO.
+    DEFINE VARIABLE lGSMMISecurityExists        as logical          NO-UNDO.
+    DEFINE VARIABLE lRYCSOSecurityExists        as logical          NO-UNDO.
+    DEFINE VARIABLE lSecurityEnabled            as logical          NO-UNDO.
+    DEFINE VARIABLE dUserObj                    as decimal          NO-UNDO.
+    DEFINE VARIABLE dOrganisationObj            as decimal          no-undo.
+    DEFINE VARIABLE dContainerObjectObj         as decimal          NO-UNDO.
+                
+    DEFINE BUFFER gsmmi             FOR GSM_MENU_ITEM.
+    DEFINE BUFFER gsmus             FOR GSM_USER.
+    
+    cProperties = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
+                                   ("SecurityModel,GSMMISecurityExists,RYCSOSecurityExists," +
+                                    "SecurityEnabled,currentUserObj,currentOrganisationObj"),
+                                   No).
+        
+    ASSIGN cSecurityModel       = ENTRY(1, cProperties, CHR(3))
+           lGSMMISecurityExists = ENTRY(2, cProperties, CHR(3)) <> "NO":U
+           lRYCSOSecurityExists = ENTRY(3, cProperties, CHR(3)) <> "NO":U
+           lSecurityEnabled     = ENTRY(4, cProperties, CHR(3)) <> "NO":U
+           dUserObj             = DECIMAL(ENTRY(5, cProperties, CHR(3)))
+           dOrganisationObj     = DECIMAL(ENTRY(6, cProperties, CHR(3)))
+           NO-ERROR.
+    
+    /* put this stuff into a block because we always need to create a 
+       ttMenuSecurity record.
+     */                        
+    ITEM-SECURITY-BLK:
+    do:
+        /* set variable initial values.*/
+        plItemHidden = no.
+        plItemDisabled = no.
+                
+        FIND gsmmi WHERE gsmmi.menu_item_reference = pcItem NO-LOCK NO-ERROR.
+        if NOT AVAILABLE gsmmi THEN
+        do:
+            /* secure menu item according to security model if not found in repository;
+               unless security disabled in which case don't.
+             */
+            plItemHidden   = (if NOT lSecurityEnabled THEN NO ELSE (cSecurityModel eq 'Grant')).
+            plItemDisabled = YES.
+            LEAVE ITEM-SECURITY-BLK.
+        END.    /* n/a item */
+        
+        if NOT lSecurityEnabled THEN
+        do:
+            plItemDisabled = gsmmi.disabled.
+            LEAVE ITEM-SECURITY-BLK.
+        END.    /* security disabled */
+        
+        /* If the security model is 'Grant' then
+           the default behaviour, in cases where
+           no security or other records can be found,
+           the item is assumed to be secured.
+         */
+        /* If no action security exists, the administrator hasn't allocated any to this user. *
+         * In a grant model, this means the item is secured.  In a revoke model, it isn't. */
+        if NOT lGSMMISecurityExists THEN
+        do:
+            plItemDisabled = (cSecurityModel eq 'Grant').
+            LEAVE ITEM-SECURITY-BLK.
+        END.    /* GSMMI security exists */
+                            
+        FIND gsmus WHERE gsmus.user_obj = dUserObj NO-LOCK NO-ERROR.
+        if NOT AVAILABLE gsmus THEN
+        do:
+            plItemDisabled = (cSecurityModel eq 'Grant').
+            LEAVE ITEM-SECURITY-BLK.
+        END.    /* n/a user */
+        
+        if gsmmi.disabled THEN
+        do:
+            plItemDisabled = YES.
+            LEAVE ITEM-SECURITY-BLK.
+        END.    /* hide if disabled and hide-on-disable */
+                        
+        if gsmmi.item_control_type eq 'Action' AND
+           gsmmi.under_development and
+           gsmus.development_user then
+        do:
+            plItemDisabled = YES.
+            plItemHidden = YES.
+            LEAVE ITEM-SECURITY-BLK.
+        END.    /* not a development user */
+        
+        /* check security allocations */
+        RUN userSecurityCheck (INPUT  dUserObj,
+                               INPUT  dOrganisationObj,
+                               INPUT  "GSMMI":U,
+                               INPUT  gsmmi.menu_item_obj,
+                               INPUT  NO,
+                               OUTPUT plItemDisabled,
+                               OUTPUT cSecurityDummyValue,
+                               OUTPUT cSecurityDummyValue).
+        
+        if plItemDisabled THEN
+            LEAVE ITEM-SECURITY-BLK.
+        
+        if gsmmi.item_select_type eq 'Launch' THEN
+        do:
+            /* Is the container we're going to launch secured? */
+            IF lRYCSOSecurityExists THEN
+            DO:             
+                dContainerObjectObj = gsmmi.object_obj.
+                cContainerName = ''.
+                RUN objectSecurityCheck (INPUT-OUTPUT cContainerName,
+                                         INPUT-OUTPUT dContainerObjectObj,
+                                               OUTPUT plItemDisabled).
+                if plItemDisabled THEN
+                    LEAVE ITEM-SECURITY-BLK.
+            END.    /* container security exists */
+            ELSE
+            /* In a grant model, this means the container is secured.  In a revoke model, it isn't.  */
+            if cSecurityModel eq 'Grant' THEN
+            do:
+                plItemDisabled = yes.
+                LEAVE ITEM-SECURITY-BLK.
+            END.    /* no container security */
+        END.    /* Launch */        
+    END.    /* ITEM-SECURITY-BLK: */
+    
+    /* If the item is disabled, then it should be
+       hidden if the menu item's hide if disabled 
+       flag is set.
+     */
+    if plItemDisabled and not plItemHidden and 
+       available gsmmi and gsmmi.hide_if_disabled then
+        plItemHidden = yes.
+    &ENDIF
+                                    
+    IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE eq "WEBSPEED":U) THEN
+    DO:
+        CREATE ttMenuSecurity.
+        ASSIGN ttMenuSecurity.cName           = pcItem
+               ttMenuSecurity.cMenuType       = "Item"
+               ttMenuSecurity.cSecurityOption = "Hidden" WHEN plItemHidden
+               ttMenuSecurity.cSecurityOption = ttMenuSecurity.cSecurityOption + ",Disabled" WHEN plItemDisabled
+               ttMenuSecurity.cSecurityOption = left-TRIM(ttMenuSecurity.cSecurityOption, ",").
+    END.    /* not remote or webspeed session */
+    
+    ERROR-STATUS:ERROR = no.
+    RETURN.
+END PROCEDURE.  /* menuItemSecurityCheck */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-menuItemStructureSecurityCheck) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE menuItemStructureSecurityCheck Procedure 
+PROCEDURE menuItemStructureSecurityCheck :
+/*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
+     Purpose: Secures a set of menu structures and menu items, so that
+              many of these can be secured in one AppServer call.
+  Parameters: pcItem                    - CSV list of menu items
+              pcStructure           - CSV list of menu structures
+              pcItemHidden          - CSV list of hidden menu items
+              pcItemDisabled        - CSV list of disabled menu items
+              pcStructureHidden - CSV list of hidden menu structures
+       Notes: Menu security information is cached on:
+              	- the client session in an AppServer/GUI environment
+                - the client session in a DB-aware/GUI environment.
+              It is not cached:
+                - on the Webspeed client
+                - on the AppServer        
+------------------------------------------------------------------------------*/
+    define input  parameter pcItem             as character            no-undo.
+    define input  parameter pcStructure        as character            no-undo.
+    define output parameter pcItemHidden       as character            no-undo.
+    define output parameter pcItemDisabled     as character            no-undo.
+    define output parameter pcStructureHidden  as character            no-undo.
+    
+    define variable iLoop                 as integer                  no-undo.
+    define variable cEntry                as character                no-undo.
+    define variable lHidden               as logical                  no-undo.
+    define variable lDisabled             as logical                  no-undo.    
+    define variable cItemList             as character                no-undo.
+    define variable cStructureList        as character                no-undo.
+    define variable cItemHiddenList       as character                no-undo.
+    define variable cItemDisabledList     as character                no-undo.
+    define variable cStructureHiddenList  as character                no-undo.    
+        
+    /* cache if:
+        - client session in an AppServer/GUI environment
+        - client session in DB-aware/GUI environment.
+           don't cache:
+           - on webspeed client
+           - on AppServer        
+     */
+    if not (session:remote or session:client-type eq 'Webspeed') then
+    do:
+        /* 1. Check what's already cached. Only retrieve across the A/S
+              that which is not cached. Build the secured lists for
+              those cached data.
+           ============================================================
+         */
+        do iLoop = 1 to num-entries(pcItem):
+            cEntry = entry(iLoop, pcItem).
+            
+            find first ttMenuSecurity where
+                       ttMenuSecurity.cName     = cEntry and
+                       ttMenuSecurity.cMenuType = "Item"
+                       no-error.
+            if available ttMenuSecurity then
+            do:
+                if ttMenuSecurity.cSecurityOption > '' then
+                do:
+                    if can-do(ttMenuSecurity.cSecurityOption, 'Hidden') then
+                        pcItemHidden = pcItemHidden + ',' + cEntry.
+                    if can-do(ttMenuSecurity.cSecurityOption, 'Disabled') then
+                        pcItemDisabled = pcItemDisabled + ',' + cEntry.                
+                end.    /* security set */
+            end.    /* available security */
+            /* Only query security on server if there is no cached security on
+               the client. Careful not to go if there is an unsecured item cached
+               on the client.
+             */
+            else
+                cItemList = cItemList + ',' + cEntry.
+        end.    /* item loop */
+            
+        /* Determine which structures are secured */
+        do iLoop = 1 to num-entries(pcStructure):
+            cEntry = entry(iLoop, pcStructure).
+            
+            find first ttMenuSecurity where
+                       ttMenuSecurity.cName     = cEntry and
+                       ttMenuSecurity.cMenuType = "Structure"
+                       no-error.
+            if available ttMenuSecurity then
+            do:
+                if ttMenuSecurity.cSecurityOption > '' and
+                   can-do(ttMenuSecurity.cSecurityOption, 'Hidden') then
+                    pcStructureHidden = pcStructureHidden + ',' + cEntry.
+            end.    /* available security */
+            /* Only query security on server if there is no cached security on
+               the client. Careful not to go if there is an unsecured structure 
+               cached on the client.
+             */
+            else
+                cStructureList = cStructureList + ',' + cEntry.
+        end.    /* structure loop */
+    end.    /* not local and not webspeed */
+    else
+        assign cItemList      = pcItem
+               cStructureList = pcStructure.
+    
+    /* Cleanup lists */
+    assign cItemList = left-trim(cItemList, ',')
+           cStructureList = left-trim(cStructureList, ',').
+    
+    /* 2. Get security for remaining data
+       ===================================
+     */
+    &if defined(server-side) = 0 &then
+    if cItemList ne '' or cStructureList ne '' then
+    do:
+        run af/app/afsecwmscp.p on gshAstraAppServer ( input  cItemList,
+                                                       input  cStructureList,
+                                                       output cItemHiddenList,
+                                                       output cItemDisabledList,
+                                                       output cStructureHiddenList ) no-error.
+        if error-status:error or return-value <> '' then return error return-value.
+        
+        /* 3. Cache newly-retrieved data. The
+                  information about which data is secured
+                  is added to the return lists later.
+               ==================================================
+         */
+        /* cache if:
+                - client session in an AppServer/GUI environment
+                - client session in DB-aware/GUI environment.
+                   don't cache:
+                   - on webspeed client
+                   - on AppServer        
+         */
+        if not (session:remote or session:client-type eq 'Webspeed') then
+        do:
+            do iLoop = 1 to num-entries(cItemList):
+                cEntry = entry(iLoop, cItemList).
+                    
+                create ttMenuSecurity.
+                assign ttMenuSecurity.cName           = cEntry
+                       ttMenuSecurity.cMenuType       = "Item"
+                       ttMenuSecurity.cSecurityOption = "Hidden" when can-do(cItemHiddenList, cEntry)
+                       ttMenuSecurity.cSecurityOption = ttMenuSecurity.cSecurityOption
+                                                      + ",Disabled" when can-do(cItemDisabledList, cEntry)
+                       ttMenuSecurity.cSecurityOption = left-trim(ttMenuSecurity.cSecurityOption, ',').
+            end.    /* item loop */
+                
+            do iLoop = 1 to num-entries(cStructureList):
+                cEntry = entry(iLoop, cStructureList).
+                    
+                create ttMenuSecurity.
+                assign ttMenuSecurity.cName           = cEntry
+                       ttMenuSecurity.cMenuType       = "Structure"
+                       ttMenuSecurity.cSecurityOption = "Hidden" when can-do(cStructureHiddenList, cEntry).
+            end.    /* structure loop */
+        end.    /* not on client */    
+    end.    /* there are things to fetch. */     
+    &else
+    /* Determine which items are secured */
+    do iLoop = 1 to num-entries(cItemList):
+        cEntry = entry(iLoop, cItemList).
+        run menuItemSecurityCheck (input  cEntry,
+                                   output lHidden, output lDisabled).
+        if lHidden then
+            cItemHiddenList = cItemHiddenList + ',' + cEntry.
+        
+        if lDisabled then
+            cItemDisabledList = cItemDisabledList + ',' + cEntry.                
+    end.    /* item loop */
+    
+    /* Determine which structures are secured */
+    do iLoop = 1 to num-entries(cStructureList):
+        cEntry = entry(iLoop, cStructureList).
+        run menuStructureSecurityCheck (input cEntry, output lHidden).
+        
+        if lHidden then
+            cStructureHiddenList = cStructureHiddenList + ',' + cEntry.                        
+    end.    /* structure loop */
+    /* The menu*SecurityCheck() calls do their own caching */
+    &endif
+    
+    /* 4. Build lists of secured data for return.
+       ==========================================
+     */
+    assign pcItemHidden = pcItemHidden + ',' + cItemHiddenList
+           pcItemDisabled = pcItemDisabled + ',' + cItemDisabledList
+           pcStructureHidden = pcStructureHidden + ',' + cStructureHiddenList
+           /* clean up variables */
+           pcStructureHidden = left-trim(pcStructureHidden, ',')
+           pcItemHidden = left-trim(pcItemHidden, ',')
+           pcItemDisabled = left-trim(pcItemDisabled, ',').
+    
+    error-status:error = no.
+    return.
+END PROCEDURE.     /* menuItemStructureSecurityCheck */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-menuStructureSecurityCheck) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE menuStructureSecurityCheck Procedure 
+PROCEDURE menuStructureSecurityCheck :
+/*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
+  Purpose:     Secures menu structures (bands)
+  Parameters:  pcStructure       - the menu structure to secure
+               plStructureHidden - whether the structure is hidden as the result
+                                   of security.
+  Notes:       
+------------------------------------------------------------------------------*/
+    DEFINE INPUT  PARAMETER pcStructure             as CHARACTER        NO-UNDO.
+    DEFINE OUTPUT PARAMETER plStructureHidden       as logical          NO-UNDO.
+        
+    /* If client side, check local cache to see 
+       if already checked and if so use cached value
+     */
+    IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE eq "WEBSPEED":U) THEN
+    DO:
+        FIND FIRST ttMenuSecurity WHERE
+                   ttMenuSecurity.cName     = pcStructure AND
+                   ttMenuSecurity.cMenuType = "Structure"
+                   NO-ERROR. 
+        if AVAILABLE ttMenuSecurity THEN
+        do:
+            ASSIGN plStructureHidden  = CAN-DO(ttMenuSecurity.cSecurityOptions, "Hidden")
+                   ERROR-STATUS:ERROR = no.
+            RETURN.
+        END.    /* available cached security */
+    END.    /* not remote or webspeed session */
+                
+    &IF DEFINED(Server-Side) eq 0 &THEN
+    run af/app/afsecmsscp.p on gshAstraAppServer (input pcStructure, output plStructureHidden) no-error.
+    if error-status:error or return-value ne '' then
+        return error return-value.
+    &ELSE
+    DEFINE VARIABLE cProperties                 as character        NO-UNDO.
+    DEFINE VARIABLE cSecurityModel              as character        NO-UNDO.
+    DEFINE VARIABLE cSecurityDummyValue         as character        NO-UNDO.
+    DEFINE VARIABLE lGSMMSSecurityExists        as logical          NO-UNDO.
+    DEFINE VARIABLE lSecurityEnabled            as logical          NO-UNDO.
+    DEFINE VARIABLE dUserObj                    as decimal          NO-UNDO.
+    DEFINE VARIABLE dOrganisationObj            as decimal          no-undo.
+    DEFINE VARIABLE dContainerObjectObj         as decimal          NO-UNDO.
+                
+    DEFINE BUFFER gsmms             FOR GSM_MENU_structure.
+    DEFINE BUFFER gsmus             FOR GSM_USER.
+    
+    cProperties = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
+                                   ("SecurityModel,GSMMSSecurityExists," +
+                                    "SecurityEnabled,CurrentUserObj,CurrentOrganisationObj"),
+                                   No).
+    
+    ASSIGN cSecurityModel       = ENTRY(1, cProperties, CHR(3))
+           lGSMMSSecurityExists = ENTRY(2, cProperties, CHR(3)) <> "NO":U
+           lSecurityEnabled     = ENTRY(3, cProperties, CHR(3)) <> "NO":U
+           dUserObj             = DECIMAL(ENTRY(4, cProperties, CHR(3)))
+           dOrganisationObj     = DECIMAL(ENTRY(5, cProperties, CHR(3)))
+           NO-ERROR. 
+    
+    STRUCTURE-SECURITY-BLK:
+    do:
+        /* set variable initial values. */
+        plStructureHidden = no.
+        
+        FIND gsmms WHERE gsmms.menu_structure_code = pcStructure NO-LOCK NO-ERROR.
+        if NOT AVAILABLE gsmms THEN
+        do:
+            /* secure menu structure according to security model if not found in repository;
+               unless security disabled in which case don't.
+             */
+            plStructureHidden = (if NOT lSecurityEnabled THEN NO ELSE (cSecurityModel eq 'Grant')).
+            LEAVE STRUCTURE-SECURITY-BLK.
+        END.    /* n/a structure */
+        
+        if NOT lSecurityEnabled THEN
+        do:
+            plStructureHidden = no.
+            LEAVE STRUCTURE-SECURITY-BLK.
+        END.    /* security disabled */
+        
+        /* If the security model is 'Grant' then
+           the default behaviour, in cases where
+           no security or other records can be found,
+           the item is assumed to be secured.
+         */
+        /* If no action security exists, the administrator hasn't allocated any to this user. *
+         * In a grant model, this means the item is secured.  In a revoke model, it isn't. */
+        if NOT lGSMMSSecurityExists THEN
+        do:
+           if cSecurityModel eq 'Grant' THEN
+               plStructureHidden = YES.
+           LEAVE STRUCTURE-SECURITY-BLK.
+        END.    /* GSMMS security exists */
+                
+        FIND gsmus WHERE gsmus.user_obj = dUserObj NO-LOCK NO-ERROR.
+        if NOT AVAILABLE gsmus THEN
+        do:
+            if cSecurityModel eq 'Grant' THEN
+                plStructureHidden = YES.
+            LEAVE STRUCTURE-SECURITY-BLK.
+        END.    /* n/a item */
+        
+        if gsmms.disabled THEN
+        do:
+            plStructureHidden = YES.
+            LEAVE STRUCTURE-SECURITY-BLK.
+        END.    /* menu structure is disabled */
+        
+        if gsmms.under_development AND NOT gsmus.development_user THEN
+        do:
+                plStructureHidden = YES.
+                LEAVE STRUCTURE-SECURITY-BLK.
+        END.    /* structure under development */
+                
+        RUN userSecurityCheck (INPUT  dUserObj,
+                               INPUT  dOrganisationObj,
+                               INPUT  "GSMMS":U,
+                               INPUT  gsmms.menu_structure_obj,
+                               INPUT  NO,
+                               OUTPUT plStructureHidden,
+                               OUTPUT cSecurityDummyValue,
+                               OUTPUT cSecurityDummyValue).
+    END.    /* STRUCTURE-SECURITY-BLK: */    
+    &ENDIF                                        
+    IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE eq "WEBSPEED":U) THEN
+    DO:
+        CREATE ttMenuSecurity.
+        ASSIGN ttMenuSecurity.cName           = pcStructure
+               ttMenuSecurity.cMenuType       = "Structure"
+               ttMenuSecurity.cSecurityOption = "Hidden" WHEN plStructureHidden.
+    END.    /* not remote or webspeed session */
+    
+    ERROR-STATUS:ERROR = no.
+    RETURN.
+END PROCEDURE.  /* menuStructureSecurityCheck */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

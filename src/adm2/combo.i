@@ -87,7 +87,7 @@
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB Method-Library 
 /* ************************* Included-Libraries *********************** */
 
-{src/adm2/field.i}
+{src/adm2/lookupfield.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -104,8 +104,23 @@
 &IF DEFINED(ADM-EXCLUDE-STATIC) = 0 &THEN
   /* Starts super procedure */
   IF NOT {&ADM-LOAD-FROM-REPOSITORY} THEN
+  DO:
     RUN start-super-proc("adm2/combo.p":U).
-  
+    /* Subscribe to viewer events  */
+
+    RUN modifyListProperty(THIS-PROCEDURE, "ADD":U, 
+                      "ContainerSourceEvents":U,"getComboQuery":U).
+    RUN modifyListProperty(THIS-PROCEDURE, "ADD":U, 
+                      "ContainerSourceEvents":U,"displayCombo":U).
+    RUN modifyListProperty(THIS-PROCEDURE, "ADD":U, 
+                      "DataSourceEvents":U,"queryOpened":U).
+
+    /* New API */
+    RUN modifyListProperty(THIS-PROCEDURE, "ADD":U, 
+                      "ContainerSourceEvents":U,"prepareField":U).
+    RUN modifyListProperty(THIS-PROCEDURE, "ADD":U, 
+                      "ContainerSourceEvents":U,"displayField":U).
+  END.
   /* _ADM-CODE-BLOCK-START _CUSTOM _INCLUDED-LIB-CUSTOM CUSTOM */
 
   {src/adm2/custom/combocustom.i}

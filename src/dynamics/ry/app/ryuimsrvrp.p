@@ -8,7 +8,7 @@ af/cod/aftemwizpw.w
 */
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-  
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
 * Copyright (C) 2002-2003 by Progress Software Corporation ("PSC"),  *
@@ -52,6 +52,15 @@ af/cod/aftemwizpw.w
 /*----------------------------------------------------------------------------*/
 
 /* ***************************  Definitions  ************************** */
+
+/* Removing Version 10 specific datatypes in 2.1B */
+&IF NOT PROVERSION BEGINS "9" &THEN
+&GLOBAL newdatatypes CLOB,BLOB,DATETIME,DATETIME-TZ
+&GLOBAL clobtype LONGCHAR
+&ELSE
+&GLOBAL clobtype CHARACTER
+&ENDIF
+
 {af/sup2/afglobals.i NEW GLOBAL}
 {af/sup/afghplipdf.i NEW GLOBAL}
 {src/web2/wrap-cgi.i}
@@ -64,7 +73,7 @@ af/cod/aftemwizpw.w
 {src/adm2/ttaction.i}
 {src/adm2/tttoolbar.i}
 {src/adm2/treettdef.i}
-
+  
 /* Defines the NO-RESULT-CODE and DEFAULT-RESULT-CODE result codes. */
 { ry/app/rydefrescd.i }
 
@@ -232,6 +241,7 @@ DEFINE TEMP-TABLE ttSDOData NO-UNDO
   FIELD Counter   AS INTEGER
   FIELD SDOCols   AS CHARACTER
   FIELD SDOValues AS CHARACTER
+  FIELD hasComments AS LOGICAL
   INDEX prima     IS PRIMARY UNIQUE SDOName Counter
   .
 DEFINE TEMP-TABLE ttCLOBData NO-UNDO
@@ -239,10 +249,15 @@ DEFINE TEMP-TABLE ttCLOBData NO-UNDO
   FIELD ttCounter    AS INTEGER
   FIELD ttSubCounter AS INTEGER
   FIELD ttColumnName AS CHARACTER
+&IF DEFINED(newdatatypes) &THEN
   FIELD ttValue      AS CLOB
+&ELSE
+  FIELD ttValue      AS CHARACTER
+&ENDIF
   FIELD ttDelimiter  AS CHARACTER
   INDEX prima     IS PRIMARY UNIQUE SDOName ttCounter ttSubCounter
   .
+
 DEFINE TEMP-TABLE ttSDOLink NO-UNDO
   FIELD SDOName       AS CHARACTER
   FIELD ParentSDOName AS CHARACTER
@@ -266,6 +281,8 @@ DEFINE TEMP-TABLE ttCommittedData NO-UNDO
   FIELD Counter    AS INTEGER
   FIELD Data       AS CHARACTER
   FIELD LookupData AS CHARACTER
+  FIELD Action     AS CHARACTER
+  FIELD hasComments AS LOGICAL
   INDEX primar IS PRIMARY DSName Counter
   .
 DEFINE TEMP-TABLE ttConflictData NO-UNDO
@@ -273,9 +290,15 @@ DEFINE TEMP-TABLE ttConflictData NO-UNDO
   FIELD Counter    AS INTEGER
   FIELD Data       AS CHARACTER
   FIELD LookupData AS CHARACTER
+  FIELD hasComments AS LOGICAL
   INDEX primar IS PRIMARY DSName Counter
   .
 
+DEFINE TEMP-TABLE ttComboData NO-UNDO
+    FIELD ttComboName AS CHARACTER
+    FIELD ttData AS CHARACTER
+    INDEX primar IS PRIMARY ttComboName
+    .
 
 {ry/app/ryuimbl.i}
 
@@ -297,17 +320,6 @@ DEFINE TEMP-TABLE ttConflictData NO-UNDO
 
 
 /* ************************  Function Prototypes ********************** */
-&IF DEFINED(EXCLUDE-maxlength) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD maxlength Procedure
-FUNCTION maxlength RETURNS CHARACTER PRIVATE
-  (INPUT cFormat AS CHARACTER, INPUT cDatatype AS CHARACTER ) FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 
 &IF DEFINED(EXCLUDE-doMenu) = 0 &THEN
 
@@ -355,6 +367,17 @@ FUNCTION getLinkTypes RETURNS CHARACTER PRIVATE
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getSDOForComments) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getSDOForComments Procedure 
+FUNCTION getSDOForComments RETURNS HANDLE
+  (plPositionToRow AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getSDOLink) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getSDOLink Procedure 
@@ -371,6 +394,17 @@ FUNCTION getSDOLink RETURNS CHARACTER PRIVATE
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getSecurityTokens Procedure 
 FUNCTION getSecurityTokens RETURNS CHARACTER PRIVATE
   ( pcLogicalObjectName AS CHARACTER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getToolbarSource) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getToolbarSource Procedure 
+FUNCTION getToolbarSource RETURNS CHARACTER PRIVATE
+  ( pcTargetName AS CHARACTER)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -448,6 +482,17 @@ FUNCTION htmlProps RETURNS CHARACTER PRIVATE
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD jsTrim Procedure 
 FUNCTION jsTrim RETURNS CHARACTER PRIVATE
   ( INPUT c1 AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-maxlength) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD maxlength Procedure 
+FUNCTION maxlength RETURNS CHARACTER PRIVATE
+  (INPUT cFormat AS CHARACTER, INPUT cDatatype AS CHARACTER ) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -840,16 +885,29 @@ PROCEDURE doButton PRIVATE :
   Note! This is an internal API not intended for public use and is subject to change
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cImage     AS CHARACTER  NO-UNDO.
-
+  DEFINE VARIABLE cLabel     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE i1         AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE c1         AS CHARACTER  NO-UNDO.
   /* HtmlClass,ToolTip,Order,row,column,height-chars,width-chars,HtmlStyle,FLAT-BUTTON,Label */ 
-  cImage   = getImagePath({ry/inc/lval.i IMAGE-FILE}).
+
+  ASSIGN 
+        cImage   = getImagePath({ry/inc/lval.i IMAGE-FILE})
+        cLabel   = {ry/inc/lval.i Label}
+        i1       = INDEX(cLabel,"&")
+        .
+  IF i1 > 0 AND i1 < LENGTH(cLabel) THEN ASSIGN
+          c1 = SUBSTRING(cLabel,i1 + 1,1)
+          SUBSTRING(cLabel,i1,2) = "<u>" + c1 + "</u>"
+          c1 = ' accesskey="' + c1 + '"'
+          .
   
   RETURN REPLACE(
-        SUBSTITUTE('<button id="&1" name="&1" class="&2" type="button" title="&3" tabindex="&4"':U
+        SUBSTITUTE('<button id="&1" name="&1" class="&2" type="button" title="&3" tabindex="&4"&5':U
         ,gcID
         ,htmlClass() 
         ,{ry/inc/lval.i ToolTip}
         ,tabIndex(INT({ry/inc/lval.i Order}))
+        ,c1
         )
       + SUBSTITUTE(' style="top:&1px;left:&2px;height:&3px;width:&4px;&5" &6&7&8>'
         ,INT(DEC({ry/inc/lval.i row         }) * giPixelsPerRow) + giFieldOffsetTop - 2
@@ -861,7 +919,7 @@ PROCEDURE doButton PRIVATE :
         ,IF cImage > '':U THEN " src='":U + cImage + "'":U ELSE "":U
         ,gcEvents + gcState 
         )
-      + {ry/inc/lval.i Label} + '</button>':U
+      + cLabel + '</button>':U
    ,'~\':U,'/':U).
 
 END PROCEDURE.
@@ -1470,35 +1528,30 @@ PROCEDURE doDynCombo PRIVATE :
 
   /* FieldName,DisplayField,FieldTooltip,{&htmlProps},{&htmlLabel},height-chars,width-chars,DescSubstitute,DisplayedField,keyField,queryTables,ComboFlag,FlagValue,KeyFormat,KeyDataType,FieldName,baseQueryString,HtmlStyle */ 
 
-  DEFINE VARIABLE pcHtml            AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cComboFlag        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDataType         AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDescSubstitute   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDispFields       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cField            AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cFlagValue        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cFormat           AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cKeyField         AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cFlagOption       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cQueryTables      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE ix                AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE oBFhD             AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE oBFhI             AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE oBh               AS HANDLE     NO-UNDO EXTENT 20.
-  DEFINE VARIABLE oDbValue          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE oDisplayFieldName AS CHARACTER  NO-UNDO EXTENT 9.
-  DEFINE VARIABLE oDisplayTemp      AS CHARACTER  NO-UNDO EXTENT 9.
-  DEFINE VARIABLE oDisplayValue     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE oFieldName        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE oIdx              AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE oNotEmpty         AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE oQh               AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE oSuccess          AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cFieldName        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hSDO              AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cSdoReal          AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cOverrideLogicalObjectName AS CHARACTER NO-UNDO.
-  
+  DEFINE VARIABLE pcHtml                     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cComboFlag                 AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataType                  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDescSubstitute            AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDispFields                AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cField                     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFlagValue                 AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFormat                    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cKeyField                  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFlagOption                AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cQueryTables               AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFieldName                 AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hSDO                       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cSdoReal                   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cOverrideLogicalObjectName AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cBaseQueryString           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cComboParamName            AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cComboInfo                 AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cParentField               AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cParentFields              AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cQualifiedParentField      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cParentFilterQuery         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE ix                         AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cSDOName                   AS CHARACTER  NO-UNDO.
 
   ASSIGN timeCombo = timeCombo - ETIME.
   
@@ -1511,8 +1564,11 @@ PROCEDURE doDynCombo PRIVATE :
     cFlagValue      = {ry/inc/lval.i FlagValue     }
     cFormat         = {ry/inc/lval.i KeyFormat     }
     cDataType       = {ry/inc/lval.i KeyDataType   }
-    cFieldName      = {ry/inc/lval.i FieldName     }
-    .             
+    cFieldName       = {ry/inc/lval.i FieldName     }
+    cBaseQueryString = {ry/inc/lval.i baseQueryString}
+    cParentFields     = {ry/inc/lval.i ParentField}
+    cParentFilterQuery = {ry/inc/lval.i ParentFilterQuery}
+  .             
   
   /* We can't use the KeyFormat that's in the SDF as we rely on SDO to format the 
      values and the runtime SDO could have a different format (as the runtimne SDO can 
@@ -1521,11 +1577,13 @@ PROCEDURE doDynCombo PRIVATE :
   */
   IF (gcSdoName = 'master':U) THEN
     ASSIGN cOverrideLogicalObjectName = getPassThruSDOInfo(1)
-           cSdoReal = getPassThruSDOInfo(2).
+           cSdoReal = getPassThruSDOInfo(2)
+           cSDOName = cSdoReal.
   ELSE
   DO:
     ASSIGN cSdoReal = (IF gcSboName > "":U THEN gcSboName + "." + gcSdoName ELSE gcSdoName)
-           cOverrideLogicalObjectName = gcLogicalObjectName.
+           cOverrideLogicalObjectName = gcLogicalObjectName
+           cSDOName = gcSdoName.
   END.
   
   IF cSdoReal > "":U AND cOverrideLogicalObjectName > "":U THEN
@@ -1536,29 +1594,35 @@ PROCEDURE doDynCombo PRIVATE :
     ASSIGN ERROR-STATUS:ERROR = NO.
   END.
         
-  DO oIdx = 1 TO NUM-ENTRIES(cDispFields):
-    ASSIGN
-      oDisplayFieldName[oIdx] = ENTRY(oIdx,cDispFields)
-      oDisplayFieldName[oIdx] = (IF INDEX(oDisplayFieldName[oIdx], ".":U) > 0 
-                                 THEN ENTRY(2, oDisplayFieldName[oIdx], ".":U) 
-                                 ELSE oDisplayFieldName[oIdx]).
+  DO ix = 1 TO NUM-ENTRIES(cParentFields, ",":U):
+    ASSIGN cParentField = ENTRY(ix, cParentFields, ",":U)
+    cQualifiedParentField = cQualifiedParentField + "," + cSDOName + "." + ENTRY(NUM-ENTRIES(cParentField, ".":U), cParentField, ".":U).
   END.
-  oFieldName = (IF INDEX(cKeyField, ".":U) > 0 THEN ENTRY(2, cKeyField, ".":U) ELSE cKeyField).
-  CREATE QUERY oQh IN WIDGET-POOL "B2BUIM":U.
-  REPEAT oIdx = 1 TO NUM-ENTRIES(cQueryTables):
-    CREATE BUFFER oBh[oIdx] FOR TABLE ENTRY(oIdx,cQueryTables) 
-      IN WIDGET-POOL "B2BUIM":U NO-ERROR.
+  cQualifiedParentField = TRIM(cQualifiedParentField, ",":U).
 
-    IF ERROR-STATUS:ERROR THEN NEXT.
-    oQh:ADD-BUFFER(oBh[oIdx]) NO-ERROR.
-  END.
-  oSuccess = oQh:QUERY-PREPARE({ry/inc/lval.i baseQueryString}) NO-ERROR.
-  IF oSuccess THEN 
-  DO:
-    ASSIGN
-      pcHtml    = htmlLabel("fieldLabel")
+  ASSIGN cComboParamName = gcLogicalObjectName + ".":u + gcID + ".combo":U
+         cComboInfo      = (IF cKeyField > "":U THEN cKeyField ELSE "":U) + CHR(4)
+                           + (IF cQueryTables > "":U THEN cQueryTables ELSE "":U) + CHR(4) 
+                           + (IF cBaseQueryString > "":U THEN cBaseQueryString ELSE "":U) + CHR(4) 
+                           + (IF cDispFields > "":U THEN cDispFields ELSE "":U) + CHR(4) 
+                           + (IF cFieldName > "":U THEN cFieldName ELSE "":U) + CHR(4) 
+                           + (IF cFormat > "":U THEN cFormat ELSE "":U) + CHR(4) 
+                           + (IF cDataType > "":U THEN cDataType ELSE "":U) + CHR(4) 
+                           + (IF cDescSubstitute > "":U THEN cDescSubstitute ELSE "":U) + CHR(4) 
+                           + (IF cComboFlag > "":U THEN cComboFlag ELSE "":U) + CHR(4) 
+                           + (IF cFlagValue > "":U THEN cFlagValue ELSE "":U) + CHR(4)
+                           + (IF cParentFields > "":U THEN cParentFields ELSE "":U) + CHR(4)
+                           + (IF cParentFilterQuery > "":U THEN cParentFilterQuery ELSE "":U)
+  .
+
+  /* Save this info for later retrieval */
+  DYNAMIC-FUNCTION("setPropertyList":U IN gshSessionManager,
+                        cComboParamName, cComboInfo, NO).
+  {log "'Combo:' +  cComboParamName + '=' + cComboInfo"}
+  
+  ASSIGN pcHtml    = htmlLabel("fieldLabel")
                 + SUBSTITUTE(
-                  '<select &1 size="1" style="&2;&3" &4>'
+                  '<select &1 size="1" comboparent="&5" style="&2;&3" &4>'
                   ,htmlProps('FieldTooltip',gcState)
                   ,SUBSTITUTE('top:&1px;left:&2px;height:&3px;width:&4px;'
                      ,INTEGER(DEC({ry/inc/lval.i row}) * giPixelsPerRow + giFieldOffsetTop - 2)
@@ -1568,82 +1632,17 @@ PROCEDURE doDynCombo PRIVATE :
                      )
                   ,{ry/inc/lval.i HtmlStyle}
                   ,gcEvents
+                  ,cQualifiedParentField
                   ).
-    /* If the combo has more than 32K data, we can't store in a variable so output */
-    {&OUT} pcHtml.
-    
-    /* Run the query */
-    oQh:QUERY-OPEN().
-    oNotEmpty = oQh:GET-FIRST(NO-LOCK).
-    IF NOT(oQh:QUERY-OFF-END) AND oNotEmpty THEN 
-    DO:
-      ASSIGN oIdx = MAXIMUM(1, LOOKUP(ENTRY(1, oFieldName, ".":U), cQueryTables)).
-      IF VALID-HANDLE(oBh[oIdx]) AND oBh[oIdx]:AVAILABLE THEN 
-      DO:
-        IF (cFormat > "":U) THEN
-          ASSIGN oBh[oIdx]:BUFFER-FIELD(oFieldName):FORMAT = cFormat.
-        ASSIGN oBFhI = oBh[oIdx]:BUFFER-FIELD(oFieldName) NO-ERROR.
-        
-        /* Just in case */
-        IF (cFormat = ? OR cFormat = "":U) THEN
-          cFormat = oBFhI:FORMAT.
-        IF (cDataType = ? OR cDataType = "":U) THEN
-          cDataType = oBFhI:DATA-TYPE.
-      END.
-    END.
-                
-    /* <all> or <none> option is being used. */
-    IF cComboFlag > "" THEN 
-    DO:
-      ASSIGN cFlagOption = formatValue(cFlagValue,cFormat,cDataType) NO-ERROR.
-      IF cFlagOption <> ? THEN
-      DO:
-        pcHtml = '~n<option value="':U + LC(cFlagOption) + '">':U + 
-                 html-encode(IF cComboFlag = "A":U THEN '<all>' ELSE '<none>') + 
-                 '</option>~n':U.
-                 
-        /* If the combo has more than 32K data, we can't store in a variable so output now */
-        {&OUT} pcHtml.
-      END.
-    END.
-
-    REPEAT WHILE NOT(oQh:QUERY-OFF-END) AND oNotEmpty:
-      /* Get display value */
-      ASSIGN
-        oDbValue      = RIGHT-TRIM(oBFhI:STRING-VALUE)
-        oDisplayValue = "":U
-        oDisplayTemp  = "":U.
-        
-      DO oIdx = 1 TO NUM-ENTRIES(cDispFields):
-        ASSIGN 
-                cField = ENTRY(oIdx, cDispFields)
-                ix     = MAXIMUM(1, LOOKUP(ENTRY(1, cField, ".":U), cQueryTables))
-          oBFhD  = oBh[ix]:BUFFER-FIELD(ENTRY(2,cField,".":U)).
-        IF VALID-HANDLE(oBFhD) THEN
-          oDisplayTemp[oIdx] = RIGHT-TRIM(STRING(oBFhD:BUFFER-VALUE())).
-      END.
-      oDisplayValue = SUBSTITUTE(cDescSubstitute,oDisplayTemp[1],oDisplayTemp[2],oDisplayTemp[3],oDisplayTemp[4],oDisplayTemp[5],oDisplayTemp[6],oDisplayTemp[7],oDisplayTemp[8],oDisplayTemp[9]).
-      /* Write out the OPTION tag */
-      pcHtml = '<option value="' + LC(oDbValue) + '">' + 
-               TRIM(html-encode(RIGHT-TRIM(oDisplayValue))) + 
-               '</option>~n'.
-      /* If the combo has more than 32K data, we can't store in a variable so output */
-      {&OUT} pcHtml.
-      
-      oQh:GET-NEXT(NO-LOCK).
-    END. /* REPEAT */
-    
-    {&OUT} '</select>~n'.
-  END. /* If <success on query prepare> */
+  /* If the combo has more than 32K data, we can't store in a variable so output */
+  {&OUT} pcHtml.
   
-  /* Clean up */
-  oQh:QUERY-CLOSE().
-  DO oIdx = 1 TO NUM-ENTRIES(cQueryTables):
-    DELETE OBJECT oBh[oIdx] NO-ERROR.
-    ASSIGN oBh[oIdx] = ?.
-  END.
-  DELETE OBJECT oQh NO-ERROR.
-  ASSIGN oQh = ?.
+  /* run the query for the combo options only if the parent is blank 
+  */
+  IF (cParentFields = "":U OR cParentFilterQuery = "":U) THEN 
+    RUN runCombo(INPUT gcLogicalObjectName, INPUT gcID, INPUT YES, INPUT "|":U).
+
+  {&OUT} '</select>~n'.
   
   ASSIGN timeCombo = timeCombo + ETIME.
   RETURN '':U.
@@ -1997,9 +1996,9 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
- 
+
 &ENDIF
-  
+
 &IF DEFINED(EXCLUDE-doEditor) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE doEditor Procedure 
@@ -2817,7 +2816,7 @@ PROCEDURE doToolBand PRIVATE :
             cAction = 'prg.' + bAction.onChoose.
 
         /**** Disable various non-supported tools ***/
-        IF CAN-DO('suspend,notepad,wordpad,email,internet,word,excel,rule,pref,printsetup,translate,rydynhelpw,multiwindow,audit,comments',ENTRY(2,cAction,'.')) THEN 
+        IF CAN-DO('suspend,notepad,wordpad,email,internet,word,excel,rule,pref,printsetup,translate,rydynhelpw,multiwindow,audit',ENTRY(2,cAction,'.')) THEN 
             ENTRY(1,cAction,'.') = 'nolink'.
         
         IF cHotkey > '' THEN
@@ -2940,20 +2939,28 @@ PROCEDURE doToolbar PRIVATE :
             ASSIGN cWdo = (IF cWdo > '' THEN cWdo + ',' ELSE '') + ttLink.ttSDO. 
           ELSE 
           DO:
-           /* This is a SBO and Navigation target is blank, then set all the SDO's
-              In the SBO to be th navigation targets */
-            ASSIGN
-              hSDO  = getDataSourceHandle(gcLogicalObjectName, cDS, "":U)
-              cSDOs = TRIM(DYNAMIC-FUNCTION("getContainedDataObjects":U IN hSDO)) NO-ERROR.
+            /* This is a SBO, so check if this is a toolbar link is so find the 
+               appropriate navigation link */
+            IF ttLink.ttType = "Toolbar" AND ttLink.ttTo > "":U THEN
+              ASSIGN cWdo = (IF cWdo > '' THEN cWdo + ',' ELSE '') + getToolbarSource(ttLink.ttTo).
+
+            /* This is a SBO and Navigation target is blank, then set all the SDO's
+               In the SBO to be th navigation targets */
+            IF cWdo = "":U THEN
+            DO:
+              ASSIGN
+                hSDO  = getDataSourceHandle(gcLogicalObjectName, cDS, "":U)
+                cSDOs = TRIM(DYNAMIC-FUNCTION("getContainedDataObjects":U IN hSDO)) NO-ERROR.
            
-           IF cSDOs > "":U THEN
-             DO i1 = 1 TO NUM-ENTRIES(cSDOs):
-               ASSIGN cSDO = ENTRY(i1, cSDOs, ",":U)
-                      hSDO = WIDGET-HANDLE(cSDO)
-                      cSDO = DYNAMIC-FUNCTION("getObjectName":U IN hSDO ).
-               IF NOT CAN-DO(cWdo,cSDO) THEN
-                 ASSIGN cWdo = (IF cWdo > '' THEN cWdo + ',' ELSE '') + cSDO. 
-             END. 
+              IF cSDOs > "":U THEN
+              DO i1 = 1 TO NUM-ENTRIES(cSDOs):
+                ASSIGN cSDO = ENTRY(i1, cSDOs, ",":U)
+                       hSDO = WIDGET-HANDLE(cSDO)
+                       cSDO = DYNAMIC-FUNCTION("getObjectName":U IN hSDO ).
+                IF NOT CAN-DO(cWdo,cSDO) THEN
+                  ASSIGN cWdo = (IF cWdo > '' THEN cWdo + ',' ELSE '') + cSDO. 
+              END.
+            END.
           END.
         END.
       END.
@@ -3040,6 +3047,7 @@ PROCEDURE doViewer PRIVATE :
 ------------------------------------------------------------------------------*/
 
   
+  DEFINE VARIABLE cName                  AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cClassName             AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cDataSourceNames       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cID                    AS CHARACTER  NO-UNDO.
@@ -3174,7 +3182,7 @@ PROCEDURE doViewer PRIVATE :
       END.
       ELSE DO:
         RUN getatt(STRING(hObjBuf:BUFFER-FIELD('InstanceID'):BUFFER-VALUE),'', 
-          'LocalField,FieldSecurity,EnableField,FieldName,DisplayField,DisplayedField,FieldTooltip,{&htmlProps},{&htmlLabel},HtmlStyle,width-chars,FieldLabel,keyField,height-chars,DescSubstitute,queryTables,ComboFlag,FlagValue,KeyFormat,KeyDataType,baseQueryString').
+          'LocalField,FieldSecurity,EnableField,FieldName,DisplayField,DisplayedField,FieldTooltip,{&htmlProps},{&htmlLabel},HtmlStyle,width-chars,FieldLabel,keyField,height-chars,DescSubstitute,queryTables,ComboFlag,FlagValue,KeyFormat,KeyDataType,ParentField,ParentFilterQuery,baseQueryString').
       END.
       /* If the FieldName is blank then get the value form the ObjectName.
          This is required to support the V1.1 auto attach kind of lookups */
@@ -3242,9 +3250,12 @@ PROCEDURE doViewer PRIVATE :
       NEXT.
     END.
 
+    /* If the Name is customersdo.Name - then leave it as is 
+       this will happen if the viewer was built using SBO as opposed to SDO */
     ASSIGN
       lDataField = LOOKUP(cClassName, gcDataFieldClasses    ) > 0
-      gcId       = LC(IF lDataField AND gcSdoName > "" THEN gcSdoName + '.' ELSE '') + LC({ry/inc/lval.i NAME})
+      cName      = LC({ry/inc/lval.i NAME})
+      gcId       = (IF NUM-ENTRIES(cName, ".":U) > 1 THEN cName ELSE LC(IF lDataField AND gcSdoName > "" THEN gcSdoName + '.' ELSE '') + cName)
       cEnabled   = {ry/inc/lval.i Enabled}
       cEnabled   = (IF cEnabled > "":U THEN cEnabled ELSE "YES")
       lEnabled   = (lTableIOTarget OR NOT lDataField) AND LOGICAL(cEnabled)
@@ -3527,6 +3538,18 @@ PROCEDURE getSdoInfo PRIVATE :
       lFirst        = no.
   END.
   
+ /* For Comments */
+ Assign
+   pcFieldNames  = pcFieldNames + (IF lFirst THEN "":U ELSE "|":U) + "_hascomments"
+   pcEnabled     = pcEnabled + (IF lFirst THEN "":U ELSE "|":U) + "n":U
+   pcDataTypes   = pcDataTypes + (IF lFirst THEN "":U ELSE "|":U) + "log"
+   pcInitVals    = pcInitVals + (IF lFirst THEN "":U ELSE "|":U) + "no"
+   pcFromVals    = pcFromVals + (IF lFirst THEN "":U ELSE "|":U) + "|"
+   pcToVals      = pcToVals + (IF lFirst THEN "":U ELSE "|":U) + "|"
+   pcFormat      = pcFormat + "|":U
+   pcFilter      = pcFilter + (IF lFirst THEN "":U ELSE "|":U) + 'n':U
+   pcSorting     = pcSorting + (IF lFirst THEN "":U ELSE "|":U) + 'n':U
+   pcLabels      = pcLabels + (IF lFirst THEN "":U ELSE "|":U) + "Has Comments".
   /* This will provide the list of lookups to look for this SDO */
   ASSIGN cDSLookupList = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
                                            pcLogicalObjectName + ".":U + pcSDOName + ".lookup":U, NO).
@@ -3953,6 +3976,7 @@ PROCEDURE screenEnd PRIVATE :
   IF cRet > "" THEN
     cRet = cRet + " ]);~n":U.
 
+  outputComboData().
   outputCommittedData().
   
   ouputConflictData().
@@ -4151,30 +4175,6 @@ END PROCEDURE.
 &ENDIF
 
 /* ************************  Function Implementations ***************** */
-&IF DEFINED(EXCLUDE-maxlength) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION maxlength Procedure
-FUNCTION maxlength RETURNS CHARACTER PRIVATE
-  (INPUT cFormat AS CHARACTER, INPUT cDatatype AS CHARACTER ):
-/*------------------------------------------------------------------------------
-  Purpose:  
-  Notes:
-------------------------------------------------------------------------------*/
-  IF cFormat > "" THEN
-    CASE cDatatype:
-      WHEN "logical" THEN
-        RETURN 'maxlength="' + STRING(LENGTH(STRING(YES,cFormat))) + '" '.
-      OTHERWISE
-        RETURN 'maxlength="' + STRING(LENGTH(STRING("",cFormat))) + '" '.
-    END.      
-  ELSE    RETURN ''.
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 
 &IF DEFINED(EXCLUDE-doMenu) = 0 &THEN
 
@@ -4219,26 +4219,36 @@ FUNCTION formatValue RETURNS CHARACTER PRIVATE
 ------------------------------------------------------------------------------*/
 
   {log "'format:' + pcFormat + '/' + pcDataType + '=' + pcValue"}
+  DEFINE VARIABLE cVal AS CHARACTER  NO-UNDO.
   IF pcFormat = "" OR pcFormat = ? THEN RETURN pcValue.
+  ERROR-STATUS:ERROR = NO.
+
   CASE pcDataType:
     WHEN "character":U THEN
-      RETURN RIGHT-TRIM(STRING(pcValue, pcFormat)).
+      cVal = RIGHT-TRIM(STRING(pcValue, pcFormat)) NO-ERROR.
     WHEN "date":U THEN
-      RETURN STRING(DATE(pcValue), pcFormat).
+      cVal = STRING(DATE(pcValue), pcFormat) NO-ERROR.
+&IF DEFINED(newdatatypes) &THEN
     WHEN "datetime":U THEN
-      RETURN STRING(DATETIME(pcValue), pcFormat).
+      cVal = STRING(DATETIME(pcValue), pcFormat) NO-ERROR.
     WHEN "datetime-tz":U THEN
-      RETURN STRING(DATETIME-TZ(pcValue), pcFormat).
+      cVal = STRING(DATETIME-TZ(pcValue), pcFormat) NO-ERROR.
+&ENDIF      
     WHEN "decimal":U THEN
-      RETURN STRING(DECIMAL(pcValue), pcFormat).
+       cVal = STRING(DECIMAL(pcValue), pcFormat) NO-ERROR.
     WHEN "integer":U THEN
-      RETURN STRING(INTEGER(pcValue), pcFormat).
+      cVal = STRING(INTEGER(pcValue), pcFormat) NO-ERROR.
     WHEN "logical":U THEN
-      RETURN STRING(LOGICAL(pcValue), pcFormat).
+      cVal = STRING(LOGICAL(pcValue), pcFormat) NO-ERROR.
     OTHERWISE 
-      RETURN pcValue.
+      cVal = pcValue.
   END CASE.
-  
+
+  IF ERROR-STATUS:ERROR  THEN
+    RETURN pcValue.
+  ELSE
+    RETURN cVal.
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -4304,6 +4314,41 @@ FUNCTION getLinkTypes RETURNS CHARACTER PRIVATE
 
   RETURN cRet.   /* Function return value. */
   
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getSDOForComments) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getSDOForComments Procedure 
+FUNCTION getSDOForComments RETURNS HANDLE
+  (plPositionToRow AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose:  This function returns the SDO for the comments window.
+    Notes:  This is called from the Logic procedure of the comments window.
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cLogicalObjectName AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSDOName           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hDataSource        AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cRowId             AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cEntityInfo        AS CHARACTER  NO-UNDO.
+
+  ASSIGN cLogicalObjectName = get-value("LogicalObjectName")
+         cSDOName           = get-value("ParentSDOName")
+         cRowId             = get-value("RowId")
+         hDataSource        = ?.
+
+  IF cLogicalObjectName > "":U AND cSDOName > "":U  THEN
+  DO:
+    hDataSource = getDataSourceHandle(cLogicalObjectName, cSDOName, "").
+    IF (cRowId > "":U AND plPositionToRow) THEN
+      DYNAMIC-FUNCTION('findRowInCurrentBatch':U IN hDataSource, "RowObject.RowIdent", cRowId, "":U).
+  END.
+  RETURN hDataSource.   /* Function return value. */
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -4382,6 +4427,62 @@ FUNCTION getSecurityTokens RETURNS CHARACTER PRIVATE
     cSecuredTokens = "":U.
 
   RETURN cSecuredTokens.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getToolbarSource) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getToolbarSource Procedure 
+FUNCTION getToolbarSource RETURNS CHARACTER PRIVATE
+  ( pcTargetName AS CHARACTER) :
+/*------------------------------------------------------------------------------
+  Purpose:  Given a toolbar target name this function will return the data source.
+    Notes:  This will work if the Data Source is SBO
+------------------------------------------------------------------------------*/
+
+  DEFINE VARIABLE hLocalObjectBuffer AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cval               AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cName              AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataSourceNames   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cUpdateTargetNames AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cret               AS CHARACTER  NO-UNDO.
+
+  ASSIGN cName = "DataSourceNames,UpdateTargetNames"
+         cret = '':u.
+
+  CREATE BUFFER hLocalObjectBuffer FOR TABLE ghObjectBuffer BUFFER-NAME 'ObjectBuffer'.
+  hLocalObjectBuffer:FIND-FIRST(" WHERE ":U + hLocalObjectBuffer:NAME + ".ObjectName = '":U + ttLink.ttTo + "'":U ) NO-ERROR.
+  IF hLocalObjectBuffer:AVAILABLE THEN 
+  DO:
+    RUN getInstanceProperties IN gshRepositoryManager (
+      INPUT STRING(hLocalObjectBuffer:BUFFER-FIELD('InstanceID'):BUFFER-VALUE)
+     ,INPUT ''
+     ,INPUT-OUTPUT cName 
+     ,OUTPUT cval   ) NO-ERROR.
+  END.
+  IF NUM-ENTRIES(cval, CHR(1)) > 0 THEN
+  DO:
+    cDataSourceNames = ENTRY(1,cval,CHR(1)).
+    IF NUM-ENTRIES(cDataSourceNames, ",":U) = 1 THEN
+      cret = cDataSourceNames.
+  END.
+
+  IF NUM-ENTRIES(cval, CHR(1)) > 1 AND cret = '':U THEN
+  DO:
+    cUpdateTargetNames = ENTRY(2,cval,CHR(1)).
+    IF NUM-ENTRIES(cUpdateTargetNames, ",":U) = 1 THEN
+       cret = cUpdateTargetNames.
+  END.
+  
+  DELETE OBJECT hLocalObjectBuffer NO-ERROR.
+  ASSIGN hLocalObjectBuffer = ?.
+
+  RETURN cret.   /* Function return value. */
 
 END FUNCTION.
 
@@ -4499,11 +4600,10 @@ FUNCTION htmlLabel RETURNS CHARACTER PRIVATE
   ASSIGN cLabel = ENTRY(LOOKUP(cLabelId,cAttNames) + 1,CHR(1) + cAttValues,CHR(1)) NO-ERROR. 
   IF cLabel > '' AND LOGICAL({ry/inc/lval.i LABELS}) THEN
     RETURN 
-      SUBSTITUTE('<label for="&4" style="top:&2px;left:0px;width:&3px;">&1:&&#160;</label>~n'
+      SUBSTITUTE('<label style="top:&2px;left:0px;width:&3px;">&1:&&#160;</label>~n'
     ,cLabel
     ,INTEGER(DEC({ry/inc/lval.i row}) * giPixelsPerRow) + giFieldOffsetTop
-    ,INTEGER(DEC({ry/inc/lval.i column}) * giPixelsPerColumn)
-    ,gcID).
+    ,INTEGER(DEC({ry/inc/lval.i column}) * giPixelsPerColumn)).
   RETURN ''.  
 END FUNCTION.
 
@@ -4619,6 +4719,30 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-maxlength) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION maxlength Procedure 
+FUNCTION maxlength RETURNS CHARACTER PRIVATE
+  (INPUT cFormat AS CHARACTER, INPUT cDatatype AS CHARACTER ):
+/*------------------------------------------------------------------------------
+  Purpose:  
+  Notes:
+------------------------------------------------------------------------------*/
+  IF cFormat > "" THEN
+    CASE cDatatype:
+      WHEN "logical" THEN
+        RETURN 'maxlength="' + STRING(LENGTH(STRING(YES,cFormat))) + '" '.
+      OTHERWISE
+        RETURN 'maxlength="' + STRING(LENGTH(STRING("",cFormat))) + '" '.
+    END.      
+  ELSE    RETURN ''.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-processFieldSecurity) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION processFieldSecurity Procedure 
@@ -4686,6 +4810,8 @@ FUNCTION saveDynLookupInfo RETURNS LOGICAL PRIVATE
   DEFINE VARIABLE cLookupParamName    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cDSLookupList       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cLookupField        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cBrowseFields       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDisplayedField     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cDSLookupObjList    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lLocalLookup        AS LOGICAL    NO-UNDO.
 
@@ -4699,7 +4825,14 @@ FUNCTION saveDynLookupInfo RETURNS LOGICAL PRIVATE
     cLookupField     = ENTRY(NUM-ENTRIES(cLookupField,'.'),cLookupField,'.')
     cLookupInstance  = (IF NOT lLocalLookup THEN SUBSTRING(ENTRY(2,gcId,'.'),2) ELSE gcId)
     cLookupParamName = pcLogicalObjectName + ".":U + cLookupInstance + ".lookup":U
+        cBrowseFields    = {ry/inc/lval.i BrowseFields}
+        cDisplayedField  = {ry/inc/lval.i DisplayedField}
     .
+
+  /* Make sure displayField is in the BrowseFields list*/
+  IF LOOKUP(cDisplayedField, cBrowseFields) = 0 THEN ASSIGN
+        cBrowseFields = cBrowseFields + "," + cDisplayedField.
+  
   
   /* If master SDO has a lookup then resend the SDO definition to the client */
   IF (NOT lLocalLookup) THEN
@@ -4747,7 +4880,7 @@ FUNCTION saveDynLookupInfo RETURNS LOGICAL PRIVATE
     END.
     
   END.
-
+  
   cLookupInfo = {ry/inc/lval.i KeyField          } + CHR(4)
               + {ry/inc/lval.i DisplayedField    } + CHR(4)
               + {ry/inc/lval.i KeyDataType       } + CHR(4)
@@ -4757,7 +4890,7 @@ FUNCTION saveDynLookupInfo RETURNS LOGICAL PRIVATE
               + {ry/inc/lval.i ViewerLinkedFields} + CHR(4)
               +                cLookupInstance     + CHR(4) 
               + {ry/inc/lval.i RowsToBatch       } + CHR(4)  
-              + {ry/inc/lval.i BrowseFields      } + CHR(4)
+              +                cBrowseFields       + CHR(4)
               + {ry/inc/lval.i ParentField       } + CHR(4)  
               + {ry/inc/lval.i ParentFilterQuery } + CHR(4)
               + {ry/inc/lval.i BrowseTitle       } + CHR(4)

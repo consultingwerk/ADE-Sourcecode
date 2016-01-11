@@ -1,0 +1,475 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<SetupInclude>
+	<Patch PatchLevel="100003">
+		<PatchStage Stage="ADOLoad">
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>db/icf/dump/gscer.ado</FileName>
+				<Description>Loading ADO for db/icf/dump/gscer.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>db/icf/dump/gscot.ado</FileName>
+				<Description>Loading ADO for db/icf/dump/gscot.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>db/icf/dump/gscsp.ado</FileName>
+				<Description>Loading ADO for db/icf/dump/gscsp.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>db/icf/dump/gsmmi.ado</FileName>
+				<Description>Loading ADO for db/icf/dump/gsmmi.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>db/icf/dump/gsmms.ado</FileName>
+				<Description>Loading ADO for db/icf/dump/gsmms.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>db/icf/dump/rycat.ado</FileName>
+				<Description>Loading ADO for db/icf/dump/rycat.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>db/icf/dump/rycso.ado</FileName>
+				<Description>Loading ADO for db/icf/dump/rycso.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>af/app/afcfminfop.ado</FileName>
+				<Description>Loading ADO for af/app/afcfminfop.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>af/app/afgetlngcp.ado</FileName>
+				<Description>Loading ADO for af/app/afgetlngcp.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>af/cod2/afmigrunv.ado</FileName>
+				<Description>Loading ADO for af/cod2/afmigrunv.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>af/cod2/afmigstatusv.ado</FileName>
+				<Description>Loading ADO for af/cod2/afmigstatusv.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>af/cod2/afmigtrnwv.ado</FileName>
+				<Description>Loading ADO for af/cod2/afmigtrnwv.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>af/cod2/afmigtrnww.ado</FileName>
+				<Description>Loading ADO for af/cod2/afmigtrnww.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>af/cod2/afpgenoptv.ado</FileName>
+				<Description>Loading ADO for af/cod2/afpgenoptv.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>af/cod2/afpgenrunv.ado</FileName>
+				<Description>Loading ADO for af/cod2/afpgenrunv.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>af/cod2/afpgenv.ado</FileName>
+				<Description>Loading ADO for af/cod2/afpgenv.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>af/cod2/afpgenw.ado</FileName>
+				<Description>Loading ADO for af/cod2/afpgenw.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>af/cod2/gsmcmobjcw.ado</FileName>
+				<Description>Loading ADO for af/cod2/gsmcmobjcw.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>af/obj2/afcommentcatcombo.ado</FileName>
+				<Description>Loading ADO for af/obj2/afcommentcatcombo.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>af/obj2/afcomsupr.ado</FileName>
+				<Description>Loading ADO for af/obj2/afcomsupr.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>af/obj2/gscgcviewv.ado</FileName>
+				<Description>Loading ADO for af/obj2/gscgcviewv.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>af/obj2/gsmcmdynviewv.ado</FileName>
+				<Description>Loading ADO for af/obj2/gsmcmdynviewv.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>af/obj2/gsmcmfullb.ado</FileName>
+				<Description>Loading ADO for af/obj2/gsmcmfullb.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>icf/trg/gstcstrigc.ado</FileName>
+				<Description>Loading ADO for icf/trg/gstcstrigc.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>icf/trg/gstcstrigd.ado</FileName>
+				<Description>Loading ADO for icf/trg/gstcstrigd.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>icf/trg/gstcstrigw.ado</FileName>
+				<Description>Loading ADO for icf/trg/gstcstrigw.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>ry/app/rygen4glhp.ado</FileName>
+				<Description>Loading ADO for ry/app/rygen4glhp.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>ry/app/rygentempp.ado</FileName>
+				<Description>Loading ADO for ry/app/rygentempp.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>ry/app/rygetclassp.ado</FileName>
+				<Description>Loading ADO for ry/app/rygetclassp.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>ry/app/rygetentityp.ado</FileName>
+				<Description>Loading ADO for ry/app/rygetentityp.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>ry/app/rygetobjectp.ado</FileName>
+				<Description>Loading ADO for ry/app/rygetobjectp.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>ry/prc/rycblnchrp.ado</FileName>
+				<Description>Loading ADO for ry/prc/rycblnchrp.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>ry/tem/palettefilter.ado</FileName>
+				<Description>Loading ADO for ry/tem/palettefilter.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>ry/tem/palettefolder.ado</FileName>
+				<Description>Loading ADO for ry/tem/palettefolder.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>ry/tem/palettesdb.ado</FileName>
+				<Description>Loading ADO for ry/tem/palettesdb.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>ry/tem/palettesdf.ado</FileName>
+				<Description>Loading ADO for ry/tem/palettesdf.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>ry/tem/palettesmartb2b.ado</FileName>
+				<Description>Loading ADO for ry/tem/palettesmartb2b.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>ry/tem/palettesmartconsumer.ado</FileName>
+				<Description>Loading ADO for ry/tem/palettesmartconsumer.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>ry/tem/palettesmartpanel.ado</FileName>
+				<Description>Loading ADO for ry/tem/palettesmartpanel.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>ry/tem/palettesmartproducer.ado</FileName>
+				<Description>Loading ADO for ry/tem/palettesmartproducer.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>ry/tem/palettesmartrouter.ado</FileName>
+				<Description>Loading ADO for ry/tem/palettesmartrouter.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>ry/tem/palettesmarttoolbar.ado</FileName>
+				<Description>Loading ADO for ry/tem/palettesmarttoolbar.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>ry/tem/palettetreeview.ado</FileName>
+				<Description>Loading ADO for ry/tem/palettetreeview.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>ry/tem/temdynbrow.ado</FileName>
+				<Description>Loading ADO for ry/tem/temdynbrow.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>ry/tem/temdyncombo.ado</FileName>
+				<Description>Loading ADO for ry/tem/temdyncombo.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>ry/tem/temdyncont.ado</FileName>
+				<Description>Loading ADO for ry/tem/temdyncont.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>ry/tem/temdynlookup.ado</FileName>
+				<Description>Loading ADO for ry/tem/temdynlookup.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>ry/tem/temdynsdo.ado</FileName>
+				<Description>Loading ADO for ry/tem/temdynsdo.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>ry/tem/temdyntbar.ado</FileName>
+				<Description>Loading ADO for ry/tem/temdyntbar.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>ry/tem/temdynview.ado</FileName>
+				<Description>Loading ADO for ry/tem/temdynview.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>ry/tem/temstdhdr.ado</FileName>
+				<Description>Loading ADO for ry/tem/temstdhdr.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>ry/uib/ryclcgenw.ado</FileName>
+				<Description>Loading ADO for ry/uib/ryclcgenw.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+		</PatchStage>
+	</Patch>
+</SetupInclude>

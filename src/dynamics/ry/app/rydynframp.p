@@ -63,6 +63,10 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /* object identifying preprocessor */
 &glob   AstraProcedure    yes
 
+/* This variable should NEVER be accessed directly; it should always be 
+   accessed using the {getCurrentLogicalName} and {setCurrentLogicalName} 
+   functions.
+ */
 DEFINE VARIABLE gcCurrentObjectName             AS CHARACTER        NO-UNDO.
 
 DEFINE VARIABLE ghLayoutManager                 AS HANDLE           NO-UNDO.
@@ -104,6 +108,28 @@ DEFINE VARIABLE glUseThinRendering         AS LOGICAL                   NO-UNDO.
 
 
 /* ************************  Function Prototypes ********************** */
+&IF DEFINED(EXCLUDE-setCurrentLogicalName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setCurrentLogicalName Procedure
+FUNCTION setCurrentLogicalName RETURNS LOGICAL 
+	( input pcCurrentLogicalName         as character ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getCurrentLogicalName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCurrentLogicalName Procedure
+FUNCTION getCurrentLogicalName RETURNS CHARACTER 
+	(  ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 
 &IF DEFINED(EXCLUDE-addAllLinks) = 0 &THEN
 
@@ -527,300 +553,309 @@ PROCEDURE createObjects :
     DEFINE VARIABLE lPageObjectsCreated         AS LOGICAL              NO-UNDO.
     DEFINE variable lInitPage        as logical    extent 100           no-undo.
     
-    &SCOPED-DEFINE xp-assign
-    {get CurrentPage iCurrentPage}
-    {get InstanceId dInstanceId}
-    {get ContainerHandle hDefaultFrame}
-    {get ContainerType cContainerType}.
-    &UNDEFINE xp-assign
-    
-    /* Only run createObjects once per page. We can check the 
-       ObjectsCreated property for page 0, but need to be a little 
-       more careful for pages 1+. Emulate the behaviour in selectPage()
-       where the PageNTargets are checked for the existence of objects.
-       If there are none, then the page has not yet been constructed.
+    /* Is this viewer a generated object? If so, then we don't need
+       to create the widgets dynamically, since they are created in the
+       generated procedure itself.
      */
-    IF iCurrentPage EQ 0 THEN
-    DO:
-        {get ObjectsCreated lPageObjectsCreated}.
-        IF lPageObjectsCreated THEN
-            RETURN.
-    END.    /* Page 0 */
-    ELSE
-    IF DYNAMIC-FUNCTION("PageNTargets":U IN TARGET-PROCEDURE, TARGET-PROCEDURE, iCurrentPage) NE "":U THEN
-        RETURN.
-    
-    IF cContainerType EQ "Window":U THEN
-        {get WindowFrameHandle hDefaultFrame}.
-    
-    /** We have already retrieved the object from the cache, in prepareInstance 
-     *  which is called on instantiation of this object. This sets the instanceID
-     *  property which stores the dInstanceId property.
-     *  ----------------------------------------------------------------------- **/
-    IF NOT VALID-HANDLE(ghCacheObject) THEN
-        RUN returnCacheBuffers IN gshRepositoryManager ( OUTPUT ghCacheObject,
-                                                         OUTPUT ghCachePage,
-                                                         OUTPUT ghCacheLink     ) NO-ERROR.
-    
-    ghCacheObject:FIND-FIRST(" WHERE ":U + ghCacheObject:NAME + ".InstanceId = ":U
-                             + QUOTER(dInstanceId) ) NO-ERROR.
-    
-    /* Something may have happened to clear the repository cache,
-       particularly if this is no the first page (0 and 1 for instance).
-       In this case we need to re-fetch the container itself (Page 0). We
-       can't use context since there are a number of functions that use
-       link and page information which is currently not stored in context.
-     */
-    if not ghCacheObject:available then
+    if not can-do(target-procedure:internal-entries, 'adm-assignObjectProperties') then
     do:
-        /* Always use the logical object name because
-           we want to get the contents of this container. 
-           The instance properties of this container have
-           already been set by the procedure that ran this
-           container.
+        &SCOPED-DEFINE xp-assign
+        {get CurrentPage iCurrentPage}
+        {get InstanceId dInstanceId}
+        {get ContainerHandle hDefaultFrame}
+        {get ContainerType cContainerType}.
+        &UNDEFINE xp-assign
+            
+        /* Only run createObjects once per page. We can check the 
+           ObjectsCreated property for page 0, but need to be a little 
+           more careful for pages 1+. Emulate the behaviour in selectPage()
+           where the PageNTargets are checked for the existence of objects.
+           If there are none, then the page has not yet been constructed.
          */
-        {get LogicalObjectName cObjectName}.
-        RUN cacheRepositoryObject in gshRepositoryManager ( INPUT cObjectName,
-                                                            INPUT "Page:0," + string(iCurrentPage),
-                                                            INPUT ?, /* pcRunAttribute */
-                                                            INPUT ? /* pcResultCode */ ) NO-ERROR.
-        
-        /* Because something went wonky and we had to re-retrieve
-           the object from the repository, the InstanceId is going to
-           differ from that stored in context. We need to set it to the 
-           correct value.
+        IF iCurrentPage EQ 0 THEN
+        DO:
+            {get ObjectsCreated lPageObjectsCreated}.
+            IF lPageObjectsCreated THEN
+                RETURN.
+        END.    /* Page 0 */
+        ELSE
+        IF DYNAMIC-FUNCTION("PageNTargets":U IN TARGET-PROCEDURE, TARGET-PROCEDURE, iCurrentPage) NE "":U THEN
+            RETURN.
+            
+        IF cContainerType EQ "Window":U THEN
+            {get WindowFrameHandle hDefaultFrame}.
+            
+        /** We have already retrieved the object from the cache, in prepareInstance 
+         *  which is called on instantiation of this object. This sets the instanceID
+         *  property which stores the dInstanceId property.
+         *  ----------------------------------------------------------------------- **/
+        IF NOT VALID-HANDLE(ghCacheObject) THEN
+            RUN returnCacheBuffers IN gshRepositoryManager ( OUTPUT ghCacheObject,
+                                                             OUTPUT ghCachePage,
+                                                             OUTPUT ghCacheLink     ) NO-ERROR.
+            
+        ghCacheObject:FIND-FIRST(" WHERE ":U + ghCacheObject:NAME + ".InstanceId = ":U
+                                 + QUOTER(dInstanceId) ) NO-ERROR.
+            
+        /* Something may have happened to clear the repository cache,
+           particularly if this is no the first page (0 and 1 for instance).
+           In this case we need to re-fetch the container itself (Page 0). We
+           can't use context since there are a number of functions that use
+           link and page information which is currently not stored in context.
          */
-	    ghCacheObject:FIND-FIRST(" WHERE ":U
-                                 + ghCacheObject:NAME + ".ObjectName = ":U + QUOTER(cObjectName) + " and "
-                                 + ghCacheObject:name + '.ContainerInstanceId = 0 ' ) NO-ERROR.
-        if ghCacheObject:available then
+        if not ghCacheObject:available then
         do:
-            dInstanceId = ghCacheObject:buffer-field('InstanceId'):buffer-value.            {set InstanceId dInstanceId}.
-        end.    /* cached record available. */
-        /* no ELSE required. if the record is not available,
-           it will be caught a little later and reported.
-         */
-    end.    /* container not cached */
-    
-    IF NOT ghCacheObject:AVAILABLE THEN
-    DO:
-        /* First get the error messages. */
-        {afcheckerr.i &NO-RETURN=YES}
+            /* Always use the logical object name because
+               we want to get the contents of this container. 
+               The instance properties of this container have
+               already been set by the procedure that ran this
+               container.
+             */
+            {get LogicalObjectName cObjectName}.
+            RUN cacheRepositoryObject in gshRepositoryManager ( INPUT cObjectName,
+                                                                INPUT "Page:0," + string(iCurrentPage),
+                                                                INPUT ?, /* pcRunAttribute */
+                                                                INPUT ? /* pcResultCode */ ) NO-ERROR.
+                
+            /* Because something went wonky and we had to re-retrieve
+               the object from the repository, the InstanceId is going to
+               differ from that stored in context. We need to set it to the 
+               correct value.
+             */
+            ghCacheObject:FIND-FIRST(" WHERE ":U
+                                     + ghCacheObject:NAME + ".ObjectName = ":U + QUOTER(cObjectName) + " and "
+                                     + ghCacheObject:name + '.ContainerInstanceId = 0 ' ) NO-ERROR.
+            if ghCacheObject:available then
+            do:
+                dInstanceId = ghCacheObject:buffer-field('InstanceId'):buffer-value.
+                {set InstanceId dInstanceId}.
+            end.    /* cached record available. */
+            /* no ELSE required. if the record is not available,
+               it will be caught a little later and reported.
+             */
+        end.    /* container not cached */
         
-        IF cContainerType EQ "Frame":U THEN
+        IF NOT ghCacheObject:AVAILABLE THEN
         DO:
-            ASSIGN hContainingWindow = {fn getContainingWindow}.
+            /* First get the error messages. */
+            {afcheckerr.i &NO-RETURN=YES}
+                
+            IF cContainerType EQ "Frame":U THEN
+            DO:
+                ASSIGN hContainingWindow = {fn getContainingWindow}.
+                    
+                /* Get the window handle of the container. */
+                {get ContainerHandle hContainerHandle hContainerHandle}.
+            END.    /* Frame container. */
+            ELSE
+                {get ContainerHandle hContainerHandle}.
+                
+            /* Then window controls its self-destruction. This will cause all * objects contained on
+               it to be destroyed, too. Don't overwrite any forced exit statements already there      */
+            IF VALID-HANDLE(hContainerHandle) THEN
+                IF NOT hContainerHandle:PRIVATE-DATA BEGINS "ForcedExit":U OR hContainerHandle:PRIVATE-DATA = ? THEN
+                    ASSIGN hContainerHandle:PRIVATE-DATA = "ForcedExit":U + CHR(3) + cMessageList.
+                
+            RETURN.
+        END.    /* errors fetching object detail. */
             
-            /* Get the window handle of the container. */
-            {get ContainerHandle hContainerHandle hContainerHandle}.
-        END.    /* Frame container. */
+        /* Decide which pages to retrieve from the cache. If on page zero,
+           make sure that page 0 objects are retrieved, too.                   
+         */
+        IF iCurrentPage EQ 0 THEN
+            ASSIGN cInitialPageList = {fn buildInitialPageList}
+                   cInitialPageList = "0,":U + cInitialPageList    WHEN NOT CAN-DO(cInitialPageList, STRING(0)).
         ELSE
-            {get ContainerHandle hContainerHandle}.
-        
-        /* Then window controls its self-destruction. This will cause all * objects contained on
-           it to be destroyed, too. Don't overwrite any forced exit statements already there      */
-        IF VALID-HANDLE(hContainerHandle) THEN
-          IF NOT hContainerHandle:PRIVATE-DATA BEGINS "ForcedExit":U OR hContainerHandle:PRIVATE-DATA = ? THEN
-            ASSIGN hContainerHandle:PRIVATE-DATA = "ForcedExit":U + CHR(3) + cMessageList.
-        
-        RETURN.
-    END.    /* errors fetching object detail. */
-    
-    /* Decide which pages to retrieve from the cache. If on page zero,
-       make sure that page 0 objects are retrieved, too.                   
-     */
-    IF iCurrentPage EQ 0 THEN
-        ASSIGN cInitialPageList = {fn buildInitialPageList}
-               cInitialPageList = "0,":U + cInitialPageList    WHEN NOT CAN-DO(cInitialPageList, STRING(0)).
-    ELSE
-        ASSIGN cInitialPageList = STRING(iCurrentPage).
-    
-    /* Also build the list of linked pages, which are a list of linked pages;
-       these will be all pages that are GroupAssigned (in either direction, source
-       or target) from this page, and all pages that contain Data-sources to this
-       page.
-       
-       This is done early so that all relevant pages are requested from the Repository 
-       in one hit.
-     */
-    ASSIGN cInitPages    = "":U
-           cRequiredPages = "":U.
+            ASSIGN cInitialPageList = STRING(iCurrentPage).
+            
+        /* Also build the list of linked pages, which are a list of linked pages;
+           these will be all pages that are GroupAssigned (in either direction, source
+           or target) from this page, and all pages that contain Data-sources to this
+           page.
            
-    /* If we are on page 0, we need to make sure that the RequiredPages
-       property has the right number of |-entries.
-       We also need this property tyo be able to update it if there
-       are no linked pages.
-     */
-    IF iCurrentPage EQ 0 THEN
-    DO:
-        {get PageLayoutInfo cRequiredPages}.
-        IF cRequiredPages EQ "":U THEN
-            ASSIGN cAllRequiredPages = "?|":U.
-        ELSE
-            ASSIGN cAllRequiredPages = FILL('|?', NUM-ENTRIES(cRequiredPages, '|') + 1)
-                   cAllRequiredPages = LEFT-TRIM(cAllRequiredPages, "|":U).
-        
-        {set RequiredPages cAllRequiredPages}.
-    END.    /* page 0 */
-    ELSE
-        {get RequiredPages cAllRequiredPages}.
-    
-    DO iLoop = 1 TO NUM-ENTRIES(cInitialPageList):
-        ASSIGN iResizeOnPage = INTEGER(ENTRY(iLoop, cInitialPageList))
-               cRequiredPages = {fnarg pageNRequiredPages iResizeOnPage}.
-        
-        IF cRequiredPages EQ "?":U THEN
+           This is done early so that all relevant pages are requested from the Repository 
+           in one hit.
+         */
+        ASSIGN cInitPages    = "":U
+               cRequiredPages = "":U.
+                   
+        /* If we are on page 0, we need to make sure that the RequiredPages
+           property has the right number of |-entries.
+           We also need this property tyo be able to update it if there
+           are no linked pages.
+         */
+        IF iCurrentPage EQ 0 THEN
         DO:
-            /* Get the linked pages for the current page.
+            {get PageLayoutInfo cRequiredPages}.
+            IF cRequiredPages EQ "":U THEN
+                ASSIGN cAllRequiredPages = "?|":U.
+            ELSE
+                ASSIGN cAllRequiredPages = FILL('|?', NUM-ENTRIES(cRequiredPages, '|') + 1)
+                       cAllRequiredPages = LEFT-TRIM(cAllRequiredPages, "|":U).
+                
+            {set RequiredPages cAllRequiredPages}.
+        END.    /* page 0 */
+        ELSE
+            {get RequiredPages cAllRequiredPages}.
+            
+        DO iLoop = 1 TO NUM-ENTRIES(cInitialPageList):
+            ASSIGN iResizeOnPage = INTEGER(ENTRY(iLoop, cInitialPageList))
+                   cRequiredPages = {fnarg pageNRequiredPages iResizeOnPage}.
+                
+            IF cRequiredPages EQ "?":U THEN
+            DO:
+                /* Get the linked pages for the current page.
+                 */
+                RUN buildPageLinks IN TARGET-PROCEDURE (INPUT  iResizeOnPage,
+                                                        OUTPUT cRequiredPages).
+                    
+                /* Update the stored list of linked pages.
+                 */
+                DYNAMIC-FUNCTION("addPageNRequiredPages":U IN TARGET-PROCEDURE, 
+                                 INPUT iResizeOnPage, INPUT cRequiredPages).
+                    
+                /* Build a list of all required pages without repeating any. */
+                DO iEntry = 1 TO NUM-ENTRIES(cRequiredPages):
+                    IF NOT CAN-DO(cInitPages, ENTRY(iEntry, cRequiredPages)) THEN
+                        ASSIGN cInitPages = cInitPages + ",":U + ENTRY(iEntry, cRequiredPages).
+                END.    /* loop through linked pages. */
+                    
+                IF NOT CAN-DO(cInitPages, ENTRY(iLoop, cInitialPageList)) THEN
+                    ASSIGN cInitPages = cInitPages + ",":U + ENTRY(iLoop, cInitialPageList).
+            END.    /* don't have the linked pages for this page. */
+        END.    /* loop through initial page list. */
+        
+        ASSIGN cInitPages = LEFT-TRIM(cInitPages, ",":U).
+            
+        /* Make pages init in numerical order. */
+        assign lInitPage = no
+               iNumberOfPages = num-entries(cInitPages).
+        if iNumberOfPages gt 1 then
+        do:           
+            /* store the ordered list.
+               we need to add 1 to the extent because page 0 may be
+               in this list.
+             */        
+            do iEntry = 1 to iNumberOfPages:
+                lInitPage[integer(entry(iEntry, cInitPages)) + 1] = yes.
+            end.    /* loop through initPages */
+                    
+            /* rebuild the initpages list */
+            cInitPages = ''.
+            do iEntry = 1 to extent(lInitPage) while iNumberOfPages gt 0:
+                if lInitPage[iEntry] then
+                    assign cInitPages = cInitPages + ',' + string(iEntry - 1)
+                           iNumberOfPages = iNumberOfPages - 1.
+            end.    /* loop through */
+            cInitPages = left-trim(cInitPages, ',').
+        end.    /* more than on page being init'ed. */
+                    
+        /* Now make sure that we have all of these pages cached.
+           The Repository API accepts the InstanceId as an object name;
+           this makes for faster retrieval of the objects.
+         */
+        ASSIGN cObjectName = STRING(dInstanceId).
+        RUN cacheRepositoryObject IN gshRepositoryManager ( INPUT cObjectName,
+                                                            INPUT "PAGE:" + cInitPages,
+                                                            INPUT ?,        /* pcRunattribute */
+                                                            INPUT ?         /* pcResultCode   */ ) NO-ERROR.
+        IF RETURN-VALUE NE "":U OR ERROR-STATUS:ERROR THEN
+        DO:
+            IF cContainerType EQ "Frame":U THEN
+            DO:
+                ASSIGN hContainingWindow = {fn getContainingWindow}.
+                    
+                /* Get the window handle of the container. */
+                {get ContainerHandle hContainerHandle hContainingWindow}.
+            END.    /* Frame container. */
+            ELSE
+                {get ContainerHandle hContainerHandle}.
+                
+            /* The window controls its self-destruction. This will cause all objects contained on
+               it to be destroyed, too. Don't overwrite any forced exit statements already there.
              */
-            RUN buildPageLinks IN TARGET-PROCEDURE (INPUT  iResizeOnPage,
-                                                    OUTPUT cRequiredPages).
+            IF VALID-HANDLE(hContainerHandle) THEN
+                IF NOT hContainerHandle:PRIVATE-DATA BEGINS "ForcedExit":U OR hContainerHandle:PRIVATE-DATA = ? THEN
+                    ASSIGN hContainerHandle:PRIVATE-DATA = "ForcedExit":U + CHR(3) 
+                                                         + (IF RETURN-VALUE EQ "":U THEN ERROR-STATUS:GET-MESSAGE(1) ELSE RETURN-VALUE).
+            RETURN.
+        END.    /* unable to get all relevant pages. */
             
-            /* Update the stored list of linked pages.
+        /* Make sure we have a proper value for the StartPage property,
+           but only on page 0.
+         */
+        IF iCurrentPage EQ 0 THEN
+            /* Don't set the startpage attribute. If we do, then the RUN SUPER() call will
+               attempt to change pages to that page before we have complete the initialisation
+               of all object on page 0.
              */
-            DYNAMIC-FUNCTION("addPageNRequiredPages":U IN TARGET-PROCEDURE, 
-                             INPUT iResizeOnPage, INPUT cRequiredPages).
+            ASSIGN iStartPage = {fn calculateStartPage}.
             
-            /* Build a list of all required pages without repeating any. */
-            DO iEntry = 1 TO NUM-ENTRIES(cRequiredPages):
-                IF NOT CAN-DO(cInitPages, ENTRY(iEntry, cRequiredPages)) THEN
-                    ASSIGN cInitPages = cInitPages + ",":U + ENTRY(iEntry, cRequiredPages).
-            END.    /* loop through linked pages. */
+        /* Exit if invalid page */
+        ghCachePage:FIND-FIRST(" WHERE ":U    
+                               + ghCachePage:NAME + ".InstanceId = ":U + QUOTER(dInstanceId) + " AND ":U
+                               + ghCachePage:NAME + ".PageNumber = ":U + QUOTER(iCurrentPage) ) NO-ERROR.
             
-            IF NOT CAN-DO(cInitPages, ENTRY(iLoop, cInitialPageList)) THEN
-               ASSIGN cInitPages = cInitPages + ",":U + ENTRY(iLoop, cInitialPageList).
-        END.    /* don't have the linked pages for this page. */
-    END.    /* loop through initial page list. */
-    ASSIGN cInitPages = LEFT-TRIM(cInitPages, ",":U).
-    
-    /* Make pages init in numerical order. */
-    assign lInitPage = no
-           iNumberOfPages = num-entries(cInitPages).
-    if iNumberOfPages gt 1 then
-    do:           
-	    /* store the ordered list.
-	       we need to add 1 to the extent because page 0 may be
-	       in this list.
-	     */        
-        do iEntry = 1 to iNumberOfPages:
-            lInitPage[integer(entry(iEntry, cInitPages)) + 1] = yes.
-        end.    /* loop through initPages */
-	    
-	    /* rebuild the initpages list */
-        cInitPages = ''.
-        do iEntry = 1 to extent(lInitPage) while iNumberOfPages gt 0:
-            if lInitPage[iEntry] then
-                assign cInitPages = cInitPages + ',' + string(iEntry - 1)
-                       iNumberOfPages = iNumberOfPages - 1.
-        end.    /* loop through */
-        cInitPages = left-trim(cInitPages, ',').
-    end.    /* more than on page being init'ed. */
+        IF iCurrentPage GT 0 AND NOT ghCachePage:AVAILABLE THEN
+            RETURN.
+        
+        /* Set the frame sizes. Make it massive - the resizing will take care of 
+           making it smaller. However, we need a very large canvas to paint on
+           because we don't know at this stage exactly how big all of the bits
+           are that will be painted on this frame.    
+		 */
+        ASSIGN hContainingWindow = {fn getContainingWindow}.
+        IF VALID-HANDLE(hContainingWindow) THEN
+            {get ContainerHandle hWindow hContainingWindow}.
             
-    /* Now make sure that we have all of these pages cached.
-       The Repository API accepts the InstanceId as an object name;
-       this makes for faster retrieval of the objects.
-     */
-    ASSIGN cObjectName = STRING(dInstanceId).
-    RUN cacheRepositoryObject IN gshRepositoryManager ( INPUT cObjectName,
-                                                        INPUT "PAGE:" + cInitPages,
-                                                        INPUT ?,        /* pcRunattribute */
-                                                        INPUT ?         /* pcResultCode   */ ) NO-ERROR.
-    IF RETURN-VALUE NE "":U OR ERROR-STATUS:ERROR THEN
-    DO:
-        IF cContainerType EQ "Frame":U THEN
+        IF VALID-HANDLE(hDefaultFrame) AND hDefaultFrame:TYPE EQ "FRAME":U THEN
+            ASSIGN hDefaultFrame:SCROLLABLE     = TRUE
+                   hWindow:VIRTUAL-WIDTH        = SESSION:WIDTH-CHARS
+                   hWindow:VIRTUAL-HEIGHT       = SESSION:HEIGHT-CHARS
+                   hDefaultFrame:VIRTUAL-WIDTH  = SESSION:WIDTH-CHARS
+                   hDefaultFrame:VIRTUAL-HEIGHT = SESSION:HEIGHT-CHARS
+                   hDefaultFrame:WIDTH          = SESSION:WIDTH-CHARS
+                   hDefaultFrame:HEIGHT         = SESSION:HEIGHT-CHARS
+                   hDefaultFrame:SCROLLABLE     = FALSE
+                   NO-ERROR.
+            
+        /* Build all objects on the current page.
+         */
+        IF NOT DYNAMIC-FUNCTION("buildAllObjects":U IN TARGET-PROCEDURE,
+                                INPUT cObjectName, INPUT cInitPages      ) THEN
+        /* the below is all error handling */
         DO:
             ASSIGN hContainingWindow = {fn getContainingWindow}.
-            
-            /* Get the window handle of the container. */
+                
+            /* Get the window handle of the container .*/
             {get ContainerHandle hContainerHandle hContainingWindow}.
-        END.    /* Frame container. */
-        ELSE
-            {get ContainerHandle hContainerHandle}.
-        
-        /* The window controls its self-destruction. This will cause all objects contained on
-           it to be destroyed, too. Don't overwrite any forced exit statements already there.
+                
+            /* The window controls its self-destruction. This will cause all
+               objects contained on it to be destroyed, too.
+             */
+            IF VALID-HANDLE(hContainerHandle) THEN
+                ASSIGN hContainerHandle:PRIVATE-DATA = "ForcedExit":U + CHR(3) + "Unable to create all the objects needed to run this container.":U.
+            RETURN.
+        END.    /* buildAllObjects failed */
+            
+        /* Add all the links for the current page's objects.
          */
-        IF VALID-HANDLE(hContainerHandle) THEN
-            IF NOT hContainerHandle:PRIVATE-DATA BEGINS "ForcedExit":U OR hContainerHandle:PRIVATE-DATA = ? THEN
-                ASSIGN hContainerHandle:PRIVATE-DATA = "ForcedExit":U + CHR(3) 
-                                                     + (IF RETURN-VALUE EQ "":U THEN ERROR-STATUS:GET-MESSAGE(1) ELSE RETURN-VALUE).
-        RETURN.
-    END.    /* unable to get all relevant pages. */
-    
-    /* Make sure we have a proper value for the StartPage property,
-       but only on page 0.
-     */
-    IF iCurrentPage EQ 0 THEN
-        /* Don't set the startpage attribute. If we do, then the RUN SUPER() call will
-           attempt to change pages to that page before we have complete the initialisation
-           of all object on page 0.
-         */
-        ASSIGN iStartPage = {fn calculateStartPage}.
-    
-    /* Exit if invalid page */
-    ghCachePage:FIND-FIRST(" WHERE ":U    
-                           + ghCachePage:NAME + ".InstanceId = ":U + QUOTER(dInstanceId) + " AND ":U
-                           + ghCachePage:NAME + ".PageNumber = ":U + QUOTER(iCurrentPage) ) NO-ERROR.
-    
-    IF iCurrentPage GT 0 AND NOT ghCachePage:AVAILABLE THEN
-        RETURN.
-
-    /* Set the frame sizes. Make it massive - the resizing will take care of 
-       making it smaller. However, we need a very large canvas to paint on
-       because we don't know at this stage exactly how big all of the bits
-       are that will be painted on this frame.    
-     */
-    ASSIGN hContainingWindow = {fn getContainingWindow}.
-    IF VALID-HANDLE(hContainingWindow) THEN
-        {get ContainerHandle hWindow hContainingWindow}.
-    
-    IF VALID-HANDLE(hDefaultFrame) AND hDefaultFrame:TYPE EQ "FRAME":U THEN
-        ASSIGN hDefaultFrame:SCROLLABLE     = TRUE
-               hWindow:VIRTUAL-WIDTH        = SESSION:WIDTH-CHARS
-               hWindow:VIRTUAL-HEIGHT       = SESSION:HEIGHT-CHARS
-               hDefaultFrame:VIRTUAL-WIDTH  = SESSION:WIDTH-CHARS
-               hDefaultFrame:VIRTUAL-HEIGHT = SESSION:HEIGHT-CHARS
-               hDefaultFrame:WIDTH          = SESSION:WIDTH-CHARS
-               hDefaultFrame:HEIGHT         = SESSION:HEIGHT-CHARS
-               hDefaultFrame:SCROLLABLE     = FALSE
-               NO-ERROR.
-    
-    /* Build all objects on the current page.
-     */
-    IF NOT DYNAMIC-FUNCTION("buildAllObjects":U IN TARGET-PROCEDURE,
-                            INPUT cObjectName, INPUT cInitPages      ) THEN
-    /* the below is all error handling */
-    DO:
-        ASSIGN hContainingWindow = {fn getContainingWindow}.
-        
-        /* Get the window handle of the container .*/
-        {get ContainerHandle hContainerHandle hContainingWindow}.
-        
-        /* The window controls its self-destruction. This will cause all
-           objects contained on it to be destroyed, too.
-         */
-        IF VALID-HANDLE(hContainerHandle) THEN
-          ASSIGN hContainerHandle:PRIVATE-DATA = "ForcedExit":U + CHR(3) + "Unable to create all the objects needed to run this container.":U.
-        RETURN.
-    END.    /* buildAllObjects failed */
-    
-    /* Add all the links for the current page's objects.
-     */
-    IF NOT {fnarg addAllLinks cInitPages} THEN
-    /* the below is all error handling */
-    DO:
-        ASSIGN hContainingWindow = {fn getContainingWindow}.
-        
-        /* Get the window handle of the container .*/
-        {get ContainerHandle hContainerHandle hContainingWindow}.
-        
-        /* The window controls its self-destruction. This will cause all
-         * objects contained on it to be destroyed, too.                 */
-        IF VALID-HANDLE(hContainerHandle) THEN
-          ASSIGN hContainerHandle:PRIVATE-DATA = "ForcedExit":U + CHR(3) + "Unable to add all the links needed to run this container.":U.
-        RETURN.
-    END.    /* addAllLinks failed */
-    
+        IF NOT {fnarg addAllLinks cInitPages} THEN
+        /* the below is all error handling */
+        DO:
+            ASSIGN hContainingWindow = {fn getContainingWindow}.
+                
+            /* Get the window handle of the container .*/
+            {get ContainerHandle hContainerHandle hContainingWindow}.
+                
+            /* The window controls its self-destruction. This will cause all
+             * objects contained on it to be destroyed, too.                 */
+            IF VALID-HANDLE(hContainerHandle) THEN
+                ASSIGN hContainerHandle:PRIVATE-DATA = "ForcedExit":U + CHR(3) + "Unable to add all the links needed to run this container.":U.
+            RETURN.
+        END.    /* addAllLinks failed */
+    end.    /* not a generated object */
+     
     /* Set up the ForeignFields for all SDOs that have been
        started already.
      */
@@ -836,23 +871,25 @@ PROCEDURE createObjects :
         IF DYNAMIC-FUNCTION("getInternalEntryExists":U IN gshSessionManager, hDataTarget, "setForeignFields":U) THEN
             {fnarg setForeignFields cSdoForeignFields hDataTarget}.
     END.    /* there are SDO foreign fields */
-    
+            
     /* The call to run the SUPER has been moved to here. The reason is that the createObjects in
        containr.p does a select of the specified StartPage. When the call to the SUPER was at the
        top of the procedure, page 0 never had a chance to initialize, meaning that the container
        was broken. Let all the objects on page 0 initialize before the SUPER is called in. That
        way, objects on page zero will be initialized completely before running the select of the
        StartPage */
-    
     RUN SUPER.
     
-    /* Make sure that we get the current StartPage. If this is page 0,
-       then set the property. We can do this since we are past the RUN
-       SUPER, and we will need to StartPage.
-       For non-zero pages, simply retrieve this value from the property. 
-     */
-    IF iCurrentPage EQ 0 THEN
-        {set StartPage iStartPage}.
+    if not can-do(target-procedure:internal-entries, 'adm-assignObjectProperties') then
+    do:
+        /* Make sure that we get the current StartPage. If this is page 0,
+           then set the property. We can do this since we are past the RUN
+           SUPER, and we will need to StartPage.
+           For non-zero pages, simply retrieve this value from the property. 
+        */
+        IF iCurrentPage EQ 0 THEN
+            {set StartPage iStartPage}.
+    end.    /* not a generated object */
     
     ASSIGN ERROR-STATUS:ERROR = NO.
     RETURN.
@@ -953,6 +990,7 @@ PROCEDURE initializeObject :
     DEFINE VARIABLE iLoop                       AS INTEGER              NO-UNDO.
     DEFINE VARIABLE iCurrentPageNumber          AS INTEGER              NO-UNDO.    
     DEFINE VARIABLE iStartPage                  AS INTEGER              NO-UNDO.
+    define variable iHidePage                   as integer              no-undo.
     DEFINE VARIABLE cErrorMessage               AS CHARACTER            NO-UNDO.
     DEFINE VARIABLE cButton                     AS CHARACTER            NO-UNDO.
     DEFINE VARIABLE hFolder                     AS HANDLE               NO-UNDO.
@@ -961,6 +999,7 @@ PROCEDURE initializeObject :
     DEFINE VARIABLE cContainerMode              AS CHARACTER            NO-UNDO.
     DEFINE VARIABLE hContainerSource            AS HANDLE               NO-UNDO.
     DEFINE VARIABLE lObjectInitted              AS LOGICAL              NO-UNDO.
+    DEFINE VARIABLE hContainerHandle            AS HANDLE               NO-UNDO.
     
     /* Retrieve container mode set already, i.e. from where window was launched from
        and before initializeObject was run. If a mode is retrieved here, we will not
@@ -990,24 +1029,23 @@ PROCEDURE initializeObject :
     IF cContainerType NE "VIRTUAL":U THEN
       ASSIGN hFolder = WIDGET-HANDLE({fnarg linkHandles 'Page-Source'}).
     
-    /*  At least one tab needs to be enabled for this window to run.
-     */
+    /*  At least one tab needs to be enabled for this window to run. */
     IF VALID-HANDLE(hFolder) AND {fn getTabsEnabled hFolder} EQ NO THEN
     DO:
-        RUN showMessages IN gshSessionManager ( INPUT  {aferrortxt.i 'RY' '11'},
-                                                INPUT  "ERR":U,                  /* error type */
-                                                INPUT  "&OK":U,                  /* button list */
-                                                INPUT  "&OK":U,                  /* default button */
-                                                INPUT  "&OK":U,                  /* cancel button */
-                                                INPUT  "Folder window error":U,  /* error window title */
-                                                INPUT  YES,                      /* display if empty */
-                                                INPUT  TARGET-PROCEDURE,         /* container handle */
-                                                OUTPUT cButton                   /* button pressed */      ).
-        /* Shut down the folder window */
-        RUN exitObject IN TARGET-PROCEDURE.
+        /* Hide all pages */
+        {get TabEnabled cTabEnabled hFolder}.
+        DO iLoop = 1 TO NUM-ENTRIES(cTabEnabled,"|":U):
+            RUN hidePage IN TARGET-PROCEDURE (iLoop).
+        END.
+        /* The window controls its self-destruction. This will cause all * objects contained on
+           it to be destroyed, too. Don't overwrite any forced exit statements already there      */
+        {get ContainerHandle hContainerHandle}.
+        IF VALID-HANDLE(hContainerHandle) THEN
+            IF NOT hContainerHandle:PRIVATE-DATA BEGINS "ForcedExit":U OR hContainerHandle:PRIVATE-DATA = ? THEN
+                ASSIGN hContainerHandle:PRIVATE-DATA = "ForcedExit":U + CHR(3) + {aferrortxt.i 'RY' '11'}.
         RETURN.
     END.    /* no tabs enabled */
-    
+        
     &SCOPED-DEFINE xp-assign
     {get CurrentPage iCurrentPageNumber}
     {get StartPage iStartPage}.
@@ -1037,20 +1075,20 @@ PROCEDURE initializeObject :
                         LEAVE.
                 END.    /* loop through pages */
               
-                IF LOGICAL(ENTRY(iLoop, cTabEnabled, "|":U)) EQ NO THEN
-                DO iLoop = MAX(1, iStartPage - 1) TO 1:
+                IF iLoop > NUM-ENTRIES(cTabEnabled,"|":U) THEN
+                DO iLoop = MAX(1, iStartPage - 1) TO 1 BY -1:
                     IF LOGICAL(ENTRY(iLoop, cTabEnabled, "|":U)) EQ YES THEN
                         LEAVE.
                 END.    /* loop through pages */
-              
-                IF LOGICAL(ENTRY(iLoop, cTabEnabled, "|":U)) EQ YES THEN
-                    ASSIGN iStartPage = iLoop.
+
+                IF iLoop > 0 THEN 
+                    iStartPage = iLoop.
           END.    /* start page not enabled */
         END.    /* the TabEnabled property has values. */
     END.    /* valid folder */
     
     /* Select the start page.
-     */
+     */     
     IF iCurrentPageNumber EQ 0 AND iStartPage GT 0 THEN
     DO:
         /* If there are multiple entries in the InitialPageList property,
@@ -1061,20 +1099,31 @@ PROCEDURE initializeObject :
            corresponds to at least one page.
            
            Also hide any required pages. These are not part of the InitialPageList
-           property but will also have been constructed at this stage.
+           property but will also have been constructed at this stage. This includes
+           the pages required for the start page and for page zero.
          */
         {get InitialPageList cInitialPageList}.
         
         ASSIGN cInitialPageList = cInitialPageList + ",":U
-                                + {fnarg pageNrequiredpages iStartPage}.
+                                + {fnarg pageNrequiredpages iStartPage} + ','
+                                + {fnarg pageNRequiredPages 0}
+               cInitialPageList = trim(cInitialPageList, ',').
         
         IF cInitialPageList NE "":U THEN
         DO iLoop = 1 TO NUM-ENTRIES(cInitialPageList):
-            /* Don't waste time hiding the start page. */
-            IF INTEGER(ENTRY(iLoop, cInitialPageList)) NE iStartPage THEN
-                RUN hidePage IN TARGET-PROCEDURE (INPUT INTEGER(ENTRY(iLoop, cInitialPageList))).
+            iHidePage = integer(entry(iLoop, cInitialPageList)) no-error.
+            
+            /* Don't waste time hiding the start page or page 0.
+               Also skip any invalid entries.            
+             */
+            if iHidePage eq ? or
+               iHidePage eq iStartPage or
+               iHidePage eq 0 then
+                next.
+            
+            RUN hidePage IN TARGET-PROCEDURE (INPUT iHidePage).
         END.    /* loop through page list */
-        
+                
         /* Now select the start page. */
         RUN selectPage IN TARGET-PROCEDURE (INPUT iStartPage).
     END.    /* Select the start page. */
@@ -1107,7 +1156,7 @@ PROCEDURE manualInitializeObjects :
     DEFINE VARIABLE iLoop                   AS INTEGER                  NO-UNDO.
     DEFINE VARIABLE hHandle                 AS HANDLE                   NO-UNDO.
     DEFINE VARIABLE lInitialized            AS LOGICAL                  NO-UNDO.
-    DEFINE VARIABLE cContainerTargets        AS CHARACTER                 NO-UNDO.
+    DEFINE VARIABLE cContainerTargets       AS CHARACTER                NO-UNDO.
     DEFINE VARIABLE lQuery                  AS LOGICAL                  NO-UNDO.
     DEFINE VARIABLE cNonQueryObjects        AS CHARACTER                NO-UNDO.
     
@@ -1374,7 +1423,7 @@ PROCEDURE selectPage :
            hContainerWindow = {fn getContainingWindow}
            /* Double check that we have a window handle. */
            lLockWindow      = VALID-HANDLE(hContainerWindow).
-            
+    
     /* This second check is in case the containing window could not be found. */
     IF lLockWindow THEN
         /* Now lock the window */
@@ -1486,7 +1535,6 @@ END PROCEDURE.  /* setContainerViewMode */
 &ENDIF
 
 /* ************************  Function Implementations ***************** */
-
 &IF DEFINED(EXCLUDE-addAllLinks) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION addAllLinks Procedure 
@@ -1725,11 +1773,15 @@ ACCESS_LEVEL=PRIVATE
             /* Create the object.
                We set the current logical name to the InstanceID of the instance we are creating,
                so that the correct instance can be retrieved.
+               
+               Use the cLogicalName variable as a scratch variable in this case.
              */
-            ASSIGN gcCurrentObjectName = ENTRY(LOOKUP("InstanceId":U, cPropertyNames), cPropertyValues, {&Value-Delimiter}) NO-ERROR.
-         
+            cLogicalName = ENTRY(LOOKUP("InstanceId":U, cPropertyNames), cPropertyValues, {&Value-Delimiter}) NO-ERROR.
+            {set CurrentLogicalName cLogicalName}.
+            cLogicalName = '?'.
+            
             /* Get the LogicalObjectName attribute. It's used by 'constructObject
-               to search for SDOs that are kept alive.               
+               to search for SDOs that are kept alive.
              */
             ASSIGN cLogicalName = ENTRY(LOOKUP("LogicalObjectName":U, cPropertyNames), cPropertyValues, {&Value-Delimiter}) NO-ERROR.
             
@@ -1751,8 +1803,8 @@ ACCESS_LEVEL=PRIVATE
                 RETURN FALSE.
             
             /* Clear the callback variable. */
-            ASSIGN gcCurrentObjectName = "":U.
-        
+            {set CurrentLogicalName ''}.
+            
             /* Get the super procedure information.
              */
             ASSIGN cAttributeValue = ENTRY(LOOKUP("SuperProcedure":U, cPropertyNames), cPropertyValues, {&Value-Delimiter}) NO-ERROR.
@@ -2212,7 +2264,7 @@ FUNCTION getWindowName RETURNS CHARACTER ( ) :
     
     {get ContainerHandle hContainer}.
     
-    IF hContainer:TYPE = 'WINDOW':U THEN
+    IF valid-handle(hContainer) and hContainer:TYPE = 'WINDOW':U THEN
       RETURN hContainer:TITLE.
       
     {get ClassName cClassName}.      
@@ -2339,18 +2391,17 @@ END FUNCTION.    /* setContainerInitialMode */
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setCurrentLogicalName Procedure 
 FUNCTION setCurrentLogicalName RETURNS LOGICAL
-  ( pcCurrentObjectName AS CHARACTER ) :
+    ( pcCurrentObjectName AS CHARACTER ) :
 /*------------------------------------------------------------------------------
-  Purpose: This function is called from the Dynamic TreeView super procedure
-           to set the Current Logical Object name since we cannot access the
-           global variable.
-    Notes:  
+  Purpose: This function is called from the rendering before the calls are 
+  		   made to constructObject. This value is used by the prepareInstance
+  		   bootstrapping API.
+    Notes: 
 ------------------------------------------------------------------------------*/
-  gcCurrentObjectName = pcCurrentObjectName.
-
-  RETURN FALSE.   /* Function return value. */
-
-END FUNCTION.
+    gcCurrentObjectName = pcCurrentObjectName.
+    
+    RETURN true.
+END FUNCTION.    /* setCurrentLogicalName */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -2377,9 +2428,9 @@ FUNCTION setWindowName RETURNS LOGICAL
         {get ClassName cClassName}.        
         IF DYNAMIC-FUNCTION("ClassHasAttribute":U IN gshRepositoryManager,
                             INPUT cClassName, INPUT "WindowName":U, INPUT NO /* not an event */ ) THEN
-                        &SCOPED-DEFINE xpWindowName
-                        {set WindowName pcWindowName}.
-                        &UNDEFINE xpWindowName
+            &SCOPED-DEFINE xpWindowName
+            {set WindowName pcWindowName}.
+            &UNDEFINE xpWindowName
     END.    /* not a window */
     
     RETURN TRUE.   

@@ -353,20 +353,9 @@ PROCEDURE addRecord :
   Parameters:  
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cValue          AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE hDataSource     AS HANDLE       NO-UNDO.
 
   RUN SUPER.
-
-  DO WITH FRAME {&FRAME-NAME}:
-    ASSIGN
-        hDataSource                   = {fn getDataSource}
-        cValue                        = {fn getForeignValues hDataSource}.
-
-    RUN assignNewValue IN h_gsmsedynlookup (cValue, "":U, TRUE).
-    
-    RUN setFieldSensitivity.
-  END.
+  RUN setFieldSensitivity.
 
 END PROCEDURE.
 

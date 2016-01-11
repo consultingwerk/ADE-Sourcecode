@@ -145,6 +145,7 @@ DEF VAR xiRocketIndexLimit AS INTEGER INIT 188 NO-UNDO.
  &GLOB xpTables 
  &GLOB xpTempTables 
  &GLOB xpCalcFieldList
+ &GLOB xpUpdateFromSource
   
    /* if appserver aware add appserver properties */ 
  &IF DEFINED(APP-SERVER-VARS) <> 0 &THEN
@@ -207,6 +208,7 @@ DO:
   ghADMProps:ADD-NEW-FIELD('AuditEnabled':U, 'LOGICAL':U, 0, ?, NO).
   ghADMProps:ADD-NEW-FIELD('NewBatchInfo':U, 'CHAR':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('CalcFieldList':U, 'CHAR':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('UpdateFromSource':U, 'LOGICAL':U, 0, ?, NO).
 &ENDIF
 
   {src/adm2/custom/qrypropcustom.i}

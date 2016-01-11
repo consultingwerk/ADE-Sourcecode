@@ -115,6 +115,7 @@ DEFINE TEMP-TABLE ttDCombo NO-UNDO
 FIELD hWidget               AS HANDLE           /* Handle of widget, e.g. coCompany:HANDLE */
 FIELD hViewer               AS HANDLE           /* Handle if the viewer that the combo is on */
 FIELD cWidgetName           AS CHARACTER        /* Name of widget, e.g. coCompany */
+FIELD lRefreshQuery         AS LOGICAL          /* If No then the query has not changed */
 FIELD cWidgetType           AS CHARACTER        /* Data Type of widget, e.g. DECIMAL, INTEGER, CHARACTER, DATE, etc. */
 FIELD cForEach              AS CHARACTER        /* FOR EACH statement used to retrieve the data, e.g. FOR EACH gsm_user NO-LOCK BY gsm_user.user_login_name */
 FIELD cBufferList           AS CHARACTER        /* comma delimited list of buffers used in FOR EACH, e.g. gsm_user */
@@ -138,6 +139,7 @@ FIELD iBuildSequence        AS INTEGER          /* The sequence number in which 
 FIELD lUseCache             AS LOGICAL          /* When this is set to FALSE and the SDF Cache manager is running then we will not use the cached information */
 INDEX keyIndex IS PRIMARY hWidget
 INDEX keyCont  hViewer
+INDEX keyRefresh  hViewer lRefreshQuery
 INDEX key2 cWidgetName.
 
 /* _UIB-CODE-BLOCK-END */

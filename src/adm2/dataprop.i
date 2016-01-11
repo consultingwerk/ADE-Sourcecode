@@ -47,7 +47,8 @@
   &GLOB xcInstanceProperties {&xcInstanceProperties}~
 AppService,ASUsePrompt,ASInfo,ForeignFields,RowsToBatch,CheckCurrentChanged,~
 RebuildOnRepos,ServerOperatingMode,DestroyStateless,DisconnectAppServer,~
-ObjectName,UpdateFromSource,ToggleDataTargets,OpenOnInit,PromptOnDelete,PromptColumns
+ObjectName,UpdateFromSource,ToggleDataTargets,OpenOnInit,PromptOnDelete,~
+PromptColumns,CacheDuration,ShareData
 
 /* This is the procedure to execute to set InstanceProperties at design time. */
 &IF DEFINED (ADM-PROPERTY-DLG) = 0 &THEN
@@ -137,7 +138,6 @@ ObjectName,UpdateFromSource,ToggleDataTargets,OpenOnInit,PromptOnDelete,PromptCo
  &GLOB xpQueryContainer
  &GLOB xpQueryContext
  &GLOB xpFillBatchOnRepos
- &GLOB xpUpdateFromSource
  &GLOB xpAsynchronousSDO
  &GLOB xpToggleDataTargets
  &GLOB xpDataLogicObject
@@ -158,6 +158,9 @@ ObjectName,UpdateFromSource,ToggleDataTargets,OpenOnInit,PromptOnDelete,PromptCo
  &GLOB xpRunDataLogicProxy
  &GLOB xpPrimarySDOSource
  &GLOB xpSchemaLocation
+ &GLOB xpCacheDuration
+ &GLOB xpShareData
+ 
  
 {src/adm2/qryprop.i}
 
@@ -198,7 +201,6 @@ DO:
   ghADMProps:ADD-NEW-FIELD('IndexInformation':U, 'CHARACTER':U, 0, ?,?). 
   ghADMProps:ADD-NEW-FIELD('QueryContext':U, 'CHARACTER':U, 0, ?,?). 
   ghADMProps:ADD-NEW-FIELD('FillBatchOnRepos':U, 'LOGICAL':U, 0, ?, YES).
-  ghADMProps:ADD-NEW-FIELD('UpdateFromSource':U, 'LOGICAL':U, 0, ?, NO).
   ghADMProps:ADD-NEW-FIELD('AsynchronousSDO':U, 'LOGICAL':U, ?, ?, TRUE).   
   ghADMProps:ADD-NEW-FIELD('ToggleDataTargets':U, 'LOGICAL':U, ?, ?, TRUE).
   ghADMProps:ADD-NEW-FIELD('DataLogicProcedure':U, 'CHARACTER':U, ?, ?, '':U).
@@ -238,6 +240,8 @@ DO:
   ghADMProps:ADD-NEW-FIELD('RunDataLogicProxy':U, 'LOGICAL':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('PrimarySDOSource':U, 'HANDLE':U).
   ghADMProps:ADD-NEW-FIELD('SchemaLocation':U, 'CHAR':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('CacheDuration':U, 'INTEGER':U, 0, ?, 0).
+  ghADMProps:ADD-NEW-FIELD('ShareData':U, 'LOGICAL':U, 0, ?, NO).
 
 &ENDIF
 

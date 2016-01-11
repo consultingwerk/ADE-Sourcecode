@@ -424,6 +424,7 @@ PROCEDURE read-CustomPaletteObjects:
   DEFINE VARIABLE lPalDefault        AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cPalLabel          AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cPalTemplateFile   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cPalRenderer       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iPalOrder          AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cPalChooseTitle    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cPalTooltip        AS CHARACTER  NO-UNDO.
@@ -490,6 +491,7 @@ Toggle-Box,Slider,Button,Selection-List,Editor,Combo-Box,Fill-In,Text,~
             cPalTriggerCode  = ""
             cPalLabel        = ""
             cPalTemplateFile = ""
+            cPalRenderer     = ""
             cPalDirList      = ""
             cPalImageUp      = ""
             cPalImageDown    = ""
@@ -541,6 +543,8 @@ Toggle-Box,Slider,Button,Selection-List,Editor,Combo-Box,Fill-In,Text,~
              cPalFilter = cValue.
           WHEN "PaletteNewTemplate" THEN
              cPalTemplateFile = cValue.
+          WHEN "PaletteRenderer" THEN
+             cPalRenderer = cValue.          
           WHEN "PaletteTitle" THEN
              cPalChooseTitle = cValue.
           WHEN "PaletteTooltip" THEN
@@ -644,10 +648,10 @@ Toggle-Box,Slider,Button,Selection-List,Editor,Combo-Box,Fill-In,Text,~
        FILE-INFO:FILE-NAME = cPalTemplateFile.
        IF FILE-INFO:FULL-PATHNAME = ? THEN
        DO:
-         MESSAGE "Cannot find template:" + QUOTER(cPalTemplateFile)
+         MESSAGE "Cannot find palette template:" + QUOTER(cPalTemplateFile)
                 + " for " + QUOTER(cClass) + ": "
                 + cPalLabel skip
-                "Please check the name and make sure that it can be located in your PROPATH."
+                "Please check the value of property 'PaletteNewTemplate' and make sure that it can be located in your PROPATH."
                 VIEW-AS ALERT-BOX ERROR BUTTONS OK.
          NEXT OBJECT-LOOP.
        END.
@@ -671,6 +675,10 @@ Toggle-Box,Slider,Button,Selection-List,Editor,Combo-Box,Fill-In,Text,~
                         + (IF cPalDirList > "" THEN CHR(10) + "DIRECTORY-LIST ":U + cPalDirList ELSE "")
                         + (IF cPalFilter > "" THEN  CHR(10) + "FILTER ":U + cPalFilter ELSE "")
                         + (IF cPalChooseTitle  > "" THEN  CHR(10) + "TITLE ":U + cPalChooseTitle ELSE "").
+    ELSE IF cPalRenderer > "" THEN
+      ASSIGN cAttrList = cAttrList + (IF cAttrList = "" THEN "" ELSE CHR(10))
+                         + "USE ":U + cPalRenderer.
+      /* Use the PaletteNewTemplate in case the PaletteRenderer prop isn't specified value for backward compatibility */
     ELSE IF cPalTemplateFile > ""  THEN
       ASSIGN cAttrList = cAttrList + (IF cAttrList = "" THEN "" ELSE CHR(10))
                          + "USE ":U + cPalTemplateFile.
@@ -775,12 +783,19 @@ Toggle-Box,Slider,Button,Selection-List,Editor,Combo-Box,Fill-In,Text,~
               _custom._object_name      = cObjectName.
 
        /* Assign the template file */
-       IF cPalTemplateFile > "" THEN
+       IF cPalRenderer > "" THEN
+       DO:
+          ASSIGN FILE-INFO:FILE-NAME = TRIM(cPalRenderer).
+          IF FILE-INFO:FULL-PATHNAME > "" THEN
+             ASSIGN _custom._design_template_file = FILE-INFO:FULL-PATHNAME.
+       END.
+       ELSE IF cPalTemplateFile > "" THEN
        DO:
           ASSIGN FILE-INFO:FILE-NAME = TRIM(cPalTemplateFile).
           IF FILE-INFO:FULL-PATHNAME > "" THEN
               ASSIGN _custom._design_template_file = FILE-INFO:FULL-PATHNAME.
        END.
+       
     END.
   END.  /* End FOR EACH ttObject */
   

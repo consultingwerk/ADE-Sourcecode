@@ -1,0 +1,7 @@
+
+  DO TRANSACTION ON ERROR UNDO, RETURN ERROR RETURN-VALUE:
+    CREATE {&InputTable}.
+    BUFFER-COPY tt_{&InputTable} TO {&InputTable}.
+  END.
+
+END PROCEDURE.

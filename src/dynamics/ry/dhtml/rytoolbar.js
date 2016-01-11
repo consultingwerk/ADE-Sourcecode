@@ -80,9 +80,8 @@ Toolbar.prototype.mClick=function(e){
 	var src=document.all?e.srcElement:e.target
   if(src.nodeName!='TD'&&src.nodeName!='SPAN') src=src.parentNode;
   if(src.className!='over' && src.className!='enable') return false;
-  if(appcontrol.busy) return window.status='Please wait, BUSY processing request.';
+  window.userAction(src.id);
   if(src.className=='enable') src.className='over';
-  window.action(src.id); 
 }
 
 function Toolbar(e){

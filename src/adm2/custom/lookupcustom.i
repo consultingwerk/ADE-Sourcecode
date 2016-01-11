@@ -28,12 +28,12 @@
     Purpose     : References the start of the custom super procedure.
                   Allows properties initialization.
 
-    Syntax      : {src/adm2/custom/lookupcustom.i}
+    Syntax      : {adm2/custom/lookupcustom.i}
 
     Description :
 
-    Created     : 08/11/2000
-    Notes       : Referenced in {src/adm2/lookup.i}
+    Created     : 09/07/2004
+    Notes       : Referenced in {adm2/lookup.i}
   ----------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.      */
 /*----------------------------------------------------------------------*/
@@ -78,7 +78,7 @@
                                                                         */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Include 
@@ -86,15 +86,10 @@
 
 /* ***************************  Main Block  *************************** */
 
-
-/* Start the custom super procedure from here unless supers are loaded from 
-   repository which case the custom super need to be stored in repository
-   and loaded from there.  
+/* Starts here the custom super procedure 
+   Uncomment to run it */
    
-   Uncomment to run it */   
-      
-/* IF NOT {&ADM-LOAD-FROM-REPOSITORY} THEN
-     RUN start-super-proc ("adm2/custom/lookupcustom.p":U).*/
+/*RUN start-super-proc ("adm2/custom/lookupcustom.p":U).*/
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

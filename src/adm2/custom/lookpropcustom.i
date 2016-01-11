@@ -26,12 +26,12 @@
 /*--------------------------------------------------------------------------
     File        : lookpropcustom.i
     Purpose     : Defines basic properties.
-    Syntax      : {src/adm2/custom/lookpropcustom.i}
+    Syntax      : {adm2/custom/lookpropcustom.i}
 
     Description :
 
-    Modified    : 08/11/2000
-    Notes       : Referenced in {src/adm2/lookprop.i}    
+    Modified    : 09/07/2004
+    Notes       : Referenced in {adm2/lookupprop.i}    
   ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
 /*----------------------------------------------------------------------*/
@@ -76,7 +76,7 @@
                                                                         */
 &ANALYZE-RESUME
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Include 
@@ -89,7 +89,7 @@
      And skip including the prototypes if we are *any* super procedure. */
 
 &IF "{&ADMSuper}":U EQ "":U &THEN
-  {src/adm2/custom/lookprtocustom.i}
+  {adm2/custom/lookprtocustom.i}
 &ENDIF
 
   /* Put your xp{&Property} preprocessor definitions here.
@@ -103,7 +103,7 @@
   /* Put your property field definitions here.
      Use the following syntax, e.g.,
      ghADMProps:ADD-NEW-FIELD('MyProperty':U, 'CHAR':U, 0,'X(20)':U, 'Hi':U). */
-
+     
 &ENDIF
 
 /* _UIB-CODE-BLOCK-END */

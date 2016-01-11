@@ -118,6 +118,7 @@ af/cod/aftemwizpw.w
 
 {src/adm2/globals.i} /* Astra global shared variables */
 
+
 DEFINE TEMP-TABLE ttProperty NO-UNDO
 FIELD propertyName            AS CHARACTER    /* property name */
 FIELD propertyValue           AS CHARACTER    /* prooperty value */
@@ -421,7 +422,7 @@ FUNCTION setSecurityForDynObjects RETURNS CHARACTER
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 28.29
+         HEIGHT             = 25.67
          WIDTH              = 61.4.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -747,6 +748,7 @@ PROCEDURE adjustWidgets :
   DEFINE VARIABLE cSDFLabels                AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE dSDFRow                   AS DECIMAL    NO-UNDO.
   DEFINE VARIABLE hSDFFrame                 AS HANDLE     NO-UNDO.
+  define variable dColonPos                 as decimal    no-undo.
 
     /* Separate the {get}s because each of them needs to be
        called no-error.
@@ -764,9 +766,10 @@ PROCEDURE adjustWidgets :
     /* SDFs need to be resized individually */  
     IF hWidget:TYPE = "PROCEDURE":U 
     THEN DO:
-        /**/
+        dColonPos = {fn getColonPosition hWidget}.
+        
         FIND FIRST ttViewerCol
-             WHERE ttViewerCol.dColumn = {fn getColonPosition hWidget}             
+             WHERE ttViewerCol.dColumn = dColonPos
              NO-LOCK NO-ERROR.
         
         IF NOT AVAILABLE ttViewerCol THEN
@@ -1670,8 +1673,7 @@ PROCEDURE contextHelp :
   DEFINE VARIABLE cHelpFound                          AS CHARACTER    NO-UNDO.
   DEFINE VARIABLE iHelpContext                        AS INTEGER      NO-UNDO.
   DEFINE VARIABLE cHelpText                           AS CHARACTER    NO-UNDO.
-  
-  
+    
   IF VALID-HANDLE(phObject) THEN
   DO:
     /* Get logical object names (for dynamic objects) */
@@ -1704,6 +1706,23 @@ PROCEDURE contextHelp :
        first to find container */
     IF VALID-HANDLE(hContainer) AND cObjectType = "smartDataField":U THEN 
     DO:
+       
+       /* Get logical object name for SDF's container */
+       cLogicalObject = "":U.
+       cLogicalObject = DYNAMIC-FUNCTION('getlogicalobjectname':U IN hContainer) NO-ERROR.
+       
+       /* use logical object name if dynamic */
+       IF cLogicalObject <> "":U THEN
+         ASSIGN cObjectFilename = cLogicalObject.
+       ELSE
+       DO:
+         /* get filename of object and strip off path */
+         ASSIGN iPosn = R-INDEX(hContainer:FILE-NAME,"/":U) + 1.
+         IF iPosn = 1 THEN
+             ASSIGN iPosn = R-INDEX(hContainer:FILE-NAME,"~\":U) + 1.
+         ASSIGN cObjectFilename = SUBSTRING(hContainer:FILE-NAME,iPosn).
+       END.
+
        hContainer = DYNAMIC-FUNCTION('getContainerSource':U IN hContainer).
        IF NOT VALID-HANDLE(hContainer) THEN
          ASSIGN hContainer = phObject.
@@ -1738,19 +1757,16 @@ PROCEDURE contextHelp :
        ASSIGN cItemName = DYNAMIC-FUNCTION("getFieldName":U IN phObject) NO-ERROR.
 
     IF cItemName = "":U THEN
-    DO:
-      ASSIGN cItemName = {fnarg widgetName phWidget phObject}.
-      /* Currently we take the qualifier off SBO fields */
-      IF NUM-ENTRIES(cItemName,'.') > 1 THEN 
-        cItemName = ENTRY(NUM-ENTRIES(cItemName,'.'),cItemName,'.').
+      ASSIGN cItemName = {fnarg widgetName phWidget phObject} NO-ERROR.
 
-    END.
+    IF cItemName = "":U THEN
+          ASSIGN cItemName = phWidget:NAME.
+
   END.
   ELSE
       ASSIGN cItemName = "<Unknown>":U.
 
   /* get help context to use */
-
   RUN af/app/afgethctxp.p ON gshAstraAppserver (INPUT cContainerFilename,
                                                 INPUT cObjectFilename,
                                                 INPUT cItemName,
@@ -1911,35 +1927,37 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createLinks Procedure 
 PROCEDURE createLinks :
 /*------------------------------------------------------------------------------
-  Purpose:     
+ACCESS_LEVEL=PUBLIC
+  Purpose:     Creates pass-through links to a newly-launched container.
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
- DEFINE INPUT PARAMETER pcPhysicalName AS CHARACTER NO-UNDO. 
- DEFINE INPUT PARAMETER phProcedureHandle AS HANDLE NO-UNDO.
- DEFINE INPUT PARAMETER phObjectProcedure AS HANDLE NO-UNDO.
- DEFINE INPUT PARAMETER plAlreadyRunning AS LOGICAL NO-UNDO.
-
-    IF CAN-DO("ry/uib/rydyncontw.w,ry/uib/rydynframw.w":U, pcPhysicalName) AND 
-       VALID-HANDLE(phProcedureHandle) AND VALID-HANDLE(phObjectProcedure) THEN
+    DEFINE INPUT PARAMETER pcPhysicalName AS CHARACTER NO-UNDO. 
+    DEFINE INPUT PARAMETER phProcedureHandle AS HANDLE NO-UNDO.
+    DEFINE INPUT PARAMETER phObjectProcedure AS HANDLE NO-UNDO.
+    DEFINE INPUT PARAMETER plAlreadyRunning AS LOGICAL NO-UNDO.
+ 
+    DEFINE VARIABLE hDataSource AS HANDLE NO-UNDO.
+    DEFINE VARIABLE hNavigationSource AS HANDLE NO-UNDO.
+    DEFINE VARIABLE hCommitSource     AS HANDLE NO-UNDO.
+    DEFINE VARIABLE cDataTargets AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE hContainerSource AS HANDLE NO-UNDO.
+    DEFINE VARIABLE hUpdateSource AS HANDLE NO-UNDO.
+    DEFINE VARIABLE hPrimarySdoTarget AS HANDLE NO-UNDO.
+    DEFINE VARIABLE hOldDataSource AS HANDLE NO-UNDO.
+    DEFINE VARIABLE lQueryObject   AS LOGICAL    NO-UNDO.
+    
+    /* The DynContainer class covers both dynamic frames and dynamic windows.
+     */     
+    IF valid-handle(phProcedureHandle) and
+       {fnarg instanceOf 'DynContainer' phProcedureHandle} and
+       valid-handle(phObjectProcedure) then
     DO:
-        DEFINE VARIABLE hDataSource AS HANDLE NO-UNDO.
-        DEFINE VARIABLE hNavigationSource AS HANDLE NO-UNDO.
-        DEFINE VARIABLE hCommitSource     AS HANDLE NO-UNDO.
-        DEFINE VARIABLE cDataTargets AS CHARACTER NO-UNDO.
-        DEFINE VARIABLE hContainerSource AS HANDLE NO-UNDO.
-        DEFINE VARIABLE hUpdateSource AS HANDLE NO-UNDO.
-        DEFINE VARIABLE hPrimarySdoTarget AS HANDLE NO-UNDO.
-        DEFINE VARIABLE hOldDataSource AS HANDLE NO-UNDO.
-        DEFINE VARIABLE lQueryObject   AS LOGICAL    NO-UNDO.
         IF NOT plAlreadyRunning AND LOOKUP("doThisOnceOnly", phProcedureHandle:INTERNAL-ENTRIES) <> 0 THEN
-        DO:            
             RUN doThisOnceOnly IN phProcedureHandle.
-        END.
-
+        
         hPrimarySdoTarget = WIDGET-HANDLE(ENTRY(1,DYNAMIC-FUNCTION('linkHandles':U IN phProcedureHandle,'PrimarySdo-Target'))).
-
-
+        
         {get DataTarget cDataTargets phProcedureHandle}.
         {get QueryObject lQueryObject phObjectProcedure}.
         /* If this is a queryobject (SDO/SBO) then use it as datasource */ 
@@ -1949,11 +1967,15 @@ PROCEDURE createLinks :
         ELSE 
           {get DataSource hDataSource phObjectProcedure}.
 
-        IF NOT VALID-HANDLE(hDataSource) THEN hDataSource = WIDGET-HANDLE(ENTRY(1,DYNAMIC-FUNCTION('linkHandles':U IN phObjectProcedure,'PrimarySdo-Target'))).
-        {get ContainerSource hContainerSource phProcedureHandle}.
-        {get UpdateSource hUpdateSource phProcedureHandle}.     
-        {get NavigationSource hNavigationSource phProcedureHandle}.
+        IF NOT VALID-HANDLE(hDataSource) THEN
+            hDataSource = WIDGET-HANDLE(ENTRY(1,DYNAMIC-FUNCTION('linkHandles':U IN phObjectProcedure,'PrimarySdo-Target'))).
+            
+        &scoped-define xp-Assign
+        {get ContainerSource hContainerSource phProcedureHandle}
+        {get UpdateSource hUpdateSource phProcedureHandle}
+        {get NavigationSource hNavigationSource phProcedureHandle}
         {get CommitSource hCommitSource phProcedureHandle}.
+        &undefine xp-Assign
 
         PUBLISH "toggleData" FROM phProcedureHandle (TRUE).
 
@@ -1967,37 +1989,29 @@ PROCEDURE createLinks :
 
                 RUN addLink IN hContainerSource ( hDataSource , 'Data':U , hPrimarySdoTarget ).
             END.
-            IF cDataTargets <> ""        THEN 
-            DO:
+            IF cDataTargets <> "" THEN 
                 RUN addLink IN hContainerSource ( hDataSource , 'Data':U , phProcedureHandle ).
-            END.
-            IF VALID-HANDLE(hUpdateSource)      THEN 
-            DO:
+            
+            IF VALID-HANDLE(hUpdateSource) THEN             
                 RUN addLink IN hContainerSource ( phProcedureHandle , 'Update':U , hDataSource ).
-            END.
-            IF VALID-HANDLE(hNavigationSource)  THEN 
-            DO:
+            
+            IF VALID-HANDLE(hNavigationSource) THEN 
                 RUN addLink IN hContainerSource ( phProcedureHandle , 'Navigation':U , hDataSource ).
-            END.
-            IF VALID-HANDLE(hCommitSource)  THEN 
-            DO:
+            
+            IF VALID-HANDLE(hCommitSource) THEN 
                 RUN addLink IN hContainerSource ( phProcedureHandle , 'Commit':U , hDataSource ).
-            END.
-
-        END.
-
+        END.    /* valid container and SDO */
+        
         IF plAlreadyRunning THEN 
         DO:
             PUBLISH 'dataAvailable' FROM hDataSource("DIFFERENT").
             PUBLISH 'toggleData' FROM phProcedureHandle (FALSE).
         END.
-
-   END.
-
-
-
-
-END PROCEDURE.
+   END.    /* this is a container */
+   
+   error-status:error = no.
+   return.
+END PROCEDURE.    /* createLinks */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -2877,6 +2891,55 @@ PROCEDURE expireContextScope :
 
 
 
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getAbbreviatedLoginUserInfo) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getAbbreviatedLoginUserInfo Procedure 
+PROCEDURE getAbbreviatedLoginUserInfo :
+/*------------------------------------------------------------------------------
+  Purpose:     This procedure returns user information used by the login process.                We only return the user name (encoded), default login company and                 default language.                                          
+  Parameters:  input ipdUser_obj as decimal                               
+               input ipcUser_login_name as decimal                        
+               output table ttLoginUser (holds 1 record max.) 
+               This procedure was created to eliminate the overhead that was                     created in cachelogin.p where all the user records were being
+               sent to the client. Now only the user information is being passed                 back to the client for the current user_login_name. The information
+               is appended to the ttUserLogin table to we don't go back to the                   server every time we change the user_login_name within one login   
+               session.                                                   
+               For this reason cachelogin.p and aftemlognw.w have been changed
+               as well.
+------------------------------------------------------------------------------*/
+DEFINE INPUT  PARAMETER ipdUser_obj         AS DECIMAL    NO-UNDO.
+DEFINE INPUT  PARAMETER ipcUser_login_name  AS CHARACTER  NO-UNDO.
+DEFINE OUTPUT PARAMETER TABLE FOR ttLoginUser.
+
+  IF NOT TRANSACTION THEN 
+    EMPTY TEMP-TABLE ttLoginUser. 
+  ELSE FOR EACH ttLoginUser: 
+    DELETE ttLoginUser. 
+  END.
+  
+  RUN af/app/afgetuserp.p ON gshAstraAppserver                              
+      (INPUT ipdUser_obj,                               
+       INPUT ipcUser_login_name,                        
+       OUTPUT TABLE ttUser).
+  
+  FOR EACH ttUser:                                                          
+      CREATE ttLoginUser.
+      ASSIGN ttLoginUser.encoded_user_name = ENCODE(LC(ttUser.user_login_name)) 
+             /* Always encode the lowercase of the username.  Encoding is case sensitive */ 
+             ttLoginUser.default_organisation_obj = ttUser.default_login_company_obj                                          
+             ttLoginUser.language_obj             = ttUser.language_obj.    
+      DELETE ttUser.                                                        
+  END.                                                                      
+  
+  ASSIGN ERROR-STATUS:ERROR = NO.                                           
+  RETURN "":U.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -4132,35 +4195,47 @@ ACCESS_LEVEL=PUBLIC
     DEFINE VARIABLE cSuperProcedureMode           AS CHARACTER  NO-UNDO.
     DEFINE VARIABLE iSuperCnt                     AS INTEGER    NO-UNDO.
     DEFINE VARIABLE hOldContainerSource           AS HANDLE     NO-UNDO.
+    define variable lUseGeneratedObject           as logical    no-undo.
     
     /* Save the RunAttribute value so that it can be retrieved by a "launched"
        container during container initialization
      */
-     DYNAMIC-FUNCTION("setSessionParam":U IN TARGET-PROCEDURE, "RunAttribute":U, pcRunAttribute).
-
+    DYNAMIC-FUNCTION("setSessionParam":U IN TARGET-PROCEDURE, "RunAttribute":U, pcRunAttribute).
+    
     /* If object filename passed in, get logical and physical object names */
     IF pcObjectFileName <> "":U THEN
     DO:
-        SESSION:SET-WAIT-STATE("GENERAL":U).
-        RUN getObjectNames IN gshRepositoryManager ( INPUT  pcObjectFileName,
-                                                     INPUT  pcRunAttribute,
-                                                     OUTPUT pcPhysicalName,
-                                                     OUTPUT pcLogicalName       ) NO-ERROR.
-        IF RETURN-VALUE NE "":U OR ERROR-STATUS:ERROR THEN
-        DO:                                     
-            RUN showMessages IN TARGET-PROCEDURE ( INPUT  (IF RETURN-VALUE EQ "":U THEN ERROR-STATUS:GET-MESSAGE(1) ELSE RETURN-VALUE),
-                                                   INPUT  "ERR",        /* error type */
-                                                   INPUT  "&OK",        /* button list */
-                                                   INPUT  "&OK",        /* default button */ 
-                                                   INPUT  "&OK",        /* cancel button */
-                                                   INPUT  "Error getting physical and logical names",
-                                                   INPUT  YES,          /* display if empty */ 
-                                                   INPUT  ?,            /* container handle */
-                                                   OUTPUT cButtonPressed       ).
-            RETURN.
-        END.    /* Error. */
-                
-        SESSION:SET-WAIT-STATE("":U).
+        /* Check whether there is a mapped file for the object. If so, use it.
+         */                 
+        pcPhysicalName = {fnarg getMappedFilename pcObjectFilename gshRepositoryManager}.
+                        
+        if pcPhysicalName eq ? then
+        do:
+            SESSION:SET-WAIT-STATE("GENERAL":U).
+            RUN getObjectNames IN gshRepositoryManager ( INPUT  pcObjectFileName,
+                                                         INPUT  pcRunAttribute,
+                                                         OUTPUT pcPhysicalName,
+                                                         OUTPUT pcLogicalName       ) NO-ERROR.
+            IF RETURN-VALUE NE "":U OR ERROR-STATUS:ERROR THEN
+            DO:
+                RUN showMessages IN TARGET-PROCEDURE ( INPUT  (IF RETURN-VALUE EQ "":U THEN ERROR-STATUS:GET-MESSAGE(1) ELSE RETURN-VALUE),
+                                                       INPUT  "ERR",        /* error type */
+                                                       INPUT  "&OK",        /* button list */
+                                                       INPUT  "&OK",        /* default button */ 
+                                                       INPUT  "&OK",        /* cancel button */
+                                                       INPUT  "Error getting physical and logical names",
+                                                       INPUT  YES,          /* display if empty */ 
+                                                       INPUT  ?,            /* container handle */
+                                                       OUTPUT cButtonPressed       ).
+                RETURN.
+            END.    /* Error. */
+                        
+            SESSION:SET-WAIT-STATE("":U).
+        end.    /* no mapped file found */
+        else
+            /* there is a mapped filename. now set the object name */
+            assign pcLogicalName = pcObjectFilename
+                   lUseGeneratedObject = yes.                                   
     END.        /* get logical/physical names */
 
     /** Even though dynamic frames are containers themselves, they are not
@@ -4175,7 +4250,7 @@ ACCESS_LEVEL=PUBLIC
 
     /* smart objects does a Callback to getCurrentLogicalname which returns this
        in order to read attribute data from repository BEFORE any set is done
-       (This may change when dynamic objects no longer include the .i)  */       
+       (This may change when dynamic objects no longer include the .i)  */
     ASSIGN gcLogicalContainerName = pcLogicalName.
   
     /* If objects do not exit, give an error */
@@ -4202,11 +4277,11 @@ ACCESS_LEVEL=PUBLIC
         RETURN.
     END.    /* no physical name */
         
-        ASSIGN cProcedureDesc    = "":U
-               lAlreadyRunning   = NO
-               lRunSuccessful    = NO
-               phProcedureHandle = ?
-               pcProcedureType   = "CON":U.
+    ASSIGN cProcedureDesc    = "":U
+           lAlreadyRunning   = NO
+           lRunSuccessful    = NO
+           phProcedureHandle = ?
+           pcProcedureType   = "CON":U.
                    
     /* Regardless of once only flag, see if already running as it may be an object
      * that does not support multiple instances. */
@@ -4234,17 +4309,18 @@ ACCESS_LEVEL=PUBLIC
         RUN deleteProcDependancies IN TARGET-PROCEDURE (INPUT ttPersistentProc.ProcedureHandle).
         DELETE ttPersistentProc.
     END.    /* the handle is not valid. */
-        
+    
     IF AVAILABLE ttPersistentProc THEN
-            ASSIGN lAlreadyRunning   = YES
-                       phProcedureHandle = ttPersistentProc.ProcedureHandle
-                       pcChildDataKey    = ttPersistentProc.childDataKey.
-                       
+        ASSIGN lAlreadyRunning   = YES
+               phProcedureHandle = ttPersistentProc.ProcedureHandle
+               pcChildDataKey    = ttPersistentProc.childDataKey
+               pcProcedureType   = ttPersistentProc.ProcedureType.
+    
     /* check in running instance if multiple instances supported */
     ASSIGN lMultiInstanceSupported = YES.
     
     IF VALID-HANDLE(phProcedureHandle) THEN
-     {get MultiInstanceSupported lMultiInstanceSupported phProcedureHandle } NO-ERROR.
+        {get MultiInstanceSupported lMultiInstanceSupported phProcedureHandle } NO-ERROR.
      
     /*
      IF multiple instances support is unknown
@@ -4287,30 +4363,35 @@ ACCESS_LEVEL=PUBLIC
             SESSION:SET-WAIT-STATE('':U).
             ASSIGN phProcedureHandle = ?.
         END.
-        /* Add the container's super procedure, if any. */  
         ELSE
         DO:
-            ASSIGN cContainerSuperProcedure = "":U.
+            cContainerSuperProcedure = "":U.
             
-            RUN getObjectSuperProcedure IN gshRepositoryManager
-                                    ( INPUT  (IF pcLogicalName <> "":U THEN pcLogicalName ELSE pcPhysicalName),
-                                      INPUT  pcRunAttribute,
-                                      OUTPUT cContainerSuperProcedure ) NO-ERROR.
-                                                                                                  
-            IF RETURN-VALUE NE "":U OR ERROR-STATUS:ERROR THEN
-            DO:
-                RUN showMessages IN TARGET-PROCEDURE ( INPUT  (IF RETURN-VALUE EQ "":U THEN ERROR-STATUS:GET-MESSAGE(1) ELSE RETURN-VALUE),
-                                                       INPUT  "ERR",        /* error type */
-                                                       INPUT  "&OK",        /* button list */
-                                                       INPUT  "&OK",        /* default button */ 
-                                                       INPUT  "&OK",        /* cancel button */
-                                                       INPUT  "Error getting super procedure",
-                                                       INPUT  YES,          /* display if empty */ 
-                                                       INPUT  ?,            /* container handle */
-                                                       OUTPUT cButtonPressed       ).
-                RETURN.
-            END.    /* Error. */
-   
+            /* Add the container's super procedure, if any. */        
+            if lUseGeneratedObject then
+                {get SuperProcedure cContainerSuperProcedure phProcedureHandle}.
+            else
+            do:
+                RUN getObjectSuperProcedure IN gshRepositoryManager
+                                            ( INPUT  (IF pcLogicalName <> "":U THEN pcLogicalName ELSE pcPhysicalName),
+                                              INPUT  pcRunAttribute,
+                                              OUTPUT cContainerSuperProcedure ) NO-ERROR.
+                
+                IF RETURN-VALUE NE "":U OR ERROR-STATUS:ERROR THEN
+                DO:
+                    RUN showMessages IN TARGET-PROCEDURE ( INPUT  (IF RETURN-VALUE EQ "":U THEN ERROR-STATUS:GET-MESSAGE(1) ELSE RETURN-VALUE),
+                                                               INPUT  "ERR",        /* error type */
+                                                               INPUT  "&OK",        /* button list */
+                                                               INPUT  "&OK",        /* default button */ 
+                                                               INPUT  "&OK",        /* cancel button */
+                                                               INPUT  "Error getting super procedure",
+                                                               INPUT  YES,          /* display if empty */ 
+                                                               INPUT  ?,            /* container handle */
+                                                               OUTPUT cButtonPressed       ).
+                    RETURN.
+                END.    /* Error. */
+            end.    /* not a generated object */
+            
             /* Make sure that the custom super procedure exists. */
             IF cContainerSuperProcedure NE "":U AND cContainerSuperProcedure NE ? THEN
             DO:
@@ -4320,7 +4401,7 @@ ACCESS_LEVEL=PUBLIC
                  */
                 IF cSuperProcedureMode EQ ? OR cSuperProcedureMode EQ "":U THEN
                     ASSIGN cSuperProcedureMode = "STATEFUL":U.
-                
+                    
                 /* Supers are added as SEARCH-TARGET; we add them backwards. */                                                                 
                 DO iSuperCnt = NUM-ENTRIES(cContainerSuperProcedure) TO 1 BY -1:
                     /* Start the procedure. */
@@ -4334,12 +4415,12 @@ ACCESS_LEVEL=PUBLIC
                     DO:
                         DYNAMIC-FUNCTION("addAsSuperProcedure":U IN TARGET-PROCEDURE,
                                          INPUT hPlip, INPUT phProcedureHandle).
-                                        
+                                            
                         /* Only store the handles if this is run in stateful mode. */
                         ASSIGN cSuperHandles = cSuperHandles + ",":U + STRING(hPlip).
                     END.    /* the super procedure launched successfully. */
                 END.    /* loop through super procedures */
-                                
+                                    
                 /* Store the list of super procedures in context. */
                 IF cSuperProcedureMode NE 'STATELESS' THEN
                 DO:
@@ -4347,7 +4428,7 @@ ACCESS_LEVEL=PUBLIC
                     {set SuperProcedureHandle cSuperHandles phProcedureHandle}.
                 END.    /* not a stateless super procedure */
             END.    /* add super procedure */
-        
+            
             /* work out the procedure type of the object run / running */
             IF LOOKUP( "dispatch":U, phProcedureHandle:INTERNAL-ENTRIES ) <> 0 THEN
                 ASSIGN pcProcedureType = "ADM1":U.
@@ -4449,21 +4530,18 @@ ACCESS_LEVEL=PUBLIC
                                                   INPUT phProcedureHandle ).
             
                 IF VALID-HANDLE(phParentWindow)OR phParentWindow <> ? THEN
-                        /* set the parent window */
+                    /* set the parent window */
                     {set ObjectParent phParentWindow phProcedureHandle}.
             END.    /* valid procedure handle */
    
             /* give it the run attribute */
             IF pcRunAttribute <> "":U THEN
-                {set RunAttribute pcRunAttribute phProcedureHandle} NO-ERROR.
-                
-                
-            /* Object launched ok, set logical object name attribute to correct value if required 
-             */
+                {set RunAttribute pcRunAttribute phProcedureHandle} NO-ERROR.                
+            
+            /* Object launched ok, set logical object name attribute to correct value if required */
             IF pcLogicalName <> "":U THEN
                {set LogicalObjectName pcLogicalName phProcedureHandle} NO-ERROR.
-                
-                
+            
             IF VALID-HANDLE(phObjectProcedure) OR phObjectProcedure <> ? THEN
                 /* perform the required pre-initialization work */
                 RUN createLinks IN TARGET-PROCEDURE (INPUT pcPhysicalName,
@@ -4484,7 +4562,7 @@ ACCESS_LEVEL=PUBLIC
             
             IF phParentWindow <> ? THEN
                 {set CallerWindow phParentWindow phProcedureHandle} NO-ERROR.
-                        
+            
             /* Initialize the run object */
             RUN initializeObject IN phProcedureHandle NO-ERROR.
                         
@@ -4524,7 +4602,7 @@ ACCESS_LEVEL=PUBLIC
                lRunSuccessful    = NO
                phProcedureHandle = ?
                pcProcedureType   = "":U.
-                           
+    
     ASSIGN gcLogicalContainerName = ?
            ERROR-STATUS:ERROR     = NO.
     RETURN.
@@ -5026,23 +5104,15 @@ DEFINE VARIABLE cTypeAPI              AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cSessionCustRefs      AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cSessionResultCodes   AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE hCustomizationManager AS HANDLE     NO-UNDO.
+define variable cSecurityPropertyNames    as character                    no-undo.
+define variable cSecurityPropertyValues   as character                    no-undo.
 
 /* Clear the cached temp-tables */
-
-IF NOT TRANSACTION 
-THEN DO:
-    EMPTY TEMP-TABLE ttTranslation.
-    EMPTY TEMP-TABLE ttProfileData.
-    EMPTY TEMP-TABLE ttSecurityControl.
-END.
-ELSE DO:
-    FOR EACH ttProfileData:     DELETE ttProfileData.     END.
-    FOR EACH ttSecurityControl: DELETE ttSecurityControl. END.
-    FOR EACH ttTranslation:     DELETE ttTranslation.     END.
-END.
+EMPTY TEMP-TABLE ttTranslation.
+EMPTY TEMP-TABLE ttProfileData.
+EMPTY TEMP-TABLE ttSecurityControl.
 
 /* Initialize any variables */
-
 IF pcCustTypesPrioritised = ? THEN
     ASSIGN pcCustTypesPrioritised = "":U.
 
@@ -5079,8 +5149,10 @@ RUN af/app/cacheafter.p ON gshAstraAppserver (INPUT pcLoginName,
                                               OUTPUT pcFailedReason,
                                               OUTPUT cTypeAPI,
                                               OUTPUT cSessionCustRefs,
-                                              OUTPUT cSessionResultCodes).
-
+                                              OUTPUT cSessionResultCodes,
+                                              output cSecurityPropertyNames,
+                                              output cSecurityPropertyValues ).
+                                              
 IF pcFailedReason <> "":U THEN /* This will cause the login to fail */
     RETURN.
 
@@ -5097,9 +5169,14 @@ DO:
 END.
 
 /* Send the security cache to the security manager */
-
 IF CAN-FIND(FIRST ttSecurityControl) THEN
     RUN receiveCacheSessionSecurity IN gshSecurityManager (INPUT TABLE ttSecurityControl).
+    
+/* Set the security-related properties. */
+dynamic-function('setPropertyList' in gshSessionManager,
+                 input cSecurityPropertyNames,
+                 input cSecurityPropertyValues,
+                 input Yes ).
 
 /* Send the translation cache to the translation manager */
 
@@ -5121,8 +5198,7 @@ END.
 
 ASSIGN ERROR-STATUS:ERROR = NO.
 RETURN "":U.
-
-END PROCEDURE.
+END PROCEDURE.    /* loginCacheAfter */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -5774,35 +5850,49 @@ PROCEDURE resizeNormalFrame :
 /*------------------------------------------------------------------------------
   Purpose:     
   Parameters:  <none>
-  Notes:       
+  Notes:       hParent corresponds to the window or dialog-box that is parent
+               of the specified frame.
 ------------------------------------------------------------------------------*/
   DEFINE INPUT PARAMETER phObject           AS HANDLE     NO-UNDO.
   DEFINE INPUT PARAMETER phFrame            AS HANDLE     NO-UNDO.
   DEFINE INPUT PARAMETER pdNewWidth         AS DECIMAL    NO-UNDO.
 
-  DEFINE VARIABLE hWindow                   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hParent                   AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hContainer                AS HANDLE     NO-UNDO.
   
-  hContainer = DYNAMIC-FUNCTION("getcontainersource":U IN phObject) NO-ERROR.
-  
-  hWindow = phFrame:WINDOW.
+  IF phFrame:TYPE = "DIALOG-BOX":U THEN
+      ASSIGN hContainer         = ?
+             hParent    = ?.
+  ELSE
+  DO:
+      ASSIGN hContainer = DYNAMIC-FUNCTION("getcontainersource":U IN phObject) NO-ERROR.
+
+      /* Walk through parents to get parent window or dialog-box */
+      hParent = phFrame:PARENT.
+      DO WHILE VALID-HANDLE(hParent):
+          IF CAN-DO("WINDOW,DIALOG-BOX":U, hParent:TYPE) THEN LEAVE.
+          hParent = hParent:PARENT.
+      END.
+  END.
   
   /* 1st make frame virtually big to avoid size issues */
   phFrame:SCROLLABLE = TRUE NO-ERROR.
-  hWindow:VIRTUAL-WIDTH-CHARS  = SESSION:WIDTH-CHARS NO-ERROR.
-  hWindow:VIRTUAL-HEIGHT-CHARS = SESSION:HEIGHT-CHARS NO-ERROR.
+  hParent:VIRTUAL-WIDTH-CHARS  = SESSION:WIDTH-CHARS NO-ERROR.
+  hParent:VIRTUAL-HEIGHT-CHARS = SESSION:HEIGHT-CHARS NO-ERROR.
   phFrame:VIRTUAL-WIDTH-CHARS  = SESSION:WIDTH-CHARS - 1 NO-ERROR.
   phFrame:VIRTUAL-HEIGHT-CHARS = SESSION:HEIGHT-CHARS - 1 NO-ERROR.
   
   /* resize window if too small to fit new frame (plus a bit for margin) */
-  IF (pdNewWidth) > (hWindow:WIDTH-CHARS - 10) THEN
+  IF VALID-HANDLE(hParent) 
+      AND (pdNewWidth) > (hParent:WIDTH-CHARS - 10) THEN
   DO:
-    hWindow:WIDTH-CHARS = pdNewWidth + 10 NO-ERROR.
-    hWindow:MIN-WIDTH-CHARS = pdNewWidth + 10 NO-ERROR.
+    hParent:WIDTH-CHARS = pdNewWidth + 10 NO-ERROR.
+    IF CAN-SET(hParent, "MIN-WIDTH-CHARS":U) THEN
+        hParent:MIN-WIDTH-CHARS = pdNewWidth + 10 NO-ERROR.
   
     IF VALID-HANDLE(hContainer) THEN
     DO:
-      APPLY "window-resized":u TO hWindow.
+      APPLY "window-resized":u TO hParent.
       RUN resizeWindow IN hContainer NO-ERROR.
     END.
   END.
@@ -5811,11 +5901,14 @@ PROCEDURE resizeNormalFrame :
   phFrame:WIDTH-CHARS = pdNewWidth NO-ERROR.
   
   /* always ensure min window size set correctly - even if not resized */
-  IF (hWindow:MIN-WIDTH-CHARS - 10) < phFrame:WIDTH-CHARS THEN
-    ASSIGN hWindow:MIN-WIDTH-CHARS = phFrame:WIDTH-CHARS + 10 NO-ERROR.
+  IF VALID-HANDLE(hParent)
+      AND CAN-QUERY(hParent, "MIN-WIDTH-CHARS":U)
+      AND CAN-SET(hParent, "MIN-WIDTH-CHARS":U)
+      AND (hParent:MIN-WIDTH-CHARS - 10) < phFrame:WIDTH-CHARS THEN
+    ASSIGN hParent:MIN-WIDTH-CHARS = phFrame:WIDTH-CHARS + 10 NO-ERROR.
   
-  hWindow:VIRTUAL-WIDTH-CHARS  = hWindow:WIDTH-CHARS NO-ERROR.
-  hWindow:VIRTUAL-HEIGHT-CHARS = hWindow:HEIGHT-CHARS NO-ERROR.
+  hParent:VIRTUAL-WIDTH-CHARS  = hParent:WIDTH-CHARS NO-ERROR.
+  hParent:VIRTUAL-HEIGHT-CHARS = hParent:HEIGHT-CHARS NO-ERROR.
   phFrame:VIRTUAL-WIDTH-CHARS  = phFrame:WIDTH-CHARS NO-ERROR.
   phFrame:VIRTUAL-HEIGHT-CHARS = phFrame:HEIGHT-CHARS NO-ERROR.
   phFrame:SCROLLABLE = FALSE NO-ERROR.
@@ -6969,7 +7062,7 @@ PROCEDURE translateWidgets :
   DEFINE INPUT PARAMETER phObject AS HANDLE NO-UNDO.
   DEFINE INPUT PARAMETER phFrame  AS HANDLE NO-UNDO.
   DEFINE INPUT PARAMETER TABLE FOR ttTranslate.
-
+  
   DEFINE VARIABLE hDataSource               AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hSideLabel                AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hSDFHandle                AS HANDLE     NO-UNDO.
@@ -7528,10 +7621,12 @@ PROCEDURE translateWidgets :
                 ASSIGN hSideLabel = ?.
 
             /* We need to manually resize, move and change to format of labels for
-             * objects on the viewer. */
-            IF VALID-HANDLE(hSideLabel) AND hSideLabel:TYPE = "LITERAL":U 
+             * objects on the viewer. */             
+            IF VALID-HANDLE(hSideLabel)
             THEN DO:
-                ASSIGN dNewLabelLength = FONT-TABLE:GET-TEXT-WIDTH-PIXELS(ttTranslate.cTranslatedLabel, ttTranslate.hWidgetHandle:FONT).
+                assign ttTranslate.cTranslatedLabel = ttTranslate.cTranslatedLabel
+                                                    + (IF INDEX(ttTranslate.cTranslatedLabel, ":":U) eq 0 THEN ":":U ELSE "":U)
+                       dNewLabelLength = FONT-TABLE:GET-TEXT-WIDTH-PIXELS(ttTranslate.cTranslatedLabel, ttTranslate.hWidgetHandle:FONT).
 
                 /** Position the label. We use pixels here since X and WIDTH-PIXELS
                  *  are denominated in the same units, unlike COLUMN and WIDTH-CHARS.
@@ -7545,26 +7640,24 @@ PROCEDURE translateWidgets :
                     ASSIGN dLabelWidth = 1.
 
                 IF CAN-SET(hSideLabel, "FORMAT":U) THEN
-                    ASSIGN hSideLabel:FORMAT = "x(" + STRING(LENGTH(ttTranslate.cTranslatedLabel, "CHARACTER":U)) + ")":U.
-
+                    ASSIGN hSideLabel:FORMAT = "x(" + STRING(LENGTH(ttTranslate.cTranslatedLabel, "Column":U)) + ")":U.
+                
                 IF lKeepChildPositions THEN
-                DO:
                    ASSIGN hSideLabel:SCREEN-VALUE = SUBSTRING(ttTranslate.cTranslatedLabel, 1, 
                                                               INTEGER(hSideLabel:WIDTH-CHARS))
                           hSideLabel:SCREEN-VALUE = ttTranslate.cTranslatedLabel
                           hSideLabel:TOOLTIP      = ttTranslate.cTranslatedLabel 
                           NO-ERROR.
-                END.
                 ELSE DO:
-                    ASSIGN hSideLabel:WIDTH-PIXELS = dLabelWidth NO-ERROR.
                     ASSIGN hSideLabel:X            = ttTranslate.hWidgetHandle:X - dLabelWidth NO-ERROR.
                     ASSIGN hSideLabel:SCREEN-VALUE = ttTranslate.cTranslatedLabel NO-ERROR.
+                    ASSIGN hSideLabel:WIDTH-PIXELS = dLabelWidth NO-ERROR.
                 END.
             END.   /* valid side-label */
             ELSE
                 ASSIGN ttTranslate.hWidgetHandle:LABEL = ttTranslate.cTranslatedLabel NO-ERROR.
           END.  /* there is a translation */
-
+          
           IF ttTranslate.cTranslatedTooltip <> "":U THEN 
           DO:
               IF CAN-QUERY(ttTranslate.hWidgetHandle,"FILE-NAME":U) AND lHasFieldLabel THEN 
@@ -7825,7 +7918,7 @@ DEFINE VARIABLE lOk                  AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE hLabel               AS HANDLE    NO-UNDO.
 DEFINE VARIABLE hColumn              AS HANDLE    NO-UNDO.
 DEFINE VARIABLE cFieldName           AS CHARACTER NO-UNDO.
-DEFINE VARIABLE cSecurityFieldName   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cSecurityFieldName   AS CHARACTER NO-UNDO.
 DEFINE VARIABLE cRadioButtons        AS CHARACTER NO-UNDO.
 DEFINE VARIABLE iRadioLoop           AS INTEGER   NO-UNDO.
 DEFINE VARIABLE iBrowseLoop          AS INTEGER   NO-UNDO.
@@ -7997,7 +8090,17 @@ DO:
   END.  
   
   cAllFieldNames =  DYNAMIC-FUNCTION("getAllFieldNames":U IN phObject). 
-
+    
+    /* If this is a viewer, get the PopupFieldMapping property.
+       If it is blank/empty, then no popups have yet been created;
+       if not blank, then the popups need to be created here. There
+       may be cases where widgetWalk() needs to perform security or
+       translations and the popups have been created; and in these
+       cases the popups shouldn't be created again.              
+     */
+    if {fnarg instanceOf 'DynView' phObject} then
+        {get FieldPopupMapping cFieldPopupMapping phObject}.
+    
   /* obtain right list of fields for recursive non-smart frame 
     (visual.p calls this also for child frames for translation) */
   IF phFrame:TYPE = "FRAME" THEN 
@@ -8020,7 +8123,7 @@ DO:
       END.
     END.
   END.  /* if frame */
-  
+        
   widget-walk:
   DO WHILE VALID-HANDLE (hWidget):
     /* check if european format and if so and this is a decimal widget and the delimiter 
@@ -8049,7 +8152,7 @@ DO:
 
     /* Translation and security. */
     IF pcAction = "Setup":U 
-    AND CAN-DO("browse,text,button,fill-in,selection-list,editor,combo-box,radio-set,slider,toggle-box":U, hWidget:TYPE) THEN 
+    AND CAN-DO("text,button,fill-in,selection-list,editor,combo-box,radio-set,slider,toggle-box":U, hWidget:TYPE) THEN
     DO:
       ASSIGN
         iFieldPos = LOOKUP(STRING(hWidget),cAllFieldHandles)
@@ -8082,7 +8185,7 @@ DO:
                ENTRY(iFieldPos,cFieldSecurity) = "ReadOnly":U.
 
       IF lObjectSecured NE YES 
-      AND NOT CAN-DO("button,browser":U, hWidget:TYPE) 
+      AND NOT CAN-DO("button":U, hWidget:TYPE) 
       AND cSecuredFields <> "":U 
       AND LOOKUP(cSecurityFieldName,cSecuredFields) <> 0 THEN 
       DO:
@@ -8198,90 +8301,93 @@ DO:
                    ttTranslate.cTranslatedTooltip = "":U.
           END. /* radio-loop */
         END. /* else (radio-set) */
-
-        IF hWidget:TYPE = "browse":U THEN
-        DO: 
-          hColumn = hWidget:FIRST-COLUMN.
-          IF cObjectType = "SmartDataBrowser":U THEN 
-             cFieldSecurity = FILL(",":U,hWidget:NUM-COLUMNS - 1).
-        
-          col-loop:
-          DO iBrowseLoop = 1 TO hWidget:NUM-COLUMNS:
-            IF NOT VALID-HANDLE(hColumn) THEN 
-              LEAVE col-loop.
-            /* Determine the buffer table name and the table name. 
-              If two buffers for the same table is used, the table prefix 
-              will be the same. This cause errors when creating the translation 
-              fields as a record will the same name already exist. */
-            ASSIGN cBufferTableName = hColumn:BUFFER-FIELD:BUFFER-HANDLE:NAME
-                   cColumnTableName = hColumn:TABLE
-                   NO-ERROR.
-        
-            ASSIGN cFieldName = (IF cBufferTableName <> ?
-                                 AND cBufferTableName <> "RowObject":U
-                                 AND LENGTH(cBufferTableName) > 0
-                                 THEN (cBufferTableName + ".":U)
-                                 ELSE (IF  cColumnTableName <> ?
-                                       AND cColumnTableName <> "RowObject":U
-                                       AND LENGTH(cColumnTableName) > 0
-                                       THEN (cColumnTableName + ".":U)
-                                       ELSE "":U))
-                              + (IF (hColumn:NAME = ? OR hColumn:NAME = "":U) AND hColumn:LABEL <> ?
-                                 THEN hColumn:LABEL
-                                 ELSE hColumn:NAME).
-
-            IF cFieldName = ? OR cFieldName = "":U THEN 
-            DO:
-              ASSIGN hColumn = hcolumn:NEXT-COLUMN NO-ERROR.
-              NEXT col-loop.
-            END.
-        
-            /* Avoid duplicates */
-            IF CAN-FIND(FIRST ttTranslate
-                        WHERE ttTranslate.dLanguageObj = 0
-                        AND ttTranslate.cObjectName  = cObjectName
-                        AND ttTranslate.cWidgetType  = hWidget:TYPE
-                        AND ttTranslate.cWidgetName  = cFieldName) THEN 
-            DO:
-              ASSIGN hColumn = hcolumn:NEXT-COLUMN NO-ERROR.
-              NEXT col-loop.
-            END.
-            CREATE ttTranslate.
-            ASSIGN ttTranslate.dLanguageObj       = 0
-                   ttTranslate.cObjectName        = cObjectName
-                   ttTranslate.lGlobal            = NO
-                   ttTranslate.lDelete            = NO
-                   ttTranslate.cWidgetType        = hWidget:TYPE
-                   ttTranslate.cWidgetName        = cFieldName
-                   ttTranslate.hWidgetHandle      = hColumn
-                   ttTranslate.iWidgetEntry       = 0
-                   ttTranslate.cOriginalLabel     = (IF CAN-QUERY(hColumn,"LABEL":U) AND hColumn:LABEL <> ? THEN hColumn:LABEL ELSE "":U)
-                   ttTranslate.cTranslatedLabel   = "":U
-                   ttTranslate.cOriginalTooltip   = (IF CAN-QUERY(hColumn,"TOOLTIP":U) AND hColumn:TOOLTIP <> ? THEN hColumn:TOOLTIP ELSE "":U)
-                   ttTranslate.cTranslatedTooltip = "":U.
-
-            IF cObjectType = "SmartDataBrowser":U THEN 
-            DO:
-              ASSIGN iEntry = LOOKUP(cFieldName,cSecuredFields). /* Look for field in list */
-              IF iEntry > 0 AND NUM-ENTRIES(cSecuredFields) > iEntry THEN 
-              DO: 
-                ENTRY(iBrowseLoop,cFieldSecurity) = ENTRY(iEntry + 1, cSecuredFields).
-                CASE ENTRY(iBrowseLoop,cFieldSecurity):
-                  WHEN "HIDDEN":U THEN 
-                    ASSIGN hColumn:VISIBLE = NO.
-                  WHEN "READ ONLY":U THEN 
-                    ASSIGN hColumn:COLUMN-READ-ONLY = YES NO-ERROR.
-                END CASE.
-              END.
-            END.  /* if SmartDataBrowser */        
-            ASSIGN hColumn = hcolumn:NEXT-COLUMN NO-ERROR.
-          END.
-        END. /* type = browse */
       END. /* lObjectTranslated <> yes */
 
       IF lObjectSecured NE YES AND cObjectType = "SmartDataBrowser":U AND cFieldSecurity <> "":U THEN
         DYNAMIC-FUNCTION("setFieldSecurity":U IN phObject, cFieldSecurity) NO-ERROR.
     END. /* action = setup and can-do( */ 
+    else
+    /* Browser translations and security belong in a separate section, 
+       because the column handles are not stored in the AllField*
+       properties.
+     */
+    if pcAction eq 'Setup' and hWidget:type eq 'Browse' then
+    do:
+        if not lObjectSecured and cObjectType eq 'SmartDataBrowser' then
+            cFieldSecurity = Fill(',', hWidget:Num-Columns - 1).
+        
+        hColumn = hWidget:FIRST-COLUMN.
+        COLUMN-LOOP:
+        do while valid-handle(hColumn):
+            assign iBrowseLoop = iBrowseLoop + 1
+                   cFieldName = IF hColumn:NAME > "":U THEN hColumn:NAME ELSE hColumn:LABEL.
+
+            IF cObjectType NE 'SmartDataBrowser':U THEN
+                ASSIGN cFieldName = (IF hColumn:TABLE > "":U THEN (hColumn:TABLE + ".":U) ELSE "":U)
+                                  + cFieldName.
+            
+            /* We should always have a valid column name in the 
+               fieldname variable, but if we don't then bug out.
+             */
+            if cFieldName eq ? or cFieldName eq '' then
+            do:
+                hColumn = hColumn:Next-Column.
+                next COLUMN-LOOP.
+            end.    /* field name invalid */
+            
+            /* First attempt the translations */
+            if not lObjectTranslated then
+            do:
+	            /* Don't try to translate the same column more than once. */
+	            if can-find(first ttTranslate where
+	                              ttTranslate.dLanguageObj = 0 and
+	                              ttTranslate.cObjectName = cObjectName and
+	                              ttTranslate.cWidgetType = hWidget:Type and /* always Browser here */
+	                              ttTranslate.cWidgetName = cFieldName ) then
+                do:
+	                hColumn = hColumn:Next-Column.
+	                next COLUMN-LOOP.
+                end.    /* duplicate found */
+                
+	            create ttTranslate.
+	            assign ttTranslate.dLanguageObj       = 0
+	                   ttTranslate.cObjectName        = cObjectName
+	                   ttTranslate.lGlobal            = NO
+	                   ttTranslate.lDelete            = NO
+	                   ttTranslate.cWidgetType        = hWidget:TYPE
+	                   ttTranslate.cWidgetName        = cFieldName
+	                   ttTranslate.hWidgetHandle      = hColumn
+	                   ttTranslate.iWidgetEntry       = 0
+	                   ttTranslate.cOriginalLabel     = hColumn:Label
+	                   ttTranslate.cTranslatedLabel   = ''
+	                   ttTranslate.cOriginalTooltip   = ''    /* Browse columns don't have tooltips */
+	                   ttTranslate.cTranslatedTooltip = ''.
+            end.    /* columns not yet translated */
+            
+            /* Now do the security. 
+            */
+            if not lObjectSecured and cObjectType eq 'SmartDataBrowser' then
+            do:
+                iEntry = lookup(cFieldName, cSecuredFields).
+                if iEntry gt 0 and num-entries(cSecuredFields) gt iEntry then
+                do:
+                    entry(iBrowseLoop, cFieldSecurity) = entry(iEntry + 1, cSecuredFields).
+                    case entry(iBrowseLoop, cFieldSecurity):
+                        when 'Hidden' then hColumn:Visible = no.
+                        when 'Read Only' then hColumn:Column-Read-Only = yes no-error.
+                    end case.    /* type of security */
+                end.    /* the field is secured */
+            end.    /* object not yet secured */
+            
+            hColumn = hColumn:Next-Column.
+        end.    /* COLUMN-LOOP: */
+            
+        /* Now tell the browser which fields (columns in this case) are secured. */
+        if not lObjectSecured and
+           cObjectType eq 'SmartDataBrowser' and
+           cFieldSecurity ne '' then
+            {set FieldSecurity cFieldSecurity phObject} no-error.
+    end.    /* Setup for the browser. */
 
     /*-----------------------------------*
      * Put popup on fields if applicable *
@@ -8315,7 +8421,28 @@ DO:
          IF  cParentField <> "":U AND cParentField <> ? 
          AND LOOKUP(cParentField,cHiddenFields) <> 0 THEN /* Don't create popup for hidden fields */
            ASSIGN cShowPopup = "NO".
-      END.
+           
+            /* The popup may already have been created by a generated viewer in 
+               certain circumstances; if the current field has been hidden by security,
+               then the popup needs to be destroyed.
+             */
+            iEntry = lookup(string(hWidget), cFieldPopupMapping) no-error.
+            if can-do(cHiddenFields, cFieldName) and iEntry gt 0 then
+            do:
+                hLookup = widget-handle(entry(iEntry + 1, cFieldPopupMapping)) no-error.
+                /* If there is a popup, destroy it and remove it from the list. */
+                if valid-handle(hLookup) then
+                do:                    
+                    delete object hLookup no-error.
+                    hLookup = ?.
+                    entry(iEntry + 1, cFieldPopupMapping) = '?'.
+                end.    /* there is a popup for the secured field */
+                                        
+                /* No need to go further. */
+                cShowPopup = 'No'.
+            end.    /* popup already created for secured field */
+      END.    /* there are hidden fields */
+
 
       /* Only check for ShowPopups = NO. If it is YES, create the popup. */
       IF cShowPopup EQ "NO":U THEN 
@@ -8342,6 +8469,15 @@ DO:
           NEXT widget-walk.
         END.    /* NOLOOKUPS set in private data */
       END.    /* default */
+      
+      /* If the popup has already been created, then there is no need to
+         create it again. Move on.
+       */
+      if can-do(cFieldPopupMapping, string(hWidget)) then
+      do:
+          hWidget = hWidget:next-sibling.
+          next.
+      end.    /* popup exists */
 
       /* create a lookup button for pop-up calendar or calculator */
       CREATE BUTTON hLookup
@@ -8350,7 +8486,7 @@ DO:
                WIDTH-PIXELS  = 15
                LABEL         = "...":U
                PRIVATE-DATA  = "POPUP":U 
-               HIDDEN        = FALSE
+               HIDDEN        = hWidget:Hidden
         /* this is curretly called AFTER enableObjects, so ensure the popup has 
            the right state */      
                SENSITIVE     = hWidget:SENSITIVE 

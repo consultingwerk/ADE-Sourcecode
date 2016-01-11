@@ -881,6 +881,8 @@ DEFINE VARIABLE iLoop            AS INTEGER    NO-UNDO.
     {get DataSourceNames cDataSource}.
     hDataSource = {fnarg dataObjectHandle cDataSource hDataSource}.
   END.
+     
+  {get RebuildOnRepos lRebuild hDataSource}.
 
   IF VALID-HANDLE(hBrowse) AND VALID-HANDLE(hDataSource) THEN
   DO:
@@ -911,18 +913,22 @@ DEFINE VARIABLE iLoop            AS INTEGER    NO-UNDO.
           /* Check if we are supposed to fetch data to fill the browse */
           {get FetchOnReposToEnd lFetchOnRepos}.
           IF lFetchOnRepos THEN
-          DO:
+          DO:           
             PUBLISH 'fetchBatch':U FROM TARGET-PROCEDURE(YES).
-            hBrowse:SET-REPOSITIONED-ROW(iNumEntries,"always":U).
-            hDataQuery:REPOSITION-TO-ROWID(rRowid).        
-            RUN "DataAvailable":U IN hDataSource('value-changed':U).
+            hBrowse:SET-REPOSITIONED-ROW(IF lRebuild 
+                                         THEN 1 
+                                         ELSE INT(hBrowse:DOWN / 2),
+                                         "always":U).  
+            hDataQuery:REPOSITION-TO-ROWID(rRowid). 
+            /* If fetchBatch got the last batch, call this again to tap into 
+               the position-at-end logic above..  */
+            {get LastRowNum iLastRowNum hDataSource}.
+            IF iLastRownum <> ? THEN
+              RUN adjustReposition IN TARGET-PROCEDURE.
           END.
         END.
       END.
     END.                     
-    
-    {get RebuildOnRepos lRebuild hDataSource}.
-
     /* This is not very well though out and the down logic doesn't really work 
       for long, but we need to get rid of the 'always' setting used above, and 
       it is here in an attempt to keep the same setting after 
@@ -1552,7 +1558,7 @@ DEFINE VARIABLE lHideOnInit  AS LOGICAL    NO-UNDO.
           ROW       = 1 
           COL       = hSearchLabel:COL + hSearchLabel:WIDTH 
           FRAME     = hFrame
-          VISIBLE   = yes 
+          HIDDEN    = no 
           SENSITIVE = yes
           SIDE-LABEL-HANDLE = hSearchLabel
         TRIGGERS: 
@@ -2252,7 +2258,15 @@ PROCEDURE enableFields :
 
       /* "APPLY ENTRY" on a hidden, updatable browse will make the
          browse respond to cursor key navigation, which is wrong */
-      IF NOT {fn getObjectHidden} THEN
+      IF NOT {fn getObjectHidden} AND
+
+      /* Apply ENTRY to browse widget only if not in add/copy mode,
+         only if there is a row selected and only if the focus is not
+         already on the browse. This is to prevent event triggers to be
+         fired unnecessarily such as ROW-ENTRY, ROW-LEAVE and OFF-END */
+         NOT CAN-DO("Add,Copy":U,{fn getNewRecord}) AND 
+         lSelected AND 
+         FOCUS <> hBrowse THEN
         APPLY "ENTRY":U TO hBrowse.
       {set FieldsEnabled yes}.
     END.
@@ -2283,7 +2297,6 @@ PROCEDURE enableObject :
   Notes     :       
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hBrowse AS HANDLE     NO-UNDO.
-
   {get BrowseHandle hBrowse}.
   hBrowse:SENSITIVE = TRUE.
 
@@ -2602,9 +2615,10 @@ PROCEDURE initializeObject :
   DEFINE VARIABLE cContained        AS CHARACTER NO-UNDO.
   DEFINE VARIABLE hQueryRowObject   AS HANDLE    NO-UNDO.
   DEFINE VARIABLE hQueryHandle      AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE lScrollRemote     AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE hTarget           AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lRowDisplay       AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE iSuper            AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cSupers           AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cLaunch           AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE rRowid            AS ROWID      NO-UNDO.
   DEFINE VARIABLE lPopupActive      AS LOGICAL    NO-UNDO.
@@ -2803,14 +2817,27 @@ PROCEDURE initializeObject :
   
   /* The following links the ROW-DISPLAY trigger in with the rowDisplay 
      procedure or to support scrolling of the remote query.*/
-  {get ScrollRemote lScrollRemote}.
-  /* Check also for rowDisplay in custom super. */
-  hTarget = WIDGET-HANDLE(ENTRY(1, TARGET-PROCEDURE:SUPER-PROCEDURES)).
-  IF hTarget NE THIS-PROCEDURE 
-  AND LOOKUP('rowDisplay', hTarget:INTERNAL-ENTRIES) NE 0 THEN 
-    lRowDisplay = YES.
-  
-  IF lScrollRemote OR lRowDisplay THEN
+  {get ScrollRemote lRowDisplay}.
+  /* We also need to add rowdisplay trigger if any super BELOW browser.p 
+     has a rowDisplay entry */  
+  IF NOT lRowDisplay THEN
+  DO:
+    cSupers = TARGET-PROCEDURE:SUPER-PROCEDURES.
+    DO iSuper = 1 TO NUM-ENTRIES(cSupers):
+      hTarget = WIDGET-HANDLE(ENTRY(iSuper,cSupers)).
+      
+      IF hTarget = THIS-PROCEDURE THEN 
+        LEAVE.
+      
+      IF LOOKUP('rowDisplay':U, hTarget:INTERNAL-ENTRIES) NE 0 THEN
+      DO:
+        lRowDisplay = YES.
+        LEAVE.
+      END.
+    END.
+  END.
+
+  IF lRowDisplay THEN
     ON ROW-DISPLAY OF hBrowse PERSISTENT RUN rowDisplay IN TARGET-PROCEDURE. 
     
   RUN SUPER.
@@ -3663,6 +3690,64 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-refreshQuery) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE refreshQuery Procedure 
+PROCEDURE refreshQuery :
+/*------------------------------------------------------------------------------
+  Purpose: Refresh browse query and reposition to currently selected row
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hBrowse      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hSource      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cRowIdent    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSourceNames AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSourceName  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cRows        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iLoop        AS INTEGER    NO-UNDO.
+
+  {get BrowseHandle hBrowse}.
+
+  hBrowse:REFRESHABLE = NO.
+
+  &SCOPED-DEFINE xp-assign
+  {get DataSource hSource}
+  {get DataSourceNames cSourceNames}
+  .
+  &UNDEFINE xp-assign
+  
+  /* if data source is SBO then get actual data source */
+  {get ObjectName cSourceName hSource}.
+  IF  (cSourceNames <> ? AND cSourceNames <> '':U) 
+  AND (cSourceNames NE cSourceName) THEN
+    hSource = {fnarg DataObjectHandle cSourceNames hSource}. 
+  
+  IF VALID-HANDLE(hSource) THEN
+  DO:
+    cRowident = DYNAMIC-FUNCTION('getRowIdent':U IN hSource).
+    IF cRowIdent > "":U THEN
+    DO:
+      DO iLoop = 1 TO hBrowse:DOWN:
+        IF hBrowse:IS-ROW-SELECTED(iLoop) THEN
+            LEAVE.
+      END.
+      DYNAMIC-FUNCTION('closeQuery' IN hSource).
+      hBrowse:SET-REPOSITIONED-ROW(iLoop,"CONDITIONAL":U).
+      cRows = DYNAMIC-FUNCTION('fetchRowIdent' IN hSource, cRowIdent, '':U).
+      IF cRows = ? THEN
+          RUN fetchFirst IN hSource.
+    END.
+  END.
+
+  hBrowse:REFRESHABLE = YES.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-removeColumnSettings) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE removeColumnSettings Procedure 
@@ -4395,7 +4480,7 @@ PROCEDURE searchTrigger :
   &UNDEFINE xp-assign
   
   DYNAMIC-FUNCTION('findRowWhere':U IN hSource,
-                    cSearchField, 
+                    'RowObject.':U + cSearchField, 
                     SELF:SCREEN-VALUE,
                     '>=':U).
   
@@ -4728,6 +4813,8 @@ DEFINE VARIABLE cBrowseName      AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cContainerName   AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cProfileKey      AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cQuerySort       AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cSourceName      AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cSourceNames     AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE hContainerSource AS HANDLE     NO-UNDO.
 DEFINE VARIABLE hDataSource      AS HANDLE     NO-UNDO.
 DEFINE VARIABLE lProfileExists   AS LOGICAL    NO-UNDO.
@@ -4735,9 +4822,18 @@ DEFINE VARIABLE lProfileExists   AS LOGICAL    NO-UNDO.
   &SCOPED-DEFINE xp-assign
   {get ObjectName cBrowseName}
   {get ContainerSource hContainerSource}
-  {get DataSource hDataSource}.
+  {get DataSource hDataSource}
+  {get DataSourceNames cSourceNames}.
   &UNDEFINE xp-assign
+  
+  {get ObjectName cSourceName hDataSource}.
 
+  /* The SBO does not have a sort API, so if SourceNames is defined we need to 
+     get the handle of the actual Source */
+  IF  (cSourceNames <> ? AND cSourceNames <> '':U) 
+  AND (cSourceNames NE cSourceName) THEN
+    hDataSource = {fnarg DataObjectHandle cSourceNames hDataSource}. 
+  
   IF VALID-HANDLE(hContainerSource) THEN
     {get LogicalObjectName cContainerName hContainerSource}.
   

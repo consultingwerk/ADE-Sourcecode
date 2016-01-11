@@ -3251,31 +3251,19 @@ PROCEDURE updateMode :
   IF VALID-HANDLE(gshSecurityManager)
   AND CAN-DO("Modify,Enable,UpdateEnd":U, pcMode) THEN 
   DO:
-    {get containerSource hContainer}.
-    IF VALID-HANDLE(hContainer) THEN 
+    IF VALID-HANDLE(hTableIOSource) THEN
     DO:
-      &SCOPED-DEFINE xp-assign
-      {get LogicalObjectName cLogicalObjectName hContainer}
-      {get runAttribute cRunAttribute hContainer}.
-      &UNDEFINE xp-assign
-        
-      RUN tokenSecurityGet IN gshSecurityManager (INPUT hContainer,
-                                                  INPUT cLogicalObjectName,
-                                                  INPUT cRunAttribute,
-                                                  OUTPUT cSecuredTokens).
-      ASSIGN cSecuredTokens = REPLACE(cSecuredTokens, "&":U, "":U).
-    END.
+        {get SecuredTokens cSecuredTokens hTableIOSource}.
+        ASSIGN cSecuredTokens = REPLACE(cSecuredTokens, "&":U, "":U).
 
-    /* We're going to set the mode to view and make sure the TableIO type is set to update */
-    IF LOOKUP("Modify":U, cSecuredTokens) > 0 THEN 
-    DO:
-      ASSIGN pcMode = "view":U.
-      {set SaveSource NO}.
+        /* We're going to set the mode to view and make sure the TableIO type is set to update */
+        IF LOOKUP("Modify":U, cSecuredTokens) > 0 THEN 
+        DO:
+          ASSIGN pcMode = "view":U.
+          {set SaveSource NO}.
 
-      IF VALID-HANDLE(hTableIOSource) THEN 
-      DO:
-        {set TableIOType 'Update' hTableIOSource}.
-      END.
+          {set TableIOType 'Update' hTableIOSource}.
+        END.
     END.
   END.
 

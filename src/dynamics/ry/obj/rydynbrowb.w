@@ -348,21 +348,7 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTableWin
 ON F5 OF br_table IN FRAME F-Main
 DO:
-  /* Refresh browse query and reposition to currently selected row */
-  DEFINE VARIABLE hSource   AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cRowIdent AS CHARACTER  NO-UNDO.
-
-  BROWSE {&BROWSE-NAME}:REFRESHABLE = NO.
-  {get DataSource hSource}.
-  cRowident = DYNAMIC-FUNCTION('getRowIdent':U IN hSource) NO-ERROR.
-  IF VALID-HANDLE(hSource) THEN
-  DO:
-    DYNAMIC-FUNCTION('openQuery' IN hSource).
-    IF cRowIdent <> ? AND cRowIdent <> "":U THEN
-      DYNAMIC-FUNCTION('fetchRowIdent' IN hSource, cRowIdent, '':U) NO-ERROR.
-  END.
-  BROWSE {&BROWSE-NAME}:REFRESHABLE = YES.
-
+    RUN refreshQuery IN TARGET-PROCEDURE.
 END.
 
 /* _UIB-CODE-BLOCK-END */

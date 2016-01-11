@@ -34,28 +34,6 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS DataLogicProcedure 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
 /*---------------------------------------------------------------------------------
   File: rytemdlprocedure.p
 
@@ -132,6 +110,7 @@ ASSIGN cObjectName = "{&object-name}":U.
 &Scoped-define PROCEDURE-TYPE DataLogicProcedure
 &Scoped-define DB-AWARE yes
 
+
 /* Db-Required definitions. */
 &IF DEFINED(DB-REQUIRED) = 0 &THEN
     &GLOBAL-DEFINE DB-REQUIRED TRUE
@@ -139,7 +118,9 @@ ASSIGN cObjectName = "{&object-name}":U.
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
+
 &Global-define DATA-TABLE-NO-UNDO NO-UNDO
+
 
 /* _UIB-PREPROCESSOR-BLOCK-END */
 &ANALYZE-RESUME

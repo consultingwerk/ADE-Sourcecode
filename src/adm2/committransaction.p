@@ -142,8 +142,7 @@ DEFINE VARIABLE hRowObjUpd     AS HANDLE  NO-UNDO.
 DEFINE VARIABLE lDynamicData   AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE iEntry                 AS INTEGER    NO-UNDO.
 DEFINE VARIABLE iPos                   AS INTEGER    NO-UNDO.
-DEFINE VARIABLE cPropList              AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cLogicalObjectName             AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cLogicalObjectName     AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cContained             AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE hDO                    AS HANDLE     NO-UNDO.
 DEFINE VARIABLE cObjectName            AS CHARACTER  NO-UNDO.
@@ -155,15 +154,10 @@ DEFINE VARIABLE lAnyStatic             AS LOGICAL    NO-UNDO.
 
   /* This is necessary so that the callback function 'getCurrentLogicalName' will */
   /* return the proper name to 'prepareInstance */
-  ASSIGN
-    cPropList = ENTRY(1, piocContext, CHR(3))
-    iEntry = LOOKUP('THIS':U, cPropList, ';').
-  IF iEntry > 0 THEN 
-  DO:
-    iPos = LOOKUP('LogicalObjectName':U, ENTRY(iEntry + 1, cPropList, ';')).
-    IF iPos > 0 THEN
-      cLogicalObjectName = ENTRY(iPos, ENTRY(iEntry + 2, piocContext, CHR(3)), CHR(4)).
-  END.
+  IF NUM-ENTRIES(pcObject,':') > 1 THEN
+    ASSIGN
+      cLogicalObjectName = ENTRY(2,pcObject,':':U)
+      pcObject           = ENTRY(1,pcObject,':':U).
 
   /* run the object */
   DO ON STOP UNDO, LEAVE:   
@@ -183,9 +177,9 @@ DEFINE VARIABLE lAnyStatic             AS LOGICAL    NO-UNDO.
     /* We cannot use 'setContextAndInitialize' here because we need to set the */
     /* 'IsRowObjUpdExternal' property in each SDO *before* they're initialized */
     RUN createObjects IN hObject.   /* Create all contained SDOs. */           
-                                    /* Set properties passed from the client */
-    DYNAMIC-FUNCTION('assignContainedProperties':U IN hObject,
-                      piocContext, '':U). 
+    
+    /* Set properties passed from the client */
+    DYNAMIC-FUNCTION('applyContextFromClient':U IN hObject,piocContext). 
 
     {set OpenOnInit FALSE hObject}. 
 

@@ -333,8 +333,8 @@
             
             /* If we could not find something in the list - use the first one */
             IF NUM-ENTRIES(cDescField) > 1 THEN
-                ASSIGN cDescField      = ENTRY(1,cDescField)
-                       pcDisplayFields = IF pcDisplayFields = "":U THEN ttRelate.cLinkFieldName ELSE pcDisplayFields + ";":U + cDescField.
+                ASSIGN cDescField      = ENTRY(1,cDescField).
+            ASSIGN pcDisplayFields = IF pcDisplayFields = "":U THEN cDescField ELSE pcDisplayFields + ";":U + cDescField.
         END.    /* there is an entity table field */
         ELSE
         /* If the entity record does not exist - just reserve the space for it */

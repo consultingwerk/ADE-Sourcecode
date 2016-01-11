@@ -116,7 +116,7 @@ END PROCEDURE.
 &ANALYZE-RESUME
 
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
@@ -363,6 +363,9 @@ DEFINE VARIABLE result AS LOGICAL NO-UNDO.
 
 DEFINE VARIABLE colour-table-rgb-vals AS CHARACTER NO-UNDO.
 
+/* The base point in the colour table from which Windows colours are mapped. */
+DEFINE VARIABLE iColourMapBase AS INTEGER    NO-UNDO.
+
 ASSIGN colour-table-key-list = "ButtonHilight,ButtonFace,ButtonShadow,GrayText,ButtonText,Hilight"
        colour-table-rgb-vals = "255 255 255,192 192 192,128 128 128,128 128 128,0 0 0,0 0 128".
 
@@ -400,14 +403,18 @@ UNLOAD "HKEY_CURRENT_USER\Control Panel" NO-ERROR.
    registry. Make sure that there are enough colour table entries available and 
    calculate the start point based on the number of entries.
 */
-ASSIGN COLOR-TABLE:NUM-ENTRIES = MAX(COLOR-TABLE:NUM-ENTRIES,16 + NUM-ENTRIES(colour-table-key-list)).
+IF COLOR-TABLE:NUM-ENTRIES + NUM-ENTRIES(colour-table-key-list) > 256 THEN
+    ASSIGN iColourMapBase = 16.
+ELSE
+    ASSIGN iColourMapBase = COLOR-TABLE:NUM-ENTRIES
+           COLOR-TABLE:NUM-ENTRIES = iColourMapBase + NUM-ENTRIES(colour-table-key-list).
 
 /* Set the colour table RGB values of each entry, as extracted from the registry */
 DO iEntry = 1 TO NUM-ENTRIES(colour-table-key-list):
 
     ASSIGN key-value = REPLACE(REPLACE(ENTRY(iEntry,colour-table-rgb-vals),"  "," "),"  "," ") 
 
-           iTable = MAX(16,{&COLOUR-MAP-BASE}) + (iEntry - 1)
+           iTable = MAX(16, iColourMapBase) + (iEntry - 1)
 
            iRed   = INTEGER(ENTRY(1,key-value," "))
            iGreen = INTEGER(ENTRY(2,key-value," "))
@@ -422,7 +429,7 @@ DO iEntry = 1 TO NUM-ENTRIES(colour-table-key-list):
 END.
 
 /* This is where the COLOR-OF function, in afspcolour.i gets its values from */
-ASSIGN THIS-PROCEDURE:PRIVATE-DATA = "{&COLOR-LIST}" + FILL(",",{&COLOUR-MAP-BASE} - 15) + colour-table-key-list.
+ASSIGN THIS-PROCEDURE:PRIVATE-DATA = "{&COLOR-LIST}" + FILL(",",iColourMapBase - 15) + colour-table-key-list.
 
 END PROCEDURE.
 

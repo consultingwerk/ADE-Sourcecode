@@ -1,0 +1,16 @@
+-baseADE	""
+-Bt		512
+-D		500
+-inp		18000
+-l		1000
+-mmax		65534
+-nb		150
+-rand		2
+-s		128
+-T		C:\TEMP
+-TB		31
+-TM		32
+-tok		1600
+-debugalert
+-zn
+-icfparam ICFCONFIG=dcuphase2.xml,ICFSESSTYPE=dcuphase2

@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Check Version Notes Wizard" Procedure _INLINE
 /* Actions: af/cod/aftemwizcw.w ? ? ? ? */
@@ -109,8 +109,8 @@ DEFINE VARIABLE gcContainerMode            AS CHARACTER    NO-UNDO.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 8.95
-         WIDTH              = 52.2.
+         HEIGHT             = 14.71
+         WIDTH              = 74.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -279,6 +279,10 @@ PROCEDURE enableFields :
     disableWidget("object_obj":U).
     disableWidget("instance_attribute_obj":U).
   END.  /* if dProductModuleObj = 0 */
+  ELSE DO:
+    enableWidget("object_obj":U).
+    enableWidget("instance_attribute_obj":U).
+  END.
 
 END PROCEDURE.
 
@@ -486,15 +490,15 @@ PROCEDURE lookupDisplayComplete :
       IF gdProductModuleObj > 0 
       THEN DO:
           IF lEnabled THEN
-              RUN enableField IN hObjectObj.
+              enableWidget("object_obj":U).
       END.
       ELSE DO:
-          RUN disableField IN hObjectObj.
-          RUN disableField IN hInstAttrObj.
+          disableWidget("object_obj":U).
+          disableWidget("instance_attribute_obj":U).
       END.  /* else do */
 
       ASSIGN iEntry = LOOKUP("gsc_product_module.product_module_code":U, pcFieldNames).
-  
+
       IF iEntry > 0 AND gdProductModuleObj > 0 THEN
           ASSIGN gcProductModuleCode = ENTRY(iEntry, pcFieldValues, CHR(1)).
       ELSE
@@ -510,15 +514,15 @@ PROCEDURE lookupDisplayComplete :
       IF iEntry > 0
       THEN DO:
           IF pcKeyFieldValue = "":U THEN
-              RUN disableField IN hInstAttrObj.
+              disableWidget("instance_attribute_obj":U).
           ELSE
               IF lEnabled THEN
-                  RUN enableField IN hInstAttrObj.
+                  enableWidget("instance_attribute_obj":U).
       END.  /* if iEntry > 0 */
   END.  /* if hObjectObj */
-  
+
   RUN dispAllInCombos IN TARGET-PROCEDURE.
-  
+
   ASSIGN ERROR-STATUS:ERROR = NO.
   RETURN "":U.
 
@@ -627,8 +631,8 @@ END PROCEDURE.
 PROCEDURE updateRecord :
 /*------------------------------------------------------------------------------
   Purpose:     Super Override
-  Parameters:  
-  Notes:       
+  Parameters:
+  Notes:
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hLoopLookup   AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hLookupFillIn AS HANDLE     NO-UNDO.
@@ -676,9 +680,9 @@ PROCEDURE updateState :
   DEFINE INPUT PARAMETER pcState AS CHARACTER NO-UNDO.
   
   DEFINE VARIABLE hContainer AS HANDLE     NO-UNDO.
-  
+
   {get containerSource hContainer}.
-  
+
   /* Code placed here will execute PRIOR to standard behavior. */
 
   IF pcState = "UpdateComplete" THEN

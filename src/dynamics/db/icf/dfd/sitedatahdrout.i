@@ -1,0 +1,4 @@
+{db/icf/dfd/ttdumpfileloc.i}
+
+DEFINE INPUT PARAMETER pdSiteNo AS DECIMAL DECIMALS 9 NO-UNDO.
+DEFINE INPUT PARAMETER TABLE FOR ttDumpFileLocation.

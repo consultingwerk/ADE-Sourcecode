@@ -64,11 +64,12 @@ Author: Laura Stern
 Date Created : 07/28/93 
 
 History:
-    hutegger    95/03   extented functionality to get used for create, update
+    gfs         05/94   Changed Selection-List to Browse
+    gfs         07/94   Install correct help contexts
+    hutegger    03/95   extented functionality to get used for create, update
                         and browse differences
-    gfs         94/07   Install correct help contexts
-    gfs         94/05   Changed Selection-List to Browse
-
+    kmcintos    03/05   Changed "Object Owner" to "Owner/Library" for DB2/400
+                        Bug # 20041220-008
 ----------------------------------------------------------------------------*/
 
 Define INPUT PARAMETER p_Gate       as char NO-UNDO.
@@ -118,7 +119,7 @@ DEFINE BROWSE bgate-work QUERY qgate-work
             &IF "{&GATE_FLG2}" = "YES"
              &THEN gate-flg2 FORMAT "yes/no"   COLUMN-LABEL "Changed"
              &ENDIF
-            gate-user FORMAT "X(16)" COLUMN-LABEL "Object Owner"
+            gate-user FORMAT "X(16)" COLUMN-LABEL "Owner/Library"
             gate-type FORMAT "X(11)" COLUMN-LABEL "Object Type"
             gate-qual FORMAT "X(22)" COLUMN-LABEL "Qualifier"
   WITH SIZE 75 BY 12 FONT 0 /*MULTIPLE*/.
@@ -220,7 +221,7 @@ FORM
 
    tblpatt  FORMAT "x(29)"  LABEL "Object Name" 
                                     colon 14 {&STDPH_FILL} SKIP({&VM_WID})
-   usrpatt  FORMAT "x(15)"  LABEL "Object Owner" 
+   usrpatt  FORMAT "x(15)"  LABEL "Owner/Library" 
                                     colon 14 {&STDPH_FILL} SKIP({&VM_WID})
    typpatt  FORMAT "x(15)"  LABEL "Object Type" 
                                     colon 14 {&STDPH_FILL} SKIP({&VM_WID})
@@ -254,7 +255,7 @@ FORM
 
 /*===============================Triggers==================================*/
 
-/*----- HELP -----*/
+  /*----- HELP -----*/
 &IF "{&WINDOW-SYSTEM}" <> "TTY"
  &THEN
   on HELP of frame gtbl_get OR CHOOSE of btn_Help in frame gtbl_get

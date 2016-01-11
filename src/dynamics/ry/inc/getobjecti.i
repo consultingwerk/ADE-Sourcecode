@@ -89,8 +89,10 @@ DEFINE TEMP-TABLE ttEntity            NO-UNDO
     FIELD EntityName            AS CHARACTER
     FIELD EntityTableName       AS CHARACTER
     FIELD EntityBufferHandle    AS HANDLE
+    FIELD LanguageCode          AS CHARACTER 
     INDEX idxEntityName
         EntityName
+        LanguageCode
     INDEX idxTableName        AS PRIMARY UNIQUE
         EntityTableName
     .

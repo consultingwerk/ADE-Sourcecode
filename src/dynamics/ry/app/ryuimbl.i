@@ -70,22 +70,13 @@ af/cod/aftemwizpw.w
 
 
 /* ************************  Function Prototypes ********************** */
-&IF DEFINED(EXCLUDE-processFilterInfo) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD processFilterInfo Procedure
-FUNCTION processFilterInfo RETURNS LOGICAL PRIVATE
-  ( pcOverrideLogicalObjectName AS CHARACTER,
-      pcDSName AS CHARACTER,
-      pcSDOName AS CHARACTER,
-      pcSDOEvent AS CHARACTER,
-      plSaveFilter AS LOGICAL,
-      phDS AS HANDLE) FORWARD.
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD appendComments Include 
+FUNCTION appendComments RETURNS CHARACTER PRIVATE
+  ( pcContext AS CHARACTER)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-
-&ENDIF
-
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD appendLookupData Include 
 FUNCTION appendLookupData RETURNS CHARACTER
@@ -104,6 +95,13 @@ FUNCTION changeParentInParentChildInfo RETURNS LOGICAL
     pcSDOName AS CHARACTER,
     pcOldParentSDOName AS CHARACTER,
     pcNewParentSDOName AS CHARACTER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD cleanupDataObjects Include 
+FUNCTION cleanupDataObjects RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -160,7 +158,7 @@ FUNCTION findSDOPosition RETURNS INTEGER
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCLOBValue Include 
-FUNCTION getCLOBValue RETURNS LONGCHAR
+FUNCTION getCLOBValue RETURNS {&clobtype}
   (pcColumnName AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -198,7 +196,7 @@ FUNCTION getLookupValue RETURNS CHARACTER
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getNewCLOBValue Include 
-FUNCTION getNewCLOBValue RETURNS LONGCHAR
+FUNCTION getNewCLOBValue RETURNS {&clobtype}
   ( pcColumnName AS CHARACTER)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -316,6 +314,13 @@ FUNCTION outputCLOBData RETURNS LOGICAL
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD outputComboData Include 
+FUNCTION outputComboData RETURNS LOGICAL
+  ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD outputCommittedData Include 
 FUNCTION outputCommittedData RETURNS LOGICAL
   ()  FORWARD.
@@ -354,6 +359,18 @@ FUNCTION outputSDOHeader RETURNS LOGICAL
 FUNCTION populateDSLinks RETURNS LOGICAL
   ( pcLogicalObjectName AS CHARACTER, 
     pcRequestEvents  AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD processFilterInfo Include 
+FUNCTION processFilterInfo RETURNS LOGICAL PRIVATE
+  ( pcOverrideLogicalObjectName AS CHARACTER,
+      pcDSName AS CHARACTER,
+      pcSDOName AS CHARACTER,
+      pcSDOEvent AS CHARACTER,
+      plSaveFilter AS LOGICAL,
+      phDS AS HANDLE) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -541,7 +558,8 @@ PROCEDURE createLinksInContainer :
   DEFINE VARIABLE cDSIsSBO                   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lDSIsSBO                   AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cFinalLogicalName          AS CHARACTER  NO-UNDO.
-
+  DEFINE VARIABLE cEntityFields              AS CHARACTER  NO-UNDO.
+  
   hParent = ?.
   cFinalLogicalName = "":U.
          
@@ -631,7 +649,11 @@ PROCEDURE createLinksInContainer :
       IF cFinalLogicalName = "":U OR cFinalLogicalName = ? THEN
         ASSIGN cFinalLogicalName = cLogicalDSName.
     END.
-    {log "'SDO path: ' + cDSName + '=' + getSavedDSPath(cDSName)"}.
+    
+    /*  Append HasComments and HasAutoComments to the context */
+    IF NOT lDSIsSBO THEN
+      cContext = appendComments(cContext).
+    
     hChild = DYNAMIC-FUNCTION('insertDataObject':U IN ghSDOContainer,
                                cFinalLogicalName,
                                getSavedDSPath(cDSName),
@@ -653,6 +675,14 @@ PROCEDURE createLinksInContainer :
       DO i2 = 1 TO NUM-ENTRIES(cSDOs):
         ASSIGN hSDO     = WIDGET-HANDLE(ENTRY(i2, cSDOs, ",":U))
                cSDOName = DYNAMIC-FUNCTION("getObjectName":U IN hSDO ).
+               
+        {get EntityFields cEntityFields hSDO}.
+        IF cContext = '':U THEN
+        DO:
+          {set FetchHasComment TRUE hSDO}.
+          RUN initializeEntityDetails IN hSDO.
+        END.
+        
         DYNAMIC-FUNCTION('setDataReadHandler' IN hSDO, THIS-PROCEDURE).
         DYNAMIC-FUNCTION('setOpenOnInit' IN hSDO, FALSE).
         DYNAMIC-FUNCTION('setDataReadColumns' IN hSDO, getSDODataColumns(cOverrideLogicalObjectName, hSDO, NO, NO)).
@@ -926,6 +956,7 @@ PROCEDURE processEvents :
   DEFINE VARIABLE cFirstResultRow AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cLastResultRow  AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cPos            AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cCleanup        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lIsSBO          AS LOGICAL    NO-UNDO.
 
   /* get the links for the SDO list 
@@ -1069,7 +1100,8 @@ PROCEDURE processEvents :
   
         /* Get and set the last batch row num - This is must or it will not find the NEXT batch */
         ASSIGN cPos = ENTRY(1, DYNAMIC-FUNCTION('getLastResultRow':U IN hDS), ";":U) NO-ERROR.
-      DYNAMIC-FUNCTION('setLastResultRow':U IN hDS, cPos + ";":U + cLastResultRow).
+        DYNAMIC-FUNCTION('setLastResultRow':U IN hDS, cPos + ";":U + cLastResultRow).
+        DYNAMIC-FUNCTION('setFillBatchOnRepos':U IN hDS, false).  /* Make sure navigates right */
      
         /* Fetch the Next batch */
         RUN fetchNextBatch IN hDS.
@@ -1156,11 +1188,12 @@ PROCEDURE processEvents :
   END. /* for each SDO object (ghObjectBuffer) */
 
   /* Do the cleanup */
-  FOR EACH ttSDO:
-    ASSIGN ttSDO.ttHandle = ?.
+  cCleanup = get-value("_cleanupdataobjects").
+  IF (cCleanup <> "NO") THEN 
+  DO:
+    {log "'Destroying Data Objects and the Dyn container'"}
+    cleanupDataObjects().
   END.
-  IF VALID-HANDLE(ghSDOContainer) THEN
-    RUN destroyObject IN ghSDOContainer.
 
 END PROCEDURE.
 
@@ -1264,7 +1297,13 @@ PROCEDURE processRequest :
   
   DEFINE VARIABLE lResult            AS LOGICAL    NO-UNDO INITIAL TRUE.
   DEFINE VARIABLE iLookup            AS INTEGER    NO-UNDO.
-  
+  DEFINE VARIABLE iCombo             AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE i1                 AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cRequestEvent      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cComboName         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cComboValues       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cComboJS           AS CHARACTER  NO-UNDO.
+ 
   CREATE WIDGET-POOL "B2BUIM":U.
   ASSIGN gcLogicalObjectName = AppProgram
          gcLookupContainerName = gcLogicalObjectName
@@ -1278,6 +1317,7 @@ PROCEDURE processRequest :
      don't care about the Errror status */
   IF (NOT glExportData) THEN
     RUN processResponse(gcLogicalObjectName, gcRequestEvents, OUTPUT lResult) NO-ERROR.
+  {log "'Request' + gcRequestEvents"}
   
   /* Reset the error status */
   ERROR-STATUS:ERROR = FALSE.
@@ -1300,12 +1340,30 @@ PROCEDURE processRequest :
       iLookup = INDEX(gcRequestEvents,"|lookup.launch.").
       IF iLookup > 0 THEN 
       DO:
-        
-          ASSIGN gcRequestEvents = TRIM(gcRequestEvents, "|":U)
+        ASSIGN gcRequestEvents = TRIM(gcRequestEvents, "|":U)
                gcLookupObjectName = ENTRY(3,gcRequestEvents,'.')
                gcLogicalObjectName = gcLookupObjectName. 
                
         RUN runLookup(INPUT ENTRY(4,gcRequestEvents,'.')).
+      END.
+
+      iCombo = INDEX(gcRequestEvents,".combodata").
+      IF iCombo > 0 THEN
+      DO:
+        REPEAT i1 = 1 TO NUM-ENTRIES(gcRequestEvents,"|":U):
+          /* Find the request */
+          ASSIGN cRequestEvent = ENTRY(i1, gcRequestEvents, "|":U).
+          IF ( INDEX(cRequestEvent,'.combodata') > 0 ) THEN
+          DO:
+            
+            ASSIGN cComboName = SUBSTRING(cRequestEvent, 1, INDEX(cRequestEvent,'.combodata') - 1).
+            {log "'comboname=' + cComboName"}
+            RUN runCombo( INPUT gcLogicalObjectName, 
+                          INPUT cComboName, 
+                          INPUT NO, 
+                          INPUT '|':U).
+          END.
+        END.
       END.
     END.
   END.
@@ -1587,12 +1645,16 @@ PROCEDURE processResponse :
       ASSIGN 
         cDataColumns = TRIM(cDataColumns, ',':U)
         cParamNames  = TRIM(cParamNames, ',':U)
-        cCLOBColumns = DYNAMIC-FUNCTION("getCLOBColumns" IN hSDO).
+&IF DEFINED(newdatatypes) &THEN
+        cCLOBColumns = DYNAMIC-FUNCTION("getCLOBColumns" IN hSDO)
+&ENDIF
+        .
 
       /* Find the lookup columns - This could later be optimized by doing this in the saveDynLookup Info */
       ASSIGN cDSLookupList = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
                                                  cOverrideObjectName + ".":U + gcSaveSDOName + ".lookup":U, NO).
                                                  
+      cLookupParams = '':U.
       DO iCols = 1 TO NUM-ENTRIES(cDSLookupList, "|":U):
         cLookupParamName = ENTRY(iCols, cDSLookupList, "|":U).
         ASSIGN cLookup = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
@@ -1645,6 +1707,7 @@ PROCEDURE processResponse :
                 cDataColumn = ENTRY(iCols, cDataColumns, ",":U)
                 cParamName  = ENTRY(iCols, cParamNames, ",":U).
               
+&IF DEFINED(newdatatypes) &THEN
               /* Check if this column is a CLOB */
               IF ( LOOKUP(ENTRY(NUM-ENTRIES(cDataColumn, ".":U), cDataColumn, ".":U), cCLOBColumns, ",":U) > 0 ) THEN
               DO:
@@ -1652,7 +1715,7 @@ PROCEDURE processResponse :
                                        "DATA,getCLOBValue," + STRING(THIS-PROCEDURE).
                 NEXT.
               END.
-              
+&ENDIF              
               temp = ENTRY(giRowNumber, get-value(cParamName), gcDataDelimiter) NO-ERROR.
               IF (ERROR-STATUS:ERROR OR temp = ? ) THEN
               DO:
@@ -1720,6 +1783,7 @@ PROCEDURE processResponse :
                 cDataColumn = ENTRY(iCols, cDataColumns, ",":U)
                 cParamName  = ENTRY(iCols, cParamNames, ",":U).
                 
+&IF DEFINED(newdatatypes) &THEN
               /* Check if this column is a CLOB */
               IF ( LOOKUP(ENTRY(NUM-ENTRIES(cDataColumn, ".":U), cDataColumn, ".":U), cCLOBColumns, ",":U) > 0 ) THEN
               DO:
@@ -1727,6 +1791,7 @@ PROCEDURE processResponse :
                        cNewVal = "DATA,getNewCLOBValue," + STRING(THIS-PROCEDURE).
               END.
               ELSE
+&ENDIF
               DO:
                 cOldVal = ENTRY(giRowNumber, get-value(cParamName), gcDataDelimiter) NO-ERROR.
                 IF ERROR-STATUS:ERROR THEN
@@ -1836,12 +1901,20 @@ PROCEDURE processResponse :
                  ttCommittedData.Counter = giDataCounter
                  ttCommittedData.Data = cData
                  ttCommittedData.LookupData = cLookupData.
+                 
+          IF (cSDOEvent <> "delete") THEN
+          DO:
+            IF VALID-HANDLE(hDS) THEN
+              ASSIGN ttCommittedData.hasComments = {fn hasActiveComments hDS}.
           
-          /* Now get the clob data and add it to the ttCLOBData TT */
-          DYNAMIC-FUNCTION("loadCLOBData" IN TARGET-PROCEDURE, 
-                           cOverrideObjectName, 
-                           gcSaveSDOName, 
-                           giDataCounter).
+&IF DEFINED(newdatatypes) &THEN
+            /* Now get the clob data and add it to the ttCLOBData TT */
+            DYNAMIC-FUNCTION("loadCLOBData" IN TARGET-PROCEDURE, 
+                             cOverrideObjectName, 
+                             gcSaveSDOName, 
+                             giDataCounter).
+&ENDIF
+          END.
           
         END.
       END. /* DO iSDOEvents = 1 to iNumSDOEvents: */
@@ -1982,9 +2055,10 @@ PROCEDURE receiveCommittedData :
 
   DEFINE VARIABLE cData              AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cLookupData        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hSDOHandle         AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cClobColumns       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDataDelimiter     AS CHARACTER  NO-UNDO.
+  
+  DEFINE VARIABLE hSDO              AS HANDLE     NO-UNDO.
+  hSDO = getDataSourceHandle(gcLogicalObjectName, pcObjectName, "").
 
   /*
   {log "'Committed Data for sdo: ' + STRING(pcObjectName) + ' with action: ' + pcCommitAction + ' and col names: ' + STRING(pcColumnNames) + ' is: ' + STRING(pcValues)"}
@@ -2005,16 +2079,25 @@ PROCEDURE receiveCommittedData :
   ASSIGN giDataCounter = giDataCounter + 1
          ttCommittedData.DSName = pcObjectName
          ttCommittedData.Counter = giDataCounter
+         ttCommittedData.Action = pcCommitAction
          ttCommittedData.Data = cData
          ttCommittedData.LookupData = cLookupData.
          
   /* Get the CLOB columns and load the ttCLOBData for each CLOB column */
   IF (pcCommitAction <> "DELETE":U) THEN
+  DO:
+  
+    IF VALID-HANDLE(hSDO) THEN
+      ASSIGN ttCommittedData.hasComments = {fn hasActiveComments hSDO}.
+         
+&IF DEFINED(newdatatypes) &THEN
     DYNAMIC-FUNCTION("loadCLOBData" IN TARGET-PROCEDURE, 
                    gcLogicalObjectName,
                    pcObjectName, 
                    giDataCounter).
-
+&ENDIF
+  END.
+  
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2031,9 +2114,8 @@ PROCEDURE receiveData :
   DEFINE INPUT  PARAMETER pcColumnNames AS CHARACTER  NO-UNDO.
   DEFINE INPUT  PARAMETER pcValues      AS CHARACTER  NO-UNDO.
 
-  DEFINE VARIABLE cClobColumns          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE i                     AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE hSDOHandle            AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hSDO AS HANDLE     NO-UNDO.
+  hSDO = getDataSourceHandle(gcLogicalObjectName, pcObjectName, "").
   
   /*
   {log "'Data for sdo: ' + STRING(pcObjectName) + ' with col names: ' + STRING(pcColumnNames) + ' is: ' + STRING(pcValues)"}
@@ -2046,12 +2128,16 @@ PROCEDURE receiveData :
     ttSDOData.SDOValues = pcValues
     ttSDOData.SDOCols   = pcColumnNames.
   
+  IF VALID-HANDLE(hSDO) THEN
+    ASSIGN ttSDOData.hasComments = {fn hasActiveComments hSDO}.
   /* Get the CLOB columns and load the ttCLOBData for each CLOB column */
+&IF DEFINED(newdatatypes) &THEN
   DYNAMIC-FUNCTION("loadCLOBData" IN TARGET-PROCEDURE, 
                    gcLogicalObjectName,
                    pcObjectName, 
                    giDataCounter).
 
+&ENDIF
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2084,8 +2170,222 @@ PROCEDURE requestCleanup :
   EMPTY TEMP-TABLE ttSDOData.  /* Empty the SDO Data temp-table */
   EMPTY TEMP-TABLE ttCLOBData. /* Empty the CLOB Data temp-table */
   EMPTY TEMP-TABLE ttSDOLink.  /* Empty the dataset */
+  EMPTY TEMP-TABLE ttComboData.
 
   DELETE WIDGET-POOL "B2BUIM":U.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE runCombo Include 
+PROCEDURE runCombo :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/  
+  DEFINE INPUT PARAMETER pcLogicalObjectName AS CHARACTER  NO-UNDO.
+  DEFINE INPUT PARAMETER pcComboName         AS CHARACTER  NO-UNDO.
+  DEFINE INPUT PARAMETER plHTML              AS LOGICAL    NO-UNDO.
+  DEFINE INPUT PARAMETER pcDelimiter         AS CHARACTER  NO-UNDO.
+
+  DEFINE VARIABLE cComboValues               AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDescSubstitute            AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDispFields                AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cQueryTables               AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cComboFlag                 AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFlagValue                 AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFormat                    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataType                  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFieldName                 AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cBaseQueryString           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cKeyField                  AS CHARACTER  NO-UNDO.
+
+  DEFINE VARIABLE cFlagOption                AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cField                     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE ix                         AS INTEGER    NO-UNDO.
+
+  DEFINE VARIABLE cHtml                      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cJS                        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE oBFhD                      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE oBFhI                      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE oBh                        AS HANDLE     NO-UNDO EXTENT 20.
+  DEFINE VARIABLE oDbValue                   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE oDisplayFieldName          AS CHARACTER  NO-UNDO EXTENT 9.
+  DEFINE VARIABLE oDisplayTemp               AS CHARACTER  NO-UNDO EXTENT 9.
+  DEFINE VARIABLE oDisplayValue              AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE oFieldName                 AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE oIdx                       AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE oNotEmpty                  AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE oQh                        AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE oSuccess                   AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cParentField               AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cParentFieldValue          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cParentFilterQuery         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cQueryAddtion              AS CHARACTER  NO-UNDO.
+
+  cComboValues = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
+                         pcLogicalObjectName + ".":U + pcComboName + ".combo":U, NO).
+  {log "'Lookup:' + pcLogicalObjectName + '.':U + pcComboName + '.combo  =' + cComboValues"}
+  
+  IF (NUM-ENTRIES(cComboValues, CHR(4)) < 11) THEN                        
+  DO:
+    {log "'Lookup failed! due to insufficient data: ' + cComboValues"}
+    RETURN.
+  END.
+
+  ASSIGN
+    cKeyField          = ENTRY( 1, cComboValues, CHR(4))
+    cQueryTables       = ENTRY( 2, cComboValues, CHR(4))
+    cBaseQueryString   = ENTRY( 3, cComboValues, CHR(4))
+    cDispFields        = ENTRY( 4, cComboValues, CHR(4))
+    cFieldName         = ENTRY( 5, cComboValues, CHR(4))
+    cFormat            = ENTRY( 6, cComboValues, CHR(4))
+    cDataType          = ENTRY( 7, cComboValues, CHR(4))
+    cDescSubstitute    = ENTRY( 8, cComboValues, CHR(4))
+    cComboFlag         = ENTRY( 9, cComboValues, CHR(4))
+    cFlagValue         = ENTRY(10, cComboValues, CHR(4))
+    cParentField       = ENTRY(11, cComboValues, CHR(4))
+    cParentFilterQuery = ENTRY(12, cComboValues, CHR(4))
+  .
+
+  ASSIGN cQueryAddtion = "":U
+         cParentFieldValue = "":U.
+
+  IF (cParentField > "":U) THEN
+     ASSIGN cParentFieldValue = GET-VALUE('lookupParent').
+
+  /* This is if the Parent field has been specified and a value exists*/
+  IF (cParentField > "":U AND cParentFilterQuery > "":U) THEN 
+  DO:
+     IF cParentFieldValue > "":U  THEN
+     DO:
+       ASSIGN cQueryAddtion = SUBSTITUTE(cParentFilterQuery, cParentFieldValue).
+       IF cQueryAddtion > "":U THEN
+       DO:
+         IF (INDEX(cBaseQueryString, "WHERE":U) > 0) THEN
+           ASSIGN cBaseQueryString = cBaseQueryString + " AND " + cQueryAddtion.
+         ELSE
+           ASSIGN cBaseQueryString = cBaseQueryString + " WHERE " + cQueryAddtion.
+       END.
+     END.
+     ELSE
+       RETURN ''.
+  END.
+
+  DO oIdx = 1 TO NUM-ENTRIES(cDispFields):
+    ASSIGN
+      oDisplayFieldName[oIdx] = ENTRY(oIdx,cDispFields)
+      oDisplayFieldName[oIdx] = (IF INDEX(oDisplayFieldName[oIdx], ".":U) > 0 THEN 
+                                    ENTRY(2, oDisplayFieldName[oIdx], ".":U) 
+                                 ELSE oDisplayFieldName[oIdx]).
+  END.
+
+  oFieldName = (IF INDEX(cKeyField, ".":U) > 0 THEN ENTRY(2, cKeyField, ".":U) ELSE cKeyField).
+  CREATE QUERY oQh IN WIDGET-POOL "B2BUIM":U.
+  REPEAT oIdx = 1 TO NUM-ENTRIES(cQueryTables):
+    CREATE BUFFER oBh[oIdx] FOR TABLE ENTRY(oIdx,cQueryTables) 
+      IN WIDGET-POOL "B2BUIM":U NO-ERROR.
+
+    IF ERROR-STATUS:ERROR THEN NEXT.
+    oQh:ADD-BUFFER(oBh[oIdx]) NO-ERROR.
+  END.
+  oSuccess = oQh:QUERY-PREPARE(cBaseQueryString) NO-ERROR.
+  IF oSuccess THEN 
+  DO:
+    /* Run the query */
+    oQh:QUERY-OPEN().
+    oNotEmpty = oQh:GET-FIRST(NO-LOCK).
+    IF NOT(oQh:QUERY-OFF-END) AND oNotEmpty THEN 
+    DO:
+      ASSIGN oIdx = MAXIMUM(1, LOOKUP(ENTRY(1, oFieldName, ".":U), cQueryTables)).
+      IF VALID-HANDLE(oBh[oIdx]) AND oBh[oIdx]:AVAILABLE THEN 
+      DO:
+        IF (cFormat > "":U) THEN
+          ASSIGN oBh[oIdx]:BUFFER-FIELD(oFieldName):FORMAT = cFormat.
+        ASSIGN oBFhI = oBh[oIdx]:BUFFER-FIELD(oFieldName) NO-ERROR.
+        /* Just in case */
+        IF (cFormat = ? OR cFormat = "":U) THEN
+          cFormat = oBFhI:FORMAT.
+        IF (cDataType = ? OR cDataType = "":U) THEN
+          cDataType = oBFhI:DATA-TYPE.
+      END.
+    END.
+    
+    /* <all> or <none> option is being used. */
+    IF cComboFlag > "" THEN 
+    DO:
+      ASSIGN cFlagOption = DYNAMIC-FUNCTION("formatValue", cFlagValue,cFormat,cDataType) NO-ERROR.
+      IF cFlagOption <> ? THEN
+      DO:
+        IF plHTML THEN
+        DO:
+          cHtml = '~n<option value="':U + LC(cFlagOption) + '">':U + 
+                   html-encode(IF cComboFlag = "A":U THEN '<all>' ELSE '<none>') + 
+                   '</option>~n':U.
+    
+          /* If the combo has more than 32K data, we can't store in a variable so output now */
+          {&OUT} cHtml.
+        END.
+        ELSE
+           cJs = cJs + pcDelimiter + LC(cFlagOption) + pcDelimiter +
+               html-encode(IF cComboFlag = "A":U THEN '<all>' ELSE '<none>').
+      END.
+    END.
+
+    REPEAT WHILE NOT(oQh:QUERY-OFF-END) AND oNotEmpty:
+      /* Get display value */
+      ASSIGN
+        oDbValue      = RIGHT-TRIM(oBFhI:STRING-VALUE)
+        oDisplayValue = "":U
+        oDisplayTemp  = "":U.
+
+      DO oIdx = 1 TO NUM-ENTRIES(cDispFields):
+        ASSIGN 
+                cField = ENTRY(oIdx, cDispFields)
+                ix     = MAXIMUM(1, LOOKUP(ENTRY(1, cField, ".":U), cQueryTables))
+          oBFhD  = oBh[ix]:BUFFER-FIELD(ENTRY(2,cField,".":U)).
+        IF VALID-HANDLE(oBFhD) THEN
+          oDisplayTemp[oIdx] = RIGHT-TRIM(STRING(oBFhD:BUFFER-VALUE())).
+      END.
+      oDisplayValue = SUBSTITUTE(cDescSubstitute,oDisplayTemp[1],oDisplayTemp[2],oDisplayTemp[3],oDisplayTemp[4],oDisplayTemp[5],oDisplayTemp[6],oDisplayTemp[7],oDisplayTemp[8],oDisplayTemp[9]).
+      oDisplayValue = TRIM(html-encode(RIGHT-TRIM(oDisplayValue))).
+
+      IF (plHTML) THEN
+      DO:
+        /* Write out the OPTION tag */
+        cHtml = '<option value="' + LC(oDbValue) + '">' + oDisplayValue + '</option>~n'.
+        /* If the combo has more than 32K data, we can't store in a variable so output */
+        {&OUT} cHtml.
+      END.
+      ELSE 
+        cJs = cJs + pcDelimiter + escapeData(LC(oDbValue)) + pcDelimiter + escapeData(oDisplayValue).
+
+      oQh:GET-NEXT(NO-LOCK).
+    END. /* REPEAT */
+  END.
+  ASSIGN cJs = TRIM(cJS, pcDelimiter).
+
+  IF NOT plHTML THEN
+  DO:
+    IF NUM-ENTRIES(pcComboName, ".":U) = 1 THEN
+       pcComboName = "tool." + pcComboName.
+
+    CREATE ttComboData.
+    ASSIGN ttComboData.ttComboName = pcComboName.
+           ttComboData.ttData = cJs.
+  END.
+  /* Clean up */
+  oQh:QUERY-CLOSE().
+  DO oIdx = 1 TO NUM-ENTRIES(cQueryTables):
+    DELETE OBJECT oBh[oIdx] NO-ERROR.
+    ASSIGN oBh[oIdx] = ?.
+  END.
+  DELETE OBJECT oQh NO-ERROR.
+  ASSIGN oQh = ?.
+  RETURN ''.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2526,70 +2826,33 @@ END PROCEDURE.
 &ANALYZE-RESUME
 
 /* ************************  Function Implementations ***************** */
-&IF DEFINED(EXCLUDE-processFilterInfo) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION processFilterInfo Procedure
-FUNCTION processFilterInfo RETURNS LOGICAL PRIVATE
-  ( pcOverrideLogicalObjectName AS CHARACTER,
-      pcDSName AS CHARACTER,
-      pcSDOName AS CHARACTER,
-      pcSDOEvent AS CHARACTER,
-      plSaveFilter AS LOGICAL,
-      phDS AS HANDLE):
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION appendComments Include 
+FUNCTION appendComments RETURNS CHARACTER PRIVATE
+  ( pcContext AS CHARACTER) :
 /*------------------------------------------------------------------------------
-  Purpose:  This function get the filter information from the CGI stream and 
-            sets the filter information to the SDO.
-  Notes:
+  Purpose:  This function appends the HasComment and HasAutoComments to the context list.
+    Notes:  
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cFilter AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cSortFields AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cFilterKey AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cSortingKey AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lDeleteFilter AS LOGICAL    NO-UNDO.
-  
-  ASSIGN 
-    cFilter       = get-value('_':U + pcSDOName + '._filter':U)
-    cSortFields   = get-value('_':U + pcSDOName + '._sorting':U)
-    cFilterKey    = pcOverrideLogicalObjectName + ".":U + pcDSName + ".filter":U
-    cSortingKey   = pcOverrideLogicalObjectName + ".":U + pcDSName + ".sorting":U
-    lDeleteFilter = (cFilter = "").
-    
-  {log "'Filter information:' + cFilter + ' and Sort field information:' + cSortFields"}
-  
-  /* Clear any previous filters and sorts - Remove the values from the SDO */
-  RUN queryFilter (INPUT pcOverrideLogicalObjectName, INPUT pcDSName, INPUT pcSDOEvent, INPUT phDS, INPUT YES).
-  
-  /* Persist the new values for filters and sorts */
-  DYNAMIC-FUNCTION("setPropertyList":U IN gshSessionManager,
-    INPUT cFilterKey + ",":U + cSortingKey,
-    INPUT cFilter + CHR(3) + cSortFields,
-    INPUT NO).
-  
-  lognote('','Set filter: ' + cFilter).
-  
-  /* Persist the new values to the Profile Manager if requested (dma) */
-  IF plSaveFilter THEN
-    RUN setProfileData IN gshProfileManager 
-      ("SDO":U,        /* Profile type code */
-       "Attributes":U, /* Profile code */
-       cFilterKey,     /* Profile data key */
-       ?,              /* Rowid of profile data */
-       cFilter,        /* Profile data value */
-       lDeleteFilter,  /* Delete flag */
-       "PER":U).       /* Save flag (permanent).  If blank, sessionid will be 
-                          used for contextid */
-  
-  /* Load the values in SDO */
-  RUN queryFilter (INPUT pcOverrideLogicalObjectName, INPUT pcDSName, INPUT pcSDOEvent, INPUT phDS, INPUT NO).
- 
-  RETURN TRUE.
+  IF INDEX("EntityFields", pcContext) > 0 THEN
+    RETURN pcContext.
+
+  IF INDEX("FetchHasComment", pcContext) = 0 THEN
+    ASSIGN pcContext = pcContext 
+                     + (IF pcContext = '' THEN '' ELSE CHR(3))
+                     + "FetchHasComment" + CHR(4) + "YES".
+  IF INDEX("FetchAutoComment", pcContext) = 0 THEN
+    ASSIGN pcContext = pcContext  
+                     + (IF pcContext = '' THEN '' ELSE CHR(3))
+                     + "FetchAutoComment" + CHR(4) + "YES".
+  ASSIGN pcContext = TRIM(pcContext, CHR(3)).
+
+  RETURN pcContext.   /* Function return value. */
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-
-&ENDIF
-
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION appendLookupData Include 
 FUNCTION appendLookupData RETURNS CHARACTER
@@ -2722,6 +2985,26 @@ FUNCTION changeParentInParentChildInfo RETURNS LOGICAL
   setChildSDOInfo(pcLogicalObjectName, pcSDOName, pcNewParentSDOName, cForeignFields).
 
 RETURN TRUE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION cleanupDataObjects Include 
+FUNCTION cleanupDataObjects RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Cleanup the SDO's ad SBO's used by the request.
+    Notes:  
+------------------------------------------------------------------------------*/
+  FOR EACH ttSDO:
+    ASSIGN ttSDO.ttHandle = ?.
+  END.
+  IF VALID-HANDLE(ghSDOContainer) THEN
+    RUN destroyObject IN ghSDOContainer.
+
+  RETURN TRUE.   /* Function return value. */
 
 END FUNCTION.
 
@@ -2942,8 +3225,9 @@ END FUNCTION.
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getCLOBValue Include 
-FUNCTION getCLOBValue RETURNS LONGCHAR
+FUNCTION getCLOBValue RETURNS {&clobtype}
   (pcColumnName AS CHARACTER ) :
+&IF DEFINED(newdatatypes) &THEN
 /*------------------------------------------------------------------------------
   Purpose: This function is called by the SDO to fetch the CLOB data. 
     Notes: THIS IS A INTERNAL API 
@@ -2965,6 +3249,7 @@ FUNCTION getCLOBValue RETURNS LONGCHAR
          
   RETURN clValue.
   
+&ENDIF
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2980,6 +3265,7 @@ FUNCTION getDataSourceHandle RETURNS HANDLE
     Notes:  
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hDSHandle    AS HANDLE NO-UNDO.
+  DEFINE VARIABLE hSDO         AS HANDLE NO-UNDO.
   DEFINE VARIABLE cSBOName     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cFinalDSName AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cSDOName     AS CHARACTER  NO-UNDO.
@@ -2988,6 +3274,7 @@ FUNCTION getDataSourceHandle RETURNS HANDLE
   DEFINE VARIABLE lDSIsSBO     AS LOGICAL NO-UNDO.
   DEFINE VARIABLE cLogicalObjectName AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cFinalLogicalName  AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cEntityFields      AS CHARACTER NO-UNDO.
 
   /* First check if the DS to be started is SBO */
   ASSIGN cDSIsSBO = getSavedDSProperty(pcLogicalObjectName, pcDSName, 'isSBO':U)
@@ -3054,6 +3341,10 @@ FUNCTION getDataSourceHandle RETURNS HANDLE
     IF cFinalLogicalName = "":U OR cFinalLogicalName = ? THEN
       ASSIGN cFinalLogicalName = cLogicalObjectName.
   END.
+  
+  IF NOT lDSIsSBO THEN 
+    cContext = appendComments(cContext).
+    
   hDSHandle = DYNAMIC-FUNCTION('insertDataObject':U IN ghSDOContainer,
                                 cFinalLogicalName, 
                                 pcDSPath, 
@@ -3076,7 +3367,16 @@ FUNCTION getDataSourceHandle RETURNS HANDLE
   saveDSPath(cFinalDSName, pcDSPath).
 
   IF ( lDSIsSBO AND cSDOName > '':U ) THEN
-    RETURN findSDOHandleInSBO(pcLogicalObjectName, cSBOName, hDSHandle, cSDOName).
+  DO:
+    hSDO = findSDOHandleInSBO(pcLogicalObjectName, cSBOName, hDSHandle, cSDOName).
+    {get EntityFields cEntityFields hSDO}.
+    IF cContext = '':U THEN
+    DO:
+      {set FetchHasComment TRUE hSDO}.
+      RUN initializeEntityDetails IN hSDO.
+    END.
+    RETURN hSDO.
+  END.
   ELSE
     RETURN hDSHandle.
 
@@ -3265,8 +3565,9 @@ END FUNCTION.
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getNewCLOBValue Include 
-FUNCTION getNewCLOBValue RETURNS LONGCHAR
+FUNCTION getNewCLOBValue RETURNS {&clobtype}
   ( pcColumnName AS CHARACTER) :
+&IF DEFINED(newdatatypes) &THEN
 /*------------------------------------------------------------------------------
   Purpose:  This function is called by SDO to fetcht he new column Value.
     Notes:  THIS IS A INTERNAL FUNCTION.
@@ -3278,6 +3579,7 @@ FUNCTION getNewCLOBValue RETURNS LONGCHAR
   
   RETURN clValue.   /* Function return value. */
 
+&ENDIF
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -3769,6 +4071,7 @@ FUNCTION ouputConflictData RETURNS LOGICAL
   DEFINE VARIABLE cCurrentDS   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iSaveSuccess AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cDSName      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataDelimiter AS CHARACTER NO-UNDO.
 
   cCurrentDS = '':U.
   iSaveSuccess = 0.
@@ -3791,6 +4094,7 @@ FUNCTION ouputConflictData RETURNS LOGICAL
       {&OUT} 'app._':U + cDSName + '.saveconflict([':U + '~n':U.
       
       ASSIGN cCurrentDS = ttConflictData.DSName.
+      cDataDelimiter = getSavedDSDataDelimiter(gcLogicalObjectName, ttConflictData.DSName).
     END.
 
     ASSIGN iSaveSuccess = iSaveSuccess + 1.
@@ -3798,6 +4102,9 @@ FUNCTION ouputConflictData RETURNS LOGICAL
     
     /* Now send the CLOB fields */
     DYNAMIC-FUNCTION("outputCLOBData" in TARGET-PROCEDURE, ttConflictData.DSName, ttConflictData.Counter).
+    /* output comments data */
+    {&OUT} cDataDelimiter.
+    {&OUT} STRING(ttConflictData.hasComments, "yes/no").
 
     /* Now the lookup data */
     {&OUT} escapeData(ttConflictData.LookupData).
@@ -3823,6 +4130,7 @@ END FUNCTION.
 FUNCTION outputCLOBData RETURNS LOGICAL
   ( pcSDOName AS CHARACTER,
     piCoutner AS INTEGER) :
+&IF DEFINED(newdatatypes) &THEN
 /*------------------------------------------------------------------------------
   Purpose:  This function will output the CLOB data to the stream.
     Notes:  
@@ -3865,6 +4173,26 @@ FUNCTION outputCLOBData RETURNS LOGICAL
     END.
   END.
   RETURN TRUE.   /* Function return value. */
+&ENDIF
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION outputComboData Include 
+FUNCTION outputComboData RETURNS LOGICAL
+  ( ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Output any combo data
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  FOR EACH ttComboData:
+    {&OUT} "app.apph.action('" + ttComboData.ttComboName + ".options|" + 
+            ttComboData.ttData  + "');~n" SKIP.
+  END.
+  EMPTY TEMP-TABLE ttComboData.
+  RETURN TRUE.   
 
 END FUNCTION.
 
@@ -3882,6 +4210,7 @@ FUNCTION outputCommittedData RETURNS LOGICAL
   DEFINE VARIABLE iSaveSuccess AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cDSName      AS CHARACTER  NO-UNDO.
 
+  DEFINE VARIABLE cDataDelimiter    AS CHARACTER  NO-UNDO.
   cCurrentDS = '':U.
   iSaveSuccess = 0.
   FOR EACH ttCommittedData
@@ -3903,16 +4232,25 @@ FUNCTION outputCommittedData RETURNS LOGICAL
       {&OUT} 'app._':U + cDSName + '.saveok([':U + '~n':U.
       
       ASSIGN cCurrentDS = ttCommittedData.DSName.
+      cDataDelimiter = getSavedDSDataDelimiter(gcLogicalObjectName, ttCommittedData.DSName).
     END.
 
     ASSIGN iSaveSuccess = iSaveSuccess + 1.
     {&OUT} (IF iSaveSuccess = 1 THEN " '":U ELSE ",'":U) + escapeData(ttCommittedData.Data).
     
-    /* Now send the CLOB fields */
-    DYNAMIC-FUNCTION("outputCLOBData" in TARGET-PROCEDURE, ttCommittedData.DSName, ttCommittedData.Counter).
+    /* output comments data */
+    IF (ttCommittedData.Action <> "DELETE") THEN
+    DO:
+      /* Now send the CLOB fields */
+      DYNAMIC-FUNCTION("outputCLOBData" in TARGET-PROCEDURE, ttCommittedData.DSName, ttCommittedData.Counter).
 
-    /* Now the lookup data */
-    {&OUT} escapeData(ttCommittedData.LookupData).
+      {&OUT} cDataDelimiter.
+      {&OUT} STRING(ttCommittedData.hasComments, "yes/no").
+    
+      /* Now the lookup data */
+      {&OUT} escapeData(ttCommittedData.LookupData).
+    
+    END.
     
     /* Now the neding quotes */
     {&OUT} "'":U + '~n':U.
@@ -3943,6 +4281,9 @@ FUNCTION outputSDOData RETURNS INTEGER
   DEFINE VARIABLE cSDODataValues AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cLookupData    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iCounter       AS INTEGER    INITIAL 0 NO-UNDO.
+  DEFINE VARIABLE cDataDelimiter AS CHARACTER  NO-UNDO.
+  
+  cDataDelimiter = getSavedDSDataDelimiter(pcLogicalObjectName, pcSDOName).
 
   FOR EACH ttSDOData
      WHERE ttSDOData.SDOName = pcSDOName
@@ -3962,6 +4303,9 @@ FUNCTION outputSDOData RETURNS INTEGER
     /* Now send the CLOB fields */
     DYNAMIC-FUNCTION("outputCLOBData" in TARGET-PROCEDURE, ttSDOData.SDOName, ttSDOData.Counter).
 
+    /* output comments data */
+    {&OUT} cDataDelimiter.
+    {&OUT} STRING(ttSDOData.hasComments, "yes/no").
     /* Now send the lookup data */
     IF (NOT plExportData) THEN
     DO:
@@ -4077,8 +4421,11 @@ FUNCTION populateDSLinks RETURNS LOGICAL
   REPEAT i1 = 1 TO NUM-ENTRIES(pcRequestEvents,"|":U):
     /* Find the request */
     ASSIGN cRequestEvent = ENTRY(i1, pcRequestEvents, "|":U).
-    IF ( cRequestEvent = ? OR cRequestEvent = "":U
-       OR INDEX(cRequestEvent,'.run') > 0 OR INDEX(cRequestEvent,'.dyntree') > 0) THEN
+    IF ( cRequestEvent = ? OR 
+         cRequestEvent = "":U OR 
+         INDEX(cRequestEvent,'.run') > 0 OR 
+         INDEX(cRequestEvent,'.dyntree') > 0 OR 
+         INDEX(cRequestEvent,'.combodata') > 0) THEN
       NEXT.
 
     /* Find the SDO Name */
@@ -4102,7 +4449,9 @@ FUNCTION populateDSLinks RETURNS LOGICAL
     /* Find the request */
     ASSIGN cRequestEvent = ENTRY(i1, pcRequestEvents, "|":U).
     IF ( cRequestEvent = ? OR cRequestEvent = "":U
-       OR INDEX(cRequestEvent,'.run') > 0 OR INDEX(cRequestEvent,'.dyntree') > 0) THEN
+       OR INDEX(cRequestEvent,'.run') > 0 
+       OR INDEX(cRequestEvent,'.dyntree') > 0 
+       OR INDEX(cRequestEvent,'.combodata') > 0) THEN
       NEXT.
 
     /* Find the SDO Name */
@@ -4180,6 +4529,66 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION processFilterInfo Include 
+FUNCTION processFilterInfo RETURNS LOGICAL PRIVATE
+  ( pcOverrideLogicalObjectName AS CHARACTER,
+      pcDSName AS CHARACTER,
+      pcSDOName AS CHARACTER,
+      pcSDOEvent AS CHARACTER,
+      plSaveFilter AS LOGICAL,
+      phDS AS HANDLE):
+/*------------------------------------------------------------------------------
+  Purpose:  This function get the filter information from the CGI stream and 
+            sets the filter information to the SDO.
+  Notes:
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cFilter AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSortFields AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFilterKey AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSortingKey AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lDeleteFilter AS LOGICAL    NO-UNDO.
+  
+  ASSIGN 
+    cFilter       = get-value('_':U + pcSDOName + '._filter':U)
+    cSortFields   = get-value('_':U + pcSDOName + '._sorting':U)
+    cFilterKey    = pcOverrideLogicalObjectName + ".":U + pcDSName + ".filter":U
+    cSortingKey   = pcOverrideLogicalObjectName + ".":U + pcDSName + ".sorting":U
+    lDeleteFilter = (cFilter = "").
+    
+  {log "'Filter information:' + cFilter + ' and Sort field information:' + cSortFields"}
+  
+  /* Clear any previous filters and sorts - Remove the values from the SDO */
+  RUN queryFilter (INPUT pcOverrideLogicalObjectName, INPUT pcDSName, INPUT pcSDOEvent, INPUT phDS, INPUT YES).
+  
+  /* Persist the new values for filters and sorts */
+  DYNAMIC-FUNCTION("setPropertyList":U IN gshSessionManager,
+    INPUT cFilterKey + ",":U + cSortingKey,
+    INPUT cFilter + CHR(3) + cSortFields,
+    INPUT NO).
+  
+  lognote('','Set filter: ' + cFilter).
+  
+  /* Persist the new values to the Profile Manager if requested (dma) */
+  IF plSaveFilter THEN
+    RUN setProfileData IN gshProfileManager 
+      ("SDO":U,        /* Profile type code */
+       "Attributes":U, /* Profile code */
+       cFilterKey,     /* Profile data key */
+       ?,              /* Rowid of profile data */
+       cFilter,        /* Profile data value */
+       lDeleteFilter,  /* Delete flag */
+       "PER":U).       /* Save flag (permanent).  If blank, sessionid will be 
+                          used for contextid */
+  
+  /* Load the values in SDO */
+  RUN queryFilter (INPUT pcOverrideLogicalObjectName, INPUT pcDSName, INPUT pcSDOEvent, INPUT phDS, INPUT NO).
+ 
+  RETURN TRUE.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION removeCLOBColumns Include 
 FUNCTION removeCLOBColumns RETURNS CHARACTER PRIVATE
   (pcLogicalObjectname AS CHARACTER,
@@ -4196,10 +4605,12 @@ FUNCTION removeCLOBColumns RETURNS CHARACTER PRIVATE
   DEFINE VARIABLE hSDOHandle       AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cCLOBColumns     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cDataDelimiter   AS CHARACTER  NO-UNDO.
-
+ 
   ASSIGN 
     hSDOHandle      = getDataSourceHandle(pcLogicalObjectName, pcObjectName, "")
+&IF DEFINED(newdatatypes) &THEN
     cCLOBColumns    = DYNAMIC-FUNCTION("getCLOBColumns" IN hSDOHandle)
+&ENDIF
     cDataDelimiter  = DYNAMIC-FUNCTION("getDataDelimiter" IN hSDOHandle).
       
   DO i = 1 TO NUM-ENTRIES(pcDataColumns, ",":U):
@@ -4236,9 +4647,11 @@ FUNCTION returnConflict RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cOut        AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cLookupData AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE hSDO        AS HANDLE     NO-UNDO.
   
   /* We want to ignore any saved records */
   EMPTY TEMP-TABLE ttCommittedData.
+  hSDO = getDataSourceHandle(pcLogicalObjectName, pcSDOName, "").
   
   ASSIGN pcData      = removeCLOBColumns(pcLogicalObjectName, pcSDOName, pcDataColumns, pcData).
   ASSIGN cLookupData = appendLookupData(pcLogicalObjectName, pcSDOName, pcDataColumns, pcData, NO) NO-ERROR.
@@ -4248,6 +4661,9 @@ FUNCTION returnConflict RETURNS LOGICAL
          ttConflictData.Counter = giDataCounter
          ttConflictData.Data = pcData
          ttConflictData.LookupData = cLookupData.
+
+  IF VALID-HANDLE(hSDO) THEN
+    ASSIGN ttConflictData.hasComments = {fn hasActiveComments hSDO}.
 
   /* Now get the clob data and add it to the ttCLOBData TT */
   DYNAMIC-FUNCTION("loadCLOBData" IN TARGET-PROCEDURE, 

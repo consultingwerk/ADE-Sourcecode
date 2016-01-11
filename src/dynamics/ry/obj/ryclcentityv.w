@@ -81,8 +81,8 @@ DEFINE VARIABLE ghContainerSource AS HANDLE     NO-UNDO.
     ~{&OPEN-QUERY-BROWSE-7}
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS coDatabase BROWSE-7 buDeselectAll 
-&Scoped-Define DISPLAYED-OBJECTS coDatabase 
+&Scoped-Define ENABLED-OBJECTS coDatabase coLanguage BROWSE-7 buDeselectAll 
+&Scoped-Define DISPLAYED-OBJECTS coDatabase coLanguage 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -114,6 +114,14 @@ DEFINE VARIABLE coDatabase AS CHARACTER FORMAT "X(256)":U
      DROP-DOWN-LIST
      SIZE 37 BY 1 TOOLTIP "Select a db and press Refresh to show information for the selected db only" NO-UNDO.
 
+DEFINE VARIABLE coLanguage AS CHARACTER FORMAT "X(256)":U 
+     LABEL "Language" 
+     CONTEXT-HELP-ID 0
+     VIEW-AS COMBO-BOX INNER-LINES 5
+     LIST-ITEMS "Item 1" 
+     DROP-DOWN-LIST
+     SIZE 37 BY 1 TOOLTIP "Select a db and press Refresh to show information for the selected db only" NO-UNDO.
+
 /* Query definitions                                                    */
 &ANALYZE-SUSPEND
 DEFINE QUERY BROWSE-7 FOR 
@@ -134,7 +142,8 @@ DEFINE BROWSE BROWSE-7
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME F-Main
-     coDatabase AT ROW 1.48 COL 38 COLON-ALIGNED
+     coDatabase AT ROW 1.48 COL 15.6 COLON-ALIGNED
+     coLanguage AT ROW 1.48 COL 68.8 COLON-ALIGNED
      BROWSE-7 AT ROW 3.14 COL 4
      buSelectAll AT ROW 14.33 COL 33
      buDeselectAll AT ROW 14.33 COL 48
@@ -193,7 +202,7 @@ END.
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME F-Main
    NOT-VISIBLE Size-to-Fit                                              */
-/* BROWSE-TAB BROWSE-7 coDatabase F-Main */
+/* BROWSE-TAB BROWSE-7 coLanguage F-Main */
 ASSIGN 
        FRAME F-Main:SCROLLABLE       = FALSE
        FRAME F-Main:HIDDEN           = TRUE.
@@ -206,6 +215,8 @@ ASSIGN
 /* SETTINGS FOR BUTTON buSelectAll IN FRAME F-Main
    NO-ENABLE                                                            */
 /* SETTINGS FOR COMBO-BOX coDatabase IN FRAME F-Main
+   DEF-HELP                                                             */
+/* SETTINGS FOR COMBO-BOX coLanguage IN FRAME F-Main
    DEF-HELP                                                             */
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
@@ -366,6 +377,35 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getLanguageList sObject 
+PROCEDURE getLanguageList :
+/*------------------------------------------------------------------------------
+  Purpose:     This procedure will find the language list.
+  Parameters:  output - Comma separated language list.
+------------------------------------------------------------------------------*/
+  DEFINE OUTPUT PARAMETER pcLanguageList AS CHARACTER  NO-UNDO.
+
+  DO WITH FRAME {&FRAME-NAME}:
+      CASE coLanguage:SCREEN-VALUE:
+          WHEN "<ALL>":U THEN DO:
+              FOR EACH gsc_language:
+                   ASSIGN pcLanguageList = pcLanguageList + ",":U + gsc_language.language_code.
+              END.
+              ASSIGN pcLanguageList = TRIM(pcLanguageList, ",":U).
+          END.
+          WHEN "<None - No Translation>":U THEN DO:
+              ASSIGN pcLanguageList = "NONE":U.
+          END.
+          OTHERWISE
+              ASSIGN pcLanguageList = coLanguage:SCREEN-VALUE.
+      END CASE.
+  END.
+  RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initializeData sObject 
 PROCEDURE initializeData :
 /*------------------------------------------------------------------------------
@@ -403,8 +443,9 @@ PROCEDURE initializeObject :
   Notes:       
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cDBList                  AS CHARACTER   NO-UNDO.
-  DEFINE VARIABLE i                        AS INTEGER     NO-UNDO.
-  DEFINE VARIABLE iPick                    AS INTEGER     NO-UNDO.
+  DEFINE VARIABLE cLanguageList            AS CHARACTER   NO-UNDO.
+  DEFINE VARIABLE i                        AS INTEGER     NO-UNDO INITIAL 1.
+  DEFINE VARIABLE iPick                    AS INTEGER     NO-UNDO INITIAL 1.
 
   /* Code placed here will execute PRIOR to standard behavior. */
 
@@ -417,22 +458,28 @@ PROCEDURE initializeObject :
 
   RUN initializeData IN TARGET-PROCEDURE.
   
-  ASSIGN cDBList = "<ALL>".
+  ASSIGN cDBList = "<ALL>":U.
   FOR EACH ttEntityList
     BREAK BY ttDBName:
     IF FIRST-OF(ttDBName) THEN
     DO:
        i = i + 1.
        cDBList = cDBList + ",":U + ttDBName.
-       IF ttDBName <> "ICFDB":U AND ttDBName <> "TEMP-DB":U AND iPick = 0 THEN
+       IF ttDBName <> "ICFDB":U AND ttDBName <> "TEMP-DB":U AND iPick = 1 THEN
          iPick = i.
     END.
   END.
   cDBList = TRIM(cDBList, ",":U).
 
+  ASSIGN cLanguageList = "<ALL>,<None - No Translation>":U.
+  FOR EACH gsc_language BY language_code:
+      cLanguageList = cLanguageList + ",":U + language_code.
+  END.
   DO WITH FRAME {&FRAME-NAME}:
     coDatabase:LIST-ITEMS = cDBList.
     coDatabase:SCREEN-VALUE = coDatabase:ENTRY(iPick).
+    coLanguage:LIST-ITEMS = cLanguageList.
+    coLanguage:SCREEN-VALUE = "<ALL>":U.
   END.
   {&OPEN-BROWSERS-IN-QUERY-F-Main}
   ENABLE ALL WITH FRAME F-main.
@@ -440,6 +487,7 @@ PROCEDURE initializeObject :
   IF VALID-HANDLE(ghContainerSource) THEN
   DO:
       SUBSCRIBE TO "getEntityList":U IN ghContainerSource.
+      SUBSCRIBE TO "getLanguageList" IN ghContainerSource.
       SUBSCRIBE TO "getEntityBrowse":U IN ghContainerSource.
   END.
 

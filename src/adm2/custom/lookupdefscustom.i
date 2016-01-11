@@ -26,10 +26,10 @@
                     New definitions
                     {&xcInstanceProperties}
                     {&ADM-PROPERTY-DLG}
-    Syntax      : {src/adm2/custom/lookupdefscustom.i}
+    Syntax      : {adm2/custom/lookupdefscustom.i}
 
-    Modified    : 08/11/2000
-
-    Notes       : Referenced in {src/adm2/lookprop.i}
+    Modified    : 09/07/2004
+    
+    Notes       : Referenced in {adm2/lookupprop.i}
   ------------------------------------------------------------------------*/
 

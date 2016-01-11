@@ -104,7 +104,7 @@ Browse.prototype.define=function(a){
 }
 Browse.prototype.ondblclick=function(e){  
   if(!this.clicksrc) this.click(e);
-  if(this.erow>0) window.action(this.dblclick>''?this.dblclick:this.wdo+'.view2');  
+  if(this.erow>0) userAction(this.dblclick>''?this.dblclick:this.wdo+'.view2');  
 }
 
 Browse.prototype.oncontextmenu=function(e){  
@@ -220,12 +220,12 @@ Browse.prototype.click=function(e){
     hotkey.browsenav=wdo;
     if(src.name=='apply') inlineFilter();
     if(!findRow(src)) return false;
-
+ 
     // if in update mode or navigation is disabled then disable sorting and pick 
     if(!hdata.lOK) return;
+    if(erow>0)      
+      return window.userAction(wdo+'.'+erow+'.pick');
 
-    if(erow>0) return hdata.pick(erow);
-    
     // Column Sorting
     if (src.nodeName!='TH') src=src.parentNode;
     if (src.nodeName!='TH') src=src.parentNode;

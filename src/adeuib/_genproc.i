@@ -971,6 +971,10 @@ COLUMN-FGC*,COLUMN-BGC*,COLUMN-FONT,LABEL-FGC*,LABEL-BGC*,LABEL-FONT",
               _BC._LABEL NE "":U AND
               _BC._LABEL NE _BC._DEF-LABEL THEN
               tmp_item = tmp_item + ' LABEL "':U + TRIM(_BC._LABEL) + '"':U.
+           IF _BC._COL-LABEL NE ? AND 
+              _BC._COL-LABEL NE "":U AND
+              _BC._COL-LABEL NE _BC._DEF-COLLABEL THEN
+              tmp_item = tmp_item + ' COLUMN-LABEL "':U + TRIM(_BC._COL-LABEL) + '"':U.
            IF _BC._HELP NE ? AND 
               _BC._HELP NE "":U AND
               _BC._HELP NE _BC._DEF-HELP THEN 

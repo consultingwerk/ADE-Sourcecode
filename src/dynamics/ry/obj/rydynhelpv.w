@@ -149,7 +149,7 @@ DEFINE VARIABLE gcBrowseColHdls AS CHARACTER  NO-UNDO.
 /* Include file with RowObject temp-table definition */
 &Scoped-define DATA-FIELD-DEFS "af/obj2/gsmtlfullo.i"
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
@@ -276,7 +276,7 @@ END.
 /* SETTINGS FOR WINDOW vTableWin
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frMain
-   NOT-VISIBLE Custom                                                   */
+   NOT-VISIBLE FRAME-NAME Custom                                        */
 ASSIGN 
        FRAME frMain:HIDDEN           = TRUE.
 
@@ -469,24 +469,24 @@ PROCEDURE addWidgets :
   Parameters:  input object procedure handle
                input object name
                input object frame handle
-  Notes:       Recursive procedure to cope with SDF's
+  Notes:       
 ------------------------------------------------------------------------------*/
 
 DEFINE INPUT PARAMETER phObject                 AS HANDLE     NO-UNDO.
 DEFINE INPUT PARAMETER pcObjectName             AS CHARACTER  NO-UNDO.
 DEFINE INPUT PARAMETER phFrame                  AS HANDLE     NO-UNDO.
 
-DEFINE VARIABLE hWidgetGroup                    AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hNewObject                      AS HANDLE     NO-UNDO.
-DEFINE VARIABLE cNewObjectName                  AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE hWidget                         AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hLabel                          AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hColumn                         AS HANDLE     NO-UNDO.
-DEFINE VARIABLE cFieldName                      AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cRadioButtons                   AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE iRadioLoop                      AS INTEGER    NO-UNDO.
-DEFINE VARIABLE iBrowseLoop                     AS INTEGER    NO-UNDO.
-DEFINE VARIABLE cLiteralHandles                 AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cAllFieldHandles  AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cFieldName        AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cSDFFieldName     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cSDFLabel         AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE hLabel            AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hNewObject        AS HANDLE     NO-UNDO.
+
+DEFINE VARIABLE hSDFFrame         AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hWidget           AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hWidgetGroup      AS HANDLE     NO-UNDO.
+DEFINE VARIABLE iHandleCnt        AS INTEGER    NO-UNDO.
 
 ASSIGN hwidgetGroup   = phFrame:HANDLE
        hwidgetGroup   = hwidgetGroup:FIRST-CHILD
@@ -518,95 +518,65 @@ REPEAT WHILE VALID-HANDLE (hWidget):
           NEXT widget-walk.
       END.
 
-      /* For SDFs, pcObjectName will contain: entry 1 - viewer name, entry 2 - SDF filename, entry 3 - field name, entry 4 - field label. */
-
       CREATE ttHelp.
       ASSIGN ttHelp.dLanguageObj       = DECIMAL(DYNAMIC-FUNCTION("getDataValue":U IN hLanguage))
-             ttHelp.cContainerFileName = IF INDEX(pcObjectName, ":":U) <> 0 THEN ENTRY(1, pcObjectName, ":":U) ELSE gcCallerName 
-             ttHelp.cObjectName        = IF INDEX(pcObjectName, ":":U) <> 0 THEN ENTRY(2, pcObjectName, ":":U) ELSE pcObjectName
-             ttHelp.cWidgetName        = IF INDEX(pcObjectName, ":":U) <> 0 THEN ENTRY(3, pcObjectName, ":":U) ELSE cFieldName
+             ttHelp.cContainerFileName = gcCallerName 
+             ttHelp.cObjectName        = pcObjectName
+             ttHelp.cWidgetName        = cFieldName
              ttHelp.cHelpFilename      = "":U
              ttHelp.cHelpContext       = "":U
              ttHelp.cWidgetType        = hWidget:TYPE
-             ttHelp.cOriginalLabel     = IF  INDEX(pcObjectName, ":":U) <> 0 
-                                         AND ENTRY(4, pcObjectName, ":":U) <> "":U
-                                         THEN ENTRY(4, pcObjectName, ":":U) 
-                                         ELSE (IF CAN-QUERY(hWidget,"LABEL":U) AND hWidget:LABEL <> ? 
-                                               THEN hWidget:LABEL 
-                                               ELSE IF CAN-QUERY(hWidget,"SCREEN-VALUE":U) AND hWidget:SCREEN-VALUE <> ? 
-                                                    THEN hWidget:SCREEN-VALUE 
-                                                    ELSE "":U).
+             ttHelp.cOriginalLabel     = IF CAN-QUERY(hWidget,"LABEL":U) AND hWidget:LABEL <> ? THEN hWidget:LABEL 
+                                         ELSE 
+                                           IF CAN-QUERY(hWidget,"SCREEN-VALUE":U) AND hWidget:SCREEN-VALUE <> ? 
+                                             THEN hWidget:SCREEN-VALUE 
+                                             ELSE "":U.
 
-      /* deal with SDF's where label is separate */
-
-      IF INDEX(pcObjectName, ":":U) <> 0 AND ttHelp.cOriginalLabel = "":U 
-      THEN DO:
-          ASSIGN hLabel = ?
-                 hLabel = DYNAMIC-FUNCTION("getLabelHandle":U IN phObject) NO-ERROR.
-
-          IF VALID-HANDLE(hLabel) AND hLabel:SCREEN-VALUE <> ? AND hLabel:SCREEN-VALUE <> "":U THEN
-            ASSIGN ttHelp.cOriginalLabel = REPLACE(hLabel:SCREEN-VALUE,":":U,"":U).
-      END.
   END.  /* valid widget type */
-  ELSE
-      IF hWidget:TYPE = "frame":U 
-      THEN DO:
-          /* 
-             SDF's have procedure handle in private data of frame, so can get
-             real fieldname of SDF using this and change object name to be
-             SDF + fieldname so it is unique within container object
-          */
-          ASSIGN hNewObject = ?
-                 hNewObject = WIDGET-HANDLE(hWidget:PRIVATE-DATA) 
-                 NO-ERROR.
+  ELSE IF hWidget:TYPE = "frame":U THEN   /* SmartDataFields */
+  DO:
 
-          IF VALID-HANDLE(hNewObject) AND hNewObject:TYPE = "procedure":U 
-          THEN DO:
-              DEFINE VARIABLE cSDFContainer AS CHARACTER  NO-UNDO.
-              DEFINE VARIABLE cSDFObject    AS CHARACTER  NO-UNDO.
-              DEFINE VARIABLE cSDFFieldName AS CHARACTER  NO-UNDO.
-              DEFINE VARIABLE cSDFLabel     AS CHARACTER  NO-UNDO.
-              DEFINE VARIABLE hLabelHandle  AS HANDLE     NO-UNDO.
-
-              cSDFFieldName = "":U.
-              cSDFFieldName = DYNAMIC-FUNCTION('getFieldName' IN hNewObject) NO-ERROR.
-              IF cSDFFieldName NE "":U THEN 
-              DO WITH FRAME {&FRAME-NAME}:
-                  ASSIGN cSDFContainer  = pcObjectName
-                         cSDFObject     = ENTRY(NUM-ENTRIES(hNewObject:FILE-NAME, "~\":U), hNewObject:FILE-NAME, "~\":U)
-                         cSDFObject     = ENTRY(NUM-ENTRIES(hNewObject:FILE-NAME, "/":U),  hNewObject:FILE-NAME, "/":U).
-                  ASSIGN hLabelHandle   = DYNAMIC-FUNCTION('getLabelHandle' IN hNewObject) NO-ERROR.
-                  ASSIGN cSDFLabel      = IF VALID-HANDLE(hLabelHandle) 
-                                          THEN hLabelHandle:SCREEN-VALUE
-                                          ELSE "":U
-                         cNewObjectName = TRIM(cSDFContainer) /* viewer */
-                                + ":":U + TRIM(cSDFObject)    /* Combo SDF */
-                                + ":":U + cSDFFieldName       /* fieldname */
-                                + ":":U + cSDFLabel.          /* Label */                                      
-
-                  /* Add the object to the object combo */
-
-                  IF INDEX(coObject:LIST-ITEMS, cSDFObject) = ?
-                  OR INDEX(coObject:LIST-ITEMS, cSDFObject) = 0 THEN
-                      ASSIGN coObject:LIST-ITEMS = coObject:LIST-ITEMS + ",":U + cSDFObject.
-              END.
-              ELSE DO:
-                  /* Get object name */
-                  ASSIGN cNewObjectName = hNewObject:FILE-NAME.
-                  ASSIGN cNewObjectName = DYNAMIC-FUNCTION('getLogicalObjectName' IN hNewObject) NO-ERROR.
-                  IF cNewObjectName = "":U OR cNewObjectName = ? THEN
-                      ASSIGN cNewObjectName = hNewObject:FILE-NAME.
-                  /* Strip off path if any */
-                  ASSIGN cNewObjectName = LC(TRIM(REPLACE(cNewObjectName,"~\":U,"/":U)))
-                         cNewObjectName = SUBSTRING(cNewObjectName,R-INDEX(cNewObjectName,"/":U) + 1).
-              END.
-          END.
-          ELSE
-              ASSIGN hNewObject     = phObject
-                     cNewObjectName = pcObjectName.
-
-          RUN addWidgets (INPUT hNewObject, INPUT cNewObjectName, INPUT hWidget). /* SDF */
+    /* We need the procedure handle of the frame. */
+    {get allFieldHandles cAllFieldHandles phObject}.
+    proc-blk:
+    DO iHandleCnt = 1 TO NUM-ENTRIES(cAllFieldHandles):
+      ASSIGN hNewObject = WIDGET-HANDLE(ENTRY(iHandleCnt, cAllFieldHandles)) NO-ERROR.
+      IF hNewObject:TYPE = "PROCEDURE":U THEN DO:
+        {get containerHandle hSDFFrame hNewObject}.
+        IF hSDFFrame = hWidget THEN
+          LEAVE proc-blk.
       END.
+    END.
+
+    IF VALID-HANDLE(hNewObject) AND hNewObject:TYPE = "procedure":U THEN 
+    DO:
+   
+      ASSIGN 
+        cSDFFieldName = DYNAMIC-FUNCTION("getFieldName":U IN hNewObject)
+        cSDFLabel     = DYNAMIC-FUNCTION("getLabel":U IN hNewObject) NO-ERROR.
+     
+      IF CAN-FIND(FIRST ttHelp
+                  WHERE ttHelp.dLanguageObj = DECIMAL(DYNAMIC-FUNCTION("getDataValue":U IN hLanguage))
+                    AND ttHelp.cContainerFileName = gcCallerName
+                    AND ttHelp.cObjectName = pcObjectName
+                    AND ttHelp.cWidgetType = hWidget:TYPE
+                    AND ttHelp.cWidgetName = cSDFFieldName) 
+      THEN DO:
+          ASSIGN hWidget = hWidget:NEXT-SIBLING.
+          NEXT widget-walk.
+      END.
+
+      CREATE ttHelp.
+      ASSIGN ttHelp.dLanguageObj       = DECIMAL(DYNAMIC-FUNCTION("getDataValue":U IN hLanguage))
+             ttHelp.cContainerFileName = gcCallerName 
+             ttHelp.cObjectName        = pcObjectName
+             ttHelp.cWidgetName        = cSDFFieldName
+             ttHelp.cHelpFilename      = "":U
+             ttHelp.cHelpContext       = "":U
+             ttHelp.cWidgetType        = hWidget:TYPE
+             ttHelp.cOriginalLabel     = cSDFLabel.
+    END.
+  END.
 
   ASSIGN hWidget = hWidget:NEXT-SIBLING.
 END.
@@ -636,7 +606,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_language.language_nameKeyFieldgsc_language.language_objFieldLabelLanguageFieldTooltipSelect the help language, from the list.KeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1ComboDelimiterListItemPairsInnerLines5ComboFlagAFlagValue0BuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNamelanguage_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_language.language_nameKeyFieldgsc_language.language_objFieldLabelLanguageFieldTooltipSelect the help language, from the list.KeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1ComboDelimiterListItemPairsInnerLines5SortnoComboFlagAFlagValue0BuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesSuperProcedureDataSourceNameFieldNamelanguage_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hLanguage ).
        RUN repositionObject IN hLanguage ( 1.00 , 12.60 ) NO-ERROR.
        RUN resizeObject IN hLanguage ( 1.05 , 37.60 ) NO-ERROR.

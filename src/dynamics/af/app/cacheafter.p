@@ -28,6 +28,7 @@ af/cod/aftemwizpw.w
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*---------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   File: cacheafter.p
 
   Description:  Cache information after login
@@ -140,13 +141,17 @@ DEFINE OUTPUT PARAMETER pcFailedReason             AS CHARACTER NO-UNDO.
 DEFINE OUTPUT PARAMETER pcTypeAPI                  AS CHARACTER NO-UNDO.
 DEFINE OUTPUT PARAMETER pcSessionCustRefs          AS CHARACTER  NO-UNDO.
 DEFINE OUTPUT PARAMETER pcSessionResultCodes       AS CHARACTER  NO-UNDO.
+define output parameter pcSecurityPropNames        as character no-undo.
+define output parameter pcSecurityPropValues       as character no-undo.
 
 DEFINE VARIABLE cPropertyList         AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cValueList            AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE hCustomizationManager AS HANDLE     NO-UNDO.
+DEFINE VARIABLE cLanguageCode         AS CHARACTER  NO-UNDO.
 
-/* Check the user */
-
+/* Check the user. This ensures that the users is a valid user,
+   and also sets the various security properties correctly.
+ */
 RUN checkUser IN gshSecurityManager (INPUT  pcLoginName,
                                      INPUT  pcPassword,
                                      INPUT  pdCompanyObj,
@@ -163,9 +168,9 @@ RUN checkUser IN gshSecurityManager (INPUT  pcLoginName,
 IF pcFailedReason = "":U 
 THEN DO:
     /* Set the user properties on the Appserver, note that these properties will be set client side as well */
-
+    RUN af/app/afgetlngcp.p (INPUT pdLanguageObj, OUTPUT cLanguageCode).
     ASSIGN ptCurrentProcessDate = IF ptCurrentProcessDate = ? THEN TODAY ELSE ptCurrentProcessDate
-           cPropertyList        = "CurrentUserObj,CurrentUserLogin,CurrentUserName,CurrentUserEmail,CurrentOrganisationObj,CurrentOrganisationCode,CurrentOrganisationName,CurrentOrganisationShort,CurrentLanguageObj,CurrentLanguageName,CurrentProcessDate,CurrentLoginValues,DateFormat,LoginWindow":U
+           cPropertyList        = "CurrentUserObj,CurrentUserLogin,CurrentUserName,CurrentUserEmail,CurrentOrganisationObj,CurrentOrganisationCode,CurrentOrganisationName,CurrentOrganisationShort,CurrentLanguageObj,CurrentLanguageName,CurrentProcessDate,CurrentLoginValues,DateFormat,LoginWindow,CurrentLanguageCode":U
            cValueList           = STRING(pdCurrentUserObj)   + CHR(3) 
                                 + pcLoginName                + CHR(3) 
                                 + pcCurrentUserName          + CHR(3) 
@@ -179,7 +184,8 @@ THEN DO:
                                 + STRING(ptCurrentProcessDate,pcDateFormat) + CHR(3) 
                                 + pcCurrentLoginValues       + CHR(3) 
                                 + pcDateFormat               + CHR(3) 
-                                + pcLoginProc.
+                                + pcLoginProc                + CHR(3)
+                                + cLanguageCode.
   
     DYNAMIC-FUNCTION("setPropertyList":U IN gshSessionManager,
                                        INPUT cPropertyList,
@@ -225,7 +231,18 @@ THEN DO:
     IF VALID-HANDLE(hCustomizationManager) THEN
         RUN setClientResultCodes IN hCustomizationManager (INPUT pcSessionResultCodes,
                                                            INPUT NO).
-END.
+    
+    /* Now get the security properties, we're going to pass them back to the client as well. These
+       values were set in the checkUser() call, but only on the server. If the client needs them,
+       and it will for PGEN objects, then we want to avoid the A/S hit. Get them now and avoid Trubble (tm).
+     */
+    assign pcSecurityPropNames  = 'SecurityEnabled,SecurityGroups,SecurityModel,GSMFFSecurityExists,GSMTOSecurityExists,RYCSOSecurityExists,GSMMISecurityExists,GSMMSSecurityExists'
+           pcSecurityPropValues = Dynamic-function('getPropertyList' IN gshSessionManager,
+                                                   pcSecurityPropNames, Yes).                                                           
+END.    /* no failure */
+
+error-status:error = no.
+return.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

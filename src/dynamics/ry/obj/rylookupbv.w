@@ -372,6 +372,25 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE applyEntry sObject 
+PROCEDURE applyEntry :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override to give browser focus if called with ?    
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  DEFINE INPUT PARAMETER pcField AS CHARACTER NO-UNDO.
+  IF pcfield = ? AND VALID-HANDLE(ghBrowse) THEN 
+    APPLY 'ENTRY':U TO ghBrowse.
+  ELSE 
+    RUN SUPER(pcField).
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE applyFilters sObject 
 PROCEDURE applyFilters :
 /*------------------------------------------------------------------------------
@@ -945,9 +964,6 @@ RUN translateBrowseColumns IN hSDF (INPUT cObjectName,
                                     INPUT ghBrowse).
 SESSION:SET-WAIT-STATE("":U).
 
-IF VALID-HANDLE(ghBrowse) THEN
-  APPLY "entry":U TO ghBrowse.
-
 cLinkHandles = DYNAMIC-FUNCTION('linkHandles' IN THIS-PROCEDURE, 'GroupAssign-Target').
 IF cLinkHandles <> "":U THEN
   ghGATarget = WIDGET-HANDLE(ENTRY(1,cLinkHandles)).
@@ -961,6 +977,9 @@ ELSE DO:
     RUN destroyObject IN ghMaintToolbar.
   ghMaintToolbar = ?.
 END.
+
+/* Set the handle of the target procedure as BrowseObject in the SDF */
+{set BrowseObject TARGET-PROCEDURE hSDF}.
 
 END PROCEDURE.
 

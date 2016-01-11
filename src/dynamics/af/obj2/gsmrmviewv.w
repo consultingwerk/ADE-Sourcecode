@@ -331,21 +331,10 @@ PROCEDURE addRecord :
   Parameters:  
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cValue          AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE hDataSource     AS HANDLE       NO-UNDO.
 
   RUN SUPER.
 
-  DO WITH FRAME {&FRAME-NAME}:
-    ASSIGN
-        hDataSource                   = {fn getDataSource}
-        cValue                        = {fn getForeignValues hDataSource}.
-
-    RUN assignNewValue IN h_gsmsedynlookup (cValue, "":U, TRUE).
-    
-    RUN setFieldSensitivity.
-  END.
-
+  RUN setFieldSensitivity.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -528,8 +517,8 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE resetRecrod vTableWin 
-PROCEDURE resetRecrod :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE resetRecord vTableWin 
+PROCEDURE resetRecord :
 /*------------------------------------------------------------------------------
   Purpose:     Super Override
   Parameters:  

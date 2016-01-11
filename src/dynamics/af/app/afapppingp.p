@@ -32,7 +32,6 @@ DEFINE OUTPUT PARAMETER plConnbnd  AS LOGICAL   NO-UNDO. /* SESSION:SERVER-CONNE
 DEFINE OUTPUT PARAMETER pcConnctxt AS CHARACTER NO-UNDO. /* SESSION:SERVER-CONNECTION-CONTEXT */
 DEFINE OUTPUT PARAMETER pcASppath  AS CHARACTER NO-UNDO. /* PROPATH */
 DEFINE OUTPUT PARAMETER pcConndbs  AS CHARACTER NO-UNDO. /* List of Databases */
-DEFINE OUTPUT PARAMETER pcConnpps  AS CHARACTER NO-UNDO. /* List of Running Persistent Procedures */
 DEFINE OUTPUT PARAMETER pcCustomisationTypes        AS CHARACTER    NO-UNDO.    /* from CustomizatinManager */
 DEFINE OUTPUT PARAMETER pcCustomisationReferences   AS CHARACTER    NO-UNDO.    /* from CustomizatinManager */
 DEFINE OUTPUT PARAMETER pcCustomisationResultCodes  AS CHARACTER    NO-UNDO.    /* from CustomizatinManager */
@@ -40,6 +39,13 @@ DEFINE OUTPUT PARAMETER TABLE-HANDLE phTTParam.
 DEFINE OUTPUT PARAMETER TABLE-HANDLE phTTManager.
 DEFINE OUTPUT PARAMETER TABLE-HANDLE phTTServiceType.
 DEFINE OUTPUT PARAMETER TABLE-HANDLE phTTService.
+DEFINE OUTPUT PARAMETER TABLE-HANDLE phTTPersistentProcedure. /* List of Running Persistent Procedures */
+
+DEFINE TEMP-TABLE ttPProcedure      NO-UNDO
+    FIELD iSeq              AS INTEGER
+    FIELD cProcedureName    AS CHARACTER
+    INDEX pudx IS PRIMARY UNIQUE
+          iSeq.
 
 DEFINE VARIABLE iLoop                   AS INTEGER      NO-UNDO. /* Generic counter */
 DEFINE VARIABLE hAS                     AS HANDLE       NO-UNDO. /* AppServer connection handle */
@@ -75,11 +81,19 @@ END.
 
 /* Generate a list of running persistent procedures */
 hAS = SESSION:FIRST-PROCEDURE.
+iLoop = 0.
 DO WHILE hAS <> ?:
   IF hAS:PERSISTENT THEN
-    ASSIGN pcConnpps = pcConnpps + (IF pcConnpps NE "" THEN ",":U ELSE "") + hAS:FILE-NAME.
+  DO:
+      iLoop = iLoop + 1.
+      CREATE ttPProcedure.
+      ASSIGN ttPPRocedure.iSeq = iLoop
+             ttPProcedure.cProcedureName = hAS:FILE-NAME.
+             
+  END.
   hAS = hAS:NEXT-SIBLING.
 END.
+phTTPersistentProcedure = TEMP-TABLE ttPProcedure:HANDLE.
 
 /* Get the connections and config manager temp-tables */
 RUN obtainCFMTables        IN THIS-PROCEDURE ( OUTPUT phTTParam, OUTPUT phTTManager).

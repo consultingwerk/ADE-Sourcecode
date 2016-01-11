@@ -366,7 +366,7 @@ FUNCTION get-body-phrase RETURNS CHARACTER (INPUT p_BodyName AS CHARACTER):
       /* Handle HELP screens. */
       IF p_BodyName BEGINS "WSHELP" 
       THEN RETURN
-            ' BACKGROUND="' + RootURL + '/doc/library/images/paper.gif" BGCOLOR="WHITE"':U + 
+            ' BACKGROUND="' + RootURL + '/images/paper.gif" BGCOLOR="WHITE"':U + 
             ' TEXT="#000000" LINK="#000000" VLINK="#FF0000" ALINK="#FF0000"':U.
       ELSE RETURN
             ' BACKGROUND="' + RootURL + '/images/bgr/wsblank.gif" BGCOLOR="{&BgColor}"':U + 

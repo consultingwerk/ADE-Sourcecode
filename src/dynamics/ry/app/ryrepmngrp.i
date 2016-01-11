@@ -149,10 +149,10 @@ DEFINE VARIABLE gcCurrentLogicalName            AS CHARACTER    NO-UNDO.
 {dynlaunch.i &define-only = YES}
 
 /* Inlude containing the data types in integer form. */
-{ af/app/afdatatypi.i }
+{af/app/afdatatypi.i}
 
 /* Defines the NO-RESULT-CODE and DEFAULT-RESULT-CODE result codes. */
-{ ry/app/rydefrescd.i }
+{ry/app/rydefrescd.i}
 
 /* mapping between  buffer:attr and entityfield attributes*/
 &SCOPED-DEFINE BUFFER-ATTRIBUTE-MAP ~
@@ -202,6 +202,7 @@ DEFINE VARIABLE ghQuery             AS HANDLE       EXTENT 20           NO-UNDO.
 {ry/inc/getobjecti.i}
 
 DEFINE VARIABLE gcClientCacheDir             AS CHARACTER                NO-UNDO.
+define variable gcSessionResultCodes         as character                no-undo.
 DEFINE VARIABLE glUseThinRendering           AS LOGICAL                  NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
@@ -274,18 +275,6 @@ FUNCTION classIsA RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-constructInstance) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD constructInstance Procedure 
-FUNCTION constructInstance RETURNS HANDLE
-        ( INPUT pcObjectName            AS CHARACTER,
-          INPUT pcInstanceName          AS CHARACTER  ) FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-deriveSuperProcedures) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD deriveSuperProcedures Procedure 
@@ -337,7 +326,8 @@ FUNCTION getCacheClassBuffer RETURNS HANDLE
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCachedList Procedure 
 FUNCTION getCachedList RETURNS CHARACTER
   (pcEntityOrClass AS CHARACTER,
-   pcDirectory AS CHARACTER)  FORWARD.
+   pcDirectory AS CHARACTER,
+   pcLanguageCode AS CHARACTER)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -493,7 +483,19 @@ FUNCTION getCurrentLogicalName RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getEntityFromClientCache Procedure 
 FUNCTION getEntityFromClientCache RETURNS LOGICAL
   ( pcEntityNames AS CHARACTER,
-    pcEntityDirectory AS CHARACTER)  FORWARD.
+    pcEntityDirectory AS CHARACTER,
+    pcLanguageCode AS CHARACTER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getMappedFilename) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getMappedFilename Procedure 
+FUNCTION getMappedFilename RETURNS CHARACTER
+        ( input pcObjectName        as character ) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -602,6 +604,20 @@ FUNCTION isObjectCached RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD launchClassObject Procedure 
 FUNCTION launchClassObject RETURNS HANDLE
     ( INPUT pcClassName             AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-newInstance) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD newInstance Procedure 
+FUNCTION newInstance RETURNS LOGICAL
+    ( INPUT pcInstance                              AS character,
+      input pcClassName                             as character,
+      input pcSuperProcedure            as character,
+      input pcSuperProcedureMode            as character        )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -766,6 +782,7 @@ DYNAMIC-FUNCTION("setSessionParam":U IN TARGET-PROCEDURE,
 ASSIGN glUseThinRendering = DYNAMIC-FUNCTION("getSessionParam":U IN TARGET-PROCEDURE,
                                               INPUT "UseThinRendering":U ).
 
+            
 /* Subscribe to the event published by the configuration file
    manager on session shutdown. The Repository Manager needs
    to perform some tasks when the session shuts down, such as 
@@ -784,6 +801,7 @@ SUBSCRIBE TO "ICFCFM_StartSessionShutdown":U ANYWHERE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE buildClassCache Procedure 
 PROCEDURE buildClassCache :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   Purpose:     Constructs the ttClass table.
   Parameters:  pcClassCode - a class code, a CSV list of class codes or * for all.
   Notes:       * This procedure is designed to run when a DB connection is available,
@@ -1245,11 +1263,11 @@ DEFINE BUFFER ttClass                   FOR ttClass.
      * not need to be a unique index because this table is only ever used
      * to store the class-level attributes and their values.
      */    
-    hClassAttributeTempTable:ADD-NEW-INDEX("idxRecordID":U, FALSE, TRUE).  /* unique primary key */
+    hClassAttributeTempTable:ADD-NEW-INDEX("idxRecordID":U, FALSE, TRUE).  /* non-unique primary key */
     hClassAttributeTempTable:ADD-INDEX-FIELD("idxRecordID":U, "InstanceId":U).
     
     /* ADM key used for each running instance */
-    hClassAttributeTempTable:ADD-NEW-INDEX("idxTargetID":U, FALSE, FALSE).  /* unique  key */
+    hClassAttributeTempTable:ADD-NEW-INDEX("idxTargetID":U, FALSE, FALSE).
     hClassAttributeTempTable:ADD-INDEX-FIELD("idxTargetID":U, "Target":U).
     
     /* Prepare the Temp-table */
@@ -1309,9 +1327,11 @@ PROCEDURE buildEntityCache :
 ACCESS_LEVEL=PRIVATE
   Purpose:     Creates cache records for the requested entities.
   Parameters:  pcEntityName - a CSV list of entity names.
+               pcLanguageCode - language code for entity translation.  
   Notes:       * This is a server-side only API.
 ------------------------------------------------------------------------------*/
     DEFINE INPUT PARAMETER pcEntityName            AS CHARACTER            NO-UNDO.
+    DEFINE INPUT PARAMETER pcLanguageCode          AS CHARACTER            NO-UNDO.
             
     &IF DEFINED(Server-Side) NE 0 &THEN
     DEFINE VARIABLE iEntityLoop                 AS INTEGER              NO-UNDO.
@@ -1330,10 +1350,25 @@ ACCESS_LEVEL=PRIVATE
     define variable cPropertyValues             as character            no-undo.
     DEFINE VARIABLE cNumericSeparator           AS CHARACTER            NO-UNDO.
     define variable cDecimalPoint               as character            no-undo.
+    DEFINE VARIABLE cTranslatedLabels           AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE cTooltips                   AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE cEntry                      AS CHARACTER            NO-UNDO.
     
     DEFINE BUFFER rycso                      FOR ryc_smartobject.
     DEFINE BUFFER gsc_object_type            FOR gsc_object_type.
     define buffer bClass                     for ttClass.
+
+    IF pcLanguageCode = ? OR pcLanguageCode = "":U THEN
+       RETURN ERROR {aferrortxt.i 'AF' '1' '' '' '"Language Code"'}.
+    ELSE
+    DO:
+        IF pcLanguageCode <> "NONE":U THEN /* NONE corresponds to <None> at the Application Login window */
+        DO:
+            FIND gsc_language WHERE language_code = pcLanguageCode NO-LOCK NO-ERROR.
+            IF NOT AVAILABLE gsc_language THEN
+                RETURN ERROR {aferrortxt.i 'AF' '11' '' '' '"gsc_language record"' '"the specified language"'}.
+        END.
+    END.
 
     /* Force the SESSION formats to default.
        - The dictionary stores initial valuies in 'american' and 'mdy'
@@ -1513,7 +1548,31 @@ ACCESS_LEVEL=PRIVATE
                 assign cError = {aferrortxt.i 'AF' '40' '?' '?' "'Unable to determine the DATA-TYPE for' + ryc_object_instance.instance_name + ' on ' + ryc_smartobject.object_filename"}.
                 leave ENTITY-LOOP.
             end.    /* no data type */
-            
+
+            IF pcLanguageCode <> "NONE":U THEN
+            DO:
+                IF VALID-HANDLE(gshTranslationManager) THEN
+                DO:
+                    RUN translateSingleObject IN gshTranslationManager 
+                          ( gsc_language.language_obj, 
+                           ryc_smartobject.object_filename,
+                           ryc_object_instance.instance_name,
+                           "DATAFIELD",
+                           2, /* LABEL and COLUMN LABEL */
+                           OUTPUT cTranslatedLabels, OUTPUT cTooltips).
+
+                    IF NUM-ENTRIES(cTranslatedLabels, CHR(3)) = 2 THEN
+                    DO:
+                        cEntry = ENTRY(1, cTranslatedLabels, CHR(3)).
+                        IF cEntry > "":U THEN
+                            cLabel = cEntry.
+                        cEntry = ENTRY(2, cTranslatedLabels, CHR(3)).
+                        IF cEntry > "":U THEN
+                            cColumnLabel = cEntry.
+                    END.
+                END.
+            END.
+
             /* Add the field.
                The label, column label and format cannot be the string value of the
                unknown value. If the value is stored as "?" then the value
@@ -1548,9 +1607,10 @@ ACCESS_LEVEL=PRIVATE
         
         /* Create the ttEntity record */
         CREATE ttEntity.
-        ASSIGN ttEntity.EntityTableName    = hEntityTable:NAME
+        ASSIGN ttEntity.EntityTableName    = hEntityTable:NAME + pcLanguageCode
                ttEntity.EntityName         = hEntityTable:NAME
-               ttEntity.EntityBufferHandle = hEntityTable:DEFAULT-BUFFER-HANDLE.
+               ttEntity.EntityBufferHandle = hEntityTable:DEFAULT-BUFFER-HANDLE
+               ttEntity.LanguageCode       = pcLanguageCode.
     END.    /* ENTITY-LOOP: */
     
     /* Reset the session:*-FORMAT before doing anything.
@@ -1804,7 +1864,7 @@ ACCESS_LEVEL=PRIVATE
         /* If the container is not yet cached, and this request is for instances, then
            make sure that page zero(the meta-information about the container) is cached.
            If this request if for pages, we must also ensure that page 0 is retrieved.
-		   
+                   
            If the page list is empty, don't worry about it since an empty page list will
            retrieve the start and initial pages.
          */
@@ -1852,7 +1912,7 @@ ACCESS_LEVEL=PRIVATE
         RETURN ERROR (IF RETURN-VALUE EQ "":U THEN ERROR-STATUS:GET-MESSAGE(1) ELSE RETURN-VALUE).
     IF cEntitiesReferenced NE "":U THEN
     DO:
-        RUN createEntityCache (INPUT cEntitiesReferenced) NO-ERROR.
+        RUN createEntityCache (INPUT cEntitiesReferenced, "":U) NO-ERROR.
         IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN
             RETURN ERROR (IF RETURN-VALUE EQ "":U THEN ERROR-STATUS:GET-MESSAGE(1) ELSE RETURN-VALUE).
     END.    /* cache any entities */
@@ -1884,6 +1944,7 @@ END PROCEDURE.  /* cacheRepositoryObject */
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE calculateObjectPaths Procedure 
 PROCEDURE calculateObjectPaths :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
   Purpose:     The purpose of this procedure is to provide a standard mechanism for 
                finding the paths associated with an object. 
                
@@ -2213,6 +2274,7 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE changeObjectType Procedure 
 PROCEDURE changeObjectType :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   Purpose:     This procedure will take care of changing all relevant tables 
                when the object type of a SmartObject is changed
   Parameters:  
@@ -2278,6 +2340,7 @@ END PROCEDURE.  /* changeObjectType */
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE clearClientCache Procedure 
 PROCEDURE clearClientCache :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
   Purpose:     To empty client cache temp-tables to ensure the database is accessed
                again to retrieve up-to-date information. This may be called when 
                repository maintennance programs have been run. The procedure prevents
@@ -2344,7 +2407,10 @@ PROCEDURE clearClientCache :
      * We need to do this because the entity cache is populated from the repository manager. */
     IF VALID-HANDLE(gshGenManager) THEN
         RUN refreshMnemonicsCache IN gshGenManager.
-
+    
+    /* Clear the variable used by getMappedFilename() */
+    gcSessionResultCodes = ?.
+    
     ASSIGN ERROR-STATUS:ERROR = NO.
     RETURN.
 END PROCEDURE.  /* clearClientCache */
@@ -2359,6 +2425,7 @@ END PROCEDURE.  /* clearClientCache */
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createClassCache Procedure 
 PROCEDURE createClassCache :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
   Purpose:     Caches class attributes and UI events
   Parameters:  pcClassName  - * or a CSV list of class codes (object types)               
   Notes:       * The UI event table is always the first table returned by
@@ -2517,20 +2584,30 @@ PROCEDURE createEntityCache :
 ACCESS_LEVEL=PRIVATE
   Purpose:     Manages the creation of cache records for the requested entities.
   Parameters:  pcEntityName - a CSV list of entity names.
+               pcLanguageCode - language code for entity translation.
   Notes:       
 ------------------------------------------------------------------------------*/
     DEFINE INPUT PARAMETER pcEntityName        AS CHARACTER            NO-UNDO.
+    DEFINE INPUT PARAMETER pcLanguageCode      AS CHARACTER            NO-UNDO.
     
     DEFINE VARIABLE hEntityTable           AS HANDLE   EXTENT 32       NO-UNDO.
     DEFINE VARIABLE iTableLoop             AS INTEGER                  NO-UNDO.    
+    define variable iNumberEntities        as integer                  no-undo.
     DEFINE VARIABLE cNewRequest            AS CHARACTER                NO-UNDO.
     DEFINE VARIABLE cEntityCacheDirectory  AS CHARACTER                NO-UNDO.
     DEFINE VARIABLE cEntity                AS CHARACTER                NO-UNDO.
+    define variable cFirst32Entities       as character                no-undo.
+    
     /* If there is more than one class requested, only pass the request across
        to the AppServer for those classes that aren't cached on the client. This
        is done to avoid unnecessary extra work and additional data across the wire.
      */
 
+    IF pcLanguageCode = ? OR pcLanguageCode = "":U THEN
+    DO:
+        pcLanguageCode = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager, "CurrentLanguageCode":U, YES).
+        IF pcLanguageCode = ? OR pcLanguageCode = "":U THEN pcLanguageCode = "NONE":U.
+    END.
     /* First let  us find the the EntityCacheDirectory */
     IF (gcClientCacheDir EQ ? OR gcClientCacheDir EQ "":U) THEN
     DO:  
@@ -2542,31 +2619,58 @@ ACCESS_LEVEL=PRIVATE
     IF gcClientCacheDir NE ? AND gcClientCacheDir NE "":U THEN
         DYNAMIC-FUNCTION("getEntityFromClientCache":U IN TARGET-PROCEDURE, 
                          pcEntityName, 
-                         gcClientCacheDir) NO-ERROR.
+                         gcClientCacheDir, 
+                         pcLanguageCode) NO-ERROR.
     
+    iNumberEntities = 0.
     DO iTableLoop = 1 TO NUM-ENTRIES(pcEntityName):
         cEntity = ENTRY(iTableLoop, pcEntityName).
-        IF NOT CAN-FIND(ttEntity WHERE ttEntity.EntityName = cEntity
-        AND LOOKUP(cEntity,cNewRequest) = 0 ) THEN
-            ASSIGN cNewRequest = cNewRequest + ",":U + ENTRY(iTableLoop, pcEntityName).
+        IF NOT CAN-FIND(ttEntity WHERE ttEntity.EntityName = cEntity 
+                                   AND ttEntity.LanguageCode = pcLanguageCode
+                                   AND LOOKUP(cEntity,cNewRequest) = 0 ) THEN
+        do:
+            /* Keep the first 32 entities separate. We do this because
+               in an AppServer environment, only 32 entities are retrieved
+               at a time.
+               
+               Use a separate variable since some of the entities
+               in the pcEntityName list may already be cached. From
+               here on, we only care about the number of entities to
+               cache.
+             */
+            iNumberEntities = iNumberEntities + 1.
+            
+            if iNumberEntities gt 32 then
+                cNewRequest = cNewRequest + ',' + entry(iTableLoop, pcEntityName).
+            else
+                cFirst32Entities = cFirst32Entities + ',' + entry(iTableLoop, pcEntityName).                
+        end.    /* entity not yet cached */
     END.    /* loop through entries */
     
-    ASSIGN pcEntityName = LEFT-TRIM(cNewRequest, ",":U).
+    assign pcEntityName = left-trim(cFirst32Entities, ',')
+           cNewRequest = left-trim(cNewRequest, ',').
     
-    /* If the list is blank return */
-    IF pcEntityName EQ "":U THEN    
+    /* If there are no entities to retrieve, then return. */
+    IF iNumberEntities eq 0 then
         RETURN.
-                
+    
     /* If the ICFDB is connected, then directly get the Classes */
     IF DYNAMIC-FUNCTION("isConnected":U IN TARGET-PROCEDURE, INPUT "ICFDB":U) THEN
     DO:
-        /* This populates the ttEntity temp-table. */
-        RUN buildEntityCache IN TARGET-PROCEDURE ( INPUT pcEntityName ) NO-ERROR.
+        /* If there is a DB connected, then get all entities in one call.
+           If there are more than 32 entities in this request, then we need
+           to add the first 32 and the last n entities together.           
+         */
+        if iNumberEntities gt 32 then
+            pcEntityName = pcEntityName + ',' + cNewRequest.
+        
+        /* This populates the ttEntity temp-table. */        
+        RUN buildEntityCache IN TARGET-PROCEDURE ( INPUT pcEntityName, INPUT pcLanguageCode ) NO-ERROR.
         IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR RETURN-VALUE.
     END.    /* local DB connected */
     ELSE
     DO:
-        RUN ry/app/rygetentityp.p ON gshAstraAppserver ( INPUT pcEntityName,
+        RUN ry/app/rygetentityp.p ON gshAstraAppserver ( INPUT pcEntityName, INPUT pcLanguageCode,
                                 OUTPUT TABLE-HANDLE hEntityTable[01], OUTPUT TABLE-HANDLE hEntityTable[02],
                                 OUTPUT TABLE-HANDLE hEntityTable[03], OUTPUT TABLE-HANDLE hEntityTable[04],
                                 OUTPUT TABLE-HANDLE hEntityTable[05], OUTPUT TABLE-HANDLE hEntityTable[06],
@@ -2586,6 +2690,11 @@ ACCESS_LEVEL=PRIVATE
         IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR RETURN-VALUE.
         
         /* Update the handles on the ttEntity temp-table.
+           Assume that, unless there are errors (which are handled above),
+           all of the entities requested were retrieved successfully. This
+           means that we don't need to keep track of which entities were
+           returned out of the original request, specified by pcEntityName.
+           We simply assume that all of the entities were retrieved.
          */
         DO iTableLoop = 1 TO EXTENT(hEntityTable):
             IF NOT VALID-HANDLE(hEntityTable[iTableLoop]) THEN
@@ -2599,7 +2708,7 @@ ACCESS_LEVEL=PRIVATE
              * table-handles.
              */
             FIND FIRST ttEntity WHERE
-                       ttEntity.EntityTableName = hEntityTable[iTableLoop]:NAME
+                       ttEntity.EntityTableName = hEntityTable[iTableLoop]:NAME + pcLanguageCode
                        NO-ERROR.
             IF AVAILABLE ttEntity THEN
             DO:
@@ -2610,32 +2719,24 @@ ACCESS_LEVEL=PRIVATE
             ELSE
             DO:                                                                                                            
                 CREATE ttEntity.
-                ASSIGN ttEntity.EntityTableName    = hEntityTable[iTableLoop]:NAME
+                ASSIGN ttEntity.EntityTableName    = hEntityTable[iTableLoop]:NAME + pcLanguageCode
                        ttEntity.EntityName         = hEntityTable[iTableLoop]:NAME
-                       ttEntity.EntityBufferHandle = hEntityTable[iTableLoop]:DEFAULT-BUFFER-HANDLE.
+                       ttEntity.EntityBufferHandle = hEntityTable[iTableLoop]:DEFAULT-BUFFER-HANDLE
+                       ttEntity.LanguageCode       = pcLanguageCode.
             END.    /* not yet cached */
-            
-            /* Mark the Entity as having been retrieved. */
-            ASSIGN ENTRY(LOOKUP(ttEntity.EntityName, pcEntityName), pcEntityName) = "":U.
         END.    /* loop through class attribute tables */
         
         /* First clean up. */
         ASSIGN hEntityTable  = ? NO-ERROR.
-                                
-        /* Check whether we got 'em all.
-         * This will ensure that the entire original request is serviced, even though
-         * it may take multiple AppServer calls to do so.
+        
+        /* If the cNewRequest variable has a value it means that there
+           were more than 32 entities requested in this call. We know (or
+           at least assume) that the first 32 were successfully retrieved
+           above. We now need to get the remaining entities.
          */
-        IF pcEntityName NE "":U THEN
-        DO WHILE INDEX(pcEntityName, ",,":U) GT 0:
-            ASSIGN pcEntityName = REPLACE(pcEntityName, ",,":U, ",":U).
-        END.    /* get rid of all double commas */
-        
-        ASSIGN pcEntityName = TRIM(pcEntityName, ",":U).
-        
-        IF pcEntityName NE "":U THEN
+        IF cNewRequest NE "":U THEN
         DO:
-            RUN createEntityCache ( INPUT pcEntityName ) NO-ERROR.
+            RUN createEntityCache ( INPUT cNewRequest, pcLanguageCode ) NO-ERROR.
             IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR RETURN-VALUE.
         END.    /* get left-overs. */
     END.    /* go across the AppServer */
@@ -2718,6 +2819,7 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE destroyClassCache Procedure 
 PROCEDURE destroyClassCache :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
   Purpose:     Destroys the Temp-tables which make up the class cache
   Parameters:  <none>
   Notes:       * This is a separate clearing procedure to clearClientCache(). That
@@ -2939,6 +3041,7 @@ END PROCEDURE.  /* doServerRetrieval */
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE extractRootFile Procedure 
 PROCEDURE extractRootFile :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
   Purpose:     Extracts the root file name from a path and provides the file
                name with an extension (if there is one) and without an extension.
   Parameters:
@@ -3048,6 +3151,12 @@ END PROCEDURE.  /* fetchObject */
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getActions Procedure 
 PROCEDURE getActions :
+/*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
+     Purpose: Retrieves menu actions.
+  Parameters: 
+       Notes: * Only used by Dynamics Web.
+------------------------------------------------------------------------------*/
 DEFINE INPUT PARAMETER pcCategoryList          AS CHARACTER  NO-UNDO.
 DEFINE INPUT PARAMETER pcActionList            AS CHARACTER  NO-UNDO.
 DEFINE OUTPUT PARAMETER TABLE FOR ttAction.
@@ -3093,6 +3202,7 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getClassChildrenProc Procedure 
 PROCEDURE getClassChildrenProc :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   Purpose:  This is a wrapper procedure for the getClassChildrenFromDB function
             to allow it being called using the dynamic call include seeing that
             the function needs to be run on the AppServer-side Repository Manager.
@@ -3120,6 +3230,7 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getClassParentsProc Procedure 
 PROCEDURE getClassParentsProc :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   Purpose:  This is a wrapper procedure for the getClassParentFromDB function
             to allow it being called using the dynamic call include seeing that
             the function needs to be run on the AppServer-side Repository Manager.
@@ -3280,6 +3391,7 @@ END PROCEDURE.    /* getClassProperties */
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getClientCacheDir Procedure 
 PROCEDURE getClientCacheDir :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
   Purpose:     Based on input product module, this proc will find the full absolute 
                path to the client cache direcotry.
   Parameters:  input - product module
@@ -3313,16 +3425,20 @@ PROCEDURE getClientCacheDir :
   ASSIGN pcFullPathName = DYNAMIC-FUNCTION('getSessionParam':U IN THIS-PROCEDURE, "client_cache_directory":U) NO-ERROR.
   IF (NOT ERROR-STATUS:ERROR AND pcFullPathName > "":U ) THEN
   DO:
-    ASSIGN pcFullPathName = REPLACE(pcFullPathName, "~\":U, "/":U).
+    ASSIGN pcFullPathName = REPLACE(pcFullPathName, "~\":U, "/":U)
+           file-info:file-name = pcFullPathName.
+    /* Check for the existence of the client cache dir. */
+    if file-info:full-pathname eq ? then
+        pcFullPathName = ''.        
     RETURN "".
   END.
     
   /* Based on the product module - find the relative path */
   RUN calculateObjectpaths IN TARGET-PROCEDURE 
-        (INPUT  "",             /*Object Name         */
+        (INPUT  "",              /* Object Name        */
          INPUT  0,               /* smartobject_obj    */
          INPUT  "",              /* Object Type        */
-         INPUT  pcProductModule,  /* Product Module     */
+         INPUT  pcProductModule, /* Product Module     */
          INPUT  "":U,            /* objectParameter    */ 
          INPUT  "":U,            /* name Space         */
          OUTPUT cRootDir,        /* Root Dircetory     */
@@ -3330,7 +3446,7 @@ PROCEDURE getClientCacheDir :
          OUTPUT cDummy,          /* SCM Relative dir   */
          OUTPUT cFullPath,       /* Full path Name     */
          OUTPUT cDummy,          /* Output Object Name */
-         OUTPUT cDummy,         /* Physical file name */
+         OUTPUT cDummy,          /* Physical file name */
          OUTPUT cError) NO-ERROR.   
   
   /* If there is a error default to ry/clc */
@@ -3352,9 +3468,14 @@ PROCEDURE getClientCacheDir :
                             LEFT-TRIM(cRelPath, "/":U)
            pcFullPathName = REPLACE(pcFullPathName, "~\":U, "/":U).
 
-  RETURN "".
-
-END PROCEDURE.
+    /* Check for the existence of the client cache dir. */
+    file-info:file-name = pcFullPathName.
+    if file-info:full-pathname eq ? then
+        pcFullPathName = ''.
+    
+    error-status:error = no.
+    RETURN "".
+END PROCEDURE.    /* getClientCacheDir */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -3573,6 +3694,7 @@ ACCESS_LEVEL=PRIVATE
     DEFINE VARIABLE cFormat            AS CHARACTER                         NO-UNDO.
     DEFINE variable lHasSuperProcedure as logical                           no-undo.
     DEFINE variable lHasSuperProcMode  as logical                           no-undo.
+    DEFINE VARIABLE cLanguageCode      AS CHARACTER                         NO-UNDO.
     
     DEFINE BUFFER bCache             FOR cacheObject.
     DEFINE BUFFER bEntity            FOR ttEntity.
@@ -3692,13 +3814,15 @@ ACCESS_LEVEL=PRIVATE
                cFieldName  = ENTRY(2, cEntityName, ".":U)
                cEntityName = ENTRY(1, cEntityName, ".":U).
         
-        FIND FIRST bEntity WHERE bEntity.EntityName = cEntityName NO-ERROR.
+        cLanguageCode = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager, "CurrentLanguageCode":U, YES).
+        IF cLanguageCode = ? OR cLanguageCode = "":U THEN cLanguageCode = "NONE":U.
+        FIND FIRST bEntity WHERE bEntity.EntityName = cEntityName AND bEntity.LanguageCode = cLanguageCode NO-ERROR.
         IF NOT AVAILABLE bEntity THEN
         DO:
-            RUN createEntityCache IN TARGET-PROCEDURE ( cEntityName ) NO-ERROR.
+            RUN createEntityCache IN TARGET-PROCEDURE ( cEntityName, cLanguageCode ) NO-ERROR.
             IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR (IF RETURN-VALUE EQ "":U THEN ERROR-STATUS:GET-MESSAGE(1) ELSE RETURN-VALUE).
             
-            FIND FIRST bEntity WHERE bEntity.EntityName = cEntityName NO-ERROR.
+            FIND FIRST bEntity WHERE bEntity.EntityName = cEntityName AND bEntity.LanguageCode = cLanguageCode NO-ERROR.
             IF NOT AVAILABLE bEntity THEN
                 RETURN ERROR {aferrortxt.i 'AF' '5' '?' '?' '"cached entity"' "'Entity name: ' + cEntityName"}.
         END.      /* n/a cache entity */
@@ -3851,14 +3975,15 @@ ACCESS_LEVEL=PRIVATE
             entry(iAttributeEntry, pcPropertyValues, {&Value-Delimiter}) = ''.
         else
         do:
-	        iAttributeEntry = lookup('SuperProcedureMode', cPropertyNames).
-	        /* No value in the list. */
-	        if iAttributeEntry eq 0 then	            assign cPropertyNames = cPropertyNames + ',SuperProcedureMode'
-	                   pcPropertyValues = pcPropertyValues + {&Value-Delimiter} + 'Stateful'.
-	        else
-	        /* Value must be one of Stateful or Stateless. */
-	        if not lHasSuperProcMode then
-	            entry(iAttributeEntry, pcPropertyValues, {&Value-Delimiter}) = 'Stateful'.
+            iAttributeEntry = lookup('SuperProcedureMode', cPropertyNames).
+            /* No value in the list. */
+            if iAttributeEntry eq 0 then                
+                assign cPropertyNames = cPropertyNames + ',SuperProcedureMode'
+                       pcPropertyValues = pcPropertyValues + {&Value-Delimiter} + 'Stateful'.
+            else
+            /* Value must be one of Stateful or Stateless. */
+            if not lHasSuperProcMode then
+                entry(iAttributeEntry, pcPropertyValues, {&Value-Delimiter}) = 'Stateful'.
         end.    /* the object has a super procedure */
     end.    /* SuperProcedure requested. */
     
@@ -4384,6 +4509,7 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE ICFCFM_StartSessionShutdown Procedure 
 PROCEDURE ICFCFM_StartSessionShutdown :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   Purpose:     This procedure deals with capture of the event ICFCFM_StartSessionShutdown.
                Based on the session property auto_dump_entity_cache, this procedure 
                will invoke the saveEntitiesClientCache procedure which will
@@ -4407,7 +4533,8 @@ PROCEDURE ICFCFM_StartSessionShutdown :
   /* Save the cached entities to the disk only if auto_dump_entity_cache is YES or TRUE */
   
   IF LOOKUP(cDumpEntity, "yes,true") > 0 THEN
-    RUN saveEntitiesToClientCache IN TARGET-PROCEDURE (INPUT "", OUTPUT cStatus).
+    RUN saveEntitiesToClientCache IN TARGET-PROCEDURE (INPUT "", INPUT "", OUTPUT cStatus).
+    
         
   /* Clear the class cache to avoid memory leaks. */
   RUN destroyClassCache IN TARGET-PROCEDURE.
@@ -4426,6 +4553,7 @@ END PROCEDURE.  /* ICFCFM_SessionShutdown */
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE plipShutdown Procedure 
 PROCEDURE plipShutdown :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
   Purpose:     Run on close of procedure
   Parameters:  <none>
   Notes:       
@@ -4496,6 +4624,7 @@ PROCEDURE receiveCacheClass :
                requested, note that the manager is empty of ANY cache at this stage.
   Parameters:  <none>
   Notes:       
+*** THIS API HAS BEEN DEPRECATED ***                   
 ------------------------------------------------------------------------------*/
     DEFINE INPUT  PARAMETER hBufferCache   AS HANDLE     NO-UNDO.
     DEFINE INPUT  PARAMETER cTableHandles  AS CHARACTER  NO-UNDO.
@@ -4600,6 +4729,7 @@ PROCEDURE receiveCacheObject :
                run this procedure.
   Parameters:  <none>
   Notes:       
+*** THIS API HAS BEEN DEPRECATED ***  
 ------------------------------------------------------------------------------*/
 
 /* Definitions for parameters */
@@ -4810,6 +4940,7 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE resolveResultCodes Procedure 
 PROCEDURE resolveResultCodes :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
   Purpose:     Resolves the result code string, and ensures that it contains
                valid result codes, including the default result code. 
   Parameters:  pcResultCodes -
@@ -4948,16 +5079,18 @@ END PROCEDURE.  /* returnCacheBuffers */
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE saveEntitiesToClientCache Procedure 
 PROCEDURE saveEntitiesToClientCache :
 /*------------------------------------------------------------------------------
-  /* PUBLIC */
-  Purpose:  Savees the Entities to the disk. If the pcEntities is blank then 
+  /* PRIVATE */
+  Purpose:  Saves the Entities to the disk. If the pcEntities is blank then 
             all the current entities in the memory are saved to the disk.
             This procedure is called from the cache client generation tool as well
             as the session shut down event.
     Notes: pcEntities - a Comma separated list of entities
                       - If the value is blank then all the cuurently cached entities
                         are dumped to the disk.
+           pcLanguageList - a Comma separated list of language codes
            pcStatus   - Status of the entity dump process. This mainly required 
                         for the cache client tool.
+                        It is not used when pcEntities is blank.
                         
     Important Note: When this API is called from session shutdown(runtime) - The 
     list of entities is blank. If pcEntities is blank then - the memory cache is 
@@ -4969,72 +5102,45 @@ PROCEDURE saveEntitiesToClientCache :
           American numeric formats. This is consistent with how the database
           stores initial values.
 ------------------------------------------------------------------------------*/
-  DEFINE INPUT  PARAMETER pcEntities AS CHARACTER  NO-UNDO.
-  DEFINE OUTPUT PARAMETER pcStatus   AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER pcEntities     AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER pcLanguageList AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER pcStatus       AS CHARACTER  NO-UNDO.
 
   DEFINE VARIABLE hQuery                    AS WIDGET-HANDLE NO-UNDO.
   DEFINE VARIABLE hbuff                     AS HANDLE NO-UNDO.
   DEFINE VARIABLE cEntityName               AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hHandle                   AS HANDLE     NO-UNDO.
   DEFINE VARIABLE i                         AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iLng                      AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cWhere                    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lFileWritable             AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cFullFileName             AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cClientCacheDir           AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cDateFormat               AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cNumericSeparator         AS CHARACTER  NO-UNDO.
   define variable cDecimalPoint             as character  no-undo.
   DEFINE VARIABLE cError                    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cLanguageCode             AS CHARACTER  NO-UNDO.
 
   EMPTY TEMP-TABLE ttEntityDump.
   ASSIGN ERROR-STATUS:ERROR = NO
-         cWhere             = '':U
          pcEntities         = TRIM(pcEntities, ",":U).
 
   /* get the directory where to save the .d - This is not a parameter as 
      the product module is fixed ry-clc and we can find the path from that */
-  RUN getClientCacheDir(INPUT "ry-clc", OUTPUT cClientCacheDir).
-  ASSIGN cClientCacheDir = RIGHT-TRIM(cClientCacheDir, "/":U)
-         FILE-INFO:FILENAME = cClientCacheDir.
+  IF (gcClientCacheDir EQ ? OR gcClientCacheDir EQ "":U) THEN
+  DO:  
+      RUN getClientCacheDir (INPUT "ry-clc":U, OUTPUT gcClientCacheDir).
+      ASSIGN gcClientCacheDir = RIGHT-TRIM(gcClientCacheDir, "/":U).
+  END.    /* no client cache directory */
+  FILE-INFO:FILENAME = gcClientCacheDir.
   
   IF FILE-INFO:FULL-PATHNAME = ? THEN
   DO:
-    pcStatus = pcStatus + CHR(10) + "Could not find the dump directory: " + cClientCacheDir.
-    RETURN ERROR "Error finding valid dump directory: " + cClientCacheDir.
+    IF (pcEntities > '':U) THEN
+        pcStatus = pcStatus + CHR(10) + "Could not find the dump directory: " + gcClientCacheDir.
+    RETURN ERROR "Error finding valid dump directory: " + gcClientCacheDir.
   END.
   
-  /* Now we delete any entity cache that's on the disk - This is necessary to 
-     pick the latest changes from the database */
-  IF (pcEntities > '':U) THEN
-  DO:
-    DO i = 1 to NUM-ENTRIES(pcEntities, ",":U):
-      ASSIGN cEntityName = ENTRY(i, pcEntities, ",":U)
-             cFullFileName = cClientCacheDir + 
-             (IF cClientCacheDir > "":U THEN "/" ELSE "") + "ent_":U + 
-             cEntityName + ".d":U.
-      
-      /* If the file exists, delete the file on disk */
-      OS-DELETE VALUE(cFullFileName).
-    END.
-    
-    /* Now we clear the cache - so that the entity information will be pickedup 
-       from the database and not memory  */
-    RUN destroyClassCache IN TARGET-PROCEDURE.
-    
-  END. 
-  
-  /* Get the handle to the in memory temp-table which has pointers to the 
-     cached entity tables */
-  RUN createEntityCache IN TARGET-PROCEDURE ( INPUT pcEntities ) NO-ERROR.
-  IF ERROR-STATUS:ERROR OR RETURN-VALUE > "":U THEN
-  DO:
-    ASSIGN cError = (IF NUM-ENTRIES(RETURN-VALUE, CHR(4)) >= 1 THEN ENTRY(1, RETURN-VALUE, CHR(4)) ELSE "":U)
-           cError = (IF NUM-ENTRIES(cError, "^":U) >= 4 THEN ENTRY(4, cError, "^":U) ELSE "":U)
-           cError = "Error while retrieving entity information: " + cError.
-    RETURN ERROR cError.
-  END.
-  ASSIGN hbuff = BUFFER ttEntity:HANDLE.
-
   /* The Entities are always using default session formats, so we set the 
      formats accordingly before we reference the INITIAL attribute and dump them.
      The INITIAL attribute actually returns the assigned format ignoring the 
@@ -5045,107 +5151,156 @@ PROCEDURE saveEntitiesToClientCache :
            SESSION:DATE-FORMAT    = "mdy":U
            SESSION:NUMERIC-FORMAT = "American":U.
     
-  CREATE QUERY hQuery.
-  hQuery:SET-BUFFERS(hbuff).
-  /* Create the where clause if the list of entities is not blank */
-  IF (pcEntities > '':U) THEN
+  IF pcLanguageList = ? OR pcLanguageList = "":U THEN
   DO:
-    ASSIGN pcStatus = pcStatus + CHR(10) + "Saving following Entities: " + pcEntities.
-    DO i = 1 TO NUM-ENTRIES(pcEntities, ",":U):
-      cWhere = cWhere + (IF i = 1 THEN " WHERE " ELSE " OR ").
-      cWhere = cWhere + hbuff:NAME + ".EntityName = ":U + QUOTER(ENTRY(i, pcEntities, ",":U)).
-    END.
+      pcLanguageList = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager, "CurrentLanguageCode":U, YES).
+      IF pcLanguageList = ? OR pcLanguageList = "":U THEN pcLanguageList = "NONE":U.
   END.
-  ELSE
-    ASSIGN pcStatus = pcStatus + CHR(10) + "Saving all Entities from the memory".
-    
-    /* We need to re-empty this temp-table since it is
-       also used in the createEntityCache() call and may have
-       extra data in it. 
-	 */
-    empty temp-table ttEntityDump.
-
-  hQuery:QUERY-PREPARE("FOR EACH " + hbuff:NAME + cWhere).
-  hQuery:QUERY-OPEN.
-  hQuery:GET-FIRST().
-  DO WHILE hbuff:AVAILABLE:
-    ASSIGN cEntityName = hbuff:BUFFER-FIELD('EntityName'):BUFFER-VALUE
-           hHandle     = hbuff:BUFFER-FIELD('EntityBufferHandle'):BUFFER-VALUE.
-
-    IF ((NOT VALID-HANDLE(hHandle)) OR (cEntityName = "":U) OR (cEntityName = ?)) THEN
-    DO:
-      hQuery:GET-NEXT().
-      NEXT.
-    END.
-
-    /* For the entity temp-table get the fields and create ttEntityDump records */
-    DO i = 1 TO hHandle:NUM-FIELDS:
-      CREATE ttEntityDump.
-      ASSIGN ttEntityDump.tEntityName = cEntityName
-             ttEntityDump.tFieldName = hHandle:BUFFER-FIELD(i):NAME
-             ttEntityDump.tDataType  = hHandle:BUFFER-FIELD(i):DATA-TYPE
-             ttEntityDump.tFormat    = hHandle:BUFFER-FIELD(i):FORMAT
-             ttEntityDump.tLabel     = hHandle:BUFFER-FIELD(i):LABEL
-             ttEntityDump.tColLabel  = hHandle:BUFFER-FIELD(i):COLUMN-LABEL
-             ttEntityDump.tHelp      = hHandle:BUFFER-FIELD(i):HELP.
-
-      /* If the data type is Today then dump TODAY. 
-         If the Data type is Logical then we need to right-trim as it sometimes 
-         adds a space and the later entity load dies */
-         
-      IF hHandle:BUFFER-FIELD(i):DATA-TYPE = "DATE" AND 
-         hHandle:BUFFER-FIELD(i):DEFAULT-STRING = "TODAY":U THEN
-        ASSIGN ttEntityDump.tInitial   = "TODAY".
-      ELSE IF (hHandle:BUFFER-FIELD(i):DATA-TYPE = "DATETIME" OR 
-               hHandle:BUFFER-FIELD(i):DATA-TYPE = "DATETIME-TZ" ) AND 
-               hHandle:BUFFER-FIELD(i):DEFAULT-STRING = "NOW":U THEN
-        ASSIGN ttEntityDump.tInitial   = "NOW".
-      ELSE IF hHandle:BUFFER-FIELD(i):DATA-TYPE = "LOGICAL" THEN
-        ASSIGN ttEntityDump.tInitial   = RIGHT-TRIM(hHandle:BUFFER-FIELD(i):INITIAL).
-      ELSE
-        ASSIGN ttEntityDump.tInitial   = hHandle:BUFFER-FIELD(i):INITIAL.
-    END.
-    hQuery:GET-NEXT().
-  END.    /* loop through buffers */
-  hQuery:QUERY-CLOSE().
-  DELETE OBJECT hQuery.
   
-  /* Now dump the .d file */
-  FOR EACH ttEntityDump BREAK BY ttEntityDump.tEntityName:
+  /* Now we clear the cache - so that the entity information will be pickedup 
+     from the database and not memory  */
+  IF (pcEntities > '':U) THEN
+      RUN destroyClassCache IN TARGET-PROCEDURE.
   
-    IF ttEntityDump.tEntityName = "":U THEN
-      NEXT.
-      
-    IF FIRST-OF(ttEntityDump.tEntityName) THEN
-    DO:
-      ASSIGN cFullFileName = cClientCacheDir + 
-                 (IF cClientCacheDir > "":U THEN "/" ELSE "") + "ent_":U + 
-                 tEntityName + ".d":U
-             lFileWritable = YES.
-      /* We need to make sure that the file is writable */
-      FILE-INFO:FILE-NAME = cFullFileName.
-      IF (FILE-INFO:FILE-NAME <> ? AND INDEX(FILE-INFO:FILE-TYPE,'W':U) = 0) THEN
+  DO iLng = 1 TO NUM-ENTRIES(pcLanguageList):
+      ASSIGN cLanguageCode = ENTRY(iLng, pcLanguageList)
+             cWhere        = '':U.
+  
+      /* Now we delete any entity cache that's on the disk - This is necessary to 
+         pick the latest changes from the database */
+      IF (pcEntities > '':U) THEN
       DO:
-        ASSIGN lFileWritable = NO
-               pcStatus = pcStatus + CHR(10) + "Entity : " + 
-                          ttEntityDump.tEntityName + 
-                          " can not be dumped to disk as the file is not writable".
-                          
-        NEXT.
+        DO i = 1 to NUM-ENTRIES(pcEntities, ",":U):
+          ASSIGN cEntityName = ENTRY(i, pcEntities, ",":U)
+                 cFullFileName = gcClientCacheDir + 
+                 (IF gcClientCacheDir > "":U THEN "/" ELSE "") + "ent_":U + 
+                 cEntityName + "_":U + cLanguageCode + ".d":U.
+          
+          /* If the file exists, delete the file on disk */
+          OS-DELETE VALUE(cFullFileName).
+        END.
+      END. 
+      
+      /* Get the handle to the in memory temp-table which has pointers to the 
+         cached entity tables */
+      RUN createEntityCache IN TARGET-PROCEDURE ( INPUT pcEntities, cLanguageCode ) NO-ERROR.
+      IF ERROR-STATUS:ERROR OR RETURN-VALUE > "":U THEN
+      DO:
+        ASSIGN cError = (IF NUM-ENTRIES(RETURN-VALUE, CHR(4)) >= 1 THEN ENTRY(1, RETURN-VALUE, CHR(4)) ELSE "":U)
+               cError = (IF NUM-ENTRIES(cError, "^":U) >= 4 THEN ENTRY(4, cError, "^":U) ELSE "":U)
+               cError = "Error while retrieving entity information: " + cError.
+        RETURN ERROR cError.
       END.
-      ASSIGN pcStatus = pcStatus + CHR(10) + "Dumping entity : " + 
-                 ttEntityDump.tEntityName + " to disk at: " +
-                 cFullFileName.
-      OUTPUT TO VALUE(cFullFileName).
-    END.
+      ASSIGN hbuff = BUFFER ttEntity:HANDLE.
+    
+      CREATE QUERY hQuery.
+      hQuery:SET-BUFFERS(hbuff).
 
-    IF lFileWritable THEN
-      EXPORT ttEntityDump.
-
-    IF (LAST-OF(ttEntityDump.tEntityName) AND lFileWritable) THEN
-      OUTPUT CLOSE.
-  END.
+      cWhere = " WHERE ":U + hbuff:NAME + ".LanguageCode = ":U + QUOTER(cLanguageCode).
+      /* Add to the where clause if the list of entities is not blank */
+      /* If pcEntities is blank all the entities in memory are saved. */
+      IF (pcEntities > '':U) THEN
+      DO:
+        ASSIGN pcStatus = pcStatus + CHR(10) + "Saving following Entities: " + pcEntities.
+        cWhere = cWhere + " AND ( ":U.
+        DO i = 1 TO NUM-ENTRIES(pcEntities, ",":U):
+          cWhere = cWhere + (IF i = 1 THEN "":U ELSE " OR ":U).
+          cWhere = cWhere + hbuff:NAME + ".EntityName = ":U + QUOTER(ENTRY(i, pcEntities, ",":U)).
+        END.
+        cWhere = cWhere + " ) ":U.
+      END.
+        
+        /* We need to re-empty this temp-table since it is
+           also used in the createEntityCache() call and may have
+           extra data in it. 
+             */
+        empty temp-table ttEntityDump.
+    
+      hQuery:QUERY-PREPARE("FOR EACH " + hbuff:NAME + cWhere).
+      hQuery:QUERY-OPEN.
+      hQuery:GET-FIRST().
+      DO WHILE hbuff:AVAILABLE:
+        ASSIGN cEntityName = hbuff:BUFFER-FIELD('EntityName'):BUFFER-VALUE
+               hHandle     = hbuff:BUFFER-FIELD('EntityBufferHandle'):BUFFER-VALUE.
+    
+        IF ((NOT VALID-HANDLE(hHandle)) OR (cEntityName = "":U) OR (cEntityName = ?)) THEN
+        DO:
+          hQuery:GET-NEXT().
+          NEXT.
+        END.
+    
+        /* For the entity temp-table get the fields and create ttEntityDump records */
+        DO i = 1 TO hHandle:NUM-FIELDS:
+          CREATE ttEntityDump.
+          ASSIGN ttEntityDump.tEntityName = cEntityName
+                 ttEntityDump.tFieldName = hHandle:BUFFER-FIELD(i):NAME
+                 ttEntityDump.tDataType  = hHandle:BUFFER-FIELD(i):DATA-TYPE
+                 ttEntityDump.tFormat    = hHandle:BUFFER-FIELD(i):FORMAT
+                 ttEntityDump.tLabel     = hHandle:BUFFER-FIELD(i):LABEL
+                 ttEntityDump.tColLabel  = hHandle:BUFFER-FIELD(i):COLUMN-LABEL
+                 ttEntityDump.tHelp      = hHandle:BUFFER-FIELD(i):HELP.
+    
+          /* If the data type is Today then dump TODAY. 
+             If the Data type is Logical then we need to right-trim as it sometimes 
+             adds a space and the later entity load dies */
+             
+          IF hHandle:BUFFER-FIELD(i):DATA-TYPE = "DATE" AND 
+             hHandle:BUFFER-FIELD(i):DEFAULT-STRING = "TODAY":U THEN
+            ASSIGN ttEntityDump.tInitial   = "TODAY".
+          ELSE IF (hHandle:BUFFER-FIELD(i):DATA-TYPE = "DATETIME" OR 
+                   hHandle:BUFFER-FIELD(i):DATA-TYPE = "DATETIME-TZ" ) AND 
+                   hHandle:BUFFER-FIELD(i):DEFAULT-STRING = "NOW":U THEN
+            ASSIGN ttEntityDump.tInitial   = "NOW".
+          ELSE IF hHandle:BUFFER-FIELD(i):DATA-TYPE = "LOGICAL" THEN
+            ASSIGN ttEntityDump.tInitial   = RIGHT-TRIM(hHandle:BUFFER-FIELD(i):INITIAL).
+          ELSE
+            ASSIGN ttEntityDump.tInitial   = hHandle:BUFFER-FIELD(i):INITIAL.
+        END.
+        hQuery:GET-NEXT().
+      END.    /* loop through buffers */
+      hQuery:QUERY-CLOSE().
+      DELETE OBJECT hQuery.
+      
+      /* Now dump the .d file */
+      FOR EACH ttEntityDump BREAK BY ttEntityDump.tEntityName:
+      
+        IF ttEntityDump.tEntityName = "":U THEN
+          NEXT.
+          
+        IF FIRST-OF(ttEntityDump.tEntityName) THEN
+        DO:
+          ASSIGN cFullFileName = gcClientCacheDir + 
+                     (IF gcClientCacheDir > "":U THEN "/" ELSE "") + "ent_":U + 
+                     tEntityName + "_":U + cLanguageCode + ".d":U
+                 lFileWritable = YES.
+          /* We need to make sure that the file is writable */
+          FILE-INFO:FILE-NAME = cFullFileName.
+          IF (FILE-INFO:FILE-NAME <> ? AND INDEX(FILE-INFO:FILE-TYPE,'W':U) = 0) THEN
+          DO:
+            ASSIGN lFileWritable = NO.
+            IF (pcEntities > '':U) THEN
+                pcStatus = pcStatus + CHR(10) + "Entity : " + 
+                              ttEntityDump.tEntityName + 
+                              " can not be dumped to disk as the file is not writable".
+                              
+            NEXT.
+          END.
+          IF (pcEntities > '':U) THEN
+              ASSIGN pcStatus = pcStatus + CHR(10) + "Dumping entity : " + 
+                         ttEntityDump.tEntityName + " to disk at: " +
+                         cFullFileName.
+          OUTPUT TO VALUE(cFullFileName).
+        END.
+    
+        IF lFileWritable THEN
+          EXPORT ttEntityDump.
+    
+        IF (LAST-OF(ttEntityDump.tEntityName) AND lFileWritable) THEN
+          OUTPUT CLOSE.
+      END.
   
+  END. /* pcLanguageList loop */
+
   /* Reset the session:*-FORMAT before returning */
   ASSIGN SESSION:DATE-FORMAT = cDateFormat.
   session:set-numeric-format(cNumericSeparator, cDecimalPoint).
@@ -5211,6 +5366,7 @@ END PROCEDURE.  /* serverFetchObject */
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE startDataObject Procedure 
 PROCEDURE startDataObject :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
   Purpose:     Fetches the specified DataObject from the repository and
                starts the object on the client.
   Parameters:  pcDataObject   Name of Data Object
@@ -5226,128 +5382,162 @@ PROCEDURE startDataObject :
     DEFINE VARIABLE iAttributeEntry         AS INTEGER    NO-UNDO.
     DEFINE VARIABLE cThinRenderingProcedure AS CHARACTER  NO-UNDO.
     DEFINE VARIABLE cServerFileName         AS CHARACTER  NO-UNDO.
+    define variable lGeneratedObject        as logical    no-undo.
     
     DEFINE BUFFER bCache            FOR cacheObject.
     DEFINE BUFFER bClass            FOR ttClass.
+    
+    /* Check if this object has a mapped file. */
+    cSdoFile = {fnarg getMappedFilename pcDataObject}.
+    lGeneratedObject = (cSdoFile ne ?).
+        
+    if not lGeneratedObject then
+    do:
+	    /* Explicitly set the RunAttribute session parameter to blank. */
+	    DYNAMIC-FUNCTION("setSessionParam":U IN TARGET-PROCEDURE, INPUT "RunAttribute":U, INPUT "":U).
+	    
+	    FIND bCache WHERE
+	         bCache.InstanceId = DECIMAL(pcDataObject)
+	         NO-ERROR.
+	    IF NOT AVAILABLE bCache THEN         
+	       FIND bCache WHERE
+	            bCache.ObjectName          = pcDataObject AND
+	            bCache.ContainerInstanceId = 0
+	            NO-ERROR.
+	    
+	    IF NOT AVAILABLE bCache THEN
+	    DO:
+	       RUN cacheRepositoryObject ( INPUT pcDataObject,
+	                                   INPUT "":U,
+	                                   INPUT ?,    /* run attribute */
+	                                   INPUT "{&DEFAULT-RESULT-CODE}":U ) NO-ERROR.
+	       IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN
+	           RETURN ERROR (IF RETURN-VALUE EQ "":U THEN ERROR-STATUS:GET-MESSAGE(1) ELSE RETURN-VALUE).
+	        
+	       FIND bCache WHERE
+	            bCache.ObjectName          = pcDataObject AND
+	            bCache.ContainerInstanceId = 0
+	            NO-ERROR.         
+	    END.    /* bCache */
+	    
+	    IF AVAILABLE bCache THEN
+	    DO:
+	        /* At this stage there should always be an available bCache record. */
+	        FIND FIRST bClass WHERE bClass.ClassName = bCache.ClassName NO-ERROR.
+	        IF NOT AVAILABLE bClass THEN
+	        DO:
+	            RUN createClassCache IN TARGET-PROCEDURE ( bCache.ClassName ) NO-ERROR.
+	            /* Show no messages. The calling procedure needs to cater for the fact that
+	               no class has been retrieved from the cache.                         */
+	            FIND FIRST bClass WHERE bClass.ClassName = bCache.ClassName NO-ERROR.
+	            IF NOT AVAILABLE bClass THEN
+	                RETURN ERROR {aferrortxt.i 'AF' '5' '?' '?' '"cached class"' "'Class name: ' + bCache.ClassName"}.
+	        END.      /* n/a cache class */
+	        
+	        ASSIGN 
+	          hBufferField = ?
+	          cThinRenderingProcedure = "":U.
+	        IF glUseThinRendering THEN
+	        DO:
+	          ASSIGN hBufferField = bClass.ClassBufferHandle:BUFFER-FIELD("ThinRenderingProcedure":U) NO-ERROR.          
+	          IF VALID-HANDLE(hBufferField) THEN
+	          DO:
+	            ASSIGN iAttributeEntry = LOOKUP(STRING(hBufferField:POSITION - 1), bCache.AttrOrdinals) NO-ERROR.
+	            IF iAttributeEntry EQ 0 THEN
+	              ASSIGN cThinRenderingProcedure = hBufferField:INITIAL.
+	            ELSE
+	              ASSIGN cThinRenderingProcedure = ENTRY(iAttributeEntry, bCache.AttrValues, {&Value-Delimiter}).
+	          END.  /* if valid buffer field */
+	        END.  /* if use thin rendering */
+	        /* If thin redering is not being used or it is being used and a thin rendering procedure
+	           has not been set then rendering procedure should be used. */
+	        IF NOT VALID-HANDLE(hBufferField) OR cThinRenderingProcedure = "":U THEN
+	          ASSIGN hBufferField = bClass.ClassBufferHandle:BUFFER-FIELD("RenderingProcedure":U) NO-ERROR.
+	
+	        IF NOT VALID-HANDLE(hBufferField) THEN
+	        DO:
+	            ASSIGN hBufferField = bClass.ClassBufferHandle:BUFFER-FIELD("PhysicalObjectName":U) NO-ERROR.
+	            
+	            /* We can do nothing without a rendering procedure. */
+	            IF NOT VALID-HANDLE(hBufferField) THEN
+	                RETURN ERROR {aferrortxt.i 'AF' '11' '?' '?' '"rendering procedure attribute"' "'data object ' + pcDataObject"}.
+	        END.    /* no rendering procedure at */
+	        
+	        ASSIGN iAttributeEntry = LOOKUP(STRING(hBufferField:POSITION - 1), bCache.AttrOrdinals) NO-ERROR.
+	        IF iAttributeEntry EQ 0 THEN
+	            ASSIGN cSDOFile = hBufferField:INITIAL.
+	        ELSE
+	            ASSIGN cSDOFile = ENTRY(iAttributeEntry, bCache.AttrValues, {&Value-Delimiter}).
+	        
+	        /* Ensure that there is a valid filename. */
+	        IF cSdoFile EQ "":U OR cSdoFile EQ ? THEN
+	            RETURN ERROR {aferrortxt.i 'AF' '11' '?' '?' '"rendering procedure"' "'data object ' + pcDataObject"}.
 
-    /* Explicitly set the RunAttribute session parameter to blank. */
-    DYNAMIC-FUNCTION("setSessionParam":U IN TARGET-PROCEDURE, INPUT "RunAttribute":U, INPUT "":U).
+		    /* This API is only valid for SDOs and SBOs. */
+		    IF NOT CAN-DO(bClass.InheritsFromClasses, "Data":U) AND NOT CAN-DO(bClass.InheritsFromClasses, "SBO":U) THEN
+		        RETURN ERROR {aferrortxt.i 'AF' '15' '?' '?' "' the data object specified (' + pcDataObject + ') does not inherit from the correct data object class.'"}.
+		    
+		    /* If this is not a dynamic SDO, and we are running client-side, 
+		     * then we need to run the _CL proxy. */
+		    &IF DEFINED(Server-Side) EQ 0 &THEN
+		    IF NOT (CAN-DO(bClass.InheritsFromClasses, "DynSdo":U) OR 
+		            CAN-DO(bClass.InheritsFromClasses, "DynSBO":U)) THEN
+		       ASSIGN cSDOFile = ENTRY(1, cSDOFile, ".":U) + "_cl.r":U.
+		    ELSE cServerFileName = bClass.ClassBufferHandle:BUFFER-FIELD("RenderingProcedure":U):INITIAL NO-ERROR.
+		    &ENDIF
+        end.    /* can find object in cache */
+	    ELSE
+	        RETURN ERROR {aferrortxt.i 'AF' '15' '?' '?' "'the cache entry for ' + pcDataObject + ' could not be found.'"}.
+    end.    /* not a generated object */
     
-    FIND bCache WHERE
-         bCache.InstanceId = DECIMAL(pcDataObject)
-         NO-ERROR.
-    IF NOT AVAILABLE bCache THEN         
-       FIND bCache WHERE
-            bCache.ObjectName          = pcDataObject AND
-            bCache.ContainerInstanceId = 0
-            NO-ERROR.
+    /* So that prepareInstance knows which logical object is being run. */
+    ASSIGN gcCurrentLogicalName = pcDataObject.
+    DO ON STOP  UNDO, LEAVE ON ERROR UNDO, LEAVE:
+        RUN VALUE(cSDOFile) PERSISTENT SET phSDO NO-ERROR.
+    END.    /* SDO run block */
+    IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U OR NOT VALID-HANDLE(phSDO) THEN
+        RETURN ERROR (IF RETURN-VALUE EQ "":U THEN ERROR-STATUS:GET-MESSAGE(1) ELSE RETURN-VALUE).
     
-    IF NOT AVAILABLE bCache THEN
-    DO:
-       RUN cacheRepositoryObject ( INPUT pcDataObject,
-                                   INPUT "":U,
-                                   INPUT ?,    /* run attribute */
-                                   INPUT "{&DEFAULT-RESULT-CODE}":U ) NO-ERROR.
-       IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN
-           RETURN ERROR (IF RETURN-VALUE EQ "":U THEN ERROR-STATUS:GET-MESSAGE(1) ELSE RETURN-VALUE).
-        
-       FIND bCache WHERE
-            bCache.ObjectName          = pcDataObject AND
-            bCache.ContainerInstanceId = 0
-            NO-ERROR.         
-    END.    /* bCache */
+    ASSIGN gcCurrentLogicalName = "":U.
     
-    IF AVAILABLE bCache THEN
-    DO:
-        /* At this stage there should always be an available bCache record. */
-        FIND FIRST bClass WHERE bClass.ClassName = bCache.ClassName NO-ERROR.
-        IF NOT AVAILABLE bClass THEN
-        DO:
-            RUN createClassCache IN TARGET-PROCEDURE ( bCache.ClassName ) NO-ERROR.
-            /* Show no messages. The calling procedure needs to cater for the fact that
-               no class has been retrieved from the cache.                         */
-            FIND FIRST bClass WHERE bClass.ClassName = bCache.ClassName NO-ERROR.
-            IF NOT AVAILABLE bClass THEN
-                RETURN ERROR {aferrortxt.i 'AF' '5' '?' '?' '"cached class"' "'Class name: ' + bCache.ClassName"}.
-        END.      /* n/a cache class */
-        
-        ASSIGN 
-          hBufferField = ?
-          cThinRenderingProcedure = "":U.
-        IF glUseThinRendering THEN
-        DO:
-          ASSIGN hBufferField = bClass.ClassBufferHandle:BUFFER-FIELD("ThinRenderingProcedure":U) NO-ERROR.          
-          IF VALID-HANDLE(hBufferField) THEN
-          DO:
-            ASSIGN iAttributeEntry = LOOKUP(STRING(hBufferField:POSITION - 1), bCache.AttrOrdinals) NO-ERROR.
-            IF iAttributeEntry EQ 0 THEN
-              ASSIGN cThinRenderingProcedure = hBufferField:INITIAL.
-            ELSE
-              ASSIGN cThinRenderingProcedure = ENTRY(iAttributeEntry, bCache.AttrValues, {&Value-Delimiter}).
-          END.  /* if valid buffer field */
-        END.  /* if use thin rendering */
-        /* If thin redering is not being used or it is being used and a thin rendering procedure
-           has not been set then rendering procedure should be used. */
-        IF NOT VALID-HANDLE(hBufferField) OR cThinRenderingProcedure = "":U THEN
-          ASSIGN hBufferField = bClass.ClassBufferHandle:BUFFER-FIELD("RenderingProcedure":U) NO-ERROR.
-
-        IF NOT VALID-HANDLE(hBufferField) THEN
-        DO:
-            ASSIGN hBufferField = bClass.ClassBufferHandle:BUFFER-FIELD("PhysicalObjectName":U) NO-ERROR.
-            
-            /* We can do nothing without a rendering procedure. */
-            IF NOT VALID-HANDLE(hBufferField) THEN
-                RETURN ERROR {aferrortxt.i 'AF' '11' '?' '?' '"rendering procedure attribute"' "'data object ' + pcDataObject"}.
-        END.    /* no rendering procedure at */
-        
-        ASSIGN iAttributeEntry = LOOKUP(STRING(hBufferField:POSITION - 1), bCache.AttrOrdinals) NO-ERROR.
-        IF iAttributeEntry EQ 0 THEN
-            ASSIGN cSDOFile = hBufferField:INITIAL.
-        ELSE
-            ASSIGN cSDOFile = ENTRY(iAttributeEntry, bCache.AttrValues, {&Value-Delimiter}).
-        
-        /* Ensure that there is a valid filename. */
-        IF cSdoFile EQ "":U OR cSdoFile EQ ? THEN            
-            RETURN ERROR {aferrortxt.i 'AF' '11' '?' '?' '"rendering procedure"' "'data object ' + pcDataObject"}.
-            
-        /* This API is only valid for SDOs and SBOs. */
-        IF NOT CAN-DO(bClass.InheritsFromClasses, "Data":U) AND NOT CAN-DO(bClass.InheritsFromClasses, "SBO":U) THEN
-            RETURN ERROR {aferrortxt.i 'AF' '15' '?' '?' "' the data object specified (' + pcDataObject + ') does not inherit from the correct data object class.'"}.
-            
-        /* If this is not a dynamic SDO, and we are running client-side, 
-         * then we need to run the _CL proxy. */
-        &IF DEFINED(Server-Side) EQ 0 &THEN
-        IF NOT (CAN-DO(bClass.InheritsFromClasses, "DynSdo":U) OR 
-                CAN-DO(bClass.InheritsFromClasses, "DynSBO":U)) THEN
-           ASSIGN cSDOFile = ENTRY(1, cSDOFile, ".":U) + "_cl.r":U.
-        ELSE cServerFileName = bClass.ClassBufferHandle:BUFFER-FIELD("RenderingProcedure":U):INITIAL NO-ERROR.
-        &ENDIF
-                                       
-        /* So that prepareInstance knows which logical object is being run. */
-        ASSIGN gcCurrentLogicalName = pcDataObject.
-        DO ON STOP  UNDO, LEAVE ON ERROR UNDO, LEAVE:
-            RUN VALUE(cSDOFile) PERSISTENT SET phSDO NO-ERROR.
-        END.    /* SDO run block */
-        IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U OR NOT VALID-HANDLE(phSDO) THEN
-            RETURN ERROR (IF RETURN-VALUE EQ "":U THEN ERROR-STATUS:GET-MESSAGE(1) ELSE RETURN-VALUE).
-        
-        ASSIGN gcCurrentLogicalName = "":U.
-        
-        /* So that the DynSBO know how to get its contents */
-        {set LogicalObjectName pcDataObject phSDO}. 
-        
-        &IF DEFINED(Server-Side) EQ 0 &THEN
-        {set AsDivision 'Client':U phSDO}.
-        IF cServerFileName > '':U THEN
-          {set ServerFileName cServerFileName phSDO}.
-        &ENDIF
-        
-        RUN createObjects IN phSDO NO-ERROR.
-        IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN
-            RETURN ERROR (IF RETURN-VALUE EQ "":U THEN ERROR-STATUS:GET-MESSAGE(1) ELSE RETURN-VALUE).
-    END.    /* can find object in cache. */
-    ELSE
-        RETURN ERROR {aferrortxt.i 'AF' '15' '?' '?' "'the cache entry for ' + pcDataObject + ' could not be found.'"}.
+    /* We can only know what the class of the generated object is once it is 
+       running, so although it's a little late, check that this is a SDO we're 
+       dealing with.
+     */
+    if lGeneratedObject then
+    do:
+	    if not {fnarg instanceOf 'Data' phSdo} and not {fnarg InstanceOf 'SBO' phSdo} then
+	    do:
+	        run destroyObject in phSdo no-error.
+	        if valid-handle(phSdo) then
+	            delete object phSdo no-error.
+	        
+	        phSdo = ?.
+	        return error {aferrortxt.i 'AF' '15' '?' '?' "' the data object specified (' + pcDataObject + ') does not inherit from the correct data object class.'"}.
+	    end.    /* not data object */
+     
+        &if defined(Server-Side) eq 0 &then
+        /* Even for a generated procedure, the RenderingProcedure attribute contains
+           the filename of the procedure used to render dynamic obejcts. It is not
+           updated to contain the generated procedure name.
+         */
+        if {fnarg instanceOf 'DynSdo' phSdo} or {fnarg InstanceOf 'DynSbo' phSdo} then
+            {get RenderingProcedure cServerFileName phSdo}.
+        &endif
+    end.    /* this is a generated object */
+    
+    /* So that the DynSBO know how to get its contents */
+    {set LogicalObjectName pcDataObject phSDO}. 
+    
+    &IF DEFINED(Server-Side) EQ 0 &THEN
+    {set AsDivision 'Client':U phSDO}.
+    IF cServerFileName > '':U THEN
+      {set ServerFileName cServerFileName phSDO}.
+    &ENDIF
+    
+    RUN createObjects IN phSDO NO-ERROR.
+    IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN
+        RETURN ERROR (IF RETURN-VALUE EQ "":U THEN ERROR-STATUS:GET-MESSAGE(1) ELSE RETURN-VALUE).
     
     ASSIGN ERROR-STATUS:ERROR = NO.
     RETURN.    
@@ -5749,6 +5939,7 @@ FUNCTION buildAttributeList RETURNS CHARACTER
   ( INPUT phClassAttributeBuffer        AS HANDLE,
     INPUT pdRecordIdentifier            AS DECIMAL  ):
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   Purpose:  Builds a CHR(3) and CHR(4) string of attributes for an object.
     Notes:  
 ------------------------------------------------------------------------------*/
@@ -5823,6 +6014,7 @@ FUNCTION classHasAttribute RETURNS LOGICAL
       INPUT pcAttributeName     AS CHARACTER,
       INPUT plAttributeIsEvent  AS LOGICAL          ) :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
   Purpose:  Returns whether or not the specified attribute or event exists for 
             a class.
     Notes:  
@@ -5900,272 +6092,6 @@ ACCESS_LEVEL=PUBLIC
     
     RETURN lClassIsA.
 END FUNCTION.   /* ClassIsA */
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-constructInstance) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION constructInstance Procedure 
-FUNCTION constructInstance RETURNS HANDLE
-        ( INPUT pcObjectName            AS CHARACTER,
-          INPUT pcInstanceName          AS CHARACTER  ):
-/*------------------------------------------------------------------------------
-ACCESS_LEVEL=PRIVATE
-  Purpose:
-    Notes: * THIS API IS UNDER CONSTRUCTION ...
-------------------------------------------------------------------------------*/
-    DEFINE VARIABLE hInstance           AS HANDLE                               NO-UNDO.
-/** UNDER CONSTRUCTION    
-    DEFINE VARIABLE hAttributeBuffer        AS HANDLE           NO-UNDO.
-    DEFINE VARIABLE hBufferField            AS HANDLE           NO-UNDO.
-    DEFINE VARIABLE hADMPropsTable          AS HANDLE           NO-UNDO.
-    DEFINE VARIABLE dInstanceId             AS DECIMAL          NO-UNDO.
-    DEFINE VARIABLE cAttributeValue         AS CHARACTER        NO-UNDO.
-    DEFINE VARIABLE cSettableEntries        AS CHARACTER        NO-UNDO.
-    DEFINE VARIABLE iAttributeEntry         AS INTEGER          NO-UNDO.
-    DEFINE VARIABLE iAttributeLoop          AS INTEGER          NO-UNDO.
-    DEFINE VARIABLE iNumSupers              AS INTEGER          NO-UNDO.
-    
-        DEFINE BUFFER cacheObject               FOR cacheObject.
-                    
-    /* (1) Retrieve object/object instance from Repository */
-    RUN cacheRepositoryObject ( INPUT pcObjectName,
-                                INPUT pcInstanceName,
-                                INPUT ?, /* pcRunAttribute */
-                                INPUT ?      /* pcResultCode */ ) NO-ERROR.                                    
-    IF RETURN-VALUE NE "":U OR ERROR-STATUS:ERROR THEN RETURN ?.
-                    
-    /* (2) Build ADMProps temp-table. */
-    FIND FIRST cacheObject WHERE
-               cacheObject.ObjectName          = pcObjectName AND
-               cacheObject.ContainerInstanceId = 0
-               NO-ERROR.
-    IF RETURN-VALUE NE "":U OR ERROR-STATUS:ERROR THEN RETURN ?.
-                    
-    ASSIGN dInstanceId = cacheObject.InstanceId.
-            
-    IF pcInstanceName NE "":U THEN
-    DO:
-        FIND FIRST cacheObject WHERE
-                   cacheObject.ObjectName          = pcObjectName AND
-                   cacheObject.ContainerInstanceId = dInstanceId
-                   NO-ERROR.
-        IF RETURN-VALUE NE "":U OR ERROR-STATUS:ERROR THEN RETURN ?.
-        
-        ASSIGN dInstanceId = cacheObject.InstanceId.
-    END.    /* there is an instance name */
-    
-    /* We need the class for the supers etc. */
-    FIND ttClass WHERE ttClass.ClassName = cacheObject.ClassName NO-ERROR.
-    IF NOT AVAILABLE ttClass THEN
-    DO:
-        RUN createClassCache (INPUT cacheObject.ClassName) NO-ERROR.
-        IF RETURN-VALUE NE "":U OR ERROR-STATUS:ERROR THEN RETURN ?.
-        
-        FIND ttClass WHERE ttClass.ClassName = cacheObject.ClassName NO-ERROR.          
-        IF NOT AVAILABLE ttClass THEN RETURN ?.
-    END.    /* class is not available */
-    
-    IF NOT VALID-HANDLE(ttClass.InstanceBufferHandle) THEN
-    DO:
-        CREATE TEMP-TABLE hADMPropsTable.
-        
-        /** Create and prepare the ADM Props Temp-table from Repository info */
-        hADMpropsTable:CREATE-LIKE(ttClass.ClassBufferHandle,'idxTargetId':U).
-        hADMPropsTable:TEMP-TABLE-PREPARE("ADMReposProps":U).
-        ASSIGN ttClass.InstanceBufferHandle = hADMPropsTable:DEFAULT-BUFFER-HANDLE.
-    END.    /* Create ADMProps table. */
-    
-    /* Create record in ADM props */
-    ttClass.InstanceBufferHandle:BUFFER-CREATE().
-    
-        /* This ADM object is now open for business! (well almost, need supers) 
-         * The CHR(1) delimiters are for UserProperties and UserLinks.
-         */
-    ASSIGN hInstance:ADM-DATA = STRING(ttClass.InstanceBufferHandle) + CHR(1) + CHR(1)    
-           /* Passing the target as the key to be  used in set and get */
-           ttClass.InstanceBufferHandle:BUFFER-FIELD("Target":U):BUFFER-VALUE = hInstance
-           
-           /* We want to use this ID for refetching the object buffer from the cache, 
-            * as well as being able to use it for joining to the various other 
-            * cache* buffers.
-            * We assign this value directly, since smart.p has not been started.
-            */
-           ttClass.InstanceBufferHandle:BUFFER-FIELD("InstanceID":U):BUFFER-VALUE = dInstanceId.
-    
-    /* Populate from cacheObject.AttrValues.
-     * Only update the 'set' attributes later.
-     */
-    DO iAttributeLoop = 1 TO NUM-ENTRIES(cacheObject.AttrOrdinals):
-        ASSIGN iAttributeEntry = INTEGER(ENTRY(iAttributeLoop,cacheObject.AttrOrdinals))
-                   hBufferField    = ttClass.InstanceBufferHandle:BUFFER-FIELD(iAttributeEntry)
-                   NO-ERROR.
-        /* The 4GL takes care of the datatype conversions??? */
-        IF VALID-HANDLE(hBufferField) AND NOT CAN-DO(ttClass.RuntimeList, STRING(iAttributeEntry)) THEN
-        DO:
-            /* Store the positions of the settable properties in this string of settable 
-             * values.
-             * Do we need to set those values stored at the class level???
-             */
-            IF CAN-DO(ttClass.SetList, STRING(iAttributeEntry)) THEN
-                ASSIGN cSettableEntries = cSettableEntries + ",":U + STRING(iAttributeLoop).
-            ELSE
-                ASSIGN hBufferField:BUFFER-VALUE = ENTRY(iAttributeLoop, cacheObject.AttrValues, {&Value-Delimiter}).
-        END.    /* valid buffer field */
-    END.    /* attribute loop */
-    
-    /* Tidy up. */          
-    ASSIGN cSettableEntries = LEFT-TRIM(cSettableEntries, ",":U).
-                                    
-    /* (3) Run rendering procedure */
-    ASSIGN hBufferField = ttClass.ClassBufferHandle:buffer-field("RenderingProcedure":U) NO-ERROR.
-    /* We can do nothing without a rendering procedure. */
-    IF NOT VALID-HANDLE(hBufferField) THEN RETURN ?.
-            
-    ASSIGN iAttributeEntry = LOOKUP(STRING(hBufferField:POSITION - 1), cacheObject.AttrOrdinals).
-    IF iAttributeEntry EQ 0 THEN
-        ASSIGN cAttributeValue = hBufferField:INITIAL.
-    ELSE
-        ASSIGN cAttributeValue = ENTRY(iAttributeEntry, cacheObject.AttrValues, {&Value-Delimiter}).
-    
-    /* If this is not a dynamic SDO, and we are running client-side, 
-     * then we need to run the _CL proxy. */
-    &IF DEFINED(Server-Side) EQ 0 &THEN
-    IF ( CAN-DO(ttClass.InheritsFromClasses, "Data":U) OR        /* SDOs */
-         CAN-DO(ttClass.InheritsFromClasses, "SBO":U)     ) AND
-       ( NOT ( CAN-DO(ttClass.InheritsFromClasses, "DynSDO":U)  OR
-                  CAN-DO(ttClass.InheritsFromClasses, "DynSBO":U)     ) ) THEN
-        ASSIGN cAttributeValue = ENTRY(1, cAttributeValue, ".":U) + "_cl.r":U.
-    &ENDIF
-        
-    DO ON STOP UNDO, RETURN ?:
-        RUN VALUE(cAttributeValue) PERSISTENT SET hInstance.
-    END.    /* run the rendering procedure. */
-                        
-    IF NOT VALID-HANDLE(hInstance) THEN RETURN ?.
-    
-    /* (3.1) Set any static handles */
-    /* 
-    pre-createObjects() frame, window, browser, OCX ...
-    DYNAMIC-FUNCTION("initializeStaticHandles" IN hInstance).   /* something like this */
-    */
-                                
-    /* (4) Set super procedures */
-    /* (4.1) ADM Super procedures */
-    ASSIGN iNumSupers = NUM-ENTRIES(ttClass.SuperProcedures).
-    
-    /* Loop backwards since we add these as SEARCH-TARGET */
-    SUPER-LOOP:
-    DO iSuper = iNumSupers TO 1 BY -1:
-        ASSIGN cRunName        = ENTRY(iSuper,ttClass.SuperProcedures)
-               hClassProcedure = IF iNumSupers GE iSuper THEN WIDGET-HANDLE(ENTRY(iSuper,ttClass.SuperHandles)) ELSE ?.
-                
-        /* Only bother trying to store the super if if needs to be started. */
-        IF NOT VALID-HANDLE(hClassProcedure) THEN
-        DO:
-                /* Should we store this super?
-                 * Only STATELESS supers are going to be stored.
-                 */
-                ASSIGN lStoreSuper = (ttClass.SuperProcedureMode NE "STATEFUL":U).
-                                
-                /* Search for a running super unless 'stateful' */
-                IF lStoreSuper THEN
-                DO:
-                    ASSIGN hClassProcedure = SESSION:FIRST-PROCEDURE.
-                    DO WHILE VALID-HANDLE(hClassProcedure) AND hClassProcedure:FILE-NAME NE cRunName:
-                            ASSIGN hClassProcedure = hClassProcedure:NEXT-SIBLING.
-                END.    /* procedure-try walk */
-                
-                IF hClassProcedure:FILE-NAME NE cRunName THEN
-                ASSIGN hClassProcedure = ?.
-        END.    /* not Stateful */
-                                                                        
-        IF NOT VALID-HANDLE(hClassProcedure) THEN 
-        DO ON STOP UNDO, RETURN ?:
-            RUN VALUE(cRunName) PERSISTENT SET hClassProcedure.
-        END.    /* run the super */
-                                        
-        /* Add to the stack and store the super procedure handle in the ttClass
-         * temp-table for later reuse.
-         */
-        IF VALID-HANDLE(hClassProcedure) AND lStoreSuper THEN
-        DO:
-                IF iNumSupers GE iSuper THEN
-                    ENTRY(iSuper,ttClass.SuperHandles) = STRING(hClassProcedure).
-                ELSE
-                    ASSIGN ttClass.SuperHandles = ttClass.SuperHandles + ",":U + STRING(hClassProcedure)
-                           ttClass.SuperHandles = LEFT-TRIM(ttClass.SuperHandles, ",":U).
-                END. /* valid hClassProcedure & store the super */
-            END.    /* not yet started & stored in ttClass */
-    
-        /* Add to the super stack. The default Dynamics order is SEARCH-TARGET */
-        IF VALID-HANDLE(hClassProcedure) THEN
-                hInstance:ADD-SUPER-PROCEDURE(hClassProcedure, SEARCH-TARGET).
-    END.    /* Loop through ttCLass.superprocedures */
-    
-    /* (4.2) Object Super procedures */
-    ASSIGN hBufferField = ttClass.ClassBufferHandle:BUFFER-FIELD("SuperProcedure":U) NO-ERROR.
-    IF VALID-HANDLE(hBufferField) THEN
-    DO:
-        ASSIGN iAttributeEntry = LOOKUP(STRING(hBufferField:POSITION - 1), cacheObject.AttrOrdinals).
-        IF iAttributeEntry EQ 0 THEN
-            ASSIGN cAttributeValue = hBufferField:INITIAL.
-        ELSE
-            ASSIGN cAttributeValue = ENTRY(iAttributeEntry, cacheObject.AttrValues, {&Value-Delimiter}).
-        
-        ADD-SUPER-LOOP:
-        DO iSuper = NUM-ENTRIES(cAttributeValue) TO 1 BNY -1:
-                /* launch using launchProcedure()? */
-            ASSIGN cRunName        = ENTRY(iSuper,ttClass.SuperProcedures)
-                   /* Reuse variable name. */
-                   hClassProcedure = ?.
-                        
-            ASSIGN hClassProcedure = SESSION:FIRST-PROCEDURE.
-            DO WHILE VALID-HANDLE(hClassProcedure) AND hClassProcedure:FILE-NAME NE cRunName:
-                ASSIGN hClassProcedure = hClassProcedure:NEXT-SIBLING.
-            END.    /* procedure-try walk */
-                    
-            IF hClassProcedure:FILE-NAME NE cRunName THEN
-                    ASSIGN hClassProcedure = ?.
-                                                
-                IF NOT VALID-HANDLE(hClassProcedure) THEN
-                DO ON STOP UNDO, RETURN NEXT ADD-SUPER-LOOP:
-                        RUN VALUE(cRunName) PERSISTENT SET hClassProcedure.
-                        END.
-                                                        
-            IF VALID-HANDLE(hClassProcedure) THEN
-                    /* Add to the super stack. The default Dynamics order is SEARCH-TARGET */
-                    hInstance:ADD-SUPER-PROCEDURE(hClassProcedure, SEARCH-TARGET).
-        END.    /* ADD-SUPER-LOOP: Loop through object superprocedures */
-    END.    /* valid SuperProcedure attribute */
-                    
-    /* (5) Set 'settable' attributes */
-    DO iAttributeLoop = 1 TO NUM-ENTRIES(cSettableEntries):
-            /* The list of ordinals stored in cSettableEntries is a list of
-             * the position of the settable attribute in the cacheObject.AttrOrdinals string.
-             * We need to extract the field number for this position; this is then used to
-             * set the attribute.
-             */
-            ASSIGN iAttributeEntry = INTEGER(ENTRY(iAttributeLoop, cacheObject.AttrOrdinals))
-               hBufferField    = ttClass.ClassBufferHandle:BUFFER-FIELD(iAttributeEntry)
-               NO-ERROR.
-            IF VALID-HANDLE(hBufferField) THEN
-            DYNAMIC-FUNCTION("set":U + hBufferField:NAME IN hInstance,
-                                     ENTRY(iAttributeEntry, cacheObject.AttrValues, {&Value-Delimiter})).
-        END.    /* loop through settable entries */
-        
-    /* (6) Run createObjects() */
-    /* Clean up of ADM needed to implement this properly. The call has to be removed
-     *  wherever its made. Basically protect call with {fn ObjectsCreated} = TRUE ...
-    RUN createObjects IN hInstance NO-ERROR.
-    */
-UNDER CONSTRUCTION *****/
-
-    RETURN hInstance.
-END FUNCTION.   /* constructInstance */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -6342,6 +6268,7 @@ FUNCTION getAllObjectSuperProcedures RETURNS CHARACTER
     ( INPUT pcObjectName        AS CHARACTER,
       INPUT pcRunAttribute      AS CHARACTER    ):
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   Purpose:  Returns a CSV list of all of a procedure's super procedures.
     Notes:  * These are the physical filenames of the procedures.
             * These super procedures are in order from left-to-right. The first
@@ -6428,7 +6355,8 @@ END FUNCTION.   /* getCacheClassBuffer */
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getCachedList Procedure 
 FUNCTION getCachedList RETURNS CHARACTER
   (pcEntityOrClass AS CHARACTER,
-   pcDirectory AS CHARACTER) :
+   pcDirectory AS CHARACTER,
+   pcLanguageCode AS CHARACTER) :
 /*------------------------------------------------------------------------------
 ACCESS_LEVEL=PRIVATE
   Purpose:  This function will return the list of cached classes or entities. 
@@ -6436,6 +6364,9 @@ ACCESS_LEVEL=PRIVATE
             look for classes or entities.
             The input parameter pcEntityOrClass can have either "CLASS" or "ENTITY" 
             as the possible values.
+            The input parameter pcLanguageCode is the language code that the 
+            entities should be translated into. Blank and unknown values are not
+            allowed for querying entities.
             Output is the comma separated list of cached classes or entities.
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cRootFile   AS CHARACTER  NO-UNDO.
@@ -6445,6 +6376,8 @@ ACCESS_LEVEL=PRIVATE
 
   /* Sanity check */
   IF pcDirectory = ? OR pcDirectory = "":U THEN
+    RETURN "".
+  IF pcEntityOrClass = "ENTITY":U AND (pcLanguageCode = ? OR pcLanguageCode = "":U) THEN
     RETURN "".
   
   /* Find the files in the directory */
@@ -6478,10 +6411,10 @@ ACCESS_LEVEL=PRIVATE
         ASSIGN cReturnList = cReturnList + "," + SUBSTRING(cRootFile, INDEX(cRootFile, "_") + 1, LENGTH(cRootFile) - 8).
 
       IF NUM-ENTRIES(cRootFile,".":U) > 1 AND
-         ENTRY(NUM-ENTRIES(cRootFile,".":U), cRootFile, ".":U) = "d":U AND
          pcEntityOrClass = "ENTITY":U  AND
-         cRootFile BEGINS "ent_" THEN
-        ASSIGN cReturnList = cReturnList + "," + SUBSTRING(cRootFile, INDEX(cRootFile, "_") + 1, LENGTH(cRootFile) - 6).
+         cRootFile MATCHES ("ent_*_":U + pcLanguageCode + "~~.d":U) THEN
+        ASSIGN cReturnList = cReturnList + ","
+                           + SUBSTRING(cRootFile, INDEX(cRootFile, "_") + 1, LENGTH(cRootFile) - LENGTH(pcLanguageCode) - 7).
     END.
   END.
   INPUT CLOSE.
@@ -6509,16 +6442,19 @@ ACCESS_LEVEL=PRIVATE
                      or a CSV list of such names can be passed in to this API.  
 ------------------------------------------------------------------------------*/
     DEFINE VARIABLE hBuffer                 AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE cLanguageCode           AS CHARACTER                NO-UNDO.
     
     IF pcEntityName NE ? AND pcEntityName NE "":U THEN
     DO:
-        FIND FIRST ttEntity WHERE ttEntity.EntityName = pcEntityName NO-ERROR.
+        cLanguageCode = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager, "CurrentLanguageCode":U, YES).
+        IF cLanguageCode = ? OR cLanguageCode = "":U THEN cLanguageCode = "NONE":U.
+        FIND FIRST ttEntity WHERE ttEntity.EntityName = pcEntityName AND ttEntity.LanguageCode = cLanguageCode NO-ERROR.
         IF NOT AVAILABLE ttEntity THEN
         DO:
-            RUN createEntityCache IN TARGET-PROCEDURE ( INPUT pcEntityName ) NO-ERROR.
+            RUN createEntityCache IN TARGET-PROCEDURE ( INPUT pcEntityName, cLanguageCode ) NO-ERROR.
             /* Show no messages. The calling procedure needs to cater for the fact that
              * no class has been retrieved from the cache.                              */
-            FIND FIRST ttEntity WHERE ttEntity.EntityName = pcEntityName NO-ERROR.
+            FIND FIRST ttEntity WHERE ttEntity.EntityName = pcEntityName AND ttEntity.LanguageCode = cLanguageCode NO-ERROR.
         END.    /* cache not available */
     END.    /* class name */
                 
@@ -6657,6 +6593,7 @@ END FUNCTION.   /* getCacheUiEventBuffer */
 FUNCTION getClassChildren RETURNS CHARACTER
     ( INPUT pcClassName     AS CHARACTER ) :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
   Purpose:  REturns a CSV list of class names 
 
     Notes:  This works on cahced data. getClassChildrenFromDB will return
@@ -6785,7 +6722,7 @@ FUNCTION getClassFromClientCache RETURNS LOGICAL
   ( pcClassNames AS CHARACTER,
     pcClassDir   AS CHARACTER) :
 /*------------------------------------------------------------------------------
-  /* Private */
+ACCESS_LEVEL=PRIVATE
   Purpose: Given the class name this function will load the class from the local 
            cache.
     Notes: Input - pcClassNames - a Comma separated list of classes to be loaded.
@@ -6825,7 +6762,7 @@ FUNCTION getClassFromClientCache RETURNS LOGICAL
   IF pcClassNames = "*":U OR pcClassNames = "":U THEN
     pcClassNames = DYNAMIC-FUNCTION("getCachedList":U IN TARGET-PROCEDURE, 
                                      "CLASS":U, 
-                                     pcClassDir) NO-ERROR.
+                                     pcClassDir, "":U) NO-ERROR. /* The pcLanguageCode parameter is not used for a CLASS. */
   /* Sanity check */
   ASSIGN pcClassNames  = TRIM(pcClassNames, ",":U).
   
@@ -6852,9 +6789,16 @@ FUNCTION getClassFromClientCache RETURNS LOGICAL
     IF (CAN-FIND(FIRST ttClass WHERE ttClass.ClassName = cClassName)) THEN
       NEXT.
   
-    /* Check if the file can be found locally on disk */
-    ASSIGN FILE-INFO:FILE-NAME = pcClassDir + "/":U + "class_":U + cClassName + ".p".
-  
+    /* Check if the file can be found locally on disk. 
+       First look for r-code, then for the .p. This is because
+       most runtime clients cannot run off source code, and so
+       rcode (and only rcode) is shipped to the client. We need
+       to find this rcode before looking for pcode.
+     */
+    file-info:file-name = pcClassDir + '/' + 'class_' + cClassName + '.r'.
+    if file-info:full-pathname eq ? then
+        ASSIGN FILE-INFO:FILE-NAME = pcClassDir + "/":U + "class_":U + cClassName + ".p".
+    
     /* If the .p does not exist then return false which will add 
        the class to a list for getting the info from the server */
     IF (FILE-INFO:FULL-PATHNAME = ?)  THEN
@@ -6939,6 +6883,7 @@ END FUNCTION.   /* getClassFromInstance */
 FUNCTION getClassParents RETURNS CHARACTER
     ( INPUT pcClasses        AS CHARACTER  ):
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   Purpose: The function will return a delimited list of all parent object types
            (classes) for the specified class (including the class itself). The
            classes can be a comma seperated list of classes.
@@ -7010,6 +6955,7 @@ END FUNCTION.    /* getClassParentsFromDB */
 FUNCTION getCurrentLogicalName RETURNS CHARACTER
     ( /* parameter-definitions */ ) :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
   Purpose:  Returns the name of the object being launched. prepareInstance does
             a call-back to this API to determine the name of the logical object
             which is being launched.
@@ -7029,7 +6975,8 @@ END FUNCTION.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getEntityFromClientCache Procedure 
 FUNCTION getEntityFromClientCache RETURNS LOGICAL
   ( pcEntityNames AS CHARACTER,
-    pcEntityDirectory AS CHARACTER) :
+    pcEntityDirectory AS CHARACTER,
+    pcLanguageCode AS CHARACTER) :
 /*-----------------------------------------------------------------------------
 ACCESS_LEVEL=PRIVATE
   Purpose:  This function loads the entities from the disk and creates 
@@ -7039,6 +6986,8 @@ ACCESS_LEVEL=PRIVATE
                     entities fromthe disk will be loaded.
                     
                   - pcEntityDirectory - Directory where .d can be found.
+                  
+                  - pcLanguageCode - Language used for the entity translation.
                   
             Return value of FALSE means the .d file was not found on the 
             disk and a server request needs to be made to get the entity info.
@@ -7055,11 +7004,14 @@ ACCESS_LEVEL=PRIVATE
   
   IF pcEntityDirectory = ? OR pcEntityDirectory = "":U THEN
     RETURN FALSE.
+  IF pcLanguageCode = ? OR pcLanguageCode = "":U THEN
+    RETURN FALSE.
     
   IF pcEntityNames = "*":U OR pcEntityNames = "":U THEN
     pcEntityNames = DYNAMIC-FUNCTION("getCachedList":U IN TARGET-PROCEDURE, 
                                       "ENTITY":U,
-                                      pcEntityDirectory) NO-ERROR.
+                                      pcEntityDirectory,
+                                      pcLanguageCode) NO-ERROR.
     
   /* Sanity check */
   ASSIGN pcEntityNames = TRIM(pcEntityNames, ",":U).
@@ -7079,13 +7031,13 @@ ACCESS_LEVEL=PRIVATE
   DO iLoop = 1 to NUM-ENTRIES(pcEntityNames):
     ASSIGN cEntityName = ENTRY(iLoop, pcEntityNames).
 
-    IF (CAN-FIND(FIRST ttEntity WHERE ttEntity.EntityName = cEntityName)) THEN
+    IF (CAN-FIND(FIRST ttEntity WHERE ttEntity.EntityName = cEntityName AND ttEntity.LanguageCode = pcLanguageCode)) THEN
       NEXT.
       
     /* If the entity is not cached in memory, check if .d exists */
     FILE-INFO:FILE-NAME = RIGHT-TRIM(pcEntityDirectory, "/":U) + 
                           (IF pcEntityDirectory > "":U THEN "/" ELSE "") + "ent_":U + 
-                          cEntityName + ".d".
+                          cEntityName + "_" + pcLanguageCode + ".d".
 
     /* If the .d does not exist then return false which will add 
        the entity to a list for getting the info from the server and check the next */
@@ -7138,8 +7090,9 @@ ACCESS_LEVEL=PRIVATE
     /* Create the ttEntity record - This is a in memory pointer table */
     CREATE ttEntity.
     ASSIGN ttEntity.EntityName         = hEntityTable:NAME
-           ttEntity.EntityTableName    = hEntityTable:NAME
-           ttEntity.EntityBufferHandle = hBuff.    
+           ttEntity.EntityTableName    = hEntityTable:NAME + pcLanguageCode
+           ttEntity.EntityBufferHandle = hBuff
+           ttEntity.LanguageCode       = pcLanguageCode.    
   END.
 
    /* Reset the session FORMATs before returning */
@@ -7155,12 +7108,87 @@ END FUNCTION.    /* getEntityFromClientCache */
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getMappedFilename) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getMappedFilename Procedure 
+FUNCTION getMappedFilename RETURNS CHARACTER
+        ( input pcObjectName        as character ):
+/*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
+  Purpose: Returns the name of the generated file for a given logical object name.
+    Notes: - Either a fully-pathed filename is returned or the unknown value is returned.
+    	   - Only the names of r-code files are returned
+    	   - The generated file must exist in the 'gen' subdirectory of the directory
+    	     specified by the client_cache_directory session property (if available).
+------------------------------------------------------------------------------*/
+    define variable cFilename            as character                no-undo.
+    define variable cCustomizedFilename  as character                no-undo.
+    define variable cObjectName          as character                no-undo.
+    define variable cImportValue         as character                no-undo.
+    define variable cResultCodes         as character                no-undo.
+    define variable cExtension           as character                no-undo.
+    define variable lResultCodeFound     as logical                  no-undo.
+    define variable hManagerHandle       as handle                   no-undo.
+    define variable iLoop                as integer                  no-undo.
+    
+    /* Get path of client cache directory */
+    /* First let  us find the the EntityCacheDirectory */
+    if gcClientCacheDir eq ? or gcClientCacheDir eq '' then
+    do:
+        run getClientCacheDir (input "ry-clc":U, output gcClientCacheDir) no-error.
+        gcClientCacheDir = right-trim(gcClientCacheDir, "/":U).
+    end.    /* no client cache directory */
+    
+    /* No extensions allowed in the logical object name */
+    cExtension = entry(2, pcObjectName, '.') no-error.
+    if can-do('w,p', cExtension) then
+        pcObjectName = entry(1, pcObjectName, '.').
+    
+    /* Check the session result codes */
+    if gcSessionResultCodes eq ? or gcSessionResultCodes eq '' then
+    do:
+        /* Get the session's result codes. */
+        hManagerHandle = {fnarg getManagerHandle 'CustomizationManager'}.
+        
+        if valid-handle(hManagerHandle) then
+            gcSessionResultCodes = {fn getSessionResultCodes hManagerHandle}.
+        
+        if gcSessionResultCodes eq ? or gcSessionResultCodes eq '' then
+            gcSessionResultCodes = "{&DEFAULT-RESULT-CODE}".
+    end.    /* set session result codes */
+    
+    cFileName = ?.
+    /* If the session has result codes, construct the filename */    
+    if gcSessionResultCodes ne '{&Default-Result-Code}' then
+        assign cFilename = gcClientCacheDir + '/gen/'
+                         + pcObjectName + '_' + replace(gcSessionResultCodes, ',', '_')
+                         + '.r'
+               cFileName = search(cFilename).
+    
+    /* If running in a customised session, and no generated r-code was found,
+       or if running without customisations, then find the default generated
+       object.
+     */
+    if cFilename eq ? then
+        assign cFilename = gcClientCacheDir + '/gen/' + pcObjectName + '.r'
+               cFilename = search(cFilename).
+    
+    error-status:error = no.
+    return cFilename.
+END FUNCTION.    /* getMappedFilename */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getNextQueryOrdinal) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getNextQueryOrdinal Procedure 
 FUNCTION getNextQueryOrdinal RETURNS INTEGER
     ( /* parameter-definitions */ ) :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   Purpose:  Returns the ordinal or the next query available for use.
     Notes:  
 ------------------------------------------------------------------------------*/
@@ -7188,6 +7216,7 @@ END FUNCTION.   /* getNextQueryOrdinal */
 FUNCTION getObjectPathedName RETURNS CHARACTER
     ( INPUT pdSmartObjectObj     AS DECIMAL ) :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   Purpose:  Returns a pathed physical file name for a given object.
     Notes:  * This function will return a file which can be run, as long as
               as it exists on disk.
@@ -7230,6 +7259,7 @@ END FUNCTION.   /* getObjectPathedName */
 FUNCTION getSDOincludeFile RETURNS CHARACTER
     (   INPUT pcIncludeFile       AS CHARACTER ) :   /* Include file without relative path */
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   Purpose:  Returns a pathed physical file name given a nonpathed SDO include
             filename.
     Notes:  
@@ -7374,6 +7404,7 @@ FUNCTION IsA RETURNS LOGICAL
     ( INPUT pdInstanceId        AS DECIMAL,
       INPUT pcClassName         AS CHARACTER    ) :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
   Purpose:  Determines whether an object inherits from a particular class.
     Notes:  * This is based on the class name.
             * The null value is returned if the object cannot be found in the cache.
@@ -7468,6 +7499,274 @@ END FUNCTION.   /* launchClassObject */
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-newInstance) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION newInstance Procedure 
+FUNCTION newInstance RETURNS LOGICAL
+    ( INPUT pcInstance                  AS character,
+      input pcClassName                 as character,
+      input pcSuperProcedure            as character,
+      input pcSuperProcedureMode        as character        ) :
+/*------------------------------------------------------------------------------
+ACCESS_LEVEL=PROTECTED
+   Purpose: Prepare an instance by defining and preparing its property table
+            and set its buffer as the first entry in ADM-DATA.
+Parameters: phPropTable - The admprops table UNPRPEPARED.                            
+            phInstance  - The handle of the instance being instanciated. 
+            phSource    - source-procedure; containr.p that constructs
+                          this instance or the manager that launches it.              
+     Notes: This is called as early as possible from the main block of a running
+            instance (src/adm2/smrtprop.i) before it knows anything really..
+            It calls this with itself as instance and source-procedure as the 
+            caller. The source-procedure is then checked for information about 
+            the callee. The TT is created in the scope of the instance in order 
+            to be scoped to the instance.  
+         -  Returns TRUE when no call back is found or CurrentLogicalProcedure is
+            blank or unknown       
+         -  The passed TT is destroyed if an error occurs
+------------------------------------------------------------------------------*/      
+    DEFINE VARIABLE hBufferField                AS HANDLE     NO-UNDO.
+    DEFINE VARIABLE hBuffer                     AS HANDLE     NO-UNDO.
+    DEFINE VARIABLE hADMPropsTable              AS HANDLE     NO-UNDO.
+    DEFINE VARIABLE hInstance                   as HANDLE     NO-UNDO.
+    
+    /* Super load */ 
+    DEFINE VARIABLE iClass                      AS INTEGER    NO-UNDO.
+    DEFINE VARIABLE cClass                      AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE iSuper                      AS INTEGER    NO-UNDO.
+    DEFINE VARIABLE lStoreSuper                 AS LOGICAL    NO-UNDO.
+    DEFINE VARIABLE cRunName                    AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cMode                       as CHARACTER  no-undo.
+    DEFINE VARIABLE hClassProcedure             AS HANDLE     NO-UNDO.
+    
+    /* set attributes */
+    DEFINE VARIABLE iSetLoop                    AS INTEGER    NO-UNDO.
+    DEFINE VARIABLE iField                      AS INTEGER    NO-UNDO.
+    DEFINE VARIABLE iAttributeLoop              AS INTEGER    NO-UNDO.
+    DEFINE VARIABLE iAttributeEntry             AS INTEGER    NO-UNDO.
+    DEFINE VARIABLE cValue                      AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cSuperProcedure             AS character  NO-UNDO.
+    DEFINE VARIABLE cSuperProcedureMode         AS character  NO-UNDO.
+    DEFINE VARIABLE cSuperHandles               as CHARACTER  no-undo.
+
+    DEFINE VARIABLE cDateFormat                 AS CHARACTER  NO-UNDO.
+    define variable cNumericSeparator           as character  no-undo.
+    define variable cDecimalPoint               as character  no-undo.
+    
+    define buffer ttClass       for ttClass.
+    
+    FIND FIRST ttClass WHERE ttClass.ClassName = pcClassName NO-ERROR.
+    IF NOT AVAILABLE ttClass THEN
+    DO:
+        RUN createClassCache ( pcClassName ) NO-ERROR.
+        /* Show no messages. The calling procedure needs to cater for the fact that
+           no class has been retrieved from the cache.                         */
+        FIND FIRST ttClass WHERE ttClass.ClassName = pcClassName NO-ERROR.
+        IF NOT AVAILABLE ttClass THEN
+        DO:
+            MESSAGE
+                "Failed to load class:" pcClassName SKIP
+                VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+            RETURN FALSE.
+        END.    /* could not cache class */
+    END.      /* n/a cache class */
+        
+    /* The InstanceBufferHandle will only be invalid the first time any
+     * object of this class is ever run in this session.
+     */
+    IF NOT VALID-HANDLE(ttClass.InstanceBufferHandle) THEN
+    DO:
+      /* The class table was created (either in buildClassCache or 
+         getClassFromClientCache) with American and mdy format - as the initial
+         value requires mdy format, unless the format is American and mdy, 
+         the create-like statement produces wrong results (6.67 in European 
+         changes to 667) hence convert to American and mdy before using 
+         create-like. */
+       
+       ASSIGN cDateFormat            = SESSION:DATE-FORMAT
+              cNumericSeparator      = session:numeric-separator
+              cDecimalPoint          = session:numeric-decimal-point
+              SESSION:DATE-FORMAT    = "mdy":U
+              SESSION:NUMERIC-FORMAT = "American":U.
+                
+        CREATE TEMP-TABLE hADMPropsTable.
+        /** Create and prepare the ADM Props Temp-table from Repository info */
+        hADMpropsTable:CREATE-LIKE(ttClass.ClassBufferHandle,'idxTargetId':U).
+        hADMPropsTable:TEMP-TABLE-PREPARE("ADMReposProps":U).
+        ttClass.InstanceBufferHandle = hADMPropsTable:DEFAULT-BUFFER-HANDLE.
+        
+        /* Reset the values back */
+        SESSION:DATE-FORMAT = cDateFormat.
+        session:set-numeric-format(cNumericSeparator,cDecimalPoint).                
+    END.      /* create the ADMProps TT. */
+    
+    hInstance = WIDGET-HANDLE(ENTRY(1, pcInstance)) NO-ERROR.
+    
+    /* now create an entry for this running instance. */
+    ttClass.InstanceBufferHandle:BUFFER-CREATE().
+    
+    /* The InstanceId needs a unique value. */
+    assign ttClass.InstanceBufferHandle:buffer-field('InstanceId'):buffer-value = decimal(hInstance)
+           ttClass.InstanceBufferHandle:buffer-field('Target'):buffer-value = hInstance
+	       /* This ADM object is now open for business! (well almost, need supers and properties) 
+	          The CHR(1) delimiters are for UserProperties and UserLinks.
+			*/
+           hInstance:ADM-DATA = STRING(ttClass.InstanceBufferHandle) + CHR(1) + CHR(1).
+    
+    /* Start the class super procedures. Start the class supers first
+           so as to build the stack correctly.
+     */
+    DO iSuper = 1 TO NUM-ENTRIES(ttClass.SuperProcedures):
+        ASSIGN lStoreSuper     = FALSE
+               cRunName        = ENTRY(iSuper,ttClass.SuperProcedures)
+               hClassProcedure = IF NUM-ENTRIES(ttClass.SuperHandles) >= iSuper
+                                 THEN WIDGET-HANDLE(ENTRY(iSuper,ttClass.SuperHandles))
+                                 ELSE ?.
+        IF NOT VALID-HANDLE(hClassProcedure) or
+           NOT CAN-QUERY(hClassProcedure, "FILE-NAME":U) or
+           hClassProcedure:FILE-NAME ne cRunName THEN
+        DO:        
+            /* Search for a running super unless 'stateful' */
+            IF NOT ENTRY(iSuper,ttClass.SuperProcedureMode) eq 'STATEFUL':U THEN
+            DO:
+                hClassProcedure = SESSION:FIRST-PROCEDURE.
+                DO WHILE VALID-HANDLE(hClassProcedure) AND hClassProcedure:FILE-NAME NE cRunName:
+                    hClassProcedure = hClassProcedure:NEXT-SIBLING.
+                END.
+                IF VALID-HANDLE(hClassProcedure) AND hClassProcedure:FILE-NAME NE cRunName THEN
+                    ASSIGN hClassProcedure = ?.
+            END.        /* super not stateful */
+            
+            IF NOT VALID-HANDLE(hClassProcedure) THEN 
+            DO ON STOP UNDO,LEAVE:
+                RUN VALUE(cRunName) PERSISTENT SET hClassProcedure.
+            END.
+            
+            IF NOT VALID-HANDLE(hClassProcedure) THEN
+            DO:
+                MESSAGE
+                    "Failed to start super-procedure:" cRunName SKIP
+                    "  Physical Name = " hInstance:FILE-NAME    SKIP
+                    "  Super Procedure Name = " cRunName        SKIP
+                    VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+                RETURN FALSE.
+            END.
+            
+            lStoreSuper = IF (ttClass.SuperProcedureMode ne 'STATEFUL':U) THEN TRUE ELSE FALSE.
+        END. /* not valid (not found in ttClass - first time ) */
+        
+        IF VALID-HANDLE(hClassProcedure) THEN     /* stack it */
+        DO:
+            hInstance:ADD-SUPER-PROCEDURE(hClassProcedure, SEARCH-TARGET).
+            IF lStoreSuper THEN
+            DO:
+                IF NUM-ENTRIES(ttClass.SuperHandles) ge iSuper THEN
+                    ENTRY(iSuper,ttClass.SuperHandles) = STRING(hClassProcedure).
+                ELSE 
+	                ttClass.SuperHandles = ttClass.SuperHandles + (IF iSuper eq 1 THEN '':U ELSE ',':U) 
+    	                                 + STRING(hClassProcedure).
+            END.    /* store this super? */
+        END. /* valid hClassProcedure */
+    END. /* do i = 1 to ttCLass.superprocedures */
+    
+    /* Start the object supers */
+    IF pcSuperProcedure ne '' then
+    do:
+        /* Default to Stateful, since this is the default in static code. */
+        if pcSuperProcedureMode eq '' or pcSuperProcedureMode eq ? then
+           pcSuperProcedureMode = 'Stateful'.
+            
+        /* Start the object super procedure(s) */
+        DO iSuper = NUM-ENTRIES(pcSuperProcedure) to 1 by -1:
+            ASSIGN hClassProcedure = ?
+                   cRunName        = ENTRY(iSuper,pcSuperProcedure).
+                    
+            /* Search for a running super unless 'stateful' */
+            IF pcSuperProcedureMode ne 'STATEFUL':U THEN
+            DO:
+                hClassProcedure = SESSION:FIRST-PROCEDURE.
+                DO WHILE VALID-HANDLE(hClassProcedure) AND hClassProcedure:FILE-NAME NE cRunName:
+                    hClassProcedure = hClassProcedure:NEXT-SIBLING.
+                END.
+                IF VALID-HANDLE(hClassProcedure) AND hClassProcedure:FILE-NAME NE cRunName THEN
+                    ASSIGN hClassProcedure = ?.
+            END.    /* super not stateful */
+            
+            IF NOT VALID-HANDLE(hClassProcedure) THEN 
+            DO ON STOP UNDO,LEAVE:
+                RUN VALUE(cRunName) PERSISTENT SET hClassProcedure.
+            END.
+            
+            IF NOT VALID-HANDLE(hClassProcedure) THEN
+            DO:
+                MESSAGE
+                    "Failed to start super-procedure:" cRunName SKIP
+                    "  Physical Name = " hInstance:FILE-NAME    SKIP
+                    "  Super Procedure Name = " cRunName        SKIP
+                    VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+                RETURN FALSE.                   
+            END.    /* couldn't start super */
+                    
+            IF VALID-HANDLE(hClassProcedure) THEN     /* stack it */
+            DO:
+                hInstance:ADD-SUPER-PROCEDURE(hClassProcedure, SEARCH-TARGET).
+                IF pcSuperProcedureMode ne 'Stateless':U THEN
+                    cSuperHandles = cSuperHandles
+                                  + (IF iSuper eq 1 THEN '':U ELSE ',':U)
+                                  + STRING(hClassProcedure).
+            END. /* valid hClassProcedure */
+        END. /* do i = 1 to  object superprocedures */
+            
+        /* Store the super handles */
+        ttClass.InstanceBufferHandle:BUFFER-FIELD("SuperProcedureMode":U):BUFFER-VALUE = pcSuperProcedureMode.
+        ttClass.InstanceBufferHandle:BUFFER-FIELD("SuperProcedureHandle":U):BUFFER-VALUE = cSuperHandles.
+    end.    /* object has super procedures */
+    
+    /* We must set the instance props that are an integral part of the 
+       object before we do the set loop, as many set functions have forced
+       set for the very reason that they are setting native attributes in
+       these handles  */
+    ASSIGN ttClass.InstanceBufferHandle:BUFFER-FIELD('ContainerHandle'):BUFFER-VALUE
+                 = ENTRY(2,pcInstance) WHEN NUM-ENTRIES(pcInstance) >= 2 
+           ttClass.InstanceBufferHandle:BUFFER-FIELD('BrowseHandle'):BUFFER-VALUE
+                 = ENTRY(3,pcInstance) WHEN NUM-ENTRIES(pcInstance) >= 3 NO-ERROR.
+    
+    /* Set 'settable' attributes for the class only. The master properties
+       are set in adm-assignObjectProperties, and that API handles whether
+       the property can be pushed into the ADMProps table, or whether it
+       must be explicitly set.
+     */
+    do iSetLoop = 1 to num-entries(ttClass.SetList):
+        iField = integer(entry(iSetLoop,ttClass.SetList)).
+        if lookup(string(iField),ttClass.RunTimeList) eq 0 then
+        do:
+            assign hBufferField  = ?
+                   hBufferField  = ttClass.InstanceBufferHandle:buffer-field(iField) 
+                   no-error.
+            if valid-handle (hBufferField) then
+                dynamic-function("set":U + hBufferField:name in hInstance,
+                                 hBufferField:buffer-value    ) no-error.
+        end. /* not in runtimelist */
+    end. /* loop through settable entries */
+    
+    ttClass.InstanceBufferHandle:buffer-release().
+    
+    /* Set the object properties. This API typically
+       uses the {set} pseudo-function, which decides,
+       based on the existence of an xp preprocessor, 
+       whether to push the value into the context 
+       table, or whether to force the set.       
+     */
+    {fn adm-assignObjectProperties hInstance}.
+    
+    RETURN TRUE.
+END FUNCTION.   /* newInstance */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-prepareEntityFields) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION prepareEntityFields Procedure 
@@ -7480,6 +7779,7 @@ FUNCTION prepareEntityFields RETURNS LOGICAL
         pcPropertyLists AS CHAR,
         pcDelimiters    AS CHAR) :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
    Purpose: Prepare entity Field attributes for a RUNNING object.   
 Parameters: 
       phObject        - The handle of the running instance of the object 
@@ -7843,7 +8143,7 @@ Parameters: phPropTable - The admprops table UNPRPEPARED.
             bCache.ObjectName          = cObjectName AND
             bcache.ContainerInstanceId = 0
             NO-ERROR.
-        
+    
     IF NOT AVAILABLE bCache THEN
     DO:
         /* If an instance is requested, then attempt to retrieve it in the same call.         
@@ -8194,10 +8494,16 @@ ACCESS_LEVEL=PRIVATE
  DEFINE VARIABLE cNewUnassigned        AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE iVar                  AS INTEGER    NO-UNDO.
     DEFINE variable cQualifiedCalcFields    as character         no-undo. 
+ DEFINE VARIABLE cLanguageCode         AS CHARACTER  NO-UNDO.
 
  DEFINE BUFFER bEntity  FOR ttEntity.
  DEFINE BUFFER bEntity2 FOR ttEntity.
  
+
+ /* Retrieve CurrentLanguageCode */
+ cLanguageCode = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager, "CurrentLanguageCode":U, YES).
+ IF cLanguageCode = ? OR cLanguageCode = "":U THEN cLanguageCode = "NONE":U.
+
  /* Create a unique lookup list by replacing table delimiters with comma.  */
  ASSIGN
    cColumnsSortedByTable = REPLACE(pcColumnsByEntity,{&adm-tabledelimiter},',':U)
@@ -8216,7 +8522,7 @@ ACCESS_LEVEL=PRIVATE
    ASSIGN
      cEntity           = ENTRY(iEntity,pcEntities)
      cCacheEntities    = cCacheEntities 
-                       + (IF NOT CAN-FIND(FIRST bEntity WHERE bEntity.EntityName = cEntity)
+                       + (IF NOT CAN-FIND(FIRST bEntity WHERE bEntity.EntityName = cEntity AND bEntity.LanguageCode = cLanguageCode)
                           AND LOOKUP(cEntity,cCacheEntities) = 0
                           THEN ',':U + cEntity
                           ELSE '':U).
@@ -8224,7 +8530,7 @@ ACCESS_LEVEL=PRIVATE
  cCacheEntities    = LEFT-TRIM(cCacheEntities,',':U).
  IF cCacheEntities > '':U THEN
  DO:
-   RUN createEntityCache IN TARGET-PROCEDURE ( cCacheEntities ) NO-ERROR.
+   RUN createEntityCache IN TARGET-PROCEDURE ( cCacheEntities, cLanguageCode ) NO-ERROR.
 
    /* if failed return false, unless prepared, which currently is allowed to 
       work without entities  */
@@ -8253,10 +8559,11 @@ ACCESS_LEVEL=PRIVATE
    IF cUnassignedCalc > '' THEN
    DO:
      cNewUnassigned = cUnassignedCalc.
-     FIND FIRST bEntity2 WHERE bEntity2.EntityName = cEntity NO-ERROR.
+     FIND FIRST bEntity2 WHERE bEntity2.EntityName = cEntity AND bEntity2.LanguageCode = cLanguageCode NO-ERROR.
      IF AVAILABLE bEntity2 THEN
      DO iVar = 1 TO NUM-ENTRIES(cUnassignedCalc):
        ASSIGN
+         hEntityField = ?  /* sanity (EntityBufferHandle may be invalid) */
          cEntityField = ENTRY(iVar, cUnassignedCalc)
          hEntityField = bEntity2.EntityBufferHandle:BUFFER-FIELD(cEntityField) 
                         NO-ERROR.
@@ -8341,7 +8648,7 @@ ACCESS_LEVEL=PRIVATE
    
      /* avoid finding the entity if it's the same as in the previous loop */
      IF NOT AVAIL bEntity OR bEntity.EntityName <> cEntity THEN
-       FIND FIRST bEntity WHERE bEntity.EntityName = cEntity NO-ERROR.
+         FIND FIRST bEntity WHERE bEntity.EntityName = cEntity AND bEntity.LanguageCode = cLanguageCode NO-ERROR.
    
      IF AVAIL bEntity THEN
      DO:
@@ -8350,8 +8657,9 @@ ACCESS_LEVEL=PRIVATE
          ASSIGN
            cEntityField = REPLACE(cEntityField,'[':U,'':U)
            cEntityField = REPLACE(cEntityField,']':U,'':U).
-  
-       hEntityField = bEntity.EntityBufferHandle:BUFFER-FIELD(cEntityField) NO-ERROR.
+       ASSIGN
+         hEntityField = ? /* buffer may be invalid  */
+         hEntityField = bEntity.EntityBufferHandle:BUFFER-FIELD(cEntityField) NO-ERROR.
      
        IF NOT VALID-HANDLE(hEntityField) AND NOT phRowObjectTable:PREPARED THEN
        DO:

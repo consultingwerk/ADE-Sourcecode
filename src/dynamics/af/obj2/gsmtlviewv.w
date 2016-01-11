@@ -179,7 +179,8 @@ DEFINE FRAME frMain
                      "Editor","EDITOR",
                      "Tab Folder Page","TAB",
                      "Global translation","",
-                     "Text","TEXT"
+                     "Text","TEXT",
+                     "DataField","DATAFIELD"
           DROP-DOWN-LIST
           SIZE 51.2 BY 1
      RowObject.widget_name AT ROW 5.14 COL 23.4 COLON-ALIGNED

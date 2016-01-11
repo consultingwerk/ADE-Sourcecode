@@ -25,10 +25,10 @@
     Purpose     : Defines EXCLUDE-xxx preprocessor variables to exclude
                   functions or internal procedures in the super procedure
                   where it is referenced.
-    Syntax      : {src/adm2/custom/lookupexclcustom.i}
+    Syntax      : {adm2/custom/lookupexclcustom.i}
 
-    Modified    : 08/11/2000
-
+    Modified    : 09/07/2004
+    
     Notes       : Referenced in adm2/lookup.p
   ------------------------------------------------------------------------*/
 

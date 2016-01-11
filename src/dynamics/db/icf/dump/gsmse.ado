@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<dataset Transactions="22"><dataset_header DisableRI="yes" DatasetObj="1007600132.08" DateFormat="mdy" FullHeader="no" SCMManaged="no" YearOffset="1950" DatasetCode="GSMSE" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="91" NumericSeparator=","/>
+<dataset Transactions="24"><dataset_header DisableRI="yes" DatasetObj="1007600132.08" DateFormat="mdy" FullHeader="no" SCMManaged="no" YearOffset="1950" DatasetCode="GSMSE" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="91" NumericSeparator=","/>
 <dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_session_type" version_date="02/06/2004" version_time="39648" version_user="admin" deletion_flag="no" entity_mnemonic="GSMSE" key_field_value="910719.24" record_version_obj="910720.24" version_number_seq="3.09" secondary_key_value="Basic" import_version_number_seq="3.09"><session_type_obj>910719.24</session_type_obj>
 <session_type_code>Basic</session_type_code>
 <session_type_description>Basic Session Type</session_type_description>
@@ -52,7 +52,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="3" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_session_type" version_date="05/13/2004" version_time="56168" version_user="admin" deletion_flag="no" entity_mnemonic="GSMSE" key_field_value="910747.24" record_version_obj="910748.24" version_number_seq="4.19" secondary_key_value="Dynamics" import_version_number_seq="2.09"><session_type_obj>910747.24</session_type_obj>
+<dataset_transaction TransactionNo="3" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_session_type" version_date="03/14/2005" version_time="62914" version_user="admin" deletion_flag="no" entity_mnemonic="GSMSE" key_field_value="910747.24" record_version_obj="910748.24" version_number_seq="5.19" secondary_key_value="Dynamics" import_version_number_seq="5.19"><session_type_obj>910747.24</session_type_obj>
 <session_type_code>Dynamics</session_type_code>
 <session_type_description>Dynamics Session Type</session_type_description>
 <physical_session_list>APP,WBC,GUI,CUI,WBS</physical_session_list>
@@ -73,7 +73,7 @@
 <contained_record DB="icfdb" Table="gsm_session_type_property"><session_type_property_obj>964081.24</session_type_property_obj>
 <session_type_obj>910747.24</session_type_obj>
 <session_property_obj>910862.24</session_property_obj>
-<property_value>2.1A</property_value>
+<property_value>10.0B</property_value>
 </contained_record>
 <contained_record DB="icfdb" Table="gsm_session_type_property"><session_type_property_obj>3000072621.09</session_type_property_obj>
 <session_type_obj>910747.24</session_type_obj>
@@ -454,7 +454,33 @@
 <extends_session_type_obj>910754.24</extends_session_type_obj>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="13" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_session_type" version_date="09/25/2003" version_time="63053" version_user="Admin" deletion_flag="no" entity_mnemonic="gsmse" key_field_value="1000000011.39" record_version_obj="1000000012.39" version_number_seq="23.24" secondary_key_value="rtb_090dyndep" import_version_number_seq="23.24"><session_type_obj>1000000011.39</session_type_obj>
+<dataset_transaction TransactionNo="13" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_session_type" version_date="12/13/2004" version_time="21812" version_user="admin" deletion_flag="no" entity_mnemonic="GSMSE" key_field_value="1500005.24" record_version_obj="1500006.24" version_number_seq="4.24" secondary_key_value="dcuphase1" import_version_number_seq="4.24"><session_type_obj>1500005.24</session_type_obj>
+<session_type_code>dcuphase1</session_type_code>
+<session_type_description>Session type for batch DCU phase 1</session_type_description>
+<physical_session_list>GUI,BTC</physical_session_list>
+<valid_os_list></valid_os_list>
+<inactivity_timeout_period>0</inactivity_timeout_period>
+<automatic_reconnect>no</automatic_reconnect>
+<extends_session_type_obj>910719.24</extends_session_type_obj>
+<contained_record DB="icfdb" Table="gsm_required_manager"><required_manager_obj>1500007.24</required_manager_obj>
+<session_type_obj>1500005.24</session_type_obj>
+<startup_order>1</startup_order>
+<manager_type_obj>910744.24</manager_type_obj>
+<system_owned>no</system_owned>
+</contained_record>
+</contained_record>
+</dataset_transaction>
+<dataset_transaction TransactionNo="14" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_session_type" version_date="12/13/2004" version_time="21812" version_user="admin" deletion_flag="no" entity_mnemonic="gsmse" key_field_value="1500008.24" record_version_obj="1500009.24" version_number_seq="2.24" secondary_key_value="dcuphase2" import_version_number_seq="2.24"><session_type_obj>1500008.24</session_type_obj>
+<session_type_code>dcuphase2</session_type_code>
+<session_type_description>DCU batch upgrade - phase 2</session_type_description>
+<physical_session_list>BTC</physical_session_list>
+<valid_os_list></valid_os_list>
+<inactivity_timeout_period>0</inactivity_timeout_period>
+<automatic_reconnect>yes</automatic_reconnect>
+<extends_session_type_obj>910752.24</extends_session_type_obj>
+</contained_record>
+</dataset_transaction>
+<dataset_transaction TransactionNo="15" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_session_type" version_date="09/25/2003" version_time="63053" version_user="Admin" deletion_flag="no" entity_mnemonic="gsmse" key_field_value="1000000011.39" record_version_obj="1000000012.39" version_number_seq="23.24" secondary_key_value="rtb_090dyndep" import_version_number_seq="23.24"><session_type_obj>1000000011.39</session_type_obj>
 <session_type_code>rtb_090dyndep</session_type_code>
 <session_type_description>Roundtable 090dyn-dep Session</session_type_description>
 <physical_session_list>GUI</physical_session_list>
@@ -469,7 +495,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="14" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_session_type" version_date="09/25/2003" version_time="63053" version_user="Admin" deletion_flag="no" entity_mnemonic="gsmse" key_field_value="1000000013.39" record_version_obj="1000000014.39" version_number_seq="23.24" secondary_key_value="rtb_091dyndep" import_version_number_seq="23.24"><session_type_obj>1000000013.39</session_type_obj>
+<dataset_transaction TransactionNo="16" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_session_type" version_date="09/25/2003" version_time="63053" version_user="Admin" deletion_flag="no" entity_mnemonic="gsmse" key_field_value="1000000013.39" record_version_obj="1000000014.39" version_number_seq="23.24" secondary_key_value="rtb_091dyndep" import_version_number_seq="23.24"><session_type_obj>1000000013.39</session_type_obj>
 <session_type_code>rtb_091dyndep</session_type_code>
 <session_type_description>Roundtable 091dyn-dep Session</session_type_description>
 <physical_session_list>GUI</physical_session_list>
@@ -484,7 +510,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="15" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_session_type" version_date="09/25/2003" version_time="63053" version_user="Admin" deletion_flag="no" entity_mnemonic="gsmse" key_field_value="1000000015.39" record_version_obj="1000000016.39" version_number_seq="23.24" secondary_key_value="rtb_091dyndev" import_version_number_seq="23.24"><session_type_obj>1000000015.39</session_type_obj>
+<dataset_transaction TransactionNo="17" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_session_type" version_date="09/25/2003" version_time="63053" version_user="Admin" deletion_flag="no" entity_mnemonic="gsmse" key_field_value="1000000015.39" record_version_obj="1000000016.39" version_number_seq="23.24" secondary_key_value="rtb_091dyndev" import_version_number_seq="23.24"><session_type_obj>1000000015.39</session_type_obj>
 <session_type_code>rtb_091dyndev</session_type_code>
 <session_type_description>Roundtable 091dyn-dev Session</session_type_description>
 <physical_session_list>GUI</physical_session_list>
@@ -499,7 +525,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="16" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_session_type" version_date="09/25/2003" version_time="63053" version_user="Admin" deletion_flag="no" entity_mnemonic="gsmse" key_field_value="1000000017.39" record_version_obj="1000000018.39" version_number_seq="23.24" secondary_key_value="rtb_091dyntst" import_version_number_seq="23.24"><session_type_obj>1000000017.39</session_type_obj>
+<dataset_transaction TransactionNo="18" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_session_type" version_date="09/25/2003" version_time="63053" version_user="Admin" deletion_flag="no" entity_mnemonic="gsmse" key_field_value="1000000017.39" record_version_obj="1000000018.39" version_number_seq="23.24" secondary_key_value="rtb_091dyntst" import_version_number_seq="23.24"><session_type_obj>1000000017.39</session_type_obj>
 <session_type_code>rtb_091dyntst</session_type_code>
 <session_type_description>Roundtable 091dyn-tst Session</session_type_description>
 <physical_session_list>GUI</physical_session_list>
@@ -514,7 +540,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="17" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_session_type" version_date="09/24/2003" version_time="40372" version_user="admin" deletion_flag="no" entity_mnemonic="GSMSE" key_field_value="1004947449.09" record_version_obj="3000005384.09" version_number_seq="23.24" secondary_key_value="ICFDevAS" import_version_number_seq="23.24"><session_type_obj>1004947449.09</session_type_obj>
+<dataset_transaction TransactionNo="19" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_session_type" version_date="09/24/2003" version_time="40372" version_user="admin" deletion_flag="no" entity_mnemonic="GSMSE" key_field_value="1004947449.09" record_version_obj="3000005384.09" version_number_seq="23.24" secondary_key_value="ICFDevAS" import_version_number_seq="23.24"><session_type_obj>1004947449.09</session_type_obj>
 <session_type_code>ICFDevAS</session_type_code>
 <session_type_description>Dynamics Development with AS</session_type_description>
 <physical_session_list>GUI</physical_session_list>
@@ -529,7 +555,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="18" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_session_type" version_date="09/24/2003" version_time="40371" version_user="admin" deletion_flag="no" entity_mnemonic="GSMSE" key_field_value="1004947452.09" record_version_obj="4625.5498" version_number_seq="16.24" secondary_key_value="ASICFDev" import_version_number_seq="16.24"><session_type_obj>1004947452.09</session_type_obj>
+<dataset_transaction TransactionNo="20" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_session_type" version_date="09/24/2003" version_time="40371" version_user="admin" deletion_flag="no" entity_mnemonic="GSMSE" key_field_value="1004947452.09" record_version_obj="4625.5498" version_number_seq="16.24" secondary_key_value="ASICFDev" import_version_number_seq="16.24"><session_type_obj>1004947452.09</session_type_obj>
 <session_type_code>ASICFDev</session_type_code>
 <session_type_description>AppServer Service Type for ICF Dev</session_type_description>
 <physical_session_list>APP</physical_session_list>
@@ -545,7 +571,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="19" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_session_type" version_date="09/24/2003" version_time="40372" version_user="admin" deletion_flag="no" entity_mnemonic="GSMSE" key_field_value="1004955892.09" record_version_obj="149998.9875" version_number_seq="13.24" secondary_key_value="ICFRuntime" import_version_number_seq="13.24"><session_type_obj>1004955892.09</session_type_obj>
+<dataset_transaction TransactionNo="21" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_session_type" version_date="09/24/2003" version_time="40372" version_user="admin" deletion_flag="no" entity_mnemonic="GSMSE" key_field_value="1004955892.09" record_version_obj="149998.9875" version_number_seq="13.24" secondary_key_value="ICFRuntime" import_version_number_seq="13.24"><session_type_obj>1004955892.09</session_type_obj>
 <session_type_code>ICFRuntime</session_type_code>
 <session_type_description>Dynamics Run Time Environment</session_type_description>
 <physical_session_list>GUI,WBC</physical_session_list>
@@ -565,7 +591,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="20" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_session_type" version_date="09/24/2003" version_time="40371" version_user="admin" deletion_flag="no" entity_mnemonic="GSMSE" key_field_value="1005079481.09" record_version_obj="4627.5498" version_number_seq="14.24" secondary_key_value="Default" import_version_number_seq="14.24"><session_type_obj>1005079481.09</session_type_obj>
+<dataset_transaction TransactionNo="22" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_session_type" version_date="09/24/2003" version_time="40371" version_user="admin" deletion_flag="no" entity_mnemonic="GSMSE" key_field_value="1005079481.09" record_version_obj="4627.5498" version_number_seq="14.24" secondary_key_value="Default" import_version_number_seq="14.24"><session_type_obj>1005079481.09</session_type_obj>
 <session_type_code>Default</session_type_code>
 <session_type_description>Default Session Type</session_type_description>
 <physical_session_list>GUI</physical_session_list>
@@ -585,7 +611,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="21" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_session_type" version_date="09/24/2003" version_time="40372" version_user="admin" deletion_flag="no" entity_mnemonic="GSMSE" key_field_value="1005080066.09" record_version_obj="1526.7692" version_number_seq="24.24" secondary_key_value="ICFDev" import_version_number_seq="24.24"><session_type_obj>1005080066.09</session_type_obj>
+<dataset_transaction TransactionNo="23" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_session_type" version_date="09/24/2003" version_time="40372" version_user="admin" deletion_flag="no" entity_mnemonic="GSMSE" key_field_value="1005080066.09" record_version_obj="1526.7692" version_number_seq="24.24" secondary_key_value="ICFDev" import_version_number_seq="24.24"><session_type_obj>1005080066.09</session_type_obj>
 <session_type_code>ICFDev</session_type_code>
 <session_type_description>Dynamics Development Environment</session_type_description>
 <physical_session_list>GUI</physical_session_list>
@@ -595,7 +621,7 @@
 <extends_session_type_obj>910764.24</extends_session_type_obj>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="22" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_session_type" version_date="03/02/2004" version_time="58333" version_user="admin" deletion_flag="no" entity_mnemonic="GSMSE" key_field_value="3000000314.09" record_version_obj="3000000315.09" version_number_seq="12.09" secondary_key_value="ICFWS" import_version_number_seq="12.09"><session_type_obj>3000000314.09</session_type_obj>
+<dataset_transaction TransactionNo="24" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_session_type" version_date="03/02/2004" version_time="58333" version_user="admin" deletion_flag="no" entity_mnemonic="GSMSE" key_field_value="3000000314.09" record_version_obj="3000000315.09" version_number_seq="12.09" secondary_key_value="ICFWS" import_version_number_seq="12.09"><session_type_obj>3000000314.09</session_type_obj>
 <session_type_code>ICFWS</session_type_code>
 <session_type_description>ICF WebSpeed Session</session_type_description>
 <physical_session_list>WBS,APP</physical_session_list>

@@ -102,6 +102,7 @@ DEFINE VARIABLE gcLogicalObjectName    AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE giLastSelectedPage     AS INTEGER    NO-UNDO.
 DEFINE VARIABLE ghContainerSource      AS HANDLE     NO-UNDO.
 DEFINE VARIABLE glTrackChanges         AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE gcDataSourceName       AS CHARACTER  NO-UNDO.
  
 DEFINE VARIABLE gcQueryTables          AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcPhysicalTableNames   AS CHARACTER  NO-UNDO.
@@ -161,7 +162,7 @@ FUNCTION db-tbl-name RETURNS CHARACTER
 /* Include file with RowObject temp-table definition */
 &Scoped-define DATA-FIELD-DEFS "ry/obj/rycsoful2o.i"
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME frMain
 &Scoped-define BROWSE-NAME BrBrowse
 
@@ -208,6 +209,13 @@ FUNCTION getDataTable RETURNS HANDLE
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFuncLibHandle vTableWin 
 FUNCTION getFuncLibHandle RETURNS HANDLE
   (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDataSourceName vTableWin 
+FUNCTION setDataSourceName RETURNS LOGICAL
+  ( INPUT pcDataSourceName AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -327,6 +335,11 @@ DEFINE VARIABLE toLabel AS LOGICAL INITIAL no
      VIEW-AS TOGGLE-BOX
      SIZE 12.8 BY .95 NO-UNDO.
 
+DEFINE VARIABLE toSortfield AS LOGICAL INITIAL no 
+     LABEL "Sort" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 17.2 BY .81 NO-UNDO.
+
 DEFINE VARIABLE EdParentFilterQuery AS CHARACTER 
      VIEW-AS EDITOR SCROLLBAR-VERTICAL LARGE
      SIZE 123.2 BY 2.19 TOOLTIP "Parent filter query addition." NO-UNDO.
@@ -395,18 +408,6 @@ DEFINE FRAME frMain
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
 
-DEFINE FRAME frPage2
-     raFlag AT ROW 1.14 COL 22.6 NO-LABEL
-     fiDefaultValue AT ROW 2.14 COL 20.6 COLON-ALIGNED
-     fiParentField AT ROW 3.19 COL 20.6 COLON-ALIGNED
-     EdParentFilterQuery AT ROW 4.24 COL 22.6 NO-LABEL
-     fiParentFilterQueryLabel AT ROW 4.19 COL 2.8 COLON-ALIGNED NO-LABEL
-     fiComboTypeLabel AT ROW 1.1 COL 7.4 COLON-ALIGNED NO-LABEL
-    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
-         SIDE-LABELS NO-UNDERLINE THREE-D 
-         AT COL 1.8 ROW 11.81
-         SIZE 145.2 BY 5.48.
-
 DEFINE FRAME frPage1
      coKeyField AT ROW 1.1 COL 22.2 COLON-ALIGNED
      fiDescSubstitute AT ROW 2.14 COL 22.2 COLON-ALIGNED
@@ -420,10 +421,23 @@ DEFINE FRAME frPage1
      fiBuildSeq AT ROW 4.14 COL 109.8 COLON-ALIGNED
      toEnableField AT ROW 3.19 COL 124.6
      toDisplayField AT ROW 4.24 COL 124.6
+     toSortfield AT ROW 5.29 COL 124.6
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1.8 ROW 11.86
          SIZE 145.2 BY 5.43.
+
+DEFINE FRAME frPage2
+     raFlag AT ROW 1.14 COL 22.6 NO-LABEL
+     fiDefaultValue AT ROW 2.14 COL 20.6 COLON-ALIGNED
+     fiParentField AT ROW 3.19 COL 20.6 COLON-ALIGNED
+     EdParentFilterQuery AT ROW 4.24 COL 22.6 NO-LABEL
+     fiParentFilterQueryLabel AT ROW 4.19 COL 2.8 COLON-ALIGNED NO-LABEL
+     fiComboTypeLabel AT ROW 1.1 COL 7.4 COLON-ALIGNED NO-LABEL
+    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
+         SIDE-LABELS NO-UNDERLINE THREE-D 
+         AT COL 1.8 ROW 11.81
+         SIZE 145.2 BY 5.48.
 
 
 /* *********************** Procedure Settings ************************ */
@@ -486,7 +500,7 @@ ASSIGN FRAME frPage1:FRAME = FRAME frMain:HANDLE
        FRAME frPage2:FRAME = FRAME frMain:HANDLE.
 
 /* SETTINGS FOR FRAME frMain
-   NOT-VISIBLE Size-to-Fit                                              */
+   NOT-VISIBLE FRAME-NAME Size-to-Fit                                   */
 /* BROWSE-TAB BrBrowse fiResizeBar frMain */
 ASSIGN 
        FRAME frMain:SCROLLABLE       = FALSE
@@ -1092,6 +1106,26 @@ END.
 &ANALYZE-RESUME
 
 
+&Scoped-define SELF-NAME toSortfield
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL toSortfield vTableWin
+ON VALUE-CHANGED OF toSortfield IN FRAME frPage1 /* Sort */
+DO:
+  IF toDisplayField:CHECKED = FALSE THEN
+    ASSIGN toEnableField:CHECKED   = FALSE
+           toEnableField:SENSITIVE = FALSE.
+  ELSE
+    ASSIGN toEnableField:CHECKED   = TRUE
+           toEnableField:SENSITIVE = TRUE.
+  
+  IF glTrackChanges THEN
+    PUBLISH "changesMade":U FROM ghContainerSource.
+
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
 &Scoped-define FRAME-NAME frMain
 &UNDEFINE SELF-NAME
 
@@ -1306,7 +1340,8 @@ PROCEDURE assignValues :
            fiInnerLines
            fiBuildSeq
            toDisplayField
-           toEnableField.
+           toEnableField
+           toSortField.
   END.
   DO WITH FRAME frPage2:
     ASSIGN raFlag
@@ -1325,31 +1360,75 @@ PROCEDURE assignValues :
     RETURN "SAVE-FAILED":U.
   
   RUN assignBuffTT.
-  ASSIGN ghDataTable:BUFFER-FIELD("cBaseQueryString":U):BUFFER-VALUE    = edQuery 
-         ghDataTable:BUFFER-FIELD('cQueryTables':U):BUFFER-VALUE        = seQueryTables:LIST-ITEMS
-         ghDataTable:BUFFER-FIELD('cPhysicalTableNames':U):BUFFER-VALUE = gcPhysicalTableNames
-         ghDataTable:BUFFER-FIELD('cTempTables':U):BUFFER-VALUE         = gcTempTableNames
-         ghDataTable:BUFFER-FIELD('cKeyField':U):BUFFER-VALUE           = coKeyField
-         ghDataTable:BUFFER-FIELD("cKeyFormat":U):BUFFER-VALUE          = fiFieldFormat
-         ghDataTable:BUFFER-FIELD('cKeyDataType':U):BUFFER-VALUE        = fiFieldDatatype
-         ghDataTable:BUFFER-FIELD('cDisplayedField':U):BUFFER-VALUE     = gcBrowseFields
-         ghDataTable:BUFFER-FIELD("cDisplayFormat":U):BUFFER-VALUE      = gcDisplayFormat
-         ghDataTable:BUFFER-FIELD('cDisplayDataType':U):BUFFER-VALUE    = gcDisplayDataType  
-         ghDataTable:BUFFER-FIELD('cDescSubstitute':U):BUFFER-VALUE     = fiDescSubstitute
-         ghDataTable:BUFFER-FIELD('cFieldLabel':U):BUFFER-VALUE         = fiFieldLabel
-         ghDataTable:BUFFER-FIELD('lLabels':U):BUFFER-VALUE             = (fiFieldLabel NE "":U)
-         ghDataTable:BUFFER-FIELD('cFieldTooltip':U):BUFFER-VALUE       = fiFieldTooltip
-         ghDataTable:BUFFER-FIELD('dFieldWidth':U):BUFFER-VALUE         = fiFieldWidth
-         ghDataTable:BUFFER-FIELD('cComboFlag':U):BUFFER-VALUE          = raFlag
-         ghDataTable:BUFFER-FIELD('cFlagValue':U):BUFFER-VALUE          = fiDefaultValue
-         ghDataTable:BUFFER-FIELD('iInnerLines':U):BUFFER-VALUE         = fiInnerLines
-         ghDataTable:BUFFER-FIELD('iBuildSequence':U):BUFFER-VALUE      = fiBuildSeq
-         ghDataTable:BUFFER-FIELD('cParentFilterQuery':U):BUFFER-VALUE  = edParentFilterQuery
-         ghDataTable:BUFFER-FIELD('cParentField':U):BUFFER-VALUE        = fiParentField
-         ghDataTable:BUFFER-FIELD('lEnableField':U):BUFFER-VALUE        = toEnableField
-         ghDataTable:BUFFER-FIELD('lDisplayField':U):BUFFER-VALUE       = toDisplayField
+  
+  ASSIGN
+      ghDataTable:BUFFER-FIELD("cBaseQueryString":U):BUFFER-VALUE    = edQuery 
+      ghDataTable:BUFFER-FIELD('cQueryTables':U):BUFFER-VALUE        = IF gcDataSourceName = "":U THEN seQueryTables:LIST-ITEMS 
+                                                                       ELSE "":U
+      ghDataTable:BUFFER-FIELD('cPhysicalTableNames':U):BUFFER-VALUE = gcPhysicalTableNames
+      ghDataTable:BUFFER-FIELD('cTempTables':U):BUFFER-VALUE         = gcTempTableNames
+      ghDataTable:BUFFER-FIELD('cDisplayDataType':U):BUFFER-VALUE    = IF gcDataSourceName = "":U THEN gcDisplayDataType
+                                                                       ELSE "":U  
+      ghDataTable:BUFFER-FIELD("cKeyFormat":U):BUFFER-VALUE          = IF gcDataSourceName = "":U THEN fiFieldFormat
+                                                                       ELSE "":U
+      ghDataTable:BUFFER-FIELD('cKeyDataType':U):BUFFER-VALUE        = IF gcDataSourceName = "":U THEN fiFieldDatatype
+                                                                       ELSE "":U
+      ghDataTable:BUFFER-FIELD("cDisplayFormat":U):BUFFER-VALUE      = IF gcDataSourceName = "":U THEN gcDisplayFormat 
+                                                                       ELSE "":U
+      ghDataTable:BUFFER-FIELD('cKeyField':U):BUFFER-VALUE           = coKeyField
+      ghDataTable:BUFFER-FIELD('cDisplayedField':U):BUFFER-VALUE     = gcBrowseFields
+      ghDataTable:BUFFER-FIELD('cDescSubstitute':U):BUFFER-VALUE     = fiDescSubstitute
+      ghDataTable:BUFFER-FIELD('cFieldLabel':U):BUFFER-VALUE         = fiFieldLabel
+      ghDataTable:BUFFER-FIELD('lLabels':U):BUFFER-VALUE             = (fiFieldLabel NE "":U)
+      ghDataTable:BUFFER-FIELD('cFieldTooltip':U):BUFFER-VALUE       = fiFieldTooltip
+      ghDataTable:BUFFER-FIELD('dFieldWidth':U):BUFFER-VALUE         = fiFieldWidth
+      ghDataTable:BUFFER-FIELD('cComboFlag':U):BUFFER-VALUE          = raFlag
+      ghDataTable:BUFFER-FIELD('cFlagValue':U):BUFFER-VALUE          = fiDefaultValue
+      ghDataTable:BUFFER-FIELD('iInnerLines':U):BUFFER-VALUE         = fiInnerLines
+      ghDataTable:BUFFER-FIELD('iBuildSequence':U):BUFFER-VALUE      = fiBuildSeq
+      ghDataTable:BUFFER-FIELD('cParentFilterQuery':U):BUFFER-VALUE  = edParentFilterQuery
+      ghDataTable:BUFFER-FIELD('cParentField':U):BUFFER-VALUE        = fiParentField
+      ghDataTable:BUFFER-FIELD('lEnableField':U):BUFFER-VALUE        = toEnableField
+      ghDataTable:BUFFER-FIELD('lDisplayField':U):BUFFER-VALUE       = toDisplayField
+      ghDataTable:BUFFER-FIELD('lSort':U):BUFFER-VALUE               = toSortField
+      ghDataTable:BUFFER-FIELD('cDataSourceName':U):BUFFER-VALUE     = gcDataSourceName
+      .
 
-         .
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE changeSource vTableWin 
+PROCEDURE changeSource :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT  PARAMETER pcSource AS CHARACTER  NO-UNDO.
+
+  IF pcSource = 'SDO':U THEN
+  DO WITH FRAME {&FRAME-NAME}:
+    ASSIGN 
+      EdQuery:SCREEN-VALUE       = '':U
+      EdQuery:SENSITIVE          = FALSE
+      fiBaseQueryLabel:SENSITIVE = FALSE 
+      seQueryTables:SENSITIVE    = FALSE
+      buClear:SENSITIVE          = FALSE
+      fiQTables:SENSITIVE        = FALSE
+      buRefresh:SENSITIVE        = FALSE.
+
+  END.
+  ELSE DO WITH FRAME {&FRAME-NAME}:
+    ASSIGN 
+      EdQuery:SENSITIVE          = TRUE
+      fiBaseQueryLabel:SENSITIVE = TRUE 
+      seQueryTables:SENSITIVE    = TRUE
+      buClear:SENSITIVE          = TRUE
+      fiQTables:SENSITIVE        = TRUE
+      buRefresh:SENSITIVE        = TRUE.
+  END.
 
 END PROCEDURE.
 
@@ -1829,7 +1908,7 @@ PROCEDURE populateCombo :
       coKeyField:LIST-ITEM-PAIRS = cValuePairs.
 
       IF cOldKeyField <> "":U THEN
-        coKeyField:SCREEN-VALUE = cOldKeyField.
+        coKeyField:SCREEN-VALUE = cOldKeyField NO-ERROR.
       ELSE
         coKeyField:SCREEN-VALUE = ENTRY(1,cValuePairs) NO-ERROR.
       
@@ -1853,6 +1932,148 @@ PROCEDURE populateCombo :
   ENABLE ALL EXCEPT fiFieldDataType fiFieldFormat fiDescSubstitute WITH FRAME frPage1.
   ENABLE ALL EXCEPT fiDefaultValue WITH FRAME frPage2.
   APPLY "VALUE-CHANGED":U TO raFlag IN FRAME frPage2.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE populateComboFromSDO vTableWin 
+PROCEDURE populateComboFromSDO :
+/*------------------------------------------------------------------------------
+  Purpose:     Populates browse with SDO field list and populates Key field
+               combo list items
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE cOldKeyField      AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cTempBrowseFields AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cValuePairs       AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE hSDO              AS HANDLE     NO-UNDO.
+DEFINE VARIABLE iBrowseEntry      AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iField            AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iLoop             AS INTEGER    NO-UNDO.
+  
+  DO WITH FRAME frPage1:
+    /* If this combo was based on a query the key field was qualified with the table name
+       and should be removed from the key field */
+    cOldKeyField = IF NUM-ENTRIES(coKeyField:SCREEN-VALUE,".":U) > 1 THEN
+                     ENTRY(2,coKeyField:SCREEN-VALUE,".":U)
+                   ELSE coKeyField:SCREEN-VALUE.
+  END.
+
+  EMPTY TEMP-TABLE ttFields.
+
+  /* If this combo was based on a query, its display fields were qualified with table names
+     and should be removed from the browse field list */
+  IF NUM-ENTRIES(ENTRY(1, gcBrowseFields),".":U) > 1 THEN
+  DO:
+    DO iField = 1 TO NUM-ENTRIES(gcBrowseFields):
+      cTempBrowseFields = cTempBrowseFields + 
+                          (IF iField > 1 THEN ",":U ELSE "":U) +
+                          ENTRY(2,ENTRY(iField,gcBrowseFields),".":U).
+    END.
+    gcBrowseFields = cTempBrowseFields.
+  END.
+
+  DO WITH FRAME {&FRAME-NAME}:
+    {&OPEN-QUERY-{&BROWSE-NAME}}
+    DO WITH FRAME frPage1:
+      coKeyField:LIST-ITEM-PAIRS = "x,x".
+      coKeyField = "x".
+      coKeyField:SCREEN-VALUE = coKeyField:SCREEN-VALUE.  
+    END.
+    seQueryTables:LIST-ITEMS = "":U.
+    DISPLAY
+      BrBrowse.
+    DISABLE
+      BrBrowse.
+    DISPLAY coKeyField WITH FRAME frPage1.
+
+    /* populate other fields */
+    APPLY "value-changed" TO coKeyField IN FRAME frPage1.
+
+    DO WITH FRAME frPage1:
+      IF fiFieldTooltip:SCREEN-VALUE = "":U THEN
+        fiFieldTooltip:SCREEN-VALUE = "Select option from list":U.
+    END.
+
+    /* Query is valid - rebuild screen values */
+    ENABLE
+      BrBrowse.
+    ENABLE coKeyField WITH FRAME frPage1.
+    
+    RUN startDataObject IN gshRepositoryManager (INPUT gcDataSourceName, OUTPUT hSDO).
+
+    ASSIGN
+      gcTypeList   = "":U
+      gcFormatList = "":U
+      gcLabelList  = "":U.
+
+    {get DataColumns gcNameList hSDO}.
+    DO iLoop = 1 TO NUM-ENTRIES(gcNameList):
+      CREATE ttFields.
+      ASSIGN
+        ttFields.cFieldName     = ENTRY(iLoop, gcNameList).
+      ASSIGN
+        ttFields.cOrigLabel     = DYNAMIC-FUNCTION('columnLabel':U IN hSDO, INPUT ttFields.cFieldName)
+        ttFields.cFieldDataType = DYNAMIC-FUNCTION('columnDataType':U IN hSDO, INPUT ttFields.cFieldName)
+        ttFields.cFieldFormat   = DYNAMIC-FUNCTION('columnFormat':U IN hSDO, INPUT ttFields.cFieldName)
+        iBrowseEntry = LOOKUP(ttFields.cFieldName,gcBrowseFields)               
+        ttFields.iDisplaySeq = iBrowseEntry                      
+        .
+
+      ASSIGN 
+        cValuePairs  = cValuePairs + 
+                       (IF cValuePairs = "":U THEN "":U ELSE ",":U) +         
+                        ttFields.cFieldName + ",":U + ttFields.cFieldName
+        gcTypeList   = gcTypeList +
+                       (IF gcTypeList = "":U THEN "":U ELSE ",":U) +
+                        ttFields.cFieldDataType
+        gcFormatList = gcFormatList +
+                       (IF gcFormatList = "":U THEN "":U ELSE CHR(1)) +
+                        ttFields.cFieldFormat
+        gcLabelList  = gcLabelList +
+                       (IF gcLabelList = "":U THEN "":U ELSE CHR(1)) +
+                        ttFields.cOrigLabel
+        .
+    END.
+    
+    IF VALID-HANDLE(hSdo) THEN
+        RUN destroyObject IN hSdo NO-ERROR.
+    IF VALID-HANDLE(hSdo) THEN
+        DELETE OBJECT hSdo.
+
+    {&OPEN-QUERY-{&BROWSE-NAME}}
+    DO WITH FRAME frPage1:
+      coKeyField:LIST-ITEM-PAIRS = cValuePairs.
+
+      IF cOldKeyField <> "":U THEN
+        coKeyField:SCREEN-VALUE = cOldKeyField NO-ERROR.
+      ELSE
+        coKeyField:SCREEN-VALUE = ENTRY(1,cValuePairs) NO-ERROR.
+
+      IF ERROR-STATUS:ERROR THEN
+        coKeyField:SCREEN-VALUE = ENTRY(1,cValuePairs) NO-ERROR.
+      IF ERROR-STATUS:ERROR THEN
+        coKeyField:SCREEN-VALUE = coKeyField:ENTRY(1) NO-ERROR.
+      
+      ASSIGN fiFieldWidth:SCREEN-VALUE = IF DECIMAL(fiFieldWidth:SCREEN-VALUE) <= 0 THEN "50":U ELSE fiFieldWidth:SCREEN-VALUE
+             fiInnerLines:SCREEN-VALUE = IF INTEGER(fiInnerLines:SCREEN-VALUE) <= 0 THEN "5":U ELSE fiInnerLines:SCREEN-VALUE
+             fiBuildSeq:SCREEN-VALUE   = IF INTEGER(fiBuildSeq:SCREEN-VALUE) <= 0 THEN "1":U ELSE fiBuildSeq:SCREEN-VALUE.
+    END.
+
+    DISPLAY
+      BrBrowse.
+
+    /* populate other fields */
+    APPLY "VALUE-CHANGED" TO coKeyField IN FRAME frPage1.  
+  END.
+
+  ENABLE ALL EXCEPT fiFieldDataType fiFieldFormat fiDescSubstitute WITH FRAME frPage1.
+  ENABLE ALL EXCEPT fiDefaultValue WITH FRAME frPage2.
+  APPLY "VALUE-CHANGED":U TO raFlag IN FRAME frPage2.
+  
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2228,14 +2449,14 @@ PROCEDURE setInfo :
 ------------------------------------------------------------------------------*/
   DEFINE INPUT  PARAMETER phDataTable AS HANDLE     NO-UNDO.
   
-  DEFINE VARIABLE cSortString AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSortString     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hSource         AS HANDLE     NO-UNDO.
 
   phDataTable:FIND-FIRST().
   IF NOT phDataTable:AVAILABLE THEN
     RETURN.
   
   ghDataTable = phDataTable.
-
   DO WITH FRAME {&FRAME-NAME}:
     ASSIGN gcQueryBuilderJoinCode        = "":U
            gcQueryBuilderOptionList      = "":U
@@ -2283,9 +2504,24 @@ PROCEDURE setInfo :
       END.
     END.
     RUN setUpBuffTT.
-    IF edQuery:SCREEN-VALUE <> "":U THEN DO:
+    gcDataSourceName = phDataTable:BUFFER-FIELD('cDataSourceName':U):BUFFER-VALUE.
+    IF gcDataSourceName NE '':U THEN
+    DO:
+      RUN populateComboFromSDO.
+      hSource = WIDGET-HANDLE(DYNAMIC-FUNCTION("linkHandles":U,"DynCombo-Source":U)).
+      IF VALID-HANDLE(hSource) THEN
+        DYNAMIC-FUNCTION('setDataObjectName':U IN hSource,
+                         INPUT gcDataSourceName).
+      APPLY "LEAVE":U TO BROWSE BrBrowse.
+    END.
+    ELSE IF edQuery:SCREEN-VALUE <> "":U THEN DO:
       RUN populateCombo (INPUT FALSE).
       APPLY "LEAVE":U TO BROWSE BrBrowse.
+
+    END.
+
+    IF gcDataSourceName NE '':U OR edQuery:SCREEN-VALUE <> "":U THEN
+    DO:
       DO WITH FRAME frPage1:
         ASSIGN coKeyField:SCREEN-VALUE       = phDataTable:BUFFER-FIELD('cKeyField':U):BUFFER-VALUE
                fiDescSubstitute:SCREEN-VALUE = phDataTable:BUFFER-FIELD('cDescSubstitute':U):BUFFER-VALUE.
@@ -2297,6 +2533,7 @@ PROCEDURE setInfo :
                fiBuildSeq:SCREEN-VALUE     = STRING(phDataTable:BUFFER-FIELD('iBuildSequence':U):BUFFER-VALUE)
                toEnableField:CHECKED       = phDataTable:BUFFER-FIELD('lEnableField':U):BUFFER-VALUE
                toDisplayField:CHECKED      = phDataTable:BUFFER-FIELD('lDisplayField':U):BUFFER-VALUE
+               toSortField:CHECKED         = phDataTable:BUFFER-FIELD('lSort':U):BUFFER-VALUE
                gcDisplayFormat             = phDataTable:BUFFER-FIELD("cDisplayFormat":U):BUFFER-VALUE
                gcDisplayDataType           = phDataTable:BUFFER-FIELD('cDisplayDataType':U):BUFFER-VALUE
                toLabel:CHECKED             = fiFieldLabel:SCREEN-VALUE = "":U.
@@ -2314,18 +2551,23 @@ PROCEDURE setInfo :
       APPLY "LEAVE":U TO BROWSE BrBrowse.
       ENABLE ALL EXCEPT fiDefaultValue WITH FRAME frPage2.
     END.
-    ELSE
-      ASSIGN toDisplayField:CHECKED IN FRAME frPage1 = TRUE
-             toEnableField:CHECKED IN FRAME frPage1  = TRUE.
-    
+    ELSE ASSIGN toDisplayField:CHECKED IN FRAME frPage1 = TRUE
+                toEnableField:CHECKED IN FRAME frPage1  = TRUE.
+
     glTrackChanges = TRUE.
     ENABLE ALL EXCEPT WITH FRAME {&FRAME-NAME}.
     RUN selectPage (INPUT 1).
   END.
-  APPLY "ENTRY":U TO edQuery IN FRAME {&FRAME-NAME}.
+  IF gcDataSourceName NE "":U THEN
+    APPLY "ENTRY":U TO coKeyField IN FRAME frPage1.
+  ELSE APPLY "ENTRY":U TO edQuery IN FRAME {&FRAME-NAME}.
   
   IF toDisplayField:CHECKED IN FRAME frPage1 = FALSE THEN
     APPLY "VALUE-CHANGED":U TO toDisplayField IN FRAME frPage1.
+
+  RUN changeSource (INPUT IF gcDataSourceName NE "":U THEN "SDO":U
+                          ELSE "DB":U).
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2465,21 +2707,25 @@ PROCEDURE validateData :
   DEFINE VARIABLE mMemPtr         AS MEMPTR     NO-UNDO.
   DEFINE VARIABLE hHandle         AS HANDLE     NO-UNDO.
   
-  RUN populateCombo (INPUT TRUE).
-  cMessage = RETURN-VALUE.
-  IF cMessage <> "":U THEN DO:
-    pcError = cMessage.
-    RETURN.
+  IF gcDataSourceName = "":U THEN
+  DO:
+    RUN populateCombo (INPUT TRUE).
+    cMessage = RETURN-VALUE.
+    IF cMessage <> "":U THEN DO:
+      pcError = cMessage.
+      RETURN.
+    END.
+  
+    DO WITH FRAME {&FRAME-NAME}:
+      IF seQueryTables:LIST-ITEMS = "":U OR
+         seQueryTables:LIST-ITEMS = ? THEN 
+        pcError = pcError + (IF NUM-ENTRIES(pcError,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
+                      {af/sup2/aferrortxt.i 'AF' '5' '' '' '"Base Query"' '"Invalid Query - cannot apply changes~n~nCheck the query starts with FOR EACH and does NOT end in a full stop or colon.~nAlso check you have not misspelled any table names or field names and that you have not missed off any commas. Try pasting the query into the procedure editor and syntax checking from there - if it works there it should work here minus the colon and the end statement."'}.
+    END.
+
+    APPLY "LEAVE":U TO BROWSE BrBrowse.
   END.
 
-  DO WITH FRAME {&FRAME-NAME}:
-    IF seQueryTables:LIST-ITEMS = "":U OR
-       seQueryTables:LIST-ITEMS = ? THEN 
-      pcError = pcError + (IF NUM-ENTRIES(pcError,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                    {af/sup2/aferrortxt.i 'AF' '5' '' '' '"Base Query"' '"Invalid Query - cannot apply changes~n~nCheck the query starts with FOR EACH and does NOT end in a full stop or colon.~nAlso check you have not misspelled any table names or field names and that you have not missed off any commas. Try pasting the query into the procedure editor and syntax checking from there - if it works there it should work here minus the colon and the end statement."'}.
-  END.
-
-  APPLY "LEAVE":U TO BROWSE BrBrowse.
   RUN assignBrowseData.
 
   IF gcBrowseFields = "":U THEN
@@ -2622,6 +2868,22 @@ FUNCTION getFuncLibHandle RETURNS HANDLE
       END.
   END.
   RETURN gFuncLibHdl.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDataSourceName vTableWin 
+FUNCTION setDataSourceName RETURNS LOGICAL
+  ( INPUT pcDataSourceName AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Sets viewer global data source name
+    Notes:  
+------------------------------------------------------------------------------*/
+  ASSIGN gcDataSourceName = pcDataSourceName.
+
+  RETURN TRUE.   /* Function return value. */
 
 END FUNCTION.
 

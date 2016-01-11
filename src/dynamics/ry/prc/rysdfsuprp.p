@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Check Version Notes Wizard" Procedure _INLINE
 /* Actions: af/cod/aftemwizcw.w ? ? ? ? */
@@ -95,6 +95,7 @@ DEFINE VARIABLE glInitialized   AS LOGICAL    NO-UNDO.
 
 DEFINE VARIABLE gcComboClasses  AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcLookupClasses AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE ghSDFProc       AS HANDLE     NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -151,6 +152,28 @@ FUNCTION getLookupTable RETURNS HANDLE
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getSDFProcHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getSDFProcHandle Procedure 
+FUNCTION getSDFProcHandle RETURNS HANDLE
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setSDFProcHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setSDFProcHandle Procedure 
+FUNCTION setSDFProcHandle RETURNS LOGICAL
+  ( phProc AS HANDLE )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-statusText) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD statusText Procedure 
@@ -187,12 +210,14 @@ FUNCTION statusText RETURNS LOGICAL
                                                                         */
 &ANALYZE-RESUME
 
+ 
+
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
 
 
 /* ***************************  Main Block  ******************************* */
-
+ 
 {ry/app/ryplipmain.i}
 
 /* _UIB-CODE-BLOCK-END */
@@ -581,7 +606,6 @@ PROCEDURE saveSDFInfo :
   DEFINE VARIABLE dSmartObjectObj       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hAttributeValueBuffer AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hAttributeValueTable  AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cPhysicalObjectName   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iField                AS INTEGER    NO-UNDO.
   DEFINE VARIABLE hField                AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cFieldDataType        AS CHARACTER  NO-UNDO.
@@ -605,12 +629,8 @@ PROCEDURE saveSDFInfo :
     dMasterObjectObj = DYNAMIC-FUNCTION("getSmartObjectObj":U IN ghDesignManager, INPUT phDataTable:BUFFER-FIELD("cSDFFileName":U):BUFFER-VALUE, INPUT 0) NO-ERROR.
   IF dMasterObjectObj = ? THEN
     dMasterObjectObj = 0.
-  
-  IF LOOKUP(pcSDFType, gcLookupClasses) > 0 THEN
-      ASSIGN cPhysicalObjectName = "dynlookup.w".
-  ELSE
-      ASSIGN cPhysicalObjectName = "dyncombo.w".
-  
+     
+   
   EMPTY TEMP-TABLE ttStoreAttribute.
 
   DO iField = 1 TO phDataTable:NUM-FIELDS:
@@ -727,6 +747,7 @@ PROCEDURE saveSDFInfo :
 
   ASSIGN hAttributeValueBuffer = TEMP-TABLE ttStoreAttribute:DEFAULT-BUFFER-HANDLE
          hAttributeValueTable  = ?.
+  
   RUN insertObjectMaster IN ghDesignManager (INPUT phDataTable:BUFFER-FIELD("cSDFFileName":U):BUFFER-VALUE,
                                             INPUT "":U,
                                             INPUT pcProductModuleCode,
@@ -737,7 +758,7 @@ PROCEDURE saveSDFInfo :
                                             INPUT phDataTable:BUFFER-FIELD("cCustomSuperProc":U):BUFFER-VALUE,
                                             INPUT FALSE,
                                             INPUT FALSE,
-                                            INPUT cPhysicalObjectName,
+                                            INPUT "",  /* Physical Object Name */
                                             INPUT TRUE,
                                             INPUT phDataTable:BUFFER-FIELD("cFieldTooltip":U):BUFFER-VALUE,
                                             INPUT "":U, 
@@ -905,6 +926,8 @@ FUNCTION assignAttributeValue RETURNS LOGICAL
       phDataTable:BUFFER-FIELD('lEnableField':U):BUFFER-VALUE                 = LOGICAL(pcAttributeValue).
     WHEN "DisplayField":U THEN
       phDataTable:BUFFER-FIELD('lDisplayField':U):BUFFER-VALUE                = LOGICAL(pcAttributeValue).
+    WHEN "Sort":U THEN
+      phDataTable:BUFFER-FIELD('lSort':U):BUFFER-VALUE                        = LOGICAL(pcAttributeValue).
     WHEN "UseCache":U THEN
       phDataTable:BUFFER-FIELD('lUseCache':U):BUFFER-VALUE                    = LOGICAL(pcAttributeValue).
   END. /* CASE */
@@ -919,7 +942,9 @@ FUNCTION assignAttributeValue RETURNS LOGICAL
       WHEN "InnerLines":U THEN
         phDataTable:BUFFER-FIELD("iInnerLines":U):BUFFER-VALUE     = INTEGER(pcAttributeValue).
       WHEN "BuildSequence":U THEN
-        phDataTable:BUFFER-FIELD("iBuildSequence":U):BUFFER-VALUE  = INTEGER(pcAttributeValue).   
+        phDataTable:BUFFER-FIELD("iBuildSequence":U):BUFFER-VALUE  = INTEGER(pcAttributeValue).
+      WHEN "DataSourceName":U THEN
+        phDataTable:BUFFER-FIELD("cDataSourceName":U):BUFFER-VALUE = pcAttributeValue.
     END. /* case */
   ELSE
     CASE pcAttributeLabel:
@@ -1026,6 +1051,8 @@ FUNCTION getComboTable RETURNS HANDLE
   ghComboTable:ADD-NEW-FIELD('cQueryBuilderWhereClauses':U,    'CHARACTER':U).
   ghComboTable:ADD-NEW-FIELD('lEnableField':U,                 'LOGICAL':U,0,?,TRUE).
   ghComboTable:ADD-NEW-FIELD('lDisplayField':U,                'LOGICAL':U,0,?,TRUE).
+  ghComboTable:ADD-NEW-FIELD('lSort':U,                       'LOGICAL':U,0,?,FALSE).
+  ghComboTable:ADD-NEW-FIELD('cDataSourceName':U,             'CHARACTER':U).
   /*
   /* Add Indices */
   /* Node Handle - Primary - Unique */
@@ -1113,7 +1140,7 @@ FUNCTION getLookupTable RETURNS HANDLE
   ghLookupTable:ADD-NEW-FIELD('lEnableField':U,                 'LOGICAL':U,0,?,TRUE).
   ghLookupTable:ADD-NEW-FIELD('lDisplayField':U,                'LOGICAL':U,0,?,TRUE).
   ghLookupTable:ADD-NEW-FIELD('cMappedFields':U,                'CHARACTER':U).
-
+  ghLookupTable:ADD-NEW-FIELD('cDataSourceName':U,             'CHARACTER':U).
   /*
   /* Add Indices */
   /* Node Handle - Primary - Unique */
@@ -1124,6 +1151,46 @@ FUNCTION getLookupTable RETURNS HANDLE
   ghLookupTable:TEMP-TABLE-PREPARE("tLookup":U).
   
   RETURN ghLookupTable.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getSDFProcHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getSDFProcHandle Procedure 
+FUNCTION getSDFProcHandle RETURNS HANDLE
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Gets the procedure handle of the SDF super procedure
+             (i.e. adm2/lookup.p, adm2/combo.p)
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN ghSDFProc.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setSDFProcHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setSDFProcHandle Procedure 
+FUNCTION setSDFProcHandle RETURNS LOGICAL
+  ( phProc AS HANDLE ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Sets the procedure handle of the SDF super procedure
+             (i.e. adm2/lookup.p, adm2/combo.p)
+    Notes:  
+------------------------------------------------------------------------------*/
+  ASSIGN ghSDFProc  = phProc.   
+  RETURN TRUE.   /* Function return value. */
 
 END FUNCTION.
 

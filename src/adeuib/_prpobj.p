@@ -686,11 +686,18 @@ ON GO OF FRAME prop_sht DO:
   
   ELSE IF _U._TYPE = "RADIO-SET" THEN DO:
     DEF VARIABLE rval AS CHAR NO-UNDO.
+    DEF VAR cListItems AS CHAR NO-UNDO.
 
-    /* Compiler rules of validation don't apply to dynamic objects */
-    IF _U._CLASS-NAME NE "":U THEN l_error_on_go = FALSE.
-    ELSE l_error_on_go = NOT (validate-radio-buttons(_U._HANDLE)).
+    /* Validation assumes a comma delimiter. */
+    IF _F._DELIMITER NE "," AND _F._DELIMITER NE "" AND _F._DELIMITER NE ? THEN
+      ASSIGN cListItems    = _F._LIST-ITEMS.
+            _F._LIST-ITEMS = REPLACE(_F._LIST-ITEMS,_F._DELIMITER,",").
     
+    l_error_on_go = NOT (validate-radio-buttons(_U._HANDLE)).
+    
+    IF cListItems > "" THEN
+      ASSIGN _F._LIST-ITEMS = cListItems.
+
     IF l_Error_on_go THEN 
        new_btns = FALSE. 
     ELSE DO:

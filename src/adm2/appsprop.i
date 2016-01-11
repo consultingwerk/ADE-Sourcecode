@@ -101,6 +101,7 @@
      be retrieved directly from the temp-table */
 &GLOBAL-DEFINE xpASInfo
 &GLOBAL-DEFINE xpASHasStarted
+&GLOBAL-DEFINE xpASHasConnected
 &GLOBAL-DEFINE xpASInitializeOnRun 
 &GLOBAL-DEFINE xpASUsePrompt
 &GLOBAL-DEFINE xpBindSignature
@@ -118,7 +119,7 @@ DO:
   ghADMProps:ADD-NEW-FIELD('AppService':U, 'CHAR':U, 0, ?, '':U).  
   ghADMProps:ADD-NEW-FIELD('ASDivision':U, 'CHAR':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('ASHandle':U, 'HANDLE':U, 0, ?, ?). 
-  /* Set to true on the first connection */
+  ghADMProps:ADD-NEW-FIELD('ASHasConnected':U, 'LOGICAL':U, 0, ?, NO).
   ghADMProps:ADD-NEW-FIELD('ASHasStarted':U, 'LOGICAL':U, 0, ?, NO).
   ghADMProps:ADD-NEW-FIELD('ASInfo':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('ASInitializeOnRun':U, 'LOGICAL':U, 0, ?, YES).

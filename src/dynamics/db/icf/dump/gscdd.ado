@@ -1406,10 +1406,10 @@
 <primary_entity>no</primary_entity>
 <join_entity_mnemonic>GSCOT</join_entity_mnemonic>
 <join_field_list>object_type_obj,object_type_obj</join_field_list>
-<filter_where_clause>ryc_attribute_value.primary_smartobject_obj = 0 AND
-ryc_attribute_value.smartobject_obj = 0 AND
-ryc_attribute_value.container_smartobject_obj = 0 AND
-ryc_attribute_value.object_instance_obj = 0
+<filter_where_clause>ryc_attribute_value.primary_smartobject_obj = 0 AND
+ryc_attribute_value.smartobject_obj = 0 AND
+ryc_attribute_value.container_smartobject_obj = 0 AND
+ryc_attribute_value.object_instance_obj = 0
 </filter_where_clause>
 <delete_related_records>yes</delete_related_records>
 <overwrite_records>yes</overwrite_records>
@@ -1426,9 +1426,9 @@ ryc_attribute_value.object_instance_obj = 0
 <primary_entity>no</primary_entity>
 <join_entity_mnemonic>GSCOT</join_entity_mnemonic>
 <join_field_list>object_type_obj,object_type_obj</join_field_list>
-<filter_where_clause>ryc_ui_event.primary_smartobject_obj = 0 AND
-ryc_ui_event.smartobject_obj = 0 AND
-ryc_ui_event.container_smartobject_obj = 0 AND
+<filter_where_clause>ryc_ui_event.primary_smartobject_obj = 0 AND
+ryc_ui_event.smartobject_obj = 0 AND
+ryc_ui_event.container_smartobject_obj = 0 AND
 ryc_ui_event.object_instance_obj = 0</filter_where_clause>
 <delete_related_records>yes</delete_related_records>
 <overwrite_records>yes</overwrite_records>

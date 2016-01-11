@@ -34,6 +34,7 @@ var win,w=300,h=140;
 win=(document.all?window.dialogArguments:window.opener);
 var TABLE=document.getElementById('filter');
 var hdata=win.returnfield;
+
 var lang=win.action('info.get|HTM22').split(';'); //ok
 window.document.title=lang[0]+window.document.title;
 win.returnValue=false;
@@ -81,8 +82,10 @@ function fOK(){
       c=a[i].cells[2].getElementsByTagName('INPUT')[0].value;
       if(c>'') cFilt+='|'+hdata.fieldname[i]+' < '+c; 
     }
-  }
-  win.returnValue=cFilt;
+  } 
+  win.app=win.mainapp;
+  win.app.document.form['_'+hdata.wdo+'._find'].value=cFilt;
+  win.actions(['server.'+hdata.sbo+hdata.wdo+'.find','wbo.submit']);
   window.close();
 }
 --></script>

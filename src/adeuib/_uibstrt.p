@@ -258,7 +258,8 @@ DO WHILE h NE ?:
 END.
 
 /* Add a Status Bar to the main window.  Enlarge the window to accomodate this. */
-ASSIGN status-boxes = "30,4,17,3":U.
+ASSIGN status-boxes = "30,4,12,3":U.  
+
 /* jep-icf: Add status boxes for icf information user and company. */
 IF CAN-DO(_AB_Tools,"Enable-ICF") THEN
   ASSIGN status-boxes = status-boxes + ",17,25":U.

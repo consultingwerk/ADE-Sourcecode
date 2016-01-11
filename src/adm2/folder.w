@@ -450,6 +450,9 @@ PROCEDURE create-folder-label :
     DEFINE VARIABLE cStripLbl  AS CHAR NO-UNDO.  
     DEFINE VARIABLE cMnemonic  AS CHARACTER  NO-UNDO.
     DEFINE VARIABLE iMnemonic  AS INTEGER    NO-UNDO.
+    DEFINE VARIABLE hSource    AS HANDLE     NO-UNDO.
+    DEFINE VARIABLE hContainer AS HANDLE     NO-UNDO.
+  
     
     {get FolderTabWidth dWidth}.
     {get FolderFont iFont}.
@@ -673,80 +676,84 @@ PROCEDURE create-folder-label :
 
     /* If the user specified a mnemonic, using an ampersand in the label define
        an ALT-x trigger for it. */
-    IF cMnemonic NE "":U THEN DO:
+    {get ContainerSource hSource}.
+    IF VALID-HANDLE(hSource) THEN 
+      {get ContainerHandle hContainer hsource}.
+
+    IF cMnemonic NE "":U AND VALID-HANDLE(hContainer) THEN DO:
        CASE cMnemonic:
            WHEN 'A':U THEN
-             ON 'ALT-A':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-A':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN 'B':U THEN
-             ON 'ALT-B':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-B':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN 'C':U THEN
-             ON 'ALT-C':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-C':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN 'D':U THEN
-             ON 'ALT-D':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-D':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN 'E':U THEN
-             ON 'ALT-E':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-E':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN 'F' THEN
-             ON 'ALT-F':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-F':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN 'G':U THEN
-             ON 'ALT-G':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-G':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN 'H':U THEN
-             ON 'ALT-H':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-H':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN 'I':U THEN
-             ON 'ALT-I':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-I':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN 'J':U THEN
-             ON 'ALT-J':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-J':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN 'K':U THEN
-             ON 'ALT-K':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-K':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN 'L':U THEN
-             ON 'ALT-L':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-L':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN 'M':U THEN
-             ON 'ALT-M':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-M':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN 'N':U THEN
-             ON 'ALT-N':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-N':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN 'O':U THEN
-             ON 'ALT-O':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-O':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN 'P':U THEN
-             ON 'ALT-P':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-P':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN 'Q':U THEN
-             ON 'ALT-Q':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-Q':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN 'R':U THEN
-             ON 'ALT-R':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-R':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN 'S':U THEN
-             ON 'ALT-S':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-S':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN 'T':U THEN
-             ON 'ALT-T':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-T':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN 'U':U THEN
-             ON 'ALT-U':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-U':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN 'V':U THEN
-             ON 'ALT-V':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-V':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN 'W':U THEN
-             ON 'ALT-W':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-W':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN 'X':U THEN
-             ON 'ALT-X':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-X':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN 'Y':U THEN
-             ON 'ALT-Y':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-Y':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN 'Z':U THEN
-             ON 'ALT-Z':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-Z':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN '0':U THEN
-             ON 'ALT-0':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-0':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN '1':U THEN
-             ON 'ALT-1':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-1':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN '2':U THEN
-             ON 'ALT-2':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-2':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN '3':U THEN
-             ON 'ALT-3':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-3':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN '4':U THEN
-             ON 'ALT-4':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-4':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN '5':U THEN
-             ON 'ALT-5':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-5':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN '6':U THEN
-             ON 'ALT-6':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-6':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN '7':U THEN
-             ON 'ALT-7':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-7':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN '8':U THEN
-             ON 'ALT-8':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-8':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
            WHEN '9':U THEN
-             ON 'ALT-9':U OF {&WINDOW-NAME} ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
+             ON 'ALT-9':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
        END CASE.
      END.
   RETURN.  

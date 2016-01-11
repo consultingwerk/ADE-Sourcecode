@@ -291,7 +291,7 @@ PROCEDURE process-cst:
           END.
           WHEN "D":U THEN DO:
             /* Before converting, make sure everthing is in American format */
-            cValue = REPLACE(cValue, ",":U, ".":U).
+            cValue = REPLACE(cValue, SESSION:NUMERIC-DECIMAL-POINT, ".":U).
             SESSION:NUMERIC-FORMAT = "AMERICAN":U.
             ASSIGN dValue = DECIMAL (cValue) NO-ERROR.
             IF ERROR-STATUS:ERROR THEN err_text = "decimal".

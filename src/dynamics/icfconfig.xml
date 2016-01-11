@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <sessions><session SessionType="ASICFDev"><properties><auto_dump_entity_cache>YES</auto_dump_entity_cache>
 <bound_icfdb>yes</bound_icfdb>
-<DynamicsVersion>2.1A</DynamicsVersion>
+<DynamicsVersion>10.0B</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
 <ICFCM_WebService>WebServiceConnectionManager</ICFCM_WebService>
 <login_procedure>af/cod2/aftemlognw.w</login_procedure>
 <physical_session_list>APP</physical_session_list>
-<print_preview_preference>XML</print_preview_preference>
+<print_preview_preference/>
 <print_preview_stylesheet>af/rep/xmlreport.xsl</print_preview_stylesheet>
 <root_directory>.</root_directory>
 <run_local>YES</run_local>
@@ -94,14 +94,14 @@
 </session>
 <session SessionType="ASICFRuntime"><properties><auto_dump_entity_cache>YES</auto_dump_entity_cache>
 <bound_icfdb>yes</bound_icfdb>
-<DynamicsVersion>2.1A</DynamicsVersion>
+<DynamicsVersion>10.0B</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
 <ICFCM_WebService>WebServiceConnectionManager</ICFCM_WebService>
 <login_procedure>af/cod2/aftemlognw.w</login_procedure>
 <physical_session_list>APP</physical_session_list>
-<print_preview_preference>XML</print_preview_preference>
+<print_preview_preference/>
 <print_preview_stylesheet>af/rep/xmlreport.xsl</print_preview_stylesheet>
 <root_directory>.</root_directory>
 <run_local>YES</run_local>
@@ -183,14 +183,14 @@
 </session>
 <session SessionType="Default"><properties><auto_dump_entity_cache>YES</auto_dump_entity_cache>
 <bound_icfdb>yes</bound_icfdb>
-<DynamicsVersion>2.1A</DynamicsVersion>
+<DynamicsVersion>10.0B</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
 <ICFCM_WebService>WebServiceConnectionManager</ICFCM_WebService>
 <login_procedure>af/cod2/aftemlognw.w</login_procedure>
 <physical_session_list>GUI</physical_session_list>
-<print_preview_preference>XML</print_preview_preference>
+<print_preview_preference/>
 <print_preview_stylesheet>af/rep/xmlreport.xsl</print_preview_stylesheet>
 <root_directory>.</root_directory>
 <run_local>YES</run_local>
@@ -277,7 +277,7 @@
 </session>
 <session SessionType="ICFDev"><properties><auto_dump_entity_cache>NO</auto_dump_entity_cache>
 <bound_icfdb>yes</bound_icfdb>
-<DynamicsVersion>2.1A</DynamicsVersion>
+<DynamicsVersion>10.0B</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
@@ -287,7 +287,7 @@
 <login_procedure>af/cod2/aftemlognw.w</login_procedure>
 <MaxHiddenContainers>10</MaxHiddenContainers>
 <physical_session_list>GUI</physical_session_list>
-<print_preview_preference>XML</print_preview_preference>
+<print_preview_preference/>
 <print_preview_stylesheet>af/rep/xmlreport.xsl</print_preview_stylesheet>
 <root_directory>.</root_directory>
 <run_local>YES</run_local>
@@ -379,7 +379,7 @@
 </session>
 <session SessionType="ICFDevAS"><properties><auto_dump_entity_cache>NO</auto_dump_entity_cache>
 <bound_icfdb>yes</bound_icfdb>
-<DynamicsVersion>2.1A</DynamicsVersion>
+<DynamicsVersion>10.0B</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
@@ -389,7 +389,7 @@
 <login_procedure>af/cod2/aftemlognw.w</login_procedure>
 <MaxHiddenContainers>10</MaxHiddenContainers>
 <physical_session_list>GUI</physical_session_list>
-<print_preview_preference>XML</print_preview_preference>
+<print_preview_preference/>
 <print_preview_stylesheet>af/rep/xmlreport.xsl</print_preview_stylesheet>
 <root_directory>.</root_directory>
 <run_local>NO</run_local>
@@ -481,7 +481,7 @@
 </session>
 <session SessionType="ICFRuntime"><properties><auto_dump_entity_cache>YES</auto_dump_entity_cache>
 <bound_icfdb>no</bound_icfdb>
-<DynamicsVersion>2.1A</DynamicsVersion>
+<DynamicsVersion>10.0B</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
@@ -489,7 +489,7 @@
 <login_procedure>af/cod2/aftemlognw.w</login_procedure>
 <MaxHiddenContainers>10</MaxHiddenContainers>
 <physical_session_list>GUI,WBC</physical_session_list>
-<print_preview_preference>XML</print_preview_preference>
+<print_preview_preference/>
 <print_preview_stylesheet>af/rep/xmlreport.xsl</print_preview_stylesheet>
 <root_directory>.</root_directory>
 <session_date_format>mdy</session_date_format>
@@ -567,7 +567,7 @@
 <auto_dump_entity_cache>YES</auto_dump_entity_cache>
 <bound_icfdb>yes</bound_icfdb>
 <display_login_screen>Yes</display_login_screen>
-<DynamicsVersion>2.1A</DynamicsVersion>
+<DynamicsVersion>10.0B</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
@@ -667,7 +667,7 @@
 </session>
 <session SessionType="rtb_090dyndep"><properties><auto_dump_entity_cache>NO</auto_dump_entity_cache>
 <bound_icfdb>yes</bound_icfdb>
-<DynamicsVersion>2.1A</DynamicsVersion>
+<DynamicsVersion>10.0B</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
@@ -676,7 +676,7 @@
 <IDETemplate>templateContainer,templateSmartObject,templateProcedure,templateWebObject</IDETemplate>
 <login_procedure>af/cod2/aftemlognw.w</login_procedure>
 <physical_session_list>GUI</physical_session_list>
-<print_preview_preference>XML</print_preview_preference>
+<print_preview_preference/>
 <print_preview_stylesheet>af/rep/xmlreport.xsl</print_preview_stylesheet>
 <root_directory>.</root_directory>
 <run_local>YES</run_local>
@@ -758,7 +758,7 @@
 </session>
 <session SessionType="rtb_091dyndep"><properties><auto_dump_entity_cache>NO</auto_dump_entity_cache>
 <bound_icfdb>yes</bound_icfdb>
-<DynamicsVersion>2.1A</DynamicsVersion>
+<DynamicsVersion>10.0B</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
@@ -767,7 +767,7 @@
 <IDETemplate>templateContainer,templateSmartObject,templateProcedure,templateWebObject</IDETemplate>
 <login_procedure>af/cod2/aftemlognw.w</login_procedure>
 <physical_session_list>GUI</physical_session_list>
-<print_preview_preference>XML</print_preview_preference>
+<print_preview_preference/>
 <print_preview_stylesheet>af/rep/xmlreport.xsl</print_preview_stylesheet>
 <root_directory>.</root_directory>
 <run_local>YES</run_local>
@@ -849,7 +849,7 @@
 </session>
 <session SessionType="rtb_091dyndev"><properties><auto_dump_entity_cache>NO</auto_dump_entity_cache>
 <bound_icfdb>yes</bound_icfdb>
-<DynamicsVersion>2.1A</DynamicsVersion>
+<DynamicsVersion>10.0B</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
@@ -858,7 +858,7 @@
 <IDETemplate>templateContainer,templateSmartObject,templateProcedure,templateWebObject</IDETemplate>
 <login_procedure>af/cod2/aftemlognw.w</login_procedure>
 <physical_session_list>GUI</physical_session_list>
-<print_preview_preference>XML</print_preview_preference>
+<print_preview_preference/>
 <print_preview_stylesheet>af/rep/xmlreport.xsl</print_preview_stylesheet>
 <root_directory>.</root_directory>
 <run_local>YES</run_local>
@@ -940,7 +940,7 @@
 </session>
 <session SessionType="rtb_091dyntst"><properties><auto_dump_entity_cache>NO</auto_dump_entity_cache>
 <bound_icfdb>yes</bound_icfdb>
-<DynamicsVersion>2.1A</DynamicsVersion>
+<DynamicsVersion>10.0B</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
@@ -949,7 +949,7 @@
 <IDETemplate>templateContainer,templateSmartObject,templateProcedure,templateWebObject</IDETemplate>
 <login_procedure>af/cod2/aftemlognw.w</login_procedure>
 <physical_session_list>GUI</physical_session_list>
-<print_preview_preference>XML</print_preview_preference>
+<print_preview_preference/>
 <print_preview_stylesheet>af/rep/xmlreport.xsl</print_preview_stylesheet>
 <root_directory>.</root_directory>
 <run_local>YES</run_local>

@@ -2017,8 +2017,11 @@ FUNCTION getNewMode RETURNS LOGICAL
     END. /* can-do(cTargets, ) */
     ELSE DO: /* NOT linked... return the master's DataHandle  */  
       {get MasterDataObject hMaster} NO-ERROR.
-      {get NewMode lNew hMaster}.
-      RETURN lNew.
+      IF VALID-HANDLE(hMaster) THEN
+      DO:
+        {get NewMode lNew hMaster}.
+        RETURN lNew.
+      END.
     END.
    
   END. /* no cSourceName */
@@ -2087,8 +2090,11 @@ FUNCTION getNewRow RETURNS LOGICAL
     END. /* can-do(cTargets, ) */
     ELSE DO: /* NOT linked... return the master's DataHandle  */  
       {get MasterDataObject hMaster} NO-ERROR.
-      {get NewRow lNew hMaster}.
-      RETURN lNew.
+      IF VALID-HANDLE(hMaster) THEN
+      DO:
+        {get NewRow lNew hMaster}.
+        RETURN lNew.
+      END.
     END.
    
   END. /* no cSourceName */
@@ -2100,7 +2106,7 @@ FUNCTION getNewRow RETURNS LOGICAL
       cSource  = ENTRY(iObject,cSourceNames) 
       hSource  = {fnarg DataObjectHandle cSource}.
     
-    {get NewRow lNew hSource}.
+    {get NewRow lNew hSource} NO-ERROR.
     IF lNew THEN 
       RETURN TRUE.
   END.
@@ -2195,7 +2201,7 @@ FUNCTION getQueryOpen RETURNS LOGICAL
     {get MasterDataObject hObject} NO-ERROR.
   
   ELSE hObject = WIDGET-HANDLE(ENTRY(iObject + 1, cMapping)).
-    {get QueryPosition lQueryOpen hObject} NO-ERROR.  
+    {get QueryOpen lQueryOpen hObject} NO-ERROR.  
 
   RETURN lQueryOpen.
 

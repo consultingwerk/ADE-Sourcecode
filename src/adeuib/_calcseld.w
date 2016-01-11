@@ -7,9 +7,13 @@
 {adecomm/appserv.i}
 DEFINE VARIABLE h_Astra                    AS HANDLE          NO-UNDO.
 
-/* Temp-Table and Buffer definitions                                    */
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _TEMP-TABLE 
+/* ***********Included Temp-Table & Buffer definitions **************** */
+
 {adeuib/calctt.i}
 
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS dTables 
 /*---------------------------------------------------------------------------------
@@ -96,13 +100,13 @@ DEFINE VARIABLE gcShowCalc AS CHARACTER    NO-UNDO.
 
 /* Definitions for QUERY Query-Main                                     */
 &Scoped-Define ENABLED-FIELDS  tDesc tEntity tName tProductModule tInstanceName tDataType tHelp tLabel~
- tFormat
+ tFormat tColumnLabel
 &Scoped-define ENABLED-FIELDS-IN-ttCalcField tDesc tEntity tName ~
-tProductModule tInstanceName tDataType tHelp tLabel tFormat 
+tProductModule tInstanceName tDataType tHelp tLabel tFormat tColumnLabel 
 &Scoped-Define DATA-FIELDS  tDesc tEntity tName tProductModule tInstanceName tDataType tHelp tLabel~
- tFormat
+ tFormat tColumnLabel
 &Scoped-define DATA-FIELDS-IN-ttCalcField tDesc tEntity tName ~
-tProductModule tInstanceName tDataType tHelp tLabel tFormat 
+tProductModule tInstanceName tDataType tHelp tLabel tFormat tColumnLabel 
 &Scoped-Define MANDATORY-FIELDS 
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
@@ -219,23 +223,25 @@ END.
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _OrdList          = "Temp-Tables.ttCalcField.tName|yes,Temp-Tables.ttCalcField.tEntity|yes"
      _FldNameList[1]   > Temp-Tables.ttCalcField.tDesc
-"tDesc" "tDesc" ? "x(35)" "character" ? ? ? ? ? ? yes ? no 35 no
+"tDesc" "tDesc" ? "x(35)" "character" ? ? ? ? ? ? yes ? no 35 no ""
      _FldNameList[2]   > Temp-Tables.ttCalcField.tEntity
-"tEntity" "tEntity" ? "x(70)" "character" ? ? ? ? ? ? yes ? no 70 no
+"tEntity" "tEntity" ? "x(70)" "character" ? ? ? ? ? ? yes ? no 70 no ""
      _FldNameList[3]   > Temp-Tables.ttCalcField.tName
-"tName" "tName" ? "x(70)" "character" ? ? ? ? ? ? yes ? no 70 no
+"tName" "tName" ? "x(70)" "character" ? ? ? ? ? ? yes ? no 70 no ""
      _FldNameList[4]   > Temp-Tables.ttCalcField.tProductModule
-"tProductModule" "tProductModule" ? "x(35)" "character" ? ? ? ? ? ? yes ? no 35 no
+"tProductModule" "tProductModule" ? "x(35)" "character" ? ? ? ? ? ? yes ? no 35 no ""
      _FldNameList[5]   > Temp-Tables.ttCalcField.tInstanceName
-"tInstanceName" "tInstanceName" ? "x(35)" "character" ? ? ? ? ? ? yes ? no 35 no
+"tInstanceName" "tInstanceName" ? "x(35)" "character" ? ? ? ? ? ? yes ? no 35 no ""
      _FldNameList[6]   > Temp-Tables.ttCalcField.tDataType
-"tDataType" "tDataType" ? ? "character" ? ? ? ? ? ? yes ? no 10 no
+"tDataType" "tDataType" ? ? "character" ? ? ? ? ? ? yes ? no 10 no ""
      _FldNameList[7]   > Temp-Tables.ttCalcField.tHelp
-"tHelp" "tHelp" ? ? "character" ? ? ? ? ? ? yes ? no 8 no
+"tHelp" "tHelp" ? ? "character" ? ? ? ? ? ? yes ? no 8 no ""
      _FldNameList[8]   > Temp-Tables.ttCalcField.tLabel
-"tLabel" "tLabel" ? ? "character" ? ? ? ? ? ? yes ? no 8 no
+"tLabel" "tLabel" ? ? "character" ? ? ? ? ? ? yes ? no 8 no ""
      _FldNameList[9]   > Temp-Tables.ttCalcField.tFormat
-"tFormat" "tFormat" ? ? "character" ? ? ? ? ? ? yes ? no 8 no
+"tFormat" "tFormat" ? ? "character" ? ? ? ? ? ? yes ? no 8 no ""
+     _FldNameList[10]   > Temp-Tables.ttCalcField.tColumnLabel
+"tColumnLabel" "tColumnLabel" ? ? "character" ? ? ? ? ? ? yes ? no 12.8 no ?
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
@@ -375,6 +381,22 @@ DEFINE VARIABLE hRepDesignManager AS HANDLE     NO-UNDO.
             ASSIGN ttCalcField.tHelp = IF ttClassAttribute.tAttributeValue = ?
                                        THEN '?':U
                                        ELSE ttClassAttribute.tAttributeValue.
+        END.
+
+        FIND ttObjectAttribute WHERE ttObjectAttribute.tSmartObjectObj = ttObject.tSmartobjectObj AND
+                                 ttObjectAttribute.tObjectInstanceObj = 0 AND 
+                                 ttObjectAttribute.tAttributeLabel    = 'ColumnLabel':U NO-ERROR.
+        IF AVAILABLE ttObjectAttribute THEN
+          ASSIGN ttCalcField.tColumnLabel = IF ttObjectAttribute.tAttributeValue = ? 
+                                            THEN '?':U 
+                                            ELSE ttObjectAttribute.tAttributeValue.
+        ELSE DO:
+          FIND ttClassAttribute WHERE ttClassAttribute.tClassName = ttObject.tClassName AND
+                                  ttClassAttribute.tAttributeLabel = 'ColumnLabel':U NO-ERROR.
+          IF AVAILABLE ttClassAttribute THEN
+            ASSIGN ttCalcField.tColumnLabel = IF ttClassAttribute.tAttributeValue = ?
+                                              THEN '?':U
+                                              ELSE ttClassAttribute.tAttributeValue.
         END.
 
       END.
@@ -554,6 +576,22 @@ DEFINE VARIABLE hRepDesignManager AS HANDLE     NO-UNDO.
             ASSIGN ttCalcField.tHelp = IF ttClassAttribute.tAttributeValue = ?
                                        THEN '?':U
                                        ELSE ttClassAttribute.tAttributeValue.
+        END.
+
+        FIND ttObjectAttribute WHERE ttObjectAttribute.tSmartObjectObj = ttObject.tSmartobjectObj AND
+                                 ttObjectAttribute.tObjectInstanceObj = 0 AND 
+                                 ttObjectAttribute.tAttributeLabel    = 'ColumnLabel':U NO-ERROR.
+        IF AVAILABLE ttObjectAttribute THEN
+          ASSIGN ttCalcField.tColumnLabel = IF ttObjectAttribute.tAttributeValue = ? 
+                                            THEN '?':U 
+                                            ELSE ttObjectAttribute.tAttributeValue.
+        ELSE DO:
+          FIND ttClassAttribute WHERE ttClassAttribute.tClassName = ttObject.tClassName AND
+                                  ttClassAttribute.tAttributeLabel = 'ColumnLabel':U NO-ERROR.
+          IF AVAILABLE ttClassAttribute THEN
+            ASSIGN ttCalcField.tColumnLabel = IF ttClassAttribute.tAttributeValue = ?
+                                              THEN '?':U
+                                              ELSE ttClassAttribute.tAttributeValue.
         END.
 
       END.  /* if not avail ttCalcField */

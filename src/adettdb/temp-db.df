@@ -1,4 +1,151 @@
-UPDATE DATABASE "?"
+ADD TABLE "destination"
+  AREA "Schema Area"
+  DUMP-NAME "destinat"
+
+ADD FIELD "destination" OF "destination" AS character 
+  FORMAT "X(30)"
+  INITIAL ""
+  LABEL "Destination"
+  POSITION 2
+  MAX-WIDTH 60
+  ORDER 10
+
+ADD FIELD "subscription" OF "destination" AS character 
+  FORMAT "X(20)"
+  INITIAL ""
+  LABEL "Subscription Name"
+  POSITION 3
+  MAX-WIDTH 40
+  ORDER 20
+
+ADD FIELD "selector" OF "destination" AS character 
+  FORMAT "X(25)"
+  INITIAL ""
+  LABEL "Message Selector"
+  POSITION 4
+  MAX-WIDTH 50
+  ORDER 30
+
+ADD FIELD "durable" OF "destination" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  LABEL "Durable Subscription"
+  POSITION 6
+  MAX-WIDTH 1
+  ORDER 40
+
+ADD FIELD "unsubscribeClose" OF "destination" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  LABEL "Unsubscribe on session close"
+  POSITION 7
+  MAX-WIDTH 1
+  ORDER 50
+
+ADD INDEX "destination" ON "destination" 
+  AREA "Schema Area"
+  PRIMARY
+  INDEX-FIELD "destination" ASCENDING 
+
+ADD TABLE "mapping"
+  AREA "Schema Area"
+  DUMP-NAME "mapping"
+
+ADD FIELD "direction" OF "mapping" AS character 
+  FORMAT "X(8)"
+  INITIAL "Producer"
+  LABEL "Direction"
+  POSITION 2
+  MAX-WIDTH 16
+  ORDER 10
+
+ADD FIELD "name" OF "mapping" AS character 
+  FORMAT "X(8)"
+  INITIAL ""
+  LABEL "Name"
+  POSITION 3
+  MAX-WIDTH 16
+  ORDER 20
+
+ADD FIELD "xmlschema" OF "mapping" AS character 
+  FORMAT "X(8)"
+  INITIAL ""
+  LABEL "XML Schema"
+  POSITION 4
+  MAX-WIDTH 16
+  ORDER 30
+
+ADD FIELD "dtdPublicId" OF "mapping" AS character 
+  FORMAT "X(60)"
+  INITIAL ""
+  LABEL "Public Id (DTD)"
+  POSITION 5
+  MAX-WIDTH 16
+  ORDER 40
+
+ADD FIELD "destination" OF "mapping" AS character 
+  FORMAT "X(8)"
+  INITIAL ""
+  LABEL "Destination"
+  POSITION 6
+  MAX-WIDTH 16
+  ORDER 50
+
+ADD FIELD "replyreq" OF "mapping" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  LABEL "Reply Required"
+  POSITION 7
+  MAX-WIDTH 1
+  ORDER 60
+
+ADD FIELD "replysel" OF "mapping" AS character 
+  FORMAT "X(8)"
+  INITIAL ""
+  LABEL "Reply Selector"
+  POSITION 8
+  MAX-WIDTH 16
+  ORDER 70
+
+ADD FIELD "dtdSystemId" OF "mapping" AS character 
+  FORMAT "X(60)"
+  INITIAL ""
+  LABEL "System Id (DTD)"
+  POSITION 9
+  MAX-WIDTH 120
+  ORDER 80
+
+ADD INDEX "mapping" ON "mapping" 
+  AREA "Schema Area"
+  PRIMARY
+  INDEX-FIELD "direction" ASCENDING 
+  INDEX-FIELD "name" ASCENDING 
+
+ADD TABLE "routerRef"
+  AREA "Schema Area"
+  DUMP-NAME "router"
+
+ADD FIELD "externalref" OF "routerRef" AS character 
+  FORMAT "X(8)"
+  INITIAL ""
+  LABEL "External Reference"
+  POSITION 2
+  MAX-WIDTH 16
+  ORDER 10
+
+ADD FIELD "internalref" OF "routerRef" AS character 
+  FORMAT "X(8)"
+  INITIAL ""
+  LABEL "Internal Reference"
+  POSITION 3
+  MAX-WIDTH 16
+  ORDER 20
+
+ADD INDEX "routerRef" ON "routerRef" 
+  AREA "Schema Area"
+  PRIMARY
+  INDEX-FIELD "internalref" ASCENDING 
+  INDEX-FIELD "externalref" ASCENDING 
 
 ADD TABLE "ttAppSrv-TT"
   AREA "Schema Area"
@@ -8,21 +155,21 @@ ADD FIELD "Partition" OF "ttAppSrv-TT" AS character
   FORMAT "X(25)"
   INITIAL ""
   POSITION 2
-  SQL-WIDTH 50
+  MAX-WIDTH 50
   ORDER 10
 
 ADD FIELD "Host" OF "ttAppSrv-TT" AS character 
   FORMAT "X(15)"
   INITIAL ""
   POSITION 3
-  SQL-WIDTH 30
+  MAX-WIDTH 30
   ORDER 20
 
 ADD FIELD "Service" OF "ttAppSrv-TT" AS character 
   FORMAT "X(15)"
   INITIAL ""
   POSITION 4
-  SQL-WIDTH 30
+  MAX-WIDTH 30
   ORDER 30
 
 ADD FIELD "Configuration" OF "ttAppSrv-TT" AS logical 
@@ -30,7 +177,7 @@ ADD FIELD "Configuration" OF "ttAppSrv-TT" AS logical
   INITIAL "Remote"
   LABEL "Configuration"
   POSITION 5
-  SQL-WIDTH 1
+  MAX-WIDTH 1
   VIEW-AS "VIEW-AS RADIO-SET
   RADIO-BUTTONS 
     ""Remote"", YES,
@@ -43,7 +190,7 @@ ADD FIELD "Security" OF "ttAppSrv-TT" AS logical
   INITIAL "Prompt"
   LABEL "Prompt for userid and password"
   POSITION 6
-  SQL-WIDTH 1
+  MAX-WIDTH 1
   VIEW-AS "VIEW-AS TOGGLE-BOX
 "
   ORDER 50
@@ -53,7 +200,7 @@ ADD FIELD "Info" OF "ttAppSrv-TT" AS character
   INITIAL ""
   LABEL "AppServer Information"
   POSITION 7
-  SQL-WIDTH 510
+  MAX-WIDTH 510
   VIEW-AS "VIEW-AS EDITOR
   SIZE-CHARS 35 BY 5
   SCROLLBAR-HORIZONTAL
@@ -68,7 +215,7 @@ ADD FIELD "App-Service" OF "ttAppSrv-TT" AS character
   INITIAL ""
   LABEL "Application Service"
   POSITION 8
-  SQL-WIDTH 510
+  MAX-WIDTH 510
   ORDER 80
 
 ADD FIELD "PartitionType" OF "ttAppSrv-TT" AS character 
@@ -76,7 +223,7 @@ ADD FIELD "PartitionType" OF "ttAppSrv-TT" AS character
   INITIAL ""
   LABEL "Partition Type"
   POSITION 9
-  SQL-WIDTH 2
+  MAX-WIDTH 2
   VIEW-AS "VIEW-AS COMBO-BOX
   LIST-ITEM-PAIRS 
    ""AppServer"",""A"",
@@ -91,7 +238,7 @@ ADD FIELD "ServerURL" OF "ttAppSrv-TT" AS character
   INITIAL ""
   LABEL "URL"
   POSITION 10
-  SQL-WIDTH 510
+  MAX-WIDTH 510
   ORDER 110
 
 ADD FIELD "PtnTblRecid" OF "ttAppSrv-TT" AS recid 
@@ -99,7 +246,7 @@ ADD FIELD "PtnTblRecid" OF "ttAppSrv-TT" AS recid
   INITIAL ?
   LABEL "Partition Table Recid"
   POSITION 11
-  SQL-WIDTH 4
+  MAX-WIDTH 4
   ORDER 120
 
 ADD FIELD "Parameters" OF "ttAppSrv-TT" AS character 
@@ -205,220 +352,20 @@ ADD FIELD "tHelp" OF "ttCalcField" AS character
   COLUMN-LABEL "tHelp"
   ORDER 90
 
+ADD FIELD "tColumnLabel" OF "ttCalcField" AS character 
+  FORMAT "x(8)"
+  INITIAL ""
+  LABEL "tColumnLabel"
+  POSITION 11
+  MAX-WIDTH 16
+  COLUMN-LABEL "tColumnLabel"
+  ORDER 100
+
 ADD INDEX "idxEntity" ON "ttCalcField" 
   AREA "Schema Area"
   PRIMARY
   INDEX-FIELD "tEntity" ASCENDING 
   INDEX-FIELD "tName" ASCENDING 
-
-ADD TABLE "destination"
-  AREA "Schema Area"
-  DUMP-NAME "destinat"
-
-ADD FIELD "destination" OF "destination" AS character 
-  FORMAT "X(30)"
-  INITIAL ""
-  LABEL "Destination"
-  POSITION 2
-  SQL-WIDTH 60
-  ORDER 10
-
-ADD FIELD "subscription" OF "destination" AS character 
-  FORMAT "X(20)"
-  INITIAL ""
-  LABEL "Subscription Name"
-  POSITION 3
-  SQL-WIDTH 40
-  ORDER 20
-
-ADD FIELD "selector" OF "destination" AS character 
-  FORMAT "X(25)"
-  INITIAL ""
-  LABEL "Message Selector"
-  POSITION 4
-  SQL-WIDTH 50
-  ORDER 30
-
-ADD FIELD "durable" OF "destination" AS logical 
-  FORMAT "yes/no"
-  INITIAL "no"
-  LABEL "Durable Subscription"
-  POSITION 6
-  SQL-WIDTH 1
-  ORDER 40
-
-ADD FIELD "unsubscribeClose" OF "destination" AS logical 
-  FORMAT "yes/no"
-  INITIAL "no"
-  LABEL "Unsubscribe on session close"
-  POSITION 7
-  SQL-WIDTH 1
-  ORDER 50
-
-ADD INDEX "destination" ON "destination" 
-  AREA "Schema Area"
-  PRIMARY
-  INDEX-FIELD "destination" ASCENDING
-
-ADD TABLE "routerRef"
-  AREA "Schema Area"
-  DUMP-NAME "router"
-
-ADD FIELD "externalref" OF "routerRef" AS character 
-  FORMAT "X(8)"
-  INITIAL ""
-  LABEL "External Reference"
-  POSITION 2
-  SQL-WIDTH 16
-  ORDER 10
-
-ADD FIELD "internalref" OF "routerRef" AS character 
-  FORMAT "X(8)"
-  INITIAL ""
-  LABEL "Internal Reference"
-  POSITION 3
-  SQL-WIDTH 16
-  ORDER 20
-
-ADD INDEX "routerRef" ON "routerRef"
-  AREA "Schema Area"
-  PRIMARY
-  INDEX-FIELD "internalref" ASCENDING
-  INDEX-FIELD "externalref" ASCENDING
-
-ADD TABLE "mapping"
-  AREA "Schema Area"
-  DUMP-NAME "mapping"
-
-ADD FIELD "direction" OF "mapping" AS character 
-  FORMAT "X(8)"
-  INITIAL "Producer"
-  LABEL "Direction"
-  POSITION 2
-  SQL-WIDTH 16
-  ORDER 10
-
-ADD FIELD "name" OF "mapping" AS character 
-  FORMAT "X(8)"
-  INITIAL ""
-  LABEL "Name"
-  POSITION 3
-  SQL-WIDTH 16
-  ORDER 20
-
-ADD FIELD "xmlschema" OF "mapping" AS character 
-  FORMAT "X(8)"
-  INITIAL ""
-  LABEL "XML Schema"
-  POSITION 4
-  SQL-WIDTH 16
-  ORDER 30
-
-ADD FIELD "dtdPublicId" OF "mapping" AS character 
-  FORMAT "X(60)"
-  INITIAL ""
-  LABEL "Public Id (DTD)"
-  POSITION 5
-  SQL-WIDTH 16
-  ORDER 40
-
-ADD FIELD "destination" OF "mapping" AS character 
-  FORMAT "X(8)"
-  INITIAL ""
-  LABEL "Destination"
-  POSITION 6
-  SQL-WIDTH 16
-  ORDER 50
-
-ADD FIELD "replyreq" OF "mapping" AS logical 
-  FORMAT "yes/no"
-  INITIAL "no"
-  LABEL "Reply Required"
-  POSITION 7
-  SQL-WIDTH 1
-  ORDER 60
-
-ADD FIELD "replysel" OF "mapping" AS character 
-  FORMAT "X(8)"
-  INITIAL ""
-  LABEL "Reply Selector"
-  POSITION 8
-  SQL-WIDTH 16
-  ORDER 70
-
-ADD FIELD "dtdSystemId" OF "mapping" AS character 
-  FORMAT "X(60)"
-  INITIAL ""
-  LABEL "System Id (DTD)"
-  POSITION 9
-  SQL-WIDTH 120
-  ORDER 80
-
-ADD INDEX "mapping" ON "mapping"
-  AREA "Schema Area"
-  PRIMARY
-  INDEX-FIELD "direction" ASCENDING
-  INDEX-FIELD "name" ASCENDING
-
-ADD TABLE "ttlbObject"
-  AREA "Schema Area"
-  DESCRIPTION "Layout Builder temp-table for Contained Objects in the layout."
-  DUMP-NAME "ttlbObje"
-
-ADD FIELD "ObjectName" OF "ttlbObject" AS character 
-  FORMAT "X(30)"
-  INITIAL ""
-  POSITION 3
-  SQL-WIDTH 16
-  ORDER 20
-
-ADD FIELD "TemplateObj" OF "ttlbObject" AS logical 
-  FORMAT "yes/no"
-  INITIAL "no"
-  POSITION 4
-  SQL-WIDTH 1
-  ORDER 30
-
-ADD FIELD "InstanceObjId" OF "ttlbObject" AS decimal 
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  POSITION 5
-  SQL-WIDTH 17
-  DECIMALS 9
-  ORDER 40
-
-ADD FIELD "Position" OF "ttlbObject" AS character 
-  FORMAT "X(8)"
-  INITIAL ""
-  POSITION 6
-  SQL-WIDTH 16
-  ORDER 50
-
-ADD FIELD "ObjectType" OF "ttlbObject" AS character 
-  FORMAT "X(8)"
-  INITIAL ""
-  POSITION 7
-  SQL-WIDTH 16
-  ORDER 60
-
-ADD FIELD "ObjectDescription" OF "ttlbObject" AS character 
-  FORMAT "X(20)"
-  INITIAL ""
-  POSITION 8
-  SQL-WIDTH 40
-  ORDER 70
-
-ADD FIELD "ProductModule" OF "ttlbObject" AS character 
-  FORMAT "X(8)"
-  INITIAL ""
-  POSITION 9
-  SQL-WIDTH 16
-  ORDER 80
-
-ADD INDEX "ttlbObject" ON "ttlbObject"
-  AREA "Schema Area"
-  PRIMARY
-  INDEX-FIELD "ObjectName" ASCENDING
 
 ADD TABLE "ttlbLink"
   AREA "Schema Area"
@@ -429,30 +376,90 @@ ADD FIELD "LinkName" OF "ttlbLink" AS character
   FORMAT "X(8)"
   INITIAL ""
   POSITION 2
-  SQL-WIDTH 16
+  MAX-WIDTH 16
   ORDER 10
 
 ADD FIELD "LinkSource" OF "ttlbLink" AS character 
   FORMAT "X(8)"
   INITIAL ""
   POSITION 9
-  SQL-WIDTH 16
+  MAX-WIDTH 16
   ORDER 20
 
 ADD FIELD "LinkTarget" OF "ttlbLink" AS character 
   FORMAT "X(8)"
   INITIAL ""
   POSITION 10
-  SQL-WIDTH 16
+  MAX-WIDTH 16
   ORDER 30
 
-ADD INDEX "ttlbLink" ON "ttlbLink"
+ADD INDEX "ttlbLink" ON "ttlbLink" 
   AREA "Schema Area"
   PRIMARY
-  INDEX-FIELD "LinkName" ASCENDING
+  INDEX-FIELD "LinkName" ASCENDING 
+
+ADD TABLE "ttlbObject"
+  AREA "Schema Area"
+  DESCRIPTION "Layout Builder temp-table for Contained Objects in the layout."
+  DUMP-NAME "ttlbObje"
+
+ADD FIELD "ObjectName" OF "ttlbObject" AS character 
+  FORMAT "X(30)"
+  INITIAL ""
+  POSITION 3
+  MAX-WIDTH 16
+  ORDER 20
+
+ADD FIELD "TemplateObj" OF "ttlbObject" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 4
+  MAX-WIDTH 1
+  ORDER 30
+
+ADD FIELD "InstanceObjId" OF "ttlbObject" AS decimal 
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  POSITION 5
+  MAX-WIDTH 17
+  DECIMALS 9
+  ORDER 40
+
+ADD FIELD "Position" OF "ttlbObject" AS character 
+  FORMAT "X(8)"
+  INITIAL ""
+  POSITION 6
+  MAX-WIDTH 16
+  ORDER 50
+
+ADD FIELD "ObjectType" OF "ttlbObject" AS character 
+  FORMAT "X(8)"
+  INITIAL ""
+  POSITION 7
+  MAX-WIDTH 16
+  ORDER 60
+
+ADD FIELD "ObjectDescription" OF "ttlbObject" AS character 
+  FORMAT "X(20)"
+  INITIAL ""
+  POSITION 8
+  MAX-WIDTH 40
+  ORDER 70
+
+ADD FIELD "ProductModule" OF "ttlbObject" AS character 
+  FORMAT "X(8)"
+  INITIAL ""
+  POSITION 9
+  MAX-WIDTH 16
+  ORDER 80
+
+ADD INDEX "ttlbObject" ON "ttlbObject" 
+  AREA "Schema Area"
+  PRIMARY
+  INDEX-FIELD "ObjectName" ASCENDING 
 
 .
 PSC
 cpstream=ISO8859-1
 .
-0000012089
+0000009262

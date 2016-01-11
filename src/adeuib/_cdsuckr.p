@@ -109,11 +109,6 @@ DEFINE VARIABLE private_block AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE trig-hit      AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE valid_code    AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE vbx_proc      AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE saveline      AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE readline      AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE PosseHdrOpen  AS CHARACTER  NO-UNDO INITIAL "/*********************************************************************":U.
-DEFINE VARIABLE PosseHdrLine2 AS CHARACTER  NO-UNDO INITIAL '* Copyright (C) * by Progress Software Corporation ("PSC")*':U.
-DEFINE VARIABLE PosseHdrClose AS CHARACTER  NO-UNDO INITIAL "*********************************************************************/":U.
 
 DEFINE BUFFER x_trg FOR _TRG.
 DEFINE BUFFER x_P   FOR _P.
@@ -542,38 +537,7 @@ ELSE DO:
     IF _inp_line[1] eq ? THEN _inp_line[1] = "?".
     IF TRIM(_inp_line[1]) = "/* _UIB-CODE-BLOCK-END */" 
       THEN LEAVE READ-CODE.
-    /*
-     * If we are creating a brand new file, it should not contain the PosseNet header. 
-     * The following test attempts to locate the PosseNet header. If we find the open comment,
-     * we will test the next line to make sure that it is the PosseNet header. If we have 
-     * sucessfully found it, we will not let the AppBuilder store those lines from the file.
-     * The loop will continue to suppress lines until we find the last line of the PosseNet Header.
-     * If the second line does not match, we will store this line, the previous line, and
-     * let the AppBuilder continue reading in the file.
-     */
-    IF cur_sect = {&DEFINITIONS} AND pImportMode = "WINDOW UNTITLED":U AND TRIM(_inp_line[1]) = PosseHdrOpen THEN
-    HDR-STRIP-CHK: /* Check the first two lines */
-    DO:
-      ASSIGN saveline = TRIM(_inp_line[1]). /* Save off the first line. We will proceed to validate the next line */
-      IMPORT STREAM _P_QS UNFORMATTED readline. /* Read the next line from the file */
-      IF NOT (TRIM(readline) MATCHES PosseHdrLine2) THEN
-      DO:
-        ASSIGN 
-          _TRG._tCODE = _TRG._tCODE + saveline + {&EOL} /* Save the first line and jump back into the outer loop */
-          _inp_line = readline.
-        LEAVE HDR-STRIP-CHK. /* Return to normal processing */
-      END.
-      HDR-STRIP: /* This short loop in intended to remove the POSSENET header from newly created objects */
-      REPEAT ON END-KEY UNDO HDR-STRIP, RETRY HDR-STRIP:
-        IMPORT STREAM _P_QS UNFORMATTED _inp_line[1]. /* Read the next line from the file */
-        IF TRIM(_inp_line[1]) = PosseHdrClose THEN
-        DO: /* If we have located the last line of the header, we'll read ahead the let the AB continue. */
-            IMPORT STREAM _P_QS UNFORMATTED _inp_line[1].
-            LEAVE HDR-STRIP.
-        END.
-      END. /* HDR-STRIP:REPEAT */
-    END.
-    ASSIGN _TRG._tCODE = _TRG._tCODE + _inp_line[1] + {&EOL}.
+    ELSE _TRG._tCODE = _TRG._tCODE + _inp_line[1] + {&EOL}.
   END.  /* READ-CODE:REPEAT */
 END.
 

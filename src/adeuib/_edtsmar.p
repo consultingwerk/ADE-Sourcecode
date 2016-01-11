@@ -39,10 +39,13 @@ DEFINE VAR new-attr-list  AS CHAR NO-UNDO.
 DEFINE VAR cTranslatable  AS CHAR NO-UNDO.
 DEFINE VAR i              AS INT  NO-UNDO.
 DEFINE VAR ii             AS INT  NO-UNDO.
+DEFINE VAR cFieldName     AS CHAR NO-UNDO.
 
 /* Variables used for adm version */
 {adeuib/vsookver.i}
 { adeuib/uniwidg.i } /* Universal widget definitions. */
+{adeuib/sharvars.i} 
+{src/adm2/globals.i}
 
 /* Get the Universal Widget Record(s) */
 FIND _U WHERE RECID(_U) eq p_context-id.
@@ -65,6 +68,12 @@ ELSE DO:
    new-attr-list = 
       DYNAMIC-FUNCTION("instancePropertyList":U IN _S._HANDLE, "":U) NO-ERROR.
 END. /* > ADM1 */
+
+/* Ensure the affordance button is on top */
+IF AVAILABLE _S AND 
+   _S._affordance-handle <> ? AND 
+   VALID-HANDLE(_S._affordance-handle) THEN
+     _S._affordance-handle:MOVE-TO-TOP().  
 
 /* Check for differences. */
 IF NOT ERROR-STATUS:ERROR AND orig-attr-list NE new-attr-list THEN DO:
@@ -96,8 +105,31 @@ IF NOT ERROR-STATUS:ERROR AND orig-attr-list NE new-attr-list THEN DO:
         END.  /* Else the modified propert isn't in the settings */
       END.  /* IF there is a change in the property list */
     END.  /* DO i = 1 to entries in new-attr-list */
+
+    /* If this is a SmartLOBField and this is a dynamic viewer than 
+       the instance name (_U._NAME) must be set to the FieldName 
+       attribute of the SmartLOBField.  The table name is set to 
+       the first entry of the FieldName as well.  This seems strange 
+       but it must be set to control how the Object name field on 
+       the AppBuilder main window is sensitized.  When the viewer
+       is read from the repository on open, this is how _U._TABLE 
+       is set in support of SBO viewers. */
+    IF _DynamicsIsRunning AND _U._SUBTYPE = "SmartLOBField":U THEN
+    DO:
+      FIND _P WHERE _P._WINDOW-HANDLE eq _U._WINDOW-HANDLE.
+      IF DYNAMIC-FUNCTION("ClassIsA" IN gshRepositoryManager, _P.object_type_code, "DynView":U) THEN
+      DO:
+        cFieldName = DYNAMIC-FUNCTION("getFieldName":U IN _S._HANDLE).
+        ASSIGN
+          _U._NAME  = IF NUM-ENTRIES(cFieldName, ".":U) > 1 THEN ENTRY(2, cFieldName, ".":U) 
+                      ELSE cFieldName
+          _U._TABLE = ENTRY(1,cFieldName,".":U).
+        RUN display_current IN _h_uib.
+      END.  /* if dynamic viewer */
+    END.  /* if SmartLOBField */
+        
   END.  /* Else it is ADM2 or greater */
- 
+  
   /* File has changed. */
   RUN adeuib/_winsave.p (INPUT _U._WINDOW-HANDLE, INPUT false /* not saved */ ).
 END.

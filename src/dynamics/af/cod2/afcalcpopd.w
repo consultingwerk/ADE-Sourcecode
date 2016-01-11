@@ -75,7 +75,7 @@
 &Scoped-define FRAME-NAME Dialog-Frame
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS bu_bk bu_mu RECT-1 bu_7 bu_8 bu_9 bu_di ~
+&Scoped-Define ENABLED-OBJECTS RECT-1 bu_mu bu_bk bu_7 bu_8 bu_9 bu_di ~
 bu_cl bu_4 bu_5 bu_6 bu_pr bu_1 bu_2 bu_3 bu_mi bu_1x bu_0 bu_pm bu_pt ~
 bu_pl bu_eq bu_ok bu_cn 
 &Scoped-Define DISPLAYED-OBJECTS fi_value 
@@ -210,8 +210,8 @@ DEFINE RECTANGLE RECT-1
 
 DEFINE FRAME Dialog-Frame
      fi_value AT ROW 1 COL 1 NO-LABEL
-     bu_bk AT ROW 1 COL 31
      bu_mu AT ROW 4.1 COL 23
+     bu_bk AT ROW 1 COL 31
      bu_7 AT ROW 2.43 COL 2
      bu_8 AT ROW 2.43 COL 9
      bu_9 AT ROW 2.43 COL 16
@@ -629,7 +629,7 @@ PROCEDURE enable_UI :
 ------------------------------------------------------------------------------*/
   DISPLAY fi_value 
       WITH FRAME Dialog-Frame.
-  ENABLE bu_bk bu_mu RECT-1 bu_7 bu_8 bu_9 bu_di bu_cl bu_4 bu_5 bu_6 bu_pr 
+  ENABLE RECT-1 bu_mu bu_bk bu_7 bu_8 bu_9 bu_di bu_cl bu_4 bu_5 bu_6 bu_pr 
          bu_1 bu_2 bu_3 bu_mi bu_1x bu_0 bu_pm bu_pt bu_pl bu_eq bu_ok bu_cn 
       WITH FRAME Dialog-Frame.
   VIEW FRAME Dialog-Frame.
@@ -694,6 +694,7 @@ FUNCTION formatValue RETURNS CHARACTER
       
       IF cSingleCharacter >= "0":U AND cSingleCharacter <= "9":U
       OR cSingleCharacter  = SESSION:NUMERIC-DECIMAL-POINT
+      OR cSingleCharacter  = '-':U
       THEN
         ASSIGN cFormattedValue = cFormattedValue + cSingleCharacter.                              
                                

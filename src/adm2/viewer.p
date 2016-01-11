@@ -50,6 +50,7 @@
   /* NOTE: IN 9.1B beta, this is needed to provide SBO routines
      with the proper calling procedure. */
   DEFINE VARIABLE ghTargetProcedure AS HANDLE NO-UNDO.
+  DEFINE VARIABLE glUseNewAPI       AS LOGICAL    NO-UNDO.
 
   /* Create copies of the lookup and combo temp tables */
   DEFINE TEMP-TABLE ttLookupCopy LIKE ttLookup.
@@ -78,10 +79,32 @@
 
 /* ************************  Function Prototypes ********************** */
 
+&IF DEFINED(EXCLUDE-getDataFieldMapping) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataFieldMapping Procedure 
+FUNCTION getDataFieldMapping RETURNS CHARACTER
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getKeepChildPositions) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getKeepChildPositions Procedure 
 FUNCTION getKeepChildPositions RETURNS LOGICAL
+        (  ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getShowPopup) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getShowPopup Procedure 
+FUNCTION getShowPopup RETURNS LOGICAL
         (  ) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -117,6 +140,17 @@ FUNCTION internalWidgetHandle RETURNS HANDLE
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setKeepChildPositions Procedure 
 FUNCTION setKeepChildPositions RETURNS LOGICAL
         ( INPUT plKeepChildPositions AS LOGICAL) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setShowPopup) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setShowPopup Procedure 
+FUNCTION setShowPopup RETURNS LOGICAL
+        ( input plShowPopup    as logical ) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -169,8 +203,24 @@ FUNCTION setKeepChildPositions RETURNS LOGICAL
   EMPTY TEMP-TABLE ttDCombo.
 
   glIsDynamicsRunning = DYNAMIC-FUNCTION("isICFRunning":U IN TARGET-PROCEDURE) = YES NO-ERROR.
-  /* Get handle to SDF Cache Manager */
+
+  glUseNewAPI = YES.
   IF glIsDynamicsRunning THEN
+    glUseNewAPI = NOT (DYNAMIC-FUNCTION('getSessionParam':U IN TARGET-PROCEDURE,
+                                        'keep_old_field_api':U) = 'YES':U).
+
+  /* Get handle to SDF Cache Manager */
+  IF glUseNewAPI THEN
+  DO:
+    ghSDFCacheManager = SESSION:FIRST-PROCEDURE.
+    DO WHILE VALID-HANDLE(ghSDFCacheManager) AND 
+      NOT INDEX(REPLACE(ghSDFCacheManager:FILE-NAME, "~\", "/"), "adm2/lookupfield.":U) > 0:
+      ghSDFCacheManager = ghSDFCacheManager:NEXT-SIBLING.
+    END.
+    IF NOT VALID-HANDLE(ghSDFCacheManager) THEN
+      RUN adm2/lookupfield.p PERSISTENT SET ghSDFCacheManager.
+  END.
+  ELSE IF glIsDynamicsRunning THEN
     ghSDFCacheManager = DYNAMIC-FUNCTION("getManagerHandle":U IN TARGET-PROCEDURE, INPUT "SDFCacheManager":U) NO-ERROR.
 
 /* _UIB-CODE-BLOCK-END */
@@ -279,6 +329,7 @@ PROCEDURE addRecord :
       /* For dynamic combos who are a parent to another dynamic combo
          we need to force a valueChange to ensure that the child combos
          are refreshed */
+      IF glUseNewApi = FALSE THEN  
       FOR EACH  ttDCombo
           WHERE ttDCombo.hViewer = TARGET-PROCEDURE
           NO-LOCK:
@@ -439,6 +490,265 @@ PROCEDURE copyRecord :
   
     RETURN.
       
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-createObjects) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createObjects Procedure 
+PROCEDURE createObjects :
+/*------------------------------------------------------------------------------
+  Purpose:     Build list properties for contained objects/widgets
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/   
+  DEFINE VARIABLE hFrame             AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hField             AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cTargets           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTargetFrames      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTargetNames       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iTarget            AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hTarget            AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cFrame             AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cObjectType        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDisplayedFields   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFieldHandles      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cEnabledFields     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cEnabledHandles    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cEnabledObjFlds    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cEnabledObjHdls    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAllFieldNames     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAllFieldHandles   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFieldName         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTable             AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iLookup            AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cUpdateTargetNames AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataSourceNames   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lUpdateTargetSet   AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hDataSource        AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lSBONamesSet       AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hObject            AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lDisplay           AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lEnable            AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lLocal             AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE iDisplay           AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iEnable            AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iLocal             AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hChildFrame        AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cDataFieldMapping  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iMap               AS INTEGER    NO-UNDO.
+  RUN SUPER.
+                                          
+  {get AllFieldHandles cAllFieldhandles}.
+    
+  IF cAllFieldHandles = '' THEN
+  DO:
+    &SCOPED-DEFINE xp-assign
+    {get DataSource hDataSource}
+    {get ContainerTarget cTargets}
+    {get DataSourceNames cDataSourceNames}
+    {get UpdateTargetNames cUpdateTargetNames}
+    {get DisplayedFields cDisplayedFields}
+    {get EnabledObjFlds cEnabledObjFlds}
+    {get EnabledFields cEnabledFields}
+    {get ContainerHandle hFrame}
+    {get DataFieldMapping cDataFieldMapping}
+     .
+    &UNDEFINE xp-assign
+
+    /* Build list of frames and fieldnames for identification in widgetloop */
+    DO iTarget = 1 TO NUM-ENTRIES(cTargets):  
+      hTarget    = WIDGET-HANDLE(ENTRY(iTarget,cTargets)).
+      &SCOPED-DEFINE xp-assign 
+      {get ContainerHandle hChildFrame hTarget}
+      {get ObjectType cObjectType hTarget}
+      .
+      &UNDEFINE xp-assign 
+      IF cObjectType = 'SmartDataField':U THEN
+        cTargetFrames = cTargetFrames + ',' + STRING(hChildFrame). 
+      ELSE /* keep list in synch with cTargets
+         (blank is not used as list is trimmed after loop) */
+        cTargetFrames = cTargetFrames + ',' + '?'.
+  
+    END. /* containerTarget loop */
+  
+    ASSIGN
+      cTargetFrames    = LEFT-TRIM(cTargetFrames,',':U)
+      cTargetNames     = LEFT-TRIM(cTargetNames,',':U)
+      lSBONamesSet     = cDataSourceNames <> ? 
+      hField           = hFrame:FIRST-CHILD:FIRST-CHILD
+      /* The order of the lists of handles must match the order of the 
+         DisplayedField and EnabledField properties, so initialise with the 
+         current number of entries */
+      cEnabledHandles  = FILL(",":U, NUM-ENTRIES(cEnabledFields)   - 1)
+      cFieldHandles    = FILL(",":U, NUM-ENTRIES(cDisplayedFields) - 1)
+      cEnabledObjHdls  = FILL(",":U, NUM-ENTRIES(cEnabledObjFlds) - 1)
+      .
+    IF NOT lSBONamesSet THEN
+      ASSIGN 
+        cDataSourceNames   = ''
+        cUpdateTargetNames = ''.
+  
+    /* widgetloop */
+    DO WHILE VALID-HANDLE(hField): 
+      ASSIGN 
+        cFieldName  = ''
+        cTable      = '' 
+        lEnable     = FALSE
+        lDisplay    = FALSE
+        lLocal      = FALSE.
+  
+      IF hField:TYPE = 'FRAME':U THEN
+      DO:
+        iLookup = LOOKUP(STRING(hField),cTargetFrames).
+        IF iLookup > 0 THEN
+        DO:
+          hTarget    = WIDGET-HANDLE(ENTRY(iLookup,cTargets)).
+          &SCOPED-DEFINE xp-assign
+          {get FieldName  cFieldName hTarget}
+          {get DisplayField lDisplay hTarget}
+          {get EnableField lEnable hTarget}
+          {get LocalField  lLocal hTarget}
+          .
+          &UNDEFINE xp-assign
+          IF lLocal then
+          do:
+            /* Only add the SDF to the list of enabled objects if it is,
+               in fact, meant to be enabled. 
+             */            if lEnable then
+                    ASSIGN 
+                      cEnabledObjFlds = cEnabledObjFlds 
+                                      + (IF cEnabledObjFlds = '' THEN '' ELSE ',':U) 
+                                      + cFieldName 
+                      cEnabledObjHdls = cEnabledObjHdls 
+                                      + (IF cEnabledObjHdls = '' THEN '' ELSE ',':U) 
+                                      + STRING(hTarget). 
+          end.    /* local sdf */
+          ELSE DO:
+            IF lDisplay THEN
+              ASSIGN 
+                cDisplayedFields = cDisplayedFields
+                                 + (IF cDisplayedFields = '' THEN '' ELSE ',':U) 
+                                 + cFieldName 
+                cFieldHandles    = cFieldHandles  
+                                 + (IF cFieldHandles = '' THEN '' ELSE ',':U) 
+                                 + STRING(hTarget). 
+            IF lEnable THEN
+            DO:
+              IF cTable = '' OR lSBONamesSet = FALSE OR LOOKUP(cTable,cUpdateTargetNames) > 0 THEN        
+                ASSIGN 
+                  cEnabledFields  = cEnabledFields 
+                                  + (IF cEnabledFields = '' THEN '' ELSE ',':U) 
+                                  + cFieldName 
+                  cEnabledHandles = cEnabledHandles 
+                                  + (IF cEnabledHandles = '' THEN '' ELSE ',':U) 
+                                  + STRING(hTarget). 
+            END.
+          END.
+          IF NUM-ENTRIES(cFieldName,'.') > 1 THEN
+            cTable     = ENTRY(1,cFieldName,'.').
+        END.
+      END.    /* FRAME widget (ie SDF) */
+      ELSE
+      DO:
+        IF hField:TYPE = 'EDITOR':U THEN
+          ASSIGN
+            hField:SENSITIVE = TRUE
+            hField:READ-ONLY = TRUE. 
+        /* Check if widget is mapped to a datafield 
+          (currently used for static longchar - datasource clob mapping) */ 
+        iMap = LOOKUP(hField:NAME,cDataFieldMapping).
+        IF iMap > 0 THEN
+          ASSIGN
+            cFieldName = ENTRY(iMap + 1,cDataFieldMapping)
+            cTable     = ENTRY(1,cFieldName,'.')
+            /* important for logic below that removes SBO objects from Enablelist  */
+            cTable     = IF cTable = 'RowObject':U THEN '' ELSE cTable
+            cFieldName = IF cTable = '':U THEN ENTRY(2,cFieldName,'.')
+                                          ELSE cFieldName.
+        ELSE 
+          ASSIGN
+            cTable     = (IF CAN-QUERY(hField,"TABLE":U) AND hField:TABLE <> 'RowObject':U 
+                          THEN hField:TABLE 
+                          ELSE '')
+            cFieldName = IF cTable > ''  
+                         THEN cTable + "." + hField:NAME 
+                         ELSE hField:NAME. 
+        ASSIGN
+          iDisplay   = LOOKUP(cFieldName, cDisplayedFields)
+          iEnable    = LOOKUP(cFieldName, cEnabledFields)
+          iLocal     = LOOKUP(cFieldName, cEnabledObjFlds).
+
+        IF iDisplay > 0 THEN
+          ENTRY(iDisplay, cFieldHandles) = STRING(hField).
+        IF iEnable > 0 THEN
+        DO:
+          ENTRY(iEnable, cEnabledHandles) = STRING(hField).
+          IF cTable > '' AND lSBONamesSet AND LOOKUP(cTable,cUpdateTargetNames) = 0 THEN        
+            ASSIGN
+              cEnabledFields =  DYNAMIC-FUNCTION('deleteEntry' IN TARGET-PROCEDURE,
+                                                 iEnable,cEnabledFields,',')
+              cEnabledHandles = DYNAMIC-FUNCTION('deleteEntry' IN TARGET-PROCEDURE,
+                                                 iEnable,cEnabledHandles,',').
+        END.
+        IF iLocal > 0 THEN
+        DO:
+          IF LOOKUP(hField:TYPE,"FILL-IN,RADIO-SET,EDITOR,COMBO-BOX,SELECTION-LIST,SLIDER,TOGGLE-BOX,BROWSE,BUTTON":U) > 0 THEN 
+            ENTRY(iLocal, cEnabledObjHdls) = STRING(hField).
+          ELSE
+            ASSIGN
+              cEnabledObjFlds =  DYNAMIC-FUNCTION('deleteEntry' IN TARGET-PROCEDURE,
+                                         iLocal,cEnabledObjFlds,',')
+              cEnabledObjHdls = DYNAMIC-FUNCTION('deleteEntry' IN TARGET-PROCEDURE,
+                                         iLocal,cEnabledObjHdls,',').
+        END.
+        hTarget = hField.
+      END.
+      IF cTable > '' AND NOT lSBONamesSet AND VALID-HANDLE(hDataSource) THEN
+      DO:
+        IF LOOKUP(cTable,cDataSourceNames) = 0 THEN
+          cDataSourceNames = cDataSourceNames + "," + cTable.
+        IF LOOKUP(cTable,cUpdateTargetNames) = 0 THEN
+          cUpdateTargetNames = cUpdateTargetNames + "," + cTable.
+      END.
+      /* Anonymous widgets are not allowed (labels) */
+      IF cFieldName > '' THEN
+        ASSIGN
+          /* V10 will have qualified names here shortname is for v9 */
+          cAllFieldNames   = cAllFieldnames + ',' + cFieldName 
+          cAllFieldHandles = cAllFieldHandles + ',' + STRING(hTarget). 
+  
+      hField = hField:NEXT-SIBLING.
+    END. /* do while */   
+    
+    ASSIGN
+      cAllFieldNames     = TRIM(cAllFieldNames,",")
+      cAllFieldHandles   = TRIM(cAllFieldHandles,",")
+      cUpdateTargetNames = TRIM(cUpdateTargetNames,",")
+      cDataSourceNames   = TRIM(cDataSourceNames,",").
+  
+  /* Store the properties */
+    &SCOPED-DEFINE xp-assign
+    {set DisplayedFields cDisplayedFields}
+    {set FieldHandles cFieldHandles}
+    {set EnabledFields cEnabledFields}
+    {set EnabledHandles cEnabledHandles}
+    {set EnabledObjFlds cEnabledObjFlds}
+    {set EnabledObjHdls cEnabledObjHdls}
+    {set AllFieldHandles cAllFieldHandles}
+    {set AllFieldNames cAllFieldNames}
+    {set UpdateTargetNames cUpdateTargetNames}
+    {set DataSourceNames cDataSourceNames}
+    .
+    &UNDEFINE xp-assign
+  END.
+
+  RETURN. 
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -743,9 +1053,15 @@ PROCEDURE displayFields :
            waiting to happen is debatable............)  */       
         OR NOT CAN-DO(cDisplayFromSource,cFieldName) THEN
         DO:
+           /* multiple selection lists appends screen-value, so reset it */
+          IF hField:TYPE = "SELECTION-LIST":U AND hField:MULTIPLE THEN
+             hField:SCREEN-VALUE = "":U.
+
           /* A combo with blank in list-items needs screen-value = space */         
           IF hField:TYPE = "COMBO-BOX":U AND cValue = "":U THEN
              cValue = " ":U.
+          /* (toggle boxes need special treatment as they do not handle 
+             'no' or 'yes' with non-default format)  */
           IF hField:TYPE = "TOGGLE-BOX":U THEN
              hField:SCREEN-VALUE = IF cValue = "yes":U THEN
                                       ENTRY(1,hField:FORMAT,"/":U)
@@ -797,7 +1113,11 @@ PROCEDURE displayFields :
         /* Clear the combo box  */
         ELSE IF hField:TYPE = "COMBO-BOX":U THEN
           {fnarg clearCombo hField}.
-        /* logical defaults to no (also radio-sets) */
+       /* logical defaults to no (also radio-sets)
+          (toggle boxes need special treatment as they do not handle 
+           screen-value = 'no' with non default format)  */
+        ELSE IF hField:TYPE = "TOGGLE-BOX":U THEN
+          hField:CHECKED = FALSE.
         ELSE IF hField:DATA-TYPE = "LOGICAL":U THEN 
           hField:SCREEN-VALUE = 'NO':U.
         /* radio-set show first button */
@@ -816,7 +1136,7 @@ PROCEDURE displayFields :
     /* For Combos and Selection lists. Avoid LargeColumns. 
        Note that cValue is not set for LONGCHAR, but the assumption is that 
        LONGCHAR always is one of the LargeColumns */ 
-    IF NOT CAN-DO(cLargeColumns,cFieldName) THEN
+    IF NOT CAN-DO(cLargeColumns,cFieldName) AND NOT glUseNewAPI THEN
       ASSIGN cWidgetNames  = cWidgetNames
                            + CHR(3)
                            + cFieldName        
@@ -873,80 +1193,82 @@ PROCEDURE displayFields :
         IF cEnabledObjFlds = ''                       THEN FALSE
         ELSE IF cEnabledObjFldsToDisable = '(all)':U  THEN FALSE
         ELSE IF cEnabledObjFldsToDisable = '(none)':U THEN TRUE
-        ELSE NUM-ENTRIES(cEnabledObjFldsToDisable) < NUM-ENTRIES(cEnabledObjFlds)
-                           .
+        ELSE NUM-ENTRIES(cEnabledObjFldsToDisable) < NUM-ENTRIES(cEnabledObjFlds).
     END.  /* pcColValues = ? and valid DataSource */
     ELSE /* else (Rec avail or no data source (viewer used as filter etc..) */
       lRefreshDataFields = TRUE.
     IF lRefreshDataFields THEN
     DO:
-      /* get lookup queries for specific data value and redisplay data */
-      PUBLISH "getLookupQuery":U FROM TARGET-PROCEDURE (INPUT-OUTPUT TABLE ttLookup).
-      PUBLISH "getComboQuery":U FROM TARGET-PROCEDURE (INPUT-OUTPUT TABLE ttDCombo).
-  
-      IF CAN-FIND(FIRST ttLookup WHERE ttLookup.hViewer = TARGET-PROCEDURE) THEN
-        RUN stripLookupFields IN TARGET-PROCEDURE NO-ERROR.
-  
-      IF VALID-HANDLE(gshAstraAppserver) THEN 
-      DO:
-        IF (CAN-FIND(FIRST ttLookup WHERE ttLookup.hViewer = TARGET-PROCEDURE 
-                                    AND   ttLookup.lRefreshQuery = TRUE) 
-            OR
-            CAN-FIND(FIRST ttDCombo WHERE ttDCombo.hViewer = TARGET-PROCEDURE)) THEN 
-        DO:
-  
-  
-          /* create copies and pass those to the server. This will at least 
-             reduce data over to the AppServer if there are other lookups or 
-             combo records for other viewers */
-          FOR EACH ttLookup WHERE ttLookup.hViewer = TARGET-PROCEDURE:
-            CREATE ttLookupCopy.
-            BUFFER-COPY ttLookup TO ttLookupCopy.
-            DELETE ttLookup.
-          END.
-          /* now move the combo records */
-          FOR EACH ttDCombo WHERE ttDCombo.hViewer = TARGET-PROCEDURE:
-            CREATE ttDComboCopy.
-            BUFFER-COPY ttDCombo TO ttDComboCopy.
-            DELETE ttDCombo.
-          END.
-    
-          /* If the SDF Cache manager is running, get the data from there */
-          IF VALID-HANDLE(ghSDFCacheManager) THEN
-            RUN retrieveSDFCache IN ghSDFCacheManager (INPUT-OUTPUT TABLE ttLookupCopy,
-                                                       INPUT-OUTPUT TABLE ttDComboCopy,
-                                                       INPUT cWidgetNames,
-                                                       INPUT cWidgetValues,
-                                                       INPUT TARGET-PROCEDURE).
-          ELSE /* Get data from server */
-            RUN adm2/lookupqp.p ON gshAstraAppserver (INPUT-OUTPUT TABLE ttLookupCopy,
-                                                      INPUT-OUTPUT TABLE ttDComboCopy,
-                                                      INPUT cWidgetNames,
-                                                      INPUT cWidgetValues,
-                                                      INPUT TARGET-PROCEDURE).
-          
-          /* Now we need to move the records back to the original temp-tables.
-             First move the lookup records */
-          FOR EACH ttLookupCopy:
-            CREATE ttLookup.
-            BUFFER-COPY ttLookupCopy TO ttLookup.
-          END.
-            /* now move the combo records */
-          FOR EACH ttDComboCopy:
-            CREATE ttDCombo.
-            BUFFER-COPY ttDComboCopy TO ttDCombo.
-          END.
+      IF glUseNewAPI THEN
+        RUN retrieveFieldData IN TARGET-PROCEDURE.
+      ELSE DO:
+        /* get lookup queries for specific data value and redisplay data */
+        PUBLISH "getLookupQuery":U FROM TARGET-PROCEDURE (INPUT-OUTPUT TABLE ttLookup).
+        PUBLISH "getComboQuery":U FROM TARGET-PROCEDURE (INPUT-OUTPUT TABLE ttDCombo).
         
-          /* Now clear the temp-tables */
-          EMPTY TEMP-TABLE ttLookupCopy.
-          EMPTY TEMP-TABLE ttDComboCopy.
+        IF CAN-FIND(FIRST ttLookup WHERE ttLookup.hViewer = TARGET-PROCEDURE) THEN
+          RUN stripLookupFields IN TARGET-PROCEDURE NO-ERROR.
+    
+        IF VALID-HANDLE(gshAstraAppserver) THEN 
+        DO:
+          IF (CAN-FIND(FIRST ttLookup WHERE ttLookup.hViewer = TARGET-PROCEDURE 
+                                      AND   ttLookup.lRefreshQuery = TRUE) 
+              OR
+              CAN-FIND(FIRST ttDCombo WHERE ttDCombo.hViewer = TARGET-PROCEDURE)) THEN 
+          DO:
+            
+            /* create copies and pass those to the server. This will at least 
+               reduce data over to the AppServer if there are other lookups or 
+               combo records for other viewers */
+            FOR EACH ttLookup WHERE ttLookup.hViewer = TARGET-PROCEDURE:
+              CREATE ttLookupCopy.
+              BUFFER-COPY ttLookup TO ttLookupCopy.
+              DELETE ttLookup.
+            END.
+            /* now move the combo records */
+            FOR EACH ttDCombo WHERE ttDCombo.hViewer = TARGET-PROCEDURE:
+              CREATE ttDComboCopy.
+              BUFFER-COPY ttDCombo TO ttDComboCopy.
+              DELETE ttDCombo.
+            END.
+    
+            /* If the SDF Cache manager is running, get the data from there */
+            IF VALID-HANDLE(ghSDFCacheManager) THEN
+              RUN retrieveSDFCache IN ghSDFCacheManager (INPUT-OUTPUT TABLE ttLookupCopy,
+                                                         INPUT-OUTPUT TABLE ttDComboCopy,
+                                                         INPUT cWidgetNames,
+                                                         INPUT cWidgetValues,
+                                                         INPUT TARGET-PROCEDURE).
+            ELSE /* Get data from server */
+              RUN adm2/lookupqp.p ON gshAstraAppserver (INPUT-OUTPUT TABLE ttLookupCopy,
+                                                        INPUT-OUTPUT TABLE ttDComboCopy,
+                                                        INPUT cWidgetNames,
+                                                        INPUT cWidgetValues,
+                                                        INPUT TARGET-PROCEDURE).
+            
+            /* Now we need to move the records back to the original temp-tables.
+               First move the lookup records */
+            FOR EACH ttLookupCopy:
+              CREATE ttLookup.
+              BUFFER-COPY ttLookupCopy TO ttLookup.
+            END.
+              /* now move the combo records */
+            FOR EACH ttDComboCopy:
+              CREATE ttDCombo.
+              BUFFER-COPY ttDComboCopy TO ttDCombo.
+            END.
           
-        END. /* can-find lookup with refresh or combo for this viewer */  
-      END. /* valid-handle(gshAstraAppsrver) */
-      
-      /* Display Lookup query/Combo results */    
-      PUBLISH "displayLookup":U FROM TARGET-PROCEDURE (INPUT TABLE ttLookup).
-      PUBLISH "displayCombo":U  FROM TARGET-PROCEDURE (INPUT TABLE ttDCombo).
+            /* Now clear the temp-tables */
+            EMPTY TEMP-TABLE ttLookupCopy.
+            EMPTY TEMP-TABLE ttDComboCopy.
+            
+          END. /* can-find lookup with refresh or combo for this viewer */  
+        END. /* valid-handle(gshAstraAppsrver) */
+        
+        /* Display Lookup query/Combo results */    
+        PUBLISH "displayLookup":U FROM TARGET-PROCEDURE (INPUT TABLE ttLookup).
+        PUBLISH "displayCombo":U  FROM TARGET-PROCEDURE (INPUT TABLE ttDCombo).
+      END.
     END. /* lRefreshFields */
   END. /* if pcColValues = ? and useRepository */
 
@@ -954,10 +1276,9 @@ PROCEDURE displayFields :
 
   RUN rowDisplay IN TARGET-PROCEDURE NO-ERROR. /* Custom display checks. */
   
-  /*  publish displayField  if record avail ( pcColValues <> ? ) 
-     (Some SDFs like LOBfield may subscribe to this ) 
-     clearField is being run in all SDFs above if no record avail */
-  IF pcColValues <> ? THEN
+  /*  publish displayField if record avail ( pcColValues <> ? ) 
+     clearField is being run in all SDFs above if no record avail*/
+  IF pcColValues <> ? OR lRefreshDataFields THEN
     PUBLISH 'displayField':U FROM TARGET-PROCEDURE.  
 
   RETURN.
@@ -1243,21 +1564,16 @@ PROCEDURE initializeObject :
                gets their handles to store in FieldHandles and EnabledHandles
                properties.
 ------------------------------------------------------------------------------*/
-
- DEFINE VARIABLE cEnabledHandles    AS CHARACTER NO-UNDO INIT "":U.
- DEFINE VARIABLE cEnabledFields     AS CHARACTER NO-UNDO INIT "":U.
+ DEFINE VARIABLE cEnabledFields     AS CHARACTER NO-UNDO.
  DEFINE VARIABLE hUpdateTarget      AS HANDLE    NO-UNDO.
- DEFINE VARIABLE cTarget            AS CHARACTER NO-UNDO.
  DEFINE VARIABLE lSaveSource        AS LOGICAL   NO-UNDO.
  DEFINE VARIABLE hGaSource          AS HANDLE    NO-UNDO.
  DEFINE VARIABLE cGaMode            AS CHARACTER NO-UNDO.
  DEFINE VARIABLE iField             AS INTEGER   NO-UNDO.
- DEFINE VARIABLE cFieldName         AS CHARACTER NO-UNDO.
  DEFINE VARIABLE cUIBMode           AS CHARACTER NO-UNDO.
  DEFINE VARIABLE cNewRecord         AS CHARACTER NO-UNDO.
- DEFINE VARIABLE cUpdateTargetNames AS CHARACTER  NO-UNDO.
-
- RUN SUPER.            /* Invoke the standard behavior first. */
+ 
+ RUN SUPER.   /* Invoke the standard behavior first. */
 
  IF RETURN-VALUE = "ADM-ERROR":U THEN 
    RETURN "ADM-ERROR":U.      
@@ -1266,7 +1582,7 @@ PROCEDURE initializeObject :
  {get EnabledFields cEnabledFields}
  {get UIBMode cUIBMode}.
  &UNDEFINE xp-assign
-
+ 
  /* UIBmode gives errors because handles for SDFs is not added */ 
  IF (cUIBMode BEGINS 'Design':U) THEN
  DO:
@@ -1279,63 +1595,34 @@ PROCEDURE initializeObject :
        RUN modifyListProperty IN TARGET-PROCEDURE
            (TARGET-PROCEDURE, "REMOVE":U,"SupportedLinks":U,"TableIO-Target":U).
    END.   /* END DO cEnabled "" */
-    
+
    RETURN.
  END.
- 
- /* Remove fields from enabledFields if any of the SDOs in an one-to-one SBO 
-    is not one of the update targets for this instance */  
- {get UpdateTargetNames cUpdateTargetNames}. 
- 
- IF cUpdateTargetNames > '':U THEN
- SBO-one-to-one:
- DO:
-   {get EnabledHandles cEnabledHandles}.
-   DO iField = 1 TO NUM-ENTRIES(cEnabledFields):
-     cFieldName = ENTRY(iField,cEnabledFields).
-     IF INDEX(cFieldName, '.':U) > 0 THEN 
-     DO:
-       cTarget = ENTRY(1, cFieldName, '.':U).
-       IF NOT LOOKUP(cTarget, cUpdateTargetNames) > 0 THEN
-         ASSIGN
-           cEnabledFields = DYNAMIC-FUNCTION ('deleteEntry':U IN TARGET-PROCEDURE, iField, cEnabledFields, ",":U) 
-           cEnabledHandles = DYNAMIC-FUNCTION ('deleteEntry':U IN TARGET-PROCEDURE, iField, cEnabledHandles, ",":U). 
-     END.
-     /* if the first field is not qualified  then the rest is not either 
-       (check of iField = 1 is really not needed, but on the other hand 
-        if the second or higher should be unqualifed we do not want to leave) */
-     ELSE IF iField = 1 THEN
-       LEAVE SBO-one-to-one.
-   END.
-   &SCOPED-DEFINE xp-assign
-   {set EnabledFields cEnabledFields}
-   {set EnabledHandles cEnabledHandles}
-   .
-   &UNDEFINE xp-assign
- END. /* updatetargetNames */ 
-  
- RUN dataAvailable IN TARGET-PROCEDURE (?). /* See if there's a rec waiting. */
- 
- /* Is this a GaTarget, if so get SaveSOurce, FieldsEnabled and NewRecord from the 
-    GA source so we can find out whether we should be enabled (further down) or 
-    display the current record 
-    (if the GASource is in "Add" or "Copy" mode already */
+
  {get GroupAssignSource hGASOurce}.
+ 
+ RUN dataAvailable IN TARGET-PROCEDURE (?). /* See if there's a rec waiting. */
+  
+  /* Is this a GaTarget, if so get SaveSOurce, FieldsEnabled and NewRecord from the 
+     GA source so we can find out whether we should be enabled (further down) or 
+     display the current record 
+     (if the GASource is in "Add" or "Copy" mode already */
  IF VALID-HANDLE(hGaSource) THEN
  DO:
    {get ObjectMode cGaMode hGaSource}.
-   /* The NewRecord is only set at the tableioTarget yet, 
-       so check through a potential GroupAssingSource link chain. */ 
+    /* The NewRecord is only set at the tableioTarget yet, 
+        so check through a potential GroupAssingSource link chain. */ 
    DO WHILE VALID-HANDLE(hGASource):
      &SCOPED-DEFINE xp-assign
      {get NewRecord cNewRecord hGASource}
      {get GroupAssignSource hGASource hGASource}.
      &UNDEFINE xp-assign
    END.
-   /* synchronize the NewRecord value with our GA-Source */
+    /* synchronize the NewRecord value with our GA-Source */
    {set NewRecord cNewRecord}.
+
    IF cNewRecord <> "NO":U THEN
-     RUN displayRecord IN TARGET-PROCEDURE.
+      RUN displayRecord IN TARGET-PROCEDURE.
  END.
  ELSE
    {get SaveSource lSaveSource}.
@@ -1346,39 +1633,37 @@ PROCEDURE initializeObject :
  IF (cGaMode > '':U AND cGaMode <> "view":U)
  OR NOT (lSaveSource = FALSE) THEN
    RUN enableFields IN TARGET-PROCEDURE.
- 
+  
  ELSE 
  DO:
    {set FieldsEnabled YES}.
    RUN disableFields IN TARGET-PROCEDURE ('ALL':U).
  END.         /* END ELSE DO IF not enableFields */
-
- /* Activate GroupAssignSource link (LinkstateHandler overrides ADD and 
+  
+  /* Activate GroupAssignSource link (LinkstateHandler overrides ADD and 
     deactives the link to avoid events like enablefields to be published 
     from GaSource before initalize.
     Reget the handle..  used in loop until invalid above! */
  {get GroupAssignSource hGASOurce}.
  IF VALID-HANDLE(hGaSource) THEN
    RUN linkStateHandler IN TARGET-PROCEDURE ('Active':U,
-                                             hGaSource,
-                                             'GroupAssignSource':U).
-
-  /* Ensure only has entries for this viewer */
+                                              hGaSource,
+                                              'GroupAssignSource':U).
+   
+ /* Ensure only has entries for this viewer */
  EMPTY TEMP-TABLE ttComboData.
   
   /* gather all master combo queries */
  PUBLISH "getComboQuery":U FROM TARGET-PROCEDURE (INPUT-OUTPUT TABLE ttComboData).  
-  
- /* build combo list-item pairs */
+
+  /* build combo list-item pairs */
  IF VALID-HANDLE(gshAstraAppserver) AND CAN-FIND(FIRST ttComboData) THEN
    RUN adm2/cobuildp.p ON gshAstraAppserver (INPUT-OUTPUT TABLE ttComboData).
   
   /* populate all master combos */          
- PUBLISH "buildCombo":U FROM TARGET-PROCEDURE (INPUT TABLE ttComboData).
+  PUBLISH "buildCombo":U FROM TARGET-PROCEDURE (INPUT TABLE ttComboData).
   
-
-
- RETURN.
+  RETURN.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1546,6 +1831,25 @@ DEFINE VARIABLE cSourceNames  AS CHARACTER   NO-UNDO.
 
       RUN SUPER (INPUT pcWidget, OUTPUT phWidget, OUTPUT phTarget).
   END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-retrieveFieldData) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE retrieveFieldData Procedure 
+PROCEDURE retrieveFieldData :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  PUBLISH "prepareField":U FROM TARGET-PROCEDURE.
+  RUN retrieveData IN ghSDFCacheManager (TARGET-PROCEDURE).
 
 END PROCEDURE.
 
@@ -1865,6 +2169,35 @@ END PROCEDURE.
 
 /* ************************  Function Implementations ***************** */
 
+&IF DEFINED(EXCLUDE-getDataFieldMapping) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataFieldMapping Procedure 
+FUNCTION getDataFieldMapping RETURNS CHARACTER
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns a comma separated list of widget name and datafield name \
+           pairs, used to define the mapping between LONGCHAR widgets and
+           CLOB data-source fields.  
+    Notes: NOT defined as a normal property since it rarely has any data.  
+           The adm-datafield-mapping is ONLY defined in static viewers that 
+           defines a LONGCHAR in the frame to edit/view a CLOB field.   
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cMapping AS CHARACTER  NO-UNDO.
+  
+  /* defined in static viewers that has LONGCHAR editors mapped to CLOB 
+     datafields */ 
+  IF CAN-DO(TARGET-PROCEDURE:INTERNAL-ENTRIES,"adm-datafield-mapping":U) THEN
+    RETURN {fn adm-datafield-mapping}.
+  ELSE 
+    RETURN ''.   
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getKeepChildPositions) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getKeepChildPositions Procedure 
@@ -1880,6 +2213,28 @@ FUNCTION getKeepChildPositions RETURNS LOGICAL
 
     RETURN lKeepChildPositions.
 END FUNCTION.   /* getKeepChildPositions */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getShowPopup) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getShowPopup Procedure 
+FUNCTION getShowPopup RETURNS LOGICAL
+        (  ):
+/*------------------------------------------------------------------------------
+  Purpose:  
+        Notes:
+------------------------------------------------------------------------------*/
+    define variable lShowPopup             as logical                no-undo.
+    
+    {get ShowPopup lShowPopup}.
+    
+    error-status:error = no.
+    return lShowPopup.
+END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1982,6 +2337,26 @@ FUNCTION setKeepChildPositions RETURNS LOGICAL
     {set KeepChildPositions plKeepChildPositions}.
     RETURN TRUE.
 END FUNCTION.   /* setKeepChildPositions */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setShowPopup) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setShowPopup Procedure 
+FUNCTION setShowPopup RETURNS LOGICAL
+        ( input plShowPopup    as logical ):
+/*------------------------------------------------------------------------------
+  Purpose:  
+        Notes:
+------------------------------------------------------------------------------*/
+    {set ShowPopup plShowPopup}.
+    
+    error-status:error = no.
+    return true.
+END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

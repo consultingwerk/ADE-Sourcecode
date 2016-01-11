@@ -562,6 +562,7 @@ REPEAT:
                        _BC._NAME _BC._DISP-NAME _BC._LABEL _BC._FORMAT _BC._DATA-TYPE _BC._BGCOLOR
                        _BC._FGCOLOR _BC._FONT _BC._LABEL-BGCOLOR _BC._LABEL-FGCOLOR 
                        _BC._LABEL-FONT _BC._ENABLED _BC._HELP _BC._MANDATORY _BC._WIDTH _BC._INHERIT-VALIDATION 
+                       _BC._COL-LABEL
                        .
                   ELSE
                     IMPORT STREAM _P_QS 
@@ -590,10 +591,11 @@ REPEAT:
                ELSE ASSIGN _BC._FORMAT = ?  /* Initialize older (7.3B) stuff */
                            _BC._HELP   = ?
                            _BC._LABEL  = ?.      
-               IF _BC._FORMAT = ? THEN _BC._FORMAT = _BC._DEF-FORMAT.       
-               IF _BC._HELP   = ? THEN _BC._HELP   = _BC._DEF-HELP.       
-               IF _BC._LABEL  = ? THEN _BC._LABEL  = _BC._DEF-LABEL.
-               IF _BC._WIDTH  = ? THEN _BC._WIDTH  = _BC._DEF-WIDTH.
+               IF _BC._FORMAT    = ? THEN _BC._FORMAT    = _BC._DEF-FORMAT.       
+               IF _BC._HELP      = ? THEN _BC._HELP      = _BC._DEF-HELP.       
+               IF _BC._LABEL     = ? THEN _BC._LABEL     = _BC._DEF-LABEL.
+               IF _BC._COL-LABEL = ? THEN _BC._COL-LABEL = _BC._DEF-COLLABEL.
+               IF _BC._WIDTH     = ? THEN _BC._WIDTH     = _BC._DEF-WIDTH.
                IF (_suppress_dbname AND _BC._DBNAME NE "_<CALC>":U  OR
                     CAN-DO(_tt_log_name, _BC._DBNAME))
                     AND NOT isSmartData THEN
@@ -646,6 +648,12 @@ REPEAT:
                     IF AVAIL ttObjectAttribute THEN    
                        ASSIGN _BC._LABEL = ttObjectAttribute.tAttributeValue.
                    
+                    FIND FIRST ttObjectAttribute WHERE ttObjectAttribute.tSmartObjectObj    = ttObject.tSmartObjectObj
+                                                   AND ttObjectAttribute.tObjectInstanceObj = ttObject.tObjectInstanceObj 
+                                                   AND ttObjectAttribute.tAttributeLabel    = "ColumnLabel":U NO-ERROR.
+                    IF AVAIL ttObjectAttribute THEN    
+                       ASSIGN _BC._COL-LABEL = ttObjectAttribute.tAttributeValue.
+
                     FIND FIRST ttObjectAttribute WHERE ttObjectAttribute.tSmartObjectObj    = ttObject.tSmartObjectObj
                                                    AND ttObjectAttribute.tObjectInstanceObj = ttObject.tObjectInstanceObj 
                                                    AND ttObjectAttribute.tAttributeLabel    = "Format":U NO-ERROR.

@@ -300,25 +300,9 @@ PROCEDURE addRecord :
   Parameters:  
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cValue          AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE hDataSource     AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE hContainer      AS HANDLE       NO-UNDO.
 
   RUN SUPER.
-
-  DO WITH FRAME {&FRAME-NAME}:
-    ASSIGN
-        hDataSource = {fn getDataSource}
-        hContainer  = {fn getWindowHandle}
-        cValue      = {fn getForeignValues hDataSource}
-        cValue      = (IF DECIMAL(cValue) = ? OR DECIMAL(cValue) = 0.00 THEN {fnarg getUserProperty 'ParentKeyValue':U hContainer} ELSE cValue).
-
-    IF DECIMAL(cValue) <> 0.00 AND
-       DECIMAL(cValue) <> ?    THEN
-      RUN assignNewValue IN h_dynlookup (cValue, "":U, TRUE).
-
-    RUN setFieldSensitivity.
-  END.
+  RUN setFieldSensitivity.
 
 END PROCEDURE.
 

@@ -62,6 +62,9 @@ DEFINE VARIABLE appPartition        AS CHARACTER                 NO-UNDO.
 DEFINE VARIABLE noPartition         AS CHARACTER INIT "(None)":U NO-UNDO.
 DEFINE VARIABLE Web                 AS LOGICAL                   NO-UNDO.
 DEFINE VARIABLE gcPromptColumns     AS CHARACTER                 NO-UNDO.
+DEFINE VARIABLE giCacheDuration     AS INTEGER                   NO-UNDO.
+DEFINE VARIABLE glHasForeignFields  AS LOGICAL                   NO-UNDO.
+DEFINE VARIABLE glDynamicData       AS LOGICAL                   NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -74,14 +77,14 @@ DEFINE VARIABLE gcPromptColumns     AS CHARACTER                 NO-UNDO.
 &Scoped-define PROCEDURE-TYPE DIALOG-BOX
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME Attribute-Dlg
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS radFieldList fObjectname fRowsToBatch ~
-RebuildOnRepos lToggleDataTargets togPromptOnDelete RECT-1 
-&Scoped-Define DISPLAYED-OBJECTS radFieldList fObjectname c_AppPartition ~
-fRowsToBatch 
+&Scoped-Define ENABLED-OBJECTS RECT-1 fRowsToBatch fObjectname ~
+lToggleDataTargets togPromptOnDelete radFieldList 
+&Scoped-Define DISPLAYED-OBJECTS c_AppPartition lShared lCached ~
+fRowsToBatch fObjectname radFieldList 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -106,6 +109,13 @@ FUNCTION initRowsToBatch RETURNS LOGICAL
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD saveCacheDuration Attribute-Dlg 
+FUNCTION saveCacheDuration RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD webStateCheck Attribute-Dlg 
 FUNCTION webStateCheck RETURNS LOGICAL
   ( /* parameter-definitions */ )  FORWARD.
@@ -120,7 +130,7 @@ FUNCTION webStateCheck RETURNS LOGICAL
 
 /* Definitions of the field level widgets                               */
 DEFINE BUTTON btnDisplayed 
-     LABEL "&Edit Display Field List" 
+     LABEL "&Edit display field list" 
      SIZE 25 BY 1.14.
 
 DEFINE VARIABLE c_AppPartition AS CHARACTER FORMAT "x(23)" 
@@ -130,14 +140,26 @@ DEFINE VARIABLE c_AppPartition AS CHARACTER FORMAT "x(23)"
      SIZE 27.8 BY 1 NO-UNDO.
 
 DEFINE VARIABLE fObjectname AS CHARACTER FORMAT "X(256)":U 
-     LABEL "Instance &Name" 
+     LABEL "Instance &name" 
      VIEW-AS FILL-IN 
-     SIZE 14 BY 1 NO-UNDO.
+     SIZE 31 BY 1 NO-UNDO.
 
 DEFINE VARIABLE fRowsToBatch AS INTEGER FORMAT ">,>>>,>>9":U INITIAL 0 
      LABEL "&Rows" 
      VIEW-AS FILL-IN 
      SIZE 11 BY .95 NO-UNDO.
+
+DEFINE VARIABLE iCacheHours AS INTEGER FORMAT "99":U INITIAL 0 
+     LABEL "Hours" 
+     CONTEXT-HELP-ID 0
+     VIEW-AS FILL-IN 
+     SIZE 4.4 BY 1 NO-UNDO.
+
+DEFINE VARIABLE iCacheMinutes AS INTEGER FORMAT "99":U INITIAL 0 
+     LABEL "" 
+     CONTEXT-HELP-ID 0
+     VIEW-AS FILL-IN 
+     SIZE 4.4 BY 1 NO-UNDO.
 
 DEFINE VARIABLE radFieldList AS INTEGER 
      VIEW-AS RADIO-SET VERTICAL
@@ -171,20 +193,38 @@ DEFINE VARIABLE lBatch AS LOGICAL INITIAL no
      VIEW-AS TOGGLE-BOX
      SIZE 28.6 BY .81 TOOLTIP "Check to read data in batches" NO-UNDO.
 
+DEFINE VARIABLE lCached AS LOGICAL INITIAL no 
+     LABEL "Cache data" 
+     CONTEXT-HELP-ID 0
+     VIEW-AS TOGGLE-BOX
+     SIZE 15.2 BY .81 NO-UNDO.
+
 DEFINE VARIABLE lOpenOnInit AS LOGICAL INITIAL no 
      LABEL "Open &query on initialization" 
      VIEW-AS TOGGLE-BOX
      SIZE 36.4 BY .81 NO-UNDO.
 
+DEFINE VARIABLE lShared AS LOGICAL INITIAL no 
+     LABEL "Share data" 
+     CONTEXT-HELP-ID 0
+     VIEW-AS TOGGLE-BOX
+     SIZE 16.4 BY .81 NO-UNDO.
+
+DEFINE VARIABLE lTimed AS LOGICAL INITIAL no 
+     LABEL "Timed cache" 
+     CONTEXT-HELP-ID 0
+     VIEW-AS TOGGLE-BOX
+     SIZE 16.4 BY .81 NO-UNDO.
+
 DEFINE VARIABLE lToggleDataTargets AS LOGICAL INITIAL no 
      LABEL "Activate/deactivate Data&Targets on view/hide" 
      VIEW-AS TOGGLE-BOX
-     SIZE 54.4 BY .81 NO-UNDO.
+     SIZE 49.2 BY .81 NO-UNDO.
 
 DEFINE VARIABLE lUpdateFromSource AS LOGICAL INITIAL no 
      LABEL "&Update from DataSource (one-to-one)" 
      VIEW-AS TOGGLE-BOX
-     SIZE 49.6 BY .81 NO-UNDO.
+     SIZE 39.2 BY .81 NO-UNDO.
 
 DEFINE VARIABLE RebuildOnRepos AS LOGICAL INITIAL no 
      LABEL "Rebuild dataset &on reposition" 
@@ -197,7 +237,7 @@ DEFINE VARIABLE ServerOperatingMode AS LOGICAL INITIAL no
      SIZE 36 BY .81 NO-UNDO.
 
 DEFINE VARIABLE togPromptOnDelete AS LOGICAL INITIAL no 
-     LABEL "&Prompt On Delete" 
+     LABEL "&Prompt on delete" 
      VIEW-AS TOGGLE-BOX
      SIZE 23.6 BY .81 NO-UNDO.
 
@@ -205,25 +245,30 @@ DEFINE VARIABLE togPromptOnDelete AS LOGICAL INITIAL no
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME Attribute-Dlg
-     radFieldList AT ROW 16.29 COL 20 NO-LABEL
-     fObjectname AT ROW 1.38 COL 17.4 COLON-ALIGNED
-     c_AppPartition AT ROW 2.67 COL 17.4 COLON-ALIGNED
-     lBatch AT ROW 4.1 COL 19.4
-     fRowsToBatch AT ROW 3.95 COL 46.2 COLON-ALIGNED
-     ckCurChanged AT ROW 5.19 COL 19.4
-     RebuildOnRepos AT ROW 6.29 COL 19.4
-     lOpenOnInit AT ROW 7.38 COL 19.4
-     lUpdateFromSource AT ROW 8.43 COL 19.4
-     ServerOperatingMode AT ROW 9.52 COL 19.4
-     DestroyStateless AT ROW 10.62 COL 19.4
-     DisconnectAppServer AT ROW 11.76 COL 19.4
-     lToggleDataTargets AT ROW 12.81 COL 19.4
-     btnDisplayed AT ROW 18.29 COL 39.4
-     togPromptOnDelete AT ROW 14 COL 19.4
-     RECT-1 AT ROW 15.52 COL 17
-     "Display Fields for Prompt" VIEW-AS TEXT
-          SIZE 25 BY .62 AT ROW 15.29 COL 20
-     SPACE(32.79) SKIP(3.90)
+     c_AppPartition AT ROW 1.43 COL 9.6 COLON-ALIGNED
+     lBatch AT ROW 2.91 COL 11.6
+     RebuildOnRepos AT ROW 3.91 COL 11.6
+     lOpenOnInit AT ROW 4.91 COL 11.6
+     lShared AT ROW 5.91 COL 11.6
+     lCached AT ROW 6.91 COL 11.6
+     lTimed AT ROW 7.91 COL 14.6
+     ServerOperatingMode AT ROW 8.91 COL 11.6
+     DestroyStateless AT ROW 9.91 COL 11.6
+     DisconnectAppServer AT ROW 10.91 COL 11.6
+     fRowsToBatch AT ROW 2.76 COL 38.6 COLON-ALIGNED
+     iCacheHours AT ROW 7.76 COL 38.6 COLON-ALIGNED
+     iCacheMinutes AT ROW 7.76 COL 44.8 COLON-ALIGNED
+     fObjectname AT ROW 1.43 COL 74.8 COLON-ALIGNED
+     ckCurChanged AT ROW 2.91 COL 76.6
+     lUpdateFromSource AT ROW 3.91 COL 76.6
+     lToggleDataTargets AT ROW 4.91 COL 76.6
+     togPromptOnDelete AT ROW 5.91 COL 76.6
+     radFieldList AT ROW 8 COL 77.2 NO-LABEL
+     btnDisplayed AT ROW 10 COL 96.6
+     "Display fields for prompt" VIEW-AS TEXT
+          SIZE 23.2 BY .62 AT ROW 6.95 COL 76.6
+     RECT-1 AT ROW 7.24 COL 74.2
+     SPACE(0.60) SKIP(0.60)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "SmartDataObject Properties":L.
@@ -244,7 +289,7 @@ DEFINE FRAME Attribute-Dlg
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX Attribute-Dlg
-   Custom                                                               */
+   FRAME-NAME L-To-R,COLUMNS                                            */
 ASSIGN 
        FRAME Attribute-Dlg:SCROLLABLE       = FALSE
        FRAME Attribute-Dlg:HIDDEN           = TRUE.
@@ -259,16 +304,26 @@ ASSIGN
    NO-DISPLAY NO-ENABLE                                                 */
 /* SETTINGS FOR TOGGLE-BOX DisconnectAppServer IN FRAME Attribute-Dlg
    NO-DISPLAY NO-ENABLE                                                 */
+/* SETTINGS FOR FILL-IN iCacheHours IN FRAME Attribute-Dlg
+   NO-DISPLAY NO-ENABLE                                                 */
+/* SETTINGS FOR FILL-IN iCacheMinutes IN FRAME Attribute-Dlg
+   NO-DISPLAY NO-ENABLE                                                 */
 /* SETTINGS FOR TOGGLE-BOX lBatch IN FRAME Attribute-Dlg
    NO-DISPLAY NO-ENABLE                                                 */
+/* SETTINGS FOR TOGGLE-BOX lCached IN FRAME Attribute-Dlg
+   NO-ENABLE                                                            */
 /* SETTINGS FOR TOGGLE-BOX lOpenOnInit IN FRAME Attribute-Dlg
+   NO-DISPLAY NO-ENABLE                                                 */
+/* SETTINGS FOR TOGGLE-BOX lShared IN FRAME Attribute-Dlg
+   NO-ENABLE                                                            */
+/* SETTINGS FOR TOGGLE-BOX lTimed IN FRAME Attribute-Dlg
    NO-DISPLAY NO-ENABLE                                                 */
 /* SETTINGS FOR TOGGLE-BOX lToggleDataTargets IN FRAME Attribute-Dlg
    NO-DISPLAY                                                           */
 /* SETTINGS FOR TOGGLE-BOX lUpdateFromSource IN FRAME Attribute-Dlg
    NO-DISPLAY NO-ENABLE                                                 */
 /* SETTINGS FOR TOGGLE-BOX RebuildOnRepos IN FRAME Attribute-Dlg
-   NO-DISPLAY                                                           */
+   NO-DISPLAY NO-ENABLE                                                 */
 /* SETTINGS FOR TOGGLE-BOX ServerOperatingMode IN FRAME Attribute-Dlg
    NO-DISPLAY NO-ENABLE                                                 */
 /* SETTINGS FOR TOGGLE-BOX togPromptOnDelete IN FRAME Attribute-Dlg
@@ -313,6 +368,18 @@ DO:
                     ckCurChanged:CHECKED).
   DYNAMIC-FUNCTION("setRebuildOnRepos":U IN p_hSMO,
                     RebuildOnRepos:CHECKED).
+  
+  /* giCacheduration is assigned in saveCacheDuration() called on 
+     valueChanged of iCacheHours and iCacheMinutes, so deal with the
+     non-timed cases: 0 if no-cache, else ? if not timed  */
+  IF NOT lCached:CHECKED THEN giCacheDuration = 0.
+  ELSE IF NOT lTimed:CHECKED OR (lTimed:CHECKED AND giCacheDuration = 0) 
+       THEN giCacheduration = -1. 
+
+  DYNAMIC-FUNCTION("setCacheDuration":U IN p_hSMO,giCacheDuration).
+
+  DYNAMIC-FUNCTION("setShareData":U IN p_hSMO,lShared:CHECKED).
+
   DYNAMIC-FUNCTION("setOpenOnInit":U IN p_hSMO,
                     lOpenOnInit:CHECKED).
   DYNAMIC-FUNCTION("setServerOperatingMode":U IN p_hSMO,
@@ -324,8 +391,7 @@ DO:
                     DisconnectAppServer:CHECKED).
   DYNAMIC-FUNCTION("setObjectname":U IN p_hSMO, fObjectName:SCREEN-VALUE).
   DYNAMIC-FUNCTION("setUpdateFromSource":U IN p_hSMO, lUpdateFromSource:SCREEN-VALUE).
-  DYNAMIC-FUNCTION("setToggleDataTargets":U IN p_hSMO,
-                    lToggleDataTargets:CHECKED).
+  DYNAMIC-FUNCTION("setToggleDataTargets":U IN p_hSMO,lToggleDataTargets:CHECKED).
 
   DYNAMIC-FUNCTION("setPromptOnDelete":U IN p_hSMO,
                     togPromptOnDelete:CHECKED).
@@ -359,7 +425,7 @@ END.
 
 &Scoped-define SELF-NAME btnDisplayed
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL btnDisplayed Attribute-Dlg
-ON CHOOSE OF btnDisplayed IN FRAME Attribute-Dlg /* Edit Display Field List */
+ON CHOOSE OF btnDisplayed IN FRAME Attribute-Dlg /* Edit display field list */
 DO:
   IF NOT VALID-HANDLE(p_hSMO) THEN RETURN.
 
@@ -414,6 +480,28 @@ END.
 &ANALYZE-RESUME
 
 
+&Scoped-define SELF-NAME iCacheHours
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL iCacheHours Attribute-Dlg
+ON VALUE-CHANGED OF iCacheHours IN FRAME Attribute-Dlg /* Hours */
+DO:
+  saveCacheDuration().
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME iCacheMinutes
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL iCacheMinutes Attribute-Dlg
+ON VALUE-CHANGED OF iCacheMinutes IN FRAME Attribute-Dlg
+DO:
+  saveCacheDuration().
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
 &Scoped-define SELF-NAME lBatch
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL lBatch Attribute-Dlg
 ON VALUE-CHANGED OF lBatch IN FRAME Attribute-Dlg /* Read data in batches of: */
@@ -424,6 +512,43 @@ DO:
     ASSIGN fRowsToBatch.   
   initRowsToBatch().
   initObjects().
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME lCached
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL lCached Attribute-Dlg
+ON VALUE-CHANGED OF lCached IN FRAME Attribute-Dlg /* Cache data */
+DO:
+  ASSIGN lCached.
+  initObjects().
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME lShared
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL lShared Attribute-Dlg
+ON VALUE-CHANGED OF lShared IN FRAME Attribute-Dlg /* Share data */
+DO:
+  ASSIGN lShared. 
+  initObjects().       
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME lTimed
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL lTimed Attribute-Dlg
+ON VALUE-CHANGED OF lTimed IN FRAME Attribute-Dlg /* Timed cache */
+DO:
+  ASSIGN lTimed.
+  initObjects().
+
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -472,6 +597,28 @@ END.
 &ANALYZE-RESUME
 
 
+&Scoped-define SELF-NAME RebuildOnRepos
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL RebuildOnRepos Attribute-Dlg
+ON VALUE-CHANGED OF RebuildOnRepos IN FRAME Attribute-Dlg /* Rebuild dataset on reposition */
+DO:
+  ASSIGN RebuildOnRepos.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME ServerOperatingMode
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL ServerOperatingMode Attribute-Dlg
+ON VALUE-CHANGED OF ServerOperatingMode IN FRAME Attribute-Dlg /* Force to stateful operating mode */
+DO:
+  ASSIGN serveroperatingMode.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
 &UNDEFINE SELF-NAME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Attribute-Dlg 
@@ -495,7 +642,19 @@ THEN FRAME {&FRAME-NAME}:PARENT = ACTIVE-WINDOW.
 /* Get procedure type */
 RUN adeuib/_uibinfo.p (?, "PROCEDURE ?":U, "TYPE":U, OUTPUT cObjType).
 web = cObjType BEGINS "WEB":U.
- 
+
+/* Get the user property, to show whether or not a SDO is on a SBO or not,
+   so that this property sheet can disable/enablefields acordingly       */
+IF {fnarg getUserProperty '"ContainerObject"' p_hSMO} = "SmartBusinessObject":U THEN
+  ASSIGN cObjtype = "SmartBusinessObject":U.
+
+/* disallow ? in time fields */
+ON '?':U OF iCacheMinutes, iCachehours
+DO:
+  BELL.
+  RETURN NO-APPLY.
+END.
+
 /* Now enable the interface and wait for the exit condition.            */
 /* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */
 MAIN-BLOCK:
@@ -550,10 +709,10 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  DISPLAY radFieldList fObjectname c_AppPartition fRowsToBatch 
+  DISPLAY c_AppPartition lShared lCached fRowsToBatch fObjectname radFieldList 
       WITH FRAME Attribute-Dlg.
-  ENABLE radFieldList fObjectname fRowsToBatch RebuildOnRepos 
-         lToggleDataTargets togPromptOnDelete RECT-1 
+  ENABLE RECT-1 fRowsToBatch fObjectname lToggleDataTargets togPromptOnDelete 
+         radFieldList 
       WITH FRAME Attribute-Dlg.
   VIEW FRAME Attribute-Dlg.
   {&OPEN-BROWSERS-IN-QUERY-Attribute-Dlg}
@@ -574,18 +733,9 @@ PROCEDURE get-SmO-attributes :
   DEF VAR definedAppPartition AS CHARACTER                 NO-UNDO.
   DEF VAR PartitionChosen     AS CHARACTER                 NO-UNDO.
   DEF VAR cOpMode             AS CHARACTER                 NO-UNDO.
-  DEF VAR cObjType            AS CHARACTER  NO-UNDO.
+  
   DO WITH FRAME Attribute-Dlg:
     
-    /* Get desing window procedure type */
-    RUN adeuib/_uibinfo.p (?, "PROCEDURE ?":U, "TYPE":U, OUTPUT cObjtype).
-    
-    /* Get the user property, to show whether or not a SDO is on a SBO or not,
-       so that this property sheet can disable/enablefields acordingly       */
-    IF {fnarg getUserProperty '"ContainerObject"' p_hSMO} = "SmartBusinessObject":U
-    THEN
-      ASSIGN cObjtype = "SmartBusinessObject":U.
-      
     /********* Application Partition *********/
     /* 
      * Get the application Partition from the object, if none defined, set to (None)
@@ -638,8 +788,7 @@ PROCEDURE get-SmO-attributes :
            ckCurChanged:SENSITIVE = TRUE.
 
     /* RebuildOnRepos *******************/
-    RebuildOnRepos:SCREEN-VALUE = DYNAMIC-FUNCTION("getRebuildOnRepos":U IN p_hSMO).
-    ASSIGN RebuildOnRepos:SENSITIVE = TRUE.
+    RebuildOnRepos = DYNAMIC-FUNCTION("getRebuildOnRepos":U IN p_hSMO).
     
     /* OpenOnInit *******************/
     lOpenOnInit:SCREEN-VALUE = DYNAMIC-FUNCTION("getOpenOnInit":U IN p_hSMO).
@@ -663,11 +812,25 @@ PROCEDURE get-SmO-attributes :
     lUpdateFromSource:SCREEN-VALUE = DYNAMIC-FUNCTION("getUpdateFromSource":U IN p_hSMO).
     ASSIGN lUpdateFromSource:SENSITIVE = cObjType BEGINS "SmartBusinessObject":U .
 
-    /* ObjectNeme */
+     /* ObjectNeme */
     ASSIGN fObjectName = DYNAMIC-FUNCTION('getObjectName':U IN p_hSMO).
+   
+    /* ShareData Cacheduration (screen updated in initObjects) */ 
+    ASSIGN
+      glDynamicdata      = {fn getDynamicData p_hSMO}
+      glhasForeignFields = {fn getForeignFields p_hSMO} <> ''
+      lShared            = {fn getShareData p_hSMO}
+      giCacheDuration    = {fn getCacheDuration p_hSMO}
+      lTimed             = giCacheDuration > 0 AND giCacheDuration <> ?
+      lCached            = giCacheDuration <> 0.
+    
+    /* Set to 0 in order to display as 0 if check-boxes changes */
+    IF giCacheduration = ? OR giCacheduration < 0 THEN giCacheduration = 0. 
+    
     initRowsToBatch().
     initObjects().    
-    ASSIGN lBatch = lBatch:CHECKED.
+    ASSIGN 
+      lBatch = lBatch:CHECKED.
 
     /* prompt */
     ASSIGN
@@ -717,12 +880,46 @@ FUNCTION initObjects RETURNS LOGICAL
       ckCurChanged:CHECKED          = IF web 
                                       THEN FALSE 
                                       ELSE ckCurChanged:CHECKED 
-      serverOperatingMode:SENSITIVE = c_AppPartition:SCREEN-VALUE <> noPartition 
       destroyStateless:SENSITIVE    = web
       disconnectAppServer:SENSITIVE = web AND NOT destroyStateless:CHECKED   
                                       AND 
                                       c_AppPartition:SCREEN-VALUE <> noPartition
       lBatch:SENSITIVE              = lUpdateFromSource:CHECKED = FALSE
+      RebuildOnRepos:SENSITIVE      = lBatch:CHECKED
+      RebuildOnRepos:CHECKED        = RebuildOnRepos AND lBatch:CHECKED
+      lShared:SENSITIVE             = (c_AppPartition:SCREEN-VALUE <> noPartition
+                                       OR cObjType BEGINS "SmartBusinessObject":U)
+                                      AND glDynamicData
+                                      AND lBatch:CHECKED = FALSE 
+                                      AND lUpdateFromSource:CHECKED = FALSE
+                                      AND glhasForeignFields = FALSE
+      lShared:CHECKED               = lShared AND lShared:SENSITIVE
+      lCached:SENSITIVE             = (c_AppPartition:SCREEN-VALUE <> noPartition
+                                       OR cObjType BEGINS "SmartBusinessObject":U)
+                                      AND lBatch:CHECKED = FALSE 
+                                      AND lUpdateFromSource:CHECKED = FALSE
+                                      AND glhasForeignFields = FALSE
+      lCached:CHECKED               = lCached AND lCached:SENSITIVE
+      lTimed:SENSITIVE              = lCached:SENSITIVE AND lCached:CHECKED 
+                                               /* init true if giCacheduration > 0 
+                                                  or changed by user */
+      lTimed:CHECKED                = lCached:CHECKED AND lTimed:SENSITIVE 
+                                      AND lTimed  
+
+      iCachehours:SENSITIVE         = lTimed:SENSITIVE AND lTimed:CHECKED
+      iCacheMinutes:SENSITIVE       = iCachehours:SENSITIVE
+      iCacheHours:FORMAT            = IF lTimed:CHECKED THEN '99' ELSE 'zz'
+      iCacheMinutes:FORMAT          = iCacheHours:FORMAT
+      iCacheHours:SCREEN-VALUE      = IF lTimed:CHECKED 
+                                      THEN STRING((giCacheduration - giCacheDuration MODULO 3600) / 3600)
+                                      ELSE '0'  
+      iCacheMinutes:SCREEN-VALUE    = IF lTimed:CHECKED 
+                                      THEN STRING((giCacheDuration - (iCacheHours:INPUT-VALUE * 3600)) / 60)
+                                      ELSE '0' 
+      serverOperatingMode:SENSITIVE = c_AppPartition:SCREEN-VALUE <> noPartition 
+                                      AND NOT lshared:CHECKED 
+                                      AND NOT lCached:CHECKED
+      serverOperatingMode:CHECKED   = serverOperatingMode:SENSITIVE AND serveroperatingMode 
       .
 
   END.
@@ -739,7 +936,7 @@ FUNCTION initRowsToBatch RETURNS LOGICAL
 /*------------------------------------------------------------------------------
   Purpose: UI adjustments for RowsToBatch 
     Notes: lbatch is set checked if RowsToBatch <> 0 at startup.
-           and this is also called form the trigger     
+           and this is also called from the trigger     
 ------------------------------------------------------------------------------*/
  DO WITH FRAME {&FRAME-NAME}:
    IF lBatch:CHECKED THEN
@@ -770,6 +967,28 @@ END.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION saveCacheDuration Attribute-Dlg 
+FUNCTION saveCacheDuration RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DO WITH FRAME {&FRAME-NAME}:
+    ASSIGN
+      iCacheHours
+      iCacheMinutes
+      giCacheDuration = (iCacheHours * 3600) + (iCacheMinutes * 60). 
+
+  END.
+
+  RETURN FALSE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION webStateCheck Attribute-Dlg 
 FUNCTION webStateCheck RETURNS LOGICAL
   ( /* parameter-definitions */ ) :
@@ -786,7 +1005,7 @@ FUNCTION webStateCheck RETURNS LOGICAL
   "Setting Force to Stateful without setting Disconnect or Destroy on each Web Request" SKIP
   "will lock the AppServer agent to WebSpeed for the whole session." 
              SKIP(1)
-  "Do you want to keep this properties?"
+  "Do you want to keep these settings?"
     VIEW-AS ALERT-BOX WARNING BUTTONS YES-NO UPDATE lOk AS LOG.    
   END.
   ELSE lok = TRUE.

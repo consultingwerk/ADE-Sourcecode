@@ -67,3 +67,7 @@ FUNCTION getTargetProcedure RETURNS HANDLE IN SUPER.
 
 FUNCTION getObjectType RETURNS CHARACTER IN SUPER.
 
+FUNCTION getShowPopup RETURNS logical IN SUPER.
+
+FUNCTION setShowPopup RETURNS logical 
+    (input plShowPopup as logical) IN SUPER.

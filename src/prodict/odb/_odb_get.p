@@ -44,6 +44,9 @@ History:  DLM 01/28/98 Added call for stored procedures.
                        what was pushed.              
           KSM 04/13/04 Comparing SQLTables_buffer.OWNER to user_library unless it's
                        blank.                                        
+          KSM 03/04/05 Added conditions to prevent loading SYS* tables 20050214-028
+          KSM 03/21/05 Added more conditions to prevent loading system tables 20041220-005
+
 */
 
 &SCOPED-DEFINE DATASERVER YES
@@ -423,9 +426,10 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
      ASSIGN fromproto = FALSE.
   
   IF l_client-qual THEN
-      RUN STORED-PROC DICTDBG.SQLTables (?, ?, ?, ?).
+      RUN STORED-PROC DICTDBG.SQLTables (?, ?, ?, "TABLE,VIEW").
   ELSE 
-      RUN STORED-PROC DICTDBG.SQLTables (l_qual_f, l_owner_f, l_name_f, ?).
+      RUN STORED-PROC DICTDBG.SQLTables 
+                  (l_qual_f, l_owner_f, l_name_f, "TABLE,VIEW").
 
   FOR EACH DICTDBG.SQLTables_buffer:
    /* If fromproto then only pull in what we pushed */ 
@@ -462,6 +466,25 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
             TRIM(DICTDBG.SQLTables_buffer.owner) = "SYSCAT" OR
             TRIM(DICTDBG.SQLTables_buffer.owner) = "SYSSTAT" OR
             TRIM(DICTDBG.SQLTables_buffer.owner) = "SYSFUN"  THEN
+               NEXT.
+    ELSE IF TRIM(DICTDBG.SQLTables_buffer.name) = "SYSCHKCST" OR
+            TRIM(DICTDBG.SQLTables_buffer.name) = "SYSCOLUMNS" OR
+            TRIM(DICTDBG.SQLTables_buffer.name) = "SYSCST" OR
+            TRIM(DICTDBG.SQLTables_buffer.name) = "SYSCSTCOL" OR
+            TRIM(DICTDBG.SQLTables_buffer.name) = "SYSCSTDEP" OR
+            TRIM(DICTDBG.SQLTables_buffer.name) = "SYSINDEXES" OR
+            TRIM(DICTDBG.SQLTables_buffer.name) = "SYSKEYS" OR
+            TRIM(DICTDBG.SQLTables_buffer.name) = "SYSKEYCST" OR
+            TRIM(DICTDBG.SQLTables_buffer.name) = "SYSPACKAGE" OR
+            TRIM(DICTDBG.SQLTables_buffer.name) = "SYSREFCST" OR
+            TRIM(DICTDBG.SQLTables_buffer.name) = "SYSTABLES" OR
+            TRIM(DICTDBG.SQLTables_buffer.name) = "SYSTRIGCOL" OR
+            TRIM(DICTDBG.SQLTables_buffer.name) = "SYSTRIGDEP" OR
+            TRIM(DICTDBG.SQLTables_buffer.name) = "SYSTRIGGERS" OR
+            TRIM(DICTDBG.SQLTables_buffer.name) = "SYSTRIGUPD" OR
+            TRIM(DICTDBG.SQLTables_buffer.name) = "SYSVIEWDEP" OR
+            TRIM(DICTDBG.SQLTables_buffer.name) = "SYSVIEWS" OR
+            TRIM(DICTDBG.SQLTables_buffer.name) BEGINS "QIDCT" THEN
                NEXT.
     ELSE DO: 
         /* Check if there is a match with unknown value for

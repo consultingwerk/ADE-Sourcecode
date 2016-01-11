@@ -1006,7 +1006,9 @@ ACCESS_LEVEL=PUBLIC
      * Typically radio-set buttons and tabs (folder pages) will have multiple entries;
      * however, the widget types that have multiple entries are not limited to this.
      */    
-    do iWidgetEntry = (IF pcWidgetType = "TAB":U OR pcWidgetType = "RADIO-SET":U THEN 1 ELSE 0) to piWidgetEntries:
+    do iWidgetEntry = (IF pcWidgetType = "TAB":U OR 
+                          pcWidgetType = "RADIO-SET":U OR
+                          pcWidgetType = "DATAFIELD":U THEN 1 ELSE 0) to piWidgetEntries:
         FIND FIRST gsm_translation WHERE
                    gsm_translation.language_obj    = pdLanguageObj and
                    gsm_translation.object_filename = pcObjectName  and

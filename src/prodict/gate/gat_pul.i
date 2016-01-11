@@ -199,6 +199,7 @@ DEFINE VARIABLE col-num         AS INTEGER                NO-UNDO.
 DEFINE VARIABLE dsname          AS CHARACTER              NO-UNDO.
 DEFINE VARIABLE isasc           AS LOGICAL                NO-UNDO.
 DEFINE VARIABLE upperfld        AS LOGICAL                NO-UNDO.
+DEFINE VARIABLE col-property    AS INTEGER                NO-UNDO.
 /*------------------------------------------------------------------*/
 
 /* LANGUAGE DEPENDENCIES START */ /*--------------------------------*/
@@ -941,7 +942,10 @@ for each gate-work
             RUN STORED-PROC DICTDBG.send-sql-statement h1 = PROC-HANDLE
               ( "select property from sys.col$ where obj# = " + STRING(onum) + " and intcol# = " + STRING(col-num) ).
             FOR EACH DICTDBG.proc-text-buffer WHERE PROC-HANDLE = h1:
-              IF proc-text BEGINS "196904" AND upperfld THEN
+              col-property = INTEGER(TRIM(proc-text)).
+              IF col-property = ? THEN
+                col-property = 0.
+              IF col-property >= 131072 AND GET-BITS(col-property, 18, 1) = 1 THEN
                 ASSIGN isasc = FALSE.
               ELSE
                 ASSIGN isasc = TRUE.

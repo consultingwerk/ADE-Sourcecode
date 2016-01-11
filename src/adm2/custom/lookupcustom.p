@@ -25,11 +25,11 @@
 *********************************************************************/
 /*--------------------------------------------------------------------------
     File        : lookupcustom.p
-    Purpose     : Super procedure to extend lookup class.
+    Purpose     : Super procedure to extend dynlookup class.
 
     Syntax      : lookupcustom.p
 
-    Modified    : 08/11/2000
+    Modified    : 10/20/2004
   ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
 /*----------------------------------------------------------------------*/
@@ -83,13 +83,13 @@
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB Procedure 
 /* ************************* Included-Libraries *********************** */
 
-{src/adm2/lookprop.i}
+{adm2/lookupprop.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
 
-
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 

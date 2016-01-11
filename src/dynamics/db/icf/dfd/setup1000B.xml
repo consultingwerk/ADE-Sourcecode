@@ -934,6 +934,10 @@ Please see the log files for details of the failures and correct these before tr
 			<patch PatchLevel="100001" NodeURL="db/icf/dfd/icfdb100001patch.xml"/>
 			<patch PatchLevel="100002" NodeURL="db/icf/dfd/icfdb100002patch.xml"/>
 			<patch PatchLevel="100002" NodeURL="db/icf/dfd/icfdb100002adolist.xml"/>
+			<patch PatchLevel="100003" NodeURL="db/icf/dfd/icfdb100003patch.xml"/>
+			<patch PatchLevel="100003" NodeURL="db/icf/dfd/icfdb100003adolist.xml"/>
+			<patch PatchLevel="100003" NodeURL="db/icf/dfd/icfdb1000032adolist.xml"/>
+			
 		</database>
 	</setup>
 </Setups>

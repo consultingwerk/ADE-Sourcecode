@@ -218,6 +218,17 @@ FUNCTION setAttributeValue RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setRadioButtons) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setRadioButtons Procedure 
+FUNCTION setRadioButtons RETURNS CHARACTER
+  ( pcValue AS CHARACTER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setSDFSetting) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setSDFSetting Procedure 
@@ -259,7 +270,7 @@ FUNCTION windowAlreadyOpened RETURNS LOGICAL
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 20.81
+         HEIGHT             = 21.05
          WIDTH              = 58.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -464,6 +475,7 @@ PROCEDURE assignDataFields :
  DEFINE VARIABLE cDataFieldFormat AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cDataFieldHelp   AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cDataFieldLabel  AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cDataFieldColLabel AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cDLPObject       AS CHARACTER  NO-UNDO.
 
  FOR EACH _BC WHERE _BC._x-recid = grFrameRecid :
@@ -505,13 +517,16 @@ PROCEDURE assignDataFields :
     DO:
        ASSIGN cDataFieldFormat = findAttributeValue("Format":U,"MASTER":U)
               cDataFieldHelp = findAttributeValue("Help":U,"MASTER":U)
-              cDataFieldLabel = findAttributeValue("Label":U,"MASTER":U).
+              cDataFieldLabel = findAttributeValue("Label":U,"MASTER":U)
+              cDataFieldColLabel = findAttributeValue("ColumnLabel":U,"MASTER":U).
        IF cDataFieldFormat <> ? THEN
            ASSIGN _BC._FORMAT = cDataFieldFormat.
        IF cDataFieldHelp <> ? THEN
            ASSIGN _BC._HELP = cDataFieldHelp.
        IF cDataFieldLabel <> ? THEN
            ASSIGN _BC._LABEL = cDataFieldLabel.
+       IF cDataFieldColLabel <> ? THEN
+           ASSIGN _BC._COL-LABEL = cDataFieldColLabel.
        ASSIGN _BC._HAS-DATAFIELD-MASTER = TRUE.
     END.
 END.
@@ -599,6 +614,7 @@ PROCEDURE assignInstanceCase :
      WHEN "CurrentDescValue":U THEN setSDFSetting("CurrentDescValue":U,pcValue).
      WHEN "CurrentKeyValue":U  THEN setSDFSetting("CurrentKeyValue":U,pcValue).
      WHEN "DataBaseName":U     THEN setAttributeValue("DataBaseName":U,pclevel,pcValue).
+     WHEN "DataSourceName":U   THEN setSDFSetting("DataSourceName":U,pcValue).
      WHEN "Data-Type":U        THEN IF pcValue NE ? THEN
                                        f_F._DATA-TYPE       = pcValue.
      WHEN "DEBLANK":U          THEN f_F._DEBLANK         = LOGICAL(pcValue).
@@ -622,7 +638,11 @@ PROCEDURE assignInstanceCase :
      WHEN "EXPAND":U           THEN f_F._EXPAND          = LOGICAL(pcValue).
      WHEN "FGCOLOR":U          THEN f_L._FGCOLOR         = INTEGER(pcValue).
      WHEN "FieldLabel":U       THEN setSDFSetting("FieldLabel":U,pcValue).
-     WHEN "FieldName":U        THEN setSDFSetting("FieldName":U,pcValue).
+     WHEN "FieldName":U        THEN 
+     DO:
+       setSDFSetting("FieldName":U,pcValue).
+       IF AVAIL f_U THEN f_U._TABLE = ENTRY(1,pcValue,".").
+     END.
      WHEN "FieldToolTip":U     THEN setSDFSetting("FieldToolTip":U,pcValue).
      WHEN "FILLED":U           THEN f_L._FILLED          = LOGICAL(pcValue).
      WHEN "FlagValue":U        THEN setSDFSetting("FlagValue":U,pcValue).
@@ -647,10 +667,7 @@ PROCEDURE assignInstanceCase :
      WHEN "LARGE":U            THEN f_F._LARGE           = LOGICAL(pcValue).
      WHEN "IMAGE-FILE":U       THEN f_F._IMAGE-FILE      = pcValue.
      WHEN "KeyDataType":U      THEN  setSDFSetting("KeyDataType":U,pcValue).
-     WHEN "KeyField":U         THEN  DO: 
-        setSDFSetting("KeyField":U,pcValue).
-        IF AVAIL f_U THEN f_U._TABLE = ENTRY(1,pcValue,".").
-     END.   
+     WHEN "KeyField":U         THEN  setSDFSetting("KeyField":U,pcValue).
      WHEN "KeyFormat":U        THEN  setSDFSetting("KeyFormat":U,pcValue).
      WHEN "LABEL":U      OR
           WHEN "FieldLabel":U THEN  setAttributeValue("LABEL":U,pclevel,pcValue).
@@ -675,7 +692,8 @@ PROCEDURE assignInstanceCase :
      WHEN "PRIVATE-DATA":U     THEN f_U._PRIVATE-DATA    = pcValue.
      WHEN "QueryTables":U      THEN setSDFSetting("QueryTables":U,pcValue).
      WHEN "RADIO-BUTTONS":U    THEN IF f_U._TYPE = "RADIO-SET":U THEN
-                                       f_F._LIST-ITEMS      = pcValue.
+                                       f_F._LIST-ITEMS   = setRadioButtons(pcValue).
+                                       
      WHEN "READ-ONLY":U        THEN f_F._READ-ONLY       = LOGICAL(pcValue).
      WHEN "RESIZABLE":U        THEN f_U._RESIZABLE       = LOGICAL(pcValue).
      WHEN "RETAIN-SHAPE":U     THEN f_F._RETAIN-SHAPE    = LOGICAL(pcValue).
@@ -689,7 +707,11 @@ PROCEDURE assignInstanceCase :
      WHEN "SELECTABLE":U       THEN f_U._SELECTABLE      = LOGICAL(pcValue).
      WHEN "SENSITIVE":U        THEN f_U._SENSITIVE       = LOGICAL(pcValue).
      WHEN "ShowPopup":U        THEN f_U._SHOW-POPUP      = LOGICAL(pcValue).
-     WHEN "SORT":U             THEN f_F._SORT            = LOGICAL(pcValue).
+     WHEN "SORT":U             THEN 
+     DO:
+                                     f_F._SORT            = LOGICAL(pcValue).
+                                     setSDFSetting("Sort":U,pcValue).
+     END.
      WHEN "STRETCH-TO-FIT":U   THEN f_F._STRETCH-TO-FIT  = LOGICAL(pcValue).
      WHEN "SubType":U          THEN IF f_U._SUBTYPE NE "TEXT":U THEN 
                                     f_U._SUBTYPE         = pcValue.
@@ -700,11 +722,11 @@ PROCEDURE assignInstanceCase :
      WHEN "Tooltip":U          THEN f_U._TOOLTIP         = pcValue.
      WHEN "TRANSPARENT":U      THEN f_F._TRANSPARENT     = LOGICAL(pcValue).
      WHEN "VISIBLE":U          THEN ASSIGN f_U._HIDDEN          = NOT LOGICAL(pcValue)
-                                           f_U._VISIBLE         = LOGICAL(pcValue)
-                                           f_L._REMOVE-FROM-LAYOUT = 
-                                              IF f_L._LO-NAME = "Master Layout":U AND glCustomOnlyField THEN TRUE
-                                              ELSE IF NOT CAN-FIND(FIRST ttObject WHERE ttObject.tresultCode <> "{&DEFAULT-RESULT-CODE}") 
-                                              THEN NO ELSE NOT  LOGICAL(pcValue).
+                                           f_U._VISIBLE         = LOGICAL(pcValue).                                          
+/* The visualizationtype is set in the calling procedure before since other attribute values are conditional 
+
+   on it, and there is no guarantee this attribute is set before the others. Remarked out 12/21/04 db  */ 
+
      WHEN "VisualizationType":U THEN setAttributeValue("VisualizationType":U,pclevel,pcvalue).
      WHEN "WIDTH-CHARS":U             THEN f_L._WIDTH = INTEGER(pcValue).
      WHEN "LocalField":U              THEN setSDFSetting("LocalField":U,pcValue).
@@ -1078,7 +1100,8 @@ PROCEDURE buildSettingsList :
         "MappedFields":U            + CHR(4) + CHR(3) + "UseCache":U                    + CHR(4) + CHR(3) +
         "DisableOnInit":U           + CHR(4) + CHR(3) + "DisplayField":U                + CHR(4) + CHR(3) + 
         "EnableField":U             + CHR(4) + CHR(3) + "ObjectLayout":U                + CHR(4) + CHR(3) + 
-        "AutoFill":U                + CHR(4) + CHR(3) + "TempLocation":U                + CHR(4).
+        "AutoFill":U                + CHR(4) + CHR(3) + "TempLocation":U                + CHR(4) + CHR(3) + 
+        "Sort":U                    + CHR(4) + CHR(3) + "DataSourceName":U              + CHR(4).
 
 END PROCEDURE.
 
@@ -1309,10 +1332,13 @@ PROCEDURE createSDOfields :
              _BC._FORMAT     = hField:FORMAT
              _BC._DEF-HELP   = hField:HELP
              _BC._DEF-LABEL  = hField:LABEL
+             _BC._DEF-COLLABEL = hField:COLUMN-LABEL
              _BC._DEF-WIDTH  = 10      /* Haven't saved this */
              _BC._ENABLED    = LOOKUP(_BC._DISP-NAME, cEnabledInThisTable) > 0
              _BC._HELP       = hField:HELP
              _BC._LABEL      = hField:LABEL
+             _BC._COL-LABEL  = IF hField:LABEL = hField:COLUMN-LABEL THEN ?
+                               ELSE hField:COLUMN-LABEL
              _BC._WIDTH      = IF gcQBFieldWidths = "":U or
                                  ENTRY(inumCol,gcQBFieldWidths) = "?":U THEN hField:WIDTH-CHARS
                                  ELSE DECIMAL(ENTRY(inumCol,gcQBFieldWidths))
@@ -1545,7 +1571,7 @@ PROCEDURE processInstances :
 
     /* If the instance only exists in a custom layout , create the master _U,_F and _L records */
     IF NOT glMasterLayout THEN
-       ASSIGN  glCustomOnlyField = NOT CAN-FIND(f_U WHERE f_U._NAME = cName)
+       ASSIGN  glCustomOnlyField = NOT CAN-FIND(f_U WHERE f_U._NAME = cName AND f_U._WINDOW-HANDLE EQ _h_win)
                glMasterLayout   =  glCustomOnlyField.
     ELSE
        glCustomOnlyField = FALSE.
@@ -1620,12 +1646,15 @@ PROCEDURE processInstances :
           gcSDOName = ENTRY(1, b_ttObject.tObjectInstanceName, ".":U). 
           
        ASSIGN f_U._TYPE = findAttributeValue("VisualizationType":U,"INSTANCE":U).
+
        /* Make sure we know the type before reading other attributes */
      
        IF LOOKUP("Field":U,gcInheritClasses) > 0  THEN
            ASSIGN f_U._TYPE = "SmartDataField":U.
        IF f_U._TYPE = "TOGGLE-BOX" THEN 
            ASSIGN f_F._DATA-TYPE = "LOGICAL":U.
+       ELSE IF f_U._TYPE = "SELECTION-LIST":U THEN
+           ASSIGN f_F._DATA-TYPE = "CHARACTER":U.
 
        ASSIGN f_L._ROW-MULT           = 1
               f_L._COL-MULT           = 1
@@ -2702,9 +2731,8 @@ FUNCTION setAttributeValue RETURNS LOGICAL
     DO:
       IF pcLevel = "Object":U THEN
       DO:
-        ASSIGN f_U._TYPE  = pcValue
-               f_U._ALIGN = IF LOOKUP(f_U._TYPE,"RADIO-SET,IMAGE,SELECTION-LIST,EDITOR":U) > 0
-                            THEN "L":U ELSE "C":U.
+        f_U._ALIGN = IF LOOKUP(f_U._TYPE,"RADIO-SET,IMAGE,SELECTION-LIST,EDITOR":U) > 0
+                     THEN "L":U ELSE "C":U.
         IF f_U._TYPE = "TEXT":U AND 
                (LOOKUP("DataField":U,gcInheritClasses) > 0 OR
                LOOKUP("DynFillin":U,gcInheritClasses) > 0 )
@@ -2767,6 +2795,39 @@ FUNCTION setAttributeValue RETURNS LOGICAL
   END CASE.
   RETURN TRUE.   /* Function return value. */
 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setRadioButtons) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setRadioButtons Procedure 
+FUNCTION setRadioButtons RETURNS CHARACTER
+  ( pcValue AS CHARACTER) :
+/*------------------------------------------------------------------------------
+  Purpose:  Quotes the radio-buttons accordingly based on the data type, since 
+            the repository does not store the quotes, but they are required for 
+            appBuilder internal fields
+    Notes:  
+------------------------------------------------------------------------------*/
+ DEFINE VARIABLE iLoop  AS INTEGER     NO-UNDO.
+ DEFINE VARIABLE cEntry AS CHARACTER   NO-UNDO.
+ 
+ IF AVAIL f_U AND AVAIL f_F THEN
+ DO:
+   DO iLoop = 1 TO NUM-ENTRIES(pcValue, f_F._DELIMITER):
+      cEntry = ENTRY(iLoop,pcValue, f_F._DELIMITER).
+       /* Add string quotes for all odd entries, and for all even entires that are character data types */
+      IF iLoop MODULO 2 NE 0 OR f_F._DATA-TYPE = "CHARACTER":U THEN
+         ENTRY(iLoop,pcValue, f_F._DELIMITER) = '"' + ENTRY(iLoop,pcValue, f_F._DELIMITER) + '"'.
+   END.
+ END.
+ 
+ RETURN pcValue.   /* Function return value. */
 
 END FUNCTION.
 

@@ -1276,6 +1276,7 @@ PROCEDURE generateEntityInstances :
     DEFINE INPUT PARAMETER pcEntityObjectName           AS CHARACTER        NO-UNDO.
     DEFINE INPUT PARAMETER pcFieldList                  AS CHARACTER        NO-UNDO.
     DEFINE INPUT PARAMETER plDeleteExistingInstances    AS LOGICAL          NO-UNDO.
+    
     DEFINE VARIABLE hStoreAttributeBuffer           AS HANDLE                           NO-UNDO.
     DEFINE VARIABLE hStoreAttributeTable            AS HANDLE                           NO-UNDO.
     DEFINE VARIABLE dEntityObjectObj                AS DECIMAL                          NO-UNDO.
@@ -1283,7 +1284,9 @@ PROCEDURE generateEntityInstances :
     DEFINE VARIABLE dObjectInstanceObj              AS DECIMAL                          NO-UNDO.
     DEFINE VARIABLE iInstanceOrder                  AS INTEGER                          NO-UNDO.
     DEFINE VARIABLE iOrderOffset                    AS INTEGER                          NO-UNDO.
+    define variable iObjectSequence                 as integer                          no-undo.
     DEFINE VARIABLE cFieldName                      AS CHARACTER                        NO-UNDO.
+    define variable cInstanceName                   as character                        no-undo.
     
     DEFINE BUFFER ryc_object_instance   FOR ryc_object_instance.
 
@@ -1294,12 +1297,13 @@ PROCEDURE generateEntityInstances :
                                                INPUT pcEntityObjectName, INPUT 0           ).
     IF dEntityObjectObj EQ 0 THEN
         RETURN ERROR {aferrortxt.i 'AF' '5' '?' '?' '"Entity object"' "'Entity name: ' + pcEntityObjectName" }.
+
+    iOrderOffset = 0.
     
     /* If required, first remove all contained instances. */
     IF plDeleteExistingInstances THEN
     DO:
-        ASSIGN iOrderOffset = 0.
-        RUN removeObjectInstance IN ghDesignManager ( INPUT pcEntityObjectName,              /* Container object name */
+        RUN removeObjectInstance IN ghDesignManager ( INPUT pcEntityObjectName,            /* Container object name */
                                                       INPUT "{&DEFAULT-RESULT-CODE}":U,
                                                       INPUT "":U,                          /* pcInstanceObjectName */
                                                       INPUT "":U,                          /* pcInstanceName       */
@@ -1308,39 +1312,56 @@ PROCEDURE generateEntityInstances :
     END.    /* delete instances. */       
     ELSE
     DO:
-        /* Find the largest existing instance order (aka layout_position) */
+        /* Find the largest existing instance order */
         FOR EACH ryc_object_instance WHERE
                  ryc_object_instance.container_smartObject_obj = dEntityObjectObj
                  NO-LOCK
-                 BY ryc_object_instance.layout_position DESCENDING:
-            ASSIGN iOrderOffset = INTEGER(ryc_object_instance.layout_position) NO-ERROR.
-            /* Find the largest layout position where there is a numeric integer value. */
-            IF NOT ERROR-STATUS:ERROR THEN
-                LEAVE.
+                 BY ryc_object_instance.object_sequence DESCENDING:
+            ASSIGN iOrderOffset = ryc_object_instance.object_sequence.
+            LEAVE.
         END.    /* look for order offset */
-
+        
         /* Belts-and-braces checking. */
         IF iOrderOffset EQ ? THEN
             ASSIGN iOrderOffset = 0.
 
         ASSIGN iOrderOffset = iOrderOffset + 1.
     END.    /* don't delete them */
-
+    
     /* There are no attributes stored (nor allowed to be stored, in fact). */
     ASSIGN hStoreAttributeBuffer = ?
            hStoreAttributeTable  = ?.
-
+    
     DO iInstanceOrder = 1 TO NUM-ENTRIES(pcFieldList, CHR(3)):
-        ASSIGN cFieldName = ENTRY(iInstanceOrder, pcFieldList, CHR(3)).
+        ASSIGN cFieldName = ENTRY(iInstanceOrder, pcFieldList, CHR(3))
+               /* We just want the field name portion for the instance name,
+                  not the table portion.
+                */
+               cInstanceName = ENTRY(NUM-ENTRIES(cFieldName, ".":U), cFieldName, ".":U)
+               no-error.
+        
+        /* Keep the object sequence value the same for existing instances.
+           Add any new instances off the end.
+         */                   
+        find ryc_object_instance where
+             ryc_object_instance.container_smartobject_obj = dEntityObjectObj and
+             ryc_object_instance.instance_name = cInstanceName
+             no-lock no-error.
+        
+        if available ryc_object_instance then
+            iObjectSequence = ryc_object_instance.object_sequence.
+        else
+            assign iObjectSequence = iOrderOffset
+                   iOrderOffset = iOrderOffset + 1.
+        
         RUN insertObjectInstance IN ghDesignManager ( INPUT  dEntityObjectObj,                         /* pdContainerObjectObj               */
                                                       INPUT  cFieldName,                               /* Contained Instance Object Name     */
-                                                      INPUT  "{&DEFAULT-RESULT-CODE}":U,               /* pcResultCode,                      */
-                                                      /* We just want the field name porting for the instance naem, not the table portion. */
-                                                      INPUT  ENTRY(NUM-ENTRIES(cFieldName, ".":U), cFieldName, ".":U),
+                                                      INPUT  "{&DEFAULT-RESULT-CODE}":U,               /* pcResultCode,                      */                                                      
+                                                      INPUT  cInstanceName,                            /* instance name */
                                                       INPUT  "":U,                                     /* pcInstanceDescription,             */
-                                                      INPUT  STRING(iOrderOffset + iInstanceOrder, "999":U), /* pcLayoutPosition,            */
+                                                      INPUT  STRING(iObjectSequence, "999":U),         /* pcLayoutPosition */
                                                       INPUT  ?,                                        /* Page number - not applicable */
-                                                      INPUT  iOrderOffset + iInstanceOrder,            /* Object sequence */
+                                                      INPUT  iObjectSequence,                          /* Object sequence */
                                                       INPUT  NO,                                       /* plForceCreateNew,                  */
                                                       INPUT  hStoreAttributeBuffer,                    /* phAttributeValueBuffer,            */
                                                       INPUT  TABLE-HANDLE hStoreAttributeTable,        /* TABLE-HANDLE phAttributeValueTable */
@@ -1348,7 +1369,7 @@ PROCEDURE generateEntityInstances :
                                                       OUTPUT dObjectInstanceObj            ) NO-ERROR.
         IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR RETURN-VALUE.
     END.    /* Loop through fields. */
-
+    
     ASSIGN ERROR-STATUS:ERROR = NO.
     RETURN.
 END PROCEDURE.  /* generateEntityInstances */

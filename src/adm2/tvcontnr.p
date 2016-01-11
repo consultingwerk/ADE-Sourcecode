@@ -243,6 +243,17 @@ FUNCTION getParentDataNodeBuffer RETURNS HANDLE
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getRowsToBatch) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getRowsToBatch Procedure  _DB-REQUIRED
+FUNCTION getRowsToBatch RETURNS INTEGER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getRunTimeAttributeTree) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getRunTimeAttributeTree Procedure 
@@ -292,6 +303,17 @@ FUNCTION getTreeRunAttributeTree RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD lockWindow Procedure 
 FUNCTION lockWindow RETURNS LOGICAL
   (plLockWindow AS LOGICAL)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-retrieveNodeData) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD retrieveNodeData Procedure 
+FUNCTION retrieveNodeData RETURNS LOGICAL
+        ( input pcRootNodeCode        as character ) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -358,6 +380,17 @@ FUNCTION setLastLaunchedNode RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setRootNodeCode Procedure 
 FUNCTION setRootNodeCode RETURNS LOGICAL
   ( pcRootNodeCode AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setRowsToBatch) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setRowsToBatch Procedure 
+FUNCTION setRowsToBatch RETURNS LOGICAL
+    ( INPUT piRowsToBatch   AS INTEGER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1000,7 +1033,8 @@ PROCEDURE createRepositoryObjects :
   DEFINE VARIABLE lSecured         AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cDummyButton     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE dParentNodeObj   AS DECIMAL    NO-UNDO.
-
+    define variable cProperties        as character                        no-undo.
+    
   DEFINE BUFFER bttFrame FOR ttFrame.
   DEFINE BUFFER bttNode  FOR ttNode.
 
@@ -1124,12 +1158,13 @@ PROCEDURE createRepositoryObjects :
         hTitleBar:SCREEN-VALUE = "":U.
         RETURN ERROR "secured":U.
     END.
-
+    
     {set CurrentLogicalName pcLogicalObjectName}.
+    cProperties = 'LogicalObjectName' + chr(4) + pcLogicalObjectName.
     RUN constructObject IN TARGET-PROCEDURE
       ( INPUT 'ry/uib/rydynframw.w',
         INPUT hWindow,
-        INPUT '',
+        INPUT cProperties,
         OUTPUT hObjectHandle ).
     {set CurrentLogicalName ''}.
     
@@ -1150,9 +1185,12 @@ PROCEDURE createRepositoryObjects :
     ASSIGN ttFrame.cFrameTitle = cWindowTitle.
     
     /* Start Super Procedure */
-    RUN getObjectSuperProcedure IN gshRepositoryManager (INPUT pcLogicalObjectName,
-                                                         INPUT pcInstanceAttributes,
-                                                         OUTPUT cSuperProcedure).
+    if can-do(hObjectHandle:internal-entries, 'adm-assignObjectProperties') then
+        {get SuperProcedure cSuperProcedure hObjectHandle}.
+    else
+        RUN getObjectSuperProcedure IN gshRepositoryManager (INPUT pcLogicalObjectName,
+                                                             INPUT pcInstanceAttributes,
+                                                             OUTPUT cSuperProcedure).
     IF cSuperProcedure NE "":U THEN
     DO:
       {launch.i
@@ -1168,7 +1206,7 @@ PROCEDURE createRepositoryObjects :
         ASSIGN ttFrame.hSuperProcedure = hPlip.
       END.
     END.    /* object created ok, and super exists. */       
-
+    
     /* Set the current frame */
     FIND FIRST ttProp WHERE ttProp.hTargetProcedure = TARGET-PROCEDURE EXCLUSIVE-LOCK.
     ASSIGN ttProp.hCurrentFrame   = hObjectHandle
@@ -1445,6 +1483,15 @@ PROCEDURE destroyNonTreeObjects :
       EXCLUSIVE-LOCK:
     DELETE ttNode.
   END.
+
+  /* reset treeview cotrol variables */  
+  FIND FIRST ttProp WHERE ttProp.hTargetProcedure = TARGET-PROCEDURE.
+  ASSIGN ttProp.cCurrentNodeCode     = "":U
+         ttProp.cLaunchedFolderName  = "":U
+         ttProp.cLaunchedRunInstance = "":U
+         ttProp.cLaunchedSDOName     = "":U
+         ttProp.iStructLevel         = 0.
+
   
 END PROCEDURE.
 
@@ -1513,7 +1560,7 @@ PROCEDURE filterDataAvailable :
   
   DEFINE VARIABLE cNodeKey      AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hTreeViewOCX  AS HANDLE     NO-UNDO.
-  
+
   IF pcFilterData = ? OR
      pcFilterData = "?":U THEN
     pcFilterData = "":U.
@@ -2179,6 +2226,7 @@ PROCEDURE loadSDOSBOData :
            hBuf:BUFFER-FIELD('key_fields':U):BUFFER-VALUE      = cObjField
            hBuf:BUFFER-FIELD('record_ref':U):BUFFER-VALUE      = cRecordRef
            hBuf:BUFFER-FIELD('record_rowid':U):BUFFER-VALUE    = TO-ROWID(ENTRY(1,DYNAMIC-FUNCTION("getRowIdent":U IN hSDOHandle)))
+           hBuf:BUFFER-FIELD('rowident':U):BUFFER-VALUE        = DYNAMIC-FUNCTION("getRowIdent":U IN hSDOHandle)
            hBuf:BUFFER-FIELD('node_checked':U):BUFFER-VALUE    = bThisNode.node_checked
            hBuf:BUFFER-FIELD('image':U):BUFFER-VALUE           = TRIM(bThisNode.image_file_name)
            hBuf:BUFFER-FIELD('selected_image':U):BUFFER-VALUE  = TRIM(bThisNode.selected_image_file_name)
@@ -2220,6 +2268,7 @@ PROCEDURE loadSDOSBOData :
                hBuf:BUFFER-FIELD('key_fields':U):BUFFER-VALUE      = cObjField
                hBuf:BUFFER-FIELD('record_ref':U):BUFFER-VALUE      = cRecordRef
                hBuf:BUFFER-FIELD('record_rowid':U):BUFFER-VALUE    = TO-ROWID(ENTRY(1,DYNAMIC-FUNCTION("getRowIdent":U IN hSDOHandle)))
+               hBuf:BUFFER-FIELD('rowident':U):BUFFER-VALUE        = DYNAMIC-FUNCTION("getRowIdent":U IN hSDOHandle)
                hBuf:BUFFER-FIELD('node_checked':U):BUFFER-VALUE    = bThisNode.node_checked
                hBuf:BUFFER-FIELD('image':U):BUFFER-VALUE           = "ry/img/treemore.bmp"
                hBuf:BUFFER-FIELD('selected_image':U):BUFFER-VALUE  = "":U
@@ -2315,11 +2364,11 @@ PROCEDURE loadTreeData :
   hBuf:EMPTY-TEMP-TABLE().
   RUN emptyTree IN hTreeViewOCX.
   
+  
   IF NOT CAN-FIND(FIRST ttNode 
                   WHERE ttNode.hTargetProcedure = TARGET-PROCEDURE NO-LOCK) THEN
-    RUN ry/app/rytrenodep.p ON gshAstraAppServer (INPUT cRootNodeCode,
-                                                  INPUT TARGET-PROCEDURE,
-                                                  OUTPUT TABLE ttNode APPEND).
+    {fnarg retrieveNodeData cRootNodeCode}.
+  
   IF NOT ttProp.lInitialized AND 
      CAN-FIND(FIRST ttNode
               WHERE ttNode.hTargetProcedure = TARGET-PROCEDURE
@@ -2460,6 +2509,7 @@ PROCEDURE loadTXTData :
            hBuf:BUFFER-FIELD('node_label':U):BUFFER-VALUE      = bThisNode.translatedTextLabel
            hBuf:BUFFER-FIELD('record_ref':U):BUFFER-VALUE      = "":U
            hBuf:BUFFER-FIELD('record_rowid':U):BUFFER-VALUE    = ?
+           hBuf:BUFFER-FIELD('rowident':U):BUFFER-VALUE        = "":U
            hBuf:BUFFER-FIELD('node_checked':U):BUFFER-VALUE    = bThisNode.node_checked
            hBuf:BUFFER-FIELD('image':U):BUFFER-VALUE           = bThisNode.image_file_name
            hBuf:BUFFER-FIELD('selected_image':U):BUFFER-VALUE  = bThisNode.selected_image_file_name
@@ -2596,11 +2646,13 @@ PROCEDURE manageSDOs :
   FIND FIRST ttProp WHERE ttProp.hTargetProcedure = TARGET-PROCEDURE EXCLUSIVE-LOCK.
   ASSIGN ttProp.cPrimarySDOName = pcSDOSBOName.
   
-  /* apply filter values, if allowed */
-  RUN applyFilter IN TARGET-PROCEDURE 
-      (INPUT ttProp.cFilterData,
-       INPUT phSDOHandle,
-       INPUT pdNodeObj).
+  /* Apply filter values, if allowed. For structured SDOs, the filter is only
+     applied to the root node */
+  IF NOT plStructuredSDO OR (plStructuredSDO AND piStructLevel = 0) THEN
+    RUN applyFilter IN TARGET-PROCEDURE 
+        (INPUT ttProp.cFilterData,
+         INPUT phSDOHandle,
+         INPUT pdNodeObj).
 
   /* Set foreign field values */
   IF pcForeignFields <> "":U THEN
@@ -2834,6 +2886,7 @@ PROCEDURE newRecordAdded :
          hTreeBuffer:BUFFER-FIELD('key_fields':U):BUFFER-VALUE      = cObjField
          hTreeBuffer:BUFFER-FIELD('record_ref':U):BUFFER-VALUE      = cRecordRef
          hTreeBuffer:BUFFER-FIELD('record_rowid':U):BUFFER-VALUE    = TO-ROWID(ENTRY(1,DYNAMIC-FUNCTION("getRowIdent":U IN hSDOHandle)))
+         hTreeBuffer:BUFFER-FIELD('rowident':U):BUFFER-VALUE        = DYNAMIC-FUNCTION("getRowIdent":U IN hSDOHandle)
          hTreeBuffer:BUFFER-FIELD('node_checked':U):BUFFER-VALUE    = ttNode.node_checked
          hTreeBuffer:BUFFER-FIELD('image':U):BUFFER-VALUE           = ttNode.image_file_name
          hTreeBuffer:BUFFER-FIELD('selected_image':U):BUFFER-VALUE  = ttNode.selected_image_file_name
@@ -3389,7 +3442,7 @@ DEFINE VARIABLE hTreeViewOCX    AS HANDLE     NO-UNDO.
       DO:
         /* reposition only if the current SDO record does not match the node rowid */
         IF NOT DYNAMIC-FUNCT("findRowObjectUseRowIdent":U IN hNodeSDO, 
-          STRING(hTreeNodeBuf:BUFFER-FIELD("record_rowid":U):BUFFER-VALUE)) THEN
+                             hTreeNodeBuf:BUFFER-FIELD("rowident":U):BUFFER-VALUE) THEN
         DO:
           /* set the foreign field values, if any */
           {get ForeignFields cForeignFields hNodeSDO}.
@@ -3498,6 +3551,7 @@ DEFINE VARIABLE iLoop             AS INTEGER    NO-UNDO.
 
           /* this is now our last known data node */
           pcLastDataNode = pcNodeKey.
+
         END.
       END.
 
@@ -3507,7 +3561,7 @@ DEFINE VARIABLE iLoop             AS INTEGER    NO-UNDO.
       DO:
         ASSIGN
           hParentNodeSDO = hTreeNodeBuf:BUFFER-FIELD("sdo_handle":U):BUFFER-VALUE
-          cRowIdent = STRING(hTreeNodeBuf:BUFFER-FIELD("record_rowid":U):BUFFER-VALUE).
+          cRowIdent = hTreeNodeBuf:BUFFER-FIELD("rowident":U):BUFFER-VALUE.
 
         /* only reposition if the node rowid does not match the corresponding SDO's record */
         IF NOT DYNAMIC-FUNCT("findRowObjectUseRowIdent":U IN hParentNodeSDO, cRowIdent) THEN
@@ -4410,7 +4464,7 @@ PROCEDURE tvNodeSelected :
       END.
 
       /* Reposition SDO */
-      RUN repositionSDO IN TARGET-PROCEDURE (INPUT pcNodeKey).
+      RUN repositionSDO IN TARGET-PROCEDURE (INPUT pcNodeKey).      
       RUN createRepositoryObjects IN TARGET-PROCEDURE (INPUT cLogicalObject,
                                                        INPUT cPrimarySDO,
                                                        INPUT cRunAttribute, 
@@ -4431,8 +4485,7 @@ PROCEDURE tvNodeSelected :
         PUBLISH "dataAvailable":U FROM hNodeSDO (INPUT "DIFFERENT":U).
       END.
   END.
-
-
+  
   /* Establish data-link chain for current node. */
   FIND FIRST bRunningSDO WHERE bRunningSDO.hTargetProcedure = TARGET-PROCEDURE
                            AND bRunningSDO.hSDOHandle = hNodeSDO
@@ -4977,6 +5030,33 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getRowsToBatch) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getRowsToBatch Procedure 
+FUNCTION getRowsToBatch RETURNS INTEGER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Gets the RowsToBatch property.
+    Notes:  * This property doesn't really belong here, since it is stored against
+              the DynTree class. THe DynTree class doesn't have its own super procedure
+              (it uses rydynframp, which is used for all object containers, including
+              windows and dynamic smartframes). The RowsToBatch property is only 
+              supported for DynTree objects, so this function appears here.
+------------------------------------------------------------------------------*/
+    define variable iRowsToBatch        as integer                    no-undo.
+    
+    &scoped-define xpRowsToBatch
+    {get RowsToBatch iRowsToBatch}.
+    &undefine xpRowsToBatch
+        
+    return iRowsToBatch.
+END FUNCTION.    /* getRowsToBatch */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getRunTimeAttributeTree) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getRunTimeAttributeTree Procedure 
@@ -5145,6 +5225,37 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-retrieveNodeData) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION retrieveNodeData Procedure 
+FUNCTION retrieveNodeData RETURNS LOGICAL
+        ( input pcRootNodeCode        as character ):
+/*------------------------------------------------------------------------------
+  Purpose: Retrieves node data, either from a generated object, or from the 
+                   repository.
+        Notes: 
+------------------------------------------------------------------------------*/    
+    /* If this is a generated object, then retrieve the node data from the
+       generated object.
+       
+       If not, the retrieve in the normal fashion.
+     */
+    if can-do(target-procedure:internal-entries, 'adm-loadNodes') then
+        run adm-loadNodes in target-procedure (output table ttNode append).
+    else
+        run ry/app/rytrenodep.p on gshAstraAppServer ( input  pcRootNodeCode,
+                                                       input  target-procedure,
+                                                       output table ttNode append ).
+    
+    error-status:error = no.
+    return true.
+END FUNCTION.    /* retrieveNodeData */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setAutoSort) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setAutoSort Procedure 
@@ -5276,6 +5387,31 @@ FUNCTION setRootNodeCode RETURNS LOGICAL
   RETURN FALSE.   /* Function return value. */
 
 END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setRowsToBatch) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setRowsToBatch Procedure 
+FUNCTION setRowsToBatch RETURNS LOGICAL
+    ( INPUT piRowsToBatch   AS INTEGER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Sets the RowsToBatch property.
+    Notes:  * This property doesn't really belong here, since it is stored against
+              the DynTree class. THe DynTree class doesn't have its own super procedure
+              (it uses rydynframp, which is used for all object containers, including
+              windows and dynamic smartframes). The RowsToBatch property is only 
+              supported for DynTree objects, so this function appears here.
+------------------------------------------------------------------------------*/
+    &scoped-define xpRowsToBatch
+    {set RowsToBatch piRowsToBatch}.
+    &Undefine xpRowsToBatch
+    
+    return true.
+END FUNCTION.    /* set RowsToBatch */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

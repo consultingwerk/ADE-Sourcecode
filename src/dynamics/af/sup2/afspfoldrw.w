@@ -481,7 +481,6 @@ END.
 
 
 /* ***************************  Main Block  *************************** */
-
 RUN _getColours.
 
 /* Folder-specific properties which are in the property temp-table. */
@@ -867,6 +866,7 @@ END PROCEDURE.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disablePages s-object 
 PROCEDURE disablePages :
+
 /*------------------------------------------------------------------------------
   Purpose:     Astra2 procedure to disable specified tab(s)
 
@@ -1274,6 +1274,7 @@ PROCEDURE resizeObject :
   DEFINE INPUT PARAMETER p-width  AS DECIMAL NO-UNDO.
   
   DEFINE VARIABLE FRAME-PARENT AS WIDGET-HANDLE NO-UNDO.
+  DEFINE VARIABLE iCount       AS INTEGER       NO-UNDO.
   
   ASSIGN
       gdYDifference = (IF gdYDifference = ? THEN 0
@@ -1287,8 +1288,15 @@ PROCEDURE resizeObject :
        this folder object is initialised before its parent is resized and so the
        frame on which the tabs are created is too small.
      */ 
-    IF gcVisualization EQ "TABS":U AND NOT VALID-HANDLE(hTabMain[itabtotal]) THEN
-        ASSIGN gLResize = FALSE.     
+     
+    IF gcVisualization EQ "TABS":U THEN 
+    DO iCount = 1 TO itabtotal:
+       IF NOT VALID-HANDLE(hTabMain[iCount]) THEN
+       DO:
+         ASSIGN glResize = FALSE.     
+         LEAVE.
+       END.
+    END.
    
 
   SESSION:SET-WAIT-STATE("GENERAL":U).
@@ -1610,6 +1618,8 @@ PROCEDURE _createFolderLabel PRIVATE :
   DEFINE VARIABLE hTempHandle AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cMnemonic   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iMnemonic   AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hSource     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hContainer  AS HANDLE     NO-UNDO.
   
   IF iPanelCount < 1 OR gcVisualization = "TABS":U THEN
     IF iPanelCount = 0 OR iaTabsOnPanel[iPanelCount] >= iTabsPerRow THEN
@@ -1782,115 +1792,119 @@ PROCEDURE _createFolderLabel PRIVATE :
                                    ELSE '':U).
    /* If the user specified a mnemonic, using an ampersand in the label define
        an ALT-x trigger for it. */
-   IF cMnemonic NE '':U THEN DO:
+   {get ContainerSource hSource}.
+   IF VALID-HANDLE(hSource) THEN 
+      {get ContainerHandle hContainer hsource}.
+
+   IF cMnemonic NE '':U AND VALID-HANDLE(hContainer) THEN DO:
       CASE cMnemonic:
           WHEN 'A':U THEN
-            ON ALT-A OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-A OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN 'B':U THEN
-            ON ALT-B OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-B OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN 'C':U THEN
-            ON ALT-C OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-C OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN 'D':U THEN
-            ON ALT-D OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-D OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN 'E':U THEN
-            ON ALT-E OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-E OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN 'F':U THEN
-            ON ALT-F OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-F OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN 'G':U THEN
-            ON ALT-G OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-G OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN 'H':U THEN
-            ON ALT-H OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-H OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN 'I':U THEN
-            ON ALT-I OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-I OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN 'J':U THEN
-            ON ALT-J OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-J OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN 'K':U THEN
-            ON ALT-K OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-K OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN 'L':U THEN
-            ON ALT-L OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-L OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN 'M':U THEN
-            ON ALT-M OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-M OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN 'N':U THEN
-            ON ALT-N OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-N OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN 'O':U THEN
-            ON ALT-O OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-O OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN 'P':U THEN
-            ON ALT-P OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-P OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN 'Q':U THEN
-            ON ALT-Q OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-Q OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN 'R':U THEN
-            ON ALT-R OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-R OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN 'S':U THEN
-            ON ALT-S OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-S OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN 'T':U THEN
-            ON ALT-T OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-T OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN 'U':U THEN
-            ON ALT-U OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-U OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN 'V':U THEN
-            ON ALT-V OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-V OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN 'W':U THEN
-            ON ALT-W OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-W OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN 'X':U THEN
-            ON ALT-X OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-X OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN 'Y':U THEN
-            ON ALT-Y OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-Y OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN 'Z':U THEN
-            ON ALT-Z OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-Z OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN '0':U THEN
-            ON ALT-0 OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-0 OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).    
           WHEN '1':U THEN
-            ON ALT-1 OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-1 OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN '2':U THEN
-            ON ALT-2 OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-2 OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN '3':U THEN
-            ON ALT-3 OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-3 OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN '4':U THEN
-            ON ALT-4 OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-4 OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN '5':U THEN
-            ON ALT-5 OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-5 OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN '6':U THEN
-            ON ALT-6 OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-6 OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).    
           WHEN '7':U THEN
-            ON ALT-7 OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-7 OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN '8':U THEN
-            ON ALT-8 OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-8 OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
           WHEN '9':U THEN
-            ON ALT-9 OF {&WINDOW-NAME} ANYWHERE
+            ON ALT-9 OF hContainer ANYWHERE
               PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
               
       END CASE.
@@ -2562,15 +2576,17 @@ PROCEDURE _initializeObject PRIVATE :
       RUN _createAlternateSelectors.
     
     /* Create all the tabs */    
-    DO y = 1 TO iTabTotal ON ERROR UNDO, RETRY:
+    glTabsEnabled = FALSE.
+    DO y = 1 TO iTabTotal ON ERROR UNDO, RETRY: 
   
-      RUN _createFolderLabel.
-      
+      RUN _createFolderLabel NO-ERROR.
 
       IF laTabEnabled[Y] = FALSE THEN
         RUN disableFolderPage(y).
       ELSE
         RUN enableFolderPage(y).
+
+      glTabsEnabled = glTabsEnabled OR laTabEnabled[Y].
 
       IF lAddFolderMenu THEN RUN _createMenuShortcut(y).
     END.
@@ -2872,18 +2888,21 @@ PROCEDURE _trgPopupMenu PRIVATE :
       POPUP-ONLY = TRUE.
 
   DO iCounter = 1 TO iTabCount:
-    /* Popup Menu Items */
-    CREATE MENU-ITEM ghMenuItems[iCounter] {&IN-WIDGET-POOL}
-    ASSIGN
-        TOGGLE-BOX = TRUE
-        PARENT     = ghPopupMenu
-        LABEL      = STRING(iCounter - (IF {fn getLogicalObjectName hContainer} = "rycntpshtw":U THEN 1 ELSE 0))
-                   + " - ":U + hTabLabel[iCounter]:SCREEN-VALUE
-        SENSITIVE  = hTabLabel[iCounter]:SENSITIVE
-        CHECKED    = FALSE
-    TRIGGERS:
-      ON VALUE-CHANGED PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (INTEGER(iCounter)).
-    END TRIGGERS.
+    IF VALID-HANDLE(hTabLabel[iCounter]) THEN
+    DO:
+      /* Popup Menu Items */
+      CREATE MENU-ITEM ghMenuItems[iCounter] {&IN-WIDGET-POOL}
+      ASSIGN
+	  TOGGLE-BOX = TRUE
+	  PARENT     = ghPopupMenu
+	  LABEL      = STRING(iCounter - (IF {fn getLogicalObjectName hContainer} = "rycntpshtw":U THEN 1 ELSE 0))
+		     + " - ":U + hTabLabel[iCounter]:SCREEN-VALUE
+	  SENSITIVE  = hTabLabel[iCounter]:SENSITIVE
+	  CHECKED    = FALSE
+      TRIGGERS:
+	ON VALUE-CHANGED PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (INTEGER(iCounter)).
+      END TRIGGERS.
+    END.
   END.
 
   IF VALID-HANDLE(ghMenuItems[iCurrentTab]) THEN

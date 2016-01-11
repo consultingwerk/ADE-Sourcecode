@@ -802,6 +802,18 @@ FUNCTION assignActionParent RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-assignActionRefresh) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD assignActionRefresh Procedure 
+FUNCTION assignActionRefresh RETURNS LOGICAL
+ (pcId     AS CHAR,
+  plValue  AS LOGICAL)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-assignActionSecondImage) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD assignActionSecondImage Procedure 
@@ -1192,7 +1204,7 @@ FUNCTION createToolbarBorder RETURNS LOGICAL
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD defineAction Procedure 
 FUNCTION defineAction RETURNS LOGICAL
-  (pcId      AS CHAR,
+  (pcAction  AS CHAR,
    pcColumns AS CHAR,
    pcValues  AS CHAR)  FORWARD.
 
@@ -2037,6 +2049,19 @@ FUNCTION removeMenuBand RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-retrieveBandsAndActions) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD retrieveBandsAndActions Procedure 
+FUNCTION retrieveBandsAndActions RETURNS LOGICAL
+    ( input pcToolbarList as character,
+      input pcObjectList  as character,
+      input pcBandList    as character    ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-sensitizeActions) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD sensitizeActions Procedure 
@@ -2667,8 +2692,8 @@ FUNCTION windowDropDownList RETURNS LOGICAL
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 20.91
-         WIDTH              = 63.2.
+         HEIGHT             = 34.05
+         WIDTH              = 57.6.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -3652,39 +3677,18 @@ PROCEDURE loadBands :
   Notes:       
 ------------------------------------------------------------------------------*/
  DEFINE INPUT  PARAMETER pcBandList  AS CHARACTER  NO-UNDO. 
+
  DEFINE OUTPUT PARAMETER TABLE-HANDLE hBand.
  DEFINE OUTPUT PARAMETER TABLE-HANDLE hBandAction.
 
- DEFINE VARIABLE cProperties      AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE dUserObj         AS DECIMAL    NO-UNDO.
- DEFINE VARIABLE dOrganisationObj AS DECIMAL    NO-UNDO.
-
  /* gshAstraAppserver will only be valid if we're running Dynamics */
- IF VALID-HANDLE(gshAstraAppserver) 
- AND VALID-HANDLE(gshSessionManager) THEN
- DO:
-     ASSIGN cProperties      = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
-                                                INPUT "currentUserObj,currentOrganisationObj":U,INPUT NO)
-            dUserObj         = DECIMAL(ENTRY(1, cProperties, CHR(3)))
-            dOrganisationObj = DECIMAL(ENTRY(2, cProperties, CHR(3)))
-            NO-ERROR.
-
-     RUN ry/app/rygetmensp.p ON gshAstraAppserver 
-                                 (INPUT "":U,
-                                  INPUT "":U,
-                                  INPUT pcBandList,
-                                  INPUT dUserObj,
-                                  INPUT dOrganisationObj,
-                                  OUTPUT TABLE ttToolbarBand APPEND,
-                                  OUTPUT TABLE ttObjectBand APPEND,
-                                  OUTPUT TABLE ttBand APPEND,
-                                  OUTPUT TABLE ttBandAction APPEND,
-                                  OUTPUT TABLE ttAction APPEND,
-                                  OUTPUT TABLE ttCategory APPEND).
-
-     /* Remove any duplicated actions and action categories */
-     {fn normalizeActionData}.
- END.
+  IF VALID-HANDLE(gshAstraAppserver) 
+  AND VALID-HANDLE(gshSessionManager) THEN
+    /* Get the band data. */
+    dynamic-function('retrieveBandsAndActions':U in target-procedure,
+                      input '', input '', input pcBandList).
+     
+  RETURN.
 
 END PROCEDURE.
 
@@ -3731,36 +3735,13 @@ PROCEDURE loadObjectBands :
 ------------------------------------------------------------------------------*/
  DEFINE INPUT  PARAMETER pcObjectList AS CHARACTER  NO-UNDO. 
 
- DEFINE VARIABLE cProperties      AS CHARACTER NO-UNDO.
- DEFINE VARIABLE dUserObj         AS DECIMAL   NO-UNDO.
- DEFINE VARIABLE dOrganisationObj AS DECIMAL   NO-UNDO.
-
  /* gshAstraAppserver will only be valid if we're running Dynamics */
  IF  VALID-HANDLE(gshAstraAppserver) 
- AND VALID-HANDLE(gshSessionManager)
- THEN DO:
-     ASSIGN cProperties      = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
-                                                INPUT "currentUserObj,currentOrganisationObj":U,INPUT NO)
-            dUserObj         = DECIMAL(ENTRY(1, cProperties, CHR(3)))
-            dOrganisationObj = DECIMAL(ENTRY(2, cProperties, CHR(3)))
-            NO-ERROR.
-
-     RUN ry/app/rygetmensp.p ON gshAstraAppserver 
-                                 (INPUT "":U,
-                                  INPUT pcObjectList,
-                                  INPUT "":U,
-                                  INPUT dUserObj,
-                                  INPUT dOrganisationObj,
-                                  OUTPUT TABLE ttToolbarBand APPEND,
-                                  OUTPUT TABLE ttObjectBand APPEND,
-                                  OUTPUT TABLE ttBand APPEND,
-                                  OUTPUT TABLE ttBandAction APPEND,
-                                  OUTPUT TABLE ttAction APPEND,
-                                  OUTPUT TABLE ttCategory APPEND).
-
-     /* Remove any duplicated actions and action categories */
-     {fn normalizeActionData}.
- END.
+ AND VALID-HANDLE(gshSessionManager) THEN 
+   dynamic-function('retrieveBandsAndActions' in target-procedure,
+                    input '', input pcObjectList, input '').
+     
+ return. 
 
 END PROCEDURE.
 
@@ -3849,72 +3830,12 @@ PROCEDURE loadToolbarBands :
  DEFINE INPUT PARAMETER pcToolbarList AS CHARACTER  NO-UNDO.
  DEFINE INPUT PARAMETER pcObjectList  AS CHARACTER  NO-UNDO.
 
- DEFINE VARIABLE cProperties      AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE dUserObj         AS DECIMAL    NO-UNDO.
- DEFINE VARIABLE dOrganisationObj AS DECIMAL    NO-UNDO.
- DEFINE VARIABLE lDelete          AS LOGICAL    NO-UNDO.
- 
- DEFINE BUFFER bttBand       FOR ttBand.
- DEFINE BUFFER bttBandAction FOR ttBandAction.
-
  /* gshAstraAppserver will only be valid if we're running Dynamics */
  IF  VALID-HANDLE(gshAstraAppserver) 
  AND VALID-HANDLE(gshSessionManager) THEN
- DO:
-   ASSIGN cProperties      = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
-                                                INPUT "currentUserObj,currentOrganisationObj":U,INPUT NO)
-          dUserObj         = DECIMAL(ENTRY(1, cProperties, CHR(3)))
-          dOrganisationObj = DECIMAL(ENTRY(2, cProperties, CHR(3)))
-          NO-ERROR.
-
-   RUN ry/app/rygetmensp.p ON gshAstraAppserver 
-                                 (INPUT pcToolbarList,
-                                  INPUT pcObjectList,
-                                  INPUT "":U,
-                                  INPUT dUserObj,
-                                  INPUT dOrganisationObj,
-                                  OUTPUT TABLE ttToolbarBand APPEND,
-                                  OUTPUT TABLE ttObjectBand APPEND,
-                                  OUTPUT TABLE ttBand APPEND,
-                                  OUTPUT TABLE ttBandAction APPEND,
-                                  OUTPUT TABLE ttAction APPEND,
-                                  OUTPUT TABLE ttCategory APPEND).
-
-   /* Remove any duplicated actions and action categories */
-   {fn normalizeActionData}.
-    
-   /* Remove duplicates from the band and bandAction tables */
-   FOR EACH ttBand
-       WHERE ttBand.ProcedureHandle = ?:
-
-     lDelete = CAN-FIND(FIRST bttBand 
-                        WHERE bttBand.Band            = ttBand.Band
-                        AND bttBand.ProcedureHandle <> ?).
-     FOR EACH ttBandAction
-         WHERE ttBandAction.ProcedureHandle = ? 
-           AND ttBandAction.Band            = ttBand.Band:
-
-       IF lDelete THEN
-         DELETE ttBandAction.
-       ELSE DO:
-         /* Check whether there exists an action containing the same band name, sequence and procedureHandle 
-            This could occur if the same band is used twice in the same position (sequence) */
-         IF CAN-FIND (FIRST bttBandAction
-                      WHERE bttBandAction.Band = ttBandAction.Band
-                        AND bttbandAction.Sequence = ttBandAction.Sequence
-                        AND bttBandAction.ProcedureHandle = THIS-PROCEDURE) THEN
-           DELETE ttBandAction.
-         ELSE
-           ttBandAction.ProcedureHandle = THIS-PROCEDURE.
-       END.
-     END.
-     IF lDelete THEN 
-       DELETE ttBand.
-     ELSE   
-       ttBand.ProcedureHandle = THIS-PROCEDURE.
-   END.
- END.
-
+    dynamic-function('retrieveBandsAndActions' in target-procedure,
+                     input pcToolbarList, input pcObjectList, input '').
+                     
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -4331,6 +4252,12 @@ PROCEDURE onMenuDrop :
   {get UseRepository lUseRepository}.
   IF lUseRepository THEN
   DO:
+     IF {fnarg actionInitCode pcAction} > "" THEN 
+     DO:
+        DYNAMIC-FUNCTION("assignActionRefresh" IN TARGET-PROCEDURE, pcAction, YES).
+        {fnarg buildMenu pcAction}.
+     END.
+        
     IF pcAction = xcWindowBand THEN
       {fnarg windowDropdownList pcAction}.
   END.
@@ -5673,7 +5600,7 @@ PROCEDURE updateCategoryLists :
               pcTopLevelBand - The Type of the band that are directly connected 
                                to the toolbar. (Used to figure out which lists 
                                to update)
-  Notes:      This is called from loadBands at design time only and the result
+  Notes:      This is called from loadToolbar at design time only and the result
               are currently stored in AvailMenuActions and AvailToolbarActions, 
               which has their names from pre-repository when the actions groups
               also were actions.     
@@ -7483,6 +7410,24 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-assignActionRefresh) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION assignActionRefresh Procedure 
+FUNCTION assignActionRefresh RETURNS LOGICAL
+ (pcId     AS CHAR,
+  plValue  AS LOGICAL) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  RETURN assignColumn("Action":U,pcId,"Refresh":U,STRING(plValue)).
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-assignActionSecondImage) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION assignActionSecondImage Procedure 
@@ -8512,16 +8457,16 @@ FUNCTION constructMenuBand RETURNS LOGICAL
   Purpose: Create all items/subbandd for a band   
     Notes: Bands are only supported for Repository toolbars
 ------------------------------------------------------------------------------*/
-  DEFINE BUFFER bttBand FOR ttBand. 
-  DEFINE BUFFER bttChildBand FOR ttBand. 
+  DEFINE BUFFER bttBand          FOR ttBand. 
+  DEFINE BUFFER bttChildBand     FOR ttBand. 
   DEFINE BUFFER btParentInstance FOR tBandInstance.
   DEFINE BUFFER btBandInstance   FOR tBandInstance.
-  DEFINE BUFFER bttBandAction FOR ttBandAction.
-  DEFINE BUFFER btMenu     FOR tMenu.
-  DEFINE BUFFER btOldMenu  FOR tMenu.
-  DEFINE BUFFER btParent   FOR tMenu.
-  DEFINE BUFFER btBandMenu FOR tMenu.
-  DEFINE BUFFER btSubMenu  FOR tMenu.
+  DEFINE BUFFER bttBandAction    FOR ttBandAction.
+  DEFINE BUFFER btMenu           FOR tMenu.
+  DEFINE BUFFER btOldMenu        FOR tMenu.
+  DEFINE BUFFER btParent         FOR tMenu.
+  DEFINE BUFFER btBandMenu       FOR tMenu.
+  DEFINE BUFFER btSubMenu        FOR tMenu.
 
   DEFINE VARIABLE cAction          AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cHiddenMenuBands AS CHARACTER  NO-UNDO.
@@ -8589,7 +8534,11 @@ FUNCTION constructMenuBand RETURNS LOGICAL
     AND CAN-DO(cHiddenMenuBands,bttBandAction.ChildBand)  THEN
       NEXT.
     
-    cAction  = bttBandAction.Action.
+    ASSIGN cAction  = bttBandAction.Action.
+
+    /* Publish Event */
+    {fnarg actionPublishCreate cAction}.     
+
     
     /* use default label if no label defined */
     IF cAction = '':U AND bttBandAction.ChildBand <> '':U THEN
@@ -8981,12 +8930,11 @@ FUNCTION constructToolbar RETURNS LOGICAL
   &UNDEFINE xp-assign
 
   ASSIGN 
-    iPosition       = iToolSeparatorPxl
-                      + (If lShowBorder THEN 2 ELSE 0).  
+    iPosition = iToolSeparatorPxl
+              + (If lShowBorder THEN 2 ELSE 0).  
   
   /* The toolbar bands stores data for a toolbar object (master) and are loaded 
      for the first instance */
- 
   IF lToolbar THEN
   DO:
     FOR 
@@ -9023,6 +8971,10 @@ FUNCTION constructToolbar RETURNS LOGICAL
             AND CAN-DO(cSecuredTokens,{fnarg actionSecuredToken ttBandAction.Action}) 
             OR  CAN-DO(cSecuredTokens,ttBandAction.Action) THEN 
         NEXT.
+
+        /* Publish Event */
+        {fnarg actionPublishCreate ttBandAction.Action}.     
+
        
         hButton = DYNAMIC-FUNCTION('createToolbarAction':U IN TARGET-PROCEDURE,
                                     ttToolbarBand.Band,
@@ -9035,6 +8987,7 @@ FUNCTION constructToolbar RETURNS LOGICAL
           lAnyActions = VALID-HANDLE(hButton).
       END.
     END.
+    
     IF lAnyActions THEN
     DO:
       {fn createToolbarBorder}.
@@ -10390,14 +10343,65 @@ END FUNCTION.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION defineAction Procedure 
 FUNCTION defineAction RETURNS LOGICAL
-  (pcId      AS CHAR,
+  (pcAction  AS CHAR,
    pcColumns AS CHAR,
    pcValues  AS CHAR) :
 /*------------------------------------------------------------------------------
   Purpose: API used to define Actions for the class or a particalar instance  
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN setBuffer("Action":U,pcId,pcColumns,PcValues,TARGET-PROCEDURE).
+  DEFINE VARIABLE lUseRepository AS LOGICAL   NO-UNDO.    
+  DEFINE VARIABLE lOK            AS LOGICAL   NO-UNDO.    
+    
+  DEFINE BUFFER bttBand       FOR ttBand.
+  DEFINE BUFFER bttBandAction FOR ttBandAction.
+
+  IF TARGET-PROCEDURE = THIS-PROCEDURE THEN 
+    lUseRepository = DYNAMIC-FUNCTION('isICFRunning':U IN THIS-PROCEDURE) NO-ERROR.
+  ELSE /* minimize risk of the above and use the normal call in other cases */ 
+    {get UseRepository lUseRepository}.
+
+  lOK =  setBuffer("Action":U,pcAction,pcColumns,PcValues,TARGET-PROCEDURE).
+
+  /* For customized createEvent, set repository bands and actions */
+  IF lUseRepository AND lOK THEN
+  DO:
+     {&findaction}
+     IF AVAIL ttAction AND ttAction.Parent > "" THEN
+     DO:
+        FIND bttBand WHERE bttBand.Band            = ttAction.Parent 
+                       AND bttBand.ProcedureHandle = THIS-PROCEDURE NO-ERROR.
+        IF NOT AVAIL bttBand THEN
+        DO:
+           CREATE bttBand.
+           ASSIGN bttBand.Band            = ttAction.Parent
+                  bttBand.BandType        = 'Menu&Toolbar'
+                  bttBand.ProcedureHandle = THIS-PROCEDURE.
+        END.
+        FIND bttBandAction WHERE bttBandAction.Band            = ttAction.Parent 
+                             AND bttBandAction.action          = pcAction 
+                             AND bttBandAction.ProcedureHandle = THIS-PROCEDURE NO-ERROR.
+        IF NOT AVAIL bttBandAction THEN
+        DO:
+           CREATE bttBandAction.
+           ASSIGN bttBandAction.Band            = bttBand.Band
+                  bttBandAction.Action          = pcAction
+                  bttBandAction.sequence        = ttAction.Order
+                  bttBandAction.ProcedureHandle = THIS-PROCEDURE.
+                  
+        END.
+       /* Now specify the child band for all instances*/
+       FOR EACH bttBandAction WHERE bttBandAction.Action          = ttAction.Parent
+                                AND bttBandAction.ProcedureHandle = THIS-PROCEDURE:
+          ASSIGN bttBandAction.ChildBand = bttBand.Band.
+       END.
+    END.
+  END.
+
+
+  RETURN lOK.
+
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -12969,6 +12973,297 @@ FUNCTION removeMenuBand RETURNS LOGICAL
   RETURN TRUE. 
       
 END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-retrieveBandsAndActions) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION retrieveBandsAndActions Procedure 
+FUNCTION retrieveBandsAndActions RETURNS LOGICAL
+    ( input pcToolbarList as character,
+      input pcObjectList  as character,
+      input pcBandList    as character    ):
+/*------------------------------------------------------------------------------
+  Purpose: Retrieves menu data (actions, bands, etc) and makes them available
+                   to this toolbar.
+    Notes: * this function only retrieves data. it does not ensure uniqueness
+                 of the data. there are normalize* functions that ensure that the data 
+                 is unique.
+------------------------------------------------------------------------------*/
+  DEFINE BUFFER bttBand       FOR ttBand.
+  DEFINE BUFFER bttBandAction FOR ttBandAction.
+  DEFINE BUFFER bttObjectBand FOR ttObjectBand.
+
+  define variable hContainer        as handle     no-undo.
+  define variable cProperties       as character  no-undo.
+  define variable cActions          as character  no-undo.
+  define variable cBands            as character  no-undo.
+  define variable cHiddenActions    as character  no-undo.
+  define variable cDisabledActions  as character  no-undo.
+  define variable cHiddenStructures as character  no-undo.
+  define variable iLoop             as integer    no-undo.
+  define variable dUserObj          as decimal    no-undo.
+  define variable dOrganisationObj  as decimal    no-undo.
+  define variable lSecurityEnabled  as logical    no-undo.
+  define variable lHidden           as logical    no-undo.
+  define variable lDisabled         as logical    no-undo.
+  define variable lApplySecurity    as logical    no-undo.
+  
+  DEFINE VARIABLE lDelete           AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE iObject           AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cObject           AS CHARACTER  NO-UNDO.
+
+  if pcToolbarList eq ? then pcToolbarList = ''.
+  if pcObjectList eq ? then pcObjectList = ''.
+  if pcBandList eq ? then pcBandList = ''.
+  
+  lApplySecurity = no.
+  
+  /* Check whether there's an adm-loadToolbar procedure in the toolbar.
+     We can use internal-entries because the adm-loadToolbar procedure
+     is generated into the object itself.
+     
+     Only attempt to retrive the toolbar information if it has been
+     requested (i.e. the toolbarlist parameter is non-empty).
+   */
+  if pcToolbarList ne '' and 
+     can-do(target-procedure:internal-entries, 'adm-loadToolbar') then
+  do:
+      /* The adm-loadToolbar procedures implcitly contain
+         information for one specific object or toolbar.
+         
+         If bands are requested separately, outside of the context of an
+         object (either toolbar or container object), they need to be 
+         retrieved by calling the standard api rygetmensp.p.
+       */
+      assign pcToolbarList = ''
+             lApplySecurity = yes.
+      
+      /* Get the toolbar information */
+      run adm-loadToolbar in target-procedure (output table ttToolbarBand append,
+                                               output table ttObjectBand append,
+                                               output table ttBand append,
+                                               output table ttBandAction append,
+                                               output table ttAction append,
+                                               output table ttCategory append ) no-error.
+  end.    /* this is a generated toolbar. */    
+  
+  /* Get the object menu information.
+  
+     Check whether there's an adm-loadToolbar procedure in the container.
+     We can use internal-entries because the adm-loadToolbar procedure
+     is generated into the object itself.
+     
+     These checks are separate because the container may be generated 
+     but the toolbar not. We need to get the correct items.
+     
+     Only attempt to retrive the object menu information if it has been
+     requested (i.e. the objectlist parameter is non-empty).
+   */
+  {get ContainerSource hContainer} no-error.
+  if valid-handle(hContainer) and
+     pcObjectList ne '' and 
+     can-do(hContainer:internal-entries, 'adm-loadToolbar') then
+  do:
+      assign pcObjectList = ''
+             lApplySecurity = yes.
+      
+      run adm-loadToolbar in hContainer (output table ttToolbarBand append,
+                                         output table ttObjectBand append,
+                                         output table ttBand append,
+                                         output table ttBandAction append,
+                                         output table ttAction append,
+                                         output table ttCategory append ) no-error.
+  end.    /* the container has generated menu items. */
+  
+  /* Apply security (for objects loaded with adm-loadToolbar above).     
+     If the toolbar information is retrieved from the repository,
+     security is applied as part of the retrieval process on the server
+     and we don't need to do it again.
+     When toolbar information is retrieved from the object via adm-loadToolbar
+     no security has yet been applied and so we must ensure that all
+     toolbar information is secured before use.  */
+  if lApplySecurity then
+  do:
+      if valid-handle(gshSessionManager) and valid-handle(gshSecurityManager) then
+      do:
+          assign cProperties = dynamic-function('getPropertyList':U in gshSessionManager,
+                                                        'SecurityEnabled':U, No)
+                lSecurityEnabled = logical(entry(1, cProperties, CHR(3)))
+          no-error.
+          
+          if lSecurityEnabled eq ? then
+              lSecurityEnabled = yes.
+          
+          if lSecurityEnabled then
+          do:
+              /* Only run security against the actions just received. These
+                 actions will have a ProcedureHandle of ? (this is set in
+                 normalizeActionData).
+               */
+              for each ttAction where ttAction.ProcedureHandle = ?:
+                  cActions = cActions + ',' + ttAction.Action.
+              end.    /* build action list */
+               
+              for each ttBand where ttBand.ProcedureHandle = ?:
+                  cBands = cBands + ',' + ttBand.Band.
+              end.    /* build band list */
+              
+              assign cActions = left-trim(cActions, ',')
+                     cBands = left-trim(cBands, ',').
+              
+              run menuItemStructureSecurityCheck in gshSecurityManager (input  cActions,
+                                                                        input  cBands,
+                                                                        output cHiddenActions,
+                                                                        output cDisabledActions,
+                                                                        output cHiddenStructures ) no-error.
+              
+              /* Secure hidden actions */
+              do iLoop = 1 to num-entries(cHiddenActions):
+                  find ttAction where
+                       ttAction.Action = entry(iLoop, cHiddenActions)
+                       no-error.
+                  if available ttAction then
+                  do:
+                      for each ttBandAction where
+                               ttBandAction.Action = ttAction.Action:
+                          delete ttBandAction.
+                      end.    /* remove the band actions */
+                      
+                      delete ttAction.                        
+                  end.    /* action hidden */
+              end.    /* loop through hidden actions */
+              
+              /* Secure disabled actions */
+              do iLoop = 1 to num-entries(cDisabledActions):
+                  find ttAction where
+                       ttAction.Action = entry(iLoop, cDisabledActions)
+                       no-error.
+                  if available ttAction then
+                      ttAction.Disabled = yes.
+              end.    /* loop through disabled actions */
+              
+              /* Secure hidden bands */
+              do iLoop = 1 to num-entries(cHiddenStructures):
+                  find ttBand where
+                       ttBand.Band = entry(iLoop, cHiddenStructures)
+                       no-error.
+                  if available ttBand then
+                  do:
+                      for each ttBandAction where
+                               ttBandAction.Band = ttBand.Band:                            
+                          /* Keep any actions that appear on on the band actions, 
+                             since they may be used by other bands. The action security
+                             above will make sure that actions are cleaned up OK if
+                             the actions are secured.
+                           */
+                          delete ttBandAction.
+                      end.    /* each band action */
+                      
+                      for each ttObjectBand where
+                               ttObjectBand.Band = ttBand.Band:
+                          delete ttObjectBand.
+                      end.    /* object band */
+                      
+                      for each ttToolbarBand where
+                               ttToolbarBand.Band = ttband.Band:
+                          delete ttToolbarBand.
+                      end.    /* toolbar band */
+                      
+                      /* now delete the band */
+                      delete ttBand.                    
+                  end.    /* band to secure */                             
+              end.    /* loop through hidden bands */
+          end.    /* security enabled*/               
+      end.    /* valid security and session managers */
+  end.    /* apply security */
+  
+  if pcObjectList ne '' or pcToolbarList ne '' or pcBandList ne '' then
+  do:
+    ASSIGN cProperties      = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
+                                               "currentUserObj,currentOrganisationObj":U,
+                                               Yes)
+           dUserObj         = DECIMAL(ENTRY(1, cProperties, CHR(3)))
+           dOrganisationObj = DECIMAL(ENTRY(2, cProperties, CHR(3)))
+           NO-ERROR.
+
+    RUN ry/app/rygetmensp.p ON gshAstraAppserver 
+                                     (INPUT  pcToolbarList,
+                                      INPUT  pcObjectList,
+                                      INPUT  pcBandList,
+                                      INPUT  dUserObj,
+                                      INPUT  dOrganisationObj,
+                                      OUTPUT TABLE ttToolbarBand APPEND,
+                                      OUTPUT TABLE ttObjectBand APPEND,
+                                      OUTPUT TABLE ttBand APPEND,
+                                      OUTPUT TABLE ttBandAction APPEND,
+                                      OUTPUT TABLE ttAction APPEND,
+                                      OUTPUT TABLE ttCategory APPEND).
+  end.  /* get toolbars, objects or bands */                                   
+
+  /* Remove any duplicated actions and action categories */
+  {fn normalizeActionData}.
+
+  /* Remove duplicates from the band and bandAction tables */
+  FOR EACH ttBand WHERE ttBand.ProcedureHandle = ?:
+    lDelete = CAN-FIND(FIRST bttBand WHERE bttBand.Band = ttBand.Band
+                                         AND bttBand.ProcedureHandle <> ?).
+    FOR EACH ttBandAction WHERE ttBandAction.ProcedureHandle = ? 
+                              AND ttBandAction.Band            = ttBand.Band:
+
+      IF lDelete THEN
+        DELETE ttBandAction.
+      ELSE DO:
+          /* Check whether there exists an action containing the same band name, sequence and procedureHandle 
+             This could occur if the same band is used twice in the same position (sequence) */
+          IF CAN-FIND (FIRST bttBandAction 
+                       WHERE bttBandAction.Band = ttBandAction.Band
+                         AND bttbandAction.Sequence = ttBandAction.Sequence
+                         AND bttBandAction.ProcedureHandle = THIS-PROCEDURE) THEN
+            DELETE ttBandAction.
+          ELSE
+            ttBandAction.ProcedureHandle = THIS-PROCEDURE.
+      END.
+    END. /* for each ttBand */
+    IF lDelete THEN 
+      DELETE ttBand.
+    ELSE   
+      ttBand.ProcedureHandle = THIS-PROCEDURE.
+  END.
+    
+  /* Remove duplicate objectband/runattribute: 
+     If runattributes is used then we check retrieved objectbands for 
+     invalid runattributes, which are returned with unknown value in 
+     order not to clash with blank. Invalid runattribute is treated as 
+     no runattribute, so we delete it if it already exists and set the 
+     runattribute to blank if this is the first retrieval. */  
+  IF INDEX(';',pcObjectList) > 0 THEN
+  DO:
+    DO iObject = 1 TO NUM-ENTRIES(pcObjectList):
+      cObject  = ENTRY(iObject,pcObjectList).
+      IF NUM-ENTRIES(cObject,';') > 1 THEN
+      DO:
+        FOR EACH ttObjectBand WHERE ttObjectBand.ObjectName   = cObject 
+                              AND   ttObjectBand.RunAttribute = ?:
+          IF CAN-FIND (bttObjectBand 
+                       WHERE bttObjectBand.ObjectName   = cObject 
+                       AND   bttObjectBand.RunAttribute = ''
+                       AND   bttObjectBand.Resultcode   = ttObjectBand.Resultcode
+                       AND   bttObjectband.Sequence     = ttObjectBand.Sequence) THEN
+            DELETE ttObjectBand.
+          ELSE 
+            ttObjectBand.RunAttribute = ''.
+        END. /* for each where ObjectName = cObject and runattribute = ? */
+      END. /* if runattribute defined */
+    END. /* loop through pcObjectList */
+  END. /* INDEX(';',pcObjectList) > 0 (runattribute used) */
+  
+  return true.
+
+END FUNCTION.    /* retrieveBandsAndActions */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

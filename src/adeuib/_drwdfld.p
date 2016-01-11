@@ -50,9 +50,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 DEFINE INPUT  PARAMETER pcFields AS CHARACTER  NO-UNDO.
 
-DEFINE VARIABLE cAttribute        AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cCalcFieldList    AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cCalcMasterName   AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cCalculatedCols   AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cColDataType      AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cDataSourceType   AS CHARACTER  NO-UNDO.
@@ -60,13 +58,15 @@ DEFINE VARIABLE cDataType         AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cErrorFields      AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cFields           AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cInheritsFromClasses AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cInvalidAttrs     AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cListField        AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cMessageList     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cMessageList      AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cObjectName       AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cSDOName          AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cTable            AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cTmp              AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cUpdColumns       AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cValidateMessage  AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cVisType          AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE dFormatHeight     AS DECIMAL    NO-UNDO.
 DEFINE VARIABLE dFormatWidth      AS DECIMAL    NO-UNDO.
@@ -79,7 +79,15 @@ DEFINE VARIABLE hField            AS HANDLE     NO-UNDO.
 DEFINE VARIABLE hDataSource       AS HANDLE     NO-UNDO.
 DEFINE VARIABLE hRepDesignManager AS HANDLE     NO-UNDO.
 DEFINE VARIABLE iFieldNum         AS INTEGER    NO-UNDO.
-DEFINE VARIABLE lCalculatedCol   AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE lCalculatedCol    AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE iColX             AS INTEGER    NO-UNDO EXTENT 50.
+DEFINE VARIABLE iColWidth         AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iColumns          AS INTEGER    NO-UNDO  INIT 1.
+DEFINE VARIABLE cLabel            AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE iPrevColumnsWidth AS INTEGER    NO-UNDO.
+DEFINE VARIABLE lFromWizard       AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE dNewWinWidth      AS DECIMAL     NO-UNDO.
+
 
 DEFINE BUFFER parent_U FOR _U.
 DEFINE BUFFER parent_L FOR _L.
@@ -120,7 +128,7 @@ DEFINE BUFFER parent_L FOR _L.
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
          HEIGHT             = 10.86
-         WIDTH              = 63.6.
+         WIDTH              = 63.8.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -132,6 +140,11 @@ DEFINE BUFFER parent_L FOR _L.
 
 
 /* ***************************  Main Block  *************************** */
+
+DEFINE BUFFER w_U FOR _U.
+DEFINE BUFFER w_L FOR _L.
+DEFINE BUFFER f_U FOR _U.
+DEFINE BUFFER f_L FOR _L.
 
 FIND _P WHERE _P._WINDOW-HANDLE = _h_win.
 
@@ -154,18 +167,20 @@ IF pcFields = '':U THEN
   RUN selectFields.
 ELSE cFields = pcFields.
 
-/* adjustColumn reads labels for each field and adjust _frmx 
-   to accomodate those labels.  It also caches the datafield master object on 
-   the client and if it does not exist it returns 'DataField' to indicate this.
-   If 'DataField' is returned, fields are not drawn on the viewer. */
-RUN adjustColumn.
-IF cMessageList NE '':U THEN
-  MESSAGE cMessageList VIEW-AS ALERT-BOX ERROR.
-
+SESSION:SET-WAIT-STATE('GENERAL':U).
+/* validateColumn validates the master objects in the repository*/
+RUN validateColumn IN THIS-PROCEDURE.
+IF cMessageList NE '':U THEN 
+DO:
+   SESSION:SET-WAIT-STATE('':U).
+   MESSAGE cMessageList VIEW-AS ALERT-BOX ERROR.
+   SESSION:SET-WAIT-STATE('GENERAL':U).
+   cMessageList = '':U.
+END.
+  
 ASSIGN 
   dColumn = 1.0 + (_frmx / SESSION:PIXELS-PER-COL) 
   dRow    = 1.0 + (_frmy / SESSION:PIXELS-PER-ROW).
-
 
 /* Read through picked fields and create _U, _L and _F records and populate
    them from datafield master attribute values. */
@@ -201,16 +216,42 @@ DO iFieldNum = 1 TO NUM-ENTRIES(cFields):
   /* Retrieve the master datafield from the repository */
   RUN retrieveDesignObject IN hRepDesignManager ( INPUT  cObjectName,
                                                   INPUT  "",  /* Get default result Code */
-                                                  OUTPUT TABLE ttObject ,
+                                                  OUTPUT TABLE ttObject,
                                                   OUTPUT TABLE ttPage,
                                                   OUTPUT TABLE ttLink,
                                                   OUTPUT TABLE ttUiEvent,
-                                                  OUTPUT TABLE ttObjectAttribute ) NO-ERROR.                                            
-  
+                                                  OUTPUT TABLE ttObjectAttribute ) NO-ERROR.      
+
+
   /* Get the Master datafield */
   FIND FIRST ttObject WHERE ttObject.tLogicalObjectName = cObjectName NO-ERROR.
   IF AVAIL ttObject THEN 
   DO:   
+     /* If this is a calculated field in a static SDO, the field could have the same name
+        as a repository object that is not a calculated fields so there is a check for this */
+     IF lCalculatedCol AND 
+         NOT DYNAMIC-FUNCTION('ClassIsA':U IN gshRepositoryManager, ttObject.tClassName, 'CalculatedField':U) THEN
+     DO:
+        MESSAGE 'The calculated field "':U + cObjectName + '" has the same name as ':U
+                + 'another repository object.  Please rename the calculated field in the data source.':U
+                VIEW-AS ALERT-BOX ERROR.
+        NEXT FieldLoop.
+     END.  /* if calc field object is not calc field */
+     
+     cValidateMessage = '':U.
+     RUN validateDataFieldAttrs IN hRepDesignManager (INPUT cObjectName, 
+                                                      OUTPUT cInvalidAttrs,
+                                                      OUTPUT cValidateMessage).
+     IF cValidateMessage NE '':U THEN
+     DO:
+       cMessageList = cMessageList + (IF cMessageList NE '':U THEN CHR(10) + CHR(10) ELSE '':U) + 
+                cObjectName + ' has invalid attribute values in its Datafield master object.  ':U + CHR(10) +
+               'Its invalid attributes are: ':U + cInvalidAttrs + CHR(10) + CHR(10) +
+               'Its attribute values must be corrected in DataField Maintenance in order to ':U + CHR(10) +
+               'include this datafield in a viewer.':U.
+       NEXT FieldLoop. 
+     END.  /* if cMessage not blank */
+
   /* get inherited values of the class */
      RUN retrieveDesignClass IN hRepDesignManager
                                 ( INPUT  ttObject.tClassname,
@@ -332,18 +373,29 @@ DO iFieldNum = 1 TO NUM-ENTRIES(cFields):
      IF _L._HEIGHT = 0 OR _L._HEIGHT = ? THEN _L._HEIGHT = 1.
      IF _L._WIDTH = 0 OR _L._WIDTH = ?   THEN _L._WIDTH  = 10.
 
+     /* If next field is to be positioned on row greater than frame height,
+        reset row to starting row and increment Column counter */
+     IF VALID-HANDLE(PARENT_U._HANDLE) 
+                 AND _L._ROW + _L._HEIGHT > PARENT_U._HANDLE:HEIGHT THEN
+        ASSIGN dRow               =  1.0 + (_frmy / SESSION:PIXELS-PER-ROW)
+               _L._ROW            = dRow
+               iColumns           = MIN(iColumns + 1,Extent(iColX))
+               iPrevColumnsWidth  = iColWidth + iColX[iColumns - 1] + 3 /* 3 pixel spacing */
+               iColWidth          = 0.
+
+    /* Calculate the length of each label and get the largest one so as to align
+       each column. Also get the largest width field so as to calculate the next column position  */
+     ASSIGN cLabel          =  _U._LABEL + ':  ':U
+            iColX[iColumns] = MAX(iColX[iColumns]
+                                  ,_frmx
+                                  ,(IF parent_L._FONT <> ? 
+                                    THEN FONT-TABLE:GET-TEXT-WIDTH-PIXELS(cLabel, parent_L._FONT) + iPrevColumnsWidth
+                                    ELSE FONT-TABLE:GET-TEXT-WIDTH-PIXELS(cLabel) + iPrevColumnsWidth))
+            iColWidth        = MAX(iColWidth,(_L._WIDTH * SESSION:PIXELS-PER-COL) )
+            _U._PRIVATE-DATA = _U._PRIVATE-DATA + CHR(4) + STRING(iColumns).
+      
      /* Create multiple layout records if necessary */
      {adeuib/crt_mult.i}
-
-     /* Instantiate the field in the design window */
-     CASE cVisType:
-       WHEN 'FILL-IN':U OR WHEN 'TEXT':U THEN RUN adeuib/_undfill.p (RECID(_U)).
-       WHEN 'COMBO-BOX':U      THEN RUN adeuib/_undcomb.p (RECID(_U)).
-       WHEN 'EDITOR':U         THEN RUN adeuib/_undedit.p (RECID(_U)).
-       WHEN 'RADIO-SET':U      THEN RUN adeuib/_undradi.p (RECID(_U)).
-       WHEN 'SELECTION-LIST':U THEN RUN adeuib/_undsele.p (RECID(_U)).
-       WHEN 'TOGGLE-BOX':U     THEN RUN adeuib/_undtogg.p (RECID(_U)).
-     END CASE.
 
      dRow = dRow + _L._HEIGHT.
 
@@ -351,155 +403,66 @@ DO iFieldNum = 1 TO NUM-ENTRIES(cFields):
       
 END.  /* do iFieldNum to number fields picked */
 
+IF cMessageList NE '':U THEN 
+DO:
+   SESSION:SET-WAIT-STATE('':U).
+   MESSAGE cMessageList VIEW-AS ALERT-BOX ERROR.
+   SESSION:SET-WAIT-STATE('GENERAL':U).
+END.
+
+/* The frame resizing only occurs if the wizard is used to create a dynviewer */
+ASSIGN lFromWizard = (_second_corner_X =  parent_U._HANDLE:WIDTH-P).
+
+/* Need to find the handles of the frame and window so their size can be increased if necessary */
+IF lFromWizard THEN
+DO:
+  FIND w_U WHERE w_U._handle = _h_win.       /* Get the window _U */
+  FIND w_L WHERE w_L._u-recid = RECID(w_U).  /* Get window _L     */
+  FIND f_U WHERE f_U._handle = _h_win.       /* Get the frame _U  */
+  FIND f_L WHERE f_L._u-recid = RECID(w_U).  /* Get frame _L      */
+END.
+
+FOR EACH _U WHERE _U._PARENT = parent_U._HANDLE:
+   FOR EACH _L WHERE _L._u-recid eq RECID(_U) :
+     /* Store the column position in the private-data, then remove it */
+     ASSIGN iColumns         = 1
+            iColumns         = INTEGER(ENTRY(2,_U._PRIVATE-DATA,CHR(4))) 
+            _U._PRIVATE-DATA = ENTRY(1,_U._PRIVATE-DATA,CHR(4))
+            NO-ERROR.
+     ASSIGN _L._COL      = 1.0 + (iColX[iColumns] / SESSION:PIXELS-PER-COL)
+            dNewWinWidth =  MIN(_L._COL + _L._WIDTH,SESSION:WIDTH-CHARS) .
+     
+     /* Only resize window if called from wizard not if fields are dropped onto frame */
+     IF lFromWizard AND dNewWinWidth > PARENT_U._HANDLE:WIDTH THEN
+        ASSIGN _h_win:WIDTH            = dNewWinWidth
+               PARENT_U._HANDLE:WIDTH  = dNewWinWidth
+               w_L._WIDTH              = dNewWinWidth
+               w_L._VIRTUAL-WIDTH      = MAX(w_L._VIRTUAL-WIDTH,dNewWinWidth)
+               f_L._WIDTH              = dNewWinWidth
+               f_L._VIRTUAL-WIDTH      = MAX(f_L._VIRTUAL-WIDTH, dNewWinWidth). 
+
+   END. /* End For Each _L */
+   /* Instantiate the field in the design window */
+   CASE _U._TYPE:
+       WHEN 'FILL-IN':U OR WHEN 'TEXT':U THEN RUN adeuib/_undfill.p (RECID(_U)).
+       WHEN 'COMBO-BOX':U      THEN RUN adeuib/_undcomb.p (RECID(_U)).
+       WHEN 'EDITOR':U         THEN RUN adeuib/_undedit.p (RECID(_U)).
+       WHEN 'RADIO-SET':U      THEN RUN adeuib/_undradi.p (RECID(_U)).
+       WHEN 'SELECTION-LIST':U THEN RUN adeuib/_undsele.p (RECID(_U)).
+       WHEN 'TOGGLE-BOX':U     THEN RUN adeuib/_undtogg.p (RECID(_U)).
+   END CASE.
+END.
+
 RUN adeuib/_tabordr.p (INPUT 'NORMAL':U, INPUT RECID(parent_U)).
 DYNAMIC-FUNCTION('shutdown-proc':U IN _h_func_lib, INPUT _P._data-object).
+
+SESSION:SET-WAIT-STATE('':U).
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
 
 /* **********************  Internal Procedures  *********************** */
-
-&IF DEFINED(EXCLUDE-adjustColumn) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE adjustColumn Procedure 
-PROCEDURE adjustColumn :
-/*------------------------------------------------------------------------------
-  Purpose:     Reads the label for each field and adjusts _frmx to accomodate 
-               these labels
-  Parameters:  <none>
-  Notes:       The is the first time the datafield master object read from
-               from the repository, if a master object does not exist, that
-               field is not added to the viewer.
-------------------------------------------------------------------------------*/
-DEFINE VARIABLE cDataType        AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cFormat          AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cHelp            AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cInvalidAttrs    AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cLabel           AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cValidateMessage AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE iMessageLoop     AS INTEGER    NO-UNDO.
-DEFINE VARIABLE iWidth           AS INTEGER    NO-UNDO.
-DEFINE VARIABLE cSDOName         AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE lObjectExists    AS LOGICAL    NO-UNDO.
-
-DEFINE BUFFER another_U FOR _U.
-
-FieldLoop:
-DO iFieldNum = 1 TO NUM-ENTRIES(cFields):
-  cListField = ENTRY(iFieldNum, cFields).
- 
-  FIND FIRST another_U WHERE another_U._NAME EQ cListField AND
-      another_U._WINDOW-HANDLE EQ _P._WINDOW-HANDLE AND
-      another_U._STATUS NE 'DELETED':U NO-ERROR.
-  IF AVAILABLE another_U THEN
-  DO:
-    cMessageList = cMessageList + (IF cMessageList NE '':U THEN CHR(10) + CHR(10) ELSE '':U) + 
-                   'The datafield "':U + cListField + '" could not be added to the viewer because ' +
-                   'another object on the viewer is named "':U + cListField + '".  ':U +
-                   'Please rename the existing object.':U.
-    ASSIGN cErrorFields = cErrorFields + (IF NUM-ENTRIES(cErrorFields) > 0 THEN ',':U ELSE '':U) +
-                          cListField.
-    NEXT FieldLoop.
-  END.  /* if another_U available */
-
-  lCalculatedCol = LOOKUP(cListField, cCalculatedCols) > 0. 
-  cObjectName = IF lCalculatedCol THEN cListField 
-                ELSE DYNAMIC-FUNCTION('columnPhysicalColumn':U IN hDataSource, cListField).
-
-  ASSIGN cObjectName = REPLACE(cObjectName,"[","")
-         cObjectName = REPLACE(cObjectName,"]","").
-
-  IF lCalculatedCol AND cCalcFieldList NE '':U THEN
-    cObjectName = DYNAMIC-FUNCTION("mappedEntry":U IN _h_func_lib,
-                                    INPUT cObjectName,             
-                                    INPUT cCalcFieldList,         
-                                    INPUT TRUE,                   
-                                    INPUT ",":U).
-
-/*   If calculated field and data source is an SBO, the name will have the SDO as a prefix
-     as in <sdoName>.<FieldName>.  */
-  IF lCalculatedCol AND cDataSourceType = 'SmartBusinessObject':U AND NUM-ENTRIES(cObjectName, '.':U) > 1 THEN
-     ASSIGN cSDOName    = ENTRY(1,cObjectName,".":U)       
-            cObjectName = ENTRY(2,cObjectName,".":U) 
-            NO-ERROR.
-  
-  lObjectExists = DYNAMIC-FUNCTION('ObjectExists':U IN hRepDesignManager, INPUT cObjectName).
-  
-  IF NOT lObjectExists THEN
-  DO:
-    cMessageList = cMessageList + (IF cMessageList NE '':U THEN CHR(10) + CHR(10) ELSE '':U) + 
-                   IF lCalculatedCol 
-                   THEN 'The calculated field "':U + cObjectName + '" has no master object in the repository. ':U + CHR(10) + 
-                        'Please add a calculated field master object called "':U + cObjectName + '" to an entity of the data source using the Entity Control. ':U
-                   ELSE 'The datafield "':U + cObjectName + '" has no master object in the repository. ':U + CHR(10) + 
-                        'Please use Entity Import to import it or add it using the Entity Control.':U.
-
-    ASSIGN cErrorFields = cErrorFields + (IF NUM-ENTRIES(cErrorFields) > 0 THEN ',':U ELSE '':U) +
-                          cListField.
-    NEXT FieldLoop.
-  END.  /* if object doesn't exist */
-
-  /* Retrieve the objects and instances for the current existing object opened in the appBuilder */
-  RUN retrieveDesignObject IN hRepDesignManager ( INPUT  cObjectName,
-                                                  INPUT  "",  /* Get default result Code */
-                                                  OUTPUT TABLE ttObject ,
-                                                  OUTPUT TABLE ttPage,
-                                                  OUTPUT TABLE ttLink,
-                                                  OUTPUT TABLE ttUiEvent,
-                                                  OUTPUT TABLE ttObjectAttribute ) NO-ERROR.  
-  
-  /* get the master Object */
-  FIND FIRST ttObject WHERE ttObject.tContainerSmartObjectObj = 0 NO-ERROR.
-  IF AVAIL ttObject THEN 
-  DO:
-    /* If this is a calculated field in a static SDO, the field could have the same name
-       as a repository object that is not a calculated fields so there is a check for this */
-    IF lCalculatedCol AND 
-        NOT DYNAMIC-FUNCTION('ClassIsA':U IN gshRepositoryManager, ttObject.tClassName, 'CalculatedField':U) THEN
-    DO:
-      cMessageList = cMessageList + (IF cMessageList NE '':U THEN CHR(10) + CHR(10) ELSE '':U)
-                     + 'The calculated field "':U + cObjectName + '" has the same name as ':U
-                     + 'another repository object.  Please rename the calculated field in the data source.':U.                                                                                            
-
-      ASSIGN cErrorFields = cErrorFields + (IF NUM-ENTRIES(cErrorFields) > 0 THEN ',':U ELSE '':U) +
-                          cListField.
-      NEXT FieldLoop.
-    END.  /* if calc field object is not calc field */
-
-    cValidateMessage = '':U.
-    RUN validateDataFieldAttrs IN hRepDesignManager (INPUT cObjectName, 
-                                                     OUTPUT cInvalidAttrs,
-                                                     OUTPUT cValidateMessage).
-    IF cValidateMessage NE '':U THEN
-    DO:
-      cMessageList = cMessageList + (IF cMessageList NE '':U THEN CHR(10) + CHR(10) ELSE '':U) + 
-               cObjectName + ' has invalid attribute values in its Datafield master object.  ':U + CHR(10) +
-              'Its invalid attributes are: ':U + cInvalidAttrs + CHR(10) + CHR(10) +
-              'Its attribute values must be corrected in DataField Maintenance in order to ':U + CHR(10) +
-              'include this datafield in a viewer.':U.
-      ASSIGN cErrorFields = cErrorFields + (IF NUM-ENTRIES(cErrorFields) > 0 THEN ',':U ELSE '':U) +
-                            cListField.
-      NEXT FieldLoop. 
-    END.  /* if cMessage not blank */
-
-    FIND FIRST ttObjectAttribute WHERE ttObjectAttribute.tSmartObjectObj    = ttObject.tSmartObjectObj
-                                   AND ttObjectAttribute.tObjectInstanceObj = ttObject.tObjectInstanceObj
-                                   AND ttObjectAttribute.tAttributelabel    = "LABEL":U  NO-ERROR.
-    IF AVAIL ttObjectattribute THEN
-        ASSIGN  cLabel = ttObjectAttribute.tAttributevalue + ':  ':U
-                iWidth = IF parent_L._FONT <> ? THEN FONT-TABLE:GET-TEXT-WIDTH-PIXELS(cLabel, parent_L._FONT)
-                                                ELSE FONT-TABLE:GET-TEXT-WIDTH-PIXELS(cLabel).
-    IF _frmx < iWidth THEN _frmx = iWidth.
-  END.  /* if Avail ttobject */
-END.  /* do iFieldNum to number fields picked */
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
 
 &IF DEFINED(EXCLUDE-selectFields) = 0 &THEN
 
@@ -649,6 +612,84 @@ PROCEDURE setAttributes :
      END.  /* when visualization type */
      WHEN 'Visible':U              THEN _U._HIDDEN           = NOT LOGICAL(pcValue).
   END CASE.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-validateColumn) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE validateColumn Procedure 
+PROCEDURE validateColumn :
+/*------------------------------------------------------------------------------
+  Purpose:     Validates all fields
+                
+  Parameters:  <none>
+  Notes:       The is the first time the datafield master object read from
+               from the repository, if a master object does not exist, that
+               field is not added to the viewer.
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE lObjectExists    AS LOGICAL    NO-UNDO.
+
+DEFINE BUFFER another_U FOR _U.
+
+FieldLoop:
+DO iFieldNum = 1 TO NUM-ENTRIES(cFields):
+  cListField = ENTRY(iFieldNum, cFields).
+ 
+  FIND FIRST another_U WHERE another_U._NAME EQ cListField AND
+      another_U._WINDOW-HANDLE EQ _P._WINDOW-HANDLE AND
+      another_U._STATUS NE 'DELETED':U NO-ERROR.
+  IF AVAILABLE another_U THEN
+  DO:
+    cMessageList = cMessageList + (IF cMessageList NE '':U THEN CHR(10) + CHR(10) ELSE '':U) + 
+                   'The datafield "':U + cListField + '" could not be added to the viewer because ' +
+                   'another object on the viewer is named "':U + cListField + '".  ':U +
+                   'Please rename the existing object.':U.
+    ASSIGN cErrorFields = cErrorFields + (IF NUM-ENTRIES(cErrorFields) > 0 THEN ',':U ELSE '':U) +
+                          cListField.
+    NEXT FieldLoop.
+  END.  /* if another_U available */
+
+  lCalculatedCol = LOOKUP(cListField, cCalculatedCols) > 0. 
+  cObjectName = IF lCalculatedCol THEN cListField 
+                ELSE DYNAMIC-FUNCTION('columnPhysicalColumn':U IN hDataSource, cListField).
+
+  ASSIGN cObjectName = REPLACE(cObjectName,"[","")
+         cObjectName = REPLACE(cObjectName,"]","").
+
+  IF lCalculatedCol AND cCalcFieldList NE '':U THEN
+    cObjectName = DYNAMIC-FUNCTION("mappedEntry":U IN _h_func_lib,
+                                    INPUT cObjectName,             
+                                    INPUT cCalcFieldList,         
+                                    INPUT TRUE,                   
+                                    INPUT ",":U).
+
+/*   If calculated field and data source is an SBO, the name will have the SDO as a prefix
+     as in <sdoName>.<FieldName>.  */
+  IF lCalculatedCol AND cDataSourceType = 'SmartBusinessObject':U AND NUM-ENTRIES(cObjectName, '.':U) > 1 THEN
+     ASSIGN cObjectName = ENTRY(2,cObjectName,".":U) NO-ERROR.
+  
+  lObjectExists = DYNAMIC-FUNCTION('ObjectExists':U IN hRepDesignManager, INPUT cObjectName).
+  
+  IF NOT lObjectExists THEN
+  DO:
+    cMessageList = cMessageList + (IF cMessageList NE '':U THEN CHR(10) + CHR(10) ELSE '':U) + 
+                   IF lCalculatedCol 
+                   THEN 'The calculated field "':U + cObjectName + '" has no master object in the repository. ':U + CHR(10) + 
+                        'Please add a calculated field master object called "':U + cObjectName + '" to an entity of the data source using the Entity Control. ':U
+                   ELSE 'The datafield "':U + cObjectName + '" has no master object in the repository. ':U + CHR(10) + 
+                        'Please use Entity Import to import it or add it using the Entity Control.':U.
+
+    ASSIGN cErrorFields = cErrorFields + (IF NUM-ENTRIES(cErrorFields) > 0 THEN ',':U ELSE '':U) +
+                          cListField.
+    NEXT FieldLoop.
+  END.  /* if object doesn't exist */
+
+END.  /* do iFieldNum to number fields picked */
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

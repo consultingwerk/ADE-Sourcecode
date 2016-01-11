@@ -21,13 +21,15 @@
 *               PSC                                                  *
 *                                                                    *
 *********************************************************************/
+
+
 TRIGGER PROCEDURE FOR DELETE OF gsm_user.
+
 {af/sup/aftrigtopd.i}
 
 /* Trigger filename = gsmustrigd.p */
 
 DEFINE BUFFER o_gsm_user FOR gsm_user.
-
 /* Customisations to DELETE trigger */
 {icf/trg/gsmustrigd.i}
 

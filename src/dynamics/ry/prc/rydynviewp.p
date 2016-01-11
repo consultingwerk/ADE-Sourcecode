@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Check Version Notes Wizard" Procedure _INLINE
 /* Actions: af/cod/aftemwizcw.w ? ? ? ? */
@@ -65,7 +65,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 {src/adm2/globals.i}
 
-{ ry/app/rydynviewi.i }
+{ry/app/rydynviewi.i}
 
 {launch.i &define-only = YES }
 
@@ -83,10 +83,6 @@ DEFINE VARIABLE ghCachePage              AS HANDLE                NO-UNDO.
 DEFINE VARIABLE ghCacheLink              AS HANDLE                NO-UNDO.
 
 &SCOPED-DEFINE Value-Delimiter CHR(1)
-
-/* gcCurrentObjectName is used to give prepareInstance the correct instanceID
- * for any objects which are built using constructObject.                   */
-DEFINE VARIABLE gcCurrentObjectName         AS CHARACTER            NO-UNDO.
 
 /* These are the default attributes which are stored in the ttWidget temp-table. These
  * attributes must not be duplicated in any of the widget type temp-tables.
@@ -107,6 +103,12 @@ RUN processEventProcedure IN TARGET-PROCEDURE ( INPUT ENTRY((4 * iLoop + 1)    ,
                                                 
 
 DEFINE VARIABLE gcErrorMessage AS CHARACTER  NO-UNDO.
+
+/* This variable should NEVER be accessed directly; it should always be 
+   accessed using the {getCurrentLogicalName} and {setCurrentLogicalName} 
+   functions.
+ */
+define variable gcCurrentLogicalName             as character            no-undo.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -168,7 +170,7 @@ FUNCTION destroyWidgets RETURNS LOGICAL
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCurrentLogicalName Procedure 
 FUNCTION getCurrentLogicalName RETURNS CHARACTER
-    ( /* parameter-definitions */ )  FORWARD.
+        (  ) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -180,6 +182,28 @@ FUNCTION getCurrentLogicalName RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getPopupHandle Procedure 
 FUNCTION getPopupHandle RETURNS HANDLE
     ( INPUT phWidgetHandle      AS HANDLE )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getWidgetTableBuffer) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getWidgetTableBuffer Procedure 
+FUNCTION getWidgetTableBuffer RETURNS HANDLE
+        (  ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setCurrentLogicalName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setCurrentLogicalName Procedure 
+FUNCTION setCurrentLogicalName RETURNS LOGICAL
+        ( input pcCurrentLogicalName        as character ) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -440,7 +464,7 @@ PROCEDURE repositionWidgetForTranslation :
   Notes:       
 ------------------------------------------------------------------------------*/
     DEFINE INPUT-OUTPUT PARAMETER pdFrameWidth AS DECIMAL NO-UNDO.
-    
+     
     DEFINE VARIABLE cJunk              AS CHARACTER  NO-UNDO.
     DEFINE VARIABLE lJunk              AS LOGICAL    NO-UNDO.
     DEFINE VARIABLE dColsToAdd         AS DECIMAL    NO-UNDO.
@@ -594,39 +618,49 @@ PROCEDURE repositionWidgetForTranslation :
     /* Right, we know where our widgets must go, move them. */
     FOR EACH ttWidget
        WHERE ttWidget.tTargetProcedure = TARGET-PROCEDURE:       
-            IF ttWidget.tWidgetType = "smartDataField":U 
+        IF ttWidget.tWidgetType = "smartDataField":U 
+        THEN DO:
+            {get COL dSDFCol ttWidget.tWidgetHandle}.
+            IF dSDFCol <> ttWidget.tColumn THEN
+                RUN repositionObject IN ttWidget.tWidgetHandle (INPUT ttWidget.tRow, INPUT ttWidget.tColumn) NO-ERROR.
+        END.
+        ELSE
+            /* If the column of this widget has changed,  or the widget
+               itself has been translated, then move the widget and/or label.
+               
+               There are cases where the label has been translated, and is now
+               longer than the original label, but not so much as to cause the column
+               to shift. In these cases we need to reposition the label.
+             */
+            IF ttWidget.tColumn <> ttWidget.tWidgetHandle:COLUMN or ttWidget.tTranslated 
             THEN DO:
-                {get COL dSDFCol ttWidget.tWidgetHandle}.
-                IF dSDFCol <> ttWidget.tColumn THEN
-                    RUN repositionObject IN ttWidget.tWidgetHandle (INPUT ttWidget.tRow, INPUT ttWidget.tColumn) NO-ERROR.
-            END.
-            ELSE
-                IF ttWidget.tColumn <> ttWidget.tWidgetHandle:COLUMN 
-                THEN DO:
-                    /* Move the field */
-                    ASSIGN dColsToAdd                    = ttWidget.tColumn - ttWidget.tWidgetHandle:COLUMN
-                           ttWidget.tWidgetHandle:COLUMN = ttWidget.tWidgetHandle:COLUMN + dColsToAdd
-                           NO-ERROR.
-    
-                    /* Move the popup if applicable */
-                    IF cFieldPopupMapping = ? 
-                    THEN DO:
-                        {get FieldPopupMapping cFieldPopupMapping}.
-                    END.
-    
-                    ASSIGN iEntry = LOOKUP(STRING(ttWidget.tWidgetHandle), cFieldPopupMapping) + 1.
-                    IF iEntry > 1 THEN
-                        ASSIGN hPopup        = WIDGET-HANDLE(ENTRY(iEntry, cFieldPopupMapping))
-                               hPopup:COLUMN = hPopup:COLUMN + dColsToAdd
-                               pdFrameWidth  = MAX(pdFrameWidth, hPopup:COLUMN + hPopup:WIDTH).
+                /* Move the field */
+                ASSIGN dColsToAdd                    = ttWidget.tColumn - ttWidget.tWidgetHandle:COLUMN
+                       ttWidget.tWidgetHandle:COLUMN = ttWidget.tWidgetHandle:COLUMN + dColsToAdd
+                       NO-ERROR.
 
-                    /* Move the label */
-                    IF CAN-QUERY(ttWidget.tWidgetHandle, "SIDE-LABEL-HANDLE":U)
-                    AND VALID-HANDLE(ttWidget.tWidgetHandle:SIDE-LABEL-HANDLE) THEN
-                        ASSIGN ttWidget.tWidgetHandle:SIDE-LABEL-HANDLE:X = ttWidget.tWidgetHandle:X
-                                                                          - ttWidget.tWidgetHandle:SIDE-LABEL-HANDLE:WIDTH-PIXELS.
+                /* Move the popup if applicable */
+                IF cFieldPopupMapping = ? 
+                THEN DO:
+                    {get FieldPopupMapping cFieldPopupMapping}.
                 END.
-    END.
+
+                ASSIGN iEntry = LOOKUP(STRING(ttWidget.tWidgetHandle), cFieldPopupMapping) + 1.
+                IF iEntry > 1 THEN
+                do:
+                    hPopup = WIDGET-HANDLE(ENTRY(iEntry, cFieldPopupMapping)) no-error.
+                    if valid-handle(hPopup) then
+                        assign hPopup:COLUMN = hPopup:COLUMN + dColsToAdd
+                               pdFrameWidth  = MAX(pdFrameWidth, hPopup:COLUMN + hPopup:WIDTH).
+                end.
+                
+                /* Move the label */
+                IF CAN-QUERY(ttWidget.tWidgetHandle, "SIDE-LABEL-HANDLE":U)
+                AND VALID-HANDLE(ttWidget.tWidgetHandle:SIDE-LABEL-HANDLE) THEN
+                    ASSIGN ttWidget.tWidgetHandle:SIDE-LABEL-HANDLE:X = ttWidget.tWidgetHandle:X
+                                                                      - ttWidget.tWidgetHandle:SIDE-LABEL-HANDLE:WIDTH-PIXELS.
+            END.    /* column changed or translated */
+    END.    /* each widget */
 
     ASSIGN ERROR-STATUS:ERROR = NO.
     RETURN.
@@ -827,13 +861,13 @@ END FUNCTION.   /* destroyWidgets */
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getCurrentLogicalName Procedure 
 FUNCTION getCurrentLogicalName RETURNS CHARACTER
-    ( /* parameter-definitions */ ) :
+        (  ):
 /*------------------------------------------------------------------------------
-  Purpose:  Returns the name of the object currently being worked with.
-    Notes:  * this API is called from prepareInstance.
+  Purpose:  Used by prepareInstance in the Repository Manager.
+        Notes:
 ------------------------------------------------------------------------------*/
-    RETURN gcCurrentObjectName.
-END FUNCTION.   /* getCurrentLogicalName */
+    return gcCurrentLogicalName.
+END FUNCTION.    /* getCurrentLogicalName */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -852,6 +886,50 @@ FUNCTION getPopupHandle RETURNS HANDLE
 ------------------------------------------------------------------------------*/
   RETURN {fn popupHandle phWidgetHandle}.  
 END FUNCTION.   /* getPopupHandle */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getWidgetTableBuffer) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getWidgetTableBuffer Procedure 
+FUNCTION getWidgetTableBuffer RETURNS HANDLE
+        (  ):
+/*------------------------------------------------------------------------------
+  Purpose: Returns the buffer handle to the ttWidget temp-table.  
+    Notes: * This is typically called from generated viewers, since they need
+             to create records in the ttWidget temp-table so that the
+             repositionWidgetForTranslation() function can work.
+------------------------------------------------------------------------------*/
+    define variable hBuffer                    as handle            no-undo.
+    
+    hBuffer = buffer ttWidget:handle.
+    
+    error-status:error = no.
+    return hBuffer.
+END FUNCTION.     /* getWidgetTableBuffer */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setCurrentLogicalName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setCurrentLogicalName Procedure 
+FUNCTION setCurrentLogicalName RETURNS LOGICAL
+        ( input pcCurrentLogicalName        as character ):
+/*------------------------------------------------------------------------------
+  Purpose: This function is called from the rendering before the calls are 
+                   made to constructObject. This value is used by the prepareInstance
+                   bootstrapping API.
+    Notes: 
+------------------------------------------------------------------------------*/
+    gcCurrentLogicalName = pcCurrentLogicalName.
+    return true.
+END FUNCTION.    /* setCurrentLogicalName */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

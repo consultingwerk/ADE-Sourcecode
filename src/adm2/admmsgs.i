@@ -158,6 +158,8 @@
                        "running locally without proper database connection(s)."
     cADMMessages[48] = "Crystal reports dataobject &1 is not set up. Please contact your system administrator."
     cADMMessages[50] = "Crystal reports landscape template &1 is not set up. Please contact your system administrator."
+    .
+    ASSIGN
     cADMMessages[51] = "Crystal reports portrait template &1 is not set up. Please contact your system administrator."
     cADMMessages[55] = "<not in use>"
     cADMMessages[59] = "Unable to Re-Open Query as a Folder Window is Active. Please close the Folder Window first."
@@ -190,3 +192,7 @@
     cADMMessages[95] = "&1 does not support retrieval of large data." + CHR(10) 
                      + "Column '&2' is &3 data-type."
     .
+    /* Assigns to cADMMessages are separated in multiple groups to avoid 
+       exceeding the default number of input characters: -inp 4096
+       when compiling.
+     */

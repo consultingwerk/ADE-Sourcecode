@@ -138,19 +138,24 @@ DO:
   RUN start-super-proc("adm2/data.p":U).
   RUN start-super-proc("adm2/dataext.p":U).
   /* dataext.p is merely a simple "extension" of data.p.  This was necessary
-     because functions don't have there own action segement and data.p got
+     because functions don't have there own action segment and data.p got
      too big and had to be broken up.  All of the functions in dataext.p
-     are get and set property functions.  */
+     are get and set property functions. It also contains the do* procedures
+     for client TT management */
   RUN start-super-proc("adm2/dataextcols.p":U).
   /* dataextcols.p is also a simple "extension" of data.p.  This was necessary
-     because the action segment became to big on A400 also after the split in 
+     because the action segment became too big on A400 also after the split in 
      data and dataext. The functions in  dataextcols.p are column properties 
-    (column and assignColumn functions)  */
+    (column and assignColumn functions) as well as col* procedures  */
 
+  RUN start-super-proc("adm2/dataextapi.p":U).
+ /* dataextapi.p is also a simple "extension" of data.p separated because the 
+    ecode segment became too big. dataextapi.p contains the open client api */
+  
   /* Overrides query object setting */
   {set DataSourceEvents 'dataAvailable,confirmContinue,isUpdatePending':U}.
 
-  {set QueryObject yes}.             /* All DataObjects are query objects.*/
+  {set QueryObject YES}.  /* All DataObjects are query objects.*/
 
   &IF DEFINED(DATA-FIELD-DEFS) = 0 &THEN
     {set DynamicData YES}.

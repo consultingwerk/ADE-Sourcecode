@@ -68,6 +68,8 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &glob   AstraProcedure    yes
 
 {src/adm2/globals.i}
+{destdefi.i}             /* Definitions for dynamics design-time temp-tables. */
+
 
 DEFINE INPUT  PARAMETER phWindow        AS HANDLE       NO-UNDO.
 DEFINE INPUT  PARAMETER pPrecid         AS RECID        NO-UNDO.
@@ -210,6 +212,10 @@ PROCEDURE save_ab_file_to_repos :
 ------------------------------------------------------------------------------*/
 DEFINE VARIABLE h_title_win   AS WIDGET    NO-UNDO.
 DEFINE VARIABLE OldTitle      AS CHARACTER NO-UNDO.
+DEFINE VARIABLE phDataObject  AS HANDLE    NO-UNDO.
+DEFINE VARIABLE cTableName    AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cInheritClasses AS CHARACTER NO-UNDO.
+DEFINE VARIABLE ghDesignManager AS HANDLE    NO-UNDO.
 
 
 AB-BLOCK:
@@ -220,6 +226,37 @@ DO TRANSACTION ON ERROR UNDO, LEAVE:
     BUFFER-COPY _RyObject TO _P.
     
     _ryObject.design_precid = RECID(_P).
+    /* Determine whether the object is based on a SBO data source. If yes, set the 
+       object-name and class-name so that the object is saved without error.       */
+    phDataObject = DYNAMIC-FUNC("get-proc-hdl" IN _h_func_lib, INPUT _P._DATA-OBJECT).
+    IF VALID-HANDLE(phDataObject) AND
+       DYNAMIC-FUNCTION("getObjectType":U IN phDataObject) = "SmartBusinessObject":U THEN 
+    DO:
+      FOR EACH _U WHERE _U._WINDOW-HANDLE = _P._WINDOW-HANDLE
+	   	    AND _U._BUFFER        > "":
+
+          ASSIGN cTableName      = DYNAMIC-FUNCTION("columnTable":U IN phDataObject, _U._BUFFER + "." + ENTRY(1,_U._NAME,"."))
+	         _U._CLASS-NAME  = "DataField":U
+                 _U._Object-NAME = cTableName + "." +  _U._NAME.
+	
+      END.
+    END.
+    
+ /* When saving a static as dynamic SDO, ensure partition is set as class default */
+    IF _P._TYPE = "SmartDataObject":U AND _P._PARTITION = "" THEN
+    DO:
+        ASSIGN ghDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U, "RepositoryDesignManager":U) NO-ERROR.
+        RUN retrieveDesignClass IN ghDesignManager
+                   ( INPUT  "Data":U,
+                     OUTPUT cInheritClasses,
+                     OUTPUT TABLE ttClassAttribute ,
+                     OUTPUT TABLE ttUiEvent,
+                     OUTPUT TABLE ttSupportedLink    ) NO-ERROR.  
+       FIND FIRST ttClassAttribute WHERE  ttClassAttribute.tAttributeLabel = "AppService" NO-ERROR.
+       IF AVAIL ttClassAttribute then
+          _P._PARTITION = ttClassAttribute.tAttributeValue.       
+    END.
+
     /* save_window_static is a misnomer.  It now does both dynamic and static */
     RUN save_window_static  IN _h_uib (INPUT RECID(_P), OUTPUT gcError).
   
@@ -256,8 +293,8 @@ DO TRANSACTION ON ERROR UNDO, LEAVE:
       RUN call_sew IN _h_UIB ( "SE_PROPS":U ). 
 
       /* Update most recently used filelist */    
-      IF LOOKUP("NEW":U,_P.design_action) > 1  AND _mru_filelist THEN 
-        RUN adeshar/_mrulist.p (_save_file, IF _remote_file THEN _BrokerURL ELSE "").
+      IF  _mru_filelist THEN 
+        RUN adeshar/_mrulist.p (_P._Save-as-file, IF _remote_file THEN _BrokerURL ELSE "").
 
       /* IZ 776 Redisplay current filename in AB Main window. */
       RUN display_current IN _h_uib.

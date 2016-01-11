@@ -55,7 +55,7 @@ Hotkey.prototype.hotkey=function(e){
       var act=(hotkeys.substr(pos + c.length)).split('|')[1];
 //      window.status='hotkey ' + c + ' ==> ' + act;
       window.fixEvent(e);
-      window.action(act);
+      userAction(act);
     } else {
       var cNav=null;
       switch(c){
@@ -80,7 +80,7 @@ Hotkey.prototype.hotkey=function(e){
         if(e.keyCode<35||e.keyCode>40) app.wbo.editfield(src);
       } else if(cNav && browsenav){                             // Navigate browse
         window.fixEvent(e);
-        window.action(browsenav+'.'+cNav);
+        userAction(browsenav+'.'+cNav);
       }
     }
   }

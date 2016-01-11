@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sessions>
+	<session SessionType="MigrateSetup">
+		<properties>
+			<ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
+			<physical_session_list>GUI,WBC</physical_session_list>
+			<session_date_format>mdy</session_date_format>
+			<session_year_offset>1950</session_year_offset>
+			<session_numeric_format>,.</session_numeric_format>
+			<window_title>Progress Dynamics Configuration Utility</window_title>
+			<valid_os_list>WIN32</valid_os_list>
+			<setup_type_file>db/icf/dfd/setup21b1000b02.xml</setup_type_file>
+			<setup_type>ProgressSetup</setup_type>
+		</properties>
+      <managers>
+         <manager>
+            <cManagerName>ConnectionManager</cManagerName>
+            <cFileName>af/app/afconmgrp.p</cFileName>
+            <cHandleName>NON</cHandleName>
+         </manager>
+         <manager>
+            <cManagerName>DatabaseConnectionManager</cManagerName>
+            <cFileName>af/app/afdbconmgrp.p</cFileName>
+            <cHandleName>NON</cHandleName>
+         </manager>
+         <manager>
+            <cManagerName>InstallUIManager</cManagerName>
+            <cFileName>install/prc/inuimngrp.p</cFileName>
+            <cHandleName>NON</cHandleName>
+         </manager>
+         <manager>
+            <cManagerName>ICFDBInstallManager</cManagerName>
+            <cFileName>install/prc/inicfdbmngrp.p</cFileName>
+            <cHandleName>NON</cHandleName>
+         </manager>
+      </managers>
+	</session>    
+</sessions>

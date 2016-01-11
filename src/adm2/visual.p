@@ -1215,22 +1215,104 @@ PROCEDURE createObjects :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-    DEFINE VARIABLE lUseRepository              AS LOGICAL              NO-UNDO.
+  DEFINE VARIABLE hFrame             AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hField             AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cTargets           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iTarget            AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hTarget            AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cFrame             AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cObjectType        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cEnabledObjFlds    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cEnabledObjHdls    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAllFieldNames     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAllFieldHandles   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFieldName         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iLookup            AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE lLocal             AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE iLocal             AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hChildFrame        AS HANDLE     NO-UNDO.
+  
+  DEFINE VARIABLE lUseRepository              AS LOGICAL              NO-UNDO.
     
-    /* Added NO-ERROR to super call because certain objects do not have a super
-       for createObjects after this point in the stack (it might be called earlier).
-       Toolbars are an example of this.
-     */
-    RUN SUPER NO-ERROR.
+  /* Added NO-ERROR to super call because certain objects do not have a super
+     for createObjects after this point in the stack (it might be called earlier).
+     Toolbars are an example of this.*/
+  RUN SUPER NO-ERROR.
 
-    /* Set the UI Events for this object */
-    {get UseRepository lUseRepository}.
+  &SCOPED-DEFINE xp-assign
+  {get AllFieldNames cAllFieldNames}
+  {get EnabledObjFlds cEnabledObjFlds}
+  {get ContainerHandle hFrame}
+  {get ObjectType cObjectType}
+  {get UseRepository lUseRepository}
+  .
+  &UNDEFINE xp-assign 
+  
+  IF lUseRepository THEN
+    {fn createUiEvents} NO-ERROR.
 
-    IF lUseRepository THEN
-        {fn createUiEvents} NO-ERROR.
+  /* If AllfieldNames is not set then loop through the widget to build the 
+     property lists. Viewers will build these properties and several other
+     properties in their own widget loop in a createObjects override. */
+  IF cAllFieldNames = '' THEN
+  DO:
+    ASSIGN
+      hField           = hFrame:FIRST-CHILD:FIRST-CHILD
+      /* The order of the lists of handles must match the order of the 
+         DisplayedField and EnabledField properties, so initialise with the 
+         current number of entries */
+      cEnabledObjHdls  = FILL(",":U, NUM-ENTRIES(cEnabledObjFlds) - 1)
+      .
+    /* widgetloop */
+    DO WHILE VALID-HANDLE(hField): 
+      /* Editor use read-only as disabled */ 
+      IF hField:TYPE = 'EDITOR':U THEN
+        ASSIGN
+          hField:SENSITIVE = TRUE
+          hField:READ-ONLY = TRUE. 
+  
+      ASSIGN
+        cFieldName = hField:NAME 
+        iLocal     = LOOKUP(cFieldName, cEnabledObjFlds).
+  
+      IF iLocal > 0 THEN
+      DO:
+          IF LOOKUP(hField:TYPE,"FILL-IN,RADIO-SET,EDITOR,COMBO-BOX,SELECTION-LIST,SLIDER,TOGGLE-BOX,BROWSE,BUTTON":U) > 0 THEN 
+            ENTRY(iLocal, cEnabledObjHdls) = STRING(hField).
+          ELSE
+            ASSIGN
+              cEnabledObjFlds =  DYNAMIC-FUNCTION('deleteEntry' IN TARGET-PROCEDURE,
+                                         iLocal,cEnabledObjFlds,',')
+              cEnabledObjHdls = DYNAMIC-FUNCTION('deleteEntry' IN TARGET-PROCEDURE,
+                                         iLocal,cEnabledObjHdls,',').
+      END.
+      hTarget = hField. 
+      
+      /* Anonymous widgets are not allowed (labels) */
+      IF cFieldName > '' THEN
+        ASSIGN
+          /* V10 will have qualified names here shortname is for v9 */
+          cAllFieldNames   = cAllFieldnames + ',' + cFieldName 
+          cAllFieldHandles = cAllFieldHandles + ',' + STRING(hTarget). 
+  
+      hField = hField:NEXT-SIBLING.
+    END. /* do while */   
+    
+    ASSIGN
+      cAllFieldNames   = TRIM(cAllFieldNames,",")
+      cAllFieldHandles = TRIM(cAllFieldHandles,",").
+  
+  /* Store the properties */
+    &SCOPED-DEFINE xp-assign
+    {set EnabledObjFlds cEnabledObjFlds}
+    {set EnabledObjHdls cEnabledObjHdls}
+    {set AllFieldHandles cAllFieldHandles}
+    {set AllFieldNames cAllFieldNames}
+    .
+    &UNDEFINE xp-assign
+  END. /* if allfieldnames = '' AND not viewer */
 
-    ASSIGN ERROR-STATUS:ERROR = NO.
-    RETURN.
+  RETURN.
 END PROCEDURE.  /* createObjects */
 
 /* _UIB-CODE-BLOCK-END */
@@ -1350,7 +1432,7 @@ PROCEDURE enableObject :
         /* Cater for local SDF's */
         IF hField:TYPE EQ "PROCEDURE":U THEN
         DO:
-          {get ObjectHidden lObjectHidden}.
+          {get ObjectHidden lObjectHidden hField}.
           IF NOT lObjectHidden 
           AND (((iFieldPos <> 0 
                  AND NUM-ENTRIES(cSecuredFields) >= iFieldPos 
@@ -1414,54 +1496,40 @@ PROCEDURE initializeObject :
     Notes:  Enables and views the object depending on the values of 
             DisableOnInit and HideOnInit instance properties.
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE lHideOnInit        AS LOGICAL     NO-UNDO.
-  DEFINE VARIABLE lDisableOnInit     AS LOGICAL     NO-UNDO.
-  DEFINE VARIABLE cLayout            AS CHARACTER   NO-UNDO. 
-  DEFINE VARIABLE hContainer         AS HANDLE      NO-UNDO.
-  DEFINE VARIABLE hParent            AS HANDLE      NO-UNDO.
-  DEFINE VARIABLE cSource            AS CHARACTER   NO-UNDO.
-  DEFINE VARIABLE hSource            AS HANDLE      NO-UNDO.
-  DEFINE VARIABLE cEnabledObjFlds    AS CHARACTER   NO-UNDO.
-  DEFINE VARIABLE cEnabledObjHdls    AS CHARACTER   NO-UNDO.
-  DEFINE VARIABLE hFrameField        AS HANDLE      NO-UNDO.
-  DEFINE VARIABLE cResult            AS CHARACTER   NO-UNDO.
-  DEFINE VARIABLE lResult            AS LOGICAL     NO-UNDO.
-  DEFINE VARIABLE cAllFieldHandles   AS CHARACTER   NO-UNDO.
-  DEFINE VARIABLE cAllFieldNames     AS CHARACTER   NO-UNDO.
-  DEFINE VARIABLE hContainerSource   AS HANDLE      NO-UNDO.
-  DEFINE VARIABLE iTarget            AS INTEGER     NO-UNDO.
-  DEFINE VARIABLE cContainerTargets  AS CHARACTER   NO-UNDO.
-  DEFINE VARIABLE hTarget            AS HANDLE      NO-UNDO.
-  DEFINE VARIABLE hTargetFrame       AS HANDLE      NO-UNDO.
-  DEFINE VARIABLE hFrameProc         AS HANDLE      NO-UNDO.
-  DEFINE VARIABLE cFieldName         AS CHARACTER   NO-UNDO.
-  DEFINE VARIABLE cFrameHandles      AS CHARACTER   NO-UNDO.
-  DEFINE VARIABLE cNonSmartFrames    AS CHARACTER   NO-UNDO.
-  DEFINE VARIABLE hFrame             AS HANDLE      NO-UNDO.
-  DEFINE VARIABLE iLookup            AS INTEGER     NO-UNDO.
-  DEFINE VARIABLE lAllFieldsSet      AS LOGICAL     NO-UNDO.
-  DEFINE VARIABLE lPopupsInFields    AS LOGICAL     NO-UNDO.
-  DEFINE VARIABLE cFieldHandles      AS CHARACTER   NO-UNDO.
-  DEFINE VARIABLE cDisplayedFields   AS CHARACTER   NO-UNDO.
-  DEFINE VARIABLE iFrame             AS INTEGER     NO-UNDO.
-  DEFINE VARIABLE hChildFrame        AS HANDLE      NO-UNDO.
+  DEFINE VARIABLE lHideOnInit        AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE lDisableOnInit     AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE cLayout            AS CHARACTER NO-UNDO. 
+  DEFINE VARIABLE hContainer         AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE hParent            AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE cSource            AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE hSource            AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE cResult            AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE lResult            AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE hContainerSource   AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE cNonSmartFrames    AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE hFrame             AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE lPopupsInFields    AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE hChildFrame        AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE iFrame             AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE lIsContainer       AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE lCreated           AS LOGICAL    NO-UNDO.
+    define variable cObjectType            as character                no-undo.
+    
+  /* createObjects for visual mainly class builds property lists 
+     most extended classes will already have created objects at this stage
+     Check this no-error .. the prop is currently in the containr, so objects 
+     that need to run createObjects here does not have this property.. */ 
+  
+  {get ObjectsCreated lCreated} NO-ERROR.
+  /* unknown (if func does not exist) ..  */
+  IF NOT (lCreated = YES) THEN
+     RUN createObjects IN TARGET-PROCEDURE.
 
   RUN SUPER.
  
   IF RETURN-VALUE = "ADM-ERROR":U THEN 
     RETURN "ADM-ERROR":U.
 
-  &SCOPED-DEFINE xp-assign
-  {get AllFieldHandles cAllFieldHandles}
-  {get AllFieldNames cAllFieldNames}
-  .
-  &UNDEFINE xp-assign
-   
-  /* A dynamic viewer build this list while creating widgets.
-     Tis info is used to avoid the widget-tree loop below */ 
-  IF cAllFieldHandles NE '':U AND cAllFieldNames NE '':U THEN 
-    lAllFieldsSet = TRUE.
-  
   /* Skip all intiialization except viewing in design mode. */
   {get UIBMode cResult}.
   IF cResult BEGINS "Design":U THEN
@@ -1473,170 +1541,38 @@ PROCEDURE initializeObject :
   /* Set the procedure's CURRENT-WINDOW to its parent window container
      (which may be several levels up). This will assure correct parenting
      of alert boxes, etc. */
-  {get ContainerHandle hContainer}.
+  &scoped-define xp-Assign     
+  {get ContainerHandle hContainer}
+  {get ObjectType cObjectType}.  
+  &undefine xp-Assign
   IF NOT VALID-HANDLE(hContainer) THEN
     RETURN.       /* If no container then skip all visual initialization. */
  
-  hParent = hContainer.  
-  IF hContainer:TYPE = "Window":U THEN 
-    {get WindowFrameHandle hFrame}.
-  ELSE 
-    hFrame = hContainer. 
-  
+  hParent = hContainer.
   DO WHILE VALID-HANDLE(hParent:PARENT) AND hParent:TYPE NE "WINDOW":U:
     hParent = hParent:PARENT.
   END.
   
   IF VALID-HANDLE(hParent) AND hParent:TYPE = "WINDOW":U THEN
      TARGET-PROCEDURE:CURRENT-WINDOW = hParent.
-  /* If AllFieldsSet then skip the frame loop. 
-     The dynviewer builds the AllField list and EnabledObj lists in 
-     createObjects, while the EnabledObjHdls in addition are updated from 
-     field.p initializeObjects */ 
-  IF NOT lAllFieldsSet THEN
-  DO:
-    /* These are viewer props, needed to deal with possible name mappings
-      (The viewer should have added this by itself, but )  */ 
     
-    &SCOPED-DEFINE xp-assign
-    {get DisplayedFields cDisplayedFields} 
-    {get FieldHandles cFieldHandles} NO-ERROR 
-    .
-    &UNDEFINE xp-assign
-    /* Build a list of frame handles corresponding to containertargets list to 
-       use to identify SmartObjects in the widget loop below */
-    {get ContainerTarget cContainerTargets} NO-ERROR.    
-    IF cContainerTargets <> "":U THEN 
-    DO:
-      cFrameHandles = FILL(",":U, NUM-ENTRIES(cContainerTargets) - 1).
-      DO iTarget = 1 TO NUM-ENTRIES(cContainerTargets):
-        ASSIGN
-          hTarget      = WIDGET-HANDLE(ENTRY(iTarget,cContainerTargets)).
-          hTargetFrame = ?. 
-        
-        IF VALID-HANDLE(hTarget) THEN
-          {get ContainerHandle hTargetFrame hTarget}.  
-
-        /* if the containerHandle is a child of this object's frame then add it 
-           to the list */   
-        ENTRY(iTarget,cFrameHandles) = IF VALID-HANDLE(hTargetFrame)
-                                       AND hTargetFrame:TYPE = 'FRAME':U 
-                                       AND hFrame = hTargetFrame:FRAME
-                                       THEN STRING(hTargetFrame)
-                                       ELSE "?":U.
-  
-      END. /* end iTarget */
-    END. /* end if ccontainertargets <> ""*/ 
-    
-    /* - Build the list of the handles of ENABLED-OBJECTS, for enable/disableObject.
-         These are *non*-databound fields.
-       - Editors need to be enabled as they use the read-only attribute to 
-         toggle between the enabled/disabled state (Dynamic viewers does this 
-         when creating the widgets) */
-    IF VALID-HANDLE(hFrame) AND hFrame:FIRST-CHILD NE ? THEN  
-    DO:
-      {get EnabledObjFlds cEnabledObjFlds}.    
-      /* Ensure that the order of the fields and handles is the same. */
-      ASSIGN 
-        /* The field class has actually added its handles to the 
-           EnabledObjHdls list (for dynviewer), but it would just complify this 
-           logic to deal with this. We need to figure out if the frames are 
-           SDFs anyways in order to build the AllField lists  */
-        cEnabledObjHdls = FILL(",":U, NUM-ENTRIES(cEnabledObjFlds) - 1)
-        hFrameField = hFrame:FIRST-CHILD          /* Field Group */
-        hFrameField = hFrameField:FIRST-CHILD.   /* First actual field. */
-
-      DO WHILE VALID-HANDLE(hFrameField):        
-        ASSIGN
-          hFrameProc = ?
-          cFieldname = ''
-          iLookup    = LOOKUP(hFrameField:NAME, cEnabledObjFlds).
-        /* Editors use read-only to toggle enabled/disabled state. 
-           Sensitive is required to be able to scroll in the editor with 
-           cursor or scroll-bars and for proper fgcolor. 
-           Note that it is initialized as 'disabled' with read-only=true.   */ 
-        IF hframefield:TYPE = 'EDITOR':U THEN
-          ASSIGN
-            hFrameField:SENSITIVE = TRUE
-            hFrameField:READ-ONLY = TRUE. 
-    
-        IF iLookup > 0 THEN 
-        DO:
-          IF LOOKUP(hFrameField:TYPE,"FILL-IN,RADIO-SET,EDITOR,COMBO-BOX,SELECTION-LIST,SLIDER,TOGGLE-BOX,BROWSE,BUTTON":U) NE 0 THEN 
-            ENTRY(iLookup, cEnabledObjHdls) = STRING(hFrameField).
-          
-          /* If not a 'supported' field widget, delete it from the enabledObjFlds list and 
-             ensure the enabledObjHdls list that was preset with entries above is in synch */ 
-          ELSE 
-            ASSIGN
-              cEnabledObjHdls = DYNAMIC-FUNCTION ('deleteEntry':U IN TARGET-PROCEDURE, LOOKUP(hFrameField:NAME, cEnabledObjFlds),  cEnabledObjHdls, ",":U) 
-              cEnabledObjFlds = DYNAMIC-FUNCTION ('deleteEntry':U IN TARGET-PROCEDURE, LOOKUP(hFrameField:NAME, cEnabledObjFlds),  cEnabledObjFlds, ",":U).       
-        END. /* end if hFrameField:name... */
-        ELSE  /* If the frame is an SDF assign the PROCEDURE Handle instead */  
-        IF hFrameField:TYPE = "FRAME":U THEN
-        DO:
-          /* If this is a SmartObject (one of the frames we found in the container targets) 
-             then we need to use the proc handle and field name or objectname in the lists */
-          iLookup = LOOKUP(STRING(hFrameField),cFrameHandles).
-          IF iLookup > 0 THEN
-          DO:
-            hFrameProc = WIDGET-HANDLE(ENTRY(iLookup,cContainerTargets)).
-            IF VALID-HANDLE(hFrameProc) THEN 
-            DO:
-              cFieldName = DYNAMIC-FUNCTION('getFieldName':U IN hFrameProc) NO-ERROR.
-              IF cFieldName = ? THEN
-                cFieldName = DYNAMIC-FUNCTION('getObjectName':U IN hFrameProc) NO-ERROR. 
-              iLookup = LOOKUP(cFieldName, cEnabledObjFlds).
-              IF iLookup > 0 THEN
-                ENTRY(iLookup,cEnabledObjHdls) = STRING(hFrameProc).
-            END.
-          END.
-          ELSE 
-            cNonSmartFrames = cNonSmartFrames 
-                            + (IF cNonSmartFrames = '' THEN '' ELSE ',')
-                            + STRING(hFrameField). 
-        END.
-        ELSE DO:
-          /* The Datafield names may not be the same as the :NAME attribute 
-            (SBO qualifications) */ 
-          iLookup = LOOKUP(STRING(hFrameField),cFieldHandles).
-          IF iLookup > 0 THEN
-            cFieldName = ENTRY(iLookup,cDisplayedFields).
-        END.
-        ASSIGN
-          cAllFieldHandles = cAllFieldHandles 
-                           + (IF cAllFieldHandles <> "":U THEN ",":U ELSE "":U)
-                           + (IF hFrameProc = ? 
-                              THEN STRING(hFrameField) 
-                              ELSE STRING(hFrameProc))
-          cAllFieldNames   = cAllFieldNames 
-                           + (IF cAllFieldNames <> "":U THEN ",":U ELSE "":U) 
-                           + (IF cFieldName <> "":U 
-                              THEN cFieldName 
-                              ELSE IF CAN-QUERY(hFrameField,"name":U) 
-                                   AND hFrameField:NAME <> ? 
-                                   THEN hFrameField:NAME 
-                                   ELSE "?":U )
-          hFrameField = hFrameField:NEXT-SIBLING
-          .                              
-      END.
-      /* Strip out any invalid handles. */
-      ASSIGN cEnabledObjHdls = TRIM(cEnabledObjHdls, ",":U).
-      &SCOPED-DEFINE xp-assign
-      {set EnabledObjHdls cEnabledObjHdls}
-      {set EnabledObjFlds cEnabledObjFlds}.    /* we might have deleted text fields*/
-      &UNDEFINE xp-assign
-      IF NOT lAllFieldsSet THEN 
-      DO:
-        &SCOPED-DEFINE xp-assign
-        {set AllFieldHandles cAllFieldHandles}
-        {set AllFieldNames cAllFieldNames}.
-        &UNDEFINE xp-assign
-      END.  /* allFieldHandles was not set */
-    END.  /* if valid-handle(container) */    
-  END. /* not AllFieldsset */
-
-  IF hContainer:TYPE <> "window":U THEN
+  /* The visual class takes care of viewing and enabling all non-window-like
+     objects; things like viewers, browsers etc. 
+     
+     The container class takes care of enabling and viewing window-like
+     containers (SmartWindows, SmartFrames, SmartDialogs).
+     
+     The visual class shouldn't visualise window-like containers since
+     they need their visualisation deferred, until it's time, according
+     to the containr class.
+     
+	 We check the ObjectType of the object, since checking the container
+     handle's type is not guaranteed: we only need to do this for window-like
+     containers, like windows, dialogs and contained smartframes. We don't 
+     want to do it for dynamic viewers etc, which have FRAMEs as their
+     container handles (just like Dialogues or SmartFrames).
+   */
+  if not can-do('SmartWindow,SmartFrame,SmartDialog', cObjectType) then
   DO:
     {get DisableOnInit lDisableOnInit}.   
     IF NOT lDisableOnInit THEN
@@ -1660,7 +1596,8 @@ PROCEDURE initializeObject :
     END.     /* END ELSE DO     */
   END.       /* END DO IF LayoutVariable */
   
-  IF hContainer:TYPE <> "window":U THEN
+  /* See comments above. */
+  if not can-do('SmartWindow,SmartFrame,SmartDialog', cObjectType) then      
   DO:
     {get HideOnInit lHideOnInit}.
     IF NOT lHideOnInit THEN 
@@ -1668,26 +1605,29 @@ PROCEDURE initializeObject :
     ELSE 
       PUBLISH "LinkState":U FROM TARGET-PROCEDURE ('inactive':U).
   END.
-
-  /* Run widgetWalk if static object in Dynamics */
-  IF VALID-HANDLE(hContainer) 
-  AND VALID-HANDLE(gshSessionManager) 
-  AND NOT lAllFieldsSet THEN 
+  
+  IF VALID-HANDLE(hContainer) AND VALID-HANDLE(gshSessionManager) THEN 
   DO:
     /* set-up widgets */
     {get ContainerSource hContainerSource}.
     IF NOT VALID-HANDLE(hContainerSource) THEN 
       ASSIGN hContainerSource = TARGET-PROCEDURE.
-  
+    
+    IF hContainer:TYPE = 'WINDOW':U THEN
+      {get WindowFrameHandle hFrame}.
+    ELSE 
+      hFrame = hContainer.
+
     {get PopupButtonsInFields lPopupsInFields}.
     IF lPopupsInFields = ? THEN
-      ASSIGN lPopupsInFields = NO.
+      ASSIGN lPopupsInFields = NO.     
     /* Now do the widget walk */
     RUN widgetWalk IN gshSessionManager (INPUT hContainerSource, 
-                                         INPUT TARGET-PROCEDURE, 
-                                         INPUT hFrame, 
-                                         INPUT "setup":U,
-                                         INPUT lPopupsInFields).
+                                           INPUT TARGET-PROCEDURE, 
+                                           INPUT hFrame, 
+                                           INPUT "setup":U,
+                                           INPUT lPopupsInFields).
+    
     /* Also do the widgetwalk for non smart frames dropped on this objects
        frame  */ 
     DO iFrame = 1 TO NUM-ENTRIES(cNonSmartFrames):
@@ -1698,7 +1638,7 @@ PROCEDURE initializeObject :
                                            INPUT "setup":U,
                                            INPUT lPopupsInFields).
     END.
-  END.  /* sessionmanager and not allfieldset  */ 
+  END.
 
   RETURN.
 
@@ -2710,6 +2650,7 @@ DEFINE VARIABLE cFieldObjectName      AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cFldsToDisable        AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cQualifier            AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE hField                AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hPopup                AS HANDLE      NO-UNDO.
 DEFINE VARIABLE hTarget               AS HANDLE     NO-UNDO.
 DEFINE VARIABLE iField                AS INTEGER    NO-UNDO.
 DEFINE VARIABLE iFieldNum             AS INTEGER    NO-UNDO.
@@ -2743,11 +2684,21 @@ DEFINE VARIABLE lInvalid              AS LOGICAL    NO-UNDO.
       DO:
         hField:SENSITIVE = NO NO-ERROR.
         IF ERROR-STATUS:ERROR THEN lInvalid = YES.
+        ELSE DO:
+          hPopup = DYNAMIC-FUNCTION('popupHandle':U IN hTarget, INPUT hField) NO-ERROR.
+          IF VALID-HANDLE(hPopup) THEN
+            hPopup:SENSITIVE = NO NO-ERROR.
+        END.
       END.  /* if can set sensitive - viewer */
       ELSE IF CAN-SET(hField, 'READ-ONLY':U) THEN
       DO:
         hField:READ-ONLY = YES NO-ERROR.
         IF ERROR-STATUS:ERROR THEN lInvalid = YES.
+        ELSE DO:
+          hPopup = DYNAMIC-FUNCTION('popupHandle':U IN hTarget, INPUT hField) NO-ERROR.
+          IF VALID-HANDLE(hPopup) THEN
+            hPopup:SENSITIVE = NO NO-ERROR.
+        END.
       END.  /* if can set read-only - browser */
       ELSE lInvalid = YES.
       IF NOT lInvalid THEN
@@ -2850,6 +2801,7 @@ DEFINE VARIABLE cFieldObjectName      AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cFldsToDisable        AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cQualifier            AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE hField                AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hPopup                AS HANDLE      NO-UNDO.
 DEFINE VARIABLE hTarget               AS HANDLE     NO-UNDO.
 DEFINE VARIABLE iField                AS INTEGER    NO-UNDO.
 DEFINE VARIABLE iFieldNum             AS INTEGER    NO-UNDO.
@@ -2881,11 +2833,21 @@ DEFINE VARIABLE lInvalid              AS LOGICAL    NO-UNDO.
       DO:
         hField:SENSITIVE = YES.
         IF ERROR-STATUS:ERROR THEN lInvalid = YES.
+        ELSE DO:
+          hPopup = DYNAMIC-FUNCTION('popupHandle':U IN hTarget, INPUT hField) NO-ERROR.
+          IF VALID-HANDLE(hPopup) THEN
+            hPopup:SENSITIVE = YES NO-ERROR.
+        END.
       END.  /* if can set sensitive - viewer */
       ELSE IF CAN-SET(hField, 'READ-ONLY':U) THEN
       DO:
         hField:READ-ONLY = NO NO-ERROR.
         IF ERROR-STATUS:ERROR THEN lInvalid = YES.
+        ELSE DO:
+          hPopup = DYNAMIC-FUNCTION('popupHandle':U IN hTarget, INPUT hField) NO-ERROR.
+          IF VALID-HANDLE(hPopup) THEN
+            hPopup:SENSITIVE = YES NO-ERROR.
+        END.
       END.  /* if can set read-only - browser */
       ELSE lInvalid = YES.
       IF NOT lInvalid THEN

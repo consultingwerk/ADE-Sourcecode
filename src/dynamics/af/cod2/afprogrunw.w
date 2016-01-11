@@ -71,7 +71,7 @@ CREATE WIDGET-POOL.
 &Scoped-define PROCEDURE-TYPE Window
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME DEFAULT-FRAME
 
 /* Standard List Definitions                                            */
@@ -179,7 +179,7 @@ ELSE {&WINDOW-NAME} = CURRENT-WINDOW.
 /* SETTINGS FOR WINDOW C-Win
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME DEFAULT-FRAME
-                                                                        */
+   FRAME-NAME                                                           */
 /* SETTINGS FOR TOGGLE-BOX ToAppserver IN FRAME DEFAULT-FRAME
    NO-ENABLE                                                            */
 /* SETTINGS FOR TOGGLE-BOX ToManagers IN FRAME DEFAULT-FRAME
@@ -198,7 +198,7 @@ THEN C-Win:HIDDEN = no.
 
 &Scoped-define SELF-NAME C-Win
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL C-Win C-Win
-ON END-ERROR OF C-Win /* Run ICF Container / Start Managers / Connect to Appserver */
+ON END-ERROR OF C-Win /* Run Container / Start Managers / Connect to Appserver */
 OR ENDKEY OF {&WINDOW-NAME} ANYWHERE DO:
   /* This case occurs when the user presses the "Esc" key.
      In a persistently run window, just ignore this.  If we did not, the
@@ -211,7 +211,7 @@ END.
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL C-Win C-Win
-ON WINDOW-CLOSE OF C-Win /* Run ICF Container / Start Managers / Connect to Appserver */
+ON WINDOW-CLOSE OF C-Win /* Run Container / Start Managers / Connect to Appserver */
 DO:
   /* This event will close the window and terminate the procedure.  */
   APPLY "CLOSE":U TO THIS-PROCEDURE.
@@ -411,11 +411,14 @@ DO WITH FRAME {&FRAME-NAME}:
   DEFINE VARIABLE cConnctxt AS CHARACTER NO-UNDO. /* SESSION:SERVER-CONNECTION-CONTEXT */
   DEFINE VARIABLE cASppath  AS CHARACTER NO-UNDO. /* PROPATH */
   DEFINE VARIABLE cConndbs  AS CHARACTER NO-UNDO. /* List of Databases */
-  DEFINE VARIABLE cConnpps  AS CHARACTER NO-UNDO. /* List of Running Persistent Procedures */
+  DEFINE VARIABLE cCustomisationTypes        AS CHARACTER         NO-UNDO.
+  DEFINE VARIABLE cCustomisationReferences   AS CHARACTER         NO-UNDO.
+  DEFINE VARIABLE cCustomisationResultCodes  AS CHARACTER         NO-UNDO.
   DEFINE VARIABLE hHandle1            AS HANDLE                   NO-UNDO.
   DEFINE VARIABLE hHandle2            AS HANDLE                   NO-UNDO.
   DEFINE VARIABLE hHandle3            AS HANDLE                   NO-UNDO.
   DEFINE VARIABLE hHandle4            AS HANDLE                   NO-UNDO.
+  DEFINE VARIABLE hHandle5            AS HANDLE                   NO-UNDO. /* Temp Table List of Running Persistent Procedures */
 
   IF VALID-HANDLE(gshAstraAppserver) AND CAN-QUERY(gshAstraAppserver, "connected":U) AND gshAstraAppserver:CONNECTED() THEN
     RUN af/app/afapppingp.p ON gshAstraAppserver
@@ -427,11 +430,14 @@ DO WITH FRAME {&FRAME-NAME}:
                OUTPUT cConnctxt,
                OUTPUT cASppath,
                OUTPUT cConndbs,
-               OUTPUT cConnpps,
+               OUTPUT cCustomisationTypes,
+               OUTPUT cCustomisationReferences,
+               OUTPUT cCustomisationResultCodes,
                OUTPUT TABLE-HANDLE hHandle1,
                OUTPUT TABLE-HANDLE hHandle2,
                OUTPUT TABLE-HANDLE hHandle3,
-               OUTPUT TABLE-HANDLE hHandle4   ) NO-ERROR.
+               OUTPUT TABLE-HANDLE hHandle4,
+               OUTPUT TABLE-HANDLE hHandle5   ) NO-ERROR.
 
   DELETE OBJECT hHandle1 NO-ERROR.
   ASSIGN hHandle1 = ?.
@@ -445,7 +451,8 @@ DO WITH FRAME {&FRAME-NAME}:
   DELETE OBJECT hHandle4 NO-ERROR.
   ASSIGN hHandle4 = ?.
 
-
+  DELETE OBJECT hHandle5 NO-ERROR.
+  ASSIGN hHandle5 = ?.
 
   IF lRemote THEN
     ASSIGN  ToAppserver:SCREEN-VALUE = "yes".

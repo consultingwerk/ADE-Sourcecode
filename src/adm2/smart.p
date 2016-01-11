@@ -54,6 +54,8 @@ DEFINE TEMP-TABLE ADMLink NO-UNDO
   FIELD LinkTarget AS HANDLE
   FIELD LinkType   AS CHARACTER.
 
+DEFINE VARIABLE glIcfIsRunning AS LOGICAL INITIAL ? NO-UNDO.
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -422,6 +424,17 @@ FUNCTION getLogicalObjectName RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getLogicalVersion Procedure 
 FUNCTION getLogicalVersion RETURNS CHARACTER
   ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getManagerHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getManagerHandle Procedure 
+FUNCTION getManagerHandle RETURNS HANDLE
+  ( pcManager AS CHAR )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1843,16 +1856,36 @@ PROCEDURE destroyObject :
        Notes:  Checks first to see if any object is not prepared to be
                destroyed (e.g., if DataModified is set).
 ------------------------------------------------------------------------------*/    
-  DEFINE VARIABLE hSource    AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hParent    AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE lCancel    AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lUseRepos  AS LOGICAL    NO-UNDO.
-
-  PUBLISH 'confirmExit':U FROM TARGET-PROCEDURE (INPUT-OUTPUT lCancel).
-  IF lCancel THEN      /* Any message has already been displayed. */
-  DO:                  /* Main window block will check ERROR-STATUS */
+  DEFINE VARIABLE hSource       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hParent       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lCancel       AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lUseRepos     AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cSourceEvents AS CHARACTER  NO-UNDO.
+  
+  &SCOPED-DEFINE xp-assign
+  {get ContainerSource hSource}
+  {get ContainerSourceEvents cSourceEvents}
+  . 
+  &UNDEFINE xp-assign
+  
+  /* It is too late to stop destroy when published from the container source. 
+     confirmExit is published down the container link chain. In order to only 
+     publish from the top and not again further down the chain, only publish 
+     if this event is NOT published from the ContainerSource or if not 
+     subscribed to the event (the last is rather unlikely, but is for backwards
+     compatibilty with the old unconditional publish ensuring that the event 
+     reaches subscribers that do not use the containersource subscription) */
+  IF hSource <> SOURCE-PROCEDURE 
+  OR LOOKUP('confirmExit':U,cSourceEvents) = 0 THEN 
+  DO:
+    PUBLISH 'confirmExit':U FROM TARGET-PROCEDURE (INPUT-OUTPUT lCancel).
+    /* Any message will already have been displayed if Cancel is true.
+       Main window close trigger will return no-apply based on check 
+       of error or return-value */
+    IF lCancel THEN    
       RETURN ERROR "ADM-ERROR":U.
-  END.  /* END DO IF lCancel */
+  END.
+
   /* Hide objects where applicable before destroying contents.  */
   RUN hideObject IN TARGET-PROCEDURE.
   
@@ -1866,11 +1899,8 @@ PROCEDURE destroyObject :
           hParent = WIDGET-HANDLE(DYNAMIC-FUNCTION
             ("linkProperty":U IN TARGET-PROCEDURE,
                 "CONTAINER-SOURCE":U, "ContainerHandle":U)).
-          IF VALID-HANDLE(hParent) THEN DO:
-            {get ContainerSource hSource}.
-            IF VALID-HANDLE(hSource) THEN
-              RUN viewObject IN hSource.
-          END.
+          IF VALID-HANDLE(hParent) AND VALID-HANDLE(hSource) THEN
+            RUN viewObject IN hSource.
       END.  
   &ENDIF
   RUN removeAllLinks IN TARGET-PROCEDURE.
@@ -1883,8 +1913,9 @@ PROCEDURE destroyObject :
     RUN adm-clone-props IN TARGET-PROCEDURE NO-ERROR.
     ASSIGN ERROR-STATUS:ERROR = NO.
   END.
-  RUN disable_UI IN TARGET-PROCEDURE.
   
+  RUN disable_UI IN TARGET-PROCEDURE.
+
   RETURN.
 END PROCEDURE.
 
@@ -3871,13 +3902,11 @@ FUNCTION getLayoutPosition RETURNS CHARACTER
   Purpose:  
         Notes:
 ------------------------------------------------------------------------------*/
-        DEFINE VARiABLE cLayoutPosition                 AS CHARACTER                            NO-UNDO.
-        
-        &SCOPED-DEFINE xpLayoutPosition
-        {get LayoutPosition cLayoutPosition}.
-        &UNDEFINE xpLayoutPosition      
-        
-        RETURN cLayoutPosition.
+    DEFINE VARiABLE cLayoutPosition    AS CHARACTER                 NO-UNDO.
+    
+    {get LayoutPosition cLayoutPosition}.
+    
+    RETURN cLayoutPosition.
 END FUNCTION.   /* get LayoutPosition */
 
 /* _UIB-CODE-BLOCK-END */
@@ -3921,6 +3950,52 @@ DEFINE VARIABLE cVersion AS CHARACTER NO-UNDO.
   &UNDEFINE xpLogicalVersion
   RETURN cVersion.   /* Function return value. */
 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getManagerHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getManagerHandle Procedure 
+FUNCTION getManagerHandle RETURNS HANDLE
+  ( pcManager AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes: Override to assign default "managers" for dynamics and adm2   
+           If a manager is found in the session it overrides the default. 
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hManager AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cDefault AS CHARACTER  NO-UNDO.
+ 
+  hManager = SUPER(pcManager) NO-ERROR.
+  IF NOT VALID-HANDLE(hManager) THEN
+  DO:
+    CASE pcManager:
+      WHEN 'SDFCacheManager':U THEN
+        ASSIGN cDefault = 'adm2/lookupfield':U. 
+      WHEN 'CacheManager':U THEN
+        ASSIGN cDefault = 'adm2/data':U. 
+      WHEN 'ToolbarManager':U THEN
+        ASSIGN cDefault = 'adm2/toolbar':U. 
+    END.
+
+    IF cDefault > '' THEN
+    DO:
+      hManager = SESSION:FIRST-PROCEDURE.
+      DO WHILE VALID-HANDLE(hManager):
+        IF ENTRY(1,REPLACE(hManager:FILE-NAME,'~\':U,'/':U),'.':U) = cDefault THEN
+          RETURN hManager.
+        hManager = hManager:NEXT-SIBLING.
+      END.
+      RUN VALUE(cDefault + '.p':U) PERSISTENT SET hManager. 
+    END.
+  END.
+
+  RETURN hManager. 
+ 
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -4268,13 +4343,11 @@ FUNCTION getSuperProcedure RETURNS CHARACTER
   Purpose:  
         Notes:
 ------------------------------------------------------------------------------*/
-        DEFINE VARIABLE cSuperProcedure                 AS CHARACTER                    NO-UNDO.
+    DEFINE VARIABLE cSuperProcedure                 AS CHARACTER                    NO-UNDO.
+    
+    {get SuperProcedure cSuperProcedure}.
         
-        &SCOPED-DEFINE xpSuperProcedure
-        {get SuperProcedure cSuperProcedure}.
-        &UNDEFINE xpSuperProcedure
-        
-        RETURN cSuperProcedure.
+    RETURN cSuperProcedure.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -4291,13 +4364,11 @@ FUNCTION getSuperProcedureHandle RETURNS CHARACTER
   Purpose:  
         Notes:
 ------------------------------------------------------------------------------*/
-        DEFINE VARIABLE cProcedureHandle                AS CHARACTER                            NO-UNDO.
-        
-        &SCOPED-DEFINE xpSuperProcedureHandle
-        {get SuperProcedureHandle cProcedureHandle}.
-        &UNDEFINE xpSuperProcedureHandle
+    DEFINE VARIABLE cProcedureHandle                AS CHARACTER      NO-UNDO.
+    
+    {get SuperProcedureHandle cProcedureHandle}.
                 
-        RETURN cProcedureHandle.
+    RETURN cProcedureHandle.
 END FUNCTION.   /* getSuperProcedureHandle */
 
 /* _UIB-CODE-BLOCK-END */
@@ -4314,13 +4385,11 @@ FUNCTION getSuperProcedureMode RETURNS CHARACTER
   Purpose:  
         Notes:
 ------------------------------------------------------------------------------*/
-        DEFINE VARIABLE cProcedureMode                  AS CHARACTER                    NO-UNDO.
+    DEFINE VARIABLE cProcedureMode                  AS CHARACTER      NO-UNDO.
         
-        &SCOPED-DEFINE xpSuperProcedureMode
-        {get SuperProcedureMode cProcedureMode}.
-        &UNDEFINE xpSuperProcedureMode
+    {get SuperProcedureMode cProcedureMode}.
         
-        RETURN cProcedureMode.
+    RETURN cProcedureMode.
 END FUNCTION.   /* getSuperProcedureMode */
 
 /* _UIB-CODE-BLOCK-END */
@@ -4428,15 +4497,13 @@ FUNCTION getUseRepository RETURNS LOGICAL
 /*------------------------------------------------------------------------------
   Purpose:  
     Notes:  
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE lRepos AS LOGICAL    NO-UNDO.
-  /* icf session manager will have this in a super procedure of the session */
+------------------------------------------------------------------------------*/    
+  /* The Icf session manager will have this in a super procedure of the session */
+  IF glIcfIsRunning EQ ? THEN
+	glIcfIsRunning = DYNAMIC-FUNCTION('isICFRunning':U IN THIS-PROCEDURE) NO-ERROR.
   
-  lRepos = DYNAMIC-FUNCTION('isICFRunning':U IN THIS-PROCEDURE) NO-ERROR.
-   
   /* Return no if unknown !*/ 
-  RETURN lRepos = TRUE.
-
+  RETURN glIcfIsRunning = TRUE.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -4499,7 +4566,13 @@ FUNCTION instanceOf RETURNS LOGICAL
            attempt to cache the class if it is not already cached, something
            that IsA() cannot do.
          */
-        RETURN DYNAMIC-FUNCTION('ClassIsA':U IN gshRepositoryManager, cClassName, pcObjectType).
+        if cClassName eq ? or cClassName eq '' then
+            return false.
+        else
+        IF cClassName EQ pcObjectType THEN
+            RETURN TRUE.
+        ELSE
+            RETURN DYNAMIC-FUNCTION('ClassIsA':U IN gshRepositoryManager, cClassName, pcObjectType).
     END.    /* Using the Repository */
     
     /* Current workaround to ensure that this can replace all direct use of 
@@ -5724,12 +5797,9 @@ FUNCTION setLayoutPosition RETURNS LOGICAL
   Purpose:  
     Notes:
 ------------------------------------------------------------------------------*/
-        
-        &SCOPED-DEFINE xpLayoutPosition
-        {set LayoutPosition pcLayoutPosition}.
-        &UNDEFINE xpLayoutPosition      
-        
-        RETURN TRUE.
+    {set LayoutPosition pcLayoutPosition}.
+    
+    RETURN TRUE.
 END FUNCTION.   /* setLayoutPosition */
 
 /* _UIB-CODE-BLOCK-END */
@@ -5768,7 +5838,6 @@ FUNCTION setLogicalVersion RETURNS LOGICAL
     &SCOPED-DEFINE xpLogicalVersion
     {set LogicalVersion cVersion}.
     &UNDEFINE xpLogicalVersion
-    {set ObjectVersion cVersion}.
   RETURN TRUE.   /* Function return value. */
 
 END FUNCTION.
@@ -6147,16 +6216,24 @@ FUNCTION setUIBMode RETURNS LOGICAL
             If you need to set it, make sure this function is invoked explicitly.
             Don't {set UIBMode...}
 ------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cTarget AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iTarget AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hTarget AS HANDLE     NO-UNDO.
+
   IF pcMode = "Design":U THEN
   DO:
       /* Make the object editable in the UIB */
       RUN adeuib/_uibmode.p (INPUT TARGET-PROCEDURE).
       /* Set UIBMode in all children of this object.  Note that they *
        * in turn will set UIBMode in their children and so on...     */
-      DYNAMIC-FUNCTION("assignLinkProperty":U IN TARGET-PROCEDURE,
-          'Container-Target':U, 'UIBMode':U, 'Design-Child':U).
+      {get ContainerTarget cTarget} NO-ERROR.
+      DO iTarget = 1 TO NUM-ENTRIES(cTarget):
+        hTarget = WIDGET-HANDLE(ENTRY(iTarget,cTarget)).
+        IF VALID-HANDLE(hTarget) THEN
+          {set UIBMode 'Design-Child':U hTarget}.
+      END. 
   END.
-
+ 
   /* Set UIBMode for this object */
   {set UIBMode pcMode}.
 

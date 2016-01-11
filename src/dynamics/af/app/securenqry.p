@@ -570,7 +570,7 @@ PROCEDURE checkSecurity :
                                 WHEN "GSMRA":U THEN
                                     ASSIGN pcSecurityValue1 = pcSecurityValue1 + gsm_user_allocation.user_allocation_value1 + CHR(3)
                                            pcSecurityValue2 = pcSecurityValue2 + gsm_user_allocation.user_allocation_value2 + CHR(3)
-                                           pcHowSecured     = pcHowSecured + "(Group " + cDispName + ", Company " + cDispOrganisation + ": " + pcSecurityValue1 + " to " + pcSecurityValue1 + ")":U + CHR(4).
+                                           pcHowSecured     = pcHowSecured + "(Group " + cDispName + ", Company " + cDispOrganisation + ": " + gsm_user_allocation.user_allocation_value1 + " to " + gsm_user_allocation.user_allocation_value2 + ")":U + CHR(4).
                             END CASE.
                         END.
                     END.
@@ -623,7 +623,7 @@ PROCEDURE checkSecurity :
                                 WHEN "GSMRA":U THEN
                                     ASSIGN pcSecurityValue1 = pcSecurityValue1 + gsm_user_allocation.user_allocation_value1 + CHR(3)
                                            pcSecurityValue2 = pcSecurityValue2 + gsm_user_allocation.user_allocation_value2 + CHR(3)
-                                           pcHowSecured     = pcHowSecured + "(Group " + cDispName + ", all companies: " + pcSecurityValue1 + " to " + pcSecurityValue1 + ")":U + CHR(4).
+                                           pcHowSecured     = pcHowSecured + "(Group " + cDispName + ", all companies: " + gsm_user_allocation.user_allocation_value1 + " to " + gsm_user_allocation.user_allocation_value2 + ")":U + CHR(4).
                             END CASE.
                         END.
                     END.

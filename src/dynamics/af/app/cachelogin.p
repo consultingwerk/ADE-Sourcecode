@@ -156,6 +156,8 @@ DEFINE VARIABLE hField            AS HANDLE     NO-UNDO.
 DEFINE VARIABLE iCnt              AS INTEGER    NO-UNDO.
 DEFINE VARIABLE cLoginFilename    AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cLoginFileRcode   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cAbbrUserTab      AS CHARACTER  NO-UNDO.
+
 
 /*-----------------------------------------------------------------------------------------------------------*
  * This procedure will be run on the Appserver, and will return all information needed by the login process. *
@@ -170,7 +172,15 @@ ASSIGN httEntityMnemonic = TEMP-TABLE ttEntityMnemonic:HANDLE.
 
 /* 2 - Cache user information, the login viewer wants this. */
 
-RUN getLoginUserInfo IN gshSessionManager (OUTPUT TABLE ttLoginUser).
+/* We only cache the user information if the the "abbreviatedUserTable" session
+   parameter has been set for the AppServer. If it has been set, we won't 
+   cache this data now. */
+cAbbrUserTab = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
+                                "abbreviatedUserTable":U).
+IF cAbbrUserTab <> "YES":U OR
+   cAbbrUserTab = ? THEN
+  RUN getLoginUserInfo IN gshSessionManager (OUTPUT TABLE ttLoginUser).
+
 ASSIGN httLoginUser = TEMP-TABLE ttLoginUser:HANDLE NO-ERROR.
 
 /* 7 - Retrieve global control and security info.             *

@@ -45,9 +45,9 @@
   {src/adm2/viewprop.i}
 &ENDIF
 
-/* Exclude the static props procedure for a dynamic data object */ 
-&IF "{&DISPLAYED-FIELDS}":U = "":U AND "{&ENABLED-FIELDS}":U = "":U &THEN
-   &SCOPED-DEFINE EXCLUDE-adm-initviewerprops  
+/* don't define the adm-datafield-mapping function if not needed */
+&IF DEFINED(adm-datafield-mapping) = 0 &THEN
+   &SCOPED-DEFINE exclude-adm-datafield-mapping
 &ENDIF
 
 /* _UIB-CODE-BLOCK-END */
@@ -63,6 +63,19 @@
 /* _UIB-PREPROCESSOR-BLOCK-END */
 &ANALYZE-RESUME
 
+
+/* ************************  Function Prototypes ********************** */
+
+&IF DEFINED(EXCLUDE-adm-datafield-mapping) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD adm-datafield-mapping Method-Library 
+FUNCTION adm-datafield-mapping RETURNS CHARACTER
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 
 /* *********************** Procedure Settings ************************ */
@@ -122,24 +135,33 @@
         RUN valueChanged IN THIS-PROCEDURE.
 
 &IF DEFINED(ADM-EXCLUDE-STATIC) = 0 &THEN
-   IF NOT {&ADM-LOAD-FROM-REPOSITORY} THEN
+    IF NOT {&ADM-LOAD-FROM-REPOSITORY} THEN
       RUN start-super-proc("adm2/viewer.p":U).
 
-   &IF DEFINED(EXCLUDE-adm-initviewerprops) = 0 &THEN
-      RUN adm-initviewerprops IN TARGET-PROCEDURE.
-   &ENDIF
+ &IF DEFINED(DISPLAYED-FIELDS) > 0 OR DEFINED(ENABLED-FIELDS) > 0  &THEN
+    /* The fields can be qualified by the SDO ObjectName rather
+       than just RowObject. In that case keep the SDO ObjectName qualifier. 
+       */
+    ASSIGN
+      cViewCols = REPLACE("{&DISPLAYED-FIELDS}":U," ":U,",":U)
+      cEnabled  = REPLACE("{&ENABLED-FIELDS}":U," ":U,",":U)
+      cViewCols = LEFT-TRIM(REPLACE(",":U + cViewCols,",RowObject.":U,",":U),",":U)
+      cEnabled  = LEFT-TRIM(REPLACE(",":U + cEnabled,",RowObject.":U,",":U),",":U).
 
-   /* Ensure that the viewer is disabled if it is an update-target without
-      tableio-source (? will enable ).
-      This is inconsistent with the browser (and datavis behavior), but 
-      backwards compatible */
-   {set SaveSource NO}. 
+    &SCOPED-DEFINE xp-assign
+    {set DisplayedFields cViewCols}
+    {set EnabledFields cEnabled}
+    /* Ensure that the viewer is disabled if it is an update-target without
+       tableio-source (? will enable ) */
+    {set SaveSource NO}
+    .
+    &UNDEFINE xp-assign
+ &ENDIF
     
 
-
-   /* _ADM-CODE-BLOCK-START _CUSTOM _INCLUDED-LIB-CUSTOM CUSTOM */
-   {src/adm2/custom/viewercustom.i}
-   /* _ADM-CODE-BLOCK-END */
+    /* _ADM-CODE-BLOCK-START _CUSTOM _INCLUDED-LIB-CUSTOM CUSTOM */
+    {src/adm2/custom/viewercustom.i}
+    /* _ADM-CODE-BLOCK-END */
 
 &ENDIF
 
@@ -147,90 +169,28 @@
 &ANALYZE-RESUME
 
 
-/* **********************  Internal Procedures  *********************** */
+/* ************************  Function Implementations ***************** */
 
-&IF DEFINED(EXCLUDE-adm-initViewerProps) = 0 &THEN
+&IF DEFINED(EXCLUDE-adm-datafield-mapping) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE adm-initViewerProps Method-Library 
-PROCEDURE adm-initViewerProps :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION adm-datafield-mapping Method-Library 
+FUNCTION adm-datafield-mapping RETURNS CHARACTER
+  (  ) :
 /*------------------------------------------------------------------------------
-  Purpose: Transform the appbuilder generated viewer preprocessors into 
-           adm properties  
-  Notes:  This procedure is conditionally compiled in static viewers only. 
-          (An exclude-  preprocessor is defined if displayed-fields and 
-          enabled-fields is blank)           
-------------------------------------------------------------------------------*/ 
-  DEFINE VARIABLE hFrame            AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hField            AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cDisplayedFields  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cFieldHandles     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cEnabledFields    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cEnabledHandles   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iDispEntries      AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iEnabledEntries   AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cFieldName        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cTable            AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iLookup           AS INTEGER    NO-UNDO.
-  
-  ASSIGN 
-    hFrame           = FRAME {&FRAME-NAME}:HANDLE 
-    hField           = hFrame:FIRST-CHILD:FIRST-CHILD
-    cDisplayedFields = REPLACE("{&DISPLAYED-FIELDS}":U," ",",")
-    cEnabledFields   = REPLACE("{&ENABLED-FIELDS}":U," ",",")
-  /* The order of the lists of handles must match the order of the 
-     DisplayedField and EnabledField properties, so initialise with the 
-     correct number of entries here*/
-    cEnabledHandles = FILL(",":U, NUM-ENTRIES(cEnabledFields)   - 1)
-    cFieldHandles   = FILL(",":U, NUM-ENTRIES(cDisplayedFields) - 1)
-    .
+  Purpose: Returns the contents of the datafield mapping preprocessor so that it
+           can be called from the getDataFieldMapping of the viewer class.  
+    Notes: This is currently not defined as a normal property due to the fact 
+           that it is 
+           - rare (only needed for clob fields) 
+           - Only applies to static objects, but needed in Dynamics, so that 
+             it cannot be defined as prop in viewprop.i.     
+           - used only ONCE (in createObjects)
+        -  Excluded if no mapping defined. 
+------------------------------------------------------------------------------*/
 
-  DO WHILE VALID-HANDLE(hField): 
-    ASSIGN
-      cFieldName = hField:NAME 
-      cTable     = (IF CAN-QUERY(hField,"TABLE":U) THEN hField:TABLE ELSE '')
-      /* The adm-datafield-mapping allows a local field to be mapped to the
-         datafield. Format: <localfield>,<temptablename.datafieldname>
-        (used for local LONGCHAR - SDO CLOB field mapping) */
-      iLookup = LOOKUP(cFieldName,"{&ADM-DATAFIELD-MAPPING}":U)
-    .
-    /* if mapped then find the datafield name, that is used in DisplayedFields 
-       and EnabledFields  */ 
-    IF iLookup > 0 THEN
-      cFieldName = ENTRY(iLookup + 1,"{&ADM-DATAFIELD-MAPPING}":U). 
-    ELSE IF cTable > '' THEN
-      cFieldName = cTable + "." + cFieldName.
-    
-    IF cFieldName > '' THEN
-    DO:
-      /* Displayed Fields */ 
-      iLookup = LOOKUP(cFieldName, cDisplayedFields).
-      IF iLookup > 0 THEN
-        ENTRY(iLookup,cFieldHandles) = STRING(hField).
-    
-      /* Enabled Fields */
-      iLookup = LOOKUP(cFieldName, cEnabledFields).
-      IF iLookup > 0 THEN
-        ENTRY(iLookup, cEnabledHandles) = STRING(hField).
-    END.
+  RETURN "{&adm-datafield-mapping}":U.   
 
-    hField = hField:NEXT-SIBLING.
-  END. /* do while */   
-  
-  /* Remove RowObject qualifer (keep SDO qualifers for SBO viewers */ 
-  ASSIGN
-    cDisplayedFields = LEFT-TRIM(REPLACE("," + cDisplayedFields,",RowObject.":U,","),",")
-    cEnabledFields   = LEFT-TRIM(REPLACE("," + cEnabledFields,",RowObject.":U,","),",").
-
-    /* Store the properties */
-  &SCOPED-DEFINE xp-assign
-  {set DisplayedFields cDisplayedFields}
-  {set FieldHandles cFieldHandles}
-  {set EnabledFields cEnabledFields}
-  {set EnabledHandles cEnabledHandles}
-  .
-  &UNDEFINE xp-assign
-
-END PROCEDURE.
+END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

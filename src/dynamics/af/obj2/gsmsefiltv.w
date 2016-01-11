@@ -576,7 +576,7 @@ FUNCTION getSessionTypeParents RETURNS CHARACTER
       ttDCombo.hWidget             = TARGET-PROCEDURE
       ttDCombo.hViewer             = TARGET-PROCEDURE
       ttDCombo.cWidgetName         = "Temporary":U
-      ttDCombo.cWidgetType         = "CHARACTER":U
+      ttDCombo.cWidgetType         = "DECIMAL":U
       ttDCombo.cForEach            = "FOR EACH gsm_session_type NO-LOCK INDEXED-REPOSITION":U
       ttDCombo.cBufferList         = "gsm_session_type":U
       ttDCombo.cKeyFieldName       = "gsm_session_type.session_type_obj":U

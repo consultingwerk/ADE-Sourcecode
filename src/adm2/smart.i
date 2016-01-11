@@ -159,6 +159,10 @@ ghContainer = {&ADM-CONTAINER-HANDLE}.
   
   ELSE DO:
   &ENDIF
+  /* If this object is a generated object, then we set these properties 
+     manually in the generated object
+   */
+  &if defined(adm-prepare-static-object) eq 0 &then
     /* Set the properties that get their value from preprocessor initial values
        in smrtprop.i (This is temporary until all of this is moved to the 
        repository/ or handled by the repository manager)*/
@@ -171,7 +175,8 @@ ghContainer = {&ADM-CONTAINER-HANDLE}.
     {set PhysicalObjectName "(IF '{&OBJECT-NAME}' <> '' THEN '{&OBJECT-NAME}' ELSE THIS-PROCEDURE:FILE-NAME)"}
     . 
     &UNDEFINE xp-assign
-    
+  &endif
+            
    &IF DEFINED(ADM-EXCLUDE-STATIC) = 0 &THEN
   END. /* properties defined by repository manager */
   &ENDIF

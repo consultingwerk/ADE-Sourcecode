@@ -5758,6 +5758,7 @@ FUNCTION evaluateFFButton RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE lObjectView AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE hSmartLink  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lSourceisZero  AS LOGICAL NO-UNDO.
 
   DO WITH FRAME {&FRAME-NAME}:
     
@@ -5769,21 +5770,24 @@ FUNCTION evaluateFFButton RETURNS LOGICAL
         edForeignFields:SENSITIVE = FALSE
         edForeignFields:READ-ONLY = TRUE.
 
+
     IF VALID-HANDLE(hSmartLink)   AND
        ghObjectInstance:AVAILABLE AND
        lObjectView                THEN
     DO:
       /* Determine if we have a proper data source to see if the button should be visible or not */
       hSmartLink:FIND-FIRST("WHERE d_target_object_instance_obj  = ":U + QUOTER(ghObjectInstance:BUFFER-FIELD("d_object_instance_obj":U):BUFFER-VALUE)
-                           + " AND d_source_object_instance_obj <> 0":U
+                       /*    + " AND d_source_object_instance_obj <> 0":U  Issue 20040826-002  If source is THIS-OBJECT */
                            + " AND c_action                     <> 'D'":U
                            + " AND c_link_name                   = 'Data'":U) NO-ERROR.
+
 
       IF hSmartLink:AVAILABLE THEN
       DO:
         ASSIGN
-            buMapFields:SENSITIVE     = TRUE
-            buMapFields:HIDDEN        = FALSE
+            lSourceIsZero             = (hSmartLink:BUFFER-FIELD("d_source_object_instance_obj":U):BUFFER-VALUE = 0)
+            buMapFields:SENSITIVE     = IF lSourceIsZero THEN FALSE ELSE TRUE
+            buMapFields:HIDDEN        = IF lSourceIsZero THEN TRUE ELSE FALSE
             edForeignFields:SENSITIVE = TRUE
             edForeignFields:READ-ONLY = FALSE.
             .
@@ -6898,7 +6902,7 @@ FUNCTION showObjectDetails RETURNS LOGICAL
     IF NOT VALID-HANDLE(httObjectInstance) THEN
       RETURN FALSE.
 
-    httSmartObject:FIND-FIRST("WHERE d_smartobject_obj <> 0 AND d_customization_result_obj = ":U + QUOTER(dCustomizationResultObj)).
+    httSmartObject:FIND-FIRST("WHERE d_smartobject_obj <> 0 AND d_customization_result_obj = ":U + QUOTER(dCustomizationResultObj)) NO-ERROR.
 
     CREATE BUFFER httObjectInstance FOR TABLE httobjectInstance.
 

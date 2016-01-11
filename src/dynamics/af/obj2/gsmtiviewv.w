@@ -545,7 +545,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_language.language_nameKeyFieldgsc_language.language_objFieldLabelToFieldTooltipSelect a language to translate to, from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldfiSourceLanguageObjParentFilterQuerygsc_language.language_obj <> DECIMAL(&1)DescSubstitute&1ComboDelimiterListItemPairsInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldName<Local_2>DisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_language.language_nameKeyFieldgsc_language.language_objFieldLabelToFieldTooltipSelect a language to translate to, from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldfiSourceLanguageObjParentFilterQuerygsc_language.language_obj <> DECIMAL(~'&1~')DescSubstitute&1ComboDelimiterListItemPairsInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldName<Local_2>DisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hToLanguage ).
        RUN repositionObject IN hToLanguage ( 3.76 , 52.60 ) NO-ERROR.
        RUN resizeObject IN hToLanguage ( 1.00 , 37.60 ) NO-ERROR.
@@ -1275,10 +1275,15 @@ PROCEDURE NewMenuItemSelected :
   ASSIGN fiLanguageString:SCREEN-VALUE IN FRAME {&FRAME-NAME}    = fiLanguageString
          fiSourceLanguageObj:SCREEN-VALUE IN FRAME {&FRAME-NAME} = STRING(gdSourceLanguage).
 
-  RUN refreshChildDependancies IN hFromLanguage (INPUT "fiLanguageString":U).
-  RUN refreshChildDependancies IN hToLanguage   (INPUT "fiSourceLanguageObj":U).
-  
-  
+  IF (DYNAMIC-FUNCTION('getSessionParam':U IN TARGET-PROCEDURE,
+                                'keep_old_field_api':U) = 'YES':U) THEN
+  DO:
+      RUN refreshChildDependancies IN hFromLanguage (INPUT "fiLanguageString":U).
+      RUN refreshChildDependancies IN hToLanguage   (INPUT "fiSourceLanguageObj":U).  
+  END.
+  ELSE
+      RUN displayFields IN TARGET-PROCEDURE (INPUT "":U).
+
   {get KeyFormat cKeyFieldFormat hFromLanguage}.
   {set DataValue gdSourceLanguage hFromLanguage}.
 

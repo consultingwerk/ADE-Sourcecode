@@ -35,7 +35,10 @@
   DEFINE INPUT PARAMETER p-table-name AS CHARACTER NO-UNDO.
   DEFINE OUTPUT PARAMETER p-table-recid AS RECID NO-UNDO.
   
-  FIND DICTDB._file WHERE _file._file-name =
-    SUBSTR(p-table-name, INDEX(p-table-name, ".":U) + 1) NO-LOCK.
+  FIND DICTDB._file WHERE _file._file-name = SUBSTR(p-table-name, INDEX(p-table-name, ".":U) + 1) 
+                      AND _file._tbl-type = "T":U 
+                      AND (_file._owner = "PUB":U OR _file._owner = "_FOREIGN":U) 
+       NO-LOCK.       /* Only tables owned by PUB AND _FOREIGN are 4GL visible. */
+
   p-table-recid = _file._template.
 

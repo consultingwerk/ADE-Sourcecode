@@ -36,6 +36,7 @@ Data.prototype.lNav=true;        // Navigation OK
 Data.prototype.lNavOld=true;     // Navigation OK
 Data.prototype.positionok=true;  // whether parent-child positioning should happen
 Data.prototype.addfrom=0;        // If cancel from add
+Data.prototype.activecomments=false;  // Active comments exist or not
 
 Data.prototype.childRow=null;
 Data.prototype.childDS=null;
@@ -170,14 +171,6 @@ Data.prototype.pick=function(iNew){
   with(this){
     if(!data.length) return false;
     lognote('  pick:'+iNew);
-    if(iNew>0){
-      var oldrecs=data.length;
-      if(action('savechange')){
-        app.wbo.afterSave(wdo+'.'+iNew+'.pick');
-        return window.action('info.yesno|HTM5||wbo.commit|wbo.undo|wbo.nosave|');
-      }
-      iNew+=data.length-oldrecs;   // Adjust for datasave on add operation
-    }
     if(iNew>data.length) iNew=data.length;   // Adjusting if past last record
 
     if(iNew){
@@ -272,6 +265,9 @@ Data.prototype.refreshTools=function(){ // Set appropriate button statuses
     this.navprev =lOK && batch && batch!=1;    // more batches down
     this.navnext =lOK && batch && batch!=-1;   // more batches up
 
+    // comments 
+    this.activecomments = (this.index['_hascomments']==null)? false : (this.cur[this.index['_hascomments']]=='yes');
+   
     // Setting tool statuses
     this.status=
      {add    : lNew && !parentAdd
@@ -289,7 +285,9 @@ Data.prototype.refreshTools=function(){ // Set appropriate button statuses
      ,next   : notlast ||navnext
      ,last   : notlast ||navnext
      ,filter : lNav && !lMod && !lAdd && (data.length>1 || filterOn)
-     ,find   : lOK
+     ,comments : this.activecomments
+     ,find     : lOK && !parentAdd
+     ,lookup   : lOK && !parentAdd
     };
     for(var i=0;i<target.length;i++) target[i].refreshTools();
   }
@@ -395,6 +393,7 @@ Data.prototype.recSave=function(){    // Save record operation
         this.lAdd=false;
         this.lMod=false;
         app.wbo.savechange='';
+        for(var i=0;i<target.length;i++) target[i].displayFields(); 
       }
     }
     if(update=='auto' || update=='view') lUpd=false;
@@ -503,6 +502,7 @@ Data.prototype.saveok=function(d){
     lMod=false;
     lAdd=false;
     if(update=='auto' || update=='view') lUpd=false;
+    custom('saveok');
     refreshTools();
     for(var i=0;i<target.length;i++) target[i].displayFields(); // this forces clean values
 
@@ -627,10 +627,12 @@ Data.prototype.action=function(c,prm){
           data[row-1]=olddata[row-1];
         savedata=[];
         saverow=[];
+//        alert("later"+window.latercmd)
         return action('modify');
       case 'undo':
         // New commit status needs to refresh all WDOs
         if(hsbo){
+          for(var i=0;i<childDS.length;i++) childDS[i].action('cancel');
           hsbo.uncommitted=false;
           app.wbo.sboAction(sbo,'undodata');
           app.wbo.sboAction(sbo,'refresh');
@@ -734,7 +736,7 @@ Data.prototype.action=function(c,prm){
         return refreshTools();
         
       default:
-        alert(c+' for Data '+wdo+' not implemented yet!')
+        //alert(c+' for Data '+wdo+' not implemented yet!')
         //alert(window.action('info.get|HTM20||'+c+'|WDO')); //ok
     }
   }

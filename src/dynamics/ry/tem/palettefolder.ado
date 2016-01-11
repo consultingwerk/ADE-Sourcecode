@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<dataset Transactions="1"><dataset_header DisableRI="yes" DatasetObj="1004928896.09" DateFormat="mdy" FullHeader="no" SCMManaged="yes" YearOffset="1950" DatasetCode="RYCSO" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="90" NumericSeparator=","/>
-<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" version_date="03/25/2003" version_time="53329" version_user="admin" deletion_flag="no" entity_mnemonic="rycso" key_field_value="892.7692" record_version_obj="893.7692" version_number_seq="1.09" secondary_key_value="PaletteFolder#CHR(1)#0" import_version_number_seq="1.09"><smartobject_obj>892.7692</smartobject_obj>
+<dataset Transactions="1"><dataset_header DisableRI="yes" DatasetObj="1004928896.09" DateFormat="mdy" FullHeader="no" SCMManaged="yes" YearOffset="1950" DatasetCode="RYCSO" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="91" NumericSeparator=","/>
+<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" version_date="08/04/2004" version_time="58880" version_user="admin" deletion_flag="no" entity_mnemonic="RYCSO" key_field_value="892.7692" record_version_obj="893.7692" version_number_seq="4" secondary_key_value="PaletteFolder#CHR(1)#0" import_version_number_seq="4"><smartobject_obj>892.7692</smartobject_obj>
 <object_filename>PaletteFolder</object_filename>
 <customization_result_obj>0</customization_result_obj>
 <object_type_obj>503.7692</object_type_obj>
@@ -91,22 +91,6 @@
 <render_type_obj>0</render_type_obj>
 <applies_at_runtime>no</applies_at_runtime>
 </contained_record>
-<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>14129.81</attribute_value_obj>
-<object_type_obj>490</object_type_obj>
-<container_smartobject_obj>892.7692</container_smartobject_obj>
-<smartobject_obj>1003504456</smartobject_obj>
-<object_instance_obj>14125.81</object_instance_obj>
-<constant_value>no</constant_value>
-<attribute_label>PaletteNewTemplate</attribute_label>
-<character_value>af/sup2/afspfoldrw.w</character_value>
-<integer_value>0</integer_value>
-<date_value>?</date_value>
-<decimal_value>0</decimal_value>
-<logical_value>no</logical_value>
-<primary_smartobject_obj>892.7692</primary_smartobject_obj>
-<render_type_obj>0</render_type_obj>
-<applies_at_runtime>no</applies_at_runtime>
-</contained_record>
 <contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>14130.81</attribute_value_obj>
 <object_type_obj>490</object_type_obj>
 <container_smartobject_obj>892.7692</container_smartobject_obj>
@@ -116,6 +100,22 @@
 <attribute_label>PaletteOrder</attribute_label>
 <character_value></character_value>
 <integer_value>6</integer_value>
+<date_value>?</date_value>
+<decimal_value>0</decimal_value>
+<logical_value>no</logical_value>
+<primary_smartobject_obj>892.7692</primary_smartobject_obj>
+<render_type_obj>0</render_type_obj>
+<applies_at_runtime>no</applies_at_runtime>
+</contained_record>
+<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>4507.7692</attribute_value_obj>
+<object_type_obj>490</object_type_obj>
+<container_smartobject_obj>892.7692</container_smartobject_obj>
+<smartobject_obj>1003504456</smartobject_obj>
+<object_instance_obj>14125.81</object_instance_obj>
+<constant_value>no</constant_value>
+<attribute_label>PaletteRenderer</attribute_label>
+<character_value>af/sup2/afspfoldrw.w</character_value>
+<integer_value>0</integer_value>
 <date_value>?</date_value>
 <decimal_value>0</decimal_value>
 <logical_value>no</logical_value>

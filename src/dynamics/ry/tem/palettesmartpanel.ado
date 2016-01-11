@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<dataset Transactions="1"><dataset_header DisableRI="yes" DatasetObj="1004928896.09" DateFormat="mdy" FullHeader="no" SCMManaged="yes" YearOffset="1950" DatasetCode="RYCSO" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="90" NumericSeparator=","/>
-<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" version_date="03/27/2003" version_time="58643" version_user="admin" deletion_flag="no" entity_mnemonic="RYCSO" key_field_value="912.7692" record_version_obj="913.7692" version_number_seq="7.09" secondary_key_value="PaletteSmartPanel#CHR(1)#0" import_version_number_seq="7.09"><smartobject_obj>912.7692</smartobject_obj>
+<dataset Transactions="1"><dataset_header DisableRI="yes" DatasetObj="1004928896.09" DateFormat="mdy" FullHeader="no" SCMManaged="yes" YearOffset="1950" DatasetCode="RYCSO" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="91" NumericSeparator=","/>
+<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" version_date="08/04/2004" version_time="58883" version_user="admin" deletion_flag="no" entity_mnemonic="RYCSO" key_field_value="912.7692" record_version_obj="913.7692" version_number_seq="17" secondary_key_value="PaletteSmartPanel#CHR(1)#0" import_version_number_seq="17"><smartobject_obj>912.7692</smartobject_obj>
 <object_filename>PaletteSmartPanel</object_filename>
 <customization_result_obj>0</customization_result_obj>
 <object_type_obj>503.7692</object_type_obj>
@@ -236,70 +236,6 @@
 <render_type_obj>0</render_type_obj>
 <applies_at_runtime>no</applies_at_runtime>
 </contained_record>
-<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>14077.81</attribute_value_obj>
-<object_type_obj>243158</object_type_obj>
-<container_smartobject_obj>912.7692</container_smartobject_obj>
-<smartobject_obj>14071.81</smartobject_obj>
-<object_instance_obj>14075.81</object_instance_obj>
-<constant_value>no</constant_value>
-<attribute_label>PaletteNewTemplate</attribute_label>
-<character_value>adm2/pnavlbl.w</character_value>
-<integer_value>0</integer_value>
-<date_value>?</date_value>
-<decimal_value>0</decimal_value>
-<logical_value>no</logical_value>
-<primary_smartobject_obj>912.7692</primary_smartobject_obj>
-<render_type_obj>0</render_type_obj>
-<applies_at_runtime>no</applies_at_runtime>
-</contained_record>
-<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>14082.81</attribute_value_obj>
-<object_type_obj>243158</object_type_obj>
-<container_smartobject_obj>912.7692</container_smartobject_obj>
-<smartobject_obj>14069.81</smartobject_obj>
-<object_instance_obj>14080.81</object_instance_obj>
-<constant_value>no</constant_value>
-<attribute_label>PaletteNewTemplate</attribute_label>
-<character_value>adm2/pnavico.w</character_value>
-<integer_value>0</integer_value>
-<date_value>?</date_value>
-<decimal_value>0</decimal_value>
-<logical_value>no</logical_value>
-<primary_smartobject_obj>912.7692</primary_smartobject_obj>
-<render_type_obj>0</render_type_obj>
-<applies_at_runtime>no</applies_at_runtime>
-</contained_record>
-<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>14087.81</attribute_value_obj>
-<object_type_obj>243158</object_type_obj>
-<container_smartobject_obj>912.7692</container_smartobject_obj>
-<smartobject_obj>14067.81</smartobject_obj>
-<object_instance_obj>14085.81</object_instance_obj>
-<constant_value>no</constant_value>
-<attribute_label>PaletteNewTemplate</attribute_label>
-<character_value>adm2/pcommit.w</character_value>
-<integer_value>0</integer_value>
-<date_value>?</date_value>
-<decimal_value>0</decimal_value>
-<logical_value>no</logical_value>
-<primary_smartobject_obj>912.7692</primary_smartobject_obj>
-<render_type_obj>0</render_type_obj>
-<applies_at_runtime>no</applies_at_runtime>
-</contained_record>
-<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>14092.81</attribute_value_obj>
-<object_type_obj>243158</object_type_obj>
-<container_smartobject_obj>912.7692</container_smartobject_obj>
-<smartobject_obj>14073.81</smartobject_obj>
-<object_instance_obj>14090.81</object_instance_obj>
-<constant_value>no</constant_value>
-<attribute_label>PaletteNewTemplate</attribute_label>
-<character_value>adm2/pupdsav.w</character_value>
-<integer_value>0</integer_value>
-<date_value>?</date_value>
-<decimal_value>0</decimal_value>
-<logical_value>no</logical_value>
-<primary_smartobject_obj>912.7692</primary_smartobject_obj>
-<render_type_obj>0</render_type_obj>
-<applies_at_runtime>no</applies_at_runtime>
-</contained_record>
 <contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>1982.7692</attribute_value_obj>
 <object_type_obj>243158</object_type_obj>
 <container_smartobject_obj>912.7692</container_smartobject_obj>
@@ -373,6 +309,70 @@
 <attribute_label>PaletteOrder</attribute_label>
 <character_value></character_value>
 <integer_value>15</integer_value>
+<date_value>?</date_value>
+<decimal_value>0</decimal_value>
+<logical_value>no</logical_value>
+<primary_smartobject_obj>912.7692</primary_smartobject_obj>
+<render_type_obj>0</render_type_obj>
+<applies_at_runtime>no</applies_at_runtime>
+</contained_record>
+<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>4515.7692</attribute_value_obj>
+<object_type_obj>243158</object_type_obj>
+<container_smartobject_obj>912.7692</container_smartobject_obj>
+<smartobject_obj>14067.81</smartobject_obj>
+<object_instance_obj>14085.81</object_instance_obj>
+<constant_value>no</constant_value>
+<attribute_label>PaletteRenderer</attribute_label>
+<character_value>adm2/pcommit.w</character_value>
+<integer_value>0</integer_value>
+<date_value>?</date_value>
+<decimal_value>0</decimal_value>
+<logical_value>no</logical_value>
+<primary_smartobject_obj>912.7692</primary_smartobject_obj>
+<render_type_obj>0</render_type_obj>
+<applies_at_runtime>no</applies_at_runtime>
+</contained_record>
+<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>4516.7692</attribute_value_obj>
+<object_type_obj>243158</object_type_obj>
+<container_smartobject_obj>912.7692</container_smartobject_obj>
+<smartobject_obj>14069.81</smartobject_obj>
+<object_instance_obj>14080.81</object_instance_obj>
+<constant_value>no</constant_value>
+<attribute_label>PaletteRenderer</attribute_label>
+<character_value>adm2/pnavico.w</character_value>
+<integer_value>0</integer_value>
+<date_value>?</date_value>
+<decimal_value>0</decimal_value>
+<logical_value>no</logical_value>
+<primary_smartobject_obj>912.7692</primary_smartobject_obj>
+<render_type_obj>0</render_type_obj>
+<applies_at_runtime>no</applies_at_runtime>
+</contained_record>
+<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>4517.7692</attribute_value_obj>
+<object_type_obj>243158</object_type_obj>
+<container_smartobject_obj>912.7692</container_smartobject_obj>
+<smartobject_obj>14071.81</smartobject_obj>
+<object_instance_obj>14075.81</object_instance_obj>
+<constant_value>no</constant_value>
+<attribute_label>PaletteRenderer</attribute_label>
+<character_value>adm2/pnavlbl.w</character_value>
+<integer_value>0</integer_value>
+<date_value>?</date_value>
+<decimal_value>0</decimal_value>
+<logical_value>no</logical_value>
+<primary_smartobject_obj>912.7692</primary_smartobject_obj>
+<render_type_obj>0</render_type_obj>
+<applies_at_runtime>no</applies_at_runtime>
+</contained_record>
+<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>4518.7692</attribute_value_obj>
+<object_type_obj>243158</object_type_obj>
+<container_smartobject_obj>912.7692</container_smartobject_obj>
+<smartobject_obj>14073.81</smartobject_obj>
+<object_instance_obj>14090.81</object_instance_obj>
+<constant_value>no</constant_value>
+<attribute_label>PaletteRenderer</attribute_label>
+<character_value>adm2/pupdsav.w</character_value>
+<integer_value>0</integer_value>
 <date_value>?</date_value>
 <decimal_value>0</decimal_value>
 <logical_value>no</logical_value>

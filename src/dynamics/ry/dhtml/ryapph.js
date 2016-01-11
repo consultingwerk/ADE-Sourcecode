@@ -27,9 +27,6 @@ function initializeObjects() {
   toolbar=new Toolbar(maindoc.getElementById('toolbar'));
   menuobjects[menuobjects.length]=toolbar;
 
-//  treeview=new Treeview(maindoc.getElementById('treeview'));
-//  menuobjects[menuobjects.length]=treeview;
-
   popup=new Popup(maindoc.getElementById('popup'));
   menuobjects[menuobjects.length]=popup;
 
@@ -74,7 +71,6 @@ function pagestart(){
     if(!app._master || app.frameObject.parent){      // Pass-thru wdo or no wdo
       var wdo=new Wdo();
       app.wdo['master']=wdo;
-//      app.toolbar['master']=true;
       wdo.init(master);
     } else app.uplink=app._master;                // Set to current WDO
   }
@@ -160,6 +156,20 @@ function ready(win){    // This function will be called from the hidden frame
   lognote('APP: Hidden Done');
   if(mainapp.dyntree) window.app=mainapp;
   window.status='Done';   
+}
+
+function userAction(cmd){    // This function should be called for user generated events
+  if(appcontrol.busy) return window.status='Please wait, BUSY processing request.';
+  window.action(cmd); 
+  runRemaining();
+}
+
+function runRemaining(){    // This function should be called for user generated events
+  if(app && app.wbo && app.wbo._mustsubmit){
+    app.wbo._mustsubmit=false;
+    later('wbo.submit');
+    runlater();
+  }
 }
 
 
@@ -322,12 +332,12 @@ function action(a){     // action handler
 
   function viewer_action(viewer,name,val,prm){
     var form='_'+viewer.getAttribute('name');
-    if(app.document.forms[form][name]) 
-      return appcontrol.doField(app.document.forms[form][name],val,prm);
     var wdo=viewer.getAttribute('wdo').split(',');
-    for(var i=0;i<wdo.length;i++)
-      if(app.document.forms[form][wdo[i]+'.'+name]) 
+    for(var i=0;i<wdo.length;i++)       // Check datasources first
+      if(app.document.forms[form][wdo[i]+'.'+name])
         return action(wdo[i]+'.'+name+'.'+val+'|'+prm);
+    if(app.document.forms[form][name])  // Also check local fields if no DS is found
+      return appcontrol.doField(app.document.forms[form][name],val,prm);
   }
 
   function tool_action(f,prm){
@@ -495,8 +505,10 @@ Appcontrol.prototype.app_action=function(hTarget,cmd,prm){
         return true;
       case 'exit':
         if(app && app.wbo && !action('wbo.close')) return false;
-        if(activeframe.src!=startprog)       // Check if launch window
+        if(activeframe.src!=startprog) {      // Check if launch window
+          window.runlater();
           return action(activeframe.parent>''?'app.continue':'prg.'+startprog);   // Go back
+        }
 
       // exit should reset the session id so that the session cannot be hijacked.
         document.cookie='';
@@ -542,8 +554,24 @@ Appcontrol.prototype.app_action=function(hTarget,cmd,prm){
   }
 }
 
+function dialogClose(win){
+  if(window.appframes.popup.active==null) return;
+  window.app=win.isPopup;
+  window.appframes.popup.active=null;
+  win.close();
+  runRemaining();
+}
+
 /** Viewer functionality to be reused in rylogic.js and rywdo.js **/
-Appcontrol.prototype.setField=function(e,val){    
+Appcontrol.prototype.setField=function(e,val){
+  if (val == null || val == 'undefined') return;
+  if(e.getAttribute && e.getAttribute('combochild')){
+	if(e.getAttribute('combovalue')!=val){
+	  e.setAttribute('combovalue',val);
+      apph.later(e.id+(e.getAttribute('dfield')?'.combolookup':'.comborefresh'));
+      mainapp.wbo._mustsubmit=true;
+	}  
+  }
   if(e.length && e.nodeName!='SELECT'){        // Radio sets
     // loose the case sensitivity for combo, radios and checkboxes
     val=val.toLowerCase();
@@ -562,7 +590,7 @@ Appcontrol.prototype.setField=function(e,val){
         break;
       }
     }
-    if(val && (!found||e.selectedIndex==-1))
+    if(val && (!found||e.selectedIndex==-1) && !e.getAttribute('comboparent'))
       window.action('info.field|HTM13||'+e.id+'|'+val); 
   } else {
     e.value=val;
@@ -618,9 +646,11 @@ Appcontrol.prototype.doField=function(e,val,prm){
   switch(val){
     case 'handle':
       return e;
-    case 'getdata':
-      return '';  // local widgets has no data
-    case 'set':
+    case 'getdata':  // Initial value is used for local fields
+      var val=e.getAttribute('initval');
+      if(val) return val;
+      return '';  
+    case 'set': 
       return this.setField(e,prm);
     case 'get':
       return this.getField(e,'');
@@ -637,14 +667,21 @@ Appcontrol.prototype.doField=function(e,val,prm){
       prm=prm.split('|');
       for(var i=0;i<e.options.length;i++) e.options[i]=null;
       var i=0;
-      while(prm.length>0) e.options[i++]=new Option(prm.shift(),prm.shift());
+      var key = '';
+      while(prm.length>0) {
+        key = prm.shift();
+        e.options[i++]=new Option(prm.shift(),key);
+      }
       return;
-    case 'lock':
-    case 'unlock':
-      e.setAttribute('disable',val=='lock'?'true':'false');
-    case 'enable':
-      if(e.getAttribute('disable')=='true') val='disable';
+    case 'lock': 
+    case 'unlock':    // Precursor to enable/disable
+      if(val=='lock')
+        e.setAttribute('disable','true');
+ 	  else 
+        e.removeAttribute('disable');
+    case 'enable': 
     case 'disable':
+      val=e.getAttribute('disable') ? 'disable':'enable';
       if(e.nodeName=='SELECT'||e.nodeName=='BUTTON'||e.type=='radio'||e.type=='checkbox') e.disabled=(val=='enable'?null:true);
       if(e.nodeName=='TEXTAREA'||e.type=='text') e.readOnly=(val=='enable'?null:true);
       if(e.getAttribute('tab')) e.tabIndex=(val=='enable'?e.getAttribute('tab'):-1);

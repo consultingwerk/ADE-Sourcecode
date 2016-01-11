@@ -1,0 +1,6 @@
+DEFINE TEMP-TABLE ttDumpFileLocation NO-UNDO
+  FIELD cDumpFile     AS CHARACTER
+  FIELD cDumpFilePath AS CHARACTER
+  INDEX pudx IS UNIQUE PRIMARY
+    cDumpFile
+  .

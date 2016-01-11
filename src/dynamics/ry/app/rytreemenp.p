@@ -187,7 +187,7 @@ PROCEDURE extractMenuItems :
                                                        INPUT cUserProperties,
                                                        INPUT NO)
       dCurrentUserObj  = DECIMAL(ENTRY(1,cUserValues,CHR(3)))
-      dLoginCompanyObj = DECIMAL(ENTRY(1,cUserValues,CHR(3))) NO-ERROR.
+      dLoginCompanyObj = DECIMAL(ENTRY(2,cUserValues,CHR(3))) NO-ERROR.
 
     FOR EACH  bMenuStructItem WHERE bMenuStructItem.menu_structure_obj = pdMenuItemObj NO-LOCK,
         EACH  bMenuItem WHERE bMenuItem.menu_item_obj   = bMenuStructItem.menu_item_obj

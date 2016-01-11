@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
           icfdb            PROGRESS
@@ -116,11 +116,11 @@ gsc_product_module
 &Scoped-Define ENABLED-FIELDS  product_obj layout_obj sdo_smartobject_obj shutdown_message_text~
  system_owned template_smartobject product_module_description~
  customization_result_obj deployment_type design_only~
- extends_smartobject_obj
+ extends_smartobject_obj object_is_runnable
 &Scoped-define ENABLED-FIELDS-IN-ryc_smartobject layout_obj ~
 sdo_smartobject_obj shutdown_message_text system_owned template_smartobject ~
 customization_result_obj deployment_type design_only ~
-extends_smartobject_obj 
+extends_smartobject_obj object_is_runnable 
 &Scoped-define ENABLED-FIELDS-IN-gsc_product_module product_obj ~
 product_module_description 
 &Scoped-Define DATA-FIELDS  smartobject_obj object_type_obj product_obj dProductObj product_module_obj~
@@ -130,14 +130,14 @@ product_module_description
  shutdown_message_text static_object system_owned template_smartobject~
  object_extension product_module_code product_module_description~
  customization_result_obj deployment_type design_only~
- extends_smartobject_obj object_type_code relative_path
+ extends_smartobject_obj object_type_code relative_path object_is_runnable
 &Scoped-define DATA-FIELDS-IN-ryc_smartobject smartobject_obj ~
 object_type_obj product_module_obj object_description object_filename ~
 object_path runnable_from_menu disabled run_persistent run_when ~
 security_smartobject_obj container_object generic_object required_db_list ~
 layout_obj sdo_smartobject_obj shutdown_message_text static_object ~
 system_owned template_smartobject object_extension customization_result_obj ~
-deployment_type design_only extends_smartobject_obj 
+deployment_type design_only extends_smartobject_obj object_is_runnable 
 &Scoped-define DATA-FIELDS-IN-gsc_object_type object_type_code 
 &Scoped-define DATA-FIELDS-IN-gsc_product_module product_obj ~
 product_module_code product_module_description relative_path 
@@ -270,67 +270,69 @@ END.
 USE-INDEX XAK1ryc_smartObject"
      _JoinCode[3]      = "gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj"
      _FldNameList[1]   > icfdb.ryc_smartobject.smartobject_obj
-"smartobject_obj" "smartobject_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 29.4 yes
+"smartobject_obj" "smartobject_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 29.4 yes ?
      _FldNameList[2]   > icfdb.ryc_smartobject.object_type_obj
-"object_type_obj" "object_type_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 29.4 yes
+"object_type_obj" "object_type_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 29.4 yes ?
      _FldNameList[3]   > icfdb.gsc_product_module.product_obj
-"product_obj" "product_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 33.6 yes
+"product_obj" "product_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 33.6 yes ?
      _FldNameList[4]   > "_<CALC>"
-"RowObject.product_obj" "dProductObj" "Product Obj" "->>>>>>>>>>>>>>>>>9.999999999" "Decimal" ? ? ? ? ? ? no ? no 33.6 no
+"RowObject.product_obj" "dProductObj" "Product Obj" "->>>>>>>>>>>>>>>>>9.999999999" "Decimal" ? ? ? ? ? ? no ? no 33.6 no ?
      _FldNameList[5]   > icfdb.ryc_smartobject.product_module_obj
-"product_module_obj" "product_module_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 29.4 yes
+"product_module_obj" "product_module_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 29.4 yes ?
      _FldNameList[6]   > icfdb.ryc_smartobject.object_description
-"object_description" "object_description" ? ? "character" ? ? ? ? ? ? no ? no 35 yes
+"object_description" "object_description" ? ? "character" ? ? ? ? ? ? no ? no 35 yes ?
      _FldNameList[7]   > icfdb.ryc_smartobject.object_filename
-"object_filename" "object_filename" ? ? "character" ? ? ? ? ? ? no ? no 35 yes
+"object_filename" "object_filename" ? ? "character" ? ? ? ? ? ? no ? no 35 yes ?
      _FldNameList[8]   > icfdb.ryc_smartobject.object_path
-"object_path" "object_path" ? ? "character" ? ? ? ? ? ? no ? no 70 yes
+"object_path" "object_path" ? ? "character" ? ? ? ? ? ? no ? no 70 yes ?
      _FldNameList[9]   > icfdb.ryc_smartobject.runnable_from_menu
-"runnable_from_menu" "runnable_from_menu" ? ? "logical" ? ? ? ? ? ? no ? no 20.4 yes
+"runnable_from_menu" "runnable_from_menu" ? ? "logical" ? ? ? ? ? ? no ? no 20.4 yes ?
      _FldNameList[10]   > icfdb.ryc_smartobject.disabled
-"disabled" "disabled" ? ? "logical" ? ? ? ? ? ? no ? no 8.2 yes
+"disabled" "disabled" ? ? "logical" ? ? ? ? ? ? no ? no 8.2 yes ?
      _FldNameList[11]   > icfdb.ryc_smartobject.run_persistent
-"run_persistent" "run_persistent" ? ? "logical" ? ? ? ? ? ? no ? no 13.8 yes
+"run_persistent" "run_persistent" ? ? "logical" ? ? ? ? ? ? no ? no 13.8 yes ?
      _FldNameList[12]   > icfdb.ryc_smartobject.run_when
-"run_when" "run_when" ? ? "character" ? ? ? ? ? ? no ? no 10.4 yes
+"run_when" "run_when" ? ? "character" ? ? ? ? ? ? no ? no 10.4 yes ?
      _FldNameList[13]   > icfdb.ryc_smartobject.security_smartobject_obj
-"security_smartobject_obj" "security_smartobject_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 29.4 yes
+"security_smartobject_obj" "security_smartobject_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 29.4 yes ?
      _FldNameList[14]   > icfdb.ryc_smartobject.container_object
-"container_object" "container_object" ? ? "logical" ? ? ? ? ? ? no ? no 15.8 yes
+"container_object" "container_object" ? ? "logical" ? ? ? ? ? ? no ? no 15.8 yes ?
      _FldNameList[15]   > icfdb.ryc_smartobject.generic_object
-"generic_object" "generic_object" ? ? "logical" ? ? ? ? ? ? no ? no 14.2 yes
+"generic_object" "generic_object" ? ? "logical" ? ? ? ? ? ? no ? no 14.2 yes ?
      _FldNameList[16]   > icfdb.ryc_smartobject.required_db_list
-"required_db_list" "required_db_list" ? ? "character" ? ? ? ? ? ? no ? no 35 yes
+"required_db_list" "required_db_list" ? ? "character" ? ? ? ? ? ? no ? no 35 yes ?
      _FldNameList[17]   > icfdb.ryc_smartobject.layout_obj
-"layout_obj" "layout_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 33.6 yes
+"layout_obj" "layout_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 33.6 yes ?
      _FldNameList[18]   > icfdb.ryc_smartobject.sdo_smartobject_obj
-"sdo_smartobject_obj" "sdo_smartobject_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 33.6 yes
+"sdo_smartobject_obj" "sdo_smartobject_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 33.6 yes ?
      _FldNameList[19]   > icfdb.ryc_smartobject.shutdown_message_text
-"shutdown_message_text" "shutdown_message_text" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
+"shutdown_message_text" "shutdown_message_text" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes ?
      _FldNameList[20]   > icfdb.ryc_smartobject.static_object
-"static_object" "static_object" ? ? "logical" ? ? ? ? ? ? no ? no 13.6 yes
+"static_object" "static_object" ? ? "logical" ? ? ? ? ? ? no ? no 13.6 yes ?
      _FldNameList[21]   > icfdb.ryc_smartobject.system_owned
-"system_owned" "system_owned" ? ? "logical" ? ? ? ? ? ? yes ? no 14.2 yes
+"system_owned" "system_owned" ? ? "logical" ? ? ? ? ? ? yes ? no 14.2 yes ?
      _FldNameList[22]   > icfdb.ryc_smartobject.template_smartobject
-"template_smartobject" "template_smartobject" ? ? "logical" ? ? ? ? ? ? yes ? no 21 yes
+"template_smartobject" "template_smartobject" ? ? "logical" ? ? ? ? ? ? yes ? no 21 yes ?
      _FldNameList[23]   > icfdb.ryc_smartobject.object_extension
-"object_extension" "object_extension" ? ? "character" ? ? ? ? ? ? no ? no 35 yes
+"object_extension" "object_extension" ? ? "character" ? ? ? ? ? ? no ? no 35 yes ?
      _FldNameList[24]   > icfdb.gsc_product_module.product_module_code
-"product_module_code" "product_module_code" ? ? "character" ? ? ? ? ? ? no ? no 20.6 yes
+"product_module_code" "product_module_code" ? ? "character" ? ? ? ? ? ? no ? no 20.6 yes ?
      _FldNameList[25]   > icfdb.gsc_product_module.product_module_description
-"product_module_description" "product_module_description" ? ? "character" ? ? ? ? ? ? yes ? no 35 yes
+"product_module_description" "product_module_description" ? ? "character" ? ? ? ? ? ? yes ? no 35 yes ?
      _FldNameList[26]   > icfdb.ryc_smartobject.customization_result_obj
-"customization_result_obj" "customization_result_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 33.6 yes
+"customization_result_obj" "customization_result_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 33.6 yes ?
      _FldNameList[27]   > icfdb.ryc_smartobject.deployment_type
-"deployment_type" "deployment_type" ? ? "character" ? ? ? ? ? ? yes ? no 35 yes
+"deployment_type" "deployment_type" ? ? "character" ? ? ? ? ? ? yes ? no 35 yes ?
      _FldNameList[28]   > icfdb.ryc_smartobject.design_only
-"design_only" "design_only" ? ? "logical" ? ? ? ? ? ? yes ? no 11.4 yes
+"design_only" "design_only" ? ? "logical" ? ? ? ? ? ? yes ? no 11.4 yes ?
      _FldNameList[29]   > icfdb.ryc_smartobject.extends_smartobject_obj
-"extends_smartobject_obj" "extends_smartobject_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 33.6 yes
+"extends_smartobject_obj" "extends_smartobject_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 33.6 yes ?
      _FldNameList[30]   > icfdb.gsc_object_type.object_type_code
-"object_type_code" "object_type_code" ? ? "character" ? ? ? ? ? ? no ? no 30 yes
+"object_type_code" "object_type_code" ? ? "character" ? ? ? ? ? ? no ? no 30 yes ?
      _FldNameList[31]   > ICFDB.gsc_product_module.relative_path
-"relative_path" "relative_path" ? ? "character" ? ? ? ? ? ? no ? no 70 no
+"relative_path" "relative_path" ? ? "character" ? ? ? ? ? ? no ? no 70 no ?
+     _FldNameList[32]   > ICFDB.ryc_smartobject.object_is_runnable
+"object_is_runnable" "object_is_runnable" ? ? "logical" ? ? ? ? ? ? yes ? no 17 no ?
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME

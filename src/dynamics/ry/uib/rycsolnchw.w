@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME wWin
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS wWin 
@@ -29,13 +29,13 @@
 CREATE WIDGET-POOL.
 
 /* ***************************  Definitions  ************************** */
-{af/sup2/dynhlp.i}          /* Help File Preprocessor Directives         */
+{af/sup2/dynhlp.i}            /* Help File Preprocessor Directives         */
 
 /* Parameters Definitions ---                                           */
 
 /* Local Variable Definitions ---                                       */  
 DEFINE VARIABLE xcADMDestroy AS CHARACTER  NO-UNDO  
-              INIT 'adm2/*,*/custom/*,web2/*' .
+              INIT 'adm2/*,*/custom/*,web2/*,ry/*/rydyn*' .
   
 DEFINE NEW GLOBAL SHARED VARIABLE h_ade_tool    AS HANDLE    NO-UNDO.
  
@@ -70,14 +70,14 @@ DEFINE TEMP-TABLE ttRun NO-UNDO
 
 &Scoped-define ADM-SUPPORTED-LINKS Data-Target,Data-Source,Page-Target,Update-Source,Update-Target,Filter-target,Filter-Source
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME fMain
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS buBrowse buClearMRU fiFile coHistory ~
-ToPersistent buRun ToClearCache ToDestroyAdm 
-&Scoped-Define DISPLAYED-OBJECTS fiFile coHistory ToPersistent ToClearCache ~
-ToDestroyAdm 
+&Scoped-Define ENABLED-OBJECTS buBrowse buClearMRU coHistory fiFile ~
+ToPersistent buRun toMultiple ToClearCache toClearData ToDestroyAdm 
+&Scoped-Define DISPLAYED-OBJECTS coHistory fiFile ToPersistent toMultiple ~
+ToClearCache toClearData ToDestroyAdm 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -174,14 +174,26 @@ DEFINE VARIABLE fiFile AS CHARACTER FORMAT "X(256)"
      SIZE 69.2 BY 1 TOOLTIP "Specify the dynamic container to launch".
 
 DEFINE VARIABLE ToClearCache AS LOGICAL INITIAL no 
-     LABEL "&Clear cache" 
+     LABEL "Clear &repository cache" 
      VIEW-AS TOGGLE-BOX
-     SIZE 16.4 BY .81 NO-UNDO.
+     SIZE 27.6 BY .81 NO-UNDO.
+
+DEFINE VARIABLE toClearData AS LOGICAL INITIAL no 
+     LABEL "Clear &data cache" 
+     CONTEXT-HELP-ID 0
+     VIEW-AS TOGGLE-BOX
+     SIZE 24.8 BY .81 NO-UNDO.
 
 DEFINE VARIABLE ToDestroyAdm AS LOGICAL INITIAL no 
-     LABEL "&Destroy ADM super procedures" 
+     LABEL "Destroy &ADM super procedures" 
      VIEW-AS TOGGLE-BOX
      SIZE 35.2 BY .81 NO-UNDO.
+
+DEFINE VARIABLE toMultiple AS LOGICAL INITIAL no 
+     LABEL "Always run &new instance" 
+     CONTEXT-HELP-ID 0
+     VIEW-AS TOGGLE-BOX
+     SIZE 27.6 BY .81 NO-UNDO.
 
 DEFINE VARIABLE ToPersistent AS LOGICAL INITIAL no 
      LABEL "Run &persistent" 
@@ -194,21 +206,23 @@ DEFINE VARIABLE ToPersistent AS LOGICAL INITIAL no
 DEFINE FRAME fMain
      buBrowse AT ROW 1.95 COL 76
      buClearMRU AT ROW 1.95 COL 81
+     coHistory AT ROW 2.05 COL 1 COLON-ALIGNED NO-LABEL
      fiFile AT ROW 2.05 COL 3 HELP
           "Enter the name of the dynamic container you wish to run" NO-LABEL
-     coHistory AT ROW 2.05 COL 1 COLON-ALIGNED NO-LABEL
      fiChar AT ROW 2.05 COL 70.2 COLON-ALIGNED NO-LABEL NO-TAB-STOP 
      ToPersistent AT ROW 3.29 COL 3
      buRun AT ROW 3.38 COL 71.8
-     ToClearCache AT ROW 4.1 COL 3
+     toMultiple AT ROW 4.1 COL 3
      buStop AT ROW 4.81 COL 71.8
-     ToDestroyAdm AT ROW 4.91 COL 3
-     "Name of container to launch" VIEW-AS TEXT
+     ToClearCache AT ROW 4.91 COL 3
+     toClearData AT ROW 5.71 COL 3
+     ToDestroyAdm AT ROW 6.52 COL 3
+     "Name of &container to launch" VIEW-AS TEXT
           SIZE 29.2 BY .62 AT ROW 1.19 COL 3.4
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1
-         SIZE 86 BY 6.05
+         SIZE 86 BY 6.76
          DEFAULT-BUTTON buRun.
 
 
@@ -230,11 +244,11 @@ IF SESSION:DISPLAY-TYPE = "GUI":U THEN
   CREATE WINDOW wWin ASSIGN
          HIDDEN             = YES
          TITLE              = "Dynamic Launcher"
-         HEIGHT             = 5.1
+         HEIGHT             = 6.62
          WIDTH              = 85.4
-         MAX-HEIGHT         = 6.05
+         MAX-HEIGHT         = 6.76
          MAX-WIDTH          = 95.2
-         VIRTUAL-HEIGHT     = 6.05
+         VIRTUAL-HEIGHT     = 6.76
          VIRTUAL-WIDTH      = 95.2
          MAX-BUTTON         = no
          RESIZE             = no
@@ -257,7 +271,7 @@ ELSE {&WINDOW-NAME} = CURRENT-WINDOW.
 /* SETTINGS FOR WINDOW wWin
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME fMain
-                                                                        */
+   FRAME-NAME                                                           */
 /* SETTINGS FOR BUTTON buStop IN FRAME fMain
    NO-ENABLE                                                            */
 /* SETTINGS FOR FILL-IN fiChar IN FRAME fMain
@@ -425,6 +439,34 @@ END.
 &ANALYZE-RESUME
 
 
+&Scoped-define SELF-NAME toClearData
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL toClearData wWin
+ON VALUE-CHANGED OF toClearData IN FRAME fMain /* Clear data cache */
+DO:
+  IF toDestroyADM:CHECKED AND toDestroyADM:SENSITIVE THEN
+    SELF:CHECKED = TRUE.
+  ASSIGN toClearData.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME ToDestroyAdm
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL ToDestroyAdm wWin
+ON VALUE-CHANGED OF ToDestroyAdm IN FRAME fMain /* Destroy ADM super procedures */
+DO:
+  IF SELF:CHECKED THEN
+     toClearData:CHECKED = TRUE.
+  ELSE 
+    toClearData:CHECKED = toClearData.
+/*   toClearData:SENSITIVE = NOT SELF:CHECKED. */
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
 &UNDEFINE SELF-NAME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK wWin 
@@ -469,7 +511,7 @@ DO WHILE VALID-HANDLE(hOtherMe):
   hOtherMe = hOtherMe:NEXT-SIBLING. 
 END.
 
-ON ALT-N OF FRAME {&FRAME-NAME} ANYWHERE DO:
+ON ALT-C OF FRAME {&FRAME-NAME} ANYWHERE DO:
   APPLY "ENTRY" TO fifile IN FRAME {&FRAME-NAME}.
 END.
 
@@ -484,6 +526,7 @@ END.
 ASSIGN
   toClearCache = TRUE
   toPersistent = TRUE
+  toMultiple   = TRUE
   coHistory:DELIMITER IN FRAME {&FRAME-NAME} = CHR(3). 
 
 RUN constructSDO IN THIS-PROCEDURE.
@@ -646,7 +689,7 @@ PROCEDURE constructSDO :
   IF VALID-HANDLE(ghRycSmartObject) THEN
   DO:
     RUN setPropertyList IN ghRycSmartObject 
-            ('AppServiceAstraASUsePromptASInfoForeignFieldsRowsToBatch10CheckCurrentChangedyesRebuildOnReposnoServerOperatingModeNONEDestroyStatelessnoDisconnectAppServernoObjectNamedopendialogUpdateFromSourcenoToggleDataTargetsyesOpenOnInitnoPromptOnDeleteyesPromptColumns(NONE)':U).
+            ('AppServiceAstraASUsePromptASInfoForeignFieldsRowsToBatch10CheckCurrentChangedyesRebuildOnReposnoServerOperatingModeNONEDestroyStatelessyesDisconnectAppServernoObjectNamedopendialogUpdateFromSourcenoToggleDataTargetsyesOpenOnInitnoPromptOnDeleteyesPromptColumns(NONE)':U).
    
     RUN initializeObject IN ghRycSmartObject. 
   END.
@@ -783,10 +826,11 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  DISPLAY fiFile coHistory ToPersistent ToClearCache ToDestroyAdm 
+  DISPLAY coHistory fiFile ToPersistent toMultiple ToClearCache toClearData 
+          ToDestroyAdm 
       WITH FRAME fMain IN WINDOW wWin.
-  ENABLE buBrowse buClearMRU fiFile coHistory ToPersistent buRun ToClearCache 
-         ToDestroyAdm 
+  ENABLE buBrowse buClearMRU coHistory fiFile ToPersistent buRun toMultiple 
+         ToClearCache toClearData ToDestroyAdm 
       WITH FRAME fMain IN WINDOW wWin.
   {&OPEN-BROWSERS-IN-QUERY-fMain}
   VIEW wWin.
@@ -832,7 +876,7 @@ PROCEDURE refreshADM :
  DEFINE VARIABLE h AS HANDLE     NO-UNDO.
  DEFINE VARIABLE cOpenProc AS CHARACTER  NO-UNDO.
    
- RUN adeuib/_uibinfo.p(?,'session','procedures', OUTPUT cProc).
+ RUN adeuib/_uibinfo.p(?,'session','procedures', OUTPUT cProc) NO-ERROR.
  
  cOpenProc = checkADM('ab').
 
@@ -936,7 +980,6 @@ PROCEDURE runContainer :
   DEFINE VARIABLE cLogicalName                AS CHARACTER    NO-UNDO.
   DEFINE VARIABLE cContainerSuperProcedure    AS CHARACTER    NO-UNDO.
 
-  DEFINE VARIABLE lMultiInstance              AS LOGICAL      NO-UNDO.
   DEFINE VARIABLE cChildDataKey               AS CHARACTER    NO-UNDO.
   DEFINE VARIABLE cRunAttribute               AS CHARACTER    NO-UNDO.
   DEFINE VARIABLE hContainerWindow            AS HANDLE       NO-UNDO.
@@ -944,9 +987,10 @@ PROCEDURE runContainer :
   DEFINE VARIABLE hObject                     AS HANDLE       NO-UNDO.
   DEFINE VARIABLE hRunContainer               AS HANDLE       NO-UNDO.
   DEFINE VARIABLE cRunContainerType           AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE hCacheManager               AS HANDLE     NO-UNDO.
 
   ASSIGN
-    lMultiInstance    = NO
+    FRAME {&FRAME-NAME} toMultiple
     cChildDataKey     = "":U
     cRunAttribute     = "":U
     hContainerWindow  = ?
@@ -985,13 +1029,25 @@ PROCEDURE runContainer :
     IF toClearCache:CHECKED THEN 
       RUN clearClientCache IN gshRepositoryManager.
 
+    IF toClearData:CHECKED THEN
+    DO:
+      /* call getCacheManager in an ADM2 object as it defines default manager*/
+      hCacheManager = DYNAMIC-FUNCTION('getManagerHandle':U IN ghRycSmartObject,
+                                       'CacheManager':U).
+      IF VALID-HANDLE(hCacheManager) THEN
+        RUN clearCache IN hCacheManager('*':U).
+    END.
+
     IF toDestroyADM:SENSITIVE
     AND toDestroyAdm:CHECKED THEN 
     DO:
       RUN refreshADM NO-ERROR.
       IF ERROR-STATUS:ERROR THEN 
         RETURN.
-    END.    /* destroy ADM */
+    END.   /* destroy ADM */
+    ELSE 
+      /* on second run set destroy false  */
+      toDestroyAdm:CHECKED = FALSE.  
 
     DO ON STOP UNDO,  LEAVE ON ERROR UNDO, LEAVE:
 
@@ -1008,7 +1064,7 @@ PROCEDURE runContainer :
                               (INPUT  pcRunFile            /* object filename if physical/logical names unknown */
                               ,INPUT  "":U                 /* physical object name (with path and extension) if known */
                               ,INPUT  pcRunFile            /* logical object name if applicable and known */
-                              ,INPUT  (NOT lMultiInstance) /* run once only flag YES/NO */
+                              ,INPUT NOT toMultiple        /* run once only flag YES/NO */
                               ,INPUT  "":U                 /* instance attributes to pass to container */
                               ,INPUT  cChildDataKey        /* child data key if applicable */
                               ,INPUT  cRunAttribute        /* run attribute if required to post into container run */
@@ -1019,7 +1075,6 @@ PROCEDURE runContainer :
                               ,OUTPUT hRunContainer        /* procedure handle of object run/running */
                               ,OUTPUT cRunContainerType    /* procedure type (e.g ADM1, Astra1, ADM2, ICF, "") */
                               ).
-
         IF VALID-HANDLE(hRunContainer) THEN 
         DO:
           /* Subscribe to ConfirmExit to allow launcher to know whether object was destroyed. */

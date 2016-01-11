@@ -22,7 +22,7 @@
 *********************************************************************/
 /*
  * Prototype include file: adm2/custom/lookprtocustom.i
- * Created from procedure: adm2/custom/lookupcustom.p at 14:05:22 on 08/11/2000
+ * Created from procedure: adm2/custom/lookupcustom.p at 11:32:31 on 09/07/2004
  * by the PROGRESS PRO*Tools Prototype Include File Generator
  */
 

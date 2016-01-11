@@ -66,7 +66,6 @@ IF NOT initialized_adestds THEN
 {adeuib/uibhlp.i}          /* Help File Preprocessor Directives     */
 
 DEFINE SHARED VARIABLE se_section         AS CHARACTER  NO-UNDO.
-DEFINE SHARED VARIABLE _DynamicsIsRunning AS LOGICAL    NO-UNDO.
 
 /* Parameters Definitions ---                                           */
 &IF DEFINED(UIB_is_Running) NE 0 &THEN
@@ -252,7 +251,7 @@ DO:
       RETURN NO-APPLY.
   END.
   
-  IF _DynamicsIsRunning AND CAN-DO ( p_Invalid_List , Name:SCREEN-VALUE ) THEN
+  IF CAN-DO ( p_Invalid_List , Name:SCREEN-VALUE ) THEN
   DO:
      MESSAGE Name:SCREEN-VALUE    SKIP(1)
              "This name is reserved or already defined in an included Method Library." + CHR(10) +
@@ -269,17 +268,7 @@ DO:
        RETURN NO-APPLY.
     END.
   END.
-  ELSE 
-  /* Don't allow the user to enter a duplicate name. */
-  IF CAN-DO ( p_Invalid_List , Name:SCREEN-VALUE ) THEN
-  DO:
-      MESSAGE Name:SCREEN-VALUE    SKIP(1)
-              "This name is reserved, or already defined in an included Method Library."
-              VIEW-AS ALERT-BOX INFORMATION IN WINDOW ACTIVE-WINDOW .
-      RUN set-state ( INPUT Type:SCREEN-VALUE + Invalid_Entry ).
-      RETURN NO-APPLY.
-  END.
-
+  
   ASSIGN p_Name = Name:SCREEN-VALUE
          p_Type = Type:SCREEN-VALUE
          p_OK   = TRUE .

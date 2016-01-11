@@ -155,7 +155,7 @@ FUNCTION getCurrentLogicalName RETURNS CHARACTER
 &SCOPED-DEFINE  TTHandle         phRowObject
 &SCOPED-DEFINE  NumTTs           20
 &SCOPED-DEFINE  ContextString    piocContext
-&SCOPED-DEFINE  Container        pcObject
+&SCOPED-DEFINE  Container        cPhysicalObject
 &SCOPED-DEFINE  Messages         pocMessages
 &SCOPED-DEFINE  createObjects    createObjects
 &SCOPED-DEFINE  initializeObject setContextAndInitialize
@@ -164,18 +164,14 @@ FUNCTION getCurrentLogicalName RETURNS CHARACTER
 &SCOPED-DEFINE  fetchParams      pcQueries,piStartRow,pcRowIdent,plNext,piRowsToReturn,OUTPUT piRowsReturned
 &SCOPED-DEFINE  objectName       cLogicalObjectName
 
+DEFINE VARIABLE cPhysicalObject     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cLogicalObjectName  AS CHARACTER  NO-UNDO.
 
-DEFINE VARIABLE iTHIS      AS INTEGER    NO-UNDO.
-DEFINE VARIABLE iPos       AS INTEGER    NO-UNDO.
-DEFINE VARIABLE cPropList              AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cLogicalObjectName     AS CHARACTER  NO-UNDO.
-
-cPropList = ENTRY(1, piocContext, CHR(3)).
-iTHIS = LOOKUP('THIS':U, cPropList, ';').
-IF iTHIS > 0 THEN
-  iPos = LOOKUP('LogicalObjectName':U, ENTRY(iTHIS + 1, cPropList, ';':U)).
-IF iPos > 0 THEN
-  cLogicalObjectName = ENTRY(iPos, ENTRY(iTHIS + 2, piocContext, CHR(3)), CHR(4)).
+ASSIGN
+  cPhysicalObject     = ENTRY(1,pcObject,':')
+  cLogicalObjectName  = (IF NUM-ENTRIES(pcObject,':') > 1 
+                         THEN ENTRY(2,pcObject,':')
+                         ELSE '').
 
 {src/adm2/fetchrowobject.i}
 

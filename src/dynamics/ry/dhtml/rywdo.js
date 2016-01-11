@@ -84,7 +84,9 @@ Wdo.prototype.init=function(e){
      ,next  :true
      ,last  :true
      ,find  :true
-     ,filter:true
+     ,comments :true
+     ,filter   :true
+     ,lookup   :true
     };
 
     if(wdo=='lookup'){
@@ -179,7 +181,7 @@ Wdo.prototype.dynlookup=function(){
         });
   }
 }
-
+ 
 Wdo.prototype.fieldRegister=function(){
   with(this){
     for(var view in viewer){
@@ -188,7 +190,12 @@ Wdo.prototype.fieldRegister=function(){
         // in case of name not present, i.e rectangle - ignore
         if(!e.name) continue;
         var name=e.name.split('.');
-        if(name[0]!=wdo) continue;
+        if(name[0]!=wdo){
+		  var val=e.getAttribute('value');
+		  if(val) e.setAttribute('initval',val);
+          continue;
+        } 
+        if(e.tagName=='SELECT' && e.getAttribute('comboparent')) fixComboParent(e);
         if(e.type=='radio'){
           if(!inputField[name[1]]) inputField[name[1]]=[];
           inputField[name[1]].push(e);
@@ -239,8 +246,12 @@ Wdo.prototype.refreshTools=function(){
         if(hdata.status[e]==status[e] && !tools[panel].page ) continue; // Only changed status
         var elem=tools[panel][e];
         status[e]=hdata.status[e];
+        if(e=='comments' && tools[panel].comments !=null){
+          tools[panel].comments.innerHTML='<img src="'+tools[panel].comments.getAttribute('img').replace(/ment\.gif/,status[e]?'tick.gif':'ment.gif')+'">';
+          continue;
+        }
         if(elem) elem.className=status[e]?'enable':'disable';
-        if(e=='filter' && this.filterOn!=hdata.filterOn && tools[panel].filter){
+        if(e=='filter' && this.filterOn!=hdata.filterOn && tools[panel].filter != null && tools[panel].filter != 'undefined'){
           this.filterOn=hdata.filterOn;
           tools[panel].filter.innerHTML='<img src="'+tools[panel].filter.getAttribute('img').replace(/.\.gif/,this.filterOn?'c.gif':'u.gif')+'">';
         }
@@ -357,6 +368,21 @@ Wdo.prototype.action=function(c,prm){
       case 'setpassthru':
         appcontrol.cLookup=app.frameObject.src+'.'+hdata.sbo+hdata.wdo+'.'+hdata.cur[0];
         return;
+      case 'comborefresh':
+        var name=inputField[c[0]].getAttribute('comboparent');	
+        var val=appcontrol.getField(inputField[name.split('.')[1]]);
+        app.document.form['lookupparent'].value=val;
+        window.action('server.'+wdo+'.'+c[0]+'.combodata');
+        return;
+      case 'combolookup':
+        var name=app.document.getElementById(wdo+"."+c[0]).getAttribute('combochild');	
+        var val=hdata.cur[hdata.index[c[0].substring(1)]];
+		// Make sure to get updated data if not initial request
+        if(window.lookup && window.lookup.lookupdata)
+          val= window.lookup.lookupdata[0].split(window.lookup.lookupdlm)[1];
+        app.document.form['lookupparent'].value=val;
+        window.action('server.'+name+'.combodata');
+        return;
       case 'mark':
         return appcontrol.markField(inputField[c[0]],'error');
       case 'unmark':
@@ -378,6 +404,11 @@ Wdo.prototype.action=function(c,prm){
       case 'setinput':
         action('modify');
         return appcontrol.setField(inputField[c[0]],prm);
+      case 'options':
+        if(window.lookup && window.lookup.lookupdata)
+          window.lookup.lookupdata=null;
+        window.action('tool.'+wdo+'.'+c[0]+'.options|'+prm);
+        return appcontrol.setField(inputField[c[0]],hdata.cur[hdata.index[c[0]]]);        
       case 'toggle':
         if(!hdata.status.filter) return;
         var b=filtermode;    //  Toggles filter for browse widgets
@@ -403,15 +434,10 @@ Wdo.prototype.action=function(c,prm){
         action('commitdata');
         return window.actions(['server.'+hdata.sbo+hdata.id+'.filter','wbo.submit']);
       case 'lookup':
-        if(c.length==1){
+        if(c.length==1){      // FIND
           window.returnfield=hdata;
-          var cFind=window.action('util.../dhtml/ryfind.htm');
-          if(cFind>''){
-            app.document.form['_'+id+'._find'].value=cFind;
-            if(hdata.commit!='true') action('commitdata');
-            return window.actions(['server.'+hdata.sbo+hdata.wdo+'.find','wbo.submit']);
-          }
-          return;
+          action('commitdata');
+		  return window.action('util.../dhtml/ryfind.htm');
         }
         var val=window.returnfield.value;
         var att=window.returnfield.getAttribute('select');
@@ -420,24 +446,29 @@ Wdo.prototype.action=function(c,prm){
           val='';
         app.document.form.lookup.value=val;
         var cParent=window.returnfield.getAttribute('lookupParent');
-        
         if(cParent>'') {
           // Find the last element with the . as the delimiter
           cParent = cParent.split('.').pop();
           cParent = action(cParent+'.get');
         }
         app.document.form['lookupparent'].value=cParent;
+		if(window.returnfield.getAttribute('combochild')) later(wdo+'.'+c[0]+'.combolookup');
         lookup.lookupval=val;
         window.action('server.lookup.launch.'+window.returnfield.getAttribute('lookup'));
+
         return window.action('wbo.submit');
       case 'export':
-		return runWindow("ryexcel");
+	return runWindow("ryexcel");
       case 'preview':
-		return runWindow("rypreview");
+	return runWindow("rypreview");
       case 'getloburl':
         return getloburl(prm);
       case 'launchlob':
         return window.open(getloburl(prm),'lob','toolbar=1,menubar=1,status=1,resizable=1',false);
+      case 'comments':
+        app.uplink=hdata;
+        app.comtarget=hdata;
+        return showComments();
       default:
         if(!this.hdata) return;
         return hdata.action(c.join('.'),prm);
@@ -445,6 +476,16 @@ Wdo.prototype.action=function(c,prm){
   }
 }
 
+Wdo.prototype.showComments=function(){
+  with(this){
+    var ob=(app.location.pathname).split('/');
+    var sbo = (hdata.sbo !=null)?hdata.sbo.replace(".", "+"):"";
+    var link=(ob[ob.length-1].split('.')[0]) +'.'+ sbo +this.wdo+'.'+
+             appcontrol.sessionid+'.'+hdata.cur[hdata.index['rowident']];
+    document.cookie='sessionid='+appcontrol.sessionid;
+    return apph.action('dlg.rycomments.'+link);
+  }
+}
 
 Wdo.prototype.runWindow=function(name){
   with(this){

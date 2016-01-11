@@ -66,21 +66,31 @@
  DEFINE VARIABLE ghADMPropsBuf         AS HANDLE  NO-UNDO.  /*  and its buffer    */
  DEFINE VARIABLE glADMLoadFromRepos    AS LOGICAL NO-UNDO.
  DEFINE VARIABLE glADMOk               AS LOGICAL NO-UNDO.  /* For {get/set} */
+ 
+/* Generated objects will explicitly set the ADM-CONTAINER and ADM-CONTAINER-HANDLE 
+    preprocessors.
+ */ 
+
+&IF DEFINED(ADM-LOGICALNAME-CALLBACK) EQ 0 &THEN 
+   &SCOPED-DEFINE ADM-LOGICALNAME-CALLBACK SOURCE-PROCEDURE 
+&ENDIF
+
+&if defined(adm-prepare-static-object) eq 0 &then
 
 &IF "{&ADM-CONTAINER}":U NE "":U &THEN
   &IF "{&ADM-CONTAINER}":U = "WINDOW":U &THEN
      &GLOBAL-DEFINE ADM-CONTAINER-HANDLE {&WINDOW-NAME}
   &ELSEIF "{&ADM-CONTAINER}":U = "VIRTUAL":U OR "{&FRAME-NAME}":U = "":U &THEN
-  &ELSEIF "{&ADM-CONTAINER}":U = "FRAME":U 
-  OR "{&ADM-CONTAINER}":U = "DIALOG-BOX":U 
-  &THEN
+          &ELSEIF "{&ADM-CONTAINER}":U = "FRAME":U OR "{&ADM-CONTAINER}":U = "DIALOG-BOX":U &THEN
      &GLOBAL-DEFINE ADM-CONTAINER-HANDLE FRAME {&FRAME-NAME}:HANDLE 
-  &ENDIF
+  &ENDIF 
 &ELSE
   &IF "{&FRAME-NAME}":U NE "":U &THEN
      &GLOBAL-DEFINE ADM-CONTAINER-HANDLE FRAME {&FRAME-NAME}:HANDLE 
   &ENDIF
 &ENDIF
+
+&endif
 
  /* MinVersion is definded temporarily in order to global-def CompileOn91C */
 &SCOPED-DEFINE MinVersion "9.1C"
@@ -218,12 +228,12 @@ FUNCTION getObjectType RETURNS CHARACTER
  &GLOBAL-DEFINE xpInstanceId 
  
 /* Properties for super procedure management */
-&GLOBAL-DEFINE xpSuperProcedure                         /* The name of the super procedure; can be a CSV list */
-&GLOBAL-DEFINE xpSuperProcedureMode                     /* STATELESS, STATEFUL; the mode that all supers for the object will be launched in */
-&GLOBAL-DEFINE xpSuperProcedureHandle           /* Runtime property storing handles to the object's super procedures, defined in SuperProcedure. */
+&GLOBAL-DEFINE xpSuperProcedure         /* The name of the super procedure; can be a CSV list */
+&GLOBAL-DEFINE xpSuperProcedureMode     /* STATELESS, STATEFUL; the mode that all supers for the object will be launched in */
+&GLOBAL-DEFINE xpSuperProcedureHandle   /* Runtime property storing handles to the object's super procedures, defined in SuperProcedure. */
 
 /* Layout support for dynamic objects */
-&GLOBAL-DEFINE xpLayoutPosition                         /* contains a layout position that allows an object to be laid out correctly. */
+&GLOBAL-DEFINE xpLayoutPosition        /* contains a layout position that allows an object to be laid out correctly. */
 
  
  /* determine if we need to create the prop fields here or from the */
@@ -247,17 +257,39 @@ FUNCTION getObjectType RETURNS CHARACTER
     IF {&ADM-PROPS-FROM-REPOSITORY} THEN
     DO:
       &SCOPED-DEFINE ADM-INSTANCE-HANDLES  STRING(THIS-PROCEDURE)         
-         &IF DEFINED(ADM-CONTAINER-HANDLE) <> 0 &THEN
-      &SCOPED-DEFINE ADM-INSTANCE-HANDLES {&ADM-INSTANCE-HANDLES} + ',':U~
- + STRING({&ADM-CONTAINER-HANDLE}) 
-         &ENDIF
-         &IF DEFINED(BROWSE-NAME) <> 0 &THEN
-      &SCOPED-DEFINE ADM-INSTANCE-HANDLES {&ADM-INSTANCE-HANDLES} + ',':U~
- + STRING(BROWSE {&BROWSE-NAME}:HANDLE)       
-         &ENDIF
+      &IF DEFINED(ADM-CONTAINER-HANDLE) <> 0 &THEN
+          &SCOPED-DEFINE ADM-INSTANCE-HANDLES {&ADM-INSTANCE-HANDLES} + ',':U + STRING({&ADM-CONTAINER-HANDLE}) 
+      &ENDIF
+      &IF DEFINED(BROWSE-NAME) <> 0 &THEN
+          &SCOPED-DEFINE ADM-INSTANCE-HANDLES {&ADM-INSTANCE-HANDLES} + ',':U + STRING(BROWSE {&BROWSE-NAME}:HANDLE)       
+      &ENDIF
          
-      IF NOT DYNAMIC-FUNC('prepareInstance':U IN gshRepositoryManager,
-                          {&ADM-INSTANCE-HANDLES},SOURCE-PROCEDURE) THEN
+          /* Run static from repository. Default to no */
+          &if defined(adm-prepare-static-object) eq 0 &then
+                  &scoped-define adm-prepare-static-object no
+          &endif
+                 
+          &if "{&adm-prepare-static-object}" eq "yes" &then
+                  &if defined(adm-prepare-super-procedure) eq 0 &then
+                      &scoped-define adm-prepare-super-procedure
+                  &endif
+                  &if defined(adm-prepare-super-procedure-mode) eq 0 &then
+                      &scoped-define adm-prepare-super-procedure-mode
+                  &endif
+          &endif
+      
+      IF NOT 
+          &if "{&adm-prepare-static-object}" eq "yes" &then
+      dynamic-function('newInstance' in gshRepositoryManager,
+                                   {&adm-instance-handles},
+                       '{&adm-prepare-class-name}',
+                       '{&adm-prepare-super-procedure}',
+                       '{&adm-prepare-super-procedure-mode}' )
+          &else
+      DYNAMIC-FUNC('prepareInstance':U IN gshRepositoryManager,
+                          {&ADM-INSTANCE-HANDLES},{&ADM-LOGICALNAME-CALLBACK}) 
+          &endif
+      then
       DO:
         STOP.  
       END.

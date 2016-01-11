@@ -820,6 +820,7 @@ END PROCEDURE.    /* insertClass */
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE addMasterAttrs Include 
 PROCEDURE addMasterAttrs :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   Purpose:     Adds the attributes that are defined for a specified master object
                to the temp-table handle as a field in the table.
   Parameters:  <none>
@@ -890,6 +891,7 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE addOTAttrs Include 
 PROCEDURE addOTAttrs :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   Purpose:     Adds the attributes that are defined for a specified object type
                to the temp-table handle as a field in the table.
   Parameters:  <none>
@@ -961,6 +963,7 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE addParentOTAttrs Include 
 PROCEDURE addParentOTAttrs :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   Purpose:     Finds a parent object type for an object and any parents of that 
                parent and adds its attributes to the object type temp-table.
   Parameters:  <none>
@@ -1027,6 +1030,7 @@ END PROCEDURE.  /* bufferRetrieveClassExtInfo */
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE buildSchemaFieldTable Include 
 PROCEDURE buildSchemaFieldTable :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   Purpose:     Builds a temp-table of all fields for the specified DB and tables
   Parameters:  pcDatabaseNames    - A CSV list of logical DB names
                pcTableNames       - A CSV list of tables
@@ -1168,6 +1172,7 @@ END PROCEDURE.  /* buildSchemaFieldTable */
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE changeObjectInstance Include 
 PROCEDURE changeObjectInstance :
 /*------------------------------------------------------------------------------
+ACCUESS_LEVEL=PUBLIC
   Purpose:     Changes the object instance .
   Parameters:  pcNameContainer            : The container name
                                             -  <name> = A valid container name
@@ -1551,6 +1556,7 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE changeObjectType Include 
 PROCEDURE changeObjectType :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
   Purpose:     Changes the object type of an object to another object type.
   Parameters:  <none>
   Notes:       
@@ -1787,6 +1793,7 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE clearDesignCache Include 
 PROCEDURE clearDesignCache :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
   Purpose:     
   Parameters:  <none>
   Notes:       
@@ -1908,6 +1915,7 @@ END PROCEDURE.  /* doServerRetrieveClassExtInfo */
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE editRyObjectInAB Include 
 PROCEDURE editRyObjectInAB :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   Purpose:  This function will allow you to open an RyObject completely to be
             maintained using the correct tool. This is a procedure because if
             a function was used to call it, INPUT BLOCKING errors are encountered.
@@ -3052,6 +3060,7 @@ END PROCEDURE.  /* insertAttributeValues */
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE insertObjectInstance Include 
 PROCEDURE insertObjectInstance :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
   Purpose:     To add/update an object instance on a container
   Parameters:  pdContainerObjectObj               -
                pcObjectName                       -
@@ -3271,6 +3280,7 @@ END PROCEDURE.  /* insertObjectInstance */
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE insertObjectLinks Include 
 PROCEDURE insertObjectLinks :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
   Purpose:     To add/update an object's links
   Parameters:  dContainerObjObjectObj          -
                phSmartLinkBuffer             -
@@ -4010,6 +4020,7 @@ END PROCEDURE.  /* insertObjectPage */
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE insertUiEvents Include 
 PROCEDURE insertUiEvents :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
   Purpose:     Stores UI Events 
   Parameters:  
   Notes:       * The buffer used in this API is based on the TT defined in
@@ -4341,6 +4352,7 @@ END PROCEDURE.  /* insertUiEvent */
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE plipShutdown Include 
 PROCEDURE plipShutdown :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
   Purpose:     
   Parameters:  <none>
   Notes:       
@@ -4354,6 +4366,7 @@ END PROCEDURE.  /* plipShutdown */
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE registerSdoFields Include 
 PROCEDURE registerSdoFields :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   Purpose:     Obsolete procedure - it ensured that any values for certain 
                properties which are changed on an SDO are stored in the Repository.
   Parameters:  pcDataObjectName        - the name of the SDO whose fields to register
@@ -4377,6 +4390,7 @@ END PROCEDURE.  /* registerSdoFields */
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE removeAttributeValues Include 
 PROCEDURE removeAttributeValues :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
   Purpose:     Removes attribute values.
   Parameters:  INPUT ttAttributeValue
   Notes:       * The buffer used in this API is based on the TT defined in
@@ -4571,6 +4585,7 @@ END PROCEDURE.  /* removeAttributeValues */
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE removeDefaultAttrValues Include 
 PROCEDURE removeDefaultAttrValues :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   Purpose:     Removes default attribute values for an object file or object 
                type.
   Parameters:  <none>
@@ -4779,6 +4794,7 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE removeInstances Include 
 PROCEDURE removeInstances :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
  Purpose:     Removes all instances of an object (all instances due to a different
               result codes) from a container given the instance obj of one of them.
   Parameters:  pdInstanceObj
@@ -4836,6 +4852,7 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE removeObject Include 
 PROCEDURE removeObject :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
   Purpose:     Removes an Object from the Repository.
   Parameters:  pcObjectName -
                pcResultCode - 
@@ -4998,6 +5015,7 @@ END PROCEDURE.  /* removeObject */
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE removeObjectInstance Include 
 PROCEDURE removeObjectInstance :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
   Purpose:     Removes object instaces from a container.
   Parameters:  pcContainerObjectName -
                pcContainerResultCode -
@@ -5368,6 +5386,7 @@ END PROCEDURE.  /* removePageInstance */
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE removeUIEvents Include 
 PROCEDURE removeUIEvents :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
   Purpose:     Removes UI Events.
   Parameters:  
   Notes:       * The buffer used in this API is based on the TT defined in
@@ -5547,6 +5566,7 @@ END PROCEDURE.  /* removeUiEvents */
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE renameObjectInstance Include 
 PROCEDURE renameObjectInstance :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   Purpose:     Changes the value of the INSTANCE_NAME field on an object instance
                record.
   Parameters:  pdObjectInstanceObj - the object-instance-obj of the record to update.
@@ -6496,6 +6516,7 @@ END PROCEDURE.  /* serverRetrieveClassExtInfo */
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE updateDeploymentType Include 
 PROCEDURE updateDeploymentType :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   Purpose:     To set a new value of deployment type in an ryc_smartobject record
   Parameters:  pdobj            - obj number of the record
                pcDeploymentType - Value to be set
@@ -6737,6 +6758,7 @@ FUNCTION classHasAttribute RETURNS LOGICAL
       INPUT pcAttributeOrEventName  AS CHARACTER,
       INPUT plAttributeIsEvent      AS LOGICAL          ) :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
   Purpose:  Returns whether or not the specified attribute or event exists for 
             a class.
     Notes:  classHasAttribute API also exists in repository manager but that API 
@@ -6835,6 +6857,7 @@ FUNCTION createRYObjectAB RETURNS LOGICAL
   ( pcObjectName AS CHAR,
     pcObjectString AS CHAR ) :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   Purpose:  Creates the appBuilder required temp table record _RYObject 
             from a repository object
    Params:  pcObjectName   Name of repository object to be created
@@ -6906,6 +6929,7 @@ END FUNCTION.   /* getCacheClassExtBuffer */
 FUNCTION getCurrentProductModule RETURNS CHARACTER
   (/* parameter-definitions */) :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   Purpose:  Returns the value of the current product module for the AppBuilder.
     Notes:  See function productModuleList for details on the value.
             Copied from ryreposob.p
@@ -6939,6 +6963,7 @@ END FUNCTION.
 FUNCTION getIndexFields RETURNS CHARACTER
     ( INPUT pcTable AS CHARACTER) :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   Purpose:  To return a comma delimited list of fields in an AK index
             for the passed in table - selecting best index
     Notes:  
@@ -6991,6 +7016,7 @@ END FUNCTION.   /* getIndexFields */
 FUNCTION getIndexFieldsUnique RETURNS CHARACTER
   ( INPUT pcTable           AS CHARACTER ) :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   Purpose:  To return a chr(2) delimited list of fields in an AK index
             for the passed in table that are unique
     Notes:  
@@ -7040,6 +7066,7 @@ END FUNCTION.   /* getIndexFieldsUnique */
 FUNCTION getObjectTypeCodeFromDB RETURNS CHARACTER
   (pdObjectTypeObj AS DECIMAL) :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   Purpose:  Given an object type obj, return the object type code.
     Notes:  
 ------------------------------------------------------------------------------*/
@@ -7417,6 +7444,7 @@ FUNCTION getSmartObjectObj RETURNS DECIMAL
     ( INPUT pcObjectName                AS CHARACTER,
       INPUT pdCustmisationResultObj     AS DECIMAL      ) :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
 Purpose:  Returns the object ID of an associated smartObject, given a 
             object name.
     Notes:  * This function's code has been moved into the Repository Manager
@@ -7582,6 +7610,7 @@ END FUNCTION.
 FUNCTION openRyObjectAB RETURNS LOGICAL
   ( INPUT pcObjectName AS CHARACTER ) :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   Purpose:  Validates the specified object name 
             and creates an "OPEN" _RyObject record for the AppBuilder to use in
             opening a repository object for editing.
@@ -7789,6 +7818,7 @@ END FUNCTION.
 FUNCTION setCurrentProductModule RETURNS LOGICAL
   ( INPUT cProductModule AS CHARACTER) :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
   Purpose:  Sets the value of the current product module for the AppBuilder.
     Notes:  See function productModuleList for details on the value.
             Copied from ryreposob.p

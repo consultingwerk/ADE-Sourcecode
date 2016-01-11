@@ -68,7 +68,7 @@ if (win.returnfield) res=win.strip(win.returnfield.value,'dec');
 var fdec=win.appcontrol.numformat;  
 var result=document.getElementById('result');
 var memory=document.getElementById('recall');
-result.innerHTML=res;
+result.innerHTML=(res?res:0);
 var ctext=(win.action('info.get|HTM6')).split(';'); //ok
 window.document.title=ctext[0]+window.document.title;
 memory.className='disable';
@@ -88,7 +88,8 @@ function code2char(k){
     case 107: return '+';
     case 189: 
     case 109: return '-';
-    case 111: return '/';
+    case 111:
+    case 191: return '/';
     case 13:  return 'O';
     case 27:  return 'N';
     case 46:  return 'C';
@@ -114,6 +115,7 @@ function fclick(e){
 }
 
 function keypress(c){
+  res+=''; // Ensure it's a string
   switch(c){
     case '+':
     case '-':
@@ -146,12 +148,32 @@ function keypress(c){
       res+=c;
       break;
     case 'S':
-      c=res.replace(num+oper,'');
-      if((c+' ').charAt(0)=='-') 
-        c=c.replace('-','');
-      else 
-        c='-'+c;
-      res=num+oper+c;
+      var add=(res+"").replace(num+oper,'');
+	  if(!oper||oper=='='){
+		res=res*-1;
+	    break;
+      }
+	  switch(oper){
+	    case '*':
+	      oper='*-';
+	      break;
+	    case '/':
+	      oper='/-';
+	      break;
+	    case '*-':
+	      oper='*';
+	      break;
+	    case '/-':
+	      oper='/';
+	      break;
+	    case '+':
+	      oper='-';
+	      break;
+	    case '-':
+	      oper='+';
+	      break;
+	  }
+	  res=num+oper+add;
       break;
     case 'C':
       if(res==num+oper){

@@ -110,6 +110,7 @@ EnabledObjFldsToDisable,ModifyFields
 &ENDIF
 
     &GLOBAL-DEFINE xpKeepChildPositions
+    &global-define xpShowPopup
     
   /* Include the next property file up the chain to get property FIELDs
      defined.      */
@@ -121,6 +122,7 @@ IF NOT {&ADM-PROPS-DEFINED} THEN
 DO:
 &IF "{&ADMSuper}":U = "":U &THEN
   ghADMProps:ADD-NEW-FIELD('KeepChildPositions':U, 'LOGICAL':U, 0, ?, NO).
+  ghADMProps:ADD-NEW-FIELD('ShowPopup':U, 'LOGICAL':U, 0, ?, NO).  
 &ENDIF
 
 

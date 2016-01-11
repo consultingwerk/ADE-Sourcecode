@@ -192,6 +192,8 @@ IF cInfoType BEGINS "FIELD:":u THEN DO:
                 "!*":u).
     WHEN "EXTENT":u THEN
       cAnswer = STRING(DICTDB._Field._Extent).
+    WHEN "COL-LABEL":U THEN
+      cAnswer = DICTDB._Field._Col-label.
     WHEN "LABEL":u THEN
       cAnswer = (IF DICTDB._Field._Col-label <> ? THEN
                 DICTDB._Field._Col-label

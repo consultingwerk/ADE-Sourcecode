@@ -318,9 +318,9 @@ PROCEDURE ICFCFM_InitializedServices :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE htProperty    AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE htService     AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE htManager     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE htProperty      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE htService       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE htManager       AS HANDLE     NO-UNDO.
 
   IF CONNECTED("ICFDB":U) THEN
   DO:
@@ -355,7 +355,6 @@ PROCEDURE ICFCFM_InitializedServices :
      INPUT-OUTPUT TABLE-HANDLE htManager) NO-ERROR.
   IF ERROR-STATUS:ERROR THEN
     RETURN ERROR RETURN-VALUE.
-     
 
   RUN initializeWithChanges IN THIS-PROCEDURE NO-ERROR.
   IF ERROR-STATUS:ERROR THEN
@@ -402,6 +401,7 @@ PROCEDURE ICFCFM_Login :
   DEFINE VARIABLE cProfileData                        AS CHARACTER    NO-UNDO.
   DEFINE VARIABLE cToolbarsToCache                    AS CHARACTER    NO-UNDO.
   DEFINE VARIABLE cObjectsToCacheMenusFor             AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE lForceUserProp                      AS LOGICAL    NO-UNDO.
 
   cLoginProc = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
                                 "login_procedure":U).
@@ -472,16 +472,24 @@ PROCEDURE ICFCFM_Login :
                  cDateFormat + CHR(3) +
                  cLoginProc.
 
+
+  lForceUserProp = LOGICAL(DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
+                                            "forceUserPropertiesToServer":U)).
+  IF lForceUserProp = ? THEN
+    lForceUserProp = NO.
+
   IF SESSION = gshAstraAppserver THEN /* client-server */
       DYNAMIC-FUNCTION("setPropertyList":U IN gshSessionManager,
                                            INPUT cPropertyList,
                                            INPUT cValueList,
                                            INPUT NO).
-  ELSE /* If we're running Appserver, these properties have already been set on the Appserver by the call batching mechanism, we only need to set client side */
+  ELSE /* If we're running Appserver, these properties have already been set on the Appserver by the call batching mechanism, we only need to set client side
+          unless the user is forcing us to set it on the AppServer which they may want to do to ensure that a changed password will still result in 
+          a successful login. */
       DYNAMIC-FUNCTION("setPropertyList":U IN gshSessionManager,
                                            INPUT cPropertyList,
                                            INPUT cValueList,
-                                           INPUT YES).
+                                           INPUT (NOT lForceUserProp)). 
 
   /* for c/s sessions, cache the profile data upfront as the api's assume to only
      use the cache in this mode. For runtime sessions, this will be done via the

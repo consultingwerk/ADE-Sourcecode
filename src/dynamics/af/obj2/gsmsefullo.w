@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
           icfdb            PROGRESS
@@ -6,7 +6,6 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
 DEFINE VARIABLE h_Astra                    AS HANDLE          NO-UNDO.
-DEFINE VARIABLE h_Astra2                   AS HANDLE          NO-UNDO.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" dTables _INLINE
 /* Actions: ? ? ? ? af/sup/afverxftrp.p */
 /* This has to go above the definitions sections, as that is what it modifies.
@@ -310,6 +309,9 @@ DEFINE VARIABLE cMessageList    AS CHARACTER    NO-UNDO.
 
 DEFINE VARIABLE cValueList      AS CHARACTER    NO-UNDO.
 
+DEFINE VARIABLE dExtendsSessionTypeObj    AS DECIMAL    NO-UNDO.
+DEFINE VARIABLE lCircularReference        AS LOGICAL    NO-UNDO.
+
 FOR EACH RowObjUpd WHERE CAN-DO('A,C,U':U,RowObjUpd.RowMod): 
   IF (RowObjUpd.RowMod = 'U':U AND
     CAN-FIND(FIRST gsm_session_type
@@ -323,6 +325,42 @@ FOR EACH RowObjUpd WHERE CAN-DO('A,C,U':U,RowObjUpd.RowMod):
       cValueList   = STRING(RowObjUpd.session_type_code)
       cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
                     {af/sup2/aferrortxt.i 'AF' '8' 'gsm_session_type' '' "'session_type_code, '" cValueList }.
+
+  IF RowObjUpd.RowMod = 'U':U THEN
+  DO:
+    IF RowObjUpd.session_type_obj = RowObjUpd.extends_session_type_obj THEN
+      lCircularReference = TRUE.
+    ELSE DO:
+      lCircularReference = FALSE.
+      FIND gsm_session_type WHERE ROWID(gsm_session_type) = TO-ROWID(RowObjUpd.rowIdent) NO-LOCK NO-ERROR.
+
+      IF AVAILABLE gsm_session_type 
+         AND RowObjUpd.extends_session_type_obj <> gsm_session_type.extends_session_type_obj THEN
+      DO:
+          ASSIGN dExtendsSessionTypeObj = RowObjUpd.extends_session_type_obj.
+          REPEAT:
+              FIND gsm_session_type WHERE gsm_session_type.session_type_obj = dExtendsSessionTypeObj NO-LOCK NO-ERROR.
+              IF NOT AVAILABLE gsm_session_type THEN
+                LEAVE.
+    
+              lCircularReference = (RowObjUpd.session_type_obj = gsm_session_type.extends_session_type_obj).
+    
+              IF lCircularReference THEN 
+                LEAVE.
+    
+              dExtendsSessionTypeObj = gsm_session_type.extends_session_type_obj.
+          END.
+      END.
+    END.
+
+    IF lCircularReference THEN 
+      ASSIGN
+        cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
+                      {af/sup2/aferrortxt.i 'AF' '5' 'gsm_session_type' 'session_type_description' 
+                               "'Extends Session Type'"
+                               "'~n~nA circular reference of session types has been specified. Please specify another session type'" }.
+  END.
+
 END.
 
   ERROR-STATUS:ERROR = NO.

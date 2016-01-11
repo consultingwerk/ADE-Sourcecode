@@ -1892,149 +1892,463 @@ PROCEDURE choose_file_save_as_dynamic:
 
 END PROCEDURE.
 
-/*  Save dynamic object as a static object */
 PROCEDURE choose_file_save_as_static:
-  DEFINE VARIABLE lCancel     AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cOldSaveAsFile AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cOldProductMod AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cOldTitle      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE h_title_win    AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hTemplateWin   AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE rTemplateRecid AS RECID      NO-UNDO.
-  DEFINE VARIABLE r_URecid       AS RECID      NO-UNDO.
-  DEFINE VARIABLE lMRUFileList   AS LOGICAL    NO-UNDO.
+/*------------------------------------------------------------------------------
+  Purpose:     Save dynamic object as static
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+ DEFINE VARIABLE lCancel        AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE cOldSaveAsFile AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cOldObjectType AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cObjectType    AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cOldTitle      AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE h_title_win    AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE hTemplateWin   AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE rTemplateRecid AS RECID      NO-UNDO.
+ DEFINE VARIABLE r_URecid       AS RECID      NO-UNDO.
+ DEFINE VARIABLE r_PRecid       AS RECID      NO-UNDO.
+ DEFINE VARIABLE lMRUFileList   AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE hOldWin        AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE hOldWidg       AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE hDesignManager AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE cEventCode     AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cEventTarget   AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE c_UName        AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE lisSBO         AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE dOldObjectObj  AS DECIMAL    NO-UNDO.
+ DEFINE VARIABLE cResultCode    AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE iCustom        AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE tthL           AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE bhL            AS HANDLE     NO-UNDO.
 
-  DEFINE BUFFER template_P    FOR _P.
-  DEFINE BUFFER template_TRG  FOR _TRG.
-  DEFINE BUFFER template_XFTR FOR _XFTR.
+ DEFINE BUFFER template_P    FOR _P.
+ DEFINE BUFFER template_TRG  FOR _TRG.
+ DEFINE BUFFER template_XFTR FOR _XFTR.
+ DEFINE BUFFER Event_U       FOR _U.
+ DEFINE BUFFER b_L           FOR _L.
 
-  IF _h_win = ? THEN  RUN report-no-win.
-  ELSE DO:
-    FIND _U WHERE _U._HANDLE = _h_win.
-    ASSIGN
-       cOldSaveAsFile         = _P._SAVE-AS-FILE
-       _P._SAVE-AS-FILE        = ?
-       _P.static_object       = YES
-       cOldProductMod         = _P.product_module_code
-       _P.product_module_code = ""
-       r_URecid                = RECID(_U)
-       NO-ERROR.
+ IF _h_win = ? THEN 
+ DO: 
+    RUN report-no-win IN THIS-PROCEDURE.
+    RETURN.
+ END.
+ 
+ FIND _P WHERE _P._WINDOW-HANDLE = _h_win.
+ FIND _U WHERE _U._HANDLE        = _h_win.
 
-    /* Need to change the _U._Table field from the table name to RowObject */
-    /* Save the current _TABLE record in the private data in case the user
-       cancels the save */.
-    FOR EACH _U WHERE _U._WINDOW-HANDLE = _P._WINDOW-HANDLE
-                  AND _U._BUFFER        = "RowObject":U:
-       IF VALID-HANDLE(_U._HANDLE) THEN
-       DO:
-         ASSIGN _U._HANDLE:PRIVATE-DATA = _U._TABLE + CHR(4) + _U._HANDLE:PRIVATE-DATA
-                _U._TABLE = "RowObject":U.
-         /* If the source data type is CLOB, the local name must be set.
+ /* Determine the equivalent static object type   */
 
-            SDO data source: _U._NAME is the data field name (e.g. custnum)
-            and is the instance name of the field in the dynamic viewer,
-            therefore it is unique.
+ IF DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, _P.object_type_code,"DynView":U) THEN
+    cObjectType = "StaticSDV":U.
+ ELSE IF DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, _P.object_type_code,"DynSDO":U) THEN
+    cObjectType = "SDO":U.
+ ELSE DO:
+   MESSAGE "Only Dynamic Viewers and Dynamic SDOs are supported for saving as static." view-as alert-box.
+   RETURN.
+ END.
 
-            SBO data source: _U._NAME is the data field name (e.g. custnum) but
-            the instance name of the field in the dynamic viewer is qualified
-            with the SDO name (e.g. custfullo.custnum) therefore it is not
-            unique and requires logic to set the _LOCAL-NAME to a unqiue name.
-            This cannot be done until 20040427-038 is resolved.  */
-         FIND _F WHERE RECID(_F) = _U._x-recid NO-ERROR.
-         IF AVAILABLE _F AND _F._SOURCE-DATA-TYPE = "CLOB":U THEN
-           _U._LOCAL-NAME = _U._NAME.
-       END.
-    END.
+ ASSIGN r_PRecid               = RECID(_P)
+        cOldSaveAsFile         = _P._SAVE-AS-FILE
+        _P._SAVE-AS-FILE       = ?
+        _P.static_object       = YES
+        cOldObjectType         = _P.object_type_code
+        _P.object_type_code    = cObjectType
+        _P.smartObject_obj     = 0
+        r_URecid               = RECID(_U)
+        hOldWin                = _h_win
+        hOldWidg               = _h_cur_widg
+        dOldObjectObj          = _P.smartObject_obj        
+        cResultCode            = IF _U._LAYOUT-NAME = "Master Layout":U THEN "" ELSE _U._LAYOUT-NAME
+        NO-ERROR.
 
- /* Load template into the Appbuilder */
-    IF SEARCH(_P.design_template_file) <> ? THEN
-    DO:
-     ASSIGN lMRUFileList  = _mru_filelist
-            _mru_filelist = NO.
+/* Get object's Data Object from repository and check whether it is derived from a dynamic SBO */
+IF _P._data-Object > "" THEN 
+DO:
+  hDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U, INPUT "RepositoryDesignManager":U).
+  RUN retrieveDesignObject IN hDesignManager 
+     (INPUT _P._data-Object ,
+      INPUT  "",  /* Get default  result Codes */
+      OUTPUT TABLE ttObject,
+      OUTPUT TABLE ttPage,
+      OUTPUT TABLE ttLink,
+      OUTPUT TABLE ttUiEvent,
+      OUTPUT TABLE ttObjectAttribute ) NO-ERROR. 
+  FIND FIRST ttObject WHERE ttObject.tLogicalObjectName = _P._data-Object no-error.
+  IF AVAIL ttObject THEN
+    lIsSBO = DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, ttObject.tClassName,"SBO":U). 
+END.
 
-      RUN adeuib/_qssuckr.p (INPUT _P.design_template_file,   /* File to read        */
-                             INPUT "",                 /* WebObject           */
-                             INPUT "WINDOW-SILENT":U,  /* Import mode         */
-                             INPUT FALSE).             /* Reading from schema */
-      ASSIGN _mru_filelist = lMRUFileList.
-      IF RETURN-VALUE BEGINS "_ABORT":U THEN
+
+ /* For Objects whose data-object is a SDO, change the _U._Table field from the table name to RowObject */
+ /* Save the current _TABLE record in the private data in case the user cancels the save */.
+ IF NOT lisSBO THEN
+ DO:
+   FOR EACH _U WHERE _U._WINDOW-HANDLE = _P._WINDOW-HANDLE
+		 AND _U._BUFFER        = "RowObject":U:
+      IF VALID-HANDLE(_U._HANDLE) THEN
       DO:
-        MESSAGE RETURN-VALUE
-           VIEW-AS ALERT-BOX INFO BUTTONS OK.
-        ASSIGN _P._SAVE-AS-FILE       = cOldSaveAsFile
-              _P.static_object       = NO
-              _P.product_module_code = cOldProductMod.
-       RETURN.
+	ASSIGN _U._HANDLE:PRIVATE-DATA = _U._TABLE + CHR(4) + _U._HANDLE:PRIVATE-DATA
+	       _U._TABLE = "RowObject":U.
+	/* If the source data type is CLOB, the local name must be set.
+
+	   SDO data source: _U._NAME is the data field name (e.g. custnum)
+	   and is the instance name of the field in the dynamic viewer,
+	   therefore it is unique.
+
+	   SBO data source: _U._NAME is the data field name (e.g. custnum) but
+	   the instance name of the field in the dynamic viewer is qualified
+	   with the SDO name (e.g. custfullo.custnum) therefore it is not
+	   unique and requires logic to set the _LOCAL-NAME to a unqiue name.
+	   This cannot be done until 20040427-038 is resolved.  */
+	FIND _F WHERE RECID(_F) = _U._x-recid NO-ERROR.
+	IF AVAILABLE _F AND _F._SOURCE-DATA-TYPE = "CLOB":U THEN
+	  _U._LOCAL-NAME = _U._NAME.
       END.
-    END.
-    ELSE DO:
-       MESSAGE "Could not save object as static." SKIP(1)
-               "Template file " +  _P.design_template_file + "was not found"
-          VIEW-AS ALERT-BOX INFO BUTTONS OK.
-       ASSIGN _P._SAVE-AS-FILE       = cOldSaveAsFile
-              _P.static_object       = NO
-              _P.product_module_code = cOldProductMod.
-       RETURN.
-    END.
+   END.
+ END.
+ /* IF data source is an SBO,change Buffer to equal the SDO object */
+ ELSE DO:
+   FOR EACH _U WHERE _U._WINDOW-HANDLE = _P._WINDOW-HANDLE
+		 AND _U._BUFFER        > "":
+      IF VALID-HANDLE(_U._HANDLE) THEN
+      DO:
+	ASSIGN _U._HANDLE:PRIVATE-DATA = _U._BUFFER + CHR(4) + _U._HANDLE:PRIVATE-DATA
+	       _U._BUFFER = _U._TABLE.
+	
+	FIND _F WHERE RECID(_F) = _U._x-recid NO-ERROR.
+	IF AVAILABLE _F AND _F._SOURCE-DATA-TYPE = "CLOB":U THEN
+	  _U._LOCAL-NAME = _U._NAME.
+      END.
+   END.
+ END.
+ /* Load template into the Appbuilder so that the code sections (Main block, definitions, etc) of the 
+    template can be copied to the static object */
+ IF SEARCH(_P.design_template_file) <> ? THEN
+ DO:
+  ASSIGN lMRUFileList  = _mru_filelist
+         _mru_filelist = NO.
 
-    FIND template_P WHERE template_P._WINDOW-HANDLE = _h_win.
-    FIND _U         WHERE RECID(_U)                 = r_URecid.
-    ASSIGN hTemplateWin   = _h_win
-           rTemplateRecid = RECID(template_P)
-           _P._links      = template_P._links.
+   RUN adeuib/_qssuckr.p (INPUT _P.design_template_file,   /* File to read        */
+                          INPUT "",                 /* WebObject           */
+                          INPUT "WINDOW-SILENT":U,  /* Import mode         */
+                          INPUT FALSE).             /* Reading from schema */
+   ASSIGN _mru_filelist = lMRUFileList.
+   IF RETURN-VALUE BEGINS "_ABORT":U THEN
+   DO:
+     MESSAGE RETURN-VALUE
+        VIEW-AS ALERT-BOX INFO BUTTONS OK.
+     FIND _P WHERE RECID(_P) =  r_PRecid.
+     ASSIGN _P._SAVE-AS-FILE   = cOldSaveAsFile
+           _P.static_object    = NO
+           _P.object_type_code = cOldObjectType
+           _P.smartObject_obj  = dOldObjectObj.
+     
+     /* Re-aasign the _U._Table back to what it was */
+     RUN choose_file_saveAsStatic_Undo (lIsSBO,?,cResultCode).
+     RETURN.
+   END.
+ END. /* End if SEARCH(_P._Design_template_file) */
+ ELSE DO:
+    MESSAGE "Could not save object as static." SKIP(1)
+            "Template file " +  _P.design_template_file + "was not found"
+       VIEW-AS ALERT-BOX INFO BUTTONS OK.
+    FIND _P WHERE RECID(_P) =  r_PRecid.
+    ASSIGN _P._SAVE-AS-FILE    = cOldSaveAsFile
+           _P.static_object    = NO
+           _P.object_type_code = cOldObjectType
+           _P.smartObject_obj  = dOldObjectObj            .
+    /* Re-aasign the _U._Table back to what it was */
+    RUN choose_file_saveAsStatic_Undo (lIsSBO,?,cResultCode).
+    RETURN.
+ END.
+ 
+ FIND template_P WHERE template_P._WINDOW-HANDLE = _h_win.
+ FIND _P WHERE RECID(_P)                         = r_PRecid.
+ FIND _U         WHERE RECID(_U)                 = r_URecid.
+ ASSIGN hTemplateWin   = _h_win
+        rTemplateRecid = RECID(template_P)
+        _P._links      = template_P._links.
 
-    /* For each _TRG record in the template file, copy to the current object */
-    FOR EACH template_TRG WHERE template_TRG._pRECID = rTemplateRecid:
-       FIND FIRST _TRG WHERE _TRG._pRecid = RECID(_P)
-                         AND _TRG._wRecid = RECID(_U)
-                         AND _TRG._tevent = template_TRG._tevent NO-ERROR.
-       /* Skip XFTR sections */
-       IF  template_TRG._tsection = "_XFTR":U THEN
-          NEXT.
-       IF NOT AVAIL _TRG THEN
-       DO:
-          CREATE _TRG.
-          BUFFER-COPY template_TRG TO _TRG
-            ASSIGN _TRG._pRECID = RECID(_P)
-                   _TRG._wRECID = RECID(_U).
-       END.
-       ELSE DO:
-          BUFFER-COPY template_TRG EXCEPT _pRECID _wRECID _tEvent TO _TRG.
-       END.
-    END.  /* End For Each template_TRG */
-
-
-    RUN adeuib/_vldwin.p (hTemplateWin).
-    RUN display_current .
-
-    FIND _U WHERE _U._HANDLE = _h_win NO-ERROR.
-    FIND _P WHERE _P._WINDOW-HANDLE = _U._WINDOW-HANDLE.
-
-    RUN save_window(YES, OUTPUT lCancel).
-
-    IF valid-handle(hTemplateWin) then
-       RUN wind-close IN _h_uib (hTemplateWin).
-
-    IF lCancel THEN
+ /* For each _TRG record in the template file, copy to the current object */
+ FOR EACH template_TRG WHERE template_TRG._pRECID = rTemplateRecid:
+    FIND FIRST _TRG WHERE _TRG._pRecid = RECID(_P)
+                      AND _TRG._wRecid = RECID(_U)
+                      AND _TRG._tevent = template_TRG._tevent NO-ERROR.
+    /* Skip XFTR sections */
+    IF  template_TRG._tsection = "_XFTR":U THEN
+       NEXT.
+    IF NOT AVAIL _TRG THEN
     DO:
-       ASSIGN _P._SAVE-AS-FILE       = cOldSaveAsFile
-              _P.static_object       = NO
-              _P.product_module_code = cOldProductMod.
-       /* Re-aasign the _U._Table back to what it was */
-       FOR EACH _U WHERE _U._WINDOW-HANDLE = _P._WINDOW-HANDLE
-                  AND _U._BUFFER        = "RowObject":U:
-          IF VALID-HANDLE(_U._HANDLE) AND NUM-ENTRIES(_U._HANDLE:PRIVATE-DATA,CHR(4)) = 2 THEN
-            ASSIGN _U._TABLE = ENTRY(1,_U._HANDLE:PRIVATE-DATA,CHR(4))
-                   _U._HANDLE:PRIVATE-DATA = ENTRY(2,_U._HANDLE:PRIVATE-DATA,CHR(4))
-                   NO-ERROR.
-       END.
+       CREATE _TRG.
+       BUFFER-COPY template_TRG TO _TRG
+         ASSIGN _TRG._pRECID = RECID(_P)
+                _TRG._wRECID = RECID(_U).
     END.
+    ELSE
+       BUFFER-COPY template_TRG EXCEPT _pRECID _wRECID _tEvent TO _TRG.
+ END.  /* End For Each template_TRG */
+ 
+
+DO iCustom = 1 TO (IF cResultCode = "" THEN 1 ELSE 2):
+   /* Retrieve the UI events specified for the dynamic object and create a 
+      trigger for each */ 
+   EMPTY TEMP-TABLE ttUIEvent.
+   RUN retrieveDesignObject IN hDesignManager 
+       (INPUT _P.Object_Filename ,
+	INPUT  (IF iCustom = 1 THEN "" ELSE cResultCode) ,  /* Get default  result Codes */
+	OUTPUT TABLE ttObject,
+	OUTPUT TABLE ttPage,
+	OUTPUT TABLE ttLink,
+	OUTPUT TABLE ttUiEvent,
+	OUTPUT TABLE ttObjectAttribute ) NO-ERROR. 
+
+   FOR EACH ttUIEvent:
+       FIND FIRST ttObject WHERE ttObject.tSmartObjectObj    = ttUIEvent.tSmartObjectObj
+			     AND ttObject.tObjectInstanceObj = ttUIEvent.tObjectInstanceObj NO-ERROR.
+       IF NOT AVAIL ttObject THEN NEXT.
+
+       /* If the data source is an SBO, the instance name will contain the SDO prefixed. Strip it out 
+	  to find the _U record. */
+       ASSIGN c_UName = IF NUM-ENTRIES(ttObject.tObjectInstanceName,".") >= 2 
+			THEN ENTRY(2,ttObject.tObjectInstanceName,".")
+			ELSE ttObject.tObjectInstanceName.
+
+       FIND Event_U WHERE Event_U._NAME = c_UName NO-ERROR. 
+       IF NOT AVAIL Event_U AND c_UName > "" THEN 
+	  NEXT.
+
+       IF NOT AVAIL Event_U THEN 
+       DO: /* Find the Frame widget */
+	   FIND FIRST Event_U WHERE Event_U._TYPE = "FRAME":U AND Event_U._parent = hOldWin NO-ERROR.
+	   IF NOT AVAIL Event_U THEN NEXT.
+       END.
+       ASSIGN cEventCode   = "/*  Generated trigger from Dynamic Object '" + _P.Object_Filename + "' */" + CHR(10) + "DO:" + CHR(10)
+	      cEventTarget = "".
 
 
-    RUN display_current.
+      CASE ttUIEvent.tActionTarget:
+
+	 WHEN "SELF":U      THEN ASSIGN cEventTarget =  "TARGET-PROCEDURE" .
+	 WHEN "CONTAINER":U THEN ASSIGN cEventTarget = "  ~{get ContainerSource hTarget~}.":U.
+	 /* Run anywhere. This is only valid for an action type of PUB. */
+	 WHEN "ANYWHERE":U  THEN ASSIGN cEventTarget = "":U.
+	 /* Run on the AppServer. This is only valid for an action type of RUN. */
+	 WHEN "AS":U        THEN ASSIGN cEventTarget = "gshAstraAppServer":U.
+	 /* Managers: of the manager handle is used, we use the hard-coded,
+	  * predefined handle variables.                                        */
+	 WHEN "GM":U        THEN ASSIGN cEventTarget = "gshGenManager":U.
+	 WHEN "SM":U        THEN ASSIGN cEventTarget = "gshSessionManager":U.
+	 WHEN "SEM":U       THEN ASSIGN cEventTarget = "gshSecurityManager":U.
+	 WHEN "PM":U        THEN ASSIGN cEventTarget = "gshProfileManager":U.
+	 WHEN "RM":U        THEN ASSIGN cEventTarget = "gshRepositoryManager":U.
+	 WHEN "TM":U        THEN ASSIGN cEventTarget = "gshTranslationManager":U.
+	 OTHERWISE  DO:
+	   IF ttUIEvent.tActionTarget > "" THEN
+	      cEventTarget = "  hTarget = DYNAMIC-FUNCTION('getManagerHandle':U, INPUT " + '"' + ttUIEvent.tActionTarget + '":U' + ") NO-ERROR.":U. 
+	 END.
+       END CASE.
+
+      /* If event is disabled, comment out trigger */
+      IF ttUIEvent.tEventDisabled THEN
+	 cEventCode   = cEventCode + "/******************** Disabled Event ********************" + CHR(10).
+    /* Add the code to retrieve the target for container and other targets.*/
+       IF NUM-ENTRIES(cEventTarget, " ") > 1 THEN
+	  cEventCode = cEventCode + "  DEFINE VARIABLE hTarget AS HANDLE NO-UNDO.":U + CHR(10)
+				  + cEventTarget + CHR(10).
+
+       IF ttUIEvent.tActionType = "RUN":U THEN
+	   cEventCode = cEventCode + "  RUN ":U + ttUIEvent.tEventAction
+				   + (IF ttUIEvent.tActionTarget = "AS":U OR ttUIEvent.tActionTarget = "AppServerConnectionManager":U THEN " ON ":U 
+				      ELSE IF cEventTarget > "" THEN " IN ":U ELSE "") 
+				   + (IF NUM-ENTRIES(cEventTarget, " ") > 1 THEN "hTarget":U  ELSE cEventTarget).
+       ELSE 
+	   cEventCode = cEventCode + "  PUBLISH ":U + '"' + ttUIEvent.tEventAction + '":U'
+				   + (IF NUM-ENTRIES(cEventTarget, " ") > 1 
+				      THEN " FROM hTarget ":U  
+				      ELSE IF cEventTarget > "" THEN " FROM " + cEventTarget
+								ELSE "")  .
+
+       IF ttUIEvent.tEventParameter > "" THEN
+	   cEventCode = cEventCode + " ( INPUT " + '"' + ttUIEvent.tEventParameter + '":U' + ")":U.
+
+       IF ttUIEvent.tActionType = "RUN":U THEN 
+          cEventCode = cEventCode + " NO-ERROR.":U.
+       ELSE
+          cEventCode = cEventCode + ".":U .
+
+       IF ttUIEvent.tActionType = "RUN":U  THEN
+	  cEventCode = cEventCode + CHR(10) 
+				  + "  IF ERROR-STATUS:ERROR OR RETURN-VALUE NE '' THEN"
+				  + CHR(10) + "     RETURN NO-APPLY.".
+
+      IF ttUIEvent.tEventDisabled THEN
+       cEventCode = cEventCode + CHR(10) + "*******************************************************/":U .
+
+      cEventCode = cEventCode + CHR(10) + "END.":U.
+
+      FIND FIRST _TRG WHERE _TRG._pRecid = RECID(_P)
+			AND _TRG._wRecid = RECID(Event_U)
+			AND _TRG._tevent = ttUIEvent.tEventNAME NO-ERROR.
+
+      IF NOT AVAIL _TRG THEN
+	 CREATE _TRG.
+      ASSIGN _TRG._tSECTION = "_CONTROL":U
+	     _TRG._wRECID   = RECID(Event_U)
+	     _TRG._tEVENT   = CAPS(ttUIEvent.tEventNAME)
+	     _TRG._tCODE    = cEventCode
+	     _TRG._STATUS   = "NORMAL":U
+	     _TRG._pRECID   = RECID(_P).
   END.
+END. /* End iCustom  1 to 1 or 2) */
+
+/* Need to copy the _L records from the custom code to the master layout */
+IF cResultCode > "" THEN
+DO:
+   /* Store the contents of _L to a temp table in case we need to undo the copying of _L records */
+   CREATE TEMP-TABLE tthL.
+   tthL:CREATE-LIKE(BUFFER _L:HANDLE).
+   tthL:TEMP-TABLE-PREPARE("Undo_L").
+
+   FOR EACH _U WHERE _U._WINDOW-HANDLE = _P._WINDOW-HANDLE 
+                 AND _U._STATUS = "NORMAL":U:
+      
+      RELEASE _L NO-ERROR.
+      /* Find b_L of custom */      
+      FIND b_L WHERE b_L._lo-name = cResultCode AND b_L._u-recid = RECID(_U) NO-ERROR.
+      /* Find _L of Master Layout */
+      IF AVAIL b_L THEN
+        FIND _L WHERE _L._lo-name = "Master Layout":U AND _L._u-recid = b_L._u-recid NO-ERROR.
+
+      IF AVAIL _L THEN
+      DO:
+         bhL = tthl:DEFAULT-BUFFER-HANDLE.
+         bhL:BUFFER-CREATE.
+         bhL:BUFFER-COPY(BUFFER _L:HANDLE).
+         /* Now copy the _L records from the custom to the master, so that the save will use the _l records. */
+         BUFFER-COPY b_L EXCEPT _LO-NAME _BASE-LAYOUT TO _L.
+         /* Now delete the custom record */
+         DELETE b_L.
+        ASSIGN _U._lo-recid = RECID(_L)
+               _U._layout-name = "Master Layout":U.
+       END.
+   END. /* For each _U */
+END. /* End if cResultCode > "" */
+ 
+ /* Refind _P after closing template window and reassign _h_Win incase it was confused*/
+ FIND _P WHERE RECID(_P) = r_PRecid.
+ FIND _U WHERE RECID(_U) = r_URecid.
+
+
+  
+ IF _h_win NE hOldWin THEN
+ DO:
+    ASSIGN _h_Win      = hOldWin
+           _h_cur_widg = hOldWidg.
+    FIND _F WHERE RECID(_F) = _U._x-recid NO-ERROR.
+    IF AVAILABLE _F THEN 
+       _h_frame = _F._FRAME.
+    ELSE DO:
+        IF CAN-DO("FRAME,DIALOG-BOX",_U._TYPE) THEN 
+           _h_frame = _U._HANDLE.
+        ELSE _h_frame = ?.
+    END.
+    RUN curframe IN THIS-PROCEDURE (_h_cur_widg).
+ END.
+
+
+ 
+ FIND _P WHERE RECID(_P) = r_PRecid.
+ FIND _U WHERE RECID(_U) = r_URecid.
+    
+
+ RUN save_window IN THIS-PROCEDURE (YES, OUTPUT lCancel).
+
+ IF VALID-HANDLE(hTemplateWin)THEN
+    RUN wind-close IN THIS-PROCEDURE (hTemplateWin).
+ 
+ IF lCancel THEN
+ DO:
+    FIND _P WHERE RECID(_P) =  r_PRecid.
+    ASSIGN _P._SAVE-AS-FILE       = cOldSaveAsFile
+           _P.static_object       = NO
+           _P.object_type_code    = cOldObjectType
+           _P.smartObject_obj     = dOldObjectObj.           
+     
+    RUN choose_file_saveAsStatic_Undo (lIsSBO,bHL,cResultCode).
+    
+ END.
+ ELSE DO:
+   /* Un register dynamic object in property sheet */
+   IF VALID-HANDLE(_h_menubar_proc) THEN
+       RUN Unregister_PropSheet IN _h_menubar_proc (_h_win,"*") NO-ERROR. 
+   
+ END.
+ RUN display_current IN THIS-PROCEDURE.
+ DELETE OBJECT ttHL NO-ERROR.
+END PROCEDURE.
+
+PROCEDURE choose_file_saveAsStatic_Undo:
+  /*------------------------------------------------------------------------------
+  Purpose:     Returns _U records to their previous state
+  Parameters:  plIsSBO      Yes - Data Object is an SBO
+                            NO  - Data Object is an SDO
+               phL          Handle of temp-table buffer built against _L table
+               pcResultCode Custom result code
+  Notes:       Called from choose_file_save_as_static
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER plIsSBO      AS LOGICAL   NO-UNDO.
+DEFINE INPUT PARAMETER phL     	    AS HANDLE    NO-UNDO.
+DEFINE INPUT PARAMETER pcResultCode AS CHARACTER NO-UNDO.
+
+DEFINE VARIABLE hLBuf  AS HANDLE NO-UNDO.
+
+/* Re-aasign the _U._Table back to what it was */
+IF NOT plIsSBO THEN
+DO:
+  FOR EACH _U WHERE _U._WINDOW-HANDLE = _P._WINDOW-HANDLE
+	     AND _U._BUFFER        = "RowObject":U:
+     IF VALID-HANDLE(_U._HANDLE) AND NUM-ENTRIES(_U._HANDLE:PRIVATE-DATA,CHR(4)) = 2 THEN
+       ASSIGN _U._TABLE = ENTRY(1,_U._HANDLE:PRIVATE-DATA,CHR(4))
+	      _U._HANDLE:PRIVATE-DATA = ENTRY(2,_U._HANDLE:PRIVATE-DATA,CHR(4))
+	      NO-ERROR.
+  END.
+END.
+ELSE DO:
+   FOR EACH _U WHERE _U._WINDOW-HANDLE = _P._WINDOW-HANDLE
+		 AND _U._BUFFER        > "":
+
+     IF VALID-HANDLE(_U._HANDLE) AND NUM-ENTRIES(_U._HANDLE:PRIVATE-DATA,CHR(4)) = 2 THEN
+     ASSIGN _U._BUFFER = ENTRY(1,_U._HANDLE:PRIVATE-DATA,CHR(4))
+	    _U._HANDLE:PRIVATE-DATA = ENTRY(2,_U._HANDLE:PRIVATE-DATA,CHR(4))
+	    NO-ERROR.
+   END. /* End For each _U */
+END.
+
+/* Restore the custom _L records from the temp-table buffer */
+IF phL NE ? THEN
+DO:
+  FOR EACH _U WHERE _U._WINDOW-HANDLE = _P._WINDOW-HANDLE AND _U._STATUS = "NORMAL":U :
+    
+     phL:FIND-FIRST("where Undo_L._u-recid = " + STRING(RECID(_U))). 
+     IF phL:AVAILABLE THEN
+     DO:
+        FIND _L WHERE _L._lo-name = "Master Layout":U AND _L._u-recid = RECID(_U) NO-ERROR.
+        IF AVAIL _L THEN
+        DO:
+	   hLBuf = BUFFER _L:HANDLE.  
+           hLBuf:BUFFER-CREATE().
+           hLBuf:BUFFER-COPY(phL).
+	   ASSIGN _U._Layout-name = pcResultCode
+                  _U._lo-recid    = hLBuf:RECID.
+        END.
+     END.
+     
+  END.
+END.
 
 END PROCEDURE.
+
 
 
 /* choose_goto_page - change the page number shown for the current window */
@@ -3307,7 +3621,7 @@ PROCEDURE display_current:
 
     /* Show the current values in the dynamic attribute window */
     IF VALID-HANDLE(_h_menubar_proc) THEN
-       RUN Display_PropSheet IN _h_menubar_proc NO-ERROR.
+       RUN Display_PropSheet IN _h_menubar_proc (YES) NO-ERROR.
 
     /* Show OCX Property Editor Window. Don't do this if the user is changing
        the Name attribute in the Prop Ed. We don't need to refresh the Prop Ed

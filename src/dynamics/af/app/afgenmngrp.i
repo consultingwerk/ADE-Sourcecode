@@ -164,6 +164,8 @@ DEFINE TEMP-TABLE ttFilterSetClause NO-UNDO
  */
 &SCOPED-DEFINE Value-Delimiter CHR(1)
 
+DEFINE VARIABLE giSiteNumber AS INTEGER    NO-UNDO INITIAL ?.
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -2143,7 +2145,9 @@ PROCEDURE getRecordDetail :
     DEFINE VARIABLE hField                      AS HANDLE               NO-UNDO.
     DEFINE VARIABLE iLoop                       AS INTEGER              NO-UNDO.
     DEFINE VARIABLE iCnt                        AS INTEGER              NO-UNDO.
+    DEFINE VARIABLE iArrayCount                 AS INTEGER    NO-UNDO.
     DEFINE VARIABLE cTableName                  AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE cFieldName                  AS CHARACTER  NO-UNDO.
 
     CREATE QUERY hQuery NO-ERROR.
 
@@ -2178,11 +2182,25 @@ PROCEDURE getRecordDetail :
         DO:        
             DO iCnt = 1 TO hBuffer:NUM-FIELDS:
                 ASSIGN hField = hBuffer:BUFFER-FIELD(iCnt)
-
-                       pcFieldList = pcFieldList + CHR(3) WHEN pcFieldList <> "":U
-                       pcFieldList = pcFieldList + TRIM(hBuffer:NAME) + ".":U + TRIM(hField:NAME) + CHR(3)
-                       pcFieldList = pcFieldList + (IF hField:STRING-VALUE = "?":U THEN "":U ELSE TRIM(hField:STRING-VALUE))
-                       .
+                       
+                .
+                cFieldName = TRIM(hBuffer:NAME) + ".":U + TRIM(hField:NAME).
+                IF hField:EXTENT > 1 THEN
+                DO iArrayCount = 1 TO hField:EXTENT:
+                  ASSIGN
+                      pcFieldList = pcFieldList + CHR(3) WHEN pcFieldList <> "":U
+                      pcFieldList = pcFieldList + cFieldName + "[" + STRING(iArrayCount) + "]" + CHR(3)
+                      pcFieldList = pcFieldList + (IF hField:BUFFER-VALUE[iArrayCount] = "?":U THEN "":U ELSE TRIM(hField:BUFFER-VALUE[iArrayCount]))
+                  .
+                END.
+                ELSE
+                DO:
+                  ASSIGN
+                    pcFieldList = pcFieldList + CHR(3) WHEN pcFieldList <> "":U
+                    pcFieldList = pcFieldList + cFieldName + CHR(3)
+                    pcFieldList = pcFieldList + (IF hField:BUFFER-VALUE = "?":U THEN "":U ELSE TRIM(hField:BUFFER-VALUE))
+                  .
+                END.
             END.    /* loop through query fields. */
 
             /* Add the rowid */
@@ -2714,6 +2732,12 @@ PROCEDURE getSiteNumber :
 ------------------------------------------------------------------------------*/
 DEFINE OUTPUT PARAMETER piSite              AS INTEGER  NO-UNDO.
 
+IF giSiteNumber <> ? THEN
+DO:
+    piSite = giSiteNumber.
+    RETURN.
+END.
+
 &IF DEFINED(server-side) = 0 &THEN
         RUN af/app/afgengtstnop.p ON gshAstraAppServer
                (OUTPUT piSite) NO-ERROR.
@@ -2761,6 +2785,7 @@ DEFINE OUTPUT PARAMETER piSite              AS INTEGER  NO-UNDO.
 
 &ENDIF
 
+giSiteNumber = piSite.
 RETURN.
 END PROCEDURE.
 

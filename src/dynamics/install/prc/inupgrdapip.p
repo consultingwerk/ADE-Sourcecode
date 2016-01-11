@@ -118,6 +118,24 @@ DEFINE TEMP-TABLE ttPatchProgram RCODE-INFORMATION
     dPatchProgramObj
   .
 
+DEFINE TEMP-TABLE ttSiteValue RCODE-INFORMATION
+  FIELD cGroup         AS CHARACTER    LABEL "Group":U
+  FIELD cVariable      AS CHARACTER    LABEL "Variable":U
+  FIELD cValue         AS CHARACTER    LABEL "Value":U
+  INDEX pudx IS PRIMARY
+    cGroup
+    cVariable
+  .
+
+
+DEFINE TEMP-TABLE ttSiteDatabase RCODE-INFORMATION
+  FIELD cDBName         AS CHARACTER    LABEL "DBName":U
+  FIELD cDBDir          AS CHARACTER    LABEL "DBDir":U
+  FIELD cConnectParams  AS CHARACTER    LABEL "ConnectParams":U
+  INDEX pudx IS PRIMARY 
+    cDBName
+  .
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -750,6 +768,174 @@ PROCEDURE pushTempTables :
   DEFINE INPUT PARAMETER TABLE FOR ttPatch.
 
   RETURN.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-readSiteDataXML) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE readSiteDataXML Procedure 
+PROCEDURE readSiteDataXML :
+/*------------------------------------------------------------------------------
+  Purpose:     This code loads the data from the specific SiteDate file and 
+               overwrites the contents of the corresponding data in the
+               appropriate tables in the upgrade tables.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT  PARAMETER pcSiteDataFile AS CHARACTER  NO-UNDO.
+
+/* First off, make sure that the SAX parser has been started. */
+RUN startProcedure
+  ("ONCE|install/prc/insaxparserp.p":U, 
+   OUTPUT ghSaxParser) NO-ERROR.
+
+IF ERROR-STATUS:ERROR THEN
+  RETURN ERROR "DCUSTARTUPERROR: COULD NOT START SAX PARSER":U.
+
+/* Reset the SAX parser */
+RUN resetParser IN ghSaxParser.
+
+/* Associate the buffers with the appropriate nodes */
+/* TableVariable = ttSiteValue */
+DYNAMIC-FUNCTION("associateBuffer":U IN ghSaxParser,
+                 "TableVariable":U,                          
+                 INPUT BUFFER ttSiteValue:HANDLE).
+
+/* Database = ttSiteDatabase */
+DYNAMIC-FUNCTION("associateBuffer":U IN ghSaxParser,
+                 "Database":U,                          
+                 INPUT BUFFER ttSiteDatabase:HANDLE).
+
+
+/* Now read the XML file for this patch */
+  /* Now make the parser parse the document into the temp-tables that we
+   associated with each node above. */
+RUN parseDocument IN ghSaxParser
+  (pcSiteDataFile) NO-ERROR.
+IF ERROR-STATUS:ERROR THEN
+  RETURN ERROR RETURN-VALUE.
+
+FOR EACH ttSiteValue:
+  FIND FIRST ttValue
+    WHERE ttValue.cGroup    = ttSiteValue.cGroup
+      AND ttValue.cVariable = ttSiteValue.cVariable 
+    NO-ERROR.
+
+  IF NOT AVAILABLE(ttValue) THEN
+  DO:
+    CREATE ttValue.
+    ASSIGN
+      ttValue.cGroup    = ttSiteValue.cGroup   
+      ttValue.cVariable = ttSiteValue.cVariable
+    .
+  END.
+
+  ttValue.cValue = ttSiteValue.cValue.
+END.
+
+FOR EACH ttSiteDatabase:
+  FIND FIRST ttDatabase
+    WHERE ttDatabase.cDBName = ttSiteDatabase.cDBName
+    NO-ERROR.
+  IF AVAILABLE(ttDatabase) THEN
+    ASSIGN
+      ttDatabase.cDBDir = ttSiteDatabase.cDBDir
+      ttDatabase.cConnectParams = ttSiteDatabase.cConnectParams
+    .
+END.
+
+/* 
+OUTPUT TO checkReadSite.txt.
+FOR EACH ttSiteValue:
+  EXPORT ttSiteValue.
+END.
+FOR EACH ttSiteDatabase:
+  EXPORT ttSiteDatabase.
+END.
+FOR EACH ttValue:
+  EXPORT ttValue.
+END.
+FOR EACH ttDatabase:
+  EXPORT ttDatabase.
+END.
+FOR EACH ttPatch:
+  EXPORT ttPatch.
+END.
+OUTPUT CLOSE.
+*/
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-readXMLScript) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE readXMLScript Procedure 
+PROCEDURE readXMLScript :
+/*------------------------------------------------------------------------------
+  Purpose:     This code reads the data written to the XML script file and 
+               loads it into the three upgrade temp-tables. 
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT  PARAMETER pcScriptFile AS CHARACTER  NO-UNDO.
+
+/* First off, make sure that the SAX parser has been started. */
+RUN startProcedure
+  ("ONCE|install/prc/insaxparserp.p":U, 
+   OUTPUT ghSaxParser) NO-ERROR.
+
+IF ERROR-STATUS:ERROR THEN
+  RETURN ERROR "DCUSTARTUPERROR: COULD NOT START SAX PARSER":U.
+
+/* Reset the SAX parser */
+RUN resetParser IN ghSaxParser.
+
+/* Associate the buffers with the appropriate nodes */
+/* TableVariable = ttValue */
+DYNAMIC-FUNCTION("associateBuffer":U IN ghSaxParser,
+                 "TableVariable":U,                          
+                 INPUT BUFFER ttValue:HANDLE).
+
+/* Database = ttDatabase */
+DYNAMIC-FUNCTION("associateBuffer":U IN ghSaxParser,
+                 "Database":U,                          
+                 INPUT BUFFER ttDatabase:HANDLE).
+
+/* Patch = ttPatch */
+DYNAMIC-FUNCTION("associateBuffer":U IN ghSaxParser,
+                 "Patch":U,                          
+                 INPUT BUFFER ttPatch:HANDLE).
+
+/* Now read the XML file for this patch */
+  /* Now make the parser parse the document into the temp-tables that we
+   associated with each node above. */
+RUN parseDocument IN ghSaxParser
+  (pcScriptFile) NO-ERROR.
+IF ERROR-STATUS:ERROR THEN
+  RETURN ERROR RETURN-VALUE.
+
+/*
+OUTPUT TO checkReadScript.txt.
+FOR EACH ttValue:
+  EXPORT ttValue.
+END.
+FOR EACH ttDatabase:
+  EXPORT ttDatabase.
+END.
+FOR EACH ttPatch:
+  EXPORT ttPatch.
+END.
+OUTPUT CLOSE.
+*/
 
 END PROCEDURE.
 

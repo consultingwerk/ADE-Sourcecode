@@ -214,7 +214,7 @@
 
     /*Cancel any wait state if error occurs*/
     IF SESSION:GET-WAIT-STATE() <> "":U THEN
-      IF SESSION:SET-WAIT-STATE("") THEN PROCESS EVENTS.
+      SESSION:SET-WAIT-STATE("").
 
     END.  /* IF ERROR-STATUS:ERROR THEN */
 &ENDIF /* not {&define-only} */

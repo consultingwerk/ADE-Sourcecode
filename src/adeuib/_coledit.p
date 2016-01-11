@@ -291,7 +291,7 @@ DEFINE RECTANGLE width-rect     EDGE-PIXELS 2 NO-FILL SIZE 47 BY 2.125.
 DEFINE RECTANGLE format-rect    EDGE-PIXELS 2 NO-FILL SIZE 47 BY 3.
 DEFINE RECTANGLE column-rect    EDGE-PIXELS 2 NO-FILL SIZE 47 BY 3.2.
 DEFINE RECTANGLE rdonly-rect    EDGE-PIXELS 2 NO-FILL SIZE 51 BY 7.5.
-DEFINE RECTANGLE advanced-rect  EDGE-PIXELS 2 NO-FILL SIZE 51 BY 6.7.
+DEFINE RECTANGLE advanced-rect  EDGE-PIXELS 2 NO-FILL SIZE 51 BY 7.7.
 
 
 DEFINE VAR Flds-in-brws-lbl AS CHARACTER FORMAT "X(256)":U
@@ -330,6 +330,8 @@ DEFINE VAR fldBCFieldNameLbl AS CHARACTER INITIAL "Name:"
                       VIEW-AS TEXT SIZE 8 BY 1 FORMAT "X(11)" NO-UNDO.
 DEFINE VAR fldBCLabelLbl AS CHARACTER INITIAL "Label:"
                       VIEW-AS TEXT SIZE 8 BY 1 FORMAT "X(11)" NO-UNDO.
+DEFINE VAR fldBCColLabelLbl AS CHARACTER INITIAL "Column label:"
+                      VIEW-AS TEXT SIZE 13 BY 1 FORMAT "x(13)" NO-UNDO.
 DEFINE VAR fldBCDBNameLbl AS CHARACTER INITIAL "Database:"
                       VIEW-AS TEXT SIZE 11 BY .76 FORMAT "X(11)"       NO-UNDO.
 DEFINE VAR fldBCTableLbl AS CHARACTER INITIAL "Table:"
@@ -397,6 +399,8 @@ DEFINE FRAME bc-editor
                  SIZE 45 BY 1 FORMAT "X(256)":U NO-LABEL
      _BC._LABEL AT ROW 4.72 COL 70 VIEW-AS FILL-IN NATIVE
                  SIZE 45 BY 1 FORMAT "X(256)":U NO-LABEL
+     _BC._COL-LABEL AT ROW 5.72 COL 70 VIEW-AS FILL-IN native
+                 SIZE 29 BY 1 FORMAT "x(256)":U NO-LABEL
      b_lbl-clr AT ROW 5.9 COL 70
      b_lbl-fnt AT ROW 5.9 COL 87 NO-LABEL
      format-rect AT ROW 8.35 COL 69
@@ -413,7 +417,7 @@ DEFINE FRAME bc-editor
                  FORMAT "X(256)":U AT ROW 15.7 COL 70 NO-LABEL
      b_calc-fld AT ROW 16.575 COL 2.5
      b_edit     AT ROW 16.575 COL 25.5
-     dfMasterLbl AT ROW 16.575 COL 68 NO-LABEL FORMAT "X(30)"
+     dfMasterLbl AT ROW 17.575 COL 74 NO-LABEL FORMAT "X(30)"
      fldBCDBNameLbl AT ROW 2.15 COLUMN 66 NO-LABEL
      _BC._DBNAME VIEW-AS TEXT SIZE 20 BY .7
                  FORMAT "X(256)":U NO-LABEL
@@ -438,9 +442,10 @@ DEFINE FRAME bc-editor
                  AT ROW 6.80 COLUMN 66
      fldBCFieldNameLbl AT ROW 9.87 COLUMN 66 NO-LABEL
      fldBCLABELLbl AT ROW 11 COLUMN 66 NO-LABEL
-     fldBCFormatLbl AT ROW 12.13 COLUMN 66 NO-LABEL
-     fldBCWidthLbl AT ROW 13.26 COLUMN 66 NO-LABEL
-     b_advanced AT ROW 14.5 COLUMN 81.5
+     fldBCColLabelLbl AT ROW 12.13 COLUMN 66 NO-LABEL
+     fldBCFormatLbl AT ROW 13.26 COLUMN 66 NO-LABEL
+     fldBCWidthLbl AT ROW 14.39 COLUMN 66 NO-LABEL
+     b_advanced AT ROW 15.74 COLUMN 82.5
      rdonly-rect AT ROW 2.0 COLUMN 65
      advanced-rect AT ROW 9.5 COLUMN 65 
      col-attrs-rect AT ROW 1.6 COL 68
@@ -845,6 +850,10 @@ ON VALUE-CHANGED OF _BC._LABEL IN FRAME bc-editor DO:
    ASSIGN _BC._LABEL.
 END. /* VALUE-CHANGED of LABEL */
 
+ON VALUE-CHANGED OF _BC._COL-LABEL IN FRAME bc-editor DO:
+   ASSIGN _BC._COL-LABEL.
+END. /* VALUE-CHANGED of COL-LABEL */
+
 ON VALUE-CHANGED OF _BC._WIDTH IN FRAME bc-editor DO:
    IF DECIMAL(SELF:SCREEN-VALUE) > 650.0 THEN SELF:SCREEN-VALUE = "650.00".
    ELSE IF DECIMAL(SELF:SCREEN-VALUE) < .0 THEN SELF:SCREEN-VALUE = "0.00".
@@ -1016,6 +1025,8 @@ ON CHOOSE OF b_calc-fld DO:
          _BC._HELP      = IF isDynSDO THEN cCalcHelp 
                                       ELSE "":U
          _BC._LABEL     = IF isDynSDO THEN cCalcLabel
+                                      ELSE "":U
+         _BC._COL-LABEL = IF isDynSDO THEN cCalcColLabel
                                       ELSE "":U
          cur-record     = RECID(_BC).
 
@@ -1682,18 +1693,21 @@ PROCEDURE enable_UI :
            tog_enabled:LABEL = "Updateable" 
            b_enable:LABEL = "All U&pdateable" 
            b_disable:LABEL = "&None Updateable" 
-           _BC._DISP-NAME:COLUMN  IN FRAME bc-editor = 75.5
-           _BC._DISP-NAME:WIDTH   IN FRAME bc-editor = 39.5
+           _BC._DISP-NAME:COLUMN  IN FRAME bc-editor = 79.5
+           _BC._DISP-NAME:WIDTH   IN FRAME bc-editor = 35.5
            _BC._DISP-NAME:ROW     IN FRAME bc-editor = 11 - (12.13 - 11)
-           _BC._LABEL:COLUMN  IN FRAME bc-editor = 75.5
-           _BC._LABEL:WIDTH   IN FRAME bc-editor = 39.5
+           _BC._LABEL:COLUMN  IN FRAME bc-editor = 79.5
+           _BC._LABEL:WIDTH   IN FRAME bc-editor = 35.5
            _BC._LABEL:ROW     IN FRAME bc-editor = 11
-           bcformat:COLUMN IN FRAME bc-editor = 75.5
-           bcformat:ROW    IN FRAME bc-editor = 12.13
-           bcformat:WIDTH  IN FRAME bc-editor = 39.5
-           _BC._WIDTH:COLUMN  IN FRAME bc-editor = 75.5
-           _BC._WIDTH:ROW     IN FRAME bc-editor = 13.26
-           _BC._WIDTH:WIDTH   IN FRAME bc-editor = 39.5.
+           _BC._COL-LABEL:COLUMN IN FRAME bc-editor = 79.5
+           _BC._COL-LABEL:WIDTH  IN FRAME bc-editor = 35.5
+           _BC._COL-LABEL:ROW    IN FRAME bc-editor = 12.13
+           bcformat:COLUMN IN FRAME bc-editor = 79.5
+           bcformat:ROW    IN FRAME bc-editor = IF IsReport THEN 12.13 ELSE 13.26
+           bcformat:WIDTH  IN FRAME bc-editor = 35.5
+           _BC._WIDTH:COLUMN  IN FRAME bc-editor = 79.5
+           _BC._WIDTH:ROW     IN FRAME bc-editor = IF IsReport THEN 13.26 ELSE 14.39
+           _BC._WIDTH:WIDTH   IN FRAME bc-editor = 35.5.
      ASSIGN
           /* Don't show enable widgets for reports */
            b_enable:HIDDEN             IN FRAME bc-editor = IsReport 
@@ -1706,6 +1720,7 @@ PROCEDURE enable_UI :
            tog_column_read_only:HIDDEN IN FRAME bc-editor = TRUE           
            tog_auto_return:HIDDEN      IN FRAME bc-editor = TRUE
            dfMasterLbl:HIDDEN          IN FRAME bc-editor = IsReport OR NOT _DynamicsIsRunning
+           _BC._COL-LABEL:HIDDEN       IN FRAME bc-editor = IsReport
             
            b_clr:HIDDEN       IN FRAME bc-editor = TRUE
            b_fnt:HIDDEN       IN FRAME bc-editor = TRUE
@@ -1763,11 +1778,20 @@ PROCEDURE enable_UI :
            enable-rect:WIDTH           IN FRAME bc-editor = 15.5
            col-attrs-rect:COLUMN       IN FRAME bc-editor = 64
            col-attrs-rect:WIDTH        IN FRAME bc-editor = 53.33
-           col-attrs-rect:HEIGHT       IN FRAME bc-editor = 14.8.
+           col-attrs-rect:HEIGHT       IN FRAME bc-editor = 15.8.
     
+    /* Make adjustments for web objects that do not include column label */
+    IF isReport THEN
+      ASSIGN
+        fldBCFormatLbl:ROW    = 12.13
+        fldBCWidthLbl:ROW     = 13.26
+        b_advanced:ROW        = 14.5
+        advanced-rect:HEIGHT  = 6.7
+        col-attrs-rect:HEIGHT = 14.8.
+
     DISPLAY Flds-in-brws-lbl fldBCDescriptionLbl fldBCDBNameLbl fldBCTableLbl 
             fldBCNameLbl fldBCDataTypeLbl fldBCFormatLbl fldBCWidthLbl fldBCLABELLbl 
-            fldBCFieldNameLbl 
+            fldBCFieldNameLbl fldBCColLabelLbl WHEN NOT isReport
         WITH FRAME bc-editor.
   END.  /* If isQuery */
   ELSE DO: /* A browse of some kind - either regular or SmartBrowse */
@@ -1792,6 +1816,8 @@ PROCEDURE enable_UI :
            _BC._DEF-DESC:HIDDEN       IN FRAME bc-editor = TRUE
            fldBCLABELLbl:HIDDEN       IN FRAME bc-editor = TRUE
            _BC._LABEL:HIDDEN          IN FRAME bc-editor = TRUE
+           fldBCColLabelLbl:HIDDEN    IN FRAME bc-editor = TRUE
+           _BC._COL-LABEL:HIDDEN      IN FRAME bc-editor = TRUE
            b_advanced:HIDDEN          IN FRAME bc-editor = TRUE
            rdonly-rect:HIDDEN         IN FRAME bc-editor = TRUE
            advanced-rect:HIDDEN       IN FRAME bc-editor = TRUE
@@ -1982,16 +2008,19 @@ PROCEDURE add-fields.ip:
   DEFINE VARIABLE tmp-tbl            AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE valmsg             AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE valmsg-sa          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataFieldColLabel AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cDataFieldName     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cDataFieldFormat   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cDataFieldHelp     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cDataFieldLabel    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lFoundColLabel     AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lFoundLabel        AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lFoundFormat       AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lFoundHelp          AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lFoundHelp         AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE hDesignManager     AS HANDLE     NO-UNDO.
   DEFINE VARIABLE pcInheritClasses   AS CHARACTER  NO-UNDO.
-  
+  DEFINE VARIABLE cSchemaColLabel    AS CHARACTER  NO-UNDO.
+
   DEFINE BUFFER x_BC FOR _BC.
 
  IF empty-flg THEN
@@ -2160,6 +2189,15 @@ PROCEDURE add-fields.ip:
                      
            FIND FIRST ttObjectAttribute WHERE ttObjectAttribute.tSmartObjectObj    = ttObject.tSmartObjectObj
                                           AND ttObjectAttribute.tObjectInstanceObj = ttObject.tObjectInstanceObj 
+                                          AND ttObjectAttribute.tAttributeLabel    = "ColumnLabel":U NO-ERROR.
+           IF AVAIL ttObjectAttribute THEN    
+              ASSIGN cDataFieldColLabel = ttObjectAttribute.tAttributeValue
+                     lFoundColLabel     = TRUE.
+           ELSE
+              ASSIGN lFoundColLabel = FALSE.
+
+           FIND FIRST ttObjectAttribute WHERE ttObjectAttribute.tSmartObjectObj    = ttObject.tSmartObjectObj
+                                          AND ttObjectAttribute.tObjectInstanceObj = ttObject.tObjectInstanceObj 
                                           AND ttObjectAttribute.tAttributeLabel    = "Format":U NO-ERROR.
            IF AVAIL ttObjectAttribute THEN    
               ASSIGN cDataFieldFormat = ttObjectAttribute.tAttributeValue
@@ -2177,7 +2215,8 @@ PROCEDURE add-fields.ip:
               ASSIGN lFoundHelp  = FALSE.  
         END. /* End if ttObject Avail */
         ELSE 
-           ASSIGN lFoundLabel  = FALSE
+           ASSIGN lFoundColLabel = FALSE
+                  lFoundLabel  = FALSE
                   lFoundFormat = FALSE
                   lFoundHelp   = FALSE.
           
@@ -2241,11 +2280,15 @@ PROCEDURE add-fields.ip:
                                OUTPUT _BC._MANDATORY).
         
         /* _s-schem.p returns the column-label if it exists */
-        IF NOT isSmartData THEN 
-          RUN adecomm/_s-schem.p (tmp-db, tmp-tbl, _BC._NAME,
-                                  "FIELD:LABEL":U, OUTPUT _BC._DEF-LABEL).
+        RUN adecomm/_s-schem.p (tmp-db, tmp-tbl, _BC._NAME, 
+                                IF isSmartData THEN "FIELD:COL-LABEL":U
+                                ELSE "FIELD:LABEL":U, OUTPUT cSchemaColLabel).
+        IF isSmartData THEN
+          _BC._DEF-COLLABEL = cSchemaColLabel.
+        ELSE _BC._DEF-LABEL = cSchemaColLabel.
 
         ASSIGN _BC._LABEL  = IF isSmartData AND lFoundLabel THEN cDataFieldLabel ELSE _BC._DEF-LABEL
+               _BC._COL-LABEL = IF isSmartData AND lFoundColLabel THEN cDataFieldColLabel ELSE _BC._DEF-COLLABEL
                _BC._FORMAT = IF isSmartData AND lFoundFormat THEN cDataFieldFormat ELSE _BC._DEF-FORMAT
                _BC._HELP   = IF isSmartData AND lFoundHelp THEN cDataFieldHelp ELSE _BC._DEF-HELP
                _BC._HAS-DATAFIELD-MASTER = IF isSmartData AND AVAIL ttObject THEN TRUE ELSE FALSE.
@@ -2489,6 +2532,7 @@ PROCEDURE display_bc.ip.
                                    (LOOKUP("@":U, _BC._DISP-NAME," ":U) > 0)) AND
                                    _P.static_object
            _BC._LABEL:SENSITIVE  = lEnableDFInfo
+           _BC._COL-LABEL:SENSITIVE = lEnableDFInfo 
            bcformat:SENSITIVE    = NOT srcSmartdata AND lEnableDFInfo
            b_edit:SENSITIVE      = (_BC._DBNAME = "_<CALC>":U AND NOT isDynSDO)
            b_mv-dn:SENSITIVE     = (cur-record NE last-rec)
@@ -2527,6 +2571,7 @@ PROCEDURE display_bc.ip.
               _BC._DEF-DESC
               _BC._DISP-NAME 
               _BC._LABEL 
+              _BC._COL-LABEL
               bcformat 
               _BC._WIDTH.
        

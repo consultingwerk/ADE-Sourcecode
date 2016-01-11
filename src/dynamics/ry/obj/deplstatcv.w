@@ -87,17 +87,18 @@ DEFINE TEMP-TABLE ttDir NO-UNDO
 &Scoped-define PROCEDURE-TYPE SmartObject
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS fiSource fiTarget fiLogFile seDestination ~
-seList toDesign fiAdditionalDirectory seAdditionalDirectories toOpenLogFile ~
-buDeploy buDestinations edStatus fiLabel fiDestLabel fiAddDirHeader ~
-fiDirLabel fiNote fiProgLabel RECT-1 
+&Scoped-Define ENABLED-OBJECTS RECT-1 fiSource fiTarget fiLogFile ~
+seDestination seList toDesign toBlankType fiAdditionalDirectory ~
+seAdditionalDirectories toOpenLogFile buDeploy buDestinations edStatus ~
+fiLabel fiDestLabel fiAddDirHeader fiDirLabel fiNote fiProgLabel 
 &Scoped-Define DISPLAYED-OBJECTS fiSource fiTarget fiLogFile seDestination ~
-seList toDesign fiAdditionalDirectory seAdditionalDirectories toOpenLogFile ~
-edStatus fiLabel fiDestLabel fiAddDirHeader fiDirLabel fiNote fiProgLabel 
+seList toDesign toBlankType fiAdditionalDirectory seAdditionalDirectories ~
+toOpenLogFile edStatus fiLabel fiDestLabel fiAddDirHeader fiDirLabel fiNote ~
+fiProgLabel 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -221,6 +222,12 @@ DEFINE VARIABLE seList AS CHARACTER
      SIZE 32.4 BY 2.19
      FONT 3 NO-UNDO.
 
+DEFINE VARIABLE toBlankType AS LOGICAL INITIAL no 
+     LABEL "Include objects with blank deployment types" 
+     CONTEXT-HELP-ID 0
+     VIEW-AS TOGGLE-BOX
+     SIZE 47 BY .81 NO-UNDO.
+
 DEFINE VARIABLE toDesign AS LOGICAL INITIAL no 
      LABEL "Include design objects" 
      VIEW-AS TOGGLE-BOX
@@ -241,21 +248,22 @@ DEFINE FRAME frMain
      seDestination AT ROW 4 COL 28.4 NO-LABEL
      seList AT ROW 4.91 COL 73.2 NO-LABEL NO-TAB-STOP 
      toDesign AT ROW 7.1 COL 28.8
-     buAddToList AT ROW 9.1 COL 84.4
-     fiAdditionalDirectory AT ROW 9.14 COL 52 COLON-ALIGNED
-     seAdditionalDirectories AT ROW 10.19 COL 54 NO-LABEL
-     buRemoveFromList AT ROW 10.38 COL 84.4
-     toOpenLogFile AT ROW 14.43 COL 28.8
-     buDeploy AT ROW 15.33 COL 28.2
-     buDestinations AT ROW 15.33 COL 49.2
-     edStatus AT ROW 16.62 COL 28.2 NO-LABEL NO-TAB-STOP 
+     toBlankType AT ROW 7.95 COL 28.8
+     buAddToList AT ROW 9.95 COL 84.2
+     fiAdditionalDirectory AT ROW 10 COL 51.8 COLON-ALIGNED
+     seAdditionalDirectories AT ROW 11.05 COL 53.8 NO-LABEL
+     buRemoveFromList AT ROW 11.24 COL 84.2
+     toOpenLogFile AT ROW 15.29 COL 28.6
+     buDeploy AT ROW 16.19 COL 28
+     buDestinations AT ROW 16.19 COL 49
+     edStatus AT ROW 17.48 COL 28 NO-LABEL NO-TAB-STOP 
      fiLabel AT ROW 4.05 COL 71.2 COLON-ALIGNED NO-LABEL
      fiDestLabel AT ROW 4.1 COL 11.4 NO-LABEL
-     fiAddDirHeader AT ROW 8.19 COL 27.2 COLON-ALIGNED NO-LABEL
-     fiDirLabel AT ROW 10.24 COL 33 NO-LABEL
-     fiNote AT ROW 13.24 COL 29.2 COLON-ALIGNED NO-LABEL
+     fiAddDirHeader AT ROW 9.05 COL 27 COLON-ALIGNED NO-LABEL
+     fiDirLabel AT ROW 11.1 COL 32.8 NO-LABEL
+     fiNote AT ROW 14.1 COL 29 COLON-ALIGNED NO-LABEL
      fiProgLabel AT ROW 16.62 COL 7.2 NO-LABEL
-     RECT-1 AT ROW 8 COL 28.4
+     RECT-1 AT ROW 8.86 COL 28.2
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -287,7 +295,7 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW sObject ASSIGN
-         HEIGHT             = 21.48
+         HEIGHT             = 22.29
          WIDTH              = 109.6.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -310,7 +318,7 @@ END.
 /* SETTINGS FOR WINDOW sObject
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frMain
-   NOT-VISIBLE Size-to-Fit                                              */
+   NOT-VISIBLE FRAME-NAME Size-to-Fit                                   */
 ASSIGN 
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
@@ -723,6 +731,7 @@ DEFINE VARIABLE cDirImport      AS CHARACTER  NO-UNDO EXTENT 3.
 DEFINE VARIABLE iDirectory      AS INTEGER    NO-UNDO.
 DEFINE VARIABLE iDirCount       AS INTEGER    NO-UNDO.
 DEFINE VARIABLE rRowid          AS ROWID      NO-UNDO.
+DEFINE VARIABLE cDataFieldChildren AS CHARACTER  NO-UNDO.
 
 DEFINE BUFFER ryc_smartobject FOR ryc_smartobject.
 
@@ -782,10 +791,19 @@ ASSIGN edStatus:SCREEN-VALUE IN FRAME {&FRAME-NAME} = "":U.
 
 updateEditor("Deployment Process started : " + STRING(TIME, "HH:MM:SS":U)).
 
+
 /* Now cycle through each object and determine if it needs to be deployed */
 
+cDataFieldChildren = DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, INPUT "dataField":U).
+
 object-blk:
-FOR EACH ryc_smartobject NO-LOCK
+FOR EACH gsc_object_type NO-LOCK
+   WHERE gsc_object_type.static_object = TRUE
+     AND LOOKUP(gsc_object_type.object_type_code,cDataFieldChildren) = 0,
+    EACH ryc_smartobject NO-LOCK OF gsc_object_type
+   WHERE ryc_smartobject.static_object = TRUE
+     AND NOT ryc_smartobject.OBJECT_path MATCHES "*template*"
+     AND NOT ryc_smartobject.OBJECT_path = "ry/tem"
    BREAK BY ryc_smartobject.object_path
          BY ryc_smartobject.object_filename:
 
@@ -833,9 +851,10 @@ FOR EACH ryc_smartobject NO-LOCK
     IF (lWeb    = YES AND LOOKUP("WEB":U, ryc_smartobject.deployment_type) > 0) 
     OR (lClient = YES AND LOOKUP("CLN":U, ryc_smartobject.deployment_type) > 0) 
     OR (lServer = YES AND LOOKUP("SRV":U, ryc_smartobject.deployment_type) > 0) 
+    OR (toBlankType:CHECKED AND ryc_smartobject.deployment_type = "")
     THEN then-blk: DO:
-        /* If we don't want design objects, and this is one, skip it */
 
+        /* If we don't want design objects, and this is one, skip it */
         IF toDesign:CHECKED = NO
         AND ryc_smartobject.design_only = YES THEN
             LEAVE then-blk.
@@ -1137,7 +1156,8 @@ PROCEDURE initializeObject :
              fiProgLabel:SCREEN-VALUE    = "Deployment progress:"
              fiNote:SCREEN-VALUE         = "*** NOTE: Please add sub-directories of the above manually"
              seList:LIST-ITEM-PAIRS      = "Remote Server Objects,SRV,Client Objects,CLN,Web Objects,WEB"
-             toOpenLogFile:CHECKED       = YES.
+             toOpenLogFile:CHECKED       = YES
+             toBlankType:CHECKED         = YES.
 
       APPLY "LEAVE":U TO fiSource.
       APPLY "LEAVE":U TO fiLogFile.

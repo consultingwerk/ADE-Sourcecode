@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
           icfdb            PROGRESS
@@ -154,7 +154,7 @@ DEFINE VARIABLE ghBuffer                    AS HANDLE     NO-UNDO.
 /* Include file with RowObject temp-table definition */
 &Scoped-define DATA-FIELD-DEFS "af/obj2/gsmtlfullo.i"
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
@@ -256,7 +256,7 @@ END.
 /* SETTINGS FOR WINDOW vTableWin
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frMain
-   NOT-VISIBLE                                                          */
+   NOT-VISIBLE FRAME-NAME                                               */
 ASSIGN 
        FRAME frMain:HIDDEN           = TRUE.
 
@@ -502,6 +502,13 @@ DEFINE VARIABLE cListItems                      AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cAllFieldHandles                AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE iHandleCnt                      AS INTEGER    NO-UNDO.
 DEFINE VARIABLE hSDFFrame                       AS HANDLE     NO-UNDO.
+DEFINE VARIABLE cTargets                        AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE iTarget                         AS INTEGER    NO-UNDO.
+DEFINE VARIABLE hTarget                         AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hChildFrame                     AS HANDLE     NO-UNDO.
+DEFINE VARIABLE cTargetFrames                   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE iLookup                         AS INTEGER    NO-UNDO.
+DEFINE VARIABLE cObjectType                     AS CHARACTER  NO-UNDO.
 
 DEFINE BUFFER bttTranslate FOR ttTranslate.
 
@@ -517,6 +524,28 @@ IF CAN-QUERY(phObject,"FILE-NAME":U) AND
 
 IF pcObjectName = ? THEN
     ASSIGN pcObjectName = DYNAMIC-FUNCTION("getLogicalObjectName" IN phObject) NO-ERROR.
+
+/* Need to create a list of frame handles for target objects.  This list is checked 
+   below when widget walking encounters a frame to see if the frame is an object
+   (e.g. SmartObject on a SmartFrame or SDF on viewer).  It then invokes addWidget
+   recursively with the object name so that the translation records are created with the
+   correct object name.  When this procedure is run for the container being translated,
+   the list of frame handles should not be built because addWidget should not be 
+   recursively called for objects on the container (e.g. Smartviewer on SmartWindow). */  
+{get ContainerTarget cTargets phObject} NO-ERROR.
+/* Prevent list from being created for calling container */
+IF phObject <> ghCallerHandle THEN
+DO:
+  DO iTarget = 1 TO NUM-ENTRIES(cTargets):
+    hTarget = WIDGET-HANDLE(ENTRY(iTarget,cTargets)).
+    {get ContainerHandle hChildFrame hTarget}.
+
+    IF hChildFrame NE ? THEN
+    cTargetFrames = cTargetFrames + ',':U + STRING(hChildFrame).
+    ELSE cTargetFrames = cTargetFrames + ',':U + '?':U.
+  END.
+  cTargetFrames = LEFT-TRIM(cTargetFrames,',':U).
+END.
 
 ASSIGN
   hwidgetGroup    = phFrame:HANDLE
@@ -542,7 +571,6 @@ END.
 
 widget-walk:
 REPEAT WHILE VALID-HANDLE (hWidget):
-  
   IF LOOKUP(hWidget:TYPE, "literal,button,fill-in,selection-list,editor,combo-box,radio-set,slider,toggle-box,text":U) > 0 THEN
   DO:
     /* Check that the literal widget is not a label for another widget */
@@ -555,7 +583,8 @@ REPEAT WHILE VALID-HANDLE (hWidget):
 
     /* Check for VIEW-AS-TEXT fill-ins
        Also make sure we exclude plain TEXT widgets */
-    IF hWidget:TYPE = "TEXT" THEN DO:
+    IF hWidget:TYPE = "TEXT" THEN 
+    DO:
       /* Plain TEXT widgets do not have a NAME set for Static Viewers */
       IF CAN-QUERY(hWidget, "NAME":U) AND 
          hWidget:NAME = ? THEN DO:
@@ -564,9 +593,11 @@ REPEAT WHILE VALID-HANDLE (hWidget):
       END.
       
       /* For DynViewers the TEXT widgets have a name assigned to them */
-      IF CAN-QUERY(phObject,"FILE-NAME":U) AND INDEX(phObject:FILE-NAME,"rydynview":U) > 0 THEN DO:
-        IF CAN-QUERY(hWidget, "NAME":U) AND 
-           hWidget:NAME BEGINS "TEXT":U THEN DO:
+      IF CAN-QUERY(phObject,"FILE-NAME":U) AND INDEX(phObject:FILE-NAME,"rydynview":U) > 0 THEN 
+      DO:
+        IF CAN-QUERY(hWidget, "NAME":U) 
+        AND hWidget:NAME BEGINS "TEXT":U THEN 
+        DO:
           ASSIGN hWidget = hWidget:NEXT-SIBLING.
           NEXT widget-walk.
         END.
@@ -772,19 +803,15 @@ REPEAT WHILE VALID-HANDLE (hWidget):
   END.
   ELSE IF hWidget:TYPE = "frame":U THEN
   DO:
-    /* We need the procedure handle of the frame. */
-    {get allFieldHandles cAllFieldHandles phObject}.
-    proc-blk:
-    DO iHandleCnt = 1 TO NUM-ENTRIES(cAllFieldHandles):
-        ASSIGN hNewObject = WIDGET-HANDLE(ENTRY(iHandleCnt, cAllFieldHandles)) NO-ERROR.
-        IF hNewObject:TYPE = "PROCEDURE":U 
-        THEN DO:
-            {get containerHandle hSDFFrame hNewObject}.
-            IF hSDFFrame = hWidget THEN
-                LEAVE proc-blk.
-        END.
-    END.
+    /* Check whether the frame is a frame for a target object (e.g. SmartObject on SmartFrame or
+       SDF on viewer).  If so then set hNewObject to its object handle. */
+    iLookup = LOOKUP(STRING(hWidget),cTargetFrames).
+    IF iLookup > 0 THEN
+      hNewObject = WIDGET-HANDLE(ENTRY(iLookup,cTargets)).
+    ELSE hNewObject = ?.
 
+    /* If the new object is a procedure then get its object name, try FieldName first for SDFs
+       then object name for other SmartObjects (e.g. SmartObjects on SmartFrames) */
     IF VALID-HANDLE(hNewObject) AND hNewObject:TYPE = "procedure":U THEN
     DO:
       cFieldName = "":U.
@@ -798,18 +825,23 @@ REPEAT WHILE VALID-HANDLE (hWidget):
         ASSIGN cNewObjectName = hNewObject:FILE-NAME.
         ASSIGN cNewObjectName = DYNAMIC-FUNCTION('getLogicalObjectName' IN hNewObject) NO-ERROR.
         IF cNewObjectName = "":U OR cNewObjectName = ? THEN
-          ASSIGN cNewObjectName = hNewObject:FILE-NAME.
+          ASSIGN cNewObjectname = hNewObject:FILE-NAME.
+
         /* strip off path if any */
         ASSIGN
           cNewObjectName = LC(TRIM(REPLACE(cNewObjectName,"~\":U,"/":U)))
           cNewObjectName = SUBSTRING(cNewObjectName,R-INDEX(cNewObjectName,"/":U) + 1).
+
       END.
     END.
+    /* If the frame is not a procedure and a static frame in a SmartContainer */
     ELSE
       ASSIGN
         hNewObject      = phObject
         cNewObjectName  = pcObjectName.
-    RUN addWidgets (INPUT hNewObject, INPUT cNewObjectName, INPUT hWidget). /* SDF */
+    /* Skip child frames in ghCallerHandle since they may be separate objects */
+    IF hNewObject <> ghCallerHandle THEN
+        RUN addWidgets (INPUT hNewObject, INPUT cNewObjectName, INPUT hWidget). 
   END.
 
   ASSIGN hWidget = hWidget:NEXT-SIBLING.
@@ -851,7 +883,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_language.language_nameKeyFieldgsc_language.language_objFieldLabelLanguageFieldTooltipSelect the language to translate to, from the list.KeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1ComboDelimiterListItemPairsInnerLines5ComboFlagAFlagValue0BuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesFieldNamelanguage_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_language.language_nameKeyFieldgsc_language.language_objFieldLabelLanguageFieldTooltipSelect the language to translate to, from the list.KeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1ComboDelimiterListItemPairsInnerLines5SortnoComboFlagAFlagValue0BuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesSuperProcedureDataSourceNameFieldNamelanguage_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hLanguage ).
        RUN repositionObject IN hLanguage ( 2.14 , 12.60 ) NO-ERROR.
        RUN resizeObject IN hLanguage ( 1.05 , 50.00 ) NO-ERROR.
@@ -859,7 +891,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_language.language_nameKeyFieldgsc_language.language_objFieldLabelSource languageFieldTooltipSelect the source language from the list.KeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1ComboDelimiterListItemPairsInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesFieldNamesource_language_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_language.language_nameKeyFieldgsc_language.language_objFieldLabelSource languageFieldTooltipSelect the source language from the list.KeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1ComboDelimiterListItemPairsInnerLines5SortnoComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesSuperProcedureDataSourceNameFieldNamesource_language_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hSourceLanguage ).
        RUN repositionObject IN hSourceLanguage ( 2.14 , 84.40 ) NO-ERROR.
        RUN resizeObject IN hSourceLanguage ( 1.05 , 50.00 ) NO-ERROR.
@@ -1133,6 +1165,9 @@ DO WITH FRAME {&FRAME-NAME}:
   ASSIGN
     cObjectList = DYNAMIC-FUNCTION('linkHandles' IN ghCallerHandle, 'Container-Target':U).
     
+  /* Add ghCallerHandle to the list of objects so its widgets can also be translated. */
+  cObjectList = cObjectList + (IF cObjectList = "":U THEN "":U ELSE ",":U) + STRING(ghCallerHandle).
+
   object-loop:
   DO iLoop = 1 TO NUM-ENTRIES(cObjectList):
     ASSIGN hObject = ?.

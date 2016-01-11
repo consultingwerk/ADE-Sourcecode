@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS F-Frame-Win 
@@ -343,7 +343,7 @@ DEFINE FRAME F-Main
     WITH 1 DOWN NO-BOX NO-HIDE KEEP-TAB-ORDER OVERLAY NO-HELP 
          NO-LABELS NO-UNDERLINE NO-VALIDATE THREE-D 
          AT COL 1 ROW 1
-         SIZE 35 BY 9.67
+         SIZE 35.2 BY 9.67
          FONT 4.
 
 DEFINE FRAME FRAME-A
@@ -379,8 +379,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW F-Frame-Win ASSIGN
-         HEIGHT             = 9.62
-         WIDTH              = 35.
+         HEIGHT             = 9.67
+         WIDTH              = 35.2.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -704,7 +704,7 @@ PROCEDURE adm-create-objects :
              INPUT  'SpinStyle':U + 'Standard Combo Vertical' + 'LinkName':U + '' + 'ButtonIncrement':U + '1' + 'ButtonMinimum':U + '0' + 'ButtonMaximum':U + '99999' + 'SpinSpeed':U + '0' + 'SpinAccel':U + '10' + 'SpinKeys':U + 'yes' + 'AutoPosition':U + 'yes' + 'MouseCursor':U + '' + 'BufferFlush':U + 'yes' + 'HideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_spin ).
        RUN repositionObject IN h_spin ( 1.29 , 32.40 ) NO-ERROR.
-       /* Size in AB:  ( 0.76 , 3.60 ) */
+       /* Size in AB:  ( 0.81 , 3.80 ) */
 
        /* Adjust the tab order of the smart objects. */
        RUN adjustTabOrder ( h_spin ,
@@ -836,7 +836,8 @@ PROCEDURE initializeObject :
          TEXT-5:FGCOLOR = COLOR-Hilight-Text
          TEXT-6:FGCOLOR = COLOR-Hilight-Text
          TEXT-7:FGCOLOR = COLOR-Hilight-Text
-         CB-YEAR:BGCOLOR = COLOR-Hilight-Text
+         CB-YEAR:BGCOLOR = COLOR-Hilight
+         CB-YEAR:FGCOLOR = COLOR-Hilight-Text
       NO-ERROR.
 
       RUN _SetHandles.

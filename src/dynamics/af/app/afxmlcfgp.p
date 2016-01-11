@@ -421,22 +421,6 @@ DO:
   IF getSessionParam("_debug_tools_on":U) = "YES":U 
   AND VALID-HANDLE(gshSessionManager) 
   THEN DO:
-        /* Message while cache viewer is being fixed. */
-        DEFINE variable hContainer     as handle     no-undo.
-        DEFINE variable cButtonPressed as character  no-undo.
-                 
-        RUN showMessages IN gshSessionManager (INPUT  "The client cache viewer is temporarily disabled.",
-                                               INPUT  "ERR",          /* error type */
-                                               INPUT  "&OK",    /* button list */
-                                               INPUT  "&OK",           /* default button */ 
-                                               INPUT  "&OK",       /* cancel button */
-                                               INPUT  "Client Cache Viewer Disabled", /* error window title */
-                                               INPUT  YES, /* display if empty */ 
-                                               INPUT  hContainer,
-                                               OUTPUT cButtonPressed       ).
-
-/** Temporarily remove this call. The class cache viewer needs to
-    be updated to be compliant with the 2.1 repository api.      
       DEFINE VARIABLE hContainerHandle AS HANDLE     NO-UNDO.
       DEFINE VARIABLE cProcedureType   AS CHARACTER  NO-UNDO.
 
@@ -453,7 +437,6 @@ DO:
                                                 INPUT ?,
                                                 OUTPUT hContainerHandle,
                                                 OUTPUT cProcedureType).
-**/                                                
   END.
 END.
 
@@ -801,9 +784,9 @@ PROCEDURE initializeSession :
       lOSUpdates = NO.
 
     IF lOSUpdates AND
-       (cCurrPhysSessType <> "GUI":U OR
+       (NOT CAN-DO("GUI,BTC",cCurrPhysSessType) OR
         NOT CONNECTED("ICFDB":U)) THEN
-      RETURN "ICFSTARTUPERR: OUTSTANDING DATABASE UPDATES. PLEASE RUN GUI CLIENT CLIENT-SERVER":U.
+      RETURN "ICFSTARTUPERR: OUTSTANDING DATABASE UPDATES. PLEASE RUN GUI CLIENT CLIENT-SERVER OR BATCH DCU":U.
   END.
 
 
@@ -1072,6 +1055,7 @@ PROCEDURE obtainRegistryKeys :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+
   DEFINE VARIABLE iCount       AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cKeyList     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cCurrKeyProp AS CHARACTER  NO-UNDO.

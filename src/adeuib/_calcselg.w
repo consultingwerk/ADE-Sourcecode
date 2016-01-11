@@ -81,7 +81,7 @@ DEFINE OUTPUT PARAMETER plOK           AS LOGICAL    NO-UNDO.
 
 &Scoped-define ADM-SUPPORTED-LINKS Data-Target,Data-Source,Page-Target,Update-Source,Update-Target
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME diDialog
 
 /* Standard List Definitions                                            */
@@ -170,7 +170,7 @@ DEFINE FRAME diDialog
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX diDialog
-                                                                        */
+   FRAME-NAME                                                           */
 ASSIGN 
        FRAME diDialog:SCROLLABLE       = FALSE
        FRAME diDialog:HIDDEN           = TRUE.
@@ -427,7 +427,7 @@ PROCEDURE selectCalcField :
 DEFINE VARIABLE cCalcData AS CHARACTER  NO-UNDO.
 
  cCalcData = DYNAMIC-FUNCTION('colValues':U IN h_calcseld, 
-                              INPUT 'tName,tInstanceName,tDataType,tLabel,tFormat,tHelp').
+                              INPUT 'tName,tInstanceName,tDataType,tLabel,tFormat,tHelp,tColumnLabel').
  ASSIGN 
    pcCalcMaster   = ENTRY(2, cCalcData, CHR(1))
    pcCalcInstance = ENTRY(3, cCalcData, CHR(1))
@@ -435,6 +435,7 @@ DEFINE VARIABLE cCalcData AS CHARACTER  NO-UNDO.
    pcLabel        = ENTRY(5, cCalcData, CHR(1))
    pcFormat       = ENTRY(6, cCalcData, CHR(1))
    pcHelp         = ENTRY(7, cCalcData, CHR(1))
+   pcColumnLabel  = ENTRY(8, cCalcData, CHR(1))
    plOK           = TRUE.
 
  IF SOURCE-PROCEDURE NE THIS-PROCEDURE THEN

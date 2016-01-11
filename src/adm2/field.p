@@ -473,16 +473,13 @@ PROCEDURE initializeObject :
     DEFINE VARIABLE lDisplay          AS LOGICAL    NO-UNDO.
     DEFINE VARIABLE hSource           AS HANDLE     NO-UNDO.
     DEFINE VARIABLE cCustomSuperProc  AS CHARACTER  NO-UNDO.
-    DEFINE VARIABLE cNameList         AS CHARACTER  NO-UNDO.
-    DEFINE VARIABLE cHandleList       AS CHARACTER  NO-UNDO.
-    DEFINE VARIABLE lAddToList        AS LOGICAL    NO-UNDO.
+    DEFINE VARIABLE cList             AS CHARACTER  NO-UNDO.
     DEFINE VARIABLE lDisableOnInit    AS LOGICAL    NO-UNDO.
     DEFINE VARIABLE lHideOnInit       AS LOGICAL    NO-UNDO.
     DEFINE VARIABLE cEnabledObjFlds   AS CHARACTER  NO-UNDO.
     DEFINE VARIABLE lSecured          AS LOGICAL    NO-UNDO.
     DEFINE VARIABLE lTranslated       AS LOGICAL    NO-UNDO.
-    DEFINE VARIABLE hFrame            AS HANDLE     NO-UNDO.
-    DEFINE VARIABLE hParentFrame      AS HANDLE     NO-UNDO.
+
     DEFINE VARIABLE cSuperProcedureMode         AS CHARACTER          NO-UNDO.
     
     {get ObjectInitialized lInitialized}.
@@ -492,99 +489,6 @@ PROCEDURE initializeObject :
     {get ContainerSource hSource}.
     IF VALID-HANDLE(hSource) THEN
     DO:
-     
-      &SCOPED-DEFINE xp-assign
-      {get ContainerHandle hFrame}
-      {get FieldName cField}
-      {get LocalField lLocal}
-      {get EnableField lEnable}.
-      &UNDEFINE xp-assign
-      {get ContainerHandle hParentFrame hSource}.
-      
-      /* Deal with the fact that frames does not inherit colors from parent 
-         frame and set colors explcitly unless already defined */
-      IF VALID-HANDLE(hParentFrame) AND VALID-HANDLE(hFrame) THEN
-        ASSIGN
-          hFrame:BGCOLOR = hParentFrame:BGCOLOR WHEN hFrame:BGCOLOR = ?
-          hFrame:FGCOLOR = hParentFrame:FGCOLOR WHEN hFrame:FGCOLOR = ?.
-      IF lLocal THEN
-      DO:
-        IF lEnable THEN
-        DO:
-          /* The setting of EnabledObjHdls is currently for dynviewer. 
-            visual initializeObject currently sets the EnabledObjHdls again
-            for static viewer when building the allfield lists  */  
-          &SCOPED-DEFINE xp-assign
-          {get EnabledObjFlds cNameList hSource}          
-          {get EnabledObjHdls cHandleList hSource}
-          .
-          &UNDEFINE xp-assign
-          IF LOOKUP(cField,cNameList) = 0 THEN
-          DO:
-            ASSIGN
-              lAddToList  = cNameList > ''
-              cNameList   = (IF lAddToList THEN cNameList + ',':U ELSE '':U)
-                          + cField
-              cHandleList = (IF lAddToList THEN cHandleList + ',':U ELSE '':U)
-                          + STRING(TARGET-PROCEDURE).   
-            &SCOPED-DEFINE xp-assign
-            {set EnabledObjFlds cNameList hSource}          
-            {set EnabledObjHdls cHandleList hSource}
-            .
-            &UNDEFINE xp-assign
-          END.
-        END.
-      END.
-      ELSE DO:
-        {get DisplayField lDisplay}.        
-        IF lEnable THEN
-        DO:
-          &SCOPED-DEFINE xp-assign
-          {get EnabledFields  cNameList hSource}
-          {get EnabledHandles cHandleList hSource}
-          .
-          &UNDEFINE xp-assign
-          IF LOOKUP(cField,cNameList) = 0 THEN
-          DO:
-            ASSIGN
-              lAddToList  = cNameList > ''
-              cNameList   = (IF lAddToList THEN cNameList + ',':U ELSE '':U)
-                          + cField
-              cHandleList = (IF lAddToList THEN cHandleList + ',':U ELSE '':U)
-                          + STRING(TARGET-PROCEDURE)
-            .   
-            &SCOPED-DEFINE xp-assign
-            {set EnabledFields  cNameList hSource}
-            {set EnabledHandles cHandleList hSource}
-             .
-            &UNDEFINE xp-assign
-          END.
-        END.  /* enable */
-        IF lDisplay THEN
-        DO:
-          &SCOPED-DEFINE xp-assign
-          {get DisplayedFields cNameList hSource}
-          {get FieldHandles  cHandleList hSource}
-          .
-          &UNDEFINE xp-assign
-          IF LOOKUP(cField,cNameList) = 0 THEN
-          DO:
-            ASSIGN
-              lAddToList  = cNameList > ''
-              cNameList   = (IF lAddToList THEN cNameList + ',':U ELSE '':U)
-                          + cField
-              cHandleList = (IF lAddToList THEN cHandleList + ',':U ELSE '':U)
-                          + STRING(TARGET-PROCEDURE)
-            .   
-            &SCOPED-DEFINE xp-assign
-            {set DisplayedFields cNameList hSource}
-            {set FieldHandles    cHandleList hSource}
-            .
-            &UNDEFINE xp-assign
-          END.
-        END. /* display */
-      END. /* else (not local )*/
-      
       /* Start the SDF's super procedure - if specified */
       {get CustomSuperProc cCustomSuperProc}.
       /* If the super procedure couldn't be found for in the CustomSuperProc

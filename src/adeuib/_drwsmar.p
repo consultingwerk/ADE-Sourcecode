@@ -218,7 +218,8 @@ cur-lo = _U._LAYOUT-NAME.
 IF NOT VALID-HANDLE(_h_frame) AND _frmX = 0 AND _frmy = 0 THEN
 DO:
   FRAME_LOOP:
-  FOR EACH x_U WHERE x_U._TYPE = "FRAME":U:
+  FOR EACH x_U WHERE x_U._WINDOW-HANDLE = _U._WINDOW-HANDLE
+                 AND x_U._TYPE = "FRAME":U:
      IF VALID-HANDLE( X_U._HANDLE) 
          AND X_U._HANDLE:X = 0 AND X_U._HANDLE:Y = 0 
      THEN DO:     
@@ -334,6 +335,12 @@ IF VALID-HANDLE(_S._HANDLE) THEN DO:
     /* Mark this as a container of a SDF */
     X_U._SUBTYPE = "CONTAINS SDF - " + _U._NAME.
    
+    /* If the datasource is an SBO, set the table from the
+       table of the field being dropped on to.  This is the SDO name. */
+    IF _DynamicsIsRunning AND VALID-HANDLE(hDataSource) THEN
+      IF DYNAMIC-FUNCTION("getObjectType":U IN hDataSource) = "SmartBusinessObject":U THEN
+        _U._TABLE = x_U._TABLE.
+
     RUN adeuib/_delet_u.p (INPUT RECID(x_U), INPUT FALSE /* Don't Trash _U */).
   END.  /* SetFieldName is a valid function */
 

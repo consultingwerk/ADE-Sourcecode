@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SetupInclude>
+   <Patch PatchLevel="100003">
+      <PatchStage Stage="Delta">
+         <Program>
+            <FileType>df</FileType>
+            <FileName>db/icf/dfd/icfdb100003delta.df</FileName>
+            <Description>Applying 100003 Delta</Description>
+            <Rerunnable>no</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>yes</UpdateMandatory>
+         </Program>
+      </PatchStage>
+            <PatchStage Stage="PreADOLoad">
+                  <Program>
+      			<FileType>p</FileType>
+      			<FileName>db/icf/dfd/remove21bhelpids.p</FileName>
+      			<Description>Removing 21b help ids</Description>
+      			<Rerunnable>yes</Rerunnable>
+      			<NewDB>no</NewDB>
+      			<ExistingDB>yes</ExistingDB>
+      			<UpdateMandatory>yes</UpdateMandatory>
+      		</Program>
+            </PatchStage>
+      	<PatchStage Stage="PostADOLoad">
+      		<Program>
+      			<FileType>p</FileType>
+      			<FileName>db/icf/dfd/fix_profiledata_records.p</FileName>
+      			<Description>Correcting profile data</Description>
+      			<Rerunnable>yes</Rerunnable>
+      			<NewDB>no</NewDB>
+      			<ExistingDB>yes</ExistingDB>
+      			<UpdateMandatory>yes</UpdateMandatory>
+      		</Program>
+      		<Program>
+      			<FileType>p</FileType>
+      			<FileName>db/icf/dfd/update_dynamics_version_property.p</FileName>
+      			<Description>Update DynamicsVersion session property</Description>
+      			<Rerunnable>yes</Rerunnable>
+      			<NewDB>no</NewDB>
+      			<ExistingDB>yes</ExistingDB>
+      			<UpdateMandatory>yes</UpdateMandatory>
+      		</Program>            
+      	</PatchStage>
+    </Patch>   
+</SetupInclude>

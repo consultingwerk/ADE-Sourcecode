@@ -25,13 +25,13 @@
 *********************************************************************/
 /*-------------------------------------------------------------------------
     File        : lookup.i
-    Purpose     : Basic Method Library for the ADMClass lookup.
-
+    Purpose     : Basic Method Library for the ADMClass dynlookup.
+  
     Syntax      : {src/adm2/lookup.i}
 
     Description :
-
-    Modified    : 08/11/2000
+  
+    Modified    : 09/07/2004
 -------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
 /*----------------------------------------------------------------------*/
@@ -39,11 +39,11 @@
 /* ***************************  Definitions  ************************** */
 
 &IF "{&ADMClass}":U = "":U &THEN
-  &GLOB ADMClass lookup
+  &GLOB ADMClass dynlookup
 &ENDIF
 
-&IF "{&ADMClass}":U = "lookup":U &THEN
-  {src/adm2/lookprop.i}
+&IF "{&ADMClass}":U = "dynlookup":U &THEN
+  {src/adm2/lookupprop.i}
 &ENDIF
 
 /* _UIB-CODE-BLOCK-END */
@@ -87,7 +87,7 @@
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB Method-Library 
 /* ************************* Included-Libraries *********************** */
 
-{src/adm2/field.i}
+{src/adm2/lookupfield.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -104,8 +104,21 @@
 &IF DEFINED(ADM-EXCLUDE-STATIC) = 0 &THEN
   /* Starts super procedure */
   IF NOT {&ADM-LOAD-FROM-REPOSITORY} THEN
+  DO:
     RUN start-super-proc("adm2/lookup.p":U).
+    
+    /* Subscribe to viewer events  */
+    RUN modifyListProperty(THIS-PROCEDURE, "ADD":U, 
+                      "ContainerSourceEvents":U,"getLookupQuery":U).
+    RUN modifyListProperty(THIS-PROCEDURE, "ADD":U, 
+                      "ContainerSourceEvents":U,"displayLookup":U).
 
+    /* New API */
+    RUN modifyListProperty(THIS-PROCEDURE, "ADD":U, 
+                      "ContainerSourceEvents":U,"displayField":U).
+    RUN modifyListProperty(THIS-PROCEDURE, "ADD":U, 
+                      "ContainerSourceEvents":U,"prepareField":U).
+  END.
   /* _ADM-CODE-BLOCK-START _CUSTOM _INCLUDED-LIB-CUSTOM CUSTOM */
 
   {src/adm2/custom/lookupcustom.i}

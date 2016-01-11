@@ -16,6 +16,39 @@ function fixUtilImages(){
   }
 }
 
+// On page initialization configure combo parent image
+function fixComboParent(e){
+  var eid=e.getAttribute('id');
+  var pid=e.getAttribute('comboparent');
+  var parent=app.document.getElementById(pid.replace('.','._'));
+  if(parent){
+    parent.setAttribute('combochild',eid);
+    return;
+  }
+  parent=app.document.getElementById(pid);
+  if(!parent) return; 
+  if(parent.getAttribute('util')){
+    parent.setAttribute('combochild',eid);
+  }
+
+  // Create the Refresh node on a fill-in or combo
+  var newNode=app.document.createElement('span');
+  if(parent.nextSibling) parent.parentNode.insertBefore(newNode,parent.nextSibling);
+  else parent.parentNode.appendChild(newNode);
+  parent.setAttribute('util',e.getAttribute('id')+'.comborefresh');
+  newNode.className='enable';
+  newNode.innerHTML='<img src="../img/refresh.gif" tabindex="-1" />';
+  newNode.setAttribute('name',pid);
+  newNode.setAttribute('id',pid);
+  newNode.setAttribute('title','Refresh combo results');
+  newNode.style.position='absolute';
+  newNode.style.top=parent.style.top;
+  newNode.style.left=(parent.style.left.replace('px','')*1
+                     +parent.style.width.replace('px','')*1  )+'px';
+  fixUtilImages();
+  return newNode;
+}
+
 var mousedrag;  // Set to the initial object that is being dragged 
 
 function resizexy(e){   // During resize of browses

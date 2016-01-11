@@ -58,10 +58,11 @@ DEFINE TEMP-TABLE ttDatabase NO-UNDO RCODE-INFORMATION
     cDBName
   .
 
-DEFINE TEMP-TABLE ttValue NO-UNDO
-  FIELD cGroup         AS CHARACTER
-  FIELD cVariable      AS CHARACTER
-  FIELD cValue         AS CHARACTER
+DEFINE TEMP-TABLE ttValue NO-UNDO RCODE-INFORMATION
+  FIELD cGroup         AS CHARACTER    LABEL "Group":U
+  FIELD cVariable      AS CHARACTER    LABEL "Variable":U
+  FIELD cValue         AS CHARACTER    LABEL "Value":U
+  FIELD lSiteData      AS LOGICAL      LABEL "SiteData":U
   INDEX pudx IS PRIMARY
     cGroup
     cVariable

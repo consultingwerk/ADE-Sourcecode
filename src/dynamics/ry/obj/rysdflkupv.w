@@ -1146,12 +1146,6 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL toDisplayField vTableWin
 ON VALUE-CHANGED OF toDisplayField IN FRAME frPage1 /* Display field */
 DO:
-  IF toDisplayField:CHECKED = FALSE THEN
-    ASSIGN toEnableField:CHECKED   = FALSE
-           toEnableField:SENSITIVE = FALSE.
-  ELSE
-    ASSIGN toEnableField:CHECKED   = TRUE
-           toEnableField:SENSITIVE = TRUE.
   IF glTrackChanges THEN
     PUBLISH "changesMade":U FROM ghContainerSource.
 END.

@@ -553,18 +553,8 @@ PROCEDURE addRecord :
   Parameters:  
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cParentNode      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hContainerSource AS HANDLE     NO-UNDO.
-  /* Code placed here will execute PRIOR to standard behavior. */
 
   RUN SUPER.
-  
-  {get ContainerSource hContainerSource}. /* This should return the handle of the Dynamic TreeView Container */
-  
-  cParentNode = DYNAMIC-FUNCTION("getUserProperty":U IN hContainerSource, "ParentKeyValue":U).
-  
-  RUN assignNewValue IN h_ParentNodeCode (INPUT cParentNode, INPUT "":U, INPUT TRUE).
-  /* Code placed here will execute AFTER standard behavior.    */
   APPLY "VALUE-CHANGED":U TO coDataSourceType IN FRAME {&FRAME-NAME}.
 
 END PROCEDURE.

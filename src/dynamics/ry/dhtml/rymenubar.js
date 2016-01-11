@@ -19,7 +19,7 @@ Menubar.prototype.fClick=function(TR) {
       if(TR.getElementsByTagName('TABLE').length>0) return;
       deactivate(this);
       if(appcontrol.busy) return window.status='Please wait, BUSY processing request.';
-      if(TR.id && TR.nodeName=='TR' && TR.className=='over') action(TR.id);
+      if(TR.id && TR.nodeName=='TR' && TR.className=='over' && !TR.getAttribute('child')) userAction(TR.id);
       return;
     } 
     if(TR.nodeName=='TH'){

@@ -181,8 +181,8 @@
                            cColumnLabel = hFieldBuffer:BUFFER-FIELD("_Col-Label":U):BUFFER-VALUE.
                 ELSE
                     ASSIGN iMaxExtent   = iExtent
-                           cFieldLabel  = hFieldBuffer:BUFFER-FIELD("_Label":U):BUFFER-VALUE + " &1":U
-                           cColumnLabel = hFieldBuffer:BUFFER-FIELD("_Col-Label":U):BUFFER-VALUE + " &1":U.
+                           cFieldLabel  = REPLACE(hFieldBuffer:BUFFER-FIELD("_Label":U):BUFFER-VALUE, "&":U, "&&":U) + " &1":U
+                           cColumnLabel = REPLACE(hFieldBuffer:BUFFER-FIELD("_Col-Label":U):BUFFER-VALUE, "&":U, "&&":U) + " &1":U.
 
                 DO iLoop = 1 TO iMaxExtent:
                     IF iExtent NE 0 THEN
@@ -262,9 +262,9 @@
                             IF cSecondaryField = "FORMAT":U THEN
                                cNewValue = cFieldFormat.
                             ELSE IF cSecondaryField = "LABEL":U THEN
-                               cNewValue = SUBSTITUTE(cFieldLabel, STRING(iLoop)).
+                               cNewValue = IF iExtent = 0 THEN cFieldLabel ELSE SUBSTITUTE(cFieldLabel, STRING(iLoop)).
                             ELSE IF cSecondaryField = "ColumnLabel":U THEN
-                               cNewValue = SUBSTITUTE(cColumnLabel, STRING(iLoop)).
+                               cNewValue = IF iExtent = 0 THEN cColumnLabel ELSE SUBSTITUTE(cColumnLabel, STRING(iLoop)).
                           END.
                           
                           IF cSchemaField = "_View-As":U THEN DO:

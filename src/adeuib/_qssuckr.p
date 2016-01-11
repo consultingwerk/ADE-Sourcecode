@@ -1263,6 +1263,22 @@ PROCEDURE analyze-suspend-reader :
               _P._type-list = _P._type-list + ",Html-Mapping":U.
             */
           END.
+           /* Get FRAME-NAME pre-processor definition */
+          ELSE IF _inp_line[1] BEGINS  "/* Name of first Frame and/or Browse":U OR 
+                  _inp_line[1] BEGINS  "/* Name of designated FRAME-NAME":U  THEN 
+          DO:
+            IMPORT STREAM _P_QS _inp_line.
+            IF _inp_line[1] EQ "&Scoped-define":U AND 
+               _inp_line[2] EQ "FRAME-NAME":U    THEN
+            DO:
+               FIND _U WHERE _U._NAME = TRIM(_inp_line[3]) NO-ERROR.
+               IF AVAIL _U THEN
+               DO:
+                   FIND _P WHERE _P._WINDOW-HANDLE EQ _h_win.
+                   ASSIGN _P._frame-name-recid = RECID(_U).
+               END.
+            END.
+          END.
           /* Does this list the custom settings */
           ELSE IF _inp_line[1] BEGINS  "/* Custom List Definitions ":U THEN DO:
             IMPORT STREAM _P_QS _inp_line.
@@ -1553,8 +1569,7 @@ PROCEDURE layout_reader:
         WHEN "FONT"                THEN _L._FONT               = INTEGER(val).
         WHEN "GRAPHIC-EDGE"        THEN _L._GRAPHIC-EDGE       = (val BEGINS "y").
                                          
-        WHEN "HIDDEN"              THEN _L._REMOVE-FROM-LAYOUT = (val BEGINS "y") AND
-                                                                  NOT _U._HIDDEN.
+        WHEN "HIDDEN"              THEN _L._REMOVE-FROM-LAYOUT = (val BEGINS "y").
         WHEN "NO-BOX"              THEN _L._NO-BOX             = (val BEGINS "y").    
         WHEN "NO-FOCUS"            THEN _L._NO-FOCUS           = (val BEGINS "y").    
         WHEN "ROW"                 THEN _L._ROW                = DECIMAL(val).

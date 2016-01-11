@@ -68,6 +68,7 @@ DEFINE VARIABLE ghStatusWin AS HANDLE     NO-UNDO.
 DEFINE VARIABLE ghDSAPI     AS HANDLE     NO-UNDO.
 DEFINE VARIABLE glStreamOpen  AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE gcLogFile     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcPhysSess   AS CHARACTER  NO-UNDO.
 
 
 /* This temp-table is used to pass parameters into import deployment dataset */
@@ -143,10 +144,15 @@ FUNCTION figureOutLogFileName RETURNS CHARACTER
 RUN startProcedure IN THIS-PROCEDURE ("ONCE|af/app/gscddxmlp.p":U, 
                                       OUTPUT ghDSAPI).
 
-RUN startProcedure IN THIS-PROCEDURE ("ONCE|install/obj/instatuswin.w":U, 
-                                      OUTPUT ghStatusWin).
-RUN initializeObject IN ghStatusWin.
-SUBSCRIBE PROCEDURE ghStatusWin TO "setStatus":U IN THIS-PROCEDURE.
+gcPhysSess = DYNAMIC-FUNCTION("getPhysicalSessionType":U IN THIS-PROCEDURE).
+IF gcPhysSess = "GUI":U THEN
+DO:
+  RUN startProcedure IN THIS-PROCEDURE ("ONCE|install/obj/instatuswin.w":U, 
+                                        OUTPUT ghStatusWin).
+  RUN initializeObject IN ghStatusWin.
+  SUBSCRIBE PROCEDURE ghStatusWin TO "setStatus":U IN THIS-PROCEDURE.
+END.
+
 SUBSCRIBE TO "setStatus":U    IN THIS-PROCEDURE
     RUN-PROCEDURE "DCU_WriteLog":U.
 SUBSCRIBE TO "DCU_WriteLog":U ANYWHERE.
@@ -161,8 +167,8 @@ RUN applyUpdates.
 glStreamOpen = NO.
 OUTPUT STREAM sLogFile CLOSE.
 
-
-APPLY "CLOSE":U TO ghStatusWin.
+IF VALID-HANDLE(ghStatusWin) THEN
+  APPLY "CLOSE":U TO ghStatusWin.
 APPLY "CLOSE":U TO ghDSAPI.
 
 IF ERROR-STATUS:ERROR OR

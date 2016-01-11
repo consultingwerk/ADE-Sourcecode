@@ -48,6 +48,7 @@ Updated:	1/98 SLK Added new param to _fldinfo.p
 
 DEFINE INPUT PARAMETER _BC-rec AS RECID NO-UNDO.
 
+DEF VAR cColLabel   AS CHAR                NO-UNDO.
 DEF VAR descrip     AS CHAR                NO-UNDO.
 DEF VAR fmt-sa      AS CHAR                NO-UNDO.
 DEF VAR hlp-sa      AS CHAR                NO-UNDO.
@@ -128,7 +129,10 @@ RUN adeuib/_fldinfo.p (INPUT tmp-db,
 		).
 
 /* _s-schem.p returns the column-label if it exists */
-IF NOT isSmartData THEN 
-  RUN adecomm/_s-schem.p (tmp-db, tmp-tb, _BC._NAME,
-                          "FIELD:LABEL":U, OUTPUT _BC._DEF-LABEL).
-                              
+RUN adecomm/_s-schem.p (tmp-db, tmp-tb, _BC._NAME,
+                        IF isSmartData THEN "FIELD:COL-LABEL":U 
+                        ELSE "FIELD:LABEL":U, OUTPUT cColLabel ).
+
+IF isSmartData THEN 
+  _BC._DEF-COLLABEL = cColLabel.
+ELSE _BC._DEF-LABEL = cColLabel.

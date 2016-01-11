@@ -86,6 +86,17 @@ FUNCTION getAutoCommit RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getCacheDuration) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCacheDuration Procedure 
+FUNCTION getCacheDuration RETURNS INTEGER
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getCheckCurrentChanged) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCheckCurrentChanged Procedure 
@@ -768,10 +779,10 @@ FUNCTION getServerSubmitValidation RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getToggleDataTargets) = 0 &THEN
+&IF DEFINED(EXCLUDE-getShareData) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getToggleDataTargets Procedure 
-FUNCTION getToggleDataTargets RETURNS LOGICAL
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getShareData Procedure 
+FUNCTION getShareData RETURNS LOGICAL
   (  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -779,11 +790,11 @@ FUNCTION getToggleDataTargets RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getUpdateFromSource) = 0 &THEN
+&IF DEFINED(EXCLUDE-getToggleDataTargets) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getUpdateFromSource Procedure 
-FUNCTION getUpdateFromSource RETURNS LOGICAL
-  ( /* parameter-definitions */ )  FORWARD.
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getToggleDataTargets Procedure 
+FUNCTION getToggleDataTargets RETURNS LOGICAL
+  (  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -839,6 +850,17 @@ FUNCTION setAsynchronousSDO RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setAutoCommit Procedure 
 FUNCTION setAutoCommit RETURNS LOGICAL
   ( plFlag AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setCacheDuration) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setCacheDuration Procedure 
+FUNCTION setCacheDuration RETURNS LOGICAL
+  ( piCacheDuration AS INTEGER  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1384,22 +1406,22 @@ FUNCTION setServerSubmitValidation RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-setToggleDataTargets) = 0 &THEN
+&IF DEFINED(EXCLUDE-setShareData) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setToggleDataTargets Procedure 
-FUNCTION setToggleDataTargets RETURNS LOGICAL
-  ( plToggleDataTargets AS LOGICAL )  FORWARD.
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setShareData Procedure 
+FUNCTION setShareData RETURNS LOGICAL
+  ( plShareData AS LOGICAL )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-setUpdateFromSource) = 0 &THEN
+&IF DEFINED(EXCLUDE-setToggleDataTargets) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setUpdateFromSource Procedure 
-FUNCTION setUpdateFromSource RETURNS LOGICAL
-  ( plUpdateFromSource AS LOGICAL )  FORWARD.
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setToggleDataTargets Procedure 
+FUNCTION setToggleDataTargets RETURNS LOGICAL
+  ( plToggleDataTargets AS LOGICAL )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -2513,6 +2535,35 @@ FUNCTION getAutoCommit RETURNS LOGICAL
   {get AutoCommit lAuto}.
   &UNDEFINE xpAutoCommit
   RETURN lAuto.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getCacheDuration) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getCacheDuration Procedure 
+FUNCTION getCacheDuration RETURNS INTEGER
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Specifies the number of seconds the cache is valid. 
+            > 0 - use caching 
+            0 - don't cache (share).
+            ? - indicates that the data is valid throughout the session. 
+   Params:  <none>
+    Notes:  The duration is applied when no instances are using the cached data. 
+          - New instances that has ShareData set to true will disregard this 
+            property if another instance still is running. 
+          - The property applies to a client proxy running against a stateless
+            appserver or when ForceClientProxy = yes.
+------------------------------------------------------------------------------*/
+
+  DEFINE VARIABLE iCacheDuration AS INTEGER NO-UNDO.
+  {get CacheDuration iCacheDuration}.
+  RETURN iCacheDuration.
 
 END FUNCTION.
 
@@ -4405,6 +4456,28 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getShareData) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getShareData Procedure 
+FUNCTION getShareData RETURNS LOGICAL
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Specifies whether the data in this object can be shared with other 
+            instances.
+   Params:  <none>
+    Notes:  The current default is no.   
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lShareData AS LOGICAL NO-UNDO.
+  {get ShareData lShareData}.
+  RETURN lShareData.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getToggleDataTargets) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getToggleDataTargets Procedure 
@@ -4420,26 +4493,6 @@ FUNCTION getToggleDataTargets RETURNS LOGICAL
 
   RETURN lToggle. 
 
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getUpdateFromSource) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getUpdateFromSource Procedure 
-FUNCTION getUpdateFromSource RETURNS LOGICAL
-  ( /* parameter-definitions */ ) :
-/*------------------------------------------------------------------------------
-  Purpose: Returns true if this object should be updated as one-to-one 
-           of the datasource updates (one-to-one) 
-    Notes:  
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE lUpdate AS LOGICAL    NO-UNDO.
-  {get UpdateFromSource lUpdate}.
-  RETURN lUpdate.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -4593,6 +4646,34 @@ FUNCTION setAutoCommit RETURNS LOGICAL
   {set AutoCommit plFlag}.
   &UNDEFINE xpAutoCommit
   RETURN TRUE.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setCacheDuration) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setCacheDuration Procedure 
+FUNCTION setCacheDuration RETURNS LOGICAL
+  ( piCacheDuration AS INTEGER  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Specifies the number of seconds the cache is valid. 
+   Params:  piCacheDuration AS INTEGER 
+            > 0 - use caching 
+            0 - don't cache (share).
+            ? - indicates that the data is valid throughout the session. 
+    Notes:  The duration is applied when no instances are using the cached data. 
+          - New instances that has ShareData set to true will disregard this 
+            property if another instance still is running. 
+          - The property applies to a client proxy running against a stateless
+            appserver or when ForceClientProxy = yes.
+------------------------------------------------------------------------------*/
+
+  {set CacheDuration piCacheDuration}.
+  RETURN TRUE.
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -5446,10 +5527,12 @@ FUNCTION setQueryWhere RETURNS LOGICAL
   DEFINE VARIABLE cForeignFields  AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cSourceFields   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cValues         AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lOK             AS LOGICAL  NO-UNDO.
-  
+  DEFINE VARIABLE lOK             AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lInitialized    AS LOGICAL    NO-UNDO.
+
   {get AsDivision cAsDivision}.
-  IF cAsDivision = 'CLIENT':U THEN DO:
+  IF cAsDivision = 'CLIENT':U THEN 
+  DO:
     cQueryWhere = {fnarg newQueryWhere pcWhere}.
     /* Store the query locally */     
     IF cQueryWhere <> ? THEN
@@ -5460,10 +5543,19 @@ FUNCTION setQueryWhere RETURNS LOGICAL
   ELSE
     lOK = SUPER(pcWhere).
 
-  /* apply foreign field values if they exist (issue 8056) */
-  IF cAsDivision <> 'SERVER' THEN DO:
-    {get ForeignFields cForeignFields}.
-    IF cForeignFields > "" AND cForeignFields <> ? THEN DO:
+  /* apply foreign field values if they exist (issue 8056), unless this is 
+     context setting before the object is initialized (Mainly a WEBspeed issue,
+     since AsDivision is not set on WebSpeed) */
+  IF cAsDivision <> 'SERVER' THEN 
+  DO:     
+    &SCOPED-DEFINE xp-assign
+    {get ForeignFields cForeignFields}
+    {get ObjectInitialized lInitialized}
+    .
+    &UNDEFINE xp-assign
+    
+    IF lInitialized AND cForeignFields > "" AND cForeignFields <> ? THEN 
+    DO:
       {get ForeignValues cValues}.
       IF cValues <> ? THEN
       DO:
@@ -5619,22 +5711,20 @@ FUNCTION setRowObjectTable RETURNS LOGICAL
     IF NOT VALID-HANDLE(hRowObject) 
     OR hRowObject <> phTable:DEFAULT-BUFFER-HANDLE THEN
     DO:
+      DELETE OBJECT hRowObject  NO-ERROR. 
+      hRowObject = phTable:DEFAULT-BUFFER-HANDLE.
+      
       &SCOPED-DEFINE xp-assign
-      {set RowObject phTable:DEFAULT-BUFFER-HANDLE}  /* Point to new buffer. */    
+      {set RowObject hRowObject}     /* Point to new buffer. */    
+      {get DataQueryString cQueryString}
       {get DataHandle hDataHandle}.  /* Query handle */
       &UNDEFINE xp-assign
-      
       DELETE OBJECT hDataHandle NO-ERROR.  
-      DELETE OBJECT hRowObject  NO-ERROR. 
-  
       CREATE QUERY hDataHandle.
-      {set DataHandle hDataHandle}.
+      {set DataHandle hDataHandle}. 
+      hDataHandle:SET-BUFFERS(hRowObject).   
+      hDataHandle:QUERY-PREPARE(cQueryString).
       
-      /* Something should be done with the ghDataQuery variable in data.i  */ 
-      hDataHandle:SET-BUFFERS(phTable:DEFAULT-BUFFER-HANDLE).
-      {get DataQueryString cQueryString}.
-                                /* Fix european format issues */
-      hDataHandle:QUERY-PREPARE({fnarg fixQueryString cQueryString}).
     END. /* not valid hRowObject */
   END.
 
@@ -5840,6 +5930,27 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setShareData) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setShareData Procedure 
+FUNCTION setShareData RETURNS LOGICAL
+  ( plShareData AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Specifies whether the data in this object can be shared with other 
+            instances.
+   Params:  ShareData as logical  
+    Notes:  The current default is no.   
+------------------------------------------------------------------------------*/
+  {set ShareData plShareData}.
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setToggleDataTargets) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setToggleDataTargets Procedure 
@@ -5855,25 +5966,6 @@ FUNCTION setToggleDataTargets RETURNS LOGICAL
 
   RETURN TRUE. 
 
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setUpdateFromSource) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setUpdateFromSource Procedure 
-FUNCTION setUpdateFromSource RETURNS LOGICAL
-  ( plUpdateFromSource AS LOGICAL ) :
-/*------------------------------------------------------------------------------
-  Purpose: Set to true if this object should be updated as one-to-one 
-           of the datasource updates (one-to-one) 
-    Notes:  
-------------------------------------------------------------------------------*/
-  {set UpdateFromSource plUpdateFromSource}.
-  RETURN TRUE.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

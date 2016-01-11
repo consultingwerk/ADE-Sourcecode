@@ -116,7 +116,11 @@ IF CAN-DO("dynlookup.w,dyncombo.w":U, file-base) THEN DO:
                         ,INPUT  hObject              /* parent (caller) object handle if known (handle at end of toolbar link, e.g. browser) */
                         ,OUTPUT ghSDFMaintWindow     /* procedure handle of object run/running */
                         ,OUTPUT cRunContainerType    /* procedure type (e.g ADM1, Astra1, ADM2, ICF, "") */
-                        ).
+                         ).
+    /* Set the super procedure in the container so that it can write out properties using 'set' */
+    IF VALID-HANDLE(ghSDFMaintWindow) AND VALID-HANDLE(_S._HANDLE) THEN
+       DYNAMIC-FUNCTION("setSDFProcHandle":U IN ghSDFMaintWindow, _S._HANDLE).
+     
   END.  /* If the repository manager is running */
   RETURN.
 END.

@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME wiWin
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" wiWin _INLINE
@@ -104,6 +104,8 @@ DEFINE VARIABLE ghFillIn             AS HANDLE NO-UNDO.  /* handle to the fillin
 DEFINE VARIABLE ghLabel              AS HANDLE NO-UNDO.  /* handle to the Label of a Response */
 DEFINE VARIABLE ghFocusButton        AS HANDLE NO-UNDO.  /* handle to the widget which will be granted focus */
 
+DEFINE VARIABLE giLevel             AS INTEGER INITIAL 4 NO-UNDO.
+
 DEFINE VARIABLE lFullScreen          AS LOGICAL NO-UNDO.
 
 
@@ -153,8 +155,8 @@ DEFINE TEMP-TABLE ttField       NO-UNDO
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS edAppserver edMessageSummary edMessageDetail ~
-edSystemInformation btMail btStack imAlert 
+&Scoped-Define ENABLED-OBJECTS imAlert edAppserver edMessageSummary ~
+edMessageDetail edSystemInformation btMail btStack 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -458,51 +460,84 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL btMail wiWin
 ON CHOOSE OF btMail IN FRAME frMain
 DO:
-    DEFINE VARIABLE cMessage AS CHARACTER NO-UNDO.
-    DEFINE VARIABLE cFailureReason AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE cMessage          AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cFailureReason    AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cAttachmentName   AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cAttachmentFPath  AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cTempFileName     AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cUserLogin        AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cEmailAddress     AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE iLoop             AS INTEGER    NO-UNDO.
+
+    IF NOT glQuestion AND NOT glInformation THEN
+    DO:
+        giLevel = 4.
+        IF edSystemInformation:LENGTH = 0 THEN
+            RUN getSystemInfo.
+        IF edAppServer:LENGTH = 0 THEN
+            RUN getAppServerInfo.
+    END.
 
     cMessage = "~n~n**********  MESSAGE SUMMARY   **********~n~n" + edMessageSummary:SCREEN-VALUE + 
                (IF pcMessageDetailList <> "":U THEN ("~n~n**********   MESSAGE DETAIL   **********~n~n" + edMessageDetail:SCREEN-VALUE) ELSE "":U) +
-               "~n~n********** SYSTEM INFORMATION **********~n~n" + edSystemInformation:SCREEN-VALUE +
-               "~n~n********** APPSERVER INFORMATION **********~n~n" + edAppserver:SCREEN-VALUE
-               .
+                  "~n~n********** SYSTEM INFORMATION **********~n~n" + (IF edSystemInformation:LENGTH > 0 THEN "See attachment" ELSE "")+
+                  "~n~n********** APPSERVER INFORMATION **********~n~n" + (IF edAppServer:LENGTH > 0 THEN "See attachment" ELSE "").
 
+    /* get user email from property for current user */
+    cEmailAddress = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
+                                     INPUT "currentUserEmail":U,
+                                     INPUT NO).
+    /* get user login from property for current user */
+    cUserLogin = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
+                                    INPUT "currentUserLogin":U,
+                                    INPUT NO).
 
-    RUN notifyUser IN gshSessionManager (
-        INPUT   0,                              /* pdUserObj      */
-        INPUT   "",                             /* pcUserName     */
-        INPUT   "EMAIL",                        /* pcAction       */
-        INPUT   "Technical Support",            /* pcSubject      */
-        INPUT   cMessage,                       /* pcMessage      */
-        OUTPUT  cFailureReason                  /* pcFailedReason */
-        ).
+    IF edSystemInformation:LENGTH > 0 THEN
+    DO:
+        ASSIGN cTempFileName    = "system_information_" + REPLACE(cUserLogin, " ":U, "_":U) + STRING(ETIME) + ".txt"
+               cAttachmentName  = cTempFileName
+               cAttachmentFPath = SESSION:TEMP-DIRECTORY + cTempFileName.
+        edSystemInformation:SAVE-FILE(SESSION:TEMP-DIRECTORY + cTempFileName).
+    END.
+
+    IF edAppServer:LENGTH > 0 THEN DO:
+        ASSIGN cTempFileName    = "appserver_information_" + REPLACE(cUserLogin, " ":U, "_":U) + STRING(ETIME) + ".txt"
+               cAttachmentName  = IF cAttachmentName > "" THEN
+                                      cAttachmentName + ",":U + cTempFileName
+                                  ELSE
+                                      cTempFileName
+               cAttachmentFPath = IF cAttachmentFPath > "" THEN
+                                      cAttachmentFPath + ",":U + SESSION:TEMP-DIRECTORY + cTempFileName
+                                  ELSE
+                                      SESSION:TEMP-DIRECTORY + cTempFileName.
+        edAppserver:SAVE-FILE(SESSION:TEMP-DIRECTORY + cTempFileName).
+    END.
+
+    IF cEmailAddress <> "":U THEN /* Send email message to user */
+        RUN sendEmail IN gshSessionManager
+                          ( INPUT "":U,                 /* Email profile to use  */
+                            INPUT cEmailAddress,        /* Comma list of Email addresses for to: box */
+                            INPUT "":U,                 /* Comma list of Email addresses to cc */
+                            INPUT "Technical Support",  /* Subject of message */
+                            INPUT cMessage,             /* Message text */
+                            INPUT cAttachmentName,      /* Comma list of attachment filenames */
+                            INPUT cAttachmentFPath,     /* Comma list of attachment filenames with full path */
+                            INPUT NOT SESSION:REMOTE,   /* YES = display dialog for modification before send */
+                            INPUT 0,                    /* Importance 0 = low, 1 = medium, 2 = high */
+                            INPUT NO,                   /* YES = return a read receipt */
+                            INPUT NO,                   /* YES = return a delivery receipt */
+                            INPUT "":U,                 /* Not used yet but could be used for additional settings */
+                            OUTPUT cFailureReason       /* If failed - the reason why, blank = it worked */
+                          ).
+    ELSE
+        ASSIGN cFailureReason = "Your e-mail address has not been set up against your user account.  Please contact your System Administrator.".
 
     IF cFailureReason <> "" THEN MESSAGE 
         cFailureReason VIEW-AS ALERT-BOX ERROR TITLE "Could not compose Email".
 
-/*     DEFINE VARIABLE lv_failure_reason   AS CHARACTER NO-UNDO.                                                                                           */
-/*     DEFINE VARIABLE lv_message          AS CHARACTER NO-UNDO.                                                                                           */
-/*     ASSIGN lv_message = edt-more:SCREEN-VALUE + CHR(10) + CHR(10) + lv_current_user_name + " ":U + STRING(TODAY) + " @ ":U + STRING(TIME,"HH:MM:SS":U). */
-/*                                                                                                                                                         */
-/*     RUN mip-send-email IN gh_local_app_plip                                                                                                             */
-/*                       ( INPUT "":U,                 /* Email profile to use  */                                                                         */
-/*                         INPUT "{&support_email}":U, /* Comma list of Email addresses for to: box */                                                     */
-/*                         INPUT "":U,                 /* Comma list of Email addresses to cc */                                                           */
-/*                         INPUT "Technical Support",  /* Subject of message */                                                                            */
-/*                         INPUT lv_message,           /* Message text */                                                                                  */
-/*                         INPUT "":U,                 /* Comma list of attachment filenames */                                                            */
-/*                         INPUT "":U,                 /* Comma list of attachment filenames with full path */                                             */
-/*                         INPUT YES,                  /* YES = display dialog for modification before send */                                             */
-/*                         INPUT 0,                    /* Importance 0 = low, 1 = medium, 2 = high */                                                      */
-/*                         INPUT NO,                   /* YES = return a read receipt */                                                                   */
-/*                         INPUT NO,                   /* YES = return a delivery receipt */                                                               */
-/*                         INPUT "":U,                 /* Not used yet but could be used for additional settings */                                        */
-/*                         OUTPUT lv_failure_reason    /* If failed - the reason why, blank = it worked */                                                 */
-/*                       ).                                                                                                                                */
-/*     IF lv_failure_reason <> "":U THEN                                                                                                                   */
-/*       MESSAGE lv_failure_reason.                                                                                                                        */
-/*                                                                                                                                                         */
-
+    DO iLoop = 1 TO NUM-ENTRIES(cAttachmentFPath):
+        OS-DELETE VALUE(ENTRY(iLoop, cAttachmentFPath)).
+    END.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -599,7 +634,6 @@ PROCEDURE ASInfo :
   DEFINE INPUT PARAMETER cConnctxt       AS CHARACTER  NO-UNDO. /* SESSION:SERVER-CONNECTION-CONTEXT */
   DEFINE INPUT PARAMETER cASppath        AS CHARACTER  NO-UNDO. /* PROPATH */
   DEFINE INPUT PARAMETER cConndbs        AS CHARACTER  NO-UNDO. /* List of Databases */
-  DEFINE INPUT PARAMETER cConnpps        AS CHARACTER  NO-UNDO. /* List of Running Persistent Procedures */
   DEFINE INPUT PARAMETER pcCustomisationTypes       AS CHARACTER    NO-UNDO.    /* from CustomizatinManager */
   DEFINE INPUT PARAMETER pcCustomisationReferences  AS CHARACTER    NO-UNDO.    /* from CustomizatinManager */
   DEFINE INPUT PARAMETER pcCustomisationResultCodes AS CHARACTER    NO-UNDO.    /* from CustomizatinManager */
@@ -607,14 +641,17 @@ PROCEDURE ASInfo :
   DEFINE INPUT PARAMETER TABLE-HANDLE phTTManager.              /* } the configuration and connection */
   DEFINE INPUT PARAMETER TABLE-HANDLE phTTServiceType.          /* } manager details. */
   DEFINE INPUT PARAMETER TABLE-HANDLE phTTService.              /* } */
+  DEFINE INPUT PARAMETER TABLE-HANDLE phTTPersistentProcedure.  /* Temp Table List of Persistent Procedures */
 
   DEFINE VARIABLE iLoop                     AS INTEGER              NO-UNDO.
-  DEFINE VARIABLE cAppserverInfo            AS CHARACTER            NO-UNDO.
   DEFINE VARIABLE cCustomisationInformation AS CHARACTER            NO-UNDO.
+  DEFINE VARIABLE hQuery                    AS HANDLE               NO-UNDO.
+  DEFINE VARIABLE hBuffer                   AS HANDLE               NO-UNDO.
 
   DO WITH FRAME {&FRAME-NAME}:
 
-    cAppserverInfo = "~n" + 
+    edAppServer:SCREEN-VALUE = "":U.
+    edAppServer:INSERT-STRING("~n" + 
       "Partition:                  " + notNull("Astra":U)        + "~n" +
       "Connected:                  " + notNull(STRING(lRemote))  + "~n" +
       "Connection Id:              " + notNull(cConnid)          + "~n" +
@@ -622,25 +659,30 @@ PROCEDURE ASInfo :
       "Connection Bound Req.:      " + notNull(STRING(lConnreq)) + "~n" +
       "Connection Bound:           " + notNull(STRING(lConnbnd)) + "~n" +
       "Connection Context:         " + notNull(cConnctxt)        + "~n"
-      .
+      ).
 
     DO iLoop = 1 TO NUM-ENTRIES(cConndbs):
-        ASSIGN
-            cAppserverInfo = cAppserverInfo + "~n" +
-                "Database: " + ENTRY(iLoop,cConndbs).
-    END.         
+        edAppServer:INSERT-STRING("~n" + "Database: " + ENTRY(iLoop,cConndbs)).
+    END.
 
-    cAppserverInfo =  cAppserverInfo + "~n~nPropath: ".
+    edAppServer:INSERT-STRING("~n~nPropath: ").
     DO iLoop = 1 TO NUM-ENTRIES(cASppath):
-       cAppserverInfo = cAppserverInfo + ENTRY(iLoop,cASppath) + "~n         ".
+       edAppServer:INSERT-STRING(ENTRY(iLoop,cASppath) + "~n         ").
     END.
 
-    cAppserverInfo =  cAppserverInfo + "~nPersistent Procedures: ".
-    DO iLoop = 1 TO NUM-ENTRIES(cConnpps):
-       cAppserverInfo = cAppserverInfo + ENTRY(iLoop,cConnpps) + "~n                       ".
+    edAppServer:INSERT-STRING("~nPersistent Procedures: ").
+    hBuffer = phTTPersistentProcedure:DEFAULT-BUFFER-HANDLE.
+    CREATE QUERY hQuery.
+    hQuery:SET-BUFFERS(hBuffer).
+    hQuery:QUERY-PREPARE("FOR EACH ttPProcedure BY iSeq").
+    hQuery:QUERY-OPEN.
+    hQuery:GET-FIRST.
+    DO WHILE hBuffer:AVAILABLE:
+        edAppServer:INSERT-STRING(hBuffer:BUFFER-FIELD("cProcedureName":U):BUFFER-VALUE + "~n                       ").
+        hQuery:GET-NEXT.
     END.
-
-    edAppserver:SCREEN-VALUE = cAppserverInfo.
+    hQuery:QUERY-CLOSE.
+    DELETE OBJECT hQuery.
 
     /* Display the Config and Connection Manager information. */
     DYNAMIC-FUNCTION("addHandle", INPUT phTTParam,       INPUT "*":U,                                  INPUT NO).
@@ -655,21 +697,20 @@ PROCEDURE ASInfo :
     ASSIGN cCustomisationInformation = "":U.
 
     /* Display this information after the existing information. */
-    edAppserver:MOVE-TO-EOF().
     edAppserver:INSERT-STRING("~n~n":U).
     edAppserver:INSERT-STRING("Customisation Information" + "~n":U + FILL("=":U, 50) + "~n":U).
 
     /* Customisation Types */
-    ASSIGN cCustomisationInformation =  "Session Customisation Types:" + "~n":U + pcCustomisationTypes + "~n~n":U
-           edAppserver:SCREEN-VALUE  = edAppserver:SCREEN-VALUE + cCustomisationInformation
+    ASSIGN cCustomisationInformation =  "Session Customisation Types:" + "~n":U + pcCustomisationTypes + "~n~n":U.
+    edAppserver:INSERT-STRING(cCustomisationInformation).
            .
     /* The References these resolve to. */
-    ASSIGN cCustomisationInformation =  "Session Customisation Type References:" + "~n":U + pcCustomisationReferences + "~n~n":U
-           edAppserver:SCREEN-VALUE  = edAppserver:SCREEN-VALUE + cCustomisationInformation
+    ASSIGN cCustomisationInformation =  "Session Customisation Type References:" + "~n":U + pcCustomisationReferences + "~n~n":U.
+    edAppserver:INSERT-STRING(cCustomisationInformation).
            .
     /* The result codes these resolve to. */
-    ASSIGN cCustomisationInformation =  "Session Customisation Result Codes:" + "~n":U + pcCustomisationResultCodes + "~n~n":U
-           edAppserver:SCREEN-VALUE  = edAppserver:SCREEN-VALUE + cCustomisationInformation
+    ASSIGN cCustomisationInformation =  "Session Customisation Result Codes:" + "~n":U + pcCustomisationResultCodes + "~n~n":U.
+    edAppserver:INSERT-STRING(cCustomisationInformation).
            .
     /* Go back to the top of the editor. */
     ASSIGN edAppserver:CURSOR-OFFSET = 1.
@@ -755,8 +796,8 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  ENABLE edAppserver edMessageSummary edMessageDetail edSystemInformation 
-         btMail btStack imAlert 
+  ENABLE imAlert edAppserver edMessageSummary edMessageDetail 
+         edSystemInformation btMail btStack 
       WITH FRAME frMain IN WINDOW wiWin.
   {&OPEN-BROWSERS-IN-QUERY-frMain}
   VIEW FRAME frButtons IN WINDOW wiWin.
@@ -798,7 +839,6 @@ PROCEDURE getAppserverInfo :
     DEFINE VARIABLE cConnctxt           AS CHARACTER                NO-UNDO. /* SESSION:SERVER-CONNECTION-CONTEXT */
     DEFINE VARIABLE cASppath            AS CHARACTER                NO-UNDO. /* PROPATH */
     DEFINE VARIABLE cConndbs            AS CHARACTER                NO-UNDO. /* List of Databases */
-    DEFINE VARIABLE cConnpps            AS CHARACTER                NO-UNDO. /* List of Running Persistent Procedures */
     DEFINE VARIABLE iLoop               AS INTEGER                  NO-UNDO.
     DEFINE VARIABLE cAppserverInfo      AS CHARACTER                NO-UNDO.
     DEFINE VARIABLE hAsynch             AS HANDLE                   NO-UNDO.
@@ -806,6 +846,7 @@ PROCEDURE getAppserverInfo :
     DEFINE VARIABLE hHandle2            AS HANDLE                   NO-UNDO.
     DEFINE VARIABLE hHandle3            AS HANDLE                   NO-UNDO.
     DEFINE VARIABLE hHandle4            AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE hHandle5            AS HANDLE                   NO-UNDO.
     DEFINE VARIABLE cCustomisationInfo AS CHARACTER                 NO-UNDO     EXTENT 3.
     
     IF VALID-HANDLE(gshAstraAppserver) AND CAN-QUERY(gshAstraAppserver, "connected":U) AND gshAstraAppserver:CONNECTED() THEN
@@ -821,14 +862,14 @@ PROCEDURE getAppserverInfo :
               OUTPUT cConnctxt,
               OUTPUT cASppath,
               OUTPUT cConndbs,
-              OUTPUT cConnpps,
               OUTPUT cCustomisationInfo[1],
               OUTPUT cCustomisationInfo[2],
               OUTPUT cCustomisationInfo[3],
               OUTPUT TABLE-HANDLE hHandle1,
               OUTPUT TABLE-HANDLE hHandle2,
               OUTPUT TABLE-HANDLE hHandle3,
-              OUTPUT TABLE-HANDLE hHandle4   ) NO-ERROR.
+              OUTPUT TABLE-HANDLE hHandle4,
+              OUTPUT TABLE-HANDLE hHandle5   ) NO-ERROR.
         WAIT-FOR PROCEDURE-COMPLETE OF hAsynch.
     END.
 
@@ -902,7 +943,6 @@ PROCEDURE getSystemInfo :
     DEFINE VARIABLE hParentWindow      AS HANDLE NO-UNDO.
     DEFINE VARIABLE hParentProcedure   AS HANDLE NO-UNDO.
     DEFINE VARIABLE cParentWindowTitle AS CHARACTER NO-UNDO.
-    DEFINE VARIABLE cSystemInformation AS CHARACTER NO-UNDO.
     DEFINE VARIABLE cObjectInformation AS CHARACTER NO-UNDO.
     DEFINE VARIABLE iLoop              AS INTEGER NO-UNDO.
     DEFINE VARIABLE cPatchLevel        AS CHARACTER NO-UNDO.
@@ -919,7 +959,6 @@ PROCEDURE getSystemInfo :
     DEFINE VARIABLE cRunAttribute      AS CHARACTER NO-UNDO.
 
     DEFINE VARIABLE hHandle            AS HANDLE    NO-UNDO.
-    DEFINE VARIABLE cPP                AS CHARACTER NO-UNDO.
 
     DEFINE VARIABLE cCustomisationInformation       AS CHARACTER    NO-UNDO.
     DEFINE VARIABLE hCustomizationManager           AS HANDLE       NO-UNDO.
@@ -929,15 +968,10 @@ PROCEDURE getSystemInfo :
     DEFINE VARIABLE hTTServiceType      AS HANDLE                   NO-UNDO.
     DEFINE VARIABLE hTTService          AS HANDLE                   NO-UNDO.
 
+DO WITH FRAME {&FRAME-NAME}:
     RUN GetPatchLevel(OUTPUT cPatchLevel). /* Read patch level from version file */
 
-    /* Generate a list of running persistent procedures */
-    hHandle = SESSION:FIRST-PROCEDURE.
-    DO WHILE hHandle <> ?:
-      IF hHandle:PERSISTENT THEN
-        ASSIGN cPP = cPP + (IF cPP NE "" THEN ",":U ELSE "") + hHandle:FILE-NAME.
-      hHandle = hHandle:NEXT-SIBLING.
-    END.
+    edSystemInformation:SCREEN-VALUE IN FRAME {&FRAME-NAME} = "".
 
     hParentWindow = FRAME {&FRAME-NAME}:PARENT.
     hParentProcedure = ghSourceProcedure.
@@ -1009,8 +1043,7 @@ PROCEDURE getSystemInfo :
         OUTPUT cResources1,
         OUTPUT cResources2).
 
-    cSystemInformation = "~n" + 
-
+    edSystemInformation:INSERT-STRING("~n" + 
         "Window Title:               " + notNull(hParentWindow:TITLE)            + "~n" +
         "Site Number:                " + notNull(cSite)                          + "~n" +
         "User Login:                 " + notNull(ENTRY(1,cProperties,CHR(3)))    + "~n" +
@@ -1033,13 +1066,11 @@ PROCEDURE getSystemInfo :
         "Session Remote:             " + STRING(SESSION:REMOTE)                  + "~n" +   
         "Computer:                   " + notNull(cResources1)                    + "~n" +
         "Resources:                  " + notNull(cResources2)                    + "~n" +
-        "Run From:                   " + "Procedure '" + notNull(ENTRY(1,PROGRAM-NAME(4)," ")) + "' in program " + notNull(ENTRY(2,PROGRAM-NAME(4)," ")) + "~n"
-        .
+        "Run From:                   " + "Procedure '" + notNull(ENTRY(1,PROGRAM-NAME(giLevel)," ")) + "' in program " + notNull(ENTRY(2,PROGRAM-NAME(giLevel)," ")) + "~n"
+        ).
 
     IF cObjectInformation <> "":U THEN
-      ASSIGN
-          cSystemInformation = cSystemInformation + "~n" +
-                               cObjectInformation.
+        edSystemInformation:INSERT-STRING("~n" + cObjectInformation).
 
     
     ASSIGN cDBList = "":U.
@@ -1050,27 +1081,28 @@ PROCEDURE getSystemInfo :
       RUN getDBVersion IN gshGenManager (INPUT cDBList, OUTPUT cDBVersions).
     
     DO iLoop = 1 TO NUM-DBS:
-        ASSIGN
-            cSystemInformation = cSystemInformation + "~n" +
+        edSystemInformation:INSERT-STRING( "~n" +
                 "Database:       " + LDBNAME(iLoop)   + "~n" + 
                 "Delta Version:  " + ENTRY(iLoop, cDBVersions) + "~n" + 
                 "Version:        " + DBVERSION(iLoop) + "~n" + 
                 "Connect:        " + DBPARAM(iLoop)   + "~n"
-                .
+                ).
     END.         
 
-    cSystemInformation =  cSystemInformation + "~nPropath: ".
+    edSystemInformation:INSERT-STRING("~nPropath: ").
 
     DO iLoop = 1 TO NUM-ENTRIES(PROPATH):
-       cSystemInformation = cSystemInformation + ENTRY(iLoop,PROPATH) + "~n         ".
+       edSystemInformation:INSERT-STRING(ENTRY(iLoop,PROPATH) + "~n         ").
     END.
 
-    cSystemInformation =  cSystemInformation + "~nPersistent Procedures: ".
-    DO iLoop = 1 TO NUM-ENTRIES(cPP):
-       cSystemInformation = cSystemInformation + ENTRY(iLoop,cPP) + "~n                       ".
+    edSystemInformation:INSERT-STRING("~nPersistent Procedures: ").
+    hHandle = SESSION:FIRST-PROCEDURE.
+    DO WHILE hHandle <> ?:
+      IF hHandle:PERSISTENT THEN
+          edSystemInformation:INSERT-STRING(hHandle:FILE-NAME + "~n                       ").
+      
+      hHandle = hHandle:NEXT-SIBLING.
     END.
-
-    edSystemInformation:SCREEN-VALUE = cSystemInformation.
 
     /* Add data from the CONFIG manager */
     RUN obtainCFMTables        IN THIS-PROCEDURE (OUTPUT hTTParam, OUTPUT hTTManager).
@@ -1097,26 +1129,26 @@ PROCEDURE getSystemInfo :
     
         /* Customisation Types */
         ASSIGN cCustomisationInformation        =  "Session Customisation Types:" + "~n":U
-               cCustomisationInformation        = cCustomisationInformation + DYNAMIC-FUNCTION("getCustomisationTypesPrioritised":U IN hCustomizationManager) + "~n~n":U
-               edSystemInformation:SCREEN-VALUE = edSystemInformation:SCREEN-VALUE + cCustomisationInformation
-               .
+               cCustomisationInformation        = cCustomisationInformation + DYNAMIC-FUNCTION("getCustomisationTypesPrioritised":U IN hCustomizationManager) + "~n~n":U.
+        edSystemInformation:INSERT-STRING(cCustomisationInformation).
+
         /* The References these resolve to. */
         ASSIGN cCustomisationInformation        =  "Session Customisation Type References:" + "~n":U
-               cCustomisationInformation        = cCustomisationInformation + DYNAMIC-FUNCTION("getSessionCustomisationReferences":U IN hCustomizationManager) + "~n~n":U
-               edSystemInformation:SCREEN-VALUE = edSystemInformation:SCREEN-VALUE + cCustomisationInformation
-               .
+               cCustomisationInformation        = cCustomisationInformation + DYNAMIC-FUNCTION("getSessionCustomisationReferences":U IN hCustomizationManager) + "~n~n":U.
+        edSystemInformation:INSERT-STRING(cCustomisationInformation).
+
         /* The result codes these resolve to. */
         ASSIGN cCustomisationInformation        =  "Session Customisation Result Codes:" + "~n":U
-               cCustomisationInformation        = cCustomisationInformation + DYNAMIC-FUNCTION("getSessionResultCodes":U IN hCustomizationManager) + "~n~n":U
-               edSystemInformation:SCREEN-VALUE = edSystemInformation:SCREEN-VALUE + cCustomisationInformation
-               .
+               cCustomisationInformation        = cCustomisationInformation + DYNAMIC-FUNCTION("getSessionResultCodes":U IN hCustomizationManager) + "~n~n":U.
+        edSystemInformation:INSERT-STRING(cCustomisationInformation).
+
     END.    /* valid customisation manager */
 
     /* Go back to the top of the editor. */
     ASSIGN edSystemInformation:CURSOR-OFFSET = 1.
+END.
 
     RETURN.
-
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1137,6 +1169,7 @@ PROCEDURE initializeObject :
     DEFINE VARIABLE dMinHeight AS DECIMAL NO-UNDO.
     DEFINE VARIABLE cDefaultTitle AS CHARACTER NO-UNDO.
     DEFINE VARIABLE hPreviousButton AS HANDLE NO-UNDO.
+    DEFINE VARIABLE iBGcolor        AS INTEGER    NO-UNDO.
     DEFINE VARIABLE hWindow AS HANDLE     NO-UNDO.
 
     /* message dialog does not require security - so set object secured to true
@@ -1247,13 +1280,26 @@ PROCEDURE initializeObject :
     edMessageDetail:SCREEN-VALUE = "~n" + REPLACE(pcMessageDetailList,CHR(3),"~n~n").    
     edMessageSummary:HEIGHT = edMessageSummary:NUM-LINES * FONT-TABLE:GET-TEXT-HEIGHT(edMessageSummary:FONT) + 1 NO-ERROR.
 
-    IF NOT glQuestion AND NOT glInformation THEN
-    DO:
-      RUN getSystemInfo.
-      RUN getAppserverInfo.
-    END.
-
     {set HideOnInit YES}.
+
+  IF glQuestion OR glInformation THEN
+    DYNAMIC-FUNCTION("setUserProperty":U IN h_afspfoldrw, "DoNotShow":U, "yes":U).
+  
+  RUN initializeObject IN h_afspfoldrw.
+
+  /* We want the background color to be message-style (color3dface) 
+    (large editor inherits from windows text (or something) - typically white, 
+     These are thus defined with bgcolor 16 as default, but this only matches 
+     windows standard)   */ 
+  iBgcolor = {fn getColor3DFace}.  
+  IF iBgcolor <> ? THEN
+  DO WITH FRAME {&FRAME-NAME}:
+    ASSIGN
+      edMessageDetail:BGCOLOR = iBgcolor
+      edSystemInformation:BGCOLOR = iBgColor
+      edAppserver:BGCOLOR = iBgColor
+      edMessageSummary:BGCOLOR = iBgColor.
+  END.
 
     /* Question */
 
@@ -1304,9 +1350,20 @@ PROCEDURE initializeObject :
 
     VIEW FRAME {&FRAME-NAME}.
 
+    ASSIGN FRAME {&FRAME-NAME}:SCROLLABLE     = TRUE
+               FRAME {&FRAME-NAME}:HEIGHT         = FRAME {&FRAME-NAME}:HEIGHT
+               FRAME {&FRAME-NAME}:WIDTH          = FRAME {&FRAME-NAME}:WIDTH
+               FRAME {&FRAME-NAME}:VIRTUAL-HEIGHT = FRAME {&FRAME-NAME}:HEIGHT 
+               FRAME {&FRAME-NAME}:VIRTUAL-WIDTH  = FRAME {&FRAME-NAME}:WIDTH    
+               FRAME {&FRAME-NAME}:SCROLLABLE     = FALSE.
+
     IF VALID-HANDLE(ghFillIn) THEN APPLY "ENTRY":U TO ghFillIn.
     ELSE IF btDefault:SENSITIVE THEN APPLY "ENTRY":U TO btDefault IN FRAME frButtons.
 
+    /* Move the cursor to the first line, so the message displays from top to bottom... */
+    ASSIGN edMessageSummary:CURSOR-OFFSET = 1
+           edMessageDetail:CURSOR-OFFSET  = 1
+           NO-ERROR.
 
 END PROCEDURE.
 
@@ -1480,6 +1537,15 @@ DEFINE INPUT PARAMETER piPageNumber AS INTEGER.
 /*     giPageNumber = piPageNumber. */
     DO WITH FRAME {&FRAME-NAME}: END.
 
+    IF NOT glQuestion AND NOT glInformation THEN
+    DO:
+        giLevel = 5.
+        IF piPageNumber = 3 AND edSystemInformation:LENGTH = 0 THEN
+            RUN getSystemInfo.
+        IF piPageNumber = 4 AND edAppServer:LENGTH = 0 THEN
+            RUN getAppserverInfo.
+    END.
+
     edMessageDetail:HIDDEN = (piPageNumber <> 2).
     edMessageSummary:HIDDEN = (piPageNumber <> 1).
     edSystemInformation:HIDDEN = (piPageNumber <> 3).
@@ -1541,7 +1607,6 @@ FUNCTION displayConfigInfo RETURNS LOGICAL
     DEFINE BUFFER ttHandle          FOR ttHandle.
 
     /* Display this information after the existing information. */
-    phDisplayWidget:MOVE-TO-EOF().
     phDisplayWidget:INSERT-STRING("~n~n":U).
     phDisplayWidget:INSERT-STRING("Session Configuration Information" + "~n":U + FILL("=":U, 50) + "~n":U).
     
@@ -1598,9 +1663,6 @@ FUNCTION displayConfigInfo RETURNS LOGICAL
         DELETE OBJECT hBuffer NO-ERROR.
         ASSIGN hBuffer = ?.
     END.    /* each ttHandle. */
-
-    /* Go back to the top of the editor. */
-    ASSIGN phDisplayWidget:CURSOR-OFFSET = 1.
 
     RETURN TRUE.
 END FUNCTION.

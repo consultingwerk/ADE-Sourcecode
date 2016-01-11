@@ -3386,9 +3386,13 @@ PROCEDURE launchFFMapper :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hHandle           AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cProcedureType    AS CHARACTER  NO-UNDO.
-  
+  DEFINE VARIABLE hHandle           AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE cProcedureType    AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cTargets          AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE hTarget           AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE i                 AS INTEGER   NO-UNDO. 
+  DEFINE VARIABLE cObjectName       AS CHARACTER NO-UNDO.
+    
   {get ContainerHandle hHandle}.
 
   IF NOT VALID-HANDLE(ghFFMapper) THEN
@@ -3405,8 +3409,27 @@ PROCEDURE launchFFMapper :
                                               INPUT  TARGET-PROCEDURE,  /* phObjectProcedure      */
                                               OUTPUT ghFFMapper,        /* phProcedureHandle      */
                                               OUTPUT cProcedureType).   /* pcProcedureType        */
-  ELSE
+  ELSE DO:
+    /* Get the Viewer object so that the resize can be performed */
+    cTargets = DYNAMIC-FUNCTION('linkHandles':U IN ghFFMapper, 'Container-Target':U) NO-ERROR.
+    DO i = 1 to NUM-ENTRIES(cTargets):
+        hTarget = WIDGET-HANDLE(ENTRY(i, cTargets)).
+        {get ObjectName cObjectName hTarget} .
+        IF cObjectName = "rycntbffmv":U THEN
+           LEAVE.
+        ELSE
+           hTarget = ?.
+    END.
+    IF VALID-HANDLE(hTarget) THEN
+    DO:       
+       {get ContainerHandle hHandle hTarget}.
+       RUN resizeObject in hTarget (hHandle:HEIGHT, hHandle:WIDTH).
+    END.
+
     RUN viewObject IN ghFFMapper.
+
+  END.
+   
     
   /* This will check to see if any child windows are open and visible to set the corresponding userProperty for the prompt of the 'child windows open' */
   {fn checkChildWindows}.
@@ -4899,21 +4922,17 @@ PROCEDURE runContainer :
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cCustomizationResultCode  AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cCacheToolbar             AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cSessionResultCodes       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cStatusDefault            AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cProcedureType            AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cFilename                 AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE dCustomizationResultObj   AS DECIMAL    NO-UNDO.
   DEFINE VARIABLE hHandle                   AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hCustomizationManager     AS HANDLE     NO-UNDO.
-
+  
   DEFINE BUFFER ttSmartObject FOR ttSmartObject.
 
   ASSIGN
       cCustomizationResultCode = DYNAMIC-FUNCTION("getUserProperty":U IN TARGET-PROCEDURE, "CustomizationResultCode":U)
       dCustomizationResultObj  = DECIMAL(DYNAMIC-FUNCTION("getUserProperty":U IN TARGET-PROCEDURE, "CustomizationResultObj":U))
-      hCustomizationManager    = DYNAMIC-FUNCTION("getManagerHandle":U, "CustomizationManager":U)
-      cSessionResultCodes      = DYNAMIC-FUNCTION("getSessionResultCodes":U IN hCustomizationManager)
       cStatusDefault           = DYNAMIC-FUNCTION("getStatusDefault":U IN TARGET-PROCEDURE)
       cCacheToolbar            = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager, "cacheToolbar":U, TRUE)
       cCacheToolbar            = (IF cCacheToolbar = ? OR cCacheToolbar = "?":U THEN "":U ELSE cCacheToolbar).
@@ -4935,9 +4954,14 @@ PROCEDURE runContainer :
   RUN clearClientCache IN gshRepositoryManager.
 
   DYNAMIC-FUNCTION("setStatusDefault":U IN TARGET-PROCEDURE, "Running '":U + cFilename + "'...":U).
-  IF VALID-HANDLE(hCustomizationManager) THEN
-      RUN setSessionResultCodes IN hCustomizationManager (INPUT cCustomizationResultCode,
-                                                          INPUT YES). /* Set on Appserver? */
+          .
+  /* Cache the custom objects for all instances on all pages */
+  RUN cacheRepositoryObject IN gshRepositoryManager
+         (INPUT cFileName,  /* Object Filename */
+          INPUT "Page:*":U, /* Instance - get all instances */
+          INPUT "",         /* Run attribute */
+          INPUT cCustomizationResultCode). /* Customization code */
+
   DYNAMIC-FUNCTION("setPropertyList":U IN gshSessionManager, "cacheToolbar":U, "no":U, FALSE).
 
   RUN launchContainer IN gshSessionManager (INPUT  cFilename,       /* pcObjectFileName       */
@@ -4953,10 +4977,6 @@ PROCEDURE runContainer :
                                             INPUT  ?,               /* phObjectProcedure      */
                                             OUTPUT hHandle,         /* phProcedureHandle      */
                                             OUTPUT cProcedureType). /* pcProcedureType        */
-
-  IF VALID-HANDLE(hCustomizationManager) THEN
-      RUN setSessionResultCodes IN hCustomizationManager (INPUT cSessionResultCodes,
-                                                          INPUT YES). /* Set on Appserver? */
 
   DYNAMIC-FUNCTION("setPropertyList":U IN gshSessionManager, "cacheToolbar":U, cCacheToolbar, TRUE).
 

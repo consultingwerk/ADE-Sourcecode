@@ -81,7 +81,7 @@ SelectionLabel,OptionalString
 &Scoped-define PROCEDURE-TYPE SmartDataField
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME frLookup
 
 /* Custom List Definitions                                              */
@@ -153,7 +153,7 @@ END.
 /* SETTINGS FOR WINDOW sObject
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frLookup
-   NOT-VISIBLE Size-to-Fit                                              */
+   NOT-VISIBLE FRAME-NAME Size-to-Fit                                   */
 ASSIGN 
        FRAME frLookup:SCROLLABLE       = FALSE
        FRAME frLookup:HIDDEN           = TRUE
@@ -263,13 +263,6 @@ PROCEDURE initializeObject :
 
   {get ContainerSource hContainer}. /* SDV */    
   {get UIBMode cUIBMode}.    
-  
-  /* subscribe ib containing viewer to events that will populate the combo */
-  IF NOT (cUIBMode BEGINS "DESIGN":U)  THEN
-  DO:
-    SUBSCRIBE TO "getLookupQuery":U IN hContainer.  /* add to lookup tt */
-    SUBSCRIBE TO "displayLookup":U IN hContainer.   /* display lookup fields */
-  END.
 
   RUN SUPER.
 

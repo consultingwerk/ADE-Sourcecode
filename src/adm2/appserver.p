@@ -125,10 +125,10 @@ FUNCTION getASBound RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getAsDivision) = 0 &THEN
+&IF DEFINED(EXCLUDE-getASDivision) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getAsDivision Procedure 
-FUNCTION getAsDivision RETURNS CHARACTER
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getASDivision Procedure 
+FUNCTION getASDivision RETURNS CHARACTER
   (   )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -147,10 +147,10 @@ FUNCTION getASHandle RETURNS WIDGET-HANDLE
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getAsHasConnected) = 0 &THEN
+&IF DEFINED(EXCLUDE-getASHasConnected) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getAsHasConnected Procedure 
-FUNCTION getAsHasConnected RETURNS LOGICAL
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getASHasConnected Procedure 
+FUNCTION getASHasConnected RETURNS LOGICAL
   ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -313,10 +313,21 @@ FUNCTION setASHandle RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-setAsHasStarted) = 0 &THEN
+&IF DEFINED(EXCLUDE-setASHasConnected) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setAsHasStarted Procedure 
-FUNCTION setAsHasStarted RETURNS LOGICAL
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setASHasConnected Procedure 
+FUNCTION setASHasConnected RETURNS LOGICAL
+  ( plASHasConnected AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setASHasStarted) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setASHasStarted Procedure 
+FUNCTION setASHasStarted RETURNS LOGICAL
   ( plHasStarted AS LOGICAL  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -524,7 +535,10 @@ PROCEDURE connectServer :
   DEFINE VARIABLE cAppService     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hContainer      AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lAsHasConnected AS LOGICAL    NO-UNDO.
-  
+  DEFINE VARIABLE lAsHasStarted   AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lConnected      AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lUseRepository  AS LOGICAL    NO-UNDO.
+
   /* Silent error. See notes */ 
   {get AppService cAppService}.
 
@@ -539,8 +553,14 @@ PROCEDURE connectServer :
   IF cAppService = '':U OR cAppService = ? THEN
     RETURN.
 
-  {get AsHasConnected lAsHasConnected}.
+  &SCOPED-DEFINE xp-assign
+  {get AsHasConnected lAsHasConnected}
+  {get UseRepository lUseRepository}
+   .
+  &UNDEFINE xp-assign
 
+  /* if this object never has connected then get the AsUsePrompt and AsInfo 
+     prop in case this service has not been connected at all */ 
   IF NOT lAsHasConnected THEN
   DO:
     &SCOPED-DEFINE xp-assign
@@ -557,23 +577,40 @@ PROCEDURE connectServer :
   END.
   ELSE 
     ASSIGN 
-      lASUsePrompt = ?
-      cASInfo      = ?.
+      lAsUsePrompt = ?
+      cAsInfo      = ?.
 
-  RUN appServerConnect IN appSrvUtils
-    (cAppService, lASUsePrompt, cASInfo, OUTPUT phAppService).
-  
-  IF RETURN-VALUE = "ERROR":U THEN   /* or phAppService = SESSION:HANDLE*/     
+  /* We do not get the service handle if this object not has connected yet, 
+     since state-aware objects relies on each object calling appserverConnect 
+     ONCE for appserverDisconnect to work correctly (as_utils uses a counter to
+     keep track of when it really can disconnect..)
+  -  On Dynamics, however, the AS-manager connect method always disconnects 
+     and connects, so we use the existing handle if possible also for the 
+     first connection.  */
+  IF lAsHasConnected OR lUseRepository THEN
+    ASSIGN
+      phAppService = DYNAMIC-FUNCTION('getServiceHandle':U IN appSrvUtils,cAppService)
+      lConnected   = VALID-HANDLE(phAppService) AND 
+                   (phAppService = SESSION:HANDLE OR phAppService:CONNECTED()).  
+
+  IF NOT lConnected THEN
   DO:
-    RUN addMessage IN TARGET-PROCEDURE 
-        (cAppService +
-        ' partition is running locally without the proper database connection(s).',
-         ?,?).
-    RETURN ERROR 'ADM-ERROR':U.
-  END. /* hAppService = session or return-value = 'error' */
-  
+    RUN appServerConnect IN appSrvUtils
+        (cAppService, lASUsePrompt, cASInfo, OUTPUT phAppService).
+
+    IF RETURN-VALUE = "ERROR":U THEN   /* or phAppService = SESSION:HANDLE*/     
+    DO:
+      RUN addMessage IN TARGET-PROCEDURE 
+          (cAppService +
+          ' partition is running locally without the proper database connection(s).',
+           ?,?).
+      RETURN ERROR 'ADM-ERROR':U.
+    END. /* hAppService = session or return-value = 'error' */
+  END.
+
   IF NOT lAsHasConnected THEN
   DO:
+    {set AsHasConnected TRUE}.
     IF phAppService NE ? AND phAppService NE SESSION:HANDLE THEN
       {set ASDivision 'Client':U}. 
     ELSE 
@@ -599,7 +636,10 @@ PROCEDURE destroyObject :
   
   Parameters:  <none>
 ------------------------------------------------------------------------------*/
+  
+  
   RUN disconnectObject IN TARGET-PROCEDURE. /* Disc. from AppServer */  
+  
   RUN SUPER NO-ERROR.  
   IF ERROR-STATUS:ERROR OR RETURN-VALUE = "ADM-ERROR":U THEN
       RETURN ERROR "ADM-ERROR":U.
@@ -673,9 +713,10 @@ PROCEDURE disconnectObject :
                This procedure is invoked from destroyObject, but can also be 
                run directly to disconnect without exiting. 
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hASHandle      AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE lASBound       AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE cAppService    AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE hASHandle            AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE lASBound             AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE cAppService          AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cServerOperatingMode AS CHARACTER  NO-UNDO.
 
   /* we might be connected even if we have no Appservice 
     (borrowed from container) */ 
@@ -692,11 +733,27 @@ PROCEDURE disconnectObject :
     END. /* if valid and not target */
   END.  /* if lAsBound  */  
   
-  {get AppService cAppService}.
-  IF cAppService <> '':U THEN
-    RUN appServerDisconnect IN appSrvUtils
-      (cAppService) .
+  &SCOPED-DEFINE xp-assign
+  {get ServerOperatingMode cServerOperatingMode}
+  {get AppService cAppService}
+  .
+  &UNDEFINE xp-assign
   
+  /* Only disconnect if state aware: 
+    non-dynamics -
+    (as-utils currently uses a counter to check if the disconnect really can 
+     disconnect. Objects of this class will only do ONE appServerConnect, so 
+     this counter should be correct, but the logic could rather have checked
+     if server:first-procedure was valid) 
+    dynamics -  
+      appServerDisconnect does nothing, due to the fact that disconnect is non 
+      conditional in the ASManager and this logic relies on a conditional 
+      disconnect. (Since this now is called only when state-aware, dynamics 
+      really does not matter..)  */
+
+  IF cServerOperatingMode <> 'STATELESS':U AND cAppService <> '':U THEN
+    RUN appServerDisconnect IN appSrvUtils (cAppService) .
+
   RETURN.
 
 END PROCEDURE.
@@ -1261,10 +1318,10 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getAsDivision) = 0 &THEN
+&IF DEFINED(EXCLUDE-getASDivision) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getAsDivision Procedure 
-FUNCTION getAsDivision RETURNS CHARACTER
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getASDivision Procedure 
+FUNCTION getASDivision RETURNS CHARACTER
   (   ) :
 /*------------------------------------------------------------------------------
   Purpose:  Returns a string indicating which side of the AppServer this
@@ -1396,26 +1453,20 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getAsHasConnected) = 0 &THEN
+&IF DEFINED(EXCLUDE-getASHasConnected) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getAsHasConnected Procedure 
-FUNCTION getAsHasConnected RETURNS LOGICAL
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getASHasConnected Procedure 
+FUNCTION getASHasConnected RETURNS LOGICAL
   ( /* parameter-definitions */ ) :
 /*------------------------------------------------------------------------------
   Purpose: Return yes if a connection has taken place 
-    Notes: READ-ONLY property.  
-           Does only know that a connection HAS taken place. Not if we still
-           are connected.
-           This is resolved through the INTERNAL value of AsDivision as this 
-           is unknown until connectServer has connected     
+    Notes: Does only know that a connection HAS taken place. Not if we still
+           are connected. 
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cDivision AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lASHasConnected AS LOGICAL NO-UNDO.
   
-  &SCOPED-DEFINE xpAsDivision
-  {get AsDivision cDivision}.
-  &UNDEFINE xpAsDivision
-  
-  RETURN cDivision <> ?.
+  {get ASHasConnected lASHasConnected}.
+  RETURN lASHasConnected.
 
 END FUNCTION.
 
@@ -1719,10 +1770,40 @@ FUNCTION runServerProcedure RETURNS HANDLE
     Notes: Intended to simplify an override of the run statement for example 
            to use a bind procedure instead of running the procedure directly. 
 ------------------------------------------------------------------------------*/  
-  DEFINE VARIABLE hASHandle AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hASHandle      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lQuery         AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lUseRepository AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cLogicalName   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cObjectType    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lDynamic       AS LOGICAL    NO-UNDO.
 
+  &SCOPED-DEFINE xp-assign
+  {get QueryObject lQuery}
+  {get UseRepository lUseRepository}
+  .
+  &UNDEFINE xp-assign
+  
   DO ON STOP UNDO, LEAVE: 
-    RUN VALUE(pcServerFileName) ON phAppService PERSISTENT SET hASHandle.  
+    
+    IF lQuery AND lUseRepository THEN
+    DO:
+      &SCOPED-DEFINE xp-assign
+      {get DynamicData lDynamic}
+      {get LogicalObjectName cLogicalName}
+      {get ObjectType cObjectType}
+      .
+      &UNDEFINE xp-assign    
+    END.
+
+    IF NOT lDynamic THEN
+      RUN VALUE(pcServerFileName) ON phAppService PERSISTENT SET hASHandle.  
+    ELSE
+    DO:
+      IF cObjectType ='SmartDataObject':U THEN
+        RUN adm2/remotedynsdo.w ON phAppService PERSISTENT SET hASHandle (cLogicalName).
+      ELSE IF cObjectType ='SmartBusinessObject':U THEN
+        RUN ry/obj/remotedynsbo.w ON phAppService PERSISTENT SET hASHandle (cLogicalName).
+    END.
   END.  
 
   RETURN hASHandle.
@@ -1813,10 +1894,29 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-setAsHasStarted) = 0 &THEN
+&IF DEFINED(EXCLUDE-setASHasConnected) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setAsHasStarted Procedure 
-FUNCTION setAsHasStarted RETURNS LOGICAL
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setASHasConnected Procedure 
+FUNCTION setASHasConnected RETURNS LOGICAL
+  ( plASHasConnected AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose: Set to yes when a connection has taken place 
+    Notes: 
+------------------------------------------------------------------------------*/
+  {set ASHasConnected plASHasConnected}.
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setASHasStarted) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setASHasStarted Procedure 
+FUNCTION setASHasStarted RETURNS LOGICAL
   ( plHasStarted AS LOGICAL  ) :
 /*------------------------------------------------------------------------------
   Purpose:  Set the flag that indicates whether the client object has done its 
@@ -2093,6 +2193,12 @@ Parameters: pcServerOperatingMode can be:
   DEFINE VARIABLE cAsDivision  AS CHAR NO-UNDO.
 
   {get ServerOperatingMode cCurrentMode}.
+
+  /* ignore any setting on server (inst prop of static sdo, causing problems 
+     in static SBOs) */
+
+  IF SESSION:REMOTE THEN
+    RETURN FALSE.
 
   /* 'Stateless' is set from the AppServer, it can be forced to 'state-reset',
      but must NOT be set to NONE when this is a 'client' 

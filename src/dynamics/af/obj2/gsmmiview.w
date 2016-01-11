@@ -1816,28 +1816,6 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE resetRecord vTableWin 
-PROCEDURE resetRecord :
-/*------------------------------------------------------------------------------
-  Purpose:     Ensure delete remains insensitive when required (Item band node
-               is selected )
-  Parameters:
-  Notes:
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hSource    AS HANDLE     NO-UNDO.
-
-  RUN SUPER.
-
-  /* Code placed here will execute AFTER standard behavior.    */
-  {get ContainerSource hSource}.
-  IF VALID-HANDLE(hSource) THEN
-    RUN treeSynch IN hSource ("ITEM":U).
-
- END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE selectPage vTableWin 
 PROCEDURE selectPage :
 /*------------------------------------------------------------------------------

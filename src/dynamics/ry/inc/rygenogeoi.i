@@ -351,7 +351,7 @@
 
                         RUN generateEntityInstances IN ghDesignManager ( INPUT gsc_entity_mnemonic.entity_mnemonic_description,
                                                                          INPUT cAllFields,
-                                                                         INPUT YES             ) NO-ERROR.
+                                                                         INPUT No  /*Delete existin instances? */  ) NO-ERROR.
                         IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN
                         DO:
                             DELETE WIDGET-POOL cWidgetPoolName NO-ERROR.

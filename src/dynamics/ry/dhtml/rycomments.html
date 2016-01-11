@@ -1,0 +1,48 @@
+<!--wss
+{af/sup2/afglobals.i NEW GLOBAL }
+
+DEFINE VARIABLE cScriptName         AS CHARACTER NO-UNDO.
+DEFINE VARIABLE ghRequestManager    AS HANDLE    NO-UNDO.
+DEFINE VARIABLE ghUIManager         AS HANDLE    NO-UNDO.
+DEFINE VARIABLE gcLogicalObjectName AS CHARACTER NO-UNDO.
+DEFINE VARIABLE gcSDOName           AS CHARACTER NO-UNDO.
+DEFINE VARIABLE gcRowIdent          AS CHARACTER NO-UNDO.
+DEFINE VARIABLE ghSDO               AS HANDLE    NO-UNDO.
+DEFINE VARIABLE gcEntityInfo        AS CHARACTER NO-UNDO.
+
+/* Parse the Input Data */
+ASSIGN cScriptName      = get-cgi('SCRIPT_NAME')
+	gcLogicalObjectName = (IF NUM-ENTRIES(cScriptName, ".") > 1 THEN ENTRY(2,cScriptName,'.') ELSE "")
+	gcSDOName           = (IF NUM-ENTRIES(cScriptName, ".") > 2 THEN ENTRY(3,cScriptName,'.') ELSE "")
+	gcSDOName           = REPLACE(gcSDOName, "+", ".")
+	gscSessionID        = (IF NUM-ENTRIES(cScriptName, ".") > 3 THEN ENTRY(1,ENTRY(4,cScriptName,'.')) ELSE "")
+	gcRowIdent          = (IF NUM-ENTRIES(cScriptName, ".") > 4 THEN ENTRY(5,cScriptName,'.') ELSE "").
+
+/* Get the request Manager Handle */
+ghRequestManager = DYNAMIC-FUNCTION("getManagerHandle":U IN THIS-PROCEDURE,
+                                    "RequestManager":U).
+
+/* Get the request Manager Handle */
+ghUIManager      = DYNAMIC-FUNCTION("getManagerHandle":U IN THIS-PROCEDURE,
+                                    "UserInterfaceManager":U).
+
+set-user-field("sessionid":U,gscSessionID).
+set-user-field("logicalobjectname":U, gcLogicalObjectName).
+set-user-field("parentsdoname":U, gcSDOName).
+set-user-field("rowid":U, gcRowIdent).
+set-user-field("_cleanupdataobjects":U, "NO").
+
+/* Run the comments window with this info */
+run processRequest in ghRequestManager ("gsmcmobjcw").
+
+/* Get the SDO handle for this window and then run the getEntityInfo in the Logic Procedure */
+ASSIGN
+  ghSDO        = DYNAMIC-FUNCTION("getDataSourceHandle" IN ghUIManager, "gsmcmobjcw", "gsmcmfullow", "").
+  gcEntityInfo = DYNAMIC-FUNCTION("getEntityInfo" IN ghSDO).
+
+DYNAMIC-FUNCTION("cleanupDataObjects" IN ghUIManager).
+
+-->
+<script>
+window.entityInfo = '`gcEntityInfo`';
+</script>

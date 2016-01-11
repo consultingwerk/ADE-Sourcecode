@@ -62,7 +62,8 @@ History:
     D. McMann 10/16/01 Added logic for fields that begin with progress_   
     D. McMann 10/08/02 Added logic for shadow columns and arrays for MS Access                      
     D. McMann 04/23/03 Added logic to check sequence names - support on-line schema
-
+    K. McIntosh 03/04/05 Changed error handling to reject loading a table if one of its 
+                         fields are of an unsupported data-type 20050215-011
 */
 
 /*
@@ -235,8 +236,8 @@ define INPUT PARAMETER param2           as CHARACTER.
 
 define       variable  err-msg as character extent 6 initial [
 /*  1 */ "WARNING: Column &1 is hidden; it cannot be an index component",
-/*  2 */ "ERROR: Datatype &1 is not supported (Object#: &2).",
-/*  3 */ "skipping this field...",
+/*  2 */ "ERROR: Table &1 has unsupported data types.",
+/*  3 */ "       Skipping this table...",
 /*  4 */ " &1 &2 ", /* intentionally left blank for div. error-messages */
 /*  5 */ "WARNING: No index for the RECID &1 field",
 /*  6 */ "WARNING: The Driver sends wrong data about indexes, they cant be build automatically"
@@ -756,6 +757,24 @@ for each gate-work
         assign
           l_dt  = { prodict/odb/odb_typ.i DICTDBG.SQLColumns_buffer.data-type  bug29 }
           m1 = 0.
+
+        IF l_dt = "UNDEFINED" THEN DO:
+          RUN error_handling
+            ( 2, 
+              s_ttb_tbl.ds_name, "" 
+            ).
+          RUN error_handling ( 3, "", "" ).
+
+          FOR EACH s_ttb_fld WHERE s_ttb_fld.ttb_tbl = RECID(s_ttb_tbl):
+            DELETE s_ttb_fld.
+          END.
+          DELETE s_ttb_tbl.
+          CLOSE STORED-PROC DICTDBG.SQLColumns.
+          FOR EACH column-id:
+            DELETE column-id.
+          END.
+          NEXT.
+        END.
 
         if (TRIM(DICTDBG.SQLColumns_buffer.column-name) MATCHES "*##1" OR
             (TRIM(DICTDBG.SQLColumns_buffer.column-name) MATCHES "*__1" ))

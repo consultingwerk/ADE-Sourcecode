@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<dataset Transactions="1"><dataset_header DisableRI="yes" DatasetObj="1004928896.09" DateFormat="mdy" FullHeader="no" SCMManaged="yes" YearOffset="1950" DatasetCode="RYCSO" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="90" NumericSeparator=","/>
-<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" version_date="10/03/2003" version_time="48757" version_user="admin" deletion_flag="no" entity_mnemonic="RYCSO" key_field_value="1000000255.28" record_version_obj="1000000256.28" version_number_seq="9.09" secondary_key_value="gscgcviewv#CHR(1)#0" import_version_number_seq="9.09"><smartobject_obj>1000000255.28</smartobject_obj>
+<dataset Transactions="1"><dataset_header DisableRI="yes" DatasetObj="1004928896.09" DateFormat="mdy" FullHeader="no" SCMManaged="yes" YearOffset="1950" DatasetCode="RYCSO" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="91" NumericSeparator=","/>
+<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" version_date="10/25/2004" version_time="63475" version_user="admin" deletion_flag="no" entity_mnemonic="RYCSO" key_field_value="1000000255.28" record_version_obj="1000000256.28" version_number_seq="11.19" secondary_key_value="gscgcviewv#CHR(1)#0" import_version_number_seq="11.19"><smartobject_obj>1000000255.28</smartobject_obj>
 <object_filename>gscgcviewv</object_filename>
 <customization_result_obj>0</customization_result_obj>
 <object_type_obj>1003498162</object_type_obj>
@@ -558,22 +558,6 @@
 <constant_value>no</constant_value>
 <attribute_label>FieldName</attribute_label>
 <character_value>gsc_global_control.default_nationality_obj</character_value>
-<integer_value>0</integer_value>
-<date_value>?</date_value>
-<decimal_value>0</decimal_value>
-<logical_value>no</logical_value>
-<primary_smartobject_obj>1000000255.28</primary_smartobject_obj>
-<render_type_obj>0</render_type_obj>
-<applies_at_runtime>yes</applies_at_runtime>
-</contained_record>
-<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>125439.9875</attribute_value_obj>
-<object_type_obj>1005111020.101</object_type_obj>
-<container_smartobject_obj>1000000255.28</container_smartobject_obj>
-<smartobject_obj>1000000761.28</smartobject_obj>
-<object_instance_obj>1000000324.28</object_instance_obj>
-<constant_value>no</constant_value>
-<attribute_label>FlagValue</attribute_label>
-<character_value>EN-US</character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
 <decimal_value>0</decimal_value>

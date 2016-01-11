@@ -315,6 +315,7 @@ COMBO_LOOP:
 FOR EACH  ttDCombo
     WHERE ttDCombo.iBuildSequence < 99999
     AND   ttDCombo.hViewer = phViewer
+    AND   ttDCombo.cForEach > ""
     EXCLUSIVE-LOCK
     BY ttDCombo.iBuildSequence:
   ASSIGN ttDCombo.cForEach = REPLACE(ttDCombo.cForEach,CHR(10)," ":U)
@@ -753,6 +754,7 @@ PROCEDURE populateLookups :
   FOR EACH  ttLookup
       WHERE ttLookup.hViewer       = phViewer
       AND   ttLookup.lRefreshQuery = TRUE
+      AND   ttLookup.cForEach      > ""
       EXCLUSIVE-LOCK:
     ASSIGN ttLookup.cForEach = REPLACE(ttLookup.cForEach,CHR(10)," ":U)
            ttLookup.cForEach = REPLACE(ttLookup.cForEach,CHR(12)," ":U)

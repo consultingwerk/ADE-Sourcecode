@@ -161,6 +161,7 @@ DEFINE VARIABLE cCurrentLanguageCode            AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE glViewerTranslated              AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE gcLanguageCodes                 AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcLanguageObjs                  AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE glAbbrUserTable                 AS LOGICAL    NO-UNDO.
 
 /* These are all the temp-tables we need for login */
 
@@ -617,7 +618,14 @@ DO:
       AND VALID-HANDLE(gshSessionManager)
       AND fiLoginName <> "":U
       THEN DO:
-          RUN getLoginUserInfo IN gshSessionManager (OUTPUT TABLE ttLoginUser).
+          IF glAbbrUserTable THEN
+            RUN getAbbreviatedLoginUserInfo IN gshSessionManager 
+              (INPUT 0,
+               INPUT fiLoginName, 
+               OUTPUT TABLE ttLoginUser APPEND).                      
+          ELSE
+            RUN getLoginUserInfo IN gshSessionManager 
+              (OUTPUT TABLE ttLoginUser).
           FIND ttLoginUser
                WHERE ttLoginUser.encoded_user_name = ENCODE(LC(fiLoginName))
                NO-ERROR.
@@ -747,6 +755,11 @@ RUN populateCombos.
 RUN buildTranslations.
 
 APPLY "value-changed":U TO coLanguage IN FRAME {&FRAME-NAME}.
+
+glAbbrUserTable = LOGICAL(DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
+                                          "abbreviatedUserTable":U)).
+IF glAbbrUserTable = ? THEN
+  glAbbrUserTable = YES.
 
 /* Now enable the interface and wait for the exit condition.            *
  * (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */

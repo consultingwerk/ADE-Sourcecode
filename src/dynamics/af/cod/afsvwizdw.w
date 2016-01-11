@@ -138,7 +138,7 @@ DEFINE BUFFER BUFF_C FOR _C.
 
 &Scoped-define ADM-SUPPORTED-LINKS Data-Target,Data-Source,Page-Target,Update-Source,Update-Target
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME diDialog
 
 /* Standard List Definitions                                            */
@@ -2045,6 +2045,7 @@ PROCEDURE validate-save :
 ------------------------------------------------------------------------------*/
 DEFINE VARIABLE cDir           AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE lreplace       AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE cFileName      AS CHARACTER  NO-UNDO.
 
 /* Check that directory is valid */
 
@@ -2084,9 +2085,14 @@ END.
 /* Check whether the file exists for any static object, exclude check for dynamic objects */
  IF LOOKUP(gcObjectType,"DynView,DynBrow,DynSDO":U) = 0 THEN 
  DO:
-    IF SEARCH(fiFullPath:SCREEN-VALUE) > "" THEN
+    /* Append the default extension if no extension is provided */
+    ASSIGN cFileName = fiFullPath:SCREEN-VALUE
+           cFileName = IF NUM-ENTRIES(cFileName,".":U) <= 1
+                       THEN cFileName + ".":U + BUFF_P._FILE-TYPE
+                       ELSE cFileName.
+    IF SEARCH(cFileName) > "" THEN
     DO:
-       MESSAGE fiFullPath:SCREEN-VALUE + " already exists." SKIP
+       MESSAGE cFileName + " already exists." SKIP
                "Do you want to replace it?"
           VIEW-AS ALERT-BOX INFO BUTTONS YES-NO UPDATE lReplace.
        IF NOT lReplace THEN

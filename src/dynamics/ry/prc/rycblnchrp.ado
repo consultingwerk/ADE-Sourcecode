@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<dataset Transactions="1"><dataset_header DisableRI="yes" DatasetObj="1004928896.09" DateFormat="mdy" FullHeader="no" SCMManaged="yes" YearOffset="1950" DatasetCode="RYCSO" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="90" NumericSeparator=","/>
-<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" version_date="09/30/2002" version_time="23757" version_user="admin" deletion_flag="no" entity_mnemonic="rycso" key_field_value="12943.5053" record_version_obj="12944.5053" version_number_seq="2.09" secondary_key_value="rycblnchrp.p#CHR(1)#0" import_version_number_seq="2.09"><smartobject_obj>12943.5053</smartobject_obj>
+<dataset Transactions="1"><dataset_header DisableRI="yes" DatasetObj="1004928896.09" DateFormat="mdy" FullHeader="no" SCMManaged="yes" YearOffset="1950" DatasetCode="RYCSO" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="91" NumericSeparator=","/>
+<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" version_date="08/04/2004" version_time="59035" version_user="admin" deletion_flag="no" entity_mnemonic="rycso" key_field_value="12943.5053" record_version_obj="12944.5053" version_number_seq="4.19" secondary_key_value="rycblnchrp.p#CHR(1)#0" import_version_number_seq="4.19"><smartobject_obj>12943.5053</smartobject_obj>
 <object_filename>rycblnchrp.p</object_filename>
 <customization_result_obj>0</customization_result_obj>
 <object_type_obj>493</object_type_obj>
-<product_module_obj>1000000119.39</product_module_obj>
+<product_module_obj>1004874708.09</product_module_obj>
 <layout_obj>1003516362</layout_obj>
 <object_description>Launch new Container Builder</object_description>
 <object_path>ry/prc</object_path>

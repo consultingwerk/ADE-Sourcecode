@@ -32,10 +32,6 @@
  * possible to open an xcoded file in the UIB. The block will not allow the
  * Opening or Importing of a file which is xcoded (First char ASC 17) - (gfs)
  */
-DEFINE VARIABLE tmpFileName AS CHARACTER  NO-UNDO.
-DEFINE STREAM inline.
-DEFINE STREAM outline.
-
 IF AbortImport NE yes THEN DO:
        
   INPUT STREAM _P_QS FROM VALUE(IF web_file THEN web_temp_file ELSE dot-w-file) {&NO-MAP}.
@@ -103,12 +99,7 @@ IF AbortImport NE yes THEN DO:
       
     CASE adv_choice:
       WHEN "_PWIN":U THEN DO:
-         
-          ASSIGN AbortImport = Yes.
-        IF IMPORT_mode = "WINDOW UNTITLED" THEN DO:
-          RUN StripPosseHdr (INPUT dot-w-file, OUTPUT tmpFileName).
-          IF tmpFileName <> ? THEN dot-w-file = tmpFileName.
-        END.
+        ASSIGN AbortImport = Yes.
         RUN adecomm/_pwmain.p (INPUT "_ab.p":U  /* PW Parent ID */,
                                INPUT (dot-w-file + /* Files to open */
                                      (IF NOT web_file THEN "" ELSE CHR(3) + 
@@ -116,7 +107,6 @@ IF AbortImport NE yes THEN DO:
                                INPUT IF import_mode = "WINDOW UNTITLED":U
                                      THEN "UNTITLED":U 
                                      ELSE ""   /* PW Command      */).
-        IF tmpFileName <> ? THEN OS-DELETE VALUE(tmpFileName).        
         /* Update MRU FileList */
         IF _mru_filelist AND import_mode NE "WINDOW UNTITLED":U THEN
           RUN adeshar/_mrulist.p (INPUT dot-w-file, INPUT IF web_file THEN _BrokerURL ELSE "").
@@ -472,80 +462,6 @@ PROCEDURE connect_dbs:
     IMPORT STREAM _P_QS _inp_line.
   END.  /* while not  end of comment */
 END PROCEDURE.  /* connect to databases */
-/*StripPOSSEHdr:
- * Purpose: read the dot-w-file line by line and if we find the POSSE header
- *          then strip it out and return the name of the tempfile that has
- *          the same dot-w-contents WITHOUT the POSSE header.
- * input parm:  dot-w-file-- filename of file we want to strip header from.
- * output parm: tmpFileName-- IF WE HAD TO STRIP THE HEADER, then this parameter is 
- *                            the filename of temp file that has the contents
- *                            of dot-w-file MINUS the header.
- *                            IF WE DIDN'T have to STRIP THE HEADER, then this
- *                            parameter will be set to ?
- *
- */
-PROCEDURE StripPOSSEHdr:
-    DEFINE INPUT  PARAMETER dot-w-file  AS CHARACTER NO-UNDO.
-    DEFINE OUTPUT PARAMETER tmpFileName AS CHARACTER NO-UNDO.
-
-    DEFINE VARIABLE Line1    AS CHARACTER NO-UNDO INITIAL "<!--------------------------------------------------------------------".
-    DEFINE VARIABLE Line2    AS CHARACTER NO-UNDO INITIAL '* Copyright (C) * by Progress Software Corporation ("PSC")*'.
-    DEFINE VARIABLE Lastline AS CHARACTER NO-UNDO INITIAL "--------------------------------------------------------------------->".
-    DEFINE VARIABLE linestor AS CHARACTER NO-UNDO.
-    DEFINE VARIABLE readline AS CHARACTER NO-UNDO.
-    DEFINE VARIABLE writeline   AS CHARACTER NO-UNDO.
-    DEFINE VARIABLE lFileStripped AS LOGICAL NO-UNDO.
-
-    RUN adecomm/_tmpfile.p ("tmpl":U, ".tmp":U, OUTPUT tmpfilename).
-    
-    INPUT  STREAM inline  FROM VALUE(dot-w-file)  NO-MAP.
-    OUTPUT STREAM outline TO   VALUE(tmpFileName) NO-MAP.
-
-    ASSIGN lFileStripped = NO.
-
-    /* read the dot-w-file line by line looking for first line of POSSE header */
-    READ-CODE:
-    REPEAT :
-      IMPORT STREAM inline UNFORMATTED readline.
-      IF readline = line1 THEN 
-      HDR-STRIP-CHK:
-      DO:
-        ASSIGN linestor = readline.
-        IMPORT STREAM inline UNFORMATTED readline.
-        /* if it doesn't match line2 then it is not the header */
-        IF NOT (readline MATCHES Line2) THEN DO:
-          PUT STREAM outline UNFORMATTED linestor + CHR(10).
-          ASSIGN tmpFileName = ?. /* Header not stripped */
-          LEAVE HDR-STRIP-CHK.
-        END.   /* end if not (readline.. */
-
-        /* if we get here then we have a header to strip */
-        ASSIGN lFileStripped = YES.     
-        HDR-STRIP:
-        REPEAT:
-          IMPORT STREAM inline UNFORMATTED readline.
-          IF readline = Lastline THEN DO:
-            IMPORT STREAM inline UNFORMATTED readline.
-            LEAVE HDR-STRIP.
-          END.  /*end if readline = lastline */
-        END.  /*end hdr-strip repeat */
-      END.  /* end hdr-strip-chk*/
-      PUT STREAM outline UNFORMATTED readline + CHR(10).
-    END. /* end read-code: repeat */
-
-    OUTPUT STREAM outline CLOSE.
-    INPUT  STREAM inline  CLOSE.
-
-    /* If we didn't have to strip the header, then delete the tempfile and
-     * set tmpFileName to ? to signal the calling procedure that tempfile
-     * is not valid.
-     */
-    IF NOT lFileStripped THEN do:
-        OS-DELETE VALUE(tmpFileName). 
-        ASSIGN tmpFileName = ?.
-    END.
-    
-END PROCEDURE. /* StripPOSSEHdr */
 
 /* vrfyimp.i - end of file */
 

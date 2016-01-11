@@ -49,6 +49,7 @@
     DEFINE VARIABLE lApplyTranslations          AS LOGICAL              NO-UNDO.
     DEFINE VARIABLE lApplySecurity              AS LOGICAL              NO-UNDO.
     DEFINE VARIABLE lContainerSecured           AS LOGICAL              NO-UNDO.
+    define variable lGetInitialPages            as logical              no-undo.
         
     DEFINE BUFFER rycso_container   FOR ryc_smartObject.
     define buffer rycso_instance    for ryc_smartObject.
@@ -515,7 +516,8 @@
                    InitPages and/or StartPage attribute, then we use these to construct
                    a list of pages to retrieve initially.
                  */
-                if pcPageList eq '[Init]' then
+                lGetInitialPages = (pcPageList eq '[Init]').
+                if lGetInitialPages then
                 DO:
                     /* clear the list */
                     pcPageList = ''.
@@ -566,6 +568,26 @@
                                     INPUT dContainerInstanceId,                 /* pdContainerInstanceId */
                                     INPUT (IF AVAILABLE rycla THEN rycla.layout_code ELSE "00":U) ) NO-ERROR.
                 IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR (IF RETURN-VALUE EQ "":U THEN ERROR-STATUS:GET-MESSAGE(1) ELSE RETURN-VALUE).
+                
+                /* If the init page list only contains 0 , and there 
+                   is at least one page, add page 1 (or whatever the first page is)
+                   to the list of initial pages.
+                 */
+                if lGetInitialPages and
+                   pcPageList eq '0' and
+                   can-find(first cachePage where
+                                  cachePage.InstanceId = dContainerInstanceId and
+                                  cachePage.PageNumber > 0 ) then
+                do:
+                    find first cachePage where
+                               cachePage.InstanceId = dContainerInstanceId and
+                               cachePage.PageNumber > 0.
+                    /* The can-find above tells us that there
+                       is a page available, so no need to check 
+                       availability.
+                     */
+                    pcPageList = pcPageList + ',' + string (cachePage.PageNumber).
+                end.    /* no start page specified */
             END.    /* available cacheobject */
             
             /* Get all the instances we need. 
